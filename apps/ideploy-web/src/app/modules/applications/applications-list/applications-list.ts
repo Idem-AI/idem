@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
@@ -19,6 +19,12 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
       <h1 class="text-2xl font-bold">{{ 'applications.list.title' | translate }}</h1>
       <button class="inner-button" (click)="creating.set(!creating())">{{ (creating() ? 'applications.list.cancel' : 'applications.list.newApplication') | translate }}</button>
     </div>
+
+    @if (cleanupFailed) {
+      <p class="glass-card mb-6 p-4 text-sm" role="alert" style="color:var(--color-warning);">
+        {{ 'applications.list.cleanupFailed' | translate }}
+      </p>
+    }
 
     @if (creating()) {
       <form class="glass-card p-4 mb-6 max-w-2xl space-y-3" [formGroup]="form" (ngSubmit)="create()">
@@ -84,6 +90,9 @@ export class ApplicationsListComponent implements OnInit {
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private translate = inject(TranslateService);
+
+  /** Set after a deletion whose record is gone but whose server could not be cleaned. */
+  protected readonly cleanupFailed = inject(ActivatedRoute).snapshot.queryParamMap.get('cleanup') === 'failed';
 
   protected readonly applications = signal<Application[]>([]);
   protected readonly loading = signal(true);

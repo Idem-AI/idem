@@ -4,7 +4,9 @@
  * (create / list / get / env vars). Deployment lives in deployment.service.
  */
 import { randomUUID } from 'crypto';
-import pool from '../config/db.config';
+import pool, { withTransaction } from '../config/db.config';
+import logger from '../config/logger';
+import { conflict } from '../utils/errors';
 import { assertDomainsAvailable, generateFqdn, getServerForDestination, subdomainSlug } from './domain.service';
 import { ApplicationRow } from '../models/ideploy.types';
 import * as serverService from './server.service';
@@ -270,6 +272,95 @@ export async function listPreviews(teamId: number, uuid: string): Promise<Record
     [app.id]
   );
   return rows;
+}
+
+/** Morph type Laravel stores for an application in polymorphic tables. */
+const APP_MODEL = 'App\\Models\\Application';
+
+export type ServerCleanup = 'done' | 'failed' | 'skipped';
+
+/**
+ * Stop the application's stack, drop its volumes and remove its working
+ * directory on the server. Best-effort: an unreachable server must not keep a
+ * record alive forever, but the caller is told so it can say what is left.
+ */
+async function teardownOnServer(teamId: number, app: ApplicationRow): Promise<ServerCleanup> {
+  const serverRef = await getApplicationServer(app.id);
+  if (!serverRef) return 'skipped';
+
+  try {
+    const server = await serverService.getServerById(teamId, serverRef.serverId);
+    if (!server) return 'skipped';
+    const key = await serverService.getPrivateKey(teamId, server.private_key_id);
+    if (!key) return 'failed';
+
+    const workdir = appWorkdir(app);
+    const result = await executeRemoteCommand(
+      server,
+      key,
+      `if [ -d ${workdir} ]; then cd ${workdir} && docker compose down --volumes --remove-orphans; cd / && rm -rf ${workdir}; fi`
+    );
+    if (result.exitCode !== 0) {
+      logger.warn('Application teardown failed on server', { uuid: app.uuid, stderr: result.stderr });
+      return 'failed';
+    }
+    return 'done';
+  } catch (err) {
+    logger.warn('Application teardown failed on server', { uuid: app.uuid, message: (err as Error).message });
+    return 'failed';
+  }
+}
+
+/**
+ * Delete an application: its containers and volumes on the server, then every
+ * row that points at it. Tables with a foreign key cascade on their own; the
+ * polymorphic ones (env vars, volumes, tags, certificates) and the unkeyed
+ * ones have to be cleared by hand or they outlive the application.
+ *
+ * Refused while a deployment is queued or running: the worker would otherwise
+ * recreate the containers of an application that no longer exists.
+ */
+export async function deleteApplication(
+  teamId: number,
+  uuid: string
+): Promise<{ serverCleanup: ServerCleanup } | null> {
+  const app = await getApplication(teamId, uuid);
+  if (!app) return null;
+
+  const { rows: active } = await pool.query(
+    `SELECT 1 FROM application_deployment_queues
+     WHERE application_id = $1 AND status IN ('queued', 'in_progress') LIMIT 1`,
+    [String(app.id)]
+  );
+  if (active[0]) {
+    throw conflict(
+      'DEPLOYMENT_IN_PROGRESS',
+      'A deployment is running for this application. Wait for it to finish or cancel it, then delete.'
+    );
+  }
+
+  const serverCleanup = await teardownOnServer(teamId, app);
+
+  await withTransaction(async (client) => {
+    const id = app.id;
+    await client.query('DELETE FROM environment_variables WHERE resourceable_type = $1 AND resourceable_id = $2', [APP_MODEL, id]);
+    await client.query('DELETE FROM local_persistent_volumes WHERE resource_type = $1 AND resource_id = $2', [APP_MODEL, id]);
+    await client.query('DELETE FROM local_file_volumes WHERE resource_type = $1 AND resource_id = $2', [APP_MODEL, id]);
+    await client.query('DELETE FROM ssl_certificates WHERE resource_type = $1 AND resource_id = $2', [APP_MODEL, id]);
+    await client.query('DELETE FROM taggables WHERE taggable_type = $1 AND taggable_id = $2', [APP_MODEL, id]);
+    await client.query(
+      'DELETE FROM scheduled_task_executions WHERE scheduled_task_id IN (SELECT id FROM scheduled_tasks WHERE application_id = $1)',
+      [id]
+    );
+    await client.query('DELETE FROM scheduled_tasks WHERE application_id = $1', [id]);
+    await client.query('DELETE FROM application_previews WHERE application_id = $1', [id]);
+    await client.query('DELETE FROM application_settings WHERE application_id = $1', [id]);
+    await client.query('DELETE FROM application_deployment_queues WHERE application_id = $1', [String(id)]);
+    await client.query('DELETE FROM applications WHERE id = $1', [id]);
+  });
+
+  logger.info('Application deleted', { uuid, teamId, serverCleanup });
+  return { serverCleanup };
 }
 
 /** Run a docker compose lifecycle action (start/stop/restart) over SSH. */
