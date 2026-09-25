@@ -16,10 +16,10 @@
 :host {
   /* Scroll distance a section occupies. One gesture covers it whole, so this
      is really about how the section reads on the scrollbar. */
-  --jn-step: 52svh;
-  /* Intro + 8 stages + outro. Set from the component at runtime too, so this
-     stays a fallback rather than a second source of truth. */
-  --jn-count: 10;
+  --jn-step: 64svh;
+  /* Intro + 9 chapters + outro. Set from the component at runtime too, so
+     this stays a fallback rather than a second source of truth. */
+  --jn-count: 11;
 
   /* Dark is the default: this band is a lit room with screens in it. */
   --jn-base: oklch(0.155 0.022 265);
@@ -73,7 +73,7 @@
 
 @media (min-width: 768px) {
   :host {
-    --jn-step: 58svh;
+    --jn-step: 76svh;
   }
 }
 
@@ -113,6 +113,12 @@
   will-change: transform, opacity;
 }
 
+/* Promote the blurred backdrop so its parallax is a compositor move rather
+   than a repaint of the filter. */
+.jn-slide.is-near .jn-bg {
+  will-change: transform;
+}
+
 .jn-slide.is-current {
   pointer-events: auto;
 }
@@ -129,10 +135,14 @@
 
 /* ── Ambient backdrop ───────────────────────────────────────── */
 
+/* The parallax rides the wrapper, never the blurred bitmap: transforming a
+   filtered image re-rasterizes the blur on every frame, which was by far the
+   most expensive thing this section did while scrolling. */
 .jn-bg {
   position: absolute;
   inset: -6%;
   overflow: hidden;
+  transform: translate3d(0, calc(var(--s) * var(--w) * 3svh), 0);
 }
 
 /* Blur a quarter-scale raster, then upscale it: same softness, a
@@ -143,7 +153,7 @@
   object-fit: cover;
   object-position: center;
   transform-origin: 0 0;
-  transform: scale(calc(4 + 0.2 * var(--w)));
+  transform: scale(4);
   filter: var(--jn-ambient-filter);
   opacity: var(--jn-ambient-opacity);
 }
@@ -156,21 +166,11 @@
     linear-gradient(0deg, var(--jn-veil-floor) 0%, transparent 40%);
 }
 
-.jn-veil-center {
-  background:
-    radial-gradient(110% 85% at 50% 42%, var(--jn-veil-3) 0%, var(--jn-veil-1) 100%),
-    linear-gradient(0deg, var(--jn-veil-floor) 0%, transparent 45%);
-}
-
-.jn-veil-done {
-  background:
-    radial-gradient(
-      70% 55% at 50% 55%,
-      color-mix(in oklch, var(--jn-done) 13%, transparent) 0%,
-      transparent 72%
-    ),
-    radial-gradient(110% 85% at 50% 42%, var(--jn-veil-3) 0%, var(--jn-veil-1) 100%),
-    linear-gradient(0deg, var(--jn-veil-floor) 0%, transparent 45%);
+/* The closing chapter sits on a plain surface: no ambient photograph behind
+   it, so nothing bleeds through from the chapter before and the illustration
+   is the only thing on screen that asks to be looked at. */
+.jn-veil-final {
+  background: var(--jn-base);
 }
 
 /* ── Slide shell ────────────────────────────────────────────── */
@@ -190,30 +190,11 @@
     clamp(2.5rem, 6vh, 3.75rem);
 }
 
-.jn-slide-center .jn-inner {
-  align-items: center;
-  text-align: center;
-}
-
-.jn-copy,
-.jn-media,
-.jn-lede {
-  min-width: 0;
-}
-
 /* Copy rides the short window and travels a little further than the scene:
    it clears the frame before the next section's copy fades in. */
-.jn-lede,
 .jn-copy {
   opacity: var(--t);
   transform: translate3d(0, calc(var(--s) * var(--tw) * -5svh), 0);
-}
-
-.jn-lede {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(0.9rem, 2.2vh, 1.6rem);
 }
 
 /* Product shot lags the plane slightly: that difference is what reads as depth. */
@@ -223,50 +204,23 @@
 
 /* ── Opening & closing sections ─────────────────────────────── */
 
-.jn-hero {
-  margin: 0;
-  max-width: 26ch;
-  font-size: clamp(1.9rem, 4.6vw, 3.5rem);
-  font-weight: 700;
-  line-height: 1.12;
+/* The opening frame announces itself and nothing else: one very large label,
+   so the reader knows immediately that what follows is a worked example
+   rather than a feature list. */
+.jn-intro-title {
+  margin: 0 0 clamp(0.9rem, 2.4vh, 1.5rem);
+  font-size: clamp(2.5rem, 7.2vw, 6rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
   text-wrap: balance;
   color: var(--jn-ink);
 }
 
-.jn-hero-done {
-  max-width: 30ch;
-  font-size: clamp(1.6rem, 3.6vw, 2.75rem);
-}
-
-.jn-quote {
-  margin: 0;
-  max-width: 40ch;
-}
-
-.jn-quote p {
-  margin: 0;
-  font-size: clamp(1.05rem, 1.9vw, 1.4rem);
-  font-weight: 300;
-  line-height: 1.5;
-  color: var(--jn-ink-soft);
-  text-wrap: balance;
-}
-
-.jn-quote cite {
-  display: block;
-  margin-top: 0.6rem;
-  font-size: 0.85rem;
-  font-style: normal;
-  color: var(--jn-ink-mute);
-}
-
-.jn-lead {
-  margin: 0;
-  max-width: 56ch;
-  font-size: clamp(1rem, 1.3vw, 1.18rem);
-  line-height: 1.7;
-  color: var(--jn-ink-mute);
-  text-wrap: pretty;
+.jn-intro-body {
+  max-width: 34ch;
+  font-size: clamp(1rem, 1.35vw, 1.2rem);
 }
 
 /* Anchored to the bottom edge so it never fights the centred lede. */
@@ -300,22 +254,6 @@
     transform: translateY(3px);
     opacity: 1;
   }
-}
-
-.jn-done-mark {
-  display: grid;
-  place-items: center;
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 9999px;
-  border: 1px solid color-mix(in oklch, var(--jn-done) 40%, transparent);
-  background: color-mix(in oklch, var(--jn-done) 11%, transparent);
-  color: var(--jn-done);
-}
-
-.jn-done-mark svg {
-  width: 1.9rem;
-  height: 1.9rem;
 }
 
 /* ── Stage sections: copy beside the product ────────────────── */
@@ -352,26 +290,6 @@
   .jn-inner {
     padding-right: clamp(3.5rem, 4vw, 5rem);
   }
-}
-
-.jn-meta {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  margin: 0 0 0.7rem;
-}
-
-.jn-meta-index {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--jn-ink-mute);
-}
-
-.jn-meta-step {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--jn-mark);
 }
 
 .jn-title {
@@ -587,6 +505,115 @@
   background: var(--jn-mark);
 }
 
+
+/* ── Closing chapter: the loop closes ───────────────────────── */
+
+/* Wider copy column than a stage: this one is a statement, not a caption. */
+@media (min-width: 1024px), (min-width: 720px) and (max-height: 620px) {
+  .jn-slide-final .jn-inner-split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: 0;
+    padding-right: 0;
+    overflow: visible;
+  }
+
+  /* Remove the rail padding reserve so the image bleeds to the right edge */
+  .jn-slide-final .jn-inner {
+    padding-right: 0;
+    overflow: visible;
+  }
+}
+
+.jn-title-final {
+  font-size: clamp(1.8rem, 3.6vw, 3rem);
+  max-width: 16ch;
+}
+
+.jn-caption-final {
+  max-width: 40ch;
+}
+
+/* ── Final / intro illustration ─────────────────────────────
+   The image must always be fully visible — never clipped.
+   .jn-stage has overflow:hidden so we rely on that for edge
+   clipping and keep overflow:visible here. */
+
+/* ── Mobile-first base (< 640px) ───────────────────────────
+   Layout: flex column (copy on top, image below).
+   The image must fit in the remaining space below the copy. */
+.jn-final-art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 0;
+  margin: 0;
+  overflow: visible;
+  transform: translate3d(0, calc(var(--s) * var(--w) * 2svh), 0);
+}
+
+.jn-final-img {
+  display: block;
+  width: auto;
+  height: auto;
+  /* Small screens: cap height so text + image both fit in the slide */
+  max-height: 36svh;
+  max-width: 90vw;
+  object-fit: contain;
+}
+
+/* ── Tablet (640px – 1023px) ────────────────────────────────
+   Still a stacked column, but more vertical room. */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .jn-final-art {
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .jn-final-img {
+    max-height: 44svh;
+    max-width: 80vw;
+  }
+}
+
+/* The illustration bleeds to the right edge on wide screens, so the scroll
+   hint moves out from under it and sits below the copy column instead. */
+@media (min-width: 1024px) {
+  .jn-hint {
+    left: clamp(1.25rem, 5vw, 3.25rem);
+    transform: translate3d(0, calc(var(--s) * var(--tw) * -5svh), 0);
+  }
+}
+
+/* ── Desktop (≥ 1024px) ─────────────────────────────────────
+   Two-column grid: copy left, image right.
+   Pull the figure to the right wall of the stage (negative
+   margin cancels the inner padding on the right side only).
+   No vertical clipping: max-height keeps the image inside
+   the 100svh stage. */
+@media (min-width: 1024px) {
+  .jn-final-art {
+    align-items: flex-end;
+    justify-content: flex-end;
+    height: 100%;
+    margin-right: calc(-1 * clamp(1.25rem, 5vw, 3.25rem));
+  }
+
+  .jn-final-img {
+    max-height: 82svh;
+    max-width: none;
+    object-position: bottom right;
+  }
+}
+
+/* ── Wide desktop (≥ 1280px) ────────────────────────────────
+   A little more room — image can breathe more. */
+@media (min-width: 1280px) {
+  .jn-final-img {
+    max-height: 86svh;
+  }
+}
+
 /* ── Section rail ───────────────────────────────────────────── */
 
 .jn-rail {
@@ -714,7 +741,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .jn-slide,
-  .jn-lede,
   .jn-copy,
   .jn-media {
     transform: none;
@@ -724,8 +750,8 @@
     transform: translateX(-50%);
   }
 
-  .jn-bg-img {
-    transform: scale(4);
+  .jn-bg {
+    transform: none;
   }
 
   .jn-shot,
@@ -741,4 +767,9 @@
   .jn-hint-arrow {
     animation: none;
   }
+
+  .jn-final-art {
+    transform: none;
+  }
+
 }

@@ -41,13 +41,17 @@ export const pemPrivateKey = z
   );
 
 /** IPv4/IPv6 address or resolvable hostname — servers may be reached by either. */
+const IPV4_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
+const IPV6_RE = /^([\da-fA-F]{0,4}:){2,7}[\da-fA-F]{0,4}$/;
+const HOSTNAME_RE = /^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$/;
+
 export const hostAddress = z
   .string()
   .trim()
   .min(1, 'A host address is required.')
   .max(255)
   .refine(
-    (v) => z.union([z.ipv4(), z.ipv6()]).safeParse(v).success || /^[a-zA-Z0-9.-]+$/.test(v),
+    (v) => IPV4_RE.test(v) || IPV6_RE.test(v) || HOSTNAME_RE.test(v),
     'Enter a valid IP address or hostname.'
   );
 
