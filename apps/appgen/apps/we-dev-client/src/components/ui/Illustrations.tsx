@@ -241,54 +241,235 @@ export function ProductMockIllustration({ className = '' }: { className?: string
   );
 }
 
+/**
+ * Les scènes des sections de la page d'accueil.
+ *
+ * Elles occupent une colonne entière, pas une vignette : le tracé est pensé à
+ * cette échelle (viewBox de 360 de large) pour que le trait garde son poids
+ * de 1,5 à 2 px à l'écran au lieu de s'épaissir par agrandissement. La
+ * largeur suit le conteneur, la hauteur suit le ratio.
+ */
+interface SceneProps {
+  className?: string;
+}
+
+const scene = (className: string) => `w-full h-auto text-text-tertiary ${className}`;
+
 /** Chaque projet reçoit une direction visuelle distincte. */
-export function ArtDirectionIllustration({ size = 76 }: IllustrationProps) {
+export function ArtDirectionIllustration({ className = '' }: SceneProps) {
   return (
-    <svg viewBox="0 0 96 76" style={{ height: size }} className="text-text-tertiary" role="img" aria-hidden>
-      {/* Trois mises en page franchement différentes, pas trois variantes */}
-      <rect x="4" y="8" width="26" height="60" rx="2" {...stroke} />
-      <path d="M9 18h16M9 26h12" {...stroke} />
-      <rect x="9" y="36" width="16" height="24" rx="1" fill="currentColor" opacity=".18" />
+    <svg viewBox="0 0 360 240" className={scene(className)} role="img" aria-hidden>
+      {/* Éditorial : angles vifs, titre lourd, texte en colonnes */}
+      <rect x="24" y="44" width="96" height="160" rx="3" {...stroke} />
+      <path d="M24 60h96" {...stroke} />
+      <rect x="34" y="72" width="70" height="8" rx="1" fill="currentColor" opacity=".35" />
+      <rect x="34" y="86" width="52" height="8" rx="1" fill="currentColor" opacity=".35" />
+      <path d="M34 104h76" {...stroke} />
+      <path d="M34 114h32M34 121h32M34 128h32M34 135h24M78 114h32M78 121h32M78 128h32M78 135h20" {...stroke} opacity=".4" />
+      <rect x="34" y="146" width="76" height="46" fill="currentColor" opacity=".16" />
 
-      <rect x="35" y="8" width="26" height="60" rx="9" {...stroke} className="text-primary" />
-      <circle cx="48" cy="26" r="8" {...stroke} className="text-primary" />
-      <path d="M40 44h16M40 52h10" {...stroke} className="text-primary" />
+      {/* Doux : formes arrondies, avatar, bouton en pilule — la direction retenue */}
+      <rect x="132" y="24" width="96" height="192" rx="18" {...stroke} className="text-primary" />
+      <rect x="144" y="40" width="72" height="12" rx="6" {...stroke} className="text-primary" />
+      <circle cx="180" cy="86" r="18" {...stroke} className="text-primary" />
+      <circle cx="180" cy="81" r="6" {...stroke} className="text-primary" />
+      <path d="M169 97a12 12 0 0122 0" {...stroke} className="text-primary" />
+      <rect x="152" y="116" width="56" height="5" rx="2.5" fill="var(--color-primary)" opacity=".5" />
+      <rect x="160" y="127" width="40" height="5" rx="2.5" fill="var(--color-primary)" opacity=".3" />
+      <rect x="144" y="144" width="72" height="30" rx="10" {...stroke} className="text-primary" />
+      <rect x="156" y="186" width="48" height="14" rx="7" fill="var(--color-primary)" opacity=".85" />
 
-      <rect x="66" y="8" width="26" height="60" rx="0" {...stroke} />
-      <rect x="66" y="8" width="26" height="22" fill="currentColor" opacity=".22" />
-      <path d="M71 40h16M71 48h16M71 56h8" {...stroke} />
+      {/* Brut : bandeau plein, grille carrée, aucun arrondi */}
+      <rect x="240" y="44" width="96" height="160" rx="0" {...stroke} />
+      <rect x="240" y="44" width="96" height="44" fill="currentColor" opacity=".22" />
+      <rect x="250" y="58" width="58" height="10" fill="currentColor" opacity=".5" />
+      <rect x="250" y="98" width="36" height="36" {...stroke} />
+      <rect x="290" y="98" width="36" height="36" fill="currentColor" opacity=".16" />
+      <rect x="250" y="138" width="36" height="36" fill="currentColor" opacity=".16" />
+      <rect x="290" y="138" width="36" height="36" {...stroke} />
+      <path d="M250 188h76" {...stroke} />
     </svg>
   );
 }
 
-/** Le contraste est mesuré, pas espéré. */
-export function ContrastIllustration({ size = 76 }: IllustrationProps) {
+/** On corrige au clic, dans l'aperçu, et la correction atterrit dans le code. */
+export function VisualEditIllustration({ className = '' }: SceneProps) {
   return (
-    <svg viewBox="0 0 96 76" style={{ height: size }} className="text-text-tertiary" role="img" aria-hidden>
-      <circle cx="30" cy="30" r="20" {...stroke} />
-      <path d="M30 10a20 20 0 010 40z" fill="currentColor" opacity=".8" />
-      <rect x="58" y="16" width="34" height="10" rx="5" fill="currentColor" opacity=".2" />
-      <rect x="58" y="32" width="24" height="10" rx="5" fill="currentColor" opacity=".2" />
-      {/* Le verdict chiffré : c'est lui qui fait la différence */}
-      <rect x="14" y="58" width="68" height="14" rx="7" className="text-success" {...stroke} />
-      <path d="M24 65l4 4 7-8" {...stroke} className="text-success" />
-      <path d="M42 65h30" {...stroke} className="text-success" opacity=".6" />
+    <svg viewBox="0 0 360 240" className={scene(className)} role="img" aria-hidden>
+      {/* L'aperçu */}
+      <rect x="16" y="20" width="232" height="168" rx="10" {...stroke} />
+      <path d="M16 44h232" {...stroke} />
+      <circle cx="30" cy="32" r="2.4" fill="currentColor" opacity=".45" />
+      <circle cx="40" cy="32" r="2.4" fill="currentColor" opacity=".3" />
+      <circle cx="50" cy="32" r="2.4" fill="currentColor" opacity=".3" />
+      <rect x="36" y="60" width="120" height="10" rx="5" fill="currentColor" opacity=".28" />
+
+      {/* Le texte sélectionné, en cours d'écriture */}
+      <rect x="30" y="82" width="176" height="36" rx="4" {...stroke} className="text-primary" strokeDasharray="4 3" />
+      <rect x="38" y="91" width="150" height="6" rx="3" fill="var(--color-primary)" opacity=".55" />
+      <rect x="38" y="103" width="106" height="6" rx="3" fill="var(--color-primary)" opacity=".35" />
+      <path d="M150 100v12" {...stroke} strokeWidth={2} className="text-primary" />
+      {[
+        [30, 82],
+        [206, 82],
+        [30, 118],
+        [206, 118],
+      ].map(([cx, cy]) => (
+        <rect
+          key={`${cx}-${cy}`}
+          x={cx - 3}
+          y={cy - 3}
+          width="6"
+          height="6"
+          rx="1"
+          fill="var(--idem-surface-1)"
+          {...stroke}
+          className="text-primary"
+        />
+      ))}
+
+      <rect x="36" y="134" width="80" height="40" rx="6" fill="currentColor" opacity=".14" />
+      <rect x="128" y="136" width="56" height="8" rx="4" fill="currentColor" opacity=".16" />
+      <rect x="128" y="152" width="44" height="8" rx="4" fill="currentColor" opacity=".12" />
+
+      {/* Le curseur */}
+      <path d="M186 106l19.6 22.4-7 1.4-4.2 11.2-8.4-19.6z" fill="currentColor" />
+
+      {/* La ligne du code source qui a changé */}
+      <path d="M210 100h58a10 10 0 0110 10v18" {...stroke} strokeDasharray="4 4" className="text-primary" />
+      <path d="M273 124l5 5 5-5" {...stroke} className="text-primary" />
+      <rect x="196" y="134" width="150" height="92" rx="10" fill="var(--idem-surface-1)" {...stroke} />
+      <path d="M214 146l-5 5 5 5M224 146l5 5-5 5" {...stroke} />
+      <rect x="210" y="168" width="60" height="5" rx="2.5" fill="currentColor" opacity=".22" />
+      <rect x="204" y="180" width="134" height="14" rx="4" fill="var(--color-primary)" opacity=".12" />
+      <rect x="216" y="184.5" width="96" height="5" rx="2.5" fill="var(--color-primary)" opacity=".75" />
+      <rect x="216" y="202" width="80" height="5" rx="2.5" fill="currentColor" opacity=".16" />
+      <rect x="210" y="214" width="44" height="5" rx="2.5" fill="currentColor" opacity=".16" />
     </svg>
   );
 }
 
-/** On corrige au clic, dans l'aperçu. */
-export function VisualEditIllustration({ size = 76 }: IllustrationProps) {
+/**
+ * Le code part sur iDeploy après vérification, et reste un paquet standard
+ * qui se remonte sur n'importe quel serveur.
+ */
+export function SovereignDeployIllustration({ className = '' }: SceneProps) {
   return (
-    <svg viewBox="0 0 96 76" style={{ height: size }} className="text-text-tertiary" role="img" aria-hidden>
-      <rect x="6" y="8" width="84" height="46" rx="5" {...stroke} />
-      <rect x="16" y="20" width="40" height="8" rx="4" fill="currentColor" opacity=".22" />
-      {/* Élément sélectionné */}
-      <rect x="16" y="34" width="46" height="12" rx="3" {...stroke} className="text-primary" strokeDasharray="3 2" />
-      <rect x="16" y="37" width="30" height="6" rx="3" fill="var(--color-primary)" opacity=".55" />
-      {/* Curseur */}
-      <path d="M56 44l14 16-5 1-3 8-6-14z" fill="currentColor" />
-      <path d="M28 64h40" {...stroke} opacity=".35" />
+    <svg viewBox="16 56 336 172" className={scene(className)} role="img" aria-hidden>
+      {/* Le code généré */}
+      <path d="M28 94l24-12 24 12v30l-24 12-24-12z" {...stroke} />
+      <path d="M28 94l24 12 24-12M52 106v30" {...stroke} />
+
+      {/* Les étapes vérifiées */}
+      <path d="M84 110h22" {...stroke} strokeDasharray="4 4" />
+      {[108, 160, 212].map((x) => (
+        <g key={x} className="text-primary">
+          <rect x={x} y="94" width="32" height="32" rx="7" {...stroke} />
+          <path d={`M${x + 9} 110l5 5 9-10`} {...stroke} />
+        </g>
+      ))}
+      <path d="M140 110h20M192 110h20M244 110h16" {...stroke} strokeDasharray="4 4" />
+
+      {/* iDeploy */}
+      {[64, 98, 132].map((y) => (
+        <g key={y} className="text-primary">
+          <rect x="264" y={y} width="80" height="28" rx="6" {...stroke} />
+          <circle cx="277" cy={y + 14} r="2.6" fill="currentColor" />
+          <path d={`M300 ${y + 14}h32`} {...stroke} opacity=".5" />
+        </g>
+      ))}
+      <path d="M304 160v20M284 180h40" {...stroke} />
+
+      {/* Ailleurs : le même paquet tourne sur un autre serveur */}
+      <path d="M52 144v38a8 8 0 008 8h40" {...stroke} strokeDasharray="4 4" />
+      <path d="M96 185l5 5-5 5" {...stroke} />
+      {[178, 202].map((y) => (
+        <g key={y}>
+          <rect x="108" y={y} width="72" height="20" rx="5" {...stroke} />
+          <circle cx="119" cy={y + 10} r="2.2" fill="currentColor" opacity=".6" />
+          <path d={`M134 ${y + 10}h34`} {...stroke} opacity=".35" />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+/** Point d'entrée 1 : une phrase devient une application. */
+export function EntryPromptIllustration({ className = '' }: SceneProps) {
+  return (
+    <svg viewBox="0 0 360 200" className={scene(className)} role="img" aria-hidden>
+      {/* La phrase */}
+      <rect x="16" y="56" width="152" height="88" rx="16" {...stroke} />
+      <rect x="32" y="74" width="112" height="6" rx="3" fill="currentColor" opacity=".35" />
+      <rect x="32" y="88" width="84" height="6" rx="3" fill="currentColor" opacity=".2" />
+      <path d="M121 86v10" {...stroke} className="text-primary" />
+      <path d="M30 126h8M34 122v8" {...stroke} opacity=".5" />
+      <circle cx="148" cy="126" r="9" fill="var(--color-primary)" opacity=".9" />
+      <path d="M148 130v-8M144.5 125.5l3.5-3.5 3.5 3.5" {...stroke} stroke="var(--idem-surface-1)" />
+
+      <path d="M178 100h26" {...stroke} strokeDasharray="4 4" className="text-primary" />
+      <path d="M200 95l5 5-5 5" {...stroke} className="text-primary" />
+
+      {/* L'application générée */}
+      <rect x="216" y="24" width="128" height="152" rx="10" {...stroke} />
+      <path d="M216 44h128" {...stroke} />
+      <circle cx="227" cy="34" r="2.2" fill="currentColor" opacity=".45" />
+      <circle cx="235" cy="34" r="2.2" fill="currentColor" opacity=".3" />
+      <circle cx="243" cy="34" r="2.2" fill="currentColor" opacity=".3" />
+      <rect x="228" y="56" width="104" height="44" rx="7" {...stroke} className="text-primary" />
+      <path d="M240 90l14-14 10 10 8-8 14 12" {...stroke} className="text-primary" />
+      <rect x="228" y="112" width="80" height="6" rx="3" fill="currentColor" opacity=".3" />
+      <rect x="228" y="124" width="60" height="6" rx="3" fill="currentColor" opacity=".18" />
+      <rect x="228" y="144" width="46" height="18" rx="9" fill="var(--color-primary)" opacity=".85" />
+      <rect x="282" y="144" width="42" height="18" rx="9" {...stroke} />
+    </svg>
+  );
+}
+
+/** Point d'entrée 2 : les livrables Idem alimentent la génération. */
+export function EntryProjectIllustration({ className = '' }: SceneProps) {
+  return (
+    <svg viewBox="0 0 360 200" className={scene(className)} role="img" aria-hidden>
+      {/* Business plan */}
+      <rect x="16" y="16" width="104" height="48" rx="7" {...stroke} />
+      <path d="M30 54V44M42 54V36M54 54V40M66 54V28" {...stroke} strokeWidth={5} opacity=".3" />
+      <rect x="80" y="30" width="28" height="4" rx="2" fill="currentColor" opacity=".3" />
+      <rect x="80" y="40" width="20" height="4" rx="2" fill="currentColor" opacity=".2" />
+
+      {/* Charte graphique */}
+      <rect x="16" y="76" width="104" height="48" rx="7" {...stroke} />
+      <circle cx="36" cy="100" r="10" fill="var(--color-primary)" opacity=".85" />
+      <circle cx="60" cy="100" r="10" fill="currentColor" opacity=".35" />
+      <circle cx="84" cy="100" r="10" {...stroke} />
+      <path d="M100 94h10M100 104h6" {...stroke} opacity=".4" />
+
+      {/* Diagrammes */}
+      <rect x="16" y="136" width="104" height="48" rx="7" {...stroke} />
+      <rect x="28" y="146" width="22" height="12" rx="2" {...stroke} />
+      <rect x="84" y="146" width="22" height="12" rx="2" {...stroke} />
+      <rect x="56" y="164" width="22" height="12" rx="2" {...stroke} />
+      <path d="M50 152h34M67 152v12" {...stroke} opacity=".6" />
+
+      {/* Tout converge */}
+      <path
+        d="M126 40c40 0 40 60 78 60M126 100h78M126 160c40 0 40-60 78-60"
+        {...stroke}
+        strokeDasharray="4 4"
+        className="text-primary"
+      />
+      <path d="M200 95l5 5-5 5" {...stroke} className="text-primary" />
+
+      {/* Le code, aligné sur la marque */}
+      <rect x="216" y="30" width="128" height="140" rx="10" {...stroke} className="text-primary" />
+      <path d="M216 50h128" {...stroke} className="text-primary" />
+      <path d="M232 36l-4 4 4 4M242 36l4 4-4 4" {...stroke} className="text-primary" />
+      <rect x="230" y="64" width="44" height="5" rx="2.5" fill="var(--color-primary)" opacity=".6" />
+      <rect x="240" y="78" width="80" height="5" rx="2.5" fill="currentColor" opacity=".25" />
+      <rect x="240" y="92" width="60" height="5" rx="2.5" fill="currentColor" opacity=".25" />
+      <rect x="250" y="106" width="70" height="5" rx="2.5" fill="currentColor" opacity=".18" />
+      <rect x="240" y="120" width="44" height="5" rx="2.5" fill="currentColor" opacity=".25" />
+      <rect x="230" y="134" width="28" height="5" rx="2.5" fill="var(--color-primary)" opacity=".6" />
+      <rect x="230" y="150" width="90" height="5" rx="2.5" fill="currentColor" opacity=".16" />
     </svg>
   );
 }
