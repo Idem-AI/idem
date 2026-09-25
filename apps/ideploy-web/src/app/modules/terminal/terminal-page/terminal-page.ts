@@ -37,7 +37,7 @@ type TargetKind = 'server' | 'application';
       style="color:var(--color-text-secondary);"
       [routerLink]="backLink()"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'terminal.back' | translate }}
     </a>
 
@@ -55,9 +55,9 @@ type TargetKind = 'server' | 'application';
           <span aria-hidden="true">●</span> {{ 'terminal.status.' + status() | translate }}
         </span>
         @if (status() === 'closed' || status() === 'error') {
-          <button class="button" (click)="connect()">{{ 'terminal.reconnect' | translate }}</button>
+          <button class="inner-button" (click)="connect()">{{ 'terminal.reconnect' | translate }}</button>
         } @else {
-          <button class="button-secondary" (click)="disconnect()">{{ 'terminal.disconnect' | translate }}</button>
+          <button class="outer-button" (click)="disconnect()">{{ 'terminal.disconnect' | translate }}</button>
         }
       </div>
     </div>

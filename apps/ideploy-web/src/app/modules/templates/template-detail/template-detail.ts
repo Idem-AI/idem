@@ -29,14 +29,14 @@ import {
     @if (loading()) {
       <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'services.loading' | translate }}</p>
     } @else if (!template()) {
-      <div class="box">
+      <div class="glass-card p-4">
         <p class="mb-3">{{ 'templates.notFound' | translate }}</p>
-        <a class="button-secondary" routerLink="/templates">{{ 'templates.backToBrowse' | translate }}</a>
+        <a class="outer-button" routerLink="/templates">{{ 'templates.backToBrowse' | translate }}</a>
       </div>
     } @else {
       <div class="mb-4">
         <a class="text-sm hover:underline" style="color: var(--color-text-secondary)" routerLink="/templates">
-          <i class="fa-solid fa-arrow-left mr-1"></i>{{ 'templates.backToBrowse' | translate }}
+          <i class="pi pi-arrow-left mr-1"></i>{{ 'templates.backToBrowse' | translate }}
         </a>
       </div>
 
@@ -46,19 +46,19 @@ import {
             @if (logo(); as l) {
               <img [src]="l" class="h-8 w-8 object-contain" alt="" (error)="onLogoError($event)" />
             } @else {
-              <i class="fa-solid fa-cube text-xl" style="color:var(--color-primary-400);"></i>
+              <i class="pi pi-box text-xl" style="color:var(--color-primary-400);"></i>
             }
           </div>
           <h1 class="text-2xl font-bold capitalize">{{ template()!.name }}</h1>
         </div>
         <div class="flex gap-2">
           @if (template()!.documentation) {
-            <a class="button-secondary" [href]="template()!.documentation" target="_blank" rel="noopener">
-              <i class="fa-solid fa-book mr-2"></i>{{ 'templates.documentation' | translate }}
+            <a class="outer-button" [href]="template()!.documentation" target="_blank" rel="noopener">
+              <i class="pi pi-book mr-2"></i>{{ 'templates.documentation' | translate }}
             </a>
           }
-          <button class="button" type="button" (click)="showInstall.set(!showInstall())">
-            <i class="fa-solid fa-download mr-2"></i>{{ 'templates.install' | translate }}
+          <button class="inner-button" type="button" (click)="showInstall.set(!showInstall())">
+            <i class="pi pi-download mr-2"></i>{{ 'templates.install' | translate }}
           </button>
         </div>
       </div>
@@ -94,7 +94,7 @@ import {
             @if (logo(); as l) {
               <img [src]="l" class="h-10 w-10 object-contain" alt="" (error)="onLogoError($event)" />
             } @else {
-              <i class="fa-solid fa-cube text-2xl" style="color:var(--color-primary-400);"></i>
+              <i class="pi pi-box text-2xl" style="color:var(--color-primary-400);"></i>
             }
           </div>
           <h2 class="text-3xl font-bold capitalize" style="color: var(--color-text-primary);">{{ template()!.name }}</h2>
@@ -103,24 +103,24 @@ import {
       }
 
       @if (showInstall()) {
-        <form class="box mb-6 space-y-3" [formGroup]="form" (ngSubmit)="install()">
+        <form class="glass-card p-4 mb-6 space-y-3" [formGroup]="form" (ngSubmit)="install()">
           <h2 class="font-semibold">{{ 'templates.installTitle' | translate: { name: template()!.name } }}</h2>
           <div>
             <label class="mb-1 block text-sm">{{ 'services.name' | translate }}</label>
-            <input class="input" formControlName="name" />
+            <input type="text"  formControlName="name" />
           </div>
           <app-workspace-target-picker (targetChange)="target.set($event)" />
           @if (installError()) {
             <p class="text-sm text-red-400">{{ installError() }}</p>
           }
-          <button class="button" type="submit" [disabled]="form.invalid || !target() || installing()">
+          <button class="inner-button" type="submit" [disabled]="form.invalid || !target() || installing()">
             {{ (installing() ? 'templates.installing' : 'templates.install') | translate }}
           </button>
         </form>
       }
 
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div class="box lg:col-span-2">
+        <div class="glass-card p-4 lg:col-span-2">
           <h2 class="box-title mb-3">{{ 'templates.overview' | translate }}</h2>
           @for (paragraph of overviewParagraphs(); track $index) {
             <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);" [class.mt-3]="$index > 0">
@@ -129,7 +129,7 @@ import {
           }
         </div>
 
-        <div class="box space-y-4">
+        <div class="glass-card p-4 space-y-4">
           <div>
             <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide" style="color: var(--color-text-tertiary);">
               {{ 'templates.category' | translate }}
@@ -156,7 +156,7 @@ import {
                 {{ 'templates.resources' | translate }}
               </h3>
               <a class="flex items-center gap-2 text-sm hover:underline" style="color: var(--color-primary-400);" [href]="template()!.documentation" target="_blank" rel="noopener">
-                <i class="fa-solid fa-book"></i>{{ 'templates.documentation' | translate }}
+                <i class="pi pi-book"></i>{{ 'templates.documentation' | translate }}
               </a>
             </div>
           }

@@ -19,19 +19,19 @@ export function pipelineStatusBackground(status: string): string {
 
 /** FontAwesome class for a status badge (sized for normal text). */
 export function pipelineStatusIcon(status: string): string {
-  if (status === 'success') return 'fa-solid fa-circle-check';
-  if (status === 'failed') return 'fa-solid fa-circle-xmark';
-  if (status === 'running') return 'fa-solid fa-spinner fa-spin';
-  if (status === 'skipped') return 'fa-solid fa-forward';
-  return 'fa-solid fa-clock';
+  if (status === 'success') return 'pi pi-check-circle';
+  if (status === 'failed') return 'pi pi-times-circle';
+  if (status === 'running') return 'pi pi-spinner pi-spin';
+  if (status === 'skipped') return 'pi pi-forward';
+  return 'pi pi-clock';
 }
 
 /** Same glyphs as `pipelineStatusIcon`, sized for a small dot instead of a badge. */
 export function pipelineStageMarkIcon(status: string): string {
-  if (status === 'success') return 'fa-solid fa-check text-[9px]';
-  if (status === 'failed') return 'fa-solid fa-xmark text-[9px]';
-  if (status === 'running') return 'fa-solid fa-spinner fa-spin text-[8px]';
-  if (status === 'skipped') return 'fa-solid fa-forward text-[8px]';
+  if (status === 'success') return 'pi pi-check text-[9px]';
+  if (status === 'failed') return 'pi pi-times text-[9px]';
+  if (status === 'running') return 'pi pi-spinner pi-spin text-[8px]';
+  if (status === 'skipped') return 'pi pi-forward text-[8px]';
   return '';
 }
 

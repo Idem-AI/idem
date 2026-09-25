@@ -38,7 +38,7 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
       class="mb-4 inline-flex items-center gap-2 text-sm"
       style="color:var(--color-text-secondary);"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'databases.detail.backToList' | translate }}
     </a>
 
@@ -58,13 +58,13 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
           }
         </div>
         <div class="flex flex-wrap gap-2">
-          <button class="button-secondary" (click)="lifecycle('restart')" [disabled]="busy()">
+          <button class="outer-button" (click)="lifecycle('restart')" [disabled]="busy()">
             {{ 'databases.detail.restart' | translate }}
           </button>
-          <button class="button-secondary" (click)="lifecycle('stop')" [disabled]="busy()">
+          <button class="outer-button" (click)="lifecycle('stop')" [disabled]="busy()">
             {{ 'databases.detail.stop' | translate }}
           </button>
-          <button class="button" (click)="lifecycle('start')" [disabled]="busy()">
+          <button class="inner-button" (click)="lifecycle('start')" [disabled]="busy()">
             {{ 'databases.detail.start' | translate }}
           </button>
         </div>
@@ -83,13 +83,13 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
         quietly exits, with nothing anywhere saying which, or why.
       -->
       @if (consoleLines().length > 0) {
-        <section class="box box-flush mb-4">
+        <section class="glass-card overflow-hidden mb-4">
           <div class="box-header">
             <h2 class="box-title flex items-center gap-2">
               @if (busy()) {
-                <i class="fa-solid fa-circle-notch fa-spin text-xs" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+                <i class="pi pi-spinner pi-spin text-xs" style="color:var(--color-primary-400);" aria-hidden="true"></i>
               } @else {
-                <i class="fa-solid fa-terminal text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
+                <i class="pi pi-code text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
               }
               {{ 'databases.detail.console' | translate }}
             </h2>
@@ -104,7 +104,7 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
       }
 
       <div class="grid gap-4 lg:grid-cols-2">
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'databases.detail.overview' | translate }}</h2>
           <dl class="space-y-2 text-sm">
             <div class="flex justify-between gap-2">
@@ -123,7 +123,7 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
         </section>
 
         <!-- Public exposure is a security fact, so it is stated, not implied. -->
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'databases.detail.access' | translate }}</h2>
           @if (db.is_public) {
             <p class="mb-2 text-sm font-semibold" style="color:var(--color-warning);">
@@ -144,7 +144,7 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
       </div>
 
       <!-- Connection: the actual host/port/URL a client needs — previously shown nowhere at all. -->
-      <section class="box mt-4">
+      <section class="glass-card p-4 mt-4">
         <h2 class="mb-3 text-sm font-semibold">{{ 'databases.detail.connection' | translate }}</h2>
         <div class="space-y-3">
           <div>
@@ -152,17 +152,17 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
               {{ 'databases.detail.internalUrl' | translate }}
             </label>
             <div class="flex items-center gap-2">
-              <input
-                class="input font-mono text-xs"
+              <input type="text"
+                class="font-mono text-xs"
                 readonly
                 [type]="revealed().has('__url') ? 'text' : 'password'"
                 [value]="db.connection_url ?? ''"
               />
-              <button type="button" class="icon-button" (click)="toggleReveal('__url')" [attr.aria-label]="'databases.detail.reveal' | translate">
-                <i class="fa-solid" [class.fa-eye]="!revealed().has('__url')" [class.fa-eye-slash]="revealed().has('__url')"></i>
+              <button type="button" class="button-icon" (click)="toggleReveal('__url')" [attr.aria-label]="'databases.detail.reveal' | translate">
+                <i class="pi" [class.pi-eye]="!revealed().has('__url')" [class.pi-eye-slash]="revealed().has('__url')"></i>
               </button>
-              <button type="button" class="icon-button" (click)="copy(db.connection_url)" [attr.aria-label]="'databases.detail.copy' | translate">
-                <i class="fa-solid fa-copy"></i>
+              <button type="button" class="button-icon" (click)="copy(db.connection_url)" [attr.aria-label]="'databases.detail.copy' | translate">
+                <i class="pi pi-copy"></i>
               </button>
             </div>
           </div>
@@ -172,17 +172,17 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
                 {{ 'databases.detail.publicUrl' | translate }}
               </label>
               <div class="flex items-center gap-2">
-                <input
-                  class="input font-mono text-xs"
+                <input type="text"
+                  class="font-mono text-xs"
                   readonly
                   [type]="revealed().has('__public_url') ? 'text' : 'password'"
                   [value]="db.public_connection_url"
                 />
-                <button type="button" class="icon-button" (click)="toggleReveal('__public_url')" [attr.aria-label]="'databases.detail.reveal' | translate">
-                  <i class="fa-solid" [class.fa-eye]="!revealed().has('__public_url')" [class.fa-eye-slash]="revealed().has('__public_url')"></i>
+                <button type="button" class="button-icon" (click)="toggleReveal('__public_url')" [attr.aria-label]="'databases.detail.reveal' | translate">
+                  <i class="pi" [class.pi-eye]="!revealed().has('__public_url')" [class.pi-eye-slash]="revealed().has('__public_url')"></i>
                 </button>
-                <button type="button" class="icon-button" (click)="copy(db.public_connection_url)" [attr.aria-label]="'databases.detail.copy' | translate">
-                  <i class="fa-solid fa-copy"></i>
+                <button type="button" class="button-icon" (click)="copy(db.public_connection_url)" [attr.aria-label]="'databases.detail.copy' | translate">
+                  <i class="pi pi-copy"></i>
                 </button>
               </div>
             </div>
@@ -191,7 +191,7 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
       </section>
 
       <!-- Credentials: real, editable values — same shape as ideploy-legacy's per-engine General page. -->
-      <section class="box mt-4">
+      <section class="glass-card p-4 mt-4">
         <h2 class="mb-1 text-sm font-semibold">{{ 'databases.detail.credentials' | translate }}</h2>
         <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">
           {{ 'databases.detail.credentialsHint' | translate }}
@@ -203,19 +203,19 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
                 {{ credentialLabel(col) }}
               </label>
               <div class="flex items-center gap-2">
-                <input
-                  class="input font-mono text-xs"
+                <input type="text"
+                  class="font-mono text-xs"
                   [type]="!isSecretField(col) || revealed().has(col) ? 'text' : 'password'"
                   [value]="credentialEdits()[col]"
                   (input)="onCredentialInput(col, $event)"
                 />
                 @if (isSecretField(col)) {
-                  <button type="button" class="icon-button" (click)="toggleReveal(col)" [attr.aria-label]="'databases.detail.reveal' | translate">
-                    <i class="fa-solid" [class.fa-eye]="!revealed().has(col)" [class.fa-eye-slash]="revealed().has(col)"></i>
+                  <button type="button" class="button-icon" (click)="toggleReveal(col)" [attr.aria-label]="'databases.detail.reveal' | translate">
+                    <i class="pi" [class.pi-eye]="!revealed().has(col)" [class.pi-eye-slash]="revealed().has(col)"></i>
                   </button>
                 }
-                <button type="button" class="icon-button" (click)="copy(credentialEdits()[col])" [attr.aria-label]="'databases.detail.copy' | translate">
-                  <i class="fa-solid fa-copy"></i>
+                <button type="button" class="button-icon" (click)="copy(credentialEdits()[col])" [attr.aria-label]="'databases.detail.copy' | translate">
+                  <i class="pi pi-copy"></i>
                 </button>
               </div>
             </div>
@@ -230,16 +230,16 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
         @if (credentialsNotice()) {
           <p class="mt-2 text-sm" style="color:var(--color-success);">{{ credentialsNotice() }}</p>
         }
-        <button class="button mt-3" type="button" (click)="saveCredentials()" [disabled]="savingCredentials() || !credentialsDirty()">
+        <button class="inner-button mt-3" type="button" (click)="saveCredentials()" [disabled]="savingCredentials() || !credentialsDirty()">
           {{ (savingCredentials() ? 'databases.detail.savingCredentials' : 'databases.detail.saveCredentials') | translate }}
         </button>
       </section>
 
       <!-- Scheduled backups -->
-      <section class="box mt-4">
+      <section class="glass-card p-4 mt-4">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 class="text-sm font-semibold">{{ 'databases.detail.backups' | translate }}</h2>
-          <button class="button-secondary" (click)="backupNow()" [disabled]="backingUp()">
+          <button class="outer-button" (click)="backupNow()" [disabled]="backingUp()">
             {{ (backingUp() ? 'databases.detail.backingUp' : 'databases.detail.backupNow') | translate }}
           </button>
         </div>
@@ -321,13 +321,13 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
         }
 
         <form class="mt-4 flex flex-wrap items-center gap-2" [formGroup]="scheduleForm" (ngSubmit)="addSchedule()">
-          <input
-            class="input w-48"
+          <input type="text"
+            class="!w-48"
             formControlName="frequency"
             [placeholder]="'databases.detail.cronPlaceholder' | translate"
           />
           <input
-            class="input w-32"
+            class="!w-32"
             type="number"
             min="1"
             max="365"
@@ -338,7 +338,7 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
             <input type="checkbox" formControlName="save_s3" />
             {{ 'databases.detail.saveToS3' | translate }}
           </label>
-          <button class="button" type="submit" [disabled]="scheduleForm.invalid">
+          <button class="inner-button" type="submit" [disabled]="scheduleForm.invalid">
             {{ 'databases.detail.addSchedule' | translate }}
           </button>
         </form>
@@ -347,12 +347,12 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
         </p>
       </section>
 
-      <section class="box mt-4" style="border-color:color-mix(in srgb, var(--color-danger) 35%, transparent);">
+      <section class="glass-card p-4 mt-4" style="border-color:color-mix(in srgb, var(--color-danger) 35%, transparent);">
         <h2 class="mb-1 text-sm font-semibold">{{ 'databases.detail.dangerZone' | translate }}</h2>
         <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
           {{ 'databases.detail.deleteHint' | translate }}
         </p>
-        <button class="button-secondary" style="color:var(--color-danger);" (click)="remove()" [disabled]="deleting()">
+        <button class="outer-button" style="color:var(--color-danger);" (click)="remove()" [disabled]="deleting()">
           {{ (deleting() ? 'databases.detail.deleting' : 'databases.detail.deleteDatabase') | translate }}
         </button>
       </section>

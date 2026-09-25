@@ -18,20 +18,20 @@ interface ChannelState {
     <h1 class="mb-6 text-2xl font-bold">{{ 'notifications.title' | translate }}</h1>
     <div class="space-y-4">
       @for (ch of channels(); track ch.channel) {
-        <div class="box">
+        <div class="glass-card p-4">
           <h2 class="mb-2 font-semibold">{{ ch.label }}</h2>
           <label class="mb-2 flex items-center gap-2 text-sm">
             <input type="checkbox" [(ngModel)]="ch.enabled" />
             {{ 'notifications.enabled' | translate }}
           </label>
-          <input
-            class="input mb-2"
+          <input type="text"
+            class="mb-2"
             [placeholder]="'notifications.webhookPlaceholder' | translate"
             [(ngModel)]="ch.webhook"
           />
           <div class="flex gap-2">
-            <button class="button" (click)="save(ch)">{{ 'notifications.save' | translate }}</button>
-            <button class="button-secondary" (click)="test(ch)">{{ 'notifications.sendTest' | translate }}</button>
+            <button class="inner-button" (click)="save(ch)">{{ 'notifications.save' | translate }}</button>
+            <button class="outer-button" (click)="test(ch)">{{ 'notifications.sendTest' | translate }}</button>
           </div>
           @if (status()[ch.channel]; as st) {
             <p class="mt-2 text-xs" [class.text-green-400]="st.ok" [class.text-red-400]="!st.ok">

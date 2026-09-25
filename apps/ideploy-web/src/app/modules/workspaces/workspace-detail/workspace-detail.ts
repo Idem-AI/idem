@@ -22,7 +22,7 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
       class="mb-4 inline-flex items-center gap-2 text-sm"
       style="color:var(--color-text-secondary);"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'workspaces.backToList' | translate }}
     </a>
 
@@ -60,7 +60,7 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
       }
 
       <div class="grid gap-4 lg:grid-cols-2">
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'workspaces.hosting' | translate }}</h2>
           <dl class="space-y-2 text-sm">
             <div class="flex justify-between gap-2">
@@ -91,7 +91,7 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
           </p>
         </section>
 
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'workspaces.environments' | translate }}</h2>
 
           <ul class="mb-3 space-y-2">
@@ -112,25 +112,25 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
           </ul>
 
           <form class="flex gap-2" [formGroup]="environmentForm" (ngSubmit)="addEnvironment(ws)">
-            <input
-              class="input flex-1"
+            <input type="text"
+              class="flex-1 !w-auto min-w-0"
               formControlName="name"
               [placeholder]="'workspaces.env.placeholder' | translate"
               [attr.aria-label]="'workspaces.env.add' | translate"
             />
-            <button class="button-secondary" type="submit" [disabled]="environmentForm.invalid">
+            <button class="outer-button" type="submit" [disabled]="environmentForm.invalid">
               {{ 'workspaces.env.add' | translate }}
             </button>
           </form>
         </section>
       </div>
 
-      <section class="box mt-4">
+      <section class="glass-card p-4 mt-4">
         <div class="flex items-center justify-between">
           <h2 class="text-sm font-semibold">
             {{ 'workspaces.projects' | translate }} ({{ resources().length }})
           </h2>
-          <a class="button" routerLink="/new-project" [queryParams]="{ workspace: ws.uuid }">
+          <a class="inner-button" routerLink="/new-project" [queryParams]="{ workspace: ws.uuid }">
             {{ 'workspaces.addProject' | translate }}
           </a>
         </div>
@@ -169,16 +169,16 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
                         @if (r.kind === 'application') {
                           <div class="flex shrink-0 flex-wrap items-center gap-3 text-xs">
                             <a [routerLink]="['/applications', r.uuid, 'security']" style="color:var(--color-text-secondary);" class="hover:underline">
-                              <i class="fa-solid fa-shield-halved mr-1"></i>{{ 'workspaces.resource.security' | translate }}
+                              <i class="pi pi-shield mr-1"></i>{{ 'workspaces.resource.security' | translate }}
                             </a>
                             <a [routerLink]="['/applications', r.uuid, 'pipeline']" style="color:var(--color-text-secondary);" class="hover:underline">
-                              <i class="fa-solid fa-diagram-project mr-1"></i>{{ 'workspaces.resource.pipeline' | translate }}
+                              <i class="pi pi-sitemap mr-1"></i>{{ 'workspaces.resource.pipeline' | translate }}
                             </a>
                             <a [routerLink]="['/applications', r.uuid, 'deployments']" style="color:var(--color-text-secondary);" class="hover:underline">
-                              <i class="fa-solid fa-clock-rotate-left mr-1"></i>{{ 'workspaces.resource.deployments' | translate }}
+                              <i class="pi pi-history mr-1"></i>{{ 'workspaces.resource.deployments' | translate }}
                             </a>
                             <a [routerLink]="['/applications', r.uuid, 'insights']" style="color:var(--color-text-secondary);" class="hover:underline">
-                              <i class="fa-solid fa-chart-line mr-1"></i>{{ 'workspaces.resource.insights' | translate }}
+                              <i class="pi pi-chart-line mr-1"></i>{{ 'workspaces.resource.insights' | translate }}
                             </a>
                           </div>
                         }
@@ -187,7 +187,7 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
                       <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs" style="color:var(--color-text-secondary);">
                         @if (r.fqdn) {
                           <a [href]="'https://' + r.fqdn" target="_blank" rel="noopener" class="hover:underline" style="color:var(--color-primary-400);">
-                            <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i>{{ r.fqdn }}
+                            <i class="pi pi-external-link mr-1"></i>{{ r.fqdn }}
                           </a>
                         }
                         <span>
@@ -204,7 +204,7 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
         }
       </section>
     } @else {
-      <div class="box">{{ 'workspaces.notFound' | translate }}</div>
+      <div class="glass-card p-4">{{ 'workspaces.notFound' | translate }}</div>
     }
   `,
 })

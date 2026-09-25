@@ -76,11 +76,11 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
 
         <div>
           <label class="mb-1 block text-sm">{{ 'databases.name' | translate }}</label>
-          <input class="input" [ngModel]="name()" (ngModelChange)="name.set($event)" />
+          <input type="text"  [ngModel]="name()" (ngModelChange)="name.set($event)" />
         </div>
 
         <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-text-tertiary);" (click)="showAdvanced.set(!showAdvanced())">
-          <i class="fa-solid mr-1" [class.fa-chevron-right]="!showAdvanced()" [class.fa-chevron-down]="showAdvanced()"></i>
+          <i class="pi mr-1" [class.pi-chevron-right]="!showAdvanced()" [class.pi-chevron-down]="showAdvanced()"></i>
           {{ 'architectures.dbStep.advancedCredentials' | translate }}
         </button>
         @if (showAdvanced()) {
@@ -90,15 +90,15 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
               <div>
                 <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ credentialLabel(col) }}</label>
                 <div class="flex items-center gap-2">
-                  <input
-                    class="input font-mono text-xs"
+                  <input type="text"
+                    class="font-mono text-xs"
                     [type]="!isSecretField(col) || revealed().has(col) ? 'text' : 'password'"
                     [value]="customCredentials()[col] || ''"
                     (input)="onCredentialInput('primary', col, $any($event.target).value)"
                   />
                   @if (isSecretField(col)) {
-                    <button type="button" class="icon-button" (click)="toggleReveal(col)" [attr.aria-label]="'databases.detail.reveal' | translate">
-                      <i class="fa-solid" [class.fa-eye]="!revealed().has(col)" [class.fa-eye-slash]="revealed().has(col)"></i>
+                    <button type="button" class="button-icon" (click)="toggleReveal(col)" [attr.aria-label]="'databases.detail.reveal' | translate">
+                      <i class="pi" [class.pi-eye]="!revealed().has(col)" [class.pi-eye-slash]="revealed().has(col)"></i>
                     </button>
                   }
                 </div>
@@ -114,18 +114,18 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
         @if (includeRedis()) {
           <div class="space-y-2 rounded-xl border p-3" style="border-color:var(--color-surface-2);">
             <label class="mb-1 block text-sm">{{ 'databases.name' | translate }}</label>
-            <input class="input" [ngModel]="redisName()" (ngModelChange)="redisName.set($event)" />
+            <input type="text"  [ngModel]="redisName()" (ngModelChange)="redisName.set($event)" />
             <div>
               <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ credentialLabel('redis_password') }}</label>
               <div class="flex items-center gap-2">
-                <input
-                  class="input font-mono text-xs"
+                <input type="text"
+                  class="font-mono text-xs"
                   [type]="revealed().has('redis_password') ? 'text' : 'password'"
                   [value]="redisCredentials()['redis_password'] || ''"
                   (input)="onCredentialInput('cache', 'redis_password', $any($event.target).value)"
                 />
-                <button type="button" class="icon-button" (click)="toggleReveal('redis_password')" [attr.aria-label]="'databases.detail.reveal' | translate">
-                  <i class="fa-solid" [class.fa-eye]="!revealed().has('redis_password')" [class.fa-eye-slash]="revealed().has('redis_password')"></i>
+                <button type="button" class="button-icon" (click)="toggleReveal('redis_password')" [attr.aria-label]="'databases.detail.reveal' | translate">
+                  <i class="pi" [class.pi-eye]="!revealed().has('redis_password')" [class.pi-eye-slash]="revealed().has('redis_password')"></i>
                 </button>
               </div>
             </div>
@@ -136,7 +136,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
           <p class="text-sm text-red-400">{{ formError() }}</p>
         }
 
-        <button class="button" type="button" [disabled]="!name().trim() || (includeRedis() && !redisName().trim())" (click)="create()">
+        <button class="inner-button" type="button" [disabled]="!name().trim() || (includeRedis() && !redisName().trim())" (click)="create()">
           {{ 'databases.createDatabase' | translate }}
         </button>
       }
@@ -146,11 +146,11 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
           @if (primaryDb(); as db) {
             <div class="flex items-center gap-2 text-sm">
               @if (primaryStatus() === 'started') {
-                <i class="fa-solid fa-circle-check" style="color:var(--color-success);"></i>
+                <i class="pi pi-check-circle" style="color:var(--color-success);"></i>
               } @else if (primaryStatus() === 'start-failed') {
-                <i class="fa-solid fa-triangle-exclamation" style="color:var(--color-danger);"></i>
+                <i class="pi pi-exclamation-triangle" style="color:var(--color-danger);"></i>
               } @else {
-                <i class="fa-solid fa-circle-notch fa-spin" style="color:var(--color-primary-400);"></i>
+                <i class="pi pi-spinner pi-spin" style="color:var(--color-primary-400);"></i>
               }
               <span>{{ (primaryStatus() === 'creating' ? 'architectures.dbStep.creatingRow' : primaryStatus() === 'started' ? 'architectures.dbStep.startedLabel' : primaryStatus() === 'start-failed' ? 'architectures.dbStep.startFailedLabel' : 'architectures.dbStep.startingContainer') | translate: { name: db.name } }}</span>
             </div>
@@ -158,7 +158,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
               <div class="ml-6">
                 <p class="mb-2 text-sm text-red-400">{{ primaryStartError() }}</p>
                 <div class="flex gap-3">
-                  <button type="button" class="button-secondary text-xs px-3 py-1.5" (click)="retryPrimaryStart()">{{ 'architectures.dbStep.retryStart' | translate }}</button>
+                  <button type="button" class="outer-button text-xs px-3 py-1.5" (click)="retryPrimaryStart()">{{ 'architectures.dbStep.retryStart' | translate }}</button>
                   <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-text-tertiary);" (click)="continuePrimaryAnyway()">{{ 'architectures.dbStep.continueAnyway' | translate }}</button>
                 </div>
               </div>
@@ -167,11 +167,11 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
           @if (includeRedis() && cacheDb(); as db) {
             <div class="flex items-center gap-2 text-sm">
               @if (cacheStatus() === 'started') {
-                <i class="fa-solid fa-circle-check" style="color:var(--color-success);"></i>
+                <i class="pi pi-check-circle" style="color:var(--color-success);"></i>
               } @else if (cacheStatus() === 'start-failed') {
-                <i class="fa-solid fa-triangle-exclamation" style="color:var(--color-danger);"></i>
+                <i class="pi pi-exclamation-triangle" style="color:var(--color-danger);"></i>
               } @else {
-                <i class="fa-solid fa-circle-notch fa-spin" style="color:var(--color-primary-400);"></i>
+                <i class="pi pi-spinner pi-spin" style="color:var(--color-primary-400);"></i>
               }
               <span>{{ (cacheStatus() === 'creating' ? 'architectures.dbStep.creatingRow' : cacheStatus() === 'started' ? 'architectures.dbStep.startedLabel' : cacheStatus() === 'start-failed' ? 'architectures.dbStep.startFailedLabel' : 'architectures.dbStep.startingContainer') | translate: { name: db.name } }}</span>
             </div>
@@ -179,7 +179,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
               <div class="ml-6">
                 <p class="mb-2 text-sm text-red-400">{{ cacheStartError() }}</p>
                 <div class="flex gap-3">
-                  <button type="button" class="button-secondary text-xs px-3 py-1.5" (click)="retryCacheStart()">{{ 'architectures.dbStep.retryStart' | translate }}</button>
+                  <button type="button" class="outer-button text-xs px-3 py-1.5" (click)="retryCacheStart()">{{ 'architectures.dbStep.retryStart' | translate }}</button>
                   <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-text-tertiary);" (click)="continueCacheAnyway()">{{ 'architectures.dbStep.continueAnyway' | translate }}</button>
                 </div>
               </div>
@@ -197,7 +197,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
       @if (phase() === 'result') {
         <div class="space-y-4">
           <p class="text-sm font-semibold" style="color:var(--color-success);">
-            <i class="fa-solid fa-circle-check mr-1"></i>{{ 'architectures.dbStep.connectionInfo' | translate }}
+            <i class="pi pi-check-circle mr-1"></i>{{ 'architectures.dbStep.connectionInfo' | translate }}
           </p>
 
           @if (primaryDetail(); as detail) {
@@ -207,20 +207,20 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
                 <div>
                   <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ 'databases.detail.internalUrl' | translate }}</label>
                   <div class="flex items-center gap-2">
-                    <input class="input font-mono text-xs" readonly [type]="revealed().has('__primary_url') ? 'text' : 'password'" [value]="detail.connection_url ?? ''" />
-                    <button type="button" class="icon-button" (click)="toggleReveal('__primary_url')" [attr.aria-label]="'databases.detail.reveal' | translate"><i class="fa-solid" [class.fa-eye]="!revealed().has('__primary_url')" [class.fa-eye-slash]="revealed().has('__primary_url')"></i></button>
-                    <button type="button" class="icon-button" (click)="copy(detail.connection_url)" [attr.aria-label]="'databases.detail.copy' | translate"><i class="fa-solid fa-copy"></i></button>
+                    <input type="text" class="font-mono text-xs" readonly [type]="revealed().has('__primary_url') ? 'text' : 'password'" [value]="detail.connection_url ?? ''" />
+                    <button type="button" class="button-icon" (click)="toggleReveal('__primary_url')" [attr.aria-label]="'databases.detail.reveal' | translate"><i class="pi" [class.pi-eye]="!revealed().has('__primary_url')" [class.pi-eye-slash]="revealed().has('__primary_url')"></i></button>
+                    <button type="button" class="button-icon" (click)="copy(detail.connection_url)" [attr.aria-label]="'databases.detail.copy' | translate"><i class="pi pi-copy"></i></button>
                   </div>
                 </div>
                 @for (col of objectKeys(detail.credentials); track col) {
                   <div>
                     <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ credentialLabel(col) }}</label>
                     <div class="flex items-center gap-2">
-                      <input class="input font-mono text-xs" readonly [type]="!isSecretField(col) || revealed().has(col) ? 'text' : 'password'" [value]="detail.credentials[col]" />
+                      <input type="text" class="font-mono text-xs" readonly [type]="!isSecretField(col) || revealed().has(col) ? 'text' : 'password'" [value]="detail.credentials[col]" />
                       @if (isSecretField(col)) {
-                        <button type="button" class="icon-button" (click)="toggleReveal(col)" [attr.aria-label]="'databases.detail.reveal' | translate"><i class="fa-solid" [class.fa-eye]="!revealed().has(col)" [class.fa-eye-slash]="revealed().has(col)"></i></button>
+                        <button type="button" class="button-icon" (click)="toggleReveal(col)" [attr.aria-label]="'databases.detail.reveal' | translate"><i class="pi" [class.pi-eye]="!revealed().has(col)" [class.pi-eye-slash]="revealed().has(col)"></i></button>
                       }
-                      <button type="button" class="icon-button" (click)="copy(detail.credentials[col])" [attr.aria-label]="'databases.detail.copy' | translate"><i class="fa-solid fa-copy"></i></button>
+                      <button type="button" class="button-icon" (click)="copy(detail.credentials[col])" [attr.aria-label]="'databases.detail.copy' | translate"><i class="pi pi-copy"></i></button>
                     </div>
                   </div>
                 }
@@ -235,9 +235,9 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
                 <div>
                   <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ 'databases.detail.internalUrl' | translate }}</label>
                   <div class="flex items-center gap-2">
-                    <input class="input font-mono text-xs" readonly [type]="revealed().has('__cache_url') ? 'text' : 'password'" [value]="detail.connection_url ?? ''" />
-                    <button type="button" class="icon-button" (click)="toggleReveal('__cache_url')" [attr.aria-label]="'databases.detail.reveal' | translate"><i class="fa-solid" [class.fa-eye]="!revealed().has('__cache_url')" [class.fa-eye-slash]="revealed().has('__cache_url')"></i></button>
-                    <button type="button" class="icon-button" (click)="copy(detail.connection_url)" [attr.aria-label]="'databases.detail.copy' | translate"><i class="fa-solid fa-copy"></i></button>
+                    <input type="text" class="font-mono text-xs" readonly [type]="revealed().has('__cache_url') ? 'text' : 'password'" [value]="detail.connection_url ?? ''" />
+                    <button type="button" class="button-icon" (click)="toggleReveal('__cache_url')" [attr.aria-label]="'databases.detail.reveal' | translate"><i class="pi" [class.pi-eye]="!revealed().has('__cache_url')" [class.pi-eye-slash]="revealed().has('__cache_url')"></i></button>
+                    <button type="button" class="button-icon" (click)="copy(detail.connection_url)" [attr.aria-label]="'databases.detail.copy' | translate"><i class="pi pi-copy"></i></button>
                   </div>
                 </div>
               </div>
@@ -246,7 +246,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
 
           <p class="text-xs" style="color:var(--color-text-tertiary);">{{ 'architectures.dbStep.readyHint' | translate }}</p>
 
-          <button class="button" type="button" (click)="finish()">{{ 'projects.new.continue' | translate }}</button>
+          <button class="inner-button" type="button" (click)="finish()">{{ 'projects.new.continue' | translate }}</button>
         </div>
       }
     </div>

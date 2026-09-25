@@ -31,7 +31,7 @@ import {
         class="mb-4 inline-flex items-center gap-2 text-sm"
         style="color:var(--color-text-secondary);"
       >
-        <i class="fa-solid fa-chevron-left text-[10px]"></i>
+        <i class="pi pi-chevron-left text-[10px]"></i>
         {{ 'workspaces.backToList' | translate }}
       </a>
 
@@ -55,15 +55,15 @@ import {
         </li>
       </ol>
 
-      <form class="box space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+      <form class="glass-card p-4 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
         @if (step() === 1) {
           <div>
             <label class="mb-1 block text-sm" for="ws-name">
               {{ 'workspaces.form.name' | translate }}
             </label>
-            <input
+            <input type="text"
               id="ws-name"
-              class="input"
+              
               formControlName="name"
               [placeholder]="'workspaces.form.namePlaceholder' | translate"
             />
@@ -76,11 +76,11 @@ import {
             <label class="mb-1 block text-sm" for="ws-description">
               {{ 'workspaces.form.description' | translate }}
             </label>
-            <input id="ws-description" class="input" formControlName="description" />
+            <input type="text" id="ws-description"  formControlName="description" />
           </div>
 
           <button
-            class="button"
+            class="inner-button"
             type="button"
             [disabled]="form.controls.name.invalid"
             (click)="step.set(2)"
@@ -130,7 +130,7 @@ import {
                   </a>
                 </p>
               } @else {
-                <select id="ws-server" class="input" formControlName="server_uuid">
+                <select id="ws-server"  formControlName="server_uuid">
                   <option value="">{{ 'workspaces.form.chooseServer' | translate }}</option>
                   @for (server of servers(); track server.uuid) {
                     <option [value]="server.uuid">{{ server.name }} — {{ server.ip }}</option>
@@ -143,7 +143,7 @@ import {
               <label class="mb-1 block text-sm" for="ws-region">
                 {{ 'workspaces.form.region' | translate }}
               </label>
-              <select id="ws-region" class="input" formControlName="region">
+              <select id="ws-region"  formControlName="region">
                 <option value="">
                   {{ 'workspaces.form.defaultRegion' | translate:{ region: options()?.defaultRegion } }}
                 </option>
@@ -163,10 +163,10 @@ import {
           }
 
           <div class="flex gap-2">
-            <button class="button-secondary" type="button" (click)="step.set(1)">
+            <button class="outer-button" type="button" (click)="step.set(1)">
               {{ 'workspaces.form.back' | translate }}
             </button>
-            <button class="button" type="submit" [disabled]="saving() || !canSubmit()">
+            <button class="inner-button" type="submit" [disabled]="saving() || !canSubmit()">
               {{ (saving() ? 'workspaces.form.creating' : 'workspaces.form.create') | translate }}
             </button>
           </div>

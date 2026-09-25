@@ -44,7 +44,7 @@ import { GuideSessionService } from '../../../shared/services/guide-session.serv
       @if (mode() === 'existing' && workspaces().length > 0) {
         <div>
           <label class="mb-1 block text-sm">{{ 'workspaceTargetPicker.workspace' | translate }}</label>
-          <select class="input" [ngModel]="selectedUuid()" (ngModelChange)="selectedUuid.set($event)">
+          <select  [ngModel]="selectedUuid()" (ngModelChange)="selectedUuid.set($event)">
             <option value="" disabled>{{ 'workspaceTargetPicker.chooseWorkspace' | translate }}</option>
             @for (ws of workspaces(); track ws.uuid) {
               <option [value]="ws.uuid">{{ ws.name }}</option>
@@ -54,7 +54,7 @@ import { GuideSessionService } from '../../../shared/services/guide-session.serv
       } @else {
         <div>
           <label class="mb-1 block text-sm">{{ 'workspaces.form.name' | translate }}</label>
-          <input class="input" [ngModel]="name()" (ngModelChange)="name.set($event)" [placeholder]="'workspaces.form.namePlaceholder' | translate" />
+          <input type="text"  [ngModel]="name()" (ngModelChange)="name.set($event)" [placeholder]="'workspaces.form.namePlaceholder' | translate" />
         </div>
 
         @if (deploymentTypes().length > 1) {
@@ -78,7 +78,7 @@ import { GuideSessionService } from '../../../shared/services/guide-session.serv
             @if (servers().length === 0) {
               <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'workspaces.form.noServers' | translate }}</p>
             } @else {
-              <select class="input" [ngModel]="serverUuid()" (ngModelChange)="serverUuid.set($event)">
+              <select  [ngModel]="serverUuid()" (ngModelChange)="serverUuid.set($event)">
                 <option value="">{{ 'workspaces.form.chooseServer' | translate }}</option>
                 @for (server of servers(); track server.uuid) {
                   <option [value]="server.uuid">{{ server.name }} — {{ server.ip }}</option>
@@ -89,7 +89,7 @@ import { GuideSessionService } from '../../../shared/services/guide-session.serv
         } @else if (options()?.regionSelectionAllowed) {
           <div>
             <label class="mb-1 block text-sm">{{ 'workspaces.form.region' | translate }}</label>
-            <select class="input" [ngModel]="region()" (ngModelChange)="region.set($event)">
+            <select  [ngModel]="region()" (ngModelChange)="region.set($event)">
               <option value="">{{ 'workspaces.form.defaultRegion' | translate: { region: options()?.defaultRegion } }}</option>
               @for (r of options()?.availableRegions ?? []; track r) {
                 <option [value]="r">{{ r }}</option>
@@ -103,7 +103,7 @@ import { GuideSessionService } from '../../../shared/services/guide-session.serv
         <p class="text-sm text-red-400">{{ error() }}</p>
       }
 
-      <button class="button" type="button" [disabled]="saving() || !canContinue()" (click)="continue()">
+      <button class="inner-button" type="button" [disabled]="saving() || !canContinue()" (click)="continue()">
         {{ (saving() ? 'workspaces.form.creating' : 'projects.new.continue') | translate }}
       </button>
     </div>

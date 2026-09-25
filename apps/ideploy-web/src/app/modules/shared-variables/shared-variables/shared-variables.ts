@@ -12,7 +12,7 @@ import { ApiService } from '../../../shared/services/api.service';
     <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">{{ 'sharedVariables.title' | translate }}</h1>
     <p class="mb-4 text-sm" style="color: var(--color-text-secondary)">{{ 'sharedVariables.description' | translate }}</p>
 
-    <div class="box max-w-2xl">
+    <div class="glass-card p-4 max-w-2xl">
       @for (v of vars(); track v.key) {
         <div class="mb-2 flex items-center gap-2 text-sm">
           <code>{{ v.key }}</code>
@@ -21,9 +21,9 @@ import { ApiService } from '../../../shared/services/api.service';
         </div>
       }
       <form class="mt-3 flex gap-2" [formGroup]="form" (ngSubmit)="add()">
-        <input class="input flex-1" [placeholder]="'sharedVariables.keyPlaceholder' | translate" formControlName="key" />
-        <input class="input flex-1" [placeholder]="'sharedVariables.valuePlaceholder' | translate" formControlName="value" />
-        <button class="button" type="submit" [disabled]="form.invalid || teamId() === null">{{ 'sharedVariables.add' | translate }}</button>
+        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'sharedVariables.keyPlaceholder' | translate" formControlName="key" />
+        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'sharedVariables.valuePlaceholder' | translate" formControlName="value" />
+        <button class="inner-button" type="submit" [disabled]="form.invalid || teamId() === null">{{ 'sharedVariables.add' | translate }}</button>
       </form>
     </div>
   `,

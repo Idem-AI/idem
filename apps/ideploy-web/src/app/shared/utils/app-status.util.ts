@@ -13,12 +13,12 @@ export interface AppStatusDisplay {
 }
 
 export function appStatusDisplay(status: string | null | undefined): AppStatusDisplay {
-  if (!status) return { icon: 'fa-solid fa-circle-minus', color: 'var(--color-text-tertiary)', labelKey: 'appStatus.notDeployed' };
+  if (!status) return { icon: 'pi pi-minus-circle', color: 'var(--color-text-tertiary)', labelKey: 'appStatus.notDeployed' };
   if (status.startsWith('running')) {
     return status.includes('unhealthy')
-      ? { icon: 'fa-solid fa-triangle-exclamation', color: 'var(--color-warning)', labelKey: 'appStatus.unhealthy' }
-      : { icon: 'fa-solid fa-circle-check', color: 'var(--color-success)', labelKey: 'appStatus.running' };
+      ? { icon: 'pi pi-exclamation-triangle', color: 'var(--color-warning)', labelKey: 'appStatus.unhealthy' }
+      : { icon: 'pi pi-check-circle', color: 'var(--color-success)', labelKey: 'appStatus.running' };
   }
-  if (status === 'exited') return { icon: 'fa-solid fa-circle-stop', color: 'var(--color-text-tertiary)', labelKey: 'appStatus.stopped' };
-  return { icon: 'fa-solid fa-circle-question', color: 'var(--color-text-tertiary)', labelKey: 'appStatus.unknown' };
+  if (status === 'exited') return { icon: 'pi pi-stop-circle', color: 'var(--color-text-tertiary)', labelKey: 'appStatus.stopped' };
+  return { icon: 'pi pi-question-circle', color: 'var(--color-text-tertiary)', labelKey: 'appStatus.unknown' };
 }

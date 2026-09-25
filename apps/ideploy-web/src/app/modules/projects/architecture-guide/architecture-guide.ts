@@ -28,7 +28,7 @@ import { GuideServiceStepComponent } from './guide-service-step';
   template: `
     <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
       <a routerLink="/new-project" class="flex items-center gap-2 text-sm transition-colors hover:text-text-primary" style="color:var(--color-text-secondary);">
-        <i class="fa-solid fa-arrow-left"></i> {{ 'projects.common.back' | translate }}
+        <i class="pi pi-arrow-left"></i> {{ 'projects.common.back' | translate }}
       </a>
       <span class="text-sm font-semibold font-mono text-text-primary">{{ 'architectures.guideTitle' | translate }}</span>
       <span class="w-12"></span>
@@ -36,9 +36,9 @@ import { GuideServiceStepComponent } from './guide-service-step';
 
     <div class="mx-auto max-w-3xl px-6 py-12">
       @if (!template()) {
-        <div class="box">
+        <div class="glass-card p-4">
           <p class="mb-3">{{ 'architectures.notFound' | translate }}</p>
-          <a class="button-secondary" routerLink="/new-project">{{ 'projects.new.chooseAnotherSource' | translate }}</a>
+          <a class="outer-button" routerLink="/new-project">{{ 'projects.new.chooseAnotherSource' | translate }}</a>
         </div>
       } @else {
         <div class="mb-8 flex items-center gap-4">
@@ -55,20 +55,20 @@ import { GuideServiceStepComponent } from './guide-service-step';
 
         <div class="space-y-3">
           <!-- Step 0: the workspace everything below lands in — a real prerequisite, not one of template().steps. -->
-          <div class="box">
+          <div class="glass-card p-4">
             <div class="mb-1 flex items-center gap-3">
               <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border" [style.border-color]="workspace() ? 'var(--color-success)' : 'var(--color-surface-2)'" [style.background]="workspace() ? 'var(--color-success)' : 'transparent'">
                 @if (workspace()) {
-                  <i class="fa-solid fa-check text-xs text-white"></i>
+                  <i class="pi pi-check text-xs text-text-primary"></i>
                 } @else {
-                  <i class="fa-solid fa-diagram-project text-xs" style="color:var(--color-text-tertiary);"></i>
+                  <i class="pi pi-sitemap text-xs" style="color:var(--color-text-tertiary);"></i>
                 }
               </div>
               <div class="font-semibold">{{ 'architectures.workspaceStepTitle' | translate }}</div>
             </div>
             @if (workspace(); as ws) {
               <p class="ml-11 text-sm" style="color:var(--color-text-secondary);">
-                <i class="fa-solid fa-layer-group mr-1"></i>{{ ws.name }}
+                <i class="pi pi-clone mr-1"></i>{{ ws.name }}
               </p>
             } @else {
               <div class="ml-11 mt-3">
@@ -79,13 +79,13 @@ import { GuideServiceStepComponent } from './guide-service-step';
 
           @if (workspace(); as ws) {
             @for (step of template()!.steps; track $index; let i = $index) {
-              <div class="box" [style.opacity]="i > activeIndex() ? '0.5' : '1'">
+              <div class="glass-card p-4" [style.opacity]="i > activeIndex() ? '0.5' : '1'">
                 <div class="mb-1 flex items-center gap-4">
                   <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border" [style.border-color]="isDone(i, step) ? 'var(--color-success)' : 'var(--color-surface-2)'" [style.background]="isDone(i, step) ? 'var(--color-success)' : 'transparent'">
                     @if (isDone(i, step)) {
-                      <i class="fa-solid fa-check text-xs text-white"></i>
+                      <i class="pi pi-check text-xs text-text-primary"></i>
                     } @else if (i > activeIndex()) {
-                      <i class="fa-solid fa-lock text-xs" style="color:var(--color-text-tertiary);"></i>
+                      <i class="pi pi-lock text-xs" style="color:var(--color-text-tertiary);"></i>
                     } @else {
                       <span class="text-xs font-semibold" style="color:var(--color-text-tertiary);">{{ i + 1 }}</span>
                     }
@@ -102,19 +102,19 @@ import { GuideServiceStepComponent } from './guide-service-step';
                 @if (isDone(i, step)) {
                   <div class="ml-11 mt-2 text-sm" style="color:var(--color-text-secondary);">
                     @if (step.action === 'create-database') {
-                      <i class="fa-solid fa-database mr-1"></i>{{ linkedDatabase()?.name }}
+                      <i class="pi pi-database mr-1"></i>{{ linkedDatabase()?.name }}
                       @if (linkedCache(); as c) {
-                        <span class="ml-2"><i class="fa-solid fa-bolt mr-1"></i>{{ c.name }}</span>
+                        <span class="ml-2"><i class="pi pi-bolt mr-1"></i>{{ c.name }}</span>
                       }
                     } @else if (step.action === 'import-app') {
-                      <i class="fa-solid fa-circle-check mr-1"></i>{{ appNameFor(i, step) }}
+                      <i class="pi pi-check-circle mr-1"></i>{{ appNameFor(i, step) }}
                       @if (appUrlFor(i, step); as url) {
                         <a [href]="url" target="_blank" rel="noopener noreferrer" class="ml-2 hover:underline" style="color:var(--color-primary-400);">
-                          {{ url }} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                          {{ url }} <i class="pi pi-external-link text-[10px]"></i>
                         </a>
                       }
                     } @else {
-                      <i class="fa-solid fa-circle-check mr-1"></i>{{ 'architectures.stepDone' | translate }}
+                      <i class="pi pi-check-circle mr-1"></i>{{ 'architectures.stepDone' | translate }}
                     }
                   </div>
                 } @else if (i === activeIndex()) {
@@ -136,10 +136,10 @@ import { GuideServiceStepComponent } from './guide-service-step';
             }
 
             @if (activeIndex() === -1) {
-              <div class="box text-center">
-                <i class="fa-solid fa-circle-check mb-2 text-2xl" style="color:var(--color-success);"></i>
+              <div class="glass-card p-4 text-center">
+                <i class="pi pi-check-circle mb-2 text-2xl" style="color:var(--color-success);"></i>
                 <p class="mb-3 font-semibold">{{ 'architectures.guideComplete' | translate }}</p>
-                <a class="button" [routerLink]="['/workspaces', ws.uuid]">{{ 'architectures.viewWorkspace' | translate }}</a>
+                <a class="inner-button" [routerLink]="['/workspaces', ws.uuid]">{{ 'architectures.viewWorkspace' | translate }}</a>
               </div>
             }
           }

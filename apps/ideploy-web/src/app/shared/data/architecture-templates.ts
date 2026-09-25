@@ -56,27 +56,27 @@ export const ARCHITECTURE_TEMPLATES: ArchitectureTemplate[] = [
   {
     id: '3-tier',
     name: 'architectures.threeTier.name',
-    icon: 'fa-solid fa-layer-group',
+    icon: 'pi pi-clone',
     description: 'architectures.threeTier.description',
     steps: [
       {
         title: 'architectures.threeTier.step3Title',
         description: 'architectures.threeTier.step3Desc',
         action: 'create-database',
-        icon: 'fa-solid fa-database',
+        icon: 'pi pi-database',
       },
       {
         title: 'architectures.threeTier.step2Title',
         description: 'architectures.threeTier.step2Desc',
         action: 'import-app',
-        icon: 'fa-solid fa-server',
+        icon: 'pi pi-server',
         role: 'backend',
       },
       {
         title: 'architectures.threeTier.step1Title',
         description: 'architectures.threeTier.step1Desc',
         action: 'import-app',
-        icon: 'fa-solid fa-display',
+        icon: 'pi pi-desktop',
         role: 'frontend',
       },
     ],
@@ -84,20 +84,20 @@ export const ARCHITECTURE_TEMPLATES: ArchitectureTemplate[] = [
   {
     id: 'fullstack-monolith',
     name: 'architectures.monolith.name',
-    icon: 'fa-solid fa-cube',
+    icon: 'pi pi-box',
     description: 'architectures.monolith.description',
     steps: [
       {
         title: 'architectures.monolith.step2Title',
         description: 'architectures.monolith.step2Desc',
         action: 'create-database',
-        icon: 'fa-solid fa-database',
+        icon: 'pi pi-database',
       },
       {
         title: 'architectures.monolith.step1Title',
         description: 'architectures.monolith.step1Desc',
         action: 'import-app',
-        icon: 'fa-solid fa-code-branch',
+        icon: 'pi pi-sitemap',
         // Not 'backend': a monolith's one app is also the thing a browser
         // hits directly, but it still connects to the database exactly the
         // same way a backend does — the auto-fill only cares about that.
@@ -108,20 +108,20 @@ export const ARCHITECTURE_TEMPLATES: ArchitectureTemplate[] = [
   {
     id: 'api-database',
     name: 'architectures.apiDb.name',
-    icon: 'fa-solid fa-plug',
+    icon: 'pi pi-link',
     description: 'architectures.apiDb.description',
     steps: [
       {
         title: 'architectures.apiDb.step2Title',
         description: 'architectures.apiDb.step2Desc',
         action: 'create-database',
-        icon: 'fa-solid fa-database',
+        icon: 'pi pi-database',
       },
       {
         title: 'architectures.apiDb.step1Title',
         description: 'architectures.apiDb.step1Desc',
         action: 'import-app',
-        icon: 'fa-solid fa-server',
+        icon: 'pi pi-server',
         role: 'backend',
       },
     ],
@@ -129,47 +129,47 @@ export const ARCHITECTURE_TEMPLATES: ArchitectureTemplate[] = [
   {
     id: 'static-site',
     name: 'architectures.staticSite.name',
-    icon: 'fa-solid fa-file-code',
+    icon: 'pi pi-file',
     description: 'architectures.staticSite.description',
     steps: [
       {
         title: 'architectures.staticSite.step1Title',
         description: 'architectures.staticSite.step1Desc',
         action: 'import-app',
-        icon: 'fa-solid fa-display',
+        icon: 'pi pi-desktop',
       },
     ],
   },
   {
     id: 'microservices',
     name: 'architectures.microservices.name',
-    icon: 'fa-solid fa-diagram-project',
+    icon: 'pi pi-sitemap',
     description: 'architectures.microservices.description',
     steps: [
       {
         title: 'architectures.microservices.step3Title',
         description: 'architectures.microservices.step3Desc',
         action: 'create-database',
-        icon: 'fa-solid fa-database',
+        icon: 'pi pi-database',
       },
       {
         title: 'architectures.microservices.step4Title',
         description: 'architectures.microservices.step4Desc',
         action: 'create-service',
-        icon: 'fa-solid fa-diagram-project',
+        icon: 'pi pi-sitemap',
       },
       {
         title: 'architectures.microservices.step1Title',
         description: 'architectures.microservices.step1Desc',
         action: 'import-app',
-        icon: 'fa-solid fa-server',
+        icon: 'pi pi-server',
         role: 'backend',
       },
       {
         title: 'architectures.microservices.step2Title',
         description: 'architectures.microservices.step2Desc',
         action: 'import-app',
-        icon: 'fa-solid fa-server',
+        icon: 'pi pi-server',
         role: 'backend',
       },
     ],

@@ -83,7 +83,7 @@ interface OverageRow {
                 @for (feature of plan.features; track feature) {
                   <li class="flex items-start gap-2.5 text-sm font-semibold">
                     <i
-                      class="fa-solid fa-check mt-1 text-[10px] text-primary-500 dark:text-primary-400"
+                      class="pi pi-check mt-1 text-[10px] text-primary-500 dark:text-primary-400"
                       aria-hidden="true"></i>
                     <span>{{ feature }}</span>
                   </li>
@@ -188,7 +188,7 @@ interface OverageRow {
           <div class="flex flex-col gap-3">
             @for (key of byosFeatures; track key) {
               <div class="flex items-center gap-3">
-                <i class="fa-solid fa-check text-xs text-primary-500 dark:text-primary-400" aria-hidden="true"></i>
+                <i class="pi pi-check text-xs text-primary-500 dark:text-primary-400" aria-hidden="true"></i>
                 <span class="text-sm font-semibold">{{ key | translate }}</span>
               </div>
             }

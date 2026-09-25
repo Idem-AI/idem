@@ -15,24 +15,24 @@ import { TeamInfo } from '../../../shared/models/ideploy.models';
       <p class="mb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
     }
 
-    <section class="box mb-6">
+    <section class="glass-card p-4 mb-6">
       <h2 class="mb-3 font-semibold">{{ 'team.profile' | translate }}</h2>
       <form class="flex flex-wrap gap-2" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
-        <input class="input flex-1" [placeholder]="'team.namePlaceholder' | translate" formControlName="name" />
-        <input class="input flex-1" [placeholder]="'team.descriptionPlaceholder' | translate" formControlName="description" />
-        <button class="button" type="submit" [disabled]="profileForm.invalid || savingProfile()">
+        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'team.namePlaceholder' | translate" formControlName="name" />
+        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'team.descriptionPlaceholder' | translate" formControlName="description" />
+        <button class="inner-button" type="submit" [disabled]="profileForm.invalid || savingProfile()">
           {{ (savingProfile() ? 'team.saving' : 'team.save') | translate }}
         </button>
       </form>
     </section>
 
-    <section class="box mb-6">
+    <section class="glass-card p-4 mb-6">
       <h2 class="mb-3 font-semibold">{{ 'team.members' | translate }}</h2>
       @for (m of members(); track m.user_id) {
         <div class="mb-1 flex items-center gap-3 text-sm">
           <span class="font-semibold">{{ m.name }}</span>
           <span style="color: var(--color-text-secondary)">{{ m.email }}</span>
-          <select class="input ml-auto w-32 py-1 text-xs" [value]="m.role" (change)="changeRole(m, $event)">
+          <select class="ml-auto !w-32 py-1 text-xs" [value]="m.role" (change)="changeRole(m, $event)">
             <option value="member">{{ 'team.roleMember' | translate }}</option>
             <option value="admin">{{ 'team.roleAdmin' | translate }}</option>
             <option value="owner">{{ 'team.roleOwner' | translate }}</option>
@@ -42,7 +42,7 @@ import { TeamInfo } from '../../../shared/models/ideploy.models';
       }
     </section>
 
-    <section class="box">
+    <section class="glass-card p-4">
       <h2 class="mb-3 font-semibold">{{ 'team.invitations' | translate }}</h2>
       @for (inv of invitations(); track inv.uuid) {
         <div class="mb-1 flex items-center gap-3 text-sm">
@@ -52,12 +52,12 @@ import { TeamInfo } from '../../../shared/models/ideploy.models';
         </div>
       }
       <form class="mt-3 flex gap-2" [formGroup]="form" (ngSubmit)="invite()">
-        <input class="input flex-1" [placeholder]="'team.emailPlaceholder' | translate" formControlName="email" />
-        <select class="input w-32" formControlName="role">
+        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'team.emailPlaceholder' | translate" formControlName="email" />
+        <select class="!w-32" formControlName="role">
           <option value="member">{{ 'team.roleMember' | translate }}</option>
           <option value="admin">{{ 'team.roleAdmin' | translate }}</option>
         </select>
-        <button class="button" type="submit" [disabled]="form.invalid">{{ 'team.invite' | translate }}</button>
+        <button class="inner-button" type="submit" [disabled]="form.invalid">{{ 'team.invite' | translate }}</button>
       </form>
     </section>
   `,

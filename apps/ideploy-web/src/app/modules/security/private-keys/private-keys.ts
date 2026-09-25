@@ -35,7 +35,7 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
         </p>
         <div class="flex flex-wrap items-center gap-2">
           <code class="flex-1 overflow-x-auto rounded-md p-2 font-mono text-xs" style="background:var(--color-bg-dark);">{{ pub }}</code>
-          <button class="button-secondary" (click)="copy(pub)">
+          <button class="outer-button" (click)="copy(pub)">
             {{ (copied() ? 'security.copied' : 'security.copy') | translate }}
           </button>
           <button class="text-xs" style="color:var(--color-text-secondary);" (click)="publicKey.set(null)">
@@ -53,11 +53,11 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
         @if (loading()) {
           <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'security.loading' | translate }}</p>
         } @else if (keys().length === 0) {
-          <div class="box">{{ 'security.noKeys' | translate }}</div>
+          <div class="glass-card p-4">{{ 'security.noKeys' | translate }}</div>
         } @else {
           <div class="space-y-4">
             @for (key of keys(); track key.uuid) {
-              <div class="box">
+              <div class="glass-card p-4">
                 <div class="flex items-center justify-between gap-4">
                   <div class="min-w-0">
                     <div class="font-semibold">{{ key.name }}</div>
@@ -67,10 +67,10 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
                   </div>
                   <div class="flex shrink-0 items-center gap-4">
                     <button class="text-xs transition-colors hover:underline" style="color:var(--color-text-secondary);" (click)="showPublic(key)">
-                      <i class="fa-solid fa-eye mr-1"></i>{{ 'security.showPublicKey' | translate }}
+                      <i class="pi pi-eye mr-1"></i>{{ 'security.showPublicKey' | translate }}
                     </button>
                     <button class="text-xs transition-colors hover:underline" style="color:var(--color-danger);" (click)="remove(key)">
-                      <i class="fa-solid fa-trash mr-1"></i>{{ 'security.delete' | translate }}
+                      <i class="pi pi-trash mr-1"></i>{{ 'security.delete' | translate }}
                     </button>
                   </div>
                 </div>
@@ -93,16 +93,16 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
       </div>
 
       <div>
-        <form class="box mb-4 space-y-3" [formGroup]="generateForm" (ngSubmit)="generate()">
+        <form class="glass-card p-4 mb-4 space-y-3" [formGroup]="generateForm" (ngSubmit)="generate()">
           <h2 class="text-sm font-semibold">{{ 'security.generateTitle' | translate }}</h2>
           <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'security.generateHint' | translate }}</p>
           <div>
             <label class="mb-1 block text-sm" for="gen-name">{{ 'security.name' | translate }}</label>
-            <input class="input" id="gen-name" formControlName="name" />
+            <input type="text"  id="gen-name" formControlName="name" />
           </div>
           <div>
             <label class="mb-1 block text-sm" for="gen-type">{{ 'security.keyType' | translate }}</label>
-            <select class="input" id="gen-type" formControlName="type">
+            <select  id="gen-type" formControlName="type">
               <option value="ed25519">ed25519</option>
               <option value="rsa">RSA</option>
             </select>
@@ -111,22 +111,22 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
             <input type="checkbox" formControlName="is_git_related" />
             {{ 'security.forGitAccess' | translate }}
           </label>
-          <button class="button" type="submit" [disabled]="generateForm.invalid || generating()">
+          <button class="inner-button" type="submit" [disabled]="generateForm.invalid || generating()">
             {{ (generating() ? 'security.generating' : 'security.generate') | translate }}
           </button>
         </form>
 
-        <form class="box space-y-3" [formGroup]="form" (ngSubmit)="submit()">
+        <form class="glass-card p-4 space-y-3" [formGroup]="form" (ngSubmit)="submit()">
           <h2 class="text-sm font-semibold">{{ 'security.addKeyTitle' | translate }}</h2>
           <div>
             <label class="mb-1 block text-sm" for="key-name">{{ 'security.name' | translate }}</label>
-            <input class="input" id="key-name" formControlName="name" />
+            <input type="text"  id="key-name" formControlName="name" />
           </div>
           <div>
             <label class="mb-1 block text-sm" for="key-pem">{{ 'security.privateKeyPem' | translate }}</label>
-            <textarea class="input font-mono" id="key-pem" rows="6" formControlName="private_key"></textarea>
+            <textarea class="font-mono" id="key-pem" rows="6" formControlName="private_key"></textarea>
           </div>
-          <button class="button" type="submit" [disabled]="form.invalid || saving()">
+          <button class="inner-button" type="submit" [disabled]="form.invalid || saving()">
             {{ saving() ? ('security.saving' | translate) : ('security.addKey' | translate) }}
           </button>
         </form>
