@@ -12,6 +12,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY ./packages/shared-models ./packages/shared-models
 COPY ./packages/shared-auth-client ./packages/shared-auth-client
 COPY ./packages/shared-styles ./packages/shared-styles
+COPY ./packages/shared-trusted-by ./packages/shared-trusted-by
 
 # Copier l'application landing
 COPY ./apps/landing ./apps/landing
@@ -28,7 +29,7 @@ RUN npm install --legacy-peer-deps --ignore-scripts && \
 
 # --- Génération de l'environnement (src/environments/environment.ts) ---
 
-# RUN test -f .env || (echo "❌ .env introuvable dans /app/apps/landing — vérifie .dockerignore" && exit 1)
+# RUN test -f .env || (echo " .env introuvable dans /app/apps/landing — vérifie .dockerignore" && exit 1)
 RUN npm run env:prod
 
 # --- Builds ---
