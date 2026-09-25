@@ -1,5 +1,6 @@
 import { admin } from '..';
 import logger from '../config/logger';
+import { isSuperUser } from '../utils/super-user.util';
 import { OnboardingProfile, QuotaData, UserModel } from '../models/userModel';
 import { IRepository } from '../repository/IRepository';
 import { RepositoryFactory } from '../repository/RepositoryFactory';
@@ -185,12 +186,7 @@ class UserService {
 
       // Check if user is an admin (unlimited quota)
       if (user && user.email) {
-        const adminEmails = (process.env.ADMIN_EMAILS || '')
-          .split(',')
-          .map((email) => email.trim().toLowerCase());
-        const isAdmin = adminEmails.includes(user.email.toLowerCase());
-
-        if (isAdmin) {
+        if (isSuperUser(user.email)) {
           logger.info(`User ${userId} (${user.email}) is an admin - unlimited quota granted`);
           return {
             allowed: true,

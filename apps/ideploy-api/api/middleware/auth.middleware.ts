@@ -34,7 +34,14 @@ export async function authenticate(
           ? parseInt(String(req.headers['x-current-team']), 10)
           : undefined;
         const currentTeamId = await resolveCurrentTeam(user.id, requestedTeam);
-        req.user = { id: user.id, idemUid: user.idem_uid, email: user.email, name: user.name, currentTeamId };
+        req.user = {
+          id: user.id,
+          idemUid: user.idem_uid,
+          email: user.email,
+          name: user.name,
+          currentTeamId,
+          isSuperUser: profile.isSuperUser === true,
+        };
         next();
         return;
       }

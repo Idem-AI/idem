@@ -8,6 +8,8 @@ export interface AuthUser {
   name: string;
   /** The team the request is acting on behalf of (current/selected team). */
   currentTeamId: number | null;
+  /** Platform super user (from the central API): no plan limits apply. */
+  isSuperUser?: boolean;
 }
 
 /** Express request augmented with the authenticated user (from the session). */

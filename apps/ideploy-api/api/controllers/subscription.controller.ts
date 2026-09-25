@@ -11,11 +11,11 @@ export async function plans(_req: CustomRequest, res: Response): Promise<void> {
 }
 
 export async function current(req: CustomRequest, res: Response): Promise<void> {
-  ok(res, await sub.getSubscription(teamId(req)));
+  ok(res, await sub.getSubscription(teamId(req), req.user!.isSuperUser === true));
 }
 
 export async function quota(req: CustomRequest, res: Response): Promise<void> {
-  ok(res, await sub.getQuota(teamId(req)));
+  ok(res, await sub.getQuota(teamId(req), req.user!.isSuperUser === true));
 }
 
 export async function checkout(req: CustomRequest, res: Response): Promise<void> {
