@@ -10,10 +10,11 @@ import {
   WorkspaceTarget,
   WorkspaceTargetPickerComponent,
 } from '../../../shared/components/workspace-target-picker/workspace-target-picker';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
 
 @Component({
   selector: 'app-databases-list',
-  imports: [RouterLink, ReactiveFormsModule, TranslateModule, WorkspaceTargetPickerComponent],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, WorkspaceTargetPickerComponent, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="mb-6 text-2xl font-bold">{{ 'databases.title' | translate }}</h1>
@@ -23,11 +24,11 @@ import {
         @if (loading()) {
           <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'databases.loading' | translate }}</p>
         } @else if (databases().length === 0) {
-          <div class="box">{{ 'databases.empty' | translate }}</div>
+          <div class="glass-card"><app-empty-state kind="store" [title]="'databases.empty' | translate" /></div>
         } @else {
           <div class="space-y-3">
             @for (db of databases(); track db.uuid) {
-              <div class="box flex items-center justify-between">
+              <div class="glass-card p-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                   <div
                     class="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg [&_svg]:h-6 [&_svg]:w-6"
@@ -42,9 +43,9 @@ import {
                   </div>
                 </div>
                 <div class="flex gap-2">
-                  <button class="button-secondary" (click)="action(db, 'start')">{{ 'databases.start' | translate }}</button>
-                  <button class="button-secondary" (click)="action(db, 'stop')">{{ 'databases.stop' | translate }}</button>
-                  <button class="button-secondary" (click)="backup(db)">{{ 'databases.backupNow' | translate }}</button>
+                  <button class="outer-button" (click)="action(db, 'start')">{{ 'databases.start' | translate }}</button>
+                  <button class="outer-button" (click)="action(db, 'stop')">{{ 'databases.stop' | translate }}</button>
+                  <button class="outer-button" (click)="backup(db)">{{ 'databases.backupNow' | translate }}</button>
                   <button class="text-xs text-red-400" (click)="remove(db)">{{ 'databases.delete' | translate }}</button>
                 </div>
               </div>
@@ -53,7 +54,7 @@ import {
         }
       </div>
 
-      <div class="box space-y-4">
+      <div class="glass-card p-4 space-y-4">
         <h2 class="font-semibold">{{ 'databases.newDatabase' | translate }}</h2>
 
         <div>
@@ -78,7 +79,7 @@ import {
         <form class="space-y-3" [formGroup]="form" (ngSubmit)="create()">
           <div>
             <label class="mb-1 block text-sm">{{ 'databases.name' | translate }}</label>
-            <input class="input" formControlName="name" />
+            <input type="text"  formControlName="name" />
           </div>
 
           <app-workspace-target-picker (targetChange)="target.set($event)" />
@@ -86,7 +87,7 @@ import {
           @if (error()) {
             <p class="text-sm text-red-400">{{ error() }}</p>
           }
-          <button class="button" type="submit" [disabled]="form.invalid || !target() || saving()">
+          <button class="inner-button" type="submit" [disabled]="form.invalid || !target() || saving()">
             {{ (saving() ? 'databases.creating' : 'databases.createDatabase') | translate }}
           </button>
         </form>

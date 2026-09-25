@@ -57,46 +57,46 @@ interface Preset {
     <div class="space-y-4">
       @if (stage() === 'provider') {
         <div class="flex gap-2">
-          <button type="button" class="button-secondary flex-1" (click)="pickProvider('github')">
-            <i class="fa-brands fa-github mr-1.5"></i>GitHub
+          <button type="button" class="outer-button flex-1" (click)="pickProvider('github')">
+            <i class="pi pi-github mr-1.5"></i>GitHub
           </button>
-          <button type="button" class="button-secondary flex-1" (click)="pickProvider('gitlab')">
-            <i class="fa-brands fa-gitlab mr-1.5" style="color:#fc6d26;"></i>GitLab
+          <button type="button" class="outer-button flex-1" (click)="pickProvider('gitlab')">
+            <i class="pi pi-sitemap mr-1.5" style="color:#fc6d26;"></i>GitLab
           </button>
         </div>
       }
 
       @if (stage() === 'repos') {
         <button type="button" class="text-xs hover:underline" style="color:var(--color-text-tertiary);" (click)="stage.set('provider')">
-          <i class="fa-solid fa-arrow-left mr-1"></i>{{ 'projects.new.chooseAnotherSource' | translate }}
+          <i class="pi pi-arrow-left mr-1"></i>{{ 'projects.new.chooseAnotherSource' | translate }}
         </button>
 
         @if (providerUser() === undefined) {
           <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.checkingProvider' | translate }}</p>
         } @else if (providerUser() === null) {
-          <div class="db-glass text-center p-6 rounded-2xl">
+          <div class="glass-card text-center p-6 rounded-2xl">
             <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
               {{ (provider() === 'github' ? 'projects.new.connectGithubDesc' : 'projects.new.connectGitlabDesc') | translate }}
             </p>
-            <button class="button" type="button" (click)="connectProvider()">
+            <button class="inner-button" type="button" (click)="connectProvider()">
               {{ (provider() === 'github' ? 'projects.new.connectGithub' : 'projects.new.connectGitlab') | translate }}
             </button>
           </div>
         } @else {
-          <input class="input font-mono text-xs" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" [placeholder]="'projects.new.searchReposPlaceholder' | translate" />
+          <input type="text" class="font-mono text-xs" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" [placeholder]="'projects.new.searchReposPlaceholder' | translate" />
           @if (filteredRepos().length === 0) {
-            <div class="db-glass p-6 text-center text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.noRepos' | translate }}</div>
+            <div class="glass-card p-6 text-center text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.noRepos' | translate }}</div>
           } @else {
-            <div class="overflow-y-auto rounded-xl db-glass" style="max-height: 320px;">
+            <div class="overflow-y-auto rounded-xl glass-card" style="max-height: 320px;">
               @for (repo of filteredRepos(); track repo.fullName) {
                 <div class="flex items-center gap-3 p-3 hover:bg-[var(--glass-bg-subtle)] transition-colors" style="border-bottom:1px solid var(--glass-border-subtle);">
                   <div class="min-w-0 flex-1">
                     <div class="truncate text-sm font-semibold font-mono">
                       {{ repo.name }}
-                      @if (repo.private) { <i class="fa-solid fa-lock ml-1.5 text-[10px]" style="color:var(--color-text-tertiary);"></i> }
+                      @if (repo.private) { <i class="pi pi-lock ml-1.5 text-[10px]" style="color:var(--color-text-tertiary);"></i> }
                     </div>
                   </div>
-                  <button class="button-secondary text-xs px-3 py-1.5" type="button" (click)="importRepo(repo)">{{ 'projects.new.import' | translate }}</button>
+                  <button class="outer-button text-xs px-3 py-1.5" type="button" (click)="importRepo(repo)">{{ 'projects.new.import' | translate }}</button>
                 </div>
               }
             </div>
@@ -106,17 +106,17 @@ interface Preset {
 
       @if (stage() === 'configure') {
         <button type="button" class="text-xs hover:underline" style="color:var(--color-text-tertiary);" (click)="stage.set('repos')">
-          <i class="fa-solid fa-arrow-left mr-1"></i>{{ repo() }}
+          <i class="pi pi-arrow-left mr-1"></i>{{ repo() }}
         </button>
 
         <div>
           <label class="mb-1 block text-sm font-semibold">{{ 'projects.import.applicationName' | translate }}</label>
-          <input class="input" [ngModel]="projectName()" (ngModelChange)="projectName.set($event)" autocomplete="off" />
+          <input type="text"  [ngModel]="projectName()" (ngModelChange)="projectName.set($event)" autocomplete="off" />
         </div>
 
         @if (detecting()) {
           <div class="flex items-center gap-2 rounded-xl p-3 border text-sm" style="border-color:var(--color-surface-2);color:var(--color-text-secondary);">
-            <i class="fa-solid fa-circle-notch fa-spin"></i> {{ 'projects.import.detecting' | translate }}
+            <i class="pi pi-spinner pi-spin"></i> {{ 'projects.import.detecting' | translate }}
           </div>
         } @else if (ecosystemLabel()) {
           <div class="flex items-center gap-3 rounded-xl p-3 border" style="border-color:var(--color-surface-2);">
@@ -126,7 +126,7 @@ interface Preset {
               <div class="text-xs" style="color:var(--color-text-tertiary);">{{ ecosystemLabel() }}</div>
             </div>
             <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold" style="background:rgba(34,197,94,0.15);color:#4ade80;">
-              <i class="fa-solid fa-check mr-1"></i>{{ 'projects.import.autoDetectedBadge' | translate }}
+              <i class="pi pi-check mr-1"></i>{{ 'projects.import.autoDetectedBadge' | translate }}
             </span>
           </div>
         }
@@ -135,11 +135,11 @@ interface Preset {
           <div class="space-y-1.5 rounded-xl p-3 border text-sm" style="border-color:var(--color-surface-2);">
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" name="guideAppBuildMethod" [checked]="buildMethod() === 'docker'" (change)="buildMethod.set('docker')" />
-              <span><i class="fa-brands fa-docker mr-1 text-blue-400"></i>{{ 'projects.import.useDocker' | translate }}</span>
+              <span><i class="pi pi-box mr-1 text-primary-400"></i>{{ 'projects.import.useDocker' | translate }}</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" name="guideAppBuildMethod" [checked]="buildMethod() === 'buildless'" (change)="buildMethod.set('buildless')" />
-              <span><i class="fa-brands fa-node-js mr-1 text-green-400"></i>{{ 'projects.import.withoutDocker' | translate }}</span>
+              <span><i class="pi pi-code mr-1 text-green-400"></i>{{ 'projects.import.withoutDocker' | translate }}</span>
             </label>
           </div>
         }
@@ -150,7 +150,7 @@ interface Preset {
               <div class="rounded-xl p-3 text-sm border"
                    [style.background]="w.severity === 'blocking' ? 'rgba(239,68,68,0.08)' : 'color-mix(in srgb, var(--color-warning) 12%, transparent)'"
                    [style.border-color]="w.severity === 'blocking' ? 'rgba(239,68,68,0.3)' : 'color-mix(in srgb, var(--color-warning) 40%, transparent)'">
-                <i class="fa-solid fa-triangle-exclamation mr-1.5" [style.color]="w.severity === 'blocking' ? '#f87171' : 'var(--color-warning)'"></i>
+                <i class="pi pi-exclamation-triangle mr-1.5" [style.color]="w.severity === 'blocking' ? '#f87171' : 'var(--color-warning)'"></i>
                 <span [style.color]="w.severity === 'blocking' ? '#f87171' : 'var(--color-warning)'">{{ w.message }}</span>
               </div>
             }
@@ -159,18 +159,18 @@ interface Preset {
 
         <div>
           <label class="mb-1 block text-sm font-semibold">{{ 'projects.import.rootDirectory' | translate }}</label>
-          <input class="input font-mono" [ngModel]="rootDir()" (ngModelChange)="onRootDirEdit($event)" placeholder="./" autocomplete="off" />
+          <input type="text" class="font-mono" [ngModel]="rootDir()" (ngModelChange)="onRootDirEdit($event)" placeholder="./" autocomplete="off" />
           @if (rootDirAutoDetected()) {
-            <p class="mt-1 text-xs" style="color:#4ade80;"><i class="fa-solid fa-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
+            <p class="mt-1 text-xs" style="color:#4ade80;"><i class="pi pi-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
           }
           @if (monorepoCandidates().length > 0) {
             <div class="mt-2 rounded-xl border p-3" style="background:color-mix(in srgb, var(--color-warning) 8%, transparent);border-color:color-mix(in srgb, var(--color-warning) 30%, transparent);">
               <p class="mb-2 text-xs font-semibold" style="color:var(--color-warning);">
-                <i class="fa-solid fa-diagram-project mr-1"></i>{{ 'projects.import.monorepoFound' | translate: { count: monorepoCandidates().length } }}
+                <i class="pi pi-sitemap mr-1"></i>{{ 'projects.import.monorepoFound' | translate: { count: monorepoCandidates().length } }}
               </p>
               <div class="flex flex-wrap gap-2">
                 @for (c of monorepoCandidates(); track c.dir) {
-                  <button type="button" class="button-secondary text-xs px-2.5 py-1.5 font-mono" (click)="pickMonorepoCandidate(c.dir)">{{ c.dir }}</button>
+                  <button type="button" class="outer-button text-xs px-2.5 py-1.5 font-mono" (click)="pickMonorepoCandidate(c.dir)">{{ c.dir }}</button>
                 }
               </div>
             </div>
@@ -178,21 +178,21 @@ interface Preset {
         </div>
 
         <button type="button" class="flex w-full items-center gap-2 rounded-lg p-3 text-left text-sm font-semibold" style="border:1px solid var(--color-surface-2);" (click)="showBuild.set(!showBuild())">
-          <i class="fa-solid" [class.fa-chevron-right]="!showBuild()" [class.fa-chevron-down]="showBuild()"></i>
+          <i class="pi" [class.pi-chevron-right]="!showBuild()" [class.pi-chevron-down]="showBuild()"></i>
           {{ 'projects.import.buildOutputSettings' | translate }}
         </button>
         @if (showBuild()) {
           <div class="space-y-3 px-1">
-            <input class="input font-mono" [ngModel]="installCommand()" (ngModelChange)="installCommand.set($event)" [placeholder]="'projects.import.installCommandPlaceholder' | translate" autocomplete="off" />
-            <input class="input font-mono" [ngModel]="buildCommand()" (ngModelChange)="buildCommand.set($event)" [placeholder]="'projects.import.buildCommandPlaceholder' | translate" autocomplete="off" />
-            <input class="input font-mono" [ngModel]="startCommand()" (ngModelChange)="onStartCommandEdit($event)" [placeholder]="'projects.import.startCommandPlaceholder' | translate" autocomplete="off" />
-            <input class="input font-mono" [ngModel]="portsExposes()" (ngModelChange)="onPortEdit($event)" [placeholder]="'projects.import.portPlaceholder' | translate" autocomplete="off" />
+            <input type="text" class="font-mono" [ngModel]="installCommand()" (ngModelChange)="installCommand.set($event)" [placeholder]="'projects.import.installCommandPlaceholder' | translate" autocomplete="off" />
+            <input type="text" class="font-mono" [ngModel]="buildCommand()" (ngModelChange)="buildCommand.set($event)" [placeholder]="'projects.import.buildCommandPlaceholder' | translate" autocomplete="off" />
+            <input type="text" class="font-mono" [ngModel]="startCommand()" (ngModelChange)="onStartCommandEdit($event)" [placeholder]="'projects.import.startCommandPlaceholder' | translate" autocomplete="off" />
+            <input type="text" class="font-mono" [ngModel]="portsExposes()" (ngModelChange)="onPortEdit($event)" [placeholder]="'projects.import.portPlaceholder' | translate" autocomplete="off" />
           </div>
         }
 
         <button type="button" class="flex w-full items-center justify-between gap-2 rounded-lg p-3 text-left text-sm font-semibold" style="border:1px solid var(--color-surface-2);" (click)="showEnv.set(!showEnv())">
           <span class="flex items-center gap-2">
-            <i class="fa-solid" [class.fa-chevron-right]="!showEnv()" [class.fa-chevron-down]="showEnv()"></i>
+            <i class="pi" [class.pi-chevron-right]="!showEnv()" [class.pi-chevron-down]="showEnv()"></i>
             {{ 'projects.import.envVariables' | translate }}
           </span>
           @if (envRows().length > 0) {
@@ -208,18 +208,18 @@ interface Preset {
                 @for (row of envRows(); track $index; let i = $index) {
                   <div>
                     <div class="flex items-center gap-2">
-                      <input class="input font-mono flex-1" style="min-width:0;" [value]="row.key" (input)="updateEnvKey(i, $any($event.target).value)" autocomplete="off" />
+                      <input type="text" class="font-mono flex-1 !w-auto min-w-0" style="min-width:0;" [value]="row.key" (input)="updateEnvKey(i, $any($event.target).value)" autocomplete="off" />
                       <div class="relative flex-1" style="min-width:0;">
-                        <input class="input font-mono w-full pr-9" [attr.type]="row.reveal ? 'text' : 'password'" [value]="row.value" (input)="updateEnvValue(i, $any($event.target).value)" autocomplete="off" />
+                        <input type="text" class="font-mono !w-full pr-9" [attr.type]="row.reveal ? 'text' : 'password'" [value]="row.value" (input)="updateEnvValue(i, $any($event.target).value)" autocomplete="off" />
                         <button type="button" class="absolute top-1/2 right-2.5 -translate-y-1/2" style="color:var(--color-text-tertiary);" (click)="toggleReveal(i)">
-                          <i class="fa-solid text-xs" [class.fa-eye]="!row.reveal" [class.fa-eye-slash]="row.reveal"></i>
+                          <i class="pi text-xs" [class.pi-eye]="!row.reveal" [class.pi-eye-slash]="row.reveal"></i>
                         </button>
                       </div>
-                      <button type="button" class="px-2 py-2 text-sm" style="color:var(--color-text-tertiary);" (click)="removeEnvRow(i)"><i class="fa-solid fa-minus"></i></button>
+                      <button type="button" class="px-2 py-2 text-sm" style="color:var(--color-text-tertiary);" (click)="removeEnvRow(i)"><i class="pi pi-minus"></i></button>
                     </div>
                     @if (row.linkedFrom) {
                       <p class="mt-1 ml-1 text-xs" style="color:#60a5fa;">
-                        <i class="fa-solid fa-link mr-1"></i>
+                        <i class="pi pi-link mr-1"></i>
                         {{ linkedFromLabel(row.linkedFrom) | translate: { name: linkedFromName(row.linkedFrom) } }}
                       </p>
                     }
@@ -228,8 +228,8 @@ interface Preset {
               </div>
             }
             <div class="flex flex-wrap items-center gap-3">
-              <button type="button" class="button-secondary text-xs px-3 py-1.5" (click)="addEnvRow()"><i class="fa-solid fa-plus mr-1"></i>{{ 'projects.import.addVariable' | translate }}</button>
-              <button type="button" class="text-xs font-semibold hover:underline" style="color:#60a5fa;" (click)="envFileInput.click()"><i class="fa-solid fa-file-import mr-1"></i>{{ 'projects.import.importEnvFile' | translate }}</button>
+              <button type="button" class="outer-button text-xs px-3 py-1.5" (click)="addEnvRow()"><i class="pi pi-plus mr-1"></i>{{ 'projects.import.addVariable' | translate }}</button>
+              <button type="button" class="text-xs font-semibold hover:underline" style="color:#60a5fa;" (click)="envFileInput.click()"><i class="pi pi-file-import mr-1"></i>{{ 'projects.import.importEnvFile' | translate }}</button>
               <input #envFileInput type="file" accept=".env,text/plain" class="hidden" (change)="onImportEnvFile($event)" />
             </div>
             @if (envImportError()) {
@@ -239,10 +239,10 @@ interface Preset {
         }
 
         @if (error()) {
-          <p class="text-sm text-red-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i>{{ error() }}</p>
+          <p class="text-sm text-red-400"><i class="pi pi-exclamation-triangle mr-1"></i>{{ error() }}</p>
         }
 
-        <button class="button w-full py-2.5" type="button" [disabled]="deploying() || !projectName().trim()" (click)="deploy()">
+        <button class="inner-button w-full py-2.5" type="button" [disabled]="deploying() || !projectName().trim()" (click)="deploy()">
           {{ (deploying() ? 'projects.import.deploying' : 'projects.common.deploy') | translate }}
         </button>
       }
@@ -250,7 +250,7 @@ interface Preset {
       @if (stage() === 'deploying') {
         <div class="space-y-3">
           <div class="flex items-center gap-2 text-sm">
-            <i class="fa-solid fa-circle-notch fa-spin" style="color:var(--color-primary-400);"></i>
+            <i class="pi pi-spinner pi-spin" style="color:var(--color-primary-400);"></i>
             <span>{{ (deploymentInfo()?.status === 'in_progress' ? 'deploy.statusInProgress' : 'deploy.statusQueued') | translate }}</span>
           </div>
           <pre class="max-h-56 overflow-auto rounded-xl p-3 font-mono text-xs leading-relaxed" style="background:#080b12;color:#c9d1d9;">@for (line of consoleLines(); track $index) {<span>{{ line }}</span>
@@ -268,8 +268,8 @@ interface Preset {
                 <span class="status-badge bg-red-500/10 text-red-400 border border-red-500/20">✗ {{ 'deploy.statusFailed' | translate }}</span>
               }
               @if (dep.status === 'finished' && dep.application_url) {
-                <a [href]="dep.application_url" target="_blank" rel="noopener noreferrer" class="button inline-flex items-center gap-1.5 px-3 py-1.5 text-xs">
-                  {{ 'deploy.visitApp' | translate }} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                <a [href]="dep.application_url" target="_blank" rel="noopener noreferrer" class="inner-button inline-flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                  {{ 'deploy.visitApp' | translate }} <i class="pi pi-external-link text-[10px]"></i>
                 </a>
               }
             </div>
@@ -287,10 +287,10 @@ interface Preset {
 
           <div class="flex gap-3">
             @if (deploymentInfo()?.status === 'failed') {
-              <button class="button-secondary text-xs px-3 py-1.5" type="button" (click)="retryDeploy()">{{ 'architectures.dbStep.retryStart' | translate }}</button>
-              <button class="button" type="button" (click)="finish()">{{ 'architectures.dbStep.continueAnyway' | translate }}</button>
+              <button class="outer-button text-xs px-3 py-1.5" type="button" (click)="retryDeploy()">{{ 'architectures.dbStep.retryStart' | translate }}</button>
+              <button class="inner-button" type="button" (click)="finish()">{{ 'architectures.dbStep.continueAnyway' | translate }}</button>
             } @else {
-              <button class="button" type="button" (click)="finish()">{{ 'projects.new.continue' | translate }}</button>
+              <button class="inner-button" type="button" (click)="finish()">{{ 'projects.new.continue' | translate }}</button>
             }
           </div>
         </div>
@@ -384,26 +384,26 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
   });
 
   protected readonly presets: Preset[] = [
-    { label: 'Vite', icon: 'fa-solid fa-bolt', buildPack: 'nixpacks' },
-    { label: 'Next.js', icon: 'fa-solid fa-n', buildPack: 'nixpacks' },
-    { label: 'Node.js', icon: 'fa-brands fa-node-js', buildPack: 'nixpacks' },
-    { label: 'Angular', icon: 'fa-brands fa-angular', buildPack: 'nixpacks' },
-    { label: 'Static', icon: 'fa-solid fa-file-code', buildPack: 'static' },
-    { label: 'Spring Boot (Maven)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
-    { label: 'Java (Maven)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
-    { label: 'Spring Boot (Gradle)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
-    { label: 'Java (Gradle)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
-    { label: 'Django', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
-    { label: 'FastAPI', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
-    { label: 'Flask', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
-    { label: 'Python', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
-    { label: 'Go', icon: 'fa-solid fa-terminal', buildPack: 'nixpacks' },
-    { label: 'Ruby on Rails', icon: 'fa-solid fa-gem', buildPack: 'nixpacks' },
-    { label: 'Ruby', icon: 'fa-solid fa-gem', buildPack: 'nixpacks' },
-    { label: 'Laravel', icon: 'fa-brands fa-php', buildPack: 'nixpacks' },
-    { label: 'PHP', icon: 'fa-brands fa-php', buildPack: 'nixpacks' },
-    { label: 'Dockerfile', icon: 'fa-brands fa-docker', buildPack: 'dockerfile' },
-    { label: 'Other', icon: 'fa-solid fa-cube', buildPack: 'nixpacks' },
+    { label: 'Vite', icon: 'pi pi-bolt', buildPack: 'nixpacks' },
+    { label: 'Next.js', icon: 'pi pi-desktop', buildPack: 'nixpacks' },
+    { label: 'Node.js', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Angular', icon: 'pi pi-desktop', buildPack: 'nixpacks' },
+    { label: 'Static', icon: 'pi pi-file', buildPack: 'static' },
+    { label: 'Spring Boot (Maven)', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Java (Maven)', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Spring Boot (Gradle)', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Java (Gradle)', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Django', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'FastAPI', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Flask', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Python', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Go', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Ruby on Rails', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Ruby', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Laravel', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'PHP', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Dockerfile', icon: 'pi pi-box', buildPack: 'dockerfile' },
+    { label: 'Other', icon: 'pi pi-box', buildPack: 'nixpacks' },
   ];
 
   ngOnInit(): void {

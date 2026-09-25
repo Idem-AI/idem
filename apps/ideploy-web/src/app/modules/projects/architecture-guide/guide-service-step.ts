@@ -20,20 +20,20 @@ import { serviceLogoUrl } from '../../../shared/utils/service-logo.util';
   template: `
     <div class="space-y-3">
       <div class="relative">
-        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--color-text-tertiary);"></i>
-        <input class="input" style="padding-left:30px;" [ngModel]="query()" (ngModelChange)="query.set($event)" [placeholder]="'projects.new.searchReposPlaceholder' | translate" />
+        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--color-text-tertiary);"></i>
+        <input type="text"  style="padding-left:30px;" [ngModel]="query()" (ngModelChange)="query.set($event)" [placeholder]="'projects.new.searchReposPlaceholder' | translate" />
       </div>
 
       @if (deploying()) {
-        <p class="text-sm" style="color:var(--color-text-secondary);"><i class="fa-solid fa-circle-notch fa-spin mr-1"></i>{{ 'projects.common.deploying' | translate }}</p>
+        <p class="text-sm" style="color:var(--color-text-secondary);"><i class="pi pi-spinner pi-spin mr-1"></i>{{ 'projects.common.deploying' | translate }}</p>
       } @else {
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3" style="max-height:280px;overflow-y:auto;">
           @for (t of filtered(); track t.name) {
-            <button type="button" class="db-glass flex flex-col items-center gap-2 rounded-xl p-3 text-center hover:border-blue-500/50 transition-colors" (click)="deploy(t)">
+            <button type="button" class="glass-card flex flex-col items-center gap-2 rounded-xl p-3 text-center hover:border-[var(--color-primary-500)] transition-colors" (click)="deploy(t)">
               @if (logo(t); as l) {
                 <img [src]="l" class="h-8 w-8 object-contain" alt="" (error)="onLogoError($event)" />
               } @else {
-                <i class="fa-solid fa-cube text-xl" style="color:var(--color-text-secondary);"></i>
+                <i class="pi pi-box text-xl" style="color:var(--color-text-secondary);"></i>
               }
               <span class="truncate text-xs font-semibold capitalize">{{ t.name }}</span>
             </button>

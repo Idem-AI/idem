@@ -19,7 +19,7 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
   template: `
     <div class="mx-auto max-w-2xl">
       <a routerLink="/servers" class="mb-4 inline-flex items-center gap-2 text-sm" style="color:var(--color-text-secondary);">
-        <i class="fa-solid fa-chevron-left text-[10px]"></i>
+        <i class="pi pi-chevron-left text-[10px]"></i>
         {{ 'servers.create.back' | translate }}
       </a>
 
@@ -33,14 +33,14 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
       <ol class="mb-6 flex items-center gap-2 text-xs" style="color:var(--color-text-secondary);">
         <li class="flex items-center gap-1.5" [style.color]="step() === 1 ? 'var(--color-primary-400)' : undefined">
           <span class="flex h-5 w-5 items-center justify-center rounded-full border text-[10px]" [style.border-color]="step() >= 1 ? 'var(--color-primary-400)' : 'currentColor'">
-            @if (step() > 1) {<i class="fa-solid fa-check"></i>} @else {1}
+            @if (step() > 1) {<i class="pi pi-check"></i>} @else {1}
           </span>
           {{ 'servers.create.stepIdentity' | translate }}
         </li>
         <li class="h-px w-6" style="background:var(--color-surface-2);"></li>
         <li class="flex items-center gap-1.5" [style.color]="step() === 2 ? 'var(--color-primary-400)' : undefined">
           <span class="flex h-5 w-5 items-center justify-center rounded-full border text-[10px]" [style.border-color]="step() >= 2 ? 'var(--color-primary-400)' : 'currentColor'">
-            @if (step() > 2) {<i class="fa-solid fa-check"></i>} @else {2}
+            @if (step() > 2) {<i class="pi pi-check"></i>} @else {2}
           </span>
           {{ 'servers.create.stepSsh' | translate }}
         </li>
@@ -51,17 +51,17 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
         </li>
       </ol>
 
-      <form class="box space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+      <form class="glass-card p-4 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
         @if (step() === 1) {
           <div>
             <label class="mb-1 block text-sm" for="srv-name">{{ 'servers.create.name' | translate }}</label>
-            <input id="srv-name" class="input" formControlName="name" [placeholder]="'servers.create.namePlaceholder' | translate" autocomplete="off" />
+            <input type="text" id="srv-name"  formControlName="name" [placeholder]="'servers.create.namePlaceholder' | translate" autocomplete="off" />
           </div>
           <div>
             <label class="mb-1 block text-sm" for="srv-description">{{ 'servers.create.description' | translate }}</label>
-            <textarea id="srv-description" class="input" rows="3" formControlName="description" [placeholder]="'servers.create.descriptionPlaceholder' | translate"></textarea>
+            <textarea id="srv-description"  rows="3" formControlName="description" [placeholder]="'servers.create.descriptionPlaceholder' | translate"></textarea>
           </div>
-          <button class="button" type="button" [disabled]="form.controls.name.invalid" (click)="step.set(2)">
+          <button class="inner-button" type="button" [disabled]="form.controls.name.invalid" (click)="step.set(2)">
             {{ 'servers.create.next' | translate }}
           </button>
         }
@@ -70,16 +70,16 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div class="sm:col-span-2">
               <label class="mb-1 block text-sm" for="srv-host">{{ 'servers.create.host' | translate }}</label>
-              <input id="srv-host" class="input font-mono" formControlName="ip" [placeholder]="'servers.create.hostPlaceholder' | translate" autocomplete="off" />
+              <input type="text" id="srv-host" class="font-mono" formControlName="ip" [placeholder]="'servers.create.hostPlaceholder' | translate" autocomplete="off" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-port">{{ 'servers.create.port' | translate }}</label>
-              <input id="srv-port" class="input" type="number" formControlName="port" />
+              <input id="srv-port"  type="number" formControlName="port" />
             </div>
           </div>
           <div>
             <label class="mb-1 block text-sm" for="srv-user">{{ 'servers.create.user' | translate }}</label>
-            <input id="srv-user" class="input font-mono" formControlName="user" />
+            <input type="text" id="srv-user" class="font-mono" formControlName="user" />
           </div>
 
           <div>
@@ -90,16 +90,16 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
             } @else if (keys().length === 0 && !showKeyGenerator()) {
               <div class="rounded-lg p-3 text-sm" style="background:color-mix(in srgb, var(--color-warning) 12%, transparent);border:1px solid color-mix(in srgb, var(--color-warning) 35%, transparent);">
                 <p class="mb-2 font-semibold" style="color:var(--color-warning);">
-                  <i class="fa-solid fa-key mr-1"></i>{{ 'servers.create.noKeysWarningTitle' | translate }}
+                  <i class="pi pi-key mr-1"></i>{{ 'servers.create.noKeysWarningTitle' | translate }}
                 </p>
                 <p class="mb-3" style="color:var(--color-text-secondary);">{{ 'servers.create.noKeysWarningDesc' | translate }}</p>
-                <button class="button" type="button" (click)="showKeyGenerator.set(true)">
+                <button class="inner-button" type="button" (click)="showKeyGenerator.set(true)">
                   {{ 'servers.create.createKeyButton' | translate }}
                 </button>
               </div>
             } @else {
               @if (keys().length > 0) {
-                <select id="srv-key" class="input" formControlName="private_key_id">
+                <select id="srv-key"  formControlName="private_key_id">
                   <option [ngValue]="0" disabled>{{ 'servers.create.choosePrivateKey' | translate }}</option>
                   @for (key of keys(); track key.id) {
                     <option [ngValue]="key.id">{{ key.name }}</option>
@@ -120,7 +120,7 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
                     <p class="mb-2 font-semibold" style="color:var(--color-success);">{{ 'servers.create.publicKeyReady' | translate }}</p>
                     <div class="flex flex-wrap items-center gap-2">
                       <code class="flex-1 overflow-x-auto rounded-md p-2 font-mono text-xs" style="background:var(--color-bg-dark);">{{ pub }}</code>
-                      <button class="button-secondary" type="button" (click)="copyPublicKey(pub)">
+                      <button class="outer-button" type="button" (click)="copyPublicKey(pub)">
                         {{ (copied() ? 'servers.create.copied' : 'servers.create.copy') | translate }}
                       </button>
                     </div>
@@ -130,11 +130,11 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
                   <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                       <label class="mb-1 block text-sm" for="gen-key-name">{{ 'servers.create.keyName' | translate }}</label>
-                      <input id="gen-key-name" class="input" [formControl]="generateForm.controls.name" autocomplete="off" />
+                      <input type="text" id="gen-key-name"  [formControl]="generateForm.controls.name" autocomplete="off" />
                     </div>
                     <div>
                       <label class="mb-1 block text-sm" for="gen-key-type">{{ 'servers.create.keyType' | translate }}</label>
-                      <select id="gen-key-type" class="input" [formControl]="generateForm.controls.type">
+                      <select id="gen-key-type"  [formControl]="generateForm.controls.type">
                         <option value="ed25519">ed25519</option>
                         <option value="rsa">RSA</option>
                       </select>
@@ -144,11 +144,11 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
                     <p class="text-sm" style="color:var(--color-danger);">{{ keyGenerateError() }}</p>
                   }
                   <div class="flex gap-2">
-                    <button class="button" type="button" [disabled]="generateForm.invalid || generatingKey()" (click)="generateKey()">
+                    <button class="inner-button" type="button" [disabled]="generateForm.invalid || generatingKey()" (click)="generateKey()">
                       {{ (generatingKey() ? 'servers.create.generating' : 'servers.create.generateKey') | translate }}
                     </button>
                     @if (keys().length > 0) {
-                      <button class="button-secondary" type="button" (click)="showKeyGenerator.set(false)">{{ 'servers.create.back' | translate }}</button>
+                      <button class="outer-button" type="button" (click)="showKeyGenerator.set(false)">{{ 'servers.create.back' | translate }}</button>
                     }
                   </div>
                 }
@@ -157,8 +157,8 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
           </div>
 
           <div class="flex gap-2">
-            <button class="button-secondary" type="button" (click)="step.set(1)">{{ 'servers.create.back' | translate }}</button>
-            <button class="button" type="button" [disabled]="!canGoToOptions()" (click)="step.set(3)">{{ 'servers.create.next' | translate }}</button>
+            <button class="outer-button" type="button" (click)="step.set(1)">{{ 'servers.create.back' | translate }}</button>
+            <button class="inner-button" type="button" [disabled]="!canGoToOptions()" (click)="step.set(3)">{{ 'servers.create.next' | translate }}</button>
           </div>
         }
 
@@ -196,8 +196,8 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
           }
 
           <div class="flex gap-2">
-            <button class="button-secondary" type="button" (click)="step.set(2)">{{ 'servers.create.back' | translate }}</button>
-            <button class="button" type="submit" [disabled]="submitting() || !canSubmit()">
+            <button class="outer-button" type="button" (click)="step.set(2)">{{ 'servers.create.back' | translate }}</button>
+            <button class="inner-button" type="submit" [disabled]="submitting() || !canSubmit()">
               {{ (submitting() ? 'servers.create.submitting' : 'servers.create.submit') | translate }}
             </button>
           </div>

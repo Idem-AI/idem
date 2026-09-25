@@ -16,12 +16,12 @@ export interface ServiceStatusDisplay {
 export function serviceStatusDisplay(status: Service['status']): ServiceStatusDisplay {
   switch (status) {
     case 'running':
-      return { icon: 'fa-solid fa-circle-check', color: 'var(--color-success)', labelKey: 'services.status.running' };
+      return { icon: 'pi pi-check-circle', color: 'var(--color-success)', labelKey: 'services.status.running' };
     case 'partial':
-      return { icon: 'fa-solid fa-triangle-exclamation', color: 'var(--color-warning)', labelKey: 'services.status.partial' };
+      return { icon: 'pi pi-exclamation-triangle', color: 'var(--color-warning)', labelKey: 'services.status.partial' };
     case 'exited':
-      return { icon: 'fa-solid fa-circle-stop', color: 'var(--color-text-tertiary)', labelKey: 'services.status.exited' };
+      return { icon: 'pi pi-stop-circle', color: 'var(--color-text-tertiary)', labelKey: 'services.status.exited' };
     default:
-      return { icon: 'fa-solid fa-circle-minus', color: 'var(--color-text-tertiary)', labelKey: 'services.status.unknown' };
+      return { icon: 'pi pi-minus-circle', color: 'var(--color-text-tertiary)', labelKey: 'services.status.unknown' };
   }
 }

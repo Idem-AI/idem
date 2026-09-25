@@ -39,7 +39,7 @@ import {
     @if (overview(); as o) {
       <div class="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         @for (stat of stats(o); track stat.key) {
-          <div class="box">
+          <div class="glass-card p-4">
             <div
               class="text-2xl font-semibold"
               style="font-variant-numeric:tabular-nums;"
@@ -56,7 +56,7 @@ import {
     }
 
     <div class="grid gap-4 lg:grid-cols-2">
-      <section class="box">
+      <section class="glass-card p-4">
         <h2 class="mb-3 text-sm font-semibold">
           {{ 'admin.teams' | translate }}
           <span class="ml-1 font-normal" style="color:var(--color-text-secondary);">({{ teams().length }})</span>
@@ -87,7 +87,7 @@ import {
         }
       </section>
 
-      <section class="box">
+      <section class="glass-card p-4">
         <h2 class="mb-3 text-sm font-semibold">
           {{ 'admin.users' | translate }}
           <span class="ml-1 font-normal" style="color:var(--color-text-secondary);">({{ users().length }})</span>
@@ -122,7 +122,7 @@ import {
       </section>
     </div>
 
-    <section class="box mt-4">
+    <section class="glass-card p-4 mt-4">
       <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 class="text-sm font-semibold">
           {{ 'admin.servers.title' | translate }}
@@ -199,19 +199,19 @@ import {
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label class="mb-1 block text-sm" for="srv-name">{{ 'admin.servers.name' | translate }}</label>
-              <input id="srv-name" class="input" formControlName="name" autocomplete="off" />
+              <input type="text" id="srv-name"  formControlName="name" autocomplete="off" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-ip">{{ 'admin.servers.ip' | translate }}</label>
-              <input id="srv-ip" class="input font-mono" formControlName="ip" autocomplete="off" />
+              <input type="text" id="srv-ip" class="font-mono" formControlName="ip" autocomplete="off" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-port">{{ 'admin.servers.port' | translate }}</label>
-              <input id="srv-port" class="input" type="number" formControlName="port" />
+              <input id="srv-port"  type="number" formControlName="port" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-user">{{ 'admin.servers.user' | translate }}</label>
-              <input id="srv-user" class="input font-mono" formControlName="user" />
+              <input type="text" id="srv-user" class="font-mono" formControlName="user" />
             </div>
           </div>
 
@@ -223,7 +223,7 @@ import {
                 <a routerLink="/security/keys" style="color:var(--color-primary-400);">{{ 'admin.servers.createKeyLink' | translate }}</a>
               </p>
             } @else {
-              <select id="srv-key" class="input" formControlName="private_key_id">
+              <select id="srv-key"  formControlName="private_key_id">
                 <option [ngValue]="0" disabled>{{ 'admin.servers.choosePrivateKey' | translate }}</option>
                 @for (key of privateKeys(); track key.id) {
                   <option [ngValue]="key.id">{{ key.name }}</option>
@@ -235,15 +235,15 @@ import {
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
               <label class="mb-1 block text-sm" for="srv-country">{{ 'admin.servers.countryCode' | translate }}</label>
-              <input id="srv-country" class="input font-mono uppercase" formControlName="country_code" maxlength="2" placeholder="DE" />
+              <input type="text" id="srv-country" class="font-mono uppercase" formControlName="country_code" maxlength="2" placeholder="DE" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-region">{{ 'admin.servers.region' | translate }}</label>
-              <input id="srv-region" class="input" formControlName="region" />
+              <input type="text" id="srv-region"  formControlName="region" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-city">{{ 'admin.servers.city' | translate }}</label>
-              <input id="srv-city" class="input" formControlName="city" />
+              <input type="text" id="srv-city"  formControlName="city" />
             </div>
           </div>
 
@@ -251,7 +251,7 @@ import {
             <p class="text-sm" style="color:var(--color-danger);">{{ serverError() }}</p>
           }
 
-          <button class="button" type="submit" [disabled]="serverForm.invalid || creatingServer()">
+          <button class="inner-button" type="submit" [disabled]="serverForm.invalid || creatingServer()">
             {{ (creatingServer() ? 'admin.servers.creating' : 'admin.servers.addSubmit') | translate }}
           </button>
         </form>

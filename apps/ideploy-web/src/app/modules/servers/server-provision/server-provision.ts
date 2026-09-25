@@ -34,7 +34,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
       class="mb-4 inline-flex items-center gap-2 text-sm"
       style="color:var(--color-text-secondary);"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'provision.backToServers' | translate }}
     </a>
 
@@ -55,17 +55,17 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
     }
 
     @if (tokens().length === 0) {
-      <div class="box">
+      <div class="glass-card p-4">
         <p>{{ 'provision.noToken' | translate }}</p>
-        <a class="button mt-3 inline-flex" routerLink="/security/tokens">{{ 'provision.addToken' | translate }}</a>
+        <a class="inner-button mt-3 inline-flex" routerLink="/security/tokens">{{ 'provision.addToken' | translate }}</a>
       </div>
     } @else {
       <form class="grid gap-4 lg:grid-cols-2" [formGroup]="form" (ngSubmit)="submit()">
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'provision.provider' | translate }}</h2>
           <div class="mb-3">
             <label class="mb-1 block text-sm" for="p-token">{{ 'provision.token' | translate }}</label>
-            <select class="input" id="p-token" formControlName="token_id">
+            <select  id="p-token" formControlName="token_id">
               <option [value]="0">{{ 'provision.chooseToken' | translate }}</option>
               @for (t of tokens(); track t.id) {
                 <option [value]="t.id">{{ t.name || t.provider }} ({{ t.provider }})</option>
@@ -79,7 +79,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
 
           <div class="mb-3">
             <label class="mb-1 block text-sm" for="p-location">{{ 'provision.location' | translate }}</label>
-            <select class="input" id="p-location" formControlName="location" [disabled]="locations().length === 0">
+            <select  id="p-location" formControlName="location" [disabled]="locations().length === 0">
               @for (l of locations(); track l.id) {
                 <option [value]="l.name">{{ l.city }}, {{ l.country }} ({{ l.name }})</option>
               }
@@ -88,7 +88,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
 
           <div>
             <label class="mb-1 block text-sm" for="p-image">{{ 'provision.image' | translate }}</label>
-            <select class="input" id="p-image" formControlName="image">
+            <select  id="p-image" formControlName="image">
               @for (img of images; track img) {
                 <option [value]="img">{{ img }}</option>
               }
@@ -96,16 +96,16 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
           </div>
         </section>
 
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'provision.machine' | translate }}</h2>
           <div class="mb-3">
             <label class="mb-1 block text-sm" for="p-name">{{ 'provision.name' | translate }}</label>
-            <input class="input" id="p-name" formControlName="name" [placeholder]="'provision.namePlaceholder' | translate" />
+            <input type="text"  id="p-name" formControlName="name" [placeholder]="'provision.namePlaceholder' | translate" />
           </div>
 
           <div class="mb-3">
             <label class="mb-1 block text-sm" for="p-type">{{ 'provision.serverType' | translate }}</label>
-            <select class="input" id="p-type" formControlName="server_type" [disabled]="serverTypes().length === 0">
+            <select  id="p-type" formControlName="server_type" [disabled]="serverTypes().length === 0">
               @for (t of serverTypes(); track t.id) {
                 <option [value]="t.name">
                   {{ t.name }} — {{ t.cores }} vCPU · {{ t.memory }} GB · {{ t.disk }} GB
@@ -119,7 +119,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
 
           <div>
             <label class="mb-1 block text-sm" for="p-init">{{ 'provision.initScript' | translate }}</label>
-            <select class="input" id="p-init" formControlName="init_script_id">
+            <select  id="p-init" formControlName="init_script_id">
               <option [value]="0">{{ 'provision.noInitScript' | translate }}</option>
               @for (s of initScripts(); track s.id) {
                 <option [value]="s.id">{{ s.name }}</option>
@@ -130,7 +130,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
         </section>
 
         <div class="lg:col-span-2">
-          <button class="button" type="submit" [disabled]="form.invalid || submitting()">
+          <button class="inner-button" type="submit" [disabled]="form.invalid || submitting()">
             {{ (submitting() ? 'provision.creating' : 'provision.create') | translate }}
           </button>
           <p class="mt-2 text-xs" style="color:var(--color-text-secondary);">{{ 'provision.afterHint' | translate }}</p>

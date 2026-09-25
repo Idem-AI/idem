@@ -51,14 +51,16 @@
   <div class="ft-shell ft-body">
     <div class="ft-brand">
       <a href="/" class="ft-logo" aria-label="IDEM">
+        <!-- Blue wordmark on light, white one on dark. Same `dark:` variant the
+             header uses, so both stay in step. -->
+        <img src="/assets/icons/logo_white.png" alt="" width="120" height="34" class="dark:hidden" />
         <img
-          src="/assets/icons/logo_white.png"
+          src="/assets/icons/logo_dark.png"
           alt=""
           width="120"
           height="34"
-          class="ft-logo-light"
+          class="hidden dark:block"
         />
-        <img src="/assets/icons/logo_dark.png" alt="" width="120" height="34" class="ft-logo-dark" />
       </a>
 
       <p class="ft-tagline" i18n="@@footer.description">

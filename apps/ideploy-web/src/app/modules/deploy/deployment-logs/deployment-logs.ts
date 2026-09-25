@@ -23,23 +23,23 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
   imports: [RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a routerLink="/dashboard" class="mb-4 inline-flex items-center gap-2 text-sm transition-colors hover:text-white" style="color:var(--color-text-secondary);">
-      <i class="fa-solid fa-chevron-left text-[10px]"></i> {{ 'deploy.backToDashboard' | translate }}
+    <a routerLink="/dashboard" class="mb-4 inline-flex items-center gap-2 text-sm transition-colors hover:text-text-primary" style="color:var(--color-text-secondary);">
+      <i class="pi pi-chevron-left text-[10px]"></i> {{ 'deploy.backToDashboard' | translate }}
     </a>
 
     <div class="mx-auto max-w-4xl pb-12">
       @if (deployment()) {
         <!-- Details -->
-        <div class="box box-flush mb-4">
+        <div class="glass-card overflow-hidden mb-4">
           <div class="box-header">
             <div>
-              <h1 class="font-mono text-xl font-bold text-white/95">
+              <h1 class="font-mono text-xl font-bold text-text-primary">
                 {{ deployment().application_name }}
               </h1>
               <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">
                 {{ 'deploy.branch' | translate }}
                 <span class="rounded px-1.5 py-0.5 font-mono text-xs" style="background:var(--color-surface-2);">
-                  <i class="fa-solid fa-code-branch mr-1" aria-hidden="true"></i>{{ deployment().application_git_branch || 'main' }}
+                  <i class="pi pi-sitemap mr-1" aria-hidden="true"></i>{{ deployment().application_git_branch || 'main' }}
                 </span>
               </p>
             </div>
@@ -47,13 +47,13 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
             <div class="flex items-center gap-3">
               @switch (deployment().status) {
                 @case ('queued') {
-                  <span class="status-badge bg-white/5 text-white/70 border border-white/10">
-                    <i class="fa-solid fa-circle-notch fa-spin text-xs"></i> {{ 'deploy.statusQueued' | translate }}
+                  <span class="status-badge bg-[var(--glass-bg-subtle)] text-text-secondary border border-[var(--glass-border)]">
+                    <i class="pi pi-spinner pi-spin text-xs"></i> {{ 'deploy.statusQueued' | translate }}
                   </span>
                 }
                 @case ('in_progress') {
-                  <span class="status-badge bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    <i class="fa-solid fa-circle-notch fa-spin text-xs"></i> {{ 'deploy.statusInProgress' | translate }}
+                  <span class="status-badge bg-blue-500/10 text-primary-400 border border-blue-500/20">
+                    <i class="pi pi-spinner pi-spin text-xs"></i> {{ 'deploy.statusInProgress' | translate }}
                   </span>
                 }
                 @case ('finished') {
@@ -70,35 +70,35 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
 
               @if (deployment().status === 'finished' && deployment().application_url) {
                 <a [href]="deployment().application_url" target="_blank" rel="noopener noreferrer"
-                   class="button inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs transition-transform hover:scale-[1.02]">
-                  {{ 'deploy.visitApp' | translate }} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]" aria-hidden="true"></i>
+                   class="inner-button inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs transition-transform hover:scale-[1.02]">
+                  {{ 'deploy.visitApp' | translate }} <i class="pi pi-external-link text-[10px]" aria-hidden="true"></i>
                 </a>
               }
             </div>
           </div>
         </div>
       } @else {
-        <div class="box box-flush mb-4 dbpulse">
+        <div class="glass-card overflow-hidden mb-4 dbpulse">
           <div class="box-header">
             <div>
-              <div class="mb-2 h-6 w-48 rounded bg-white/10"></div>
-              <div class="h-4 w-32 rounded bg-white/10"></div>
+              <div class="mb-2 h-6 w-48 rounded bg-[var(--glass-bg-light)]"></div>
+              <div class="h-4 w-32 rounded bg-[var(--glass-bg-light)]"></div>
             </div>
           </div>
         </div>
       }
 
       <!-- Terminal -->
-      <div class="box box-flush">
+      <div class="glass-card overflow-hidden">
         <div class="box-header">
           <div class="flex items-center gap-1.5">
             <span class="h-3 w-3 rounded-full bg-[#ff5f56]"></span>
             <span class="h-3 w-3 rounded-full bg-[#ffbd2e]"></span>
             <span class="h-3 w-3 rounded-full bg-[#27c93f]"></span>
-            <span class="ml-2 font-mono text-xs text-white/40">build-console</span>
+            <span class="ml-2 font-mono text-xs text-text-tertiary">build-console</span>
           </div>
-          <button class="icon-button" (click)="copyLogs()" [title]="'deploy.copyLogsTitle' | translate">
-            <i class="fa-solid fa-copy text-xs" aria-hidden="true"></i>
+          <button class="button-icon" (click)="copyLogs()" [title]="'deploy.copyLogsTitle' | translate">
+            <i class="pi pi-copy text-xs" aria-hidden="true"></i>
           </button>
         </div>
 

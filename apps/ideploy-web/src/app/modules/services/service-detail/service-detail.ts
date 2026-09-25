@@ -24,7 +24,7 @@ import { ServiceDetail } from '../../../shared/models/ideploy.models';
       class="mb-4 inline-flex items-center gap-2 text-sm"
       style="color:var(--color-text-secondary);"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'services.detail.backToList' | translate }}
     </a>
 
@@ -41,13 +41,13 @@ import { ServiceDetail } from '../../../shared/models/ideploy.models';
           }
         </div>
         <div class="flex flex-wrap gap-2">
-          <button class="button-secondary" (click)="lifecycle('restart')" [disabled]="busy()">
+          <button class="outer-button" (click)="lifecycle('restart')" [disabled]="busy()">
             {{ 'services.detail.restart' | translate }}
           </button>
-          <button class="button-secondary" (click)="lifecycle('stop')" [disabled]="busy()">
+          <button class="outer-button" (click)="lifecycle('stop')" [disabled]="busy()">
             {{ 'services.detail.stop' | translate }}
           </button>
-          <button class="button" (click)="lifecycle('start')" [disabled]="busy()">
+          <button class="inner-button" (click)="lifecycle('start')" [disabled]="busy()">
             {{ 'services.detail.start' | translate }}
           </button>
         </div>
@@ -64,13 +64,13 @@ import { ServiceDetail } from '../../../shared/models/ideploy.models';
         the pipeline and server-provision consoles elsewhere in this app.
       -->
       @if (consoleLines().length > 0) {
-        <section class="box box-flush mb-4">
+        <section class="glass-card overflow-hidden mb-4">
           <div class="box-header">
             <h2 class="box-title flex items-center gap-2">
               @if (busy()) {
-                <i class="fa-solid fa-circle-notch fa-spin text-xs" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+                <i class="pi pi-spinner pi-spin text-xs" style="color:var(--color-primary-400);" aria-hidden="true"></i>
               } @else {
-                <i class="fa-solid fa-terminal text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
+                <i class="pi pi-code text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
               }
               {{ 'services.detail.console' | translate }}
             </h2>
@@ -85,7 +85,7 @@ import { ServiceDetail } from '../../../shared/models/ideploy.models';
       }
 
       <div class="grid gap-4 lg:grid-cols-2">
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">
             {{ 'services.detail.containers' | translate }}
             <span class="ml-1 font-normal" style="color:var(--color-text-secondary);">({{ s.applications.length }})</span>
@@ -118,7 +118,7 @@ import { ServiceDetail } from '../../../shared/models/ideploy.models';
           }
         </section>
 
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">
             {{ 'services.detail.databases' | translate }}
             <span class="ml-1 font-normal" style="color:var(--color-text-secondary);">({{ s.databases.length }})</span>
@@ -140,7 +140,7 @@ import { ServiceDetail } from '../../../shared/models/ideploy.models';
         </section>
       </div>
 
-      <section class="box mt-4">
+      <section class="glass-card p-4 mt-4">
         <h2 class="mb-3 text-sm font-semibold">{{ 'services.detail.composeFile' | translate }}</h2>
         @if (s.docker_compose_raw) {
           <pre
@@ -157,12 +157,12 @@ import { ServiceDetail } from '../../../shared/models/ideploy.models';
         }
       </section>
 
-      <section class="box mt-4" style="border-color:color-mix(in srgb, var(--color-danger) 35%, transparent);">
+      <section class="glass-card p-4 mt-4" style="border-color:color-mix(in srgb, var(--color-danger) 35%, transparent);">
         <h2 class="mb-1 text-sm font-semibold">{{ 'services.detail.dangerZone' | translate }}</h2>
         <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
           {{ 'services.detail.deleteHint' | translate }}
         </p>
-        <button class="button-secondary" style="color:var(--color-danger);" (click)="remove()" [disabled]="deleting()">
+        <button class="outer-button" style="color:var(--color-danger);" (click)="remove()" [disabled]="deleting()">
           {{ (deleting() ? 'services.detail.deleting' : 'services.detail.deleteService') | translate }}
         </button>
       </section>

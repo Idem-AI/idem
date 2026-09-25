@@ -38,7 +38,7 @@ const PROVIDERS = ['hetzner', 'digitalocean', 'aws', 'scaleway'] as const;
         </p>
         <div class="flex flex-wrap items-center gap-2">
           <code class="flex-1 overflow-x-auto rounded-md p-2 font-mono text-xs" style="background:var(--color-bg-dark);">{{ plain }}</code>
-          <button class="button-secondary" (click)="copy(plain)">
+          <button class="outer-button" (click)="copy(plain)">
             {{ (copied() ? 'security.tokens.copied' : 'security.tokens.copy') | translate }}
           </button>
           <button class="text-xs" style="color:var(--color-text-secondary);" (click)="dismissIssued()">
@@ -50,7 +50,7 @@ const PROVIDERS = ['hetzner', 'digitalocean', 'aws', 'scaleway'] as const;
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <div>
-        <section class="box mb-4">
+        <section class="glass-card p-4 mb-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'security.tokens.apiTokens' | translate }}</h2>
           @if (tokens().length === 0) {
             <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'security.tokens.noTokens' | translate }}</p>
@@ -84,7 +84,7 @@ const PROVIDERS = ['hetzner', 'digitalocean', 'aws', 'scaleway'] as const;
           }
         </section>
 
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'security.tokens.cloudTokens' | translate }}</h2>
           @if (cloudTokens().length === 0) {
             <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'security.tokens.noCloudTokens' | translate }}</p>
@@ -105,15 +105,15 @@ const PROVIDERS = ['hetzner', 'digitalocean', 'aws', 'scaleway'] as const;
       </div>
 
       <div>
-        <form class="box mb-4 space-y-3" [formGroup]="tokenForm" (ngSubmit)="createToken()">
+        <form class="glass-card p-4 mb-4 space-y-3" [formGroup]="tokenForm" (ngSubmit)="createToken()">
           <h2 class="text-sm font-semibold">{{ 'security.tokens.newToken' | translate }}</h2>
           <div>
             <label class="mb-1 block text-sm" for="token-name">{{ 'security.tokens.name' | translate }}</label>
-            <input class="input" id="token-name" formControlName="name" [placeholder]="'security.tokens.namePlaceholder' | translate" />
+            <input type="text"  id="token-name" formControlName="name" [placeholder]="'security.tokens.namePlaceholder' | translate" />
           </div>
           <div>
             <label class="mb-1 block text-sm" for="token-abilities">{{ 'security.tokens.abilities' | translate }}</label>
-            <select class="input" id="token-abilities" formControlName="ability">
+            <select  id="token-abilities" formControlName="ability">
               <option value="*">{{ 'security.tokens.ability.all' | translate }}</option>
               <option value="read">{{ 'security.tokens.ability.read' | translate }}</option>
               <option value="write">{{ 'security.tokens.ability.write' | translate }}</option>
@@ -122,21 +122,21 @@ const PROVIDERS = ['hetzner', 'digitalocean', 'aws', 'scaleway'] as const;
           </div>
           <div>
             <label class="mb-1 block text-sm" for="token-expiry">{{ 'security.tokens.expiryDays' | translate }}</label>
-            <input class="input" id="token-expiry" type="number" min="1" max="3650" formControlName="expiresInDays" />
+            <input  id="token-expiry" type="number" min="1" max="3650" formControlName="expiresInDays" />
             <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">
               {{ 'security.tokens.expiryHint' | translate }}
             </p>
           </div>
-          <button class="button" type="submit" [disabled]="tokenForm.invalid || creating()">
+          <button class="inner-button" type="submit" [disabled]="tokenForm.invalid || creating()">
             {{ (creating() ? 'security.tokens.creating' : 'security.tokens.create') | translate }}
           </button>
         </form>
 
-        <form class="box space-y-3" [formGroup]="cloudForm" (ngSubmit)="createCloudToken()">
+        <form class="glass-card p-4 space-y-3" [formGroup]="cloudForm" (ngSubmit)="createCloudToken()">
           <h2 class="text-sm font-semibold">{{ 'security.tokens.newCloudToken' | translate }}</h2>
           <div>
             <label class="mb-1 block text-sm" for="cloud-provider">{{ 'security.tokens.provider' | translate }}</label>
-            <select class="input" id="cloud-provider" formControlName="provider">
+            <select  id="cloud-provider" formControlName="provider">
               @for (p of providers; track p) {
                 <option [value]="p">{{ p }}</option>
               }
@@ -144,16 +144,16 @@ const PROVIDERS = ['hetzner', 'digitalocean', 'aws', 'scaleway'] as const;
           </div>
           <div>
             <label class="mb-1 block text-sm" for="cloud-name">{{ 'security.tokens.name' | translate }}</label>
-            <input class="input" id="cloud-name" formControlName="name" />
+            <input type="text"  id="cloud-name" formControlName="name" />
           </div>
           <div>
             <label class="mb-1 block text-sm" for="cloud-token">{{ 'security.tokens.tokenValue' | translate }}</label>
-            <input class="input font-mono" id="cloud-token" type="password" autocomplete="off" formControlName="token" />
+            <input class="font-mono" id="cloud-token" type="password" autocomplete="off" formControlName="token" />
             <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">
               {{ 'security.tokens.cloudTokenHint' | translate }}
             </p>
           </div>
-          <button class="button" type="submit" [disabled]="cloudForm.invalid || savingCloud()">
+          <button class="inner-button" type="submit" [disabled]="cloudForm.invalid || savingCloud()">
             {{ (savingCloud() ? 'security.tokens.saving' : 'security.tokens.addCloudToken') | translate }}
           </button>
         </form>
