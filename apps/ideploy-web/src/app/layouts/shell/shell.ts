@@ -190,7 +190,7 @@ function appNav(uuid: string): NavSection[] {
               <li>
                 <a [routerLink]="item.path" routerLinkActive="bg-primary/15 text-primary border-primary/30"
                    [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' || item.path === appOverviewPath() }"
-                   class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-white">
+                   class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-[var(--color-on-primary)]">
                   <i [class]="item.icon" class="text-lg shrink-0 w-5 text-center"></i>
                   <span class="text-sm font-medium">{{ item.label | translate }}</span>
                 </a>
@@ -200,7 +200,7 @@ function appNav(uuid: string): NavSection[] {
           @if (isInstanceAdmin()) {
             <li style="padding-top:20px; padding-bottom:5px;"><span class="block px-3 text-[10px] font-bold uppercase" style="color:color-mix(in srgb, var(--color-text-tertiary) 65%, transparent);">{{ 'shell.nav.sectionAdmin' | translate }}</span></li>
             <li>
-              <a routerLink="/admin" routerLinkActive="bg-primary/15 text-primary border-primary/30" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-white">
+              <a routerLink="/admin" routerLinkActive="bg-primary/15 text-primary border-primary/30" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-[var(--color-on-primary)]">
                 <i class="pi pi-shield text-lg shrink-0 w-5 text-center"></i>
                 <span class="text-sm font-medium">{{ 'shell.nav.admin' | translate }}</span>
               </a>
@@ -221,7 +221,7 @@ function appNav(uuid: string): NavSection[] {
           <li style="padding-top:20px; padding-bottom:5px;"><span class="block px-3 text-[10px] font-bold uppercase" style="color:color-mix(in srgb, var(--color-text-tertiary) 65%, transparent);">{{ 'shell.nav.sectionConfiguration' | translate }}</span></li>
           @for (item of bottomNav; track item.path) {
             <li>
-              <a [routerLink]="item.path" routerLinkActive="bg-primary/15 text-primary border-primary/30" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-white">
+              <a [routerLink]="item.path" routerLinkActive="bg-primary/15 text-primary border-primary/30" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-[var(--color-on-primary)]">
                 <i [class]="item.icon" class="text-lg shrink-0 w-5 text-center"></i>
                 <span class="text-sm font-medium">{{ item.label | translate }}</span>
               </a>
