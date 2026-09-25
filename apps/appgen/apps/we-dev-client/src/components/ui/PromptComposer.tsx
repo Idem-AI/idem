@@ -245,7 +245,12 @@ export function PromptComposer({
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={handleKeyDown}
           rows={2}
-          className="w-full bg-transparent text-text-primary text-[15px] leading-relaxed px-5 pt-5 pb-2 resize-none focus:outline-none"
+          // Le textarea n'est qu'une surface de saisie : le cadre et l'état de
+          // focus appartiennent au conteneur. Le style global des `textarea`
+          // (@idem/shared-styles, hors @layer) prime sur les utilitaires
+          // Tailwind, d'où le `!` pour neutraliser sa bordure, son fond, son
+          // ombre et sa hauteur minimale — sans quoi deux cadres se dessinent.
+          className="w-full resize-none text-text-primary leading-relaxed outline-none bg-transparent! border-0! rounded-none! shadow-none! min-h-0! px-5! pt-5! pb-2! text-[15px]!"
         />
 
         {/* Invite en filigrane : un vrai `placeholder` ne peut pas s'animer,
