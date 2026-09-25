@@ -1,4 +1,4 @@
-
+#old file
 http {
     include /etc/nginx/mime.types;
 
