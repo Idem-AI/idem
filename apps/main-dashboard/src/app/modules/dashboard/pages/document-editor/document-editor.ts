@@ -38,6 +38,7 @@ import {
   ReorderEvent,
   TextChangeEvent,
 } from './components/editor-canvas/editor-canvas';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 const AUTOSAVE_DEBOUNCE = 1500;
 
@@ -69,8 +70,7 @@ const WIDE_QUERY = '(min-width: 1280px)';
     ChartEditorPanelComponent,
     AttributesPanelComponent,
     AiEditPanelComponent,
-    EditorCanvasComponent,
-  ],
+    EditorCanvasComponent, IdemLoaderComponent],
   providers: [DocumentModelService, EditorHistoryService],
   templateUrl: './document-editor.html',
   styleUrl: './document-editor.css',

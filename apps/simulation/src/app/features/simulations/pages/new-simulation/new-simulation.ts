@@ -30,6 +30,7 @@ import {
   SimulationTier,
   groupKnowledge,
 } from '../../models';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Où l'on produit chaque livrable d'appui, dans le tableau de bord IDEM.
@@ -75,8 +76,7 @@ type Step = 'source' | 'analysis' | 'plan' | 'confirm';
     DisclaimerNote,
     SignInDialog,
     InputsRequiredDialog,
-    TrustedByComponent,
-  ],
+    TrustedByComponent, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './new-simulation.html',
 })

@@ -12,6 +12,7 @@ import {
   pipelineStatusColor,
   pipelineStatusIcon,
 } from '../../../shared/utils/pipeline-status.util';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** The stages the API knows about, in the order it runs them, each with what a first-time operator actually needs to know before deciding to include it. */
 const AVAILABLE_STAGES = [
@@ -41,7 +42,7 @@ const POLL_INTERVAL_MS = 4_000;
  */
 @Component({
   selector: 'app-application-pipeline',
-  imports: [RouterLink, ReactiveFormsModule, TranslateModule, DatePipe],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, DatePipe, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a
@@ -192,7 +193,11 @@ const POLL_INTERVAL_MS = 4_000;
                       <td class="whitespace-nowrap">
                         <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
                               [style.background]="statusBackground(ex.status)" [style.color]="statusColor(ex.status)">
-                          <i [class]="statusIcon(ex.status)" aria-hidden="true"></i>
+                          @if (ex.status === 'running') {
+                            <idem-loader size="xs" />
+                          } @else {
+                            <i [class]="statusIcon(ex.status)" aria-hidden="true"></i>
+                          }
                           {{ 'pipeline.status.' + ex.status | translate }}
                         </span>
                       </td>

@@ -4,9 +4,9 @@ import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
 import { TourService } from '../../../../shared/services/tour.service';
-import { Loader } from '../../../../shared/components/loader/loader';
 import { GuidedJourneyService } from '../../services/guided-journey.service';
 import { GuidedStep } from '../../models/guided-journey.model';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Page d'accueil du mode Assisté.
@@ -18,7 +18,7 @@ import { GuidedStep } from '../../models/guided-journey.model';
 @Component({
   selector: 'app-guided-home',
   standalone: true,
-  imports: [CommonModule, TranslateModule, Loader],
+  imports: [CommonModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './guided-home.html',
   styleUrl: './guided-home.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

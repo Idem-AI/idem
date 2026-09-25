@@ -5,11 +5,12 @@ import { CommonModule } from '@angular/common';
 import { ProjectModel } from '@idem/shared-models';
 import { environment } from '../../../../../../../environments/environment';
 import { AuthService } from '../../../../../auth/services/auth.service';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-project-description',
   standalone: true,
-  imports: [FormsModule, CommonModule, TranslateModule],
+  imports: [FormsModule, CommonModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './project-description.html',
   styleUrl: './project-description.css',
 })

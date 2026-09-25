@@ -11,7 +11,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CookieService } from '../../../../shared/services/cookie.service';
-import { Loader } from '../../../../shared/components/loader/loader';
 import { PitchDeckService } from '../../services/ai-agents/pitch-deck.service';
 import { PitchDeckModel } from '../../models/pitchDeck.model';
 import { SSEStepEvent } from '../../../../shared/models/sse-step.model';
@@ -25,6 +24,7 @@ import {
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 import { pitchDeckTypeLabel } from '../../utils/deliverable-labels';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 type StepStatus = 'pending' | 'in-progress' | 'completed';
 
@@ -46,7 +46,7 @@ const STEP_CLASSES: Record<StepStatus, string> = {
  */
 @Component({
   selector: 'app-show-pitch-deck',
-  imports: [TranslateModule, Loader, DocumentPreviewComponent, IncompleteProjectBannerComponent],
+  imports: [TranslateModule, DocumentPreviewComponent, IncompleteProjectBannerComponent, IdemLoaderComponent],
   templateUrl: './show-pitch-deck.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

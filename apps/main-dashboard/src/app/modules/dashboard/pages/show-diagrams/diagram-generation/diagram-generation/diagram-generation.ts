@@ -28,6 +28,7 @@ import { generatePdf } from '../../../../../../utils/pdf-generator';
 import { environment } from '../../../../../../../environments/environment';
 import { Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-diagram-generation',
@@ -40,8 +41,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
     ProgressBarModule,
     ButtonModule,
     TagModule,
-    TranslateModule,
-  ],
+    TranslateModule, IdemLoaderComponent],
   templateUrl: './diagram-generation.html',
   styleUrls: ['./diagram-generation.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

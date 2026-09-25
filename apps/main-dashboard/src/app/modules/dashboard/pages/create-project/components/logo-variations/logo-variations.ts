@@ -19,6 +19,7 @@ import { AtelierNote, GenerationAtelierComponent } from '../generation-atelier/g
 import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 interface DisplayVariation {
   id: string;
@@ -88,8 +89,7 @@ const VARIATION_WEIGHT: Record<VariationSlotStatus, number> = {
     LogoSrcPipe,
     CarouselComponent,
     GenerationAtelierComponent,
-    TranslateModule,
-  ],
+    TranslateModule, IdemLoaderComponent],
   templateUrl: './logo-variations.html',
   styleUrl: './logo-variations.css',
 })

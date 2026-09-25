@@ -12,6 +12,7 @@ import { ApiService } from '../../../shared/services/api.service';
 import { RealtimeService } from '../../../shared/services/realtime.service';
 import { interval, Subscription } from 'rxjs';
 import { startWith, switchMap, takeWhile } from 'rxjs/operators';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Live deployment log viewer — subscribes to the `deployment.{uuid}` Soketi
@@ -20,7 +21,7 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
  */
 @Component({
   selector: 'app-deployment-logs',
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a routerLink="/dashboard" class="mb-4 inline-flex items-center gap-2 text-sm transition-colors hover:text-text-primary" style="color:var(--color-text-secondary);">
@@ -48,12 +49,12 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
               @switch (deployment().status) {
                 @case ('queued') {
                   <span class="status-badge bg-[var(--glass-bg-subtle)] text-text-secondary border border-[var(--glass-border)]">
-                    <i class="pi pi-spinner pi-spin text-xs"></i> {{ 'deploy.statusQueued' | translate }}
+                    <idem-loader size="xs" /> {{ 'deploy.statusQueued' | translate }}
                   </span>
                 }
                 @case ('in_progress') {
                   <span class="status-badge bg-blue-500/10 text-primary-400 border border-blue-500/20">
-                    <i class="pi pi-spinner pi-spin text-xs"></i> {{ 'deploy.statusInProgress' | translate }}
+                    <idem-loader size="xs" /> {{ 'deploy.statusInProgress' | translate }}
                   </span>
                 }
                 @case ('finished') {

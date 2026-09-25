@@ -7,6 +7,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { ProjectModel } from '@idem/shared-models';
 import CreateProjectDatas, { SelectElement } from '../../datas';
 import { environment } from '../../../../../../../environments/environment';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Phase A de la création conversationnelle : carte « Fondations » compacte
@@ -16,7 +17,7 @@ import { environment } from '../../../../../../../environments/environment';
 @Component({
   selector: 'app-foundations-card',
   standalone: true,
-  imports: [CommonModule, FormsModule, InputTextModule, Select, TranslateModule],
+  imports: [CommonModule, FormsModule, InputTextModule, Select, TranslateModule, IdemLoaderComponent],
   templateUrl: './foundations-card.html',
   styleUrl: './foundations-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

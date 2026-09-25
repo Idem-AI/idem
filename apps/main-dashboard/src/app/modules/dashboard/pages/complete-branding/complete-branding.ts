@@ -25,6 +25,7 @@ import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 
 import { LogoModel, LogoPreferencesModel } from '../../models/logo.model';
 import { ColorModel, TypographyModel } from '../../models/brand-identity.model';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Workflow de complétion de la marque.
@@ -49,8 +50,7 @@ import { ColorModel, TypographyModel } from '../../models/brand-identity.model';
     TypographySelectionComponent,
     LogoVariationsComponent,
     LogoSelectionComponent,
-    LogoPreferences,
-  ],
+    LogoPreferences, IdemLoaderComponent],
   templateUrl: './complete-branding.html',
   styleUrl: './complete-branding.css',
 })

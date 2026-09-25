@@ -11,6 +11,7 @@ import {
   pipelineStatusColor,
   pipelineStatusIcon,
 } from '../../../shared/utils/pipeline-status.util';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 const POLL_INTERVAL_MS = 3_000;
 
@@ -21,7 +22,7 @@ const POLL_INTERVAL_MS = 3_000;
  */
 @Component({
   selector: 'app-pipeline-execution-detail',
-  imports: [RouterLink, TranslateModule, DatePipe],
+  imports: [RouterLink, TranslateModule, DatePipe, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a
@@ -44,7 +45,11 @@ const POLL_INTERVAL_MS = 3_000;
           <div class="flex items-center gap-3">
             <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
                   [style.background]="statusBackground(ex.status)" [style.color]="statusColor(ex.status)">
-              <i [class]="statusIcon(ex.status)" aria-hidden="true"></i>
+              @if (ex.status === 'running') {
+                <idem-loader size="xs" />
+              } @else {
+                <i [class]="statusIcon(ex.status)" aria-hidden="true"></i>
+              }
               {{ 'pipeline.status.' + ex.status | translate }}
             </span>
             <h1 class="heading-serif" style="font-size:24px;font-weight:700;color:var(--color-text-primary);">
@@ -101,7 +106,11 @@ const POLL_INTERVAL_MS = 3_000;
             >
               <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm"
                     [style.background]="statusColor(job.status)">
-                <i [class]="statusIcon(job.status)" style="color:#0a0a0a;" aria-hidden="true"></i>
+                @if (job.status === 'running') {
+                  <idem-loader size="xs" />
+                } @else {
+                  <i [class]="statusIcon(job.status)" style="color:#0a0a0a;" aria-hidden="true"></i>
+                }
               </span>
               <span class="min-w-0">
                 <span class="block truncate text-sm font-semibold" [style.color]="statusColor(job.status)">

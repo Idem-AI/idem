@@ -2,7 +2,7 @@
   @if (isLoading()) {
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       @for (i of [1, 2, 3, 4]; track i) {
-        <div class="skeleton-loader rounded-xl h-56 border border-[var(--glass-border)]"></div>
+        <idem-loader />
       }
     </div>
   } @else if (typographies().length === 0) {

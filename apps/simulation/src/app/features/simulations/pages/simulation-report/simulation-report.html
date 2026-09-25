@@ -27,10 +27,7 @@
           </div>
           <button type="button" class="outer-button" [disabled]="downloading()" (click)="download()">
             @if (downloading()) {
-              <span
-                class="size-4 animate-spin rounded-full border-2 border-line border-t-brand"
-                aria-hidden="true"
-              ></span>
+              <idem-loader size="xs" />
               {{ 'report.downloading' | translate }}
             } @else {
               <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">

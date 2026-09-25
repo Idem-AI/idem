@@ -21,6 +21,7 @@ import { FontHints } from '../../../document-editor/models/editor.types';
 import { VisualComposing } from '../visual-composing/visual-composing';
 import { VisualDialog } from '../visual-dialog/visual-dialog';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Amorces proposées sur un fil vide — des phrases, pas des catégories. */
 const STARTERS = ['announce', 'promotion', 'celebration', 'recruitment'] as const;
@@ -37,7 +38,7 @@ const STARTERS = ['announce', 'promotion', 'celebration', 'recruitment'] as cons
  */
 @Component({
   selector: 'app-studio-panel',
-  imports: [FormsModule, TranslateModule, VisualComposing, VisualDialog, VisualThumb],
+  imports: [FormsModule, TranslateModule, VisualComposing, VisualDialog, VisualThumb, IdemLoaderComponent],
   templateUrl: './studio-panel.html',
   styleUrl: './studio-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -219,7 +219,7 @@
         </h3>
         @if (isLoadingOccasions()) {
           <p class="pw-note" role="status" aria-live="polite">
-            <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+            <idem-loader size="xs" />
             {{ 'dashboard.showCommunication.wizard.recap.occasionsLoading' | translate }}
           </p>
         } @else if (occasions().length === 0) {

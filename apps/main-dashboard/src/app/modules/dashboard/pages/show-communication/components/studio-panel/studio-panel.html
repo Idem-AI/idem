@@ -3,7 +3,7 @@
   <div class="sp-thread">
     @if (isLoading()) {
       <p class="sp-loading" role="status">
-        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+        <idem-loader size="xs" />
       </p>
     } @else if (messages().length === 0) {
       <!--
@@ -119,7 +119,7 @@
       </div>
     } @else if (isSending() && thinkingLabel()) {
       <p class="sp-thinking" role="status" aria-live="polite">
-        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+        <idem-loader size="xs" />
         <span>{{ thinkingLabel() | translate }}</span>
       </p>
     }
@@ -147,7 +147,7 @@
         [disabled]="isSending() || !draft().trim()"
       >
         @if (isSending()) {
-          <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+          <idem-loader size="xs" />
         } @else {
           <i class="pi pi-arrow-up" aria-hidden="true"></i>
         }

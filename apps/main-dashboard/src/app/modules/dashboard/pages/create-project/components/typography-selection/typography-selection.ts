@@ -28,6 +28,7 @@ import { FontSlot, TypographyPairBarComponent } from './typography-pair-bar/typo
 import { TypographyGalleryComponent } from './typography-gallery/typography-gallery';
 import { TypographyPickerComponent } from './typography-picker/typography-picker';
 import { TypographyFontImportComponent } from './typography-font-import/typography-font-import';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Ce que le panneau central montre. Une seule chose à la fois. */
 type TypographyView = 'gallery' | 'picker' | 'import';
@@ -64,8 +65,7 @@ interface SearchRequest {
     TypographyPairBarComponent,
     TypographyGalleryComponent,
     TypographyPickerComponent,
-    TypographyFontImportComponent,
-  ],
+    TypographyFontImportComponent, IdemLoaderComponent],
   templateUrl: './typography-selection.html',
   styleUrls: ['./typography-selection.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

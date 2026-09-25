@@ -4,6 +4,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { ServiceTemplate } from '../../../shared/models/ideploy.models';
 import { serviceLogoUrl } from '../../../shared/utils/service-logo.util';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Inline, optional "add a message broker" step (microservices architecture
@@ -15,7 +16,7 @@ import { serviceLogoUrl } from '../../../shared/utils/service-logo.util';
  */
 @Component({
   selector: 'app-guide-service-step',
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-3">
@@ -25,7 +26,7 @@ import { serviceLogoUrl } from '../../../shared/utils/service-logo.util';
       </div>
 
       @if (deploying()) {
-        <p class="text-sm" style="color:var(--color-text-secondary);"><i class="pi pi-spinner pi-spin mr-1"></i>{{ 'projects.common.deploying' | translate }}</p>
+        <p class="text-sm" style="color:var(--color-text-secondary);"><idem-loader size="xs" />{{ 'projects.common.deploying' | translate }}</p>
       } @else {
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3" style="max-height:280px;overflow-y:auto;">
           @for (t of filtered(); track t.name) {

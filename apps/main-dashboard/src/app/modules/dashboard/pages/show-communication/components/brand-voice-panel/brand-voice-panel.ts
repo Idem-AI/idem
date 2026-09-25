@@ -7,6 +7,7 @@ import {
   StrategyBlock,
   StrategyInputKey,
 } from '../../../../models/communication.model';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * MA FAÇON DE COMMUNIQUER — à qui la marque parle, sur quel ton, sur quels réseaux.
@@ -24,7 +25,7 @@ import {
  */
 @Component({
   selector: 'app-brand-voice-panel',
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './brand-voice-panel.html',
   styleUrl: './brand-voice-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

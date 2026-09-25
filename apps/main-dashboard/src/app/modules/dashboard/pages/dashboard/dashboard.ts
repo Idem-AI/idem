@@ -5,12 +5,12 @@ import { CookieService } from '../../../../shared/services/cookie.service';
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
-import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { MODE_HOME_ROUTE, UiModeService } from '../../../../shared/services/ui-mode.service';
 import { TourService } from '../../../../shared/services/tour.service';
 import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-dashboard',
@@ -18,11 +18,9 @@ import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
     CommonModule,
     RouterLink,
     DatePipe,
-    Loader,
     TranslateModule,
     IncompleteProjectBannerComponent,
-    LogoSrcPipe,
-  ],
+    LogoSrcPipe, IdemLoaderComponent],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

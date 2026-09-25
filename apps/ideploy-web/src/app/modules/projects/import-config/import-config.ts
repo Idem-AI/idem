@@ -10,6 +10,7 @@ import {
   WorkspaceChoice,
   WorkspaceChoicePickerComponent,
 } from '../../../shared/components/workspace-choice-picker/workspace-choice-picker';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 interface EnvRow {
   key: string;
@@ -30,7 +31,7 @@ interface Preset {
  */
 @Component({
   selector: 'app-import-config',
-  imports: [FormsModule, RouterLink, TranslateModule, WorkspaceChoicePickerComponent],
+  imports: [FormsModule, RouterLink, TranslateModule, WorkspaceChoicePickerComponent, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
@@ -91,7 +92,7 @@ interface Preset {
           -->
           @if (detecting()) {
             <div class="mb-2 flex items-center gap-2 rounded-xl p-3 border text-sm" style="background:var(--color-surface-1);border-color:var(--color-surface-2);color:var(--color-text-secondary);">
-              <i class="pi pi-spinner pi-spin"></i> {{ 'projects.import.detecting' | translate }}
+              <idem-loader size="xs" /> {{ 'projects.import.detecting' | translate }}
             </div>
           } @else if (ecosystemLabel()) {
             <div class="mb-2 flex items-center gap-3 rounded-xl p-3 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">

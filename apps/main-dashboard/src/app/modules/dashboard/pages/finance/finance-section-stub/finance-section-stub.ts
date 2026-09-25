@@ -25,6 +25,7 @@ import {
   FINANCE_PROJECTION_MONTHS,
 } from '../../../models/finance.model';
 import { AiFillButtonComponent } from '../../../components/ai-fill-button/ai-fill-button';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Finance sub-section page — renders data & CRUD for each section.
@@ -33,7 +34,7 @@ import { AiFillButtonComponent } from '../../../components/ai-fill-button/ai-fil
 @Component({
   selector: 'app-finance-section-stub',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, TranslateModule, AiFillButtonComponent],
+  imports: [CommonModule, RouterLink, FormsModule, TranslateModule, AiFillButtonComponent, IdemLoaderComponent],
   templateUrl: './finance-section-stub.html',
   styleUrl: './finance-section-stub.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

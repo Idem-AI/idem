@@ -10,6 +10,7 @@ import {
 import { TranslateModule } from '@ngx-translate/core';
 import { FlyerFormat } from '../../../../models/communication.model';
 import { formatAspect } from '../../communication-ui';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Les étapes réellement traversées par l'API, dans l'ordre.
@@ -41,7 +42,7 @@ const STAGE_MS = [3500, 12000, 9000, 20000, 6000];
  */
 @Component({
   selector: 'app-visual-composing',
-  imports: [TranslateModule],
+  imports: [TranslateModule, IdemLoaderComponent],
   templateUrl: './visual-composing.html',
   styleUrl: './visual-composing.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

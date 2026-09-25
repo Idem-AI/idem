@@ -53,6 +53,7 @@
     "@angular/ssr": "^20.3.5",
     "@idem/shared-models": "file:../../packages/shared-models",
     "@idem/shared-styles": "file:../../packages/shared-styles",
+    "@idem/shared-loader": "file:../../packages/shared-loader",
     "@primeng/themes": "^20.0.0",
     "@tailwindcss/postcss": "^4.0.15",
     "express": "^5.1.0",

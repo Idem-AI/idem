@@ -6,16 +6,16 @@ import { ProjectModel } from '@idem/shared-models';
 import { environment } from '../../../../../../../environments/environment';
 import { ProjectService } from '../../../../services/project.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
-import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule } from '@ngx-translate/core';
 import { switchMap } from 'rxjs';
 import { AuthService } from '../../../../../auth/services/auth.service';
 import CreateProjectDatas, { SelectElement } from '../../datas';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-project-summary',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, Loader, TranslateModule],
+  imports: [CommonModule, FormsModule, RouterModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './project-summary.html',
   styleUrl: './project-summary.css',
 })

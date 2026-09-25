@@ -7,7 +7,7 @@
   <!-- En-tête : état + titre + compteur -->
   <div class="flex items-center gap-3 p-4">
     @if (data().status === 'running') {
-      <span class="progress-spinner shrink-0" aria-hidden="true"></span>
+      <idem-loader />
     } @else if (data().status === 'done') {
       <span
         class="w-9 h-9 rounded-xl bg-emerald-400/15 border border-emerald-400/30 flex items-center justify-center shrink-0"
@@ -64,7 +64,7 @@
     <div class="px-4 pb-4 space-y-1.5">
       @for (step of data().stepsInProgress; track step) {
         <div class="flex items-center gap-2 text-xs text-text-primary">
-          <span class="step-spinner shrink-0" aria-hidden="true"></span>
+          <idem-loader />
           <span class="truncate">{{ step }}</span>
         </div>
       }

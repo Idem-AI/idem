@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { TranslateModule } from '@ngx-translate/core';
 import { TypographyModel } from '../../../../../models/brand-identity.model';
 import { TypographyCardComponent } from '../typography-card/typography-card';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * La galerie d'allures : la surface principale de l'écran.
@@ -12,7 +13,7 @@ import { TypographyCardComponent } from '../typography-card/typography-card';
  */
 @Component({
   selector: 'app-typography-gallery',
-  imports: [TranslateModule, TypographyCardComponent],
+  imports: [TranslateModule, TypographyCardComponent, IdemLoaderComponent],
   templateUrl: './typography-gallery.html',
   styleUrls: ['./typography-gallery.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

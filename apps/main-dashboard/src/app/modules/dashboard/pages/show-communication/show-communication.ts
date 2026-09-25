@@ -24,6 +24,7 @@ import { LibraryPanel } from './components/library-panel/library-panel';
 import { PlanPanel } from './components/plan-panel/plan-panel';
 import { StrategyInputsDialog } from './components/strategy-inputs-dialog/strategy-inputs-dialog';
 import { StudioPanel } from './components/studio-panel/studio-panel';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 type Screen = 'studio' | 'plans' | 'library';
 
@@ -60,8 +61,7 @@ type Screen = 'studio' | 'plans' | 'library';
     LibraryPanel,
     PlanPanel,
     StrategyInputsDialog,
-    StudioPanel,
-  ],
+    StudioPanel, IdemLoaderComponent],
   templateUrl: './show-communication.html',
   styleUrls: ['./show-communication.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1895,74 +1895,124 @@
       }
     },
     "legalDocs": {
-      "title": "Legal Documents",
-      "subtitle": "Generate draft legal documents tailored to the African reality (OHADA zone + common-law). Each document is reviewable and should be validated by a lawyer.",
-      "selected": "selected",
-      "addMore": "Add more documents",
-      "missingFields": "Missing required fields",
-      "missingFieldsShort": "required field(s) missing",
-      "stepper": {
-        "select": "Select",
-        "context": "Context",
-        "generate": "Generate"
-      },
+      "title": "Legal",
+      "subtitle": "Pick your company's legal form, then generate the documents your project needs. We tell you which ones, and why.",
+      "disclaimer": "These are drafts tailored to your country. Have a lawyer review them before signing.",
       "noProject": {
         "title": "No project selected",
-        "subtitle": "Select a project to pick and generate its legal documents."
+        "subtitle": "Open a project to see the legal form and documents we recommend."
       },
-      "steps": {
-        "selection": {
-          "title": "1 — Pick the documents you need",
-          "subtitle": "Only the fields required by your selection will be asked."
+      "form": {
+        "sectionTitle": "Company legal form",
+        "recommendedFor": "Recommended for {{name}}",
+        "why": "Why this form",
+        "otherOption": "Other option, {{acronym}}:",
+        "chooseThis": "Choose {{acronym}}",
+        "compare": "Compare forms",
+        "hideCompare": "Close comparison",
+        "change": "Change form",
+        "chosenLabel": "Chosen form",
+        "matchesReco": "This is the form we recommend for this project.",
+        "differsFromReco": "For this project we recommended {{acronym}}. Your choice is kept.",
+        "compareTitle": "Legal forms available in your country",
+        "compareHint": "A company has only one form. Browse them, then pick the one that fits you.",
+        "recommendedBadge": "Recommended",
+        "chosenBadge": "Chosen",
+        "alreadyChosen": "This is your current form.",
+        "idealFor": "Ideal for:",
+        "facts": {
+          "partners": "Partners",
+          "capital": "Capital",
+          "liability": "Liability",
+          "leader": "Management"
         },
-        "context": {
-          "title": "2 — Company context",
-          "subtitle": "The AI uses this data as the single source of truth. Never invents."
-        }
+        "pros": "Advantages",
+        "cons": "Limits",
+        "noStatutes": "No articles to draft with this form: you trade under your own name.",
+        "statutesWarning": "Your current articles were drafted for {{acronym}}. With this form you will need to regenerate them."
+      },
+      "docs": {
+        "title": "Documents for {{name}}",
+        "progress": "{{done}} of {{total}} essential documents ready",
+        "selectRecommended": "Select recommended",
+        "clear": "Clear selection",
+        "statutes": "Articles of association",
+        "ready": "Ready",
+        "outdated": "Needs regenerating",
+        "chooseFormFirst": "Choose the company's legal form first, above: the articles depend on it.",
+        "selectedCount": "{{count}} document(s) selected",
+        "confirmDelete": "Delete “{{name}}”? This cannot be undone."
       },
       "groups": {
-        "company": "Company structure",
-        "contracts": "Contracts",
-        "customers": "Customers & public",
-        "internal": "Internal"
+        "essential": {
+          "title": "Essential",
+          "hint": "Without them, your business is not compliant."
+        },
+        "recommended": {
+          "title": "Recommended",
+          "hint": "Not mandatory, but they protect you given your project."
+        },
+        "later": {
+          "title": "For later",
+          "hint": "Available if your situation changes."
+        }
+      },
+      "details": {
+        "back": "Back to documents",
+        "title": "Check your details",
+        "subtitle": "We pre-filled what we know about your project. The documents use these details as they are.",
+        "nothingNeeded": "No extra information is needed.",
+        "willGenerate": "To generate:",
+        "missing": "{{count}} detail(s) to fill in"
       },
       "fields": {
         "country": "Country",
         "legalForm": "Legal form",
         "capital": "Share capital",
         "currency": "Currency",
-        "headOffice": "Registered office",
+        "headOffice": "Registered office address",
+        "headOfficePlaceholder": "Street, district, city",
         "companyEmail": "Company email",
-        "companyPhone": "Company phone",
+        "companyPhone": "Phone (optional)",
         "website": "Website",
-        "activityDescription": "Business activity",
-        "founders": "Founders / shareholders",
-        "addFounder": "Add founder",
-        "noFounders": "No founder yet. Add at least one.",
+        "activityDescription": "Company activity",
+        "activityPlaceholder": "What the company does, in one or two sentences",
+        "founders": "Partners",
+        "foundersHint": "Name, role and share of each. Shares can stay empty.",
+        "soleFounder": "Sole shareholder",
+        "soleFounderHint": "The person who owns the whole company.",
+        "addFounder": "Add a partner",
+        "removeFounder": "Remove partner",
         "founderName": "Full name",
-        "founderShares": "Shares (%)",
-        "founderRole": "Role"
+        "founderRole": "Role (manager, president…)",
+        "founderShares": "Share (%)"
       },
       "actions": {
-        "generate": "Generate selected documents",
-        "download": "Download PDF",
-        "downloadAll": "Download all",
-        "regenerate": "Regenerate"
+        "continue": "Continue",
+        "generate": "Generate {{count}} document(s)",
+        "preview": "Preview",
+        "download": "Download PDF"
       },
       "generating": {
-        "title": "Generating documents"
+        "title": "Drafting in progress",
+        "subtitle": "Allow about one minute per document. You can stay on this page.",
+        "cancel": "Stop drafting",
+        "status": {
+          "pending": "Waiting",
+          "in-progress": "In progress",
+          "completed": "Ready"
+        }
       },
-      "generated": {
-        "title": "Generated documents",
-        "count": "document(s) ready"
+      "success": {
+        "title": "{{count}} document(s) ready",
+        "subtitle": "Open the preview or download the PDF from the list below."
       },
       "errors": {
-        "catalog": "Unable to load the document catalog.",
-        "generation": "Generation failed. Try again."
-      },
-      "status": {
-        "generating": "Generating…",
-        "ready": "Ready"
+        "load": "Could not load the legal space. Reload the page.",
+        "saveForm": "Your legal form choice was not saved. Try again.",
+        "generation": "Generation failed. Your details are kept, try again.",
+        "download": "The PDF could not be downloaded. Try again.",
+        "delete": "The document could not be deleted. Try again."
       }
     },
     "advisor": {

@@ -23,7 +23,7 @@
     <div class="max-w-7xl mx-auto">
       <div class="bg-linear-to-r py-20">
         <div class="mb-4">
-          <app-loader />
+          <idem-loader block />
         </div>
         <h3 class="text-lg font-medium text-text-primary mb-2">{{ 'common.loading' | translate }}</h3>
         <p class="text-text-tertiary">{{ 'dashboard.showBranding.loading.checking' | translate }}</p>
@@ -745,13 +745,7 @@
         {{ 'common.cancel' | translate }}
       </button>
       <button type="button" class="inner-button !text-sm" (click)="downloadLogosZip()" [disabled]="isDownloading()">
-        <i
-          class="pi text-sm"
-          [class.pi-download]="!isDownloading()"
-          [class.pi-spinner]="isDownloading()"
-          [class.pi-spin]="isDownloading()"
-          aria-hidden="true"
-        ></i>
+        <idem-loader size="sm" />
         <span>
           {{
             (isDownloading()

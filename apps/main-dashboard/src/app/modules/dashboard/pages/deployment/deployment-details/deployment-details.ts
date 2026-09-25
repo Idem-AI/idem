@@ -6,7 +6,6 @@ import { DeploymentModel } from '../../../models/deployment.model';
 import { DeploymentService, DeploymentExecutionEvent } from '../../../services/deployment.service';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { TerraformFiles } from '../create-deployment/components/terraform-files/terraform-files';
-import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 
 import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
@@ -16,6 +15,7 @@ import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { ScrollPanelModule } from 'primeng/scrollpanel';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-deployment-details',
@@ -24,13 +24,11 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
     CommonModule,
     RouterLink,
     TerraformFiles,
-    Loader,
     AccordionModule,
     DialogModule,
     ButtonModule,
     ScrollPanelModule,
-    TranslateModule,
-  ],
+    TranslateModule, IdemLoaderComponent],
   templateUrl: './deployment-details.html',
 })
 export class DeploymentDetails implements OnInit, OnDestroy {
