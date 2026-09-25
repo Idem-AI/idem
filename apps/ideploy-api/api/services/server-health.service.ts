@@ -34,6 +34,14 @@ export const DEFAULT_DISK_THRESHOLD_PERCENT = 80;
 
 export interface HealthProbe {
   reachable: boolean;
+  /**
+   * Reachable over SSH *and* able to actually run a deployment — i.e. Docker
+   * works. Drives `server_settings.is_usable`, which gates IDEM-managed
+   * placement (see server-scheduling.service.ts): a server that answers SSH
+   * but has no working Docker would accept a workspace and fail every
+   * deployment onto it.
+   */
+  usable: boolean;
   /** Root filesystem usage, when it could be read. */
   diskUsedPercent: number | null;
   output: string;
@@ -66,10 +74,11 @@ export interface MonitoredServer {
   diskThresholdPercent: number;
 }
 
-/** Single round trip: liveness and disk usage together. */
+/** Single round trip: liveness, Docker usability and disk usage together. */
 const HEALTH_PROBE = [
   'echo ALIVE',
   "echo \"DISK_USED_PCT=$(df -P / 2>/dev/null | awk 'NR==2{print $5}' | tr -d %)\"",
+  'docker info >/dev/null 2>&1 && echo DOCKER_OK || echo DOCKER_FAIL',
 ].join('\n');
 
 export function parseHealthProbe(stdout: string, reachable: boolean): HealthProbe {
@@ -77,6 +86,7 @@ export function parseHealthProbe(stdout: string, reachable: boolean): HealthProb
   const parsed = match ? Number(match[1]) : NaN;
   return {
     reachable,
+    usable: reachable && stdout.includes('DOCKER_OK'),
     diskUsedPercent: Number.isFinite(parsed) ? parsed : null,
     output: stdout,
   };
@@ -87,16 +97,21 @@ export async function probeServer(server: ServerRow, key: PrivateKeyRow): Promis
   try {
     const connection = await testConnection(server, key);
     if (!connection.ok) {
-      return { reachable: false, diskUsedPercent: null, output: connection.output };
+      return { reachable: false, usable: false, diskUsedPercent: null, output: connection.output };
     }
 
     const result = await executeRemoteCommand(server, key, HEALTH_PROBE, { noRetry: true });
     if (result.exitCode !== 0 || !result.stdout.includes('ALIVE')) {
-      return { reachable: false, diskUsedPercent: null, output: result.stdout + result.stderr };
+      return {
+        reachable: false,
+        usable: false,
+        diskUsedPercent: null,
+        output: result.stdout + result.stderr,
+      };
     }
     return parseHealthProbe(result.stdout, true);
   } catch (err) {
-    return { reachable: false, diskUsedPercent: null, output: (err as Error).message };
+    return { reachable: false, usable: false, diskUsedPercent: null, output: (err as Error).message };
   }
 }
 
@@ -249,9 +264,9 @@ async function persistState(
 
   await pool.query(
     `UPDATE server_settings
-     SET is_reachable = $2, updated_at = now()
+     SET is_reachable = $2, is_usable = $3, updated_at = now()
      WHERE server_id = $1`,
-    [monitored.server.id, probe.reachable]
+    [monitored.server.id, probe.reachable, probe.usable]
   );
 }
 
