@@ -32,7 +32,7 @@ import type { ThemeMode } from '../../utils/theme-cookie';
           [attr.aria-pressed]="theme.mode() === opt.mode"
           [attr.title]="opt.label"
           (click)="theme.setMode(opt.mode)">
-          <i class="fa-solid" [class]="opt.icon" aria-hidden="true"></i>
+          <i class="pi" [class]="opt.icon" aria-hidden="true"></i>
         </button>
       }
     </div>
@@ -42,8 +42,8 @@ export class ThemeToggleComponent {
   protected readonly theme = inject(ThemeService);
 
   protected readonly options: { mode: ThemeMode; icon: string; label: string }[] = [
-    { mode: 'light', icon: 'fa-sun', label: 'Light' },
-    { mode: 'dark', icon: 'fa-moon', label: 'Dark' },
-    { mode: 'system', icon: 'fa-circle-half-stroke', label: 'System' },
+    { mode: 'light', icon: 'pi-sun', label: 'Light' },
+    { mode: 'dark', icon: 'pi-moon', label: 'Dark' },
+    { mode: 'system', icon: 'pi-moon', label: 'System' },
   ];
 }

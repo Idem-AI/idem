@@ -35,22 +35,22 @@ interface Preset {
   template: `
     <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
       <a routerLink="/new-project" class="flex items-center gap-2 text-sm transition-colors hover:text-white" style="color:var(--color-text-secondary);">
-        <i class="fa-solid fa-arrow-left"></i> {{ 'projects.common.back' | translate }}
+        <i class="pi pi-arrow-left"></i> {{ 'projects.common.back' | translate }}
       </a>
       <span class="text-sm font-semibold font-mono">{{ 'projects.common.newProject' | translate }}</span>
       <span class="w-12"></span>
     </div>
 
     <div class="mx-auto max-w-2xl px-6 py-12">
-      <div class="db-glass">
+      <div class="glass-card">
         <h1 class="mb-4 text-2xl font-bold font-mono text-white/95">{{ 'projects.common.newProject' | translate }}</h1>
 
         <!-- Imported source -->
         <div class="mb-6 rounded-xl p-4 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
           <div class="text-xs font-semibold uppercase" style="color:var(--color-text-tertiary);">{{ 'projects.import.importingFromGit' | translate }}</div>
           <div class="mt-2 flex items-center gap-2 text-sm font-semibold text-white/90">
-            <i class="fa-brands fa-github text-lg"></i> {{ repo() }}
-            <span class="font-mono text-xs px-2 py-0.5 rounded" style="background:var(--color-surface-2);color:var(--color-text-secondary);"><i class="fa-solid fa-code-branch mr-1"></i>{{ branch() }}</span>
+            <i class="pi pi-github text-lg"></i> {{ repo() }}
+            <span class="font-mono text-xs px-2 py-0.5 rounded" style="background:var(--color-surface-2);color:var(--color-text-secondary);"><i class="pi pi-sitemap mr-1"></i>{{ branch() }}</span>
           </div>
         </div>
 
@@ -91,7 +91,7 @@ interface Preset {
           -->
           @if (detecting()) {
             <div class="mb-2 flex items-center gap-2 rounded-xl p-3 border text-sm" style="background:var(--color-surface-1);border-color:var(--color-surface-2);color:var(--color-text-secondary);">
-              <i class="fa-solid fa-circle-notch fa-spin"></i> {{ 'projects.import.detecting' | translate }}
+              <i class="pi pi-spinner pi-spin"></i> {{ 'projects.import.detecting' | translate }}
             </div>
           } @else if (ecosystemLabel()) {
             <div class="mb-2 flex items-center gap-3 rounded-xl p-3 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
@@ -103,7 +103,7 @@ interface Preset {
                 <div class="text-xs" style="color:var(--color-text-tertiary);">{{ ecosystemLabel() }}</div>
               </div>
               <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold" style="background:rgba(34,197,94,0.15);color:#4ade80;">
-                <i class="fa-solid fa-check mr-1"></i>{{ 'projects.import.autoDetectedBadge' | translate }}
+                <i class="pi pi-check mr-1"></i>{{ 'projects.import.autoDetectedBadge' | translate }}
               </span>
             </div>
           }
@@ -123,17 +123,17 @@ interface Preset {
             <div class="space-y-2 rounded-xl p-3 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
               <label class="flex items-center gap-2 text-sm cursor-pointer text-white/80 hover:text-white">
                 <input type="radio" name="buildMethod" class="cursor-pointer" [checked]="buildMethod() === 'docker'" (change)="buildMethod.set('docker')" />
-                <span><i class="fa-brands fa-docker mr-1 text-blue-400"></i> {{ 'projects.import.useDocker' | translate }}</span>
+                <span><i class="pi pi-box mr-1 text-blue-400"></i> {{ 'projects.import.useDocker' | translate }}</span>
               </label>
               <label class="flex items-center gap-2 text-sm cursor-pointer text-white/80 hover:text-white">
                 <input type="radio" name="buildMethod" class="cursor-pointer" [checked]="buildMethod() === 'buildless'" (change)="buildMethod.set('buildless')" />
-                <span><i class="fa-brands fa-node-js mr-1 text-green-400"></i> {{ 'projects.import.withoutDocker' | translate }}</span>
+                <span><i class="pi pi-code mr-1 text-green-400"></i> {{ 'projects.import.withoutDocker' | translate }}</span>
               </label>
             </div>
             <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.import.dockerfileDetected' | translate }}</p>
           } @else {
             <div class="rounded-xl p-3 text-sm border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);color:var(--color-text-secondary);">
-              <i class="fa-brands fa-node-js mr-1 text-green-400"></i> {{ 'projects.import.noDockerfilePart1' | translate }}
+              <i class="pi pi-code mr-1 text-green-400"></i> {{ 'projects.import.noDockerfilePart1' | translate }}
               <strong>{{ 'projects.import.withoutDockerStrong' | translate }}</strong> {{ 'projects.import.noDockerfilePart2' | translate }}
             </div>
           }
@@ -156,7 +156,7 @@ interface Preset {
                 [style.border-color]="w.severity === 'blocking' ? 'rgba(239,68,68,0.3)' : 'color-mix(in srgb, var(--color-warning) 40%, transparent)'"
               >
                 <i
-                  class="fa-solid fa-triangle-exclamation mr-1.5"
+                  class="pi pi-exclamation-triangle mr-1.5"
                   [style.color]="w.severity === 'blocking' ? '#f87171' : 'var(--color-warning)'"
                 ></i>
                 <span [style.color]="w.severity === 'blocking' ? '#f87171' : 'var(--color-warning)'">{{ w.message }}</span>
@@ -169,7 +169,7 @@ interface Preset {
           <label class="mb-1 block text-sm font-semibold text-white/80" for="rootDir">{{ 'projects.import.rootDirectory' | translate }}</label>
           <input id="rootDir" name="rootDir" class="input font-mono" [ngModel]="rootDir" (ngModelChange)="onRootDirEdit($event)" placeholder="./" autocomplete="off" />
           @if (rootDirAutoDetected()) {
-            <p class="mt-1 text-xs" style="color:#4ade80;"><i class="fa-solid fa-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
+            <p class="mt-1 text-xs" style="color:#4ade80;"><i class="pi pi-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
           } @else {
             <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.import.rootDirHint' | translate }}</p>
           }
@@ -184,11 +184,11 @@ interface Preset {
           @if (monorepoCandidates().length > 0) {
             <div class="mt-2 rounded-xl border p-3" style="background:color-mix(in srgb, var(--color-warning) 8%, transparent);border-color:color-mix(in srgb, var(--color-warning) 30%, transparent);">
               <p class="mb-2 text-xs font-semibold" style="color:var(--color-warning);">
-                <i class="fa-solid fa-diagram-project mr-1"></i>{{ 'projects.import.monorepoFound' | translate: { count: monorepoCandidates().length } }}
+                <i class="pi pi-sitemap mr-1"></i>{{ 'projects.import.monorepoFound' | translate: { count: monorepoCandidates().length } }}
               </p>
               <div class="flex flex-wrap gap-2">
                 @for (c of monorepoCandidates(); track c.dir) {
-                  <button type="button" class="button-secondary cursor-pointer text-xs px-2.5 py-1.5 font-mono" (click)="pickMonorepoCandidate(c.dir)">
+                  <button type="button" class="outer-button cursor-pointer text-xs px-2.5 py-1.5 font-mono" (click)="pickMonorepoCandidate(c.dir)">
                     {{ c.dir }}
                   </button>
                 }
@@ -200,7 +200,7 @@ interface Preset {
         <!-- Collapsibles -->
         <button class="mb-3 flex w-full items-center gap-2 rounded-lg p-3 text-left text-sm font-semibold cursor-pointer hover:bg-white/[0.02] transition-colors"
                 style="border:1px solid var(--color-surface-2);" (click)="showBuild.set(!showBuild())">
-          <i class="fa-solid" [class.fa-chevron-right]="!showBuild()" [class.fa-chevron-down]="showBuild()"></i>
+          <i class="pi" [class.pi-chevron-right]="!showBuild()" [class.pi-chevron-down]="showBuild()"></i>
           {{ 'projects.import.buildOutputSettings' | translate }}
         </button>
         @if (showBuild()) {
@@ -210,13 +210,13 @@ interface Preset {
             <div>
               <input class="input font-mono" [ngModel]="startCommand" (ngModelChange)="onStartCommandEdit($event)" [placeholder]="'projects.import.startCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.startCommandLabel' | translate" autocomplete="off" />
               @if (startCommandAutoDetected()) {
-                <p class="mt-1 text-xs" style="color:#4ade80;"><i class="fa-solid fa-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
+                <p class="mt-1 text-xs" style="color:#4ade80;"><i class="pi pi-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
               }
             </div>
             <div>
               <input class="input font-mono" [ngModel]="portsExposes" (ngModelChange)="onPortEdit($event)" [placeholder]="'projects.import.portPlaceholder' | translate" [attr.aria-label]="'projects.import.portLabel' | translate" autocomplete="off" />
               @if (portAutoDetected()) {
-                <p class="mt-1 text-xs" style="color:#4ade80;"><i class="fa-solid fa-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
+                <p class="mt-1 text-xs" style="color:#4ade80;"><i class="pi pi-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
               }
             </div>
           </div>
@@ -234,7 +234,7 @@ interface Preset {
         <button class="mb-3 flex w-full items-center justify-between gap-2 rounded-lg p-3 text-left text-sm font-semibold cursor-pointer hover:bg-white/[0.02] transition-colors"
                 style="border:1px solid var(--color-surface-2);" (click)="showEnv.set(!showEnv())">
           <span class="flex items-center gap-2">
-            <i class="fa-solid" [class.fa-chevron-right]="!showEnv()" [class.fa-chevron-down]="showEnv()"></i>
+            <i class="pi" [class.pi-chevron-right]="!showEnv()" [class.pi-chevron-down]="showEnv()"></i>
             {{ 'projects.import.envVariables' | translate }}
           </span>
           @if (envRows().length > 0) {
@@ -279,7 +279,7 @@ interface Preset {
                         [attr.aria-label]="(row.reveal ? 'projects.import.hideValue' : 'projects.import.revealValue') | translate"
                         (click)="toggleReveal(i)"
                       >
-                        <i class="fa-solid text-xs" [class.fa-eye]="!row.reveal" [class.fa-eye-slash]="row.reveal"></i>
+                        <i class="pi text-xs" [class.pi-eye]="!row.reveal" [class.pi-eye-slash]="row.reveal"></i>
                       </button>
                     </div>
                     <button
@@ -289,7 +289,7 @@ interface Preset {
                       [attr.aria-label]="'projects.import.removeVariable' | translate"
                       (click)="removeEnvRow(i)"
                     >
-                      <i class="fa-solid fa-minus"></i>
+                      <i class="pi pi-minus"></i>
                     </button>
                   </div>
                 }
@@ -297,11 +297,11 @@ interface Preset {
             }
 
             <div class="flex flex-wrap items-center gap-3">
-              <button type="button" class="button-secondary cursor-pointer text-xs px-3 py-1.5" (click)="addEnvRow()">
-                <i class="fa-solid fa-plus mr-1"></i>{{ 'projects.import.addVariable' | translate }}
+              <button type="button" class="outer-button cursor-pointer text-xs px-3 py-1.5" (click)="addEnvRow()">
+                <i class="pi pi-plus mr-1"></i>{{ 'projects.import.addVariable' | translate }}
               </button>
               <button type="button" class="text-xs font-semibold hover:underline cursor-pointer" style="color:#60a5fa;" (click)="envFileInput.click()">
-                <i class="fa-solid fa-file-import mr-1"></i>{{ 'projects.import.importEnvFile' | translate }}
+                <i class="pi pi-file-import mr-1"></i>{{ 'projects.import.importEnvFile' | translate }}
               </button>
               <input #envFileInput type="file" accept=".env,text/plain" class="hidden" (change)="onImportEnvFile($event)" />
             </div>
@@ -313,11 +313,11 @@ interface Preset {
 
         @if (error()) {
           <div class="mb-4 rounded-xl p-4 text-sm" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);">
-            <p class="text-red-400 font-semibold mb-2"><i class="fa-solid fa-triangle-exclamation mr-1"></i> {{ error() }}</p>
+            <p class="text-red-400 font-semibold mb-2"><i class="pi pi-exclamation-triangle mr-1"></i> {{ error() }}</p>
             @if (error()!.toLowerCase().includes('server') || error()!.toLowerCase().includes('destination')) {
               <div class="flex items-center gap-3">
                 @if (!isProd) {
-                  <button class="button cursor-pointer" [disabled]="settingUpLocal()" (click)="useLocalServer()">
+                  <button class="inner-button cursor-pointer" [disabled]="settingUpLocal()" (click)="useLocalServer()">
                     {{ (settingUpLocal() ? 'projects.import.settingUp' : 'projects.import.useLocalMachine') | translate }}
                   </button>
                 }
@@ -332,7 +332,7 @@ interface Preset {
           </div>
         }
 
-        <button class="button w-full cursor-pointer py-2.5 text-base" [disabled]="deploying() || !projectName || !workspaceChoice()" (click)="deploy()">
+        <button class="inner-button w-full cursor-pointer py-2.5 text-base" [disabled]="deploying() || !projectName || !workspaceChoice()" (click)="deploy()">
           {{ (deploying() ? 'projects.import.deploying' : 'projects.common.deploy') | translate }}
         </button>
       </div>
@@ -340,10 +340,10 @@ interface Preset {
 
     @if (showDockerModal()) {
       <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div class="db-glass max-w-md w-full p-6 rounded-2xl shadow-2xl border border-white/10" style="background-color: #0b0f19;">
+        <div class="glass-card max-w-md w-full p-6 rounded-2xl shadow-2xl border border-white/10" style="background-color: #0b0f19;">
           <div class="flex items-center gap-3 mb-4">
             <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
-              <i class="fa-solid fa-cube text-lg"></i>
+              <i class="pi pi-box text-lg"></i>
             </div>
             <h2 class="text-xl font-bold font-mono text-white/95">{{ 'projects.import.dockerDetectedTitle' | translate }}</h2>
           </div>
@@ -370,8 +370,8 @@ interface Preset {
           </div>
 
           <div class="flex gap-3 justify-end">
-            <button class="button-secondary cursor-pointer text-xs px-4 py-2" (click)="showDockerModal.set(false)">{{ 'projects.common.cancel' | translate }}</button>
-            <button class="button cursor-pointer text-xs px-4 py-2" (click)="confirmDockerDeploy()">{{ 'projects.import.confirmDeploy' | translate }}</button>
+            <button class="outer-button cursor-pointer text-xs px-4 py-2" (click)="showDockerModal.set(false)">{{ 'projects.common.cancel' | translate }}</button>
+            <button class="inner-button cursor-pointer text-xs px-4 py-2" (click)="confirmDockerDeploy()">{{ 'projects.import.confirmDeploy' | translate }}</button>
           </div>
         </div>
       </div>
@@ -448,29 +448,29 @@ export class ImportConfigComponent implements OnInit {
   private provider: 'github' | 'gitlab' = 'github';
 
   protected readonly presets: Preset[] = [
-    { label: 'Vite', icon: 'fa-solid fa-bolt', buildPack: 'nixpacks' },
-    { label: 'Next.js', icon: 'fa-solid fa-n', buildPack: 'nixpacks' },
-    { label: 'Node.js', icon: 'fa-brands fa-node-js', buildPack: 'nixpacks' },
-    { label: 'Angular', icon: 'fa-brands fa-angular', buildPack: 'nixpacks' },
-    { label: 'Static', icon: 'fa-solid fa-file-code', buildPack: 'static' },
+    { label: 'Vite', icon: 'pi pi-bolt', buildPack: 'nixpacks' },
+    { label: 'Next.js', icon: 'pi pi-desktop', buildPack: 'nixpacks' },
+    { label: 'Node.js', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Angular', icon: 'pi pi-desktop', buildPack: 'nixpacks' },
+    { label: 'Static', icon: 'pi pi-file', buildPack: 'static' },
     // Nixpacks (the build engine) already builds every one of these
     // natively — the gap was only ever that nothing here recognised or
     // labelled them. See ecosystem-detection.service.ts on the backend.
-    { label: 'Spring Boot (Maven)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
-    { label: 'Java (Maven)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
-    { label: 'Spring Boot (Gradle)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
-    { label: 'Java (Gradle)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
-    { label: 'Django', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
-    { label: 'FastAPI', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
-    { label: 'Flask', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
-    { label: 'Python', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
-    { label: 'Go', icon: 'fa-solid fa-terminal', buildPack: 'nixpacks' },
-    { label: 'Ruby on Rails', icon: 'fa-solid fa-gem', buildPack: 'nixpacks' },
-    { label: 'Ruby', icon: 'fa-solid fa-gem', buildPack: 'nixpacks' },
-    { label: 'Laravel', icon: 'fa-brands fa-php', buildPack: 'nixpacks' },
-    { label: 'PHP', icon: 'fa-brands fa-php', buildPack: 'nixpacks' },
-    { label: 'Dockerfile', icon: 'fa-brands fa-docker', buildPack: 'dockerfile' },
-    { label: 'Other', icon: 'fa-solid fa-cube', buildPack: 'nixpacks' },
+    { label: 'Spring Boot (Maven)', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Java (Maven)', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Spring Boot (Gradle)', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Java (Gradle)', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Django', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'FastAPI', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Flask', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Python', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Go', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Ruby on Rails', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Ruby', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Laravel', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'PHP', icon: 'pi pi-code', buildPack: 'nixpacks' },
+    { label: 'Dockerfile', icon: 'pi pi-box', buildPack: 'dockerfile' },
+    { label: 'Other', icon: 'pi pi-box', buildPack: 'nixpacks' },
   ];
 
   ngOnInit(): void {

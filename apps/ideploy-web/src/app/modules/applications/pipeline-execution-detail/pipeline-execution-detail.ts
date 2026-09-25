@@ -29,7 +29,7 @@ const POLL_INTERVAL_MS = 3_000;
       style="color:var(--color-text-secondary);"
       [routerLink]="['/applications', appUuid, 'pipeline']"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'pipeline.detail.backToPipeline' | translate }}
     </a>
 
@@ -39,7 +39,7 @@ const POLL_INTERVAL_MS = 3_000;
 
     @if (execution(); as ex) {
       <!-- Header -->
-      <div class="box mb-4">
+      <div class="glass-card p-4 mb-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-3">
             <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
@@ -52,27 +52,27 @@ const POLL_INTERVAL_MS = 3_000;
             </h1>
           </div>
           <div class="flex items-center gap-2">
-            <button class="button-secondary text-xs px-3 py-1.5" [disabled]="rerunning()" (click)="rerun(ex)">
-              <i class="fa-solid fa-rotate-right mr-1" aria-hidden="true"></i>
+            <button class="outer-button text-xs px-3 py-1.5" [disabled]="rerunning()" (click)="rerun(ex)">
+              <i class="pi pi-refresh mr-1" aria-hidden="true"></i>
               {{ (rerunning() ? 'pipeline.rerunning' : 'pipeline.rerun') | translate }}
             </button>
           </div>
         </div>
 
         <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs" style="color:var(--color-text-secondary);">
-          <span class="flex items-center gap-1.5"><i class="fa-solid fa-code-branch" aria-hidden="true"></i>
+          <span class="flex items-center gap-1.5"><i class="pi pi-sitemap" aria-hidden="true"></i>
             <code>{{ ex.branch || 'main' }}</code>
           </span>
           @if (ex.commit_sha) {
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-code-commit" aria-hidden="true"></i>
+            <span class="flex items-center gap-1.5"><i class="pi pi-circle" aria-hidden="true"></i>
               <code>{{ ex.commit_sha.slice(0, 7) }}</code>
             </span>
           }
           @if (ex.trigger_user) {
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-user" aria-hidden="true"></i>{{ ex.trigger_user }}</span>
+            <span class="flex items-center gap-1.5"><i class="pi pi-user" aria-hidden="true"></i>{{ ex.trigger_user }}</span>
           }
           @if (ex.started_at) {
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-clock" aria-hidden="true"></i>
+            <span class="flex items-center gap-1.5"><i class="pi pi-clock" aria-hidden="true"></i>
               {{ ex.started_at | date: 'short' }}
               @if (duration()) { ({{ duration() }}) }
             </span>
@@ -89,7 +89,7 @@ const POLL_INTERVAL_MS = 3_000;
       </div>
 
       <!-- Stage graph -->
-      <div class="box mb-4 overflow-x-auto">
+      <div class="glass-card p-4 mb-4 overflow-x-auto">
         <div class="flex items-center gap-2">
           @for (job of ex.jobs ?? []; track job.uuid; let last = $last) {
             <button
@@ -113,7 +113,7 @@ const POLL_INTERVAL_MS = 3_000;
               </span>
             </button>
             @if (!last) {
-              <i class="fa-solid fa-chevron-right shrink-0 text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
+              <i class="pi pi-chevron-right shrink-0 text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
             }
           }
         </div>
@@ -122,7 +122,7 @@ const POLL_INTERVAL_MS = 3_000;
       @if (selectedJob(); as job) {
         <!-- Scan metrics, when the stage produced any -->
         @if (scanFor(job.name); as scan) {
-          <div class="box mb-4">
+          <div class="glass-card p-4 mb-4">
             <div class="mb-3 flex items-center gap-2">
               <h3 class="text-sm font-semibold">{{ scan.tool }}</h3>
               @if (scan.quality_gate_status) {
@@ -142,12 +142,12 @@ const POLL_INTERVAL_MS = 3_000;
         }
 
         <!-- Logs -->
-        <div class="box overflow-hidden p-0">
+        <div class="glass-card overflow-hidden p-0">
           <div class="flex items-center justify-between gap-2 p-4" style="border-bottom:1px solid var(--color-surface-2);">
             <h3 class="text-sm font-semibold">{{ 'pipeline.detail.logs' | translate }}</h3>
             @if (job.logs) {
-              <button class="button-secondary text-xs px-3 py-1.5" (click)="downloadLogs(job)">
-                <i class="fa-solid fa-download mr-1" aria-hidden="true"></i>{{ 'pipeline.detail.download' | translate }}
+              <button class="outer-button text-xs px-3 py-1.5" (click)="downloadLogs(job)">
+                <i class="pi pi-download mr-1" aria-hidden="true"></i>{{ 'pipeline.detail.download' | translate }}
               </button>
             }
           </div>

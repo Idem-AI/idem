@@ -35,7 +35,7 @@ import {
       class="mb-4 inline-flex items-center gap-2 text-sm"
       style="color:var(--color-text-secondary);"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'servers.detail.backToList' | translate }}
     </a>
 
@@ -55,13 +55,13 @@ import {
           }
         </div>
         <div class="flex flex-wrap gap-2">
-          <a class="button-secondary" [routerLink]="['/servers', s.uuid, 'terminal']">
-            <i class="fa-solid fa-terminal mr-2"></i>{{ 'terminal.open' | translate }}
+          <a class="outer-button" [routerLink]="['/servers', s.uuid, 'terminal']">
+            <i class="pi pi-code mr-2"></i>{{ 'terminal.open' | translate }}
           </a>
-          <button class="button-secondary" (click)="validate()" [disabled]="validating()">
+          <button class="outer-button" (click)="validate()" [disabled]="validating()">
             {{ (validating() ? 'servers.detail.validating' : 'servers.validate') | translate }}
           </button>
-          <button class="button" (click)="setUp()" [disabled]="settingUp()">
+          <button class="inner-button" (click)="setUp()" [disabled]="settingUp()">
             {{ (settingUp() ? 'servers.settingUp' : 'servers.setUp') | translate }}
           </button>
         </div>
@@ -73,7 +73,7 @@ import {
 
       <div class="grid gap-4 lg:grid-cols-2">
         <!-- Health: one SSH round trip, on demand. -->
-        <section class="box">
+        <section class="glass-card p-4">
           <div class="mb-3 flex items-center justify-between gap-2">
             <h2 class="text-sm font-semibold">{{ 'servers.detail.health' | translate }}</h2>
             <button class="text-xs" style="color:var(--color-text-secondary);" (click)="checkHealth()" [disabled]="probing()">
@@ -115,7 +115,7 @@ import {
               {{ 'servers.detail.healthHint' | translate }}
             </p>
           }
-          <button class="button-secondary mt-3" (click)="dockerCleanup()" [disabled]="cleaning()">
+          <button class="outer-button mt-3" (click)="dockerCleanup()" [disabled]="cleaning()">
             {{ (cleaning() ? 'servers.detail.cleaning' : 'servers.detail.dockerCleanup') | translate }}
           </button>
           @if (cleanupOutput(); as out) {
@@ -124,7 +124,7 @@ import {
         </section>
 
         <!-- Readiness: the same report the list screen shows, in full. -->
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'servers.detail.readiness' | translate }}</h2>
           @if (readiness(); as r) {
             <p class="mb-2 text-sm font-semibold" [style.color]="r.ready ? 'var(--color-success)' : 'var(--color-danger)'">
@@ -159,7 +159,7 @@ import {
              Soketi channel while "Configurer" or the Docker cleanup runs, kept
              on screen afterwards so a failure is explained, not just reported. -->
         @if (provisionLines().length > 0) {
-          <section class="box lg:col-span-2">
+          <section class="glass-card p-4 lg:col-span-2">
             <div class="mb-3 flex items-center justify-between gap-2">
               <h2 class="flex items-center gap-2 text-sm font-semibold">
                 {{ 'servers.detail.console' | translate }}
@@ -188,7 +188,7 @@ import {
         }
 
         <!-- Proxy -->
-        <section class="box">
+        <section class="glass-card p-4">
           <div class="mb-3 flex items-center justify-between gap-2">
             <h2 class="text-sm font-semibold">{{ 'servers.detail.proxy' | translate }}</h2>
             <button class="text-xs" style="color:var(--color-text-secondary);" (click)="refreshProxy()">
@@ -208,10 +208,10 @@ import {
             </p>
           }
           <div class="flex gap-2">
-            <button class="button-secondary" (click)="startProxy()" [disabled]="proxyBusy()">
+            <button class="outer-button" (click)="startProxy()" [disabled]="proxyBusy()">
               {{ 'servers.startProxy' | translate }}
             </button>
-            <button class="button-secondary" (click)="stopProxy()" [disabled]="proxyBusy()">
+            <button class="outer-button" (click)="stopProxy()" [disabled]="proxyBusy()">
               {{ 'servers.detail.stopProxy' | translate }}
             </button>
             <button class="text-xs" style="color:var(--color-text-secondary);" (click)="toggleProxyConfig()">
@@ -238,7 +238,7 @@ import {
             </p>
             <div class="flex gap-2">
               <input class="input flex-1" id="wildcard-domain" formControlName="wildcardDomain" placeholder="apps.example.com" />
-              <button class="button-secondary" type="submit" [disabled]="savingWildcard()">
+              <button class="outer-button" type="submit" [disabled]="savingWildcard()">
                 {{ (savingWildcard() ? 'servers.detail.saving' : 'servers.detail.save') | translate }}
               </button>
             </div>
@@ -249,7 +249,7 @@ import {
         </section>
 
         <!-- Docker networks resources are deployed onto. -->
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'servers.detail.destinations' | translate }}</h2>
           @if (destinations().length === 0) {
             <p class="text-sm" style="color:var(--color-text-secondary);">
@@ -276,7 +276,7 @@ import {
               formControlName="network"
               [placeholder]="'servers.detail.networkPlaceholder' | translate"
             />
-            <button class="button" type="submit" [disabled]="destinationForm.invalid">
+            <button class="inner-button" type="submit" [disabled]="destinationForm.invalid">
               {{ 'servers.detail.add' | translate }}
             </button>
           </form>
@@ -284,7 +284,7 @@ import {
       </div>
 
       <!-- What is deployed here. Deleting a server refuses while this is non-empty. -->
-      <section class="box mt-4">
+      <section class="glass-card p-4 mt-4">
         <h2 class="mb-3 text-sm font-semibold">
           {{ 'servers.detail.deployedResources' | translate }}
           <span class="ml-1 font-normal" style="color:var(--color-text-secondary);">({{ resources().length }})</span>
@@ -329,7 +329,7 @@ import {
       </section>
 
       <!-- Security: agent + certificates held on this host. -->
-      <section class="box mt-4">
+      <section class="glass-card p-4 mt-4">
         <h2 class="mb-3 text-sm font-semibold">{{ 'servers.detail.security' | translate }}</h2>
 
         <div class="mb-4 flex flex-wrap items-center gap-3">
@@ -342,7 +342,7 @@ import {
           <button class="text-xs" style="color:var(--color-text-secondary);" (click)="refreshCrowdSec()">
             {{ 'servers.detail.refresh' | translate }}
           </button>
-          <button class="button-secondary" (click)="installCrowdSec()" [disabled]="crowdsecBusy()">
+          <button class="outer-button" (click)="installCrowdSec()" [disabled]="crowdsecBusy()">
             {{ (crowdsecBusy() ? 'servers.detail.installing' : 'servers.installCrowdSec') | translate }}
           </button>
         </div>
@@ -351,7 +351,7 @@ import {
           <form class="mb-4 flex flex-wrap items-center gap-2" [formGroup]="bouncerForm" (ngSubmit)="addBouncer()">
             <span class="text-sm" style="color:var(--color-text-secondary);">{{ 'servers.detail.bouncer' | translate }}</span>
             <input class="input w-48" formControlName="name" [placeholder]="'servers.detail.bouncerNamePlaceholder' | translate" />
-            <button class="button-secondary" type="submit" [disabled]="bouncerForm.invalid">
+            <button class="outer-button" type="submit" [disabled]="bouncerForm.invalid">
               {{ 'servers.detail.addBouncer' | translate }}
             </button>
           </form>
@@ -400,19 +400,19 @@ import {
             <input type="checkbox" formControlName="is_ca" />
             {{ 'servers.detail.isCa' | translate }}
           </label>
-          <button class="button" type="submit" [disabled]="certificateForm.invalid">
+          <button class="inner-button" type="submit" [disabled]="certificateForm.invalid">
             {{ 'servers.detail.generate' | translate }}
           </button>
         </form>
       </section>
 
       <!-- Destructive, and refused by the API while resources remain. -->
-      <section class="box mt-4" style="border-color:color-mix(in srgb, var(--color-danger) 35%, transparent);">
+      <section class="glass-card p-4 mt-4" style="border-color:color-mix(in srgb, var(--color-danger) 35%, transparent);">
         <h2 class="mb-1 text-sm font-semibold">{{ 'servers.detail.dangerZone' | translate }}</h2>
         <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
           {{ 'servers.detail.deleteHint' | translate }}
         </p>
-        <button class="button-secondary" style="color:var(--color-danger);" (click)="remove()" [disabled]="deleting()">
+        <button class="outer-button" style="color:var(--color-danger);" (click)="remove()" [disabled]="deleting()">
           {{ (deleting() ? 'servers.detail.deleting' : 'servers.detail.deleteServer') | translate }}
         </button>
       </section>

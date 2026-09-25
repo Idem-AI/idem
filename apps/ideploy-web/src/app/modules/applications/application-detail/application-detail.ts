@@ -43,19 +43,19 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
         <h1 class="text-2xl font-bold">{{ a.name }}</h1>
         <div class="flex items-center gap-2">
           @if (a.link) {
-            <a class="button-secondary" [href]="a.link" target="_blank" rel="noopener">
-              <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>{{ 'applications.open' | translate }}
+            <a class="outer-button" [href]="a.link" target="_blank" rel="noopener">
+              <i class="pi pi-external-link mr-2"></i>{{ 'applications.open' | translate }}
             </a>
           }
-          <a class="button-secondary" [routerLink]="['/applications', uuid, 'insights']">
-            <i class="fa-solid fa-chart-simple mr-2"></i>{{ 'insights.open' | translate }}
+          <a class="outer-button" [routerLink]="['/applications', uuid, 'insights']">
+            <i class="pi pi-chart-bar mr-2"></i>{{ 'insights.open' | translate }}
           </a>
-          <a class="button-secondary" [routerLink]="['/applications', uuid, 'terminal']">
-            <i class="fa-solid fa-terminal mr-2"></i>{{ 'terminal.open' | translate }}
+          <a class="outer-button" [routerLink]="['/applications', uuid, 'terminal']">
+            <i class="pi pi-code mr-2"></i>{{ 'terminal.open' | translate }}
           </a>
-          <button class="button-secondary" (click)="lifecycle('restart')">{{ 'applications.detail.restart' | translate }}</button>
-          <button class="button-secondary" (click)="lifecycle('stop')">{{ 'applications.detail.stop' | translate }}</button>
-          <button class="button" (click)="deploy()">{{ 'applications.deploy' | translate }}</button>
+          <button class="outer-button" (click)="lifecycle('restart')">{{ 'applications.detail.restart' | translate }}</button>
+          <button class="outer-button" (click)="lifecycle('stop')">{{ 'applications.detail.stop' | translate }}</button>
+          <button class="inner-button" (click)="deploy()">{{ 'applications.deploy' | translate }}</button>
         </div>
       </div>
 
@@ -69,20 +69,20 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
         response sends X-Frame-Options/CSP framing restrictions shows an
         empty preview pane for itself, same as it would in any other iframe.
       -->
-      <section class="box mb-6 overflow-hidden p-0">
+      <section class="glass-card mb-6 overflow-hidden p-0">
         <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-4" style="border-bottom:1px solid var(--color-surface-2);">
           <h2 class="text-sm font-semibold">{{ 'applications.detail.productionDeployment' | translate }}</h2>
           <div class="flex items-center gap-1">
             @if (a.git_repository) {
-              <a class="icon-button" [href]="a.git_repository" target="_blank" rel="noopener" [title]="'applications.detail.viewSource' | translate">
-                <i class="fa-brands fa-github" aria-hidden="true"></i>
+              <a class="button-icon" [href]="a.git_repository" target="_blank" rel="noopener" [title]="'applications.detail.viewSource' | translate">
+                <i class="pi pi-github" aria-hidden="true"></i>
               </a>
             }
-            <a class="button-secondary text-xs px-3 py-1.5" [routerLink]="['/applications', uuid, 'deployments']">
-              <i class="fa-solid fa-clock-rotate-left mr-1.5" aria-hidden="true"></i>{{ 'applications.detail.rollback' | translate }}
+            <a class="outer-button text-xs px-3 py-1.5" [routerLink]="['/applications', uuid, 'deployments']">
+              <i class="pi pi-history mr-1.5" aria-hidden="true"></i>{{ 'applications.detail.rollback' | translate }}
             </a>
             @if (a.link) {
-              <a class="button text-xs px-3 py-1.5" [href]="a.link" target="_blank" rel="noopener">
+              <a class="inner-button text-xs px-3 py-1.5" [href]="a.link" target="_blank" rel="noopener">
                 {{ 'applications.open' | translate }}
               </a>
             }
@@ -113,7 +113,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
                 <dt class="text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.domainsLabel' | translate }}</dt>
                 <dd>
                   <a class="inline-flex items-center gap-1.5 font-mono font-semibold hover:underline" [style.color]="'var(--color-primary-400)'" [href]="a.link ?? undefined" target="_blank" rel="noopener">
-                    {{ shortDomain() }}<i class="fa-solid fa-arrow-up-right-from-square text-[10px]" aria-hidden="true"></i>
+                    {{ shortDomain() }}<i class="pi pi-external-link text-[10px]" aria-hidden="true"></i>
                   </a>
                 </dd>
               </div>
@@ -134,7 +134,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
             <div class="col-span-2">
               <dt class="text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.sourceLabel' | translate }}</dt>
               <dd class="flex flex-wrap items-center gap-3 font-mono text-xs">
-                <span><i class="fa-solid fa-code-branch mr-1" aria-hidden="true"></i>{{ a.git_branch || 'main' }}</span>
+                <span><i class="pi pi-sitemap mr-1" aria-hidden="true"></i>{{ a.git_branch || 'main' }}</span>
                 @if (latestDeployment(); as dep) {
                   <span style="color:var(--color-text-secondary);">{{ shortCommit(dep.commit) }} · {{ dep.status }}</span>
                 }
@@ -145,7 +145,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
 
         <!-- Deployment settings — collapsed by default, badge is the real onboarding-checklist gap count. -->
         <button type="button" class="flex w-full items-center gap-2 px-5 py-3 text-sm transition-colors hover:bg-white/5" style="border-top:1px solid var(--color-surface-2);" (click)="settingsOpen.set(!settingsOpen())">
-          <i class="fa-solid text-[10px] transition-transform" [class.fa-chevron-right]="!settingsOpen()" [class.fa-chevron-down]="settingsOpen()" aria-hidden="true"></i>
+          <i class="pi text-[10px] transition-transform" [class.pi-chevron-right]="!settingsOpen()" [class.pi-chevron-down]="settingsOpen()" aria-hidden="true"></i>
           <span class="font-semibold">{{ 'applications.detail.deploymentSettings' | translate }}</span>
           @if (checklistItems().length - checklistDone(); as remaining) {
             @if (remaining > 0) {
@@ -175,7 +175,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
 
       <!-- Checklist / resource snapshot / firewall snapshot — Vercel's three-card row, on our own data. -->
       <div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <section class="box">
+        <section class="glass-card p-4">
           <div class="mb-3 flex items-center justify-between">
             <h3 class="text-sm font-semibold">{{ 'applications.detail.checklist' | translate }}</h3>
             <span class="text-xs" style="color:var(--color-text-secondary);">{{ checklistDone() }}/{{ checklistItems().length }}</span>
@@ -183,14 +183,14 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
           <ul class="space-y-2 text-sm">
             @for (item of checklistItems(); track item.key) {
               <li class="flex items-center gap-2" [style.color]="item.done ? 'var(--color-text-secondary)' : 'var(--color-text-primary)'">
-                <i [class]="item.done ? 'fa-solid fa-check-circle' : 'fa-regular fa-circle'" [style.color]="item.done ? 'var(--color-success)' : 'var(--color-text-tertiary)'" aria-hidden="true"></i>
+                <i [class]="item.done ? 'pi pi-check-circle' : 'pi pi-circle-fill'" [style.color]="item.done ? 'var(--color-success)' : 'var(--color-text-tertiary)'" aria-hidden="true"></i>
                 <span [style.text-decoration]="item.done ? 'line-through' : 'none'">{{ 'applications.detail.checklistItem.' + item.key | translate }}</span>
               </li>
             }
           </ul>
         </section>
 
-        <section class="box">
+        <section class="glass-card p-4">
           <div class="mb-3 flex items-center justify-between">
             <h3 class="text-sm font-semibold">{{ 'applications.detail.resourceUsage' | translate }}</h3>
             <a class="text-xs hover:underline" style="color:var(--color-primary-500);" [routerLink]="['/applications', uuid, 'insights']">{{ 'applications.detail.viewInsights' | translate }}</a>
@@ -215,7 +215,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
           }
         </section>
 
-        <section class="box">
+        <section class="glass-card p-4">
           <div class="mb-3 flex items-center justify-between">
             <h3 class="text-sm font-semibold">{{ 'applications.detail.firewallOverview' | translate }}</h3>
             <a class="text-xs hover:underline" style="color:var(--color-primary-500);" [routerLink]="['/applications', uuid, 'security']">{{ 'applications.detail.manageSecurity' | translate }}</a>
@@ -233,7 +233,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
               <div class="flex items-center justify-between">
                 <dt style="color:var(--color-text-secondary);">{{ 'security.app.wafEnabled' | translate }}</dt>
                 <dd>
-                  <i [class]="fw.enabled ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'" [style.color]="fw.enabled ? 'var(--color-success)' : 'var(--color-text-tertiary)'" aria-hidden="true"></i>
+                  <i [class]="fw.enabled ? 'pi pi-check-circle' : 'pi pi-times-circle'" [style.color]="fw.enabled ? 'var(--color-success)' : 'var(--color-text-tertiary)'" aria-hidden="true"></i>
                 </dd>
               </div>
             </dl>
@@ -242,7 +242,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
       </div>
 
       <!-- Recent deployments — Vercel's "Active Branches", on our own deployment history. -->
-      <section class="box mb-6">
+      <section class="glass-card p-4 mb-6">
         <div class="mb-3 flex items-center justify-between gap-2">
           <h2 class="font-semibold">{{ 'applications.detail.recentDeployments' | translate }}</h2>
           <a class="text-xs hover:underline" style="color:var(--color-primary-500);" [routerLink]="['/applications', uuid, 'deployments']">{{ 'applications.detail.manageDeployments' | translate }}</a>
@@ -263,7 +263,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
       </section>
 
       <!-- Config -->
-      <section class="box mb-6">
+      <section class="glass-card p-4 mb-6">
         <h2 class="mb-3 font-semibold">{{ 'applications.detail.configuration' | translate }}</h2>
         <form class="space-y-3" [formGroup]="configForm" (ngSubmit)="saveConfig()">
           <div class="grid grid-cols-2 gap-3">
@@ -284,12 +284,12 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
               <input class="input" formControlName="fqdn" />
             </div>
           </div>
-          <button class="button" type="submit" [disabled]="savingConfig()">{{ 'applications.detail.save' | translate }}</button>
+          <button class="inner-button" type="submit" [disabled]="savingConfig()">{{ 'applications.detail.save' | translate }}</button>
         </form>
       </section>
 
       <!-- Env vars -->
-      <section class="box mb-6">
+      <section class="glass-card p-4 mb-6">
         <h2 class="mb-3 font-semibold">{{ 'applications.detail.environmentVariables' | translate }}</h2>
         @for (env of envVars(); track env.key) {
           <div class="mb-2 flex items-center gap-2">
@@ -301,12 +301,12 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
         <form class="mt-3 flex gap-2" [formGroup]="envForm" (ngSubmit)="addEnv()">
           <input class="input flex-1" [placeholder]="'applications.detail.keyPlaceholder' | translate" formControlName="key" />
           <input class="input flex-1" [placeholder]="'applications.detail.valuePlaceholder' | translate" formControlName="value" />
-          <button class="button" type="submit" [disabled]="envForm.invalid">{{ 'applications.detail.add' | translate }}</button>
+          <button class="inner-button" type="submit" [disabled]="envForm.invalid">{{ 'applications.detail.add' | translate }}</button>
         </form>
       </section>
 
       <!-- Scheduled tasks -->
-      <section class="box mb-6">
+      <section class="glass-card p-4 mb-6">
         <h2 class="mb-3 font-semibold">{{ 'applications.detail.scheduledTasks' | translate }}</h2>
         @for (task of tasks(); track task.uuid) {
           <div class="mb-1 flex items-center gap-3 text-sm">
@@ -337,12 +337,12 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
           <input class="input flex-1" [placeholder]="'applications.detail.namePlaceholder' | translate" formControlName="name" />
           <input class="input flex-1" [placeholder]="'applications.detail.commandPlaceholder' | translate" formControlName="command" />
           <input class="input w-40" [placeholder]="'applications.detail.cronPlaceholder' | translate" formControlName="frequency" />
-          <button class="button" type="submit" [disabled]="taskForm.invalid">{{ 'applications.detail.addTask' | translate }}</button>
+          <button class="inner-button" type="submit" [disabled]="taskForm.invalid">{{ 'applications.detail.addTask' | translate }}</button>
         </form>
       </section>
 
       <!-- Volumes -->
-      <section class="box mb-6">
+      <section class="glass-card p-4 mb-6">
         <h2 class="mb-3 font-semibold">{{ 'applications.detail.persistentVolumes' | translate }}</h2>
         @for (vol of volumes()?.persistent ?? []; track vol.id) {
           <div class="mb-1 flex items-center gap-2 text-sm">
@@ -355,7 +355,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
         <form class="mt-3 flex flex-wrap gap-2" [formGroup]="volumeForm" (ngSubmit)="addVolume()">
           <input class="input flex-1" [placeholder]="'applications.detail.namePlaceholder' | translate" formControlName="name" />
           <input class="input flex-1" [placeholder]="'applications.detail.mountPathPlaceholder' | translate" formControlName="mount_path" />
-          <button class="button" type="submit" [disabled]="volumeForm.invalid">{{ 'applications.detail.addVolume' | translate }}</button>
+          <button class="inner-button" type="submit" [disabled]="volumeForm.invalid">{{ 'applications.detail.addVolume' | translate }}</button>
         </form>
 
         <h3 class="mb-2 mt-4 text-sm font-semibold">{{ 'applications.detail.fileVolumes' | translate }}</h3>
@@ -367,12 +367,12 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
         <form class="mt-2 flex flex-wrap gap-2" [formGroup]="fileVolumeForm" (ngSubmit)="addFileVolume()">
           <input class="input flex-1" [placeholder]="'applications.detail.mountPathPlaceholder' | translate" formControlName="mount_path" />
           <input class="input flex-1" [placeholder]="'applications.detail.fileContentPlaceholder' | translate" formControlName="content" />
-          <button class="button" type="submit" [disabled]="fileVolumeForm.invalid">{{ 'applications.detail.addFile' | translate }}</button>
+          <button class="inner-button" type="submit" [disabled]="fileVolumeForm.invalid">{{ 'applications.detail.addFile' | translate }}</button>
         </form>
       </section>
 
       <!-- Tags -->
-      <section class="box mb-6">
+      <section class="glass-card p-4 mb-6">
         <h2 class="mb-3 font-semibold">{{ 'applications.detail.tags' | translate }}</h2>
         <div class="flex flex-wrap gap-2">
           @for (tag of appTags(); track tag.uuid) {
@@ -390,7 +390,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
                 <option [value]="tag.uuid">{{ tag.name }}</option>
               }
             </select>
-            <button class="button-secondary" (click)="attachTag(tagPicker.value); tagPicker.value = ''">
+            <button class="outer-button" (click)="attachTag(tagPicker.value); tagPicker.value = ''">
               {{ 'applications.detail.add' | translate }}
             </button>
           </div>
@@ -398,18 +398,18 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
       </section>
 
       <!-- Ops -->
-      <section class="box mb-6">
+      <section class="glass-card p-4 mb-6">
         <h2 class="mb-3 font-semibold">{{ 'applications.detail.operations' | translate }}</h2>
         <div class="mb-2 flex gap-2">
-          <button class="button-secondary" (click)="refreshStatus()">{{ 'applications.detail.status' | translate }}</button>
-          <button class="button-secondary" (click)="refreshMetrics()">{{ 'applications.detail.metrics' | translate }}</button>
+          <button class="outer-button" (click)="refreshStatus()">{{ 'applications.detail.status' | translate }}</button>
+          <button class="outer-button" (click)="refreshMetrics()">{{ 'applications.detail.metrics' | translate }}</button>
         </div>
         @if (opsOutput()) {
           <pre class="overflow-auto whitespace-pre-wrap font-mono text-xs">{{ opsOutput() }}</pre>
         }
         <form class="mt-3 flex gap-2" [formGroup]="execForm" (ngSubmit)="runExec()">
           <input class="input flex-1" [placeholder]="'applications.detail.execPlaceholder' | translate" formControlName="command" />
-          <button class="button" type="submit" [disabled]="execForm.invalid">{{ 'applications.detail.exec' | translate }}</button>
+          <button class="inner-button" type="submit" [disabled]="execForm.invalid">{{ 'applications.detail.exec' | translate }}</button>
         </form>
       </section>
 

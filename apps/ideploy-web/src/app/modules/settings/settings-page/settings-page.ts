@@ -11,7 +11,7 @@ import { ApiService } from '../../../shared/services/api.service';
     <h1 class="mb-6 text-2xl font-bold">{{ 'settings.title' | translate }}</h1>
 
     @if (version(); as v) {
-      <div class="box mb-6">
+      <div class="glass-card p-4 mb-6">
         <div class="text-sm">{{ 'settings.versionLabel' | translate }} <strong>{{ v.version }}</strong></div>
         <div class="text-sm" style="color: var(--color-text-secondary)">
           {{ 'settings.autoUpdate' | translate }} {{ v.autoUpdate ? ('settings.enabled' | translate) : ('settings.disabled' | translate) }}
@@ -19,7 +19,7 @@ import { ApiService } from '../../../shared/services/api.service';
       </div>
     }
 
-    <section class="box mb-6">
+    <section class="glass-card p-4 mb-6">
       <h2 class="mb-3 font-semibold">{{ 'settings.instanceSettings' | translate }}</h2>
       <div class="space-y-3">
         <div>
@@ -29,11 +29,11 @@ import { ApiService } from '../../../shared/services/api.service';
         <label class="flex items-center gap-2 text-sm">
           <input type="checkbox" [(ngModel)]="registrationEnabled" /> {{ 'settings.registrationEnabled' | translate }}
         </label>
-        <button class="button" (click)="save()">{{ 'settings.save' | translate }}</button>
+        <button class="inner-button" (click)="save()">{{ 'settings.save' | translate }}</button>
       </div>
     </section>
 
-    <section class="box">
+    <section class="glass-card p-4">
       <h2 class="mb-3 font-semibold">{{ 'settings.globalSearch' | translate }}</h2>
       <input class="input mb-3" [placeholder]="'settings.searchPlaceholder' | translate" [(ngModel)]="query" (ngModelChange)="onSearch()" />
       @for (hit of results(); track hit.uuid) {

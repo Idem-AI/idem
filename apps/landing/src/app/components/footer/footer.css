@@ -111,8 +111,11 @@
 
 @media (min-width: 900px) {
   .ft-body {
-    grid-template-columns: minmax(0, 1fr) auto;
+    /* The nav takes a real share of the row rather than hugging its content,
+       so the columns spread instead of leaving a hole in the middle. */
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     align-items: start;
+    gap: clamp(2rem, 5vw, 4rem);
   }
 }
 
@@ -132,20 +135,6 @@
 .ft-logo img {
   width: 100%;
   height: auto;
-}
-
-/* Blue wordmark on light, white wordmark on dark. CSS-driven, so there is no
-   flash of the wrong logo before hydration. */
-.ft-logo-dark {
-  display: none;
-}
-
-:host-context(html.dark) .ft-logo-light {
-  display: none;
-}
-
-:host-context(html.dark) .ft-logo-dark {
-  display: block;
 }
 
 .ft-tagline {
@@ -202,7 +191,7 @@
 
 @media (min-width: 900px) {
   .ft-nav {
-    grid-template-columns: repeat(3, minmax(9rem, auto));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

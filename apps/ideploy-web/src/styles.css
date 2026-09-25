@@ -5,9 +5,6 @@
  * source of design tokens.
  * ============================================ */
 
-/* FontAwesome icons (same icon set as the Laravel app). Bare specifier so it
- * resolves from the hoisted workspace node_modules. Must precede other rules. */
-@import '@fortawesome/fontawesome-free/css/all.min.css';
 /* Terminal (xterm.js) — required for correct glyph metrics and scrolling. */
 @import '@xterm/xterm/css/xterm.css';
 @import 'tailwindcss';
@@ -58,36 +55,6 @@
     outline: none;
     border-color: var(--color-primary-500);
   }
-  .button {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition;
-    background: var(--gradient-primary, var(--color-primary-500));
-    color: white;
-  }
-  .button:disabled {
-    @apply opacity-50 cursor-not-allowed;
-  }
-  /* Outlined, not filled — Vercel's secondary action is a border on a near-transparent
-   * surface, not a solid grey block; a filled secondary next to a filled primary reads
-   * as two calls to action of equal weight, which is the one thing a secondary must not be. */
-  .button-secondary {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors;
-    background-color: color-mix(in srgb, var(--color-surface-2) 40%, transparent);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-surface-2);
-  }
-  .button-secondary:hover {
-    background-color: var(--color-surface-2);
-  }
-  /* Icon-only ghost action (a header's GitHub/"..." buttons) — no border, no fill,
-   * until hovered, so a row of them reads as one unit rather than a wall of boxes. */
-  .icon-button {
-    @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm transition-colors;
-    color: var(--color-text-secondary);
-  }
-  .icon-button:hover {
-    background-color: var(--color-surface-2);
-    color: var(--color-text-primary);
-  }
   .menu-item {
     @apply block rounded-lg px-3 py-2 text-sm;
     color: var(--color-text-secondary);
@@ -95,11 +62,6 @@
   .menu-item-active {
     background-color: var(--color-surface-2);
     color: var(--color-text-primary);
-  }
-  .box {
-    @apply rounded-xl p-4;
-    background-color: var(--color-surface-1);
-    border: 1px solid var(--color-surface-2);
   }
   /* A box's own header row — title left, actions right, hairline beneath it.
    * Hand-rolled with the same three rules in several screens already; new
@@ -161,73 +123,13 @@
  * navbar-topbar / dashboard so the Angular UI is visually identical.
  * ============================================================ */
 
-/* Sidebar items — token-based so they adapt to light/dark. Hover and active
- * are deliberately different weights (a subtle tint vs. the full brand fill):
- * Vercel never uses a glow shadow on a nav row, and a hover state as loud as
- * the active one leaves nothing to tell you which page you are actually on. */
-.sbi {
-  display: flex; align-items: center; gap: 12px;
-  padding: 8px 12px; border-radius: 8px;
-  font-size: 14px; font-weight: 500; text-decoration: none;
-  font-family: 'Jura', sans-serif;
-  transition: background-color 0.15s ease, color 0.15s ease; color: var(--color-text-secondary); width: 100%;
-  position: relative; overflow: hidden;
-}
-.sbi:hover {
-  background: var(--color-surface-2); color: var(--color-text-primary);
-}
-.sbi.active {
-  background: var(--color-primary-500); color: #fff;
-}
-.sbi.active::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 3px; border-radius: 0 3px 3px 0; background: #fff;
-}
-.sbi .sbi-icon { width: 18px; text-align: center; flex-shrink: 0; font-size: 14px; }
-.sbi-section {
-  font-size: 9px; font-weight: 700;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-text-tertiary) 55%, transparent);
-  padding: 0 12px;
-  display: block; margin-bottom: 2px; font-family: 'Vilevile', sans-serif;
-}
-.sbi-disabled {
-  display: flex; align-items: center; gap: 12px;
-  padding: 8px 12px; border-radius: 8px;
-  font-size: 14px; font-weight: 500; font-family: 'Jura', sans-serif;
-  color: var(--color-text-disabled); width: 100%; cursor: not-allowed;
-}
-.sbi-badge-soon {
-  /* Amber accent - intentionally theme-invariant (readable on both themes) */
-  font-size: 9px; font-weight: 700; padding: 2px 7px;
-  border-radius: 5px; text-transform: uppercase;
-  background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.28);
-}
-.sidebar-scroll { scrollbar-width: none; -ms-overflow-style: none; }
-.sidebar-scroll::-webkit-scrollbar { display: none; }
 
-.sidebar-shell {
-  background: color-mix(in srgb, var(--color-bg-darker) 92%, transparent);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-right: 1px solid var(--glass-border-subtle);
-}
-.topbar-shell {
-  background: var(--color-bg-darker);
-  border-bottom: 1px solid var(--glass-border-subtle);
-}
+
+
 
 /* Headings (Coolify uses Playfair Display for section titles) */
 .heading-serif { font-family: 'Vilevile', sans-serif; }
 
-/* Dashboard cards — flat, like `.box`: no blur, a hairline border, a
- * restrained radius. Kept as its own class (rather than folded into `.box`)
- * only because several screens already reference it by name; the look is
- * now the same one. */
-.db-glass {
-  background: var(--color-surface-1);
-  border: 1px solid var(--color-surface-2);
-  border-radius: 12px;
-}
 .db-add {
   border: 1px dashed var(--glass-border-medium); border-radius: 12px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;

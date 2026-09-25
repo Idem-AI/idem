@@ -28,7 +28,7 @@ import { Workspace } from '../../../shared/models/ideploy.models';
           {{ 'workspaces.subtitle' | translate }}
         </p>
       </div>
-      <a class="button" routerLink="/workspaces/new">{{ 'workspaces.create' | translate }}</a>
+      <a class="inner-button" routerLink="/workspaces/new">{{ 'workspaces.create' | translate }}</a>
     </div>
 
     @if (loading()) {
@@ -36,17 +36,17 @@ import { Workspace } from '../../../shared/models/ideploy.models';
         {{ 'projects.common.loading' | translate }}
       </p>
     } @else if (workspaces().length === 0) {
-      <div class="box">
+      <div class="glass-card p-4">
         <p class="mb-3">{{ 'workspaces.emptyTitle' | translate }}</p>
         <p class="mb-4 text-sm" style="color:var(--color-text-secondary);">
           {{ 'workspaces.emptyHint' | translate }}
         </p>
-        <a class="button" routerLink="/workspaces/new">{{ 'workspaces.createFirst' | translate }}</a>
+        <a class="inner-button" routerLink="/workspaces/new">{{ 'workspaces.createFirst' | translate }}</a>
       </div>
     } @else {
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         @for (workspace of workspaces(); track workspace.uuid) {
-          <div class="db-glass p-5">
+          <div class="glass-card p-5">
             <div class="mb-2 flex items-start justify-between gap-2">
               <a
                 class="font-semibold hover:underline"
@@ -99,7 +99,7 @@ import { Workspace } from '../../../shared/models/ideploy.models';
                 style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--color-primary-400);"
               >
                 {{ 'workspaces.open' | translate }}
-                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <i class="pi pi-chevron-right text-[10px]"></i>
               </a>
             </div>
           </div>

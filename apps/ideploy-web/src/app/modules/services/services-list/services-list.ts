@@ -29,8 +29,8 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
   template: `
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-2xl font-bold">{{ 'services.title' | translate }}</h1>
-      <a class="button" routerLink="/templates">
-        <i class="fa-solid fa-compass mr-2"></i>{{ 'services.browseServices' | translate }}
+      <a class="inner-button" routerLink="/templates">
+        <i class="pi pi-compass mr-2"></i>{{ 'services.browseServices' | translate }}
       </a>
     </div>
 
@@ -55,21 +55,21 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
         @if (loading()) {
           <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'services.loading' | translate }}</p>
         } @else if (services().length === 0) {
-          <div class="box text-center">
+          <div class="glass-card p-4 text-center">
             <p class="mb-3" style="color: var(--color-text-secondary)">{{ 'services.empty' | translate }}</p>
-            <a class="button" routerLink="/templates">{{ 'services.browseServices' | translate }}</a>
+            <a class="inner-button" routerLink="/templates">{{ 'services.browseServices' | translate }}</a>
           </div>
         } @else if (filtered().length === 0) {
-          <div class="box" style="color: var(--color-text-secondary)">{{ 'services.noMatch' | translate }}</div>
+          <div class="glass-card p-4" style="color: var(--color-text-secondary)">{{ 'services.noMatch' | translate }}</div>
         } @else {
-          <div class="box box-flush">
+          <div class="glass-card overflow-hidden">
             @for (svc of filtered(); track svc.uuid; let last = $last) {
               <div class="flex flex-wrap items-center gap-4 px-5 py-4" [style.border-bottom]="last ? 'none' : '1px solid var(--color-surface-2)'">
                 <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg" style="background:var(--color-surface-2);">
                   @if (logoFor(svc); as logo) {
                     <img [src]="logo" class="h-7 w-7 object-contain" alt="" (error)="onLogoError($event)" />
                   } @else {
-                    <i class="fa-brands fa-docker" style="color:var(--color-primary-400);"></i>
+                    <i class="pi pi-box" style="color:var(--color-primary-400);"></i>
                   }
                 </div>
                 <div class="min-w-0 flex-1">
@@ -93,11 +93,11 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
                 </div>
                 <div class="flex gap-2">
                   @if (isActive(svc)) {
-                    <button class="button-secondary" (click)="action(svc, 'stop')">{{ 'services.stop' | translate }}</button>
+                    <button class="outer-button" (click)="action(svc, 'stop')">{{ 'services.stop' | translate }}</button>
                   } @else {
-                    <button class="button-secondary" (click)="action(svc, 'start')">{{ 'services.start' | translate }}</button>
+                    <button class="outer-button" (click)="action(svc, 'start')">{{ 'services.start' | translate }}</button>
                   }
-                  <a class="button-secondary" [routerLink]="['/services', svc.uuid]">{{ 'services.manage' | translate }}</a>
+                  <a class="outer-button" [routerLink]="['/services', svc.uuid]">{{ 'services.manage' | translate }}</a>
                 </div>
               </div>
             }
@@ -109,7 +109,7 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
             {{ (showCustomForm() ? 'services.hideCustomForm' : 'services.showCustomForm') | translate }}
           </button>
           @if (showCustomForm()) {
-            <form class="box mt-3 space-y-3" [formGroup]="form" (ngSubmit)="create()">
+            <form class="glass-card p-4 mt-3 space-y-3" [formGroup]="form" (ngSubmit)="create()">
               <h2 class="font-semibold">{{ 'services.deployCustom' | translate }}</h2>
               <div>
                 <label class="mb-1 block text-sm">{{ 'services.name' | translate }}</label>
@@ -123,7 +123,7 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
               @if (error()) {
                 <p class="text-sm text-red-400">{{ error() }}</p>
               }
-              <button class="button" type="submit" [disabled]="!target() || saving()">
+              <button class="inner-button" type="submit" [disabled]="!target() || saving()">
                 {{ (saving() ? 'services.creating' : 'services.createService') | translate }}
               </button>
             </form>
@@ -131,9 +131,9 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
         </div>
       </div>
 
-      <div class="box">
+      <div class="glass-card p-4">
         <div class="mb-1 flex items-center gap-2">
-          <i class="fa-solid fa-layer-group" style="color:var(--color-primary-400);"></i>
+          <i class="pi pi-clone" style="color:var(--color-primary-400);"></i>
           <h2 class="box-title">{{ 'services.latestServices' | translate }}</h2>
         </div>
         <p class="mb-4 text-sm" style="color: var(--color-text-secondary)">{{ 'services.latestServicesHint' | translate }}</p>
@@ -147,7 +147,7 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
                   @if (serviceLogoUrl(t.logo); as logo) {
                     <img [src]="logo" class="h-6 w-6 object-contain" alt="" (error)="onLogoError($event)" />
                   } @else {
-                    <i class="fa-solid fa-cube text-sm" style="color:var(--color-primary-400);"></i>
+                    <i class="pi pi-box text-sm" style="color:var(--color-primary-400);"></i>
                   }
                 </div>
                 <div class="min-w-0">

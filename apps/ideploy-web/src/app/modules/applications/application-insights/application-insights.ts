@@ -26,7 +26,7 @@ const POLL_INTERVAL_MS = 10_000;
       style="color:var(--color-text-secondary);"
       [routerLink]="['/applications', uuid]"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'insights.backToApplication' | translate }}
     </a>
 
@@ -39,7 +39,7 @@ const POLL_INTERVAL_MS = 10_000;
           {{ 'insights.liveHint' | translate }}
         </p>
       </div>
-      <button class="button-secondary" (click)="refresh()" [disabled]="loading()">
+      <button class="outer-button" (click)="refresh()" [disabled]="loading()">
         {{ (loading() ? 'insights.refreshing' : 'insights.refresh') | translate }}
       </button>
     </div>
@@ -49,13 +49,13 @@ const POLL_INTERVAL_MS = 10_000;
     }
 
     @if (containers().length === 0) {
-      <div class="box">
+      <div class="glass-card p-4">
         <p>{{ loading() ? ('insights.loading' | translate) : ('insights.noContainers' | translate) }}</p>
       </div>
     } @else {
       <div class="grid gap-4 md:grid-cols-2">
         @for (c of containers(); track c.name) {
-          <section class="box">
+          <section class="glass-card p-4">
             <h2 class="mb-3 font-mono text-sm font-semibold">{{ c.name }}</h2>
 
             <div class="mb-3">

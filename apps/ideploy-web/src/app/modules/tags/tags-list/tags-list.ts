@@ -10,7 +10,7 @@ import { Tag } from '../../../shared/models/ideploy.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="mb-6 text-2xl font-bold">{{ 'tags.title' | translate }}</h1>
-    <div class="box max-w-lg">
+    <div class="glass-card p-4 max-w-lg">
       @if (loading()) {
         <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'tags.loading' | translate }}</p>
       } @else {
@@ -26,7 +26,7 @@ import { Tag } from '../../../shared/models/ideploy.models';
       }
       <form class="flex gap-2" [formGroup]="form" (ngSubmit)="add()">
         <input class="input flex-1" [placeholder]="'tags.newTagPlaceholder' | translate" formControlName="name" />
-        <button class="button" type="submit" [disabled]="form.invalid">{{ 'tags.add' | translate }}</button>
+        <button class="inner-button" type="submit" [disabled]="form.invalid">{{ 'tags.add' | translate }}</button>
       </form>
     </div>
   `,

@@ -4,35 +4,40 @@
  * is per-run, not persisted on the application), so this infers from what is:
  * the build pack an operator chose, and the repository's own name, the same
  * signal a human skimming a project list would use.
+ *
+ * The icon comes from the design system's set (PrimeIcons, shipped inside
+ * Vilevile), which carries no brand marks — so the icon says what ROLE the
+ * stack plays (a screen, a runtime, a container) and the brand colour, kept
+ * verbatim, is what identifies it.
  */
 export interface TechIcon {
   icon: string;
   color: string;
 }
 
-const GENERIC: TechIcon = { icon: 'fa-solid fa-cube', color: '#60a5fa' };
+const GENERIC: TechIcon = { icon: 'pi pi-box', color: '#60a5fa' };
 
 const NAME_PATTERNS: [RegExp, TechIcon][] = [
-  [/angular/i, { icon: 'fa-brands fa-angular', color: '#e23237' }],
-  [/(next|react)/i, { icon: 'fa-brands fa-react', color: '#61dafb' }],
-  [/vue/i, { icon: 'fa-brands fa-vuejs', color: '#42b883' }],
-  [/svelte/i, { icon: 'fa-solid fa-fire', color: '#ff3e00' }],
-  [/(django|flask|python)/i, { icon: 'fa-brands fa-python', color: '#3776ab' }],
-  [/(laravel|php)/i, { icon: 'fa-brands fa-php', color: '#777bb4' }],
-  [/(spring|java)/i, { icon: 'fa-brands fa-java', color: '#e76f00' }],
-  [/rust/i, { icon: 'fa-brands fa-rust', color: '#dea584' }],
-  [/\bgo(lang)?\b/i, { icon: 'fa-solid fa-feather-pointed', color: '#00add8' }],
-  [/rails|ruby/i, { icon: 'fa-solid fa-gem', color: '#cc342d' }],
-  [/node/i, { icon: 'fa-brands fa-node-js', color: '#5fa04e' }],
-  [/wordpress/i, { icon: 'fa-brands fa-wordpress', color: '#21759b' }],
+  [/angular/i, { icon: 'pi pi-desktop', color: '#e23237' }],
+  [/(next|react)/i, { icon: 'pi pi-desktop', color: '#61dafb' }],
+  [/vue/i, { icon: 'pi pi-desktop', color: '#42b883' }],
+  [/svelte/i, { icon: 'pi pi-desktop', color: '#ff3e00' }],
+  [/(django|flask|python)/i, { icon: 'pi pi-code', color: '#3776ab' }],
+  [/(laravel|php)/i, { icon: 'pi pi-code', color: '#777bb4' }],
+  [/(spring|java)/i, { icon: 'pi pi-code', color: '#e76f00' }],
+  [/rust/i, { icon: 'pi pi-code', color: '#dea584' }],
+  [/\bgo(lang)?\b/i, { icon: 'pi pi-code', color: '#00add8' }],
+  [/rails|ruby/i, { icon: 'pi pi-code', color: '#cc342d' }],
+  [/node/i, { icon: 'pi pi-code', color: '#5fa04e' }],
+  [/wordpress/i, { icon: 'pi pi-globe', color: '#21759b' }],
 ];
 
 export function techIcon(app: { name?: string; git_repository?: string | null; build_pack?: string | null }): TechIcon {
   if (app.build_pack === 'dockercompose' || app.build_pack === 'dockerfile') {
-    return { icon: 'fa-brands fa-docker', color: '#2496ed' };
+    return { icon: 'pi pi-box', color: '#2496ed' };
   }
   if (app.build_pack === 'static') {
-    return { icon: 'fa-solid fa-file-code', color: '#f59e0b' };
+    return { icon: 'pi pi-file', color: '#f59e0b' };
   }
 
   const haystack = `${app.name ?? ''} ${app.git_repository ?? ''}`;

@@ -31,7 +31,7 @@ import {
         class="mb-4 inline-flex items-center gap-2 text-sm"
         style="color:var(--color-text-secondary);"
       >
-        <i class="fa-solid fa-chevron-left text-[10px]"></i>
+        <i class="pi pi-chevron-left text-[10px]"></i>
         {{ 'workspaces.backToList' | translate }}
       </a>
 
@@ -55,7 +55,7 @@ import {
         </li>
       </ol>
 
-      <form class="box space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+      <form class="glass-card p-4 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
         @if (step() === 1) {
           <div>
             <label class="mb-1 block text-sm" for="ws-name">
@@ -80,7 +80,7 @@ import {
           </div>
 
           <button
-            class="button"
+            class="inner-button"
             type="button"
             [disabled]="form.controls.name.invalid"
             (click)="step.set(2)"
@@ -163,10 +163,10 @@ import {
           }
 
           <div class="flex gap-2">
-            <button class="button-secondary" type="button" (click)="step.set(1)">
+            <button class="outer-button" type="button" (click)="step.set(1)">
               {{ 'workspaces.form.back' | translate }}
             </button>
-            <button class="button" type="submit" [disabled]="saving() || !canSubmit()">
+            <button class="inner-button" type="submit" [disabled]="saving() || !canSubmit()">
               {{ (saving() ? 'workspaces.form.creating' : 'workspaces.form.create') | translate }}
             </button>
           </div>

@@ -14,11 +14,11 @@ import { ApiService } from '../../../shared/services/api.service';
     }
 
     @if (subscription(); as s) {
-      <div class="box mb-6">
+      <div class="glass-card p-4 mb-6">
         <div class="flex items-center justify-between gap-3">
           <div class="text-lg font-semibold">{{ 'subscription.currentPlan' | translate }} {{ s.plan }}</div>
           <div class="flex gap-2">
-            <button class="button-secondary" (click)="openPortal()" [disabled]="portalLoading()">
+            <button class="outer-button" (click)="openPortal()" [disabled]="portalLoading()">
               {{ (portalLoading() ? 'subscription.opening' : 'subscription.managePayment') | translate }}
             </button>
             @if (s.plan !== 'free') {
@@ -44,7 +44,7 @@ import { ApiService } from '../../../shared/services/api.service';
     <h2 class="mb-3 font-semibold">{{ 'subscription.plans' | translate }}</h2>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
       @for (plan of plans(); track plan['name']) {
-        <div class="box flex flex-col">
+        <div class="glass-card p-4 flex flex-col">
           <div class="text-lg font-semibold">{{ plan['display_name'] }}</div>
           <div class="my-2 text-2xl">{{ plan['price'] }} {{ plan['currency'] }}<span class="text-sm">/{{ plan['billing_period'] }}</span></div>
           <div class="text-sm" style="color: var(--color-text-secondary)">
@@ -54,7 +54,7 @@ import { ApiService } from '../../../shared/services/api.service';
             @if (subscription()?.plan === plan['name']) {
               <span class="status-badge" style="background:color-mix(in srgb, var(--color-success) 12%, transparent);color:var(--color-success);border:1px solid color-mix(in srgb, var(--color-success) 28%, transparent);">{{ 'subscription.current' | translate }}</span>
             } @else {
-              <button class="button w-full" (click)="select(plan)">{{ plan['price'] && +(plan['price'] || 0) > 0 ? ('subscription.subscribe' | translate) : ('subscription.switch' | translate) }}</button>
+              <button class="inner-button w-full" (click)="select(plan)">{{ plan['price'] && +(plan['price'] || 0) > 0 ? ('subscription.subscribe' | translate) : ('subscription.switch' | translate) }}</button>
             }
           </div>
         </div>

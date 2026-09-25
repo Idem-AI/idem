@@ -22,15 +22,15 @@ import { ApiService } from '../../../shared/services/api.service';
       @if (githubUser(); as user) {
         <div class="flex items-center gap-3">
           <span class="text-sm" style="color:var(--color-text-secondary);">
-            <i class="fa-brands fa-github mr-1.5"></i>{{ user }}
+            <i class="pi pi-github mr-1.5"></i>{{ user }}
           </span>
-          <button class="button-secondary" (click)="disconnect()" [disabled]="busy()">
+          <button class="outer-button" (click)="disconnect()" [disabled]="busy()">
             {{ 'sources.disconnect' | translate }}
           </button>
         </div>
       } @else {
-        <button class="button" (click)="connect()" [disabled]="busy()">
-          <i class="fa-brands fa-github mr-2"></i>{{ 'sources.connectGithub' | translate }}
+        <button class="inner-button" (click)="connect()" [disabled]="busy()">
+          <i class="pi pi-github mr-2"></i>{{ 'sources.connectGithub' | translate }}
         </button>
       }
     </div>
@@ -40,18 +40,18 @@ import { ApiService } from '../../../shared/services/api.service';
     }
 
     @if (sources().length === 0) {
-      <div class="box">
+      <div class="glass-card p-4">
         <p>{{ 'sources.empty' | translate }}</p>
         <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'sources.emptyHint' | translate }}</p>
       </div>
     } @else {
       <div class="space-y-3">
         @for (s of sources(); track s.uuid) {
-          <div class="box flex items-center gap-3">
+          <div class="glass-card p-4 flex items-center gap-3">
             <i
-              class="fa-brands"
-              [class.fa-github]="s.provider === 'github'"
-              [class.fa-gitlab]="s.provider === 'gitlab'"
+              class="pi"
+              [class.pi-github]="s.provider === 'github'"
+              [class.pi-sitemap]="s.provider === 'gitlab'"
               aria-hidden="true"
             ></i>
             <div>

@@ -40,7 +40,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
     <!-- Top bar -->
     <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
       <a routerLink="/dashboard" class="flex items-center gap-2 text-sm transition-colors hover:text-text-primary" style="color:var(--color-text-secondary);">
-        <i class="fa-solid fa-arrow-left"></i> {{ 'projects.common.back' | translate }}
+        <i class="pi pi-arrow-left"></i> {{ 'projects.common.back' | translate }}
       </a>
       <span class="text-sm font-semibold font-mono text-text-primary">{{ 'projects.common.newProject' | translate }}</span>
       <span class="w-12"></span>
@@ -55,12 +55,12 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
            [class.focus-within:border-blue-500/80]="true"
            [class.focus-within:ring-2]="true"
            [class.focus-within:ring-blue-500/20]="true">
-        <i class="fa-solid fa-link text-blue-400"></i>
+        <i class="pi pi-link text-blue-400"></i>
         <input class="flex-1 bg-transparent outline-none text-sm" [placeholder]="'projects.new.gitUrlPlaceholder' | translate"
                [attr.aria-label]="'projects.new.gitUrlLabel' | translate"
                [(ngModel)]="gitUrl" (keyup.enter)="importUrl()" style="color:var(--color-text-primary);" />
         @if (gitUrl) {
-          <button class="button cursor-pointer text-xs font-semibold py-1.5 px-3" (click)="importUrl()">{{ 'projects.new.continue' | translate }}</button>
+          <button class="inner-button cursor-pointer text-xs font-semibold py-1.5 px-3" (click)="importUrl()">{{ 'projects.new.continue' | translate }}</button>
         }
       </div>
       <p class="mb-10 text-center text-sm" style="color:var(--color-text-tertiary);">
@@ -73,7 +73,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
           <h2 class="mb-4 text-xl font-semibold font-mono text-text-primary">{{ 'projects.new.importGitRepo' | translate }}</h2>
 
           @if (mode() === 'pick') {
-            <div class="box rounded-2xl p-8">
+            <div class="glass-card rounded-2xl p-8">
               <p class="mb-6 text-center text-sm" style="color:var(--color-text-secondary);">
                 {{ 'projects.new.selectProviderHint' | translate }}
               </p>
@@ -81,7 +81,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
                 @for (source of importSources; track source.id) {
                   <button
                     type="button"
-                    class="db-glass flex w-full items-center gap-3 rounded-xl p-4 text-sm font-semibold transition-colors hover:border-blue-500/50 cursor-pointer"
+                    class="glass-card flex w-full items-center gap-3 rounded-xl p-4 text-sm font-semibold transition-colors hover:border-blue-500/50 cursor-pointer"
                     (click)="source.mode === 'github' || source.mode === 'gitlab' ? pickProvider(source.mode) : mode.set(source.mode)"
                   >
                     <i [class]="source.icon" class="w-5 text-center text-lg" [style.color]="source.iconColor"></i>
@@ -91,54 +91,54 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
               </div>
               <div class="mt-6 text-center">
                 <a routerLink="/sources" class="text-xs hover:underline" style="color:var(--color-text-tertiary);">
-                  {{ 'projects.new.manageConnections' | translate }} <i class="fa-solid fa-arrow-up-right-from-square ml-0.5 text-[10px]"></i>
+                  {{ 'projects.new.manageConnections' | translate }} <i class="pi pi-external-link ml-0.5 text-[10px]"></i>
                 </a>
               </div>
             </div>
           } @else if (mode() === 'github' || mode() === 'gitlab') {
             <button class="mb-3 text-xs hover:text-text-primary transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="mode.set('pick')">
-              <i class="fa-solid fa-arrow-left mr-1"></i>{{ 'projects.new.chooseAnotherSource' | translate }}
+              <i class="pi pi-arrow-left mr-1"></i>{{ 'projects.new.chooseAnotherSource' | translate }}
             </button>
 
             @if (providerUser() === undefined) {
               <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.checkingProvider' | translate }}</p>
             } @else if (providerUser() === null) {
-              <div class="db-glass text-center p-8 rounded-2xl">
-                <i class="text-4xl mb-3" [class]="mode() === 'github' ? 'fa-brands fa-github' : 'fa-brands fa-gitlab'" style="color:var(--color-text-secondary);"></i>
+              <div class="glass-card text-center p-8 rounded-2xl">
+                <i class="text-4xl mb-3" [class]="mode() === 'github' ? 'pi pi-github' : 'pi pi-sitemap'" style="color:var(--color-text-secondary);"></i>
                 <p class="mb-4 text-sm" style="color:var(--color-text-secondary);">
                   {{ (mode() === 'github' ? 'projects.new.connectGithubDesc' : 'projects.new.connectGitlabDesc') | translate }}
                 </p>
-                <button class="button cursor-pointer" (click)="connectProvider()">
-                  <i class="mr-2" [class]="mode() === 'github' ? 'fa-brands fa-github' : 'fa-brands fa-gitlab'"></i>
+                <button class="inner-button cursor-pointer" (click)="connectProvider()">
+                  <i class="mr-2" [class]="mode() === 'github' ? 'pi pi-github' : 'pi pi-sitemap'"></i>
                   {{ (mode() === 'github' ? 'projects.new.connectGithub' : 'projects.new.connectGitlab') | translate }}
                 </button>
               </div>
             } @else {
               <div class="mb-4 flex items-center gap-3">
                 <span class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-mono border" style="background:var(--glass-bg-subtle);border-color:var(--glass-border);color:var(--color-text-secondary);">
-                  <i [class]="mode() === 'github' ? 'fa-brands fa-github' : 'fa-brands fa-gitlab'"></i> {{ providerUser() }}
+                  <i [class]="mode() === 'github' ? 'pi pi-github' : 'pi pi-sitemap'"></i> {{ providerUser() }}
                 </span>
                 <div class="relative flex-1">
-                  <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[10px]" style="color:var(--color-text-tertiary);"></i>
+                  <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px]" style="color:var(--color-text-tertiary);"></i>
                   <input class="input font-mono text-xs" style="padding-left:30px;height:36px;" [placeholder]="'projects.new.searchReposPlaceholder' | translate" [attr.aria-label]="'projects.new.searchReposLabel' | translate" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" />
                 </div>
               </div>
               @if (filteredRepos().length === 0) {
-                <div class="db-glass p-8 text-center text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.noRepos' | translate }}</div>
+                <div class="glass-card p-8 text-center text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.noRepos' | translate }}</div>
               } @else {
-                <div class="overflow-y-auto rounded-xl db-glass p-0" style="max-height: 400px;">
+                <div class="overflow-y-auto rounded-xl glass-card p-0" style="max-height: 400px;">
                   @for (repo of filteredRepos(); track repo.fullName) {
                     <div class="flex items-center gap-4 p-3.5 hover:bg-[var(--glass-bg-subtle)] transition-colors duration-150" style="border-bottom:1px solid var(--glass-border-subtle);">
                       <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
-                        <i class="fa-solid fa-code-branch"></i>
+                        <i class="pi pi-sitemap"></i>
                       </div>
                       <div class="min-w-0 flex-1">
                         <div class="truncate text-sm font-semibold text-text-primary font-mono">{{ repo.name }}
-                          @if (repo.private) { <i class="fa-solid fa-lock ml-1.5 text-[10px]" style="color:var(--color-text-tertiary);" [title]="'projects.new.privateRepo' | translate"></i> }
+                          @if (repo.private) { <i class="pi pi-lock ml-1.5 text-[10px]" style="color:var(--color-text-tertiary);" [title]="'projects.new.privateRepo' | translate"></i> }
                         </div>
                         <div class="truncate text-[10px] font-mono mt-0.5" style="color:var(--color-text-tertiary);">{{ 'projects.new.updated' | translate }} {{ repo.updatedAt | slice:0:10 }}</div>
                       </div>
-                      <button class="button-secondary cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[var(--glass-bg-subtle)] transition-colors" (click)="importRepo(repo)">{{ 'projects.new.import' | translate }}</button>
+                      <button class="outer-button cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[var(--glass-bg-subtle)] transition-colors" (click)="importRepo(repo)">{{ 'projects.new.import' | translate }}</button>
                     </div>
                   }
                 </div>
@@ -149,9 +149,9 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
             }
           } @else if (mode() === 'compose') {
             <button class="mb-3 text-xs hover:text-text-primary transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="mode.set('pick')">
-              <i class="fa-solid fa-arrow-left mr-1"></i>{{ 'projects.new.chooseAnotherSource' | translate }}
+              <i class="pi pi-arrow-left mr-1"></i>{{ 'projects.new.chooseAnotherSource' | translate }}
             </button>
-            <form class="db-glass space-y-3 rounded-2xl p-5" [formGroup]="composeForm" (ngSubmit)="deployCompose()">
+            <form class="glass-card space-y-3 rounded-2xl p-5" [formGroup]="composeForm" (ngSubmit)="deployCompose()">
               <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'projects.new.composeHint' | translate }}</p>
               <div>
                 <label class="mb-1 block text-xs font-semibold">{{ 'projects.new.name' | translate }}</label>
@@ -165,15 +165,15 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
     image: myorg/myapp:latest"></textarea>
               </div>
               @if (error()) { <p class="text-sm text-red-400">{{ error() }}</p> }
-              <button class="button w-full" type="submit" [disabled]="composeForm.invalid || !target() || busy()">
+              <button class="inner-button w-full" type="submit" [disabled]="composeForm.invalid || !target() || busy()">
                 {{ (busy() ? 'projects.common.deploying' : 'projects.new.deployCompose') | translate }}
               </button>
             </form>
           } @else if (mode() === 'image') {
             <button class="mb-3 text-xs hover:text-text-primary transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="mode.set('pick')">
-              <i class="fa-solid fa-arrow-left mr-1"></i>{{ 'projects.new.chooseAnotherSource' | translate }}
+              <i class="pi pi-arrow-left mr-1"></i>{{ 'projects.new.chooseAnotherSource' | translate }}
             </button>
-            <form class="db-glass space-y-3 rounded-2xl p-5" [formGroup]="imageForm" (ngSubmit)="deployImage()">
+            <form class="glass-card space-y-3 rounded-2xl p-5" [formGroup]="imageForm" (ngSubmit)="deployImage()">
               <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'projects.new.imageHint' | translate }}</p>
               <div>
                 <label class="mb-1 block text-xs font-semibold">{{ 'projects.new.name' | translate }}</label>
@@ -185,7 +185,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
                 <input class="input font-mono" formControlName="image" placeholder="nginx:latest" />
               </div>
               @if (error()) { <p class="text-sm text-red-400">{{ error() }}</p> }
-              <button class="button w-full" type="submit" [disabled]="imageForm.invalid || !target() || busy()">
+              <button class="inner-button w-full" type="submit" [disabled]="imageForm.invalid || !target() || busy()">
                 {{ (busy() ? 'projects.common.deploying' : 'projects.new.deployImage') | translate }}
               </button>
             </form>
@@ -222,7 +222,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               @for (a of architectureTemplates; track a.id) {
                 <a [routerLink]="['/new-project/guide', a.id]" [queryParams]="workspaceUuid ? { workspace: workspaceUuid } : {}"
-                   class="db-glass flex flex-col overflow-hidden hover:border-blue-500/50 transition-all duration-200 rounded-2xl group">
+                   class="glass-card flex flex-col overflow-hidden hover:border-blue-500/50 transition-all duration-200 rounded-2xl group">
                   <div class="flex-1 p-5">
                     <div class="mb-2 font-semibold font-mono text-white/90 group-hover:text-blue-400 transition-colors">{{ a.name | translate }}</div>
                     <p class="text-xs leading-relaxed" style="color:var(--color-text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ a.description | translate }}</p>
@@ -241,7 +241,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
           } @else {
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               @for (t of templates(); track t.name) {
-                <div class="db-glass flex flex-col overflow-hidden hover:border-blue-500/50 transition-all duration-200 rounded-2xl group">
+                <div class="glass-card flex flex-col overflow-hidden hover:border-blue-500/50 transition-all duration-200 rounded-2xl group">
                   <div class="flex-1 p-5">
                     <div class="mb-2 font-semibold capitalize font-mono text-white/90 group-hover:text-blue-400 transition-colors">{{ t.name }}</div>
                     <p class="text-xs leading-relaxed" style="color:var(--color-text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ t.slogan || ('projects.new.oneClickBoilerplate' | translate) }}</p>
@@ -255,7 +255,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
                       <i [class]="getTemplateIcon(t.name)" class="text-3xl"></i>
                     }
                   </div>
-                  <button class="button-secondary w-full cursor-pointer hover:bg-blue-500 hover:text-white transition-all text-xs font-semibold py-1.5 rounded-none border-0 border-t" style="border-color:var(--glass-border-subtle);" [disabled]="busy()" (click)="cloneTemplate(t)">{{ 'projects.common.deploy' | translate }}</button>
+                  <button class="outer-button w-full cursor-pointer hover:bg-blue-500 hover:text-white transition-all text-xs font-semibold py-1.5 rounded-none border-0 border-t" style="border-color:var(--glass-border-subtle);" [disabled]="busy()" (click)="cloneTemplate(t)">{{ 'projects.common.deploy' | translate }}</button>
                 </div>
               }
             </div>
@@ -264,17 +264,17 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
       </div>
 
       <!-- Create Empty Project -->
-      <div class="mt-12 db-glass p-6 rounded-2xl flex flex-wrap items-center justify-between gap-4 hover:border-white/10 transition-all duration-200">
+      <div class="mt-12 glass-card p-6 rounded-2xl flex flex-wrap items-center justify-between gap-4 hover:border-white/10 transition-all duration-200">
         <div class="flex items-center gap-4">
           <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 text-white/70">
-            <i class="fa-solid fa-cube text-lg"></i>
+            <i class="pi pi-box text-lg"></i>
           </div>
           <div>
             <div class="font-semibold font-mono text-white/90">{{ 'projects.new.createEmpty' | translate }}</div>
             <p class="text-xs mt-0.5" style="color:var(--color-text-secondary);">{{ 'projects.new.createEmptyDesc' | translate }}</p>
           </div>
         </div>
-        <button class="button-secondary cursor-pointer text-xs font-semibold py-2 px-4 rounded-xl hover:bg-white/10 hover:text-white transition-all" (click)="createEmpty()">{{ 'projects.new.createEmpty' | translate }}</button>
+        <button class="outer-button cursor-pointer text-xs font-semibold py-2 px-4 rounded-xl hover:bg-white/10 hover:text-white transition-all" (click)="createEmpty()">{{ 'projects.new.createEmpty' | translate }}</button>
       </div>
 
       @if (error() && mode() !== 'compose' && mode() !== 'image') {
@@ -295,10 +295,10 @@ export class NewProjectComponent implements OnInit {
   protected readonly architectureTemplates = ARCHITECTURE_TEMPLATES;
   /** Dark glass button, brand-coloured icon — the original, preferred look. */
   protected readonly importSources: { id: string; mode: ImportMode; icon: string; iconColor: string; labelKey: string }[] = [
-    { id: 'github', mode: 'github', icon: 'fa-brands fa-github', iconColor: 'var(--color-text-primary)', labelKey: 'projects.new.continueWithGithub' },
-    { id: 'gitlab', mode: 'gitlab', icon: 'fa-brands fa-gitlab', iconColor: '#fc6d26', labelKey: 'projects.new.continueWithGitlab' },
-    { id: 'compose', mode: 'compose', icon: 'fa-brands fa-docker', iconColor: '#2496ed', labelKey: 'projects.new.continueWithCompose' },
-    { id: 'image', mode: 'image', icon: 'fa-solid fa-box', iconColor: '#60a5fa', labelKey: 'projects.new.continueWithImage' },
+    { id: 'github', mode: 'github', icon: 'pi pi-github', iconColor: 'var(--color-text-primary)', labelKey: 'projects.new.continueWithGithub' },
+    { id: 'gitlab', mode: 'gitlab', icon: 'pi pi-sitemap', iconColor: '#fc6d26', labelKey: 'projects.new.continueWithGitlab' },
+    { id: 'compose', mode: 'compose', icon: 'pi pi-box', iconColor: '#2496ed', labelKey: 'projects.new.continueWithCompose' },
+    { id: 'image', mode: 'image', icon: 'pi pi-box', iconColor: '#60a5fa', labelKey: 'projects.new.continueWithImage' },
   ];
   /** `undefined` = still checking; `null` = checked, not connected; a string = the connected username. Shared by both providers — only one is ever shown at a time. */
   protected readonly githubUser = signal<string | null | undefined>(undefined);
@@ -334,14 +334,14 @@ export class NewProjectComponent implements OnInit {
 
   protected getTemplateIcon(name: string): string {
     const n = name.toLowerCase();
-    if (n.includes('angular')) return 'fa-brands fa-angular text-red-500';
-    if (n.includes('node')) return 'fa-brands fa-node-js text-green-500';
-    if (n.includes('python')) return 'fa-brands fa-python text-blue-400';
-    if (n.includes('docker')) return 'fa-brands fa-docker text-blue-400';
-    if (n.includes('next') || n.includes('react')) return 'fa-brands fa-react text-sky-400';
-    if (n.includes('static')) return 'fa-solid fa-file-code text-amber-500';
-    if (n.includes('vite')) return 'fa-solid fa-bolt text-yellow-400';
-    return 'fa-solid fa-cube text-blue-400';
+    if (n.includes('angular')) return 'pi pi-desktop text-red-500';
+    if (n.includes('node')) return 'pi pi-code text-green-500';
+    if (n.includes('python')) return 'pi pi-code text-blue-400';
+    if (n.includes('docker')) return 'pi pi-box text-blue-400';
+    if (n.includes('next') || n.includes('react')) return 'pi pi-desktop text-sky-400';
+    if (n.includes('static')) return 'pi pi-file text-amber-500';
+    if (n.includes('vite')) return 'pi pi-bolt text-yellow-400';
+    return 'pi pi-box text-blue-400';
   }
 
   /** A real UI screenshot — only present for the curated subset of templates (see `template-enrichment.json`). */

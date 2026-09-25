@@ -25,7 +25,7 @@ import { TourService } from '../../../shared/services/tour.service';
     <!-- Top toolbar -->
     <div class="mb-8 flex flex-wrap items-center gap-3">
       <div class="relative flex-1 min-w-[200px]">
-        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-white/40"></i>
+        <i class="pi pi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-white/40"></i>
         <input class="input" style="padding-left:36px;" [placeholder]="'dashboard.searchProjects' | translate"
                [ngModel]="query()" (ngModelChange)="query.set($event)" />
       </div>
@@ -39,27 +39,27 @@ import { TourService } from '../../../shared/services/tour.service';
 
       <div class="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
         <button class="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 text-white/60 transition-colors cursor-pointer" [title]="'dashboard.gridView' | translate" (click)="view.set('grid')"
-                [class.bg-white/10]="view() === 'grid'" [class.!text-white]="view() === 'grid'"><i class="fa-solid fa-table-cells-large"></i></button>
+                [class.bg-white/10]="view() === 'grid'" [class.!text-white]="view() === 'grid'"><i class="pi pi-th-large"></i></button>
         <button class="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 text-white/60 transition-colors cursor-pointer" [title]="'dashboard.listView' | translate" (click)="view.set('list')"
-                [class.bg-white/10]="view() === 'list'" [class.!text-white]="view() === 'list'"><i class="fa-solid fa-list"></i></button>
+                [class.bg-white/10]="view() === 'list'" [class.!text-white]="view() === 'list'"><i class="pi pi-list"></i></button>
       </div>
 
       <div class="relative">
-        <button class="button flex items-center gap-2 cursor-pointer transition-transform hover:scale-[1.02]" (click)="toggleAddNew()">
-          <i class="fa-solid fa-plus text-xs"></i> {{ 'dashboard.addNew' | translate }}
-          <i class="fa-solid fa-chevron-down text-[10px] opacity-70"></i>
+        <button class="inner-button flex items-center gap-2 cursor-pointer transition-transform hover:scale-[1.02]" (click)="toggleAddNew()">
+          <i class="pi pi-plus text-xs"></i> {{ 'dashboard.addNew' | translate }}
+          <i class="pi pi-chevron-down text-[10px] opacity-70"></i>
         </button>
         @if (addNewOpen()) {
           <div class="fixed inset-0 z-10" (click)="closeAddNew()"></div>
           <div class="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-xl border border-white/10 shadow-2xl" style="background:var(--color-surface-1);">
             <a routerLink="/new-project" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-white/5 transition-colors" (click)="closeAddNew()">
-              <i class="fa-solid fa-cube w-4 text-center" style="color:var(--color-primary-400);"></i>{{ 'dashboard.addNewApplication' | translate }}
+              <i class="pi pi-box w-4 text-center" style="color:var(--color-primary-400);"></i>{{ 'dashboard.addNewApplication' | translate }}
             </a>
             <a routerLink="/workspaces/new" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-white/5 transition-colors" (click)="closeAddNew()">
-              <i class="fa-solid fa-layer-group w-4 text-center" style="color:var(--color-primary-500);"></i>{{ 'dashboard.addNewWorkspace' | translate }}
+              <i class="pi pi-clone w-4 text-center" style="color:var(--color-primary-500);"></i>{{ 'dashboard.addNewWorkspace' | translate }}
             </a>
             <a routerLink="/servers/new" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-white/5 transition-colors" (click)="closeAddNew()">
-              <i class="fa-solid fa-server w-4 text-center" style="color:var(--color-success);"></i>{{ 'dashboard.addNewServer' | translate }}
+              <i class="pi pi-server w-4 text-center" style="color:var(--color-success);"></i>{{ 'dashboard.addNewServer' | translate }}
             </a>
           </div>
         }
@@ -71,7 +71,7 @@ import { TourService } from '../../../shared/services/tour.service';
       <div class="lg:col-span-1 space-y-6">
         <div>
           <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">{{ 'dashboard.usage' | translate }}</h2>
-          <div class="box p-5">
+          <div class="glass-card p-5">
             <div class="mb-4 flex items-center justify-between">
               <span class="text-sm font-semibold text-white/90">{{ 'dashboard.currentLimit' | translate }}</span>
               <a routerLink="/subscription" class="rounded-md px-2.5 py-1 text-xs font-semibold hover:bg-white/15 transition-colors"
@@ -102,19 +102,19 @@ import { TourService } from '../../../shared/services/tour.service';
 
         <div>
           <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">{{ 'dashboard.alerts' | translate }}</h2>
-          <div class="box text-center p-6">
+          <div class="glass-card text-center p-6">
             <p class="font-semibold text-white/90">{{ 'dashboard.getNotified' | translate }}</p>
             <p class="mt-1.5 text-xs leading-relaxed" style="color:var(--color-text-secondary);">
               {{ 'dashboard.alertsDescription' | translate }}
             </p>
-            <a routerLink="/notifications" class="button-secondary mt-4 inline-flex text-xs px-4 py-2 cursor-pointer rounded-xl hover:bg-white/10 transition-colors">{{ 'dashboard.configureNotifications' | translate }}</a>
+            <a routerLink="/notifications" class="outer-button mt-4 inline-flex text-xs px-4 py-2 cursor-pointer rounded-xl hover:bg-white/10 transition-colors">{{ 'dashboard.configureNotifications' | translate }}</a>
           </div>
         </div>
 
         <div>
           <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">{{ 'dashboard.recentDeployments' | translate }}</h2>
-          <div class="box text-center p-6" style="color:var(--color-text-tertiary);">
-            <i class="fa-solid fa-clock-rotate-left mb-2 text-lg text-white/30"></i>
+          <div class="glass-card text-center p-6" style="color:var(--color-text-tertiary);">
+            <i class="pi pi-history mb-2 text-lg text-white/30"></i>
             <p class="text-xs">{{ 'dashboard.recentDeploymentsEmpty' | translate }}</p>
           </div>
         </div>
@@ -151,7 +151,7 @@ import { TourService } from '../../../shared/services/tour.service';
           @if (view() === 'grid') {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               @for (app of filteredApps(); track app.uuid) {
-                <a class="db-glass block p-5 hover:border-blue-500/50 hover:bg-white/[0.01] transition-all duration-200 rounded-2xl group"
+                <a class="glass-card block p-5 hover:border-blue-500/50 hover:bg-white/[0.01] transition-all duration-200 rounded-2xl group"
                    [routerLink]="['/applications', app.uuid]">
                   <div class="flex items-start gap-3">
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5">
@@ -167,7 +167,7 @@ import { TourService } from '../../../shared/services/tour.service';
                       }
                       @if (app.workspace_name) {
                         <span class="mt-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px]" style="background:var(--color-surface-2);color:var(--color-text-tertiary);">
-                          <i class="fa-solid fa-layer-group" aria-hidden="true"></i>{{ app.workspace_name }}
+                          <i class="pi pi-clone" aria-hidden="true"></i>{{ app.workspace_name }}
                         </span>
                       }
                     </div>
@@ -178,7 +178,7 @@ import { TourService } from '../../../shared/services/tour.service';
           } @else {
             <div class="space-y-3">
               @for (app of filteredApps(); track app.uuid) {
-                <a class="db-glass block p-4 hover:border-blue-500/50 hover:bg-white/[0.01] transition-all duration-200 rounded-xl group"
+                <a class="glass-card block p-4 hover:border-blue-500/50 hover:bg-white/[0.01] transition-all duration-200 rounded-xl group"
                    [routerLink]="['/applications', app.uuid]">
                   <div class="flex items-center justify-between gap-4">
                     <div class="flex min-w-0 items-center gap-3">
@@ -202,14 +202,14 @@ import { TourService } from '../../../shared/services/tour.service';
             </div>
           }
         } @else if (query() || selectedWorkspace()) {
-          <div class="db-glass p-8 text-center text-sm rounded-2xl" style="color:var(--color-text-secondary);">
+          <div class="glass-card p-8 text-center text-sm rounded-2xl" style="color:var(--color-text-secondary);">
             {{ 'dashboard.noMatch' | translate }}
           </div>
         } @else {
-          <div class="db-glass p-8 text-center text-sm rounded-2xl" style="color:var(--color-text-secondary);">
-            <i class="fa-solid fa-cube mb-2 block text-lg text-white/30" aria-hidden="true"></i>
+          <div class="glass-card p-8 text-center text-sm rounded-2xl" style="color:var(--color-text-secondary);">
+            <i class="pi pi-box mb-2 block text-lg text-white/30" aria-hidden="true"></i>
             <p class="mb-3">{{ 'dashboard.noProjects' | translate }}</p>
-            <a routerLink="/new-project" class="button inline-flex text-xs px-4 py-2 cursor-pointer">
+            <a routerLink="/new-project" class="inner-button inline-flex text-xs px-4 py-2 cursor-pointer">
               {{ 'dashboard.addNewApplication' | translate }}
             </a>
           </div>
@@ -249,10 +249,10 @@ export class DashboardComponent implements OnInit {
   protected readonly usageMetrics = computed(() => {
     const q = this.quota();
     return [
-      { label: this.translate.instant('dashboard.metricApplications'), icon: 'fa-solid fa-cube', color: 'var(--color-primary-400)', value: `${q.apps.used} / ${q.apps.limit || '∞'}`, link: '/applications' },
-      { label: this.translate.instant('dashboard.metricServers'), icon: 'fa-solid fa-server', color: 'var(--color-success)', value: `${q.servers.used} / ${q.servers.limit || '∞'}`, link: '/servers' },
-      { label: this.translate.instant('dashboard.metricDatabases'), icon: 'fa-solid fa-database', color: '#a78bfa', value: `${this.dbCount()}`, link: '/databases' },
-      { label: this.translate.instant('dashboard.metricProjects'), icon: 'fa-solid fa-layer-group', color: 'var(--color-primary-500)', value: `${this.workspaces().length}`, link: '/workspaces' },
+      { label: this.translate.instant('dashboard.metricApplications'), icon: 'pi pi-box', color: 'var(--color-primary-400)', value: `${q.apps.used} / ${q.apps.limit || '∞'}`, link: '/applications' },
+      { label: this.translate.instant('dashboard.metricServers'), icon: 'pi pi-server', color: 'var(--color-success)', value: `${q.servers.used} / ${q.servers.limit || '∞'}`, link: '/servers' },
+      { label: this.translate.instant('dashboard.metricDatabases'), icon: 'pi pi-database', color: '#a78bfa', value: `${this.dbCount()}`, link: '/databases' },
+      { label: this.translate.instant('dashboard.metricProjects'), icon: 'pi pi-clone', color: 'var(--color-primary-500)', value: `${this.workspaces().length}`, link: '/workspaces' },
     ];
   });
 

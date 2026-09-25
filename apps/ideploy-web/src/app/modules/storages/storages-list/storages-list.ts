@@ -27,12 +27,12 @@ import { S3Storage } from '../../../shared/models/ideploy.models';
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <div>
         @if (storages().length === 0) {
-          <div class="box">{{ 'storages.empty' | translate }}</div>
+          <div class="glass-card p-4">{{ 'storages.empty' | translate }}</div>
         } @else {
           <div class="space-y-3">
             @for (s of storages(); track s.uuid) {
-              <div class="box flex items-center gap-3">
-                <i class="fa-solid fa-box-archive" style="color:var(--color-primary-400);"></i>
+              <div class="glass-card p-4 flex items-center gap-3">
+                <i class="pi pi-inbox" style="color:var(--color-primary-400);"></i>
                 <div>
                   <div class="font-semibold">{{ s.name }}</div>
                   <div class="text-sm" style="color: var(--color-text-secondary)">
@@ -48,7 +48,7 @@ import { S3Storage } from '../../../shared/models/ideploy.models';
         }
       </div>
 
-      <form class="box space-y-3" [formGroup]="form" (ngSubmit)="submit()">
+      <form class="glass-card p-4 space-y-3" [formGroup]="form" (ngSubmit)="submit()">
         <h2 class="text-sm font-semibold">{{ 'storages.newStorage' | translate }}</h2>
         <div>
           <label class="mb-1 block text-sm" for="s3-name">{{ 'storages.name' | translate }}</label>
@@ -78,7 +78,7 @@ import { S3Storage } from '../../../shared/models/ideploy.models';
           <input class="input font-mono" id="s3-secret" type="password" autocomplete="off" formControlName="secret" />
           <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'storages.secretHint' | translate }}</p>
         </div>
-        <button class="button" type="submit" [disabled]="form.invalid || saving()">
+        <button class="inner-button" type="submit" [disabled]="form.invalid || saving()">
           {{ (saving() ? 'storages.saving' : 'storages.addStorage') | translate }}
         </button>
       </form>
