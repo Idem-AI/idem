@@ -1990,8 +1990,8 @@
       "actions": {
         "continue": "Continue",
         "generate": "Generate {{count}} document(s)",
-        "preview": "Preview",
-        "download": "Download PDF"
+        "download": "Download PDF",
+        "open": "Open"
       },
       "generating": {
         "title": "Drafting in progress",
@@ -2013,6 +2013,17 @@
         "generation": "Generation failed. Your details are kept, try again.",
         "download": "The PDF could not be downloaded. Try again.",
         "delete": "The document could not be deleted. Try again."
+      },
+      "show": {
+        "backToList": "Back to legal space",
+        "notFound": {
+          "title": "Document not found",
+          "subtitle": "It may have been deleted. Find your documents in the legal space."
+        },
+        "error": {
+          "title": "Could not load the document",
+          "subtitle": "Check your connection, then try again."
+        }
       }
     },
     "advisor": {
@@ -2493,6 +2504,9 @@
       "zoom": {
         "menu": "Zoom: {{value}}%",
         "fitWidth": "Fit to width"
+      },
+      "legalDoc": {
+        "title": "Legal document editor"
       }
     },
     "showCommunication": {
@@ -3684,7 +3698,9 @@
       "financeCalendar": "Accounting calendar",
       "businessPlans": "My business plans",
       "pitchDecks": "My pitch decks",
-      "pitchDeckNew": "New pitch deck"
+      "pitchDeckNew": "New pitch deck",
+      "legalDoc": "Legal document",
+      "legalDocEdit": "Legal document editing"
     }
   },
   "notFound": {

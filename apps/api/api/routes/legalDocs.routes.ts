@@ -9,6 +9,8 @@ import {
   generateLegalDocPdfController,
   getLegalRecommendationsController,
   saveLegalContextController,
+  updateLegalDocController,
+  aiEditLegalDocController,
 } from '../controllers/legalDocs.controller';
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
@@ -68,6 +70,22 @@ legalDocsRoutes.get(
   authenticate,
   pdfTimeout,
   generateLegalDocPdfController
+);
+
+/** Enregistre le HTML d'un document édité (éditeur WYSIWYG) */
+legalDocsRoutes.put(
+  `/${resourceName}/:projectId/documents/:documentId`,
+  authenticate,
+  updateLegalDocController
+);
+
+/** Édition IA d'un document : facturée comme une révision, comme les autres livrables */
+legalDocsRoutes.post(
+  `/${resourceName}/:projectId/documents/:documentId/ai-edit`,
+  authenticate,
+  checkQuota,
+  requireCredits('business', 'revision'),
+  aiEditLegalDocController
 );
 
 /** Delete a single document */

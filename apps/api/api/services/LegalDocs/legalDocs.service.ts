@@ -16,6 +16,9 @@ import { GenericService, IPromptStep, ISectionResult } from '../common/generic.s
 import { PAGE_FORMATS, PdfService } from '../pdf.service';
 import { LLMProvider, PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
+import { sectionEditingService } from '../common/section-editing.service';
+import { sanitizeSectionHtml } from '../../utils/sanitize-section-html';
+import { SupportedLanguage } from '../../utils/request-language';
 
 import { LEGAL_DOCS_CATALOG, getCatalogEntry, isStatutesType, legacyStatutesForm } from './catalog';
 import { LEGAL_FORMS, getLegalForm, normalizeLegalForm } from './legalForms';
@@ -223,6 +226,86 @@ export class LegalDocsService extends GenericService {
     );
 
     return updated?.analysisResultModel?.legalDocs || null;
+  }
+
+  /**
+   * Remplace le HTML d'un document juridique (éditeur WYSIWYG) et oublie son
+   * PDF : le prochain téléchargement reflète la modification.
+   */
+  async updateDocumentHtml(
+    userId: string,
+    projectId: string,
+    documentId: string,
+    html: string
+  ): Promise<LegalDocumentModel | null> {
+    return this.replaceDocumentHtml(userId, projectId, documentId, sanitizeSectionHtml(html));
+  }
+
+  /**
+   * Édition IA d'un document juridique : même moteur que les sections du
+   * business plan (contexte projet, règles de format, coût, traçabilité).
+   */
+  async aiEditDocument(
+    userId: string,
+    projectId: string,
+    documentId: string,
+    instruction: string,
+    language?: SupportedLanguage
+  ): Promise<LegalDocumentModel | null> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const doc = project?.analysisResultModel?.legalDocs?.documents.find((d) => d.id === documentId);
+    if (!project || !doc) {
+      logger.warn(`LegalDocsService.aiEditDocument: document not found ${documentId}`);
+      return null;
+    }
+    const html = await sectionEditingService.rewriteHtml({
+      userId,
+      project,
+      projectId,
+      formatKey: 'legalDocs',
+      element: doc.type,
+      sectionName: doc.name,
+      currentHtml: doc.data,
+      instruction,
+      language,
+    });
+    if (!html) return null;
+    return this.replaceDocumentHtml(userId, projectId, documentId, html);
+  }
+
+  private async replaceDocumentHtml(
+    userId: string,
+    projectId: string,
+    documentId: string,
+    html: string
+  ): Promise<LegalDocumentModel | null> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const legalDocs = project?.analysisResultModel?.legalDocs;
+    const index = legalDocs?.documents.findIndex((d) => d.id === documentId) ?? -1;
+    if (!project || !legalDocs || index < 0) {
+      logger.warn(`LegalDocsService.replaceDocumentHtml: document not found ${documentId}`);
+      return null;
+    }
+    const updatedDoc: LegalDocumentModel = { ...legalDocs.documents[index], data: html };
+    const documents = [...legalDocs.documents];
+    documents[index] = updatedDoc;
+    await this.projectRepository.update(
+      projectId,
+      {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          legalDocs: { ...legalDocs, documents, updatedAt: new Date() },
+        },
+      },
+      `users/${userId}/projects`
+    );
+    await cacheService.delete(
+      cacheService.generateAIKey('legal-doc-pdf', userId, projectId, documentId),
+      { prefix: 'pdf' }
+    );
+    logger.info(`LegalDocsService: document ${documentId} updated (${html.length} chars) projectId=${projectId}`);
+    return updatedDoc;
   }
 
   async clearLegalDocs(userId: string, projectId: string): Promise<void> {

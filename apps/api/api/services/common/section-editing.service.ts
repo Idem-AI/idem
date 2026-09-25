@@ -22,6 +22,9 @@ import { findDocument, isDeliverableKind, withDocument } from './deliverable-doc
  */
 export type DocumentKey = 'businessPlan' | 'pitchDeck' | 'branding' | 'businessCard';
 
+/** Règles de format disponibles pour une réécriture IA (documents + documents juridiques). */
+export type EditFormatKey = keyof typeof EDIT_FORMAT_RULES;
+
 /** Clés de cache PDF à invalider après modification, par type de document. */
 const PDF_CACHE_KEY: Record<DocumentKey, string> = {
   businessPlan: 'business-plan-pdf',
@@ -147,58 +150,22 @@ export class SectionEditingService {
     }
     const target = sections[index];
 
-    // Contexte projet compact (carte des sections via le Context Engine).
-    let projectContext = '';
-    try {
-      const map = await contextEngineService.getProjectMap(userId, projectId);
-      const existing = map.sections
-        .filter((s) => s.exists)
-        .map((s) => `- ${s.section}: ${s.description}${s.lastChangeSummary ? ` (last change: ${s.lastChangeSummary})` : ''}`)
-        .join('\n');
-      projectContext = `Project "${map.name}" (type: ${map.type}).\nDescription: ${project.longDescription || project.description || 'N/A'}\nAvailable sections:\n${existing}`;
-    } catch (err: any) {
-      logger.warn(`Context Engine unavailable for aiEditSection(${key}): ${err.message}`);
-      projectContext = `Project "${project.name}". Description: ${project.longDescription || project.description || 'N/A'}`;
-    }
-
-    const branding = analysis.branding as { colors?: unknown; typography?: unknown } | undefined;
-    const prompt = buildSectionEditPrompt({
-      instruction,
+    const newHtml = await this.rewriteHtml({
+      userId,
+      project,
+      projectId,
+      formatKey: key,
+      element: sectionId,
       sectionName: target.name,
       currentHtml: typeof target.data === 'string' ? target.data : JSON.stringify(target.data),
-      projectContext,
-      brandColorsJson: JSON.stringify(branding?.colors ?? {}),
-      typographyJson: JSON.stringify(branding?.typography ?? {}),
-      formatRules: EDIT_FORMAT_RULES[key],
-    });
-
-    const promptConfig: PromptConfig = {
-      provider: AI_CONFIG.default.provider,
-      modelName: AI_CONFIG.default.modelName,
-      userId,
-      promptType: `${key}-section-edit`,
+      instruction,
       language,
-    };
-    const messages: AIChatMessage[] = [{ role: 'user', content: prompt }];
-
-    // `key` est la clé de document (branding, businessPlan…) et `sectionId` la
-    // sous-section réellement retouchée : le coût d'une édition IA est ainsi
-    // imputé à l'élément précis, et non au projet en bloc.
-    const response = await withAiUsage(
-      { userId, projectId, feature: key, element: sectionId, operation: 'edit' },
-      () => promptService.runPrompt(promptConfig, messages)
-    );
-    const newHtml = sanitizeSectionHtml(promptService.getCleanAIText(response));
-    if (!newHtml) {
-      logger.warn(`AI edit returned empty HTML for ${key}/${sectionId}.`);
-      return null;
-    }
+    });
+    if (!newHtml) return null;
 
     const updatedSection: SectionModel = { ...target, data: newHtml, updatedAt: new Date() };
     const updatedSections = [...sections];
     updatedSections[index] = updatedSection;
-
-    markRevisionAsAI(`Édition IA – ${target.name}: ${instruction}`.slice(0, 280));
 
     if (isDeliverableKind(key) && deliverable) {
       const updatedDocument = { ...deliverable, sections: updatedSections, updatedAt: new Date() };
@@ -222,6 +189,78 @@ export class SectionEditingService {
 
     logger.info(`AI-edited ${key} section "${target.name}" for project ${projectId}.`);
     return { section: updatedSection, bucket: updatedBucket };
+  }
+
+  /**
+   * Réécrit un HTML de document selon une consigne, par l'IA : contexte projet
+   * (Context Engine), charte, règles de format du document, coût imputé à
+   * l'élément, traçabilité `ai`. Ne persiste rien : l'appelant enregistre.
+   * Renvoie `null` si l'IA ne rend rien d'exploitable.
+   */
+  async rewriteHtml(input: {
+    userId: string;
+    project: ProjectModel;
+    projectId: string;
+    formatKey: EditFormatKey;
+    /** Élément retouché, pour l'imputation du coût (id de section ou de document) */
+    element: string;
+    sectionName: string;
+    currentHtml: string;
+    instruction: string;
+    language?: SupportedLanguage;
+  }): Promise<string | null> {
+    const { userId, project, projectId, formatKey, element, sectionName, currentHtml, instruction, language } =
+      input;
+    const analysis = (project.analysisResultModel ?? {}) as Record<string, any>;
+
+    // Contexte projet compact (carte des sections via le Context Engine).
+    let projectContext = '';
+    try {
+      const map = await contextEngineService.getProjectMap(userId, projectId);
+      const existing = map.sections
+        .filter((s) => s.exists)
+        .map((s) => `- ${s.section}: ${s.description}${s.lastChangeSummary ? ` (last change: ${s.lastChangeSummary})` : ''}`)
+        .join('\n');
+      projectContext = `Project "${map.name}" (type: ${map.type}).\nDescription: ${project.longDescription || project.description || 'N/A'}\nAvailable sections:\n${existing}`;
+    } catch (err: any) {
+      logger.warn(`Context Engine unavailable for rewriteHtml(${formatKey}): ${err.message}`);
+      projectContext = `Project "${project.name}". Description: ${project.longDescription || project.description || 'N/A'}`;
+    }
+
+    const branding = analysis.branding as { colors?: unknown; typography?: unknown } | undefined;
+    const prompt = buildSectionEditPrompt({
+      instruction,
+      sectionName,
+      currentHtml,
+      projectContext,
+      brandColorsJson: JSON.stringify(branding?.colors ?? {}),
+      typographyJson: JSON.stringify(branding?.typography ?? {}),
+      formatRules: EDIT_FORMAT_RULES[formatKey],
+    });
+
+    const promptConfig: PromptConfig = {
+      provider: AI_CONFIG.default.provider,
+      modelName: AI_CONFIG.default.modelName,
+      userId,
+      promptType: `${formatKey}-section-edit`,
+      language,
+    };
+    const messages: AIChatMessage[] = [{ role: 'user', content: prompt }];
+
+    // `formatKey` est le document (branding, businessPlan…) et `element` la
+    // partie réellement retouchée : le coût d'une édition IA est ainsi imputé
+    // à l'élément précis, et non au projet en bloc.
+    const response = await withAiUsage(
+      { userId, projectId, feature: formatKey, element, operation: 'edit' },
+      () => promptService.runPrompt(promptConfig, messages)
+    );
+    const newHtml = sanitizeSectionHtml(promptService.getCleanAIText(response));
+    if (!newHtml) {
+      logger.warn(`AI edit returned empty HTML for ${formatKey}/${element}.`);
+      return null;
+    }
+    markRevisionAsAI(`Édition IA – ${sectionName}: ${instruction}`.slice(0, 280));
+    return newHtml;
   }
 }
 

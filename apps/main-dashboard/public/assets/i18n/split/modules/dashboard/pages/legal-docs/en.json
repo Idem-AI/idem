@@ -96,8 +96,8 @@
       "actions": {
         "continue": "Continue",
         "generate": "Generate {{count}} document(s)",
-        "preview": "Preview",
-        "download": "Download PDF"
+        "download": "Download PDF",
+        "open": "Open"
       },
       "generating": {
         "title": "Drafting in progress",
@@ -119,6 +119,17 @@
         "generation": "Generation failed. Your details are kept, try again.",
         "download": "The PDF could not be downloaded. Try again.",
         "delete": "The document could not be deleted. Try again."
+      },
+      "show": {
+        "backToList": "Back to legal space",
+        "notFound": {
+          "title": "Document not found",
+          "subtitle": "It may have been deleted. Find your documents in the legal space."
+        },
+        "error": {
+          "title": "Could not load the document",
+          "subtitle": "Check your connection, then try again."
+        }
       }
     }
   }

@@ -30,6 +30,10 @@ export const EDIT_FORMAT_RULES = {
 - Safety margin: keep at least 4mm free of text/logo on every edge.
 - Print type scale: name 11-14pt, job title 7-9pt, contact lines 7-8pt, never below 6pt.
 - TEMPLATE, NOT A FINISHED CARD: personal data stays as markers {{fullName}}, {{jobTitle}}, {{email}}, {{phone}}, {{mobile}}, {{website}}, {{address}}, {{linkedin}}. NEVER replace a marker with a real value, never invent new markers, and keep each optional marker inside an element carrying the matching data-field="<marker>" attribute (those blocks are removed when the person leaves the field empty, so the layout must survive without them).`,
+  legalDocs: `- Outermost container: w-[210mm] min-h-[297mm] relative p-[16mm] (A4 width; the page GROWS with content across several A4 pages). Do NOT use a fixed h-[...] nor overflow-hidden, and NEVER truncate clauses.
+- Black text on white background, no decorative graphics, no charts, no emojis.
+- Keep the formal legal register, the article numbering ("Article N — TITLE") and the italic review disclaimer at the top.
+- Unknown facts stay as "[À COMPLÉTER : ...]" placeholders: never invent names, amounts or dates.`,
 } as const;
 
 /** Contraintes garantissant que la sortie reste éditable dans l'éditeur WYSIWYG. */
