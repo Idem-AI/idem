@@ -1,8 +1,8 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import {
+  APP_INITIALIZER,
   ApplicationConfig,
   inject,
-  provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
@@ -37,11 +37,16 @@ export const appConfig: ApplicationConfig = {
       lang: environment.defaultLanguage,
     }),
     { provide: TitleStrategy, useClass: TranslatedTitleStrategy },
-    provideAppInitializer(() => {
-      inject(LanguageService).init();
-      // Instantiating the theme eagerly keeps `data-theme` authoritative from
-      // the first navigation, not from the first component that injects it.
-      inject(ThemeService);
-    }),
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => {
+        const language = inject(LanguageService);
+        const theme = inject(ThemeService);
+        return () => {
+          language.init();
+        };
+      },
+      multi: true,
+    },
   ],
 };

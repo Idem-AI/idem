@@ -126,6 +126,12 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
     onStart(finalPrompt);
   };
 
+  /** Entrée dans l'atelier sans demande, depuis le menu du profil. */
+  const openChat = () => {
+    initDraft();
+    onStart();
+  };
+
   // Aucun fond ici ni sur les sections : la couleur est portée par <html> et
   // le motif de marque par `body::before` (@idem/shared-styles). Repeindre le
   // conteneur les masquait partout sauf dans le hero.
@@ -146,7 +152,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
             <LanguageToggle className="hidden sm:flex" />
             <ThemeToggle />
             {currentUser ? (
-              <UserProfile user={currentUser} />
+              <UserProfile user={currentUser} onOpenChat={openChat} />
             ) : (
               <Button
                 variant="secondary"
@@ -167,8 +173,8 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
           pages générées à la chaîne. Le motif de marque du body suffit à porter le
           fond. */}
       <section className="min-h-screen flex flex-col justify-center px-6 pt-28 pb-24">
-        <div className="w-full max-w-[46rem] mx-auto text-center">
-          <h1 className="text-[clamp(2.5rem,7vw,4.5rem)] font-semibold leading-[1.02] text-balance">
+        <div className="w-full max-w-[56rem] mx-auto text-center">
+          <h1 className="text-[clamp(2.5rem,7vw,4.5rem)] font-black leading-[1.02] text-balance">
             {t('landing.hero.titleLead')}{' '}
             <span className="i-underline">{t('landing.hero.titleAccent')}</span>
           </h1>
