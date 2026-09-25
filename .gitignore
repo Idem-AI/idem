@@ -121,3 +121,6 @@ docs/business-plan
 
 # Sorties des harnais de contrôle (PDF rendus, pages rasterisées)
 apps/api/tmp/
+
+# Local scratch space: dev helper scripts, captures, throwaway output.
+scratch/
