@@ -1,8 +1,8 @@
-import { Response, NextFunction, CookieOptions } from 'express';
+import { Response, NextFunction } from 'express';
 import admin from 'firebase-admin';
 import { CustomRequest } from '../interfaces/express.interface';
 import logger from '../config/logger';
-import { refreshTokenService } from './refreshToken.service';
+import { restoreSessionFromRefreshToken } from './sessionCookie.service';
 import { setTraceUserId } from '../utils/trace.util';
 
 /**
@@ -36,52 +36,29 @@ export async function authenticate(
         details: error,
       });
 
-      // Tenter de rafraîchir automatiquement le token si un refresh token est disponible
-      const refreshToken = req.cookies.refreshToken;
-      if (refreshToken) {
+      // Tenter de rafraîchir automatiquement la session si un refresh token est disponible
+      const newSessionCookie = await restoreSessionFromRefreshToken(req, res);
+      if (newSessionCookie) {
         try {
-          const validation = await refreshTokenService.validateRefreshToken(refreshToken);
-          if (validation.isValid && validation.userId) {
-            // Créer un nouveau session cookie
-            const customToken = await admin.auth().createCustomToken(validation.userId);
-            const expiresIn = 14 * 24 * 60 * 60 * 1000; // 14 jours
-            const isProduction = process.env.NODE_ENV === 'production';
-
-            const newSessionCookie = await admin
-              .auth()
-              .createSessionCookie(customToken, { expiresIn });
-
-            // Vérifier le nouveau cookie
-            const decodedToken = await admin.auth().verifySessionCookie(newSessionCookie, true);
-            req.user = decodedToken;
-            setTraceUserId(decodedToken.uid);
-
-            // Mettre à jour le cookie dans la réponse
-            const options: CookieOptions = {
-              maxAge: expiresIn,
-              httpOnly: true,
-              secure: isProduction,
-              sameSite: isProduction ? 'none' : 'lax',
-              path: '/',
-              ...(isProduction && { domain: '.idem.africa' }),
-            };
-            res.cookie('session', newSessionCookie, options);
-
-            logger.info(`Session cookie auto-refreshed for user: ${validation.userId}`);
-            return next();
-          }
+          const decodedToken = await admin.auth().verifySessionCookie(newSessionCookie, true);
+          req.user = decodedToken;
+          setTraceUserId(decodedToken.uid);
+          return next();
         } catch (refreshError: any) {
           logger.error(`Error during auto-refresh: ${refreshError.message}`);
         }
       }
 
-      // Si l'auto-refresh échoue, répondre avec une erreur
-      res.status(403).json({ message: 'Forbidden: Invalid or expired session cookie' });
-      return;
+      // Si l'auto-refresh échoue, un Bearer valide reste accepté : une session
+      // périmée ne doit pas bloquer une requête autrement authentifiée.
+      if (!authHeader?.startsWith('Bearer ')) {
+        res.status(403).json({ message: 'Forbidden: Invalid or expired session cookie' });
+        return;
+      }
     }
   }
 
-  // 2. Fallback to Bearer Token if no session cookie is present
+  // 2. Fallback to Bearer Token if no valid session cookie is present
   if (authHeader?.startsWith('Bearer ')) {
     const idToken = authHeader.split(' ')[1];
     try {

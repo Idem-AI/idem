@@ -437,10 +437,9 @@ export class SidebarDashboard implements OnInit {
           // n'y a rien à y naviguer.
           if (projects.length === 0) this.leaveProjectScope('/create-project');
         },
-        error: () => {
-          this.isLoading.set(false);
-          this.leaveProjectScope('/create-project');
-        },
+        // Un échec réseau ne dit pas que le compte est sans projet : on reste
+        // sur la page plutôt que d'envoyer vers la création.
+        error: () => this.isLoading.set(false),
       });
   }
 

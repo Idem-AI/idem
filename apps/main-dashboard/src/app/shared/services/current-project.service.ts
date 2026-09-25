@@ -58,22 +58,32 @@ export class CurrentProjectService {
    * Les appelants suivants reçoivent l'état déjà chargé : la barre du haut et
    * la barre latérale s'initialisent l'une après l'autre, et un second appel
    * réseau n'apprendrait rien.
+   *
+   * Seule une liste non vide est tenue pour acquise. Une liste vide chargée
+   * avant la création du premier projet, ou un appel en échec, restait sinon
+   * en cache toute la session : ouvrir ensuite un projet renvoyait vers la
+   * création, la barre latérale croyant le compte sans projet.
    */
   load(force = false): Observable<ProjectModel[]> {
-    if (this._isLoaded() && !force) return of(this._projects());
+    if (this._isLoaded() && this._projects().length > 0 && !force) {
+      return of(this._projects());
+    }
 
     return this.projectService.getProjects().pipe(
-      tap((projects) => {
-        this._projects.set(projects);
-        this._isLoaded.set(true);
-        this.reconcileSelection(projects);
-      }),
-      catchError(() => {
-        this._projects.set([]);
-        this._isLoaded.set(true);
-        return of([]);
-      }),
+      tap((projects) => this.replaceAll(projects)),
     );
+  }
+
+  /**
+   * Remplace la liste par une version fraîche venue d'ailleurs.
+   *
+   * La page « Mes projets » charge sa propre liste : la reverser ici évite que
+   * le projet cliqué soit inconnu de la barre latérale.
+   */
+  replaceAll(projects: ProjectModel[]): void {
+    this._projects.set(projects);
+    this._isLoaded.set(true);
+    this.reconcileSelection(projects);
   }
 
   /**

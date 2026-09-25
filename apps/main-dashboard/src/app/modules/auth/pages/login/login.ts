@@ -101,23 +101,10 @@ export class Login implements OnInit {
         return;
       }
 
-      // Check if we need to redirect to AppGen (webgen)
-      if (this.from === 'appgen' && this.returnUrl) {
-        console.log('AppGen redirect requested. returnUrl:', this.returnUrl);
-        const appgenUrl = environment.services.webgen.url;
-        const isDev = environment.environment === 'dev';
-        
-        // More permissive check for local development to avoid blocking valid redirects
-        const isLocalhost = this.returnUrl.includes('localhost') || this.returnUrl.includes('127.0.0.1');
-        const isValidRedirect = this.returnUrl.startsWith(appgenUrl) || isLocalhost;
-        
-        if (isValidRedirect) {
-          console.log('Redirecting back to AppGen:', this.returnUrl);
-          window.location.href = this.returnUrl;
-          return;
-        } else {
-          console.warn('Blocked redirect to untrusted returnUrl:', this.returnUrl);
-        }
+      // AppGen : même principe, la session voyage par le cookie partagé.
+      if (this.from === 'appgen') {
+        redirectToApp('appgen', this.returnUrl);
+        return;
       }
 
       // Check if we need to redirect to a local returnUrl

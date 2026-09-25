@@ -1,8 +1,19 @@
 import { Request, Response } from 'express';
 import logger from '../config/logger';
+import admin from 'firebase-admin';
 import { userService } from '../services/user.service';
+import { restoreSessionFromRefreshToken } from '../services/sessionCookie.service';
 import { CustomRequest } from '../interfaces/express.interface';
 import { OnboardingProfile, OnboardingUiMode } from '../models/userModel';
+
+async function isSessionValid(sessionCookie: string): Promise<boolean> {
+  try {
+    await admin.auth().verifySessionCookie(sessionCookie, true);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const UI_MODES: OnboardingUiMode[] = ['guided', 'chat', 'advanced'];
 const ANSWER_KEYS = ['stage', 'clarity', 'workStyle', 'comfort'] as const;
@@ -16,12 +27,19 @@ const ALLOWED_ANSWERS: Record<(typeof ANSWER_KEYS)[number], string[]> = {
 };
 
 export const profileController = async (req: Request, res: Response): Promise<void> => {
-  const sessionCookie = req.cookies.session;
+  let sessionCookie: string | undefined = req.cookies.session;
   let userIdForLogging = 'unknown';
 
   logger.info('Attempting to retrieve user profile.', {
     sessionCookieProvided: !!sessionCookie,
   });
+
+  // Les applications satellites (AppGen, iDeploy, simulateur) ne lisent que ce
+  // point d'entrée : une session expirée y est renouvelée depuis le refresh
+  // token, sans renvoyer l'utilisateur au login.
+  if (!sessionCookie || !(await isSessionValid(sessionCookie))) {
+    sessionCookie = (await restoreSessionFromRefreshToken(req, res)) ?? sessionCookie;
+  }
 
   if (!sessionCookie) {
     logger.warn('Profile retrieval failed: No session cookie provided.');

@@ -45,7 +45,68 @@ export class AuthService {
     // Start global logout synchronization check
     if (typeof window !== 'undefined') {
       setInterval(() => this.checkGlobalLogout(), 3000);
+
+      // Firebase restaure l'utilisateur sans limite de durée, alors que le
+      // cookie `session` lu par les autres applications expire au bout de 14
+      // jours : on le rétablit dès qu'une session Firebase est restaurée.
+      this.user$.subscribe((u) => {
+        if (u) void this.ensureServerSession();
+      });
     }
+  }
+
+  private serverSessionSync: Promise<boolean> | null = null;
+
+  /**
+   * Garantit que le cookie `session` httpOnly partagé (`.idem.africa`) est
+   * valide pour l'utilisateur Firebase courant. C'est lui, et non Firebase,
+   * qu'AppGen, iDeploy et le simulateur lisent via `/auth/profile`.
+   * Un seul contrôle en vol à la fois ; un échec autorise un nouvel essai.
+   */
+  ensureServerSession(): Promise<boolean> {
+    this.serverSessionSync ??= this.syncServerSession().then((ok) => {
+      if (!ok) this.serverSessionSync = null;
+      return ok;
+    });
+    return this.serverSessionSync;
+  }
+
+  private async syncServerSession(): Promise<boolean> {
+    try {
+      await firstValueFrom(
+        this.http.get(`${this.apiUrl}/profile`, { withCredentials: true }),
+      );
+      return true;
+    } catch {
+      // Cookie absent ou expiré : on le recrée à partir de la session Firebase.
+    }
+
+    const firebaseUser = this.auth.currentUser;
+    if (!firebaseUser) return false;
+
+    try {
+      const token = await this.tokenService.refreshToken(firebaseUser);
+      if (!token) return false;
+      await this.createServerSession(token, firebaseUser);
+      return true;
+    } catch (error) {
+      console.error('Impossible de rétablir la session partagée:', error);
+      return false;
+    }
+  }
+
+  private createServerSession(token: string, user: User): Promise<void> {
+    const { uid, email, displayName, photoURL } = user;
+    return firstValueFrom(
+      this.http.post<void>(
+        `${this.apiUrl}/sessionLogin`,
+        { token, user: { uid, email, displayName, photoURL } },
+        {
+          withCredentials: true,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    );
   }
 
   private checkGlobalLogout(): void {
@@ -155,16 +216,8 @@ export class AuthService {
     this.cookieService.set(this.SESSION_ACTIVE_COOKIE, '1', 30);
 
     try {
-      await firstValueFrom(
-        this.http.post<void>(
-          `${this.apiUrl}/sessionLogin`,
-          { token, user },
-          {
-            withCredentials: true,
-            headers: { 'Content-Type': 'application/json' },
-          },
-        ),
-      );
+      await this.createServerSession(token, user);
+      this.serverSessionSync = Promise.resolve(true);
     } catch (error) {
       console.error("Erreur lors de l'envoi du token au backend:", error);
     }
@@ -177,6 +230,7 @@ export class AuthService {
   }
 
   logout(): Observable<void> {
+    this.serverSessionSync = null;
     const promise = signOut(this.auth)
       .then(async () => {
         // Effacer le token dans TokenService
@@ -192,7 +246,12 @@ export class AuthService {
 
         // Try to notify backend, but don't block logout if it fails
         try {
-          await firstValueFrom(this.http.post<void>(`${this.apiUrl}/logout`, {}));
+          // withCredentials : sans lui, le navigateur n'envoie pas le cookie
+          // `session` partagé et ignore le Set-Cookie qui l'efface — les
+          // autres applications resteraient connectées.
+          await firstValueFrom(
+            this.http.post<void>(`${this.apiUrl}/logout`, {}, { withCredentials: true }),
+          );
         } catch (error) {
           console.warn('Backend logout failed, but local logout succeeded:', error);
         }
