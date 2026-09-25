@@ -237,7 +237,7 @@ import {
               {{ 'servers.detail.wildcardDomainHint' | translate: { ip: server()?.ip ?? '' } }}
             </p>
             <div class="flex gap-2">
-              <input class="input flex-1" id="wildcard-domain" formControlName="wildcardDomain" placeholder="apps.example.com" />
+              <input type="text" class="flex-1 !w-auto min-w-0" id="wildcard-domain" formControlName="wildcardDomain" placeholder="apps.example.com" />
               <button class="outer-button" type="submit" [disabled]="savingWildcard()">
                 {{ (savingWildcard() ? 'servers.detail.saving' : 'servers.detail.save') | translate }}
               </button>
@@ -271,8 +271,8 @@ import {
             </ul>
           }
           <form class="mt-3 flex gap-2" [formGroup]="destinationForm" (ngSubmit)="addDestination()">
-            <input
-              class="input flex-1"
+            <input type="text"
+              class="flex-1 !w-auto min-w-0"
               formControlName="network"
               [placeholder]="'servers.detail.networkPlaceholder' | translate"
             />
@@ -350,7 +350,7 @@ import {
         @if (crowdsec()?.running) {
           <form class="mb-4 flex flex-wrap items-center gap-2" [formGroup]="bouncerForm" (ngSubmit)="addBouncer()">
             <span class="text-sm" style="color:var(--color-text-secondary);">{{ 'servers.detail.bouncer' | translate }}</span>
-            <input class="input w-48" formControlName="name" [placeholder]="'servers.detail.bouncerNamePlaceholder' | translate" />
+            <input type="text" class="!w-48" formControlName="name" [placeholder]="'servers.detail.bouncerNamePlaceholder' | translate" />
             <button class="outer-button" type="submit" [disabled]="bouncerForm.invalid">
               {{ 'servers.detail.addBouncer' | translate }}
             </button>
@@ -391,8 +391,8 @@ import {
           </ul>
         }
         <form class="mt-3 flex flex-wrap gap-2" [formGroup]="certificateForm" (ngSubmit)="addCertificate()">
-          <input
-            class="input flex-1"
+          <input type="text"
+            class="flex-1 !w-auto min-w-0"
             formControlName="common_name"
             [placeholder]="'servers.detail.commonNamePlaceholder' | translate"
           />

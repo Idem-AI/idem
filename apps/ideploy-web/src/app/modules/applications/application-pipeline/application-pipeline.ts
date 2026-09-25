@@ -121,7 +121,7 @@ const POLL_INTERVAL_MS = 4_000;
           <form class="space-y-3 border-t pt-4" style="border-color:var(--color-surface-2);" [formGroup]="triggerForm" (ngSubmit)="saveTrigger(c)">
             <div>
               <label class="mb-1 block text-sm" for="trigger-mode">{{ 'pipeline.triggerMode' | translate }}</label>
-              <select class="input" id="trigger-mode" formControlName="trigger_mode">
+              <select  id="trigger-mode" formControlName="trigger_mode">
                 <option value="manual">{{ 'pipeline.trigger.manual' | translate }}</option>
                 <option value="on_push">{{ 'pipeline.trigger.onPush' | translate }}</option>
               </select>
@@ -132,8 +132,8 @@ const POLL_INTERVAL_MS = 4_000;
             @if (triggerForm.controls.trigger_mode.value === 'on_push') {
               <div>
                 <label class="mb-1 block text-sm" for="trigger-branches">{{ 'pipeline.triggerBranches' | translate }}</label>
-                <input
-                  class="input"
+                <input type="text"
+                  
                   id="trigger-branches"
                   formControlName="trigger_branches"
                   [placeholder]="'pipeline.branchesPlaceholder' | translate"

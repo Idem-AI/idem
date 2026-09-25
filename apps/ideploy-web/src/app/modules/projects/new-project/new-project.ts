@@ -55,8 +55,8 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
            [class.focus-within:border-blue-500/80]="true"
            [class.focus-within:ring-2]="true"
            [class.focus-within:ring-blue-500/20]="true">
-        <i class="pi pi-link text-blue-400"></i>
-        <input class="flex-1 bg-transparent outline-none text-sm" [placeholder]="'projects.new.gitUrlPlaceholder' | translate"
+        <i class="pi pi-link text-primary-400"></i>
+        <input type="text" class="flex-1 bg-transparent outline-none text-sm !w-auto min-w-0" [placeholder]="'projects.new.gitUrlPlaceholder' | translate"
                [attr.aria-label]="'projects.new.gitUrlLabel' | translate"
                [(ngModel)]="gitUrl" (keyup.enter)="importUrl()" style="color:var(--color-text-primary);" />
         @if (gitUrl) {
@@ -81,7 +81,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
                 @for (source of importSources; track source.id) {
                   <button
                     type="button"
-                    class="glass-card flex w-full items-center gap-3 rounded-xl p-4 text-sm font-semibold transition-colors hover:border-blue-500/50 cursor-pointer"
+                    class="glass-card flex w-full items-center gap-3 rounded-xl p-4 text-sm font-semibold transition-colors hover:border-[var(--color-primary-500)] cursor-pointer"
                     (click)="source.mode === 'github' || source.mode === 'gitlab' ? pickProvider(source.mode) : mode.set(source.mode)"
                   >
                     <i [class]="source.icon" class="w-5 text-center text-lg" [style.color]="source.iconColor"></i>
@@ -120,7 +120,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
                 </span>
                 <div class="relative flex-1">
                   <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px]" style="color:var(--color-text-tertiary);"></i>
-                  <input class="input font-mono text-xs" style="padding-left:30px;height:36px;" [placeholder]="'projects.new.searchReposPlaceholder' | translate" [attr.aria-label]="'projects.new.searchReposLabel' | translate" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" />
+                  <input type="text" class="font-mono text-xs" style="padding-left:30px;height:36px;" [placeholder]="'projects.new.searchReposPlaceholder' | translate" [attr.aria-label]="'projects.new.searchReposLabel' | translate" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" />
                 </div>
               </div>
               @if (filteredRepos().length === 0) {
@@ -129,7 +129,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
                 <div class="overflow-y-auto rounded-xl glass-card p-0" style="max-height: 400px;">
                   @for (repo of filteredRepos(); track repo.fullName) {
                     <div class="flex items-center gap-4 p-3.5 hover:bg-[var(--glass-bg-subtle)] transition-colors duration-150" style="border-bottom:1px solid var(--glass-border-subtle);">
-                      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
+                      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-primary-400">
                         <i class="pi pi-sitemap"></i>
                       </div>
                       <div class="min-w-0 flex-1">
@@ -155,12 +155,12 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
               <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'projects.new.composeHint' | translate }}</p>
               <div>
                 <label class="mb-1 block text-xs font-semibold">{{ 'projects.new.name' | translate }}</label>
-                <input class="input" formControlName="name" />
+                <input type="text"  formControlName="name" />
               </div>
               <app-workspace-target-picker (targetChange)="target.set($event)" />
               <div>
                 <label class="mb-1 block text-xs font-semibold">{{ 'projects.new.composeLabel' | translate }}</label>
-                <textarea class="input font-mono" rows="8" formControlName="compose" placeholder="services:
+                <textarea class="font-mono" rows="8" formControlName="compose" placeholder="services:
   app:
     image: myorg/myapp:latest"></textarea>
               </div>
@@ -177,12 +177,12 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
               <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'projects.new.imageHint' | translate }}</p>
               <div>
                 <label class="mb-1 block text-xs font-semibold">{{ 'projects.new.name' | translate }}</label>
-                <input class="input" formControlName="name" />
+                <input type="text"  formControlName="name" />
               </div>
               <app-workspace-target-picker (targetChange)="target.set($event)" />
               <div>
                 <label class="mb-1 block text-xs font-semibold">{{ 'projects.new.imageLabel' | translate }}</label>
-                <input class="input font-mono" formControlName="image" placeholder="nginx:latest" />
+                <input type="text" class="font-mono" formControlName="image" placeholder="nginx:latest" />
               </div>
               @if (error()) { <p class="text-sm text-red-400">{{ error() }}</p> }
               <button class="inner-button w-full" type="submit" [disabled]="imageForm.invalid || !target() || busy()">
@@ -195,7 +195,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
         <!-- ===== Clone Template ===== -->
         <div>
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-xl font-semibold font-mono text-white/95">{{ 'projects.new.cloneTemplate' | translate }}</h2>
+            <h2 class="text-xl font-semibold font-mono text-text-primary">{{ 'projects.new.cloneTemplate' | translate }}</h2>
             <a routerLink="/templates" class="text-sm font-semibold hover:underline" style="color:#60a5fa;">{{ 'projects.new.browseAll' | translate }}</a>
           </div>
 
@@ -222,9 +222,9 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               @for (a of architectureTemplates; track a.id) {
                 <a [routerLink]="['/new-project/guide', a.id]" [queryParams]="workspaceUuid ? { workspace: workspaceUuid } : {}"
-                   class="glass-card flex flex-col overflow-hidden hover:border-blue-500/50 transition-all duration-200 rounded-2xl group">
+                   class="glass-card flex flex-col overflow-hidden hover:border-[var(--color-primary-500)] transition-all duration-200 rounded-2xl group">
                   <div class="flex-1 p-5">
-                    <div class="mb-2 font-semibold font-mono text-white/90 group-hover:text-blue-400 transition-colors">{{ a.name | translate }}</div>
+                    <div class="mb-2 font-semibold font-mono text-text-primary group-hover:text-primary-400 transition-colors">{{ a.name | translate }}</div>
                     <p class="text-xs leading-relaxed" style="color:var(--color-text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ a.description | translate }}</p>
                   </div>
                   <!-- No real screenshot exists for an abstract multi-resource guide — an honest
@@ -241,9 +241,9 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
           } @else {
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               @for (t of templates(); track t.name) {
-                <div class="glass-card flex flex-col overflow-hidden hover:border-blue-500/50 transition-all duration-200 rounded-2xl group">
+                <div class="glass-card flex flex-col overflow-hidden hover:border-[var(--color-primary-500)] transition-all duration-200 rounded-2xl group">
                   <div class="flex-1 p-5">
-                    <div class="mb-2 font-semibold capitalize font-mono text-white/90 group-hover:text-blue-400 transition-colors">{{ t.name }}</div>
+                    <div class="mb-2 font-semibold capitalize font-mono text-text-primary group-hover:text-primary-400 transition-colors">{{ t.name }}</div>
                     <p class="text-xs leading-relaxed" style="color:var(--color-text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ t.slogan || ('projects.new.oneClickBoilerplate' | translate) }}</p>
                   </div>
                   <div class="relative flex h-24 items-center justify-center overflow-hidden" style="background:var(--color-surface-2);">
@@ -255,7 +255,7 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
                       <i [class]="getTemplateIcon(t.name)" class="text-3xl"></i>
                     }
                   </div>
-                  <button class="outer-button w-full cursor-pointer hover:bg-blue-500 hover:text-white transition-all text-xs font-semibold py-1.5 rounded-none border-0 border-t" style="border-color:var(--glass-border-subtle);" [disabled]="busy()" (click)="cloneTemplate(t)">{{ 'projects.common.deploy' | translate }}</button>
+                  <button class="outer-button w-full cursor-pointer hover:bg-blue-500 hover:text-text-primary transition-all text-xs font-semibold py-1.5 rounded-none border-0 border-t" style="border-color:var(--glass-border-subtle);" [disabled]="busy()" (click)="cloneTemplate(t)">{{ 'projects.common.deploy' | translate }}</button>
                 </div>
               }
             </div>
@@ -264,17 +264,17 @@ type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
       </div>
 
       <!-- Create Empty Project -->
-      <div class="mt-12 glass-card p-6 rounded-2xl flex flex-wrap items-center justify-between gap-4 hover:border-white/10 transition-all duration-200">
+      <div class="mt-12 glass-card p-6 rounded-2xl flex flex-wrap items-center justify-between gap-4 hover:border-[var(--glass-border)] transition-all duration-200">
         <div class="flex items-center gap-4">
-          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 text-white/70">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--glass-bg-subtle)] text-text-secondary">
             <i class="pi pi-box text-lg"></i>
           </div>
           <div>
-            <div class="font-semibold font-mono text-white/90">{{ 'projects.new.createEmpty' | translate }}</div>
+            <div class="font-semibold font-mono text-text-primary">{{ 'projects.new.createEmpty' | translate }}</div>
             <p class="text-xs mt-0.5" style="color:var(--color-text-secondary);">{{ 'projects.new.createEmptyDesc' | translate }}</p>
           </div>
         </div>
-        <button class="outer-button cursor-pointer text-xs font-semibold py-2 px-4 rounded-xl hover:bg-white/10 hover:text-white transition-all" (click)="createEmpty()">{{ 'projects.new.createEmpty' | translate }}</button>
+        <button class="outer-button cursor-pointer text-xs font-semibold py-2 px-4 rounded-xl hover:bg-[var(--glass-bg-light)] hover:text-text-primary transition-all" (click)="createEmpty()">{{ 'projects.new.createEmpty' | translate }}</button>
       </div>
 
       @if (error() && mode() !== 'compose' && mode() !== 'image') {
@@ -336,12 +336,12 @@ export class NewProjectComponent implements OnInit {
     const n = name.toLowerCase();
     if (n.includes('angular')) return 'pi pi-desktop text-red-500';
     if (n.includes('node')) return 'pi pi-code text-green-500';
-    if (n.includes('python')) return 'pi pi-code text-blue-400';
-    if (n.includes('docker')) return 'pi pi-box text-blue-400';
+    if (n.includes('python')) return 'pi pi-code text-primary-400';
+    if (n.includes('docker')) return 'pi pi-box text-primary-400';
     if (n.includes('next') || n.includes('react')) return 'pi pi-desktop text-sky-400';
     if (n.includes('static')) return 'pi pi-file text-amber-500';
     if (n.includes('vite')) return 'pi pi-bolt text-yellow-400';
-    return 'pi pi-box text-blue-400';
+    return 'pi pi-box text-primary-400';
   }
 
   /** A real UI screenshot — only present for the curated subset of templates (see `template-enrichment.json`). */

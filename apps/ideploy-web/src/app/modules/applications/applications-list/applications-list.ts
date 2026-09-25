@@ -8,10 +8,11 @@ import {
   WorkspaceTarget,
   WorkspaceTargetPickerComponent,
 } from '../../../shared/components/workspace-target-picker/workspace-target-picker';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
 
 @Component({
   selector: 'app-applications-list',
-  imports: [RouterLink, ReactiveFormsModule, TranslateModule, WorkspaceTargetPickerComponent],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, WorkspaceTargetPickerComponent, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6 flex items-center justify-between">
@@ -23,15 +24,15 @@ import {
       <form class="glass-card p-4 mb-6 max-w-2xl space-y-3" [formGroup]="form" (ngSubmit)="create()">
         <div>
           <label class="mb-1 block text-sm">{{ 'applications.list.name' | translate }}</label>
-          <input class="input" formControlName="name" />
+          <input type="text"  formControlName="name" />
         </div>
         <div>
           <label class="mb-1 block text-sm">{{ 'applications.list.gitRepositoryUrl' | translate }}</label>
-          <input class="input" formControlName="git_repository" placeholder="https://github.com/org/repo" />
+          <input type="text"  formControlName="git_repository" placeholder="https://github.com/org/repo" />
         </div>
         <div>
           <label class="mb-1 block text-sm">{{ 'applications.branch' | translate }}</label>
-          <input class="input" formControlName="git_branch" />
+          <input type="text"  formControlName="git_branch" />
         </div>
 
         <app-workspace-target-picker (targetChange)="target.set($event)" />
@@ -48,7 +49,7 @@ import {
     @if (loading()) {
       <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'applications.loading' | translate }}</p>
     } @else if (applications().length === 0) {
-      <div class="glass-card p-4">{{ 'applications.list.empty' | translate }}</div>
+      <div class="glass-card"><app-empty-state kind="box" [title]="'applications.list.empty' | translate" /></div>
     } @else {
       <div class="space-y-3">
         @for (app of applications(); track app.uuid) {

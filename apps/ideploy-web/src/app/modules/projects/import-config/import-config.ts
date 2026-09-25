@@ -34,7 +34,7 @@ interface Preset {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
-      <a routerLink="/new-project" class="flex items-center gap-2 text-sm transition-colors hover:text-white" style="color:var(--color-text-secondary);">
+      <a routerLink="/new-project" class="flex items-center gap-2 text-sm transition-colors hover:text-text-primary" style="color:var(--color-text-secondary);">
         <i class="pi pi-arrow-left"></i> {{ 'projects.common.back' | translate }}
       </a>
       <span class="text-sm font-semibold font-mono">{{ 'projects.common.newProject' | translate }}</span>
@@ -43,12 +43,12 @@ interface Preset {
 
     <div class="mx-auto max-w-2xl px-6 py-12">
       <div class="glass-card">
-        <h1 class="mb-4 text-2xl font-bold font-mono text-white/95">{{ 'projects.common.newProject' | translate }}</h1>
+        <h1 class="mb-4 text-2xl font-bold font-mono text-text-primary">{{ 'projects.common.newProject' | translate }}</h1>
 
         <!-- Imported source -->
         <div class="mb-6 rounded-xl p-4 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
           <div class="text-xs font-semibold uppercase" style="color:var(--color-text-tertiary);">{{ 'projects.import.importingFromGit' | translate }}</div>
-          <div class="mt-2 flex items-center gap-2 text-sm font-semibold text-white/90">
+          <div class="mt-2 flex items-center gap-2 text-sm font-semibold text-text-primary">
             <i class="pi pi-github text-lg"></i> {{ repo() }}
             <span class="font-mono text-xs px-2 py-0.5 rounded" style="background:var(--color-surface-2);color:var(--color-text-secondary);"><i class="pi pi-sitemap mr-1"></i>{{ branch() }}</span>
           </div>
@@ -58,12 +58,12 @@ interface Preset {
 
         <div class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label class="mb-1 block text-sm font-semibold text-white/80" for="teamName">{{ 'projects.import.team' | translate }}</label>
-            <input id="teamName" name="teamName" class="input bg-opacity-50 cursor-not-allowed" [value]="teamName()" disabled />
+            <label class="mb-1 block text-sm font-semibold text-text-primary" for="teamName">{{ 'projects.import.team' | translate }}</label>
+            <input type="text" id="teamName" name="teamName" class="bg-opacity-50 cursor-not-allowed" [value]="teamName()" disabled />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-semibold text-white/80" for="projectName">{{ 'projects.import.applicationName' | translate }}</label>
-            <input id="projectName" name="projectName" class="input" [(ngModel)]="projectName" autocomplete="off" />
+            <label class="mb-1 block text-sm font-semibold text-text-primary" for="projectName">{{ 'projects.import.applicationName' | translate }}</label>
+            <input type="text" id="projectName" name="projectName"  [(ngModel)]="projectName" autocomplete="off" />
           </div>
         </div>
 
@@ -78,7 +78,7 @@ interface Preset {
         </div>
 
         <div class="mb-4">
-          <label class="mb-1 block text-sm font-semibold text-white/80" for="appPreset">{{ 'projects.import.appPreset' | translate }}</label>
+          <label class="mb-1 block text-sm font-semibold text-text-primary" for="appPreset">{{ 'projects.import.appPreset' | translate }}</label>
 
           <!--
             "Detected configuration" summary — what ecosystem-detection.service.ts
@@ -99,7 +99,7 @@ interface Preset {
                 <i [class]="presets[presetIndex()].icon" class="text-base" style="color:var(--color-text-secondary);"></i>
               </div>
               <div class="min-w-0 flex-1">
-                <div class="text-sm font-semibold text-white/90">{{ presets[presetIndex()].label }}</div>
+                <div class="text-sm font-semibold text-text-primary">{{ presets[presetIndex()].label }}</div>
                 <div class="text-xs" style="color:var(--color-text-tertiary);">{{ ecosystemLabel() }}</div>
               </div>
               <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold" style="background:rgba(34,197,94,0.15);color:#4ade80;">
@@ -108,7 +108,7 @@ interface Preset {
             </div>
           }
 
-          <select id="appPreset" name="appPreset" class="input cursor-pointer" [ngModel]="presetIndex()" (ngModelChange)="presetIndex.set(+$event)">
+          <select id="appPreset" name="appPreset" class="cursor-pointer" [ngModel]="presetIndex()" (ngModelChange)="presetIndex.set(+$event)">
             @for (p of presets; track p.label; let i = $index) {
               <option [value]="i">{{ p.label }}</option>
             }
@@ -118,14 +118,14 @@ interface Preset {
 
         <!-- Build method -->
         <div class="mb-4">
-          <span class="mb-1.5 block text-sm font-semibold text-white/80">{{ 'projects.import.buildMethod' | translate }}</span>
+          <span class="mb-1.5 block text-sm font-semibold text-text-primary">{{ 'projects.import.buildMethod' | translate }}</span>
           @if (hasDockerfile()) {
             <div class="space-y-2 rounded-xl p-3 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
-              <label class="flex items-center gap-2 text-sm cursor-pointer text-white/80 hover:text-white">
+              <label class="flex items-center gap-2 text-sm cursor-pointer text-text-primary hover:text-text-primary">
                 <input type="radio" name="buildMethod" class="cursor-pointer" [checked]="buildMethod() === 'docker'" (change)="buildMethod.set('docker')" />
-                <span><i class="pi pi-box mr-1 text-blue-400"></i> {{ 'projects.import.useDocker' | translate }}</span>
+                <span><i class="pi pi-box mr-1 text-primary-400"></i> {{ 'projects.import.useDocker' | translate }}</span>
               </label>
-              <label class="flex items-center gap-2 text-sm cursor-pointer text-white/80 hover:text-white">
+              <label class="flex items-center gap-2 text-sm cursor-pointer text-text-primary hover:text-text-primary">
                 <input type="radio" name="buildMethod" class="cursor-pointer" [checked]="buildMethod() === 'buildless'" (change)="buildMethod.set('buildless')" />
                 <span><i class="pi pi-code mr-1 text-green-400"></i> {{ 'projects.import.withoutDocker' | translate }}</span>
               </label>
@@ -166,8 +166,8 @@ interface Preset {
         }
 
         <div class="mb-5">
-          <label class="mb-1 block text-sm font-semibold text-white/80" for="rootDir">{{ 'projects.import.rootDirectory' | translate }}</label>
-          <input id="rootDir" name="rootDir" class="input font-mono" [ngModel]="rootDir" (ngModelChange)="onRootDirEdit($event)" placeholder="./" autocomplete="off" />
+          <label class="mb-1 block text-sm font-semibold text-text-primary" for="rootDir">{{ 'projects.import.rootDirectory' | translate }}</label>
+          <input type="text" id="rootDir" name="rootDir" class="font-mono" [ngModel]="rootDir" (ngModelChange)="onRootDirEdit($event)" placeholder="./" autocomplete="off" />
           @if (rootDirAutoDetected()) {
             <p class="mt-1 text-xs" style="color:#4ade80;"><i class="pi pi-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
           } @else {
@@ -198,23 +198,23 @@ interface Preset {
         </div>
 
         <!-- Collapsibles -->
-        <button class="mb-3 flex w-full items-center gap-2 rounded-lg p-3 text-left text-sm font-semibold cursor-pointer hover:bg-white/[0.02] transition-colors"
+        <button class="mb-3 flex w-full items-center gap-2 rounded-lg p-3 text-left text-sm font-semibold cursor-pointer hover:bg-[var(--glass-bg-subtle)] transition-colors"
                 style="border:1px solid var(--color-surface-2);" (click)="showBuild.set(!showBuild())">
           <i class="pi" [class.pi-chevron-right]="!showBuild()" [class.pi-chevron-down]="showBuild()"></i>
           {{ 'projects.import.buildOutputSettings' | translate }}
         </button>
         @if (showBuild()) {
           <div class="mb-3 space-y-3 px-1">
-            <input class="input font-mono" [(ngModel)]="installCommand" [placeholder]="'projects.import.installCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.installCommandLabel' | translate" autocomplete="off" />
-            <input class="input font-mono" [(ngModel)]="buildCommand" [placeholder]="'projects.import.buildCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.buildCommandLabel' | translate" autocomplete="off" />
+            <input type="text" class="font-mono" [(ngModel)]="installCommand" [placeholder]="'projects.import.installCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.installCommandLabel' | translate" autocomplete="off" />
+            <input type="text" class="font-mono" [(ngModel)]="buildCommand" [placeholder]="'projects.import.buildCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.buildCommandLabel' | translate" autocomplete="off" />
             <div>
-              <input class="input font-mono" [ngModel]="startCommand" (ngModelChange)="onStartCommandEdit($event)" [placeholder]="'projects.import.startCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.startCommandLabel' | translate" autocomplete="off" />
+              <input type="text" class="font-mono" [ngModel]="startCommand" (ngModelChange)="onStartCommandEdit($event)" [placeholder]="'projects.import.startCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.startCommandLabel' | translate" autocomplete="off" />
               @if (startCommandAutoDetected()) {
                 <p class="mt-1 text-xs" style="color:#4ade80;"><i class="pi pi-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
               }
             </div>
             <div>
-              <input class="input font-mono" [ngModel]="portsExposes" (ngModelChange)="onPortEdit($event)" [placeholder]="'projects.import.portPlaceholder' | translate" [attr.aria-label]="'projects.import.portLabel' | translate" autocomplete="off" />
+              <input type="text" class="font-mono" [ngModel]="portsExposes" (ngModelChange)="onPortEdit($event)" [placeholder]="'projects.import.portPlaceholder' | translate" [attr.aria-label]="'projects.import.portLabel' | translate" autocomplete="off" />
               @if (portAutoDetected()) {
                 <p class="mt-1 text-xs" style="color:#4ade80;"><i class="pi pi-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
               }
@@ -231,7 +231,7 @@ interface Preset {
           detect() subscription for why pre-filling from that file discloses
           nothing the repository doesn't already show.
         -->
-        <button class="mb-3 flex w-full items-center justify-between gap-2 rounded-lg p-3 text-left text-sm font-semibold cursor-pointer hover:bg-white/[0.02] transition-colors"
+        <button class="mb-3 flex w-full items-center justify-between gap-2 rounded-lg p-3 text-left text-sm font-semibold cursor-pointer hover:bg-[var(--glass-bg-subtle)] transition-colors"
                 style="border:1px solid var(--color-surface-2);" (click)="showEnv.set(!showEnv())">
           <span class="flex items-center gap-2">
             <i class="pi" [class.pi-chevron-right]="!showEnv()" [class.pi-chevron-down]="showEnv()"></i>
@@ -253,8 +253,8 @@ interface Preset {
               <div class="mb-3 space-y-2">
                 @for (row of envRows(); track $index; let i = $index) {
                   <div class="flex items-center gap-2">
-                    <input
-                      class="input font-mono flex-1"
+                    <input type="text"
+                      class="font-mono flex-1 !w-auto min-w-0"
                       style="min-width:0;"
                       [value]="row.key"
                       (input)="updateEnvKey(i, $any($event.target).value)"
@@ -263,8 +263,8 @@ interface Preset {
                       autocomplete="off"
                     />
                     <div class="relative flex-1" style="min-width:0;">
-                      <input
-                        class="input font-mono w-full pr-9"
+                      <input type="text"
+                        class="font-mono !w-full pr-9"
                         [attr.type]="row.reveal ? 'text' : 'password'"
                         [value]="row.value"
                         (input)="updateEnvValue(i, $any($event.target).value)"
@@ -340,12 +340,12 @@ interface Preset {
 
     @if (showDockerModal()) {
       <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div class="glass-card max-w-md w-full p-6 rounded-2xl shadow-2xl border border-white/10" style="background-color: #0b0f19;">
+        <div class="glass-card max-w-md w-full p-6 rounded-2xl shadow-2xl border border-[var(--glass-border)]" style="background-color: #0b0f19;">
           <div class="flex items-center gap-3 mb-4">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-primary-400">
               <i class="pi pi-box text-lg"></i>
             </div>
-            <h2 class="text-xl font-bold font-mono text-white/95">{{ 'projects.import.dockerDetectedTitle' | translate }}</h2>
+            <h2 class="text-xl font-bold font-mono text-text-primary">{{ 'projects.import.dockerDetectedTitle' | translate }}</h2>
           </div>
 
           <p class="text-sm mb-6" style="color:var(--color-text-secondary);">
@@ -353,18 +353,18 @@ interface Preset {
           </p>
 
           <div class="space-y-3 mb-6">
-            <label class="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] cursor-pointer transition-colors group">
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-subtle)] cursor-pointer transition-colors group">
               <input type="radio" name="modalBuildMethod" [checked]="modalBuildMethod() === 'docker'" (change)="modalBuildMethod.set('docker')" class="cursor-pointer" />
               <div>
-                <div class="text-sm font-semibold text-white/90 group-hover:text-blue-400 transition-colors">{{ 'projects.import.deployWithDocker' | translate }}</div>
-                <div class="text-xs text-white/40 mt-0.5">{{ 'projects.import.deployWithDockerDesc' | translate }}</div>
+                <div class="text-sm font-semibold text-text-primary group-hover:text-primary-400 transition-colors">{{ 'projects.import.deployWithDocker' | translate }}</div>
+                <div class="text-xs text-text-tertiary mt-0.5">{{ 'projects.import.deployWithDockerDesc' | translate }}</div>
               </div>
             </label>
-            <label class="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] cursor-pointer transition-colors group">
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-subtle)] cursor-pointer transition-colors group">
               <input type="radio" name="modalBuildMethod" [checked]="modalBuildMethod() === 'buildless'" (change)="modalBuildMethod.set('buildless')" class="cursor-pointer" />
               <div>
-                <div class="text-sm font-semibold text-white/90 group-hover:text-blue-400 transition-colors">{{ 'projects.import.deployWithoutDocker' | translate }}</div>
-                <div class="text-xs text-white/40 mt-0.5">{{ 'projects.import.deployWithoutDockerDesc' | translate }}</div>
+                <div class="text-sm font-semibold text-text-primary group-hover:text-primary-400 transition-colors">{{ 'projects.import.deployWithoutDocker' | translate }}</div>
+                <div class="text-xs text-text-tertiary mt-0.5">{{ 'projects.import.deployWithoutDockerDesc' | translate }}</div>
               </div>
             </label>
           </div>

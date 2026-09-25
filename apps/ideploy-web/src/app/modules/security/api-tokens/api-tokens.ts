@@ -109,11 +109,11 @@ const PROVIDERS = ['hetzner', 'digitalocean', 'aws', 'scaleway'] as const;
           <h2 class="text-sm font-semibold">{{ 'security.tokens.newToken' | translate }}</h2>
           <div>
             <label class="mb-1 block text-sm" for="token-name">{{ 'security.tokens.name' | translate }}</label>
-            <input class="input" id="token-name" formControlName="name" [placeholder]="'security.tokens.namePlaceholder' | translate" />
+            <input type="text"  id="token-name" formControlName="name" [placeholder]="'security.tokens.namePlaceholder' | translate" />
           </div>
           <div>
             <label class="mb-1 block text-sm" for="token-abilities">{{ 'security.tokens.abilities' | translate }}</label>
-            <select class="input" id="token-abilities" formControlName="ability">
+            <select  id="token-abilities" formControlName="ability">
               <option value="*">{{ 'security.tokens.ability.all' | translate }}</option>
               <option value="read">{{ 'security.tokens.ability.read' | translate }}</option>
               <option value="write">{{ 'security.tokens.ability.write' | translate }}</option>
@@ -122,7 +122,7 @@ const PROVIDERS = ['hetzner', 'digitalocean', 'aws', 'scaleway'] as const;
           </div>
           <div>
             <label class="mb-1 block text-sm" for="token-expiry">{{ 'security.tokens.expiryDays' | translate }}</label>
-            <input class="input" id="token-expiry" type="number" min="1" max="3650" formControlName="expiresInDays" />
+            <input  id="token-expiry" type="number" min="1" max="3650" formControlName="expiresInDays" />
             <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">
               {{ 'security.tokens.expiryHint' | translate }}
             </p>
@@ -136,7 +136,7 @@ const PROVIDERS = ['hetzner', 'digitalocean', 'aws', 'scaleway'] as const;
           <h2 class="text-sm font-semibold">{{ 'security.tokens.newCloudToken' | translate }}</h2>
           <div>
             <label class="mb-1 block text-sm" for="cloud-provider">{{ 'security.tokens.provider' | translate }}</label>
-            <select class="input" id="cloud-provider" formControlName="provider">
+            <select  id="cloud-provider" formControlName="provider">
               @for (p of providers; track p) {
                 <option [value]="p">{{ p }}</option>
               }
@@ -144,11 +144,11 @@ const PROVIDERS = ['hetzner', 'digitalocean', 'aws', 'scaleway'] as const;
           </div>
           <div>
             <label class="mb-1 block text-sm" for="cloud-name">{{ 'security.tokens.name' | translate }}</label>
-            <input class="input" id="cloud-name" formControlName="name" />
+            <input type="text"  id="cloud-name" formControlName="name" />
           </div>
           <div>
             <label class="mb-1 block text-sm" for="cloud-token">{{ 'security.tokens.tokenValue' | translate }}</label>
-            <input class="input font-mono" id="cloud-token" type="password" autocomplete="off" formControlName="token" />
+            <input class="font-mono" id="cloud-token" type="password" autocomplete="off" formControlName="token" />
             <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">
               {{ 'security.tokens.cloudTokenHint' | translate }}
             </p>

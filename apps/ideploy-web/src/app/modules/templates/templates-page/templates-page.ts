@@ -24,13 +24,13 @@ import { serviceLogoUrl } from '../../../shared/utils/service-logo.util';
     </div>
 
     <div class="mb-6 flex flex-col gap-2 sm:flex-row">
-      <input
-        class="input flex-1"
+      <input type="text"
+        class="flex-1 !w-auto min-w-0"
         [placeholder]="'templates.searchPlaceholder' | translate"
         [ngModel]="query()"
         (ngModelChange)="query.set($event)"
       />
-      <select class="input sm:w-56" [ngModel]="category()" (ngModelChange)="category.set($event)">
+      <select class="sm:w-56" [ngModel]="category()" (ngModelChange)="category.set($event)">
         <option value="">{{ 'templates.allCategories' | translate }}</option>
         @for (c of categories(); track c) {
           <option [value]="c">{{ c }}</option>

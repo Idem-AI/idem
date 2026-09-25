@@ -21,8 +21,8 @@ import { ApiService } from '../../../shared/services/api.service';
         </div>
       }
       <form class="mt-3 flex gap-2" [formGroup]="form" (ngSubmit)="add()">
-        <input class="input flex-1" [placeholder]="'sharedVariables.keyPlaceholder' | translate" formControlName="key" />
-        <input class="input flex-1" [placeholder]="'sharedVariables.valuePlaceholder' | translate" formControlName="value" />
+        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'sharedVariables.keyPlaceholder' | translate" formControlName="key" />
+        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'sharedVariables.valuePlaceholder' | translate" formControlName="value" />
         <button class="inner-button" type="submit" [disabled]="form.invalid || teamId() === null">{{ 'sharedVariables.add' | translate }}</button>
       </form>
     </div>

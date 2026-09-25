@@ -65,7 +65,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
           <h2 class="mb-3 text-sm font-semibold">{{ 'provision.provider' | translate }}</h2>
           <div class="mb-3">
             <label class="mb-1 block text-sm" for="p-token">{{ 'provision.token' | translate }}</label>
-            <select class="input" id="p-token" formControlName="token_id">
+            <select  id="p-token" formControlName="token_id">
               <option [value]="0">{{ 'provision.chooseToken' | translate }}</option>
               @for (t of tokens(); track t.id) {
                 <option [value]="t.id">{{ t.name || t.provider }} ({{ t.provider }})</option>
@@ -79,7 +79,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
 
           <div class="mb-3">
             <label class="mb-1 block text-sm" for="p-location">{{ 'provision.location' | translate }}</label>
-            <select class="input" id="p-location" formControlName="location" [disabled]="locations().length === 0">
+            <select  id="p-location" formControlName="location" [disabled]="locations().length === 0">
               @for (l of locations(); track l.id) {
                 <option [value]="l.name">{{ l.city }}, {{ l.country }} ({{ l.name }})</option>
               }
@@ -88,7 +88,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
 
           <div>
             <label class="mb-1 block text-sm" for="p-image">{{ 'provision.image' | translate }}</label>
-            <select class="input" id="p-image" formControlName="image">
+            <select  id="p-image" formControlName="image">
               @for (img of images; track img) {
                 <option [value]="img">{{ img }}</option>
               }
@@ -100,12 +100,12 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
           <h2 class="mb-3 text-sm font-semibold">{{ 'provision.machine' | translate }}</h2>
           <div class="mb-3">
             <label class="mb-1 block text-sm" for="p-name">{{ 'provision.name' | translate }}</label>
-            <input class="input" id="p-name" formControlName="name" [placeholder]="'provision.namePlaceholder' | translate" />
+            <input type="text"  id="p-name" formControlName="name" [placeholder]="'provision.namePlaceholder' | translate" />
           </div>
 
           <div class="mb-3">
             <label class="mb-1 block text-sm" for="p-type">{{ 'provision.serverType' | translate }}</label>
-            <select class="input" id="p-type" formControlName="server_type" [disabled]="serverTypes().length === 0">
+            <select  id="p-type" formControlName="server_type" [disabled]="serverTypes().length === 0">
               @for (t of serverTypes(); track t.id) {
                 <option [value]="t.name">
                   {{ t.name }} — {{ t.cores }} vCPU · {{ t.memory }} GB · {{ t.disk }} GB
@@ -119,7 +119,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
 
           <div>
             <label class="mb-1 block text-sm" for="p-init">{{ 'provision.initScript' | translate }}</label>
-            <select class="input" id="p-init" formControlName="init_script_id">
+            <select  id="p-init" formControlName="init_script_id">
               <option [value]="0">{{ 'provision.noInitScript' | translate }}</option>
               @for (s of initScripts(); track s.id) {
                 <option [value]="s.id">{{ s.name }}</option>

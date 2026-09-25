@@ -144,7 +144,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
         </div>
 
         <!-- Deployment settings — collapsed by default, badge is the real onboarding-checklist gap count. -->
-        <button type="button" class="flex w-full items-center gap-2 px-5 py-3 text-sm transition-colors hover:bg-white/5" style="border-top:1px solid var(--color-surface-2);" (click)="settingsOpen.set(!settingsOpen())">
+        <button type="button" class="flex w-full items-center gap-2 px-5 py-3 text-sm transition-colors hover:bg-[var(--glass-bg-subtle)]" style="border-top:1px solid var(--color-surface-2);" (click)="settingsOpen.set(!settingsOpen())">
           <i class="pi text-[10px] transition-transform" [class.pi-chevron-right]="!settingsOpen()" [class.pi-chevron-down]="settingsOpen()" aria-hidden="true"></i>
           <span class="font-semibold">{{ 'applications.detail.deploymentSettings' | translate }}</span>
           @if (checklistItems().length - checklistDone(); as remaining) {
@@ -252,7 +252,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
         } @else {
           <div class="space-y-2">
             @for (dep of deployments().slice(0, 5); track dep.deployment_uuid) {
-              <a class="flex items-center gap-3 rounded-lg p-2 text-sm transition-colors hover:bg-white/5" [routerLink]="['/deployments', dep.deployment_uuid]">
+              <a class="flex items-center gap-3 rounded-lg p-2 text-sm transition-colors hover:bg-[var(--glass-bg-subtle)]" [routerLink]="['/deployments', dep.deployment_uuid]">
                 <span class="rounded-full px-2 py-0.5 text-xs font-medium" [style.background]="statusBackground(dep.status)" [style.color]="statusColor(dep.status)">{{ dep.status }}</span>
                 <code class="font-mono text-xs">{{ shortCommit(dep.commit) }}</code>
                 <span class="ml-auto text-xs" style="color:var(--color-text-secondary);">{{ dep.created_at | date: 'short' }}</span>
@@ -269,19 +269,19 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="mb-1 block text-sm">{{ 'applications.detail.gitRepository' | translate }}</label>
-              <input class="input" formControlName="git_repository" />
+              <input type="text"  formControlName="git_repository" />
             </div>
             <div>
               <label class="mb-1 block text-sm">{{ 'applications.branch' | translate }}</label>
-              <input class="input" formControlName="git_branch" />
+              <input type="text"  formControlName="git_branch" />
             </div>
             <div>
               <label class="mb-1 block text-sm">{{ 'applications.detail.buildPack' | translate }}</label>
-              <input class="input" formControlName="build_pack" />
+              <input type="text"  formControlName="build_pack" />
             </div>
             <div>
               <label class="mb-1 block text-sm">{{ 'applications.detail.fqdn' | translate }}</label>
-              <input class="input" formControlName="fqdn" />
+              <input type="text"  formControlName="fqdn" />
             </div>
           </div>
           <button class="inner-button" type="submit" [disabled]="savingConfig()">{{ 'applications.detail.save' | translate }}</button>
@@ -299,8 +299,8 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
           </div>
         }
         <form class="mt-3 flex gap-2" [formGroup]="envForm" (ngSubmit)="addEnv()">
-          <input class="input flex-1" [placeholder]="'applications.detail.keyPlaceholder' | translate" formControlName="key" />
-          <input class="input flex-1" [placeholder]="'applications.detail.valuePlaceholder' | translate" formControlName="value" />
+          <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'applications.detail.keyPlaceholder' | translate" formControlName="key" />
+          <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'applications.detail.valuePlaceholder' | translate" formControlName="value" />
           <button class="inner-button" type="submit" [disabled]="envForm.invalid">{{ 'applications.detail.add' | translate }}</button>
         </form>
       </section>
@@ -334,9 +334,9 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
           }
         }
         <form class="mt-3 flex flex-wrap gap-2" [formGroup]="taskForm" (ngSubmit)="addTask()">
-          <input class="input flex-1" [placeholder]="'applications.detail.namePlaceholder' | translate" formControlName="name" />
-          <input class="input flex-1" [placeholder]="'applications.detail.commandPlaceholder' | translate" formControlName="command" />
-          <input class="input w-40" [placeholder]="'applications.detail.cronPlaceholder' | translate" formControlName="frequency" />
+          <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'applications.detail.namePlaceholder' | translate" formControlName="name" />
+          <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'applications.detail.commandPlaceholder' | translate" formControlName="command" />
+          <input type="text" class="!w-40" [placeholder]="'applications.detail.cronPlaceholder' | translate" formControlName="frequency" />
           <button class="inner-button" type="submit" [disabled]="taskForm.invalid">{{ 'applications.detail.addTask' | translate }}</button>
         </form>
       </section>
@@ -353,8 +353,8 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
           </div>
         }
         <form class="mt-3 flex flex-wrap gap-2" [formGroup]="volumeForm" (ngSubmit)="addVolume()">
-          <input class="input flex-1" [placeholder]="'applications.detail.namePlaceholder' | translate" formControlName="name" />
-          <input class="input flex-1" [placeholder]="'applications.detail.mountPathPlaceholder' | translate" formControlName="mount_path" />
+          <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'applications.detail.namePlaceholder' | translate" formControlName="name" />
+          <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'applications.detail.mountPathPlaceholder' | translate" formControlName="mount_path" />
           <button class="inner-button" type="submit" [disabled]="volumeForm.invalid">{{ 'applications.detail.addVolume' | translate }}</button>
         </form>
 
@@ -365,8 +365,8 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
           </div>
         }
         <form class="mt-2 flex flex-wrap gap-2" [formGroup]="fileVolumeForm" (ngSubmit)="addFileVolume()">
-          <input class="input flex-1" [placeholder]="'applications.detail.mountPathPlaceholder' | translate" formControlName="mount_path" />
-          <input class="input flex-1" [placeholder]="'applications.detail.fileContentPlaceholder' | translate" formControlName="content" />
+          <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'applications.detail.mountPathPlaceholder' | translate" formControlName="mount_path" />
+          <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'applications.detail.fileContentPlaceholder' | translate" formControlName="content" />
           <button class="inner-button" type="submit" [disabled]="fileVolumeForm.invalid">{{ 'applications.detail.addFile' | translate }}</button>
         </form>
       </section>
@@ -384,7 +384,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
         </div>
         @if (availableTags().length > 0) {
           <div class="mt-3 flex flex-wrap gap-2">
-            <select class="input w-48" #tagPicker>
+            <select class="!w-48" #tagPicker>
               <option value="">{{ 'applications.detail.attachTag' | translate }}</option>
               @for (tag of availableTags(); track tag.uuid) {
                 <option [value]="tag.uuid">{{ tag.name }}</option>
@@ -408,7 +408,7 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
           <pre class="overflow-auto whitespace-pre-wrap font-mono text-xs">{{ opsOutput() }}</pre>
         }
         <form class="mt-3 flex gap-2" [formGroup]="execForm" (ngSubmit)="runExec()">
-          <input class="input flex-1" [placeholder]="'applications.detail.execPlaceholder' | translate" formControlName="command" />
+          <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'applications.detail.execPlaceholder' | translate" formControlName="command" />
           <button class="inner-button" type="submit" [disabled]="execForm.invalid">{{ 'applications.detail.exec' | translate }}</button>
         </form>
       </section>

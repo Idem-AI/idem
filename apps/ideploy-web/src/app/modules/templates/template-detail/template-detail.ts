@@ -107,7 +107,7 @@ import {
           <h2 class="font-semibold">{{ 'templates.installTitle' | translate: { name: template()!.name } }}</h2>
           <div>
             <label class="mb-1 block text-sm">{{ 'services.name' | translate }}</label>
-            <input class="input" formControlName="name" />
+            <input type="text"  formControlName="name" />
           </div>
           <app-workspace-target-picker (targetChange)="target.set($event)" />
           @if (installError()) {

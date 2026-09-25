@@ -24,7 +24,7 @@ import { ApiService } from '../../../shared/services/api.service';
       <div class="space-y-3">
         <div>
           <label class="mb-1 block text-sm">{{ 'settings.wildcardDomain' | translate }}</label>
-          <input class="input" [(ngModel)]="wildcardDomain" />
+          <input type="text"  [(ngModel)]="wildcardDomain" />
         </div>
         <label class="flex items-center gap-2 text-sm">
           <input type="checkbox" [(ngModel)]="registrationEnabled" /> {{ 'settings.registrationEnabled' | translate }}
@@ -35,7 +35,7 @@ import { ApiService } from '../../../shared/services/api.service';
 
     <section class="glass-card p-4">
       <h2 class="mb-3 font-semibold">{{ 'settings.globalSearch' | translate }}</h2>
-      <input class="input mb-3" [placeholder]="'settings.searchPlaceholder' | translate" [(ngModel)]="query" (ngModelChange)="onSearch()" />
+      <input type="text" class="mb-3" [placeholder]="'settings.searchPlaceholder' | translate" [(ngModel)]="query" (ngModelChange)="onSearch()" />
       @for (hit of results(); track hit.uuid) {
         <div class="text-sm">
           <span class="rounded px-2 py-0.5 text-xs" style="background-color: var(--color-surface-2)">{{ hit.type }}</span>

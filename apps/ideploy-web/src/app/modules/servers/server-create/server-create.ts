@@ -55,11 +55,11 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
         @if (step() === 1) {
           <div>
             <label class="mb-1 block text-sm" for="srv-name">{{ 'servers.create.name' | translate }}</label>
-            <input id="srv-name" class="input" formControlName="name" [placeholder]="'servers.create.namePlaceholder' | translate" autocomplete="off" />
+            <input type="text" id="srv-name"  formControlName="name" [placeholder]="'servers.create.namePlaceholder' | translate" autocomplete="off" />
           </div>
           <div>
             <label class="mb-1 block text-sm" for="srv-description">{{ 'servers.create.description' | translate }}</label>
-            <textarea id="srv-description" class="input" rows="3" formControlName="description" [placeholder]="'servers.create.descriptionPlaceholder' | translate"></textarea>
+            <textarea id="srv-description"  rows="3" formControlName="description" [placeholder]="'servers.create.descriptionPlaceholder' | translate"></textarea>
           </div>
           <button class="inner-button" type="button" [disabled]="form.controls.name.invalid" (click)="step.set(2)">
             {{ 'servers.create.next' | translate }}
@@ -70,16 +70,16 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div class="sm:col-span-2">
               <label class="mb-1 block text-sm" for="srv-host">{{ 'servers.create.host' | translate }}</label>
-              <input id="srv-host" class="input font-mono" formControlName="ip" [placeholder]="'servers.create.hostPlaceholder' | translate" autocomplete="off" />
+              <input type="text" id="srv-host" class="font-mono" formControlName="ip" [placeholder]="'servers.create.hostPlaceholder' | translate" autocomplete="off" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-port">{{ 'servers.create.port' | translate }}</label>
-              <input id="srv-port" class="input" type="number" formControlName="port" />
+              <input id="srv-port"  type="number" formControlName="port" />
             </div>
           </div>
           <div>
             <label class="mb-1 block text-sm" for="srv-user">{{ 'servers.create.user' | translate }}</label>
-            <input id="srv-user" class="input font-mono" formControlName="user" />
+            <input type="text" id="srv-user" class="font-mono" formControlName="user" />
           </div>
 
           <div>
@@ -99,7 +99,7 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
               </div>
             } @else {
               @if (keys().length > 0) {
-                <select id="srv-key" class="input" formControlName="private_key_id">
+                <select id="srv-key"  formControlName="private_key_id">
                   <option [ngValue]="0" disabled>{{ 'servers.create.choosePrivateKey' | translate }}</option>
                   @for (key of keys(); track key.id) {
                     <option [ngValue]="key.id">{{ key.name }}</option>
@@ -130,11 +130,11 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
                   <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                       <label class="mb-1 block text-sm" for="gen-key-name">{{ 'servers.create.keyName' | translate }}</label>
-                      <input id="gen-key-name" class="input" [formControl]="generateForm.controls.name" autocomplete="off" />
+                      <input type="text" id="gen-key-name"  [formControl]="generateForm.controls.name" autocomplete="off" />
                     </div>
                     <div>
                       <label class="mb-1 block text-sm" for="gen-key-type">{{ 'servers.create.keyType' | translate }}</label>
-                      <select id="gen-key-type" class="input" [formControl]="generateForm.controls.type">
+                      <select id="gen-key-type"  [formControl]="generateForm.controls.type">
                         <option value="ed25519">ed25519</option>
                         <option value="rsa">RSA</option>
                       </select>

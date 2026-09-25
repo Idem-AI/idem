@@ -37,7 +37,7 @@ interface ServerDestinations {
               }
             }
             <form class="mt-3 flex gap-2" [formGroup]="formFor(row.server.uuid)" (ngSubmit)="create(row.server.uuid)">
-              <input class="input flex-1" [placeholder]="'destinations.networkPlaceholder' | translate" [formControl]="formFor(row.server.uuid).controls.network" />
+              <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'destinations.networkPlaceholder' | translate" [formControl]="formFor(row.server.uuid).controls.network" />
               <button class="inner-button" type="submit" [disabled]="formFor(row.server.uuid).invalid">{{ 'destinations.addDestination' | translate }}</button>
             </form>
           </div>

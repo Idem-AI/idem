@@ -9,10 +9,11 @@ import {
   ServerCheck,
   ServerReadiness,
 } from '../../../shared/models/ideploy.models';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
 
 @Component({
   selector: 'app-servers-list',
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslateModule, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6 flex items-center justify-between">
@@ -35,7 +36,7 @@ import {
     @if (loading()) {
       <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'servers.loading' | translate }}</p>
     } @else if (servers().length === 0) {
-      <div class="glass-card p-4">{{ 'servers.empty' | translate }}</div>
+      <div class="glass-card"><app-empty-state kind="server" [title]="'servers.empty' | translate" /></div>
     } @else {
       <div class="space-y-3">
         @for (server of servers(); track server.uuid) {

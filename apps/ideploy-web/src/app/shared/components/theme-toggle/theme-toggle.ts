@@ -44,6 +44,6 @@ export class ThemeToggleComponent {
   protected readonly options: { mode: ThemeMode; icon: string; label: string }[] = [
     { mode: 'light', icon: 'pi-sun', label: 'Light' },
     { mode: 'dark', icon: 'pi-moon', label: 'Dark' },
-    { mode: 'system', icon: 'pi-moon', label: 'System' },
+    { mode: 'system', icon: 'pi-desktop', label: 'System' },
   ];
 }

@@ -37,14 +37,14 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div class="lg:col-span-2">
         <div class="mb-4 flex flex-col gap-2 sm:flex-row">
-          <input
-            class="input flex-1"
+          <input type="text"
+            class="flex-1 !w-auto min-w-0"
             [placeholder]="'services.searchPlaceholder' | translate"
             [ngModel]="query()"
             [ngModelOptions]="{ standalone: true }"
             (ngModelChange)="query.set($event)"
           />
-          <select class="input sm:w-52" [ngModel]="statusFilter()" [ngModelOptions]="{ standalone: true }" (ngModelChange)="statusFilter.set($event)">
+          <select class="sm:w-52" [ngModel]="statusFilter()" [ngModelOptions]="{ standalone: true }" (ngModelChange)="statusFilter.set($event)">
             <option value="all">{{ 'services.filter.all' | translate }}</option>
             <option value="running">{{ 'services.filter.running' | translate }}</option>
             <option value="partial">{{ 'services.filter.partial' | translate }}</option>
@@ -113,12 +113,12 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
               <h2 class="font-semibold">{{ 'services.deployCustom' | translate }}</h2>
               <div>
                 <label class="mb-1 block text-sm">{{ 'services.name' | translate }}</label>
-                <input class="input" formControlName="name" />
+                <input type="text"  formControlName="name" />
               </div>
               <app-workspace-target-picker (targetChange)="target.set($event)" />
               <div>
                 <label class="mb-1 block text-sm">{{ 'services.dockerComposeLabel' | translate }}</label>
-                <textarea class="input font-mono" rows="6" formControlName="docker_compose_raw"></textarea>
+                <textarea class="font-mono" rows="6" formControlName="docker_compose_raw"></textarea>
               </div>
               @if (error()) {
                 <p class="text-sm text-red-400">{{ error() }}</p>

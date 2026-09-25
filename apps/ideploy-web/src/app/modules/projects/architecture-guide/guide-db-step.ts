@@ -76,7 +76,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
 
         <div>
           <label class="mb-1 block text-sm">{{ 'databases.name' | translate }}</label>
-          <input class="input" [ngModel]="name()" (ngModelChange)="name.set($event)" />
+          <input type="text"  [ngModel]="name()" (ngModelChange)="name.set($event)" />
         </div>
 
         <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-text-tertiary);" (click)="showAdvanced.set(!showAdvanced())">
@@ -90,8 +90,8 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
               <div>
                 <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ credentialLabel(col) }}</label>
                 <div class="flex items-center gap-2">
-                  <input
-                    class="input font-mono text-xs"
+                  <input type="text"
+                    class="font-mono text-xs"
                     [type]="!isSecretField(col) || revealed().has(col) ? 'text' : 'password'"
                     [value]="customCredentials()[col] || ''"
                     (input)="onCredentialInput('primary', col, $any($event.target).value)"
@@ -114,12 +114,12 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
         @if (includeRedis()) {
           <div class="space-y-2 rounded-xl border p-3" style="border-color:var(--color-surface-2);">
             <label class="mb-1 block text-sm">{{ 'databases.name' | translate }}</label>
-            <input class="input" [ngModel]="redisName()" (ngModelChange)="redisName.set($event)" />
+            <input type="text"  [ngModel]="redisName()" (ngModelChange)="redisName.set($event)" />
             <div>
               <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ credentialLabel('redis_password') }}</label>
               <div class="flex items-center gap-2">
-                <input
-                  class="input font-mono text-xs"
+                <input type="text"
+                  class="font-mono text-xs"
                   [type]="revealed().has('redis_password') ? 'text' : 'password'"
                   [value]="redisCredentials()['redis_password'] || ''"
                   (input)="onCredentialInput('cache', 'redis_password', $any($event.target).value)"
@@ -207,7 +207,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
                 <div>
                   <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ 'databases.detail.internalUrl' | translate }}</label>
                   <div class="flex items-center gap-2">
-                    <input class="input font-mono text-xs" readonly [type]="revealed().has('__primary_url') ? 'text' : 'password'" [value]="detail.connection_url ?? ''" />
+                    <input type="text" class="font-mono text-xs" readonly [type]="revealed().has('__primary_url') ? 'text' : 'password'" [value]="detail.connection_url ?? ''" />
                     <button type="button" class="button-icon" (click)="toggleReveal('__primary_url')" [attr.aria-label]="'databases.detail.reveal' | translate"><i class="pi" [class.pi-eye]="!revealed().has('__primary_url')" [class.pi-eye-slash]="revealed().has('__primary_url')"></i></button>
                     <button type="button" class="button-icon" (click)="copy(detail.connection_url)" [attr.aria-label]="'databases.detail.copy' | translate"><i class="pi pi-copy"></i></button>
                   </div>
@@ -216,7 +216,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
                   <div>
                     <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ credentialLabel(col) }}</label>
                     <div class="flex items-center gap-2">
-                      <input class="input font-mono text-xs" readonly [type]="!isSecretField(col) || revealed().has(col) ? 'text' : 'password'" [value]="detail.credentials[col]" />
+                      <input type="text" class="font-mono text-xs" readonly [type]="!isSecretField(col) || revealed().has(col) ? 'text' : 'password'" [value]="detail.credentials[col]" />
                       @if (isSecretField(col)) {
                         <button type="button" class="button-icon" (click)="toggleReveal(col)" [attr.aria-label]="'databases.detail.reveal' | translate"><i class="pi" [class.pi-eye]="!revealed().has(col)" [class.pi-eye-slash]="revealed().has(col)"></i></button>
                       }
@@ -235,7 +235,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
                 <div>
                   <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ 'databases.detail.internalUrl' | translate }}</label>
                   <div class="flex items-center gap-2">
-                    <input class="input font-mono text-xs" readonly [type]="revealed().has('__cache_url') ? 'text' : 'password'" [value]="detail.connection_url ?? ''" />
+                    <input type="text" class="font-mono text-xs" readonly [type]="revealed().has('__cache_url') ? 'text' : 'password'" [value]="detail.connection_url ?? ''" />
                     <button type="button" class="button-icon" (click)="toggleReveal('__cache_url')" [attr.aria-label]="'databases.detail.reveal' | translate"><i class="pi" [class.pi-eye]="!revealed().has('__cache_url')" [class.pi-eye-slash]="revealed().has('__cache_url')"></i></button>
                     <button type="button" class="button-icon" (click)="copy(detail.connection_url)" [attr.aria-label]="'databases.detail.copy' | translate"><i class="pi pi-copy"></i></button>
                   </div>
