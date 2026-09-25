@@ -15,16 +15,17 @@
     "target": "ES2022",
     "module": "preserve",
     "moduleResolution": "bundler",
-    // `src/app/shared/trusted-by` est un lien vers `packages/shared-trusted-by`.
-    // Sans cette option, TypeScript résoudrait le chemin réel et le
+    // `src/app/shared/trusted-by` et `src/app/shared/shared-loader` sont des
+    // liens vers `packages/`. Sans cette option, TypeScript résoudrait le chemin réel et le
     // `import ... from '@angular/core'` du composant partagé remonterait au
     // Angular 20 hissé à la racine du monorepo, pas au 22 de cette app.
+    // Ne pas remettre de `"@angular/*"` dans `paths` : en `ng serve`, esbuild
+    // inlinerait Angular à côté du pré-bundle Vite, deux copies et NG0203.
     "preserveSymlinks": true,
     "lib": ["ES2022", "dom"],
     "paths": {
-      "@angular/*": ["./node_modules/@angular/*"],
-      "@idem/shared-loader": ["../../packages/shared-loader/src"],
-      "@idem/shared-loader/*": ["../../packages/shared-loader/src/*"],
+      "@idem/shared-loader": ["./src/app/shared/shared-loader/src"],
+      "@idem/shared-loader/*": ["./src/app/shared/shared-loader/src/*"],
       "@core/*": ["./src/app/core/*"],
       "@shared/*": ["./src/app/shared/*"],
       "@features/*": ["./src/app/features/*"],
