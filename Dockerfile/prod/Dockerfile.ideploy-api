@@ -60,6 +60,7 @@ COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/package*.jso
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/dist ./dist
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/prisma ./prisma
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/migrations ./migrations
+COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/templates ./templates
 
 # Automatic DB provisioning (see scripts/provision-db.js's own doc comment):
 # a fresh database has no Laravel around anymore to have created the base
@@ -82,6 +83,14 @@ COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/node_modules
 COPY --from=builder --chown=ideployapi:nodejs /app/packages ./packages
 
 RUN mkdir -p /app/logs && chown -R ideployapi:nodejs /app/logs
+
+# real-executor.ts creates this at runtime (fs.mkdirSync) the first time a
+# server is provisioned — IDEPLOY_SSH_DIR, defaulting to ./.ssh-storage under
+# the process cwd (/app). /app itself is owned by root (created by WORKDIR
+# before USER below), so the non-root user can't mkdir under it on its own;
+# same class of fix as /app/logs above, just pre-created instead of relying
+# on the app to create it lazily.
+RUN mkdir -p /app/.ssh-storage/keys /app/.ssh-storage/mux && chown -R ideployapi:nodejs /app/.ssh-storage
 
 USER ideployapi
 
