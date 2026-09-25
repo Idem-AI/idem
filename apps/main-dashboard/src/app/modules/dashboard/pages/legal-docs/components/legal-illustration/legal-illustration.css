@@ -1,0 +1,59 @@
+/* Deux encres (AGENTS.md §4) : `currentColor` pour le trait, la couleur
+   primaire pour le seul détail qui compte. */
+:host {
+  display: block;
+  color: var(--color-text-tertiary);
+}
+
+.accent {
+  stroke: var(--color-primary-500);
+}
+
+/* Seule la scène de rédaction bouge : elle signale un travail en cours. */
+.write-line {
+  stroke-dasharray: 44;
+  stroke-dashoffset: 44;
+  animation: legalWrite 2.4s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+.write-line-2 {
+  animation-delay: 0.6s;
+}
+
+.write-line-3 {
+  animation-delay: 1.2s;
+}
+
+.pen {
+  animation: legalPen 2.4s ease-in-out infinite;
+}
+
+@keyframes legalWrite {
+  0% {
+    stroke-dashoffset: 44;
+  }
+  60%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes legalPen {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-8px, 6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pen {
+    animation: none;
+  }
+  .write-line {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

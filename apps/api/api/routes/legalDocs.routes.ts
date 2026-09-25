@@ -7,6 +7,8 @@ import {
   clearLegalDocsController,
   generateLegalDocsStreamingController,
   generateLegalDocPdfController,
+  getLegalRecommendationsController,
+  saveLegalContextController,
 } from '../controllers/legalDocs.controller';
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
@@ -74,6 +76,16 @@ legalDocsRoutes.delete(
   authenticate,
   deleteLegalDocController
 );
+
+/** Forme juridique et documents recommandés pour le projet, contexte pré-rempli */
+legalDocsRoutes.get(
+  `/${resourceName}/:projectId/recommendations`,
+  authenticate,
+  getLegalRecommendationsController
+);
+
+/** Enregistre le contexte (dont la forme retenue) sans générer ; renvoie les recommandations */
+legalDocsRoutes.put(`/${resourceName}/:projectId/context`, authenticate, saveLegalContextController);
 
 /** Clear all legal documents for a project */
 legalDocsRoutes.delete(`/${resourceName}/:projectId`, authenticate, clearLegalDocsController);

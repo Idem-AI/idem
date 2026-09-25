@@ -18,7 +18,60 @@ export const getLegalDocsCatalogController = async (
   res: Response
 ): Promise<void> => {
   logger.debug('getLegalDocsCatalogController called');
-  res.status(200).json({ catalog: legalDocsService.getCatalog() });
+  res
+    .status(200)
+    .json({ catalog: legalDocsService.getCatalog(), forms: legalDocsService.getLegalForms() });
+};
+
+export const getLegalRecommendationsController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    const recommendations = await legalDocsService.getRecommendations(userId, projectId as string);
+    if (!recommendations) {
+      res.status(404).json({ message: 'Project not found' });
+      return;
+    }
+    res.status(200).json(recommendations);
+  } catch (error: any) {
+    logger.error(`getLegalRecommendationsController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to compute recommendations' });
+  }
+};
+
+export const saveLegalContextController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    const context = req.body?.context;
+    if (!context || typeof context !== 'object') {
+      res.status(400).json({ message: 'context is required' });
+      return;
+    }
+    const recommendations = await legalDocsService.saveContext(userId, projectId as string, context);
+    if (!recommendations) {
+      res.status(404).json({ message: 'Project not found' });
+      return;
+    }
+    res.status(200).json(recommendations);
+  } catch (error: any) {
+    logger.error(`saveLegalContextController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to save context' });
+  }
 };
 
 export const getLegalDocsController = async (req: CustomRequest, res: Response): Promise<void> => {
