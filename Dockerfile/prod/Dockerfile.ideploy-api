@@ -60,6 +60,7 @@ COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/package*.jso
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/dist ./dist
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/prisma ./prisma
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/migrations ./migrations
+COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/templates ./templates
 
 # Automatic DB provisioning (see scripts/provision-db.js's own doc comment):
 # a fresh database has no Laravel around anymore to have created the base
