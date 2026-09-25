@@ -126,8 +126,11 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
     onStart(finalPrompt);
   };
 
+  // Aucun fond ici ni sur les sections : la couleur est portée par <html> et
+  // le motif de marque par `body::before` (@idem/shared-styles). Repeindre le
+  // conteneur les masquait partout sauf dans le hero.
   return (
-    <div className="min-h-screen bg-bg-darker text-text-primary">
+    <div className="min-h-screen text-text-primary">
       {/* ---------------- Navigation ---------------- */}
       <nav className="fixed top-0 inset-x-0 z-50 px-6 py-3.5 bg-bg-darker/80 backdrop-blur-xl">
         <div className="max-w-[68rem] mx-auto flex items-center justify-between gap-4">
@@ -161,8 +164,9 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
       {/* Pleine hauteur, rien d'autre à l'écran que la phrase à écrire.
           Aucune décoration : le halo en dégradé qui traînait derrière le champ
           était un ornement sans fonction, et c'est précisément le marqueur des
-          pages générées à la chaîne. Le motif de marque suffit à porter le fond. */}
-      <section className="min-h-screen flex flex-col justify-center px-6 pt-28 pb-24 motif-surface">
+          pages générées à la chaîne. Le motif de marque du body suffit à porter le
+          fond. */}
+      <section className="min-h-screen flex flex-col justify-center px-6 pt-28 pb-24">
         <div className="w-full max-w-[46rem] mx-auto text-center">
           <h1 className="text-[clamp(2.5rem,7vw,4.5rem)] font-semibold leading-[1.02] text-balance">
             {t('landing.hero.titleLead')}{' '}
