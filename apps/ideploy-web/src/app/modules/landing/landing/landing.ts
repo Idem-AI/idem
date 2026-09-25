@@ -109,7 +109,7 @@ import { environment } from '../../../../environments/environment';
             <ul class="px-5 py-4 font-mono text-xs leading-8">
               @for (line of buildLog; track line) {
                 <li class="flex items-center gap-3">
-                  <i class="fa-solid fa-check text-[9px]" style="color: var(--color-success);" aria-hidden="true"></i>
+                  <i class="pi pi-check text-[9px]" style="color: var(--color-success);" aria-hidden="true"></i>
                   <span>{{ 'landing.steps.log.' + line + '.label' | translate }}</span>
                   <span class="ml-auto text-text-tertiary">{{ 'landing.steps.log.' + line + '.time' | translate }}</span>
                 </li>
@@ -141,7 +141,7 @@ import { environment } from '../../../../environments/environment';
                   @for (n of [1, 2, 3]; track n) {
                     <li class="flex items-start gap-3 text-sm font-semibold">
                       <i
-                        class="fa-solid fa-check text-[10px] mt-1.5 shrink-0"
+                        class="pi pi-check text-[10px] mt-1.5 shrink-0"
                         style="color: var(--color-primary-500);"
                         aria-hidden="true"></i>
                       <span>{{ 'landing.where.' + side + '.p' + n | translate }}</span>
@@ -227,7 +227,7 @@ import { environment } from '../../../../environments/environment';
               </p>
               @for (scan of scans; track scan.key) {
                 <div class="flex items-center gap-3 py-1.5">
-                  <i class="fa-solid fa-check text-[9px]" style="color: var(--color-success);" aria-hidden="true"></i>
+                  <i class="pi pi-check text-[9px]" style="color: var(--color-success);" aria-hidden="true"></i>
                   <span class="text-xs font-semibold">{{ 'landing.guard.console.' + scan.key | translate }}</span>
                   <span class="ml-auto font-mono text-[11px] text-text-tertiary">
                     {{ 'landing.guard.console.' + scan.result | translate }}
@@ -315,7 +315,7 @@ import { environment } from '../../../../environments/environment';
               @for (item of freePlan; track item) {
                 <li class="flex items-start gap-3 text-sm font-semibold">
                   <i
-                    class="fa-solid fa-check text-[10px] mt-1.5 shrink-0"
+                    class="pi pi-check text-[10px] mt-1.5 shrink-0"
                     style="color: var(--color-primary-500);"
                     aria-hidden="true"></i>
                   <span>{{ 'landing.pricingTeaser.free.' + item | translate }}</span>

@@ -103,7 +103,7 @@ import { GuideSessionService } from '../../../shared/services/guide-session.serv
         <p class="text-sm text-red-400">{{ error() }}</p>
       }
 
-      <button class="button" type="button" [disabled]="saving() || !canContinue()" (click)="continue()">
+      <button class="inner-button" type="button" [disabled]="saving() || !canContinue()" (click)="continue()">
         {{ (saving() ? 'workspaces.form.creating' : 'projects.new.continue') | translate }}
       </button>
     </div>

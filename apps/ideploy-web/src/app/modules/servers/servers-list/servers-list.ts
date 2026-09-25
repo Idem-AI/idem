@@ -19,12 +19,12 @@ import {
       <h1 class="text-2xl font-bold">{{ 'servers.title' | translate }}</h1>
       <div class="flex gap-2">
         @if (!isProd) {
-          <button class="button-secondary" [disabled]="addingLocal()" (click)="useLocalMachine()">
+          <button class="outer-button" [disabled]="addingLocal()" (click)="useLocalMachine()">
             {{ (addingLocal() ? 'servers.addingLocal' : 'servers.useLocalButton') | translate }}
           </button>
         }
-        <a class="button-secondary" routerLink="/servers/new/cloud">{{ 'servers.provisionButton' | translate }}</a>
-        <a class="button" routerLink="/servers/new">{{ 'servers.addServerButton' | translate }}</a>
+        <a class="outer-button" routerLink="/servers/new/cloud">{{ 'servers.provisionButton' | translate }}</a>
+        <a class="inner-button" routerLink="/servers/new">{{ 'servers.addServerButton' | translate }}</a>
       </div>
     </div>
 
@@ -35,11 +35,11 @@ import {
     @if (loading()) {
       <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'servers.loading' | translate }}</p>
     } @else if (servers().length === 0) {
-      <div class="box">{{ 'servers.empty' | translate }}</div>
+      <div class="glass-card p-4">{{ 'servers.empty' | translate }}</div>
     } @else {
       <div class="space-y-3">
         @for (server of servers(); track server.uuid) {
-          <div class="box flex items-center justify-between">
+          <div class="glass-card p-4 flex items-center justify-between">
             <div>
               <a class="font-semibold hover:underline" [routerLink]="['/servers', server.uuid]">{{ server.name }}</a>
               <div class="text-sm" style="color: var(--color-text-secondary)">
@@ -84,15 +84,15 @@ import {
               }
             </div>
             <div class="flex flex-wrap gap-2">
-              <button class="button-secondary" (click)="validate(server)" [disabled]="busy()[server.uuid]">
+              <button class="outer-button" (click)="validate(server)" [disabled]="busy()[server.uuid]">
                 {{ 'servers.validate' | translate }}
               </button>
-              <button class="button-secondary" (click)="setUp(server)" [disabled]="busy()[server.uuid]">
+              <button class="outer-button" (click)="setUp(server)" [disabled]="busy()[server.uuid]">
                 {{ (busy()[server.uuid] ? 'servers.settingUp' : 'servers.setUp') | translate }}
               </button>
-              <button class="button-secondary" (click)="proxyStatus(server)">{{ 'servers.proxyStatusButton' | translate }}</button>
-              <button class="button-secondary" (click)="startProxy(server)">{{ 'servers.startProxy' | translate }}</button>
-              <button class="button-secondary" (click)="installCrowdSec(server)">{{ 'servers.installCrowdSec' | translate }}</button>
+              <button class="outer-button" (click)="proxyStatus(server)">{{ 'servers.proxyStatusButton' | translate }}</button>
+              <button class="outer-button" (click)="startProxy(server)">{{ 'servers.startProxy' | translate }}</button>
+              <button class="outer-button" (click)="installCrowdSec(server)">{{ 'servers.installCrowdSec' | translate }}</button>
               <button class="text-xs text-red-400" (click)="remove(server)">{{ 'servers.delete' | translate }}</button>
             </div>
           </div>

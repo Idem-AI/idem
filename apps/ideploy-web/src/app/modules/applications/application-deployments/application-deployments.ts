@@ -26,7 +26,7 @@ import {
       style="color:var(--color-text-secondary);"
       [routerLink]="['/applications', uuid]"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'deployments.backToApplication' | translate }}
     </a>
 
@@ -38,7 +38,7 @@ import {
       <p class="mb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
     }
 
-    <section class="box mb-4">
+    <section class="glass-card p-4 mb-4">
       <h2 class="mb-3 text-sm font-semibold">{{ 'deployments.history' | translate }}</h2>
       @if (history().length === 0) {
         <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'deployments.noHistory' | translate }}</p>
@@ -78,7 +78,7 @@ import {
       }
     </section>
 
-    <section class="box mb-4">
+    <section class="glass-card p-4 mb-4">
       <h2 class="mb-1 text-sm font-semibold">{{ 'deployments.rollback' | translate }}</h2>
       <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
         {{ 'deployments.rollbackHint' | translate }}
@@ -92,7 +92,7 @@ import {
               <code class="font-mono text-xs">{{ shortCommit(t.commit) }}</code>
               <span style="color:var(--color-text-secondary);font-variant-numeric:tabular-nums;">{{ t.finishedAt || '—' }}</span>
               <button
-                class="button-secondary ml-auto"
+                class="outer-button ml-auto"
                 (click)="rollbackTo(t)"
                 [disabled]="rollingBack() === t.deploymentUuid"
               >
@@ -104,7 +104,7 @@ import {
       }
     </section>
 
-    <section class="box">
+    <section class="glass-card p-4">
       <h2 class="mb-1 text-sm font-semibold">{{ 'deployments.previews' | translate }}</h2>
       <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
         {{ 'deployments.previewsHint' | translate }}

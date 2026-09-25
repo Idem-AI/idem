@@ -15,10 +15,10 @@ import {
 
 /** The stages the API knows about, in the order it runs them, each with what a first-time operator actually needs to know before deciding to include it. */
 const AVAILABLE_STAGES = [
-  { key: 'language_detection', icon: 'fa-solid fa-magnifying-glass-chart' },
-  { key: 'sonarqube', icon: 'fa-solid fa-chart-simple' },
-  { key: 'trivy', icon: 'fa-solid fa-shield-virus' },
-  { key: 'deploy', icon: 'fa-solid fa-rocket' },
+  { key: 'language_detection', icon: 'pi pi-chart-bar' },
+  { key: 'sonarqube', icon: 'pi pi-chart-bar' },
+  { key: 'trivy', icon: 'pi pi-shield' },
+  { key: 'deploy', icon: 'pi pi-send' },
 ] as const;
 
 /** How often the run list is refreshed while something is still active. */
@@ -49,7 +49,7 @@ const POLL_INTERVAL_MS = 4_000;
       style="color:var(--color-text-secondary);"
       [routerLink]="['/applications', uuid]"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'pipeline.backToApplication' | translate }}
     </a>
 
@@ -60,8 +60,8 @@ const POLL_INTERVAL_MS = 4_000;
         </h1>
         <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'pipeline.subtitle' | translate }}</p>
       </div>
-      <button class="button" (click)="run()" [disabled]="running()">
-        <i class="fa-solid fa-play mr-1.5 text-xs" aria-hidden="true"></i>
+      <button class="inner-button" (click)="run()" [disabled]="running()">
+        <i class="pi pi-play mr-1.5 text-xs" aria-hidden="true"></i>
         {{ (running() ? 'pipeline.running' : 'pipeline.runNow') | translate }}
       </button>
     </div>
@@ -72,9 +72,9 @@ const POLL_INTERVAL_MS = 4_000;
 
     @if (config(); as c) {
       <div class="grid gap-4 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
-        <section class="box self-start">
+        <section class="glass-card p-4 self-start">
           <div class="mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-sliders text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+            <i class="pi pi-sliders-h text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
             <h2 class="text-sm font-semibold">{{ 'pipeline.configuration' | translate }}</h2>
           </div>
 
@@ -115,7 +115,7 @@ const POLL_INTERVAL_MS = 4_000;
             }
           </ul>
           <p class="mb-5 text-xs" style="color:var(--color-text-tertiary);">
-            <i class="fa-solid fa-check mr-1"></i>{{ 'pipeline.autoSaveHint' | translate }}
+            <i class="pi pi-check mr-1"></i>{{ 'pipeline.autoSaveHint' | translate }}
           </p>
 
           <form class="space-y-3 border-t pt-4" style="border-color:var(--color-surface-2);" [formGroup]="triggerForm" (ngSubmit)="saveTrigger(c)">
@@ -143,34 +143,34 @@ const POLL_INTERVAL_MS = 4_000;
                 </p>
               </div>
             }
-            <button class="button" type="submit" [disabled]="saving()">
+            <button class="inner-button" type="submit" [disabled]="saving()">
               {{ (saving() ? 'pipeline.saving' : 'pipeline.save') | translate }}
             </button>
           </form>
         </section>
 
-        <section class="box overflow-hidden p-0">
+        <section class="glass-card overflow-hidden p-0">
           <div class="flex items-center justify-between gap-2 p-4" style="border-bottom:1px solid var(--color-surface-2);">
             <h2 class="flex items-center gap-2 text-sm font-semibold">
-              <i class="fa-solid fa-timeline text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+              <i class="pi pi-list text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
               {{ 'pipeline.executions' | translate }}
             </h2>
-            <button class="icon-button" [title]="'pipeline.refresh' | translate" [attr.aria-label]="'pipeline.refresh' | translate" (click)="loadExecutions()">
-              <i class="fa-solid fa-rotate-right text-xs" aria-hidden="true"></i>
+            <button class="button-icon" [title]="'pipeline.refresh' | translate" [attr.aria-label]="'pipeline.refresh' | translate" (click)="loadExecutions()">
+              <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
             </button>
           </div>
 
           @if (executions().length === 0) {
             <div class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
               <div class="flex h-14 w-14 items-center justify-center rounded-full" style="background:var(--color-surface-2);">
-                <i class="fa-solid fa-timeline text-xl" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
+                <i class="pi pi-list text-xl" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
               </div>
               <div>
                 <p class="text-sm font-semibold">{{ 'pipeline.noExecutionsTitle' | translate }}</p>
                 <p class="mt-1 max-w-sm text-sm" style="color:var(--color-text-secondary);">{{ 'pipeline.noExecutionsDesc' | translate }}</p>
               </div>
-              <button class="button mt-1" type="button" (click)="run()" [disabled]="running()">
-                <i class="fa-solid fa-play mr-1.5 text-xs" aria-hidden="true"></i>
+              <button class="inner-button mt-1" type="button" (click)="run()" [disabled]="running()">
+                <i class="pi pi-play mr-1.5 text-xs" aria-hidden="true"></i>
                 {{ (running() ? 'pipeline.running' : 'pipeline.runNow') | translate }}
               </button>
             </div>
@@ -227,11 +227,11 @@ const POLL_INTERVAL_MS = 4_000;
                         </div>
                       </td>
                       <td class="text-right whitespace-nowrap">
-                        <a class="button-secondary mr-2 px-2.5 py-1 text-xs" [routerLink]="['/applications', uuid, 'pipeline', ex.uuid]">
+                        <a class="outer-button mr-2 px-2.5 py-1 text-xs" [routerLink]="['/applications', uuid, 'pipeline', ex.uuid]">
                           {{ 'pipeline.viewDetail' | translate }}
                         </a>
                         @if (!isActive(ex.status)) {
-                          <button class="button-secondary mr-2 px-2.5 py-1 text-xs" [disabled]="rerunning() === ex.uuid" (click)="rerun(ex)">
+                          <button class="outer-button mr-2 px-2.5 py-1 text-xs" [disabled]="rerunning() === ex.uuid" (click)="rerun(ex)">
                             {{ (rerunning() === ex.uuid ? 'pipeline.rerunning' : 'pipeline.rerun') | translate }}
                           </button>
                           @if (confirmingDelete() === ex.uuid) {
@@ -243,7 +243,7 @@ const POLL_INTERVAL_MS = 4_000;
                             </button>
                           } @else {
                             <button class="px-2.5 py-1 text-xs" style="color:var(--color-text-secondary);" (click)="askDelete(ex)" [attr.aria-label]="'pipeline.delete' | translate">
-                              <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                              <i class="pi pi-trash" aria-hidden="true"></i>
                             </button>
                           }
                         }

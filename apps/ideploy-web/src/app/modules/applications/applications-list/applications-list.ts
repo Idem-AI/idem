@@ -16,11 +16,11 @@ import {
   template: `
     <div class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl font-bold">{{ 'applications.list.title' | translate }}</h1>
-      <button class="button" (click)="creating.set(!creating())">{{ (creating() ? 'applications.list.cancel' : 'applications.list.newApplication') | translate }}</button>
+      <button class="inner-button" (click)="creating.set(!creating())">{{ (creating() ? 'applications.list.cancel' : 'applications.list.newApplication') | translate }}</button>
     </div>
 
     @if (creating()) {
-      <form class="box mb-6 max-w-2xl space-y-3" [formGroup]="form" (ngSubmit)="create()">
+      <form class="glass-card p-4 mb-6 max-w-2xl space-y-3" [formGroup]="form" (ngSubmit)="create()">
         <div>
           <label class="mb-1 block text-sm">{{ 'applications.list.name' | translate }}</label>
           <input class="input" formControlName="name" />
@@ -39,7 +39,7 @@ import {
         @if (error()) {
           <p class="text-sm text-red-400">{{ error() }}</p>
         }
-        <button class="button" type="submit" [disabled]="form.invalid || !target() || saving()">
+        <button class="inner-button" type="submit" [disabled]="form.invalid || !target() || saving()">
           {{ (saving() ? 'applications.list.creating' : 'applications.list.createApplication') | translate }}
         </button>
       </form>
@@ -48,11 +48,11 @@ import {
     @if (loading()) {
       <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'applications.loading' | translate }}</p>
     } @else if (applications().length === 0) {
-      <div class="box">{{ 'applications.list.empty' | translate }}</div>
+      <div class="glass-card p-4">{{ 'applications.list.empty' | translate }}</div>
     } @else {
       <div class="space-y-3">
         @for (app of applications(); track app.uuid) {
-          <div class="box flex items-center justify-between">
+          <div class="glass-card p-4 flex items-center justify-between">
             <div>
               <a class="font-semibold hover:underline" [routerLink]="['/applications', app.uuid]">{{ app.name }}</a>
               <div class="text-sm" style="color: var(--color-text-secondary)">
@@ -64,11 +64,11 @@ import {
             </div>
             <div class="flex items-center gap-2">
               @if (app.link) {
-                <a class="button-secondary" [href]="app.link" target="_blank" rel="noopener">
-                  <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>{{ 'applications.open' | translate }}
+                <a class="outer-button" [href]="app.link" target="_blank" rel="noopener">
+                  <i class="pi pi-external-link mr-2"></i>{{ 'applications.open' | translate }}
                 </a>
               }
-              <button class="button" [disabled]="deploying() === app.uuid" (click)="deploy(app)">
+              <button class="inner-button" [disabled]="deploying() === app.uuid" (click)="deploy(app)">
                 {{ (deploying() === app.uuid ? 'applications.list.queuing' : 'applications.deploy') | translate }}
               </button>
             </div>

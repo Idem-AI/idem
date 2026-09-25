@@ -34,7 +34,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
       class="mb-4 inline-flex items-center gap-2 text-sm"
       style="color:var(--color-text-secondary);"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'provision.backToServers' | translate }}
     </a>
 
@@ -55,13 +55,13 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
     }
 
     @if (tokens().length === 0) {
-      <div class="box">
+      <div class="glass-card p-4">
         <p>{{ 'provision.noToken' | translate }}</p>
-        <a class="button mt-3 inline-flex" routerLink="/security/tokens">{{ 'provision.addToken' | translate }}</a>
+        <a class="inner-button mt-3 inline-flex" routerLink="/security/tokens">{{ 'provision.addToken' | translate }}</a>
       </div>
     } @else {
       <form class="grid gap-4 lg:grid-cols-2" [formGroup]="form" (ngSubmit)="submit()">
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'provision.provider' | translate }}</h2>
           <div class="mb-3">
             <label class="mb-1 block text-sm" for="p-token">{{ 'provision.token' | translate }}</label>
@@ -96,7 +96,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
           </div>
         </section>
 
-        <section class="box">
+        <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'provision.machine' | translate }}</h2>
           <div class="mb-3">
             <label class="mb-1 block text-sm" for="p-name">{{ 'provision.name' | translate }}</label>
@@ -130,7 +130,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
         </section>
 
         <div class="lg:col-span-2">
-          <button class="button" type="submit" [disabled]="form.invalid || submitting()">
+          <button class="inner-button" type="submit" [disabled]="form.invalid || submitting()">
             {{ (submitting() ? 'provision.creating' : 'provision.create') | translate }}
           </button>
           <p class="mt-2 text-xs" style="color:var(--color-text-secondary);">{{ 'provision.afterHint' | translate }}</p>

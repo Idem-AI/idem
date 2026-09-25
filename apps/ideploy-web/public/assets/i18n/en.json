@@ -312,7 +312,9 @@
       "apiTokens": "Credentials & tokens",
       "sectionAdmin": "Administration",
       "admin": "Administration"
-    }
+    },
+    "profile": "My profile",
+    "display": "Display"
   },
   "applications": {
     "open": "Open",

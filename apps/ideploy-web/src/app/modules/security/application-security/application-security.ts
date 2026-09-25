@@ -47,7 +47,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
       style="color:var(--color-text-secondary);"
       [routerLink]="['/applications', uuid]"
     >
-      <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'security.app.backToApplication' | translate }}
     </a>
 
@@ -59,7 +59,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
     @if (error()) {
       <div class="mb-4 flex flex-wrap items-center gap-3 text-sm" role="alert">
         <span style="color:var(--color-danger);">{{ error() }}</span>
-        <button class="button-secondary text-xs px-3 py-1.5" type="button" (click)="loadAll()">
+        <button class="outer-button text-xs px-3 py-1.5" type="button" (click)="loadAll()">
           {{ 'security.app.retry' | translate }}
         </button>
       </div>
@@ -76,7 +76,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
           <strong>{{ 'security.app.pendingApplyTitle' | translate }}</strong>
           — {{ 'security.app.pendingApplyBody' | translate }}
         </span>
-        <button class="button-secondary ml-auto" (click)="applyNow()" [disabled]="applying()">
+        <button class="outer-button ml-auto" (click)="applyNow()" [disabled]="applying()">
           {{ (applying() ? 'security.app.applying' : 'security.app.applyNow') | translate }}
         </button>
       </div>
@@ -92,7 +92,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
       instead of repeating these.
     -->
     @if (firewall(); as fw) {
-      <section class="box box-flush mb-4">
+      <section class="glass-card overflow-hidden mb-4">
         <div class="grid grid-cols-1 gap-0 sm:grid-cols-[240px_1fr]">
           <div class="flex flex-col items-center justify-center gap-2 p-6 text-center" style="border-bottom:1px solid var(--color-surface-2);">
             <i [class]="heroIcon(fw)" class="text-3xl" [style.color]="heroColor(fw)" aria-hidden="true"></i>
@@ -129,9 +129,9 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
 
     <div class="grid gap-4 lg:grid-cols-2">
       <!-- WAF + address rules -->
-      <section class="box">
+      <section class="glass-card p-4">
         <div class="mb-1 flex items-center gap-2">
-          <i class="fa-solid fa-shield text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+          <i class="pi pi-shield text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
           <h2 class="text-sm font-semibold">{{ 'security.app.waf' | translate }}</h2>
         </div>
         <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'security.app.wafDesc' | translate }}</p>
@@ -168,7 +168,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
               <label class="mb-1 block text-xs" style="color:var(--color-text-secondary);" for="rule-ip">{{ 'security.app.ruleIpLabel' | translate }}</label>
               <input class="input font-mono" id="rule-ip" formControlName="ip" placeholder="203.0.113.5" />
             </div>
-            <button class="button px-3 py-2 text-xs" type="submit" [disabled]="ruleForm.invalid || addingRule()">
+            <button class="inner-button px-3 py-2 text-xs" type="submit" [disabled]="ruleForm.invalid || addingRule()">
               {{ (addingRule() ? 'security.app.adding' : 'security.app.addRule') | translate }}
             </button>
           </div>
@@ -191,7 +191,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
                   <span class="ml-2 font-mono text-xs" style="color:var(--color-text-secondary);">{{ ruleTarget(r) }}</span>
                 </div>
                 <button class="shrink-0 text-xs" style="color:var(--color-danger);" (click)="removeRule(r)" [attr.aria-label]="'security.app.delete' | translate">
-                  <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                  <i class="pi pi-trash" aria-hidden="true"></i>
                 </button>
               </li>
             }
@@ -200,9 +200,9 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
       </section>
 
       <!-- Rate limiting -->
-      <section class="box">
+      <section class="glass-card p-4">
         <div class="mb-1 flex items-center gap-2">
-          <i class="fa-solid fa-gauge-high text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+          <i class="pi pi-gauge text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
           <h2 class="text-sm font-semibold">{{ 'security.app.rateLimit' | translate }}</h2>
         </div>
         <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'security.app.rateLimitDesc' | translate }}</p>
@@ -210,7 +210,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
         @if (rateLimit(); as rl) {
           <div class="mb-3 rounded-xl border p-3" style="border-color:var(--color-surface-2);">
             <p class="mb-2 text-sm">
-              <i class="fa-solid fa-circle-check mr-1" style="color:var(--color-success);"></i>
+              <i class="pi pi-check-circle mr-1" style="color:var(--color-success);"></i>
               <span style="color:var(--color-text-secondary);">{{ 'security.app.activeTemplate' | translate }}</span>
               <strong class="ml-1">{{ rl.template }}</strong>
             </p>
@@ -236,7 +236,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
                 <option [value]="t.key">{{ t.name }}</option>
               }
             </select>
-            <button class="button" (click)="applyTemplate()" [disabled]="!chosenTemplate()">
+            <button class="inner-button" (click)="applyTemplate()" [disabled]="!chosenTemplate()">
               {{ 'security.app.apply' | translate }}
             </button>
           </div>
@@ -268,7 +268,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
               {{ 'security.app.concurrency' | translate }}
               <input class="input mt-1" type="number" min="1" formControlName="concurrencyLimit" />
             </label>
-            <button class="button col-span-2 mt-1" type="submit" [disabled]="rateLimitForm.invalid">
+            <button class="inner-button col-span-2 mt-1" type="submit" [disabled]="rateLimitForm.invalid">
               {{ 'security.app.saveCustom' | translate }}
             </button>
           </form>
@@ -277,9 +277,9 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
     </div>
 
     <!-- Geo-blocking -->
-    <section class="box mt-4">
+    <section class="glass-card p-4 mt-4">
       <div class="mb-1 flex items-center gap-2">
-        <i class="fa-solid fa-earth-americas text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+        <i class="pi pi-globe text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
         <h2 class="text-sm font-semibold">{{ 'security.app.geoBlocking' | translate }}</h2>
       </div>
       <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">
@@ -366,7 +366,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
         }
       </div>
 
-      <button class="button" (click)="saveGeo()" [disabled]="!hasGeoSelection() || savingGeo()">
+      <button class="inner-button" (click)="saveGeo()" [disabled]="!hasGeoSelection() || savingGeo()">
         {{ (savingGeo() ? 'security.app.saving' : 'security.app.saveGeo') | translate }}
       </button>
       @if (!hasGeoSelection()) {
@@ -376,16 +376,16 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
 
     <!-- What the agent has seen -->
     <h2 class="mt-6 mb-1 flex items-center gap-2 text-sm font-semibold">
-      <i class="fa-solid fa-eye text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+      <i class="pi pi-eye text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
       {{ 'security.app.activity' | translate }}
     </h2>
     <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'security.app.activityDesc' | translate }}</p>
     <div class="grid gap-4 lg:grid-cols-2">
-      <section class="box box-flush">
+      <section class="glass-card overflow-hidden">
         <div class="box-header">
           <h3 class="box-title">{{ 'security.app.alerts' | translate }}</h3>
-          <button class="icon-button" [title]="'security.app.refresh' | translate" [attr.aria-label]="'security.app.refresh' | translate" (click)="loadAlerts()">
-            <i class="fa-solid fa-rotate-right text-xs" aria-hidden="true"></i>
+          <button class="button-icon" [title]="'security.app.refresh' | translate" [attr.aria-label]="'security.app.refresh' | translate" (click)="loadAlerts()">
+            <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
           </button>
         </div>
         @if (alerts().length === 0) {
@@ -405,11 +405,11 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
         }
       </section>
 
-      <section class="box box-flush">
+      <section class="glass-card overflow-hidden">
         <div class="box-header">
           <h3 class="box-title">{{ 'security.app.traffic' | translate }}</h3>
-          <button class="icon-button" [title]="'security.app.refresh' | translate" [attr.aria-label]="'security.app.refresh' | translate" (click)="loadTraffic()">
-            <i class="fa-solid fa-rotate-right text-xs" aria-hidden="true"></i>
+          <button class="button-icon" [title]="'security.app.refresh' | translate" [attr.aria-label]="'security.app.refresh' | translate" (click)="loadTraffic()">
+            <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
           </button>
         </div>
         @if (traffic().length === 0) {
@@ -512,9 +512,9 @@ export class ApplicationSecurityComponent implements OnInit {
   }
   protected heroIcon(fw: FirewallConfig): string {
     const state = this.heroState(fw);
-    if (state === 'active') return 'fa-solid fa-shield-check';
-    if (state === 'partial') return 'fa-solid fa-shield-halved';
-    return 'fa-solid fa-shield';
+    if (state === 'active') return 'pi pi-shield';
+    if (state === 'partial') return 'pi pi-shield';
+    return 'pi pi-shield';
   }
   protected heroColor(fw: FirewallConfig): string {
     const state = this.heroState(fw);

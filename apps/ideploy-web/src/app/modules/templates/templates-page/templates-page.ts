@@ -45,19 +45,19 @@ import { serviceLogoUrl } from '../../../shared/utils/service-logo.util';
     }
 
     @if (templates().length === 0) {
-      <div class="box">{{ 'templates.noTemplates' | translate }}</div>
+      <div class="glass-card p-4">{{ 'templates.noTemplates' | translate }}</div>
     } @else if (filtered().length === 0) {
-      <div class="box" style="color: var(--color-text-secondary)">{{ 'templates.noMatch' | translate }}</div>
+      <div class="glass-card p-4" style="color: var(--color-text-secondary)">{{ 'templates.noMatch' | translate }}</div>
     } @else {
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         @for (t of filtered(); track t.name) {
-          <a class="box flex flex-col transition-colors hover:border-[var(--color-primary-500)]" [routerLink]="['/templates', t.name]">
+          <a class="glass-card p-4 flex flex-col transition-colors hover:border-[var(--color-primary-500)]" [routerLink]="['/templates', t.name]">
             <div class="mb-3 flex items-center gap-3">
               <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg" style="background:var(--color-surface-2);">
                 @if (serviceLogoUrl(t.logo); as logo) {
                   <img [src]="logo" class="h-7 w-7 object-contain" alt="" (error)="onLogoError($event)" />
                 } @else {
-                  <i class="fa-solid fa-cube" style="color:var(--color-primary-400);"></i>
+                  <i class="pi pi-box" style="color:var(--color-primary-400);"></i>
                 }
               </div>
               <div class="min-w-0">

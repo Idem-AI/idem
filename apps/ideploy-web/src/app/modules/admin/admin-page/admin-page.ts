@@ -39,7 +39,7 @@ import {
     @if (overview(); as o) {
       <div class="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         @for (stat of stats(o); track stat.key) {
-          <div class="box">
+          <div class="glass-card p-4">
             <div
               class="text-2xl font-semibold"
               style="font-variant-numeric:tabular-nums;"
@@ -56,7 +56,7 @@ import {
     }
 
     <div class="grid gap-4 lg:grid-cols-2">
-      <section class="box">
+      <section class="glass-card p-4">
         <h2 class="mb-3 text-sm font-semibold">
           {{ 'admin.teams' | translate }}
           <span class="ml-1 font-normal" style="color:var(--color-text-secondary);">({{ teams().length }})</span>
@@ -87,7 +87,7 @@ import {
         }
       </section>
 
-      <section class="box">
+      <section class="glass-card p-4">
         <h2 class="mb-3 text-sm font-semibold">
           {{ 'admin.users' | translate }}
           <span class="ml-1 font-normal" style="color:var(--color-text-secondary);">({{ users().length }})</span>
@@ -122,7 +122,7 @@ import {
       </section>
     </div>
 
-    <section class="box mt-4">
+    <section class="glass-card p-4 mt-4">
       <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 class="text-sm font-semibold">
           {{ 'admin.servers.title' | translate }}
@@ -251,7 +251,7 @@ import {
             <p class="text-sm" style="color:var(--color-danger);">{{ serverError() }}</p>
           }
 
-          <button class="button" type="submit" [disabled]="serverForm.invalid || creatingServer()">
+          <button class="inner-button" type="submit" [disabled]="serverForm.invalid || creatingServer()">
             {{ (creatingServer() ? 'admin.servers.creating' : 'admin.servers.addSubmit') | translate }}
           </button>
         </form>

@@ -312,7 +312,9 @@
       "apiTokens": "Identifiants & jetons",
       "sectionAdmin": "Administration",
       "admin": "Administration"
-    }
+    },
+    "profile": "Mon profil",
+    "display": "Affichage"
   },
   "applications": {
     "open": "Ouvrir",
