@@ -24,6 +24,7 @@ import {
   OnboardingPlanService,
   OnboardingResolvedAnswer,
 } from '../../../../../chat/services/onboarding-plan.service';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Étape « détails » du mode formulaire, pilotée par l'IA.
@@ -46,8 +47,7 @@ import {
     Select,
     TextareaModule,
     SkeletonModule,
-    TranslateModule,
-  ],
+    TranslateModule, IdemLoaderComponent],
   templateUrl: './dynamic-details-form.html',
   styleUrl: './dynamic-details-form.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

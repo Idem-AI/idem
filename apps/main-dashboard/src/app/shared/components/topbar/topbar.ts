@@ -342,7 +342,7 @@ export class TopbarComponent {
     // les droits, le catalogue et la liste des projets.
     if (!this.billing.me()) this.billing.loadMe().subscribe();
     if (!this.billing.catalog()) this.billing.loadCatalog().subscribe();
-    this.projects.load().subscribe();
+    this.projects.load().subscribe({ error: () => undefined });
   }
 
   /**

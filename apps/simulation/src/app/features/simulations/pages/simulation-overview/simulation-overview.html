@@ -41,10 +41,7 @@
               (click)="downloadReport()"
             >
               @if (downloading()) {
-                <span
-                  class="size-4 animate-spin rounded-full border-2 border-transparent border-t-current"
-                  aria-hidden="true"
-                ></span>
+                <idem-loader size="xs" />
                 {{ 'report.downloading' | translate }}
               } @else {
                 <i class="pi pi-download" aria-hidden="true"></i>

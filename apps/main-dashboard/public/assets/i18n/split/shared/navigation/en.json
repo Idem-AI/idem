@@ -64,7 +64,9 @@
       "financeCalendar": "Accounting calendar",
       "businessPlans": "My business plans",
       "pitchDecks": "My pitch decks",
-      "pitchDeckNew": "New pitch deck"
+      "pitchDeckNew": "New pitch deck",
+      "legalDoc": "Legal document",
+      "legalDocEdit": "Legal document editing"
     }
   }
 }

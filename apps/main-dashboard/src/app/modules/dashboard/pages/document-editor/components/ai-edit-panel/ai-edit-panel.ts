@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Panneau d'édition assistée par IA : l'utilisateur décrit en langage naturel la
@@ -9,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core';
  */
 @Component({
   selector: 'app-ai-edit-panel',
-  imports: [ReactiveFormsModule, TranslateModule],
+  imports: [ReactiveFormsModule, TranslateModule, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-3 space-y-3">
@@ -46,7 +47,7 @@ import { TranslateModule } from '@ngx-translate/core';
         (click)="onSubmit()"
       >
         @if (loading()) {
-          <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+          <idem-loader size="xs" />
           {{ 'dashboard.documentEditor.ai.working' | translate }}
         } @else {
           <i class="pi pi-sparkles" aria-hidden="true"></i>

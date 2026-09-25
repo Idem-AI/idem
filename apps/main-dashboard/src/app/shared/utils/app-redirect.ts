@@ -9,13 +9,15 @@ import { environment } from '../../../environments/environment';
  * par le cookie `session` posé par l'API Idem sur le domaine partagé — il n'y
  * a donc rien d'autre à transmettre.
  */
-export type RedirectTarget = 'simulation';
+export type RedirectTarget = 'simulation' | 'appgen';
 
 /** Base autorisée pour chaque application acceptant un retour après login. */
 export function appBaseUrl(target: RedirectTarget): string {
   switch (target) {
     case 'simulation':
       return environment.services.simulation.url;
+    case 'appgen':
+      return environment.services.webgen.url;
   }
 }
 

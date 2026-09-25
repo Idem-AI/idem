@@ -5,13 +5,13 @@ import { CookieService } from '../../../../shared/services/cookie.service';
 import { DiagramsService } from '../../services/ai-agents/diagrams.service';
 import { DiagramModel } from '../../models/diagram.model';
 import { DiagramDisplay } from './components/diagram-display/diagram-display';
-import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-show-diagrams',
   standalone: true,
-  imports: [CommonModule, DiagramDisplay, Loader, TranslateModule],
+  imports: [CommonModule, DiagramDisplay, TranslateModule, IdemLoaderComponent],
   templateUrl: './show-diagrams.html',
   styleUrls: ['./show-diagrams.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

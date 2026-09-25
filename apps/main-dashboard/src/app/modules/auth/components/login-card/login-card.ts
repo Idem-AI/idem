@@ -1,12 +1,12 @@
 import { Component, inject, signal, output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
-import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-login-card',
   standalone: true,
-  imports: [CommonModule, Loader],
+  imports: [CommonModule, IdemLoaderComponent],
   templateUrl: './login-card.html',
   styleUrl: './login-card.css',
 })

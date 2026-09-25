@@ -26,6 +26,7 @@ import { CookieService } from '../../../../../../../shared/services/cookie.servi
 import { Select } from 'primeng/select';
 import { ALL_COMPONENTS_LIST } from './datas';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-expert-deployment',
@@ -38,8 +39,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
     InputTextModule,
     ButtonModule,
     Select,
-    TranslateModule,
-  ],
+    TranslateModule, IdemLoaderComponent],
   templateUrl: './expert-deployment.html',
   styleUrl: './expert-deployment.css',
 })

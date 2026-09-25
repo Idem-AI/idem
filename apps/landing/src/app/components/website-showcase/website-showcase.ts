@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { SeoService } from '../../shared/services/seo.service';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 interface WebsiteExample {
   id: string;
@@ -23,7 +24,7 @@ interface WebsiteExample {
 @Component({
   selector: 'app-website-showcase',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, IdemLoaderComponent],
   templateUrl: './website-showcase.html',
   styleUrl: './website-showcase.css',
 })

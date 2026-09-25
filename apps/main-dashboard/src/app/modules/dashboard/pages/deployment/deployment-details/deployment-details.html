@@ -29,7 +29,7 @@
 
   <!-- Loading State -->
   @if (loading()) {
-    <app-loader />
+    <idem-loader block />
   }
 
   <!-- Error State -->
@@ -320,7 +320,7 @@
             <div
               class="flex items-center mb-4 text-yellow-400 bg-yellow-500/10 backdrop-blur-sm rounded-lg p-2 border border-yellow-500/20"
             >
-              <div class="animate-spin rounded-full h-4 w-4 border-2 border-current mr-2"></div>
+              <idem-loader size="xs" />
               <span>Deployment in Progress</span>
             </div>
           }
@@ -472,9 +472,7 @@
                                 ></path>
                               </svg>
                             } @else if (step.status === 'in-progress') {
-                              <div
-                                class="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"
-                              ></div>
+                              <idem-loader size="xs" />
                             } @else if (step.status === 'pending') {
                               <svg
                                 class="w-4 h-4 text-text-primary"
@@ -654,9 +652,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             @if (executionStatus() === 'executing') {
-              <div
-                class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"
-              ></div>
+              <idem-loader size="xs" />
               <span class="text-blue-400 font-medium">Executing...</span>
             } @else if (executionStatus() === 'completed') {
               <svg

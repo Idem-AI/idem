@@ -15,6 +15,7 @@
     "packages/shared-models",
     "packages/shared-auth-client",
     "packages/shared-styles",
+    "packages/shared-loader",
     "packages/shared-trusted-by"
   ],
   "scripts": {

@@ -1,6 +1,6 @@
 @if (isLoading()) {
   <div class="w-full min-h-screen flex flex-col items-center justify-center">
-    <app-loader />
+    <idem-loader block />
     <p class="text-text-tertiary mt-4">{{ 'common.loading' | translate }}</p>
   </div>
 } @else if (loadError()) {

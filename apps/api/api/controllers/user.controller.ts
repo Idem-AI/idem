@@ -1,8 +1,20 @@
 import { Request, Response } from 'express';
 import logger from '../config/logger';
+import admin from 'firebase-admin';
 import { userService } from '../services/user.service';
+import { isSuperUser } from '../utils/super-user.util';
+import { restoreSessionFromRefreshToken } from '../services/sessionCookie.service';
 import { CustomRequest } from '../interfaces/express.interface';
 import { OnboardingProfile, OnboardingUiMode } from '../models/userModel';
+
+async function isSessionValid(sessionCookie: string): Promise<boolean> {
+  try {
+    await admin.auth().verifySessionCookie(sessionCookie, true);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const UI_MODES: OnboardingUiMode[] = ['guided', 'chat', 'advanced'];
 const ANSWER_KEYS = ['stage', 'clarity', 'workStyle', 'comfort'] as const;
@@ -16,12 +28,19 @@ const ALLOWED_ANSWERS: Record<(typeof ANSWER_KEYS)[number], string[]> = {
 };
 
 export const profileController = async (req: Request, res: Response): Promise<void> => {
-  const sessionCookie = req.cookies.session;
+  let sessionCookie: string | undefined = req.cookies.session;
   let userIdForLogging = 'unknown';
 
   logger.info('Attempting to retrieve user profile.', {
     sessionCookieProvided: !!sessionCookie,
   });
+
+  // Les applications satellites (AppGen, iDeploy, simulateur) ne lisent que ce
+  // point d'entrée : une session expirée y est renouvelée depuis le refresh
+  // token, sans renvoyer l'utilisateur au login.
+  if (!sessionCookie || !(await isSessionValid(sessionCookie))) {
+    sessionCookie = (await restoreSessionFromRefreshToken(req, res)) ?? sessionCookie;
+  }
 
   if (!sessionCookie) {
     logger.warn('Profile retrieval failed: No session cookie provided.');
@@ -36,7 +55,9 @@ export const profileController = async (req: Request, res: Response): Promise<vo
       `Successfully verified session cookie for user: ${userIdForLogging}. Retrieving profile.`,
       { userId: userIdForLogging }
     );
-    res.status(200).json(profile);
+    // Les applications satellites lisent le statut ici plutôt que de dupliquer
+    // `ADMIN_EMAILS` dans leur propre configuration.
+    res.status(200).json({ ...profile, isSuperUser: isSuperUser(profile.email) });
   } catch (error: any) {
     logger.error('Error verifying session cookie or fetching user data:', {
       userId: userIdForLogging,

@@ -21,6 +21,7 @@ import {
 import { FLYER_FORMATS } from '../../communication-ui';
 import { VisualDialog } from '../visual-dialog/visual-dialog';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 const ORIGINS: VisualOrigin[] = ['plan', 'studio', 'occasion'];
 
@@ -37,7 +38,7 @@ const ORIGINS: VisualOrigin[] = ['plan', 'studio', 'occasion'];
  */
 @Component({
   selector: 'app-library-panel',
-  imports: [FormsModule, TranslateModule, VisualDialog, VisualThumb],
+  imports: [FormsModule, TranslateModule, VisualDialog, VisualThumb, IdemLoaderComponent],
   templateUrl: './library-panel.html',
   styleUrl: './library-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

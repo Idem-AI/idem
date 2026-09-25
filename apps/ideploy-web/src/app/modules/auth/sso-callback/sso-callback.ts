@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/cor
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../../shared/services/auth.service';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * SSO callback — landing target of the central app after login
@@ -11,12 +12,12 @@ import { AuthService } from '../../../shared/services/auth.service';
  */
 @Component({
   selector: 'app-sso-callback',
-  imports: [TranslateModule],
+  imports: [TranslateModule, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex min-h-screen items-center justify-center" style="background: var(--color-bg-dark);">
       <div class="text-center">
-        <i class="pi pi-spinner pi-spin text-2xl" style="color:var(--color-primary-500);"></i>
+        <idem-loader size="lg" />
         <p class="mt-4 text-sm" style="color:var(--color-text-tertiary);">{{ 'auth.signingIn' | translate }}</p>
       </div>
     </div>

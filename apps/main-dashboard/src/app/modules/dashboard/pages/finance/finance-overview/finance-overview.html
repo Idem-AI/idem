@@ -1,9 +1,7 @@
 @if (isLoading()) {
   <div class="flex items-center justify-center min-h-[60vh]">
     <div class="text-center">
-      <div
-        class="inline-block w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"
-      ></div>
+      <idem-loader size="lg" />
       <p class="mt-4 text-text-tertiary">{{ 'dashboard.finance.loading' | translate }}</p>
     </div>
   </div>
@@ -35,21 +33,7 @@
             class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] border border-[var(--glass-border)] text-text-primary text-sm font-medium transition-all duration-200 disabled:opacity-50"
           >
             @if (pdfLoading()) {
-              <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="3"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                ></path>
-              </svg>
+              <idem-loader size="xs" />
             } @else {
               <i class="pi pi-file-pdf text-base"></i>
             }

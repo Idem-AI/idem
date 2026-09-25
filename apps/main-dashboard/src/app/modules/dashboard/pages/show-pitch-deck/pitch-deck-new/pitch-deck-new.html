@@ -19,7 +19,7 @@
 
   @if (isLoading()) {
     <div class="text-center py-16">
-      <app-loader />
+      <idem-loader block />
     </div>
   } @else if (loadError()) {
     <div class="text-center py-16">
@@ -97,7 +97,7 @@
             }
             <button type="submit" class="inner-button pdn-submit" [disabled]="isCreating()">
               @if (isCreating()) {
-                <i class="pi pi-spin pi-spinner text-xs" aria-hidden="true"></i>
+                <idem-loader size="xs" />
                 <span>{{ 'dashboard.pitchDeckTypes.creating' | translate }}</span>
               } @else {
                 <span>{{ 'dashboard.pitchDeckTypes.generate' | translate }}</span>

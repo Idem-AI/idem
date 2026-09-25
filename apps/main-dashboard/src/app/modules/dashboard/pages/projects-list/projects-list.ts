@@ -11,19 +11,20 @@ import {
 import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../services/project.service';
 import { AsyncPipe, DatePipe } from '@angular/common';
-import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 
 import { AuthService } from '../../../auth/services/auth.service';
 import { Router } from '@angular/router';
 import { first, Observable } from 'rxjs';
 import { ProjectCard } from '../../components/project-card/project-card';
 import { CookieService } from '../../../../shared/services/cookie.service';
+import { CurrentProjectService } from '../../../../shared/services/current-project.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SafeHtmlPipe } from '../../../../shared/pipes/safe-html.pipe';
 
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Types de projet traduits, tels que proposés à la création. */
 const KNOWN_PROJECT_TYPES = new Set([
@@ -41,7 +42,7 @@ const KNOWN_PROJECT_TYPES = new Set([
 
 @Component({
   selector: 'app-projects-list',
-  imports: [Loader, ProjectCard, TranslateModule],
+  imports: [ProjectCard, TranslateModule, IdemLoaderComponent],
   templateUrl: './projects-list.html',
   styleUrl: './projects-list.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -55,6 +56,7 @@ export class ProjectsList implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly analyticsService = inject(AnalyticsService);
   private readonly uiModeService = inject(UiModeService);
+  private readonly currentProject = inject(CurrentProjectService);
 
   // Data signals and state
   userProjects$!: Observable<ProjectModel[]>;
@@ -200,6 +202,7 @@ export class ProjectsList implements OnInit {
           this.userProjects$.subscribe({
             next: (projects) => {
               this.allProjects.set(projects);
+              this.currentProject.replaceAll(projects);
               this.projectCount.set(projects.length);
               this.recentProjects.set(
                 projects
@@ -319,8 +322,7 @@ export class ProjectsList implements OnInit {
    */
   protected openProjectDashboard(projectId: string) {
     this.isDropdownOpen.set(false);
-    this.cookieService.set('projectId', projectId);
-    this.router.navigate(['/project/dashboard']);
+    this.currentProject.select(projectId);
   }
 
   protected handleLogoError(projectId: string) {
@@ -358,6 +360,7 @@ export class ProjectsList implements OnInit {
       next: () => {
         // Update local project list signal
         this.allProjects.update((projects) => projects.filter((p) => p.id !== deletedId));
+        this.currentProject.replaceAll(this.allProjects());
         this.projectCount.update((count) => Math.max(0, count - 1));
         this.recentProjects.update((recent) => recent.filter((p) => p.id !== deletedId));
 

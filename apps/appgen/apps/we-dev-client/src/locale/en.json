@@ -290,6 +290,7 @@
     "account": "Your account",
     "plan": "{{plan}} plan",
     "idemDashboard": "Idem dashboard",
+    "openChat": "Open the chat",
     "signOut": "Sign out"
   },
   "explorer": {

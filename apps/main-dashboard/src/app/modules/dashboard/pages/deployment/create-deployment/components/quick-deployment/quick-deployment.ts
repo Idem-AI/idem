@@ -16,11 +16,12 @@ import {
 import { CookieService } from '../../../../../../../shared/services/cookie.service';
 import { DeploymentService } from '../../../../../services/deployment.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-quick-deployment',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './quick-deployment.html',
   styleUrl: './quick-deployment.css',
 })

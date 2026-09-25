@@ -311,6 +311,14 @@ export class ApiService {
       this.http.patch<ApiResponse<Application>>(`${this.base}/applications/${uuid}`, body)
     );
   }
+  /** `serverCleanup` is `failed` when the record is gone but the server could not be cleaned. */
+  deleteApplication(uuid: string): Observable<{ deleted: boolean; serverCleanup: 'done' | 'failed' | 'skipped' }> {
+    return this.unwrap(
+      this.http.delete<ApiResponse<{ deleted: boolean; serverCleanup: 'done' | 'failed' | 'skipped' }>>(
+        `${this.base}/applications/${uuid}`
+      )
+    );
+  }
   appLifecycle(uuid: string, action: 'start' | 'stop' | 'restart'): Observable<unknown> {
     return this.unwrap(
       this.http.post<ApiResponse<unknown>>(`${this.base}/applications/${uuid}/${action}`, {})

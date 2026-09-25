@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Bouton "Remplir avec l'IA" — réutilisable au niveau d'une section entière
@@ -13,7 +14,7 @@ import { TranslateModule } from '@ngx-translate/core';
 @Component({
   selector: 'app-ai-fill-button',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ai-fill-button.html',
 })

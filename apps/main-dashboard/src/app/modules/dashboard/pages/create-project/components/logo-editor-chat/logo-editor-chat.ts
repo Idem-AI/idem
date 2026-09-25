@@ -15,6 +15,7 @@ import { LogoModel } from '../../../../models/logo.model';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 interface ChatMessage {
   id: string;
@@ -27,7 +28,7 @@ interface ChatMessage {
 @Component({
   selector: 'app-logo-editor-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, LogoSrcPipe, TranslateModule],
+  imports: [CommonModule, FormsModule, LogoSrcPipe, TranslateModule, IdemLoaderComponent],
   templateUrl: './logo-editor-chat.html',
   styleUrl: './logo-editor-chat.css',
 })

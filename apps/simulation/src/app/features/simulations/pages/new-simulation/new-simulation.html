@@ -10,7 +10,7 @@
       class="mx-auto flex max-w-5xl flex-col items-center px-4 pb-24 pt-14 text-center sm:px-6 lg:pt-24"
     >
       <h1
-        class="rise max-w-3xl text-[clamp(2rem,5.2vw,3.5rem)] font-semibold leading-[1.08] text-ink"
+        class="rise max-w-3xl text-[clamp(2rem,5.2vw,3.5rem)] font-black leading-[1.08] text-ink"
       >
         {{ 'newRun.hero.heading' | translate }}
       </h1>
@@ -465,10 +465,7 @@
         <section class="flex flex-col gap-5">
           @if (analysing()) {
             <div class="glass-card flex flex-col items-center gap-3 p-10 text-center">
-              <span
-                class="size-5 animate-spin rounded-full border-2 border-line border-t-brand"
-                aria-hidden="true"
-              ></span>
+              <idem-loader size="sm" />
               <p class="text-sm font-medium text-ink" role="status" aria-live="polite">
                 {{ 'newRun.analysing' | translate }}
               </p>

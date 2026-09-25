@@ -7,6 +7,7 @@ import { refreshTokenService } from '../services/refreshToken.service';
 import { CustomRequest } from '../interfaces/express.interface';
 import { v4 as uuidv4 } from 'uuid';
 import RedisConnection from '../config/redis.config';
+import { mintSessionCookie, sessionCookieOptions } from '../services/sessionCookie.service';
 export const sessionLoginController = async (req: Request, res: Response): Promise<void> => {
   const token = req.body.token;
   const user = req.body.user;
@@ -154,37 +155,10 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
       return;
     }
 
-    // Récupérer l'utilisateur
-    const user = await userService.getUserProfile(req.cookies.session || '');
-    if (!user) {
-      logger.warn(`User ${validation.userId} not found during token refresh`);
-      res.status(404).send({
-        success: false,
-        message: 'User not found.',
-      });
-      return;
-    }
-
-    // Créer un nouveau session cookie Firebase
-    const customToken = await admin.auth().createCustomToken(validation.userId);
-    const expiresIn = 14 * 24 * 60 * 60 * 1000; // 14 jours
-    const isProduction = process.env.NODE_ENV === 'production';
-
-    const sessionCookie = await admin.auth().createSessionCookie(customToken, { expiresIn });
-
-    const options: CookieOptions = {
-      maxAge: expiresIn,
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      path: '/',
-      // Set domain for cookie sharing between subdomains
-      // In dev: localhost (no domain needed for localhost ports)
-      // In prod: .idem.africa
-      ...(isProduction && { domain: '.idem.africa' }),
-    };
-
-    res.cookie('session', sessionCookie, options);
+    // Le cookie `session` est justement expiré ici : on ne peut pas s'en servir
+    // pour retrouver l'utilisateur, le refresh token suffit.
+    const sessionCookie = await mintSessionCookie(validation.userId);
+    res.cookie('session', sessionCookie, sessionCookieOptions());
 
     logger.info(`Access token refreshed successfully for user: ${validation.userId}`);
 

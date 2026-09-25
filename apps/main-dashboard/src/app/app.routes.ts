@@ -423,6 +423,27 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    path: 'project/legal-docs/edit',
+    title: 'navigation.titles.legalDocEdit',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/document-editor/document-editor').then(
+        (m) => m.DocumentEditorComponent,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'empty', documentType: 'legal-doc' },
+  },
+  {
+    // Après `edit` : un segment littéral n'est pas un identifiant.
+    path: 'project/legal-docs/:documentId',
+    title: 'navigation.titles.legalDoc',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/legal-docs/show-legal-doc/show-legal-doc').then(
+        (m) => m.ShowLegalDocPage,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
     // Récapitulatif seulement : simuler appartient à `apps/simulation`, qui
     // partage la même session IDEM.
     path: 'project/simulations',

@@ -8,6 +8,7 @@ import {
   Server,
   WorkspaceOptions,
 } from '../../../shared/models/ideploy.models';
+import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
 
 /**
  * Two-step workspace creation.
@@ -22,7 +23,7 @@ import {
  */
 @Component({
   selector: 'app-workspace-create',
-  imports: [RouterLink, ReactiveFormsModule, TranslateModule],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, IllustrationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto max-w-2xl">
@@ -93,11 +94,16 @@ import {
             <div class="grid gap-3 sm:grid-cols-2">
               @for (type of deploymentTypes(); track type) {
                 <label
-                  class="cursor-pointer rounded-lg border p-3"
+                  class="cursor-pointer rounded-xl border p-5 text-center transition-smooth flex flex-col items-center"
                   [style.border-color]="
                     form.controls.deployment_type.value === type
-                      ? 'var(--color-primary-400)'
-                      : 'var(--color-border, rgba(148,163,184,.25))'
+                      ? 'var(--color-primary-500)'
+                      : 'var(--glass-border)'
+                  "
+                  [style.background]="
+                    form.controls.deployment_type.value === type
+                      ? 'var(--glass-bg-light)'
+                      : 'var(--glass-bg-subtle)'
                   "
                 >
                   <input
@@ -106,10 +112,15 @@ import {
                     [value]="type"
                     formControlName="deployment_type"
                   />
+                  <app-illustration
+                    [name]="type === 'own' ? 'own-server' : 'managed-cloud'"
+                    [width]="104"
+                    class="mb-3 block"
+                  />
                   <span class="block text-sm font-semibold">
                     {{ 'workspaces.target.' + type | translate }}
                   </span>
-                  <span class="mt-1 block text-xs" style="color:var(--color-text-secondary);">
+                  <span class="mt-1 block text-xs leading-relaxed" style="color:var(--color-text-secondary);">
                     {{ 'workspaces.targetHint.' + type | translate }}
                   </span>
                 </label>

@@ -6,7 +6,6 @@ import { DevelopmentService } from '../../../services/ai-agents/development.serv
 import { DevelopmentConfigsModel, LandingPageConfig } from '../../../models/development.model';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { catchError, finalize, of, tap } from 'rxjs';
-import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { BrandingValidationService } from '../../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../../components/incomplete-project-banner/incomplete-project-banner';
 import {
@@ -17,11 +16,12 @@ import {
 import { ProjectModel } from '@idem/shared-models';
 
 import { environment } from '../../../../../../environments/environment';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-show-development',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, Loader, IncompleteProjectBannerComponent],
+  imports: [CommonModule, RouterModule, TranslateModule, IncompleteProjectBannerComponent, IdemLoaderComponent],
   templateUrl: './show-development.html',
   styleUrls: ['./show-development.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

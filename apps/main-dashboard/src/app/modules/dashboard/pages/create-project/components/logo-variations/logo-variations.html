@@ -160,10 +160,7 @@
                 <div
                   class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2"
                 >
-                  <svg class="w-7 h-7 text-text-primary animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                  </svg>
+                  <idem-loader size="xs" />
                   <span class="text-xs font-medium text-text-primary">
                     {{ 'dashboard.logoVariations.live.status.revising' | translate }}
                   </span>
@@ -188,10 +185,7 @@
           <!-- Statut -->
           <div class="flex items-center gap-2 mb-3 min-h-[24px]">
             @if (slot.status === 'generating' || slot.status === 'critiquing' || slot.status === 'revising' || slot.status === 'pending') {
-              <svg class="w-4 h-4 text-primary animate-spin shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-              </svg>
+              <idem-loader size="xs" />
             } @else if (slot.status === 'final') {
               <svg class="w-4 h-4 text-green-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
@@ -299,10 +293,10 @@
             <div
               class="w-full h-32 mb-4 bg-[var(--glass-bg-light)] rounded-xl flex items-center justify-center"
             >
-              <div class="w-16 h-16 skeleton-loader rounded-lg"></div>
+              <idem-loader size="lg" />
             </div>
-            <div class="h-5 skeleton-loader rounded mb-2"></div>
-            <div class="h-4 skeleton-loader rounded w-2/3"></div>
+            <idem-loader size="sm" />
+            <idem-loader size="xs" />
           </div>
         </ng-template>
       </app-carousel>
@@ -491,7 +485,7 @@
             {{ 'dashboard.logoVariations.status.processing' | translate }}
           </p>
           <div class="inline-flex items-center space-x-2 text-light-text/70">
-            <i class="pi pi-spin pi-spinner"></i>
+            <idem-loader size="xs" />
             <span>{{ 'dashboard.logoVariations.status.preparingNext' | translate }}</span>
           </div>
         </div>

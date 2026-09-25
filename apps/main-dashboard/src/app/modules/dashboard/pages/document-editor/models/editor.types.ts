@@ -13,7 +13,8 @@ export type EditorDocumentType =
   | 'pitch-deck'
   | 'branding'
   | 'business-card'
-  | 'flyer';
+  | 'flyer'
+  | 'legal-doc';
 
 /** Une section éditable (page/slide). `html` est la source de vérité. */
 export interface EditableSection {

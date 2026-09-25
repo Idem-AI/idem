@@ -60,7 +60,7 @@
         class="flex items-center justify-center gap-2 text-[var(--color-accent)] hover:text-[var(--color-accent)]/80 transition-colors py-1 px-2 text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
       >
         @if (isImprovingPrompt()) {
-          <i class="pi pi-spin pi-spinner text-sm"></i>
+          <idem-loader size="sm" />
           <span class="text-sm">{{
             'dashboard.projectDescription.buttons.improving' | translate
           }}</span>
@@ -111,7 +111,7 @@
           (click)="onFeelingLucky()"
         >
           @if (isGeneratingLucky()) {
-            <i class="pi pi-spin pi-spinner text-xs flex-shrink-0 text-secondary"></i>
+            <idem-loader size="xs" />
             <span class="truncate text-center sm:text-left">{{
               'dashboard.projectDescription.buttons.generatingIdea' | translate
             }}</span>

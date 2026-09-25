@@ -16,6 +16,7 @@ import {
   BusinessCardHolder,
   BUSINESS_CARD_FIELDS,
 } from '../../../../models/business-card.model';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Description d'un champ du formulaire (libellé i18n + type de saisie). */
 interface FieldConfig {
@@ -43,7 +44,7 @@ const FIELDS: FieldConfig[] = [
  */
 @Component({
   selector: 'app-holder-form',
-  imports: [ReactiveFormsModule, TranslateModule],
+  imports: [ReactiveFormsModule, TranslateModule, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5">
@@ -88,7 +89,7 @@ const FIELDS: FieldConfig[] = [
 
       <div class="flex flex-wrap items-center gap-3 pt-1">
         <button type="submit" class="inner-button !text-sm" [disabled]="saving()">
-          <i class="pi" [class.pi-check]="!saving()" [class.pi-spinner]="saving()" [class.pi-spin]="saving()"></i>
+          <idem-loader size="xs" />
           <span>{{ submitLabelKey() | translate }}</span>
         </button>
         <button type="button" class="outer-button !text-sm !py-2.5" (click)="cancel.emit()">

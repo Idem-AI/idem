@@ -51,6 +51,20 @@ export const publicGuard: CanActivateFn = async (route) => {
     if (user) {
       // Check if there's a redirect parameter (e.g., redirect=ideploy)
       const redirectParam = route.queryParamMap.get('redirect');
+      const fromAppGen = route.queryParamMap.get('from') === 'appgen';
+
+      // Les autres applications lisent le cookie `session`, pas Firebase :
+      // s'il a expiré, on le rétablit avant de les y renvoyer, sinon elles
+      // reviendraient aussitôt ici sans utilisateur.
+      if (redirectParam === 'simulation' || redirectParam === 'ideploy' || fromAppGen) {
+        await authService.ensureServerSession();
+      }
+
+      if (fromAppGen) {
+        console.log('User already authenticated, redirecting back to AppGen...');
+        redirectToApp('appgen', route.queryParamMap.get('returnUrl'));
+        return false;
+      }
 
       if (redirectParam === 'simulation') {
         // Déjà connecté : on renvoie directement sur le simulateur, le cookie

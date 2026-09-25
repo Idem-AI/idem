@@ -27,7 +27,6 @@ import { LogoVariationsComponent } from './components/logo-variations/logo-varia
 import { ProjectSummaryComponent } from './components/project-summary/project-summary';
 import { LogoChoiceComponent } from './components/logo-choice/logo-choice';
 import { FoundationsCardComponent } from './components/foundations-card/foundations-card';
-import { Loader } from '../../../../shared/components/loader/loader';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
@@ -38,6 +37,7 @@ import { AuthService } from '../../../auth/services/auth.service';
 import { LoginCardComponent } from '../../../auth/components/login-card/login-card';
 import { DialogModule } from 'primeng/dialog';
 import { ModeChoiceComponent, CreateMode } from './components/mode-choice/mode-choice';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 // Simple step configuration
 interface Step {
@@ -58,12 +58,10 @@ const CREATE_MODE_KEY = 'idem_create_project_mode';
     DynamicDetailsFormComponent,
     ProjectSummaryComponent,
     TranslateModule,
-    Loader,
     OnboardingChatComponent,
     DialogModule,
     LoginCardComponent,
-    ModeChoiceComponent,
-  ],
+    ModeChoiceComponent, IdemLoaderComponent],
   templateUrl: './create-project.html',
   styleUrl: './create-project.css',
 })

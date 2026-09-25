@@ -1,7 +1,7 @@
 {
   "name": "ideploy-web",
   "version": "1.0.0",
-  "description": "Angular 20 frontend for iDeploy — rewrite of the Laravel/Livewire UI.",
+  "description": "Angular 20 frontend for iDeploy \u2014 rewrite of the Laravel/Livewire UI.",
   "scripts": {
     "ng": "ng",
     "env:dev": "node scripts/set-env.js",
@@ -26,6 +26,7 @@
     "@angular/platform-browser-dynamic": "^20.0.0",
     "@angular/router": "^20.0.0",
     "@idem/shared-styles": "file:../../packages/shared-styles",
+    "@idem/shared-loader": "file:../../packages/shared-loader",
     "@ngx-translate/core": "^17.0.0",
     "@ngx-translate/http-loader": "^17.0.0",
     "@primeng/themes": "^20.0.0",

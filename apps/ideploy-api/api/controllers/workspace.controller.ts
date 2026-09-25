@@ -36,7 +36,11 @@ export async function listResources(req: CustomRequest, res: Response): Promise<
 
 export async function create(req: CustomRequest, res: Response): Promise<void> {
   try {
-    ok(res, await service.createWorkspace(req.user!.currentTeamId!, req.body), 201);
+    ok(
+      res,
+      await service.createWorkspace(req.user!.currentTeamId!, req.body, req.user!.isSuperUser === true),
+      201
+    );
   } catch (err) {
     respondWithError(res, err, 'Creating the workspace');
   }
@@ -71,7 +75,7 @@ export async function creationOptions(req: CustomRequest, res: Response): Promis
   try {
     const teamId = req.user!.currentTeamId!;
     const [regionSelectionAllowed, availableRegions] = await Promise.all([
-      canSelectRegion(teamId),
+      canSelectRegion(teamId, req.user!.isSuperUser === true),
       scheduling.listAvailableRegions(),
     ]);
 

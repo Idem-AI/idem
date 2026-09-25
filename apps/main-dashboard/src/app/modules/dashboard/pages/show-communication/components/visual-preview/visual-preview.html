@@ -1,7 +1,7 @@
 <div class="vp-frame" [style.max-height.px]="maxHeight()">
   @if (isLoading()) {
     <p class="vp-state" role="status" aria-live="polite">
-      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+      <idem-loader size="xs" />
       {{ 'dashboard.showCommunication.preview.loading' | translate }}
     </p>
   } @else if (loadFailed()) {

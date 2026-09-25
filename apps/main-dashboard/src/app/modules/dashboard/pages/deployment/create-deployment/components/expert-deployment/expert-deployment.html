@@ -291,7 +291,7 @@
               [placeholder]="'dashboard.expertDeployment.placeholders.repoUrl' | translate"
               (blur)="fetchGitBranches()"
             />
-            <i *ngIf="loadingGitInfo()" class="pi pi-spin pi-spinner text-blue-500"></i>
+            <idem-loader size="xs" />
           </span>
         </div>
         <div class="mt-1 flex items-center gap-1" *ngIf="gitBranches().length > 0">

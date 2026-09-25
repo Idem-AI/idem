@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Étapes affichées pendant la composition du modèle (clés i18n). */
 const STEP_KEYS = [
@@ -25,7 +26,7 @@ const STEP_KEYS = [
  */
 @Component({
   selector: 'app-generation-preview',
-  imports: [TranslateModule],
+  imports: [TranslateModule, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="stage" [class.is-active]="active()">
@@ -58,7 +59,7 @@ const STEP_KEYS = [
               @if (i < step()) {
                 <i class="pi pi-check"></i>
               } @else if (i === step()) {
-                <i class="pi pi-spinner pi-spin"></i>
+                <idem-loader size="xs" />
               }
             </span>
             <span>{{ key | translate }}</span>

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, requireTeam } from '../middleware/auth.middleware';
+import { requireTeamAdmin } from '../middleware/authorize.middleware';
 import * as ctrl from '../controllers/application.controller';
 import * as deployCtrl from '../controllers/deploy.controller';
 
@@ -17,6 +18,20 @@ router.post('/', ctrl.createApplication);
 
 router.get('/:uuid', ctrl.getApplication);
 router.patch('/:uuid', ctrl.updateApplication);
+
+/**
+ * @swagger
+ * /api/v1/applications/{uuid}:
+ *   delete:
+ *     summary: Delete an application, its containers and volumes
+ *     tags: [Applications]
+ *     responses:
+ *       200: { description: Deleted; serverCleanup tells whether the server was cleaned }
+ *       403: { description: Not an owner or admin of the team }
+ *       404: { description: Application not found }
+ *       409: { description: A deployment is queued or running }
+ */
+router.delete('/:uuid', requireTeamAdmin, ctrl.deleteApplication);
 
 // Lifecycle
 router.post('/:uuid/start', ctrl.startApplication);

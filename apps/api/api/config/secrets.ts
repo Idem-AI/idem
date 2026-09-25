@@ -51,6 +51,9 @@ const OPTIONAL_SECRETS = [
   'FIREBASE_APP_ID',
   'FIREBASE_AUTH_DOMAIN',
   'FIREBASE_MEASUREMENT_ID',
+  // Clé web Firebase : sert à renouveler le cookie `session` depuis le refresh
+  // token (voir api/services/sessionCookie.service.ts).
+  'FIREBASE_API_KEY',
   'REDIS_PASSWORD',
   // Clé AI Studio. N'est plus utilisée quand GEMINI_BACKEND vaut `vertex`
   // (le défaut) : la facturation passe alors par Google Cloud.

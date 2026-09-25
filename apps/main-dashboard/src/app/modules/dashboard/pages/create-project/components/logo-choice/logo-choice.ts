@@ -8,6 +8,7 @@ import { BrandingService } from '../../../../services/ai-agents/branding.service
 import { LogoImportService } from '../../../../services/logo-import.service';
 import { LogoVariations, LogoPreferencesModel } from '../../../../models/logo.model';
 import { LogoChoiceIllustrationComponent } from './logo-choice-illustration/logo-choice-illustration';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Logo choice step in the create-project wizard.
@@ -18,7 +19,7 @@ import { LogoChoiceIllustrationComponent } from './logo-choice-illustration/logo
 @Component({
   selector: 'app-logo-choice',
   standalone: true,
-  imports: [CommonModule, TranslateModule, LogoImportComponent, LogoChoiceIllustrationComponent],
+  imports: [CommonModule, TranslateModule, LogoImportComponent, LogoChoiceIllustrationComponent, IdemLoaderComponent],
   templateUrl: './logo-choice.html',
   styleUrl: './logo-choice.css',
 })

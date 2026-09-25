@@ -11,6 +11,7 @@ import {
   DatabaseType,
 } from '../../../shared/models/ideploy.models';
 import { credentialLabel, isSecretField } from '../../../shared/utils/db-credentials.util';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Database detail — connection facts, lifecycle, and scheduled backups.
@@ -30,7 +31,7 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
  */
 @Component({
   selector: 'app-database-detail',
-  imports: [RouterLink, FormsModule, ReactiveFormsModule, TranslateModule],
+  imports: [RouterLink, FormsModule, ReactiveFormsModule, TranslateModule, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a
@@ -87,7 +88,7 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
           <div class="box-header">
             <h2 class="box-title flex items-center gap-2">
               @if (busy()) {
-                <i class="pi pi-spinner pi-spin text-xs" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+                <idem-loader size="xs" />
               } @else {
                 <i class="pi pi-code text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
               }

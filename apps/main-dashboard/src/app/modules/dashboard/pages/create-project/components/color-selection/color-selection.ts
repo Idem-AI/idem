@@ -10,6 +10,7 @@ import { LoginCardComponent } from '../../../../../auth/components/login-card/lo
 import { DialogModule } from 'primeng/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ColorCustomizerComponent } from '../color-customizer/color-customizer.component';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-color-selection',
@@ -20,8 +21,7 @@ import { ColorCustomizerComponent } from '../color-customizer/color-customizer.c
     DialogModule,
     LoginCardComponent,
     ColorCustomizerComponent,
-    TranslateModule,
-  ],
+    TranslateModule, IdemLoaderComponent],
   templateUrl: './color-selection.html',
   styleUrl: './color-selection.css',
 })
