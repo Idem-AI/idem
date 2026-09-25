@@ -250,7 +250,7 @@ export function PromptComposer({
           // (@idem/shared-styles, hors @layer) prime sur les utilitaires
           // Tailwind, d'où le `!` pour neutraliser sa bordure, son fond, son
           // ombre et sa hauteur minimale — sans quoi deux cadres se dessinent.
-          className="w-full resize-none text-text-primary leading-relaxed outline-none bg-transparent! border-0! rounded-none! shadow-none! min-h-0! px-5! pt-5! pb-2! text-[15px]!"
+          className="w-full resize-none! text-text-primary leading-relaxed outline-none bg-transparent! border-0! rounded-none! shadow-none! min-h-0! px-5! pt-5! pb-2! text-[15px]!"
         />
 
         {/* Invite en filigrane : un vrai `placeholder` ne peut pas s'animer,

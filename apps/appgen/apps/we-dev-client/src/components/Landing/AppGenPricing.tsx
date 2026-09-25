@@ -47,7 +47,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
 
   return (
     <section id="pricing" className="px-6 py-28">
-      <div className="max-w-[62rem] mx-auto">
+      <div className="max-w-[68rem] mx-auto">
         <div className="max-w-xl">
           <h2 className="text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight text-balance">
             {t('landing.pricing.title')}
