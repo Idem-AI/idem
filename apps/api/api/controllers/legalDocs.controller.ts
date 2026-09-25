@@ -8,6 +8,7 @@ import { PromptService } from '../services/prompt.service';
 import { ISectionResult } from '../services/common/generic.service';
 import { userService } from '../services/user.service';
 import logger from '../config/logger';
+import { getRequestLanguage } from '../utils/request-language';
 import { LegalDocumentType } from '../models/legalDocs.model';
 
 const promptService = new PromptService();
@@ -305,5 +306,73 @@ export const generateLegalDocPdfController = async (
   } catch (error: any) {
     logger.error(`generateLegalDocPdfController error: ${error.message}`, { stack: error.stack });
     res.status(500).json({ message: 'Error generating legal document PDF', error: error.message });
+  }
+};
+
+/**
+ * Enregistre le HTML d'un document juridique édité (éditeur WYSIWYG).
+ * Body: { data }.
+ */
+export const updateLegalDocController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId, documentId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    const data = req.body?.data;
+    if (typeof data !== 'string' || !data.trim()) {
+      res.status(400).json({ message: 'A non-empty "data" HTML string is required' });
+      return;
+    }
+    const document = await legalDocsService.updateDocumentHtml(
+      userId,
+      projectId as string,
+      documentId as string,
+      data
+    );
+    if (!document) {
+      res.status(404).json({ message: 'Document not found' });
+      return;
+    }
+    res.status(200).json({ document });
+  } catch (error: any) {
+    logger.error(`updateLegalDocController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to save document' });
+  }
+};
+
+/**
+ * Édition IA d'un document juridique. Body: { instruction }.
+ */
+export const aiEditLegalDocController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId, documentId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    const instruction = (req.body?.instruction ?? '').toString().trim();
+    if (!instruction) {
+      res.status(400).json({ message: 'An "instruction" is required' });
+      return;
+    }
+    const document = await legalDocsService.aiEditDocument(
+      userId,
+      projectId as string,
+      documentId as string,
+      instruction,
+      getRequestLanguage()
+    );
+    if (!document) {
+      res.status(404).json({ message: 'Document not found or AI edit failed' });
+      return;
+    }
+    res.status(200).json({ document });
+  } catch (error: any) {
+    logger.error(`aiEditLegalDocController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to AI-edit document' });
   }
 };

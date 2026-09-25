@@ -184,15 +184,14 @@
 
                           @if (row.doc; as doc) {
                             <div class="flex items-center gap-1 sm:shrink-0 pl-10 sm:pl-0">
-                              <button
-                                type="button"
-                                class="button-ghost button-sm inline-flex items-center gap-1.5"
-                                (click)="preview(doc)"
-                                [attr.aria-label]="('dashboard.legalDocs.actions.preview' | translate) + ' : ' + doc.name"
+                              <a
+                                class="button-ghost button-sm inline-flex items-center gap-1.5 no-underline"
+                                [routerLink]="['/project/legal-docs', doc.id]"
+                                [attr.aria-label]="('dashboard.legalDocs.actions.open' | translate) + ' : ' + doc.name"
                               >
                                 <i class="pi pi-eye" aria-hidden="true"></i>
-                                <span class="hidden md:inline">{{ 'dashboard.legalDocs.actions.preview' | translate }}</span>
-                              </button>
+                                <span class="hidden md:inline">{{ 'dashboard.legalDocs.actions.open' | translate }}</span>
+                              </a>
                               <button
                                 type="button"
                                 class="button-ghost button-sm inline-flex items-center gap-1.5"

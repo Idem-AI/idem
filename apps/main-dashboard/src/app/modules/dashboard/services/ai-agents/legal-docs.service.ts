@@ -7,6 +7,7 @@ import {
   LegalDocsContext,
   LegalDocsModel,
   LegalDocumentCatalogEntry,
+  LegalDocumentModel,
   LegalDocumentType,
   LegalFormEntry,
   LegalRecommendations,
@@ -86,6 +87,26 @@ export class LegalDocsService {
       reconnectionDelay: 1000,
     };
     return this.sseService.createConnection(config, 'legal-docs');
+  }
+
+  /** Enregistre le HTML d'un document édité (éditeur WYSIWYG). */
+  updateDocument(projectId: string, documentId: string, data: string): Observable<{ document: LegalDocumentModel }> {
+    return this.http.put<{ document: LegalDocumentModel }>(
+      `${this.apiUrl}/${projectId}/documents/${documentId}`,
+      { data },
+    );
+  }
+
+  /** Édition IA d'un document : renvoie le document réécrit. */
+  aiEditDocument(
+    projectId: string,
+    documentId: string,
+    instruction: string,
+  ): Observable<{ document: LegalDocumentModel }> {
+    return this.http.post<{ document: LegalDocumentModel }>(
+      `${this.apiUrl}/${projectId}/documents/${documentId}/ai-edit`,
+      { instruction },
+    );
   }
 
   downloadDocumentPdf(projectId: string, documentId: string): Observable<Blob> {

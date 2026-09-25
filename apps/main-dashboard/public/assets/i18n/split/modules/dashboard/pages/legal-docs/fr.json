@@ -96,8 +96,8 @@
       "actions": {
         "continue": "Continuer",
         "generate": "Générer {{count}} document(s)",
-        "preview": "Aperçu",
-        "download": "Télécharger le PDF"
+        "download": "Télécharger le PDF",
+        "open": "Ouvrir"
       },
       "generating": {
         "title": "Rédaction en cours",
@@ -119,6 +119,17 @@
         "generation": "La génération a échoué. Vos informations sont conservées, réessayez.",
         "download": "Le PDF n'a pas pu être téléchargé. Réessayez.",
         "delete": "Le document n'a pas pu être supprimé. Réessayez."
+      },
+      "show": {
+        "backToList": "Retour à l'espace juridique",
+        "notFound": {
+          "title": "Document introuvable",
+          "subtitle": "Il a peut-être été supprimé. Retrouvez vos documents dans l'espace juridique."
+        },
+        "error": {
+          "title": "Impossible de charger le document",
+          "subtitle": "Vérifiez votre connexion, puis réessayez."
+        }
       }
     }
   }

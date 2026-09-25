@@ -43,7 +43,10 @@ import { buildPlaceholderHtml, composePages, PreviewPage } from './preview-pages
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Documents qui ont une page d'affichage avec aperçu. */
-export type PreviewDocumentType = Extract<EditorDocumentType, 'business-plan' | 'pitch-deck' | 'branding'>;
+export type PreviewDocumentType = Extract<
+  EditorDocumentType,
+  'business-plan' | 'pitch-deck' | 'branding' | 'legal-doc'
+>;
 
 type DownloadState = 'idle' | 'working' | 'done' | 'error';
 

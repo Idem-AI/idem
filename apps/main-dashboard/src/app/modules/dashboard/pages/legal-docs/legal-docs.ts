@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
@@ -95,6 +96,7 @@ const isStatutes = (type: string): boolean => type === 'statuts' || type in LEGA
   imports: [
     DatePipe,
     FormsModule,
+    RouterLink,
     TranslateModule,
     IncompleteProjectBannerComponent,
     IdemLoaderComponent,
@@ -481,29 +483,6 @@ export class LegalDocsPage implements OnInit {
   }
 
   // ─────────────────────────────────────────────── Documents rédigés
-
-  /**
-   * Ouvre le brouillon dans un onglet, rendu comme le PDF (Tailwind).
-   *
-   * Le HTML vient de l'IA : il est isolé dans une iframe `sandbox` sans
-   * `allow-same-origin`, donc sans accès aux cookies ni au stockage de l'app.
-   */
-  protected preview(doc: LegalDocumentModel): void {
-    const escape = (s: string) =>
-      s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const inner =
-      `<!doctype html><html><head><meta charset="utf-8">` +
-      `<script src="${location.origin}/scripts/tailwind.js"></script></head>` +
-      `<body style="margin:0;background:#e8eaef;display:flex;justify-content:center;padding:32px 0">` +
-      `<div style="background:#fff;box-shadow:0 4px 24px rgba(15,23,42,.12)">${doc.data}</div></body></html>`;
-    const html =
-      `<!doctype html><html lang="${this.lang()}"><head><meta charset="utf-8"><title>${escape(doc.name)}</title></head>` +
-      `<body style="margin:0"><iframe sandbox="allow-scripts" title="${escape(doc.name)}" ` +
-      `style="border:0;width:100vw;height:100vh;display:block" srcdoc="${escape(inner)}"></iframe></body></html>`;
-    const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-    window.open(url, '_blank', 'noopener');
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  }
 
   protected download(doc: LegalDocumentModel): void {
     const pid = this.projectId();

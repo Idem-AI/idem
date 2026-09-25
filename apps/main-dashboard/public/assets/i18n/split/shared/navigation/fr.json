@@ -64,7 +64,9 @@
       "financeCalendar": "Calendrier comptable",
       "businessPlans": "Mes business plans",
       "pitchDecks": "Mes pitch decks",
-      "pitchDeckNew": "Nouveau pitch deck"
+      "pitchDeckNew": "Nouveau pitch deck",
+      "legalDoc": "Document juridique",
+      "legalDocEdit": "Édition du document juridique"
     }
   }
 }

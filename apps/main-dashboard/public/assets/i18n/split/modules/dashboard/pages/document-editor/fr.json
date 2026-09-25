@@ -109,6 +109,9 @@
       "zoom": {
         "menu": "Zoom : {{value}} %",
         "fitWidth": "Ajuster à la largeur"
+      },
+      "legalDoc": {
+        "title": "Éditeur du document juridique"
       }
     }
   }
