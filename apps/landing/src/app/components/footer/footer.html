@@ -1,220 +1,234 @@
-<footer class="site-footer glass text-text-primary relative overflow-hidden py-16 sm:py-20">
-  <!-- Decorative brand glow (non-interactive) -->
-  <div
-    class="footer-glow pointer-events-none absolute -bottom-24 -left-20 h-72 w-72 rounded-full opacity-60 blur-3xl"
-    aria-hidden="true"
-  ></div>
+<footer class="ft">
+  <!-- ═══ Signature strip ══════════════════════════════════════════
+       Three verifiable facts about the company, not slogans: the licence,
+       where it runs, and what time it is there. It is the one part of the
+       page that is alive, which is what keeps the footer from reading as
+       boilerplate. -->
+  <div class="ft-strip">
+    <div class="ft-shell ft-strip-inner">
+      <a
+        class="ft-fact ft-fact-link"
+        href="https://github.com/Idem-AI"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <svg class="ft-fact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M8 18l-4-6 4-6m8 12l4-6-4-6"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span i18n="@@footer.fact.openSource">Open source · Apache 2.0</span>
+      </a>
 
-  <div class=" mx-auto px-6 relative z-10">
-    <div class="grid grid-cols-2 lg:grid-cols-12 gap-x-8 gap-y-12">
-      <!-- Brand -->
-      <div class="col-span-2 lg:col-span-4 flex flex-col gap-6">
-        <div>
-          <a href="/" class="inline-flex items-center text-2xl font-bold text-text-primary">
-            <span class="relative">
-              IDEM
-              <span
-                class="absolute -top-1 -right-3 h-2 w-2 rounded-full bg-primary opacity-70"
-                aria-hidden="true"
-              ></span>
-            </span>
+      <span class="ft-fact">
+        <svg class="ft-fact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7" />
+          <path
+            d="M3.5 12h17M12 3.5c2.2 2.4 3.3 5.3 3.3 8.5S14.2 18.1 12 20.5c-2.2-2.4-3.3-5.3-3.3-8.5S9.8 5.9 12 3.5z"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+          />
+        </svg>
+        <span i18n="@@footer.fact.hosted">Hosted on African servers</span>
+      </span>
+
+      @if (localTime()) {
+        <span class="ft-fact ft-fact-clock">
+          <span class="ft-live" aria-hidden="true"></span>
+          <span i18n="@@footer.fact.time">Cameroon</span>
+          <time class="ft-clock">{{ localTime() }}</time>
+        </span>
+      }
+    </div>
+  </div>
+
+  <!-- ═══ Body ════════════════════════════════════════════════════ -->
+  <div class="ft-shell ft-body">
+    <div class="ft-brand">
+      <a href="/" class="ft-logo" aria-label="IDEM">
+        <img
+          src="/assets/icons/logo_white.png"
+          alt=""
+          width="120"
+          height="34"
+          class="ft-logo-light"
+        />
+        <img src="/assets/icons/logo_dark.png" alt="" width="120" height="34" class="ft-logo-dark" />
+      </a>
+
+      <p class="ft-tagline" i18n="@@footer.description">
+        Africa's first sovereign open source AI platform. Built in Cameroon for pan-African tech
+        entrepreneurship.
+      </p>
+
+      <ul class="ft-social">
+        <li>
+          <a
+            href="https://github.com/Idem-AI"
+            target="_blank"
+            rel="noopener noreferrer"
+            i18n-aria-label="@@footer.aria.github"
+            aria-label="Visit Idem Engine on GitHub"
+            class="ft-social-link"
+          >
+            <i class="pi pi-github" aria-hidden="true"></i>
           </a>
-          <p class="mt-4 max-w-sm text-text-secondary leading-relaxed" i18n="@@footer.description">
-            Africa's first sovereign open source AI platform. Built in Cameroon for pan-African tech
-            entrepreneurship.
-          </p>
-        </div>
-
-        <!-- Social Media -->
-        <div>
-          <p class="mb-3 text-sm font-medium text-text-tertiary" i18n="@@footer.followUs">
-            Follow Us
-          </p>
-          <div class="flex flex-wrap gap-2.5">
-            <a
-              href="https://github.com/Idem-AI"
-              target="_blank"
-              rel="noopener noreferrer"
-              i18n-aria-label="@@footer.aria.github"
-              aria-label="Visit Idem Engine on GitHub"
-              class="footer-social"
-            >
-              <i class="pi pi-github text-xl" aria-hidden="true"></i>
-            </a>
-            <a
-              href="https://www.linkedin.com/company/idemafrica"
-              target="_blank"
-              rel="noopener noreferrer"
-              i18n-aria-label="@@footer.aria.linkedin"
-              aria-label="Visit Idem Engine on LinkedIn"
-              class="footer-social"
-            >
-              <i class="pi pi-linkedin text-xl" aria-hidden="true"></i>
-            </a>
-            <a
-              href="https://www.facebook.com/profile.php?id=61580303204333"
-              target="_blank"
-              rel="noopener noreferrer"
-              i18n-aria-label="@@footer.aria.facebook"
-              aria-label="Visit Idem Engine on Facebook"
-              class="footer-social"
-            >
-              <i class="pi pi-facebook text-xl" aria-hidden="true"></i>
-            </a>
-            <a
-              href="https://www.instagram.com/idemafrica/"
-              target="_blank"
-              rel="noopener noreferrer"
-              i18n-aria-label="@@footer.aria.instagram"
-              aria-label="Visit Idem Engine on Instagram"
-              class="footer-social"
-            >
-              <i class="pi pi-instagram text-xl" aria-hidden="true"></i>
-            </a>
-            <a
-              href="https://x.com/idem_ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              i18n-aria-label="@@footer.aria.x"
-              aria-label="Visit Idem Engine on X"
-              class="footer-social"
-            >
-              <i class="pi pi-twitter text-xl" aria-hidden="true"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- License badge -->
-        <div class="mt-auto flex items-center gap-2 text-sm text-text-secondary">
-          <i class="pi pi-code text-primary" aria-hidden="true"></i>
-          <span i18n="@@footer.apache_license">Apache 2.0 License</span>
-        </div>
-      </div>
-
-      <!-- Platform -->
-      <nav class="lg:col-span-2" aria-labelledby="footer-platform-heading">
-        <h3 id="footer-platform-heading" class="footer-heading" i18n="@@footer.platform">Platform</h3>
-        <ul class="mt-4 space-y-3">
-          <li><a href="/" class="footer-link" i18n="@@footer.home">Home</a></li>
-          <li>
-            <a href="/documentation" class="footer-link" i18n="@@footer.documentation"
-              >Documentation</a
-            >
-          </li>
-          <li>
-            <a
-              href="https://github.com/Idem-AI"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="footer-link"
-              i18n="@@footer.openSource"
-              >Open Source</a
-            >
-          </li>
-          <li>
-            <a href="/premium-beta" class="footer-link" i18n="@@footer.betaProgram">Beta Program</a>
-          </li>
-        </ul>
-      </nav>
-
-      <!-- Apps -->
-      <nav class="lg:col-span-2" aria-labelledby="footer-apps-heading">
-        <h3 id="footer-apps-heading" class="footer-heading" i18n="@@footer.apps">Apps</h3>
-        <ul class="mt-4 space-y-3">
-          <li><a href="/idev" class="footer-link" i18n="@@footer.idev">iCode</a></li>
-          <li><a href="/ideploy" class="footer-link" i18n="@@footer.ideploy">iDeploy</a></li>
-        </ul>
-      </nav>
-
-      <!-- Legal -->
-      <nav class="lg:col-span-2" aria-labelledby="footer-legal-heading">
-        <h3 id="footer-legal-heading" class="footer-heading" i18n="@@footer.legal">Legal</h3>
-        <ul class="mt-4 space-y-3">
-          <li>
-            <a href="/privacy-policy" class="footer-link" i18n="@@footer.privacyPolicy"
-              >Privacy Policy</a
-            >
-          </li>
-          <li>
-            <a href="/terms-of-service" class="footer-link" i18n="@@footer.termsOfService"
-              >Terms of Service</a
-            >
-          </li>
-          <li>
-            <a
-              href="https://github.com/Idem-AI/idem/blob/main/LICENSE"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="footer-link"
-              i18n="@@footer.apacheLicense"
-              >Apache 2.0 License</a
-            >
-          </li>
-        </ul>
-      </nav>
-
-      <!-- Founders -->
-      <div class="lg:col-span-2">
-        <h3 class="footer-heading" i18n="@@footer.founders">Cameroonian Founders</h3>
-        <div class="mt-4 space-y-3 text-sm">
-          <div>
-            <div class="font-semibold text-text-primary leading-snug" i18n="@@footer.ceoName">
-              Arolle Dubois Aguekeng
-            </div>
-            <div class="text-text-secondary text-xs" i18n="@@footer.ceoTitle">CEO & Co-Founder</div>
-          </div>
-          <div>
-            <div class="font-semibold text-text-primary leading-snug" i18n="@@footer.ctoName">
-              Romuald Djeteje
-            </div>
-            <div class="text-text-secondary text-xs" i18n="@@footer.ctoTitle">CTO & Co-Founder</div>
-          </div>
-          <p class="text-text-tertiary text-xs pt-1" i18n="@@footer.buildingAfrica">
-            Building Africa's tech future from Cameroon
-          </p>
-        </div>
-      </div>
+        </li>
+        <li>
+          <a
+            href="https://www.linkedin.com/company/idemafrica"
+            target="_blank"
+            rel="noopener noreferrer"
+            i18n-aria-label="@@footer.aria.linkedin"
+            aria-label="Visit Idem Engine on LinkedIn"
+            class="ft-social-link"
+          >
+            <i class="pi pi-linkedin" aria-hidden="true"></i>
+          </a>
+        </li>
+        <li>
+          <a
+            href="https://x.com/idem_ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            i18n-aria-label="@@footer.aria.x"
+            aria-label="Visit Idem Engine on X"
+            class="ft-social-link"
+          >
+            <i class="pi pi-twitter" aria-hidden="true"></i>
+          </a>
+        </li>
+        <li>
+          <a
+            href="https://www.instagram.com/idemafrica/"
+            target="_blank"
+            rel="noopener noreferrer"
+            i18n-aria-label="@@footer.aria.instagram"
+            aria-label="Visit Idem Engine on Instagram"
+            class="ft-social-link"
+          >
+            <i class="pi pi-instagram" aria-hidden="true"></i>
+          </a>
+        </li>
+        <li>
+          <a
+            href="https://www.facebook.com/profile.php?id=61580303204333"
+            target="_blank"
+            rel="noopener noreferrer"
+            i18n-aria-label="@@footer.aria.facebook"
+            aria-label="Visit Idem Engine on Facebook"
+            class="ft-social-link"
+          >
+            <i class="pi pi-facebook" aria-hidden="true"></i>
+          </a>
+        </li>
+      </ul>
     </div>
 
-    <!-- Bottom bar -->
-    <div class="footer-divider mt-14" aria-hidden="true"></div>
-
-    <div class="mt-8 flex flex-col items-center gap-6 md:flex-row md:justify-between">
-      <div class="text-center md:text-left">
-        <p class="text-text-secondary text-sm" i18n="@@footer.2025_idem_all">
-          &copy; 2026 IDEM. All rights reserved.
-        </p>
-        <p class="mt-1 text-text-tertiary text-sm">
-          <span class="text-primary font-semibold" i18n="@@footer.african_you_too"
-            >African, you too can build</span
-          >
-          <ng-container i18n="@@footer.madeInCameroon">• Made with ❤️ in Cameroon </ng-container>
-        </p>
+    <nav class="ft-nav" aria-labelledby="ft-product ft-resources ft-company">
+      <div class="ft-col">
+        <h2 id="ft-product" class="ft-col-title" i18n="@@footer.col.product">Product</h2>
+        <ul class="ft-list">
+          <li><a href="/idev" class="ft-link" i18n="@@footer.idev">iCode</a></li>
+          <li><a href="/ideploy" class="ft-link" i18n="@@footer.ideploy">iDeploy</a></li>
+          <li><a href="/simulator" class="ft-link" i18n="@@footer.simulator">IDEM Simulator</a></li>
+          <li><a href="/pricing" class="ft-link" i18n="@@footer.pricing">Pricing</a></li>
+        </ul>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="ft-col">
+        <h2 id="ft-resources" class="ft-col-title" i18n="@@footer.col.resources">Resources</h2>
+        <ul class="ft-list">
+          <li><a href="/open-source" class="ft-link" i18n="@@footer.openSource">Open Source</a></li>
+          <li>
+            <a
+              href="https://github.com/Idem-AI"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="ft-link ft-link-out"
+              i18n="@@footer.github"
+              >Code on GitHub</a
+            >
+          </li>
+          <li>
+            <a href="/premium-beta" class="ft-link" i18n="@@footer.betaProgram">Beta Program</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="ft-col">
+        <h2 id="ft-company" class="ft-col-title" i18n="@@footer.col.company">Company</h2>
+        <ul class="ft-list">
+          <li><a href="/about" class="ft-link" i18n="@@footer.about">About</a></li>
+          <li>
+            <a href="/african-market" class="ft-link" i18n="@@footer.africanMarket"
+              >African market</a
+            >
+          </li>
+          <li><a href="/contact" class="ft-link" i18n="@@footer.contact">Contact</a></li>
+        </ul>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ═══ Signature line ══════════════════════════════════════════ -->
+  <div class="ft-shell ft-foot">
+    <p class="ft-copy">
+      <span>&copy; {{ year }} IDEM</span>
+      <span class="ft-sep" aria-hidden="true">·</span>
+      <span class="ft-claim" i18n="@@footer.african_you_too"
+        >African, you too can build</span
+      >
+    </p>
+
+    <ul class="ft-legal">
+      <li>
+        <a href="/privacy-policy" class="ft-link" i18n="@@footer.privacyPolicy">Privacy Policy</a>
+      </li>
+      <li>
+        <a href="/terms-of-service" class="ft-link" i18n="@@footer.termsOfService"
+          >Terms of Service</a
+        >
+      </li>
+      <li>
+        <a
+          href="https://github.com/Idem-AI/idem/blob/main/LICENSE"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="ft-link"
+          i18n="@@footer.apacheLicense"
+          >Apache 2.0 License</a
+        >
+      </li>
+    </ul>
+
+    <div class="ft-prefs">
+      <div class="ft-lang" role="group" i18n-aria-label="@@footer.aria.language" aria-label="Language">
         <button
           type="button"
           (click)="switchLanguage('en')"
-          [class.footer-lang-active]="locale === 'en'"
+          [class.is-active]="locale === 'en'"
           [attr.aria-pressed]="locale === 'en'"
-          class="footer-lang"
+          class="ft-lang-btn"
         >
-          <span aria-hidden="true">🇬🇧</span>
-          <span>English</span>
+          EN
         </button>
         <button
           type="button"
           (click)="switchLanguage('fr')"
-          [class.footer-lang-active]="locale === 'fr'"
+          [class.is-active]="locale === 'fr'"
           [attr.aria-pressed]="locale === 'fr'"
-          class="footer-lang"
+          class="ft-lang-btn"
         >
-          <span aria-hidden="true">🇫🇷</span>
-          <span>Français</span>
+          FR
         </button>
-        <app-theme-toggle />
       </div>
+      <app-theme-toggle />
     </div>
   </div>
 </footer>

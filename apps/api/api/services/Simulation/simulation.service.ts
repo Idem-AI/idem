@@ -53,6 +53,7 @@ import {
 } from '../../models/simulation.model';
 import { IRepository } from '../../repository/IRepository';
 import { RepositoryFactory } from '../../repository/RepositoryFactory';
+import { ProjectInputsAssessment, assessProjectInputs } from '../common/project-inputs';
 import { PromptService } from '../prompt.service';
 import { SimulationAIService } from './simulation-ai.service';
 import {
@@ -277,6 +278,24 @@ export class SimulationService {
   // ===================================================================
   // PRÉ-VOL — comprendre le projet avant de facturer quoi que ce soit
   // ===================================================================
+
+  /**
+   * Ce dont le moteur disposera pour ce projet : business plan, prévisions
+   * financières, stratégie de communication.
+   *
+   * Aucun appel de modèle, aucune facturation — un simple comptage sur le
+   * projet. C'est ce qui permet de prévenir AVANT la lecture : signaler une
+   * entrée manquante après l'analyse serait dire à l'utilisateur, une fois le
+   * travail fait, qu'il aurait pu être meilleur.
+   *
+   * Aucune des trois n'est bloquante : une simulation sur le seul descriptif du
+   * projet reste une simulation, simplement plus hypothétique — et c'est à
+   * l'utilisateur de décider s'il s'en contente.
+   */
+  async getProjectInputs(userId: string, projectId: string): Promise<ProjectInputsAssessment> {
+    const project = await this.loadProject(userId, projectId);
+    return assessProjectInputs(project);
+  }
 
   /**
    * Lit le projet et renvoie ce que le moteur en sait, sans rien persister ni

@@ -207,9 +207,21 @@
       <app-brand-voice-panel
         [projectId]="projectId()!"
         [strategy]="strategy()"
+        [missingInputs]="strategyGaps()"
         (strategyChange)="onStrategyChange($event)"
+        (blocked)="onStrategyBlocked($event)"
         (closed)="closeVoice()"
         (failed)="onError($event)"
+      />
+    }
+
+    <!-- La stratégie dérive du business plan et des prévisions : sans eux, il
+         n'y a rien à en déduire. La fenêtre dit lequel produire d'abord. -->
+    @if (isStrategyBlockedOpen()) {
+      <app-strategy-inputs-dialog
+        [missing]="blockedInputs()"
+        (generate)="goToStrategyInput($event)"
+        (closed)="isStrategyBlockedOpen.set(false)"
       />
     }
   }

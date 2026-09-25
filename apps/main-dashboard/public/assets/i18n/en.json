@@ -3000,6 +3000,26 @@
           "compose": "Assembling it in your colours",
           "check": "Checking the result"
         }
+      },
+      "strategyInputs": {
+        "heading": "Your way of communicating is derived from two deliverables",
+        "subtitle": "It cannot be made up: the business plan states what you sell and to whom, the financial forecast gives your prices and your means. Without them the strategy would describe a brand, not your business — and everything that follows, plans and visuals, would inherit that mistake.",
+        "illustrationAlt": "Two deliverables feed the brand compass; without them the needle has no direction.",
+        "later": "Later",
+        "goTo": {
+          "businessPlan": "Generate my business plan",
+          "finance": "Complete my forecast"
+        },
+        "item": {
+          "businessPlan": {
+            "label": "Business plan",
+            "effect": "It provides the positioning, the market and the competition — enough to ground an angle that truly sets you apart."
+          },
+          "finance": {
+            "label": "Financial forecast",
+            "effect": "It provides your prices and your communication budget — enough to propose channels you can actually fund."
+          }
+        }
       }
     },
     "businessCards": {

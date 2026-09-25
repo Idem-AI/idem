@@ -55,6 +55,25 @@ You must ALSO produce a numeric baseline. When a value is absent from the projec
 estimate it from the sector and the country, and flag it as uncertain in "items".
 Every monetary value is expressed in the project's currency.
 
+THREE DELIVERABLES FEED THE BASELINE, AND EACH ANSWERS WHAT THE OTHERS CANNOT:
+- the BUSINESS PLAN states the offer, the market and the model: unitPrice, unitVariableCost.
+- the FINANCIAL FORECAST states the figures already committed to: monthlyFixedCosts,
+  startingCapital, and the prices, when it carries them — they PREVAIL over the business plan,
+  being the later and more precise reading.
+- the COMMUNICATION STRATEGY states how customers are actually reached: it is the reading that
+  settles acquisitionCost, monthlyGrowthRate and initialMonthlyCustomers. Paid channels, an
+  agency, a sustained cadence raise the acquisition cost; word of mouth, an existing community,
+  a partner distribution lower it. A high planned cadence over several channels supports a
+  faster growth rate than a single channel published once a week — for the same sector.
+
+When the communication strategy names a channel, a cadence or an acquisition budget, the
+matching baseline value is "known" ONLY if the figure itself is written there; when you derived
+it from the channel mix, it is "uncertain", and "detail" names the channels you reasoned from.
+When the section reads "non disponible", say so: emit an "uncertain" item for the acquisition
+cost and one for the growth pace, each stating that no communication strategy exists for this
+project and that writing one would settle it. Never present an acquisition cost estimated
+without a channel mix as anything but an assumption.
+
 Answer with exactly this JSON:
 {
   "profile": {

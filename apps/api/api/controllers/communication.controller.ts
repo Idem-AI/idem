@@ -16,6 +16,8 @@ import {
   PublicationStatus,
   VisualOrigin,
 } from '../models/communication.model';
+import { refundRequestCredits } from '../middleware/billing.middleware';
+import { MissingProjectInputsError } from '../services/common/project-inputs';
 import { InsufficientCreditsError, StudioService } from '../services/Communication/studio.service';
 import { verifyVisualImageToken } from '../services/Communication/visualUrl';
 import { SUPPORTED_NETWORKS } from '../services/Connectors/social-providers.config';
@@ -24,6 +26,13 @@ import { getRequestLanguage } from '../utils/request-language';
 const promptService = new PromptService();
 const communicationService = new CommunicationService(promptService);
 const studioService = new StudioService(communicationService);
+
+/**
+ * Refus lisible par l'interface : la génération demande un livrable qui n'existe
+ * pas encore. Constante partagée avec le dashboard, qui s'y branche pour ouvrir
+ * la fenêtre qui nomme les livrables manquants.
+ */
+const MISSING_PROJECT_INPUTS_CODE = 'MISSING_PROJECT_INPUTS';
 
 function writeEvent(res: Response, payload: object): void {
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
@@ -144,6 +153,39 @@ export const generateStrategyStreamController = async (
     writeEvent(res, { type: 'complete', payload: { strategy } });
     res.end();
   } catch (error: any) {
+    // Livrables manquants : ce n'est pas une panne mais un refus attendu, que
+    // l'interface doit pouvoir traiter en nommant ce qui manque et en y
+    // conduisant — d'où le code et la liste, plutôt qu'un message seul.
+    if (error instanceof MissingProjectInputsError) {
+      logger.info(
+        `generateStrategyStreamController refused, missing: ${error.missing.join(', ')}`
+      );
+      // Les crédits sont débités par le middleware AVANT le contrôleur, et la
+      // contrepassation automatique ne regarde que le code HTTP — déjà parti en
+      // 200 sur un flux. Sans cette restitution, un refus coûterait le prix
+      // d'une stratégie qui n'a jamais été écrite.
+      // Une panne du grand livre ne doit pas laisser le flux ouvert : on trace
+      // fort — l'utilisateur a payé sans rien recevoir — et on répond quand même.
+      await refundRequestCredits(
+        req,
+        'Stratégie refusée faute de business plan ou de prévisions — crédits restitués'
+      ).catch((refundError: Error) => {
+        logger.error(`billing.refund_failed: ${refundError.message}`, {
+          event: 'billing.refund_failed',
+          userId,
+          projectId,
+          action: 'communication_strategy',
+        });
+      });
+      writeEvent(res, {
+        type: 'error',
+        code: MISSING_PROJECT_INPUTS_CODE,
+        missing: error.missing,
+        message: error.message,
+      });
+      res.end();
+      return;
+    }
     logger.error(`generateStrategyStreamController error: ${error.message}`, { stack: error.stack });
     writeEvent(res, { type: 'error', message: error.message });
     res.end();

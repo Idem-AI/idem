@@ -1,0 +1,177 @@
+<!--
+  Voile + fenêtre opaque (`modal-panel`) : une fenêtre translucide posée sur un
+  voile sombre donne un gris franc en thème clair, elle doit s'en détacher.
+  Échap et clic sur le voile referment — une fenêtre qui ne se ferme qu'au
+  bouton est un piège au clavier.
+-->
+<div
+  class="si-backdrop"
+  role="presentation"
+  (click)="closed.emit()"
+>
+  <div
+    class="si-panel modal-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="si-heading"
+    aria-describedby="si-subtitle"
+    (click)="$event.stopPropagation()"
+  >
+    <!--
+      L'illustration montre le mécanisme : deux sources alimentent la boussole,
+      et celles qui manquent la laissent sans direction. C'est ce que dit le
+      texte, pas un pictogramme d'alerte de plus.
+    -->
+    <svg
+      class="si-illustration"
+      viewBox="0 0 192 96"
+      fill="none"
+      role="img"
+      [attr.aria-label]="'dashboard.showCommunication.strategyInputs.illustrationAlt' | translate"
+    >
+      <defs>
+        <linearGradient id="siBrand" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="var(--color-primary)" />
+          <stop offset="100%" stop-color="var(--color-accent-500)" />
+        </linearGradient>
+      </defs>
+
+      @for (row of rows(); track row.key; let i = $index) {
+        <g [attr.transform]="'translate(4, ' + i * 46 + ')'">
+          <rect
+            x="0"
+            y="8"
+            width="54"
+            height="32"
+            rx="6"
+            [attr.fill]="row.present ? 'url(#siBrand)' : 'transparent'"
+            [attr.fill-opacity]="row.present ? '.14' : '0'"
+            stroke="currentColor"
+            [attr.stroke-opacity]="row.present ? '.42' : '.2'"
+            stroke-width="1.5"
+            [attr.stroke-dasharray]="row.present ? null : '4 3'"
+          />
+          <path
+            d="M10 19h28M10 26h19"
+            stroke="currentColor"
+            [attr.stroke-opacity]="row.present ? '.4' : '.15'"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+          @if (row.present) {
+            <circle cx="54" cy="8" r="6.5" fill="url(#siBrand)" />
+            <path
+              d="m51 8 2.2 2.3L57 6.4"
+              stroke="#ffffff"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          } @else {
+            <circle
+              cx="54"
+              cy="8"
+              r="6.5"
+              fill="var(--color-warning)"
+              fill-opacity=".18"
+              stroke="var(--color-warning)"
+              stroke-width="1.4"
+            />
+            <path
+              d="M54 5v3.4M54 11.2v.1"
+              stroke="var(--color-warning)"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          }
+          <path
+            [attr.d]="'M58 24H' + (row.present ? '106' : '86')"
+            stroke="currentColor"
+            [attr.stroke-opacity]="row.present ? '.35' : '.16'"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            [attr.stroke-dasharray]="row.present ? null : '3 3'"
+          />
+        </g>
+      }
+
+      <!-- La boussole : le cercle tient toujours, l'aiguille attend ses sources. -->
+      <circle
+        cx="142"
+        cy="48"
+        r="30"
+        stroke="currentColor"
+        stroke-opacity=".28"
+        stroke-width="1.5"
+      />
+      <circle cx="142" cy="48" r="3.5" fill="url(#siBrand)" />
+      <path
+        d="m131 59 22-22"
+        stroke="url(#siBrand)"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        [attr.stroke-opacity]="firstMissing() ? '.35' : '1'"
+        [attr.stroke-dasharray]="firstMissing() ? '5 4' : null"
+      />
+      <!-- Les quatre points cardinaux, posés HORS du cercle : dessinés dessus,
+           ils se confondaient avec son tracé. -->
+      <path
+        d="M142 10v5M142 81v5M102 48h5M177 48h5"
+        stroke="currentColor"
+        stroke-opacity=".24"
+        stroke-width="1.5"
+        stroke-linecap="round"
+      />
+    </svg>
+
+    <h2 id="si-heading" class="si-title">
+      {{ 'dashboard.showCommunication.strategyInputs.heading' | translate }}
+    </h2>
+
+    <p id="si-subtitle" class="si-subtitle">
+      {{ 'dashboard.showCommunication.strategyInputs.subtitle' | translate }}
+    </p>
+
+    <!-- Ce qui manque, et ce que chacun apporte à la stratégie. -->
+    <ul class="si-list">
+      @for (row of rows(); track row.key) {
+        <li class="si-item" [class.si-item-done]="row.present">
+          <span class="si-item-mark" aria-hidden="true">
+            <i [class]="row.present ? 'pi pi-check' : 'pi pi-exclamation-triangle'"></i>
+          </span>
+          <span class="si-item-text">
+            <span class="si-item-label">
+              {{
+                'dashboard.showCommunication.strategyInputs.item.' + row.key + '.label' | translate
+              }}
+            </span>
+            <span class="si-item-effect">
+              {{
+                'dashboard.showCommunication.strategyInputs.item.' + row.key + '.effect' | translate
+              }}
+            </span>
+          </span>
+        </li>
+      }
+    </ul>
+
+    <div class="si-actions">
+      <button type="button" class="si-later" (click)="closed.emit()">
+        {{ 'dashboard.showCommunication.strategyInputs.later' | translate }}
+      </button>
+
+      @if (firstMissing(); as target) {
+        <button #primaryButton type="button" class="inner-button si-primary" (click)="start()">
+          <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          {{
+            'dashboard.showCommunication.strategyInputs.goTo.' + target | translate
+          }}
+        </button>
+      } @else {
+        <button #primaryButton type="button" class="inner-button si-primary" (click)="closed.emit()">
+          {{ 'common.close' | translate }}
+        </button>
+      }
+    </div>
+  </div>
+</div>

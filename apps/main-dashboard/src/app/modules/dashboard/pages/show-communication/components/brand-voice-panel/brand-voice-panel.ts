@@ -5,6 +5,7 @@ import { CommunicationService } from '../../../../services/ai-agents/communicati
 import {
   CommunicationStrategy,
   StrategyBlock,
+  StrategyInputKey,
 } from '../../../../models/communication.model';
 
 /**
@@ -34,9 +35,22 @@ export class BrandVoicePanel {
   readonly projectId = input.required<string>();
   readonly strategy = input<CommunicationStrategy | null>(null);
 
+  /**
+   * Les livrables dont la stratégie dérive et qui manquent encore, tels que la
+   * coquille les a comptés sur le projet déjà chargé.
+   *
+   * Vérifié AVANT l'appel : l'API refuse de toute façon, mais un refus après
+   * aller-retour coûte une attente pour un message d'erreur, là où la liste est
+   * connue d'avance.
+   */
+  readonly missingInputs = input<readonly StrategyInputKey[]>([]);
+
   readonly strategyChange = output<CommunicationStrategy>();
   readonly closed = output<void>();
   readonly failed = output<string>();
+
+  /** La génération n'a pas lieu : voici ce qu'il faut produire d'abord. */
+  readonly blocked = output<readonly StrategyInputKey[]>();
 
   protected readonly isGenerating = signal(false);
   protected readonly isSaving = signal(false);
@@ -58,6 +72,12 @@ export class BrandVoicePanel {
   protected readonly summary = computed(() => this.strategy()?.summary ?? '');
 
   protected generate(force: boolean): void {
+    const missing = this.missingInputs();
+    if (missing.length > 0) {
+      this.blocked.emit(missing);
+      return;
+    }
+
     this.isGenerating.set(true);
     this.stepLabel.set('dashboard.showCommunication.steps.context');
 
@@ -71,7 +91,13 @@ export class BrandVoicePanel {
           if (event.payload?.strategy) this.emit(event.payload.strategy);
           this.isGenerating.set(false);
         } else if (event.type === 'error') {
-          this.failed.emit(event.message || 'strategy');
+          // Refus lisible plutôt que panne : l'API a compté les livrables sur
+          // la donnée réelle, et son verdict prime sur le comptage local.
+          if (event.code === 'MISSING_PROJECT_INPUTS') {
+            this.blocked.emit(event.missing ?? []);
+          } else {
+            this.failed.emit(event.message || 'strategy');
+          }
           this.isGenerating.set(false);
         }
       },
