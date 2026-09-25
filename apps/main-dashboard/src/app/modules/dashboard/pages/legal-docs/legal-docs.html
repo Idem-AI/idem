@@ -1,548 +1,512 @@
 <div class="w-full min-h-screen md:p-6">
   @if (isLoading()) {
-    <div class="max-w-6xl mx-auto text-center py-20">
-      <app-loader />
-    </div>
-  } @else if (!isLoading() && !isBrandingComplete()) {
-    <!-- Incomplete Project Banner -->
-    <app-incomplete-project-banner
-      [project]="project()!"
-    />
-  } @else if (!projectId()) {
-    <div class="max-w-3xl mx-auto text-center py-20">
-      <h3 class="text-xl font-semibold text-text-primary mb-2">
-        {{ 'dashboard.legalDocs.noProject.title' | translate }}
-      </h3>
-      <p class="text-text-tertiary">{{ 'dashboard.legalDocs.noProject.subtitle' | translate }}</p>
-    </div>
-  } @else {
-    <div class="max-w-6xl mx-auto space-y-8">
-      <!-- Header -->
-      <div>
-        <h1 class="text-2xl font-bold text-text-primary mb-1">
-          {{ 'dashboard.legalDocs.title' | translate }}
-        </h1>
-        <p class="text-sm text-text-tertiary">
-          {{ 'dashboard.legalDocs.subtitle' | translate }}
-        </p>
+    <!-- Squelette : la forme de la page qui arrive -->
+    <div class="max-w-5xl mx-auto space-y-8" aria-busy="true">
+      <span class="sr-only">{{ 'common.loading' | translate }}</span>
+      <div class="space-y-3">
+        <div class="skeleton h-8 w-56 rounded-lg"></div>
+        <div class="skeleton h-4 w-full max-w-lg rounded"></div>
       </div>
-
-      @if (isGenerating()) {
-        <!-- Generation progress -->
-        <div class="glass-card p-6">
-          <h2 class="text-lg font-semibold text-text-primary mb-4">
-            {{ 'dashboard.legalDocs.generating.title' | translate }}
-          </h2>
-          <ul class="space-y-2">
-            @for (item of stepStatuses() | keyvalue; track item.key) {
-              <li
-                class="flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors"
-                [ngClass]="{
-                  'border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)]': item.value === 'pending',
-                  'border-primary/40 bg-primary/5': item.value === 'in-progress',
-                  'border-primary/20 bg-primary/[0.04]': item.value === 'completed',
-                }"
-              >
-                <div class="w-5 h-5 shrink-0 flex items-center justify-center">
-                  @if (item.value === 'completed') {
-                    <svg
-                      class="w-5 h-5 text-primary"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  } @else if (item.value === 'in-progress') {
-                    <div
-                      class="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"
-                    ></div>
-                  } @else {
-                    <div class="w-2 h-2 rounded-full bg-[var(--glass-border-strong)]"></div>
-                  }
-                </div>
-                @if (findEntry($any(item.key)); as entry) {
-                  <span class="text-sm text-text-primary flex-1">{{ entryName(entry) }}</span>
-                } @else {
-                  <span class="text-sm text-text-primary flex-1">{{ item.key }}</span>
-                }
-              </li>
-            }
-          </ul>
-          <div class="mt-6 flex justify-end">
-            <button class="outer-button" (click)="cancel()">
-              {{ 'common.cancel' | translate }}
-            </button>
-          </div>
+      <div class="skeleton h-64 rounded-[20px]"></div>
+      <div class="space-y-3">
+        <div class="skeleton h-6 w-72 rounded"></div>
+        <div class="skeleton h-20 rounded-xl"></div>
+        <div class="skeleton h-20 rounded-xl"></div>
+        <div class="skeleton h-20 rounded-xl"></div>
+      </div>
+    </div>
+  } @else if (!projectId()) {
+    <div class="max-w-md mx-auto text-center py-20">
+      <app-legal-illustration class="w-44 h-32 mx-auto" scene="hero" />
+      <h1 class="text-xl font-semibold text-text-primary mt-6">
+        {{ 'dashboard.legalDocs.noProject.title' | translate }}
+      </h1>
+      <p class="text-text-secondary mt-2">{{ 'dashboard.legalDocs.noProject.subtitle' | translate }}</p>
+    </div>
+  } @else if (!isBrandingComplete()) {
+    <app-incomplete-project-banner [project]="project()!" />
+  } @else {
+    <div class="max-w-5xl mx-auto space-y-8 pb-10">
+      <!-- En-tête -->
+      <header class="flex items-center gap-6">
+        <div class="flex-1 min-w-0">
+          <h1 class="text-2xl font-bold text-text-primary text-balance">
+            {{ 'dashboard.legalDocs.title' | translate }}
+          </h1>
+          <p class="text-text-secondary mt-1 max-w-[62ch]">
+            {{ 'dashboard.legalDocs.subtitle' | translate }}
+          </p>
+          <p class="text-sm text-text-secondary mt-3 flex items-start gap-2">
+            <i class="pi pi-info-circle mt-0.5" aria-hidden="true"></i>
+            <span>{{ 'dashboard.legalDocs.disclaimer' | translate }}</span>
+          </p>
         </div>
-      } @else {
-        <!-- Generated documents (shown FIRST when present) -->
-        @if (legalDocs() && legalDocs()!.documents.length > 0) {
-          <section class="glass-card p-6 border-primary/20">
-            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-10 h-10 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center"
-                >
-                  <svg
-                    class="w-5 h-5 text-primary"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h2 class="text-lg font-semibold text-text-primary">
-                    {{ 'dashboard.legalDocs.generated.title' | translate }}
-                  </h2>
-                  <p class="text-xs text-text-tertiary">
-                    {{ legalDocs()!.documents.length }}
-                    {{ 'dashboard.legalDocs.generated.count' | translate }}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <ul class="grid md:grid-cols-2 gap-3">
-              @for (doc of legalDocs()!.documents; track doc.id) {
-                <li
-                  class="flex items-center justify-between gap-3 p-4 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] hover:border-[var(--glass-border-medium)] transition-colors"
-                >
-                  <div class="flex items-center gap-3 min-w-0">
-                    <div
-                      class="w-9 h-9 shrink-0 rounded-lg bg-[var(--glass-bg-subtle)] flex items-center justify-center"
-                    >
-                      <svg
-                        class="w-4 h-4 text-text-secondary"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="1.5"
-                          d="M9 12h6m-6 4h6M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"
-                        />
-                      </svg>
-                    </div>
-                    <div class="min-w-0">
-                      <div class="text-sm font-medium text-text-primary truncate">{{ doc.name }}</div>
-                      <div class="text-xs text-text-tertiary">
-                        {{ doc.generatedAt | date: 'medium' }}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2 shrink-0">
-                    <button class="outer-button button-sm" (click)="downloadDocument(doc)">
-                      {{ 'dashboard.legalDocs.actions.download' | translate }}
-                    </button>
-                    <button
-                      class="w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--glass-border)] text-text-tertiary hover:text-red-300 hover:border-red-300/40 transition-colors"
-                      (click)="deleteDocument(doc)"
-                      [attr.aria-label]="'common.delete' | translate"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </li>
-              }
-            </ul>
-          </section>
+        <app-legal-illustration class="hidden sm:block w-40 h-[120px] shrink-0" scene="hero" />
+      </header>
 
-          <!-- Divider between generated and add-more -->
-          <div class="flex items-center gap-4 my-2">
-            <div class="flex-1 h-px bg-[var(--glass-bg-subtle)]"></div>
-            <span class="text-xs uppercase text-text-tertiary">
-              {{ 'dashboard.legalDocs.addMore' | translate }}
-            </span>
-            <div class="flex-1 h-px bg-[var(--glass-bg-subtle)]"></div>
-          </div>
-        }
+      @if (errorMessage()) {
+        <p
+          class="text-sm text-text-primary flex items-start gap-2 px-4 py-3 rounded-xl border border-[var(--color-danger)] bg-[var(--glass-bg-light)]"
+          role="alert"
+        >
+          <i class="pi pi-exclamation-circle text-[var(--color-danger)] mt-0.5" aria-hidden="true"></i>
+          <span>{{ errorMessage() }}</span>
+        </p>
+      }
 
-        <!-- Stepper indicator -->
-        <div class="flex items-center gap-3 md:gap-6 px-2">
-          <div class="flex items-center gap-2">
-            <div
-              class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border transition-colors"
-              [ngClass]="{
-                'bg-primary text-white border-primary': selected().size > 0,
-                'bg-[var(--glass-bg-subtle)] text-text-tertiary border-[var(--glass-border)]': selected().size === 0,
-              }"
-            >
-              1
-            </div>
-            <span
-              class="text-sm"
-              [ngClass]="{
-                'text-text-primary': selected().size > 0,
-                'text-text-tertiary': selected().size === 0,
-              }"
-            >
-              {{ 'dashboard.legalDocs.stepper.select' | translate }}
-            </span>
-          </div>
-          <div class="flex-1 h-px bg-[var(--glass-bg-subtle)]"></div>
-          <div class="flex items-center gap-2">
-            <div
-              class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border transition-colors"
-              [ngClass]="{
-                'bg-primary text-white border-primary': canGenerate(),
-                'bg-[var(--glass-bg-subtle)] text-text-tertiary border-[var(--glass-border)]': !canGenerate(),
-              }"
-            >
-              2
-            </div>
-            <span
-              class="text-sm"
-              [ngClass]="{ 'text-text-primary': canGenerate(), 'text-text-tertiary': !canGenerate() }"
-            >
-              {{ 'dashboard.legalDocs.stepper.context' | translate }}
-            </span>
-          </div>
-          <div class="flex-1 h-px bg-[var(--glass-bg-subtle)]"></div>
-          <div class="flex items-center gap-2">
-            <div
-              class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border bg-[var(--glass-bg-subtle)] text-text-tertiary border-[var(--glass-border)]"
-            >
-              3
-            </div>
-            <span class="text-sm text-text-tertiary">
-              {{ 'dashboard.legalDocs.stepper.generate' | translate }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Step 1: Pick documents -->
-        <section class="glass-card p-6">
-          <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <div class="flex items-center gap-3">
-              <span
-                class="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 text-primary flex items-center justify-center text-xs font-semibold"
-                >1</span
-              >
+      @switch (view()) {
+        @case ('overview') {
+          @if (lastGenerated() > 0) {
+            <div class="glass-card p-5 flex items-center gap-5" role="status">
+              <app-legal-illustration class="w-20 h-[60px] shrink-0" scene="ready" />
               <div>
-                <h2 class="text-lg font-semibold text-text-primary">
-                  {{ 'dashboard.legalDocs.steps.selection.title' | translate }}
-                </h2>
-                <p class="text-sm text-text-tertiary">
-                  {{ 'dashboard.legalDocs.steps.selection.subtitle' | translate }}
+                <p class="font-semibold text-text-primary">
+                  {{ 'dashboard.legalDocs.success.title' | translate: { count: lastGenerated() } }}
+                </p>
+                <p class="text-sm text-text-secondary mt-0.5">
+                  {{ 'dashboard.legalDocs.success.subtitle' | translate }}
                 </p>
               </div>
             </div>
-            <div class="text-sm text-text-tertiary">
-              {{ selected().size }} {{ 'dashboard.legalDocs.selected' | translate }}
-            </div>
-          </div>
+          }
 
-          @for (group of ['company', 'contracts', 'customers', 'internal']; track group) {
-            @if (groupedCatalog()[group]?.length) {
-              <div class="mb-5">
-                <h3 class="text-xs uppercase text-text-tertiary mb-2">
-                  {{ 'dashboard.legalDocs.groups.' + group | translate }}
-                </h3>
-                <div class="grid md:grid-cols-2 gap-3">
-                  @for (entry of groupedCatalog()[group]; track entry.type) {
-                    <button
-                      type="button"
-                      (click)="toggleType(entry.type)"
-                      class="text-left p-4 rounded-lg border transition-colors"
-                      [ngClass]="{
-                        'border-primary bg-primary/10': isSelected(entry.type),
-                        'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] hover:border-[var(--glass-border-medium)]': !isSelected(
-                          entry.type
-                        ),
-                      }"
-                    >
-                      <div class="flex items-start gap-3">
-                        <div
-                          class="w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5"
-                          [ngClass]="{
-                            'border-primary bg-primary': isSelected(entry.type),
-                            'border-[var(--glass-border-strong)]': !isSelected(entry.type),
-                          }"
-                        >
-                          @if (isSelected(entry.type)) {
-                            <svg
-                              class="w-3 h-3 text-text-primary"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="3"
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          }
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          <div class="text-sm font-medium text-text-primary">{{ entryName(entry) }}</div>
-                          <div class="text-xs text-text-tertiary mt-1">
-                            {{ entryDescription(entry) }}
-                          </div>
-                        </div>
-                      </div>
+          @if (recommendations(); as reco) {
+            <!-- 1. Forme de l'entreprise -->
+            <div id="legal-form-anchor" class="scroll-mt-6">
+              <app-legal-form-section
+                [forms]="jurisdictionForms()"
+                [recommendation]="reco.form"
+                [chosen]="chosenForm()?.code ?? null"
+                [statutesForm]="statutesForm()"
+                [projectName]="project()?.name ?? ''"
+                [lang]="lang()"
+                [saving]="savingForm()"
+                (choose)="chooseForm($event)"
+              />
+            </div>
+
+            <!-- 2. Documents -->
+            <section aria-labelledby="legal-docs-title" class="space-y-4">
+              <div class="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 id="legal-docs-title" class="text-lg font-semibold text-text-primary">
+                    {{ 'dashboard.legalDocs.docs.title' | translate: { name: project()?.name } }}
+                  </h2>
+                  <p class="text-sm text-text-secondary mt-0.5">
+                    {{
+                      'dashboard.legalDocs.docs.progress'
+                        | translate: { done: essentialProgress().done, total: essentialProgress().total }
+                    }}
+                  </p>
+                </div>
+                <div class="flex gap-2">
+                  <button type="button" class="button-ghost button-sm inline-flex items-center gap-1.5" (click)="selectRecommended()">
+                    {{ 'dashboard.legalDocs.docs.selectRecommended' | translate }}
+                  </button>
+                  @if (selected().size > 0) {
+                    <button type="button" class="button-ghost button-sm inline-flex items-center gap-1.5" (click)="clearSelection()">
+                      {{ 'dashboard.legalDocs.docs.clear' | translate }}
                     </button>
                   }
                 </div>
+              </div>
+
+              @if (notice()) {
+                <p class="text-sm text-text-primary flex items-start gap-2" role="status">
+                  <i class="pi pi-arrow-up text-primary-500 mt-0.5" aria-hidden="true"></i>
+                  <span>{{ notice() }}</span>
+                </p>
+              }
+
+              <div class="glass-card divide-y divide-[var(--glass-border)]">
+                @for (group of groups(); track group.key) {
+                  <div class="p-5 md:p-6">
+                    <h3 class="text-sm font-semibold text-text-primary">
+                      {{ 'dashboard.legalDocs.groups.' + group.key + '.title' | translate }}
+                    </h3>
+                    <p class="text-xs text-text-secondary mt-0.5">
+                      {{ 'dashboard.legalDocs.groups.' + group.key + '.hint' | translate }}
+                    </p>
+
+                    <ul class="mt-3 space-y-1">
+                      @for (row of group.rows; track row.type) {
+                        <li
+                          class="flex flex-col sm:flex-row sm:items-center gap-3 -mx-3 px-3 py-3 rounded-xl transition-colors duration-200"
+                          [class]="rowClass(row)"
+                        >
+                          <label class="!flex items-start gap-3 flex-1 min-w-0 !mb-0 !font-normal cursor-pointer" [class.cursor-not-allowed]="row.priority === 'not_applicable'">
+                            <input
+                              type="checkbox"
+                              class="mt-1 shrink-0"
+                              [checked]="isSelected(row.type)"
+                              [disabled]="row.priority === 'not_applicable'"
+                              (change)="toggle(row)"
+                              [attr.aria-describedby]="'legal-reason-' + row.type"
+                            />
+                            <i [class]="icon(row.type) + ' text-text-secondary mt-1'" aria-hidden="true"></i>
+                            <span class="min-w-0">
+                              <span class="flex flex-wrap items-center gap-2">
+                                <span class="font-medium text-text-primary">{{ docName(row) }}</span>
+                                @if (row.doc && !row.outdated) {
+                                  <span class="tag !py-0.5">
+                                    <i class="pi pi-check text-primary-500" aria-hidden="true"></i>
+                                    {{ 'dashboard.legalDocs.docs.ready' | translate }}
+                                    <span class="text-text-secondary">· {{ row.doc!.generatedAt | date: 'd MMM' }}</span>
+                                  </span>
+                                }
+                                @if (row.outdated) {
+                                  <span class="tag !py-0.5">
+                                    <i class="pi pi-refresh text-[var(--color-warning)]" aria-hidden="true"></i>
+                                    {{ 'dashboard.legalDocs.docs.outdated' | translate }}
+                                  </span>
+                                }
+                              </span>
+                              <span class="block text-sm text-text-secondary mt-0.5 max-w-[70ch]">
+                                {{ docDescription(row) }}
+                              </span>
+                              <span
+                                [id]="'legal-reason-' + row.type"
+                                class="flex items-start gap-1.5 text-sm text-text-primary mt-1.5 max-w-[70ch]"
+                              >
+                                @if (row.needsForm) {
+                                  <i class="pi pi-arrow-up text-primary-500 text-xs mt-1" aria-hidden="true"></i>
+                                  {{ 'dashboard.legalDocs.docs.chooseFormFirst' | translate }}
+                                } @else {
+                                  <i
+                                    [class]="(row.priority === 'not_applicable' ? 'pi pi-minus-circle' : 'pi pi-lightbulb text-primary-500') + ' text-xs mt-1'"
+                                    aria-hidden="true"
+                                  ></i>
+                                  {{ reasonText(row.reason) }}
+                                }
+                              </span>
+                            </span>
+                          </label>
+
+                          @if (row.doc; as doc) {
+                            <div class="flex items-center gap-1 sm:shrink-0 pl-10 sm:pl-0">
+                              <button
+                                type="button"
+                                class="button-ghost button-sm inline-flex items-center gap-1.5"
+                                (click)="preview(doc)"
+                                [attr.aria-label]="('dashboard.legalDocs.actions.preview' | translate) + ' : ' + doc.name"
+                              >
+                                <i class="pi pi-eye" aria-hidden="true"></i>
+                                <span class="hidden md:inline">{{ 'dashboard.legalDocs.actions.preview' | translate }}</span>
+                              </button>
+                              <button
+                                type="button"
+                                class="button-ghost button-sm inline-flex items-center gap-1.5"
+                                [disabled]="downloading() === doc.id"
+                                (click)="download(doc)"
+                                [attr.aria-label]="('dashboard.legalDocs.actions.download' | translate) + ' : ' + doc.name"
+                              >
+                                @if (downloading() === doc.id) {
+                                  <idem-loader size="xs" />
+                                } @else {
+                                  <i class="pi pi-download" aria-hidden="true"></i>
+                                }
+                                <span class="hidden md:inline">PDF</span>
+                              </button>
+                              <button
+                                type="button"
+                                class="button-icon"
+                                (click)="remove(doc)"
+                                [attr.aria-label]="('common.delete' | translate) + ' : ' + doc.name"
+                              >
+                                <i class="pi pi-trash" aria-hidden="true"></i>
+                              </button>
+                            </div>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </div>
+            </section>
+
+            @if (selected().size > 0) {
+              <!-- Barre d'action : reste visible pendant qu'on parcourt la liste -->
+              <div class="sticky bottom-4 z-[1020] glass-card !rounded-2xl px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+                <p class="text-sm text-text-primary">
+                  {{ 'dashboard.legalDocs.docs.selectedCount' | translate: { count: selected().size } }}
+                </p>
+                <button type="button" class="inner-button" (click)="goToDetails()">
+                  {{ 'dashboard.legalDocs.actions.continue' | translate }}
+                  <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                </button>
               </div>
             }
           }
-        </section>
+        }
 
-        <!-- Step 2: Context form -->
-        @if (selected().size > 0) {
-          <section class="glass-card p-6">
-            <div class="flex items-center gap-3 mb-4">
-              <span
-                class="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 text-primary flex items-center justify-center text-xs font-semibold"
-                >2</span
-              >
-              <div>
-                <h2 class="text-lg font-semibold text-text-primary">
-                  {{ 'dashboard.legalDocs.steps.context.title' | translate }}
-                </h2>
-                <p class="text-sm text-text-tertiary">
-                  {{ 'dashboard.legalDocs.steps.context.subtitle' | translate }}
-                </p>
-              </div>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-4">
-              @if (requiredFields().includes('country')) {
-                <div>
-                  <label>{{ 'dashboard.legalDocs.fields.country' | translate }} *</label>
-                  <input
-                    type="text"
-                    [ngModel]="context().country"
-                    (ngModelChange)="updateContext('country', $event)"
-                    placeholder="Côte d’Ivoire, Cameroun, Sénégal…"
-                  />
-                </div>
-              }
-              @if (requiredFields().includes('legalForm')) {
-                <div>
-                  <label>{{ 'dashboard.legalDocs.fields.legalForm' | translate }} *</label>
-                  <input
-                    type="text"
-                    [ngModel]="context().legalForm"
-                    (ngModelChange)="updateContext('legalForm', $event)"
-                    placeholder="SARL, SAS, SA…"
-                  />
-                </div>
-              }
-              @if (requiredFields().includes('capital')) {
-                <div>
-                  <label>{{ 'dashboard.legalDocs.fields.capital' | translate }} *</label>
-                  <input
-                    type="text"
-                    [ngModel]="context().capital"
-                    (ngModelChange)="updateContext('capital', $event)"
-                    placeholder="1 000 000"
-                  />
-                </div>
-              }
-              @if (requiredFields().includes('currency')) {
-                <div>
-                  <label>{{ 'dashboard.legalDocs.fields.currency' | translate }} *</label>
-                  <select
-                    [ngModel]="context().currency"
-                    (ngModelChange)="updateContext('currency', $event)"
-                  >
-                    <option value="XAF">XAF / FCFA (CEMAC)</option>
-                    <option value="XOF">XOF / FCFA (UEMOA)</option>
-                    <option value="NGN">NGN — Naira</option>
-                    <option value="KES">KES — Kenyan Shilling</option>
-                    <option value="GHS">GHS — Cedi</option>
-                    <option value="ZAR">ZAR — Rand</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                  </select>
-                </div>
-              }
-              @if (requiredFields().includes('headOffice')) {
-                <div class="md:col-span-2">
-                  <label>{{ 'dashboard.legalDocs.fields.headOffice' | translate }} *</label>
-                  <input
-                    type="text"
-                    [ngModel]="context().headOffice"
-                    (ngModelChange)="updateContext('headOffice', $event)"
-                    placeholder="Adresse complète du siège social"
-                  />
-                </div>
-              }
-              @if (requiredFields().includes('companyEmail')) {
-                <div>
-                  <label>{{ 'dashboard.legalDocs.fields.companyEmail' | translate }} *</label>
-                  <input
-                    type="email"
-                    [ngModel]="context().companyEmail"
-                    (ngModelChange)="updateContext('companyEmail', $event)"
-                    placeholder="contact@entreprise.com"
-                  />
-                </div>
-              }
-              @if (requiredFields().includes('companyPhone')) {
-                <div>
-                  <label>{{ 'dashboard.legalDocs.fields.companyPhone' | translate }}</label>
-                  <input
-                    type="tel"
-                    [ngModel]="context().companyPhone"
-                    (ngModelChange)="updateContext('companyPhone', $event)"
-                    placeholder="+237 …"
-                  />
-                </div>
-              }
-              @if (requiredFields().includes('website')) {
-                <div>
-                  <label>{{ 'dashboard.legalDocs.fields.website' | translate }} *</label>
-                  <input
-                    type="url"
-                    [ngModel]="context().website"
-                    (ngModelChange)="updateContext('website', $event)"
-                    placeholder="https://..."
-                  />
-                </div>
-              }
-              @if (requiredFields().includes('activityDescription')) {
-                <div class="md:col-span-2">
-                  <label
-                    >{{ 'dashboard.legalDocs.fields.activityDescription' | translate }} *</label
-                  >
-                  <textarea
-                    [ngModel]="context().activityDescription"
-                    (ngModelChange)="updateContext('activityDescription', $event)"
-                    rows="3"
-                    placeholder="Décrivez précisément l’activité (objet social)."
-                  ></textarea>
-                </div>
-              }
-            </div>
-
-            @if (requiredFields().includes('founders')) {
-              <div class="mt-6">
-                <div class="flex items-center justify-between mb-3">
-                  <label class="!mb-0"
-                    >{{ 'dashboard.legalDocs.fields.founders' | translate }} *</label
-                  >
-                  <button type="button" class="outer-button button-sm" (click)="addFounder()">
-                    + {{ 'dashboard.legalDocs.fields.addFounder' | translate }}
-                  </button>
-                </div>
-                @if ((context().founders || []).length === 0) {
-                  <div
-                    class="text-sm text-text-tertiary px-4 py-6 rounded-lg border border-dashed border-[var(--glass-border)] text-center"
-                  >
-                    {{ 'dashboard.legalDocs.fields.noFounders' | translate }}
-                  </div>
-                }
-                @for (f of context().founders || []; track $index; let i = $index) {
-                  <div class="grid md:grid-cols-12 gap-2 mb-2 items-start">
-                    <input
-                      class="md:col-span-4"
-                      type="text"
-                      [ngModel]="f.name"
-                      (ngModelChange)="updateFounder(i, 'name', $event)"
-                      placeholder="Nom complet"
-                    />
-                    <input
-                      class="md:col-span-4"
-                      type="text"
-                      [ngModel]="f.role"
-                      (ngModelChange)="updateFounder(i, 'role', $event)"
-                      placeholder="Rôle (Gérant, Associé…)"
-                    />
-                    <input
-                      class="md:col-span-3"
-                      type="text"
-                      [ngModel]="f.shares"
-                      (ngModelChange)="updateFounder(i, 'shares', $event)"
-                      placeholder="Parts / %"
-                    />
-                    <button
-                      type="button"
-                      class="md:col-span-1 w-full h-[46px] rounded-lg border border-[var(--glass-border)] text-text-tertiary hover:text-text-primary hover:border-[var(--glass-border-strong)] flex items-center justify-center"
-                      (click)="removeFounder(i)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                }
-              </div>
-            }
-
-            @if (missingRequiredFields().length > 0) {
-              <p class="mt-6 text-xs text-amber-400">
-                {{ 'dashboard.legalDocs.missingFields' | translate }}:
-                {{ missingRequiredFields().join(', ') }}
+        @case ('details') {
+          <!-- 3. Informations, pré-remplies depuis le projet -->
+          <section aria-labelledby="legal-details-title" class="space-y-6">
+            <div>
+              <button type="button" class="button-ghost button-sm inline-flex items-center gap-1.5 -ml-3" (click)="backToOverview()">
+                <i class="pi pi-arrow-left" aria-hidden="true"></i>
+                {{ 'dashboard.legalDocs.details.back' | translate }}
+              </button>
+              <h2 id="legal-details-title" class="text-lg font-semibold text-text-primary mt-3">
+                {{ 'dashboard.legalDocs.details.title' | translate }}
+              </h2>
+              <p class="text-sm text-text-secondary mt-1 max-w-[65ch]">
+                {{ 'dashboard.legalDocs.details.subtitle' | translate }}
               </p>
-            }
+            </div>
+
+            <div class="glass-card p-6 md:p-8">
+              @if (requiredFields().length === 0) {
+                <p class="text-sm text-text-secondary">{{ 'dashboard.legalDocs.details.nothingNeeded' | translate }}</p>
+              }
+              <div class="grid md:grid-cols-2 gap-x-6 gap-y-5">
+                @if (needs('country')) {
+                  <div>
+                    <label for="legal-country">{{ 'dashboard.legalDocs.fields.country' | translate }}</label>
+                    <input
+                      id="legal-country"
+                      type="text"
+                      autocomplete="country-name"
+                      [ngModel]="context().country"
+                      (ngModelChange)="updateContext('country', $event)"
+                      [attr.aria-invalid]="isMissing('country')"
+                      placeholder="Cameroun, Sénégal, Côte d'Ivoire…"
+                    />
+                  </div>
+                }
+                @if (needs('capital')) {
+                  <div>
+                    <label for="legal-capital">{{ 'dashboard.legalDocs.fields.capital' | translate }}</label>
+                    <div class="flex gap-2">
+                      <input
+                        id="legal-capital"
+                        type="text"
+                        inputmode="numeric"
+                        class="flex-1 min-w-0"
+                        [ngModel]="context().capital"
+                        (ngModelChange)="updateContext('capital', $event)"
+                        [attr.aria-invalid]="isMissing('capital')"
+                        aria-describedby="legal-capital-hint"
+                        placeholder="1 000 000"
+                      />
+                      @if (needs('currency')) {
+                        <select
+                          class="!w-28 shrink-0"
+                          [attr.aria-label]="'dashboard.legalDocs.fields.currency' | translate"
+                          [ngModel]="context().currency"
+                          (ngModelChange)="updateContext('currency', $event)"
+                        >
+                          @for (c of currencyOptions(); track c) {
+                            <option [value]="c">{{ c }}</option>
+                          }
+                        </select>
+                      }
+                    </div>
+                    @if (chosenForm(); as form) {
+                      <p id="legal-capital-hint" class="text-xs text-text-secondary mt-1.5">
+                        {{ form.acronym }} : {{ lang() === 'en' ? form.facts.capitalEn : form.facts.capitalFr }}
+                      </p>
+                    }
+                  </div>
+                } @else if (needs('currency')) {
+                  <div>
+                    <label for="legal-currency">{{ 'dashboard.legalDocs.fields.currency' | translate }}</label>
+                    <select
+                      id="legal-currency"
+                      [ngModel]="context().currency"
+                      (ngModelChange)="updateContext('currency', $event)"
+                    >
+                      @for (c of currencyOptions(); track c) {
+                        <option [value]="c">{{ c }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+                @if (needs('companyEmail')) {
+                  <div>
+                    <label for="legal-email">{{ 'dashboard.legalDocs.fields.companyEmail' | translate }}</label>
+                    <input
+                      id="legal-email"
+                      type="email"
+                      autocomplete="email"
+                      [ngModel]="context().companyEmail"
+                      (ngModelChange)="updateContext('companyEmail', $event)"
+                      [attr.aria-invalid]="isMissing('companyEmail')"
+                      placeholder="contact@entreprise.com"
+                    />
+                  </div>
+                }
+                @if (needs('website')) {
+                  <div>
+                    <label for="legal-website">{{ 'dashboard.legalDocs.fields.website' | translate }}</label>
+                    <input
+                      id="legal-website"
+                      type="url"
+                      autocomplete="url"
+                      [ngModel]="context().website"
+                      (ngModelChange)="updateContext('website', $event)"
+                      [attr.aria-invalid]="isMissing('website')"
+                      placeholder="https://"
+                    />
+                  </div>
+                }
+                @if (needs('companyPhone')) {
+                  <div>
+                    <label for="legal-phone">{{ 'dashboard.legalDocs.fields.companyPhone' | translate }}</label>
+                    <input
+                      id="legal-phone"
+                      type="tel"
+                      autocomplete="tel"
+                      [ngModel]="context().companyPhone"
+                      (ngModelChange)="updateContext('companyPhone', $event)"
+                      placeholder="+237 …"
+                    />
+                  </div>
+                }
+                @if (needs('headOffice')) {
+                  <div class="md:col-span-2">
+                    <label for="legal-office">{{ 'dashboard.legalDocs.fields.headOffice' | translate }}</label>
+                    <input
+                      id="legal-office"
+                      type="text"
+                      autocomplete="street-address"
+                      [ngModel]="context().headOffice"
+                      (ngModelChange)="updateContext('headOffice', $event)"
+                      [attr.aria-invalid]="isMissing('headOffice')"
+                      [placeholder]="'dashboard.legalDocs.fields.headOfficePlaceholder' | translate"
+                    />
+                  </div>
+                }
+                @if (needs('activityDescription')) {
+                  <div class="md:col-span-2">
+                    <label for="legal-activity">{{ 'dashboard.legalDocs.fields.activityDescription' | translate }}</label>
+                    <textarea
+                      id="legal-activity"
+                      rows="3"
+                      [ngModel]="context().activityDescription"
+                      (ngModelChange)="updateContext('activityDescription', $event)"
+                      [attr.aria-invalid]="isMissing('activityDescription')"
+                      [placeholder]="'dashboard.legalDocs.fields.activityPlaceholder' | translate"
+                    ></textarea>
+                  </div>
+                }
+              </div>
+
+              @if (needs('founders')) {
+                <fieldset class="mt-8 !border-0 !p-0 !mb-0">
+                  <legend class="!p-0 !mb-0 text-sm font-semibold text-text-primary">
+                    {{ (singlePartner() ? 'dashboard.legalDocs.fields.soleFounder' : 'dashboard.legalDocs.fields.founders') | translate }}
+                  </legend>
+                  <p class="text-xs text-text-secondary mt-0.5">
+                    {{ (singlePartner() ? 'dashboard.legalDocs.fields.soleFounderHint' : 'dashboard.legalDocs.fields.foundersHint') | translate }}
+                  </p>
+
+                  <div class="mt-3 space-y-3">
+                    @for (f of context().founders ?? []; track $index; let i = $index) {
+                      <div class="grid grid-cols-[1fr_auto] md:grid-cols-[2fr_1.5fr_1fr_auto] gap-2 items-center">
+                        <input
+                          type="text"
+                          class="col-span-1"
+                          [attr.aria-label]="'dashboard.legalDocs.fields.founderName' | translate"
+                          [placeholder]="'dashboard.legalDocs.fields.founderName' | translate"
+                          [ngModel]="f.name"
+                          (ngModelChange)="updateFounder(i, 'name', $event)"
+                        />
+                        <button
+                          type="button"
+                          class="button-icon md:order-last"
+                          (click)="removeFounder(i)"
+                          [attr.aria-label]="('dashboard.legalDocs.fields.removeFounder' | translate) + ' ' + (f.name || i + 1)"
+                        >
+                          <i class="pi pi-times" aria-hidden="true"></i>
+                        </button>
+                        <input
+                          type="text"
+                          [attr.aria-label]="'dashboard.legalDocs.fields.founderRole' | translate"
+                          [placeholder]="'dashboard.legalDocs.fields.founderRole' | translate"
+                          [ngModel]="f.role"
+                          (ngModelChange)="updateFounder(i, 'role', $event)"
+                        />
+                        <input
+                          type="text"
+                          [attr.aria-label]="'dashboard.legalDocs.fields.founderShares' | translate"
+                          [placeholder]="'dashboard.legalDocs.fields.founderShares' | translate"
+                          [ngModel]="f.shares"
+                          (ngModelChange)="updateFounder(i, 'shares', $event)"
+                        />
+                      </div>
+                    }
+                  </div>
+                  @if (!singlePartner() || (context().founders ?? []).length === 0) {
+                    <button type="button" class="outer-button button-sm mt-3" (click)="addFounder()">
+                      <i class="pi pi-plus" aria-hidden="true"></i>
+                      {{ 'dashboard.legalDocs.fields.addFounder' | translate }}
+                    </button>
+                  }
+                </fieldset>
+              }
+            </div>
+
+            <!-- Récapitulatif et lancement -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div class="text-sm text-text-secondary max-w-[60ch]">
+                <p>
+                  <span class="text-text-primary font-medium">{{ 'dashboard.legalDocs.details.willGenerate' | translate }}</span>
+                  {{ selectedNames().join(', ') }}
+                </p>
+                @if (missingFields().length > 0) {
+                  <p class="mt-1 flex items-center gap-1.5" role="status">
+                    <i class="pi pi-pencil text-[var(--color-warning)]" aria-hidden="true"></i>
+                    {{ 'dashboard.legalDocs.details.missing' | translate: { count: missingFields().length } }}
+                  </p>
+                }
+              </div>
+              <button type="button" class="inner-button shrink-0" [disabled]="!canGenerate()" (click)="generate()">
+                {{ 'dashboard.legalDocs.actions.generate' | translate: { count: selected().size } }}
+              </button>
+            </div>
           </section>
         }
 
-        @if (errorMessage()) {
-          <p class="text-sm text-red-400 text-center">{{ errorMessage() }}</p>
-        }
-
-        <!-- Spacer to avoid sticky CTA overlap -->
-        @if (selected().size > 0) {
-          <div class="h-20"></div>
+        @case ('generating') {
+          <section class="glass-card p-8 md:p-10 max-w-2xl mx-auto text-center" aria-live="polite">
+            <app-legal-illustration class="w-48 h-36 mx-auto" scene="writing" />
+            <h2 class="text-lg font-semibold text-text-primary mt-4">
+              {{ 'dashboard.legalDocs.generating.title' | translate }}
+            </h2>
+            <p class="text-sm text-text-secondary mt-1">
+              {{ 'dashboard.legalDocs.generating.subtitle' | translate }}
+            </p>
+            <ul class="mt-6 space-y-2 text-left">
+              @for (item of generationList(); track item.type) {
+                <li class="flex items-center gap-3 px-4 py-3 rounded-xl border border-[var(--glass-border)]">
+                  <span class="w-5 h-5 shrink-0 flex items-center justify-center">
+                    @switch (item.status) {
+                      @case ('completed') {
+                        <i class="pi pi-check text-primary-500" aria-hidden="true"></i>
+                      }
+                      @case ('in-progress') {
+                        <idem-loader size="xs" />
+                      }
+                      @default {
+                        <span class="w-2 h-2 rounded-full bg-[var(--glass-border-strong)]"></span>
+                      }
+                    }
+                  </span>
+                  <span class="text-sm text-text-primary flex-1">{{ item.name }}</span>
+                  <span class="text-xs text-text-secondary">
+                    {{ 'dashboard.legalDocs.generating.status.' + item.status | translate }}
+                  </span>
+                </li>
+              }
+            </ul>
+            <button type="button" class="outer-button mt-6" (click)="cancel()">
+              {{ 'dashboard.legalDocs.generating.cancel' | translate }}
+            </button>
+          </section>
         }
       }
     </div>
-
-    <!-- Sticky CTA bar when a selection exists -->
-    @if (!isGenerating() && selected().size > 0) {
-      <div
-        class="fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--glass-border)] bg-neutral-950/85 backdrop-blur-md"
-        [class.md:left-64]="true"
-      >
-        <div
-          class="max-w-6xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-4 flex-wrap"
-        >
-          <div class="text-sm">
-            <span class="text-text-primary font-medium">{{ selected().size }}</span>
-            <span class="text-text-tertiary"> {{ 'dashboard.legalDocs.selected' | translate }}</span>
-            @if (missingRequiredFields().length > 0) {
-              <span class="text-amber-400 ml-3 text-xs">
-                • {{ missingRequiredFields().length }}
-                {{ 'dashboard.legalDocs.missingFieldsShort' | translate }}
-              </span>
-            }
-          </div>
-          <button class="inner-button" [disabled]="!canGenerate()" (click)="generate()">
-            {{ 'dashboard.legalDocs.actions.generate' | translate }}
-          </button>
-        </div>
-      </div>
-    }
   }
 </div>
