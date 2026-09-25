@@ -40,7 +40,7 @@ function state(
 }
 
 function probe(overrides: Partial<HealthProbe> = {}): HealthProbe {
-  return { reachable: true, diskUsedPercent: 40, output: '', ...overrides };
+  return { reachable: true, usable: true, diskUsedPercent: 40, output: '', ...overrides };
 }
 
 const kinds = (notifications: { kind: string }[]) => notifications.map((n) => n.kind);
@@ -55,6 +55,12 @@ describe('parseHealthProbe', () => {
 
   it('reports the disk as unknown when df gave nothing', () => {
     expect(parseHealthProbe('ALIVE\nDISK_USED_PCT=\n', true).diskUsedPercent).toBeNull();
+  });
+
+  it('is usable only when Docker reported OK', () => {
+    expect(parseHealthProbe('ALIVE\nDOCKER_OK\n', true).usable).toBe(true);
+    expect(parseHealthProbe('ALIVE\nDOCKER_FAIL\n', true).usable).toBe(false);
+    expect(parseHealthProbe('ALIVE\n', true).usable).toBe(false);
   });
 });
 
@@ -220,11 +226,28 @@ describe('probeServer', () => {
   const key = privateKeyRow();
 
   it('reports a healthy server with its disk usage', async () => {
-    ssh.connection({ ok: true }).on(/ALIVE/, { stdout: 'ALIVE\nDISK_USED_PCT=55\n' });
+    ssh
+      .connection({ ok: true })
+      .on(/ALIVE/, { stdout: 'ALIVE\nDISK_USED_PCT=55\nDOCKER_OK\n' });
 
     expect(await probeServer(server, key)).toMatchObject({
       reachable: true,
+      usable: true,
       diskUsedPercent: 55,
+    });
+  });
+
+  it('reports reachable but unusable when Docker is broken', async () => {
+    // SSH works, but there's no working Docker — a server in this state would
+    // accept an IDEM-managed placement and fail every deployment onto it, so
+    // it must not count as usable even though it answers.
+    ssh
+      .connection({ ok: true })
+      .on(/ALIVE/, { stdout: 'ALIVE\nDISK_USED_PCT=55\nDOCKER_FAIL\n' });
+
+    expect(await probeServer(server, key)).toMatchObject({
+      reachable: true,
+      usable: false,
     });
   });
 
