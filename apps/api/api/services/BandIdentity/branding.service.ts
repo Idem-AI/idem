@@ -8,6 +8,7 @@ import * as fs from 'fs-extra';
 import {
   BrandIdentityModel,
   ColorModel,
+  SocialAssetFileModel,
   FontSourceId,
   TypographyModel,
 } from '../../models/brand-identity.model';
@@ -88,6 +89,7 @@ import {
   PostVisualRenderer,
   SocialBrandKit,
   SocialPostIdea,
+  socialMockupService,
 } from './socialMockups/socialMockup.service';
 import { CommunicationService } from '../Communication/communication.service';
 import { ContentIdea } from '../../models/communication.model';
@@ -321,6 +323,110 @@ function normalizeSource(raw?: string): FontSourceId | undefined {
   return (['google', 'fontshare', 'fontsource'] as const).includes(value as any)
     ? (value as FontSourceId)
     : undefined;
+}
+
+/**
+ * Durée de vie des textes sociaux (promesse, présentation, publications).
+ * Trente jours, pas un : les bannières téléchargées bien après la charte
+ * doivent porter la MÊME promesse que celles de la charte. La clé suit le nom
+ * et la description du projet, un changement de l'un ou l'autre les réécrit.
+ */
+const SOCIAL_VOICE_TTL_S = 30 * 24 * 3600;
+
+/** Une valeur de logo en `src` d'image : URL et data-URI telles quelles, SVG en data-URI. */
+function logoImgSrc(value?: string): string {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return '';
+  if (/^(https?:|data:)/.test(trimmed)) return trimmed;
+  if (trimmed.includes('<svg')) {
+    return `data:image/svg+xml;base64,${Buffer.from(trimmed).toString('base64')}`;
+  }
+  return trimmed;
+}
+
+/** Les logos que composent les bannières, lus comme la charte les lit. */
+function charterLogoSources(logo: LogoModel): SocialBrandKit['logos'] {
+  const urls = logo.assetUrls;
+  const variations = logo.variations;
+  const main = logoImgSrc(urls?.primary || logo.svg);
+  return {
+    lightGround:
+      logoImgSrc(urls?.withText?.lightBackground || variations?.withText?.lightBackground) || main || undefined,
+    darkGround:
+      logoImgSrc(urls?.withText?.darkBackground || variations?.withText?.darkBackground) || main || undefined,
+    iconLightGround:
+      logoImgSrc(urls?.iconOnly?.lightBackground || variations?.iconOnly?.lightBackground) || undefined,
+    iconDarkGround:
+      logoImgSrc(urls?.iconOnly?.darkBackground || variations?.iconOnly?.darkBackground) || undefined,
+  };
+}
+
+/** Les `src` d'image d'une page de charte, entités HTML décodées. */
+function extractImageUrls(html: string): string[] {
+  return [...html.matchAll(/<img\b[^>]*?\bsrc="(https?:[^"]+)"/gi)].map((match) =>
+    match[1].replace(/&amp;/g, '&')
+  );
+}
+
+function safeDecode(url: string): string {
+  try {
+    return decodeURIComponent(url);
+  } catch {
+    return url;
+  }
+}
+
+function slugify(value: string): string {
+  return (
+    value
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'marque'
+  );
+}
+
+/** Télécharge un fichier ; `null` s'il est injoignable, l'archive se passe de lui. */
+async function downloadBuffer(url: string): Promise<Buffer | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      logger.warn(`[ASSETS] ${response.status} sur ${url}`);
+      return null;
+    }
+    return Buffer.from(await response.arrayBuffer());
+  } catch (error: any) {
+    logger.warn(`[ASSETS] Fichier injoignable (${error?.message}) : ${url}`);
+    return null;
+  }
+}
+
+/** Extension d'une image, lue dans ses premiers octets plutôt que dans l'URL. */
+function imageExtension(url: string, buffer: Buffer): string {
+  if (buffer.subarray(0, 4).toString('hex') === '89504e47') return 'png';
+  if (buffer.subarray(0, 3).toString('hex') === 'ffd8ff') return 'jpg';
+  if (buffer.subarray(8, 12).toString('ascii') === 'WEBP') return 'webp';
+  return /\.(png|jpe?g|webp)(\?|$)/i.exec(safeDecode(url))?.[1].toLowerCase() ?? 'png';
+}
+
+/** Nuancier : une bande par couleur, son rôle et sa valeur en dessous. */
+async function renderPaletteSwatch(palette: [string, string][]): Promise<Buffer> {
+  const sharp = require('sharp');
+  const band = 320;
+  const height = 420;
+  const esc = (value: string) => value.replace(/[&<>"]/g, (char) => `&#${char.charCodeAt(0)};`);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${band * palette.length}" height="${height}">
+<rect width="100%" height="100%" fill="#ffffff"/>
+${palette
+  .map(
+    ([role, hex], index) => `<rect x="${index * band}" y="0" width="${band}" height="320" fill="${esc(hex)}"/>
+<text x="${index * band + 24}" y="362" font-family="Helvetica, Arial, sans-serif" font-size="24" font-weight="700" fill="#111111">${esc(role)}</text>
+<text x="${index * band + 24}" y="396" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="#555555">${esc(hex.toUpperCase())}</text>`
+  )
+  .join('\n')}
+</svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
 export class BrandingService extends GenericService {
@@ -4500,6 +4606,262 @@ export class BrandingService extends GenericService {
   }
 
   /**
+   * Les bannières de réseaux sociaux et la photo de profil de la marque, en
+   * fichiers téléchargeables.
+   *
+   * Rendues à la première demande, déposées, puis gardées sur la marque tant
+   * que ce qui les compose ne change pas (cf. `socialAssets.key`) : l'aperçu
+   * de la marque les affiche sans relancer Chrome à chaque visite.
+   */
+  async getSocialAssets(userId: string, projectId: string): Promise<SocialAssetFileModel[]> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) throw new Error(`Project not found with ID: ${projectId}`);
+    const branding = project.analysisResultModel?.branding;
+    if (!branding?.logo) throw new Error(`No logo found for project ${projectId}`);
+
+    const artDirection = branding.artDirection ?? null;
+    const ds = buildDocumentDesignSystem(
+      branding,
+      artDirection,
+      buildDocumentSeed(artDirection?.styleId, `branding:${projectId}`)
+    );
+    const logos = charterLogoSources(branding.logo);
+    // Tout ce qui décide du rendu : la promesse dérive du nom et de la
+    // description, comme la clé de cache des textes sociaux.
+    const key = crypto
+      .createHash('sha256')
+      .update(
+        JSON.stringify({
+          v: 1,
+          colors: ds.colors,
+          fonts: ds.fonts,
+          logos,
+          style: artDirection?.styleId,
+          name: project.name,
+          description: this.extractProjectDescription(project),
+        })
+      )
+      .digest('hex')
+      .slice(0, 24);
+
+    if (branding.socialAssets?.key === key && branding.socialAssets.items.length > 0) {
+      return branding.socialAssets.items;
+    }
+
+    logger.info(`[ASSETS] Rendu des bannières sociales - projectId: ${projectId}`);
+    const kit = await this.buildSocialBrandKit(userId, projectId, project, ds, logos);
+    const rendered = await socialMockupService.renderStandaloneAssets(kit);
+    const stamp = Date.now();
+    const items = await Promise.all(
+      rendered.map(async (asset) => {
+        const upload = await this.storageService.uploadFile(
+          asset.png,
+          `${asset.id}-${asset.width}x${asset.height}-${stamp}.png`,
+          `projects/${projectId}/BrandBook/assets`,
+          'image/png'
+        );
+        return {
+          id: asset.id,
+          label: asset.label,
+          width: asset.width,
+          height: asset.height,
+          url: upload.downloadURL,
+        };
+      })
+    );
+
+    // Écriture ciblée : seules les bannières changent, pas le reste de la marque.
+    await this.projectRepository.update(
+      projectId,
+      {
+        'analysisResultModel.branding.socialAssets': { key, generatedAt: new Date(), items },
+      } as any,
+      `users/${userId}/projects`
+    );
+    return items;
+  }
+
+  /** Un fichier de bannière, servi en pièce jointe (le bucket est d'une autre origine). */
+  async getSocialAssetFile(
+    userId: string,
+    projectId: string,
+    assetId: string
+  ): Promise<{ buffer: Buffer; fileName: string }> {
+    const assets = await this.getSocialAssets(userId, projectId);
+    const asset = assets.find((item) => item.id === assetId);
+    if (!asset) throw new Error(`Social asset not found: ${assetId}`);
+    const buffer = await downloadBuffer(asset.url);
+    if (!buffer) throw new Error(`Social asset unavailable: ${assetId}`);
+    return { buffer, fileName: `${asset.id}-${asset.width}x${asset.height}.png` };
+  }
+
+  /**
+   * L'archive complète de la marque : logos (SVG et PNG), palette, polices,
+   * bannières et photo de profil, mockups de réseaux, mises en situation, et
+   * la charte en PDF.
+   *
+   * Chaque rubrique est indépendante : une rubrique indisponible (pas encore de
+   * charte, un fichier injoignable) est omise et signalée dans le LISEZMOI,
+   * sans faire échouer l'archive.
+   */
+  async generateBrandAssetsZip(userId: string, projectId: string): Promise<Buffer> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) throw new Error(`Project not found with ID: ${projectId}`);
+    const branding = project.analysisResultModel?.branding;
+    if (!branding?.logo) throw new Error(`No logo found for project ${projectId}`);
+
+    const JSZip = require('jszip');
+    const zip = new JSZip();
+    const brandName = project.name?.trim() || 'Marque';
+    const contents: string[] = [];
+    const missing: string[] = [];
+
+    const section = async (label: string, task: () => Promise<number>): Promise<void> => {
+      try {
+        const count = await task();
+        if (count > 0) contents.push(`${label} (${count} fichier${count > 1 ? 's' : ''})`);
+        else missing.push(label);
+      } catch (error: any) {
+        logger.warn(`[ASSETS] ${label} indisponible - projectId: ${projectId}: ${error?.message}`);
+        missing.push(label);
+      }
+    };
+
+    // ── 01 · Logos ────────────────────────────────────────────────────────
+    await section('01-logos — toutes les déclinaisons, en SVG et PNG', async () => {
+      let count = 0;
+      for (const extension of ['svg', 'png'] as const) {
+        const logos = await JSZip.loadAsync(await this.generateLogosZip(userId, projectId, extension));
+        for (const [name, file] of Object.entries<any>(logos.files)) {
+          if (file.dir) continue;
+          zip.file(`01-logos/${extension}/${name}`, await file.async('nodebuffer'));
+          count += 1;
+        }
+      }
+      return count;
+    });
+
+    // ── 02 · Couleurs ─────────────────────────────────────────────────────
+    await section('02-couleurs — palette en JSON, CSS et nuancier PNG', async () => {
+      const palette = Object.entries(branding.colors?.colors ?? {}).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim() !== ''
+      );
+      if (palette.length === 0) return 0;
+      zip.file(
+        '02-couleurs/palette.json',
+        JSON.stringify({ name: branding.colors?.name, colors: Object.fromEntries(palette) }, null, 2)
+      );
+      zip.file(
+        '02-couleurs/palette.css',
+        `:root {\n${palette.map(([role, hex]) => `  --brand-${role}: ${hex};`).join('\n')}\n}\n`
+      );
+      zip.file('02-couleurs/nuancier.png', await renderPaletteSwatch(palette));
+      return 3;
+    });
+
+    // ── 03 · Typographie ──────────────────────────────────────────────────
+    await section('03-typographie — polices, sources et fichiers importés', async () => {
+      const typography = branding.typography;
+      if (!typography?.primaryFont) return 0;
+      let count = 0;
+      const lines = [`Typographie de ${brandName}`, ''];
+      const fonts = [
+        { role: 'Titres', family: typography.primaryFont, model: typography.primary },
+        { role: 'Texte', family: typography.secondaryFont, model: typography.secondary },
+      ].filter((font) => font.family);
+      for (const font of fonts) {
+        lines.push(`${font.role} : ${font.family}`);
+        if (font.model?.cssUrl) lines.push(`  Feuille de style : ${font.model.cssUrl}`);
+        if (font.model?.source === 'google') {
+          lines.push(`  Google Fonts : https://fonts.google.com/specimen/${encodeURIComponent(font.family)}`);
+        }
+        for (const file of font.model?.files ?? []) {
+          const buffer = await downloadBuffer(file.url);
+          if (!buffer) continue;
+          const slug = slugify(font.family);
+          zip.file(`03-typographie/fichiers/${slug}-${file.weight}-${file.style}.${file.format}`, buffer);
+          count += 1;
+        }
+        lines.push('');
+      }
+      zip.file('03-typographie/polices.txt', lines.join('\n'));
+      return count + 1;
+    });
+
+    // ── 04 · Réseaux sociaux ──────────────────────────────────────────────
+    await section('04-reseaux-sociaux/bannieres — bannières et photo de profil aux formats exacts', async () => {
+      const assets = await this.getSocialAssets(userId, projectId);
+      let count = 0;
+      for (const asset of assets) {
+        const buffer = await downloadBuffer(asset.url);
+        if (!buffer) continue;
+        zip.file(`04-reseaux-sociaux/bannieres/${asset.id}-${asset.width}x${asset.height}.png`, buffer);
+        count += 1;
+      }
+      return count;
+    });
+
+    const sections = (branding.sections ?? []).filter((item) => !isRetiredCharterPage(item.name));
+    const imagesUnder = (folder: string): string[] => [
+      ...new Set(
+        sections.flatMap((item) =>
+          typeof item.data === 'string'
+            ? extractImageUrls(item.data).filter((url) =>
+                safeDecode(url).includes(`projects/${projectId}/${folder}/`)
+              )
+            : []
+        )
+      ),
+    ];
+    const addImages = async (urls: string[], folder: string, prefix: string): Promise<number> => {
+      let count = 0;
+      for (const url of urls) {
+        const buffer = await downloadBuffer(url);
+        if (!buffer) continue;
+        count += 1;
+        zip.file(`${folder}/${prefix}-${count}.${imageExtension(url, buffer)}`, buffer);
+      }
+      return count;
+    };
+
+    await section('04-reseaux-sociaux/mockups — profils et publications de la charte', () =>
+      addImages(imagesUnder('BrandBook/social'), '04-reseaux-sociaux/mockups', 'mockup')
+    );
+
+    // ── 05 · Mises en situation ───────────────────────────────────────────
+    await section('05-mises-en-situation — photographies de la marque sur ses supports', () =>
+      addImages(imagesUnder('Mockups'), '05-mises-en-situation', 'mise-en-situation')
+    );
+
+    // ── 06 · Charte PDF ───────────────────────────────────────────────────
+    await section('06-charte — la charte graphique complète en PDF', async () => {
+      const pdfPath = await this.generateBrandingPdf(userId, projectId);
+      if (!pdfPath) return 0;
+      zip.file(`06-charte/charte-graphique-${slugify(brandName)}.pdf`, await fs.readFile(pdfPath));
+      return 1;
+    });
+
+    zip.file(
+      'LISEZMOI.txt',
+      [
+        `Assets de marque — ${brandName}`,
+        '',
+        'Contenu :',
+        ...contents.map((line) => `  · ${line}`),
+        ...(missing.length
+          ? ['', 'Non inclus (pas encore générés ou indisponibles) :', ...missing.map((line) => `  · ${line}`)]
+          : []),
+        '',
+        'Generated by IDEM',
+        '',
+      ].join('\n')
+    );
+
+    logger.info(`[ASSETS] Archive prête - projectId: ${projectId}`, { contents, missing });
+    return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  }
+
+  /**
    * Convertit un SVG en PNG
    */
   private async convertSvgToPng(svgContent: string): Promise<Buffer> {
@@ -5062,7 +5424,7 @@ ${LOGO_EDIT_PROMPT}`;
   ): Promise<{ promise: string; bio: string; category: string; posts: SocialPostIdea[] } | null> {
     const hash = crypto.createHash('sha256').update(`${project.name}\n${description}`).digest('hex').slice(0, 16);
     const cacheKey = cacheService.generateAIKey('branding-social-voice', userId, projectId, hash);
-    const cached = await cacheService.get<{ promise: string; bio: string; category: string; posts: SocialPostIdea[] }>(cacheKey, { prefix: 'ai', ttl: 86400 });
+    const cached = await cacheService.get<{ promise: string; bio: string; category: string; posts: SocialPostIdea[] }>(cacheKey, { prefix: 'ai', ttl: SOCIAL_VOICE_TTL_S });
     if (cached) return cached;
 
     setAiUsageContext({ feature: 'branding', element: 'social-voice' });
@@ -5114,7 +5476,7 @@ ${description.slice(0, 3000)}`,
         .filter((post: SocialPostIdea) => post.title || post.hook),
     };
     if (!voice.promise && voice.posts.length === 0) return null;
-    await cacheService.set(cacheKey, voice, { prefix: 'ai', ttl: 86400 });
+    await cacheService.set(cacheKey, voice, { prefix: 'ai', ttl: SOCIAL_VOICE_TTL_S });
     return voice;
   }
 

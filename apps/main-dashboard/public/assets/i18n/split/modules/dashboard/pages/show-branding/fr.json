@@ -28,7 +28,9 @@
         "generateIdentity": "Générer mon identité visuelle",
         "edit": "Éditer",
         "editIdentity": "Éditer",
-        "downloadLogos": "Télécharger toutes les déclinaisons"
+        "downloadLogos": "Télécharger toutes les déclinaisons",
+        "downloadAllAssets": "Télécharger mes assets complets",
+        "downloadingAssets": "Préparation de l'archive…"
       },
       "tooltips": {
         "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
@@ -170,6 +172,18 @@
         "subtitle": "Générez un modèle de carte à partir de votre identité, puis créez la carte de chaque personne de l'équipe et téléchargez-la, prête à imprimer.",
         "cta": "Gérer les cartes de visite",
         "locked": "Générez d'abord votre identité visuelle pour créer vos cartes."
+      },
+      "socialAssets": {
+        "title": "Réseaux sociaux",
+        "subtitle": "Bannières et photo de profil aux dimensions exactes de chaque réseau, prêtes à téléverser.",
+        "loading": "Préparation des bannières…",
+        "error": "Les bannières n'ont pas pu être préparées.",
+        "download": "Télécharger"
+      },
+      "errors": {
+        "downloadAssets": "L'archive des assets n'a pas pu être téléchargée. Réessayez dans un instant.",
+        "downloadAsset": "Ce fichier n'a pas pu être téléchargé.",
+        "emptyZip": "L'archive reçue est vide."
       }
     }
   }

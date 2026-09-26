@@ -39,13 +39,15 @@ import { randomUUID } from 'crypto';
 import { PoolClient } from 'pg';
 import pool, { withTransaction } from '../config/db.config';
 import logger from '../config/logger';
-import { conflict, forbidden, notFound, unprocessable } from '../utils/errors';
+import { conflict, forbidden, isDomainError, notFound, unprocessable } from '../utils/errors';
 import { DB_TYPES } from './database-types';
 import {
   DEFAULT_REGION,
   destinationForServer,
+  Placement,
   placeOnManagedServer,
 } from './server-scheduling.service';
+import { ensureLocalServer } from './server.service';
 import { canSelectRegion } from './subscription.service';
 
 /** Where a workspace's projects run. Values match the Laravel column. */
@@ -203,6 +205,32 @@ export interface ResolvedTarget {
 }
 
 /**
+ * Place a SaaS workspace on IDEM's fleet — or, outside production, on this
+ * machine's Docker when the fleet has nothing to offer.
+ *
+ * A development setup has no managed servers, and before workspaces existed a
+ * deploy simply used the team's first destination, which there was the local
+ * server. Without this fallback every deploy in development is refused with
+ * NO_MANAGED_CAPACITY. Production never falls back: a customer's app must not
+ * silently land on the API's own host.
+ */
+async function placeSaasWorkspace(teamId: number, region?: string): Promise<Placement> {
+  try {
+    return await placeOnManagedServer(region);
+  } catch (err) {
+    const noCapacity = isDomainError(err) && err.code === 'NO_MANAGED_CAPACITY';
+    if (!noCapacity || process.env.NODE_ENV === 'production') throw err;
+
+    const { server } = await ensureLocalServer(teamId);
+    logger.info('No managed capacity outside production; placed on the local Docker', {
+      teamId,
+      serverId: server.id,
+    });
+    return { serverId: server.id, serverName: server.name, region: null, fellBackToAnyRegion: Boolean(region) };
+  }
+}
+
+/**
  * Decide where a workspace will run, before anything is written.
  *
  * Kept separate from the insert so the decision — including its refusals — is
@@ -245,7 +273,7 @@ export async function resolveTarget(
     region = dto.region.toUpperCase();
   }
 
-  const placement = await placeOnManagedServer(region);
+  const placement = await placeSaasWorkspace(teamId, region);
   return {
     assignedServerId: placement.serverId,
     region: placement.region,
@@ -681,7 +709,7 @@ export async function resolveWorkspaceDestination(
         'This workspace has no server assigned. Edit it and choose one of your servers.'
       );
     }
-    const placement = await placeOnManagedServer(workspace.region ?? DEFAULT_REGION);
+    const placement = await placeSaasWorkspace(teamId, workspace.region ?? DEFAULT_REGION);
     serverId = placement.serverId;
     await pool.query(
       `UPDATE projects SET assigned_server_id = $2, deployment_region = COALESCE(deployment_region, $3),

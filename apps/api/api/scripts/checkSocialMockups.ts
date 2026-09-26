@@ -23,6 +23,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import puppeteer from 'puppeteer';
+import sharp from 'sharp';
 import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
 import { buildDocumentSeed } from '../services/design/designSeed';
 import {
@@ -32,6 +33,7 @@ import {
   readMockupTemplate,
 } from '../services/BandIdentity/socialMockups/library';
 import {
+  DOWNLOADABLE_BANNERS,
   SocialBrandKit,
   socialMockupService,
 } from '../services/BandIdentity/socialMockups/socialMockup.service';
@@ -180,6 +182,20 @@ async function main() {
     check(`${audience} : deux profils rendus (${profiles.map((p) => p.label).join(', ')})`, profiles.length === 2);
     const posts = await socialMockupService.renderPostMockups(kit, async () => null, upload);
     check(`${audience} : deux publications rendues (${posts.map((p) => p.label).join(', ')})`, posts.length === 2);
+
+    // Fichiers téléchargeables : chaque bannière aux dimensions exactes du réseau.
+    const assets = await socialMockupService.renderStandaloneAssets(kit);
+    const exact = await Promise.all(
+      assets.map(async (asset) => {
+        const meta = await sharp(asset.png).metadata();
+        fs.writeFileSync(path.join(out, `${audience}-file-${asset.id}.png`), asset.png);
+        return meta.width === asset.width && meta.height === asset.height;
+      })
+    );
+    check(
+      `${audience} : ${assets.length} fichiers de bannière aux dimensions exactes`,
+      assets.length === DOWNLOADABLE_BANNERS.length + 1 && exact.every(Boolean)
+    );
   }
   console.log(`\n  Images : ${out}`);
 

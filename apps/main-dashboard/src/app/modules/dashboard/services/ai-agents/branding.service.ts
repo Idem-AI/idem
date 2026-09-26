@@ -3,7 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map, tap, timeout, retry } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
-import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
+import {
+  BrandIdentityModel,
+  ColorModel,
+  SocialAssetFile,
+  TypographyModel,
+} from '../../models/brand-identity.model';
 import { ProjectModel } from '@idem/shared-models';
 import { LogoModel, LogoPreferencesModel } from '../../models/logo.model';
 import { SSEService } from '../../../../shared/services/sse.service';
@@ -400,6 +405,35 @@ export class BrandingService {
    * @param extension File extension (svg, png, psd)
    * @returns Observable with blob data for ZIP download
    */
+  /**
+   * Bannières de réseaux sociaux et photo de profil de la marque (rendues à la
+   * première demande côté serveur, puis réutilisées).
+   */
+  getSocialAssets(projectId: string): Observable<SocialAssetFile[]> {
+    return this.http
+      .get<{ items: SocialAssetFile[] }>(`${this.apiUrl}/social-assets/${projectId}`)
+      .pipe(map((response) => response.items ?? []));
+  }
+
+  /** Un fichier de bannière, servi en pièce jointe par l'API. */
+  downloadSocialAsset(projectId: string, assetId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/social-assets/${projectId}/${assetId}`, {
+      responseType: 'blob',
+      headers: { Accept: 'image/png' },
+    });
+  }
+
+  /**
+   * Toute la marque en une archive : logos, palette, polices, bannières,
+   * mockups, mises en situation et charte PDF.
+   */
+  downloadBrandAssetsZip(projectId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/assets-zip/${projectId}`, {
+      responseType: 'blob',
+      headers: { Accept: 'application/zip' },
+    });
+  }
+
   downloadLogosZip(projectId: string, extension: string): Observable<Blob> {
     const zipUrl = `${this.apiUrl}/logos-zip/${projectId}/${extension}`;
 
