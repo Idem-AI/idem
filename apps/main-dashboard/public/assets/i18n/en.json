@@ -1537,6 +1537,70 @@
       },
       "errors": {
         "title": "Generation Failed"
+      },
+      "live": {
+        "eyebrow": "Your brand guidelines are taking shape",
+        "pages": "Pages",
+        "elapsed": "Elapsed",
+        "remaining": "About",
+        "minutes": "{{count}} min left",
+        "stage": "The guidelines workshop",
+        "ready": "Your brand guidelines are ready.",
+        "redirecting": "We're saving the last pages, then we'll take you there.",
+        "openNow": "Open the guidelines now",
+        "warmingUp": "Preparing the first page…",
+        "page": "Page {{index}}",
+        "followLive": "Follow live",
+        "live": "Live",
+        "firstPage": "The first page will appear here as soon as it is ready.",
+        "outline": "Guidelines outline",
+        "status": {
+          "pending": "upcoming",
+          "active": "in progress",
+          "done": "ready"
+        },
+        "phases": {
+          "logo": {
+            "title": "Drawing your logo",
+            "detail": "The mark and its light, dark and monochrome versions.",
+            "chapter": "Logo"
+          },
+          "colors": {
+            "title": "Setting your colours",
+            "detail": "The palette, the role of each colour and their contrast.",
+            "chapter": "Colours"
+          },
+          "type": {
+            "title": "Tuning your typography",
+            "detail": "Typefaces, hierarchy and sizes.",
+            "chapter": "Typography"
+          },
+          "direction": {
+            "title": "Composing the art direction",
+            "detail": "Grid, image treatment and brand patterns.",
+            "chapter": "Art direction"
+          },
+          "mockups": {
+            "title": "Putting the brand in context",
+            "detail": "Your logo on real, photographed items.",
+            "chapter": "Mockups"
+          },
+          "social": {
+            "title": "Preparing your social media",
+            "detail": "Banners and posts in each network's formats.",
+            "chapter": "Social media"
+          },
+          "usage": {
+            "title": "Setting the usage rules",
+            "detail": "Do's and don'ts for the logo, colours and typefaces.",
+            "chapter": "Usage rules"
+          },
+          "finalize": {
+            "title": "Assembling your guidelines",
+            "detail": "Pages are bound and saved.",
+            "chapter": "Finalising"
+          }
+        }
       }
     },
     "showBranding": {

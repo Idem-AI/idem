@@ -1,114 +1,83 @@
-/* Branding Generation Component Styles */
+/* Page de génération de la charte : suivi en direct.
+   Surfaces, boutons et chargement viennent du design system ; seuls les
+   mouvements propres à cette page sont définis ici. */
 
-/* Animation for pulse effect */
-@keyframes pulse {
+.progress-fill {
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Témoin « en direct ». */
+.live-dot {
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.25;
   }
 }
 
-/* Custom progress bar */
-::ng-deep .custom-progress-bar .p-progressbar {
-  height: 12px;
-  background: rgba(75, 85, 99, 0.3);
-  border-radius: 6px;
-  overflow: hidden;
+/* Chaque nouvelle page entre dans la scène. */
+.page-reveal app-live-page-preview {
+  animation: page-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-::ng-deep .custom-progress-bar .p-progressbar-value {
-  background: linear-gradient(90deg, #8b5cf6, #ec4899);
-  border-radius: 6px;
-  transition: width 0.3s ease;
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-/* Loading animation for steps */
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+/* Déroulé : une page prête se choisit, les autres attendent. */
+.outline-row:not(:disabled) {
+  cursor: pointer;
 }
 
-/* Step content styling */
-.prose {
-  color: var(--color-text-primary);
+.outline-row:not(:disabled):hover {
+  background: var(--glass-bg-light);
 }
 
-.prose h1,
-.prose h2,
-.prose h3,
-.prose h4,
-.prose h5,
-.prose h6 {
-  color: var(--color-text-primary);
+.outline-row:disabled {
+  cursor: default;
 }
 
-.prose strong {
-  color: var(--color-text-primary);
+.outline-row.is-shown {
+  background: color-mix(in srgb, var(--color-primary-500) 10%, transparent);
 }
 
-.prose ul,
-.prose ol {
-  color: var(--color-text-secondary);
+.outline-row:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 1px;
 }
 
-/* Glass card effect */
-.glass-card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur-lg));
-  -webkit-backdrop-filter: blur(var(--glass-blur-lg));
-  border: 1px solid var(--glass-border);
+.done-mark {
+  animation: done-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
 }
 
-/* Progress header styling */
-.progress-header {
-  background: var(--glass-bg-intense);
-  backdrop-filter: blur(var(--glass-blur-xl));
-  -webkit-backdrop-filter: blur(var(--glass-blur-xl));
-  border-bottom: 1px solid var(--glass-border);
-}
-
-/* Step cards hover effect */
-.step-card:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
-}
-
-/* Current step animation */
-.current-step-indicator {
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-/* Completed step checkmark animation */
-.completed-checkmark {
-  animation: scale-in 0.3s ease-out;
-}
-
-@keyframes scale-in {
-  0% {
+@keyframes done-in {
+  from {
     transform: scale(0);
   }
-  100% {
+  to {
     transform: scale(1);
   }
 }
 
-/* Section spacing */
-.completed-steps-section,
-.current-step-section {
-  margin-bottom: 2rem;
-}
-
-/* Error state styling */
-.error-icon {
-  color: #ef4444;
-}
-
-/* Success state styling */
-.success-icon {
-  color: #10b981;
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill,
+  .live-dot,
+  .page-reveal app-live-page-preview,
+  .done-mark {
+    animation: none;
+    transition: none;
+  }
 }
