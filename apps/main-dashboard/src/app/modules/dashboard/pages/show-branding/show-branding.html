@@ -143,6 +143,27 @@
                     <i class="pi pi-pencil text-xs" aria-hidden="true"></i>
                     {{ 'dashboard.showBranding.buttons.editIdentity' | translate }}
                   </button>
+                  <button
+                    type="button"
+                    class="glass-card px-4 py-2.5 text-sm text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors rounded-xl flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+                    (click)="downloadAllAssets()"
+                    [disabled]="isDownloadingAssets()"
+                    [attr.aria-busy]="isDownloadingAssets()"
+                  >
+                    <i
+                      class="pi text-xs"
+                      [class.pi-download]="!isDownloadingAssets()"
+                      [class.pi-spin]="isDownloadingAssets()"
+                      [class.pi-spinner]="isDownloadingAssets()"
+                      aria-hidden="true"
+                    ></i>
+                    {{
+                      (isDownloadingAssets()
+                        ? 'dashboard.showBranding.buttons.downloadingAssets'
+                        : 'dashboard.showBranding.buttons.downloadAllAssets'
+                      ) | translate
+                    }}
+                  </button>
                 </div>
               </div>
 
@@ -253,6 +274,78 @@
               </span>
             </div>
           </div>
+        </section>
+      }
+
+      <!-- ── Réseaux sociaux : bannières et photo de profil en fichiers ─── -->
+      @if (hasBrandingSections()) {
+        <section class="glass-card p-6 sm:p-7" aria-labelledby="social-assets-heading">
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-5">
+            <div>
+              <h2 id="social-assets-heading" class="text-xl font-bold text-text-primary">
+                {{ 'dashboard.showBranding.socialAssets.title' | translate }}
+              </h2>
+              <p class="text-text-secondary mt-1 max-w-2xl">
+                {{ 'dashboard.showBranding.socialAssets.subtitle' | translate }}
+              </p>
+            </div>
+          </div>
+
+          @switch (socialAssetsState()) {
+            @case ('loading') {
+              <div class="flex items-center gap-3 py-6 text-text-tertiary">
+                <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                <span>{{ 'dashboard.showBranding.socialAssets.loading' | translate }}</span>
+              </div>
+            }
+            @case ('error') {
+              <div class="flex flex-wrap items-center gap-3 py-4">
+                <p class="text-text-secondary">{{ 'dashboard.showBranding.socialAssets.error' | translate }}</p>
+                <button type="button" class="outer-button !text-sm !py-2" (click)="loadSocialAssets()">
+                  <i class="pi pi-refresh text-xs mr-1" aria-hidden="true"></i>
+                  {{ 'common.retry' | translate }}
+                </button>
+              </div>
+            }
+            @case ('ready') {
+              <ul class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                @for (asset of socialAssets(); track asset.id) {
+                  <li class="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] overflow-hidden flex flex-col">
+                    <div class="h-36 p-3 flex items-center justify-center bg-white">
+                      <img
+                        [src]="asset.url"
+                        [alt]="asset.label"
+                        class="max-w-full max-h-full object-contain shadow-sm"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div class="flex items-center justify-between gap-3 p-3">
+                      <div class="min-w-0">
+                        <p class="text-sm font-semibold text-text-primary truncate">{{ asset.label }}</p>
+                        <p class="text-xs text-text-tertiary">{{ asset.width }} × {{ asset.height }} px · PNG</p>
+                      </div>
+                      <button
+                        type="button"
+                        class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--glass-border)] text-text-secondary transition-colors hover:bg-[var(--glass-bg-light)] hover:text-text-primary disabled:opacity-60"
+                        [attr.aria-label]="('dashboard.showBranding.socialAssets.download' | translate) + ' — ' + asset.label"
+                        [title]="'dashboard.showBranding.socialAssets.download' | translate"
+                        [disabled]="downloadingAssetId() !== null"
+                        (click)="downloadSocialAsset(asset)"
+                      >
+                        <i
+                          class="pi text-sm"
+                          [class.pi-download]="downloadingAssetId() !== asset.id"
+                          [class.pi-spin]="downloadingAssetId() === asset.id"
+                          [class.pi-spinner]="downloadingAssetId() === asset.id"
+                          aria-hidden="true"
+                        ></i>
+                      </button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          }
         </section>
       }
 

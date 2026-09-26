@@ -1042,6 +1042,110 @@ export const generateLogosZipController = async (
 };
 
 /**
+ * Bannières de réseaux sociaux et photo de profil, en fichiers téléchargeables.
+ */
+export const getSocialAssetsController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const projectId = req.params.projectId as string;
+  const userId = req.user?.uid;
+
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+  if (!projectId) {
+    res.status(400).json({ message: 'Project ID is required' });
+    return;
+  }
+
+  try {
+    const items = await brandingService.getSocialAssets(userId, projectId);
+    res.status(200).json({ items });
+  } catch (error: any) {
+    logger.error(
+      `Error in getSocialAssetsController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+    if (error.message.includes('Project not found') || error.message.includes('No logo found')) {
+      res.status(404).json({ message: 'No brand assets for this project', error: error.message });
+    } else {
+      res.status(500).json({ message: 'Error rendering social assets', error: error.message });
+    }
+  }
+};
+
+/** Un fichier de bannière, en pièce jointe. */
+export const downloadSocialAssetController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const projectId = req.params.projectId as string;
+  const assetId = req.params.assetId as string;
+  const userId = req.user?.uid;
+
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+
+  try {
+    const { buffer, fileName } = await brandingService.getSocialAssetFile(userId, projectId, assetId);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  } catch (error: any) {
+    logger.error(
+      `Error in downloadSocialAssetController - UserId: ${userId}, ProjectId: ${projectId}, Asset: ${assetId}: ${error.message}`
+    );
+    const notFound = /not found|No logo found/i.test(error.message);
+    res.status(notFound ? 404 : 500).json({ message: 'Error downloading social asset', error: error.message });
+  }
+};
+
+/**
+ * Archive complète de la marque : logos, palette, polices, bannières,
+ * mockups, mises en situation et charte PDF.
+ */
+export const generateBrandAssetsZipController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const projectId = req.params.projectId as string;
+  const userId = req.user?.uid;
+  logger.info(`generateBrandAssetsZipController called - UserId: ${userId}, ProjectId: ${projectId}`);
+
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+  if (!projectId) {
+    res.status(400).json({ message: 'Project ID is required' });
+    return;
+  }
+
+  try {
+    const zipBuffer = await brandingService.generateBrandAssetsZip(userId, projectId);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="brand-assets-${projectId}.zip"`);
+    res.setHeader('Content-Length', zipBuffer.length);
+    res.send(zipBuffer);
+  } catch (error: any) {
+    logger.error(
+      `Error in generateBrandAssetsZipController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+    if (error.message.includes('Project not found') || error.message.includes('No logo found')) {
+      res.status(404).json({ message: 'No brand assets for this project', error: error.message });
+    } else {
+      res.status(500).json({ message: 'Error generating brand assets ZIP', error: error.message });
+    }
+  }
+};
+
+/**
  * Contrôleur pour éditer un logo existant avec AI
  */
 export const editLogoController = async (req: CustomRequest, res: Response): Promise<void> => {

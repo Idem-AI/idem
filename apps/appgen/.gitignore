@@ -15,6 +15,7 @@ dist
 
 *.log
 **/**/workspace/
+!apps/we-dev-client/src/components/Workspace/
 **/**/logs/
 **/**/packages/
 .pnpm-lock.yaml

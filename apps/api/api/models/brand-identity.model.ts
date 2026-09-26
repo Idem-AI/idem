@@ -78,6 +78,26 @@ export interface BrandIdentityModel {
    */
   artDirection?: ArtDirectionModel;
   pdfFormat?: string; // Format PDF choisi (A4_PORTRAIT ou SLIDE_16_9)
+  /**
+   * Bannières de réseaux sociaux et photo de profil, rendues en fichiers pour
+   * être téléchargées. `key` résume ce qui les compose (logos, palette,
+   * polices, style, textes du projet) : tant qu'elle ne change pas, les
+   * fichiers déposés restent valables.
+   */
+  socialAssets?: {
+    key: string;
+    generatedAt: Date;
+    items: SocialAssetFileModel[];
+  };
+}
+
+/** Un fichier de bannière ou de photo de profil, déposé dans le stockage. */
+export interface SocialAssetFileModel {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+  url: string;
 }
 
 /**

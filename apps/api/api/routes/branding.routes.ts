@@ -14,6 +14,9 @@ import {
   generateBrandingStreamingController,
   generateBrandingPdfController,
   generateLogosZipController,
+  generateBrandAssetsZipController,
+  getSocialAssetsController,
+  downloadSocialAssetController,
   editLogoController,
   saveBrandingSectionsController,
   aiEditBrandingSectionController,
@@ -799,6 +802,102 @@ brandingRoutes.get(
   `/${resourceName}/logos-zip/:projectId/:extension`,
   authenticate,
   generateLogosZipController
+);
+
+/**
+ * @openapi
+ * /brandings/social-assets/{projectId}:
+ *   get:
+ *     tags:
+ *       - Branding
+ *     summary: Social media banners and profile picture as downloadable files
+ *     description: Renders (once, then reuses) the brand's banners for Facebook, LinkedIn, X and YouTube at their exact sizes, plus a profile picture.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: List of files (id, label, width, height, url)
+ *       '404':
+ *         description: Project or logo not found
+ */
+brandingRoutes.get(
+  `/${resourceName}/social-assets/:projectId`,
+  authenticate,
+  getSocialAssetsController
+);
+
+/**
+ * @openapi
+ * /brandings/social-assets/{projectId}/{assetId}:
+ *   get:
+ *     tags:
+ *       - Branding
+ *     summary: Download one social banner or the profile picture (PNG attachment)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: assetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [facebook-cover, linkedin-cover, x-header, youtube-banner, profile-picture]
+ *     responses:
+ *       '200':
+ *         description: PNG file
+ *       '404':
+ *         description: Asset not found
+ */
+brandingRoutes.get(
+  `/${resourceName}/social-assets/:projectId/:assetId`,
+  authenticate,
+  downloadSocialAssetController
+);
+
+/**
+ * @openapi
+ * /brandings/assets-zip/{projectId}:
+ *   get:
+ *     tags:
+ *       - Branding
+ *     summary: Download every brand asset in one ZIP
+ *     description: Logos (SVG and PNG), palette, typography, social banners and profile picture, social mockups, product mockups and the brand guidelines PDF.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: ZIP archive
+ *         content:
+ *           application/zip:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       '404':
+ *         description: Project or logo not found
+ */
+brandingRoutes.get(
+  `/${resourceName}/assets-zip/:projectId`,
+  authenticate,
+  // La charte PDF est rendue si elle n'est pas en cache : même délai qu'elle.
+  pdfTimeout,
+  generateBrandAssetsZipController
 );
 
 // Edit an existing logo with AI

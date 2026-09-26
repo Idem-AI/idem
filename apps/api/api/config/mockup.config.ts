@@ -34,8 +34,9 @@ export const MOCKUP_CONFIG = {
    * Configuration Gemini pour la génération d'images
    */
   GEMINI_CONFIG: {
-    model: AI_CONFIG.branding.brandMockup.imageModel,
-    responseModalities: ['TEXT', 'IMAGE'] as const,
+    /** Chaîne de modèles, dans l'ordre d'essai (cf. `AI_CONFIG.branding.brandMockup`). */
+    models: AI_CONFIG.branding.brandMockup.geminiImageModels,
+    responseModalities: ['IMAGE'] as const,
   },
 
   /**

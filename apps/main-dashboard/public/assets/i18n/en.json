@@ -1567,7 +1567,9 @@
         "generateIdentity": "Generate My Visual Identity",
         "edit": "Edit",
         "editIdentity": "Edit",
-        "downloadLogos": "Download every logo version"
+        "downloadLogos": "Download every logo version",
+        "downloadAllAssets": "Download all my assets",
+        "downloadingAssets": "Preparing archive…"
       },
       "tooltips": {
         "downloadZip": "Download all logos in a ZIP file"
@@ -1709,6 +1711,18 @@
         "subtitle": "Generate a card template from your brand identity, then create a card for every team member and download it, ready to print.",
         "cta": "Manage business cards",
         "locked": "Generate your visual identity first to create cards."
+      },
+      "socialAssets": {
+        "title": "Social media",
+        "subtitle": "Banners and profile picture at each network's exact size, ready to upload.",
+        "loading": "Preparing banners…",
+        "error": "The banners could not be prepared.",
+        "download": "Download"
+      },
+      "errors": {
+        "downloadAssets": "The assets archive could not be downloaded. Please try again shortly.",
+        "downloadAsset": "This file could not be downloaded.",
+        "emptyZip": "The archive received is empty."
       }
     },
     "additionalInfoForm": {

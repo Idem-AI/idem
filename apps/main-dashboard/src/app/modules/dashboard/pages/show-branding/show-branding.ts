@@ -11,7 +11,12 @@ import { Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { BrandingService } from '../../services/ai-agents/branding.service';
 import { ProjectService } from '../../services/project.service';
-import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
+import {
+  BrandIdentityModel,
+  ColorModel,
+  SocialAssetFile,
+  TypographyModel,
+} from '../../models/brand-identity.model';
 import { LogoModel } from '../../models/logo.model';
 import { ProjectModel } from '@idem/shared-models';
 import { Dialog } from 'primeng/dialog';
@@ -79,6 +84,14 @@ export class ShowBrandingComponent implements OnInit {
     { id: 'png', recommended: false },
     { id: 'psd', recommended: false },
   ];
+
+  /** Archive complète de la marque en cours de préparation. */
+  protected readonly isDownloadingAssets = signal<boolean>(false);
+  /** Bannières de réseaux sociaux et photo de profil, en fichiers. */
+  protected readonly socialAssets = signal<SocialAssetFile[]>([]);
+  protected readonly socialAssetsState = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  /** Fichier de bannière en cours de téléchargement (un à la fois). */
+  protected readonly downloadingAssetId = signal<string | null>(null);
 
   // Computed properties for UI state
   protected readonly hasProjectData = computed(() => {
@@ -249,6 +262,8 @@ export class ShowBrandingComponent implements OnInit {
     if (brandingData) {
       console.log('Branding data found in project:', brandingData);
       this.existingBranding.set(this.normalizeBranding(brandingData));
+      // Les bannières sont composées à partir de la charte : sans elle, rien à montrer.
+      if (this.hasBrandingSections()) this.loadSocialAssets(project.id!);
 
       // Also check for PDF if available
       this.checkForBrandingPdf(project.id!);
@@ -512,5 +527,83 @@ export class ShowBrandingComponent implements OnInit {
         }
       },
     });
+  }
+
+  /** Bannières et photo de profil : rendues côté serveur à la première visite. */
+  protected loadSocialAssets(projectId = this.cookieService.get('projectId')): void {
+    if (!projectId) return;
+    this.socialAssetsState.set('loading');
+    this.brandingService.getSocialAssets(projectId).subscribe({
+      next: (items) => {
+        this.socialAssets.set(items);
+        this.socialAssetsState.set('ready');
+      },
+      error: (err: any) => {
+        console.error('Error loading social assets:', err);
+        this.socialAssetsState.set('error');
+      },
+    });
+  }
+
+  /** Télécharge une bannière (PNG aux dimensions exactes du réseau). */
+  protected downloadSocialAsset(asset: SocialAssetFile): void {
+    const projectId = this.cookieService.get('projectId');
+    if (!projectId || this.downloadingAssetId()) return;
+    this.downloadingAssetId.set(asset.id);
+    this.brandingService.downloadSocialAsset(projectId, asset.id).subscribe({
+      next: (blob) => {
+        this.downloadingAssetId.set(null);
+        this.saveBlob(blob, `${this.fileSlug()}-${asset.id}-${asset.width}x${asset.height}.png`);
+      },
+      error: (err: any) => {
+        this.downloadingAssetId.set(null);
+        console.error('Error downloading social asset:', err);
+        alert(this.translate.instant('dashboard.showBranding.errors.downloadAsset'));
+      },
+    });
+  }
+
+  /** Toute la marque en une archive : logos, palette, polices, bannières, mockups, charte PDF. */
+  protected downloadAllAssets(): void {
+    const projectId = this.cookieService.get('projectId');
+    if (!projectId || this.isDownloadingAssets()) return;
+    this.isDownloadingAssets.set(true);
+    this.brandingService.downloadBrandAssetsZip(projectId).subscribe({
+      next: (blob) => {
+        this.isDownloadingAssets.set(false);
+        if (!blob || blob.size === 0) {
+          alert(this.translate.instant('dashboard.showBranding.errors.emptyZip'));
+          return;
+        }
+        this.saveBlob(blob, `${this.fileSlug()}-assets.zip`);
+      },
+      error: (err: any) => {
+        this.isDownloadingAssets.set(false);
+        console.error('Error downloading brand assets ZIP:', err);
+        alert(this.translate.instant('dashboard.showBranding.errors.downloadAssets'));
+      },
+    });
+  }
+
+  private fileSlug(): string {
+    return (
+      (this.currentProject()?.name || 'marque')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'marque'
+    );
+  }
+
+  private saveBlob(blob: Blob, fileName: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 }
