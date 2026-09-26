@@ -1587,7 +1587,10 @@
           "darkBg": "Fond sombre",
           "iconOnly": "Icône seule",
           "monochrome": "Monochrome",
-          "downloadHint": "Toutes les versions du logo (fond clair, sombre, monochrome, icône) dans un fichier ZIP."
+          "downloadHint": "Toutes les versions du logo (fond clair, sombre, monochrome, icône) dans un fichier ZIP.",
+          "iconLight": "Icône · fond clair",
+          "iconDark": "Icône · fond sombre",
+          "iconMono": "Icône · monochrome"
         },
         "colors": {
           "title": "Palette de couleurs",
@@ -1726,6 +1729,15 @@
         "downloadAssets": "L'archive des assets n'a pas pu être téléchargée. Réessayez dans un instant.",
         "downloadAsset": "Ce fichier n'a pas pu être téléchargé.",
         "emptyZip": "L'archive reçue est vide."
+      },
+      "board": {
+        "charterReady": "Charte prête",
+        "openCharter": "Ouvrir la charte",
+        "downloadLogos": "Télécharger",
+        "variations": "Déclinaisons du logo",
+        "copyHint": "Cliquez sur une couleur pour copier sa valeur",
+        "copy": "Copier",
+        "copied": "Copié"
       }
     },
     "additionalInfoForm": {
@@ -3458,6 +3470,12 @@
           "message": "Le contenu reçu est vide ou incomplet. Régénérez la section pour obtenir une page complète."
         },
         "action": "Régénérer cette section"
+      },
+      "nudge": {
+        "complete": "Compléter",
+        "later": "Plus tard",
+        "messageOne": "Il manque 1 page à ce document.",
+        "messageMany": "Il manque {{count}} pages à ce document."
       }
     },
     "deliverableList": {

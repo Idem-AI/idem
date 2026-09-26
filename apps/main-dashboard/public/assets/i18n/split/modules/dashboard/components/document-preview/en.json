@@ -74,6 +74,12 @@
           "message": "The content received is empty or incomplete. Regenerate the section to get a full page."
         },
         "action": "Regenerate this section"
+      },
+      "nudge": {
+        "complete": "Complete",
+        "later": "Later",
+        "messageOne": "1 page is missing from this document.",
+        "messageMany": "{{count}} pages are missing from this document."
       }
     }
   }

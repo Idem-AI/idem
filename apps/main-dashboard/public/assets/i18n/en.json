@@ -1584,7 +1584,10 @@
           "darkBg": "Dark Background",
           "iconOnly": "Icon Only",
           "monochrome": "Monochrome",
-          "downloadHint": "Every version of the logo (light, dark, monochrome, icon) in a single ZIP file."
+          "downloadHint": "Every version of the logo (light, dark, monochrome, icon) in a single ZIP file.",
+          "iconLight": "Icon · light background",
+          "iconDark": "Icon · dark background",
+          "iconMono": "Icon · monochrome"
         },
         "colors": {
           "title": "Color Palette",
@@ -1723,6 +1726,15 @@
         "downloadAssets": "The assets archive could not be downloaded. Please try again shortly.",
         "downloadAsset": "This file could not be downloaded.",
         "emptyZip": "The archive received is empty."
+      },
+      "board": {
+        "charterReady": "Guidelines ready",
+        "openCharter": "Open guidelines",
+        "downloadLogos": "Download",
+        "variations": "Logo variations",
+        "copyHint": "Click a colour to copy its value",
+        "copy": "Copy",
+        "copied": "Copied"
       }
     },
     "additionalInfoForm": {
@@ -3455,6 +3467,12 @@
           "message": "The content received is empty or incomplete. Regenerate the section to get a full page."
         },
         "action": "Regenerate this section"
+      },
+      "nudge": {
+        "complete": "Complete",
+        "later": "Later",
+        "messageOne": "1 page is missing from this document.",
+        "messageMany": "{{count}} pages are missing from this document."
       }
     },
     "deliverableList": {

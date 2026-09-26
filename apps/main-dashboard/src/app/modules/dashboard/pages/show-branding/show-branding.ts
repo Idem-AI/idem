@@ -24,24 +24,54 @@ import { ButtonModule } from 'primeng/button';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
-import { GenerationStatusPanelComponent } from '../../components/generation-status-panel/generation-status-panel';
-import {
-  analyzeGenerationCompleteness,
-  BRANDING_SECTION_NAMES,
-} from '../../models/generation-completeness';
 import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
+type LogoGround = 'light' | 'dark';
+
+interface LogoVariant {
+  id: string;
+  labelKey: string;
+  ground: LogoGround;
+  src: string;
+}
+
+interface PaletteStrip {
+  role: string;
+  weight: number;
+  hex: string;
+  ink: string;
+}
+
+/**
+ * Papier et encre de repli pour la scène du logo, quand la palette n'a ni
+ * fond ni couleur de texte. Ce sont des couleurs de SUPPORT (où le logo sera
+ * posé), pas de l'interface : elles ne suivent donc pas le thème.
+ */
+const BRAND_PAPER = '#ffffff';
+const BRAND_INK = '#111111';
+
+/** Encre lisible sur une couleur de marque : noire ou blanche selon sa luminance. */
+function readableInk(hex: string): string {
+  const value = hex.replace('#', '');
+  const full = value.length === 3 ? value.replace(/./g, (c) => c + c) : value.slice(0, 6);
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16) / 255);
+  if ([r, g, b].some(Number.isNaN)) return BRAND_INK;
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const luminance = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  return luminance > 0.4 ? BRAND_INK : BRAND_PAPER;
+}
+
 @Component({
   selector: 'app-show-branding',
-  standalone: true,
   imports: [
     CommonModule,
     Dialog,
     ButtonModule,
     TranslateModule,
     IncompleteProjectBannerComponent,
-    GenerationStatusPanelComponent, IdemLoaderComponent],
+    IdemLoaderComponent,
+  ],
   templateUrl: './show-branding.html',
   styleUrl: './show-branding.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -108,20 +138,6 @@ export class ShowBrandingComponent implements OnInit {
     return branding && branding.sections && branding.sections.length > 0;
   });
 
-  /**
-   * Complétude des sections de la charte graphique générée. La pseudo-section
-   * « Brand Guide » ajoutée quand le PDF existe est ignorée (seuls les noms
-   * canoniques attendus sont analysés).
-   */
-  protected readonly guidelinesCompleteness = computed(() =>
-    analyzeGenerationCompleteness(BRANDING_SECTION_NAMES, this.existingBranding()?.sections),
-  );
-
-  protected readonly isBrandingIncomplete = computed(() => {
-    const completeness = this.guidelinesCompleteness();
-    return completeness.hasStarted && !completeness.isComplete;
-  });
-
   protected readonly hasBrandingData = computed(() => {
     const branding = this.existingBranding();
     return (
@@ -134,15 +150,6 @@ export class ShowBrandingComponent implements OnInit {
         branding.generatedTypography?.length > 0)
     );
   });
-
-  /**
-   * Repères affichés dans le bandeau de statut de la charte : nombre de
-   * sections réellement générées (la pseudo-section « Brand Guide » ajoutée
-   * quand le PDF existe n'en est pas une).
-   */
-  protected readonly brandSectionCount = computed(
-    () => (this.existingBranding()?.sections ?? []).filter((s) => s.name !== 'Brand Guide').length,
-  );
 
   /**
    * Les cartes de visite dérivent du logo et de la palette RETENUS : tant que
@@ -158,27 +165,103 @@ export class ShowBrandingComponent implements OnInit {
     );
   });
 
-  /** Couleurs de la palette sélectionnée, dans l'ordre d'importance. */
-  protected readonly paletteSwatches = computed(() => {
-    const colors = this.existingBranding()?.colors?.colors;
-    if (!colors) return [];
-    return [colors.primary, colors.secondary, colors.accent, colors.background].filter(
-      (color): color is string => Boolean(color),
-    );
+  /** Déclinaison affichée en grand sur la scène du logo. */
+  protected readonly selectedVariantId = signal<string>('main');
+  /** Couleur dont la valeur vient d'être copiée (retour visuel bref). */
+  protected readonly copiedColor = signal<string | null>(null);
+  private copiedTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Le logo et ses déclinaisons, dans l'ordre où on les cherche : le logo
+   * retenu, puis avec texte, puis l'icône seule. Chaque déclinaison dit sur
+   * quel fond elle se pose — c'est ce fond que la scène prend.
+   */
+  protected readonly logoVariants = computed<LogoVariant[]>(() => {
+    const logo = this.existingBranding()?.logo;
+    if (!logo) return [];
+    const urls = logo.assetUrls;
+    const variations = logo.variations;
+    const candidates: (LogoVariant | null)[] = [
+      this.variant('main', 'dashboard.showBranding.sections.logos.main', 'light', urls?.primary, logo.svg),
+      this.variant('text-light', 'dashboard.showBranding.sections.logos.lightBg', 'light', urls?.withText?.lightBackground, variations?.withText?.lightBackground),
+      this.variant('text-dark', 'dashboard.showBranding.sections.logos.darkBg', 'dark', urls?.withText?.darkBackground, variations?.withText?.darkBackground),
+      this.variant('text-mono', 'dashboard.showBranding.sections.logos.monochrome', 'light', urls?.withText?.monochrome, variations?.withText?.monochrome),
+      this.variant('icon-light', 'dashboard.showBranding.sections.logos.iconLight', 'light', urls?.iconOnly?.lightBackground, variations?.iconOnly?.lightBackground),
+      this.variant('icon-dark', 'dashboard.showBranding.sections.logos.iconDark', 'dark', urls?.iconOnly?.darkBackground, variations?.iconOnly?.darkBackground),
+      this.variant('icon-mono', 'dashboard.showBranding.sections.logos.iconMono', 'light', urls?.iconOnly?.monochrome, variations?.iconOnly?.monochrome),
+    ];
+    return candidates.filter((item): item is LogoVariant => item !== null);
   });
 
-  /** Nombre de déclinaisons de logo disponibles (avec texte + icône seule). */
-  protected readonly logoVariationCount = computed(() => {
-    const variations = this.existingBranding()?.logo?.variations;
-    if (!variations) return 0;
-    return [variations.withText, variations.iconOnly].reduce((total, set) => {
-      if (!set) return total;
-      return (
-        total +
-        [set.lightBackground, set.darkBackground, set.monochrome].filter((svg) => Boolean(svg)).length
-      );
-    }, 0);
+  protected readonly activeVariant = computed<LogoVariant | null>(() => {
+    const variants = this.logoVariants();
+    return variants.find((item) => item.id === this.selectedVariantId()) ?? variants[0] ?? null;
   });
+
+  /**
+   * La palette en bandes. La largeur suit la part d'usage de chaque rôle
+   * (la primaire domine, l'accent ponctue) : la bande dit déjà comment doser.
+   */
+  protected readonly palette = computed<PaletteStrip[]>(() => {
+    const colors = this.existingBranding()?.colors?.colors;
+    if (!colors) return [];
+    const roles: [keyof typeof colors, number][] = [
+      ['primary', 3],
+      ['secondary', 2],
+      ['accent', 1.2],
+      ['background', 1.6],
+    ];
+    return roles
+      .filter(([role]) => Boolean(colors[role]))
+      .map(([role, weight]) => ({
+        role,
+        weight,
+        hex: colors[role].toUpperCase(),
+        ink: readableInk(colors[role]),
+      }));
+  });
+
+  /** Spécimen : le vrai nom et la vraie description, plutôt que « Aa Bb Cc ». */
+  protected readonly specimenHeadline = computed(
+    () => this.currentProject()?.name?.trim() || 'Aa Bb Cc',
+  );
+  protected readonly specimenBody = computed(() => {
+    const project = this.currentProject();
+    return (project?.description || '').trim();
+  });
+
+  /** Fond de la scène pour une déclinaison : le papier ou l'encre de la marque. */
+  protected groundFor(ground: LogoGround): string {
+    const colors = this.existingBranding()?.colors?.colors;
+    return ground === 'dark' ? colors?.text || BRAND_INK : colors?.background || BRAND_PAPER;
+  }
+
+  protected selectVariant(id: string): void {
+    this.selectedVariantId.set(id);
+  }
+
+  /** Copie la valeur d'une couleur ; la bande affiche « Copié » un instant. */
+  protected copyColor(hex: string): void {
+    navigator.clipboard?.writeText(hex).then(
+      () => {
+        this.copiedColor.set(hex);
+        if (this.copiedTimer) clearTimeout(this.copiedTimer);
+        this.copiedTimer = setTimeout(() => this.copiedColor.set(null), 1600);
+      },
+      () => this.copiedColor.set(null),
+    );
+  }
+
+  private variant(
+    id: string,
+    labelKey: string,
+    ground: LogoGround,
+    hosted?: string,
+    svg?: string,
+  ): LogoVariant | null {
+    const src = this.logoSrc(hosted, svg);
+    return src ? { id, labelKey, ground, src } : null;
+  }
 
   /**
    * Résout la source d'affichage d'un logo : privilégie l'URL PNG hébergée
@@ -255,126 +338,21 @@ export class ShowBrandingComponent implements OnInit {
     };
   }
 
+  /**
+   * Lit la marque stockée sur le projet. Le PDF n'est PAS demandé ici : le
+   * demander le faisait générer à chaque ouverture de la page. Il n'est
+   * produit qu'à l'export (aperçu de la charte, archive des assets).
+   */
   private loadExistingBranding(project: ProjectModel): void {
-    // Load branding data from project
     const brandingData = project.analysisResultModel?.branding;
-
     if (brandingData) {
-      console.log('Branding data found in project:', brandingData);
       this.existingBranding.set(this.normalizeBranding(brandingData));
+      this.loadBrandFonts(brandingData.typography);
       // Les bannières sont composées à partir de la charte : sans elle, rien à montrer.
       if (this.hasBrandingSections()) this.loadSocialAssets(project.id!);
-
-      // Also check for PDF if available
-      this.checkForBrandingPdf(project.id!);
-    } else {
-      console.log('No branding data found in project');
-      // Still check for PDF as fallback
-      this.checkForBrandingPdf(project.id!);
     }
-  }
-
-  /**
-   */
-  private checkForBrandingPdf(projectId: string): void {
-    this.brandingService.downloadBrandingPdf(projectId).subscribe({
-      next: (pdfBlob: Blob) => {
-        if (pdfBlob && pdfBlob.size > 0) {
-          // PDF exists - add it to existing branding data
-          const currentBranding = this.existingBranding();
-          if (currentBranding) {
-            // Update existing branding with PDF
-            const updatedBranding = {
-              ...currentBranding,
-              pdfBlob: pdfBlob,
-              sections: [
-                ...(currentBranding.sections ?? []),
-                {
-                  name: 'Brand Guide',
-                  type: 'pdf',
-                  data: 'PDF Available',
-                  summary: 'Brand guide PDF document',
-                },
-              ],
-            };
-            this.existingBranding.set(updatedBranding);
-          } else {
-            // No existing branding data, create minimal one with PDF
-            const brandingWithPdf: BrandIdentityModel = {
-              id: `branding-${projectId}`,
-              logo: {
-                id: '',
-                name: '',
-                svg: '',
-                concept: '',
-                colors: [],
-                fonts: [],
-              },
-              generatedLogos: [],
-              colors: {
-                id: '',
-                name: '',
-                url: '',
-                colors: {
-                  primary: '',
-                  secondary: '',
-                  accent: '',
-                  background: '',
-                  text: '',
-                },
-              },
-              generatedColors: [],
-              typography: {
-                id: '',
-                name: '',
-                url: '',
-                primaryFont: '',
-                secondaryFont: '',
-              },
-              generatedTypography: [],
-              sections: [
-                {
-                  name: 'Brand Guide',
-                  type: 'pdf',
-                  data: 'PDF Available',
-                  summary: 'Brand guide PDF document',
-                },
-              ],
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              pdfBlob: pdfBlob,
-            };
-            this.existingBranding.set(brandingWithPdf);
-          }
-          console.log('Branding PDF found, adding to existing data');
-          this.hasError.set(false);
-        } else {
-          console.log('No branding PDF found, keeping existing data');
-          this.hasError.set(false);
-        }
-        this.isLoading.set(false);
-      },
-      error: (err: any) => {
-        console.error('Error loading branding PDF:', err);
-        if (err.message === 'DOWNLOAD_ERROR' || err.isRetryable === true) {
-          this.hasError.set(true);
-          this.isRetryable.set(true);
-          this.errorMessage.set(
-            this.translate.instant('dashboard.showBranding.errors.loadBranding'),
-          );
-          console.log('Retryable error occurred, showing error message with retry button');
-        } else {
-          console.log('No branding PDF found, keeping existing data if any');
-          this.hasError.set(false);
-        }
-
-        // Don't set existingBranding to null if we already have data
-        if (!this.existingBranding()) {
-          this.existingBranding.set(null);
-        }
-        this.isLoading.set(false);
-      },
-    });
+    this.hasError.set(false);
+    this.isLoading.set(false);
   }
 
   /**
@@ -392,19 +370,6 @@ export class ShowBrandingComponent implements OnInit {
    */
   protected navigateToBrandingGeneration(force = false): void {
     this.generateBranding(force);
-  }
-
-  /**
-   * Regenerate a single brand guide section (canonical backend step name).
-   * Le format PDF déjà choisi est transmis pour sauter l'écran de sélection.
-   */
-  protected regenerateSection(sectionName: string): void {
-    const queryParams: Record<string, string> = { sections: sectionName };
-    const format = this.existingBranding()?.pdfFormat;
-    if (format) {
-      queryParams['format'] = format;
-    }
-    this.router.navigate(['/project/branding/generate'], { queryParams });
   }
 
   /**
@@ -527,6 +492,24 @@ export class ShowBrandingComponent implements OnInit {
         }
       },
     });
+  }
+
+  /**
+   * Charge les feuilles de style des polices de la marque : sans elles, le
+   * spécimen s'afficherait dans la police système sous le nom de la marque.
+   */
+  private loadBrandFonts(typography?: TypographyModel): void {
+    const urls = [typography?.primary?.cssUrl, typography?.secondary?.cssUrl].filter(
+      (url): url is string => Boolean(url),
+    );
+    for (const url of urls) {
+      if (document.head.querySelector(`link[data-brand-font="${CSS.escape(url)}"]`)) continue;
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = url;
+      link.dataset['brandFont'] = url;
+      document.head.appendChild(link);
+    }
   }
 
   /** Bannières et photo de profil : rendues côté serveur à la première visite. */
