@@ -32,6 +32,7 @@
     "check:payments": "ts-node --transpile-only api/scripts/checkPayments.ts",
     "check:payments:sandbox": "ts-node --transpile-only api/scripts/checkPaymentsSandbox.ts",
     "grant:welcome": "ts-node --transpile-only api/scripts/grantWelcomeCredit.ts",
+    "mockups:provider": "ts-node --transpile-only api/scripts/setMockupProvider.ts",
     "check:indexes": "ts-node --transpile-only api/scripts/checkIndexes.ts",
     "check:flyer": "ts-node --transpile-only api/scripts/checkFlyerComposition.ts",
     "check:comm": "ts-node --transpile-only api/scripts/checkCommunicationPlans.ts",

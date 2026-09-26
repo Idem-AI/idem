@@ -149,7 +149,7 @@ export class FontController {
     }
 
     try {
-      const removed = await customFontService.deleteFont(userId, req.params.fontId);
+      const removed = await customFontService.deleteFont(userId, req.params.fontId as string);
       if (!removed) {
         res.status(404).json({ success: false, message: 'Font not found' });
         return;

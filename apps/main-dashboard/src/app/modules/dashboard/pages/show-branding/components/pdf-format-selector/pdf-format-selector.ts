@@ -1,142 +1,179 @@
-import { Component, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, output, signal } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
-import { ButtonModule } from 'primeng/button';
 
 export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
 
+interface FormatOption {
+  id: PdfFormat;
+  key: 'a4Portrait' | 'landscape';
+  size: string;
+  recommended: boolean;
+}
+
+/**
+ * Choix du format de la charte, avant sa génération.
+ *
+ * De vrais boutons radio (masqués visuellement) portent la sélection : clavier
+ * et lecteur d'écran natifs. Le format recommandé est présélectionné — on peut
+ * lancer la génération sans rien toucher.
+ *
+ * Illustrations au trait, dans le code (cf. AGENTS.md § 4) : `currentColor`
+ * pour le trait, `--color-primary-500` pour le seul détail qui compte — le
+ * signe de la marque sur la page.
+ */
 @Component({
   selector: 'app-pdf-format-selector',
-  standalone: true,
-  imports: [CommonModule, TranslateModule, ButtonModule],
+  imports: [TranslateModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="glass-card p-6 mb-6 cursor-pointer">
-      <h3 class="text-lg font-semibold text-text-primary mb-4">
-        {{ 'dashboard.showBranding.formatSelector.title' | translate }}
-      </h3>
-      <p class="text-text-tertiary text-sm mb-6">
-        {{ 'dashboard.showBranding.formatSelector.description' | translate }}
-      </p>
+    <!-- Pas de <fieldset> : le design system l'encadre, ce qui posait une carte
+         autour des cartes. Le groupe radio est porté par l'ARIA. -->
+    <div role="radiogroup" [attr.aria-label]="'dashboard.showBranding.formatSelector.title' | translate">
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- A4 Portrait Option -->
-        <button
-          (click)="selectFormat('A4_PORTRAIT')"
-          [ngClass]="{
-            'border-primary ring-2 ring-primary/30 bg-primary/10':
-              selectedFormat() === 'A4_PORTRAIT',
-            'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)]':
-              selectedFormat() !== 'A4_PORTRAIT',
-          }"
-          class="relative p-6 rounded-lg border-2 transition-all duration-300 text-left group cursor-pointer"
-        >
-          <!-- Icon -->
-          <div class="flex items-center justify-center mb-4">
-            <svg
-              class="w-16 h-20 text-text-primary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        @for (option of options; track option.id) {
+          <label
+            class="format-card glass-card group relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-colors"
+            [class.is-selected]="selectedFormat() === option.id"
+          >
+            <input
+              type="radio"
+              name="charter-format"
+              class="sr-only"
+              [value]="option.id"
+              [checked]="selectedFormat() === option.id"
+              (change)="selectedFormat.set(option.id)"
+            />
+
+            <!-- Illustration -->
+            <div
+              class="h-48 rounded-xl flex items-center justify-center bg-[var(--glass-bg-subtle)] text-text-tertiary"
+              aria-hidden="true"
             >
-              <rect x="6" y="3" width="12" height="18" rx="1" stroke-width="1.5" />
-              <line x1="9" y1="7" x2="15" y2="7" stroke-width="1.5" stroke-linecap="round" />
-              <line x1="9" y1="11" x2="15" y2="11" stroke-width="1.5" stroke-linecap="round" />
-              <line x1="9" y1="15" x2="12" y2="15" stroke-width="1.5" stroke-linecap="round" />
-            </svg>
-          </div>
-
-          <!-- Title & Description -->
-          <div class="text-center">
-            <h4 class="text-text-primary font-semibold mb-2">
-              {{ 'dashboard.showBranding.formatSelector.a4Portrait.title' | translate }}
-            </h4>
-            <p class="text-text-tertiary text-sm mb-2">210mm × 297mm</p>
-            <p class="text-text-tertiary text-xs">
-              {{ 'dashboard.showBranding.formatSelector.a4Portrait.description' | translate }}
-            </p>
-          </div>
-
-          <!-- Selected Indicator -->
-          @if (selectedFormat() === 'A4_PORTRAIT') {
-            <div class="absolute top-3 right-3">
-              <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clip-rule="evenodd"
-                />
-              </svg>
+              @if (option.id === 'A4_PORTRAIT') {
+                <svg
+                  class="h-40 w-auto motion-safe:transition-transform motion-safe:duration-300 group-hover:-translate-y-1"
+                  viewBox="0 0 220 170"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <!-- Page suivante, en retrait : un document qui se feuillette -->
+                  <g transform="rotate(-7 88 90)" opacity="0.6">
+                    <rect x="46" y="22" width="92" height="130" rx="3" />
+                    <path d="M58 40 H104 M58 48 H92" />
+                    <rect x="58" y="62" width="68" height="44" rx="2" />
+                    <path d="M58 118 H126 M58 125 H120 M58 132 H106" />
+                  </g>
+                  <!-- Page de charte au premier plan, format A4 -->
+                  <rect x="96" y="14" width="98" height="140" rx="3" />
+                  <!-- Le signe de la marque -->
+                  <g stroke="var(--color-primary-500)" stroke-width="2">
+                    <circle cx="116" cy="36" r="9" />
+                    <path d="M111.5 36 L115 39.5 L121 33.5" />
+                  </g>
+                  <path d="M132 32 H178" stroke-width="2.5" />
+                  <path d="M132 41 H164" stroke-width="2" />
+                  <!-- Nuancier -->
+                  <circle cx="113" cy="68" r="7" />
+                  <circle cx="132" cy="68" r="7" />
+                  <circle cx="151" cy="68" r="7" />
+                  <circle cx="170" cy="68" r="7" />
+                  <!-- Paragraphes -->
+                  <path d="M108 92 H182 M108 99 H182 M108 106 H170" />
+                  <path d="M108 120 H182 M108 127 H176 M108 134 H150" opacity="0.75" />
+                </svg>
+              } @else {
+                <svg
+                  class="h-40 w-auto motion-safe:transition-transform motion-safe:duration-300 group-hover:-translate-y-1"
+                  viewBox="0 0 220 170"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <!-- L'écran et son pied -->
+                  <rect x="14" y="16" width="192" height="118" rx="6" />
+                  <path d="M96 134 L92 152 M124 134 L128 152 M80 152 H140" />
+                  <!-- La diapositive 16:9 -->
+                  <rect x="26" y="27" width="168" height="94" rx="2" opacity="0.7" />
+                  <!-- Grand titre -->
+                  <path d="M40 48 H112" stroke-width="2.5" />
+                  <path d="M40 58 H96" stroke-width="2" />
+                  <path d="M40 74 H104 M40 81 H100 M40 88 H90" opacity="0.75" />
+                  <!-- Nuancier en bandes -->
+                  <path d="M40 104 H58 M64 104 H82 M88 104 H106" stroke-width="4" />
+                  <!-- Cadre d'image, avec le signe de la marque -->
+                  <rect x="124" y="40" width="56" height="68" rx="2" />
+                  <g stroke="var(--color-primary-500)" stroke-width="2">
+                    <circle cx="152" cy="68" r="11" />
+                    <path d="M146.5 68 L150.5 72 L158 64.5" />
+                  </g>
+                  <path d="M132 98 L144 88 L152 94 L162 84 L172 98" opacity="0.75" />
+                </svg>
+              }
             </div>
-          }
-        </button>
 
-        <!-- Landscape 16:9 Option -->
-        <button
-          (click)="selectFormat('SLIDE_16_9')"
-          [ngClass]="{
-            'border-primary ring-2 ring-primary/30 bg-primary/10':
-              selectedFormat() === 'SLIDE_16_9',
-            'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)]':
-              selectedFormat() !== 'SLIDE_16_9',
-          }"
-          class="relative p-6 rounded-lg border-2 transition-all duration-300 text-left group cursor-pointer"
-        >
-          <!-- Recommended Badge -->
-          <div class="absolute -top-3 right-6 bg-accent text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-10 border border-white/20">
-            {{ 'dashboard.showBranding.dialog.recommended' | translate }}
-          </div>
-          
-          <!-- Icon -->
-          <div class="flex items-center justify-center mb-4">
-            <svg
-              class="w-20 h-16 text-text-primary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <!-- Texte -->
+            <div class="mt-4 px-1 flex-1 flex flex-col">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-lg font-semibold text-text-primary">
+                  {{ 'dashboard.showBranding.formatSelector.' + option.key + '.title' | translate }}
+                </span>
+                @if (option.recommended) {
+                  <span
+                    class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-500 text-[var(--color-on-primary)]"
+                  >
+                    {{ 'dashboard.showBranding.dialog.recommended' | translate }}
+                  </span>
+                }
+              </div>
+              <span class="text-sm text-text-tertiary mt-0.5">{{ option.size }}</span>
+              <span class="text-sm text-text-secondary mt-2">
+                {{ 'dashboard.showBranding.formatSelector.' + option.key + '.description' | translate }}
+              </span>
+              <ul class="mt-3 space-y-1.5">
+                @for (use of [0, 1]; track use) {
+                  <li class="flex items-start gap-2 text-sm text-text-secondary">
+                    <i class="pi pi-check text-xs text-primary-500 mt-1" aria-hidden="true"></i>
+                    <span>
+                      {{ 'dashboard.showBranding.formatSelector.' + option.key + '.uses.' + use | translate }}
+                    </span>
+                  </li>
+                }
+              </ul>
+            </div>
+
+            <!-- Témoin de sélection -->
+            <span
+              class="format-check absolute top-6 right-6 w-6 h-6 rounded-full border-2 flex items-center justify-center"
+              aria-hidden="true"
             >
-              <rect x="3" y="6" width="18" height="12" rx="1" stroke-width="1.5" />
-              <line x1="7" y1="10" x2="17" y2="10" stroke-width="1.5" stroke-linecap="round" />
-              <line x1="7" y1="14" x2="14" y2="14" stroke-width="1.5" stroke-linecap="round" />
-            </svg>
-          </div>
-
-          <!-- Title & Description -->
-          <div class="text-center">
-            <h4 class="text-text-primary font-semibold mb-2">
-              {{ 'dashboard.showBranding.formatSelector.landscape.title' | translate }}
-            </h4>
-            <p class="text-text-tertiary text-sm mb-2">297mm × 167mm</p>
-            <p class="text-text-tertiary text-xs">
-              {{ 'dashboard.showBranding.formatSelector.landscape.description' | translate }}
-            </p>
-          </div>
-
-          <!-- Selected Indicator -->
-          @if (selectedFormat() === 'SLIDE_16_9') {
-            <div class="absolute top-3 right-3">
-              <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </div>
-          }
-        </button>
+              <i class="pi pi-check text-[0.65rem]"></i>
+            </span>
+          </label>
+        }
       </div>
     </div>
 
-    <!-- Bouton de confirmation -->
-    <div class="mt-8 text-center">
+    <!-- Collé au bas de l'écran sur mobile : les deux cartes empilées
+         repoussaient le bouton sous la ligne de flottaison. -->
+    <div class="mt-8 flex flex-col items-center gap-2 max-md:sticky max-md:bottom-4 max-md:z-10">
       <button
+        type="button"
+        class="inner-button max-md:shadow-glass"
         [disabled]="!selectedFormat()"
         (click)="confirmSelection()"
-        class="px-8 py-3 inner-button hover:bg-primary/90 font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <i class="pi pi-play mr-2"></i>
-        {{ 'dashboard.showBranding.formatSelector.startGeneration' | translate }}
+        <i class="pi pi-sparkles text-sm" aria-hidden="true"></i>
+        <span>{{ 'dashboard.showBranding.formatSelector.startGeneration' | translate }}</span>
       </button>
+      <p class="text-xs text-text-tertiary max-md:hidden">
+        {{ 'dashboard.showBranding.formatSelector.changeLater' | translate }}
+      </p>
     </div>
   `,
   styles: [
@@ -144,16 +181,49 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
       :host {
         display: block;
       }
+
+      .format-card {
+        border-color: var(--glass-border);
+      }
+
+      .format-card:hover {
+        border-color: var(--glass-border-medium);
+      }
+
+      .format-card.is-selected {
+        border-color: var(--color-primary-500);
+      }
+
+      .format-card:focus-within {
+        outline: 2px solid var(--color-primary-500);
+        outline-offset: 3px;
+      }
+
+      .format-check {
+        border-color: var(--glass-border-medium);
+        color: transparent;
+        transition:
+          background-color 0.2s ease,
+          border-color 0.2s ease;
+      }
+
+      .is-selected .format-check {
+        border-color: var(--color-primary-500);
+        background-color: var(--color-primary-500);
+        color: var(--color-on-primary);
+      }
     `,
   ],
 })
 export class PdfFormatSelectorComponent {
-  protected readonly selectedFormat = signal<PdfFormat | null>(null);
-  readonly formatSelected = output<PdfFormat>();
+  protected readonly options: readonly FormatOption[] = [
+    { id: 'SLIDE_16_9', key: 'landscape', size: '297 × 167 mm', recommended: true },
+    { id: 'A4_PORTRAIT', key: 'a4Portrait', size: '210 × 297 mm', recommended: false },
+  ];
 
-  protected selectFormat(format: PdfFormat): void {
-    this.selectedFormat.set(format);
-  }
+  /** Le format recommandé est présélectionné. */
+  protected readonly selectedFormat = signal<PdfFormat | null>('SLIDE_16_9');
+  readonly formatSelected = output<PdfFormat>();
 
   protected confirmSelection(): void {
     const format = this.selectedFormat();

@@ -21,7 +21,7 @@ import { brandMotifs, patternCss } from '../../design/brandMotifs';
 import { DocumentDesignSystem } from '../../design/documentDesignSystem';
 import { designFontLinks } from '../../../utils/google-fonts.util';
 import { flyerRenderService } from '../../Communication/flyerRender.service';
-import { BannerBrand, composeBannerHtml } from './bannerComposer';
+import { BannerBrand, BannerFormat, composeBannerHtml } from './bannerComposer';
 import {
   fillMockupTemplate,
   loadSocialMockupLibrary,
@@ -112,6 +112,38 @@ const MEDIA_SIZE: Record<PostVisualFormat, { width: number; height: number }> = 
   square: { width: 1080, height: 1080 },
   banner: { width: 1200, height: 630 },
 };
+
+/**
+ * Les bannières livrées en FICHIERS, au format exact de chaque réseau.
+ *
+ * Dans la charte, une bannière n'existe que posée dans le mockup du profil ;
+ * l'utilisateur, lui, doit pouvoir la téléverser telle quelle. Les mêmes
+ * compositions (`composeBannerHtml`) sont donc rendues seules, pixel pour pixel.
+ */
+export const DOWNLOADABLE_BANNERS: readonly {
+  id: string;
+  label: string;
+  format: BannerFormat;
+  width: number;
+  height: number;
+}[] = [
+  { id: 'facebook-cover', label: 'Couverture Facebook', format: 'facebook-cover', width: 1640, height: 624 },
+  { id: 'linkedin-cover', label: 'Couverture LinkedIn', format: 'linkedin-cover', width: 1128, height: 191 },
+  { id: 'x-header', label: 'En-tête X', format: 'x-header', width: 1500, height: 500 },
+  { id: 'youtube-banner', label: 'Bannière YouTube', format: 'youtube-banner', width: 2560, height: 1440 },
+];
+
+/** Photo de profil : le carré que tous les réseaux recadrent en cercle. */
+const PROFILE_PICTURE = { id: 'profile-picture', label: 'Photo de profil', width: 800, height: 800 } as const;
+
+/** Un fichier de bannière rendu, prêt à être déposé ou zippé. */
+export interface RenderedSocialAsset {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+  png: Buffer;
+}
 
 /** Pixel transparent : une marque sans logo n'affiche pas d'image cassée. */
 const EMPTY_IMAGE =
@@ -225,6 +257,42 @@ export class SocialMockupService {
         };
       })
     );
+  }
+
+  /**
+   * Les bannières de chaque réseau et la photo de profil, en fichiers PNG aux
+   * dimensions exactes. Même composition que la page « Bannières réseaux
+   * sociaux » : ce que l'utilisateur télécharge est ce que la charte montre.
+   */
+  async renderStandaloneAssets(kit: SocialBrandKit): Promise<RenderedSocialAsset[]> {
+    const brand = this.bannerBrand(kit, kit.promise);
+    const document = (inner: string) =>
+      `<!doctype html><html><head><meta charset="utf-8">${designFontLinks(kit.ds.fonts)}<style>html,body{margin:0;padding:0}</style></head><body>${inner}</body></html>`;
+
+    // En série : chaque rendu ouvre un onglet Chrome, et la bannière YouTube
+    // pèse à elle seule 3,7 millions de pixels.
+    const assets: RenderedSocialAsset[] = [];
+    for (const banner of DOWNLOADABLE_BANNERS) {
+      const html = document(composeBannerHtml(brand, banner.format, banner.width, banner.height));
+      const png = await flyerRenderService.renderDocumentToPng(html, banner.width, banner.height, 1);
+      assets.push({ id: banner.id, label: banner.label, width: banner.width, height: banner.height, png });
+    }
+
+    const { avatarSrc, avatarGround } = this.identity(kit);
+    const { width, height } = PROFILE_PICTURE;
+    const mark =
+      avatarSrc && avatarSrc !== EMPTY_IMAGE
+        ? `<img src="${avatarSrc.replace(/"/g, '&quot;')}" alt="" style="max-width:${Math.round(width * 0.62)}px;max-height:${Math.round(height * 0.62)}px;object-fit:contain;display:block">`
+        : '';
+    const avatarHtml = document(
+      `<div style="width:${width}px;height:${height}px;display:flex;align-items:center;justify-content:center;background-color:${avatarGround}">${mark}</div>`
+    );
+    assets.push({
+      ...PROFILE_PICTURE,
+      png: await flyerRenderService.renderDocumentToPng(avatarHtml, width, height, 1),
+    });
+
+    return assets;
   }
 
   // ───────────────────────────────────────────────────────────────────────────
