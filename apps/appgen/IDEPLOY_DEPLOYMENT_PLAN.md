@@ -35,7 +35,7 @@
 
 5. Netlify retourne: { url: "https://random-name-123.netlify.app" }
 
-6. AppGen affiche le lien à Marie ✅
+6. AppGen affiche le lien à Marie 
 ```
 
 Netlify est conçu pour recevoir des zips directement. **iDeploy non.**
