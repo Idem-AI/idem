@@ -8,7 +8,7 @@ import { HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
  * Formats de page de la charte — la table `PAGE_FORMATS` de `pdf.service.ts`
  * côté API. L'aperçu et l'éditeur doivent afficher la page du PDF produit.
  */
-const BRANDING_PAGE_FORMATS: Record<string, PageFormat> = {
+export const BRANDING_PAGE_FORMATS: Record<string, PageFormat> = {
   SLIDE_16_9: { width: '297mm', height: '167mm' },
   A4_PORTRAIT: { width: '210mm', height: '297mm' },
   A4_LANDSCAPE: { width: '297mm', height: '210mm' },

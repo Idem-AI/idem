@@ -1540,6 +1540,70 @@
       },
       "errors": {
         "title": "Échec de la Génération"
+      },
+      "live": {
+        "eyebrow": "Votre charte prend forme",
+        "pages": "Pages",
+        "elapsed": "Écoulé",
+        "remaining": "Reste environ",
+        "minutes": "{{count}} min",
+        "stage": "L'atelier de la charte",
+        "ready": "Votre charte est prête.",
+        "redirecting": "Nous enregistrons les dernières pages, puis nous vous y emmenons.",
+        "openNow": "Voir la charte maintenant",
+        "warmingUp": "Nous préparons la première page…",
+        "page": "Page {{index}}",
+        "followLive": "Suivre en direct",
+        "live": "En direct",
+        "firstPage": "La première page apparaîtra ici dès qu'elle sera prête.",
+        "outline": "Déroulé de la charte",
+        "status": {
+          "pending": "à venir",
+          "active": "en cours",
+          "done": "prête"
+        },
+        "phases": {
+          "logo": {
+            "title": "Nous traçons votre logo",
+            "detail": "Le signe, ses déclinaisons sur fond clair, sombre et en monochrome.",
+            "chapter": "Logo"
+          },
+          "colors": {
+            "title": "Nous posons vos couleurs",
+            "detail": "La palette, les rôles de chaque couleur et leurs contrastes.",
+            "chapter": "Couleurs"
+          },
+          "type": {
+            "title": "Nous réglons votre typographie",
+            "detail": "Les polices, leur hiérarchie et leurs tailles.",
+            "chapter": "Typographie"
+          },
+          "direction": {
+            "title": "Nous composons la direction artistique",
+            "detail": "La grille, le traitement de l'image et les motifs de la marque.",
+            "chapter": "Direction artistique"
+          },
+          "mockups": {
+            "title": "Nous mettons la marque en situation",
+            "detail": "Votre logo sur des supports réels, photographiés.",
+            "chapter": "Mises en situation"
+          },
+          "social": {
+            "title": "Nous préparons vos réseaux sociaux",
+            "detail": "Bannières et publications aux formats de chaque réseau.",
+            "chapter": "Réseaux sociaux"
+          },
+          "usage": {
+            "title": "Nous fixons les règles d'usage",
+            "detail": "Ce qu'on fait et ce qu'on évite avec le logo, les couleurs et les polices.",
+            "chapter": "Règles d'usage"
+          },
+          "finalize": {
+            "title": "Nous assemblons votre charte",
+            "detail": "Les pages sont reliées et enregistrées.",
+            "chapter": "Finalisation"
+          }
+        }
       }
     },
     "showBranding": {
