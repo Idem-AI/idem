@@ -13,6 +13,7 @@ COPY ./apps/appgen/apps/we-dev-client/package.json ./
 
 # Copy shared packages
 COPY ./packages/shared-styles /packages/shared-styles
+COPY ./packages/shared-tour  ./packages/shared-tour
 
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
