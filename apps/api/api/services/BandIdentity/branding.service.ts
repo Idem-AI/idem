@@ -333,6 +333,13 @@ function normalizeSource(raw?: string): FontSourceId | undefined {
  */
 const SOCIAL_VOICE_TTL_S = 30 * 24 * 3600;
 
+/**
+ * Durée de vie du chemin de la charte PDF en cache. La clé suit le contenu :
+ * rien ne peut y être périmé, seul le fichier peut avoir disparu, et c'est
+ * vérifié avant de le servir.
+ */
+const BRANDING_PDF_TTL_S = 24 * 3600;
+
 /** Une valeur de logo en `src` d'image : URL et data-URI telles quelles, SVG en data-URI. */
 function logoImgSrc(value?: string): string {
   const trimmed = (value || '').trim();
@@ -4312,17 +4319,35 @@ export class BrandingService extends GenericService {
       return '';
     }
 
-    try {
-      // Generate cache key for PDF
-      const pdfCacheKey = cacheService.generateAIKey('branding-pdf', userId, projectId);
+    // Une charte stockée avant le retrait d'une page la porte encore.
+    const sections = branding.sections.filter((section) => !isRetiredCharterPage(section.name));
 
-      // Check if PDF is already cached
+    try {
+      // ── CACHE ADRESSÉ PAR LE CONTENU ─────────────────────────────────────
+      //
+      // La clé était le seul projet : après une régénération ou une édition,
+      // l'export servait l'ANCIEN PDF pendant une heure, et un fichier nettoyé
+      // (ou produit par une autre instance) faisait échouer la lecture. La clé
+      // est désormais l'empreinte de ce qui s'imprime — sections et format — :
+      // une charte modifiée n'a plus la même clé, aucune invalidation à oublier.
+      const contentHash = crypto
+        .createHash('sha256')
+        .update(
+          JSON.stringify({
+            format: branding.pdfFormat ?? null,
+            sections: sections.map((section) => [section.name, section.data]),
+          })
+        )
+        .digest('hex')
+        .slice(0, 24);
+      const pdfCacheKey = cacheService.generateAIKey('branding-pdf', userId, projectId, contentHash);
+
       const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
         prefix: 'pdf',
-        ttl: 3600, // 1 hour
+        ttl: BRANDING_PDF_TTL_S,
       });
 
-      if (cachedPdfPath) {
+      if (cachedPdfPath && (await fs.pathExists(cachedPdfPath))) {
         logger.info(`Branding PDF cache hit for projectId: ${projectId}`);
         return cachedPdfPath;
       }
@@ -4341,8 +4366,7 @@ export class BrandingService extends GenericService {
         title: 'Branding',
         projectName: project.name || 'Projet Sans Nom',
         projectDescription: project.longDescription || project.description || '',
-        // Une charte stockée avant le retrait d'une page la porte encore.
-        sections: branding.sections.filter((section) => !isRetiredCharterPage(section.name)),
+        sections,
         sectionDisplayOrder: [
           // L'ordre du PDF est celui de la génération : la charte MONTRE
           // d'abord (signe, déclinaisons, couleurs, polices, direction, puis
@@ -4390,10 +4414,11 @@ export class BrandingService extends GenericService {
         pageFormat, // Format choisi par l'utilisateur
       });
 
-      // Cache the PDF path for future requests
+      // Le fichier vit dans le cache du PdfService (même empreinte de contenu) ;
+      // ce chemin n'est servi que tant qu'il existe encore sur le disque.
       await cacheService.set(pdfCacheKey, pdfPath, {
         prefix: 'pdf',
-        ttl: 3600, // 1 hour
+        ttl: BRANDING_PDF_TTL_S,
       });
       logger.info(`Branding PDF cached for projectId: ${projectId}`);
 

@@ -261,6 +261,33 @@
             }
           </button>
 
+          <!-- Invitation à compléter : à l'ouverture, quand des pages manquent. -->
+          @if (showCompleteNudge()) {
+            <div class="dp-nudge" role="status">
+              <i class="pi pi-exclamation-circle dp-nudge-icon" aria-hidden="true"></i>
+              <p class="dp-nudge-text">
+                {{
+                  (resumeCount() === 1
+                    ? 'dashboard.documentPreview.nudge.messageOne'
+                    : 'dashboard.documentPreview.nudge.messageMany'
+                  ) | translate: { count: resumeCount() }
+                }}
+              </p>
+              <button type="button" class="inner-button button-sm dp-nudge-cta" (click)="resume()">
+                {{ 'dashboard.documentPreview.nudge.complete' | translate }}
+              </button>
+              <button
+                type="button"
+                class="dp-icon-btn dp-nudge-close"
+                [attr.aria-label]="'dashboard.documentPreview.nudge.later' | translate"
+                [title]="'dashboard.documentPreview.nudge.later' | translate"
+                (click)="nudgeDismissed.set(true)"
+              >
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            </div>
+          }
+
           @if (regenMenuOpen()) {
             <div class="dp-menu dp-menu-regen" role="menu" (keydown.escape)="regenMenuOpen.set(false)">
               <button

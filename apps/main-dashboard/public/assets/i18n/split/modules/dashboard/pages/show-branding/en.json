@@ -45,7 +45,10 @@
           "darkBg": "Dark Background",
           "iconOnly": "Icon Only",
           "monochrome": "Monochrome",
-          "downloadHint": "Every version of the logo (light, dark, monochrome, icon) in a single ZIP file."
+          "downloadHint": "Every version of the logo (light, dark, monochrome, icon) in a single ZIP file.",
+          "iconLight": "Icon · light background",
+          "iconDark": "Icon · dark background",
+          "iconMono": "Icon · monochrome"
         },
         "colors": {
           "title": "Color Palette",
@@ -184,6 +187,15 @@
         "downloadAssets": "The assets archive could not be downloaded. Please try again shortly.",
         "downloadAsset": "This file could not be downloaded.",
         "emptyZip": "The archive received is empty."
+      },
+      "board": {
+        "charterReady": "Guidelines ready",
+        "openCharter": "Open guidelines",
+        "downloadLogos": "Download",
+        "variations": "Logo variations",
+        "copyHint": "Click a colour to copy its value",
+        "copy": "Copy",
+        "copied": "Copied"
       }
     }
   }
