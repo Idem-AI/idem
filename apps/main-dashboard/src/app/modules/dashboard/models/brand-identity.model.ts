@@ -23,6 +23,15 @@ export interface BrandIdentityModel {
   importedLogoColors?: string[]; // Couleurs extraites du logo importé (workflow import)
 }
 
+/** Bannière de réseau social ou photo de profil, en fichier (cf. API `socialAssets`). */
+export interface SocialAssetFile {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+  url: string;
+}
+
 /** Direction artistique : cf. api/models/art-direction.model.ts. */
 export interface ArtDirectionModel {
   styleId: string;

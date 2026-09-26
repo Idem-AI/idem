@@ -59,6 +59,15 @@ function keepImageWords(fragment: string | undefined, brandName: string | undefi
   return kept.join(', ');
 }
 
+/**
+ * Consigne d'impression du logo FOURNI en image (Gemini). Le modèle reçoit le
+ * vrai fichier : il le reproduit, il ne l'invente pas. Le nom de la marque
+ * n'est toujours pas écrit dans le prompt — le logo porte ce qu'il doit porter.
+ */
+const LOGO_PRINT_INSTRUCTION =
+  'The attached image is the logo to apply. Reproduce it EXACTLY as provided (same shapes, letters, colours and proportions, nothing redrawn, restyled, cropped or respelled) exactly once, centred on the main face of the hero object, printed or embroidered into the material with the real texture, lighting and perspective of that surface. ' +
+  'Pick the version of its colours that stays legible on that surface. Apart from this logo, every surface is plain and undecorated: no other text, letters, numbers or marks anywhere in the photograph.';
+
 export const MOCKUP_GENERATION_PROMPT = {
   /**
    * Consigne de vision : la scène porte-t-elle des lettres ou une marque, et où
@@ -93,6 +102,12 @@ Answer with ONE JSON object and nothing else, no prose, no markdown fence:
     artDirectionNegative?: string;
     /** Sujets de la direction artistique : photographie d'univers seulement. */
     imagerySubjects?: string;
+    /**
+     * Le logo accompagne la requête (Gemini) : le modèle l'imprime lui-même
+     * sur le support. Sans ce drapeau, la scène reste NUE et le logo est
+     * incrusté ensuite par composition (GLM).
+     */
+    withLogo?: boolean;
   }): string => {
     const { brandColors, selectedSupport, pdfFormat, brandName } = params;
 
@@ -127,11 +142,14 @@ Answer with ONE JSON object and nothing else, no prose, no markdown fence:
     }
     lines.push(`Colours: ${brandColors.primary}, ${brandColors.secondary} and ${brandColors.accent}, carried by the materials and the set.`);
     if (render) lines.push(`Render: ${render}.`);
+    const printsLogo = Boolean(params.withLogo) && !imagery;
     lines.push(
       '',
       imagery
         ? 'Clothes, walls and objects are plain and undecorated, with nothing written or drawn on them. Books, papers, screens and shopfronts stay out of the frame.'
-        : 'Every surface is plain and undecorated: bare material and uniform colour, with nothing written or drawn on it.',
+        : printsLogo
+          ? LOGO_PRINT_INSTRUCTION
+          : 'Every surface is plain and undecorated: bare material and uniform colour, with nothing written or drawn on it.',
       `Avoid: ${avoid}.`
     );
 

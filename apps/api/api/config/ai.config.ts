@@ -1340,6 +1340,25 @@ export const AI_CONFIG = {
       // photographié n'en demande pas davantage ; `glm-image` reste le repli.
       imageModel: GLM_MODELS.imageFallback,
       imageFallbackModel: GLM_MODELS.image,
+      /**
+       * Les scènes de mise en situation sont photographiées par GEMINI, quel
+       * que soit le fournisseur du texte : `flash-image` d'abord, `pro-image`
+       * en repli de qualité, `flash-lite-image` en dernier recours (le plus
+       * disponible). Les modèles GLM ci-dessus ne servent plus que lorsque
+       * Gemini n'est pas configuré sur le déploiement.
+       *
+       * Seules les mises en situation produit passent ici : les mockups de
+       * réseaux sociaux et les bannières sont des gabarits HTML, sans IA.
+       */
+      geminiImageModels: (
+        process.env.IDEM_GEMINI_MOCKUP_MODELS ||
+        'gemini-3.1-flash-image,gemini-3-pro-image,gemini-3.1-flash-lite-image'
+      )
+        .split(',')
+        .map((model) => model.trim())
+        .filter(Boolean),
+      /** Cadre des scènes : paysage, comme les pages de mise en situation. */
+      geminiAspectRatio: '16:9',
       visionModel: GLM_MODELS.vision,
       visionFallbackModel: GLM_MODELS.visionFallback,
       // Le JSON de zone tient en ~60 tokens, mais le modèle est « thinking » :

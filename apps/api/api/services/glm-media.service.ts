@@ -21,6 +21,7 @@ import {
 import { getGoogleGenAIClient } from '../config/google-genai.client';
 import { AI_CONFIG, GLM_MODELS } from '../config/ai.config';
 import logger from '../config/logger';
+import { describeError, withRetry } from '../utils/retry';
 
 export interface GeneratedImage {
   buffer: Buffer;
@@ -38,6 +39,8 @@ export interface GenerateImageOptions {
   tag?: string;
   /** Modèle à employer quand GEMINI sert l'image. Repli : le modèle image par défaut. */
   geminiModel?: string;
+  /** Fournisseur imposé, au lieu de la bascule globale (`mediaProvider`). */
+  provider?: 'glm' | 'gemini';
 }
 
 export interface AnalyzeImageOptions {
@@ -135,6 +138,83 @@ async function generateImageWithGemini(
   };
 }
 
+/**
+ * Génère une image par GEMINI en parcourant une chaîne de modèles, quel que
+ * soit le fournisseur média du déploiement.
+ *
+ * Réservé aux appelants qui ont CHOISI Gemini pour leur rendu (les mises en
+ * situation de la charte) : `generateImage` suit la bascule globale, celui-ci
+ * non. La saturation est par modèle, d'où la chaîne ; une panne réseau est
+ * rejouée sur le même modèle avant de passer au suivant.
+ */
+export async function generateImageWithGeminiChain(
+  prompt: string,
+  models: readonly string[],
+  options: {
+    tag?: string;
+    aspectRatio?: string;
+    /** Images jointes à la consigne (ex. le logo à reproduire), avant le texte. */
+    images?: { buffer: Buffer; mimeType: string }[];
+  } = {},
+): Promise<GeneratedImage> {
+  if (models.length === 0) {
+    throw new Error('generateImageWithGeminiChain : aucun modèle fourni');
+  }
+
+  let lastError: unknown;
+  for (const [position, model] of models.entries()) {
+    try {
+      return await withRetry(
+        async () => {
+          const startedAt = Date.now();
+          const result: any = await getGoogleGenAIClient().models.generateContent({
+            model,
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  ...(options.images ?? []).map((image) => ({
+                    inlineData: { mimeType: image.mimeType, data: image.buffer.toString('base64') },
+                  })),
+                  { text: prompt },
+                ],
+              },
+            ],
+            config: {
+              responseModalities: ['IMAGE'],
+              ...(options.aspectRatio ? { imageConfig: { aspectRatio: options.aspectRatio } } : {}),
+            },
+          });
+
+          const parts = result?.candidates?.[0]?.content?.parts ?? [];
+          const inline = parts.find((part: any) => part?.inlineData?.data)?.inlineData;
+          if (!inline?.data) {
+            throw new Error(`${model} n'a renvoyé aucune image`);
+          }
+
+          logger.info(
+            `Image générée par ${model} en ${Date.now() - startedAt} ms${options.tag ? ` (${options.tag})` : ''}`
+          );
+          return {
+            buffer: Buffer.from(inline.data, 'base64'),
+            mimeType: inline.mimeType ?? 'image/png',
+            model,
+          };
+        },
+        { label: `gemini/${model}` },
+      );
+    } catch (error) {
+      lastError = error;
+      const next = models[position + 1];
+      logger.warn(
+        `[GEMINI] ${model} a échoué (${describeError(error)})${next ? ` — repli sur ${next}` : ''}`,
+        { tag: options.tag },
+      );
+    }
+  }
+  throw lastError;
+}
+
 /** Lecture d'image par Gemini : le modèle accepte l'image en entrée nativement. */
 async function analyzeImageWithGemini(
   base64: string,
@@ -176,7 +256,7 @@ export async function generateImage(
   prompt: string,
   options: GenerateImageOptions = {},
 ): Promise<GeneratedImage> {
-  if (mediaProvider() === 'gemini') {
+  if ((options.provider ?? mediaProvider()) === 'gemini') {
     return generateImageWithGemini(prompt, options.tag, options.geminiModel);
   }
 

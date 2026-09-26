@@ -229,6 +229,23 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
     () => this.outline().filter((item) => item.status === 'missing' || item.status === 'empty').length,
   );
 
+  /** L'utilisateur a fermé l'invitation à compléter (le temps de cette visite). */
+  protected readonly nudgeDismissed = signal(false);
+  /**
+   * Invitation à compléter, posée au-dessus du dock dès l'ouverture : des pages
+   * manquent, et c'est ici — pas sur la page d'aperçu de la marque — qu'on les
+   * génère. Elle s'efface au premier choix, et ne gêne pas la lecture.
+   */
+  protected readonly showCompleteNudge = computed(
+    () =>
+      this.tracksGeneration() &&
+      this.ready() &&
+      this.resumeCount() > 0 &&
+      !this.busy() &&
+      !this.nudgeDismissed() &&
+      !this.regenMenuOpen(),
+  );
+
   /** Résumé d'une ligne dans l'en-tête, à la place de l'ancien panneau de statut. */
   protected readonly statusSummary = computed(() => {
     if (!this.tracksGeneration() || !this.ready()) return null;

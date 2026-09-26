@@ -54,9 +54,7 @@
       </div>
     </div>
   } @else if (hasProjectData() || hasBrandingData()) {
-    <!-- Main Branding Overview -->
-    <div class="max-w-7xl mx-auto space-y-8">
-      <!-- Incomplete Project Banner -->
+    <div class="max-w-7xl mx-auto space-y-6">
       @if (currentProject() && !isBrandingComplete()) {
         <app-incomplete-project-banner
           [project]="currentProject()!"
@@ -64,141 +62,76 @@
         />
       }
 
-      <!-- Guidelines completion status + per-section regeneration -->
-      @if (currentProject() && isBrandingComplete() && guidelinesCompleteness().hasStarted) {
-        <app-generation-status-panel
-          [completeness]="guidelinesCompleteness()"
-          sectionLabelPrefix="dashboard.generationPanel.sections.branding."
-          (resume)="generateBranding(false)"
-          (regenerateAll)="generateBranding(true)"
-          (regenerateSection)="regenerateSection($event)"
-        />
-      }
-
-      <!-- ── En-tête de page ───────────────────────────────────────────── -->
-      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <h1 class="text-3xl font-bold text-text-primary">
-            {{ 'dashboard.showBranding.title' | translate }}
-          </h1>
-          @if (currentProject()) {
-            <p class="text-text-secondary mt-1">{{ currentProject()!.name }}</p>
-          }
-        </div>
-      </div>
-
-      <!-- ── Charte graphique : statut et accès ────────────────────────── -->
-      @if (hasBrandingSections()) {
-        <section class="glass-card overflow-hidden" aria-labelledby="brand-guide-heading">
-          <div class="flex flex-col lg:flex-row">
-            <!-- Aperçu du logo -->
-            <div
-              class="lg:w-60 shrink-0 p-8 flex items-center justify-center bg-[var(--glass-bg-subtle)] border-b lg:border-b-0 lg:border-r border-[var(--glass-border)]"
-            >
-              <div
-                class="w-32 h-32 rounded-2xl bg-white flex items-center justify-center p-4 shadow-lg border border-[var(--glass-border-medium)]"
-              >
-                @if (
-                  logoSrc(
-                    existingBranding()?.logo?.assetUrls?.primary,
-                    existingBranding()?.logo?.svg
-                  );
-                  as logoImg
-                ) {
-                  <img [src]="logoImg" class="w-full h-full object-contain" alt="" />
-                } @else {
-                  <i class="pi pi-image text-3xl text-text-tertiary" aria-hidden="true"></i>
-                }
-              </div>
-            </div>
-
-            <!-- Contenu -->
-            <div class="flex-1 p-6 sm:p-8">
-              <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
-                <div>
-                  <span
-                    class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-green-500/15 text-green-400 border border-green-500/30"
-                  >
-                    <span class="w-1.5 h-1.5 rounded-full bg-green-400" aria-hidden="true"></span>
-                    {{ 'dashboard.showBranding.status.ready' | translate }}
-                  </span>
-                  <h2 id="brand-guide-heading" class="text-2xl font-bold text-text-primary mt-3">
-                    {{ 'dashboard.showBranding.identityCard.existing.title' | translate }}
-                  </h2>
-                  <p class="text-text-secondary mt-1.5 max-w-xl">
-                    {{ 'dashboard.showBranding.identityCard.existing.subtitle' | translate }}
-                  </p>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-                  <button type="button" class="inner-button !text-sm" (click)="viewBrandingGuide()">
-                    <i class="pi pi-eye text-sm" aria-hidden="true"></i>
-                    <span>{{ 'dashboard.showBranding.buttons.viewIdentity' | translate }}</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="glass-card px-4 py-2.5 text-sm text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors rounded-xl flex items-center gap-2"
-                    (click)="editBrandingGuide()"
-                  >
-                    <i class="pi pi-pencil text-xs" aria-hidden="true"></i>
-                    {{ 'dashboard.showBranding.buttons.editIdentity' | translate }}
-                  </button>
-                </div>
-              </div>
-
-              <!-- Repères rapides -->
-              <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-                <div class="p-3 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]">
-                  <dt class="text-xs text-text-tertiary uppercase">
-                    {{ 'dashboard.showBranding.summary.sections' | translate }}
-                  </dt>
-                  <dd class="text-lg font-semibold text-text-primary mt-0.5">
-                    {{ brandSectionCount() }}
-                  </dd>
-                </div>
-
-                <div class="p-3 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]">
-                  <dt class="text-xs text-text-tertiary uppercase">
-                    {{ 'dashboard.showBranding.summary.palette' | translate }}
-                  </dt>
-                  <dd class="flex items-center gap-1.5 mt-2">
-                    @for (swatch of paletteSwatches(); track swatch) {
-                      <span
-                        class="w-5 h-5 rounded-full border border-[var(--glass-border-medium)]"
-                        [style.background-color]="swatch"
-                        [title]="swatch"
-                      ></span>
-                    } @empty {
-                      <span class="text-sm text-text-tertiary">—</span>
-                    }
-                  </dd>
-                </div>
-
-                <div class="p-3 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]">
-                  <dt class="text-xs text-text-tertiary uppercase">
-                    {{ 'dashboard.showBranding.summary.typography' | translate }}
-                  </dt>
-                  <dd
-                    class="text-sm font-semibold text-text-primary mt-1 truncate"
-                    [style.font-family]="existingBranding()?.typography?.primaryFont"
-                  >
-                    {{ existingBranding()?.typography?.primaryFont || '—' }}
-                  </dd>
-                </div>
-
-                <div class="p-3 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]">
-                  <dt class="text-xs text-text-tertiary uppercase">
-                    {{ 'dashboard.showBranding.summary.logoVariations' | translate }}
-                  </dt>
-                  <dd class="text-lg font-semibold text-text-primary mt-0.5">
-                    {{ logoVariationCount() }}
-                  </dd>
-                </div>
-              </dl>
-            </div>
+      <!-- ── En-tête : la marque et ses actions, sur une ligne ───────────── -->
+      <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center gap-4 min-w-0">
+          <div
+            class="w-14 h-14 shrink-0 rounded-xl flex items-center justify-center p-2 border border-[var(--glass-border)]"
+            [style.background-color]="groundFor('light')"
+          >
+            @if (logoVariants()[0]; as mainLogo) {
+              <img [src]="mainLogo.src" class="max-w-full max-h-full object-contain" alt="" />
+            } @else {
+              <i class="pi pi-image text-xl text-text-tertiary" aria-hidden="true"></i>
+            }
           </div>
-        </section>
-      } @else {
+          <div class="min-w-0">
+            <h1 class="text-2xl sm:text-3xl font-bold text-text-primary truncate">
+              {{ currentProject()?.name || ('dashboard.showBranding.title' | translate) }}
+            </h1>
+            <p class="text-sm text-text-secondary flex items-center gap-2 mt-0.5">
+              <span>{{ 'dashboard.showBranding.title' | translate }}</span>
+              @if (hasBrandingSections()) {
+                <span class="tag !py-0.5 !px-2">
+                  <span class="w-1.5 h-1.5 rounded-full bg-primary-500" aria-hidden="true"></span>
+                  {{ 'dashboard.showBranding.board.charterReady' | translate }}
+                </span>
+              }
+            </p>
+          </div>
+        </div>
+
+        @if (hasBrandingSections()) {
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              class="button-icon"
+              [attr.aria-label]="'dashboard.showBranding.buttons.editIdentity' | translate"
+              [title]="'dashboard.showBranding.buttons.editIdentity' | translate"
+              (click)="editBrandingGuide()"
+            >
+              <i class="pi pi-pencil text-sm" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              class="outer-button button-sm !gap-2"
+              (click)="downloadAllAssets()"
+              [disabled]="isDownloadingAssets()"
+              [attr.aria-busy]="isDownloadingAssets()"
+            >
+              @if (isDownloadingAssets()) {
+                <idem-loader size="xs" />
+              } @else {
+                <i class="pi pi-download text-sm" aria-hidden="true"></i>
+              }
+              <span>
+                {{
+                  (isDownloadingAssets()
+                    ? 'dashboard.showBranding.buttons.downloadingAssets'
+                    : 'dashboard.showBranding.buttons.downloadAllAssets'
+                  ) | translate
+                }}
+              </span>
+            </button>
+            <button type="button" class="inner-button button-sm !gap-2" (click)="viewBrandingGuide()">
+              <i class="pi pi-book text-sm" aria-hidden="true"></i>
+              <span>{{ 'dashboard.showBranding.board.openCharter' | translate }}</span>
+            </button>
+          </div>
+        }
+      </header>
+
+      @if (!hasBrandingSections()) {
         <!-- Charte absente : invitation à générer -->
         <section
           class="glass-card p-6 sm:p-8 border border-dashed border-[var(--glass-border-strong)]"
@@ -208,41 +141,16 @@
             <img
               src="assets/images/dashboard/brand.webp"
               alt=""
-              class="w-20 h-20 rounded-2xl object-cover shadow-lg shrink-0"
+              class="w-20 h-20 rounded-2xl object-cover shrink-0"
             />
             <div class="flex-1">
-              <span
-                class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30"
-              >
-                <span class="w-1.5 h-1.5 rounded-full bg-blue-400" aria-hidden="true"></span>
-                {{ 'dashboard.showBranding.status.pending' | translate }}
-              </span>
-              <h2 id="brand-generate-heading" class="text-2xl font-bold text-text-primary mt-3">
+              <h2 id="brand-generate-heading" class="text-2xl font-bold text-text-primary">
                 {{ 'dashboard.showBranding.identityCard.generate.title' | translate }}
               </h2>
               <p class="text-text-secondary mt-1.5 max-w-2xl">
                 {{ 'dashboard.showBranding.identityCard.generate.subtitle' | translate }}
               </p>
-
-              <ul class="flex flex-wrap gap-2 mt-4">
-                @for (
-                  feature of [
-                    'dashboard.showBranding.identityCard.generate.features.0',
-                    'dashboard.showBranding.identityCard.generate.features.1',
-                    'dashboard.showBranding.identityCard.generate.features.2',
-                    'dashboard.showBranding.identityCard.generate.features.3',
-                  ];
-                  track feature
-                ) {
-                  <li
-                    class="px-3 py-1.5 rounded-full text-xs text-text-secondary bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]"
-                  >
-                    {{ feature | translate }}
-                  </li>
-                }
-              </ul>
             </div>
-
             <div class="shrink-0 flex flex-col items-start lg:items-end gap-2">
               <button type="button" class="inner-button" (click)="generateBranding()">
                 <span>{{ 'dashboard.showBranding.buttons.generateIdentity' | translate }}</span>
@@ -256,403 +164,273 @@
         </section>
       }
 
-      <!-- ── Cartes de visite ──────────────────────────────────────────── -->
-      <section class="glass-card p-6 sm:p-7" aria-labelledby="business-cards-heading">
-        <div class="flex flex-col lg:flex-row lg:items-center gap-6">
-          <div
-            class="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0"
-          >
-            <i class="pi pi-id-card text-2xl text-primary" aria-hidden="true"></i>
-          </div>
-
-          <div class="flex-1">
-            <div class="flex items-center gap-2 flex-wrap">
-              <h2 id="business-cards-heading" class="text-xl font-bold text-text-primary">
-                {{ 'dashboard.showBranding.businessCards.title' | translate }}
+      <!-- ── Tableau de marque : logo, palette, typographie ─────────────── -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Logo : une scène et ses déclinaisons -->
+        <section class="glass-card p-5 lg:col-span-7 lg:row-span-2 flex flex-col" aria-labelledby="logo-heading">
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <div class="min-w-0">
+              <h2 id="logo-heading" class="text-lg font-semibold text-text-primary">
+                {{ 'dashboard.showBranding.sections.logos.title' | translate }}
               </h2>
-              @if (hasBrandingSections()) {
-                <span
-                  class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-[var(--glass-bg-light)] text-text-secondary border border-[var(--glass-border)]"
-                >
-                  {{ 'dashboard.showBranding.businessCards.badge' | translate }}
-                </span>
+              @if (activeVariant(); as active) {
+                <p class="text-sm text-text-tertiary truncate" aria-live="polite">{{ active.labelKey | translate }}</p>
               }
             </div>
-            <p class="text-text-secondary mt-1.5 max-w-2xl">
-              {{ 'dashboard.showBranding.businessCards.subtitle' | translate }}
+            @if (logoVariants().length > 0) {
+              <button
+                type="button"
+                class="outer-button button-sm !gap-2 shrink-0"
+                [title]="'dashboard.showBranding.sections.logos.downloadHint' | translate"
+                (click)="showDialog()"
+              >
+                <i class="pi pi-download text-sm" aria-hidden="true"></i>
+                <span>{{ 'dashboard.showBranding.board.downloadLogos' | translate }}</span>
+              </button>
+            }
+          </div>
+
+          @if (activeVariant(); as active) {
+            <div
+              class="flex-1 min-h-64 rounded-xl flex items-center justify-center p-8 border border-[var(--glass-border-subtle)] transition-colors duration-300"
+              [style.background-color]="groundFor(active.ground)"
+            >
+              <img [src]="active.src" class="max-w-[70%] max-h-56 object-contain" [alt]="active.labelKey | translate" />
+            </div>
+
+            @if (logoVariants().length > 1) {
+              <div
+                class="mt-4 grid grid-cols-4 sm:grid-cols-7 gap-2"
+                role="group"
+                [attr.aria-label]="'dashboard.showBranding.board.variations' | translate"
+              >
+                @for (item of logoVariants(); track item.id) {
+                  <button
+                    type="button"
+                    class="min-w-0 flex flex-col items-center gap-1.5 rounded-lg p-1.5 border transition-colors hover:bg-[var(--glass-bg-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+                    [class.border-primary-500]="item.id === active.id"
+                    [class.border-transparent]="item.id !== active.id"
+                    [attr.aria-pressed]="item.id === active.id"
+                    (click)="selectVariant(item.id)"
+                  >
+                    <span
+                      class="w-full h-14 rounded-md flex items-center justify-center p-2 border border-[var(--glass-border-subtle)]"
+                      [style.background-color]="groundFor(item.ground)"
+                    >
+                      <img [src]="item.src" class="max-w-full max-h-full object-contain" alt="" />
+                    </span>
+                    <span class="text-[11px] leading-tight text-center text-text-secondary">{{ item.labelKey | translate }}</span>
+                  </button>
+                }
+              </div>
+            }
+          } @else {
+            <div class="flex-1 min-h-64 rounded-xl flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--glass-border)]">
+              <i class="pi pi-image text-3xl text-text-tertiary" aria-hidden="true"></i>
+              <p class="text-sm text-text-tertiary">{{ 'dashboard.showBranding.empty.noLogos' | translate }}</p>
+            </div>
+          }
+        </section>
+
+        <!-- Palette : des bandes proportionnelles à l'usage -->
+        <section class="glass-card p-5 lg:col-span-5" aria-labelledby="palette-heading">
+          <h2 id="palette-heading" class="text-lg font-semibold text-text-primary mb-4">
+            {{ 'dashboard.showBranding.sections.colors.title' | translate }}
+          </h2>
+
+          @if (palette().length > 0) {
+            <div class="flex h-40 rounded-xl overflow-hidden border border-[var(--glass-border-subtle)]">
+              @for (strip of palette(); track strip.role) {
+                <button
+                  type="button"
+                  class="relative min-w-0 flex flex-col justify-end items-start p-3 text-left transition-[flex-grow] duration-300 hover:grow-[3.4] focus-visible:grow-[3.4] focus-visible:outline-2 focus-visible:-outline-offset-4"
+                  [style.flex-grow]="strip.weight"
+                  [style.flex-basis]="0"
+                  [style.background-color]="strip.hex"
+                  [style.color]="strip.ink"
+                  [attr.aria-label]="('dashboard.showBranding.board.copy' | translate) + ' ' + strip.hex"
+                  (click)="copyColor(strip.hex)"
+                >
+                  <span class="text-xs font-semibold truncate max-w-full">
+                    {{ 'dashboard.showBranding.sections.colors.' + strip.role | translate }}
+                  </span>
+                  <span class="text-[11px] font-mono opacity-80 truncate max-w-full">
+                    {{ copiedColor() === strip.hex ? ('dashboard.showBranding.board.copied' | translate) : strip.hex }}
+                  </span>
+                </button>
+              }
+            </div>
+            <p class="text-xs text-text-tertiary mt-2.5">{{ 'dashboard.showBranding.board.copyHint' | translate }}</p>
+            <p class="sr-only" aria-live="polite">
+              @if (copiedColor(); as hex) {
+                {{ hex }} {{ 'dashboard.showBranding.board.copied' | translate }}
+              }
+            </p>
+          } @else {
+            <div class="h-40 rounded-xl flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--glass-border)]">
+              <i class="pi pi-palette text-2xl text-text-tertiary" aria-hidden="true"></i>
+              <p class="text-sm text-text-tertiary">{{ 'dashboard.showBranding.empty.noColors' | translate }}</p>
+            </div>
+          }
+        </section>
+
+        <!-- Typographie : un spécimen composé avec les vrais mots du projet -->
+        <section class="glass-card p-5 lg:col-span-5" aria-labelledby="type-heading">
+          <h2 id="type-heading" class="text-lg font-semibold text-text-primary mb-4">
+            {{ 'dashboard.showBranding.sections.typography.title' | translate }}
+          </h2>
+
+          @if (existingBranding()?.typography?.primaryFont; as headingFont) {
+            <div class="flex gap-5">
+              <p
+                class="text-6xl leading-none text-text-primary shrink-0"
+                [style.font-family]="headingFont"
+                aria-hidden="true"
+              >
+                Aa
+              </p>
+              <div class="min-w-0 flex-1 space-y-2">
+                <p
+                  class="text-2xl font-bold leading-tight text-text-primary line-clamp-2"
+                  [style.font-family]="headingFont"
+                >
+                  {{ specimenHeadline() }}
+                </p>
+                @if (specimenBody()) {
+                  <p
+                    class="text-sm text-text-secondary line-clamp-3"
+                    [style.font-family]="existingBranding()?.typography?.secondaryFont || headingFont"
+                  >
+                    {{ specimenBody() }}
+                  </p>
+                }
+              </div>
+            </div>
+            <dl class="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-[var(--glass-border-subtle)]">
+              <div class="min-w-0">
+                <dt class="text-xs text-text-tertiary">{{ 'dashboard.showBranding.sections.typography.heading' | translate }}</dt>
+                <dd class="text-sm font-semibold text-text-primary truncate" [style.font-family]="headingFont">{{ headingFont }}</dd>
+              </div>
+              @if (existingBranding()?.typography?.secondaryFont; as bodyFont) {
+                <div class="min-w-0">
+                  <dt class="text-xs text-text-tertiary">{{ 'dashboard.showBranding.sections.typography.body' | translate }}</dt>
+                  <dd class="text-sm font-semibold text-text-primary truncate" [style.font-family]="bodyFont">{{ bodyFont }}</dd>
+                </div>
+              }
+            </dl>
+          } @else {
+            <div class="h-40 rounded-xl flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--glass-border)]">
+              <i class="pi pi-align-left text-2xl text-text-tertiary" aria-hidden="true"></i>
+              <p class="text-sm text-text-tertiary">{{ 'dashboard.showBranding.empty.noTypography' | translate }}</p>
+            </div>
+          }
+        </section>
+      </div>
+
+      <!-- ── Cartes de visite ──────────────────────────────────────────── -->
+      <section
+        class="glass-card px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4"
+        aria-labelledby="business-cards-heading"
+      >
+        <i class="pi pi-id-card text-2xl text-primary-500 shrink-0" aria-hidden="true"></i>
+        <div class="flex-1 min-w-0">
+          <h2 id="business-cards-heading" class="text-base font-semibold text-text-primary">
+            {{ 'dashboard.showBranding.businessCards.title' | translate }}
+          </h2>
+          <p class="text-sm text-text-secondary">
+            {{
+              (canCreateBusinessCards()
+                ? 'dashboard.showBranding.businessCards.subtitle'
+                : 'dashboard.showBranding.businessCards.locked'
+              ) | translate
+            }}
+          </p>
+        </div>
+        @if (canCreateBusinessCards()) {
+          <button type="button" class="outer-button button-sm !gap-2 shrink-0" (click)="goToBusinessCards()">
+            <span>{{ 'dashboard.showBranding.businessCards.cta' | translate }}</span>
+            <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+          </button>
+        }
+      </section>
+
+      <!-- ── Réseaux sociaux : bannières et photo de profil, en fichiers ── -->
+      @if (hasBrandingSections()) {
+        <section class="glass-card p-5" aria-labelledby="social-assets-heading">
+          <div class="mb-4">
+            <h2 id="social-assets-heading" class="text-lg font-semibold text-text-primary">
+              {{ 'dashboard.showBranding.socialAssets.title' | translate }}
+            </h2>
+            <p class="text-sm text-text-secondary mt-0.5">
+              {{ 'dashboard.showBranding.socialAssets.subtitle' | translate }}
             </p>
           </div>
 
-          <div class="shrink-0">
-            @if (canCreateBusinessCards()) {
-              <button type="button" class="inner-button !text-sm" (click)="goToBusinessCards()">
-                <i class="pi pi-id-card text-sm" aria-hidden="true"></i>
-                <span>{{ 'dashboard.showBranding.businessCards.cta' | translate }}</span>
-              </button>
-            } @else {
-              <p class="text-xs text-text-tertiary max-w-[16rem]">
-                {{ 'dashboard.showBranding.businessCards.locked' | translate }}
-              </p>
+          @switch (socialAssetsState()) {
+            @case ('loading') {
+              <ul class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" aria-busy="true">
+                @for (slot of [1, 2, 3, 4, 5]; track slot) {
+                  <li class="rounded-xl overflow-hidden border border-[var(--glass-border-subtle)]">
+                    <div class="skeleton h-40"></div>
+                    <div class="p-3 space-y-2">
+                      <div class="skeleton h-3 w-1/2 rounded"></div>
+                      <div class="skeleton h-3 w-1/3 rounded"></div>
+                    </div>
+                  </li>
+                }
+              </ul>
+              <p class="sr-only" aria-live="polite">{{ 'dashboard.showBranding.socialAssets.loading' | translate }}</p>
             }
-          </div>
-        </div>
-      </section>
-
-      <!-- Branding Elements Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Logo Section -->
-        <div class="glass-card p-6">
-          <div class="flex items-center justify-between mb-6">
-            <div>
-              <h3 class="text-xl font-semibold text-text-primary">
-                {{ 'dashboard.showBranding.sections.logos.title' | translate }}
-              </h3>
-              <p class="text-text-tertiary text-sm">
-                {{ 'dashboard.showBranding.sections.logos.subtitle' | translate }}
-              </p>
-            </div>
-          </div>
-
-          @if (
-            existingBranding() &&
-            (existingBranding()!.logo!.svg || existingBranding()!.generatedLogos!.length > 0)
-          ) {
-            <!-- Real Logo Data -->
-            <div class="space-y-4">
-
-              @if (logoSrc(existingBranding()!.logo!.assetUrls?.primary, existingBranding()!.logo!.svg); as logoImg) {
-                <!-- Selected Logo -->
-                <div class="glass-card p-4 text-center">
-                  <div
-                    class="w-36 h-36 sm:w-40 sm:h-40 mx-auto mb-3 bg-white rounded-xl flex items-center justify-center p-3 overflow-hidden"
-                  >
-                    <img [src]="logoImg" class="w-full h-full object-contain" alt="Logo" />
-                  </div>
-                  <p class="text-text-primary font-medium">
-                    {{
-                      existingBranding()!.logo.name ||
-                        ('dashboard.showBranding.sections.logos.main' | translate)
-                    }}
-                  </p>
-                  <p class="text-text-tertiary text-sm">
-                    {{ 'dashboard.showBranding.sections.logos.selected' | translate }}
-                  </p>
-                </div>
-              }
-
-              <!-- Logo Variations -->
-              @if (existingBranding()!.logo!.variations) {
-                <div class="grid grid-cols-2 gap-3">
-
-                  <!-- withText · light -->
-                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.withText?.lightBackground, existingBranding()!.logo!.variations!.withText?.lightBackground); as v) {
-                    <div class="glass-card p-3 text-center">
-                      <div
-                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
-                      >
-                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
-                      </div>
-                      <p class="text-text-primary text-xs">
-                        {{ 'dashboard.showBranding.sections.logos.lightBg' | translate }}
-                      </p>
-                    </div>
-                  }
-
-                  <!-- withText · dark -->
-                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.withText?.darkBackground, existingBranding()!.logo!.variations!.withText?.darkBackground); as v) {
-                    <div class="glass-card !bg-gray-900 border border-gray-800 p-3 text-center">
-                      <div
-                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-gray-900 rounded-lg flex items-center justify-center p-2 overflow-hidden"
-                      >
-                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
-                      </div>
-                      <p class="text-white text-xs font-medium">
-                        {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }}
-                      </p>
-                    </div>
-                  }
-
-                  <!-- withText · monochrome -->
-                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.withText?.monochrome, existingBranding()!.logo!.variations!.withText?.monochrome); as v) {
-                    <div class="glass-card p-3 text-center">
-                      <div
-                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded-lg flex items-center justify-center p-2 overflow-hidden"
-                      >
-                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
-                      </div>
-                      <p class="text-text-primary text-xs">
-                        {{ 'dashboard.showBranding.sections.logos.monochrome' | translate }}
-                      </p>
-                    </div>
-                  }
-
-                  <!-- iconOnly · light -->
-                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.iconOnly?.lightBackground, existingBranding()!.logo!.variations!.iconOnly?.lightBackground); as v) {
-                    <div class="glass-card p-3 text-center">
-                      <div
-                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
-                      >
-                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
-                      </div>
-                      <p class="text-text-primary text-xs">
-                        {{ 'dashboard.showBranding.sections.logos.iconOnly' | translate }}
-                      </p>
-                    </div>
-                  }
-
-                  <!-- iconOnly · dark -->
-                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.iconOnly?.darkBackground, existingBranding()!.logo!.variations!.iconOnly?.darkBackground); as v) {
-                    <div class="glass-card !bg-gray-900 border border-gray-800 p-3 text-center">
-                      <div
-                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-gray-900 rounded-lg flex items-center justify-center p-2 overflow-hidden"
-                      >
-                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
-                      </div>
-                      <p class="text-white text-xs font-medium">
-                        {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }} (icon)
-                      </p>
-                    </div>
-                  }
-
-                  <!-- iconOnly · monochrome -->
-                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.iconOnly?.monochrome, existingBranding()!.logo!.variations!.iconOnly?.monochrome); as v) {
-                    <div class="glass-card p-3 text-center">
-                      <div
-                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded-lg flex items-center justify-center p-2 overflow-hidden"
-                      >
-                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
-                      </div>
-                      <p class="text-text-primary text-xs">
-                        {{ 'dashboard.showBranding.sections.logos.monochrome' | translate }} (icon)
-                      </p>
-                    </div>
-                  }
-
-                </div>
-              }
-
-              <!-- Action principale de la section : récupérer les fichiers.
-                   Placée sous les déclinaisons (et non dans l'en-tête) pour
-                   laisser la place à un libellé explicite. -->
-              <div class="pt-2">
-                <button type="button" class="inner-button w-full !text-sm" (click)="showDialog()">
-                  <i class="pi pi-download text-sm" aria-hidden="true"></i>
-                  <span>{{ 'dashboard.showBranding.buttons.downloadLogos' | translate }}</span>
+            @case ('error') {
+              <div class="flex flex-wrap items-center gap-3 py-2">
+                <p class="text-sm text-text-secondary">{{ 'dashboard.showBranding.socialAssets.error' | translate }}</p>
+                <button type="button" class="outer-button button-sm !gap-2" (click)="loadSocialAssets()">
+                  <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
+                  <span>{{ 'common.retry' | translate }}</span>
                 </button>
-                <p class="text-xs text-text-tertiary text-center mt-2">
-                  {{ 'dashboard.showBranding.sections.logos.downloadHint' | translate }}
-                </p>
               </div>
-            </div>
-          } @else {
-            <div class="bg-linear-to-r py-8">
-              <i class="pi pi-image text-4xl text-text-tertiary mb-3"></i>
-              <p class="text-text-tertiary">{{ 'dashboard.showBranding.empty.noLogos' | translate }}</p>
-            </div>
-          }
-        </div>
-
-        <!-- Colors Section -->
-        <div class="glass-card p-6">
-          <div class="flex items-center mb-6">
-            <div>
-              <h3 class="text-xl font-semibold text-text-primary">
-                {{ 'dashboard.showBranding.sections.colors.title' | translate }}
-              </h3>
-              <p class="text-text-tertiary text-sm">
-                {{ 'dashboard.showBranding.sections.colors.subtitle' | translate }}
-              </p>
-            </div>
-          </div>
-
-          @if (
-            existingBranding() &&
-            (existingBranding()!.colors!.colors || existingBranding()!.generatedColors!.length > 0)
-          ) {
-            <!-- Real Color Data -->
-            <div class="space-y-4">
-              @if (existingBranding()!.colors!.colors) {
-                <!-- Selected Color Palette -->
-                <div class="space-y-3">
-                  <p class="text-text-primary font-medium mb-3">
-                    {{
-                      existingBranding()!.colors.name ||
-                        ('dashboard.showBranding.sections.colors.selected' | translate)
-                    }}
-                  </p>
-                  <div class="grid grid-cols-2 gap-3">
-                    @if (existingBranding()!.colors.colors.primary) {
-                      <div class="glass-card p-3">
-                        <div
-                          class="w-full h-12 rounded mb-2"
-                          [style.background-color]="existingBranding()!.colors.colors.primary"
-                        ></div>
-                        <p class="text-text-primary text-sm font-medium">
-                          {{ 'dashboard.showBranding.sections.colors.primary' | translate }}
-                        </p>
-                        <p class="text-text-tertiary text-xs">
-                          {{ existingBranding()!.colors.colors.primary }}
-                        </p>
-                      </div>
-                    }
-                    @if (existingBranding()!.colors.colors.secondary) {
-                      <div class="glass-card p-3">
-                        <div
-                          class="w-full h-12 rounded mb-2"
-                          [style.background-color]="existingBranding()!.colors.colors.secondary"
-                        ></div>
-                        <p class="text-text-primary text-sm font-medium">
-                          {{ 'dashboard.showBranding.sections.colors.secondary' | translate }}
-                        </p>
-                        <p class="text-text-tertiary text-xs">
-                          {{ existingBranding()!.colors.colors.secondary }}
-                        </p>
-                      </div>
-                    }
-                    @if (existingBranding()!.colors.colors.accent) {
-                      <div class="glass-card p-3">
-                        <div
-                          class="w-full h-12 rounded mb-2"
-                          [style.background-color]="existingBranding()!.colors.colors.accent"
-                        ></div>
-                        <p class="text-text-primary text-sm font-medium">
-                          {{ 'dashboard.showBranding.sections.colors.accent' | translate }}
-                        </p>
-                        <p class="text-text-tertiary text-xs">
-                          {{ existingBranding()!.colors.colors.accent }}
-                        </p>
-                      </div>
-                    }
-                    @if (existingBranding()!.colors.colors.background) {
-                      <div class="glass-card p-3">
-                        <div
-                          class="w-full h-12 rounded mb-2"
-                          [style.background-color]="existingBranding()!.colors.colors.background"
-                        ></div>
-                        <p class="text-text-primary text-sm font-medium">
-                          {{ 'dashboard.showBranding.sections.colors.background' | translate }}
-                        </p>
-                        <p class="text-text-tertiary text-xs">
-                          {{ existingBranding()!.colors.colors.background }}
-                        </p>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-          } @else {
-            <div class="bg-linear-to-r py-8">
-              <i class="pi pi-palette text-4xl text-text-tertiary mb-3"></i>
-              <p class="text-text-tertiary">{{ 'dashboard.showBranding.empty.noColors' | translate }}</p>
-            </div>
-          }
-        </div>
-
-        <!-- Typography Section -->
-        <div class="glass-card p-6">
-          <div class="flex items-center mb-6">
-            <div>
-              <h3 class="text-xl font-semibold text-text-primary">
-                {{ 'dashboard.showBranding.sections.typography.title' | translate }}
-              </h3>
-              <p class="text-text-tertiary text-sm">
-                {{ 'dashboard.showBranding.sections.typography.subtitle' | translate }}
-              </p>
-            </div>
-          </div>
-
-          @if (
-            existingBranding() &&
-            (existingBranding()!.typography!.primaryFont ||
-              existingBranding()!.generatedTypography!.length > 0)
-          ) {
-            <!-- Real Typography Data -->
-            <div class="space-y-4">
-              @if (existingBranding()!.typography!.primaryFont) {
-                <!-- Selected Typography -->
-                <div class="space-y-3">
-                  <p class="text-text-primary font-medium mb-3">
-                    {{
-                      existingBranding()!.typography.name ||
-                        ('dashboard.showBranding.sections.typography.selected' | translate)
-                    }}
-                  </p>
-
-                  <!-- Primary Font -->
-                  <div class="glass-card p-4">
-                    <h4
-                      class="text-2xl font-bold text-text-primary mb-2"
-                      [style.font-family]="existingBranding()!.typography.primaryFont"
-                    >
-                      {{ existingBranding()!.typography.primaryFont }}
-                    </h4>
-                    <p class="text-text-tertiary text-sm mb-3">
-                      {{ 'dashboard.showBranding.sections.typography.primary' | translate }}
-                    </p>
-                    <div class="space-y-1">
-                      <p
-                        class="text-text-primary text-lg font-bold"
-                        [style.font-family]="existingBranding()!.typography.primaryFont"
-                      >
-                        Aa Bb Cc
-                      </p>
-                      <p
-                        class="text-text-secondary text-base font-medium"
-                        [style.font-family]="existingBranding()!.typography.primaryFont"
-                      >
-                        Aa Bb Cc
-                      </p>
-                      <p
-                        class="text-text-tertiary text-sm"
-                        [style.font-family]="existingBranding()!.typography.primaryFont"
-                      >
-                        Aa Bb Cc
-                      </p>
+            }
+            @case ('ready') {
+              <ul class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                @for (asset of socialAssets(); track asset.id) {
+                  <li class="rounded-xl overflow-hidden border border-[var(--glass-border-subtle)] flex flex-col">
+                    <div class="h-40 p-4 flex items-center justify-center bg-[var(--color-bg-dark)]">
+                      <img
+                        [src]="asset.url"
+                        [alt]="asset.label"
+                        class="max-w-full max-h-full object-contain shadow-glass"
+                        [class.rounded-full]="asset.id === 'profile-picture'"
+                        loading="lazy"
+                      />
                     </div>
-                  </div>
-
-                  <!-- Secondary Font -->
-                  @if (existingBranding()!.typography.secondaryFont) {
-                    <div class="glass-card p-4">
-                      <h4
-                        class="text-xl text-text-primary mb-2"
-                        [style.font-family]="existingBranding()!.typography.secondaryFont"
-                      >
-                        {{ existingBranding()!.typography.secondaryFont }}
-                      </h4>
-                      <p class="text-text-tertiary text-sm mb-3">
-                        {{ 'dashboard.showBranding.sections.typography.secondary' | translate }}
-                      </p>
-                      <div class="space-y-1">
-                        <p
-                          class="text-text-primary text-base"
-                          [style.font-family]="existingBranding()!.typography.secondaryFont"
-                        >
-                          Aa Bb Cc
-                        </p>
-                        <p
-                          class="text-text-secondary text-sm"
-                          [style.font-family]="existingBranding()!.typography.secondaryFont"
-                        >
-                          Aa Bb Cc
-                        </p>
+                    <div class="flex items-center justify-between gap-3 px-3 py-2.5">
+                      <div class="min-w-0">
+                        <p class="text-sm font-semibold text-text-primary truncate">{{ asset.label }}</p>
+                        <p class="text-xs text-text-tertiary">{{ asset.width }} × {{ asset.height }} px</p>
                       </div>
+                      <button
+                        type="button"
+                        class="button-icon shrink-0 !p-2"
+                        [attr.aria-label]="('dashboard.showBranding.socialAssets.download' | translate) + ' — ' + asset.label"
+                        [title]="'dashboard.showBranding.socialAssets.download' | translate"
+                        [disabled]="downloadingAssetId() !== null"
+                        [attr.aria-busy]="downloadingAssetId() === asset.id"
+                        (click)="downloadSocialAsset(asset)"
+                      >
+                        @if (downloadingAssetId() === asset.id) {
+                          <idem-loader size="xs" />
+                        } @else {
+                          <i class="pi pi-download text-sm" aria-hidden="true"></i>
+                        }
+                      </button>
                     </div>
-                  }
-                </div>
-              }
-            </div>
-          } @else {
-            <div class="bg-linear-to-r py-8">
-              <i class="pi pi-font text-4xl text-text-tertiary mb-3"></i>
-              <p class="text-text-tertiary">
-                {{ 'dashboard.showBranding.empty.noTypography' | translate }}
-              </p>
-            </div>
+                  </li>
+                }
+              </ul>
+            }
           }
-        </div>
-      </div>
+        </section>
+      }
     </div>
   } @else {
     <!-- Empty State - No project ID -->
