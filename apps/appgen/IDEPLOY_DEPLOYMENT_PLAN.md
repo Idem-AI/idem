@@ -9,8 +9,6 @@
 > Marie clique sur **"Deploy"** → choisit **"iDeploy"**.
 > 90 secondes plus tard, elle reçoit le lien : `https://idem-app-f3a9b2.idem.app`
 
-Ce scénario va guider toute l'explication.
-
 ---
 
 ## Comprendre le problème de fond
