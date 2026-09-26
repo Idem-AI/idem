@@ -151,17 +151,26 @@
         "zipNote": "Le ZIP contient le logo principal, l'icône seule et les versions fond clair, fond sombre et monochrome."
       },
       "formatSelector": {
-        "title": "Choisir le format PDF",
-        "description": "Sélectionnez le format pour votre charte graphique PDF",
+        "title": "Choisissez le format de votre charte",
+        "description": "Le format décide de la mise en page de chaque page de la charte.",
         "a4Portrait": {
-          "title": "A4 Portrait",
-          "description": "Format document classique"
+          "title": "A4 portrait",
+          "description": "Un document à imprimer, à relier ou à joindre à un e-mail.",
+          "uses": [
+            "Impression et envoi par e-mail",
+            "Lecture page par page, comme un livret"
+          ]
         },
         "landscape": {
           "title": "Paysage 16:9",
-          "description": "Format présentation moderne"
+          "description": "Une présentation qui se lit à l'écran et se projette en réunion.",
+          "uses": [
+            "Projection et partage d'écran",
+            "Lecture confortable sur ordinateur"
+          ]
         },
-        "startGeneration": "Lancer la génération"
+        "startGeneration": "Générer ma charte",
+        "changeLater": "Vous pourrez régénérer la charte dans l'autre format plus tard."
       },
       "summary": {
         "sections": "Sections",

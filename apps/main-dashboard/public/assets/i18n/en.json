@@ -1690,17 +1690,26 @@
         "zipNote": "The ZIP contains the main logo, the icon on its own, and the light, dark and monochrome versions."
       },
       "formatSelector": {
-        "title": "Choose PDF Format",
-        "description": "Select the format for your brand charter PDF",
+        "title": "Choose your brand guidelines format",
+        "description": "The format sets the layout of every page of your guidelines.",
         "a4Portrait": {
-          "title": "A4 Portrait",
-          "description": "Classic document format"
+          "title": "A4 portrait",
+          "description": "A document to print, bind or attach to an email.",
+          "uses": [
+            "Printing and sending by email",
+            "Page-by-page reading, like a booklet"
+          ]
         },
         "landscape": {
           "title": "Landscape 16:9",
-          "description": "Modern presentation format"
+          "description": "A presentation read on screen and projected in meetings.",
+          "uses": [
+            "Projection and screen sharing",
+            "Comfortable reading on a computer"
+          ]
         },
-        "startGeneration": "Start Generation"
+        "startGeneration": "Generate my guidelines",
+        "changeLater": "You can regenerate the guidelines in the other format later."
       },
       "summary": {
         "sections": "Sections",
