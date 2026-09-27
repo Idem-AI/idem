@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Block the push if an application changed by the pushed commits does not build.
+# git gives the pushed refs on stdin; the script reads them.
+node scripts/git-hooks/check-builds.mjs --hook
