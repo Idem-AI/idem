@@ -5,6 +5,8 @@
 export interface GitHubOAuthRequest {
   code: string;
   state?: string;
+  /** Utilisateur de la session qui termine le parcours (doit être celui du `state`). */
+  expectedUserId?: string;
 }
 
 export interface GitHubOAuthResponse {

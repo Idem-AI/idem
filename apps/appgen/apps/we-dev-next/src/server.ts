@@ -8,6 +8,7 @@ import express, { Express, Request, Response } from 'express';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import { corsMiddleware } from './middleware/cors.js';
+import { requireIdemUser } from './middleware/auth.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { metricsMiddleware, register } from './middleware/metrics.js';
 import chatRouter from './routes/chat.js';
@@ -72,9 +73,11 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-app.use('/api/chat', chatRouter);
-app.use('/api/deploy', deployRouter);
-app.use('/api/enhancedPrompt', enhancedPromptRouter);
+// Routes qui consomment des ressources payantes (modèles, compte Netlify) :
+// réservées aux utilisateurs IDEM authentifiés.
+app.use('/api/chat', requireIdemUser, chatRouter);
+app.use('/api/deploy', requireIdemUser, deployRouter);
+app.use('/api/enhancedPrompt', requireIdemUser, enhancedPromptRouter);
 app.use('/api/model', modelRouter);
 app.use('/api/handoff', handoffRouter);
 app.use('/api/quality', qualityRouter);

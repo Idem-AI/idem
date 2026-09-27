@@ -505,6 +505,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     reload,
   } = useChat({
     api: `${baseChatUrl}/api/chat`,
+    // Le cookie de session IDEM identifie l'utilisateur auprès du serveur AppGen.
+    credentials: 'include',
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },

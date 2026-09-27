@@ -28,6 +28,7 @@ import {
   buildImageStyleModifier,
 } from '../utils/art-direction.util';
 import { parseLlmJson } from '../utils/llm-json.util';
+import { fetchPublicUrl } from '../utils/safe-fetch.util';
 
 /**
  * Fraction de la FACE repérée que couvre le logo. La vision rend la face plane
@@ -918,7 +919,7 @@ export class GeminiMockupService {
           ? Buffer.from(match[3], 'base64')
           : Buffer.from(decodeURIComponent(match[3]), 'utf8');
       } else {
-        const response = await fetch(input);
+        const response = await fetchPublicUrl(input);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch file: ${response.statusText}`);

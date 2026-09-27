@@ -229,8 +229,9 @@ export function requireCredits(
       return;
     }
 
+    let mode: Awaited<ReturnType<typeof billingSettingsService.getEnforcement>> | undefined;
     try {
-      const mode = await billingSettingsService.getEnforcement();
+      mode = await billingSettingsService.getEnforcement();
       if (mode === 'off') {
         next();
         return;
@@ -363,6 +364,16 @@ export function requireCredits(
         action,
         stack: error.stack,
       });
+      // En mode `enforce`, une panne du moteur de facturation ne doit pas
+      // devenir une génération gratuite : on refuse proprement. Si le mode n'a
+      // même pas pu être lu, on refuse aussi (fermé par défaut).
+      if (mode === 'enforce' || mode === undefined) {
+        res.status(503).json({
+          error: 'billing_unavailable',
+          message: 'La facturation est momentanément indisponible. Réessayez dans un instant.',
+        });
+        return;
+      }
       next();
     }
   };
