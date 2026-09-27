@@ -68,3 +68,53 @@ export function auditLogger(req: Request, res: Response, next: NextFunction): vo
 
   next();
 }
+
+/** Un code applicatif (`billing_unavailable`) est gardé ; un message interne, non. */
+const APPLICATION_CODE = /^[a-z0-9_]{1,64}$/;
+const INTERNAL_FIELDS = ['error', 'details', 'stack', 'errorMessage', 'errorStack'] as const;
+
+/**
+ * Masque les détails d'erreur internes des réponses 5xx en production.
+ *
+ * De nombreux contrôleurs renvoient `error: error.message` : messages de Mongo,
+ * de Redis, chemins de fichiers, réponses brutes des fournisseurs… autant
+ * d'indications sur l'infrastructure. En production, sur une réponse 5xx, ces
+ * champs sont retirés s'ils ne sont pas un simple code applicatif ; le détail
+ * reste dans les journaux serveur. Les réponses 4xx (validation) sont intactes.
+ */
+export function redactServerErrors(req: Request, res: Response, next: NextFunction): void {
+  if (process.env.NODE_ENV !== 'production') return next();
+
+  const json = res.json.bind(res);
+  res.json = (body?: unknown) => {
+    if (res.statusCode >= 500 && body && typeof body === 'object' && !Array.isArray(body)) {
+      const clean: Record<string, unknown> = { ...(body as Record<string, unknown>) };
+      for (const field of INTERNAL_FIELDS) {
+        const value = clean[field];
+        if (value !== undefined && !(typeof value === 'string' && APPLICATION_CODE.test(value))) {
+          delete clean[field];
+        }
+      }
+      return json(clean);
+    }
+    return json(body);
+  };
+  next();
+}
+
+/**
+ * Refuse une requête déclenchée depuis un autre site.
+ *
+ * Pour les rares routes GET qui ont un effet (flux SSE qui lance un
+ * déploiement : `EventSource` ne sait faire que du GET). `SameSite=Lax` laisse
+ * passer le cookie sur une navigation de premier niveau venue d'ailleurs ; le
+ * navigateur indique cependant l'origine de la requête dans `Sec-Fetch-Site`.
+ * Absent (client non navigateur, authentifié autrement), on laisse passer.
+ */
+export function rejectCrossSiteRequests(req: Request, res: Response, next: NextFunction): void {
+  if (req.get('sec-fetch-site') === 'cross-site') {
+    res.status(403).json({ error: 'cross_site_request_refused' });
+    return;
+  }
+  next();
+}

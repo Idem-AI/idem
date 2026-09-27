@@ -79,7 +79,9 @@ app.use('/api/chat', requireIdemUser, chatRouter);
 app.use('/api/deploy', requireIdemUser, deployRouter);
 app.use('/api/enhancedPrompt', requireIdemUser, enhancedPromptRouter);
 app.use('/api/model', modelRouter);
-app.use('/api/handoff', handoffRouter);
+// Stockage en mémoire : réservé aux utilisateurs connectés (sinon n'importe qui
+// peut remplir la mémoire du serveur).
+app.use('/api/handoff', requireIdemUser, handoffRouter);
 app.use('/api/quality', qualityRouter);
 app.use('/api/design', designRouter);
 
