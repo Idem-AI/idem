@@ -17,10 +17,22 @@ export function sessionCookieOptions(): CookieOptions {
     maxAge: SESSION_EXPIRES_IN,
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
+    // `lax` : toutes les applications IDEM sont des sous-domaines de
+    // `idem.africa`, donc « même site » — le cookie les accompagne toutes. Un
+    // site tiers, lui, ne peut plus déclencher de requête authentifiée (CSRF),
+    // ce que `none` permettait.
+    sameSite: 'lax',
     path: '/',
     ...(isProduction && { domain: '.idem.africa' }),
   };
+}
+
+/** Durée de vie du refresh token (30 jours). */
+export const REFRESH_EXPIRES_IN = 30 * 24 * 60 * 60 * 1000;
+
+/** Options du cookie `refreshToken` : mêmes règles que `session`. */
+export function refreshCookieOptions(): CookieOptions {
+  return { ...sessionCookieOptions(), maxAge: REFRESH_EXPIRES_IN };
 }
 
 /**

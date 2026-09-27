@@ -16,7 +16,7 @@ import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { applySecurity, auditLogger } from './middleware/security.middleware';
+import { applySecurity, auditLogger, redactServerErrors } from './middleware/security.middleware';
 import { buildCorsOptions } from './config/cors.config';
 import { rateLimitByIP, burstProtection } from './middleware/rate-limit.middleware';
 import mongoDBConnection from './config/mongodb.config';
@@ -174,6 +174,9 @@ app.use(
 
 // Audit log for sensitive routes.
 app.use(auditLogger);
+
+// Pas de détail d'erreur interne dans les réponses 5xx de production.
+app.use(redactServerErrors);
 
 // Resolve the user's UI language (query > body > Accept-Language) and expose it to
 // all downstream services so AI generation replies in the right language.

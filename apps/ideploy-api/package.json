@@ -25,6 +25,7 @@
   "author": "arolleaguekeng",
   "license": "MIT",
   "dependencies": {
+    "@google-cloud/secret-manager": "^6.3.0",
     "@prisma/client": "^6.2.1",
     "axios": "^1.7.9",
     "bcryptjs": "^3.0.3",

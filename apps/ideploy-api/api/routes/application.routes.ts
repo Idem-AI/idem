@@ -59,10 +59,10 @@ router.get('/:uuid/previews', ctrl.listPreviews);
 
 // Scheduled tasks
 router.get('/:uuid/tasks', ctrl.listTasks);
-router.post('/:uuid/tasks', ctrl.createTask);
-router.post('/:uuid/tasks/:taskUuid/run', ctrl.runTask);
+router.post('/:uuid/tasks', requireTeamAdmin, ctrl.createTask);
+router.post('/:uuid/tasks/:taskUuid/run', requireTeamAdmin, ctrl.runTask);
 router.get('/:uuid/tasks/:taskUuid/executions', ctrl.taskExecutions);
-router.delete('/:uuid/tasks/:taskUuid', ctrl.deleteTask);
+router.delete('/:uuid/tasks/:taskUuid', requireTeamAdmin, ctrl.deleteTask);
 
 // Volumes
 router.get('/:uuid/volumes', ctrl.listVolumes);
@@ -84,6 +84,7 @@ router.get('/:uuid/metrics', ctrl.metrics);
  *     responses: { 200: { description: OK } }
  */
 router.get('/:uuid/usage', ctrl.resourceUsage);
-router.post('/:uuid/exec', ctrl.exec);
+// Commande arbitraire dans le conteneur : réservé aux admins de l'équipe.
+router.post('/:uuid/exec', requireTeamAdmin, ctrl.exec);
 
 export default router;

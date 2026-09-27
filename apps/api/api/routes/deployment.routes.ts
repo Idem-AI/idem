@@ -16,6 +16,7 @@ import {
   ExecuteDeploymentStreamingController,
   storeSensitiveVariablesController,
 } from '../controllers/deployment.controller';
+import { rejectCrossSiteRequests } from '../middleware/security.middleware';
 
 export const deploymentRoutes = Router();
 const resourceName = '/deployments';
@@ -917,6 +918,7 @@ deploymentRoutes.post(
  */
 deploymentRoutes.get(
   `${resourceName}/execute/stream/:deploymentId`,
+  rejectCrossSiteRequests,
   authenticate,
   checkPolicyAcceptance,
   ExecuteDeploymentStreamingController
