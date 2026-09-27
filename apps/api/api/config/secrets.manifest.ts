@@ -23,6 +23,8 @@ export const SECRET_MANIFEST = {
   optional: [
     'FIREBASE_PRIVATE_KEY_ID',
     'REDIS_PASSWORD',
+    // Base PostgreSQL d'iDeploy (lecture des ressources, synchronisation des plans payés).
+    'IDEPLOY_DB_PASSWORD',
     // Fournisseurs de modèles.
     'GEMINI_API_KEY',
     'GLM_API_KEY',
