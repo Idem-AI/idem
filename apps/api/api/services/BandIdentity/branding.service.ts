@@ -85,6 +85,8 @@ import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.promp
 import { USAGE_GUIDELINES_SECTION_PROMPT } from './prompts/04_usage-guidelines-section.prompt';
 import { brandMotifs } from '../design/brandMotifs';
 import { buildComposedCharterPages, clip, wideSeed } from './charterComposedPages';
+import { composeCover, coverDateLabel, coverVariant } from '../design/coverComposer';
+import { CoverBriefService } from '../design/coverBrief.service';
 import {
   PostVisualRenderer,
   SocialBrandKit,
@@ -1599,7 +1601,29 @@ export class BrandingService extends GenericService {
 
       const usedArchetypes = new Set<string>();
       let pageIndex = 0;
+      const coverBrief = new CoverBriefService(this.promptService);
       for (const step of steps) {
+        // ── LA COUVERTURE : DESSINÉE PAR LE CODE ─────────────────────────
+        // Le modèle n'en écrit plus que les mots (secteur, promesse), une fois
+        // par projet et partagés avec le business plan et le pitch deck.
+        // Composée en HTML par `glm-5.3-flash`, elle coûtait 40 000 tokens de
+        // budget et la minute la plus longue de la charte.
+        if (step.stepName === 'Brand Header') {
+          pageIndex += 1;
+          step.execute = async () =>
+            composeCover({
+              brief: await coverBrief.resolve(userId, projectId, project),
+              brandName: project.name,
+              ds: charterDesignSystem,
+              page: charterPage,
+              logos: { lightGround: lightLogoUrl || undefined, darkGround: darkLogoUrl || undefined },
+              documentLabel: 'Charte graphique',
+              detail: 'Version 1.0',
+              dateLabel: coverDateLabel(),
+              variant: coverVariant(projectId),
+            });
+          continue;
+        }
         const compose = composedPages[step.stepName];
         if (compose) {
           pageIndex += 1;

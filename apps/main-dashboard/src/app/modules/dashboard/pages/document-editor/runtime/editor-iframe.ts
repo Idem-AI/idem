@@ -636,34 +636,81 @@ function previewPageStyles(multiPage: boolean): string {
   const placeholderAlign = multiPage
     ? `.idem-placeholder .idem-ph { justify-content: flex-start; padding-top: 16cqw; }`
     : '';
+  // Les pages de remplacement sont de l'INTERFACE, pas du document : elles
+  // suivent le design system de l'hôte (jetons injectés, cf. `uiTokens`), thème
+  // compris. Les valeurs de repli sont celles du thème clair.
   return `
     ${placeholderAlign}
     .idem-doc { gap: ${PREVIEW_PAGE_GAP_PX}px; padding-bottom: ${PREVIEW_PAGE_GAP_PX}px; }
-    .idem-placeholder { display: flex; background: #f8fafc; container-type: inline-size; }
+    .idem-placeholder {
+      display: flex; container-type: inline-size;
+      background: var(--color-surface-2, #f4f6fa);
+      box-shadow: none !important;
+      border: 1px solid var(--glass-border, rgba(15,23,42,.1));
+    }
     .idem-ph {
       flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 1.3cqw; margin: 3cqw; padding: 4cqw;
-      border: 2px dashed #cbd5e1; border-radius: 1.6cqw;
-      text-align: center; color: #0f172a;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      gap: 1.2cqw; margin: 3cqw; padding: 4cqw;
+      border: 1.5px dashed var(--glass-border-strong, rgba(15,23,42,.22)); border-radius: 1.4cqw;
+      text-align: center; color: var(--color-text-primary, #0f172a);
+      font-family: var(--ui-font, system-ui), system-ui, -apple-system, 'Segoe UI', sans-serif;
     }
-    .idem-ph-error { border-color: #fcd34d; background: #fffbeb; }
-    .idem-ph-art { width: 20cqw; height: auto; margin-bottom: 1cqw; }
+    .idem-ph-art { width: 16cqw; height: auto; margin-bottom: .8cqw; color: var(--color-text-tertiary, #64748b); }
+    .idem-ph-accent { stroke: var(--color-primary-500, #1447e6); }
     .idem-ph-section {
-      font-size: 1.5cqw; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #64748b;
+      font-size: 1.4cqw; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--color-text-tertiary, #64748b);
     }
-    .idem-ph-title { font-family: inherit; font-size: 3.2cqw; font-weight: 700; line-height: 1.15; max-width: 70cqw; }
-    .idem-ph-text { font-size: 1.9cqw; line-height: 1.5; color: #475569; max-width: 58cqw; }
+    .idem-ph-title { font-family: inherit; font-size: 3cqw; font-weight: 700; line-height: 1.15; max-width: 70cqw; }
+    .idem-ph-text { font-size: 1.8cqw; line-height: 1.5; color: var(--color-text-secondary, #475569); max-width: 58cqw; }
+    .idem-ph-progress {
+      display: flex; align-items: center; gap: 1cqw; margin-top: .4cqw;
+      font-size: 1.5cqw; color: var(--color-text-secondary, #475569);
+    }
+    .idem-ph-bar {
+      width: 18cqw; height: .7cqw; border-radius: 999px; overflow: hidden;
+      background: var(--glass-border, rgba(15,23,42,.1));
+    }
+    .idem-ph-bar span { display: block; height: 100%; border-radius: inherit; background: var(--color-primary-500, #1447e6); }
     .idem-ph-btn {
       display: inline-flex; align-items: center; gap: .8cqw; margin-top: 1.2cqw;
-      padding: 1.1cqw 2.4cqw; border: none; border-radius: 999px; cursor: pointer;
-      background: #1447e6; color: #fff; font: inherit; font-size: 1.8cqw; font-weight: 600;
-      box-shadow: 0 .6cqw 1.8cqw rgba(20, 71, 230, .28);
+      padding: 1.1cqw 2.4cqw; border: none; border-radius: var(--radius-lg, .75rem); cursor: pointer;
+      background: var(--color-primary-500, #1447e6); color: var(--color-on-primary, #fff);
+      font: inherit; font-size: 1.6cqw; font-weight: 600; letter-spacing: .02em; text-transform: uppercase;
+      transition: filter .15s ease;
     }
-    .idem-ph-btn:hover { background: #0f3bc4; }
-    .idem-ph-btn:focus-visible { outline: 3px solid #0f172a; outline-offset: 3px; }
-    .idem-ph-btn svg { width: 2cqw; height: 2cqw; }
+    .idem-ph-btn:hover { filter: brightness(1.08); }
+    .idem-ph-btn:focus-visible { outline: 3px solid var(--color-primary-500, #1447e6); outline-offset: 3px; }
+    .idem-ph-btn svg { width: 1.9cqw; height: 1.9cqw; }
   `;
+}
+
+/**
+ * Jetons du design system lus sur l'HÔTE, sous forme de déclarations CSS à
+ * injecter dans l'iframe. Relus à chaque rendu : un changement de thème
+ * reconstruit le document, et les pages de remplacement le suivent.
+ */
+const UI_TOKENS = [
+  '--color-primary-500',
+  '--color-on-primary',
+  '--color-text-primary',
+  '--color-text-secondary',
+  '--color-text-tertiary',
+  '--color-surface-2',
+  '--glass-border',
+  '--glass-border-strong',
+  '--radius-lg',
+] as const;
+
+export function readUiTokens(): string {
+  if (typeof document === 'undefined') return '';
+  const root = getComputedStyle(document.documentElement);
+  const declarations = UI_TOKENS.map((name) => [name, root.getPropertyValue(name).trim()] as const)
+    .filter(([, value]) => value !== '')
+    .map(([name, value]) => `${name}: ${value};`);
+  const font = getComputedStyle(document.body).fontFamily;
+  if (font) declarations.push(`--ui-font: ${font};`);
+  return declarations.join(' ');
 }
 
 /** Styles de page (calage mm) + affordances d'édition. */
@@ -770,6 +817,7 @@ ${ctx.fontUrl ? `<link href="${attr(ctx.fontUrl)}" rel="stylesheet" />` : ''}
   }
 </script>
 <style>
+  :root { ${ctx.uiTokens ?? ''} }
   body { font-family: '${secondary}', system-ui, sans-serif; --idem-primary-font: '${primary}'; }
   ${pageStyles(format, multiPage, fitRoot, mode)}
 </style>

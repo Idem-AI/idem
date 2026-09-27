@@ -3539,7 +3539,8 @@
           "title": "This page failed to generate",
           "message": "The content received is empty or incomplete. Regenerate the section to get a full page."
         },
-        "action": "Regenerate this section"
+        "action": "Regenerate this section",
+        "progress": "{{ready}} of {{total}} pages are ready"
       },
       "nudge": {
         "complete": "Complete",

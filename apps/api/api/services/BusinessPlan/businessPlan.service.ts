@@ -32,11 +32,7 @@ import { Block } from '../design/sectionContent';
 import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt';
 import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { BP_SECTION_EXAMPLE } from './prompts/section-example.prompt';
-import {
-  composeBrief,
-  composeHtmlPrompt,
-  readerBlock,
-} from './prompts/section-prompt.registry';
+import { composeBrief, composeHtmlPrompt } from './prompts/section-prompt.registry';
 import { buildBusinessPlanSpec } from './businessPlanSpec';
 import { BusinessPlanStructure } from '../../models/businessPlanStructure.model';
 import {
@@ -51,7 +47,23 @@ import {
 import { BUSINESS_PLAN_PAGINATION } from './businessPlanPdf.options';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
-import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
+import {
+  buildLogoBlock,
+  collectLogoUrls,
+  resolveLogoDeclensions,
+} from '../../utils/brand-context.util';
+import { composeCover, coverDateLabel, coverVariant } from '../design/coverComposer';
+import { CoverBriefService } from '../design/coverBrief.service';
+import { PORTRAIT_A4 } from '../design/sectionRenderer';
+import type { BusinessPlanAudience } from './structure/audience.types';
+
+/** Mention de destinataire sur la couverture du plan. */
+const BUSINESS_PLAN_AUDIENCE_LABEL: Partial<Record<BusinessPlanAudience, string>> = {
+  bank: 'Dossier bancaire',
+  investor: 'Dossier investisseurs',
+  grant: 'Dossier de subvention',
+  internal: 'Document interne',
+};
 import { buildArtDirectionBlock } from '../../utils/art-direction.util';
 import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../design/antiSlop.prompt';
 import {
@@ -63,7 +75,6 @@ import {
   buildDocumentSeed,
   buildSectionSeed,
   describeDocumentSeed,
-  describeSectionSeed,
 } from '../design/designSeed';
 import {
   buildDocumentDesignSystem,
@@ -342,27 +353,6 @@ export class BusinessPlanService extends GenericService {
         };
       };
 
-      /**
-       * Une section en génération LIBRE : le modèle compose lui-même.
-       *
-       * Réservée aux pages dont la composition EST le livrable. La couverture
-       * est la première page qu'un investisseur ouvre : c'est le seul endroit du
-       * plan où l'on préfère le plafond de qualité au plancher.
-       */
-      const freeform = (prompt: string, stepName: string): IPromptStep => {
-        sectionIndex += 1;
-        const seed = buildSectionSeed(
-          artDirection?.styleId,
-          designKey,
-          stepName,
-          usedArchetypes
-        );
-        return {
-          promptConstant: `${prompt}\n\n<composition_for_this_page>\n${describeSectionSeed(seed)}\n</composition_for_this_page>`,
-          stepName,
-        };
-      };
-
       // Les étapes viennent de la STRUCTURE, pas d'une liste écrite ici : le
       // plan peut porter neuf sections ou dix-sept, dans l'ordre qu'une banque
       // impose. Le prompt d'origine (`agent-*`) sert de repli quand le gabarit
@@ -382,9 +372,32 @@ export class BusinessPlanService extends GenericService {
           financeContext: section.financeContext ? financeContext : undefined,
         };
 
+        // La couverture est dessinée par le code : le modèle n'en écrit que
+        // les mots, une fois par projet, partagés avec la charte et le deck.
+        // Composée en HTML par l'étage de raisonnement, elle coûtait 18 000
+        // tokens de budget et la plus longue attente du plan.
         if (section.freeform) {
-          const cover = LEGACY_SECTION_PROMPTS[section.name] ?? '';
-          return freeform(`${readerBlock(planAudience)}\n\n${cover}`, section.name);
+          sectionIndex += 1;
+          const declensions = resolveLogoDeclensions(project.analysisResultModel?.branding?.logo);
+          return {
+            stepName: section.name,
+            promptConstant: '',
+            execute: async () =>
+              composeCover({
+                brief: await new CoverBriefService(this.promptService).resolve(userId, projectId, project),
+                brandName: project.name,
+                ds: designSystem,
+                page: PORTRAIT_A4,
+                logos: {
+                  lightGround: declensions?.withTextLight,
+                  darkGround: declensions?.withTextDark,
+                },
+                documentLabel: 'Business plan',
+                detail: BUSINESS_PLAN_AUDIENCE_LABEL[planAudience as BusinessPlanAudience],
+                dateLabel: coverDateLabel(),
+                variant: coverVariant(projectId),
+              }),
+          };
         }
 
         // Le prompt HTML de repli : celui écrit à la main quand la section en a
@@ -690,6 +703,30 @@ export class BusinessPlanService extends GenericService {
       financeContext,
       country,
     });
+    // La couverture est dessinée par le code, comme dans le chemin standard :
+    // même page, mêmes mots, quel que soit le mode de génération.
+    const coverDeclensions = resolveLogoDeclensions(project.analysisResultModel?.branding?.logo);
+    const coverDesignSystem = buildDocumentDesignSystem(
+      project.analysisResultModel?.branding,
+      project.analysisResultModel?.branding?.artDirection ?? null,
+      buildDocumentSeed(project.analysisResultModel?.branding?.artDirection?.styleId, designKey)
+    );
+    for (const section of fullSpec) {
+      if (!section.freeform) continue;
+      section.compose = async () =>
+        composeCover({
+          brief: await new CoverBriefService(this.promptService).resolve(userId, projectId, project),
+          brandName: project.name,
+          ds: coverDesignSystem,
+          page: PORTRAIT_A4,
+          logos: { lightGround: coverDeclensions?.withTextLight, darkGround: coverDeclensions?.withTextDark },
+          documentLabel: 'Business plan',
+          detail: BUSINESS_PLAN_AUDIENCE_LABEL[planAudience as BusinessPlanAudience],
+          dateLabel: coverDateLabel(),
+          variant: coverVariant(projectId),
+        });
+    }
+
     // À (re)générer: celles qui ne sont pas conservées (ou celles ciblées).
     const sectionsToGenerate = fullSpec.filter((s) =>
       targetSections.length > 0 ? targetSections.includes(s.name) : !existingNames.has(s.name)

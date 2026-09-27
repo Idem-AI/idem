@@ -730,6 +730,32 @@ export const AI_CONFIG = {
   /** Défaut global : rédaction, sans réglage particulier. */
   default: feature({ role: 'writing' }),
 
+  /**
+   * Les MOTS des couvertures (charte, business plan, pitch deck).
+   *
+   * La couverture n'est plus composée par le modèle : le code la dessine
+   * (`design/coverComposer.ts`) et le modèle n'écrit que le sur-titre et la
+   * promesse, en JSON, une fois par projet (cf. `coverBrief.service.ts`).
+   * Composer la page en HTML coûtait 18 000 à 40 000 tokens et la minute la
+   * plus longue de chaque génération ; ces trois lignes en coûtent quelques
+   * centaines et servent les trois documents.
+   *
+   * `glm-5.3-flash` raisonne toujours : `tokens` est un PLAFOND qui laisse la
+   * réflexion finir (cf. `MIN_TOKENS_FOR_THINKING`), pas une consommation.
+   */
+  coverBrief: feature({
+    provider: LLMProvider.GLM,
+    modelName: 'glm-5.3-flash',
+    sampling: 'divergent',
+    thinking: true,
+    tokens: 8000,
+    // Pas de mode JSON imposé : raisonnement + JSON n'est pas un couple garanti
+    // chez tous les fournisseurs (cf. check:prompts), et trois champs se lisent
+    // sans lui (`parseLlmJson`).
+    pin: true,
+    fallbackModels: [GLM_MODELS.writing],
+  }),
+
   /** Replis nommés, pour les appelants qui choisissent leur modèle eux-mêmes. */
   fallback: {
     textModel: GLM_MODELS.mechanical,
@@ -777,10 +803,8 @@ export const AI_CONFIG = {
     thinking: true,
     tokens: 28000,
     sections: {
-      // Page de garde : c'est la première page qu'un investisseur ouvre. Elle
-      // sort de l'étage M — la composition d'une couverture est le travail le
-      // plus créatif du document, pas de la mise en page mécanique.
-      'Cover Page': { sampling: 'divergent', tokens: 18000 },
+      // La page de garde n'a plus de réglage ici : dessinée par le code, ses
+      // mots viennent de `AI_CONFIG.coverBrief`.
       // Synthèse : la section la plus lue, elle doit être dense et juste.
       'Company Summary': { tokens: 44000, temperature: 0.55 },
       // Sections nourries par la recherche : beaucoup de matière à structurer.
@@ -850,9 +874,8 @@ export const AI_CONFIG = {
     thinking: true,
     tokens: 24000,
     sections: {
-      // Slide d'ouverture : la première impression du deck. Sortie de l'étage M
-      // pour la même raison que la couverture du plan — c'est de la création.
-      Cover: { sampling: 'divergent', tokens: 22000 },
+      // La slide de couverture n'a plus de réglage ici : dessinée par le code,
+      // ses mots viennent de `AI_CONFIG.coverBrief`.
       Problem: { tokens: 22000, temperature: 0.62 },
       Solution: { tokens: 24000, temperature: 0.62 },
       // Chiffres de marché : structure dense (TAM/SAM/SOM), la divergence n'y
@@ -1169,10 +1192,8 @@ export const AI_CONFIG = {
       // redéploiement, `AI_OVERRIDES` fait la même chose par variable d'env
       // (cf. ai-overrides.config.ts).
       sections: {
-        // Couverture de la charte : la page la plus libre du document. Servie
-        // par `glm-5.3-flash`, choisi pour cette section : il raisonne toujours,
-        // d'où un budget large, que la réflexion ne vide pas.
-        'Brand Header': { modelName: 'glm-5.3-flash', sampling: 'divergent', tokens: 40000 },
+        // La couverture ('Brand Header') n'a plus de réglage ici : elle est
+        // dessinée par le code, ses mots viennent de `AI_CONFIG.coverBrief`.
         // Pages logo : elles PRÉSENTENT un logo déjà dessiné, elles ne le
         // redessinent pas. La composition peut donc diverger sans risque pour
         // la géométrie, qui est importée telle quelle.
