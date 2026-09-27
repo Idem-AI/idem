@@ -40,13 +40,16 @@ export interface ConsumeResult {
  * à porter.
  */
 export async function consumeGeneration(options: {
-  authorization?: string;
+  /** Preuves d'identité de l'appelant (cookie de session et/ou Bearer). */
+  credentials: Record<string, string>;
   action: BillableAction;
   projectId?: string;
 }): Promise<ConsumeResult> {
-  // Sans jeton, l'utilisateur n'est pas identifiable : la facturation ne peut
-  // pas s'appliquer, et c'est à l'API IDEM de refuser les actions sensibles.
-  if (!options.authorization) return { allowed: true };
+  // Fermé par défaut : sans identité, pas de génération. L'ancien « autorisé »
+  // rendait AppGen gratuit pour quiconque omettait l'en-tête.
+  if (!options.credentials.Authorization && !options.credentials.Cookie) {
+    return { allowed: false, refusal: unavailable('authentication_required', 'Connectez-vous à IDEM.') };
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -56,7 +59,7 @@ export async function consumeGeneration(options: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: options.authorization,
+        ...options.credentials,
       },
       body: JSON.stringify({
         engine: 'appgen',
@@ -71,22 +74,34 @@ export async function consumeGeneration(options: {
       return { allowed: false, refusal };
     }
 
-    if (!response.ok) {
-      // 4xx/5xx inattendu : on n'empêche pas de travailler pour autant.
-      console.warn(`[billing] /billing/consume a répondu ${response.status} — génération autorisée`);
-      return { allowed: true };
+    if (response.status === 401 || response.status === 403) {
+      return { allowed: false, refusal: unavailable('authentication_required', 'Session expirée : reconnectez-vous.') };
     }
 
-    const payload = (await response.json()) as { cost?: number; balance?: number };
+    if (!response.ok) {
+      // Une erreur du moteur de facturation ne doit pas devenir une génération
+      // gratuite : on refuse et on invite à réessayer.
+      console.warn(`[billing] /billing/consume a répondu ${response.status} — génération refusée`);
+      return { allowed: false, refusal: unavailable('billing_unavailable', 'Facturation momentanément indisponible, réessayez.') };
+    }
+
+    const payload = (await response.json()) as { allowed?: boolean; cost?: number; balance?: number };
+    if (payload.allowed === false) {
+      return { allowed: false, refusal: payload as Record<string, unknown> };
+    }
     return { allowed: true, cost: payload.cost, balance: payload.balance };
   } catch (error) {
     console.warn(
-      `[billing] API de facturation injoignable (${(error as Error).message}) — génération autorisée`
+      `[billing] API de facturation injoignable (${(error as Error).message}) — génération refusée`
     );
-    return { allowed: true };
+    return { allowed: false, refusal: unavailable('billing_unavailable', 'Facturation momentanément indisponible, réessayez.') };
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function unavailable(error: string, message: string): Record<string, unknown> {
+  return { error, message };
 }
 
 /**

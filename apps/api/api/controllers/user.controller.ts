@@ -3,6 +3,7 @@ import logger from '../config/logger';
 import admin from 'firebase-admin';
 import { userService } from '../services/user.service';
 import { isSuperUser } from '../utils/super-user.util';
+import { toPublicProfile } from '../utils/public-profile.util';
 import { restoreSessionFromRefreshToken } from '../services/sessionCookie.service';
 import { CustomRequest } from '../interfaces/express.interface';
 import { OnboardingProfile, OnboardingUiMode } from '../models/userModel';
@@ -57,7 +58,15 @@ export const profileController = async (req: Request, res: Response): Promise<vo
     );
     // Les applications satellites lisent le statut ici plutôt que de dupliquer
     // `ADMIN_EMAILS` dans leur propre configuration.
-    res.status(200).json({ ...profile, isSuperUser: isSuperUser(profile.email) });
+    // Le statut super user exige une adresse vérifiée par Firebase : iDeploy en
+    // déduit un rôle d'administrateur d'instance.
+    const firebaseUser = await admin.auth().getUser(profile.uid);
+    const superUser = firebaseUser.emailVerified === true && isSuperUser(firebaseUser.email);
+    res.status(200).json({
+      ...toPublicProfile(profile),
+      emailVerified: firebaseUser.emailVerified === true,
+      isSuperUser: superUser,
+    });
   } catch (error: any) {
     logger.error('Error verifying session cookie or fetching user data:', {
       userId: userIdForLogging,
@@ -67,7 +76,6 @@ export const profileController = async (req: Request, res: Response): Promise<vo
     });
     res.status(401).json({
       message: 'Unauthenticated: Invalid or expired session.',
-      error: error.message,
     });
   }
 };

@@ -44,7 +44,6 @@ export const environment = {
     },
     ideploy: {
       url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://ideploy.idem.africa' : 'http://localhost:8000')}',
-      apiToken: '${process.env.IDEPLOY_API_TOKEN || ''}',
     },
     simulation: {
       url: '${process.env.SERVICES_SIMULATION_URL || (isProduction ? 'https://simulator.idem.africa' : 'http://localhost:4203')}',

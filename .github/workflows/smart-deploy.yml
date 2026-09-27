@@ -12,6 +12,11 @@ name: Smart Deploy - Auto-detect Changes (DEPRECATED - Use ci.yml instead)
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  # Publication des images sur GHCR avec GITHUB_TOKEN.
+  packages: write
+
 jobs:
   detect-changes:
     name: Detect Changed Applications
@@ -23,10 +28,10 @@ jobs:
       appgen: ${{ steps.filter.outputs.appgen }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Detect changes in applications
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
         id: filter
         with:
           filters: |

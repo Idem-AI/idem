@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import logger from '../config/logger';
 import { RefreshTokenData, UserModel } from '../models/userModel';
 import { IRepository } from '../repository/IRepository';
@@ -95,8 +96,18 @@ class RefreshTokenService {
     try {
       logger.info('Validating refresh token');
 
-      // Rechercher l'utilisateur avec ce token
-      const users = await this.userRepository.findAll('users');
+      // Un objet ({ $ne: null }…) passé tel quel dans la requête Mongo ci-dessous
+      // correspondrait à n'importe quel compte : seule une chaîne est acceptée.
+      if (typeof token !== 'string' || token.length < 32 || token.length > 512) {
+        return { isValid: false };
+      }
+
+      // Requête indexée (`refreshTokens.token`) au lieu de charger toute la
+      // collection des utilisateurs à chaque rafraîchissement de session.
+      const raw = await mongoose.connection
+        .collection('users')
+        .findOne({ 'refreshTokens.token': token });
+      const users: UserModel[] = raw ? [{ ...(raw as any), uid: (raw as any).uid ?? String(raw._id) }] : [];
 
       for (const user of users) {
         if (!user.refreshTokens) continue;

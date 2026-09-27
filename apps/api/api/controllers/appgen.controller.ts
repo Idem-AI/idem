@@ -20,7 +20,7 @@ export const createHandoffController = async (
   logger.info('AppGen handoff requested', { userId });
 
   try {
-    const { draftId, appName, description, files, metadata, messages, generatedAt, source, target, expiresAt } =
+    const { draftId, appName, description, files, metadata, messages, generatedAt, source, target } =
       req.body;
 
     if (!files || typeof files !== 'object') {
@@ -42,7 +42,9 @@ export const createHandoffController = async (
       createdAt: new Date().toISOString(),
       source: source || 'appgen',
       target: target || 'ideploy',
-      expiresAt: expiresAt || new Date(Date.now() + HANDOFF_TTL_SECONDS * 1000).toISOString(),
+      // L'expiration est celle du serveur (TTL Redis) : une date fournie par le
+      // client pouvait laisser croire à une validité qu'il n'a pas.
+      expiresAt: new Date(Date.now() + HANDOFF_TTL_SECONDS * 1000).toISOString(),
     };
 
     try {

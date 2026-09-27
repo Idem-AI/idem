@@ -2,6 +2,7 @@ import sharp from 'sharp';
 import { optimize, Config as SvgoConfig } from 'svgo';
 // potrace loaded lazily — API starts even if the package is absent
 import logger from '../config/logger';
+import { assertPublicUrl } from '../utils/safe-fetch.util';
 
 // file-type v16+ is ESM-only and incompatible with ts-node CJS.
 // Using inline magic bytes detection instead.
@@ -876,11 +877,15 @@ export async function resolveSvgContent(svgOrUrl: string): Promise<string> {
 
   if (/^https?:\/\//i.test(value)) {
     logger.info(`Resolving SVG content from URL`);
+    // L'URL vient de l'utilisateur : jamais d'adresse interne, jamais de
+    // redirection suivie aveuglément.
+    await assertPublicUrl(value);
     const axios = (await import('axios')).default;
     const response = await axios.get(value, {
       responseType: 'text',
       timeout: 15000,
       maxContentLength: 5 * 1024 * 1024,
+      maxRedirects: 0,
     });
     const fetched = String(response.data);
     if (!fetched.includes('<svg')) {

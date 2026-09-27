@@ -10,6 +10,7 @@ import {
   generateTerraformTfvarsController,
 } from '../controllers/archetype.controller';
 import { authenticate } from '../services/auth.service';
+import { requireSuperUser } from '../middleware/super-user.middleware';
 
 const router = Router();
 
@@ -90,7 +91,7 @@ const router = Router();
  *       401:
  *         description: Unauthorized
  */
-router.post('/', createArchetypeController);
+router.post('/', authenticate, requireSuperUser, createArchetypeController);
 
 /**
  * @swagger
@@ -190,7 +191,7 @@ router.get('/:archetypeId', authenticate, getArchetypeByIdController);
  *       401:
  *         description: Unauthorized
  */
-router.put('/:archetypeId', authenticate, updateArchetypeController);
+router.put('/:archetypeId', authenticate, requireSuperUser, updateArchetypeController);
 
 /**
  * @swagger
@@ -215,7 +216,7 @@ router.put('/:archetypeId', authenticate, updateArchetypeController);
  *       401:
  *         description: Unauthorized
  */
-router.delete('/:archetypeId', authenticate, deleteArchetypeController);
+router.delete('/:archetypeId', authenticate, requireSuperUser, deleteArchetypeController);
 
 /**
  * @swagger

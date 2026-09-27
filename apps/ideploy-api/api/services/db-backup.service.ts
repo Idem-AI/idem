@@ -9,7 +9,7 @@ import pool from '../config/db.config';
 import { getDbType, DbType } from './database-types';
 import { tryDecryptString } from '../utils/laravel-crypto';
 import * as serverService from './server.service';
-import { downloadRemoteFile, executeRemoteCommand } from '../ssh/ssh';
+import { downloadRemoteFile, executeRemoteCommand, shellQuote } from '../ssh/ssh';
 import { statRemoteFile } from '../ssh/files';
 import { PrivateKeyRow, ServerRow } from '../models/ideploy.types';
 import { notFound, unprocessable } from '../utils/errors';
@@ -262,7 +262,7 @@ export async function backupNow(
 
   const script = [
     `mkdir -p ${dir}`,
-    `docker exec ${containerName} sh -c ${JSON.stringify(innerDump)}`,
+    `docker exec ${containerName} sh -c ${shellQuote(innerDump)}`,
     `docker cp ${containerName}:/tmp/ideploy-dump ${filename}`,
     `ls -l ${filename}`,
   ].join(' && ');
