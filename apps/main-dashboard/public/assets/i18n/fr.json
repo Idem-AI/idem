@@ -3542,7 +3542,8 @@
           "title": "La génération de cette page a échoué",
           "message": "Le contenu reçu est vide ou incomplet. Régénérez la section pour obtenir une page complète."
         },
-        "action": "Régénérer cette section"
+        "action": "Régénérer cette section",
+        "progress": "{{ready}} pages sur {{total}} sont prêtes"
       },
       "nudge": {
         "complete": "Compléter",

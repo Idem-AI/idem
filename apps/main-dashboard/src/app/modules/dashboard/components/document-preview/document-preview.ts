@@ -430,11 +430,19 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
     const kind = page.kind === 'error' ? 'error' : 'missing';
     const text = (key: string): string =>
       this.translate.instant(`dashboard.documentPreview.placeholder.${key}`);
+    // Ce qui est déjà là : la page manquante n'efface pas le travail fait.
+    const pages = this.pages();
+    const ready = pages.filter((item) => item.kind === 'content').length;
     return buildPlaceholderHtml(kind, page.name, {
       section: page.label,
       title: text(`${kind}.title`),
       message: text(`${kind}.message`),
       action: text('action'),
+      progress: this.translate.instant('dashboard.documentPreview.placeholder.progress', {
+        ready,
+        total: pages.length,
+      }),
+      ratio: pages.length > 0 ? ready / pages.length : 0,
     });
   }
 

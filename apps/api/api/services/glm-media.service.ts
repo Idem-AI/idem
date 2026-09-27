@@ -139,6 +139,31 @@ async function generateImageWithGemini(
 }
 
 /**
+ * L'erreur Gemini dit-elle que le COMPTE ne peut plus payer ?
+ *
+ * Crédits prépayés épuisés, facturation désactivée, quota du projet atteint :
+ * c'est le compte qui refuse, pas un modèle. Essayer le modèle suivant de la
+ * chaîne ne servirait à rien — l'appelant doit changer de fournisseur.
+ */
+export function isGeminiBillingError(error: unknown): boolean {
+  const anyError = error as { status?: number; code?: number; message?: string } | undefined;
+  const status = anyError?.status ?? anyError?.code;
+  if (status === 402) return true;
+  const text = `${anyError?.message ?? ''} ${String(error ?? '')}`;
+  return /billing|prepay|credits? (are |is )?(depleted|exhausted|insufficient)|insufficient (funds|balance|credit)|payment required|exceeded your current quota|quota exceeded|RESOURCE_EXHAUSTED/i.test(
+    text
+  );
+}
+
+/** Erreur levée quand le compte Gemini ne peut plus payer : l'appelant bascule. */
+export class GeminiBillingError extends Error {
+  constructor(readonly cause: unknown) {
+    super(`Gemini refuse pour raison de facturation : ${describeError(cause)}`);
+    this.name = 'GeminiBillingError';
+  }
+}
+
+/**
  * Génère une image par GEMINI en parcourant une chaîne de modèles, quel que
  * soit le fournisseur média du déploiement.
  *
@@ -204,6 +229,12 @@ export async function generateImageWithGeminiChain(
         { label: `gemini/${model}` },
       );
     } catch (error) {
+      // Le compte ne paie plus : les autres modèles du même compte refuseront
+      // de la même façon. On arrête la chaîne, l'appelant change de fournisseur.
+      if (isGeminiBillingError(error)) {
+        logger.warn(`[GEMINI] ${model} refusé pour facturation — chaîne interrompue`, { tag: options.tag });
+        throw new GeminiBillingError(error);
+      }
       lastError = error;
       const next = models[position + 1];
       logger.warn(

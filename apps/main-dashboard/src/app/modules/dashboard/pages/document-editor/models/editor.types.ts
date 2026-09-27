@@ -185,6 +185,13 @@ export interface RenderContext {
   secondaryFont?: string;
   fontUrl?: string;
   dark: boolean;
+  /**
+   * Jetons du design system de l'HÔTE (`--color-primary-500: …;`), injectés
+   * dans l'iframe : elle n'a pas la feuille du design system, et ce qu'elle
+   * dessine pour l'interface — les pages de remplacement de l'aperçu — doit
+   * pourtant la suivre, thème compris.
+   */
+  uiTokens?: string;
 }
 
 /** Polices de marque utilisées pour un rendu iframe fidèle au PDF. */

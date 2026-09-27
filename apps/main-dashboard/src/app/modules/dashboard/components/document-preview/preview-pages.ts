@@ -79,6 +79,10 @@ export interface PlaceholderCopy {
   title: string;
   message: string;
   action: string;
+  /** « 18 pages sur 20 sont prêtes » : ce qui est déjà là. */
+  progress?: string;
+  /** Part des pages prêtes, 0–1, pour la jauge. */
+  ratio?: number;
 }
 
 function escapeHtml(value: string): string {
@@ -89,25 +93,33 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** Pages empilées, la dernière en pointillés : la page attendue n'existe pas encore. */
+/*
+ * Illustrations au trait (AGENTS.md § 4) : `currentColor` pour le trait, la
+ * primaire (`.idem-ph-accent`) pour le seul détail qui compte. Aucun aplat.
+ */
+
+/** Pages prêtes en pile, la page attendue en pointillés : elle n'existe pas encore. */
 const MISSING_ART = `
-<svg class="idem-ph-art" viewBox="0 0 120 96" aria-hidden="true">
-  <rect x="26" y="10" width="54" height="72" rx="6" fill="#e2e8f0"/>
-  <rect x="40" y="16" width="54" height="72" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 4"/>
-  <circle cx="67" cy="52" r="14" fill="#1447e6" fill-opacity=".1"/>
-  <path d="M67 45v14M60 52h14" stroke="#1447e6" stroke-width="2.6" stroke-linecap="round"/>
-  <path d="M104 14l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#1447e6" fill-opacity=".55"/>
-  <circle cx="16" cy="30" r="2.5" fill="#94a3b8"/>
+<svg class="idem-ph-art" viewBox="0 0 120 96" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="18" y="16" width="44" height="60" rx="4"/>
+  <path d="M26 28h28M26 36h22M26 44h26"/>
+  <rect x="50" y="10" width="50" height="70" rx="4" stroke-dasharray="5 4"/>
+  <g class="idem-ph-accent" stroke-width="2.4">
+    <circle cx="75" cy="45" r="11"/>
+    <path d="M75 39.5v11M69.5 45h11"/>
+  </g>
 </svg>`;
 
-/** Page aux lignes à peine esquissées, pastille d'alerte : le contenu reçu est inutilisable. */
+/** Page aux lignes esquissées, signe d'alerte : le contenu reçu est inutilisable. */
 const ERROR_ART = `
-<svg class="idem-ph-art" viewBox="0 0 120 96" aria-hidden="true">
-  <rect x="30" y="10" width="56" height="74" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
-  <path d="M41 27h34M41 37h26M41 47h30M41 57h16" stroke="#e2e8f0" stroke-width="4" stroke-linecap="round"/>
-  <circle cx="84" cy="66" r="16" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
-  <path d="M84 58v9" stroke="#b45309" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="84" cy="73" r="1.9" fill="#b45309"/>
+<svg class="idem-ph-art" viewBox="0 0 120 96" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="30" y="10" width="54" height="72" rx="4"/>
+  <path d="M40 24h32M40 32h24M40 40h28M40 48h14" opacity=".7"/>
+  <g class="idem-ph-accent" stroke-width="2.4">
+    <circle cx="82" cy="64" r="13"/>
+    <path d="M82 57v8"/>
+    <path d="M82 70.5v.5"/>
+  </g>
 </svg>`;
 
 const REFRESH_ICON = `
@@ -125,11 +137,16 @@ export function buildPlaceholderHtml(
   sectionName: string,
   copy: PlaceholderCopy,
 ): string {
+  const ratio = Math.max(0, Math.min(1, copy.ratio ?? 0));
+  const progress = copy.progress
+    ? `<p class="idem-ph-progress"><span class="idem-ph-bar"><span style="width:${Math.round(ratio * 100)}%"></span></span><span>${escapeHtml(copy.progress)}</span></p>`
+    : '';
   return `<div class="idem-ph idem-ph-${kind}">
   ${kind === 'error' ? ERROR_ART : MISSING_ART}
   <p class="idem-ph-section">${escapeHtml(copy.section)}</p>
   <h2 class="idem-ph-title">${escapeHtml(copy.title)}</h2>
   <p class="idem-ph-text">${escapeHtml(copy.message)}</p>
+  ${progress}
   <button type="button" class="idem-ph-btn" data-idem-action="regenerate" data-idem-name="${escapeHtml(sectionName)}">
     ${REFRESH_ICON}<span>${escapeHtml(copy.action)}</span>
   </button>
