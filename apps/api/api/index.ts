@@ -3,7 +3,7 @@
 // bootstrap() function and gate the rest of the wiring behind it.
 import { loadSecrets } from './config/secrets';
 
-import express, { Express, Request, Response } from 'express';
+import express, { Express, NextFunction, Request, Response } from 'express';
 import morgan from 'morgan';
 import { stream as loggerStream } from './config/logger';
 import { metricsMiddleware } from './middleware/metrics.middleware';
@@ -16,7 +16,7 @@ import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { applySecurity, auditLogger } from './middleware/security.middleware';
+import { applySecurity, auditLogger, redactServerErrors } from './middleware/security.middleware';
 import { buildCorsOptions } from './config/cors.config';
 import { rateLimitByIP, burstProtection } from './middleware/rate-limit.middleware';
 import mongoDBConnection from './config/mongodb.config';
@@ -175,6 +175,9 @@ app.use(
 // Audit log for sensitive routes.
 app.use(auditLogger);
 
+// Pas de détail d'erreur interne dans les réponses 5xx de production.
+app.use(redactServerErrors);
+
 // Resolve the user's UI language (query > body > Accept-Language) and expose it to
 // all downstream services so AI generation replies in the right language.
 app.use(languageMiddleware);
@@ -237,8 +240,12 @@ app.use('/project', communicationRoutes);
 app.use('/project', financeRoutes);
 
 // Swagger setup
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// La documentation cartographie toute la surface d'attaque : hors production
+// seulement, sauf activation explicite.
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_API_DOCS === 'true') {
+  const swaggerSpec = swaggerJsdoc(swaggerOptions);
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+}
 
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({
@@ -255,8 +262,6 @@ app.get('/health', (req: Request, res: Response) => {
     service: 'idem-api',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    memoryUsage: process.memoryUsage(),
-    version: process.env.npm_package_version || '1.0.0',
   });
 });
 
@@ -264,20 +269,26 @@ app.use((req: Request, res: Response) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
-  console.error('Global error handler:', err);
-  
-  // S'assurer que les en-têtes CORS sont présents même en cas d'erreur
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+// Gestionnaire d'erreurs : Express ne le reconnaît qu'avec QUATRE paramètres.
+// Il ne reflète plus l'origine de la requête (le middleware CORS s'en charge
+// pour les seules origines autorisées) et ne renvoie jamais le message interne.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error & { status?: number; type?: string }, req: Request, res: Response, _next: NextFunction) => {
+  if (err?.message === 'Not allowed by CORS') {
+    res.status(403).json({ error: 'Origin not allowed' });
+    return;
   }
-  
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message || 'Something broke!'
-  });
+  if (err?.type === 'entity.too.large') {
+    res.status(413).json({ error: 'Payload too large' });
+    return;
+  }
+  if (err?.type === 'entity.parse.failed') {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+  console.error('Global error handler:', err);
+  if (res.headersSent) return;
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 

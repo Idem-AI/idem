@@ -10,6 +10,18 @@ export default defineConfig(async ({ mode, command }) => {
 
   process.env = { ...process.env, ...env };
 
+  // SEULES les variables publiques entrent dans le bundle navigateur.
+  //
+  // `loadEnv(…, '')` renvoie TOUT l'environnement (fichiers .env ET variables du
+  // processus). L'injecter tel quel via `define: { 'process.env': env }`
+  // publiait dans le JavaScript servi aux visiteurs chaque secret présent au
+  // moment du build : clé privée Firebase, clés LLM, mots de passe… Tout ce qui
+  // doit être lisible côté client porte le préfixe `REACT_APP_`.
+  const publicEnv: Record<string, string> = Object.fromEntries(
+    Object.entries(env).filter(([key]) => key.startsWith('REACT_APP_'))
+  );
+  publicEnv.NODE_ENV = mode === 'production' ? 'production' : 'development';
+
   return {
     plugins: [
       viteCommonjs(),
@@ -82,7 +94,7 @@ export default defineConfig(async ({ mode, command }) => {
     // dans `@tailwindcss/postcss`.
 
     define: {
-      'process.env': env,
+      'process.env': publicEnv,
     },
 
     resolve: {

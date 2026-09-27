@@ -1,0 +1,64 @@
+name: Security checks
+
+# Deux garde-fous bloquants :
+#  - gitleaks : aucun secret dans les commits poussés (le dépôt est public) ;
+#  - npm audit : aucune dépendance de production au niveau « critical ».
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      # Analyse les commits de l'événement (push ou PR), pas tout l'historique :
+      # les secrets historiques se traitent par révocation + purge, pas en CI.
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependencies:
+    name: Dependency audit (critical)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.x'
+
+      - name: npm audit (production, critical)
+        run: npm audit --omit=dev --audit-level=critical
+
+  secret-loader:
+    name: Secret loader copies in sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # Chaque backend embarque sa copie (images Docker isolées) : elles doivent
+      # rester strictement identiques.
+      - name: Compare copies
+        run: |
+          set -e
+          ref=apps/api/api/config/secret-loader.ts
+          for copy in apps/ideploy-api/api/config/secret-loader.ts apps/appgen/apps/we-dev-next/src/config/secret-loader.ts; do
+            diff -u "$ref" "$copy"
+          done

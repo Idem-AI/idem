@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Octokit } from '@octokit/rest';
 import logger from '../config/logger';
 import { UserModel, GitHubIntegration } from '../models/userModel';
@@ -12,6 +13,52 @@ import {
   GitHubRepositoryInfo,
   GitHubUserInfo,
 } from '../dtos/github/github.dto';
+
+/** Durée de validité d'un parcours d'autorisation GitHub. */
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
+/**
+ * Secret de signature du `state`. Sans variable configurée, un secret de
+ * processus : les parcours en cours échouent au redémarrage, rien de plus.
+ */
+const OAUTH_STATE_SECRET =
+  process.env.GITHUB_STATE_SECRET ||
+  process.env.JWT_SECRET ||
+  process.env.API_SIGNING_SECRET ||
+  crypto.randomBytes(32).toString('hex');
+
+function stateSignature(payload: string): string {
+  return crypto.createHmac('sha256', OAUTH_STATE_SECRET).update(`github-oauth:${payload}`).digest('base64url');
+}
+
+/** `state` = charge utile base64url + signature HMAC, avec un nonce aléatoire. */
+export function signOAuthState(userId: string): string {
+  const payload = Buffer.from(
+    JSON.stringify({ userId, exp: Date.now() + OAUTH_STATE_TTL_MS, nonce: crypto.randomBytes(12).toString('hex') })
+  ).toString('base64url');
+  return `${payload}.${stateSignature(payload)}`;
+}
+
+/** Renvoie l'utilisateur du `state` s'il est authentique et non expiré. */
+export function verifyOAuthState(state: string | undefined): string | null {
+  if (!state || typeof state !== 'string') return null;
+  const [payload, signature] = state.split('.');
+  if (!payload || !signature) return null;
+
+  const expected = Buffer.from(stateSignature(payload));
+  const given = Buffer.from(signature);
+  if (expected.length !== given.length || !crypto.timingSafeEqual(expected, given)) return null;
+
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (typeof data.userId !== 'string' || typeof data.exp !== 'number' || data.exp < Date.now()) {
+      return null;
+    }
+    return data.userId;
+  } catch {
+    return null;
+  }
+}
 
 export class GitHubService {
   private userRepository: IRepository<UserModel>;
@@ -35,13 +82,13 @@ export class GitHubService {
    */
   getAuthorizationUrl(userId: string): string {
     const scopes = ['repo', 'user:email'].join(' ');
-    const state = Buffer.from(JSON.stringify({ userId, timestamp: Date.now() })).toString('base64');
+    const state = signOAuthState(userId);
 
     const authUrl =
       `https://github.com/login/oauth/authorize?` +
       `client_id=${this.clientId}&` +
       `scope=${encodeURIComponent(scopes)}&` +
-      `state=${state}&` +
+      `state=${encodeURIComponent(state)}&` +
       `redirect_uri=${encodeURIComponent(process.env.GITHUB_REDIRECT_URI || '')}`;
 
     logger.info(`Generated GitHub auth URL for userId: ${userId}`);
@@ -57,12 +104,18 @@ export class GitHubService {
         code: request.code?.substring(0, 10) + '...',
       });
 
-      // Decode state to get userId
-      const stateData = JSON.parse(Buffer.from(request.state || '', 'base64').toString());
-      const userId = stateData.userId;
-
+      // Le `state` est signé : sans signature, n'importe qui pouvait y écrire
+      // l'identifiant d'une victime et rattacher son propre compte GitHub au
+      // compte de cette victime.
+      const userId = verifyOAuthState(request.state);
       if (!userId) {
-        throw new Error('Invalid state parameter - userId not found');
+        throw new Error('Invalid or expired state parameter');
+      }
+      // Le parcours doit se terminer dans la session qui l'a commencé : sinon un
+      // tiers pourrait faire valider SON parcours par la victime et récupérer
+      // l'accès au dépôt GitHub de celle-ci.
+      if (!request.expectedUserId || request.expectedUserId !== userId) {
+        throw new Error('OAuth state does not belong to the current session');
       }
 
       // Exchange code for access token
@@ -129,9 +182,7 @@ export class GitHubService {
       });
       return {
         success: false,
-        message: `GitHub authentication failed: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`,
+        message: 'GitHub authentication failed',
       };
     }
   }

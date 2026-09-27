@@ -4,6 +4,8 @@ import * as path from 'path';
 import * as os from 'os';
 import logger from '../config/logger';
 import { writePsd, Layer, LayerAdditionalInfo, Psd } from 'ag-psd';
+import { isRenderUrlAllowed } from '../utils/render-network-guard';
+import { fetchPublicUrl } from '../utils/safe-fetch.util';
 
 // Polyfill pour ImageData dans Node.js
 class ImageDataPolyfill {
@@ -81,7 +83,6 @@ export class SvgToPsdService {
           '--no-first-run',
           '--disable-default-apps',
           '--disable-features=TranslateUI',
-          '--disable-web-security',
           '--disable-features=VizDisplayCompositor',
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
@@ -123,9 +124,12 @@ export class SvgToPsdService {
           const resourceType = req.resourceType();
           if (['stylesheet', 'font', 'image', 'media'].includes(resourceType)) {
             req.abort();
-          } else {
-            req.continue();
+            return;
           }
+          // Aucune requête vers le réseau interne ou le disque local.
+          void isRenderUrlAllowed(req.url()).then((allowed) =>
+            allowed ? req.continue() : req.abort('blockedbyclient')
+          );
         });
 
         return page;
@@ -156,9 +160,11 @@ export class SvgToPsdService {
       const resourceType = req.resourceType();
       if (['stylesheet', 'font', 'image', 'media'].includes(resourceType)) {
         req.abort();
-      } else {
-        req.continue();
+        return;
       }
+      void isRenderUrlAllowed(req.url()).then((allowed) =>
+        allowed ? req.continue() : req.abort('blockedbyclient')
+      );
     });
 
     return page;
@@ -620,8 +626,8 @@ export class SvgToPsdService {
         return await this.convertSvgToPsd(input, options);
       }
 
-      // Télécharger le contenu SVG
-      const response = await fetch(svgUrl);
+      // Télécharger le contenu SVG (URL publique uniquement, sans redirection)
+      const response = await fetchPublicUrl(svgUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch SVG from URL: ${response.statusText}`);
       }

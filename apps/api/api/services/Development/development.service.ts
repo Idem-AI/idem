@@ -274,7 +274,7 @@ ${new Date().toISOString()}
   /**
    * Handle GitHub OAuth callback
    */
-  async handleGitHubOAuth(request: { code: string; state?: string }) {
+  async handleGitHubOAuth(request: { code: string; state?: string; expectedUserId?: string }) {
     logger.info('Handling GitHub OAuth callback');
     return await this.githubService.handleOAuthCallback(request);
   }

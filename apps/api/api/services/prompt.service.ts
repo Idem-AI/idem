@@ -1,3 +1,6 @@
+import os from 'os';
+import path from 'path';
+import { realpathSync } from 'fs';
 import {
   GoogleGenAI,
   createPartFromUri,
@@ -177,6 +180,24 @@ function pickFallbackModel(
   const providerDefaults = getProvider(provider).defaultFallbackModels ?? [];
   const chain = [...(fallbackModels ?? []), ...providerDefaults];
   return chain.find((candidate) => candidate && candidate !== modelName) ?? modelName;
+}
+
+/**
+ * Refuse tout chemin hors du répertoire temporaire du système.
+ * `realpath` suit les liens symboliques, qui sinon contourneraient la règle.
+ */
+function assertTemporaryFilePath(localPath: string): void {
+  const tmpRoot = realpathSync(os.tmpdir());
+  let resolved: string;
+  try {
+    resolved = realpathSync(path.resolve(localPath));
+  } catch {
+    throw new Error('Attached file not found.');
+  }
+  if (resolved !== tmpRoot && !resolved.startsWith(tmpRoot + path.sep)) {
+    logger.error('Refused attached file outside the temporary directory', { localPath });
+    throw new Error('Attached file path is not allowed.');
+  }
 }
 
 export interface PromptConfig {
@@ -983,6 +1004,12 @@ export class PromptService {
     if (!messages || messages.length === 0) {
       logger.error('Messages array cannot be empty.');
       throw new Error('Messages array cannot be empty.');
+    }
+
+    // Un fichier joint est lu sur le disque du serveur : son chemin ne peut
+    // désigner qu'un fichier temporaire créé par le serveur lui-même.
+    if (file?.localPath) {
+      assertTemporaryFilePath(file.localPath);
     }
 
     // Quota checking for authenticated users (skip for system/internal calls)

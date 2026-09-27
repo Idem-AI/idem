@@ -12,6 +12,8 @@ interface RateLimitConfig {
 }
 
 interface RateLimitInfo {
+  /** Vrai quand cette requête dépasse la limite (et doit être refusée). */
+  exceeded: boolean;
   limit: number;
   remaining: number;
   reset: number;
@@ -69,7 +71,6 @@ class RateLimiter {
   async checkLimit(key: string, config: RateLimitConfig): Promise<RateLimitInfo> {
     this.initializeRedis();
     const now = Date.now();
-    const windowStart = now - config.windowMs;
     const resetTime = now + config.windowMs;
 
     if (this.isRedisAvailable && this.redisClient) {
@@ -91,32 +92,28 @@ class RateLimiter {
     try {
       const redisKey = `${config.keyPrefix}:${key}`;
 
-      // Get current count
-      const currentCount = await this.redisClient!.get(redisKey);
-      const count = currentCount ? parseInt(currentCount, 10) : 0;
+      // Une seule transaction : création avec TTL si absente, incrément, TTL
+      // restant. L'ancienne séquence GET / INCR / EXPIRE pouvait laisser une
+      // clé SANS expiration (arrêt entre INCR et EXPIRE) — l'adresse restait
+      // alors bloquée indéfiniment.
+      const results = await this.redisClient!
+        .multi()
+        .set(redisKey, '0', 'PX', config.windowMs, 'NX')
+        .incr(redisKey)
+        .pttl(redisKey)
+        .exec();
 
-      if (count >= config.maxRequests) {
-        const ttl = await this.redisClient!.ttl(redisKey);
-        return {
-          limit: config.maxRequests,
-          remaining: 0,
-          reset: now + ttl * 1000,
-          retryAfter: ttl,
-        };
-      }
-
-      // Increment counter
-      const newCount = await this.redisClient!.incr(redisKey);
-
-      // Set expiration on first request
-      if (newCount === 1) {
-        await this.redisClient!.expire(redisKey, Math.ceil(config.windowMs / 1000) as number);
-      }
+      const count = Number(results?.[1]?.[1] ?? 0);
+      const pttl = Number(results?.[2]?.[1] ?? config.windowMs);
+      const reset = now + (pttl > 0 ? pttl : config.windowMs);
+      const exceeded = count > config.maxRequests;
 
       return {
+        exceeded,
         limit: config.maxRequests,
-        remaining: Math.max(0, config.maxRequests - newCount),
-        reset: resetTime,
+        remaining: Math.max(0, config.maxRequests - count),
+        reset,
+        ...(exceeded && { retryAfter: Math.ceil((reset - now) / 1000) }),
       };
     } catch (error) {
       logger.error('Redis rate limit check failed, falling back to memory:', error);
@@ -134,38 +131,22 @@ class RateLimiter {
     resetTime: number
   ): RateLimitInfo {
     const memKey = `${config.keyPrefix}:${key}`;
-    const stored = this.fallbackStore.get(memKey);
+    let entry = this.fallbackStore.get(memKey);
 
-    // Clean expired entries
-    if (stored && stored.resetTime < now) {
-      this.fallbackStore.delete(memKey);
+    if (!entry || entry.resetTime < now) {
+      entry = { count: 0, resetTime };
+      this.fallbackStore.set(memKey, entry);
     }
 
-    const current = this.fallbackStore.get(memKey);
+    entry.count++;
+    const exceeded = entry.count > config.maxRequests;
 
-    if (!current) {
-      this.fallbackStore.set(memKey, { count: 1, resetTime });
-      return {
-        limit: config.maxRequests,
-        remaining: config.maxRequests - 1,
-        reset: resetTime,
-      };
-    }
-
-    if (current.count >= config.maxRequests) {
-      return {
-        limit: config.maxRequests,
-        remaining: 0,
-        reset: current.resetTime,
-        retryAfter: Math.ceil((current.resetTime - now) / 1000),
-      };
-    }
-
-    current.count++;
     return {
+      exceeded,
       limit: config.maxRequests,
-      remaining: Math.max(0, config.maxRequests - current.count),
-      reset: current.resetTime,
+      remaining: Math.max(0, config.maxRequests - entry.count),
+      reset: entry.resetTime,
+      ...(exceeded && { retryAfter: Math.ceil((entry.resetTime - now) / 1000) }),
     };
   }
 
@@ -221,7 +202,7 @@ export const rateLimitByIP = (config: Partial<RateLimitConfig> = {}) => {
       res.setHeader('X-RateLimit-Remaining', limitInfo.remaining);
       res.setHeader('X-RateLimit-Reset', new Date(limitInfo.reset).toISOString());
 
-      if (limitInfo.remaining === 0) {
+      if (limitInfo.exceeded) {
         if (limitInfo.retryAfter) {
           res.setHeader('Retry-After', limitInfo.retryAfter);
         }
@@ -286,7 +267,7 @@ export const rateLimitByUser = (config: Partial<RateLimitConfig> = {}) => {
       res.setHeader('X-RateLimit-User-Remaining', limitInfo.remaining);
       res.setHeader('X-RateLimit-User-Reset', new Date(limitInfo.reset).toISOString());
 
-      if (limitInfo.remaining === 0) {
+      if (limitInfo.exceeded) {
         if (limitInfo.retryAfter) {
           res.setHeader('Retry-After', limitInfo.retryAfter);
         }
@@ -338,7 +319,7 @@ export const rateLimitByEndpoint = (endpoint: string, config: Partial<RateLimitC
       res.setHeader('X-RateLimit-Endpoint-Remaining', limitInfo.remaining);
       res.setHeader('X-RateLimit-Endpoint-Reset', new Date(limitInfo.reset).toISOString());
 
-      if (limitInfo.remaining === 0) {
+      if (limitInfo.exceeded) {
         if (limitInfo.retryAfter) {
           res.setHeader('Retry-After', limitInfo.retryAfter);
         }
@@ -382,7 +363,7 @@ export const burstProtection = (config: { maxBurst: number; burstWindowMs: numbe
 
       const limitInfo = await rateLimiter.checkLimit(identifier, burstConfig);
 
-      if (limitInfo.remaining === 0) {
+      if (limitInfo.exceeded) {
         logger.warn(`Burst attack detected from ${identifier}`);
         res.status(429).json({
           error: 'Too Many Requests',

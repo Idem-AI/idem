@@ -53,6 +53,8 @@ export interface IdemProfile {
    * older build — in which case the local role is left as it is.
    */
   isSuperUser?: boolean;
+  /** Adresse vérifiée par Firebase — condition pour rattacher un compte existant. */
+  emailVerified?: boolean;
 }
 
 export interface SyncedUser {
@@ -119,6 +121,7 @@ async function verifySessionUncached(sessionCookie: string): Promise<IdemProfile
         displayName: data.displayName ?? null,
         photoURL: data.photoURL ?? null,
         isSuperUser: typeof data.isSuperUser === 'boolean' ? data.isSuperUser : undefined,
+        emailVerified: data.emailVerified === true,
       };
     }
     return null;
@@ -202,11 +205,18 @@ export async function syncUser(profile: IdemProfile): Promise<SyncedUser> {
     return { id, idem_uid: profile.uid, email: profile.email, name };
   }
 
-  // 2. By email → link idem_uid
-  const byEmail = await pool.query(
-    'SELECT id FROM users WHERE lower(email) = lower($1) LIMIT 1',
-    [profile.email]
-  );
+  // 2. By email → link idem_uid — seulement pour une adresse VÉRIFIÉE : sinon,
+  // créer un compte IDEM avec l'adresse d'un utilisateur iDeploy existant
+  // suffisait à prendre possession de son compte et de ses serveurs.
+  const byEmail = profile.emailVerified === true
+    ? await pool.query('SELECT id FROM users WHERE lower(email) = lower($1) LIMIT 1', [profile.email])
+    : { rows: [] as Array<{ id: unknown }> };
+  if (!byEmail.rows[0] && profile.emailVerified !== true) {
+    const taken = await pool.query('SELECT 1 FROM users WHERE lower(email) = lower($1) LIMIT 1', [profile.email]);
+    if (taken.rows[0]) {
+      throw new Error('This email belongs to an existing iDeploy account: verify your email address first.');
+    }
+  }
   if (byEmail.rows[0]) {
     const id = Number(byEmail.rows[0].id);
     await pool.query(

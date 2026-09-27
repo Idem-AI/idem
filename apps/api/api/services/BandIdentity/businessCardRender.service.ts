@@ -21,6 +21,7 @@ import {
 } from '../../models/businessCard.model';
 import { EMPTY_FIELD_CLEANUP } from '../../utils/business-card-template';
 import { brandFontLinks } from '../../utils/google-fonts.util';
+import { installRenderNetworkGuard } from '../../utils/render-network-guard';
 
 /** Résolution d'impression cible. */
 const PRINT_DPI = 300;
@@ -72,6 +73,7 @@ export class BusinessCardRenderService {
 
     const browser = await this.getBrowser();
     const page = await browser.newPage();
+    await installRenderNetworkGuard(page);
     try {
       // Le viewport est calé sur la carte en pixels CSS (96 dpi) ; le passage à
       // 300 dpi se fait via deviceScaleFactor pour le PNG, et via le format

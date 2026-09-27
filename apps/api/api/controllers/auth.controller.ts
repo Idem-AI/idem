@@ -6,39 +6,54 @@ import { UserModel } from '../models/userModel';
 import { refreshTokenService } from '../services/refreshToken.service';
 import { CustomRequest } from '../interfaces/express.interface';
 import { v4 as uuidv4 } from 'uuid';
+import { safeEqual } from '../utils/safe-equal.util';
+import { toPublicProfile } from '../utils/public-profile.util';
 import RedisConnection from '../config/redis.config';
-import { mintSessionCookie, sessionCookieOptions } from '../services/sessionCookie.service';
+import {
+  mintSessionCookie,
+  refreshCookieOptions,
+  SESSION_EXPIRES_IN,
+  sessionCookieOptions,
+} from '../services/sessionCookie.service';
 export const sessionLoginController = async (req: Request, res: Response): Promise<void> => {
   const token = req.body.token;
   const user = req.body.user;
 
-  logger.info(`Attempting session login for user associated with token`, {
-    user,
-    body: req.body,
-  });
-
-  if (!token) {
-    logger.warn(`Session login failed: No ID token provided.`, {
-      hasUser: !!user,
-      userUid: user?.uid,
-    });
+  if (!token || typeof token !== 'string') {
+    logger.warn('Session login failed: No ID token provided.');
     res.status(400).send({ success: false, message: 'ID token is required.' });
     return;
   }
 
-  if (!user) {
-    logger.warn('Session login failed: No user data provided.');
-    res.status(400).send({ success: false, message: 'User data is required.' });
+  // L'identité vient EXCLUSIVEMENT du jeton vérifié. `req.body.user` n'est
+  // qu'une indication d'affichage : en tirer l'uid permettait d'ouvrir une
+  // session (et un refresh token) au nom de n'importe quel autre compte.
+  let decoded: admin.auth.DecodedIdToken;
+  try {
+    decoded = await admin.auth().verifyIdToken(token, true);
+  } catch (error: any) {
+    logger.warn(`Session login failed: invalid ID token (${error.message})`);
+    res.status(401).send({ success: false, message: 'UNAUTHORIZED REQUEST!' });
     return;
   }
+
+  if (!decoded.email) {
+    res.status(400).send({ success: false, message: 'An email address is required.' });
+    return;
+  }
+
+  logger.info('Attempting session login', { uid: decoded.uid });
+
   const userModel: UserModel = {
-    uid: user.uid,
-    email: user.email,
+    uid: decoded.uid,
+    email: decoded.email,
     subscription: 'free',
     createdAt: new Date(),
     lastLogin: new Date(),
-    displayName: user.displayName,
-    photoURL: user.photoURL,
+    displayName:
+      typeof user?.displayName === 'string' ? user.displayName : (decoded.name as string | undefined),
+    photoURL:
+      typeof user?.photoURL === 'string' ? user.photoURL : (decoded.picture as string | undefined),
     quota: {
       dailyUsage: 0,
       weeklyUsage: 0,
@@ -49,26 +64,12 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
     },
     roles: ['user'],
   };
-  const expiresIn = 14 * 24 * 60 * 60 * 1000; // 14 Days
-  const isProduction = process.env.NODE_ENV === 'production';
+  const expiresIn = SESSION_EXPIRES_IN;
 
   try {
     const sessionCookie = await admin.auth().createSessionCookie(token, { expiresIn });
 
-    const options: CookieOptions = {
-      maxAge: expiresIn,
-      httpOnly: true,
-      // In production we must use Secure + SameSite=None for cross-site cookies
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      path: '/',
-      // Set domain for cookie sharing between subdomains (API, iDeploy, Main App)
-      // In dev: localhost (no domain needed for localhost ports)
-      // In prod: .idem.africa
-      ...(isProduction && { domain: '.idem.africa' }),
-    };
-
-    res.cookie('session', sessionCookie, options);
+    res.cookie('session', sessionCookie, sessionCookieOptions());
     logger.info(`Session cookie created successfully for user ${userModel.uid}.`);
     const createdUser = await userService.createUser(userModel);
     if (!createdUser) {
@@ -90,34 +91,23 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
       ipAddress
     );
 
-    // Configurer le cookie pour le refresh token
-    const refreshTokenOptions: CookieOptions = {
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 jours
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      path: '/',
-      ...(isProduction && { domain: '.idem.africa' }),
-    };
-
-    res.cookie('refreshToken', refreshTokenResult.refreshToken, refreshTokenOptions);
+    res.cookie('refreshToken', refreshTokenResult.refreshToken, refreshCookieOptions());
 
     res.status(200).send({
       success: true,
       message: 'Session cookie created successfully.',
-      refreshToken: refreshTokenResult.refreshToken,
+      // Le refresh token voyage uniquement en cookie httpOnly : le renvoyer
+      // dans le corps le rendait lisible par n'importe quel script de la page.
       refreshTokenExpiresAt: refreshTokenResult.expiresAt,
     });
   } catch (error: any) {
-    logger.error(`Error creating session cookie for user ${user.uid}:`, {
+    logger.error(`Error creating session cookie for user ${userModel.uid}:`, {
       errorMessage: error.message,
       errorStack: error.stack,
-      idTokenProvided: !!token,
     });
     res.status(401).send({
       success: false,
       message: 'UNAUTHORIZED REQUEST! Error creating session cookie.',
-      error: error.message,
     });
   }
 };
@@ -165,7 +155,6 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
     res.status(200).send({
       success: true,
       message: 'Access token refreshed successfully.',
-      sessionCookie,
     });
   } catch (error: any) {
     logger.error('Error refreshing access token:', {
@@ -175,7 +164,6 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
     res.status(500).send({
       success: false,
       message: 'Internal server error during token refresh.',
-      error: error.message,
     });
   }
 };
@@ -231,7 +219,6 @@ export const logoutController = async (req: CustomRequest, res: Response): Promi
     res.status(500).send({
       success: false,
       message: 'Error during logout.',
-      error: error.message,
     });
   }
 };
@@ -281,7 +268,6 @@ export const logoutAllController = async (req: CustomRequest, res: Response): Pr
     res.status(500).send({
       success: false,
       message: 'Error during logout from all devices.',
-      error: error.message,
     });
   }
 };
@@ -316,7 +302,7 @@ export const verifySessionController = async (req: Request, res: Response): Prom
     logger.info(`Session verified successfully for user: ${profile.uid}`);
     res.status(200).json({
       success: true,
-      user: profile,
+      user: toPublicProfile(profile),
     });
   } catch (error: any) {
     logger.error('Session verification failed:', {
@@ -326,7 +312,6 @@ export const verifySessionController = async (req: Request, res: Response): Prom
     res.status(401).json({
       success: false,
       message: 'Invalid or expired session',
-      error: error.message,
     });
   }
 };
@@ -365,7 +350,6 @@ export const getRefreshTokensController = async (
     res.status(500).send({
       success: false,
       message: 'Error retrieving refresh tokens.',
-      error: error.message,
     });
   }
 };
@@ -416,7 +400,7 @@ export const generateIdeployTokenController = async (
     logger.error('Error generating iDeploy token:', { uid, message: error.message });
     res
       .status(500)
-      .json({ success: false, message: 'Failed to generate token', error: error.message });
+      .json({ success: false, message: 'Failed to generate token' });
   }
 };
 
@@ -433,13 +417,20 @@ export const validateIdeployTokenController = async (
   const sharedSecret = process.env.IDEPLOY_SHARED_SECRET;
   const providedSecret = req.headers['x-ideploy-secret'];
 
-  if (sharedSecret && providedSecret !== sharedSecret) {
+  // Fermé par défaut : sans secret configuré, n'importe qui aurait pu échanger
+  // un jeton SSO intercepté contre l'identité de l'utilisateur.
+  if (!sharedSecret) {
+    logger.error('IDEPLOY_SHARED_SECRET is not configured: iDeploy SSO validation disabled');
+    res.status(503).json({ success: false, message: 'SSO validation unavailable' });
+    return;
+  }
+  if (typeof providedSecret !== 'string' || !safeEqual(providedSecret, sharedSecret)) {
     res.status(403).json({ success: false, message: 'Invalid secret' });
     return;
   }
 
   const { token } = req.body;
-  if (!token) {
+  if (!token || typeof token !== 'string') {
     res.status(400).json({ success: false, message: 'Token is required' });
     return;
   }
@@ -462,6 +453,6 @@ export const validateIdeployTokenController = async (
     logger.error('Error validating iDeploy token:', { message: error.message });
     res
       .status(500)
-      .json({ success: false, message: 'Failed to validate token', error: error.message });
+      .json({ success: false, message: 'Failed to validate token' });
   }
 };

@@ -15,6 +15,7 @@
  * the user types goes to the remote shell's stdin — it is never interpreted
  * here, and never interpolated into a command line.
  */
+import { roleOf } from './team.service';
 import { IncomingMessage } from 'http';
 import { WebSocket } from 'ws';
 import { Client as SshClient, ClientChannel } from 'ssh2';
@@ -27,7 +28,7 @@ import { isLocalServer } from '../ssh/ssh';
 import { verifySession, syncUser } from './idem-auth.service';
 import { resolveCurrentTeam } from './user.service';
 import * as serverService from './server.service';
-import { notFound, unprocessable } from '../utils/errors';
+import { notFound, unprocessable, forbidden } from '../utils/errors';
 
 /** What the client may ask to attach to. */
 export type TerminalTargetKind = 'server' | 'application';
@@ -169,6 +170,15 @@ export async function openSession(
   auth: { userId: number; teamId: number },
   request: TerminalRequest
 ): Promise<void> {
+  // Un shell sur l'HÔTE d'un serveur donne la main sur tout ce qu'il héberge :
+  // réservé aux propriétaires/admins de l'équipe, comme `exec` et les tâches.
+  if (request.kind === 'server') {
+    const role = (await roleOf(auth.userId, auth.teamId))?.toLowerCase();
+    if (role !== 'owner' && role !== 'admin') {
+      throw forbidden('NOT_TEAM_ADMIN', 'A server terminal requires the owner or an admin of this team.');
+    }
+  }
+
   const target = await resolveTarget(auth.teamId, request);
 
   if (isLocalServer(target.server)) {

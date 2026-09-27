@@ -39,6 +39,7 @@ function toPx(length: string): number {
         class="frame"
         tabindex="-1"
         [title]="label()"
+        sandbox="allow-scripts"
         [srcdoc]="srcdoc()"
         [style.width.px]="docWidth()"
         [style.height.px]="docHeight()"

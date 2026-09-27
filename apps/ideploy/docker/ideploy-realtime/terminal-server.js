@@ -155,6 +155,16 @@ async function handleCommand(ws, command, userId) {
     return;
   }
 
+  // Les arguments SSH viennent du client : certaines options font exécuter une
+  // commande LOCALE (dans ce conteneur) avant même la connexion — ProxyCommand,
+  // LocalCommand, un fichier de configuration arbitraire… L'hôte cible a beau
+  // être autorisé, ces options contournent tout. Elles sont refusées.
+  const unsafeArg = findUnsafeSshArg(sshArgs);
+  if (unsafeArg) {
+    ws.send('Invalid SSH command: option not allowed');
+    return;
+  }
+
   const options = {
     name: 'xterm-color',
     cols: 80,
@@ -189,6 +199,36 @@ async function handleCommand(ws, command, userId) {
       await killPtyProcess(userId);
     }, timeout * 1000);
   }
+}
+
+const FORBIDDEN_SSH_OPTIONS = [
+  'proxycommand',
+  'proxyjump',
+  'localcommand',
+  'permitlocalcommand',
+  'knownhostscommand',
+  'match',
+  'include',
+  'pkcs11provider',
+  'securitykeyprovider',
+  'localforward',
+  'remoteforward',
+  'dynamicforward',
+];
+
+/** Renvoie le premier argument SSH dangereux, ou null. */
+function findUnsafeSshArg(sshArgs) {
+  for (let i = 0; i < sshArgs.length; i++) {
+    const arg = String(sshArgs[i]);
+    // Fichier de configuration, saut par un autre hôte, redirections de ports.
+    if (/^-(F|J|L|R|D|W|w)/.test(arg)) return arg;
+    if (arg.startsWith('-o')) {
+      const value = (arg.length > 2 ? arg.slice(2) : String(sshArgs[i + 1] || '')).trim().toLowerCase();
+      const name = value.split(/[=\s]/)[0];
+      if (FORBIDDEN_SSH_OPTIONS.includes(name)) return arg;
+    }
+  }
+  return null;
 }
 
 function extractTargetHost(sshArgs) {

@@ -43,9 +43,9 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const handoffId = `hof_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    const expiresAt = payload.expiresAt
-      ? new Date(payload.expiresAt)
-      : new Date(Date.now() + 15 * 60 * 1000);
+    // Durée fixée par le serveur : une date fournie par le client pouvait garder
+    // l'entrée en mémoire indéfiniment.
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     handoffStore.set(handoffId, { payload, expiresAt });
 

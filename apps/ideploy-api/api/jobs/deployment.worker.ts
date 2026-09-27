@@ -12,7 +12,9 @@ import { QUEUE_NAMES } from '../queue/queues';
 import { registerWorker } from '../queue/worker';
 import logger from '../config/logger';
 import { realtime } from '../services/realtime.service';
-import { executeRemoteCommand } from '../ssh/ssh';
+import { executeRemoteCommand, shellQuote } from '../ssh/ssh';
+import { assertComposeIsSafe } from '../docker/compose-policy';
+import { assertSafeGitBranch, assertSafeGitUrl } from '../validation/git-input';
 import { generateComposeFile, generateBuildlessCompose, appWorkdir } from '../docker/compose';
 import { planBuild, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
@@ -142,11 +144,16 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
       const credential = await resolveGitCredential(teamId, app.git_repository);
       const cloneUrl = credential?.authenticatedUrl ?? app.git_repository;
 
+      // Branche et dépôt viennent de l'utilisateur et partent dans un shell sur
+      // l'hôte : format vérifié, puis chaque argument entre apostrophes.
+      const branch = assertSafeGitBranch(app.git_branch || 'main');
+      assertSafeGitUrl(app.git_repository);
+
       await streamStep(deploymentUuid, 'Cloning repository', async () => {
         const r = await executeRemoteCommand(
           server,
           key,
-          `git clone --depth 1 -b ${app.git_branch || 'main'} ${cloneUrl} ${srcDir} && ls -la ${srcDir}`,
+          `git clone --depth 1 -b ${shellQuote(branch)} -- ${shellQuote(cloneUrl)} ${shellQuote(srcDir)} && ls -la ${shellQuote(srcDir)}`,
           { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
         );
         if (r.exitCode !== 0) throw new Error(`git clone failed: ${r.stderr.slice(0, 300)}`);
@@ -167,6 +174,29 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
       });
 
       await log(`\n──► Build strategy: ${plan.pack}`);
+
+      // Le compose d'un dépôt est du contenu utilisateur : il est contrôlé AVANT
+      // `docker compose build` (un contexte de build hors du dépôt lit déjà
+      // l'hôte) et avant tout `up`.
+      if (plan.runtime === 'compose-file') {
+        await streamStep(deploymentUuid, 'Checking the compose file', async () => {
+          const dir = buildDirectory({
+            srcDir,
+            workdir,
+            imageTag,
+            baseDirectory: app.base_directory,
+            port,
+          });
+          const r = await executeRemoteCommand(
+            server,
+            key,
+            `cd ${shellQuote(dir)} && (cat docker-compose.yml 2>/dev/null || cat docker-compose.yaml)`,
+            { noRetry: true }
+          );
+          if (r.exitCode !== 0) throw new Error('No docker-compose.yml found in the repository.');
+          assertComposeIsSafe(r.stdout);
+        });
+      }
 
       let buildFailed = false;
       for (const step of plan.steps) {

@@ -1,8 +1,23 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
+import { createHash } from 'crypto';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024, files: 1 },
+});
+
+/**
+ * Marque de propriété d'un site Netlify : préfixe dérivé de l'uid IDEM.
+ * Tous les sites vivent sur le même compte Netlify ; sans cette marque, un
+ * `siteId` fourni par le client permettait d'écraser le site d'un autre.
+ */
+function ownerPrefix(uid: string): string {
+  const secret = process.env.DEPLOY_OWNER_SECRET || process.env.NETLIFY_TOKEN || '';
+  const tag = createHash('sha256').update(`${secret}:${uid}`).digest('hex').slice(0, 12);
+  return `idem-app-${tag}-`;
+}
 
 type NetlifySite = {
   id: string;
@@ -87,9 +102,20 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
     let site: NetlifySite | null = null;
     let isNewSite = false;
 
+    const uid = req.idemUser?.uid;
+    if (!uid) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+    const prefix = ownerPrefix(uid);
+
     if (requestedSiteId) {
       console.log('Reusing existing Netlify site:', requestedSiteId);
       site = await fetchExistingSite(url, accessToken, requestedSiteId);
+      // Un site qui n'appartient pas à l'appelant n'est jamais redéployé.
+      if (site && !site.name?.startsWith(prefix)) {
+        console.warn('Refused redeploy of a site owned by someone else:', requestedSiteId);
+        site = null;
+      }
     }
 
     if (!site) {
@@ -101,7 +127,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          name: `idem-app-${Date.now()}`,
+          name: `${prefix}${Date.now()}`,
         }),
       });
 
@@ -110,7 +136,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
         console.error('Failed to create site:', createSiteResponse.status, errorText);
         return res.json({
           success: false,
-          message: `Failed to create site: ${createSiteResponse.status} - ${errorText}`,
+          message: `Failed to create site (${createSiteResponse.status})`,
         });
       }
 

@@ -206,7 +206,7 @@ function staticPlan(context: BuildContext): BuildPlan {
       label: 'Preparing the runtime image',
       command:
         `cd ${quote(dir)} && ` +
-        `{ test -d ${quote(publish)} || { echo "Build output not found in ${publish}. Set the publish directory to match your build." >&2; exit 1; }; } && ` +
+        `{ test -d ${quote(publish)} || { echo ${quote(`Build output not found in ${publish}. Set the publish directory to match your build.`)} >&2; exit 1; }; } && ` +
         `printf 'FROM ${STATIC_IMAGE}\\nCOPY %s /usr/share/nginx/html\\n' ${quote(publish)} > Dockerfile.ideploy-static`,
     },
     {
@@ -233,7 +233,7 @@ function composePlan(context: BuildContext): BuildPlan {
         command:
           `cd ${quote(dir)} && ` +
           `{ test -f docker-compose.yml || test -f docker-compose.yaml || ` +
-          `{ echo "No docker-compose.yml found in ${dir}." >&2; exit 1; }; }`,
+          `{ echo ${quote(`No docker-compose.yml found in ${dir}.`)} >&2; exit 1; }; }`,
       },
       {
         label: 'Building the stack',

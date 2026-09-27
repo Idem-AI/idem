@@ -4,6 +4,39 @@ import { projectService } from '../services/project.service';
 import { ProjectModel } from '../models/project.model'; // Assuming ProjectModel is an interface/type
 import logger from '../config/logger';
 
+/**
+ * Champs qu'aucune requête client ne peut écrire directement sur un projet.
+ *
+ * La création et la mise à jour recopient le corps de requête ; sans cette
+ * liste, un client pouvait réattribuer le projet (`userId`), réécrire ses
+ * déploiements (dont l'identifiant finit dans une commande), ou s'attribuer
+ * une acceptation des politiques qu'il n'a jamais donnée. Chacun de ces champs
+ * a sa propre route, qui le valide.
+ */
+const PROTECTED_PROJECT_FIELDS = [
+  '_id',
+  'id',
+  'userId',
+  'createdAt',
+  'updatedAt',
+  'deployments',
+  'activeChatMessages',
+  'policyAcceptance',
+  'isArchived',
+  'archived',
+] as const;
+
+function withoutProtectedFields<T extends Record<string, unknown>>(data: T): T {
+  const clean: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data ?? {})) {
+    if ((PROTECTED_PROJECT_FIELDS as readonly string[]).includes(key)) continue;
+    // Opérateurs Mongo et chemins pointés : `$set` les interpréterait.
+    if (key.startsWith('$') || key.includes('.')) continue;
+    clean[key] = value;
+  }
+  return clean as T;
+}
+
 class ProjectController {
   async createProject(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
     const userId = req.user?.uid;
@@ -15,7 +48,7 @@ class ProjectController {
         res.status(401).json({ message: 'User not authenticated' });
         return;
       }
-      const { id, name, description, ...otherProjectData } = req.body;
+      const { id, name, description, ...otherProjectData } = withoutProtectedFields(req.body ?? {});
       const projectData: Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
         name,
         description,
@@ -126,7 +159,7 @@ class ProjectController {
         res.status(401).json({ message: 'User not authenticated' });
         return;
       }
-      const { name, description, ...otherUpdatedData } = req.body;
+      const { name, description, ...otherUpdatedData } = withoutProtectedFields(req.body ?? {});
       const updatedData: Partial<Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt' | 'userId'>> =
         {
           ...(name !== undefined && { name }),
