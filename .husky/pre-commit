@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Block the commit if a staged change exposes a secret (key, token, .env file…).
+node scripts/git-hooks/check-secrets.mjs

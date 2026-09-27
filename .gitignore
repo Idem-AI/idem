@@ -124,3 +124,6 @@ apps/api/tmp/
 
 # Local scratch space: dev helper scripts, captures, throwaway output.
 scratch/
+
+# Sorties de build des packages partagés (produites aussi par le hook pre-push)
+packages/*/dist/

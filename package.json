@@ -65,7 +65,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "npm run clean --workspaces --if-present",
-    "secrets": "node --no-warnings scripts/secrets/idem-secrets.mjs"
+    "secrets": "node --no-warnings scripts/secrets/idem-secrets.mjs",
+    "check:secrets": "node scripts/git-hooks/check-secrets.mjs",
+    "check:builds": "node scripts/git-hooks/check-builds.mjs",
+    "test:git-hooks": "node --test scripts/git-hooks/*.test.mjs"
   },
   "dependencies": {
     "tslib": "^2.8.1"
