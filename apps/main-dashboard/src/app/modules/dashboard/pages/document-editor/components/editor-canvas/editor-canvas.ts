@@ -133,6 +133,7 @@ interface ViewBox {
           #frame
           [title]="label()"
           class="editor-iframe"
+          sandbox="allow-scripts"
           [srcdoc]="srcdoc()"
           [style.width.px]="pageWidthPx()"
           [style.height.px]="iframeHeight()"

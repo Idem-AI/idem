@@ -43,6 +43,7 @@ import {
   NEUTRAL_SEED,
 } from '../design/compositionGrid';
 import { auditAndRepairVisual, VisualAuditReport } from '../design/visualAudit';
+import { installRenderNetworkGuard } from '../../utils/render-network-guard';
 
 /** Déclinaisons de logo disponibles pour la marque, par famille et polarité. */
 export interface LogoDeclensionSet {
@@ -272,6 +273,7 @@ export class FlyerRenderService {
 
     const browser = await this.getBrowser();
     const page = await browser.newPage();
+    await installRenderNetworkGuard(page);
     try {
       await page.setViewport({
         width: dims.width,
@@ -345,6 +347,7 @@ export class FlyerRenderService {
   ): Promise<Buffer> {
     const browser = await this.getBrowser();
     const page = await browser.newPage();
+    await installRenderNetworkGuard(page);
     try {
       await page.setViewport({ width, height, deviceScaleFactor });
       await page.setContent(html, { waitUntil: 'load', timeout: 30000 });

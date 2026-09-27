@@ -32,7 +32,7 @@ function resolveKey(): Buffer {
   if (!raw) {
     // Cohérent avec le repli historique de DeploymentService : le
     // développement local fonctionne sans secret, la production l'exige
-    // (SENSITIVE_VARS_ENCRYPTION_KEY est dans REQUIRED_SECRETS).
+    // (SENSITIVE_VARS_ENCRYPTION_KEY est un secret requis de secrets.manifest.ts).
     return crypto.scryptSync('idem-api-default-key', 'salt', 32);
   }
 

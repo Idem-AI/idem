@@ -32,6 +32,7 @@ import { CardPreviewFonts, buildCardPreviewDocument, mmToPx } from '../../utils/
           #frame
           class="card-frame"
           title="{{ label() }}"
+          sandbox="allow-scripts"
           [srcdoc]="srcdoc()"
           [style.width.px]="cardWidth()"
           [style.height.px]="cardHeight()"

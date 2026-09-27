@@ -1,8 +1,13 @@
 import { Router } from 'express';
 import { CacheController } from '../controllers/cache.controller';
-import { authenticate } from '../services/auth.service';
+import { requireAdminAccess } from '../middleware/super-user.middleware';
 
 const router = Router();
+
+// Opérations d'exploitation (statistiques, purge, TTL) : administrateurs
+// uniquement. Ouvertes, elles permettaient à n'importe qui de vider le cache
+// de toute la plateforme ou d'allonger la durée de vie de clés arbitraires.
+router.use(requireAdminAccess);
 
 /**
  * @swagger
@@ -92,7 +97,7 @@ router.get('/stats', CacheController.getCacheStats);
  *       500:
  *         description: Server error
  */
-router.delete('/clear', authenticate, CacheController.clearCache);
+router.delete('/clear', CacheController.clearCache);
 
 /**
  * @swagger
@@ -131,7 +136,7 @@ router.delete('/clear', authenticate, CacheController.clearCache);
  *       500:
  *         description: Server error
  */
-router.delete('/user/:userId?', authenticate, CacheController.invalidateUserCache);
+router.delete('/user/:userId?', CacheController.invalidateUserCache);
 
 /**
  * @swagger
@@ -170,7 +175,7 @@ router.delete('/user/:userId?', authenticate, CacheController.invalidateUserCach
  *       500:
  *         description: Server error
  */
-router.delete('/project/:projectId', authenticate, CacheController.invalidateProjectCache);
+router.delete('/project/:projectId', CacheController.invalidateProjectCache);
 
 /**
  * @swagger
@@ -214,7 +219,7 @@ router.delete('/project/:projectId', authenticate, CacheController.invalidatePro
  *       500:
  *         description: Server error
  */
-router.delete('/pattern', authenticate, CacheController.invalidateCacheByPattern);
+router.delete('/pattern', CacheController.invalidateCacheByPattern);
 
 /**
  * @swagger
@@ -309,7 +314,7 @@ router.get('/key', CacheController.checkCacheKey);
  *       500:
  *         description: Server error
  */
-router.put('/ttl', authenticate, CacheController.updateCacheTTL);
+router.put('/ttl', CacheController.updateCacheTTL);
 
 // ==========================================
 // PDF CACHE MANAGEMENT ROUTES
@@ -483,7 +488,7 @@ router.delete('/pdf/clear-all', CacheController.clearAllPdfCache);
  *       500:
  *         description: Server error
  */
-router.delete('/pdf/project/:projectId', authenticate, CacheController.invalidatePdfCacheByProject);
+router.delete('/pdf/project/:projectId', CacheController.invalidatePdfCacheByProject);
 
 /**
  * @swagger
@@ -526,7 +531,7 @@ router.delete('/pdf/project/:projectId', authenticate, CacheController.invalidat
  *       500:
  *         description: Server error
  */
-router.delete('/pdf/user/:userId?', authenticate, CacheController.invalidatePdfCacheByUser);
+router.delete('/pdf/user/:userId?', CacheController.invalidatePdfCacheByUser);
 
 /**
  * @swagger

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import logger from '../config/logger';
 import { RefreshTokenData, UserModel } from '../models/userModel';
 import { IRepository } from '../repository/IRepository';
@@ -13,6 +14,16 @@ export interface TokenValidationResult {
   isValid: boolean;
   userId?: string;
   tokenData?: RefreshTokenData;
+}
+
+/**
+ * Empreinte d'un refresh token (SHA-256). Les jetons sont 64 octets aléatoires :
+ * un hachage rapide suffit, il n'y a rien à deviner par force brute.
+ * Les anciens jetons stockés en clair ne correspondent plus à aucune empreinte :
+ * ils sont de fait révoqués.
+ */
+export function hashRefreshToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
 }
 
 class RefreshTokenService {
@@ -38,11 +49,13 @@ class RefreshTokenService {
 
       // Générer un token sécurisé
       const token = this.generateSecureToken();
+      // Seule l'empreinte est stockée : une fuite de la base ne livre aucune
+      // session utilisable. Le jeton brut ne quitte le serveur que dans le cookie.
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + this.REFRESH_TOKEN_EXPIRY_DAYS);
 
       const refreshTokenData: RefreshTokenData = {
-        token,
+        token: hashRefreshToken(token),
         expiresAt,
         createdAt: new Date(),
         deviceInfo,
@@ -95,13 +108,23 @@ class RefreshTokenService {
     try {
       logger.info('Validating refresh token');
 
-      // Rechercher l'utilisateur avec ce token
-      const users = await this.userRepository.findAll('users');
+      // Un objet ({ $ne: null }…) passé tel quel dans la requête Mongo ci-dessous
+      // correspondrait à n'importe quel compte : seule une chaîne est acceptée.
+      if (typeof token !== 'string' || token.length < 32 || token.length > 512) {
+        return { isValid: false };
+      }
+
+      // Requête indexée (`refreshTokens.token`) au lieu de charger toute la
+      // collection des utilisateurs à chaque rafraîchissement de session.
+      const raw = await mongoose.connection
+        .collection('users')
+        .findOne({ 'refreshTokens.token': hashRefreshToken(token) });
+      const users: UserModel[] = raw ? [{ ...(raw as any), uid: (raw as any).uid ?? String(raw._id) }] : [];
 
       for (const user of users) {
         if (!user.refreshTokens) continue;
 
-        const tokenData = user.refreshTokens.find((rt) => rt.token === token);
+        const tokenData = user.refreshTokens.find((rt) => rt.token === hashRefreshToken(token));
         if (tokenData) {
           // Vérifier si le token n'est pas expiré
           if (new Date() > tokenData.expiresAt) {
@@ -153,7 +176,8 @@ class RefreshTokenService {
       }
 
       const initialLength = user.refreshTokens.length;
-      user.refreshTokens = user.refreshTokens.filter((rt) => rt.token !== token);
+      const hashed = typeof token === 'string' ? hashRefreshToken(token) : '';
+      user.refreshTokens = user.refreshTokens.filter((rt) => rt.token !== hashed);
 
       if (user.refreshTokens.length < initialLength) {
         await this.userRepository.update(userId, { refreshTokens: user.refreshTokens }, 'users');

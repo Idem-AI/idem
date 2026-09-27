@@ -39,3 +39,14 @@ apps/ideploy/public/js/monaco-editor-*
 # Docs
 docs
 **/*.md
+
+# Fichiers d'environnement des applications : jamais dans un contexte de build.
+# (Le `.env` RACINE reste disponible pour les étapes `builder` qui le copient
+# explicitement ; il n'est recopié dans aucune image finale.)
+apps/**/.env
+apps/**/.env.*
+!apps/**/.env.example
+!apps/**/.env.*.example
+**/*.pem
+**/*.key
+data/certbot

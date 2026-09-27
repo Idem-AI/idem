@@ -25,6 +25,28 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { tmpdir } from 'os';
 
+/**
+ * Identifiant de déploiement tel que le serveur le génère
+ * (`deployment_<horodatage>_<aléa>`).
+ *
+ * L'identifiant sert à construire un chemin puis une commande shell : tout ce
+ * qui sort de cet alphabet est refusé, même si le déploiement a été enregistré
+ * par un autre chemin que `createDeployment`.
+ */
+const DEPLOYMENT_ID_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
+
+function deploymentTempDir(deploymentId: string): string {
+  if (typeof deploymentId !== 'string' || !DEPLOYMENT_ID_PATTERN.test(deploymentId)) {
+    throw new Error('Invalid deployment identifier');
+  }
+  return path.join(tmpdir(), 'idem-deployments', deploymentId);
+}
+
+/** Argument shell entre apostrophes : rien à l'intérieur n'est interprété. */
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
 export class DeploymentService extends GenericService {
   private readonly ENCRYPTION_ALGORITHM = 'aes-256-gcm';
   private readonly ENCRYPTION_KEY: string;
@@ -281,7 +303,7 @@ export class DeploymentService extends GenericService {
       `;
 
       // Compute the temp folder path used during generation for this deployment (if any)
-      const tempDir = path.join(tmpdir(), 'idem-deployments', deployment.id);
+      const tempDir = deploymentTempDir(deployment.id);
 
       // Ensure temporary directory exists
       await fs.ensureDir(tempDir);
@@ -465,7 +487,7 @@ export class DeploymentService extends GenericService {
 
       await sendLog('status', 'Deployment status updated to "deploying"', 'status-update');
       // Compute the temp folder path used during generation for this deployment (if any)
-      const tempDir = path.join(tmpdir(), 'idem-deployments', deployment.id);
+      const tempDir = deploymentTempDir(deployment.id);
 
       console.log('tempDir', tempDir);
 
@@ -509,7 +531,7 @@ export class DeploymentService extends GenericService {
 
       const deploymentExecutionCommand = `
       docker run --rm \
-      -v "${tempDir}":/deploy \
+      -v ${shellQuote(tempDir)}:/deploy \
       -e CLOUD_PROVIDER=aws \
       -e TF_BACKEND_BUCKET=idem-tf-state \
       -e TF_BACKEND_KEY=project-x/terraform.tfstate \
@@ -662,7 +684,7 @@ export class DeploymentService extends GenericService {
 
       deployment.generatedTerraformTfvarsFileContent = generatedFile;
       // Write the generated tfvars to a temp folder for this deployment
-      const tempDir = path.join(tmpdir(), 'idem-deployments', deployment.id);
+      const tempDir = deploymentTempDir(deployment.id);
       await fs.ensureDir(tempDir);
       const tfvarsPath = path.join(tempDir, 'terraform.tfvars');
       await fs.writeFile(tfvarsPath, generatedFile, 'utf8');

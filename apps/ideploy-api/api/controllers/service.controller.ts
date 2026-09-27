@@ -6,6 +6,7 @@ import * as service from '../services/service.service';
 import * as templates from '../services/templates.service';
 import { resolveWorkspaceDestination } from '../services/workspace.service';
 import { realtime } from '../services/realtime.service';
+import { assertComposeIsSafe, ComposePolicyError } from '../docker/compose-policy';
 
 export async function list(req: CustomRequest, res: Response): Promise<void> {
   try {
@@ -39,6 +40,20 @@ export async function create(req: CustomRequest, res: Response): Promise<void> {
   if (!name || !workspace_uuid || !docker_compose_raw) {
     return fail(res, 'name, workspace_uuid and docker_compose_raw are required', 422, 'VALIDATION');
   }
+  if (typeof name !== 'string' || typeof docker_compose_raw !== 'string' || docker_compose_raw.length > 200_000) {
+    return fail(res, 'name and docker_compose_raw must be strings (compose ≤ 200 KB)', 422, 'VALIDATION');
+  }
+  // Un compose utilisateur ne doit jamais sortir de ses conteneurs : pas de mode
+  // privilégié, d'espace de noms de l'hôte, de montage de chemins de l'hôte ni
+  // du socket Docker.
+  try {
+    assertComposeIsSafe(docker_compose_raw);
+  } catch (err) {
+    if (err instanceof ComposePolicyError) {
+      return fail(res, err.message, 422, 'COMPOSE_NOT_ALLOWED');
+    }
+    throw err;
+  }
   try {
     const teamId = req.user!.currentTeamId!;
     const destination = await resolveWorkspaceDestination(
@@ -50,7 +65,10 @@ export async function create(req: CustomRequest, res: Response): Promise<void> {
     ok(
       res,
       await service.createService(teamId, {
-        ...req.body,
+        // Champs explicites : recopier le corps laissait le client fixer des
+        // colonnes réservées au serveur (`service_type`, par exemple).
+        name,
+        docker_compose_raw,
         environment_id: destination.environmentId,
         destination_id: destination.destinationId,
         project_id: destination.projectId,

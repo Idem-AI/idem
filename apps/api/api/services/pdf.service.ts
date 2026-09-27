@@ -9,6 +9,8 @@ import { SectionModel } from '../models/section.model';
 import { TypographyModel } from '../models/brand-identity.model';
 import { cacheService } from './cache.service';
 import { sanitizeSectionHtml } from '../utils/sanitize-section-html';
+import { installRenderNetworkGuard, RENDER_BROWSER_ARGS } from '../utils/render-network-guard';
+import { assertPublicUrl } from '../utils/safe-fetch.util';
 import {
   FLOW_PAGINATION_RUNTIME,
   FixedPageFitReport,
@@ -138,17 +140,10 @@ export class PdfService {
     logger.info('Initializing Puppeteer browser instance at startup');
     this.browserInstance = await puppeteer.launch({
       headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-        '--disable-default-apps',
-        '--disable-features=TranslateUI',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-      ],
+      // Pas de `--disable-web-security` : le HTML rendu vient en partie de
+      // l'utilisateur, et sans politique same-origin ses scripts pouvaient lire
+      // les réponses des services internes.
+      args: [...RENDER_BROWSER_ARGS, '--disable-features=TranslateUI,VizDisplayCompositor'],
       timeout: 30000,
     });
 
@@ -203,6 +198,8 @@ export class PdfService {
   private static async createOptimizedPage(): Promise<Page> {
     const browser = this.getBrowser();
     const page = await browser.newPage();
+    // Aucune requête vers le réseau interne ou le disque local depuis un rendu.
+    await installRenderNetworkGuard(page);
 
     // deviceScaleFactor 2 : les <canvas> Chart.js sont dessinés en 2x, donc les
     // PNG rasterisés restent nets à l'impression (le layout reste en px CSS).
@@ -1340,10 +1337,14 @@ export class PdfService {
     try {
       logger.info(`Downloading image from URL: ${imageUrl.substring(0, 50)}...`);
 
-      // Télécharger l'image
+      // Télécharger l'image — URL publique (ou stockage autorisé) uniquement,
+      // sans suivre de redirection vers une autre destination.
+      await assertPublicUrl(imageUrl);
       const response = await axios.get(imageUrl, {
         responseType: 'arraybuffer',
         timeout: 10000, // 10 secondes timeout
+        maxRedirects: 0,
+        maxContentLength: 15 * 1024 * 1024,
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; PdfService/1.0)',
         },

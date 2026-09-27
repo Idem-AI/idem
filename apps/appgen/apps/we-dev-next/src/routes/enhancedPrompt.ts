@@ -11,8 +11,10 @@ router.post('/', async (req: Request, res: Response) => {
       apiKey: process.env.THIRD_API_KEY,
     });
 
-    const { text } = req.body;
-    console.log(text, 'text');
+    const { text } = req.body ?? {};
+    if (typeof text !== 'string' || !text.trim() || text.length > 5000) {
+      return res.status(400).json({ error: 'A non-empty `text` (max 5000 characters) is required.' });
+    }
 
     const { text: enhancedText } = await generateText({
       model: deepseek('deepseek-chat'),

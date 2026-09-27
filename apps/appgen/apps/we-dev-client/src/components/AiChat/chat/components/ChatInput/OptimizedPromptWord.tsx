@@ -23,6 +23,8 @@ const PromptEnhanced = (props: PromptEnhancedProps) => {
     try {
       const res = await fetch(`${baseUrl}/api/enhancedPrompt`, {
         method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: promptText,
         }),

@@ -6,12 +6,14 @@
 import { randomUUID } from 'crypto';
 import pool, { withTransaction } from '../config/db.config';
 import logger from '../config/logger';
-import { conflict } from '../utils/errors';
+import { conflict, unprocessable } from '../utils/errors';
 import { assertDomainsAvailable, generateFqdn, getServerForDestination, subdomainSlug } from './domain.service';
 import { ApplicationRow } from '../models/ideploy.types';
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
 import { appWorkdir } from '../docker/compose';
+import { shellQuote } from '../ssh/ssh';
+import { isSafeGitBranch, isSafeGitUrl, isSafeRelativeDir } from '../validation/git-input';
 
 function mapApp(r: Record<string, unknown>): ApplicationRow {
   return {
@@ -135,10 +137,36 @@ async function assertEnvironmentInTeam(teamId: number, environmentId: number): P
   if (!rows[0]) throw new Error('Environment not found in current team');
 }
 
+/**
+ * Champs qui finissent dans des commandes exécutées sur le serveur : leur
+ * format est vérifié dès l'enregistrement (l'échappement à l'exécution reste
+ * la seconde barrière).
+ */
+function assertSafeBuildInputs(dto: {
+  git_repository?: string | null;
+  git_branch?: string | null;
+  base_directory?: string | null;
+  publish_directory?: string | null;
+}): void {
+  if (dto.git_repository !== undefined && dto.git_repository !== null && !isSafeGitUrl(dto.git_repository)) {
+    throw unprocessable('INVALID_GIT_REPOSITORY', 'The repository URL must be https://… or git@host:path.');
+  }
+  if (dto.git_branch !== undefined && dto.git_branch !== null && dto.git_branch !== '' && !isSafeGitBranch(dto.git_branch)) {
+    throw unprocessable('INVALID_GIT_BRANCH', 'The branch name contains characters that are not allowed.');
+  }
+  if (!isSafeRelativeDir(dto.base_directory)) {
+    throw unprocessable('INVALID_BASE_DIRECTORY', 'The base directory must be a relative path inside the repository.');
+  }
+  if (!isSafeRelativeDir(dto.publish_directory)) {
+    throw unprocessable('INVALID_PUBLISH_DIRECTORY', 'The publish directory must be a relative path inside the repository.');
+  }
+}
+
 export async function createApplication(
   teamId: number,
   dto: CreateApplicationDto
 ): Promise<ApplicationRow> {
+  assertSafeBuildInputs(dto);
   await assertEnvironmentInTeam(teamId, dto.environment_id);
 
   // Refuse a domain another resource already serves: the proxy would resolve the
@@ -233,6 +261,8 @@ export async function updateApplication(
 ): Promise<ApplicationRow | null> {
   const existing = await getApplication(teamId, uuid);
   if (!existing) return null;
+
+  assertSafeBuildInputs(dto);
 
   if (dto.fqdn !== undefined && dto.fqdn !== existing.fqdn) {
     await assertDomainsAvailable(splitDomains(dto.fqdn), existing.id);
@@ -520,8 +550,11 @@ export async function execCommand(
   command: string
 ): Promise<{ exitCode: number; output: string }> {
   const { server, key } = await resolveAppServer(teamId, uuid);
-  const target = `$(docker ps --filter label=ideploy.applicationUuid=${uuid} --format '{{.Names}}' | head -1)`;
-  const r = await executeRemoteCommand(server, key, `docker exec ${target} sh -c ${JSON.stringify(command)}`, {
+  // `JSON.stringify` produit des guillemets DOUBLES : le shell de l'hôte y
+  // évaluait `$(…)` et les backticks AVANT `docker exec`, donc sur le serveur
+  // lui-même et non dans le conteneur. Les apostrophes n'interprètent rien.
+  const target = `$(docker ps --filter label=ideploy.applicationUuid=${shellQuote(uuid)} --format '{{.Names}}' | head -1)`;
+  const r = await executeRemoteCommand(server, key, `docker exec ${target} sh -c ${shellQuote(command)}`, {
     noRetry: true,
   });
   return { exitCode: r.exitCode, output: r.stdout + r.stderr };

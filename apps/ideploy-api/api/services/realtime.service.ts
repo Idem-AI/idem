@@ -15,7 +15,9 @@ import logger from '../config/logger';
 const pusher = new Pusher({
   appId: process.env.PUSHER_APP_ID || 'ideploy',
   key: process.env.PUSHER_APP_KEY || 'ideploy',
-  secret: process.env.PUSHER_APP_SECRET || 'ideploy-secret',
+  // Repli de développement uniquement (valeur par défaut de Soketi en local).
+  secret:
+    process.env.PUSHER_APP_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'ideploy-secret'),
   host: process.env.PUSHER_HOST || 'localhost',
   port: process.env.PUSHER_PORT || '6001',
   useTLS: (process.env.PUSHER_SCHEME || 'http') === 'https',

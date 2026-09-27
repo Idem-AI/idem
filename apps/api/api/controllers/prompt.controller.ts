@@ -1,37 +1,72 @@
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
-import { PromptRequest, promptService } from '../services/prompt.service';
+import { AIChatMessage, promptService } from '../services/prompt.service';
 import { GLM_MODELS, LLMProvider, TEXT_FALLBACK_MODELS } from '../config/ai.config';
+
+const MAX_MESSAGES = 30;
+const MAX_MESSAGE_LENGTH = 20_000;
+const CLIENT_ROLES = new Set(['user', 'assistant']);
+
+/**
+ * Ne garde du corps que des messages bien formés.
+ *
+ * Le corps n'est JAMAIS la configuration de l'appel : `provider`, `modelName`,
+ * `llmOptions`, `file`, `userId` ou `skipQuotaCheck` sont réservés au serveur.
+ * Les accepter du client permettait de lire des fichiers du serveur, de choisir
+ * le modèle le plus cher et d'ignorer le quota.
+ */
+function sanitizeMessages(value: unknown): AIChatMessage[] | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_MESSAGES) return null;
+
+  const messages: AIChatMessage[] = [];
+  for (const item of value) {
+    const role = (item as { role?: unknown })?.role;
+    const content = (item as { content?: unknown })?.content;
+    if (typeof role !== 'string' || !CLIENT_ROLES.has(role)) return null;
+    if (typeof content !== 'string' || !content.trim() || content.length > MAX_MESSAGE_LENGTH) {
+      return null;
+    }
+    messages.push({ role: role as AIChatMessage['role'], content });
+  }
+  return messages;
+}
 
 class PromptController {
   async handlePromptRequest(req: CustomRequest, res: Response): Promise<void> {
     try {
-      const requestBody: PromptRequest = req.body;
-
-      if (!requestBody.messages || requestBody.messages.length === 0) {
+      const messages = sanitizeMessages(req.body?.messages);
+      if (!messages) {
         res.status(400).json({
-          error: 'Missing required fields: provider, modelName, or non-empty messages array',
+          error: `A non-empty messages array (max ${MAX_MESSAGES}, roles user/assistant) is required`,
         });
         return;
       }
-      const messages = requestBody.messages;
-      const config = requestBody;
 
-      // Pass the runPrompt function from the service to tryGenerateFullJSON
-      const jsonResponse = await promptService.runPrompt(config, messages);
+      const jsonResponse = await promptService.runPrompt(
+        {
+          provider: LLMProvider.GLM,
+          modelName: GLM_MODELS.mechanical,
+          fallbackModels: TEXT_FALLBACK_MODELS,
+          userId: req.user?.uid,
+          language: req.language,
+        },
+        messages
+      );
       res.status(200).json(jsonResponse);
     } catch (error: any) {
       console.error('Error in PromptController:', error);
-      // Check if the error has a message property, otherwise send a generic error
-      const errorMessage = error.message || 'Something broke during prompt processing!';
-      res.status(500).send({ error: errorMessage });
+      if (error.message?.includes('Quota exceeded')) {
+        res.status(429).json({ error: 'Quota exceeded' });
+        return;
+      }
+      res.status(500).send({ error: 'Something broke during prompt processing!' });
     }
   }
 
   async improvePrompt(req: CustomRequest, res: Response): Promise<void> {
     try {
       const { prompt } = req.body;
-      if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+      if (!prompt || typeof prompt !== 'string' || !prompt.trim() || prompt.length > 5000) {
         res.status(400).json({ error: 'Le prompt à améliorer est requis.' });
         return;
       }
@@ -71,10 +106,10 @@ Strict rules:
     } catch (error: any) {
       console.error('Error in improvePrompt:', error);
       if (error.message?.includes('Quota exceeded')) {
-        res.status(429).json({ error: 'Quota exceeded', message: error.message });
+        res.status(429).json({ error: 'Quota exceeded' });
         return;
       }
-      res.status(500).json({ error: error.message || "Erreur lors de l'amélioration du prompt." });
+      res.status(500).json({ error: "Erreur lors de l'amélioration du prompt." });
     }
   }
 
@@ -115,10 +150,10 @@ Strict rules:
     } catch (error: any) {
       console.error('Error in generateFeelingLucky:', error);
       if (error.message?.includes('Quota exceeded')) {
-        res.status(429).json({ error: 'Quota exceeded', message: error.message });
+        res.status(429).json({ error: 'Quota exceeded' });
         return;
       }
-      res.status(500).json({ error: error.message || "Erreur lors de la génération de l'idée." });
+      res.status(500).json({ error: "Erreur lors de la génération de l'idée." });
     }
   }
 }

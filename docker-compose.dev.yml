@@ -33,7 +33,7 @@ services:
     container_name: idem-mongodb-dev
     restart: unless-stopped
     ports:
-      - '${MONGODB_PORT:-27017}:27017'
+      - '127.0.0.1:${MONGODB_PORT:-27017}:27017'
     environment:
       MONGO_INITDB_ROOT_USERNAME: '${MONGODB_USERNAME:-admin}'
       MONGO_INITDB_ROOT_PASSWORD: '${MONGODB_PASSWORD:-admin123}'
@@ -55,8 +55,8 @@ services:
     container_name: idem-minio-dev
     restart: unless-stopped
     ports:
-      - '${MINIO_PORT:-9000}:9000' # API
-      - '${MINIO_CONSOLE_PORT:-9001}:9001' # Console
+      - '127.0.0.1:${MINIO_PORT:-9000}:9000' # API
+      - '127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001' # Console
     environment:
       MINIO_ROOT_USER: '${MINIO_ROOT_USER:-minioadmin}'
       MINIO_ROOT_PASSWORD: '${MINIO_ROOT_PASSWORD:-minioadmin123}'
@@ -76,7 +76,7 @@ services:
     container_name: postgres
     restart: unless-stopped
     ports:
-      - '${FORWARD_DB_PORT:-5432}:5432'
+      - '127.0.0.1:${FORWARD_DB_PORT:-5432}:5432'
     environment:
       POSTGRES_USER: '${DB_USERNAME:-ideploy}'
       POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
@@ -104,7 +104,7 @@ services:
       --timeout 300
       --save ""
     ports:
-      - '${FORWARD_REDIS_PORT:-6379}:6379'
+      - '127.0.0.1:${FORWARD_REDIS_PORT:-6379}:6379'
     volumes:
       - dev_redis_data:/data
     networks:
@@ -120,8 +120,8 @@ services:
     container_name: idem-mailpit-dev
     restart: unless-stopped
     ports:
-      - '8025:8025' # Web UI
-      - '1025:1025' # SMTP
+      - '127.0.0.1:8025:8025' # Web UI
+      - '127.0.0.1:1025:1025' # SMTP
     networks:
       - idem-dev
 

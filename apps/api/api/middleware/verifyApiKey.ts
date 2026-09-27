@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import logger from '../config/logger';
+import { safeEqual } from '../utils/safe-equal.util';
 
 /**
  * Middleware to verify API key for inter-service communication
@@ -9,13 +10,6 @@ export const verifyApiKey = (req: Request, res: Response, next: NextFunction): v
   const apiKey = req.headers['x-api-key'] as string;
   const expectedApiKey = process.env.INTERNAL_API_KEY;
 
-  logger.info('API Key verification attempt', {
-    hasApiKey: !!apiKey,
-    apiKeyLength: apiKey ? apiKey.length : 0,
-    allHeaders: Object.keys(req.headers),
-    path: req.path,
-    method: req.method,
-  });
 
   if (!expectedApiKey) {
     logger.error('INTERNAL_API_KEY not configured in environment variables');
@@ -26,7 +20,7 @@ export const verifyApiKey = (req: Request, res: Response, next: NextFunction): v
     return;
   }
 
-  if (!apiKey) {
+  if (!apiKey || typeof apiKey !== 'string') {
     logger.warn('API key verification failed: No API key provided', {
       path: req.path,
       ip: req.ip,
@@ -38,7 +32,8 @@ export const verifyApiKey = (req: Request, res: Response, next: NextFunction): v
     return;
   }
 
-  if (apiKey !== expectedApiKey) {
+  // Comparaison à temps constant : `!==` laisse mesurer le préfixe commun.
+  if (!safeEqual(apiKey, expectedApiKey)) {
     logger.warn('API key verification failed: Invalid API key', {
       path: req.path,
       ip: req.ip,
@@ -50,9 +45,6 @@ export const verifyApiKey = (req: Request, res: Response, next: NextFunction): v
     return;
   }
 
-  logger.info('API key verified successfully', {
-    path: req.path,
-  });
 
   next();
 };

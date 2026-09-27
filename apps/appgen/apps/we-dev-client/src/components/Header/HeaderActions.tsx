@@ -220,6 +220,7 @@ export function HeaderActions() {
           // Send request
           const response = await fetch(`${API_BASE}/api/deploy`, {
             method: 'POST',
+            credentials: 'include',
             body: formData,
           });
           const data = await response.json();
