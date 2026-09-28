@@ -198,7 +198,6 @@
         "emptyZip": "L'archive reçue est vide."
       },
       "board": {
-        "charterReady": "Charte prête",
         "openCharter": "Ouvrir la charte",
         "downloadLogos": "Télécharger",
         "variations": "Déclinaisons du logo",
@@ -207,7 +206,7 @@
         "copied": "Copié"
       },
       "identityEditor": {
-        "open": "Identité visuelle",
+        "open": "Modifier l'identité",
         "title": "Identité visuelle",
         "subtitle": "Changez le logo, les couleurs ou les polices : tous vos documents, visuels et votre site suivent.",
         "logo": {

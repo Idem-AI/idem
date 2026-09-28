@@ -198,7 +198,6 @@
         "emptyZip": "The archive received is empty."
       },
       "board": {
-        "charterReady": "Guidelines ready",
         "openCharter": "Open guidelines",
         "downloadLogos": "Download",
         "variations": "Logo variations",
@@ -207,7 +206,7 @@
         "copied": "Copied"
       },
       "identityEditor": {
-        "open": "Visual identity",
+        "open": "Edit identity",
         "title": "Visual identity",
         "subtitle": "Change the logo, colors or fonts: all your documents, visuals and website follow.",
         "logo": {
