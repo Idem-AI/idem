@@ -31,6 +31,7 @@ import { setRevisionNote, suppressCoherenceTrigger } from '../../utils/revision-
 import { resolveSvgContent } from '../logo-import.service';
 import { invalidateVisualImage } from '../Communication/visualImageCache';
 import { generateLogoVariations } from '../logoVariationEngine.service';
+import { customFontService } from '../customFont.service';
 import { storageService } from '../storage.service';
 import {
   addStats,
@@ -322,6 +323,19 @@ export class BrandSyncService {
 
     if (dryRun) return logo;
 
+    // Un concept proposé par la génération est souvent encore en SVG EN LIGNE :
+    // il est déposé dans le stockage avant d'être propagé, sinon chaque page de
+    // chaque document recevrait sa copie du SVG au lieu d'une URL.
+    if (logo.svg.includes('<svg') || logo.iconSvg?.includes('<svg')) {
+      const hosted = await storageService.uploadAllLogoSvgs(logo, userId, projectId);
+      logo = {
+        ...logo,
+        svg: hosted.svg,
+        ...(hosted.iconSvg ? { iconSvg: hosted.iconSvg } : {}),
+        ...(hosted.variations ? { variations: hosted.variations } : {}),
+      };
+    }
+
     logo = await this.ensureVariations(logo, userId, projectId);
     // Les PNG sont ce que lisent les rendus (PDF, visuels, bannières) : un
     // logo sans eux retomberait sur le SVG et perdrait ses déclinaisons.
@@ -329,26 +343,58 @@ export class BrandSyncService {
     return logo;
   }
 
-  private buildTypography(
-    input: IdentityTypographyInput,
-    current: TypographyModel | undefined
-  ): TypographyModel {
-    const normalize = (font?: IdentityTypographyInput['primary']): BrandFontModel | undefined => {
-      const family = font?.family?.trim();
-      if (!family) return undefined;
-      return {
-        family,
-        source: font?.source ?? 'google',
-        cssUrl: font?.cssUrl,
-        category: font?.category,
-        weights: font?.weights,
-        customFontId: font?.customFontId,
-        files: font?.files,
-      };
-    };
+  /**
+   * Police choisie dans le panneau. Pour une police IMPORTÉE, la famille, la
+   * feuille et les fichiers sont relus depuis la police enregistrée de
+   * l'utilisateur : ce sont eux qui chargent la police dans les rendus et
+   * remplissent le ZIP d'assets, ils ne viennent donc jamais du navigateur.
+   */
+  private async resolveFont(
+    font: IdentityTypographyInput['primary'],
+    userId: string
+  ): Promise<BrandFontModel | undefined> {
+    const family = font?.family?.trim();
+    if (!family) return undefined;
 
-    const primary = normalize(input.primary) ?? current?.primary ?? undefined;
-    const secondary = normalize(input.secondary) ?? current?.secondary ?? undefined;
+    if (font?.source === 'custom') {
+      // Un identifiant mal formé fait échouer la requête : c'est une police
+      // introuvable, pas une erreur serveur.
+      const stored = font.customFontId
+        ? await customFontService.getFont(userId, font.customFontId).catch(() => null)
+        : null;
+      if (!stored) throw new IdentityInputError(`La police importée « ${family} » est introuvable.`);
+      return {
+        family: stored.family,
+        source: 'custom',
+        cssUrl: stored.cssUrl,
+        category: stored.category,
+        weights: stored.weights,
+        customFontId: stored.id,
+        files: stored.files,
+      };
+    }
+
+    return {
+      family,
+      source: font?.source ?? 'google',
+      cssUrl: font?.cssUrl,
+      category: font?.category,
+      weights: font?.weights,
+    };
+  }
+
+  private async buildTypography(
+    input: IdentityTypographyInput,
+    current: TypographyModel | undefined,
+    userId: string
+  ): Promise<TypographyModel> {
+    const [chosenPrimary, chosenSecondary] = await Promise.all([
+      this.resolveFont(input.primary, userId),
+      this.resolveFont(input.secondary, userId),
+    ]);
+
+    const primary = chosenPrimary ?? current?.primary ?? undefined;
+    const secondary = chosenSecondary ?? current?.secondary ?? undefined;
     const primaryFont = primary?.family ?? current?.primaryFont ?? '';
     const secondaryFont = secondary?.family ?? current?.secondaryFont ?? primaryFont;
     if (!primaryFont) throw new IdentityInputError('Une police de titre est requise.');
@@ -434,7 +480,7 @@ export class BrandSyncService {
     }
 
     if (request.typography) {
-      next.typography = this.buildTypography(request.typography, before.typography);
+      next.typography = await this.buildTypography(request.typography, before.typography, userId);
     }
 
     const tokensBefore = computeBrandTokens(before);

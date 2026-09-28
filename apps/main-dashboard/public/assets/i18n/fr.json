@@ -1820,8 +1820,11 @@
           "title": "Logo",
           "import": "Importer un logo",
           "keepCurrent": "Garder le logo actuel",
-          "previous": "Ou reprendre un logo déjà proposé",
-          "colorsFromLogo": "Adapter les couleurs à ce logo"
+          "previous": "Logos proposés",
+          "colorsFromLogo": "Adapter les couleurs à ce logo",
+          "regenerate": "Proposer d'autres logos",
+          "regenerating": "Création des logos…",
+          "none": "Aucun autre logo proposé pour l'instant."
         },
         "colors": {
           "title": "Couleurs",
@@ -1838,14 +1841,17 @@
             "accent": "Accent",
             "background": "Fond",
             "text": "Texte"
-          }
+          },
+          "proposals": "Palettes proposées"
         },
         "fonts": {
           "title": "Polices",
           "primary": "Titres",
           "secondary": "Texte courant",
           "search": "Chercher une police…",
-          "undo": "Annuler"
+          "undo": "Annuler",
+          "proposals": "Associations proposées",
+          "import": "Importer"
         },
         "preview": {
           "title": "Ce qui va changer",
@@ -1864,7 +1870,10 @@
           "title": "Nouvelle identité appliquée",
           "subtitle": "Tous les supports ont été mis à jour. Chaque changement reste annulable depuis l'historique."
         },
-        "error": "La mise à jour n'a pas abouti. Réessayez."
+        "error": "La mise à jour n'a pas abouti. Réessayez.",
+        "regenerate": "Proposer d'autres",
+        "regenerating": "Proposition en cours…",
+        "regenError": "La génération n'a pas abouti. Réessayez."
       }
     },
     "additionalInfoForm": {

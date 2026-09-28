@@ -2340,26 +2340,20 @@ export class BrandingService extends GenericService {
   private async updateProjectWithLogosAsync(
     userId: string,
     projectId: string,
-    project: ProjectModel,
-    selectedColors: ColorModel,
-    selectedTypography: TypographyModel,
     logos: LogoModel[]
   ): Promise<void> {
     try {
-      // Préparer les données de mise à jour
+      // Seuls les logos proposés sont écrits. Ce service réécrivait le projet
+      // ENTIER tel qu'il avait été lu avant la génération (plusieurs dizaines
+      // de secondes, et plusieurs écritures progressives) : tout ce qui avait
+      // changé entre-temps était effacé — une identité appliquée depuis le
+      // panneau « Identité visuelle » et propagée à tous les supports, par
+      // exemple. La palette et les polices qu'il réécrivait étaient celles lues
+      // en base pour générer : rien n'est perdu à ne plus les écrire.
       const updatedProjectData = {
-        ...project,
-        analysisResultModel: {
-          ...project.analysisResultModel,
-          branding: {
-            ...project.analysisResultModel?.branding,
-            colors: selectedColors,
-            typography: selectedTypography,
-            generatedLogos: logos,
-            updatedAt: new Date(),
-          },
-        },
-      };
+        'analysisResultModel.branding.generatedLogos': logos,
+        'analysisResultModel.branding.updatedAt': new Date(),
+      } as any;
 
       // Paralléliser DB update et cache update
       const [updatedProject, _] = await Promise.allSettled([
@@ -3003,9 +2997,6 @@ export class BrandingService extends GenericService {
       this.updateProjectWithLogosAsync(
         userId,
         projectId,
-        project,
-        selectedColors,
-        selectedTypography,
         finalLogosList // Utiliser la liste complète de logos
       ),
     ]);
@@ -3303,9 +3294,6 @@ export class BrandingService extends GenericService {
           this.updateProjectWithLogosAsync(
             userId,
             projectId,
-            project,
-            selectedColors,
-            selectedTypography,
             snapshot
           )
         )
