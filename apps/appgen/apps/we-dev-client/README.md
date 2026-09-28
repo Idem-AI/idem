@@ -1,65 +1,63 @@
-[![English](https://img.shields.io/badge/README-English-494cad.svg)](https://github.com/idem appgen-dev/idem appgen/blob/main/apps/we-dev-client/README.md) [![中文](https://img.shields.io/badge/README-中文-494cad.svg)](https://github.com/idem appgen-dev/idem appgen/blob/main/apps/we-dev-client/docs/README.zh.md) 
+# AppGen editor (`we-dev-client`)
 
+The browser editor of AppGen: chat with the generator, code editor, file tree, terminal and live preview. Generated projects run **inside the browser** with StackBlitz WebContainer; nothing is executed on IDEM servers.
 
+Stack: React 18, Vite 5, Zustand, CodeMirror 6, xterm, Tailwind, i18next (`en`, `fr`, `zh` in `src/locale`).
 
-- windows:
+AppGen overview: [../../README.md](../../README.md) · Server API: [../we-dev-next/docs/API.md](../we-dev-next/docs/API.md)
 
-# 🛠️ Windows `node-pty` Dependency Installation Guide 
+## Run
 
-<span style="color: #3498db; font-weight: 600;">⚠️ Important Notice:</span>  
-This solution applies to Windows 10/11 environments
-
-## 🚀 Visual Studio Installer Setup
-
-### 1. [Official Download](https://visualstudio.microsoft.com/zh-hans/downloads/)
-
-### 2. Custom Installation Path
-- For existing VS installations needing path modification:
-  1. Press `WIN + R` to open Registry Editor
-  2. Navigate to:  
-     `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\Setup`
-  3. Modify/Delete `SharedInstallationPath` value  
-     Example: `D:\software\Microsoft\VisualStudio\Shared`
-
-### 3. Component Selection
-
-  - ☑️ C++ Desktop Development
-  - ☑️ Python Development
-  - ☑️ Python 3 64-bit
-  - ☑️ MSVC v142 or newer (VS Tool Installation Interface - Single Component - Search for MSVC)
-  - ☑️ CMake (Bundled version)
-
-## 4. Configure the Python environment
-
-* &#x20; In the Path environment variable, add python.exe path and pip.exe path
-
-* Verify the Python environment
 ```bash
-    python --V
-    pip --V
+cp .env.example .env
+pnpm install
+pnpm dev          # http://localhost:5173
 ```
 
-## 5. Install dependencies (stable node version recommended)
-* Delete the original node_modules
-  ```bash
-    rm -rf node_modules
-    pnpm install
-  ```
-* If you run into peer-to-peer dependency issues
-  ```bash
-    pnpm install --legacy-peer-deps
-  ```
-## 6. The last error that pnpm install may encounter is as follows
-![alt text](./docs/error.png)
-  - Solution: (Find pnpm.cjs in pnpm, take the 18.18.1 node version here as an example due to the nvm management used)
-  ### 🛠️ 1、View the NVM path:
-  - ```bash
-    nvm root
-    
-  ### 🛠️ 2、Locate this file：
-  - C:\Users\13906\AppData\Roaming\nvm\v18.18.1\node_modules\pnpm\bin\pnpm.cjs
-    <span style="color: #3498db; font-weight: 600;">⚠️ ：</span> ：nvm前面的地址以你实际本机nvm的具体路径为主件
-  
-  ###  🛠️ 3、Modify the content of the first line of code in the file.:
-    --Original：#!/usr/bin/env node
-    --Modified: #!node
+| Script | Role |
+|---|---|
+| `pnpm dev` | Vite dev server on port 5173 |
+| `pnpm build` | Production build to `dist/` |
+| `pnpm start` | `vite preview` on `0.0.0.0` (used by the Docker image) |
+| `pnpm tsc` | Type check |
+
+Sign in on the IDEM dashboard first: the editor uses the IDEM session cookies. `getCurrentUser` calls `GET /auth/profile` on the IDEM API with `credentials: 'include'`.
+
+## Configuration
+
+Only variables prefixed with `REACT_APP_` are injected into the bundle (see `publicEnv` in [`vite.config.ts`](vite.config.ts)). **The bundle is public: never put a secret in these variables.** Any other variable in `.env` is ignored by the build.
+
+| Variable | Role |
+|---|---|
+| `REACT_APP_BASE_URL`, `REACT_APP_NEXT_API_BASE_URL` | AppGen server (`we-dev-next`) |
+| `REACT_APP_IDEM_API_BASE_URL` | IDEM API (profile, projects, billing) |
+| `REACT_APP_IDEM_MAIN_APP_URL` | IDEM dashboard (sign-in) |
+| `REACT_APP_IDEPLOY_URL` | iDeploy (deploy button) |
+
+## WebContainer requirements
+
+WebContainer needs cross-origin isolation. The Vite **dev** server sends:
+
+```
+Cross-Origin-Embedder-Policy: credentialless
+Cross-Origin-Opener-Policy: same-origin
+```
+
+`vite preview` (used by the production image, port 4173) does **not** set them: the reverse proxy in front of `appgen.idem.africa` must add both headers, or the preview will not boot. The preview server only accepts the hosts listed in `preview.allowedHosts`. Images loaded over plain `http` (the local MinIO bucket) are blocked in the HTTPS preview; the server's `/api/assets/inline` works around it in development.
+
+## Layout
+
+```
+src/
+├── api/          calls to the AppGen server and the IDEM API (chat, auth, billing, design, persistence)
+├── components/   AiChat, WeIde (editor), Workspace, DeployModal, ChecksPanel, ThemePanel, Settings, …
+├── stores/       Zustand slices (chat, history, billing, theme, terminal, MCP, user)
+├── hooks/, lib/, utils/, types/
+└── locale/       en.json, fr.json, zh.json
+```
+
+Chat history is kept in the browser (`appgen-chat-history`, Zustand `persist`).
+
+## Docker
+
+`Dockerfile/prod/Dockerfile.appgen-client` at the repository root: the builder stage copies the root `.env` (only `REACT_APP_*` values reach the bundle) and runs `pnpm build`; the final stage keeps only `dist/` and dependencies, and serves on port 4173 with `pnpm start`. The `.env` never reaches the pushed image.

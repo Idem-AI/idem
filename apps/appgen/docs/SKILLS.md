@@ -4,7 +4,7 @@ How appgen produces interfaces that do not read as machine-made, and why the cha
 
 ## The problem
 
-A model with no design anchor returns the average of its training data: purple gradient, Inter, three identical cards, uppercase eyebrow above every section. Before this system, appgen sent one monolithic prompt containing technical constraints and no art direction, concatenated into the **last user message** — which also meant Gemini's implicit cache (90% off repeated prefixes) never hit, and the Sub-Saharan Africa directives were pasted four times per request.
+A model with no design anchor returns the average of its training data: purple gradient, Inter, three identical cards, uppercase eyebrow above every section. Before this system, appgen sent one monolithic prompt containing technical constraints and no art direction, concatenated into the **last user message** — which also meant the provider's prefix cache never hit, and the Sub-Saharan Africa directives were pasted four times per request.
 
 ## Four parts
 
@@ -100,7 +100,7 @@ The logo sits outside the project brief deliberately. The brief is only sent on 
 
 `analysisResultModel.design.sections` (the use-case diagrams) is no longer sent by the client and is read nowhere — not in the brief, not in the router's scoring signal.
 
-Gemini's implicit cache discounts input tokens by 90% when a request shares a prefix with an earlier one, and it matches on the **prefix**, so anything invariant has to come first and stay byte-identical. That is why the router sorts its output deterministically instead of by score.
+Provider-side prompt caching (Gemini's implicit cache when this was written, GLM's context cache now that GLM is the default) discounts input tokens when a request shares a prefix with an earlier one, and it matches on the **prefix**, so anything invariant has to come first and stay byte-identical. That is why the router sorts its output deterministically instead of by score.
 
 `streamTextFn` pulls every `system` role message out of the list into the provider's `system` field. The old heuristic that split the user message on a `PROJECT CONTEXT AND REQUIREMENTS:` marker is gone.
 
@@ -165,4 +165,4 @@ Origin is validated against localhost plus `MCP_ALLOWED_ORIGINS` (comma-separate
 
 ## Build note
 
-Skills are markdown, so `tsc` does not carry them into `dist/`. `npm run build` runs `scripts/copy-skills.mjs` afterwards. Without that step the server boots with an empty catalog and generates un-skilled prompts silently, which is why `loadSkills()` also runs at startup in `server.ts` rather than lazily on the first request.
+Skills are markdown, so `tsc` does not carry them into `dist/`. `pnpm build` runs `scripts/copy-skills.mjs` afterwards. Without that step the server boots with an empty catalog and generates un-skilled prompts silently, which is why `loadSkills()` also runs at startup in `server.ts` rather than lazily on the first request.

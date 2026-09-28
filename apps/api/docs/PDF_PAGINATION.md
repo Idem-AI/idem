@@ -1,104 +1,68 @@
-# Pagination des documents PDF (business plan)
+# Paginating PDF documents (business plan)
 
-## Le problème
+## The problem
 
-Les agents produisent **un flux HTML continu par section** (Tailwind + Chart.js).
-Jusqu'ici ce flux était confié à la pagination native de Chrome, avec deux
-conséquences visibles sur le PDF :
+Agents produce **one continuous HTML flow per section** (Tailwind + Chart.js). That flow used to be left to Chrome's native pagination, with two visible consequences on the PDF:
 
-- **des blocs coupés** en travers d'un saut de page (carte, tableau, graphe) ;
-- **des pages à moitié vides** : un bloc qui ne rentre pas est repoussé entier à
-  la page suivante et laisse un trou de 30 à 40 % en bas de la précédente.
+- **blocks cut** across a page break (card, table, chart);
+- **half-empty pages**: a block that does not fit is pushed whole to the next page and leaves a 30 to 40 % hole at the bottom of the previous one.
 
-Le CSS seul ne peut pas régler ça : `break-inside: avoid` évite la coupure mais
-aggrave les trous, et rien en CSS ne sait « étirer » une page pour la remplir.
+CSS alone cannot fix this: `break-inside: avoid` prevents the cut but makes the holes worse, and nothing in CSS can "stretch" a page to fill it.
 
-## La solution
+## The solution
 
-Un paginateur mesure le flux réel dans la page Puppeteer, puis le **reconstruit
-en pages A4 exactes** avant l'impression.
+A paginator measures the real flow in the Puppeteer page, then **rebuilds it into exact A4 pages** before printing.
 
-- Code : [`api/services/pdf/flow-pagination.runtime.ts`](../api/services/pdf/flow-pagination.runtime.ts)
-  (script navigateur exposé en `window.__idemFlow`)
-- Appel : [`api/services/pdf.service.ts`](../api/services/pdf.service.ts),
-  uniquement quand `multiPage: true`
-- Activé par : `BusinessPlanService.generateBusinessPlanPdf`
+- Code: [`api/services/pdf/flow-pagination.runtime.ts`](../api/services/pdf/flow-pagination.runtime.ts) (browser script exposed as `window.__idemFlow`)
+- Called from: [`api/services/pdf.service.ts`](../api/services/pdf.service.ts), only when `multiPage: true`
+- Enabled by: `BusinessPlanService.generateBusinessPlanPdf`
 
-### Étapes
+### Steps
 
-1. **`prepare()` — rendu déterministe avant toute mesure**
-   - relance la génération des utilitaires Tailwind. `page.setContent()` réécrit
-     le document et détache l'observateur du CDN Tailwind : les classes ne sont
-     régénérées que si on réassigne `tailwind.config` (`tailwind.refresh()`
-     n'existe pas dans ce build). Une sonde `h-[137px]` confirme que c'est fait ;
-   - attend `document.fonts.ready`, les images, puis les instances Chart.js ;
-   - **rasterise chaque `<canvas>` en `<img>` PNG** de même boîte : un graphe
-     devient déplaçable, clonable et mesurable (le viewport est en
-     `deviceScaleFactor: 2`, donc les PNG restent nets à l'impression).
+1. **`prepare()` — deterministic rendering before any measurement**
+   - re-runs Tailwind utility generation. `page.setContent()` rewrites the document and detaches the Tailwind CDN observer: classes are only regenerated if `tailwind.config` is reassigned (`tailwind.refresh()` does not exist in this build). An `h-[137px]` probe confirms it is done;
+   - waits for `document.fonts.ready`, images, then Chart.js instances;
+   - **rasterises each `<canvas>` into a PNG `<img>`** with the same box: a chart becomes movable, clonable and measurable (the viewport uses `deviceScaleFactor: 2`, so PNGs stay sharp in print).
 
-2. **Mesure** — chaque section est découpée en « lignes de flux » (les enfants du
-   conteneur racine, regroupés géométriquement pour gérer grilles et flex-wrap).
-   On retient hauteur, espace inter-bloc réel et statut « titre ». Les enfants en
-   `position: absolute` sont des décors : ils seront reproduits sur chaque page.
+2. **Measurement** — each section is split into "flow lines" (the children of the root container, grouped geometrically to handle grids and flex-wrap). We keep height, real spacing between blocks and "heading" status. Children in `position: absolute` are decorations: they are reproduced on every page.
 
-3. **Plan** — remplissage glouton avec fragmentation récursive :
-   conteneur → lignes, tableau → `<tr>` (avec répétition du `<thead>`),
-   paragraphe → coupure à la ligne (jamais moins de 2 lignes de part et d'autre).
-   Un bloc atomique plus haut qu'une page est réduit à l'échelle, jamais rogné.
-   Un titre n'est jamais seul en bas de page (`keep-with-next`, chapeau inclus).
+3. **Plan** — greedy filling with recursive fragmentation: container → lines, table → `<tr>` (repeating the `<thead>`), paragraph → cut at a line (never fewer than 2 lines on either side). An atomic block taller than a page is scaled down, never cropped. A heading is never alone at the bottom of a page (`keep-with-next`, standfirst included).
 
-4. **Équilibrage** — le plan glouton donne le nombre minimal de pages ; on le
-   rejoue avec un budget égal par page (`reste / pages restantes`), en desserrant
-   ce budget par paliers, et on garde le plan dont la page la plus vide est la
-   plus pleine. `[100 %, 100 %, 20 %]` devient `[80 %, 79 %, 74 %]`.
+4. **Balancing** — the greedy plan gives the minimum number of pages; it is replayed with an equal budget per page (`remaining / pages left`), loosening that budget in steps, and the plan whose emptiest page is the fullest is kept. `[100 %, 100 %, 20 %]` becomes `[80 %, 79 %, 74 %]`.
 
-5. **Construction** — chaque page est un **clone du conteneur racine de l'IA**
-   (classes, fond, décors conservés) à hauteur A4 fixe et `overflow: hidden`.
-   Les espaces mesurés sont réappliqués en marges explicites : aucune surprise de
-   fusion de marges.
+5. **Construction** — each page is a **clone of the AI's root container** (classes, background, decorations kept) at a fixed A4 height with `overflow: hidden`. Measured spaces are reapplied as explicit margins: no surprise from margin collapsing.
 
-6. **Remplissage** — l'espace restant est distribué dans les interlignes :
-   - jamais après un titre (on ne détache pas un titre de son texte) ;
-   - en priorité avant un nouveau sous-titre ;
-   - plafonné (12 mm par interligne, 26 mm si la page a peu de blocs) ;
-   - s'il reste plus de 8 %, on desserre les espaces *internes* des blocs
-     multi-lignes (grille de cartes, pile de paragraphes) : 10 mm max.
+6. **Filling** — the remaining space is distributed between lines:
+   - never after a heading (a heading is not detached from its text);
+   - preferably before a new subheading;
+   - capped (12 mm per gap, 26 mm if the page has few blocks);
+   - if more than 8 % remains, the *internal* spaces of multi-line blocks (card grid, stack of paragraphs) are loosened: 10 mm max.
 
-7. **Vérification** — chaque page construite est remesurée ; si le rendu réel
-   déborde (dérive de mesure), les blocs de fin sont repoussés sur une page
-   insérée. **Rien n'est jamais rogné.**
+7. **Verification** — each built page is measured again; if the real rendering overflows (measurement drift), the last blocks are pushed onto an inserted page. **Nothing is ever cropped.**
 
-Le rapport renvoyé (pages, taux de remplissage, fragmentations, réparations) est
-journalisé ; une section qui laisse une page sous 60 % déclenche un `warn` — c'est
-un manque de contenu de l'agent, pas un défaut de mise en page.
+The returned report (pages, fill ratio, fragmentations, repairs) is logged; a section leaving a page under 60 % triggers a `warn` — it is a lack of content from the agent, not a layout defect.
 
-## Ce que les prompts doivent garantir
+## What prompts must guarantee
 
-Voir [`services/BusinessPlan/prompts/_shared.prompt.ts`](../api/services/BusinessPlan/prompts/_shared.prompt.ts) :
-les agents ne gèrent plus aucun saut de page, mais doivent produire assez de
-matière pour un nombre entier de pages (≈ 550-700 mots par page pleine, ou
-350 mots + un graphe). Le seul défaut que le moteur ne peut pas corriger est le
-manque de contenu.
+See [`services/BusinessPlan/prompts/_shared.prompt.ts`](../api/services/BusinessPlan/prompts/_shared.prompt.ts): agents no longer handle any page break, but must produce enough material for a whole number of pages (≈ 550–700 words per full page, or 350 words + a chart). The only defect the engine cannot fix is missing content.
 
-Attributs reconnus dans le HTML généré :
+Attributes recognised in the generated HTML:
 
-| Attribut | Effet |
+| Attribute | Effect |
 | --- | --- |
-| `data-keep-together` | le bloc n'est jamais fragmenté (réduit à l'échelle si trop haut) |
-| `data-keep-with-next` | le bloc reste collé au bloc suivant |
+| `data-keep-together` | the block is never fragmented (scaled down if too tall) |
+| `data-keep-with-next` | the block stays attached to the next block |
 
-## Cas particuliers
+## Special cases
 
-- **Couverture** : passée dans `fixedPageSections`, elle est rendue telle quelle
-  sur une page exacte (composition pleine page, jamais étirée ni redécoupée).
-- **Plusieurs éléments racine** : si l'agent oublie le conteneur unique, ils sont
-  enveloppés automatiquement (sinon tout sauf le premier serait perdu).
-- **Pitch deck / charte graphique** (`multiPage: false`) : inchangé, une section
-  = une page rognée. Ces documents profitent quand même de `prepare()`.
+- **Cover**: passed in `fixedPageSections`, it is rendered as is on an exact page (full-page composition, never stretched or re-cut).
+- **Several root elements**: if the agent forgets the single container, they are wrapped automatically (otherwise everything but the first would be lost).
+- **Pitch deck / brand charter** (`multiPage: false`): unchanged, one section = one cropped page. These documents still benefit from `prepare()`.
 
-## Réglages
+## Settings
 
-`PdfGenerationOptions.pagination` : `minFillRatio` (0.30), `maxGapAddMm` (12),
-`balance` (true). Le runtime accepte en plus `maxGapAddHardMm` (26),
-`maxInnerGapAddMm` (10) et `debug` (trace le plan et le remplissage page par page
-dans `report.warnings`).
+`PdfGenerationOptions.pagination`: `minFillRatio` (0.30), `maxGapAddMm` (12), `balance` (true). The runtime also accepts `maxGapAddHardMm` (26), `maxInnerGapAddMm` (10) and `debug` (traces the plan and the filling page by page in `report.warnings`).
+
+## Network access during rendering
+
+The Chromium page is protected by the render network guard (`utils/render-network-guard.ts`): it can load public resources and the storage/API hosts, but not internal addresses or `file://`. If a logo or font stored on an internal host does not show in a PDF, add that host to `RENDER_ALLOWED_HOSTS`.

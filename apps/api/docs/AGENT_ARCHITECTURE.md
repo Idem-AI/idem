@@ -1,56 +1,50 @@
-# Architecture d'orchestration IA
+# AI orchestration architecture
 
-Comment IDEM fait travailler plusieurs modèles ensemble, et pourquoi c'est
-construit ainsi. À lire avant d'ajouter une génération, un agent ou un modèle.
+How IDEM makes several models work together, and why it is built this way. Read it before adding a generation, an agent or a model.
 
-## Le principe
+## The principle
 
-> **L'orchestrateur est du code déterministe. Un agent n'est justifié que là où
-> le chemin n'est pas connu à l'avance.**
+> **The orchestrator is deterministic code. An agent is only justified where the path is not known in advance.**
 
-Générer un business plan de 9 sections, c'est un plan connu à l'avance → c'est un
-**workflow**. Répondre à « pourquoi mon déploiement casse ? », ce n'est pas un
-plan connu → c'est un **agent**.
+Generating a 9-section business plan follows a plan known in advance → it is a **workflow**. Answering "why does my deployment break?" does not → it is an **agent**.
 
-Transformer chaque génération en essaim d'agents autonomes coûterait 3 à 10× plus
-cher en tokens, pour une latence non bornée et un résultat non reproductible —
-donc infacturable proprement, alors que le produit vend des crédits.
+Turning every generation into a swarm of autonomous agents would cost 3 to 10× more tokens, with unbounded latency and a non-reproducible result — impossible to bill fairly, while the product sells credits.
 
-| Flux | Modèle d'exécution |
+| Flow | Execution model |
 |---|---|
-| Business plan, pitch deck, branding, docs légaux | Graphe déterministe + digests |
-| Business plan sourcé, prévisions financières | Équipe de recherche (`research/`) |
-| Chat advisor, édition de section | Agent à outils (Context Engine) |
-| iCode, debug de déploiement | Agent (chemin inconnu par nature) |
-| Cohérence inter-artefacts | Critique événementiel (`coherence/`) |
+| Business plan, pitch deck, branding, legal documents | Deterministic graph + digests |
+| Sourced business plan, financial forecasts | Research team (`research/`) |
+| Advisor chat, section editing | Agent with tools (Context Engine) |
+| iCode, deployment debugging | Agent (unknown path by nature) |
+| Cross-deliverable coherence | Event-driven critic (`coherence/`) |
 
-## Les briques
+## The building blocks
 
 ```
 services/agents/
-├── agent-runtime.ts        Exécution d'un agent: routage, escalade, budget, trace
-├── run-budget.ts           Plafond de consommation d'un run (module pur)
-├── deliverable-graph.ts    Qui dépend de qui, par livrable
-├── section-digest.service.ts   Réduction d'une section à ses faits
-├── quality-gate.ts         Contrôle déterministe d'une sortie (module pur)
-├── section-verifier.service.ts Réparation bornée d'une sortie défaillante
-└── text-extract.ts         Extraction du texte utile (module pur)
+├── agent-runtime.ts            Runs an agent: routing, escalation, budget, trace
+├── run-budget.ts               Consumption ceiling of a run (pure module)
+├── deliverable-graph.ts        Who depends on whom, per deliverable
+├── section-digest.service.ts   Reduces a section to its facts
+├── quality-gate.ts             Deterministic check of an output (pure module)
+├── section-verifier.service.ts Bounded repair of a faulty output
+└── text-extract.ts             Extracts the useful text (pure module)
 
 config/
-├── ai.config.ts            Réglages par feature et par section
-└── model-router.ts         Étages de modèles XS / M / S
+├── ai.config.ts                Settings per feature and per section
+└── model-router.ts             XS / M / S model tiers
 ```
 
-### 1. Le runtime d'agent
+### 1. The agent runtime
 
-Tout appel IA à rôle passe par `runAgent()`. Un agent est une **déclaration** :
+Every AI call with a role goes through `runAgent()`. An agent is a **declaration**:
 
 ```ts
 const result = await runAgent(
   {
     role: 'section-writer',
-    task: 'draft',              // → étage de départ
-    baseConfig: { ... },        // modèle imposé par la feature (prioritaire)
+    task: 'draft',              // → starting tier
+    baseConfig: { ... },        // model imposed by the feature (takes priority)
     tools: CONTEXT_TOOL_DECLARATIONS,
     toolExecutor: createContextToolExecutor(userId, projectId),
     validate: qualityValidator({ format: 'html' }),
@@ -59,100 +53,73 @@ const result = await runAgent(
 );
 ```
 
-Le runtime fournit, pour tout le monde et une seule fois : boucle d'outils,
-repli sans outils si elle échoue, escalade d'un cran si le contrôle échoue,
-décompte du budget, ventilation du coût par élément, trace `agent.*`.
+The runtime provides, for everyone and once: the tool loop, a fallback without tools if it fails, a one-step escalation if the check fails, budget accounting, cost breakdown per element, and the `agent.*` trace.
 
-### 2. Les graphes de livrables
+### 2. Deliverable graphs
 
-Les dépendances entre sections vivent dans `deliverable-graph.ts`, pas dans les
-services. Elles sont validées (cycles, noms inconnus) et mesurées : la
-**profondeur du graphe est le multiplicateur de latence** du livrable.
+Dependencies between sections live in `deliverable-graph.ts`, not in the services. They are validated (cycles, unknown names) and measured: **the depth of the graph is the latency multiplier** of the deliverable.
 
-Les graphes actuels font 3 vagues. Ajouter une dépendance « logique mais
-accessoire » coûte potentiellement une vague entière — s'en tenir aux liens qui
-évitent une vraie contradiction.
+Current graphs have 3 waves. Adding a dependency that is "logical but incidental" can cost a whole wave — keep only links that prevent a real contradiction.
 
 ```
-Business plan   V1 Cover Page · Opportunity · Target Audience · Products & Services
-                V2 Company Summary · Marketing & Sales · Financial Plan
-                V3 Goal Planning · Appendix
+Business plan   W1 Cover Page · Opportunity · Target Audience · Products & Services
+                W2 Company Summary · Marketing & Sales · Financial Plan
+                W3 Goal Planning · Appendix
 
-Pitch deck      V1 Cover · Problem · Market · Team · Business Model
-                V2 Solution · Product · Competition · Financials
-                V3 Traction · Ask
+Pitch deck      W1 Cover · Problem · Market · Team · Business Model
+                W2 Solution · Product · Competition · Financials
+                W3 Traction · Ask
 ```
 
-### 3. Les digests
+### 3. Digests
 
-Une dépendance ne transporte **pas** le texte de la section amont, mais son
-digest : les faits, les chiffres, les noms, sans balisage. Réduction typique
-15 à 30×.
+A dependency does **not** carry the text of the upstream section but its digest: facts, figures, names, no markup. Typical reduction: 15 to 30×.
 
-L'ancien comportement — concaténer le texte intégral de toutes les étapes
-précédentes — faisait croître le prompt de la n-ième section avec la somme des
-n−1 précédentes. Sur 9 sections de ~12k tokens, la facture d'entrée dépassait
-celle du contenu produit.
+The former behaviour — concatenating the full text of every previous step — made the prompt of the n-th section grow with the sum of the n−1 previous ones. On 9 sections of ~12k tokens, the input bill exceeded that of the produced content.
 
-Trois modes, via `IPromptStep.contextMode` :
+Three modes, through `IPromptStep.contextMode`:
 
-- `digest` (défaut dès qu'il y a des dépendances) ;
-- `full` — texte intégral, à réserver aux cas où les noms exacts comptent
-  (Mermaid : un résumé perdrait les noms de nœuds à réutiliser) ;
+- `digest` (default as soon as there are dependencies);
+- `full` — full text, for cases where exact names matter (Mermaid: a summary would lose the node names to reuse);
 - `none`.
 
-### 4. Le routeur de modèles
+### 4. The model router
 
-Trois étages, surchargeables par variable d'environnement
-(`IDEM_TIER_XS_MODEL`, `IDEM_TIER_M_MODEL`, `IDEM_TIER_S_MODEL`) :
+Three tiers. A tier is a **role**, not a model: it resolves to the model of that role for the active provider (`AI_DEFAULT_PROVIDER`, GLM by default — see [AI routing](AI_ROUTING.md)), and each tier can be pinned with `IDEM_TIER_XS_MODEL`, `IDEM_TIER_M_MODEL`, `IDEM_TIER_S_MODEL`.
 
-| Étage | Pour quoi | Défaut |
-|---|---|---|
-| **XS** | résumé, vérification, réparation, classification, extraction | `gemini-2.5-flash` |
-| **M** | rédaction, structuration | `gemini-3-flash-preview` |
-| **S** | stratégie, chiffres, création visuelle | `gemini-3.1-pro-preview` |
+| Tier | Role | For | Default on GLM |
+|---|---|---|---|
+| **XS** | `mechanical` | summary, check, repair, classification, extraction | `glm-4.7-flashx` |
+| **M** | `writing` | writing, structuring | `glm-4.7` |
+| **S** | `reasoning` | strategy, figures, visual creation | `glm-5.2` |
 
-Une section se route en déclarant `tier` dans `ai.config.ts` :
+A section is routed by declaring `tier` in `ai.config.ts`:
 
 ```ts
 'Cover Page': { tier: 'M', llmOptions: { maxOutputTokens: 9000 } },
 ```
 
-Règles de priorité, du plus fort au plus faible : `modelName` déclaré sur la
-section → `tier` de la section → `tier` de la feature → `modelName` de la
-feature. Une décision explicite n'est jamais écrasée par le routeur.
+Priority, strongest first: `modelName` declared on the section → the section's `tier` → the feature's `tier` → the feature's `modelName`. An explicit decision is never overridden by the router.
 
-**L'escalade** : un agent ne réessaie que si son `validate` échoue, et d'un seul
-cran. Sans contrôle de sortie, pas d'escalade — on ne paie jamais deux fois pour
-rien.
+**Escalation**: an agent retries only if its `validate` fails, and only one step up. Without an output check there is no escalation — we never pay twice for nothing.
 
-### 5. Le contrôle de sortie
+### 5. Output checks
 
-Trois paliers, du gratuit vers le payant :
+Three levels, from free to paid:
 
-1. **Grille déterministe** (`quality-gate.ts`) — troncature, balises
-   déséquilibrées, bloc de code résiduel, gabarit non rempli, fuite du prompt
-   interne, bavardage de modèle, dérive de devise. Coût : zéro.
-2. **Réparation déterministe** — retrait des fences et de la phrase d'intro.
-   Coût : zéro.
-3. **Réparation IA** — une seule passe, au tier bas, uniquement sur ce que le
-   code ne sait pas corriger, et seulement si le contenu est assez court pour
-   que ce soit rentable.
+1. **Deterministic grid** (`quality-gate.ts`) — truncation, unbalanced tags, leftover code block, unfilled template, leak of the internal prompt, model chatter, currency drift. Cost: zero.
+2. **Deterministic repair** — removes fences and the introductory sentence. Cost: zero.
+3. **AI repair** — a single pass, at the low tier, only on what code cannot fix, and only if the content is short enough for it to be worth it.
 
-Au-delà, la section est livrée **avec un drapeau** plutôt que de dépenser en
-aveugle. Pas de débat entre agents, pas de boucle critique → réécriture.
+Beyond that, the section is delivered **with a flag** rather than spending blindly. No debate between agents, no critic → rewrite loop.
 
-### 6. Le budget de run
+### 6. The run budget
 
-Chaque livrable ouvre un `RunBudget` (dérivé des budgets de sortie déclarés,
-avec un facteur 3 pour l'entrée et une escalade). Un run normal ne l'atteint
-jamais ; un run qui dérape s'arrête au lieu de creuser.
+Each deliverable opens a `RunBudget` (derived from the declared output budgets, with a factor of 3 for input and an escalation). A normal run never reaches it; a run that derails stops instead of digging.
 
-C'est une **estimation** (≈ 4 caractères/token) qui sert de coupe-circuit. La
-facturation reste `aiUsageService`, alimenté par les compteurs réels du
-fournisseur.
+It is an **estimate** (≈ 4 characters per token) that acts as a circuit breaker. Billing stays with `aiUsageService`, fed by the provider's real counters.
 
-## Ajouter une génération
+## Adding a generation
 
 ```ts
 const steps: IPromptStep[] = [
@@ -160,46 +127,43 @@ const steps: IPromptStep[] = [
   { stepName: 'Section B', promptConstant: PROMPT_B },
 ];
 
-const configuredSteps = withGraph(AI_CONFIG.maFeature, steps, MON_GRAPHE, {
+const configuredSteps = withGraph(AI_CONFIG.myFeature, steps, MY_GRAPH, {
   format: 'html',
   minChars: 300,
   currency: project.analysisResultModel?.finance?.meta?.currency,
 });
 
-await this.processStepsWithStreaming(configuredSteps, project, callback, promptConfig, 'ma_feature', userId);
+await this.processStepsWithStreaming(configuredSteps, project, callback, promptConfig, 'my_feature', userId);
 ```
 
-`withGraph` pose les dépendances, le mode de contexte, l'accès aux outils et les
-réglages IA de chaque section. Il n'y a rien d'autre à câbler.
+`withGraph` sets the dependencies, the context mode, tool access and the AI settings of each section. Nothing else needs wiring.
 
-## Vérifier le socle
+## Checking the foundation
 
 ```bash
 npm run check:agents
 ```
 
-Exerce les parties pures — graphes, grille de qualité, routeur, budget,
-extraction — sans réseau ni base. À lancer après toute modification de
-`services/agents/` ou `config/model-router.ts`.
+Exercises the pure parts — graphs, quality grid, router, budget, extraction — without network or database. Run it after any change to `services/agents/` or `config/model-router.ts`.
 
-## Suivre ce qui se passe
+## Following what happens
 
-Les événements sont tracés dans `logs/ai-trace.log` (voir `TRACING.md`) :
+Events are traced in `logs/ai-trace.log` (see [Tracing](TRACING.md)):
 
-| Événement | Sens |
+| Event | Meaning |
 |---|---|
-| `agent.start` / `agent.end` | rôle, étage, tours d'outils, tokens estimés, durée |
-| `agent.escalation` | un contrôle a échoué, on monte d'un étage |
-| `agent.digest_built` | ratio de réduction obtenu sur une section |
-| `agent.budget_exhausted` | un run a atteint son plafond |
-| `quality.gate_failed` | défauts détectés sur une sortie |
-| `quality.repaired_deterministic` | corrigé sans appel modèle |
-| `quality.repaired_by_model` | corrigé par la passe de réparation |
-| `quality.flagged` | livré avec défauts subsistants |
+| `agent.start` / `agent.end` | role, tier, tool turns, estimated tokens, duration |
+| `agent.escalation` | a check failed, moving up one tier |
+| `agent.digest_built` | reduction ratio obtained on a section |
+| `agent.budget_exhausted` | a run reached its ceiling |
+| `quality.gate_failed` | defects detected in an output |
+| `quality.repaired_deterministic` | fixed without a model call |
+| `quality.repaired_by_model` | fixed by the repair pass |
+| `quality.flagged` | delivered with remaining defects |
 
-## Où NE PAS ajouter d'agent
+## Where NOT to add an agent
 
-- Une génération dont l'enchaînement est connu : c'est un graphe.
-- Une vérification exprimable en code : c'est la grille déterministe.
-- Un choix de modèle : c'est le routeur.
-- Une boucle « et si on redemandait au modèle » sans borne : non.
+- A generation whose sequence is known: it is a graph.
+- A check that can be written in code: it is the deterministic grid.
+- A model choice: it is the router.
+- An unbounded "what if we asked the model again" loop: no.

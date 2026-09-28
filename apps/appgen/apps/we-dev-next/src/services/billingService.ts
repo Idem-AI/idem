@@ -12,9 +12,9 @@
  *  - le débit doit être **atomique** avec le solde, ce que seul le service qui
  *    tient le compteur peut garantir.
  *
- * Principe de dégradation : si l'API de facturation est injoignable, on
- * autorise. Empêcher de générer parce qu'un service auxiliaire est tombé
- * coûterait plus cher que quelques générations non facturées.
+ * Principe de dégradation : fermé par défaut. Sans identité, si l'API de
+ * facturation est injoignable ou répond une erreur, la génération est refusée
+ * avec un message invitant à réessayer — jamais offerte.
  */
 
 const IDEM_API_URL = process.env.IDEM_API_URL || 'http://localhost:3001';

@@ -30,8 +30,10 @@ warn() {
 
 # --- Step 1: Clean Root Workspace ---
 info "Cleaning workspace root..."
-rm -rf node_modules package-lock.json
-success "Root node_modules and package-lock.json removed."
+# Lockfiles are kept: they pin the exact (and security-patched) dependency
+# versions. Delete one only on purpose, then review the regenerated diff.
+rm -rf node_modules
+success "Root node_modules removed (package-lock.json kept)."
 
 # --- Step 2: Clean Sub-projects ---
 info "Cleaning sub-projects..."
@@ -56,8 +58,6 @@ for proj in "${PROJECTS[@]}"; do
     rm -rf "$proj/.next"
     rm -rf "$proj/.svelte-kit"
     rm -rf "$proj/build"
-    rm -rf "$proj/package-lock.json"
-    rm -rf "$proj/pnpm-lock.yaml"
     success "$proj cleaned."
   fi
 done

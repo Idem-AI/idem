@@ -1,139 +1,98 @@
-# Context Engine + Chronicle — la « cohérence infinie » d'IDEM
+# Context Engine + Chronicle — IDEM's "infinite coherence"
 
-> Système de connaissance projet pour les agents IA : chaque agent récupère la
-> bonne donnée, au bon moment, au bon grain — et peut interroger l'historique
-> complet des modifications comme un dépôt git.
+> A project-knowledge system for AI agents: each agent retrieves the right data, at the right moment, at the right granularity — and can query the full history of changes like a git repository.
 
-## 1. Le problème
+## 1. The problem
 
-La promesse d'IDEM est une **cohérence infinie** entre toutes les applications :
-l'IA connaît tout du projet, ou sait quoi chercher, où et quand. Avant ce
-système :
+IDEM's promise is **infinite coherence** across all applications: the AI knows everything about the project, or knows what to look for, where and when. Before this system:
 
-- chaque feature IA assemblait son contexte à la main (l'advisor n'injectait que
-  la fiche projet — jamais le branding, le business plan ni les finances) ;
-- aucun function calling : le modèle ne pouvait rien aller chercher lui-même ;
-- aucune trace de **qui** (utilisateur ou IA) avait modifié **quoi** et
-  **quand** : une donnée mise à jour par l'utilisateur pouvait contredire ce que
-  l'IA croyait savoir, sans aucun moyen de le détecter.
+- each AI feature assembled its context by hand (the advisor only injected the project sheet — never the branding, business plan or finances);
+- no function calling: the model could not fetch anything itself;
+- no trace of **who** (user or AI) changed **what** and **when**: data updated by the user could contradict what the AI believed it knew, with no way of detecting it.
 
-## 2. Méthodologie — recherche croisée
+## 2. Method — cross-checked research
 
-Quatre corpus de sources convergent vers la même architecture :
+Four bodies of sources converge on the same architecture:
 
-| Corpus | Enseignement clé |
+| Source | Key lesson |
 |---|---|
-| [Anthropic — Effective context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) | Ne pas pré-charger tout le contexte : maintenir des **identifiants légers** (une « carte ») et faire du **just-in-time retrieval** via des tools. Stratégie hybride : petit noyau toujours en contexte + le reste à la demande. |
-| [Anthropic — Writing effective tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents) | Peu d'outils bien nommés (namespace), descriptions prescriptives, réponses **token-efficientes** (résumé par défaut, `detail=full` à la demande, pagination/troncature), erreurs en langage naturel. |
-| [Pattern MongoDB — Document Versioning](https://www.mongodb.com/docs/manual/data-modeling/design-patterns/data-versioning/document-versioning/) + [Zep/Graphiti — bi-temporal knowledge graph](https://blog.getzep.com/content/files/2025/01/ZEP__USING_KNOWLEDGE_GRAPHS_TO_POWER_LLM_AGENT_MEMORY_2025011700.pdf) | Historique dans une **collection séparée** (document courant intact), snapshots + deltas, indexes sur (docId, version, date), éviter le micro-versioning. Modèle **bi-temporel** : un fait est valide de sa création jusqu'à sa **supersession** — on n'efface jamais, on invalide. |
-| Industrie ([Replit checkpoints/App History](https://blog.replit.com/inside-replits-snapshot-engine), Lovable, v0) | Un **checkpoint après chaque interaction IA** + restauration en un clic est devenu le standard UX des produits de génération. La restauration crée un nouvel état (l'historique reste intact), façon `git revert`. |
+| [Anthropic — Effective context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) | Do not preload the whole context: keep **lightweight identifiers** (a "map") and do **just-in-time retrieval** through tools. Hybrid strategy: a small core always in context + the rest on demand. |
+| [Anthropic — Writing effective tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents) | Few, well-named tools (namespaced), prescriptive descriptions, **token-efficient** answers (summary by default, `detail=full` on demand, pagination/truncation), errors in natural language. |
+| [MongoDB pattern — Document Versioning](https://www.mongodb.com/docs/manual/data-modeling/design-patterns/data-versioning/document-versioning/) + [Zep/Graphiti — bi-temporal knowledge graph](https://blog.getzep.com/content/files/2025/01/ZEP__USING_KNOWLEDGE_GRAPHS_TO_POWER_LLM_AGENT_MEMORY_2025011700.pdf) | History in a **separate collection** (current document intact), snapshots + deltas, indexes on (docId, version, date), avoid micro-versioning. **Bi-temporal** model: a fact is valid from its creation until its **supersession** — nothing is erased, it is invalidated. |
+| Industry ([Replit checkpoints/App History](https://blog.replit.com/inside-replits-snapshot-engine), Lovable, v0) | A **checkpoint after each AI interaction** + one-click restore has become the UX standard of generation products. Restoring creates a new state (history stays intact), like `git revert`. |
 
-Divergences tranchées :
+Divergences settled:
 
-- **Event sourcing complet vs versioning de documents** : l'event sourcing
-  (rejouer des événements métier) est plus puissant mais exige de réécrire
-  toutes les écritures. Le pattern *Document Versioning* s'insère dans
-  l'existant via un seul point de passage (le repository) → retenu.
-- **Base spécialisée (Dolt, TerminusDB, XTDB) vs MongoDB existant** : aucune
-  nouvelle infrastructure ; MongoDB + snapshots/deltas RFC 6902 couvre 100 % du
-  besoin → retenu.
-- **RAG vectoriel vs recherche agentique** : à l'échelle d'UN projet (quelques
-  centaines de Ko structurés), la recherche plein-texte + navigation par
-  sections est plus fiable et moins coûteuse que des embeddings. Le RAG
-  sémantique reste une extension possible (phase 4).
+- **Full event sourcing vs document versioning**: event sourcing (replaying business events) is more powerful but requires rewriting every write. The *Document Versioning* pattern plugs into the existing code through a single path (the repository) → chosen.
+- **Specialised database (Dolt, TerminusDB, XTDB) vs existing MongoDB**: no new infrastructure; MongoDB + RFC 6902 snapshots/deltas covers 100 % of the need → chosen.
+- **Vector RAG vs agentic search**: at the scale of ONE project (a few hundred KB of structured data), full-text search + navigation by section is more reliable and cheaper than embeddings. Semantic RAG remains a possible extension.
 
 ## 3. Architecture
 
 ```
-                        ┌──────────────────────────────┐
-        agents IA ────▶ │  PromptService.runPromptWithTools  (boucle Gemini FC) │
-   (advisor, à venir:   └──────────────┬───────────────┘
-    branding, BP, …)                   │ tools project_*
+                        ┌──────────────────────────────────────────────┐
+        AI agents ────▶ │  PromptService.runPromptWithTools (function-calling loop) │
+   (advisor, …)         └──────────────┬───────────────────────────────┘
+                                       │ project_* tools
                         ┌──────────────▼───────────────┐
    dashboard / apps ──▶ │        CONTEXT ENGINE         │
-   (REST /project/…)    │  carte · sections · recherche │
+   (REST /project/…)    │  map · sections · search      │
                         └───────┬───────────────┬──────┘
                                 │               │
-                     ┌──────────▼─────┐  ┌──────▼──────────────┐
-                     │ context-registry│  │ CHRONICLE            │
-                     │ (12 sections)   │  │ log·show·diff·at·restore │
-                     └──────────┬─────┘  └──────▲──────────────┘
-                                │               │ record (hook)
-                        ┌───────▼───────────────┴──────┐
-                        │ MongooseRepository (écritures projet)│
-                        │  projects  +  project_revisions      │
-                        └──────────────────────────────┘
+                     ┌──────────▼──────┐  ┌──────▼──────────────────────┐
+                     │ context-registry │  │ CHRONICLE                    │
+                     │ (12 sections)    │  │ log·show·diff·at·restore     │
+                     └──────────┬──────┘  └──────▲──────────────────────┘
+                                │                │ record (hook)
+                        ┌───────▼────────────────┴──────────────┐
+                        │ MongooseRepository (project writes)   │
+                        │  projects  +  project_revisions       │
+                        └───────────────────────────────────────┘
 ```
 
-### 3.1 Context Engine (lecture just-in-time)
+### 3.1 Context Engine (just-in-time reading)
 
-- **`context-registry.ts`** — source de vérité unique : 12 sections
-  (`overview`, `branding`, `businessPlan`, `pitchDeck`, `legalDocs`, `design`,
-  `landing`, `architectures`, `development`, `communication`, `finance`,
-  `deployments`), chacune avec sa description orientée agent et son extracteur.
-- **`context-engine.service.ts`** :
-  - `getProjectMap` — le « sommaire » : existence, taille, version courante,
-    dernier auteur (user/IA) et date par section. C'est le noyau compact injecté
-    en contexte (progressive disclosure) ;
-  - `getSection(detail, path)` — résumé token-efficient par défaut (chaînes
-    longues tronquées, tableaux échantillonnés), contenu intégral sur un chemin
-    précis à la demande ;
-  - `searchProject` — recherche plein-texte → `section + chemin + extrait`,
-    pour que l'agent sache ensuite *quoi* demander et *où*.
+- **`context-registry.ts`** — the single source of truth: 12 sections (`overview`, `branding`, `businessPlan`, `pitchDeck`, `legalDocs`, `design`, `landing`, `architectures`, `development`, `communication`, `finance`, `deployments`), each with an agent-oriented description and its extractor.
+- **`context-engine.service.ts`**:
+  - `getProjectMap` — the "table of contents": existence, size, current version, last author (user/AI) and date per section. It is the compact core injected into the context (progressive disclosure);
+  - `getSection(detail, path)` — token-efficient summary by default (long strings truncated, arrays sampled), full content on a precise path on demand;
+  - `searchProject` — full-text search → `section + path + excerpt`, so the agent then knows *what* to ask for and *where*.
 
-### 3.2 Chronicle (versioning interrogeable comme git)
+### 3.2 Chronicle (versioning queryable like git)
 
-- Collection **`project_revisions`** (pattern MongoDB Document Versioning) :
-  une révision = un commit sur une section. Champs : `version` monotone par
-  (projet, section) — l'index unique sert de verrou optimiste —, `author`
-  (user/ai/system + uid), `source` (route d'origine), `summary` (message de
-  commit auto-généré), `changedPaths`, `patch` (delta RFC 6902), `snapshot`
-  (v1 + toutes les 10 versions + patchs volumineux), `sizeBytes`, `createdAt`.
-- **Modèle bi-temporel light** (Zep/Graphiti) : une version est valide de son
-  `createdAt` jusqu'au `createdAt` de la suivante. Rien n'est effacé.
-- **`version-history.service.ts`** : `record` (commit), `log`, `show`
-  (reconstruction snapshot + deltas), `diff`, `versionAt`/`stateAt` (checkout
-  temporel), `latestVersions`.
-- **Capture automatique** : hook dans `MongooseRepository.create/update`
-  (`project-revision-hook.ts`) — point de passage unique de toutes les
-  écritures projet. Aucun service métier modifié. Les sections conversationnelles
-  (`advisorConversation`, `activeChatMessages`) sont exclues (anti
-  micro-versioning).
-- **Attribution** : middleware `revisionContextMiddleware` (AsyncLocalStorage,
-  même pattern que `request-language.ts`) — auteur `user` par défaut, `ai` sur
-  les routes de génération, surcharge possible par service via
-  `markRevisionAsAI()` / `setRevisionNote()`.
-- **`json-patch.util.ts`** : diff/apply RFC 6902 maison (add/remove/replace,
-  pointeurs RFC 6901), zéro dépendance, format d'historique stable et auditable.
+- Collection **`project_revisions`** (MongoDB Document Versioning pattern): one revision = one commit on one section. Fields: monotonic `version` per (project, section) — the unique index acts as an optimistic lock —, `author` (user/ai/system + uid), `source` (originating route), `summary` (auto-generated commit message), `changedPaths`, `patch` (RFC 6902 delta), `snapshot` (v1 + every 10 versions + large patches), `sizeBytes`, `createdAt`.
+- **Light bi-temporal model** (Zep/Graphiti): a version is valid from its `createdAt` until the `createdAt` of the next one. Nothing is erased.
+- **`version-history.service.ts`**: `record` (commit), `log`, `show` (reconstruction from snapshot + deltas), `diff`, `versionAt`/`stateAt` (temporal checkout), `latestVersions`.
+- **Automatic capture**: a hook in `MongooseRepository.create/update` (`project-revision-hook.ts`) — the single path of every project write. No business service was changed. Conversational sections (`advisorConversation`, `activeChatMessages`) are excluded (no micro-versioning).
+- **Attribution**: `revisionContextMiddleware` (AsyncLocalStorage, same pattern as `request-language.ts`) — author `user` by default, `ai` on generation routes, overridable per service through `markRevisionAsAI()` / `setRevisionNote()`.
+- **`json-patch.util.ts`**: in-house RFC 6902 diff/apply (add/remove/replace, RFC 6901 pointers), zero dependencies, a stable and auditable history format.
 
-### 3.3 Boucle agentique (Gemini function calling)
+### 3.3 Agent loop (function calling)
 
-`PromptService.runPromptWithTools` — même choke point que `runPrompt` (quota,
-directive de langue, fallback modèle) :
+`PromptService.runPromptWithTools` — the same choke point as `runPrompt` (quota, language directive, model fallback):
 
-1. envoie `systemInstruction` + conversation + `functionDeclarations` ;
-2. exécute les `functionCalls` retournés (y compris parallèles) via
-   l'exécuteur lié côté serveur à `(userId, projectId)` — l'agent **ne peut
-   pas** accéder à un autre projet, la sécurité est structurelle ;
-3. renvoie les `functionResponse` au modèle, jusqu'à la réponse finale
-   (max 8 tours, puis réponse forcée sans outils) ;
-4. un seul incrément de quota par message, quel que soit le nombre de tours.
+1. sends `systemInstruction` + conversation + `functionDeclarations`;
+2. executes the returned `functionCalls` (parallel ones included) through the executor bound on the server to `(userId, projectId)` — the agent **cannot** reach another project; the security is structural;
+3. sends the `functionResponse`s back to the model, until the final answer (max 8 turns, then a forced answer without tools);
+4. a single quota increment per message, whatever the number of turns.
 
-### 3.4 Les 7 outils exposés aux agents (`context-tools.ts`)
+### 3.4 The tools exposed to agents (`context-tools.ts`)
 
-| Outil | Équivalent git | Usage |
+| Tool | git equivalent | Use |
 |---|---|---|
-| `project_get_map` | `ls` + `git status` | Quelles données existent, versions, fraîcheur |
-| `project_get_section` | `cat` | Contenu (résumé ou intégral, sous-chemin) |
-| `project_search` | `grep` | Localiser une info sans connaître la section |
-| `project_history_log` | `git log` | Qui a changé quoi, quand |
-| `project_history_show` | `git show` | État exact à une version |
-| `project_history_diff` | `git diff v1..v2` | Ce qui a changé entre deux versions |
-| `project_state_at_date` | `git checkout @{date}` | État à une date (donnée modifiée depuis par l'utilisateur) |
+| `project_get_map` | `ls` + `git status` | Which data exists, versions, freshness |
+| `project_get_section` | `cat` | Content (summary or full, sub-path) |
+| `project_search` | `grep` | Locate information without knowing the section |
+| `project_history_log` | `git log` | Who changed what, when |
+| `project_history_show` | `git show` | Exact state at a version |
+| `project_history_diff` | `git diff v1..v2` | What changed between two versions |
+| `project_state_at_date` | `git checkout @{date}` | State at a date (data since changed by the user) |
 
-### 3.5 API REST (dashboard + autres apps)
+Two more tools serve the advisor: `project_finance_summary` and `project_coherence_alerts` (see 4 bis).
 
-Routes `context.routes.ts`, montées sur `/project` :
+### 3.5 REST API (dashboard + other apps)
+
+Routes in `context.routes.ts`, mounted on `/project`:
 
 - `GET /project/context/:projectId/map`
 - `GET /project/context/:projectId/section/:section?detail=&path=`
@@ -144,78 +103,39 @@ Routes `context.routes.ts`, montées sur `/project` :
 - `GET /project/history/:projectId/:section/at?date=`
 - `POST /project/history/:projectId/:section/restore` `{ version }`
 
-### 3.6 Premier agent branché : l'advisor
+### 3.6 First connected agent: the advisor
 
-`advisor.service.ts` utilise désormais la stratégie hybride : fiche synthétique
-toujours en contexte + `ADVISOR_TOOLS_GUIDE` + les 7 outils. En cas d'échec de
-la boucle agentique, repli automatique sur le flow simple (résilience).
+`advisor.service.ts` uses the hybrid strategy: a summary sheet always in context + `ADVISOR_TOOLS_GUIDE` + the tools. If the agent loop fails, it falls back automatically to the simple flow (resilience).
 
-## 4. Pièges identifiés et évités
+## 4. Pitfalls identified and avoided
 
-- **Index sur champ Mixed volumineux** : l'index de reconstruction des
-  snapshots est *partiel* (`partialFilterExpression`) — on n'indexe jamais la
-  valeur du snapshot (limite de taille des clés d'index MongoDB).
-- **Micro-versioning** : sections conversationnelles exclues ; pas de baseline
-  v1 pour une section vide ; une révision n'est créée que si le diff est non
-  vide (les Dates/ISO sont normalisées avant comparaison).
-- **L'historique ne casse jamais l'écriture métier** : `record()` attrape tout.
-- **Réponses d'outils bornées** (30 000 caractères) + résumés par défaut :
-  le contexte de l'agent ne peut pas exploser.
-- **Écritures concurrentes** : index unique (projectId, section, version) +
-  retry — jamais deux révisions avec le même numéro.
+- **Index on a large Mixed field**: the snapshot reconstruction index is *partial* (`partialFilterExpression`) — the snapshot value is never indexed (MongoDB index key size limit).
+- **Micro-versioning**: conversational sections excluded; no v1 baseline for an empty section; a revision is only created if the diff is not empty (Dates/ISO strings are normalised before comparison).
+- **History never breaks the business write**: `record()` catches everything.
+- **Bounded tool answers** (30,000 characters) + summaries by default: the agent's context cannot explode.
+- **Concurrent writes**: unique index (projectId, section, version) + retry — never two revisions with the same number.
 
-## 4 bis. Coherence Guard — synchronisation intelligente entre artefacts
+## 4 bis. Coherence Guard — keeping artefacts in sync
 
-Cas réel à l'origine de ce module : l'utilisateur demande « quel est mon modèle
-de revenu » ; le business plan contient la réponse (abonnements 5–20 €/mois +
-commissions 5 %), mais le module Finance est vide — et l'advisor répondait
-depuis le seul module Finance (« aucun produit enregistré »). Deux problèmes :
+The real case behind this module: the user asks "what is my revenue model"; the business plan holds the answer (subscriptions €5–20/month + 5 % commissions), but the Finance module is empty — and the advisor answered from the Finance module alone ("no product recorded"). Two problems:
 
-1. **Court-circuit** : la détection d'intention finance répondait AVANT la
-   boucle agentique. → Corrigé : les intentions de *lecture* passent désormais
-   par la boucle agentique, qui croise `project_finance_summary` **et**
-   `project_get_section('businessPlan')` (règle de croisement obligatoire dans
-   le prompt système). Le flux de *mutation* avec confirmation reste intact.
-2. **Désynchronisation** : business plan et prévisions financières décrivent la
-   même réalité économique mais vivaient sans lien. → Le **Coherence Guard** :
+1. **Short circuit**: finance intent detection answered BEFORE the agent loop. → Fixed: *read* intents now go through the agent loop, which crosses `project_finance_summary` **and** `project_get_section('businessPlan')` (a mandatory cross-checking rule in the system prompt). The *mutation* flow with confirmation stays intact.
+2. **Desynchronisation**: the business plan and the financial forecasts describe the same economic reality but lived unlinked. → The **Coherence Guard**:
 
-- **Règles déclaratives** (`coherence-rules.ts`) : chaque règle lie deux
-  sections et décrit son « contrat de cohérence » (v1 : businessPlan↔finance,
-  overview↔businessPlan ; extensible : branding↔landing…).
-- **Détection automatique** : le hook Chronicle, après chaque commit de
-  section, programme un audit IA (debounce 8 s) de chaque règle touchée.
-  L'audit compare les deux sections (résumés bornés) et rend un verdict JSON
-  (cohérent / incohérences + actions). Pas de quota utilisateur consommé.
-- **Alertes** : collection `coherence_alerts` — une seule alerte ouverte par
-  (projet, règle), les précédentes sont marquées `superseded`.
-- **Application EXPLICITE, jamais silencieuse** : la proposition
-  `finance_autofill` réutilise l'autofill Finance existant (attribution `ai`
-  dans Chronicle) après confirmation de l'utilisateur. Principe produit :
-  *détection automatique, application confirmée* — on n'écrase jamais les
-  données utilisateur sans son accord.
-- **Anti-boucle** : les écritures issues d'un apply (`/coherence/` dans la
-  source) ne redéclenchent pas d'audit.
-- **Exposition** : REST (`GET /project/coherence/:projectId`, `POST …/check`,
-  `POST …/:alertId/apply`, `POST …/:alertId/dismiss`) + outil agent
-  `project_coherence_alerts` (l'advisor signale les désynchronisations en
-  conversation et propose les actions).
-- Désactivable via `COHERENCE_CHECKS_ENABLED=false`.
+- **Declarative rules** (`coherence-rules.ts`): each rule links two sections and describes its "coherence contract" (businessPlan↔finance, overview↔businessPlan; extensible: branding↔landing…).
+- **Automatic detection**: after each section commit, the Chronicle hook schedules an AI audit (8 s debounce) of each affected rule. The audit compares both sections (bounded summaries) and returns a JSON verdict (coherent / inconsistencies + actions). No user quota is consumed.
+- **Alerts**: collection `coherence_alerts` — a single open alert per (project, rule); previous ones are marked `superseded`.
+- **EXPLICIT application, never silent**: the `finance_autofill` proposal reuses the existing Finance autofill (attributed to `ai` in Chronicle) after the user confirms. Product principle: *automatic detection, confirmed application* — user data is never overwritten without their consent.
+- **No loops**: writes coming from an apply (`/coherence/` in the source) do not trigger a new audit.
+- **Exposure**: REST (`GET /project/coherence/:projectId`, `POST …/check`, `POST …/:alertId/apply`, `POST …/:alertId/dismiss`) + the agent tool `project_coherence_alerts` (the advisor mentions desynchronisations in conversation and proposes the actions).
+- Can be disabled with `COHERENCE_CHECKS_ENABLED=false`.
 
-## 5. Feuille de route
+## 5. Roadmap
 
-1. **Fait** — socle : registry, Context Engine, Chronicle, hook repository,
-   boucle FC Gemini, 9 outils, API REST, advisor branché, Coherence Guard
-   (businessPlan↔finance).
-2. **Étendre aux autres agents** : injecter la carte + outils dans les
-   générations branding / business plan / communication / déploiement (chaque
-   génération devient « consciente » des autres artefacts → cohérence
-   inter-artefacts réelle).
-3. **UI dashboard** : timeline de versions par section (log), diff visuel,
-   bouton « Restaurer cette version » (l'API existe déjà).
-4. **Extensions** : résumés de section pré-calculés en cache Redis ;
-   RAG sémantique si les projets grossissent ; serveur MCP exposant les mêmes
-   outils aux apps externes (ideploy, appgen) ; politique de rétention
-   (TTL/archivage des vieilles révisions).
+1. **Done** — foundation: registry, Context Engine, Chronicle, repository hook, function-calling loop, tools, REST API, advisor connected, Coherence Guard (businessPlan↔finance).
+2. **Extend to the other agents**: inject the map + tools into the branding / business plan / communication / deployment generations (each generation becomes "aware" of the other artefacts → real cross-artefact coherence).
+3. **Dashboard UI**: version timeline per section (log), visual diff, "Restore this version" button (the API already exists).
+4. **Extensions**: section summaries precomputed in a Redis cache; semantic RAG if projects grow; an MCP server exposing the same tools to external apps (iDeploy, AppGen); a retention policy (TTL/archiving of old revisions).
 
 ## 6. Sources
 

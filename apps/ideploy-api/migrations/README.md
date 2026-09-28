@@ -4,6 +4,10 @@ Versioned SQL migrations for the schema objects **this service owns**.
 
 ## The ownership rule
 
+> The Laravel app is no longer in this repository, but its schema is still the
+> reference. Keep this rule until the Laravel instance is confirmed retired
+> everywhere, then record the change of ownership here.
+
 The iDeploy database is shared with the Laravel app during the migration
 (strangler-fig): both stacks read and write the same PostgreSQL instance. To
 keep that safe, ownership is split and the split is not negotiable:

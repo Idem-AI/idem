@@ -1,59 +1,63 @@
-# Landing (Test)
+# IDEM landing site
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.5.
+The public marketing site at `idem.africa`: home page, product pages (iDev, iDeploy, simulator), pricing, premium beta access, about, contact, African market, open source, and the legal pages.
 
-## Development server
+Stack: Angular 20 (standalone components, signals), `@angular/localize` for English and French, Tailwind, prerendered with Angular SSR and served as static files by nginx.
 
-To start a local development server, run:
+- Translations: [docs/I18N.md](docs/I18N.md)
+- SEO and hreflang: [docs/SEO_I18N_GUIDE.md](docs/SEO_I18N_GUIDE.md)
+- Monorepo: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md), design rules in the root [AGENTS.md](../../AGENTS.md)
 
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Run
 
 ```bash
-ng generate component component-name
+cp .env.development.example .env.development   # public Firebase web config and service URLs
+                                                # (production: .env.example → .env)
+npm install                        # from the repository root (npm workspaces)
+npm start                          # http://localhost:4201 (English, source locale)
+npm run start:fr                   # French build of the dev server
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+`npm start` and `npm run build` first run `mynode.js`, which reads `.env.development` (development) or `.env` (production) and writes `src/environments/environment*.ts`. The build fails if `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` or `FIREBASE_APP_ID` is missing.
 
-```bash
-ng generate --help
+**Every value in these files ends up in the public bundle.** Only public identifiers belong there (Firebase web config, URLs, flags), never a secret.
+
+| Script | Role |
+|---|---|
+| `npm start` / `npm run dev` | Dev server on port 4201 |
+| `npm run start:fr`, `npm run start:en` | Dev server in one locale |
+| `npm run build` | Production build (source locale) |
+| `npm run build:all-locales` | Merge translations, then build `en` and `fr` |
+| `npm run serve:ssr:landing` | Run the SSR server from `dist/` (port 4000) |
+| `npm run i18n:*` | Translation workflow, see [docs/I18N.md](docs/I18N.md) |
+| `npm test`, `npm run lint` | Karma tests, ESLint |
+
+## Structure
+
+```
+src/app/
+├── pages/        one folder per route (home, pricing, idev-page, ideploy-page, simulation-page, …)
+├── components/   page sections (header, footer, hero, …)
+├── shared/       shared components, services (SeoService, …), models, styles, utils
+├── services/     auth.service.ts
+├── app.routes.ts          client routes
+└── app.routes.server.ts   every route is prerendered (RenderMode.Prerender)
+src/locale/       translation sources (see I18N.md)
+public/           static files, sitemaps (sitemap.xml, sitemap-en.xml, sitemap-fr.xml)
 ```
 
-## Building
+Routes: `/`, `/home`, `/african-market`, `/open-source`, `/pricing`, `/about`, `/contact`, `/idev`, `/simulator`, `/ideploy`, `/premium-beta`, `/privacy-policy`, `/terms-of-service`, `/beta-policy`, `/simulation-terms`, `/not-found`.
 
-To build the project run:
+The home page tells a single story (the Verda case) in chapters; product screenshots must be final renders, never empty screens.
 
-```bash
-ng build
-```
+## Production
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance.
+`Dockerfile/prod/Dockerfile.landing` builds both locales and serves them with nginx (`apps/landing/nginx.conf`):
 
-## Running unit tests
+- `/en/…` and `/fr/…` serve the prerendered pages of each locale;
+- `/` serves the French build.
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+Known gaps:
 
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- `src/robots.txt` is not listed in the build assets, so it is not served. Move it to `public/` to publish it.
+- The nginx image runs as root; see [docs/DEPLOYMENT.md](../../docs/DEPLOYMENT.md).
