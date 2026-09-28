@@ -19,6 +19,7 @@ import { ART_DIRECTION_STYLES } from '../services/design/artDirection.catalog';
 import { INDUSTRY_MOCKUP_CATEGORIES, PHYSICAL_SUPPORT_TYPES, SupportTypeKey } from '../config/mockup.config';
 import { buildGeminiMockupPayload, findLeaks } from '../services/BandIdentity/mockupPrivacy';
 import { isGeminiBillingError } from '../services/glm-media.service';
+import { validateVisualBrief } from '../services/BandIdentity/visualBrief.service';
 import type { SelectedMockupSupport } from '../services/BandIdentity/mockupAnalyzer.service';
 
 let failures = 0;
@@ -98,6 +99,40 @@ async function main(): Promise<void> {
   check('un numéro', findLeaks('call +237 699 12 34 56', []).length > 0);
   check('un chiffre', findLeaks('serving 4200 homes', []).length > 0);
   check('pas une couleur ni un format', findLeaks('Colours: #2D6A4F, frame 16:9', []).length === 0);
+
+  console.log('\nFiche visuelle : personnelle, sans rien du projet');
+  const context = { brandName: PROJECT.name, description: PROJECT.description, country: 'Cameroun' };
+  const brief = validateVisualBrief(
+    {
+      lighting: 'Warm diffuse workshop light with hard offset cast shadows under layered elements',
+      materials: 'Recycled plastic panels and crates stacked on raw concrete', // matière du projet
+      texture: 'Cut paper collage layers, visible paper grain, translucent frosted overlays',
+      camera: 'Asymmetric close framing, macro detail, shallow depth of field',
+      mood: 'Calm, tactile, crafted, confident, serving 4200 homes', // chiffre
+      setting: 'A bustling Douala street market at dusk', // lieu
+    },
+    context
+  );
+  check('un champ qui porte une matière du projet est retiré', !brief.materials);
+  check('un champ qui porte un lieu est retiré', !brief.setting);
+  check('un champ qui porte un chiffre est retiré', !brief.mood);
+  check('les champs sains restent (pas de faux positif : collage, translucent)', Boolean(brief.lighting && brief.texture && brief.camera));
+  check(
+    'aucun pays, ville ou région d\'Afrique ne passe',
+    ['A quiet Abidjan courtyard', 'West African textile patterns', 'Sunlit Sahel horizon', 'A Cameroun kitchen'].every(
+      (setting) => !validateVisualBrief({ setting }, context).setting
+    )
+  );
+  const personal = await buildGeminiMockupPayload({
+    support: support('tote_bags', 'retail, shopping, e-commerce, store'),
+    colors,
+    styleId: 'collage-art',
+    forbidden: [PROJECT.name],
+    visualBrief: brief,
+  });
+  check('la consigne porte la fiche : le rendu n\'est pas générique', /workshop light/i.test(personal.prompt) && /macro detail/i.test(personal.prompt));
+  const personalLeaks = PROJECT_TERMS.filter((term) => personal.prompt.toLowerCase().includes(term.toLowerCase()));
+  check('et ne laisse toujours rien passer du projet', personalLeaks.length === 0 && !personal.audit.fallback, personalLeaks.join(', '));
 
   console.log('\nLogo');
   const tagged = await sharp({ create: { width: 2400, height: 1200, channels: 4, background: '#2D6A4F' } })

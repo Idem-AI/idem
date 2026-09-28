@@ -14,6 +14,7 @@ import {
   resolveMockupProvider,
 } from '../config/mockup-provider.config';
 import { buildGeminiMockupPayload } from './BandIdentity/mockupPrivacy';
+import { buildVisualBrief, VisualBrief } from './BandIdentity/visualBrief.service';
 import {
   analyzeImage,
   GeneratedImage,
@@ -141,6 +142,8 @@ export interface MockupGenerationRequest {
    * défaut du modèle, sans lien avec le reste de la charte.
    */
   artDirection?: ArtDirectionModel | null;
+  /** Fiche visuelle vérifiée, pour Gemini (cf. `visualBrief.service.ts`). */
+  visualBrief?: VisualBrief | null;
 }
 
 export interface MockupGenerationResult {
@@ -185,7 +188,9 @@ export class GeminiMockupService {
      * l'appelant retrouve ainsi chaque page par son `mockupIndex`, sans avoir à
      * reconnaître un support dans la liste rendue.
      */
-    forcedSupports: SelectedMockupSupport[] = []
+    forcedSupports: SelectedMockupSupport[] = [],
+    /** Pays du projet : il ne sort jamais, il sert à vérifier qu'il ne sort pas. */
+    country?: string
   ): Promise<MockupGenerationResult[]> {
     const startTime = Date.now();
 
@@ -241,6 +246,13 @@ export class GeminiMockupService {
       // une encre foncée sur un support sombre serait illisible.
       const logos = await this.loadLogoSet(logoUrl, logoVariants);
 
+      // Fiche visuelle : traduite chez GLM, vérifiée par le code, une fois pour
+      // toutes les scènes — seulement si Gemini les sert.
+      const visualBrief =
+        (await resolveMockupProvider()) === 'gemini'
+          ? await buildVisualBrief({ artDirection, brandName, description: projectDescription, country })
+          : null;
+
       // Étape 3 : les scènes sont indépendantes, elles partent ENSEMBLE. En
       // série, la charte attendait la somme des générations (six scènes, 95 s
       // mesurés) ; en parallèle, elle n'attend que la plus lente. Une scène
@@ -253,7 +265,7 @@ export class GeminiMockupService {
       const settled = await Promise.allSettled(
         selectedSupports.map((selectedSupport) =>
           this.generateMockup(
-            { logos, brandColors, brandName, selectedSupport, pdfFormat, artDirection },
+            { logos, brandColors, brandName, selectedSupport, pdfFormat, artDirection, visualBrief },
             userId,
             projectId,
             `mockup-${selectedSupport.mockupIndex}`
@@ -496,6 +508,7 @@ export class GeminiMockupService {
       pdfFormat: request.pdfFormat,
       logo: request.selectedSupport.skipLogo ? undefined : request.logos.light,
       forbidden: [request.brandName, ...request.brandName.split(/\s+/)],
+      visualBrief: request.visualBrief,
     });
     logger.info(`[PRIVACY][${mockupName}] Envoi Gemini minimal`, payload.audit);
 

@@ -108,6 +108,10 @@ Answer with ONE JSON object and nothing else, no prose, no markdown fence:
      * incrusté ensuite par composition (GLM).
      */
     withLogo?: boolean;
+    /** Le lieu, décrit par ses qualités (fiche visuelle vérifiée). Remplace le secteur. */
+    setting?: string;
+    /** Les matières du décor (fiche visuelle vérifiée). */
+    materials?: string;
   }): string => {
     const { brandColors, selectedSupport, pdfFormat, brandName } = params;
 
@@ -118,10 +122,13 @@ Answer with ONE JSON object and nothing else, no prose, no markdown fence:
     const frame = pdfFormat === 'A4_PORTRAIT' ? 'vertical 3:4 frame' : 'wide horizontal 16:9 frame';
 
     const subjects = keepImageWords(params.imagerySubjects, brandName, 200);
+    const setting = keepImageWords(params.setting, brandName, 160);
+    const materials = keepImageWords(params.materials, brandName, 160);
     const subject = imagery
-      ? `a candid lifestyle photograph from the world of ${world}${subjects ? `, showing ${subjects}` : ''}`
+      ? `a candid lifestyle photograph ${setting ? `in ${setting}` : `from the world of ${world}`}${subjects ? `, showing ${subjects}` : ''}`
       : (supportScene(selectedSupport.supportType) ?? 'a plain object with smooth, uniform surfaces');
-    const render = keepImageWords(params.artDirectionModifier, brandName, 320);
+    // Style du catalogue ET fiche visuelle du projet : la place de l'un et de l'autre.
+    const render = keepImageWords(params.artDirectionModifier, brandName, 560);
     const avoid = [
       keepImageWords(params.artDirectionNegative, brandName, 200),
       'watermark, illustration, 3D render, plastic look, oversaturated HDR, extra fingers',
@@ -133,8 +140,9 @@ Answer with ONE JSON object and nothing else, no prose, no markdown fence:
       `Photorealistic commercial photograph, ${frame}, full bleed.`,
       '',
       `Subject: ${subject}.`,
-      `Setting: a real place from the world of ${world}; one hero subject, shallow depth of field, soft natural shadows.`,
+      `Setting: ${setting || `a real place from the world of ${world}`}; one hero subject, shallow depth of field.`,
     ];
+    if (materials) lines.push(`Set materials: ${materials}.`);
     if (!imagery) {
       lines.push(
         'The hero object faces the camera. Its main face is flat, evenly lit, a single uniform colour, large in the frame and near the centre.'
