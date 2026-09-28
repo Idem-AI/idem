@@ -14,6 +14,12 @@ export interface LogoModel {
   // Hosted PNG asset URLs (object storage). SVG above stays the source of truth;
   // these are used when the logo must be referenced by URL (generation contexts).
   assetUrls?: LogoAssetUrls;
+
+  /**
+   * Recette du nom composé à côté de l'icône (logos « icône + nom ») : elle
+   * permet au serveur de reposer le nom dans une autre police sans IA.
+   */
+  lockup?: { brandName: string; fontFamily: string; wordmarkColor: string };
 }
 
 export type LogoType = 'icon' | 'name' | 'initial';

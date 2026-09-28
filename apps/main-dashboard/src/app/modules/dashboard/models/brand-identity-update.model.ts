@@ -28,6 +28,8 @@ export interface IdentityUpdateRequest {
   keepColors?: PaletteRole[];
   colorsFromLogo?: boolean;
   typography?: { primary?: BrandFont; secondary?: BrandFont };
+  /** Adapter le logo actuel aux nouvelles couleurs / à la nouvelle police, sans IA. */
+  adaptLogo?: boolean;
   dryRun?: boolean;
 }
 
@@ -65,4 +67,5 @@ export interface IdentityUpdateReport {
   supports: SupportReport[];
   site?: { hasSite: boolean; filesChanged: number; forged: boolean; error?: string };
   stats: { colors: number; fonts: number; logos: number; contrastFixes: number };
+  logoAdaptation?: { recolored: boolean; retypeset: boolean; previewSvg?: string };
 }

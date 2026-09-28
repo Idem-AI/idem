@@ -26,6 +26,7 @@ import {
 import { computeBrandTokens, normalizeHex } from '../services/brand/brandTokens';
 import { harmonizePalette, paletteFromLogoColors, transportColor } from '../services/brand/paletteHarmony';
 import { hashContent } from '../services/brand/siteBrandSync';
+import { adaptLogo, buildLogoColorMapping } from '../services/brand/logoAdapt';
 import { contrastRatio, hexToOklch } from '../services/design/color';
 import { buildDocumentSeed, buildSectionSeed } from '../services/design/designSeed';
 import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
@@ -375,19 +376,53 @@ console.log('\n6. Traduction de structures enregistrées');
   check('structure intacte ⇒ même référence', rewriteBrandDeep(stored.sections[1], map) === stored.sections[1]);
 }
 
+// ─── 7 bis. Logo adapté sans IA ─────────────────────────────────────────────
+
+console.log('\n7 bis. Logo recoloré sans IA');
+async function checkLogoAdaptation(): Promise<void> {
+  const oldPalette = BEFORE.colors!.colors;
+  const newPalette = harmonizePalette({ current: oldPalette, changes: { primary: '#B3261E' } }).palette;
+
+  const mapping = buildLogoColorMapping(['#1F4E5F', '#2A6478', '#C6553D', '#333333', '#FFFFFF'], oldPalette, newPalette);
+  check('la couleur principale du logo devient la nouvelle principale', mapping['#1f4e5f'] === newPalette.primary);
+  check('une nuance de la principale reste une nuance de la nouvelle', !!mapping['#2a6478'] && mapping['#2a6478'] !== newPalette.primary);
+  check('l’accent du logo devient le nouvel accent', mapping['#c6553d'] === newPalette.accent);
+  check('gris et blanc ne bougent pas', !('#333333' in mapping) && !('#ffffff' in mapping));
+
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+    '<style>.a{fill:#1F4E5F}</style>' +
+    '<defs><linearGradient id="g"><stop offset="0" stop-color="#1F4E5F"/><stop offset="1" stop-color="#C6553D"/></linearGradient></defs>' +
+    '<rect class="a" width="40" height="40"/><circle cx="70" cy="70" r="20" fill="url(#g)"/>' +
+    '<path d="M0 90h100" stroke="#333333"/></svg>';
+  const logo = { id: 'l', name: 'L', svg, concept: '', colors: ['#1F4E5F', '#C6553D'], fonts: [] };
+  const adapted = await adaptLogo(logo as any, { palette: { before: oldPalette, after: newPalette } });
+  const out = (adapted?.svg ?? '').toLowerCase();
+  check('logo recoloré', !!adapted?.recolored);
+  check('classe CSS recolorée', out.includes(newPalette.primary) && !out.includes('#1f4e5f'), out.slice(0, 200));
+  check('dégradé recoloré', out.includes(newPalette.accent) && !out.includes('#c6553d'));
+  check('filet gris intact', out.includes('#333333') || out.includes('#333'));
+  check('couleurs du logo mises à jour', adapted?.colors[0] === newPalette.primary);
+
+  const untouched = await adaptLogo(logo as any, { palette: { before: oldPalette, after: oldPalette } });
+  check('palette inchangée ⇒ pas d’adaptation', untouched === null);
+}
+
 // ─── 7. Manifeste du site ──────────────────────────────────────────────────
 
 console.log('\n7. Empreinte du manifeste iCode');
 // Valeurs calculées par `hashContent` du CLIENT (we-dev-client/src/utils/codeSync.ts).
 check('cyrb53 identique au client', hashContent('export default {}') === '1jri2lv0s08' && hashContent('body{color:#1f4e5f}') === '133xxb428vq');
 
-const out = resolve(__dirname, '../../logs/brand-sync-preview.html');
-mkdirSync(dirname(out), { recursive: true });
-writeFileSync(out, `<!doctype html><meta charset="utf-8"><title>Propagation d'identité</title><body style="margin:0">${previews.join('')}</body>`);
-console.log(`\nAperçu avant/après : ${out}`);
+void checkLogoAdaptation().then(() => {
+  const out = resolve(__dirname, '../../logs/brand-sync-preview.html');
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, `<!doctype html><meta charset="utf-8"><title>Propagation d'identité</title><body style="margin:0">${previews.join('')}</body>`);
+  console.log(`\nAperçu avant/après : ${out}`);
 
-if (failures > 0) {
-  console.error(`\n${failures} échec(s).`);
-  process.exit(1);
-}
-console.log('\nTout est vert.');
+  if (failures > 0) {
+    console.error(`\n${failures} échec(s).`);
+    process.exit(1);
+  }
+  console.log('\nTout est vert.');
+});

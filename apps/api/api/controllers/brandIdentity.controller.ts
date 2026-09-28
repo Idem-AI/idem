@@ -109,6 +109,7 @@ function readRequest(body: any, userId: string): IdentityUpdateRequest {
     if (primary || secondary) request.typography = { primary, secondary };
   }
 
+  if (body?.adaptLogo === true) request.adaptLogo = true;
   request.dryRun = body?.dryRun === true;
   return request;
 }
