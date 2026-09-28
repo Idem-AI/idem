@@ -1811,6 +1811,69 @@
         "copyHint": "Cliquez sur une couleur pour copier sa valeur",
         "copy": "Copier",
         "copied": "Copié"
+      },
+      "identityEditor": {
+        "open": "Identité visuelle",
+        "title": "Identité visuelle",
+        "subtitle": "Changez le logo, les couleurs ou les polices : tous vos documents, visuels et votre site suivent.",
+        "logo": {
+          "title": "Logo",
+          "import": "Importer un logo",
+          "keepCurrent": "Garder le logo actuel",
+          "previous": "Logos proposés",
+          "colorsFromLogo": "Adapter les couleurs à ce logo",
+          "regenerate": "Proposer d'autres logos",
+          "regenerating": "Création des logos…",
+          "none": "Aucun autre logo proposé pour l'instant."
+        },
+        "colors": {
+          "title": "Couleurs",
+          "hint": "Changez une couleur : les autres s'accordent automatiquement. Cochez « Garder » pour en figer une.",
+          "fromLogoHint": "Les couleurs seront tirées du nouveau logo.",
+          "harmonizing": "Accord des couleurs…",
+          "reset": "Annuler",
+          "keep": "Garder",
+          "adjusted": "ajustée",
+          "contrast": "Lisibilité du texte : {{ratio}}:1",
+          "roles": {
+            "primary": "Principale",
+            "secondary": "Secondaire",
+            "accent": "Accent",
+            "background": "Fond",
+            "text": "Texte"
+          },
+          "proposals": "Palettes proposées"
+        },
+        "fonts": {
+          "title": "Polices",
+          "primary": "Titres",
+          "secondary": "Texte courant",
+          "search": "Chercher une police…",
+          "undo": "Annuler",
+          "proposals": "Associations proposées",
+          "import": "Importer"
+        },
+        "preview": {
+          "title": "Ce qui va changer",
+          "count": "{{updated}} sur {{total}}",
+          "site": "Site internet",
+          "files": "{{count}} fichier(s) mis à jour",
+          "siteError": "Non mis à jour, réessayez",
+          "contrastFixes": "{{count}} texte(s) rendu(s) lisible(s) sur les nouvelles couleurs."
+        },
+        "actions": {
+          "preview": "Voir ce qui change",
+          "apply": "Appliquer partout",
+          "applying": "Application…"
+        },
+        "done": {
+          "title": "Nouvelle identité appliquée",
+          "subtitle": "Tous les supports ont été mis à jour. Chaque changement reste annulable depuis l'historique."
+        },
+        "error": "La mise à jour n'a pas abouti. Réessayez.",
+        "regenerate": "Proposer d'autres",
+        "regenerating": "Proposition en cours…",
+        "regenError": "La génération n'a pas abouti. Réessayez."
       }
     },
     "additionalInfoForm": {

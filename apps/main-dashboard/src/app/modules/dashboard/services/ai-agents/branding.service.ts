@@ -11,6 +11,13 @@ import {
 } from '../../models/brand-identity.model';
 import { ProjectModel } from '@idem/shared-models';
 import { LogoModel, LogoPreferencesModel } from '../../models/logo.model';
+import {
+  HarmonizeResult,
+  IdentityUpdateReport,
+  IdentityUpdateRequest,
+  PaletteRole,
+  BrandPalette,
+} from '../../models/brand-identity-update.model';
 import { SSEService } from '../../../../shared/services/sse.service';
 import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
 
@@ -477,5 +484,43 @@ export class BrandingService {
           });
         }),
       );
+  }
+
+  /**
+   * Nouvelles propositions de palettes OU de polices (IA), sans toucher à la
+   * marque en place : le choix passe ensuite par `updateIdentity`, qui le
+   * propage. Seules les données descriptives du projet partent, comme pour
+   * `generateColorsAndTypographyFromLogo` (le reste est relu côté serveur).
+   */
+  regenerateProposals(
+    project: ProjectModel,
+    only: 'colors' | 'typography',
+  ): Observable<{ colors: ColorModel[]; typography: TypographyModel[] }> {
+    return this.http.post<{ colors: ColorModel[]; typography: TypographyModel[] }>(
+      `${this.apiUrl}/generate/colors-typography`,
+      { project: this.buildLeanProjectForColorGen(project), only },
+    );
+  }
+
+  /**
+   * Change le logo, les couleurs ou les polices et propage le changement à
+   * tous les supports (charte, business plans, decks, cartes, visuels, site).
+   * Aucun appel à l'IA côté serveur. `dryRun` rend le même rapport sans rien
+   * écrire.
+   */
+  updateIdentity(projectId: string, request: IdentityUpdateRequest): Observable<IdentityUpdateReport> {
+    return this.http.put<IdentityUpdateReport>(`${this.apiUrl}/${projectId}/identity`, request);
+  }
+
+  /** Harmonise une palette sans l'enregistrer : pur calcul, sans IA. */
+  previewPalette(
+    projectId: string,
+    colors: Partial<BrandPalette>,
+    keepColors: PaletteRole[] = [],
+  ): Observable<HarmonizeResult> {
+    return this.http.post<HarmonizeResult>(`${this.apiUrl}/${projectId}/identity/palette`, {
+      colors,
+      keepColors,
+    });
   }
 }
