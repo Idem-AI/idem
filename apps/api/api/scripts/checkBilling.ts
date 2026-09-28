@@ -157,6 +157,8 @@ const EXPECTED_CREDIT_COSTS: Record<string, number> = {
   carousel: 5,
   business_card: 10,
   logo_relaunch: 10,
+  logo_regenerate: 15,
+  brand_regenerate: 2,
   editorial_calendar: 15,
   pitch_deck: 35,
   communication_strategy: 40,

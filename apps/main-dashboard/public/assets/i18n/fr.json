@@ -1822,8 +1822,18 @@
           "previous": "Logos proposés",
           "colorsFromLogo": "Adapter les couleurs à ce logo",
           "regenerate": "Proposer d'autres logos",
-          "regenerating": "Création des logos…",
-          "none": "Aucun autre logo proposé pour l'instant."
+          "regenerating": "Création des logos… Vous pouvez fermer ce panneau.",
+          "none": "Aucun autre logo proposé pour l'instant.",
+          "importedTitle": "Logo importé. Vous pouvez l'utiliser tel quel ou partir de lui pour l'améliorer.",
+          "useAsIs": "Utilisé tel quel",
+          "improveImported": "L'améliorer avec l'IA",
+          "improveCurrent": "Améliorer le logo actuel",
+          "improveHint": "L'IA analyse le logo, relève ses faiblesses et propose des versions plus professionnelles qui lui ressemblent.",
+          "options": "Options de génération",
+          "typeLabel": "Type de logo",
+          "briefLabel": "Votre idée (facultatif)",
+          "briefPlaceholder": "Ex. : un lion stylisé, lignes épurées, esprit artisanal…",
+          "briefUsed": "Brief retenu :"
         },
         "colors": {
           "title": "Couleurs",
@@ -1871,8 +1881,10 @@
         },
         "error": "La mise à jour n'a pas abouti. Réessayez.",
         "regenerate": "Proposer d'autres",
-        "regenerating": "Proposition en cours…",
-        "regenError": "La génération n'a pas abouti. Réessayez."
+        "regenerating": "En cours… Vous pouvez fermer ce panneau.",
+        "regenError": "La génération n'a pas abouti. Réessayez.",
+        "cancel": "Annuler",
+        "analysisError": "L'analyse du logo n'a pas abouti. Réessayez."
       }
     },
     "additionalInfoForm": {

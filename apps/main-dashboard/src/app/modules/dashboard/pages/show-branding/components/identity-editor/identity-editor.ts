@@ -5,6 +5,8 @@ import {
   computed,
   effect,
   inject,
+  linkedSignal,
+  untracked,
   input,
   output,
   signal,
@@ -31,11 +33,15 @@ import {
   PALETTE_ROLES,
   PaletteRole,
 } from '../../../../models/brand-identity-update.model';
-import { LogoModel } from '../../../../models/logo.model';
+import { LogoModel, LogoType } from '../../../../models/logo.model';
+import {
+  IdentityJobKind,
+  IdentityJobsService,
+  LogoJobRequest,
+} from '../../../../services/identity-jobs.service';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { LogoImportResponse, LogoImportService } from '../../../../services/logo-import.service';
 import { CatalogFont, TypographyService } from '../../../../../../shared/services/typography.service';
-import { SSEStepEvent } from '../../../../../../shared/models/sse-step.model';
 import { TypographyFontImportComponent } from '../../../create-project/components/typography-selection/typography-font-import/typography-font-import';
 import { LogoSrcPipe } from '../../../../../../shared/pipes/logo-src.pipe';
 
@@ -77,6 +83,7 @@ export class IdentityEditorComponent {
   private readonly logoImportService = inject(LogoImportService);
   private readonly typographyService = inject(TypographyService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly jobs = inject(IdentityJobsService);
 
   readonly projectId = input.required<string>();
   readonly branding = input.required<BrandIdentityModel>();
@@ -94,22 +101,40 @@ export class IdentityEditorComponent {
   protected readonly importError = signal<string | null>(null);
   protected readonly colorsFromLogo = signal(false);
 
-  /** Logos régénérés dans ce panneau ; `null` tant qu'aucune régénération n'a eu lieu. */
-  protected readonly freshLogos = signal<LogoModel[] | null>(null);
-  protected readonly regeneratingLogos = signal(false);
-  protected readonly logoRegenFailed = signal(false);
+  // ── Régénérations : des tâches serveur, suivies par `IdentityJobsService` ──
+  //
+  // Elles survivent à la fermeture du panneau : seul « Annuler » les arrête.
+  protected readonly projectJobs = computed(() => this.jobs.jobsFor(this.projectId()));
+  /** Requête de démarrage en vol (le temps que le serveur réponde 202). */
+  protected readonly startingJob = signal<IdentityJobKind | null>(null);
+  /** Refus au démarrage (crédits insuffisants, tâche déjà en cours…). */
+  protected readonly startErrors = signal<Partial<Record<IdentityJobKind, string>>>({});
+
+  protected readonly regeneratingLogos = computed(() => this.isRunning('logos'));
+
+  /** Logos de la tâche en cours ou terminée ; sinon, ceux déjà en base. */
+  private readonly jobLogos = computed(() => {
+    const job = this.projectJobs().logos;
+    return job && (job.status === 'running' || job.logos?.length) ? (job.logos ?? []) : null;
+  });
 
   /** Les propositions : celles de la régénération, sinon celles déjà en base. */
   protected readonly proposedLogos = computed(() => {
     const current = this.branding().logo?.id;
-    const list = this.freshLogos() ?? this.branding().generatedLogos ?? [];
+    const list = this.jobLogos() ?? this.branding().generatedLogos ?? [];
     return list.filter((logo) => logo.id !== current && !!logo.svg);
   });
 
   /** Emplacements encore en cours de génération, montrés en squelette. */
   protected readonly pendingLogoSlots = computed(() =>
-    this.regeneratingLogos() ? Array.from({ length: Math.max(0, 3 - (this.freshLogos()?.length ?? 0)) }) : [],
+    this.regeneratingLogos() ? Array.from({ length: Math.max(0, 3 - (this.jobLogos()?.length ?? 0)) }) : [],
   );
+
+  // Options de génération — les mêmes qu'à la création du projet.
+  protected readonly logoTypes: readonly LogoType[] = ['icon', 'name', 'initial'];
+  protected readonly logoType = linkedSignal<LogoType | null>(() => this.branding().logoPreferences?.type ?? null);
+  protected readonly logoBrief = linkedSignal(() => this.branding().logoPreferences?.customDescription ?? '');
+  protected readonly optionsOpen = signal(false);
 
   protected readonly logoPreview = computed(() => {
     const choice = this.logoChoice();
@@ -136,9 +161,8 @@ export class IdentityEditorComponent {
     () => this.harmonized()?.palette ?? { ...this.currentPalette(), ...this.draftColors() },
   );
 
-  protected readonly freshPalettes = signal<ColorModel[] | null>(null);
   protected readonly proposedPalettes = computed(() =>
-    (this.freshPalettes() ?? this.branding().generatedColors ?? []).filter((palette) =>
+    (this.jobResult('colors') ?? this.branding().generatedColors ?? []).filter((palette) =>
       PALETTE_ROLES.every((role) => HEX.test(palette.colors?.[role] ?? '')),
     ),
   );
@@ -161,18 +185,13 @@ export class IdentityEditorComponent {
 
   protected readonly fontsChanged = computed(() => Object.keys(this.chosenFonts()).length > 0);
 
-  protected readonly freshTypographies = signal<TypographyModel[] | null>(null);
   protected readonly proposedTypographies = computed(() =>
-    (this.freshTypographies() ?? this.branding().generatedTypography ?? []).filter(
+    (this.jobResult('typography') ?? this.branding().generatedTypography ?? []).filter(
       (typography) => !!typography.primaryFont,
     ),
   );
   /** Emplacement dont le panneau d'import de fichiers est ouvert. */
   protected readonly importingFontFor = signal<FontRole | null>(null);
-
-  // ── Régénération (IA) des palettes et des polices ─────────────────────
-  protected readonly regenerating = signal<'colors' | 'typography' | null>(null);
-  protected readonly regenFailed = signal<'colors' | 'typography' | null>(null);
 
   // ── Application ─────────────────────────────────────────────────────
   protected readonly preview = signal<IdentityUpdateReport | null>(null);
@@ -185,17 +204,10 @@ export class IdentityEditorComponent {
     () => this.logoChanged() || this.colorsChanged() || this.fontsChanged(),
   );
   /**
-   * Une génération en cours bloque l'application : les logos proposés ne sont
-   * enregistrés qu'au fil du flux, et un choix fait avant serait introuvable.
+   * Une régénération en cours ne bloque PAS l'application : elle n'écrit que
+   * ses propositions, et chaque logo proposé est enregistré dès qu'il est prêt.
    */
-  protected readonly busy = computed(
-    () =>
-      this.previewing() ||
-      this.applying() ||
-      this.importing() ||
-      this.regeneratingLogos() ||
-      this.regenerating() !== null,
-  );
+  protected readonly busy = computed(() => this.previewing() || this.applying() || this.importing());
 
   constructor() {
     // Chaque paire proposée s'affiche dans ses propres polices.
@@ -205,12 +217,10 @@ export class IdentityEditorComponent {
       }
     });
 
-    // Fermer le panneau pendant une génération de logos l'annule côté serveur :
-    // personne ne verra plus ces propositions, inutile de les payer.
-    this.destroyRef.onDestroy(() => {
-      if (this.regeneratingLogos()) {
-        this.brandingService.cancelLogoConceptsGeneration(this.projectId()).subscribe({ error: () => undefined });
-      }
+    // Une tâche lancée avant un rechargement de la page est retrouvée ici.
+    effect(() => {
+      const projectId = this.projectId();
+      untracked(() => this.jobs.track(projectId));
     });
 
     this.paletteRequests
@@ -303,51 +313,91 @@ export class IdentityEditorComponent {
     this.resetPreview();
   }
 
+  // ── Régénérations ───────────────────────────────────────────────────
+
+  protected isRunning(kind: IdentityJobKind): boolean {
+    return this.projectJobs()[kind]?.status === 'running';
+  }
+
+  /** Échec d'une tâche, ou refus à son démarrage : le message à afficher. */
+  protected jobProblem(kind: IdentityJobKind): 'start' | 'analysis' | 'generation' | null {
+    if (this.startErrors()[kind] !== undefined) return 'start';
+    const job = this.projectJobs()[kind];
+    if (job?.status !== 'failed') return null;
+    return job.error === 'analysis_failed' ? 'analysis' : 'generation';
+  }
+
+  protected startError(kind: IdentityJobKind): string {
+    return this.startErrors()[kind] ?? '';
+  }
+
+  private jobResult<T extends 'colors' | 'typography'>(kind: T) {
+    const job = this.projectJobs()[kind];
+    return job?.status === 'done' ? (job[kind] ?? null) : null;
+  }
+
+  /**
+   * Démarre la tâche. Pas de `takeUntilDestroyed` : la requête ne fait que
+   * démarrer une tâche serveur, elle doit aboutir même si le panneau se ferme.
+   */
+  private startJob(kind: IdentityJobKind, body: LogoJobRequest = {}): void {
+    if (this.isRunning(kind) || this.startingJob() === kind) return;
+    this.startingJob.set(kind);
+    this.startErrors.update((errors) => {
+      const next = { ...errors };
+      delete next[kind];
+      return next;
+    });
+    this.jobs.start(this.projectId(), kind, body).subscribe({
+      next: () => this.startingJob.set(null),
+      error: (error: { error?: { message?: string } }) => {
+        this.startingJob.set(null);
+        this.startErrors.update((errors) => ({ ...errors, [kind]: error?.error?.message ?? '' }));
+      },
+    });
+  }
+
+  protected cancelJob(kind: IdentityJobKind): void {
+    this.jobs.cancel(this.projectId(), kind).subscribe({ error: () => undefined });
+  }
+
+  private logoPreferences(): LogoJobRequest['preferences'] {
+    const brief = this.logoBrief().trim();
+    return { type: this.logoType() ?? undefined, customDescription: brief || undefined };
+  }
+
+  /** De nouveaux logos, avec les options choisies. */
   protected regenerateLogos(): void {
-    if (this.busy()) return;
-    this.freshLogos.set([]);
-    this.logoRegenFailed.set(false);
-    this.regeneratingLogos.set(true);
     // Le logo choisi parmi les anciennes propositions disparaît avec elles.
     if (this.logoChoice().kind === 'generated') this.logoChoice.set({ kind: 'current' });
     this.resetPreview();
-
-    this.brandingService
-      .generateLogoConceptsStream(this.projectId(), true, this.branding().logoPreferences ?? null)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (event) => this.onLogoEvent(event),
-        error: () => this.finishLogoRegeneration(),
-        complete: () => this.finishLogoRegeneration(),
-      });
+    this.startJob('logos', { preferences: this.logoPreferences() });
   }
 
-  private onLogoEvent(event: SSEStepEvent): void {
-    if (event.data === 'all_steps_completed' || event.type === 'completed') {
-      this.finishLogoRegeneration();
-      return;
-    }
-    if (event.stepName !== 'concept_finalized') return;
-    let payload: { conceptIndex?: number; logo?: LogoModel } = {};
-    try {
-      payload = event.data ? JSON.parse(event.data) : {};
-    } catch {
-      return;
-    }
-    const logo = payload.logo;
-    if (!logo?.svg) return;
-    const withId: LogoModel = { ...logo, id: logo.id || `concept-${payload.conceptIndex ?? 0}` };
-    this.freshLogos.update((logos) => [...(logos ?? []).filter((l) => l.id !== withId.id), withId]);
+  /**
+   * Améliorer un logo : l'actuel, ou celui qu'on vient d'importer. Il est
+   * analysé, et l'analyse (plus le souhait éventuel de l'utilisateur) devient
+   * le brief des nouvelles propositions — comme à la création du projet.
+   */
+  protected improveLogo(source: 'current' | 'imported'): void {
+    const choice = this.logoChoice();
+    const improve: LogoJobRequest['improve'] =
+      source === 'current'
+        ? 'current'
+        : choice.kind === 'imported' && choice.result.logoUrl
+          ? { svg: choice.result.logoUrl }
+          : undefined;
+    if (!improve) return;
+    this.resetPreview();
+    this.startJob('logos', { preferences: this.logoPreferences(), improve });
   }
 
-  private finishLogoRegeneration(): void {
-    if (!this.regeneratingLogos()) return;
-    this.regeneratingLogos.set(false);
-    this.brandingService.closeLogoConceptsStream();
-    if ((this.freshLogos() ?? []).length === 0) {
-      this.logoRegenFailed.set(true);
-      this.freshLogos.set(null);
-    }
+  protected setLogoType(type: LogoType): void {
+    this.logoType.update((current) => (current === type ? null : type));
+  }
+
+  protected onLogoBrief(event: Event): void {
+    this.logoBrief.set((event.target as HTMLTextAreaElement).value.slice(0, 1200));
   }
 
   protected toggleColorsFromLogo(event: Event): void {
@@ -390,26 +440,7 @@ export class IdentityEditorComponent {
 
   /** Nouvelles propositions de palettes OU de polices — l'autre liste reste. */
   protected regenerate(only: 'colors' | 'typography'): void {
-    if (this.busy()) return;
-    this.regenerating.set(only);
-    this.regenFailed.set(null);
-    this.brandingService
-      .regenerateProposals(this.project(), only)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (result) => {
-          this.regenerating.set(null);
-          if (only === 'colors') {
-            this.freshPalettes.set(result.colors ?? []);
-          } else {
-            this.freshTypographies.set(result.typography ?? []);
-          }
-        },
-        error: () => {
-          this.regenerating.set(null);
-          this.regenFailed.set(only);
-        },
-      });
+    this.startJob(only);
   }
 
   /** Une palette proposée remplace les cinq rôles ; l'harmonisation la vérifie. */

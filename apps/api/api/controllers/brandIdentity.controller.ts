@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { NextFunction, Response } from 'express';
 
 import logger from '../config/logger';
 import minioConnection from '../config/minio.config';
@@ -11,6 +11,12 @@ import {
 } from '../services/brand/brandSync.service';
 import { BrandPalette, normalizeHex, PaletteRole, PALETTE_ROLES, readPalette } from '../services/brand/brandTokens';
 import { projectService } from '../services/project.service';
+import {
+  IdentityJobKind,
+  identityJobsService,
+  IdentityJobsService,
+} from '../services/brand/identityJobs.service';
+import { ProjectModel } from '../models/project.model';
 
 /**
  * Identité visuelle d'un projet : changer le logo, les couleurs ou les polices
@@ -171,4 +177,135 @@ export const previewPaletteController = async (req: CustomRequest, res: Response
     logger.error(`previewPaletteController ${projectId} : ${error.message}`, { stack: error.stack });
     res.status(500).json({ message: 'Error harmonizing palette' });
   }
+};
+
+// ─── Régénérations en tâche de fond ─────────────────────────────────────────
+
+const JOB_KINDS: IdentityJobKind[] = ['logos', 'colors', 'typography'];
+
+function readJobKind(req: CustomRequest): IdentityJobKind | null {
+  const kind = req.params.kind as IdentityJobKind;
+  return JOB_KINDS.includes(kind) ? kind : null;
+}
+
+/**
+ * À placer AVANT `requireCredits` : une tâche déjà en cours, ou un projet
+ * introuvable, ne doivent rien coûter.
+ */
+export const guardIdentityJob = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const projectId = req.params.projectId as string;
+  const kind = readJobKind(req);
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+  if (!kind) {
+    res.status(400).json({ message: 'Type de régénération inconnu.' });
+    return;
+  }
+  const project = await projectService.getUserProjectById(userId, projectId);
+  if (!project) {
+    res.status(404).json({ message: 'Project not found' });
+    return;
+  }
+  const branding = project.analysisResultModel?.branding;
+  if (kind === 'logos' && (!branding?.colors?.colors?.primary || !branding?.typography?.primaryFont)) {
+    res.status(409).json({ message: 'La palette et les polices doivent exister avant de générer des logos.' });
+    return;
+  }
+  if (identityJobsService.isRunning(userId, projectId, kind)) {
+    res.status(409).json({ message: 'Une régénération est déjà en cours.', code: 'job_running' });
+    return;
+  }
+  (req as CustomRequest & { identityProject?: ProjectModel }).identityProject = project;
+  next();
+};
+
+/**
+ * POST /brandings/:projectId/identity/jobs/:kind
+ *
+ * Démarre la régénération et répond aussitôt (202) : elle continue même si le
+ * panneau est fermé ou la page rechargée.
+ */
+export const startIdentityJobController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = req.user!.uid;
+  const projectId = req.params.projectId as string;
+  const kind = readJobKind(req)!;
+  const project = (req as CustomRequest & { identityProject?: ProjectModel }).identityProject!;
+
+  try {
+    if (kind !== 'logos') {
+      const job = identityJobsService.startProposals(userId, projectId, kind, project, req.billing);
+      res.status(202).json(job);
+      return;
+    }
+
+    const body = req.body ?? {};
+    const type = IdentityJobsService.isLogoType(body.preferences?.type) ? body.preferences.type : undefined;
+    const customDescription =
+      typeof body.preferences?.customDescription === 'string'
+        ? body.preferences.customDescription.trim().slice(0, 1200)
+        : undefined;
+
+    // « Améliorer » : le logo actuel de la marque, ou un logo que l'utilisateur
+    // vient d'importer — déposé dans SON espace par `/logo-import/import`.
+    let improveSvg: string | undefined;
+    if (body.improve === 'current') {
+      improveSvg = project.analysisResultModel?.branding?.logo?.svg;
+      if (!improveSvg) throw new IdentityInputError('Ce projet n’a pas encore de logo à améliorer.');
+    } else if (typeof body.improve?.svg === 'string') {
+      const own = minioConnection.getPublicUrl(`users/${userId}/`);
+      if (!body.improve.svg.startsWith(own) || body.improve.svg.includes('..')) {
+        throw new IdentityInputError('Le logo à améliorer doit d’abord être importé.');
+      }
+      improveSvg = body.improve.svg;
+    }
+
+    const job = identityJobsService.startLogos(
+      userId,
+      projectId,
+      { preferences: { type, customDescription }, improveSvg },
+      req.billing
+    );
+    res.status(202).json(job);
+  } catch (error: any) {
+    // Réponse en erreur ⇒ le middleware de crédits contrepasse de lui-même.
+    if (error instanceof IdentityInputError) {
+      res.status(400).json({ message: error.message });
+      return;
+    }
+    logger.error(`startIdentityJobController ${projectId}/${kind} : ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: 'Impossible de lancer la régénération.' });
+  }
+};
+
+/** GET /brandings/:projectId/identity/jobs — l'état des régénérations. */
+export const identityJobsStatusController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = req.user?.uid;
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+  res.status(200).json(identityJobsService.status(userId, req.params.projectId as string));
+};
+
+/** POST /brandings/:projectId/identity/jobs/:kind/cancel — le seul arrêt. */
+export const cancelIdentityJobController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = req.user?.uid;
+  const kind = readJobKind(req);
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+  if (!kind) {
+    res.status(400).json({ message: 'Type de régénération inconnu.' });
+    return;
+  }
+  const cancelled = identityJobsService.cancel(userId, req.params.projectId as string, kind);
+  res.status(200).json({ cancelled });
 };

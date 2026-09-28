@@ -216,8 +216,18 @@
           "previous": "Proposed logos",
           "colorsFromLogo": "Match colors to this logo",
           "regenerate": "Suggest other logos",
-          "regenerating": "Creating logos…",
-          "none": "No other logo proposed yet."
+          "regenerating": "Creating logos… You can close this panel.",
+          "none": "No other logo proposed yet.",
+          "importedTitle": "Logo imported. Use it as is, or start from it to improve it.",
+          "useAsIs": "Used as is",
+          "improveImported": "Improve it with AI",
+          "improveCurrent": "Improve current logo",
+          "improveHint": "The AI analyses the logo, spots its weaknesses and suggests more professional versions that stay close to it.",
+          "options": "Generation options",
+          "typeLabel": "Logo type",
+          "briefLabel": "Your idea (optional)",
+          "briefPlaceholder": "E.g. a stylised lion, clean lines, craft feel…",
+          "briefUsed": "Brief used:"
         },
         "colors": {
           "title": "Colors",
@@ -265,8 +275,10 @@
         },
         "error": "The update did not go through. Please try again.",
         "regenerate": "Suggest others",
-        "regenerating": "Suggesting…",
-        "regenError": "Generation did not go through. Please try again."
+        "regenerating": "In progress… You can close this panel.",
+        "regenError": "Generation did not go through. Please try again.",
+        "cancel": "Cancel",
+        "analysisError": "The logo analysis did not go through. Please try again."
       }
     }
   }

@@ -24,7 +24,11 @@ import {
   regenerateArtDirectionController,
 } from '../controllers/branding.controller';
 import {
+  cancelIdentityJobController,
+  guardIdentityJob,
+  identityJobsStatusController,
   previewPaletteController,
+  startIdentityJobController,
   updateIdentityController,
 } from '../controllers/brandIdentity.controller';
 import { authenticate } from '../services/auth.service'; // Updated import path
@@ -608,6 +612,45 @@ brandingRoutes.put(`/${resourceName}/:projectId/identity`, authenticate, updateI
  *     security: [{ bearerAuth: [] }]
  */
 brandingRoutes.post(`/${resourceName}/:projectId/identity/palette`, authenticate, previewPaletteController);
+
+/**
+ * Régénérations du panneau « Identité visuelle », en tâches de fond.
+ *
+ * Tarif : 1,5 × la génération simple (`logo_regenerate`, `brand_regenerate`).
+ * Le garde passe AVANT le débit — une tâche déjà en cours ou un projet
+ * introuvable ne coûtent rien — et une tâche qui ne produit rien restitue ses
+ * crédits.
+ *
+ * @openapi
+ * /brandings/{projectId}/identity/jobs/{kind}:
+ *   post:
+ *     tags: [Brand Identity]
+ *     summary: Start a background regeneration (logos, colors or typography)
+ *     description: >
+ *       Returns 202 immediately. The job keeps running if the client
+ *       disconnects; only the cancel endpoint stops it. For `logos`, the body
+ *       may carry `preferences` ({ type, customDescription }) and `improve`
+ *       ('current' or { svg } — an imported logo URL) to improve a logo.
+ *     security: [{ bearerAuth: [] }]
+ */
+const chargeLogoRegeneration = requireCredits('business', 'logo_regenerate');
+const chargeProposalRegeneration = requireCredits('business', 'brand_regenerate');
+
+brandingRoutes.get(`/${resourceName}/:projectId/identity/jobs`, authenticate, identityJobsStatusController);
+brandingRoutes.post(
+  `/${resourceName}/:projectId/identity/jobs/:kind/cancel`,
+  authenticate,
+  cancelIdentityJobController
+);
+brandingRoutes.post(
+  `/${resourceName}/:projectId/identity/jobs/:kind`,
+  authenticate,
+  checkQuota,
+  guardIdentityJob,
+  (req, res, next) =>
+    (req.params.kind === 'logos' ? chargeLogoRegeneration : chargeProposalRegeneration)(req as any, res, next),
+  startIdentityJobController
+);
 
 /**
  * @openapi
