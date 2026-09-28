@@ -1808,6 +1808,60 @@
         "copyHint": "Click a colour to copy its value",
         "copy": "Copy",
         "copied": "Copied"
+      },
+      "identityEditor": {
+        "open": "Visual identity",
+        "title": "Visual identity",
+        "subtitle": "Change the logo, colors or fonts: all your documents, visuals and website follow.",
+        "logo": {
+          "title": "Logo",
+          "import": "Import a logo",
+          "keepCurrent": "Keep current logo",
+          "previous": "Or reuse a previously proposed logo",
+          "colorsFromLogo": "Match colors to this logo"
+        },
+        "colors": {
+          "title": "Colors",
+          "hint": "Change one color and the others adjust automatically. Tick “Keep” to lock one.",
+          "fromLogoHint": "Colors will be taken from the new logo.",
+          "harmonizing": "Matching colors…",
+          "reset": "Undo",
+          "keep": "Keep",
+          "adjusted": "adjusted",
+          "contrast": "Text legibility: {{ratio}}:1",
+          "roles": {
+            "primary": "Primary",
+            "secondary": "Secondary",
+            "accent": "Accent",
+            "background": "Background",
+            "text": "Text"
+          }
+        },
+        "fonts": {
+          "title": "Fonts",
+          "primary": "Headings",
+          "secondary": "Body text",
+          "search": "Search a font…",
+          "undo": "Undo"
+        },
+        "preview": {
+          "title": "What will change",
+          "count": "{{updated}} of {{total}}",
+          "site": "Website",
+          "files": "{{count}} file(s) updated",
+          "siteError": "Not updated, try again",
+          "contrastFixes": "{{count}} text(s) kept legible on the new colors."
+        },
+        "actions": {
+          "preview": "See what changes",
+          "apply": "Apply everywhere",
+          "applying": "Applying…"
+        },
+        "done": {
+          "title": "New identity applied",
+          "subtitle": "Every deliverable has been updated. Each change can be undone from the history."
+        },
+        "error": "The update did not go through. Please try again."
       }
     },
     "additionalInfoForm": {

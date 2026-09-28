@@ -84,7 +84,8 @@ export const generateColorsAndTypographyController = async (
       return;
     }
 
-    const result = await brandingService.generateColorsAndTypography(userId, project);
+    const only = req.body.only === 'colors' || req.body.only === 'typography' ? req.body.only : undefined;
+    const result = await brandingService.generateColorsAndTypography(userId, project, only);
 
     if (!result) {
       logger.warn(
