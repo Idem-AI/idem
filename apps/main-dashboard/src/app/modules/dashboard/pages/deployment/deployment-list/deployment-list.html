@@ -30,22 +30,14 @@
 
   <!-- Error state -->
   @if (error()) {
-    <div
-      class="flex flex-col items-center justify-center text-center rounded-xl p-8 min-h-[220px] mb-6"
-    >
-      <div class="text-4xl text-red-400 mb-3">
-        <i class="pi pi-exclamation-triangle"></i>
-      </div>
-      <p class="mb-4">{{ error() }}</p>
+    <app-error-state variant="panel" scene="connection" [message]="error()">
       @if (projectId()) {
-        <button
-          class="inline-flex items-center gap-2 rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] px-3 py-2 text-sm hover:bg-[var(--glass-bg-light)] transition"
-          (click)="fetchDeployments(projectId()!)"
-        >
+        <button type="button" class="outer-button !gap-2" (click)="fetchDeployments(projectId()!)">
+          <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
           {{ 'common.retry' | translate }}
         </button>
       }
-    </div>
+    </app-error-state>
   }
 
   <!-- Empty state -->

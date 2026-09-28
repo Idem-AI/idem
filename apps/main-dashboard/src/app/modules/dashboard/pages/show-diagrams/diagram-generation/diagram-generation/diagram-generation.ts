@@ -29,11 +29,13 @@ import { environment } from '../../../../../../../environments/environment';
 import { Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
 
 @Component({
   selector: 'app-diagram-generation',
   standalone: true,
   imports: [
+    ErrorStateComponent,
     CommonModule,
     MarkdownModule,
     SkeletonModule,

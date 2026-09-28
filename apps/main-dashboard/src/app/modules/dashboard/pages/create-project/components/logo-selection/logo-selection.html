@@ -257,45 +257,12 @@
 
   <!-- Error State -->
   @if (error()) {
-    <div class="flex flex-col items-center justify-center min-h-[60vh] w-full px-4 sm:px-6 lg:px-8">
-      <div class="text-center max-w-md mx-auto">
-        <div class="mb-6">
-          <div
-            class="inline-flex items-center justify-center w-16 h-16 bg-red-500/20 rounded-full mb-4"
-          >
-            <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
-          </div>
-          <h3 class="text-xl font-semibold text-text-primary mb-2">
-            {{ 'dashboard.logoSelection.errors.title' | translate }}
-          </h3>
-          <p class="text-text-tertiary mb-6">{{ error() }}</p>
-        </div>
-
-        <div class="flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            (click)="retryGeneration()"
-            class="flex items-center justify-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              ></path>
-            </svg>
-            {{ 'common.retry' | translate }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-error-state scene="generation" [title]="'dashboard.logoSelection.errors.title' | translate" [message]="error()">
+      <button type="button" class="inner-button !gap-2" (click)="retryGeneration()">
+        <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
+        {{ 'common.retry' | translate }}
+      </button>
+    </app-error-state>
   }
 
   <!-- Logo Selection State -->

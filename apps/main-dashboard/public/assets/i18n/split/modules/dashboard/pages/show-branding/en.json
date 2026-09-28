@@ -284,8 +284,7 @@
         "cancel": "Cancel",
         "analysisError": "The logo analysis did not go through. Please try again.",
         "follow": {
-          "title": "What about the logo?",
-          "hint": "Your colors or fonts are changing. Choose what happens to the logo.",
+          "title": "What about your logo?",
           "adapt": {
             "colors": "Apply the new colors to the logo",
             "fonts": "Reset the logo name in the new font",
@@ -295,9 +294,16 @@
           "regenerate": "Create new logos with the new identity",
           "regenerateHint": "With AI, after applying. Proposals arrive in this panel; you choose afterwards.",
           "keep": "Keep the logo as is",
-          "previewHint": "“See what changes” shows the adapted logo before applying.",
-          "previewReady": "Here is the adapted logo. It will replace the current one everywhere.",
-          "nothingToAdapt": "This logo has no brand color to replace: it will stay as is."
+          "nothingToAdapt": "This logo has no brand color to replace: it will stay as is.",
+          "subtitle": {
+            "colors": "Your colors are changing. The logo can follow them, be recreated, or stay as is.",
+            "fonts": "Your fonts are changing. The logo can follow them, be recreated, or stay as is.",
+            "both": "Your colors and fonts are changing. The logo can follow them, be recreated, or stay as is."
+          },
+          "recommended": "Recommended",
+          "adaptedAlt": "Logo adapted to the new identity",
+          "keepHint": "Only your documents, visuals and website change colors or fonts.",
+          "back": "Back to editing"
         }
       }
     }

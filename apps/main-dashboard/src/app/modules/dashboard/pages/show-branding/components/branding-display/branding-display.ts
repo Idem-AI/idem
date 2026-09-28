@@ -14,6 +14,7 @@ import {
 } from '../../../../models/generation-completeness';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
 
 /**
  * Page d'affichage de la charte graphique. La charte est rendue par l'aperçu
@@ -23,7 +24,12 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
  */
 @Component({
   selector: 'app-branding-display',
-  imports: [DocumentPreviewComponent, TranslateModule, IdemLoaderComponent],
+  imports: [
+    ErrorStateComponent,
+    DocumentPreviewComponent,
+    TranslateModule,
+    IdemLoaderComponent,
+  ],
   templateUrl: './branding-display.html',
   styleUrl: './branding-display.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

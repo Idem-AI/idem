@@ -20,18 +20,16 @@
 
   @if (loadError()) {
     <div class="editor-fallback">
-      <div class="glass-card max-w-md w-full text-center p-10 space-y-4">
-        <i class="pi pi-exclamation-triangle text-4xl text-amber-400" aria-hidden="true"></i>
-        <h2 class="text-lg font-semibold text-text-primary">
-          {{ 'dashboard.documentEditor.error.' + loadError() + '.title' | translate }}
-        </h2>
-        <p class="text-sm text-text-tertiary">
-          {{ 'dashboard.documentEditor.error.' + loadError() + '.subtitle' | translate }}
-        </p>
-        <button type="button" class="inner-button !text-xs !normal-case mx-auto" (click)="exit()">
+      <app-error-state
+        class="w-full"
+        scene="document"
+        [title]="'dashboard.documentEditor.error.' + loadError() + '.title' | translate"
+        [message]="'dashboard.documentEditor.error.' + loadError() + '.subtitle' | translate"
+      >
+        <button type="button" class="inner-button" (click)="exit()">
           {{ 'dashboard.documentEditor.error.back' | translate }}
         </button>
-      </div>
+      </app-error-state>
     </div>
   } @else {
     <div class="editor-body" [class.layers-open]="layersOpen()" [class.has-selection]="!!selection()">

@@ -8,11 +8,13 @@ import { CookieService } from '../../../../../shared/services/cookie.service';
 import { DeploymentService } from '../../../services/deployment.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ErrorStateComponent } from '../../../../../shared/components/error-state/error-state';
 
 @Component({
   selector: 'app-deployment-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, TranslateModule, IdemLoaderComponent],
+  imports: [
+    ErrorStateComponent,CommonModule, RouterLink, TranslateModule, IdemLoaderComponent],
   templateUrl: './deployment-list.html',
   styleUrl: './deployment-list.css',
 })

@@ -54,6 +54,9 @@ type FontRole = 'primary' | 'secondary';
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
+/** Durées de sortie — identiques à celles de `identity-editor.css`. */
+const EXIT_MS = { drawer: 240, modal: 160 } as const;
+
 /**
  * Changer l'identité visuelle — logo, couleurs, polices — et la voir appliquée
  * à tous les supports du projet.
@@ -75,8 +78,9 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
     TypographyFontImportComponent,
   ],
   templateUrl: './identity-editor.html',
+  styleUrl: './identity-editor.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'close()' },
+  host: { '(document:keydown.escape)': 'onEscape()' },
 })
 export class IdentityEditorComponent {
   private readonly brandingService = inject(BrandingService);
@@ -584,6 +588,68 @@ export class IdentityEditorComponent {
     return request;
   }
 
+  // ── Modale « Et le logo ? » ──────────────────────────────────────────
+  //
+  // La question se pose AU MOMENT d'appliquer, pas au fil de l'édition : c'est
+  // là que l'utilisateur mesure la portée de son changement.
+  protected readonly confirmOpen = signal(false);
+  protected readonly confirmLeaving = signal(false);
+  /** Logo adapté calculé pour la modale (aperçu serveur, rien n'est écrit). */
+  protected readonly confirmPreviewSvg = signal<string | null>(null);
+  protected readonly confirmPreviewLoading = signal(false);
+
+  /** Ce qui a changé, pour formuler la question. */
+  protected readonly changeKind = computed(() =>
+    this.colorsChanged() && this.fontsChanged() ? 'both' : this.colorsChanged() ? 'colors' : 'fonts',
+  );
+
+  protected readonly currentLogoSrc = computed(() => {
+    const logo = this.branding().logo;
+    return logo?.assetUrls?.primary || logo?.svg || '';
+  });
+
+  /** « Appliquer partout » : on demande d'abord ce que devient le logo. */
+  protected requestApply(): void {
+    if (!this.hasChanges() || this.busy()) return;
+    if (!this.logoFollowAsked()) {
+      this.apply();
+      return;
+    }
+    this.confirmLeaving.set(false);
+    this.confirmOpen.set(true);
+    this.loadAdaptPreview();
+  }
+
+  private loadAdaptPreview(): void {
+    if (!this.adaptScope()) return;
+    this.confirmPreviewLoading.set(true);
+    this.confirmPreviewSvg.set(null);
+    this.brandingService
+      .updateIdentity(this.projectId(), { ...this.buildRequest(true), adaptLogo: true })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (report) => {
+          this.confirmPreviewLoading.set(false);
+          this.confirmPreviewSvg.set(report.logoAdaptation?.previewSvg ?? null);
+        },
+        error: () => this.confirmPreviewLoading.set(false),
+      });
+  }
+
+  protected closeConfirm(then?: () => void): void {
+    if (!this.confirmOpen() || this.confirmLeaving()) return;
+    this.confirmLeaving.set(true);
+    setTimeout(() => {
+      this.confirmOpen.set(false);
+      this.confirmLeaving.set(false);
+      then?.();
+    }, EXIT_MS.modal);
+  }
+
+  protected confirmApply(): void {
+    this.closeConfirm(() => this.apply());
+  }
+
   protected showPreview(): void {
     this.run(true);
   }
@@ -650,8 +716,21 @@ export class IdentityEditorComponent {
     this.error.set(null);
   }
 
+  // ── Ouverture / fermeture en douceur ─────────────────────────────────
+  //
+  // L'entrée est une animation CSS jouée au montage ; la sortie joue la sienne
+  // PUIS prévient le parent, qui retire le panneau. Sans cette attente, le
+  // panneau disparaissait d'un coup.
+  protected readonly leaving = signal(false);
+
+  protected onEscape(): void {
+    if (this.confirmOpen()) this.closeConfirm();
+    else this.close();
+  }
+
   protected close(): void {
-    if (this.applying()) return;
-    this.closed.emit();
+    if (this.applying() || this.leaving()) return;
+    this.leaving.set(true);
+    setTimeout(() => this.closed.emit(), EXIT_MS.drawer);
   }
 }
