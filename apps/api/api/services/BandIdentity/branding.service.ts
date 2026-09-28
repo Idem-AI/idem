@@ -5342,7 +5342,9 @@ ${LOGO_EDIT_PROMPT}`;
             industry,
             'skipLogo' in named ? named.skipLogo : false
           )
-        )
+        ),
+        // Sert seulement à vérifier que le pays ne part pas chez Gemini.
+        project.additionalInfos?.country
       );
     };
 

@@ -38,6 +38,7 @@ import { INDUSTRY_MOCKUP_CATEGORIES } from '../../config/mockup.config';
 import { resolveStyle } from '../design/artDirection.catalog';
 import { MOCKUP_GENERATION_PROMPT } from './prompts/mockup-generation.prompt';
 import type { SelectedMockupSupport } from './mockupAnalyzer.service';
+import type { VisualBrief } from './visualBrief.service';
 
 /** Côté le plus long du logo envoyé, en pixels. */
 const LOGO_MAX_PX = 1024;
@@ -55,6 +56,12 @@ export interface GeminiMockupInput {
    * Ils ne servent qu'à la relecture, jamais à la consigne.
    */
   forbidden: string[];
+  /**
+   * Fiche visuelle du projet, traduite par GLM et vérifiée champ par champ
+   * (`visualBrief.service.ts`). C'est elle qui rend la scène PERSONNELLE sans
+   * rien dire du projet. Absente : le rendu vient du seul catalogue.
+   */
+  visualBrief?: VisualBrief | null;
 }
 
 export interface GeminiMockupPayload {
@@ -121,6 +128,7 @@ function minimalPrompt(input: GeminiMockupInput, withLogo: boolean): string {
 export async function buildGeminiMockupPayload(input: GeminiMockupInput): Promise<GeminiMockupPayload> {
   const withLogo = Boolean(input.logo) && !input.support.skipLogo;
   const style = input.styleId ? resolveStyle(input.styleId) : null;
+  const brief = input.visualBrief ?? null;
 
   // Seuls les champs que la consigne lit sont recopiés : le support sélectionné
   // porte aussi un contexte rédigé à partir du projet, qui ne doit pas suivre.
@@ -137,9 +145,20 @@ export async function buildGeminiMockupPayload(input: GeminiMockupInput): Promis
     },
     selectedSupport: support,
     pdfFormat: input.pdfFormat,
-    // Rendu du STYLE (catalogue), jamais la direction rédigée pour le projet.
-    artDirectionModifier: style?.imagePromptModifier,
+    // Rendu : le STYLE du catalogue, affiné par la fiche visuelle vérifiée —
+    // jamais la direction rédigée pour le projet.
+    artDirectionModifier: [
+      style?.imagePromptModifier,
+      brief?.lighting,
+      brief?.texture,
+      brief?.camera,
+      brief?.mood,
+    ]
+      .filter(Boolean)
+      .join(', '),
     artDirectionNegative: style?.imageNegativePrompt,
+    setting: brief?.setting,
+    materials: brief?.materials,
     withLogo,
   });
 
@@ -168,6 +187,7 @@ export async function buildGeminiMockupPayload(input: GeminiMockupInput): Promis
       support: support.supportType,
       sector: support.industryContext,
       style: style ? String(input.styleId) : 'aucun',
+      visualBrief: brief ? Object.keys(brief).join('+') || 'vide' : 'aucune',
       colors: 3,
       logo: logoSize || 'aucun',
       promptChars: prompt.length,

@@ -387,6 +387,45 @@ export async function analyzeImage(
   }
 }
 
+/**
+ * Complétion de TEXTE par GLM, en appel direct — hors du routeur.
+ *
+ * Réservée aux traitements qui doivent rester chez le fournisseur de la
+ * plateforme quel que soit le réglage global (`AI_DEFAULT_PROVIDER`,
+ * `AI_OVERRIDES`) : relire des données de projet pour en extraire ce qui peut
+ * sortir. Passer par `PromptService.runPrompt` les exposerait à une bascule
+ * vers un autre fournisseur, c'est-à-dire exactement à la fuite qu'on évite.
+ */
+export async function completeTextWithGlm(
+  prompt: string,
+  options: { model?: string; fallbackModel?: string; maxTokens?: number; temperature?: number } = {},
+): Promise<string> {
+  const apiKey = requireKey();
+  const model = options.model ?? GLM_MODELS.writing;
+  const fallbackModel = options.fallbackModel ?? GLM_MODELS.mechanical;
+  const attempt = async (candidate: string): Promise<string> => {
+    const response = await axios.post<{ choices?: { message?: { content?: string } }[] }>(
+      `${GLM_ENDPOINTS.base}/chat/completions`,
+      {
+        model: candidate,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: options.maxTokens ?? 1200,
+        temperature: options.temperature ?? 0.4,
+        thinking: { type: 'disabled' },
+      },
+      { headers: { Authorization: `Bearer ${apiKey}` }, timeout: VISION_TIMEOUT_MS },
+    );
+    return response.data?.choices?.[0]?.message?.content?.trim() ?? '';
+  };
+  try {
+    return await attempt(model);
+  } catch (error: any) {
+    if (fallbackModel === model) throw error;
+    logger.warn(`[GLM] text failed on ${model} (${error?.message}) — trying ${fallbackModel}`);
+    return attempt(fallbackModel);
+  }
+}
+
 // ---------------------------------------------------------------------------
 
 /**
