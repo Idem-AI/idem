@@ -72,26 +72,16 @@
     </div>
   </div>
 } @else if (generationError()) {
-  <!-- Error State -->
-  <div class="min-h-screen flex items-center justify-center px-4">
-    <div class="w-full max-w-md text-center">
-      <div class="glass-card rounded-2xl shadow-lg p-8">
-        <div
-          class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-          style="background: color-mix(in srgb, var(--color-danger) 12%, transparent)"
-        >
-          <i class="pi pi-exclamation-triangle text-2xl" style="color: var(--color-danger)"></i>
-        </div>
-        <h3 class="text-xl font-bold text-text-primary mb-2">
-          {{ 'dashboard.businessPlanGeneration.errors.title' | translate }}
-        </h3>
-        <p class="text-text-secondary mb-6">{{ generationError() }}</p>
-        <button (click)="generateBusinessPlan()" class="w-full inner-button">
-          {{ 'common.retry' | translate }}
-        </button>
-      </div>
-    </div>
-  </div>
+  <app-error-state
+    scene="generation"
+    [title]="'dashboard.businessPlanGeneration.errors.title' | translate"
+    [message]="generationError()"
+  >
+    <button type="button" class="inner-button !gap-2" (click)="generateBusinessPlan()">
+      <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
+      {{ 'common.retry' | translate }}
+    </button>
+  </app-error-state>
 } @else {
   <!-- Initial State -->
   <div class="min-h-[80vh] flex items-center justify-center px-4">

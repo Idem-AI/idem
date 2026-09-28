@@ -30,29 +30,20 @@
       </div>
     </div>
   } @else if (hasError() && isRetryable()) {
-    <!-- Error state with retry button -->
-    <div class="max-w-4xl mx-auto text-center py-10">
-      <div class="glass-card p-8">
-        <div class="mb-6">
-          <i class="pi pi-exclamation-triangle text-6xl text-red-400 mb-4"></i>
-        </div>
-        <h3 class="text-2xl font-bold text-text-primary mb-4">{{ 'common.error' | translate }}</h3>
-        <p class="text-text-secondary mb-8">{{ errorMessage() }}</p>
-        <div class="flex gap-4 justify-center">
-          <button class="inner-button" (click)="retryLoadBranding()">
-            <i class="pi pi-refresh mr-2"></i>
-            {{ 'common.retry' | translate }}
-          </button>
-          <button
-            class="glass-card px-6 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-300 rounded-lg"
-            (click)="goToProjects()"
-          >
-            <i class="pi pi-arrow-left mr-2"></i>
-            {{ 'dashboard.showBranding.buttons.backToProjects' | translate }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-error-state
+      scene="connection"
+      [title]="'common.error' | translate"
+      [message]="errorMessage()"
+    >
+      <button type="button" class="inner-button !gap-2" (click)="retryLoadBranding()">
+        <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
+        {{ 'common.retry' | translate }}
+      </button>
+      <button type="button" class="outer-button !gap-2" (click)="goToProjects()">
+        <i class="pi pi-arrow-left text-sm" aria-hidden="true"></i>
+        {{ 'dashboard.showBranding.buttons.backToProjects' | translate }}
+      </button>
+    </app-error-state>
   } @else if (hasProjectData() || hasBrandingData()) {
     <div class="max-w-7xl mx-auto space-y-6">
       @if (currentProject() && !isBrandingComplete()) {
@@ -419,26 +410,16 @@
       }
     </div>
   } @else {
-    <!-- Empty State - No project ID -->
-    <div class="max-w-4xl mx-auto text-center py-20">
-      <div class="glass-card p-8">
-        <div class="mb-6">
-          <i class="pi pi-exclamation-triangle text-6xl text-text-tertiary mb-4"></i>
-        </div>
-        <h3 class="text-2xl font-bold text-text-primary mb-4">
-          {{ 'dashboard.showBranding.empty.noProject.title' | translate }}
-        </h3>
-        <p class="text-text-secondary mb-8">
-          {{ 'dashboard.showBranding.empty.noProject.subtitle' | translate }}
-        </p>
-        <div class="flex justify-center">
-          <button class="inner-button" (click)="goToProjects()">
-            <i class="pi pi-folder mr-2"></i>
-            {{ 'dashboard.showBranding.buttons.selectProject' | translate }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-error-state
+      scene="project"
+      [title]="'dashboard.showBranding.empty.noProject.title' | translate"
+      [message]="'dashboard.showBranding.empty.noProject.subtitle' | translate"
+    >
+      <button type="button" class="inner-button !gap-2" (click)="goToProjects()">
+        <i class="pi pi-folder text-sm" aria-hidden="true"></i>
+        {{ 'dashboard.showBranding.buttons.selectProject' | translate }}
+      </button>
+    </app-error-state>
   }
 
   <!-- Choix du format de téléchargement des déclinaisons de logo -->

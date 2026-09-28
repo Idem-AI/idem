@@ -1890,8 +1890,7 @@
         "cancel": "Annuler",
         "analysisError": "L'analyse du logo n'a pas abouti. Réessayez.",
         "follow": {
-          "title": "Et le logo ?",
-          "hint": "Vos couleurs ou vos polices changent. Choisissez ce que devient le logo.",
+          "title": "Et votre logo ?",
           "adapt": {
             "colors": "Appliquer les nouvelles couleurs au logo",
             "fonts": "Reposer le nom du logo dans la nouvelle police",
@@ -1901,9 +1900,16 @@
           "regenerate": "Créer de nouveaux logos avec la nouvelle identité",
           "regenerateHint": "Avec l'IA, après l'application. Les propositions arrivent dans ce panneau ; vous choisissez ensuite.",
           "keep": "Garder le logo tel quel",
-          "previewHint": "« Voir ce qui change » montre le logo adapté avant d'appliquer.",
-          "previewReady": "Voici le logo adapté. Il remplacera l'actuel partout.",
-          "nothingToAdapt": "Ce logo ne porte aucune couleur de la marque à remplacer : il restera tel quel."
+          "nothingToAdapt": "Ce logo ne porte aucune couleur de la marque à remplacer : il restera tel quel.",
+          "subtitle": {
+            "colors": "Vos couleurs changent. Le logo peut les suivre, être recréé, ou rester tel quel.",
+            "fonts": "Vos polices changent. Le logo peut les suivre, être recréé, ou rester tel quel.",
+            "both": "Vos couleurs et vos polices changent. Le logo peut les suivre, être recréé, ou rester tel quel."
+          },
+          "recommended": "Recommandé",
+          "adaptedAlt": "Logo adapté à la nouvelle identité",
+          "keepHint": "Seuls vos documents, visuels et site changent de couleurs ou de polices.",
+          "back": "Revenir aux modifications"
         }
       }
     },

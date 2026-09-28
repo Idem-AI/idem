@@ -6,13 +6,7 @@
     </div>
   </div>
 } @else if (error()) {
-  <div class="glass-card p-8 text-center max-w-2xl mx-auto mt-12">
-    <i class="pi pi-exclamation-triangle text-4xl text-red-400 mb-4"></i>
-    <h2 class="text-xl font-semibold text-text-primary mb-2">
-      {{ 'dashboard.finance.errors.title' | translate }}
-    </h2>
-    <p class="text-text-tertiary">{{ error() }}</p>
-  </div>
+  <app-error-state scene="connection" [title]="'dashboard.finance.errors.title' | translate" [message]="error()" />
 } @else {
   <div class="space-y-6 p-4 md:p-2">
     <!-- Header -->

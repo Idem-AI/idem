@@ -5,11 +5,13 @@ import { IDeployService } from '../../services/ideploy.service';
 import { IDeploySummary } from '../../models/ideploy.model';
 import { finalize } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
+import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
 
 @Component({
   selector: 'app-ideploy-overview',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [
+    ErrorStateComponent,CommonModule, RouterModule],
   templateUrl: './ideploy-overview.html',
   styleUrls: ['./ideploy-overview.css'],
 })

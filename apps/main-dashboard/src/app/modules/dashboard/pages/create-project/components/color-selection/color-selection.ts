@@ -11,11 +11,13 @@ import { DialogModule } from 'primeng/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ColorCustomizerComponent } from '../color-customizer/color-customizer.component';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
 
 @Component({
   selector: 'app-color-selection',
   standalone: true,
   imports: [
+    ErrorStateComponent,
     CommonModule,
     CarouselComponent,
     DialogModule,

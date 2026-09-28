@@ -71,18 +71,12 @@
 
   <!-- ══ Error ════════════════════════════════════════════ -->
   @if (!loading() && error()) {
-    <div
-      class="flex items-center gap-4 p-5 bg-yellow-500/10 border border-yellow-500/25 rounded-xl"
-    >
-      <div class="text-2xl text-yellow-500 flex-shrink-0">
-        <i class="pi pi-exclamation-triangle"></i>
-      </div>
-      <div class="flex-1">
-        <strong class="block text-sm font-bold text-text-primary">Connexion impossible</strong>
-        <p class="text-xs text-text-tertiary mt-0.5">{{ error() }}</p>
-      </div>
-      <button class="outer-button" (click)="load()"><i class="pi pi-refresh"></i> Réessayer</button>
-    </div>
+    <app-error-state variant="panel" scene="connection" title="Connexion impossible" [message]="error()">
+      <button type="button" class="outer-button !gap-2" (click)="load()">
+        <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
+        Réessayer
+      </button>
+    </app-error-state>
   }
 
   <!-- ══ DASHBOARD ════════════════════════════════════════ -->

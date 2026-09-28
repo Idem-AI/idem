@@ -184,14 +184,14 @@
       </div>
     </div>
   } @else {
-    <!-- Chargement impossible -->
-    <div class="max-w-xl mx-auto text-center py-16">
-      <p class="text-text-tertiary mb-6" role="alert">
-        {{ errorMessage() || ('dashboard.showPitchDeck.errors.load' | translate) }}
-      </p>
+    <app-error-state
+      scene="document"
+      [title]="'common.error' | translate"
+      [message]="errorMessage() || ('dashboard.showPitchDeck.errors.load' | translate)"
+    >
       <button type="button" class="inner-button" (click)="goToList()">
         {{ 'dashboard.showPitchDeck.buttons.backToList' | translate }}
       </button>
-    </div>
+    </app-error-state>
   }
 </div>

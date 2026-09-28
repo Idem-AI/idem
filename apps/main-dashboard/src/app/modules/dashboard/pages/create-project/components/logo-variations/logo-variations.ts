@@ -20,6 +20,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
 
 interface DisplayVariation {
   id: string;
@@ -84,6 +85,7 @@ const VARIATION_WEIGHT: Record<VariationSlotStatus, number> = {
   selector: 'app-logo-variations',
   standalone: true,
   imports: [
+    ErrorStateComponent,
     CommonModule,
     FormsModule,
     LogoSrcPipe,

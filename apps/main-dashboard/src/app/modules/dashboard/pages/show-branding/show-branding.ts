@@ -27,6 +27,7 @@ import { IncompleteProjectBannerComponent } from '../../components/incomplete-pr
 import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { IdentityEditorComponent } from './components/identity-editor/identity-editor';
+import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
 
 type LogoGround = 'light' | 'dark';
 
@@ -66,6 +67,7 @@ function readableInk(hex: string): string {
 @Component({
   selector: 'app-show-branding',
   imports: [
+    ErrorStateComponent,
     CommonModule,
     Dialog,
     ButtonModule,

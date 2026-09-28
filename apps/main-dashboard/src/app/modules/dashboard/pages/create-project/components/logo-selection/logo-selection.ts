@@ -25,6 +25,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ProjectModel } from '@idem/shared-models';
 import { SSEStepEvent } from '../../../../../../shared/models/sse-step.model';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
 
 /** Avis de l'agent critique, affiché en temps réel à l'utilisateur */
 export interface LogoCritiqueView {
@@ -74,6 +75,7 @@ const CONCEPT_WEIGHT: Record<ConceptSlotStatus, number> = {
   selector: 'app-logo-selection',
   standalone: true,
   imports: [
+    ErrorStateComponent,
     CommonModule,
     FormsModule,
     LogoSrcPipe,
