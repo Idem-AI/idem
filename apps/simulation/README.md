@@ -40,9 +40,10 @@ src/app/
     auth/        the SSO callback from the IDEM dashboard
     simulations/ the product
       models/       domain types
-      data-access/  gateway (HTTP or demo), signal store
+      data-access/  HTTP gateway, signal store, report download
       components/   domain components: gauge, factor list, scenarios, charts
-      pages/        list, new run, run, results, report, comparison
+      pages/        list, new run, workspace (overview, understanding, factors,
+                    scenarios, financials), labs, report, comparison
 ```
 
 Standalone components, signals, zoneless change detection, lazy routes.
@@ -50,45 +51,30 @@ Standalone components, signals, zoneless change detection, lazy routes.
 ### The one backend seam
 
 Every call to the simulation backend goes through the abstract
-`SimulationGateway`. Two implementations are bound in `simulation.providers.ts`:
+`SimulationGateway`. `simulation.providers.ts` binds a single implementation,
+`HttpSimulationGateway`, which talks to the IDEM API. There is no demo or mock
+mode any more: every screen shows real output from the API.
 
-- `HttpSimulationGateway` talks to `${API}/simulations`.
-- `DemoSimulationGateway` serves an in-memory dataset.
-
-Nothing else in the app knows which one is active, so wiring the real API is a
-one-line environment change.
-
-The active source is resolved once at startup, in this order:
-
-| Priority | Where | How |
-| --- | --- | --- |
-| 1 | URL | `?mock=on` / `?mock=off` — memorised, so a demo link stays a demo |
-| 2 | Browser | the **Données de démonstration** switch in the account menu |
-| 3 | Build | `USE_MOCK_DATA` in `.env`, the fallback |
-
-Levels 1 and 2 need no rebuild: the choice is stored in `localStorage`
-(`idem_simulation_mock_data`) and the app reloads itself to rebind the gateway.
-Whenever the demo dataset is serving, a **Démo** badge sits in the top bar so a
-screenshot can never be mistaken for real output.
-
-`DemoSimulationGateway` is a small in-memory backend, not a set of fixtures: it
-runs the six pipeline stages on a timer, keeps created runs, generated reports
-and executed labs in `localStorage` (`idem_simulation_demo_state`), and applies
-a latency to every call so loading and progress states actually get exercised.
-*Reset the demo dataset* in the same menu puts it back to its seeded state.
-
-The endpoints the HTTP gateway expects:
+Endpoints used (all under `${API}`, all with the session cookie):
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/projects/simulatable` | IDEM projects the user can simulate |
-| `POST` | `/simulations/analysis` | Read a project or an uploaded plan |
-| `GET` | `/simulations/pricing?origin=` | Plans, with the IDEM-project discount |
-| `GET` | `/simulations` | List |
-| `POST` | `/simulations` | Start a run |
-| `GET` | `/simulations/:id` | One run, polled while it is running |
-| `GET` | `/simulations/:id/report` | The full report |
-| `POST` | `/simulations/:id/report` | Buy the report for an existing run |
+| `GET` | `/projects` | IDEM projects the user can simulate |
+| `GET` | `/project/simulations/:projectId/inputs` | Data read from an IDEM project |
+| `POST` | `/project/simulations/:projectId/analysis` | Understand a project before a run |
+| `POST` | `/project/simulations/import/analysis` | Understand an uploaded business plan |
+| `GET` | `/project/simulations/:projectId/pricing`, `/project/simulations/import/pricing` | Plans, with the IDEM-project discount |
+| `GET` | `/project/simulations/:projectId` | List runs |
+| `POST` | `/project/simulations/:projectId` | Start a run on a project |
+| `POST` | `/project/simulations/import/run` | Start a run on an uploaded plan |
+| `GET` | `/project/simulations/:projectId/:id` | One run, polled while it is running |
+| `GET` | `/project/simulations/:projectId/:id/report` | Full report |
+| `GET` | `/project/simulations/:projectId/:id/report/pdf` | Report as PDF |
+| `POST` | `/project/simulations/:projectId/:id/report` | Buy the report for an existing run |
+| `POST` | `/project/simulations/:projectId/:id/labs/:lab` | Run a lab (red team, customers, investors, black swan, universes, time machine, experiments) |
+| `DELETE` | `/project/simulations/:projectId/:id` | Delete a run |
+
+The API side is documented in [apps/api](../api/README.md).
 
 ### Authentication
 

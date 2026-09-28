@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+> This changelog has not been maintained since version 2.1.0 (October 2025). For later changes, use the git history (`git log`) and the pull requests.
+
 ## [2.1.0] - 2025-10-17
 
 ### 🎯 Smart Deploy System

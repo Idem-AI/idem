@@ -1,325 +1,202 @@
-# Direction artistique et lutte contre le rendu générique
+# Art direction and fighting the generic look
 
-Comment IDEM obtient des livrables visuels qui appartiennent à la même marque et
-qui ne ressemblent pas à une sortie de machine. À lire avant d'ajouter une
-génération visuelle ou de toucher un prompt de composition.
+How IDEM produces visual deliverables that belong to the same brand and do not look like machine output. Read it before adding a visual generation or touching a composition prompt.
 
-## Le problème
+## The problem
 
-Un modèle à qui l'on donne un brief vague renvoie la **moyenne de son corpus**.
-C'est la définition d'un générateur probabiliste, pas un défaut de talent :
-demandez « une page moderne et épurée » et vous obtenez la page moderne et épurée
-consensuelle — dégradé violet vers bleu, Inter, héros centré, trois cartes
-arrondies à ombre douce, « Elevate your business ».
+A model given a vague brief returns the **average of its corpus**. That is the definition of a probabilistic generator, not a lack of talent: ask for "a modern, clean page" and you get the consensual modern clean page — purple-to-blue gradient, Inter, centred hero, three rounded cards with soft shadows, "Elevate your business".
 
-Le module avait deux symptômes distincts, et une seule cause :
+The module had two distinct symptoms and a single cause:
 
-1. **Les rendus « sentaient l'IA ».** Chaque prompt demandait de la qualité en
-   adjectifs (« premium », « world-class »), ce qui ne contraint rien.
-2. **Deux livrables du même projet n'avaient aucune parenté.** La charte, les
-   visuels sociaux, le business plan, le deck et le site étaient composés par
-   cinq prompts qui improvisaient chacun leur parti pris.
+1. **The renderings "smelled of AI".** Every prompt asked for quality with adjectives ("premium", "world-class"), which constrains nothing.
+2. **Two deliverables of the same project had no family resemblance.** The charter, social visuals, business plan, deck and website were composed by five prompts, each improvising its own stance.
 
-La cause commune : **aucun arbitrage visuel n'était pris au niveau de la marque**.
-Il n'existait que des atomes (logo, palette, typographie), jamais la grammaire
-qui les assemble.
+The common cause: **no visual decision was made at brand level**. There were only atoms (logo, palette, typography), never the grammar that assembles them.
 
-## Le dispositif
+## The mechanism
 
-Trois pièces, dans cet ordre. Aucune ne suffit seule.
+Three pieces, in this order. None is enough on its own.
 
 ```
                     ┌─────────────────────────────┐
-                    │  1. DIRECTION ARTISTIQUE    │  décidée UNE fois par marque
-                    │  (contrainte positive)      │  models/art-direction.model.ts
+                    │  1. ART DIRECTION           │  decided ONCE per brand
+                    │  (positive constraint)      │  models/art-direction.model.ts
                     └──────────────┬──────────────┘
-                                   │ styleId borne l'espace
+                                   │ styleId bounds the space
                     ┌──────────────▼──────────────┐
-                    │  2. GRAINE DE COMPOSITION   │  tirée par livrable
-                    │  (variété bornée)           │  services/design/designSeed.ts
+                    │  2. COMPOSITION SEED        │  drawn per deliverable
+                    │  (bounded variety)          │  services/design/designSeed.ts
                     └──────────────┬──────────────┘
                                    │
                     ┌──────────────▼──────────────┐
-                    │  3. INTERDITS ANTI-SLOP     │  contraintes négatives
-                    │  + LINTER DÉTERMINISTE      │  services/design/antiSlop.prompt.ts
+                    │  3. ANTI-SLOP RULES         │  negative constraints
+                    │  + DETERMINISTIC LINTER     │  services/design/antiSlop.prompt.ts
                     └─────────────────────────────┘  services/design/slopLint.service.ts
 ```
 
-### 1. La direction artistique — la contrainte positive
+### 1. Art direction — the positive constraint
 
-`services/design/artDirection.catalog.ts` porte **20 styles nommés** (minimalisme,
-maximalisme, futuriste, vector art, collage, rétro, cyberpunk, pop art,
-glassmorphism, clay, pixel art, éditorial, Y2K, design suisse, surréalisme,
-bohème, victorien, graffiti, aurora, manuscrit).
+`services/design/artDirection.catalog.ts` holds **20 named styles** (minimalism, maximalism, futuristic, vector art, collage, retro, cyberpunk, pop art, glassmorphism, clay, pixel art, editorial, Y2K, Swiss design, surrealism, bohemian, Victorian, graffiti, aurora, handwritten).
 
-Chaque fiche est écrite **pour être exécutée par un modèle**, pas pour être lue :
-grille, comportement de la couleur, traitement typographique, rayon de bordure,
-filets, ombres, direction de l'imagerie, modificateur de prompt d'image (anglais),
-prompt négatif, interdits propres au style.
+Each entry is written **to be executed by a model**, not to be read: grid, colour behaviour, typographic treatment, border radius, rules, shadows, imagery direction, image-prompt modifier (English), negative prompt, style-specific don'ts.
 
-Un agent (`prompts/singleGenerations/art-direction.prompt.ts`) **choisit** un
-style du catalogue — il n'en invente pas — puis l'adapte à la marque. La sortie
-est validée contre le catalogue : un `styleId` inconnu retombe sur `editorial`
-plutôt que de casser la chaîne en silence.
+An agent (`prompts/singleGenerations/art-direction.prompt.ts`) **chooses** a style from the catalogue — it does not invent one — then adapts it to the brand. The output is validated against the catalogue: an unknown `styleId` falls back to `editorial` rather than silently breaking the chain.
 
-Pourquoi contraindre le choix : laissé libre, un modèle répond « moderne, épuré,
-professionnel ». Trois mots qui ne contraignent rien et reconduisent la moyenne.
+Why constrain the choice: left free, a model answers "modern, clean, professional". Three words that constrain nothing and reproduce the average.
 
-La direction est persistée sur `branding.artDirection` et relue par **tous** les
-modules.
+The direction is stored on `branding.artDirection` and read back by **every** module.
 
-### 2. La graine de composition — la variété bornée
+### 2. The composition seed — bounded variety
 
-`services/design/designSeed.ts` tire un archétype de mise en page, une stratégie
-de couleur, une humeur typographique, une tension spatiale, un accent graphique
-et une densité — **dans l'espace autorisé par le style** (`seedSpace`). Une charte
-« Design Suisse » ne peut donc pas sortir en néon sur fond noir.
+`services/design/designSeed.ts` draws a layout archetype, a colour strategy, a typographic mood, a spatial tension, a graphic accent and a density — **within the space allowed by the style** (`seedSpace`). A "Swiss design" charter can therefore not come out as neon on black.
 
-Deux modes :
+Two modes:
 
-| Mode | Usage | Effet |
+| Mode | Use | Effect |
 |---|---|---|
-| Déterministe (`entropyKey`) | Charte, business plan, deck | Les pages d'un même document se ressemblent ; deux projets diffèrent ; une régénération garde sa mise en page |
-| Aléatoire (sans clé) | Visuels sociaux | Deux posts de la même marque ne se ressemblent pas |
+| Deterministic (`entropyKey`) | Charter, business plan, deck | Pages of one document look alike; two projects differ; a regeneration keeps its layout |
+| Random (no key) | Social visuals | Two posts of the same brand do not look alike |
 
-La graine est **développée en consignes** avant d'atteindre le modèle
-(`describeSeed`). Transmettre `{"archetype":"D"}` revenait à ne rien transmettre :
-le modèle ignore ce que « D » recouvre.
+The seed is **expanded into instructions** before reaching the model (`describeSeed`). Sending `{"archetype":"D"}` sent nothing: the model does not know what "D" means.
 
-### 3. Les interdits et le linter — la contrainte négative, puis la mesure
+### 3. Don'ts and the linter — negative constraint, then measurement
 
-`antiSlop.prompt.ts` nomme explicitement les défauts que le modèle comblerait
-tout seul, en trois niveaux de gravité. Nommer un défaut est ce qui le retire ;
-demander « quelque chose d'original » n'a aucun ancrage.
+`antiSlop.prompt.ts` explicitly names the defaults the model would otherwise fall into, at three severity levels. Naming a defect is what removes it; asking for "something original" has no anchor.
 
-`slopLint.service.ts` **vérifie** ensuite sur le HTML produit, sans dépenser un
-token (des expressions régulières sur une chaîne) :
+`slopLint.service.ts` then **checks** the produced HTML, without spending a token (regular expressions on a string):
 
-- `lintHtml` diagnostique et produit une consigne de correction réinjectable ;
-- `repairHtml` corrige ce qui a une réponse unique — couleur hors charte ramenée
-  à la couleur de charte la plus proche, police écrite en dur ramenée aux classes
-  de la charte, titre en dégradé aplati, image sans `alt`.
+- `lintHtml` diagnoses and produces a correction instruction that can be fed back;
+- `repairHtml` fixes what has a single answer — an off-charter colour brought back to the nearest charter colour, a hard-coded font brought back to the charter classes, a gradient title flattened, an image without `alt`.
 
-Ce qui relève du goût n'est jamais réparé en aveugle, seulement journalisé : un
-linter qui recompose est un linter qu'on désactive.
+What is a matter of taste is never repaired blindly, only logged: a linter that recomposes is a linter people switch off.
 
-Les styles qui **revendiquent** un marqueur en sont exemptés : le glassmorphisme
-n'est un défaut que pour les dix-neuf autres styles.
+Styles that **claim** a marker are exempt from it: glassmorphism is a defect only for the nineteen other styles.
 
-## Le logo
+## The logo
 
-Le logo n'apparaissait ni dans les visuels, ni dans le business plan, ni sur le
-site généré. La donnée était pourtant transmise — mais **sans verbe**. Un modèle
-à qui l'on donne une URL sans consigne la traite comme une information de
-contexte, pas comme un élément à poser sur la page.
+The logo appeared neither in the visuals, nor in the business plan, nor on the generated website. The data was passed — but **without a verb**. A model given a URL without an instruction treats it as context, not as an element to place on the page.
 
-`utils/brand-context.util.ts` produit un bloc `<logo>` unique, partagé par le
-business plan, le deck, la carte de visite et le site, qui porte :
+`utils/brand-context.util.ts` produces a single `<logo>` block, shared by the business plan, the deck, the business card and the website, which carries:
 
-- les URLs de **toutes** les déclinaisons, une déclinaison manquante retombant
-  sur le logo primaire (un trou dans la table conduit le modèle à inventer une
-  URL, donc à afficher une image cassée) ;
-- l'**obligation** de le placer, avec la destination exacte dans ce livrable ;
-- la règle de choix encre/fond, mesurée sur la zone réelle et non sur l'ambiance
-  générale de la page ;
-- une consigne d'absence explicite quand la marque n'a pas de logo — sans elle,
-  le modèle en dessine un ou invente une URL.
+- the URLs of **all** variations, a missing variation falling back to the primary logo (a hole in the table leads the model to invent a URL, hence a broken image);
+- the **obligation** to place it, with the exact destination in this deliverable;
+- the ink/background choice rule, measured on the real area and not on the general mood of the page;
+- an explicit absence instruction when the brand has no logo — without it, the model draws one or invents a URL.
 
-Trois filets de sécurité en aval :
+Three safety nets downstream:
 
-| Livrable | Garantie |
+| Deliverable | Guarantee |
 |---|---|
-| Visuel social | `ensureLogoPresence` remplace une URL inventée, ou pose une signature si le logo manque ; puis `flyerRender` mesure la taille et le contraste sur les pixels rendus et corrige la déclinaison |
-| Pitch deck | Les URLs réelles sont protégées du remplacement par photo de stock ; `logo-missing` est journalisé |
-| Site généré | Le linter de `we-dev-next` échoue si aucune déclinaison n'est référencée |
+| Social visual | `ensureLogoPresence` replaces an invented URL, or adds a signature if the logo is missing; then `flyerRender` measures size and contrast on the rendered pixels and corrects the variation |
+| Pitch deck | Real URLs are protected from stock-photo replacement; `logo-missing` is logged |
+| Generated website | The `we-dev-next` linter fails if no variation is referenced |
 
-## Les polices de la marque
+## Brand fonts
 
-Elles ne se chargeaient **nulle part**. `TypographyModel.url` ne contient pas une
-feuille de style mais un slug (`typography/systeme-premium`) — c'est ce que
-l'agent produit et ce que le front utilise comme identifiant. Or les quatre
-moteurs de rendu serveur l'injectaient tel quel dans un `<link rel="stylesheet">` :
-le lien ne chargeait rien, le `font-family` retombait sur la police système, et
-**tous** les livrables sortaient dans une typographie qui n'était pas celle de la
-charte, sans la moindre erreur.
+They loaded **nowhere**. `TypographyModel.url` does not hold a stylesheet but a slug (`typography/systeme-premium`) — that is what the agent produces and what the front end uses as an identifier. Yet the four server-side renderers injected it as is into a `<link rel="stylesheet">`: the link loaded nothing, `font-family` fell back to the system font, and **every** deliverable came out in a typeface that was not the charter's, without any error.
 
-`utils/google-fonts.util.ts` construit désormais l'URL au moment du rendu, à
-partir des familles. Deux `<link>` par famille, délibérément : l'un sans
-spécification de graisse (toujours valide, garantit le chargement), l'autre avec
-la plage complète 100→900 (permet le contraste de graisse). Une requête unique
-combinant les deux familles ferait échouer les DEUX dès qu'une graisse manque à
-l'une d'elles.
+`utils/google-fonts.util.ts` now builds the URL at render time, from the families. Two `<link>` per family, deliberately: one without a weight specification (always valid, guarantees loading), the other with the full 100→900 range (allows weight contrast). A single request combining both families would make BOTH fail as soon as one weight is missing from one of them.
 
-Le catalogue de polices proposé par l'agent a été refait dans la foulée : le
-premier jeu était **codé en dur** sur « Exo 2 / Roboto », donc identique pour tous
-les projets, et Roboto figure dans la liste anti-générique. Les repli de dernier
-recours sont passés de `Inter` / `Montserrat` à `Archivo` / `IBM Plex Sans`.
+The font catalogue offered by the agent was redone at the same time: the first set was **hard-coded** to "Exo 2 / Roboto", identical for every project, and Roboto is on the anti-generic list. The last-resort fallbacks moved from `Inter` / `Montserrat` to `Archivo` / `IBM Plex Sans`.
 
-## La retenue éditoriale
+## Editorial restraint
 
-`services/design/editorialRestraint.prompt.ts` traite une pathologie
-**différente** de l'anti-slop, et les deux peuvent coexister : une page peut être
-parfaitement hors des clichés et rester illisible parce qu'elle est saturée
-d'ornements et de phrases creuses.
+`services/design/editorialRestraint.prompt.ts` treats a **different** pathology from anti-slop, and both can coexist: a page can be perfectly free of clichés and still unreadable because it is saturated with ornaments and empty sentences.
 
-La cause est identifiable : un modèle à qui l'on demande de « remplir une page »
-remplit — une carte, une icône, une pastille, une phrase de transition, parce que
-produire du volume est plus facile que produire de la matière. Le remède n'est pas
-de demander « moins » (un adjectif de plus) mais d'imposer un **critère** : le
-test de soustraction. Retirer l'élément ; si le lecteur ne perd ni information, ni
-hiérarchie, ni chemin de lecture, il ne doit pas exister.
+The cause is identifiable: a model asked to "fill a page" fills it — a card, an icon, a badge, a transition sentence, because producing volume is easier than producing substance. The remedy is not to ask for "less" (one more adjective) but to impose a **criterion**: the subtraction test. Remove the element; if the reader loses no information, no hierarchy and no reading path, it must not exist.
 
-Deux conséquences concrètes :
+Two concrete consequences:
 
-- le quota de pages du business plan (« remplir à 85 %, une page à moitié vide est
-  un défaut ») **produisait** le remplissage qu'on reprochait au rendu. Il est
-  devenu une cible indicative : moins de pages vaut mieux que du bourrage ;
-- le linter mesure maintenant l'accumulation — `icon-overload`,
-  `decorative-shape`, `empty-badge` — parce que la demander dans le prompt ne
-  suffit pas à l'échelle d'un document de douze pages.
+- the business-plan page quota ("fill to 85 %, a half-empty page is a defect") **produced** the padding we blamed on the rendering. It became an indicative target: fewer pages beats padding;
+- the linter now measures accumulation — `icon-overload`, `decorative-shape`, `empty-badge` — because asking for it in the prompt is not enough at the scale of a twelve-page document.
 
-## Le vocabulaire de composants
+## Component vocabulary
 
-Chaque style porte un `tailwindRecipe` : les six primitives d'un document (page,
-titre de section, texte courant, filet, bloc de données, légende) en classes
-Tailwind exactes, plus les appariements typographiques qui le servent.
+Each style carries a `tailwindRecipe`: the six primitives of a document (page, section title, body text, rule, data block, caption) as exact Tailwind classes, plus the type pairings that serve it.
 
-C'est la réponse à un défaut précis : sans primitives données, le modèle invente à
-chaque bloc une carte, un badge, un liseré — et c'est ce bricolage accumulé qui
-produit la décoration inutile. Une bibliothèque de composants tierce ferait
-l'inverse de ce qu'on cherche (elle impose SON look à toutes les marques) ; des
-recettes par style donnent le même bénéfice — assembler au lieu d'inventer — sans
-uniformiser.
+It answers a precise defect: without given primitives, the model invents a card, a badge, a border at every block — and that accumulated tinkering is what produces useless decoration. A third-party component library would do the opposite of what we want (it imposes ITS look on every brand); per-style recipes give the same benefit — assembling instead of inventing — without uniformising.
 
-## Les familles de mise en page
+## Layout families
 
-Constaté le 13 septembre 2026 : quel que soit le projet, charte et business plan
-sortaient « un seul et même style, avec exactement les mêmes dispositions ». La
-graine faisait varier des **réglages** — quelle couleur va où, l'humeur du titre,
-l'ornement de l'en-tête — posés sur **un seul dessin**. Les blocs (chiffres-clés,
-tableaux, cartes, frises, citations), le pied de page et la colonne de texte
-étaient identiques pour tous les projets ; en portrait, les dispositions
-latérales se ramenaient même toutes à « titre en haut ». Les contrôles passaient
-au vert parce qu'ils comptaient des tirages, pas des pages.
+Observed on 13 September 2026: whatever the project, the charter and the business plan came out "in one and the same style, with exactly the same layouts". The seed varied **settings** — which colour goes where, the mood of the title, the header ornament — on **a single drawing**. Blocks (key figures, tables, cards, timelines, quotes), the footer and the text column were identical for every project; in portrait, side layouts even all boiled down to "title at the top". The checks were green because they counted draws, not pages.
 
-`services/design/layoutFamilies.ts` porte désormais **60 familles nommées**
-(Revue, Rapport annuel, Affiche, Grille modulaire, Carnet de terrain, Atlas,
-Tableau de bord, Gazette, Manifeste, Monographie, Journal de bord, Planisphère,
-Magazine de mode, Annuaire, Livre blanc, Dossier de presse, Salle de contrôle,
-Portfolio, Guide de voyage…). Chacune est une grammaire complète sur
-**23 dimensions visibles** :
+`services/design/layoutFamilies.ts` now holds **60 named families** (Review, Annual report, Poster, Modular grid, Field notebook, Atlas, Dashboard, Gazette, Manifesto, Monograph, Logbook, World map, Fashion magazine, Directory, White paper, Press kit, Control room, Portfolio, Travel guide…). Each is a complete grammar over **23 visible dimensions**:
 
-| Dimension | Dessins |
+| Dimension | Drawings |
 |---|---|
-| Ouverture de section (portrait) | 13 — numéro en marge, aplat saignant, cadre, sur-titre tourné, ouverture de chapitre, titre et chapô en regard, hiérarchie inversée (le chapô en grand), doubles filets, onglet… |
-| Pied de page | 8 — dont titre courant en tête de chaque page, numéro d'angle |
-| Colonne de texte (portrait paginé) | 5 — pleine, décalée, indexée, étroite, appariée |
-| Chiffres-clés | 11 — rangée sous filet, registre, chiffre héros, tuiles, colonnes filetées, bande, libellé d'abord, lignes, phrase, cartouches, escalier |
-| Tableaux | 11 — dont colonnes teintées, transposé, encadré |
-| Cartes | 12 — dont bandes alternées, colonnes décalées, initiales, numéro d'angle |
-| Frises | 9 — dont épine centrale, étapes numérotées, chevrons |
-| Citations | 9 — dont auteur en regard, équerres, surligné |
-| Hypothèses | 7 — dont onglet, note de bas de bloc |
-| Prose | 8 — dont lettrine, attaque en gras, deux colonnes, alinéas, corps d'essai, premier paragraphe agrandi, paragraphes filetés |
-| Graphiques : cadre et clé de lecture | 6 — dont note en marge, légende numérotée |
-| Graphiques : encre | 4 — charte, monochrome, série mise en avant, au trait |
-| Chapô | 5 · Police des chiffres | 4 |
-| Rythme entre blocs | 3 · Bord de page | 4 — aucun, barre haute, barre latérale, cadre |
-| Étiquettes · numérotation · filets · encre des chiffres · angles · échelle du titre · nuancier | 5 · 6 · 5 · 2 · 2 · 3 · 3 |
+| Section opening (portrait) | 13 — number in the margin, bleeding colour block, frame, rotated kicker, chapter opening, title and standfirst side by side, inverted hierarchy (standfirst large), double rules, tab… |
+| Footer | 8 — including running title at the top of each page, corner number |
+| Text column (paginated portrait) | 5 — full, offset, indexed, narrow, paired |
+| Key figures | 11 — row under a rule, register, hero figure, tiles, ruled columns, band, label first, lines, sentence, cartouches, staircase |
+| Tables | 11 — including tinted columns, transposed, boxed |
+| Cards | 12 — including alternating bands, offset columns, initials, corner number |
+| Timelines | 9 — including central spine, numbered steps, chevrons |
+| Quotes | 9 — including author alongside, corner brackets, highlighted |
+| Assumptions | 7 — including tab, block footnote |
+| Prose | 8 — including drop cap, bold lead-in, two columns, indents, essay body, enlarged first paragraph, ruled paragraphs |
+| Charts: frame and reading key | 6 — including margin note, numbered legend |
+| Charts: ink | 4 — charter, monochrome, highlighted series, line art |
+| Standfirst | 5 · Figure typeface | 4 |
+| Rhythm between blocks | 3 · Page edge | 4 — none, top bar, side bar, frame |
+| Labels · numbering · rules · figure ink · corners · title scale · swatch | 5 · 6 · 5 · 2 · 2 · 3 · 3 |
 
-Les cinq dernières dimensions ajoutées (chapô, police des chiffres, encre des
-graphiques, rythme, bord de page) répondent à une remarque précise : même avec
-36 familles, « il y a toujours un peu de ressemblance entre les éléments ». Les
-chiffres sortaient tous en titrage gras, le chapô toujours gris sous le titre,
-les graphiques identiques, et la page toujours nue.
+The last five dimensions added (standfirst, figure typeface, chart ink, rhythm, page edge) answer a precise remark: even with 36 families, "there is always a bit of resemblance between the elements". Figures all came out in bold display, the standfirst always grey under the title, the charts identical, and the page always bare.
 
-Chaque valeur est une **fonction de rendu distincte**, jamais un curseur sur un
-dessin commun : `familyChrome.ts` pour l'enveloppe (ouverture, pied de page,
-colonne), `familyBlocks.ts` pour les blocs, les dessins historiques restant dans
-`sectionRenderer.ts` comme l'option d'une famille parmi d'autres. Les primitives
-qu'ils partagent — échappement, ajusteur de titre, contexte de page, ton de la
-famille — vivent dans `renderKit.ts`.
+Each value is a **distinct rendering function**, never a slider on a common drawing: `familyChrome.ts` for the envelope (opening, footer, column), `familyBlocks.ts` for the blocks, the historical drawings staying in `sectionRenderer.ts` as one family's option among others. The primitives they share — escaping, title fitter, page context, family tone — live in `renderKit.ts`.
 
-La famille est un **invariant du document** : tirée par livrable
-(`buildDocumentSeed`), déterministe, dans les familles compatibles avec le style
-de la direction artistique (`fits`, neuf au moins par style ; tout le catalogue
-sans direction). L'archétype, la stratégie de couleur et l'humeur typographique
-continuent de varier par-dessus.
+The family is a **document invariant**: drawn per deliverable (`buildDocumentSeed`), deterministic, among the families compatible with the art-direction style (`fits`, at least nine per style; the whole catalogue without a direction). Archetype, colour strategy and typographic mood keep varying on top.
 
-En paysage (charte, deck), les **structures** d'archétype restent : elles sont
-calibrées au millimètre contre le débordement des pages rognées. La famille y
-pose son pied de page, ses étiquettes, ses angles, son nuancier et le dessin de
-chaque bloc.
+In landscape (charter, deck), the archetype **structures** remain: they are calibrated to the millimetre against the overflow of cropped pages. The family sets their footer, labels, corners, swatch and the drawing of each block.
 
-### Ce qui est vérifié
+### What is checked
 
-- `check:uniqueness` — au moins 55 familles ; deux familles diffèrent toujours
-  sur au moins neuf des vingt-trois dimensions (moyenne mesurée : 18) ; chaque
-  style ouvre au moins treize familles ; chaque dessin est porté par au moins
-  deux familles ; quarante projets du même style se répartissent sur la plupart
-  de ses familles.
-- `check:render` — 60 familles, 60 pages distinctes (portrait et paysage) ;
-  charte respectée, contenu échappé, blocs enfants directs de la racine,
-  colonnes portées par le padding de la racine.
-- `check:fit` — chaque famille mesurée dans Chrome (A4 paginé complet et deux
-  diapositives de charte) : ni débordement, ni chevauchement, remplissage. Puis
-  les **silhouettes** : la première page en noir et blanc, sur une grille d'un
-  centimètre ; deux familles doivent différer d'au moins 10 % des cellules
-  encrées. Mesuré à 60 familles : 11 % pour la paire la plus proche, 33 % en
-  médiane.
+- `check:uniqueness` — at least 55 families; two families always differ on at least nine of the twenty-three dimensions (measured average: 18); each style opens at least thirteen families; each drawing is used by at least two families; forty projects of the same style spread over most of its families.
+- `check:render` — 60 families, 60 distinct pages (portrait and landscape); charter respected, content escaped, blocks as direct children of the root, columns carried by the root's padding.
+- `check:fit` — each family measured in Chrome (full paginated A4 and two charter slides): no overflow, no overlap, fill. Then the **silhouettes**: the first page in black and white, on a one-centimetre grid; two families must differ by at least 10 % of inked cells. Measured with 60 families: 11 % for the closest pair, 33 % median.
 
-### Ajouter une famille
+### Adding a family
 
-1. Ajouter l'entrée à `LAYOUT_FAMILIES`, avec ses styles (`fits`).
-2. `npm run check:uniqueness` dit si elle est trop proche d'une autre sur le
-   papier ; `npm run check:fit`, si elle l'est à l'écran.
-3. Ouvrir `logs/render-preview.html` (groupe « Familles de mise en page ») avant
-   de l'annoncer : un contrôle dit qu'elle diffère, pas qu'elle est belle.
+1. Add the entry to `LAYOUT_FAMILIES`, with its styles (`fits`).
+2. `npm run check:uniqueness` says whether it is too close to another on paper; `npm run check:fit`, whether it is on screen.
+3. Open `logs/render-preview.html` (group "Layout families") before announcing it: a check says it differs, not that it is beautiful.
 
-Un nouveau DESSIN (une onzième ouverture, un neuvième tableau) multiplie la
-variété de toutes les familles qui l'adoptent : l'ajouter au type dans
-`layoutFamilies.ts`, l'implémenter dans `familyChrome.ts` ou `familyBlocks.ts`,
-puis au vocabulaire de `checkUniqueness.ts`.
+A new DRAWING (an eleventh opening, a ninth table) multiplies the variety of every family that adopts it: add it to the type in `layoutFamilies.ts`, implement it in `familyChrome.ts` or `familyBlocks.ts`, then in the vocabulary of `checkUniqueness.ts`.
 
-## Ce que touche la direction artistique
+## What art direction reaches
 
-| Module | Ce qu'il reçoit |
+| Module | What it receives |
 |---|---|
-| Charte graphique | Bloc `<art_direction>`, graine déterministe, interdits, auto-relecture — sur **chaque** page. Plus une page « Direction Artistique » qui doit être composée DANS le style qu'elle décrit |
-| Visuels sociaux | Bloc `<art_direction>`, graine tirée dans l'espace du style, traitement d'image imposé, interdits, prompt négatif du style pour la génération d'image |
-| Business plan | Bloc `<art_direction>`, graine déterministe, bloc `<logo>`, `BP_BRAND_RULES` sur chaque section |
-| Pitch deck | Idem, en registre diapositive |
-| Mockups | Modificateur de rendu (lumière, matière, étalonnage) + prompt négatif : le style pilote la photo, pas le sujet |
-| Carte de visite | Bloc `<art_direction>` — le support où l'écart se voit le plus |
-| Site généré | Bloc art direction + bloc logo + interdits, dans `multiChatPromptService` |
+| Brand charter | `<art_direction>` block, deterministic seed, don'ts, self-review — on **every** page. Plus an "Art direction" page that must be composed IN the style it describes |
+| Social visuals | `<art_direction>` block, seed drawn in the style's space, imposed image treatment, don'ts, the style's negative prompt for image generation |
+| Business plan | `<art_direction>` block, deterministic seed, `<logo>` block, `BP_BRAND_RULES` on each section |
+| Pitch deck | Same, in slide register |
+| Mockups | Rendering modifier (light, material, grading) + negative prompt: the style drives the photo, not the subject |
+| Business card | `<art_direction>` block — the medium where the gap shows most |
+| Generated website | Art-direction block + logo block + don'ts, in `multiChatPromptService` |
 
-## Vérifier
+## Checking
 
 ```bash
 cd apps/api && npm run check:design
 ```
 
-Pur, sans réseau ni modèle. Il couvre les invariants dont une régression serait
-**silencieuse** : une graine qui sortirait de l'espace de son style, un bloc de
-direction vide, un linter qui se mettrait à signaler du HTML conforme (le faux
-positif est le pire défaut d'un linter : il apprend à ignorer ses alertes).
+Pure, no network or model. It covers invariants whose regression would be **silent**: a seed leaving its style's space, an empty direction block, a linter starting to flag compliant HTML (a false positive is the worst defect of a linter: it teaches people to ignore its alerts).
 
-## Ajouter un style
+## Adding a style
 
-1. Ajouter l'identifiant à `ArtDirectionStyleId` (`models/art-direction.model.ts`).
-2. Ajouter la fiche à `ART_DIRECTION_STYLES`, **avec** son `seedSpace` : sans lui,
-   le style tire dans le catalogue complet et perd sa cohérence.
-3. `npm run check:design` valide la complétude et la cohérence graine/style.
+1. Add the identifier to `ArtDirectionStyleId` (`models/art-direction.model.ts`).
+2. Add the entry to `ART_DIRECTION_STYLES`, **with** its `seedSpace`: without it, the style draws from the whole catalogue and loses its coherence.
+3. `npm run check:design` validates completeness and seed/style consistency.
 
-Aucun prompt n'est à modifier : ils lisent tous le catalogue.
+No prompt needs to change: they all read the catalogue.
 
-## Ajouter une génération visuelle
+## Adding a visual generation
 
-Trois lignes suffisent, et elles doivent y être toutes les trois :
+Three lines are enough, and all three must be there:
 
 ```ts
 const ad = project.analysisResultModel?.branding?.artDirection;
-const seed = buildDesignSeed(ad?.styleId, `mon-livrable:${projectId}`); // clé = déterministe
+const seed = buildDesignSeed(ad?.styleId, `my-deliverable:${projectId}`); // key = deterministic
 const directives = [
   buildArtDirectionBlock(ad, { medium: 'document' }),
   `<composition_seed>\n${describeSeed(seed)}\n</composition_seed>`,
@@ -327,9 +204,9 @@ const directives = [
 ].join('\n\n');
 ```
 
-Puis, sur la sortie :
+Then, on the output:
 
 ```ts
 const clean = repairHtml(html, { palette, fonts, expectedLogoUrls, styleId: ad?.styleId, label });
-lintHtml(clean.html, { ...ligneMême });
+lintHtml(clean.html, { ...sameOptions });
 ```

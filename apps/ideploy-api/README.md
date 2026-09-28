@@ -1,8 +1,13 @@
 # iDeploy API (Node.js + Express + TypeScript)
 
-Node rewrite of the Laravel/Livewire iDeploy backend (`apps/ideploy`), part of a
-strangler-fig migration. It shares **the same PostgreSQL database** as the
-Laravel app and runs alongside it during the transition.
+Back end of iDeploy, IDEM's deployment platform, used by
+[`apps/ideploy-web`](../ideploy-web/README.md). It is the Node rewrite of the
+former Laravel/Livewire iDeploy (itself based on Coolify) and works on **the
+same PostgreSQL schema**.
+
+The Laravel app is no longer in this repository. Its schema remains the
+reference (`tests/schema.sql`), and the ownership rules below stay in force
+until the team confirms the Laravel instance is retired in every environment.
 
 ## Architecture
 
@@ -21,7 +26,7 @@ api/
   utils/       laravel-crypto (Laravel-compatible encrypt/decrypt), responses
   models/      hand-written row types
   app.ts       builds the Express app (starts nothing)
-  index.ts     process entry point (workers + listen)
+  index.ts     process entry point: loads secrets, then imports the app (workers + listen)
 migrations/    versioned SQL for schema objects THIS service owns
 tests/         unit / integration / contract suites + schema snapshot
 prisma/        schema.prisma — INTROSPECTION ONLY, not used at runtime
@@ -89,10 +94,12 @@ other by hostname — the capability the V1 had and the simplified flow lost.
   and sets an httpOnly `session` cookie. iDeploy verifies it via
   `GET {IDEM_API_URL}/auth/profile` and syncs the identity into `users` by
   `idem_uid`. Sanctum PATs remain a fallback for the programmatic API. There is
-  no second auth system here.
+  no second auth system here. See [SESSIONS.md](../api/docs/SESSIONS.md).
 - **Encrypted columns** (SSH keys, tokens) go through `utils/laravel-crypto.ts`,
   a port of Laravel's `Encrypter` (AES-256-CBC + HMAC). It needs the **exact
-  same `APP_KEY`** as `apps/ideploy/.env`.
+  `APP_KEY`** that encrypted the existing rows (the former Laravel key, stored
+  as `ideploy-api--APP_KEY` in Secret Manager). A different key makes every
+  stored SSH key unreadable.
 - **Every query is team-scoped.** A missing `team_id` filter is a cross-tenant
   data leak, not a bug.
 - **Remote execution goes through a port.** Services call
@@ -105,7 +112,7 @@ other by hostname — the capability the V1 had and the simplified flow lost.
 
 ```bash
 cp .env.example .env
-# Set APP_KEY to the SAME value as apps/ideploy/.env, then fill DB creds.
+# Fill the database settings and APP_KEY (the key that encrypted the existing rows).
 
 npm run prisma:introspect   # optional: refresh types/detect drift
 npm run dev                 # http://localhost:3002  (/health, /api-docs)
@@ -113,6 +120,57 @@ npm run dev                 # http://localhost:3002  (/health, /api-docs)
 
 In the dev stack this service runs as the `ideploy-api` container; see
 `docker-compose.dev.yml`.
+
+| Script | Role |
+|---|---|
+| `npm run dev` / `build` / `start` | Watch mode / compile to `dist/` / run `dist/index.js` |
+| `npm test`, `test:watch`, `test:coverage` | Vitest |
+| `npm run lint`, `typecheck` | ESLint, type check (app and tests) |
+| `npm run migrate:up`, `migrate:down`, `migrate:status`, `migrate:create` | SQL migrations, see [migrations/README.md](migrations/README.md) |
+| `npm run db:provision`, `start:provisioned` | Provision the database, then start |
+| `npm run prisma:introspect` | Pull the live schema and regenerate reference types |
+
+## Secrets
+
+`index.ts` loads secrets before importing the app. With
+`USE_SECRET_MANAGER=true`, the values listed in
+[`api/config/secrets.manifest.ts`](api/config/secrets.manifest.ts) are read
+from Google Secret Manager as `ideploy-api--<VARIABLE>`:
+
+| Required | Optional |
+|---|---|
+| `IDEPLOY_DB_PASSWORD`, `APP_KEY` | `REDIS_PASSWORD`, `PUSHER_APP_SECRET`, `GITHUB_CLIENT_SECRET`, `GITLAB_CLIENT_SECRET`, `STRIPE_SECRET_KEY` |
+
+The production service account (`idem-ideploy-api-secrets`) can only read
+`ideploy-api--*`. A value already in the environment is never overwritten.
+Everything else (hosts, ports, URLs, public OAuth ids, SSH and Traefik settings)
+stays in `.env`. Details: [docs/CONFIGURATION.md](../../docs/CONFIGURATION.md).
+
+## Security rules
+
+iDeploy runs user-supplied builds and commands on servers shared by several
+customers. These guards exist for that reason; keep them on every new route.
+
+- **Two kinds of admin** ([`middleware/authorize.middleware.ts`](api/middleware/authorize.middleware.ts)):
+  `requireTeamAdmin` (owner/admin of one team, for that team's destructive
+  actions such as deleting an application or managing scheduled tasks) and
+  `requireInstanceAdmin` (administrator of the whole deployment, for
+  `/admin` and instance settings). They are never interchangeable, and the
+  instance role is read from the database on each request.
+- **Compose policy** ([`docker/compose-policy.ts`](api/docker/compose-policy.ts)):
+  `assertComposeIsSafe()` rejects user compose files that cross the container
+  boundary (`privileged`, host namespaces, dangerous capabilities, host or
+  Docker socket mounts…). IDEM's own catalogue templates are exempt.
+- **Git input** ([`validation/git-input.ts`](api/validation/git-input.ts)):
+  branches, repository URLs and base directories are validated before they
+  reach a shell (`assertSafeGitBranch`, `assertSafeGitUrl`,
+  `isSafeRelativeDir`).
+- **Shell quoting**: every value interpolated into a remote command goes
+  through the quoting helpers used by `ssh/`, `docker/build-packs.ts`, scheduled
+  tasks and database commands. Never build a command with raw string
+  concatenation.
+- **Server terminals** require team owner or admin rights; credentials never go in the
+  WebSocket URL.
 
 ## Testing
 
@@ -134,9 +192,9 @@ docker compose -f docker-compose.dev.yml --env-file .env.dev \
 ```
 
 `tests/schema.sql` is a committed snapshot of the live schema, so integration
-tests run against the real structure anywhere — including CI, which has no
-Laravel. Refresh it with `scripts/dump-schema.sh` after Laravel migrations and
-review the diff: it is the record of schema changes.
+tests run against the real structure anywhere, including CI. Refresh it with
+`scripts/dump-schema.sh` after a schema change and review the diff: it is the
+record of schema changes.
 
 **No server is needed to test deployment logic.** Register the fake executor and
 assert on the commands that would have run:
@@ -158,7 +216,6 @@ Guard rails worth knowing about:
 
 ## Migration status
 
-See the parity audit and phased plan for what is ported, partial or missing.
-Short version: auth, the CRUD surface and a single-path deployment work; proxy
-label generation, push-to-deploy, server health monitoring and the Workspace
-model are the current gaps.
+Auth, the CRUD surface and deployments work. Proxy label generation,
+push-to-deploy, server health monitoring and the full Workspace model are the
+known gaps.

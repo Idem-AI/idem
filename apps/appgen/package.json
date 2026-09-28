@@ -4,9 +4,8 @@
   "packageManager": "pnpm@8.15.4",
   "scripts": {
     "dev:next": "cd apps/we-dev-next && pnpm install && pnpm dev",
-    "dev:admin": "cd apps/we-dev-admin && pnpm install && pnpm dev",
-    "dev:client": "cd apps/we-dev-client  && pnpm dev",
-    "build:client": "cd apps/we-dev-client && pnpm builds"
+    "dev:client": "cd apps/we-dev-client && pnpm dev",
+    "build:client": "cd apps/we-dev-client && pnpm build"
   },
   "dependencies": {
     "qrcode.react": "^4.2.0",

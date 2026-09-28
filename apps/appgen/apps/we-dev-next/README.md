@@ -1,385 +1,98 @@
-# @we-dev/express
+# AppGen server (`we-dev-next`)
 
-Express.js 5.2.1 replica of the we-dev-next application with complete feature parity.
+Express 5 server (ESM, TypeScript) behind the AppGen editor. It streams code generation from the LLM, checks the generated code, forges the design system, deploys to Netlify and stores hand-offs to iDeploy.
 
-## 🚀 Features
+Despite its name, this is not a Next.js app anymore: it is the Express port of the original `we-dev-next`.
 
-- ✅ **Complete API Routes**: All routes from Next.js replicated
-  - `/api/chat` - AI chat with builder and chat modes
-  - `/api/deploy` - Netlify deployment
-  - `/api/enhancedPrompt` - AI prompt enhancement
-  - `/api/model` - Model configuration management
+- API reference: [docs/API.md](docs/API.md)
+- Skills catalogue: [../../docs/SKILLS.md](../../docs/SKILLS.md)
+- AppGen overview: [../../README.md](../../README.md)
 
-- ✅ **AI Integration**: Full support for multiple AI providers
-  - OpenAI (GPT-4, GPT-3.5)
-  - Google Gemini
-  - DeepSeek
-  - Anthropic Claude
-
-- ✅ **Project Generation**: Complete project prompt service
-  - Landing page generation (separate, integrated, only)
-  - Full application generation
-  - Brand identity integration
-  - Technology stack configuration
-  - Use case diagram implementation
-
-- ✅ **Advanced Features**:
-  - Screenshot capture integration
-  - File processing and diff generation
-  - Token management
-  - Streaming responses
-  - Tool calling support
-  - Docker configuration generation
-
-## 📦 Installation
+## Run
 
 ```bash
-# Install dependencies
-npm install
-
-# Copy environment variables
-cp .env.example .env
-
-# Configure your environment variables
-# Edit .env with your API keys
+cp .env.example .env    # fill GLM_API_KEY at least
+pnpm install
+pnpm dev                # tsx watch, http://localhost:3000
 ```
 
-## 🔧 Configuration
+| Script | Role |
+|---|---|
+| `pnpm dev` | Watch mode (`tsx watch src/main.ts`) |
+| `pnpm build` | `tsc` to `dist/`, then copy the skills catalogue (`scripts/copy-skills.mjs`) |
+| `pnpm start` | `node dist/main.js` |
+| `pnpm lint` | ESLint |
 
-Create a `.env` file with the following variables:
+The IDEM API must be reachable at `IDEM_API_URL` (default `http://localhost:3001`): every generation checks the session and the billing there.
 
-```env
-# Server Configuration
-PORT=3002
-NODE_ENV=development
+## Start-up
 
-# AI API Configuration
-THIRD_API_URL=https://api.openai.com/v1
-THIRD_API_KEY=your_api_key_here
+[`src/main.ts`](src/main.ts) is the entry point. It loads secrets first (`loadSecretsFromManager`), then **dynamically** imports [`src/server.ts`](src/server.ts). The order matters: model clients read `process.env` when their module loads, and ESM hoists static imports.
 
-# AI Models Configuration (JSON format)
-AI_MODELS_CONFIG=[{"modelName":"GPT-4","modelKey":"gpt-4","useImage":true,"provider":"openai","functionCall":true}]
-AI_DEFAULT_MODEL=gpt-4
+With `USE_SECRET_MANAGER=true`, the secrets listed in [`src/config/secrets.manifest.ts`](src/config/secrets.manifest.ts) are read from Google Secret Manager as `appgen--<VARIABLE>` (project `GCP_PROJECT_ID`, credentials from `GOOGLE_APPLICATION_CREDENTIALS`, the AppGen service account). A value already present in the environment is never overwritten. `secret-loader.ts` is shared byte for byte with the API and iDeploy API; CI checks the copies stay identical.
 
-# Screenshot Service
-SCREENSHOTONE_API_KEY=your_screenshotone_api_key
-
-# Netlify Deployment
-NETLIFY_TOKEN=your_netlify_token
-NETLIFY_DEPLOY_URL=https://api.netlify.com/api/v1/sites
-
-# CORS Configuration
-CORS_ORIGIN=*
-
-# AI Generation Token Limits
-AI_MAX_OUTPUT_TOKENS=8192      # Maximum tokens in AI response
-AI_MAX_INPUT_TOKENS=128000     # Maximum tokens in input context
-AI_STANDARD_TOKEN_LIMIT=128000 # Threshold for token-limited mode
-```
-
-### Token Limits Configuration
-
-Control AI generation token limits via environment variables. See [TOKEN_LIMITS.md](./TOKEN_LIMITS.md) for detailed documentation.
-
-**Quick Configuration:**
-
-- `AI_MAX_OUTPUT_TOKENS` - Maximum tokens the AI can generate (default: 8192)
-- `AI_MAX_INPUT_TOKENS` - Maximum tokens in input context (default: 128000)
-- `AI_STANDARD_TOKEN_LIMIT` - Threshold for smart token management (default: 128000)
-
-**Example configurations:**
-
-```env
-# Standard (recommended)
-AI_MAX_OUTPUT_TOKENS=8192
-AI_MAX_INPUT_TOKENS=128000
-
-# High performance
-AI_MAX_OUTPUT_TOKENS=16384
-AI_MAX_INPUT_TOKENS=200000
-
-# Cost-effective
-AI_MAX_OUTPUT_TOKENS=4096
-AI_MAX_INPUT_TOKENS=32000
-```
-
-## 🏃 Running the Application
-
-### Development Mode
-
-```bash
-npm run dev
-```
-
-### Production Build
-
-```bash
-npm run build
-npm start
-```
-
-## 📡 API Endpoints
-
-### POST /api/chat
-
-Chat with AI in builder or chat mode.
-
-**Request Body:**
-
-```json
-{
-  "messages": [
-    {
-      "id": "uuid",
-      "role": "user",
-      "content": "Create a todo app"
-    }
-  ],
-  "model": "gpt-4",
-  "mode": "builder",
-  "projectData": {
-    "name": "My Project",
-    "description": "Project description",
-    "type": "web",
-    "analysisResultModel": {}
-  }
-}
-```
-
-**Headers:**
-
-- `userId` (optional): User identifier for token tracking
-
-### POST /api/deploy
-
-Deploy a zip file to Netlify.
-
-**Request:**
-
-- Content-Type: `multipart/form-data`
-- Field: `file` (zip file)
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "url": "https://your-app.netlify.app",
-  "siteInfo": {}
-}
-```
-
-### POST /api/enhancedPrompt
-
-Enhance a prompt using AI.
-
-**Request Body:**
-
-```json
-{
-  "text": "Your prompt to enhance"
-}
-```
-
-**Response:**
-
-```json
-{
-  "code": 0,
-  "text": "Enhanced prompt"
-}
-```
-
-### GET /api/model
-
-Get available AI models.
-
-**Response:**
-
-```json
-[
-  {
-    "modelName": "GPT-4",
-    "modelKey": "gpt-4",
-    "useImage": true,
-    "provider": "openai",
-    "functionCall": true
-  }
-]
-```
-
-### GET /api/model/config
-
-Get model configuration (same as /api/model).
-
-### GET /api/model/default
-
-Get default model.
-
-**Response:**
-
-```json
-{
-  "modelKey": "gpt-4"
-}
-```
-
-### GET /health
-
-Health check endpoint.
-
-**Response:**
-
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-28T10:00:00.000Z",
-  "uptime": 123.456
-}
-```
-
-## 🏗️ Project Structure
+## Layout
 
 ```
 src/
-├── config/              # Configuration files
-│   ├── dockerfilePrompt.ts
-│   ├── modelConfig.ts
-│   └── prompts.ts
-├── handlers/            # Request handlers
-│   ├── builderHandler.ts
-│   └── chatHandler.ts
-├── middleware/          # Express middleware
-│   ├── cors.ts
-│   └── errorHandler.ts
-├── routes/              # API routes
-│   ├── chat.ts
-│   ├── deploy.ts
-│   ├── enhancedPrompt.ts
-│   └── model.ts
-├── services/            # Business logic services
-│   ├── aiService.ts
-│   └── projectPromptService.ts
-├── types/               # TypeScript types
-│   └── project.ts
-├── utils/               # Utility functions
-│   ├── diffGenerator.ts
-│   ├── fileProcessor.ts
-│   ├── fileTypeDetector.ts
-│   ├── json2zod.ts
-│   ├── logger.ts
-│   ├── markdown.ts
-│   ├── messageParser.ts
-│   ├── screenshotone.ts
-│   ├── streamResponse.ts
-│   ├── stripIndent.ts
-│   ├── switchableStream.ts
-│   ├── tokenHandler.ts
-│   └── tokens.ts
-└── server.ts            # Main server file
+├── main.ts             entry: secrets, then server
+├── server.ts           Express app, middleware, routes
+├── config/             models (modelConfig.ts), prompts, secrets
+├── middleware/         auth (requireIdemUser), CORS, metrics, errors
+├── routes/             chat, deploy, enhancedPrompt, model, handoff, quality, design, assets
+├── handlers/           chat and builder handlers (streaming, tool calls)
+├── services/           AI client, billing, project prompt
+├── design/             design token forge, art directions, colour, slop and security linters
+├── skills/             skills catalogue and router (see docs/SKILLS.md)
+├── mcp/                MCP endpoint exposing skills, forge and linter
+├── tools/              workspace tools offered to the model
+└── utils/              stream helpers, token handling, parsing, logging
 ```
 
-## 🔄 Differences from Next.js Version
+## Models
 
-### Architecture
+Declared in [`src/config/modelConfig.ts`](src/config/modelConfig.ts):
 
-- **Framework**: Express.js 5.2.1 instead of Next.js 14
-- **Routing**: Traditional Express routing instead of Next.js App Router
-- **Middleware**: Custom middleware instead of Next.js middleware
-- **File Upload**: Multer instead of Next.js FormData
+| Key | Role |
+|---|---|
+| `glm-5.2` | Default: code generation and tool calls |
+| `glm-4.7` | Fallback when GLM 5.2 is saturated |
 
-### Advantages
+GLM models use `GLM_API_KEY` and `GLM_API_URL`. A model without its own key variable uses `THIRD_API_KEY` / `THIRD_API_URL` (any OpenAI-compatible provider). `GET /api/model` returns the public part of this list; keys and URLs never leave the server.
 
-- ✅ Simpler deployment (no SSR complexity)
-- ✅ More control over middleware
-- ✅ Better performance for API-only workloads
-- ✅ Easier to integrate with existing Express ecosystems
-- ✅ Standard Node.js patterns
+## Security
 
-### Feature Parity
+- **Identity**: `requireIdemUser` ([`src/middleware/auth.ts`](src/middleware/auth.ts)) forwards the caller's IDEM cookies or Bearer token to `GET /auth/me` on the IDEM API and attaches `{ uid, email }` to the request. Headers such as `x-user-id` are ignored.
+- **Billing** ([`src/services/billingService.ts`](src/services/billingService.ts)): fails closed. No credentials, a billing error or an unreachable API means the generation is refused.
+- **CORS**: only `CORS_ALLOWED_ORIGINS` may call with credentials; the variable is required in production. The MCP endpoint has its own list, `MCP_ALLOWED_ORIGINS`, and rejects browser origins not on it (DNS-rebinding protection).
+- **Netlify deploys**: all sites live on IDEM's Netlify account; each site name carries an owner prefix derived from the IDEM uid, so a user cannot overwrite another user's site by sending its `siteId`.
+- **Asset inlining** (`/api/assets/inline`): development helper, restricted to the bucket host and `ASSET_INLINE_ALLOWED_HOSTS`, with a size limit.
+- **Hand-offs**: expiry is set by the server (15 minutes), read once.
 
-- ✅ All API endpoints replicated
-- ✅ Same AI integration
-- ✅ Same project generation logic
-- ✅ Same prompt system
-- ✅ Same file processing
-- ✅ Same streaming responses
-- ✅ Same error handling
+## Configuration
 
-## 🧪 Testing
+See [`.env.example`](.env.example) and [docs/CONFIGURATION.md](../../../../docs/CONFIGURATION.md). Main variables:
 
-```bash
-# Test health endpoint
-curl http://localhost:3002/health
+| Variable | Role |
+|---|---|
+| `PORT` | Default `3000` |
+| `IDEM_API_URL` | IDEM API (sessions, billing) |
+| `CORS_ALLOWED_ORIGINS` | Front-end origins, comma-separated (required in production) |
+| `MCP_ALLOWED_ORIGINS` | Browser origins allowed on `/mcp` |
+| `GLM_API_URL`, `THIRD_API_URL` | Model providers |
+| `NETLIFY_DEPLOY_URL` | Netlify API |
+| `MINIO_PUBLIC_URL`, `ASSET_BASE_URL`, `ASSET_INLINE_ALLOWED_HOSTS` | Asset inlining |
+| `USE_SECRET_MANAGER`, `GCP_PROJECT_ID`, `SECRET_ENV_PREFIX`, `GOOGLE_APPLICATION_CREDENTIALS` | Secret Manager |
+| Secrets: `GLM_API_KEY`, `THIRD_API_KEY`, `NETLIFY_TOKEN`, `DEPLOY_OWNER_SECRET`, `SCREENSHOTONE_API_KEY` | Local `.env` only; Secret Manager in production |
 
-# Test chat endpoint
-curl -X POST http://localhost:3002/api/chat \
-  -H "Content-Type: application/json" \
-  -H "userId: test-user" \
-  -d '{
-    "messages": [{"id":"1","role":"user","content":"Create a todo app"}],
-    "model": "gpt-4",
-    "mode": "builder"
-  }'
+Optional tuning (defaults in code): `AI_MAX_RETRIES`, `PLAN_MAX_TOOL_STEPS`, `SKILLS_CONTEXTUAL_BUDGET`, `SKILLS_MAX_CONTEXTUAL`, `DEBUG_PROMPTS`.
 
-# Test model endpoint
-curl http://localhost:3002/api/model
-```
+## Observability
 
-## 📝 Logging
+- `GET /health`: liveness (used by the Docker health check).
+- `GET /metrics`: Prometheus metrics (`prom-client`). Keep it off the public ingress.
+- Request logs via `morgan`; generation steps via `ChatLogger`.
 
-The application uses a comprehensive logging system with:
+## Docker
 
-- Structured logging with timestamps
-- Log levels: INFO, WARN, ERROR, DEBUG, SUCCESS
-- Step tracking for complex operations
-- Detailed error information
-
-## 🔒 Security
-
-- Helmet.js for security headers
-- CORS configuration
-- Request size limits (50mb)
-- Environment variable protection
-- Error sanitization in production
-
-## 🚀 Deployment
-
-### Docker
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY dist ./dist
-EXPOSE 3002
-CMD ["node", "dist/server.js"]
-```
-
-### Build and Run
-
-```bash
-npm run build
-docker build -t we-dev-express .
-docker run -p 3002:3002 --env-file .env we-dev-express
-```
-
-## 📄 License
-
-Same as parent project.
-
-## 🤝 Contributing
-
-This is a replica of the Next.js version. Maintain feature parity when making changes.
-
-## 📚 Documentation
-
-- [Token Limits Configuration](./TOKEN_LIMITS.md) - Configure AI generation token limits
-- [Next.js Original](../we-dev-next/README.md)
-- [API Documentation](./docs/API.md)
-- [Architecture](./docs/ARCHITECTURE.md)
-
-## 🆘 Support
-
-For issues or questions, please refer to the main project documentation.
+`Dockerfile/prod/Dockerfile.appgen-server` at the repository root: multi-stage build, `CMD ["node", "dist/main.js"]`, health check on `/health`.
