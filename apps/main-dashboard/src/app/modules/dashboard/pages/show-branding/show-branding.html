@@ -79,32 +79,14 @@
             <h1 class="text-2xl sm:text-3xl font-bold text-text-primary truncate">
               {{ currentProject()?.name || ('dashboard.showBranding.title' | translate) }}
             </h1>
-            <p class="text-sm text-text-secondary flex items-center gap-2 mt-0.5">
-              <span>{{ 'dashboard.showBranding.title' | translate }}</span>
-              @if (hasBrandingSections()) {
-                <span class="tag !py-0.5 !px-2">
-                  <span class="w-1.5 h-1.5 rounded-full bg-primary-500" aria-hidden="true"></span>
-                  {{ 'dashboard.showBranding.board.charterReady' | translate }}
-                </span>
-              }
-            </p>
           </div>
         </div>
 
         @if (hasBrandingSections()) {
           <div class="flex flex-wrap items-center gap-2">
             <button type="button" class="outer-button button-sm !gap-2" (click)="openIdentityEditor()">
-              <i class="pi pi-palette text-sm" aria-hidden="true"></i>
-              <span>{{ 'dashboard.showBranding.identityEditor.open' | translate }}</span>
-            </button>
-            <button
-              type="button"
-              class="button-icon"
-              [attr.aria-label]="'dashboard.showBranding.buttons.editIdentity' | translate"
-              [title]="'dashboard.showBranding.buttons.editIdentity' | translate"
-              (click)="editBrandingGuide()"
-            >
               <i class="pi pi-pencil text-sm" aria-hidden="true"></i>
+              <span>{{ 'dashboard.showBranding.identityEditor.open' | translate }}</span>
             </button>
             <button
               type="button"

@@ -400,10 +400,6 @@ export class ShowBrandingComponent implements OnInit {
     if (projectId) this.loadProjectData(projectId);
   }
 
-  protected editBrandingGuide(): void {
-    this.router.navigate(['/project/branding/edit']);
-  }
-
   /** Ouvre le module « cartes de visite » (dérivé de la charte graphique). */
   protected goToBusinessCards(): void {
     this.router.navigate(['/project/business-cards']);
