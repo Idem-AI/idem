@@ -1817,8 +1817,11 @@
           "title": "Logo",
           "import": "Import a logo",
           "keepCurrent": "Keep current logo",
-          "previous": "Or reuse a previously proposed logo",
-          "colorsFromLogo": "Match colors to this logo"
+          "previous": "Proposed logos",
+          "colorsFromLogo": "Match colors to this logo",
+          "regenerate": "Suggest other logos",
+          "regenerating": "Creating logos…",
+          "none": "No other logo proposed yet."
         },
         "colors": {
           "title": "Colors",
@@ -1835,14 +1838,17 @@
             "accent": "Accent",
             "background": "Background",
             "text": "Text"
-          }
+          },
+          "proposals": "Proposed palettes"
         },
         "fonts": {
           "title": "Fonts",
           "primary": "Headings",
           "secondary": "Body text",
           "search": "Search a font…",
-          "undo": "Undo"
+          "undo": "Undo",
+          "proposals": "Proposed pairings",
+          "import": "Import"
         },
         "preview": {
           "title": "What will change",
@@ -1861,7 +1867,10 @@
           "title": "New identity applied",
           "subtitle": "Every deliverable has been updated. Each change can be undone from the history."
         },
-        "error": "The update did not go through. Please try again."
+        "error": "The update did not go through. Please try again.",
+        "regenerate": "Suggest others",
+        "regenerating": "Suggesting…",
+        "regenError": "Generation did not go through. Please try again."
       }
     },
     "additionalInfoForm": {

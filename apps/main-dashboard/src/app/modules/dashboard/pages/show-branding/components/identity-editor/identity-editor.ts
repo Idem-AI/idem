@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   input,
   output,
@@ -14,7 +15,14 @@ import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { Subject, debounceTime, switchMap, of, catchError } from 'rxjs';
 
-import { BrandFont, BrandIdentityModel } from '../../../../models/brand-identity.model';
+import { ProjectModel } from '@idem/shared-models';
+
+import {
+  BrandFont,
+  BrandIdentityModel,
+  ColorModel,
+  TypographyModel,
+} from '../../../../models/brand-identity.model';
 import {
   BrandPalette,
   HarmonizeResult,
@@ -27,6 +35,9 @@ import { LogoModel } from '../../../../models/logo.model';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { LogoImportResponse, LogoImportService } from '../../../../services/logo-import.service';
 import { CatalogFont, TypographyService } from '../../../../../../shared/services/typography.service';
+import { SSEStepEvent } from '../../../../../../shared/models/sse-step.model';
+import { TypographyFontImportComponent } from '../../../create-project/components/typography-selection/typography-font-import/typography-font-import';
+import { LogoSrcPipe } from '../../../../../../shared/pipes/logo-src.pipe';
 
 type LogoChoice =
   | { kind: 'current' }
@@ -39,12 +50,24 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 
 /**
  * Changer l'identité visuelle — logo, couleurs, polices — et la voir appliquée
- * à tous les supports du projet. Tout le calcul est fait côté serveur, sans IA :
- * ce panneau ne fait que recueillir les choix et afficher ce qui change.
+ * à tous les supports du projet.
+ *
+ * Deux temps bien séparés :
+ *   · PROPOSER : régénérer des logos, des palettes ou des paires de polices
+ *     (IA), importer un logo ou des fichiers de police. Rien n'est appliqué.
+ *   · APPLIQUER : le choix part à `PUT …/identity`, qui le propage à tous les
+ *     supports sans IA.
  */
 @Component({
   selector: 'app-identity-editor',
-  imports: [TranslateModule, IdemLoaderComponent, NgTemplateOutlet, UpperCasePipe],
+  imports: [
+    TranslateModule,
+    IdemLoaderComponent,
+    NgTemplateOutlet,
+    UpperCasePipe,
+    LogoSrcPipe,
+    TypographyFontImportComponent,
+  ],
   templateUrl: './identity-editor.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'close()' },
@@ -57,6 +80,7 @@ export class IdentityEditorComponent {
 
   readonly projectId = input.required<string>();
   readonly branding = input.required<BrandIdentityModel>();
+  readonly project = input.required<ProjectModel>();
 
   readonly closed = output<void>();
   readonly applied = output<IdentityUpdateReport>();
@@ -70,10 +94,22 @@ export class IdentityEditorComponent {
   protected readonly importError = signal<string | null>(null);
   protected readonly colorsFromLogo = signal(false);
 
-  protected readonly otherLogos = computed(() => {
+  /** Logos régénérés dans ce panneau ; `null` tant qu'aucune régénération n'a eu lieu. */
+  protected readonly freshLogos = signal<LogoModel[] | null>(null);
+  protected readonly regeneratingLogos = signal(false);
+  protected readonly logoRegenFailed = signal(false);
+
+  /** Les propositions : celles de la régénération, sinon celles déjà en base. */
+  protected readonly proposedLogos = computed(() => {
     const current = this.branding().logo?.id;
-    return (this.branding().generatedLogos ?? []).filter((logo) => logo.id !== current && !!logo.svg);
+    const list = this.freshLogos() ?? this.branding().generatedLogos ?? [];
+    return list.filter((logo) => logo.id !== current && !!logo.svg);
   });
+
+  /** Emplacements encore en cours de génération, montrés en squelette. */
+  protected readonly pendingLogoSlots = computed(() =>
+    this.regeneratingLogos() ? Array.from({ length: Math.max(0, 3 - (this.freshLogos()?.length ?? 0)) }) : [],
+  );
 
   protected readonly logoPreview = computed(() => {
     const choice = this.logoChoice();
@@ -100,6 +136,13 @@ export class IdentityEditorComponent {
     () => this.harmonized()?.palette ?? { ...this.currentPalette(), ...this.draftColors() },
   );
 
+  protected readonly freshPalettes = signal<ColorModel[] | null>(null);
+  protected readonly proposedPalettes = computed(() =>
+    (this.freshPalettes() ?? this.branding().generatedColors ?? []).filter((palette) =>
+      PALETTE_ROLES.every((role) => HEX.test(palette.colors?.[role] ?? '')),
+    ),
+  );
+
   protected readonly colorsChanged = computed(
     () => Object.keys(this.draftColors()).length > 0 || (this.colorsFromLogo() && this.logoChanged()),
   );
@@ -118,6 +161,19 @@ export class IdentityEditorComponent {
 
   protected readonly fontsChanged = computed(() => Object.keys(this.chosenFonts()).length > 0);
 
+  protected readonly freshTypographies = signal<TypographyModel[] | null>(null);
+  protected readonly proposedTypographies = computed(() =>
+    (this.freshTypographies() ?? this.branding().generatedTypography ?? []).filter(
+      (typography) => !!typography.primaryFont,
+    ),
+  );
+  /** Emplacement dont le panneau d'import de fichiers est ouvert. */
+  protected readonly importingFontFor = signal<FontRole | null>(null);
+
+  // ── Régénération (IA) des palettes et des polices ─────────────────────
+  protected readonly regenerating = signal<'colors' | 'typography' | null>(null);
+  protected readonly regenFailed = signal<'colors' | 'typography' | null>(null);
+
   // ── Application ─────────────────────────────────────────────────────
   protected readonly preview = signal<IdentityUpdateReport | null>(null);
   protected readonly previewing = signal(false);
@@ -128,9 +184,35 @@ export class IdentityEditorComponent {
   protected readonly hasChanges = computed(
     () => this.logoChanged() || this.colorsChanged() || this.fontsChanged(),
   );
-  protected readonly busy = computed(() => this.previewing() || this.applying() || this.importing());
+  /**
+   * Une génération en cours bloque l'application : les logos proposés ne sont
+   * enregistrés qu'au fil du flux, et un choix fait avant serait introuvable.
+   */
+  protected readonly busy = computed(
+    () =>
+      this.previewing() ||
+      this.applying() ||
+      this.importing() ||
+      this.regeneratingLogos() ||
+      this.regenerating() !== null,
+  );
 
   constructor() {
+    // Chaque paire proposée s'affiche dans ses propres polices.
+    effect(() => {
+      for (const typography of this.proposedTypographies()) {
+        void this.typographyService.loadTypography(typography);
+      }
+    });
+
+    // Fermer le panneau pendant une génération de logos l'annule côté serveur :
+    // personne ne verra plus ces propositions, inutile de les payer.
+    this.destroyRef.onDestroy(() => {
+      if (this.regeneratingLogos()) {
+        this.brandingService.cancelLogoConceptsGeneration(this.projectId()).subscribe({ error: () => undefined });
+      }
+    });
+
     this.paletteRequests
       .pipe(
         debounceTime(250),
@@ -221,6 +303,53 @@ export class IdentityEditorComponent {
     this.resetPreview();
   }
 
+  protected regenerateLogos(): void {
+    if (this.busy()) return;
+    this.freshLogos.set([]);
+    this.logoRegenFailed.set(false);
+    this.regeneratingLogos.set(true);
+    // Le logo choisi parmi les anciennes propositions disparaît avec elles.
+    if (this.logoChoice().kind === 'generated') this.logoChoice.set({ kind: 'current' });
+    this.resetPreview();
+
+    this.brandingService
+      .generateLogoConceptsStream(this.projectId(), true, this.branding().logoPreferences ?? null)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (event) => this.onLogoEvent(event),
+        error: () => this.finishLogoRegeneration(),
+        complete: () => this.finishLogoRegeneration(),
+      });
+  }
+
+  private onLogoEvent(event: SSEStepEvent): void {
+    if (event.data === 'all_steps_completed' || event.type === 'completed') {
+      this.finishLogoRegeneration();
+      return;
+    }
+    if (event.stepName !== 'concept_finalized') return;
+    let payload: { conceptIndex?: number; logo?: LogoModel } = {};
+    try {
+      payload = event.data ? JSON.parse(event.data) : {};
+    } catch {
+      return;
+    }
+    const logo = payload.logo;
+    if (!logo?.svg) return;
+    const withId: LogoModel = { ...logo, id: logo.id || `concept-${payload.conceptIndex ?? 0}` };
+    this.freshLogos.update((logos) => [...(logos ?? []).filter((l) => l.id !== withId.id), withId]);
+  }
+
+  private finishLogoRegeneration(): void {
+    if (!this.regeneratingLogos()) return;
+    this.regeneratingLogos.set(false);
+    this.brandingService.closeLogoConceptsStream();
+    if ((this.freshLogos() ?? []).length === 0) {
+      this.logoRegenFailed.set(true);
+      this.freshLogos.set(null);
+    }
+  }
+
   protected toggleColorsFromLogo(event: Event): void {
     this.colorsFromLogo.set((event.target as HTMLInputElement).checked);
     this.resetPreview();
@@ -259,6 +388,69 @@ export class IdentityEditorComponent {
     this.resetPreview();
   }
 
+  /** Nouvelles propositions de palettes OU de polices — l'autre liste reste. */
+  protected regenerate(only: 'colors' | 'typography'): void {
+    if (this.busy()) return;
+    this.regenerating.set(only);
+    this.regenFailed.set(null);
+    this.brandingService
+      .regenerateProposals(this.project(), only)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          this.regenerating.set(null);
+          if (only === 'colors') {
+            this.freshPalettes.set(result.colors ?? []);
+          } else {
+            this.freshTypographies.set(result.typography ?? []);
+          }
+        },
+        error: () => {
+          this.regenerating.set(null);
+          this.regenFailed.set(only);
+        },
+      });
+  }
+
+  /** Une palette proposée remplace les cinq rôles ; l'harmonisation la vérifie. */
+  protected choosePalette(palette: ColorModel): void {
+    const colors: Partial<BrandPalette> = {};
+    for (const role of PALETTE_ROLES) colors[role] = palette.colors[role].toLowerCase();
+    this.colorsFromLogo.set(false);
+    this.draftColors.set(colors);
+    this.keptRoles.set(new Set());
+    this.resetPreview();
+    this.paletteRequests.next();
+  }
+
+  protected isPaletteChosen(palette: ColorModel): boolean {
+    const draft = this.draftColors();
+    return PALETTE_ROLES.every((role) => draft[role] === palette.colors[role]?.toLowerCase());
+  }
+
+  protected chooseTypography(typography: TypographyModel): void {
+    const toFont = (model: BrandFont | undefined, family: string): BrandFont =>
+      model?.family ? model : { family, source: 'google' };
+    this.chosenFonts.set({
+      primary: toFont(typography.primary, typography.primaryFont),
+      secondary: toFont(typography.secondary, typography.secondaryFont || typography.primaryFont),
+    });
+    this.importingFontFor.set(null);
+    this.resetPreview();
+  }
+
+  protected isTypographyChosen(typography: TypographyModel): boolean {
+    const chosen = this.chosenFonts();
+    return (
+      chosen.primary?.family === typography.primaryFont &&
+      chosen.secondary?.family === (typography.secondaryFont || typography.primaryFont)
+    );
+  }
+
+  protected toggleFontImport(role: FontRole): void {
+    this.importingFontFor.update((current) => (current === role ? null : role));
+  }
+
   protected isEdited(role: PaletteRole): boolean {
     return role in this.draftColors();
   }
@@ -284,8 +476,11 @@ export class IdentityEditorComponent {
         cssUrl: font.cssUrl,
         category: font.category,
         weights: font.weights,
+        // Police importée : le serveur relit feuille et fichiers par cet id.
+        ...(font.source === 'custom' ? { customFontId: font.sourceId } : {}),
       },
     }));
+    this.importingFontFor.set(null);
     this.fontResults.update((results) => ({ ...results, [role]: [] }));
     this.fontQuery.update((queries) => ({ ...queries, [role]: '' }));
     this.resetPreview();

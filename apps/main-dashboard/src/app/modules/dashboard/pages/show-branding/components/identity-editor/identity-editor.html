@@ -1,4 +1,4 @@
-<div class="fixed inset-0 z-[60] flex justify-end">
+<div class="fixed inset-0 z-[70] flex justify-end">
   <div
     class="absolute inset-0 bg-[var(--glass-bg-darker)] backdrop-blur-sm"
     (click)="close()"
@@ -65,7 +65,7 @@
           <div class="flex items-center gap-4">
             <div class="w-20 h-20 shrink-0 rounded-lg border border-[var(--glass-border)] flex items-center justify-center p-2">
               @if (logoPreview()) {
-                <img [src]="logoPreview()" class="max-w-full max-h-full object-contain" alt="" />
+                <img [src]="logoPreview() | logoSrc" class="max-w-full max-h-full object-contain" alt="" />
               } @else {
                 <i class="pi pi-image text-xl text-text-tertiary" aria-hidden="true"></i>
               }
@@ -98,27 +98,61 @@
             <p class="text-sm text-accent" role="alert">{{ importError() }}</p>
           }
 
-          @if (otherLogos().length) {
-            <div>
-              <p class="text-xs text-text-tertiary mb-2">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-xs text-text-tertiary">
                 {{ 'dashboard.showBranding.identityEditor.logo.previous' | translate }}
               </p>
+              <button
+                type="button"
+                class="button-ghost button-sm !gap-2"
+                [disabled]="busy()"
+                [attr.aria-busy]="regeneratingLogos()"
+                (click)="regenerateLogos()"
+              >
+                @if (regeneratingLogos()) {
+                  <idem-loader size="xs" />
+                } @else {
+                  <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
+                }
+                {{
+                  (regeneratingLogos()
+                    ? 'dashboard.showBranding.identityEditor.logo.regenerating'
+                    : 'dashboard.showBranding.identityEditor.logo.regenerate'
+                  ) | translate
+                }}
+              </button>
+            </div>
+            @if (proposedLogos().length || pendingLogoSlots().length) {
               <div class="flex flex-wrap gap-2">
-                @for (logo of otherLogos(); track logo.id) {
+                @for (logo of proposedLogos(); track logo.id) {
                   <button
                     type="button"
-                    class="w-14 h-14 rounded-lg border border-[var(--glass-border)] p-1.5 flex items-center justify-center transition-smooth"
+                    class="w-16 h-16 rounded-lg border border-[var(--glass-border)] p-1.5 flex items-center justify-center transition-smooth"
                     [style.border-color]="isChosen(logo) ? 'var(--color-primary-500)' : null"
                     [attr.aria-pressed]="isChosen(logo)"
                     [attr.aria-label]="logo.name"
+                    [disabled]="regeneratingLogos()"
                     (click)="chooseLogo(logo)"
                   >
-                    <img [src]="logo.assetUrls?.primary || logo.svg" class="max-w-full max-h-full object-contain" alt="" />
+                    <img [src]="logo.assetUrls?.primary || logo.svg | logoSrc" class="max-w-full max-h-full object-contain" alt="" />
                   </button>
                 }
+                @for (slot of pendingLogoSlots(); track $index) {
+                  <div class="w-16 h-16 rounded-lg skeleton" aria-hidden="true"></div>
+                }
               </div>
-            </div>
-          }
+            } @else {
+              <p class="text-xs text-text-tertiary">
+                {{ 'dashboard.showBranding.identityEditor.logo.none' | translate }}
+              </p>
+            }
+            @if (logoRegenFailed()) {
+              <p class="text-xs text-accent" role="alert">
+                {{ 'dashboard.showBranding.identityEditor.regenError' | translate }}
+              </p>
+            }
+          </div>
 
           @if (logoChanged()) {
             <label class="flex items-start gap-2 text-sm text-text-secondary">
@@ -199,6 +233,42 @@
               }}
             </p>
           }
+
+          <div class="space-y-2 pt-1">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-xs text-text-tertiary">
+                {{ 'dashboard.showBranding.identityEditor.colors.proposals' | translate }}
+              </p>
+              <ng-container *ngTemplateOutlet="regenButton; context: { $implicit: 'colors' }" />
+            </div>
+            @if (regenerating() === 'colors') {
+              @for (slot of [1, 2, 3]; track slot) {
+                <div class="h-8 rounded-md skeleton" aria-hidden="true"></div>
+              }
+            } @else {
+              @for (palette of proposedPalettes(); track palette.id + $index) {
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-3 p-1.5 rounded-md border border-[var(--glass-border)] hover:bg-[var(--glass-bg-light)] transition-smooth"
+                  [style.border-color]="isPaletteChosen(palette) ? 'var(--color-primary-500)' : null"
+                  [attr.aria-pressed]="isPaletteChosen(palette)"
+                  (click)="choosePalette(palette)"
+                >
+                  <span class="flex h-6 w-28 shrink-0 rounded overflow-hidden border border-[var(--glass-border-subtle)]" aria-hidden="true">
+                    @for (role of roles; track role) {
+                      <span class="flex-1" [style.background-color]="palette.colors[role]"></span>
+                    }
+                  </span>
+                  <span class="text-sm text-text-primary truncate text-left">{{ palette.name }}</span>
+                </button>
+              }
+            }
+            @if (regenFailed() === 'colors') {
+              <p class="text-xs text-accent" role="alert">
+                {{ 'dashboard.showBranding.identityEditor.regenError' | translate }}
+              </p>
+            }
+          </div>
         </fieldset>
 
         <!-- ── Polices ────────────────────────────────────────────── -->
@@ -206,17 +276,64 @@
           <legend class="text-sm font-semibold text-text-primary">
             {{ 'dashboard.showBranding.identityEditor.fonts.title' | translate }}
           </legend>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-xs text-text-tertiary">
+                {{ 'dashboard.showBranding.identityEditor.fonts.proposals' | translate }}
+              </p>
+              <ng-container *ngTemplateOutlet="regenButton; context: { $implicit: 'typography' }" />
+            </div>
+            @if (regenerating() === 'typography') {
+              @for (slot of [1, 2, 3]; track slot) {
+                <div class="h-12 rounded-md skeleton" aria-hidden="true"></div>
+              }
+            } @else {
+              @for (typography of proposedTypographies(); track typography.id + $index) {
+                <button
+                  type="button"
+                  class="w-full text-left p-2 rounded-md border border-[var(--glass-border)] hover:bg-[var(--glass-bg-light)] transition-smooth"
+                  [style.border-color]="isTypographyChosen(typography) ? 'var(--color-primary-500)' : null"
+                  [attr.aria-pressed]="isTypographyChosen(typography)"
+                  (click)="chooseTypography(typography)"
+                >
+                  <span class="block text-base text-text-primary truncate" [style.font-family]="'\'' + typography.primaryFont + '\''">
+                    {{ typography.primaryFont }}
+                  </span>
+                  <span class="block text-xs text-text-secondary truncate" [style.font-family]="'\'' + typography.secondaryFont + '\''">
+                    {{ typography.secondaryFont }}
+                  </span>
+                </button>
+              }
+            }
+            @if (regenFailed() === 'typography') {
+              <p class="text-xs text-accent" role="alert">
+                {{ 'dashboard.showBranding.identityEditor.regenError' | translate }}
+              </p>
+            }
+          </div>
           @for (role of fontRoles; track role) {
             <div class="space-y-2">
               <div class="flex items-baseline justify-between gap-3">
                 <label [for]="'font-' + role" class="text-sm text-text-secondary">
                   {{ 'dashboard.showBranding.identityEditor.fonts.' + role | translate }}
                 </label>
-                @if (chosenFonts()[role]) {
-                  <button type="button" class="button-ghost button-sm" (click)="resetFont(role)">
-                    {{ 'dashboard.showBranding.identityEditor.fonts.undo' | translate }}
+                <div class="flex items-center gap-1">
+                  @if (chosenFonts()[role]) {
+                    <button type="button" class="button-ghost button-sm" (click)="resetFont(role)">
+                      {{ 'dashboard.showBranding.identityEditor.fonts.undo' | translate }}
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="button-ghost button-sm !gap-1.5"
+                    [attr.aria-expanded]="importingFontFor() === role"
+                    (click)="toggleFontImport(role)"
+                  >
+                    <i class="pi pi-upload text-xs" aria-hidden="true"></i>
+                    {{ 'dashboard.showBranding.identityEditor.fonts.import' | translate }}
                   </button>
-                }
+                </div>
               </div>
               <p class="text-xl text-text-primary truncate" [style.font-family]="'\'' + shownFonts()[role] + '\''">
                 {{ shownFonts()[role] || '—' }}
@@ -235,6 +352,18 @@
                   <idem-loader size="xs" class="absolute right-3 top-1/2 -translate-y-1/2" />
                 }
               </div>
+              @if (importingFontFor() === role) {
+                <div class="glass-card p-3 h-[26rem] flex flex-col">
+                  <app-typography-font-import
+                    class="flex-1 min-h-0 flex flex-col"
+                    [slot]="role"
+                    [brandName]="project().name"
+                    [currentFamily]="shownFonts()[role]"
+                    (fontSelected)="chooseFont(role, $event)"
+                    (back)="toggleFontImport(role)"
+                  />
+                </div>
+              }
               @if (fontResults()[role].length) {
                 <ul class="glass-card p-1 max-h-60 overflow-y-auto custom-scrollbar">
                   @for (font of fontResults()[role]; track font.source + font.family) {
@@ -341,4 +470,26 @@
       {{ 'dashboard.showBranding.identityEditor.preview.contrastFixes' | translate: { count: report.stats.contrastFixes } }}
     </p>
   }
+</ng-template>
+
+<ng-template #regenButton let-only>
+  <button
+    type="button"
+    class="button-ghost button-sm !gap-2"
+    [disabled]="busy()"
+    [attr.aria-busy]="regenerating() === only"
+    (click)="regenerate(only)"
+  >
+    @if (regenerating() === only) {
+      <idem-loader size="xs" />
+    } @else {
+      <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
+    }
+    {{
+      (regenerating() === only
+        ? 'dashboard.showBranding.identityEditor.regenerating'
+        : 'dashboard.showBranding.identityEditor.regenerate'
+      ) | translate
+    }}
+  </button>
 </ng-template>
