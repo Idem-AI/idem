@@ -34,9 +34,12 @@ const TARGETS = [
   { name: 'appgen-server', dir: 'apps/appgen/apps/we-dev-next', paths: ['apps/appgen/apps/we-dev-next/'], cmd: 'npm run build', ownDeps: true },
   { name: 'appgen-client', dir: 'apps/appgen/apps/we-dev-client', paths: ['apps/appgen/apps/we-dev-client/', 'packages/shared-styles/'], cmd: 'npm run build', ownDeps: true },
   { name: 'main-dashboard', dir: 'apps/main-dashboard', paths: ['apps/main-dashboard/', 'packages/'], cmd: 'npm run build' },
-  { name: 'landing', dir: 'apps/landing', paths: ['apps/landing/', 'packages/'], cmd: 'npm run build' },
+  // `npx ng build`, not `npm run build`: the prebuild (env:prod) regenerates the gitignored
+  // environment files from production secrets a dev machine does not have, and would overwrite
+  // the local ones. The hook only needs to know the code compiles, so it builds against them.
+  { name: 'landing', dir: 'apps/landing', paths: ['apps/landing/', 'packages/'], cmd: 'npx ng build' },
   { name: 'simulation', dir: 'apps/simulation', paths: ['apps/simulation/', 'packages/'], cmd: 'npm run build', ownDeps: true },
-  { name: 'ideploy-web', dir: 'apps/ideploy-web', paths: ['apps/ideploy-web/', 'packages/shared-models/'], cmd: 'npm run build' },
+  { name: 'ideploy-web', dir: 'apps/ideploy-web', paths: ['apps/ideploy-web/', 'packages/shared-models/'], cmd: 'npx ng build' },
   { name: 'chart', dir: 'apps/chart', paths: ['apps/chart/'], cmd: 'pnpm run build', ownDeps: true },
 ];
 
