@@ -26,6 +26,7 @@ import { BrandingValidationService } from '../../services/branding-validation.se
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { IdentityEditorComponent } from './components/identity-editor/identity-editor';
 
 type LogoGround = 'light' | 'dark';
 
@@ -71,6 +72,7 @@ function readableInk(hex: string): string {
     TranslateModule,
     IncompleteProjectBannerComponent,
     IdemLoaderComponent,
+    IdentityEditorComponent,
   ],
   templateUrl: './show-branding.html',
   styleUrl: './show-branding.css',
@@ -381,6 +383,23 @@ export class ShowBrandingComponent implements OnInit {
   }
 
   /** Ouvre l'éditeur WYSIWYG de la charte graphique. */
+  /** Panneau « Identité visuelle » : logo, couleurs, polices propagés partout. */
+  protected readonly identityEditorOpen = signal(false);
+
+  protected openIdentityEditor(): void {
+    this.identityEditorOpen.set(true);
+  }
+
+  protected closeIdentityEditor(): void {
+    this.identityEditorOpen.set(false);
+  }
+
+  /** La marque a changé côté serveur : on relit le projet pour tout réafficher. */
+  protected onIdentityApplied(): void {
+    const projectId = this.currentProject()?.id ?? this.projectIdFromCookie();
+    if (projectId) this.loadProjectData(projectId);
+  }
+
   protected editBrandingGuide(): void {
     this.router.navigate(['/project/branding/edit']);
   }

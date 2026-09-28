@@ -2085,7 +2085,14 @@ export class BrandingService extends GenericService {
 
   async generateColorsAndTypography(
     userId: string,
-    project: ProjectModel
+    project: ProjectModel,
+    /**
+     * Ne régénérer que l'une des deux listes — depuis le panneau « Identité
+     * visuelle », l'utilisateur relance les couleurs OU les polices. L'autre
+     * liste est conservée telle qu'elle est en base, et un seul appel au
+     * modèle est payé.
+     */
+    only?: 'colors' | 'typography'
   ): Promise<{
     colors: ColorModel[];
     typography: TypographyModel[];
@@ -2141,7 +2148,10 @@ export class BrandingService extends GenericService {
     // so every downstream consumer (brand book, pitch deck, business plan,
     // communication, dashboard) references hosted URLs instead of inline SVG.
     // persist=false: the project update below already writes the mutated logo.
+    const logoBeforeAssets = JSON.stringify(createdProject.analysisResultModel?.branding?.logo ?? null);
     await this.ensureLogoAssetUrls(userId, createdProject.id, createdProject, false);
+    const logoGainedAssets =
+      JSON.stringify(createdProject.analysisResultModel?.branding?.logo ?? null) !== logoBeforeAssets;
 
     // Stocker le projet en cache
     try {
@@ -2162,9 +2172,14 @@ export class BrandingService extends GenericService {
     const startTime = Date.now();
 
     // Créer 2 promesses pour générer couleurs et typographies en parallèle
+    const existingBranding = createdProject.analysisResultModel?.branding;
     const [colors, typography] = await Promise.all([
-      this.generateSingleColors(projectDescription, createdProject),
-      this.generateSingleTypography(projectDescription, createdProject),
+      only === 'typography'
+        ? Promise.resolve(existingBranding?.generatedColors ?? [])
+        : this.generateSingleColors(projectDescription, createdProject),
+      only === 'colors'
+        ? Promise.resolve(existingBranding?.generatedTypography ?? [])
+        : this.generateSingleTypography(projectDescription, createdProject),
     ]);
 
     const generationTime = Date.now() - startTime;
@@ -2184,10 +2199,24 @@ export class BrandingService extends GenericService {
       },
     };
 
-    // Mise à jour en base de données
+    // Mise à jour en base de données.
+    //
+    // Pour un projet EXISTANT, seuls les champs produits ici sont écrits. Le
+    // projet a été lu avant l'appel au modèle (plusieurs secondes) : le
+    // réécrire en entier effaçait ce qui avait changé entre-temps — une
+    // identité appliquée depuis le panneau « Identité visuelle », par exemple.
     const updatedProject = await this.projectRepository.update(
       createdProject.id!,
-      updatedProjectData,
+      existingProject
+        ? ({
+            'analysisResultModel.branding.generatedColors': colors,
+            'analysisResultModel.branding.generatedTypography': typography,
+            'analysisResultModel.branding.updatedAt': new Date(),
+            ...(logoGainedAssets
+              ? { 'analysisResultModel.branding.logo': createdProject.analysisResultModel?.branding?.logo }
+              : {}),
+          } as any)
+        : updatedProjectData,
       `users/${userId}/projects`
     );
 

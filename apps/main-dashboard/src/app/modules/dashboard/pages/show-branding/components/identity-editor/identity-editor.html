@@ -1,0 +1,344 @@
+<div class="fixed inset-0 z-[60] flex justify-end">
+  <div
+    class="absolute inset-0 bg-[var(--glass-bg-darker)] backdrop-blur-sm"
+    (click)="close()"
+    aria-hidden="true"
+  ></div>
+
+  <section
+    class="modal-drawer relative h-full w-full md:w-[min(560px,92vw)] border-l border-[var(--glass-border)] flex flex-col"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="identity-editor-title"
+  >
+    <header class="flex items-start justify-between gap-3 px-5 py-4 border-b border-[var(--glass-border)] shrink-0">
+      <div class="min-w-0">
+        <h2 id="identity-editor-title" class="text-lg font-semibold text-text-primary">
+          {{ 'dashboard.showBranding.identityEditor.title' | translate }}
+        </h2>
+        <p class="text-sm text-text-secondary mt-0.5">
+          {{ 'dashboard.showBranding.identityEditor.subtitle' | translate }}
+        </p>
+      </div>
+      <button
+        type="button"
+        class="button-icon"
+        (click)="close()"
+        [disabled]="applying()"
+        [attr.aria-label]="'common.close' | translate"
+      >
+        <i class="pi pi-times text-sm" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    @if (result(); as report) {
+      <!-- ── Réussite ─────────────────────────────────────────────── -->
+      <div class="flex-1 overflow-y-auto custom-scrollbar px-5 py-6 space-y-5">
+        <div class="flex flex-col items-center text-center gap-3">
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden="true" class="text-text-secondary">
+            <rect x="8" y="12" width="26" height="32" rx="2" stroke="currentColor" stroke-width="1.75" />
+            <rect x="22" y="8" width="26" height="32" rx="2" stroke="currentColor" stroke-width="1.75" />
+            <path d="M29 24l5 5 9-10" stroke="var(--color-primary-500)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <h3 class="text-base font-semibold text-text-primary">
+            {{ 'dashboard.showBranding.identityEditor.done.title' | translate }}
+          </h3>
+          <p class="text-sm text-text-secondary max-w-sm">
+            {{ 'dashboard.showBranding.identityEditor.done.subtitle' | translate }}
+          </p>
+        </div>
+        <ng-container *ngTemplateOutlet="supportList; context: { $implicit: report }" />
+      </div>
+      <footer class="px-5 py-4 border-t border-[var(--glass-border)] flex justify-end shrink-0">
+        <button type="button" class="inner-button" (click)="close()">
+          {{ 'common.close' | translate }}
+        </button>
+      </footer>
+    } @else {
+      <div class="flex-1 overflow-y-auto custom-scrollbar px-5 py-5 space-y-8">
+        <!-- ── Logo ───────────────────────────────────────────────── -->
+        <fieldset class="space-y-3">
+          <legend class="text-sm font-semibold text-text-primary">
+            {{ 'dashboard.showBranding.identityEditor.logo.title' | translate }}
+          </legend>
+
+          <div class="flex items-center gap-4">
+            <div class="w-20 h-20 shrink-0 rounded-lg border border-[var(--glass-border)] flex items-center justify-center p-2">
+              @if (logoPreview()) {
+                <img [src]="logoPreview()" class="max-w-full max-h-full object-contain" alt="" />
+              } @else {
+                <i class="pi pi-image text-xl text-text-tertiary" aria-hidden="true"></i>
+              }
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <label class="outer-button button-sm !gap-2 cursor-pointer" [class.opacity-50]="importing()">
+                @if (importing()) {
+                  <idem-loader size="xs" />
+                } @else {
+                  <i class="pi pi-upload text-sm" aria-hidden="true"></i>
+                }
+                {{ 'dashboard.showBranding.identityEditor.logo.import' | translate }}
+                <input
+                  type="file"
+                  class="sr-only"
+                  accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp"
+                  [disabled]="importing()"
+                  (change)="onLogoFile($event)"
+                />
+              </label>
+              @if (logoChanged()) {
+                <button type="button" class="button-ghost button-sm" (click)="keepCurrentLogo()">
+                  {{ 'dashboard.showBranding.identityEditor.logo.keepCurrent' | translate }}
+                </button>
+              }
+            </div>
+          </div>
+
+          @if (importError()) {
+            <p class="text-sm text-accent" role="alert">{{ importError() }}</p>
+          }
+
+          @if (otherLogos().length) {
+            <div>
+              <p class="text-xs text-text-tertiary mb-2">
+                {{ 'dashboard.showBranding.identityEditor.logo.previous' | translate }}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                @for (logo of otherLogos(); track logo.id) {
+                  <button
+                    type="button"
+                    class="w-14 h-14 rounded-lg border border-[var(--glass-border)] p-1.5 flex items-center justify-center transition-smooth"
+                    [style.border-color]="isChosen(logo) ? 'var(--color-primary-500)' : null"
+                    [attr.aria-pressed]="isChosen(logo)"
+                    [attr.aria-label]="logo.name"
+                    (click)="chooseLogo(logo)"
+                  >
+                    <img [src]="logo.assetUrls?.primary || logo.svg" class="max-w-full max-h-full object-contain" alt="" />
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (logoChanged()) {
+            <label class="flex items-start gap-2 text-sm text-text-secondary">
+              <input type="checkbox" [checked]="colorsFromLogo()" (change)="toggleColorsFromLogo($event)" />
+              <span>{{ 'dashboard.showBranding.identityEditor.logo.colorsFromLogo' | translate }}</span>
+            </label>
+          }
+        </fieldset>
+
+        <!-- ── Couleurs ───────────────────────────────────────────── -->
+        <fieldset class="space-y-3" [disabled]="colorsFromLogo() && logoChanged()">
+          <legend class="w-full flex items-center justify-between text-sm font-semibold text-text-primary">
+            <span>{{ 'dashboard.showBranding.identityEditor.colors.title' | translate }}</span>
+            @if (harmonizing()) {
+              <idem-loader size="xs" [label]="'dashboard.showBranding.identityEditor.colors.harmonizing' | translate" />
+            } @else if (colorsChanged()) {
+              <button type="button" class="button-ghost button-sm" (click)="resetColors()">
+                {{ 'dashboard.showBranding.identityEditor.colors.reset' | translate }}
+              </button>
+            }
+          </legend>
+          <p class="text-xs text-text-tertiary">
+            @if (colorsFromLogo() && logoChanged()) {
+              {{ 'dashboard.showBranding.identityEditor.colors.fromLogoHint' | translate }}
+            } @else {
+              {{ 'dashboard.showBranding.identityEditor.colors.hint' | translate }}
+            }
+          </p>
+
+          <ul class="divide-y divide-[var(--glass-border-subtle)]">
+            @for (role of roles; track role) {
+              <li class="py-2.5 flex items-center gap-3">
+                <input
+                  type="color"
+                  class="!w-10 !h-10 shrink-0 cursor-pointer"
+                  [value]="shownPalette()[role] || '#000000'"
+                  [attr.aria-label]="'dashboard.showBranding.identityEditor.colors.roles.' + role | translate"
+                  (change)="onColorInput(role, $event)"
+                />
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm text-text-primary">
+                    {{ 'dashboard.showBranding.identityEditor.colors.roles.' + role | translate }}
+                  </p>
+                  <p class="text-xs text-text-tertiary font-mono">
+                    {{ (shownPalette()[role] || '—') | uppercase }}
+                    @if (wasAdjusted(role) && !isEdited(role)) {
+                      · {{ 'dashboard.showBranding.identityEditor.colors.adjusted' | translate }}
+                    }
+                  </p>
+                </div>
+                <label class="flex items-center gap-1.5 text-xs text-text-secondary shrink-0">
+                  <input
+                    type="checkbox"
+                    [checked]="keptRoles().has(role)"
+                    [disabled]="isEdited(role)"
+                    (change)="toggleKeep(role, $event)"
+                  />
+                  {{ 'dashboard.showBranding.identityEditor.colors.keep' | translate }}
+                </label>
+              </li>
+            }
+          </ul>
+
+          @if (harmonized(); as h) {
+            @if (h.warnings.length) {
+              <ul class="space-y-1">
+                @for (warning of h.warnings; track warning) {
+                  <li class="text-xs text-text-secondary flex gap-1.5">
+                    <i class="pi pi-info-circle text-xs mt-0.5" aria-hidden="true"></i>{{ warning }}
+                  </li>
+                }
+              </ul>
+            }
+            <p class="text-xs text-text-tertiary">
+              {{
+                'dashboard.showBranding.identityEditor.colors.contrast'
+                  | translate: { ratio: h.contrast.textOnBackground }
+              }}
+            </p>
+          }
+        </fieldset>
+
+        <!-- ── Polices ────────────────────────────────────────────── -->
+        <fieldset class="space-y-4">
+          <legend class="text-sm font-semibold text-text-primary">
+            {{ 'dashboard.showBranding.identityEditor.fonts.title' | translate }}
+          </legend>
+          @for (role of fontRoles; track role) {
+            <div class="space-y-2">
+              <div class="flex items-baseline justify-between gap-3">
+                <label [for]="'font-' + role" class="text-sm text-text-secondary">
+                  {{ 'dashboard.showBranding.identityEditor.fonts.' + role | translate }}
+                </label>
+                @if (chosenFonts()[role]) {
+                  <button type="button" class="button-ghost button-sm" (click)="resetFont(role)">
+                    {{ 'dashboard.showBranding.identityEditor.fonts.undo' | translate }}
+                  </button>
+                }
+              </div>
+              <p class="text-xl text-text-primary truncate" [style.font-family]="'\'' + shownFonts()[role] + '\''">
+                {{ shownFonts()[role] || '—' }}
+              </p>
+              <div class="relative">
+                <input
+                  type="search"
+                  [id]="'font-' + role"
+                  class="w-full"
+                  autocomplete="off"
+                  [value]="fontQuery()[role]"
+                  [placeholder]="'dashboard.showBranding.identityEditor.fonts.search' | translate"
+                  (input)="onFontQuery(role, $event)"
+                />
+                @if (searchingFont() === role) {
+                  <idem-loader size="xs" class="absolute right-3 top-1/2 -translate-y-1/2" />
+                }
+              </div>
+              @if (fontResults()[role].length) {
+                <ul class="glass-card p-1 max-h-60 overflow-y-auto custom-scrollbar">
+                  @for (font of fontResults()[role]; track font.source + font.family) {
+                    <li>
+                      <button
+                        type="button"
+                        class="w-full text-left px-3 py-2 rounded-md hover:bg-[var(--glass-bg-light)] flex items-baseline justify-between gap-3"
+                        (click)="chooseFont(role, font)"
+                      >
+                        <span class="text-base text-text-primary truncate" [style.font-family]="'\'' + font.family + '\''">
+                          {{ font.family }}
+                        </span>
+                        <span class="text-xs text-text-tertiary shrink-0">{{ font.source }}</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </fieldset>
+
+        <!-- ── Aperçu de la propagation ───────────────────────────── -->
+        @if (preview(); as report) {
+          <section class="space-y-2" aria-live="polite">
+            <h3 class="text-sm font-semibold text-text-primary">
+              {{ 'dashboard.showBranding.identityEditor.preview.title' | translate }}
+            </h3>
+            <ng-container *ngTemplateOutlet="supportList; context: { $implicit: report }" />
+          </section>
+        }
+
+        @if (error()) {
+          <p class="text-sm text-accent" role="alert">
+            {{ error() || ('dashboard.showBranding.identityEditor.error' | translate) }}
+          </p>
+        }
+      </div>
+
+      <footer class="px-5 py-4 border-t border-[var(--glass-border)] flex flex-wrap items-center justify-end gap-2 shrink-0">
+        <button
+          type="button"
+          class="outer-button button-sm !gap-2"
+          [disabled]="!hasChanges() || busy()"
+          (click)="showPreview()"
+        >
+          @if (previewing()) {
+            <idem-loader size="xs" />
+          }
+          {{ 'dashboard.showBranding.identityEditor.actions.preview' | translate }}
+        </button>
+        <button
+          type="button"
+          class="inner-button button-sm !gap-2"
+          [disabled]="!hasChanges() || busy()"
+          [attr.aria-busy]="applying()"
+          (click)="apply()"
+        >
+          @if (applying()) {
+            <idem-loader size="xs" />
+          }
+          {{
+            (applying()
+              ? 'dashboard.showBranding.identityEditor.actions.applying'
+              : 'dashboard.showBranding.identityEditor.actions.apply'
+            ) | translate
+          }}
+        </button>
+      </footer>
+    }
+  </section>
+</div>
+
+<ng-template #supportList let-report>
+  <ul class="divide-y divide-[var(--glass-border-subtle)]">
+    @for (support of report.supports; track support.key) {
+      @if (support.items > 0) {
+        <li class="py-2 flex items-center justify-between gap-3 text-sm">
+          <span class="text-text-primary">{{ support.label }}</span>
+          <span class="text-text-secondary">
+            {{
+              'dashboard.showBranding.identityEditor.preview.count'
+                | translate: { updated: support.updated, total: support.items }
+            }}
+          </span>
+        </li>
+      }
+    }
+    @if (report.site?.hasSite) {
+      <li class="py-2 flex items-center justify-between gap-3 text-sm">
+        <span class="text-text-primary">{{ 'dashboard.showBranding.identityEditor.preview.site' | translate }}</span>
+        <span class="text-text-secondary">
+          @if (report.site.error) {
+            {{ 'dashboard.showBranding.identityEditor.preview.siteError' | translate }}
+          } @else {
+            {{ 'dashboard.showBranding.identityEditor.preview.files' | translate: { count: report.site.filesChanged } }}
+          }
+        </span>
+      </li>
+    }
+  </ul>
+  @if (report.stats.contrastFixes > 0) {
+    <p class="text-xs text-text-tertiary mt-2">
+      {{ 'dashboard.showBranding.identityEditor.preview.contrastFixes' | translate: { count: report.stats.contrastFixes } }}
+    </p>
+  }
+</ng-template>

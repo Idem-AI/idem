@@ -93,6 +93,10 @@
 
         @if (hasBrandingSections()) {
           <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="outer-button button-sm !gap-2" (click)="openIdentityEditor()">
+              <i class="pi pi-palette text-sm" aria-hidden="true"></i>
+              <span>{{ 'dashboard.showBranding.identityEditor.open' | translate }}</span>
+            </button>
             <button
               type="button"
               class="button-icon"
@@ -541,4 +545,12 @@
       </p>
     }
   </p-dialog>
+  @if (identityEditorOpen() && currentProject()?.id && existingBranding(); as branding) {
+    <app-identity-editor
+      [projectId]="currentProject()!.id!"
+      [branding]="branding"
+      (closed)="closeIdentityEditor()"
+      (applied)="onIdentityApplied()"
+    />
+  }
 </div>
