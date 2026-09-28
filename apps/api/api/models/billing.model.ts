@@ -136,11 +136,22 @@ export interface BillingProductModel {
 // ============================================
 
 /**
+ * Une RÉGÉNÉRATION demandée depuis le panneau « Identité visuelle », sur une
+ * marque déjà en place, coûte 1,5 fois la génération simple équivalente : elle
+ * relance le moteur sur un livrable déjà payé et livré.
+ */
+export const REGENERATION_MULTIPLIER = 1.5;
+
+const REVISION_COST = 1;
+const LOGO_RELAUNCH_COST = 10;
+const regeneration = (base: number) => Math.ceil(base * REGENERATION_MULTIPLIER);
+
+/**
  * Barème Business : ce que coûte chaque livrable, en crédits.
  * Repris de la section « price list » de la page publique.
  */
 export const BUSINESS_CREDIT_COSTS = {
-  revision: 1,
+  revision: REVISION_COST,
   flyer: 2,
   /** Visuel entièrement généré par IA, par opposition au moteur de templates. */
   ai_visual: 5,
@@ -153,7 +164,11 @@ export const BUSINESS_CREDIT_COSTS = {
    * Le barème du modèle limite la session de logo à 8-10 visuels ; au-delà,
    * chaque relance se paie — c'est le poste le plus coûteux à produire.
    */
-  logo_relaunch: 10,
+  logo_relaunch: LOGO_RELAUNCH_COST,
+  /** Nouveaux logos (ou logo amélioré) depuis le panneau : 1,5 × une relance. */
+  logo_regenerate: regeneration(LOGO_RELAUNCH_COST),
+  /** Nouvelles palettes ou polices depuis le panneau : 1,5 × une révision. */
+  brand_regenerate: regeneration(REVISION_COST),
   editorial_calendar: 15,
   /**
    * Une PÉRIODE de communication : son brief éditorial + ses contenus datés.

@@ -487,22 +487,6 @@ export class BrandingService {
   }
 
   /**
-   * Nouvelles propositions de palettes OU de polices (IA), sans toucher à la
-   * marque en place : le choix passe ensuite par `updateIdentity`, qui le
-   * propage. Seules les données descriptives du projet partent, comme pour
-   * `generateColorsAndTypographyFromLogo` (le reste est relu côté serveur).
-   */
-  regenerateProposals(
-    project: ProjectModel,
-    only: 'colors' | 'typography',
-  ): Observable<{ colors: ColorModel[]; typography: TypographyModel[] }> {
-    return this.http.post<{ colors: ColorModel[]; typography: TypographyModel[] }>(
-      `${this.apiUrl}/generate/colors-typography`,
-      { project: this.buildLeanProjectForColorGen(project), only },
-    );
-  }
-
-  /**
    * Change le logo, les couleurs ou les polices et propage le changement à
    * tous les supports (charte, business plans, decks, cartes, visuels, site).
    * Aucun appel à l'IA côté serveur. `dryRun` rend le même rapport sans rien

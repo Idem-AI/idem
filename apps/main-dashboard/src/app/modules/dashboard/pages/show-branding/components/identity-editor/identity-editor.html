@@ -98,30 +98,120 @@
             <p class="text-sm text-accent" role="alert">{{ importError() }}</p>
           }
 
+          <!-- Logo importé : le garder tel quel, ou partir de lui pour l'améliorer. -->
+          @if (logoChoice().kind === 'imported') {
+            <div class="glass-card p-3 space-y-2">
+              <p class="text-sm text-text-primary">
+                {{ 'dashboard.showBranding.identityEditor.logo.importedTitle' | translate }}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <span class="tag !py-1 !px-2.5 !gap-1.5">
+                  <i class="pi pi-check text-xs" aria-hidden="true"></i>
+                  {{ 'dashboard.showBranding.identityEditor.logo.useAsIs' | translate }}
+                </span>
+                <button
+                  type="button"
+                  class="outer-button button-sm !gap-2"
+                  [disabled]="regeneratingLogos() || startingJob() === 'logos'"
+                  (click)="improveLogo('imported')"
+                >
+                  <i class="pi pi-sparkles text-xs" aria-hidden="true"></i>
+                  {{ 'dashboard.showBranding.identityEditor.logo.improveImported' | translate }}
+                </button>
+              </div>
+              <p class="text-xs text-text-tertiary">
+                {{ 'dashboard.showBranding.identityEditor.logo.improveHint' | translate }}
+              </p>
+            </div>
+          }
+
+          <!-- Options de génération : les mêmes qu'à la création du projet. -->
           <div class="space-y-2">
-            <div class="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="button-ghost button-sm !gap-1.5 !px-0"
+              [attr.aria-expanded]="optionsOpen()"
+              aria-controls="logo-options"
+              (click)="optionsOpen.set(!optionsOpen())"
+            >
+              <i class="pi text-xs" [class.pi-chevron-down]="optionsOpen()" [class.pi-chevron-right]="!optionsOpen()" aria-hidden="true"></i>
+              {{ 'dashboard.showBranding.identityEditor.logo.options' | translate }}
+            </button>
+            @if (optionsOpen()) {
+              <div id="logo-options" class="space-y-3">
+                <div class="flex flex-wrap gap-2" role="group" [attr.aria-label]="'dashboard.showBranding.identityEditor.logo.typeLabel' | translate">
+                  @for (type of logoTypes; track type) {
+                    <button
+                      type="button"
+                      class="button-sm rounded-md border border-[var(--glass-border)] px-3 py-1.5 text-sm transition-smooth"
+                      [class.text-text-primary]="logoType() === type"
+                      [class.text-text-secondary]="logoType() !== type"
+                      [style.border-color]="logoType() === type ? 'var(--color-primary-500)' : null"
+                      [attr.aria-pressed]="logoType() === type"
+                      (click)="setLogoType(type)"
+                    >
+                      {{ 'dashboard.logoPreferences.types.' + type + '.title' | translate }}
+                    </button>
+                  }
+                </div>
+                <label class="block space-y-1">
+                  <span class="text-xs text-text-secondary">
+                    {{ 'dashboard.showBranding.identityEditor.logo.briefLabel' | translate }}
+                  </span>
+                  <textarea
+                    rows="3"
+                    class="w-full"
+                    maxlength="1200"
+                    [value]="logoBrief()"
+                    [placeholder]="'dashboard.showBranding.identityEditor.logo.briefPlaceholder' | translate"
+                    (input)="onLogoBrief($event)"
+                  ></textarea>
+                </label>
+              </div>
+            }
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
               <p class="text-xs text-text-tertiary">
                 {{ 'dashboard.showBranding.identityEditor.logo.previous' | translate }}
               </p>
-              <button
-                type="button"
-                class="button-ghost button-sm !gap-2"
-                [disabled]="busy()"
-                [attr.aria-busy]="regeneratingLogos()"
-                (click)="regenerateLogos()"
-              >
+              <div class="flex flex-wrap items-center gap-1">
                 @if (regeneratingLogos()) {
-                  <idem-loader size="xs" />
+                  <span class="flex items-center gap-2 text-xs text-text-secondary" aria-live="polite">
+                    <idem-loader size="xs" />
+                    {{ 'dashboard.showBranding.identityEditor.logo.regenerating' | translate }}
+                  </span>
+                  <button type="button" class="button-ghost button-sm" (click)="cancelJob('logos')">
+                    {{ 'dashboard.showBranding.identityEditor.cancel' | translate }}
+                  </button>
                 } @else {
-                  <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
+                  @if (branding().logo.svg) {
+                    <button
+                      type="button"
+                      class="button-ghost button-sm !gap-1.5"
+                      [disabled]="startingJob() === 'logos'"
+                      (click)="improveLogo('current')"
+                    >
+                      <i class="pi pi-sparkles text-xs" aria-hidden="true"></i>
+                      {{ 'dashboard.showBranding.identityEditor.logo.improveCurrent' | translate }}
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="button-ghost button-sm !gap-1.5"
+                    [disabled]="startingJob() === 'logos'"
+                    (click)="regenerateLogos()"
+                  >
+                    @if (startingJob() === 'logos') {
+                      <idem-loader size="xs" />
+                    } @else {
+                      <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
+                    }
+                    {{ 'dashboard.showBranding.identityEditor.logo.regenerate' | translate }}
+                  </button>
                 }
-                {{
-                  (regeneratingLogos()
-                    ? 'dashboard.showBranding.identityEditor.logo.regenerating'
-                    : 'dashboard.showBranding.identityEditor.logo.regenerate'
-                  ) | translate
-                }}
-              </button>
+              </div>
             </div>
             @if (proposedLogos().length || pendingLogoSlots().length) {
               <div class="flex flex-wrap gap-2">
@@ -132,7 +222,6 @@
                     [style.border-color]="isChosen(logo) ? 'var(--color-primary-500)' : null"
                     [attr.aria-pressed]="isChosen(logo)"
                     [attr.aria-label]="logo.name"
-                    [disabled]="regeneratingLogos()"
                     (click)="chooseLogo(logo)"
                   >
                     <img [src]="logo.assetUrls?.primary || logo.svg | logoSrc" class="max-w-full max-h-full object-contain" alt="" />
@@ -147,11 +236,13 @@
                 {{ 'dashboard.showBranding.identityEditor.logo.none' | translate }}
               </p>
             }
-            @if (logoRegenFailed()) {
-              <p class="text-xs text-accent" role="alert">
-                {{ 'dashboard.showBranding.identityEditor.regenError' | translate }}
+            @if (projectJobs().logos?.improvementBrief; as brief) {
+              <p class="text-xs text-text-secondary">
+                <span class="font-medium">{{ 'dashboard.showBranding.identityEditor.logo.briefUsed' | translate }}</span>
+                {{ brief }}
               </p>
             }
+            <ng-container *ngTemplateOutlet="jobProblemLine; context: { $implicit: 'logos' }" />
           </div>
 
           @if (logoChanged()) {
@@ -241,7 +332,7 @@
               </p>
               <ng-container *ngTemplateOutlet="regenButton; context: { $implicit: 'colors' }" />
             </div>
-            @if (regenerating() === 'colors') {
+            @if (isRunning('colors')) {
               @for (slot of [1, 2, 3]; track slot) {
                 <div class="h-8 rounded-md skeleton" aria-hidden="true"></div>
               }
@@ -263,11 +354,7 @@
                 </button>
               }
             }
-            @if (regenFailed() === 'colors') {
-              <p class="text-xs text-accent" role="alert">
-                {{ 'dashboard.showBranding.identityEditor.regenError' | translate }}
-              </p>
-            }
+            <ng-container *ngTemplateOutlet="jobProblemLine; context: { $implicit: 'colors' }" />
           </div>
         </fieldset>
 
@@ -284,7 +371,7 @@
               </p>
               <ng-container *ngTemplateOutlet="regenButton; context: { $implicit: 'typography' }" />
             </div>
-            @if (regenerating() === 'typography') {
+            @if (isRunning('typography')) {
               @for (slot of [1, 2, 3]; track slot) {
                 <div class="h-12 rounded-md skeleton" aria-hidden="true"></div>
               }
@@ -306,11 +393,7 @@
                 </button>
               }
             }
-            @if (regenFailed() === 'typography') {
-              <p class="text-xs text-accent" role="alert">
-                {{ 'dashboard.showBranding.identityEditor.regenError' | translate }}
-              </p>
-            }
+            <ng-container *ngTemplateOutlet="jobProblemLine; context: { $implicit: 'typography' }" />
           </div>
           @for (role of fontRoles; track role) {
             <div class="space-y-2">
@@ -473,23 +556,49 @@
 </ng-template>
 
 <ng-template #regenButton let-only>
-  <button
-    type="button"
-    class="button-ghost button-sm !gap-2"
-    [disabled]="busy()"
-    [attr.aria-busy]="regenerating() === only"
-    (click)="regenerate(only)"
-  >
-    @if (regenerating() === only) {
-      <idem-loader size="xs" />
-    } @else {
-      <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
+  @if (isRunning(only)) {
+    <span class="flex items-center gap-2">
+      <span class="flex items-center gap-2 text-xs text-text-secondary" aria-live="polite">
+        <idem-loader size="xs" />
+        {{ 'dashboard.showBranding.identityEditor.regenerating' | translate }}
+      </span>
+      <button type="button" class="button-ghost button-sm" (click)="cancelJob(only)">
+        {{ 'dashboard.showBranding.identityEditor.cancel' | translate }}
+      </button>
+    </span>
+  } @else {
+    <button
+      type="button"
+      class="button-ghost button-sm !gap-2"
+      [disabled]="startingJob() === only"
+      (click)="regenerate(only)"
+    >
+      @if (startingJob() === only) {
+        <idem-loader size="xs" />
+      } @else {
+        <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
+      }
+      {{ 'dashboard.showBranding.identityEditor.regenerate' | translate }}
+    </button>
+  }
+</ng-template>
+
+<ng-template #jobProblemLine let-kind>
+  @switch (jobProblem(kind)) {
+    @case ('start') {
+      <p class="text-xs text-accent" role="alert">
+        {{ startError(kind) || ('dashboard.showBranding.identityEditor.regenError' | translate) }}
+      </p>
     }
-    {{
-      (regenerating() === only
-        ? 'dashboard.showBranding.identityEditor.regenerating'
-        : 'dashboard.showBranding.identityEditor.regenerate'
-      ) | translate
-    }}
-  </button>
+    @case ('analysis') {
+      <p class="text-xs text-accent" role="alert">
+        {{ 'dashboard.showBranding.identityEditor.analysisError' | translate }}
+      </p>
+    }
+    @case ('generation') {
+      <p class="text-xs text-accent" role="alert">
+        {{ 'dashboard.showBranding.identityEditor.regenError' | translate }}
+      </p>
+    }
+  }
 </ng-template>

@@ -439,6 +439,13 @@ ${palette
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
+/** Génération interrompue à la demande de l'utilisateur. */
+export class GenerationCancelledError extends Error {
+  constructor() {
+    super('generation_cancelled');
+  }
+}
+
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
   private logoJsonToSvgService: LogoJsonToSvgService;
@@ -2092,7 +2099,12 @@ export class BrandingService extends GenericService {
      * liste est conservée telle qu'elle est en base, et un seul appel au
      * modèle est payé.
      */
-    only?: 'colors' | 'typography'
+    only?: 'colors' | 'typography',
+    /**
+     * Annulation demandée pendant l'appel au modèle (tâche de fond du panneau
+     * « Identité visuelle ») : les propositions ne sont alors PAS enregistrées.
+     */
+    isCancelled?: () => boolean
   ): Promise<{
     colors: ColorModel[];
     typography: TypographyModel[];
@@ -2184,6 +2196,10 @@ export class BrandingService extends GenericService {
 
     const generationTime = Date.now() - startTime;
     logger.info(`Parallel colors and typography generation completed in ${generationTime}ms`);
+
+    if (isCancelled?.()) {
+      throw new GenerationCancelledError();
+    }
 
     // Mettre à jour le projet avec les couleurs et typographies générées
     const updatedProjectData = {
