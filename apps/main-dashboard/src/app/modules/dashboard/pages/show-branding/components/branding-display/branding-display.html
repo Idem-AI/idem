@@ -17,15 +17,14 @@
           </h3>
           <p class="text-lg text-text-secondary">{{ loadError()! | translate }}</p>
         </div>
-        <button
-          (click)="goBack()"
-          class="group inner-button relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold"
-        >
-          <span class="relative flex items-center space-x-2">
-            <i class="pi pi-arrow-left"></i>
+        <!-- `inner-button` est un bloc flex : sans cette ligne centrée, il se
+             cale à gauche malgré le `text-center` du conteneur. -->
+        <div class="flex justify-center">
+          <button type="button" (click)="goBack()" class="inner-button button-lg !gap-2">
+            <i class="pi pi-arrow-left" aria-hidden="true"></i>
             <span>{{ 'dashboard.showBranding.buttons.backToOverview' | translate }}</span>
-          </span>
-        </button>
+          </button>
+        </div>
       </div>
     </div>
   </div>

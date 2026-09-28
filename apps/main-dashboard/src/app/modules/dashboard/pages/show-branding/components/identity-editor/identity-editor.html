@@ -47,10 +47,36 @@
             {{ 'dashboard.showBranding.identityEditor.done.subtitle' | translate }}
           </p>
         </div>
+        @if (report.logoAdaptation?.recolored || report.logoAdaptation?.retypeset) {
+          <p class="text-sm text-text-secondary text-center">
+            {{ 'dashboard.showBranding.identityEditor.done.logoAdapted' | translate }}
+          </p>
+        }
+        @if (regeneratedAfterApply()) {
+          <div class="glass-card p-3 flex items-center gap-3">
+            @if (regeneratingLogos()) {
+              <idem-loader size="xs" />
+            }
+            <p class="flex-1 text-sm text-text-secondary">
+              {{
+                (regeneratingLogos()
+                  ? 'dashboard.showBranding.identityEditor.done.logosRunning'
+                  : 'dashboard.showBranding.identityEditor.done.logosReady'
+                ) | translate
+              }}
+            </p>
+          </div>
+          <ng-container *ngTemplateOutlet="jobProblemLine; context: { $implicit: 'logos' }" />
+        }
         <ng-container *ngTemplateOutlet="supportList; context: { $implicit: report }" />
       </div>
-      <footer class="px-5 py-4 border-t border-[var(--glass-border)] flex justify-end shrink-0">
-        <button type="button" class="inner-button" (click)="close()">
+      <footer class="px-5 py-4 border-t border-[var(--glass-border)] flex flex-wrap justify-end gap-2 shrink-0">
+        @if (regeneratedAfterApply()) {
+          <button type="button" class="outer-button button-sm" (click)="backToEditing()">
+            {{ 'dashboard.showBranding.identityEditor.done.seeLogos' | translate }}
+          </button>
+        }
+        <button type="button" class="inner-button button-sm" (click)="close()">
           {{ 'common.close' | translate }}
         </button>
       </footer>
@@ -468,6 +494,73 @@
             </div>
           }
         </fieldset>
+
+        <!-- ── Et le logo ? ───────────────────────────────────────── -->
+        @if (logoFollowAsked()) {
+          <fieldset class="space-y-2">
+            <legend class="text-sm font-semibold text-text-primary">
+              {{ 'dashboard.showBranding.identityEditor.follow.title' | translate }}
+            </legend>
+            <p class="text-xs text-text-tertiary">
+              {{ 'dashboard.showBranding.identityEditor.follow.hint' | translate }}
+            </p>
+
+            @if (adaptScope(); as scope) {
+              <label class="flex items-start gap-2.5 p-2.5 rounded-md border border-[var(--glass-border)] cursor-pointer"
+                     [style.border-color]="logoFollow() === 'adapt' ? 'var(--color-primary-500)' : null">
+                <input type="radio" name="logo-follow" class="mt-0.5" [checked]="logoFollow() === 'adapt'" (change)="setLogoFollow('adapt')" />
+                <span class="space-y-0.5">
+                  <span class="block text-sm text-text-primary">
+                    {{ 'dashboard.showBranding.identityEditor.follow.adapt.' + scope | translate }}
+                  </span>
+                  <span class="block text-xs text-text-tertiary">
+                    {{ 'dashboard.showBranding.identityEditor.follow.adaptHint' | translate }}
+                  </span>
+                </span>
+              </label>
+            }
+            <label class="flex items-start gap-2.5 p-2.5 rounded-md border border-[var(--glass-border)] cursor-pointer"
+                   [style.border-color]="logoFollow() === 'regenerate' ? 'var(--color-primary-500)' : null">
+              <input type="radio" name="logo-follow" class="mt-0.5" [checked]="logoFollow() === 'regenerate'" (change)="setLogoFollow('regenerate')" />
+              <span class="space-y-0.5">
+                <span class="block text-sm text-text-primary">
+                  {{ 'dashboard.showBranding.identityEditor.follow.regenerate' | translate }}
+                </span>
+                <span class="block text-xs text-text-tertiary">
+                  {{ 'dashboard.showBranding.identityEditor.follow.regenerateHint' | translate }}
+                </span>
+              </span>
+            </label>
+            <label class="flex items-start gap-2.5 p-2.5 rounded-md border border-[var(--glass-border)] cursor-pointer"
+                   [style.border-color]="logoFollow() === 'keep' ? 'var(--color-primary-500)' : null">
+              <input type="radio" name="logo-follow" class="mt-0.5" [checked]="logoFollow() === 'keep'" (change)="setLogoFollow('keep')" />
+              <span class="block text-sm text-text-primary">
+                {{ 'dashboard.showBranding.identityEditor.follow.keep' | translate }}
+              </span>
+            </label>
+
+            @if (logoFollow() === 'adapt') {
+              @if (adaptedLogoPreview(); as adapted) {
+                <div class="flex items-center gap-3 pt-1">
+                  <div class="w-20 h-20 shrink-0 rounded-lg border border-[var(--glass-border)] flex items-center justify-center p-2">
+                    <img [src]="adapted | logoSrc" class="max-w-full max-h-full object-contain" alt="" />
+                  </div>
+                  <p class="text-xs text-text-secondary">
+                    {{ 'dashboard.showBranding.identityEditor.follow.previewReady' | translate }}
+                  </p>
+                </div>
+              } @else if (preview()) {
+                <p class="text-xs text-text-tertiary">
+                  {{ 'dashboard.showBranding.identityEditor.follow.nothingToAdapt' | translate }}
+                </p>
+              } @else {
+                <p class="text-xs text-text-tertiary">
+                  {{ 'dashboard.showBranding.identityEditor.follow.previewHint' | translate }}
+                </p>
+              }
+            }
+          </fieldset>
+        }
 
         <!-- ── Aperçu de la propagation ───────────────────────────── -->
         @if (preview(); as report) {

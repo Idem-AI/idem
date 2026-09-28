@@ -271,14 +271,34 @@
         },
         "done": {
           "title": "New identity applied",
-          "subtitle": "Every deliverable has been updated. Each change can be undone from the history."
+          "subtitle": "Every deliverable has been updated. Each change can be undone from the history.",
+          "logoAdapted": "The logo was adapted to the new identity. The previous one stays available among proposed logos.",
+          "logosRunning": "New logos are being created with your new identity. You can close this panel.",
+          "logosReady": "Your new logos are ready.",
+          "seeLogos": "See proposed logos"
         },
         "error": "The update did not go through. Please try again.",
         "regenerate": "Suggest others",
         "regenerating": "In progress… You can close this panel.",
         "regenError": "Generation did not go through. Please try again.",
         "cancel": "Cancel",
-        "analysisError": "The logo analysis did not go through. Please try again."
+        "analysisError": "The logo analysis did not go through. Please try again.",
+        "follow": {
+          "title": "What about the logo?",
+          "hint": "Your colors or fonts are changing. Choose what happens to the logo.",
+          "adapt": {
+            "colors": "Apply the new colors to the logo",
+            "fonts": "Reset the logo name in the new font",
+            "both": "Apply the new colors and font to the logo"
+          },
+          "adaptHint": "No AI: the logo design stays the same, only its colors and the name's font follow.",
+          "regenerate": "Create new logos with the new identity",
+          "regenerateHint": "With AI, after applying. Proposals arrive in this panel; you choose afterwards.",
+          "keep": "Keep the logo as is",
+          "previewHint": "“See what changes” shows the adapted logo before applying.",
+          "previewReady": "Here is the adapted logo. It will replace the current one everywhere.",
+          "nothingToAdapt": "This logo has no brand color to replace: it will stay as is."
+        }
       }
     }
   }

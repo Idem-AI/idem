@@ -137,6 +137,9 @@ export class IdentityEditorComponent {
   protected readonly optionsOpen = signal(false);
 
   protected readonly logoPreview = computed(() => {
+    // Le logo adapté aux nouvelles couleurs / polices, dès que l'aperçu l'a calculé.
+    const adapted = this.adaptedLogoPreview();
+    if (adapted) return adapted;
     const choice = this.logoChoice();
     if (choice.kind === 'imported') return choice.preview;
     const logo = choice.kind === 'generated' ? choice.logo : this.branding().logo;
@@ -199,6 +202,37 @@ export class IdentityEditorComponent {
   protected readonly applying = signal(false);
   protected readonly result = signal<IdentityUpdateReport | null>(null);
   protected readonly error = signal<string | null>(null);
+
+  // ── Et le logo ? ────────────────────────────────────────────────────
+  //
+  // Quand les couleurs ou les polices changent sans nouveau logo, on DEMANDE
+  // ce que doit devenir le logo : l'adapter (sans IA), en créer de nouveaux
+  // avec la nouvelle identité (IA), ou le garder tel quel.
+  protected readonly logoFollowAsked = computed(
+    () => !this.logoChanged() && !!this.branding().logo?.svg && (this.colorsChanged() || this.fontsChanged()),
+  );
+  /** Le nom du logo peut-il être reposé dans une autre police sans IA ? */
+  protected readonly canRetypeset = computed(() => {
+    const logo = this.branding().logo;
+    return !!(logo?.lockup?.brandName && logo.iconSvg);
+  });
+  /** Ce que « adapter » ferait concrètement ; vide ⇒ l'option n'est pas offerte. */
+  protected readonly adaptScope = computed<'colors' | 'fonts' | 'both' | null>(() => {
+    const colors = this.colorsChanged() && !(this.colorsFromLogo() && this.logoChanged());
+    const fonts = this.fontsChanged() && this.canRetypeset();
+    return colors && fonts ? 'both' : colors ? 'colors' : fonts ? 'fonts' : null;
+  });
+  protected readonly logoFollowChoice = signal<'adapt' | 'regenerate' | 'keep'>('adapt');
+  /** Le choix effectif : « adapter » retombe sur « garder » s'il n'est pas possible. */
+  protected readonly logoFollow = computed(() =>
+    this.logoFollowChoice() === 'adapt' && !this.adaptScope() ? 'keep' : this.logoFollowChoice(),
+  );
+  /** Logo adapté calculé par l'aperçu, affiché avant d'appliquer. */
+  protected readonly adaptedLogoPreview = computed(() =>
+    this.logoFollow() === 'adapt' ? (this.preview()?.logoAdaptation?.previewSvg ?? null) : null,
+  );
+  /** De nouveaux logos ont été lancés juste après l'application. */
+  protected readonly regeneratedAfterApply = signal(false);
 
   protected readonly hasChanges = computed(
     () => this.logoChanged() || this.colorsChanged() || this.fontsChanged(),
@@ -546,6 +580,7 @@ export class IdentityEditorComponent {
       if (this.keptRoles().size) request.keepColors = [...this.keptRoles()];
     }
     if (this.fontsChanged()) request.typography = this.chosenFonts();
+    if (this.logoFollowAsked() && this.logoFollow() === 'adapt') request.adaptLogo = true;
     return request;
   }
 
@@ -574,12 +609,40 @@ export class IdentityEditorComponent {
           }
           this.result.set(report);
           this.applied.emit(report);
+          // « Nouveaux logos avec la nouvelle identité » : la génération lit la
+          // palette et les polices EN BASE, elle part donc après l'application.
+          if (this.logoFollowAsked() && this.logoFollow() === 'regenerate') {
+            this.regeneratedAfterApply.set(true);
+            this.startJob('logos', { preferences: this.logoPreferences() });
+          }
         },
         error: (error: { error?: { message?: string } }) => {
           (dryRun ? this.previewing : this.applying).set(false);
           this.error.set(error?.error?.message ?? null);
         },
       });
+  }
+
+  protected setLogoFollow(choice: 'adapt' | 'regenerate' | 'keep'): void {
+    this.logoFollowChoice.set(choice);
+    this.resetPreview();
+  }
+
+  /**
+   * Retour à l'édition après une application : la marque vient d'être relue,
+   * les brouillons repartent de zéro — et les logos lancés s'y affichent.
+   */
+  protected backToEditing(): void {
+    this.result.set(null);
+    this.regeneratedAfterApply.set(false);
+    this.logoChoice.set({ kind: 'current' });
+    this.colorsFromLogo.set(false);
+    this.draftColors.set({});
+    this.keptRoles.set(new Set());
+    this.harmonized.set(null);
+    this.chosenFonts.set({});
+    this.logoFollowChoice.set('adapt');
+    this.resetPreview();
   }
 
   private resetPreview(): void {

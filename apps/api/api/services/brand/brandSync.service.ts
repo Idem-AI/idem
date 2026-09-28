@@ -42,9 +42,17 @@ import {
   rewriteBrandDeep,
   RewriteStats,
 } from './brandRewrite';
-import { BrandPalette, computeBrandTokens, normalizeHex, PaletteRole, readPalette } from './brandTokens';
+import {
+  BrandPalette,
+  computeBrandTokens,
+  normalizeHex,
+  PaletteRole,
+  readFonts,
+  readPalette,
+} from './brandTokens';
 import { harmonizePalette, HarmonizeResult, paletteFromLogoColors } from './paletteHarmony';
 import { SiteSyncResult, syncSiteBrand } from './siteBrandSync';
+import { adaptLogo, LogoAdaptation } from './logoAdapt';
 
 // ─── Contrat ────────────────────────────────────────────────────────────────
 
@@ -74,6 +82,11 @@ export interface IdentityUpdateRequest {
   /** Reconstruire la palette à partir des couleurs du nouveau logo. */
   colorsFromLogo?: boolean;
   typography?: IdentityTypographyInput;
+  /**
+   * Adapter le logo actuel aux nouvelles couleurs et/ou à la nouvelle police,
+   * sans IA (cf. `logoAdapt.ts`). Ignoré si un nouveau logo est choisi.
+   */
+  adaptLogo?: boolean;
   /** Calculer sans rien écrire : l'aperçu de ce qui va changer. */
   dryRun?: boolean;
 }
@@ -96,6 +109,8 @@ export interface IdentityUpdateReport {
   supports: SupportReport[];
   site?: SiteSyncResult & { error?: string };
   stats: RewriteStats;
+  /** Ce que l'adaptation du logo a fait ; en aperçu, le SVG adapté à montrer. */
+  logoAdaptation?: { recolored: boolean; retypeset: boolean; previewSvg?: string };
 }
 
 export class IdentityInputError extends Error {}
@@ -250,11 +265,13 @@ export class BrandSyncService {
   private async ensureVariations(
     logo: LogoModel,
     userId: string,
-    projectId: string
+    projectId: string,
+    /** Contenu déjà en main (logo adapté) : inutile de le relire par son URL. */
+    knownSvg?: string
   ): Promise<LogoModel> {
     if (hasAllVariations(logo.variations)) return logo;
 
-    const svgContent = await resolveSvgContent(logo.svg);
+    const svgContent = knownSvg ?? (await resolveSvgContent(logo.svg));
     if (!svgContent?.includes('<svg')) return logo;
 
     const generated = await generateLogoVariations(svgContent);
@@ -339,6 +356,40 @@ export class BrandSyncService {
     logo = await this.ensureVariations(logo, userId, projectId);
     // Les PNG sont ce que lisent les rendus (PDF, visuels, bannières) : un
     // logo sans eux retomberait sur le SVG et perdrait ses déclinaisons.
+    logo.assetUrls = await storageService.uploadProjectLogoAssets(logo, userId, projectId);
+    return logo;
+  }
+
+  /**
+   * Dépose le logo adapté et reconstruit ses déclinaisons et ses PNG : les
+   * anciens étaient aux anciennes couleurs, ils ne sont pas repris.
+   */
+  private async storeAdaptedLogo(
+    previous: LogoModel,
+    adapted: LogoAdaptation,
+    userId: string,
+    projectId: string
+  ): Promise<LogoModel> {
+    const folderPath = `users/${userId}/projects/${projectId}/logos`;
+    const stamp = Date.now();
+    const [svg, iconSvg] = await Promise.all([
+      storageService.uploadSvgFile(adapted.svg, `logo-adapted-${stamp}.svg`, folderPath),
+      adapted.iconSvg
+        ? storageService.uploadSvgFile(adapted.iconSvg, `logo-adapted-icon-${stamp}.svg`, folderPath)
+        : Promise.resolve(previous.iconSvg),
+    ]);
+
+    let logo: LogoModel = {
+      ...previous,
+      id: `${previous.id}-adapted-${stamp}`,
+      svg,
+      ...(iconSvg ? { iconSvg } : {}),
+      colors: adapted.colors,
+      ...(adapted.lockup ? { lockup: adapted.lockup } : {}),
+      variations: undefined,
+      assetUrls: undefined,
+    };
+    logo = await this.ensureVariations(logo, userId, projectId, adapted.svg);
     logo.assetUrls = await storageService.uploadProjectLogoAssets(logo, userId, projectId);
     return logo;
   }
@@ -483,6 +534,30 @@ export class BrandSyncService {
       next.typography = await this.buildTypography(request.typography, before.typography, userId);
     }
 
+    // ── Le logo suit les nouvelles couleurs / la nouvelle police ────────
+    let logoAdaptation: IdentityUpdateReport['logoAdaptation'];
+    if (request.adaptLogo && !request.logo && before.logo?.svg && (palette || request.typography)) {
+      const adapted = await adaptLogo(before.logo as LogoModel, {
+        palette: palette ? { before: currentPalette, after: palette.palette } : undefined,
+        fonts: request.typography ? { before: readFonts(before), after: readFonts(next) } : undefined,
+      });
+      if (adapted) {
+        logoAdaptation = {
+          recolored: adapted.recolored,
+          retypeset: adapted.retypeset,
+          ...(dryRun ? { previewSvg: adapted.svg } : {}),
+        };
+        next.logo = dryRun
+          ? // En aperçu rien n'est déposé : une adresse fictive suffit pour que
+            // la traduction compte les pages où figure le logo.
+            { ...(before.logo as LogoModel), svg: 'preview://logo', iconSvg: undefined, variations: undefined, assetUrls: undefined }
+          : await this.storeAdaptedLogo(before.logo as LogoModel, adapted, userId, projectId);
+        if (!before.generatedLogos?.some((logo) => logo.id === before.logo!.id)) {
+          next.generatedLogos = [...(before.generatedLogos ?? []), before.logo as LogoModel];
+        }
+      }
+    }
+
     const tokensBefore = computeBrandTokens(before);
     const tokensAfter = computeBrandTokens(next);
     const changed = {
@@ -519,6 +594,7 @@ export class BrandSyncService {
       branding: { logo: next.logo!, colors: next.colors!, typography: next.typography! },
       supports,
       stats,
+      ...(logoAdaptation ? { logoAdaptation } : {}),
     };
 
     if (dryRun) return report;
@@ -535,7 +611,7 @@ export class BrandSyncService {
     suppressCoherenceTrigger();
 
     const brandingWrites: Record<string, unknown> = {};
-    if (request.logo) {
+    if (request.logo || logoAdaptation) {
       brandingWrites['analysisResultModel.branding.logo'] = next.logo;
       if (next.generatedLogos !== before.generatedLogos) {
         brandingWrites['analysisResultModel.branding.generatedLogos'] = next.generatedLogos;
