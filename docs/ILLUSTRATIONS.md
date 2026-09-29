@@ -42,6 +42,7 @@ tiers, et les **schémas fonctionnels** qui montrent l'option elle-même
 | Façade en banco à torons | institution, bâtiment construit | SA, application bâtie |
 | Sankofa (poids akan) | revenir sur ses pas | page introuvable |
 | Calebasse vide / fêlée | rien encore / erreur | états vides et d'échec |
+| Baobab qui porte son fruit | le business qui rapporte | promesse d'IDEM (image de partage de l'accueil) |
 
 Les motifs (chevrons, dents de scie, losanges, points) vivent dans les objets,
 jamais en fond. Le losange bleu du bouclier revient comme signature.
@@ -122,6 +123,34 @@ Format : **retenu** — candidats écartés (raison).
 ### Landing
 
 L'invitation bêta (clé à anneau-bouclier) était déjà dans ce style.
+
+### Images de partage (Open Graph)
+
+Une image 1200 × 630 par page et par langue, dessinée par l'API
+(`apps/api/public/og/`, voir `docs/SEO.md`). Chaque dessin est un fichier
+`illustrations/<clé>.svg` qui reprend le trait d'un dessin de l'interface —
+même objet, mêmes deux encres — posé directement sur le fond clair et le
+motif IDEM, sans panneau ni aplat derrière.
+
+| Clé | Page(s) | Retenu | Écartés |
+| --- | --- | --- | --- |
+| `home` | accueil du landing | **baobab qui porte son fruit** (la promesse : un business qui rapporte) | pirogue (dit « lancer », pas « rentable ») ; grenier plein (récolte, moins lisible seul) |
+| `business` | console.idem.africa | **échelle dogon menant au grenier**, la marche en cours en couleur (construire son business étape par étape) | baobab (réservé à la promesse) ; tampon adinkra (ne dit que l'identité) |
+| `simulator` | simulator.idem.africa, `/simulator` | **awalé**, le coup semé en couleur | balance akan (réservée au droit) |
+| `icode` | appgen.idem.africa, `/idev` | **métier à tisser**, la navette en couleur | façade en banco (réservée à l'institution) |
+| `ideploy` | ideploy.idem.africa, `/ideploy` | **pirogue à la proue dressée** | porte de grenier (dit la machine, pas le départ) |
+| `pricing` | `/pricing` | **cauris** | calebasse de tontine (dit l'épargne commune, pas le prix) |
+| `about` | `/about` | **arbre à palabres et tabourets** | — |
+| `open-source` | `/open-source` | **porte de grenier et serrure de bois**, la clé en couleur (« votre code, vos données, votre clé ») | panier tressé (ne dit pas la propriété) |
+| `african-market` | `/african-market` | **étal du marché** | silhouette du continent (interdite par défaut) |
+| `contact` | `/contact` | **tambour parleur**, ses ondes en couleur | — |
+| `beta` | `/premium-beta` | **clé à anneau-bouclier** (même dessin que l'invitation bêta) | — |
+| `legal` | conditions, confidentialité, bêta, simulateur | **balance akan à peser l'or** | feuillet et calame (dit l'écriture, pas la règle) |
+| `not-found` | `/not-found` | **Sankofa** | — |
+
+Sur une image de partage, les graines de l'awalé sont rangées en ligne : en
+triangle, réduites à la taille d'un aperçu, elles se lisaient comme des
+visages.
 
 ## Gardés tels quels, et pourquoi
 

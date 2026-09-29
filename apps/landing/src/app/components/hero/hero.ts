@@ -1,6 +1,5 @@
-import { Component, signal, inject, OnInit, PLATFORM_ID } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { SeoService } from '../../shared/services/seo.service';
+import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { environment } from '../../../environments/environment';
 import { TrustedByComponent } from '@idem/shared-trusted-by/angular';
 
@@ -11,12 +10,7 @@ import { TrustedByComponent } from '@idem/shared-trusted-by/angular';
   templateUrl: './hero.html',
   styleUrl: './hero.css',
 })
-export class Hero implements OnInit {
-  // Angular-initialized properties
-  protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
-  private readonly seoService = inject(SeoService);
-
-  // State properties
+export class Hero {
   protected mouseX = signal(0);
   protected mouseY = signal(0);
   protected scrollY = signal(0);
@@ -24,37 +18,4 @@ export class Hero implements OnInit {
   protected spotlightX = signal(0);
   protected spotlightY = signal(0);
   protected dashboardUrl = environment.services.dashboard.url;
-  ngOnInit(): void {
-    this.setupSeoForHeroSection();
-  }
-
-  private setupSeoForHeroSection(): void {
-    // Add structured data for the hero section
-    const heroStructuredData = {
-      '@context': 'https://schema.org',
-      '@type': 'SoftwareApplication',
-      name: 'Idem',
-      applicationCategory: $localize`:@@hero.seo.appCategory:BusinessApplication`,
-      description: $localize`:@@hero.seo.description:AI-powered platform for instant brand creation and application deployment`,
-      operatingSystem: $localize`:@@hero.seo.os:Web Browser`,
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-      },
-      creator: {
-        '@type': 'Organization',
-        name: $localize`:@@hero.seo.creatorName:Idem Team`,
-      },
-    };
-
-    // Add structured data to page if not already present
-    if (this.isBrowser() && !document.querySelector('script[data-hero-structured-data]')) {
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.setAttribute('data-hero-structured-data', 'true');
-      script.textContent = JSON.stringify(heroStructuredData);
-      document.head.appendChild(script);
-    }
-  }
 }

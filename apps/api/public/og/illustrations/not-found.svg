@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 4 100 82" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Page introuvable — Sankofa, l'oiseau-poids akan qui se retourne :
+       revenir sur ses pas pour retrouver ce qu'on cherchait. L'œuf qu'il
+       rattrape porte la couleur. -->
+  <path d="M24 82 H96" opacity=".4"/>
+  <path d="M38 82 V76 H82 V82" stroke-width="1.6"/>
+  <path d="M52 76 V66 M68 76 V66 M49 76 H55 M65 76 H71" stroke-width="1.8"/>
+  <path d="M30 46 C30 58 44 66 60 66 C76 66 90 58 92 44 C92 38 88 34 84 34" stroke-width="2"/>
+  <path d="M30 46 L16 38 L22 50 L14 56 L32 54" stroke-width="1.8"/>
+  <path d="M84 34 C86 22 82 12 72 10 C62 8 54 14 52 22" stroke-width="2"/>
+  <path d="M52 22 L44 26 L52 28" stroke-width="1.8"/>
+  <circle cx="60" cy="18" r="1.4" stroke-width="1.6"/>
+  <path d="M30 46 C44 42 70 40 84 34" stroke-width="1.4" opacity=".6"/>
+  <path d="M42 54 L48 58 L54 54 L60 58 L66 54 L72 58 L78 54" stroke-width="1.1" opacity=".7"/>
+  <g style="color: var(--color-primary-500)">
+    <ellipse cx="44" cy="36" rx="4.6" ry="3.6" transform="rotate(-10 44 36)" stroke-width="1.8"/>
+  </g>
+</svg>

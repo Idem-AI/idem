@@ -1,0 +1,7 @@
+# IDEM — https://idem.africa
+# Généré par packages/shared-seo (npm run seo:sync), ne pas éditer à la main.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://idem.africa/sitemap.xml

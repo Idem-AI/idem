@@ -5,7 +5,8 @@
   "compilerOptions": {
     "paths": {
       "@idem/shared-loader": ["../../packages/shared-loader/src"],
-      "@idem/shared-loader/*": ["../../packages/shared-loader/src/*"]
+      "@idem/shared-loader/*": ["../../packages/shared-loader/src/*"],
+      "@idem/shared-seo": ["../../packages/shared-seo/src"]
     },
     "strict": true,
     "noImplicitOverride": true,

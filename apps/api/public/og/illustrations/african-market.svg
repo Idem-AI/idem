@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="6 4 108 80" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Marché africain — l'étal du marché, où l'on vend et l'on choisit.
+       Le panier du client porte la couleur. -->
+  <path d="M10 80 H110" opacity=".4"/>
+  <path d="M16 22 L60 10 L104 22 Z" stroke-width="2"/>
+  <path d="M16 22 L24 28 L32 22 L40 28 L48 22 L56 28 L64 22 L72 28 L80 22 L88 28 L96 22 L104 28" stroke-width="1.2"/>
+  <path d="M22 24 V80 M98 24 V80" stroke-width="1.8"/>
+  <path d="M18 58 H102" stroke-width="2"/>
+  <path d="M26 58 V80 M94 58 V80" stroke-width="1.2" opacity=".7"/>
+  <path d="M30 58 C30 50 42 50 42 58"/>
+  <path d="M46 58 C46 46 62 46 62 58"/>
+  <path d="M34 50 L38 54 M50 50 L54 54 M58 50 L55 54" stroke-width="1" opacity=".6"/>
+  <g style="color: var(--color-primary-500)">
+    <path d="M68 58 C66 48 70 42 78 42 C86 42 90 48 88 58" stroke-width="1.8"/>
+    <path d="M72 46 C74 44 82 44 84 46" stroke-width="1.2"/>
+  </g>
+  <path d="M34 66 L38 70 L42 66 L46 70 L50 66 M70 66 L74 70 L78 66 L82 70 L86 66" stroke-width="1" opacity=".55"/>
+</svg>

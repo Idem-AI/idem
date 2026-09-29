@@ -191,6 +191,8 @@ elles sont centralisées dans
 (`box` `code` `server` `store` `market` `activity` `managed-cloud` `own-server`
 `search` `shield` `team`), et l'état vide standard est `<app-empty-state>`.
 AppGen : `components/ui/Illustrations.tsx` et `tourIllustrations.ts`.
+Images de partage (Open Graph) : `apps/api/public/og/illustrations/<clé>.svg`,
+mêmes règles de dessin (voir `docs/SEO.md`).
 
 **Ne pas confondre** avec les livrables générés pour les clients (charte,
 visuels, site, documents) : ceux-là suivent l'identité et la direction
