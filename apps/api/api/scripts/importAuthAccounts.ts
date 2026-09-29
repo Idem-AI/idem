@@ -14,7 +14,7 @@
  * puis enregistre `authId` sur l'utilisateur IDEM.
  *
  * Au retour de l'utilisateur :
- *  - Google, Apple ou LinkedIn avec la même adresse : le serveur rattache
+ *  - Google ou LinkedIn avec la même adresse : le serveur rattache
  *    l'identité au compte importé, IDEM retrouve l'uid d'origine ;
  *  - e-mail + mot de passe : « Mot de passe oublié » lui envoie un lien pour
  *    choisir son mot de passe — ce lien est la preuve qu'il possède l'adresse.

@@ -2,7 +2,7 @@
 
 IDEM signs users in with the **Supabase auth server (GoTrue)**, self-hosted with Docker. Only the auth module runs: no Kong gateway, no PostgREST, no Studio. The dashboard talks to GoTrue directly (`@supabase/auth-js`), and the IDEM API turns the Supabase access token into its own `session` / `refreshToken` cookies: see [Sessions](../../apps/api/docs/SESSIONS.md).
 
-Sign-in methods: e-mail and password (with e-mail confirmation), Google, Apple, LinkedIn.
+Sign-in methods: e-mail and password (with e-mail confirmation), Google, LinkedIn.
 
 | Service | Image | Role |
 |---|---|---|
@@ -52,12 +52,6 @@ networks:
 Callback URL to declare everywhere: **`${AUTH_PUBLIC_URL}/callback`** (e.g. `https://auth.idem.africa/callback`).
 
 - **Google** — Google Cloud console › APIs & Services › Credentials › OAuth client ID (Web application). Authorised redirect URI: the callback URL. Set `AUTH_GOOGLE_CLIENT_ID` and `AUTH_GOOGLE_SECRET`.
-- **Apple** — Apple Developer › Identifiers: create a **Services ID** (this is `AUTH_APPLE_CLIENT_ID`), enable « Sign in with Apple », domain `auth.idem.africa`, return URL = callback URL. Create a key with « Sign in with Apple » and download the `.p8`. Then generate the secret:
-  ```bash
-  node scripts/apple-client-secret.mjs --team-id <TEAM> --key-id <KEY> \
-    --client-id <SERVICES_ID> --key ./AuthKey_<KEY>.p8
-  ```
-  Put the output in `AUTH_APPLE_SECRET`. **It expires after 6 months at most**: regenerate it before the date the script prints, then `docker compose up -d auth`.
 - **LinkedIn** — linkedin.com/developers › Create app (it must be attached to a LinkedIn company page) › *Products*: add **Sign In with LinkedIn using OpenID Connect** › *Auth*: add the callback URL (and `http://localhost:9999/callback` for development) under *Authorized redirect URLs*. Set `AUTH_LINKEDIN_CLIENT_ID` (Client ID) and `AUTH_LINKEDIN_SECRET` (Primary Client Secret). GoTrue requests `openid profile email` itself.
 
 A provider left with `AUTH_<PROVIDER>_ENABLED=false` answers an error; the dashboard shows it as a failed sign-in.
@@ -72,7 +66,7 @@ npm run auth:import            # simulation: counts, writes nothing
 npm run auth:import -- --apply # creates the accounts and stores authId
 ```
 
-Users who signed in with Google or Apple keep doing so; LinkedIn is new, but an account with the same verified address is linked to the existing one. Users who had a password choose a new one with « Choose my password » on the login page. Their IDEM `uid`, projects and credits are unchanged.
+Users who signed in with Google keep doing so; LinkedIn is new, but an account with the same verified address is linked to the existing one. Users who had a password choose a new one with « Choose my password » on the login page. Their IDEM `uid`, projects and credits are unchanged.
 
 ## Backups
 

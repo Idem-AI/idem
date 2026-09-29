@@ -17,7 +17,7 @@ interface ProviderButton {
 }
 
 /**
- * Carte de connexion unique d'IDEM : fournisseurs OAuth (Google, Apple,
+ * Carte de connexion unique d'IDEM : fournisseurs OAuth (Google,
  * LinkedIn) et e-mail + mot de passe, avec inscription, mot de passe oublié et
  * choix d'un nouveau mot de passe au retour du lien reçu par e-mail.
  */
@@ -45,7 +45,6 @@ export class LoginCardComponent implements OnInit {
 
   private readonly allProviders: ProviderButton[] = [
     { id: 'google', label: 'Google', icon: 'pi pi-google' },
-    { id: 'apple', label: 'Apple', icon: 'pi pi-apple' },
     { id: 'linkedin_oidc', label: 'LinkedIn', icon: 'pi pi-linkedin' },
   ];
 

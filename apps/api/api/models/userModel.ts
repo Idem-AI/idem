@@ -102,7 +102,7 @@ export interface UserModel {
    * leur `uid` d'origine ; les nouveaux reçoivent l'identifiant Supabase.
    */
   authId?: string;
-  /** Fournisseurs de connexion utilisés (`email`, `google`, `apple`, `linkedin_oidc`). */
+  /** Fournisseurs de connexion utilisés (`email`, `google`, `linkedin_oidc`). */
   authProviders?: string[];
   /** Adresse vérifiée par le serveur d'authentification. */
   emailVerified?: boolean;

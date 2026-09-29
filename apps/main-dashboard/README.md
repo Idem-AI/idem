@@ -32,7 +32,7 @@ The API must run on `http://localhost:3001` (see [Getting started](../../docs/GE
 
 ## Authentication
 
-Users sign in on `/login` against the self-hosted Supabase auth server (`AUTH_URL`): e-mail and password, Google, Apple or LinkedIn. The app then calls `POST /auth/sessionLogin` and relies on the httpOnly `session` and `refreshToken` cookies set by the API (requests to the API use `withCredentials`); the Supabase access token is also sent as a Bearer. Details: [apps/api/docs/SESSIONS.md](../api/docs/SESSIONS.md).
+Users sign in on `/login` against the self-hosted Supabase auth server (`AUTH_URL`): e-mail and password, Google or LinkedIn. The app then calls `POST /auth/sessionLogin` and relies on the httpOnly `session` and `refreshToken` cookies set by the API (requests to the API use `withCredentials`); the Supabase access token is also sent as a Bearer. Details: [apps/api/docs/SESSIONS.md](../api/docs/SESSIONS.md).
 
 Guards (`src/app/guards`):
 

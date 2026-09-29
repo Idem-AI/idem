@@ -27,7 +27,7 @@ export interface IdemUser {
   emailVerified: boolean;
   /** Date de création du compte IDEM (ISO). */
   createdAt: string | null;
-  /** Moyens de connexion utilisés : `email`, `google`, `apple`, `linkedin_oidc`. */
+  /** Moyens de connexion utilisés : `email`, `google`, `linkedin_oidc`. */
   providers: string[];
 }
 
@@ -232,10 +232,7 @@ export class AuthService {
   async loginWithProvider(provider: OAuthProvider): Promise<void> {
     const { error } = await this.supabase.client!.signInWithOAuth({
       provider,
-      options: {
-        redirectTo: this.returnUrl(),
-        ...(provider === 'apple' && { scopes: 'name email' }),
-      },
+      options: { redirectTo: this.returnUrl() },
     });
     if (error) throw toAuthFlowError(error);
   }

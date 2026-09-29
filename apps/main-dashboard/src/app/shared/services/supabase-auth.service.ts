@@ -5,7 +5,7 @@ import { BehaviorSubject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 /** Fournisseurs de connexion proposés sur l'écran de login. */
-export type OAuthProvider = 'google' | 'apple' | 'linkedin_oidc';
+export type OAuthProvider = 'google' | 'linkedin_oidc';
 
 /**
  * Client du serveur d'authentification Supabase auto-hébergé.
@@ -64,7 +64,7 @@ export class SupabaseAuthService {
    * d'erreur brute du serveur d'authentification.
    */
   enabledProviders(): Promise<OAuthProvider[]> {
-    const all: OAuthProvider[] = ['google', 'apple', 'linkedin_oidc'];
+    const all: OAuthProvider[] = ['google', 'linkedin_oidc'];
     if (!this.isBrowser) return Promise.resolve([]);
     this.providersPromise ??= fetch(`${environment.auth.url}/settings`)
       .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))

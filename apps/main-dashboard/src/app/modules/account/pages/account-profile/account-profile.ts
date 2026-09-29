@@ -163,7 +163,6 @@ export class AccountProfilePage {
     const providers = this.user()?.providers ?? [];
     const labels: Record<string, string> = {
       google: 'Google',
-      apple: 'Apple',
       linkedin_oidc: 'LinkedIn',
       email: 'E-mail',
     };
