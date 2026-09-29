@@ -27,6 +27,6 @@ import { IllustrationComponent, type IllustrationName } from '../illustration/il
 export class EmptyStateComponent {
   readonly title = input.required<string>();
   readonly body = input<string | null>(null);
-  /** Which motif to draw: `box` (default), `server`, `store`, `activity`. */
+  /** Which motif to draw: `box` (default), `server`, `store`, `activity`, `search`… */
   readonly kind = input<IllustrationName>('box');
 }
