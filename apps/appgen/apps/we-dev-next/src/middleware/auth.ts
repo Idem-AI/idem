@@ -5,7 +5,7 @@ import { NextFunction, Request, Response } from 'express';
  * Authentification des routes coûteuses du serveur AppGen.
  *
  * AppGen n'a pas de comptes à lui : l'identité est celle de l'API IDEM, prouvée
- * par le cookie de session partagé (`.idem.africa`) ou par un Bearer Firebase.
+ * par le cookie de session partagé (`.idem.africa`) ou par un Bearer.
  * On transmet ces preuves à `GET /auth/me` ; sans réponse positive, la requête
  * est refusée. Avant ce contrôle, n'importe qui pouvait générer du code avec les
  * clés LLM d'IDEM, déployer sur son compte Netlify, sans compte ni paiement.

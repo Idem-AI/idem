@@ -10,7 +10,7 @@
  * Chaque secret porte l'index de l'application qui le lit :
  *
  *     <SECRET_ENV_PREFIX><app>--<VARIABLE>
- *     api--FIREBASE_PRIVATE_KEY   appgen--GLM_API_KEY   ideploy-api--REDIS_PASSWORD
+ *     api--GCP_SA_PRIVATE_KEY    appgen--GLM_API_KEY   ideploy-api--REDIS_PASSWORD
  *
  * Deux applications qui utilisent la même valeur ont donc chacune leur secret :
  * on sait toujours qui lit quoi, on révoque l'accès d'une app sans toucher aux
@@ -88,7 +88,7 @@ export async function loadSecretsFromManager(
   }
 
   const projectId =
-    process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID;
+    process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
   if (!projectId) {
     throw new Error('[secrets] GCP_PROJECT_ID (or GOOGLE_CLOUD_PROJECT) is required to use Secret Manager.');
   }

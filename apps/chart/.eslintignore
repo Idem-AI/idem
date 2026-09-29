@@ -6,5 +6,4 @@ node_modules/**
 coverage/**
 __snapshots__/**
 snapshots.js
-src/llib/firebase
 src/llib/services

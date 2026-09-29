@@ -17,7 +17,7 @@
   import VersionSecurityToolbar from '$/components/VersionSecurityToolbar.svelte';
   import View from '$/components/View.svelte';
   import { TID } from '$/constants';
-  import { getCurrentUser } from '$/firebase/firebase.client';
+  import { getCurrentUser } from '$/session/session.client';
   import { currentUser, type UserModel } from '$/models/user.model';
   import type { EditorMode, Tab } from '$/types';
   import { PanZoomState } from '$/util/panZoom';

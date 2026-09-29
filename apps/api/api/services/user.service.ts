@@ -1,4 +1,3 @@
-import { admin } from '..';
 import logger from '../config/logger';
 import { isSuperUser } from '../utils/super-user.util';
 import { OnboardingProfile, QuotaData, UserModel } from '../models/userModel';
@@ -90,88 +89,43 @@ class UserService {
     }
   }
 
-  public async getUserProfile(sessionCookie: string): Promise<UserModel> {
-    logger.info('Attempting to get user profile from session cookie.');
-    if (!sessionCookie) {
-      logger.warn('getUserProfile failed: No session cookie provided.');
-      throw new Error('No session cookie provided.');
+  /**
+   * Profil d'un utilisateur dont l'identité a déjà été vérifiée (cookie de
+   * session ou jeton), avec mise à jour de `lastLogin`.
+   *
+   * Le document existe toujours : il est créé ou rattaché à la connexion
+   * (`identityService.resolveUser`). Son absence signifie un compte supprimé.
+   */
+  public async getUserProfile(uid: string): Promise<UserModel> {
+    if (!uid) throw new Error('No user id provided.');
+
+    let user: UserModel | null = await this.userRepository.findById(uid, 'users');
+    if (!user) {
+      logger.warn(`getUserProfile: user ${uid} not found`);
+      throw new Error('User not found.');
     }
 
-    try {
-      // Verify the session cookie
-      const decodedToken = await admin.auth().verifySessionCookie(sessionCookie, true);
-      const { uid } = decodedToken;
-
-      logger.info(`Session cookie verified for UID: ${uid}. Fetching user profile.`);
-
-      // Get user from Firebase Auth
-      const userRecord = await admin.auth().getUser(uid);
-
-      // Get user data from repository
-      let user: UserModel | null = await this.userRepository.findById(uid, 'users');
-
-      if (!user) {
-        // User doesn't exist in repository, create a new user
-        logger.info(`User ${uid} not found in repository, creating new user record`);
-
-        user = await this.userRepository.create(
-          {
-            uid: uid,
-            email: userRecord.email || '',
-            displayName: userRecord.displayName || '',
-            photoURL: userRecord.photoURL || '',
-            subscription: 'free', // Default subscription
-            lastLogin: new Date(),
-            quota: {
-              dailyUsage: 0,
-              weeklyUsage: 0,
-              dailyLimit: this.quotaLimits.dailyLimit,
-              weeklyLimit: this.quotaLimits.weeklyLimit,
-              lastResetDaily: new Date().toISOString().split('T')[0],
-              lastResetWeekly: this.getWeekStart(new Date()).toISOString().split('T')[0],
-            },
-            roles: ['user'],
-          },
-          'users',
-          uid
-        );
-
-        // Compte matérialisé au premier passage par le cookie de session :
-        // même rattachement au programme bêta que dans `createUser`, sans quoi
-        // les comptes créés par ce chemin passeraient à côté.
-        void this.linkBetaProgram(uid, userRecord.email || undefined);
-      } else {
-        // Update existing user's lastLogin
-        logger.info(`Updating lastLogin for user ${uid}`);
-        if (!user.quota) {
-          user.quota = {
-            dailyUsage: 0,
-            weeklyUsage: 0,
-            dailyLimit: this.quotaLimits.dailyLimit,
-            weeklyLimit: this.quotaLimits.weeklyLimit,
-            lastResetDaily: new Date().toISOString().split('T')[0],
-            lastResetWeekly: new Date().toISOString().split('T')[0],
-          };
-        }
-        user =
-          (await this.userRepository.update(
-            uid,
-            {
-              lastLogin: new Date(),
-              quota: user.quota, // Ensure quota is preserved
-            },
-            'users'
-          )) || user;
-      }
-
-      logger.info(`Successfully fetched profile for user: ${uid}`);
-      return user;
-    } catch (error: any) {
-      logger.error(`Error in getUserProfile: ${error.message}`, {
-        stack: error.stack,
-      });
-      throw new Error(error.message || 'Invalid or expired session.');
+    if (!user.quota) {
+      user.quota = {
+        dailyUsage: 0,
+        weeklyUsage: 0,
+        dailyLimit: this.quotaLimits.dailyLimit,
+        weeklyLimit: this.quotaLimits.weeklyLimit,
+        lastResetDaily: new Date().toISOString().split('T')[0],
+        lastResetWeekly: new Date().toISOString().split('T')[0],
+      };
     }
+    user =
+      (await this.userRepository.update(
+        uid,
+        {
+          lastLogin: new Date(),
+          quota: user.quota, // Ensure quota is preserved
+        },
+        'users'
+      )) || user;
+
+    return user;
   }
 
   /**
@@ -368,42 +322,9 @@ class UserService {
     // Check if user exists in repository
     const user = await this.userRepository.findById(userId, 'users');
     if (!user) {
-      try {
-        logger.info(`User ${userId} not found in database, fetching from Firebase Auth to initialize user record`);
-        const userRecord = await admin.auth().getUser(userId);
-        await this.userRepository.create(
-          {
-            uid: userId,
-            email: userRecord.email || '',
-            displayName: userRecord.displayName || '',
-            photoURL: userRecord.photoURL || '',
-            subscription: 'free',
-            lastLogin: new Date(),
-            quota: quotaData,
-            roles: ['user'],
-          },
-          'users',
-          userId
-        );
-        logger.info(`Initialized user document and quota for user ${userId}`);
-      } catch (fbError: any) {
-        logger.error(`Failed to fetch user from Firebase Auth or create user document for ${userId}:`, fbError);
-        // Fallback: update attempt just in case document existed but findById failed
-        await this.userRepository.update(
-          userId,
-          {
-            quota: {
-              dailyUsage: quotaData.dailyUsage,
-              weeklyUsage: quotaData.weeklyUsage,
-              dailyLimit: quotaData.dailyLimit,
-              weeklyLimit: quotaData.weeklyLimit,
-              lastResetDaily: quotaData.lastResetDaily,
-              lastResetWeekly: quotaData.lastResetWeekly,
-            },
-          },
-          'users'
-        );
-      }
+      // Le document est créé à la connexion : son absence est une anomalie.
+      logger.error(`Cannot initialise quota: user ${userId} not found`);
+      throw new Error(`User ${userId} not found`);
     } else {
       // Update the user document with quota data
       await this.userRepository.update(
@@ -497,8 +418,6 @@ class UserService {
 
   /**
    * Enregistre les réponses du sondage sur le compte.
-   * Le document utilisateur est créé au besoin : un compte peut exister côté
-   * Firebase Auth sans avoir encore de ligne en base.
    */
   async saveOnboardingProfile(
     userId: string,
@@ -507,32 +426,7 @@ class UserService {
     const user = await this.userRepository.findById(userId, 'users');
 
     if (!user) {
-      logger.info(`User ${userId} has no record yet, creating it before saving the survey`);
-      const userRecord = await admin.auth().getUser(userId);
-      await this.userRepository.create(
-        {
-          uid: userId,
-          email: userRecord.email || '',
-          displayName: userRecord.displayName || '',
-          photoURL: userRecord.photoURL || '',
-          subscription: 'free',
-          lastLogin: new Date(),
-          quota: {
-            dailyUsage: 0,
-            weeklyUsage: 0,
-            dailyLimit: this.quotaLimits.dailyLimit,
-            weeklyLimit: this.quotaLimits.weeklyLimit,
-            lastResetDaily: new Date().toISOString().split('T')[0],
-            lastResetWeekly: this.getWeekStart(new Date()).toISOString().split('T')[0],
-          },
-          roles: ['user'],
-          onboardingProfile: profile,
-        },
-        'users',
-        userId
-      );
-      logger.info(`Onboarding survey stored with the new user record ${userId}`);
-      return profile;
+      throw new Error(`User ${userId} not found`);
     }
 
     await this.userRepository.update(userId, { onboardingProfile: profile }, 'users');
@@ -559,10 +453,7 @@ class UserService {
   /**
    * Mémorise qu'une visite guidée a été vue.
    *
-   * L'appel est idempotent, et le document utilisateur est créé au besoin :
-   * les applications satellites (iDeploy, simulateur, AppGen) ont des
-   * utilisateurs qui n'ont jamais rempli le sondage d'accueil du tableau de
-   * bord, et leur didacticiel doit tout de même être mémorisé.
+   * L'appel est idempotent.
    */
   async markTourSeen(userId: string, tourId: string): Promise<string[]> {
     const seen = await this.getToursSeen(userId);
@@ -572,33 +463,9 @@ class UserService {
     const user = await this.userRepository.findById(userId, 'users');
 
     if (!user) {
-      logger.info(`User ${userId} has no record yet, creating it before storing the tour`);
-      const userRecord = await admin.auth().getUser(userId);
-      await this.userRepository.create(
-        {
-          uid: userId,
-          email: userRecord.email || '',
-          displayName: userRecord.displayName || '',
-          photoURL: userRecord.photoURL || '',
-          subscription: 'free',
-          lastLogin: new Date(),
-          quota: {
-            dailyUsage: 0,
-            weeklyUsage: 0,
-            dailyLimit: this.quotaLimits.dailyLimit,
-            weeklyLimit: this.quotaLimits.weeklyLimit,
-            lastResetDaily: new Date().toISOString().split('T')[0],
-            lastResetWeekly: this.getWeekStart(new Date()).toISOString().split('T')[0],
-          },
-          roles: ['user'],
-          toursSeen,
-        },
-        'users',
-        userId
-      );
-    } else {
-      await this.userRepository.update(userId, { toursSeen }, 'users');
+      throw new Error(`User ${userId} not found`);
     }
+    await this.userRepository.update(userId, { toursSeen }, 'users');
 
     logger.info(`Tour ${tourId} marked as seen for user ${userId}`);
     return toursSeen;

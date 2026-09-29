@@ -94,4 +94,29 @@ export interface UserModel {
   policyAcceptance?: PolicyAcceptanceStatus;
   /** Sondage d'accueil ; absent = compte antérieur à la fonctionnalité */
   onboardingProfile?: OnboardingProfile;
+  /**
+   * Identifiant du compte sur le serveur d'authentification (Supabase).
+   *
+   * Distinct de `uid` : `uid` reste l'identifiant IDEM auquel sont rattachés
+   * projets, crédits et paiements. Les comptes antérieurs à Supabase gardent
+   * leur `uid` d'origine ; les nouveaux reçoivent l'identifiant Supabase.
+   */
+  authId?: string;
+  /** Fournisseurs de connexion utilisés (`email`, `google`, `apple`, `linkedin_oidc`). */
+  authProviders?: string[];
+  /** Adresse vérifiée par le serveur d'authentification. */
+  emailVerified?: boolean;
+  /** Toute session IDEM émise avant cette date est refusée (« déconnecter partout »). */
+  sessionsRevokedAt?: Date;
+  /** Compte repris de l'ancien système d'authentification. */
+  authMigration?: AuthMigrationStatus;
+}
+
+export interface AuthMigrationStatus {
+  /** Compte pré-créé sur le serveur d'authentification par le script de reprise. */
+  importedAt?: Date;
+  /** Premier passage réussi par le nouveau système (le compte est « réclamé »). */
+  linkedAt?: Date;
+  /** Moyen par lequel le compte a été rattaché. */
+  linkedBy?: 'import' | 'verified-email';
 }

@@ -618,7 +618,7 @@ class ProjectController {
     const userId = req.user?.uid;
     const { projectId } = req.params;
     logger.info(
-      `Attempting to get project code from Firebase Storage. ProjectId: ${projectId}, UserId from token: ${userId}`
+      `Attempting to get project code. ProjectId: ${projectId}, UserId from token: ${userId}`
     );
     try {
       if (!userId) {
@@ -634,7 +634,7 @@ class ProjectController {
         return;
       }
 
-      const codeFiles = await projectService.getProjectCodeFromFirebase(
+      const codeFiles = await projectService.getProjectCode(
         userId,
         projectId as string
       );

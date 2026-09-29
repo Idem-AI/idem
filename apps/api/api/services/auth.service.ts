@@ -1,18 +1,49 @@
 import { Response, NextFunction } from 'express';
-import admin from 'firebase-admin';
 import { CustomRequest } from '../interfaces/express.interface';
 import logger from '../config/logger';
-import { restoreSessionFromRefreshToken } from './sessionCookie.service';
+import {
+  isIssuedBeforeRevocation,
+  restoreSessionFromRefreshToken,
+  verifySessionCookie,
+} from './sessionCookie.service';
 import { setTraceUserId } from '../utils/trace.util';
+import { IdemAuthUser, identityService } from './identity/identity.service';
+import { verifySupabaseAccessToken } from './identity/supabaseAuth.client';
 
 /**
- * Middleware to authenticate requests using Firebase Admin SDK.
- * It prioritizes session cookie authentication and falls back to Bearer token authentication.
- * If the token/cookie is valid, it attaches the decoded token (user information) to `req.user`.
+ * Identité d'un Bearer : soit une session IDEM (serveur à serveur, tests),
+ * soit un jeton d'accès Supabase d'un compte déjà rattaché (fronts).
+ */
+async function authenticateBearer(token: string): Promise<IdemAuthUser> {
+  try {
+    return await verifySessionCookie(token, true);
+  } catch {
+    // Pas une session IDEM : on essaie un jeton Supabase.
+  }
+
+  const claims = verifySupabaseAccessToken(token);
+  const user = await identityService.authUserForAuthId(claims.sub);
+  if (!user) {
+    // Compte jamais passé par `/auth/sessionLogin` : le rattachement se fait
+    // là, pas sur une requête quelconque.
+    throw new Error('Auth account not linked to an IDEM user yet');
+  }
+  // « Déconnecter partout » vaut aussi pour les jetons Supabase déjà émis.
+  if (await isIssuedBeforeRevocation(user.uid, (claims.iat ?? 0) * 1000)) {
+    throw new Error('Token issued before sessions were revoked');
+  }
+  return user;
+}
+
+/**
+ * Middleware d'authentification.
  *
- * @param req - The custom request object, expected to extend Express's Request.
- * @param res - The response object from Express.
- * @param next - The next middleware function in the Express stack.
+ * 1. cookie `session` (émis par l'API, vérifié et contrôlé contre la révocation) ;
+ * 2. s'il manque ou a expiré, restauration depuis le cookie `refreshToken` ;
+ * 3. sinon, `Authorization: Bearer …` (session IDEM ou jeton Supabase) ;
+ * 4. sinon `401`/`403`.
+ *
+ * L'identité vérifiée est posée sur `req.user`.
  */
 export async function authenticate(
   req: CustomRequest,
@@ -22,63 +53,53 @@ export async function authenticate(
   const sessionCookie = req.cookies.session;
   const authHeader = req.headers.authorization;
 
-  // 1. Prioritize Session Cookie for authentication
+  // 1. Cookie de session prioritaire.
   if (sessionCookie) {
     try {
-      const decodedToken = await admin.auth().verifySessionCookie(sessionCookie, true); // true checks for revocation
-      req.user = decodedToken;
-      setTraceUserId(decodedToken.uid);
-      logger.info(`User authenticated successfully via session cookie: ${decodedToken.uid}`);
+      req.user = await verifySessionCookie(sessionCookie, true);
+      setTraceUserId(req.user.uid);
       return next();
     } catch (error: any) {
-      logger.error(`Error verifying session cookie: ${error.message}`, {
-        stack: error.stack,
-        details: error,
-      });
+      logger.info(`Session cookie rejected: ${error.message}`);
+    }
+  }
 
-      // Tenter de rafraîchir automatiquement la session si un refresh token est disponible
-      const newSessionCookie = await restoreSessionFromRefreshToken(req, res);
-      if (newSessionCookie) {
-        try {
-          const decodedToken = await admin.auth().verifySessionCookie(newSessionCookie, true);
-          req.user = decodedToken;
-          setTraceUserId(decodedToken.uid);
-          return next();
-        } catch (refreshError: any) {
-          logger.error(`Error during auto-refresh: ${refreshError.message}`);
-        }
-      }
-
-      // Si l'auto-refresh échoue, un Bearer valide reste accepté : une session
-      // périmée ne doit pas bloquer une requête autrement authentifiée.
-      if (!authHeader?.startsWith('Bearer ')) {
-        res.status(403).json({ message: 'Forbidden: Invalid or expired session cookie' });
-        return;
+  // 2. Session absente ou périmée : le refresh token la rétablit sans
+  // renvoyer l'utilisateur au login.
+  if (req.cookies.refreshToken) {
+    const newSessionCookie = await restoreSessionFromRefreshToken(req, res);
+    if (newSessionCookie) {
+      try {
+        req.user = await verifySessionCookie(newSessionCookie, true);
+        setTraceUserId(req.user.uid);
+        return next();
+      } catch (refreshError: any) {
+        logger.error(`Error during auto-refresh: ${refreshError.message}`);
       }
     }
   }
 
-  // 2. Fallback to Bearer Token if no valid session cookie is present
+  // 3. Bearer : une session périmée ne doit pas bloquer une requête autrement authentifiée.
   if (authHeader?.startsWith('Bearer ')) {
-    const idToken = authHeader.split(' ')[1];
+    const token = authHeader.slice('Bearer '.length).trim();
     try {
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      req.user = decodedToken;
-      setTraceUserId(decodedToken.uid);
-      logger.info(`User authenticated successfully via Bearer token: ${decodedToken.uid}`);
+      req.user = await authenticateBearer(token);
+      setTraceUserId(req.user.uid);
       return next();
     } catch (error: any) {
-      logger.error(`Error verifying Firebase ID token: ${error.message}`, {
-        stack: error.stack,
-        tokenUsed: idToken ? idToken.substring(0, 10) + '...' : 'N/A',
-        details: error,
+      logger.warn(`Bearer token rejected: ${error.message}`, {
+        tokenUsed: token ? token.substring(0, 10) + '...' : 'N/A',
       });
       res.status(403).json({ message: 'Forbidden: Invalid or expired token' });
       return;
     }
   }
 
-  // 3. If neither authentication method is successful
+  if (sessionCookie) {
+    res.status(403).json({ message: 'Forbidden: Invalid or expired session cookie' });
+    return;
+  }
+
   logger.warn('Authentication attempt failed: No session cookie or Bearer token provided.');
   res.status(401).json({ message: 'Unauthorized: No authentication credentials provided' });
 }

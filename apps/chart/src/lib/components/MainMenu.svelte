@@ -17,7 +17,7 @@
   import { onMount } from 'svelte';
 
   import { get } from 'svelte/store';
-  import { getCurrentUser } from '$/firebase/firebase.client';
+  import { getCurrentUser } from '$/session/session.client';
   const menuItems = $derived([
     { label: 'New Diagram', icon: AddIcon, href: $urlsStore.new },
     { label: 'Home', icon: HomeIcon, href: 'https://mermaid.js.org/' },

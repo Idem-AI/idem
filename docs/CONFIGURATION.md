@@ -21,7 +21,7 @@ Rules:
 
 ### Front-end variables are public
 
-Front-end values are compiled into the JavaScript served to every visitor. Only public values belong there: API URLs, Firebase **web** configuration, feature flags. Never a private key, a password or an API token.
+Front-end values are compiled into the JavaScript served to every visitor. Only public values belong there: API URLs, the auth server URL, the Google Analytics measurement ID, feature flags. Never a private key, a password or an API token.
 
 The AppGen client enforces this in `vite.config.ts`: only variables prefixed `REACT_APP_` reach the bundle.
 
@@ -74,7 +74,7 @@ One per back end, each allowed to read only its own prefix (`roles/secretmanager
 | AppGen server | `idem-appgen-secrets@lexis-ia.iam.gserviceaccount.com` |
 | iDeploy API | `idem-ideploy-api-secrets@lexis-ia.iam.gserviceaccount.com` |
 
-Create or re-create them with `scripts/secrets/create-service-accounts.sh` (idempotent; `--keys-dir <dir outside the repository>` also writes the JSON keys). Firebase and Vertex AI use their own credentials (`api--FIREBASE_PRIVATE_KEY`), not these accounts.
+Create or re-create them with `scripts/secrets/create-service-accounts.sh` (idempotent; `--keys-dir <dir outside the repository>` also writes the JSON keys). Vertex AI uses its own service account (`api--GCP_SA_CLIENT_EMAIL`, `api--GCP_SA_PRIVATE_KEY`), not these accounts. The self-hosted auth server is configured in `infra/supabase-auth/.env` (see its README); the API shares its JWT secret (`api--SUPABASE_JWT_SECRET`) and signs its own session cookie with `api--SESSION_SECRET`.
 
 ### Managing secrets
 

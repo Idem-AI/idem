@@ -1,9 +1,9 @@
 /**
  * Analytics Event Models
- * Defines all trackable events and their parameters for Firebase Analytics
+ * Defines all trackable events and their parameters for Google Analytics 4
  */
 
-// Standard Firebase Analytics event names
+// Standard Google Analytics 4 event names
 export enum AnalyticsEvent {
   // Page views
   PAGE_VIEW = 'page_view',

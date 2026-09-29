@@ -2,7 +2,7 @@
  * Exemple d'intégration Angular pour main-app
  *
  * Installation:
- * npm install @idem/shared-auth-client firebase
+ * npm install @idem/shared-auth-client
  */
 
 // 1. app.config.ts - Configuration de l'application
@@ -22,7 +22,6 @@ export const appConfig: ApplicationConfig = {
 // 2. auth-client.service.ts - Service pour initialiser AuthClient
 import { Injectable } from '@angular/core';
 import { AuthClient } from '@idem/shared-auth-client';
-import { getAuth } from 'firebase/auth';
 
 @Injectable({
   providedIn: 'root',
@@ -33,14 +32,7 @@ export class AuthClientService {
   constructor() {
     this.authClient = new AuthClient({
       apiBaseUrl: 'http://localhost:3001',
-      getAuthToken: async () => {
-        const auth = getAuth();
-        const user = auth.currentUser;
-        if (user) {
-          return await user.getIdToken();
-        }
-        return null;
-      },
+      // Session : cookie httpOnly `session` posé par l'API IDEM, envoyé automatiquement.
     });
   }
 

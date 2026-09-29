@@ -12,7 +12,7 @@ import { BillingSyncJob, BillingSyncJobDocument } from '../../schemas/billingSyn
  * disponibilité d'une seconde base.
  *
  * **Pourquoi l'e-mail comme clé.** Les deux produits n'ont pas d'identifiant
- * commun : IDEM connaît un `userId` Firebase, iDeploy une équipe PostgreSQL.
+ * commun : IDEM connaît un `userId`, iDeploy une équipe PostgreSQL.
  * L'e-mail est le seul lien existant, et c'est déjà celui qu'emploie
  * `ideploy-pg.service.ts` pour lire les ressources d'un utilisateur.
  *

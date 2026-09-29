@@ -1,1 +1,21 @@
-/* LoginCard specific styles if needed */
+:host {
+  display: block;
+}
+
+/* Séparateur « ou » entre les fournisseurs et le formulaire. */
+.login-card__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.login-card__divider::before,
+.login-card__divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+.login-card__error {
+  color: var(--color-danger);
+}
