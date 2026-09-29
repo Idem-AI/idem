@@ -6,7 +6,7 @@ Every AI generation on the platform is recorded, input **and** output, in the Mo
 
 | Dimension | Field | Example |
 | --- | --- | --- |
-| User | `userId` | Firebase uid |
+| User | `userId` | IDEM uid |
 | Project | `projectId` | project id |
 | Feature | `feature` | `branding`, `businessPlan`, `design`, `appgen`… |
 | Element | `element` | `logo`, `typography`, `colors`, generation step name |

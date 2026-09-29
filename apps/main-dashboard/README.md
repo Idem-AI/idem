@@ -11,14 +11,14 @@ Stack: Angular 20 (standalone components, signals, lazy routes), PrimeNG, Tailwi
 ## Run
 
 ```bash
-cp .env.development.example .env   # public Firebase web config and service URLs
+cp .env.development.example .env   # auth server URL and service URLs
 npm install                        # from the repository root (npm workspaces)
 npm start                          # http://localhost:4200
 ```
 
 `npm start` and `npm run build` first run `mynode.js`, which reads `.env` (or the Docker environment) and writes `src/environments/environment*.ts`. For a production build, start from `.env.example`.
 
-**Every value in `.env` ends up in the public bundle.** Only public identifiers belong there (Firebase web config, URLs, flags), never a token or a secret.
+**Every value in `.env` ends up in the public bundle.** Only public identifiers belong there (auth server URL, URLs, flags), never a token or a secret.
 
 The API must run on `http://localhost:3001` (see [Getting started](../../docs/GETTING_STARTED.md)).
 
@@ -32,7 +32,7 @@ The API must run on `http://localhost:3001` (see [Getting started](../../docs/GE
 
 ## Authentication
 
-Users sign in with Firebase on `/login`; the app then calls `POST /auth/sessionLogin` and from there relies only on the httpOnly `session` and `refreshToken` cookies set by the API (requests use `withCredentials`). No token is kept in JavaScript storage. Details: [apps/api/docs/SESSIONS.md](../api/docs/SESSIONS.md).
+Users sign in on `/login` against the self-hosted Supabase auth server (`AUTH_URL`): e-mail and password, Google, Apple or LinkedIn. The app then calls `POST /auth/sessionLogin` and relies on the httpOnly `session` and `refreshToken` cookies set by the API (requests to the API use `withCredentials`); the Supabase access token is also sent as a Bearer. Details: [apps/api/docs/SESSIONS.md](../api/docs/SESSIONS.md).
 
 Guards (`src/app/guards`):
 

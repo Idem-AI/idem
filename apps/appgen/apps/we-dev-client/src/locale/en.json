@@ -43,7 +43,7 @@
       "load_history_failed": "Failed to load chat history",
       "ollama_connection_failed": "Ollama server connection failed, please check configuration",
       "start_generation_failed": "Error starting generation",
-      "firebase_save_failed": "Failed to save on Firebase Storage",
+      "storage_save_failed": "Failed to save the code",
       "upload_files_failed": "Failed to upload files",
       "process_dropped_images_failed": "Failed to process dropped images"
     },
@@ -54,7 +54,7 @@
       "images_pasted_multiple": "{count} images pasted successfully",
       "image_added": "Image added to input",
       "images_added_multiple": "{count} images added to input",
-      "firebase_save_success": "Code saved to Firebase Storage ({count} files)"
+      "storage_save_success": "Code saved ({count} files)"
     },
     "placeholders": {
       "input": "Enter message, press Enter to send, Shift+Enter for new line...",

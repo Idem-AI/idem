@@ -11,16 +11,16 @@ Stack: Angular 20 (standalone components, signals), `@angular/localize` for Engl
 ## Run
 
 ```bash
-cp .env.development.example .env.development   # public Firebase web config and service URLs
+cp .env.development.example .env.development   # service URLs, Google Analytics ID
                                                 # (production: .env.example → .env)
 npm install                        # from the repository root (npm workspaces)
 npm start                          # http://localhost:4201 (English, source locale)
 npm run start:fr                   # French build of the dev server
 ```
 
-`npm start` and `npm run build` first run `mynode.js`, which reads `.env.development` (development) or `.env` (production) and writes `src/environments/environment*.ts`. The build fails if `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` or `FIREBASE_APP_ID` is missing.
+`npm start` and `npm run build` first run `mynode.js`, which reads `.env.development` (development) or `.env` (production) and writes `src/environments/environment*.ts`.
 
-**Every value in these files ends up in the public bundle.** Only public identifiers belong there (Firebase web config, URLs, flags), never a secret.
+**Every value in these files ends up in the public bundle.** Only public identifiers belong there (URLs, Google Analytics measurement ID, flags), never a secret.
 
 | Script | Role |
 |---|---|

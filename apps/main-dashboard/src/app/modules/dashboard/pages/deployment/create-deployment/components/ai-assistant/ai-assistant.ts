@@ -821,7 +821,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
    * Adds initial greeting message with user name
    */
   private addInitialGreeting(): void {
-    // Get user name from Firebase Auth
+    // Get user name from the signed-in account
     this.authService.user$.subscribe((user: any) => {
       if (user) {
         const userName = user.displayName || 'there';

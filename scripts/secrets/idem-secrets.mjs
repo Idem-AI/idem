@@ -55,17 +55,10 @@ const MANAGED_LABEL = 'managed-by=idem-secrets';
  * migration lit encore dans Secret Manager (ancienne liste de secrets.ts).
  * `prune` les conserve tant qu'on ne passe pas `--after-deploy` : les supprimer
  * avant que la nouvelle API tourne en production, avec ces valeurs dans son
- * `.env.production`, empêcherait l'ancienne de redémarrer (FIREBASE_PROJECT_ID
- * y était requis).
+ * `.env.production`, empêcherait l'ancienne de redémarrer.
  */
 const READ_BY_PREVIOUS_API = [
   'ADMIN_EMAILS',
-  'FIREBASE_PROJECT_ID',
-  'FIREBASE_CLIENT_ID',
-  'FIREBASE_APP_ID',
-  'FIREBASE_AUTH_DOMAIN',
-  'FIREBASE_MEASUREMENT_ID',
-  'FIREBASE_API_KEY',
   'GITHUB_CLIENT_ID',
   'GOOGLE_CLOUD_LOCATION',
 ];

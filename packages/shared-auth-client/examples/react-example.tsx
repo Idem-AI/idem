@@ -2,12 +2,11 @@
  * Exemple d'intégration React pour appgen
  *
  * Installation:
- * npm install @idem/shared-auth-client firebase
+ * npm install @idem/shared-auth-client
  */
 
 import React, { createContext, useContext, useMemo } from 'react';
 import { AuthClient, useAuth, useProjectPermissions } from '@idem/shared-auth-client';
-import { getAuth } from 'firebase/auth';
 
 // 1. Créer le contexte AuthClient
 const AuthClientContext = createContext<AuthClient | null>(null);
@@ -17,14 +16,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
   const authClient = useMemo(() => {
     return new AuthClient({
       apiBaseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3001',
-      getAuthToken: async () => {
-        const auth = getAuth();
-        const user = auth.currentUser;
-        if (user) {
-          return await user.getIdToken();
-        }
-        return null;
-      },
+      // Session : cookie httpOnly `session` posé par l'API IDEM, envoyé automatiquement.
     });
   }, []);
 

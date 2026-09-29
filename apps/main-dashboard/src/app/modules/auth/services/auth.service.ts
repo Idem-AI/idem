@@ -1,57 +1,336 @@
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable, forwardRef, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { AuthError, type Session } from '@supabase/auth-js';
+import { Observable, ReplaySubject, firstValueFrom, from } from 'rxjs';
 import { TokenService } from '../../../shared/services/token.service';
 import { CookieService } from '../../../shared/services/cookie.service';
 import {
-  Auth,
-  GithubAuthProvider,
-  GoogleAuthProvider,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  signOut,
-  user,
-  User,
-} from '@angular/fire/auth';
-import { from, Observable, firstValueFrom } from 'rxjs';
+  OAuthProvider,
+  SupabaseAuthService,
+} from '../../../shared/services/supabase-auth.service';
 import { environment } from '../../../../environments/environment';
 import { OnboardingSurveyService } from '../../../shared/services/onboarding-survey.service';
+
+/**
+ * Utilisateur IDEM connecté.
+ *
+ * `uid` est l'identifiant IDEM, pas celui du serveur d'authentification : les
+ * comptes antérieurs à Supabase gardent leur identifiant d'origine, auquel
+ * sont rattachés leurs projets.
+ */
+export interface IdemUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  emailVerified: boolean;
+  /** Date de création du compte IDEM (ISO). */
+  createdAt: string | null;
+  /** Moyens de connexion utilisés : `email`, `google`, `apple`, `linkedin_oidc`. */
+  providers: string[];
+}
+
+/** Erreur de connexion traduisible (clé i18n `auth.errors.<code>`). */
+export class AuthFlowError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+  }
+}
+
+/** Résultat d'une inscription. */
+export type SignUpOutcome = 'confirm-email' | 'already-registered' | 'signed-in';
+
+/** Ce que l'URL de retour du serveur d'authentification a déclenché. */
+export type CallbackOutcome =
+  | { kind: 'none' }
+  | { kind: 'signed-in' }
+  | { kind: 'recovery' }
+  | { kind: 'email-confirmed' }
+  | { kind: 'error'; code: string };
+
+interface SessionLoginResponse {
+  success: boolean;
+  user: IdemUser & Record<string, unknown>;
+}
+
+const LEGACY_TOKEN_COOKIES = ['authToken', 'authTokenExpiry'];
+
+function toAuthFlowError(error: unknown): AuthFlowError {
+  if (error instanceof AuthFlowError) return error;
+  if (error instanceof AuthError) {
+    const code = error.code ?? '';
+    if (code === 'invalid_credentials') return new AuthFlowError('invalidCredentials');
+    if (code === 'email_not_confirmed') return new AuthFlowError('emailNotConfirmed');
+    if (code === 'weak_password') return new AuthFlowError('weakPassword');
+    if (code === 'user_already_exists' || code === 'email_exists') {
+      return new AuthFlowError('alreadyRegistered');
+    }
+    if (code.startsWith('over_') || error.status === 429) return new AuthFlowError('rateLimited');
+    if (code === 'same_password') return new AuthFlowError('samePassword');
+    if (code === 'signup_disabled') return new AuthFlowError('signupDisabled');
+  }
+  const status = (error as { status?: number })?.status;
+  const apiCode = (error as { error?: { code?: string } })?.error?.code;
+  if (apiCode === 'email_not_verified') return new AuthFlowError('emailNotConfirmed');
+  if (apiCode === 'account_conflict') return new AuthFlowError('accountConflict');
+  if (apiCode === 'email_required') return new AuthFlowError('emailRequired');
+  if (status === 429) return new AuthFlowError('rateLimited');
+  if (status === 0) return new AuthFlowError('network');
+  return new AuthFlowError('generic');
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private auth = inject(Auth);
-  user$: Observable<User | null>;
-  private http = inject(HttpClient);
-  private tokenService = inject(forwardRef(() => TokenService));
-  private cookieService = inject(CookieService);
-  private onboardingSurvey = inject(OnboardingSurveyService);
-  private apiUrl = `${environment.services.api.url}/auth`;
+  private readonly http = inject(HttpClient);
+  private readonly supabase = inject(SupabaseAuthService);
+  private readonly tokenService = inject(TokenService);
+  private readonly cookieService = inject(CookieService);
+  private readonly onboardingSurvey = inject(OnboardingSurveyService);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly apiUrl = `${environment.services.api.url}/auth`;
   private readonly CURRENT_USER_COOKIE = 'currentUser';
   private readonly SESSION_ACTIVE_COOKIE = 'idem_session_active';
 
-  /** True while we're waiting for a redirect login result (mobile flow) */
-  readonly redirectLoginInProgress = signal(false);
+  private readonly currentUser = signal<IdemUser | null>(null);
+  private readonly userSubject = new ReplaySubject<IdemUser | null>(1);
 
-  /** Resolves when redirect result has been checked on app init */
-  readonly redirectResultReady: Promise<User | null>;
+  /** Utilisateur connecté ; n'émet qu'une fois l'état initial connu. */
+  readonly user$: Observable<IdemUser | null> = this.userSubject.asObservable();
+
+  /** Vrai pendant l'échange d'un code de retour (OAuth, lien e-mail). */
+  readonly callbackInProgress = signal(false);
+
+  /** Résultat du retour éventuel du serveur d'authentification sur cette page. */
+  readonly callbackResult: Promise<CallbackOutcome>;
 
   constructor() {
-    this.user$ = user(this.auth);
-    this.redirectResultReady = this.handleRedirectResult();
+    if (!this.isBrowser) {
+      this.callbackResult = Promise.resolve({ kind: 'none' });
+      this.userSubject.next(null);
+      return;
+    }
 
-    // Start global logout synchronization check
-    if (typeof window !== 'undefined') {
-      setInterval(() => this.checkGlobalLogout(), 3000);
+    LEGACY_TOKEN_COOKIES.forEach((name) => this.cookieService.remove(name));
+    this.callbackResult = this.initialise();
 
-      // Firebase restaure l'utilisateur sans limite de durée, alors que le
-      // cookie `session` lu par les autres applications expire au bout de 14
-      // jours : on le rétablit dès qu'une session Firebase est restaurée.
-      this.user$.subscribe((u) => {
-        if (u) void this.ensureServerSession();
+    // Synchronisation de la déconnexion entre applications (sentinelle partagée).
+    setInterval(() => this.checkGlobalLogout(), 3000);
+  }
+
+  // ── Démarrage ─────────────────────────────────────────────────────────────
+
+  private async initialise(): Promise<CallbackOutcome> {
+    let outcome: CallbackOutcome = { kind: 'none' };
+    try {
+      outcome = await this.handleCallbackUrl();
+    } catch (error) {
+      outcome = { kind: 'error', code: toAuthFlowError(error).code };
+    }
+
+    if (outcome.kind === 'recovery') {
+      // La session de récupération ne sert qu'à changer le mot de passe :
+      // elle n'ouvre la session IDEM qu'une fois le nouveau mot de passe choisi.
+      this.publishUser(await this.fetchProfile());
+    } else if (outcome.kind !== 'signed-in') {
+      this.publishUser(await this.restoreUser());
+    }
+    return outcome;
+  }
+
+  /**
+   * Retour du serveur d'authentification : `?code=` (PKCE) après OAuth, un lien
+   * de confirmation ou de récupération ; `?error=` en cas de refus.
+   */
+  private async handleCallbackUrl(): Promise<CallbackOutcome> {
+    const url = new URL(window.location.href);
+    const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+    const code = url.searchParams.get('code');
+    const flow = url.searchParams.get('auth_flow');
+    const errorCode =
+      url.searchParams.get('error_code') ?? hash.get('error_code') ?? url.searchParams.get('error');
+    const errorDescription =
+      url.searchParams.get('error_description') ?? hash.get('error_description') ?? '';
+
+    if (!code && !errorCode) return { kind: 'none' };
+
+    // Les paramètres du retour ne doivent survivre ni à un rechargement ni à
+    // un partage de l'URL.
+    ['code', 'auth_flow', 'error', 'error_code', 'error_description'].forEach((p) =>
+      url.searchParams.delete(p),
+    );
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`);
+
+    if (errorCode) {
+      if (errorCode === 'otp_expired') return { kind: 'error', code: 'linkExpired' };
+      // Compte sans adresse e-mail chez le fournisseur : le serveur refuse l'identité.
+      if (/email/i.test(errorDescription)) return { kind: 'error', code: 'emailRequired' };
+      return { kind: 'error', code: 'generic' };
+    }
+
+    this.callbackInProgress.set(true);
+    try {
+      const { data, error } = await this.supabase.client!.exchangeCodeForSession(code!);
+      if (error || !data.session) {
+        // Lien de confirmation ouvert dans un autre navigateur : l'adresse est
+        // confirmée par le serveur, mais la session n'a pas pu s'ouvrir ici.
+        if (flow === 'signup') return { kind: 'email-confirmed' };
+        return { kind: 'error', code: 'linkExpired' };
+      }
+      if (flow === 'recovery') return { kind: 'recovery' };
+      await this.openServerSession(data.session);
+      return { kind: 'signed-in' };
+    } finally {
+      this.callbackInProgress.set(false);
+    }
+  }
+
+  /** Session existante : cookie IDEM d'abord, session Supabase ensuite. */
+  private async restoreUser(): Promise<IdemUser | null> {
+    const profile = await this.fetchProfile();
+    if (profile) return profile;
+
+    await this.supabase.ready();
+    const session = this.supabase.currentSession();
+    if (!session) return null;
+    try {
+      return await this.openServerSession(session, false);
+    } catch {
+      return null;
+    }
+  }
+
+  private async fetchProfile(): Promise<IdemUser | null> {
+    try {
+      const profile = await firstValueFrom(
+        this.http.get<IdemUser>(`${this.apiUrl}/profile`, { withCredentials: true }),
+      );
+      return this.toIdemUser(profile);
+    } catch {
+      return null;
+    }
+  }
+
+  // ── Connexion ─────────────────────────────────────────────────────────────
+
+  login(email: string, password: string): Observable<IdemUser> {
+    return from(
+      (async () => {
+        const { data, error } = await this.supabase.client!.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error || !data.session) throw toAuthFlowError(error);
+        return this.openServerSession(data.session);
+      })(),
+    );
+  }
+
+  /** Redirige vers le fournisseur ; le retour est traité au chargement suivant. */
+  async loginWithProvider(provider: OAuthProvider): Promise<void> {
+    const { error } = await this.supabase.client!.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: this.returnUrl(),
+        ...(provider === 'apple' && { scopes: 'name email' }),
+      },
+    });
+    if (error) throw toAuthFlowError(error);
+  }
+
+  async signUp(email: string, password: string, displayName: string): Promise<SignUpOutcome> {
+    try {
+      const { data, error } = await this.supabase.client!.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo: this.returnUrl('signup'),
+          data: displayName.trim() ? { full_name: displayName.trim() } : undefined,
+        },
       });
+      if (error) throw error;
+      if (data.session) {
+        await this.openServerSession(data.session);
+        return 'signed-in';
+      }
+      // Adresse déjà inscrite : le serveur répond sans identité, pour ne pas
+      // révéler l'existence du compte à un tiers.
+      if (data.user && (data.user.identities?.length ?? 0) === 0) return 'already-registered';
+      return 'confirm-email';
+    } catch (error) {
+      throw toAuthFlowError(error);
+    }
+  }
+
+  /**
+   * Lien de choix du mot de passe. Sert aussi aux comptes repris de l'ancien
+   * système, qui n'ont pas encore de mot de passe.
+   */
+  async sendPasswordReset(email: string): Promise<void> {
+    const { error } = await this.supabase.client!.resetPasswordForEmail(email.trim(), {
+      redirectTo: this.returnUrl('recovery'),
+    });
+    if (error) throw toAuthFlowError(error);
+  }
+
+  /** Nouveau mot de passe, après un lien de récupération. */
+  async completePasswordRecovery(password: string): Promise<IdemUser> {
+    const { error } = await this.supabase.client!.updateUser({ password });
+    if (error) throw toAuthFlowError(error);
+    const session = this.supabase.currentSession() ?? (await this.currentSupabaseSession());
+    if (!session) throw new AuthFlowError('linkExpired');
+    return this.openServerSession(session);
+  }
+
+  private async currentSupabaseSession(): Promise<Session | null> {
+    const { data } = await this.supabase.client!.getSession();
+    return data.session;
+  }
+
+  /**
+   * URL de retour : la page de login avec ses paramètres (`redirect`,
+   * `returnUrl`, `from`), pour que la redirection vers l'application appelante
+   * survive à l'aller-retour chez le fournisseur.
+   */
+  private returnUrl(flow?: 'signup' | 'recovery'): string {
+    const url = new URL('/login', window.location.origin);
+    const current = new URLSearchParams(window.location.search);
+    for (const key of ['redirect', 'returnUrl', 'from']) {
+      const value = current.get(key);
+      if (value) url.searchParams.set(key, value);
+    }
+    if (flow) url.searchParams.set('auth_flow', flow);
+    return url.toString();
+  }
+
+  // ── Session serveur (cookies httpOnly partagés) ──────────────────────────
+
+  /**
+   * Échange le jeton Supabase contre les cookies `session` / `refreshToken`
+   * de l'API IDEM, lus par toutes les applications du domaine.
+   */
+  private async openServerSession(session: Session, publish = true): Promise<IdemUser> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<SessionLoginResponse>(
+          `${this.apiUrl}/sessionLogin`,
+          { token: session.access_token },
+          { withCredentials: true, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+      const user = this.toIdemUser(response.user);
+      this.saveUserToCookies(user);
+      this.cookieService.set(this.SESSION_ACTIVE_COOKIE, '1', 30);
+      this.serverSessionSync = Promise.resolve(true);
+      if (publish) this.publishUser(user);
+      return user;
+    } catch (error) {
+      // Compte refusé par l'API (adresse non vérifiée, conflit) : la session
+      // Supabase ne doit pas rester ouverte à moitié.
+      await this.supabase.client?.signOut({ scope: 'local' });
+      throw toAuthFlowError(error);
     }
   }
 
@@ -59,9 +338,9 @@ export class AuthService {
 
   /**
    * Garantit que le cookie `session` httpOnly partagé (`.idem.africa`) est
-   * valide pour l'utilisateur Firebase courant. C'est lui, et non Firebase,
-   * qu'AppGen, iDeploy et le simulateur lisent via `/auth/profile`.
-   * Un seul contrôle en vol à la fois ; un échec autorise un nouvel essai.
+   * valide. C'est lui qu'AppGen, iDeploy et le simulateur lisent via
+   * `/auth/profile`. Un seul contrôle en vol à la fois ; un échec autorise un
+   * nouvel essai.
    */
   ensureServerSession(): Promise<boolean> {
     this.serverSessionSync ??= this.syncServerSession().then((ok) => {
@@ -72,179 +351,30 @@ export class AuthService {
   }
 
   private async syncServerSession(): Promise<boolean> {
+    if (await this.fetchProfile()) return true;
+    const session = this.supabase.currentSession() ?? (await this.currentSupabaseSession());
+    if (!session) return false;
     try {
-      await firstValueFrom(
-        this.http.get(`${this.apiUrl}/profile`, { withCredentials: true }),
-      );
+      await this.openServerSession(session);
       return true;
     } catch {
-      // Cookie absent ou expiré : on le recrée à partir de la session Firebase.
-    }
-
-    const firebaseUser = this.auth.currentUser;
-    if (!firebaseUser) return false;
-
-    try {
-      const token = await this.tokenService.refreshToken(firebaseUser);
-      if (!token) return false;
-      await this.createServerSession(token, firebaseUser);
-      return true;
-    } catch (error) {
-      console.error('Impossible de rétablir la session partagée:', error);
       return false;
     }
   }
 
-  private createServerSession(token: string, user: User): Promise<void> {
-    const { uid, email, displayName, photoURL } = user;
-    return firstValueFrom(
-      this.http.post<void>(
-        `${this.apiUrl}/sessionLogin`,
-        { token, user: { uid, email, displayName, photoURL } },
-        {
-          withCredentials: true,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      ),
-    );
-  }
+  // ── Déconnexion ───────────────────────────────────────────────────────────
 
   private checkGlobalLogout(): void {
     const isActive = this.cookieService.get(this.SESSION_ACTIVE_COOKIE);
-    const locallyLoggedIn = !!this.getCurrentUser();
-
-    // If the global sentinel says session is inactive but we think we're logged in, logout.
-    if (locallyLoggedIn && isActive === '0') {
-      console.log('AuthSync: Global logout detected from cookie, logging out locally...');
+    if (this.currentUser() && isActive === '0') {
       this.logout().subscribe();
-    }
-  }
-
-  /**
-   * Detect mobile/tablet browsers where signInWithPopup is unreliable.
-   */
-  private isMobile(): boolean {
-    if (typeof navigator === 'undefined') return false;
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent,
-    );
-  }
-
-  /**
-   * On page load, check if we're returning from a signInWithRedirect.
-   * If so, complete the login flow (postLogin + emit event via callback).
-   */
-  private async handleRedirectResult(): Promise<User | null> {
-    try {
-      this.redirectLoginInProgress.set(true);
-      const result = await getRedirectResult(this.auth);
-      if (result?.user) {
-        console.log('Redirect login successful for:', result.user.email);
-        await this.postLogin(result.user);
-        return result.user;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error handling redirect result:', error);
-      return null;
-    } finally {
-      this.redirectLoginInProgress.set(false);
-    }
-  }
-
-  login(email: string, password: string): Observable<void> {
-    const promise = signInWithEmailAndPassword(this.auth, email, password).then(async (cred) => {
-      await this.postLogin(cred.user);
-    });
-    return from(promise);
-  }
-
-  async loginWithGithub(): Promise<User | null> {
-    const provider = new GithubAuthProvider();
-    try {
-      const result = await signInWithPopup(this.auth, provider);
-      await this.postLogin(result.user);
-      return result.user;
-    } catch (error) {
-      console.error('Error in loginWithGithub popup:', error);
-      if (this.isMobile()) {
-        console.log('Falling back to signInWithRedirect on mobile...');
-        await signInWithRedirect(this.auth, provider);
-      } else {
-        throw error;
-      }
-      return null;
-    }
-  }
-
-  async loginWithGoogle(): Promise<User | null> {
-    const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(this.auth, provider);
-      await this.postLogin(result.user);
-      return result.user;
-    } catch (error) {
-      console.error('Error in loginWithGoogle popup:', error);
-      if (this.isMobile()) {
-        console.log('Falling back to signInWithRedirect on mobile...');
-        await signInWithRedirect(this.auth, provider);
-      } else {
-        throw error;
-      }
-      return null;
-    }
-  }
-
-  private async postLogin(user: User) {
-    if (!user) return;
-    const currentUser = this.auth.currentUser;
-
-    // Le TokenService va automatiquement sauvegarder le token dans les cookies
-    const token = currentUser ? await this.tokenService.refreshToken(currentUser) : null;
-
-    if (!token) {
-      console.error('Aucun token disponible');
-      return;
-    }
-
-    console.log('Token obtenu et sauvegardé automatiquement lors du login');
-
-    // Sauvegarder l'utilisateur dans les cookies
-    this.saveUserToCookies(user);
-
-    // Set global session active sentinel
-    this.cookieService.set(this.SESSION_ACTIVE_COOKIE, '1', 30);
-
-    try {
-      await this.createServerSession(token, user);
-      this.serverSessionSync = Promise.resolve(true);
-    } catch (error) {
-      console.error("Erreur lors de l'envoi du token au backend:", error);
-    }
-
-    try {
-      console.log('Utilisateur ajouté à Firestore avec succès');
-    } catch (error) {
-      console.error('Erreur lors de l’ajout de l’utilisateur à Firestore :', error);
     }
   }
 
   logout(): Observable<void> {
     this.serverSessionSync = null;
-    const promise = signOut(this.auth)
-      .then(async () => {
-        // Effacer le token dans TokenService
-        this.tokenService.clearToken();
-        // Effacer l'utilisateur des cookies
-        this.cookieService.remove(this.CURRENT_USER_COOKIE);
-        // Clear global session sentinel
-        this.cookieService.set(this.SESSION_ACTIVE_COOKIE, '0', 30);
-        // Le profil d'accueil est propre au compte : il ne doit pas survivre
-        // à une déconnexion et fausser le sondage du compte suivant.
-        this.onboardingSurvey.reset();
-        sessionStorage.clear();
-
-        // Try to notify backend, but don't block logout if it fails
+    return from(
+      (async () => {
         try {
           // withCredentials : sans lui, le navigateur n'envoie pas le cookie
           // `session` partagé et ignore le Set-Cookie qui l'efface — les
@@ -253,92 +383,65 @@ export class AuthService {
             this.http.post<void>(`${this.apiUrl}/logout`, {}, { withCredentials: true }),
           );
         } catch (error) {
-          console.warn('Backend logout failed, but local logout succeeded:', error);
+          console.warn('Backend logout failed, local logout continues:', error);
         }
-      })
-      .catch((error) => {
-        console.error('Erreur lors de la déconnexion:', error);
-        // Clear local state even if Firebase signOut fails
+        try {
+          await this.supabase.client?.signOut({ scope: 'local' });
+        } catch {
+          // Session déjà close côté serveur d'authentification.
+        }
         this.tokenService.clearToken();
         this.cookieService.remove(this.CURRENT_USER_COOKIE);
+        this.cookieService.set(this.SESSION_ACTIVE_COOKIE, '0', 30);
+        // Le profil d'accueil est propre au compte : il ne doit pas survivre
+        // à une déconnexion et fausser le sondage du compte suivant.
         this.onboardingSurvey.reset();
         sessionStorage.clear();
-      });
-
-    return from(promise);
+        this.publishUser(null);
+      })(),
+    );
   }
 
-  getCurrentUser(): User | null {
-    // D'abord essayer de récupérer depuis Firebase Auth
-    const firebaseUser = this.auth.currentUser;
-    if (firebaseUser) {
-      return firebaseUser;
-    }
+  // ── Utilisateur courant ───────────────────────────────────────────────────
 
-    // Si pas d'utilisateur Firebase, récupérer depuis les cookies
-    return this.getUserFromCookies();
+  getCurrentUser(): IdemUser | null {
+    return this.currentUser() ?? this.getUserFromCookies();
   }
 
-  /**
-   * Sauvegarde l'utilisateur dans les cookies
-   */
-  private saveUserToCookies(user: User): void {
-    const userData = {
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-      emailVerified: user.emailVerified,
-      phoneNumber: user.phoneNumber,
-      providerId: user.providerId,
+  private publishUser(user: IdemUser | null): void {
+    this.currentUser.set(user);
+    this.userSubject.next(user);
+  }
+
+  private toIdemUser(
+    profile: Partial<IdemUser> & { uid: string; authProviders?: string[] },
+  ): IdemUser {
+    return {
+      uid: profile.uid,
+      email: profile.email ?? null,
+      displayName: profile.displayName || null,
+      photoURL: profile.photoURL || null,
+      emailVerified: profile.emailVerified === true,
+      createdAt: profile.createdAt ? String(profile.createdAt) : null,
+      providers: profile.providers ?? profile.authProviders ?? [],
     };
-
-    this.cookieService.set(this.CURRENT_USER_COOKIE, JSON.stringify(userData), 30);
   }
 
-  /**
-   * Récupère l'utilisateur depuis les cookies
-   */
-  private getUserFromCookies(): User | null {
-    try {
-      const userCookie = this.cookieService.get(this.CURRENT_USER_COOKIE);
-      if (!userCookie) {
-        return null;
-      }
+  private saveUserToCookies(user: IdemUser): void {
+    this.cookieService.set(this.CURRENT_USER_COOKIE, JSON.stringify(user), 30);
+  }
 
-      // Validate JSON string before parsing
-      const trimmedCookie = userCookie.trim();
-      if (!trimmedCookie.startsWith('{') || !trimmedCookie.endsWith('}')) {
-        console.warn('Invalid JSON format in user cookie, clearing cookie');
+  private getUserFromCookies(): IdemUser | null {
+    try {
+      const raw = this.cookieService.get(this.CURRENT_USER_COOKIE)?.trim();
+      if (!raw) return null;
+      if (!raw.startsWith('{') || !raw.endsWith('}')) {
         this.cookieService.remove(this.CURRENT_USER_COOKIE);
         return null;
       }
-
-      const userData = JSON.parse(trimmedCookie);
-
-      // Créer un objet User-like depuis les données des cookies
-      return {
-        uid: userData.uid,
-        email: userData.email,
-        displayName: userData.displayName,
-        photoURL: userData.photoURL,
-        emailVerified: userData.emailVerified,
-        phoneNumber: userData.phoneNumber,
-        providerId: userData.providerId,
-        // Propriétés requises par l'interface User mais non stockées
-        isAnonymous: false,
-        metadata: {} as any,
-        providerData: [],
-        refreshToken: '',
-        tenantId: null,
-        delete: async () => {},
-        getIdToken: async () => '',
-        getIdTokenResult: async () => ({}) as any,
-        reload: async () => {},
-        toJSON: () => ({}),
-      } as User;
-    } catch (error) {
-      console.error("Erreur lors de la récupération de l'utilisateur depuis les cookies:", error);
+      const data = JSON.parse(raw);
+      return typeof data?.uid === 'string' ? this.toIdemUser(data) : null;
+    } catch {
       return null;
     }
   }

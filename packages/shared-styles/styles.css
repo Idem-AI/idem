@@ -52,6 +52,19 @@ body {
   background-color: transparent;
 }
 
+/*
+ * Force du motif IDEM (`/assets/images/motif.png`).
+ *
+ * L'image actuelle est dessinée en encre pleine (traits noirs opaques). Le motif
+ * précédent était un gris clair semi-transparent, environ 20 fois plus léger :
+ * chaque opacité de motif du projet s'exprime donc comme « ancienne opacité ×
+ * --idem-motif-strength », ce qui garde exactement la présence d'avant. Pour
+ * renforcer ou alléger le motif partout d'un coup, c'est cette valeur qui change.
+ */
+:root {
+  --idem-motif-strength: 0.051;
+}
+
 body::before {
   content: "";
   position: fixed;
@@ -64,12 +77,12 @@ body::before {
   background-repeat: repeat;
   background-position: top left;
   pointer-events: none;
-  opacity: 0.3;
+  opacity: calc(0.3 * var(--idem-motif-strength));
 }
 
 html.dark body::before {
   filter: invert(1);
-  opacity: 0.35;
+  opacity: calc(0.35 * var(--idem-motif-strength));
 }
 
 /* ============================================================================

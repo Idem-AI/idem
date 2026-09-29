@@ -32,9 +32,9 @@ Mermaid.js (https://mermaid.js.org)
 - License: MIT
 - Copyright: Knut Sveidqvist
 
-Firebase (https://firebase.google.com)
-- License: Apache 2.0
-- Copyright: Google LLC
+Supabase Auth (https://github.com/supabase/auth)
+- License: MIT
+- Copyright: Supabase, Inc.
 
 Express (https://expressjs.com)
 - License: MIT

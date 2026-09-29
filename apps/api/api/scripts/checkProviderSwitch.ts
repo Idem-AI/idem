@@ -26,8 +26,8 @@ import path from 'path';
 // de pré-démarrage.
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../.env.secret') });
-if (process.env.FIREBASE_PRIVATE_KEY) {
-  process.env.FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+if (process.env.GCP_SA_PRIVATE_KEY) {
+  process.env.GCP_SA_PRIVATE_KEY = process.env.GCP_SA_PRIVATE_KEY.replace(/\\n/g, '\n');
 }
 
 import { AI_CONFIG, FeatureAIConfig, LLMProvider } from '../config/ai.config';

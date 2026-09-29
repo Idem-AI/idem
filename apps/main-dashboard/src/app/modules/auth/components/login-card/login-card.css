@@ -1,1 +1,44 @@
-/* LoginCard specific styles if needed */
+:host {
+  display: block;
+}
+
+/* Séparateur « ou » entre les fournisseurs et le formulaire. */
+.login-card__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.login-card__divider::before,
+.login-card__divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+/*
+ * Boutons des fournisseurs : l'icône est sortie du flux et calée à gauche,
+ * le libellé reste centré. Les icônes s'alignent donc en colonne et le texte
+ * garde le même axe dans tous les boutons.
+ */
+.login-card__provider {
+  position: relative;
+  padding-inline: 3rem;
+}
+
+.login-card__provider-icon {
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  transform: translateY(-50%);
+  font-size: 1.125rem;
+}
+
+.login-card__error {
+  color: var(--color-danger);
+}

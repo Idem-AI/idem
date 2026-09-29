@@ -1,6 +1,5 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { Analytics, logEvent, setUserId, setUserProperties } from '@angular/fire/analytics';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
@@ -21,25 +20,47 @@ import {
 
 /**
  * Analytics Service
- * Centralizes all Firebase Analytics tracking
+ * Centralizes all Google Analytics 4 tracking (gtag.js, loaded on demand)
  * Only active in production environment
  */
+/**
+ * Charge gtag.js (Google Analytics 4) une seule fois et rend la fonction `gtag`.
+ * Les pages vues sont envoyées par le service, pas automatiquement.
+ */
+function loadGtag(measurementId: string): (...args: unknown[]) => void {
+  const w = window as unknown as { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void };
+  if (!w.gtag) {
+    w.dataLayer = w.dataLayer || [];
+    w.gtag = function gtag() {
+      // gtag.js attend l'objet `arguments` lui-même, pas un tableau.
+      // eslint-disable-next-line prefer-rest-params
+      w.dataLayer!.push(arguments);
+    };
+    w.gtag('js', new Date());
+    w.gtag('config', measurementId, { send_page_view: false });
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
+    document.head.appendChild(script);
+  }
+  return w.gtag;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class AnalyticsService {
-  private analytics: Analytics;
+  private gtag: ((...args: unknown[]) => void) | null = null;
   private readonly router = inject(Router);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly isEnabled = environment.analytics?.enabled ?? false;
 
   constructor() {
-    // Inject Analytics (Angular will handle SSR automatically)
-    this.analytics = inject(Analytics);
-
-    // Only track in browser and when enabled (production)
-    if (this.isBrowser && this.isEnabled && this.analytics) {
+    // Only track in browser, when enabled (production) and configured
+    const measurementId = environment.analytics?.measurementId;
+    if (this.isBrowser && this.isEnabled && measurementId) {
+      this.gtag = loadGtag(measurementId);
       this.initializePageTracking();
     }
   }
@@ -75,7 +96,7 @@ export class AnalyticsService {
    * Check if analytics is enabled
    */
   private canTrack(): boolean {
-    return this.isBrowser && this.isEnabled && !!this.analytics;
+    return this.isBrowser && this.isEnabled && !!this.gtag;
   }
 
   /**
@@ -84,7 +105,7 @@ export class AnalyticsService {
   trackPageView(params: PageViewParams): void {
     if (!this.canTrack()) return;
 
-    logEvent(this.analytics!, AnalyticsEvent.PAGE_VIEW, {
+    this.gtag!('event', AnalyticsEvent.PAGE_VIEW, {
       page_title: params.page_title,
       page_location: params.page_location,
       page_path: params.page_path,
@@ -96,16 +117,16 @@ export class AnalyticsService {
    * Set user ID for tracking
    */
   setUser(userId: string): void {
-    if (!this.canTrack() || !this.analytics) return;
-    setUserId(this.analytics!, userId);
+    if (!this.canTrack()) return;
+    this.gtag!('set', { user_id: userId });
   }
 
   /**
    * Set user properties
    */
   setUserProperties(properties: UserProperties): void {
-    if (!this.canTrack() || !this.analytics) return;
-    setUserProperties(this.analytics!, properties);
+    if (!this.canTrack()) return;
+    this.gtag!('set', 'user_properties', properties);
   }
 
   // ============================================
@@ -415,9 +436,9 @@ export class AnalyticsService {
    * Generic event tracking method
    */
   private trackEvent(eventName: string, params: Record<string, unknown>): void {
-    if (!this.canTrack() || !this.analytics) return;
+    if (!this.canTrack()) return;
 
-    logEvent(this.analytics!, eventName, params);
+    this.gtag!('event', eventName, params);
   }
 
   /**
