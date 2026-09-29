@@ -1,12 +1,13 @@
 /* Deux encres (AGENTS.md §4) : `currentColor` pour le trait, la couleur
-   primaire pour le seul détail qui compte. */
+   primaire pour le seul détail qui compte. Chaque scène est un objet de la
+   culture africaine qui dit la forme juridique. */
 :host {
   display: block;
   color: var(--color-text-tertiary);
 }
 
 .accent {
-  stroke: var(--color-primary-500);
+  color: var(--color-primary-500);
 }
 
 /* Seule la scène de rédaction bouge : elle signale un travail en cours. */
@@ -44,7 +45,7 @@
     transform: translate(0, 0);
   }
   50% {
-    transform: translate(-8px, 6px);
+    transform: translate(-6px, 4px);
   }
 }
 

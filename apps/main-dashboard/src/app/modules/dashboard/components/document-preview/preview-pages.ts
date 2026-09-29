@@ -94,31 +94,40 @@ function escapeHtml(value: string): string {
 }
 
 /*
- * Illustrations au trait (AGENTS.md § 4) : `currentColor` pour le trait, la
- * primaire (`.idem-ph-accent`) pour le seul détail qui compte. Aucun aplat.
+ * Illustrations au trait (AGENTS.md § 4), un objet de la culture africaine
+ * chacune : `currentColor` pour le trait, la primaire (`.idem-ph-accent`)
+ * pour le seul détail qui compte. Aucun aplat.
  */
 
-/** Pages prêtes en pile, la page attendue en pointillés : elle n'existe pas encore. */
+/** Calebasse vide, son ouverture en pointillés : la page attendue n'existe pas encore. */
 const MISSING_ART = `
-<svg class="idem-ph-art" viewBox="0 0 120 96" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-  <rect x="18" y="16" width="44" height="60" rx="4"/>
-  <path d="M26 28h28M26 36h22M26 44h26"/>
-  <rect x="50" y="10" width="50" height="70" rx="4" stroke-dasharray="5 4"/>
-  <g class="idem-ph-accent" stroke-width="2.4">
-    <circle cx="75" cy="45" r="11"/>
-    <path d="M75 39.5v11M69.5 45h11"/>
+<svg class="idem-ph-art" viewBox="0 0 120 96" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <g transform="translate(0 4)">
+    <path d="M26 36 C26 60 41 76 60 76 C79 76 94 60 94 36" stroke-width="2"/>
+    <ellipse cx="60" cy="36" rx="34" ry="8" stroke-width="2"/>
+    <path d="M29.5 50 Q60 60 90.5 50 M33 58 Q60 68 87 58"/>
+    <path d="M29 50 L36.9 59.3 L37.9 52.4 L44.6 61.4 L46.7 54.1 L52.3 62.6 L55.6 54.9 L60 63 L64.4 54.9 L67.7 62.6 L73.3 54.1 L75.4 61.4 L82.1 52.4 L83.1 59.3 L91 50"/>
+    <path d="M48 70.7h0.01 M60 72h0.01 M72 70.7h0.01" stroke-width="3"/>
+    <g class="idem-ph-accent">
+      <ellipse cx="60" cy="36" rx="28" ry="5" stroke-dasharray="3 4"/>
+    </g>
   </g>
 </svg>`;
 
-/** Page aux lignes esquissées, signe d'alerte : le contenu reçu est inutilisable. */
+/** Calebasse fêlée : le contenu reçu est inutilisable. */
 const ERROR_ART = `
-<svg class="idem-ph-art" viewBox="0 0 120 96" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-  <rect x="30" y="10" width="54" height="72" rx="4"/>
-  <path d="M40 24h32M40 32h24M40 40h28M40 48h14" opacity=".7"/>
-  <g class="idem-ph-accent" stroke-width="2.4">
-    <circle cx="82" cy="64" r="13"/>
-    <path d="M82 57v8"/>
-    <path d="M82 70.5v.5"/>
+<svg class="idem-ph-art" viewBox="0 0 120 96" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <g transform="translate(0 4)">
+    <path d="M26 36 C26 60 41 76 60 76 C79 76 94 60 94 36" stroke-width="2"/>
+    <ellipse cx="60" cy="36" rx="34" ry="8" stroke-width="2"/>
+    <path d="M29.5 50 Q60 60 90.5 50 M33 58 Q60 68 87 58"/>
+    <path d="M29 50 L36.9 59.3 L37.9 52.4 L44.6 61.4 L46.7 54.1 L52.3 62.6 L55.6 54.9 L60 63 L64.4 54.9 L67.7 62.6 L73.3 54.1 L75.4 61.4 L82.1 52.4 L83.1 59.3 L91 50"/>
+    <path d="M48 70.7h0.01 M60 72h0.01 M72 70.7h0.01" stroke-width="3"/>
+    <ellipse cx="60" cy="36" rx="30" ry="5.5" opacity=".5"/>
+    <g class="idem-ph-accent" stroke-width="2">
+      <path d="M68 28.5 L64 38 L70 46 L63 56 L67 64 L64 75"/>
+      <path d="M70 46 L76 49"/>
+    </g>
   </g>
 </svg>`;
 

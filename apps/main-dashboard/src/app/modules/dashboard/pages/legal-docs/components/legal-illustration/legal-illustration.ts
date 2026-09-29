@@ -29,8 +29,10 @@ export const FORM_SCENES: Record<LegalFormCode, LegalScene> = {
 /**
  * Illustrations SVG de l'espace juridique.
  *
- * Dessinées en variables de thème, comme `app-mode-illustration` : elles
- * suivent le mode clair/sombre et la couleur primaire du produit.
+ * Chaque scène est un objet de la culture africaine choisi pour ce qu'il
+ * dit de la forme juridique (AGENTS.md § 4). Dessinées au trait en
+ * `currentColor`, comme `app-mode-illustration` : elles suivent le thème et
+ * la couleur primaire du produit.
  */
 @Component({
   selector: 'app-legal-illustration',

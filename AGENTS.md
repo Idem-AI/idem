@@ -145,6 +145,14 @@ Choisir l'élément par le **sens**, jamais par le décor :
 | Attente, vide, rien encore | Calebasse vide, grenier à remplir |
 | Erreur, problème | Calebasse fêlée, fil de tissage cassé |
 | Réussite, livrable prêt | Pagne tissé déroulé, grenier plein |
+| Serveur, réserve, stockage | Grenier dogon, canaris ; porte de grenier et serrure de bois pour « votre machine » |
+| Recherche, tri | Van de vannage |
+| Identité, logo, marque | Tampon adinkra en calebasse et son empreinte |
+| Droit, équilibre | Balance akan à peser l'or |
+| Document écrit | Feuillet manuscrit et calame |
+| Retour en arrière, page introuvable | Sankofa (poids akan en forme d'oiseau qui se retourne) |
+| Réseau, diagramme | Filet de pêche (épervier) |
+| Étapes, progression guidée | Échelle dogon |
 
 Si aucun élément de la table ne convient, en choisir un autre de la même
 nature (objet, outil, architecture, végétal, jeu) et l'ajouter ici.
@@ -171,14 +179,18 @@ jamais comme papier peint. Un élément par illustration.
   illustration peut apparaître deux fois sur une page.
 - Pas de personnage, pas de mascotte.
 
+Le répertoire complet (objet retenu pour chaque écran, candidats écartés,
+dessins gardés comme schémas) est dans `docs/ILLUSTRATIONS.md` : le compléter à
+chaque nouvelle illustration.
+
 Les illustrations partagées du dashboard sont dans
-`apps/main-dashboard/src/app/shared/components/`. Dans iDeploy elles sont
-centralisées dans
+`apps/main-dashboard/src/app/shared/components/` (dont `module-emblem`, l'emblème
+de chaque module, commun au tableau de bord et au lanceur du chat). Dans iDeploy
+elles sont centralisées dans
 `apps/ideploy-web/src/app/shared/components/illustration/illustration.ts`
-(`box` `server` `store` `activity` `managed-cloud` `own-server` `search` `shield`
-`team`), et l'état vide standard est `<app-empty-state>`. Ces motifs antérieurs
-sont à redessiner dans le style IDEM au fil des passages sur les écrans concernés ;
-tout nouveau motif le suit d'emblée.
+(`box` `code` `server` `store` `market` `activity` `managed-cloud` `own-server`
+`search` `shield` `team`), et l'état vide standard est `<app-empty-state>`.
+AppGen : `components/ui/Illustrations.tsx` et `tourIllustrations.ts`.
 
 **Ne pas confondre** avec les livrables générés pour les clients (charte,
 visuels, site, documents) : ceux-là suivent l'identité et la direction
