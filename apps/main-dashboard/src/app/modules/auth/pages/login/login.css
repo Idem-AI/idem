@@ -10,8 +10,9 @@
 .login {
   display: grid;
   min-height: 100dvh;
-  background: var(--color-surface-1);
   grid-template-columns: minmax(0, 1fr);
+  /* Blanc franc côté formulaire (sombre en thème sombre). */
+  background: var(--color-surface-1);
 }
 
 @media (min-width: 1024px) {
@@ -31,6 +32,7 @@
   align-items: center;
   justify-content: center;
   padding: 5.5rem 2.5rem 3rem;
+  /* Blanc fumée : un ton sous le blanc du formulaire. */
   background: var(--color-surface-2);
   border-right: 1px solid var(--glass-border-subtle);
   color: var(--color-text-primary);
@@ -74,7 +76,11 @@
   }
 }
 
-/* Le motif IDEM derrière le formulaire. */
+/*
+ * Le motif IDEM sur le blanc du formulaire, à l'intensité du hero de la
+ * landing : ses deux couches globales cumulées (0.3 + 0.1 en clair,
+ * 0.35 + 0.15 en sombre, × la force du motif).
+ */
 .login__side::before {
   content: '';
   position: absolute;
@@ -84,13 +90,12 @@
   background-image: url('/assets/images/motif.png');
   background-repeat: repeat;
   background-position: top left;
-  /* Plus présent qu'ailleurs : ici le motif est le seul décor de la colonne. */
-  opacity: 0.25;
+  opacity: calc(0.4 * var(--idem-motif-strength));
 }
 
 :host-context(.dark) .login__side::before {
   filter: invert(1);
-  opacity: 0.3;
+  opacity: calc(0.5 * var(--idem-motif-strength));
 }
 
 .login__bar {
