@@ -1,5 +1,5 @@
 /**
- * Secrets du serveur AppGen dans Google Secret Manager (`appgen--<VARIABLE>`).
+ * Secrets du serveur AppGen dans Infisical (projet `appgen`, environnement `production`).
  *
  * Seules les valeurs réellement secrètes figurent ici. URL, limites, hôtes
  * autorisés et réglages des modèles restent dans le `.env`.

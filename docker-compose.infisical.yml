@@ -1,0 +1,72 @@
+# Infisical self-hosted — secret manager pour api, appgen (serveur) et
+# ideploy-api (remplace Google Secret Manager, jamais mis en prod). Stack
+# indépendante : sa propre base et son propre Redis, pour ne rien coupler aux
+# services applicatifs. Les 3 backends la joignent par son URL publique
+# (INFISICAL_SITE_URL), pas par le réseau Docker interne — à raccorder au
+# reverse-proxy déjà en place pour les autres sous-domaines du serveur.
+#
+# redis/postgres : versions choisies pour matcher ce qui est déjà tiré en
+# local sur cette machine (redis:7-alpine, postgres:15-alpine) plutôt que la
+# version par défaut du compose officiel Infisical (postgres:14-alpine) —
+# évite un nouveau pull. Aucune des deux n'a d'exigence de version connue côté
+# Infisical, largement dans sa plage supportée.
+#
+# Démarrage : docker compose -f docker-compose.infisical.yml up -d
+# Config    : .env.infisical (voir .env.infisical.example — jamais commité)
+
+services:
+  infisical:
+    container_name: idem-infisical-backend
+    image: infisical/infisical:latest-postgres
+    restart: unless-stopped
+    depends_on:
+      infisical-db:
+        condition: service_healthy
+      infisical-redis:
+        condition: service_started
+    env_file:
+      - .env.infisical
+    environment:
+      NODE_ENV: production
+    ports:
+      - '${INFISICAL_PORT:-8085}:8080'
+    networks:
+      - infisical
+
+  infisical-redis:
+    container_name: idem-infisical-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    env_file:
+      - .env.infisical
+    environment:
+      ALLOW_EMPTY_PASSWORD: 'yes'
+    volumes:
+      - infisical_redis_data:/data
+    networks:
+      - infisical
+
+  infisical-db:
+    container_name: idem-infisical-db
+    image: postgres:15-alpine
+    restart: unless-stopped
+    env_file:
+      - .env.infisical
+    volumes:
+      - infisical_pg_data:/var/lib/postgresql/data
+    networks:
+      - infisical
+    healthcheck:
+      test: 'pg_isready --username=${POSTGRES_USER} && psql --username=${POSTGRES_USER} --list'
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  infisical_pg_data:
+    driver: local
+  infisical_redis_data:
+    driver: local
+
+networks:
+  infisical:
