@@ -1894,6 +1894,13 @@
     "simulation.faq.q3.question": "What does the simulated viability index measure?",
     "simulation.faq.q3.answer": "It measures how robust the model is across the scenarios that were run: how well it keeps holding as the factors deteriorate. It is always shown together with a confidence level and the list of main uncertainties.",
     "simulation.faq.q4.question": "Is simulation included in IDEM?",
-    "simulation.faq.q4.answer": "No, it is billed separately because it spends external research, several agents and compute. The amount is shown and confirmed before the run starts. The full report can be bought with the simulation or later."
+    "simulation.faq.q4.answer": "No, it is billed separately because it spends external research, several agents and compute. The amount is shown and confirmed before the run starts. The full report can be bought with the simulation or later.",
+    "betaProgram.title": "Try all of IDEM, free, during the beta",
+    "betaProgram.lead": "A limited number of entrepreneurs get IDEM's most complete plans at no cost until the beta ends. In return, they tell us what works and what's missing.",
+    "betaProgram.points.offers": "Firm-grade business plan, brand and social media, app and launch, in-depth simulation",
+    "betaProgram.points.credits": "Credits topped up every month until the beta ends",
+    "betaProgram.points.seats": "A limited number of seats",
+    "betaProgram.apply": "Apply for the beta",
+    "betaProgram.seePlans": "See the plans included"
   }
 }

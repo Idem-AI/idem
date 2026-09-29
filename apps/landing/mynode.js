@@ -29,6 +29,8 @@ export const environment = {
   environment: '${isProduction ? 'prod' : 'dev'}',
   isBeta: ${process.env.IS_BETA || 'true'},
   waitlistUrl: '${process.env.WAITLIST_URL || 'https://forms.gle/gP7fr8te9qMUovad6'}',
+  // Formulaire de candidature au programme bêta premium (ouvert dans un nouvel onglet).
+  betaProgramUrl: '${process.env.BETA_PROGRAM_URL || 'https://forms.gle/DheHZN3AQB39yEAj8'}',
   analytics: {
     enabled: ${process.env.ANALYTICS_ENABLED || (isProduction ? 'true' : 'false')},
     // Identifiant de mesure Google Analytics 4 (G-XXXXXXX) ; vide = aucun suivi.

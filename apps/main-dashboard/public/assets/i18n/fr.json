@@ -4952,7 +4952,6 @@
     "haveAccount": "Déjà un compte ?",
     "backToSignIn": "Retour à la connexion",
     "signingIn": "Connexion en cours…",
-    "migrationNotice": "Vous vous connectiez avec un e-mail et un mot de passe ? Votre compte et vos projets sont conservés : choisissez un nouveau mot de passe pour y accéder.",
     "migrationAction": "Choisir mon mot de passe",
     "forgotIntro": "Indiquez votre adresse : nous vous envoyons un lien pour choisir votre mot de passe.",
     "linkSent": "Si un compte existe pour {{email}}, un lien vient de lui être envoyé. Ouvrez-le dans ce navigateur.",
@@ -4972,6 +4971,25 @@
       "network": "Connexion au serveur impossible. Vérifiez votre réseau.",
       "emailRequired": "Ce compte ne communique pas d'adresse e-mail. Ajoutez-en une chez le fournisseur, ou créez un compte avec votre e-mail.",
       "generic": "La connexion a échoué. Réessayez."
+    },
+    "legal": {
+      "prefix": "En continuant, vous acceptez les",
+      "terms": "conditions d'utilisation",
+      "and": "et la",
+      "privacy": "politique de confidentialité"
     }
+  },
+  "betaInvite": {
+    "title": "Rejoignez la bêta premium",
+    "lead": "Pendant la bêta, un nombre limité d'entrepreneurs utilise gratuitement les offres les plus complètes d'IDEM.",
+    "points": {
+      "offers": "Business plan niveau cabinet, identité et réseaux sociaux, application et mise en ligne",
+      "credits": "Des crédits rechargés chaque mois, jusqu'à la fin de la bêta",
+      "feedback": "En échange : vos retours sur ce qui marche et ce qui manque"
+    },
+    "join": "Demander mon accès",
+    "later": "Plus tard",
+    "close": "Fermer",
+    "note": "Le formulaire s'ouvre dans un nouvel onglet."
   }
 }

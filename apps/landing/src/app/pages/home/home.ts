@@ -11,6 +11,7 @@ import { JourneyComponent } from '../../components/journey/journey';
 import { OfferEcosystemComponent } from '../../components/offer-ecosystem/offer-ecosystem';
 import { TechnologySovereigntyComponent } from '../../components/technology-sovereignty/technology-sovereignty';
 import { Cta } from '../../components/cta/cta';
+import { BetaProgram } from '../../components/beta-program/beta-program';
 
 @Component({
   selector: 'app-home',
@@ -23,6 +24,7 @@ import { Cta } from '../../components/cta/cta';
     OfferEcosystemComponent,
     TechnologySovereigntyComponent,
     Cta,
+    BetaProgram,
   ],
   templateUrl: './home.html',
   styleUrl: './home.css',

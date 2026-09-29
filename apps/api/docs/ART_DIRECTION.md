@@ -2,6 +2,8 @@
 
 How IDEM produces visual deliverables that belong to the same brand and do not look like machine output. Read it before adding a visual generation or touching a composition prompt.
 
+> **Scope.** This document governs the deliverables generated **for a customer's brand** (charter, social visuals, business plan, deck, website): they follow that brand's own art direction. The illustrations of **IDEM's own interface** (modals, sections, empty states) follow a different, fixed rule: one element of African culture chosen for what the screen means, drawn in line art. See `AGENTS.md` § 4 and `PRODUCT.md`.
+
 ## The problem
 
 A model given a vague brief returns the **average of its corpus**. That is the definition of a probabilistic generator, not a lack of talent: ask for "a modern, clean page" and you get the consensual modern clean page — purple-to-blue gradient, Inter, centred hero, three rounded cards with soft shadows, "Elevate your business".
