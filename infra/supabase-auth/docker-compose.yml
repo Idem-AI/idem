@@ -1,0 +1,132 @@
+# Module d'authentification Supabase auto-hébergé (GoTrue + Postgres).
+#
+# Seul le service d'authentification est déployé : ni Kong, ni PostgREST, ni
+# Studio. Les fronts parlent directement à GoTrue (`@supabase/auth-js`), et
+# l'API IDEM vérifie les jetons qu'il émet avant de poser ses propres cookies
+# de session. Voir README.md.
+#
+#   cp .env.example .env   # puis remplir
+#   docker compose up -d
+
+name: idem-auth
+
+volumes:
+  auth_db_data:
+
+networks:
+  # Nom fixe : l'API IDEM rejoint ce réseau (external) pour joindre GoTrue en
+  # http://idem-auth:9999 sans passer par l'extérieur.
+  idem-auth:
+    name: idem-auth
+    driver: bridge
+
+services:
+  auth-db:
+    image: postgres:16-alpine
+    container_name: idem-auth-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: '${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD manquant}'
+      POSTGRES_DB: auth
+      # Lu par init/00-auth-roles.sh au premier démarrage uniquement.
+      AUTH_ADMIN_PASSWORD: '${AUTH_ADMIN_PASSWORD:?AUTH_ADMIN_PASSWORD manquant}'
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - idem-auth
+    # Aucun port publié : seule GoTrue parle à cette base.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d auth']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  auth:
+    image: supabase/gotrue:v2.197.0
+    container_name: idem-auth
+    restart: unless-stopped
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    ports:
+      # Publié sur la boucle locale : le reverse proxy (auth.idem.africa) le sert en HTTPS.
+      - '127.0.0.1:${AUTH_PORT:-9999}:9999'
+    networks:
+      - idem-auth
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:9999/health']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      # URL publique de ce service : base des liens des e-mails et des callbacks OAuth.
+      API_EXTERNAL_URL: '${AUTH_PUBLIC_URL:?AUTH_PUBLIC_URL manquant}'
+
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: 'postgres://supabase_auth_admin:${AUTH_ADMIN_PASSWORD}@auth-db:5432/auth?search_path=auth&sslmode=disable'
+      DB_NAMESPACE: auth
+
+      # Page d'arrivée par défaut et redirections autorisées (le dashboard seul
+      # porte l'écran de connexion de tout IDEM).
+      GOTRUE_SITE_URL: '${AUTH_SITE_URL:?AUTH_SITE_URL manquant}'
+      GOTRUE_URI_ALLOW_LIST: '${AUTH_REDIRECT_ALLOW_LIST:-}'
+
+      # Jetons d'accès : HS256, secret partagé avec l'API IDEM (SUPABASE_JWT_SECRET).
+      GOTRUE_JWT_SECRET: '${AUTH_JWT_SECRET:?AUTH_JWT_SECRET manquant}'
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_AUD: authenticated
+      # Signalée « dépréciée » au démarrage, mais toujours lue : sans elle, les
+      # comptes créés par l'API d'administration (reprise) ont un rôle vide.
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+
+      GOTRUE_DISABLE_SIGNUP: 'false'
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: 'true'
+      # Confirmation obligatoire : l'API ne rattache un compte existant qu'à une
+      # adresse vérifiée. L'auto-confirmation permettrait de s'inscrire avec
+      # l'adresse d'un autre et de prendre son compte.
+      GOTRUE_MAILER_AUTOCONFIRM: 'false'
+      GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED: 'true'
+      GOTRUE_PASSWORD_MIN_LENGTH: 8
+      GOTRUE_EXTERNAL_PHONE_ENABLED: 'false'
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: 'false'
+      GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED: 'true'
+
+      GOTRUE_SMTP_HOST: '${AUTH_SMTP_HOST:?AUTH_SMTP_HOST manquant}'
+      GOTRUE_SMTP_PORT: '${AUTH_SMTP_PORT:-587}'
+      GOTRUE_SMTP_USER: '${AUTH_SMTP_USER:-}'
+      GOTRUE_SMTP_PASS: '${AUTH_SMTP_PASS:-}'
+      GOTRUE_SMTP_ADMIN_EMAIL: '${AUTH_SMTP_SENDER:-no-reply@idem.africa}'
+      GOTRUE_SMTP_SENDER_NAME: '${AUTH_SMTP_SENDER_NAME:-IDEM}'
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: 'Confirmez votre adresse IDEM'
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: 'Choisissez votre mot de passe IDEM'
+      GOTRUE_MAILER_SUBJECTS_EMAIL_CHANGE: 'Confirmez votre nouvelle adresse IDEM'
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: 'Votre lien de connexion IDEM'
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: '${AUTH_RATE_LIMIT_EMAIL_SENT:-60}'
+      # Délai minimal entre deux e-mails à la même adresse.
+      GOTRUE_SMTP_MAX_FREQUENCY: '${AUTH_SMTP_MAX_FREQUENCY:-60s}'
+
+      # Fournisseurs OAuth. Callback à déclarer chez chacun : ${AUTH_PUBLIC_URL}/callback
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: '${AUTH_GOOGLE_ENABLED:-false}'
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: '${AUTH_GOOGLE_CLIENT_ID:-}'
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: '${AUTH_GOOGLE_SECRET:-}'
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: '${AUTH_PUBLIC_URL}/callback'
+
+      GOTRUE_EXTERNAL_APPLE_ENABLED: '${AUTH_APPLE_ENABLED:-false}'
+      GOTRUE_EXTERNAL_APPLE_CLIENT_ID: '${AUTH_APPLE_CLIENT_ID:-}'
+      # JWT signé avec la clé .p8 d'Apple, valable 6 mois au plus :
+      # à régénérer avec scripts/apple-client-secret.mjs.
+      GOTRUE_EXTERNAL_APPLE_SECRET: '${AUTH_APPLE_SECRET:-}'
+      GOTRUE_EXTERNAL_APPLE_REDIRECT_URI: '${AUTH_PUBLIC_URL}/callback'
+
+      # LinkedIn en OpenID Connect (`linkedin_oidc`) : l'ancien fournisseur `linkedin` est obsolète.
+      GOTRUE_EXTERNAL_LINKEDIN_OIDC_ENABLED: '${AUTH_LINKEDIN_ENABLED:-false}'
+      GOTRUE_EXTERNAL_LINKEDIN_OIDC_CLIENT_ID: '${AUTH_LINKEDIN_CLIENT_ID:-}'
+      GOTRUE_EXTERNAL_LINKEDIN_OIDC_SECRET: '${AUTH_LINKEDIN_SECRET:-}'
+      GOTRUE_EXTERNAL_LINKEDIN_OIDC_REDIRECT_URI: '${AUTH_PUBLIC_URL}/callback'
+
+      GOTRUE_LOG_LEVEL: '${AUTH_LOG_LEVEL:-info}'

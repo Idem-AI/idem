@@ -79,6 +79,15 @@ const UserSchema = new Schema<UserDocument>(
     githubIntegration: { type: GitHubIntegrationSchema },
     refreshTokens: [{ type: RefreshTokenSchema }],
     policyAcceptance: { type: PolicyAcceptanceSchema },
+    authId: { type: String },
+    authProviders: [{ type: String }],
+    emailVerified: { type: Boolean },
+    sessionsRevokedAt: { type: Date },
+    authMigration: {
+      importedAt: { type: Date },
+      linkedAt: { type: Date },
+      linkedBy: { type: String, enum: ['import', 'verified-email'] },
+    },
   },
   {
     timestamps: true,
@@ -94,6 +103,13 @@ const UserSchema = new Schema<UserDocument>(
 // - uid: { type: String, required: true, unique: true }
 // - email: { type: String, required: true, unique: true }
 // Declaring them here as well causes duplicate schema index warnings.
+
+// Compte du serveur d'authentification (Supabase) → utilisateur IDEM.
+// Partiel plutôt que sparse : les comptes pas encore rattachés n'ont pas le champ.
+UserSchema.index(
+  { authId: 1 },
+  { unique: true, partialFilterExpression: { authId: { $type: 'string' } } }
+);
 
 // Recherche par displayName (recherche utilisateur)
 UserSchema.index({ displayName: 1 });

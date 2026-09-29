@@ -33,11 +33,13 @@
     "check:payments": "ts-node --transpile-only api/scripts/checkPayments.ts",
     "check:payments:sandbox": "ts-node --transpile-only api/scripts/checkPaymentsSandbox.ts",
     "grant:welcome": "ts-node --transpile-only api/scripts/grantWelcomeCredit.ts",
+    "auth:import": "ts-node --transpile-only api/scripts/importAuthAccounts.ts",
     "mockups:provider": "ts-node --transpile-only api/scripts/setMockupProvider.ts",
     "check:indexes": "ts-node --transpile-only api/scripts/checkIndexes.ts",
     "check:flyer": "ts-node --transpile-only api/scripts/checkFlyerComposition.ts",
     "check:comm": "ts-node --transpile-only api/scripts/checkCommunicationPlans.ts",
-    "check:inputs": "ts-node --transpile-only api/scripts/checkProjectInputs.ts"
+    "check:inputs": "ts-node --transpile-only api/scripts/checkProjectInputs.ts",
+    "check:auth": "ts-node --transpile-only api/scripts/checkAuthFlow.ts"
   },
   "author": "arolleaguekeng",
   "license": "MIT",
@@ -54,7 +56,6 @@
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
     "file-type": "^16.5.4",
-    "firebase-admin": "^13.2.0",
     "fs-extra": "^11.0.4",
     "helmet": "^8.1.0",
     "hpp": "^0.2.3",

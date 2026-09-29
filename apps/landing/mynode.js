@@ -19,22 +19,6 @@ if (!fs.existsSync(envPath)) {
   process.exit(1);
 }
 
-// Variables requises
-const requiredVars = [
-  'FIREBASE_API_KEY',
-  'FIREBASE_AUTH_DOMAIN',
-  'FIREBASE_PROJECT_ID',
-  'FIREBASE_APP_ID'
-];
-
-// Vérifier que toutes les variables requises sont présentes et configurées
-const missing = requiredVars.filter(v => !process.env[v] || process.env[v].includes('your_'));
-if (missing.length > 0) {
-  console.error(`\n❌ Variables d'environnement manquantes ou non configurées:`);
-  missing.forEach(v => console.error(`   - ${v}`));
-  console.error(`\n📝 Éditez ${envFile} et remplacez les valeurs par défaut.\n`);
-  process.exit(1);
-}
 
 // Générer le contenu du fichier environment.ts
 const envFileContent = `// ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER MANUELLEMENT
@@ -47,13 +31,8 @@ export const environment = {
   waitlistUrl: '${process.env.WAITLIST_URL || 'https://forms.gle/gP7fr8te9qMUovad6'}',
   analytics: {
     enabled: ${process.env.ANALYTICS_ENABLED || (isProduction ? 'true' : 'false')},
-  },
-  firebase: {
-    apiKey: '${process.env.FIREBASE_API_KEY}',
-    authDomain: '${process.env.FIREBASE_AUTH_DOMAIN}',
-    projectId: '${process.env.FIREBASE_PROJECT_ID}',
-    appId: '${process.env.FIREBASE_APP_ID}',
-    measurementId: '${process.env.FIREBASE_MEASUREMENT_ID || ''}',
+    // Identifiant de mesure Google Analytics 4 (G-XXXXXXX) ; vide = aucun suivi.
+    measurementId: '${process.env.GA_MEASUREMENT_ID || ''}',
   },
   services: {
     domain: '${process.env.SERVICES_DOMAIN || 'https://idem.africa'}',

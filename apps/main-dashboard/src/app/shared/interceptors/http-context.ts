@@ -2,7 +2,7 @@ import { HttpContext, HttpContextToken } from '@angular/common/http';
 
 /**
  * Marks a request as "third-party": the auth interceptor must not attach the
- * Firebase bearer token to it. Use it for every call that leaves our own
+ * bearer token to it. Use it for every call that leaves our own
  * infrastructure (Google Fonts, CDNs…) so no credential leaks to a host that
  * has no business seeing it.
  */

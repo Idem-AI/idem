@@ -53,7 +53,7 @@ export interface IdemProfile {
    * older build — in which case the local role is left as it is.
    */
   isSuperUser?: boolean;
-  /** Adresse vérifiée par Firebase — condition pour rattacher un compte existant. */
+  /** Adresse vérifiée par le serveur d'authentification — condition pour rattacher un compte existant. */
   emailVerified?: boolean;
 }
 

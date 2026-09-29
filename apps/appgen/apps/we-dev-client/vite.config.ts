@@ -15,7 +15,7 @@ export default defineConfig(async ({ mode, command }) => {
   // `loadEnv(…, '')` renvoie TOUT l'environnement (fichiers .env ET variables du
   // processus). L'injecter tel quel via `define: { 'process.env': env }`
   // publiait dans le JavaScript servi aux visiteurs chaque secret présent au
-  // moment du build : clé privée Firebase, clés LLM, mots de passe… Tout ce qui
+  // moment du build : clés privées, clés LLM, mots de passe… Tout ce qui
   // doit être lisible côté client porte le préfixe `REACT_APP_`.
   const publicEnv: Record<string, string> = Object.fromEntries(
     Object.entries(env).filter(([key]) => key.startsWith('REACT_APP_'))

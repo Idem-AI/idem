@@ -261,9 +261,8 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      # IPv6 egress to Google's auth endpoints (googleapis.com) is blackholed
-      # in this environment: firebase-admin's verifyIdToken/verifySessionCookie
-      # calls hang ~12s then fail with 401/403. Force IPv4 DNS resolution.
+      # IPv6 egress to Google's endpoints (googleapis.com, used by Vertex AI) is
+      # blackholed in this environment: calls hang ~12s. Force IPv4 DNS resolution.
       NODE_OPTIONS: '--dns-result-order=ipv4first'
       CORS_ALLOWED_ORIGINS: 'http://localhost:4200,http://localhost:4201,http://localhost:4202,http://localhost:3003,http://localhost:3004,http://localhost:8000'
       MONGODB_URI: 'mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongodb:27017/${MONGODB_DATABASE}?authSource=admin'
@@ -282,14 +281,14 @@ services:
       IDEPLOY_DB_USERNAME: coolify
       IDEPLOY_DB_PASSWORD: password
     # IPv6 to these hosts is blackholed here. NODE_OPTIONS=--dns-result-order
-    # only fixes Node's own http(s)/dns.lookup path; firebase-admin's HTTP
-    # client (gaxios/undici) does its own IPv4/IPv6 racing that ignores it, so
-    # verifyIdToken/createSessionCookie calls to Google were taking ~8-12s and
-    # often losing the race → 401. Pin IPv4 directly to remove the AAAA choice.
+    # only fixes Node's own http(s)/dns.lookup path; the Google client
+    # (gaxios/undici) does its own IPv4/IPv6 racing that ignores it. Pin IPv4
+    # directly to remove the AAAA choice.
+    # host.docker.internal: the self-hosted auth server (infra/supabase-auth)
+    # runs in its own compose project and is reached through the host.
     extra_hosts:
+      - 'host.docker.internal:host-gateway'
       - 'registry.npmjs.org:104.16.9.34'
-      - 'identitytoolkit.googleapis.com:172.217.113.4'
-      - 'securetoken.googleapis.com:172.217.114.4'
       - 'www.googleapis.com:172.217.119.4'
       - 'oauth2.googleapis.com:173.194.222.95'
       - 'accounts.google.com:192.178.223.84'
@@ -413,9 +412,8 @@ services:
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: 'http://localhost:3000'
-      NEXT_PUBLIC_FIREBASE_API_KEY: '${FIREBASE_API_KEY}'
-      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: '${FIREBASE_AUTH_DOMAIN}'
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: '${FIREBASE_PROJECT_ID}'
+      # Self-hosted auth server, as reached by the browser (mynode.js → environment.auth.url).
+      AUTH_URL: '${AUTH_URL:-http://localhost:9999}'
       # SSO redirect target for redirect=ideploy after login (mynode.js reads
       # this into environment.services.ideploy.url). Points at the new
       # ideploy-web (Angular) rewrite, not the old Laravel app on :8000.
@@ -472,7 +470,6 @@ services:
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: 'http://localhost:3000'
-      NEXT_PUBLIC_FIREBASE_API_KEY: '${FIREBASE_API_KEY}'
     volumes:
       - ./apps/appgen:/app/apps/appgen:cached
       - ./packages:/app/packages:cached

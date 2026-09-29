@@ -13,7 +13,6 @@ import { revisionContextMiddleware } from './utils/revision-context.util';
 import { describeGeminiBackend, isGeminiConfigured } from './config/google-genai.client';
 import { aiUsageContextMiddleware } from './utils/ai-usage-context.util';
 import metricsRouter from './routes/metrics.routes';
-import admin from 'firebase-admin';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { applySecurity, auditLogger, redactServerErrors } from './middleware/security.middleware';
@@ -55,33 +54,18 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import swaggerOptions from './config/swagger.config';
 
-function initFirebase(): void {
-  // Firebase Auth initialization (kept for authentication only - backward compatibility)
-  const serviceAccountFromEnv = {
-    type: 'service_account',
-    project_id: process.env.FIREBASE_PROJECT_ID,
-    private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-    // Newlines already normalised by loadSecrets(), but keep this safe for
-    // values pulled from a raw shell env.
-    private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    client_email: process.env.FIREBASE_CLIENT_EMAIL,
-    client_id: process.env.FIREBASE_CLIENT_ID,
-    auth_uri: 'https://accounts.google.com/o/oauth2/auth',
-    token_uri: 'https://oauth2.googleapis.com/token',
-    auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-    client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
-  };
-
-  if (serviceAccountFromEnv.project_id && serviceAccountFromEnv.private_key) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccountFromEnv as admin.ServiceAccount),
-      projectId: process.env.FIREBASE_PROJECT_ID,
-    });
-    console.log('Firebase Admin SDK initialized successfully (Auth only).');
+/**
+ * Authentification : un serveur Supabase auto-hébergé émet les jetons d'accès,
+ * l'API les échange contre ses propres cookies de session. Une configuration
+ * incomplète se voit au démarrage, pas à la première connexion.
+ */
+function checkAuthConfig(): void {
+  const missing = ['SUPABASE_AUTH_URL', 'SUPABASE_JWT_SECRET'].filter((name) => !process.env[name]);
+  if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) missing.push('SESSION_SECRET');
+  if (missing.length) {
+    console.error(`Authentication NOT CONFIGURED — missing: ${missing.join(', ')}. Sign-in will fail.`);
   } else {
-    console.error(
-      'Firebase Admin SDK initialization failed: Missing credentials in environment variables.'
-    );
+    console.log(`Authentication server: ${process.env.SUPABASE_AUTH_URL}`);
   }
 }
 
@@ -294,7 +278,7 @@ app.use((err: Error & { status?: number; type?: string }, req: Request, res: Res
 
 async function bootstrap() {
   await loadSecrets();
-  initFirebase();
+  checkAuthConfig();
 
   // Backend Gemini (Vertex AI ou AI Studio) : tracé au démarrage plutôt qu'à la
   // première génération, pour qu'une configuration incomplète se voie tout de
@@ -430,6 +414,5 @@ async function shutdown(signal: string) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-export { admin };
 
 export default app;
