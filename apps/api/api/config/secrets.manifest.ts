@@ -1,5 +1,5 @@
 /**
- * Secrets de l'API IDEM dans Google Secret Manager (`api--<VARIABLE>`).
+ * Secrets de l'API IDEM dans Infisical (projet `api`, environnement `production`).
  *
  * Seules les valeurs réellement secrètes figurent ici. Identifiants publics
  * (projet Firebase, client IDs OAuth, clé web Firebase), URL, ports, limites et
@@ -43,8 +43,4 @@ export const SECRET_MANIFEST = {
     'GITHUB_STATE_SECRET',
     'METRICS_TOKEN',
   ],
-  // Transitoire : les secrets historiques de l'API n'ont pas d'index. Tant
-  // qu'ils ne sont pas migrés (`idem-secrets.mjs migrate-legacy api`), l'API
-  // les relit sous leur ancien nom. À retirer une fois la migration faite.
-  legacyUnprefixedFallback: true,
 } as const satisfies SecretManifest;

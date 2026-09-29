@@ -1,22 +1,18 @@
 /**
- * Chargement des secrets depuis Google Secret Manager.
+ * Chargement des secrets depuis Infisical (self-hosted).
  *
  * ⚠️ Fichier partagé à l'identique par les backends IDEM (api, appgen,
  * ideploy-api) — chacun l'embarque, parce que leurs images Docker ne voient
  * que leur propre dossier. Modifier les trois copies ensemble.
  *
- * ## Nommage indexé
+ * ## Un projet Infisical par application
  *
- * Chaque secret porte l'index de l'application qui le lit :
- *
- *     <SECRET_ENV_PREFIX><app>--<VARIABLE>
- *     api--FIREBASE_PRIVATE_KEY   appgen--GLM_API_KEY   ideploy-api--REDIS_PASSWORD
- *
- * Deux applications qui utilisent la même valeur ont donc chacune leur secret :
- * on sait toujours qui lit quoi, on révoque l'accès d'une app sans toucher aux
- * autres, et une rotation se fait application par application.
- * `SECRET_ENV_PREFIX` (vide par défaut) sépare les environnements :
- * `staging-api--…`.
+ * Chaque application (`api`, `appgen`, `ideploy-api`) a son propre projet
+ * Infisical, avec son propre environnement `production` et sa propre
+ * identité machine (Universal Auth) — accès scopé à ce seul projet. L'isolement
+ * se fait donc au niveau du projet : pas besoin de préfixer les noms de
+ * secrets (contrairement à un magasin partagé entre applications), le nom
+ * du secret dans Infisical est directement `<VARIABLE>`.
  *
  * ## Ce qui est un secret
  *
@@ -27,24 +23,19 @@
  *
  *  - `USE_SECRET_MANAGER=true`, ou `NODE_ENV=production` sans
  *    `USE_SECRET_MANAGER=false` ;
- *  - projet : `GCP_PROJECT_ID` (ou `GOOGLE_CLOUD_PROJECT`) ;
- *  - identité : Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS`
- *    sur un serveur hors GCP), avec le rôle `roles/secretmanager.secretAccessor`
- *    limité aux secrets de l'application (condition IAM sur le préfixe).
+ *  - instance : `INFISICAL_SITE_URL` (URL de l'instance self-hosted) ;
+ *  - projet : `INFISICAL_PROJECT_ID` (celui de cette application) ;
+ *  - identité : `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`
+ *    (Universal Auth de l'identité machine scopée à ce projet).
  */
 
 export interface SecretManifest {
-  /** Index de l'application dans les noms de secrets. */
+  /** Nom de l'application (uniquement pour les logs — l'isolement se fait par projet Infisical, pas par préfixe). */
   app: string;
   /** Secrets sans lesquels l'application ne démarre pas. */
   required: readonly string[];
   /** Secrets propres à une fonctionnalité : absents, un avertissement suffit. */
   optional: readonly string[];
-  /**
-   * Relire l'ancien nom sans index si le nom indexé n'existe pas encore.
-   * Transitoire : le temps de migrer les secrets existants, puis à retirer.
-   */
-  legacyUnprefixedFallback?: boolean;
 }
 
 export interface LoadSecretsResult {
@@ -53,10 +44,8 @@ export interface LoadSecretsResult {
   missingOptional: string[];
 }
 
-/** Nom du secret dans Secret Manager pour une variable d'une application. */
-export function secretIdFor(app: string, variable: string, envPrefix = process.env.SECRET_ENV_PREFIX || ''): string {
-  return `${envPrefix}${app}--${variable}`;
-}
+/** Environnement Infisical utilisé — un seul, la prod, pour l'instant. */
+const INFISICAL_ENVIRONMENT = process.env.INFISICAL_ENVIRONMENT || 'production';
 
 export function isSecretManagerEnabled(): boolean {
   if (process.env.NODE_ENV === 'test') return false;
@@ -87,64 +76,57 @@ export async function loadSecretsFromManager(
     return { source: 'env', loaded: [], missingOptional: manifest.optional.filter((k) => !process.env[k]) };
   }
 
-  const projectId =
-    process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID;
-  if (!projectId) {
-    throw new Error('[secrets] GCP_PROJECT_ID (or GOOGLE_CLOUD_PROJECT) is required to use Secret Manager.');
+  const siteUrl = process.env.INFISICAL_SITE_URL;
+  const projectId = process.env.INFISICAL_PROJECT_ID;
+  const clientId = process.env.INFISICAL_CLIENT_ID;
+  const clientSecret = process.env.INFISICAL_CLIENT_SECRET;
+  if (!siteUrl || !projectId || !clientId || !clientSecret) {
+    throw new Error(
+      '[secrets] INFISICAL_SITE_URL, INFISICAL_PROJECT_ID, INFISICAL_CLIENT_ID and INFISICAL_CLIENT_SECRET are all required to use Infisical.'
+    );
   }
 
-  const { SecretManagerServiceClient } = await import('@google-cloud/secret-manager');
-  const client = new SecretManagerServiceClient();
+  const { InfisicalSDK } = await import('@infisical/sdk');
+  const client = new InfisicalSDK({ siteUrl });
+  await client.auth().universalAuth.login({ clientId, clientSecret });
 
-  const read = async (secretId: string): Promise<string | undefined> => {
+  const read = async (variable: string): Promise<string | undefined> => {
     try {
-      const [version] = await client.accessSecretVersion({
-        name: `projects/${projectId}/secrets/${secretId}/versions/latest`,
+      const secret = await client.secrets().getSecret({
+        projectId,
+        environment: INFISICAL_ENVIRONMENT,
+        secretPath: '/',
+        secretName: variable,
       });
-      return version.payload?.data?.toString();
-    } catch (error: unknown) {
-      // 5 = NOT_FOUND : le secret n'existe pas (encore) sous ce nom.
-      if ((error as { code?: number })?.code === 5) return undefined;
-      throw error;
+      return secret?.secretValue;
+    } catch {
+      // Infisical renvoie une erreur (pas une valeur nulle) pour un secret absent.
+      // On la traite comme "non trouvé" plutôt que de la faire remonter ici : le
+      // decompte required/optional ci-dessous distingue déjà ce qui est fatal.
+      return undefined;
     }
   };
 
   const results = await Promise.allSettled(
-    all.map(async (variable) => {
-      const indexed = secretIdFor(manifest.app, variable);
-      let value = await read(indexed);
-      let usedLegacy = false;
-      if (value === undefined && manifest.legacyUnprefixedFallback) {
-        value = await read(variable);
-        usedLegacy = value !== undefined;
-      }
-      return { variable, indexed, value, usedLegacy };
-    })
+    all.map(async (variable) => ({ variable, value: await read(variable) }))
   );
 
   const loaded: string[] = [];
-  const legacy: string[] = [];
   for (const [index, result] of results.entries()) {
     if (result.status === 'rejected') {
       const reason = result.reason as { message?: string };
       log.warn(`[secrets] ${manifest.app}: could not read ${all[index]}: ${reason?.message ?? reason}`);
       continue;
     }
-    const { variable, value, usedLegacy } = result.value;
+    const { variable, value } = result.value;
     if (value === undefined) continue;
     if (process.env[variable] === undefined || process.env[variable] === '') {
       process.env[variable] = value;
     }
     loaded.push(variable);
-    if (usedLegacy) legacy.push(variable);
   }
 
-  log.log(`[secrets] ${manifest.app}: ${loaded.length}/${all.length} secrets loaded from Secret Manager (project=${projectId}).`);
-  if (legacy.length > 0) {
-    log.warn(
-      `[secrets] ${manifest.app}: read from legacy un-indexed names, migrate them: ${legacy.join(', ')}`
-    );
-  }
+  log.log(`[secrets] ${manifest.app}: ${loaded.length}/${all.length} secrets loaded from Infisical (project=${projectId}).`);
 
   const missingRequired = manifest.required.filter((k) => !process.env[k]);
   if (missingRequired.length > 0) {
