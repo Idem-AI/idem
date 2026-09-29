@@ -16,15 +16,18 @@
         @for (provider of providers(); track provider.id) {
           <button
             type="button"
-            class="outer-button w-full justify-center"
+            class="outer-button login-card__provider w-full justify-center"
             [disabled]="busy() !== null"
             (click)="continueWith(provider.id)"
           >
-            @if (busy() === provider.id) {
-              <idem-loader size="xs" />
-            } @else {
-              <i [class]="provider.icon" aria-hidden="true"></i>
-            }
+            <!-- Icône à position fixe : alignée d'un bouton à l'autre, quel que soit le libellé -->
+            <span class="login-card__provider-icon" aria-hidden="true">
+              @if (busy() === provider.id) {
+                <idem-loader size="xs" />
+              } @else {
+                <i [class]="provider.icon"></i>
+              }
+            </span>
             {{ 'auth.continueWith' | translate: { provider: provider.label } }}
           </button>
         }
