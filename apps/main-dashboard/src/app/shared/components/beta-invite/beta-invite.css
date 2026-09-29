@@ -1,0 +1,176 @@
+/* Dialogue natif : focus piégé, Échap et voile gérés par le navigateur. */
+.beta-invite {
+  width: min(100% - 2rem, 28rem);
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  overflow: visible;
+}
+
+.beta-invite::backdrop {
+  background: oklch(0.15 0.02 264 / 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.beta-invite[open] .beta-invite__panel {
+  animation: beta-invite-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.beta-invite[open]::backdrop {
+  animation: beta-invite-fade 180ms ease-out;
+}
+
+.beta-invite__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.75rem 1.5rem 1.5rem;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+  .beta-invite__panel {
+    padding: 2rem 2rem 1.75rem;
+  }
+}
+
+.beta-invite__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  color: var(--color-text-tertiary);
+  transition: color 150ms ease-out, background-color 150ms ease-out;
+}
+
+.beta-invite__close:hover,
+.beta-invite__close:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--glass-bg-light);
+}
+
+.beta-invite__art {
+  display: flex;
+  justify-content: center;
+  padding: 1.25rem 0 0.5rem;
+  color: var(--color-text-primary);
+}
+
+.beta-invite__art svg {
+  width: 13rem;
+  height: auto;
+}
+
+.beta-invite__title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.beta-invite__lead {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  text-align: center;
+  text-wrap: pretty;
+  color: var(--color-text-secondary);
+}
+
+.beta-invite__points {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin: 0.25rem 0;
+  padding: 1rem;
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: 0.875rem;
+  background: var(--color-surface-2);
+}
+
+.beta-invite__points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-text-primary);
+}
+
+.beta-invite__points .pi {
+  margin-top: 0.15rem;
+  font-size: 0.875rem;
+  color: var(--color-primary-500);
+}
+
+.beta-invite__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.beta-invite__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.beta-invite__later {
+  padding: 0.625rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: color 150ms ease-out, background-color 150ms ease-out;
+}
+
+.beta-invite__later:hover,
+.beta-invite__later:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--glass-bg-light);
+}
+
+.beta-invite__note {
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+@keyframes beta-invite-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes beta-invite-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beta-invite[open] .beta-invite__panel,
+  .beta-invite[open]::backdrop {
+    animation: none;
+  }
+}

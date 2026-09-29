@@ -1,5 +1,5 @@
-<div class="glass-card login-card flex flex-col gap-5 p-6 sm:p-8">
-  <h1 class="text-2xl font-semibold text-text-primary text-center">
+<div class="flex flex-col gap-5">
+  <h1 class="text-2xl font-bold text-text-primary">
     @switch (mode()) {
       @case ('signup') { {{ 'auth.signUpTitle' | translate }} }
       @case ('forgot') { {{ 'auth.forgotTitle' | translate }} }
@@ -105,12 +105,12 @@
     <div class="flex flex-col items-center gap-2 text-sm">
       @switch (mode()) {
         @case ('signin') {
-          <button type="button" class="font-medium text-primary-500 hover:underline" (click)="switchMode('forgot')">
+          <button type="button" class="font-medium text-primary-500 dark:text-primary-400 hover:underline" (click)="switchMode('forgot')">
             {{ 'auth.forgotPassword' | translate }}
           </button>
           <p class="text-text-secondary">
             {{ 'auth.noAccount' | translate }}
-            <button type="button" class="font-medium text-primary-500 hover:underline" (click)="switchMode('signup')">
+            <button type="button" class="font-medium text-primary-500 dark:text-primary-400 hover:underline" (click)="switchMode('signup')">
               {{ 'auth.createAccount' | translate }}
             </button>
           </p>
@@ -118,26 +118,17 @@
         @case ('signup') {
           <p class="text-text-secondary">
             {{ 'auth.haveAccount' | translate }}
-            <button type="button" class="font-medium text-primary-500 hover:underline" (click)="switchMode('signin')">
+            <button type="button" class="font-medium text-primary-500 dark:text-primary-400 hover:underline" (click)="switchMode('signin')">
               {{ 'auth.signIn' | translate }}
             </button>
           </p>
         }
         @default {
-          <button type="button" class="font-medium text-primary-500 hover:underline" (click)="switchMode('signin')">
+          <button type="button" class="font-medium text-primary-500 dark:text-primary-400 hover:underline" (click)="switchMode('signin')">
             {{ 'auth.backToSignIn' | translate }}
           </button>
         }
       }
     </div>
-
-    @if (mode() === 'signin') {
-      <p class="text-xs text-text-tertiary text-center border-t border-[var(--glass-border-subtle)] pt-4">
-        {{ 'auth.migrationNotice' | translate }}
-        <button type="button" class="font-medium text-primary-500 hover:underline" (click)="switchMode('forgot')">
-          {{ 'auth.migrationAction' | translate }}
-        </button>
-      </p>
-    }
   }
 </div>

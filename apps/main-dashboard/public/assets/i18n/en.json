@@ -4986,7 +4986,6 @@
     "haveAccount": "Already have an account?",
     "backToSignIn": "Back to sign in",
     "signingIn": "Signing you in…",
-    "migrationNotice": "Used to sign in with an email and password? Your account and projects are kept: choose a new password to access them.",
     "migrationAction": "Choose my password",
     "forgotIntro": "Enter your email: we'll send you a link to choose your password.",
     "linkSent": "If an account exists for {{email}}, a link has just been sent. Open it in this browser.",
@@ -5006,6 +5005,25 @@
       "network": "Cannot reach the server. Check your connection.",
       "emailRequired": "This account does not share an email address. Add one with the provider, or create an account with your email.",
       "generic": "Sign-in failed. Please try again."
+    },
+    "legal": {
+      "prefix": "By continuing, you agree to the",
+      "terms": "Terms of Service",
+      "and": "and the",
+      "privacy": "Privacy Policy"
     }
+  },
+  "betaInvite": {
+    "title": "Join the premium beta",
+    "lead": "During the beta, a limited number of entrepreneurs use IDEM's most complete plans for free.",
+    "points": {
+      "offers": "Firm-grade business plan, brand and social media, app and launch",
+      "credits": "Credits topped up every month until the beta ends",
+      "feedback": "In return: your feedback on what works and what's missing"
+    },
+    "join": "Request my access",
+    "later": "Later",
+    "close": "Close",
+    "note": "The form opens in a new tab."
   }
 }

@@ -14,6 +14,7 @@ import { ChatLayoutComponent } from './layouts/chat-layout/chat-layout';
 import { GuidedLayoutComponent } from './layouts/guided-layout/guided-layout';
 import { GuidedLockModalComponent } from './modules/guided/components/guided-lock-modal/guided-lock-modal';
 import { PaywallHostComponent } from './modules/billing/components/paywall-host/paywall-host';
+import { BetaInviteComponent } from './shared/components/beta-invite/beta-invite';
 import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
 
 @Component({
@@ -28,6 +29,7 @@ import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
     GuidedLayoutComponent,
     GuidedLockModalComponent,
     PaywallHostComponent,
+    BetaInviteComponent,
     ModeDockComponent,
     AsyncPipe,
   ],

@@ -1,0 +1,68 @@
+<dialog
+  #dialog
+  class="beta-invite"
+  aria-labelledby="beta-invite-title"
+  aria-describedby="beta-invite-lead"
+  (close)="onClose()"
+  (click)="onBackdropClick($event)"
+>
+  <div class="modal-panel beta-invite__panel">
+    <button
+      type="button"
+      class="beta-invite__close"
+      [attr.aria-label]="'betaInvite.close' | translate"
+      (click)="later()"
+    >
+      <i class="pi pi-times" aria-hidden="true"></i>
+    </button>
+
+    <!-- Une clé dont l'anneau est le bouclier IDEM : l'accès premium -->
+    <div class="beta-invite__art" aria-hidden="true">
+      <svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Anneau : le bouclier -->
+        <path d="M66 18 C92 36 104 58 104 75 C104 92 92 114 66 132 C40 114 28 92 28 75 C28 58 40 36 66 18 Z" stroke-width="2" />
+        <path d="M66 29 C86 44 94 62 94 75 C94 88 86 106 66 121 C46 106 38 88 38 75 C38 62 46 44 66 29 Z" stroke-width="1.5" />
+        <path d="M54 44 L66 52 L78 44 M50 54 L66 64 L82 54" stroke-width="1.5" />
+        <path d="M54 106 L66 98 L78 106 M50 96 L66 86 L82 96" stroke-width="1.5" />
+        <path d="M44 70 L49 75 L44 80 M88 70 L83 75 L88 80" stroke-width="1.5" />
+        <!-- Tige et panneton -->
+        <path d="M104 75 H206" stroke-width="2.25" />
+        <path d="M172 75 V94 H182 V84 H190 V98 H200 V75" stroke-width="2" />
+        <path d="M112 69 V81 M118 69 V81" stroke-width="1.5" />
+        <!-- L'ouverture -->
+        <path d="M218 58 L226 50 M222 75 H232 M218 92 L226 100" stroke-width="1.75" opacity="0.6" />
+        <!-- Cœur du bouclier : le seul détail en couleur -->
+        <path d="M66 66 L73 75 L66 84 L59 75 Z" stroke-width="2" style="color: var(--color-primary-500)" />
+      </svg>
+    </div>
+
+    <h2 id="beta-invite-title" class="beta-invite__title">{{ 'betaInvite.title' | translate }}</h2>
+    <p id="beta-invite-lead" class="beta-invite__lead">{{ 'betaInvite.lead' | translate }}</p>
+
+    <ul class="beta-invite__points">
+      <li>
+        <i class="pi pi-briefcase" aria-hidden="true"></i>
+        <span>{{ 'betaInvite.points.offers' | translate }}</span>
+      </li>
+      <li>
+        <i class="pi pi-sync" aria-hidden="true"></i>
+        <span>{{ 'betaInvite.points.credits' | translate }}</span>
+      </li>
+      <li>
+        <i class="pi pi-comments" aria-hidden="true"></i>
+        <span>{{ 'betaInvite.points.feedback' | translate }}</span>
+      </li>
+    </ul>
+
+    <div class="beta-invite__actions">
+      <button type="button" class="inner-button beta-invite__cta" autofocus (click)="join()">
+        {{ 'betaInvite.join' | translate }}
+        <i class="pi pi-external-link text-xs" aria-hidden="true"></i>
+      </button>
+      <button type="button" class="beta-invite__later" (click)="later()">
+        {{ 'betaInvite.later' | translate }}
+      </button>
+    </div>
+    <p class="beta-invite__note">{{ 'betaInvite.note' | translate }}</p>
+  </div>
+</dialog>
