@@ -1,7 +1,6 @@
-import { Component, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { SeoService } from '../../shared/services/seo.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -11,9 +10,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './ideploy-page.html',
   styleUrl: './ideploy-page.css',
 })
-export class IdeployPage implements OnInit {
-  protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
-  private readonly seoService = inject(SeoService);
+export class IdeployPage {
 
   protected readonly idevUrl = environment.services.idev.url;
   protected readonly ideployUrl = environment.services.ideploy.url;
@@ -79,60 +76,5 @@ export class IdeployPage implements OnInit {
     },
   ];
 
-  ngOnInit(): void {
-    this.setupSeo();
-    this.addStructuredData();
-  }
 
-  private setupSeo(): void {
-    this.seoService.setupPageSeo({
-      title: $localize`:@@ideploy.seo.title:iDeploy — Sovereign Cloud & One-Click App Deployment by Idem`,
-      description: $localize`:@@ideploy.seo.description:Le service de déploiement souverain d'Idem. Déployez vos apps sur VPS ou Cloud en un clic. Alternative africaine aux solutions occidentales avec auto-scaling et monitoring intégré. Zéro DevOps requis.`,
-      path: '/ideploy',
-      keywords: 'cloud souverain Afrique, sovereign hosting, deploy app on VPS, docker swarm automation, one-click deployment, self-hosted cloud, Idem, iDeploy, alternative Heroku, DevOps as a service',
-      ogImage: `${this.seoService.domain}/assets/seo/og-image.webp`,
-    });
-  }
-
-  private addStructuredData(): void {
-    if (!this.isBrowser()) return;
-    if (document.querySelector('script[data-ideploy-structured-data]')) return;
-
-    const structuredData = {
-      '@context': 'https://schema.org',
-      '@type': 'SoftwareApplication',
-      name: 'iDeploy',
-      alternateName: 'iDeploy by Idem',
-      description: 'Simplified application deployment platform. One-click deployment to any cloud, VPS, or custom infrastructure with automatic SSL, monitoring, and cost optimization.',
-      url: `${this.seoService.domain}/ideploy`,
-      applicationCategory: 'DeveloperApplication',
-      operatingSystem: 'Web Browser',
-      softwareVersion: '1.0',
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-        availability: 'https://schema.org/InStock',
-      },
-      author: {
-        '@type': 'Organization',
-        name: 'Idem',
-        url: this.seoService.domain,
-      },
-      featureList: [
-        'One-click deployment',
-        'Custom domains & SSL',
-        'VPS & Cloud support',
-        'Docker Swarm HA',
-        'Full monitoring & logs',
-        'AI cost optimization',
-      ],
-    };
-
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.setAttribute('data-ideploy-structured-data', 'true');
-    script.textContent = JSON.stringify(structuredData);
-    document.head.appendChild(script);
-  }
 }

@@ -1,0 +1,178 @@
+<!doctype html>
+<!--
+  Gabarit des images de partage d'IDEM (1200 × 630).
+
+  C'est un fichier HTML ordinaire : modifiez-le, puis ouvrez
+  http://localhost:3001/og/fr/home.html pour voir le résultat
+  (…/home.png pour l'image). En développement, chaque rechargement relit ce
+  fichier, les textes et les dessins.
+
+  Remplacements faits par l'API (apps/api/api/services/og/ogImage.service.ts) :
+    {{lang}} {{eyebrow}} {{title}} {{subtitle}}
+                    textes, échappés (i18n/<langue>.json) ; eyebrow vide = masqué ;
+                    **…** dans title/subtitle = surligné en couleur primaire
+    {{{tokens}}}    jetons du design system, lus dans packages/shared-styles/styles.css
+    {{{fonts}}}     Vilevile, embarquée
+    {{{illustration}}}  illustrations/<clé>.svg
+    {{motif}} {{logo}}  images embarquées (data URI)
+
+  Règles : TOUJOURS au thème clair (aucune règle sombre ici, aucun
+  @media (prefers-color-scheme: dark)), surface claire, un seul accent (--color-primary-500), le motif en
+  fond, l'illustration au trait posée directement dessus. Rien de décoratif en plus.
+-->
+<html lang="{{lang}}" class="light" style="color-scheme: light">
+  <head>
+    <meta charset="utf-8" />
+    {{{fonts}}}
+    <style>
+      {{{tokens}}}
+
+      :root {
+        /* Le motif au même niveau que la home du landing en thème clair :
+           la couche du design system (0,3 × force, body::before) plus celle
+           du landing (0,1 × force, app.html), à sa taille naturelle. */
+        --og-motif-opacity: calc(0.4 * var(--idem-motif-strength));
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+
+      body {
+        position: relative;
+        font-family: 'Vilevile', sans-serif;
+        color: var(--idem-text-primary);
+        background: var(--idem-bg-darker);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Le motif IDEM, en fond, comme dans les applications. */
+      .motif {
+        position: absolute;
+        inset: 0;
+        background-image: url('{{motif}}');
+        background-repeat: repeat;
+        background-position: top left;
+        opacity: var(--og-motif-opacity);
+      }
+
+      .frame {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        gap: 56px;
+        height: 100%;
+        padding: 60px 64px 52px 72px;
+      }
+
+      .copy {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .logo {
+        height: 56px;
+        width: auto;
+        align-self: flex-start;
+      }
+
+      .text {
+        margin-top: auto;
+        margin-bottom: auto;
+        padding-bottom: 56px;
+      }
+
+      .eyebrow {
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--color-primary-500);
+      }
+
+      .eyebrow:empty {
+        display: none;
+      }
+
+      .title {
+        margin-top: 14px;
+        font-size: 60px;
+        line-height: 1.04;
+        font-weight: 900;
+        color: var(--color-secondary-500);
+        /* Trois lignes au plus : le script plus bas réduit le corps s'il le faut. */
+        max-height: calc(3 * 1.04em);
+        overflow: hidden;
+      }
+
+      .subtitle {
+        margin-top: 20px;
+        font-size: 25px;
+        line-height: 1.36;
+        font-weight: 400;
+        color: var(--idem-text-secondary);
+        /* Quatre lignes au plus. */
+        max-height: calc(4 * 1.36em);
+        overflow: hidden;
+      }
+
+      /* Passage mis en valeur dans les textes : **…** dans i18n/<langue>.json. */
+      .hl {
+        color: var(--color-primary-500);
+        font-weight: 700;
+      }
+
+      /* L'illustration, au trait, posée directement sur le fond. */
+      .art {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--idem-text-secondary);
+      }
+
+      .art svg {
+        width: 330px;
+        height: auto;
+        max-height: 400px;
+        overflow: visible;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="motif" aria-hidden="true"></div>
+    <main class="frame">
+      <section class="copy">
+        <img class="logo" src="{{logo}}" alt="IDEM" />
+        <div class="text">
+          <p class="eyebrow">{{eyebrow}}</p>
+          <h1 class="title" data-fit>{{title}}</h1>
+          <p class="subtitle">{{subtitle}}</p>
+        </div>
+      </section>
+      <figure class="art" aria-hidden="true">
+        {{{illustration}}}
+      </figure>
+    </main>
+    <script>
+      // Un titre trop long pour trois lignes perd un peu de corps plutôt que
+      // d'être coupé.
+      document.fonts.ready.then(function () {
+        var el = document.querySelector('[data-fit]');
+        var size = parseFloat(getComputedStyle(el).fontSize);
+        while (el.scrollHeight > el.clientHeight + 1 && size > 40) {
+          size -= 2;
+          el.style.fontSize = size + 'px';
+        }
+        document.body.setAttribute('data-ready', '');
+      });
+    </script>
+  </body>
+</html>

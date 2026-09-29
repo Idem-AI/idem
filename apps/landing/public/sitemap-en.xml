@@ -1,128 +1,117 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Généré par packages/shared-seo (npm run seo:sync), ne pas éditer à la main. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
-
-  <!-- Homepage -->
   <url>
     <loc>https://idem.africa/en/</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/" />
     <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/" />
-    <lastmod>2026-04-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-
-  <!-- IDEV - AI App Generator -->
-  <url>
-    <loc>https://idem.africa/en/idev</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/idev" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/idev" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/idev" />
-    <lastmod>2026-04-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- iDeploy - Simplified Deployment -->
-  <url>
-    <loc>https://idem.africa/en/ideploy</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/ideploy" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/ideploy" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/ideploy" />
-    <lastmod>2026-04-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Deployment Page -->
-  <url>
-    <loc>https://idem.africa/en/deployment</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/deployment" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/deployment" />
-    <lastmod>2026-04-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- African Market Page -->
-  <url>
-    <loc>https://idem.africa/en/african-market</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/african-market" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/african-market" />
-    <lastmod>2026-04-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Open Source Page -->
-  <url>
-    <loc>https://idem.africa/en/open-source</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/open-source" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/open-source" />
-    <lastmod>2026-04-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Architecture Page -->
-  <url>
-    <loc>https://idem.africa/en/architecture</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/architecture" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/architecture" />
-    <lastmod>2026-04-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Pricing Page -->
   <url>
     <loc>https://idem.africa/en/pricing</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/pricing" />
     <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/pricing" />
-    <lastmod>2026-04-09</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/pricing" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/pricing" />
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
   </url>
-
-  <!-- Solutions Page -->
   <url>
-    <loc>https://idem.africa/en/solutions</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/solutions" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/solutions" />
-    <lastmod>2026-04-09</lastmod>
+    <loc>https://idem.africa/en/simulator</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/simulator" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/simulator" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/simulator" />
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
-
-  <!-- About Page -->
+  <url>
+    <loc>https://idem.africa/en/idev</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/idev" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/idev" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/idev" />
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/en/ideploy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/ideploy" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/ideploy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/ideploy" />
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
   <url>
     <loc>https://idem.africa/en/about</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/about" />
     <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/about" />
-    <lastmod>2026-04-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/about" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/about" />
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-
-  <!-- Privacy Policy -->
+  <url>
+    <loc>https://idem.africa/en/open-source</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/open-source" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/open-source" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/open-source" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/en/african-market</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/african-market" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/african-market" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/african-market" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/en/contact</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/contact" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/contact" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/contact" />
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/en/premium-beta</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/premium-beta" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/premium-beta" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/premium-beta" />
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
   <url>
     <loc>https://idem.africa/en/privacy-policy</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/privacy-policy" />
     <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/privacy-policy" />
-    <lastmod>2026-04-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/privacy-policy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/privacy-policy" />
     <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.3</priority>
   </url>
-
-  <!-- Terms of Service -->
   <url>
     <loc>https://idem.africa/en/terms-of-service</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/terms-of-service" />
     <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/terms-of-service" />
-    <lastmod>2026-04-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/terms-of-service" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/terms-of-service" />
     <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.3</priority>
   </url>
-
+  <url>
+    <loc>https://idem.africa/en/beta-policy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/beta-policy" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/beta-policy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/beta-policy" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/en/simulation-terms</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/simulation-terms" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/simulation-terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/simulation-terms" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
 </urlset>

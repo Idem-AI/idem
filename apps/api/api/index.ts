@@ -97,6 +97,7 @@ import contactRoutes from './routes/contactRoutes';
 import logoImportRoutes from './routes/logo-import.routes';
 import ideployRoutes from './routes/ideploy.routes';
 import appgenRoutes from './routes/appgen.routes';
+import ogRoutes from './routes/og.routes';
 import { communicationRoutes } from './routes/communication.routes';
 import { financeRoutes } from './routes/finance.routes';
 import { simulationRoutes } from './routes/simulation.routes';
@@ -214,6 +215,15 @@ app.use('/api/ideploy', ideployRoutes);
 
 // AppGen routes
 app.use('/appgen', appgenRoutes);
+
+// Images de partage (Open Graph), publiques : voir public/og/README.md
+app.use('/og', ogRoutes);
+
+// L'API n'a rien à indexer, sauf les images de partage : les robots des
+// réseaux sociaux respectent robots.txt avant de les télécharger.
+app.get('/robots.txt', (_req: Request, res: Response) => {
+  res.type('text/plain').send('User-agent: *\nAllow: /og/\nDisallow: /\n');
+});
 
 // Prometheus metrics endpoint (no auth required for scraping)
 app.use('/metrics', metricsRouter);

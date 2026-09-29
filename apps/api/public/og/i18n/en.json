@@ -1,0 +1,70 @@
+{
+  "lang": "en",
+  "pages": {
+    "home": {
+      "eyebrow": "",
+      "title": "The AI that builds profitable businesses",
+      "subtitle": "**More than 500 AI agents** to structure your project, manage your finances, create your brand, your communication strategy and your website, and deploy it in Africa."
+    },
+    "business": {
+      "eyebrow": "IDEM Business",
+      "title": "Turn your idea into a profitable business",
+      "subtitle": "A bank-ready business plan, financial forecasts, brand identity and legal papers."
+    },
+    "simulator": {
+      "eyebrow": "IDEM Simulator",
+      "title": "Test profitability before you invest",
+      "subtitle": "Scenarios, stress tests and breaking points: know what your business needs to hold."
+    },
+    "icode": {
+      "eyebrow": "iCode",
+      "title": "Your business website, written before your eyes",
+      "subtitle": "Describe it in one sentence: AI writes the code, you adjust, you publish."
+    },
+    "ideploy": {
+      "eyebrow": "iDeploy",
+      "title": "Put your business online in one click",
+      "subtitle": "Domain, security certificate and hosting on African servers, no DevOps required."
+    },
+    "pricing": {
+      "eyebrow": "Pricing",
+      "title": "Pay for what moves your business forward",
+      "subtitle": "Packs in CFA francs, paid with Mobile Money, and free credits to get started."
+    },
+    "about": {
+      "eyebrow": "About",
+      "title": "An African team working for entrepreneurs",
+      "subtitle": "IDEM was born in Cameroon so that every idea can become a business that pays."
+    },
+    "open-source": {
+      "eyebrow": "Open source",
+      "title": "Your business, your code, your data",
+      "subtitle": "IDEM is open source under the Apache 2.0 licence and runs on African servers."
+    },
+    "african-market": {
+      "eyebrow": "African market",
+      "title": "Built for African markets",
+      "subtitle": "CFA francs, SYSCOHADA, OHADA, Mobile Money: your local rules, from day one."
+    },
+    "contact": {
+      "eyebrow": "Contact",
+      "title": "Let’s talk about your business",
+      "subtitle": "A question, a partnership, a project: the IDEM team will answer."
+    },
+    "beta": {
+      "eyebrow": "Premium beta",
+      "title": "Launch your business with us, ahead of everyone",
+      "subtitle": "Premium access, renewed credits and a direct line to the IDEM team."
+    },
+    "legal": {
+      "eyebrow": "Legal",
+      "title": "Clear rules, written for you",
+      "subtitle": "IDEM’s terms of service, privacy policy and beta terms."
+    },
+    "not-found": {
+      "eyebrow": "Page not found",
+      "title": "This page no longer exists",
+      "subtitle": "Head back home to build and launch your profitable business."
+    }
+  }
+}

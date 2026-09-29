@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 16 116 70" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- iDeploy — mettre en ligne : la pirogue à la proue dressée, prête à
+       prendre le large. La proue porte la couleur. -->
+  <path d="M8 38 C12 44 16 50 24 56 C40 66 82 66 98 56 C104 52 108 44 112 34" stroke-width="2"/>
+  <path d="M8 38 C18 46 40 50 60 50 C80 50 100 46 112 34" stroke-width="1.6"/>
+  <path d="M20 48 L26 55.4 L28.5 50.6 L35.1 57.6 L38.7 52.5 L45.3 59.1 L50 53.5 L56.2 59.7 L61.8 53.8 L67.3 59.6 L73.4 53.1 L78 58.5 L84.4 51.7 L87.8 56.6 L94.1 49.3 L96.4 53.8 L102 46" stroke-width="1.1" opacity=".75"/>
+  <path d="M44 50 L36 28 M36 28 L33 22 C32 20 34 19 35 21 L38 27" stroke-width="1.6"/>
+  <g style="color: var(--color-primary-500)">
+    <path d="M112 34 L116 26 L110 30 Z" stroke-width="1.8"/>
+    <path d="M104 44 L107 40 L110 44 L107 48 Z" stroke-width="1.6"/>
+  </g>
+  <path d="M14 72 C20 68 26 68 32 72 S44 76 50 72 S62 68 68 72 S80 76 86 72 S98 68 104 72" opacity=".5"/>
+  <path d="M30 80 C36 77 42 77 48 80 S60 83 66 80 S78 77 84 80" opacity=".3"/>
+</svg>

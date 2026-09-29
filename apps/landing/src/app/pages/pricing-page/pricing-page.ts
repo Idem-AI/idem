@@ -1,6 +1,5 @@
-import { Component, ChangeDetectionStrategy, inject, PLATFORM_ID, signal, computed, OnInit } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { SeoService } from '../../shared/services/seo.service';
+import { Component, ChangeDetectionStrategy, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { environment } from '../../../environments/environment';
 
 type PricingEngine = 'business' | 'appgen' | 'ideploy';
@@ -91,9 +90,7 @@ interface ComparisonRow {
   templateUrl: './pricing-page.html',
   styleUrl: './pricing-page.css',
 })
-export class PricingPage implements OnInit {
-  protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
-  private readonly seoService = inject(SeoService);
+export class PricingPage {
 
   protected readonly dashboardUrl = environment.services.dashboard.url;
   protected readonly appgenUrl = environment.services.idev.url;
@@ -641,38 +638,8 @@ export class PricingPage implements OnInit {
     }
   });
 
-  ngOnInit(): void {
-    this.setupSeo();
-  }
-
   protected setEngine(engine: PricingEngine): void {
     this.activeEngine.set(engine);
   }
 
-  private setupSeo(): void {
-    const title = 'Pricing | IDEM - FCFA Pricing Made for African Entrepreneurs';
-    const description =
-      'IDEM pricing in FCFA: Business packs from 1,999 F, AppGen from 2,999 F/month, iDeploy hosting free tier with commercial use. Pay with Mobile Money. Up to 99% cheaper than local alternatives.';
-
-    const metaTags = [
-      { name: 'description', content: description },
-      {
-        name: 'keywords',
-        content:
-          'IDEM pricing, FCFA pricing, Mobile Money, AI credits, business plan generator price, app builder Africa, hosting Africa, iDeploy, AppGen',
-      },
-    ];
-
-    const ogTags = [
-      { property: 'og:title', content: title },
-      { property: 'og:description', content: description },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: `${this.seoService.domain}/pricing` },
-    ];
-
-    this.seoService.updateTitle(title);
-    this.seoService.updateMetaTags(metaTags);
-    this.seoService.updateOgTags(ogTags);
-    this.seoService.setCanonicalUrl('/pricing');
-  }
 }

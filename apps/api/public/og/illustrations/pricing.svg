@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 22 84 60" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Tarifs — l'argent : les cauris, la monnaie historique d'Afrique de
+       l'Ouest. Le cauris du dessus porte la couleur. -->
+  <path d="M22 76 H98" opacity=".4"/>
+  <g transform="translate(44 60) rotate(-18) scale(1.05)">
+    <path d="M0 -13 C9 -13 12 -5 12 0 C12 8 7 13 0 13 C-7 13 -12 8 -12 0 C-12 -5 -9 -13 0 -13Z" stroke-width="1.9"/>
+    <path d="M0 -10 C2 -4 -2 4 0 10" stroke-width="1.5"/>
+    <path d="M-4 -5.5h2.2 M-4.4 -1.8h2.4 M-4.4 1.8h2.4 M-4 5.5h2.2 M2 -5.5h2.2 M2.2 -1.8h2.4 M2.2 1.8h2.4 M2 5.5h2.2" stroke-width="1.2"/>
+  </g>
+  <g transform="translate(76 60) rotate(18) scale(1.05)">
+    <path d="M0 -13 C9 -13 12 -5 12 0 C12 8 7 13 0 13 C-7 13 -12 8 -12 0 C-12 -5 -9 -13 0 -13Z" stroke-width="1.9"/>
+    <path d="M0 -10 C2 -4 -2 4 0 10" stroke-width="1.5"/>
+    <path d="M-4 -5.5h2.2 M-4.4 -1.8h2.4 M-4.4 1.8h2.4 M-4 5.5h2.2 M2 -5.5h2.2 M2.2 -1.8h2.4 M2.2 1.8h2.4 M2 5.5h2.2" stroke-width="1.2"/>
+  </g>
+  <g style="color: var(--color-primary-500)" transform="translate(60 40) scale(1.15)">
+    <path d="M0 -13 C9 -13 12 -5 12 0 C12 8 7 13 0 13 C-7 13 -12 8 -12 0 C-12 -5 -9 -13 0 -13Z" stroke-width="1.7"/>
+    <path d="M0 -10 C2 -4 -2 4 0 10" stroke-width="1.4"/>
+    <path d="M-4 -5.5h2.2 M-4.4 -1.8h2.4 M-4.4 1.8h2.4 M-4 5.5h2.2 M2 -5.5h2.2 M2.2 -1.8h2.4 M2.2 1.8h2.4 M2 5.5h2.2" stroke-width="1.1"/>
+  </g>
+</svg>
