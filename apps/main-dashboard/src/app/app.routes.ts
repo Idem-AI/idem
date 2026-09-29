@@ -16,7 +16,7 @@ export const routes: Routes = [
     title: 'navigation.titles.login',
     loadComponent: () => import('./modules/auth/pages/login/login').then((m) => m.Login),
     canActivate: [publicGuard],
-    data: { layout: 'empty' },
+    data: { layout: 'bare' },
   },
 
   // ============================================

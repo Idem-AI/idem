@@ -14,8 +14,8 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../.env.secret') });
 // `loadSecrets()` déséchappe les \n de la clé privée : même traitement ici.
-if (process.env.FIREBASE_PRIVATE_KEY) {
-  process.env.FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+if (process.env.GCP_SA_PRIVATE_KEY) {
+  process.env.GCP_SA_PRIVATE_KEY = process.env.GCP_SA_PRIVATE_KEY.replace(/\\n/g, '\n');
 }
 
 import { AI_CONFIG, FeatureAIConfig, TEXT_FALLBACK_MODELS, LLMProvider } from '../config/ai.config';

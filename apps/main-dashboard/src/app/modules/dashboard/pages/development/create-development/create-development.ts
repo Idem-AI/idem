@@ -6,7 +6,7 @@ import { BackendConfigComponent } from './components/backend-config/backend-conf
 import { DatabaseConfigComponent } from './components/database-config/database-config';
 import { environment } from '../../../../../../environments/environment';
 import { initEmptyObject } from '../../../../../utils/init-empty-object';
-import { AuthService } from '../../../../auth/services/auth.service';
+import { AuthService, IdemUser } from '../../../../auth/services/auth.service';
 import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../../services/project.service';
 import { TranslateModule } from '@ngx-translate/core';
@@ -19,7 +19,6 @@ import {
   LandingPageConfig,
 } from '../../../models/development.model';
 import { CookieService } from '../../../../../shared/services/cookie.service';
-import { User } from '@angular/fire/auth';
 import { first } from 'rxjs/operators';
 import { DevelopmentService } from '../../../services/ai-agents/development.service';
 import { Router } from '@angular/router';
@@ -143,7 +142,7 @@ export class CreateDevelopmentComponent implements OnInit {
   protected readonly errorMessages = signal<string[]>([]);
 
   // UI state
-  protected readonly currentUser = signal<User | null>(null);
+  protected readonly currentUser = signal<IdemUser | null>(null);
   protected readonly webgenUrl = environment.services.webgen.url;
 
   // Form groups for the different configuration sections

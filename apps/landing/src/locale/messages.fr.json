@@ -2208,6 +2208,13 @@
     "footer.africanMarket": "Marché africain",
     "footer.github": "Le code sur GitHub",
     "footer.contact": "Contact",
-    "footer.aria.language": "Langue"
+    "footer.aria.language": "Langue",
+    "betaProgram.title": "Essayez tout IDEM, gratuitement, pendant la bêta",
+    "betaProgram.lead": "Un nombre limité d'entrepreneurs utilise sans frais les offres les plus complètes d'IDEM jusqu'à la fin de la bêta. En échange, ils nous disent ce qui marche et ce qui manque.",
+    "betaProgram.points.offers": "Business plan niveau cabinet, identité et réseaux sociaux, application et mise en ligne, simulation approfondie",
+    "betaProgram.points.credits": "Des crédits rechargés chaque mois, jusqu'à la fin de la bêta",
+    "betaProgram.points.seats": "Un nombre de places limité",
+    "betaProgram.apply": "Candidater à la bêta",
+    "betaProgram.seePlans": "Voir les offres incluses"
   }
 }

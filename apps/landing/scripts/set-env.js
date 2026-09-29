@@ -24,21 +24,6 @@ envContent.split('\n').forEach(line => {
   }
 });
 
-// Vérifier les variables requises
-const requiredVars = [
-  'FIREBASE_API_KEY',
-  'FIREBASE_AUTH_DOMAIN',
-  'FIREBASE_PROJECT_ID',
-  'FIREBASE_APP_ID'
-];
-
-const missing = requiredVars.filter(v => !env[v] || env[v].includes('your_'));
-if (missing.length > 0) {
-  console.error(`❌ Variables d'environnement manquantes ou non configurées:`);
-  missing.forEach(v => console.error(`   - ${v}`));
-  console.error(`\n📝 Éditez ${envFile} et remplacez les valeurs par défaut.`);
-  process.exit(1);
-}
 
 // Générer le fichier environment.ts
 const isProduction = process.env.NODE_ENV === 'production';
@@ -55,13 +40,8 @@ export const environment = {
   waitlistUrl: '${env.WAITLIST_URL || 'https://forms.gle/gP7fr8te9qMUovad6'}',
   analytics: {
     enabled: ${env.ANALYTICS_ENABLED || (isProduction ? 'true' : 'false')},
-  },
-  firebase: {
-    apiKey: '${env.FIREBASE_API_KEY}',
-    authDomain: '${env.FIREBASE_AUTH_DOMAIN}',
-    projectId: '${env.FIREBASE_PROJECT_ID}',
-    appId: '${env.FIREBASE_APP_ID}',
-    measurementId: '${env.FIREBASE_MEASUREMENT_ID || ''}',
+    // Identifiant de mesure Google Analytics 4 (G-XXXXXXX) ; vide = aucun suivi.
+    measurementId: '${env.GA_MEASUREMENT_ID || ''}',
   },
   services: {
     domain: '${env.SERVICES_DOMAIN || 'https://idem.africa'}',

@@ -1,6 +1,6 @@
 # AppGen server API
 
-Base URL: `http://localhost:3000` in development. Calls from the editor send the IDEM cookies (`credentials: 'include'`); server-to-server callers can send `Authorization: Bearer <Firebase ID token>`.
+Base URL: `http://localhost:3000` in development. Calls from the editor send the IDEM cookies (`credentials: 'include'`); server-to-server callers can send `Authorization: Bearer <token>` (IDEM session or Supabase access token).
 
 **Auth** column: `IDEM` = `requireIdemUser` (identity checked with the IDEM API `/auth/me`); `—` = no identity required (the route calls no model and costs nothing).
 

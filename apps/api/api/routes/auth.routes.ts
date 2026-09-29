@@ -20,19 +20,23 @@ export const authRoutes = Router();
  *     tags:
  *       - Authentication
  *     summary: Create a session cookie for the user
- *     description: Exchanges a Firebase ID token for a session cookie.
+ *     description: >
+ *       Exchanges an access token issued by the self-hosted Supabase auth
+ *       server for the `session` and `refreshToken` httpOnly cookies. Links
+ *       the auth account to an existing IDEM account (imported, or same
+ *       verified email) or creates one.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: objects
+ *             type: object
  *             required:
- *               - idToken
+ *               - token
  *             properties:
- *               idToken:
+ *               token:
  *                 type: string
- *                 description: Firebase ID token obtained from client-side authentication.
+ *                 description: Supabase access token obtained from client-side authentication.
  *     responses:
  *       '200':
  *         description: Session cookie created successfully. The session cookie is set in the HTTP response.
@@ -48,7 +52,11 @@ export const authRoutes = Router();
  *                   type: string
  *                   example: Session cookie created successfully.
  *       '401':
- *         description: Unauthorized. Invalid ID token or error creating session cookie.
+ *         description: Unauthorized. Invalid access token.
+ *       '403':
+ *         description: Email not verified while an account with this email exists.
+ *       '409':
+ *         description: The email is already linked to another auth account.
  *         content:
  *           application/json:
  *             schema:
@@ -228,7 +236,7 @@ authRoutes.get('/refresh-tokens', authenticate, getRefreshTokensController);
  *     tags:
  *       - Authentication
  *     summary: Verify session cookie and return user data
- *     description: Used by external services (like Laravel) to verify Firebase sessions
+ *     description: Used by external services to verify IDEM sessions
  *     security:
  *       - apiKey: []
  *     requestBody:
@@ -240,7 +248,7 @@ authRoutes.get('/refresh-tokens', authenticate, getRefreshTokensController);
  *             properties:
  *               sessionCookie:
  *                 type: string
- *                 description: Firebase session cookie (can also be sent via cookie header)
+ *                 description: IDEM session cookie (can also be sent via cookie header)
  *     responses:
  *       '200':
  *         description: Session verified successfully

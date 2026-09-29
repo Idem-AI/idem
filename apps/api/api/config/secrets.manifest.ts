@@ -2,7 +2,7 @@
  * Secrets de l'API IDEM dans Google Secret Manager (`api--<VARIABLE>`).
  *
  * Seules les valeurs réellement secrètes figurent ici. Identifiants publics
- * (projet Firebase, client IDs OAuth, clé web Firebase), URL, ports, limites et
+ * (projet Google Cloud, client IDs OAuth), URL, ports, limites et
  * `ADMIN_EMAILS` sont de la configuration : ils restent dans `.env.production`.
  * Le script `scripts/secrets/idem-secrets.mjs` lit ce fichier : c'est la seule
  * liste qui fait foi.
@@ -12,16 +12,19 @@ import type { SecretManifest } from './secret-loader';
 export const SECRET_MANIFEST = {
   app: 'api',
   required: [
-    'FIREBASE_PRIVATE_KEY',
-    'FIREBASE_CLIENT_EMAIL',
+    // Compte de service Google Cloud (Vertex AI).
+    'GCP_SA_PRIVATE_KEY',
+    'GCP_SA_CLIENT_EMAIL',
     'MONGODB_PASSWORD',
     'MINIO_ACCESS_KEY',
     'MINIO_SECRET_KEY',
     'INTERNAL_API_KEY',
     'SENSITIVE_VARS_ENCRYPTION_KEY',
+    // Authentification : secret partagé avec le serveur Supabase, et signature du cookie `session`.
+    'SUPABASE_JWT_SECRET',
+    'SESSION_SECRET',
   ],
   optional: [
-    'FIREBASE_PRIVATE_KEY_ID',
     'REDIS_PASSWORD',
     // Base PostgreSQL d'iDeploy (lecture des ressources, synchronisation des plans payés).
     'IDEPLOY_DB_PASSWORD',
