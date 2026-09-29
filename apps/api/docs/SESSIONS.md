@@ -1,6 +1,6 @@
 # Sessions and refresh tokens
 
-Sign-in goes through a **self-hosted Supabase auth server** (GoTrue, `infra/supabase-auth`): e-mail and password, Google, Apple, LinkedIn. The dashboard exchanges the Supabase access token for **two httpOnly cookies** issued by the API. Every other IDEM app relies on those cookies.
+Sign-in goes through a **self-hosted Supabase auth server** (GoTrue, `infra/supabase-auth`): e-mail and password, Google, LinkedIn. The dashboard exchanges the Supabase access token for **two httpOnly cookies** issued by the API. Every other IDEM app relies on those cookies.
 
 | Cookie | Content | Lifetime | Options |
 |---|---|---|---|
@@ -40,7 +40,7 @@ The previous identity provider cannot be read any more: no password hash or OAut
 
 When those users come back:
 
-- **Google, Apple, LinkedIn** with the same address: the auth server links the identity to the imported account; the original `uid` is kept.
+- **Google, LinkedIn** with the same address: the auth server links the identity to the imported account; the original `uid` is kept.
 - **E-mail and password**: « Choose my password » on the login page sends a link; following it proves ownership of the address and sets the password.
 
 ## Refresh tokens

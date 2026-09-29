@@ -77,13 +77,13 @@ Shared code lives in `packages/` (models, auth client, design system, loader, gu
 | Redis | API, iDeploy API | API: cache, rate limits, one-time SSO tokens, AppGen hand-offs. iDeploy: BullMQ job queues |
 | MinIO (S3) | API | Logos, fonts, PDFs, images; served through `MINIO_PUBLIC_URL` |
 | PostgreSQL | iDeploy API, API | iDeploy's schema (inherited from Coolify). The API writes paid plans to `billing_sync_jobs` there |
-| PostgreSQL (auth) | Supabase Auth | Sign-in accounts only (e-mail/password, Google, Apple, LinkedIn), in `infra/supabase-auth`. Session state is owned by the API |
+| PostgreSQL (auth) | Supabase Auth | Sign-in accounts only (e-mail/password, Google, LinkedIn), in `infra/supabase-auth`. Session state is owned by the API |
 
 ## Authentication
 
 There is exactly one sign-in screen: the main dashboard.
 
-1. The dashboard signs the user in with the self-hosted Supabase auth server (e-mail and password, Google, Apple, LinkedIn), then sends the Supabase access token to `POST /auth/sessionLogin`.
+1. The dashboard signs the user in with the self-hosted Supabase auth server (e-mail and password, Google, LinkedIn), then sends the Supabase access token to `POST /auth/sessionLogin`.
 2. The API verifies the token, links it to the IDEM account (the IDEM `uid` never changes, see [Sessions](../apps/api/docs/SESSIONS.md)) and sets two `httpOnly` cookies on `.idem.africa` (`SameSite=Lax`): `session` (14 days) and `refreshToken` (30 days, stored hashed in MongoDB).
 3. Every other app sends requests with credentials. Front ends read the identity from `GET /auth/profile`; the AppGen server calls `GET /auth/me`; the iDeploy API calls `/auth/profile` and mirrors the user into its own `users` table.
 4. When the session expires, the API renews it from the refresh token, so no app has to send the user back to the login page.

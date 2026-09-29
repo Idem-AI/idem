@@ -116,13 +116,6 @@ services:
       GOTRUE_EXTERNAL_GOOGLE_SECRET: '${AUTH_GOOGLE_SECRET:-}'
       GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: '${AUTH_PUBLIC_URL}/callback'
 
-      GOTRUE_EXTERNAL_APPLE_ENABLED: '${AUTH_APPLE_ENABLED:-false}'
-      GOTRUE_EXTERNAL_APPLE_CLIENT_ID: '${AUTH_APPLE_CLIENT_ID:-}'
-      # JWT signé avec la clé .p8 d'Apple, valable 6 mois au plus :
-      # à régénérer avec scripts/apple-client-secret.mjs.
-      GOTRUE_EXTERNAL_APPLE_SECRET: '${AUTH_APPLE_SECRET:-}'
-      GOTRUE_EXTERNAL_APPLE_REDIRECT_URI: '${AUTH_PUBLIC_URL}/callback'
-
       # LinkedIn en OpenID Connect (`linkedin_oidc`) : l'ancien fournisseur `linkedin` est obsolète.
       GOTRUE_EXTERNAL_LINKEDIN_OIDC_ENABLED: '${AUTH_LINKEDIN_ENABLED:-false}'
       GOTRUE_EXTERNAL_LINKEDIN_OIDC_CLIENT_ID: '${AUTH_LINKEDIN_CLIENT_ID:-}'
