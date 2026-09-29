@@ -18,6 +18,17 @@
   animation: hero-fade-in 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
+/* Le titre suit la largeur de l'écran pour que sa ligne soulignée (« DES
+   BUSINESS RENTABLES », la plus longue : 12,5 × le corps en Vilevile Black)
+   tienne toujours sur une seule ligne, du téléphone au très grand écran.
+   13,2 garde une marge ; 3rem = les marges latérales du hero ; le plafond
+   (72rem / 13,2) est la largeur du conteneur max-w-6xl. Changer le texte du
+   titre oblige à remesurer ce rapport. */
+.hero-title {
+  font-size: clamp(1.25rem, calc((100vw - 3rem) / 13.2), calc(72rem / 13.2));
+  line-height: 1.1;
+}
+
 /* Subtle background pulse */
 @keyframes background-pulse {
   0%,
