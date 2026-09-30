@@ -80,61 +80,95 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
           <input type="text"  [ngModel]="name()" (ngModelChange)="name.set($event)" />
         </div>
 
-        <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-text-tertiary);" (click)="showAdvanced.set(!showAdvanced())">
-          <i class="pi mr-1" [class.pi-chevron-right]="!showAdvanced()" [class.pi-chevron-down]="showAdvanced()"></i>
-          {{ 'architectures.dbStep.advancedCredentials' | translate }}
-        </button>
-        @if (showAdvanced()) {
-          <div class="space-y-2 rounded-xl border p-3" style="border-color:var(--color-surface-2);">
-            <p class="text-xs" style="color:var(--color-text-tertiary);">{{ 'architectures.dbStep.advancedCredentialsHint' | translate }}</p>
-            @for (col of primaryColumns(); track col) {
+        <!-- Two optional extras, one list: each row says what it is for before it asks anything. -->
+        <div class="overflow-hidden rounded-xl border" style="border-color:var(--glass-border);">
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 px-4 py-3 text-left transition-smooth"
+            [style.background]="showAdvanced() ? 'var(--glass-bg-light)' : 'transparent'"
+            [attr.aria-expanded]="showAdvanced()"
+            aria-controls="guide-db-credentials"
+            (click)="showAdvanced.set(!showAdvanced())"
+          >
+            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg" style="background:var(--glass-bg-subtle);">
+              <i class="pi pi-key text-sm" style="color:var(--color-text-secondary);"></i>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm font-semibold text-text-primary">{{ 'architectures.dbStep.advancedCredentials' | translate }}</span>
+              <span class="block text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ 'architectures.dbStep.advancedCredentialsHint' | translate }}</span>
+            </span>
+            <span class="text-xs" style="color:var(--color-text-tertiary);">{{ 'architectures.dbStep.optional' | translate }}</span>
+            <i class="pi text-xs" style="color:var(--color-text-tertiary);" [class.pi-chevron-down]="!showAdvanced()" [class.pi-chevron-up]="showAdvanced()"></i>
+          </button>
+          @if (showAdvanced()) {
+            <div id="guide-db-credentials" class="grid gap-3 px-4 pb-4 pt-1 sm:grid-cols-2" style="background:var(--glass-bg-light);">
+              @for (col of primaryColumns(); track col) {
+                <div [class.sm:col-span-2]="isSecretField(col)">
+                  <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);" [for]="'guide-db-' + col">{{ credentialLabel(col) }}</label>
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="text"
+                      class="font-mono text-xs"
+                      [id]="'guide-db-' + col"
+                      [type]="!isSecretField(col) || revealed().has(col) ? 'text' : 'password'"
+                      [placeholder]="'architectures.dbStep.generated' | translate"
+                      autocomplete="off"
+                      [value]="customCredentials()[col] || ''"
+                      (input)="onCredentialInput('primary', col, $any($event.target).value)"
+                    />
+                    @if (isSecretField(col)) {
+                      <button type="button" class="button-icon" (click)="toggleReveal(col)" [attr.aria-label]="'databases.detail.reveal' | translate">
+                        <i class="pi" [class.pi-eye]="!revealed().has(col)" [class.pi-eye-slash]="revealed().has(col)"></i>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <label
+            class="flex cursor-pointer items-center gap-3 border-t px-4 py-3 transition-smooth"
+            style="border-color:var(--glass-border);"
+            [style.background]="includeRedis() ? 'var(--glass-bg-light)' : 'transparent'"
+          >
+            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg [&_svg]:h-5 [&_svg]:w-5" style="background:var(--glass-bg-subtle);" [innerHTML]="iconHtml('redis')"></span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm font-semibold text-text-primary">{{ 'architectures.addRedisCache' | translate }}</span>
+              <span class="block text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ 'architectures.addRedisCacheHint' | translate }}</span>
+            </span>
+            <input type="checkbox" class="flex-shrink-0" [checked]="includeRedis()" (change)="includeRedis.set(!includeRedis())" />
+          </label>
+          @if (includeRedis()) {
+            <div class="grid gap-3 px-4 pb-4 pt-1 sm:grid-cols-2" style="background:var(--glass-bg-light);">
               <div>
-                <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ credentialLabel(col) }}</label>
+                <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);" for="guide-redis-name">{{ 'databases.name' | translate }}</label>
+                <input type="text" id="guide-redis-name" class="text-xs" [ngModel]="redisName()" (ngModelChange)="redisName.set($event)" />
+              </div>
+              <div>
+                <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);" for="guide-redis-password">{{ credentialLabel('redis_password') }}</label>
                 <div class="flex items-center gap-2">
-                  <input type="text"
+                  <input
+                    type="text"
+                    id="guide-redis-password"
                     class="font-mono text-xs"
-                    [type]="!isSecretField(col) || revealed().has(col) ? 'text' : 'password'"
-                    [value]="customCredentials()[col] || ''"
-                    (input)="onCredentialInput('primary', col, $any($event.target).value)"
+                    [type]="revealed().has('redis_password') ? 'text' : 'password'"
+                    [placeholder]="'architectures.dbStep.generated' | translate"
+                    autocomplete="off"
+                    [value]="redisCredentials()['redis_password'] || ''"
+                    (input)="onCredentialInput('cache', 'redis_password', $any($event.target).value)"
                   />
-                  @if (isSecretField(col)) {
-                    <button type="button" class="button-icon" (click)="toggleReveal(col)" [attr.aria-label]="'databases.detail.reveal' | translate">
-                      <i class="pi" [class.pi-eye]="!revealed().has(col)" [class.pi-eye-slash]="revealed().has(col)"></i>
-                    </button>
-                  }
+                  <button type="button" class="button-icon" (click)="toggleReveal('redis_password')" [attr.aria-label]="'databases.detail.reveal' | translate">
+                    <i class="pi" [class.pi-eye]="!revealed().has('redis_password')" [class.pi-eye-slash]="revealed().has('redis_password')"></i>
+                  </button>
                 </div>
               </div>
-            }
-          </div>
-        }
-
-        <label class="flex items-center gap-2 text-sm cursor-pointer">
-          <input type="checkbox" [checked]="includeRedis()" (change)="includeRedis.set(!includeRedis())" />
-          {{ 'architectures.addRedisCache' | translate }}
-        </label>
-        @if (includeRedis()) {
-          <div class="space-y-2 rounded-xl border p-3" style="border-color:var(--color-surface-2);">
-            <label class="mb-1 block text-sm">{{ 'databases.name' | translate }}</label>
-            <input type="text"  [ngModel]="redisName()" (ngModelChange)="redisName.set($event)" />
-            <div>
-              <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);">{{ credentialLabel('redis_password') }}</label>
-              <div class="flex items-center gap-2">
-                <input type="text"
-                  class="font-mono text-xs"
-                  [type]="revealed().has('redis_password') ? 'text' : 'password'"
-                  [value]="redisCredentials()['redis_password'] || ''"
-                  (input)="onCredentialInput('cache', 'redis_password', $any($event.target).value)"
-                />
-                <button type="button" class="button-icon" (click)="toggleReveal('redis_password')" [attr.aria-label]="'databases.detail.reveal' | translate">
-                  <i class="pi" [class.pi-eye]="!revealed().has('redis_password')" [class.pi-eye-slash]="revealed().has('redis_password')"></i>
-                </button>
-              </div>
             </div>
-          </div>
-        }
+          }
+        </div>
 
         @if (formError()) {
-          <p class="text-sm text-red-400">{{ formError() }}</p>
+          <p class="text-sm" style="color:var(--color-danger);">{{ formError() }}</p>
         }
 
         <button class="inner-button" type="button" [disabled]="!name().trim() || (includeRedis() && !redisName().trim())" (click)="create()">
@@ -157,7 +191,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
             </div>
             @if (primaryStatus() === 'start-failed') {
               <div class="ml-6">
-                <p class="mb-2 text-sm text-red-400">{{ primaryStartError() }}</p>
+                <p class="mb-2 text-sm" style="color:var(--color-danger);">{{ primaryStartError() }}</p>
                 <div class="flex gap-3">
                   <button type="button" class="outer-button text-xs px-3 py-1.5" (click)="retryPrimaryStart()">{{ 'architectures.dbStep.retryStart' | translate }}</button>
                   <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-text-tertiary);" (click)="continuePrimaryAnyway()">{{ 'architectures.dbStep.continueAnyway' | translate }}</button>
@@ -178,7 +212,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
             </div>
             @if (cacheStatus() === 'start-failed') {
               <div class="ml-6">
-                <p class="mb-2 text-sm text-red-400">{{ cacheStartError() }}</p>
+                <p class="mb-2 text-sm" style="color:var(--color-danger);">{{ cacheStartError() }}</p>
                 <div class="flex gap-3">
                   <button type="button" class="outer-button text-xs px-3 py-1.5" (click)="retryCacheStart()">{{ 'architectures.dbStep.retryStart' | translate }}</button>
                   <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-text-tertiary);" (click)="continueCacheAnyway()">{{ 'architectures.dbStep.continueAnyway' | translate }}</button>
