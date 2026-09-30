@@ -5,8 +5,9 @@
 // trop tard et laisserait ces lectures à `undefined`.
 import 'dotenv/config';
 import express, { Express, Request, Response } from 'express';
-import morgan from 'morgan';
 import helmet from 'helmet';
+import logger, { captureConsole, installProcessHandlers } from './config/logger.js';
+import { requestTraceMiddleware } from './middleware/requestTrace.js';
 import { corsMiddleware } from './middleware/cors.js';
 import { requireIdemUser } from './middleware/auth.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -23,6 +24,11 @@ import mcpRouter from './mcp/server.js';
 import { loadSkills } from './skills/registry.js';
 
 
+// Tout ce qui s'écrit désormais — y compris les `console.*` restants et les
+// crashes — part en JSON corrélé vers les fichiers collectés par Grafana.
+captureConsole();
+installProcessHandlers();
+
 // Read the catalog off disk once at boot rather than on the first generation,
 // so a malformed skill fails loudly at startup instead of mid-request.
 loadSkills();
@@ -37,7 +43,9 @@ app.use(
   })
 );
 
-app.use(morgan('combined'));
+// Contexte de traçage + journal HTTP (une ligne JSON de début et de fin par
+// requête, corrélée). Remplace la ligne morgan en texte brut.
+app.use(requestTraceMiddleware);
 
 // Prometheus metrics middleware
 app.use(metricsMiddleware);
@@ -115,35 +123,13 @@ app.use((req: Request, res: Response) => {
 });
 
 app.listen(PORT, () => {
-  console.log('\n');
-  console.log('='.repeat(80));
-  console.log('🚀 WE-DEV EXPRESS SERVER STARTED');
-  console.log('='.repeat(80));
-  console.log(`📡 Server running on: http://localhost:${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`📝 API Documentation: http://localhost:${PORT}/`);
-  console.log('='.repeat(80));
-  console.log('\n📋 Available Endpoints:');
-  console.log(`   POST   /api/chat              - Chat with AI (builder/chat mode)`);
-  console.log(`   POST   /api/deploy            - Deploy to Netlify`);
-  console.log(`   POST   /api/enhancedPrompt    - Enhance prompts with AI`);
-  console.log(`   GET    /api/model             - Get available models`);
-  console.log(`   GET    /api/model/config      - Get model configuration`);
-  console.log(`   GET    /api/model/default     - Get default model`);
-  console.log(`   POST   /api/handoff           - Store AppGen context for handoff`);
-  console.log(`   GET    /api/handoff/:id       - Retrieve AppGen handoff by ID`);
-  console.log(`   GET    /health                - Health check`);
-  console.log('='.repeat(80));
-  console.log('\n');
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  process.exit(1);
+  logger.info(`AppGen server running on http://localhost:${PORT}`, {
+    event: 'process.start',
+    port: Number(PORT),
+    node: process.version,
+    logLevel: logger.level,
+    endpoints: ['/api/chat', '/api/deploy', '/api/enhancedPrompt', '/api/model', '/api/handoff', '/api/quality', '/api/design', '/mcp', '/health'],
+  });
 });
 
 export default app;

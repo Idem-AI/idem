@@ -13,11 +13,10 @@ import helmet from 'helmet';
 import hpp from 'hpp';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import morgan from 'morgan';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
-import { stream } from './config/logger';
+import { requestTraceMiddleware } from './middleware/request-trace.middleware';
 import { buildCorsOptions } from './config/cors.config';
 import { notFound, errorHandler } from './middleware/error.middleware';
 import { CustomRequest } from './interfaces/express.interface';
@@ -64,6 +63,10 @@ const swaggerSpec = swaggerJsdoc({
 export function createApp(): Express {
   const app: Express = express();
 
+  // Contexte de traçage en tout premier : chaque ligne de log qui suit
+  // (auth, routes, services, tâches créées) porte le requestId de la requête.
+  app.use(requestTraceMiddleware);
+
   // ── Hardening ────────────────────────────────────────
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -82,11 +85,6 @@ export function createApp(): Express {
     })
   );
   app.use(express.urlencoded({ extended: true }));
-
-  // Request logging is noise in tests; keep it everywhere else.
-  if (process.env.NODE_ENV !== 'test') {
-    app.use(morgan('combined', { stream }));
-  }
 
   // ── Docs ─────────────────────────────────────────────
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

@@ -12,6 +12,7 @@
  * second auth system here.
  */
 import axios from 'axios';
+import { traceHeaders } from '../utils/trace.util';
 import { createHash } from 'crypto';
 import pool from '../config/db.config';
 import redis from '../config/redis.config';
@@ -110,7 +111,7 @@ export async function verifySession(sessionCookie: string | undefined): Promise<
 async function verifySessionUncached(sessionCookie: string): Promise<IdemProfile | null> {
   try {
     const { data, status } = await axios.get(`${IDEM_API_URL}/auth/profile`, {
-      headers: { Cookie: `session=${sessionCookie}`, Accept: 'application/json' },
+      headers: { Cookie: `session=${sessionCookie}`, Accept: 'application/json', ...traceHeaders() },
       timeout: 10000,
       validateStatus: () => true,
     });

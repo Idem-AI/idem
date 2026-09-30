@@ -209,7 +209,7 @@ The two databases share no identifier: the e-mail is the only link between an ID
 
 ## Monitoring
 
-**Logs**: `logs/payments.log` (dedicated channel, collected by Promtail with the others). Each line carries `event`, `reference`, `depositId`, `provider`, `status`, `failureCode`, `durationMs`, and the `requestId` that ties the payment to the rest of the request.
+**Logs**: every payment event is shipped to Loki/Grafana like the rest of the API logs (`{service="idem-api"} | json | event=~"payment.*"`); `fulfillment_failed`, `refund_failed` and `signature_rejected` are critical and e-mailed at once (see [Observability](../../../docs/OBSERVABILITY.md)). `logs/payments.log` is a local copy with longer retention. Each line carries `event`, `reference`, `depositId`, `provider`, `status`, `failureCode`, `durationMs`, and the `requestId` that ties the payment to the rest of the request.
 
 **Metrics**: `payments_initiated_total`, `payments_completed_total`, `payments_failed_total{failure_code}`, `payment_time_to_final_seconds`, `pawapay_api_requests_total`, `pawapay_api_duration_seconds`, `payment_callbacks_total{result}`, `payments_pending_stuck`, `payment_fulfillment_failures_total`, `credits_debited_total{engine,action}`, `emails_sent_total{template,status}`, `billing_job_runs_total{job,result}`.
 

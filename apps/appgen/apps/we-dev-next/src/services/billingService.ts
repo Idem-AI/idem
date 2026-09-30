@@ -16,6 +16,7 @@
  * facturation est injoignable ou répond une erreur, la génération est refusée
  * avec un message invitant à réessayer — jamais offerte.
  */
+import { traceHeaders } from '../utils/trace.js';
 
 const IDEM_API_URL = process.env.IDEM_API_URL || 'http://localhost:3001';
 
@@ -60,6 +61,7 @@ export async function consumeGeneration(options: {
       headers: {
         'Content-Type': 'application/json',
         ...options.credentials,
+        ...traceHeaders(),
       },
       body: JSON.stringify({
         engine: 'appgen',

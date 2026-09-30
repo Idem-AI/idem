@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'async_hooks';
+import { randomUUID } from 'crypto';
 
 /**
  * Contexte de traçage — un identifiant unique par requête HTTP (corrélation),
@@ -12,11 +13,14 @@ import { AsyncLocalStorage } from 'async_hooks';
  */
 export interface TraceContext {
   requestId: string;
-  method: string;
-  path: string;
+  /** Absents pour une tâche de fond (planificateur, réconciliation). */
+  method?: string;
+  path?: string;
   startedAt: number;
   userId?: string;
   projectId?: string;
+  /** Nom de la tâche de fond qui a ouvert ce contexte (`billing.reconcile`…). */
+  job?: string;
 }
 
 const storage = new AsyncLocalStorage<TraceContext>();
@@ -48,5 +52,25 @@ export function traceLogFields(): Record<string, string | number> {
   const fields: Record<string, string | number> = { requestId: store.requestId };
   if (store.userId) fields.userId = store.userId;
   if (store.projectId) fields.projectId = store.projectId;
+  if (store.job) fields.job = store.job;
   return fields;
+}
+
+/**
+ * Exécute une tâche de fond dans son propre contexte de traçage : chaque
+ * passage d'un planificateur reçoit un identifiant, et tout ce qu'il journalise
+ * (y compris les erreurs) se relit d'un seul filtre dans Grafana.
+ */
+export function runJobWithTrace<T>(job: string, fn: () => T): T {
+  return storage.run({ requestId: `job-${randomUUID()}`, job, startedAt: Date.now() }, fn);
+}
+
+/**
+ * En-têtes à joindre à un appel vers un autre service IDEM (ideploy-api,
+ * appgen) : le même `X-Request-Id` suit la requête d'un service à l'autre, et
+ * une recherche sur cet identifiant dans Grafana montre le parcours complet.
+ */
+export function traceHeaders(): Record<string, string> {
+  const store = storage.getStore();
+  return store ? { 'X-Request-Id': store.requestId } : {};
 }

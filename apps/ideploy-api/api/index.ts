@@ -21,7 +21,9 @@ import { SECRET_MANIFEST } from './config/secrets.manifest';
 async function bootstrap(): Promise<void> {
   await loadSecretsFromManager(SECRET_MANIFEST);
 
-  const { default: logger } = await import('./config/logger');
+  const { default: logger, captureConsole, installProcessHandlers } = await import('./config/logger');
+  captureConsole();
+  installProcessHandlers();
   const { createApp } = await import('./app');
   const { registerTerminalGateway } = await import('./ws/terminal.gateway');
   const { registerDeploymentWorker } = await import('./jobs/deployment.worker');
@@ -55,7 +57,12 @@ async function bootstrap(): Promise<void> {
   const server = http.createServer(app);
   registerTerminalGateway(server);
   server.listen(port, () => {
-    logger.info(`iDeploy API listening on port ${port}`);
+    logger.info(`iDeploy API listening on port ${port}`, {
+      event: 'process.start',
+      port,
+      node: process.version,
+      logLevel: logger.level,
+    });
   });
 }
 

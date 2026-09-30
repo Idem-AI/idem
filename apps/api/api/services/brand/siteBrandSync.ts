@@ -30,6 +30,7 @@ import {
   RewriteStats,
 } from './brandRewrite';
 import { resolveLogoSlot } from './brandTokens';
+import { traceHeaders } from '../../utils/trace.util';
 
 const FORGE_TIMEOUT_MS = 5_000;
 
@@ -77,7 +78,7 @@ async function forge(projectData: Partial<ProjectModel>): Promise<ForgedSystem |
   try {
     const response = await fetch(`${appgenBaseUrl()}/api/design/forge`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...traceHeaders() },
       body: JSON.stringify({ projectData }),
       signal: AbortSignal.timeout(FORGE_TIMEOUT_MS),
     });

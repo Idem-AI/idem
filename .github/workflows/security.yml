@@ -62,3 +62,14 @@ jobs:
           for copy in apps/ideploy-api/api/config/secret-loader.ts apps/appgen/apps/we-dev-next/src/config/secret-loader.ts; do
             diff -u "$ref" "$copy"
           done
+
+      # Même règle pour le format des journaux : Grafana et ses alertes
+      # interrogent les trois services avec les mêmes requêtes
+      # (docs/OBSERVABILITY.md). Une copie qui dérive casse ces requêtes en silence.
+      - name: Compare log format copies
+        run: |
+          set -e
+          ref=apps/api/api/config/log-format.ts
+          for copy in apps/ideploy-api/api/config/log-format.ts apps/appgen/apps/we-dev-next/src/config/log-format.ts; do
+            diff -u "$ref" "$copy"
+          done

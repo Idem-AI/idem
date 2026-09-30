@@ -1,15 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { ChatLogger } from '../utils/logger.js';
+import logger from '../config/logger.js';
 
 export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
-  ChatLogger.error('UNHANDLED_ERROR', 'Unhandled error in request', {
-    error: err.message,
-    stack: err.stack,
-    path: req.path,
+  logger.error('http.unhandled_error', {
+    event: 'http.unhandled_error',
     method: req.method,
+    path: req.originalUrl?.split('?')[0],
+    error: err,
   });
-
-  console.error('Unhandled error:', err);
 
   if (res.headersSent) {
     return next(err);

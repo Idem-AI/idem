@@ -1,0 +1,105 @@
+# Observabilité locale d'IDEM : Loki (stockage des journaux), Alloy (collecte),
+# Grafana (tableaux de bord et alertes) et Mailpit (boîte mail de test qui
+# reçoit les alertes).
+#
+#   cd infra/observability && cp .env.example .env && docker compose up -d
+#
+#   Grafana   http://localhost:3300   (admin / admin par défaut)
+#   Mailpit   http://localhost:8025   (les e-mails d'alerte arrivent ici)
+#   Alloy     http://localhost:12345  (état de la collecte)
+#
+# Alloy lit les fichiers `logs/combined.log` que les trois services écrivent
+# déjà dans leur dossier (qu'ils tournent sur la machine avec `npm run dev` ou
+# dans docker-compose.dev.yml, qui monte ces mêmes dossiers).
+# Voir README.md.
+name: idem-observability
+
+services:
+  loki:
+    image: grafana/loki:3.5.5
+    container_name: idem-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki.yaml
+    ports:
+      - '127.0.0.1:${LOKI_PORT:-3100}:3100'
+    volumes:
+      - ./loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki_data:/loki
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3100/ready | grep -q ready']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  alloy:
+    image: grafana/alloy:v1.11.0
+    container_name: idem-alloy
+    restart: unless-stopped
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    environment:
+      LOKI_PUSH_URL: http://loki:3100/loki/api/v1/push
+    ports:
+      - '127.0.0.1:${ALLOY_PORT:-12345}:12345'
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy/data
+      # Les journaux des services, en lecture seule.
+      - ../../apps/api/logs:/var/log/idem/idem-api:ro
+      - ../../apps/ideploy-api/logs:/var/log/idem/ideploy-api:ro
+      - ../../apps/appgen/apps/we-dev-next/logs:/var/log/idem/appgen:ro
+      # Lignes de démonstration écrites par scripts/emit-test-logs.mjs.
+      - ./test-logs:/var/log/idem/test:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:12.2.0
+    container_name: idem-grafana
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${GRAFANA_PORT:-3300}:3000'
+    environment:
+      GF_SECURITY_ADMIN_USER: '${GRAFANA_ADMIN_USER:-admin}'
+      GF_SECURITY_ADMIN_PASSWORD: '${GRAFANA_ADMIN_PASSWORD:-admin}'
+      GF_SERVER_ROOT_URL: '${GRAFANA_ROOT_URL:-http://localhost:3300}'
+      GF_USERS_DEFAULT_LANGUAGE: fr-FR
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_NEWS_NEWS_FEED_ENABLED: 'false'
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/idem-logs.json
+      # Envoi des alertes. En local : Mailpit, sans authentification ni TLS.
+      # En production : le SMTP réel (voir README.md, « Production »).
+      GF_SMTP_ENABLED: 'true'
+      GF_SMTP_HOST: '${SMTP_HOST:-mailpit:1025}'
+      GF_SMTP_USER: '${SMTP_USER:-}'
+      GF_SMTP_PASSWORD: '${SMTP_PASSWORD:-}'
+      GF_SMTP_FROM_ADDRESS: '${ALERT_EMAIL_FROM:-alertes@idem.africa}'
+      GF_SMTP_FROM_NAME: 'IDEM · Alertes'
+      GF_SMTP_STARTTLS_POLICY: '${SMTP_STARTTLS_POLICY:-NoStartTLS}'
+      GF_SMTP_SKIP_VERIFY: '${SMTP_SKIP_VERIFY:-true}'
+      # Lu par provisioning/alerting/contact-points.yaml.
+      ALERT_EMAIL_TO: '${ALERT_EMAIL_TO:-equipe@idem.africa}'
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      loki:
+        condition: service_healthy
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: idem-mailpit
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025'
+      - '127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025'
+
+volumes:
+  loki_data:
+  alloy_data:
+  grafana_data:
