@@ -115,6 +115,60 @@ services:
       timeout: 3s
       retries: 5
 
+  # ==================== INFISICAL (secrets, optionnel) ====================
+  # Instance locale du gestionnaire de secrets de la prod (docker-compose.infisical.yml).
+  # Profil `secrets` : ne démarre (et ne télécharge son image) que sur demande :
+  #   docker compose -f docker-compose.dev.yml --profile secrets up -d infisical
+  # Interface : http://localhost:8085. Réutilise le Postgres de dev (base `infisical`) ;
+  # Redis dédié, car celui de dev évince des clés (allkeys-lru) et les files
+  # d'Infisical ne le supportent pas. Les clés ci-dessous ne servent qu'en local.
+
+  infisical-db-init:
+    image: postgres:15-alpine
+    profiles: ['secrets']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "psql -h postgres -U ${DB_USERNAME:-ideploy} -d postgres -tc \"SELECT 1 FROM pg_database WHERE datname = 'infisical'\" | grep -q 1
+      || psql -h postgres -U ${DB_USERNAME:-ideploy} -d postgres -c 'CREATE DATABASE infisical'"
+    networks:
+      - idem-dev
+
+  infisical-redis:
+    image: redis:7-alpine
+    profiles: ['secrets']
+    restart: unless-stopped
+    networks:
+      - idem-dev
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  infisical:
+    image: infisical/infisical:v0.165.16
+    container_name: idem-infisical-dev
+    profiles: ['secrets']
+    restart: unless-stopped
+    depends_on:
+      infisical-db-init:
+        condition: service_completed_successfully
+      infisical-redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      SITE_URL: 'http://localhost:${INFISICAL_PORT:-8085}'
+      ENCRYPTION_KEY: '${INFISICAL_ENCRYPTION_KEY:-6c6f63616c2d6465762d6f6e6c792121}' # idem-secrets:allow (clé de dev locale)
+      AUTH_SECRET: '${INFISICAL_AUTH_SECRET:-bG9jYWwtZGV2LW9ubHktaW5maXNpY2FsLWF1dGgtc2VjcmV0}' # idem-secrets:allow (clé de dev locale)
+      DB_CONNECTION_URI: 'postgresql://${DB_USERNAME:-ideploy}:${DB_PASSWORD:-password}@postgres:5432/infisical'
+      REDIS_URL: 'redis://infisical-redis:6379'
+    ports:
+      - '127.0.0.1:${INFISICAL_PORT:-8085}:8080'
+    networks:
+      - idem-dev
+
   mailpit:
     image: axllent/mailpit
     container_name: idem-mailpit-dev
@@ -261,6 +315,13 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
+      # Secrets depuis l'Infisical local (profil `secrets`) : DEV_USE_INFISICAL=true.
+      USE_SECRET_MANAGER: '${DEV_USE_INFISICAL:-false}'
+      INFISICAL_SITE_URL: 'http://infisical:8080'
+      INFISICAL_ENVIRONMENT: 'dev'
+      INFISICAL_PROJECT_ID: '${INFISICAL_PROJECT_ID_API:-}'
+      INFISICAL_CLIENT_ID: '${INFISICAL_CLIENT_ID_API:-}'
+      INFISICAL_CLIENT_SECRET: '${INFISICAL_CLIENT_SECRET_API:-}'
       # IPv6 egress to Google's endpoints (googleapis.com, used by Vertex AI) is
       # blackholed in this environment: calls hang ~12s. Force IPv4 DNS resolution.
       NODE_OPTIONS: '--dns-result-order=ipv4first'
@@ -322,6 +383,13 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3002
+      # Secrets depuis l'Infisical local (profil `secrets`) : DEV_USE_INFISICAL=true.
+      USE_SECRET_MANAGER: '${DEV_USE_INFISICAL:-false}'
+      INFISICAL_SITE_URL: 'http://infisical:8080'
+      INFISICAL_ENVIRONMENT: 'dev'
+      INFISICAL_PROJECT_ID: '${INFISICAL_PROJECT_ID_IDEPLOY_API:-}'
+      INFISICAL_CLIENT_ID: '${INFISICAL_CLIENT_ID_IDEPLOY_API:-}'
+      INFISICAL_CLIENT_SECRET: '${INFISICAL_CLIENT_SECRET_IDEPLOY_API:-}'
       CORS_ALLOWED_ORIGINS: 'http://localhost:4202,http://localhost:8000'
       # SHARED iDeploy Postgres (same DB as the Laravel app)
       IDEPLOY_DB_HOST: 'postgres'
@@ -470,6 +538,13 @@ services:
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: 'http://localhost:3000'
+      # Secrets depuis l'Infisical local (profil `secrets`) : DEV_USE_INFISICAL=true.
+      USE_SECRET_MANAGER: '${DEV_USE_INFISICAL:-false}'
+      INFISICAL_SITE_URL: 'http://infisical:8080'
+      INFISICAL_ENVIRONMENT: 'dev'
+      INFISICAL_PROJECT_ID: '${INFISICAL_PROJECT_ID_APPGEN:-}'
+      INFISICAL_CLIENT_ID: '${INFISICAL_CLIENT_ID_APPGEN:-}'
+      INFISICAL_CLIENT_SECRET: '${INFISICAL_CLIENT_SECRET_APPGEN:-}'
     volumes:
       - ./apps/appgen:/app/apps/appgen:cached
       - ./packages:/app/packages:cached

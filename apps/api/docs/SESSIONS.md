@@ -106,7 +106,7 @@ iDeploy runs on its own host and uses a short-lived one-time token:
 | `IDEPLOY_SHARED_SECRET` | Shared secret for iDeploy SSO validation |
 | `NODE_ENV=production` | Enables `secure` and the `.idem.africa` cookie domain |
 
-In production the secrets come from Google Secret Manager (`api--SUPABASE_JWT_SECRET`, `api--SESSION_SECRET`), see [Configuration](../../../docs/CONFIGURATION.md). The auth server itself is described in [`infra/supabase-auth/README.md`](../../../infra/supabase-auth/README.md).
+In production the secrets come from Infisical (`SUPABASE_JWT_SECRET`, `SESSION_SECRET`, project `api`), see [Configuration](../../../docs/CONFIGURATION.md). The auth server itself is described in [`infra/supabase-auth/README.md`](../../../infra/supabase-auth/README.md).
 
 `npm run check:auth` exercises the whole flow against a running auth server and a throw-away MongoDB database.
 

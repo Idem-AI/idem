@@ -30,7 +30,7 @@ flowchart LR
         Auth["Supabase Auth (self-hosted)"]
         LLM["LLM providers<br/>Gemini · GLM · DeepSeek · OpenAI"]
         PawaPay["pawaPay"]
-        SM["Google Secret Manager"]
+        SM["Infisical (self-hosted)"]
         Servers["Customer servers<br/>SSH + Docker"]
     end
 
