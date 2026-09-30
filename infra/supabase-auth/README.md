@@ -28,7 +28,7 @@ On first start, `init/00-auth-roles.sh` creates the roles and the `auth` schema;
 | `AUTH_SITE_URL` | `https://console.idem.africa` (the only sign-in screen) |
 | `AUTH_REDIRECT_ALLOW_LIST` | `https://console.idem.africa/**` (comma-separated, add dev URLs on dev instances only) |
 | `AUTH_DB_PASSWORD`, `AUTH_ADMIN_PASSWORD` | `openssl rand -hex 24` each |
-| `AUTH_JWT_SECRET` | `openssl rand -hex 32`. **Same value** as `SUPABASE_JWT_SECRET` in the API (`api--SUPABASE_JWT_SECRET`) |
+| `AUTH_JWT_SECRET` | `openssl rand -hex 32`. **Same value** as `SUPABASE_JWT_SECRET` in the API (Infisical, project `api`) |
 | `AUTH_SMTP_*` | SMTP account used for confirmation and password e-mails |
 
 Changing `AUTH_JWT_SECRET` later invalidates every Supabase session (IDEM cookies are not affected: they are signed by `SESSION_SECRET`).

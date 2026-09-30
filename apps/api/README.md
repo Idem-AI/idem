@@ -13,7 +13,7 @@ npm run dev                   # http://localhost:3001 — Swagger on /api-docs
 
 It needs MongoDB, Redis and MinIO: start them with `docker compose -f docker-compose.dev.yml up -d mongodb redis minio` from the repository root. See [Getting started](../../docs/GETTING_STARTED.md) and [Configuration and secrets](../../docs/CONFIGURATION.md).
 
-In production the secrets listed in [`api/config/secrets.manifest.ts`](api/config/secrets.manifest.ts) are read from Google Secret Manager (`api--<VARIABLE>`) before anything else is loaded; the production configuration template is [`.env.production.example`](.env.production.example).
+In production the secrets listed in [`api/config/secrets.manifest.ts`](api/config/secrets.manifest.ts) are read from Infisical (project `api`) before anything else is loaded; the production configuration template is [`.env.production.example`](.env.production.example).
 
 ## Layout
 

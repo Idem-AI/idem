@@ -16,9 +16,9 @@ Code: [`routes/github.routes.ts`](../api/routes/github.routes.ts), [`controllers
 | Variable | Secret | Role |
 |---|---|---|
 | `GITHUB_CLIENT_ID` | no | OAuth app client id |
-| `GITHUB_CLIENT_SECRET` | yes (`api--GITHUB_CLIENT_SECRET`) | OAuth app client secret |
+| `GITHUB_CLIENT_SECRET` | yes (Infisical) | OAuth app client secret |
 | `GITHUB_REDIRECT_URI` | no | Must match the callback URL registered on GitHub |
-| `GITHUB_STATE_SECRET` | yes (`api--GITHUB_STATE_SECRET`) | HMAC key for the OAuth `state` |
+| `GITHUB_STATE_SECRET` | yes (Infisical) | HMAC key for the OAuth `state` |
 
 If `GITHUB_STATE_SECRET` is not set, the service falls back to `JWT_SECRET`, then `API_SIGNING_SECRET`, then a random per-process key. With a per-process key, authorisations in progress fail after a restart or when the callback lands on another replica: set the variable in production.
 

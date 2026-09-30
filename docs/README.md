@@ -8,7 +8,7 @@ IDEM turns a business idea into the assets a founder needs: brand identity, busi
 | --- | --- |
 | [Architecture](ARCHITECTURE.md) | understand the applications, how they talk to each other, and where data lives |
 | [Getting started](GETTING_STARTED.md) | run the platform locally |
-| [Configuration and secrets](CONFIGURATION.md) | set environment variables and manage secrets with Google Secret Manager |
+| [Configuration and secrets](CONFIGURATION.md) | set environment variables and manage secrets with Infisical |
 | [Security](SECURITY.md) | know the security rules every change must respect |
 | [Deployment](DEPLOYMENT.md) | understand CI, Docker images and how production is deployed |
 | [Observability](OBSERVABILITY.md) | write logs, debug with Grafana, act on alert e-mails, run the log stack in production |

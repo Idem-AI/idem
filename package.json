@@ -77,6 +77,7 @@
     "test:git-hooks": "node --test scripts/git-hooks/*.test.mjs"
   },
   "dependencies": {
+    "@infisical/sdk": "^5.0.2",
     "tslib": "^2.8.1"
   },
   "devDependencies": {
