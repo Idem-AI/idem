@@ -59,14 +59,16 @@ import { ListSkeletonComponent } from '../../../shared/components/list-skeleton/
       } @else {
         <div class="glass-card overflow-hidden">
           @for (app of filtered(); track app.uuid; let last = $last) {
-            <div class="flex flex-wrap items-center gap-4 px-5 py-4 transition-smooth hover:bg-[var(--glass-bg-subtle)]" [style.border-bottom]="last ? 'none' : '1px solid var(--glass-border-subtle)'">
+            <!-- The name's link is stretched over the whole row (after:inset-0), so the row opens the application
+                 while staying a real link — middle-click, Ctrl+click and keyboard focus all work. Buttons sit above it. -->
+            <div class="group relative flex cursor-pointer flex-wrap items-center gap-4 px-5 py-4 transition-smooth hover:bg-[var(--glass-bg-subtle)] focus-within:bg-[var(--glass-bg-subtle)]" [style.border-bottom]="last ? 'none' : '1px solid var(--glass-border-subtle)'">
               <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg" style="background:var(--glass-bg-subtle);">
                 <i [class]="stack(app).icon" [style.color]="stack(app).color"></i>
               </span>
 
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
-                  <a class="truncate font-semibold text-text-primary hover:underline" [routerLink]="['/applications', app.uuid]">{{ app.name }}</a>
+                  <a class="truncate font-semibold text-text-primary outline-none after:absolute after:inset-0 after:content-[''] group-hover:text-[var(--color-primary-500)] focus-visible:underline" [routerLink]="['/applications', app.uuid]">{{ app.name }}</a>
                   <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium" [style.color]="status(app).color" style="background:color-mix(in srgb, currentColor 10%, transparent);">
                     <i [class]="status(app).icon" class="text-[10px]"></i>{{ status(app).labelKey | translate }}
                   </span>
@@ -85,7 +87,7 @@ import { ListSkeletonComponent } from '../../../shared/components/list-skeleton/
                 </div>
               </div>
 
-              <div class="flex items-center gap-2">
+              <div class="relative z-10 flex items-center gap-2">
                 @if (app.link) {
                   <a class="outer-button button-sm" [href]="app.link" target="_blank" rel="noopener noreferrer">
                     <i class="pi pi-external-link mr-1.5 text-xs"></i>{{ 'applications.open' | translate }}
@@ -95,6 +97,7 @@ import { ListSkeletonComponent } from '../../../shared/components/list-skeleton/
                   @if (deploying() === app.uuid) { <idem-loader size="xs" /> } @else { <i class="pi pi-send mr-1.5 text-xs"></i> }
                   {{ (deploying() === app.uuid ? 'applications.list.queuing' : 'applications.deploy') | translate }}
                 </button>
+                <i class="pi pi-chevron-right ml-1 hidden text-xs sm:block" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
               </div>
             </div>
           }
