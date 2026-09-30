@@ -15,7 +15,9 @@ const router = Router();
 const FILE = /^([a-z][a-z-]{0,40})\.(png|html)$/;
 const LANG = /^(fr|en)$/;
 
-router.get('/:lang/:file', async (req: Request, res: Response) => {
+// Paramètres typés explicitement : depuis @types/express-serve-static-core 5.1.3,
+// `req.params` non typé vaut `string | string[]` (paramètres génériques d'Express 5).
+router.get('/:lang/:file', async (req: Request<{ lang: string; file: string }>, res: Response) => {
   const { lang, file } = req.params;
   const match = FILE.exec(file);
   if (!LANG.test(lang) || !match) {

@@ -5,7 +5,7 @@ The repository is **public** and the platform runs code, deploys servers and tak
 ## Secrets
 
 - No secret in the repository, in a document, in a test fixture or in a front-end bundle. The pre-commit hook blocks the common cases; CI runs gitleaks on every push.
-- Production secrets live in Google Secret Manager, one entry per application: see [Configuration and secrets](CONFIGURATION.md).
+- Production secrets live in a self-hosted Infisical, one project per application: see [Configuration and secrets](CONFIGURATION.md).
 - A secret that was ever committed or shipped in a bundle is compromised: rotate it, then clean the history. Deleting it in a later commit is not enough.
 
 ## Identity and sessions

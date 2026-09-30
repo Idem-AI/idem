@@ -3,11 +3,11 @@
  *
  *   - Local development: `.env` then `.env.secret` (never committed).
  *   - Production (NODE_ENV=production, or USE_SECRET_MANAGER=true): the
- *     secrets listed in `secrets.manifest.ts` are read from Google Secret
- *     Manager under their indexed name `api--<VARIABLE>` and injected into
- *     process.env BEFORE any other module reads them.
+ *     secrets listed in `secrets.manifest.ts` are read from Infisical
+ *     (project `api`) and injected into process.env BEFORE any other module
+ *     reads them.
  *
- * Only real secrets live in Secret Manager. Non-secret configuration (project
+ * Only real secrets live in Infisical. Non-secret configuration (project
  * id, public client ids, URLs, ports, limits, ADMIN_EMAILS) stays in
  * `.env.production`. See secret-loader.ts and scripts/secrets/idem-secrets.mjs.
  */
@@ -20,7 +20,7 @@ import { SECRET_MANIFEST } from './secrets.manifest';
 
 /**
  * Configuration indispensable qui N'EST PAS un secret : elle vient du `.env`
- * (ou de l'environnement du conteneur), jamais du Secret Manager.
+ * (ou de l'environnement du conteneur), jamais d'Infisical.
  */
 const REQUIRED_CONFIG = ['GCP_PROJECT_ID', 'SUPABASE_AUTH_URL'] as const;
 
@@ -36,7 +36,7 @@ export async function loadSecrets(): Promise<void> {
   // Always load local env first to populate host configuration.
   loadFromDotenv();
 
-  // Secrets indexés `api--<VARIABLE>` (voir secrets.manifest.ts et
+  // Secrets du projet Infisical `api` (voir secrets.manifest.ts et
   // secret-loader.ts). Hors production, le `.env` / `.env.secret` suffit.
   await loadSecretsFromManager(SECRET_MANIFEST);
 

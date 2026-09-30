@@ -240,7 +240,7 @@ function main() {
 
   console.error(`${BOLD} How to fix:${RESET}`);
   console.error('   1. Remove the secret from the code and read it from the environment instead.');
-  console.error('      Production secrets live in Google Secret Manager: npm run secrets -- plan');
+  console.error('      Production secrets live in Infisical: npm run secrets -- plan');
   console.error('   2. If the secret was real, consider it leaked locally and ROTATE it.');
   console.error(`   3. False positive? Add a comment containing ${BOLD}${ALLOW_PRAGMA}${RESET} on that line.\n`);
   return 1;

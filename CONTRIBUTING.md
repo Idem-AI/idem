@@ -65,7 +65,7 @@ Hooks are installed by `npm install` (Husky). Two of them can block you:
 | `git commit` | `scripts/git-hooks/check-secrets.mjs` | a staged change exposes a secret: a `.env` file, a private key or service-account JSON, or a line that looks like an API key, token or password |
 | `git push` | `scripts/git-hooks/check-builds.mjs` | an application changed by the pushed commits does not build |
 
-- **Secret found?** Remove it and read the value from the environment; production secrets live in Google Secret Manager (`npm run secrets -- plan`). If it was real, rotate it. For a false positive, add a comment containing `idem-secrets:allow` on that line.
+- **Secret found?** Remove it and read the value from the environment; production secrets live in Infisical (`npm run secrets -- plan`). If it was real, rotate it. For a false positive, add a comment containing `idem-secrets:allow` on that line.
 - **Build failed?** The hook prints the last lines of the build output and the path to the full log. Reproduce with `npm run check:builds` (or `-- --only <app>`), fix, commit, push again. Nothing was sent to the remote.
 - `npm run check:builds -- --list` shows which applications would be built.
 - Run the checks by hand: `npm run check:secrets`, `npm run check:builds`. Hook tests: `npm run test:git-hooks`.

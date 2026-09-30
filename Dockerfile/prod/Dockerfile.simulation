@@ -10,7 +10,7 @@ COPY ./packages/shared-styles ./packages/shared-styles
 
 COPY ./packages/shared-tour ./packages/shared-tour
 COPY ./packages/shared-trusted-by  ./packages/shared-trusted-by 
-
+COPY ./packages/shared-loader  ./packages/shared-loader 
 # 3. Copier l'application
 COPY ./apps/simulation ./apps/simulation
 

@@ -89,6 +89,6 @@ npm run build:all             # build everything
 npm run check:builds -- --list   # which apps your branch changed
 npm run check:builds          # build only what your branch changed (what the pre-push hook does)
 npm run check:secrets         # scan staged changes for secrets
-npm run secrets -- plan       # state of Google Secret Manager (maintainers)
+npm run secrets -- plan       # state of Infisical (maintainers)
 ./scripts/clean.sh            # remove node_modules and build outputs (lockfiles are kept)
 ```

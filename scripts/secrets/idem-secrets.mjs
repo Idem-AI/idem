@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * idem-secrets — gestion des secrets IDEM dans Google Secret Manager.
+ * idem-secrets — gestion des secrets IDEM dans Infisical (self-hosted).
  *
  * Chaque backend déclare ses secrets dans son manifeste (seule liste qui fait
  * foi) :
@@ -8,39 +8,39 @@
  *   apps/appgen/apps/we-dev-next/src/config/secrets.manifest.ts
  *   apps/ideploy-api/api/config/secrets.manifest.ts
  *
- * Nommage : <SECRET_ENV_PREFIX><app>--<VARIABLE>, avec les labels
- * `app=<app>` et `managed-by=idem-secrets`.
+ * Chaque application a son propre projet Infisical (isolation native, pas de
+ * préfixe de nom nécessaire) et un seul environnement utilisé pour l'instant :
+ * `prod`, celui qu'Infisical crée avec chaque projet (surchargeable avec --environment).
  *
  * Commandes :
  *   plan                                  État des lieux, aucune écriture.
- *   push <app> --from <fichier.env>       Crée/versionne les secrets du manifeste présents dans le fichier.
- *   rotate <app> VAR                      Nouvelle version lue sur l'entrée standard ; les versions
- *                                         précédentes sont désactivées (réactivables pour revenir).
- *   migrate-legacy <app>                  Copie les anciens noms sans index vers <app>--<VAR>.
- *   copy <app-source> <app-cible> VAR…    Duplique une valeur partagée entre applications.
- *   export-config <app> --to <fichier.env> VAR…
- *                                         Rapatrie une ancienne entrée NON secrète vers un .env
- *                                         (ajoutée seulement si absente).
- *   prune [--after-deploy] [--legacy]     Supprime les entrées qu'aucun manifeste ne déclare.
- *                                         Sans --after-deploy, garde celles que l'API déployée
- *                                         avant la migration lit encore.
- *                                         --legacy (avec --after-deploy) : supprime aussi les
- *                                         anciens noms de secrets déjà copiés vers <app>--*.
+ *   push <app> --from <fichier.env>       Crée/met à jour les secrets du manifeste présents dans le fichier.
+ *   rotate <app> VAR                      Nouvelle valeur lue sur l'entrée standard (Infisical
+ *                                         garde l'historique des versions automatiquement).
+ *   copy <app-source> <app-cible> VAR…    Duplique une valeur partagée entre deux projets d'app.
+ *   prune [<app>]                         Supprime les secrets qu'aucun manifeste ne déclare
+ *                                         (tous les projets, ou un seul si <app> est donné).
  *
- * Options : --project <id> (défaut GCP_PROJECT_ID, sinon config gcloud), --yes
- * (pas de question), --dry-run.
+ * Options : --environment <slug> (défaut "prod"), --yes (pas de question), --dry-run.
  *
  * Aucune valeur de secret n'est jamais affichée : les copies passent par la
- * mémoire du processus et l'entrée standard de gcloud.
+ * mémoire du processus uniquement.
  *
- * Prérequis : Node ≥ 22.18 (import des manifestes .ts), gcloud authentifié avec
- * le rôle secretmanager.admin sur le projet.
+ * Prérequis : Node ≥ 22.18 (import des manifestes .ts).
+ *
+ * Config (variables d'environnement) :
+ *   INFISICAL_SITE_URL              URL de l'instance self-hosted.
+ *   INFISICAL_ADMIN_CLIENT_ID       Identité machine avec accès en écriture
+ *   INFISICAL_ADMIN_CLIENT_SECRET   aux 3 projets ci-dessous (Universal Auth).
+ *   INFISICAL_PROJECT_ID_API
+ *   INFISICAL_PROJECT_ID_APPGEN
+ *   INFISICAL_PROJECT_ID_IDEPLOY_API
  */
-import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, appendFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createInterface } from 'node:readline/promises';
+import { InfisicalSDK } from '@infisical/sdk';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const MANIFEST_PATHS = {
@@ -48,21 +48,11 @@ const MANIFEST_PATHS = {
   appgen: 'apps/appgen/apps/we-dev-next/src/config/secrets.manifest.ts',
   'ideploy-api': 'apps/ideploy-api/api/config/secrets.manifest.ts',
 };
-const MANAGED_LABEL = 'managed-by=idem-secrets';
-
-/**
- * Anciennes entrées NON secrètes que la version de l'API déployée avant la
- * migration lit encore dans Secret Manager (ancienne liste de secrets.ts).
- * `prune` les conserve tant qu'on ne passe pas `--after-deploy` : les supprimer
- * avant que la nouvelle API tourne en production, avec ces valeurs dans son
- * `.env.production`, empêcherait l'ancienne de redémarrer.
- */
-const READ_BY_PREVIOUS_API = [
-  'ADMIN_EMAILS',
-  'GITHUB_CLIENT_ID',
-  'GOOGLE_CLOUD_LOCATION',
-];
-const ENV_PREFIX = process.env.SECRET_ENV_PREFIX || '';
+const PROJECT_ID_ENV = {
+  api: 'INFISICAL_PROJECT_ID_API',
+  appgen: 'INFISICAL_PROJECT_ID_APPGEN',
+  'ideploy-api': 'INFISICAL_PROJECT_ID_IDEPLOY_API',
+};
 
 // ── Arguments ────────────────────────────────────────────────────────────────
 
@@ -72,61 +62,76 @@ function option(name) {
   const i = argv.indexOf(`--${name}`);
   return i >= 0 ? argv[i + 1] : undefined;
 }
-const positional = argv.filter((a, i) => !a.startsWith('--') && !['--from', '--to', '--project'].includes(argv[i - 1]));
+const positional = argv.filter((a, i) => !a.startsWith('--') && !['--from', '--environment'].includes(argv[i - 1]));
 const [command, ...args] = positional;
 const DRY_RUN = flags.has('--dry-run');
 const YES = flags.has('--yes');
+const did = (verb) => (DRY_RUN ? `${verb} (simulation)` : verb);
+const ENVIRONMENT = option('environment') || 'prod';
 
-// ── gcloud ───────────────────────────────────────────────────────────────────
+// ── Infisical ────────────────────────────────────────────────────────────────
 
-function gcloud(gargs, input) {
-  const result = spawnSync('gcloud', [...gargs, `--project=${PROJECT}`, '--quiet'], {
-    input,
-    encoding: 'utf8',
-    env: { ...process.env, CLOUDSDK_CORE_DISABLE_PROMPTS: '1' },
-    maxBuffer: 64 * 1024 * 1024,
+function projectIdFor(app) {
+  const envVar = PROJECT_ID_ENV[app];
+  const id = envVar && process.env[envVar];
+  if (!id) throw new Error(`${envVar} n'est pas défini (id du projet Infisical de ${app})`);
+  return id;
+}
+
+let client;
+async function infisical() {
+  if (client) return client;
+  const siteUrl = process.env.INFISICAL_SITE_URL;
+  const clientId = process.env.INFISICAL_ADMIN_CLIENT_ID;
+  const clientSecret = process.env.INFISICAL_ADMIN_CLIENT_SECRET;
+  if (!siteUrl || !clientId || !clientSecret) {
+    throw new Error('INFISICAL_SITE_URL, INFISICAL_ADMIN_CLIENT_ID et INFISICAL_ADMIN_CLIENT_SECRET sont requis.');
+  }
+  client = new InfisicalSDK({ siteUrl });
+  await client.auth().universalAuth.login({ clientId, clientSecret });
+  return client;
+}
+
+/** Secrets déclarés (noms uniquement, jamais les valeurs) pour un projet. */
+async function listOnline(app) {
+  const c = await infisical();
+  const result = await c.secrets().listSecrets({
+    projectId: projectIdFor(app),
+    environment: ENVIRONMENT,
+    secretPath: '/',
+    viewSecretValue: false,
   });
-  return { ok: result.status === 0, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
+  return new Set(result.secrets.map((s) => s.secretKey));
 }
 
-function resolveProject() {
-  const explicit = option('project') || process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
-  if (explicit) return explicit;
-  const r = spawnSync('gcloud', ['config', 'get-value', 'project'], { encoding: 'utf8' });
-  return (r.stdout || '').trim();
-}
-const PROJECT = resolveProject();
-
-function listOnline() {
-  const r = gcloud(['secrets', 'list', '--format=json(name,labels)']);
-  if (!r.ok) throw new Error(`gcloud secrets list a échoué : ${r.stderr.split('\n').filter(Boolean).pop()}`);
-  return JSON.parse(r.stdout).map((s) => ({ id: s.name.split('/').pop(), labels: s.labels ?? {} }));
-}
-
-/** Lit la dernière version. La valeur reste en mémoire, jamais affichée. */
-function accessLatest(secretId) {
-  const r = gcloud(['secrets', 'versions', 'access', 'latest', `--secret=${secretId}`]);
-  if (!r.ok) throw new Error(`lecture impossible de ${secretId}`);
-  return r.stdout;
+/** Lit une valeur. Reste en mémoire, jamais affichée. */
+async function readValue(app, variable) {
+  const c = await infisical();
+  const secret = await c.secrets().getSecret({
+    projectId: projectIdFor(app),
+    environment: ENVIRONMENT,
+    secretPath: '/',
+    secretName: variable,
+    viewSecretValue: true,
+  });
+  return secret?.secretValue;
 }
 
-function ensureSecret(secretId, app, online) {
-  if (online.has(secretId)) return false;
-  if (DRY_RUN) return true;
-  const r = gcloud([
-    'secrets', 'create', secretId,
-    '--replication-policy=automatic',
-    `--labels=app=${app},${MANAGED_LABEL}`,
-  ]);
-  if (!r.ok) throw new Error(`création impossible de ${secretId} : ${r.stderr.trim().split('\n').pop()}`);
-  online.add(secretId);
-  return true;
+async function writeValue(app, variable, value, online) {
+  const c = await infisical();
+  const opts = { environment: ENVIRONMENT, projectId: projectIdFor(app), secretPath: '/', secretValue: value, type: 'shared' };
+  if (DRY_RUN) return online.has(variable);
+  const existed = online.has(variable);
+  if (existed) await c.secrets().updateSecret(variable, opts);
+  else await c.secrets().createSecret(variable, opts);
+  online.add(variable);
+  return existed;
 }
 
-function addVersion(secretId, value) {
+async function deleteValue(app, variable) {
   if (DRY_RUN) return;
-  const r = gcloud(['secrets', 'versions', 'add', secretId, '--data-file=-'], value);
-  if (!r.ok) throw new Error(`ajout de version impossible sur ${secretId}`);
+  const c = await infisical();
+  await c.secrets().deleteSecret(variable, { environment: ENVIRONMENT, projectId: projectIdFor(app), secretPath: '/', type: 'shared' });
 }
 
 // ── Manifestes ───────────────────────────────────────────────────────────────
@@ -141,8 +146,6 @@ async function loadManifests() {
   }
   return manifests;
 }
-
-const secretId = (app, variable) => `${ENV_PREFIX}${app}--${variable}`;
 
 // ── Fichiers .env ────────────────────────────────────────────────────────────
 
@@ -172,61 +175,21 @@ async function confirm(question) {
   return answer.trim().toLowerCase() === 'oui';
 }
 
-// ── Classement de l'existant ─────────────────────────────────────────────────
-
-function classify(online, manifests) {
-  const indexed = new Map(); // secretId -> app
-  const legacySecretNames = new Set();
-  for (const [app, m] of Object.entries(manifests)) {
-    for (const v of m.all) indexed.set(secretId(app, v), app);
-    if (m.legacyUnprefixedFallback) m.all.forEach((v) => legacySecretNames.add(v));
-  }
-
-  const result = { managed: [], legacySecret: [], unused: [] };
-  for (const { id } of online) {
-    if (indexed.has(id)) {
-      result.managed.push(id);
-      continue;
-    }
-    // Secret indexé d'un AUTRE environnement (`staging-api--X` vu depuis la
-    // prod, ou l'inverse) : il n'appartient pas à ce périmètre, on n'y touche pas.
-    const otherEnv = Object.entries(manifests).some(([app, m]) =>
-      m.all.some((v) => id.endsWith(`${app}--${v}`))
-    );
-    if (otherEnv) continue;
-    if (legacySecretNames.has(id)) result.legacySecret.push(id);
-    else result.unused.push(id);
-  }
-  return { ...result, indexed };
-}
-
 // ── Commandes ────────────────────────────────────────────────────────────────
 
 async function cmdPlan(manifests) {
-  const online = listOnline();
-  const ids = new Set(online.map((s) => s.id));
-  const { managed, legacySecret, unused } = classify(online, manifests);
-
-  console.log(`Projet : ${PROJECT}   Préfixe d'environnement : ${ENV_PREFIX || '(aucun)'}\n`);
+  console.log(`Environnement Infisical : ${ENVIRONMENT}\n`);
   for (const [app, m] of Object.entries(manifests)) {
-    console.log(`■ ${app}`);
+    const online = await listOnline(app);
+    console.log(`■ ${app}  (projet ${projectIdFor(app)})`);
     for (const v of m.all) {
-      const id = secretId(app, v);
       const kind = m.required.includes(v) ? 'requis   ' : 'optionnel';
-      const state = ids.has(id)
-        ? '✓ présent'
-        : m.legacyUnprefixedFallback && ids.has(v)
-          ? '↺ ancien nom seulement (migrate-legacy)'
-          : '✗ absent';
-      console.log(`   ${kind}  ${id.padEnd(46)} ${state}`);
+      console.log(`   ${kind}  ${v.padEnd(36)} ${online.has(v) ? '✓ présent' : '✗ absent'}`);
     }
+    const unused = [...online].filter((v) => !m.all.includes(v));
+    if (unused.length) console.log(`   déclarés par aucun manifeste (prune ${app}) : ${unused.join(', ')}`);
     console.log('');
   }
-  console.log(`Entrées gérées (indexées) : ${managed.length}`);
-  console.log(`Anciens noms de secrets à migrer puis supprimer (prune --legacy) : ${legacySecret.length}`);
-  if (legacySecret.length) console.log('   ' + legacySecret.join(', '));
-  console.log(`Entrées déclarées par aucun manifeste (prune) : ${unused.length}`);
-  if (unused.length) console.log('   ' + unused.join(', '));
 }
 
 async function cmdPush(manifests) {
@@ -235,7 +198,7 @@ async function cmdPush(manifests) {
   const from = option('from');
   if (!m || !from) throw new Error('usage : push <app> --from <fichier.env>');
   const values = parseEnvFile(resolve(process.cwd(), from));
-  const online = new Set(listOnline().map((s) => s.id));
+  const online = await listOnline(app);
 
   const plan = m.all.filter((v) => !isPlaceholder(values[v]));
   const ignored = Object.keys(values).filter((k) => !m.all.includes(k));
@@ -243,13 +206,11 @@ async function cmdPush(manifests) {
   if (ignored.length) console.log(`   ignorés (pas des secrets de ${app}, restent dans le .env) : ${ignored.length}`);
   const missingRequired = m.required.filter((v) => !plan.includes(v));
   if (missingRequired.length) console.log(`   ⚠ requis absents du fichier : ${missingRequired.join(', ')}`);
-  if (!plan.length || !(await confirm(`Pousser ${plan.length} secret(s) vers ${PROJECT} ?`))) return;
+  if (!plan.length || !(await confirm(`Pousser ${plan.length} secret(s) vers le projet ${app} ?`))) return;
 
   for (const v of plan) {
-    const id = secretId(app, v);
-    const created = ensureSecret(id, app, online);
-    addVersion(id, values[v]);
-    console.log(`   ${created ? 'créé ' : 'maj  '} ${id}`);
+    const existed = await writeValue(app, v, values[v], online);
+    console.log(`   ${did(existed ? 'maj' : 'créé')} ${v}`);
   }
 }
 
@@ -265,37 +226,13 @@ async function cmdRotate(manifests) {
   const m = manifests[app];
   if (!m || !variable) throw new Error('usage : rotate <app> VAR   (valeur sur l\'entrée standard)');
   if (!m.all.includes(variable)) throw new Error(`${variable} n'est pas un secret déclaré de ${app}`);
-  const id = secretId(app, variable);
   const value = await readStdin();
   if (!value) throw new Error('valeur vide, rotation annulée');
 
-  const online = new Set(listOnline().map((s) => s.id));
-  ensureSecret(id, app, online);
-  const previous = gcloud(['secrets', 'versions', 'list', id, '--filter=state=ENABLED', '--format=value(name)']);
-  addVersion(id, value);
-  const old = previous.stdout.split('\n').map((l) => l.trim().split('/').pop()).filter(Boolean);
-  for (const version of old) {
-    if (!DRY_RUN) gcloud(['secrets', 'versions', 'disable', version, `--secret=${id}`]);
-  }
-  console.log(`${id} : nouvelle version active, ${old.length} ancienne(s) désactivée(s).`);
+  const online = await listOnline(app);
+  await writeValue(app, variable, value, online);
+  console.log(`${variable} : ${did('nouvelle valeur active')} (Infisical conserve l'historique des versions).`);
   console.log('Redémarrez l\'application concernée pour qu\'elle lise la nouvelle valeur.');
-}
-
-async function cmdMigrateLegacy(manifests) {
-  const app = args[0];
-  const m = manifests[app];
-  if (!m) throw new Error('usage : migrate-legacy <app>');
-  const online = new Set(listOnline().map((s) => s.id));
-  const todo = m.all.filter((v) => online.has(v) && !online.has(secretId(app, v)));
-  console.log(`${app} : ${todo.length} ancien(s) secret(s) à copier vers ${app}--* : ${todo.join(', ') || '—'}`);
-  if (!todo.length || !(await confirm('Copier ces valeurs (côté serveur, sans affichage) ?'))) return;
-  for (const v of todo) {
-    const id = secretId(app, v);
-    const value = DRY_RUN ? '' : accessLatest(v);
-    ensureSecret(id, app, online);
-    addVersion(id, value);
-    console.log(`   copié ${v} → ${id}`);
-  }
 }
 
 async function cmdCopy(manifests) {
@@ -305,84 +242,36 @@ async function cmdCopy(manifests) {
   }
   const notDeclared = vars.filter((v) => !manifests[toApp].all.includes(v));
   if (notDeclared.length) throw new Error(`non déclarés dans le manifeste de ${toApp} : ${notDeclared.join(', ')}`);
-  const online = new Set(listOnline().map((s) => s.id));
   if (!(await confirm(`Copier ${vars.join(', ')} de ${fromApp} vers ${toApp} ?`))) return;
+  const online = await listOnline(toApp);
   for (const v of vars) {
-    const src = online.has(secretId(fromApp, v)) ? secretId(fromApp, v) : online.has(v) ? v : null;
-    if (!src) {
-      console.log(`   ✗ ${v} : aucune source (${secretId(fromApp, v)} ni ancien nom)`);
+    const value = DRY_RUN ? '' : await readValue(fromApp, v);
+    if (!DRY_RUN && value === undefined) {
+      console.log(`   ✗ ${v} : absent du projet ${fromApp}`);
       continue;
     }
-    const id = secretId(toApp, v);
-    ensureSecret(id, toApp, online);
-    addVersion(id, DRY_RUN ? '' : accessLatest(src));
-    console.log(`   copié ${src} → ${id}`);
-  }
-}
-
-async function cmdExportConfig(manifests) {
-  const [app, ...vars] = args;
-  const to = option('to');
-  if (!manifests[app] || !to || !vars.length) throw new Error('usage : export-config <app> --to <fichier.env> VAR…');
-  const secrets = vars.filter((v) => manifests[app].all.includes(v));
-  if (secrets.length) throw new Error(`refusé : ${secrets.join(', ')} sont des secrets, ils restent dans Secret Manager`);
-  const target = resolve(process.cwd(), to);
-  const existing = existsSync(target) ? parseEnvFile(target) : {};
-  const online = new Set(listOnline().map((s) => s.id));
-  for (const v of vars) {
-    if (existing[v] !== undefined && existing[v] !== '') {
-      console.log(`   = ${v} déjà présent dans ${to}`);
-      continue;
-    }
-    if (!online.has(v)) {
-      console.log(`   ✗ ${v} absent du Secret Manager`);
-      continue;
-    }
-    if (!DRY_RUN) appendFileSync(target, `\n${v}=${accessLatest(v).replace(/\r?\n/g, '\\n')}\n`);
-    console.log(`   + ${v} ajouté à ${to}`);
+    await writeValue(toApp, v, value, online);
+    console.log(`   ${did('copié')} ${fromApp}.${v} → ${toApp}.${v}`);
   }
 }
 
 async function cmdPrune(manifests) {
-  const online = listOnline();
-  const { legacySecret, unused } = classify(online, manifests);
-  const ids = new Set(online.map((s) => s.id));
-
-  const afterDeploy = flags.has('--after-deploy');
-  const heldBack = afterDeploy ? [] : unused.filter((id) => READ_BY_PREVIOUS_API.includes(id));
-  let targets = unused.filter((id) => !heldBack.includes(id));
-  if (heldBack.length) {
-    console.log(
-      `Conservés tant que la nouvelle API n'est pas déployée (--after-deploy) : ${heldBack.join(', ')}`
-    );
-  }
-  if (flags.has('--legacy')) {
-    if (!afterDeploy) {
-      throw new Error('--legacy exige --after-deploy : l\'API déployée lit encore les anciens noms.');
+  const targetApps = args[0] ? [args[0]] : Object.keys(manifests);
+  for (const app of targetApps) {
+    const m = manifests[app];
+    if (!m) throw new Error(`app inconnue : ${app}`);
+    const online = await listOnline(app);
+    const unused = [...online].filter((v) => !m.all.includes(v));
+    if (!unused.length) {
+      console.log(`${app} : rien à supprimer.`);
+      continue;
     }
-    // Un ancien nom n'est supprimé que si sa copie indexée existe pour CHAQUE
-    // application qui le relit encore en repli.
-    const migrated = legacySecret.filter((v) =>
-      Object.entries(manifests)
-        .filter(([, m]) => m.legacyUnprefixedFallback && m.all.includes(v))
-        .every(([app]) => ids.has(secretId(app, v)))
-    );
-    const notMigrated = legacySecret.filter((v) => !migrated.includes(v));
-    if (notMigrated.length) console.log(`Conservés (copie indexée absente) : ${notMigrated.join(', ')}`);
-    targets = targets.concat(migrated);
-  }
-
-  if (!targets.length) {
-    console.log('Rien à supprimer.');
-    return;
-  }
-  console.log(`${targets.length} entrée(s) à SUPPRIMER définitivement de ${PROJECT} :`);
-  for (const t of targets) console.log(`   - ${t}`);
-  if (!(await confirm('La suppression est irréversible.'))) return;
-  for (const t of targets) {
-    if (DRY_RUN) continue;
-    const r = gcloud(['secrets', 'delete', t]);
-    console.log(`   ${r.ok ? 'supprimé' : 'ÉCHEC   '} ${t}`);
+    console.log(`${app} : ${unused.length} secret(s) à SUPPRIMER définitivement : ${unused.join(', ')}`);
+    if (!(await confirm(`Supprimer ces secrets du projet ${app} ? Irréversible.`))) continue;
+    for (const v of unused) {
+      await deleteValue(app, v);
+      console.log(`   ${did('supprimé')} ${v}`);
+    }
   }
 }
 
@@ -392,9 +281,7 @@ const COMMANDS = {
   plan: cmdPlan,
   push: cmdPush,
   rotate: cmdRotate,
-  'migrate-legacy': cmdMigrateLegacy,
   copy: cmdCopy,
-  'export-config': cmdExportConfig,
   prune: cmdPrune,
 };
 
@@ -403,7 +290,6 @@ try {
     console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('*/')[0]);
     process.exit(command ? 1 : 0);
   }
-  if (!PROJECT) throw new Error('projet GCP introuvable (--project, GCP_PROJECT_ID ou gcloud config)');
   const manifests = await loadManifests();
   if (DRY_RUN) console.log('(simulation : aucune écriture)\n');
   await COMMANDS[command](manifests);

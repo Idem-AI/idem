@@ -32,7 +32,7 @@ gcloud iam service-accounts keys create /tmp/idem-vertex.json \
 | `GCP_SA_CLIENT_EMAIL` | Service account that signs the calls |
 | `GCP_SA_PRIVATE_KEY` | Its private key; escaped `\n` accepted |
 
-In production the two secrets come from Google Secret Manager (`api--GCP_SA_*`), see [Configuration](../../../docs/CONFIGURATION.md).
+In production the two secrets come from Infisical (`GCP_SA_*`, project `api`), see [Configuration](../../../docs/CONFIGURATION.md).
 
 Two optional, Vertex-specific variables:
 
