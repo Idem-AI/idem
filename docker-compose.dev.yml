@@ -33,7 +33,7 @@ services:
     container_name: idem-mongodb-dev
     restart: unless-stopped
     ports:
-      - '${MONGODB_PORT:-27017}:27017'
+      - '127.0.0.1:${MONGODB_PORT:-27017}:27017'
     environment:
       MONGO_INITDB_ROOT_USERNAME: '${MONGODB_USERNAME:-admin}'
       MONGO_INITDB_ROOT_PASSWORD: '${MONGODB_PASSWORD:-admin123}'
@@ -55,8 +55,8 @@ services:
     container_name: idem-minio-dev
     restart: unless-stopped
     ports:
-      - '${MINIO_PORT:-9000}:9000' # API
-      - '${MINIO_CONSOLE_PORT:-9001}:9001' # Console
+      - '127.0.0.1:${MINIO_PORT:-9000}:9000' # API
+      - '127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001' # Console
     environment:
       MINIO_ROOT_USER: '${MINIO_ROOT_USER:-minioadmin}'
       MINIO_ROOT_PASSWORD: '${MINIO_ROOT_PASSWORD:-minioadmin123}'
@@ -76,7 +76,7 @@ services:
     container_name: postgres
     restart: unless-stopped
     ports:
-      - '${FORWARD_DB_PORT:-5432}:5432'
+      - '127.0.0.1:${FORWARD_DB_PORT:-5432}:5432'
     environment:
       POSTGRES_USER: '${DB_USERNAME:-ideploy}'
       POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
@@ -104,7 +104,7 @@ services:
       --timeout 300
       --save ""
     ports:
-      - '${FORWARD_REDIS_PORT:-6379}:6379'
+      - '127.0.0.1:${FORWARD_REDIS_PORT:-6379}:6379'
     volumes:
       - dev_redis_data:/data
     networks:
@@ -115,13 +115,67 @@ services:
       timeout: 3s
       retries: 5
 
+  # ==================== INFISICAL (secrets, optionnel) ====================
+  # Instance locale du gestionnaire de secrets de la prod (docker-compose.infisical.yml).
+  # Profil `secrets` : ne démarre (et ne télécharge son image) que sur demande :
+  #   docker compose -f docker-compose.dev.yml --profile secrets up -d infisical
+  # Interface : http://localhost:8085. Réutilise le Postgres de dev (base `infisical`) ;
+  # Redis dédié, car celui de dev évince des clés (allkeys-lru) et les files
+  # d'Infisical ne le supportent pas. Les clés ci-dessous ne servent qu'en local.
+
+  infisical-db-init:
+    image: postgres:15-alpine
+    profiles: ['secrets']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "psql -h postgres -U ${DB_USERNAME:-ideploy} -d postgres -tc \"SELECT 1 FROM pg_database WHERE datname = 'infisical'\" | grep -q 1
+      || psql -h postgres -U ${DB_USERNAME:-ideploy} -d postgres -c 'CREATE DATABASE infisical'"
+    networks:
+      - idem-dev
+
+  infisical-redis:
+    image: redis:7-alpine
+    profiles: ['secrets']
+    restart: unless-stopped
+    networks:
+      - idem-dev
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  infisical:
+    image: infisical/infisical:v0.165.16
+    container_name: idem-infisical-dev
+    profiles: ['secrets']
+    restart: unless-stopped
+    depends_on:
+      infisical-db-init:
+        condition: service_completed_successfully
+      infisical-redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      SITE_URL: 'http://localhost:${INFISICAL_PORT:-8085}'
+      ENCRYPTION_KEY: '${INFISICAL_ENCRYPTION_KEY:-6c6f63616c2d6465762d6f6e6c792121}' # idem-secrets:allow (clé de dev locale)
+      AUTH_SECRET: '${INFISICAL_AUTH_SECRET:-bG9jYWwtZGV2LW9ubHktaW5maXNpY2FsLWF1dGgtc2VjcmV0}' # idem-secrets:allow (clé de dev locale)
+      DB_CONNECTION_URI: 'postgresql://${DB_USERNAME:-ideploy}:${DB_PASSWORD:-password}@postgres:5432/infisical'
+      REDIS_URL: 'redis://infisical-redis:6379'
+    ports:
+      - '127.0.0.1:${INFISICAL_PORT:-8085}:8080'
+    networks:
+      - idem-dev
+
   mailpit:
     image: axllent/mailpit
     container_name: idem-mailpit-dev
     restart: unless-stopped
     ports:
-      - '8025:8025' # Web UI
-      - '1025:1025' # SMTP
+      - '127.0.0.1:8025:8025' # Web UI
+      - '127.0.0.1:1025:1025' # SMTP
     networks:
       - idem-dev
 
@@ -261,9 +315,15 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      # IPv6 egress to Google's auth endpoints (googleapis.com) is blackholed
-      # in this environment: firebase-admin's verifyIdToken/verifySessionCookie
-      # calls hang ~12s then fail with 401/403. Force IPv4 DNS resolution.
+      # Secrets depuis l'Infisical local (profil `secrets`) : DEV_USE_INFISICAL=true.
+      USE_SECRET_MANAGER: '${DEV_USE_INFISICAL:-false}'
+      INFISICAL_SITE_URL: 'http://infisical:8080'
+      INFISICAL_ENVIRONMENT: 'dev'
+      INFISICAL_PROJECT_ID: '${INFISICAL_PROJECT_ID_API:-}'
+      INFISICAL_CLIENT_ID: '${INFISICAL_CLIENT_ID_API:-}'
+      INFISICAL_CLIENT_SECRET: '${INFISICAL_CLIENT_SECRET_API:-}'
+      # IPv6 egress to Google's endpoints (googleapis.com, used by Vertex AI) is
+      # blackholed in this environment: calls hang ~12s. Force IPv4 DNS resolution.
       NODE_OPTIONS: '--dns-result-order=ipv4first'
       CORS_ALLOWED_ORIGINS: 'http://localhost:4200,http://localhost:4201,http://localhost:4202,http://localhost:3003,http://localhost:3004,http://localhost:8000'
       MONGODB_URI: 'mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongodb:27017/${MONGODB_DATABASE}?authSource=admin'
@@ -282,14 +342,14 @@ services:
       IDEPLOY_DB_USERNAME: coolify
       IDEPLOY_DB_PASSWORD: password
     # IPv6 to these hosts is blackholed here. NODE_OPTIONS=--dns-result-order
-    # only fixes Node's own http(s)/dns.lookup path; firebase-admin's HTTP
-    # client (gaxios/undici) does its own IPv4/IPv6 racing that ignores it, so
-    # verifyIdToken/createSessionCookie calls to Google were taking ~8-12s and
-    # often losing the race → 401. Pin IPv4 directly to remove the AAAA choice.
+    # only fixes Node's own http(s)/dns.lookup path; the Google client
+    # (gaxios/undici) does its own IPv4/IPv6 racing that ignores it. Pin IPv4
+    # directly to remove the AAAA choice.
+    # host.docker.internal: the self-hosted auth server (infra/supabase-auth)
+    # runs in its own compose project and is reached through the host.
     extra_hosts:
+      - 'host.docker.internal:host-gateway'
       - 'registry.npmjs.org:104.16.9.34'
-      - 'identitytoolkit.googleapis.com:172.217.113.4'
-      - 'securetoken.googleapis.com:172.217.114.4'
       - 'www.googleapis.com:172.217.119.4'
       - 'oauth2.googleapis.com:173.194.222.95'
       - 'accounts.google.com:192.178.223.84'
@@ -323,6 +383,13 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3002
+      # Secrets depuis l'Infisical local (profil `secrets`) : DEV_USE_INFISICAL=true.
+      USE_SECRET_MANAGER: '${DEV_USE_INFISICAL:-false}'
+      INFISICAL_SITE_URL: 'http://infisical:8080'
+      INFISICAL_ENVIRONMENT: 'dev'
+      INFISICAL_PROJECT_ID: '${INFISICAL_PROJECT_ID_IDEPLOY_API:-}'
+      INFISICAL_CLIENT_ID: '${INFISICAL_CLIENT_ID_IDEPLOY_API:-}'
+      INFISICAL_CLIENT_SECRET: '${INFISICAL_CLIENT_SECRET_IDEPLOY_API:-}'
       CORS_ALLOWED_ORIGINS: 'http://localhost:4202,http://localhost:8000'
       # SHARED iDeploy Postgres (same DB as the Laravel app)
       IDEPLOY_DB_HOST: 'postgres'
@@ -413,9 +480,8 @@ services:
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: 'http://localhost:3000'
-      NEXT_PUBLIC_FIREBASE_API_KEY: '${FIREBASE_API_KEY}'
-      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: '${FIREBASE_AUTH_DOMAIN}'
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: '${FIREBASE_PROJECT_ID}'
+      # Self-hosted auth server, as reached by the browser (mynode.js → environment.auth.url).
+      AUTH_URL: '${AUTH_URL:-http://localhost:9999}'
       # SSO redirect target for redirect=ideploy after login (mynode.js reads
       # this into environment.services.ideploy.url). Points at the new
       # ideploy-web (Angular) rewrite, not the old Laravel app on :8000.
@@ -472,7 +538,13 @@ services:
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: 'http://localhost:3000'
-      NEXT_PUBLIC_FIREBASE_API_KEY: '${FIREBASE_API_KEY}'
+      # Secrets depuis l'Infisical local (profil `secrets`) : DEV_USE_INFISICAL=true.
+      USE_SECRET_MANAGER: '${DEV_USE_INFISICAL:-false}'
+      INFISICAL_SITE_URL: 'http://infisical:8080'
+      INFISICAL_ENVIRONMENT: 'dev'
+      INFISICAL_PROJECT_ID: '${INFISICAL_PROJECT_ID_APPGEN:-}'
+      INFISICAL_CLIENT_ID: '${INFISICAL_CLIENT_ID_APPGEN:-}'
+      INFISICAL_CLIENT_SECRET: '${INFISICAL_CLIENT_SECRET_APPGEN:-}'
     volumes:
       - ./apps/appgen:/app/apps/appgen:cached
       - ./packages:/app/packages:cached

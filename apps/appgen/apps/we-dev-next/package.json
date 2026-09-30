@@ -3,17 +3,18 @@
     "version": "1.0.0",
     "description": "Express.js replica of we-dev-next application",
     "type": "module",
-    "main": "dist/server.js",
+    "main": "dist/main.js",
     "scripts": {
-        "dev": "tsx watch src/server.ts",
+        "dev": "tsx watch src/main.ts",
         "build": "tsc && node scripts/copy-skills.mjs",
-        "start": "node dist/server.js",
+        "start": "node dist/main.js",
         "lint": "eslint src --ext .ts"
     },
     "dependencies": {
         "@ai-sdk/deepseek": "^0.1.10",
         "@ai-sdk/google": "^1.2.22",
         "@ai-sdk/openai": "^1.0.11",
+        "@infisical/sdk": "^5.0.2",
         "accept-language": "^3.0.20",
         "ai": "^4.1.41",
         "axios": "^1.7.9",

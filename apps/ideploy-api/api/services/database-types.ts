@@ -1,3 +1,4 @@
+import { shellQuote } from '../ssh/ssh';
 /**
  * Registry of the 8 standalone database types Coolify supports. Each entry
  * maps the logical type to its table, default image, internal port, and the
@@ -58,7 +59,7 @@ export const DB_TYPES: Record<string, DbType> = {
       { col: 'postgres_db', env: 'POSTGRES_DB', default: 'postgres' },
     ],
     dumpCommand: (c, out) =>
-      `PGPASSWORD=${JSON.stringify(c.postgres_password)} pg_dump -U ${c.postgres_user} ${c.postgres_db} > ${out}`,
+      `PGPASSWORD=${shellQuote(c.postgres_password ?? '')} pg_dump -U ${shellQuote(c.postgres_user ?? '')} ${shellQuote(c.postgres_db ?? '')} > ${out}`,
   },
   mysql: {
     key: 'mysql',
@@ -73,7 +74,7 @@ export const DB_TYPES: Record<string, DbType> = {
       { col: 'mysql_database', env: 'MYSQL_DATABASE', default: 'default' },
     ],
     dumpCommand: (c, out) =>
-      `mysqldump -u root -p${JSON.stringify(c.mysql_root_password)} --all-databases > ${out}`,
+      `mysqldump -u root -p${shellQuote(c.mysql_root_password ?? '')} --all-databases > ${out}`,
   },
   mariadb: {
     key: 'mariadb',
@@ -88,7 +89,7 @@ export const DB_TYPES: Record<string, DbType> = {
       { col: 'mariadb_database', env: 'MARIADB_DATABASE', default: 'default' },
     ],
     dumpCommand: (c, out) =>
-      `mariadb-dump -u root -p${JSON.stringify(c.mariadb_root_password)} --all-databases > ${out}`,
+      `mariadb-dump -u root -p${shellQuote(c.mariadb_root_password ?? '')} --all-databases > ${out}`,
   },
   mongodb: {
     key: 'mongodb',
@@ -102,7 +103,7 @@ export const DB_TYPES: Record<string, DbType> = {
       { col: 'mongo_initdb_database', env: 'MONGO_INITDB_DATABASE', encrypted: true, default: 'default' },
     ],
     dumpCommand: (c, out) =>
-      `mongodump --username=${JSON.stringify(c.mongo_initdb_root_username)} --password=${JSON.stringify(c.mongo_initdb_root_password)} --authenticationDatabase=admin --archive=${out}`,
+      `mongodump --username=${shellQuote(c.mongo_initdb_root_username ?? '')} --password=${shellQuote(c.mongo_initdb_root_password ?? '')} --authenticationDatabase=admin --archive=${out}`,
   },
   redis: {
     key: 'redis',
@@ -115,7 +116,7 @@ export const DB_TYPES: Record<string, DbType> = {
     // `column "redis_password" of relation "standalone_redis" does not
     // exist` before this fix.
     fields: [{ col: 'redis_password', encrypted: true, generate: true, viaEnvVar: 'REDIS_PASSWORD' }],
-    command: (c) => `redis-server --requirepass ${c.redis_password}`,
+    command: (c) => `redis-server --requirepass ${shellQuote(c.redis_password ?? '')}`,
   },
   keydb: {
     key: 'keydb',
@@ -124,7 +125,7 @@ export const DB_TYPES: Record<string, DbType> = {
     image: 'eqalpha/keydb:latest',
     port: 6379,
     fields: [{ col: 'keydb_password', encrypted: true, generate: true }],
-    command: (c) => `keydb-server --requirepass ${c.keydb_password}`,
+    command: (c) => `keydb-server --requirepass ${shellQuote(c.keydb_password ?? '')}`,
   },
   dragonfly: {
     key: 'dragonfly',
@@ -133,7 +134,7 @@ export const DB_TYPES: Record<string, DbType> = {
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly',
     port: 6379,
     fields: [{ col: 'dragonfly_password', encrypted: true, generate: true }],
-    command: (c) => `dragonfly --requirepass=${c.dragonfly_password}`,
+    command: (c) => `dragonfly ${shellQuote(`--requirepass=${c.dragonfly_password ?? ''}`)}`,
   },
   clickhouse: {
     key: 'clickhouse',

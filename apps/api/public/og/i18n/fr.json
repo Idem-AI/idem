@@ -1,0 +1,70 @@
+{
+  "lang": "fr",
+  "pages": {
+    "home": {
+      "eyebrow": "",
+      "title": "L’IA qui crée des business rentables",
+      "subtitle": "**Plus de 500 agents IA** pour structurer votre projet, gérer vos finances, créer votre image de marque, votre stratégie de communication, votre site web et le déployer en Afrique."
+    },
+    "business": {
+      "eyebrow": "IDEM Business",
+      "title": "Votre idée devient un business rentable",
+      "subtitle": "Business plan SYSCOHADA, prévisions financières, marque et papiers OHADA, prêts pour la banque."
+    },
+    "simulator": {
+      "eyebrow": "IDEM Simulator",
+      "title": "Testez la rentabilité avant d’investir",
+      "subtitle": "Scénarios, stress tests et points de rupture : sachez à quelles conditions votre business tient."
+    },
+    "icode": {
+      "eyebrow": "iCode",
+      "title": "Le site de votre business, écrit sous vos yeux",
+      "subtitle": "Décrivez-le en une phrase : l’IA écrit le code, vous ajustez, vous publiez."
+    },
+    "ideploy": {
+      "eyebrow": "iDeploy",
+      "title": "Votre business en ligne en un clic",
+      "subtitle": "Domaine, certificat de sécurité et hébergement sur des serveurs africains, sans DevOps."
+    },
+    "pricing": {
+      "eyebrow": "Tarifs",
+      "title": "Payez ce qui fait avancer votre business",
+      "subtitle": "Des packs en francs CFA, payables par Mobile Money, et des crédits offerts pour commencer."
+    },
+    "about": {
+      "eyebrow": "À propos",
+      "title": "Une équipe africaine au service des entrepreneurs",
+      "subtitle": "IDEM est né au Cameroun pour que chaque idée puisse devenir un business qui rapporte."
+    },
+    "open-source": {
+      "eyebrow": "Open source",
+      "title": "Votre business, votre code, vos données",
+      "subtitle": "IDEM est open source sous licence Apache 2.0 et s’héberge sur des serveurs africains."
+    },
+    "african-market": {
+      "eyebrow": "Marché africain",
+      "title": "Pensé pour les marchés africains",
+      "subtitle": "Francs CFA, SYSCOHADA, OHADA, Mobile Money : les règles de chez vous, dès le départ."
+    },
+    "contact": {
+      "eyebrow": "Contact",
+      "title": "Parlons de votre business",
+      "subtitle": "Une question, un partenariat, un projet : l’équipe IDEM vous répond."
+    },
+    "beta": {
+      "eyebrow": "Bêta premium",
+      "title": "Lancez votre business avec nous, en avant-première",
+      "subtitle": "Accès premium, crédits renouvelés et une ligne directe avec l’équipe IDEM."
+    },
+    "legal": {
+      "eyebrow": "Informations légales",
+      "title": "Des règles claires, écrites pour vous",
+      "subtitle": "Conditions d’utilisation, confidentialité et conditions de la bêta d’IDEM."
+    },
+    "not-found": {
+      "eyebrow": "Page introuvable",
+      "title": "Cette page n’existe plus",
+      "subtitle": "Revenez à l’accueil pour créer et lancer votre business rentable."
+    }
+  }
+}

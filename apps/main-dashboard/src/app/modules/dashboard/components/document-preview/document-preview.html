@@ -147,8 +147,7 @@
       </div>
     } @else if (loadError()) {
       <div class="dp-overlay">
-        <i class="pi pi-exclamation-triangle text-3xl text-amber-400" aria-hidden="true"></i>
-        <p class="text-sm text-text-secondary">{{ 'dashboard.documentPreview.error' | translate }}</p>
+        <app-error-state variant="compact" scene="document" [message]="'dashboard.documentPreview.error' | translate" />
       </div>
     } @else if (pageCount() === 0) {
       <div class="dp-overlay">

@@ -30,6 +30,7 @@ import {
 import { environment } from '../../../../../../../environments/environment';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
 
 /**
  * Sections affichées par la console tant que la structure n'a pas été choisie.
@@ -55,6 +56,7 @@ const DEFAULT_BUSINESS_PLAN_SECTIONS = [
   selector: 'app-business-plan-generation',
   standalone: true,
   imports: [
+    ErrorStateComponent,
     AdditionalInfoFormComponent,
     AgentResearchConsoleComponent,
     BusinessPlanStructureComponent,

@@ -1537,6 +1537,70 @@
       },
       "errors": {
         "title": "Generation Failed"
+      },
+      "live": {
+        "eyebrow": "Your brand guidelines are taking shape",
+        "pages": "Pages",
+        "elapsed": "Elapsed",
+        "remaining": "About",
+        "minutes": "{{count}} min left",
+        "stage": "The guidelines workshop",
+        "ready": "Your brand guidelines are ready.",
+        "redirecting": "We're saving the last pages, then we'll take you there.",
+        "openNow": "Open the guidelines now",
+        "warmingUp": "Preparing the first page…",
+        "page": "Page {{index}}",
+        "followLive": "Follow live",
+        "live": "Live",
+        "firstPage": "The first page will appear here as soon as it is ready.",
+        "outline": "Guidelines outline",
+        "status": {
+          "pending": "upcoming",
+          "active": "in progress",
+          "done": "ready"
+        },
+        "phases": {
+          "logo": {
+            "title": "Drawing your logo",
+            "detail": "The mark and its light, dark and monochrome versions.",
+            "chapter": "Logo"
+          },
+          "colors": {
+            "title": "Setting your colours",
+            "detail": "The palette, the role of each colour and their contrast.",
+            "chapter": "Colours"
+          },
+          "type": {
+            "title": "Tuning your typography",
+            "detail": "Typefaces, hierarchy and sizes.",
+            "chapter": "Typography"
+          },
+          "direction": {
+            "title": "Composing the art direction",
+            "detail": "Grid, image treatment and brand patterns.",
+            "chapter": "Art direction"
+          },
+          "mockups": {
+            "title": "Putting the brand in context",
+            "detail": "Your logo on real, photographed items.",
+            "chapter": "Mockups"
+          },
+          "social": {
+            "title": "Preparing your social media",
+            "detail": "Banners and posts in each network's formats.",
+            "chapter": "Social media"
+          },
+          "usage": {
+            "title": "Setting the usage rules",
+            "detail": "Do's and don'ts for the logo, colours and typefaces.",
+            "chapter": "Usage rules"
+          },
+          "finalize": {
+            "title": "Assembling your guidelines",
+            "detail": "Pages are bound and saved.",
+            "chapter": "Finalising"
+          }
+        }
       }
     },
     "showBranding": {
@@ -1737,13 +1801,113 @@
         "emptyZip": "The archive received is empty."
       },
       "board": {
-        "charterReady": "Guidelines ready",
         "openCharter": "Open guidelines",
         "downloadLogos": "Download",
         "variations": "Logo variations",
         "copyHint": "Click a colour to copy its value",
         "copy": "Copy",
         "copied": "Copied"
+      },
+      "identityEditor": {
+        "open": "Edit identity",
+        "title": "Visual identity",
+        "subtitle": "Change the logo, colors or fonts: all your documents, visuals and website follow.",
+        "logo": {
+          "title": "Logo",
+          "import": "Import a logo",
+          "keepCurrent": "Keep current logo",
+          "previous": "Proposed logos",
+          "colorsFromLogo": "Match colors to this logo",
+          "regenerate": "Suggest other logos",
+          "regenerating": "Creating logos… You can close this panel.",
+          "none": "No other logo proposed yet.",
+          "importedTitle": "Logo imported. Use it as is, or start from it to improve it.",
+          "useAsIs": "Used as is",
+          "improveImported": "Improve it with AI",
+          "improveCurrent": "Improve current logo",
+          "improveHint": "The AI analyses the logo, spots its weaknesses and suggests more professional versions that stay close to it.",
+          "options": "Generation options",
+          "typeLabel": "Logo type",
+          "briefLabel": "Your idea (optional)",
+          "briefPlaceholder": "E.g. a stylised lion, clean lines, craft feel…",
+          "briefUsed": "Brief used:"
+        },
+        "colors": {
+          "title": "Colors",
+          "hint": "Change one color and the others adjust automatically. Tick “Keep” to lock one.",
+          "fromLogoHint": "Colors will be taken from the new logo.",
+          "harmonizing": "Matching colors…",
+          "reset": "Undo",
+          "keep": "Keep",
+          "adjusted": "adjusted",
+          "contrast": "Text legibility: {{ratio}}:1",
+          "roles": {
+            "primary": "Primary",
+            "secondary": "Secondary",
+            "accent": "Accent",
+            "background": "Background",
+            "text": "Text"
+          },
+          "proposals": "Proposed palettes"
+        },
+        "fonts": {
+          "title": "Fonts",
+          "primary": "Headings",
+          "secondary": "Body text",
+          "search": "Search a font…",
+          "undo": "Undo",
+          "proposals": "Proposed pairings",
+          "import": "Import"
+        },
+        "preview": {
+          "title": "What will change",
+          "count": "{{updated}} of {{total}}",
+          "site": "Website",
+          "files": "{{count}} file(s) updated",
+          "siteError": "Not updated, try again",
+          "contrastFixes": "{{count}} text(s) kept legible on the new colors."
+        },
+        "actions": {
+          "preview": "See what changes",
+          "apply": "Apply everywhere",
+          "applying": "Applying…"
+        },
+        "done": {
+          "title": "New identity applied",
+          "subtitle": "Every deliverable has been updated. Each change can be undone from the history.",
+          "logoAdapted": "The logo was adapted to the new identity. The previous one stays available among proposed logos.",
+          "logosRunning": "New logos are being created with your new identity. You can close this panel.",
+          "logosReady": "Your new logos are ready.",
+          "seeLogos": "See proposed logos"
+        },
+        "error": "The update did not go through. Please try again.",
+        "regenerate": "Suggest others",
+        "regenerating": "In progress… You can close this panel.",
+        "regenError": "Generation did not go through. Please try again.",
+        "cancel": "Cancel",
+        "analysisError": "The logo analysis did not go through. Please try again.",
+        "follow": {
+          "title": "What about your logo?",
+          "adapt": {
+            "colors": "Apply the new colors to the logo",
+            "fonts": "Reset the logo name in the new font",
+            "both": "Apply the new colors and font to the logo"
+          },
+          "adaptHint": "No AI: the logo design stays the same, only its colors and the name's font follow.",
+          "regenerate": "Create new logos with the new identity",
+          "regenerateHint": "With AI, after applying. Proposals arrive in this panel; you choose afterwards.",
+          "keep": "Keep the logo as is",
+          "nothingToAdapt": "This logo has no brand color to replace: it will stay as is.",
+          "subtitle": {
+            "colors": "Your colors are changing. The logo can follow them, be recreated, or stay as is.",
+            "fonts": "Your fonts are changing. The logo can follow them, be recreated, or stay as is.",
+            "both": "Your colors and fonts are changing. The logo can follow them, be recreated, or stay as is."
+          },
+          "recommended": "Recommended",
+          "adaptedAlt": "Logo adapted to the new identity",
+          "keepHint": "Only your documents, visuals and website change colors or fonts.",
+          "back": "Back to editing"
+        }
       }
     },
     "additionalInfoForm": {
@@ -3475,7 +3639,8 @@
           "title": "This page failed to generate",
           "message": "The content received is empty or incomplete. Regenerate the section to get a full page."
         },
-        "action": "Regenerate this section"
+        "action": "Regenerate this section",
+        "progress": "{{ready}} of {{total}} pages are ready"
       },
       "nudge": {
         "complete": "Complete",
@@ -4798,5 +4963,67 @@
       "resume": "Back to work",
       "seeInvoice": "See my invoices"
     }
+  },
+  "auth": {
+    "signInTitle": "Sign in to IDEM",
+    "signUpTitle": "Create an account",
+    "forgotTitle": "Choose a password",
+    "recoveryTitle": "New password",
+    "continueWith": "Continue with {{provider}}",
+    "or": "or",
+    "name": "Name",
+    "email": "Email address",
+    "password": "Password",
+    "newPassword": "New password",
+    "passwordHint": "At least 8 characters.",
+    "signIn": "Sign in",
+    "signUp": "Create my account",
+    "sendLink": "Send me the link",
+    "savePassword": "Save and sign in",
+    "forgotPassword": "Forgot your password?",
+    "noAccount": "No account yet?",
+    "createAccount": "Create an account",
+    "haveAccount": "Already have an account?",
+    "backToSignIn": "Back to sign in",
+    "signingIn": "Signing you in…",
+    "migrationAction": "Choose my password",
+    "forgotIntro": "Enter your email: we'll send you a link to choose your password.",
+    "linkSent": "If an account exists for {{email}}, a link has just been sent. Open it in this browser.",
+    "confirmSent": "A confirmation link has been sent to {{email}}. Open it in this browser to activate your account.",
+    "alreadyRegistered": "An account already exists with this email. Sign in, or choose a new password.",
+    "emailConfirmed": "Email confirmed. You can now sign in.",
+    "errors": {
+      "invalidCredentials": "Incorrect email or password.",
+      "emailNotConfirmed": "Please confirm your email first with the link we sent you.",
+      "weakPassword": "This password is too weak. Use at least 8 characters.",
+      "alreadyRegistered": "An account already exists with this email.",
+      "rateLimited": "Too many attempts. Try again in a few minutes.",
+      "samePassword": "Choose a password different from the previous one.",
+      "signupDisabled": "Sign-ups are temporarily closed.",
+      "linkExpired": "This link has expired or was already used. Request a new one.",
+      "accountConflict": "This email is already linked to another account. Please contact support.",
+      "network": "Cannot reach the server. Check your connection.",
+      "emailRequired": "This account does not share an email address. Add one with the provider, or create an account with your email.",
+      "generic": "Sign-in failed. Please try again."
+    },
+    "legal": {
+      "prefix": "By continuing, you agree to the",
+      "terms": "Terms of Service",
+      "and": "and the",
+      "privacy": "Privacy Policy"
+    }
+  },
+  "betaInvite": {
+    "title": "Join the premium beta",
+    "lead": "During the beta, a limited number of entrepreneurs use IDEM's most complete plans for free.",
+    "points": {
+      "offers": "Firm-grade business plan, brand and social media, app and launch",
+      "credits": "Credits topped up every month until the beta ends",
+      "feedback": "In return: your feedback on what works and what's missing"
+    },
+    "join": "Request my access",
+    "later": "Later",
+    "close": "Close",
+    "note": "The form opens in a new tab."
   }
 }

@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { Response, Router } from 'express';
+import { CustomRequest } from '../interfaces/express.interface';
 import {
   getOnboardingProfileController,
   getToursSeenController,
@@ -52,6 +53,15 @@ export const userRoutes = Router();
  *         description: Internal server error.
  */
 userRoutes.get('/profile', profileController);
+
+/**
+ * Identité minimale de l'appelant (cookie de session OU Bearer).
+ * Utilisée par les serveurs satellites (AppGen) pour savoir qui les appelle
+ * sans recevoir le profil complet.
+ */
+userRoutes.get('/me', authenticate, (req: CustomRequest, res: Response) => {
+  res.status(200).json({ uid: req.user!.uid, email: req.user!.email ?? null });
+});
 
 /**
  * @openapi

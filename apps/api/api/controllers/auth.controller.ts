@@ -1,124 +1,85 @@
-import { Request, Response, CookieOptions } from 'express';
-import admin from 'firebase-admin';
-import logger from '../config/logger'; // Assuming you have a Winston logger setup
+import { Request, Response } from 'express';
+import mongoose from 'mongoose';
+import logger from '../config/logger';
 import { userService } from '../services/user.service';
-import { UserModel } from '../models/userModel';
 import { refreshTokenService } from '../services/refreshToken.service';
 import { CustomRequest } from '../interfaces/express.interface';
 import { v4 as uuidv4 } from 'uuid';
+import { safeEqual } from '../utils/safe-equal.util';
+import { toPublicProfile } from '../utils/public-profile.util';
 import RedisConnection from '../config/redis.config';
-import { mintSessionCookie, sessionCookieOptions } from '../services/sessionCookie.service';
+import {
+  clearCookieOptions,
+  createSessionToken,
+  forgetRevocation,
+  mintSessionCookie,
+  refreshCookieOptions,
+  sessionCookieOptions,
+  verifySessionCookie,
+} from '../services/sessionCookie.service';
+import { IdentityError, identityService } from '../services/identity/identity.service';
+import { verifySupabaseAccessToken } from '../services/identity/supabaseAuth.client';
+
+/**
+ * POST /auth/sessionLogin
+ *
+ * Échange un jeton d'accès du serveur d'authentification (Supabase) contre
+ * les deux cookies httpOnly d'IDEM : `session` (14 jours) et `refreshToken`
+ * (30 jours). L'identité vient EXCLUSIVEMENT du jeton vérifié ; le corps de la
+ * requête ne porte rien d'autre que ce jeton.
+ */
 export const sessionLoginController = async (req: Request, res: Response): Promise<void> => {
-  const token = req.body.token;
-  const user = req.body.user;
+  const token = req.body?.token;
 
-  logger.info(`Attempting session login for user associated with token`, {
-    user,
-    body: req.body,
-  });
-
-  if (!token) {
-    logger.warn(`Session login failed: No ID token provided.`, {
-      hasUser: !!user,
-      userUid: user?.uid,
-    });
-    res.status(400).send({ success: false, message: 'ID token is required.' });
+  if (!token || typeof token !== 'string') {
+    logger.warn('Session login failed: No access token provided.');
+    res.status(400).send({ success: false, message: 'Access token is required.' });
     return;
   }
 
-  if (!user) {
-    logger.warn('Session login failed: No user data provided.');
-    res.status(400).send({ success: false, message: 'User data is required.' });
+  let claims;
+  try {
+    claims = verifySupabaseAccessToken(token);
+  } catch (error: any) {
+    logger.warn(`Session login failed: invalid access token (${error.message})`);
+    res.status(401).send({ success: false, message: 'UNAUTHORIZED REQUEST!' });
     return;
   }
-  const userModel: UserModel = {
-    uid: user.uid,
-    email: user.email,
-    subscription: 'free',
-    createdAt: new Date(),
-    lastLogin: new Date(),
-    displayName: user.displayName,
-    photoURL: user.photoURL,
-    quota: {
-      dailyUsage: 0,
-      weeklyUsage: 0,
-      dailyLimit: 0,
-      weeklyLimit: 0,
-      lastResetDaily: new Date().toISOString().split('T')[0],
-      lastResetWeekly: new Date().toISOString().split('T')[0],
-    },
-    roles: ['user'],
-  };
-  const expiresIn = 14 * 24 * 60 * 60 * 1000; // 14 Days
-  const isProduction = process.env.NODE_ENV === 'production';
 
   try {
-    const sessionCookie = await admin.auth().createSessionCookie(token, { expiresIn });
+    const user = await identityService.resolveUser(claims);
+    logger.info('Session login', { uid: user.uid, authId: claims.sub });
 
-    const options: CookieOptions = {
-      maxAge: expiresIn,
-      httpOnly: true,
-      // In production we must use Secure + SameSite=None for cross-site cookies
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      path: '/',
-      // Set domain for cookie sharing between subdomains (API, iDeploy, Main App)
-      // In dev: localhost (no domain needed for localhost ports)
-      // In prod: .idem.africa
-      ...(isProduction && { domain: '.idem.africa' }),
-    };
+    res.cookie('session', createSessionToken(user), sessionCookieOptions());
 
-    res.cookie('session', sessionCookie, options);
-    logger.info(`Session cookie created successfully for user ${userModel.uid}.`);
-    const createdUser = await userService.createUser(userModel);
-    if (!createdUser) {
-      logger.warn(`User ${userModel.uid} not created.`);
-      res.status(400).send({
-        success: false,
-        message: 'User not created.',
-      });
-      return;
-    }
-
-    // Générer un refresh token
     const deviceInfo = req.headers['user-agent'] || 'Unknown device';
-    const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown IP';
-
+    const ipAddress = req.ip || req.socket.remoteAddress || 'Unknown IP';
     const refreshTokenResult = await refreshTokenService.generateRefreshToken(
-      userModel.uid,
+      user.uid,
       deviceInfo,
       ipAddress
     );
-
-    // Configurer le cookie pour le refresh token
-    const refreshTokenOptions: CookieOptions = {
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 jours
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      path: '/',
-      ...(isProduction && { domain: '.idem.africa' }),
-    };
-
-    res.cookie('refreshToken', refreshTokenResult.refreshToken, refreshTokenOptions);
+    res.cookie('refreshToken', refreshTokenResult.refreshToken, refreshCookieOptions());
 
     res.status(200).send({
       success: true,
       message: 'Session cookie created successfully.',
-      refreshToken: refreshTokenResult.refreshToken,
+      user: { ...toPublicProfile(user), emailVerified: user.emailVerified === true },
+      // Le refresh token voyage uniquement en cookie httpOnly : le renvoyer
+      // dans le corps le rendrait lisible par n'importe quel script de la page.
       refreshTokenExpiresAt: refreshTokenResult.expiresAt,
     });
   } catch (error: any) {
-    logger.error(`Error creating session cookie for user ${user.uid}:`, {
+    if (error instanceof IdentityError) {
+      logger.warn(`Session login refused for auth account ${claims.sub}: ${error.code}`);
+      res.status(error.status).send({ success: false, code: error.code, message: error.message });
+      return;
+    }
+    logger.error(`Error creating session for auth account ${claims.sub}:`, {
       errorMessage: error.message,
       errorStack: error.stack,
-      idTokenProvided: !!token,
     });
-    res.status(401).send({
-      success: false,
-      message: 'UNAUTHORIZED REQUEST! Error creating session cookie.',
-      error: error.message,
-    });
+    res.status(500).send({ success: false, message: 'Error creating session.' });
   }
 };
 
@@ -165,7 +126,6 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
     res.status(200).send({
       success: true,
       message: 'Access token refreshed successfully.',
-      sessionCookie,
     });
   } catch (error: any) {
     logger.error('Error refreshing access token:', {
@@ -175,7 +135,6 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
     res.status(500).send({
       success: false,
       message: 'Internal server error during token refresh.',
-      error: error.message,
     });
   }
 };
@@ -207,15 +166,9 @@ export const logoutController = async (req: CustomRequest, res: Response): Promi
       await refreshTokenService.revokeRefreshToken(userId, refreshToken);
     }
 
-    const isProduction = process.env.NODE_ENV === 'production';
-    const clearOptions: CookieOptions = {
-      path: '/',
-      ...(isProduction && { domain: '.idem.africa' }),
-    };
-
     // Supprimer les cookies
-    res.clearCookie('session', clearOptions);
-    res.clearCookie('refreshToken', clearOptions);
+    res.clearCookie('session', clearCookieOptions());
+    res.clearCookie('refreshToken', clearCookieOptions());
 
     logger.info(`User ${userId} logged out successfully`);
 
@@ -231,7 +184,6 @@ export const logoutController = async (req: CustomRequest, res: Response): Promi
     res.status(500).send({
       success: false,
       message: 'Error during logout.',
-      error: error.message,
     });
   }
 };
@@ -254,18 +206,16 @@ export const logoutAllController = async (req: CustomRequest, res: Response): Pr
   }
 
   try {
-    // Révoquer tous les refresh tokens
+    // Révoquer tous les refresh tokens, et toutes les sessions déjà émises.
     await refreshTokenService.revokeAllRefreshTokens(userId);
-
-    const isProduction = process.env.NODE_ENV === 'production';
-    const clearOptions: CookieOptions = {
-      path: '/',
-      ...(isProduction && { domain: '.idem.africa' }),
-    };
+    await mongoose.connection
+      .collection('users')
+      .updateOne({ _id: userId as any }, { $set: { sessionsRevokedAt: new Date() } });
+    forgetRevocation(userId);
 
     // Supprimer les cookies de la session actuelle
-    res.clearCookie('session', clearOptions);
-    res.clearCookie('refreshToken', clearOptions);
+    res.clearCookie('session', clearCookieOptions());
+    res.clearCookie('refreshToken', clearCookieOptions());
 
     logger.info(`User ${userId} logged out from all devices successfully`);
 
@@ -281,7 +231,6 @@ export const logoutAllController = async (req: CustomRequest, res: Response): Pr
     res.status(500).send({
       success: false,
       message: 'Error during logout from all devices.',
-      error: error.message,
     });
   }
 };
@@ -290,8 +239,8 @@ export const logoutAllController = async (req: CustomRequest, res: Response): Pr
  * Contrôleur pour obtenir les informations des refresh tokens d'un utilisateur
  */
 /**
- * Verify session cookie and return user data
- * This endpoint is used by Laravel to verify Firebase sessions
+ * Vérifie une session IDEM (cookie `session` ou Bearer) et rend le profil
+ * public. Utilisé par les services externes qui contrôlent une session.
  */
 export const verifySessionController = async (req: Request, res: Response): Promise<void> => {
   const sessionCookie = req.cookies.session || req.headers.authorization?.replace('Bearer ', '');
@@ -311,12 +260,13 @@ export const verifySessionController = async (req: Request, res: Response): Prom
   }
 
   try {
-    const profile = await userService.getUserProfile(sessionCookie);
+    const identity = await verifySessionCookie(sessionCookie, true);
+    const profile = await userService.getUserProfile(identity.uid);
 
     logger.info(`Session verified successfully for user: ${profile.uid}`);
     res.status(200).json({
       success: true,
-      user: profile,
+      user: toPublicProfile(profile),
     });
   } catch (error: any) {
     logger.error('Session verification failed:', {
@@ -326,7 +276,6 @@ export const verifySessionController = async (req: Request, res: Response): Prom
     res.status(401).json({
       success: false,
       message: 'Invalid or expired session',
-      error: error.message,
     });
   }
 };
@@ -365,7 +314,6 @@ export const getRefreshTokensController = async (
     res.status(500).send({
       success: false,
       message: 'Error retrieving refresh tokens.',
-      error: error.message,
     });
   }
 };
@@ -376,7 +324,7 @@ const IDEPLOY_TOKEN_TTL = 5 * 60; // 5 minutes
 /**
  * POST /auth/ideploy-token
  * Generates a short-lived one-time token for iDeploy SSO.
- * Called by main-dashboard after Firebase login when redirect=ideploy.
+ * Called by main-dashboard after login when redirect=ideploy.
  */
 export const generateIdeployTokenController = async (
   req: CustomRequest,
@@ -391,14 +339,14 @@ export const generateIdeployTokenController = async (
   }
 
   try {
-    const firebaseUser = await admin.auth().getUser(uid);
+    const profile = await userService.getUserProfile(uid);
     const token = uuidv4();
 
     const payload = {
       uid,
-      email: email || firebaseUser.email,
-      displayName: firebaseUser.displayName || null,
-      photoURL: firebaseUser.photoURL || null,
+      email: email || profile.email,
+      displayName: profile.displayName || null,
+      photoURL: profile.photoURL || null,
       createdAt: new Date().toISOString(),
     };
 
@@ -416,7 +364,7 @@ export const generateIdeployTokenController = async (
     logger.error('Error generating iDeploy token:', { uid, message: error.message });
     res
       .status(500)
-      .json({ success: false, message: 'Failed to generate token', error: error.message });
+      .json({ success: false, message: 'Failed to generate token' });
   }
 };
 
@@ -433,13 +381,20 @@ export const validateIdeployTokenController = async (
   const sharedSecret = process.env.IDEPLOY_SHARED_SECRET;
   const providedSecret = req.headers['x-ideploy-secret'];
 
-  if (sharedSecret && providedSecret !== sharedSecret) {
+  // Fermé par défaut : sans secret configuré, n'importe qui aurait pu échanger
+  // un jeton SSO intercepté contre l'identité de l'utilisateur.
+  if (!sharedSecret) {
+    logger.error('IDEPLOY_SHARED_SECRET is not configured: iDeploy SSO validation disabled');
+    res.status(503).json({ success: false, message: 'SSO validation unavailable' });
+    return;
+  }
+  if (typeof providedSecret !== 'string' || !safeEqual(providedSecret, sharedSecret)) {
     res.status(403).json({ success: false, message: 'Invalid secret' });
     return;
   }
 
   const { token } = req.body;
-  if (!token) {
+  if (!token || typeof token !== 'string') {
     res.status(400).json({ success: false, message: 'Token is required' });
     return;
   }
@@ -462,6 +417,6 @@ export const validateIdeployTokenController = async (
     logger.error('Error validating iDeploy token:', { message: error.message });
     res
       .status(500)
-      .json({ success: false, message: 'Failed to validate token', error: error.message });
+      .json({ success: false, message: 'Failed to validate token' });
   }
 };

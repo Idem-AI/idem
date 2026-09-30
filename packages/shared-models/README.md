@@ -1,38 +1,25 @@
 # @idem/shared-models
 
-Package de modèles et types partagés pour l'écosystème Idem.
+Types and data shared by IDEM's front ends and back ends.
 
-## Installation
+| Path | Contents |
+| --- | --- |
+| `src/auth/` | `UserModel`, team, invitation and project-team models |
+| `src/projects/` | `ProjectModel` |
+| `src/pricing/pricing.config.json` | **The price list**: every offer in every supported country. Single source of truth for prices |
+| `src/pricing/pricing.schema.json` | JSON Schema of the price list |
+| `src/pricing/pricing.ts`, `defaults.ts` | Typed access to the price list |
+
+```ts
+import { UserModel, ProjectModel } from '@idem/shared-models';
+```
+
+## Prices
+
+Prices are defined per country, never converted from the CFA franc (see `docs/BILLING.md` in `apps/api`). The API reads `pricing.config.json` at runtime and reloads it when it changes; the admin panel can override a price in the database, and overrides win over the file. `PRICING_CONFIG_PATH` points the API at another file.
+
+## Build
 
 ```bash
-npm install @idem/shared-models
+npm run build --workspace=@idem/shared-models   # or: npm run prepare:packages
 ```
-
-## Utilisation
-
-```typescript
-import { UserModel, TeamModel, ProjectModel } from '@idem/shared-models';
-```
-
-## Développement
-
-```bash
-# Build
-npm run build
-
-# Watch mode
-npm run dev
-
-# Clean
-npm run clean
-```
-
-## Modèles disponibles
-
-- **UserModel**: Modèle utilisateur avec authentification Google/GitHub
-- **TeamModel**: Modèle d'équipe avec membres et rôles
-- **TeamMemberModel**: Membre d'équipe avec rôle spécifique
-- **ProjectModel**: Modèle de projet
-- **ProjectTeamModel**: Association entre projet et équipe avec rôles
-- **RoleModel**: Rôles et permissions
-- **InvitationModel**: Invitations utilisateur

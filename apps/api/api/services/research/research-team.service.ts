@@ -342,6 +342,18 @@ export class ResearchTeamService {
     sectionIndex: number
   ): Promise<ResearchedSection> {
     try {
+      // Page fabriquée par le code (la couverture) : rien à chercher ni à
+      // vérifier, le rendu est le livrable.
+      if (section.compose) {
+        const data = await section.compose();
+        await this.emitAgent(emit, runId, 'writer', `writer:${section.name}`, section.name, {
+          kind: 'agent_status',
+          status: 'done',
+          message: 'Section finalisée',
+        });
+        return { name: section.name, data, summary: section.name, sources: [] };
+      }
+
       let sources: ResearchSource[] = [];
       let researchDigest = '';
 

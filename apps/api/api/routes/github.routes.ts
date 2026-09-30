@@ -65,7 +65,7 @@ router.get('/auth/url', authenticate, githubController.getAuthUrlController.bind
  *       500:
  *         description: Internal server error
  */
-router.get('/auth/callback', githubController.handleOAuthCallbackController.bind(githubController));
+router.get('/auth/callback', authenticate, githubController.handleOAuthCallbackController.bind(githubController));
 
 /**
  * @openapi

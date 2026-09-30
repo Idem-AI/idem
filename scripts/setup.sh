@@ -38,12 +38,12 @@ info "Verifying prerequisites..."
 
 # Node.js check
 if ! command -v node &> /dev/null; then
-  error "Node.js is not installed. Please install Node.js >= 18."
+  error "Node.js is not installed. Please install Node.js >= 24 (see .nvmrc)."
 fi
 NODE_VERSION=$(node -v | cut -d'v' -f2)
 NODE_MAJOR=$(echo "$NODE_VERSION" | cut -d'.' -f1)
-if [ "$NODE_MAJOR" -lt 18 ]; then
-  warn "Node.js version is $NODE_VERSION. Recommended version is >= 18."
+if [ "$NODE_MAJOR" -lt 24 ]; then
+  warn "Node.js version is $NODE_VERSION. Use Node.js 24 (see .nvmrc): the simulator (Angular 22) and several dependencies require it."
 else
   success "Node.js version $NODE_VERSION is active."
 fi

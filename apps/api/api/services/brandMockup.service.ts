@@ -8,11 +8,18 @@ import {
 } from './BandIdentity/mockupAnalyzer.service';
 import { MOCKUP_CONFIG } from '../config/mockup.config';
 import { AI_CONFIG } from '../config/ai.config';
-import { resolveMockupProvider } from '../config/mockup-provider.config';
+import {
+  isGlmMockupAvailable,
+  pauseGeminiForBilling,
+  resolveMockupProvider,
+} from '../config/mockup-provider.config';
+import { buildGeminiMockupPayload } from './BandIdentity/mockupPrivacy';
+import { buildVisualBrief, VisualBrief } from './BandIdentity/visualBrief.service';
 import {
   analyzeImage,
   GeneratedImage,
   generateImage,
+  GeminiBillingError,
   generateImageWithGeminiChain,
   isGlmConfigured,
 } from './glm-media.service';
@@ -22,6 +29,7 @@ import {
   buildImageStyleModifier,
 } from '../utils/art-direction.util';
 import { parseLlmJson } from '../utils/llm-json.util';
+import { fetchPublicUrl } from '../utils/safe-fetch.util';
 
 /**
  * Fraction de la FACE repérée que couvre le logo. La vision rend la face plane
@@ -134,6 +142,8 @@ export interface MockupGenerationRequest {
    * défaut du modèle, sans lien avec le reste de la charte.
    */
   artDirection?: ArtDirectionModel | null;
+  /** Fiche visuelle vérifiée, pour Gemini (cf. `visualBrief.service.ts`). */
+  visualBrief?: VisualBrief | null;
 }
 
 export interface MockupGenerationResult {
@@ -178,7 +188,9 @@ export class GeminiMockupService {
      * l'appelant retrouve ainsi chaque page par son `mockupIndex`, sans avoir à
      * reconnaître un support dans la liste rendue.
      */
-    forcedSupports: SelectedMockupSupport[] = []
+    forcedSupports: SelectedMockupSupport[] = [],
+    /** Pays du projet : il ne sort jamais, il sert à vérifier qu'il ne sort pas. */
+    country?: string
   ): Promise<MockupGenerationResult[]> {
     const startTime = Date.now();
 
@@ -234,6 +246,13 @@ export class GeminiMockupService {
       // une encre foncée sur un support sombre serait illisible.
       const logos = await this.loadLogoSet(logoUrl, logoVariants);
 
+      // Fiche visuelle : traduite chez GLM, vérifiée par le code, une fois pour
+      // toutes les scènes — seulement si Gemini les sert.
+      const visualBrief =
+        (await resolveMockupProvider()) === 'gemini'
+          ? await buildVisualBrief({ artDirection, brandName, description: projectDescription, country })
+          : null;
+
       // Étape 3 : les scènes sont indépendantes, elles partent ENSEMBLE. En
       // série, la charte attendait la somme des générations (six scènes, 95 s
       // mesurés) ; en parallèle, elle n'attend que la plus lente. Une scène
@@ -246,7 +265,7 @@ export class GeminiMockupService {
       const settled = await Promise.allSettled(
         selectedSupports.map((selectedSupport) =>
           this.generateMockup(
-            { logos, brandColors, brandName, selectedSupport, pdfFormat, artDirection },
+            { logos, brandColors, brandName, selectedSupport, pdfFormat, artDirection, visualBrief },
             userId,
             projectId,
             `mockup-${selectedSupport.mockupIndex}`
@@ -346,10 +365,23 @@ export class GeminiMockupService {
       let imageBuffer: Buffer;
       let imageMimeType: string;
 
+      // Gemini d'abord quand il est choisi ; s'il refuse pour FACTURATION
+      // (plus de crédit, facturation coupée, quota atteint), GLM joue le rôle
+      // de repli : scène nue, relecture, incrustation du logo.
+      let geminiImage: GeneratedImage | null = null;
       if (provider === 'gemini') {
-        const image = await this.stageGeminiMockup(request, mockupName);
-        imageBuffer = image.buffer;
-        imageMimeType = image.mimeType;
+        try {
+          geminiImage = await this.stageGeminiMockup(request, mockupName);
+        } catch (error) {
+          if (!(error instanceof GeminiBillingError) || !isGlmMockupAvailable()) throw error;
+          pauseGeminiForBilling();
+          logger.warn(`[MOCKUP][${mockupName}] Gemini refuse (facturation) — repli sur GLM`);
+        }
+      }
+
+      if (geminiImage) {
+        imageBuffer = geminiImage.buffer;
+        imageMimeType = geminiImage.mimeType;
       } else {
         const { scene, reading } = await this.stageCleanScene(request, mockupName);
         // Une page d'univers visuel ne porte PAS le logo : la scène nue EST le
@@ -362,14 +394,14 @@ export class GeminiMockupService {
       }
 
       console.log(
-        `[MOCKUP] ✅ Mockup ready by ${provider} for ${request.selectedSupport.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to storage...`
+        `[MOCKUP] ✅ Mockup ready by ${geminiImage ? 'gemini' : 'glm'} for ${request.selectedSupport.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to storage...`
       );
 
       const extension = /jpe?g/i.test(imageMimeType) ? 'jpg' : /webp/i.test(imageMimeType) ? 'webp' : 'png';
       const fileName = `${mockupName}-${Date.now()}.${extension}`;
       const folderPath = `projects/${projectId}/Mockups`;
 
-      logger.info(`[MOCKUP][${mockupName}] Uploading mockup image to Firebase Storage...`, {
+      logger.info(`[MOCKUP][${mockupName}] Uploading mockup image to storage...`, {
         mockupName,
         fileName,
         folderPath,
@@ -466,21 +498,29 @@ export class GeminiMockupService {
     mockupName: string
   ): Promise<GeneratedImage> {
     const config = AI_CONFIG.branding.brandMockup;
-    const withLogo = !request.selectedSupport.skipLogo;
-    // PNG normalisé : un logo servi en WebP, en JPEG ou issu d'un SVG arrive
-    // au modèle sous une seule forme, transparence comprise.
-    const images = withLogo
-      ? [{ buffer: await sharp(request.logos.light).png().toBuffer(), mimeType: 'image/png' }]
-      : [];
+    // Ce qui part chez Gemini est assemblé par `mockupPrivacy` à partir des
+    // seuls catalogues : ni nom, ni description, ni direction artistique
+    // rédigée pour le projet. Le nom ne sert qu'à vérifier qu'il ne part pas.
+    const payload = await buildGeminiMockupPayload({
+      support: request.selectedSupport,
+      colors: request.brandColors,
+      styleId: request.artDirection?.styleId,
+      pdfFormat: request.pdfFormat,
+      logo: request.selectedSupport.skipLogo ? undefined : request.logos.light,
+      forbidden: [request.brandName, ...request.brandName.split(/\s+/)],
+      visualBrief: request.visualBrief,
+    });
+    logger.info(`[PRIVACY][${mockupName}] Envoi Gemini minimal`, payload.audit);
+
     const startedAt = Date.now();
-    const image = await generateImageWithGeminiChain(
-      this.buildScenePrompt(request, withLogo),
-      config.geminiImageModels,
-      { tag: mockupName, aspectRatio: config.geminiAspectRatio, images }
-    );
+    const image = await generateImageWithGeminiChain(payload.prompt, config.geminiImageModels, {
+      tag: mockupName,
+      aspectRatio: config.geminiAspectRatio,
+      images: payload.images,
+    });
     logger.info(`[MOCKUP][${mockupName}] Gemini mockup ready`, {
       model: image.model,
-      withLogo,
+      withLogo: payload.images.length > 0,
       durationMs: Date.now() - startedAt,
     });
     return image;
@@ -892,7 +932,7 @@ export class GeminiMockupService {
           ? Buffer.from(match[3], 'base64')
           : Buffer.from(decodeURIComponent(match[3]), 'utf8');
       } else {
-        const response = await fetch(input);
+        const response = await fetchPublicUrl(input);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch file: ${response.statusText}`);

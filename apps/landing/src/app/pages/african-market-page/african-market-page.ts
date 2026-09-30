@@ -1,7 +1,6 @@
-import { Component, inject, PLATFORM_ID, signal, OnInit } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { SeoService } from '../../shared/services/seo.service';
 import { Team } from '../../components/team/team';
 import { environment } from '../../../environments/environment';
 
@@ -31,9 +30,7 @@ interface AfricanStat {
   templateUrl: './african-market-page.html',
   styleUrl: './african-market-page.css',
 })
-export class AfricanMarketPage implements OnInit {
-  protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
-  private readonly seoService = inject(SeoService);
+export class AfricanMarketPage {
   protected readonly dashboardUrl = environment.services.dashboard.url;
 
   protected readonly regions: MarketRegion[] = [
@@ -306,123 +303,5 @@ export class AfricanMarketPage implements OnInit {
     },
   ];
 
-  ngOnInit(): void {
-    this.setupSeo();
-  }
 
-  private setupSeo(): void {
-    const title = $localize`:@@african-market-page.seo.title:IDEM Africa - Pan-African AI Platform | Built in Cameroon for African Entrepreneurs`;
-    const description = $localize`:@@african-market-page.seo.description:IDEM is Africa's first sovereign open source AI platform, built in Cameroon for pan-African tech entrepreneurship. Affordable, culturally relevant, and designed for African markets. Expanding across Central, West, East, and Southern Africa.`;
-
-    const metaTags = [
-      { name: 'description', content: description },
-      {
-        name: 'keywords',
-        content: $localize`:@@african-market-page.seo.keywords:African AI platform, Cameroon tech startup, pan-African technology, African entrepreneurship, African tech ecosystem, West Africa startups, East Africa innovation, Southern Africa tech, Central Africa digital, African digital economy, mobile-first Africa, African tech sovereignty, Francophone Africa tech, African startup tools, affordable AI Africa, African cloud infrastructure, African developers, tech entrepreneurship Africa, African innovation, digital transformation Africa`,
-      },
-      { name: 'author', content: 'IDEM - Cameroon' },
-      { name: 'geo.region', content: 'CM' },
-      { name: 'geo.placename', content: 'Cameroon' },
-      { name: 'geo.position', content: '3.848;11.502' },
-      { name: 'ICBM', content: '3.848, 11.502' },
-    ];
-
-    const ogTags = [
-      { property: 'og:title', content: title },
-      { property: 'og:description', content: description },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: `${this.seoService.domain}/african-market` },
-      { property: 'og:locale', content: 'en_US' },
-      { property: 'og:locale:alternate', content: 'fr_FR' },
-      {
-        property: 'og:image',
-        content: `${this.seoService.domain}/assets/seo/african-market-og.webp`,
-      },
-    ];
-
-    this.seoService.updateTitle(title);
-    this.seoService.updateMetaTags(metaTags);
-    this.seoService.updateOgTags(ogTags);
-    this.seoService.setCanonicalUrl('/african-market');
-
-    this.addStructuredData();
-  }
-
-  private addStructuredData(): void {
-    if (!this.isBrowser()) return;
-
-    const structuredData = {
-      '@context': 'https://schema.org',
-      '@type': 'Organization',
-      name: 'IDEM',
-      description: $localize`:@@african-market-page.seo.structured.description:Africa's first sovereign open source AI platform for tech entrepreneurship`,
-      url: this.seoService.domain,
-      logo: `${this.seoService.domain}/assets/images/logo.png`,
-      foundingDate: '2024',
-      foundingLocation: {
-        '@type': 'Place',
-        name: 'Cameroon',
-        geo: {
-          '@type': 'GeoCoordinates',
-          latitude: '3.848',
-          longitude: '11.502',
-        },
-      },
-      areaServed: [
-        {
-          '@type': 'Country',
-          name: 'Cameroon',
-        },
-        {
-          '@type': 'GeoShape',
-          name: 'Central Africa',
-        },
-        {
-          '@type': 'GeoShape',
-          name: 'West Africa',
-        },
-        {
-          '@type': 'GeoShape',
-          name: 'East Africa',
-        },
-        {
-          '@type': 'GeoShape',
-          name: 'Southern Africa',
-        },
-      ],
-      slogan: $localize`:@@african-market-page.seo.structured.slogan:African, you too can build`,
-      knowsAbout: [
-        $localize`:@@african-market-page.seo.structured.knowsAbout1:African tech entrepreneurship`,
-        $localize`:@@african-market-page.seo.structured.knowsAbout2:Pan-African digital economy`,
-        $localize`:@@african-market-page.seo.structured.knowsAbout3:African startup ecosystem`,
-        $localize`:@@african-market-page.seo.structured.knowsAbout4:Mobile-first innovation`,
-        $localize`:@@african-market-page.seo.structured.knowsAbout5:African digital transformation`,
-      ],
-      founder: [
-        {
-          '@type': 'Person',
-          name: 'Arolle Dubois Aguekeng',
-          jobTitle: 'CEO & Co-Founder',
-          nationality: 'Cameroonian',
-        },
-        {
-          '@type': 'Person',
-          name: 'Romuald Djeteje',
-          jobTitle: 'CTO & Co-Founder',
-          nationality: 'Cameroonian',
-        },
-      ],
-    };
-
-    const existingScript = document.querySelector('script[data-african-market-structured-data]');
-    if (existingScript) {
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.setAttribute('data-african-market-structured-data', 'true');
-    script.textContent = JSON.stringify(structuredData);
-    document.head.appendChild(script);
-  }
 }

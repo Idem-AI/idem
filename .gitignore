@@ -114,7 +114,7 @@ docker-compose.staging.yml
 
 .windsurf
 apps/ideploy/public/hot
-apps/chart/vite.config.js.timestamp-1776724487404-1ec21a1d67413.mjs
+**/vite.config.*.timestamp-*.mjs
 apps/api/firebase-key.json
 
 docs/business-plan
@@ -124,3 +124,6 @@ apps/api/tmp/
 
 # Local scratch space: dev helper scripts, captures, throwaway output.
 scratch/
+
+# Sorties de build des packages partagés (produites aussi par le hook pre-push)
+packages/*/dist/

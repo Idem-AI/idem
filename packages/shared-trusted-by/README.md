@@ -1,26 +1,23 @@
 # @idem/shared-trusted-by
 
-Le bandeau défilant « Ils nous font confiance » — les communautés tech et
-partenaires d'Idem — partagé par les landing pages du monorepo.
+The scrolling "They trust us" band — IDEM's tech communities and partners — shared by the landing pages of the monorepo.
 
-Une seule liste de partenaires, une seule feuille de style, un rendu par
-framework. Ajouter un partenaire se fait à un seul endroit.
+One partner list, one stylesheet, one renderer per framework. A partner is added in one place.
 
-## Ce que contient le paquet
+## Contents
 
-| Fichier              | Rôle                                                            |
-| -------------------- | --------------------------------------------------------------- |
-| `partners.json`      | La liste des partenaires. **La source de vérité.**              |
-| `assets/`            | Les logos, en `kebab-case` (les espaces cassent certaines URL). |
-| `src/trusted-by.css` | La feuille de style, commune aux trois rendus.                  |
-| `src/angular/`       | Le composant Angular, `<idem-trusted-by>`.                      |
-| `src/react/`         | Le composant React, `<TrustedBy />`.                            |
-| `src/index.ts`       | Les données seules, sans framework.                             |
+| File | Role |
+| --- | --- |
+| `partners.json` | The partner list. **The source of truth.** |
+| `assets/` | The logos, in `kebab-case` (spaces break some URLs). |
+| `src/trusted-by.css` | The stylesheet, shared by the renderers. |
+| `src/angular/` | The Angular component, `<idem-trusted-by>`. |
+| `src/react/` | The React component, `<TrustedBy />`. |
+| `src/index.ts` | The data only, no framework. |
 
-Les rendus vivent dans des points d'entrée séparés pour qu'une application
-React n'embarque pas Angular, et réciproquement.
+The renderers have separate entry points so a React app does not bundle Angular, and the other way round.
 
-## Utilisation
+## Usage
 
 ### Angular
 
@@ -41,51 +38,40 @@ import { TrustedBy } from '@idem/shared-trusted-by/react';
 <TrustedBy label={t('landing.trustedBy')} />;
 ```
 
-Sans `label`, aucun intitulé n'est rendu — c'est ce que fait la landing
-principale, où le bandeau ferme le hero.
+Without `label`, no heading is rendered — that is what the main landing does, where the band closes the hero.
 
-## Les logos, eux, doivent être copiés
+## The logos must be copied
 
-Un composant partagé ne suffit pas : chaque application sert ses propres
-fichiers statiques. Les logos doivent donc exister dans le `public/` de
-chacune, sous `/assets/images/trust-by`.
+A shared component is not enough: each application serves its own static files, so the logos must exist in each app's `public/`, under `/assets/images/trust-by`.
 
 ```bash
-npm run sync:trusted-by     # copie les logos dans chaque application
-npm run check:trusted-by    # vérifie sans copier (pour la CI)
+npm run sync:trusted-by     # copy the logos into every application
+npm run check:trusted-by    # check without copying (for CI)
 ```
 
-Une application qui sert ses images ailleurs le dit :
-`<idem-trusted-by basePath="/static/partners" />`.
+An application that serves its images elsewhere says so: `<idem-trusted-by basePath="/static/partners" />`.
 
-## Ajouter un partenaire
+## Adding a partner
 
-1. Déposer le logo dans `assets/`, en `kebab-case`.
-2. Ajouter l'entrée dans `partners.json`.
-3. `npm run sync:trusted-by` à la racine, et versionner le résultat.
+1. Put the logo in `assets/`, in `kebab-case`.
+2. Add the entry to `partners.json`.
+3. Run `npm run sync:trusted-by` at the repository root and commit the result.
 
-Aucune application n'est à modifier.
+No application needs to change.
 
-## Applications concernées
+## Applications using it
 
-`landing`, `ideploy-web`, `simulation` et `appgen` (client iCode).
+`landing`, `ideploy-web`, `simulation` and the AppGen client.
 
-Absents volontairement : `chart` et `main-dashboard`, qui n'ont pas de landing
-page, et `ideploy` — la version Laravel historique, remplacée par
-`ideploy-web`.
+Intentionally absent: `chart` and `main-dashboard`, which have no landing page.
 
-## Une note sur les versions d'Angular
+## A note on Angular versions
 
-Le paquet est consommé en source, hors de `node_modules` : son
-`import ... from '@angular/core'` remonte jusqu'à la racine du monorepo. Une
-application dont la version d'Angular diffère de celle qui y est hissée doit
-épingler la sienne, sinon deux copies du framework se retrouvent dans le
-bundle :
+The package is consumed as source, outside `node_modules`: its `import … from '@angular/core'` resolves up to the monorepo root. An application whose Angular version differs from the one hoisted there must pin its own, otherwise two copies of the framework end up in the bundle:
 
 ```jsonc
 // apps/<app>/tsconfig.json
 "paths": { "@angular/*": ["./node_modules/@angular/*"] }
 ```
 
-C'est ce que fait `simulation` (Angular 22, contre Angular 20 à la racine).
-Côté React, `appgen` obtient le même résultat avec le `resolve.dedupe` de Vite.
+This is what `simulation` does (Angular 22, against Angular 20 at the root). On the React side, AppGen gets the same result with Vite's `resolve.dedupe`.

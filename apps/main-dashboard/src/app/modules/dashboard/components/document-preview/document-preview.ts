@@ -41,6 +41,7 @@ import {
 import { PREVIEW_PAGE_GAP_PX } from '../../pages/document-editor/runtime/editor-iframe';
 import { buildPlaceholderHtml, composePages, PreviewPage } from './preview-pages';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
 
 /** Documents qui ont une page d'affichage avec aperçu. */
 export type PreviewDocumentType = Extract<
@@ -110,7 +111,8 @@ function kindOf(selection: EditorSelection): ElementKind {
  */
 @Component({
   selector: 'app-document-preview',
-  imports: [TranslateModule, EditorCanvasComponent, ZoomControlComponent, IdemLoaderComponent],
+  imports: [
+    ErrorStateComponent,TranslateModule, EditorCanvasComponent, ZoomControlComponent, IdemLoaderComponent],
   templateUrl: './document-preview.html',
   styleUrl: './document-preview.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -430,11 +432,19 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
     const kind = page.kind === 'error' ? 'error' : 'missing';
     const text = (key: string): string =>
       this.translate.instant(`dashboard.documentPreview.placeholder.${key}`);
+    // Ce qui est déjà là : la page manquante n'efface pas le travail fait.
+    const pages = this.pages();
+    const ready = pages.filter((item) => item.kind === 'content').length;
     return buildPlaceholderHtml(kind, page.name, {
       section: page.label,
       title: text(`${kind}.title`),
       message: text(`${kind}.message`),
       action: text('action'),
+      progress: this.translate.instant('dashboard.documentPreview.placeholder.progress', {
+        ready,
+        total: pages.length,
+      }),
+      ratio: pages.length > 0 ? ready / pages.length : 0,
     });
   }
 

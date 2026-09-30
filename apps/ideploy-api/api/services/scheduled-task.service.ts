@@ -7,7 +7,7 @@ import { randomUUID } from 'crypto';
 import pool from '../config/db.config';
 import * as appService from './application.service';
 import * as serverService from './server.service';
-import { executeRemoteCommand } from '../ssh/ssh';
+import { executeRemoteCommand, shellQuote } from '../ssh/ssh';
 
 export interface ScheduledTask {
   id: number;
@@ -108,11 +108,24 @@ export async function runNow(teamId: number, uuid: string): Promise<{ success: b
     [executionUuid, task.id]
   );
 
-  // Use the explicit container if set, else resolve the app's managed container by label.
-  const target = task.container
-    ? task.container
-    : `$(docker ps --filter label=ideploy.applicationUuid --format '{{.Names}}' | head -1)`;
-  const cmd = `docker exec ${target} sh -c ${JSON.stringify(task.command)}`;
+  // Le conteneur est TOUJOURS cherché parmi ceux de l'application de la tâche :
+  // un nom libre (ou l'ancien filtre sans valeur d'étiquette) pouvait viser le
+  // conteneur de n'importe quelle autre application du serveur. Un nom fourni
+  // ne fait que choisir parmi ces conteneurs-là.
+  const { rows: appRows } = await pool.query('SELECT uuid FROM applications WHERE id = $1 LIMIT 1', [
+    task.application_id,
+  ]);
+  const appUuid = appRows[0]?.uuid ? String(appRows[0].uuid) : null;
+  if (!appUuid) throw new Error('Application not found for this task');
+
+  const nameFilter =
+    task.container && /^[A-Za-z0-9_.-]{1,128}$/.test(task.container)
+      ? ` --filter ${shellQuote(`name=^/?${task.container}$`)}`
+      : '';
+  const target = `$(docker ps --filter ${shellQuote(`label=ideploy.applicationUuid=${appUuid}`)}${nameFilter} --format '{{.Names}}' | head -1)`;
+  // Apostrophes et non `JSON.stringify` : des guillemets doubles laissaient le
+  // shell de l'HÔTE évaluer `$(…)` avant `docker exec`.
+  const cmd = `docker exec ${target} sh -c ${shellQuote(task.command)}`;
 
   const result = await executeRemoteCommand(server, key, cmd);
   await pool.query(

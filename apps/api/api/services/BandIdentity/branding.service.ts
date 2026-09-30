@@ -85,6 +85,8 @@ import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.promp
 import { USAGE_GUIDELINES_SECTION_PROMPT } from './prompts/04_usage-guidelines-section.prompt';
 import { brandMotifs } from '../design/brandMotifs';
 import { buildComposedCharterPages, clip, wideSeed } from './charterComposedPages';
+import { composeCover, coverDateLabel, coverVariant } from '../design/coverComposer';
+import { CoverBriefService } from '../design/coverBrief.service';
 import {
   PostVisualRenderer,
   SocialBrandKit,
@@ -148,6 +150,7 @@ import {
 } from '../brandMockup.service';
 import { StorageService } from '../storage.service';
 import { openAiUsageBatch, setAiUsageContext } from '../../utils/ai-usage-context.util';
+import { fetchPublicUrl } from '../../utils/safe-fetch.util';
 
 /** Le secteur en français, quand les textes sociaux n'ont pas pu être écrits. */
 const INDUSTRY_CATEGORY: Record<string, string> = {
@@ -397,7 +400,7 @@ function slugify(value: string): string {
 /** Télécharge un fichier ; `null` s'il est injoignable, l'archive se passe de lui. */
 async function downloadBuffer(url: string): Promise<Buffer | null> {
   try {
-    const response = await fetch(url);
+    const response = await fetchPublicUrl(url);
     if (!response.ok) {
       logger.warn(`[ASSETS] ${response.status} sur ${url}`);
       return null;
@@ -434,6 +437,13 @@ ${palette
   .join('\n')}
 </svg>`;
   return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+/** Génération interrompue à la demande de l'utilisateur. */
+export class GenerationCancelledError extends Error {
+  constructor() {
+    super('generation_cancelled');
+  }
 }
 
 export class BrandingService extends GenericService {
@@ -1599,7 +1609,29 @@ export class BrandingService extends GenericService {
 
       const usedArchetypes = new Set<string>();
       let pageIndex = 0;
+      const coverBrief = new CoverBriefService(this.promptService);
       for (const step of steps) {
+        // ── LA COUVERTURE : DESSINÉE PAR LE CODE ─────────────────────────
+        // Le modèle n'en écrit plus que les mots (secteur, promesse), une fois
+        // par projet et partagés avec le business plan et le pitch deck.
+        // Composée en HTML par `glm-5.3-flash`, elle coûtait 40 000 tokens de
+        // budget et la minute la plus longue de la charte.
+        if (step.stepName === 'Brand Header') {
+          pageIndex += 1;
+          step.execute = async () =>
+            composeCover({
+              brief: await coverBrief.resolve(userId, projectId, project),
+              brandName: project.name,
+              ds: charterDesignSystem,
+              page: charterPage,
+              logos: { lightGround: lightLogoUrl || undefined, darkGround: darkLogoUrl || undefined },
+              documentLabel: 'Charte graphique',
+              detail: 'Version 1.0',
+              dateLabel: coverDateLabel(),
+              variant: coverVariant(projectId),
+            });
+          continue;
+        }
         const compose = composedPages[step.stepName];
         if (compose) {
           pageIndex += 1;
@@ -2060,7 +2092,19 @@ export class BrandingService extends GenericService {
 
   async generateColorsAndTypography(
     userId: string,
-    project: ProjectModel
+    project: ProjectModel,
+    /**
+     * Ne régénérer que l'une des deux listes — depuis le panneau « Identité
+     * visuelle », l'utilisateur relance les couleurs OU les polices. L'autre
+     * liste est conservée telle qu'elle est en base, et un seul appel au
+     * modèle est payé.
+     */
+    only?: 'colors' | 'typography',
+    /**
+     * Annulation demandée pendant l'appel au modèle (tâche de fond du panneau
+     * « Identité visuelle ») : les propositions ne sont alors PAS enregistrées.
+     */
+    isCancelled?: () => boolean
   ): Promise<{
     colors: ColorModel[];
     typography: TypographyModel[];
@@ -2116,7 +2160,10 @@ export class BrandingService extends GenericService {
     // so every downstream consumer (brand book, pitch deck, business plan,
     // communication, dashboard) references hosted URLs instead of inline SVG.
     // persist=false: the project update below already writes the mutated logo.
+    const logoBeforeAssets = JSON.stringify(createdProject.analysisResultModel?.branding?.logo ?? null);
     await this.ensureLogoAssetUrls(userId, createdProject.id, createdProject, false);
+    const logoGainedAssets =
+      JSON.stringify(createdProject.analysisResultModel?.branding?.logo ?? null) !== logoBeforeAssets;
 
     // Stocker le projet en cache
     try {
@@ -2137,13 +2184,22 @@ export class BrandingService extends GenericService {
     const startTime = Date.now();
 
     // Créer 2 promesses pour générer couleurs et typographies en parallèle
+    const existingBranding = createdProject.analysisResultModel?.branding;
     const [colors, typography] = await Promise.all([
-      this.generateSingleColors(projectDescription, createdProject),
-      this.generateSingleTypography(projectDescription, createdProject),
+      only === 'typography'
+        ? Promise.resolve(existingBranding?.generatedColors ?? [])
+        : this.generateSingleColors(projectDescription, createdProject),
+      only === 'colors'
+        ? Promise.resolve(existingBranding?.generatedTypography ?? [])
+        : this.generateSingleTypography(projectDescription, createdProject),
     ]);
 
     const generationTime = Date.now() - startTime;
     logger.info(`Parallel colors and typography generation completed in ${generationTime}ms`);
+
+    if (isCancelled?.()) {
+      throw new GenerationCancelledError();
+    }
 
     // Mettre à jour le projet avec les couleurs et typographies générées
     const updatedProjectData = {
@@ -2159,10 +2215,24 @@ export class BrandingService extends GenericService {
       },
     };
 
-    // Mise à jour en base de données
+    // Mise à jour en base de données.
+    //
+    // Pour un projet EXISTANT, seuls les champs produits ici sont écrits. Le
+    // projet a été lu avant l'appel au modèle (plusieurs secondes) : le
+    // réécrire en entier effaçait ce qui avait changé entre-temps — une
+    // identité appliquée depuis le panneau « Identité visuelle », par exemple.
     const updatedProject = await this.projectRepository.update(
       createdProject.id!,
-      updatedProjectData,
+      existingProject
+        ? ({
+            'analysisResultModel.branding.generatedColors': colors,
+            'analysisResultModel.branding.generatedTypography': typography,
+            'analysisResultModel.branding.updatedAt': new Date(),
+            ...(logoGainedAssets
+              ? { 'analysisResultModel.branding.logo': createdProject.analysisResultModel?.branding?.logo }
+              : {}),
+          } as any)
+        : updatedProjectData,
       `users/${userId}/projects`
     );
 
@@ -2286,26 +2356,20 @@ export class BrandingService extends GenericService {
   private async updateProjectWithLogosAsync(
     userId: string,
     projectId: string,
-    project: ProjectModel,
-    selectedColors: ColorModel,
-    selectedTypography: TypographyModel,
     logos: LogoModel[]
   ): Promise<void> {
     try {
-      // Préparer les données de mise à jour
+      // Seuls les logos proposés sont écrits. Ce service réécrivait le projet
+      // ENTIER tel qu'il avait été lu avant la génération (plusieurs dizaines
+      // de secondes, et plusieurs écritures progressives) : tout ce qui avait
+      // changé entre-temps était effacé — une identité appliquée depuis le
+      // panneau « Identité visuelle » et propagée à tous les supports, par
+      // exemple. La palette et les polices qu'il réécrivait étaient celles lues
+      // en base pour générer : rien n'est perdu à ne plus les écrire.
       const updatedProjectData = {
-        ...project,
-        analysisResultModel: {
-          ...project.analysisResultModel,
-          branding: {
-            ...project.analysisResultModel?.branding,
-            colors: selectedColors,
-            typography: selectedTypography,
-            generatedLogos: logos,
-            updatedAt: new Date(),
-          },
-        },
-      };
+        'analysisResultModel.branding.generatedLogos': logos,
+        'analysisResultModel.branding.updatedAt': new Date(),
+      } as any;
 
       // Paralléliser DB update et cache update
       const [updatedProject, _] = await Promise.allSettled([
@@ -2949,9 +3013,6 @@ export class BrandingService extends GenericService {
       this.updateProjectWithLogosAsync(
         userId,
         projectId,
-        project,
-        selectedColors,
-        selectedTypography,
         finalLogosList // Utiliser la liste complète de logos
       ),
     ]);
@@ -3249,9 +3310,6 @@ export class BrandingService extends GenericService {
           this.updateProjectWithLogosAsync(
             userId,
             projectId,
-            project,
-            selectedColors,
-            selectedTypography,
             snapshot
           )
         )
@@ -5023,7 +5081,7 @@ Generated by Lexis API - Brand Identity System
   }
 
   /**
-   * Récupère le contenu d'un fichier depuis une URL (Firebase Storage ou autre)
+   * Récupère le contenu d'un fichier depuis une URL (stockage IDEM ou autre)
    * @param url - URL du fichier à récupérer
    * @returns Le contenu du fichier ou null si erreur
    */
@@ -5042,7 +5100,7 @@ Generated by Lexis API - Brand Identity System
       }
 
       // Utiliser fetch pour récupérer le contenu
-      const response = await fetch(url);
+      const response = await fetchPublicUrl(url);
 
       if (!response.ok) {
         logger.error(`Failed to fetch content from URL: ${url}, status: ${response.status}`);
@@ -5317,7 +5375,9 @@ ${LOGO_EDIT_PROMPT}`;
             industry,
             'skipLogo' in named ? named.skipLogo : false
           )
-        )
+        ),
+        // Sert seulement à vérifier que le pays ne part pas chez Gemini.
+        project.additionalInfos?.country
       );
     };
 

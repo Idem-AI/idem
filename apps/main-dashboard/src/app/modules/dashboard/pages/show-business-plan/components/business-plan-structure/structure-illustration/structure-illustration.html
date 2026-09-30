@@ -1,88 +1,109 @@
 @switch (kind()) {
   @case ('bank') {
-    <!-- Banque : l'établissement -->
-    <svg viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg" class="bp-illu" aria-hidden="true" focusable="false">
-      <path
-        d="M14 19 L32 9 L50 19 Z"
-        class="illu-accent-soft illu-accent-line"
-        stroke-width="1.5"
-        stroke-linejoin="round"
-      />
-      <rect x="18" y="22" width="4" height="12" rx="1" class="illu-ink-soft" />
-      <rect x="26" y="22" width="4" height="12" rx="1" class="illu-ink-soft" />
-      <rect x="34" y="22" width="4" height="12" rx="1" class="illu-ink-soft" />
-      <rect x="42" y="22" width="4" height="12" rx="1" class="illu-ink-soft" />
-      <rect x="14" y="36" width="36" height="3" rx="1.5" class="illu-ink" />
+    <!-- Banque : la calebasse et le cauris, l'argent qu'on prête -->
+    <svg
+      viewBox="0 0 64 48"
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="bp-illu"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M12 18 C12 32 20 40 32 40 C44 40 52 32 52 18" stroke-width="2.4"/>
+      <ellipse cx="32" cy="18" rx="20" ry="5" stroke-width="2.4"/>
+      <path d="M16 28 L20 31 L24 28 L28 31 L32 28 L36 31 L40 28 L44 31 L48 28" stroke-width="1.6"/>
+      <g class="accent">
+        <path d="M32 6 C37 6 39 9 39 12 C39 16 36 18 32 18 C28 18 25 16 25 12 C25 9 27 6 32 6Z M32 8 V16" stroke-width="2.2"/>
+      </g>
     </svg>
   }
 
   @case ('investor') {
-    <!-- Investisseur : une croissance -->
-    <svg viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg" class="bp-illu" aria-hidden="true" focusable="false">
-      <path d="M12 39 H52" class="illu-line" stroke-width="1.5" stroke-linecap="round" />
-      <rect x="15" y="31" width="6" height="8" rx="1.5" class="illu-ink-faint" />
-      <rect x="24" y="26" width="6" height="13" rx="1.5" class="illu-ink-soft" />
-      <rect x="33" y="20" width="6" height="19" rx="1.5" class="illu-ink-soft" />
-      <rect x="42" y="13" width="6" height="26" rx="1.5" class="illu-accent" />
-      <path
-        d="M18 26 L27 21 L36 15 L45 8"
-        class="illu-accent-line"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
+    <!-- Investisseur : le baobab et son fruit, une croissance qui rapporte -->
+    <svg
+      viewBox="0 0 64 48"
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="bp-illu"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M10 44 H54" stroke-width="1.6" opacity=".5"/>
+      <path d="M26 44 C24 36 25 28 28 22 M38 44 C40 36 39 28 36 22" stroke-width="2.4"/>
+      <path d="M28 22 C24 18 20 16 14 16 M30 21 C29 15 28 11 26 6 M34 21 C35 15 37 11 40 7 M36 22 C40 18 44 16 50 16" stroke-width="2.2"/>
+      <g class="accent">
+        <path d="M46 16 V20 M46 20 C48 20 49 22 49 25 C49 28 48 29 46 29 C44 29 43 28 43 25 C43 22 44 20 46 20Z" stroke-width="2"/>
+      </g>
     </svg>
   }
 
   @case ('grant') {
-    <!-- Bailleur : un projet qu'on fait pousser -->
-    <svg viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg" class="bp-illu" aria-hidden="true" focusable="false">
-      <path d="M22 32 H42 L39.5 40 H24.5 Z" class="illu-ink-soft" />
-      <path d="M32 32 V19" class="illu-accent-line" stroke-width="1.6" stroke-linecap="round" />
-      <path
-        d="M32 27 C26.5 27 22 24 21 18.5 C26.5 18.5 31 21.5 32 27 Z"
-        class="illu-accent-soft illu-accent-line"
-        stroke-width="1.4"
-        stroke-linejoin="round"
-      />
-      <path
-        d="M32 22 C37.5 22 42 19 43 13.5 C37.5 13.5 33 16.5 32 22 Z"
-        class="illu-accent-soft illu-accent-line"
-        stroke-width="1.4"
-        stroke-linejoin="round"
-      />
+    <!-- Bailleur : la jeune pousse qu'on aide à grandir -->
+    <svg
+      viewBox="0 0 64 48"
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="bp-illu"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M10 44 H54" stroke-width="1.6" opacity=".5"/>
+      <path d="M20 44 C24 39 40 39 44 44" stroke-width="2"/>
+      <path d="M32 41 V20" stroke-width="2.4"/>
+      <path d="M32 32 C25 32 20 28 19 22 C26 22 31 26 32 32Z" stroke-width="2"/>
+      <g class="accent">
+        <path d="M32 25 C39 24 44 19 45 11 C38 11 33 16 32 25Z" stroke-width="2.2"/>
+      </g>
     </svg>
   }
 
   @case ('internal') {
-    <!-- Équipe : un cap à tenir -->
-    <svg viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg" class="bp-illu" aria-hidden="true" focusable="false">
-      <circle cx="30" cy="26" r="14" class="illu-line" stroke-width="1.5" />
-      <circle cx="30" cy="26" r="8" class="illu-line-strong" stroke-width="1.5" />
-      <circle cx="30" cy="26" r="2.5" class="illu-accent" />
-      <path d="M31.8 24.2 L47 9" class="illu-accent-line" stroke-width="1.6" stroke-linecap="round" />
-      <path d="M47 9 H52 M47 9 V4" class="illu-accent-line" stroke-width="1.6" stroke-linecap="round" />
+    <!-- Équipe : la pirogue, un équipage qui tient le cap -->
+    <svg
+      viewBox="0 0 64 48"
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="bp-illu"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4 20 C8 26 12 30 18 32 C28 36 40 36 48 32 C54 29 58 24 60 16" stroke-width="2.4"/>
+      <path d="M4 20 C14 26 26 28 32 28 C40 28 52 26 60 16" stroke-width="1.8"/>
+      <path d="M22 28 L17 14 M36 28 L32 14" stroke-width="2"/>
+      <g class="accent">
+        <path d="M60 16 L63 9 L57 12Z" stroke-width="2"/>
+      </g>
+      <path d="M8 42 C12 39 16 39 20 42 S28 45 32 42 S40 39 44 42 S52 45 56 42" stroke-width="1.6" opacity=".55"/>
     </svg>
   }
 
   @default {
-    <!-- Polyvalent : un dossier complet -->
-    <svg viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg" class="bp-illu" aria-hidden="true" focusable="false">
-      <rect
-        x="25"
-        y="9"
-        width="21"
-        height="29"
-        rx="3"
-        class="illu-surface illu-line"
-        stroke-width="1.2"
-        transform="rotate(8 35.5 23.5)"
-      />
-      <rect x="18" y="10" width="21" height="29" rx="3" class="illu-surface illu-line-strong" stroke-width="1.5" />
-      <rect x="22" y="15" width="13" height="3" rx="1.5" class="illu-accent" />
-      <rect x="22" y="22" width="11" height="2" rx="1" class="illu-ink-soft" />
-      <rect x="22" y="27" width="9" height="2" rx="1" class="illu-ink-soft" />
-      <rect x="22" y="32" width="12" height="2" rx="1" class="illu-ink-faint" />
+    <!-- Polyvalent : le panier tressé, un dossier complet -->
+    <svg
+      viewBox="0 0 64 48"
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="bp-illu"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M22 16 C21 4 43 4 42 16" stroke-width="2.2"/>
+      <ellipse cx="32" cy="18" rx="20" ry="4" stroke-width="2.4"/>
+      <path d="M12 18 C12 32 18 42 32 42 C46 42 52 32 52 18" stroke-width="2.4"/>
+      <path d="M15 27 L19 31 L23 27 L27 31 L31 27 L35 31 L39 27 L43 31 L47 27" stroke-width="1.6"/>
+      <g class="accent">
+        <path d="M32 33 L35 37 L32 41 L29 37Z" stroke-width="2"/>
+      </g>
     </svg>
   }
 }

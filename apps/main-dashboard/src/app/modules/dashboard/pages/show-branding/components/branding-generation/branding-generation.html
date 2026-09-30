@@ -13,240 +13,214 @@
     <app-pdf-format-selector (formatSelected)="onFormatSelected($event)"></app-pdf-format-selector>
   </div>
 } @else if (isGenerating() || isPostProcessing()) {
-  <!-- Sticky Progress Header - Always Visible -->
-  <div
-    class="fixed top-0 left-0 right-0 z-50 bg-[var(--glass-bg-darker)] backdrop-blur-md border-b border-[var(--glass-border)]"
-  >
-    <div class="max-w-7xl mx-auto px-6 py-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center">
-            <idem-loader />
-          </div>
-          <div>
-            <h2 class="text-xl font-bold text-text-primary">
-              @if (isPostProcessing()) {
-                {{ 'dashboard.brandingGeneration.finalizing' | translate }}
-              } @else {
-                {{ 'dashboard.brandingGeneration.generating' | translate }}
-              }
-            </h2>
-            <p class="text-text-secondary text-sm">
-              @if (isPostProcessing()) {
-                {{ postProcessingMessage() }}
-              } @else {
-                {{ 'dashboard.brandingGeneration.creating' | translate }}
+  <div class="max-w-7xl mx-auto py-4 space-y-5">
+    <!-- ── État : phrase, progression, temps ─────────────────────────────── -->
+    <header class="glass-card p-5 sm:p-6">
+      <div class="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+        <app-generation-stage-illustration class="w-36 h-28 shrink-0 mx-auto md:mx-0 -my-2" [phase]="phase()" />
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-semibold uppercase tracking-wide text-primary-500">
+            {{ 'dashboard.brandingGeneration.live.eyebrow' | translate }}
+          </p>
+          <h1 class="text-xl sm:text-2xl font-bold text-text-primary mt-1" aria-live="polite">
+            {{ 'dashboard.brandingGeneration.live.phases.' + phase() + '.title' | translate }}
+          </h1>
+          <p class="text-sm text-text-secondary mt-1">
+            {{ 'dashboard.brandingGeneration.live.phases.' + phase() + '.detail' | translate }}
+          </p>
+          @if (!isPostProcessing()) {
+            <p class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+              @for (name of generationState().stepsInProgress; track name) {
+                <span class="inline-flex items-center gap-1.5 text-xs text-text-primary">
+                  <idem-loader size="xs" />
+                  {{ 'dashboard.generationPanel.sections.branding.' + name | translate }}
+                </span>
+              } @empty {
+                <span class="text-xs text-text-tertiary">{{ 'dashboard.brandingGeneration.live.warmingUp' | translate }}</span>
               }
             </p>
-            @if (generationState().stepsInProgress.length > 0) {
-              <p class="text-xs text-blue-400 mt-1">
-                {{
-                  'dashboard.brandingGeneration.processing'
-                    | translate: { steps: generationState().stepsInProgress.join(', ') }
-                }}
-              </p>
-            }
-          </div>
-        </div>
-
-        <div class="flex flex-col md:flex-row items-center space-x-6">
-          <!-- Progress Stats -->
-          <div class="text-right">
-            <div class="text-2xl font-bold text-text-primary">
-              {{ generationState().completedSteps.length }}/{{ generationState().totalSteps }}
-            </div>
-            <div class="text-sm text-text-secondary">
-              {{ 'dashboard.brandingGeneration.stepsCompleted' | translate }}
-            </div>
-            @if (generationState().completedSteps.length > 0) {
-              <div class="text-xs text-green-400 mt-1">
-                {{ 'dashboard.brandingGeneration.lastStep' | translate }}:
-                {{ generationState().completedSteps[generationState().completedSteps.length - 1] }}
-              </div>
-            }
-          </div>
-
-          <!-- Progress Bar -->
-          <div class="w-32">
-            <div class="flex justify-between text-xs text-text-secondary mb-1">
-              <span>{{ 'dashboard.brandingGeneration.progress' | translate }}</span>
-              <span>{{ progressPercentage() }}%</span>
-            </div>
-            <div class="w-full bg-[var(--color-surface-3)] rounded-full h-2">
-              <div
-                class="bg-linear-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
-                [style.width.%]="progressPercentage()"
-              ></div>
-            </div>
-          </div>
-
-          <!-- Cancel Button - Only show during generation, not post-processing -->
-          @if (!isPostProcessing()) {
-            <button
-              (click)="cancelGeneration()"
-              class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors duration-200"
-            >
-              {{ 'dashboard.brandingGeneration.buttons.cancel' | translate }}
-            </button>
           }
         </div>
+
+        <dl class="flex items-center gap-5 shrink-0 text-sm">
+          <div>
+            <dt class="text-xs text-text-tertiary">{{ 'dashboard.brandingGeneration.live.pages' | translate }}</dt>
+            <dd class="font-semibold text-text-primary tabular-nums">{{ donePages() }} / {{ pageCount() }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-text-tertiary">{{ 'dashboard.brandingGeneration.live.elapsed' | translate }}</dt>
+            <dd class="font-semibold text-text-primary tabular-nums">{{ elapsed() }}</dd>
+          </div>
+          @if (remaining(); as minutes) {
+            <div>
+              <dt class="text-xs text-text-tertiary">{{ 'dashboard.brandingGeneration.live.remaining' | translate }}</dt>
+              <dd class="font-semibold text-text-primary tabular-nums">
+                {{ 'dashboard.brandingGeneration.live.minutes' | translate: { count: minutes } }}
+              </dd>
+            </div>
+          }
+        </dl>
+
+        @if (!isPostProcessing()) {
+          <button type="button" class="outer-button button-sm shrink-0 self-start md:self-center" (click)="cancelGeneration()">
+            {{ 'dashboard.brandingGeneration.buttons.cancel' | translate }}
+          </button>
+        }
       </div>
-    </div>
-  </div>
 
-  <!-- Main Content with Top Padding -->
-  <div class="pt-32 min-h-screen">
-    <div class="max-w-7xl mx-auto px-6 space-y-8">
-      <!-- Post Processing Section -->
-      @if (isPostProcessing()) {
-        <div class="space-y-4">
-          <div class="glass-card rounded-xl shadow-lg border border-[var(--glass-border-subtle)]">
-            <div class="bg-linear-to-r px-6 py-4 border-b">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                  <div
-                    class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse"
-                  >
-                    <i class="pi pi-save animate-pulse text-text-primary"></i>
-                  </div>
-                  <div>
-                    <h3 class="text-lg font-semibold text-text-primary">
-                      {{ 'dashboard.brandingGeneration.savingData' | translate }}
-                    </h3>
-                    <p class="text-text-secondary text-sm">{{ postProcessingMessage() }}</p>
-                  </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <div
-                    class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
-                    style="animation-delay: 0.2s"
-                  ></div>
-                  <div
-                    class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
-                    style="animation-delay: 0.4s"
-                  ></div>
-                </div>
-              </div>
+      <div
+        class="mt-5 h-2 rounded-full overflow-hidden bg-[var(--color-surface-3)]"
+        role="progressbar"
+        [attr.aria-valuenow]="progress()"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-label]="'dashboard.brandingGeneration.progress' | translate"
+      >
+        <div class="progress-fill h-full rounded-full bg-primary-500" [style.width.%]="progress()"></div>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <!-- ── Scène : l'atelier, puis la dernière page produite ─────────────── -->
+      <section class="glass-card p-5 lg:col-span-8 space-y-4" [attr.aria-label]="'dashboard.brandingGeneration.live.stage' | translate">
+        @if (isPostProcessing()) {
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl bg-[var(--glass-bg-subtle)]">
+            <div class="flex-1 min-w-0">
+              <p class="text-base font-semibold text-text-primary">
+                {{ 'dashboard.brandingGeneration.live.ready' | translate }}
+              </p>
+              <p class="text-sm text-text-secondary">{{ 'dashboard.brandingGeneration.live.redirecting' | translate }}</p>
             </div>
-            <div class="p-6 space-y-4">
-              <p class="text-text-secondary">{{ 'dashboard.brandingGeneration.wait' | translate }}</p>
-              <div class="w-full bg-[var(--color-surface-3)] rounded-full h-2">
-                <div
-                  class="bg-linear-to-r from-green-500 to-emerald-500 h-2 rounded-full animate-pulse"
-                  style="width: 100%"
-                ></div>
-              </div>
-            </div>
+            <button type="button" class="inner-button button-sm !gap-2 shrink-0" (click)="openCharterNow()">
+              <i class="pi pi-book text-sm" aria-hidden="true"></i>
+              <span>{{ 'dashboard.brandingGeneration.live.openNow' | translate }}</span>
+            </button>
           </div>
-        </div>
-      } @else if (generationState().stepsInProgress.length > 0) {
-        <div class="space-y-4">
-          @for (stepName of generationState().stepsInProgress; track stepName) {
-            <div class="glass-card rounded-xl shadow-lg border border-[var(--glass-border-subtle)]">
-              <div class="bg-linear-to-r px-6 py-4 border-b">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-3">
-                    <div
-                      class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center animate-pulse"
+        }
+
+        <!-- La dernière page produite (ou celle choisie dans le déroulé) -->
+        @if (shownPage(); as page) {
+          <figure class="m-0">
+            <figcaption class="flex items-center justify-between gap-3 mb-2">
+              <span class="text-sm text-text-secondary truncate">
+                <span class="font-semibold text-text-primary">
+                  {{ 'dashboard.brandingGeneration.live.page' | translate: { index: shownIndex() } }}
+                </span>
+                · {{ 'dashboard.generationPanel.sections.branding.' + page.name | translate }}
+              </span>
+              @if (pinnedPage()) {
+                <button type="button" class="outer-button button-sm !gap-2 shrink-0" (click)="followLive()">
+                  <span class="w-1.5 h-1.5 rounded-full bg-primary-500 live-dot" aria-hidden="true"></span>
+                  <span>{{ 'dashboard.brandingGeneration.live.followLive' | translate }}</span>
+                </button>
+              } @else {
+                <span class="tag !py-0.5 shrink-0">
+                  <span class="w-1.5 h-1.5 rounded-full bg-primary-500 live-dot" aria-hidden="true"></span>
+                  {{ 'dashboard.brandingGeneration.live.live' | translate }}
+                </span>
+              }
+            </figcaption>
+            <div class="page-reveal" [class.mx-auto]="isPortrait()" [class.max-w-sm]="isPortrait()">
+              @for (item of [page]; track item.name) {
+                <app-live-page-preview
+                  [html]="item.content!"
+                  [format]="pageFormat()"
+                  [context]="renderContext()"
+                  [label]="'dashboard.generationPanel.sections.branding.' + item.name | translate"
+                />
+              }
+            </div>
+          </figure>
+        } @else {
+          <div
+            class="rounded-xl border border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center gap-2 text-center p-6"
+            [class.aspect-video]="!isPortrait()"
+            [class.aspect-[210/297]]="isPortrait()"
+            [class.max-w-sm]="isPortrait()"
+            [class.mx-auto]="isPortrait()"
+          >
+            <div class="skeleton w-2/3 h-3 rounded"></div>
+            <div class="skeleton w-1/2 h-3 rounded"></div>
+            <p class="text-sm text-text-tertiary mt-2">{{ 'dashboard.brandingGeneration.live.firstPage' | translate }}</p>
+          </div>
+        }
+      </section>
+
+      <!-- ── Déroulé : chaque page, son chapitre et son statut ─────────────── -->
+      <nav class="glass-card p-5 lg:col-span-4 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto custom-scrollbar" [attr.aria-label]="'dashboard.brandingGeneration.live.outline' | translate">
+        <h2 class="text-base font-semibold text-text-primary mb-3">
+          {{ 'dashboard.brandingGeneration.live.outline' | translate }}
+        </h2>
+        <ol class="space-y-4">
+          @for (chapter of timeline(); track chapter.id) {
+            <li>
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span
+                  class="text-xs font-semibold uppercase tracking-wide"
+                  [class.text-primary-500]="chapter.status === 'active'"
+                  [class.text-text-secondary]="chapter.status !== 'active'"
+                >
+                  {{ 'dashboard.brandingGeneration.live.phases.' + chapter.id + '.chapter' | translate }}
+                </span>
+                <span class="text-xs text-text-tertiary tabular-nums">{{ chapter.done }}/{{ chapter.pages.length }}</span>
+              </div>
+              <ul class="space-y-0.5">
+                @for (item of chapter.pages; track item.name) {
+                  <li>
+                    <button
+                      type="button"
+                      class="outline-row w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left text-sm transition-colors"
+                      [class.is-shown]="item.status === 'done' && shownPage()?.name === item.name"
+                      [disabled]="item.status !== 'done'"
+                      [attr.aria-current]="shownPage()?.name === item.name ? 'true' : null"
+                      (click)="showPage(item.name)"
                     >
-                      <idem-loader />
-                    </div>
-                    <div>
-                      <h3 class="text-lg font-semibold text-text-primary">{{ stepName }}</h3>
-                      <p class="text-text-secondary text-sm">{{ 'common.inProgress' | translate }}</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                    <div
-                      class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"
-                      style="animation-delay: 0.2s"
-                    ></div>
-                    <div
-                      class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"
-                      style="animation-delay: 0.4s"
-                    ></div>
-                  </div>
-                </div>
-              </div>
-              <div class="p-6 space-y-4">
-                <p-skeleton height="2rem" width="100%"></p-skeleton>
-                <p-skeleton height="2rem" width="80%"></p-skeleton>
-                <p-skeleton height="2rem" width="60%"></p-skeleton>
-                <p-skeleton height="2rem" width="40%"></p-skeleton>
-              </div>
-            </div>
-          }
-        </div>
-      }
-
-      <!-- Completed Steps Section -->
-      @if (hasCompletedSteps()) {
-        <div class="space-y-6">
-          <div class="grid gap-6">
-            @for (step of completedSteps(); track step.name) {
-              <div
-                class="glass-card rounded-xl shadow-md border border-[var(--glass-border-subtle)] overflow-hidden"
-              >
-                <div class="px-6 py-4 border-b">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                      <div
-                        class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center"
+                      <span class="w-5 h-5 shrink-0 flex items-center justify-center" aria-hidden="true">
+                        @switch (item.status) {
+                          @case ('done') {
+                            <span class="done-mark w-5 h-5 rounded-full flex items-center justify-center bg-primary-500">
+                              <i class="pi pi-check text-[0.6rem] text-[var(--color-on-primary)]"></i>
+                            </span>
+                          }
+                          @case ('active') {
+                            <idem-loader size="xs" />
+                          }
+                          @default {
+                            <span class="w-2 h-2 rounded-full border border-[var(--glass-border-strong)]"></span>
+                          }
+                        }
+                      </span>
+                      <span
+                        class="truncate"
+                        [class.text-text-primary]="item.status !== 'pending'"
+                        [class.text-text-tertiary]="item.status === 'pending'"
+                        [class.font-medium]="item.status === 'active'"
                       >
-                        <i class="pi pi-check text-text-primary text-sm"></i>
-                      </div>
-                      <div>
-                        <h4 class="font-semibold text-text-primary">{{ step.name }}</h4>
-                        <p class="text-text-tertiary text-sm">
-                          {{
-                            'dashboard.brandingGeneration.stepCompletedAt'
-                              | translate: { time: (step.timestamp | date: 'short') }
-                          }}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                @if (step.content) {
-                  <div class="p-6">
-                    <div class="prose prose-invert max-w-none">
-                      <div [innerHTML]="step.content"></div>
-                    </div>
-                  </div>
+                        {{ 'dashboard.generationPanel.sections.branding.' + item.name | translate }}
+                      </span>
+                      <span class="sr-only">{{ 'dashboard.brandingGeneration.live.status.' + item.status | translate }}</span>
+                    </button>
+                  </li>
                 }
-              </div>
-            }
-          </div>
-        </div>
-      }
+              </ul>
+            </li>
+          }
+        </ol>
+      </nav>
     </div>
   </div>
 } @else if (generationError()) {
-  <div class="min-h-screen flex items-center justify-center">
-    <div class="max-w-md mx-auto text-center">
-      <div class="glass-card rounded-xl shadow-lg p-8">
-        <div
-          class="w-16 h-16 bg-red-100/5 rounded-full flex items-center justify-center mx-auto mb-4"
-        >
-          <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
-        </div>
-        <h3 class="text-xl font-bold text-text-primary mb-2">
-          {{ 'dashboard.brandingGeneration.errors.title' | translate }}
-        </h3>
-        <p class="text-text-tertiary mb-6">{{ generationError() }}</p>
-        <button (click)="generateBranding()" class="w-full inner-button">
-          {{ 'common.retry' | translate }}
-        </button>
-      </div>
+  <div class="min-h-[60vh] flex items-center justify-center px-4">
+    <div class="glass-card max-w-md w-full p-8 text-center">
+      <app-generation-stage-illustration class="block w-44 h-32 mx-auto mb-4" phase="usage" />
+      <h2 class="text-xl font-bold text-text-primary mb-2">
+        {{ 'dashboard.brandingGeneration.errors.title' | translate }}
+      </h2>
+      <p class="text-text-secondary mb-6">{{ generationError() }}</p>
+      <button type="button" class="inner-button w-full" (click)="generateBranding()">
+        <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
+        <span>{{ 'common.retry' | translate }}</span>
+      </button>
     </div>
   </div>
 }

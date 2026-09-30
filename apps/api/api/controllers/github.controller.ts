@@ -56,7 +56,7 @@ export class GitHubController {
   /**
    * Handle GitHub OAuth callback
    */
-  async handleOAuthCallbackController(req: Request, res: Response): Promise<void> {
+  async handleOAuthCallbackController(req: CustomRequest, res: Response): Promise<void> {
     const { code, state } = req.query as { code?: string; state?: string };
 
     logger.info('Handling GitHub OAuth callback', { code: code?.substring(0, 10) + '...' });
@@ -70,9 +70,15 @@ export class GitHubController {
         return;
       }
 
+      if (typeof code !== 'string' || typeof state !== 'string') {
+        res.status(400).json({ success: false, message: 'Invalid OAuth parameters' });
+        return;
+      }
+
       const result = await this.developmentService.handleGitHubOAuth({
         code,
         state,
+        expectedUserId: req.user?.uid,
       });
 
       if (result.success) {

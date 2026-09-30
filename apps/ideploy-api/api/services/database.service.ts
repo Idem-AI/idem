@@ -9,7 +9,7 @@ import { encryptString, tryDecryptString } from '../utils/laravel-crypto';
 import { DatabaseRow } from '../models/ideploy.types';
 import { DB_TYPES, DbField, DbType, getDbType } from './database-types';
 import * as serverService from './server.service';
-import { executeRemoteCommand } from '../ssh/ssh';
+import { executeRemoteCommand, shellQuote } from '../ssh/ssh';
 
 const STANDALONE_DOCKER_MODEL = 'App\\Models\\StandaloneDocker';
 
@@ -45,6 +45,18 @@ async function upsertEnvVarValue(model: string, resourceId: number, key: string,
 }
 
 /** Same name `lifecycle()` gives the container — the DNS name other resources on the `ideploy` network reach it by. */
+/** Référence d'image Docker (`registre/nom:tag@digest`), sans rien d'autre. */
+const IMAGE_REFERENCE = /^[a-z0-9]+([._\/:@-][a-zA-Z0-9]+)*$/;
+
+function isSafeImageReference(image: unknown): image is string {
+  return typeof image === 'string' && image.length <= 255 && IMAGE_REFERENCE.test(image);
+}
+
+function assertImageReference(image: string): string {
+  if (!isSafeImageReference(image)) throw new Error('Invalid image reference');
+  return image;
+}
+
 export function containerNameFor(type: string, uuid: string): string {
   return `${type}-${uuid}`;
 }
@@ -176,7 +188,7 @@ export async function createDatabase(
   const vals: unknown[] = [
     uuid,
     dto.name,
-    dto.image || t.image,
+    assertImageReference(dto.image || t.image),
     'exited',
     dto.environment_id,
     dto.destination_id,
@@ -420,16 +432,20 @@ export async function lifecycle(
     // that happened to quote the failing command back would otherwise leak
     // them straight into the live console.
     redact = Object.values(creds).filter(Boolean);
+    // Chaque valeur entre apostrophes : les identifiants sont modifiables par
+    // l'utilisateur, et des guillemets doubles laissaient le shell de l'hôte
+    // interpréter `$(…)`. L'image est vérifiée pour la même raison.
     const envFlags = t.fields
       .filter((f) => f.env)
-      .map((f) => `-e ${f.env}=${JSON.stringify(creds[f.col])}`)
+      .map((f) => `-e ${shellQuote(`${f.env}=${creds[f.col] ?? ''}`)}`)
       .join(' ');
     const command = t.command?.(creds);
+    if (!isSafeImageReference(db.image)) throw new Error('Invalid database image reference');
     cmd =
       `docker rm -f ${containerName} 2>/dev/null; ` +
       `docker network inspect ideploy >/dev/null 2>&1 || docker network create --attachable ideploy; ` +
       `docker run -d --name ${containerName} --restart unless-stopped --network ideploy ` +
-      `--label ideploy.managed=true ${envFlags} ${db.image} ${command ?? ''}`;
+      `--label ideploy.managed=true ${envFlags} ${shellQuote(db.image)} ${command ?? ''}`;
   }
 
   const result = await executeRemoteCommand(server!, key!, cmd, { onData, redact });

@@ -16,6 +16,7 @@
     "packages/shared-auth-client",
     "packages/shared-styles",
     "packages/shared-loader",
+    "packages/shared-seo",
     "packages/shared-trusted-by"
   ],
   "scripts": {
@@ -60,13 +61,20 @@
     "test:all": "npm run test --workspaces --if-present",
     "lint:all": "npm run lint --workspaces --if-present",
     "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "seo:sync": "node packages/shared-seo/scripts/sync.mjs",
+    "seo:check": "node packages/shared-seo/scripts/sync.mjs --check",
     "sync:trusted-by": "node scripts/sync-trusted-by-assets.mjs",
     "check:trusted-by": "node scripts/sync-trusted-by-assets.mjs --check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "clean": "npm run clean --workspaces --if-present"
+    "clean": "npm run clean --workspaces --if-present",
+    "secrets": "node --no-warnings scripts/secrets/idem-secrets.mjs",
+    "check:secrets": "node scripts/git-hooks/check-secrets.mjs",
+    "check:builds": "node scripts/git-hooks/check-builds.mjs",
+    "test:git-hooks": "node --test scripts/git-hooks/*.test.mjs"
   },
   "dependencies": {
+    "@infisical/sdk": "^5.0.2",
     "tslib": "^2.8.1"
   },
   "devDependencies": {
@@ -83,5 +91,8 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
+  },
+  "overrides": {
+    "lodash-es": "^4.18.1"
   }
 }

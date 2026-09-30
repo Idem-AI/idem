@@ -1,345 +1,48 @@
 # @idem/shared-styles
 
-Shared design system and styles for all Idem applications using **Tailwind CSS 4**.
+The IDEM design system, for Tailwind CSS 4: design tokens, surfaces, buttons, natively styled form elements, and the Vilevile brand font with its icons. Every IDEM front end uses it.
 
-## Features
+**Use it, do not reproduce it.** A local `.card`, `.btn`, `.input` or spinner that imitates a class of this package is a defect, even if it looks the same: it creates a second source of truth that drifts. The rules and the full class inventory are in [`AGENTS.md`](../../AGENTS.md).
 
-- 🎨 **Unified Design System** - Consistent dark theme with glass morphism
-- 🌙 **Dark Mode Only** - Optimized for dark interfaces
-- ✨ **Glass Effects** - Pre-built glass morphism utilities
+## Installation
 
-- � **50+ Composants** - Boutons, formulaires, cartes, modals, tabs, accordions, etc.
-- 🌊 **Glass Morphism** - Effet verre dépoli professionnel avec 6 variantes
-- 🎬 **20+ Animations** - Micro-interactions fluides et animations modernes
-- 🎯 **100+ Classes Utilitaires** - Couleurs, espacement, effets, responsive
-- � **Mode Sombre Uniquement** - Optimisé pour une expérience premium
-- ⚡ **Performance** - CSS optimisé avec Tailwind CSS 4
-- 📱 **Responsive** - Mobile-first avec breakpoints intelligents
-- ♿ **Accessible** - Composants conformes aux standards WCAG
-
-## 🚀 Installation
-
-```bash
-npm install @idem/shared-styles
-```
-
-## 📖 Utilisation Rapide
-
-### 1. Importer les styles
-
-```css
-/* Dans votre fichier CSS principal */
-@import '@idem/shared-styles/styles.css';
-```
-
-⚠️ **Important** : N'utilisez JAMAIS `@tailwind base/components/utilities`. Le design system inclut déjà Tailwind CSS 4.
-
-### 2. Utiliser les composants
-
-export default {
-...sharedConfig,
-// Tailwind 4 auto-detects content, but you can override if needed
-content: ['./src/**/*.{js,ts,jsx,tsx,svelte,vue}'],
-// Add plugins if needed
-plugins: [],
-};
-
-````
-
-**Most theme customization should be done in your CSS file using `@theme`**, not in the config file.
-
-### 3. Use the Design System
-
-#### Glass Components
-
-```html
-<!-- Glass card -->
-<div class="glass-card p-6">
-  <h2 class="text-2xl text-light-text">Card Title</h2>
-  <p class="text-white/80">Card content</p>
-</div>
-
-<!-- Glass background -->
-<div class="glass p-4 rounded-lg">Content with glass effect</div>
-
-<!-- Darker glass -->
-<div class="glass-dark p-4 rounded-lg">Darker glass background</div>
-````
-
-#### Buttons
-
-```html
-<!-- Primary gradient button -->
-<button class="inner-button">Primary Action</button>
-
-<!-- Secondary glass button -->
-<button class="outer-button">Secondary Action</button>
-
-<!-- Disabled state -->
-<button class="inner-button" disabled>Disabled</button>
-```
-
-#### Form Elements
-
-```html
-<!-- Input field -->
-<input type="text" class="input" placeholder="Enter text" />
-
-<!-- With label -->
-<div>
-  <label class="block text-sm text-light-text mb-2">Name</label>
-  <input type="text" class="input" />
-</div>
-```
-
-#### Glow Effects
-
-```html
-<!-- Primary glow -->
-<div class="glow-primary rounded-xl p-4">Content with primary glow</div>
-
-<!-- Text glow -->
-<h1 class="text-glow-primary text-4xl">Glowing Title</h1>
-```
-
-## Color Palette
-
-All colors use **oklch** color space for wider gamut and better perceptual uniformity.
-
-### Primary Colors
-
-- **Primary**: `oklch(0.55 0.22 264)` - Main brand color (blue)
-- **Secondary**: `oklch(0.60 0.25 328)` - Secondary brand color (magenta)
-- **Accent**: `oklch(0.75 0.15 195)` - Accent color (cyan)
-
-### Background Colors
-
-- **BG Dark**: `oklch(0.10 0.01 264)` - Main background
-- **BG Light**: `oklch(0.15 0.01 264)` - Lighter background
-
-### Status Colors
-
-- **Success**: `oklch(0.55 0.15 145)` - Success states
-- **Danger**: `oklch(0.58 0.20 25)` - Error/danger states
-- **Warning**: `oklch(0.70 0.18 75)` - Warning states
-
-### Text Colors
-
-- **Light Text**: `oklch(0.96 0 0)` - Primary text color
-
-### Why oklch?
-
-Tailwind CSS 4 uses oklch (Oklab Lightness Chroma Hue) instead of hex/rgb because:
-
-- **Wider color gamut** - Access to more vivid colors on modern displays
-- **Perceptual uniformity** - Equal numeric changes = equal perceived changes
-- **Better interpolation** - Smoother gradients and transitions
-
-## Tailwind Utilities
-
-### Colors
-
-```html
-<div class="bg-primary text-light-text">Primary background</div>
-<div class="bg-secondary">Secondary background</div>
-<div class="bg-dark">Dark background</div>
-<div class="text-accent">Accent text</div>
-```
-
-### Shadows
-
-```html
-<div class="shadow-glass">Glass shadow</div>
-<div class="shadow-glow-primary">Primary glow shadow</div>
-<div class="shadow-glow-secondary">Secondary glow shadow</div>
-```
-
-### Animations
-
-```html
-<!-- Gradient shift animation -->
-<div class="animate-gradient-shift">Animated gradient</div>
-
-<!-- Reveal animation -->
-<div class="reveal">Fade in on scroll</div>
-
-<!-- Spinner -->
-<div class="spinner"></div>
-```
-
-## CSS Variables
-
-All design tokens are available as CSS variables:
-
-```css
-var(--color-primary)
-var(--color-secondary)
-var(--color-accent)
-var(--color-bg-dark)
-var(--color-bg-light)
-var(--color-light-text)
-var(--glass-bg)
-var(--glass-bg-darker)
-var(--glass-border)
-var(--glass-shadow)
-var(--glass-blur)
-```
-
-## Framework-Specific Examples
-
-### React
-
-```jsx
-import '@idem/shared-styles/styles.css';
-
-function Card({ title, children }) {
-  return (
-    <div className="glass-card p-6">
-      <h2 className="text-2xl text-light-text mb-4">{title}</h2>
-      {children}
-    </div>
-  );
-}
-```
-
-### Angular
-
-```typescript
-// In styles.css
-@import '@idem/shared-styles/styles.css';
-
-// In component
-@Component({
-  template: `
-    <div class="glass-card p-6">
-      <h2 class="text-2xl text-light-text">{{ title }}</h2>
-    </div>
-  `
-})
-```
-
-### Svelte
-
-```svelte
-<script>
-  import '@idem/shared-styles/styles.css';
-</script>
-
-<div class="glass-card p-6">
-  <h2 class="text-2xl text-light-text">{title}</h2>
-</div>
-```
-
-### Vue
-
-```vue
-<template>
-  <div class="glass-card p-6">
-    <h2 class="text-2xl text-light-text">{{ title }}</h2>
-  </div>
-</template>
-
-<style>
-@import '@idem/shared-styles/styles.css';
-</style>
-```
-
-## Tailwind CSS 4 - CSS-First Configuration
-
-This package uses **Tailwind CSS 4** with the new `@theme` directive for CSS-first configuration.
-
-### What's Different in v4?
-
-**1. Configuration in CSS, not JavaScript**
-
-Instead of defining your theme in `tailwind.config.js`, you use the `@theme` directive in CSS:
+In an application's global stylesheet, next to Tailwind:
 
 ```css
 @import 'tailwindcss';
-
-@theme {
-  --color-primary: oklch(0.55 0.22 264);
-  --font-sans: 'Vilevile', sans-serif;
-  --spacing: 0.25rem;
-}
+@import '@idem/shared-styles/styles.css';
 ```
 
-**2. Automatic Content Detection**
+`styles.css` imports the font (`fonts/fonts.css`) and the icon classes (`fonts/icons.css`) itself.
 
-Tailwind 4 automatically detects your source files by:
+## Themes
 
-- Scanning your project directory
-- Ignoring `.gitignore` patterns
-- Excluding binary files automatically
+Two themes, dark and light. The active one is the `.dark` / `.light` class on `<html>`, set by each application from the shared `idem_theme` cookie and defaulting to the browser's `prefers-color-scheme`. Components use semantic tokens, so they need no theme-specific code.
 
-No more `content: []` configuration needed!
+## What it provides
 
-**3. Built-in Import Support**
+| Kind | Classes / tokens |
+| --- | --- |
+| Surfaces | `.glass`, `.glass-card`, `.glass-dark`, `.modal-panel`, `.modal-drawer`, `.project-card` |
+| Actions | `.inner-button` (primary), `.outer-button` (secondary), `.button-ghost`, `.button-accent`, `.button-icon`, sizes `.button-sm` / `.button-lg` / `.button-xl` |
+| Signals | `.tag`, `.status-dot`, `.skeleton`, `.pulse-glow`, `.custom-scrollbar` |
+| Forms | Nothing to add: `input[type=…]`, `select`, `textarea`, `label`, `fieldset`, `progress`, `meter` are styled natively |
+| Colour tokens | `--color-primary-*`, `--color-secondary-*`, `--color-accent-*` (50–950 + glows), `--color-surface-1/2/3`, `--color-text-primary/secondary/tertiary/disabled`, `--color-success`, `--color-warning`, `--color-danger`, `--color-info` |
+| Tailwind utilities | Generated from the tokens: `text-text-primary`, `bg-surface-1`, `text-primary-500`… |
+| Type | Font family `Vilevile` (text **and** icons), `--font-size-*` scale |
+| Icons | PrimeIcons classes, `<i class="pi pi-user"></i>`, drawn by Vilevile |
 
-No need for `postcss-import` - Tailwind 4 handles `@import` natively.
+## Pitfalls
 
-**4. oklch Color Space**
+- Element selectors of the design system are not in an `@layer`, so they win over Tailwind utilities: a `select` with `w-32` stays full width; write `!w-32`.
+- `input[type='text']` is styled, `input` alone is not: always write the `type` attribute.
+- Never set `letter-spacing` or a `tracking-*` utility: the tracking is built into the font (see [the font README](tools/font/README.md)).
+- Use tokens, never raw colours: `text-text-primary`, not `text-white`; `text-primary-500`, not `text-blue-500` or a hex value.
 
-All colors use `oklch` for wider gamut and better perceptual uniformity.
+## The font
 
-## Tailwind CSS 4 Migration Notes
+Vilevile is Jura, extended to weight 900, retracked, carrying PrimeIcons redrawn in IDEM's hand and the letters of Cameroonian languages. How it is built and how to rebuild it: [tools/font/README.md](tools/font/README.md).
 
-Key changes from v3 to v4:
+## Exception
 
-### Import Syntax
-
-```css
-/* ✅ Correct (v4) */
-@import 'tailwindcss';
-
-/* ❌ Wrong (v3) */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
-
-### Opacity Utilities
-
-```html
-<!-- ✅ Correct (v4) -->
-<div class="bg-black/50 text-white/80">
-  <!-- ❌ Wrong (v3) -->
-  <div class="bg-opacity-50 text-opacity-80"></div>
-</div>
-```
-
-### Updated Utilities
-
-| Deprecated (v3)     | Replacement (v4) |
-| ------------------- | ---------------- |
-| `bg-opacity-*`      | `bg-black/*`     |
-| `text-opacity-*`    | `text-black/*`   |
-| `flex-shrink-*`     | `shrink-*`       |
-| `flex-grow-*`       | `grow-*`         |
-| `overflow-ellipsis` | `text-ellipsis`  |
-
-## Best Practices
-
-1. **Always use the design system** - Don't create custom colors
-2. **Glass effects for containers** - Use `.glass-card` for cards and modals
-3. **Consistent spacing** - Use Tailwind spacing utilities
-4. **Dark mode only** - All designs are optimized for dark theme
-5. **Accessibility** - Ensure sufficient contrast ratios
-6. **Performance** - Use backdrop-filter sparingly on mobile
-
-## Contributing
-
-When adding new styles:
-
-1. Update `styles.css` with new utilities
-2. Update `tailwind.config.js` if adding theme tokens
-3. Document in this README
-4. Test across all applications
-
-## License
-
-MIT
-
-## Support
-
-For issues or questions, please refer to the main Idem repository.
+The Chart editor (`apps/chart`) does not consume this package; it ships its own copy of the font files.

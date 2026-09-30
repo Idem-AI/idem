@@ -4,31 +4,12 @@
     <p class="text-text-tertiary mt-4">{{ 'common.loading' | translate }}</p>
   </div>
 } @else if (loadError()) {
-  <!-- Error State -->
-  <div class="w-full min-h-[600px] flex items-center justify-center p-6">
-    <div class="max-w-2xl mx-auto text-center">
-      <div class="glass-card rounded-2xl p-12 space-y-8">
-        <div class="mx-auto">
-          <i class="pi pi-exclamation-triangle text-6xl text-red-400"></i>
-        </div>
-        <div class="space-y-4">
-          <h3 class="text-3xl font-bold text-text-primary">
-            {{ 'common.error' | translate }}
-          </h3>
-          <p class="text-lg text-text-secondary">{{ loadError()! | translate }}</p>
-        </div>
-        <button
-          (click)="goBack()"
-          class="group inner-button relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold"
-        >
-          <span class="relative flex items-center space-x-2">
-            <i class="pi pi-arrow-left"></i>
-            <span>{{ 'dashboard.showBranding.buttons.backToOverview' | translate }}</span>
-          </span>
-        </button>
-      </div>
-    </div>
-  </div>
+  <app-error-state scene="document" [title]="'common.error' | translate" [message]="loadError()! | translate">
+    <button type="button" class="inner-button !gap-2" (click)="goBack()">
+      <i class="pi pi-arrow-left text-sm" aria-hidden="true"></i>
+      {{ 'dashboard.showBranding.buttons.backToOverview' | translate }}
+    </button>
+  </app-error-state>
 } @else if (hasBranding()) {
   <!-- Aperçu de la charte (rendu comme dans l'éditeur, PDF au téléchargement).
        Le retour à l'aperçu de marque est une icône dans l'en-tête : aucune ligne à lui seul. -->

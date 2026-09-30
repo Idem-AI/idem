@@ -31,7 +31,7 @@ import {
   RenderContext,
   SectionLayout,
 } from '../../models/editor.types';
-import { buildIframeDocument } from '../../runtime/editor-iframe';
+import { buildIframeDocument, readUiTokens } from '../../runtime/editor-iframe';
 
 /** Événement de modification de texte remonté depuis l'iframe. */
 export interface TextChangeEvent {
@@ -133,6 +133,7 @@ interface ViewBox {
           #frame
           [title]="label()"
           class="editor-iframe"
+          sandbox="allow-scripts"
           [srcdoc]="srcdoc()"
           [style.width.px]="pageWidthPx()"
           [style.height.px]="iframeHeight()"
@@ -301,6 +302,7 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
       secondaryFont: this.fonts().secondaryFont,
       fontUrl: this.fonts().fontUrl,
       dark: this.dark(),
+      uiTokens: readUiTokens(),
     };
     const html = buildIframeDocument(
       sections,

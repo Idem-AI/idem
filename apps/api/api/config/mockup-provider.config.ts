@@ -64,10 +64,30 @@ function isAvailable(provider: MockupProvider): boolean {
   return provider === 'gemini' ? isGeminiConfigured() : Boolean(getGlmApiKey());
 }
 
+/**
+ * Coupe-circuit : après un refus de facturation de Gemini, les mises en
+ * situation passent sur GLM pendant `GEMINI_BILLING_PAUSE_MS`. Sans lui, chaque
+ * scène attendrait son propre refus avant de basculer. Local au processus :
+ * une autre instance le découvrira à son premier refus, ce qui suffit.
+ */
+const GEMINI_BILLING_PAUSE_MS = 10 * 60 * 1000;
+let geminiPausedUntil = 0;
+
+export function pauseGeminiForBilling(): void {
+  geminiPausedUntil = Date.now() + GEMINI_BILLING_PAUSE_MS;
+  logger.warn(`[MOCKUP] Gemini mis de côté ${GEMINI_BILLING_PAUSE_MS / 60000} min (facturation) — GLM prend le relais`);
+}
+
+/** GLM peut-il servir de repli ? */
+export function isGlmMockupAvailable(): boolean {
+  return isAvailable('glm');
+}
+
 /** Le fournisseur qui produira les prochaines mises en situation. */
 export async function resolveMockupProvider(): Promise<MockupProvider> {
   const wanted =
     (await readStoredProvider()) ?? parseProvider(process.env.IDEM_MOCKUP_PROVIDER) ?? 'gemini';
+  if (wanted === 'gemini' && Date.now() < geminiPausedUntil && isAvailable('glm')) return 'glm';
   if (isAvailable(wanted)) return wanted;
 
   const other: MockupProvider = wanted === 'gemini' ? 'glm' : 'gemini';

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="12 18 96 54" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- IDEM Simulator — tester avant d'investir : le plateau d'awalé, où l'on
+       calcule ses coups avant de semer. Le coup joué porte la couleur. -->
+  <path d="M16 34 C16 28 20 26 26 26 H94 C100 26 104 28 104 34 V54 C104 60 100 62 94 62 H26 C20 62 16 60 16 54Z" stroke-width="1.6"/>
+  <path d="M22 66 L26 62 M98 66 L94 62 M22 66 H98" stroke-width="1.1" opacity=".7"/>
+  <g stroke-width="1.1">
+    <ellipse cx="30" cy="36" rx="4.8" ry="3.6"/>
+    <ellipse cx="54" cy="36" rx="4.8" ry="3.6"/>
+    <ellipse cx="66" cy="36" rx="4.8" ry="3.6"/>
+    <ellipse cx="78" cy="36" rx="4.8" ry="3.6"/>
+    <ellipse cx="90" cy="36" rx="4.8" ry="3.6"/>
+    <ellipse cx="30" cy="52" rx="4.8" ry="3.6"/>
+    <ellipse cx="42" cy="52" rx="4.8" ry="3.6"/>
+    <ellipse cx="54" cy="52" rx="4.8" ry="3.6"/>
+    <ellipse cx="66" cy="52" rx="4.8" ry="3.6"/>
+    <ellipse cx="78" cy="52" rx="4.8" ry="3.6"/>
+    <ellipse cx="90" cy="52" rx="4.8" ry="3.6"/>
+  </g>
+  <path d="M27.8 36h0.01 M30 36h0.01 M32.2 36h0.01 M52.7 36h0.01 M55.3 36h0.01 M64.8 35h0.01 M67.2 35h0.01 M64.8 37h0.01 M67.2 37h0.01 M78 36h0.01 M87.8 36h0.01 M90 36h0.01 M92.2 36h0.01 M28.8 51h0.01 M31.2 51h0.01 M28.8 53h0.01 M31.2 53h0.01 M40.7 52h0.01 M43.3 52h0.01 M51.8 52h0.01 M54 52h0.01 M56.2 52h0.01 M76.8 51h0.01 M79.2 51h0.01 M76.8 53h0.01 M79.2 53h0.01 M88.7 52h0.01 M91.3 52h0.01" stroke-width="1.6"/>
+  <g style="color: var(--color-primary-500)">
+    <path d="M42 30 C50 20 64 20 70 30" stroke-width="1.1" stroke-dasharray="2 3"/>
+    <path d="M66.5 27.5 L70 30.5 L71 26" stroke-width="1.1"/>
+    <ellipse cx="42" cy="36" rx="4.8" ry="3.6" stroke-width="1.4"/>
+  </g>
+</svg>

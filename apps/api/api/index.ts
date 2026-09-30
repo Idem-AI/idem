@@ -3,7 +3,7 @@
 // bootstrap() function and gate the rest of the wiring behind it.
 import { loadSecrets } from './config/secrets';
 
-import express, { Express, Request, Response } from 'express';
+import express, { Express, NextFunction, Request, Response } from 'express';
 import morgan from 'morgan';
 import { stream as loggerStream } from './config/logger';
 import { metricsMiddleware } from './middleware/metrics.middleware';
@@ -13,10 +13,9 @@ import { revisionContextMiddleware } from './utils/revision-context.util';
 import { describeGeminiBackend, isGeminiConfigured } from './config/google-genai.client';
 import { aiUsageContextMiddleware } from './utils/ai-usage-context.util';
 import metricsRouter from './routes/metrics.routes';
-import admin from 'firebase-admin';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { applySecurity, auditLogger } from './middleware/security.middleware';
+import { applySecurity, auditLogger, redactServerErrors } from './middleware/security.middleware';
 import { buildCorsOptions } from './config/cors.config';
 import { rateLimitByIP, burstProtection } from './middleware/rate-limit.middleware';
 import mongoDBConnection from './config/mongodb.config';
@@ -55,33 +54,18 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import swaggerOptions from './config/swagger.config';
 
-function initFirebase(): void {
-  // Firebase Auth initialization (kept for authentication only - backward compatibility)
-  const serviceAccountFromEnv = {
-    type: 'service_account',
-    project_id: process.env.FIREBASE_PROJECT_ID,
-    private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-    // Newlines already normalised by loadSecrets(), but keep this safe for
-    // values pulled from a raw shell env.
-    private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    client_email: process.env.FIREBASE_CLIENT_EMAIL,
-    client_id: process.env.FIREBASE_CLIENT_ID,
-    auth_uri: 'https://accounts.google.com/o/oauth2/auth',
-    token_uri: 'https://oauth2.googleapis.com/token',
-    auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-    client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
-  };
-
-  if (serviceAccountFromEnv.project_id && serviceAccountFromEnv.private_key) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccountFromEnv as admin.ServiceAccount),
-      projectId: process.env.FIREBASE_PROJECT_ID,
-    });
-    console.log('Firebase Admin SDK initialized successfully (Auth only).');
+/**
+ * Authentification : un serveur Supabase auto-hébergé émet les jetons d'accès,
+ * l'API les échange contre ses propres cookies de session. Une configuration
+ * incomplète se voit au démarrage, pas à la première connexion.
+ */
+function checkAuthConfig(): void {
+  const missing = ['SUPABASE_AUTH_URL', 'SUPABASE_JWT_SECRET'].filter((name) => !process.env[name]);
+  if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) missing.push('SESSION_SECRET');
+  if (missing.length) {
+    console.error(`Authentication NOT CONFIGURED — missing: ${missing.join(', ')}. Sign-in will fail.`);
   } else {
-    console.error(
-      'Firebase Admin SDK initialization failed: Missing credentials in environment variables.'
-    );
+    console.log(`Authentication server: ${process.env.SUPABASE_AUTH_URL}`);
   }
 }
 
@@ -113,6 +97,7 @@ import contactRoutes from './routes/contactRoutes';
 import logoImportRoutes from './routes/logo-import.routes';
 import ideployRoutes from './routes/ideploy.routes';
 import appgenRoutes from './routes/appgen.routes';
+import ogRoutes from './routes/og.routes';
 import { communicationRoutes } from './routes/communication.routes';
 import { financeRoutes } from './routes/finance.routes';
 import { simulationRoutes } from './routes/simulation.routes';
@@ -175,6 +160,9 @@ app.use(
 // Audit log for sensitive routes.
 app.use(auditLogger);
 
+// Pas de détail d'erreur interne dans les réponses 5xx de production.
+app.use(redactServerErrors);
+
 // Resolve the user's UI language (query > body > Accept-Language) and expose it to
 // all downstream services so AI generation replies in the right language.
 app.use(languageMiddleware);
@@ -228,6 +216,15 @@ app.use('/api/ideploy', ideployRoutes);
 // AppGen routes
 app.use('/appgen', appgenRoutes);
 
+// Images de partage (Open Graph), publiques : voir public/og/README.md
+app.use('/og', ogRoutes);
+
+// L'API n'a rien à indexer, sauf les images de partage : les robots des
+// réseaux sociaux respectent robots.txt avant de les télécharger.
+app.get('/robots.txt', (_req: Request, res: Response) => {
+  res.type('text/plain').send('User-agent: *\nAllow: /og/\nDisallow: /\n');
+});
+
 // Prometheus metrics endpoint (no auth required for scraping)
 app.use('/metrics', metricsRouter);
 // Communication routes (strategy / calendar / flyers on demand)
@@ -237,8 +234,12 @@ app.use('/project', communicationRoutes);
 app.use('/project', financeRoutes);
 
 // Swagger setup
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// La documentation cartographie toute la surface d'attaque : hors production
+// seulement, sauf activation explicite.
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_API_DOCS === 'true') {
+  const swaggerSpec = swaggerJsdoc(swaggerOptions);
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+}
 
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({
@@ -255,8 +256,6 @@ app.get('/health', (req: Request, res: Response) => {
     service: 'idem-api',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    memoryUsage: process.memoryUsage(),
-    version: process.env.npm_package_version || '1.0.0',
   });
 });
 
@@ -264,26 +263,32 @@ app.use((req: Request, res: Response) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
-  console.error('Global error handler:', err);
-  
-  // S'assurer que les en-têtes CORS sont présents même en cas d'erreur
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+// Gestionnaire d'erreurs : Express ne le reconnaît qu'avec QUATRE paramètres.
+// Il ne reflète plus l'origine de la requête (le middleware CORS s'en charge
+// pour les seules origines autorisées) et ne renvoie jamais le message interne.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error & { status?: number; type?: string }, req: Request, res: Response, _next: NextFunction) => {
+  if (err?.message === 'Not allowed by CORS') {
+    res.status(403).json({ error: 'Origin not allowed' });
+    return;
   }
-  
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message || 'Something broke!'
-  });
+  if (err?.type === 'entity.too.large') {
+    res.status(413).json({ error: 'Payload too large' });
+    return;
+  }
+  if (err?.type === 'entity.parse.failed') {
+    res.status(400).json({ error: 'Invalid JSON body' });
+    return;
+  }
+  console.error('Global error handler:', err);
+  if (res.headersSent) return;
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 
 async function bootstrap() {
   await loadSecrets();
-  initFirebase();
+  checkAuthConfig();
 
   // Backend Gemini (Vertex AI ou AI Studio) : tracé au démarrage plutôt qu'à la
   // première génération, pour qu'une configuration incomplète se voie tout de
@@ -419,6 +424,5 @@ async function shutdown(signal: string) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-export { admin };
 
 export default app;

@@ -1,69 +1,51 @@
-# Bibliothèque de mockups de réseaux sociaux
+# Social network mockup library
 
-Les pages « Bannières réseaux sociaux » et « Publications sociales » de la charte
-graphique montrent la marque **dans l'interface réelle de chaque réseau**. Ces
-interfaces sont des gabarits **HTML/CSS** versionnés ici : aucune image de base,
-aucun modèle d'image. Le code y dépose ce qui appartient au projet (logo,
-bannière, nom, promesse, visuels), puis Chrome en fait une capture.
+The "Social media banners" and "Social posts" pages of the brand charter show the brand **inside the real interface of each network**. Those interfaces are **HTML/CSS** templates versioned here: no base image, no image model. The code drops in what belongs to the project (logo, banner, name, promise, visuals), then Chrome takes a screenshot.
 
-## Pourquoi du HTML et pas des images
+## Why HTML and not images
 
-Un mockup en image oblige à poser le logo et les textes au pixel près, par-dessus
-un contenu de démonstration qu'il faut d'abord effacer. En HTML, chaque élément
-de marque est un emplacement nommé : on le remplit, la mise en page suit (un nom
-long est tronqué proprement, une bannière garde son ratio), et on peut retoucher
-un gabarit dans un éditeur de texte.
+An image mockup forces you to place the logo and text pixel by pixel, on top of demo content that must be erased first. In HTML, every brand element is a named slot: you fill it and the layout follows (a long name is truncated cleanly, a banner keeps its ratio), and a template can be edited in a text editor.
 
-Les clones HTML trouvés en ligne (dépôts GitHub « instagram clone », gabarits
-CodePen de cartes) ne couvraient qu'Instagram et des cartes génériques, avec des
-interfaces datées et des dépendances (Bootstrap, Font Awesome). Les gabarits ont
-donc été dessinés pour IDEM d'après les interfaces publiques de chaque réseau.
+The HTML clones found online ("instagram clone" GitHub repositories, CodePen card templates) only covered Instagram and generic cards, with dated interfaces and dependencies (Bootstrap, Font Awesome). The templates were therefore drawn for IDEM from each network's public interface.
 
-## Gabarits
+## Templates
 
-| Fichier | Réseau | Type | Taille (px) | Emplacement de marque |
+| File | Network | Type | Size (px) | Brand slot |
 |---|---|---|---|---|
-| `facebook-page.html` | Facebook | page | 1200 × 760 | couverture 940 × 348 |
-| `linkedin-page.html` | LinkedIn | page entreprise | 1200 × 660 | couverture 748 × 128 |
-| `x-profile.html` | X | profil | 1200 × 640 | en-tête 598 × 200 |
-| `youtube-channel.html` | YouTube | chaîne | 1200 × 720 | bannière 1040 × 172, vignette 424 × 238 |
-| `instagram-profile.html` | Instagram | profil | 1200 × 720 | 6 tuiles de grille |
-| `instagram-post.html` | Instagram | publication | 400 × 654 | visuel 400 × 500 (4:5) |
-| `linkedin-post.html` | LinkedIn | publication | 400 × 566 | visuel 400 × 400 (1:1) |
-| `facebook-post.html` | Facebook | publication | 400 × 564 | visuel 400 × 400 (1:1) |
-| `x-post.html` | X | publication | 440 × 319 | visuel 362 × 190 (1,9:1) |
+| `facebook-page.html` | Facebook | page | 1200 × 760 | cover 940 × 348 |
+| `linkedin-page.html` | LinkedIn | company page | 1200 × 660 | cover 748 × 128 |
+| `x-profile.html` | X | profile | 1200 × 640 | header 598 × 200 |
+| `youtube-channel.html` | YouTube | channel | 1200 × 720 | banner 1040 × 172, thumbnail 424 × 238 |
+| `instagram-profile.html` | Instagram | profile | 1200 × 720 | 6 grid tiles |
+| `instagram-post.html` | Instagram | post | 400 × 654 | visual 400 × 500 (4:5) |
+| `linkedin-post.html` | LinkedIn | post | 400 × 566 | visual 400 × 400 (1:1) |
+| `facebook-post.html` | Facebook | post | 400 × 564 | visual 400 × 400 (1:1) |
+| `x-post.html` | X | post | 440 × 319 | visual 362 × 190 (1.9:1) |
 
-Les tailles et formats sont déclarés dans `manifest.json` ; ils doivent rester
-identiques au CSS du gabarit. Les visuels de publication ont exactement le
-rapport des formats du générateur de visuels (`post` 1200 × 1500, `square`
-1080 × 1080, `banner` 1200 × 630) : ils ne sont jamais recadrés.
+Sizes and formats are declared in `manifest.json`; they must stay identical to the template's CSS. Post visuals have exactly the ratio of the visual generator's formats (`post` 1200 × 1500, `square` 1080 × 1080, `banner` 1200 × 630): they are never cropped.
 
-## Marqueurs
+## Placeholders
 
-`{{clé}}` reçoit un texte **échappé**. `{{{clé}}}` reçoit du **HTML produit par
-le code**, jamais par un modèle.
+`{{key}}` receives **escaped** text. `{{{key}}}` receives **HTML produced by the code**, never by a model.
 
-| Marqueur | Contenu |
+| Placeholder | Content |
 |---|---|
-| `{{brandName}}` | nom de la marque |
-| `{{handle}}` | identifiant de compte, sans `@` |
-| `{{category}}` | secteur, deux ou trois mots |
-| `{{bio}}` | présentation courte / promesse |
-| `{{postText}}` | texte d'une publication |
-| `{{caption}}`, `{{hashtags}}` | légende et mots-dièse (Instagram, X) |
-| `{{title}}` | titre de la vidéo mise en avant (YouTube) |
-| `{{avatarSrc}}`, `{{avatarGround}}` | logo de l'avatar et son fond contrasté |
-| `{{mediaSrc}}` | visuel de la publication (data URI ou URL) |
-| `{{{coverHtml}}}` | bannière composée à la taille de l'emplacement |
-| `{{{mediaHtml}}}` | vignette composée (YouTube) |
-| `{{{tiles}}}` | tuiles de la grille (Instagram) |
-| `{{{fontLinks}}}` | liens Google Fonts des polices de la marque |
+| `{{brandName}}` | brand name |
+| `{{handle}}` | account handle, without `@` |
+| `{{category}}` | sector, two or three words |
+| `{{bio}}` | short description / promise |
+| `{{postText}}` | post text |
+| `{{caption}}`, `{{hashtags}}` | caption and hashtags (Instagram, X) |
+| `{{title}}` | featured video title (YouTube) |
+| `{{avatarSrc}}`, `{{avatarGround}}` | avatar logo and its contrasting background |
+| `{{mediaSrc}}` | post visual (data URI or URL) |
+| `{{{coverHtml}}}` | banner composed at the slot size |
+| `{{{mediaHtml}}}` | composed thumbnail (YouTube) |
+| `{{{tiles}}}` | grid tiles (Instagram) |
+| `{{{fontLinks}}}` | Google Fonts links for the brand typefaces |
 
-## Ajouter un réseau
+## Adding a network
 
-1. Créer `templates/<id>.html` : document complet, `body` à la taille finale,
-   polices d'interface chargées depuis Google Fonts, aucune ressource locale.
-2. Déclarer l'entrée dans `manifest.json` (`kind`, taille, `cover` / `media`).
-3. Lancer `npm run check:mockups` : chaque gabarit est rendu avec une marque de
-   test, et le contrôle échoue si un marqueur reste sans valeur ou si le contenu
-   déborde de la page.
+1. Create `templates/<id>.html`: a complete document, `body` at the final size, interface fonts loaded from Google Fonts, no local resource.
+2. Declare the entry in `manifest.json` (`kind`, size, `cover` / `media`).
+3. Run `npm run check:mockups`: each template is rendered with a test brand, and the check fails if a placeholder has no value or if content overflows the page.

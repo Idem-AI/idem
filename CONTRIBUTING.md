@@ -56,6 +56,23 @@ Unsure where to begin contributing to Idem? You can start by looking through the
 3. Install dependencies: `npm install`
 4. Create a branch for your feature: `git checkout -b feature/amazing-feature`
 
+### Git Hooks (automatic checks)
+
+Hooks are installed by `npm install` (Husky). Two of them can block you:
+
+| When | Check | Blocks if |
+| --- | --- | --- |
+| `git commit` | `scripts/git-hooks/check-secrets.mjs` | a staged change exposes a secret: a `.env` file, a private key or service-account JSON, or a line that looks like an API key, token or password |
+| `git push` | `scripts/git-hooks/check-builds.mjs` | an application changed by the pushed commits does not build |
+
+- **Secret found?** Remove it and read the value from the environment; production secrets live in Infisical (`npm run secrets -- plan`). If it was real, rotate it. For a false positive, add a comment containing `idem-secrets:allow` on that line.
+- **Build failed?** The hook prints the last lines of the build output and the path to the full log. Reproduce with `npm run check:builds` (or `-- --only <app>`), fix, commit, push again. Nothing was sent to the remote.
+- `npm run check:builds -- --list` shows which applications would be built.
+- Run the checks by hand: `npm run check:secrets`, `npm run check:builds`. Hook tests: `npm run test:git-hooks`.
+- Git GUI clients (VS Code, GitKraken…) run these hooks too: `node` must be on their `PATH`.
+
+`git commit --no-verify` / `git push --no-verify` skip the hooks. Do not use them to get around a finding: this repository is public, and CI scans pushed commits for secrets as well (gitleaks, `.github/workflows/security.yml`).
+
 ### Style Guides
 
 #### Git Commit Messages

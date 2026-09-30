@@ -155,19 +155,20 @@ export class AccountProfilePage {
   protected readonly user = toSignal(this.auth.user$);
 
   protected readonly memberSince = computed(() => {
-    const created = this.user()?.metadata?.creationTime;
+    const created = this.user()?.createdAt;
     return created ? new Date(created) : null;
   });
 
   protected readonly providerLabel = computed(() => {
-    const providerId = this.user()?.providerData?.[0]?.providerId ?? 'password';
-    return (
-      {
-        'google.com': 'Google',
-        'github.com': 'GitHub',
-        password: 'E-mail',
-      }[providerId] ?? providerId
-    );
+    const providers = this.user()?.providers ?? [];
+    const labels: Record<string, string> = {
+      google: 'Google',
+      linkedin_oidc: 'LinkedIn',
+      email: 'E-mail',
+    };
+    return providers.length > 0
+      ? providers.map((provider) => labels[provider] ?? provider).join(' · ')
+      : labels['email'];
   });
 
   /**

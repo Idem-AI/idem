@@ -203,7 +203,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
           }
         } @else if (query() || selectedWorkspace()) {
           <div class="glass-card">
-            <app-empty-state kind="box" [title]="'dashboard.noMatch' | translate" />
+            <app-empty-state kind="search" [title]="'dashboard.noMatch' | translate" />
           </div>
         } @else {
           <div class="glass-card">

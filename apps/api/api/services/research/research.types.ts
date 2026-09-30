@@ -114,6 +114,11 @@ export interface DeliverableSection {
    * publiée telle quelle, par accident, ou perdue.
    */
   freeform?: boolean;
+  /**
+   * Page FABRIQUÉE par le code (la couverture) : ni recherche, ni rédaction, ni
+   * vérification. Le HTML rendu est le livrable.
+   */
+  compose?: () => Promise<string>;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,775 @@
+<div class="fixed inset-0 z-[70] flex justify-end">
+  <div
+    class="identity-backdrop absolute inset-0 bg-[var(--glass-bg-darker)] backdrop-blur-sm"
+    [class.is-leaving]="leaving()"
+    (click)="close()"
+    aria-hidden="true"
+  ></div>
+
+  <section
+    class="identity-drawer modal-drawer relative h-full w-full md:w-[min(560px,92vw)] border-l border-[var(--glass-border)] flex flex-col"
+    [class.is-leaving]="leaving()"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="identity-editor-title"
+  >
+    <header class="flex items-start justify-between gap-3 px-5 py-4 border-b border-[var(--glass-border)] shrink-0">
+      <div class="min-w-0">
+        <h2 id="identity-editor-title" class="text-lg font-semibold text-text-primary">
+          {{ 'dashboard.showBranding.identityEditor.title' | translate }}
+        </h2>
+        <p class="text-sm text-text-secondary mt-0.5">
+          {{ 'dashboard.showBranding.identityEditor.subtitle' | translate }}
+        </p>
+      </div>
+      <button
+        type="button"
+        class="button-icon"
+        (click)="close()"
+        [disabled]="applying()"
+        [attr.aria-label]="'common.close' | translate"
+      >
+        <i class="pi pi-times text-sm" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    @if (result(); as report) {
+      <!-- ── Réussite ─────────────────────────────────────────────── -->
+      <div class="flex-1 overflow-y-auto custom-scrollbar px-5 py-6 space-y-5">
+        <div class="flex flex-col items-center text-center gap-3">
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="text-text-tertiary">
+            <!-- Deux étoffes portent le même signe : la marque est à jour partout. -->
+            <rect x="6" y="14" width="24" height="34" rx="1.5" stroke-width="1.75"/>
+            <rect x="26" y="8" width="24" height="34" rx="1.5" stroke-width="1.75"/>
+            <path d="M6 19 H30 M26 13 H50" stroke-width="1" opacity=".6"/>
+            <g style="color: var(--color-primary-500)" stroke-width="1.8">
+              <path d="M18 27 L23 32 L18 37 L13 32Z"/>
+              <path d="M38 20 L43 25 L38 30 L33 25Z"/>
+            </g>
+          </svg>
+          <h3 class="text-base font-semibold text-text-primary">
+            {{ 'dashboard.showBranding.identityEditor.done.title' | translate }}
+          </h3>
+          <p class="text-sm text-text-secondary max-w-sm">
+            {{ 'dashboard.showBranding.identityEditor.done.subtitle' | translate }}
+          </p>
+        </div>
+        @if (report.logoAdaptation?.recolored || report.logoAdaptation?.retypeset) {
+          <p class="text-sm text-text-secondary text-center">
+            {{ 'dashboard.showBranding.identityEditor.done.logoAdapted' | translate }}
+          </p>
+        }
+        @if (regeneratedAfterApply()) {
+          <div class="glass-card p-3 flex items-center gap-3">
+            @if (regeneratingLogos()) {
+              <idem-loader size="xs" />
+            }
+            <p class="flex-1 text-sm text-text-secondary">
+              {{
+                (regeneratingLogos()
+                  ? 'dashboard.showBranding.identityEditor.done.logosRunning'
+                  : 'dashboard.showBranding.identityEditor.done.logosReady'
+                ) | translate
+              }}
+            </p>
+          </div>
+          <ng-container *ngTemplateOutlet="jobProblemLine; context: { $implicit: 'logos' }" />
+        }
+        <ng-container *ngTemplateOutlet="supportList; context: { $implicit: report }" />
+      </div>
+      <footer class="px-5 py-4 border-t border-[var(--glass-border)] flex flex-wrap justify-end gap-2 shrink-0">
+        @if (regeneratedAfterApply()) {
+          <button type="button" class="outer-button button-sm" (click)="backToEditing()">
+            {{ 'dashboard.showBranding.identityEditor.done.seeLogos' | translate }}
+          </button>
+        }
+        <button type="button" class="inner-button button-sm" (click)="close()">
+          {{ 'common.close' | translate }}
+        </button>
+      </footer>
+    } @else {
+      <div class="flex-1 overflow-y-auto custom-scrollbar px-5 py-5 space-y-8">
+        <!-- ── Logo ───────────────────────────────────────────────── -->
+        <fieldset class="space-y-3">
+          <legend class="text-sm font-semibold text-text-primary">
+            {{ 'dashboard.showBranding.identityEditor.logo.title' | translate }}
+          </legend>
+
+          <div class="flex items-center gap-4">
+            <div class="w-20 h-20 shrink-0 rounded-lg border border-[var(--glass-border)] flex items-center justify-center p-2">
+              @if (logoPreview()) {
+                <img [src]="logoPreview() | logoSrc" class="max-w-full max-h-full object-contain" alt="" />
+              } @else {
+                <i class="pi pi-image text-xl text-text-tertiary" aria-hidden="true"></i>
+              }
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <label class="outer-button button-sm !gap-2 cursor-pointer" [class.opacity-50]="importing()">
+                @if (importing()) {
+                  <idem-loader size="xs" />
+                } @else {
+                  <i class="pi pi-upload text-sm" aria-hidden="true"></i>
+                }
+                {{ 'dashboard.showBranding.identityEditor.logo.import' | translate }}
+                <input
+                  type="file"
+                  class="sr-only"
+                  accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp"
+                  [disabled]="importing()"
+                  (change)="onLogoFile($event)"
+                />
+              </label>
+              @if (logoChanged()) {
+                <button type="button" class="button-ghost button-sm" (click)="keepCurrentLogo()">
+                  {{ 'dashboard.showBranding.identityEditor.logo.keepCurrent' | translate }}
+                </button>
+              }
+            </div>
+          </div>
+
+          @if (importError()) {
+            <p class="text-sm text-accent" role="alert">{{ importError() }}</p>
+          }
+
+          <!-- Logo importé : le garder tel quel, ou partir de lui pour l'améliorer. -->
+          @if (logoChoice().kind === 'imported') {
+            <div class="glass-card p-3 space-y-2">
+              <p class="text-sm text-text-primary">
+                {{ 'dashboard.showBranding.identityEditor.logo.importedTitle' | translate }}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <span class="tag !py-1 !px-2.5 !gap-1.5">
+                  <i class="pi pi-check text-xs" aria-hidden="true"></i>
+                  {{ 'dashboard.showBranding.identityEditor.logo.useAsIs' | translate }}
+                </span>
+                <button
+                  type="button"
+                  class="outer-button button-sm !gap-2"
+                  [disabled]="regeneratingLogos() || startingJob() === 'logos'"
+                  (click)="improveLogo('imported')"
+                >
+                  <i class="pi pi-sparkles text-xs" aria-hidden="true"></i>
+                  {{ 'dashboard.showBranding.identityEditor.logo.improveImported' | translate }}
+                </button>
+              </div>
+              <p class="text-xs text-text-tertiary">
+                {{ 'dashboard.showBranding.identityEditor.logo.improveHint' | translate }}
+              </p>
+            </div>
+          }
+
+          <!-- Options de génération : les mêmes qu'à la création du projet. -->
+          <div class="space-y-2">
+            <button
+              type="button"
+              class="button-ghost button-sm !gap-1.5 !px-0"
+              [attr.aria-expanded]="optionsOpen()"
+              aria-controls="logo-options"
+              (click)="optionsOpen.set(!optionsOpen())"
+            >
+              <i class="pi text-xs" [class.pi-chevron-down]="optionsOpen()" [class.pi-chevron-right]="!optionsOpen()" aria-hidden="true"></i>
+              {{ 'dashboard.showBranding.identityEditor.logo.options' | translate }}
+            </button>
+            @if (optionsOpen()) {
+              <div id="logo-options" class="space-y-3">
+                <div class="flex flex-wrap gap-2" role="group" [attr.aria-label]="'dashboard.showBranding.identityEditor.logo.typeLabel' | translate">
+                  @for (type of logoTypes; track type) {
+                    <button
+                      type="button"
+                      class="button-sm rounded-md border border-[var(--glass-border)] px-3 py-1.5 text-sm transition-smooth"
+                      [class.text-text-primary]="logoType() === type"
+                      [class.text-text-secondary]="logoType() !== type"
+                      [style.border-color]="logoType() === type ? 'var(--color-primary-500)' : null"
+                      [attr.aria-pressed]="logoType() === type"
+                      (click)="setLogoType(type)"
+                    >
+                      {{ 'dashboard.logoPreferences.types.' + type + '.title' | translate }}
+                    </button>
+                  }
+                </div>
+                <label class="block space-y-1">
+                  <span class="text-xs text-text-secondary">
+                    {{ 'dashboard.showBranding.identityEditor.logo.briefLabel' | translate }}
+                  </span>
+                  <textarea
+                    rows="3"
+                    class="w-full"
+                    maxlength="1200"
+                    [value]="logoBrief()"
+                    [placeholder]="'dashboard.showBranding.identityEditor.logo.briefPlaceholder' | translate"
+                    (input)="onLogoBrief($event)"
+                  ></textarea>
+                </label>
+              </div>
+            }
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <p class="text-xs text-text-tertiary">
+                {{ 'dashboard.showBranding.identityEditor.logo.previous' | translate }}
+              </p>
+              <div class="flex flex-wrap items-center gap-1">
+                @if (regeneratingLogos()) {
+                  <span class="flex items-center gap-2 text-xs text-text-secondary" aria-live="polite">
+                    <idem-loader size="xs" />
+                    {{ 'dashboard.showBranding.identityEditor.logo.regenerating' | translate }}
+                  </span>
+                  <button type="button" class="button-ghost button-sm" (click)="cancelJob('logos')">
+                    {{ 'dashboard.showBranding.identityEditor.cancel' | translate }}
+                  </button>
+                } @else {
+                  @if (branding().logo.svg) {
+                    <button
+                      type="button"
+                      class="button-ghost button-sm !gap-1.5"
+                      [disabled]="startingJob() === 'logos'"
+                      (click)="improveLogo('current')"
+                    >
+                      <i class="pi pi-sparkles text-xs" aria-hidden="true"></i>
+                      {{ 'dashboard.showBranding.identityEditor.logo.improveCurrent' | translate }}
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="button-ghost button-sm !gap-1.5"
+                    [disabled]="startingJob() === 'logos'"
+                    (click)="regenerateLogos()"
+                  >
+                    @if (startingJob() === 'logos') {
+                      <idem-loader size="xs" />
+                    } @else {
+                      <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
+                    }
+                    {{ 'dashboard.showBranding.identityEditor.logo.regenerate' | translate }}
+                  </button>
+                }
+              </div>
+            </div>
+            @if (proposedLogos().length || pendingLogoSlots().length) {
+              <div class="flex flex-wrap gap-2">
+                @for (logo of proposedLogos(); track logo.id) {
+                  <button
+                    type="button"
+                    class="w-16 h-16 rounded-lg border border-[var(--glass-border)] p-1.5 flex items-center justify-center transition-smooth"
+                    [style.border-color]="isChosen(logo) ? 'var(--color-primary-500)' : null"
+                    [attr.aria-pressed]="isChosen(logo)"
+                    [attr.aria-label]="logo.name"
+                    (click)="chooseLogo(logo)"
+                  >
+                    <img [src]="logo.assetUrls?.primary || logo.svg | logoSrc" class="max-w-full max-h-full object-contain" alt="" />
+                  </button>
+                }
+                @for (slot of pendingLogoSlots(); track $index) {
+                  <div class="w-16 h-16 rounded-lg skeleton" aria-hidden="true"></div>
+                }
+              </div>
+            } @else {
+              <p class="text-xs text-text-tertiary">
+                {{ 'dashboard.showBranding.identityEditor.logo.none' | translate }}
+              </p>
+            }
+            @if (projectJobs().logos?.improvementBrief; as brief) {
+              <p class="text-xs text-text-secondary">
+                <span class="font-medium">{{ 'dashboard.showBranding.identityEditor.logo.briefUsed' | translate }}</span>
+                {{ brief }}
+              </p>
+            }
+            <ng-container *ngTemplateOutlet="jobProblemLine; context: { $implicit: 'logos' }" />
+          </div>
+
+          @if (logoChanged()) {
+            <label class="flex items-start gap-2 text-sm text-text-secondary">
+              <input type="checkbox" [checked]="colorsFromLogo()" (change)="toggleColorsFromLogo($event)" />
+              <span>{{ 'dashboard.showBranding.identityEditor.logo.colorsFromLogo' | translate }}</span>
+            </label>
+          }
+        </fieldset>
+
+        <!-- ── Couleurs ───────────────────────────────────────────── -->
+        <fieldset class="space-y-3" [disabled]="colorsFromLogo() && logoChanged()">
+          <legend class="w-full flex items-center justify-between text-sm font-semibold text-text-primary">
+            <span>{{ 'dashboard.showBranding.identityEditor.colors.title' | translate }}</span>
+            @if (harmonizing()) {
+              <idem-loader size="xs" [label]="'dashboard.showBranding.identityEditor.colors.harmonizing' | translate" />
+            } @else if (colorsChanged()) {
+              <button type="button" class="button-ghost button-sm" (click)="resetColors()">
+                {{ 'dashboard.showBranding.identityEditor.colors.reset' | translate }}
+              </button>
+            }
+          </legend>
+          <p class="text-xs text-text-tertiary">
+            @if (colorsFromLogo() && logoChanged()) {
+              {{ 'dashboard.showBranding.identityEditor.colors.fromLogoHint' | translate }}
+            } @else {
+              {{ 'dashboard.showBranding.identityEditor.colors.hint' | translate }}
+            }
+          </p>
+
+          <ul class="divide-y divide-[var(--glass-border-subtle)]">
+            @for (role of roles; track role) {
+              <li class="py-2.5 flex items-center gap-3">
+                <input
+                  type="color"
+                  class="!w-10 !h-10 shrink-0 cursor-pointer"
+                  [value]="shownPalette()[role] || '#000000'"
+                  [attr.aria-label]="'dashboard.showBranding.identityEditor.colors.roles.' + role | translate"
+                  (change)="onColorInput(role, $event)"
+                />
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm text-text-primary">
+                    {{ 'dashboard.showBranding.identityEditor.colors.roles.' + role | translate }}
+                  </p>
+                  <p class="text-xs text-text-tertiary font-mono">
+                    {{ (shownPalette()[role] || '—') | uppercase }}
+                    @if (wasAdjusted(role) && !isEdited(role)) {
+                      · {{ 'dashboard.showBranding.identityEditor.colors.adjusted' | translate }}
+                    }
+                  </p>
+                </div>
+                <label class="flex items-center gap-1.5 text-xs text-text-secondary shrink-0">
+                  <input
+                    type="checkbox"
+                    [checked]="keptRoles().has(role)"
+                    [disabled]="isEdited(role)"
+                    (change)="toggleKeep(role, $event)"
+                  />
+                  {{ 'dashboard.showBranding.identityEditor.colors.keep' | translate }}
+                </label>
+              </li>
+            }
+          </ul>
+
+          @if (harmonized(); as h) {
+            @if (h.warnings.length) {
+              <ul class="space-y-1">
+                @for (warning of h.warnings; track warning) {
+                  <li class="text-xs text-text-secondary flex gap-1.5">
+                    <i class="pi pi-info-circle text-xs mt-0.5" aria-hidden="true"></i>{{ warning }}
+                  </li>
+                }
+              </ul>
+            }
+            <p class="text-xs text-text-tertiary">
+              {{
+                'dashboard.showBranding.identityEditor.colors.contrast'
+                  | translate: { ratio: h.contrast.textOnBackground }
+              }}
+            </p>
+          }
+
+          <div class="space-y-2 pt-1">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-xs text-text-tertiary">
+                {{ 'dashboard.showBranding.identityEditor.colors.proposals' | translate }}
+              </p>
+              <ng-container *ngTemplateOutlet="regenButton; context: { $implicit: 'colors' }" />
+            </div>
+            @if (isRunning('colors')) {
+              @for (slot of [1, 2, 3]; track slot) {
+                <div class="h-8 rounded-md skeleton" aria-hidden="true"></div>
+              }
+            } @else {
+              @for (palette of proposedPalettes(); track palette.id + $index) {
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-3 p-1.5 rounded-md border border-[var(--glass-border)] hover:bg-[var(--glass-bg-light)] transition-smooth"
+                  [style.border-color]="isPaletteChosen(palette) ? 'var(--color-primary-500)' : null"
+                  [attr.aria-pressed]="isPaletteChosen(palette)"
+                  (click)="choosePalette(palette)"
+                >
+                  <span class="flex h-6 w-28 shrink-0 rounded overflow-hidden border border-[var(--glass-border-subtle)]" aria-hidden="true">
+                    @for (role of roles; track role) {
+                      <span class="flex-1" [style.background-color]="palette.colors[role]"></span>
+                    }
+                  </span>
+                  <span class="text-sm text-text-primary truncate text-left">{{ palette.name }}</span>
+                </button>
+              }
+            }
+            <ng-container *ngTemplateOutlet="jobProblemLine; context: { $implicit: 'colors' }" />
+          </div>
+        </fieldset>
+
+        <!-- ── Polices ────────────────────────────────────────────── -->
+        <fieldset class="space-y-4">
+          <legend class="text-sm font-semibold text-text-primary">
+            {{ 'dashboard.showBranding.identityEditor.fonts.title' | translate }}
+          </legend>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-xs text-text-tertiary">
+                {{ 'dashboard.showBranding.identityEditor.fonts.proposals' | translate }}
+              </p>
+              <ng-container *ngTemplateOutlet="regenButton; context: { $implicit: 'typography' }" />
+            </div>
+            @if (isRunning('typography')) {
+              @for (slot of [1, 2, 3]; track slot) {
+                <div class="h-12 rounded-md skeleton" aria-hidden="true"></div>
+              }
+            } @else {
+              @for (typography of proposedTypographies(); track typography.id + $index) {
+                <button
+                  type="button"
+                  class="w-full text-left p-2 rounded-md border border-[var(--glass-border)] hover:bg-[var(--glass-bg-light)] transition-smooth"
+                  [style.border-color]="isTypographyChosen(typography) ? 'var(--color-primary-500)' : null"
+                  [attr.aria-pressed]="isTypographyChosen(typography)"
+                  (click)="chooseTypography(typography)"
+                >
+                  <span class="block text-base text-text-primary truncate" [style.font-family]="'\'' + typography.primaryFont + '\''">
+                    {{ typography.primaryFont }}
+                  </span>
+                  <span class="block text-xs text-text-secondary truncate" [style.font-family]="'\'' + typography.secondaryFont + '\''">
+                    {{ typography.secondaryFont }}
+                  </span>
+                </button>
+              }
+            }
+            <ng-container *ngTemplateOutlet="jobProblemLine; context: { $implicit: 'typography' }" />
+          </div>
+          @for (role of fontRoles; track role) {
+            <div class="space-y-2">
+              <div class="flex items-baseline justify-between gap-3">
+                <label [for]="'font-' + role" class="text-sm text-text-secondary">
+                  {{ 'dashboard.showBranding.identityEditor.fonts.' + role | translate }}
+                </label>
+                <div class="flex items-center gap-1">
+                  @if (chosenFonts()[role]) {
+                    <button type="button" class="button-ghost button-sm" (click)="resetFont(role)">
+                      {{ 'dashboard.showBranding.identityEditor.fonts.undo' | translate }}
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="button-ghost button-sm !gap-1.5"
+                    [attr.aria-expanded]="importingFontFor() === role"
+                    (click)="toggleFontImport(role)"
+                  >
+                    <i class="pi pi-upload text-xs" aria-hidden="true"></i>
+                    {{ 'dashboard.showBranding.identityEditor.fonts.import' | translate }}
+                  </button>
+                </div>
+              </div>
+              <p class="text-xl text-text-primary truncate" [style.font-family]="'\'' + shownFonts()[role] + '\''">
+                {{ shownFonts()[role] || '—' }}
+              </p>
+              <div class="relative">
+                <input
+                  type="search"
+                  [id]="'font-' + role"
+                  class="w-full"
+                  autocomplete="off"
+                  [value]="fontQuery()[role]"
+                  [placeholder]="'dashboard.showBranding.identityEditor.fonts.search' | translate"
+                  (input)="onFontQuery(role, $event)"
+                />
+                @if (searchingFont() === role) {
+                  <idem-loader size="xs" class="absolute right-3 top-1/2 -translate-y-1/2" />
+                }
+              </div>
+              @if (importingFontFor() === role) {
+                <div class="glass-card p-3 h-[26rem] flex flex-col">
+                  <app-typography-font-import
+                    class="flex-1 min-h-0 flex flex-col"
+                    [slot]="role"
+                    [brandName]="project().name"
+                    [currentFamily]="shownFonts()[role]"
+                    (fontSelected)="chooseFont(role, $event)"
+                    (back)="toggleFontImport(role)"
+                  />
+                </div>
+              }
+              @if (fontResults()[role].length) {
+                <ul class="glass-card p-1 max-h-60 overflow-y-auto custom-scrollbar">
+                  @for (font of fontResults()[role]; track font.source + font.family) {
+                    <li>
+                      <button
+                        type="button"
+                        class="w-full text-left px-3 py-2 rounded-md hover:bg-[var(--glass-bg-light)] flex items-baseline justify-between gap-3"
+                        (click)="chooseFont(role, font)"
+                      >
+                        <span class="text-base text-text-primary truncate" [style.font-family]="'\'' + font.family + '\''">
+                          {{ font.family }}
+                        </span>
+                        <span class="text-xs text-text-tertiary shrink-0">{{ font.source }}</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </fieldset>
+
+        <!-- ── Aperçu de la propagation ───────────────────────────── -->
+        @if (preview(); as report) {
+          <section class="space-y-2" aria-live="polite">
+            <h3 class="text-sm font-semibold text-text-primary">
+              {{ 'dashboard.showBranding.identityEditor.preview.title' | translate }}
+            </h3>
+            <ng-container *ngTemplateOutlet="supportList; context: { $implicit: report }" />
+          </section>
+        }
+
+        @if (error()) {
+          <p class="text-sm text-accent" role="alert">
+            {{ error() || ('dashboard.showBranding.identityEditor.error' | translate) }}
+          </p>
+        }
+      </div>
+
+      <footer class="px-5 py-4 border-t border-[var(--glass-border)] flex flex-wrap items-center justify-end gap-2 shrink-0">
+        <button
+          type="button"
+          class="outer-button button-sm !gap-2"
+          [disabled]="!hasChanges() || busy()"
+          (click)="showPreview()"
+        >
+          @if (previewing()) {
+            <idem-loader size="xs" />
+          }
+          {{ 'dashboard.showBranding.identityEditor.actions.preview' | translate }}
+        </button>
+        <button
+          type="button"
+          class="inner-button button-sm !gap-2"
+          [disabled]="!hasChanges() || busy()"
+          [attr.aria-busy]="applying()"
+          (click)="requestApply()"
+        >
+          @if (applying()) {
+            <idem-loader size="xs" />
+          }
+          {{
+            (applying()
+              ? 'dashboard.showBranding.identityEditor.actions.applying'
+              : 'dashboard.showBranding.identityEditor.actions.apply'
+            ) | translate
+          }}
+        </button>
+      </footer>
+    }
+  </section>
+  <!-- ── Modale « Et votre logo ? », au moment d'appliquer ──────────────── -->
+  @if (confirmOpen()) {
+    <div class="fixed inset-0 z-[80] flex items-center justify-center p-4">
+      <div
+        class="identity-modal-backdrop absolute inset-0 bg-[var(--glass-bg-darker)] backdrop-blur-sm"
+        [class.is-leaving]="confirmLeaving()"
+        (click)="closeConfirm()"
+        aria-hidden="true"
+      ></div>
+      <div
+        class="identity-modal modal-panel relative w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl border border-[var(--glass-border)] p-6 sm:p-7"
+        [class.is-leaving]="confirmLeaving()"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logo-follow-title"
+        aria-describedby="logo-follow-desc"
+      >
+        <!-- Le tampon (le logo) au-dessus du canari de teinture (la nouvelle
+             identité) : seul le signe du tampon porte l'encre de la marque,
+             c'est lui qui est en question. -->
+        <svg viewBox="0 0 160 80" width="176" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="mx-auto block" style="color: var(--color-text-tertiary)">
+          <g transform="translate(30 -8) scale(0.85)" stroke-width="1.8">
+            <path d="M34 12 L26 44 M34 12 L42 44 M34 12 L20 40 M34 12 L48 40" stroke-width="1.9"/>
+            <path d="M30 10 H38" stroke-width="2.8"/>
+            <ellipse cx="34" cy="52" rx="22" ry="9" stroke-width="2.4"/>
+            <path d="M12 52 V56 C12 61 22 65 34 65 C46 65 56 61 56 56 V52" stroke-width="1.9"/>
+            <g style="color: var(--color-primary-500)">
+              <g transform="translate(34 52) scale(.9 .36)">
+                <path d="M0 -9 L9 0 L0 9 L-9 0Z M0 -4 L4 0 L0 4 L-4 0Z M-9 0 H-13 M9 0 H13 M0 -9 V-13 M0 9 V13" stroke-width="2.8"/>
+              </g>
+            </g>
+          </g>
+          <path d="M86 46 C84 60 90 74 104 74 C118 74 124 60 122 46" stroke-width="1.75"/>
+          <ellipse cx="104" cy="46" rx="18" ry="4.5" stroke-width="1.75"/>
+          <ellipse cx="104" cy="46.5" rx="12" ry="2.2" opacity=".55"/>
+          <path d="M90 60 L95 64 L100 60 L105 64 L110 60 L115 64 L119 61" stroke-width="1" opacity=".6"/>
+          <path d="M66 44 C72 36 80 34 86 36" stroke-dasharray="3 4" opacity=".55"/>
+        </svg>
+
+        <h2 id="logo-follow-title" class="mt-4 text-xl font-semibold text-text-primary text-center">
+          {{ 'dashboard.showBranding.identityEditor.follow.title' | translate }}
+        </h2>
+        <p id="logo-follow-desc" class="mt-1.5 text-sm text-text-secondary text-center">
+          {{ 'dashboard.showBranding.identityEditor.follow.subtitle.' + changeKind() | translate }}
+        </p>
+
+        <div class="mt-5 space-y-2" role="radiogroup" aria-labelledby="logo-follow-title">
+          @if (adaptScope(); as scope) {
+            <label
+              class="block p-3 rounded-xl border border-[var(--glass-border)] cursor-pointer transition-smooth"
+              [style.border-color]="logoFollow() === 'adapt' ? 'var(--color-primary-500)' : null"
+            >
+              <span class="flex items-start gap-3">
+                <input type="radio" name="logo-follow" class="mt-1" [checked]="logoFollow() === 'adapt'" (change)="setLogoFollow('adapt')" />
+                <span class="flex-1 min-w-0">
+                  <span class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-medium text-text-primary">
+                      {{ 'dashboard.showBranding.identityEditor.follow.adapt.' + scope | translate }}
+                    </span>
+                    <span class="tag !py-0.5 !px-2 text-xs">{{ 'dashboard.showBranding.identityEditor.follow.recommended' | translate }}</span>
+                  </span>
+                  <span class="block text-xs text-text-tertiary mt-0.5">
+                    {{ 'dashboard.showBranding.identityEditor.follow.adaptHint' | translate }}
+                  </span>
+                  <!-- Avant → après, calculé par le serveur sans rien écrire. -->
+                  <span class="mt-3 flex items-center gap-3">
+                    <span class="w-16 h-16 shrink-0 rounded-lg border border-[var(--glass-border)] p-1.5 flex items-center justify-center">
+                      @if (currentLogoSrc()) {
+                        <img [src]="currentLogoSrc() | logoSrc" class="max-w-full max-h-full object-contain" alt="" />
+                      }
+                    </span>
+                    <i class="pi pi-arrow-right text-xs text-text-tertiary" aria-hidden="true"></i>
+                    @if (confirmPreviewLoading()) {
+                      <span class="w-16 h-16 shrink-0 rounded-lg skeleton" aria-hidden="true"></span>
+                    } @else if (confirmPreviewSvg(); as adapted) {
+                      <span class="w-16 h-16 shrink-0 rounded-lg border border-[var(--glass-border)] p-1.5 flex items-center justify-center"
+                            style="border-color: var(--color-primary-500)">
+                        <img [src]="adapted | logoSrc" class="max-w-full max-h-full object-contain"
+                             [alt]="'dashboard.showBranding.identityEditor.follow.adaptedAlt' | translate" />
+                      </span>
+                    } @else {
+                      <span class="text-xs text-text-tertiary">
+                        {{ 'dashboard.showBranding.identityEditor.follow.nothingToAdapt' | translate }}
+                      </span>
+                    }
+                  </span>
+                </span>
+              </span>
+            </label>
+          }
+
+          <label
+            class="block p-3 rounded-xl border border-[var(--glass-border)] cursor-pointer transition-smooth"
+            [style.border-color]="logoFollow() === 'regenerate' ? 'var(--color-primary-500)' : null"
+          >
+            <span class="flex items-start gap-3">
+              <input type="radio" name="logo-follow" class="mt-1" [checked]="logoFollow() === 'regenerate'" (change)="setLogoFollow('regenerate')" />
+              <span class="flex-1 min-w-0">
+                <span class="flex items-center gap-2 text-sm font-medium text-text-primary">
+                  <i class="pi pi-sparkles text-xs" aria-hidden="true"></i>
+                  {{ 'dashboard.showBranding.identityEditor.follow.regenerate' | translate }}
+                </span>
+                <span class="block text-xs text-text-tertiary mt-0.5">
+                  {{ 'dashboard.showBranding.identityEditor.follow.regenerateHint' | translate }}
+                </span>
+              </span>
+            </span>
+          </label>
+
+          <label
+            class="block p-3 rounded-xl border border-[var(--glass-border)] cursor-pointer transition-smooth"
+            [style.border-color]="logoFollow() === 'keep' ? 'var(--color-primary-500)' : null"
+          >
+            <span class="flex items-start gap-3">
+              <input type="radio" name="logo-follow" class="mt-1" [checked]="logoFollow() === 'keep'" (change)="setLogoFollow('keep')" />
+              <span class="flex-1 min-w-0">
+                <span class="block text-sm font-medium text-text-primary">
+                  {{ 'dashboard.showBranding.identityEditor.follow.keep' | translate }}
+                </span>
+                <span class="block text-xs text-text-tertiary mt-0.5">
+                  {{ 'dashboard.showBranding.identityEditor.follow.keepHint' | translate }}
+                </span>
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div class="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <button type="button" class="outer-button button-sm" (click)="closeConfirm()">
+            {{ 'dashboard.showBranding.identityEditor.follow.back' | translate }}
+          </button>
+          <button type="button" class="inner-button button-sm" (click)="confirmApply()">
+            {{ 'dashboard.showBranding.identityEditor.actions.apply' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<ng-template #supportList let-report>
+  <ul class="divide-y divide-[var(--glass-border-subtle)]">
+    @for (support of report.supports; track support.key) {
+      @if (support.items > 0) {
+        <li class="py-2 flex items-center justify-between gap-3 text-sm">
+          <span class="text-text-primary">{{ support.label }}</span>
+          <span class="text-text-secondary">
+            {{
+              'dashboard.showBranding.identityEditor.preview.count'
+                | translate: { updated: support.updated, total: support.items }
+            }}
+          </span>
+        </li>
+      }
+    }
+    @if (report.site?.hasSite) {
+      <li class="py-2 flex items-center justify-between gap-3 text-sm">
+        <span class="text-text-primary">{{ 'dashboard.showBranding.identityEditor.preview.site' | translate }}</span>
+        <span class="text-text-secondary">
+          @if (report.site.error) {
+            {{ 'dashboard.showBranding.identityEditor.preview.siteError' | translate }}
+          } @else {
+            {{ 'dashboard.showBranding.identityEditor.preview.files' | translate: { count: report.site.filesChanged } }}
+          }
+        </span>
+      </li>
+    }
+  </ul>
+  @if (report.stats.contrastFixes > 0) {
+    <p class="text-xs text-text-tertiary mt-2">
+      {{ 'dashboard.showBranding.identityEditor.preview.contrastFixes' | translate: { count: report.stats.contrastFixes } }}
+    </p>
+  }
+</ng-template>
+
+<ng-template #regenButton let-only>
+  @if (isRunning(only)) {
+    <span class="flex items-center gap-2">
+      <span class="flex items-center gap-2 text-xs text-text-secondary" aria-live="polite">
+        <idem-loader size="xs" />
+        {{ 'dashboard.showBranding.identityEditor.regenerating' | translate }}
+      </span>
+      <button type="button" class="button-ghost button-sm" (click)="cancelJob(only)">
+        {{ 'dashboard.showBranding.identityEditor.cancel' | translate }}
+      </button>
+    </span>
+  } @else {
+    <button
+      type="button"
+      class="button-ghost button-sm !gap-2"
+      [disabled]="startingJob() === only"
+      (click)="regenerate(only)"
+    >
+      @if (startingJob() === only) {
+        <idem-loader size="xs" />
+      } @else {
+        <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
+      }
+      {{ 'dashboard.showBranding.identityEditor.regenerate' | translate }}
+    </button>
+  }
+</ng-template>
+
+<ng-template #jobProblemLine let-kind>
+  @switch (jobProblem(kind)) {
+    @case ('start') {
+      <p class="text-xs text-accent" role="alert">
+        {{ startError(kind) || ('dashboard.showBranding.identityEditor.regenError' | translate) }}
+      </p>
+    }
+    @case ('analysis') {
+      <p class="text-xs text-accent" role="alert">
+        {{ 'dashboard.showBranding.identityEditor.analysisError' | translate }}
+      </p>
+    }
+    @case ('generation') {
+      <p class="text-xs text-accent" role="alert">
+        {{ 'dashboard.showBranding.identityEditor.regenError' | translate }}
+      </p>
+    }
+  }
+</ng-template>

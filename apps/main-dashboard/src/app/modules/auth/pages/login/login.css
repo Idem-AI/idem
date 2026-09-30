@@ -1,0 +1,169 @@
+/*
+ * Écran de connexion : emblème à gauche, formulaire à droite.
+ * Les couleurs viennent des jetons du design system, les deux thèmes suivent.
+ */
+
+:host {
+  display: block;
+}
+
+.login {
+  display: grid;
+  min-height: 100dvh;
+  grid-template-columns: minmax(0, 1fr);
+  /* Blanc franc côté formulaire (sombre en thème sombre). */
+  background: var(--color-surface-1);
+}
+
+@media (min-width: 1024px) {
+  .login {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+}
+
+/* ── Emblème ─────────────────────────────────────────────────────────────── */
+
+.login__emblem {
+  /* Couleur de fond du bouclier : masque les lances qui passent derrière. */
+  --shield-surface: var(--color-surface-2);
+
+  display: none;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  padding: 5.5rem 2.5rem 3rem;
+  /* Blanc fumée : un ton sous le blanc du formulaire. */
+  background: var(--color-surface-2);
+  border-right: 1px solid var(--glass-border-subtle);
+  color: var(--color-text-primary);
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .login__emblem {
+    display: flex;
+  }
+}
+
+.login__emblem-logo {
+  position: absolute;
+  top: 1.75rem;
+  left: 2.5rem;
+}
+
+.login__shield {
+  width: min(100%, 38rem);
+  height: min(82dvh, 52rem);
+}
+
+/* ── Colonne de connexion ────────────────────────────────────────────────── */
+
+.login__side {
+  /* Bouclier réduit affiché sur téléphone au-dessus du formulaire. */
+  --shield-surface: var(--color-surface-1);
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding: 1.25rem 1.25rem 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .login__side {
+    padding: 1.75rem 2.5rem 2rem;
+  }
+}
+
+/*
+ * Le motif IDEM sur le blanc du formulaire, à l'intensité du hero de la
+ * landing : ses deux couches globales cumulées (0.3 + 0.1 en clair,
+ * 0.35 + 0.15 en sombre, × la force du motif).
+ */
+.login__side::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url('/assets/images/motif.png');
+  background-repeat: repeat;
+  background-position: top left;
+  opacity: calc(0.4 * var(--idem-motif-strength));
+}
+
+:host-context(.dark) .login__side::before {
+  filter: invert(1);
+  opacity: calc(0.5 * var(--idem-motif-strength));
+}
+
+.login__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* Sur grand écran le logo est dans la colonne de l'emblème. */
+@media (min-width: 1024px) {
+  .login__bar {
+    justify-content: flex-end;
+  }
+
+  .login__bar-logo {
+    display: none;
+  }
+}
+
+.login__logo {
+  width: 104px;
+  height: auto;
+}
+
+.login__form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem 0;
+}
+
+/* Bouclier réduit : téléphone et tablette seulement. */
+.login__shield-compact {
+  width: 7rem;
+  height: 10rem;
+  color: var(--color-text-primary);
+}
+
+@media (min-width: 1024px) {
+  .login__shield-compact {
+    display: none;
+  }
+}
+
+.login__form > app-login-card {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.login__legal {
+  max-width: 24rem;
+  margin: 0 auto;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+.login__legal a {
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.login__legal a:hover {
+  color: var(--color-text-primary);
+}

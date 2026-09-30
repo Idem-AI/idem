@@ -32,6 +32,7 @@ import { GenerationService } from '../../../../../shared/services/generation.ser
 import { SSEGenerationState } from '../../../../../shared/models/sse-step.model';
 import { Subscription } from 'rxjs';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ErrorStateComponent } from '../../../../../shared/components/error-state/error-state';
 
 /** Sujets de recherche marché (noms alignés sur le backend financeAIService). */
 const FINANCE_RESEARCH_TOPICS: { name: string; labelKey: string }[] = [
@@ -54,6 +55,7 @@ interface SectionCardVM {
   selector: 'app-finance-overview',
   standalone: true,
   imports: [
+    ErrorStateComponent,
     CommonModule,
     RouterLink,
     TranslateModule,

@@ -1540,6 +1540,70 @@
       },
       "errors": {
         "title": "Échec de la Génération"
+      },
+      "live": {
+        "eyebrow": "Votre charte prend forme",
+        "pages": "Pages",
+        "elapsed": "Écoulé",
+        "remaining": "Reste environ",
+        "minutes": "{{count}} min",
+        "stage": "L'atelier de la charte",
+        "ready": "Votre charte est prête.",
+        "redirecting": "Nous enregistrons les dernières pages, puis nous vous y emmenons.",
+        "openNow": "Voir la charte maintenant",
+        "warmingUp": "Nous préparons la première page…",
+        "page": "Page {{index}}",
+        "followLive": "Suivre en direct",
+        "live": "En direct",
+        "firstPage": "La première page apparaîtra ici dès qu'elle sera prête.",
+        "outline": "Déroulé de la charte",
+        "status": {
+          "pending": "à venir",
+          "active": "en cours",
+          "done": "prête"
+        },
+        "phases": {
+          "logo": {
+            "title": "Nous traçons votre logo",
+            "detail": "Le signe, ses déclinaisons sur fond clair, sombre et en monochrome.",
+            "chapter": "Logo"
+          },
+          "colors": {
+            "title": "Nous posons vos couleurs",
+            "detail": "La palette, les rôles de chaque couleur et leurs contrastes.",
+            "chapter": "Couleurs"
+          },
+          "type": {
+            "title": "Nous réglons votre typographie",
+            "detail": "Les polices, leur hiérarchie et leurs tailles.",
+            "chapter": "Typographie"
+          },
+          "direction": {
+            "title": "Nous composons la direction artistique",
+            "detail": "La grille, le traitement de l'image et les motifs de la marque.",
+            "chapter": "Direction artistique"
+          },
+          "mockups": {
+            "title": "Nous mettons la marque en situation",
+            "detail": "Votre logo sur des supports réels, photographiés.",
+            "chapter": "Mises en situation"
+          },
+          "social": {
+            "title": "Nous préparons vos réseaux sociaux",
+            "detail": "Bannières et publications aux formats de chaque réseau.",
+            "chapter": "Réseaux sociaux"
+          },
+          "usage": {
+            "title": "Nous fixons les règles d'usage",
+            "detail": "Ce qu'on fait et ce qu'on évite avec le logo, les couleurs et les polices.",
+            "chapter": "Règles d'usage"
+          },
+          "finalize": {
+            "title": "Nous assemblons votre charte",
+            "detail": "Les pages sont reliées et enregistrées.",
+            "chapter": "Finalisation"
+          }
+        }
       }
     },
     "showBranding": {
@@ -1740,13 +1804,113 @@
         "emptyZip": "L'archive reçue est vide."
       },
       "board": {
-        "charterReady": "Charte prête",
         "openCharter": "Ouvrir la charte",
         "downloadLogos": "Télécharger",
         "variations": "Déclinaisons du logo",
         "copyHint": "Cliquez sur une couleur pour copier sa valeur",
         "copy": "Copier",
         "copied": "Copié"
+      },
+      "identityEditor": {
+        "open": "Modifier l'identité",
+        "title": "Identité visuelle",
+        "subtitle": "Changez le logo, les couleurs ou les polices : tous vos documents, visuels et votre site suivent.",
+        "logo": {
+          "title": "Logo",
+          "import": "Importer un logo",
+          "keepCurrent": "Garder le logo actuel",
+          "previous": "Logos proposés",
+          "colorsFromLogo": "Adapter les couleurs à ce logo",
+          "regenerate": "Proposer d'autres logos",
+          "regenerating": "Création des logos… Vous pouvez fermer ce panneau.",
+          "none": "Aucun autre logo proposé pour l'instant.",
+          "importedTitle": "Logo importé. Vous pouvez l'utiliser tel quel ou partir de lui pour l'améliorer.",
+          "useAsIs": "Utilisé tel quel",
+          "improveImported": "L'améliorer avec l'IA",
+          "improveCurrent": "Améliorer le logo actuel",
+          "improveHint": "L'IA analyse le logo, relève ses faiblesses et propose des versions plus professionnelles qui lui ressemblent.",
+          "options": "Options de génération",
+          "typeLabel": "Type de logo",
+          "briefLabel": "Votre idée (facultatif)",
+          "briefPlaceholder": "Ex. : un lion stylisé, lignes épurées, esprit artisanal…",
+          "briefUsed": "Brief retenu :"
+        },
+        "colors": {
+          "title": "Couleurs",
+          "hint": "Changez une couleur : les autres s'accordent automatiquement. Cochez « Garder » pour en figer une.",
+          "fromLogoHint": "Les couleurs seront tirées du nouveau logo.",
+          "harmonizing": "Accord des couleurs…",
+          "reset": "Annuler",
+          "keep": "Garder",
+          "adjusted": "ajustée",
+          "contrast": "Lisibilité du texte : {{ratio}}:1",
+          "roles": {
+            "primary": "Principale",
+            "secondary": "Secondaire",
+            "accent": "Accent",
+            "background": "Fond",
+            "text": "Texte"
+          },
+          "proposals": "Palettes proposées"
+        },
+        "fonts": {
+          "title": "Polices",
+          "primary": "Titres",
+          "secondary": "Texte courant",
+          "search": "Chercher une police…",
+          "undo": "Annuler",
+          "proposals": "Associations proposées",
+          "import": "Importer"
+        },
+        "preview": {
+          "title": "Ce qui va changer",
+          "count": "{{updated}} sur {{total}}",
+          "site": "Site internet",
+          "files": "{{count}} fichier(s) mis à jour",
+          "siteError": "Non mis à jour, réessayez",
+          "contrastFixes": "{{count}} texte(s) rendu(s) lisible(s) sur les nouvelles couleurs."
+        },
+        "actions": {
+          "preview": "Voir ce qui change",
+          "apply": "Appliquer partout",
+          "applying": "Application…"
+        },
+        "done": {
+          "title": "Nouvelle identité appliquée",
+          "subtitle": "Tous les supports ont été mis à jour. Chaque changement reste annulable depuis l'historique.",
+          "logoAdapted": "Le logo a été adapté à la nouvelle identité. L'ancien reste disponible parmi les logos proposés.",
+          "logosRunning": "De nouveaux logos sont en cours de création avec votre nouvelle identité. Vous pouvez fermer ce panneau.",
+          "logosReady": "Vos nouveaux logos sont prêts.",
+          "seeLogos": "Voir les logos proposés"
+        },
+        "error": "La mise à jour n'a pas abouti. Réessayez.",
+        "regenerate": "Proposer d'autres",
+        "regenerating": "En cours… Vous pouvez fermer ce panneau.",
+        "regenError": "La génération n'a pas abouti. Réessayez.",
+        "cancel": "Annuler",
+        "analysisError": "L'analyse du logo n'a pas abouti. Réessayez.",
+        "follow": {
+          "title": "Et votre logo ?",
+          "adapt": {
+            "colors": "Appliquer les nouvelles couleurs au logo",
+            "fonts": "Reposer le nom du logo dans la nouvelle police",
+            "both": "Appliquer les nouvelles couleurs et la nouvelle police au logo"
+          },
+          "adaptHint": "Sans IA : le dessin du logo ne change pas, seules ses couleurs et la police du nom suivent.",
+          "regenerate": "Créer de nouveaux logos avec la nouvelle identité",
+          "regenerateHint": "Avec l'IA, après l'application. Les propositions arrivent dans ce panneau ; vous choisissez ensuite.",
+          "keep": "Garder le logo tel quel",
+          "nothingToAdapt": "Ce logo ne porte aucune couleur de la marque à remplacer : il restera tel quel.",
+          "subtitle": {
+            "colors": "Vos couleurs changent. Le logo peut les suivre, être recréé, ou rester tel quel.",
+            "fonts": "Vos polices changent. Le logo peut les suivre, être recréé, ou rester tel quel.",
+            "both": "Vos couleurs et vos polices changent. Le logo peut les suivre, être recréé, ou rester tel quel."
+          },
+          "recommended": "Recommandé",
+          "adaptedAlt": "Logo adapté à la nouvelle identité",
+          "keepHint": "Seuls vos documents, visuels et site changent de couleurs ou de polices.",
+          "back": "Revenir aux modifications"
+        }
       }
     },
     "additionalInfoForm": {
@@ -3478,7 +3642,8 @@
           "title": "La génération de cette page a échoué",
           "message": "Le contenu reçu est vide ou incomplet. Régénérez la section pour obtenir une page complète."
         },
-        "action": "Régénérer cette section"
+        "action": "Régénérer cette section",
+        "progress": "{{ready}} pages sur {{total}} sont prêtes"
       },
       "nudge": {
         "complete": "Compléter",
@@ -4764,5 +4929,67 @@
       "resume": "Reprendre mon travail",
       "seeInvoice": "Voir mes factures"
     }
+  },
+  "auth": {
+    "signInTitle": "Se connecter à IDEM",
+    "signUpTitle": "Créer un compte",
+    "forgotTitle": "Choisir un mot de passe",
+    "recoveryTitle": "Nouveau mot de passe",
+    "continueWith": "Continuer avec {{provider}}",
+    "or": "ou",
+    "name": "Nom",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "newPassword": "Nouveau mot de passe",
+    "passwordHint": "8 caractères minimum.",
+    "signIn": "Se connecter",
+    "signUp": "Créer mon compte",
+    "sendLink": "Recevoir le lien",
+    "savePassword": "Enregistrer et me connecter",
+    "forgotPassword": "Mot de passe oublié ?",
+    "noAccount": "Pas encore de compte ?",
+    "createAccount": "Créer un compte",
+    "haveAccount": "Déjà un compte ?",
+    "backToSignIn": "Retour à la connexion",
+    "signingIn": "Connexion en cours…",
+    "migrationAction": "Choisir mon mot de passe",
+    "forgotIntro": "Indiquez votre adresse : nous vous envoyons un lien pour choisir votre mot de passe.",
+    "linkSent": "Si un compte existe pour {{email}}, un lien vient de lui être envoyé. Ouvrez-le dans ce navigateur.",
+    "confirmSent": "Un lien de confirmation a été envoyé à {{email}}. Ouvrez-le dans ce navigateur pour activer votre compte.",
+    "alreadyRegistered": "Un compte existe déjà avec cette adresse. Connectez-vous, ou choisissez un nouveau mot de passe.",
+    "emailConfirmed": "Adresse confirmée. Vous pouvez vous connecter.",
+    "errors": {
+      "invalidCredentials": "Adresse ou mot de passe incorrect.",
+      "emailNotConfirmed": "Confirmez d'abord votre adresse avec le lien reçu par e-mail.",
+      "weakPassword": "Ce mot de passe est trop faible. Utilisez au moins 8 caractères.",
+      "alreadyRegistered": "Un compte existe déjà avec cette adresse.",
+      "rateLimited": "Trop de tentatives. Réessayez dans quelques minutes.",
+      "samePassword": "Choisissez un mot de passe différent de l'ancien.",
+      "signupDisabled": "Les inscriptions sont momentanément fermées.",
+      "linkExpired": "Ce lien a expiré ou a déjà servi. Demandez-en un nouveau.",
+      "accountConflict": "Cette adresse est déjà reliée à un autre compte. Contactez le support.",
+      "network": "Connexion au serveur impossible. Vérifiez votre réseau.",
+      "emailRequired": "Ce compte ne communique pas d'adresse e-mail. Ajoutez-en une chez le fournisseur, ou créez un compte avec votre e-mail.",
+      "generic": "La connexion a échoué. Réessayez."
+    },
+    "legal": {
+      "prefix": "En continuant, vous acceptez les",
+      "terms": "conditions d'utilisation",
+      "and": "et la",
+      "privacy": "politique de confidentialité"
+    }
+  },
+  "betaInvite": {
+    "title": "Rejoignez la bêta premium",
+    "lead": "Pendant la bêta, un nombre limité d'entrepreneurs utilise gratuitement les offres les plus complètes d'IDEM.",
+    "points": {
+      "offers": "Business plan niveau cabinet, identité et réseaux sociaux, application et mise en ligne",
+      "credits": "Des crédits rechargés chaque mois, jusqu'à la fin de la bêta",
+      "feedback": "En échange : vos retours sur ce qui marche et ce qui manque"
+    },
+    "join": "Demander mon accès",
+    "later": "Plus tard",
+    "close": "Fermer",
+    "note": "Le formulaire s'ouvre dans un nouvel onglet."
   }
 }

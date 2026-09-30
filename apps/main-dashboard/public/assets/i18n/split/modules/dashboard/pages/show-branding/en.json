@@ -198,13 +198,113 @@
         "emptyZip": "The archive received is empty."
       },
       "board": {
-        "charterReady": "Guidelines ready",
         "openCharter": "Open guidelines",
         "downloadLogos": "Download",
         "variations": "Logo variations",
         "copyHint": "Click a colour to copy its value",
         "copy": "Copy",
         "copied": "Copied"
+      },
+      "identityEditor": {
+        "open": "Edit identity",
+        "title": "Visual identity",
+        "subtitle": "Change the logo, colors or fonts: all your documents, visuals and website follow.",
+        "logo": {
+          "title": "Logo",
+          "import": "Import a logo",
+          "keepCurrent": "Keep current logo",
+          "previous": "Proposed logos",
+          "colorsFromLogo": "Match colors to this logo",
+          "regenerate": "Suggest other logos",
+          "regenerating": "Creating logos… You can close this panel.",
+          "none": "No other logo proposed yet.",
+          "importedTitle": "Logo imported. Use it as is, or start from it to improve it.",
+          "useAsIs": "Used as is",
+          "improveImported": "Improve it with AI",
+          "improveCurrent": "Improve current logo",
+          "improveHint": "The AI analyses the logo, spots its weaknesses and suggests more professional versions that stay close to it.",
+          "options": "Generation options",
+          "typeLabel": "Logo type",
+          "briefLabel": "Your idea (optional)",
+          "briefPlaceholder": "E.g. a stylised lion, clean lines, craft feel…",
+          "briefUsed": "Brief used:"
+        },
+        "colors": {
+          "title": "Colors",
+          "hint": "Change one color and the others adjust automatically. Tick “Keep” to lock one.",
+          "fromLogoHint": "Colors will be taken from the new logo.",
+          "harmonizing": "Matching colors…",
+          "reset": "Undo",
+          "keep": "Keep",
+          "adjusted": "adjusted",
+          "contrast": "Text legibility: {{ratio}}:1",
+          "roles": {
+            "primary": "Primary",
+            "secondary": "Secondary",
+            "accent": "Accent",
+            "background": "Background",
+            "text": "Text"
+          },
+          "proposals": "Proposed palettes"
+        },
+        "fonts": {
+          "title": "Fonts",
+          "primary": "Headings",
+          "secondary": "Body text",
+          "search": "Search a font…",
+          "undo": "Undo",
+          "proposals": "Proposed pairings",
+          "import": "Import"
+        },
+        "preview": {
+          "title": "What will change",
+          "count": "{{updated}} of {{total}}",
+          "site": "Website",
+          "files": "{{count}} file(s) updated",
+          "siteError": "Not updated, try again",
+          "contrastFixes": "{{count}} text(s) kept legible on the new colors."
+        },
+        "actions": {
+          "preview": "See what changes",
+          "apply": "Apply everywhere",
+          "applying": "Applying…"
+        },
+        "done": {
+          "title": "New identity applied",
+          "subtitle": "Every deliverable has been updated. Each change can be undone from the history.",
+          "logoAdapted": "The logo was adapted to the new identity. The previous one stays available among proposed logos.",
+          "logosRunning": "New logos are being created with your new identity. You can close this panel.",
+          "logosReady": "Your new logos are ready.",
+          "seeLogos": "See proposed logos"
+        },
+        "error": "The update did not go through. Please try again.",
+        "regenerate": "Suggest others",
+        "regenerating": "In progress… You can close this panel.",
+        "regenError": "Generation did not go through. Please try again.",
+        "cancel": "Cancel",
+        "analysisError": "The logo analysis did not go through. Please try again.",
+        "follow": {
+          "title": "What about your logo?",
+          "adapt": {
+            "colors": "Apply the new colors to the logo",
+            "fonts": "Reset the logo name in the new font",
+            "both": "Apply the new colors and font to the logo"
+          },
+          "adaptHint": "No AI: the logo design stays the same, only its colors and the name's font follow.",
+          "regenerate": "Create new logos with the new identity",
+          "regenerateHint": "With AI, after applying. Proposals arrive in this panel; you choose afterwards.",
+          "keep": "Keep the logo as is",
+          "nothingToAdapt": "This logo has no brand color to replace: it will stay as is.",
+          "subtitle": {
+            "colors": "Your colors are changing. The logo can follow them, be recreated, or stay as is.",
+            "fonts": "Your fonts are changing. The logo can follow them, be recreated, or stay as is.",
+            "both": "Your colors and fonts are changing. The logo can follow them, be recreated, or stay as is."
+          },
+          "recommended": "Recommended",
+          "adaptedAlt": "Logo adapted to the new identity",
+          "keepHint": "Only your documents, visuals and website change colors or fonts.",
+          "back": "Back to editing"
+        }
       }
     }
   }

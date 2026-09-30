@@ -1,7 +1,11 @@
 # Dockerfile.appgen-client
 # Build AppGen Client (Vite + React + Tailwind v4)
+#
+# Deux étapes : le `.env` racine (qui contient les secrets de TOUTES les
+# applications) n'existe que dans l'étape de build. L'image finale, poussée sur
+# le registre, ne contient que le résultat du build — plus aucun secret.
 
-FROM node:20.18-alpine
+FROM node:20.18-alpine AS builder
 
 WORKDIR /app
 
@@ -23,14 +27,30 @@ RUN pnpm add -D autoprefixer
 
 # Copy all application files
 COPY ./apps/appgen/apps/we-dev-client/ ./
+
+# Seules les variables REACT_APP_* sont injectées dans le bundle (vite.config.ts).
+# Le .env ne vit que dans l'étape `builder`, qui n'est jamais poussée : l'étape
+# `production` ci-dessous n'en recopie rien.
 COPY .env .env
-# Build the application
 RUN pnpm build
+
+FROM node:20.18-alpine AS production
+
+WORKDIR /app
+RUN npm install -g pnpm@8.15.4
+
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/vite.config.ts ./
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /packages/shared-styles /packages/shared-styles
 
 # Environment variables
 ENV NODE_ENV=production
 ENV PORT=4173
 ENV HOST=0.0.0.0
+
+USER node
 
 # Expose port
 EXPOSE 4173

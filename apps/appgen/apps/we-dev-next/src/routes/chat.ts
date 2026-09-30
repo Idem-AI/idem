@@ -4,6 +4,7 @@ import { handleBuilderMode } from '../handlers/builderHandler.js';
 import { handleChatMode } from '../handlers/chatHandler.js';
 import { ChatLogger } from '../utils/logger.js';
 import { consumeGeneration, resolveBillableAction } from '../services/billingService.js';
+import { forwardedCredentials } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -50,7 +51,8 @@ router.post('/', async (req: Request, res: Response) => {
     const resolvedLanguage =
       language === 'fr' || language === 'en' ? language : acceptFr ? 'fr' : 'en';
 
-    const userId = req.headers['userid'] as string | null;
+    // Identité vérifiée par `requireIdemUser`, jamais un en-tête libre.
+    const userId = req.idemUser?.uid ?? null;
 
     console.log('\n REQUEST DATA:');
     console.log('  - Message count:', messages?.length || 0);
@@ -127,7 +129,7 @@ router.post('/', async (req: Request, res: Response) => {
      */
     const billable = resolveBillableAction(messages?.length ?? 0, mode as 'chat' | 'builder');
     const billing = await consumeGeneration({
-      authorization: req.headers.authorization,
+      credentials: forwardedCredentials(req),
       action: billable,
       projectId,
     });
@@ -135,7 +137,10 @@ router.post('/', async (req: Request, res: Response) => {
     if (!billing.allowed) {
       console.log(' PAIEMENT REQUIS — génération refusée:', billable);
       ChatLogger.info('BILLING_REFUSED', 'Generation refused for billing reasons', billing.refusal);
-      return res.status(402).json(billing.refusal);
+      const reason = (billing.refusal as { error?: string } | undefined)?.error;
+      const status =
+        reason === 'authentication_required' ? 401 : reason === 'billing_unavailable' ? 503 : 402;
+      return res.status(status).json(billing.refusal);
     }
 
     console.log('\n MODE SELECTION:', mode);

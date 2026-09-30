@@ -11,52 +11,25 @@
       </div>
     </div>
   } @else if (!projectIdFromCookie()) {
-    <!-- Empty State - No project ID -->
-    <div class="text-center py-20">
-      <h3 class="text-lg font-medium text-text-primary mb-2">
-        {{ 'dashboard.showBusinessPlan.empty.noProject.title' | translate }}
-      </h3>
-      <p class="text-text-tertiary mb-4">
-        {{ 'dashboard.showBusinessPlan.empty.noProject.subtitle' | translate }}
-      </p>
+    <app-error-state
+      scene="project"
+      [title]="'dashboard.showBusinessPlan.empty.noProject.title' | translate"
+      [message]="'dashboard.showBusinessPlan.empty.noProject.subtitle' | translate"
+    >
       <button type="button" class="inner-button" (click)="goToProjects()">
         {{ 'dashboard.showBusinessPlan.buttons.selectProject' | translate }}
       </button>
-    </div>
+    </app-error-state>
   } @else if (hasError()) {
-    <!-- Error state with retry button -->
-    <div class="max-w-6xl mx-auto text-center py-10">
-      <div class="mb-6">
-        <svg
-          class="mx-auto h-16 w-16 text-red-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          ></path>
-        </svg>
-      </div>
-      <h3 class="text-2xl font-bold text-text-primary mb-4">{{ 'common.error' | translate }}</h3>
-      <p class="text-text-tertiary mb-8" role="alert">{{ errorMessage() }}</p>
-      <div class="flex gap-4 justify-center">
-        <button type="button" class="inner-button" (click)="retryLoadBusinessPlan()">
-          {{ 'common.retry' | translate }}
-        </button>
-        <button
-          type="button"
-          class="bg-[var(--color-surface-3)] hover:bg-[var(--glass-bg-light)] text-text-primary px-6 py-2 rounded-lg font-medium transition-colors"
-          (click)="goToList()"
-        >
-          {{ 'dashboard.showBusinessPlan.buttons.backToList' | translate }}
-        </button>
-      </div>
-    </div>
+    <app-error-state scene="document" [title]="'common.error' | translate" [message]="errorMessage()">
+      <button type="button" class="inner-button !gap-2" (click)="retryLoadBusinessPlan()">
+        <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
+        {{ 'common.retry' | translate }}
+      </button>
+      <button type="button" class="outer-button" (click)="goToList()">
+        {{ 'dashboard.showBusinessPlan.buttons.backToList' | translate }}
+      </button>
+    </app-error-state>
   } @else if (!isBrandingComplete() && project()) {
     <!-- Incomplete Project Banner -->
     <app-incomplete-project-banner [project]="project()!" />

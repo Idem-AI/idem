@@ -31,6 +31,7 @@ import {
   weekOfPeriod,
 } from './communication.migration';
 import { signedVisualImageUrl } from './visualUrl';
+import { flyerImageCacheKey, invalidateVisualImage } from './visualImageCache';
 import { toContentChannel, toContentChannels } from './channels';
 import { getSocialConnector } from '../Connectors/social-providers.config';
 import { AssistedShare } from '../Connectors/social-connector.interface';
@@ -2486,17 +2487,11 @@ export class CommunicationService extends GenericService {
    * resteraient servis avec l'ancien logo illisible.
    */
   private flyerImageCacheKey(projectId: string, flyerId: string): string {
-    return cacheService.generateAIKey('flyer-img', 'public', projectId, `${flyerId}:v2`);
+    return flyerImageCacheKey(projectId, flyerId);
   }
 
-  /**
-   * Oublie le PNG rendu d'un visuel. À appeler après TOUTE modification de son
-   * HTML : `imageUrl` ne change jamais (c'est l'URL de l'endpoint de rendu), donc
-   * sans cette invalidation l'utilisateur continuerait de voir l'ancienne image
-   * pendant 24 h, ses retouches apparemment perdues.
-   */
   private async invalidateFlyerImage(projectId: string, flyerId: string): Promise<void> {
-    await cacheService.delete(this.flyerImageCacheKey(projectId, flyerId), { prefix: 'flyer' });
+    await invalidateVisualImage(projectId, flyerId);
   }
 
   async getFlyerImage(projectId: string, flyerId: string): Promise<Buffer> {

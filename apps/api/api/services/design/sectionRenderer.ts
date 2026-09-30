@@ -996,6 +996,11 @@ function renderAssumption(block: Extract<Block, { kind: 'assumption' }>, ctx: Ct
  * Aucune n'est un ornement : chacune dit la même chose dans une syntaxe
  * différente, et les trois portent les mêmes contrastes calculés.
  */
+/**
+ * `data-contrast-of` porte la teinte dont la mention « contraste N:1 » est
+ * calculée : quand l'identité change, la propagation (`brandRewrite.ts`)
+ * recalcule le ratio au lieu de laisser celui de l'ancienne palette.
+ */
 function renderSwatches(block: Extract<Block, { kind: 'swatches' }>, ctx: Ctx): string {
   const { ds } = ctx;
   const gap = snap(ds.spacing);
@@ -1046,7 +1051,7 @@ function renderSwatches(block: Extract<Block, { kind: 'swatches' }>, ctx: Ctx): 
         return `<div${style(legend.cell)}>
   <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'font-weight': 600, color: ds.colors.ink })}>${esc(item.name)}</div>
   <div${style({ 'font-size': `${ds.typeScale.xs}px`, 'line-height': 1.35, color: ds.colors.inkMuted })}>${item.role ? esc(item.role) : ''}</div>
-  <div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>contraste ${ratio}:1</div>
+  <div data-contrast-of="${esc(item.hex)}"${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>contraste ${ratio}:1</div>
 </div>`;
       })
       .join('');
@@ -1088,7 +1093,7 @@ function renderSwatches(block: Extract<Block, { kind: 'swatches' }>, ctx: Ctx): 
   </div>
   <div${style({ 'text-align': 'right', 'white-space': 'nowrap' })}>
     <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'font-weight': 700, color: ds.colors.ink })}>${esc(item.hex.toUpperCase())}</div>
-    <div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>contraste ${ratio}:1</div>
+    <div data-contrast-of="${esc(item.hex)}"${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>contraste ${ratio}:1</div>
   </div>
 </div>`;
       })
@@ -1122,7 +1127,7 @@ function renderSwatches(block: Extract<Block, { kind: 'swatches' }>, ctx: Ctx): 
       })}>${esc(item.hex.toUpperCase())}</div>
   <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'font-weight': 600, color: ds.colors.ink })}>${esc(item.name)}</div>
   <div${style({ 'font-size': `${ds.typeScale.xs}px`, 'line-height': 1.35, color: ds.colors.inkMuted })}>${item.role ? esc(item.role) : ''}</div>
-  <div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>contraste ${ratio}:1</div>
+  <div data-contrast-of="${esc(item.hex)}"${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>contraste ${ratio}:1</div>
 </div>`;
     })
     .join('');

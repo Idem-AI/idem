@@ -17,7 +17,7 @@ import { cacheService } from '../cache.service';
 
 import { PITCH_DECK_SHARED_RULES } from './prompts/_shared.prompt';
 import { composeSlideBrief } from './prompts/slide-briefs.prompt';
-import { composeSlideHtmlPrompt, coverKindNote } from './prompts/slide-fallback.prompt';
+import { composeSlideHtmlPrompt } from './prompts/slide-fallback.prompt';
 import { SLIDE_COVER_PROMPT } from './prompts/slide-cover.prompt';
 import { SLIDE_PROBLEM_PROMPT } from './prompts/slide-problem.prompt';
 import { SLIDE_SOLUTION_PROMPT } from './prompts/slide-solution.prompt';
@@ -30,7 +30,23 @@ import { SLIDE_TEAM_PROMPT } from './prompts/slide-team.prompt';
 import { SLIDE_FINANCIALS_PROMPT } from './prompts/slide-financials.prompt';
 import { SLIDE_ASK_PROMPT } from './prompts/slide-ask.prompt';
 import { imageSourcingService } from '../Communication/imageSourcing.service';
-import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
+import {
+  buildLogoBlock,
+  collectLogoUrls,
+  resolveLogoDeclensions,
+} from '../../utils/brand-context.util';
+import { composeCover, coverDateLabel, coverVariant } from '../design/coverComposer';
+import { CoverBriefService } from '../design/coverBrief.service';
+import type { PitchDeckAudience } from './deck-types';
+
+/** Mention de destinataire sur la couverture du deck. */
+const DECK_AUDIENCE_LABEL: Record<PitchDeckAudience, string> = {
+  investor: 'Présentation investisseurs',
+  bank: 'Présentation bancaire',
+  customer: 'Présentation commerciale',
+  partner: 'Présentation partenaires',
+  jury: 'Présentation au jury',
+};
 import { buildArtDirectionBlock } from '../../utils/art-direction.util';
 import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../design/antiSlop.prompt';
 import {
@@ -439,23 +455,38 @@ export class PitchDeckService extends GenericService {
       };
     };
 
-    /** Slide en génération LIBRE : la couverture, où la composition EST le livrable. */
-    const freeformSlide = (stepName: string): IPromptStep => {
+    /**
+     * La couverture, dessinée par le code : le modèle n'en écrit que les mots,
+     * une fois par projet, partagés avec la charte et le business plan.
+     * Composée en HTML par l'étage de raisonnement, elle coûtait 22 000 tokens
+     * de budget et la plus longue attente du deck.
+     */
+    const coverDeclensions = resolveLogoDeclensions(project.analysisResultModel?.branding?.logo);
+    const coverSlide = (stepName: string): IPromptStep => {
       slideIndex += 1;
       return {
         stepName,
-        promptConstant: [
-          htmlPromptFor(stepName),
-          coverKindNote(deckType.audience),
-          `<composition_for_this_slide>\n${describeSectionSeed(seedFor(stepName))}\n</composition_for_this_slide>`,
-        ]
-          .filter(Boolean)
-          .join('\n\n'),
+        promptConstant: '',
+        execute: async () =>
+          composeCover({
+            brief: await new CoverBriefService(this.promptService).resolve(userId, projectId, project),
+            brandName: project.name,
+            ds: designSystem,
+            page: LANDSCAPE_SLIDE,
+            logos: {
+              lightGround: coverDeclensions?.withTextLight,
+              darkGround: coverDeclensions?.withTextDark,
+            },
+            documentLabel: 'Pitch deck',
+            detail: DECK_AUDIENCE_LABEL[deckType.audience],
+            dateLabel: coverDateLabel(),
+            variant: coverVariant(projectId),
+          }),
       };
     };
 
     const steps: IPromptStep[] = deckSlides.map((definition) =>
-      definition.freeform ? freeformSlide(definition.name) : slide(definition.name)
+      definition.freeform ? coverSlide(definition.name) : slide(definition.name)
     );
 
     // Chaque slide reçoit son propre budget de tokens et sa température

@@ -6,7 +6,7 @@ import { cacheService } from './cache.service';
  * Catalogue Google Fonts servi au front.
  *
  * Le front ne parle jamais directement à Google : la clé API vit uniquement
- * ici (Secret Manager), et le catalogue complet (~1900 familles, ~1,5 Mo brut)
+ * ici (Infisical), et le catalogue complet (~1900 familles, ~1,5 Mo brut)
  * est récupéré une fois puis mis en cache. Les fichiers de police, eux, restent
  * chargés depuis fonts.googleapis.com par le navigateur.
  */

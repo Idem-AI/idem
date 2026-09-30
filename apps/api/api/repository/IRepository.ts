@@ -3,7 +3,7 @@ export interface IRepository<T extends { id?: string; createdAt?: Date; updatedA
     item: Omit<T, 'id' | 'createdAt' | 'updatedAt'>,
     collectionPath: string,
     id?: string
-  ): Promise<T>; // collectionPath is the full Firestore path, id for custom document ID
+  ): Promise<T>; // collectionPath is the full collection path, id for custom document ID
   findById(id: string, collectionPath: string, options?: { bypassCache?: boolean }): Promise<T | null>;
   findAll(collectionPath: string): Promise<T[]>;
   update(

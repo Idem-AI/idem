@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="28 4 74 82" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Open source et souveraineté — votre code, vos données : la porte du
+       grenier et la serrure de bois dont vous avez la clé. La clé porte la
+       couleur. -->
+  <rect x="34" y="10" width="44" height="70" rx="2" stroke-width="2"/>
+  <path d="M40 16 H72 V74 H40Z" opacity=".55"/>
+  <path d="M44 22 L50 28 L44 34 M68 22 L62 28 L68 34 M44 60 L50 66 L44 72 M68 60 L62 66 L68 72" stroke-width="1.2" opacity=".7"/>
+  <path d="M56 18 V36 M56 58 V74" stroke-width="1" opacity=".5"/>
+  <rect x="74" y="30" width="12" height="30" rx="2" stroke-width="2"/>
+  <path d="M78 34 h4 M78 56 h4" stroke-width="1" opacity=".6"/>
+  <g style="color: var(--color-primary-500)">
+    <path d="M60 45 H96" stroke-width="3"/>
+    <path d="M96 41 V49" stroke-width="2"/>
+    <path d="M66 42 L69 45 L66 48 L63 45Z" stroke-width="1.4"/>
+  </g>
+</svg>

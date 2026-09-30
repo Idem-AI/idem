@@ -79,6 +79,10 @@ export interface PlaceholderCopy {
   title: string;
   message: string;
   action: string;
+  /** « 18 pages sur 20 sont prêtes » : ce qui est déjà là. */
+  progress?: string;
+  /** Part des pages prêtes, 0–1, pour la jauge. */
+  ratio?: number;
 }
 
 function escapeHtml(value: string): string {
@@ -89,25 +93,42 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** Pages empilées, la dernière en pointillés : la page attendue n'existe pas encore. */
+/*
+ * Illustrations au trait (AGENTS.md § 4), un objet de la culture africaine
+ * chacune : `currentColor` pour le trait, la primaire (`.idem-ph-accent`)
+ * pour le seul détail qui compte. Aucun aplat.
+ */
+
+/** Calebasse vide, son ouverture en pointillés : la page attendue n'existe pas encore. */
 const MISSING_ART = `
-<svg class="idem-ph-art" viewBox="0 0 120 96" aria-hidden="true">
-  <rect x="26" y="10" width="54" height="72" rx="6" fill="#e2e8f0"/>
-  <rect x="40" y="16" width="54" height="72" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 4"/>
-  <circle cx="67" cy="52" r="14" fill="#1447e6" fill-opacity=".1"/>
-  <path d="M67 45v14M60 52h14" stroke="#1447e6" stroke-width="2.6" stroke-linecap="round"/>
-  <path d="M104 14l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#1447e6" fill-opacity=".55"/>
-  <circle cx="16" cy="30" r="2.5" fill="#94a3b8"/>
+<svg class="idem-ph-art" viewBox="0 0 120 96" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <g transform="translate(0 4)">
+    <path d="M26 36 C26 60 41 76 60 76 C79 76 94 60 94 36" stroke-width="2"/>
+    <ellipse cx="60" cy="36" rx="34" ry="8" stroke-width="2"/>
+    <path d="M29.5 50 Q60 60 90.5 50 M33 58 Q60 68 87 58"/>
+    <path d="M29 50 L36.9 59.3 L37.9 52.4 L44.6 61.4 L46.7 54.1 L52.3 62.6 L55.6 54.9 L60 63 L64.4 54.9 L67.7 62.6 L73.3 54.1 L75.4 61.4 L82.1 52.4 L83.1 59.3 L91 50"/>
+    <path d="M48 70.7h0.01 M60 72h0.01 M72 70.7h0.01" stroke-width="3"/>
+    <g class="idem-ph-accent">
+      <ellipse cx="60" cy="36" rx="28" ry="5" stroke-dasharray="3 4"/>
+    </g>
+  </g>
 </svg>`;
 
-/** Page aux lignes à peine esquissées, pastille d'alerte : le contenu reçu est inutilisable. */
+/** Calebasse fêlée : le contenu reçu est inutilisable. */
 const ERROR_ART = `
-<svg class="idem-ph-art" viewBox="0 0 120 96" aria-hidden="true">
-  <rect x="30" y="10" width="56" height="74" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
-  <path d="M41 27h34M41 37h26M41 47h30M41 57h16" stroke="#e2e8f0" stroke-width="4" stroke-linecap="round"/>
-  <circle cx="84" cy="66" r="16" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
-  <path d="M84 58v9" stroke="#b45309" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="84" cy="73" r="1.9" fill="#b45309"/>
+<svg class="idem-ph-art" viewBox="0 0 120 96" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <g transform="translate(0 4)">
+    <path d="M26 36 C26 60 41 76 60 76 C79 76 94 60 94 36" stroke-width="2"/>
+    <ellipse cx="60" cy="36" rx="34" ry="8" stroke-width="2"/>
+    <path d="M29.5 50 Q60 60 90.5 50 M33 58 Q60 68 87 58"/>
+    <path d="M29 50 L36.9 59.3 L37.9 52.4 L44.6 61.4 L46.7 54.1 L52.3 62.6 L55.6 54.9 L60 63 L64.4 54.9 L67.7 62.6 L73.3 54.1 L75.4 61.4 L82.1 52.4 L83.1 59.3 L91 50"/>
+    <path d="M48 70.7h0.01 M60 72h0.01 M72 70.7h0.01" stroke-width="3"/>
+    <ellipse cx="60" cy="36" rx="30" ry="5.5" opacity=".5"/>
+    <g class="idem-ph-accent" stroke-width="2">
+      <path d="M68 28.5 L64 38 L70 46 L63 56 L67 64 L64 75"/>
+      <path d="M70 46 L76 49"/>
+    </g>
+  </g>
 </svg>`;
 
 const REFRESH_ICON = `
@@ -125,11 +146,16 @@ export function buildPlaceholderHtml(
   sectionName: string,
   copy: PlaceholderCopy,
 ): string {
+  const ratio = Math.max(0, Math.min(1, copy.ratio ?? 0));
+  const progress = copy.progress
+    ? `<p class="idem-ph-progress"><span class="idem-ph-bar"><span style="width:${Math.round(ratio * 100)}%"></span></span><span>${escapeHtml(copy.progress)}</span></p>`
+    : '';
   return `<div class="idem-ph idem-ph-${kind}">
   ${kind === 'error' ? ERROR_ART : MISSING_ART}
   <p class="idem-ph-section">${escapeHtml(copy.section)}</p>
   <h2 class="idem-ph-title">${escapeHtml(copy.title)}</h2>
   <p class="idem-ph-text">${escapeHtml(copy.message)}</p>
+  ${progress}
   <button type="button" class="idem-ph-btn" data-idem-action="regenerate" data-idem-name="${escapeHtml(sectionName)}">
     ${REFRESH_ICON}<span>${escapeHtml(copy.action)}</span>
   </button>

@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Généré par packages/shared-seo (npm run seo:sync), ne pas éditer à la main. -->
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- English Sitemap -->
-  <sitemap>
-    <loc>https://idem.africa/sitemap-en.xml</loc>
-    <lastmod>2026-04-09</lastmod>
-  </sitemap>
-  
-  <!-- French Sitemap -->
   <sitemap>
     <loc>https://idem.africa/sitemap-fr.xml</loc>
-    <lastmod>2026-04-09</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://idem.africa/sitemap-en.xml</loc>
   </sitemap>
 </sitemapindex>

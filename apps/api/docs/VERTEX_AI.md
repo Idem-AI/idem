@@ -1,103 +1,106 @@
-# Vertex AI
+# Vertex AI (Gemini backend)
 
-L'API utilise **Vertex AI** par défaut, pour que la consommation Gemini soit facturée sur le compte Google Cloud du projet plutôt que sur une clé Google AI Studio.
+GLM is the default text provider (see [AI routing](AI_ROUTING.md)). When a Gemini model is used — fallback chains, image generation, research — the API calls it through **Vertex AI** by default, so the usage is billed on the project's Google Cloud account rather than on a Google AI Studio key.
 
-Les modèles ne changent pas. `ai.config.ts` reste la seule source de vérité pour le choix des modèles, les budgets de tokens et les chaînes de repli : seul le backend qui sert ces modèles change.
+Models do not change. `ai.config.ts` remains the single source of truth for model choice, token budgets and fallback chains: only the backend serving those models changes.
 
-## Mise en service
+## Setup
 
-### 1. Côté Google Cloud
+### 1. Google Cloud
 
-Vertex réutilise le **compte de service Firebase déjà en place**. Un projet Firebase est un projet Google Cloud : c'est la même identité, le même projet, la même facture. Rien à créer — il manque seulement le droit d'appeler Vertex.
+Vertex calls are signed by a dedicated Google Cloud service account, the one in `GCP_SA_CLIENT_EMAIL`.
 
 ```bash
-gcloud services enable aiplatform.googleapis.com --project=<PROJET>
+gcloud services enable aiplatform.googleapis.com --project=<PROJECT>
 
-# Le compte de service Firebase, celui de FIREBASE_CLIENT_EMAIL
-gcloud projects add-iam-policy-binding <PROJET> \
-  --member="serviceAccount:<FIREBASE_CLIENT_EMAIL>" \
+gcloud iam service-accounts create idem-vertex --project=<PROJECT>
+gcloud projects add-iam-policy-binding <PROJECT> \
+  --member="serviceAccount:idem-vertex@<PROJECT>.iam.gserviceaccount.com" \
   --role="roles/aiplatform.user"
+gcloud iam service-accounts keys create /tmp/idem-vertex.json \
+  --iam-account=idem-vertex@<PROJECT>.iam.gserviceaccount.com
+# client_email → GCP_SA_CLIENT_EMAIL, private_key → GCP_SA_PRIVATE_KEY, then delete the file.
 ```
 
-`roles/aiplatform.user` suffit pour `generateContent`, le streaming, la génération d'images et le cache de contexte. Ne pas donner `roles/owner`.
+`roles/aiplatform.user` is enough for `generateContent`, streaming, image generation and context caching. Do not grant `roles/owner`.
 
-### 2. Variables d'environnement
+### 2. Environment variables
 
-**Aucune variable à ajouter.** Vertex lit celles de Firebase, déjà requises :
-
-| Variable | Rôle |
+| Variable | Role |
 |---|---|
-| `FIREBASE_PROJECT_ID` | Projet Google Cloud, donc celui qui porte la facturation Vertex |
-| `FIREBASE_CLIENT_EMAIL` | Compte de service qui signe les appels |
-| `FIREBASE_PRIVATE_KEY` | Sa clé privée, `\n` échappés acceptés |
+| `GCP_PROJECT_ID` | Google Cloud project, hence the one billed for Vertex |
+| `GCP_SA_CLIENT_EMAIL` | Service account that signs the calls |
+| `GCP_SA_PRIVATE_KEY` | Its private key; escaped `\n` accepted |
 
-Deux variables facultatives, propres à Vertex :
+In production the two secrets come from Infisical (`GCP_SA_*`, project `api`), see [Configuration](../../../docs/CONFIGURATION.md).
 
-| Variable | Rôle |
+Two optional, Vertex-specific variables:
+
+| Variable | Role |
 |---|---|
-| `GEMINI_BACKEND` | `vertex` (défaut) ou `ai-studio` pour un retour arrière |
-| `GOOGLE_CLOUD_LOCATION` | Région Vertex. Défaut `global` |
+| `GEMINI_BACKEND` | `vertex` (default) or `ai-studio` to roll back |
+| `GOOGLE_CLOUD_LOCATION` | Vertex region. Default `global` |
 
-`GEMINI_API_KEY` devient inutile en mode Vertex. Elle n'est lue que si `GEMINI_BACKEND=ai-studio`.
+`GEMINI_API_KEY` is not needed in Vertex mode. It is only read when `GEMINI_BACKEND=ai-studio`.
 
-### 3. Authentification
+### 3. Authentication
 
-Le compte de service Firebase signe les appels Vertex — pas de second compte, pas de second secret à faire tourner. Il n'y a volontairement **aucun repli** vers un autre jeu de variables ni vers les Application Default Credentials : une identité unique et explicite vaut mieux qu'une résolution en cascade dont on ne sait plus, en incident, laquelle a servi.
+The `GCP_SA_*` service account signs Vertex calls. There is deliberately **no fallback** to another set of variables or to Application Default Credentials: a single explicit identity beats a cascading resolution where, during an incident, nobody knows which one was used.
 
-Si les trois variables Firebase ne sont pas complètes, la construction du client échoue avec un message qui les nomme.
+If the three variables are incomplete, building the client fails with a message naming them.
 
-Au démarrage, l'API journalise le backend résolu :
+At start-up, the API logs the resolved backend:
 
 ```
-Gemini backend: Vertex AI (projet=idem-prod, région=global,
-                auth=compte de service Firebase (firebase-adminsdk-x1y2@idem-prod.iam.gserviceaccount.com),
-                sans cache de contexte)
+Gemini backend: Vertex AI (project=idem-prod, region=global,
+                auth=compte de service (idem-vertex@idem-prod.iam.gserviceaccount.com),
+                no context cache)
 ```
 
-Si la configuration est incomplète, la ligne part en `console.error` dès le boot au lieu d'échouer au milieu d'une génération.
+If the configuration is incomplete, the line goes to `console.error` at boot instead of failing in the middle of a generation.
 
-## Le choix de la région
+## Choosing the region
 
-Le défaut est **`global`** : la requête part vers la région disponible la plus proche, ce qui donne la meilleure résilience et la meilleure couverture de modèles.
+The default is **`global`**: the request goes to the closest available region, which gives the best resilience and model coverage.
 
-Contrepartie assumée : l'endpoint global **ne sert pas le cache de contexte**. L'équipe de recherche (`services/research/research-team.service.ts`) s'en servait pour partager un préfixe entre ses appels ; elle repart désormais en inline, donc le préfixe est refacturé à chaque appel en input tokens.
+Accepted trade-off: the global endpoint **does not serve context caching**. The research team (`services/research/research-team.service.ts`) used it to share a prefix between its calls; it now sends that prefix inline, so it is billed again as input tokens on each call.
 
-Ce n'est pas subi : `contextCache` est déclaré `false` dans le registre quand la région vaut `global`, et `createContextCache` consulte ce garde-fou avant d'appeler l'API. Sans cela, chaque génération tenterait un `caches.create` voué à l'échec, avalé par son `catch` — un aller-retour perdu, pour une cause invisible dans les logs.
+This is explicit: `contextCache` is declared `false` in the registry when the region is `global`, and `createContextCache` checks that guard before calling the API. Without it, each generation would attempt a `caches.create` bound to fail and swallowed by its `catch` — a wasted round trip, for a cause invisible in the logs.
 
-Pour récupérer le cache de contexte, il suffit de poser une région :
+To get context caching back, set a region:
 
 ```bash
-GOOGLE_CLOUD_LOCATION=us-central1   # ou europe-west1, europe-west4…
+GOOGLE_CLOUD_LOCATION=us-central1   # or europe-west1, europe-west4…
 ```
 
-`contextCache` repasse alors à `true` automatiquement. Vérifier dans ce cas que les modèles de `ai.config.ts` sont disponibles dans la région choisie : la couverture des modèles en préversion varie, et c'est le point à contrôler en premier si un modèle répond 404.
+`contextCache` then switches back to `true` automatically. In that case, check that the models in `ai.config.ts` are available in the chosen region: preview model coverage varies, and it is the first thing to check if a model answers 404.
 
-## Retour arrière
+## Rolling back
 
 ```bash
 GEMINI_BACKEND=ai-studio
-GEMINI_API_KEY=<clé>
+GEMINI_API_KEY=<key>
 ```
 
-Aucun changement de code. Les deux chemins restent testés par la fabrique.
+No code change. Both paths are supported by the factory.
 
-## Où c'est implémenté
+## Where it is implemented
 
-Le découpage tient en deux fichiers, et un seul se modifie.
+Two files, and only one of them changes.
 
-**`api/config/ai-providers.config.ts` — la déclaration.** Le bloc « Backend Gemini » y déclare le mode, le projet, la région, l'authentification et les capacités qui en découlent. C'est le **seul endroit à toucher** pour une prochaine bascule : autre région, autre projet, retour AI Studio, futur backend.
+**`api/config/ai-providers.config.ts` — the declaration.** Its "Gemini backend" block declares the mode, project, region, authentication and the capabilities that follow. It is the **only place to touch** for a future switch: another region, another project, back to AI Studio, a new backend.
 
-**`api/config/google-genai.client.ts` — l'exécution.** La fabrique ne décide de rien : elle construit le client à partir de ce que le registre déclare, et ne lit aucune variable d'environnement. C'est ce qui garantit qu'un changement d'infrastructure ne se propage pas dans le code métier.
+**`api/config/google-genai.client.ts` — the execution.** The factory decides nothing: it builds the client from what the registry declares and reads no environment variable. This guarantees that an infrastructure change does not leak into business code.
 
-Les capacités suivent le backend : `getProvider()` recalcule `contextCache` selon la région, et tout le code passe déjà par le garde-fou `providerSupports()`. Une capacité qui disparaît avec un backend se déclare donc au même endroit que le backend lui-même.
+Capabilities follow the backend: `getProvider()` recomputes `contextCache` from the region, and all code already goes through the `providerSupports()` guard. A capability that disappears with a backend is therefore declared in the same place as the backend itself.
 
-Les services qui construisaient leur propre client passent par la fabrique :
+Services that used to build their own client go through the factory:
 
-- `services/prompt.service.ts` (chemin principal)
+- `services/prompt.service.ts` (main path)
 - `services/brandMockup.service.ts`
 - `services/BandIdentity/logoAnalysis.service.ts`
 - `services/Communication/imageSourcing.service.ts`
 
-Construire un `GoogleGenAI` directement ailleurs ferait repartir cet appel-là sur AI Studio sans que rien ne le signale.
+Building a `GoogleGenAI` directly anywhere else would send that call to AI Studio without any warning.
 
-Les gardes qui testaient `process.env.GEMINI_API_KEY` pour décider si une génération était possible utilisent maintenant `isGeminiConfigured()`, qui interroge le backend actif.
+Guards that used to test `process.env.GEMINI_API_KEY` to decide whether a generation was possible now use `isGeminiConfigured()`, which asks the active backend.

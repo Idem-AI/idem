@@ -10,7 +10,9 @@ import { join } from 'node:path';
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
-const angularApp = new AngularNodeAppEngine();
+const angularApp = new AngularNodeAppEngine({
+  allowedHosts: ['.localhost', '0.0.0.0'],
+});
 
 /**
  * Example Express Rest API endpoints can be defined here.
@@ -61,6 +63,6 @@ if (isMainModule(import.meta.url) || process.env['pm_id']) {
 }
 
 /**
- * Request handler used by the Angular CLI (for dev-server and during build) or Firebase Cloud Functions.
+ * Request handler used by the Angular CLI (for dev-server and during build).
  */
 export const reqHandler = createNodeRequestHandler(app);

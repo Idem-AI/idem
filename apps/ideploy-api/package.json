@@ -25,6 +25,7 @@
   "author": "arolleaguekeng",
   "license": "MIT",
   "dependencies": {
+    "@infisical/sdk": "^5.0.2",
     "@prisma/client": "^6.2.1",
     "axios": "^1.7.9",
     "bcryptjs": "^3.0.3",

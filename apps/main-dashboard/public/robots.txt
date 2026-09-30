@@ -1,0 +1,14 @@
+# IDEM Business — https://console.idem.africa
+# Généré par packages/shared-seo (npm run seo:sync), ne pas éditer à la main.
+# Seule l’entrée publique est indexée : le reste est l’espace privé des utilisateurs.
+
+User-agent: *
+Allow: /$
+Allow: /login$
+Allow: /assets/
+Allow: /*.css$
+Allow: /*.js$
+Allow: /favicon.ico$
+Disallow: /
+
+Sitemap: https://console.idem.africa/sitemap.xml

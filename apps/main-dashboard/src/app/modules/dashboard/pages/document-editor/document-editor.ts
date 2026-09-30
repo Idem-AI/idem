@@ -39,6 +39,7 @@ import {
   TextChangeEvent,
 } from './components/editor-canvas/editor-canvas';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
 
 const AUTOSAVE_DEBOUNCE = 1500;
 
@@ -63,6 +64,7 @@ const WIDE_QUERY = '(min-width: 1280px)';
 @Component({
   selector: 'app-document-editor',
   imports: [
+    ErrorStateComponent,
     TranslateModule,
     EditorToolbarComponent,
     LayersPanelComponent,

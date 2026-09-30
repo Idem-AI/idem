@@ -25,6 +25,7 @@ import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 import { pitchDeckTypeLabel } from '../../utils/deliverable-labels';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
 
 type StepStatus = 'pending' | 'in-progress' | 'completed';
 
@@ -46,7 +47,8 @@ const STEP_CLASSES: Record<StepStatus, string> = {
  */
 @Component({
   selector: 'app-show-pitch-deck',
-  imports: [TranslateModule, DocumentPreviewComponent, IncompleteProjectBannerComponent, IdemLoaderComponent],
+  imports: [
+    ErrorStateComponent,TranslateModule, DocumentPreviewComponent, IncompleteProjectBannerComponent, IdemLoaderComponent],
   templateUrl: './show-pitch-deck.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

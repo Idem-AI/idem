@@ -1,5 +1,5 @@
 <!-- Motif background for all pages -->
-<div class="fixed inset-0 z-[-1] pointer-events-none opacity-10 dark:invert dark:opacity-15" style="background-image: url('/assets/images/motif.png'); background-repeat: repeat; background-position: top left;"></div>
+<div class="fixed inset-0 z-[-1] pointer-events-none opacity-[calc(0.1*var(--idem-motif-strength))] dark:invert dark:opacity-[calc(0.15*var(--idem-motif-strength))]" style="background-image: url('/assets/images/motif.png'); background-repeat: repeat; background-position: top left;"></div>
 
 @if (currentLayout$ | async; as layout) {
   @if (layout === 'dashboard') {
@@ -63,3 +63,6 @@
   son écran de travail.
 -->
 <app-paywall-host />
+
+<!-- Invitation à la bêta premium : une seule fois par compte, après la première connexion -->
+<app-beta-invite />

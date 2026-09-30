@@ -12,7 +12,9 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY ./packages/shared-models ./packages/shared-models
 COPY ./packages/shared-auth-client ./packages/shared-auth-client
 COPY ./packages/shared-styles ./packages/shared-styles
+COPY ./packages/shared-loader ./packages/shared-loader
 COPY ./packages/shared-trusted-by ./packages/shared-trusted-by
+COPY ./packages/shared-seo ./packages/shared-seo
 
 # Copier l'application landing
 COPY ./apps/landing ./apps/landing

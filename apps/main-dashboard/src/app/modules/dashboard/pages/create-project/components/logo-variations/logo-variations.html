@@ -365,34 +365,12 @@
 
 <!-- Error State -->
 @if (error()) {
-  <div class="flex items-center justify-center p-6 min-h-[78vh]">
-    <div class="max-w-2xl w-full text-center space-y-8">
-      <div class="space-y-4">
-        <div
-          class="w-20 h-20 mx-auto bg-danger/20 rounded-2xl flex items-center justify-center mb-6"
-        >
-          <i class="pi pi-exclamation-triangle text-3xl text-danger"></i>
-        </div>
-
-        <h2 class="text-3xl font-bold text-light-text">
-          {{ 'dashboard.logoVariations.errors.title' | translate }}
-        </h2>
-
-        <p class="text-lg text-danger">{{ error() }}</p>
-      </div>
-
-      <!-- Retry Button -->
-      <div class="pt-8">
-        <button
-          (click)="startVariationGeneration()"
-          class="outer-button px-8 py-4 bg-danger/20 border-danger/30 hover:bg-danger/30"
-        >
-          <i class="pi pi-refresh mr-2"></i>
-          {{ 'dashboard.logoVariations.buttons.retry' | translate }}
-        </button>
-      </div>
-    </div>
-  </div>
+  <app-error-state scene="generation" [title]="'dashboard.logoVariations.errors.title' | translate" [message]="error()">
+    <button type="button" class="inner-button !gap-2" (click)="startVariationGeneration()">
+      <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
+      {{ 'dashboard.logoVariations.buttons.retry' | translate }}
+    </button>
+  </app-error-state>
 }
 
 <!-- Variations Display -->

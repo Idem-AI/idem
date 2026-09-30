@@ -23,6 +23,14 @@ import {
   getArtDirectionController,
   regenerateArtDirectionController,
 } from '../controllers/branding.controller';
+import {
+  cancelIdentityJobController,
+  guardIdentityJob,
+  identityJobsStatusController,
+  previewPaletteController,
+  startIdentityJobController,
+  updateIdentityController,
+} from '../controllers/brandIdentity.controller';
 import { authenticate } from '../services/auth.service'; // Updated import path
 import { checkQuota } from '../middleware/quota.middleware';
 import {
@@ -547,6 +555,102 @@ brandingRoutes.get(`/${resourceName}/get/:projectId`, authenticate, getBrandingB
  *         description: Internal server error.
  */
 brandingRoutes.put(`/${resourceName}/update/:projectId`, authenticate, updateBrandingController);
+
+/**
+ * @openapi
+ * /brandings/{projectId}/identity:
+ *   put:
+ *     tags: [Brand Identity]
+ *     summary: Change the logo, colors or fonts and propagate them to every deliverable (no AI)
+ *     description: >
+ *       Builds the new identity in code (harmonized palette, deterministic logo
+ *       variations, resolved font sheets), then rewrites every stored support —
+ *       brand book, business plans, pitch decks, business cards, visuals, legal
+ *       documents and the generated website. `dryRun: true` returns the same
+ *       report without writing anything.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               logo:
+ *                 type: object
+ *                 description: Either `generatedLogoId`, or URLs returned by /logo-import/import.
+ *               colors:
+ *                 $ref: '#/components/schemas/ColorPalette'
+ *               keepColors:
+ *                 type: array
+ *                 items: { type: string, enum: [primary, secondary, accent, background, text] }
+ *               colorsFromLogo: { type: boolean }
+ *               typography:
+ *                 type: object
+ *                 properties:
+ *                   primary: { $ref: '#/components/schemas/BrandFontModel' }
+ *                   secondary: { $ref: '#/components/schemas/BrandFontModel' }
+ *               dryRun: { type: boolean }
+ *     responses:
+ *       '200': { description: Propagation report per support. }
+ *       '400': { description: Invalid input. }
+ *       '404': { description: Project not found. }
+ */
+brandingRoutes.put(`/${resourceName}/:projectId/identity`, authenticate, updateIdentityController);
+
+/**
+ * @openapi
+ * /brandings/{projectId}/identity/palette:
+ *   post:
+ *     tags: [Brand Identity]
+ *     summary: Harmonize a palette change without saving it (pure computation)
+ *     security: [{ bearerAuth: [] }]
+ */
+brandingRoutes.post(`/${resourceName}/:projectId/identity/palette`, authenticate, previewPaletteController);
+
+/**
+ * Régénérations du panneau « Identité visuelle », en tâches de fond.
+ *
+ * Tarif : 1,5 × la génération simple (`logo_regenerate`, `brand_regenerate`).
+ * Le garde passe AVANT le débit — une tâche déjà en cours ou un projet
+ * introuvable ne coûtent rien — et une tâche qui ne produit rien restitue ses
+ * crédits.
+ *
+ * @openapi
+ * /brandings/{projectId}/identity/jobs/{kind}:
+ *   post:
+ *     tags: [Brand Identity]
+ *     summary: Start a background regeneration (logos, colors or typography)
+ *     description: >
+ *       Returns 202 immediately. The job keeps running if the client
+ *       disconnects; only the cancel endpoint stops it. For `logos`, the body
+ *       may carry `preferences` ({ type, customDescription }) and `improve`
+ *       ('current' or { svg } — an imported logo URL) to improve a logo.
+ *     security: [{ bearerAuth: [] }]
+ */
+const chargeLogoRegeneration = requireCredits('business', 'logo_regenerate');
+const chargeProposalRegeneration = requireCredits('business', 'brand_regenerate');
+
+brandingRoutes.get(`/${resourceName}/:projectId/identity/jobs`, authenticate, identityJobsStatusController);
+brandingRoutes.post(
+  `/${resourceName}/:projectId/identity/jobs/:kind/cancel`,
+  authenticate,
+  cancelIdentityJobController
+);
+brandingRoutes.post(
+  `/${resourceName}/:projectId/identity/jobs/:kind`,
+  authenticate,
+  checkQuota,
+  guardIdentityJob,
+  (req, res, next) =>
+    (req.params.kind === 'logos' ? chargeLogoRegeneration : chargeProposalRegeneration)(req as any, res, next),
+  startIdentityJobController
+);
 
 /**
  * @openapi

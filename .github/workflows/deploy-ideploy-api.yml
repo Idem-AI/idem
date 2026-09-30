@@ -15,6 +15,9 @@ on:
       - '.github/workflows/deploy-ideploy-api.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build-and-deploy:
     name: Build & Deploy iDeploy API
@@ -24,7 +27,7 @@ jobs:
       name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Get commit info
         id: vars
@@ -33,7 +36,7 @@ jobs:
           echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
 
       - name: Build, Push & Deploy
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}

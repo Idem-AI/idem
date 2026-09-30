@@ -305,7 +305,7 @@ export class NewProjectComponent implements OnInit {
   protected readonly sources: SourceChoice[] = [
     { id: 'code', illustration: 'code', titleKey: 'projects.start.sourceCode', descKey: 'projects.start.sourceCodeDesc' },
     { id: 'docker', illustration: 'box', titleKey: 'projects.start.sourceDocker', descKey: 'projects.start.sourceDockerDesc' },
-    { id: 'template', illustration: 'store', titleKey: 'projects.start.sourceTemplate', descKey: 'projects.start.sourceTemplateDesc' },
+    { id: 'template', illustration: 'market', titleKey: 'projects.start.sourceTemplate', descKey: 'projects.start.sourceTemplateDesc' },
   ];
   protected readonly codeTabs: { id: CodeTab; icon: string; labelKey: string }[] = [
     { id: 'github', icon: 'pi pi-github', labelKey: 'projects.start.tabGithub' },

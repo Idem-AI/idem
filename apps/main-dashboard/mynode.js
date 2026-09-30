@@ -23,17 +23,16 @@ export const environment = {
   environment: '${isProduction ? 'prod' : 'dev'}',
   isBeta: ${process.env.IS_BETA || 'true'},
   waitlistUrl: '${process.env.WAITLIST_URL || 'https://forms.gle/your_waitlist_form_id'}',
+  // Formulaire de candidature au programme bêta premium (ouvert dans un nouvel onglet).
+  betaProgramUrl: '${process.env.BETA_PROGRAM_URL || 'https://forms.gle/DheHZN3AQB39yEAj8'}',
   analytics: {
     enabled: ${process.env.ANALYTICS_ENABLED || (isProduction ? 'true' : 'false')},
+    // Identifiant de mesure Google Analytics 4 (G-XXXXXXX) ; vide = aucun suivi.
+    measurementId: '${process.env.GA_MEASUREMENT_ID || ''}',
   },
-  firebase: {
-    apiKey: '${process.env.FIREBASE_API_KEY || ''}',
-    authDomain: '${process.env.FIREBASE_AUTH_DOMAIN || ''}',
-    projectId: '${process.env.FIREBASE_PROJECT_ID || ''}',
-    storageBucket: '${process.env.FIREBASE_STORAGE_BUCKET || ''}',
-    messagingSenderId: '${process.env.FIREBASE_MESSAGING_SENDER_ID || ''}',
-    appId: '${process.env.FIREBASE_APP_ID || ''}',
-    measurementId: '${process.env.FIREBASE_MEASUREMENT_ID || ''}',
+  auth: {
+    // Serveur d'authentification Supabase auto-hébergé (GoTrue), sans /auth/v1.
+    url: '${process.env.AUTH_URL || (isProduction ? 'https://auth.idem.africa' : 'http://localhost:9999')}',
   },
   services: {
     domain: '${process.env.SERVICES_DOMAIN || 'https://idem.africa'}',
@@ -44,7 +43,6 @@ export const environment = {
     },
     ideploy: {
       url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://ideploy.idem.africa' : 'http://localhost:8000')}',
-      apiToken: '${process.env.IDEPLOY_API_TOKEN || ''}',
     },
     simulation: {
       url: '${process.env.SERVICES_SIMULATION_URL || (isProduction ? 'https://simulator.idem.africa' : 'http://localhost:4203')}',

@@ -1,91 +1,28 @@
 /**
  * Centralised secret loading.
  *
- * Strategy:
- *   - In production (NODE_ENV=production or USE_SECRET_MANAGER=true), secrets
- *     are pulled from Google Secret Manager and injected into process.env
- *     BEFORE any other module reads them.
- *   - Otherwise (development), values are loaded from the local .env file
- *     via dotenv. The local .env MUST NEVER be committed.
+ *   - Local development: `.env` then `.env.secret` (never committed).
+ *   - Production (NODE_ENV=production, or USE_SECRET_MANAGER=true): the
+ *     secrets listed in `secrets.manifest.ts` are read from Infisical
+ *     (project `api`) and injected into process.env BEFORE any other module
+ *     reads them.
  *
- * Once loadSecrets() resolves, the rest of the codebase can keep using
- * process.env.VAR_NAME transparently. This avoids touching the 80+ files
- * that already read process.env.
- *
- * Required GCP setup (one-time):
- *   1. Enable Secret Manager API on your GCP project.
- *   2. Create the secrets listed in REQUIRED_SECRETS / OPTIONAL_SECRETS.
- *   3. Grant the runtime service account the role
- *      `roles/secretmanager.secretAccessor`.
- *   4. Set env var GCP_PROJECT_ID (or GOOGLE_CLOUD_PROJECT) on the host.
- *   5. (Optional) Set SECRET_PREFIX, e.g. `idem-api-prod-` to namespace secrets.
+ * Only real secrets live in Infisical. Non-secret configuration (project
+ * id, public client ids, URLs, ports, limits, ADMIN_EMAILS) stays in
+ * `.env.production`. See secret-loader.ts and scripts/secrets/idem-secrets.mjs.
  */
 
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-
-const SECRET_PREFIX = process.env.SECRET_PREFIX || '';
-
-/**
- * Secrets that MUST be present at boot. Missing values abort the process.
- */
-const REQUIRED_SECRETS = [
-  'FIREBASE_PROJECT_ID',
-  'FIREBASE_PRIVATE_KEY',
-  'FIREBASE_CLIENT_EMAIL',
-  'MONGODB_PASSWORD',
-  'MINIO_ACCESS_KEY',
-  'MINIO_SECRET_KEY',
-  'INTERNAL_API_KEY',
-  'SENSITIVE_VARS_ENCRYPTION_KEY',
-] as const;
+import { loadSecretsFromManager } from './secret-loader';
+import { SECRET_MANIFEST } from './secrets.manifest';
 
 /**
- * Secrets that are only required for certain features. Missing values log
- * a warning but do not abort.
+ * Configuration indispensable qui N'EST PAS un secret : elle vient du `.env`
+ * (ou de l'environnement du conteneur), jamais d'Infisical.
  */
-const OPTIONAL_SECRETS = [
-  'FIREBASE_PRIVATE_KEY_ID',
-  'FIREBASE_CLIENT_ID',
-  'FIREBASE_APP_ID',
-  'FIREBASE_AUTH_DOMAIN',
-  'FIREBASE_MEASUREMENT_ID',
-  // Clé web Firebase : sert à renouveler le cookie `session` depuis le refresh
-  // token (voir api/services/sessionCookie.service.ts).
-  'FIREBASE_API_KEY',
-  'REDIS_PASSWORD',
-  // Clé AI Studio. N'est plus utilisée quand GEMINI_BACKEND vaut `vertex`
-  // (le défaut) : la facturation passe alors par Google Cloud.
-  'GEMINI_API_KEY',
-  // Vertex AI — voir api/config/ai-providers.config.ts. Le projet et le compte
-  // de service sont ceux de Firebase (FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL
-  // / FIREBASE_PRIVATE_KEY, déjà requis plus haut) : c'est le même projet Google
-  // Cloud. Seule la région est propre à Vertex.
-  'GOOGLE_CLOUD_LOCATION',
-  'DEEPSEEK_API_KEY',
-  'OPENAI_API_KEY',
-  // Clé du fournisseur GLM (Zhipu / Z.ai), API OpenAI-compatible.
-  'GLM_API_KEY',
-  'GITHUB_CLIENT_ID',
-  'GITHUB_CLIENT_SECRET',
-  'PEXELS_API_KEY',
-  // Clé Google Cloud avec l'API Web Fonts activée : alimente la part Google du
-  // catalogue servi par /fonts. Absente, la recherche fonctionne quand même —
-  // Fontshare, Fontsource et les polices importées répondent sans clé — mais
-  // les ~1900 familles de Google manquent à la liste.
-  'GOOGLE_FONTS_API_KEY',
-  'SMTP_PASS',
-  'IDEPLOY_SHARED_SECRET',
-  'ADMIN_EMAILS',
-  // Jeton d'API pawaPay (encaissement Mobile Money). Optionnel au démarrage :
-  // sans lui l'API se lève normalement, mais le client refuse de partir à la
-  // première tentative d'encaissement (`services/payments/pawapay.client.ts`).
-  // Les autres réglages pawaPay — PAWAPAY_ENV, PAWAPAY_CALLBACK_SIGNATURE,
-  // PAWAPAY_CALLBACK_IPS, PAWAPAY_PUBLIC_KEY — ne sont pas des secrets et
-  // restent dans la configuration d'environnement (.env.production).
-  'PAWAPAY_API_TOKEN',
-] as const;
+const REQUIRED_CONFIG = ['GCP_PROJECT_ID', 'SUPABASE_AUTH_URL'] as const;
 
 let loaded = false;
 
@@ -99,14 +36,9 @@ export async function loadSecrets(): Promise<void> {
   // Always load local env first to populate host configuration.
   loadFromDotenv();
 
-  const useSecretManager =
-    process.env.NODE_ENV !== 'development' &&
-    (process.env.USE_SECRET_MANAGER === 'true' ||
-      (process.env.NODE_ENV === 'production' && process.env.USE_SECRET_MANAGER !== 'false'));
-
-  if (useSecretManager) {
-    await loadFromSecretManager();
-  }
+  // Secrets du projet Infisical `api` (voir secrets.manifest.ts et
+  // secret-loader.ts). Hors production, le `.env` / `.env.secret` suffit.
+  await loadSecretsFromManager(SECRET_MANIFEST);
 
   expandEnvVars();
   validateRequired();
@@ -173,71 +105,17 @@ function loadFromDotenv(): void {
   }
 }
 
-async function loadFromSecretManager(): Promise<void> {
-  const { SecretManagerServiceClient } = await import('@google-cloud/secret-manager');
-  const projectId =
-    process.env.GCP_PROJECT_ID ||
-    process.env.GOOGLE_CLOUD_PROJECT ||
-    process.env.FIREBASE_PROJECT_ID;
-
-  if (!projectId) {
-    throw new Error(
-      '[secrets] GCP_PROJECT_ID (or GOOGLE_CLOUD_PROJECT) is required when USE_SECRET_MANAGER=true'
-    );
-  }
-
-  const client = new SecretManagerServiceClient();
-  const allNames = [...REQUIRED_SECRETS, ...OPTIONAL_SECRETS];
-
-  console.log(`[secrets] Fetching ${allNames.length} secrets from Google Secret Manager (project=${projectId})...`);
-
-  const results = await Promise.allSettled(
-    allNames.map(async (name) => {
-      const secretId = `${SECRET_PREFIX}${name}`;
-      try {
-        const resourceName = `projects/${projectId}/secrets/${secretId}/versions/latest`;
-        const [version] = await client.accessSecretVersion({ name: resourceName });
-        const payload = version.payload?.data?.toString();
-        return { name, payload, secretId };
-      } catch (error: any) {
-        throw { name, secretId, error };
-      }
-    })
-  );
-
-  let loadedCount = 0;
-  for (const r of results) {
-    if (r.status === 'fulfilled' && r.value.payload !== undefined) {
-      // Do not overwrite values already provided by the host environment
-      // (allows ad-hoc overrides without rotating secrets).
-      if (process.env[r.value.name] === undefined || process.env[r.value.name] === '') {
-        process.env[r.value.name] = r.value.payload;
-      }
-      loadedCount++;
-    } else if (r.status === 'rejected') {
-      const { name, secretId, error } = r.reason as { name: string; secretId: string; error: any };
-      console.warn(`[secrets] Failed to fetch secret "${secretId}" (${name}) from Secret Manager:`, error?.message || error);
-    }
-  }
-
-  console.log(`[secrets] Loaded ${loadedCount}/${allNames.length} secrets from Secret Manager.`);
-}
-
 function validateRequired(): void {
-  const missing = REQUIRED_SECRETS.filter((k) => !process.env[k]);
+  const missing = [...REQUIRED_CONFIG, ...SECRET_MANIFEST.required].filter((k) => !process.env[k]);
   if (missing.length > 0) {
-    console.error(`[secrets] Missing required secrets: ${missing.join(', ')}`);
-    throw new Error(`Missing required secrets: ${missing.join(', ')}`);
-  }
-  const missingOptional = OPTIONAL_SECRETS.filter((k) => !process.env[k]);
-  if (missingOptional.length > 0) {
-    console.warn(`[secrets] Optional secrets not set: ${missingOptional.join(', ')}`);
+    console.error(`[secrets] Missing required configuration/secrets: ${missing.join(', ')}`);
+    throw new Error(`Missing required configuration/secrets: ${missing.join(', ')}`);
   }
 }
 
 function normalize(): void {
-  // Firebase private key stored as a single line with \n escapes -> real newlines.
-  if (process.env.FIREBASE_PRIVATE_KEY) {
-    process.env.FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+  // Service account private key stored as a single line with \n escapes -> real newlines.
+  if (process.env.GCP_SA_PRIVATE_KEY) {
+    process.env.GCP_SA_PRIVATE_KEY = process.env.GCP_SA_PRIVATE_KEY.replace(/\\n/g, '\n');
   }
 }

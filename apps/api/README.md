@@ -1,151 +1,89 @@
-# IDEM - AI-Powered Software Development Lifecycle Generator (API Test)
+# IDEM API
 
-<div align="center">
-  <img src="public/logo_white.png" alt="IDEM Logo" width="200" height="auto">
-  <p><strong>Transform ideas into complete software projects with AI</strong></p>
-</div>
+The central back end of IDEM. It owns identity and sessions, projects and every generated deliverable, AI generation, PDF and image rendering, billing and payments. Every IDEM application talks to it, directly or through its own back end.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CODE_OF_CONDUCT.md)
+Express + TypeScript, MongoDB (Mongoose), Redis, MinIO, headless Chromium (Puppeteer) and several LLM providers.
 
-## Overview
-
-IDEM is a revolutionary open-source platform that leverages artificial intelligence to generate all elements of the software development lifecycle. From initial business planning to deployment, IDEM streamlines the creation process for developers, entrepreneurs, and product managers while making the entire software development process accessible to users of all technical backgrounds.
-
-**Frontend Demo:** [https://idem.africa](https://idem.africa)
-
-## Features
-
-IDEM helps you generate:
-
-- **Branding**: AI designs logos and complete brand style guides based on your requirements
-- **UML Analysis**: AI develops detailed UML diagrams and system architecture documentation
-- **Landing Page Creation**: AI designs responsive landing pages for your application
-- **Project Generation**: AI builds full software projects based on your specifications
-- **Documentation**: AI generates comprehensive technical documentation for your software
-- **Deployment Management**: AI streamlines the deployment process across different
-
-## Architecture
-
-This repository contains the backend for IDEM, built with Express.js. The system uses:
-
-- **Firebase/Firestore**: For data storage and authentication
-- **AI Services**: Integration with Google's Gemini and OpenAI for content generation
-- **Repository Pattern**: Flexible database access layer with SGBD abstraction
-- **Winston**: Comprehensive logging system
-
-## Key Components
-
-### Repository Structure
-
-- **Data Models**: Define the shape of data (`api/models/*.model.ts`)
-- **Services**: Business logic and AI integration (`api/services/`)
-- **Controllers**: HTTP request handling (`api/controllers/`)
-- **Routes**: API endpoints (`api/routes/`)
-
-### CRUD Operations
-
-The system implements a unified CRUD structure for:
-
-- Projects
-- Business Plans
-- Branding (Logos, Color Schemes)
-- UML Diagrams
-- Risk Analysis
-- Feasibility Studies
-
-### AI Generation
-
-The backend integrates with AI models to generate:
-
-- Business plans with multi-turn generation
-- Logos and brand identities
-- System architecture diagrams
-- Project code and documentation
-
-## Installation
+## Run it
 
 ```bash
-# Clone the repository
-git clone https://github.com/arolleaguekeng/idem-api.git
-cd idem-api
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your API keys and configuration
-
-# Run the development server
-npm run dev
+cp .env.example .env          # fill the SECRETS block, or put secrets in .env.secret
+npm run dev                   # http://localhost:3001 — Swagger on /api-docs
 ```
 
-## Environment Variables
+It needs MongoDB, Redis and MinIO: start them with `docker compose -f docker-compose.dev.yml up -d mongodb redis minio` from the repository root. See [Getting started](../../docs/GETTING_STARTED.md) and [Configuration and secrets](../../docs/CONFIGURATION.md).
 
-Create a `.env` file with the following variables:
+In production the secrets listed in [`api/config/secrets.manifest.ts`](api/config/secrets.manifest.ts) are read from Infisical (project `api`) before anything else is loaded; the production configuration template is [`.env.production.example`](.env.production.example).
 
-```
-PORT=3000
-GOOGLE_API_KEY=your_google_api_key
-OPENAI_API_KEY=your_openai_api_key
-FIREBASE_PROJECT_ID=your_firebase_project_id
-# Add other Firebase-related environment variables
-```
-
-## API Documentation
-
-### Projects
+## Layout
 
 ```
-GET /projects - Get all projects for the authenticated user
-GET /projects/:projectId - Get a specific project
-POST /projects - Create a new project
-PUT /projects/:projectId - Update a project
-DELETE /projects/:projectId - Delete a project
-GET /projects/:projectId/agentic - Generate a ZIP with project structure
+api/
+  index.ts        boot: secrets → Express app → MongoDB, MinIO, Chromium, Redis, billing scheduler
+  config/         AI models and providers, secrets, CORS, MongoDB, Redis, MinIO, pricing loader
+  middleware/     security headers, rate limits, billing (credits), quotas, policy acceptance, super user
+  routes/         one router per domain (Swagger annotations inline)
+  controllers/    HTTP layer: parse, call a service, shape the response
+  services/       business logic, one folder per product area
+  schemas/        Mongoose schemas;  models/ plain types;  repository/ generic data access
+  utils/          crypto, safe fetch, render network guard, profile shaping…
+  scripts/        verification scripts run by `npm run check:*`
+docs/             design documents (below)
+public/assets/    static assets, including the social-network mockup templates
 ```
 
-### Business Plans
+## Domains and routes
 
+| Area | Mount point | Service folder |
+| --- | --- | --- |
+| Sessions, profile, SSO for iDeploy | `/auth` | `auth.service.ts`, `sessionCookie.service.ts`, `refreshToken.service.ts` |
+| Projects | `/projects` | `project.service.ts` |
+| Brand identity (logos, palettes, typography, charter, mockups) | `/project/brandings`, `/api/logo`, `/fonts` | `BandIdentity/`, `logo-import.service.ts`, `font-*` |
+| Business plan | `/project/businessPlans` | `BusinessPlan/` |
+| Financial forecasts | `/project/finance` | `Finance/` |
+| Pitch deck | `/project/pitchDecks` | `PitchDeck/` |
+| Legal documents | `/project/legalDocs` | `LegalDocs/` |
+| Diagrams | `/project/diagrams` | `Diagrams/` |
+| Business cards | `/project/business-cards` | `BandIdentity/businessCard*` |
+| Communication plans and flyers | `/project/communication` | `Communication/` |
+| Advisor (chat) and onboarding questions | `/project/advisor`, `/project/onboarding` | `Advisor/`, `Onboarding/` |
+| Simulator | `/project/simulations` | `Simulation/` |
+| Infrastructure deployments (Terraform, legacy) | `/project/deployments` | `Deployment/` |
+| Coherence between deliverables, project context | `/project/coherence`, `/project/context` | `coherence/`, `context-engine/`, `history/` |
+| Development configuration, GitHub push | `/project/developments`, `/github` | `Development/`, `github.service.ts` |
+| AppGen hand-off, iDeploy read access | `/appgen`, `/api/ideploy` | `ideploy-pg.service.ts` |
+| Billing, credits, payments | `/billing` | `billing/`, `payments/` |
+| Admin (internal key) | `/billing/internal`, `/api/contact`, `/cache`, `/archetypes` | — |
+| Metrics | `/metrics` (Prometheus) | — |
+
+Exact paths and payloads: Swagger at `/api-docs` (development only, or `ENABLE_API_DOCS=true`).
+
+## Checks
+
+The API has no unit-test runner; behaviour is locked by verification scripts that exercise real services:
+
+```bash
+npm run check:all          # agents, design, fonts, rendering, page fit, quality, prompts, providers…
+npm run check:billing      # billing rules
+npm run check:payments     # payment state machine (check:payments:sandbox hits the pawaPay sandbox)
+npm run build              # tsc
 ```
-POST /planning/business-plans - Generate a business plan
-GET /planning/business-plans/:id - Get a business plan by ID
-PUT /planning/business-plans/:id - Update a business plan
-DELETE /planning/business-plans/:id - Delete a business plan
-```
 
-### Branding
+## Design documents
 
-```
-POST /branding/logos - Generate a logo
-GET /branding/logos/:id - Get a logo by ID
-# Additional branding endpoints...
-```
-
-### Diagrams
-
-```
-POST /diagrams - Generate UML diagrams
-GET /diagrams/:id - Get a diagram by ID
-# Additional diagram endpoints...
-```
-
-## Contributing
-
-We welcome contributions to IDEM! Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting PRs.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-- Project Creator: [arolleaguekeng](https://github.com/arolleaguekeng)
-- Website: [https://idem.africa](https://idem.africa)
+| Document | Topic |
+| --- | --- |
+| [Agent architecture](docs/AGENT_ARCHITECTURE.md) | How several models work together; when an agent is justified |
+| [AI routing](docs/AI_ROUTING.md) | Choosing the provider and model per generation, without code changes |
+| [Vertex AI](docs/VERTEX_AI.md) | Gemini billed through Google Cloud |
+| [AI usage tracking](docs/AI_USAGE_TRACKING.md) | Every model call recorded, per user, project and element |
+| [Tracing](docs/TRACING.md) | Following a request through the AI pipeline |
+| [Context engine](docs/CONTEXT_ENGINE.md) | Giving every agent the right project data; revision history |
+| [Art direction](docs/ART_DIRECTION.md) | Avoiding generic-looking visual deliverables |
+| [PDF pagination](docs/PDF_PAGINATION.md) | Paginating generated documents without cut blocks |
+| [Business plan inputs](docs/BUSINESS_PLAN_INPUTS.md) | Data required per business-plan type |
+| [Billing](docs/BILLING.md) | Offers, credits, entitlements |
+| [Payments](docs/PAYMENTS.md) | Mobile Money collection with pawaPay |
+| [Sessions](docs/SESSIONS.md) | Session cookie, refresh tokens, SSO |
+| [Cache](docs/CACHE.md) | What Redis caches and how it is invalidated |
+| [GitHub integration](docs/GITHUB_INTEGRATION.md) | OAuth and pushing a project to GitHub |

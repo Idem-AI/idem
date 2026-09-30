@@ -1,0 +1,86 @@
+/* ---------------------------------------------------------------------------
+   Entrées et sorties du panneau « Identité visuelle » et de sa modale.
+
+   Le tiroir glisse depuis la droite et ralentit en arrivant ; il repart plus
+   vite qu'il n'est venu — une sortie doit libérer l'écran, pas se faire
+   regarder. Les durées de sortie sont reprises dans `EXIT_MS` (identity-editor.ts).
+   --------------------------------------------------------------------------- */
+
+@keyframes identity-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes identity-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes identity-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes identity-drawer-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes identity-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+@keyframes identity-modal-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+.identity-backdrop {
+  animation: identity-fade-in 280ms ease-out both;
+}
+
+.identity-backdrop.is-leaving {
+  animation: identity-fade-out 240ms ease-in both;
+}
+
+.identity-drawer {
+  animation: identity-drawer-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.identity-drawer.is-leaving {
+  animation: identity-drawer-out 240ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.identity-modal-backdrop {
+  animation: identity-fade-in 200ms ease-out both;
+}
+
+.identity-modal-backdrop.is-leaving {
+  animation: identity-fade-out 160ms ease-in both;
+}
+
+.identity-modal {
+  animation: identity-modal-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.identity-modal.is-leaving {
+  animation: identity-modal-out 160ms ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .identity-backdrop,
+  .identity-drawer,
+  .identity-modal-backdrop,
+  .identity-modal {
+    animation-duration: 1ms !important;
+  }
+}

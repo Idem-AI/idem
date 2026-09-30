@@ -139,6 +139,31 @@ async function generateImageWithGemini(
 }
 
 /**
+ * L'erreur Gemini dit-elle que le COMPTE ne peut plus payer ?
+ *
+ * Crédits prépayés épuisés, facturation désactivée, quota du projet atteint :
+ * c'est le compte qui refuse, pas un modèle. Essayer le modèle suivant de la
+ * chaîne ne servirait à rien — l'appelant doit changer de fournisseur.
+ */
+export function isGeminiBillingError(error: unknown): boolean {
+  const anyError = error as { status?: number; code?: number; message?: string } | undefined;
+  const status = anyError?.status ?? anyError?.code;
+  if (status === 402) return true;
+  const text = `${anyError?.message ?? ''} ${String(error ?? '')}`;
+  return /billing|prepay|credits? (are |is )?(depleted|exhausted|insufficient)|insufficient (funds|balance|credit)|payment required|exceeded your current quota|quota exceeded|RESOURCE_EXHAUSTED/i.test(
+    text
+  );
+}
+
+/** Erreur levée quand le compte Gemini ne peut plus payer : l'appelant bascule. */
+export class GeminiBillingError extends Error {
+  constructor(readonly cause: unknown) {
+    super(`Gemini refuse pour raison de facturation : ${describeError(cause)}`);
+    this.name = 'GeminiBillingError';
+  }
+}
+
+/**
  * Génère une image par GEMINI en parcourant une chaîne de modèles, quel que
  * soit le fournisseur média du déploiement.
  *
@@ -204,6 +229,12 @@ export async function generateImageWithGeminiChain(
         { label: `gemini/${model}` },
       );
     } catch (error) {
+      // Le compte ne paie plus : les autres modèles du même compte refuseront
+      // de la même façon. On arrête la chaîne, l'appelant change de fournisseur.
+      if (isGeminiBillingError(error)) {
+        logger.warn(`[GEMINI] ${model} refusé pour facturation — chaîne interrompue`, { tag: options.tag });
+        throw new GeminiBillingError(error);
+      }
       lastError = error;
       const next = models[position + 1];
       logger.warn(
@@ -352,6 +383,45 @@ export async function analyzeImage(
       throw error;
     }
     logger.warn(`[GLM] vision failed on ${model} (${error?.message}) — trying ${fallbackModel}`);
+    return attempt(fallbackModel);
+  }
+}
+
+/**
+ * Complétion de TEXTE par GLM, en appel direct — hors du routeur.
+ *
+ * Réservée aux traitements qui doivent rester chez le fournisseur de la
+ * plateforme quel que soit le réglage global (`AI_DEFAULT_PROVIDER`,
+ * `AI_OVERRIDES`) : relire des données de projet pour en extraire ce qui peut
+ * sortir. Passer par `PromptService.runPrompt` les exposerait à une bascule
+ * vers un autre fournisseur, c'est-à-dire exactement à la fuite qu'on évite.
+ */
+export async function completeTextWithGlm(
+  prompt: string,
+  options: { model?: string; fallbackModel?: string; maxTokens?: number; temperature?: number } = {},
+): Promise<string> {
+  const apiKey = requireKey();
+  const model = options.model ?? GLM_MODELS.writing;
+  const fallbackModel = options.fallbackModel ?? GLM_MODELS.mechanical;
+  const attempt = async (candidate: string): Promise<string> => {
+    const response = await axios.post<{ choices?: { message?: { content?: string } }[] }>(
+      `${GLM_ENDPOINTS.base}/chat/completions`,
+      {
+        model: candidate,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: options.maxTokens ?? 1200,
+        temperature: options.temperature ?? 0.4,
+        thinking: { type: 'disabled' },
+      },
+      { headers: { Authorization: `Bearer ${apiKey}` }, timeout: VISION_TIMEOUT_MS },
+    );
+    return response.data?.choices?.[0]?.message?.content?.trim() ?? '';
+  };
+  try {
+    return await attempt(model);
+  } catch (error: any) {
+    if (fallbackModel === model) throw error;
+    logger.warn(`[GLM] text failed on ${model} (${error?.message}) — trying ${fallbackModel}`);
     return attempt(fallbackModel);
   }
 }

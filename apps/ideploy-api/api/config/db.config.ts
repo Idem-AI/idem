@@ -16,7 +16,10 @@ const pool = new Pool({
   port: parseInt(process.env.IDEPLOY_DB_PORT || '5432', 10),
   database: process.env.IDEPLOY_DB_DATABASE || 'ideploy',
   user: process.env.IDEPLOY_DB_USERNAME || 'ideploy',
-  password: process.env.IDEPLOY_DB_PASSWORD || 'password',
+  // Valeur de repli réservée au développement : en production, un secret absent
+  // doit faire échouer la connexion, pas tomber sur un mot de passe connu.
+  password:
+    process.env.IDEPLOY_DB_PASSWORD || (process.env.NODE_ENV === 'production' ? undefined : 'password'),
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
