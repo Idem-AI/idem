@@ -1,0 +1,94 @@
+// Production log collection: stdout of the application containers → Loki.
+//
+// In production the services print one JSON line per event on stdout
+// (LOG_FORMAT defaults to json when NODE_ENV=production). Their log files are
+// inside the container and disappear on every deployment, so they are not
+// collected here. The JSON handling is the same as config.alloy (local).
+
+discovery.docker "host" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "10s"
+}
+
+// Keep the three back ends only (and their staging twins), and name the
+// service after the container until the JSON line says otherwise.
+discovery.relabel "idem" {
+  targets = discovery.docker.host.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(idem-api|ideploy-api|appgen-server)(-staging)?"
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(idem-api|ideploy-api)(-staging)?"
+    target_label  = "service"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/appgen-server(-staging)?"
+    replacement   = "appgen"
+    target_label  = "service"
+  }
+}
+
+loki.source.docker "idem" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.idem.output
+  forward_to = [loki.process.idem.receiver]
+}
+
+loki.process "idem" {
+  stage.json {
+    expressions = {
+      level      = "level",
+      service    = "service",
+      env        = "environment",
+      ts         = "timestamp",
+      request_id = "requestId",
+    }
+  }
+
+  stage.timestamp {
+    source = "ts"
+    format = "RFC3339"
+  }
+
+  stage.labels {
+    values = {
+      level   = "",
+      service = "",
+      env     = "",
+    }
+  }
+
+  stage.structured_metadata {
+    values = {
+      request_id = "",
+    }
+  }
+
+  // A line that is not JSON (npm banner, crash before the logger is loaded):
+  // kept, and labelled so that it is still found and counted.
+  stage.match {
+    selector = "{container=~\".+\", level=\"\"}"
+
+    stage.static_labels {
+      values = { level = "unknown" }
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = coalesce(sys.env("LOKI_PUSH_URL"), "http://loki:3100/loki/api/v1/push")
+  }
+}

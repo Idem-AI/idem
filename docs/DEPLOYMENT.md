@@ -32,6 +32,8 @@ Each `deploy-<app>.yml` connects to the production server over SSH and:
 
 Rollback: set the previous image tag in the Compose file and `docker-compose up -d <service>`.
 
+Logs: the back ends print JSON on stdout, collected by the observability stack that runs next to them (`infra/observability/docker-compose.prod.yml`). Deploying an application needs no change there. See [Observability](OBSERVABILITY.md#6-production).
+
 Secrets are not part of the images: back ends read them from Google Secret Manager at start-up, with the service-account key mounted in the container. See [Configuration and secrets](CONFIGURATION.md).
 
 ## Dockerfiles

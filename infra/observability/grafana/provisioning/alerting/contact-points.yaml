@@ -1,0 +1,16 @@
+apiVersion: 1
+
+# Où partent les alertes. L'adresse vient de ALERT_EMAIL_TO (docker-compose.yml,
+# .env) ; plusieurs destinataires se séparent par « ; ».
+contactPoints:
+  - orgId: 1
+    name: idem-email
+    receivers:
+      - uid: idem-email
+        type: email
+        settings:
+          addresses: ${ALERT_EMAIL_TO}
+          singleEmail: true
+          subject: '{{ template "idem.email.subject" . }}'
+          message: '{{ template "idem.email.message" . }}'
+        disableResolveMessage: false

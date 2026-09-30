@@ -1,0 +1,53 @@
+# Loki en binaire unique, stockage sur disque : suffisant pour un serveur.
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  log_level: warn
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # 30 jours : une contestation de paiement arrive des semaines après.
+  retention_period: 720h
+  allow_structured_metadata: true
+  volume_enabled: true
+  # Une génération IA journalise beaucoup d'un coup.
+  ingestion_rate_mb: 16
+  ingestion_burst_size_mb: 32
+  max_query_series: 5000
+  # Une ligne trop longue est tronquée plutôt que rejetée (les services
+  # plafonnent déjà à 64 Ko ; ceci couvre les anciens fichiers).
+  max_line_size: 256KB
+  max_line_size_truncate: true
+
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  delete_request_store: filesystem
+
+pattern_ingester:
+  enabled: true
+
+analytics:
+  reporting_enabled: false

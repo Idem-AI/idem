@@ -1,3 +1,5 @@
+import logger from '../config/logger.js';
+
 export enum LogLevel {
   INFO = 'INFO',
   WARN = 'WARN',
@@ -6,6 +8,13 @@ export enum LogLevel {
   SUCCESS = 'SUCCESS',
 }
 
+/**
+ * Journal des étapes de génération. L'API d'origine est conservée (76 appels),
+ * mais chaque ligne part désormais dans le logger structuré : l'étape devient
+ * l'événement `chat.<étape>` (ex. `chat.model_call`), les données sont des
+ * champs JSON interrogeables dans Grafana, et le requestId/userId de la
+ * requête suivent automatiquement.
+ */
 export class ChatLogger {
   private static context: string = 'ChatAPI';
 
@@ -13,70 +22,64 @@ export class ChatLogger {
     this.context = context;
   }
 
-  private static formatMessage(level: LogLevel, step: string, message: string, data?: any): string {
-    const timestamp = new Date().toISOString();
-    const emoji = this.getEmoji(level);
-    let logMessage = `[${timestamp}] ${emoji} [${this.context}] [${level}] [${step}] ${message}`;
-
-    if (data !== undefined) {
-      logMessage += `\n${JSON.stringify(data, null, 2)}`;
-    }
-
-    return logMessage;
-  }
-
-  private static getEmoji(level: LogLevel): string {
-    switch (level) {
-      case LogLevel.INFO:
-        return 'ℹ️';
-      case LogLevel.WARN:
-        return '⚠️';
-      case LogLevel.ERROR:
-        return '❌';
-      case LogLevel.DEBUG:
-        return '🔍';
-      case LogLevel.SUCCESS:
-        return '✅';
-      default:
-        return '📝';
-    }
+  private static write(
+    level: 'info' | 'warn' | 'error' | 'debug',
+    step: string,
+    message: string,
+    data?: unknown,
+    extra: Record<string, unknown> = {}
+  ): void {
+    const fields =
+      data === undefined
+        ? {}
+        : data !== null && typeof data === 'object' && !Array.isArray(data) && !(data instanceof Error)
+          ? (data as Record<string, unknown>)
+          : { data };
+    logger.log(level, message, {
+      event: `chat.${step.toLowerCase()}`,
+      component: this.context,
+      ...fields,
+      ...extra,
+    });
   }
 
   static info(step: string, message: string, data?: any): void {
-    console.log(this.formatMessage(LogLevel.INFO, step, message, data));
+    this.write('info', step, message, data);
   }
 
   static warn(step: string, message: string, data?: any): void {
-    console.warn(this.formatMessage(LogLevel.WARN, step, message, data));
+    this.write('warn', step, message, data);
   }
 
   static error(step: string, message: string, error?: any): void {
-    const errorData =
-      error instanceof Error ? { message: error.message, stack: error.stack } : error;
-    console.error(this.formatMessage(LogLevel.ERROR, step, message, errorData));
+    // Une Error passée directement va dans le champ `error` (type, pile, cause).
+    if (error instanceof Error) {
+      this.write('error', step, message, undefined, { error });
+    } else {
+      this.write('error', step, message, error);
+    }
   }
 
   static debug(step: string, message: string, data?: any): void {
-    console.log(this.formatMessage(LogLevel.DEBUG, step, message, data));
+    this.write('debug', step, message, data);
   }
 
   static success(step: string, message: string, data?: any): void {
-    console.log(this.formatMessage(LogLevel.SUCCESS, step, message, data));
+    this.write('info', step, message, data, { outcome: 'success' });
   }
 
-  static separator(): void {
-    console.log('\n' + '='.repeat(100) + '\n');
-  }
+  /** Séparateur visuel de l'ancien format texte : sans objet en JSON. */
+  static separator(): void {}
 
   static stepStart(stepName: string): void {
-    this.separator();
-    this.info('STEP_START', `Starting: ${stepName}`);
-    this.separator();
+    this.write('info', 'STEP_START', `Starting: ${stepName}`, undefined, { stepName });
   }
 
   static stepEnd(stepName: string, duration?: number): void {
-    const durationMsg = duration ? ` (${duration}ms)` : '';
-    this.success('STEP_END', `Completed: ${stepName}${durationMsg}`);
-    this.separator();
+    this.write('info', 'STEP_END', `Completed: ${stepName}`, undefined, {
+      stepName,
+      durationMs: duration,
+      outcome: 'success',
+    });
   }
 }

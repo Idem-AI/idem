@@ -4,8 +4,7 @@
 import { loadSecrets } from './config/secrets';
 
 import express, { Express, NextFunction, Request, Response } from 'express';
-import morgan from 'morgan';
-import { stream as loggerStream } from './config/logger';
+import logger, { captureConsole, installProcessHandlers, logCritical } from './config/logger';
 import { metricsMiddleware } from './middleware/metrics.middleware';
 import { languageMiddleware } from './middleware/language.middleware';
 import { requestTraceMiddleware } from './middleware/request-trace.middleware';
@@ -102,6 +101,11 @@ import { communicationRoutes } from './routes/communication.routes';
 import { financeRoutes } from './routes/finance.routes';
 import { simulationRoutes } from './routes/simulation.routes';
 
+// Tout ce qui s'écrit désormais — y compris les `console.*` restants et les
+// crashes — part en JSON corrélé vers les fichiers collectés par Grafana.
+captureConsole();
+installProcessHandlers();
+
 const app: Express = express();
 const port = process.env.PORT || 3001;
 
@@ -116,8 +120,8 @@ applySecurity(app);
 // Prometheus metrics middleware (must be before routes)
 app.use(metricsMiddleware);
 
-// HTTP request logging middleware
-app.use(morgan('combined', { stream: loggerStream }));
+// Journal HTTP : assuré par requestTraceMiddleware (une ligne JSON de début et
+// de fin, corrélée). L'ancienne ligne morgan en texte brut faisait doublon.
 app.use(cookieParser());
 
 // Strict CORS (env-driven, no localhost in prod).
@@ -280,7 +284,12 @@ app.use((err: Error & { status?: number; type?: string }, req: Request, res: Res
     res.status(400).json({ error: 'Invalid JSON body' });
     return;
   }
-  console.error('Global error handler:', err);
+  logger.error('http.unhandled_error', {
+    event: 'http.unhandled_error',
+    method: req.method,
+    path: req.originalUrl?.split('?')[0],
+    error: err,
+  });
   if (res.headersSent) return;
   res.status(500).json({ error: 'Internal Server Error' });
 });
@@ -307,7 +316,12 @@ async function bootstrap() {
 
 function startServer() {
   return app.listen(port, async () => {
-    console.log(`Server running on port ${port}`);
+    logger.info(`Server running on port ${port}`, {
+      event: 'process.start',
+      port: Number(port),
+      node: process.version,
+      logLevel: logger.level,
+    });
 
     // Initialize MongoDB connection
     try {
@@ -369,8 +383,10 @@ function startServer() {
       // le premier passage échouerait sur une connexion absente.
       startBillingScheduler();
     } catch (error) {
-      console.error('Failed to connect to MongoDB:', error);
-      process.exit(1);
+      logCritical('startup.mongodb_failed', { error });
+      // Laisse aux transports fichiers le temps d'écrire la ligne critique.
+      setTimeout(() => process.exit(1), 500);
+      return;
     }
 
     // Initialize MinIO storage
@@ -378,7 +394,7 @@ function startServer() {
       await storageService.initialize();
       console.log('MinIO storage initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize MinIO storage:', error);
+      logCritical('startup.storage_failed', { error });
     }
 
     // Initialiser le PdfService au démarrage pour optimiser les performances
@@ -404,12 +420,13 @@ function startServer() {
 }
 
 const serverPromise = bootstrap().catch((err) => {
-  console.error('Fatal bootstrap error:', err);
-  process.exit(1);
+  logCritical('startup.failed', { error: err });
+  setTimeout(() => process.exit(1), 500);
+  return undefined;
 });
 
 async function shutdown(signal: string) {
-  console.log(`${signal} received, shutting down gracefully...`);
+  logger.info('process.shutdown', { event: 'process.shutdown', signal, uptimeS: Math.round(process.uptime()) });
   const server = await serverPromise;
   await PdfService.closeBrowser();
   await RedisConnection.disconnect();

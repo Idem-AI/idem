@@ -91,6 +91,18 @@ export interface RecordEventInput {
   logFields?: Record<string, unknown>;
 }
 
+/**
+ * Événements qui déclenchent un e-mail d'alerte (champ `alert="critical"`,
+ * règle Grafana « Événement critique ») : de l'argent encaissé sans être livré,
+ * un remboursement bloqué, un callback à la signature invalide (tentative de
+ * falsification ou clé mal configurée).
+ */
+const CRITICAL_EVENTS: ReadonlySet<PaymentEventType> = new Set([
+  'fulfillment_failed',
+  'refund_failed',
+  'signature_rejected',
+]);
+
 export class PaymentEventsService {
   /** Ajoute un événement à la timeline et le journalise. */
   async record(input: RecordEventInput): Promise<void> {
@@ -100,6 +112,8 @@ export class PaymentEventsService {
 
     logger[level](`payment.${input.type}`, {
       event: `payment.${input.type}`,
+      ...(CRITICAL_EVENTS.has(input.type) ? { alert: 'critical' } : {}),
+      transactionId: input.transactionId,
       depositId: input.depositId,
       source: input.source,
       message: input.message,
