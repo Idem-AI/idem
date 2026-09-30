@@ -12,7 +12,9 @@ export type IllustrationName =
   | 'own-server'
   | 'search'
   | 'shield'
-  | 'team';
+  | 'team'
+  | 'beads'
+  | 'net';
 
 /**
  * Les illustrations de l'interface, dessinées en ligne plutôt que livrées en
@@ -198,6 +200,37 @@ export type IllustrationName =
             <path d="M-9 -8 C-4 -5 4 -5 9 -8" stroke-width="2.4"/>
             <path d="M-6 -6 C-3 -2 -3 2 -6 5 M6 -6 C3 -2 3 2 6 5 M-2 -5 V5 M2 -5 V5" stroke-width="1.6"/>
             <path d="M-8 5 H8" stroke-width="2.4"/>
+          </g>
+        }
+        @case ('beads') {
+          <!-- Les étiquettes : des perles enfilées, chacune reconnaissable à sa forme. -->
+          <path d="M14 20 C40 70 80 70 106 20" stroke-width="1.4"/>
+          <path d="M14 20 C12 14 18 12 18 17 M106 20 C108 14 102 12 102 17" stroke-width="1.4"/>
+          <circle cx="31" cy="44" r="5" stroke-width="1.8"/>
+          <path d="M28.5 41.5 L33.5 46.5" stroke-width="1" opacity=".6"/>
+          <ellipse cx="45.2" cy="54.1" rx="7" ry="4.2" transform="rotate(25 45.2 54.1)" stroke-width="1.8"/>
+          <path d="M42 51.6 L41 55.6 M46 53 L45 57 M50 54.4 L49 58.2" stroke-width="1" opacity=".6"/>
+          <ellipse cx="74.8" cy="54.1" rx="7" ry="4.2" transform="rotate(-25 74.8 54.1)" stroke-width="1.8"/>
+          <path d="M70 54.4 L71 58.2 M74 53 L75 57 M78 51.6 L79 55.6" stroke-width="1" opacity=".6"/>
+          <circle cx="89" cy="44" r="5" stroke-width="1.8"/>
+          <path d="M86.5 46.5 L91.5 41.5" stroke-width="1" opacity=".6"/>
+          <path d="M22.5 33.5 h0.01 M37.5 50 h0.01 M53 57 h0.01 M67 57 h0.01 M82.5 50 h0.01 M97.5 33.5 h0.01" stroke-width="2.6" opacity=".6"/>
+          <path d="M60 66 V74 M56 78 L60 74 L64 78" stroke-width="1.2" opacity=".55"/>
+          <g style="color: var(--color-primary-500)">
+            <path d="M60 48.5 L67 57.5 L60 66 L53 57.5Z" stroke-width="2"/>
+            <path d="M60 53 L63 57.5 L60 61.5 L57 57.5Z" stroke-width="1.1"/>
+          </g>
+        }
+        @case ('net') {
+          <!-- Un réseau : l'épervier, le filet de pêche dont chaque nœud tient les autres. -->
+          <path d="M60 3 V12" stroke-width="1.6"/>
+          <path d="M60 12 L22 72 M60 12 L98 72" stroke-width="2"/>
+          <path d="M22 72 Q60 84 98 72" stroke-width="2"/>
+          <path d="M60 12 L34.9 75.4 M60 12 L47.8 77.4 M60 12 V78 M60 12 L72.2 77.4 M60 12 L85.1 75.4" stroke-width=".9" opacity=".6"/>
+          <path d="M46.7 33 Q60 37 73.3 33 M37.2 48 Q60 55 82.8 48 M28.8 61.2 Q60 70 91.2 61.2" stroke-width="1" opacity=".7"/>
+          <path d="M22 75 h0.01 M34.9 78.4 h0.01 M47.8 80.4 h0.01 M60 81 h0.01 M72.2 80.4 h0.01 M85.1 78.4 h0.01 M98 75 h0.01" stroke-width="3.2"/>
+          <g style="color: var(--color-primary-500)">
+            <path d="M60 47 L64.5 51.5 L60 56 L55.5 51.5Z" stroke-width="1.8"/>
           </g>
         }
         @default {

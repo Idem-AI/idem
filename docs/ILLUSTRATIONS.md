@@ -33,7 +33,7 @@ tiers, et les **schémas fonctionnels** qui montrent l'option elle-même
 | Tampon adinkra en calebasse | le signe de la marque | identité, logo, charte |
 | Bandes de kente assemblées | la composition | direction artistique |
 | Pagnes pliés en pile | livrable complet | charte finalisée |
-| Filet de pêche (épervier) | un réseau de nœuds | diagrammes |
+| Filet de pêche (épervier) | un réseau de nœuds | diagrammes, réseaux iDeploy |
 | Échelle dogon | une marche à la fois | mode assisté |
 | Plateau d'awalé | stratégie, calcul, simulation | mode avancé, simulations |
 | Balance akan à peser l'or | peser juste, le droit | espace juridique |
@@ -42,6 +42,7 @@ tiers, et les **schémas fonctionnels** qui montrent l'option elle-même
 | Façade en banco à torons | institution, bâtiment construit | SA, application bâtie |
 | Sankofa (poids akan) | revenir sur ses pas | page introuvable |
 | Calebasse vide / fêlée | rien encore / erreur | états vides et d'échec |
+| Perles enfilées | se reconnaître à un signe | étiquettes |
 | Baobab qui porte son fruit | le business qui rapporte | promesse d'IDEM (image de partage de l'accueil) |
 
 Les motifs (chevrons, dents de scie, losanges, points) vivent dans les objets,
@@ -96,6 +97,14 @@ Format : **retenu** — candidats écartés (raison).
 | `search` (nouveau ; « aucun résultat ») | van de vannage |
 | `shield` | bouclier aux lances |
 | `team` | arbre à palabres |
+| `beads` (étiquettes) | perles enfilées, la perle-losange en couleur |
+| `net` (destinations, réseaux Docker) | épervier, un nœud en couleur |
+
+Pages de liste (état vide) : applications → `activity` (pirogue) ; serveurs →
+`server` ; services et catalogue → `market` ; espaces de travail → `box` ;
+destinations → `net` ; sources Git → `code` ; étiquettes → `beads` ; recherche
+sans résultat → `search`. Écartés pour les étiquettes : cauris (réservés à
+l'argent), tampon adinkra (réservé à l'identité de marque).
 
 ### Simulateur
 

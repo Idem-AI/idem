@@ -324,7 +324,7 @@
     "list": {
       "title": "Applications",
       "cancel": "Cancel",
-      "newApplication": "+ New application",
+      "newApplication": "New application",
       "name": "Name",
       "gitRepositoryUrl": "Git repository URL",
       "creating": "Creating…",
@@ -333,7 +333,11 @@
       "statusLabel": "status:",
       "queuing": "Queuing…",
       "createFailed": "Failed to create application",
-      "cleanupFailed": "The application was deleted, but its server could not be cleaned: containers or volumes may still be running there. Check the server."
+      "cleanupFailed": "The application was deleted, but its server could not be cleaned: containers or volumes may still be running there. Check the server.",
+      "subtitle": "Everything you have put online. Open an application to see its deployments, logs and settings.",
+      "emptyHint": "Import a GitHub or GitLab repository, or start from a Docker image: iDeploy builds it and puts it online.",
+      "searchPlaceholder": "Search by name, repository or workspace…",
+      "noMatch": "No application matches your search."
     },
     "detail": {
       "restart": "Restart",
@@ -575,18 +579,18 @@
   },
   "servers": {
     "title": "Servers",
-    "addServerButton": "+ Add server",
+    "addServerButton": "Add a server",
     "loading": "Loading…",
-    "empty": "No servers yet. Add one to get started.",
+    "empty": "No servers yet.",
     "proxyStatus": "Proxy: {{status}}",
-    "validate": "Validate",
+    "validate": "Check",
     "proxyStatusButton": "Proxy status",
     "startProxy": "Start proxy",
     "installCrowdSec": "Install CrowdSec",
     "delete": "Delete",
     "ready": "Ready to deploy",
     "notReady": "Not ready",
-    "setUp": "Set up",
+    "setUp": "Prepare the server",
     "settingUp": "Setting up…",
     "detail": {
       "backToList": "Back to servers",
@@ -673,7 +677,7 @@
       "inProgress": "in progress…",
       "consoleDone": "done"
     },
-    "provisionButton": "Provision on cloud",
+    "provisionButton": "Create a cloud server",
     "create": {
       "back": "Back to servers",
       "title": "Add a server",
@@ -720,7 +724,12 @@
     "useLocalButton": "Use this machine",
     "addingLocal": "Adding…",
     "localDockerUnreachable": "Server added, but Docker didn't respond — check that Docker is running on this machine.",
-    "localError": "Could not add this machine as a server."
+    "localError": "Could not add this machine as a server.",
+    "subtitle": "The machines your applications run on. Check a server is ready before deploying to it.",
+    "emptyHint": "Connect a machine you already have (over SSH), or create one at a cloud provider in a few clicks.",
+    "manage": "Manage",
+    "moreActions": "More actions",
+    "confirmDelete": "Click again to delete"
   },
   "databases": {
     "title": "Databases",
@@ -812,7 +821,7 @@
     "customNone": "— custom (none) —",
     "customCompose": "Custom Docker Compose",
     "name": "Name",
-    "dockerComposeLabel": "docker-compose.yml (ignored when a template is selected)",
+    "dockerComposeLabel": "docker-compose.yml content",
     "creating": "Creating…",
     "createService": "Create service",
     "createError": "Failed to create service",
@@ -821,11 +830,11 @@
     "updated": "Updated {{date}}",
     "showCustomForm": "Deploy from a raw Docker Compose instead",
     "hideCustomForm": "Hide",
-    "deployCustom": "Deploy a custom Docker Compose",
-    "latestServices": "Latest Services",
-    "latestServicesHint": "Explore more services to expand your iDeploy stack.",
+    "deployCustom": "Deploy from a docker-compose file",
+    "latestServices": "To discover",
+    "latestServicesHint": "Services ready to install in one click.",
     "filter": {
-      "all": "All services",
+      "all": "All",
       "running": "Running",
       "partial": "Needs attention",
       "exited": "Stopped"
@@ -856,25 +865,40 @@
       "deleteService": "Delete service",
       "deleting": "Deleting…",
       "deleteError": "Deleting failed."
-    }
+    },
+    "subtitle": "The ready-made software you installed — a database, an automation tool, a CMS…",
+    "emptyHint": "Pick a service from the catalog: it is installed and configured for you.",
+    "filterLabel": "Filter by state",
+    "deployCustomHint": "For those who already have their own docker-compose.yml.",
+    "browseAll": "See the whole catalog"
   },
   "sources": {
     "title": "Git Sources",
-    "empty": "No Git sources configured (GitHub / GitLab apps).",
+    "empty": "No sources yet.",
     "connectGithub": "Connect GitHub",
     "disconnect": "Disconnect",
-    "emptyHint": "Connect a Git provider to deploy from your repositories.",
+    "emptyHint": "Connect your account to import your repositories without copying URLs.",
     "loadError": "Could not load the sources.",
     "connectError": "Connecting to the provider failed.",
-    "disconnectError": "Disconnecting failed."
+    "disconnectError": "Disconnecting failed.",
+    "subtitle": "The Git accounts iDeploy fetches your code from to put it online.",
+    "connectedAs": "Connected as {{user}}",
+    "listTitle": "Authorised sources",
+    "emptyBody": "Connect GitHub: your repositories will show up here, ready to import."
   },
   "destinations": {
     "title": "Destinations",
-    "empty": "No servers yet — add a server to create Docker destinations.",
-    "noDestinations": "No destinations.",
+    "empty": "Networks live on a server: add one first.",
+    "noDestinations": "No network on this server.",
     "network": "network",
-    "networkPlaceholder": "docker network (e.g. ideploy)",
-    "addDestination": "Add destination"
+    "networkPlaceholder": "e.g. ideploy",
+    "addDestination": "Add a network",
+    "subtitle": "Each server's private network, where your applications find each other by name. One is almost always enough.",
+    "emptyTitle": "No servers yet.",
+    "networkLabel": "Docker network name",
+    "cancel": "Cancel",
+    "create": "Create network",
+    "createError": "Could not create this network."
   },
   "storages": {
     "title": "S3 Storages",
@@ -898,8 +922,14 @@
   "tags": {
     "title": "Tags",
     "loading": "Loading…",
-    "newTagPlaceholder": "New tag name",
-    "add": "Add"
+    "newTagPlaceholder": "e.g. production, client-x, api",
+    "add": "Add",
+    "subtitle": "Labels to pin on your applications, from their page, to group them and find them fast.",
+    "newTagLabel": "New tag",
+    "emptyTitle": "No tags yet.",
+    "emptyBody": "Create one above, then pin it on an application from its page.",
+    "remove": "Remove tag {{name}}",
+    "addError": "Could not create this tag."
   },
   "settings": {
     "title": "Settings",
@@ -1166,17 +1196,17 @@
     }
   },
   "templates": {
-    "title": "Browse Services",
+    "title": "Service catalog",
     "searchPlaceholder": "Search templates (name, category, tag)…",
     "addServer": "Add a server",
-    "noTemplates": "No templates available. (The service-templates catalog could not be loaded.)",
+    "noTemplates": "The catalog is empty for now.",
     "noMatch": "No template matches your search.",
     "deploying": "Deploying…",
     "deploy": "Deploy",
     "deploymentFailed": "Deployment failed",
     "allCategories": "All categories",
     "notFound": "Template not found.",
-    "backToBrowse": "Back to services",
+    "backToBrowse": "Back to the catalog",
     "documentation": "Documentation",
     "install": "Install",
     "installing": "Installing…",
@@ -1184,7 +1214,9 @@
     "overview": "Overview",
     "category": "Category",
     "tags": "Tags",
-    "resources": "Resources"
+    "resources": "Resources",
+    "subtitle": "Software ready to install on your servers in one click. Open one to see what it does before installing it.",
+    "loadError": "The catalog could not be loaded. Try again in a moment."
   },
   "subscription": {
     "title": "Subscription",
@@ -1323,7 +1355,9 @@
       "deployments": "Deployments",
       "insights": "Insights",
       "internalHost": "Internal host:"
-    }
+    },
+    "resourceOne": "1 resource",
+    "resourceMany": "{{count}} resources"
   },
   "workspaceTargetPicker": {
     "workspace": "Workspace",
