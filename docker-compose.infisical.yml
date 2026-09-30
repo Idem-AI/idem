@@ -1,23 +1,18 @@
-# Infisical self-hosted — secret manager pour api, appgen (serveur) et
-# ideploy-api (remplace Google Secret Manager, jamais mis en prod). Stack
-# indépendante : sa propre base et son propre Redis, pour ne rien coupler aux
-# services applicatifs. Les 3 backends la joignent par son URL publique
-# (INFISICAL_SITE_URL), pas par le réseau Docker interne — à raccorder au
-# reverse-proxy déjà en place pour les autres sous-domaines du serveur.
-#
-# redis/postgres : versions choisies pour matcher ce qui est déjà tiré en
-# local sur cette machine (redis:7-alpine, postgres:15-alpine) plutôt que la
-# version par défaut du compose officiel Infisical (postgres:14-alpine) —
-# évite un nouveau pull. Aucune des deux n'a d'exigence de version connue côté
-# Infisical, largement dans sa plage supportée.
+# Infisical self-hosted (production) — gestionnaire de secrets d'api, appgen
+# (serveur) et ideploy-api. Stack indépendante : sa propre base et son propre
+# Redis, rien de partagé avec les services applicatifs. Les backends le
+# joignent par son URL publique (INFISICAL_SITE_URL), servie par le
+# reverse-proxy du serveur : le port n'est publié que sur 127.0.0.1.
+# En développement, l'instance locale est dans docker-compose.dev.yml (profil `secrets`).
 #
 # Démarrage : docker compose -f docker-compose.infisical.yml up -d
 # Config    : .env.infisical (voir .env.infisical.example — jamais commité)
+# Mise à jour : sauvegarder la base, changer le tag épinglé ci-dessous, relancer.
 
 services:
   infisical:
     container_name: idem-infisical-backend
-    image: infisical/infisical:latest-postgres
+    image: infisical/infisical:v0.165.16
     restart: unless-stopped
     depends_on:
       infisical-db:
@@ -29,7 +24,7 @@ services:
     environment:
       NODE_ENV: production
     ports:
-      - '${INFISICAL_PORT:-8085}:8080'
+      - '127.0.0.1:${INFISICAL_PORT:-8085}:8080'
     networks:
       - infisical
 
@@ -37,10 +32,6 @@ services:
     container_name: idem-infisical-redis
     image: redis:7-alpine
     restart: unless-stopped
-    env_file:
-      - .env.infisical
-    environment:
-      ALLOW_EMPTY_PASSWORD: 'yes'
     volumes:
       - infisical_redis_data:/data
     networks:
@@ -57,7 +48,9 @@ services:
     networks:
       - infisical
     healthcheck:
-      test: 'pg_isready --username=${POSTGRES_USER} && psql --username=${POSTGRES_USER} --list'
+      # `$$` : évalué dans le conteneur, où .env.infisical est chargé
+      # (un `${…}` serait résolu par Compose à la lecture du fichier, donc vide).
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 5s
       timeout: 10s
       retries: 10

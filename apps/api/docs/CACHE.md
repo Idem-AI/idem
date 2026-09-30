@@ -83,7 +83,7 @@ The exact request and response shapes are in the OpenAPI annotations of [`routes
 |---|---|---|
 | `REDIS_HOST` | `localhost` | Redis host |
 | `REDIS_PORT` | `6379` | Redis port |
-| `REDIS_PASSWORD` | — | Redis password (Secret Manager in production: `api--REDIS_PASSWORD`) |
+| `REDIS_PASSWORD` | — | Redis password (Infisical in production, project `api`) |
 | `REDIS_DB` | `0` | Database index |
 | `IDEM_RESEARCH_CACHE_TTL` | `604800` | Research cache TTL, in seconds |
 

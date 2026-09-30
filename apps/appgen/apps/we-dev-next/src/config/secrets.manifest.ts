@@ -1,5 +1,5 @@
 /**
- * Secrets du serveur AppGen dans Infisical (projet `appgen`, environnement `production`).
+ * Secrets du serveur AppGen dans Infisical (projet `appgen`, environnement `prod`).
  *
  * Seules les valeurs réellement secrètes figurent ici. URL, limites, hôtes
  * autorisés et réglages des modèles restent dans le `.env`.

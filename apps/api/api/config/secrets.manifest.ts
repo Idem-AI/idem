@@ -1,5 +1,5 @@
 /**
- * Secrets de l'API IDEM dans Infisical (projet `api`, environnement `production`).
+ * Secrets de l'API IDEM dans Infisical (projet `api`, environnement `prod`).
  *
  * Seules les valeurs réellement secrètes figurent ici. Identifiants publics
  * (projet Google Cloud, client IDs OAuth), URL, ports, limites et

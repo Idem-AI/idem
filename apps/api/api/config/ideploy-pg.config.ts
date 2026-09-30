@@ -16,7 +16,7 @@ const pool = new Pool({
   port:     parseInt(process.env.IDEPLOY_DB_PORT || '5432'),
   database: process.env.IDEPLOY_DB_DATABASE || 'coolify',
   user:     process.env.IDEPLOY_DB_USERNAME || 'coolify',
-  // Jamais de mot de passe par défaut : il vient du Secret Manager (`api--IDEPLOY_DB_PASSWORD`).
+  // Jamais de mot de passe par défaut : il vient d'Infisical (`IDEPLOY_DB_PASSWORD`, projet `api`).
   password: process.env.IDEPLOY_DB_PASSWORD,
   max: 5,
   idleTimeoutMillis: 30000,

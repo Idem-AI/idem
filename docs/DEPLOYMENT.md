@@ -32,7 +32,7 @@ Each `deploy-<app>.yml` connects to the production server over SSH and:
 
 Rollback: set the previous image tag in the Compose file and `docker-compose up -d <service>`.
 
-Secrets are not part of the images: back ends read them from Google Secret Manager at start-up, with the service-account key mounted in the container. See [Configuration and secrets](CONFIGURATION.md).
+Secrets are not part of the images: back ends read them from Infisical at start-up, each with its own machine identity. See [Configuration and secrets](CONFIGURATION.md).
 
 ## Dockerfiles
 

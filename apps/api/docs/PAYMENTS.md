@@ -96,7 +96,7 @@ db.payment_callbacks_raw.find({ depositId: '<depositId>' })   // the raw callbac
 
 | Last event | What happened | Action |
 | --- | --- | --- |
-| `created` only | The call to pawaPay never left | Check `api--PAWAPAY_API_TOKEN` and connectivity |
+| `created` only | The call to pawaPay never left | Check `PAWAPAY_API_TOKEN` (Infisical) and connectivity |
 | `pawapay_error` (undetermined) | No answer received, outcome unknown | Nothing: the re-read will decide |
 | `pawapay_response` then silence | The subscriber did not confirm | The final status will come, or it will expire |
 | `status_changed` FAILED | Refused by the operator | Read `failureCode`; the user-facing message is already computed |
@@ -130,7 +130,7 @@ curl -X POST -H "x-api-key: $INTERNAL_API_KEY" -H 'Content-Type: application/jso
 
 | Variable | Role |
 | --- | --- |
-| `PAWAPAY_API_TOKEN` | API token. Missing ⇒ no collection possible. The only pawaPay variable that is a secret: in production it is read from Secret Manager as `api--PAWAPAY_API_TOKEN` |
+| `PAWAPAY_API_TOKEN` | API token. Missing ⇒ no collection possible. The only pawaPay variable that is a secret: in production it is read from Infisical (project `api`) |
 | `PAWAPAY_ENV` | `sandbox` (default) or `production` |
 | `PAWAPAY_CALLBACK_SIGNATURE` | `enforce`, `log` (default) or `off` |
 | `PAWAPAY_CALLBACK_IPS` | Override of the allow list (proxy, tunnel) |
@@ -241,7 +241,7 @@ The third uses pawaPay's test numbers and checks the most important point: **rep
 
 ## Going to production
 
-1. pawaPay production account, token created and stored in Secret Manager as `api--PAWAPAY_API_TOKEN` (`npm run secrets -- push api …` or `rotate api PAWAPAY_API_TOKEN`). It is declared in `api/config/secrets.manifest.ts`.
+1. pawaPay production account, token created and stored in Infisical (project `api`, `PAWAPAY_API_TOKEN`) (`npm run secrets -- push api …` or `rotate api PAWAPAY_API_TOKEN`). It is declared in `api/config/secrets.manifest.ts`.
 2. `PAWAPAY_ENV=production`.
 3. Callback URL declared: `https://api.idem.africa/billing/webhooks/pawapay/deposits`.
 4. Signing enabled on pawaPay's side, then `PAWAPAY_CALLBACK_SIGNATURE=enforce`.

@@ -8,7 +8,7 @@
  * ## Un projet Infisical par application
  *
  * Chaque application (`api`, `appgen`, `ideploy-api`) a son propre projet
- * Infisical, avec son propre environnement `production` et sa propre
+ * Infisical, avec son environnement `prod` (`INFISICAL_ENVIRONMENT`) et sa propre
  * identité machine (Universal Auth) — accès scopé à ce seul projet. L'isolement
  * se fait donc au niveau du projet : pas besoin de préfixer les noms de
  * secrets (contrairement à un magasin partagé entre applications), le nom
@@ -44,9 +44,6 @@ export interface LoadSecretsResult {
   missingOptional: string[];
 }
 
-/** Environnement Infisical utilisé — un seul, la prod, pour l'instant. */
-const INFISICAL_ENVIRONMENT = process.env.INFISICAL_ENVIRONMENT || 'production';
-
 export function isSecretManagerEnabled(): boolean {
   if (process.env.NODE_ENV === 'test') return false;
   if (process.env.USE_SECRET_MANAGER === 'true') return true;
@@ -80,45 +77,40 @@ export async function loadSecretsFromManager(
   const projectId = process.env.INFISICAL_PROJECT_ID;
   const clientId = process.env.INFISICAL_CLIENT_ID;
   const clientSecret = process.env.INFISICAL_CLIENT_SECRET;
+  // Lu ici et non au chargement du module : l'appelant peut avoir chargé un `.env` entre-temps.
+  // `prod` est l'environnement qu'Infisical crée avec chaque projet.
+  const INFISICAL_ENVIRONMENT = process.env.INFISICAL_ENVIRONMENT || 'prod';
   if (!siteUrl || !projectId || !clientId || !clientSecret) {
     throw new Error(
       '[secrets] INFISICAL_SITE_URL, INFISICAL_PROJECT_ID, INFISICAL_CLIENT_ID and INFISICAL_CLIENT_SECRET are all required to use Infisical.'
     );
   }
 
-  const { InfisicalSDK } = await import('@infisical/sdk');
-  const client = new InfisicalSDK({ siteUrl });
-  await client.auth().universalAuth.login({ clientId, clientSecret });
-
-  const read = async (variable: string): Promise<string | undefined> => {
-    try {
-      const secret = await client.secrets().getSecret({
-        projectId,
-        environment: INFISICAL_ENVIRONMENT,
-        secretPath: '/',
-        secretName: variable,
-      });
-      return secret?.secretValue;
-    } catch {
-      // Infisical renvoie une erreur (pas une valeur nulle) pour un secret absent.
-      // On la traite comme "non trouvé" plutôt que de la faire remonter ici : le
-      // decompte required/optional ci-dessous distingue déjà ce qui est fatal.
-      return undefined;
-    }
-  };
-
-  const results = await Promise.allSettled(
-    all.map(async (variable) => ({ variable, value: await read(variable) }))
-  );
+  // Une seule requête pour tout le projet : il ne contient que les secrets de
+  // cette application. Un échec (auth, droits, réseau) est journalisé tel quel
+  // plutôt que confondu avec des secrets absents ; le contrôle des requis
+  // ci-dessous décide ensuite si l'application peut démarrer.
+  const online = new Map<string, string>();
+  try {
+    const { InfisicalSDK } = await import('@infisical/sdk');
+    const client = new InfisicalSDK({ siteUrl });
+    await client.auth().universalAuth.login({ clientId, clientSecret });
+    const { secrets } = await client.secrets().listSecrets({
+      projectId,
+      environment: INFISICAL_ENVIRONMENT,
+      secretPath: '/',
+      viewSecretValue: true,
+    });
+    for (const secret of secrets) online.set(secret.secretKey, secret.secretValue);
+  } catch (error: unknown) {
+    log.error(
+      `[secrets] ${manifest.app}: could not read Infisical (project=${projectId}, env=${INFISICAL_ENVIRONMENT}): ${(error as Error)?.message ?? error}`
+    );
+  }
 
   const loaded: string[] = [];
-  for (const [index, result] of results.entries()) {
-    if (result.status === 'rejected') {
-      const reason = result.reason as { message?: string };
-      log.warn(`[secrets] ${manifest.app}: could not read ${all[index]}: ${reason?.message ?? reason}`);
-      continue;
-    }
-    const { variable, value } = result.value;
+  for (const variable of all) {
+    const value = online.get(variable);
     if (value === undefined) continue;
     if (process.env[variable] === undefined || process.env[variable] === '') {
       process.env[variable] = value;
@@ -126,7 +118,9 @@ export async function loadSecretsFromManager(
     loaded.push(variable);
   }
 
-  log.log(`[secrets] ${manifest.app}: ${loaded.length}/${all.length} secrets loaded from Infisical (project=${projectId}).`);
+  log.log(
+    `[secrets] ${manifest.app}: ${loaded.length}/${all.length} secrets loaded from Infisical (project=${projectId}, env=${INFISICAL_ENVIRONMENT}).`
+  );
 
   const missingRequired = manifest.required.filter((k) => !process.env[k]);
   if (missingRequired.length > 0) {

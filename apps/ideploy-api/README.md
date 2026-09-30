@@ -98,7 +98,7 @@ other by hostname — the capability the V1 had and the simplified flow lost.
 - **Encrypted columns** (SSH keys, tokens) go through `utils/laravel-crypto.ts`,
   a port of Laravel's `Encrypter` (AES-256-CBC + HMAC). It needs the **exact
   `APP_KEY`** that encrypted the existing rows (the former Laravel key, stored
-  as `ideploy-api--APP_KEY` in Secret Manager). A different key makes every
+  as `APP_KEY` in the `ideploy-api` Infisical project). A different key makes every
   stored SSH key unreadable.
 - **Every query is team-scoped.** A missing `team_id` filter is a cross-tenant
   data leak, not a bug.
@@ -135,14 +135,14 @@ In the dev stack this service runs as the `ideploy-api` container; see
 `index.ts` loads secrets before importing the app. With
 `USE_SECRET_MANAGER=true`, the values listed in
 [`api/config/secrets.manifest.ts`](api/config/secrets.manifest.ts) are read
-from Google Secret Manager as `ideploy-api--<VARIABLE>`:
+from Infisical (project `ideploy-api`):
 
 | Required | Optional |
 |---|---|
 | `IDEPLOY_DB_PASSWORD`, `APP_KEY` | `REDIS_PASSWORD`, `PUSHER_APP_SECRET`, `GITHUB_CLIENT_SECRET`, `GITLAB_CLIENT_SECRET`, `STRIPE_SECRET_KEY` |
 
-The production service account (`idem-ideploy-api-secrets`) can only read
-`ideploy-api--*`. A value already in the environment is never overwritten.
+The production machine identity (`ideploy-api-runtime`) can only read the
+`ideploy-api` project. A value already in the environment is never overwritten.
 Everything else (hosts, ports, URLs, public OAuth ids, SSH and Traefik settings)
 stays in `.env`. Details: [docs/CONFIGURATION.md](../../docs/CONFIGURATION.md).
 
