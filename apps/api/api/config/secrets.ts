@@ -50,17 +50,18 @@ export async function loadSecrets(): Promise<void> {
  * Drop every configuration that was resolved from process.env BEFORE this
  * point.
  *
- * Modules are imported before bootstrap() awaits loadSecrets(), so any of them
- * that resolves configuration at import time reads a half-loaded environment:
- * .env is already there, .env.secret is not. The Gemini backend memoises its
- * resolution, so a single import-time lookup froze it with a missing API key
- * and every generation failed afterwards with "GEMINI_API_KEY est absente" —
- * while the key was in fact loaded a few milliseconds later.
+ * `index.ts` now loads the secrets before importing the application, so the
+ * server no longer sees a half-loaded environment. This stays as a safety net
+ * for code that imports modules first and calls loadSecrets() afterwards (the
+ * maintenance scripts): any of them that resolves configuration at import time
+ * reads an incomplete environment. The Gemini backend memoises its resolution,
+ * so a single import-time lookup froze it with a missing API key and every
+ * generation failed afterwards with "GEMINI_API_KEY est absente" — while the
+ * key was in fact loaded a few milliseconds later.
  *
- * Invalidating here costs one object rebuild and removes the whole class of
- * bug: whatever was resolved too early is simply resolved again, now that the
- * environment is complete. Imported dynamically so this module keeps no static
- * dependency on the AI registry.
+ * Invalidating here costs one object rebuild: whatever was resolved too early
+ * is simply resolved again, now that the environment is complete. Imported
+ * dynamically so this module keeps no static dependency on the AI registry.
  */
 async function invalidateEnvDerivedCaches(): Promise<void> {
   const { resetGeminiBackend } = await import('./ai-providers.config');
