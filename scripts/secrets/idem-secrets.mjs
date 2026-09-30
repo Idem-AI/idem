@@ -10,7 +10,7 @@
  *
  * Chaque application a son propre projet Infisical (isolation native, pas de
  * préfixe de nom nécessaire) et un seul environnement utilisé pour l'instant :
- * `production` (surchageable avec --environment).
+ * `prod`, celui qu'Infisical crée avec chaque projet (surchargeable avec --environment).
  *
  * Commandes :
  *   plan                                  État des lieux, aucune écriture.
@@ -21,7 +21,7 @@
  *   prune [<app>]                         Supprime les secrets qu'aucun manifeste ne déclare
  *                                         (tous les projets, ou un seul si <app> est donné).
  *
- * Options : --environment <nom> (défaut "production"), --yes (pas de question), --dry-run.
+ * Options : --environment <slug> (défaut "prod"), --yes (pas de question), --dry-run.
  *
  * Aucune valeur de secret n'est jamais affichée : les copies passent par la
  * mémoire du processus uniquement.
@@ -66,7 +66,7 @@ const positional = argv.filter((a, i) => !a.startsWith('--') && !['--from', '--e
 const [command, ...args] = positional;
 const DRY_RUN = flags.has('--dry-run');
 const YES = flags.has('--yes');
-const ENVIRONMENT = option('environment') || 'production';
+const ENVIRONMENT = option('environment') || 'prod';
 
 // ── Infisical ────────────────────────────────────────────────────────────────
 
@@ -100,8 +100,7 @@ async function listOnline(app) {
     secretPath: '/',
     viewSecretValue: false,
   });
-  const list = Array.isArray(result) ? result : (result?.secrets ?? []);
-  return new Set(list.map((s) => s.secretKey ?? s.secretName));
+  return new Set(result.secrets.map((s) => s.secretKey));
 }
 
 /** Lit une valeur. Reste en mémoire, jamais affichée. */
@@ -112,6 +111,7 @@ async function readValue(app, variable) {
     environment: ENVIRONMENT,
     secretPath: '/',
     secretName: variable,
+    viewSecretValue: true,
   });
   return secret?.secretValue;
 }

@@ -1,5 +1,5 @@
 /**
- * Secrets d'ideploy-api dans Infisical (projet `ideploy-api`, environnement `production`).
+ * Secrets d'ideploy-api dans Infisical (projet `ideploy-api`, environnement `prod`).
  *
  * Seules les valeurs réellement secrètes figurent ici. Hôtes, ports, URL,
  * identifiants OAuth publics, réglages SSH/Traefik… restent dans le `.env`.

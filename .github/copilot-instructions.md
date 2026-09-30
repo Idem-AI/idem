@@ -24,7 +24,7 @@ Shared packages live in `packages/` ([docs/PACKAGES.md](../docs/PACKAGES.md)). N
 ## Rules that are easy to break
 
 - **Authentication** belongs to `apps/api`: httpOnly `session` and `refreshToken` cookies on `.idem.africa`. Front ends call APIs with `withCredentials` / `credentials: 'include'` and never store tokens. Satellite servers ask `GET /auth/me`. See [SESSIONS.md](../apps/api/docs/SESSIONS.md).
-- **Secrets** never go in front-end environment files (they end up in public bundles) or in the repository. Back ends read them from Google Secret Manager as `<app>--<VARIABLE>`; the list is each app's `secrets.manifest.ts`. See [docs/CONFIGURATION.md](../docs/CONFIGURATION.md).
+- **Secrets** never go in front-end environment files (they end up in public bundles) or in the repository. Back ends read them from Infisical (one project per app); the list is each app's `secrets.manifest.ts`. See [docs/CONFIGURATION.md](../docs/CONFIGURATION.md).
 - **Billing** fails closed: if the billing check cannot answer, the action is refused.
 - **User input reaching a shell, a URL fetch or a compose file** goes through the existing guards (`shellQuote`, `safe-fetch`, `render-network-guard`, `compose-policy`, `git-input`). Never build a command by concatenation.
 - **Admin routes** use `requireSuperUser` / `requireAdminAccess` (API) or `requireTeamAdmin` / `requireInstanceAdmin` (iDeploy API). A team owner is not an instance admin.
