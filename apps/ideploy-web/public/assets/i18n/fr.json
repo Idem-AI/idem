@@ -324,7 +324,7 @@
     "list": {
       "title": "Applications",
       "cancel": "Annuler",
-      "newApplication": "+ Nouvelle application",
+      "newApplication": "Nouvelle application",
       "name": "Nom",
       "gitRepositoryUrl": "URL du dépôt Git",
       "creating": "Création…",
@@ -333,7 +333,11 @@
       "statusLabel": "statut :",
       "queuing": "Mise en file…",
       "createFailed": "Échec de la création de l'application",
-      "cleanupFailed": "L'application a été supprimée, mais son serveur n'a pas pu être nettoyé : des conteneurs ou des volumes peuvent encore y tourner. Vérifiez le serveur."
+      "cleanupFailed": "L'application a été supprimée, mais son serveur n'a pas pu être nettoyé : des conteneurs ou des volumes peuvent encore y tourner. Vérifiez le serveur.",
+      "subtitle": "Tout ce que vous avez mis en ligne. Ouvrez une application pour voir ses déploiements, ses journaux et ses réglages.",
+      "emptyHint": "Importez un dépôt GitHub ou GitLab, ou partez d'une image Docker : iDeploy la construit et la met en ligne.",
+      "searchPlaceholder": "Rechercher par nom, dépôt ou workspace…",
+      "noMatch": "Aucune application ne correspond à votre recherche."
     },
     "detail": {
       "restart": "Redémarrer",
@@ -575,18 +579,18 @@
   },
   "servers": {
     "title": "Serveurs",
-    "addServerButton": "+ Ajouter un serveur",
+    "addServerButton": "Ajouter un serveur",
     "loading": "Chargement…",
-    "empty": "Aucun serveur pour le moment. Ajoutez-en un pour commencer.",
+    "empty": "Aucun serveur pour l'instant.",
     "proxyStatus": "Proxy : {{status}}",
-    "validate": "Valider",
+    "validate": "Vérifier",
     "proxyStatusButton": "État du proxy",
     "startProxy": "Démarrer le proxy",
     "installCrowdSec": "Installer CrowdSec",
     "delete": "Supprimer",
     "ready": "Prêt à déployer",
-    "notReady": "Non prêt",
-    "setUp": "Configurer",
+    "notReady": "Pas prêt",
+    "setUp": "Préparer le serveur",
     "settingUp": "Configuration…",
     "detail": {
       "backToList": "Retour aux serveurs",
@@ -673,7 +677,7 @@
       "inProgress": "en cours…",
       "consoleDone": "terminé"
     },
-    "provisionButton": "Provisionner sur le cloud",
+    "provisionButton": "Créer un serveur cloud",
     "create": {
       "back": "Retour aux serveurs",
       "title": "Ajouter un serveur",
@@ -720,7 +724,12 @@
     "useLocalButton": "Utiliser cette machine",
     "addingLocal": "Ajout…",
     "localDockerUnreachable": "Serveur ajouté, mais Docker n'a pas répondu — vérifiez que Docker tourne sur cette machine.",
-    "localError": "Impossible d'ajouter cette machine comme serveur."
+    "localError": "Impossible d'ajouter cette machine comme serveur.",
+    "subtitle": "Les machines sur lesquelles vos applications tournent. Vérifiez qu'un serveur est prêt avant d'y déployer.",
+    "emptyHint": "Branchez une machine que vous avez déjà (par SSH), ou créez-en une chez un fournisseur cloud en quelques clics.",
+    "manage": "Gérer",
+    "moreActions": "Plus d'actions",
+    "confirmDelete": "Cliquer encore pour supprimer"
   },
   "databases": {
     "title": "Bases de données",
@@ -812,7 +821,7 @@
     "customNone": "— personnalisé (aucun) —",
     "customCompose": "Docker Compose personnalisé",
     "name": "Nom",
-    "dockerComposeLabel": "docker-compose.yml (ignoré lorsqu'un modèle est sélectionné)",
+    "dockerComposeLabel": "Contenu du docker-compose.yml",
     "creating": "Création…",
     "createService": "Créer le service",
     "createError": "Échec de la création du service",
@@ -821,14 +830,14 @@
     "updated": "Mis à jour le {{date}}",
     "showCustomForm": "Déployer depuis un Docker Compose brut à la place",
     "hideCustomForm": "Masquer",
-    "deployCustom": "Déployer un Docker Compose personnalisé",
-    "latestServices": "Derniers services",
-    "latestServicesHint": "Explorez d'autres services pour étendre votre stack iDeploy.",
+    "deployCustom": "Déployer depuis un fichier docker-compose",
+    "latestServices": "À découvrir",
+    "latestServicesHint": "Des services prêts à installer en un clic.",
     "filter": {
-      "all": "Tous les services",
-      "running": "En cours",
-      "partial": "Attention requise",
-      "exited": "Arrêté"
+      "all": "Tous",
+      "running": "En marche",
+      "partial": "À surveiller",
+      "exited": "Arrêtés"
     },
     "status": {
       "running": "En cours",
@@ -856,25 +865,40 @@
       "deleteService": "Supprimer le service",
       "deleting": "Suppression…",
       "deleteError": "La suppression a échoué."
-    }
+    },
+    "subtitle": "Les logiciels prêts à l'emploi que vous avez installés — base de données, outil d'automatisation, CMS…",
+    "emptyHint": "Choisissez un service dans le catalogue : il est installé et configuré pour vous.",
+    "filterLabel": "Filtrer par état",
+    "deployCustomHint": "Pour ceux qui ont déjà leur propre docker-compose.yml.",
+    "browseAll": "Voir tout le catalogue"
   },
   "sources": {
     "title": "Sources Git",
-    "empty": "Aucune source Git configurée (applications GitHub / GitLab).",
+    "empty": "Aucune source pour l'instant.",
     "connectGithub": "Connecter GitHub",
     "disconnect": "Déconnecter",
-    "emptyHint": "Connectez un fournisseur Git pour déployer depuis vos dépôts.",
+    "emptyHint": "Connectez votre compte pour importer vos dépôts sans copier d'URL.",
     "loadError": "Impossible de charger les sources.",
     "connectError": "La connexion au fournisseur a échoué.",
-    "disconnectError": "La déconnexion a échoué."
+    "disconnectError": "La déconnexion a échoué.",
+    "subtitle": "Les comptes Git d'où iDeploy récupère votre code pour le mettre en ligne.",
+    "connectedAs": "Connecté en tant que {{user}}",
+    "listTitle": "Sources autorisées",
+    "emptyBody": "Connectez GitHub : vos dépôts apparaîtront ici, prêts à être importés."
   },
   "destinations": {
     "title": "Destinations",
-    "empty": "Aucun serveur pour le moment — ajoutez un serveur pour créer des destinations Docker.",
-    "noDestinations": "Aucune destination.",
+    "empty": "Les réseaux vivent sur un serveur : ajoutez-en un d'abord.",
+    "noDestinations": "Aucun réseau sur ce serveur.",
     "network": "réseau",
-    "networkPlaceholder": "réseau docker (ex. ideploy)",
-    "addDestination": "Ajouter une destination"
+    "networkPlaceholder": "ex. ideploy",
+    "addDestination": "Ajouter un réseau",
+    "subtitle": "Le réseau privé de chaque serveur, où vos applications se retrouvent par leur nom. Un seul suffit presque toujours.",
+    "emptyTitle": "Aucun serveur pour l'instant.",
+    "networkLabel": "Nom du réseau Docker",
+    "cancel": "Annuler",
+    "create": "Créer le réseau",
+    "createError": "Impossible de créer ce réseau."
   },
   "storages": {
     "title": "Stockages S3",
@@ -898,8 +922,14 @@
   "tags": {
     "title": "Étiquettes",
     "loading": "Chargement…",
-    "newTagPlaceholder": "Nom de la nouvelle étiquette",
-    "add": "Ajouter"
+    "newTagPlaceholder": "ex. production, client-x, api",
+    "add": "Ajouter",
+    "subtitle": "Des étiquettes à poser sur vos applications, depuis leur page, pour les regrouper et les retrouver vite.",
+    "newTagLabel": "Nouvelle étiquette",
+    "emptyTitle": "Aucune étiquette pour l'instant.",
+    "emptyBody": "Créez-en une ci-dessus, puis posez-la sur une application depuis sa page.",
+    "remove": "Supprimer l'étiquette {{name}}",
+    "addError": "Impossible de créer cette étiquette."
   },
   "settings": {
     "title": "Paramètres",
@@ -1166,17 +1196,17 @@
     }
   },
   "templates": {
-    "title": "Parcourir les services",
+    "title": "Catalogue de services",
     "searchPlaceholder": "Rechercher des modèles (nom, catégorie, tag)…",
     "addServer": "Ajouter un serveur",
-    "noTemplates": "Aucun modèle disponible. (Le catalogue de modèles de services n'a pas pu être chargé.)",
+    "noTemplates": "Le catalogue est vide pour l'instant.",
     "noMatch": "Aucun modèle ne correspond à votre recherche.",
     "deploying": "Déploiement…",
     "deploy": "Déployer",
     "deploymentFailed": "Échec du déploiement",
     "allCategories": "Toutes les catégories",
     "notFound": "Modèle introuvable.",
-    "backToBrowse": "Retour aux services",
+    "backToBrowse": "Retour au catalogue",
     "documentation": "Documentation",
     "install": "Installer",
     "installing": "Installation…",
@@ -1184,7 +1214,9 @@
     "overview": "Vue d'ensemble",
     "category": "Catégorie",
     "tags": "Tags",
-    "resources": "Ressources"
+    "resources": "Ressources",
+    "subtitle": "Des logiciels prêts à installer sur vos serveurs, en un clic. Ouvrez-en un pour voir ce qu'il fait avant de l'installer.",
+    "loadError": "Le catalogue n'a pas pu être chargé. Réessayez dans un instant."
   },
   "subscription": {
     "title": "Abonnement",
@@ -1323,7 +1355,9 @@
       "deployments": "Déploiements",
       "insights": "Analytique",
       "internalHost": "Hôte interne :"
-    }
+    },
+    "resourceOne": "1 ressource",
+    "resourceMany": "{{count}} ressources"
   },
   "workspaceTargetPicker": {
     "workspace": "Workspace",
