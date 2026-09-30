@@ -1,5 +1,7 @@
 import { createHash } from 'crypto';
 import { NextFunction, Request, Response } from 'express';
+import logger from '../config/logger.js';
+import { setTraceUserId, traceHeaders } from '../utils/trace.js';
 
 /**
  * Authentification des routes coûteuses du serveur AppGen.
@@ -50,17 +52,31 @@ async function resolveUser(req: Request): Promise<IdemUser | null> {
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const response = await fetch(`${IDEM_API_URL}/auth/me`, {
-      headers: credentials,
+      headers: { ...credentials, ...traceHeaders() },
       signal: controller.signal,
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      // 401/403 : session expirée, cas normal. Au-delà, l'API centrale va mal
+      // et plus personne ne peut générer — cela doit se voir.
+      if (response.status >= 500) {
+        logger.error('auth.idem_api_error', { event: 'auth.idem_api_error', status: response.status });
+      }
+      return null;
+    }
     const data = (await response.json()) as Partial<IdemUser>;
     if (!data.uid) return null;
     const user = { uid: String(data.uid), email: data.email ?? null };
     cache.set(key, { user, at: Date.now() });
     if (cache.size > 5_000) cache.clear();
     return user;
-  } catch {
+  } catch (error) {
+    // API centrale injoignable ou trop lente : chaque utilisateur reçoit un 401.
+    logger.error('auth.idem_api_unreachable', {
+      event: 'auth.idem_api_unreachable',
+      url: `${IDEM_API_URL}/auth/me`,
+      timeoutMs: TIMEOUT_MS,
+      error,
+    });
     return null;
   } finally {
     clearTimeout(timeout);
@@ -76,5 +92,6 @@ export async function requireIdemUser(req: Request, res: Response, next: NextFun
     });
   }
   req.idemUser = user;
+  setTraceUserId(user.uid);
   next();
 }

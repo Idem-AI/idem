@@ -56,6 +56,7 @@ export function auditLogger(req: Request, res: Response, next: NextFunction): vo
     const duration = Date.now() - start;
     const user = (req as Request & { user?: { uid?: string; email?: string } }).user;
     logger.info('audit', {
+      event: 'http.audit',
       method: req.method,
       path: req.path,
       status: res.statusCode,

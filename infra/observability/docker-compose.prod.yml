@@ -1,0 +1,96 @@
+# Production observability for IDEM: Loki + Alloy + Grafana, on the same host
+# as the application containers. Mailpit is not part of it: alerts go through
+# the real SMTP server.
+#
+#   cd /root/idem/infra/observability
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+#
+# Alloy reads the stdout of the application containers through the Docker
+# socket (config.prod.alloy): the services print one JSON line per event in
+# production, and their log files live inside containers that are replaced on
+# every deployment. Full procedure: docs/OBSERVABILITY.md#production.
+name: idem-observability
+
+services:
+  loki:
+    image: grafana/loki:3.5.5
+    container_name: idem-obs-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki.yaml
+    # No published port: only Alloy and Grafana talk to Loki, on this network.
+    volumes:
+      - ./loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki_data:/loki
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3100/ready | grep -q ready']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    logging: &logging
+      driver: json-file
+      options: { max-size: '20m', max-file: '3' }
+
+  alloy:
+    image: grafana/alloy:v1.11.0
+    container_name: idem-obs-alloy
+    restart: unless-stopped
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    environment:
+      LOKI_PUSH_URL: http://loki:3100/loki/api/v1/push
+    ports:
+      # Collection status page, reachable through an SSH tunnel only.
+      - '127.0.0.1:12345:12345'
+    volumes:
+      - ./alloy/config.prod.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+    logging: *logging
+
+  grafana:
+    image: grafana/grafana:12.2.0
+    container_name: idem-obs-grafana
+    restart: unless-stopped
+    ports:
+      # Published on the loopback only: the reverse proxy serves it over HTTPS.
+      - '127.0.0.1:${GRAFANA_PORT:-3300}:3000'
+    environment:
+      GF_SECURITY_ADMIN_USER: '${GRAFANA_ADMIN_USER:?set GRAFANA_ADMIN_USER in .env.prod}'
+      GF_SECURITY_ADMIN_PASSWORD: '${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env.prod}'
+      GF_SERVER_ROOT_URL: '${GRAFANA_ROOT_URL:?set GRAFANA_ROOT_URL in .env.prod}'
+      GF_SECURITY_COOKIE_SECURE: 'true'
+      GF_SECURITY_DISABLE_GRAVATAR: 'true'
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_USERS_DEFAULT_LANGUAGE: fr-FR
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_NEWS_NEWS_FEED_ENABLED: 'false'
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/idem-logs.json
+      GF_SMTP_ENABLED: 'true'
+      GF_SMTP_HOST: '${SMTP_HOST:?set SMTP_HOST in .env.prod}'
+      GF_SMTP_USER: '${SMTP_USER:?set SMTP_USER in .env.prod}'
+      GF_SMTP_PASSWORD: '${SMTP_PASSWORD:?set SMTP_PASSWORD in .env.prod}'
+      GF_SMTP_FROM_ADDRESS: '${ALERT_EMAIL_FROM:?set ALERT_EMAIL_FROM in .env.prod}'
+      GF_SMTP_FROM_NAME: 'IDEM · Alertes'
+      GF_SMTP_STARTTLS_POLICY: '${SMTP_STARTTLS_POLICY:-MandatoryStartTLS}'
+      GF_SMTP_SKIP_VERIFY: 'false'
+      ALERT_EMAIL_TO: '${ALERT_EMAIL_TO:?set ALERT_EMAIL_TO in .env.prod}'
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      loki:
+        condition: service_healthy
+    logging: *logging
+
+volumes:
+  loki_data:
+  alloy_data:
+  grafana_data:

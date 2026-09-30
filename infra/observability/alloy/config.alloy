@@ -1,0 +1,72 @@
+// Collecte des journaux IDEM → Loki.
+//
+// Chaque service écrit une ligne JSON par événement dans `logs/combined.log`
+// (format commun : apps/*/config/log-format.ts). Alloy les lit, en tire trois
+// labels à faible cardinalité — service, env, level — et laisse tout le reste
+// (requestId, userId, event, error…) dans la ligne, interrogeable avec `| json`.
+//
+// Les autres fichiers (error.log, ai-trace.log, payments.log) sont des copies
+// filtrées de combined.log : ils ne sont PAS collectés, sans quoi chaque ligne
+// arriverait deux ou trois fois dans Loki.
+
+local.file_match "idem" {
+  path_targets = [
+    {"__path__" = "/var/log/idem/idem-api/combined.log"},
+    {"__path__" = "/var/log/idem/ideploy-api/combined.log"},
+    {"__path__" = "/var/log/idem/appgen/combined.log"},
+    {"__path__" = "/var/log/idem/test/*/combined.log"},
+  ]
+  sync_period = "5s"
+}
+
+loki.source.file "idem" {
+  targets    = local.file_match.idem.targets
+  forward_to = [loki.process.idem.receiver]
+}
+
+loki.process "idem" {
+  stage.json {
+    expressions = {
+      level      = "level",
+      service    = "service",
+      env        = "environment",
+      ts         = "timestamp",
+      request_id = "requestId",
+    }
+  }
+
+  // L'heure de l'événement, pas celle de la lecture du fichier.
+  stage.timestamp {
+    source = "ts"
+    format = "RFC3339"
+  }
+
+  stage.labels {
+    values = {
+      level   = "",
+      service = "",
+      env     = "",
+    }
+  }
+
+  // Indexé à part (sans créer de flux) : `{service=~".+"} | request_id="…"`
+  // retrouve une requête sans décoder chaque ligne.
+  stage.structured_metadata {
+    values = {
+      request_id = "",
+    }
+  }
+
+  // Le chemin du fichier n'apporte rien au-delà de `service`.
+  stage.label_drop {
+    values = ["filename"]
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = coalesce(sys.env("LOKI_PUSH_URL"), "http://loki:3100/loki/api/v1/push")
+  }
+}

@@ -17,6 +17,7 @@ import { resolveCurrentTeam } from '../services/user.service';
 import { verifyPat } from '../services/pat.service';
 import { fail } from '../utils/response';
 import logger from '../config/logger';
+import { setTraceUser } from '../utils/trace.util';
 
 export async function authenticate(
   req: CustomRequest,
@@ -42,6 +43,7 @@ export async function authenticate(
           currentTeamId,
           isSuperUser: profile.isSuperUser === true,
         };
+        setTraceUser(user.id, currentTeamId);
         next();
         return;
       }
@@ -53,6 +55,7 @@ export async function authenticate(
       const pat = await verifyPat(header.slice(7));
       if (pat) {
         req.user = pat.user;
+        setTraceUser(pat.user.id, pat.user.currentTeamId);
         next();
         return;
       }
@@ -62,7 +65,7 @@ export async function authenticate(
   } catch (err) {
     // DB down, network errors, etc. — never let it become an uncaughtException.
     const message = (err as Error).message;
-    logger.error('Authentication error', { message });
+    logger.error('Authentication error', { event: 'auth.error', error: err });
     if (/ENOTFOUND|ECONNREFUSED|ETIMEDOUT|getaddrinfo|connect/i.test(message)) {
       fail(res, 'Backend dependency unavailable (database). Check IDEPLOY_DB_HOST.', 503, 'DB_UNAVAILABLE');
     } else {

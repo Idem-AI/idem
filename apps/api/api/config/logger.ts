@@ -1,19 +1,36 @@
+import path from 'path';
+import util from 'util';
 import winston from 'winston';
 import { traceLogFields } from '../utils/trace.util';
+import {
+  baseMeta,
+  consoleIsJson,
+  jsonLine,
+  normalizeErrors,
+  prettyConsole,
+  sanitizeInfo,
+} from './log-format';
 
 // Determine log level from environment variable or default to 'info'
 const level = process.env.LOG_LEVEL || 'info';
 
+/** Dossier des fichiers de journaux ; `combined.log` est celui que collecte Grafana. */
+const LOG_DIR = process.env.LOG_DIR || 'logs';
+
 /**
  * Injecte automatiquement les champs de corrélation (requestId, userId,
- * projectId) dans CHAQUE ligne de log, sans toucher aux ~200 call sites
+ * projectId, job) dans CHAQUE ligne de log, sans toucher aux ~2000 call sites
  * `logger.info/warn/error(...)` existants dans la codebase. Le contexte est
- * seedé par request-trace.middleware.ts (un par requête HTTP) et enrichi en
- * cours de route (authenticate() appelle setTraceUserId, les
- * controllers/tools appellent setTraceProjectId).
+ * seedé par request-trace.middleware.ts (un par requête HTTP) ou par
+ * runJobWithTrace (une tâche de fond), et enrichi en cours de route
+ * (authenticate() appelle setTraceUserId, les controllers/tools appellent
+ * setTraceProjectId). Une valeur passée explicitement dans l'appel prime.
  */
 const traceEnrichment = winston.format((info) => {
-  Object.assign(info, traceLogFields());
+  const record = info as unknown as Record<string, unknown>;
+  for (const [key, value] of Object.entries(traceLogFields())) {
+    if (record[key] === undefined) record[key] = value;
+  }
   return info;
 });
 
@@ -29,8 +46,9 @@ const aiTraceFilter = winston.format((info) => {
  *
  * Isolé du reste pour une raison pratique : quand un client dit « j'ai payé et
  * je n'ai rien reçu », on veut relire SA transaction sans la chercher au milieu
- * des générations IA. Le fichier est collecté par Promtail comme les autres
- * (`/var/log/idem-api/*.log`), donc requêtable dans Grafana.
+ * des générations IA. Ces lignes sont AUSSI dans `combined.log`, seul fichier
+ * envoyé à Grafana (où `{service="idem-api"} | json | event=~"payment.*"` les
+ * retrouve) : ce fichier-ci n'est qu'une copie locale à rétention longue.
  */
 const PAYMENT_TRACE_PREFIXES = ['payment.', 'billing.', 'beta.', 'email.'];
 const paymentTraceFilter = winston.format((info) => {
@@ -38,96 +56,36 @@ const paymentTraceFilter = winston.format((info) => {
   return PAYMENT_TRACE_PREFIXES.some((p) => event.startsWith(p)) ? info : false;
 });
 
-// Champs "de structure" à ne PAS répéter comme métadonnées inline en console.
-const CONSOLE_HIDDEN_FIELDS = new Set([
-  'timestamp',
-  'level',
-  'message',
-  'service',
-  'environment',
-  'stack',
-  'event',
-]);
-
-/**
- * Rendu compact des métadonnées d'une ligne de log pour la console: transforme
- * `{ tool: 'project_get_map', ok: true, durationMs: 42 }` en
- * `tool=project_get_map ok=true durationMs=42`. Sans cela la console
- * n'afficherait que le nom de l'événement (`ai.tool_call_end`) sans aucun
- * détail — inutilisable pour suivre ce que fait l'IA en temps réel.
- */
-function formatConsoleMeta(info: Record<string, unknown>): string {
-  const parts: string[] = [];
-  // requestId d'abord (corrélation), raccourci à 8 caractères pour la lisibilité.
-  if (typeof info.requestId === 'string') {
-    parts.push(`req=${info.requestId.slice(0, 8)}`);
-  }
-  for (const key of Object.keys(info)) {
-    if (CONSOLE_HIDDEN_FIELDS.has(key) || key === 'requestId') continue;
-    const value = info[key];
-    if (value === undefined) continue;
-    const rendered =
-      value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value);
-    parts.push(`${key}=${rendered}`);
-  }
-  return parts.join(' ');
-}
-
-// Define different logging formats
-const consoleFormat = winston.format.combine(
-  winston.format.colorize(),
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.printf((info) => {
-    const base = `${info.timestamp} ${info.level}: ${info.message}`;
-    // Pour les événements de traçage (logAIEvent), afficher les métadonnées
-    // inline afin de suivre en temps réel dans le terminal. Les logs texte
-    // classiques (qui portent déjà tout dans leur message) restent inchangés.
-    if (typeof info.event === 'string') {
-      const meta = formatConsoleMeta(info as Record<string, unknown>);
-      return meta ? `${base} · ${meta}` : base;
-    }
-    return base;
-  })
-);
-
-const fileFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.json() // Log in JSON format to files
-);
-
 const logger = winston.createLogger({
   level: level,
   format: winston.format.combine(
-    winston.format.errors({ stack: true }), // Log stack traces for errors
+    winston.format.errors({ stack: true }), // Error passée seule : message + stack
     winston.format.splat(),
+    normalizeErrors(), // toute erreur → champ `error` sérialisé
     traceEnrichment(), // requestId/userId/projectId on every line
-    winston.format.json()
+    sanitizeInfo() // secrets masqués, tailles bornées, horodatage ISO
   ),
-  defaultMeta: {
-    service: 'idem-api',         // Service label for Loki/Promtail
-    environment: process.env.NODE_ENV || 'development',
-  },
+  defaultMeta: baseMeta('idem-api', process.env.npm_package_version),
   transports: [
-    // Console transport - for development or general output
-    // Also collected by Promtail via Docker log driver
+    // Console : lisible en développement, JSON en production (stdout collecté
+    // par Docker/Alloy). Forçable avec LOG_FORMAT=json|pretty.
     new winston.transports.Console({
-      format: consoleFormat,
-      handleExceptions: true, // Log unhandled exceptions
+      format: consoleIsJson() ? jsonLine : prettyConsole,
     }),
-    // File transport for errors — scraped by Promtail
+    // File transport for errors — relecture locale rapide
     new winston.transports.File({
-      filename: 'logs/error.log',
+      filename: path.join(LOG_DIR, 'error.log'),
       level: 'error',
-      format: fileFormat,
+      format: jsonLine,
       maxsize: 5242880, // 5MB
       maxFiles: 5,
       tailable: true,
     }),
-    // File transport for all logs — scraped by Promtail
+    // Tous les journaux — LE fichier collecté par Alloy/Promtail vers Loki.
     new winston.transports.File({
-      filename: 'logs/combined.log',
-      format: fileFormat,
-      maxsize: 5242880, // 5MB
+      filename: path.join(LOG_DIR, 'combined.log'),
+      format: jsonLine,
+      maxsize: 20971520, // 20MB
       maxFiles: 5,
       tailable: true,
     }),
@@ -135,8 +93,8 @@ const logger = winston.createLogger({
     // agentiques, requêtes Chronicle, vérifications de cohérence). Isolé pour
     // pouvoir suivre "tout ce qui se passe" avec un simple `tail -f`.
     new winston.transports.File({
-      filename: 'logs/ai-trace.log',
-      format: winston.format.combine(aiTraceFilter(), fileFormat),
+      filename: path.join(LOG_DIR, 'ai-trace.log'),
+      format: winston.format.combine(aiTraceFilter(), jsonLine),
       maxsize: 10485760, // 10MB
       maxFiles: 5,
       tailable: true,
@@ -146,8 +104,8 @@ const logger = winston.createLogger({
     // arrive des semaines après la transaction, et c'est précisément le moment
     // où l'on a besoin de la trace.
     new winston.transports.File({
-      filename: 'logs/payments.log',
-      format: winston.format.combine(paymentTraceFilter(), fileFormat),
+      filename: path.join(LOG_DIR, 'payments.log'),
+      format: winston.format.combine(paymentTraceFilter(), jsonLine),
       maxsize: 20971520, // 20MB
       maxFiles: 10,
       tailable: true,
@@ -155,6 +113,67 @@ const logger = winston.createLogger({
   ],
   exitOnError: false, // Do not exit on handled exceptions
 });
+
+/**
+ * Un incident qui doit réveiller quelqu'un : la ligne porte `alert="critical"`,
+ * et la règle Grafana « Événement critique » envoie un e-mail à la première
+ * occurrence (infra/observability/grafana/provisioning/alerting).
+ *
+ * À réserver aux cas où l'on perd de l'argent, des données ou le service :
+ * paiement encaissé mais non livré, base inaccessible, crash du processus.
+ */
+export function logCritical(event: string, meta: Record<string, unknown> = {}): void {
+  logger.error(event, { event, alert: 'critical', ...meta });
+}
+
+/**
+ * Redirige `console.*` vers le logger : les ~365 `console.log/error` encore
+ * présents (démarrage, gestionnaire d'erreurs global, scripts de service)
+ * deviennent des lignes JSON corrélées au lieu de texte brut invisible pour
+ * Grafana. Le transport Console de winston écrit directement sur stdout, sans
+ * repasser par `console.log` : pas de boucle.
+ */
+export function captureConsole(): void {
+  const route = (lvl: 'info' | 'warn' | 'error' | 'debug') =>
+    (...args: unknown[]) => {
+      const error = args.find((a) => a instanceof Error);
+      const message = util.format(...args.filter((a) => a !== error));
+      logger.log(lvl, message || (error as Error | undefined)?.message || '', {
+        event: 'console',
+        ...(error ? { error } : {}),
+      });
+    };
+  console.log = route('info');
+  console.info = route('info');
+  console.warn = route('warn');
+  console.error = route('error');
+  console.debug = route('debug');
+}
+
+/**
+ * Journalise les fins brutales du processus avant qu'il ne meure : sans cela,
+ * un crash en production ne laisse qu'une trace texte dans les journaux Docker,
+ * sans contexte et sans alerte.
+ *
+ * Le comportement d'avant est conservé : une exception non rattrapée est
+ * journalisée et le serveur continue (c'était déjà le cas via
+ * `handleExceptions` + `exitOnError: false`) ; une promesse rejetée sans
+ * gestionnaire arrête le processus comme le fait Node (le conteneur redémarre)
+ * — seulement, désormais, après avoir laissé une ligne critique.
+ */
+export function installProcessHandlers(): void {
+  const report = (event: string, err: unknown) =>
+    logCritical(event, { error: err instanceof Error ? err : new Error(String(err)) });
+  process.on('uncaughtException', (err) => report('process.uncaught_exception', err));
+  process.on('unhandledRejection', (reason) => {
+    report('process.unhandled_rejection', reason);
+    // Laisse aux transports fichiers le temps d'écrire la dernière ligne.
+    setTimeout(() => process.exit(1), 500).unref();
+  });
+  process.on('warning', (warning) => {
+    logger.warn(warning.message, { event: 'process.warning', error: warning });
+  });
+}
 
 // Stream for Morgan (HTTP request logger)
 export const stream = {

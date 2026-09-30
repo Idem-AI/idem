@@ -1,0 +1,178 @@
+apiVersion: 1
+
+# Règles d'alerte sur les journaux (Loki). Les seuils sont volontairement
+# bas pour le critique : mieux vaut un e-mail de trop qu'un paiement perdu.
+# Pour tester sans lancer les services : node scripts/emit-test-logs.mjs
+groups:
+  - orgId: 1
+    name: idem-critique
+    folder: IDEM
+    interval: 1m
+    rules:
+      - uid: idem-critical-event
+        title: 'Événement critique'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              editorMode: code
+              queryType: instant
+              expr: 'sum by (env, service, event, request_id, error_message) (count_over_time({service=~".+"} | json | alert="critical" | label_format error_message="{{ trunc 200 .error_message }}" [5m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [0] } }] }
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: 'Un événement critique a été journalisé'
+          description: 'Une ligne marquée alert="critical" : argent encaissé non livré, signature de callback rejetée, base ou stockage inaccessible au démarrage, crash du processus. Chaque occurrence est à traiter.'
+        labels:
+          severity: critical
+        isPaused: false
+      - uid: idem-http-5xx
+        title: 'Erreurs serveur (5xx)'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              editorMode: code
+              queryType: instant
+              expr: 'sum by (env, service) (count_over_time({service=~".+", level="error"} |= "http.request_end" | json | event="http.request_end" [5m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [5] } }] }
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: 'Plus de 5 réponses 5xx en 5 minutes'
+          description: 'Des utilisateurs reçoivent des erreurs serveur. Ouvrir le tableau de bord, filtrer le service et le niveau error pour voir les routes et les erreurs en cause.'
+        labels:
+          severity: critical
+        isPaused: false
+      - uid: idem-payment-errors
+        title: 'Erreur sur un paiement'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              editorMode: code
+              queryType: instant
+              expr: 'sum by (env, service, event) (count_over_time({service="idem-api", level="error"} | json | event=~`(payment|billing)\..+` | alert!="critical" [10m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [0] } }] }
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: 'Une erreur est survenue dans le parcours de paiement ou de facturation'
+          description: 'Erreur pawaPay, écriture de la timeline, tâche de facturation en échec… Relire la transaction dans le panel admin (timeline) et dans logs/payments.log.'
+        labels:
+          severity: critical
+        isPaused: false
+      - uid: idem-appgen-api-unreachable
+        title: 'AppGen ne joint plus l''API'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              editorMode: code
+              queryType: instant
+              expr: 'sum by (env, service) (count_over_time({service="appgen", level="error"} | json | event=~"auth.idem_api_(unreachable|error)" [5m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [3] } }] }
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: 'AppGen n''arrive plus à vérifier les sessions auprès de l''API centrale'
+          description: 'Chaque utilisateur d''AppGen reçoit un 401 : plus personne ne peut générer. Vérifier que l''API répond (/health) et IDEM_API_URL côté AppGen.'
+        labels:
+          severity: critical
+        isPaused: false
+  - orgId: 1
+    name: idem-surveillance
+    folder: IDEM
+    interval: 1m
+    rules:
+      - uid: idem-error-spike
+        title: 'Pic d''erreurs'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              editorMode: code
+              queryType: instant
+              expr: 'sum by (env, service) (count_over_time({service=~".+", level="error"} [10m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [30] } }] }
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: 'Plus de 30 lignes d''erreur en 10 minutes'
+          description: 'Volume d''erreurs anormal. Le panneau « Erreurs les plus fréquentes » du tableau de bord montre lesquelles.'
+        labels:
+          severity: warning
+        isPaused: false
+      - uid: idem-deploy-failures
+        title: 'Déploiements en échec'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              editorMode: code
+              queryType: instant
+              expr: 'sum by (env, service) (count_over_time({service="ideploy-api", level="error"} | json | event="job.failed" [15m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [3] } }] }
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: 'Plus de 3 tâches iDeploy abandonnées en 15 minutes'
+          description: 'Tâches BullMQ (déploiement, sauvegarde, pipeline) en échec après toutes leurs tentatives. Si ce n''est pas le code d''un client, suspecter SSH, Docker ou Redis.'
+        labels:
+          severity: warning
+        isPaused: false

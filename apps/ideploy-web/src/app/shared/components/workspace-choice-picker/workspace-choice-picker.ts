@@ -1,95 +1,165 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ApiService } from '../../services/api.service';
-import { Workspace } from '../../models/ideploy.models';
+import { DeploymentType, Server, Workspace, WorkspaceOptions } from '../../models/ideploy.models';
+import { IllustrationComponent } from '../illustration/illustration';
 
 export interface WorkspaceChoice {
   /** Set when an existing workspace was picked. */
   workspace_uuid?: string;
   /** Set when creating a new one — find-or-create by name. */
   workspace_name?: string;
+  /** Where a new workspace runs. An existing one already knows. */
+  deployment_type?: DeploymentType;
+  /** Set with `deployment_type: 'own'`. */
+  server_uuid?: string;
+  /** SaaS only, when the plan allows choosing. */
+  region?: string;
+  /** Display name of the picked or new workspace — for the caller's own labels, not for the API. */
+  label: string;
 }
 
 /**
- * Where a one-click deploy lands: an existing workspace, or a new one.
+ * Where a deploy lands: IDEM's infrastructure or the operator's own server,
+ * then which workspace on it — an existing one, or a new one.
  *
- * Every "New Project" entry point used to skip this question entirely and
- * silently create a workspace named after whatever was being deployed — which
- * is why importing the same repository twice produced two separate,
- * unrelated workspaces with no way to tell they were related. This makes the
- * choice visible without adding a step for the common case: with no
- * workspaces yet, it defaults straight to "create one named after this
- * deploy", exactly what used to happen implicitly.
+ * The target is asked first, every time. It used to be asked only when a
+ * workspace was created from `/workspaces/new`; every other entry point
+ * either hid it behind "use existing" or created the workspace on IDEM in
+ * silence, so someone with a server of their own never saw the choice.
+ * Existing workspaces are then filtered to that target, so picking one can't
+ * contradict the answer just given.
  */
 @Component({
   selector: 'app-workspace-choice-picker',
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, RouterLink, TranslateModule, IdemLoaderComponent, IllustrationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="space-y-2">
-      <label class="mb-1 block text-sm">{{ 'workspaceChoicePicker.label' | translate }}</label>
-
-      @if (locked() && lockedWorkspace(); as ws) {
-        <div class="flex items-center justify-between gap-2 rounded-lg px-3 py-2" style="background:var(--glass-bg-subtle);">
-          <span class="text-sm">
-            {{ 'workspaceChoicePicker.lockedInto' | translate:{ name: ws.name } }}
-          </span>
-          <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-primary-400);" (click)="unlock()">
-            {{ 'workspaceChoicePicker.change' | translate }}
-          </button>
+    @if (loading()) {
+      <idem-loader block [label]="'projects.common.loading' | translate" />
+    } @else if (locked() && lockedWorkspace(); as ws) {
+      <div class="flex items-center gap-4">
+        <app-illustration [name]="ws.deploymentType === 'own' ? 'own-server' : 'managed-cloud'" [width]="64" class="block flex-shrink-0" />
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-semibold text-text-primary">{{ 'workspaceChoicePicker.lockedInto' | translate: { name: ws.name } }}</p>
+          <p class="mt-0.5 text-xs" style="color:var(--color-text-secondary);">
+            {{ 'workspaces.target.' + ws.deploymentType | translate }}
+            @if (ws.deploymentType === 'own' && ws.assignedServerName) { · {{ ws.assignedServerName }} }
+          </p>
         </div>
-        <p class="text-xs" style="color: var(--color-text-secondary)">
-          {{ 'workspaceChoicePicker.existingHint' | translate }}
-        </p>
-      } @else {
+        <button type="button" class="outer-button button-sm" (click)="locked.set(false)">
+          {{ 'workspaceChoicePicker.change' | translate }}
+        </button>
+      </div>
+    } @else {
+      <div class="space-y-5">
+        <fieldset>
+          <legend class="mb-2 text-sm">{{ 'workspaces.form.target' | translate }}</legend>
+          <div class="grid gap-3 sm:grid-cols-2">
+            @for (type of deploymentTypes(); track type) {
+              <label
+                class="relative flex cursor-pointer flex-col items-center rounded-xl border p-4 text-center transition-smooth"
+                [style.border-color]="target() === type ? 'var(--color-primary-500)' : 'var(--glass-border)'"
+                [style.background]="target() === type ? 'var(--glass-bg-light)' : 'var(--glass-bg-subtle)'"
+              >
+                <input class="sr-only" type="radio" [name]="radioName" [checked]="target() === type" (change)="setTarget(type)" />
+                @if (target() === type) {
+                  <i class="pi pi-check-circle absolute right-3 top-3 text-sm" style="color:var(--color-primary-500);"></i>
+                }
+                <app-illustration [name]="type === 'own' ? 'own-server' : 'managed-cloud'" [width]="88" class="mb-2 block" />
+                <span class="block text-sm font-semibold">{{ 'workspaces.target.' + type | translate }}</span>
+                <span class="mt-1 block text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ 'workspaces.targetHint.' + type | translate }}</span>
+              </label>
+            }
+          </div>
+        </fieldset>
 
-      @if (workspaces().length > 0) {
-        <div class="flex gap-2 text-xs">
-          <button
-            type="button"
-            class="rounded-lg px-3 py-1.5 font-semibold transition-colors"
-            [style.background]="mode() === 'new' ? 'var(--color-primary-500)' : 'var(--glass-bg-subtle)'"
-            [style.color]="mode() === 'new' ? 'white' : 'var(--color-text-secondary)'"
-            (click)="setMode('new')"
-          >
-            {{ 'workspaceChoicePicker.createNew' | translate }}
-          </button>
-          <button
-            type="button"
-            class="rounded-lg px-3 py-1.5 font-semibold transition-colors"
-            [style.background]="mode() === 'existing' ? 'var(--color-primary-500)' : 'var(--glass-bg-subtle)'"
-            [style.color]="mode() === 'existing' ? 'white' : 'var(--color-text-secondary)'"
-            (click)="setMode('existing')"
-          >
-            {{ 'workspaceChoicePicker.useExisting' | translate }}
-          </button>
-        </div>
-      }
+        <div class="space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-sm">{{ 'workspaceChoicePicker.workspaceLabel' | translate }}</span>
+            @if (matching().length > 0) {
+              <div class="inline-flex rounded-lg border p-1" style="border-color:var(--glass-border);background:var(--glass-bg-subtle);" role="radiogroup">
+                @for (m of modes; track m.value) {
+                  <button
+                    type="button"
+                    role="radio"
+                    class="rounded-md px-3 py-1 text-xs font-semibold transition-smooth"
+                    [attr.aria-checked]="mode() === m.value"
+                    [style.background]="mode() === m.value ? 'var(--glass-bg-light)' : 'transparent'"
+                    [style.box-shadow]="mode() === m.value ? '0 0 0 1px var(--glass-border-medium)' : 'none'"
+                    [style.color]="mode() === m.value ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'"
+                    (click)="mode.set(m.value)"
+                  >
+                    {{ m.label | translate }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
 
-      @if (mode() === 'existing' && workspaces().length > 0) {
-        <select  [ngModel]="selectedUuid()" (ngModelChange)="onExistingChange($event)">
-          <option value="" disabled>{{ 'workspaceChoicePicker.choose' | translate }}</option>
-          @for (ws of workspaces(); track ws.uuid) {
-            <option [value]="ws.uuid">{{ ws.name }}</option>
+          @if (mode() === 'existing' && matching().length > 0) {
+            <select [attr.aria-label]="'workspaceChoicePicker.workspaceLabel' | translate" [ngModel]="selectedUuid()" (ngModelChange)="selectedUuid.set($event)">
+              <option value="" disabled>{{ 'workspaceChoicePicker.choose' | translate }}</option>
+              @for (ws of matching(); track ws.uuid) {
+                <option [value]="ws.uuid">
+                  {{ ws.name }}@if (ws.deploymentType === 'own' && ws.assignedServerName) { — {{ ws.assignedServerName }} }
+                </option>
+              }
+            </select>
+            <p class="text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ 'workspaceChoicePicker.existingHint' | translate }}</p>
+          } @else {
+            <input
+              type="text"
+              [attr.aria-label]="'workspaceChoicePicker.workspaceLabel' | translate"
+              [ngModel]="newName()"
+              (ngModelChange)="onNewNameChange($event)"
+              [placeholder]="'workspaceChoicePicker.namePlaceholder' | translate"
+            />
+            <p class="text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ 'workspaceChoicePicker.newHint' | translate }}</p>
           }
-        </select>
-        <p class="text-xs" style="color: var(--color-text-secondary)">
-          {{ 'workspaceChoicePicker.existingHint' | translate }}
-        </p>
-      } @else {
-        <input type="text"
-          
-          [ngModel]="newName()"
-          (ngModelChange)="onNewNameChange($event)"
-          [placeholder]="'workspaceChoicePicker.namePlaceholder' | translate"
-        />
-        <p class="text-xs" style="color: var(--color-text-secondary)">
-          {{ 'workspaceChoicePicker.newHint' | translate }}
-        </p>
-      }
-      }
-    </div>
+        </div>
+
+        @if (mode() === 'new' || matching().length === 0) {
+          @if (target() === 'own') {
+            <div>
+              <label class="mb-1 block text-sm" [for]="radioName + '-server'">{{ 'workspaces.form.server' | translate }}</label>
+              @if (servers().length === 0) {
+                <p class="text-sm" style="color:var(--color-text-secondary);">
+                  {{ 'workspaces.form.noServers' | translate }}
+                  <a routerLink="/servers/new" style="color:var(--color-primary-500);">{{ 'workspaces.form.addServer' | translate }}</a>
+                </p>
+              } @else {
+                <select [id]="radioName + '-server'" [ngModel]="serverUuid()" (ngModelChange)="serverUuid.set($event)">
+                  <option value="">{{ 'workspaces.form.chooseServer' | translate }}</option>
+                  @for (server of servers(); track server.uuid) {
+                    <option [value]="server.uuid">{{ server.name }} — {{ server.ip }}</option>
+                  }
+                </select>
+              }
+            </div>
+          } @else if (options()?.regionSelectionAllowed) {
+            <div>
+              <label class="mb-1 block text-sm" [for]="radioName + '-region'">{{ 'workspaces.form.region' | translate }}</label>
+              <select [id]="radioName + '-region'" [ngModel]="region()" (ngModelChange)="region.set($event)">
+                <option value="">{{ 'workspaces.form.defaultRegion' | translate: { region: options()?.defaultRegion } }}</option>
+                @for (r of options()?.availableRegions ?? []; track r) {
+                  <option [value]="r">{{ r }}</option>
+                }
+              </select>
+            </div>
+          } @else if (options()?.defaultRegion) {
+            <p class="text-xs leading-relaxed" style="color:var(--color-text-secondary);">
+              {{ 'workspaces.form.regionLocked' | translate: { region: options()?.defaultRegion } }}
+            </p>
+          }
+        }
+      </div>
+    }
   `,
 })
 export class WorkspaceChoicePickerComponent implements OnInit {
@@ -106,72 +176,111 @@ export class WorkspaceChoicePickerComponent implements OnInit {
    */
   readonly lockedWorkspaceUuid = input<string | null>(null);
 
+  /**
+   * Which of "use existing" / "create" opens when both are possible. Import
+   * flows default to a new workspace named after what is deployed; the
+   * architecture guide defaults to reusing one.
+   */
+  readonly preferExisting = input(false);
+
   readonly choiceChange = output<WorkspaceChoice | null>();
 
+  protected readonly modes = [
+    { value: 'existing' as const, label: 'workspaceChoicePicker.useExisting' },
+    { value: 'new' as const, label: 'workspaceChoicePicker.createNew' },
+  ];
+  /** Radio groups need a name unique to this instance. */
+  protected readonly radioName = `ws-target-${Math.random().toString(36).slice(2, 8)}`;
+
+  protected readonly loading = signal(true);
   protected readonly workspaces = signal<Workspace[]>([]);
+  protected readonly servers = signal<Server[]>([]);
+  protected readonly options = signal<WorkspaceOptions | null>(null);
+
+  protected readonly target = signal<DeploymentType>('saas');
   protected readonly mode = signal<'new' | 'existing'>('new');
-  protected readonly selectedUuid = signal<string>('');
-  protected readonly newName = signal<string>('');
+  protected readonly selectedUuid = signal('');
+  protected readonly newName = signal('');
+  protected readonly serverUuid = signal('');
+  protected readonly region = signal('');
   /** Set to false once the operator clicks "Changer". */
   protected readonly locked = signal(true);
+  private touchedName = false;
 
+  protected readonly deploymentTypes = computed<DeploymentType[]>(() => this.options()?.deploymentTypes ?? ['saas', 'own']);
+  protected readonly matching = computed(() => this.workspaces().filter((w) => w.deploymentType === this.target()));
   protected readonly lockedWorkspace = computed(
     () => this.workspaces().find((w) => w.uuid === this.lockedWorkspaceUuid()) ?? null
   );
 
+  /** What the caller receives — null until the answer is complete enough to deploy. */
+  private readonly choice = computed<WorkspaceChoice | null>(() => {
+    if (this.loading()) return null;
+
+    const locked = this.locked() ? this.lockedWorkspace() : null;
+    if (locked) return { workspace_uuid: locked.uuid, label: locked.name };
+
+    if (this.mode() === 'existing' && this.matching().length > 0) {
+      const ws = this.matching().find((w) => w.uuid === this.selectedUuid());
+      return ws ? { workspace_uuid: ws.uuid, label: ws.name } : null;
+    }
+
+    const name = this.newName().trim();
+    if (!name) return null;
+    if (this.target() === 'own') {
+      return this.serverUuid()
+        ? { workspace_name: name, deployment_type: 'own', server_uuid: this.serverUuid(), label: name }
+        : null;
+    }
+    return { workspace_name: name, deployment_type: 'saas', region: this.region() || undefined, label: name };
+  });
+
   constructor() {
-    // Keeps the suggested name in sync until the operator actually types
-    // something of their own — after that, their input wins.
+    // Keeps the suggested name in sync until the operator types their own.
     effect(() => {
       const suggested = this.suggestedName();
       if (!this.touchedName) this.newName.set(suggested);
-      this.emit();
     });
-    // Once the workspace list has loaded and the lock target resolves,
-    // commit to it as the choice — same shape as picking it by hand.
-    effect(() => {
-      const ws = this.lockedWorkspace();
-      if (ws && this.locked()) {
-        this.mode.set('existing');
-        this.selectedUuid.set(ws.uuid);
-        this.emit();
-      }
-    });
+    effect(() => this.choiceChange.emit(this.choice()));
   }
-
-  private touchedName = false;
 
   ngOnInit(): void {
-    this.api.listWorkspaces().subscribe((list) => this.workspaces.set(list));
+    forkJoin({
+      workspaces: this.api.listWorkspaces().pipe(catchError(() => of([] as Workspace[]))),
+      servers: this.api.listServers().pipe(catchError(() => of([] as Server[]))),
+      options: this.api.workspaceOptions().pipe(catchError(() => of(null))),
+    }).subscribe(({ workspaces, servers, options }) => {
+      this.workspaces.set(workspaces);
+      this.servers.set(servers);
+      this.options.set(options);
+
+      const locked = workspaces.find((w) => w.uuid === this.lockedWorkspaceUuid());
+      if (locked) {
+        this.target.set(locked.deploymentType);
+        this.mode.set('existing');
+        this.selectedUuid.set(locked.uuid);
+      } else {
+        this.applyDefaultMode();
+      }
+      this.loading.set(false);
+    });
   }
 
-  protected unlock(): void {
-    this.locked.set(false);
-  }
-
-  protected setMode(mode: 'new' | 'existing'): void {
-    this.mode.set(mode);
-    this.emit();
-  }
-
-  protected onExistingChange(uuid: string): void {
-    this.selectedUuid.set(uuid);
-    this.emit();
+  protected setTarget(type: DeploymentType): void {
+    this.target.set(type);
+    this.selectedUuid.set('');
+    this.applyDefaultMode();
   }
 
   protected onNewNameChange(name: string): void {
     this.touchedName = true;
     this.newName.set(name);
-    this.emit();
   }
 
-  private emit(): void {
-    if (this.mode() === 'existing') {
-      const uuid = this.selectedUuid();
-      this.choiceChange.emit(uuid ? { workspace_uuid: uuid } : null);
-      return;
-    }
-    const name = this.newName().trim();
-    this.choiceChange.emit(name ? { workspace_name: name } : null);
+  private applyDefaultMode(): void {
+    const matching = this.matching();
+    this.mode.set(this.preferExisting() && matching.length > 0 ? 'existing' : 'new');
+    // A single candidate is the answer; no reason to make the operator pick it.
+    if (matching.length === 1) this.selectedUuid.set(matching[0].uuid);
   }
 }

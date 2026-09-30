@@ -8,6 +8,8 @@ import { GuideWorkspaceStepComponent } from './guide-workspace-step';
 import { GuideDbStepComponent } from './guide-db-step';
 import { GuideAppStepComponent } from './guide-app-step';
 import { GuideServiceStepComponent } from './guide-service-step';
+import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
 
 /**
  * Architecture guide — pilots the entire deployment of a multi-resource
@@ -23,127 +25,135 @@ import { GuideServiceStepComponent } from './guide-service-step';
  */
 @Component({
   selector: 'app-architecture-guide',
-  imports: [RouterLink, TranslateModule, GuideWorkspaceStepComponent, GuideDbStepComponent, GuideAppStepComponent, GuideServiceStepComponent],
+  imports: [RouterLink, TranslateModule, GuideWorkspaceStepComponent, GuideDbStepComponent, GuideAppStepComponent, GuideServiceStepComponent, IllustrationComponent, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
+    <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--glass-border);">
       <a routerLink="/new-project" class="flex items-center gap-2 text-sm transition-colors hover:text-text-primary" style="color:var(--color-text-secondary);">
         <i class="pi pi-arrow-left"></i> {{ 'projects.common.back' | translate }}
       </a>
-      <span class="text-sm font-semibold font-mono text-text-primary">{{ 'architectures.guideTitle' | translate }}</span>
+      <span class="text-sm font-semibold text-text-primary">{{ 'architectures.guideTitle' | translate }}</span>
       <span class="w-12"></span>
     </div>
 
-    <div class="mx-auto max-w-3xl px-6 py-12">
+    <div class="mx-auto max-w-3xl px-6 py-10">
       @if (!template()) {
-        <div class="glass-card p-4">
-          <p class="mb-3">{{ 'architectures.notFound' | translate }}</p>
-          <a class="outer-button" routerLink="/new-project">{{ 'projects.new.chooseAnotherSource' | translate }}</a>
-        </div>
+        <app-empty-state kind="search" [title]="'architectures.notFound' | translate">
+          <a class="outer-button mt-4" routerLink="/new-project">{{ 'projects.new.chooseAnotherSource' | translate }}</a>
+        </app-empty-state>
       } @else {
-        <div class="mb-8 flex items-center gap-4">
-          <div class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl" style="background:var(--color-surface-2);">
-            <i [class]="template()!.icon" class="text-2xl" style="color:var(--color-primary-400);"></i>
-          </div>
-          <div>
-            <h1 class="text-2xl font-bold">{{ template()!.name | translate }}</h1>
-            <p class="text-sm" style="color:var(--color-text-secondary);">{{ template()!.description | translate }}</p>
-          </div>
-        </div>
-
-        <p class="mb-6 text-sm" style="color:var(--color-text-tertiary);">{{ 'architectures.guideHintInline' | translate }}</p>
-
-        <div class="space-y-3">
-          <!-- Step 0: the workspace everything below lands in — a real prerequisite, not one of template().steps. -->
-          <div class="glass-card p-4">
-            <div class="mb-1 flex items-center gap-3">
-              <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border" [style.border-color]="workspace() ? 'var(--color-success)' : 'var(--color-surface-2)'" [style.background]="workspace() ? 'var(--color-success)' : 'transparent'">
-                @if (workspace()) {
-                  <i class="pi pi-check text-xs text-text-primary"></i>
-                } @else {
-                  <i class="pi pi-sitemap text-xs" style="color:var(--color-text-tertiary);"></i>
-                }
-              </div>
-              <div class="font-semibold">{{ 'architectures.workspaceStepTitle' | translate }}</div>
-            </div>
-            @if (workspace(); as ws) {
-              <p class="ml-11 text-sm" style="color:var(--color-text-secondary);">
-                <i class="pi pi-clone mr-1"></i>{{ ws.name }}
-              </p>
+        <header class="mb-8">
+          <p class="mb-2 text-xs font-semibold uppercase tracking-wide" style="color:var(--color-primary-500);">
+            @if (activeIndex() === -1 && workspace()) {
+              {{ 'architectures.progressDone' | translate }}
             } @else {
-              <div class="ml-11 mt-3">
-                <app-guide-workspace-step [architectureId]="architectureId" [suggestedName]="workspaceSuggestedName()" (completed)="onWorkspaceReady()" />
-              </div>
+              {{ 'architectures.progress' | translate: { current: currentStepNumber(), total: totalSteps() } }}
             }
-          </div>
+          </p>
+          <h1 class="heading-serif mb-2" style="font-size:28px;font-weight:700;color:var(--color-text-primary);">
+            {{ template()!.name | translate }}
+          </h1>
+          <p class="text-sm leading-relaxed" style="color:var(--color-text-secondary);">{{ template()!.description | translate }}</p>
+          <p class="mt-1 text-sm leading-relaxed" style="color:var(--color-text-tertiary);">{{ 'architectures.guideHintInline' | translate }}</p>
+        </header>
 
-          @if (workspace(); as ws) {
-            @for (step of template()!.steps; track $index; let i = $index) {
-              <div class="glass-card p-4" [style.opacity]="i > activeIndex() ? '0.5' : '1'">
-                <div class="mb-1 flex items-center gap-4">
-                  <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border" [style.border-color]="isDone(i, step) ? 'var(--color-success)' : 'var(--color-surface-2)'" [style.background]="isDone(i, step) ? 'var(--color-success)' : 'transparent'">
-                    @if (isDone(i, step)) {
-                      <i class="pi pi-check text-xs text-text-primary"></i>
-                    } @else if (i > activeIndex()) {
-                      <i class="pi pi-lock text-xs" style="color:var(--color-text-tertiary);"></i>
-                    } @else {
-                      <span class="text-xs font-semibold" style="color:var(--color-text-tertiary);">{{ i + 1 }}</span>
-                    }
-                  </div>
-                  <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg" style="background:var(--color-surface-2);">
-                    <i [class]="step.icon" style="color:var(--color-primary-400);"></i>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <div class="font-semibold">{{ step.title | translate }}</div>
-                    <p class="text-sm" style="color:var(--color-text-secondary);">{{ step.description | translate }}</p>
-                  </div>
+        <ol class="relative">
+          <!-- Step 0: the workspace everything below lands in — a real prerequisite, not one of template().steps. -->
+          <li class="relative flex gap-4 pb-6">
+            <span class="absolute left-4 top-9 bottom-0 w-px" [style.background]="workspace() ? 'var(--color-success)' : 'var(--glass-border)'"></span>
+            <span class="relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold"
+              [style.border-color]="workspace() ? 'var(--color-success)' : 'var(--color-primary-500)'"
+              [style.color]="workspace() ? 'var(--color-success)' : 'var(--color-primary-500)'"
+              style="background:var(--color-bg-darker);">
+              @if (workspace()) { <i class="pi pi-check text-xs"></i> } @else { 1 }
+            </span>
+            <div class="min-w-0 flex-1 pt-1">
+              <div class="font-semibold text-text-primary">{{ 'architectures.workspaceStepTitle' | translate }}</div>
+              @if (workspace(); as ws) {
+                <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">
+                  <i class="pi pi-clone mr-1 text-xs"></i>{{ ws.name }}
+                </p>
+              } @else {
+                <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'architectures.workspaceStepDesc' | translate }}</p>
+                <div class="glass-card mt-4 p-5">
+                  <app-guide-workspace-step [architectureId]="architectureId" [suggestedName]="workspaceSuggestedName()" (completed)="onWorkspaceReady()" />
+                </div>
+              }
+            </div>
+          </li>
+
+          @for (step of template()!.steps; track $index; let i = $index; let last = $last) {
+            <li class="relative flex gap-4" [class.pb-6]="!last" [style.opacity]="!workspace() || i > activeIndex() && activeIndex() !== -1 ? '0.55' : '1'">
+              @if (!last) {
+                <span class="absolute left-4 top-9 bottom-0 w-px" [style.background]="isDone(i, step) ? 'var(--color-success)' : 'var(--glass-border)'"></span>
+              }
+              <span class="relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold"
+                [style.border-color]="isDone(i, step) ? 'var(--color-success)' : isActive(i) ? 'var(--color-primary-500)' : 'var(--glass-border-medium)'"
+                [style.color]="isDone(i, step) ? 'var(--color-success)' : isActive(i) ? 'var(--color-primary-500)' : 'var(--color-text-tertiary)'"
+                style="background:var(--color-bg-darker);">
+                @if (isDone(i, step)) {
+                  <i class="pi pi-check text-xs"></i>
+                } @else if (isActive(i)) {
+                  {{ i + 2 }}
+                } @else {
+                  <i class="pi pi-lock text-[10px]"></i>
+                }
+              </span>
+              <div class="min-w-0 flex-1 pt-1">
+                <div class="flex items-center gap-2 font-semibold text-text-primary">
+                  <i [class]="step.icon" class="text-sm" style="color:var(--color-text-tertiary);"></i>
+                  {{ step.title | translate }}
                 </div>
 
                 @if (isDone(i, step)) {
-                  <div class="ml-11 mt-2 text-sm" style="color:var(--color-text-secondary);">
+                  <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">
                     @if (step.action === 'create-database') {
-                      <i class="pi pi-database mr-1"></i>{{ linkedDatabase()?.name }}
+                      <i class="pi pi-database mr-1 text-xs"></i>{{ linkedDatabase()?.name }}
                       @if (linkedCache(); as c) {
-                        <span class="ml-2"><i class="pi pi-bolt mr-1"></i>{{ c.name }}</span>
+                        <span class="ml-2"><i class="pi pi-bolt mr-1 text-xs"></i>{{ c.name }}</span>
                       }
                     } @else if (step.action === 'import-app') {
-                      <i class="pi pi-check-circle mr-1"></i>{{ appNameFor(i, step) }}
+                      {{ appNameFor(i, step) }}
                       @if (appUrlFor(i, step); as url) {
-                        <a [href]="url" target="_blank" rel="noopener noreferrer" class="ml-2 hover:underline" style="color:var(--color-primary-400);">
+                        <a [href]="url" target="_blank" rel="noopener noreferrer" class="ml-2 hover:underline" style="color:var(--color-primary-500);">
                           {{ url }} <i class="pi pi-external-link text-[10px]"></i>
                         </a>
                       }
                     } @else {
-                      <i class="pi pi-check-circle mr-1"></i>{{ 'architectures.stepDone' | translate }}
+                      {{ 'architectures.stepDone' | translate }}
                     }
-                  </div>
-                } @else if (i === activeIndex()) {
-                  <div class="ml-11 mt-3">
-                    @switch (step.action) {
-                      @case ('create-database') {
-                        <app-guide-db-step [architectureId]="architectureId" [workspaceUuid]="ws.uuid" [suggestedName]="dbSuggestedName()" (completed)="onStepChanged()" />
+                  </p>
+                } @else {
+                  <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ step.description | translate }}</p>
+                  @if (isActive(i) && workspace(); as ws) {
+                    <div class="glass-card mt-4 p-5">
+                      @switch (step.action) {
+                        @case ('create-database') {
+                          <app-guide-db-step [architectureId]="architectureId" [workspaceUuid]="ws.uuid" [suggestedName]="dbSuggestedName()" (completed)="onStepChanged()" />
+                        }
+                        @case ('import-app') {
+                          <app-guide-app-step [architectureId]="architectureId" [workspaceUuid]="ws.uuid" [role]="step.role" [suggestedName]="appSuggestedName(step)" (completed)="onStepChanged()" />
+                        }
+                        @case ('create-service') {
+                          <app-guide-service-step [workspaceUuid]="ws.uuid" (completed)="onServiceStepDone(i)" />
+                        }
                       }
-                      @case ('import-app') {
-                        <app-guide-app-step [architectureId]="architectureId" [workspaceUuid]="ws.uuid" [role]="step.role" [suggestedName]="appSuggestedName(step)" (completed)="onStepChanged()" />
-                      }
-                      @case ('create-service') {
-                        <app-guide-service-step [workspaceUuid]="ws.uuid" (completed)="onServiceStepDone(i)" />
-                      }
-                    }
-                  </div>
+                    </div>
+                  }
                 }
               </div>
-            }
-
-            @if (activeIndex() === -1) {
-              <div class="glass-card p-4 text-center">
-                <i class="pi pi-check-circle mb-2 text-2xl" style="color:var(--color-success);"></i>
-                <p class="mb-3 font-semibold">{{ 'architectures.guideComplete' | translate }}</p>
-                <a class="inner-button" [routerLink]="['/workspaces', ws.uuid]">{{ 'architectures.viewWorkspace' | translate }}</a>
-              </div>
-            }
+            </li>
           }
-        </div>
+        </ol>
+
+        @if (activeIndex() === -1 && workspace(); as ws) {
+          <div class="glass-card mt-8 flex flex-col items-center p-8 text-center">
+            <app-illustration name="activity" [width]="120" class="mb-4 block" />
+            <p class="heading-serif mb-1 text-xl font-bold text-text-primary">{{ 'architectures.guideComplete' | translate }}</p>
+            <p class="mb-5 text-sm" style="color:var(--color-text-secondary);">{{ 'architectures.guideCompleteHint' | translate }}</p>
+            <a class="inner-button" [routerLink]="['/workspaces', ws.uuid]">{{ 'architectures.viewWorkspace' | translate }}</a>
+          </div>
+        }
       }
     </div>
   `,
@@ -178,6 +188,14 @@ export class ArchitectureGuideComponent implements OnInit {
     }
     return -1;
   });
+
+  /** The workspace counts as step 1, so the guide reads as one sequence rather than "setup, then steps". */
+  protected readonly totalSteps = computed(() => (this.template()?.steps.length ?? 0) + 1);
+  protected readonly currentStepNumber = computed(() => (this.workspace() ? this.activeIndex() + 2 : 1));
+
+  protected isActive(index: number): boolean {
+    return Boolean(this.workspace()) && index === this.activeIndex();
+  }
 
   ngOnInit(): void {
     this.architectureId = this.route.snapshot.paramMap.get('id') ?? '';

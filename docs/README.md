@@ -11,6 +11,7 @@ IDEM turns a business idea into the assets a founder needs: brand identity, busi
 | [Configuration and secrets](CONFIGURATION.md) | set environment variables and manage secrets with Infisical |
 | [Security](SECURITY.md) | know the security rules every change must respect |
 | [Deployment](DEPLOYMENT.md) | understand CI, Docker images and how production is deployed |
+| [Observability](OBSERVABILITY.md) | write logs, debug with Grafana, act on alert e-mails, run the log stack in production |
 | [Contributing](../CONTRIBUTING.md) | follow the workflow, commit rules and git hooks |
 
 ## Applications

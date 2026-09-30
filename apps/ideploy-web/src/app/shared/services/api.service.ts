@@ -810,6 +810,10 @@ export class ApiService {
     workspace_uuid?: string;
     /** Find-or-create a workspace by name. */
     workspace_name?: string;
+    /** Where a workspace created by name runs; ignored with `workspace_uuid`. */
+    deployment_type?: 'saas' | 'own';
+    server_uuid?: string;
+    region?: string;
     base_directory?: string;
     install_command?: string;
     build_command?: string;

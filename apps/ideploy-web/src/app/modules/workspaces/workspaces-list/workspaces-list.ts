@@ -3,106 +3,79 @@ import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { Workspace } from '../../../shared/models/ideploy.models';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header';
+import { ListSkeletonComponent } from '../../../shared/components/list-skeleton/list-skeleton';
 
 /**
  * Workspaces overview.
  *
- * A workspace is where the infrastructure question is answered — target, region,
- * shared network — so the cards surface exactly that, plus how many projects sit
- * inside. Everything else belongs on the detail page.
+ * A workspace is where the infrastructure question is answered — IDEM or your
+ * own server, and where — so each card leads with that answer, then what sits
+ * inside. The whole card opens the workspace; everything else belongs there.
  */
 @Component({
   selector: 'app-workspaces-list',
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslateModule, EmptyStateComponent, PageHeaderComponent, ListSkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mb-6 flex items-center justify-between">
-      <div>
-        <h1
-          class="heading-serif"
-          style="font-size:32px;font-weight:700;color:var(--color-text-primary);"
-        >
-          {{ 'workspaces.title' | translate }}
-        </h1>
-        <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">
-          {{ 'workspaces.subtitle' | translate }}
-        </p>
-      </div>
-      <a class="inner-button" routerLink="/workspaces/new">{{ 'workspaces.create' | translate }}</a>
-    </div>
+    <app-page-header
+      [title]="'workspaces.title' | translate"
+      [subtitle]="'workspaces.subtitle' | translate"
+      [count]="loading() ? null : workspaces().length"
+    >
+      @if (!loading() && workspaces().length > 0) {
+        <a class="inner-button" routerLink="/workspaces/new"><i class="pi pi-plus mr-2 text-xs"></i>{{ 'workspaces.create' | translate }}</a>
+      }
+    </app-page-header>
 
     @if (loading()) {
-      <p class="text-sm" style="color:var(--color-text-secondary);">
-        {{ 'projects.common.loading' | translate }}
-      </p>
+      <app-list-skeleton variant="cards" />
     } @else if (workspaces().length === 0) {
-      <div class="glass-card p-4">
-        <p class="mb-3">{{ 'workspaces.emptyTitle' | translate }}</p>
-        <p class="mb-4 text-sm" style="color:var(--color-text-secondary);">
-          {{ 'workspaces.emptyHint' | translate }}
-        </p>
-        <a class="inner-button" routerLink="/workspaces/new">{{ 'workspaces.createFirst' | translate }}</a>
+      <div class="glass-card">
+        <app-empty-state kind="box" [title]="'workspaces.emptyTitle' | translate" [body]="'workspaces.emptyHint' | translate">
+          <a class="inner-button mt-5" routerLink="/workspaces/new">{{ 'workspaces.createFirst' | translate }}</a>
+        </app-empty-state>
       </div>
     } @else {
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         @for (workspace of workspaces(); track workspace.uuid) {
-          <div class="glass-card p-5">
-            <div class="mb-2 flex items-start justify-between gap-2">
-              <a
-                class="font-semibold hover:underline"
-                style="color:var(--color-text-primary);"
-                [routerLink]="['/workspaces', workspace.uuid]"
-                >{{ workspace.name }}</a
+          <a
+            class="glass-card group flex flex-col p-5 transition-smooth hover:border-[var(--color-primary-500)]"
+            [routerLink]="['/workspaces', workspace.uuid]"
+          >
+            <div class="mb-3 flex items-center justify-between gap-2">
+              <span
+                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                style="background:var(--glass-bg-subtle);"
+                [style.color]="workspace.deploymentType === 'saas' ? 'var(--color-primary-500)' : 'var(--color-text-secondary)'"
               >
-              <span class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                [style.background]="workspace.deploymentType === 'saas' ? 'var(--color-primary-500-10, rgba(79,195,176,.12))' : 'rgba(148,163,184,.15)'"
-                [style.color]="workspace.deploymentType === 'saas' ? 'var(--color-primary-400)' : 'var(--color-text-secondary)'"
-              >
+                <i class="pi text-[10px]" [class.pi-cloud]="workspace.deploymentType === 'saas'" [class.pi-server]="workspace.deploymentType === 'own'"></i>
                 {{ 'workspaces.target.' + workspace.deploymentType | translate }}
               </span>
+              <i class="pi pi-arrow-right text-xs opacity-0 transition-smooth group-hover:opacity-100" style="color:var(--color-primary-500);"></i>
             </div>
 
+            <h2 class="truncate text-base font-semibold text-text-primary">{{ workspace.name }}</h2>
             @if (workspace.description) {
-              <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
+              <p class="mt-1 text-sm leading-relaxed" style="color:var(--color-text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
                 {{ workspace.description }}
               </p>
             }
 
-            <dl class="space-y-1 text-xs" style="color:var(--color-text-secondary);">
-              <div class="flex justify-between gap-2">
-                <dt>{{ 'workspaces.field.projects' | translate }}</dt>
-                <dd style="color:var(--color-text-primary);">{{ workspace.projectCount }}</dd>
-              </div>
-              <div class="flex justify-between gap-2">
-                <dt>{{ 'workspaces.field.environments' | translate }}</dt>
-                <dd style="color:var(--color-text-primary);">
-                  {{ environmentNames(workspace) }}
-                </dd>
-              </div>
-              @if (workspace.region) {
-                <div class="flex justify-between gap-2">
-                  <dt>{{ 'workspaces.field.region' | translate }}</dt>
-                  <dd style="color:var(--color-text-primary);">{{ workspace.region }}</dd>
-                </div>
+            <div class="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-4 text-xs" style="color:var(--color-text-secondary);">
+              <span class="inline-flex items-center gap-1.5">
+                <i class="pi pi-th-large text-[10px]"></i>
+                {{ (workspace.projectCount === 1 ? 'workspaces.resourceOne' : 'workspaces.resourceMany') | translate: { count: workspace.projectCount } }}
+              </span>
+              @if (workspace.deploymentType === 'own' && workspace.assignedServerName) {
+                <span class="inline-flex items-center gap-1.5"><i class="pi pi-server text-[10px]"></i>{{ workspace.assignedServerName }}</span>
+              } @else if (workspace.region) {
+                <span class="inline-flex items-center gap-1.5"><i class="pi pi-map-marker text-[10px]"></i>{{ workspace.region }}</span>
               }
-              @if (workspace.assignedServerName) {
-                <div class="flex justify-between gap-2">
-                  <dt>{{ 'workspaces.field.server' | translate }}</dt>
-                  <dd style="color:var(--color-text-primary);">{{ workspace.assignedServerName }}</dd>
-                </div>
-              }
-            </dl>
-
-            <div class="mt-4 flex justify-end">
-              <a
-                [routerLink]="['/workspaces', workspace.uuid]"
-                style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--color-primary-400);"
-              >
-                {{ 'workspaces.open' | translate }}
-                <i class="pi pi-chevron-right text-[10px]"></i>
-              </a>
+              <span class="inline-flex items-center gap-1.5"><i class="pi pi-sitemap text-[10px]"></i>{{ environmentNames(workspace) }}</span>
             </div>
-          </div>
+          </a>
         }
       </div>
     }

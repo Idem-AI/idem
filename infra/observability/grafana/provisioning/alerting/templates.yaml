@@ -1,0 +1,41 @@
+apiVersion: 1
+
+# Contenu des e-mails d'alerte : de quoi agir sans ouvrir Grafana — quel
+# service, quel événement, quelle erreur, et le requestId avec un lien qui
+# ouvre le tableau de bord filtré sur la requête entière.
+#
+# Contrairement aux points de contact, ce fichier n'est pas interpolé avec
+# l'environnement : `$` y garde son sens de modèle Go (`$` = racine).
+# L'URL vient de GF_SERVER_ROOT_URL (`.ExternalURL`, terminée par « / »).
+templates:
+  - orgId: 1
+    name: idem-email
+    template: |
+      {{ define "idem.email.subject" -}}
+      [IDEM]{{ if eq .Status "firing" }}[{{ .CommonLabels.severity | toUpper }}]{{ else }}[RÉSOLU]{{ end }} {{ .CommonLabels.alertname }}{{ with .CommonLabels.service }} · {{ . }}{{ end }}{{ with .CommonLabels.env }} ({{ . }}){{ end }}{{ with .CommonLabels.event }} · {{ . }}{{ end }}
+      {{- end }}
+
+      {{ define "idem.email.message" -}}
+      {{ if gt (len .Alerts.Firing) 0 -}}
+      {{ len .Alerts.Firing }} alerte(s) en cours.
+      {{ range .Alerts.Firing }}
+      ● {{ .Annotations.summary }}
+        {{ .Annotations.description }}
+        Service : {{ .Labels.service }} ({{ .Labels.env }}){{ with .Labels.event }} · événement : {{ . }}{{ end }}
+        {{- with .Labels.error_message }}
+        Erreur : {{ . }}{{ end }}
+        {{- with .Labels.request_id }}
+        requestId : {{ . }}
+        Relire la requête : {{ $.ExternalURL }}d/idem-logs?var-request_id={{ . }}&from=now-24h&to=now{{ end }}
+        Depuis : {{ .StartsAt.Format "02/01/2006 15:04:05 MST" }}
+        Règle : {{ .GeneratorURL }}
+      {{ end }}
+      {{- end }}
+      {{- if gt (len .Alerts.Resolved) 0 }}
+      {{ len .Alerts.Resolved }} alerte(s) résolue(s).
+      {{ range .Alerts.Resolved }}
+      ✓ {{ .Annotations.summary }} ({{ .Labels.service }})
+      {{ end }}
+      {{- end }}
+      Tableau de bord : {{ .ExternalURL }}d/idem-logs
+      {{- end }}

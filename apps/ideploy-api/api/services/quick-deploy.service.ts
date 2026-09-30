@@ -17,7 +17,7 @@ import * as workspaceService from './workspace.service';
 import * as envVarService from './env-var.service';
 import { STANDALONE_DOCKER_TYPE } from './workspace.service';
 import { getTemplateCompose } from './templates.service';
-import { unprocessable } from '../utils/errors';
+import { conflict, unprocessable } from '../utils/errors';
 
 /**
  * Resolve the workspace this deployment belongs to, creating one if needed.
@@ -27,7 +27,7 @@ import { unprocessable } from '../utils/errors';
  * backend created moments apart could land on different servers with no way to
  * reach each other, and nothing reported it.
  */
-async function resolveWorkspace(
+export async function resolveWorkspace(
   teamId: number,
   dto: QuickDeployDto
 ): Promise<{ uuid: string; name: string }> {
@@ -40,17 +40,45 @@ async function resolveWorkspace(
   }
 
   const name = dto.workspace_name || dto.project_name || dto.name;
-  const existing = await pool.query(
-    'SELECT uuid, name FROM projects WHERE team_id = $1 AND lower(name) = lower($2) LIMIT 1',
-    [teamId, name]
-  );
-  if (existing.rows[0]) {
-    return { uuid: String(existing.rows[0].uuid), name: String(existing.rows[0].name) };
+  const type = dto.deployment_type ?? 'saas';
+  if (!workspaceService.DEPLOYMENT_TYPES.includes(type)) {
+    throw unprocessable('INVALID_DEPLOYMENT_TYPE', 'Choose IDEM\'s infrastructure or one of your servers.');
   }
 
-  // No workspace yet: create one on IDEM's infrastructure in the default region,
-  // which is the zero-configuration path the simplified flow promises.
-  const created = await workspaceService.createWorkspace(teamId, { name, deployment_type: 'saas' });
+  const existing = await pool.query(
+    `SELECT p.uuid, p.name, p.deployment_type, s.uuid AS server_uuid
+       FROM projects p
+       LEFT JOIN servers s ON s.id = p.assigned_server_id
+      WHERE p.team_id = $1 AND lower(p.name) = lower($2)
+      LIMIT 1`,
+    [teamId, name]
+  );
+  const found = existing.rows[0];
+  if (found) {
+    // Reusing a workspace by name is what keeps a second import of the same
+    // repository next to the first. But when the caller said where it should
+    // run, landing somewhere else in silence would betray that answer.
+    const explicit = dto.deployment_type !== undefined;
+    const sameTarget =
+      String(found.deployment_type ?? 'saas') === type &&
+      (type !== 'own' || String(found.server_uuid) === dto.server_uuid);
+    if (explicit && !sameTarget) {
+      throw conflict(
+        'WORKSPACE_NAME_TAKEN',
+        `You already have a workspace called "${found.name}" that runs elsewhere. Pick it, or choose another name.`
+      );
+    }
+    return { uuid: String(found.uuid), name: String(found.name) };
+  }
+
+  // No workspace yet: create it where the operator said — IDEM's
+  // infrastructure in the default region when nothing was said.
+  const created = await workspaceService.createWorkspace(teamId, {
+    name,
+    deployment_type: type,
+    server_uuid: type === 'own' ? dto.server_uuid : undefined,
+    region: type === 'saas' ? dto.region : undefined,
+  });
   return { uuid: created.uuid, name: created.name };
 }
 
@@ -64,6 +92,12 @@ export interface QuickDeployDto {
   workspace_uuid?: string;
   /** Find-or-create a workspace by name. */
   workspace_name?: string;
+  /** Where a workspace created by name runs. Defaults to `saas`; ignored with `workspace_uuid`. */
+  deployment_type?: workspaceService.DeploymentType;
+  /** Required with `deployment_type: 'own'`: which of the team's servers. */
+  server_uuid?: string;
+  /** SaaS only, on plans that allow it. */
+  region?: string;
   /** @deprecated Use `workspace_name`. Kept so existing clients keep working. */
   project_name?: string;
   /** Environment within the workspace. Defaults to `production`. */

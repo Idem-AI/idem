@@ -5,7 +5,8 @@
  * registered with `registerWorker` (see worker.ts). The scheduler (replacing
  * Console/Kernel cron) uses repeatable jobs on the `scheduler` queue.
  */
-import { Queue, QueueOptions } from 'bullmq';
+import { JobsOptions, Queue, QueueOptions } from 'bullmq';
+import { getTraceContext } from '../utils/trace.util';
 import { redisOptions } from '../config/redis.config';
 
 // NOTE: BullMQ forbids ':' in queue names (it's the Redis key separator).
@@ -39,10 +40,28 @@ const registry = new Map<string, Queue>();
 export function getQueue(name: QueueName): Queue {
   let q = registry.get(name);
   if (!q) {
-    q = new Queue(name, baseOptions);
+    q = withTracePropagation(new Queue(name, baseOptions));
     registry.set(name, q);
   }
   return q;
+}
+
+/**
+ * Joint à chaque tâche l'identifiant de la requête qui l'a créée (`__trace`) :
+ * le worker le reprend (queue/worker.ts), et les journaux du déploiement
+ * portent le même `requestId` que le clic qui l'a déclenché.
+ */
+function withTracePropagation(queue: Queue): Queue {
+  const add = queue.add.bind(queue);
+  queue.add = ((jobName: string, data: unknown, opts?: JobsOptions) => {
+    const ctx = getTraceContext();
+    const traced =
+      ctx && data && typeof data === 'object' && !Array.isArray(data)
+        ? { ...(data as Record<string, unknown>), __trace: { requestId: ctx.requestId, userId: ctx.userId } }
+        : data;
+    return add(jobName, traced, opts);
+  }) as Queue['add'];
+  return queue;
 }
 
 export const deploymentQueue = getQueue(QUEUE_NAMES.deployments);

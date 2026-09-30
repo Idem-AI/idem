@@ -1,4 +1,5 @@
 import logger from '../../config/logger';
+import { runJobWithTrace } from '../../utils/trace.util';
 import { billingJobRunsTotal } from '../../config/metrics';
 import RedisConnection from '../../config/redis.config';
 import { paymentReconcilerService } from '../payments/payment-reconciler.service';
@@ -68,26 +69,34 @@ async function withLock(name: string, ttlMs: number, fn: () => Promise<unknown>)
 }
 
 async function runJob(job: ScheduledJob): Promise<void> {
-  const startedAt = Date.now();
+  // Chaque passage a son propre identifiant de trace : tout ce que la tâche
+  // journalise (transactions relues, e-mails, appels iDeploy) se retrouve d'un
+  // seul filtre `job="<nom>"` dans Grafana.
+  return runJobWithTrace(`billing.${job.name}`, async () => {
+    const startedAt = Date.now();
 
-  try {
-    const executed = await withLock(job.name, job.lockTtlMs, job.run);
+    try {
+      const executed = await withLock(job.name, job.lockTtlMs, job.run);
 
-    if (!executed) {
-      billingJobRunsTotal.inc({ job: job.name, result: 'skipped', service: 'idem-api' });
-      return;
+      if (!executed) {
+        billingJobRunsTotal.inc({ job: job.name, result: 'skipped', service: 'idem-api' });
+        return;
+      }
+
+      billingJobRunsTotal.inc({ job: job.name, result: 'success', service: 'idem-api' });
+      logger.debug('billing.job_done', {
+        event: 'billing.job_done',
+        durationMs: Date.now() - startedAt,
+      });
+    } catch (error: any) {
+      billingJobRunsTotal.inc({ job: job.name, result: 'error', service: 'idem-api' });
+      logger.error(`billing.job_failed: ${error.message}`, {
+        event: 'billing.job_failed',
+        durationMs: Date.now() - startedAt,
+        error,
+      });
     }
-
-    billingJobRunsTotal.inc({ job: job.name, result: 'success', service: 'idem-api' });
-  } catch (error: any) {
-    billingJobRunsTotal.inc({ job: job.name, result: 'error', service: 'idem-api' });
-    logger.error(`billing.job_failed: ${error.message}`, {
-      event: 'billing.job_failed',
-      job: job.name,
-      durationMs: Date.now() - startedAt,
-      stack: error.stack,
-    });
-  }
+  });
 }
 
 /** Tâches enregistrées. Les phases suivantes en ajoutent (renouvellements, bêta). */

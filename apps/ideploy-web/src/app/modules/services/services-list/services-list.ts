@@ -7,6 +7,10 @@ import { ApiService } from '../../../shared/services/api.service';
 import { Service, ServiceTemplate } from '../../../shared/models/ideploy.models';
 import { serviceLogoUrl } from '../../../shared/utils/service-logo.util';
 import { serviceStatusDisplay } from '../../../shared/utils/service-status.util';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header';
+import { ListSkeletonComponent } from '../../../shared/components/list-skeleton/list-skeleton';
 import {
   WorkspaceTarget,
   WorkspaceTargetPickerComponent,
@@ -24,146 +28,160 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
  */
 @Component({
   selector: 'app-services-list',
-  imports: [RouterLink, FormsModule, ReactiveFormsModule, TranslateModule, DatePipe, WorkspaceTargetPickerComponent],
+  imports: [RouterLink, FormsModule, ReactiveFormsModule, TranslateModule, DatePipe, IdemLoaderComponent, WorkspaceTargetPickerComponent, EmptyStateComponent, PageHeaderComponent, ListSkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-      <h1 class="text-2xl font-bold">{{ 'services.title' | translate }}</h1>
-      <a class="inner-button" routerLink="/templates">
-        <i class="pi pi-compass mr-2"></i>{{ 'services.browseServices' | translate }}
-      </a>
-    </div>
+    <app-page-header [title]="'services.title' | translate" [subtitle]="'services.subtitle' | translate" [count]="loading() ? null : services().length">
+      <a class="inner-button" routerLink="/templates"><i class="pi pi-compass mr-2 text-xs"></i>{{ 'services.browseServices' | translate }}</a>
+    </app-page-header>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div class="lg:col-span-2">
-        <div class="mb-4 flex flex-col gap-2 sm:flex-row">
-          <input type="text"
-            class="flex-1 !w-auto min-w-0"
-            [placeholder]="'services.searchPlaceholder' | translate"
-            [ngModel]="query()"
-            [ngModelOptions]="{ standalone: true }"
-            (ngModelChange)="query.set($event)"
-          />
-          <select class="sm:w-52" [ngModel]="statusFilter()" [ngModelOptions]="{ standalone: true }" (ngModelChange)="statusFilter.set($event)">
-            <option value="all">{{ 'services.filter.all' | translate }}</option>
-            <option value="running">{{ 'services.filter.running' | translate }}</option>
-            <option value="partial">{{ 'services.filter.partial' | translate }}</option>
-            <option value="exited">{{ 'services.filter.exited' | translate }}</option>
-          </select>
-        </div>
-
         @if (loading()) {
-          <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'services.loading' | translate }}</p>
+          <app-list-skeleton />
         } @else if (services().length === 0) {
-          <div class="glass-card p-4 text-center">
-            <p class="mb-3" style="color: var(--color-text-secondary)">{{ 'services.empty' | translate }}</p>
-            <a class="inner-button" routerLink="/templates">{{ 'services.browseServices' | translate }}</a>
+          <div class="glass-card">
+            <app-empty-state kind="market" [title]="'services.empty' | translate" [body]="'services.emptyHint' | translate">
+              <a class="inner-button mt-5" routerLink="/templates">{{ 'services.browseServices' | translate }}</a>
+            </app-empty-state>
           </div>
-        } @else if (filtered().length === 0) {
-          <div class="glass-card p-4" style="color: var(--color-text-secondary)">{{ 'services.noMatch' | translate }}</div>
         } @else {
-          <div class="glass-card overflow-hidden">
-            @for (svc of filtered(); track svc.uuid; let last = $last) {
-              <div class="flex flex-wrap items-center gap-4 px-5 py-4" [style.border-bottom]="last ? 'none' : '1px solid var(--color-surface-2)'">
-                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg" style="background:var(--color-surface-2);">
-                  @if (logoFor(svc); as logo) {
-                    <img [src]="logo" class="h-7 w-7 object-contain" alt="" (error)="onLogoError($event)" />
-                  } @else {
-                    <i class="pi pi-box" style="color:var(--color-primary-400);"></i>
-                  }
-                </div>
-                <div class="min-w-0 flex-1">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <a class="font-semibold hover:underline" [routerLink]="['/services', svc.uuid]">{{ svc.name }}</a>
-                    <span
-                      class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                      [style.color]="status(svc).color"
-                      style="background: color-mix(in srgb, currentColor 12%, transparent);"
-                    >
-                      <i [class]="status(svc).icon" class="text-[10px]"></i>
-                      {{ status(svc).labelKey | translate }}
-                    </span>
-                  </div>
-                  <div class="text-sm" style="color: var(--color-text-secondary)">
-                    {{ svc.service_type || ('services.customCompose' | translate) }}
-                    @if (svc.updated_at) {
-                      · {{ 'services.updated' | translate: { date: (svc.updated_at | date: 'mediumDate') } }}
-                    }
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  @if (isActive(svc)) {
-                    <button class="outer-button" (click)="action(svc, 'stop')">{{ 'services.stop' | translate }}</button>
-                  } @else {
-                    <button class="outer-button" (click)="action(svc, 'start')">{{ 'services.start' | translate }}</button>
-                  }
-                  <a class="outer-button" [routerLink]="['/services', svc.uuid]">{{ 'services.manage' | translate }}</a>
-                </div>
-              </div>
-            }
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div class="relative flex-1">
+              <i class="pi pi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-xs" style="color:var(--color-text-tertiary);"></i>
+              <input type="text" style="padding-left:36px;" [placeholder]="'services.searchPlaceholder' | translate" [ngModel]="query()" [ngModelOptions]="{ standalone: true }" (ngModelChange)="query.set($event)" />
+            </div>
+            <div class="inline-flex flex-wrap rounded-lg border p-1" style="border-color:var(--glass-border);background:var(--glass-bg-subtle);" role="radiogroup" [attr.aria-label]="'services.filterLabel' | translate">
+              @for (f of statusFilters; track f) {
+                <button
+                  type="button"
+                  role="radio"
+                  class="rounded-md px-3 py-1 text-xs font-semibold transition-smooth"
+                  [attr.aria-checked]="statusFilter() === f"
+                  [style.background]="statusFilter() === f ? 'var(--glass-bg-light)' : 'transparent'"
+                  [style.box-shadow]="statusFilter() === f ? '0 0 0 1px var(--glass-border-medium)' : 'none'"
+                  [style.color]="statusFilter() === f ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'"
+                  (click)="statusFilter.set(f)"
+                >
+                  {{ 'services.filter.' + f | translate }}
+                </button>
+              }
+            </div>
           </div>
+
+          @if (filtered().length === 0) {
+            <div class="glass-card"><app-empty-state kind="search" [title]="'services.noMatch' | translate" /></div>
+          } @else {
+            <div class="glass-card overflow-hidden">
+              @for (svc of filtered(); track svc.uuid; let last = $last) {
+                <div class="flex flex-wrap items-center gap-4 px-5 py-4 transition-smooth hover:bg-[var(--glass-bg-subtle)]" [style.border-bottom]="last ? 'none' : '1px solid var(--glass-border-subtle)'">
+                  <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg" style="background:var(--glass-bg-subtle);">
+                    @if (logoFor(svc); as logo) {
+                      <img [src]="logo" class="h-7 w-7 object-contain" alt="" (error)="onLogoError($event)" />
+                    } @else {
+                      <i class="pi pi-box" style="color:var(--color-text-secondary);"></i>
+                    }
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <a class="truncate font-semibold text-text-primary hover:underline" [routerLink]="['/services', svc.uuid]">{{ svc.name }}</a>
+                      <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium" [style.color]="status(svc).color" style="background:color-mix(in srgb, currentColor 10%, transparent);">
+                        <i [class]="status(svc).icon" class="text-[10px]"></i>{{ status(svc).labelKey | translate }}
+                      </span>
+                    </div>
+                    <div class="mt-0.5 text-xs" style="color:var(--color-text-secondary);">
+                      <span class="capitalize">{{ svc.service_type || ('services.customCompose' | translate) }}</span>
+                      @if (svc.updated_at) {
+                        · {{ 'services.updated' | translate: { date: (svc.updated_at | date: 'mediumDate') } }}
+                      }
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button type="button" class="outer-button button-sm" [disabled]="acting() === svc.uuid" (click)="action(svc, isActive(svc) ? 'stop' : 'start')">
+                      @if (acting() === svc.uuid) { <idem-loader size="xs" /> } @else { <i class="pi mr-1.5 text-xs" [class.pi-stop]="isActive(svc)" [class.pi-play]="!isActive(svc)"></i> }
+                      {{ (isActive(svc) ? 'services.stop' : 'services.start') | translate }}
+                    </button>
+                    <a class="outer-button button-sm" [routerLink]="['/services', svc.uuid]">{{ 'services.manage' | translate }}</a>
+                  </div>
+                </div>
+              }
+            </div>
+          }
         }
 
-        <div class="mt-6">
-          <button type="button" class="text-sm font-semibold hover:underline" style="color:var(--color-primary-400);" (click)="showCustomForm.set(!showCustomForm())">
-            {{ (showCustomForm() ? 'services.hideCustomForm' : 'services.showCustomForm') | translate }}
+        <!-- The raw-compose path is for people who already have a docker-compose.yml; it stays one click away, folded. -->
+        <div class="mt-6 overflow-hidden rounded-xl border" style="border-color:var(--glass-border);">
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 px-4 py-3 text-left transition-smooth"
+            [style.background]="showCustomForm() ? 'var(--glass-bg-light)' : 'transparent'"
+            [attr.aria-expanded]="showCustomForm()"
+            (click)="showCustomForm.set(!showCustomForm())"
+          >
+            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg" style="background:var(--glass-bg-subtle);">
+              <i class="pi pi-file-edit text-sm" style="color:var(--color-text-secondary);"></i>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm font-semibold text-text-primary">{{ 'services.deployCustom' | translate }}</span>
+              <span class="block text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ 'services.deployCustomHint' | translate }}</span>
+            </span>
+            <i class="pi text-xs" style="color:var(--color-text-tertiary);" [class.pi-chevron-down]="!showCustomForm()" [class.pi-chevron-up]="showCustomForm()"></i>
           </button>
           @if (showCustomForm()) {
-            <form class="glass-card p-4 mt-3 space-y-3" [formGroup]="form" (ngSubmit)="create()">
-              <h2 class="font-semibold">{{ 'services.deployCustom' | translate }}</h2>
+            <form class="space-y-4 px-4 pb-4 pt-2" style="background:var(--glass-bg-light);" [formGroup]="form" (ngSubmit)="create()">
               <div>
-                <label class="mb-1 block text-sm">{{ 'services.name' | translate }}</label>
-                <input type="text"  formControlName="name" />
+                <label class="mb-1 block text-sm" for="svc-name">{{ 'services.name' | translate }}</label>
+                <input type="text" id="svc-name" formControlName="name" />
               </div>
               <app-workspace-target-picker (targetChange)="target.set($event)" />
               <div>
-                <label class="mb-1 block text-sm">{{ 'services.dockerComposeLabel' | translate }}</label>
-                <textarea class="font-mono" rows="6" formControlName="docker_compose_raw"></textarea>
+                <label class="mb-1 block text-sm" for="svc-compose">{{ 'services.dockerComposeLabel' | translate }}</label>
+                <textarea id="svc-compose" class="font-mono text-xs" rows="8" formControlName="docker_compose_raw" placeholder="services:&#10;  web:&#10;    image: nginx"></textarea>
               </div>
               @if (error()) {
-                <p class="text-sm text-red-400">{{ error() }}</p>
+                <p class="text-sm" style="color:var(--color-danger);">{{ error() }}</p>
               }
-              <button class="inner-button" type="submit" [disabled]="!target() || saving()">
-                {{ (saving() ? 'services.creating' : 'services.createService') | translate }}
-              </button>
+              <div class="flex justify-end">
+                <button class="inner-button" type="submit" [disabled]="!target() || saving() || form.invalid">
+                  @if (saving()) { <idem-loader size="xs" /> }
+                  {{ (saving() ? 'services.creating' : 'services.createService') | translate }}
+                </button>
+              </div>
             </form>
           }
         </div>
       </div>
 
-      <div class="glass-card p-4">
-        <div class="mb-1 flex items-center gap-2">
-          <i class="pi pi-clone" style="color:var(--color-primary-400);"></i>
-          <h2 class="box-title">{{ 'services.latestServices' | translate }}</h2>
-        </div>
-        <p class="mb-4 text-sm" style="color: var(--color-text-secondary)">{{ 'services.latestServicesHint' | translate }}</p>
+      <aside class="glass-card h-fit p-5">
+        <h2 class="text-sm font-semibold text-text-primary">{{ 'services.latestServices' | translate }}</h2>
+        <p class="mb-4 mt-1 text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ 'services.latestServicesHint' | translate }}</p>
         @if (latestTemplates().length === 0) {
-          <p class="text-sm" style="color: var(--color-text-tertiary)">{{ 'services.loading' | translate }}</p>
+          <div class="space-y-3" aria-hidden="true">
+            @for (i of [1, 2, 3, 4]; track i) {
+              <div class="flex items-center gap-3"><div class="skeleton h-9 w-9 rounded-lg"></div><div class="skeleton h-3 flex-1 rounded"></div></div>
+            }
+          </div>
         } @else {
-          <div class="space-y-4">
+          <div class="-mx-2 space-y-1">
             @for (t of latestTemplates(); track t.name) {
-              <a class="flex items-start gap-3 hover:opacity-80" [routerLink]="['/templates', t.name]">
-                <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg" style="background:var(--color-surface-2);">
+              <a class="flex items-start gap-3 rounded-lg px-2 py-2 transition-smooth hover:bg-[var(--glass-bg-subtle)]" [routerLink]="['/templates', t.name]">
+                <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg" style="background:var(--glass-bg-subtle);">
                   @if (serviceLogoUrl(t.logo); as logo) {
                     <img [src]="logo" class="h-6 w-6 object-contain" alt="" (error)="onLogoError($event)" />
                   } @else {
-                    <i class="pi pi-box text-sm" style="color:var(--color-primary-400);"></i>
+                    <i class="pi pi-box text-sm" style="color:var(--color-text-secondary);"></i>
                   }
-                </div>
-                <div class="min-w-0">
-                  <div class="truncate text-sm font-semibold capitalize">{{ t.name }}</div>
-                  <p class="text-xs" style="color: var(--color-text-secondary); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
-                    {{ t.slogan }}
-                  </p>
-                </div>
+                </span>
+                <span class="min-w-0">
+                  <span class="block truncate text-sm font-semibold capitalize text-text-primary">{{ t.name }}</span>
+                  <span class="block text-xs" style="color:var(--color-text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ t.slogan }}</span>
+                </span>
               </a>
             }
           </div>
         }
-        <a class="mt-4 block text-center text-sm font-semibold hover:underline" style="color:var(--color-primary-400);" routerLink="/templates">
-          {{ 'services.browseServices' | translate }}
-        </a>
-      </div>
+        <a class="outer-button button-sm mt-4 w-full justify-center" routerLink="/templates">{{ 'services.browseAll' | translate }}</a>
+      </aside>
     </div>
   `,
 })
@@ -191,6 +209,8 @@ export class ServicesListComponent implements OnInit {
   protected readonly query = signal('');
   protected readonly statusFilter = signal<StatusFilter>('all');
   protected readonly showCustomForm = signal(false);
+  protected readonly acting = signal<string | null>(null);
+  protected readonly statusFilters: StatusFilter[] = ['all', 'running', 'partial', 'exited'];
 
   protected readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
@@ -266,6 +286,13 @@ export class ServicesListComponent implements OnInit {
   }
 
   protected action(svc: Service, act: 'start' | 'stop' | 'restart'): void {
-    this.api.serviceLifecycle(svc.uuid, act).subscribe(() => this.load());
+    this.acting.set(svc.uuid);
+    this.api.serviceLifecycle(svc.uuid, act).subscribe({
+      next: () => {
+        this.acting.set(null);
+        this.load();
+      },
+      error: () => this.acting.set(null),
+    });
   }
 }
