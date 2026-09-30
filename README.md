@@ -29,7 +29,7 @@ Shared packages (`packages/`): design system, models and pricing, loader, produc
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the apps, data stores and authentication fit together |
 | [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | Local setup, Docker Compose, ports |
-| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables and Google Secret Manager |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables and secrets (Infisical) |
 | [docs/SECURITY.md](docs/SECURITY.md) | Security model and rules for contributors |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | CI/CD, images, production checklist |
 | [docs/PACKAGES.md](docs/PACKAGES.md) | Shared packages |

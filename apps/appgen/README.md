@@ -55,7 +55,7 @@ Sign in on the dashboard (`http://localhost:4200`) first: AppGen relies on the I
 
 ## Configuration
 
-- Server: [`apps/we-dev-next/.env.example`](apps/we-dev-next/.env.example). Secrets (`GLM_API_KEY`, `THIRD_API_KEY`, `NETLIFY_TOKEN`, `DEPLOY_OWNER_SECRET`, `SCREENSHOTONE_API_KEY`) are read from Google Secret Manager in production under `appgen--<VARIABLE>`; the list is [`src/config/secrets.manifest.ts`](apps/we-dev-next/src/config/secrets.manifest.ts).
+- Server: [`apps/we-dev-next/.env.example`](apps/we-dev-next/.env.example). Secrets (`GLM_API_KEY`, `THIRD_API_KEY`, `NETLIFY_TOKEN`, `DEPLOY_OWNER_SECRET`, `SCREENSHOTONE_API_KEY`) are read from Infisical in production (project `appgen`); the list is [`src/config/secrets.manifest.ts`](apps/we-dev-next/src/config/secrets.manifest.ts).
 - Client: [`apps/we-dev-client/.env.example`](apps/we-dev-client/.env.example). Only `REACT_APP_*` variables reach the bundle, and **the bundle is public**: never put a secret there.
 
 Details: [docs/CONFIGURATION.md](../../docs/CONFIGURATION.md).
