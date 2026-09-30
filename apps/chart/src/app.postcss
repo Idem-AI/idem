@@ -38,13 +38,13 @@
     background-repeat: repeat;
     background-position: top left;
     pointer-events: none;
-    opacity: 0.3;
+    opacity: calc(0.3 * var(--idem-motif-strength, 0.051));
   }
 
   html.dark body::before,
   .dark body::before {
     filter: invert(1);
-    opacity: 0.35;
+    opacity: calc(0.35 * var(--idem-motif-strength, 0.051));
   }
 
   /* Light theme override */

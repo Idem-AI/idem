@@ -1,16 +1,18 @@
 import { Request, Response } from 'express';
 import logger from '../config/logger';
-import admin from 'firebase-admin';
 import { userService } from '../services/user.service';
 import { isSuperUser } from '../utils/super-user.util';
 import { toPublicProfile } from '../utils/public-profile.util';
-import { restoreSessionFromRefreshToken } from '../services/sessionCookie.service';
+import {
+  restoreSessionFromRefreshToken,
+  verifySessionCookie,
+} from '../services/sessionCookie.service';
 import { CustomRequest } from '../interfaces/express.interface';
 import { OnboardingProfile, OnboardingUiMode } from '../models/userModel';
 
 async function isSessionValid(sessionCookie: string): Promise<boolean> {
   try {
-    await admin.auth().verifySessionCookie(sessionCookie, true);
+    await verifySessionCookie(sessionCookie, true);
     return true;
   } catch {
     return false;
@@ -50,7 +52,8 @@ export const profileController = async (req: Request, res: Response): Promise<vo
   }
 
   try {
-    const profile = await userService.getUserProfile(sessionCookie);
+    const identity = await verifySessionCookie(sessionCookie, true);
+    const profile = await userService.getUserProfile(identity.uid);
     userIdForLogging = profile.uid;
     logger.info(
       `Successfully verified session cookie for user: ${userIdForLogging}. Retrieving profile.`,
@@ -58,13 +61,13 @@ export const profileController = async (req: Request, res: Response): Promise<vo
     );
     // Les applications satellites lisent le statut ici plutôt que de dupliquer
     // `ADMIN_EMAILS` dans leur propre configuration.
-    // Le statut super user exige une adresse vérifiée par Firebase : iDeploy en
-    // déduit un rôle d'administrateur d'instance.
-    const firebaseUser = await admin.auth().getUser(profile.uid);
-    const superUser = firebaseUser.emailVerified === true && isSuperUser(firebaseUser.email);
+    // Le statut super user exige une adresse vérifiée par le serveur
+    // d'authentification : iDeploy en déduit un rôle d'administrateur d'instance.
+    const emailVerified = profile.emailVerified === true;
+    const superUser = emailVerified && isSuperUser(profile.email);
     res.status(200).json({
       ...toPublicProfile(profile),
-      emailVerified: firebaseUser.emailVerified === true,
+      emailVerified,
       isSuperUser: superUser,
     });
   } catch (error: any) {

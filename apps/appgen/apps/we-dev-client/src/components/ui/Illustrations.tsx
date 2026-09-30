@@ -2,13 +2,13 @@
  * Illustrations SVG du produit.
  *
  * Une modale de publication qui n'affiche que du texte oblige à lire pour
- * comprendre le choix ; une image le fait saisir avant la lecture. Les tracés
- * sont volontairement schématiques : ils représentent le mécanisme (un
- * artefact qui part vers un hébergement, une chaîne de déploiement, une
- * requête qui échoue), pas une scène décorative.
+ * comprendre le choix ; une image le fait saisir avant la lecture. Chaque
+ * illustration est un objet de la culture africaine qui dit ce que dit
+ * l'écran (AGENTS.md § 4) : la pirogue qui prend la mer, le grenier et sa
+ * serrure, la calebasse vide ou fêlée, le tambour parleur.
  *
- * Toutes utilisent `currentColor` pour le trait et le jeton primaire pour
- * l'accent, donc elles suivent le thème sans variante à maintenir.
+ * Deux encres : `currentColor` pour le trait, `--color-primary-500` pour le
+ * seul détail qui compte. Elles suivent le thème sans variante à maintenir.
  */
 
 interface IllustrationProps {
@@ -17,7 +17,11 @@ interface IllustrationProps {
   size?: number;
 }
 
-const stroke = {
+/** L'encre de la marque, réservée au seul détail qui compte. */
+const ACCENT = { color: 'var(--color-primary-500)' };
+
+/** Attributs communs aux tracés : au trait, bouts et angles arrondis. */
+const LINE = {
   fill: 'none',
   stroke: 'currentColor',
   strokeWidth: 1.5,
@@ -25,148 +29,148 @@ const stroke = {
   strokeLinejoin: 'round' as const,
 };
 
-/** Publication rapide : l'application part telle quelle vers le web. */
+/**
+ * Publication rapide : la pirogue prend la mer telle quelle, tout de suite.
+ */
 export function PublishQuickIllustration({ className = '', size = 96 }: IllustrationProps) {
   return (
     <svg
       viewBox="0 0 120 96"
       style={{ height: size }}
       className={`text-text-tertiary ${className}`}
+      {...LINE}
       role="img"
       aria-hidden
     >
-      {/* Fenêtre de l'application */}
-      <rect x="8" y="14" width="58" height="44" rx="5" {...stroke} />
-      <path d="M8 25h58" {...stroke} />
-      <circle cx="16" cy="19.5" r="1.6" fill="currentColor" />
-      <circle cx="22" cy="19.5" r="1.6" fill="currentColor" />
-      <rect x="15" y="32" width="24" height="3" rx="1.5" fill="currentColor" opacity="0.35" />
-      <rect x="15" y="39" width="36" height="3" rx="1.5" fill="currentColor" opacity="0.2" />
-      <rect x="15" y="46" width="18" height="3" rx="1.5" fill="currentColor" opacity="0.2" />
-
-      {/* Trajectoire vers le globe */}
-      <path d="M70 40c10-6 18-6 26 0" {...stroke} strokeDasharray="4 4" className="text-primary" />
-      <path d="M92 34l4 6-6 3" {...stroke} className="text-primary" />
-
-      {/* Globe : en ligne, accessible partout */}
-      <circle cx="99" cy="62" r="17" {...stroke} className="text-primary" />
-      <ellipse cx="99" cy="62" rx="7" ry="17" {...stroke} className="text-primary" />
-      <path d="M82.5 56h33M82.5 68h33" {...stroke} className="text-primary" />
+      <g transform="translate(0 4)">
+        <path d="M8 38 C12 44 16 50 24 56 C40 66 82 66 98 56 C104 52 108 44 112 34" strokeWidth="2"/>
+        <path d="M8 38 C18 46 40 50 60 50 C80 50 100 46 112 34" strokeWidth="1.6"/>
+        <path d="M20 48 L26 55.4 L28.5 50.6 L35.1 57.6 L38.7 52.5 L45.3 59.1 L50 53.5 L56.2 59.7 L61.8 53.8 L67.3 59.6 L73.4 53.1 L78 58.5 L84.4 51.7 L87.8 56.6 L94.1 49.3 L96.4 53.8 L102 46" strokeWidth="1.1" opacity=".75"/>
+        <path d="M44 50 L36 28 M36 28 L33 22 C32 20 34 19 35 21 L38 27" strokeWidth="1.6"/>
+        <g style={ACCENT}>
+          <path d="M112 34 L116 26 L110 30 Z" strokeWidth="1.8"/>
+          <path d="M104 44 L107 40 L110 44 L107 48 Z" strokeWidth="1.6"/>
+        </g>
+        <path d="M14 72 C20 68 26 68 32 72 S44 76 50 72 S62 68 68 72 S80 76 86 72 S98 68 104 72" opacity=".5"/>
+        <path d="M30 80 C36 77 42 77 48 80 S60 83 66 80 S78 77 84 80" opacity=".3"/>
+      </g>
     </svg>
   );
 }
 
-/** Pipeline iDeploy : l'artefact traverse des étapes avant la mise en ligne. */
+/**
+ * Pipeline iDeploy : la porte du grenier et sa serrure de bois — l'application
+ * est rangée sur votre infrastructure, et c'est vous qui en tenez la clé.
+ */
 export function PublishPipelineIllustration({ className = '', size = 96 }: IllustrationProps) {
   return (
     <svg
       viewBox="0 0 120 96"
       style={{ height: size }}
       className={`text-text-tertiary ${className}`}
+      {...LINE}
       role="img"
       aria-hidden
     >
-      {/* Paquet de départ */}
-      <path d="M10 34l14-7 14 7v16l-14 7-14-7z" {...stroke} />
-      <path d="M10 34l14 7 14-7M24 41v16" {...stroke} />
-
-      {/* Chaîne d'étapes */}
-      <path d="M40 42h12" {...stroke} strokeDasharray="3 3" />
-      <rect x="52" y="30" width="20" height="24" rx="4" {...stroke} className="text-primary" />
-      <path d="M57 42l4 4 6-8" {...stroke} className="text-primary" />
-
-      <path d="M74 42h12" {...stroke} strokeDasharray="3 3" />
-
-      {/* Serveur de destination */}
-      <rect x="86" y="24" width="26" height="12" rx="3" {...stroke} className="text-primary" />
-      <rect x="86" y="40" width="26" height="12" rx="3" {...stroke} className="text-primary" />
-      <rect x="86" y="56" width="26" height="12" rx="3" {...stroke} className="text-primary" />
-      <circle cx="92" cy="30" r="1.6" fill="currentColor" className="text-primary" />
-      <circle cx="92" cy="46" r="1.6" fill="currentColor" className="text-primary" />
-      <circle cx="92" cy="62" r="1.6" fill="currentColor" className="text-primary" />
-
-      {/* Ancrage : l'infrastructure vous appartient */}
-      <path d="M99 68v14M92 82h14" {...stroke} />
+      <g transform="translate(0 4)">
+        <rect x="34" y="10" width="44" height="70" rx="2" strokeWidth="2"/>
+        <path d="M40 16 H72 V74 H40Z" opacity=".55"/>
+        <path d="M44 22 L50 28 L44 34 M68 22 L62 28 L68 34 M44 60 L50 66 L44 72 M68 60 L62 66 L68 72" strokeWidth="1.2" opacity=".7"/>
+        <path d="M56 18 V36 M56 58 V74" strokeWidth="1" opacity=".5"/>
+        <rect x="74" y="30" width="12" height="30" rx="2" strokeWidth="2"/>
+        <path d="M78 34 h4 M78 56 h4" strokeWidth="1" opacity=".6"/>
+        <g style={ACCENT}>
+          <path d="M60 45 H96" strokeWidth="3"/>
+          <path d="M96 41 V49" strokeWidth="2"/>
+          <path d="M66 42 L69 45 L66 48 L63 45Z" strokeWidth="1.4"/>
+        </g>
+      </g>
     </svg>
   );
 }
 
-/** Échec de récupération : la requête n'a pas abouti. */
+/**
+ * Échec de récupération : la calebasse fêlée, rien n'a pu y être puisé.
+ */
 export function LoadFailedIllustration({ className = '', size = 104 }: IllustrationProps) {
   return (
     <svg
       viewBox="0 0 120 104"
       style={{ height: size }}
       className={`text-text-tertiary ${className}`}
+      {...LINE}
       role="img"
       aria-hidden
     >
-      {/* Nuage de stockage */}
-      <path
-        d="M36 42a14 14 0 0126-7 11 11 0 0116 9 10 10 0 01-2 20H38a13 13 0 01-2-22z"
-        {...stroke}
-      />
-
-      {/* Liaison rompue */}
-      <path d="M48 74l8 10" {...stroke} className="text-danger" />
-      <path d="M72 74l-8 10" {...stroke} className="text-danger" />
-      <path d="M60 68v6M60 80v6" {...stroke} className="text-danger" />
-      <circle cx="60" cy="92" r="8" {...stroke} className="text-danger" />
-      <path d="M57 89l6 6M63 89l-6 6" {...stroke} className="text-danger" />
+      <g transform="translate(0 8)">
+        <path d="M26 36 C26 60 41 76 60 76 C79 76 94 60 94 36" strokeWidth="2"/>
+        <ellipse cx="60" cy="36" rx="34" ry="8" strokeWidth="2"/>
+        <path d="M29.5 50 Q60 60 90.5 50 M33 58 Q60 68 87 58"/>
+        <path d="M29 50 L36.9 59.3 L37.9 52.4 L44.6 61.4 L46.7 54.1 L52.3 62.6 L55.6 54.9 L60 63 L64.4 54.9 L67.7 62.6 L73.3 54.1 L75.4 61.4 L82.1 52.4 L83.1 59.3 L91 50"/>
+        <path d="M48 70.7h0.01 M60 72h0.01 M72 70.7h0.01" strokeWidth="3"/>
+        <ellipse cx="60" cy="36" rx="30" ry="5.5" opacity=".5"/>
+        <g style={ACCENT} strokeWidth="2">
+          <path d="M68 28.5 L64 38 L70 46 L63 56 L67 64 L64 75"/>
+          <path d="M70 46 L76 49"/>
+        </g>
+      </g>
     </svg>
   );
 }
 
-/** Rien à exécuter : l'aperçu attend un serveur. */
+/**
+ * Rien à exécuter : la calebasse vide attend d'être remplie.
+ */
 export function EmptyPreviewIllustration({ className = '', size = 88 }: IllustrationProps) {
   return (
     <svg
       viewBox="0 0 120 88"
       style={{ height: size }}
       className={`text-text-disabled ${className}`}
+      {...LINE}
       role="img"
       aria-hidden
     >
-      <rect x="18" y="12" width="84" height="56" rx="6" {...stroke} />
-      <path d="M18 24h84" {...stroke} />
-      <circle cx="26" cy="18" r="1.6" fill="currentColor" />
-      <circle cx="32" cy="18" r="1.6" fill="currentColor" />
-      <circle cx="38" cy="18" r="1.6" fill="currentColor" />
-      {/* Bouton lecture : ce qu'il reste à faire */}
-      <circle cx="60" cy="46" r="13" {...stroke} className="text-primary" />
-      <path d="M56 40l10 6-10 6z" {...stroke} className="text-primary" />
-      <path d="M44 78h32" {...stroke} />
+      <path d="M26 36 C26 60 41 76 60 76 C79 76 94 60 94 36" strokeWidth="2"/>
+      <ellipse cx="60" cy="36" rx="34" ry="8" strokeWidth="2"/>
+      <path d="M29.5 50 Q60 60 90.5 50 M33 58 Q60 68 87 58"/>
+      <path d="M29 50 L36.9 59.3 L37.9 52.4 L44.6 61.4 L46.7 54.1 L52.3 62.6 L55.6 54.9 L60 63 L64.4 54.9 L67.7 62.6 L73.3 54.1 L75.4 61.4 L82.1 52.4 L83.1 59.3 L91 50"/>
+      <path d="M48 70.7h0.01 M60 72h0.01 M72 70.7h0.01" strokeWidth="3"/>
+      <g style={ACCENT}>
+        <ellipse cx="60" cy="36" rx="28" ry="5" strokeDasharray="3 4"/>
+      </g>
     </svg>
   );
 }
 
-/** Aide : la conversation pilote l'aperçu. */
+/**
+ * Aide : le tambour parleur — on parle, et l'application répond.
+ */
 export function HelpIllustration({ className = '', size = 88 }: IllustrationProps) {
   return (
     <svg
       viewBox="0 0 140 88"
       style={{ height: size }}
       className={`text-text-tertiary ${className}`}
+      {...LINE}
       role="img"
       aria-hidden
     >
-      {/* Panneau de conversation */}
-      <rect x="8" y="14" width="46" height="60" rx="5" {...stroke} />
-      <rect x="15" y="24" width="26" height="4" rx="2" fill="currentColor" opacity="0.35" />
-      <rect x="15" y="33" width="32" height="4" rx="2" fill="currentColor" opacity="0.2" />
-      <rect x="15" y="60" width="32" height="8" rx="4" {...stroke} className="text-primary" />
-
-      {/* Flèche : la demande devient une application */}
-      <path d="M58 44h12" {...stroke} strokeDasharray="3 3" className="text-primary" />
-      <path d="M66 40l5 4-5 4" {...stroke} className="text-primary" />
-
-      {/* Aperçu de l'application */}
-      <rect x="76" y="14" width="56" height="60" rx="5" {...stroke} />
-      <path d="M76 26h56" {...stroke} />
-      <rect x="84" y="34" width="22" height="14" rx="3" {...stroke} className="text-primary" />
-      <rect x="110" y="34" width="14" height="14" rx="3" fill="currentColor" opacity="0.2" />
-      <rect x="84" y="54" width="40" height="4" rx="2" fill="currentColor" opacity="0.2" />
-      <rect x="84" y="62" width="28" height="4" rx="2" fill="currentColor" opacity="0.2" />
+      <g transform="translate(10 0)">
+        <ellipse cx="60" cy="20" rx="16" ry="4.5" strokeWidth="2"/>
+        <ellipse cx="60" cy="68" rx="16" ry="4.5" strokeWidth="2"/>
+        <path d="M44 20 C51 34 51 54 44 68 M76 20 C69 34 69 54 76 68"/>
+        <path d="M46 22.7 L46 66.7 M49.5 24 L49.5 68 M53 25 L53 69 M56.5 25.5 L56.5 69.5 M60 25.5 L60 69.5 M63.5 25 L63.5 69 M67 24 L67 68 M70.5 22.7 L70.5 66.7" strokeWidth="1" opacity=".6"/>
+        <path d="M44 44 H76" strokeWidth="1.2" opacity=".6"/>
+        <path d="M50 34 L54 38 L50 42 M70 34 L66 38 L70 42 M50 46 L54 50 L50 54 M70 46 L66 50 L70 54" strokeWidth="1.2" opacity=".75"/>
+        <path d="M78 76 C88 70 94 62 96 52" strokeWidth="2"/>
+        <g style={ACCENT} strokeWidth="1.8">
+          <path d="M88 22 C92 26 92 32 88 36"/>
+          <path d="M94 16 C101 23 101 35 94 42"/>
+          <path d="M32 22 C28 26 28 32 32 36"/>
+          <path d="M26 16 C19 23 19 35 26 42"/>
+        </g>
+      </g>
     </svg>
   );
 }
@@ -174,6 +178,15 @@ export function HelpIllustration({ className = '', size = 88 }: IllustrationProp
 /* ==================================================================
    Illustrations de la page d'accueil
    ================================================================== */
+
+/** Tracé de la maquette : un schéma de l'interface, pas une illustration. */
+const stroke = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.5,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+};
 
 /**
  * Maquette du produit : la coquille du builder, conversation à gauche et
@@ -255,231 +268,243 @@ interface SceneProps {
 
 const scene = (className: string) => `w-full h-auto text-text-tertiary ${className}`;
 
-/** Chaque projet reçoit une direction visuelle distincte. */
+/**
+ * Chaque projet reçoit une direction visuelle distincte : trois étoffes —
+ * kente, bogolan, wax — et celle du milieu est retenue.
+ */
 export function ArtDirectionIllustration({ className = '' }: SceneProps) {
   return (
-    <svg viewBox="0 0 360 240" className={scene(className)} role="img" aria-hidden>
-      {/* Éditorial : angles vifs, titre lourd, texte en colonnes */}
-      <rect x="24" y="44" width="96" height="160" rx="3" {...stroke} />
-      <path d="M24 60h96" {...stroke} />
-      <rect x="34" y="72" width="70" height="8" rx="1" fill="currentColor" opacity=".35" />
-      <rect x="34" y="86" width="52" height="8" rx="1" fill="currentColor" opacity=".35" />
-      <path d="M34 104h76" {...stroke} />
-      <path d="M34 114h32M34 121h32M34 128h32M34 135h24M78 114h32M78 121h32M78 128h32M78 135h20" {...stroke} opacity=".4" />
-      <rect x="34" y="146" width="76" height="46" fill="currentColor" opacity=".16" />
-
-      {/* Doux : formes arrondies, avatar, bouton en pilule — la direction retenue */}
-      <rect x="132" y="24" width="96" height="192" rx="18" {...stroke} className="text-primary" />
-      <rect x="144" y="40" width="72" height="12" rx="6" {...stroke} className="text-primary" />
-      <circle cx="180" cy="86" r="18" {...stroke} className="text-primary" />
-      <circle cx="180" cy="81" r="6" {...stroke} className="text-primary" />
-      <path d="M169 97a12 12 0 0122 0" {...stroke} className="text-primary" />
-      <rect x="152" y="116" width="56" height="5" rx="2.5" fill="var(--color-primary)" opacity=".5" />
-      <rect x="160" y="127" width="40" height="5" rx="2.5" fill="var(--color-primary)" opacity=".3" />
-      <rect x="144" y="144" width="72" height="30" rx="10" {...stroke} className="text-primary" />
-      <rect x="156" y="186" width="48" height="14" rx="7" fill="var(--color-primary)" opacity=".85" />
-
-      {/* Brut : bandeau plein, grille carrée, aucun arrondi */}
-      <rect x="240" y="44" width="96" height="160" rx="0" {...stroke} />
-      <rect x="240" y="44" width="96" height="44" fill="currentColor" opacity=".22" />
-      <rect x="250" y="58" width="58" height="10" fill="currentColor" opacity=".5" />
-      <rect x="250" y="98" width="36" height="36" {...stroke} />
-      <rect x="290" y="98" width="36" height="36" fill="currentColor" opacity=".16" />
-      <rect x="250" y="138" width="36" height="36" fill="currentColor" opacity=".16" />
-      <rect x="290" y="138" width="36" height="36" {...stroke} />
-      <path d="M250 188h76" {...stroke} />
-    </svg>
-  );
-}
-
-/** On corrige au clic, dans l'aperçu, et la correction atterrit dans le code. */
-export function VisualEditIllustration({ className = '' }: SceneProps) {
-  return (
-    <svg viewBox="0 0 360 240" className={scene(className)} role="img" aria-hidden>
-      {/* L'aperçu */}
-      <rect x="16" y="20" width="232" height="168" rx="10" {...stroke} />
-      <path d="M16 44h232" {...stroke} />
-      <circle cx="30" cy="32" r="2.4" fill="currentColor" opacity=".45" />
-      <circle cx="40" cy="32" r="2.4" fill="currentColor" opacity=".3" />
-      <circle cx="50" cy="32" r="2.4" fill="currentColor" opacity=".3" />
-      <rect x="36" y="60" width="120" height="10" rx="5" fill="currentColor" opacity=".28" />
-
-      {/* Le texte sélectionné, en cours d'écriture */}
-      <rect x="30" y="82" width="176" height="36" rx="4" {...stroke} className="text-primary" strokeDasharray="4 3" />
-      <rect x="38" y="91" width="150" height="6" rx="3" fill="var(--color-primary)" opacity=".55" />
-      <rect x="38" y="103" width="106" height="6" rx="3" fill="var(--color-primary)" opacity=".35" />
-      <path d="M150 100v12" {...stroke} strokeWidth={2} className="text-primary" />
-      {[
-        [30, 82],
-        [206, 82],
-        [30, 118],
-        [206, 118],
-      ].map(([cx, cy]) => (
-        <rect
-          key={`${cx}-${cy}`}
-          x={cx - 3}
-          y={cy - 3}
-          width="6"
-          height="6"
-          rx="1"
-          fill="var(--idem-surface-1)"
-          {...stroke}
-          className="text-primary"
-        />
-      ))}
-
-      <rect x="36" y="134" width="80" height="40" rx="6" fill="currentColor" opacity=".14" />
-      <rect x="128" y="136" width="56" height="8" rx="4" fill="currentColor" opacity=".16" />
-      <rect x="128" y="152" width="44" height="8" rx="4" fill="currentColor" opacity=".12" />
-
-      {/* Le curseur */}
-      <path d="M186 106l19.6 22.4-7 1.4-4.2 11.2-8.4-19.6z" fill="currentColor" />
-
-      {/* La ligne du code source qui a changé */}
-      <path d="M210 100h58a10 10 0 0110 10v18" {...stroke} strokeDasharray="4 4" className="text-primary" />
-      <path d="M273 124l5 5 5-5" {...stroke} className="text-primary" />
-      <rect x="196" y="134" width="150" height="92" rx="10" fill="var(--idem-surface-1)" {...stroke} />
-      <path d="M214 146l-5 5 5 5M224 146l5 5-5 5" {...stroke} />
-      <rect x="210" y="168" width="60" height="5" rx="2.5" fill="currentColor" opacity=".22" />
-      <rect x="204" y="180" width="134" height="14" rx="4" fill="var(--color-primary)" opacity=".12" />
-      <rect x="216" y="184.5" width="96" height="5" rx="2.5" fill="var(--color-primary)" opacity=".75" />
-      <rect x="216" y="202" width="80" height="5" rx="2.5" fill="currentColor" opacity=".16" />
-      <rect x="210" y="214" width="44" height="5" rx="2.5" fill="currentColor" opacity=".16" />
+    <svg viewBox="0 0 360 240" className={scene(className)} {...LINE} role="img" aria-hidden>
+      <rect x="24" y="44" width="96" height="160" rx="2" strokeWidth="2"/>
+      <path d="M34 53 h76 v18 h-76z M34 62 h76 M72 53 v18" strokeWidth="1.2" opacity=".75"/>
+      <path d="M52 77.5 L62 87.5 L52 97.5 L42 87.5Z M92 77.5 L102 87.5 L92 97.5 L82 87.5Z" strokeWidth="1.2" opacity=".75"/>
+      <path d="M34 104 h76 v18 h-76z M34 113 h76 M72 104 v18" strokeWidth="1.2" opacity=".75"/>
+      <path d="M52 128.5 L62 138.5 L52 148.5 L42 138.5Z M92 128.5 L102 138.5 L92 148.5 L82 138.5Z" strokeWidth="1.2" opacity=".75"/>
+      <path d="M34 155 h76 v18 h-76z M34 164 h76 M72 155 v18" strokeWidth="1.2" opacity=".75"/>
+      <path d="M52 179.5 L62 189.5 L52 199.5 L42 189.5Z M92 179.5 L102 189.5 L92 199.5 L82 189.5Z" strokeWidth="1.2" opacity=".75"/>
+      <rect x="132" y="24" width="96" height="192" rx="2" strokeWidth="2"/>
+      <rect x="140" y="32" width="80" height="176" rx="1" strokeWidth="1" opacity=".55"/>
+      <path d="M148 44 L153.3 52 L158.7 44 L164 52 L169.3 44 L174.7 52 L180 44 L185.3 52 L190.7 44 L196 52 L201.3 44 L206.7 52 L212 44" strokeWidth="1.2"/>
+      <path d="M148 76 L153.3 84 L158.7 76 L164 84 L169.3 76 L174.7 84 L180 76 L185.3 84 L190.7 76 L196 84 L201.3 76 L206.7 84 L212 76" strokeWidth="1.2"/>
+      <path d="M148 164 L153.3 172 L158.7 164 L164 172 L169.3 164 L174.7 172 L180 164 L185.3 172 L190.7 164 L196 172 L201.3 164 L206.7 172 L212 164" strokeWidth="1.2"/>
+      <path d="M148 196 L153.3 204 L158.7 196 L164 204 L169.3 196 L174.7 204 L180 196 L185.3 204 L190.7 196 L196 204 L201.3 196 L206.7 204 L212 196" strokeWidth="1.2"/>
+      <path d="M150 60h0.01 M150 180h0.01 M162 60h0.01 M162 180h0.01 M174 60h0.01 M174 180h0.01 M186 60h0.01 M186 180h0.01 M198 60h0.01 M198 180h0.01 M210 60h0.01 M210 180h0.01" strokeWidth="3"/>
+      <g style={ACCENT}>
+        <path d="M180 96 L204 120 L180 144 L156 120Z M180 108 L192 120 L180 132 L168 120Z" strokeWidth="2.2"/>
+      </g>
+      <rect x="240" y="44" width="96" height="160" rx="2" strokeWidth="2"/>
+      <circle cx="264" cy="72" r="14" strokeWidth="1.2" opacity=".75"/>
+      <circle cx="264" cy="72" r="6" strokeWidth="1.2" opacity=".75"/>
+      <circle cx="312" cy="72" r="14" strokeWidth="1.2" opacity=".75"/>
+      <circle cx="312" cy="72" r="6" strokeWidth="1.2" opacity=".75"/>
+      <circle cx="288" cy="110" r="14" strokeWidth="1.2" opacity=".75"/>
+      <circle cx="288" cy="110" r="6" strokeWidth="1.2" opacity=".75"/>
+      <circle cx="264" cy="148" r="14" strokeWidth="1.2" opacity=".75"/>
+      <circle cx="264" cy="148" r="6" strokeWidth="1.2" opacity=".75"/>
+      <circle cx="312" cy="148" r="14" strokeWidth="1.2" opacity=".75"/>
+      <circle cx="312" cy="148" r="6" strokeWidth="1.2" opacity=".75"/>
+      <circle cx="288" cy="186" r="14" strokeWidth="1.2" opacity=".75"/>
+      <circle cx="288" cy="186" r="6" strokeWidth="1.2" opacity=".75"/>
     </svg>
   );
 }
 
 /**
- * Le code part sur iDeploy après vérification, et reste un paquet standard
- * qui se remonte sur n'importe quel serveur.
+ * On corrige au clic, dans l'aperçu : le motif choisi sur l'étoffe, et le
+ * métier à tisser où la correction retourne dans le code.
+ */
+export function VisualEditIllustration({ className = '' }: SceneProps) {
+  return (
+    <svg viewBox="0 0 360 240" className={scene(className)} {...LINE} role="img" aria-hidden>
+      <rect x="16" y="20" width="232" height="168" rx="2" strokeWidth="2"/>
+      <path d="M16 34 H248 M16 174 H248" strokeWidth="1" opacity=".55"/>
+      <path d="M28 48 L36 56 L44 48 L52 56 L60 48 L68 56 L76 48 L84 56 L92 48 L100 56 L108 48 L116 56 L124 48 L132 56 L140 48 L148 56 L156 48 L164 56 L172 48 L180 56 L188 48 L196 56 L204 48 L212 56 L220 48 L228 56 L236 48" strokeWidth="1.1" opacity=".7"/>
+      <path d="M28 150 L36 158 L44 150 L52 158 L60 150 L68 158 L76 150 L84 158 L92 150 L100 158 L108 150 L116 158 L124 150 L132 158 L140 150 L148 158 L156 150 L164 158 L172 150 L180 158 L188 150 L196 158 L204 150 L212 158 L220 150 L228 158 L236 150" strokeWidth="1.1" opacity=".7"/>
+      <path d="M58 84 L76 102 L58 120 L40 102Z M58 94 L66 102 L58 110 L50 102Z" strokeWidth="1.3" opacity=".75"/>
+      <path d="M206 84 L224 102 L206 120 L188 102Z M206 94 L214 102 L206 110 L198 102Z" strokeWidth="1.3" opacity=".75"/>
+      <path d="M132 88 L146 102 L132 116 L118 102Z" strokeWidth="1.5"/>
+      <g style={ACCENT}>
+        <rect x="104" y="74" width="56" height="56" rx="2" strokeWidth="1.6" strokeDasharray="4 3"/>
+        <rect x="101" y="71" width="6" height="6" rx="1" strokeWidth="1.6"/>
+        <rect x="157" y="71" width="6" height="6" rx="1" strokeWidth="1.6"/>
+        <rect x="101" y="127" width="6" height="6" rx="1" strokeWidth="1.6"/>
+        <rect x="157" y="127" width="6" height="6" rx="1" strokeWidth="1.6"/>
+      </g>
+      <path d="M150 112 L168 132 L161 133.5 L165 143 L160.5 145 L156.5 135.5 L151 140Z" strokeWidth="1.6"/>
+      <path d="M170 136 C200 136 232 150 256 170" strokeDasharray="4 4" opacity=".6"/>
+      <path d="M251 164 L257 171 L249 173" opacity=".6"/>
+      <g transform="translate(238 128) scale(1.15)" strokeWidth="1.3">
+        <path d="M26 10 V82 M94 10 V82 M22 12 H98" strokeWidth="1.7"/>
+        <path d="M60 12 V18 M52 18 H68"/>
+        <path d="M44 30 H76 M44 36 H76" strokeWidth="1.6"/>
+        <path d="M46 20 V80 M50 20 V80 M54 20 V80 M58 20 V80 M62 20 V80 M66 20 V80 M70 20 V80 M74 20 V80" strokeWidth="0.8" opacity=".65"/>
+        <rect x="43" y="58" width="34" height="22" rx="1" strokeWidth="1.4"/>
+        <path d="M44.0 60 h3.2 v3.4 h-3.2z M53.2 60 h3.2 v3.4 h-3.2z M62.4 60 h3.2 v3.4 h-3.2z M71.6 60 h3.2 v3.4 h-3.2z M48.6 65 h3.2 v3.4 h-3.2z M57.8 65 h3.2 v3.4 h-3.2z M67.0 65 h3.2 v3.4 h-3.2z M44.0 70 h3.2 v3.4 h-3.2z M53.2 70 h3.2 v3.4 h-3.2z M62.4 70 h3.2 v3.4 h-3.2z M71.6 70 h3.2 v3.4 h-3.2z M48.6 75 h3.2 v3.4 h-3.2z M57.8 75 h3.2 v3.4 h-3.2z M67.0 75 h3.2 v3.4 h-3.2z" strokeWidth="0.9" opacity=".8"/>
+        <path d="M40 82 H80" strokeWidth="1.7"/>
+        <g >
+          <path d="M34 50 C44 46 76 46 86 50 C76 54 44 54 34 50Z" strokeWidth="1.6"/>
+          <path d="M52 50 H68" strokeWidth="2.1"/>
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * Le panier (le code) passe les étapes vérifiées et se range dans le grenier
+ * d'iDeploy ; le même panier se range aussi dans n'importe quel autre grenier.
  */
 export function SovereignDeployIllustration({ className = '' }: SceneProps) {
   return (
-    <svg viewBox="16 56 336 172" className={scene(className)} role="img" aria-hidden>
-      {/* Le code généré */}
-      <path d="M28 94l24-12 24 12v30l-24 12-24-12z" {...stroke} />
-      <path d="M28 94l24 12 24-12M52 106v30" {...stroke} />
-
-      {/* Les étapes vérifiées */}
-      <path d="M84 110h22" {...stroke} strokeDasharray="4 4" />
-      {[108, 160, 212].map((x) => (
-        <g key={x} className="text-primary">
-          <rect x={x} y="94" width="32" height="32" rx="7" {...stroke} />
-          <path d={`M${x + 9} 110l5 5 9-10`} {...stroke} />
+    <svg viewBox="16 56 336 172" className={scene(className)} {...LINE} role="img" aria-hidden>
+      <g transform="translate(12 64) scale(0.72)" strokeWidth="2.1">
+        <path d="M40 40 C38 16 82 16 80 40" strokeWidth="2.8"/>
+        <path d="M44 40 C43 22 77 22 76 40" opacity=".55"/>
+        <path d="M36 26 L40 30 M84 26 L80 30" opacity=".6"/>
+        <ellipse cx="60" cy="42" rx="34" ry="6" strokeWidth="2.8"/>
+        <path d="M26 42 C26 62 34 78 60 78 C86 78 94 62 94 42" strokeWidth="2.8"/>
+        <path d="M28 46 L33.3 52 L38.7 46 L44 52 L49.3 46 L54.7 52 L60 46 L65.3 52 L70.7 46 L76 52 L81.3 46 L86.7 52 L92 46 M30 55 L35 61 L40 55 L45 61 L50 55 L55 61 L60 55 L65 61 L70 55 L75 61 L80 55 L85 61 L90 55 M32 64 L36.7 70 L41.3 64 L46 70 L50.7 64 L55.3 70 L60 64 L64.7 70 L69.3 64 L74 70 L78.7 64 L83.3 70 L88 64" strokeWidth="1.4" opacity=".7"/>
+        <g >
+          <path d="M60 45.5 L64 51 L60 56.5 L56 51Z" strokeWidth="2.5"/>
         </g>
-      ))}
-      <path d="M140 110h20M192 110h20M244 110h16" {...stroke} strokeDasharray="4 4" />
-
-      {/* iDeploy */}
-      {[64, 98, 132].map((y) => (
-        <g key={y} className="text-primary">
-          <rect x="264" y={y} width="80" height="28" rx="6" {...stroke} />
-          <circle cx="277" cy={y + 14} r="2.6" fill="currentColor" />
-          <path d={`M300 ${y + 14}h32`} {...stroke} opacity=".5" />
+      </g>
+      <path d="M104 104 H126 M170 104 H186 M230 104 H246" strokeDasharray="4 4" opacity=".6"/>
+      <g style={ACCENT}>
+        <path d="M148 86 L166 104 L148 122 L130 104Z" strokeWidth="1.8"/>
+        <path d="M141 104 L146 109 L155 99" strokeWidth="2"/>
+        <path d="M208 86 L226 104 L208 122 L190 104Z" strokeWidth="1.8"/>
+        <path d="M201 104 L206 109 L215 99" strokeWidth="2"/>
+      </g>
+      <g transform="translate(238 44) scale(1.1)" strokeWidth="1.4">
+        <path d="M42 40 L44 74 H76 L78 40" strokeWidth="1.8"/>
+        <path d="M46 74 V80 M56 74 V80 M64 74 V80 M74 74 V80 M40 80 H80" opacity=".8"/>
+        <path d="M36 42 C44 34 52 18 60 8 C68 18 76 34 84 42 C76 45 44 45 36 42Z" strokeWidth="1.8"/>
+        <path d="M60 8 V43 M50 22 L46 42 M70 22 L74 42 M55 15 L52 43 M65 15 L68 43" strokeWidth="0.8" opacity=".6"/>
+        <path d="M58 6 L60 2 L62 6" strokeWidth="1.3"/>
+        <path d="M46 62 L50 66 L54 62 L58 66 L62 62 L66 66 L70 62 L74 66" strokeWidth="1" opacity=".7"/>
+        <rect x="54" y="48" width="12" height="11" rx="1"/>
+        <g >
+          <path d="M51 53.5 H64" strokeWidth="2"/>
+          <path d="M64 51 V56" strokeWidth="1.5"/>
         </g>
-      ))}
-      <path d="M304 160v20M284 180h40" {...stroke} />
-
-      {/* Ailleurs : le même paquet tourne sur un autre serveur */}
-      <path d="M52 144v38a8 8 0 008 8h40" {...stroke} strokeDasharray="4 4" />
-      <path d="M96 185l5 5-5 5" {...stroke} />
-      {[178, 202].map((y) => (
-        <g key={y}>
-          <rect x="108" y={y} width="72" height="20" rx="5" {...stroke} />
-          <circle cx="119" cy={y + 10} r="2.2" fill="currentColor" opacity=".6" />
-          <path d={`M134 ${y + 10}h34`} {...stroke} opacity=".35" />
-        </g>
-      ))}
-    </svg>
-  );
-}
-
-/** Point d'entrée 1 : une phrase devient une application. */
-export function EntryPromptIllustration({ className = '' }: SceneProps) {
-  return (
-    <svg viewBox="0 0 360 200" className={scene(className)} role="img" aria-hidden>
-      {/* La phrase */}
-      <rect x="16" y="56" width="152" height="88" rx="16" {...stroke} />
-      <rect x="32" y="74" width="112" height="6" rx="3" fill="currentColor" opacity=".35" />
-      <rect x="32" y="88" width="84" height="6" rx="3" fill="currentColor" opacity=".2" />
-      <path d="M121 86v10" {...stroke} className="text-primary" />
-      <path d="M30 126h8M34 122v8" {...stroke} opacity=".5" />
-      <circle cx="148" cy="126" r="9" fill="var(--color-primary)" opacity=".9" />
-      <path d="M148 130v-8M144.5 125.5l3.5-3.5 3.5 3.5" {...stroke} stroke="var(--idem-surface-1)" />
-
-      <path d="M178 100h26" {...stroke} strokeDasharray="4 4" className="text-primary" />
-      <path d="M200 95l5 5-5 5" {...stroke} className="text-primary" />
-
-      {/* L'application générée */}
-      <rect x="216" y="24" width="128" height="152" rx="10" {...stroke} />
-      <path d="M216 44h128" {...stroke} />
-      <circle cx="227" cy="34" r="2.2" fill="currentColor" opacity=".45" />
-      <circle cx="235" cy="34" r="2.2" fill="currentColor" opacity=".3" />
-      <circle cx="243" cy="34" r="2.2" fill="currentColor" opacity=".3" />
-      <rect x="228" y="56" width="104" height="44" rx="7" {...stroke} className="text-primary" />
-      <path d="M240 90l14-14 10 10 8-8 14 12" {...stroke} className="text-primary" />
-      <rect x="228" y="112" width="80" height="6" rx="3" fill="currentColor" opacity=".3" />
-      <rect x="228" y="124" width="60" height="6" rx="3" fill="currentColor" opacity=".18" />
-      <rect x="228" y="144" width="46" height="18" rx="9" fill="var(--color-primary)" opacity=".85" />
-      <rect x="282" y="144" width="42" height="18" rx="9" {...stroke} />
-    </svg>
-  );
-}
-
-/** Point d'entrée 2 : les livrables Idem alimentent la génération. */
-export function EntryProjectIllustration({ className = '' }: SceneProps) {
-  return (
-    <svg viewBox="0 0 360 200" className={scene(className)} role="img" aria-hidden>
-      {/* Business plan */}
-      <rect x="16" y="16" width="104" height="48" rx="7" {...stroke} />
-      <path d="M30 54V44M42 54V36M54 54V40M66 54V28" {...stroke} strokeWidth={5} opacity=".3" />
-      <rect x="80" y="30" width="28" height="4" rx="2" fill="currentColor" opacity=".3" />
-      <rect x="80" y="40" width="20" height="4" rx="2" fill="currentColor" opacity=".2" />
-
-      {/* Charte graphique */}
-      <rect x="16" y="76" width="104" height="48" rx="7" {...stroke} />
-      <circle cx="36" cy="100" r="10" fill="var(--color-primary)" opacity=".85" />
-      <circle cx="60" cy="100" r="10" fill="currentColor" opacity=".35" />
-      <circle cx="84" cy="100" r="10" {...stroke} />
-      <path d="M100 94h10M100 104h6" {...stroke} opacity=".4" />
-
-      {/* Diagrammes */}
-      <rect x="16" y="136" width="104" height="48" rx="7" {...stroke} />
-      <rect x="28" y="146" width="22" height="12" rx="2" {...stroke} />
-      <rect x="84" y="146" width="22" height="12" rx="2" {...stroke} />
-      <rect x="56" y="164" width="22" height="12" rx="2" {...stroke} />
-      <path d="M50 152h34M67 152v12" {...stroke} opacity=".6" />
-
-      {/* Tout converge */}
-      <path
-        d="M126 40c40 0 40 60 78 60M126 100h78M126 160c40 0 40-60 78-60"
-        {...stroke}
-        strokeDasharray="4 4"
-        className="text-primary"
-      />
-      <path d="M200 95l5 5-5 5" {...stroke} className="text-primary" />
-
-      {/* Le code, aligné sur la marque */}
-      <rect x="216" y="30" width="128" height="140" rx="10" {...stroke} className="text-primary" />
-      <path d="M216 50h128" {...stroke} className="text-primary" />
-      <path d="M232 36l-4 4 4 4M242 36l4 4-4 4" {...stroke} className="text-primary" />
-      <rect x="230" y="64" width="44" height="5" rx="2.5" fill="var(--color-primary)" opacity=".6" />
-      <rect x="240" y="78" width="80" height="5" rx="2.5" fill="currentColor" opacity=".25" />
-      <rect x="240" y="92" width="60" height="5" rx="2.5" fill="currentColor" opacity=".25" />
-      <rect x="250" y="106" width="70" height="5" rx="2.5" fill="currentColor" opacity=".18" />
-      <rect x="240" y="120" width="44" height="5" rx="2.5" fill="currentColor" opacity=".25" />
-      <rect x="230" y="134" width="28" height="5" rx="2.5" fill="var(--color-primary)" opacity=".6" />
-      <rect x="230" y="150" width="90" height="5" rx="2.5" fill="currentColor" opacity=".16" />
+      </g>
+      <path d="M56 136 V186 C56 194 60 198 68 198 H226" strokeDasharray="4 4" opacity=".6"/>
+      <path d="M221 193 L227 198 L221 203" opacity=".6"/>
+      <g transform="translate(212 154) scale(0.8)" strokeWidth="1.9">
+        <path d="M42 40 L44 74 H76 L78 40" strokeWidth="2.5"/>
+        <path d="M46 74 V80 M56 74 V80 M64 74 V80 M74 74 V80 M40 80 H80" opacity=".8"/>
+        <path d="M36 42 C44 34 52 18 60 8 C68 18 76 34 84 42 C76 45 44 45 36 42Z" strokeWidth="2.5"/>
+        <path d="M60 8 V43 M50 22 L46 42 M70 22 L74 42 M55 15 L52 43 M65 15 L68 43" strokeWidth="1.1" opacity=".6"/>
+        <path d="M58 6 L60 2 L62 6" strokeWidth="1.7"/>
+        <path d="M46 62 L50 66 L54 62 L58 66 L62 62 L66 66 L70 62 L74 66" strokeWidth="1.4" opacity=".7"/>
+        <rect x="54" y="48" width="12" height="11" rx="1"/>
+      </g>
     </svg>
   );
 }
 
 /**
- * Connexion requise : l'idée est écrite, il manque un compte pour la garder.
- *
- * L'illustration montre ce qui est en jeu — le travail déjà saisi d'un côté,
- * le compte de l'autre — plutôt qu'un cadenas générique qui ne dirait que
- * « interdit ».
+ * Point d'entrée 1 : une phrase dite au tambour parleur devient une
+ * application bâtie, comme une façade en banco.
+ */
+export function EntryPromptIllustration({ className = '' }: SceneProps) {
+  return (
+    <svg viewBox="0 0 360 200" className={scene(className)} {...LINE} role="img" aria-hidden>
+      <g transform="translate(-4 34) scale(1.5)" strokeWidth="1">
+        <ellipse cx="60" cy="20" rx="16" ry="4.5" strokeWidth="1.3"/>
+        <ellipse cx="60" cy="68" rx="16" ry="4.5" strokeWidth="1.3"/>
+        <path d="M44 20 C51 34 51 54 44 68 M76 20 C69 34 69 54 76 68"/>
+        <path d="M46 22.7 L46 66.7 M49.5 24 L49.5 68 M53 25 L53 69 M56.5 25.5 L56.5 69.5 M60 25.5 L60 69.5 M63.5 25 L63.5 69 M67 24 L67 68 M70.5 22.7 L70.5 66.7" strokeWidth="0.7" opacity=".6"/>
+        <path d="M44 44 H76" strokeWidth="0.8" opacity=".6"/>
+        <path d="M50 34 L54 38 L50 42 M70 34 L66 38 L70 42 M50 46 L54 50 L50 54 M70 46 L66 50 L70 54" strokeWidth="0.8" opacity=".75"/>
+        <path d="M78 76 C88 70 94 62 96 52" strokeWidth="1.3"/>
+        <g style={ACCENT} strokeWidth="1.2">
+          <path d="M88 22 C92 26 92 32 88 36"/>
+          <path d="M94 16 C101 23 101 35 94 42"/>
+          <path d="M32 22 C28 26 28 32 32 36"/>
+          <path d="M26 16 C19 23 19 35 26 42"/>
+        </g>
+      </g>
+      <path d="M170 100 H200" strokeDasharray="4 4" opacity=".6"/>
+      <g style={ACCENT}>
+        <path d="M196 94 L202 100 L196 106" strokeWidth="1.8"/>
+      </g>
+      <g transform="translate(190 36) scale(1.45)" strokeWidth="1">
+        <path d="M12 80 H108" opacity=".4"/>
+        <path d="M20 80 V22 M36 80 V22 M84 80 V22 M100 80 V22" strokeWidth="1.1"/>
+        <path d="M20 22 C20 14 28 10 28 4 C28 10 36 14 36 22 M84 22 C84 14 92 10 92 4 C92 10 100 14 100 22" strokeWidth="1.2"/>
+        <path d="M52 22 C52 16 56 14 60 8 C64 14 68 16 68 22" strokeWidth="1.2"/>
+        <path d="M20 22 H100 V80 H20Z" strokeWidth="1.4"/>
+        <path d="M26 26 h8 M42 26 h8 M70 26 h8 M86 26 h8 M26 44 h8 M42 44 h8 M70 44 h8 M86 44 h8 M26 62 h8 M42 62 h8 M70 62 h8 M86 62 h8" strokeWidth="1.5"/>
+        <path d="M42 32 L46 36 L50 32 M70 32 L74 36 L78 32" strokeWidth="0.7" opacity=".6"/>
+        <g >
+          <path d="M52 80 V58 C52 52 56 50 60 50 C64 50 68 52 68 58 V80" strokeWidth="1.4"/>
+          <path d="M60 50 V44" strokeWidth="1"/>
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * Point d'entrée 2 : les livrables Idem — le baobab du business plan, le
+ * tampon de la charte, le filet des diagrammes — alimentent le métier à
+ * tisser où le code prend forme.
+ */
+export function EntryProjectIllustration({ className = '' }: SceneProps) {
+  return (
+    <svg viewBox="0 0 360 200" className={scene(className)} {...LINE} role="img" aria-hidden>
+      <g transform="translate(-6 -2) scale(0.72)" strokeWidth="2.1">
+        <path d="M22 80 H98" opacity=".4"/>
+        <path d="M44 80 C40 66 42 50 48 40 M76 80 C80 66 78 50 72 40" strokeWidth="2.8"/>
+        <path d="M48 40 C44 34 36 30 28 30 M48 40 C46 32 44 26 40 18 M55 38 C54 30 56 22 58 14 M65 38 C66 30 70 24 76 18 M72 40 C78 34 86 32 94 32" strokeWidth="2.8"/>
+        <path d="M28 30 C24 28 21 29 19 31 M28 30 C27 26 28 23 30 21 M40 18 C36 16 34 13 34 10 M40 18 C42 15 45 13 48 13 M58 14 C56 11 56 8 57 6 M58 14 C61 12 63 12 65 13 M76 18 C76 14 78 12 80 11 M76 18 C80 17 83 17 85 19 M94 32 C97 29 100 29 102 30 M94 32 C96 34 97 36 96 39" strokeWidth="1.9"/>
+        <path d="M52 50 V60 M57 46 V70 M63 48 V74 M68 52 V64" strokeWidth="1.4" opacity=".45"/>
+      </g>
+      <g transform="translate(14 58) scale(0.78)" strokeWidth="1.9">
+        <path d="M34 12 L26 44 M34 12 L42 44 M34 12 L20 40 M34 12 L48 40" strokeWidth="2.1"/>
+        <path d="M30 10 H38" strokeWidth="3.1"/>
+        <ellipse cx="34" cy="52" rx="22" ry="9" strokeWidth="2.6"/>
+        <path d="M12 52 V56 C12 61 22 65 34 65 C46 65 56 61 56 56 V52" strokeWidth="2.1"/>
+        <g transform="translate(34 52) scale(.9 .36)">
+          <path d="M0 -9 L9 0 L0 9 L-9 0Z M0 -4 L4 0 L0 4 L-4 0Z M-9 0 H-13 M9 0 H13 M0 -9 V-13 M0 9 V13" strokeWidth="3.1"/>
+        </g>
+      </g>
+      <g transform="translate(-6 134) scale(0.72)" strokeWidth="2.1">
+        <path d="M60 12 V4 C60 2 64 2 64 4" strokeWidth="2.2"/>
+        <path d="M60 12 L18.2 72.5 M60 12 L24.4 74.7 M60 12 L34.1 76.5 M60 12 L46.4 77.6 M60 12 L60 78 M60 12 L73.6 77.6 M60 12 L85.9 76.5 M60 12 L95.6 74.7 M60 12 L101.8 72.5" strokeWidth="1.5" opacity=".75"/>
+        <path d="M45.4 33.2 L47.5 33.9 L50.9 34.6 L55.2 35 L60 35.1 L64.8 35 L69.1 34.6 L72.5 33.9 L74.6 33.2 M34.9 48.3 L38.6 49.6 L44.5 50.7 L51.8 51.4 L60 51.6 L68.2 51.4 L75.5 50.7 L81.4 49.6 L85.1 48.3 M25.7 61.6 L30.8 63.4 L38.8 64.9 L48.9 65.8 L60 66.1 L71.1 65.8 L81.2 64.9 L89.2 63.4 L94.3 61.6" strokeWidth="1.5" opacity=".75"/>
+        <path d="M18.2 72.5 L24.4 74.7 L34.1 76.5 L46.4 77.6 L60 78 L73.6 77.6 L85.9 76.5 L95.6 74.7 L101.8 72.5" strokeWidth="2.8"/>
+        <path d="M47.5 33.9h0.01 M50.9 34.6h0.01 M55.2 35h0.01 M60 35.1h0.01 M64.8 35h0.01 M69.1 34.6h0.01 M72.5 33.9h0.01 M38.6 49.6h0.01 M44.5 50.7h0.01 M51.8 51.4h0.01 M60 51.6h0.01 M68.2 51.4h0.01 M75.5 50.7h0.01 M81.4 49.6h0.01 M30.8 63.4h0.01 M38.8 64.9h0.01 M48.9 65.8h0.01 M60 66.1h0.01 M71.1 65.8h0.01 M81.2 64.9h0.01 M89.2 63.4h0.01" strokeWidth="4.2" opacity=".8"/>
+        <path d="M18.2 75.5h0.01 M24.4 77.7h0.01 M34.1 79.5h0.01 M46.4 80.6h0.01 M60 81h0.01 M73.6 80.6h0.01 M85.9 79.5h0.01 M95.6 77.7h0.01 M101.8 75.5h0.01" strokeWidth="5.6"/>
+        <g >
+          <circle cx="68.2" cy="51.4" r="4" strokeWidth="2.5"/>
+        </g>
+      </g>
+      <path d="M86 34 C128 34 128 100 170 100 M86 100 H170 M86 164 C128 164 128 100 170 100" strokeDasharray="4 4" opacity=".6"/>
+      <g style={ACCENT}>
+        <path d="M166 94 L172 100 L166 106" strokeWidth="1.8"/>
+      </g>
+      <g transform="translate(178 19.5) scale(1.75)" strokeWidth="0.9">
+        <path d="M26 10 V82 M94 10 V82 M22 12 H98" strokeWidth="1.1"/>
+        <path d="M60 12 V18 M52 18 H68"/>
+        <path d="M44 30 H76 M44 36 H76" strokeWidth="1"/>
+        <path d="M46 20 V80 M50 20 V80 M54 20 V80 M58 20 V80 M62 20 V80 M66 20 V80 M70 20 V80 M74 20 V80" strokeWidth="0.5" opacity=".65"/>
+        <rect x="43" y="58" width="34" height="22" rx="1" strokeWidth="0.9"/>
+        <path d="M44.0 60 h3.2 v3.4 h-3.2z M53.2 60 h3.2 v3.4 h-3.2z M62.4 60 h3.2 v3.4 h-3.2z M71.6 60 h3.2 v3.4 h-3.2z M48.6 65 h3.2 v3.4 h-3.2z M57.8 65 h3.2 v3.4 h-3.2z M67.0 65 h3.2 v3.4 h-3.2z M44.0 70 h3.2 v3.4 h-3.2z M53.2 70 h3.2 v3.4 h-3.2z M62.4 70 h3.2 v3.4 h-3.2z M71.6 70 h3.2 v3.4 h-3.2z M48.6 75 h3.2 v3.4 h-3.2z M57.8 75 h3.2 v3.4 h-3.2z M67.0 75 h3.2 v3.4 h-3.2z" strokeWidth="0.6" opacity=".8"/>
+        <path d="M40 82 H80" strokeWidth="1.1"/>
+        <g >
+          <path d="M34 50 C44 46 76 46 86 50 C76 54 44 54 34 50Z" strokeWidth="1"/>
+          <path d="M52 50 H68" strokeWidth="1.4"/>
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * Connexion requise : la clé dont l'anneau est le bouclier de la connexion.
+ * L'idée est écrite ; il manque le compte qui la garde.
  */
 export function SignInIllustration({ className = '', size = 108 }: IllustrationProps) {
   return (
@@ -487,26 +512,20 @@ export function SignInIllustration({ className = '', size = 108 }: IllustrationP
       viewBox="0 0 160 108"
       style={{ height: size }}
       className={`text-text-tertiary ${className}`}
+      {...LINE}
       role="img"
       aria-hidden
     >
-      {/* La demande déjà écrite */}
-      <rect x="10" y="26" width="62" height="44" rx="8" {...stroke} />
-      <rect x="20" y="38" width="34" height="5" rx="2.5" fill="currentColor" opacity=".35" />
-      <rect x="20" y="49" width="42" height="5" rx="2.5" fill="currentColor" opacity=".2" />
-      <rect x="20" y="58" width="22" height="5" rx="2.5" fill="currentColor" opacity=".2" />
-
-      {/* Le pont vers le compte */}
-      <path d="M80 48h18" {...stroke} strokeDasharray="4 4" className="text-primary" />
-      <path d="M92 43l6 5-6 5" {...stroke} className="text-primary" />
-
-      {/* Le compte : un profil, pas un cadenas */}
-      <circle cx="128" cy="40" r="12" {...stroke} className="text-primary" />
-      <circle cx="128" cy="36" r="4.5" {...stroke} className="text-primary" />
-      <path d="M120 47a9 9 0 0116 0" {...stroke} className="text-primary" />
-      <rect x="106" y="62" width="44" height="26" rx="7" {...stroke} className="text-primary" />
-      <path d="M116 75h24" {...stroke} className="text-primary" opacity=".6" />
-      <path d="M116 81h14" {...stroke} className="text-primary" opacity=".4" />
+      <path d="M40 18 C58 30 66 44 66 54 C66 64 58 78 40 90 C22 78 14 64 14 54 C14 44 22 30 40 18Z" strokeWidth="2"/>
+      <path d="M40 26 C54 36 60 46 60 54 C60 62 54 72 40 82 C26 72 20 62 20 54 C20 46 26 36 40 26Z" strokeWidth="1.4"/>
+      <path d="M32 36 L40 41 L48 36 M29 42 L40 49 L51 42 M32 72 L40 67 L48 72 M29 66 L40 59 L51 66" strokeWidth="1.3"/>
+      <path d="M66 54 H136" strokeWidth="2.2"/>
+      <path d="M114 54 V67 H121 V60 H127 V70 H134 V54" strokeWidth="2"/>
+      <path d="M72 50 V58 M76 50 V58" strokeWidth="1.4"/>
+      <path d="M144 42 L149 37 M147 54 H153 M144 66 L149 71" strokeWidth="1.6" opacity=".6"/>
+      <g style={ACCENT}>
+        <path d="M40 48 L45 54 L40 60 L35 54Z" strokeWidth="2"/>
+      </g>
     </svg>
   );
 }

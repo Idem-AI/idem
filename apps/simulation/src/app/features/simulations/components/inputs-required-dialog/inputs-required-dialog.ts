@@ -31,6 +31,20 @@ import { PROJECT_INPUT_KEYS, ProjectInputKey } from '../../models';
  *
  * Échap ne choisit ni l'un ni l'autre : on revient à l'écran, rien n'est lancé.
  */
+/**
+ * Les douze cases de l'awalé, dans l'ordre où l'on sème : la rangée du bas de
+ * gauche à droite, puis celle du haut de droite à gauche. `seeds` trace les
+ * graines d'une case semée.
+ */
+const AWALE_PITS = [
+  ...[0, 1, 2, 3, 4, 5].map((i) => ({ x: 30 + i * 12, y: 52 })),
+  ...[5, 4, 3, 2, 1, 0].map((i) => ({ x: 30 + i * 12, y: 36 })),
+].map(({ x, y }) => ({
+  x,
+  y,
+  seeds: `M${x - 1.6} ${y - 0.6}h0.01 M${x + 1.6} ${y + 0.6}h0.01 M${x + 1.4} ${y - 1}h0.01`,
+}));
+
 @Component({
   selector: 'sim-inputs-required-dialog',
   imports: [TranslatePipe],
@@ -53,103 +67,70 @@ import { PROJECT_INPUT_KEYS, ProjectInputKey } from '../../models';
         class="modal-panel rise relative flex max-h-[90dvh] w-full max-w-lg flex-col overflow-y-auto p-6 sm:p-7"
       >
         <!-- L'illustration montre le mécanisme, pas une icône d'alerte : trois
-             sources alimentent la projection, et celles qui manquent la laissent
-             partir en pointillés. C'est exactement ce que le texte dit. -->
+             calebasses versent leurs graines sur le plateau d'awalé ; celles
+             qui manquent y laissent des cases vides. C'est exactement ce que
+             le texte dit. -->
         <svg
           viewBox="0 0 208 108"
-          class="h-[6.75rem] w-full max-w-[20rem] self-center text-ink"
+          class="h-[6.75rem] w-full max-w-[20rem] self-center text-ink-subtle"
           fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
           role="img"
           [attr.aria-label]="'inputs.illustrationAlt' | translate"
         >
-          <defs>
-            <linearGradient id="simInputsBrand" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="var(--color-primary)" />
-              <stop offset="100%" stop-color="var(--color-accent-500)" />
-            </linearGradient>
-          </defs>
-
           @for (row of rows(); track row.key; let i = $index) {
-            <g [attr.transform]="'translate(2, ' + i * 36 + ')'">
-              <rect
-                x="0"
-                y="6"
-                width="52"
-                height="28"
-                rx="5"
-                [attr.fill]="row.present ? 'url(#simInputsBrand)' : 'transparent'"
-                [attr.fill-opacity]="row.present ? '.14' : '0'"
-                stroke="currentColor"
-                [attr.stroke-opacity]="row.present ? '.42' : '.22'"
-                stroke-width="1.5"
-                [attr.stroke-dasharray]="row.present ? null : '4 3'"
-              />
-              <path
-                d="M9 16h26M9 22h18"
-                stroke="currentColor"
-                [attr.stroke-opacity]="row.present ? '.4' : '.16'"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
+            <!-- Une source : la calebasse, pleine quand le livrable existe. -->
+            <g
+              [attr.transform]="'translate(2, ' + (2 + i * 36) + ')'"
+              [attr.stroke-dasharray]="row.present ? null : '4 3'"
+              [attr.stroke-opacity]="row.present ? null : '.45'"
+            >
+              <ellipse cx="27" cy="12" rx="21" ry="4.5" stroke-width="1.8"/>
+              <path d="M6 12 C6 25 15 32 27 32 C39 32 48 25 48 12" stroke-width="1.8"/>
+              <path d="M10 20 L14 23 L18 20 L22 23 L26 20 L30 23 L34 20 L38 23 L42 20 L45 22" stroke-width="1" opacity=".7"/>
               @if (row.present) {
-                <circle cx="52" cy="6" r="6" fill="url(#simInputsBrand)" />
-                <path
-                  d="m49 6 2.2 2.2L55 4.6"
-                  stroke="#ffffff"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
+                <path d="M19 9.5h0.01 M27 8.5h0.01 M35 9.5h0.01" stroke-width="3.4" style="color: var(--color-primary-500)"/>
               }
-              <!-- Le trait d'alimentation : plein quand la source existe. -->
-              <path
-                [attr.d]="'M56 20H' + (row.present ? '84' : '72')"
-                stroke="currentColor"
-                [attr.stroke-opacity]="row.present ? '.35' : '.18'"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                [attr.stroke-dasharray]="row.present ? null : '3 3'"
-              />
             </g>
-          }
-
-          <!-- La projection : franche tant qu'elle est nourrie, en pointillés
-               dès que le moteur doit estimer. -->
-          <rect
-            x="92"
-            y="12"
-            width="112"
-            height="84"
-            rx="8"
-            stroke="currentColor"
-            stroke-opacity=".28"
-            stroke-width="1.5"
-          />
-          <path
-            d="M102 82h84M102 82V22"
-            stroke="currentColor"
-            stroke-opacity=".22"
-            stroke-width="1.5"
-            stroke-linecap="round"
-          />
-          <path
-            [attr.d]="curve()"
-            stroke="url(#simInputsBrand)"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            fill="none"
-          />
-          @if (hasMissing()) {
+            <!-- Le trait qui la verse sur le plateau : plein quand la source existe. -->
             <path
-              [attr.d]="curveTail()"
-              stroke="url(#simInputsBrand)"
+              [attr.d]="'M56 ' + (20 + i * 36) + ' C68 ' + (20 + i * 36) + ' 72 54 86 54'"
               stroke-opacity=".5"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-dasharray="5 4"
-              fill="none"
+              [attr.stroke-dasharray]="row.present ? null : '3 3'"
             />
           }
+
+          <!-- Le plateau d'awalé : autant de cases semées que de livrables
+               présents ; les cases vides sont ce que le moteur devra supposer. -->
+          <g transform="translate(90 10) scale(0.98)">
+            <path d="M16 34 C16 28 20 26 26 26 H94 C100 26 104 28 104 34 V54 C104 60 100 62 94 62 H26 C20 62 16 60 16 54Z" stroke-width="2"/>
+            <path d="M22 66 L26 62 M98 66 L94 62 M22 66 H98" opacity=".7"/>
+            @for (pit of pits(); track $index) {
+              <ellipse
+                [attr.cx]="pit.x"
+                [attr.cy]="pit.y"
+                rx="4.8"
+                ry="3.6"
+                [attr.stroke-dasharray]="pit.sown ? null : '2 2.5'"
+                [attr.stroke-opacity]="pit.sown ? null : '.5'"
+              />
+              @if (pit.sown) {
+                <path [attr.d]="pit.seeds" stroke-width="2.4"/>
+              }
+            }
+          </g>
+          <g
+            style="color: var(--color-primary-500)"
+            stroke-width="1.8"
+            [attr.stroke-dasharray]="hasMissing() ? '3 4' : null"
+            [attr.stroke-opacity]="hasMissing() ? '.5' : null"
+          >
+            <path d="M118 36 C128 26 142 26 150 36"/>
+            <path d="M146.5 33 L150 36.5 L151 32"/>
+          </g>
         </svg>
 
         <h2 id="sim-inputs-heading" class="mt-5 text-h2 font-semibold text-ink">
@@ -233,29 +214,16 @@ export class InputsRequiredDialog {
   protected readonly hasMissing = computed(() => this.missingRows().length > 0);
 
   /**
-   * Où la projection cesse d'être établie.
+   * Les cases du plateau d'awalé, semées en proportion des livrables présents.
    *
-   * Plus le projet porte de livrables, plus loin la courbe tient avant de
-   * passer en pointillés. Le segment franc n'est jamais nul : le descriptif du
-   * projet existe toujours, et c'est déjà quelque chose.
+   * Le descriptif du projet existe toujours : quatre cases sont semées quoi
+   * qu'il arrive, et chaque livrable en ajoute. Ce qui reste vide, c'est ce
+   * que le moteur devra supposer.
    */
-  private readonly breakPoint = computed(() => {
+  protected readonly pits = computed(() => {
     const present = this.rows().filter((row) => row.present).length;
-    const ratio = present / PROJECT_INPUT_KEYS.length;
-    return { x: 118 + Math.round(44 * ratio), y: 74 - Math.round(40 * ratio) };
-  });
-
-  /** La part établie de la courbe — celle que les livrables présents portent. */
-  protected readonly curve = computed(() => {
-    const { x, y } = this.breakPoint();
-    const middle = Math.round((102 + x) / 2);
-    return `M102 74 C ${middle} 74, ${middle} ${y}, ${x} ${y}`;
-  });
-
-  /** Le prolongement estimé, en pointillés : ce que le moteur devra supposer. */
-  protected readonly curveTail = computed(() => {
-    const { x, y } = this.breakPoint();
-    return `M${x} ${y} C ${x + 18} ${y - 10}, ${x + 30} ${y + 12}, 190 ${y - 16}`;
+    const sown = 4 + Math.round((8 * present) / PROJECT_INPUT_KEYS.length);
+    return AWALE_PITS.map((pit, index) => ({ ...pit, sown: index < sown }));
   });
 
   constructor() {

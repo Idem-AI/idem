@@ -218,7 +218,7 @@ textarea,
   background-position: top left;
   /* Mêmes valeurs que `body::before` dans @idem/shared-styles : le motif doit
      avoir exactement la même présence d'une application Idem à l'autre. */
-  opacity: 0.3;
+  opacity: calc(0.3 * var(--idem-motif-strength, 0.051));
   pointer-events: none;
 }
 
@@ -226,7 +226,7 @@ textarea,
    paquet partagé. */
 .dark .motif-surface::before {
   filter: invert(1);
-  opacity: 0.35;
+  opacity: calc(0.35 * var(--idem-motif-strength, 0.051));
 }
 
 /* Les panneaux posés dans une surface à motif ne repeignent pas leur fond,

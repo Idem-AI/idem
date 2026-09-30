@@ -92,6 +92,13 @@ export const IDEM = {
 export const IDEM_FONTS_URL =
   'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap';
 
+/**
+ * Force du motif IDEM : l'image est en encre pleine, ses opacités s'expriment
+ * en « ancienne opacité × MOTIF_STRENGTH » (même règle que
+ * `--idem-motif-strength` dans @idem/shared-styles).
+ */
+const MOTIF_STRENGTH = 0.051;
+
 const MONO = "'JetBrains Mono', ui-monospace, monospace";
 
 // ---------------------------------------------------------------------------
@@ -467,7 +474,7 @@ function page(c: Chrome, sectionName: string, body: string): string {
     <div style="position:relative;width:210mm;min-height:297mm;background:${IDEM.surface};padding:26mm 18mm 20mm;font-family:'Vilevile',system-ui,sans-serif;color:${IDEM.ink}">
       ${
         c.motifDataUri
-          ? `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background-image:url('${c.motifDataUri}');background-repeat:repeat;opacity:0.4;z-index:0;pointer-events:none"></div>`
+          ? `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background-image:url('${c.motifDataUri}');background-repeat:repeat;opacity:${0.4 * MOTIF_STRENGTH};z-index:0;pointer-events:none"></div>`
           : ''
       }
       ${chrome(c, sectionName)}
@@ -495,7 +502,7 @@ export function coverSection(
     <div style="position:relative;width:210mm;height:297mm;background:${IDEM.surface};padding:26mm 22mm;font-family:'Vilevile',system-ui,sans-serif;color:${IDEM.ink};display:flex;flex-direction:column;justify-content:space-between">
       ${
         c.motifDataUri
-          ? `<div style="position:absolute;inset:0;background-image:url('${c.motifDataUri}');background-repeat:repeat;background-size:140mm;opacity:0.10;pointer-events:none"></div>`
+          ? `<div style="position:absolute;inset:0;background-image:url('${c.motifDataUri}');background-repeat:repeat;background-size:140mm;opacity:${0.1 * MOTIF_STRENGTH};pointer-events:none"></div>`
           : ''
       }
       <div style="position:absolute;top:0;left:0;right:0;height:2mm;background:linear-gradient(90deg,${IDEM.primary},${IDEM.accent})"></div>

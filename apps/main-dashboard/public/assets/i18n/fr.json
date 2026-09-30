@@ -4929,5 +4929,67 @@
       "resume": "Reprendre mon travail",
       "seeInvoice": "Voir mes factures"
     }
+  },
+  "auth": {
+    "signInTitle": "Se connecter à IDEM",
+    "signUpTitle": "Créer un compte",
+    "forgotTitle": "Choisir un mot de passe",
+    "recoveryTitle": "Nouveau mot de passe",
+    "continueWith": "Continuer avec {{provider}}",
+    "or": "ou",
+    "name": "Nom",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "newPassword": "Nouveau mot de passe",
+    "passwordHint": "8 caractères minimum.",
+    "signIn": "Se connecter",
+    "signUp": "Créer mon compte",
+    "sendLink": "Recevoir le lien",
+    "savePassword": "Enregistrer et me connecter",
+    "forgotPassword": "Mot de passe oublié ?",
+    "noAccount": "Pas encore de compte ?",
+    "createAccount": "Créer un compte",
+    "haveAccount": "Déjà un compte ?",
+    "backToSignIn": "Retour à la connexion",
+    "signingIn": "Connexion en cours…",
+    "migrationAction": "Choisir mon mot de passe",
+    "forgotIntro": "Indiquez votre adresse : nous vous envoyons un lien pour choisir votre mot de passe.",
+    "linkSent": "Si un compte existe pour {{email}}, un lien vient de lui être envoyé. Ouvrez-le dans ce navigateur.",
+    "confirmSent": "Un lien de confirmation a été envoyé à {{email}}. Ouvrez-le dans ce navigateur pour activer votre compte.",
+    "alreadyRegistered": "Un compte existe déjà avec cette adresse. Connectez-vous, ou choisissez un nouveau mot de passe.",
+    "emailConfirmed": "Adresse confirmée. Vous pouvez vous connecter.",
+    "errors": {
+      "invalidCredentials": "Adresse ou mot de passe incorrect.",
+      "emailNotConfirmed": "Confirmez d'abord votre adresse avec le lien reçu par e-mail.",
+      "weakPassword": "Ce mot de passe est trop faible. Utilisez au moins 8 caractères.",
+      "alreadyRegistered": "Un compte existe déjà avec cette adresse.",
+      "rateLimited": "Trop de tentatives. Réessayez dans quelques minutes.",
+      "samePassword": "Choisissez un mot de passe différent de l'ancien.",
+      "signupDisabled": "Les inscriptions sont momentanément fermées.",
+      "linkExpired": "Ce lien a expiré ou a déjà servi. Demandez-en un nouveau.",
+      "accountConflict": "Cette adresse est déjà reliée à un autre compte. Contactez le support.",
+      "network": "Connexion au serveur impossible. Vérifiez votre réseau.",
+      "emailRequired": "Ce compte ne communique pas d'adresse e-mail. Ajoutez-en une chez le fournisseur, ou créez un compte avec votre e-mail.",
+      "generic": "La connexion a échoué. Réessayez."
+    },
+    "legal": {
+      "prefix": "En continuant, vous acceptez les",
+      "terms": "conditions d'utilisation",
+      "and": "et la",
+      "privacy": "politique de confidentialité"
+    }
+  },
+  "betaInvite": {
+    "title": "Rejoignez la bêta premium",
+    "lead": "Pendant la bêta, un nombre limité d'entrepreneurs utilise gratuitement les offres les plus complètes d'IDEM.",
+    "points": {
+      "offers": "Business plan niveau cabinet, identité et réseaux sociaux, application et mise en ligne",
+      "credits": "Des crédits rechargés chaque mois, jusqu'à la fin de la bêta",
+      "feedback": "En échange : vos retours sur ce qui marche et ce qui manque"
+    },
+    "join": "Demander mon accès",
+    "later": "Plus tard",
+    "close": "Fermer",
+    "note": "Le formulaire s'ouvre dans un nouvel onglet."
   }
 }

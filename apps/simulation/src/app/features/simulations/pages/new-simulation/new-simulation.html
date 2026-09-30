@@ -41,64 +41,20 @@
             {{ 'newRun.plan.recommended' | translate }}
           </span>
 
-          <svg viewBox="0 0 96 72" class="h-[4.5rem] w-24 text-ink" fill="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="simIllustProject" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="var(--color-primary)" />
-                <stop offset="100%" stop-color="var(--color-accent-500)" />
-              </linearGradient>
-            </defs>
-            <rect
-              x="6"
-              y="10"
-              width="46"
-              height="54"
-              rx="6"
-              stroke="currentColor"
-              stroke-opacity=".3"
-              stroke-width="1.5"
-            />
-            <path
-              d="M6 16a6 6 0 0 1 6-6h34a6 6 0 0 1 6 6v8H6v-8Z"
-              fill="url(#simIllustProject)"
-              fill-opacity=".16"
-            />
-            <path
-              d="M14 36h22M14 44h28M14 52h15"
-              stroke="currentColor"
-              stroke-opacity=".38"
-              stroke-width="2"
-              stroke-linecap="round"
-            />
-            <path
-              d="m62 24 15 8m0 0-7 16m7-16-15-8"
-              stroke="url(#simIllustProject)"
-              stroke-width="1.5"
-              stroke-opacity=".7"
-            />
-            <path
-              d="m62 24 8 24"
-              stroke="url(#simIllustProject)"
-              stroke-width="1.5"
-              stroke-opacity=".7"
-            />
-            <circle cx="62" cy="24" r="5" fill="url(#simIllustProject)" />
-            <circle
-              cx="77"
-              cy="32"
-              r="4"
-              stroke="currentColor"
-              stroke-opacity=".45"
-              stroke-width="1.5"
-            />
-            <circle
-              cx="70"
-              cy="48"
-              r="4"
-              stroke="currentColor"
-              stroke-opacity=".45"
-              stroke-width="1.5"
-            />
+          <svg viewBox="0 0 96 72" class="h-[4.5rem] w-24 text-ink-subtle" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <!-- Un projet IDEM : le grenier plein, la récolte est déjà là. -->
+            <g transform="translate(0 0.8) scale(0.8)" stroke-width="1.9">
+              <path d="M42 40 L44 74 H76 L78 40" stroke-width="2.5"/>
+              <path d="M46 74 V80 M56 74 V80 M64 74 V80 M74 74 V80 M40 80 H80" opacity=".8"/>
+              <path d="M36 42 C44 34 52 18 60 8 C68 18 76 34 84 42 C76 45 44 45 36 42Z" stroke-width="2.5"/>
+              <path d="M60 8 V43 M50 22 L46 42 M70 22 L74 42 M55 15 L52 43 M65 15 L68 43" stroke-width="1.1" opacity=".6"/>
+              <path d="M58 6 L60 2 L62 6" stroke-width="1.7"/>
+              <path d="M46 62 L50 66 L54 62 L58 66 L62 62 L66 66 L70 62 L74 66" stroke-width="1.4" opacity=".7"/>
+              <rect x="54" y="48" width="12" height="11" rx="1"/>
+              <g style="color: var(--color-primary-500)">
+                <path d="M56.5 56 h0.01 M60 54 h0.01 M63.5 56 h0.01 M58 51.5h0.01 M62 51.5h0.01" stroke-width="3.2"/>
+              </g>
+            </g>
           </svg>
 
           <p class="mt-5 text-h3 font-semibold text-ink">
@@ -138,49 +94,20 @@
           [attr.aria-pressed]="origin() === 'imported-document'"
           (click)="chooseOrigin('imported-document')"
         >
-          <svg viewBox="0 0 96 72" class="h-[4.5rem] w-24 text-ink" fill="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="simIllustImport" x1="0" y1="1" x2="1" y2="0">
-                <stop offset="0%" stop-color="var(--color-primary)" />
-                <stop offset="100%" stop-color="var(--color-accent-500)" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M18 62c6 4 14 6 24 6s18-2 24-6"
-              stroke="currentColor"
-              stroke-opacity=".2"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
-            <path
-              d="M28 6h22l14 14v40a4 4 0 0 1-4 4H28a4 4 0 0 1-4-4V10a4 4 0 0 1 4-4Z"
-              stroke="currentColor"
-              stroke-opacity=".3"
-              stroke-width="1.5"
-            />
-            <path
-              d="M50 6v14h14"
-              stroke="currentColor"
-              stroke-opacity=".3"
-              stroke-width="1.5"
-              stroke-linejoin="round"
-            />
-            <path
-              d="M33 46h14M33 54h22"
-              stroke="currentColor"
-              stroke-opacity=".38"
-              stroke-width="2"
-              stroke-linecap="round"
-            />
-            <path
-              d="M44 38V24m0 0-6 6m6-6 6 6"
-              stroke="url(#simIllustImport)"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <circle cx="76" cy="20" r="2" fill="url(#simIllustImport)" />
-            <circle cx="84" cy="30" r="1.5" fill="url(#simIllustImport)" fill-opacity=".6" />
+          <svg viewBox="0 0 96 72" class="h-[4.5rem] w-24 text-ink-subtle" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <!-- Un document importé : le feuillet qu'on apporte. -->
+            <g transform="translate(0 0.8) scale(0.8)" stroke-width="1.9">
+              <g transform="translate(-12 0)">
+                <rect x="34" y="12" width="52" height="68" rx="2" stroke-width="2.5"/>
+                <rect x="38" y="16" width="44" height="60" rx="1" stroke-width="1.1" opacity=".6"/>
+                <path d="M40 20 L43 23 L46 20 L49 23 L52 20 L55 23 L58 20 L61 23 L64 20 L67 23 L70 20 L73 23 L76 20 L79 23" stroke-width="1.1" opacity=".6"/>
+                <path d="M44 34 C48 32 52 36 56 34 S64 32 68 34 S74 36 76 34 M44 42 C48 40 52 44 56 42 S62 40 66 42 M44 50 C48 48 52 52 56 50 S64 48 68 50 S74 52 76 50" stroke-width="1.5" opacity=".8"/>
+                <path d="M44 58 C48 56 52 60 56 58" stroke-width="1.5" opacity=".8"/>
+              </g>
+              <g style="color: var(--color-primary-500)" stroke-width="2.8">
+                <path d="M96 58 V26 M86 36 L96 26 L106 36"/>
+              </g>
+            </g>
           </svg>
 
           <p class="mt-5 text-h3 font-semibold text-ink">
@@ -681,51 +608,71 @@
                   <span class="block">
                     @switch (plan.tier) {
                       @case ('run') {
-                        <svg viewBox="0 0 96 72" class="h-16 w-24 text-ink" fill="none" aria-hidden="true">
-                          <defs>
-                            <linearGradient id="simTierRun" x1="0" y1="1" x2="1" y2="0">
-                              <stop offset="0%" stop-color="var(--color-primary)" />
-                              <stop offset="100%" stop-color="var(--color-accent-500)" />
-                            </linearGradient>
-                          </defs>
-                          <path d="M10 62V12" stroke="currentColor" stroke-opacity=".28" stroke-width="1.5" stroke-linecap="round" />
-                          <path d="M10 62h74" stroke="currentColor" stroke-opacity=".28" stroke-width="1.5" stroke-linecap="round" />
-                          <path d="M10 54c14 0 22-4 32-14s24-18 42-22" stroke="url(#simTierRun)" stroke-width="2.5" stroke-linecap="round" />
-                          <path d="M10 54c14 2 24 2 34 6s26 2 40-4" stroke="currentColor" stroke-opacity=".45" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4" />
-                          <path d="M10 54c12 6 22 8 32 6s26-10 42-12" stroke="currentColor" stroke-opacity=".28" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4" />
-                          <circle cx="10" cy="54" r="3.5" fill="url(#simTierRun)" />
+                        <svg viewBox="0 0 96 72" class="h-16 w-24 text-ink-subtle" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <!-- Une simulation : le plateau d'awalé, les coups calculés d'avance. -->
+                          <g transform="translate(0 0.8) scale(0.8)" stroke-width="1.9">
+                            <path d="M16 34 C16 28 20 26 26 26 H94 C100 26 104 28 104 34 V54 C104 60 100 62 94 62 H26 C20 62 16 60 16 54Z" stroke-width="2.5"/>
+                            <path d="M22 66 L26 62 M98 66 L94 62 M22 66 H98" opacity=".7"/>
+                            <ellipse cx="30" cy="36" rx="4.8" ry="3.6"/>
+                            <path d="M28.4 35.4h0.01 M31.6 36.6h0.01 M31.4 35h0.01" stroke-width="3"/>
+                            <ellipse cx="42" cy="36" rx="4.8" ry="3.6"/>
+                            <path d="M40.4 35.4h0.01 M43.6 36.6h0.01 M43.4 35h0.01 M40.8 37h0.01" stroke-width="3"/>
+                            <ellipse cx="54" cy="36" rx="4.8" ry="3.6"/>
+                            <path d="M52.4 35.4h0.01 M55.6 36.6h0.01" stroke-width="3"/>
+                            <ellipse cx="66" cy="36" rx="4.8" ry="3.6"/>
+                            <path d="M64.4 35.4h0.01 M67.6 36.6h0.01 M67.4 35h0.01 M64.8 37h0.01" stroke-width="3"/>
+                            <ellipse cx="78" cy="36" rx="4.8" ry="3.6"/>
+                            <path d="M76.4 35.4h0.01" stroke-width="3"/>
+                            <ellipse cx="90" cy="36" rx="4.8" ry="3.6"/>
+                            <path d="M88.4 35.4h0.01 M91.6 36.6h0.01 M91.4 35h0.01" stroke-width="3"/>
+                            <ellipse cx="30" cy="52" rx="4.8" ry="3.6"/>
+                            <path d="M28.4 51.4h0.01 M31.6 52.6h0.01 M31.4 51h0.01 M28.8 53h0.01" stroke-width="3"/>
+                            <ellipse cx="42" cy="52" rx="4.8" ry="3.6"/>
+                            <path d="M40.4 51.4h0.01 M43.6 52.6h0.01" stroke-width="3"/>
+                            <ellipse cx="54" cy="52" rx="4.8" ry="3.6"/>
+                            <path d="M52.4 51.4h0.01 M55.6 52.6h0.01 M55.4 51h0.01" stroke-width="3"/>
+                            <ellipse cx="66" cy="52" rx="4.8" ry="3.6"/>
+                            <ellipse cx="78" cy="52" rx="4.8" ry="3.6"/>
+                            <path d="M76.4 51.4h0.01 M79.6 52.6h0.01 M79.4 51h0.01 M76.8 53h0.01" stroke-width="3"/>
+                            <ellipse cx="90" cy="52" rx="4.8" ry="3.6"/>
+                            <path d="M88.4 51.4h0.01 M91.6 52.6h0.01" stroke-width="3"/>
+                            <g style="color: var(--color-primary-500)">
+                              <path d="M42 30 C50 20 64 20 70 30" stroke-width="2" stroke-dasharray="2 3"/>
+                              <path d="M66.5 27.5 L70 30.5 L71 26" stroke-width="2"/>
+                              <ellipse cx="42" cy="36" rx="4.8" ry="3.6" stroke-width="2.5"/>
+                            </g>
+                          </g>
                         </svg>
                       }
                       @case ('report') {
-                        <svg viewBox="0 0 96 72" class="h-16 w-24 text-ink" fill="none" aria-hidden="true">
-                          <defs>
-                            <linearGradient id="simTierReport" x1="0" y1="0" x2="1" y2="1">
-                              <stop offset="0%" stop-color="var(--color-primary)" />
-                              <stop offset="100%" stop-color="var(--color-accent-500)" />
-                            </linearGradient>
-                          </defs>
-                          <rect x="20" y="6" width="56" height="60" rx="6" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5" />
-                          <path d="M20 12a6 6 0 0 1 6-6h44a6 6 0 0 1 6 6v7H20v-7Z" fill="url(#simTierReport)" fill-opacity=".18" />
-                          <path d="M29 29h22M29 37h38M29 45h30" stroke="currentColor" stroke-opacity=".38" stroke-width="2" stroke-linecap="round" />
-                          <rect x="29" y="52" width="6" height="8" rx="1.5" fill="url(#simTierReport)" fill-opacity=".85" />
-                          <rect x="39" y="48" width="6" height="12" rx="1.5" fill="url(#simTierReport)" fill-opacity=".6" />
-                          <rect x="49" y="54" width="6" height="6" rx="1.5" fill="url(#simTierReport)" fill-opacity=".4" />
+                        <svg viewBox="0 0 96 72" class="h-16 w-24 text-ink-subtle" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <!-- Un rapport : le feuillet écrit. -->
+                          <g transform="translate(0 0.8) scale(0.8)" stroke-width="1.9">
+                            <rect x="34" y="12" width="52" height="68" rx="2" stroke-width="2.5"/>
+                            <rect x="38" y="16" width="44" height="60" rx="1" stroke-width="1.1" opacity=".6"/>
+                            <path d="M40 20 L43 23 L46 20 L49 23 L52 20 L55 23 L58 20 L61 23 L64 20 L67 23 L70 20 L73 23 L76 20 L79 23" stroke-width="1.1" opacity=".6"/>
+                            <path d="M44 34 C48 32 52 36 56 34 S64 32 68 34 S74 36 76 34 M44 42 C48 40 52 44 56 42 S62 40 66 42 M44 50 C48 48 52 52 56 50 S64 48 68 50 S74 52 76 50" stroke-width="1.5" opacity=".8"/>
+                            <path d="M44 58 C48 56 52 60 56 58" stroke-width="1.5" opacity=".8"/>
+                            <g style="color: var(--color-primary-500)">
+                              <path d="M68 62 L73 67 L68 72 L63 67Z" stroke-width="2.2"/>
+                            </g>
+                          </g>
                         </svg>
                       }
                       @default {
-                        <svg viewBox="0 0 96 72" class="h-16 w-24 text-ink" fill="none" aria-hidden="true">
-                          <defs>
-                            <linearGradient id="simTierPack" x1="0" y1="0" x2="1" y2="1">
-                              <stop offset="0%" stop-color="var(--color-primary)" />
-                              <stop offset="100%" stop-color="var(--color-accent-500)" />
-                            </linearGradient>
-                          </defs>
-                          <rect x="34" y="4" width="52" height="56" rx="6" stroke="currentColor" stroke-opacity=".22" stroke-width="1.5" />
-                          <rect x="14" y="14" width="52" height="54" rx="6" fill="var(--color-surface-2)" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5" />
-                          <path d="M14 20a6 6 0 0 1 6-6h40a6 6 0 0 1 6 6v6H14v-6Z" fill="url(#simTierPack)" fill-opacity=".18" />
-                          <path d="M22 52c8 0 12-3 18-10s12-11 20-13" stroke="url(#simTierPack)" stroke-width="2.5" stroke-linecap="round" />
-                          <path d="M22 36h16M22 44h24" stroke="currentColor" stroke-opacity=".34" stroke-width="2" stroke-linecap="round" />
-                          <circle cx="22" cy="52" r="3" fill="url(#simTierPack)" />
+                        <svg viewBox="0 0 96 72" class="h-16 w-24 text-ink-subtle" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <!-- Un pack : le panier tressé, qui porte le tout. -->
+                          <g transform="translate(0 0.8) scale(0.8)" stroke-width="1.9">
+                            <path d="M40 40 C38 16 82 16 80 40" stroke-width="2.5"/>
+                            <path d="M44 40 C43 22 77 22 76 40" opacity=".55"/>
+                            <path d="M36 26 L40 30 M84 26 L80 30" opacity=".6"/>
+                            <ellipse cx="60" cy="42" rx="34" ry="6" stroke-width="2.5"/>
+                            <path d="M26 42 C26 62 34 78 60 78 C86 78 94 62 94 42" stroke-width="2.5"/>
+                            <path d="M28 46 L33.3 52 L38.7 46 L44 52 L49.3 46 L54.7 52 L60 46 L65.3 52 L70.7 46 L76 52 L81.3 46 L86.7 52 L92 46 M30 55 L35 61 L40 55 L45 61 L50 55 L55 61 L60 55 L65 61 L70 55 L75 61 L80 55 L85 61 L90 55 M32 64 L36.7 70 L41.3 64 L46 70 L50.7 64 L55.3 70 L60 64 L64.7 70 L69.3 64 L74 70 L78.7 64 L83.3 70 L88 64" stroke-width="1.2" opacity=".7"/>
+                            <g style="color: var(--color-primary-500)">
+                              <path d="M60 45.5 L64 51 L60 56.5 L56 51Z" stroke-width="2.2"/>
+                            </g>
+                          </g>
                         </svg>
                       }
                     }

@@ -1,7 +1,6 @@
-import { Component, inject, PLATFORM_ID, signal, OnInit } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { SeoService } from '../../shared/services/seo.service';
 import { environment } from '../../../environments/environment';
 
 interface Feature {
@@ -24,9 +23,7 @@ interface LicenseDetail {
   templateUrl: './open-source-page.html',
   styleUrl: './open-source-page.css',
 })
-export class OpenSourcePage implements OnInit {
-  protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
-  private readonly seoService = inject(SeoService);
+export class OpenSourcePage {
   protected readonly dashboardUrl = environment.services.dashboard.url;
 
   protected readonly features: Feature[] = [
@@ -122,33 +119,4 @@ export class OpenSourcePage implements OnInit {
     },
   ];
 
-  ngOnInit(): void {
-    this.setupSeo();
-  }
-
-  private setupSeo(): void {
-    const title = $localize`:@@open-source-page.seo.title:Open Source & Data Sovereignty | IDEM - African AI Platform`;
-    const description = $localize`:@@open-source-page.seo.description:IDEM is 100% open source under Apache 2.0 license with full data sovereignty. Your data stays in Africa with complete transparency, no vendor lock-in, and community-driven development.`;
-
-    const metaTags = [
-      { name: 'description', content: description },
-      {
-        name: 'keywords',
-        content: $localize`:@@open-source-page.seo.keywords:open source AI, Apache 2.0 license, data sovereignty, African cloud, no vendor lock-in, self-hosted AI, transparent AI, community driven, open source platform, data privacy Africa, sovereign technology, African tech independence`,
-      },
-    ];
-
-    const ogTags = [
-      { property: 'og:title', content: title },
-      { property: 'og:description', content: description },
-      { property: 'og:type', content: $localize`:@@open-source-page.seo.ogType:website` },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: `${this.seoService.domain}/open-source` },
-    ];
-
-    this.seoService.updateTitle(title);
-    this.seoService.updateMetaTags(metaTags);
-    this.seoService.updateOgTags(ogTags);
-    this.seoService.setCanonicalUrl('/open-source');
-  }
 }

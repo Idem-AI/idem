@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="46 2 94 88" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- IDEM Business — construire le business, une étape après l'autre :
+       l'échelle dogon, entaillée marche après marche, qui mène au grenier.
+       La marche en cours porte la couleur. -->
+  <g transform="translate(48 9)" stroke-width="1.1">
+    <path d="M42 40 L44 74 H76 L78 40" stroke-width="1.5"/>
+    <path d="M46 74 V80 M56 74 V80 M64 74 V80 M74 74 V80 M40 80 H80" opacity=".8"/>
+    <path d="M36 42 C44 34 52 18 60 8 C68 18 76 34 84 42 C76 45 44 45 36 42Z" stroke-width="1.5"/>
+    <path d="M60 8 V43 M50 22 L46 42 M70 22 L74 42 M55 15 L52 43 M65 15 L68 43" stroke-width=".8" opacity=".6"/>
+    <path d="M58 6 L60 2 L62 6" stroke-width="1"/>
+    <path d="M46 62 L50 66 L54 62 L58 66 L62 62 L66 66 L70 62 L74 66" stroke-width=".9" opacity=".7"/>
+    <rect x="54" y="48" width="12" height="11" rx="1"/>
+  </g>
+  <g transform="translate(15 8)" stroke-width="1.1">
+    <path d="M36 82 H84" opacity=".4"/>
+    <path d="M42 82 C46 60 54 30 58 16 M56 82 C58 60 64 30 68 16" stroke-width="1.5"/>
+    <path d="M58 16 C56 10 52 6 48 4 M68 16 C70 10 74 6 78 4 M58 16 H68" stroke-width="1.5"/>
+    <path d="M44 76 L56 76 L54 71"/>
+    <path d="M47.2 65 L59.2 65 L57.2 60"/>
+    <g style="color: var(--color-primary-500)">
+      <path d="M50.4 54 L62.4 54 L60.4 49" stroke-width="1.5"/>
+    </g>
+    <path d="M53.6 43 L65.6 43 L63.6 38"/>
+    <path d="M56.8 32 L68.8 32 L66.8 27"/>
+    <path d="M60 21 L72 21 L70 16"/>
+  </g>
+</svg>

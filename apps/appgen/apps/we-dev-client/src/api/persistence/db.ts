@@ -179,8 +179,8 @@ export async function sendToGitHub(projectId: string, githubData: any): Promise<
   }
 }
 
-// Fonction pour récupérer le code existant depuis Firebase Storage
-export async function getProjectCodeFromFirebase(
+// Fonction pour récupérer le code existant depuis le stockage IDEM
+export async function getProjectCode(
   projectId: string
 ): Promise<Record<string, string> | null> {
   try {
@@ -201,7 +201,7 @@ export async function getProjectCodeFromFirebase(
     const codeData = await response.json();
     return codeData.files || null;
   } catch (error) {
-    console.error('Error getting project code from Firebase:', error);
+    console.error('Error getting project code from storage:', error);
     return null;
   }
 }

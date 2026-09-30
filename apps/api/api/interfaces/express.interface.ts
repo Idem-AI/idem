@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import admin from 'firebase-admin';
+import type { IdemAuthUser } from '../services/identity/identity.service';
 
 import { SimulationConsent } from '../models/simulation.model';
 
@@ -21,7 +21,8 @@ export interface BillingRequestContext {
 }
 
 export interface CustomRequest extends Request {
-  user?: admin.auth.DecodedIdToken;
+  /** Identité vérifiée par `authenticate`. */
+  user?: IdemAuthUser;
   /** Resolved UI language ('en' | 'fr'), set by languageMiddleware. */
   language?: string;
   policyWarning?: {

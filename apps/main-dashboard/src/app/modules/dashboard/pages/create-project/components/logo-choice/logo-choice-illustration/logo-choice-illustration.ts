@@ -7,9 +7,9 @@ export type LogoChoiceKind = 'import' | 'ai';
 /**
  * Illustrations SVG de l'écran « Avez-vous déjà un logo ? ».
  *
- * Dessinées en variables de thème comme celles des modes d'interface : elles
- * suivent le clair/sombre et la couleur primaire du produit, là où les
- * captures PNG qu'elles remplacent restaient figées.
+ * Le tampon adinkra et ses empreintes (AGENTS.md § 4) : le logo, c'est le
+ * signe qu'on imprime. Dessinées au trait comme celles des modes
+ * d'interface : elles suivent le thème et la couleur primaire du produit.
  */
 @Component({
   selector: 'app-logo-choice-illustration',

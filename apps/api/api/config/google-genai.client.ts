@@ -56,14 +56,12 @@ export function getGoogleGenAIClient(): GoogleGenAI {
     return client;
   }
 
-  // Vertex réutilise le compte de service Firebase : même projet Google Cloud,
-  // donc les mêmes variables. Si Firebase est configuré, Vertex l'est aussi.
+  // Vertex signe ses appels avec le compte de service Google Cloud `GCP_SA_*`.
   if (!backend.project || !backend.credentials) {
     throw new Error(
-      'Vertex AI est actif mais les identifiants Firebase sont incomplets ' +
-        '(FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY). ' +
-        "Vertex signe ses appels avec le compte de service Firebase — c'est le " +
-        'même projet Google Cloud. Vérifiez ces trois variables, ou repassez ' +
+      'Vertex AI est actif mais les identifiants Google Cloud sont incomplets ' +
+        '(GCP_PROJECT_ID, GCP_SA_CLIENT_EMAIL, GCP_SA_PRIVATE_KEY). ' +
+        'Vérifiez ces trois variables, ou repassez ' +
         'temporairement sur AI Studio (GEMINI_BACKEND=ai-studio).'
     );
   }

@@ -55,7 +55,7 @@ export const userRoutes = Router();
 userRoutes.get('/profile', profileController);
 
 /**
- * Identité minimale de l'appelant (cookie de session OU Bearer Firebase).
+ * Identité minimale de l'appelant (cookie de session OU Bearer).
  * Utilisée par les serveurs satellites (AppGen) pour savoir qui les appelle
  * sans recevoir le profil complet.
  */

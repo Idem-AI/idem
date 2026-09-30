@@ -1,5 +1,5 @@
 import type { ProjectModel } from '$/models/project.model';
-import { getCurrentUser } from '$/firebase/firebase.client';
+import { getCurrentUser } from '$/session/session.client';
 import { env } from '$/util/env';
 
 export class ProjectService {

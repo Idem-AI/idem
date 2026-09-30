@@ -3,7 +3,6 @@ import { Component, signal, inject, OnInit } from '@angular/core';
 import { RouterOutlet, NavigationEnd } from '@angular/router';
 import { LanguageService } from './shared/services/language.service';
 import { ThemeService } from './shared/services/theme.service';
-import { AuthSyncService } from './shared/services/auth-sync.service';
 import { EmptyLayout } from './layouts/empty-layout/empty-layout';
 import { NotificationContainerComponent } from './shared/components/notification-container/notification-container';
 import { QuotaWarningComponent } from './shared/components/quota-warning/quota-warning';
@@ -15,6 +14,7 @@ import { ChatLayoutComponent } from './layouts/chat-layout/chat-layout';
 import { GuidedLayoutComponent } from './layouts/guided-layout/guided-layout';
 import { GuidedLockModalComponent } from './modules/guided/components/guided-lock-modal/guided-lock-modal';
 import { PaywallHostComponent } from './modules/billing/components/paywall-host/paywall-host';
+import { BetaInviteComponent } from './shared/components/beta-invite/beta-invite';
 import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
 
 @Component({
@@ -29,6 +29,7 @@ import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
     GuidedLayoutComponent,
     GuidedLockModalComponent,
     PaywallHostComponent,
+    BetaInviteComponent,
     ModeDockComponent,
     AsyncPipe,
   ],
@@ -41,7 +42,6 @@ export class App implements OnInit {
   // Applies the shared `idem_theme` cookie (light/dark/system) and keeps it in
   // sync across Idem apps.
   private readonly themeService = inject(ThemeService);
-  private readonly authSyncService = inject(AuthSyncService);
 
   protected readonly router = inject(Router);
   protected readonly activatedRoute = inject(ActivatedRoute);

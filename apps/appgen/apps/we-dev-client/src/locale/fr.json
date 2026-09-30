@@ -43,7 +43,7 @@
       "load_history_failed": "Échec du chargement de l'historique des discussions",
       "ollama_connection_failed": "Échec de la connexion au serveur Ollama, veuillez vérifier la configuration",
       "start_generation_failed": "Erreur lors du démarrage de la génération",
-      "firebase_save_failed": "Erreur lors de la sauvegarde sur Firebase Storage",
+      "storage_save_failed": "Erreur lors de la sauvegarde du code",
       "upload_files_failed": "Échec de l'envoi des fichiers",
       "process_dropped_images_failed": "Échec du traitement des images déposées"
     },
@@ -54,7 +54,7 @@
       "images_pasted_multiple": "{count} images collées avec succès",
       "image_added": "Image ajoutée à la saisie",
       "images_added_multiple": "{count} images ajoutées à la saisie",
-      "firebase_save_success": "Code sauvegardé sur Firebase Storage ({count} fichiers)"
+      "storage_save_success": "Code sauvegardé ({count} fichiers)"
     },
     "placeholders": {
       "input": "Saisissez un message, appuyez sur Entrée pour envoyer, Maj+Entrée pour un saut de ligne...",

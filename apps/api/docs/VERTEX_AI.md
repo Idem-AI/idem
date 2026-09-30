@@ -8,30 +8,31 @@ Models do not change. `ai.config.ts` remains the single source of truth for mode
 
 ### 1. Google Cloud
 
-Vertex reuses the **existing Firebase service account**. A Firebase project is a Google Cloud project: same identity, same project, same bill. Nothing to create — only the permission to call Vertex is missing.
+Vertex calls are signed by a dedicated Google Cloud service account, the one in `GCP_SA_CLIENT_EMAIL`.
 
 ```bash
 gcloud services enable aiplatform.googleapis.com --project=<PROJECT>
 
-# The Firebase service account, the one in FIREBASE_CLIENT_EMAIL
+gcloud iam service-accounts create idem-vertex --project=<PROJECT>
 gcloud projects add-iam-policy-binding <PROJECT> \
-  --member="serviceAccount:<FIREBASE_CLIENT_EMAIL>" \
+  --member="serviceAccount:idem-vertex@<PROJECT>.iam.gserviceaccount.com" \
   --role="roles/aiplatform.user"
+gcloud iam service-accounts keys create /tmp/idem-vertex.json \
+  --iam-account=idem-vertex@<PROJECT>.iam.gserviceaccount.com
+# client_email → GCP_SA_CLIENT_EMAIL, private_key → GCP_SA_PRIVATE_KEY, then delete the file.
 ```
 
 `roles/aiplatform.user` is enough for `generateContent`, streaming, image generation and context caching. Do not grant `roles/owner`.
 
 ### 2. Environment variables
 
-**No variable to add.** Vertex reads the Firebase ones, which are already required:
-
 | Variable | Role |
 |---|---|
-| `FIREBASE_PROJECT_ID` | Google Cloud project, hence the one billed for Vertex |
-| `FIREBASE_CLIENT_EMAIL` | Service account that signs the calls |
-| `FIREBASE_PRIVATE_KEY` | Its private key; escaped `\n` accepted |
+| `GCP_PROJECT_ID` | Google Cloud project, hence the one billed for Vertex |
+| `GCP_SA_CLIENT_EMAIL` | Service account that signs the calls |
+| `GCP_SA_PRIVATE_KEY` | Its private key; escaped `\n` accepted |
 
-In production these come from Google Secret Manager (`api--FIREBASE_*`), see [Configuration](../../../docs/CONFIGURATION.md).
+In production the two secrets come from Google Secret Manager (`api--GCP_SA_*`), see [Configuration](../../../docs/CONFIGURATION.md).
 
 Two optional, Vertex-specific variables:
 
@@ -44,15 +45,15 @@ Two optional, Vertex-specific variables:
 
 ### 3. Authentication
 
-The Firebase service account signs Vertex calls — no second account, no second secret to rotate. There is deliberately **no fallback** to another set of variables or to Application Default Credentials: a single explicit identity beats a cascading resolution where, during an incident, nobody knows which one was used.
+The `GCP_SA_*` service account signs Vertex calls. There is deliberately **no fallback** to another set of variables or to Application Default Credentials: a single explicit identity beats a cascading resolution where, during an incident, nobody knows which one was used.
 
-If the three Firebase variables are incomplete, building the client fails with a message naming them.
+If the three variables are incomplete, building the client fails with a message naming them.
 
 At start-up, the API logs the resolved backend:
 
 ```
 Gemini backend: Vertex AI (project=idem-prod, region=global,
-                auth=Firebase service account (firebase-adminsdk-…@idem-prod.iam.gserviceaccount.com),
+                auth=compte de service (idem-vertex@idem-prod.iam.gserviceaccount.com),
                 no context cache)
 ```
 

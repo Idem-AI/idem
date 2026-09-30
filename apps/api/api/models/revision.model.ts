@@ -23,7 +23,7 @@ export type ProjectSectionKey =
 
 export interface RevisionAuthor {
   type: RevisionAuthorType;
-  /** Firebase UID of the user behind the request. */
+  /** IDEM uid of the user behind the request. */
   userId?: string;
 }
 

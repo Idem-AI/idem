@@ -680,14 +680,14 @@ projectRoutes.post(
  */
 projectRoutes.post('/:projectId/github', authenticate, projectController.sendProjectToGitHub);
 
-// Get project code from Firebase Storage
+// Get project code from storage
 /**
  * @openapi
  * /projects/{projectId}/code:
  *   get:
  *     tags:
  *       - Project Generation
- *     summary: Get project code from Firebase Storage
+ *     summary: Get project code from storage
  *     security:
  *       - bearerAuth: []
  *     parameters:

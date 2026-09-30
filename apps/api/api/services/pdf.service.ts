@@ -158,6 +158,19 @@ export class PdfService {
     logger.info('Browser and resources initialized successfully at startup');
   }
 
+  /**
+   * Le navigateur de rendu partagé, lancé au besoin. Les autres rendus du
+   * serveur (images de partage) s'en servent plutôt que d'ouvrir un second
+   * Chromium.
+   */
+  static async sharedBrowser(): Promise<Browser> {
+    if (!this.browserInstance || !this.browserInstance.isConnected()) {
+      this.isInitialized = false;
+      await this.initialize();
+    }
+    return this.getBrowser();
+  }
+
   // Obtenir l'instance du browser (déjà initialisée)
   private static getBrowser(): Browser {
     if (!this.browserInstance || !this.browserInstance.isConnected()) {

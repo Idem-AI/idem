@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 10 220 130" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Bêta premium — l'accès : la clé dont l'anneau est le bouclier IDEM.
+       Le cœur du bouclier porte la couleur. -->
+  <path d="M66 18 C92 36 104 58 104 75 C104 92 92 114 66 132 C40 114 28 92 28 75 C28 58 40 36 66 18 Z" stroke-width="3"/>
+  <path d="M66 29 C86 44 94 62 94 75 C94 88 86 106 66 121 C46 106 38 88 38 75 C38 62 46 44 66 29 Z" stroke-width="2.2"/>
+  <path d="M54 44 L66 52 L78 44 M50 54 L66 64 L82 54" stroke-width="2.2"/>
+  <path d="M54 106 L66 98 L78 106 M50 96 L66 86 L82 96" stroke-width="2.2"/>
+  <path d="M44 70 L49 75 L44 80 M88 70 L83 75 L88 80" stroke-width="2.2"/>
+  <path d="M104 75 H206" stroke-width="3.3"/>
+  <path d="M172 75 V94 H182 V84 H190 V98 H200 V75" stroke-width="3"/>
+  <path d="M112 69 V81 M118 69 V81" stroke-width="2.2"/>
+  <path d="M218 58 L226 50 M222 75 H232 M218 92 L226 100" stroke-width="2.6" opacity=".6"/>
+  <path style="color: var(--color-primary-500)" d="M66 66 L73 75 L66 84 L59 75 Z" stroke-width="3"/>
+</svg>

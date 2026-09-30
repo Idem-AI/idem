@@ -118,24 +118,86 @@ un détail.
 ## 4. Illustrations
 
 Là où un écran serait nu — état vide, choix entre deux options, étape d'un
-parcours, page de réussite ou d'erreur — il faut une illustration. Ailleurs, non.
+parcours, page de réussite ou d'erreur, modale, section de présentation — il
+faut une illustration. Ailleurs, non.
 
-**Comment elles sont faites :**
+### Le style IDEM : un élément de la culture africaine, choisi pour le sens
+
+Toute illustration de l'interface d'IDEM (dashboard, landing, iDeploy, AppGen,
+simulateur) représente **un élément de la culture africaine qui dit la même
+chose que la page**. C'est le style de référence pour les modales, les sections,
+les états vides et les pages d'aboutissement. Le bouclier aux lances croisées
+de l'écran de connexion (`shield-illustration`) et la clé à anneau-bouclier de
+l'invitation bêta (`beta-invite`) en sont les modèles.
+
+Choisir l'élément par le **sens**, jamais par le décor :
+
+| Ce que dit l'écran | Élément à dessiner |
+| --- | --- |
+| Accès, compte, sécurité, protection | Bouclier aux lances croisées ; clé dont l'anneau est un bouclier |
+| Argent, paiement, crédits, prix | Cauris (monnaie historique), calebasse qui les contient |
+| Croissance, business plan, ambition | Baobab (jeune pousse → arbre adulte selon l'étape) |
+| Communication, marketing, réseaux | Tambour parleur (tama, djembé) |
+| Équipe, collaboration, partage | Arbre à palabres et tabourets en cercle |
+| Stratégie, simulation, calcul | Plateau d'awalé et ses graines |
+| Construction, application, code | Architecture de terre (murs en banco, torons de Djenné), métier à tisser |
+| Mise en ligne, départ, lancement | Pirogue à la proue dressée |
+| Attente, vide, rien encore | Calebasse vide, grenier à remplir |
+| Erreur, problème | Calebasse fêlée, fil de tissage cassé |
+| Réussite, livrable prêt | Pagne tissé déroulé, grenier plein |
+| Serveur, réserve, stockage | Grenier dogon, canaris ; porte de grenier et serrure de bois pour « votre machine » |
+| Recherche, tri | Van de vannage |
+| Identité, logo, marque | Tampon adinkra en calebasse et son empreinte |
+| Droit, équilibre | Balance akan à peser l'or |
+| Document écrit | Feuillet manuscrit et calame |
+| Retour en arrière, page introuvable | Sankofa (poids akan en forme d'oiseau qui se retourne) |
+| Réseau, diagramme | Filet de pêche (épervier) |
+| Étapes, progression guidée | Échelle dogon |
+
+Si aucun élément de la table ne convient, en choisir un autre de la même
+nature (objet, outil, architecture, végétal, jeu) et l'ajouter ici.
+
+**Ce qui est interdit :** masques et objets sacrés, animaux de safari, huttes au
+coucher du soleil, silhouette du continent par défaut, motifs ethniques plaqués
+en fond d'écran. Les motifs géométriques (bogolan, kente, ndebele : chevrons,
+losanges, dents de scie, points) vivent **à l'intérieur** de l'objet dessiné,
+jamais comme papier peint. Un élément par illustration.
+
+### Comment elles sont faites
 
 - **En SVG dans le code**, pas en fichier image : aucune requête, net à toutes les
   tailles, et le thème est suivi sans seconde version.
 - **Deux encres.** `currentColor` pour le trait, `var(--color-primary-500)` pour
-  le seul détail qui compte. Jamais plus.
-- **Au trait**, `stroke-width` 1.5–2, pas d'aplat, pas d'ombre, pas de 3D.
-- **Ça décrit le sujet.** Un serveur pour un serveur, un nuage pour une
-  infrastructure gérée, une clé pour un accès. Pas de personnage, pas de mascotte,
-  pas de décor.
+  le seul détail qui compte (souvent le cœur de l'objet : le losange du
+  bouclier). Jamais plus.
+- **Au trait**, `stroke-width` 1.5–2, pas d'aplat visible, pas d'ombre, pas de 3D.
+  Un remplissage à la couleur de la surface est permis pour masquer ce qui
+  passe derrière (les lances derrière le bouclier).
+- **Décoratif pour les lecteurs d'écran** (`aria-hidden="true"`) : le texte voisin
+  porte le sens.
+- **Identifiants SVG uniques par instance** (`clipPath`, `use`) : la même
+  illustration peut apparaître deux fois sur une page.
+- Pas de personnage, pas de mascotte.
 
-Dans iDeploy elles sont centralisées :
+Le répertoire complet (objet retenu pour chaque écran, candidats écartés,
+dessins gardés comme schémas) est dans `docs/ILLUSTRATIONS.md` : le compléter à
+chaque nouvelle illustration.
+
+Les illustrations partagées du dashboard sont dans
+`apps/main-dashboard/src/app/shared/components/` (dont `module-emblem`, l'emblème
+de chaque module, commun au tableau de bord et au lanceur du chat). Dans iDeploy
+elles sont centralisées dans
 `apps/ideploy-web/src/app/shared/components/illustration/illustration.ts`
-(`box` `server` `store` `activity` `managed-cloud` `own-server` `search` `shield`
-`team`). Ajouter un motif là plutôt que dessiner sur place, et l'état vide
-standard est `<app-empty-state>`, qui s'en sert déjà.
+(`box` `code` `server` `store` `market` `activity` `managed-cloud` `own-server`
+`search` `shield` `team`), et l'état vide standard est `<app-empty-state>`.
+AppGen : `components/ui/Illustrations.tsx` et `tourIllustrations.ts`.
+Images de partage (Open Graph) : `apps/api/public/og/illustrations/<clé>.svg`,
+mêmes règles de dessin (voir `docs/SEO.md`).
+
+**Ne pas confondre** avec les livrables générés pour les clients (charte,
+visuels, site, documents) : ceux-là suivent l'identité et la direction
+artistique de la marque du client (`apps/api/docs/ART_DIRECTION.md`), pas celle
+d'IDEM.
 
 ---
 
@@ -148,6 +210,7 @@ standard est `<app-empty-state>`, qui s'en sert déjà.
 - [ ] Les icônes sont des `pi pi-*`.
 - [ ] Chaque `<input>` a un `type`.
 - [ ] Chaque appel réseau a son `<idem-loader>` ou son squelette.
+- [ ] Chaque illustration représente un élément africain qui dit ce que dit l'écran (§ 4).
 - [ ] Aucune page vide, aucun grand blanc, aucun texte de remplissage.
 
 Dire ce qui n'a pas été fait. Un périmètre réduit en silence est pire qu'un

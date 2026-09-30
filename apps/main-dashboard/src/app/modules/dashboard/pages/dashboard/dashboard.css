@@ -276,73 +276,7 @@ button {
 
 .module-card:hover .feature-icon-svg {
   transform: scale(1.04);
-}
-
-/* SVG Colors & Animations */
-.svg-bg {
-  fill: color-mix(in srgb, var(--color-text-primary) 1.5%, transparent);
-  stroke: color-mix(in srgb, var(--color-text-primary) 3.5%, transparent);
-  stroke-width: 1px;
-  transition: fill 0.3s ease, stroke 0.3s ease;
-}
-
-.module-card:hover .svg-bg {
-  fill: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
-  stroke: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
-}
-
-.svg-stroke-primary {
-  stroke: color-mix(in srgb, var(--color-text-primary) 50%, transparent);
-  transition: stroke 0.3s ease;
-}
-
-.module-card:hover .svg-stroke-primary {
-  stroke: var(--color-text-primary);
-}
-
-.svg-stroke-accent {
-  stroke: color-mix(in srgb, var(--color-text-primary) 20%, transparent);
-  transition: stroke 0.3s ease, filter 0.3s ease;
-}
-
-.module-card:hover .svg-stroke-accent {
-  stroke: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
-}
-
-.svg-stroke-dim {
-  stroke: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
-  transition: stroke 0.3s ease;
-}
-
-.module-card:hover .svg-stroke-dim {
-  stroke: color-mix(in srgb, var(--color-text-primary) 22%, transparent);
-}
-
-.svg-fill-primary {
-  fill: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
-  transition: fill 0.3s ease;
-}
-
-.module-card:hover .svg-fill-primary {
-  fill: var(--color-text-primary);
-}
-
-.svg-fill-accent {
-  fill: color-mix(in srgb, var(--color-text-primary) 15%, transparent);
-  transition: fill 0.3s ease, filter 0.3s ease;
-}
-
-.module-card:hover .svg-fill-accent {
-  fill: color-mix(in srgb, var(--color-text-primary) 45%, transparent);
-}
-
-.svg-fill-dim {
-  fill: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  transition: fill 0.3s ease;
-}
-
-.module-card:hover .svg-fill-dim {
-  fill: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  color: var(--color-text-secondary);
 }
 
 /* Card Body Details */

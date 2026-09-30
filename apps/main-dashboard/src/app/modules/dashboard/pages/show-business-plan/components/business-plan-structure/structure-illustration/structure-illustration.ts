@@ -7,9 +7,10 @@ export type StructureIllustrationKind = BusinessPlanAudience;
 /**
  * Petites illustrations SVG des destinataires d'un business plan.
  *
- * Sobres à dessein : elles aident à reconnaître une réponse d'un coup d'œil,
- * elles ne décorent pas. Tons neutres tirés du thème ; seul l'accent passe à
- * la couleur primaire quand la tuile est retenue.
+ * Un objet de la culture africaine par destinataire (AGENTS.md § 4), tracé
+ * gros et simple : elles s'affichent en 40 × 30 px et doivent se reconnaître
+ * d'un coup d'œil. Trait neutre ; seul l'accent passe à la couleur primaire
+ * quand la tuile est retenue.
  */
 @Component({
   selector: 'app-structure-illustration',
