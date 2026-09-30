@@ -69,19 +69,34 @@ jobs:
             # Update repository
             cd $REPO_DIR
             
-            # Clean git locks and corrupted index (parallel workflows)
+            # Sync the checkout to exactly origin/$BRANCH (deployments are serialized
+            # by the flock above, so only a stale lock can be left behind).
+            #  - fetch + reset --hard instead of pull: a pull refuses any local
+            #    divergence, and the previous loop then carried on and built
+            #    whatever was on disk;
+            #  - clean: files deleted upstream, or left over from another branch,
+            #    are not removed by checkout/pull and end up in the image. Only the
+            #    build inputs are cleaned; ignored files (.env, node_modules) stay;
+            #  - .git/index is removed only as a last resort (corrupted index).
             rm -f .git/index.lock
-            rm -f .git/index
-            
-            # Retry loop for git operations (avoid parallel conflicts)
+            synced=0
             for i in {1..5}; do
-              sleep $((RANDOM % 3 + 1))
-              if git checkout -f $BRANCH && git pull origin $BRANCH; then
+              if git fetch --prune origin \
+                && git checkout -f "$BRANCH" \
+                && git reset --hard "origin/$BRANCH" \
+                && git clean -fd -- apps packages Dockerfile; then
+                synced=1
                 break
               fi
               echo "Retry $i/5..."
               rm -f .git/index.lock .git/index
+              sleep $((RANDOM % 3 + 1))
             done
+            if [ "$synced" != 1 ] || [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$BRANCH")" ]; then
+              echo "ERROR: could not sync the repository to origin/$BRANCH, refusing to build stale code"
+              exit 1
+            fi
+            echo "Repository at $(git rev-parse --short HEAD) (origin/$BRANCH)"
             
             # Build image
             echo "Building Docker image..."
