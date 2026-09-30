@@ -119,8 +119,9 @@ services:
   # Instance locale du gestionnaire de secrets de la prod (docker-compose.infisical.yml).
   # Profil `secrets` : ne démarre (et ne télécharge son image) que sur demande :
   #   docker compose -f docker-compose.dev.yml --profile secrets up -d infisical
-  # Interface : http://localhost:8085. Réutilise le Postgres (base `infisical`)
-  # et le Redis (base 1) de dev. Les clés ci-dessous ne servent qu'en local.
+  # Interface : http://localhost:8085. Réutilise le Postgres de dev (base `infisical`) ;
+  # Redis dédié, car celui de dev évince des clés (allkeys-lru) et les files
+  # d'Infisical ne le supportent pas. Les clés ci-dessous ne servent qu'en local.
 
   infisical-db-init:
     image: postgres:15-alpine
@@ -134,6 +135,18 @@ services:
     networks:
       - idem-dev
 
+  infisical-redis:
+    image: redis:7-alpine
+    profiles: ['secrets']
+    restart: unless-stopped
+    networks:
+      - idem-dev
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   infisical:
     image: infisical/infisical:v0.165.16
     container_name: idem-infisical-dev
@@ -142,7 +155,7 @@ services:
     depends_on:
       infisical-db-init:
         condition: service_completed_successfully
-      redis:
+      infisical-redis:
         condition: service_healthy
     environment:
       NODE_ENV: production
@@ -150,7 +163,7 @@ services:
       ENCRYPTION_KEY: '${INFISICAL_ENCRYPTION_KEY:-6c6f63616c2d6465762d6f6e6c792121}' # idem-secrets:allow (clé de dev locale)
       AUTH_SECRET: '${INFISICAL_AUTH_SECRET:-bG9jYWwtZGV2LW9ubHktaW5maXNpY2FsLWF1dGgtc2VjcmV0}' # idem-secrets:allow (clé de dev locale)
       DB_CONNECTION_URI: 'postgresql://${DB_USERNAME:-ideploy}:${DB_PASSWORD:-password}@postgres:5432/infisical'
-      REDIS_URL: 'redis://redis:6379/1'
+      REDIS_URL: 'redis://infisical-redis:6379'
     ports:
       - '127.0.0.1:${INFISICAL_PORT:-8085}:8080'
     networks:
