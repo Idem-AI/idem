@@ -37,10 +37,15 @@
       <!-- ── Réussite ─────────────────────────────────────────────── -->
       <div class="flex-1 overflow-y-auto custom-scrollbar px-5 py-6 space-y-5">
         <div class="flex flex-col items-center text-center gap-3">
-          <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden="true" class="text-text-secondary">
-            <rect x="8" y="12" width="26" height="32" rx="2" stroke="currentColor" stroke-width="1.75" />
-            <rect x="22" y="8" width="26" height="32" rx="2" stroke="currentColor" stroke-width="1.75" />
-            <path d="M29 24l5 5 9-10" stroke="var(--color-primary-500)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="text-text-tertiary">
+            <!-- Deux étoffes portent le même signe : la marque est à jour partout. -->
+            <rect x="6" y="14" width="24" height="34" rx="1.5" stroke-width="1.75"/>
+            <rect x="26" y="8" width="24" height="34" rx="1.5" stroke-width="1.75"/>
+            <path d="M6 19 H30 M26 13 H50" stroke-width="1" opacity=".6"/>
+            <g style="color: var(--color-primary-500)" stroke-width="1.8">
+              <path d="M18 27 L23 32 L18 37 L13 32Z"/>
+              <path d="M38 20 L43 25 L38 30 L33 25Z"/>
+            </g>
           </svg>
           <h3 class="text-base font-semibold text-text-primary">
             {{ 'dashboard.showBranding.identityEditor.done.title' | translate }}
@@ -563,21 +568,26 @@
         aria-labelledby="logo-follow-title"
         aria-describedby="logo-follow-desc"
       >
-        <!-- La nouvelle identité (nuancier, lettres) rejoint le logo : seul le
-             logo porte l'encre de la marque, c'est lui qui est en question. -->
-        <svg viewBox="0 0 160 80" width="176" fill="none" aria-hidden="true" class="mx-auto block" style="color: var(--color-text-tertiary)">
-          <circle cx="24" cy="26" r="9" stroke="currentColor" stroke-width="1.5" opacity=".7" />
-          <circle cx="24" cy="54" r="9" stroke="currentColor" stroke-width="1.5" opacity=".45" />
-          <text x="44" y="46" font-size="17" font-family="Georgia, serif" fill="currentColor" opacity=".7">Aa</text>
-          <path d="M76 40h22m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".55" />
-          <rect x="108" y="16" width="44" height="48" rx="10" stroke="currentColor" stroke-width="1.5" opacity=".7" />
-          <path
-            d="M130 28c.9 4.8 3.2 7.1 8 8-4.8.9-7.1 3.2-8 8-.9-4.8-3.2-7.1-8-8 4.8-.9 7.1-3.2 8-8z"
-            stroke="var(--color-primary-500)"
-            stroke-width="1.75"
-            stroke-linejoin="round"
-          />
-          <path d="M120 54h20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".45" />
+        <!-- Le tampon (le logo) au-dessus du canari de teinture (la nouvelle
+             identité) : seul le signe du tampon porte l'encre de la marque,
+             c'est lui qui est en question. -->
+        <svg viewBox="0 0 160 80" width="176" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="mx-auto block" style="color: var(--color-text-tertiary)">
+          <g transform="translate(30 -8) scale(0.85)" stroke-width="1.8">
+            <path d="M34 12 L26 44 M34 12 L42 44 M34 12 L20 40 M34 12 L48 40" stroke-width="1.9"/>
+            <path d="M30 10 H38" stroke-width="2.8"/>
+            <ellipse cx="34" cy="52" rx="22" ry="9" stroke-width="2.4"/>
+            <path d="M12 52 V56 C12 61 22 65 34 65 C46 65 56 61 56 56 V52" stroke-width="1.9"/>
+            <g style="color: var(--color-primary-500)">
+              <g transform="translate(34 52) scale(.9 .36)">
+                <path d="M0 -9 L9 0 L0 9 L-9 0Z M0 -4 L4 0 L0 4 L-4 0Z M-9 0 H-13 M9 0 H13 M0 -9 V-13 M0 9 V13" stroke-width="2.8"/>
+              </g>
+            </g>
+          </g>
+          <path d="M86 46 C84 60 90 74 104 74 C118 74 124 60 122 46" stroke-width="1.75"/>
+          <ellipse cx="104" cy="46" rx="18" ry="4.5" stroke-width="1.75"/>
+          <ellipse cx="104" cy="46.5" rx="12" ry="2.2" opacity=".55"/>
+          <path d="M90 60 L95 64 L100 60 L105 64 L110 60 L115 64 L119 61" stroke-width="1" opacity=".6"/>
+          <path d="M66 44 C72 36 80 34 86 36" stroke-dasharray="3 4" opacity=".55"/>
         </svg>
 
         <h2 id="logo-follow-title" class="mt-4 text-xl font-semibold text-text-primary text-center">

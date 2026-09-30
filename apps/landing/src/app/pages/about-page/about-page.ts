@@ -1,7 +1,6 @@
-import { Component, inject, PLATFORM_ID, signal, OnInit } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { SeoService } from '../../shared/services/seo.service';
 import { Team } from '../../components/team/team';
 
 interface Value {
@@ -23,9 +22,7 @@ interface Milestone {
   templateUrl: './about-page.html',
   styleUrl: './about-page.css',
 })
-export class AboutPage implements OnInit {
-  protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
-  private readonly seoService = inject(SeoService);
+export class AboutPage {
 
   protected readonly values: Value[] = [
     {
@@ -85,32 +82,4 @@ export class AboutPage implements OnInit {
     { value: '100%', label: $localize`:@@about-page.stats.openSource:Open Source` },
   ];
 
-  ngOnInit(): void {
-    this.setupSeo();
-  }
-
-  private setupSeo(): void {
-    const title = $localize`:@@about-page.seo.title:About IDEM | Africa's First Sovereign AI Platform`;
-    const description = $localize`:@@about-page.seo.description:IDEM is Africa's first sovereign open source AI platform, founded in Cameroon. We democratize tech entrepreneurship by making world-class AI tools accessible and affordable for African entrepreneurs.`;
-
-    const metaTags = [
-      { name: 'description', content: description },
-      {
-        name: 'keywords',
-        content: $localize`:@@about-page.seo.keywords:IDEM company, African AI startup, Cameroon tech, sovereign AI platform, African entrepreneurs, open source AI, tech innovation Africa, AI for Africa`,
-      },
-    ];
-
-    const ogTags = [
-      { property: 'og:title', content: title },
-      { property: 'og:description', content: description },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: `${this.seoService.domain}/about` },
-    ];
-
-    this.seoService.updateTitle(title);
-    this.seoService.updateMetaTags(metaTags);
-    this.seoService.updateOgTags(ogTags);
-    this.seoService.setCanonicalUrl('/about');
-  }
 }

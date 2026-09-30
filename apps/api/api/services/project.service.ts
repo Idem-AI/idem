@@ -228,7 +228,7 @@ class ProjectService {
    * Deux formes de perte, toutes deux dues au même écart : le front garde en
    * mémoire le logo tel qu'il l'a reçu, et resauvegarde le projet ENTIER à
    * plusieurs moments du workflow, alors que le backend a enrichi le logo
-   * entre-temps. Or Firestore remplace `analysisResultModel` en bloc.
+   * entre-temps. Or la mise à jour remplace `analysisResultModel` en bloc.
    *
    * 1. ÉCRASEMENT — le front repousse du SVG inline là où le backend a posé une
    *    URL MinIO. Les consommateurs qui attendent une URL (aperçus, PDF, pitch
@@ -793,18 +793,18 @@ class ProjectService {
     }
   }
 
-  async getProjectCodeFromFirebase(
+  async getProjectCode(
     userId: string,
     projectId: string
   ): Promise<Record<string, string> | null> {
     if (!userId || !projectId) {
-      logger.error('User ID and Project ID are required to get project code from Firebase.');
+      logger.error('User ID and Project ID are required to get project code.');
       return null;
     }
 
     try {
       logger.info(
-        `Attempting to retrieve project code from Firebase Storage for project ${projectId} and user ${userId}`
+        `Attempting to retrieve project code for project ${projectId} and user ${userId}`
       );
 
       // Manifest-based storage is the current format; fall back to the legacy
@@ -830,7 +830,7 @@ class ProjectService {
       return codeFiles;
     } catch (error: any) {
       logger.error(
-        `Error retrieving project code from Firebase for project ${projectId} and user ${userId}: ${error.message}`,
+        `Error retrieving project code for project ${projectId} and user ${userId}: ${error.message}`,
         { stack: error.stack, details: error }
       );
       return null;

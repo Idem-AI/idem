@@ -64,7 +64,7 @@ function isSyntheticContextMessage(message: Pick<Message, 'id' | 'content'>): bo
 }
 
 /**
- * Size budget for the stored conversation, well under the 1 MiB Firestore
+ * Size budget for the stored conversation, well under the 1 MiB document
  * document limit. Beyond it the oldest messages are dropped, newest kept.
  */
 const MAX_STORED_CHARS = 600_000;

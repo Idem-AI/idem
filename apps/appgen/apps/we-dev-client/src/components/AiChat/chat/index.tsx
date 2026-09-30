@@ -28,7 +28,7 @@ import {
   getProjectById,
   getProjectGeneration,
   saveProjectGeneration,
-  getProjectCodeFromFirebase,
+  getProjectCode,
   getProjectChatSession,
   saveProjectChatSession,
 } from '@/api/persistence/db';
@@ -838,7 +838,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           // Récupération du code déjà enregistré pour ce projet.
           try {
             console.log('[code] recherche du code enregistré pour', projectId);
-            const existingCode = await getProjectCodeFromFirebase(projectId);
+            const existingCode = await getProjectCode(projectId);
 
             if (existingCode && Object.keys(existingCode).length > 0) {
               console.log('[code] chargé :', Object.keys(existingCode).length, 'fichiers');
@@ -954,7 +954,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
     } catch (error) {
       console.error('Error saving code to object storage:', error);
-      toast.error(t('chat.errors.firebase_save_failed'));
+      toast.error(t('chat.errors.storage_save_failed'));
     }
   };
 
@@ -1529,7 +1529,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             </div>
           )}
 
-          {/* Les boutons d'export ont été supprimés - le code est automatiquement sauvé sur Firebase Storage */}
+          {/* Les boutons d'export ont été supprimés - le code est automatiquement sauvé dans le stockage IDEM */}
 
           <div ref={messagesEndRef} className="h-px" />
         </div>

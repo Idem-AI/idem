@@ -401,7 +401,7 @@ export class GeminiMockupService {
       const fileName = `${mockupName}-${Date.now()}.${extension}`;
       const folderPath = `projects/${projectId}/Mockups`;
 
-      logger.info(`[MOCKUP][${mockupName}] Uploading mockup image to Firebase Storage...`, {
+      logger.info(`[MOCKUP][${mockupName}] Uploading mockup image to storage...`, {
         mockupName,
         fileName,
         folderPath,

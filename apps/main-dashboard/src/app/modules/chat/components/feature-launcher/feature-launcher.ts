@@ -4,6 +4,7 @@ import { ProjectModel } from '@idem/shared-models';
 import { ChatDeliverablesService } from '../../services/chat-deliverables.service';
 import { ChatBrandingService } from '../../services/chat-branding.service';
 import { DeliverableKind } from '../../models/chat.model';
+import { ModuleEmblemComponent } from '../../../../shared/components/module-emblem/module-emblem';
 
 export type FeatureState = 'ready' | 'generate' | 'locked';
 
@@ -58,7 +59,7 @@ const FEATURES: FeatureMeta[] = [
 @Component({
   selector: 'app-feature-launcher',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, ModuleEmblemComponent],
   templateUrl: './feature-launcher.html',
   styleUrl: './feature-launcher.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

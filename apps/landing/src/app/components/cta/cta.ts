@@ -7,10 +7,8 @@ import {
   AfterViewInit,
   OnDestroy,
   PLATFORM_ID,
-  OnInit,
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { SeoService } from '../../shared/services/seo.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -20,11 +18,10 @@ import { environment } from '../../../environments/environment';
   templateUrl: './cta.html',
   styleUrl: './cta.css',
 })
-export class Cta implements OnInit, AfterViewInit, OnDestroy {
+export class Cta implements AfterViewInit, OnDestroy {
   // Angular-initialized properties
   protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
   private readonly elementRef = inject(ElementRef);
-  private readonly seoService = inject(SeoService);
   protected readonly dashboardUrl = environment.services.dashboard.url;
   // Apply animation class binding
   @HostBinding('class.animate-in')
@@ -32,10 +29,6 @@ export class Cta implements OnInit, AfterViewInit, OnDestroy {
 
   // State properties
   protected observer: IntersectionObserver | null = null;
-
-  ngOnInit(): void {
-    this.setupSeoForCtaSection();
-  }
 
   ngAfterViewInit(): void {
     if (this.isBrowser()) {
@@ -73,37 +66,6 @@ export class Cta implements OnInit, AfterViewInit, OnDestroy {
     } else {
       // If no specific section, observe the component itself
       this.observer.observe(this.elementRef.nativeElement);
-    }
-  }
-
-  private setupSeoForCtaSection(): void {
-    // Add structured data for CTA section
-    const ctaStructuredData = {
-      '@context': 'https://schema.org',
-      '@type': 'WebPageElement',
-      name: $localize`:@@cta.seo.name:Call to Action`,
-      description: $localize`:@@cta.seo.description:Get started with Idem platform for AI-powered brand creation and deployment`,
-      potentialAction: {
-        '@type': 'Action',
-        name: $localize`:@@cta.seo.actionName:Sign Up`,
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: `${this.seoService.domain}/auth/login`,
-          actionPlatform: [
-            'http://schema.org/DesktopWebPlatform',
-            'http://schema.org/MobileWebPlatform',
-          ],
-        },
-      },
-    };
-
-    // Add structured data to page if not already present
-    if (this.isBrowser() && !document.querySelector('script[data-cta-structured-data]')) {
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.setAttribute('data-cta-structured-data', 'true');
-      script.textContent = JSON.stringify(ctaStructuredData);
-      document.head.appendChild(script);
     }
   }
 

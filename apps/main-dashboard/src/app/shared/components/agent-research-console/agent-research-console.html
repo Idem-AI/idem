@@ -3,51 +3,56 @@
        L'illustration porte l'information principale : on comprend l'étape
        avant d'avoir lu quoi que ce soit. -->
   <div class="rc__stage" [attr.data-scene]="scene()">
-    <svg viewBox="0 0 200 120" class="rc__art" fill="none" aria-hidden="true">
-      <defs>
-        <linearGradient id="rcAccent" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0%" stop-color="var(--color-primary)" />
-          <stop offset="100%" stop-color="var(--color-accent-500)" />
-        </linearGradient>
-      </defs>
-
-      <!-- Le document en cours de constitution, présent à toutes les étapes. -->
-      <rect x="58" y="22" width="84" height="76" rx="6" stroke="currentColor" stroke-opacity=".28" stroke-width="2" />
-      <path class="rc__line rc__line--1" d="M72 42h56" stroke="currentColor" stroke-opacity=".35" stroke-width="3" stroke-linecap="round" />
-      <path class="rc__line rc__line--2" d="M72 56h40" stroke="currentColor" stroke-opacity=".35" stroke-width="3" stroke-linecap="round" />
-      <path class="rc__line rc__line--3" d="M72 70h48" stroke="currentColor" stroke-opacity=".35" stroke-width="3" stroke-linecap="round" />
-      <path class="rc__line rc__line--4" d="M72 84h28" stroke="currentColor" stroke-opacity=".35" stroke-width="3" stroke-linecap="round" />
-
-      <!-- Recherche : la loupe balaie, les sources arrivent. -->
+    <svg
+      viewBox="0 0 200 120"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="rc__art"
+      aria-hidden="true"
+    >
+      <!-- Le métier à tisser, présent à toutes les étapes : le document se tisse. -->
+      <path d="M64 14 V106 M136 14 V106 M58 18 H142" stroke-width="2" stroke-opacity=".5"/>
+      <path d="M92 18 V24 M84 24 H116" stroke-opacity=".5"/>
+      <path d="M76 34 H124 M76 40 H124" stroke-width="1.6" stroke-opacity=".45"/>
+      <path d="M80 26 V100 M86 26 V100 M92 26 V100 M98 26 V100 M104 26 V100 M110 26 V100 M116 26 V100 M122 26 V100" stroke-width=".8" stroke-opacity=".3"/>
+      <path class="rc__line rc__line--1" d="M76 58h48" stroke-opacity=".4" stroke-width="3"/>
+      <path class="rc__line rc__line--2" d="M76 68h36" stroke-opacity=".4" stroke-width="3"/>
+      <path class="rc__line rc__line--3" d="M76 78h44" stroke-opacity=".4" stroke-width="3"/>
+      <path class="rc__line rc__line--4" d="M76 88h28" stroke-opacity=".4" stroke-width="3"/>
+      <path d="M72 102 H128" stroke-width="2" stroke-opacity=".5"/>
+      <!-- Recherche : le van trie le grain, les sources arrivent. -->
       <g class="rc__scene rc__scene--searching">
-        <circle cx="44" cy="52" r="16" stroke="url(#rcAccent)" stroke-width="3" />
-        <path d="M56 64l12 12" stroke="url(#rcAccent)" stroke-width="3" stroke-linecap="round" />
-        <circle class="rc__dot rc__dot--1" cx="168" cy="34" r="4" fill="url(#rcAccent)" />
-        <circle class="rc__dot rc__dot--2" cx="176" cy="60" r="3" fill="url(#rcAccent)" />
-        <circle class="rc__dot rc__dot--3" cx="166" cy="84" r="3.5" fill="url(#rcAccent)" />
+        <path d="M16 64 C16 58 26 54 38 54 C50 54 60 58 60 64 C60 70 50 74 38 74 C26 74 16 70 16 64Z" stroke-width="2"/>
+        <path d="M22 64 C26 61 50 61 54 64 M38 55 V73" stroke-width=".9" stroke-opacity=".5"/>
+        <path d="M30 46 h0.01 M40 40 h0.01 M48 46 h0.01 M36 32 h0.01" stroke-width="3" stroke-opacity=".6"/>
+        <g style="color: var(--color-primary-500)">
+          <circle class="rc__dot rc__dot--1" cx="166" cy="34" r="4" stroke-width="2"/>
+          <circle class="rc__dot rc__dot--2" cx="176" cy="60" r="3" stroke-width="2"/>
+          <circle class="rc__dot rc__dot--3" cx="164" cy="84" r="3.5" stroke-width="2"/>
+        </g>
       </g>
-
-      <!-- Rédaction : la plume avance sur la page. -->
-      <g class="rc__scene rc__scene--writing">
-        <path d="M150 30l14 14-40 40-18 4 4-18z" stroke="url(#rcAccent)" stroke-width="3" stroke-linejoin="round" />
-        <path d="M146 48l-30 30" stroke="url(#rcAccent)" stroke-width="2" stroke-opacity=".5" stroke-linecap="round" />
+      <!-- Rédaction : la navette passe et repasse dans la chaîne. -->
+      <g class="rc__scene rc__scene--writing" style="color: var(--color-primary-500)">
+        <path d="M54 50 C70 43 130 43 146 50 C130 57 70 57 54 50Z" stroke-width="2.2"/>
+        <path d="M88 50 H112" stroke-width="3"/>
       </g>
-
-      <!-- Vérification : chaque affirmation reçoit sa coche. -->
-      <g class="rc__scene rc__scene--verifying">
-        <path d="M40 60l10 10 20-22" stroke="url(#rcAccent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M150 40l24-14v30c0 16-10 26-24 32-14-6-24-16-24-32V26z" stroke="url(#rcAccent)" stroke-width="2.5" stroke-linejoin="round" />
+      <!-- Vérification : le bouclier garde ce qui est avancé. -->
+      <g class="rc__scene rc__scene--verifying" style="color: var(--color-primary-500)">
+        <path d="M166 30 C178 38 184 48 184 58 C184 68 178 78 166 86 C154 78 148 68 148 58 C148 48 154 38 166 30Z" stroke-width="2.2"/>
+        <path d="M166 38 C174 44 178 51 178 58 C178 65 174 72 166 78 C158 72 154 65 154 58 C154 51 158 44 166 38Z" stroke-width="1.2"/>
+        <path d="M166 51 L172 58 L166 65 L160 58Z" stroke-width="2"/>
       </g>
-
-      <!-- Planification et mise en forme : les pièces se rangent. -->
+      <!-- Planification et mise en forme : la chaîne se monte, les fils se rangent. -->
       <g class="rc__scene rc__scene--planning">
-        <circle class="rc__orbit" cx="100" cy="60" r="46" stroke="url(#rcAccent)" stroke-width="2" stroke-dasharray="6 10" />
+        <circle class="rc__orbit" cx="100" cy="60" r="50" style="color: var(--color-primary-500)" stroke-width="2" stroke-dasharray="4 10"/>
       </g>
-
-      <!-- Terminé : le document est complet. -->
-      <g class="rc__scene rc__scene--done">
-        <circle cx="150" cy="86" r="18" fill="url(#rcAccent)" />
-        <path d="M142 86l6 6 12-13" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- Terminé : le motif est complet au cœur de l'étoffe. -->
+      <g class="rc__scene rc__scene--done" style="color: var(--color-primary-500)">
+        <path d="M100 56 L114 72 L100 88 L86 72Z" stroke-width="2.4"/>
+        <path d="M100 64 L107 72 L100 80 L93 72Z" stroke-width="2"/>
       </g>
     </svg>
 

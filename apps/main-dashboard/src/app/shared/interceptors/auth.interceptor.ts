@@ -6,6 +6,7 @@ import { Observable, from, of } from 'rxjs';
 import { switchMap, catchError, timeout } from 'rxjs/operators';
 import { readLocaleCookie } from '../utils/locale-cookie';
 import { SKIP_AUTH } from './http-context';
+import { environment } from '../../../environments/environment';
 
 /**
  * Interceptor function to add JWT to requests.
@@ -28,9 +29,8 @@ export const authInterceptor: HttpInterceptorFn = (
   }
 
   // Skip static assets (i18n JSON, images, fonts…). These never need an auth
-  // header, and intercepting them would inject TokenService → Firebase Auth
-  // synchronously during bootstrap (the translate loader fires at startup),
-  // which triggers an NG0200 circular dependency on `Auth`. Resolve them early.
+  // header; resolving them early keeps TokenService out of the bootstrap path
+  // (the translate loader fires at startup).
   if (req.url.includes('/assets/') || req.url.startsWith('assets/')) {
     return next(req);
   }
@@ -55,15 +55,20 @@ export const authInterceptor: HttpInterceptorFn = (
   // (and thus this interceptor) — it carries the language as a `lang` query param
   // instead (see SSEService callers).
   const lang = readLocaleCookie() ?? 'en';
-  req = req.clone({ headers: req.headers.set('Accept-Language', lang) });
+  req = req.clone({
+    headers: req.headers.set('Accept-Language', lang),
+    // Le cookie `session` httpOnly est la session de référence : il doit
+    // accompagner chaque appel à l'API IDEM, même sans Bearer.
+    ...(req.url.startsWith(environment.services.api.url) && { withCredentials: true }),
+  });
 
   // Skip if the request already carries its own Authorization header (e.g. iDeploy API)
   if (req.headers.has('Authorization')) {
     return next(req);
   }
 
-  // Only now resolve TokenService (which injects Firebase Auth) — i.e. only for
-  // real API requests, in a clean injection context.
+  // Only now resolve TokenService — i.e. only for real API requests, in a
+  // clean injection context.
   const tokenService = inject(TokenService);
 
   // 1. FAST PATH: If we already have a valid cached token, use it immediately

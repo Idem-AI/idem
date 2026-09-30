@@ -16,7 +16,7 @@ export const authGuard: CanActivateFn = async (route, state) => {
   const router = inject(Router);
 
   try {
-    // Attendre que Firebase Auth soit initialisé
+    // Attend que la session (cookie IDEM ou session d'authentification) soit relue.
     const user = await firstValueFrom(authService.user$.pipe(map((user) => user)));
 
     if (user) {
@@ -45,7 +45,7 @@ export const publicGuard: CanActivateFn = async (route) => {
   const http = inject(HttpClient);
 
   try {
-    // Attendre que Firebase Auth soit initialisé
+    // Attend que la session (cookie IDEM ou session d'authentification) soit relue.
     const user = await firstValueFrom(authService.user$.pipe(map((user) => user)));
 
     if (user) {
@@ -53,7 +53,7 @@ export const publicGuard: CanActivateFn = async (route) => {
       const redirectParam = route.queryParamMap.get('redirect');
       const fromAppGen = route.queryParamMap.get('from') === 'appgen';
 
-      // Les autres applications lisent le cookie `session`, pas Firebase :
+      // Les autres applications lisent le cookie `session` :
       // s'il a expiré, on le rétablit avant de les y renvoyer, sinon elles
       // reviendraient aussitôt ici sans utilisateur.
       if (redirectParam === 'simulation' || redirectParam === 'ideploy' || fromAppGen) {

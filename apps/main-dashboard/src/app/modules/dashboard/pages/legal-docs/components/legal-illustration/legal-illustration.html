@@ -11,93 +11,185 @@
   focusable="false"
 >
   @switch (scene()) {
-    @case ('hero') {
-      <!-- Un acte juridique, signé et scellé -->
-      <path d="M50 20 h44 l16 16 v64 a4 4 0 0 1 -4 4 h-56 a4 4 0 0 1 -4 -4 v-76 a4 4 0 0 1 4 -4 z" />
-      <path d="M94 20 v12 a4 4 0 0 0 4 4 h12" />
-      <path d="M58 44 h28 M58 54 h40 M58 64 h40 M58 74 h24" />
-      <path d="M58 90 q5 -8 10 0 t10 0" />
+  @case ('hero') {
+    <!-- L'espace juridique : la balance akan à peser l'or, qui pèse juste -->
+    <g transform="translate(5 5) scale(1.25)" stroke-width="1.2">
+      <path d="M60 6 V14" stroke-width="1.3"/>
+      <circle cx="60" cy="16" r="2.5"/>
+      <path d="M20 20 H100" stroke-width="1.6"/>
+      <path d="M60 18 L56 24 H64Z"/>
+      <path d="M20 20 L10 52 M20 20 L30 52 M100 20 L90 52 M100 20 L110 52" stroke-width="0.8" opacity=".7"/>
+      <path d="M6 52 C8 60 32 60 34 52Z" stroke-width="1.6"/>
+      <path d="M86 52 C88 60 112 60 114 52Z" stroke-width="1.6"/>
+      <path d="M11 55 L14 57 L17 55 L20 57 L23 55 L26 57 L29 55" stroke-width="0.7" opacity=".6"/>
+      <path d="M91 55 L94 57 L97 55 L100 57 L103 55 L106 57 L109 55" stroke-width="0.7" opacity=".6"/>
+      <path d="M14 52 V46 H20 V52" stroke-width="1.1"/>
       <g class="accent">
-        <circle cx="110" cy="92" r="13" />
-        <path d="M104.5 92 l4 4 l7 -8" />
+        <path d="M96 52 V44 L100 40 L104 44 V52" stroke-width="1.4"/>
+        <path d="M100 44 V48" stroke-width="1"/>
       </g>
-    }
+    </g>
+  }
 
-    @case ('writing') {
-      <!-- Rédaction en cours : les lignes s'écrivent -->
-      <path d="M46 16 h56 a4 4 0 0 1 4 4 v80 a4 4 0 0 1 -4 4 h-56 a4 4 0 0 1 -4 -4 v-80 a4 4 0 0 1 4 -4 z" />
-      <path d="M54 30 h24" />
-      <path class="write-line" d="M54 44 h40" />
-      <path class="write-line write-line-2" d="M54 56 h34" />
-      <path class="write-line write-line-3" d="M54 68 h40" />
-      <g class="pen accent">
-        <path d="M100 58 l20 -20 l6 6 l-20 20 l-9 3 z" />
-        <path d="M114 44 l6 6" />
-      </g>
-    }
+  @case ('writing') {
+    <!-- Rédaction en cours : le feuillet s'écrit au calame, à côté de l'encrier -->
+    <rect x="42" y="14" width="68" height="92" rx="2" stroke-width="2"/>
+    <rect x="47" y="19" width="58" height="82" rx="1" stroke-width=".9" opacity=".6"/>
+    <path d="M50 24 L54 28 L58 24 L62 28 L66 24 L70 28 L74 24 L78 28 L82 24 L86 28 L90 24 L94 28 L98 24 L102 28" stroke-width=".9" opacity=".6"/>
+    <path d="M54 40 H78"/>
+    <path class="write-line" d="M54 52 H98"/>
+    <path class="write-line write-line-2" d="M54 64 H92"/>
+    <path class="write-line write-line-3" d="M54 76 H98"/>
+    <g class="pen" class="accent">
+      <path d="M100 70 L128 30 L132 33 L104 73 L99 77 Z" stroke-width="1.8"/>
+      <path d="M123 37 L127 40" stroke-width="1.4"/>
+    </g>
+    <path d="M118 100 C118 94 124 92 128 92 C132 92 138 94 138 100 C138 104 134 106 128 106 C122 106 118 104 118 100Z" stroke-width="1.6"/>
+    <ellipse cx="128" cy="93" rx="5" ry="1.6" stroke-width="1.4"/>
+  }
 
-    @case ('ready') {
-      <!-- Documents prêts -->
-      <path d="M40 28 h40 l12 12 v56 a4 4 0 0 1 -4 4 h-48 a4 4 0 0 1 -4 -4 v-64 a4 4 0 0 1 4 -4 z" />
-      <path d="M58 20 h40 l12 12 v56" />
-      <path d="M46 48 h28 M46 58 h36 M46 68 h30" />
+  @case ('ready') {
+    <!-- Documents prêts : le feuillet porte son sceau -->
+    <g transform="translate(2 2.8) scale(1.3)" stroke-width="1.2">
+      <rect x="34" y="12" width="52" height="68" rx="2" stroke-width="1.5"/>
+      <rect x="38" y="16" width="44" height="60" rx="1" stroke-width="0.7" opacity=".6"/>
+      <path d="M40 20 L43 23 L46 20 L49 23 L52 20 L55 23 L58 20 L61 23 L64 20 L67 23 L70 20 L73 23 L76 20 L79 23" stroke-width="0.7" opacity=".6"/>
+      <path d="M44 34 C48 32 52 36 56 34 S64 32 68 34 S74 36 76 34 M44 42 C48 40 52 44 56 42 S62 40 66 42 M44 50 C48 48 52 52 56 50 S64 48 68 50 S74 52 76 50" stroke-width="0.9" opacity=".8"/>
+      <path d="M44 58 C48 56 52 60 56 58" stroke-width="0.9" opacity=".8"/>
       <g class="accent">
-        <circle cx="100" cy="88" r="15" />
-        <path d="M93.5 88 l5 5 l8.5 -9.5" />
+        <circle cx="70" cy="66" r="8" stroke-width="1.4"/>
+        <g transform="translate(70 66) scale(.55)">
+          <path d="M0 -9 L9 0 L0 9 L-9 0Z M0 -4 L4 0 L0 4 L-4 0Z M-9 0 H-13 M9 0 H13 M0 -9 V-13 M0 9 V13" stroke-width="2"/>
+        </g>
       </g>
-    }
+    </g>
+  }
 
-    @case ('solo') {
-      <!-- Entreprise individuelle : une boutique, en son nom propre -->
-      <path d="M34 50 v52 h92 v-52" />
-      <path d="M28 36 h104 l-4 14 h-96 z" class="accent" />
-      <path d="M49 50 v4 a8.5 8.5 0 0 1 -17 0 M66 50 v4 a8.5 8.5 0 0 1 -17 0 M83 50 v4 a8.5 8.5 0 0 1 -17 0 M100 50 v4 a8.5 8.5 0 0 1 -17 0 M117 50 v4 a8.5 8.5 0 0 1 -17 0" />
-      <path d="M46 72 h26 v18 h-26 z" />
-      <path d="M92 102 v-30 h20 v30" />
-      <path d="M26 102 h108" />
-    }
-
-    @case ('solo-shield') {
-      <!-- Associé unique, patrimoine protégé -->
-      <path d="M36 24 h40 l12 12 v60 a4 4 0 0 1 -4 4 h-48 a4 4 0 0 1 -4 -4 v-68 a4 4 0 0 1 4 -4 z" />
-      <path d="M44 44 h28 M44 54 h36 M44 64 h22" />
+  @case ('solo') {
+    <!-- Entreprise individuelle : l'étal du marché, tenu en son nom propre -->
+    <g transform="translate(5 5) scale(1.25)" stroke-width="1.2">
+      <path d="M10 80 H110" opacity=".4"/>
+      <path d="M16 22 L60 10 L104 22 Z" stroke-width="1.6"/>
+      <path d="M16 22 L24 28 L32 22 L40 28 L48 22 L56 28 L64 22 L72 28 L80 22 L88 28 L96 22 L104 28" stroke-width="1"/>
+      <path d="M22 24 V80 M98 24 V80" stroke-width="1.4"/>
+      <path d="M18 58 H102" stroke-width="1.6"/>
+      <path d="M26 58 V80 M94 58 V80" stroke-width="1" opacity=".7"/>
+      <path d="M30 58 C30 50 42 50 42 58"/>
+      <path d="M46 58 C46 46 62 46 62 58"/>
+      <path d="M34 50 L38 54 M50 50 L54 54 M58 50 L55 54" stroke-width="0.8" opacity=".6"/>
       <g class="accent">
-        <path d="M108 44 l22 8 v18 c0 16 -10 26 -22 30 c-12 -4 -22 -14 -22 -30 v-18 z" />
-        <path d="M100 72 l6 6 l11 -12" />
+        <path d="M68 58 C66 48 70 42 78 42 C86 42 90 48 88 58" stroke-width="1.4"/>
+        <path d="M72 46 C74 44 82 44 84 46" stroke-width="1"/>
       </g>
-    }
+      <path d="M34 66 L38 70 L42 66 L46 70 L50 66 M70 66 L74 70 L78 66 L82 70 L86 66" stroke-width="0.8" opacity=".55"/>
+    </g>
+  }
 
-    @case ('solo-growth') {
-      <!-- Fondateur seul, projet de croissance -->
-      <path d="M28 100 h104" />
-      <path d="M40 100 v-20 M62 100 v-32 M84 100 v-44 M106 100 v-58" stroke-width="8" stroke-opacity="0.3" />
+  @case ('solo-shield') {
+    <!-- Associé unique, patrimoine protégé : le bouclier devant le grenier -->
+    <g transform="translate(-14 8) scale(1.1)" stroke-width="1.4">
+      <path d="M42 40 L44 74 H76 L78 40" stroke-width="1.8"/>
+      <path d="M46 74 V80 M56 74 V80 M64 74 V80 M74 74 V80 M40 80 H80" opacity=".8"/>
+      <path d="M36 42 C44 34 52 18 60 8 C68 18 76 34 84 42 C76 45 44 45 36 42Z" stroke-width="1.8"/>
+      <path d="M60 8 V43 M50 22 L46 42 M70 22 L74 42 M55 15 L52 43 M65 15 L68 43" stroke-width="0.8" opacity=".6"/>
+      <path d="M58 6 L60 2 L62 6" stroke-width="1.3"/>
+      <path d="M46 62 L50 66 L54 62 L58 66 L62 62 L66 66 L70 62 L74 66" stroke-width="1" opacity=".7"/>
+      <rect x="54" y="48" width="12" height="11" rx="1"/>
+    </g>
+    <g class="accent" transform="translate(116 38)">
+      <path d="M0 -26 C14 -18 22 -6 22 8 C22 22 14 34 0 42 C-14 34 -22 22 -22 8 C-22 -6 -14 -18 0 -26Z" stroke-width="2"/>
+      <path d="M0 -18 C10 -12 15 -2 15 8 C15 18 10 27 0 33 C-10 27 -15 18 -15 8 C-15 -2 -10 -12 0 -18Z" stroke-width="1.2"/>
+      <path d="M-7 -6 L0 -1 L7 -6 M-7 22 L0 17 L7 22" stroke-width="1.2"/>
+      <path d="M0 2 L6 8 L0 14 L-6 8Z" stroke-width="1.8"/>
+    </g>
+  }
+
+  @case ('solo-growth') {
+    <!-- Fondateur seul, projet de croissance : la jeune pousse -->
+    <g transform="translate(-1 0.6) scale(1.35)" stroke-width="1.1">
+      <path d="M30 76 H90" opacity=".4"/>
+      <path d="M40 76 C44 70 76 70 80 76"/>
+      <path d="M60 72 C58 62 58 52 60 42" stroke-width="1.5"/>
+      <path d="M60 56 C52 56 44 52 42 42 C50 42 58 46 60 56Z"/>
+      <path d="M50 49 L56 53" opacity=".55"/>
       <g class="accent">
-        <path d="M34 72 L60 54 L78 62 L120 26" />
-        <path d="M106 26 h14 v14" />
+        <path d="M60 46 C66 44 74 38 76 28 C68 28 60 34 60 46Z" stroke-width="1.3"/>
+        <path d="M63 40 L70 34" stroke-width="0.9"/>
       </g>
-    }
+    </g>
+  }
 
-    @case ('partners') {
-      <!-- Plusieurs associés : le capital partagé en parts -->
-      <circle cx="72" cy="62" r="38" />
-      <path d="M72 62 v-38 M72 62 l33 19 M72 62 l-33 19" />
-      <path class="accent" d="M72 24 a38 38 0 0 1 33 57 l-33 -19 z" />
-    }
+  @case ('partners') {
+    <!-- Plusieurs associés : la calebasse de la tontine, où chacun apporte sa part -->
+    <g transform="translate(20 2)">
+      <path d="M26 36 C26 60 41 76 60 76 C79 76 94 60 94 36" stroke-width="2"/>
+      <ellipse cx="60" cy="36" rx="34" ry="8" stroke-width="2"/>
+      <path d="M29.5 50 Q60 60 90.5 50 M33 58 Q60 68 87 58"/>
+      <path d="M29 50 L36.9 59.3 L37.9 52.4 L44.6 61.4 L46.7 54.1 L52.3 62.6 L55.6 54.9 L60 63 L64.4 54.9 L67.7 62.6 L73.3 54.1 L75.4 61.4 L82.1 52.4 L83.1 59.3 L91 50"/>
+      <path d="M48 70.7h0.01 M60 72h0.01 M72 70.7h0.01" stroke-width="3"/>
+      <ellipse cx="60" cy="36" rx="30" ry="5.5" opacity=".5"/>
+      <g  transform="translate(46 30) rotate(-20)">
+        <path d="M0 -7 C5 -7 6.5 -3 6.5 0 C6.5 4 4 7 0 7 C-4 7 -6.5 4 -6.5 0 C-6.5 -3 -5 -7 0 -7Z"/>
+        <path d="M0 -5 C1 -2 -1 2 0 5 M-1.8 -2.5h1 M-1.8 0h1 M-1.8 2.5h1 M0.8 -2.5h1 M0.8 0h1 M0.8 2.5h1" stroke-width="1.1"/>
+      </g>
+      <g class="accent" transform="translate(58 27) rotate(5)">
+        <path d="M0 -7 C5 -7 6.5 -3 6.5 0 C6.5 4 4 7 0 7 C-4 7 -6.5 4 -6.5 0 C-6.5 -3 -5 -7 0 -7Z"/>
+        <path d="M0 -5 C1 -2 -1 2 0 5 M-1.8 -2.5h1 M-1.8 0h1 M-1.8 2.5h1 M0.8 -2.5h1 M0.8 0h1 M0.8 2.5h1" stroke-width="1.1"/>
+      </g>
+      <g  transform="translate(71 30) rotate(25)">
+        <path d="M0 -7 C5 -7 6.5 -3 6.5 0 C6.5 4 4 7 0 7 C-4 7 -6.5 4 -6.5 0 C-6.5 -3 -5 -7 0 -7Z"/>
+        <path d="M0 -5 C1 -2 -1 2 0 5 M-1.8 -2.5h1 M-1.8 0h1 M-1.8 2.5h1 M0.8 -2.5h1 M0.8 0h1 M0.8 2.5h1" stroke-width="1.1"/>
+      </g>
+    </g>
+    <g  transform="translate(26 110) scale(1.5)">
+      <path d="M-9 -8 C-4 -5 4 -5 9 -8" stroke-width="1.2"/>
+      <path d="M-6 -6 C-3 -2 -3 2 -6 5 M6 -6 C3 -2 3 2 6 5 M-2 -5 V5 M2 -5 V5" stroke-width="0.8"/>
+      <path d="M-8 5 H8" stroke-width="1.2"/>
+    </g>
+    <g  transform="translate(80 110) scale(1.5)">
+      <path d="M-9 -8 C-4 -5 4 -5 9 -8" stroke-width="1.2"/>
+      <path d="M-6 -6 C-3 -2 -3 2 -6 5 M6 -6 C3 -2 3 2 6 5 M-2 -5 V5 M2 -5 V5" stroke-width="0.8"/>
+      <path d="M-8 5 H8" stroke-width="1.2"/>
+    </g>
+    <g  transform="translate(134 110) scale(1.5)">
+      <path d="M-9 -8 C-4 -5 4 -5 9 -8" stroke-width="1.2"/>
+      <path d="M-6 -6 C-3 -2 -3 2 -6 5 M6 -6 C3 -2 3 2 6 5 M-2 -5 V5 M2 -5 V5" stroke-width="0.8"/>
+      <path d="M-8 5 H8" stroke-width="1.2"/>
+    </g>
+    <path d="M8 118 H152" opacity=".35"/>
+  }
 
-    @case ('startup') {
-      <!-- Croissance et investisseurs : une fusée au décollage -->
-      <path d="M80 14 c16 12 22 32 18 58 h-36 c-4 -26 2 -46 18 -58 z" />
-      <circle cx="80" cy="44" r="7" class="accent" />
-      <path d="M62 58 l-14 16 v10 l16 -6 M98 58 l14 16 v10 l-16 -6" />
-      <path class="accent" d="M72 78 c0 10 4 18 8 24 c4 -6 8 -14 8 -24" />
-    }
+  @case ('startup') {
+    <!-- Croissance et investisseurs : la pirogue, qui prend le large avec son équipage -->
+    <g transform="translate(5 5) scale(1.25)" stroke-width="1.2">
+      <path d="M8 38 C12 44 16 50 24 56 C40 66 82 66 98 56 C104 52 108 44 112 34" stroke-width="1.6"/>
+      <path d="M8 38 C18 46 40 50 60 50 C80 50 100 46 112 34" stroke-width="1.3"/>
+      <path d="M20 48 L26 55.4 L28.5 50.6 L35.1 57.6 L38.7 52.5 L45.3 59.1 L50 53.5 L56.2 59.7 L61.8 53.8 L67.3 59.6 L73.4 53.1 L78 58.5 L84.4 51.7 L87.8 56.6 L94.1 49.3 L96.4 53.8 L102 46" stroke-width="0.9" opacity=".75"/>
+      <path d="M44 50 L36 28 M36 28 L33 22 C32 20 34 19 35 21 L38 27" stroke-width="1.3"/>
+      <g class="accent">
+        <path d="M112 34 L116 26 L110 30 Z" stroke-width="1.4"/>
+        <path d="M104 44 L107 40 L110 44 L107 48 Z" stroke-width="1.3"/>
+      </g>
+      <path d="M14 72 C20 68 26 68 32 72 S44 76 50 72 S62 68 68 72 S80 76 86 72 S98 68 104 72" opacity=".5"/>
+      <path d="M30 80 C36 77 42 77 48 80 S60 83 66 80 S78 77 84 80" opacity=".3"/>
+    </g>
+  }
 
-    @case ('corporate') {
-      <!-- Grande entreprise : une institution, un conseil, des comptes contrôlés -->
-      <path class="accent" d="M28 44 L80 18 L132 44 z" />
-      <path d="M32 50 h96" />
-      <path d="M44 56 v36 M64 56 v36 M80 56 v36 M96 56 v36 M116 56 v36" />
-      <path d="M28 98 h104 M22 106 h116" />
-    }
+  @case ('corporate') {
+    <!-- Grande entreprise : la façade en banco, une institution bâtie pour durer -->
+    <g transform="translate(5 5) scale(1.25)" stroke-width="1.2">
+      <path d="M12 80 H108" opacity=".4"/>
+      <path d="M20 80 V22 M36 80 V22 M84 80 V22 M100 80 V22" stroke-width="1.3"/>
+      <path d="M20 22 C20 14 28 10 28 4 C28 10 36 14 36 22 M84 22 C84 14 92 10 92 4 C92 10 100 14 100 22" stroke-width="1.4"/>
+      <path d="M52 22 C52 16 56 14 60 8 C64 14 68 16 68 22" stroke-width="1.4"/>
+      <path d="M20 22 H100 V80 H20Z" stroke-width="1.6"/>
+      <path d="M26 26 h8 M42 26 h8 M70 26 h8 M86 26 h8 M26 44 h8 M42 44 h8 M70 44 h8 M86 44 h8 M26 62 h8 M42 62 h8 M70 62 h8 M86 62 h8" stroke-width="1.8"/>
+      <path d="M42 32 L46 36 L50 32 M70 32 L74 36 L78 32" stroke-width="0.8" opacity=".6"/>
+      <g class="accent">
+        <path d="M52 80 V58 C52 52 56 50 60 50 C64 50 68 52 68 58 V80" stroke-width="1.6"/>
+        <path d="M60 50 V44" stroke-width="1.1"/>
+      </g>
+    </g>
+  }
   }
 </svg>

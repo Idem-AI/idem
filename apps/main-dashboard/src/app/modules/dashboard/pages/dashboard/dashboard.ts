@@ -11,6 +11,7 @@ import { MODE_HOME_ROUTE, UiModeService } from '../../../../shared/services/ui-m
 import { TourService } from '../../../../shared/services/tour.service';
 import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { ModuleEmblemComponent } from '../../../../shared/components/module-emblem/module-emblem';
 
 @Component({
   selector: 'app-dashboard',
@@ -20,7 +21,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
     DatePipe,
     TranslateModule,
     IncompleteProjectBannerComponent,
-    LogoSrcPipe, IdemLoaderComponent],
+    LogoSrcPipe, IdemLoaderComponent, ModuleEmblemComponent],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

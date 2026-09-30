@@ -185,7 +185,7 @@ export class MongooseRepository<
         queryId = new mongoose.Types.ObjectId(id);
       }
 
-      // Use native MongoDB collection to support string _id (Firebase UIDs)
+      // Use native MongoDB collection to support string _id (IDEM uids)
       // Try both ObjectId and string just in case
       let doc = await mongoose.connection
         .collection(collectionName)
@@ -298,7 +298,7 @@ export class MongooseRepository<
         }
       }
 
-      // Use native MongoDB collection to support string _id (Firebase UIDs)
+      // Use native MongoDB collection to support string _id (IDEM uids)
       const query = { _id: queryId, ...nestedFilter };
 
       let result = await mongoose.connection

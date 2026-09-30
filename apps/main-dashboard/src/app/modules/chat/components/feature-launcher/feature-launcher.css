@@ -109,6 +109,7 @@
 
 .feature-card:hover:not(.is-locked) .fc-icon-svg {
   transform: scale(1.05);
+  color: var(--color-text-secondary);
 }
 
 /* Repli icône (livrables sans illustration SVG dédiée) */
@@ -132,73 +133,6 @@
 
 .feature-card:hover:not(.is-locked) .fc-icon-fallback i {
   color: color-mix(in srgb, var(--color-text-primary) 70%, transparent);
-}
-
-/* SVG element colors */
-.svg-bg {
-  fill: color-mix(in srgb, var(--color-text-primary) 1.5%, transparent);
-  stroke: color-mix(in srgb, var(--color-text-primary) 3.5%, transparent);
-  stroke-width: 1px;
-  transition: fill 0.3s ease, stroke 0.3s ease;
-}
-
-.feature-card:hover:not(.is-locked) .svg-bg {
-  fill: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
-  stroke: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
-}
-
-.svg-stroke-primary {
-  stroke: color-mix(in srgb, var(--color-text-primary) 50%, transparent);
-  transition: stroke 0.3s ease;
-}
-
-.feature-card:hover:not(.is-locked) .svg-stroke-primary {
-  stroke: var(--color-text-primary);
-}
-
-.svg-stroke-accent {
-  stroke: color-mix(in srgb, var(--color-text-primary) 20%, transparent);
-  transition: stroke 0.3s ease;
-}
-
-.feature-card:hover:not(.is-locked) .svg-stroke-accent {
-  stroke: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
-}
-
-.svg-stroke-dim {
-  stroke: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
-  transition: stroke 0.3s ease;
-}
-
-.feature-card:hover:not(.is-locked) .svg-stroke-dim {
-  stroke: color-mix(in srgb, var(--color-text-primary) 22%, transparent);
-}
-
-.svg-fill-primary {
-  fill: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
-  transition: fill 0.3s ease;
-}
-
-.feature-card:hover:not(.is-locked) .svg-fill-primary {
-  fill: var(--color-text-primary);
-}
-
-.svg-fill-accent {
-  fill: color-mix(in srgb, var(--color-text-primary) 15%, transparent);
-  transition: fill 0.3s ease;
-}
-
-.feature-card:hover:not(.is-locked) .svg-fill-accent {
-  fill: color-mix(in srgb, var(--color-text-primary) 45%, transparent);
-}
-
-.svg-fill-dim {
-  fill: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  transition: fill 0.3s ease;
-}
-
-.feature-card:hover:not(.is-locked) .svg-fill-dim {
-  fill: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
 }
 
 .feature-card.is-locked .fc-icon-svg {

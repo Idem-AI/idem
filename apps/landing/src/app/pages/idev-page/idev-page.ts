@@ -1,7 +1,6 @@
-import { Component, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { SeoService } from '../../shared/services/seo.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -11,9 +10,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './idev-page.html',
   styleUrl: './idev-page.css',
 })
-export class IdevPage implements OnInit {
-  protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
-  private readonly seoService = inject(SeoService);
+export class IdevPage {
 
   protected readonly idevUrl = environment.services.idev.url;
   protected readonly ideployUrl = environment.services.ideploy.url;
@@ -70,60 +67,5 @@ export class IdevPage implements OnInit {
     },
   ];
 
-  ngOnInit(): void {
-    this.setupSeo();
-    this.addStructuredData();
-  }
 
-  private setupSeo(): void {
-    this.seoService.setupPageSeo({
-      title: $localize`:@@idev.seo.title:iCode — AI App Generator & Code Builder by Idem`,
-      description: $localize`:@@idev.seo.description:Transformer votre idée en application SaaS ou mobile avec iCode. Le générateur d'applications intelligent de l'écosystème Idem. Code React/Next.js propre, souveraineté numérique et déploiement instantané.`,
-      path: '/idev',
-      keywords: 'generateur de code IA, AI app generator, build SaaS with AI, code generation, React builder, Next.js generator, software development automation, Idem, iCode, African tech innovation, AI startup tools',
-      ogImage: `${this.seoService.domain}/assets/seo/og-image.webp`,
-    });
-  }
-
-  private addStructuredData(): void {
-    if (!this.isBrowser()) return;
-    if (document.querySelector('script[data-idev-structured-data]')) return;
-
-    const structuredData = {
-      '@context': 'https://schema.org',
-      '@type': 'SoftwareApplication',
-      name: 'iCode',
-      alternateName: 'iCode by Idem',
-      description: 'AI-powered application generator. Transform your idea into a fully functional web application with full-stack code generation, real-time preview, and AI-driven iteration.',
-      url: `${this.seoService.domain}/idev`,
-      applicationCategory: 'DeveloperApplication',
-      operatingSystem: 'Web Browser',
-      softwareVersion: '1.0',
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-        availability: 'https://schema.org/InStock',
-      },
-      author: {
-        '@type': 'Organization',
-        name: 'Idem',
-        url: this.seoService.domain,
-      },
-      featureList: [
-        'Full-stack code generation',
-        'Real-time AI preview',
-        'React & Next.js support',
-        'AI-driven iteration',
-        'Source code export',
-        'iDeploy integration',
-      ],
-    };
-
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.setAttribute('data-idev-structured-data', 'true');
-    script.textContent = JSON.stringify(structuredData);
-    document.head.appendChild(script);
-  }
 }

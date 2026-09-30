@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 4 92 84" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- iCode — bâtir l'application : le métier à tisser, où le code se
+       construit fil à fil. La navette porte la couleur. -->
+  <path d="M26 10 V82 M94 10 V82 M22 12 H98" stroke-width="2"/>
+  <path d="M60 12 V18 M52 18 H68"/>
+  <path d="M44 30 H76 M44 36 H76" stroke-width="1.8"/>
+  <path d="M46 20 V80 M50 20 V80 M54 20 V80 M58 20 V80 M62 20 V80 M66 20 V80 M70 20 V80 M74 20 V80" stroke-width=".9" opacity=".65"/>
+  <rect x="43" y="58" width="34" height="22" rx="1" stroke-width="1.6"/>
+  <path d="M44.0 60 h3.2 v3.4 h-3.2z M53.2 60 h3.2 v3.4 h-3.2z M62.4 60 h3.2 v3.4 h-3.2z M71.6 60 h3.2 v3.4 h-3.2z M48.6 65 h3.2 v3.4 h-3.2z M57.8 65 h3.2 v3.4 h-3.2z M67.0 65 h3.2 v3.4 h-3.2z M44.0 70 h3.2 v3.4 h-3.2z M53.2 70 h3.2 v3.4 h-3.2z M62.4 70 h3.2 v3.4 h-3.2z M71.6 70 h3.2 v3.4 h-3.2z M48.6 75 h3.2 v3.4 h-3.2z M57.8 75 h3.2 v3.4 h-3.2z M67.0 75 h3.2 v3.4 h-3.2z" stroke-width="1" opacity=".8"/>
+  <path d="M40 82 H80" stroke-width="2"/>
+  <g style="color: var(--color-primary-500)">
+    <path d="M34 50 C44 46 76 46 86 50 C76 54 44 54 34 50Z" stroke-width="1.8"/>
+    <path d="M52 50 H68" stroke-width="2.4"/>
+  </g>
+</svg>

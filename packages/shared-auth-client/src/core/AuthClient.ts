@@ -10,7 +10,11 @@ import {
 
 export interface AuthClientConfig {
   apiBaseUrl: string;
-  getAuthToken: () => Promise<string | null>;
+  /**
+   * Jeton Bearer facultatif. Sans lui, l'identité voyage par le cookie
+   * `session` httpOnly posé par l'API IDEM sur le domaine partagé.
+   */
+  getAuthToken?: () => Promise<string | null>;
 }
 
 export class AuthClient {
@@ -24,7 +28,7 @@ export class AuthClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<{ success: boolean; data?: T; error?: any }> {
-    const token = await this.config.getAuthToken();
+    const token = (await this.config.getAuthToken?.()) ?? null;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -38,6 +42,8 @@ export class AuthClient {
     const response = await fetch(`${this.config.apiBaseUrl}${endpoint}`, {
       ...options,
       headers,
+      // Le cookie `session` accompagne la requête vers l'API (autre sous-domaine).
+      credentials: 'include',
     });
 
     return response.json();

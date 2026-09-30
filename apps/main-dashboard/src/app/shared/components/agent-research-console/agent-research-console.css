@@ -41,7 +41,7 @@
 .rc__art {
   width: min(13rem, 55%);
   height: auto;
-  color: var(--color-text-primary);
+  color: var(--color-text-tertiary);
 }
 
 .rc__title {
@@ -319,6 +319,7 @@
 
 .rc__orbit {
   transform-origin: 100px 60px;
+  transform-box: view-box;
   animation: rc-spin 9s linear infinite;
 }
 

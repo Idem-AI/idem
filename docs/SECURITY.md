@@ -10,10 +10,11 @@ The repository is **public** and the platform runs code, deploys servers and tak
 
 ## Identity and sessions
 
-- Identity comes only from a verified credential: the Firebase ID token at sign-in, then the API's `session` cookie. Never trust a user id, e-mail or role sent in a request body or header.
+- Identity comes only from a verified credential: the Supabase access token at sign-in (signature checked with the shared secret), then the API's `session` cookie. Never trust a user id, e-mail or role sent in a request body or header.
 - Session and refresh cookies are `httpOnly`, `Secure` in production, `SameSite=Lax`, scoped to `.idem.africa`. Tokens are never returned in response bodies.
-- Refresh tokens are stored hashed. Signing out revokes the refresh token.
-- Administrator rights (`ADMIN_EMAILS`) require a Firebase-verified e-mail address. Internal routes (`/billing/internal/*`) require `INTERNAL_API_KEY`, compared in constant time.
+- Refresh tokens are stored hashed. Signing out revokes the refresh token; « sign out everywhere » also rejects every session and access token issued before it.
+- An existing account is linked to a new sign-in only through the import script or an e-mail address confirmed by the auth server: signing up with someone else's address never grants their account.
+- Administrator rights (`ADMIN_EMAILS`) require an e-mail address verified by the auth server. Internal routes (`/billing/internal/*`) require `INTERNAL_API_KEY`, compared in constant time.
 - OAuth flows sign their `state` and must finish in the session that started them.
 
 ## Authorization

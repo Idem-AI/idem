@@ -1,153 +1,122 @@
 @switch (mode()) {
   @case ('guided') {
-    <!-- Mode Assisté : un chemin balisé, une étape faite, une en cours, une verrouillée -->
+    <!-- Mode Assisté : l'échelle dogon, entaillée marche après marche, qui
+         mène au grenier. On monte une étape à la fois ; la marche en cours
+         porte la couleur. -->
     <svg
       viewBox="0 0 320 200"
       fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       class="w-full h-full mode-illu"
-      role="img"
       aria-hidden="true"
+      focusable="false"
     >
-      <rect x="0.5" y="0.5" width="319" height="199" rx="16" class="illu-frame" />
-
-      <!-- Chemin vertical reliant les étapes -->
-      <path d="M56 56 L56 100" class="illu-path-done" stroke-width="2.5" stroke-linecap="round" />
-      <path
-        d="M56 100 L56 144"
-        class="illu-path-todo"
-        stroke-width="2.5"
-        stroke-linecap="round"
-        stroke-dasharray="5 7"
-      />
-
-      <!-- Étape 1 : terminée -->
-      <circle cx="56" cy="56" r="15" class="illu-fill-primary" />
-      <path
-        d="M50 56 l4.5 4.5 L63 52"
-        class="illu-stroke-inverse"
-        stroke-width="2.6"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-      <rect x="86" y="47" width="104" height="8" rx="4" class="illu-bar-strong" />
-      <rect x="86" y="62" width="66" height="6" rx="3" class="illu-bar-soft" />
-
-      <!-- Étape 2 : en cours (anneau + halo) -->
-      <circle cx="56" cy="100" r="22" class="illu-halo" />
-      <circle cx="56" cy="100" r="15" class="illu-ring-primary" stroke-width="2.5" />
-      <circle cx="56" cy="100" r="5.5" class="illu-fill-primary" />
-      <rect x="86" y="91" width="126" height="8" rx="4" class="illu-bar-strong" />
-      <rect x="86" y="106" width="88" height="6" rx="3" class="illu-bar-soft" />
-
-      <!-- Étape 3 : verrouillée -->
-      <circle
-        cx="56"
-        cy="144"
-        r="15"
-        class="illu-ring-muted"
-        stroke-width="2"
-        stroke-dasharray="4 5"
-      />
-      <rect x="50" y="141" width="12" height="9" rx="2" class="illu-fill-muted" />
-      <path d="M52.5 141 v-3 a3.5 3.5 0 0 1 7 0 v3" class="illu-stroke-muted" stroke-width="1.8" />
-      <rect x="86" y="136" width="86" height="8" rx="4" class="illu-bar-faint" />
-      <rect x="86" y="151" width="54" height="6" rx="3" class="illu-bar-faint" />
+      <g transform="translate(96 18) scale(2)" stroke-width="0.8">
+        <path d="M42 40 L44 74 H76 L78 40" stroke-width="1"/>
+        <path d="M46 74 V80 M56 74 V80 M64 74 V80 M74 74 V80 M40 80 H80" opacity=".8"/>
+        <path d="M36 42 C44 34 52 18 60 8 C68 18 76 34 84 42 C76 45 44 45 36 42Z" stroke-width="1"/>
+        <path d="M60 8 V43 M50 22 L46 42 M70 22 L74 42 M55 15 L52 43 M65 15 L68 43" stroke-width="0.5" opacity=".6"/>
+        <path d="M58 6 L60 2 L62 6" stroke-width="0.7"/>
+        <path d="M46 62 L50 66 L54 62 L58 66 L62 62 L66 66 L70 62 L74 66" stroke-width="0.6" opacity=".7"/>
+        <rect x="54" y="48" width="12" height="11" rx="1"/>
+      </g>
+      <g transform="translate(30 16) scale(2)" stroke-width="0.8">
+        <path d="M36 82 H84" opacity=".4"/>
+        <path d="M42 82 C46 60 54 30 58 16 M56 82 C58 60 64 30 68 16" stroke-width="1"/>
+        <path d="M58 16 C56 10 52 6 48 4 M68 16 C70 10 74 6 78 4 M58 16 H68" stroke-width="1"/>
+        <path d="M44 76 L56 76 L54 71" stroke-width="0.7"/>
+        <path d="M47.2 65 L59.2 65 L57.2 60" stroke-width="0.7"/>
+        <g style="color: var(--color-primary-500)">
+          <path d="M50.4 54 L62.4 54 L60.4 49" stroke-width="0.9"/>
+        </g>
+        <path d="M53.6 43 L65.6 43 L63.6 38" stroke-width="0.7"/>
+        <path d="M56.8 32 L68.8 32 L66.8 27" stroke-width="0.7"/>
+        <path d="M60 21 L72 21 L70 16" stroke-width="0.7"/>
+      </g>
     </svg>
   }
 
   @case ('chat') {
-    <!-- Mode Chat : un échange, une réponse en cours de rédaction -->
+    <!-- Mode Chat : le tambour parleur, qui converse à distance. Ses ondes
+         battent doucement, comme une réponse en train de venir. -->
     <svg
       viewBox="0 0 320 200"
       fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       class="w-full h-full mode-illu"
-      role="img"
       aria-hidden="true"
+      focusable="false"
     >
-      <rect x="0.5" y="0.5" width="319" height="199" rx="16" class="illu-frame" />
-
-      <!-- Bulle utilisateur (à droite) -->
-      <path
-        d="M148 36 h128 a12 12 0 0 1 12 12 v28 a12 12 0 0 1 -12 12 h-116 l-16 12 v-12 a12 12 0 0 1 -8 -12 v-28 a12 12 0 0 1 12 -12 z"
-        class="illu-fill-primary"
-      />
-      <rect x="164" y="52" width="96" height="7" rx="3.5" class="illu-bar-inverse" />
-      <rect x="164" y="65" width="62" height="7" rx="3.5" class="illu-bar-inverse-soft" />
-
-      <!-- Bulle assistant (à gauche) -->
-      <path
-        d="M44 104 h132 a12 12 0 0 1 12 12 v30 a12 12 0 0 1 -12 12 h-120 l-14 12 v-12 a12 12 0 0 1 -10 -12 v-30 a12 12 0 0 1 12 -12 z"
-        class="illu-fill-surface"
-      />
-      <rect x="58" y="120" width="104" height="7" rx="3.5" class="illu-bar-strong" />
-      <rect x="58" y="133" width="76" height="7" rx="3.5" class="illu-bar-soft" />
-
-      <!-- Indicateur de saisie -->
-      <circle cx="62" cy="152" r="3.5" class="illu-fill-primary illu-dot-1" />
-      <circle cx="74" cy="152" r="3.5" class="illu-fill-primary illu-dot-2" />
-      <circle cx="86" cy="152" r="3.5" class="illu-fill-primary illu-dot-3" />
-
-      <!-- Étincelle IA -->
-      <path
-        d="M262 118 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4 l10 -4 z"
-        class="illu-fill-primary illu-spark"
-      />
+      <g transform="translate(34 7.6) scale(2.1)" stroke-width="0.7">
+        <ellipse cx="60" cy="20" rx="16" ry="4.5" stroke-width="1"/>
+        <ellipse cx="60" cy="68" rx="16" ry="4.5" stroke-width="1"/>
+        <path d="M44 20 C51 34 51 54 44 68 M76 20 C69 34 69 54 76 68"/>
+        <path d="M46 22.7 L46 66.7 M49.5 24 L49.5 68 M53 25 L53 69 M56.5 25.5 L56.5 69.5 M60 25.5 L60 69.5 M63.5 25 L63.5 69 M67 24 L67 68 M70.5 22.7 L70.5 66.7" stroke-width="0.5" opacity=".6"/>
+        <path d="M44 44 H76" stroke-width="0.6" opacity=".6"/>
+        <path d="M50 34 L54 38 L50 42 M70 34 L66 38 L70 42 M50 46 L54 50 L50 54 M70 46 L66 50 L70 54" stroke-width="0.6" opacity=".75"/>
+        <path d="M78 76 C88 70 94 62 96 52" stroke-width="1"/>
+        <g class="mode-illu__beat" style="color: var(--color-primary-500)" stroke-width="0.9">
+          <path d="M88 22 C92 26 92 32 88 36"/>
+          <path d="M94 16 C101 23 101 35 94 42"/>
+          <path d="M32 22 C28 26 28 32 32 36"/>
+          <path d="M26 16 C19 23 19 35 26 42"/>
+        </g>
+      </g>
     </svg>
   }
 
   @default {
-    <!-- Mode Avancé : le tableau de bord complet, tout est accessible -->
+    <!-- Mode Avancé : le plateau d'awalé, tout le jeu à découvert. Chaque
+         case est à portée de main ; on sème où l'on veut. -->
     <svg
       viewBox="0 0 320 200"
       fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       class="w-full h-full mode-illu"
-      role="img"
       aria-hidden="true"
+      focusable="false"
     >
-      <rect x="0.5" y="0.5" width="319" height="199" rx="16" class="illu-frame" />
-
-      <!-- Barre supérieure -->
-      <path d="M0 40 h320" class="illu-stroke-muted" stroke-width="1.5" />
-      <circle cx="24" cy="20" r="4" class="illu-fill-primary" />
-      <rect x="36" y="16" width="52" height="8" rx="4" class="illu-bar-strong" />
-      <rect x="252" y="14" width="48" height="12" rx="6" class="illu-bar-faint" />
-
-      <!-- Rail latéral -->
-      <path d="M76 40 v160" class="illu-stroke-muted" stroke-width="1.5" />
-      <rect x="16" y="56" width="44" height="8" rx="4" class="illu-bar-strong" />
-      <rect x="16" y="76" width="36" height="7" rx="3.5" class="illu-bar-soft" />
-      <rect x="16" y="94" width="44" height="7" rx="3.5" class="illu-bar-soft" />
-      <rect x="16" y="112" width="30" height="7" rx="3.5" class="illu-bar-soft" />
-      <rect x="16" y="130" width="40" height="7" rx="3.5" class="illu-bar-soft" />
-
-      <!-- Cartes de contenu -->
-      <rect x="92" y="56" width="94" height="58" rx="10" class="illu-fill-surface" />
-      <rect x="104" y="68" width="44" height="6" rx="3" class="illu-bar-soft" />
-      <rect x="104" y="94" width="14" height="10" rx="2" class="illu-fill-primary" />
-      <rect x="122" y="86" width="14" height="18" rx="2" class="illu-fill-primary" />
-      <rect x="140" y="78" width="14" height="26" rx="2" class="illu-fill-primary" />
-      <rect x="158" y="90" width="14" height="14" rx="2" class="illu-fill-primary" />
-
-      <rect x="198" y="56" width="106" height="58" rx="10" class="illu-fill-surface" />
-      <rect x="210" y="68" width="52" height="6" rx="3" class="illu-bar-soft" />
-      <path
-        d="M210 100 L228 88 L246 94 L264 76 L292 84"
-        class="illu-ring-primary"
-        stroke-width="2.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-
-      <rect x="92" y="126" width="212" height="26" rx="8" class="illu-fill-surface" />
-      <rect x="104" y="135" width="76" height="8" rx="4" class="illu-bar-soft" />
-      <rect x="266" y="133" width="26" height="12" rx="6" class="illu-fill-primary" />
-
-      <rect x="92" y="162" width="212" height="26" rx="8" class="illu-fill-surface" />
-      <rect x="104" y="171" width="98" height="8" rx="4" class="illu-bar-soft" />
-      <rect x="266" y="169" width="26" height="12" rx="6" class="illu-bar-faint" />
+      <g transform="translate(10 -12) scale(2.5)" stroke-width="0.6">
+        <path d="M16 34 C16 28 20 26 26 26 H94 C100 26 104 28 104 34 V54 C104 60 100 62 94 62 H26 C20 62 16 60 16 54Z" stroke-width="0.8"/>
+        <path d="M22 66 L26 62 M98 66 L94 62 M22 66 H98" opacity=".7"/>
+        <ellipse cx="30" cy="36" rx="4.8" ry="3.6"/>
+        <path d="M28.4 35.4h0.01 M31.6 36.6h0.01 M31.4 35h0.01" stroke-width="1"/>
+        <ellipse cx="42" cy="36" rx="4.8" ry="3.6"/>
+        <path d="M40.4 35.4h0.01 M43.6 36.6h0.01 M43.4 35h0.01 M40.8 37h0.01" stroke-width="1"/>
+        <ellipse cx="54" cy="36" rx="4.8" ry="3.6"/>
+        <path d="M52.4 35.4h0.01 M55.6 36.6h0.01" stroke-width="1"/>
+        <ellipse cx="66" cy="36" rx="4.8" ry="3.6"/>
+        <path d="M64.4 35.4h0.01 M67.6 36.6h0.01 M67.4 35h0.01 M64.8 37h0.01" stroke-width="1"/>
+        <ellipse cx="78" cy="36" rx="4.8" ry="3.6"/>
+        <path d="M76.4 35.4h0.01" stroke-width="1"/>
+        <ellipse cx="90" cy="36" rx="4.8" ry="3.6"/>
+        <path d="M88.4 35.4h0.01 M91.6 36.6h0.01 M91.4 35h0.01" stroke-width="1"/>
+        <ellipse cx="30" cy="52" rx="4.8" ry="3.6"/>
+        <path d="M28.4 51.4h0.01 M31.6 52.6h0.01 M31.4 51h0.01 M28.8 53h0.01" stroke-width="1"/>
+        <ellipse cx="42" cy="52" rx="4.8" ry="3.6"/>
+        <path d="M40.4 51.4h0.01 M43.6 52.6h0.01" stroke-width="1"/>
+        <ellipse cx="54" cy="52" rx="4.8" ry="3.6"/>
+        <path d="M52.4 51.4h0.01 M55.6 52.6h0.01 M55.4 51h0.01" stroke-width="1"/>
+        <ellipse cx="66" cy="52" rx="4.8" ry="3.6"/>
+        <ellipse cx="78" cy="52" rx="4.8" ry="3.6"/>
+        <path d="M76.4 51.4h0.01 M79.6 52.6h0.01 M79.4 51h0.01 M76.8 53h0.01" stroke-width="1"/>
+        <ellipse cx="90" cy="52" rx="4.8" ry="3.6"/>
+        <path d="M88.4 51.4h0.01 M91.6 52.6h0.01" stroke-width="1"/>
+        <g style="color: var(--color-primary-500)">
+          <path d="M42 30 C50 20 64 20 70 30" stroke-width="0.6" stroke-dasharray="2 3"/>
+          <path d="M66.5 27.5 L70 30.5 L71 26" stroke-width="0.6"/>
+          <ellipse cx="42" cy="36" rx="4.8" ry="3.6" stroke-width="0.8"/>
+        </g>
+      </g>
     </svg>
   }
 }

@@ -22,7 +22,7 @@ import { SECRET_MANIFEST } from './secrets.manifest';
  * Configuration indispensable qui N'EST PAS un secret : elle vient du `.env`
  * (ou de l'environnement du conteneur), jamais du Secret Manager.
  */
-const REQUIRED_CONFIG = ['FIREBASE_PROJECT_ID'] as const;
+const REQUIRED_CONFIG = ['GCP_PROJECT_ID', 'SUPABASE_AUTH_URL'] as const;
 
 let loaded = false;
 
@@ -114,8 +114,8 @@ function validateRequired(): void {
 }
 
 function normalize(): void {
-  // Firebase private key stored as a single line with \n escapes -> real newlines.
-  if (process.env.FIREBASE_PRIVATE_KEY) {
-    process.env.FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+  // Service account private key stored as a single line with \n escapes -> real newlines.
+  if (process.env.GCP_SA_PRIVATE_KEY) {
+    process.env.GCP_SA_PRIVATE_KEY = process.env.GCP_SA_PRIVATE_KEY.replace(/\\n/g, '\n');
   }
 }
