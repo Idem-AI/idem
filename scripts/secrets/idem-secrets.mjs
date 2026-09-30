@@ -66,6 +66,7 @@ const positional = argv.filter((a, i) => !a.startsWith('--') && !['--from', '--e
 const [command, ...args] = positional;
 const DRY_RUN = flags.has('--dry-run');
 const YES = flags.has('--yes');
+const did = (verb) => (DRY_RUN ? `${verb} (simulation)` : verb);
 const ENVIRONMENT = option('environment') || 'prod';
 
 // ── Infisical ────────────────────────────────────────────────────────────────
@@ -209,7 +210,7 @@ async function cmdPush(manifests) {
 
   for (const v of plan) {
     const existed = await writeValue(app, v, values[v], online);
-    console.log(`   ${existed ? 'maj  ' : 'créé '} ${v}`);
+    console.log(`   ${did(existed ? 'maj' : 'créé')} ${v}`);
   }
 }
 
@@ -230,7 +231,7 @@ async function cmdRotate(manifests) {
 
   const online = await listOnline(app);
   await writeValue(app, variable, value, online);
-  console.log(`${variable} : nouvelle valeur active (Infisical conserve l'historique des versions).`);
+  console.log(`${variable} : ${did('nouvelle valeur active')} (Infisical conserve l'historique des versions).`);
   console.log('Redémarrez l\'application concernée pour qu\'elle lise la nouvelle valeur.');
 }
 
@@ -250,7 +251,7 @@ async function cmdCopy(manifests) {
       continue;
     }
     await writeValue(toApp, v, value, online);
-    console.log(`   copié ${fromApp}.${v} → ${toApp}.${v}`);
+    console.log(`   ${did('copié')} ${fromApp}.${v} → ${toApp}.${v}`);
   }
 }
 
@@ -269,7 +270,7 @@ async function cmdPrune(manifests) {
     if (!(await confirm(`Supprimer ces secrets du projet ${app} ? Irréversible.`))) continue;
     for (const v of unused) {
       await deleteValue(app, v);
-      console.log(`   supprimé ${v}`);
+      console.log(`   ${did('supprimé')} ${v}`);
     }
   }
 }
