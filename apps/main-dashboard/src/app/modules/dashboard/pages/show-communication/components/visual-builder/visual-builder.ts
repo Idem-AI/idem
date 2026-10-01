@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
+  ElementRef,
   inject,
   input,
   output,
@@ -11,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { FlyerFormat } from '../../../../models/communication.model';
 import { formatAspect } from '../../communication-ui';
+import { injectCompactViewport } from '../../compact-viewport';
 
 /** Ce qu'on veut dire — la question qu'on pose en premier, à l'oral. */
 const KINDS = [
@@ -60,6 +63,8 @@ const PLACES: { format: FlyerFormat; icons: string[] }[] = [
 })
 export class VisualBuilder {
   private readonly translate = inject(TranslateService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly isCompact = injectCompactViewport();
 
   /** Vrai pendant qu'un visuel se fabrique : on ne relance pas un second achat. */
   readonly busy = input(false);
@@ -78,6 +83,22 @@ export class VisualBuilder {
   protected readonly details = signal('');
   protected readonly format = signal<FlyerFormat>('square');
   protected readonly variants = signal(false);
+
+  constructor() {
+    // Au téléphone, on choisit souvent une carte tout en bas de la liste : la
+    // question suivante commencerait alors hors de l'écran. On y remonte.
+    let first = true;
+    effect(() => {
+      this.step();
+      if (first) {
+        first = false;
+        return;
+      }
+      if (this.isCompact()) {
+        this.host.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
 
   protected readonly canAdvance = computed(() => {
     switch (this.step()) {

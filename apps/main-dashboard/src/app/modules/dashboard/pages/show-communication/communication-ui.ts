@@ -231,6 +231,24 @@ export function presetRange(preset: PeriodPreset): { start: string; end: string 
   }
 }
 
+/**
+ * Jour d'une publication écrit en clair : « lun. 12 oct. ».
+ *
+ * La date ISO brute (« 2026-10-12 ») s'affichait sur les cartes : lisible pour
+ * une machine, pas pour quelqu'un qui veut savoir QUAND publier.
+ */
+export function formatDay(iso: string | undefined, locale?: string): string {
+  if (!iso) return '';
+  const date = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString(locale, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+}
+
 /** Libellé lisible d'une période : « du 1 novembre au 30 novembre ». */
 export function formatRange(start: string, end: string, locale?: string): string {
   if (!start || !end) return '';

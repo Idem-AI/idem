@@ -83,7 +83,7 @@
 
   <div class="ch-grid">
     <!-- ═══════════════ Le parcours ═══════════════ -->
-    <section class="ch-journey" aria-labelledby="ch-journey-title">
+    <section class="ch-journey ch-order-journey" aria-labelledby="ch-journey-title">
       <h2 id="ch-journey-title" class="ch-section-title">
         {{ 'dashboard.showCommunication.home.journeyTitle' | translate }}
       </h2>
@@ -161,7 +161,7 @@
 
     <aside class="ch-side">
       <!-- ═══════════════ Un visuel, sans calendrier ═══════════════ -->
-      <section class="ch-quick glass-card" aria-labelledby="ch-quick-title">
+      <section class="ch-quick ch-order-quick glass-card" aria-labelledby="ch-quick-title">
         <i class="pi pi-bolt ch-quick-icon" aria-hidden="true"></i>
         <h2 id="ch-quick-title" class="ch-quick-title">
           {{ 'dashboard.showCommunication.home.quick.title' | translate }}
@@ -176,7 +176,11 @@
       </section>
 
       <!-- ═══════════════ À publier bientôt ═══════════════ -->
-      <section class="ch-card glass-card" aria-labelledby="ch-upcoming-title">
+      <section
+        class="ch-card ch-order-upcoming glass-card"
+        [class.ch-upcoming-empty]="upcoming().length === 0"
+        aria-labelledby="ch-upcoming-title"
+      >
         <h2 id="ch-upcoming-title" class="ch-section-title">
           {{ 'dashboard.showCommunication.home.upcoming.title' | translate }}
         </h2>
@@ -232,7 +236,7 @@
 
       <!-- ═══════════════ Derniers visuels ═══════════════ -->
       @if (recentVisuals().length > 0) {
-        <section class="ch-card glass-card" aria-labelledby="ch-recent-title">
+        <section class="ch-card ch-order-recent glass-card" aria-labelledby="ch-recent-title">
           <h2 id="ch-recent-title" class="ch-section-title">
             {{ 'dashboard.showCommunication.home.recent.title' | translate }}
           </h2>

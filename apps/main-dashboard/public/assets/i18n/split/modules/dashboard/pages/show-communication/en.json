@@ -144,7 +144,8 @@
           "fri": "Fri",
           "sat": "Sat",
           "sun": "Sun"
-        }
+        },
+        "briefToggle": "The idea behind this calendar"
       },
       "wizard": {
         "progress": "Progress",
@@ -340,7 +341,8 @@
         "publishNeedsSchedule": "Add this visual to a calendar first to be able to publish it.",
         "delete": "Delete this visual",
         "deleteAsk": "Delete this visual for good?",
-        "deleteConfirm": "Delete"
+        "deleteConfirm": "Delete",
+        "filters": "Filter"
       },
       "visual": {
         "download": "Download the image",
@@ -387,19 +389,23 @@
       "nav": {
         "home": {
           "label": "Home",
-          "hint": "Where I stand, what to do next"
+          "hint": "Where I stand, what to do next",
+          "short": "Home"
         },
         "studio": {
           "label": "Create a visual",
-          "hint": "An image in your colours, in 3 questions"
+          "hint": "An image in your colours, in 3 questions",
+          "short": "Create"
         },
         "plans": {
           "label": "My calendar",
-          "hint": "What to post, and on which day"
+          "hint": "What to post, and on which day",
+          "short": "Calendar"
         },
         "library": {
           "label": "My visuals",
-          "hint": "Everything you have already created"
+          "hint": "Everything you have already created",
+          "short": "Visuals"
         }
       },
       "home": {

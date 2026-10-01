@@ -18,8 +18,10 @@ import {
   ContentIdea,
   Flyer,
 } from '../../../../models/communication.model';
+import { injectCompactViewport } from '../../compact-viewport';
 import {
   channelIcon,
+  formatDay,
   formatRange,
   groupByWeek,
   planStatusPillClass,
@@ -107,6 +109,13 @@ export class PlanPanel {
   // ── Sélection et vues ────────────────────────────────────────────────────
   protected readonly selectedPlanId = signal<string | null>(null);
   protected readonly view = signal<'weeks' | 'month'>('weeks');
+  protected readonly isCompact = injectCompactViewport();
+
+  /**
+   * Vue affichée. Au téléphone, toujours la liste : la grille du mois demande
+   * 40rem de large et se lisait en faisant défiler de côté, case par case.
+   */
+  protected readonly shownView = computed(() => (this.isCompact() ? 'weeks' : this.view()));
   protected readonly showArchived = signal(false);
   protected readonly showWizard = signal(false);
   /** Publication ouverte en détail. */
@@ -234,6 +243,11 @@ export class PlanPanel {
   // ==========================================================================
   // Navigation
   // ==========================================================================
+
+  /** « lun. 12 oct. » plutôt que la date ISO. */
+  protected day(iso: string): string {
+    return formatDay(iso, this.translate.currentLang);
+  }
 
   protected selectPlan(planId: string): void {
     this.selectedPlanId.set(planId);

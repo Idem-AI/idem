@@ -196,3 +196,75 @@
   outline: 2px solid var(--color-danger);
   outline-offset: 2px;
 }
+
+/* ── Écrans tactiles : pas de survol ─────────────────────────────────────── */
+
+/* La corbeille n'apparaissait qu'au survol : au doigt, impossible de supprimer. */
+@media (hover: none) {
+  .lp-delete {
+    opacity: 1;
+  }
+
+  /* La corbeille occupe désormais le coin droit : le badge « Publié » passe à gauche. */
+  .lp-badge {
+    right: auto;
+    left: 0.4rem;
+  }
+}
+
+/* ── Filtres repliables ───────────────────────────────────────────────────── */
+
+/* Au-delà du téléphone, le titre du repli n'a pas lieu d'être : les filtres
+   sont toujours ouverts. */
+.lp-filters-summary {
+  display: none;
+}
+
+/* ── Téléphone ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /*
+   * Trois listes déroulantes empilées occupaient la moitié de l'écran avant le
+   * premier visuel. Repliées derrière « Filtrer », elles restent à un appui.
+   */
+  .lp-filters-summary {
+    display: flex;
+    min-height: 2.75rem;
+    cursor: pointer;
+    list-style: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+
+  .lp-filters-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .lp-filters[open] .lp-filters-summary {
+    margin-bottom: 0.5rem;
+  }
+
+  .lp-filters-body > div {
+    flex: 1 1 100%;
+  }
+
+  .lp-filters-body .lp-select {
+    width: 100%;
+  }
+
+  .lp-filters-count {
+    display: none;
+  }
+
+  .lp-card {
+    padding: 0.35rem;
+  }
+
+  .lp-title {
+    font-size: 0.8rem;
+  }
+}
