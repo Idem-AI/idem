@@ -314,7 +314,8 @@
       "admin": "Administration"
     },
     "profile": "My profile",
-    "display": "Display"
+    "display": "Display",
+    "replayTour": "Replay the tour"
   },
   "applications": {
     "open": "Open",
@@ -1684,5 +1685,89 @@
     "add": "Add my server",
     "cloud": "Create a cloud server",
     "comeBack": "You'll come back here afterwards to finish your deployment."
+  },
+  "tour": {
+    "common": {
+      "next": "Next",
+      "back": "Back",
+      "skip": "Skip",
+      "finish": "Let's go",
+      "stepOf": "Step {current} of {total}",
+      "dialogLabel": "iDeploy guided tour"
+    },
+    "main": {
+      "welcome": {
+        "title": "Welcome to iDeploy",
+        "body": "This is where your applications go from your computer to the internet. In one minute, here is where everything lives."
+      },
+      "addNew": {
+        "title": "Everything starts with “Add New”",
+        "body": "“New Application” puts your code, a Docker image or a ready-made app online. The same menu creates a workspace or connects a server."
+      },
+      "projects": {
+        "title": "Your applications",
+        "body": "Each one shows here with its live status and address. Click a card to manage it: redeploy, read its logs, set its domain."
+      },
+      "deploy": {
+        "title": "Deploy",
+        "body": "A workspace groups the parts of one application — a site, an API, a database — so they run together. Templates install WordPress, n8n or Plausible in one click."
+      },
+      "resources": {
+        "title": "Your resources",
+        "body": "Servers, applications, databases, services: everything running for you, sorted by type. No server yet? Connect your own or create one in the cloud from “Servers”."
+      },
+      "usage": {
+        "title": "What your plan allows",
+        "body": "The applications and servers in use, against your plan’s limit. “Upgrade” gives you more room when you need it."
+      },
+      "configuration": {
+        "title": "Account settings",
+        "body": "Settings, shared variables, notifications, SSH keys, access tokens and team: these apply to all your applications."
+      },
+      "menu": {
+        "title": "Your account",
+        "body": "Profile, language, theme — and “Replay the tour”, to take this tour again whenever you like."
+      },
+      "done": {
+        "title": "You are ready",
+        "body": "Next step: “Add New”, then “New Application”. A short tour also waits on each application’s page."
+      }
+    },
+    "new-project": {
+      "sources": {
+        "title": "Where does your application come from?",
+        "body": "Three paths: your code (GitHub, GitLab or a Git URL), a published Docker image, or a ready-made app. Pick one."
+      },
+      "panel": {
+        "title": "Fill in, then go live",
+        "body": "This panel follows your choice: your repositories, the image name, or the app catalog. On the ready-made side, guides help you assemble several pieces."
+      },
+      "done": {
+        "title": "Your turn",
+        "body": "No server yet? iDeploy will offer to connect or create one, then bring you back here to finish."
+      }
+    },
+    "application": {
+      "header": {
+        "title": "Your application",
+        "body": "Its name, live status and public address. “Redeploy” publishes the latest version; the “…” button restarts or stops it."
+      },
+      "tabs": {
+        "title": "Everything is set here",
+        "body": "Deployments and their logs, variables, storage, scheduled tasks, pipeline, security, resource use and settings (repository, domain): one tab per topic."
+      },
+      "checklist": {
+        "title": "Getting started",
+        "body": "What is left to set up. Each line takes you where it is done, and the list goes away once everything is."
+      },
+      "back": {
+        "title": "The left bar follows the application",
+        "body": "While you are here, it shows this application only. This arrow takes you back to the dashboard and your whole account."
+      },
+      "done": {
+        "title": "That’s it",
+        "body": "You can replay this tour anytime from your avatar menu."
+      }
+    }
   }
 }
