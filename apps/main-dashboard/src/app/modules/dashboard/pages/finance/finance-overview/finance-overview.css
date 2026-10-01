@@ -2,24 +2,154 @@
   display: block;
 }
 
-/* Modal centering styles - Force absolute centering on viewport */
+/* Les trois façons de commencer : des boutons, pour le clavier et le lecteur d'écran. */
+.fo-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fo-choice:hover,
+.fo-choice:focus-visible {
+  border-color: var(--color-primary-500);
+}
+
+.fo-choice:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.fo-choice app-finance-illustration {
+  transition: color 0.3s ease;
+}
+
+.fo-choice:hover app-finance-illustration,
+.fo-choice:focus-visible app-finance-illustration {
+  color: var(--color-text-secondary);
+}
+
+.fo-choice__title {
+  margin-top: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.fo-choice__body {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.fo-choice__cta {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-primary-500);
+}
+
+.fo-alerts {
+  border-left: 3px solid var(--color-warning);
+}
+
+/* Une ligne d'étape : toute la ligne est le lien. */
+.fo-step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  transition: background-color 150ms ease-out;
+}
+
+.fo-step:hover,
+.fo-step:focus-visible {
+  background: var(--glass-bg-subtle);
+}
+
+.fo-step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--glass-border-medium);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.fo-step__num--done {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: var(--color-on-primary);
+}
+
+.fo-status {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+}
+
+.fo-status--started {
+  color: var(--color-warning);
+}
+
+.fo-status--done {
+  color: var(--color-success);
+}
+
+@media (max-width: 480px) {
+  .fo-status {
+    display: none;
+  }
+}
+
+.fo-settings {
+  overflow: hidden;
+}
+
+.fo-settings__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fo-settings__summary::-webkit-details-marker {
+  display: none;
+}
+
+.fo-settings[open] .fo-settings__chevron {
+  transform: rotate(180deg);
+}
+
+/* Fenêtres PrimeNG du module : centrées sur la fenêtre, quelle que soit la page. */
 ::ng-deep .centered-modal .p-dialog-mask {
   position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
+  inset: 0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   z-index: 9999 !important;
-  background-color: rgba(0, 0, 0, 0.5) !important;
 }
 
 ::ng-deep .centered-modal .p-dialog {
   position: relative !important;
-  top: auto !important;
-  left: auto !important;
+  inset: auto !important;
   transform: none !important;
   margin: 0 !important;
   max-height: 90vh !important;

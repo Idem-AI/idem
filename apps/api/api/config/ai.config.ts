@@ -947,6 +947,19 @@ export const AI_CONFIG = {
       thinking: true,
       tokens: 48000,
     }),
+    // Import d'un fichier financier : recopier un document dans le schéma, pas
+    // prévoir. Température basse — deux lectures du même tableau doivent
+    // donner les mêmes chiffres — mais un modèle qui raisonne : rattacher
+    // « Loyer boutique Akwa » à la bonne catégorie et répartir un total annuel
+    // sont des décisions, pas de la copie.
+    import: feature({
+      role: 'reasoning',
+      promptType: 'finance',
+      sampling: 'precision',
+      temperature: 0.1,
+      thinking: true,
+      tokens: 32000,
+    }),
     // Détection d'intention : de la classification. Aucun raisonnement à payer,
     // et 1024 tokens redeviennent un budget de sortie plein plutôt qu'un budget
     // partagé avec la réflexion.

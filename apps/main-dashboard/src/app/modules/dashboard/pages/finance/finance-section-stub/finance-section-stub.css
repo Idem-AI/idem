@@ -2,262 +2,120 @@
   display: block;
 }
 
-/* ============================================================
-   Finance Section — Table & Form Styles
-   Uses existing glass design system variables.
-   ============================================================ */
-
-/* ----- Responsive scrollable table wrapper ----- */
-.finance-table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  border-radius: 16px;
-}
-
-/* ----- Glass table ----- */
-.finance-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 0.82rem;
-}
-
-.finance-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--glass-bg-dark);
-  color: var(--color-text-secondary);
-  font-weight: 600;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  padding: 0.65rem 0.75rem;
-  text-align: left;
-  white-space: nowrap;
-  border-bottom: 1px solid var(--glass-border);
-}
-
-.finance-table thead th:first-child {
-  border-top-left-radius: 12px;
-}
-.finance-table thead th:last-child {
-  border-top-right-radius: 12px;
-}
-
-.finance-table tbody td {
-  padding: 0.55rem 0.75rem;
-  border-bottom: 1px solid var(--glass-border-subtle);
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  transition: background 0.15s ease;
-}
-
-.finance-table tbody tr:hover td {
-  background: var(--glass-bg-subtle);
-}
-
-.finance-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.finance-table tbody tr:last-child td:first-child {
-  border-bottom-left-radius: 12px;
-}
-.finance-table tbody tr:last-child td:last-child {
-  border-bottom-right-radius: 12px;
-}
-
-/* Numeric columns right-align */
-.finance-table .col-num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Totals / summary row */
-.finance-table .row-total td {
-  font-weight: 700;
-  color: white;
-  border-top: 2px solid var(--glass-border-medium);
-  background: var(--glass-bg-subtle);
-}
-
-/* Positive / negative coloring */
-.val-positive { color: #34d399; }
-.val-negative { color: #f87171; }
-
-/* ----- Inline edit inputs in table cells ----- */
-.cell-input {
-  width: 100%;
-  max-width: 120px;
-  padding: 0.3rem 0.5rem;
+/* Libellé au-dessus d'un champ : la phrase de l'utilisateur, pas un sigle en capitales. */
+.fs-label {
+  display: block;
+  margin-bottom: 0.3rem;
   font-size: 0.8rem;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 6px;
-  color: white;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  color: var(--color-text-secondary);
 }
 
-.cell-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-glow-subtle);
-  outline: none;
-}
-
-/* ----- Action buttons inside tables ----- */
-.row-action {
-  display: inline-flex;
+.fs-alert {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--color-text-tertiary);
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--color-danger);
+  border-radius: 0.75rem;
+  background: var(--glass-bg-subtle);
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+/* Options avancées : repliées, elles ne gênent pas qui n'en a pas besoin. */
+.fs-advanced > summary {
+  padding: 1rem 1.25rem;
   cursor: pointer;
-  transition: all 0.15s ease;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
-.row-action:hover {
-  color: white;
-  background: var(--glass-bg-light);
-  border-color: var(--glass-border);
+.fs-metric {
+  padding: 1rem;
+  border-radius: 0.875rem;
+  background: var(--glass-bg-subtle);
 }
 
-.row-action.danger:hover {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.08);
-  border-color: rgba(248, 113, 113, 0.3);
-}
-
-/* ----- Section toolbar ----- */
-.section-toolbar {
+/* Barre d'enregistrement : toujours visible tant qu'il reste quelque chose à enregistrer. */
+.fs-savebar {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  z-index: 40;
+  transform: translateX(-50%);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  border-radius: 1rem;
+  box-shadow: var(--glass-shadow-lg);
 }
 
-/* ----- Param form grid ----- */
-.param-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-}
-
-.param-field label {
-  display: block;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  color: var(--color-text-tertiary);
-  margin-bottom: 0.35rem;
-  font-weight: 600;
-}
-
-.param-field input,
-.param-field select {
+/* ----- Tableaux calculés ----- */
+.ft {
   width: 100%;
-  padding: 0.55rem 0.75rem;
-  font-size: 0.85rem;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  color: white;
-  transition: border-color 0.2s ease;
+  border-collapse: collapse;
+  font-size: 0.875rem;
 }
 
-.param-field input:focus,
-.param-field select:focus {
-  border-color: var(--color-primary);
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-primary-glow-subtle);
+.ft th,
+.ft td {
+  padding: 0.6rem 0.25rem;
+  border-bottom: 1px solid var(--glass-border-subtle);
+  text-align: left;
+  font-weight: 400;
+  color: var(--color-text-secondary);
 }
 
-.param-field select {
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  padding-right: 2rem;
+.ft td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  white-space: nowrap;
 }
 
-/* ----- Computed badge ----- */
-.computed-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  padding: 0.25rem 0.65rem;
-  border-radius: 6px;
-  background: rgba(59, 130, 246, 0.12);
-  color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.25);
-}
-
-/* ----- Save bar ----- */
-.save-bar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 0.75rem 0;
-}
-
-/* ----- Monthly values horizontal scroll ----- */
-.monthly-scroll {
-  display: flex;
-  gap: 0.35rem;
-  overflow-x: auto;
-  padding-bottom: 0.25rem;
-}
-
-.monthly-scroll::-webkit-scrollbar {
-  height: 4px;
-}
-.monthly-scroll::-webkit-scrollbar-thumb {
-  background: var(--glass-border);
-  border-radius: 2px;
-}
-
-/* ----- Year tab pills for table view ----- */
-.year-tabs {
-  display: flex;
-  gap: 0.35rem;
-}
-
-.year-tab {
-  padding: 0.35rem 0.85rem;
+.ft thead th {
   font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: 8px;
-  border: 1px solid var(--glass-border);
-  background: transparent;
   color: var(--color-text-tertiary);
-  cursor: pointer;
-  transition: all 0.15s ease;
 }
 
-.year-tab:hover {
-  color: white;
-  border-color: var(--glass-border-medium);
+.ft-wide th,
+.ft-wide td {
+  padding-inline: 0.75rem;
 }
 
-.year-tab.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: white;
+.ft-wide thead th:not(:first-child) {
+  text-align: right;
 }
 
-/* Financing card grid */
-.financing-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
+.ft .ft-minus {
+  color: var(--color-text-secondary);
+}
+
+.ft-total th,
+.ft-total td {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.ft-grand th,
+.ft-grand td {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-text-primary);
+  border-bottom: none;
+  border-top: 2px solid var(--glass-border-medium);
+}
+
+.ft-caption {
+  caption-side: top;
+  text-align: left;
+  padding-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
 }

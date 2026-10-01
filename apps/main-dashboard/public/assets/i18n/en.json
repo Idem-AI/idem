@@ -167,7 +167,12 @@
       "empty": {
         "title": "Get started with AI",
         "description": "No financial data yet. Let the AI analyze your project and generate consistent forecasts, then adjust freely.",
-        "cta": "Generate with AI"
+        "cta": "Generate with AI",
+        "products": "No product yet",
+        "salesNoProduct": "First add what you sell.",
+        "goProducts": "Go to step 1",
+        "variable": "No sales-related costs yet",
+        "investments": "No start-up purchase yet"
       },
       "aiFill": {
         "button": "Fill with AI",
@@ -176,7 +181,7 @@
         "tooltip": "Suggest a value with AI"
       },
       "alerts": {
-        "title": "AI Insights"
+        "title": "Worth watching"
       },
       "kpi": {
         "caY1": "Revenue Y1",
@@ -243,8 +248,502 @@
       "bpMissingDialog": {
         "title": "Business Plan Required",
         "headline": "Generate Your Business Plan First",
-        "description": "The AI needs your Business Plan to generate consistent and personalized financial forecasts. Please generate your business plan before continuing.",
-        "generateCta": "Create My Business Plan"
+        "description": "To suggest consistent figures, the AI relies on your business plan. Create it first — or import the file where you already keep your figures.",
+        "generateCta": "Create My Business Plan",
+        "importInstead": "Import my file"
+      },
+      "home": {
+        "title": "Your finances",
+        "subtitle": "What you sell, what it costs, and what you keep — over three years. The tables for the bank are calculated for you.",
+        "actions": {
+          "import": "Import a file",
+          "ai": "Suggest with AI"
+        },
+        "imported": {
+          "title": "Your file has been imported",
+          "body": "Your figures are now in the steps below. Open each one to check and complete it."
+        },
+        "start": {
+          "title": "How would you like to start?",
+          "lead": "Pick whatever suits you. You can change everything afterwards.",
+          "import": {
+            "title": "I already have my figures",
+            "body": "Send your Excel, PDF or Word file. The AI reads it and puts your prices, costs and funding in the right place.",
+            "cta": "Import a file"
+          },
+          "ai": {
+            "title": "Let the AI suggest",
+            "body": "Using your business plan and real prices in your market, the AI prepares a first forecast that you then adjust.",
+            "cta": "Get a suggestion",
+            "preparing": "Preparing the research…"
+          },
+          "manual": {
+            "title": "I'll fill it in step by step",
+            "body": "Six short steps, with examples. No accounting knowledge needed.",
+            "cta": "Start step 1"
+          }
+        },
+        "brief": {
+          "title": "At a glance, for {{year}}",
+          "sales": "Your sales",
+          "salesHint": "And {{value}} in {{year}}.",
+          "profit": "What you earn",
+          "profitHint": "What is left once everything is paid. {{value}} in {{year}}.",
+          "lossHint": "You spend more than you earn. {{value}} in {{year}}.",
+          "cash": "Cash at year end",
+          "cashHint": "Your account stays positive: you can pay your bills.",
+          "cashNegative": "Your cash goes negative: you need more funding.",
+          "breakEven": "Profitable from",
+          "breakEvenHint": "When your sales cover all your costs.",
+          "breakEvenMonth": "Month {{month}}",
+          "breakEvenYear": "In {{year}}",
+          "breakEvenLater": "After 3 years",
+          "breakEvenUnknown": "Not yet known"
+        },
+        "charts": {
+          "sales": "Your sales, month by month",
+          "salesSub": "From {{from}} to {{to}}",
+          "salesEmpty": "Add your products and expected sales to see the curve.",
+          "cash": "Your cash at year end",
+          "cashSub": "Green: all good. Red: money is missing."
+        },
+        "steps": {
+          "title": "Your forecast in 6 steps",
+          "progress": "{{done}} of {{total}} steps done",
+          "start": "Start",
+          "continue": "Continue"
+        },
+        "status": {
+          "done": "Done",
+          "started": "Started",
+          "todo": "To do"
+        },
+        "bank": {
+          "title": "Tables for your bank",
+          "lead": "Calculated automatically from your six steps. This is what a banker or investor will ask you for.",
+          "need": "Total needed to launch",
+          "needHint": "Your start-up purchases and the money needed to get through the first months.",
+          "bfr": "Money tied up in the business (working capital)",
+          "bfrHint": "What customers owe you plus your stock, minus what you owe suppliers.",
+          "van": "Value created (NPV)",
+          "vanHint": "Positive: the project brings in more than it costs.",
+          "tri": "Return (IRR)",
+          "triHint": "What each unit of money invested earns per year."
+        },
+        "settings": {
+          "title": "Settings",
+          "lead": "Optional: sensible defaults for your country are already in place."
+        }
+      },
+      "guide": {
+        "products": {
+          "title": "What you sell",
+          "short": "Your products or services and their price.",
+          "help": "List what you sell, at what price, and what each unit costs you to buy or make."
+        },
+        "salesObjectives": {
+          "title": "How much you will sell",
+          "short": "Expected number of sales each month.",
+          "help": "For each product, say how many you expect to sell in the first month, and how fast sales grow after that."
+        },
+        "variableCharges": {
+          "title": "What each sale costs you",
+          "short": "Costs that grow with your sales.",
+          "help": "Costs that rise when you sell more: goods for resale, raw materials, packaging, delivery, commissions."
+        },
+        "fixedCharges": {
+          "title": "Your fixed costs and your team",
+          "short": "Rent, subscriptions, salaries…",
+          "help": "What you pay every month whether you sell or not: rent, electricity, internet, insurance, and salaries."
+        },
+        "investments": {
+          "title": "Your start-up purchases",
+          "short": "Equipment, fit-out, vehicle…",
+          "help": "What you buy once to launch and use for several years: equipment, furniture, shop fit-out, vehicle, company set-up costs."
+        },
+        "financing": {
+          "title": "How you fund it",
+          "short": "Your own money, loans, grants.",
+          "help": "Where the start-up money comes from: what you put in yourself, loans and grants. We show you if anything is missing."
+        },
+        "fiscalCalendar": {
+          "title": "Financial year dates",
+          "short": "Starting year and launch month.",
+          "help": "The financial year is the period your accounts cover. Say when it starts and when your business actually begins."
+        },
+        "revenueParams": {
+          "title": "Customer payment terms",
+          "short": "Share of sales paid later.",
+          "help": "If some customers pay you later, that money is not in your account yet. Say what share of your sales is paid later."
+        },
+        "taxesParams": {
+          "title": "Taxes",
+          "short": "Your tax regime and rate.",
+          "help": "Your corporate income tax rate and tax regime. Your country's values are already suggested."
+        },
+        "ratiosParams": {
+          "title": "Investor indicators",
+          "short": "Rates used for NPV and IRR.",
+          "help": "These rates are used to value your project for an investor. Keep the suggested values if you are unsure."
+        },
+        "compteExploitation": {
+          "title": "Income statement",
+          "short": "What you earn or lose each year.",
+          "help": "Your sales minus all your costs, year by year: it shows whether your business makes money."
+        },
+        "fluxTresorerie": {
+          "title": "Cash-flow plan",
+          "short": "Money coming in and going out.",
+          "help": "What actually enters and leaves your account each year. It tells you whether you can pay your bills."
+        },
+        "bilan": {
+          "title": "Projected balance sheet",
+          "short": "What the business owns and owes.",
+          "help": "A snapshot at the end of each year: what the business owns on one side, what it owes on the other."
+        },
+        "amortization": {
+          "title": "Depreciation",
+          "short": "Wear of your start-up purchases.",
+          "help": "A purchase used for several years is counted as a cost little by little over its useful life. This table is calculated for you."
+        },
+        "ratios": {
+          "title": "Profitability indicators",
+          "short": "NPV, IRR and payback period.",
+          "help": "The three figures an investor looks at first to decide whether your project is worth it."
+        }
+      },
+      "page": {
+        "breadcrumb": "Breadcrumb",
+        "stepOf": "Step {{n}} of {{total}}",
+        "computed": "Calculated automatically from your steps — nothing to enter here.",
+        "stepNav": "Step navigation",
+        "previous": "Previous step",
+        "next": "Next step",
+        "saveNext": "Save and continue",
+        "finish": "Finish",
+        "backHome": "Back to your finances"
+      },
+      "ai": {
+        "suggest": "Suggest with AI",
+        "working": "The AI is preparing a suggestion for this step…",
+        "replaceConfirm": "The AI suggestion will replace what you entered in this step. Continue?"
+      },
+      "save": {
+        "pending": "You have unsaved changes.",
+        "discard": "Discard",
+        "done": "Saved — your tables are up to date.",
+        "error": "Saving failed. Check your connection and try again.",
+        "leaveConfirm": "Your changes are not saved. Leave anyway?"
+      },
+      "examples": {
+        "products": "For example: a bag, a haircut, a monthly subscription, an hour of tutoring.",
+        "productName": "E.g. Wax print bag",
+        "variable": "For example: fabric you resell, packaging, delivery to customers.",
+        "variableName": "E.g. Fabric purchases",
+        "fixed": "For example: shop rent, electricity, internet, insurance.",
+        "fixedName": "E.g. Shop rent",
+        "position": "E.g. Sales assistant",
+        "investments": "For example: a sewing machine, shelves, a computer, a delivery motorbike.",
+        "investmentName": "E.g. Sewing machine"
+      },
+      "add": {
+        "product": "Add a product or service",
+        "expense": "Add a cost",
+        "salary": "Add a person",
+        "investment": "Add a purchase"
+      },
+      "remove": "Remove “{{name}}”",
+      "fields": {
+        "productName": "Product or service name",
+        "unnamedProduct": "Unnamed product",
+        "price": "Selling price per unit ({{currency}})",
+        "unitCost": "What each unit costs you ({{currency}})",
+        "unitCostHint": "Purchase or production. Enter 0 for a service.",
+        "priceShort": "Selling price",
+        "unitCostShort": "Cost per unit",
+        "samePrice": "Same price every year",
+        "pricePerYear": "Price changes by year",
+        "expenseName": "Cost name",
+        "kind": "Type",
+        "position": "Role",
+        "purchaseName": "What you buy"
+      },
+      "hints": {
+        "margin": "You earn {{amount}} per unit sold ({{pct}}).",
+        "noMargin": "Careful: you earn nothing on each sale ({{amount}}).",
+        "enterPrice": "Enter a price to see what you earn per sale.",
+        "unitPrice": "Sold at {{price}} per unit",
+        "salesRevenue": "That is {{amount}} of sales in {{year}}, and {{amount3}} in {{year3}}."
+      },
+      "editor": {
+        "perMonth": "Amount per month",
+        "month": "Month of purchase",
+        "from": "Starting",
+        "growth": "Monthly increase (%)",
+        "yearTotals": "Total {{y1}}: {{v1}} · {{y3}}: {{v3}}.",
+        "spread": "Spread over several months",
+        "vary": "Vary by month",
+        "year": "Year",
+        "simplify": "Back to a fixed amount",
+        "yearTotal": "Total {{year}}: {{value}}",
+        "firstMonthQuantity": "Sales in the first month",
+        "salary": "Gross monthly salary",
+        "amount": "Amount"
+      },
+      "advanced": {
+        "title": "Advanced options",
+        "supplierDebt": "Share of purchases paid later (%)",
+        "supplierDebtHint": "If your suppliers give you time to pay.",
+        "safetyStock": "Safety stock (%)",
+        "safetyStockHint": "Share of goods kept in advance so you never run out.",
+        "socialCharges": "Employer social charges (%)",
+        "socialChargesHint": "What the employer pays on top of gross salary (social security…).",
+        "payrollTax": "Payroll tax (%)",
+        "payrollTaxHint": "Tax paid by the employer, depending on your country."
+      },
+      "fixed": {
+        "linesTitle": "Your fixed costs",
+        "teamTitle": "Your team",
+        "teamLead": "Enter each person's gross salary. Social charges ({{rate}} %) are added automatically."
+      },
+      "financing": {
+        "need": "What you need",
+        "needHint": "Updated each time you save.",
+        "found": "What you have found",
+        "missing": "Still missing",
+        "missingHint": "This is the amount to ask a bank or investor for.",
+        "covered": "Your need is covered",
+        "own": {
+          "title": "Your money",
+          "capital": "What you put in yourself",
+          "capitalHint": "Your savings and your partners', put into the business."
+        },
+        "grant": "Grant",
+        "grantHint": "Money given to you that you do not pay back.",
+        "loans": {
+          "cmt": {
+            "title": "Bank loan",
+            "hint": "A loan from a bank or microfinance institution, repaid monthly."
+          },
+          "compteCourantAssocies": {
+            "title": "Loan from partners",
+            "hint": "Money you or your partners lend the business and take back later."
+          },
+          "creditBail": {
+            "title": "Lease with purchase option (leasing)",
+            "hint": "Equipment you rent, then may buy at the end of the contract."
+          }
+        },
+        "amount": "Amount",
+        "rate": "Interest rate per year (%)",
+        "duration": "Duration",
+        "durationUnit": "Duration unit",
+        "months": "months",
+        "years": "years"
+      },
+      "settings": {
+        "receivables": "Share of sales paid later (%)",
+        "receivablesHint": "Cash sales: 0 to 5 %. Business customers: often 20 to 40 %.",
+        "regime": "Tax regime",
+        "regimes": {
+          "reel": "Standard",
+          "forfait": "Flat-rate (small businesses)",
+          "auto": "Sole trader"
+        },
+        "regimeHint": "If unsure, ask your tax office or keep the suggested value.",
+        "corporateTax": "Corporate income tax (%)",
+        "corporateTaxHint": "Your country's rate is already suggested.",
+        "premises": "Size of your premises",
+        "premisesSizes": {
+          "petites": "Small (under 50 m²)",
+          "moyennes": "Medium (50 to 200 m²)",
+          "grandes": "Large (over 200 m²)"
+        },
+        "discountRate": "Discount rate (%)",
+        "discountRateHint": "The minimum return an investor expects. 10 to 15 % is common.",
+        "dividends": "Share of profit paid to partners (%)",
+        "dividendsHint": "The rest stays in the business.",
+        "growth": "Growth after year 3 (%)",
+        "growthHint": "A prudent assumption: 2 to 3 % a year.",
+        "equityCost": "Return expected by partners (%)",
+        "equityCostHint": "What your partners hope to earn on their contribution.",
+        "shares": "Number of shares",
+        "sharesHint": "Used to compute the value of one share.",
+        "waccAuto": "Calculate the cost of funding automatically",
+        "wacc": "Average cost of funding (%)",
+        "waccHint": "Calculated from your loans and contribution. Untick to set it yourself.",
+        "firstYear": "First financial year",
+        "firstYearHint": "Your first financial year: {{year}}.",
+        "closing": "Year-end month",
+        "closingLocked": "In your country, accounts must close on 31 December.",
+        "closingFree": "In your country, the company chooses its year-end date.",
+        "activityStart": "Business start month",
+        "activityStartHint": "{{months}} months of activity in the first financial year ({{year}})."
+      },
+      "reports": {
+        "pl": {
+          "revenue": "Sales",
+          "variable": "Sales-related costs",
+          "margin": "Margin on sales",
+          "fixed": "Fixed costs",
+          "salaries": "Salaries and social charges",
+          "taxes": "Taxes and duties",
+          "ebitda": "Earnings before depreciation (EBITDA)",
+          "depreciation": "Depreciation",
+          "operating": "Operating profit",
+          "interest": "Loan interest",
+          "incomeTax": "Corporate income tax",
+          "net": "Net profit"
+        },
+        "cf": {
+          "opening": "Cash at start of year",
+          "operations": "Cash generated by the business",
+          "investing": "Start-up purchases",
+          "financing": "Contributions, loans and repayments",
+          "change": "Change in cash",
+          "closing": "Cash at end of year"
+        },
+        "bs": {
+          "assets": "What the business owns",
+          "fixedAssets": "Equipment (after wear)",
+          "receivables": "What customers owe you",
+          "stocks": "Stock",
+          "cash": "Cash and bank",
+          "totalAssets": "Total",
+          "liabilities": "What the business owes",
+          "equity": "Equity (contributions and profits)",
+          "loans": "Loans still to repay",
+          "suppliers": "What you owe suppliers",
+          "taxDebts": "Taxes and social charges due",
+          "totalLiabilities": "Total"
+        },
+        "am": {
+          "group": "Purchase type",
+          "base": "Purchase value",
+          "rate": "Rate per year",
+          "yearCharge": "Cost {{year}}",
+          "remaining": "Remaining value",
+          "groups": {
+            "incorporelles": "Software, set-up costs",
+            "batiments": "Buildings and land",
+            "mobilier": "Furniture",
+            "materielOutillage": "Equipment and vehicles",
+            "financieres": "Deposits"
+          },
+          "empty": "No start-up purchase: nothing to depreciate."
+        },
+        "ratios": {
+          "payback": "Payback period",
+          "years": "{{n}} years",
+          "paybackHint": "Time needed to get the invested money back."
+        }
+      },
+      "categories": {
+        "variable": {
+          "achatsMarchandises": "Goods for resale",
+          "matieresPremieres": "Raw materials",
+          "achatsEmballages": "Packaging",
+          "transportSurVentes": "Delivery to customers",
+          "sousTraitance": "Subcontracting",
+          "remunerationsIntermediaires": "Commissions",
+          "publiciteRelationsPubliques": "Advertising",
+          "fraisTelecommunications": "Phone and internet",
+          "fraisBancaires": "Bank and mobile money fees",
+          "autresChargesExternes": "Other cost"
+        },
+        "fixed": {
+          "locations": "Rent",
+          "primesAssurances": "Insurance",
+          "entretienReparation": "Maintenance and repairs",
+          "cotisations": "Subscriptions and dues",
+          "etudesRecherche": "Accountant, advice",
+          "formationProfessionnelle": "Training",
+          "patentesLicences": "Business licence",
+          "autresImpotsDirects": "Other taxes"
+        },
+        "investment": {
+          "fraisConstitution": "Company set-up costs",
+          "logiciels": "Software and website",
+          "publiciteLancement": "Launch campaign",
+          "brevetsLicences": "Patents and licences",
+          "amenagementBureaux": "Premises fit-out",
+          "materielOutillageIndustriel": "Machines and tools",
+          "autresMateriels": "Equipment",
+          "materielTransport": "Vehicle",
+          "mobilier": "Furniture",
+          "batiments": "Building",
+          "terrains": "Land",
+          "depotsCautionnements": "Rent deposit"
+        }
+      },
+      "import": {
+        "title": "Import your figures",
+        "lead": "Send the file where you already track your finances. The AI reads it and puts it into your forecast.",
+        "drop": "Drop your file here, or click to choose it",
+        "formats": "Excel (.xlsx), CSV, PDF, Word or text — 15 MB max",
+        "promise": {
+          "read": "The AI finds your products, prices, costs, salaries and funding.",
+          "review": "You see everything before saving, and choose what to keep.",
+          "free": "A file without financial figures is refused and not charged."
+        },
+        "reading": {
+          "title": "Reading your file",
+          "body": "The AI is finding your figures and putting them in IDEM format.",
+          "duration": "This can take one to two minutes."
+        },
+        "preview": {
+          "title": "Here is what we found",
+          "fallbackSummary": "Figures taken from “{{name}}”.",
+          "uncheck": "Untick anything you do not want to keep.",
+          "more": "… and {{count}} more",
+          "warnings": "Things to check",
+          "missing": "What the file does not say",
+          "missingHint": "You can complete it step by step, or ask the AI for a suggestion.",
+          "another": "Choose another file",
+          "save": "Add to my forecast"
+        },
+        "groups": {
+          "products": "What you sell",
+          "sales": "Expected sales",
+          "variable": "Sales-related costs",
+          "fixed": "Fixed costs",
+          "salaries": "Your team",
+          "investments": "Start-up purchases",
+          "financing": "Funding",
+          "params": "Rates"
+        },
+        "items": {
+          "price": "{{price}} · costs {{cost}}",
+          "quantity": "{{count}} sales in year 1",
+          "perYear": "{{amount}} in year 1",
+          "perMonth": "{{amount}} / month",
+          "financing": {
+            "capital": "Your contribution",
+            "partners": "Partners' loan",
+            "bank": "Bank loan",
+            "leasing": "Leasing",
+            "grant": "Grant"
+          },
+          "social": "Social charges",
+          "receivables": "Sales paid later",
+          "tax": "Corporate income tax"
+        },
+        "mode": {
+          "title": "You already have data. What should we do?",
+          "merge": "Add to my data",
+          "mergeHint": "The file's lines are added to yours. A product with the same name is updated.",
+          "replace": "Replace with the file",
+          "replaceHint": "Each list found in the file replaces yours. Everything else stays."
+        },
+        "saving": "Putting your figures away…",
+        "errors": {
+          "title": "The file could not be imported",
+          "retry": "Choose another file",
+          "xls": "Old Excel files (.xls) cannot be read. In Excel: File › Save As › Excel Workbook (.xlsx), then try again.",
+          "format": "This format is not supported. Use an Excel (.xlsx), CSV, PDF, Word (.docx) or text file.",
+          "size": "This file is over 15 MB. Save a lighter version without images, then try again.",
+          "generic": "Reading failed. Check your connection and try again in a moment."
+        }
       }
     },
     "sidebar": {

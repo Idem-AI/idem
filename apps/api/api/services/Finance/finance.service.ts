@@ -335,6 +335,38 @@ export class FinanceService {
     return this.saveFinance(userId, projectId, ctx.project, finance);
   }
 
+  /**
+   * Enregistre le résultat d'un import de fichier : les sections fournies
+   * remplacent les sections en place, puis l'état de chaque étape est
+   * recalculé — un import peut en compléter plusieurs d'un coup.
+   */
+  async applyImport(
+    userId: string,
+    projectId: string,
+    incoming: Partial<FinanceModel>,
+    suggestions: AISuggestion[]
+  ): Promise<FinanceModel | null> {
+    const ctx = await this.loadFinanceFromProject(userId, projectId);
+    if (!ctx) return null;
+    const finance = ctx.finance;
+    const sections = Object.keys(SECTION_TO_COMPLETION) as Exclude<SectionKey, 'fiscalCalendar'>[];
+    for (const section of sections) {
+      if (incoming[section] !== undefined) {
+        (finance as any)[section] = incoming[section];
+      }
+    }
+    for (const section of sections) {
+      if (incoming[section] !== undefined && section !== 'ratiosParams') {
+        finance.meta.completionStatus[SECTION_TO_COMPLETION[section]] = this.computeSectionStatus(
+          finance,
+          section
+        );
+      }
+    }
+    finance.meta.aiSuggestions.push(...suggestions);
+    return this.saveFinance(userId, projectId, ctx.project, finance);
+  }
+
   /** Ajoute des justifications IA (issues d'un auto-fill) */
   async appendAISuggestions(
     userId: string,

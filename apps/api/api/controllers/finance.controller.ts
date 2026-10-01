@@ -8,6 +8,14 @@ import {
   FinanceSectionKey as AISectionKey,
 } from '../services/Finance/finance-ai.service';
 import { financePdfService } from '../services/Finance/finance-pdf.service';
+import {
+  extractFinanceDocumentText,
+  financeImportService,
+  FinanceImportMode,
+  isAcceptedFinanceDocument,
+  UNSUPPORTED_FINANCE_FORMAT_MESSAGE,
+} from '../services/Finance/finance-import.service';
+import { UnusableDocumentError } from '../services/Simulation/document-intake';
 import { userService } from '../services/user.service';
 import { projectService } from '../services/project.service';
 import { researchTeamService } from '../services/research/research-team.service';
@@ -295,6 +303,102 @@ export const aiFillSectionController = async (req: CustomRequest, res: Response)
   } catch (error: any) {
     logger.error(`aiFillSectionController error: ${error.message}`, { stack: error.stack });
     res.status(500).json({ message: error.message || 'AI auto-fill failed' });
+  }
+};
+
+/**
+ * Import d'un fichier financier — lecture.
+ * URL: POST /project/finance/:projectId/import/analyze (multipart, champ `document`)
+ *
+ * Rend un brouillon au format IDEM que l'utilisateur relit avant de
+ * l'enregistrer. Rien n'est écrit ici. Un document refusé répond 415 ou 422 :
+ * le crédit réservé est alors rendu par le middleware de facturation.
+ */
+export const analyzeFinanceImportController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const projectId = req.params.projectId as string;
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+
+  const uploaded = (req as any).file as
+    | { originalname: string; mimetype: string; buffer: Buffer }
+    | undefined;
+  // Multer écarte en silence un format non géré : sans ce garde-fou,
+  // l'utilisateur recevrait une erreur sans motif.
+  if (!uploaded || !isAcceptedFinanceDocument(uploaded.originalname, uploaded.mimetype)) {
+    res.status(415).json({ message: UNSUPPORTED_FINANCE_FORMAT_MESSAGE });
+    return;
+  }
+
+  try {
+    const text = await extractFinanceDocumentText(
+      uploaded.buffer,
+      uploaded.originalname,
+      uploaded.mimetype
+    );
+    const preview = await financeImportService.analyze(
+      userId,
+      projectId,
+      text,
+      uploaded.originalname
+    );
+    userService.incrementUsage(userId, 1);
+    res.status(200).json(preview);
+  } catch (error: any) {
+    if (error instanceof UnusableDocumentError) {
+      res.status(422).json({ message: error.message });
+      return;
+    }
+    logger.error(`analyzeFinanceImportController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: 'La lecture du document a échoué. Réessayez dans un instant.' });
+  }
+};
+
+/**
+ * Import d'un fichier financier — enregistrement du brouillon validé.
+ * URL: POST /project/finance/:projectId/import/apply
+ * Corps: { draft, suggestions?, mode: 'replace' | 'merge' }
+ */
+export const applyFinanceImportController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const projectId = req.params.projectId as string;
+  const { draft, suggestions, mode } = req.body ?? {};
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+  if (!draft || typeof draft !== 'object') {
+    res.status(400).json({ message: 'draft is required' });
+    return;
+  }
+  if (mode !== 'replace' && mode !== 'merge') {
+    res.status(400).json({ message: "mode must be 'replace' or 'merge'" });
+    return;
+  }
+  try {
+    const finance = await financeImportService.apply(
+      userId,
+      projectId,
+      draft,
+      mode as FinanceImportMode,
+      suggestions
+    );
+    if (!finance) {
+      res.status(404).json({ message: 'Project not found' });
+      return;
+    }
+    res.status(200).json(finance);
+  } catch (error: any) {
+    logger.error(`applyFinanceImportController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to apply finance import' });
   }
 };
 

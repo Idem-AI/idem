@@ -1,0 +1,227 @@
+<dialog
+  #dialog
+  class="fi-dialog"
+  aria-labelledby="fi-title"
+  (close)="onDialogClose()"
+  (click)="onBackdropClick($event)"
+>
+  <div class="modal-panel fi-panel">
+    @if (stage() !== 'reading' && stage() !== 'saving') {
+      <button
+        type="button"
+        class="fi-close"
+        [attr.aria-label]="'common.close' | translate"
+        (click)="close()"
+      >
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    }
+
+    @switch (stage()) {
+      <!-- ───────────── 1. Choisir le fichier ───────────── -->
+      @case ('pick') {
+        <div class="text-center">
+          <app-finance-illustration scene="import" class="w-32 mx-auto" />
+          <h2 id="fi-title" class="mt-3 text-xl font-semibold text-text-primary">
+            {{ 'dashboard.finance.import.title' | translate }}
+          </h2>
+          <p class="mt-1 text-sm text-text-secondary max-w-md mx-auto">
+            {{ 'dashboard.finance.import.lead' | translate }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="fi-drop"
+          [class.fi-drop--active]="dragging()"
+          (click)="chooseFile()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="dragging.set(false)"
+          (drop)="onDrop($event)"
+        >
+          <i class="pi pi-upload text-xl text-primary" aria-hidden="true"></i>
+          <span class="font-medium text-text-primary">{{ 'dashboard.finance.import.drop' | translate }}</span>
+          <span class="text-xs text-text-tertiary">{{ 'dashboard.finance.import.formats' | translate }}</span>
+        </button>
+        <input
+          #fileInput
+          type="file"
+          class="sr-only"
+          tabindex="-1"
+          [accept]="accept"
+          (change)="onFileSelected($event)"
+        />
+
+        <ul class="grid gap-2 text-sm text-text-secondary">
+          <li class="flex gap-2">
+            <i class="pi pi-check text-primary mt-0.5" aria-hidden="true"></i>
+            {{ 'dashboard.finance.import.promise.read' | translate }}
+          </li>
+          <li class="flex gap-2">
+            <i class="pi pi-check text-primary mt-0.5" aria-hidden="true"></i>
+            {{ 'dashboard.finance.import.promise.review' | translate }}
+          </li>
+          <li class="flex gap-2">
+            <i class="pi pi-check text-primary mt-0.5" aria-hidden="true"></i>
+            {{ 'dashboard.finance.import.promise.free' | translate }}
+          </li>
+        </ul>
+      }
+
+      <!-- ───────────── 2. Lecture par l'IA ───────────── -->
+      @case ('reading') {
+        <div class="text-center py-4" role="status" aria-live="polite">
+          <app-finance-illustration scene="sorting" class="w-36 mx-auto" />
+          <h2 id="fi-title" class="mt-3 text-xl font-semibold text-text-primary">
+            {{ 'dashboard.finance.import.reading.title' | translate }}
+          </h2>
+          <p class="mt-1 text-sm text-text-secondary break-all">« {{ fileName() }} »</p>
+          <div class="mt-5 flex justify-center"><idem-loader size="md" /></div>
+          <p class="mt-4 text-sm text-text-secondary max-w-sm mx-auto">
+            {{ 'dashboard.finance.import.reading.body' | translate }}
+          </p>
+          <p class="mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.import.reading.duration' | translate }}</p>
+        </div>
+        <div class="flex justify-center">
+          <button type="button" class="button-ghost button-sm" (click)="retry()">
+            {{ 'common.cancel' | translate }}
+          </button>
+        </div>
+      }
+
+      <!-- ───────────── 3. Aperçu à valider ───────────── -->
+      @case ('preview') {
+        @if (preview(); as p) {
+          <div class="flex items-start gap-4">
+            <app-finance-illustration scene="harvest" class="w-20 shrink-0 hidden sm:block" />
+            <div class="min-w-0">
+              <h2 id="fi-title" class="text-xl font-semibold text-text-primary">
+                {{ 'dashboard.finance.import.preview.title' | translate }}
+              </h2>
+              <p class="mt-1 text-sm text-text-secondary">
+                @if (p.report.summary) {
+                  {{ p.report.summary }}
+                } @else {
+                  {{ 'dashboard.finance.import.preview.fallbackSummary' | translate: { name: p.documentName } }}
+                }
+              </p>
+              @if (p.report.documentKind) {
+                <span class="tag mt-2">{{ p.report.documentKind }}</span>
+              }
+            </div>
+          </div>
+
+          <p class="text-sm text-text-secondary">{{ 'dashboard.finance.import.preview.uncheck' | translate }}</p>
+
+          <div class="grid gap-3">
+            @for (g of groups(); track g.key) {
+              <section class="fi-group" [class.fi-group--off]="!isIncluded(g.key)">
+                <label class="!flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" [checked]="isIncluded(g.key)" (change)="toggleGroup(g.key)" />
+                  <span class="font-medium text-text-primary">{{ g.titleKey | translate }}</span>
+                </label>
+                <ul class="mt-2 grid gap-1 pl-7">
+                  @for (item of g.items; track $index) {
+                    <li class="flex items-baseline justify-between gap-3 text-sm">
+                      <span class="text-text-secondary truncate">{{ item.label }}</span>
+                      <span class="text-text-primary tabular-nums shrink-0">{{ item.value }}</span>
+                    </li>
+                  }
+                  @if (g.more > 0) {
+                    <li class="text-xs text-text-tertiary">
+                      {{ 'dashboard.finance.import.preview.more' | translate: { count: g.more } }}
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
+          </div>
+
+          @if (p.report.warnings.length) {
+            <div class="fi-note fi-note--warn" role="note">
+              <p class="font-medium text-text-primary flex items-center gap-2">
+                <i class="pi pi-exclamation-circle text-warning" aria-hidden="true"></i>
+                {{ 'dashboard.finance.import.preview.warnings' | translate }}
+              </p>
+              <ul class="mt-1 grid gap-1 text-sm text-text-secondary list-disc pl-5">
+                @for (w of p.report.warnings; track $index) {
+                  <li>{{ w }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (p.report.missing.length) {
+            <div class="fi-note" role="note">
+              <p class="font-medium text-text-primary">{{ 'dashboard.finance.import.preview.missing' | translate }}</p>
+              <ul class="mt-1 grid gap-1 text-sm text-text-secondary list-disc pl-5">
+                @for (m of p.report.missing; track $index) {
+                  <li>{{ m }}</li>
+                }
+              </ul>
+              <p class="mt-2 text-xs text-text-tertiary">{{ 'dashboard.finance.import.preview.missingHint' | translate }}</p>
+            </div>
+          }
+
+          @if (hasExistingData()) {
+            <fieldset class="grid gap-2">
+              <legend class="!px-0 text-sm">{{ 'dashboard.finance.import.mode.title' | translate }}</legend>
+              <label class="fi-choice" [class.fi-choice--on]="mode() === 'merge'">
+                <input type="radio" name="fi-mode" value="merge" [checked]="mode() === 'merge'" (change)="mode.set('merge')" />
+                <span>
+                  <span class="block font-medium text-text-primary">{{ 'dashboard.finance.import.mode.merge' | translate }}</span>
+                  <span class="block text-xs text-text-tertiary">{{ 'dashboard.finance.import.mode.mergeHint' | translate }}</span>
+                </span>
+              </label>
+              <label class="fi-choice" [class.fi-choice--on]="mode() === 'replace'">
+                <input type="radio" name="fi-mode" value="replace" [checked]="mode() === 'replace'" (change)="mode.set('replace')" />
+                <span>
+                  <span class="block font-medium text-text-primary">{{ 'dashboard.finance.import.mode.replace' | translate }}</span>
+                  <span class="block text-xs text-text-tertiary">{{ 'dashboard.finance.import.mode.replaceHint' | translate }}</span>
+                </span>
+              </label>
+            </fieldset>
+          }
+
+          <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
+            <button type="button" class="outer-button" (click)="retry()">
+              {{ 'dashboard.finance.import.preview.another' | translate }}
+            </button>
+            <button type="button" class="inner-button" [disabled]="selectedCount() === 0" (click)="save()">
+              <i class="pi pi-check" aria-hidden="true"></i>
+              {{ 'dashboard.finance.import.preview.save' | translate }}
+            </button>
+          </div>
+        }
+      }
+
+      <!-- ───────────── 4. Enregistrement ───────────── -->
+      @case ('saving') {
+        <div class="text-center py-8" role="status" aria-live="polite">
+          <app-finance-illustration scene="harvest" class="w-28 mx-auto" />
+          <h2 id="fi-title" class="mt-3 text-lg font-semibold text-text-primary">
+            {{ 'dashboard.finance.import.saving' | translate }}
+          </h2>
+          <div class="mt-4 flex justify-center"><idem-loader size="md" /></div>
+        </div>
+      }
+
+      <!-- ───────────── Échec ───────────── -->
+      @case ('error') {
+        <div class="text-center py-2" role="alert">
+          <app-finance-illustration scene="empty" class="w-28 mx-auto" />
+          <h2 id="fi-title" class="mt-3 text-lg font-semibold text-text-primary">
+            {{ 'dashboard.finance.import.errors.title' | translate }}
+          </h2>
+          <p class="mt-2 text-sm text-text-secondary max-w-md mx-auto">{{ errorMessage() }}</p>
+        </div>
+        <div class="flex justify-center gap-2">
+          <button type="button" class="outer-button" (click)="close()">{{ 'common.close' | translate }}</button>
+          <button type="button" class="inner-button" (click)="retry()">
+            {{ 'dashboard.finance.import.errors.retry' | translate }}
+          </button>
+        </div>
+      }
+    }
+  </div>
+</dialog>

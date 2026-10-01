@@ -1,0 +1,115 @@
+/* Dialogue natif : focus piégé, Échap et voile gérés par le navigateur. */
+.fi-dialog {
+  width: min(100% - 2rem, 36rem);
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  overflow: visible;
+}
+
+.fi-dialog::backdrop {
+  background: oklch(0.15 0.02 264 / 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.fi-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.75rem 1.25rem 1.5rem;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+  .fi-panel {
+    padding: 2rem;
+  }
+}
+
+.fi-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  color: var(--color-text-tertiary);
+  transition: color 150ms ease-out, background-color 150ms ease-out;
+}
+
+.fi-close:hover,
+.fi-close:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--glass-bg-light);
+}
+
+/* La zone de dépôt : un bouton, pour qu'on l'atteigne au clavier. */
+.fi-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 1.75rem 1rem;
+  border: 1.5px dashed var(--glass-border-medium);
+  border-radius: 1rem;
+  background: var(--glass-bg-subtle);
+  transition: border-color 150ms ease-out, background-color 150ms ease-out;
+}
+
+.fi-drop:hover,
+.fi-drop:focus-visible,
+.fi-drop--active {
+  border-color: var(--color-primary-500);
+  background: var(--glass-bg-light);
+}
+
+.fi-group {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.875rem;
+  transition: opacity 150ms ease-out;
+}
+
+/* Un groupe écarté reste lisible : on doit pouvoir le reprendre. */
+.fi-group--off ul {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.fi-note {
+  padding: 0.85rem 1rem;
+  border-radius: 0.875rem;
+  background: var(--glass-bg-subtle);
+}
+
+.fi-note--warn {
+  border-left: 3px solid var(--color-warning);
+}
+
+.fi-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.875rem;
+  cursor: pointer;
+  transition: border-color 150ms ease-out;
+}
+
+.fi-choice input {
+  margin-top: 0.2rem;
+}
+
+.fi-choice--on {
+  border-color: var(--color-primary-500);
+}
