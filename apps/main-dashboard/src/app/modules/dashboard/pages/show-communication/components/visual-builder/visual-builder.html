@@ -144,7 +144,7 @@
   }
 
   <!-- ─────────────── Navigation ─────────────── -->
-  <footer class="vb-footer">
+  <footer class="vb-footer" [class.vb-footer-sticky]="step() > 1">
     @if (step() > 1) {
       <button type="button" class="outer-button" (click)="back()">
         <i class="pi pi-arrow-left" aria-hidden="true"></i>

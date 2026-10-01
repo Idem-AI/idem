@@ -144,7 +144,8 @@
           "fri": "Ven",
           "sat": "Sam",
           "sun": "Dim"
-        }
+        },
+        "briefToggle": "L'idée de ce calendrier"
       },
       "wizard": {
         "progress": "Avancement",
@@ -340,7 +341,8 @@
         "publishNeedsSchedule": "Mettez d'abord ce visuel au calendrier pour pouvoir le publier.",
         "delete": "Supprimer ce visuel",
         "deleteAsk": "Supprimer définitivement ce visuel ?",
-        "deleteConfirm": "Supprimer"
+        "deleteConfirm": "Supprimer",
+        "filters": "Filtrer"
       },
       "visual": {
         "download": "Télécharger l'image",
@@ -387,19 +389,23 @@
       "nav": {
         "home": {
           "label": "Accueil",
-          "hint": "Où j'en suis, quoi faire ensuite"
+          "hint": "Où j'en suis, quoi faire ensuite",
+          "short": "Accueil"
         },
         "studio": {
           "label": "Créer un visuel",
-          "hint": "Une image à vos couleurs, en 3 questions"
+          "hint": "Une image à vos couleurs, en 3 questions",
+          "short": "Créer"
         },
         "plans": {
           "label": "Mon calendrier",
-          "hint": "Quoi publier, et quel jour"
+          "hint": "Quoi publier, et quel jour",
+          "short": "Calendrier"
         },
         "library": {
           "label": "Mes visuels",
-          "hint": "Tout ce que vous avez déjà créé"
+          "hint": "Tout ce que vous avez déjà créé",
+          "short": "Visuels"
         }
       },
       "home": {

@@ -402,3 +402,129 @@
 .ch-recent-item app-visual-thumb {
   height: 100%;
 }
+
+/* ── Téléphone ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .ch-hero {
+    gap: 0;
+    padding: 1.1rem;
+  }
+
+  /* L'illustration cède sa place : sur 360 px, elle repoussait le bouton hors de l'écran. */
+  .ch-hero-illu {
+    display: none;
+  }
+
+  .ch-hero-text {
+    min-width: 0;
+  }
+
+  .ch-hero-title {
+    font-size: 1.2rem;
+  }
+
+  .ch-hero-body {
+    font-size: 0.88rem;
+  }
+
+  /* Le bouton principal prend toute la largeur : une cible qu'on ne rate pas au pouce. */
+  .ch-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  .ch-hero-actions .inner-button {
+    justify-content: center;
+    min-height: 3rem;
+  }
+
+  .ch-hero-actions .ch-link {
+    justify-content: center;
+  }
+
+  /*
+   * Une seule colonne, dans l'ordre où on s'en sert au téléphone : ce qu'il y a
+   * à publier d'abord (c'est l'usage de tous les jours), puis le parcours.
+   * `display: contents` libère les cartes de la colonne de droite pour les
+   * ranger une à une.
+   */
+  .ch-grid {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .ch-side {
+    display: contents;
+  }
+
+  .ch-order-upcoming {
+    order: 1;
+  }
+
+  .ch-order-journey {
+    order: 2;
+  }
+
+  .ch-order-quick {
+    order: 3;
+  }
+
+  .ch-order-recent {
+    order: 4;
+  }
+
+  /* Rien à publier : la carte répète ce que dit déjà le bloc du haut. */
+  .ch-upcoming-empty {
+    display: none;
+  }
+
+  /*
+   * Parcours replié : seule la prochaine étape s'explique en entier. Les autres
+   * tiennent sur une ligne (titre, état, bouton) — quatre cartes complètes
+   * faisaient défiler deux écrans avant d'atteindre la suite.
+   */
+  .ch-step {
+    gap: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .ch-step-marker {
+    height: 1.9rem;
+    width: 1.9rem;
+    font-size: 0.8rem;
+  }
+
+  .ch-step:not(:last-child)::before {
+    top: 1.95rem;
+    left: 0.9rem;
+  }
+
+  .ch-step-body {
+    padding: 0.8rem 0.9rem;
+  }
+
+  .ch-step:not(.ch-step-next) .ch-step-why,
+  .ch-step:not(.ch-step-next) .ch-step-price,
+  .ch-step:not(.ch-step-next) .ch-step-progress {
+    display: none;
+  }
+
+  .ch-step:not(.ch-step-next) .ch-step-foot {
+    margin-top: 0.5rem;
+  }
+
+  .ch-step-next .ch-step-foot .inner-button {
+    width: 100%;
+    justify-content: center;
+    min-height: 2.75rem;
+  }
+
+  /* Prochaines publications : des lignes assez hautes pour le pouce. */
+  .ch-post {
+    min-height: 3.25rem;
+  }
+}

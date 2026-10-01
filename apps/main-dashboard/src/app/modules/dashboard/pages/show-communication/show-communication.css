@@ -102,3 +102,94 @@
   line-height: 1.35;
   color: var(--color-text-tertiary);
 }
+
+/* ── Téléphone : barre d'onglets en bas ───────────────────────────────────── */
+
+/*
+ * Hauteur de la barre, lue par les écrans pour caler leurs pieds collants
+ * (« Suivant », la saisie du fil) juste au-dessus d'elle. Zéro au-delà du
+ * téléphone : il n'y a alors pas de barre.
+ */
+.sc-root {
+  --sc-bottom-gap: 0px;
+}
+
+.sc-bottom {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .sc-root {
+    --sc-bottom-gap: calc(4rem + env(safe-area-inset-bottom, 0px));
+    /* Le dernier contenu ne doit jamais finir sous la barre. */
+    padding-bottom: calc(var(--sc-bottom-gap) + 1rem);
+  }
+
+  .sc-tabs,
+  .sc-voice {
+    display: none;
+  }
+
+  .sc-bottom {
+    position: fixed;
+    inset: auto 0 0 0;
+    /* Sous les fenêtres (z-index 50) : une fenêtre ouverte couvre la barre. */
+    z-index: 40;
+    display: block;
+    border-top: 1px solid var(--glass-border);
+    background: var(--glass-bg-intense);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Le coin droit appartient au dock de mode, qui se pose dans la barre. */
+  .sc-bottom-list {
+    display: grid;
+    height: 4rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding-right: 4.75rem;
+  }
+
+  .sc-bottom-tab {
+    position: relative;
+    display: flex;
+    height: 100%;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .sc-bottom-icon {
+    font-size: 1.15rem;
+  }
+
+  .sc-bottom-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.68rem;
+    font-weight: 600;
+  }
+
+  .sc-bottom-active {
+    color: var(--color-primary-500);
+  }
+
+  /* Le repère actif : un trait en haut de l'onglet, lisible sans la couleur. */
+  .sc-bottom-active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    height: 3px;
+    width: 1.75rem;
+    transform: translateX(-50%);
+    border-radius: 0 0 3px 3px;
+    background: var(--color-primary-500);
+  }
+}

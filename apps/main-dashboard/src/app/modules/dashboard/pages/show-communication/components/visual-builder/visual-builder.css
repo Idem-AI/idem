@@ -247,3 +247,104 @@
   color: var(--color-text-primary);
   text-decoration: underline;
 }
+
+/* ── Téléphone ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  :host {
+    /* Le haut du formulaire ne se cache pas sous la barre du dashboard en y remontant. */
+    scroll-margin-top: 6rem;
+  }
+
+  .vb {
+    padding: 1rem;
+  }
+
+  .vb-progress {
+    gap: 0.75rem;
+    justify-content: space-between;
+  }
+
+  .vb-progress-step {
+    gap: 0.35rem;
+    font-size: 0.75rem;
+  }
+
+  .vb-question {
+    margin-top: 1rem;
+    font-size: 1.15rem;
+  }
+
+  /*
+   * Quoi : une liste, pas une grille. Sur 360 px, deux colonnes de cartes
+   * coupaient les explications en trois lignes ; une ligne par choix, icône à
+   * gauche, se lit comme un menu de téléphone.
+   */
+  .vb-kinds {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .vb-kind {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 0.6rem;
+    row-gap: 0.05rem;
+    min-height: 3.5rem;
+    padding: 0.65rem 0.8rem;
+  }
+
+  .vb-kind-icon {
+    grid-row: 1 / span 2;
+    text-align: center;
+  }
+
+  .vb-kind-label {
+    margin-top: 0;
+  }
+
+  .vb-place {
+    padding: 0.75rem;
+  }
+
+  .vb-shape-box {
+    height: 2.75rem;
+  }
+
+  .vb-shape {
+    height: 2.6rem;
+  }
+
+  .vb-shape-banner {
+    height: 1.9rem;
+  }
+
+  /*
+   * « Suivant » et « Créer » toujours sous le pouce, juste au-dessus de la barre
+   * d'onglets : on ne fait pas défiler pour trouver comment avancer.
+   */
+  .vb-footer-sticky {
+    position: sticky;
+    bottom: var(--sc-bottom-gap, 0px);
+    z-index: 5;
+    margin: 1.25rem -1rem -1rem;
+    border-top: 1px solid var(--glass-border);
+    border-radius: 0 0 1rem 1rem;
+    background: var(--glass-bg-intense);
+    padding: 0.75rem 1rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .vb-footer .inner-button {
+    flex: 1;
+    justify-content: center;
+    min-height: 3rem;
+  }
+
+  .vb-footer .outer-button {
+    min-height: 3rem;
+  }
+}

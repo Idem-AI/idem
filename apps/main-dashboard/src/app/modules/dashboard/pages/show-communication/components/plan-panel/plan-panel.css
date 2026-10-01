@@ -212,3 +212,94 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 1px;
 }
+
+/* ── Idée du calendrier (repliable) ──────────────────────────────────────── */
+
+/* Au-delà du téléphone, le résumé est toujours ouvert : son titre est inutile. */
+.pp-brief-summary {
+  display: none;
+}
+
+.pp-card-day {
+  text-transform: capitalize;
+}
+
+/* ── Écrans tactiles : pas de survol ─────────────────────────────────────── */
+
+@media (hover: none) {
+  .pp-card:hover {
+    transform: none;
+  }
+}
+
+/* ── Téléphone ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .pp-brief-summary {
+    margin-top: 0.75rem;
+    display: flex;
+    min-height: 2.75rem;
+    cursor: pointer;
+    list-style: none;
+    align-items: center;
+    gap: 0.5rem;
+    border-top: 1px solid var(--glass-border);
+    padding-top: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+
+  .pp-brief-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .pp-brief-summary .pi-lightbulb {
+    color: var(--color-primary-500);
+  }
+
+  .pp-brief-chevron {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+    transition: transform 0.15s ease;
+  }
+
+  .pp-brief[open] .pp-brief-chevron {
+    transform: rotate(180deg);
+  }
+
+  /*
+   * Les calendriers défilent de côté, sur une ligne, comme des stories : empilés,
+   * trois calendriers repoussaient les publications sous la ligne de flottaison.
+   */
+  .pp-strip {
+    flex-wrap: nowrap;
+    margin-inline: -1rem;
+    overflow-x: auto;
+    padding: 0.25rem 1rem 0.5rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .pp-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pp-strip > li {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+
+  .pp-strip > li > button {
+    min-width: 11.5rem;
+  }
+
+  .pp-card {
+    min-height: 5.5rem;
+  }
+
+  .pp-card-thumb {
+    width: 4rem;
+  }
+}

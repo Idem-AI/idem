@@ -34,6 +34,15 @@
   display: none;
 }
 
+/* Une page qui pose sa propre barre d'onglets en bas (Communication) indique où
+   se placer par `--idem-dock-bottom` sur la racine : le dock se loge alors DANS
+   sa barre, au lieu de flotter au-dessus d'un onglet ou d'un bouton. */
+@media (max-width: 640px) {
+  :host {
+    bottom: calc(var(--idem-dock-bottom, 1.25rem) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* Mode Chat sur mobile : le composeur occupe le bas de l'écran et son bouton
    d'envoi vit exactement dans ce coin. Le dock remonte au-dessus. */
 @media (max-width: 640px) {

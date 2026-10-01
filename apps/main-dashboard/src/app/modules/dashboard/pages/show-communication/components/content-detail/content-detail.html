@@ -18,7 +18,7 @@
           <i [class]="channelIcon(item().channel)" aria-hidden="true"></i>
           {{ channelLabelKey(item().channel) | translate }}
           <span aria-hidden="true">·</span>
-          {{ item().scheduledFor }}
+          <span class="capitalize">{{ day(item().scheduledFor) }}</span>
         </p>
         <h2 id="cd-title" class="cd-title">{{ item().title }}</h2>
       </div>
@@ -239,7 +239,7 @@
               </button>
             </div>
           } @else {
-            <p class="cd-value">{{ item().scheduledFor }}</p>
+            <p class="cd-value capitalize">{{ day(item().scheduledFor) }}</p>
           }
         </div>
 

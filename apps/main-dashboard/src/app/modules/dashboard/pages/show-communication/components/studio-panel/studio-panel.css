@@ -369,3 +369,76 @@
   margin-top: 0.5rem;
   justify-content: flex-start;
 }
+
+/* ── Écrans tactiles : pas de survol ─────────────────────────────────────── */
+
+/* « Voir en grand » n'apparaissait qu'au survol de la souris : au doigt, rien
+   n'indiquait que la vignette s'ouvre. */
+@media (hover: none) {
+  .sp-visual-open {
+    opacity: 1;
+  }
+}
+
+/* ── Téléphone ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .sp-wrap {
+    min-height: 0;
+  }
+
+  .sp-builder-head {
+    margin-bottom: 0.75rem;
+  }
+
+  .sp-builder-intro {
+    font-size: 0.85rem;
+  }
+
+  .sp-toolbar .inner-button {
+    width: 100%;
+    justify-content: center;
+    min-height: 2.75rem;
+  }
+
+  .sp-toolbar-hint {
+    min-width: 0;
+  }
+
+  .sp-bubble-user {
+    max-width: 92%;
+  }
+
+  /* Trois propositions côte à côte font des timbres-poste : deux par ligne. */
+  .sp-visuals-multi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* La saisie reste collée juste au-dessus de la barre d'onglets. */
+  .sp-composer {
+    bottom: var(--sc-bottom-gap, 0px);
+    z-index: 5;
+    margin-inline: -0.25rem;
+    padding: 0.5rem 0.25rem 0.25rem;
+  }
+
+  .sp-composer-box {
+    background: var(--glass-bg-intense);
+  }
+
+  .sp-composer-box .inner-button {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    justify-content: center;
+  }
+
+  /* 16 px au moins : en dessous, iOS zoome la page à chaque appui sur le champ. */
+  .sp-input {
+    font-size: 1rem;
+  }
+
+  .sp-hint,
+  .sp-clear {
+    font-size: 0.7rem;
+  }
+}

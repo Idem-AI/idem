@@ -32,80 +32,91 @@
     <app-screen-guide guideKey="library" />
 
     <!-- ─────────────── Filtres ─────────────── -->
-    <div class="glass mb-5 flex flex-wrap items-end gap-3 rounded-2xl p-3">
-      <div>
-        <label for="lib-format" class="lp-label">
-          {{ 'dashboard.showCommunication.library.filterFormat' | translate }}
-        </label>
-        <select
-          id="lib-format"
-          class="lp-select glass"
-          [ngModel]="filterFormat()"
-          (ngModelChange)="setFilterFormat($event)"
-          name="libFormat"
-        >
-          <option value="all">
-            {{ 'dashboard.showCommunication.library.allFormats' | translate }}
-          </option>
-          @for (format of formats; track format) {
-            <option [value]="format">
-              {{ 'dashboard.showCommunication.formats.' + format | translate }}
-            </option>
-          }
-        </select>
-      </div>
-
-      <div>
-        <label for="lib-origin" class="lp-label">
-          {{ 'dashboard.showCommunication.library.filterOrigin' | translate }}
-        </label>
-        <select
-          id="lib-origin"
-          class="lp-select glass"
-          [ngModel]="filterOrigin()"
-          (ngModelChange)="setFilterOrigin($event)"
-          name="libOrigin"
-        >
-          <option value="all">
-            {{ 'dashboard.showCommunication.library.allOrigins' | translate }}
-          </option>
-          @for (origin of origins; track origin) {
-            <option [value]="origin">
-              {{ 'dashboard.showCommunication.library.origins.' + origin | translate }}
-            </option>
-          }
-        </select>
-      </div>
-
-      @if (plannedPlans().length > 0) {
+    <details class="lp-filters glass mb-5 rounded-2xl p-3" [open]="!isCompact()">
+      <summary class="lp-filters-summary">
+        <span>
+          <i class="pi pi-filter" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.library.filters' | translate }}
+        </span>
+        <span class="text-xs font-normal text-[var(--color-text-tertiary)]">
+          {{ 'dashboard.showCommunication.library.count' | translate: { count: filtered().length } }}
+        </span>
+      </summary>
+      <div class="lp-filters-body flex flex-wrap items-end gap-3">
         <div>
-          <label for="lib-plan" class="lp-label">
-            {{ 'dashboard.showCommunication.library.filterPlan' | translate }}
+          <label for="lib-format" class="lp-label">
+            {{ 'dashboard.showCommunication.library.filterFormat' | translate }}
           </label>
           <select
-            id="lib-plan"
+            id="lib-format"
             class="lp-select glass"
-            [ngModel]="filterPlanId()"
-            (ngModelChange)="setFilterPlan($event)"
-            name="libPlan"
+            [ngModel]="filterFormat()"
+            (ngModelChange)="setFilterFormat($event)"
+            name="libFormat"
           >
             <option value="all">
-              {{ 'dashboard.showCommunication.library.allPlans' | translate }}
+              {{ 'dashboard.showCommunication.library.allFormats' | translate }}
             </option>
-            @for (plan of plannedPlans(); track plan.id) {
-              <option [value]="plan.id">{{ plan.name }}</option>
+            @for (format of formats; track format) {
+              <option [value]="format">
+                {{ 'dashboard.showCommunication.formats.' + format | translate }}
+              </option>
             }
           </select>
         </div>
-      }
 
-      <p class="ml-auto text-xs text-[var(--color-text-tertiary)]">
-        {{ 'dashboard.showCommunication.library.count' | translate: { count: filtered().length } }}
-      </p>
-    </div>
+        <div>
+          <label for="lib-origin" class="lp-label">
+            {{ 'dashboard.showCommunication.library.filterOrigin' | translate }}
+          </label>
+          <select
+            id="lib-origin"
+            class="lp-select glass"
+            [ngModel]="filterOrigin()"
+            (ngModelChange)="setFilterOrigin($event)"
+            name="libOrigin"
+          >
+            <option value="all">
+              {{ 'dashboard.showCommunication.library.allOrigins' | translate }}
+            </option>
+            @for (origin of origins; track origin) {
+              <option [value]="origin">
+                {{ 'dashboard.showCommunication.library.origins.' + origin | translate }}
+              </option>
+            }
+          </select>
+        </div>
+
+        @if (plannedPlans().length > 0) {
+          <div>
+            <label for="lib-plan" class="lp-label">
+              {{ 'dashboard.showCommunication.library.filterPlan' | translate }}
+            </label>
+            <select
+              id="lib-plan"
+              class="lp-select glass"
+              [ngModel]="filterPlanId()"
+              (ngModelChange)="setFilterPlan($event)"
+              name="libPlan"
+            >
+              <option value="all">
+                {{ 'dashboard.showCommunication.library.allPlans' | translate }}
+              </option>
+              @for (plan of plannedPlans(); track plan.id) {
+                <option [value]="plan.id">{{ plan.name }}</option>
+              }
+            </select>
+          </div>
+        }
+
+        <p class="lp-filters-count ml-auto text-xs text-[var(--color-text-tertiary)]">
+          {{ 'dashboard.showCommunication.library.count' | translate: { count: filtered().length } }}
+        </p>
+      </div>
+    </details>
 
     <!-- ─────────────── Grille ─────────────── -->
-    <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <ul class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
       @for (visual of filtered(); track visual.id) {
         <li class="lp-item">
           <button type="button" class="lp-card" (click)="open(visual)">

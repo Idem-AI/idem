@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  DOCUMENT,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ProjectModel } from '@idem/shared-models';
@@ -77,6 +86,8 @@ export class ShowCommunication implements OnInit {
   private readonly router = inject(Router);
   private readonly brandingValidation = inject(BrandingValidationService);
   private readonly projectService = inject(ProjectService);
+  private readonly document = inject(DOCUMENT);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly projectId = signal<string | null>(null);
   protected readonly isLoading = signal(true);
@@ -155,6 +166,16 @@ export class ShowCommunication implements OnInit {
   private initialScreen(): Screen {
     const requested = this.route.snapshot.queryParamMap.get('screen') as Screen | null;
     return requested && SCREENS.includes(requested) ? requested : 'home';
+  }
+
+  constructor() {
+    // Sur téléphone, les onglets passent en barre fixe en bas de l'écran. Le dock
+    // de mode, monté hors de ce module, vit dans ce même coin : on lui dit de
+    // descendre DANS la barre plutôt que de flotter par-dessus un onglet ou un
+    // bouton « Suivant ». Variable posée sur la racine, retirée en partant.
+    const root = this.document.documentElement;
+    root.style.setProperty('--idem-dock-bottom', '0.4rem');
+    this.destroyRef.onDestroy(() => root.style.removeProperty('--idem-dock-bottom'));
   }
 
   ngOnInit(): void {

@@ -1,4 +1,4 @@
-<div class="relative w-full min-h-screen md:p-6">
+<div class="sc-root relative w-full min-h-screen md:p-6">
   @if (isLoading()) {
     <div class="mx-auto max-w-6xl py-20 text-center">
       <idem-loader size="lg" />
@@ -32,20 +32,22 @@
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p
-            class="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent-500)]"
+            class="hidden text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent-500)] sm:block"
           >
             {{ 'dashboard.showCommunication.eyebrow' | translate }}
           </p>
-          <h1 class="mt-1 text-3xl font-bold text-[var(--color-text-primary)]">
+          <h1 class="text-2xl font-bold text-[var(--color-text-primary)] sm:mt-1 sm:text-3xl">
             {{ 'dashboard.showCommunication.title' | translate }}
           </h1>
-          <p class="mt-1 max-w-2xl text-sm text-[var(--color-text-secondary)]">
+          <!-- Sur téléphone, l'accueil dit déjà tout cela : on garde l'écran pour le contenu. -->
+          <p class="mt-1 hidden max-w-2xl text-sm text-[var(--color-text-secondary)] sm:block">
             {{ 'dashboard.showCommunication.subtitle' | translate }}
           </p>
         </div>
 
-        <!-- « Ma façon de communiquer » vit ici : accessible, jamais sur le chemin. -->
-        <button type="button" class="outer-button" (click)="openVoice()">
+        <!-- « Ma façon de communiquer » vit ici : accessible, jamais sur le chemin.
+             Sur téléphone, c'est l'étape 1 de l'accueil qui l'ouvre. -->
+        <button type="button" class="outer-button sc-voice" (click)="openVoice()">
           <i class="pi pi-user-edit" aria-hidden="true"></i>
           {{ 'dashboard.showCommunication.voice.open' | translate }}
           @if (!strategy()) {
@@ -80,6 +82,33 @@
                   <span class="sc-tab-hint">
                     {{ 'dashboard.showCommunication.nav.' + screen.id + '.hint' | translate }}
                   </span>
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+      </nav>
+
+      <!--
+        Sur téléphone : les mêmes écrans en barre fixe sous le pouce, comme dans
+        les applications qu'on utilise tous les jours (WhatsApp, Instagram). Un
+        mot par onglet ; l'explication vit sur l'accueil.
+      -->
+      <nav class="sc-bottom" [attr.aria-label]="'dashboard.showCommunication.title' | translate">
+        <ul class="sc-bottom-list" role="tablist">
+          @for (screen of screens; track screen.id) {
+            <li>
+              <button
+                type="button"
+                role="tab"
+                class="sc-bottom-tab"
+                [class.sc-bottom-active]="activeScreen() === screen.id"
+                [attr.aria-selected]="activeScreen() === screen.id"
+                (click)="setScreen(screen.id)"
+              >
+                <i [class]="screen.icon" class="sc-bottom-icon" aria-hidden="true"></i>
+                <span class="sc-bottom-label">
+                  {{ 'dashboard.showCommunication.nav.' + screen.id + '.short' | translate }}
                 </span>
               </button>
             </li>
