@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
+import { returnLink, safeReturnTo, withQueryParams } from '../../../shared/utils/return-to.util';
 
 /**
  * Three-step server registration — Identity → SSH → Options.
@@ -18,10 +19,17 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto max-w-2xl">
-      <a routerLink="/servers" class="mb-4 inline-flex items-center gap-2 text-sm" style="color:var(--color-text-secondary);">
+      <a [routerLink]="backLink.path" [queryParams]="backLink.query" class="mb-4 inline-flex items-center gap-2 text-sm" style="color:var(--color-text-secondary);">
         <i class="pi pi-chevron-left text-[10px]"></i>
-        {{ 'servers.create.back' | translate }}
+        {{ (returnTo ? 'servers.create.backToDeploy' : 'servers.create.back') | translate }}
       </a>
+
+      @if (returnTo) {
+        <p class="mb-4 flex items-start gap-2 rounded-xl border px-4 py-3 text-sm" role="status" style="border-color:color-mix(in srgb, var(--color-primary-500) 30%, transparent);background:color-mix(in srgb, var(--color-primary-500) 6%, transparent);color:var(--color-text-secondary);">
+          <i class="pi pi-replay mt-0.5 text-xs" style="color:var(--color-primary-500);"></i>
+          {{ 'servers.create.returnNotice' | translate }}
+        </p>
+      }
 
       <h1 class="heading-serif mb-1" style="font-size:28px;font-weight:700;color:var(--color-text-primary);">
         {{ 'servers.create.title' | translate }}
@@ -212,6 +220,10 @@ export class ServerCreateComponent implements OnInit {
   private router = inject(Router);
   private translate = inject(TranslateService);
 
+  /** Set when a deploy sent us here for a server it needs; we go back there once it exists. */
+  protected readonly returnTo = safeReturnTo(inject(ActivatedRoute).snapshot.queryParamMap.get('returnTo'));
+  protected readonly backLink = returnLink(this.returnTo ?? '/servers');
+
   protected readonly step = signal<1 | 2 | 3>(1);
   protected readonly submitting = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -326,7 +338,11 @@ export class ServerCreateComponent implements OnInit {
         is_swarm_worker: raw.is_swarm_worker,
       })
       .subscribe({
-        next: () => this.router.navigate(['/servers']),
+        // Came from a deploy that needed a server: go back to it, with this one picked.
+        next: (server) =>
+          this.returnTo
+            ? this.router.navigateByUrl(withQueryParams(this.router, this.returnTo, { ws_server: server.uuid }))
+            : this.router.navigate(['/servers']),
         error: (e) => {
           this.error.set(e?.error?.error?.message ?? this.translate.instant('servers.create.submitError'));
           this.submitting.set(false);

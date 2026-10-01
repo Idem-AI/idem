@@ -783,7 +783,9 @@
       "swarmWorker": "Swarm Worker",
       "submit": "Créer le serveur",
       "submitting": "Création…",
-      "submitError": "Échec de la création du serveur."
+      "submitError": "Échec de la création du serveur.",
+      "backToDeploy": "Retour à mon déploiement",
+      "returnNotice": "Une fois le serveur ajouté, vous reviendrez directement à votre déploiement, avec ce serveur choisi."
     },
     "useLocalButton": "Utiliser cette machine",
     "addingLocal": "Ajout…",
@@ -1673,6 +1675,14 @@
     "createError": "La création du serveur a échoué.",
     "catalogueError": "Impossible de charger le catalogue du fournisseur.",
     "tokensError": "Impossible de charger les identifiants cloud.",
-    "afterHint": "Une fois créé, ajoutez-le à iDeploy depuis « Ajouter un serveur » avec son adresse IP."
+    "afterHint": "Une fois créé, ajoutez-le à iDeploy depuis « Ajouter un serveur » avec son adresse IP.",
+    "backToDeploy": "Revenir à mon déploiement"
+  },
+  "noServerPrompt": {
+    "title": "Vous n'avez pas encore de serveur",
+    "body": "Pour déployer chez vous, iDeploy doit pouvoir joindre une machine : branchez celle que vous avez déjà, ou créez-en une chez un fournisseur cloud.",
+    "add": "Ajouter mon serveur",
+    "cloud": "Créer un serveur cloud",
+    "comeBack": "Vous reviendrez ici ensuite, pour finir votre déploiement."
   }
 }
