@@ -2713,8 +2713,8 @@
     },
     "showCommunication": {
       "eyebrow": "Communication",
-      "title": "Mes publications",
-      "subtitle": "Créez vos visuels, organisez ce que vous publiez, retrouvez tout au même endroit.",
+      "title": "Ma communication",
+      "subtitle": "IDEM vous guide pas à pas : dire qui vous êtes, prévoir quoi publier, créer les visuels, puis les publier.",
       "loading": "Chargement…",
       "comingSoon": "Bientôt",
       "tabs": {
@@ -2722,8 +2722,8 @@
         "calendar": "Calendrier",
         "moments": "Moments",
         "publishing": "Publication",
-        "studio": "Créer",
-        "plans": "Mon planning",
+        "studio": "Créer un visuel",
+        "plans": "Mon calendrier",
         "library": "Mes visuels"
       },
       "selectProject": {
@@ -2890,9 +2890,9 @@
         "schedule": "La programmation a échoué.",
         "studio": "Je n'ai pas réussi à répondre. Reformulez en une phrase.",
         "studio-clear": "La conversation n'a pas pu être effacée.",
-        "plan-create": "Le planning n'a pas pu être créé.",
-        "plan-generate": "Le planning n'a pas pu être rempli.",
-        "plan-archive": "Le planning n'a pas pu être archivé.",
+        "plan-create": "Le calendrier n'a pas pu être créé.",
+        "plan-generate": "Le calendrier n'a pas pu être rempli.",
+        "plan-archive": "Le calendrier n'a pas pu être archivé.",
         "strategy-save": "Vos modifications n'ont pas pu être enregistrées.",
         "visual-delete": "Le visuel n'a pas pu être supprimé."
       },
@@ -2922,36 +2922,10 @@
         "context": "Je relis votre marque…",
         "trends": "Je regarde votre secteur…",
         "strategy": "J'écris votre façon de communiquer…",
-        "calendar": "Je construis le planning…",
+        "calendar": "Je construis le calendrier…",
         "occasions": "Je cherche les dates importantes…",
         "brief": "Je choisis l'idée principale…",
         "content": "J'écris vos publications…"
-      },
-      "doors": {
-        "visual": {
-          "title": "Un visuel, tout de suite",
-          "body": "Dites ce que vous voulez annoncer. Le visuel sort avec vos couleurs et votre logo.",
-          "price": "2 crédits",
-          "hereBelow": "C'est juste en dessous"
-        },
-        "plan": {
-          "title": "Organiser mon mois",
-          "body": "Choisissez une période : je prépare tout ce que vous aurez à publier, jour par jour.",
-          "price": "15 crédits",
-          "cta": "Créer mon planning"
-        },
-        "compass": {
-          "title": "Définir votre ligne",
-          "body": "Positionnement, ton, canaux. Elle guide ensuite toutes vos périodes.",
-          "price": "40 crédits · une fois",
-          "cta": "Ouvrir la boussole"
-        },
-        "voice": {
-          "title": "Dire qui vous êtes",
-          "body": "À qui vous parlez, sur quel ton, sur quels réseaux. Tout le reste s'en inspire.",
-          "price": "40 crédits · une seule fois",
-          "cta": "Commencer"
-        }
       },
       "compass": {
         "eyebrow": "Votre ligne",
@@ -2981,15 +2955,15 @@
         }
       },
       "plans": {
-        "title": "Mon planning",
-        "subtitle": "Ce que vous avez à publier, et quand. Vous pouvez en préparer plusieurs : rien ne s'efface.",
-        "new": "Nouveau planning",
+        "title": "Mon calendrier",
+        "subtitle": "Ce que vous allez publier, et quel jour. Vous pouvez en préparer plusieurs : rien ne s'efface.",
+        "new": "Nouveau calendrier",
         "showArchived": "Voir les anciens",
         "hideArchived": "Masquer les anciens",
         "empty": {
           "title": "Rien de prévu pour le moment",
-          "body": "Choisissez une période et je prépare tout ce que vous aurez à publier. Décembre peut se préparer dès octobre.",
-          "cta": "Créer mon premier planning"
+          "body": "Choisissez une période et IDEM prépare tout ce que vous aurez à publier. Décembre peut se préparer dès octobre.",
+          "cta": "Créer mon premier calendrier"
         },
         "status": {
           "draft": "À remplir",
@@ -2998,10 +2972,10 @@
           "archived": "Ancien"
         },
         "itemCount": "{{count}} publications",
-        "generate": "Remplir le planning — 15 crédits",
+        "generate": "Remplir le calendrier — 15 crédits",
         "regenerate": "Tout refaire",
         "archive": "Archiver",
-        "notGenerated": "Ce planning est encore vide.",
+        "notGenerated": "Ce calendrier est encore vide.",
         "brief": {
           "angle": "L'idée principale",
           "keyMessage": "Ce que les gens doivent retenir",
@@ -3076,33 +3050,59 @@
         "placeholder": "Dites ce que vous voulez annoncer…",
         "send": "Envoyer",
         "clear": "Effacer la conversation",
-        "pricingHint": "Discuter ne coûte rien. Un visuel coûte 2 crédits.",
-        "schedule": "Mettre au planning",
+        "pricingHint": "Discuter ne coûte rien. Un visuel coûte 2 crédits, une retouche 1 crédit.",
+        "schedule": "Mettre au calendrier",
         "toStory": "En story",
-        "noPlan": "Créez d'abord un planning pour y mettre ce visuel.",
-        "planLabel": "Dans quel planning",
+        "noPlan": "Créez d'abord un calendrier pour y mettre ce visuel.",
+        "planLabel": "Dans quel calendrier",
         "dateLabel": "À quelle date",
-        "openVisual": "Voir en grand"
+        "openVisual": "Voir en grand",
+        "builderIntro": "Répondez à 3 questions : IDEM compose le visuel avec votre logo, vos couleurs et votre police.",
+        "history": "Voir mes échanges précédents",
+        "newVisual": "Créer un nouveau visuel",
+        "chatHint": "Ici, demandez une modification en quelques mots : « plus sobre », « le prix en plus gros »…",
+        "followUpsLabel": "Vous pouvez demander par exemple :",
+        "followUps": {
+          "simpler": {
+            "label": "Plus sobre",
+            "text": "Rends le visuel plus sobre, avec moins d'éléments."
+          },
+          "bigger": {
+            "label": "Texte plus grand",
+            "text": "Agrandis le texte principal pour qu'il se lise de loin."
+          },
+          "story": {
+            "label": "Aussi en story",
+            "text": "Fais-moi aussi ce visuel en format story pour mon statut WhatsApp."
+          },
+          "caption": {
+            "label": "Le texte du post",
+            "text": "Écris-moi le texte à publier avec ce visuel."
+          }
+        },
+        "retouchPlaceholder": "Demandez une modification…"
       },
       "library": {
         "title": "Mes visuels",
         "subtitle": "Tout ce qui a été créé sur ce projet, d'où que ça vienne.",
         "empty": {
           "title": "Aucun visuel pour l'instant",
-          "body": "Allez dans « Créer » pour en faire un, ou remplissez un planning et créez les visuels de ses publications."
+          "body": "Créez-en un en 3 questions, ou préparez votre calendrier et créez les visuels de ses publications.",
+          "ctaStudio": "Créer un visuel",
+          "ctaPlans": "Préparer mon calendrier"
         },
         "filterFormat": "Format",
         "allFormats": "Tous les formats",
         "filterOrigin": "Créé depuis",
         "allOrigins": "Peu importe",
         "origins": {
-          "plan": "Un planning",
-          "studio": "L'écran Créer",
+          "plan": "Un calendrier",
+          "studio": "Créer un visuel",
           "occasion": "Une date spéciale",
           "brandbook": "La charte"
         },
-        "filterPlan": "Planning",
-        "allPlans": "Tous les plannings",
+        "filterPlan": "Calendrier",
+        "allPlans": "Tous les calendriers",
         "count": "{{count}} visuels",
         "previewAlt": "Aperçu du visuel : {{title}}",
         "brief": "Ce qui a été demandé",
@@ -3110,7 +3110,7 @@
         "declinate": "Aussi dans un autre format",
         "publish": "Publier",
         "publishHint": "Le texte est copié et le réseau s'ouvre : il ne reste qu'à coller et publier.",
-        "publishNeedsSchedule": "Mettez d'abord ce visuel au planning pour pouvoir le publier.",
+        "publishNeedsSchedule": "Mettez d'abord ce visuel au calendrier pour pouvoir le publier.",
         "delete": "Supprimer ce visuel",
         "deleteAsk": "Supprimer définitivement ce visuel ?",
         "deleteConfirm": "Supprimer"
@@ -3128,7 +3128,7 @@
         "regenerate": "Tout réécrire",
         "empty": {
           "title": "Pas encore renseigné",
-          "body": "On y note une fois pour toutes à qui vous parlez, ce que vous avez à dire et sur quel ton. Chaque planning s'en sert ensuite, au lieu de repartir de zéro.",
+          "body": "On y note une fois pour toutes à qui vous parlez, ce que vous avez à dire et sur quel ton. Chaque calendrier s'en sert ensuite, au lieu de repartir de zéro.",
           "cta": "Le remplir — 40 crédits"
         },
         "blockKinds": {
@@ -3222,7 +3222,7 @@
         "ctaPlaceholder": "Passez nous voir, Appelez-nous…",
         "dateBounds": "Entre le {{start}} et le {{end}}",
         "forOccasion": "Publication prévue pour : {{occasion}}",
-        "delete": "Retirer du planning",
+        "delete": "Retirer du calendrier",
         "deleteAsk": "Retirer cette publication ? Le visuel déjà créé sera conservé dans « Mes visuels ».",
         "deleteConfirm": "Oui, retirer",
         "fields": {
@@ -3284,6 +3284,229 @@
           "finance": {
             "label": "Prévisions financières",
             "effect": "Elles donnent vos prix et votre budget de communication — de quoi proposer des canaux que vous pouvez réellement financer."
+          }
+        }
+      },
+      "nav": {
+        "home": {
+          "label": "Accueil",
+          "hint": "Où j'en suis, quoi faire ensuite"
+        },
+        "studio": {
+          "label": "Créer un visuel",
+          "hint": "Une image à vos couleurs, en 3 questions"
+        },
+        "plans": {
+          "label": "Mon calendrier",
+          "hint": "Quoi publier, et quel jour"
+        },
+        "library": {
+          "label": "Mes visuels",
+          "hint": "Tout ce que vous avez déjà créé"
+        }
+      },
+      "home": {
+        "progress": "{{done}} étape(s) sur 4 terminée(s)",
+        "next": {
+          "voice": {
+            "title": "Commencez par dire qui vous êtes",
+            "body": "IDEM a besoin de savoir à qui vous parlez et sur quel ton. Vous le faites une seule fois : le calendrier, les visuels et les textes s'en inspirent ensuite."
+          },
+          "plan": {
+            "title": "Préparez votre calendrier de publications",
+            "body": "Choisissez une période, le mois prochain par exemple. IDEM prévoit chaque publication : le sujet, le jour, le réseau et le texte à poster."
+          },
+          "visuals": {
+            "title": "Créez les visuels de vos publications",
+            "body": "{{count}} publication(s) attendent encore leur image. Ouvrez-en une dans votre calendrier : un clic, et le visuel sort à vos couleurs."
+          },
+          "publish": {
+            "title": "Publiez sur vos réseaux",
+            "body": "Vos publications sont prêtes. Ouvrez-en une : le texte est copié et le réseau s'ouvre, il ne reste qu'à coller."
+          }
+        },
+        "allDone": {
+          "title": "Tout est à jour",
+          "body": "Toutes les publications de votre calendrier sont en ligne. Préparez la période suivante pour garder le rythme.",
+          "cta": "Préparer la suite"
+        },
+        "quickVisualLink": "Juste besoin d'un visuel ? Créez-le maintenant",
+        "journeyTitle": "Votre communication en 4 étapes",
+        "journeyHelp": "Suivez-les dans l'ordre la première fois. Vous pouvez revenir à n'importe laquelle à tout moment.",
+        "state": {
+          "done": "Fait",
+          "next": "Prochaine étape",
+          "todo": "À faire"
+        },
+        "steps": {
+          "voice": {
+            "title": "Dites qui vous êtes",
+            "why": "À qui vous parlez, sur quel ton, sur quels réseaux. À faire une seule fois.",
+            "price": "40 crédits, une seule fois",
+            "cta": "Commencer",
+            "ctaDone": "Relire"
+          },
+          "plan": {
+            "title": "Préparez votre calendrier",
+            "why": "IDEM prévoit quoi publier et quel jour, pour la période de votre choix.",
+            "price": "15 crédits par période",
+            "cta": "Créer mon calendrier",
+            "ctaDone": "Voir mon calendrier"
+          },
+          "visuals": {
+            "title": "Créez vos visuels",
+            "why": "Une image à vos couleurs et avec votre logo pour chaque publication du calendrier.",
+            "price": "2 crédits par visuel",
+            "cta": "Créer les visuels",
+            "ctaDone": "Voir le calendrier",
+            "progress": "{{done}} sur {{total}} prêts"
+          },
+          "publish": {
+            "title": "Publiez",
+            "why": "Le texte est prêt : copiez-le, collez-le sur votre réseau, c'est en ligne.",
+            "price": "Gratuit",
+            "cta": "Voir quoi publier",
+            "ctaDone": "Voir le calendrier",
+            "progress": "{{done}} sur {{total}} publiés"
+          }
+        },
+        "quick": {
+          "title": "Un visuel, tout de suite",
+          "body": "Pas besoin de calendrier pour une annonce ponctuelle : répondez à 3 questions, le visuel sort à vos couleurs.",
+          "cta": "Créer un visuel"
+        },
+        "upcoming": {
+          "title": "À publier bientôt",
+          "empty": "Rien de prévu pour l'instant. Votre calendrier vous dira quoi publier chaque jour.",
+          "today": "Aujourd'hui",
+          "tomorrow": "Demain",
+          "ready": "Visuel prêt",
+          "all": "Voir tout le calendrier"
+        },
+        "recent": {
+          "title": "Vos derniers visuels",
+          "all": "Voir tous mes visuels"
+        }
+      },
+      "builder": {
+        "stepLabels": {
+          "1": "Quoi ?",
+          "2": "Les détails",
+          "3": "Où ?"
+        },
+        "what": {
+          "question": "Que voulez-vous annoncer ?",
+          "help": "Choisissez ce qui se rapproche le plus. Vous préciserez juste après."
+        },
+        "kinds": {
+          "announce": {
+            "label": "Une annonce",
+            "hint": "Nouveaux horaires, ouverture, information",
+            "placeholder": "Ex. : à partir du 1er novembre, nous sommes aussi ouverts le samedi de 9 h à 14 h.",
+            "prompt": "faire une annonce"
+          },
+          "promotion": {
+            "label": "Une promotion",
+            "hint": "Réduction, offre spéciale, soldes",
+            "placeholder": "Ex. : -20 % sur tous les pagnes jusqu'au 15 octobre, boutique de Cocody.",
+            "prompt": "une promotion"
+          },
+          "product": {
+            "label": "Un produit ou service",
+            "hint": "Le présenter, le mettre en avant",
+            "placeholder": "Ex. : notre nouveau jus de bissap 100 % naturel, 500 F CFA la bouteille.",
+            "prompt": "présenter un produit ou un service"
+          },
+          "event": {
+            "label": "Un événement",
+            "hint": "Inauguration, atelier, salon",
+            "placeholder": "Ex. : portes ouvertes samedi 12 octobre de 10 h à 18 h, dégustation gratuite.",
+            "prompt": "un événement"
+          },
+          "celebration": {
+            "label": "Souhaiter une fête",
+            "hint": "Tabaski, Noël, fête nationale…",
+            "placeholder": "Ex. : souhaiter une bonne fête de l'Indépendance à nos clients.",
+            "prompt": "souhaiter une fête à nos clients"
+          },
+          "recruitment": {
+            "label": "Je recrute",
+            "hint": "Annoncer un poste à pourvoir",
+            "placeholder": "Ex. : nous recrutons un(e) vendeur(se) à temps plein à Dakar, CV par WhatsApp.",
+            "prompt": "annoncer un recrutement"
+          },
+          "other": {
+            "label": "Autre chose",
+            "hint": "Je décris moi-même",
+            "placeholder": "Décrivez ce que le visuel doit dire.",
+            "prompt": "communiquer"
+          }
+        },
+        "details": {
+          "question": "Que doit dire le visuel ?",
+          "help": "Écrivez-le comme vous le diriez à un client. IDEM s'occupe de la mise en page.",
+          "tips": {
+            "when": "La date ou la durée",
+            "price": "Le prix ou la réduction",
+            "where": "Le lieu ou le contact"
+          }
+        },
+        "where": {
+          "question": "Où allez-vous le publier ?",
+          "help": "Cela décide de la forme de l'image. Vous pourrez l'avoir dans un autre format ensuite."
+        },
+        "places": {
+          "square": {
+            "label": "Publication",
+            "hint": "Le fil d'Instagram, Facebook, LinkedIn",
+            "prompt": "au format carré, pour une publication sur Instagram ou Facebook"
+          },
+          "story": {
+            "label": "Story ou statut",
+            "hint": "Statut WhatsApp, story Instagram, TikTok",
+            "prompt": "au format story vertical, pour un statut WhatsApp ou une story"
+          },
+          "banner": {
+            "label": "Bannière",
+            "hint": "Couverture Facebook, LinkedIn, site web",
+            "prompt": "au format bannière large, pour une couverture ou un site"
+          },
+          "a4": {
+            "label": "Affiche à imprimer",
+            "hint": "Format A4, pour la boutique ou la rue",
+            "prompt": "au format affiche A4 à imprimer"
+          }
+        },
+        "variants": {
+          "label": "Me proposer 3 versions différentes",
+          "hint": "Pour choisir celle que vous préférez — 5 crédits au lieu de 2."
+        },
+        "prompt": {
+          "intro": "Crée un visuel pour {{kind}},",
+          "format": "{{format}}.",
+          "details": "Voici ce qu'il doit dire : {{details}}",
+          "variants": "Propose-moi 3 versions différentes."
+        },
+        "submit": "Créer mon visuel — {{price}} crédits",
+        "freeText": "Je préfère l'écrire moi-même"
+      },
+      "guide": {
+        "show": "Comment ça marche ?",
+        "hide": "Masquer",
+        "plans": {
+          "title": "Comment ça marche ?",
+          "steps": {
+            "1": "Choisissez une période : IDEM prévoit vos publications, jour par jour, avec le texte prêt à poster.",
+            "2": "Cliquez sur une publication pour la lire, la modifier et créer son visuel en un clic.",
+            "3": "Le jour venu, ouvrez-la et publiez : le texte est copié, le réseau s'ouvre."
+          }
+        },
+        "library": {
+          "title": "Comment ça marche ?",
+          "steps": {
+            "1": "Cliquez sur un visuel pour le voir en grand.",
+            "2": "Téléchargez-le, ou obtenez-le dans un autre format (story, bannière…).",
+            "3": "Publiez-le : le texte est copié et le réseau s'ouvre, il ne reste qu'à coller."
           }
         }
       }

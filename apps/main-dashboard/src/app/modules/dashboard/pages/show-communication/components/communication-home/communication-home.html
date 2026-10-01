@@ -1,0 +1,262 @@
+<section class="ch">
+  <!-- ═══════════════ Quoi faire maintenant ═══════════════ -->
+  <div class="ch-hero glass-card">
+    <!-- Le tambour parleur : la parole portée loin (docs/ILLUSTRATIONS.md). -->
+    <svg
+      class="ch-hero-illu"
+      viewBox="14 4 92 76"
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <g stroke-width="1.6">
+        <ellipse cx="60" cy="20" rx="16" ry="4.5" stroke-width="2" />
+        <ellipse cx="60" cy="68" rx="16" ry="4.5" stroke-width="2" />
+        <path d="M44 20 C51 34 51 54 44 68 M76 20 C69 34 69 54 76 68" />
+        <path
+          d="M46 22.7 L46 66.7 M49.5 24 L49.5 68 M53 25 L53 69 M56.5 25.5 L56.5 69.5 M60 25.5 L60 69.5 M63.5 25 L63.5 69 M67 24 L67 68 M70.5 22.7 L70.5 66.7"
+          stroke-width="1"
+          opacity=".6"
+        />
+        <path d="M44 44 H76" stroke-width="1.2" opacity=".6" />
+        <path
+          d="M50 34 L54 38 L50 42 M70 34 L66 38 L70 42 M50 46 L54 50 L50 54 M70 46 L66 50 L70 54"
+          stroke-width="1.2"
+          opacity=".75"
+        />
+        <path d="M78 76 C88 70 94 62 96 52" stroke-width="2" />
+        <g class="ch-hero-beat" stroke-width="1.8">
+          <path d="M88 22 C92 26 92 32 88 36" />
+          <path d="M94 16 C101 23 101 35 94 42" />
+          <path d="M32 22 C28 26 28 32 32 36" />
+          <path d="M26 16 C19 23 19 35 26 42" />
+        </g>
+      </g>
+    </svg>
+
+    <div class="ch-hero-text">
+      <p class="ch-eyebrow">
+        {{ 'dashboard.showCommunication.home.progress' | translate: { done: doneCount() } }}
+      </p>
+      @if (nextStep(); as step) {
+        <h2 class="ch-hero-title">
+          {{ 'dashboard.showCommunication.home.next.' + step.id + '.title' | translate }}
+        </h2>
+        <p class="ch-hero-body">
+          {{
+            'dashboard.showCommunication.home.next.' + step.id + '.body'
+              | translate
+                : { count: step.progress ? step.progress.total - step.progress.done : 0 }
+          }}
+        </p>
+        <div class="ch-hero-actions">
+          <button type="button" class="inner-button" (click)="runStep(step)">
+            <i [class]="step.icon" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.home.steps.' + step.id + '.cta' | translate }}
+          </button>
+          @if (step.id !== 'voice') {
+            <button type="button" class="ch-link" (click)="go('studio')">
+              {{ 'dashboard.showCommunication.home.quickVisualLink' | translate }}
+              <i class="pi pi-arrow-right" aria-hidden="true"></i>
+            </button>
+          }
+        </div>
+      } @else {
+        <h2 class="ch-hero-title">
+          {{ 'dashboard.showCommunication.home.allDone.title' | translate }}
+        </h2>
+        <p class="ch-hero-body">
+          {{ 'dashboard.showCommunication.home.allDone.body' | translate }}
+        </p>
+        <div class="ch-hero-actions">
+          <button type="button" class="inner-button" (click)="go('newPlan')">
+            <i class="pi pi-plus" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.home.allDone.cta' | translate }}
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="ch-grid">
+    <!-- ═══════════════ Le parcours ═══════════════ -->
+    <section class="ch-journey" aria-labelledby="ch-journey-title">
+      <h2 id="ch-journey-title" class="ch-section-title">
+        {{ 'dashboard.showCommunication.home.journeyTitle' | translate }}
+      </h2>
+      <p class="ch-section-help">
+        {{ 'dashboard.showCommunication.home.journeyHelp' | translate }}
+      </p>
+
+      <ol class="ch-steps">
+        @for (step of steps(); track step.id; let index = $index) {
+          <li
+            class="ch-step"
+            [class.ch-step-done]="step.state === 'done'"
+            [class.ch-step-next]="step.state === 'next'"
+          >
+            <span class="ch-step-marker" aria-hidden="true">
+              @if (step.state === 'done') {
+                <i class="pi pi-check"></i>
+              } @else {
+                {{ index + 1 }}
+              }
+            </span>
+
+            <div class="ch-step-body">
+              <div class="ch-step-head">
+                <h3 class="ch-step-title">
+                  {{ 'dashboard.showCommunication.home.steps.' + step.id + '.title' | translate }}
+                </h3>
+                <span class="tag ch-step-state">
+                  {{ 'dashboard.showCommunication.home.state.' + step.state | translate }}
+                </span>
+              </div>
+              <p class="ch-step-why">
+                {{ 'dashboard.showCommunication.home.steps.' + step.id + '.why' | translate }}
+              </p>
+
+              @if (step.progress; as progress) {
+                <div class="ch-step-progress">
+                  <progress
+                    [value]="progress.done"
+                    [max]="progress.total"
+                    [attr.aria-label]="
+                      'dashboard.showCommunication.home.steps.' + step.id + '.title' | translate
+                    "
+                  ></progress>
+                  <span class="ch-step-count">
+                    {{
+                      'dashboard.showCommunication.home.steps.' + step.id + '.progress'
+                        | translate: { done: progress.done, total: progress.total }
+                    }}
+                  </span>
+                </div>
+              }
+
+              <div class="ch-step-foot">
+                <span class="ch-step-price">
+                  {{ 'dashboard.showCommunication.home.steps.' + step.id + '.price' | translate }}
+                </span>
+                <button
+                  type="button"
+                  [class]="step.state === 'next' ? 'inner-button button-sm' : 'outer-button button-sm'"
+                  (click)="runStep(step)"
+                >
+                  @if (step.state === 'done') {
+                    {{ 'dashboard.showCommunication.home.steps.' + step.id + '.ctaDone' | translate }}
+                  } @else {
+                    {{ 'dashboard.showCommunication.home.steps.' + step.id + '.cta' | translate }}
+                  }
+                </button>
+              </div>
+            </div>
+          </li>
+        }
+      </ol>
+    </section>
+
+    <aside class="ch-side">
+      <!-- ═══════════════ Un visuel, sans calendrier ═══════════════ -->
+      <section class="ch-quick glass-card" aria-labelledby="ch-quick-title">
+        <i class="pi pi-bolt ch-quick-icon" aria-hidden="true"></i>
+        <h2 id="ch-quick-title" class="ch-quick-title">
+          {{ 'dashboard.showCommunication.home.quick.title' | translate }}
+        </h2>
+        <p class="ch-quick-body">
+          {{ 'dashboard.showCommunication.home.quick.body' | translate }}
+        </p>
+        <button type="button" class="outer-button button-sm" (click)="go('studio')">
+          <i class="pi pi-image" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.home.quick.cta' | translate }}
+        </button>
+      </section>
+
+      <!-- ═══════════════ À publier bientôt ═══════════════ -->
+      <section class="ch-card glass-card" aria-labelledby="ch-upcoming-title">
+        <h2 id="ch-upcoming-title" class="ch-section-title">
+          {{ 'dashboard.showCommunication.home.upcoming.title' | translate }}
+        </h2>
+
+        @if (upcoming().length === 0) {
+          <p class="ch-section-help">
+            {{ 'dashboard.showCommunication.home.upcoming.empty' | translate }}
+          </p>
+          <button type="button" class="outer-button button-sm mt-3" (click)="go('newPlan')">
+            <i class="pi pi-calendar-plus" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.home.steps.plan.cta' | translate }}
+          </button>
+        } @else {
+          <ul class="ch-posts">
+            @for (post of upcoming(); track post.item.id) {
+              <li>
+                <button type="button" class="ch-post" (click)="openPost(post)">
+                  <span class="ch-post-date" [class.ch-post-date-soon]="post.whenKey">
+                    @if (post.whenKey) {
+                      {{ 'dashboard.showCommunication.home.upcoming.' + post.whenKey | translate }}
+                    } @else {
+                      {{ post.whenLabel }}
+                    }
+                  </span>
+                  <span class="ch-post-main">
+                    <span class="ch-post-title">{{ post.item.title }}</span>
+                    <span class="ch-post-meta">
+                      <i [class]="channelIcon(post.item.channel)" aria-hidden="true"></i>
+                      {{ channelLabelKey(post.item.channel) | translate }}
+                      <span aria-hidden="true">·</span>
+                      @if (post.hasVisual) {
+                        <span class="ch-post-ready">
+                          {{ 'dashboard.showCommunication.home.upcoming.ready' | translate }}
+                        </span>
+                      } @else {
+                        <span class="ch-post-todo">
+                          {{ 'dashboard.showCommunication.plans.visualToDo' | translate }}
+                        </span>
+                      }
+                    </span>
+                  </span>
+                  <i class="pi pi-chevron-right ch-post-go" aria-hidden="true"></i>
+                </button>
+              </li>
+            }
+          </ul>
+          <button type="button" class="ch-link mt-3" (click)="go('plans')">
+            {{ 'dashboard.showCommunication.home.upcoming.all' | translate }}
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          </button>
+        }
+      </section>
+
+      <!-- ═══════════════ Derniers visuels ═══════════════ -->
+      @if (recentVisuals().length > 0) {
+        <section class="ch-card glass-card" aria-labelledby="ch-recent-title">
+          <h2 id="ch-recent-title" class="ch-section-title">
+            {{ 'dashboard.showCommunication.home.recent.title' | translate }}
+          </h2>
+          <ul class="ch-recent">
+            @for (visual of recentVisuals(); track visual.id) {
+              <li>
+                <button type="button" class="ch-recent-item" (click)="go('library')">
+                  <app-visual-thumb
+                    [visual]="visual"
+                    [label]="
+                      'dashboard.showCommunication.library.previewAlt'
+                        | translate: { title: visual.marketingText.headline }
+                    "
+                  />
+                </button>
+              </li>
+            }
+          </ul>
+          <button type="button" class="ch-link mt-3" (click)="go('library')">
+            {{ 'dashboard.showCommunication.home.recent.all' | translate }}
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          </button>
+        </section>
+      }
+    </aside>
+  </div>
+</section>

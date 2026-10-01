@@ -17,8 +17,20 @@
       <p class="mx-auto mt-2 max-w-md text-sm text-[var(--color-text-secondary)]">
         {{ 'dashboard.showCommunication.library.empty.body' | translate }}
       </p>
+      <div class="mt-6 flex flex-wrap justify-center gap-3">
+        <button type="button" class="inner-button" (click)="createRequested.emit('studio')">
+          <i class="pi pi-image" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.library.empty.ctaStudio' | translate }}
+        </button>
+        <button type="button" class="outer-button" (click)="createRequested.emit('plans')">
+          <i class="pi pi-calendar" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.library.empty.ctaPlans' | translate }}
+        </button>
+      </div>
     </div>
   } @else {
+    <app-screen-guide guideKey="library" />
+
     <!-- ─────────────── Filtres ─────────────── -->
     <div class="glass mb-5 flex flex-wrap items-end gap-3 rounded-2xl p-3">
       <div>

@@ -34,3 +34,71 @@
   text-transform: uppercase;
   color: var(--color-accent-500);
 }
+
+/* ── Onglets : un nom, et ce qu'on y fait ─────────────────────────────────── */
+
+.sc-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (min-width: 56rem) {
+  .sc-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.sc-tab {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.65rem;
+  border-radius: 0.9rem;
+  border: 1.5px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.sc-tab:hover {
+  border-color: var(--glass-border-strong);
+}
+
+.sc-tab-active {
+  border-color: var(--color-primary-500);
+  background: color-mix(in srgb, var(--color-primary-500) 10%, var(--glass-bg-subtle));
+}
+
+.sc-tab-icon {
+  margin-top: 0.15rem;
+  font-size: 1rem;
+  color: var(--color-text-tertiary);
+}
+
+.sc-tab-active .sc-tab-icon {
+  color: var(--color-primary-500);
+}
+
+.sc-tab-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.sc-tab-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.sc-tab-hint {
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--color-text-tertiary);
+}
