@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { forkJoin, of } from 'rxjs';
@@ -8,6 +8,8 @@ import { catchError } from 'rxjs/operators';
 import { ApiService } from '../../services/api.service';
 import { DeploymentType, Server, Workspace, WorkspaceOptions } from '../../models/ideploy.models';
 import { IllustrationComponent } from '../illustration/illustration';
+import { NoServerPromptComponent } from '../no-server-prompt/no-server-prompt';
+import { withQueryParams } from '../../utils/return-to.util';
 
 export interface WorkspaceChoice {
   /** Set when an existing workspace was picked. */
@@ -37,7 +39,7 @@ export interface WorkspaceChoice {
  */
 @Component({
   selector: 'app-workspace-choice-picker',
-  imports: [FormsModule, RouterLink, TranslateModule, IdemLoaderComponent, IllustrationComponent],
+  imports: [FormsModule, TranslateModule, IdemLoaderComponent, IllustrationComponent, NoServerPromptComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
@@ -129,10 +131,7 @@ export interface WorkspaceChoice {
             <div>
               <label class="mb-1 block text-sm" [for]="radioName + '-server'">{{ 'workspaces.form.server' | translate }}</label>
               @if (servers().length === 0) {
-                <p class="text-sm" style="color:var(--color-text-secondary);">
-                  {{ 'workspaces.form.noServers' | translate }}
-                  <a routerLink="/servers/new" style="color:var(--color-primary-500);">{{ 'workspaces.form.addServer' | translate }}</a>
-                </p>
+                <app-no-server-prompt [returnTo]="returnTo()" />
               } @else {
                 <select [id]="radioName + '-server'" [ngModel]="serverUuid()" (ngModelChange)="serverUuid.set($event)">
                   <option value="">{{ 'workspaces.form.chooseServer' | translate }}</option>
@@ -164,6 +163,8 @@ export interface WorkspaceChoice {
 })
 export class WorkspaceChoicePickerComponent implements OnInit {
   private api = inject(ApiService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   /** Prefills the "create new" name — typically the thing being deployed. */
   readonly suggestedName = input<string>('');
@@ -206,6 +207,15 @@ export class WorkspaceChoicePickerComponent implements OnInit {
   /** Set to false once the operator clicks "Changer". */
   protected readonly locked = signal(true);
   private touchedName = false;
+
+  /**
+   * This very page, with "own server" already answered — where adding a
+   * server brings the person back. The server just added comes back as
+   * `?ws_server=` and is picked on arrival (see ngOnInit).
+   */
+  protected readonly returnTo = computed(() =>
+    withQueryParams(this.router, this.router.url, { ws_target: 'own', ws_server: null, ws_name: this.newName().trim() || null })
+  );
 
   protected readonly deploymentTypes = computed<DeploymentType[]>(() => this.options()?.deploymentTypes ?? ['saas', 'own']);
   protected readonly matching = computed(() => this.workspaces().filter((w) => w.deploymentType === this.target()));
@@ -254,8 +264,23 @@ export class WorkspaceChoicePickerComponent implements OnInit {
       this.servers.set(servers);
       this.options.set(options);
 
-      const locked = workspaces.find((w) => w.uuid === this.lockedWorkspaceUuid());
-      if (locked) {
+      // Back from adding a server: resume on "own server", with that server picked.
+      const q = this.route.snapshot.queryParamMap;
+      const returning = q.get('ws_target') === 'own';
+      const returnedName = q.get('ws_name');
+      if (returnedName && !this.touchedName) {
+        this.touchedName = true;
+        this.newName.set(returnedName);
+      }
+
+      const locked = returning ? undefined : workspaces.find((w) => w.uuid === this.lockedWorkspaceUuid());
+      if (returning) {
+        this.locked.set(false);
+        this.target.set('own');
+        this.mode.set('new');
+        const server = q.get('ws_server');
+        if (server && servers.some((s) => s.uuid === server)) this.serverUuid.set(server);
+      } else if (locked) {
         this.target.set(locked.deploymentType);
         this.mode.set('existing');
         this.selectedUuid.set(locked.uuid);

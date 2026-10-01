@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
+import { returnLink, safeReturnTo } from '../../../shared/utils/return-to.util';
 import {
   CloudInitScript,
   CloudToken,
@@ -30,12 +31,13 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a
-      routerLink="/servers"
+      [routerLink]="backLink.path"
+      [queryParams]="backLink.query"
       class="mb-4 inline-flex items-center gap-2 text-sm"
       style="color:var(--color-text-secondary);"
     >
       <i class="pi pi-chevron-left text-[10px]"></i>
-      {{ 'provision.backToServers' | translate }}
+      {{ (returnTo ? 'servers.create.backToDeploy' : 'provision.backToServers') | translate }}
     </a>
 
     <div class="mb-6">
@@ -51,6 +53,12 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
     @if (created()) {
       <div class="mb-4 rounded-lg p-3 text-sm" role="status" style="background:color-mix(in srgb, var(--color-success) 12%, transparent);color:var(--color-success);">
         <strong>{{ 'provision.createdTitle' | translate }}</strong> — {{ 'provision.createdBody' | translate }}
+        @if (returnTo) {
+          <!-- A cloud server takes minutes to boot, so no automatic return: the person goes back when ready. -->
+          <a class="outer-button button-sm mt-3 flex w-fit" [routerLink]="backLink.path" [queryParams]="backLink.query">
+            <i class="pi pi-replay mr-2 text-xs"></i>{{ 'provision.backToDeploy' | translate }}
+          </a>
+        }
       </div>
     }
 
@@ -143,6 +151,10 @@ export class ServerProvisionComponent implements OnInit {
   private api = inject(ApiService);
   private fb = inject(FormBuilder);
   private translate = inject(TranslateService);
+
+  /** Set when a deploy sent us here for a server it needs. */
+  protected readonly returnTo = safeReturnTo(inject(ActivatedRoute).snapshot.queryParamMap.get('returnTo'));
+  protected readonly backLink = returnLink(this.returnTo ?? '/servers');
 
   protected readonly images = IMAGES;
 

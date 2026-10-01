@@ -783,7 +783,9 @@
       "swarmWorker": "Swarm Worker",
       "submit": "Create server",
       "submitting": "Creating…",
-      "submitError": "Failed to create the server."
+      "submitError": "Failed to create the server.",
+      "backToDeploy": "Back to my deployment",
+      "returnNotice": "Once the server is added, you'll go straight back to your deployment, with this server selected."
     },
     "useLocalButton": "Use this machine",
     "addingLocal": "Adding…",
@@ -1673,6 +1675,14 @@
     "createError": "Creating the server failed.",
     "catalogueError": "Could not load the provider's catalogue.",
     "tokensError": "Could not load the cloud credentials.",
-    "afterHint": "Once created, add it to iDeploy from “Add server” using its IP address."
+    "afterHint": "Once created, add it to iDeploy from “Add server” using its IP address.",
+    "backToDeploy": "Back to my deployment"
+  },
+  "noServerPrompt": {
+    "title": "You don't have a server yet",
+    "body": "To deploy on your own machine, iDeploy needs to reach one: connect the one you already have, or create one at a cloud provider.",
+    "add": "Add my server",
+    "cloud": "Create a cloud server",
+    "comeBack": "You'll come back here afterwards to finish your deployment."
   }
 }
