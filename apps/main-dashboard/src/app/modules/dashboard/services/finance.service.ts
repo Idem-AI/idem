@@ -6,6 +6,9 @@ import { environment } from '../../../../environments/environment';
 import {
   AISuggestion,
   FinanceComputed,
+  FinanceImportDraft,
+  FinanceImportMode,
+  FinanceImportPreview,
   FinanceModel,
   FinanceSectionKey,
   FinanceSummaryResponse,
@@ -192,6 +195,44 @@ export class FinanceService {
     );
   }
 
+  // -------------------------------------------------------------------
+  // Import d'un fichier financier
+  // -------------------------------------------------------------------
+
+  /**
+   * Fait lire un fichier (Excel, CSV, PDF, Word, texte) par l'IA. Rend un
+   * brouillon au format IDEM — rien n'est enregistré à ce stade.
+   */
+  analyzeImport(projectId: string, file: File): Observable<FinanceImportPreview> {
+    const body = new FormData();
+    body.append('document', file, file.name);
+    return this.http
+      .post<FinanceImportPreview>(`${this.baseUrl}/${projectId}/import/analyze`, body)
+      .pipe(
+        catchError((error) => {
+          console.error('[FinanceService] analyzeImport() failed', error);
+          return throwError(() => error);
+        }),
+      );
+  }
+
+  /** Enregistre le brouillon relu : remplacer les listes concernées ou compléter. */
+  applyImport(
+    projectId: string,
+    draft: FinanceImportDraft,
+    suggestions: AISuggestion[],
+    mode: FinanceImportMode,
+  ): Observable<FinanceModel> {
+    return this.http
+      .post<FinanceModel>(`${this.baseUrl}/${projectId}/import/apply`, { draft, suggestions, mode })
+      .pipe(
+        catchError((error) => {
+          console.error('[FinanceService] applyImport() failed', error);
+          return throwError(() => error);
+        }),
+      );
+  }
+
   /** Télécharge le rapport financier PDF complet. */
   downloadFinancePdf(projectId: string): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/${projectId}/pdf`, { responseType: 'blob' }).pipe(
@@ -233,7 +274,9 @@ export class FinanceService {
     if (!Number.isFinite(amount)) return '—';
     const rounded = Math.round(amount);
     const formatted = rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-    return `${formatted} ${currency === 'XAF' ? 'FCFA' : currency}`;
+    // Les deux francs CFA s'écrivent « FCFA » : c'est ainsi que l'utilisateur les lit.
+    const symbol = currency === 'XAF' || currency === 'XOF' ? 'FCFA' : currency;
+    return `${formatted} ${symbol}`;
   }
 
   /** Formate un pourcentage */

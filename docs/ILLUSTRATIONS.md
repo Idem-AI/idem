@@ -82,6 +82,12 @@ Format : **retenu** — candidats écartés (raison).
 | Avez-vous un logo : import / IA | **votre tampon déposé ; trois empreintes, une retenue** | — |
 | Stratégie de communication | **deux calebasses font parler le tambour** | boussole (pas africaine) |
 | Communication : accueil (parcours en 4 étapes) | **tambour parleur, ondes qui battent** | échelle dogon (l'écran dit d'abord « communiquer », la progression est portée par les étapes numérotées) |
+| Finances : importer mes chiffres | **feuillet apporté, tenu en colonnes** | calebasse de cauris (dit l'argent, pas le document) |
+| Finances : l'IA propose | **plateau d'awalé, une case désignée** | tambour (dit la parole, pas le calcul) |
+| Finances : remplir pas à pas | **échelle dogon appuyée au grenier** | — |
+| Finances : lecture du fichier par l'IA | **van de vannage, le grain utile reste** | métier à tisser (dit la rédaction) |
+| Finances : aperçu prêt / enregistrement | **grenier plein** | pagne déroulé (réservé aux livrables) |
+| Finances : étape vide, échec d'import | **calebasse vide** | — |
 
 ### iDeploy
 
