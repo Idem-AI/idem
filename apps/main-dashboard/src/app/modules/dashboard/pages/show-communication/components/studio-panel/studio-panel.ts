@@ -19,12 +19,22 @@ import {
 } from '../../../../models/communication.model';
 import { FontHints } from '../../../document-editor/models/editor.types';
 import { VisualComposing } from '../visual-composing/visual-composing';
+import { VisualBuilder } from '../visual-builder/visual-builder';
 import { VisualDialog } from '../visual-dialog/visual-dialog';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Amorces proposées sur un fil vide — des phrases, pas des catégories. */
 const STARTERS = ['announce', 'promotion', 'celebration', 'recruitment'] as const;
+
+/**
+ * Retouches proposées sous le dernier visuel.
+ *
+ * Après un premier visuel, la question devient « et maintenant, je dis quoi ? ».
+ * Ces suggestions montrent ce qu'on PEUT demander, dans les mots de tous les
+ * jours ; elles remplissent la saisie sans l'envoyer, comme les amorces.
+ */
+const FOLLOW_UPS = ['simpler', 'bigger', 'story', 'caption'] as const;
 
 /**
  * L'ATELIER — on décrit ce qu'on veut, le visuel sort à la charte.
@@ -35,10 +45,22 @@ const STARTERS = ['announce', 'promotion', 'celebration', 'recruitment'] as cons
  *
  * Converser ne coûte rien ; produire un visuel se facture. L'interface le dit
  * avant, pas après.
+ *
+ * L'écran s'ouvre sur TROIS QUESTIONS (le formulaire guidé), jamais sur un fil
+ * vide : face à une zone de saisie, quelqu'un qui ne vient pas de la tech ne
+ * sait pas quoi écrire. Le fil sert ensuite à retoucher ce qui vient de sortir.
  */
 @Component({
   selector: 'app-studio-panel',
-  imports: [FormsModule, TranslateModule, VisualComposing, VisualDialog, VisualThumb, IdemLoaderComponent],
+  imports: [
+    FormsModule,
+    TranslateModule,
+    VisualBuilder,
+    VisualComposing,
+    VisualDialog,
+    VisualThumb,
+    IdemLoaderComponent,
+  ],
   templateUrl: './studio-panel.html',
   styleUrl: './studio-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -58,6 +80,15 @@ export class StudioPanel {
   readonly needsCredits = output<{ cost: number; balance: number }>();
 
   protected readonly starters = STARTERS;
+  protected readonly followUps = FOLLOW_UPS;
+
+  /**
+   * `builder` : les questions guidées · `chat` : le fil et la saisie libre.
+   *
+   * Toujours `builder` en arrivant : on vient ici pour créer un visuel, et les
+   * échanges précédents restent à un clic.
+   */
+  protected readonly mode = signal<'builder' | 'chat'>('builder');
 
   /**
    * Format et nombre de propositions en cours de composition.
@@ -89,6 +120,12 @@ export class StudioPanel {
    */
   protected readonly openVisualId = signal<string | null>(null);
   protected readonly copiedId = signal<string | null>(null);
+
+  /** Le dernier message de l'assistant porte-t-il un visuel ? Alors on propose des retouches. */
+  protected readonly canRetouch = computed(() => {
+    const last = [...this.messages()].reverse().find((message) => message.role === 'assistant');
+    return !!last && this.visualsOf(last).length > 0;
+  });
 
   protected readonly openVisual = computed<Flyer | null>(() => {
     const id = this.openVisualId();
@@ -149,6 +186,26 @@ export class StudioPanel {
     );
   }
 
+  protected useFollowUp(key: string): void {
+    this.draft.set(
+      this.translate.instant(`dashboard.showCommunication.studio.followUps.${key}.text`) as string,
+    );
+  }
+
+  protected showBuilder(): void {
+    this.mode.set('builder');
+  }
+
+  protected showChat(): void {
+    this.mode.set('chat');
+  }
+
+  /** Le formulaire guidé a rédigé la demande : elle part comme une phrase tapée. */
+  protected sendFromBuilder(content: string): void {
+    this.mode.set('chat');
+    this.sendText(content);
+  }
+
   /**
    * Entrée = envoyer, Maj+Entrée = retour à la ligne.
    *
@@ -166,11 +223,16 @@ export class StudioPanel {
   protected send(): void {
     const content = this.draft().trim();
     if (!content || this.isSending()) return;
+    this.draft.set('');
+    this.sendText(content);
+  }
+
+  private sendText(content: string): void {
+    if (!content || this.isSending()) return;
 
     const projectId = this.projectId();
     this.isSending.set(true);
     this.thinkingLabel.set('dashboard.showCommunication.studio.thinking');
-    this.draft.set('');
 
     // Le message de l'utilisateur est affiché tout de suite : attendre la réponse
     // du serveur pour l'afficher donne l'impression que la saisie a été perdue.

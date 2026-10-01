@@ -298,3 +298,74 @@
   margin-top: 1.25rem;
   padding: 1.1rem;
 }
+
+/* ── Questions guidées ────────────────────────────────────────────────────── */
+
+.sp-builder-head {
+  margin-bottom: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.sp-builder-intro {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.sp-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-primary-500);
+}
+
+.sp-switch:hover {
+  text-decoration: underline;
+}
+
+.sp-builder-foot {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+/* ── Fil : barre du haut ──────────────────────────────────────────────────── */
+
+.sp-toolbar {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 0.9rem;
+}
+
+.sp-toolbar-hint {
+  flex: 1;
+  min-width: 14rem;
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Retouches proposées ──────────────────────────────────────────────────── */
+
+.sp-followups {
+  margin-top: 1.25rem;
+}
+
+.sp-followups-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.sp-starters-left {
+  margin-top: 0.5rem;
+  justify-content: flex-start;
+}

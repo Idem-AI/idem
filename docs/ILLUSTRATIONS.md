@@ -81,6 +81,7 @@ Format : **retenu** — candidats écartés (raison).
 | Éditeur d'identité : fini / le logo suit | **deux étoffes au même signe ; tampon au-dessus du canari** | — |
 | Avez-vous un logo : import / IA | **votre tampon déposé ; trois empreintes, une retenue** | — |
 | Stratégie de communication | **deux calebasses font parler le tambour** | boussole (pas africaine) |
+| Communication : accueil (parcours en 4 étapes) | **tambour parleur, ondes qui battent** | échelle dogon (l'écran dit d'abord « communiquer », la progression est portée par les étapes numérotées) |
 
 ### iDeploy
 

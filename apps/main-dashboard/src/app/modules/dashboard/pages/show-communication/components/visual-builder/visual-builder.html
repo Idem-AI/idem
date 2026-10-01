@@ -1,0 +1,172 @@
+<section class="vb glass-card" aria-labelledby="vb-question">
+  <!-- ─────────────── Où on en est ─────────────── -->
+  <ol class="vb-progress">
+    @for (index of [1, 2, 3]; track index) {
+      <li>
+        <button
+          type="button"
+          class="vb-progress-step"
+          [class.vb-progress-done]="index < step()"
+          [class.vb-progress-current]="index === step()"
+          [attr.aria-current]="index === step() ? 'step' : null"
+          [disabled]="index >= step()"
+          (click)="goTo(index)"
+        >
+          <span class="vb-progress-num" aria-hidden="true">
+            @if (index < step()) {
+              <i class="pi pi-check"></i>
+            } @else {
+              {{ index }}
+            }
+          </span>
+          <span class="vb-progress-label">
+            {{ 'dashboard.showCommunication.builder.stepLabels.' + index | translate }}
+          </span>
+        </button>
+      </li>
+    }
+  </ol>
+
+  <!-- ═══════════ 1. Quoi ? ═══════════ -->
+  @if (step() === 1) {
+    <h2 id="vb-question" class="vb-question">
+      {{ 'dashboard.showCommunication.builder.what.question' | translate }}
+    </h2>
+    <p class="vb-help">{{ 'dashboard.showCommunication.builder.what.help' | translate }}</p>
+
+    <div class="vb-kinds">
+      @for (option of kinds; track option.id) {
+        <button
+          type="button"
+          class="vb-kind"
+          [class.vb-active]="kind() === option.id"
+          [attr.aria-pressed]="kind() === option.id"
+          (click)="chooseKind(option.id)"
+        >
+          <i [class]="option.icon" class="vb-kind-icon" aria-hidden="true"></i>
+          <span class="vb-kind-label">
+            {{ 'dashboard.showCommunication.builder.kinds.' + option.id + '.label' | translate }}
+          </span>
+          <span class="vb-kind-hint">
+            {{ 'dashboard.showCommunication.builder.kinds.' + option.id + '.hint' | translate }}
+          </span>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- ═══════════ 2. Les détails ═══════════ -->
+  @if (step() === 2) {
+    <h2 id="vb-question" class="vb-question">
+      {{ 'dashboard.showCommunication.builder.details.question' | translate }}
+    </h2>
+    <p class="vb-help">{{ 'dashboard.showCommunication.builder.details.help' | translate }}</p>
+
+    <label class="sr-only" for="vb-details">
+      {{ 'dashboard.showCommunication.builder.details.question' | translate }}
+    </label>
+    <textarea
+      id="vb-details"
+      rows="4"
+      class="mt-4"
+      [ngModel]="details()"
+      (ngModelChange)="details.set($event)"
+      name="vbDetails"
+      [attr.placeholder]="
+        'dashboard.showCommunication.builder.kinds.' + kind() + '.placeholder' | translate
+      "
+    ></textarea>
+
+    <ul class="vb-tips">
+      @for (tip of ['when', 'price', 'where']; track tip) {
+        <li>
+          <i class="pi pi-check-circle" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.builder.details.tips.' + tip | translate }}
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- ═══════════ 3. Où ? ═══════════ -->
+  @if (step() === 3) {
+    <h2 id="vb-question" class="vb-question">
+      {{ 'dashboard.showCommunication.builder.where.question' | translate }}
+    </h2>
+    <p class="vb-help">{{ 'dashboard.showCommunication.builder.where.help' | translate }}</p>
+
+    <div class="vb-places">
+      @for (place of places; track place.format) {
+        <button
+          type="button"
+          class="vb-place"
+          [class.vb-active]="format() === place.format"
+          [attr.aria-pressed]="format() === place.format"
+          (click)="format.set(place.format)"
+        >
+          <!-- La forme réelle du visuel : on voit tout de suite s'il est haut ou large. -->
+          <span class="vb-shape-box" aria-hidden="true">
+            <span
+              class="vb-shape"
+              [class.vb-shape-banner]="place.format === 'banner'"
+              [style.aspect-ratio]="formatAspect(place.format)"></span>
+          </span>
+          <span class="vb-place-label">
+            {{ 'dashboard.showCommunication.builder.places.' + place.format + '.label' | translate }}
+          </span>
+          <span class="vb-place-icons" aria-hidden="true">
+            @for (icon of place.icons; track icon) {
+              <i [class]="icon"></i>
+            }
+          </span>
+          <span class="vb-place-hint">
+            {{ 'dashboard.showCommunication.builder.places.' + place.format + '.hint' | translate }}
+          </span>
+        </button>
+      }
+    </div>
+
+    <label class="vb-variants">
+      <input
+        type="checkbox"
+        [ngModel]="variants()"
+        (ngModelChange)="variants.set($event)"
+        name="vbVariants"
+      />
+      <span>
+        <span class="vb-variants-title">
+          {{ 'dashboard.showCommunication.builder.variants.label' | translate }}
+        </span>
+        <span class="vb-variants-hint">
+          {{ 'dashboard.showCommunication.builder.variants.hint' | translate }}
+        </span>
+      </span>
+    </label>
+  }
+
+  <!-- ─────────────── Navigation ─────────────── -->
+  <footer class="vb-footer">
+    @if (step() > 1) {
+      <button type="button" class="outer-button" (click)="back()">
+        <i class="pi pi-arrow-left" aria-hidden="true"></i>
+        {{ 'common.previous' | translate }}
+      </button>
+    } @else {
+      <button type="button" class="vb-free" (click)="freeText.emit()">
+        <i class="pi pi-pencil" aria-hidden="true"></i>
+        {{ 'dashboard.showCommunication.builder.freeText' | translate }}
+      </button>
+    }
+
+    @if (step() === 2) {
+      <button type="button" class="inner-button" [disabled]="!canAdvance()" (click)="next()">
+        {{ 'common.next' | translate }}
+        <i class="pi pi-arrow-right" aria-hidden="true"></i>
+      </button>
+    } @else if (step() === 3) {
+      <button type="button" class="inner-button" [disabled]="busy()" (click)="submit()">
+        <i class="pi pi-sparkles" aria-hidden="true"></i>
+        {{ 'dashboard.showCommunication.builder.submit' | translate: { price: price() } }}
+      </button>
+    }
+  </footer>
+</section>

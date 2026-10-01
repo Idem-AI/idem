@@ -2,10 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommunicationService } from '../../../../services/ai-agents/communication.service';
@@ -26,8 +28,17 @@ import {
 } from '../../communication-ui';
 import { ContentDetail } from '../content-detail/content-detail';
 import { PlanWizard, PlanWizardResult } from '../plan-wizard/plan-wizard';
+import { ScreenGuide } from '../screen-guide/screen-guide';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+
+/**
+ * Ce qu'un autre écran demande au planning en y envoyant l'utilisateur :
+ * ouvrir la création, ou ouvrir une publication précise.
+ */
+export type PlanIntent =
+  | { kind: 'create' }
+  | { kind: 'open'; planId: string; itemId: string };
 
 /** Une case du calendrier mensuel. */
 interface DayCell {
@@ -59,7 +70,14 @@ interface MonthView {
  */
 @Component({
   selector: 'app-plan-panel',
-  imports: [TranslateModule, ContentDetail, PlanWizard, VisualThumb, IdemLoaderComponent],
+  imports: [
+    TranslateModule,
+    ContentDetail,
+    PlanWizard,
+    ScreenGuide,
+    VisualThumb,
+    IdemLoaderComponent,
+  ],
   templateUrl: './plan-panel.html',
   styleUrls: ['./plan-panel.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,8 +92,11 @@ export class PlanPanel {
   readonly suggestedChannels = input<ContentChannel[]>([]);
   readonly visuals = input<Flyer[]>([]);
   readonly fonts = input<FontHints>({});
+  /** Demande venue de l'accueil ; consommée une fois, puis signalée au parent. */
+  readonly intent = input<PlanIntent | null>(null);
 
   readonly plansChange = output<CommunicationPlan[]>();
+  readonly intentHandled = output<void>();
   readonly visualCreated = output<Flyer>();
   readonly failed = output<string>();
 
@@ -190,6 +211,25 @@ export class PlanPanel {
   // ── Génération ──────────────────────────────────────────────────────────
   protected readonly generatingPlanId = signal<string | null>(null);
   protected readonly stepLabel = signal('');
+
+  constructor() {
+    // Une demande de l'accueil (« Créer mon calendrier », une publication
+    // cliquée) arrive par une entrée : on l'exécute, puis on le dit au parent
+    // pour qu'elle ne rejoue pas au prochain passage sur l'écran.
+    effect(() => {
+      const intent = this.intent();
+      if (!intent) return;
+      untracked(() => {
+        if (intent.kind === 'create') {
+          this.openWizard();
+        } else {
+          this.selectedPlanId.set(intent.planId);
+          this.openItemId.set(intent.itemId);
+        }
+        this.intentHandled.emit();
+      });
+    });
+  }
 
   // ==========================================================================
   // Navigation
