@@ -143,7 +143,11 @@ from Infisical (project `ideploy-api`):
 
 The production machine identity (`ideploy-api-runtime`) can only read the
 `ideploy-api` project. A value already in the environment is never overwritten.
-Everything else (hosts, ports, URLs, public OAuth ids, SSH and Traefik settings)
+The container starts through `scripts/start-provisioned.sh`, which runs under
+`scripts/with-secrets.js`: the secrets are loaded *before* database provisioning
+and migrations (which connect on their own and need `IDEPLOY_DB_PASSWORD`), and
+`DATABASE_URL` is built from the `IDEPLOY_DB_*` variables with each part
+percent-encoded. Everything else (hosts, ports, URLs, public OAuth ids, SSH and Traefik settings)
 stays in `.env`. Details: [docs/CONFIGURATION.md](../../docs/CONFIGURATION.md).
 
 ## Security rules
