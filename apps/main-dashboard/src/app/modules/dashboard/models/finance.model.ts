@@ -598,7 +598,7 @@ export interface FinanceImportPreview {
   report: FinanceImportReport;
 }
 
-export type FinanceImportMode = 'replace' | 'merge';
+export type FinanceImportMode = 'replace' | 'merge' | 'sync';
 
 /** Formats acceptés à l'import — le serveur refait le contrôle. */
 export const FINANCE_IMPORT_ACCEPT = '.xlsx,.csv,.pdf,.docx,.md,.txt';

@@ -108,7 +108,14 @@ export class SidebarDashboard implements OnInit {
       isActive: boolean;
       isNew?: boolean;
       isExpanded?: boolean;
-      children?: Array<{ labelKey: string; route: string; icon: string; isActive: boolean }>;
+      children?: Array<{
+        labelKey: string;
+        route: string;
+        icon: string;
+        isActive: boolean;
+        /** Autres pages qui allument cette entrée (les tableaux calculés). */
+        matches?: string[];
+      }>;
     }>
   >([
     {
@@ -136,71 +143,19 @@ export class SidebarDashboard implements OnInit {
       isActive: false,
       isExpanded: false,
       children: [
+        { labelKey: 'dashboard.finance.nav.overview', route: 'project/finance', icon: 'pi pi-chart-pie', isActive: false },
+        { labelKey: 'dashboard.finance.nav.products', route: 'project/finance/products', icon: 'pi pi-tag', isActive: false },
+        { labelKey: 'dashboard.finance.nav.sales', route: 'project/finance/sales', icon: 'pi pi-shopping-cart', isActive: false },
+        { labelKey: 'dashboard.finance.nav.variable', route: 'project/finance/charges', icon: 'pi pi-box', isActive: false },
+        { labelKey: 'dashboard.finance.nav.fixed', route: 'project/finance/fixed-charges', icon: 'pi pi-users', isActive: false },
+        { labelKey: 'dashboard.finance.nav.investments', route: 'project/finance/investments', icon: 'pi pi-briefcase', isActive: false },
+        { labelKey: 'dashboard.finance.nav.financing', route: 'project/finance/financing', icon: 'pi pi-wallet', isActive: false },
         {
-          labelKey: 'dashboard.finance.sections.overview',
-          route: 'project/finance',
-          icon: 'pi pi-chart-pie',
-          isActive: false,
-        },
-        {
-          labelKey: 'dashboard.finance.sections.products',
-          route: 'project/finance/products',
-          icon: 'pi pi-tag',
-          isActive: false,
-        },
-        {
-          labelKey: 'dashboard.finance.sections.sales',
-          route: 'project/finance/sales',
-          icon: 'pi pi-shopping-cart',
-          isActive: false,
-        },
-        {
-          labelKey: 'dashboard.finance.sections.charges',
-          route: 'project/finance/charges',
-          icon: 'pi pi-wallet',
-          isActive: false,
-        },
-        {
-          labelKey: 'dashboard.finance.sections.investments',
-          route: 'project/finance/investments',
-          icon: 'pi pi-briefcase',
-          isActive: false,
-        },
-        {
-          labelKey: 'dashboard.finance.sections.amortization',
-          route: 'project/finance/amortization',
-          icon: 'pi pi-history',
-          isActive: false,
-        },
-        {
-          labelKey: 'dashboard.finance.sections.financing',
-          route: 'project/finance/financing',
-          icon: 'pi pi-money-bill',
-          isActive: false,
-        },
-        {
-          labelKey: 'dashboard.finance.sections.exploitation',
+          labelKey: 'dashboard.finance.nav.reports',
           route: 'project/finance/exploitation',
           icon: 'pi pi-chart-line',
           isActive: false,
-        },
-        {
-          labelKey: 'dashboard.finance.sections.bilan',
-          route: 'project/finance/bilan',
-          icon: 'pi pi-book',
-          isActive: false,
-        },
-        {
-          labelKey: 'dashboard.finance.sections.cashflow',
-          route: 'project/finance/cashflow',
-          icon: 'pi pi-arrow-right-arrow-left',
-          isActive: false,
-        },
-        {
-          labelKey: 'dashboard.finance.sections.ratios',
-          route: 'project/finance/ratios',
-          icon: 'pi pi-percentage',
-          isActive: false,
+          matches: ['project/finance/cashflow', 'project/finance/bilan', 'project/finance/amortization', 'project/finance/ratios'],
         },
       ],
     },
@@ -289,13 +244,20 @@ export class SidebarDashboard implements OnInit {
     this.journey.reportBlocked(`/${item.route}`);
   }
 
-  /** Un groupe verrouillé (Finances) ouvre la modale au lieu de se déplier. */
-  protected onNavGroupClick(item: { route: string; locked: boolean }, event: Event): void {
+  /**
+   * Clic sur un groupe (Finances) : on ouvre sa page d'accueil — la vue
+   * d'ensemble — et la liste se déplie. Un groupe verrouillé ouvre la modale.
+   */
+  protected onNavGroupClick(item: { route: string; locked: boolean }, event: Event, mobile = false): void {
     if (item.locked) {
       this.onNavItemClick(item, event);
       return;
     }
-    this.toggleExpand(item);
+    this.navigationItems.update((items) =>
+      items.map((i) => (i.route === item.route ? { ...i, isExpanded: true } : i)),
+    );
+    void this.router.navigate([`/${item.route}`]);
+    if (mobile) this.toggleMobileDrawer();
   }
 
   /** Version mobile : même verrou, plus la fermeture du tiroir. */
@@ -307,13 +269,6 @@ export class SidebarDashboard implements OnInit {
     this.toggleMobileDrawer();
   }
 
-  /** Toggle d'expansion d'un item parent (Finances) */
-  toggleExpand(item: { route: string }): void {
-    const items = this.navigationItems();
-    this.navigationItems.set(
-      items.map((i) => (i.route === item.route ? { ...i, isExpanded: !i.isExpanded } : i)),
-    );
-  }
 
   /**
    * L'offre et les crédits, résumés pour le pied de la barre.
@@ -392,7 +347,7 @@ export class SidebarDashboard implements OnInit {
     // Track current route for active menu highlighting
     this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
       if (event instanceof NavigationEnd) {
-        this.currentRoute.set(event.urlAfterRedirects);
+        this.currentRoute.set(event.urlAfterRedirects.split(/[?#]/)[0]);
         // Update menu items to reflect active state
         this.updateSidebarRoutes();
       }
@@ -401,6 +356,9 @@ export class SidebarDashboard implements OnInit {
   }
 
   ngOnInit() {
+    // La barre peut se monter après la première navigation : sans la route
+    // courante, rien ne s'allumerait et Finances resterait replié.
+    this.currentRoute.set(this.router.url.split(/[?#]/)[0]);
     this.updateActiveStates();
     this.loadProjects();
 
@@ -474,18 +432,22 @@ export class SidebarDashboard implements OnInit {
     const currentPath = this.currentRoute();
     const items = this.navigationItems();
 
+    const within = (route: string) => currentPath === `/${route}` || currentPath.startsWith(`/${route}/`);
     const updatedItems = items.map((item) => {
-      const childrenActive = item.children?.some((c) => currentPath.includes(`/${c.route}`));
-      const isActive = currentPath.includes(`/${item.route}`) || !!childrenActive;
+      const inGroup = !!item.children?.length && within(item.route);
       return {
         ...item,
-        isActive,
-        // Expand automatiquement si une route enfant est active
-        isExpanded: childrenActive ? true : item.isExpanded,
+        isActive: currentPath.includes(`/${item.route}`) || inGroup,
+        // Sur n'importe quelle page du groupe, la liste reste dépliée.
+        isExpanded: inGroup ? true : item.isExpanded,
         children: item.children?.map((c) => ({
           ...c,
-          // Active uniquement si la route correspond exactement (évite que /finance matche tout)
-          isActive: currentPath === `/${c.route}` || currentPath.startsWith(`/${c.route}/`),
+          // L'entrée qui porte la route du groupe (Vue d'ensemble) ne s'allume
+          // que sur sa propre page : sinon elle resterait allumée partout.
+          isActive:
+            c.route === item.route
+              ? currentPath === `/${c.route}`
+              : within(c.route) || !!c.matches?.some((m) => within(m)),
         })),
       };
     });

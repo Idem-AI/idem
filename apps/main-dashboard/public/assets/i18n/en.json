@@ -257,8 +257,7 @@
         "subtitle": "What you sell, what it costs, and what you keep — over three years. The tables for the bank are calculated for you.",
         "actions": {
           "import": "Import a file",
-          "ai": "Suggest with AI",
-          "paste": "Paste a table"
+          "ai": "Suggest with AI"
         },
         "imported": {
           "title": "Your file has been imported",
@@ -797,6 +796,47 @@
         },
         "clear": "Clear all",
         "add": "Add to my forecast ({{count}})"
+      },
+      "mode": {
+        "label": "How to enter data",
+        "steps": "Step by step",
+        "sheet": "Spreadsheet",
+        "stepsHint": "Prefer to type or paste everything at once, like in Excel? Switch to Spreadsheet.",
+        "sheetHint": "Your whole forecast on one grid. The same data as in Step by step."
+      },
+      "sheet": {
+        "lead": "One row per item, six columns in this order. Edit directly, or paste a table copied from Excel, Google Sheets or ChatGPT: click a cell, then Ctrl+V.",
+        "detailKept": "Month-by-month detail kept",
+        "count": "{{count}} row(s)",
+        "fixFirst": "Fix the red cells to save.",
+        "seeResults": "See my results",
+        "toolbar": "Spreadsheet tools",
+        "undo": "Undo",
+        "redo": "Redo",
+        "undoHint": "Undo (Ctrl+Z or ⌘Z)",
+        "redoHint": "Redo (Ctrl+Y or ⌘⇧Z)",
+        "insertRow": "Insert a row",
+        "deleteRow": "Delete row",
+        "deleteRows": "Delete {{count}} rows",
+        "shortcuts": "Click row numbers to pick rows · Shift or Ctrl to pick several · right-click for more",
+        "selectRow": "Select row {{n}}",
+        "menu": {
+          "copy": "Copy",
+          "cut": "Cut",
+          "insert": "Insert a row",
+          "clear": "Clear cells"
+        }
+      },
+      "nav": {
+        "overview": "Overview",
+        "sheet": "Spreadsheet",
+        "products": "What I sell",
+        "sales": "My sales",
+        "variable": "Cost of sales",
+        "fixed": "Fixed costs",
+        "investments": "Start-up purchases",
+        "financing": "Funding",
+        "reports": "Tables for the bank"
       }
     },
     "sidebar": {

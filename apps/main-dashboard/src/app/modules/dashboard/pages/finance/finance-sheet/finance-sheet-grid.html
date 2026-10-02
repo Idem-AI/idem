@@ -1,0 +1,130 @@
+<!-- Barre d'outils : quatre actions, leurs raccourcis dans l'infobulle. -->
+<div class="fsg-toolbar" role="toolbar" [attr.aria-label]="'dashboard.finance.sheet.toolbar' | translate">
+  <button type="button" class="fsg-tool" [disabled]="!canUndo()" [title]="'dashboard.finance.sheet.undoHint' | translate" (click)="undo()">
+    <i class="pi pi-undo" aria-hidden="true"></i>
+    <span>{{ 'dashboard.finance.sheet.undo' | translate }}</span>
+  </button>
+  <button type="button" class="fsg-tool" [disabled]="!canRedo()" [title]="'dashboard.finance.sheet.redoHint' | translate" (click)="redo()">
+    <i class="pi pi-refresh" aria-hidden="true"></i>
+    <span>{{ 'dashboard.finance.sheet.redo' | translate }}</span>
+  </button>
+  <span class="fsg-sep" aria-hidden="true"></span>
+  <button type="button" class="fsg-tool" (click)="insertRow()">
+    <i class="pi pi-plus" aria-hidden="true"></i>
+    <span>{{ 'dashboard.finance.sheet.insertRow' | translate }}</span>
+  </button>
+  <button type="button" class="fsg-tool fsg-tool--danger" [disabled]="touchedRows().length === 0" (click)="deleteRows()">
+    <i class="pi pi-trash" aria-hidden="true"></i>
+    <span>
+      @if (touchedRows().length > 1) {
+        {{ 'dashboard.finance.sheet.deleteRows' | translate: { count: touchedRows().length } }}
+      } @else {
+        {{ 'dashboard.finance.sheet.deleteRow' | translate }}
+      }
+    </span>
+  </button>
+  <span class="fsg-hint">{{ 'dashboard.finance.sheet.shortcuts' | translate }}</span>
+</div>
+
+<div
+  class="fsg fp-grid-wrap glass-card !rounded-xl"
+  tabindex="-1"
+  [class.fsg--dragging]="dragging()"
+  (keydown)="onKeyDown($event)"
+  (paste)="onPaste($event)"
+>
+  <table class="fp-grid" role="grid" [attr.aria-rowcount]="view().length">
+    <thead>
+      <tr>
+        <th scope="col" class="fp-num"><span class="sr-only">#</span></th>
+        @for (label of columnLabels(); track $index) {
+          <th scope="col">{{ label }}</th>
+        }
+        <th scope="col" class="fp-tail">{{ 'dashboard.finance.paste.understood' | translate }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of view(); track $index; let r = $index) {
+        <tr [class.fsg-row--on]="isRowSelected(r)">
+          <th scope="row" class="fp-num">
+            <button
+              type="button"
+              class="fsg-rowhead"
+              tabindex="-1"
+              [attr.aria-label]="'dashboard.finance.sheet.selectRow' | translate: { n: r + 1 }"
+              [attr.aria-pressed]="isRowSelected(r)"
+              (mousedown)="$event.preventDefault()"
+              (click)="onRowHeaderClick($event, r)"
+              (contextmenu)="onContextMenu($event, r, 0)"
+            >
+              {{ r + 1 }}
+            </button>
+          </th>
+          @for (label of columnLabels(); track $index; let c = $index) {
+            <td
+              [class.fp-bad]="cellErrors()[r]?.[c]"
+              [class.fsg-cell--on]="isSelected(r, c)"
+              [class.fsg-cell--active]="isActive(r, c)"
+              (mousedown)="onCellMouseDown($event, r, c)"
+              (mouseenter)="onCellMouseEnter(r, c)"
+              (contextmenu)="onContextMenu($event, r, c)"
+            >
+              <input
+                type="text"
+                class="fp-cell"
+                [class.fp-cell--section]="c === 0"
+                [class.fp-cell--wide]="c === 1"
+                [attr.data-cell]="r + '-' + c"
+                [value]="row.cells[c] ?? ''"
+                [attr.list]="c === 0 ? 'fsg-sections' : null"
+                [attr.inputmode]="c >= 2 ? 'decimal' : null"
+                [attr.aria-label]="label + ' ' + (r + 1)"
+                [attr.aria-invalid]="!!cellErrors()[r]?.[c]"
+                (focus)="onInputFocus($event, r, c)"
+                (mouseup)="onInputMouseUp($event)"
+                (blur)="onBlur()"
+                (input)="onInput(r, c, $any($event.target).value)"
+              />
+            </td>
+          }
+          <td class="fp-tail">
+            @if (notes()[r]; as note) {
+              <span class="text-xs" [class.text-danger]="note.error" [class.text-text-tertiary]="!note.error">{{ note.text }}</span>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<datalist id="fsg-sections">
+  @for (label of sectionOptions(); track label) { <option [value]="label"></option> }
+</datalist>
+
+<!-- Clic droit -->
+@if (menu(); as m) {
+  <div class="fsg-menu modal-panel" role="menu" [style.left.px]="m.x" [style.top.px]="m.y" (click)="$event.stopPropagation()">
+    <button type="button" role="menuitem" (click)="copy()">
+      <i class="pi pi-copy" aria-hidden="true"></i>{{ 'dashboard.finance.sheet.menu.copy' | translate }}<kbd>Ctrl C</kbd>
+    </button>
+    <button type="button" role="menuitem" (click)="copy(true)">
+      <i class="pi pi-clone" aria-hidden="true"></i>{{ 'dashboard.finance.sheet.menu.cut' | translate }}<kbd>Ctrl X</kbd>
+    </button>
+    <hr />
+    <button type="button" role="menuitem" (click)="insertRow()">
+      <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.sheet.menu.insert' | translate }}
+    </button>
+    <button type="button" role="menuitem" (click)="clearSelection()">
+      <i class="pi pi-eraser" aria-hidden="true"></i>{{ 'dashboard.finance.sheet.menu.clear' | translate }}<kbd>Suppr</kbd>
+    </button>
+    <button type="button" role="menuitem" class="fsg-menu__danger" (click)="deleteRows()">
+      <i class="pi pi-trash" aria-hidden="true"></i>
+      @if (touchedRows().length > 1) {
+        {{ 'dashboard.finance.sheet.deleteRows' | translate: { count: touchedRows().length } }}
+      } @else {
+        {{ 'dashboard.finance.sheet.deleteRow' | translate }}
+      }
+    </button>
+  </div>
+}

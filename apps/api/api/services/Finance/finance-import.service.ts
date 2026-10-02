@@ -144,7 +144,14 @@ export interface FinanceImportPreview {
   report: FinanceImportReport;
 }
 
-export type FinanceImportMode = 'replace' | 'merge';
+/**
+ * - `merge`   : les lignes s'ajoutent à l'existant ;
+ * - `replace` : chaque liste fournie remplace la liste en place ;
+ * - `sync`    : le tableur fait foi — TOUTES les listes deviennent celles du
+ *               brouillon, vides comprises. Une ligne effacée dans le tableur
+ *               disparaît du prévisionnel.
+ */
+export type FinanceImportMode = 'replace' | 'merge' | 'sync';
 
 // ---------------------------------------------------------------------------
 // Admission du document — sans IA
@@ -475,7 +482,12 @@ export class FinanceImportService {
 
     // Le brouillon revient du navigateur : il repasse par la même mise en forme.
     const draft = this.buildDraft(this.draftToSchema(rawDraft), current);
-    const next = mode === 'replace' ? replaceWith(current, draft) : mergeInto(current, draft);
+    const next =
+      mode === 'sync'
+        ? syncWith(current, draft)
+        : mode === 'replace'
+          ? replaceWith(current, draft)
+          : mergeInto(current, draft);
 
     const suggestions: AISuggestion[] = (Array.isArray(rawSuggestions) ? rawSuggestions : [])
       .filter((s: any) => s && typeof s.fieldPath === 'string')
@@ -709,7 +721,31 @@ function mergeInto(current: FinanceModel, d: FinanceImportDraft): Partial<Financ
   });
 }
 
-/** Les taux que le document énonce l'emportent, dans les deux modes. */
+/** Le tableur fait foi : chaque liste est remplacée, même vide. */
+function syncWith(current: FinanceModel, d: FinanceImportDraft): Partial<FinanceModel> {
+  // Plus aucune ligne de financement dans le tableur : les montants tombent à
+  // zéro, mais taux et durées déjà réglés sont gardés.
+  const financing: FinancingPlan = d.financing ?? {
+    ...current.financing,
+    apportCapital: 0,
+    subvention: 0,
+    creditFournisseurs: 0,
+    autofinancement: 0,
+    cmt: { ...current.financing.cmt, amount: 0 },
+    compteCourantAssocies: { ...current.financing.compteCourantAssocies, amount: 0 },
+    creditBail: { ...current.financing.creditBail, amount: 0 },
+  };
+  return withParams(current, d, {
+    products: d.products,
+    salesObjectives: d.salesObjectives,
+    variableCharges: { ...current.variableCharges, lines: d.variableChargeLines },
+    fixedCharges: { ...current.fixedCharges, lines: d.fixedChargeLines, salaries: d.salaries },
+    investments: d.investments,
+    financing,
+  });
+}
+
+/** Les taux que le document énonce l'emportent, dans tous les modes. */
 function withParams(
   current: FinanceModel,
   d: FinanceImportDraft,

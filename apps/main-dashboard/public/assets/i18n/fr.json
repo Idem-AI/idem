@@ -257,8 +257,7 @@
         "subtitle": "Ce que vous vendez, ce que ça coûte, et ce qu'il vous reste — sur trois ans. Les tableaux pour la banque se calculent tout seuls.",
         "actions": {
           "import": "Importer un fichier",
-          "ai": "Proposer avec l'IA",
-          "paste": "Coller un tableau"
+          "ai": "Proposer avec l'IA"
         },
         "imported": {
           "title": "Votre fichier a été importé",
@@ -797,6 +796,47 @@
         },
         "clear": "Tout effacer",
         "add": "Ajouter à mon prévisionnel ({{count}})"
+      },
+      "mode": {
+        "label": "Façon de saisir",
+        "steps": "Pas à pas",
+        "sheet": "Tableur",
+        "stepsHint": "Vous préférez tout saisir ou coller d'un bloc, comme dans Excel ? Passez en mode Tableur.",
+        "sheetHint": "Tout votre prévisionnel sur une grille. Les mêmes données qu'en mode Pas à pas."
+      },
+      "sheet": {
+        "lead": "Une ligne par élément, six colonnes dans cet ordre. Modifiez directement, ou collez un tableau copié depuis Excel, Google Sheets ou ChatGPT : cliquez dans une case, puis Ctrl+V.",
+        "detailKept": "Détail mois par mois conservé",
+        "count": "{{count}} ligne(s)",
+        "fixFirst": "Corrigez les cases en rouge pour enregistrer.",
+        "seeResults": "Voir mes résultats",
+        "toolbar": "Outils du tableur",
+        "undo": "Annuler",
+        "redo": "Rétablir",
+        "undoHint": "Annuler (Ctrl+Z ou ⌘Z)",
+        "redoHint": "Rétablir (Ctrl+Y ou ⌘⇧Z)",
+        "insertRow": "Insérer une ligne",
+        "deleteRow": "Supprimer la ligne",
+        "deleteRows": "Supprimer les {{count}} lignes",
+        "shortcuts": "Cliquez sur les numéros pour choisir des lignes · Maj ou Ctrl pour en prendre plusieurs · clic droit pour plus",
+        "selectRow": "Sélectionner la ligne {{n}}",
+        "menu": {
+          "copy": "Copier",
+          "cut": "Couper",
+          "insert": "Insérer une ligne",
+          "clear": "Vider les cases"
+        }
+      },
+      "nav": {
+        "overview": "Vue d'ensemble",
+        "sheet": "Tableur",
+        "products": "Ce que je vends",
+        "sales": "Mes ventes",
+        "variable": "Coûts des ventes",
+        "fixed": "Dépenses fixes",
+        "investments": "Achats de départ",
+        "financing": "Financement",
+        "reports": "Tableaux pour la banque"
       }
     },
     "sidebar": {

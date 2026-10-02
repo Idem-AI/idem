@@ -562,6 +562,16 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    path: 'project/finance/sheet',
+    title: 'navigation.titles.finance',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-sheet/finance-sheet').then(
+        (m) => m.FinanceSheetComponent,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
     path: 'project/finance/products',
     title: 'navigation.titles.financeProducts',
     loadComponent: () =>
