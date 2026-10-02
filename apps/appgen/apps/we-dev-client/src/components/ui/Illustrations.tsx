@@ -179,7 +179,7 @@ export function HelpIllustration({ className = '', size = 88 }: IllustrationProp
    Illustrations de la page d'accueil
    ================================================================== */
 
-/** Tracé de la maquette : un schéma de l'interface, pas une illustration. */
+/** Tracé de la maquette : au trait, comme les autres illustrations. */
 const stroke = {
   fill: 'none',
   stroke: 'currentColor',
@@ -188,13 +188,26 @@ const stroke = {
   strokeLinejoin: 'round' as const,
 };
 
+/** Losange plein (signature IDEM) centré en (x, y), de demi-diagonale r. */
+const diamond = (x: number, y: number, r: number) =>
+  `M${x} ${y - r} L${x + r} ${y} L${x} ${y + r} L${x - r} ${y}Z`;
+
+/* Les motifs des bandes tissées de l'aperçu, calculés plutôt que recopiés. */
+const WEAVE_TEETH = Array.from({ length: 42 }, (_, i) => `${i ? 'L' : 'M'}${260 + i * 8} ${i % 2 ? 227 : 219}`).join(' ');
+const WEAVE_DIAMONDS = Array.from({ length: 14 }, (_, i) => diamond(268 + i * 24, 243, 5)).join(' ');
+const WEAVE_DOTS = Array.from({ length: 21 }, (_, i) => `M${264 + i * 10} 263h0.01`).join(' ');
+const WEAVE_WARP = Array.from({ length: 15 }, (_, i) => `M${478 + i * 8} 254V274`).join(' ');
+
 /**
  * Maquette du produit : la coquille du builder, conversation à gauche et
  * aperçu à droite, avec la barre d'outils flottante.
  *
- * Une capture d'écran vieillirait à chaque évolution de l'interface et ne
- * saurait pas suivre le thème ; ce schéma dit la même chose — voilà à quoi
- * ressemble l'outil — et reste juste.
+ * La disposition reste celle de l'outil, pour qu'on le reconnaisse ; ce qui
+ * s'y construit est dessiné dans le vocabulaire IDEM. Le tambour parleur
+ * porte la conversation, l'application générée est une façade en banco, et
+ * la page se tisse en bandes étroites — kente, losanges, points de bogolan —
+ * dont la dernière est encore sur le métier : la navette, seul détail en
+ * couleur, dit que le code se fait fil à fil, sous les yeux.
  */
 export function ProductMockIllustration({ className = '' }: { className?: string }) {
   return (
@@ -207,34 +220,69 @@ export function ProductMockIllustration({ className = '' }: { className?: string
       {/* Fenêtre */}
       <rect x="8" y="8" width="624" height="364" rx="14" {...stroke} />
       <path d="M8 44h624" {...stroke} />
-      <circle cx="30" cy="26" r="4" fill="currentColor" opacity=".45" />
-      <circle cx="46" cy="26" r="4" fill="currentColor" opacity=".3" />
-      <circle cx="62" cy="26" r="4" fill="currentColor" opacity=".3" />
-      <rect x="88" y="20" width="54" height="12" rx="6" className="text-primary" {...stroke} />
+      <path d={`${diamond(30, 26, 4)} ${diamond(46, 26, 4)} ${diamond(62, 26, 4)}`} fill="currentColor" opacity=".35" />
+      <rect x="88" y="20" width="54" height="12" rx="6" {...stroke} />
       <rect x="470" y="19" width="62" height="14" rx="7" fill="currentColor" opacity=".12" />
-      <rect x="472" y="21" width="28" height="10" rx="5" fill="var(--color-primary)" opacity=".75" />
-      <rect x="546" y="19" width="52" height="14" rx="7" fill="var(--color-primary)" opacity=".9" />
+      <rect x="472" y="21" width="28" height="10" rx="5" fill="currentColor" opacity=".3" />
+      <rect x="546" y="19" width="52" height="14" rx="7" {...stroke} />
       <circle cx="614" cy="26" r="8" {...stroke} />
 
-      {/* Conversation */}
+      {/* Conversation : le tambour parleur répond */}
       <path d="M212 44v328" {...stroke} />
-      <rect x="32" y="70" width="120" height="9" rx="4.5" fill="currentColor" opacity=".28" />
-      <rect x="32" y="88" width="152" height="9" rx="4.5" fill="currentColor" opacity=".16" />
-      <rect x="72" y="118" width="112" height="9" rx="4.5" fill="var(--color-primary)" opacity=".5" />
-      <rect x="32" y="150" width="140" height="9" rx="4.5" fill="currentColor" opacity=".16" />
-      <rect x="32" y="168" width="96" height="9" rx="4.5" fill="currentColor" opacity=".16" />
-      <rect x="32" y="326" width="152" height="30" rx="10" {...stroke} className="text-primary" />
-      <path d="M164 341h10" {...stroke} className="text-primary" />
+      <g {...stroke} strokeWidth="1.2">
+        <ellipse cx="42" cy="60" rx="11" ry="3.2" />
+        <ellipse cx="42" cy="90" rx="11" ry="3.2" />
+        <path d="M31 60C36 69 36 81 31 90M53 60C48 69 48 81 53 90" />
+        <path d="M34 62.5L50 87.5M50 62.5L34 87.5M38 63L46 87M46 63L38 87" strokeWidth=".7" opacity=".6" />
+      </g>
+      <rect x="64" y="64" width="104" height="9" rx="4.5" fill="currentColor" opacity=".28" />
+      <rect x="64" y="81" width="120" height="9" rx="4.5" fill="currentColor" opacity=".16" />
+      <rect x="72" y="108" width="112" height="26" rx="8" {...stroke} />
+      <rect x="84" y="117" width="88" height="8" rx="4" fill="currentColor" opacity=".28" />
+      <rect x="32" y="152" width="140" height="9" rx="4.5" fill="currentColor" opacity=".16" />
+      <path d={`${diamond(36, 186, 4)} ${diamond(36, 206, 4)} ${diamond(36, 226, 4)}`} {...stroke} strokeWidth="1.2" />
+      <rect x="48" y="182" width="104" height="8" rx="4" fill="currentColor" opacity=".16" />
+      <rect x="48" y="202" width="86" height="8" rx="4" fill="currentColor" opacity=".16" />
+      <rect x="48" y="222" width="96" height="8" rx="4" fill="currentColor" opacity=".1" />
+      <rect x="32" y="326" width="152" height="30" rx="10" {...stroke} />
+      <path d="M164 341h10M170 337l4 4-4 4" {...stroke} />
 
-      {/* Aperçu */}
+      {/* Aperçu : l'application bâtie et sa page tissée */}
       <rect x="236" y="66" width="376" height="230" rx="10" {...stroke} opacity=".7" />
       <path d="M236 92h376" {...stroke} opacity=".7" />
-      <rect x="256" y="116" width="150" height="86" rx="8" fill="currentColor" opacity=".14" />
-      <rect x="424" y="116" width="168" height="12" rx="6" fill="currentColor" opacity=".22" />
-      <rect x="424" y="140" width="130" height="12" rx="6" fill="currentColor" opacity=".14" />
-      <rect x="424" y="170" width="86" height="24" rx="8" fill="var(--color-primary)" opacity=".85" />
-      <rect x="256" y="224" width="336" height="10" rx="5" fill="currentColor" opacity=".12" />
-      <rect x="256" y="246" width="248" height="10" rx="5" fill="currentColor" opacity=".12" />
+      <path d={diamond(256, 79, 5)} {...stroke} strokeWidth="1.3" />
+      <path d="M506 79h20M538 79h20M570 79h20" {...stroke} strokeWidth="3" opacity=".25" />
+
+      {/* Façade en banco à torons */}
+      <g transform="translate(265 112) scale(1.1)" {...stroke} strokeWidth="1">
+        <path d="M12 80 H108" opacity=".4" />
+        <path d="M20 80 V22 M36 80 V22 M84 80 V22 M100 80 V22" strokeWidth="1.1" />
+        <path d="M20 22 C20 14 28 10 28 4 C28 10 36 14 36 22 M84 22 C84 14 92 10 92 4 C92 10 100 14 100 22" strokeWidth="1.2" />
+        <path d="M52 22 C52 16 56 14 60 8 C64 14 68 16 68 22" strokeWidth="1.2" />
+        <path d="M20 22 H100 V80 H20Z" strokeWidth="1.4" />
+        <path d="M26 26 h8 M42 26 h8 M70 26 h8 M86 26 h8 M26 44 h8 M42 44 h8 M70 44 h8 M86 44 h8 M26 62 h8 M42 62 h8 M70 62 h8 M86 62 h8" strokeWidth="1.5" />
+        <path d="M42 32 L46 36 L50 32 M70 32 L74 36 L78 32" strokeWidth=".7" opacity=".6" />
+        <path d="M52 80 V58 C52 52 56 50 60 50 C64 50 68 52 68 58 V80" strokeWidth="1.4" />
+      </g>
+      <rect x="424" y="120" width="168" height="12" rx="6" fill="currentColor" opacity=".22" />
+      <rect x="424" y="142" width="130" height="12" rx="6" fill="currentColor" opacity=".14" />
+      <rect x="424" y="168" width="86" height="24" rx="6" {...stroke} />
+      <rect x="440" y="177" width="54" height="6" rx="3" fill="currentColor" opacity=".3" />
+
+      {/* Bandes tissées : kente, losanges, puis la bande encore sur le métier */}
+      <g {...stroke} strokeWidth="1.1">
+        <rect x="256" y="214" width="336" height="18" rx="1" opacity=".7" />
+        <path d={WEAVE_TEETH} opacity=".7" />
+        <rect x="256" y="236" width="336" height="14" rx="1" opacity=".7" />
+        <path d={WEAVE_DIAMONDS} opacity=".7" />
+        <path d="M256 256H470V270H256" opacity=".7" />
+        <path d={WEAVE_DOTS} strokeWidth="2.6" opacity=".7" />
+        <path d={WEAVE_WARP} strokeWidth=".8" opacity=".45" />
+      </g>
+      <g style={ACCENT} transform="translate(436 213)" {...stroke}>
+        <path d="M34 50 C44 46 76 46 86 50 C76 54 44 54 34 50Z" strokeWidth="1.6" />
+        <path d="M52 50 H68" strokeWidth="2.2" />
+      </g>
 
       {/* Barre d'outils flottante */}
       <rect
@@ -246,7 +294,7 @@ export function ProductMockIllustration({ className = '' }: { className?: string
         fill="var(--idem-surface-1)"
         {...stroke}
       />
-      <circle cx="344" cy="333" r="5" fill="var(--color-primary)" />
+      <path d={diamond(344, 333, 6)} {...stroke} />
       <path d="M372 327v12M400 327v12M428 327v12" {...stroke} opacity=".4" />
       <path d="M452 329l8 8M460 329l-8 8" {...stroke} opacity=".4" />
       <path d="M486 327h20" {...stroke} opacity=".4" />

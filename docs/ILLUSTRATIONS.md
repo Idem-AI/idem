@@ -135,6 +135,7 @@ l'argent), tampon adinkra (réservé à l'identité de marque).
 | Entrée par une phrase | tambour parleur → façade en banco |
 | Entrée par un projet | baobab, tampon, filet → métier à tisser |
 | Visite guidée (5 étapes) | tambour → façade ; tambour ; étal ; clé-bouclier ; pirogue |
+| Maquette du produit (accueil) | coquille du builder gardée ; tambour parleur dans la conversation, façade en banco dans l'aperçu, page tissée en bandes (kente, losanges, bogolan), la dernière encore sur le métier, navette en couleur |
 
 ### Landing
 
@@ -176,6 +177,5 @@ comprendre le choix.
 - Types de logo (symbole, nom, monogramme) et modes de création : des exemples
   de logos.
 - Format de la charte (A4 / 16:9) : le format lui-même.
-- Maquette du produit AppGen : un schéma de l'interface.
 - Graphiques et jauges (finances, trésorerie, viabilité, courbe de prix,
   faisceau de trajectoires de la page simulateur) : des données.
