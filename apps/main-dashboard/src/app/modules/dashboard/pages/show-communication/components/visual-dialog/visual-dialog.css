@@ -123,3 +123,36 @@
   display: flex;
   gap: 0.4rem;
 }
+
+/* ── Téléphone : plein écran ─────────────────────────────────────────────── */
+
+/*
+ * Une carte flottante à 92 % de hauteur laissait sur un téléphone une bande de
+ * page inutilisable autour, et la croix de fermeture partait avec le défilement.
+ * Plein écran, en-tête collé : on sait toujours comment sortir.
+ */
+@media (max-width: 640px) {
+  .vd-backdrop {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .vd-panel {
+    height: 100dvh;
+    max-height: 100dvh;
+    max-width: none;
+    border-radius: 0;
+    padding: 0 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .vd-header {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    margin: 0 -1rem;
+    background: var(--glass-bg-intense);
+    padding: calc(0.9rem + env(safe-area-inset-top, 0px)) 1rem 0.8rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}

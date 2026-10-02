@@ -455,3 +455,151 @@ export const FINANCE_SECTIONS: FinanceSectionDescriptor[] = [
   { key: 'fluxTresorerie', route: 'cashflow', labelKey: 'dashboard.finance.sections.cashflow', icon: 'pi pi-arrow-right-arrow-left', editable: false },
   { key: 'ratios', route: 'ratios', labelKey: 'dashboard.finance.sections.ratios', icon: 'pi pi-percentage', editable: false },
 ];
+
+// =====================================================================
+// Parcours simplifié
+//
+// Les quinze sections techniques restent (routes, API, rapport), mais
+// l'utilisateur ne les voit plus à plat : six étapes dans l'ordre où l'on
+// raisonne sur une activité — ce que je vends, combien, ce que ça coûte, ce
+// que j'achète pour démarrer, comment je le paie — puis des réglages
+// facultatifs et les tableaux calculés pour la banque.
+// =====================================================================
+
+export type FinanceCompletionKey = keyof FinanceMetadata['completionStatus'];
+
+export interface FinanceStep {
+  key: FinanceSectionKey;
+  route: string;
+  /** Clé de complétion portée par le serveur. */
+  completion: FinanceCompletionKey;
+  icon: string;
+}
+
+export const FINANCE_STEPS: readonly FinanceStep[] = [
+  { key: 'products', route: 'products', completion: 'products', icon: 'pi pi-tag' },
+  { key: 'salesObjectives', route: 'sales', completion: 'salesObjectives', icon: 'pi pi-shopping-cart' },
+  { key: 'variableCharges', route: 'charges', completion: 'variableCharges', icon: 'pi pi-box' },
+  { key: 'fixedCharges', route: 'fixed-charges', completion: 'fixedCharges', icon: 'pi pi-users' },
+  { key: 'investments', route: 'investments', completion: 'investments', icon: 'pi pi-briefcase' },
+  { key: 'financing', route: 'financing', completion: 'financing', icon: 'pi pi-wallet' },
+];
+
+/** Réglages facultatifs : des valeurs par défaut sensées existent déjà. */
+export const FINANCE_SETTINGS: readonly { key: FinanceSectionKey; route: string; icon: string }[] = [
+  { key: 'fiscalCalendar', route: 'calendar', icon: 'pi pi-calendar' },
+  { key: 'revenueParams', route: 'revenue', icon: 'pi pi-clock' },
+  { key: 'taxesParams', route: 'taxes', icon: 'pi pi-receipt' },
+  { key: 'ratiosParams', route: 'ratios-params', icon: 'pi pi-sliders-h' },
+];
+
+/** Tableaux calculés : rien à saisir, tout se déduit des étapes. */
+export const FINANCE_REPORTS: readonly { key: string; route: string; icon: string }[] = [
+  { key: 'compteExploitation', route: 'exploitation', icon: 'pi pi-chart-line' },
+  { key: 'fluxTresorerie', route: 'cashflow', icon: 'pi pi-arrow-right-arrow-left' },
+  { key: 'bilan', route: 'bilan', icon: 'pi pi-book' },
+  { key: 'amortization', route: 'amortization', icon: 'pi pi-history' },
+  { key: 'ratios', route: 'ratios', icon: 'pi pi-percentage' },
+];
+
+/**
+ * Catégories proposées à la saisie, dans les mots de l'utilisateur.
+ * Les autres catégories du plan comptable restent valides (import, IA) :
+ * une ligne qui en porte une l'affiche telle quelle.
+ */
+export const VARIABLE_CHARGE_OPTIONS: readonly VariableChargeCategory[] = [
+  'achatsMarchandises',
+  'matieresPremieres',
+  'achatsEmballages',
+  'transportSurVentes',
+  'sousTraitance',
+  'remunerationsIntermediaires',
+  'publiciteRelationsPubliques',
+  'fraisTelecommunications',
+  'fraisBancaires',
+  'autresChargesExternes',
+];
+
+export const FIXED_CHARGE_OPTIONS: readonly FixedChargeCategory[] = [
+  'locations',
+  'primesAssurances',
+  'entretienReparation',
+  'cotisations',
+  'etudesRecherche',
+  'formationProfessionnelle',
+  'patentesLicences',
+  'autresImpotsDirects',
+];
+
+/** Le groupe d'amortissement se déduit du type d'achat : l'utilisateur n'a pas à le connaître. */
+export const INVESTMENT_OPTIONS: Readonly<Record<string, AmortizationGroup>> = {
+  fraisConstitution: 'incorporelles',
+  logiciels: 'incorporelles',
+  publiciteLancement: 'incorporelles',
+  brevetsLicences: 'incorporelles',
+  amenagementBureaux: 'materielOutillage',
+  materielOutillageIndustriel: 'materielOutillage',
+  autresMateriels: 'materielOutillage',
+  materielTransport: 'materielOutillage',
+  mobilier: 'mobilier',
+  batiments: 'batiments',
+  terrains: 'batiments',
+  depotsCautionnements: 'financieres',
+};
+
+/**
+ * Libellé court de chacun des 36 mois du plan (« janv. 2026 »).
+ *
+ * Le mois 1 est le premier mois de l'exercice 1, qui suit le mois de clôture :
+ * avec une clôture au 30 juin, le plan commence en juillet.
+ */
+export function financeMonthLabels(calendar: FiscalCalendar | undefined, locale: string): string[] {
+  const firstYear = calendar?.firstYear || new Date().getFullYear();
+  const startMonth = (calendar?.fiscalYearEndMonth ?? 12) % 12;
+  const format = new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' });
+  return Array.from({ length: FINANCE_PROJECTION_MONTHS }, (_, i) => {
+    const absolute = startMonth + i;
+    return format.format(new Date(firstYear + Math.floor(absolute / 12), absolute % 12, 1));
+  });
+}
+
+// =====================================================================
+// Import d'un fichier financier (miroir de finance-import.service.ts)
+// =====================================================================
+
+export interface FinanceImportDraft {
+  products: ProductPricing[];
+  salesObjectives: SalesObjective[];
+  variableChargeLines: VariableChargeLine[];
+  fixedChargeLines: FixedChargeLine[];
+  salaries: SalaryLine[];
+  investments: InvestmentLine[];
+  financing: FinancingPlan | null;
+  params: {
+    socialChargesRatePct?: number;
+    clientReceivablesRatePct?: number;
+    isRatePct?: number;
+  };
+}
+
+export interface FinanceImportReport {
+  documentKind: string;
+  summary: string;
+  currency: string;
+  planCurrency: string;
+  missing: string[];
+  warnings: string[];
+}
+
+export interface FinanceImportPreview {
+  documentName: string;
+  draft: FinanceImportDraft;
+  suggestions: AISuggestion[];
+  report: FinanceImportReport;
+}
+
+export type FinanceImportMode = 'replace' | 'merge';
+
+/** Formats acceptés à l'import — le serveur refait le contrôle. */
+export const FINANCE_IMPORT_ACCEPT = '.xlsx,.csv,.pdf,.docx,.md,.txt';
+export const FINANCE_IMPORT_MAX_BYTES = 15 * 1024 * 1024;

@@ -19,6 +19,8 @@ import {
   VisualOrigin,
 } from '../../../../models/communication.model';
 import { FLYER_FORMATS } from '../../communication-ui';
+import { injectCompactViewport } from '../../compact-viewport';
+import { ScreenGuide } from '../screen-guide/screen-guide';
 import { VisualDialog } from '../visual-dialog/visual-dialog';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
@@ -38,7 +40,14 @@ const ORIGINS: VisualOrigin[] = ['plan', 'studio', 'occasion'];
  */
 @Component({
   selector: 'app-library-panel',
-  imports: [FormsModule, TranslateModule, VisualDialog, VisualThumb, IdemLoaderComponent],
+  imports: [
+    FormsModule,
+    TranslateModule,
+    ScreenGuide,
+    VisualDialog,
+    VisualThumb,
+    IdemLoaderComponent,
+  ],
   templateUrl: './library-panel.html',
   styleUrl: './library-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,8 +65,12 @@ export class LibraryPanel {
   readonly visualDeleted = output<string>();
   readonly publicationCreated = output<Publication>();
   readonly failed = output<string>();
+  /** Bibliothèque vide : on envoie vers l'endroit où l'on crée. */
+  readonly createRequested = output<'studio' | 'plans'>();
 
   protected readonly formats = FLYER_FORMATS;
+  /** Au téléphone, les filtres démarrent repliés. */
+  protected readonly isCompact = injectCompactViewport();
   protected readonly origins = ORIGINS;
 
   /**

@@ -15,6 +15,7 @@ import {
 import { techIcon } from '../../../shared/utils/tech-icon.util';
 import { appStatusDisplay } from '../../../shared/utils/app-status.util';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
+import { TourService } from '../../../shared/services/tour.service';
 import { AppEnvTabComponent } from './app-env-tab';
 import { AppTasksTabComponent } from './app-tasks-tab';
 import { AppStorageTabComponent } from './app-storage-tab';
@@ -82,7 +83,7 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
       </div>
     } @else if (app(); as a) {
       <!-- Header: identity, state, address — and the one action people come for. -->
-      <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <header class="mb-6 flex flex-wrap items-start justify-between gap-4" data-tour="ideploy-app-header">
         <div class="flex min-w-0 items-center gap-4">
           <span class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl" style="background:var(--glass-bg-subtle);border:1px solid var(--glass-border);">
             <i [class]="stackIcon().icon" class="text-2xl" [style.color]="stackIcon().color"></i>
@@ -155,7 +156,7 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
       }
 
       <!-- Every place this application has, in one bar. -->
-      <nav class="custom-scrollbar mb-6 flex gap-1 overflow-x-auto border-b" style="border-color:var(--glass-border);" [attr.aria-label]="'applications.detail.sections' | translate">
+      <nav class="custom-scrollbar mb-6 flex gap-1 overflow-x-auto border-b" style="border-color:var(--glass-border);" data-tour="ideploy-app-tabs" [attr.aria-label]="'applications.detail.sections' | translate">
         @for (item of nav; track item.key) {
           @if (item.tab) {
             <button
@@ -264,7 +265,7 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
             <aside class="space-y-6">
               <!-- What's left to set up — each line goes where it's done; gone once everything is. -->
               @if (checklistDone() < checklistItems().length) {
-                <section class="glass-card p-5">
+                <section class="glass-card p-5" data-tour="ideploy-app-checklist">
                   <div class="mb-1 flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-text-primary">{{ 'applications.detail.checklist' | translate }}</h2>
                     <span class="text-xs" style="color:var(--color-text-secondary);">{{ checklistDone() }}/{{ checklistItems().length }}</span>
@@ -351,6 +352,9 @@ export class ApplicationDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private sanitizer = inject(DomSanitizer);
+  private tour = inject(TourService);
+  /** La visite n'est proposée qu'au premier chargement, pas à chaque rechargement. */
+  private tourOffered = false;
 
   protected readonly nav = NAV;
 
@@ -415,7 +419,15 @@ export class ApplicationDetailComponent implements OnInit {
 
   private reload(): void {
     this.api.getApplication(this.uuid).subscribe({
-      next: (a) => this.app.set(a),
+      next: (a) => {
+        this.app.set(a);
+        // Après l'arrivée des données : avant, l'en-tête et les onglets
+        // qu'elle montre ne sont pas encore dessinés.
+        if (!this.tourOffered) {
+          this.tourOffered = true;
+          void this.tour.maybeStart('application');
+        }
+      },
       error: () => this.notFound.set(true),
     });
     this.api.listEnvVars(this.uuid).subscribe({ next: (v) => this.envCount.set(v.length), error: () => undefined });

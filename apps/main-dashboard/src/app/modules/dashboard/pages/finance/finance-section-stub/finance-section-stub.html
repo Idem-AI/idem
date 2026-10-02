@@ -1,610 +1,733 @@
-<div class="p-4 md:p-2 space-y-6">
-  <!-- Breadcrumb + header -->
-  <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-    <div>
-      <nav class="text-xs text-text-tertiary mb-2 flex items-center gap-2">
-        <a routerLink="/project/finance" class="hover:text-primary transition-colors">
-          {{ 'dashboard.finance.title' | translate }}
+<div class="fs p-4 md:p-2 space-y-6" [class.pb-28]="dirty()">
+  <!-- ═════════════ En-tête ═════════════ -->
+  <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div class="min-w-0">
+      <nav class="text-sm text-text-tertiary mb-2 flex items-center gap-2" [attr.aria-label]="'dashboard.finance.page.breadcrumb' | translate">
+        <a routerLink="/project/finance" class="hover:text-primary transition-colors" (click)="confirmLeave($event)">
+          {{ 'dashboard.finance.home.title' | translate }}
         </a>
-        <i class="pi pi-chevron-right text-[10px]"></i>
-        <span class="text-text-primary">
-          @if (descriptor()) {
-            {{ descriptor()!.labelKey | translate }}
+        <i class="pi pi-chevron-right text-[10px]" aria-hidden="true"></i>
+        <span class="text-text-secondary">
+          @switch (kind()) {
+            @case ('step') { {{ 'dashboard.finance.page.stepOf' | translate: { n: stepIndex() + 1, total: stepCount } }} }
+            @case ('setting') { {{ 'dashboard.finance.home.settings.title' | translate }} }
+            @default { {{ 'dashboard.finance.home.bank.title' | translate }} }
           }
         </span>
       </nav>
-      <h1 class="text-2xl md:text-3xl font-bold text-text-primary flex items-center gap-3">
-        @if (descriptor()) {
-          <i [class]="descriptor()!.icon" class="text-primary"></i>
-          {{ descriptor()!.labelKey | translate }}
-        }
+      <h1 class="text-2xl md:text-3xl font-bold text-text-primary">
+        {{ 'dashboard.finance.guide.' + sectionKey() + '.title' | translate }}
       </h1>
+      <p class="text-text-secondary mt-1 text-sm max-w-2xl">
+        {{ 'dashboard.finance.guide.' + sectionKey() + '.help' | translate }}
+      </p>
     </div>
-    @if (descriptor()?.editable) {
-      <div class="flex items-center gap-3">
-        <app-ai-fill-button variant="section" [loading]="aiLoading()" (triggered)="onAutoFill()" />
-        <button class="inner-button button-sm" [disabled]="!dirty() || saving()" (click)="saveSection()">
+    @if (canAutoFill() && !isLoading() && !loadError()) {
+      <button type="button" class="outer-button button-sm self-start md:self-auto" [disabled]="aiLoading() || saving()" (click)="onAutoFill()">
+        @if (aiLoading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-sparkles" aria-hidden="true"></i> }
+        {{ 'dashboard.finance.ai.suggest' | translate }}
+      </button>
+    }
+  </header>
+
+  @if (saveError()) {
+    <p class="fs-alert" role="alert">
+      <i class="pi pi-exclamation-circle text-danger" aria-hidden="true"></i>
+      {{ saveError() }}
+    </p>
+  }
+
+  @if (isLoading()) {
+    <div class="grid gap-4" aria-hidden="true">
+      <div class="skeleton h-32 rounded-2xl"></div>
+      <div class="skeleton h-32 rounded-2xl"></div>
+    </div>
+    <span class="sr-only" role="status">{{ 'dashboard.finance.loading' | translate }}</span>
+  } @else if (loadError() || !finance()) {
+    <div class="glass-card p-8 text-center" role="alert">
+      <app-finance-illustration scene="empty" class="w-28 mx-auto" />
+      <p class="mt-3 font-medium text-text-primary">{{ 'dashboard.finance.errors.failedToLoad' | translate }}</p>
+      <button type="button" class="inner-button mt-4" (click)="load()">{{ 'common.retry' | translate }}</button>
+    </div>
+  } @else if (aiLoading()) {
+    <div class="glass-card p-10 text-center" role="status" aria-live="polite">
+      <app-finance-illustration scene="ai" class="w-32 mx-auto" />
+      <p class="mt-3 font-medium text-text-primary">{{ 'dashboard.finance.ai.working' | translate }}</p>
+      <div class="mt-4 flex justify-center"><idem-loader size="md" /></div>
+    </div>
+  } @else {
+    @switch (sectionKey()) {
+      <!-- ═════════════ 1. Ce que vous vendez ═════════════ -->
+      @case ('products') {
+        @if (products().length === 0) {
+          <div class="glass-card p-8 text-center">
+            <app-finance-illustration scene="empty" class="w-28 mx-auto" />
+            <p class="mt-3 font-medium text-text-primary">{{ 'dashboard.finance.empty.products' | translate }}</p>
+            <p class="mt-1 text-sm text-text-secondary">{{ 'dashboard.finance.examples.products' | translate }}</p>
+            <button type="button" class="inner-button mt-5" (click)="addProduct()">
+              <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.product' | translate }}
+            </button>
+          </div>
+        } @else {
+          <div class="grid gap-4">
+            @for (p of products(); track p.id) {
+              <article class="glass-card p-5">
+                <div class="flex items-end gap-3">
+                  <label class="flex-1 !block">
+                    <span class="fs-label">{{ 'dashboard.finance.fields.productName' | translate }}</span>
+                    <input type="text" class="!w-full" [value]="p.name" [placeholder]="'dashboard.finance.examples.productName' | translate" (input)="setProductName(p.id, $any($event.target).value)" />
+                  </label>
+                  <button type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: p.name || ('dashboard.finance.fields.unnamedProduct' | translate) }" (click)="removeProduct(p.id)">
+                    <i class="pi pi-trash" aria-hidden="true"></i>
+                  </button>
+                </div>
+
+                @if (!pricesByYear().has(p.id)) {
+                  <div class="grid gap-3 sm:grid-cols-2 mt-4">
+                    <label class="!block">
+                      <span class="fs-label">{{ 'dashboard.finance.fields.price' | translate: { currency: currency() } }}</span>
+                      <input type="number" min="0" class="!w-full" [value]="p.prices[0] || ''" placeholder="0" (input)="setProductAmount(p.id, 'prices', $any($event.target).valueAsNumber)" />
+                    </label>
+                    <label class="!block">
+                      <span class="fs-label">{{ 'dashboard.finance.fields.unitCost' | translate: { currency: currency() } }}</span>
+                      <input type="number" min="0" class="!w-full" [value]="p.unitCosts[0] || ''" placeholder="0" (input)="setProductAmount(p.id, 'unitCosts', $any($event.target).valueAsNumber)" />
+                      <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.fields.unitCostHint' | translate }}</span>
+                    </label>
+                  </div>
+                } @else {
+                  <div class="mt-4 grid gap-3">
+                    @for (year of yearLabels(); track $index; let y = $index) {
+                      <div class="grid grid-cols-[4.5rem_1fr_1fr] items-end gap-3">
+                        <span class="text-sm font-medium text-text-secondary pb-2">{{ year }}</span>
+                        <label class="!block">
+                          <span class="fs-label">{{ 'dashboard.finance.fields.priceShort' | translate }}</span>
+                          <input type="number" min="0" class="!w-full" [value]="p.prices[y] || ''" placeholder="0" (input)="setProductAmount(p.id, 'prices', $any($event.target).valueAsNumber, y)" />
+                        </label>
+                        <label class="!block">
+                          <span class="fs-label">{{ 'dashboard.finance.fields.unitCostShort' | translate }}</span>
+                          <input type="number" min="0" class="!w-full" [value]="p.unitCosts[y] || ''" placeholder="0" (input)="setProductAmount(p.id, 'unitCosts', $any($event.target).valueAsNumber, y)" />
+                        </label>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  @if (p.prices[0] > 0) {
+                    <span [class.text-success]="margin(p).amount > 0" [class.text-danger]="margin(p).amount <= 0">
+                      {{ (margin(p).amount > 0 ? 'dashboard.finance.hints.margin' : 'dashboard.finance.hints.noMargin') | translate: { amount: formatCurrency(margin(p).amount), pct: formatPercent(margin(p).pct) } }}
+                    </span>
+                  } @else {
+                    <span class="text-text-tertiary">{{ 'dashboard.finance.hints.enterPrice' | translate }}</span>
+                  }
+                  <button type="button" class="text-primary hover:underline" (click)="togglePricesByYear(p.id)">
+                    {{ (pricesByYear().has(p.id) ? 'dashboard.finance.fields.samePrice' : 'dashboard.finance.fields.pricePerYear') | translate }}
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+          <button type="button" class="outer-button" (click)="addProduct()">
+            <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.product' | translate }}
+          </button>
+        }
+      }
+
+      <!-- ═════════════ 2. Combien vous allez vendre ═════════════ -->
+      @case ('salesObjectives') {
+        @if (products().length === 0) {
+          <div class="glass-card p-8 text-center">
+            <app-finance-illustration scene="empty" class="w-28 mx-auto" />
+            <p class="mt-3 font-medium text-text-primary">{{ 'dashboard.finance.empty.salesNoProduct' | translate }}</p>
+            <a class="inner-button mt-5" routerLink="/project/finance/products">{{ 'dashboard.finance.empty.goProducts' | translate }}</a>
+          </div>
+        } @else {
+          <div class="grid gap-4">
+            @for (row of salesRows(); track row.product.id) {
+              <article class="glass-card p-5">
+                <div class="flex flex-wrap items-baseline justify-between gap-2 mb-4">
+                  <h2 class="font-semibold text-text-primary">{{ row.product.name || ('dashboard.finance.fields.unnamedProduct' | translate) }}</h2>
+                  <span class="text-xs text-text-tertiary">{{ 'dashboard.finance.hints.unitPrice' | translate: { price: formatCurrency(row.product.prices[0]) } }}</span>
+                </div>
+                <app-monthly-amount-editor
+                  [values]="row.quantities"
+                  [monthLabels]="monthLabels()"
+                  [yearLabels]="yearLabels()"
+                  unit="quantity"
+                  amountLabelKey="dashboard.finance.editor.firstMonthQuantity"
+                  (valuesChange)="setSales(row.product.id, $event)"
+                />
+                <p class="mt-3 text-sm text-text-secondary">
+                  {{ 'dashboard.finance.hints.salesRevenue' | translate: { year: yearLabels()[0], amount: formatCurrency(row.revenue[0]), year3: yearLabels()[2], amount3: formatCurrency(row.revenue[2]) } }}
+                </p>
+              </article>
+            }
+          </div>
+        }
+      }
+
+      <!-- ═════════════ 3. Ce que chaque vente vous coûte ═════════════ -->
+      @case ('variableCharges') {
+        @if (variableCharges(); as vc) {
+          @if (vc.lines.length === 0) {
+            <div class="glass-card p-8 text-center">
+              <app-finance-illustration scene="empty" class="w-28 mx-auto" />
+              <p class="mt-3 font-medium text-text-primary">{{ 'dashboard.finance.empty.variable' | translate }}</p>
+              <p class="mt-1 text-sm text-text-secondary">{{ 'dashboard.finance.examples.variable' | translate }}</p>
+              <button type="button" class="inner-button mt-5" (click)="addVariableLine()">
+                <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.expense' | translate }}
+              </button>
+            </div>
+          } @else {
+            <div class="grid gap-4">
+              @for (line of vc.lines; track line.id) {
+                <article class="glass-card p-5">
+                  <div class="grid gap-3 sm:grid-cols-[1fr_14rem_auto] items-end">
+                    <label class="!block">
+                      <span class="fs-label">{{ 'dashboard.finance.fields.expenseName' | translate }}</span>
+                      <input type="text" class="!w-full" [value]="line.label" [placeholder]="'dashboard.finance.examples.variableName' | translate" (input)="updateVariableLine(line.id, { label: $any($event.target).value })" />
+                    </label>
+                    <label class="!block">
+                      <span class="fs-label">{{ 'dashboard.finance.fields.kind' | translate }}</span>
+                      <select class="!w-full" (change)="updateVariableLine(line.id, { category: typeVariable($any($event.target).value) })">
+                        @for (o of optionsWith(variableOptions, line.category); track o) {
+                          <option [value]="o" [selected]="o === line.category">{{ categoryLabel('variable', o) }}</option>
+                        }
+                      </select>
+                    </label>
+                    <button type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: line.label }" (click)="removeVariableLine(line.id)">
+                      <i class="pi pi-trash" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                  <div class="mt-4">
+                    <app-monthly-amount-editor [values]="line.monthlyValues" [monthLabels]="monthLabels()" [yearLabels]="yearLabels()" [currency]="currency()" (valuesChange)="updateVariableLine(line.id, { monthlyValues: $event })" />
+                  </div>
+                </article>
+              }
+            </div>
+            <button type="button" class="outer-button" (click)="addVariableLine()">
+              <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.expense' | translate }}
+            </button>
+          }
+
+          <details class="glass-card fs-advanced">
+            <summary>{{ 'dashboard.finance.advanced.title' | translate }}</summary>
+            <div class="grid gap-4 sm:grid-cols-2 p-5 pt-0">
+              <label class="!block">
+                <span class="fs-label">{{ 'dashboard.finance.advanced.supplierDebt' | translate }}</span>
+                <input type="number" min="0" max="100" class="!w-full" [value]="vc.supplierDebtRatePct" (input)="setParam('variableCharges', 'supplierDebtRatePct', $any($event.target).valueAsNumber)" />
+                <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.advanced.supplierDebtHint' | translate }}</span>
+              </label>
+              <label class="!block">
+                <span class="fs-label">{{ 'dashboard.finance.advanced.safetyStock' | translate }}</span>
+                <input type="number" min="0" max="100" class="!w-full" [value]="vc.safetyStockRatePct" (input)="setParam('variableCharges', 'safetyStockRatePct', $any($event.target).valueAsNumber)" />
+                <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.advanced.safetyStockHint' | translate }}</span>
+              </label>
+            </div>
+          </details>
+        }
+      }
+
+      <!-- ═════════════ 4. Vos dépenses fixes et votre équipe ═════════════ -->
+      @case ('fixedCharges') {
+        @if (fixedCharges(); as fc) {
+          <section class="space-y-4" aria-labelledby="fs-fixed">
+            <h2 id="fs-fixed" class="text-lg font-semibold text-text-primary">{{ 'dashboard.finance.fixed.linesTitle' | translate }}</h2>
+            @if (fc.lines.length === 0) {
+              <p class="text-sm text-text-secondary">{{ 'dashboard.finance.examples.fixed' | translate }}</p>
+            }
+            @for (line of fc.lines; track line.id) {
+              <article class="glass-card p-5">
+                <div class="grid gap-3 sm:grid-cols-[1fr_14rem_auto] items-end">
+                  <label class="!block">
+                    <span class="fs-label">{{ 'dashboard.finance.fields.expenseName' | translate }}</span>
+                    <input type="text" class="!w-full" [value]="line.label" [placeholder]="'dashboard.finance.examples.fixedName' | translate" (input)="updateFixedLine(line.id, { label: $any($event.target).value })" />
+                  </label>
+                  <label class="!block">
+                    <span class="fs-label">{{ 'dashboard.finance.fields.kind' | translate }}</span>
+                    <select class="!w-full" (change)="updateFixedLine(line.id, { category: typeFixed($any($event.target).value) })">
+                      @for (o of optionsWith(fixedOptions, line.category); track o) {
+                        <option [value]="o" [selected]="o === line.category">{{ categoryLabel('fixed', o) }}</option>
+                      }
+                    </select>
+                  </label>
+                  <button type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: line.label }" (click)="removeFixedLine(line.id)">
+                    <i class="pi pi-trash" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <div class="mt-4">
+                  <app-monthly-amount-editor [values]="line.monthlyValues" [monthLabels]="monthLabels()" [yearLabels]="yearLabels()" [currency]="currency()" (valuesChange)="updateFixedLine(line.id, { monthlyValues: $event })" />
+                </div>
+              </article>
+            }
+            <button type="button" class="outer-button" (click)="addFixedLine()">
+              <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.expense' | translate }}
+            </button>
+          </section>
+
+          <section class="space-y-4 pt-2" aria-labelledby="fs-team">
+            <div>
+              <h2 id="fs-team" class="text-lg font-semibold text-text-primary">{{ 'dashboard.finance.fixed.teamTitle' | translate }}</h2>
+              <p class="text-sm text-text-secondary mt-1">{{ 'dashboard.finance.fixed.teamLead' | translate: { rate: fc.socialChargesRatePct } }}</p>
+            </div>
+            @for (s of fc.salaries; track s.id) {
+              <article class="glass-card p-5">
+                <div class="flex items-end gap-3">
+                  <label class="flex-1 !block">
+                    <span class="fs-label">{{ 'dashboard.finance.fields.position' | translate }}</span>
+                    <input type="text" class="!w-full" [value]="s.position" [placeholder]="'dashboard.finance.examples.position' | translate" (input)="updateSalary(s.id, { position: $any($event.target).value })" />
+                  </label>
+                  <button type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: s.position }" (click)="removeSalary(s.id)">
+                    <i class="pi pi-trash" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <div class="mt-4">
+                  <app-monthly-amount-editor [values]="s.monthlyValues" [monthLabels]="monthLabels()" [yearLabels]="yearLabels()" [currency]="currency()" amountLabelKey="dashboard.finance.editor.salary" (valuesChange)="updateSalary(s.id, { monthlyValues: $event })" />
+                </div>
+              </article>
+            }
+            <button type="button" class="outer-button" (click)="addSalary()">
+              <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.salary' | translate }}
+            </button>
+          </section>
+
+          <details class="glass-card fs-advanced">
+            <summary>{{ 'dashboard.finance.advanced.title' | translate }}</summary>
+            <div class="grid gap-4 sm:grid-cols-2 p-5 pt-0">
+              <label class="!block">
+                <span class="fs-label">{{ 'dashboard.finance.advanced.socialCharges' | translate }}</span>
+                <input type="number" min="0" max="100" step="0.1" class="!w-full" [value]="fc.socialChargesRatePct" (input)="setParam('fixedCharges', 'socialChargesRatePct', $any($event.target).valueAsNumber)" />
+                <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.advanced.socialChargesHint' | translate }}</span>
+              </label>
+              <label class="!block">
+                <span class="fs-label">{{ 'dashboard.finance.advanced.payrollTax' | translate }}</span>
+                <input type="number" min="0" max="100" step="0.1" class="!w-full" [value]="fc.tusRatePct" (input)="setParam('fixedCharges', 'tusRatePct', $any($event.target).valueAsNumber)" />
+                <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.advanced.payrollTaxHint' | translate }}</span>
+              </label>
+            </div>
+          </details>
+        }
+      }
+
+      <!-- ═════════════ 5. Vos achats pour démarrer ═════════════ -->
+      @case ('investments') {
+        @if (investments().length === 0) {
+          <div class="glass-card p-8 text-center">
+            <app-finance-illustration scene="empty" class="w-28 mx-auto" />
+            <p class="mt-3 font-medium text-text-primary">{{ 'dashboard.finance.empty.investments' | translate }}</p>
+            <p class="mt-1 text-sm text-text-secondary">{{ 'dashboard.finance.examples.investments' | translate }}</p>
+            <button type="button" class="inner-button mt-5" (click)="addInvestment()">
+              <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.investment' | translate }}
+            </button>
+          </div>
+        } @else {
+          <div class="grid gap-4">
+            @for (inv of investments(); track inv.id) {
+              <article class="glass-card p-5">
+                <div class="grid gap-3 sm:grid-cols-[1fr_14rem_auto] items-end">
+                  <label class="!block">
+                    <span class="fs-label">{{ 'dashboard.finance.fields.purchaseName' | translate }}</span>
+                    <input type="text" class="!w-full" [value]="inv.label" [placeholder]="'dashboard.finance.examples.investmentName' | translate" (input)="updateInvestment(inv.id, { label: $any($event.target).value })" />
+                  </label>
+                  <label class="!block">
+                    <span class="fs-label">{{ 'dashboard.finance.fields.kind' | translate }}</span>
+                    <select class="!w-full" (change)="updateInvestment(inv.id, { category: $any($event.target).value })">
+                      @for (o of optionsWith(investmentOptions, inv.category); track o) {
+                        <option [value]="o" [selected]="o === inv.category">{{ categoryLabel('investment', o) }}</option>
+                      }
+                    </select>
+                  </label>
+                  <button type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: inv.label }" (click)="removeInvestment(inv.id)">
+                    <i class="pi pi-trash" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <div class="mt-4">
+                  <app-monthly-amount-editor [values]="inv.monthlyValues" [monthLabels]="monthLabels()" [yearLabels]="yearLabels()" [currency]="currency()" mode="once" amountLabelKey="dashboard.finance.editor.amount" (valuesChange)="updateInvestment(inv.id, { monthlyValues: $event })" />
+                </div>
+              </article>
+            }
+          </div>
+          <button type="button" class="outer-button" (click)="addInvestment()">
+            <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.investment' | translate }}
+          </button>
+        }
+      }
+
+      <!-- ═════════════ 6. Votre financement ═════════════ -->
+      @case ('financing') {
+        @if (financing(); as fin) {
+          <div class="glass-card p-5 grid gap-4 sm:grid-cols-3" aria-live="polite">
+            <div>
+              <p class="text-sm text-text-secondary">{{ 'dashboard.finance.financing.need' | translate }}</p>
+              <p class="text-xl font-bold text-text-primary tabular-nums">{{ formatCurrency(financingNeed()) }}</p>
+              <p class="text-xs text-text-tertiary">{{ 'dashboard.finance.financing.needHint' | translate }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-text-secondary">{{ 'dashboard.finance.financing.found' | translate }}</p>
+              <p class="text-xl font-bold text-text-primary tabular-nums">{{ formatCurrency(financingTotal()) }}</p>
+            </div>
+            <div>
+              @if (financingGap() > 0) {
+                <p class="text-sm text-text-secondary">{{ 'dashboard.finance.financing.missing' | translate }}</p>
+                <p class="text-xl font-bold text-danger tabular-nums">{{ formatCurrency(financingGap()) }}</p>
+                <p class="text-xs text-text-tertiary">{{ 'dashboard.finance.financing.missingHint' | translate }}</p>
+              } @else {
+                <p class="text-sm text-text-secondary">{{ 'dashboard.finance.financing.covered' | translate }}</p>
+                <p class="text-xl font-bold text-success"><i class="pi pi-check" aria-hidden="true"></i></p>
+              }
+            </div>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            <article class="glass-card p-5 space-y-3">
+              <h2 class="font-semibold text-text-primary">{{ 'dashboard.finance.financing.own.title' | translate }}</h2>
+              <label class="!block">
+                <span class="fs-label">{{ 'dashboard.finance.financing.own.capital' | translate }}</span>
+                <input type="number" min="0" class="!w-full" [value]="fin.apportCapital || ''" placeholder="0" (input)="setFinancingAmount('apportCapital', $any($event.target).valueAsNumber)" />
+                <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.financing.own.capitalHint' | translate }}</span>
+              </label>
+              <label class="!block">
+                <span class="fs-label">{{ 'dashboard.finance.financing.grant' | translate }}</span>
+                <input type="number" min="0" class="!w-full" [value]="fin.subvention || ''" placeholder="0" (input)="setFinancingAmount('subvention', $any($event.target).valueAsNumber)" />
+                <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.financing.grantHint' | translate }}</span>
+              </label>
+            </article>
+
+            @for (loan of ['cmt', 'compteCourantAssocies', 'creditBail']; track loan) {
+              <article class="glass-card p-5 space-y-3">
+                <h2 class="font-semibold text-text-primary">{{ 'dashboard.finance.financing.loans.' + loan + '.title' | translate }}</h2>
+                <p class="text-xs text-text-tertiary -mt-2">{{ 'dashboard.finance.financing.loans.' + loan + '.hint' | translate }}</p>
+                <label class="!block">
+                  <span class="fs-label">{{ 'dashboard.finance.financing.amount' | translate }}</span>
+                  <input type="number" min="0" class="!w-full" [value]="$any(fin)[loan].amount || ''" placeholder="0" (input)="setLoan($any(loan), 'amount', toNumber($any($event.target).value))" />
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+                  <label class="!block">
+                    <span class="fs-label">{{ 'dashboard.finance.financing.rate' | translate }}</span>
+                    <input type="number" min="0" max="100" step="0.1" class="!w-full" [value]="$any(fin)[loan].ratePct" (input)="setLoan($any(loan), 'ratePct', toNumber($any($event.target).value))" />
+                  </label>
+                  <div class="grid grid-cols-[1fr_auto] gap-2 items-end">
+                    <label class="!block">
+                      <span class="fs-label">{{ 'dashboard.finance.financing.duration' | translate }}</span>
+                      <input type="number" min="1" class="!w-full" [value]="$any(fin)[loan].duration" (input)="setLoan($any(loan), 'duration', toNumber($any($event.target).value))" />
+                    </label>
+                    <select class="!w-auto" [attr.aria-label]="'dashboard.finance.financing.durationUnit' | translate" (change)="setLoan($any(loan), 'durationUnit', $any($event.target).value)">
+                      <option value="months" [selected]="$any(fin)[loan].durationUnit === 'months'">{{ 'dashboard.finance.financing.months' | translate }}</option>
+                      <option value="years" [selected]="$any(fin)[loan].durationUnit !== 'months'">{{ 'dashboard.finance.financing.years' | translate }}</option>
+                    </select>
+                  </div>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      }
+
+      <!-- ═════════════ Réglages ═════════════ -->
+      @case ('revenueParams') {
+        @if (revenueParams(); as rp) {
+          <div class="glass-card p-5 max-w-xl">
+            <label class="!block">
+              <span class="fs-label">{{ 'dashboard.finance.settings.receivables' | translate }}</span>
+              <input type="number" min="0" max="100" class="!w-full" [value]="rp.clientReceivablesRatePct" (input)="setParam('revenueParams', 'clientReceivablesRatePct', $any($event.target).valueAsNumber)" />
+              <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.settings.receivablesHint' | translate }}</span>
+            </label>
+          </div>
+        }
+      }
+
+      @case ('taxesParams') {
+        @if (taxesParams(); as tp) {
+          <div class="glass-card p-5 grid gap-4 sm:grid-cols-2">
+            <label class="!block">
+              <span class="fs-label">{{ 'dashboard.finance.settings.regime' | translate }}</span>
+              <select class="!w-full" (change)="setParam('taxesParams', 'regimeType', $any($event.target).value)">
+                @for (r of ['reel', 'forfait', 'auto']; track r) {
+                  <option [value]="r" [selected]="tp.regimeType === r">{{ 'dashboard.finance.settings.regimes.' + r | translate }}</option>
+                }
+              </select>
+              <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.settings.regimeHint' | translate }}</span>
+            </label>
+            <label class="!block">
+              <span class="fs-label">{{ 'dashboard.finance.settings.corporateTax' | translate }}</span>
+              <input type="number" min="0" max="100" step="0.5" class="!w-full" [value]="tp.isRatePct" (input)="setParam('taxesParams', 'isRatePct', $any($event.target).valueAsNumber)" />
+              <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.settings.corporateTaxHint' | translate }}</span>
+            </label>
+            <label class="!block">
+              <span class="fs-label">{{ 'dashboard.finance.settings.premises' | translate }}</span>
+              <select class="!w-full" (change)="setParam('taxesParams', 'locationSize', $any($event.target).value)">
+                @for (size of ['petites', 'moyennes', 'grandes']; track size) {
+                  <option [value]="size" [selected]="tp.locationSize === size">{{ 'dashboard.finance.settings.premisesSizes.' + size | translate }}</option>
+                }
+              </select>
+            </label>
+          </div>
+        }
+      }
+
+      @case ('ratiosParams') {
+        @if (ratiosParams(); as rp) {
+          <div class="glass-card p-5 grid gap-4 sm:grid-cols-2">
+            <label class="!block">
+              <span class="fs-label">{{ 'dashboard.finance.settings.discountRate' | translate }}</span>
+              <input type="number" min="0" max="100" step="0.5" class="!w-full" [value]="rp.vanDiscountRatePct" (input)="setParam('ratiosParams', 'vanDiscountRatePct', $any($event.target).valueAsNumber)" />
+              <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.settings.discountRateHint' | translate }}</span>
+            </label>
+            <label class="!block">
+              <span class="fs-label">{{ 'dashboard.finance.settings.dividends' | translate }}</span>
+              <input type="number" min="0" max="100" class="!w-full" [value]="rp.dividendDistributionRatePct" (input)="setParam('ratiosParams', 'dividendDistributionRatePct', $any($event.target).valueAsNumber)" />
+              <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.settings.dividendsHint' | translate }}</span>
+            </label>
+            <label class="!block">
+              <span class="fs-label">{{ 'dashboard.finance.settings.growth' | translate }}</span>
+              <input type="number" min="0" max="20" step="0.5" class="!w-full" [value]="rp.perpetualGrowthRatePct" (input)="setParam('ratiosParams', 'perpetualGrowthRatePct', $any($event.target).valueAsNumber)" />
+              <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.settings.growthHint' | translate }}</span>
+            </label>
+            <label class="!block">
+              <span class="fs-label">{{ 'dashboard.finance.settings.equityCost' | translate }}</span>
+              <input type="number" min="0" max="100" step="0.5" class="!w-full" [value]="rp.costOfEquityPct ?? 15" (input)="setParam('ratiosParams', 'costOfEquityPct', $any($event.target).valueAsNumber)" />
+              <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.settings.equityCostHint' | translate }}</span>
+            </label>
+            <label class="!block">
+              <span class="fs-label">{{ 'dashboard.finance.settings.shares' | translate }}</span>
+              <input type="number" min="1" class="!w-full" [value]="rp.numberOfShares ?? 100" (input)="setParam('ratiosParams', 'numberOfShares', $any($event.target).valueAsNumber)" />
+              <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.settings.sharesHint' | translate }}</span>
+            </label>
+            <div>
+              <label class="!flex items-center gap-3">
+                <input type="checkbox" [checked]="rp.cmpcAuto !== false" (change)="setParam('ratiosParams', 'cmpcAuto', $any($event.target).checked)" />
+                <span class="text-sm text-text-primary">{{ 'dashboard.finance.settings.waccAuto' | translate }}</span>
+              </label>
+              @if (rp.cmpcAuto === false) {
+                <label class="!block mt-3">
+                  <span class="fs-label">{{ 'dashboard.finance.settings.wacc' | translate }}</span>
+                  <input type="number" min="0" max="100" step="0.5" class="!w-full" [value]="rp.cmpcPct" (input)="setParam('ratiosParams', 'cmpcPct', $any($event.target).valueAsNumber)" />
+                </label>
+              }
+              <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.settings.waccHint' | translate }}</span>
+            </div>
+          </div>
+        }
+      }
+
+      @case ('fiscalCalendar') {
+        <div class="glass-card p-5 grid gap-4 sm:grid-cols-3">
+          <label class="!block">
+            <span class="fs-label">{{ 'dashboard.finance.settings.firstYear' | translate }}</span>
+            <input type="number" min="2000" max="2100" class="!w-full" [value]="fiscalCalendar().firstYear" (input)="setParam('fiscalCalendar', 'firstYear', $any($event.target).valueAsNumber)" />
+            <span class="block mt-1 text-xs text-text-tertiary">{{ 'dashboard.finance.settings.firstYearHint' | translate: { year: yearLabels()[0] } }}</span>
+          </label>
+          <label class="!block">
+            <span class="fs-label">{{ 'dashboard.finance.settings.closing' | translate }}</span>
+            <select class="!w-full" [disabled]="calendarYearEnforced()" (change)="setParam('fiscalCalendar', 'fiscalYearEndMonth', +$any($event.target).value)">
+              @for (name of monthNames(); track $index) {
+                <option [value]="$index + 1" [selected]="fiscalCalendar().fiscalYearEndMonth === $index + 1">{{ name }}</option>
+              }
+            </select>
+            <span class="block mt-1 text-xs text-text-tertiary">
+              {{ (calendarYearEnforced() ? 'dashboard.finance.settings.closingLocked' : 'dashboard.finance.settings.closingFree') | translate }}
+            </span>
+          </label>
+          <label class="!block">
+            <span class="fs-label">{{ 'dashboard.finance.settings.activityStart' | translate }}</span>
+            <select class="!w-full" (change)="setParam('fiscalCalendar', 'activityStartMonth', +$any($event.target).value)">
+              @for (name of monthNames(); track $index) {
+                <option [value]="$index + 1" [selected]="fiscalCalendar().activityStartMonth === $index + 1">{{ name }}</option>
+              }
+            </select>
+            <span class="block mt-1 text-xs text-text-tertiary">
+              {{ 'dashboard.finance.settings.activityStartHint' | translate: { months: firstYearActiveMonths(), year: yearLabels()[0] } }}
+            </span>
+          </label>
+        </div>
+      }
+
+      <!-- ═════════════ Tableaux pour la banque (calculés) ═════════════ -->
+      @default {
+        <div class="glass-card p-5">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <p class="text-sm text-text-secondary flex items-center gap-2">
+              <i [class]="reportIcon() + ' text-primary'" aria-hidden="true"></i>
+              {{ 'dashboard.finance.page.computed' | translate }}
+            </p>
+            @if (sectionKey() !== 'ratios') {
+              <div class="inline-flex rounded-lg border border-[var(--glass-border)] p-0.5" role="group" [attr.aria-label]="'dashboard.finance.editor.year' | translate">
+                @for (year of yearLabels(); track $index) {
+                  <button type="button" class="px-3 py-1 text-xs font-medium rounded-md transition-colors" [class.bg-primary]="selectedYear() === $index" [class.text-on-primary]="selectedYear() === $index" [class.text-text-secondary]="selectedYear() !== $index" [attr.aria-pressed]="selectedYear() === $index" (click)="selectedYear.set($index)">
+                    {{ year }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          @switch (sectionKey()) {
+            @case ('compteExploitation') {
+              @if (computedData()?.compteExploitation?.[selectedYear()]; as pl) {
+                <table class="ft">
+                  <caption class="sr-only">{{ 'dashboard.finance.guide.compteExploitation.title' | translate }} {{ yearLabels()[selectedYear()] }}</caption>
+                  <tbody>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.pl.revenue' | translate }}</th><td>{{ formatCurrency(pl.chiffreAffaires) }}</td></tr>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.pl.variable' | translate }}</th><td class="ft-minus">{{ formatCurrency(pl.chargesVariables) }}</td></tr>
+                    <tr class="ft-total"><th scope="row">{{ 'dashboard.finance.reports.pl.margin' | translate }}</th><td>{{ formatCurrency(pl.margeBrute) }}</td></tr>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.pl.fixed' | translate }}</th><td class="ft-minus">{{ formatCurrency(pl.chargesFixes) }}</td></tr>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.pl.salaries' | translate }}</th><td class="ft-minus">{{ formatCurrency(pl.remunerations) }}</td></tr>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.pl.taxes' | translate }}</th><td class="ft-minus">{{ formatCurrency(pl.impotsTaxes) }}</td></tr>
+                    <tr class="ft-total"><th scope="row">{{ 'dashboard.finance.reports.pl.ebitda' | translate }}</th><td>{{ formatCurrency(pl.ebe) }}</td></tr>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.pl.depreciation' | translate }}</th><td class="ft-minus">{{ formatCurrency(pl.dotationsAmortissements) }}</td></tr>
+                    <tr class="ft-total"><th scope="row">{{ 'dashboard.finance.reports.pl.operating' | translate }}</th><td>{{ formatCurrency(pl.resultatExploitation) }}</td></tr>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.pl.interest' | translate }}</th><td class="ft-minus">{{ formatCurrency(pl.chargesFinancieres) }}</td></tr>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.pl.incomeTax' | translate }}</th><td class="ft-minus">{{ formatCurrency(pl.is) }}</td></tr>
+                    <tr class="ft-grand"><th scope="row">{{ 'dashboard.finance.reports.pl.net' | translate }}</th><td [class.text-success]="pl.resultatNet >= 0" [class.text-danger]="pl.resultatNet < 0">{{ formatCurrency(pl.resultatNet) }}</td></tr>
+                  </tbody>
+                </table>
+              }
+            }
+
+            @case ('fluxTresorerie') {
+              @if (computedData()?.fluxTresorerie?.[selectedYear()]; as cf) {
+                <table class="ft">
+                  <caption class="sr-only">{{ 'dashboard.finance.guide.fluxTresorerie.title' | translate }} {{ yearLabels()[selectedYear()] }}</caption>
+                  <tbody>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.cf.opening' | translate }}</th><td>{{ formatCurrency(cf.tresorerieOuverture) }}</td></tr>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.cf.operations' | translate }}</th><td>{{ formatCurrency(cf.fluxExploitation) }}</td></tr>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.cf.investing' | translate }}</th><td>{{ formatCurrency(cf.fluxInvestissement) }}</td></tr>
+                    <tr><th scope="row">{{ 'dashboard.finance.reports.cf.financing' | translate }}</th><td>{{ formatCurrency(cf.fluxFinancement) }}</td></tr>
+                    <tr class="ft-total"><th scope="row">{{ 'dashboard.finance.reports.cf.change' | translate }}</th><td>{{ formatCurrency(cf.variationTresorerie) }}</td></tr>
+                    <tr class="ft-grand"><th scope="row">{{ 'dashboard.finance.reports.cf.closing' | translate }}</th><td [class.text-success]="cf.tresorerieCloture >= 0" [class.text-danger]="cf.tresorerieCloture < 0">{{ formatCurrency(cf.tresorerieCloture) }}</td></tr>
+                  </tbody>
+                </table>
+              }
+            }
+
+            @case ('bilan') {
+              @if (computedData()?.bilan?.[selectedYear()]; as bs) {
+                <div class="grid gap-6 md:grid-cols-2">
+                  <table class="ft">
+                    <caption class="ft-caption">{{ 'dashboard.finance.reports.bs.assets' | translate }}</caption>
+                    <tbody>
+                      <tr><th scope="row">{{ 'dashboard.finance.reports.bs.fixedAssets' | translate }}</th><td>{{ formatCurrency(bs.vnc) }}</td></tr>
+                      <tr><th scope="row">{{ 'dashboard.finance.reports.bs.receivables' | translate }}</th><td>{{ formatCurrency(bs.creancesClients) }}</td></tr>
+                      <tr><th scope="row">{{ 'dashboard.finance.reports.bs.stocks' | translate }}</th><td>{{ formatCurrency(bs.stocks) }}</td></tr>
+                      <tr><th scope="row">{{ 'dashboard.finance.reports.bs.cash' | translate }}</th><td>{{ formatCurrency(bs.tresorerie) }}</td></tr>
+                      <tr class="ft-grand"><th scope="row">{{ 'dashboard.finance.reports.bs.totalAssets' | translate }}</th><td>{{ formatCurrency(bs.totalActif) }}</td></tr>
+                    </tbody>
+                  </table>
+                  <table class="ft">
+                    <caption class="ft-caption">{{ 'dashboard.finance.reports.bs.liabilities' | translate }}</caption>
+                    <tbody>
+                      <tr><th scope="row">{{ 'dashboard.finance.reports.bs.equity' | translate }}</th><td>{{ formatCurrency(bs.fondsPropres) }}</td></tr>
+                      <tr><th scope="row">{{ 'dashboard.finance.reports.bs.loans' | translate }}</th><td>{{ formatCurrency(bs.emprunts) }}</td></tr>
+                      <tr><th scope="row">{{ 'dashboard.finance.reports.bs.suppliers' | translate }}</th><td>{{ formatCurrency(bs.dettesFournisseurs) }}</td></tr>
+                      <tr><th scope="row">{{ 'dashboard.finance.reports.bs.taxDebts' | translate }}</th><td>{{ formatCurrency(bs.dettesFiscalesSociales) }}</td></tr>
+                      <tr class="ft-grand"><th scope="row">{{ 'dashboard.finance.reports.bs.totalLiabilities' | translate }}</th><td>{{ formatCurrency(bs.totalPassif) }}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              }
+            }
+
+            @case ('amortization') {
+              @if (computedData()?.amortization?.rows?.length) {
+                <div class="overflow-x-auto">
+                  <table class="ft ft-wide">
+                    <thead>
+                      <tr>
+                        <th scope="col">{{ 'dashboard.finance.reports.am.group' | translate }}</th>
+                        <th scope="col">{{ 'dashboard.finance.reports.am.base' | translate }}</th>
+                        <th scope="col">{{ 'dashboard.finance.reports.am.rate' | translate }}</th>
+                        <th scope="col">{{ 'dashboard.finance.reports.am.yearCharge' | translate: { year: yearLabels()[selectedYear()] } }}</th>
+                        <th scope="col">{{ 'dashboard.finance.reports.am.remaining' | translate }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of computedData()!.amortization.rows; track row.category) {
+                        <tr>
+                          <th scope="row">{{ 'dashboard.finance.reports.am.groups.' + row.category | translate }}</th>
+                          <td>{{ formatCurrency(row.base) }}</td>
+                          <td>{{ formatPercent(row.ratePct) }}</td>
+                          <td>{{ formatCurrency(row.annualDotations[selectedYear()]) }}</td>
+                          <td>{{ formatCurrency(row.vna[selectedYear()]) }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <p class="text-sm text-text-secondary py-6 text-center">{{ 'dashboard.finance.reports.am.empty' | translate }}</p>
+              }
+            }
+
+            @case ('ratios') {
+              @if (computedData()?.ratios; as ratios) {
+                <dl class="grid gap-4 md:grid-cols-3">
+                  <div class="fs-metric">
+                    <dt class="text-sm text-text-secondary">{{ 'dashboard.finance.home.bank.van' | translate }}</dt>
+                    <dd class="text-2xl font-bold tabular-nums" [class.text-success]="ratios.van >= 0" [class.text-danger]="ratios.van < 0">{{ formatCurrency(ratios.van) }}</dd>
+                    <dd class="text-xs text-text-tertiary mt-1">{{ 'dashboard.finance.home.bank.vanHint' | translate }}</dd>
+                  </div>
+                  <div class="fs-metric">
+                    <dt class="text-sm text-text-secondary">{{ 'dashboard.finance.home.bank.tri' | translate }}</dt>
+                    <dd class="text-2xl font-bold text-text-primary tabular-nums">{{ formatPercent(ratios.tri) }}</dd>
+                    <dd class="text-xs text-text-tertiary mt-1">{{ 'dashboard.finance.home.bank.triHint' | translate }}</dd>
+                  </div>
+                  <div class="fs-metric">
+                    <dt class="text-sm text-text-secondary">{{ 'dashboard.finance.reports.ratios.payback' | translate }}</dt>
+                    <dd class="text-2xl font-bold text-text-primary tabular-nums">{{ 'dashboard.finance.reports.ratios.years' | translate: { n: ratios.drci } }}</dd>
+                    <dd class="text-xs text-text-tertiary mt-1">{{ 'dashboard.finance.reports.ratios.paybackHint' | translate }}</dd>
+                  </div>
+                </dl>
+              }
+            }
+          }
+        </div>
+      }
+    }
+
+    <!-- ═════════════ Navigation du parcours ═════════════ -->
+    @if (kind() === 'step') {
+      <nav class="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-2" [attr.aria-label]="'dashboard.finance.page.stepNav' | translate">
+        @if (previousStep(); as prev) {
+          <button type="button" class="outer-button" [disabled]="saving()" (click)="go(prev.route)">
+            <i class="pi pi-arrow-left text-xs" aria-hidden="true"></i>
+            {{ 'dashboard.finance.page.previous' | translate }}
+          </button>
+        } @else {
+          <span></span>
+        }
+        <button type="button" class="inner-button" [disabled]="saving()" (click)="go(nextStep()?.route ?? null)">
+          @if (saving()) { <idem-loader size="xs" /> }
+          {{ (nextStep() ? (dirty() ? 'dashboard.finance.page.saveNext' : 'dashboard.finance.page.next') : 'dashboard.finance.page.finish') | translate }}
+          <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+        </button>
+      </nav>
+    } @else if (kind() === 'setting') {
+      <div class="flex justify-end">
+        <button type="button" class="outer-button" [disabled]="saving()" (click)="go(null)">
+          {{ 'dashboard.finance.page.backHome' | translate }}
+        </button>
+      </div>
+    }
+  }
+</div>
+
+<!-- ═════════════ Modifications non enregistrées ═════════════ -->
+@if (dirty() || savedNotice()) {
+  <div class="fs-savebar glass" role="status" aria-live="polite">
+    @if (dirty()) {
+      <span class="text-sm text-text-primary">{{ 'dashboard.finance.save.pending' | translate }}</span>
+      <div class="flex gap-2">
+        <button type="button" class="button-ghost button-sm" [disabled]="saving()" (click)="discard()">{{ 'dashboard.finance.save.discard' | translate }}</button>
+        <button type="button" class="inner-button button-sm" [disabled]="saving()" (click)="save()">
           @if (saving()) { <idem-loader size="xs" /> }
           {{ 'common.save' | translate }}
         </button>
       </div>
+    } @else {
+      <span class="text-sm text-text-primary flex items-center gap-2">
+        <i class="pi pi-check-circle text-success" aria-hidden="true"></i>
+        {{ 'dashboard.finance.save.done' | translate }}
+      </span>
     }
-  </header>
-
-  @if (isLoading()) {
-    <div class="flex items-center justify-center min-h-[40vh]">
-      <idem-loader size="lg" />
-    </div>
-  } @else {
-    <div class="glass-card p-6">
-      <!-- Toolbar for year-based sections -->
-      @if (['salesObjectives', 'amortization', 'compteExploitation', 'bilan', 'fluxTresorerie'].includes(sectionKey())) {
-        <div class="flex items-center gap-2 mb-6">
-          <span class="text-xs text-text-tertiary uppercase font-semibold mr-2">Année :</span>
-          <div class="year-tabs">
-            @for (year of yearLabels(); track $index) {
-              <button class="year-tab" [class.active]="selectedYear() === $index" (click)="selectYear($index)">
-                {{ year }}
-              </button>
-            }
-          </div>
-        </div>
-      }
-
-      @switch (sectionKey()) {
-        <!-- ============================================== PRODUCTS ============================================== -->
-        @case ('products') {
-          <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-text-primary">Produits & Services</h3>
-            <button class="outer-button button-sm" (click)="addProduct()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
-          </div>
-          <div class="finance-table-wrap">
-            <table class="finance-table">
-              <thead>
-                <tr>
-                  <th>Produit</th>
-                  @for (year of yearLabels(); track $index) {
-                    <th class="col-num">Prix {{ year }}</th>
-                    <th class="col-num">Coût Unit. {{ year }}</th>
-                  }
-                  <th class="text-center w-10">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (product of products(); track trackById($index, product)) {
-                  <tr>
-                    <td><input type="text" class="cell-input !text-left !max-w-[200px]" [(ngModel)]="product.name" (ngModelChange)="markDirty()"></td>
-                    @for (year of yearLabels(); track $index) {
-                      <td class="col-num"><input type="number" class="cell-input" [(ngModel)]="product.prices[$index]" (ngModelChange)="markDirty()"></td>
-                      <td class="col-num"><input type="number" class="cell-input" [(ngModel)]="product.unitCosts[$index]" (ngModelChange)="markDirty()"></td>
-                    }
-                    <td class="text-center"><button class="row-action danger" (click)="removeProduct($index)"><i class="pi pi-trash"></i></button></td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-
-        <!-- ============================================== SALES OBJECTIVES ============================================== -->
-        @case ('salesObjectives') {
-          <div class="finance-table-wrap">
-            <table class="finance-table">
-              <thead>
-                <tr>
-                  <th>Produit</th>
-                  @for (m of yearMonths(); track $index) { <th class="col-num">{{ monthLabel(m) }}</th> }
-                </tr>
-              </thead>
-              <tbody>
-                @for (sale of salesObjectives(); track sale.productId) {
-                  <tr>
-                    <td class="font-semibold">{{ productNameById(sale.productId) }}</td>
-                    @for (m of yearMonths(); track $index) {
-                      <td class="col-num"><input type="number" class="cell-input" [(ngModel)]="sale.monthlyQuantities[m]" (ngModelChange)="markDirty()"></td>
-                    }
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-
-        <!-- ============================================== VARIABLE CHARGES ============================================== -->
-        @case ('variableCharges') {
-          <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-text-primary">Charges Variables</h3>
-            <button class="outer-button button-sm" (click)="addVariableChargeLine()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
-          </div>
-          <div class="finance-table-wrap mb-8">
-            <table class="finance-table">
-              <thead>
-                <tr>
-                  <th>Catégorie</th>
-                  <th>Libellé</th>
-                  <th class="col-num">Moyenne / Mois</th>
-                  <th class="text-center w-10">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (line of variableCharges()?.lines || []; track trackById($index, line)) {
-                  <tr>
-                    <td>
-                      <select class="cell-input !text-left !max-w-[180px]" [(ngModel)]="line.category" (ngModelChange)="markDirty()">
-                        <option value="achatsMatierePremiere">Matières premières</option>
-                        <option value="achatsMarchandises">Marchandises</option>
-                        <option value="sousTraitance">Sous-traitance</option>
-                        <option value="fraisExpedition">Frais d'expédition</option>
-                        <option value="commissions">Commissions</option>
-                        <option value="autresChargesExternes">Autres charges</option>
-                      </select>
-                    </td>
-                    <td><input type="text" class="cell-input !text-left !max-w-[200px]" [(ngModel)]="line.label" (ngModelChange)="markDirty()"></td>
-                    <td class="col-num">
-                      <div class="monthly-scroll max-w-[300px] ml-auto">
-                        @for (m of months(); track $index) {
-                          <input type="number" class="cell-input !w-[80px]" [(ngModel)]="line.monthlyValues[m]" (ngModelChange)="markDirty()">
-                        }
-                      </div>
-                    </td>
-                    <td class="text-center"><button class="row-action danger" (click)="removeVariableChargeLine($index)"><i class="pi pi-trash"></i></button></td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <div class="param-grid border-t border-[var(--glass-border)] pt-6">
-            <div class="param-field">
-              <label>Taux de dette Fournisseurs (%)</label>
-              <input type="number" [(ngModel)]="variableCharges()!.supplierDebtRatePct" (ngModelChange)="markDirty()">
-            </div>
-          </div>
-        }
-
-        <!-- ============================================== FIXED CHARGES ============================================== -->
-        @case ('fixedCharges') {
-          <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-text-primary">Charges Fixes (Fonctionnement)</h3>
-            <button class="outer-button button-sm" (click)="addFixedChargeLine()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
-          </div>
-          <div class="finance-table-wrap mb-8">
-            <table class="finance-table">
-              <thead>
-                <tr>
-                  <th>Catégorie</th>
-                  <th>Libellé</th>
-                  <th class="col-num">Valeurs Mensuelles</th>
-                  <th class="text-center w-10">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (line of fixedCharges()?.lines || []; track trackById($index, line)) {
-                  <tr>
-                    <td>
-                      <select class="cell-input !text-left !max-w-[180px]" [(ngModel)]="line.category" (ngModelChange)="markDirty()">
-                        <option value="locations">Locations</option>
-                        <option value="assurances">Assurances</option>
-                        <option value="honoraires">Honoraires</option>
-                        <option value="marketing">Marketing/Pub</option>
-                        <option value="fraisBancaires">Frais Bancaires</option>
-                        <option value="logiciels">Logiciels/Abo</option>
-                        <option value="autres">Autres</option>
-                      </select>
-                    </td>
-                    <td><input type="text" class="cell-input !text-left !max-w-[200px]" [(ngModel)]="line.label" (ngModelChange)="markDirty()"></td>
-                    <td class="col-num">
-                      <div class="monthly-scroll max-w-[300px] ml-auto">
-                        @for (m of months(); track $index) { <input type="number" class="cell-input !w-[80px]" [(ngModel)]="line.monthlyValues[m]" (ngModelChange)="markDirty()"> }
-                      </div>
-                    </td>
-                    <td class="text-center"><button class="row-action danger" (click)="removeFixedChargeLine($index)"><i class="pi pi-trash"></i></button></td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <div class="mb-4 flex justify-between items-center border-t border-[var(--glass-border)] pt-6">
-            <h3 class="text-lg font-semibold text-text-primary">Salaires & Personnel</h3>
-            <button class="outer-button button-sm" (click)="addSalary()"><i class="pi pi-plus mr-2"></i> Ajouter Salaire</button>
-          </div>
-          <div class="finance-table-wrap mb-8">
-            <table class="finance-table">
-              <thead>
-                <tr>
-                  <th>Poste</th>
-                  <th class="col-num">Salaire Brut Mensuel</th>
-                  <th class="text-center w-10">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (salary of fixedCharges()?.salaries || []; track trackById($index, salary)) {
-                  <tr>
-                    <td><input type="text" class="cell-input !text-left !max-w-[200px]" [(ngModel)]="salary.position" (ngModelChange)="markDirty()"></td>
-                    <td class="col-num">
-                      <div class="monthly-scroll max-w-[300px] ml-auto">
-                        @for (m of months(); track $index) { <input type="number" class="cell-input !w-[80px]" [(ngModel)]="salary.monthlyValues[m]" (ngModelChange)="markDirty()"> }
-                      </div>
-                    </td>
-                    <td class="text-center"><button class="row-action danger" (click)="removeSalary($index)"><i class="pi pi-trash"></i></button></td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <div class="param-grid border-t border-[var(--glass-border)] pt-6">
-            <div class="param-field">
-              <label>Taux Charges Patronales (%)</label>
-              <input type="number" [(ngModel)]="fixedCharges()!.socialChargesRatePct" (ngModelChange)="markDirty()">
-            </div>
-            <div class="param-field">
-              <label>Taux TUS (%)</label>
-              <input type="number" [(ngModel)]="fixedCharges()!.tusRatePct" (ngModelChange)="markDirty()">
-            </div>
-          </div>
-        }
-        <!-- ============================================== INVESTMENTS ============================================== -->
-        @case ('investments') {
-          <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-text-primary">Investissements (CAPEX)</h3>
-            <button class="outer-button button-sm" (click)="addInvestment()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
-          </div>
-          <div class="finance-table-wrap">
-            <table class="finance-table">
-              <thead>
-                <tr>
-                  <th>Catégorie</th>
-                  <th>Amortissement</th>
-                  <th>Libellé</th>
-                  <th class="col-num">Décaissements Mensuels</th>
-                  <th class="text-center w-10">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (inv of investments(); track trackById($index, inv)) {
-                  <tr>
-                    <td>
-                      <select class="cell-input !text-left !max-w-[150px]" [(ngModel)]="inv.category" (ngModelChange)="markDirty()">
-                        <option value="logiciels">Logiciels</option>
-                        <option value="materielInfo">Matériel Info.</option>
-                        <option value="mobilier">Mobilier</option>
-                        <option value="amenagements">Aménagements</option>
-                        <option value="vehicules">Véhicules</option>
-                        <option value="brevets">Brevets/Marques</option>
-                      </select>
-                    </td>
-                    <td>
-                      <select class="cell-input !text-left !max-w-[140px]" [(ngModel)]="inv.amortGroup" (ngModelChange)="markDirty()">
-                        <option value="incorporelles">Incorporelles</option>
-                        <option value="corporelles">Corporelles</option>
-                        <option value="nonAmortissable">Non Amort.</option>
-                      </select>
-                    </td>
-                    <td><input type="text" class="cell-input !text-left !max-w-[150px]" [(ngModel)]="inv.label" (ngModelChange)="markDirty()"></td>
-                    <td class="col-num">
-                      <div class="monthly-scroll max-w-[250px] ml-auto">
-                        @for (m of months(); track $index) { <input type="number" class="cell-input !w-[80px]" [(ngModel)]="inv.monthlyValues[m]" (ngModelChange)="markDirty()"> }
-                      </div>
-                    </td>
-                    <td class="text-center"><button class="row-action danger" (click)="removeInvestment($index)"><i class="pi pi-trash"></i></button></td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-
-        <!-- ============================================== FINANCING ============================================== -->
-        @case ('financing') {
-          <div class="financing-cards">
-            <!-- Apports -->
-            <div class="glass p-4 rounded-xl">
-              <h4 class="font-bold mb-4 text-primary">Apports</h4>
-              <div class="space-y-4">
-                <div class="param-field">
-                  <label>Capital Social</label>
-                  <input type="number" [(ngModel)]="financing()!.apportCapital" (ngModelChange)="markDirty()">
-                </div>
-                <div class="param-field">
-                  <label>Comptes Courants Associés</label>
-                  <input type="number" [(ngModel)]="financing()!.compteCourantAssocies.amount" (ngModelChange)="markDirty()">
-                </div>
-                <div class="param-field">
-                  <label>Subventions d'Investissement</label>
-                  <input type="number" [(ngModel)]="financing()!.subvention" (ngModelChange)="markDirty()">
-                </div>
-              </div>
-            </div>
-            
-            <!-- Emprunt -->
-            <div class="glass p-4 rounded-xl">
-              <h4 class="font-bold mb-4 text-primary">Emprunt Bancaire (CMT)</h4>
-              <div class="space-y-4">
-                <div class="param-field">
-                  <label>Montant Emprunté</label>
-                  <input type="number" [(ngModel)]="financing()!.cmt.amount" (ngModelChange)="markDirty()">
-                </div>
-                <div class="param-field">
-                  <label>Taux d'Intérêt Annuel (%)</label>
-                  <input type="number" [(ngModel)]="financing()!.cmt.ratePct" (ngModelChange)="markDirty()">
-                </div>
-                <div class="param-field">
-                  <label>Durée (Mois)</label>
-                  <input type="number" [(ngModel)]="financing()!.cmt.duration" (ngModelChange)="markDirty()">
-                </div>
-              </div>
-            </div>
-            
-            <!-- Autres -->
-            <div class="glass p-4 rounded-xl">
-              <h4 class="font-bold mb-4 text-primary">Crédit-Bail</h4>
-              <div class="space-y-4">
-                <div class="param-field">
-                  <label>Montant</label>
-                  <input type="number" [(ngModel)]="financing()!.creditBail.amount" (ngModelChange)="markDirty()">
-                </div>
-                <div class="param-field">
-                  <label>Durée (Mois)</label>
-                  <input type="number" [(ngModel)]="financing()!.creditBail.duration" (ngModelChange)="markDirty()">
-                </div>
-                <div class="param-field">
-                  <label>Taux (%)</label>
-                  <input type="number" [(ngModel)]="financing()!.creditBail.ratePct" (ngModelChange)="markDirty()">
-                </div>
-              </div>
-            </div>
-          </div>
-        }
-
-        <!-- ============================================== PARAMS (Revenue, Taxes, Ratios) ============================================== -->
-        @case ('revenueParams') {
-          <div class="param-grid">
-            <div class="param-field">
-              <label>Taux de Créances Clients (%)</label>
-              <input type="number" [(ngModel)]="revenueParams()!.clientReceivablesRatePct" (ngModelChange)="markDirty()">
-            </div>
-          </div>
-        }
-        @case ('taxesParams') {
-          <div class="param-grid">
-            <div class="param-field">
-              <label>Régime Fiscal</label>
-              <select [(ngModel)]="taxesParams()!.regimeType" (ngModelChange)="markDirty()">
-                <option value="reel">Réel</option>
-                <option value="forfait">Forfaitaire</option>
-                <option value="auto">Auto-entrepreneur</option>
-              </select>
-            </div>
-            <div class="param-field">
-              <label>Taux Impôt sur les Sociétés (IS) (%)</label>
-              <input type="number" [(ngModel)]="taxesParams()!.isRatePct" (ngModelChange)="markDirty()">
-            </div>
-          </div>
-        }
-        @case ('ratiosParams') {
-          <div class="param-grid">
-            <div class="param-field">
-              <label>Taux d'Actualisation (VAN) (%)</label>
-              <input type="number" [(ngModel)]="ratiosParams()!.vanDiscountRatePct" (ngModelChange)="markDirty()">
-            </div>
-            <div class="param-field">
-              <label>Taux de Croissance Perpétuelle (%)</label>
-              <input type="number" [(ngModel)]="ratiosParams()!.perpetualGrowthRatePct" (ngModelChange)="markDirty()">
-            </div>
-            <div class="param-field">
-              <label>Taux de Distribution des Dividendes (%)</label>
-              <input type="number" [(ngModel)]="ratiosParams()!.dividendDistributionRatePct" (ngModelChange)="markDirty()">
-            </div>
-            <div class="param-field">
-              <label>CMPC / WACC (%)</label>
-              <input type="number" [(ngModel)]="ratiosParams()!.cmpcPct" (ngModelChange)="markDirty()">
-              <small>Recalculé depuis la structure de financement si l'option ci-dessous est active.</small>
-            </div>
-            <div class="param-field">
-              <label>
-                <input type="checkbox" [(ngModel)]="ratiosParams()!.cmpcAuto" (ngModelChange)="markDirty()">
-                Déduire le CMPC de la structure de financement
-              </label>
-            </div>
-            <div class="param-field">
-              <label>Coût des fonds propres (%)</label>
-              <input type="number" [(ngModel)]="ratiosParams()!.costOfEquityPct" (ngModelChange)="markDirty()">
-            </div>
-            <div class="param-field">
-              <label>Nombre de parts sociales</label>
-              <input type="number" [(ngModel)]="ratiosParams()!.numberOfShares" (ngModelChange)="markDirty()">
-              <small>Sert au calcul de la valeur et du dividende par part.</small>
-            </div>
-          </div>
-        }
-        @case ('fiscalCalendar') {
-          <div class="param-grid">
-            <div class="param-field">
-              <label>Année d'ouverture du premier exercice</label>
-              <input type="number" [(ngModel)]="fiscalCalendar().firstYear" (ngModelChange)="markDirty()">
-              <small>Premier exercice : {{ yearLabels()[0] }}.</small>
-            </div>
-            <div class="param-field">
-              <label>Mois de clôture de l'exercice</label>
-              <select
-                [(ngModel)]="fiscalCalendar().fiscalYearEndMonth"
-                (ngModelChange)="markDirty()"
-                [disabled]="calendarYearEnforced()"
-              >
-                @for (name of monthNames; track name; let i = $index) {
-                  <option [value]="i + 1">{{ name }}</option>
-                }
-              </select>
-              <small>
-                @if (calendarYearEnforced()) {
-                  La juridiction du projet impose un exercice calé sur l'année civile :
-                  la clôture est fixée au 31 décembre et n'est pas modifiable.
-                } @else {
-                  La juridiction du projet laisse la société arrêter sa date de clôture.
-                  Une clôture hors décembre fait porter à l'exercice deux années civiles.
-                }
-              </small>
-            </div>
-            <div class="param-field">
-              <label>Mois de démarrage effectif de l'activité</label>
-              <select [(ngModel)]="fiscalCalendar().activityStartMonth" (ngModelChange)="markDirty()">
-                @for (name of monthNames; track name; let i = $index) {
-                  <option [value]="i + 1">{{ name }}</option>
-                }
-              </select>
-              <small>
-                {{ firstYearActiveMonths() }} mois d'exploitation sur le premier exercice
-                {{ yearLabels()[0] }} : c'est un exercice tronqué, non comparable à une année pleine.
-              </small>
-            </div>
-          </div>
-        }
-
-        <!-- ============================================== COMPUTED SECTIONS (Read Only) ============================================== -->
-        @case ('amortization') {
-          <div class="finance-table-wrap">
-            <table class="finance-table">
-              <thead>
-                <tr>
-                  <th>Catégorie</th>
-                  <th>Groupe</th>
-                  <th class="col-num">Base</th>
-                  <th class="col-num">Taux</th>
-                  <th class="col-num">Dotation {{ yearLabels()[selectedYear()] }}</th>
-                  <th class="col-num">Cumul</th>
-                  <th class="col-num">VNA</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (amort of computedData()?.amortization?.rows || []; track trackByCategory($index, amort)) {
-                  <tr>
-                    <td>{{ amort.category }}</td>
-                    <td>-</td>
-                    <td class="col-num">{{ formatCurrency(amort.base) }}</td>
-                    <td class="col-num">{{ formatPercent(amort.ratePct) }}</td>
-                    <td class="col-num">{{ formatCurrency(amort.annualDotations[selectedYear()]) }}</td>
-                    <td class="col-num text-text-tertiary">{{ formatCurrency(amort.cumulative[selectedYear()]) }}</td>
-                    <td class="col-num text-text-primary">{{ formatCurrency(amort.vna[selectedYear()]) }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-
-        @case ('compteExploitation') {
-          <div class="finance-table-wrap">
-            <table class="finance-table">
-              <thead>
-                <tr>
-                  <th>Rubrique</th>
-                  <th class="col-num">{{ yearLabels()[selectedYear()] }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                @if (computedData()?.compteExploitation; as plArr) {
-                  @if (plArr[selectedYear()]; as pl) {
-                    <tr><td>Chiffre d'Affaires</td><td class="col-num val-positive">{{ formatCurrency(pl.chiffreAffaires) }}</td></tr>
-                    <tr><td>Charges Variables</td><td class="col-num val-negative">{{ formatCurrency(pl.chargesVariables) }}</td></tr>
-                    <tr class="row-total"><td>Marge sur Coûts Variables</td><td class="col-num">{{ formatCurrency(pl.margeBrute) }}</td></tr>
-                    <tr><td>Charges Fixes (hors salaires)</td><td class="col-num val-negative">{{ formatCurrency(pl.chargesFixes) }}</td></tr>
-                    <tr><td>Salaires et Charges</td><td class="col-num val-negative">{{ formatCurrency(pl.remunerations) }}</td></tr>
-                    <tr class="row-total"><td>EBE (EBITDA)</td><td class="col-num">{{ formatCurrency(pl.ebe) }}</td></tr>
-                    <tr><td>Dotations aux Amortissements</td><td class="col-num val-negative">{{ formatCurrency(pl.dotationsAmortissements) }}</td></tr>
-                    <tr class="row-total"><td>Résultat d'Exploitation (EBIT)</td><td class="col-num">{{ formatCurrency(pl.resultatExploitation) }}</td></tr>
-                    <tr><td>Charges Financières</td><td class="col-num val-negative">{{ formatCurrency(pl.chargesFinancieres) }}</td></tr>
-                    <tr><td>Impôt sur les Sociétés</td><td class="col-num val-negative">{{ formatCurrency(pl.is) }}</td></tr>
-                    <tr class="row-total text-primary"><td class="text-base">RÉSULTAT NET</td><td class="col-num text-base font-bold">{{ formatCurrency(pl.resultatNet) }}</td></tr>
-                  }
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-
-        @case ('bilan') {
-          <div class="grid md:grid-cols-2 gap-6">
-            <!-- Actif -->
-            <div class="finance-table-wrap">
-              <h4 class="font-bold mb-3 text-text-primary">ACTIF</h4>
-              <table class="finance-table">
-                <tbody>
-                  @if (computedData()?.bilan; as bsArr) {
-                    @if (bsArr[selectedYear()]; as bs) {
-                      <tr><td>Actif Immobilisé Net</td><td class="col-num">{{ formatCurrency(bs.vnc) }}</td></tr>
-                      <tr><td>Créances Clients</td><td class="col-num">{{ formatCurrency(bs.creancesClients) }}</td></tr>
-                      <tr><td>Stocks</td><td class="col-num">{{ formatCurrency(bs.stocks) }}</td></tr>
-                      <tr><td>Trésorerie Disponible</td><td class="col-num">{{ formatCurrency(bs.tresorerie) }}</td></tr>
-                      <tr class="row-total"><td>TOTAL ACTIF</td><td class="col-num text-primary">{{ formatCurrency(bs.totalActif) }}</td></tr>
-                    }
-                  }
-                </tbody>
-              </table>
-            </div>
-            <!-- Passif -->
-            <div class="finance-table-wrap">
-              <h4 class="font-bold mb-3 text-text-primary">PASSIF</h4>
-              <table class="finance-table">
-                <tbody>
-                  @if (computedData()?.bilan; as bsArr) {
-                    @if (bsArr[selectedYear()]; as bs) {
-                      <tr><td>Capitaux Propres</td><td class="col-num">{{ formatCurrency(bs.fondsPropres) }}</td></tr>
-                      <tr><td>Emprunts</td><td class="col-num">{{ formatCurrency(bs.emprunts) }}</td></tr>
-                      <tr><td>Dettes Fournisseurs</td><td class="col-num">{{ formatCurrency(bs.dettesFournisseurs) }}</td></tr>
-                      <tr><td>Dettes Fiscales/Sociales</td><td class="col-num">{{ formatCurrency(bs.dettesFiscalesSociales) }}</td></tr>
-                      <tr class="row-total"><td>TOTAL PASSIF</td><td class="col-num text-primary">{{ formatCurrency(bs.totalPassif) }}</td></tr>
-                    }
-                  }
-                </tbody>
-              </table>
-            </div>
-          </div>
-        }
-
-        @case ('fluxTresorerie') {
-          <div class="finance-table-wrap">
-            <table class="finance-table">
-              <thead>
-                <tr>
-                  <th>Rubrique</th>
-                  <th class="col-num">{{ yearLabels()[selectedYear()] }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                @if (computedData()?.fluxTresorerie; as cfArr) {
-                  @if (cfArr[selectedYear()]; as cf) {
-                    <tr><td>Trésorerie Ouverture</td><td class="col-num">{{ formatCurrency(cf.tresorerieOuverture) }}</td></tr>
-                    <tr class="row-total"><td>Flux net d'Exploitation</td><td class="col-num val-positive">{{ formatCurrency(cf.fluxExploitation) }}</td></tr>
-                    <tr><td>Flux Investissement (CAPEX)</td><td class="col-num val-negative">{{ formatCurrency(cf.fluxInvestissement) }}</td></tr>
-                    <tr><td>Flux Financement</td><td class="col-num val-positive">{{ formatCurrency(cf.fluxFinancement) }}</td></tr>
-                    <tr class="row-total"><td>Variation de Trésorerie nette</td><td class="col-num">{{ formatCurrency(cf.variationTresorerie) }}</td></tr>
-                    <tr class="row-total text-primary"><td class="text-base">Trésorerie Fin de Période</td><td class="col-num text-base">{{ formatCurrency(cf.tresorerieCloture) }}</td></tr>
-                  }
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-
-        @case ('ratios') {
-          <div class="grid md:grid-cols-3 gap-6">
-            @if (computedData()?.ratios; as ratios) {
-              <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-text-tertiary uppercase mb-2">Valeur Actuelle Nette (VAN)</div>
-                <div class="text-2xl font-bold text-text-primary">{{ formatCurrency(ratios.van) }}</div>
-              </div>
-              <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-text-tertiary uppercase mb-2">Taux de Rentabilité Interne (TRI)</div>
-                <div class="text-2xl font-bold text-text-primary">{{ formatPercent(ratios.tri) }}</div>
-              </div>
-              <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-text-tertiary uppercase mb-2">Délai de Récupération (DRCI)</div>
-                <div class="text-2xl font-bold text-text-primary">{{ ratios.drci }} ans</div>
-              </div>
-            }
-          </div>
-        }
-      }
-    </div>
-  }
-</div>
+  </div>
+}

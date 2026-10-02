@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  DOCUMENT,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ProjectModel } from '@idem/shared-models';
@@ -20,34 +29,37 @@ import { ProjectService } from '../../services/project.service';
 import { toChannels } from './communication-ui';
 import { STRATEGY_INPUT_ROUTES, missingStrategyInputs } from './strategy-inputs';
 import { BrandVoicePanel } from './components/brand-voice-panel/brand-voice-panel';
+import { CommunicationHome, HomeAction } from './components/communication-home/communication-home';
 import { LibraryPanel } from './components/library-panel/library-panel';
-import { PlanPanel } from './components/plan-panel/plan-panel';
+import { PlanIntent, PlanPanel } from './components/plan-panel/plan-panel';
 import { StrategyInputsDialog } from './components/strategy-inputs-dialog/strategy-inputs-dialog';
 import { StudioPanel } from './components/studio-panel/studio-panel';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
-type Screen = 'studio' | 'plans' | 'library';
+type Screen = 'home' | 'studio' | 'plans' | 'library';
+
+const SCREENS: readonly Screen[] = ['home', 'studio', 'plans', 'library'];
 
 /**
  * Module Communication — la coquille.
  *
- * Trois écrans nommés par ce qu'on y fait, là où il y avait quatre onglets de
- * vocabulaire interne (« Moments », « signaux de tendance », « stratégie » en
- * blocs de textarea) :
+ * Quatre écrans nommés par ce qu'on y fait, chacun sous-titré d'une ligne qui
+ * dit à quoi il sert :
  *
- *   CRÉER        on décrit ce qu'on veut, le visuel sort à la charte
- *   MON PLANNING ce qu'il y a à publier, et quand — avec des dates réelles
- *   MES VISUELS  tout ce qui a été produit, atteignable quoi qu'il arrive
+ *   ACCUEIL          où j'en suis, et quoi faire ensuite (le parcours guidé)
+ *   CRÉER UN VISUEL  trois questions, le visuel sort à la charte
+ *   MON CALENDRIER   ce qu'il y a à publier, et quel jour — avec des dates réelles
+ *   MES VISUELS      tout ce qui a été produit, atteignable quoi qu'il arrive
  *   + MA FAÇON DE COMMUNIQUER, en panneau : définie une fois, relue rarement
  *
- * Aucun de ces noms ne demande de connaître le marketing. C'était le premier
- * obstacle : « Atelier », « Périodes », « Bibliothèque » et « la boussole »
- * décrivaient des métaphores, pas des actions.
- *
- * CRÉER est l'écran par défaut. C'est le seul qui donne un résultat sans rien
- * comprendre au vocabulaire du métier — et l'ordre imposé par la V1 (stratégie,
- * puis calendrier, puis visuel : 55 crédits avant de voir quoi que ce soit) était
- * la première raison pour laquelle le module n'était pas utilisé.
+ * L'ACCUEIL est l'écran par défaut. On arrivait auparavant directement dans le
+ * fil de l'atelier : face à une zone de saisie, quelqu'un qui ne vient pas de la
+ * tech tape au hasard, et « Créer / Mon planning / Mes visuels » ne disait pas
+ * dans quel ordre s'en servir. L'accueil répond d'abord à « qu'est-ce que je
+ * fais maintenant ? », sans rien imposer : un visuel reste à un clic, sans
+ * stratégie ni calendrier — l'ordre imposé par la V1 (55 crédits avant de voir
+ * quoi que ce soit) était la première raison pour laquelle le module n'était
+ * pas utilisé.
  *
  * Cette coquille détient le modèle et le distribue ; les écrans lui renvoient
  * leurs modifications. Un seul chargement, une seule source de vérité.
@@ -58,6 +70,7 @@ type Screen = 'studio' | 'plans' | 'library';
     TranslateModule,
     IncompleteProjectBannerComponent,
     BrandVoicePanel,
+    CommunicationHome,
     LibraryPanel,
     PlanPanel,
     StrategyInputsDialog,
@@ -73,6 +86,8 @@ export class ShowCommunication implements OnInit {
   private readonly router = inject(Router);
   private readonly brandingValidation = inject(BrandingValidationService);
   private readonly projectService = inject(ProjectService);
+  private readonly document = inject(DOCUMENT);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly projectId = signal<string | null>(null);
   protected readonly isLoading = signal(true);
@@ -122,16 +137,16 @@ export class ShowCommunication implements OnInit {
     toChannels(this.model()?.context?.channels),
   );
 
-  /** Vrai tant que rien n'existe : on montre alors les trois façons de démarrer. */
-  protected readonly isFirstVisit = computed(
-    () => !this.strategy() && this.plans().length === 0 && this.visuals().length === 0,
-  );
-
-  protected readonly screens: { id: Screen; icon: string; labelKey: string }[] = [
-    { id: 'studio', icon: 'pi pi-sparkles', labelKey: 'dashboard.showCommunication.tabs.studio' },
-    { id: 'plans', icon: 'pi pi-calendar', labelKey: 'dashboard.showCommunication.tabs.plans' },
-    { id: 'library', icon: 'pi pi-images', labelKey: 'dashboard.showCommunication.tabs.library' },
+  /** Chaque onglet dit ce qu'il fait : un nom seul (« Créer ») ne suffisait pas. */
+  protected readonly screens: { id: Screen; icon: string }[] = [
+    { id: 'home', icon: 'pi pi-home' },
+    { id: 'studio', icon: 'pi pi-image' },
+    { id: 'plans', icon: 'pi pi-calendar' },
+    { id: 'library', icon: 'pi pi-images' },
   ];
+
+  /** Demande transmise au calendrier quand on y arrive depuis l'accueil. */
+  protected readonly planIntent = signal<PlanIntent | null>(null);
 
   /**
    * Polices de la marque, transmises aux aperçus.
@@ -149,10 +164,18 @@ export class ShowCommunication implements OnInit {
   });
 
   private initialScreen(): Screen {
-    const requested = this.route.snapshot.queryParamMap.get('screen');
-    return requested === 'plans' || requested === 'library' || requested === 'studio'
-      ? requested
-      : 'studio';
+    const requested = this.route.snapshot.queryParamMap.get('screen') as Screen | null;
+    return requested && SCREENS.includes(requested) ? requested : 'home';
+  }
+
+  constructor() {
+    // Sur téléphone, les onglets passent en barre fixe en bas de l'écran. Le dock
+    // de mode, monté hors de ce module, vit dans ce même coin : on lui dit de
+    // descendre DANS la barre plutôt que de flotter par-dessus un onglet ou un
+    // bouton « Suivant ». Variable posée sur la racine, retirée en partant.
+    const root = this.document.documentElement;
+    root.style.setProperty('--idem-dock-bottom', '0.4rem');
+    this.destroyRef.onDestroy(() => root.style.removeProperty('--idem-dock-bottom'));
   }
 
   ngOnInit(): void {
@@ -211,6 +234,31 @@ export class ShowCommunication implements OnInit {
   protected setScreen(screen: Screen): void {
     this.activeScreen.set(screen);
     this.errorMessage.set('');
+  }
+
+  /** L'accueil envoie vers l'étape choisie, en ouvrant ce qu'il faut à l'arrivée. */
+  protected onHomeAction(action: HomeAction): void {
+    switch (action.kind) {
+      case 'voice':
+        this.openVoice();
+        return;
+      case 'newPlan':
+        this.planIntent.set({ kind: 'create' });
+        this.setScreen('plans');
+        return;
+      case 'openPost':
+        this.planIntent.set({ kind: 'open', planId: action.planId, itemId: action.itemId });
+        this.setScreen('plans');
+        return;
+      default:
+        this.setScreen(action.kind);
+    }
+  }
+
+  /** La bibliothèque vide renvoie vers un endroit où l'on crée. */
+  protected onCreateRequested(screen: 'studio' | 'plans'): void {
+    if (screen === 'plans' && this.plans().length === 0) this.planIntent.set({ kind: 'create' });
+    this.setScreen(screen);
   }
 
   protected openVoice(): void {

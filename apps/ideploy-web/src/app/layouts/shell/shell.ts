@@ -7,6 +7,7 @@ import { ApiService } from '../../shared/services/api.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle';
+import { TourService } from '../../shared/services/tour.service';
 import { environment } from '../../../environments/environment';
 
 interface NavItem {
@@ -16,6 +17,8 @@ interface NavItem {
 }
 interface NavSection {
   title?: string;
+  /** Ancre de la visite guidée, posée sur tout le groupe. */
+  tour?: string;
   items: NavItem[];
 }
 
@@ -113,6 +116,7 @@ function appNav(uuid: string): NavSection[] {
                nothing else. -->
           <div class="relative">
             <button type="button" class="flex items-center rounded-full"
+                    data-tour="ideploy-user-menu"
                     [attr.aria-expanded]="userMenuOpen()"
                     [attr.aria-label]="'shell.userMenu' | translate"
                     [title]="authUser()?.email ?? ''"
@@ -140,6 +144,10 @@ function appNav(uuid: string): NavSection[] {
                    style="color:var(--color-text-secondary);" (click)="userMenuOpen.set(false)">
                   <i class="pi pi-cog text-sm"></i>{{ 'shell.nav.settings' | translate }}
                 </a>
+                <button type="button" class="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-semibold"
+                        style="color:var(--color-text-secondary);" (click)="replayTour()">
+                  <i class="pi pi-compass text-sm"></i>{{ 'shell.replayTour' | translate }}
+                </button>
 
                 <div class="px-4 py-3 flex flex-col gap-2" style="border-top:1px solid var(--glass-border-subtle);">
                   <span class="text-[10px] font-bold uppercase" style="color:var(--color-text-tertiary);">{{ 'shell.display' | translate }}</span>
@@ -169,7 +177,7 @@ function appNav(uuid: string): NavSection[] {
             <!-- In an application's own context: this header names the application,
                  not the team — a back arrow is the way out, same as Vercel's own
                  project sidebar reads "‹ project-name" instead of the team switcher. -->
-            <a routerLink="/dashboard" class="flex items-center gap-2 px-1 group" [title]="'shell.backToOverview' | translate">
+            <a routerLink="/dashboard" data-tour="ideploy-app-back" class="flex items-center gap-2 px-1 group" [title]="'shell.backToOverview' | translate">
               <i class="pi pi-chevron-left text-xs" style="color:var(--color-text-tertiary);"></i>
               <i class="pi pi-box text-xs" style="color:var(--color-primary-400);"></i>
               <span class="truncate text-sm font-semibold text-text-primary group-hover:text-primary-400 transition-colors">{{ app.name }}</span>
@@ -183,19 +191,24 @@ function appNav(uuid: string): NavSection[] {
         </div>
         <ul role="list" class="flex flex-col flex-1 px-3 py-5 gap-y-0.5">
           @for (section of topNav(); track section.title || 'main') {
-            @if (section.title) {
-              <li style="padding-top:20px; padding-bottom:5px;"><span class="block px-3 text-[10px] font-bold uppercase" style="color:color-mix(in srgb, var(--color-text-tertiary) 65%, transparent);">{{ section.title! | translate }}</span></li>
-            }
-            @for (item of section.items; track item.path) {
-              <li>
-                <a [routerLink]="item.path" routerLinkActive="bg-primary/15 text-primary border-primary/30"
-                   [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' || item.path === appOverviewPath() }"
-                   class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-[var(--color-on-primary)]">
-                  <i [class]="item.icon" class="text-lg shrink-0 w-5 text-center"></i>
-                  <span class="text-sm font-medium">{{ item.label | translate }}</span>
-                </a>
-              </li>
-            }
+            <!-- Un groupe par section : la visite guidée l'éclaire d'un bloc. -->
+            <li [attr.data-tour]="section.tour ?? null">
+              <ul role="list" class="flex flex-col gap-y-0.5">
+                @if (section.title) {
+                  <li style="padding-top:20px; padding-bottom:5px;"><span class="block px-3 text-[10px] font-bold uppercase" style="color:color-mix(in srgb, var(--color-text-tertiary) 65%, transparent);">{{ section.title! | translate }}</span></li>
+                }
+                @for (item of section.items; track item.path) {
+                  <li>
+                    <a [routerLink]="item.path" routerLinkActive="bg-primary/15 text-primary border-primary/30"
+                       [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' || item.path === appOverviewPath() }"
+                       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-[var(--color-on-primary)]">
+                      <i [class]="item.icon" class="text-lg shrink-0 w-5 text-center"></i>
+                      <span class="text-sm font-medium">{{ item.label | translate }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            </li>
           }
           @if (isInstanceAdmin()) {
             <li style="padding-top:20px; padding-bottom:5px;"><span class="block px-3 text-[10px] font-bold uppercase" style="color:color-mix(in srgb, var(--color-text-tertiary) 65%, transparent);">{{ 'shell.nav.sectionAdmin' | translate }}</span></li>
@@ -218,15 +231,19 @@ function appNav(uuid: string): NavSection[] {
           </li>
 
           <!-- Always the account's own — never scoped to whichever application is open. -->
-          <li style="padding-top:20px; padding-bottom:5px;"><span class="block px-3 text-[10px] font-bold uppercase" style="color:color-mix(in srgb, var(--color-text-tertiary) 65%, transparent);">{{ 'shell.nav.sectionConfiguration' | translate }}</span></li>
-          @for (item of bottomNav; track item.path) {
-            <li>
-              <a [routerLink]="item.path" routerLinkActive="bg-primary/15 text-primary border-primary/30" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-[var(--color-on-primary)]">
-                <i [class]="item.icon" class="text-lg shrink-0 w-5 text-center"></i>
-                <span class="text-sm font-medium">{{ item.label | translate }}</span>
-              </a>
-            </li>
-          }
+          <li data-tour="ideploy-nav-configuration">
+            <ul role="list" class="flex flex-col gap-y-0.5">
+              <li style="padding-top:20px; padding-bottom:5px;"><span class="block px-3 text-[10px] font-bold uppercase" style="color:color-mix(in srgb, var(--color-text-tertiary) 65%, transparent);">{{ 'shell.nav.sectionConfiguration' | translate }}</span></li>
+              @for (item of bottomNav; track item.path) {
+                <li>
+                  <a [routerLink]="item.path" routerLinkActive="bg-primary/15 text-primary border-primary/30" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-[var(--color-on-primary)]">
+                    <i [class]="item.icon" class="text-lg shrink-0 w-5 text-center"></i>
+                    <span class="text-sm font-medium">{{ item.label | translate }}</span>
+                  </a>
+                </li>
+              }
+            </ul>
+          </li>
         </ul>
       </nav>
     </aside>
@@ -242,6 +259,7 @@ export class ShellComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private tour = inject(TourService);
 
   protected readonly authUser = toSignal(this.auth.user$, { initialValue: null });
   protected readonly userMenuOpen = signal(false);
@@ -273,6 +291,7 @@ export class ShellComponent implements OnInit {
     { items: [{ path: '/dashboard', label: 'shell.nav.dashboard', icon: 'pi pi-home' }] },
     {
       title: 'shell.nav.sectionDeploy',
+      tour: 'ideploy-nav-deploy',
       items: [
         { path: '/workspaces', label: 'shell.nav.workspaces', icon: 'pi pi-clone' },
         { path: '/templates', label: 'shell.nav.templates', icon: 'pi pi-sparkles' },
@@ -280,6 +299,7 @@ export class ShellComponent implements OnInit {
     },
     {
       title: 'shell.nav.sectionResources',
+      tour: 'ideploy-nav-resources',
       items: [
         { path: '/servers', label: 'shell.nav.servers', icon: 'pi pi-server' },
         { path: '/applications', label: 'shell.nav.applications', icon: 'pi pi-box' },
@@ -329,6 +349,20 @@ export class ShellComponent implements OnInit {
     const l = this.serversLimit();
     return l ? Math.min(100, Math.round((this.serversUsed() / l) * 100)) : 0;
   }
+  /**
+   * Rejoue la visite du lieu où l'on se trouve : celle de l'application
+   * ouverte, sinon celle du tableau de bord — qu'on rejoint d'abord, puisque
+   * c'est là que vivent les éléments qu'elle montre.
+   */
+  protected replayTour(): void {
+    this.userMenuOpen.set(false);
+    if (this.appContext()) {
+      this.tour.start('application');
+      return;
+    }
+    void this.router.navigateByUrl('/dashboard').then(() => this.tour.start('main'));
+  }
+
   protected logout(): void {
     void this.auth.logout();
   }

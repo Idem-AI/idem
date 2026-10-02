@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
@@ -9,6 +9,7 @@ import {
   WorkspaceOptions,
 } from '../../../shared/models/ideploy.models';
 import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
+import { NoServerPromptComponent } from '../../../shared/components/no-server-prompt/no-server-prompt';
 
 /**
  * Two-step workspace creation.
@@ -23,7 +24,7 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
  */
 @Component({
   selector: 'app-workspace-create',
-  imports: [RouterLink, ReactiveFormsModule, TranslateModule, IllustrationComponent],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, IllustrationComponent, NoServerPromptComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto max-w-2xl">
@@ -134,12 +135,7 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
                 {{ 'workspaces.form.server' | translate }}
               </label>
               @if (servers().length === 0) {
-                <p class="text-sm" style="color:var(--color-text-secondary);">
-                  {{ 'workspaces.form.noServers' | translate }}
-                  <a routerLink="/servers/new" style="color:var(--color-primary-400);">
-                    {{ 'workspaces.form.addServer' | translate }}
-                  </a>
-                </p>
+                <app-no-server-prompt [returnTo]="returnTo()" />
               } @else {
                 <select id="ws-server"  formControlName="server_uuid">
                   <option value="">{{ 'workspaces.form.chooseServer' | translate }}</option>
@@ -191,6 +187,7 @@ export class WorkspaceCreateComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly step = signal<1 | 2>(1);
   protected readonly saving = signal(false);
@@ -211,14 +208,44 @@ export class WorkspaceCreateComponent implements OnInit {
     () => this.options()?.deploymentTypes ?? ['saas', 'own']
   );
 
+  /**
+   * This form, on step 2 with "own server" chosen and what was typed on
+   * step 1 — where adding a server brings the person back. The new server
+   * returns as `ws_server` and is picked on arrival.
+   */
+  protected returnTo(): string {
+    const raw = this.form.getRawValue();
+    const params = new URLSearchParams({ ws_step: '2', ws_target: 'own', ws_name: raw.name });
+    if (raw.description) params.set('ws_description', raw.description);
+    return `/workspaces/new?${params.toString()}`;
+  }
+
   ngOnInit(): void {
+    // Back from adding a server: restore step 1's answers and resume on step 2.
+    const q = this.route.snapshot.queryParamMap;
+    const returning = q.get('ws_target') === 'own';
+    if (returning) {
+      this.form.patchValue({
+        name: q.get('ws_name') ?? '',
+        description: q.get('ws_description') ?? '',
+        deployment_type: 'own',
+      });
+      if (q.get('ws_step') === '2' && this.form.controls.name.valid) this.step.set(2);
+    }
+
     this.api.workspaceOptions().subscribe({
       next: (options) => this.options.set(options),
       // The form still works on defaults if options cannot be loaded.
       error: () => undefined,
     });
     this.api.listServers().subscribe({
-      next: (servers) => this.servers.set(servers),
+      next: (servers) => {
+        this.servers.set(servers);
+        const server = q.get('ws_server');
+        if (returning && server && servers.some((s) => s.uuid === server)) {
+          this.form.patchValue({ server_uuid: server });
+        }
+      },
       error: () => undefined,
     });
   }

@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommunicationService } from '../../../../services/ai-agents/communication.service';
 import { FontHints } from '../../../document-editor/models/editor.types';
 import {
@@ -22,6 +22,7 @@ import {
   PLANNABLE_CHANNELS,
   channelIcon,
   channelLabelKey,
+  formatDay,
   statusPillClass,
   toChannel,
 } from '../../communication-ui';
@@ -62,6 +63,7 @@ type EditableField =
 })
 export class ContentDetail {
   private readonly communication = inject(CommunicationService);
+  private readonly translate = inject(TranslateService);
 
   readonly projectId = input.required<string>();
   readonly planId = input.required<string>();
@@ -107,6 +109,11 @@ export class ContentDetail {
   protected readonly hashtagsText = computed(() => (this.item().hashtags ?? []).join(', '));
 
   // ── Édition champ par champ ──────────────────────────────────────────────
+
+  /** « lun. 12 oct. » plutôt que la date ISO. */
+  protected day(iso: string): string {
+    return formatDay(iso, this.translate.currentLang);
+  }
 
   protected startEdit(field: Exclude<EditableField, null>): void {
     this.editing.set(field);

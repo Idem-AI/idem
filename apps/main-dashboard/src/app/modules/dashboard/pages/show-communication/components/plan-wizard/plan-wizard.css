@@ -344,3 +344,55 @@
   font-size: 0.72rem;
   color: var(--color-text-tertiary);
 }
+
+/* ── Téléphone : plein écran ─────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .pw-backdrop {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .pw-panel {
+    display: flex;
+    height: 100dvh;
+    max-height: 100dvh;
+    max-width: none;
+    flex-direction: column;
+    border-radius: 0;
+    padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem 0;
+  }
+
+  /* « Suivant » toujours sous le pouce, quelle que soit la longueur de l'étape. */
+  .pw-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    margin: auto -1rem 0;
+    border-top: 1px solid var(--glass-border);
+    background: var(--glass-bg-intense);
+    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .pw-actions .pw-footer {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .pw-footer .inner-button {
+    flex: 1;
+    justify-content: center;
+    min-height: 3rem;
+  }
+
+  .pw-footer .outer-button {
+    min-height: 3rem;
+  }
+
+  .pw-actions .pw-price {
+    margin-top: 0.5rem;
+  }
+}

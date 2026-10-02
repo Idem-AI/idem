@@ -27,6 +27,8 @@
     </div>
   </div>
 
+  <app-screen-guide guideKey="plans" />
+
   @if (generatingPlanId()) {
     <p
       class="glass mb-4 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-[var(--color-accent-500)]"
@@ -55,7 +57,7 @@
     </div>
   } @else {
     <!-- ─────────────── Bande des plannings ─────────────── -->
-    <ul class="mb-5 flex flex-wrap gap-3" role="tablist">
+    <ul class="pp-strip mb-5 flex flex-wrap gap-3" role="tablist">
       @for (plan of visiblePlans(); track plan.id) {
         <li>
           <button
@@ -123,60 +125,68 @@
         </div>
 
         @if (plan.brief) {
-          <div class="mt-4 grid gap-4 md:grid-cols-2">
-            @if (plan.brief.angle) {
-              <div>
-                <h4 class="pp-label">
-                  {{ 'dashboard.showCommunication.plans.brief.angle' | translate }}
-                </h4>
-                <p class="mt-1 text-sm text-[var(--color-text-primary)]">{{ plan.brief.angle }}</p>
-              </div>
-            }
-            @if (plan.brief.keyMessage) {
-              <div>
-                <h4 class="pp-label">
-                  {{ 'dashboard.showCommunication.plans.brief.keyMessage' | translate }}
-                </h4>
-                <p class="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
-                  {{ plan.brief.keyMessage }}
-                </p>
-              </div>
-            }
-            @if (plan.brief.themes.length > 0) {
-              <div>
-                <h4 class="pp-label">
-                  {{ 'dashboard.showCommunication.plans.brief.themes' | translate }}
-                </h4>
-                <ul class="mt-1 flex flex-wrap gap-1.5">
-                  @for (theme of plan.brief.themes; track theme.label) {
-                    <li
-                      class="glass rounded-full px-2.5 py-1 text-xs text-[var(--color-text-primary)]"
-                      [title]="theme.why"
-                    >
-                      {{ theme.label }}
-                    </li>
-                  }
-                </ul>
-              </div>
-            }
-            @if (plan.brief.successSignals.length > 0) {
-              <div>
-                <h4 class="pp-label">
-                  {{ 'dashboard.showCommunication.plans.brief.signals' | translate }}
-                </h4>
-                <ul class="mt-1 list-inside list-disc text-sm text-[var(--color-text-secondary)]">
-                  @for (signal of plan.brief.successSignals; track signal) {
-                    <li>{{ signal }}</li>
-                  }
-                </ul>
-              </div>
-            }
-          </div>
+          <!-- Au téléphone, l'idée du calendrier se replie : les publications d'abord. -->
+          <details class="pp-brief" [open]="!isCompact()">
+            <summary class="pp-brief-summary">
+              <i class="pi pi-lightbulb" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.plans.briefToggle' | translate }}
+              <i class="pi pi-chevron-down pp-brief-chevron" aria-hidden="true"></i>
+            </summary>
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
+              @if (plan.brief.angle) {
+                <div>
+                  <h4 class="pp-label">
+                    {{ 'dashboard.showCommunication.plans.brief.angle' | translate }}
+                  </h4>
+                  <p class="mt-1 text-sm text-[var(--color-text-primary)]">{{ plan.brief.angle }}</p>
+                </div>
+              }
+              @if (plan.brief.keyMessage) {
+                <div>
+                  <h4 class="pp-label">
+                    {{ 'dashboard.showCommunication.plans.brief.keyMessage' | translate }}
+                  </h4>
+                  <p class="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
+                    {{ plan.brief.keyMessage }}
+                  </p>
+                </div>
+              }
+              @if (plan.brief.themes.length > 0) {
+                <div>
+                  <h4 class="pp-label">
+                    {{ 'dashboard.showCommunication.plans.brief.themes' | translate }}
+                  </h4>
+                  <ul class="mt-1 flex flex-wrap gap-1.5">
+                    @for (theme of plan.brief.themes; track theme.label) {
+                      <li
+                        class="glass rounded-full px-2.5 py-1 text-xs text-[var(--color-text-primary)]"
+                        [title]="theme.why"
+                      >
+                        {{ theme.label }}
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+              @if (plan.brief.successSignals.length > 0) {
+                <div>
+                  <h4 class="pp-label">
+                    {{ 'dashboard.showCommunication.plans.brief.signals' | translate }}
+                  </h4>
+                  <ul class="mt-1 list-inside list-disc text-sm text-[var(--color-text-secondary)]">
+                    @for (signal of plan.brief.successSignals; track signal) {
+                      <li>{{ signal }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+          </details>
         }
       </div>
 
       <!-- ─────────────── Bascule de vue ─────────────── -->
-      @if (plan.items.length > 0) {
+      @if (plan.items.length > 0 && !isCompact()) {
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div class="glass inline-flex w-fit gap-1 rounded-2xl p-1" role="tablist">
             <button
@@ -210,7 +220,7 @@
       }
 
       <!-- ─────────────── Vue LISTE par semaine ─────────────── -->
-      @if (view() === 'weeks') {
+      @if (shownView() === 'weeks') {
         @for (group of weeks(); track group.week) {
           <div class="mb-5">
             <h4 class="pp-label mb-2">
@@ -266,7 +276,7 @@
                           [class]="channelIcon(item.channel)"
                           aria-hidden="true"
                         ></i>
-                        <span>{{ item.scheduledFor }}</span>
+                        <span class="pp-card-day">{{ day(item.scheduledFor) }}</span>
                         @if (!visualOf(item)) {
                           <span class="pp-card-todo">
                             {{ 'dashboard.showCommunication.plans.visualToDo' | translate }}
@@ -283,7 +293,7 @@
       }
 
       <!-- ─────────────── Vue CALENDRIER ─────────────── -->
-      @if (view() === 'month') {
+      @if (shownView() === 'month') {
         @for (month of months(); track month.label) {
           <div class="glass-card mb-4 overflow-x-auto p-4">
             <h4 class="mb-3 font-semibold capitalize text-[var(--color-text-primary)]">

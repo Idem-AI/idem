@@ -2,10 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommunicationService } from '../../../../services/ai-agents/communication.service';
@@ -16,8 +18,10 @@ import {
   ContentIdea,
   Flyer,
 } from '../../../../models/communication.model';
+import { injectCompactViewport } from '../../compact-viewport';
 import {
   channelIcon,
+  formatDay,
   formatRange,
   groupByWeek,
   planStatusPillClass,
@@ -26,8 +30,17 @@ import {
 } from '../../communication-ui';
 import { ContentDetail } from '../content-detail/content-detail';
 import { PlanWizard, PlanWizardResult } from '../plan-wizard/plan-wizard';
+import { ScreenGuide } from '../screen-guide/screen-guide';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+
+/**
+ * Ce qu'un autre écran demande au planning en y envoyant l'utilisateur :
+ * ouvrir la création, ou ouvrir une publication précise.
+ */
+export type PlanIntent =
+  | { kind: 'create' }
+  | { kind: 'open'; planId: string; itemId: string };
 
 /** Une case du calendrier mensuel. */
 interface DayCell {
@@ -59,7 +72,14 @@ interface MonthView {
  */
 @Component({
   selector: 'app-plan-panel',
-  imports: [TranslateModule, ContentDetail, PlanWizard, VisualThumb, IdemLoaderComponent],
+  imports: [
+    TranslateModule,
+    ContentDetail,
+    PlanWizard,
+    ScreenGuide,
+    VisualThumb,
+    IdemLoaderComponent,
+  ],
   templateUrl: './plan-panel.html',
   styleUrls: ['./plan-panel.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,8 +94,11 @@ export class PlanPanel {
   readonly suggestedChannels = input<ContentChannel[]>([]);
   readonly visuals = input<Flyer[]>([]);
   readonly fonts = input<FontHints>({});
+  /** Demande venue de l'accueil ; consommée une fois, puis signalée au parent. */
+  readonly intent = input<PlanIntent | null>(null);
 
   readonly plansChange = output<CommunicationPlan[]>();
+  readonly intentHandled = output<void>();
   readonly visualCreated = output<Flyer>();
   readonly failed = output<string>();
 
@@ -86,6 +109,13 @@ export class PlanPanel {
   // ── Sélection et vues ────────────────────────────────────────────────────
   protected readonly selectedPlanId = signal<string | null>(null);
   protected readonly view = signal<'weeks' | 'month'>('weeks');
+  protected readonly isCompact = injectCompactViewport();
+
+  /**
+   * Vue affichée. Au téléphone, toujours la liste : la grille du mois demande
+   * 40rem de large et se lisait en faisant défiler de côté, case par case.
+   */
+  protected readonly shownView = computed(() => (this.isCompact() ? 'weeks' : this.view()));
   protected readonly showArchived = signal(false);
   protected readonly showWizard = signal(false);
   /** Publication ouverte en détail. */
@@ -191,9 +221,33 @@ export class PlanPanel {
   protected readonly generatingPlanId = signal<string | null>(null);
   protected readonly stepLabel = signal('');
 
+  constructor() {
+    // Une demande de l'accueil (« Créer mon calendrier », une publication
+    // cliquée) arrive par une entrée : on l'exécute, puis on le dit au parent
+    // pour qu'elle ne rejoue pas au prochain passage sur l'écran.
+    effect(() => {
+      const intent = this.intent();
+      if (!intent) return;
+      untracked(() => {
+        if (intent.kind === 'create') {
+          this.openWizard();
+        } else {
+          this.selectedPlanId.set(intent.planId);
+          this.openItemId.set(intent.itemId);
+        }
+        this.intentHandled.emit();
+      });
+    });
+  }
+
   // ==========================================================================
   // Navigation
   // ==========================================================================
+
+  /** « lun. 12 oct. » plutôt que la date ISO. */
+  protected day(iso: string): string {
+    return formatDay(iso, this.translate.currentLang);
+  }
 
   protected selectPlan(planId: string): void {
     this.selectedPlanId.set(planId);

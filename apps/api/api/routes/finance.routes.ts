@@ -1,9 +1,12 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { authenticate } from '../services/auth.service';
 import {
   aiFillAllController,
   aiFillAllStreamController,
   aiFillSectionController,
+  analyzeFinanceImportController,
+  applyFinanceImportController,
   applyChatIntentController,
   appendAISuggestionsController,
   deleteFinanceController,
@@ -19,6 +22,7 @@ import {
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
+import { isAcceptedFinanceDocument } from '../services/Finance/finance-import.service';
 
 export const financeRoutes = Router();
 
@@ -224,6 +228,69 @@ financeRoutes.post(
  *     security: [{ bearerAuth: [] }]
  */
 financeRoutes.post(`/${resource}/:projectId/chat/apply`, authenticate, applyChatIntentController);
+
+// =====================================================================
+// Import d'un fichier financier
+// =====================================================================
+
+/**
+ * Excel, CSV, PDF, Word, Markdown ou texte — 15 Mo au plus. Le tri fin se fait
+ * dans le contrôleur, qui sait répondre 415 avec un motif.
+ */
+const importUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) =>
+    cb(null, isAcceptedFinanceDocument(file.originalname, file.mimetype)),
+});
+
+/** Un modèle qui raisonne sur un classeur de trois ans prend son temps. */
+const importTimeout = (req: any, res: any, next: any) => {
+  req.setTimeout(600000);
+  res.setTimeout(600000);
+  next();
+};
+
+/**
+ * @openapi
+ * /project/finance/{projectId}/import/analyze:
+ *   post:
+ *     tags: [Finance]
+ *     summary: Lit un fichier financier et le recopie au format IDEM (sans enregistrer)
+ *     description: >
+ *       Le fichier (champ `document`) est filtré avant tout appel au modèle :
+ *       un fichier sans chiffres financiers est refusé sans dépense (422), un
+ *       format inconnu aussi (415). La réponse est un brouillon à relire.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       '200': { description: FinanceImportPreview }
+ *       '415': { description: Unsupported format }
+ *       '422': { description: The document carries no usable financial figures }
+ */
+financeRoutes.post(
+  `/${resource}/:projectId/import/analyze`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  importTimeout,
+  importUpload.single('document'),
+  requireCredits('business', 'revision'),
+  analyzeFinanceImportController
+);
+
+/**
+ * @openapi
+ * /project/finance/{projectId}/import/apply:
+ *   post:
+ *     tags: [Finance]
+ *     summary: Enregistre un brouillon d'import validé (remplacer ou compléter)
+ *     security: [{ bearerAuth: [] }]
+ */
+financeRoutes.post(
+  `/${resource}/:projectId/import/apply`,
+  authenticate,
+  applyFinanceImportController
+);
 
 // =====================================================================
 // Rapport PDF

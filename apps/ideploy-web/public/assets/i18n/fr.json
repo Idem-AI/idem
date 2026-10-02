@@ -314,7 +314,8 @@
       "admin": "Administration"
     },
     "profile": "Mon profil",
-    "display": "Affichage"
+    "display": "Affichage",
+    "replayTour": "Revoir la visite"
   },
   "applications": {
     "open": "Ouvrir",
@@ -783,7 +784,9 @@
       "swarmWorker": "Swarm Worker",
       "submit": "Créer le serveur",
       "submitting": "Création…",
-      "submitError": "Échec de la création du serveur."
+      "submitError": "Échec de la création du serveur.",
+      "backToDeploy": "Retour à mon déploiement",
+      "returnNotice": "Une fois le serveur ajouté, vous reviendrez directement à votre déploiement, avec ce serveur choisi."
     },
     "useLocalButton": "Utiliser cette machine",
     "addingLocal": "Ajout…",
@@ -1673,6 +1676,98 @@
     "createError": "La création du serveur a échoué.",
     "catalogueError": "Impossible de charger le catalogue du fournisseur.",
     "tokensError": "Impossible de charger les identifiants cloud.",
-    "afterHint": "Une fois créé, ajoutez-le à iDeploy depuis « Ajouter un serveur » avec son adresse IP."
+    "afterHint": "Une fois créé, ajoutez-le à iDeploy depuis « Ajouter un serveur » avec son adresse IP.",
+    "backToDeploy": "Revenir à mon déploiement"
+  },
+  "noServerPrompt": {
+    "title": "Vous n'avez pas encore de serveur",
+    "body": "Pour déployer chez vous, iDeploy doit pouvoir joindre une machine : branchez celle que vous avez déjà, ou créez-en une chez un fournisseur cloud.",
+    "add": "Ajouter mon serveur",
+    "cloud": "Créer un serveur cloud",
+    "comeBack": "Vous reviendrez ici ensuite, pour finir votre déploiement."
+  },
+  "tour": {
+    "common": {
+      "next": "Suivant",
+      "back": "Retour",
+      "skip": "Passer",
+      "finish": "C'est parti",
+      "stepOf": "Étape {current} sur {total}",
+      "dialogLabel": "Visite guidée d'iDeploy"
+    },
+    "main": {
+      "welcome": {
+        "title": "Bienvenue sur iDeploy",
+        "body": "Ici, vos applications passent de votre ordinateur à Internet. En une minute, voici où se trouve chaque chose."
+      },
+      "addNew": {
+        "title": "Tout commence par « Ajouter »",
+        "body": "« Nouvelle application » met en ligne votre code, une image Docker ou une app prête à l'emploi. Le même menu crée un workspace ou branche un serveur."
+      },
+      "projects": {
+        "title": "Vos applications",
+        "body": "Chacune apparaît ici avec son état en direct et son adresse. Cliquez sur une carte pour la gérer : la redéployer, lire ses journaux, régler son domaine."
+      },
+      "deploy": {
+        "title": "Déploiement",
+        "body": "Un workspace regroupe les parties d'une même application — un site, une API, une base — pour qu'elles tournent ensemble. Les modèles installent WordPress, n8n ou Plausible en un clic."
+      },
+      "resources": {
+        "title": "Vos ressources",
+        "body": "Serveurs, applications, bases de données, services : tout ce qui tourne pour vous, rangé par type. Pas encore de serveur ? Branchez le vôtre ou créez-en un dans le cloud depuis « Serveurs »."
+      },
+      "usage": {
+        "title": "Ce que permet votre offre",
+        "body": "Les applications et serveurs utilisés, face à la limite de votre offre. « Mettre à niveau » donne plus de place quand il en faut."
+      },
+      "configuration": {
+        "title": "Les réglages du compte",
+        "body": "Paramètres, variables partagées, notifications, clés SSH, jetons d'accès et équipe : ces réglages valent pour toutes vos applications."
+      },
+      "menu": {
+        "title": "Votre compte",
+        "body": "Profil, langue, thème — et « Revoir la visite », pour refaire ce tour quand vous voulez."
+      },
+      "done": {
+        "title": "Vous êtes prêt",
+        "body": "Prochaine étape : « Ajouter », puis « Nouvelle application ». Une courte visite vous attend aussi sur la page de chaque application."
+      }
+    },
+    "new-project": {
+      "sources": {
+        "title": "D'où vient votre application ?",
+        "body": "Trois chemins : votre code (GitHub, GitLab ou une adresse Git), une image Docker déjà publiée, ou une app prête à l'emploi. Choisissez-en un."
+      },
+      "panel": {
+        "title": "Complétez, puis mettez en ligne",
+        "body": "Ce cadre suit votre choix : vos dépôts, le nom de l'image, ou le catalogue d'apps. Côté apps prêtes à l'emploi, des guides aident à assembler plusieurs briques."
+      },
+      "done": {
+        "title": "À vous de jouer",
+        "body": "Pas encore de serveur ? iDeploy vous proposera d'en brancher un ou d'en créer un, puis vous ramènera ici pour finir."
+      }
+    },
+    "application": {
+      "header": {
+        "title": "Votre application",
+        "body": "Son nom, son état en direct et son adresse en ligne. « Redéployer » publie la dernière version ; le bouton « … » la redémarre ou l'arrête."
+      },
+      "tabs": {
+        "title": "Tout se règle ici",
+        "body": "Déploiements et leurs journaux, variables, stockage, tâches planifiées, pipeline, sécurité, consommation et réglages (dépôt, domaine) : un onglet par sujet."
+      },
+      "checklist": {
+        "title": "Pour bien démarrer",
+        "body": "Ce qu'il reste à configurer. Chaque ligne mène là où ça se règle, et la liste disparaît une fois tout fait."
+      },
+      "back": {
+        "title": "La barre de gauche suit l’application",
+        "body": "Tant que vous êtes ici, elle ne montre que cette application. Cette flèche ramène au tableau de bord et à tout votre compte."
+      },
+      "done": {
+        "title": "C'est tout",
+        "body": "Vous pouvez revoir cette visite à tout moment depuis le menu de votre avatar."
+      }
+    }
   }
 }

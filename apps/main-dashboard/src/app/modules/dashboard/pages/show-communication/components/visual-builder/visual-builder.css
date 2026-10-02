@@ -1,0 +1,350 @@
+:host {
+  display: block;
+}
+
+.vb {
+  padding: 1.5rem;
+}
+
+/* ── Progression ──────────────────────────────────────────────────────────── */
+
+.vb-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 1rem;
+}
+
+.vb-progress-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+}
+
+.vb-progress-step:not(:disabled):hover .vb-progress-label {
+  text-decoration: underline;
+}
+
+.vb-progress-num {
+  display: flex;
+  height: 1.6rem;
+  width: 1.6rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1.5px solid var(--glass-border-medium);
+  font-size: 0.75rem;
+}
+
+.vb-progress-done {
+  color: var(--color-text-secondary);
+}
+
+.vb-progress-done .vb-progress-num {
+  border-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 14%, transparent);
+  color: var(--color-success);
+}
+
+.vb-progress-current {
+  color: var(--color-text-primary);
+}
+
+.vb-progress-current .vb-progress-num {
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-500);
+}
+
+/* ── Questions ────────────────────────────────────────────────────────────── */
+
+.vb-question {
+  margin-top: 1.25rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.vb-help {
+  margin-top: 0.3rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+/* Cibles larges : ce parcours se fait aussi au pouce, sur un téléphone. */
+.vb-kinds,
+.vb-places {
+  margin-top: 1.1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+@media (min-width: 40rem) {
+  .vb-kinds {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .vb-places {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.vb-kind,
+.vb-place {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  border-radius: 0.9rem;
+  border: 1.5px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  padding: 0.85rem 0.9rem;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.vb-kind:hover,
+.vb-place:hover {
+  border-color: var(--glass-border-strong);
+  transform: translateY(-1px);
+}
+
+.vb-active {
+  border-color: var(--color-primary-500);
+  background: color-mix(in srgb, var(--color-primary-500) 10%, transparent);
+}
+
+.vb-kind-icon {
+  font-size: 1.2rem;
+  color: var(--color-primary-500);
+}
+
+.vb-kind-label,
+.vb-place-label {
+  margin-top: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.vb-kind-hint,
+.vb-place-hint {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Détails ──────────────────────────────────────────────────────────────── */
+
+.vb-tips {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.vb-tips .pi {
+  margin-right: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--color-success);
+}
+
+/* ── Où ───────────────────────────────────────────────────────────────────── */
+
+.vb-shape-box {
+  display: flex;
+  height: 3.5rem;
+  width: 100%;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.vb-shape {
+  display: block;
+  height: 3.2rem;
+  border-radius: 0.3rem;
+  border: 1.5px solid var(--color-text-tertiary);
+  background: var(--glass-bg-medium);
+}
+
+/* La bannière est large : à hauteur égale elle déborderait de la carte. */
+.vb-shape-banner {
+  height: 2.4rem;
+}
+
+.vb-active .vb-shape {
+  border-color: var(--color-primary-500);
+  background: color-mix(in srgb, var(--color-primary-500) 18%, transparent);
+}
+
+.vb-place-icons {
+  display: flex;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.vb-variants {
+  margin-top: 1rem;
+  display: flex;
+  cursor: pointer;
+  align-items: flex-start;
+  gap: 0.6rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--glass-border);
+  padding: 0.75rem 0.9rem;
+}
+
+.vb-variants input {
+  margin-top: 0.2rem;
+  accent-color: var(--color-primary-500);
+}
+
+.vb-variants-title {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.vb-variants-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Pied ─────────────────────────────────────────────────────────────────── */
+
+.vb-footer {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.vb-free {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.vb-free:hover {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+}
+
+/* ── Téléphone ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  :host {
+    /* Le haut du formulaire ne se cache pas sous la barre du dashboard en y remontant. */
+    scroll-margin-top: 6rem;
+  }
+
+  .vb {
+    padding: 1rem;
+  }
+
+  .vb-progress {
+    gap: 0.75rem;
+    justify-content: space-between;
+  }
+
+  .vb-progress-step {
+    gap: 0.35rem;
+    font-size: 0.75rem;
+  }
+
+  .vb-question {
+    margin-top: 1rem;
+    font-size: 1.15rem;
+  }
+
+  /*
+   * Quoi : une liste, pas une grille. Sur 360 px, deux colonnes de cartes
+   * coupaient les explications en trois lignes ; une ligne par choix, icône à
+   * gauche, se lit comme un menu de téléphone.
+   */
+  .vb-kinds {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .vb-kind {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 0.6rem;
+    row-gap: 0.05rem;
+    min-height: 3.5rem;
+    padding: 0.65rem 0.8rem;
+  }
+
+  .vb-kind-icon {
+    grid-row: 1 / span 2;
+    text-align: center;
+  }
+
+  .vb-kind-label {
+    margin-top: 0;
+  }
+
+  .vb-place {
+    padding: 0.75rem;
+  }
+
+  .vb-shape-box {
+    height: 2.75rem;
+  }
+
+  .vb-shape {
+    height: 2.6rem;
+  }
+
+  .vb-shape-banner {
+    height: 1.9rem;
+  }
+
+  /*
+   * « Suivant » et « Créer » toujours sous le pouce, juste au-dessus de la barre
+   * d'onglets : on ne fait pas défiler pour trouver comment avancer.
+   */
+  .vb-footer-sticky {
+    position: sticky;
+    bottom: var(--sc-bottom-gap, 0px);
+    z-index: 5;
+    margin: 1.25rem -1rem -1rem;
+    border-top: 1px solid var(--glass-border);
+    border-radius: 0 0 1rem 1rem;
+    background: var(--glass-bg-intense);
+    padding: 0.75rem 1rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .vb-footer .inner-button {
+    flex: 1;
+    justify-content: center;
+    min-height: 3rem;
+  }
+
+  .vb-footer .outer-button {
+    min-height: 3rem;
+  }
+}

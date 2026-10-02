@@ -167,7 +167,12 @@
       "empty": {
         "title": "Commencez avec l'IA",
         "description": "Aucune donnée financière pour l'instant. Laissez l'IA analyser votre projet et générer des prévisions cohérentes, que vous pourrez ensuite ajuster.",
-        "cta": "Générer avec l'IA"
+        "cta": "Générer avec l'IA",
+        "products": "Aucun produit pour l'instant",
+        "salesNoProduct": "Ajoutez d'abord ce que vous vendez.",
+        "goProducts": "Aller à l'étape 1",
+        "variable": "Aucune dépense liée aux ventes pour l'instant",
+        "investments": "Aucun achat de démarrage pour l'instant"
       },
       "aiFill": {
         "button": "Remplir avec l'IA",
@@ -176,7 +181,7 @@
         "tooltip": "Suggérer une valeur avec l'IA"
       },
       "alerts": {
-        "title": "Recommandations IA"
+        "title": "À surveiller"
       },
       "kpi": {
         "caY1": "CA An 1",
@@ -243,8 +248,555 @@
       "bpMissingDialog": {
         "title": "Business Plan requis",
         "headline": "Générez d'abord votre Business Plan",
-        "description": "L'IA a besoin de votre Business Plan pour générer des prévisions financières cohérentes et personnalisées. Veuillez générer votre business plan avant de continuer.",
-        "generateCta": "Créer mon Business Plan"
+        "description": "Pour proposer des chiffres cohérents, l'IA s'appuie sur votre business plan. Créez-le d'abord — ou importez directement le fichier où vous avez déjà vos chiffres.",
+        "generateCta": "Créer mon Business Plan",
+        "importInstead": "Importer mon fichier"
+      },
+      "home": {
+        "title": "Vos finances",
+        "subtitle": "Ce que vous vendez, ce que ça coûte, et ce qu'il vous reste — sur trois ans. Les tableaux pour la banque se calculent tout seuls.",
+        "actions": {
+          "import": "Importer un fichier",
+          "ai": "Proposer avec l'IA",
+          "paste": "Coller un tableau"
+        },
+        "imported": {
+          "title": "Votre fichier a été importé",
+          "body": "Vos chiffres sont rangés dans les étapes ci-dessous. Ouvrez chacune pour vérifier et compléter."
+        },
+        "start": {
+          "title": "Par où voulez-vous commencer ?",
+          "lead": "Choisissez la façon qui vous convient. Vous pourrez tout modifier ensuite.",
+          "import": {
+            "title": "J'ai déjà mes chiffres",
+            "body": "Collez votre tableau depuis Excel ou une IA, ou envoyez votre fichier. Tout est rangé au bon endroit.",
+            "cta": "Importer un fichier",
+            "paste": "Coller un tableau"
+          },
+          "ai": {
+            "title": "L'IA propose pour moi",
+            "body": "À partir de votre business plan et des prix réels de votre marché, l'IA prépare un premier prévisionnel que vous ajustez.",
+            "cta": "Lancer la proposition",
+            "preparing": "Préparation de la recherche…"
+          },
+          "manual": {
+            "title": "Je remplis pas à pas",
+            "body": "Six étapes courtes, avec des exemples. Aucune connaissance en comptabilité n'est nécessaire.",
+            "cta": "Commencer l'étape 1"
+          }
+        },
+        "brief": {
+          "title": "En bref, pour {{year}}",
+          "sales": "Vos ventes",
+          "salesHint": "Et {{value}} en {{year}}.",
+          "profit": "Ce que vous gagnez",
+          "profitHint": "Ce qu'il reste une fois tout payé. {{value}} en {{year}}.",
+          "lossHint": "Vous dépensez plus que vous ne gagnez. {{value}} en {{year}}.",
+          "cash": "Argent en caisse en fin d'année",
+          "cashHint": "Votre compte reste positif : vous pouvez payer vos dépenses.",
+          "cashNegative": "Votre caisse passe en négatif : il vous faut plus de financement.",
+          "breakEven": "Rentable à partir de",
+          "breakEvenHint": "Le moment où vos ventes couvrent toutes vos dépenses.",
+          "breakEvenMonth": "Mois {{month}}",
+          "breakEvenYear": "En {{year}}",
+          "breakEvenLater": "Après 3 ans",
+          "breakEvenUnknown": "À calculer"
+        },
+        "charts": {
+          "sales": "Vos ventes, mois par mois",
+          "salesSub": "De {{from}} à {{to}}",
+          "salesEmpty": "Ajoutez vos produits et vos ventes prévues pour voir la courbe.",
+          "cash": "Votre caisse en fin d'année",
+          "cashSub": "Vert : tout va bien. Rouge : il manque de l'argent."
+        },
+        "steps": {
+          "title": "Votre prévisionnel en 6 étapes",
+          "progress": "{{done}} étape(s) terminée(s) sur {{total}}",
+          "start": "Commencer",
+          "continue": "Continuer"
+        },
+        "status": {
+          "done": "Terminé",
+          "started": "Commencé",
+          "todo": "À faire"
+        },
+        "bank": {
+          "title": "Les tableaux pour votre banque",
+          "lead": "Calculés automatiquement à partir de vos six étapes. C'est ce qu'un banquier ou un investisseur vous demandera.",
+          "need": "Besoin total pour lancer le projet",
+          "needHint": "Vos achats de démarrage et l'argent nécessaire pour tenir les premiers mois.",
+          "bfr": "Argent bloqué dans l'activité (BFR)",
+          "bfrHint": "Ce que vos clients vous doivent et vos stocks, moins ce que vous devez à vos fournisseurs.",
+          "van": "Valeur créée (VAN)",
+          "vanHint": "Positive : le projet rapporte plus qu'il ne coûte.",
+          "tri": "Rendement (TRI)",
+          "triHint": "Ce que rapporte chaque franc investi, par an."
+        },
+        "settings": {
+          "title": "Réglages",
+          "lead": "Facultatif : des valeurs par défaut adaptées à votre pays sont déjà en place."
+        }
+      },
+      "guide": {
+        "products": {
+          "title": "Ce que vous vendez",
+          "short": "Vos produits ou services et leur prix.",
+          "help": "Listez ce que vous vendez, à quel prix, et ce que chaque unité vous coûte à acheter ou à fabriquer."
+        },
+        "salesObjectives": {
+          "title": "Combien vous allez vendre",
+          "short": "Le nombre de ventes prévu chaque mois.",
+          "help": "Pour chaque produit, indiquez combien vous pensez en vendre le premier mois, et de combien vos ventes augmentent ensuite."
+        },
+        "variableCharges": {
+          "title": "Ce que chaque vente vous coûte",
+          "short": "Les dépenses qui augmentent avec vos ventes.",
+          "help": "Les dépenses qui grandissent quand vous vendez plus : marchandises, matières premières, emballages, livraison, commissions."
+        },
+        "fixedCharges": {
+          "title": "Vos dépenses fixes et votre équipe",
+          "short": "Loyer, abonnements, salaires…",
+          "help": "Ce que vous payez chaque mois, que vous vendiez ou non : le loyer, l'électricité, internet, l'assurance, et les salaires."
+        },
+        "investments": {
+          "title": "Vos achats pour démarrer",
+          "short": "Matériel, travaux, véhicule…",
+          "help": "Ce que vous achetez une fois pour lancer l'activité et qui sert plusieurs années : matériel, mobilier, aménagement du local, véhicule, frais de création."
+        },
+        "financing": {
+          "title": "Comment vous le financez",
+          "short": "Votre apport, vos prêts, vos subventions.",
+          "help": "D'où vient l'argent pour démarrer : ce que vous apportez vous-même, les prêts et les subventions. Nous vous montrons s'il en manque."
+        },
+        "fiscalCalendar": {
+          "title": "Dates de votre exercice",
+          "short": "L'année de départ et le mois de démarrage.",
+          "help": "L'exercice comptable est l'année sur laquelle on fait les comptes. Indiquez quand il commence et quand votre activité démarre réellement."
+        },
+        "revenueParams": {
+          "title": "Délais de paiement de vos clients",
+          "short": "La part de vos ventes payée plus tard.",
+          "help": "Si certains clients vous paient plus tard, cet argent n'est pas encore dans votre caisse. Indiquez quelle part de vos ventes est payée en différé."
+        },
+        "taxesParams": {
+          "title": "Impôts",
+          "short": "Votre régime fiscal et le taux d'impôt.",
+          "help": "Le taux d'impôt sur les bénéfices et votre régime fiscal. Les valeurs de votre pays sont déjà proposées."
+        },
+        "ratiosParams": {
+          "title": "Indicateurs pour investisseurs",
+          "short": "Taux utilisés pour la VAN et le TRI.",
+          "help": "Ces taux servent à calculer la valeur de votre projet pour un investisseur. Laissez les valeurs proposées si vous n'êtes pas sûr."
+        },
+        "compteExploitation": {
+          "title": "Compte de résultat",
+          "short": "Ce que vous gagnez ou perdez chaque année.",
+          "help": "Vos ventes, moins toutes vos dépenses, année par année : il montre si votre activité gagne de l'argent."
+        },
+        "fluxTresorerie": {
+          "title": "Plan de trésorerie",
+          "short": "L'argent qui entre et qui sort.",
+          "help": "Ce qui entre et sort réellement de votre caisse chaque année. C'est lui qui dit si vous pourrez payer vos factures."
+        },
+        "bilan": {
+          "title": "Bilan prévisionnel",
+          "short": "Ce que l'entreprise possède et ce qu'elle doit.",
+          "help": "Une photo de l'entreprise à la fin de chaque année : d'un côté ce qu'elle possède, de l'autre ce qu'elle doit."
+        },
+        "amortization": {
+          "title": "Amortissements",
+          "short": "L'usure de vos achats de démarrage.",
+          "help": "Un achat qui sert plusieurs années se compte en dépense petit à petit, sur sa durée d'utilisation. Ce tableau est calculé pour vous."
+        },
+        "ratios": {
+          "title": "Indicateurs de rentabilité",
+          "short": "VAN, TRI et délai de remboursement.",
+          "help": "Les trois chiffres qu'un investisseur regarde en premier pour savoir si votre projet vaut la peine."
+        }
+      },
+      "page": {
+        "breadcrumb": "Fil d'Ariane",
+        "stepOf": "Étape {{n}} sur {{total}}",
+        "computed": "Calculé automatiquement à partir de vos étapes — rien à saisir ici.",
+        "stepNav": "Navigation entre les étapes",
+        "previous": "Étape précédente",
+        "next": "Étape suivante",
+        "saveNext": "Enregistrer et continuer",
+        "finish": "Terminer",
+        "backHome": "Retour à vos finances"
+      },
+      "ai": {
+        "suggest": "Proposer avec l'IA",
+        "working": "L'IA prépare une proposition pour cette étape…",
+        "replaceConfirm": "La proposition de l'IA remplacera ce que vous avez saisi dans cette étape. Continuer ?"
+      },
+      "save": {
+        "pending": "Vous avez des modifications non enregistrées.",
+        "discard": "Annuler",
+        "done": "Enregistré — vos tableaux sont à jour.",
+        "error": "L'enregistrement a échoué. Vérifiez votre connexion et réessayez.",
+        "leaveConfirm": "Vos modifications ne sont pas enregistrées. Quitter quand même ?"
+      },
+      "examples": {
+        "products": "Par exemple : un sac, une coupe de cheveux, un abonnement mensuel, une heure de cours.",
+        "productName": "Ex. : Sac en wax",
+        "variable": "Par exemple : l'achat des tissus que vous revendez, les emballages, la livraison aux clients.",
+        "variableName": "Ex. : Achat de tissus",
+        "fixed": "Par exemple : le loyer de la boutique, l'électricité, internet, l'assurance.",
+        "fixedName": "Ex. : Loyer de la boutique",
+        "position": "Ex. : Vendeur",
+        "investments": "Par exemple : une machine à coudre, des étagères, un ordinateur, une moto de livraison.",
+        "investmentName": "Ex. : Machine à coudre"
+      },
+      "add": {
+        "product": "Ajouter un produit ou un service",
+        "expense": "Ajouter une dépense",
+        "salary": "Ajouter une personne",
+        "investment": "Ajouter un achat"
+      },
+      "remove": "Supprimer « {{name}} »",
+      "fields": {
+        "productName": "Nom du produit ou du service",
+        "unnamedProduct": "Produit sans nom",
+        "price": "Prix de vente à l'unité ({{currency}})",
+        "unitCost": "Ce que chaque unité vous coûte ({{currency}})",
+        "unitCostHint": "Achat ou fabrication. Mettez 0 pour un service.",
+        "priceShort": "Prix de vente",
+        "unitCostShort": "Coût par unité",
+        "samePrice": "Même prix chaque année",
+        "pricePerYear": "Le prix change selon l'année",
+        "expenseName": "Nom de la dépense",
+        "kind": "Type",
+        "position": "Poste",
+        "purchaseName": "Ce que vous achetez"
+      },
+      "hints": {
+        "margin": "Vous gagnez {{amount}} par unité vendue ({{pct}}).",
+        "noMargin": "Attention : vous ne gagnez rien sur chaque vente ({{amount}}).",
+        "enterPrice": "Indiquez un prix pour voir ce que vous gagnez par vente.",
+        "unitPrice": "Vendu {{price}} l'unité",
+        "salesRevenue": "Soit {{amount}} de ventes en {{year}}, et {{amount3}} en {{year3}}."
+      },
+      "editor": {
+        "perMonth": "Montant par mois",
+        "month": "Mois de l'achat",
+        "from": "À partir de",
+        "growth": "Hausse chaque mois (%)",
+        "yearTotals": "Total {{y1}} : {{v1}} · {{y3}} : {{v3}}.",
+        "spread": "Étaler sur plusieurs mois",
+        "vary": "Varier selon les mois",
+        "year": "Année",
+        "simplify": "Revenir à un montant fixe",
+        "yearTotal": "Total {{year}} : {{value}}",
+        "firstMonthQuantity": "Ventes le premier mois",
+        "salary": "Salaire brut par mois",
+        "amount": "Montant"
+      },
+      "advanced": {
+        "title": "Options avancées",
+        "supplierDebt": "Part de vos achats payée plus tard (%)",
+        "supplierDebtHint": "Si vos fournisseurs vous laissent un délai de paiement.",
+        "safetyStock": "Stock de sécurité (%)",
+        "safetyStockHint": "La part de marchandises gardée d'avance pour ne jamais manquer.",
+        "socialCharges": "Charges sociales sur les salaires (%)",
+        "socialChargesHint": "Ce que l'employeur paie en plus du salaire brut (sécurité sociale…).",
+        "payrollTax": "Taxe sur les salaires (%)",
+        "payrollTaxHint": "Taxe payée par l'employeur, selon votre pays."
+      },
+      "fixed": {
+        "linesTitle": "Vos dépenses fixes",
+        "teamTitle": "Votre équipe",
+        "teamLead": "Indiquez le salaire brut de chaque personne. Les charges sociales ({{rate}} %) sont ajoutées automatiquement."
+      },
+      "financing": {
+        "need": "Ce dont vous avez besoin",
+        "needHint": "Mis à jour à chaque enregistrement.",
+        "found": "Ce que vous avez trouvé",
+        "missing": "Il vous manque",
+        "missingHint": "C'est le montant à demander à une banque ou à un investisseur.",
+        "covered": "Votre besoin est couvert",
+        "own": {
+          "title": "Votre argent",
+          "capital": "Ce que vous apportez vous-même",
+          "capitalHint": "Vos économies et celles de vos associés, placées dans l'entreprise."
+        },
+        "grant": "Subvention",
+        "grantHint": "Un argent qu'on vous donne et que vous ne remboursez pas.",
+        "loans": {
+          "cmt": {
+            "title": "Prêt bancaire",
+            "hint": "Un prêt d'une banque ou d'une microfinance, remboursé chaque mois."
+          },
+          "compteCourantAssocies": {
+            "title": "Prêt de vos associés",
+            "hint": "De l'argent que vous ou vos associés prêtez à l'entreprise et récupérerez plus tard."
+          },
+          "creditBail": {
+            "title": "Location avec option d'achat (leasing)",
+            "hint": "Un équipement que vous louez, puis pouvez acheter à la fin du contrat."
+          }
+        },
+        "amount": "Montant",
+        "rate": "Taux d'intérêt par an (%)",
+        "duration": "Durée",
+        "durationUnit": "Unité de durée",
+        "months": "mois",
+        "years": "ans"
+      },
+      "settings": {
+        "receivables": "Part de vos ventes payée plus tard (%)",
+        "receivablesHint": "Vente au comptant : 0 à 5 %. Clients entreprises : souvent 20 à 40 %.",
+        "regime": "Régime fiscal",
+        "regimes": {
+          "reel": "Réel",
+          "forfait": "Forfaitaire (petites entreprises)",
+          "auto": "Auto-entrepreneur"
+        },
+        "regimeHint": "En cas de doute, demandez à votre centre des impôts ou gardez la valeur proposée.",
+        "corporateTax": "Impôt sur les bénéfices (%)",
+        "corporateTaxHint": "Le taux de votre pays est déjà proposé.",
+        "premises": "Taille de votre local",
+        "premisesSizes": {
+          "petites": "Petit (moins de 50 m²)",
+          "moyennes": "Moyen (50 à 200 m²)",
+          "grandes": "Grand (plus de 200 m²)"
+        },
+        "discountRate": "Taux d'actualisation (%)",
+        "discountRateHint": "Le rendement minimum qu'un investisseur attend. 10 à 15 % est courant.",
+        "dividends": "Part des bénéfices versée aux associés (%)",
+        "dividendsHint": "Le reste est gardé dans l'entreprise.",
+        "growth": "Croissance après la 3e année (%)",
+        "growthHint": "Une hypothèse prudente : 2 à 3 % par an.",
+        "equityCost": "Rendement attendu par les associés (%)",
+        "equityCostHint": "Ce que vos associés espèrent gagner sur leur apport.",
+        "shares": "Nombre de parts de l'entreprise",
+        "sharesHint": "Sert à calculer la valeur d'une part.",
+        "waccAuto": "Calculer le coût du financement automatiquement",
+        "wacc": "Coût moyen du financement (%)",
+        "waccHint": "Calculé à partir de vos prêts et de votre apport. Décochez pour le fixer vous-même.",
+        "firstYear": "Année du premier exercice",
+        "firstYearHint": "Votre premier exercice : {{year}}.",
+        "closing": "Mois de clôture des comptes",
+        "closingLocked": "Dans votre pays, les comptes se clôturent obligatoirement au 31 décembre.",
+        "closingFree": "Dans votre pays, l'entreprise choisit sa date de clôture.",
+        "activityStart": "Mois de démarrage de l'activité",
+        "activityStartHint": "{{months}} mois d'activité sur le premier exercice ({{year}})."
+      },
+      "reports": {
+        "pl": {
+          "revenue": "Ventes",
+          "variable": "Dépenses liées aux ventes",
+          "margin": "Marge sur ventes",
+          "fixed": "Dépenses fixes",
+          "salaries": "Salaires et charges sociales",
+          "taxes": "Impôts et taxes",
+          "ebitda": "Résultat avant amortissements (EBE)",
+          "depreciation": "Amortissements",
+          "operating": "Résultat d'exploitation",
+          "interest": "Intérêts des prêts",
+          "incomeTax": "Impôt sur les bénéfices",
+          "net": "Bénéfice net"
+        },
+        "cf": {
+          "opening": "Caisse au début de l'année",
+          "operations": "Argent généré par l'activité",
+          "investing": "Achats de démarrage",
+          "financing": "Apports, prêts et remboursements",
+          "change": "Variation de la caisse",
+          "closing": "Caisse à la fin de l'année"
+        },
+        "bs": {
+          "assets": "Ce que l'entreprise possède",
+          "fixedAssets": "Matériel et équipements (après usure)",
+          "receivables": "Ce que vos clients vous doivent",
+          "stocks": "Stocks",
+          "cash": "Argent en caisse et en banque",
+          "totalAssets": "Total",
+          "liabilities": "Ce que l'entreprise doit",
+          "equity": "Fonds propres (apport et bénéfices)",
+          "loans": "Prêts restant à rembourser",
+          "suppliers": "Ce que vous devez aux fournisseurs",
+          "taxDebts": "Impôts et charges sociales à payer",
+          "totalLiabilities": "Total"
+        },
+        "am": {
+          "group": "Type d'achat",
+          "base": "Valeur d'achat",
+          "rate": "Taux par an",
+          "yearCharge": "Dépense {{year}}",
+          "remaining": "Valeur restante",
+          "groups": {
+            "incorporelles": "Logiciels, frais de création",
+            "batiments": "Bâtiments et terrains",
+            "mobilier": "Mobilier",
+            "materielOutillage": "Matériel et véhicules",
+            "financieres": "Cautions et dépôts"
+          },
+          "empty": "Aucun achat de démarrage : rien à amortir."
+        },
+        "ratios": {
+          "payback": "Délai de remboursement",
+          "years": "{{n}} ans",
+          "paybackHint": "Le temps pour récupérer l'argent investi."
+        }
+      },
+      "categories": {
+        "variable": {
+          "achatsMarchandises": "Marchandises à revendre",
+          "matieresPremieres": "Matières premières",
+          "achatsEmballages": "Emballages",
+          "transportSurVentes": "Livraison aux clients",
+          "sousTraitance": "Sous-traitance",
+          "remunerationsIntermediaires": "Commissions",
+          "publiciteRelationsPubliques": "Publicité",
+          "fraisTelecommunications": "Téléphone et internet",
+          "fraisBancaires": "Frais bancaires et mobile money",
+          "autresChargesExternes": "Autre dépense"
+        },
+        "fixed": {
+          "locations": "Loyer",
+          "primesAssurances": "Assurance",
+          "entretienReparation": "Entretien et réparations",
+          "cotisations": "Abonnements et cotisations",
+          "etudesRecherche": "Comptable, conseils",
+          "formationProfessionnelle": "Formation",
+          "patentesLicences": "Patente et licences",
+          "autresImpotsDirects": "Autres impôts"
+        },
+        "investment": {
+          "fraisConstitution": "Frais de création de l'entreprise",
+          "logiciels": "Logiciels et site web",
+          "publiciteLancement": "Campagne de lancement",
+          "brevetsLicences": "Brevets et licences",
+          "amenagementBureaux": "Travaux et aménagement du local",
+          "materielOutillageIndustriel": "Machines et outils",
+          "autresMateriels": "Matériel et équipement",
+          "materielTransport": "Véhicule",
+          "mobilier": "Mobilier",
+          "batiments": "Bâtiment",
+          "terrains": "Terrain",
+          "depotsCautionnements": "Caution du local"
+        }
+      },
+      "import": {
+        "title": "Importer vos chiffres",
+        "lead": "Envoyez le fichier où vous suivez déjà vos finances. L'IA le lit et le range dans votre prévisionnel.",
+        "drop": "Déposez votre fichier ici, ou cliquez pour le choisir",
+        "formats": "Excel (.xlsx), CSV, PDF, Word ou texte — 15 Mo maximum",
+        "promise": {
+          "read": "L'IA repère vos produits, vos prix, vos dépenses, vos salaires et vos financements.",
+          "review": "Vous voyez tout avant d'enregistrer, et vous choisissez ce que vous gardez.",
+          "free": "Un fichier sans chiffres financiers est refusé sans être décompté."
+        },
+        "reading": {
+          "title": "Lecture de votre fichier",
+          "body": "L'IA repère vos chiffres et les range au format IDEM.",
+          "duration": "Cela peut prendre une à deux minutes."
+        },
+        "preview": {
+          "title": "Voici ce que nous avons trouvé",
+          "fallbackSummary": "Chiffres repris de « {{name}} ».",
+          "uncheck": "Décochez ce que vous ne voulez pas reprendre.",
+          "more": "… et {{count}} de plus",
+          "warnings": "Points à vérifier",
+          "missing": "Ce que le fichier ne dit pas",
+          "missingHint": "Vous pourrez le compléter étape par étape, ou demander une proposition à l'IA.",
+          "another": "Choisir un autre fichier",
+          "save": "Ajouter à mon prévisionnel"
+        },
+        "groups": {
+          "products": "Ce que vous vendez",
+          "sales": "Ventes prévues",
+          "variable": "Dépenses liées aux ventes",
+          "fixed": "Dépenses fixes",
+          "salaries": "Votre équipe",
+          "investments": "Achats de démarrage",
+          "financing": "Financement",
+          "params": "Taux"
+        },
+        "items": {
+          "price": "{{price}} · coûte {{cost}}",
+          "quantity": "{{count}} ventes la 1re année",
+          "perYear": "{{amount}} la 1re année",
+          "perMonth": "{{amount}} / mois",
+          "financing": {
+            "capital": "Votre apport",
+            "partners": "Prêt des associés",
+            "bank": "Prêt bancaire",
+            "leasing": "Leasing",
+            "grant": "Subvention"
+          },
+          "social": "Charges sociales",
+          "receivables": "Ventes payées plus tard",
+          "tax": "Impôt sur les bénéfices"
+        },
+        "mode": {
+          "title": "Vous avez déjà des données. Que faire ?",
+          "merge": "Compléter mes données",
+          "mergeHint": "Les lignes du fichier s'ajoutent aux vôtres. Un produit du même nom est mis à jour.",
+          "replace": "Remplacer par le fichier",
+          "replaceHint": "Chaque liste trouvée dans le fichier remplace la vôtre. Le reste n'est pas touché."
+        },
+        "saving": "Rangement de vos chiffres…",
+        "errors": {
+          "title": "Le fichier n'a pas pu être importé",
+          "retry": "Choisir un autre fichier",
+          "xls": "Les anciens fichiers Excel (.xls) ne sont pas lus. Dans Excel : Fichier › Enregistrer sous › Classeur Excel (.xlsx), puis réessayez.",
+          "format": "Ce format n'est pas pris en charge. Utilisez un fichier Excel (.xlsx), CSV, PDF, Word (.docx) ou texte.",
+          "size": "Ce fichier dépasse 15 Mo. Enregistrez une version plus légère, sans images, puis réessayez.",
+          "generic": "La lecture a échoué. Vérifiez votre connexion et réessayez dans un instant."
+        }
+      },
+      "paste": {
+        "title": "Coller votre tableau",
+        "lead": "Une ligne par élément, avec ces six colonnes dans cet ordre. Copiez votre tableau (Excel, Google Sheets, ChatGPT…), cliquez dans la première case, puis collez avec Ctrl+V.",
+        "columns": {
+          "section": "Rubrique",
+          "name": "Nom",
+          "amount": "Montant",
+          "unitCost": "Coût unitaire",
+          "start": "Mois de début",
+          "growth": "Hausse par mois (%)"
+        },
+        "sections": {
+          "product": "Produit",
+          "sale": "Vente",
+          "variable": "Dépense liée aux ventes",
+          "fixed": "Dépense fixe",
+          "salary": "Salaire",
+          "purchase": "Achat de démarrage",
+          "funding": "Financement"
+        },
+        "exampleData": "Produit\tSac en wax\t15000\t6000\t\t\nVente\tSac en wax\t60\t\t3\t4\nDépense liée aux ventes\tAchat de tissus\t250000\t\t3\t\nDépense fixe\tLoyer boutique\t150000\t\t1\t\nSalaire\tVendeuse\t120000\t\t3\t\nAchat de démarrage\tMachine à coudre\t800000\t\t1\t\nFinancement\tApport personnel\t2000000\t\t\t\nFinancement\tPrêt bancaire\t1500000\t\t\t",
+        "example": {
+          "show": "Voir un exemple",
+          "copy": "Copier le modèle pour Excel",
+          "copied": "Modèle copié"
+        },
+        "understood": "Où la ligne sera rangée",
+        "removeRow": "Retirer la ligne {{n}}",
+        "status": {
+          "empty": "Collez votre tableau dans la grille.",
+          "invalid": "{{count}} ligne(s) à corriger — la raison est écrite en bout de ligne.",
+          "ready": "{{count}} ligne(s) prêtes."
+        },
+        "errors": {
+          "required": "Cette case est obligatoire.",
+          "section": "Rubrique inconnue : choisissez-la dans la liste.",
+          "number": "Écrivez un nombre, par exemple 150000.",
+          "positive": "Le montant doit être supérieur à 0.",
+          "month": "Mois non reconnu. Écrivez un numéro de 1 à 36 ou une date comme « mars 2026 ».",
+          "product": "Ce produit n'existe pas. Ajoutez d'abord une ligne « Produit » avec ce nom.",
+          "funding": "Financement non reconnu. Écrivez : Apport, Prêt bancaire, Prêt des associés, Leasing ou Subvention."
+        },
+        "ai": {
+          "question": "Votre tableau n'est pas dans ce format ?",
+          "button": "Laisser l'IA le ranger",
+          "cost": "consomme 1 crédit",
+          "fileName": "tableau-colle.txt"
+        },
+        "clear": "Tout effacer",
+        "add": "Ajouter à mon prévisionnel ({{count}})"
       }
     },
     "sidebar": {
@@ -2713,8 +3265,8 @@
     },
     "showCommunication": {
       "eyebrow": "Communication",
-      "title": "Mes publications",
-      "subtitle": "Créez vos visuels, organisez ce que vous publiez, retrouvez tout au même endroit.",
+      "title": "Ma communication",
+      "subtitle": "IDEM vous guide pas à pas : dire qui vous êtes, prévoir quoi publier, créer les visuels, puis les publier.",
       "loading": "Chargement…",
       "comingSoon": "Bientôt",
       "tabs": {
@@ -2722,8 +3274,8 @@
         "calendar": "Calendrier",
         "moments": "Moments",
         "publishing": "Publication",
-        "studio": "Créer",
-        "plans": "Mon planning",
+        "studio": "Créer un visuel",
+        "plans": "Mon calendrier",
         "library": "Mes visuels"
       },
       "selectProject": {
@@ -2890,9 +3442,9 @@
         "schedule": "La programmation a échoué.",
         "studio": "Je n'ai pas réussi à répondre. Reformulez en une phrase.",
         "studio-clear": "La conversation n'a pas pu être effacée.",
-        "plan-create": "Le planning n'a pas pu être créé.",
-        "plan-generate": "Le planning n'a pas pu être rempli.",
-        "plan-archive": "Le planning n'a pas pu être archivé.",
+        "plan-create": "Le calendrier n'a pas pu être créé.",
+        "plan-generate": "Le calendrier n'a pas pu être rempli.",
+        "plan-archive": "Le calendrier n'a pas pu être archivé.",
         "strategy-save": "Vos modifications n'ont pas pu être enregistrées.",
         "visual-delete": "Le visuel n'a pas pu être supprimé."
       },
@@ -2922,36 +3474,10 @@
         "context": "Je relis votre marque…",
         "trends": "Je regarde votre secteur…",
         "strategy": "J'écris votre façon de communiquer…",
-        "calendar": "Je construis le planning…",
+        "calendar": "Je construis le calendrier…",
         "occasions": "Je cherche les dates importantes…",
         "brief": "Je choisis l'idée principale…",
         "content": "J'écris vos publications…"
-      },
-      "doors": {
-        "visual": {
-          "title": "Un visuel, tout de suite",
-          "body": "Dites ce que vous voulez annoncer. Le visuel sort avec vos couleurs et votre logo.",
-          "price": "2 crédits",
-          "hereBelow": "C'est juste en dessous"
-        },
-        "plan": {
-          "title": "Organiser mon mois",
-          "body": "Choisissez une période : je prépare tout ce que vous aurez à publier, jour par jour.",
-          "price": "15 crédits",
-          "cta": "Créer mon planning"
-        },
-        "compass": {
-          "title": "Définir votre ligne",
-          "body": "Positionnement, ton, canaux. Elle guide ensuite toutes vos périodes.",
-          "price": "40 crédits · une fois",
-          "cta": "Ouvrir la boussole"
-        },
-        "voice": {
-          "title": "Dire qui vous êtes",
-          "body": "À qui vous parlez, sur quel ton, sur quels réseaux. Tout le reste s'en inspire.",
-          "price": "40 crédits · une seule fois",
-          "cta": "Commencer"
-        }
       },
       "compass": {
         "eyebrow": "Votre ligne",
@@ -2981,15 +3507,15 @@
         }
       },
       "plans": {
-        "title": "Mon planning",
-        "subtitle": "Ce que vous avez à publier, et quand. Vous pouvez en préparer plusieurs : rien ne s'efface.",
-        "new": "Nouveau planning",
+        "title": "Mon calendrier",
+        "subtitle": "Ce que vous allez publier, et quel jour. Vous pouvez en préparer plusieurs : rien ne s'efface.",
+        "new": "Nouveau calendrier",
         "showArchived": "Voir les anciens",
         "hideArchived": "Masquer les anciens",
         "empty": {
           "title": "Rien de prévu pour le moment",
-          "body": "Choisissez une période et je prépare tout ce que vous aurez à publier. Décembre peut se préparer dès octobre.",
-          "cta": "Créer mon premier planning"
+          "body": "Choisissez une période et IDEM prépare tout ce que vous aurez à publier. Décembre peut se préparer dès octobre.",
+          "cta": "Créer mon premier calendrier"
         },
         "status": {
           "draft": "À remplir",
@@ -2998,10 +3524,10 @@
           "archived": "Ancien"
         },
         "itemCount": "{{count}} publications",
-        "generate": "Remplir le planning — 15 crédits",
+        "generate": "Remplir le calendrier — 15 crédits",
         "regenerate": "Tout refaire",
         "archive": "Archiver",
-        "notGenerated": "Ce planning est encore vide.",
+        "notGenerated": "Ce calendrier est encore vide.",
         "brief": {
           "angle": "L'idée principale",
           "keyMessage": "Ce que les gens doivent retenir",
@@ -3047,7 +3573,8 @@
           "submit": "Générer — 15 crédits"
         },
         "clickHint": "Cliquez sur une publication pour la voir en entier et la modifier.",
-        "visualToDo": "Visuel à créer"
+        "visualToDo": "Visuel à créer",
+        "briefToggle": "L'idée de ce calendrier"
       },
       "studio": {
         "empty": {
@@ -3076,33 +3603,59 @@
         "placeholder": "Dites ce que vous voulez annoncer…",
         "send": "Envoyer",
         "clear": "Effacer la conversation",
-        "pricingHint": "Discuter ne coûte rien. Un visuel coûte 2 crédits.",
-        "schedule": "Mettre au planning",
+        "pricingHint": "Discuter ne coûte rien. Un visuel coûte 2 crédits, une retouche 1 crédit.",
+        "schedule": "Mettre au calendrier",
         "toStory": "En story",
-        "noPlan": "Créez d'abord un planning pour y mettre ce visuel.",
-        "planLabel": "Dans quel planning",
+        "noPlan": "Créez d'abord un calendrier pour y mettre ce visuel.",
+        "planLabel": "Dans quel calendrier",
         "dateLabel": "À quelle date",
-        "openVisual": "Voir en grand"
+        "openVisual": "Voir en grand",
+        "builderIntro": "Répondez à 3 questions : IDEM compose le visuel avec votre logo, vos couleurs et votre police.",
+        "history": "Voir mes échanges précédents",
+        "newVisual": "Créer un nouveau visuel",
+        "chatHint": "Ici, demandez une modification en quelques mots : « plus sobre », « le prix en plus gros »…",
+        "followUpsLabel": "Vous pouvez demander par exemple :",
+        "followUps": {
+          "simpler": {
+            "label": "Plus sobre",
+            "text": "Rends le visuel plus sobre, avec moins d'éléments."
+          },
+          "bigger": {
+            "label": "Texte plus grand",
+            "text": "Agrandis le texte principal pour qu'il se lise de loin."
+          },
+          "story": {
+            "label": "Aussi en story",
+            "text": "Fais-moi aussi ce visuel en format story pour mon statut WhatsApp."
+          },
+          "caption": {
+            "label": "Le texte du post",
+            "text": "Écris-moi le texte à publier avec ce visuel."
+          }
+        },
+        "retouchPlaceholder": "Demandez une modification…"
       },
       "library": {
         "title": "Mes visuels",
         "subtitle": "Tout ce qui a été créé sur ce projet, d'où que ça vienne.",
         "empty": {
           "title": "Aucun visuel pour l'instant",
-          "body": "Allez dans « Créer » pour en faire un, ou remplissez un planning et créez les visuels de ses publications."
+          "body": "Créez-en un en 3 questions, ou préparez votre calendrier et créez les visuels de ses publications.",
+          "ctaStudio": "Créer un visuel",
+          "ctaPlans": "Préparer mon calendrier"
         },
         "filterFormat": "Format",
         "allFormats": "Tous les formats",
         "filterOrigin": "Créé depuis",
         "allOrigins": "Peu importe",
         "origins": {
-          "plan": "Un planning",
-          "studio": "L'écran Créer",
+          "plan": "Un calendrier",
+          "studio": "Créer un visuel",
           "occasion": "Une date spéciale",
           "brandbook": "La charte"
         },
-        "filterPlan": "Planning",
-        "allPlans": "Tous les plannings",
+        "filterPlan": "Calendrier",
+        "allPlans": "Tous les calendriers",
         "count": "{{count}} visuels",
         "previewAlt": "Aperçu du visuel : {{title}}",
         "brief": "Ce qui a été demandé",
@@ -3110,10 +3663,11 @@
         "declinate": "Aussi dans un autre format",
         "publish": "Publier",
         "publishHint": "Le texte est copié et le réseau s'ouvre : il ne reste qu'à coller et publier.",
-        "publishNeedsSchedule": "Mettez d'abord ce visuel au planning pour pouvoir le publier.",
+        "publishNeedsSchedule": "Mettez d'abord ce visuel au calendrier pour pouvoir le publier.",
         "delete": "Supprimer ce visuel",
         "deleteAsk": "Supprimer définitivement ce visuel ?",
-        "deleteConfirm": "Supprimer"
+        "deleteConfirm": "Supprimer",
+        "filters": "Filtrer"
       },
       "voice": {
         "eyebrow": "Votre identité",
@@ -3128,7 +3682,7 @@
         "regenerate": "Tout réécrire",
         "empty": {
           "title": "Pas encore renseigné",
-          "body": "On y note une fois pour toutes à qui vous parlez, ce que vous avez à dire et sur quel ton. Chaque planning s'en sert ensuite, au lieu de repartir de zéro.",
+          "body": "On y note une fois pour toutes à qui vous parlez, ce que vous avez à dire et sur quel ton. Chaque calendrier s'en sert ensuite, au lieu de repartir de zéro.",
           "cta": "Le remplir — 40 crédits"
         },
         "blockKinds": {
@@ -3222,7 +3776,7 @@
         "ctaPlaceholder": "Passez nous voir, Appelez-nous…",
         "dateBounds": "Entre le {{start}} et le {{end}}",
         "forOccasion": "Publication prévue pour : {{occasion}}",
-        "delete": "Retirer du planning",
+        "delete": "Retirer du calendrier",
         "deleteAsk": "Retirer cette publication ? Le visuel déjà créé sera conservé dans « Mes visuels ».",
         "deleteConfirm": "Oui, retirer",
         "fields": {
@@ -3284,6 +3838,233 @@
           "finance": {
             "label": "Prévisions financières",
             "effect": "Elles donnent vos prix et votre budget de communication — de quoi proposer des canaux que vous pouvez réellement financer."
+          }
+        }
+      },
+      "nav": {
+        "home": {
+          "label": "Accueil",
+          "hint": "Où j'en suis, quoi faire ensuite",
+          "short": "Accueil"
+        },
+        "studio": {
+          "label": "Créer un visuel",
+          "hint": "Une image à vos couleurs, en 3 questions",
+          "short": "Créer"
+        },
+        "plans": {
+          "label": "Mon calendrier",
+          "hint": "Quoi publier, et quel jour",
+          "short": "Calendrier"
+        },
+        "library": {
+          "label": "Mes visuels",
+          "hint": "Tout ce que vous avez déjà créé",
+          "short": "Visuels"
+        }
+      },
+      "home": {
+        "progress": "{{done}} étape(s) sur 4 terminée(s)",
+        "next": {
+          "voice": {
+            "title": "Commencez par dire qui vous êtes",
+            "body": "IDEM a besoin de savoir à qui vous parlez et sur quel ton. Vous le faites une seule fois : le calendrier, les visuels et les textes s'en inspirent ensuite."
+          },
+          "plan": {
+            "title": "Préparez votre calendrier de publications",
+            "body": "Choisissez une période, le mois prochain par exemple. IDEM prévoit chaque publication : le sujet, le jour, le réseau et le texte à poster."
+          },
+          "visuals": {
+            "title": "Créez les visuels de vos publications",
+            "body": "{{count}} publication(s) attendent encore leur image. Ouvrez-en une dans votre calendrier : un clic, et le visuel sort à vos couleurs."
+          },
+          "publish": {
+            "title": "Publiez sur vos réseaux",
+            "body": "Vos publications sont prêtes. Ouvrez-en une : le texte est copié et le réseau s'ouvre, il ne reste qu'à coller."
+          }
+        },
+        "allDone": {
+          "title": "Tout est à jour",
+          "body": "Toutes les publications de votre calendrier sont en ligne. Préparez la période suivante pour garder le rythme.",
+          "cta": "Préparer la suite"
+        },
+        "quickVisualLink": "Juste besoin d'un visuel ? Créez-le maintenant",
+        "journeyTitle": "Votre communication en 4 étapes",
+        "journeyHelp": "Suivez-les dans l'ordre la première fois. Vous pouvez revenir à n'importe laquelle à tout moment.",
+        "state": {
+          "done": "Fait",
+          "next": "Prochaine étape",
+          "todo": "À faire"
+        },
+        "steps": {
+          "voice": {
+            "title": "Dites qui vous êtes",
+            "why": "À qui vous parlez, sur quel ton, sur quels réseaux. À faire une seule fois.",
+            "price": "40 crédits, une seule fois",
+            "cta": "Commencer",
+            "ctaDone": "Relire"
+          },
+          "plan": {
+            "title": "Préparez votre calendrier",
+            "why": "IDEM prévoit quoi publier et quel jour, pour la période de votre choix.",
+            "price": "15 crédits par période",
+            "cta": "Créer mon calendrier",
+            "ctaDone": "Voir mon calendrier"
+          },
+          "visuals": {
+            "title": "Créez vos visuels",
+            "why": "Une image à vos couleurs et avec votre logo pour chaque publication du calendrier.",
+            "price": "2 crédits par visuel",
+            "cta": "Créer les visuels",
+            "ctaDone": "Voir le calendrier",
+            "progress": "{{done}} sur {{total}} prêts"
+          },
+          "publish": {
+            "title": "Publiez",
+            "why": "Le texte est prêt : copiez-le, collez-le sur votre réseau, c'est en ligne.",
+            "price": "Gratuit",
+            "cta": "Voir quoi publier",
+            "ctaDone": "Voir le calendrier",
+            "progress": "{{done}} sur {{total}} publiés"
+          }
+        },
+        "quick": {
+          "title": "Un visuel, tout de suite",
+          "body": "Pas besoin de calendrier pour une annonce ponctuelle : répondez à 3 questions, le visuel sort à vos couleurs.",
+          "cta": "Créer un visuel"
+        },
+        "upcoming": {
+          "title": "À publier bientôt",
+          "empty": "Rien de prévu pour l'instant. Votre calendrier vous dira quoi publier chaque jour.",
+          "today": "Aujourd'hui",
+          "tomorrow": "Demain",
+          "ready": "Visuel prêt",
+          "all": "Voir tout le calendrier"
+        },
+        "recent": {
+          "title": "Vos derniers visuels",
+          "all": "Voir tous mes visuels"
+        }
+      },
+      "builder": {
+        "stepLabels": {
+          "1": "Quoi ?",
+          "2": "Les détails",
+          "3": "Où ?"
+        },
+        "what": {
+          "question": "Que voulez-vous annoncer ?",
+          "help": "Choisissez ce qui se rapproche le plus. Vous préciserez juste après."
+        },
+        "kinds": {
+          "announce": {
+            "label": "Une annonce",
+            "hint": "Nouveaux horaires, ouverture, information",
+            "placeholder": "Ex. : à partir du 1er novembre, nous sommes aussi ouverts le samedi de 9 h à 14 h.",
+            "prompt": "faire une annonce"
+          },
+          "promotion": {
+            "label": "Une promotion",
+            "hint": "Réduction, offre spéciale, soldes",
+            "placeholder": "Ex. : -20 % sur tous les pagnes jusqu'au 15 octobre, boutique de Cocody.",
+            "prompt": "une promotion"
+          },
+          "product": {
+            "label": "Un produit ou service",
+            "hint": "Le présenter, le mettre en avant",
+            "placeholder": "Ex. : notre nouveau jus de bissap 100 % naturel, 500 F CFA la bouteille.",
+            "prompt": "présenter un produit ou un service"
+          },
+          "event": {
+            "label": "Un événement",
+            "hint": "Inauguration, atelier, salon",
+            "placeholder": "Ex. : portes ouvertes samedi 12 octobre de 10 h à 18 h, dégustation gratuite.",
+            "prompt": "un événement"
+          },
+          "celebration": {
+            "label": "Souhaiter une fête",
+            "hint": "Tabaski, Noël, fête nationale…",
+            "placeholder": "Ex. : souhaiter une bonne fête de l'Indépendance à nos clients.",
+            "prompt": "souhaiter une fête à nos clients"
+          },
+          "recruitment": {
+            "label": "Je recrute",
+            "hint": "Annoncer un poste à pourvoir",
+            "placeholder": "Ex. : nous recrutons un(e) vendeur(se) à temps plein à Dakar, CV par WhatsApp.",
+            "prompt": "annoncer un recrutement"
+          },
+          "other": {
+            "label": "Autre chose",
+            "hint": "Je décris moi-même",
+            "placeholder": "Décrivez ce que le visuel doit dire.",
+            "prompt": "communiquer"
+          }
+        },
+        "details": {
+          "question": "Que doit dire le visuel ?",
+          "help": "Écrivez-le comme vous le diriez à un client. IDEM s'occupe de la mise en page.",
+          "tips": {
+            "when": "La date ou la durée",
+            "price": "Le prix ou la réduction",
+            "where": "Le lieu ou le contact"
+          }
+        },
+        "where": {
+          "question": "Où allez-vous le publier ?",
+          "help": "Cela décide de la forme de l'image. Vous pourrez l'avoir dans un autre format ensuite."
+        },
+        "places": {
+          "square": {
+            "label": "Publication",
+            "hint": "Le fil d'Instagram, Facebook, LinkedIn",
+            "prompt": "au format carré, pour une publication sur Instagram ou Facebook"
+          },
+          "story": {
+            "label": "Story ou statut",
+            "hint": "Statut WhatsApp, story Instagram, TikTok",
+            "prompt": "au format story vertical, pour un statut WhatsApp ou une story"
+          },
+          "banner": {
+            "label": "Bannière",
+            "hint": "Couverture Facebook, LinkedIn, site web",
+            "prompt": "au format bannière large, pour une couverture ou un site"
+          },
+          "a4": {
+            "label": "Affiche à imprimer",
+            "hint": "Format A4, pour la boutique ou la rue",
+            "prompt": "au format affiche A4 à imprimer"
+          }
+        },
+        "variants": {
+          "label": "Me proposer 3 versions différentes",
+          "hint": "Pour choisir celle que vous préférez — 5 crédits au lieu de 2."
+        },
+        "prompt": {
+          "intro": "Crée un visuel pour {{kind}},",
+          "format": "{{format}}.",
+          "details": "Voici ce qu'il doit dire : {{details}}",
+          "variants": "Propose-moi 3 versions différentes."
+        },
+        "submit": "Créer mon visuel — {{price}} crédits",
+        "freeText": "Je préfère l'écrire moi-même"
+      },
+      "guide": {
+        "show": "Comment ça marche ?",
+        "hide": "Masquer",
+        "plans": {
+          "title": "Comment ça marche ?",
+          "steps": {
+            "1": "Choisissez une période : IDEM prévoit vos publications, jour par jour, avec le texte prêt à poster.",
+            "2": "Cliquez sur une publication pour la lire, la modifier et créer son visuel en un clic.",
+            "3": "Le jour venu, ouvrez-la et publiez : le texte est copié, le réseau s'ouvre."
+          }
+        },
+        "library": {
+          "title": "Comment ça marche ?",
+          "steps": {
+            "1": "Cliquez sur un visuel pour le voir en grand.",
+            "2": "Téléchargez-le, ou obtenez-le dans un autre format (story, bannière…).",
+            "3": "Publiez-le : le texte est copié et le réseau s'ouvre, il ne reste qu'à coller."
           }
         }
       }

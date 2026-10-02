@@ -24,7 +24,15 @@ import {
   FinanceModel,
   zerosMonthly,
 } from '../../models/finance.model';
-import { FinanceService, financeService } from './finance.service';
+import { financeService } from './finance.service';
+import {
+  normalizeFinancing,
+  normalizeFixedCharges,
+  normalizeInvestments,
+  normalizeProducts,
+  normalizeSalesObjectives,
+  normalizeVariableCharges,
+} from './finance-normalize';
 import {
   FINANCE_AUTOFILL_GLOBAL_PROMPT,
   FINANCE_AUTOFILL_SYSTEM_PROMPT,
@@ -157,26 +165,28 @@ export class FinanceAIService {
 
     // Construit un Partial<FinanceModel> à partir du JSON renvoyé
     const incoming: Partial<FinanceModel> = {};
+    const { products, refs } = normalizeProducts(parsed.products, currentFinance.projectionYears);
     if (Array.isArray(parsed.products)) {
-      incoming.products = this.normalizeProducts(parsed.products);
+      incoming.products = products;
     }
     if (Array.isArray(parsed.salesObjectives)) {
-      incoming.salesObjectives = this.normalizeSalesObjectives(parsed.salesObjectives);
+      const knownIds = (incoming.products ?? currentFinance.products).map((p) => p.id);
+      incoming.salesObjectives = normalizeSalesObjectives(parsed.salesObjectives, refs, knownIds);
     }
     if (parsed.revenueParams && typeof parsed.revenueParams === 'object') {
-      incoming.revenueParams = parsed.revenueParams;
+      incoming.revenueParams = { ...currentFinance.revenueParams, ...parsed.revenueParams };
     }
     if (parsed.variableCharges && typeof parsed.variableCharges === 'object') {
-      incoming.variableCharges = this.normalizeChargesContainer(parsed.variableCharges, currentFinance.variableCharges);
+      incoming.variableCharges = normalizeVariableCharges(parsed.variableCharges, currentFinance.variableCharges);
     }
     if (parsed.fixedCharges && typeof parsed.fixedCharges === 'object') {
-      incoming.fixedCharges = this.normalizeFixedCharges(parsed.fixedCharges, currentFinance.fixedCharges);
+      incoming.fixedCharges = normalizeFixedCharges(parsed.fixedCharges, currentFinance.fixedCharges);
     }
     if (Array.isArray(parsed.investments)) {
-      incoming.investments = this.normalizeInvestments(parsed.investments);
+      incoming.investments = normalizeInvestments(parsed.investments);
     }
     if (parsed.financing && typeof parsed.financing === 'object') {
-      incoming.financing = parsed.financing;
+      incoming.financing = normalizeFinancing(parsed.financing, currentFinance.financing);
     }
 
     const suggestionsAdded = this.extractSuggestions(parsed);
@@ -582,17 +592,21 @@ export class FinanceAIService {
   ): any {
     switch (section) {
       case 'products':
-        return this.normalizeProducts(parsed.products || []);
+        return normalizeProducts(parsed.products, current.projectionYears).products;
       case 'salesObjectives':
-        return this.normalizeSalesObjectives(parsed.salesObjectives || []);
+        return normalizeSalesObjectives(
+          parsed.salesObjectives,
+          new Map(),
+          current.products.map((p) => p.id),
+        );
       case 'variableCharges':
-        return this.normalizeChargesContainer(parsed.variableCharges, current.variableCharges);
+        return normalizeVariableCharges(parsed.variableCharges, current.variableCharges);
       case 'fixedCharges':
-        return this.normalizeFixedCharges(parsed.fixedCharges, current.fixedCharges);
+        return normalizeFixedCharges(parsed.fixedCharges, current.fixedCharges);
       case 'investments':
-        return this.normalizeInvestments(parsed.investments || []);
+        return normalizeInvestments(parsed.investments);
       case 'financing':
-        return { ...current.financing, ...(parsed.financing || {}) };
+        return normalizeFinancing(parsed.financing, current.financing);
       case 'revenueParams':
         return { ...current.revenueParams, ...(parsed.revenueParams || {}) };
       case 'taxesParams':
@@ -600,95 +614,6 @@ export class FinanceAIService {
       default:
         return parsed;
     }
-  }
-
-  // -------------------------------------------------------------------
-  // Normalizers (assurent que les tableaux ont la bonne taille)
-  // -------------------------------------------------------------------
-
-  private padMonthly(arr: any[]): number[] {
-    const out = zerosMonthly();
-    for (let i = 0; i < Math.min(arr.length, 36); i++) {
-      out[i] = Number(arr[i]) || 0;
-    }
-    return out;
-  }
-
-  private normalizeProducts(products: any[]): any[] {
-    return products.map((p) => ({
-      id: p.id || uuidv4(),
-      name: String(p.name || 'Produit'),
-      prices: Array.isArray(p.prices) ? p.prices.map((x: any) => Number(x) || 0) : [0],
-      unitCosts: Array.isArray(p.unitCosts) ? p.unitCosts.map((x: any) => Number(x) || 0) : [0],
-    }));
-  }
-
-  private normalizeSalesObjectives(objs: any[]): any[] {
-    return objs.map((o) => ({
-      productId: String(o.productId || ''),
-      monthlyQuantities: this.padMonthly(o.monthlyQuantities || []),
-      growthRateFromMonth25: o.growthRateFromMonth25,
-    }));
-  }
-
-  private normalizeChargesContainer(input: any, fallback: any): any {
-    if (!input) return fallback;
-    return {
-      lines: Array.isArray(input.lines)
-        ? input.lines.map((l: any) => ({
-            id: l.id || uuidv4(),
-            category: String(l.category || 'autresChargesExternes'),
-            label: String(l.label || 'Charge'),
-            monthlyValues: this.padMonthly(l.monthlyValues || []),
-          }))
-        : fallback.lines,
-      supplierDebtRatePct:
-        typeof input.supplierDebtRatePct === 'number'
-          ? input.supplierDebtRatePct
-          : fallback.supplierDebtRatePct,
-      safetyStockRatePct:
-        typeof input.safetyStockRatePct === 'number'
-          ? input.safetyStockRatePct
-          : fallback.safetyStockRatePct,
-    };
-  }
-
-  private normalizeFixedCharges(input: any, fallback: any): any {
-    if (!input) return fallback;
-    return {
-      lines: Array.isArray(input.lines)
-        ? input.lines.map((l: any) => ({
-            id: l.id || uuidv4(),
-            category: String(l.category || 'locations'),
-            label: String(l.label || 'Charge'),
-            monthlyValues: this.padMonthly(l.monthlyValues || []),
-          }))
-        : fallback.lines,
-      salaries: Array.isArray(input.salaries)
-        ? input.salaries.map((s: any) => ({
-            id: s.id || uuidv4(),
-            position: String(s.position || 'Poste'),
-            monthlyValues: this.padMonthly(s.monthlyValues || []),
-          }))
-        : fallback.salaries,
-      socialChargesRatePct:
-        typeof input.socialChargesRatePct === 'number'
-          ? input.socialChargesRatePct
-          : fallback.socialChargesRatePct,
-      tusRatePct:
-        typeof input.tusRatePct === 'number' ? input.tusRatePct : fallback.tusRatePct,
-    };
-  }
-
-  private normalizeInvestments(invs: any[]): any[] {
-    return invs.map((i) => ({
-      id: i.id || uuidv4(),
-      category: String(i.category || 'materielOutillageIndustriel'),
-      amortGroup: String(i.amortGroup || 'materielOutillage'),
-      label: String(i.label || 'Investissement'),
-      monthlyValues: this.padMonthly(i.monthlyValues || []),
-      amortRateOverridePct: i.amortRateOverridePct,
-    }));
   }
 
   private normalizeIntent(parsed: any): FinanceChatIntent {

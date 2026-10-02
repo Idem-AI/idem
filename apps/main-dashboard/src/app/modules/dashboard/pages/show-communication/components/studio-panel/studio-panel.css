@@ -298,3 +298,147 @@
   margin-top: 1.25rem;
   padding: 1.1rem;
 }
+
+/* ── Questions guidées ────────────────────────────────────────────────────── */
+
+.sp-builder-head {
+  margin-bottom: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.sp-builder-intro {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.sp-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-primary-500);
+}
+
+.sp-switch:hover {
+  text-decoration: underline;
+}
+
+.sp-builder-foot {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+/* ── Fil : barre du haut ──────────────────────────────────────────────────── */
+
+.sp-toolbar {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 0.9rem;
+}
+
+.sp-toolbar-hint {
+  flex: 1;
+  min-width: 14rem;
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Retouches proposées ──────────────────────────────────────────────────── */
+
+.sp-followups {
+  margin-top: 1.25rem;
+}
+
+.sp-followups-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.sp-starters-left {
+  margin-top: 0.5rem;
+  justify-content: flex-start;
+}
+
+/* ── Écrans tactiles : pas de survol ─────────────────────────────────────── */
+
+/* « Voir en grand » n'apparaissait qu'au survol de la souris : au doigt, rien
+   n'indiquait que la vignette s'ouvre. */
+@media (hover: none) {
+  .sp-visual-open {
+    opacity: 1;
+  }
+}
+
+/* ── Téléphone ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .sp-wrap {
+    min-height: 0;
+  }
+
+  .sp-builder-head {
+    margin-bottom: 0.75rem;
+  }
+
+  .sp-builder-intro {
+    font-size: 0.85rem;
+  }
+
+  .sp-toolbar .inner-button {
+    width: 100%;
+    justify-content: center;
+    min-height: 2.75rem;
+  }
+
+  .sp-toolbar-hint {
+    min-width: 0;
+  }
+
+  .sp-bubble-user {
+    max-width: 92%;
+  }
+
+  /* Trois propositions côte à côte font des timbres-poste : deux par ligne. */
+  .sp-visuals-multi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* La saisie reste collée juste au-dessus de la barre d'onglets. */
+  .sp-composer {
+    bottom: var(--sc-bottom-gap, 0px);
+    z-index: 5;
+    margin-inline: -0.25rem;
+    padding: 0.5rem 0.25rem 0.25rem;
+  }
+
+  .sp-composer-box {
+    background: var(--glass-bg-intense);
+  }
+
+  .sp-composer-box .inner-button {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    justify-content: center;
+  }
+
+  /* 16 px au moins : en dessous, iOS zoome la page à chaque appui sur le champ. */
+  .sp-input {
+    font-size: 1rem;
+  }
+
+  .sp-hint,
+  .sp-clear {
+    font-size: 0.7rem;
+  }
+}

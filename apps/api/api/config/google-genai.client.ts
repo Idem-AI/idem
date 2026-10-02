@@ -43,36 +43,14 @@ export function getGoogleGenAIClient(): GoogleGenAI {
 
   const backend = getGeminiBackend();
 
-  if (backend.mode === 'ai-studio') {
-    if (!backend.apiKey) {
-      throw new Error(
-        'GEMINI_BACKEND=ai-studio mais GEMINI_API_KEY est absente. ' +
-          'Renseignez la clé, ou repassez sur Vertex (GEMINI_BACKEND=vertex).'
-      );
-    }
-
-    client = new GoogleGenAI({ apiKey: backend.apiKey });
-    logger.info(`Client Gemini initialisé — ${describeGeminiBackend()}`);
-    return client;
-  }
-
-  // Vertex signe ses appels avec le compte de service Google Cloud `GCP_SA_*`.
-  if (!backend.project || !backend.credentials) {
+  if (!backend.apiKey) {
     throw new Error(
-      'Vertex AI est actif mais les identifiants Google Cloud sont incomplets ' +
-        '(GCP_PROJECT_ID, GCP_SA_CLIENT_EMAIL, GCP_SA_PRIVATE_KEY). ' +
-        'Vérifiez ces trois variables, ou repassez ' +
-        'temporairement sur AI Studio (GEMINI_BACKEND=ai-studio).'
+      'GEMINI_API_KEY est absente. ' +
+        'Renseignez la clé dans votre .env ou dans Infisical.'
     );
   }
 
-  client = new GoogleGenAI({
-    vertexai: true,
-    project: backend.project,
-    location: backend.location,
-    googleAuthOptions: { credentials: backend.credentials },
-  });
-
+  client = new GoogleGenAI({ apiKey: backend.apiKey });
   logger.info(`Client Gemini initialisé — ${describeGeminiBackend()}`);
   return client;
 }

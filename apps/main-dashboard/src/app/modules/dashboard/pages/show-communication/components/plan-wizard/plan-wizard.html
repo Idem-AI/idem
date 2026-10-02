@@ -246,40 +246,43 @@
     }
 
     <!-- ─────────────── Pied : navigation ─────────────── -->
-    <footer class="pw-footer">
-      @if (step() > 1) {
-        <button type="button" class="outer-button" (click)="back()">
-          <i class="pi pi-arrow-left" aria-hidden="true"></i>
-          {{ 'common.previous' | translate }}
-        </button>
-      } @else {
-        <button type="button" class="outer-button" (click)="cancel()">
-          {{ 'common.cancel' | translate }}
-        </button>
-      }
+    <!-- Collé en bas au téléphone, prix compris : on paie en voyant ce qu'on paie. -->
+    <div class="pw-actions">
+      <footer class="pw-footer">
+        @if (step() > 1) {
+          <button type="button" class="outer-button" (click)="back()">
+            <i class="pi pi-arrow-left" aria-hidden="true"></i>
+            {{ 'common.previous' | translate }}
+          </button>
+        } @else {
+          <button type="button" class="outer-button" (click)="cancel()">
+            {{ 'common.cancel' | translate }}
+          </button>
+        }
 
-      @if (step() < totalSteps) {
-        <button
-          type="button"
-          class="inner-button"
-          [disabled]="!canAdvance()"
-          (click)="next()"
-        >
-          {{ 'common.next' | translate }}
-          <i class="pi pi-arrow-right" aria-hidden="true"></i>
-        </button>
-      } @else {
-        <button type="button" class="inner-button" (click)="submit()">
-          <i class="pi pi-sparkles" aria-hidden="true"></i>
-          {{ 'dashboard.showCommunication.wizard.recap.submit' | translate }}
-        </button>
-      }
-    </footer>
+        @if (step() < totalSteps) {
+          <button
+            type="button"
+            class="inner-button"
+            [disabled]="!canAdvance()"
+            (click)="next()"
+          >
+            {{ 'common.next' | translate }}
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          </button>
+        } @else {
+          <button type="button" class="inner-button" (click)="submit()">
+            <i class="pi pi-sparkles" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.wizard.recap.submit' | translate }}
+          </button>
+        }
+      </footer>
 
-    @if (step() === totalSteps) {
-      <p class="pw-price">
-        {{ 'dashboard.showCommunication.wizard.recap.price' | translate }}
-      </p>
-    }
+      @if (step() === totalSteps) {
+        <p class="pw-price">
+          {{ 'dashboard.showCommunication.wizard.recap.price' | translate }}
+        </p>
+      }
+    </div>
   </div>
 </div>

@@ -45,7 +45,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
                 [class.bg-[var(--glass-bg-light)]]="view() === 'list'" [class.!text-text-primary]="view() === 'list'"><i class="pi pi-list"></i></button>
       </div>
 
-      <div class="relative">
+      <div class="relative" data-tour="ideploy-add-new">
         <button class="inner-button flex items-center gap-2 cursor-pointer transition-transform hover:scale-[1.02]" (click)="toggleAddNew()">
           <i class="pi pi-plus text-xs"></i> {{ 'dashboard.addNew' | translate }}
           <i class="pi pi-chevron-down text-[10px] opacity-70"></i>
@@ -70,7 +70,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <!-- ===== Left column ===== -->
       <div class="lg:col-span-1 space-y-6">
-        <div>
+        <div data-tour="ideploy-usage">
           <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">{{ 'dashboard.usage' | translate }}</h2>
           <div class="glass-card p-5">
             <div class="mb-4 flex items-center justify-between">
@@ -121,7 +121,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
       </div>
 
       <!-- ===== Right column: the project grid ===== -->
-      <div class="lg:col-span-2">
+      <div class="lg:col-span-2" data-tour="ideploy-projects">
         <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">
           {{ 'dashboard.projects' | translate }}
           @if (!loading()) { <span style="color:var(--color-text-tertiary);">· {{ filteredApps().length }}</span> }
@@ -262,7 +262,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     // Le tableau de bord est la porte d'entrée d'iDeploy : c'est ici qu'on
     // présente les lieux, la première fois seulement.
-    void this.tour.maybeStart();
+    void this.tour.maybeStart('main');
 
     forkJoin({
       apps: this.api.listApplications(),

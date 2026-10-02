@@ -8,6 +8,7 @@ import { ApiService } from '../../../shared/services/api.service';
 import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.models';
 import { ARCHITECTURE_TEMPLATES } from '../../../shared/data/architecture-templates';
 import { serviceLogoUrl } from '../../../shared/utils/service-logo.util';
+import { TourService } from '../../../shared/services/tour.service';
 import { IllustrationComponent, IllustrationName } from '../../../shared/components/illustration/illustration';
 import {
   WorkspaceTarget,
@@ -69,7 +70,7 @@ const FEATURED_TEMPLATES = 6;
       </p>
 
       <!-- Step 1 — the source -->
-      <div class="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" [attr.aria-label]="'projects.start.sourceLabel' | translate">
+      <div class="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" data-tour="ideploy-sources" [attr.aria-label]="'projects.start.sourceLabel' | translate">
         @for (choice of sources; track choice.id) {
           <button
             type="button"
@@ -92,7 +93,7 @@ const FEATURED_TEMPLATES = 6;
       </div>
 
       <!-- Step 2 — the panel for that source -->
-      <section class="glass-card rounded-2xl p-5 sm:p-6">
+      <section class="glass-card rounded-2xl p-5 sm:p-6" data-tour="ideploy-source-panel">
         @switch (source()) {
           @case ('code') {
             <div class="mb-5 flex border-b" role="tablist" style="border-color:var(--glass-border-subtle);">
@@ -301,6 +302,7 @@ export class NewProjectComponent implements OnInit {
   private router = inject(Router);
   private translate = inject(TranslateService);
   private fb = inject(FormBuilder);
+  private tour = inject(TourService);
 
   protected readonly sources: SourceChoice[] = [
     { id: 'code', illustration: 'code', titleKey: 'projects.start.sourceCode', descKey: 'projects.start.sourceCodeDesc' },
@@ -370,6 +372,9 @@ export class NewProjectComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Première mise en ligne : on montre les trois origines possibles, une fois.
+    void this.tour.maybeStart('new-project');
+
     this.workspaceUuid = this.route.snapshot.queryParamMap.get('workspace');
     this.dockerForm.valueChanges.subscribe(() => this.dockerValue.set(this.dockerForm.getRawValue()));
 
