@@ -1,3 +1,7 @@
+:host {
+  display: block;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -13,60 +17,73 @@
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Léger soulèvement au survol : la carte se signale comme cliquable sans
-   recourir à un effet tape-à-l'œil. */
-.mode-card {
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.25s ease,
-    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
+/* La carte est le bouton. Le survol se lit à la bordure, sans soulever la
+   carte. */
 .mode-card:hover {
-  transform: translateY(-6px);
+  transform: none;
+  border-color: var(--glass-border-medium);
 }
 
-/* Light mode background overrides if needed */
-:host-context(.light-theme) .glass {
-  background: rgba(255, 255, 255, 0.7);
-  border-color: rgba(226, 232, 240, 0.8);
+.mode-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* La carte conseillée se distingue par sa seule bordure, à la couleur de
+   marque : pas d'ombre portée ni de pastille flottante par-dessus. */
+.mode-card--recommended,
+.mode-card--recommended:hover {
+  border-color: var(--color-primary);
+}
+
+/* Le libellé « Conseillé » : l'étiquette du design system, au bleu de marque,
+   précédée du losange IDEM plutôt que d'une icône. */
+.mode-card__tag {
+  color: var(--color-primary);
+  border-color: color-mix(in oklch, var(--color-primary) 35%, transparent);
+  background: color-mix(in oklch, var(--color-primary) 8%, transparent);
+  font-weight: 600;
+  /* Pas plus haute que la ligne du titre : la carte conseillée garde le même
+     rythme vertical que les deux autres. */
+  padding: 0.125rem 0.5rem;
+  line-height: 1.25;
+}
+
+.mode-card__tag:hover {
+  transform: none;
+}
+
+.mode-card__tag::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+
+/* Bouton ou chevron selon la largeur. Posé ici et non en utilitaires : les
+   classes du design system (`.inner-button`, `.pi`) fixent leur `display` hors
+   de tout `@layer` et battraient `hidden` / `sm:hidden`. */
+.mode-card__cta {
+  display: none;
+}
+
+.mode-card__chevron {
+  display: inline-block;
+}
+
+@media (min-width: 640px) {
+  .mode-card__cta {
+    display: flex;
+  }
+
+  .mode-card__chevron {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-fadeIn {
     animation: none;
-  }
-
-  .mode-card {
-    transition: none;
-  }
-
-  .mode-card:hover {
-    transform: none;
-  }
-}
-
-/* Pastille d'icône : couleurs pilotées ici plutôt qu'en classes Tailwind.
-   La feuille partagée définit `.text-primary` hors de tout `@layer`, et une
-   règle non-layered l'emporte sur n'importe quelle utilitaire Tailwind — donc
-   `group-hover:text-white` n'atteignait jamais l'icône, qui restait bleue sur
-   fond bleu. Le CSS de composant est lui aussi non-layered : l'état survolé
-   et l'état sélectionné s'appliquent sans lutte de spécificité. */
-.card-icon {
-  background-color: color-mix(in oklch, var(--color-primary) 12%, transparent);
-  color: var(--color-primary);
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.mode-card:hover .card-icon {
-  background-color: var(--color-primary);
-  color: #ffffff;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card-icon {
-    transition: none;
   }
 }

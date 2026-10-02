@@ -191,12 +191,6 @@ export class SidebarDashboard implements OnInit {
       isActive: false,
     },
     {
-      labelKey: 'dashboard.sidebar.diagrams',
-      icon: 'pi pi-chart-line',
-      route: 'project/diagrams',
-      isActive: false,
-    },
-    {
       labelKey: 'dashboard.sidebar.development',
       icon: 'pi pi-code',
       route: 'project/development',

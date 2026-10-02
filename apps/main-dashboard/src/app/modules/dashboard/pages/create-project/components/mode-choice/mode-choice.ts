@@ -7,7 +7,6 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { ModeIllustrationComponent } from '../../../../../../shared/components/mode-illustration/mode-illustration';
 import { OnboardingSurveyService } from '../../../../../../shared/services/onboarding-survey.service';
@@ -25,20 +24,18 @@ interface ModeCard {
   mode: CreateMode;
   /** Mode d'interface correspondant, pour l'illustration et la recommandation */
   uiMode: UiMode;
-  icon: string;
   i18nKey: string;
 }
 
 const MODE_CARDS: readonly ModeCard[] = [
-  { mode: 'guided', uiMode: 'guided', icon: 'pi pi-compass', i18nKey: 'guided' },
-  { mode: 'chat', uiMode: 'chat', icon: 'pi pi-comments', i18nKey: 'chat' },
-  { mode: 'form', uiMode: 'advanced', icon: 'pi pi-th-large', i18nKey: 'form' },
+  { mode: 'guided', uiMode: 'guided', i18nKey: 'guided' },
+  { mode: 'chat', uiMode: 'chat', i18nKey: 'chat' },
+  { mode: 'form', uiMode: 'advanced', i18nKey: 'form' },
 ];
 
 @Component({
   selector: 'app-mode-choice',
-  standalone: true,
-  imports: [CommonModule, TranslateModule, ModeIllustrationComponent],
+  imports: [TranslateModule, ModeIllustrationComponent],
   templateUrl: './mode-choice.html',
   styleUrl: './mode-choice.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

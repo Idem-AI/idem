@@ -30,142 +30,110 @@ export class DevelopmentService {
   constructor() {}
 
   /**
-   * Get quick generation presets
+   * La pile unique d'une application complète.
+   *
+   * IDEM la choisit pour l'utilisateur : c'est exactement ce que le guide
+   * « application 3 tiers » d'iDeploy sait mettre en ligne et relier tout seul
+   * (PostgreSQL → `DATABASE_URL` du serveur → `VITE_API_URL` de l'interface).
+   * Une autre pile obligerait l'utilisateur à câbler lui-même ce que le guide
+   * fait pour lui.
    */
   getQuickGenerationPresets(): QuickGenerationPreset[] {
     return [
       {
-        name: 'React + Express + Supabase',
+        name: 'React + Express + PostgreSQL',
         description:
-          'Modern full-stack setup with React frontend, Express.js backend, and Supabase database',
+          'React (Vite) interface, Node.js Express API with Prisma, PostgreSQL database hosted on iDeploy',
         frontend: {
           framework: 'React',
-          styling: ['Tailwind CSS', 'CSS Modules'],
+          styling: ['Tailwind CSS'],
           features: ['Routing', 'State Management', 'Component Library'],
         },
         backend: {
-          language: 'JavaScript',
+          language: 'TypeScript',
           framework: 'Express.js',
           apiType: 'REST API',
           features: ['Authentication', 'Authorization', 'Documentation'],
         },
         database: {
           type: 'PostgreSQL',
-          provider: 'Supabase',
-          features: ['Real-time subscriptions', 'Authentication', 'Storage'],
+          provider: 'PostgreSQL',
+          features: ['Migrations', 'Seeders'],
         },
       },
     ];
   }
 
   /**
-   * Generate quick development configuration based on preset and generation type
+   * Configuration d'un site vitrine ou d'une application complète.
+   *
+   * `landing` reste un site seul ; tout le reste est une application complète
+   * (interface + serveur + base de données) dont le plan doit exister avant la
+   * génération.
    */
   generateQuickConfig(generationType: GenerationType): DevelopmentConfigsModel {
-    const preset = this.getQuickGenerationPresets()[0]; // React + Express + Supabase
-
-    // Set landing page configuration based on generation type
-    let landingPageConfig: LandingPageConfig;
-    switch (generationType) {
-      case 'landing':
-        landingPageConfig = LandingPageConfig.ONLY_LANDING;
-        break;
-      case 'integrated':
-        landingPageConfig = LandingPageConfig.INTEGRATED;
-        break;
-      case 'both':
-        landingPageConfig = LandingPageConfig.SEPARATE;
-        break;
-      case 'app':
-      default:
-        landingPageConfig = LandingPageConfig.NONE;
-        break;
-    }
-
-    const hasLandingPage = landingPageConfig !== LandingPageConfig.NONE;
+    const preset = this.getQuickGenerationPresets()[0];
+    const isLanding = generationType === 'landing';
+    const landingPageConfig = isLanding ? LandingPageConfig.ONLY_LANDING : LandingPageConfig.NONE;
 
     return {
       mode: 'quick',
       generationType,
       preset: preset.name,
-      constraints: [
-        `Generate a ${
-          generationType === 'landing'
-            ? 'landing page'
-            : generationType === 'app'
-              ? 'web application'
-              : 'landing page with web application'
-        }`,
-        'Use modern development practices',
-        'Implement responsive design',
-        'Include proper error handling',
-      ],
+      constraints: isLanding
+        ? ['Generate a landing page', 'Implement responsive design']
+        : [
+            'Generate a complete web application: frontend, backend and database',
+            'Follow the application plan (diagrams) generated for this project',
+            'frontend/ and backend/ live side by side in one repository',
+            'The backend reads DATABASE_URL and PORT; the frontend reads VITE_API_URL',
+          ],
       frontend: {
         framework: preset.frontend.framework,
-        frameworkVersion: '18.0.0',
-        frameworkIconUrl: '/assets/icons/react.svg',
         styling: preset.frontend.styling,
-        stateManagement: 'Redux Toolkit',
+        stateManagement: 'Zustand',
         features: {
           routing: true,
-          componentLibrary: true,
-          testing: true,
-          pwa: generationType !== 'landing',
+          componentLibrary: false,
+          testing: false,
+          pwa: false,
           seo: true,
         },
       },
       backend: {
         language: preset.backend.language,
-        languageVersion: '18.0.0',
-        languageIconUrl: '/assets/icons/nodejs.svg',
         framework: preset.backend.framework,
-        frameworkVersion: '4.18.0',
-        frameworkIconUrl: '/assets/icons/express.svg',
         apiType: preset.backend.apiType,
-        apiVersion: '1.0.0',
-        apiIconUrl: '/assets/icons/rest.svg',
         orm: 'Prisma',
-        ormVersion: '5.0.0',
-        ormIconUrl: '/assets/icons/prisma.svg',
         features: {
-          authentication: true,
-          authorization: true,
-          documentation: true,
-          testing: true,
+          authentication: !isLanding,
+          authorization: !isLanding,
+          documentation: false,
+          testing: false,
           logging: true,
         },
       },
       database: {
         type: preset.database.type,
-        typeVersion: '15.0',
-        typeIconUrl: '/assets/icons/postgresql.svg',
         provider: preset.database.provider,
-        providerVersion: '2.0.0',
-        providerIconUrl: '/assets/icons/supabase.svg',
+        orm: 'Prisma',
         features: {
-          realTimeSubscriptions: true,
-          authentication: true,
-          storage: true,
-          edgeFunctions: true,
-          vectorSearch: false,
+          migrations: !isLanding,
+          seeders: !isLanding,
+          caching: false,
+          replication: false,
         },
       },
       landingPageConfig,
-      landingPage: hasLandingPage
-        ? {
-            url: '',
-            codeUrl: '',
-          }
-        : undefined,
       projectConfig: {
         seoEnabled: true,
-        contactFormEnabled: generationType !== 'app',
+        contactFormEnabled: isLanding,
         analyticsEnabled: true,
         i18nEnabled: false,
         performanceOptimized: true,
-        authentication: true,
-        authorization: true,
-        paymentIntegration: generationType === 'app',
+        authentication: !isLanding,
+        authorization: !isLanding,
+        paymentIntegration: false,
         customOptions: {
           generationType,
           preset: preset.name,

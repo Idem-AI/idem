@@ -51,8 +51,8 @@ const KIND_CONFIG: Record<DeliverableKind, DeliverableKindConfig> = {
   diagrams: {
     titleKey: 'chat.deliverables.diagrams',
     icon: 'pi pi-chart-line',
-    editorRoute: '/project/diagrams',
-    generateRoute: '/project/diagrams/generate',
+    editorRoute: '/project/development/diagrams',
+    generateRoute: '/project/development/diagrams/generate',
     pdfSupported: false,
   },
   legalDocs: {
@@ -96,7 +96,6 @@ const KIND_CONFIG: Record<DeliverableKind, DeliverableKindConfig> = {
     titleKey: 'chat.deliverables.deployment',
     icon: 'pi pi-cloud-upload',
     editorRoute: '/project/ideploy',
-    generateRoute: '/project/deployments/create',
     pdfSupported: false,
   },
 };

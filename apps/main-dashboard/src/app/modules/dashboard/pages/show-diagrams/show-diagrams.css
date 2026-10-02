@@ -1,3 +1,32 @@
 :host {
   display: block;
 }
+
+.sd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.sd-back:hover,
+.sd-back:focus-visible {
+  color: var(--color-primary-500);
+}
+
+.sd-next {
+  border-left: 3px solid var(--color-success);
+}
+
+/*
+ * Mermaid dessine en couleurs claires : le schéma est posé sur une feuille,
+ * comme un document, quel que soit le thème de l'interface.
+ */
+.sd-sheet {
+  padding: 1rem;
+  overflow-x: auto;
+  color-scheme: light;
+  background: var(--color-on-primary);
+}

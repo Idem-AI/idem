@@ -676,7 +676,12 @@
     "complete": "Génération terminée",
     "completeBody": "Votre application est générée et prête à être publiée.",
     "loadFailed": "Chargement du projet impossible",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "planRequired": {
+      "title": "Dessinez d'abord le plan de l'application",
+      "body": "Une application complète se construit sur son plan : les écrans, les données et leurs liens. Il se dessine en une à deux minutes dans le tableau de bord IDEM, puis revenez ici.",
+      "cta": "Dessiner le plan"
+    }
   },
   "checks": {
     "title": "Contrôles du projet",

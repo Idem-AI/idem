@@ -463,8 +463,17 @@ export const routes: Routes = [
     canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
+  // Le plan (diagrammes) n'a plus d'entrée à lui : c'est la première étape
+  // d'une application complète, dans « Site et app ». Les anciennes adresses
+  // y mènent encore.
+  { path: 'project/diagrams', redirectTo: 'project/development/diagrams', pathMatch: 'full' },
   {
-    path: 'project/diagrams',
+    path: 'project/diagrams/generate',
+    redirectTo: 'project/development/diagrams/generate',
+    pathMatch: 'full',
+  },
+  {
+    path: 'project/development/diagrams',
     title: 'navigation.titles.diagrams',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-diagrams/show-diagrams').then(
@@ -474,7 +483,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'project/diagrams/generate',
+    path: 'project/development/diagrams/generate',
     title: 'navigation.titles.diagramsGenerate',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-diagrams/diagram-generation/diagram-generation-page').then(
@@ -513,36 +522,12 @@ export const routes: Routes = [
     canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
-  {
-    path: 'project/deployments/create',
-    title: 'navigation.titles.createDeployment',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/deployment/create-deployment/create-deployment').then(
-        (m) => m.CreateDeployment,
-      ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
-    data: { layout: 'dashboard' },
-  },
-  {
-    path: 'project/deployments',
-    title: 'navigation.titles.deployments',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/deployment/deployment-list/deployment-list').then(
-        (m) => m.DeploymentList,
-      ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
-    data: { layout: 'dashboard' },
-  },
-  {
-    path: 'project/deployments/:id',
-    title: 'navigation.titles.deploymentDetails',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/deployment/deployment-details/deployment-details').then(
-        (m) => m.DeploymentDetails,
-      ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
-    data: { layout: 'dashboard' },
-  },
+  // Mettre en ligne passe par iDeploy, et une seule page le résume. Les
+  // anciennes pages de déploiement (Terraform) n'ont plus d'adresse ; les
+  // liens déjà partagés mènent à la nouvelle.
+  { path: 'project/deployments', redirectTo: 'project/ideploy', pathMatch: 'full' },
+  { path: 'project/deployments/create', redirectTo: 'project/ideploy', pathMatch: 'full' },
+  { path: 'project/deployments/:id', redirectTo: 'project/ideploy', pathMatch: 'full' },
 
   // Le profil a rejoint « Mon compte » : l'identité et l'offre se consultaient
   // sur deux écrans qui se contredisaient.

@@ -88,6 +88,9 @@ Format : **retenu** — candidats écartés (raison).
 | Finances : lecture du fichier par l'IA | **van de vannage, le grain utile reste** | métier à tisser (dit la rédaction) |
 | Finances : aperçu prêt / enregistrement | **grenier plein** | pagne déroulé (réservé aux livrables) |
 | Finances : étape vide, échec d'import | **calebasse vide** | — |
+| Site & App : site vitrine, application complète | **étal du marché ; façade en banco** | métier à tisser (dit le code, pas ce qu'on obtient) |
+| Site & App : plan, construction, mise en ligne | **filet de pêche ; façade en banco ; pirogue** | — |
+| Mise en ligne : rien encore en ligne | **pirogue** | grenier (dit la machine, pas le départ) |
 
 ### iDeploy
 

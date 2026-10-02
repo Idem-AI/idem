@@ -1,4 +1,121 @@
-/* 
-  Component styles are handled with Tailwind CSS utility classes directly in the HTML template.
-  This file is kept for potential future custom styles that can't be achieved with Tailwind.
-*/
+:host {
+  display: block;
+}
+
+.sa-live {
+  border-left: 3px solid var(--color-success);
+}
+
+.sa-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--color-success);
+}
+
+.sa-link {
+  font-size: 0.875rem;
+  color: var(--color-primary-500);
+}
+
+.sa-link:hover,
+.sa-link:focus-visible {
+  text-decoration: underline;
+}
+
+/*
+ * Une étape : numéro, objet, texte, action. Sur téléphone l'action passe sous
+ * le texte, sur toute la largeur — un pouce l'atteint sans viser.
+ */
+.sa-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'num text'
+    'action action';
+  align-items: start;
+  gap: 0.75rem 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.sa-step--next {
+  border-color: var(--color-primary-500);
+}
+
+.sa-step--locked .sa-step__text,
+.sa-step--locked .sa-step__art {
+  opacity: 0.6;
+}
+
+.sa-step__num {
+  grid-area: num;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--glass-border-medium);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.sa-step--next .sa-step__num {
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-500);
+}
+
+.sa-step__num--done {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: var(--color-on-primary);
+}
+
+.sa-step__art {
+  display: none;
+}
+
+.sa-step__text {
+  grid-area: text;
+  min-width: 0;
+}
+
+.sa-step__action {
+  grid-area: action;
+  display: flex;
+}
+
+.sa-step__action > * {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .sa-step {
+    grid-template-columns: auto 5.5rem 1fr auto;
+    grid-template-areas: 'num art text action';
+    align-items: center;
+  }
+
+  .sa-step__art {
+    display: block;
+    grid-area: art;
+  }
+
+  .sa-step__action > * {
+    width: auto;
+  }
+}
+
+.sa-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+}
+
+.sa-status--done {
+  color: var(--color-success);
+}

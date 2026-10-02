@@ -1002,7 +1002,9 @@ input[type='month']:focus,
 input[type='week']:focus,
 input[type='search']:focus {
   border-color: color-mix(in oklch, var(--color-primary) 65%, var(--glass-border-strong));
-  background: var(--idem-field-bg-focus);
+  /* `background-color` et non `background` : la forme abrégée effaçait aussi
+     l'image de fond, donc la loupe du champ de recherche au focus. */
+  background-color: var(--idem-field-bg-focus);
   /* Pas d'anneau. Un halo de 3 px autour d'un champ est le réflexe des
      frameworks de 2015 : il épaissit visuellement la bordure de six pixels et
      donne cet aspect « formulaire administratif ».
@@ -1080,7 +1082,9 @@ textarea:hover {
 
 textarea:focus {
   border-color: color-mix(in oklch, var(--color-primary) 65%, var(--glass-border-strong));
-  background: var(--idem-field-bg-focus);
+  /* `background-color` et non `background` : la forme abrégée effaçait aussi
+     l'image de fond, donc la loupe du champ de recherche au focus. */
+  background-color: var(--idem-field-bg-focus);
   /* Pas d'anneau. Un halo de 3 px autour d'un champ est le réflexe des
      frameworks de 2015 : il épaissit visuellement la bordure de six pixels et
      donne cet aspect « formulaire administratif ».

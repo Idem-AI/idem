@@ -1,255 +1,213 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router, RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
-import { DevelopmentService } from '../../../services/ai-agents/development.service';
-import { DevelopmentConfigsModel, LandingPageConfig } from '../../../models/development.model';
-import { CookieService } from '../../../../../shared/services/cookie.service';
-import { catchError, finalize, of, tap } from 'rxjs';
-import { BrandingValidationService } from '../../../services/branding-validation.service';
-import { IncompleteProjectBannerComponent } from '../../../components/incomplete-project-banner/incomplete-project-banner';
-import {
-  AppChatSummary,
-  AppDeploymentModel,
-  ProjectService,
-} from '../../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
-
-import { environment } from '../../../../../../environments/environment';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { environment } from '../../../../../../environments/environment';
+import { CookieService } from '../../../../../shared/services/cookie.service';
+import { ErrorStateComponent } from '../../../../../shared/components/error-state/error-state';
+import { IncompleteProjectBannerComponent } from '../../../components/incomplete-project-banner/incomplete-project-banner';
+import { DevelopmentConfigsModel, isFullApplication } from '../../../models/development.model';
+import { BrandingValidationService } from '../../../services/branding-validation.service';
+import { AppChatSummary, AppDeploymentModel, ProjectService } from '../../../services/project.service';
+import { SiteAppIllustrationComponent } from '../site-app-illustration';
 
+type StepId = 'plan' | 'build' | 'golive';
+type StepState = 'done' | 'next' | 'locked' | 'todo';
+
+interface AppStep {
+  id: StepId;
+  number: number;
+  state: StepState;
+}
+
+/**
+ * « Site et app » — une seule page, qui dit où l'on en est et quoi faire ensuite.
+ *
+ * Site vitrine : un bouton, vers iCode.
+ * Application complète : trois étapes dans l'ordre, chacune ouverte par la
+ * précédente —
+ *   1. le plan (diagrammes), lu par iCode pour bâtir les bonnes données ;
+ *   2. la construction dans iCode : interface, serveur et base de données ;
+ *   3. la mise en ligne par le guide « application 3 tiers » d'iDeploy, qui
+ *      crée la base, puis le serveur, puis l'interface, et les relie.
+ *
+ * Tout l'état se lit sur le projet (configuration, plan), la conversation
+ * iCode et la dernière publication : trois requêtes, aucune saisie.
+ */
 @Component({
   selector: 'app-show-development',
-  standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, IncompleteProjectBannerComponent, IdemLoaderComponent],
+  imports: [
+    DatePipe,
+    RouterLink,
+    TranslateModule,
+    IdemLoaderComponent,
+    ErrorStateComponent,
+    IncompleteProjectBannerComponent,
+    SiteAppIllustrationComponent,
+  ],
   templateUrl: './show-development.html',
   styleUrls: ['./show-development.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ShowDevelopment implements OnInit {
-  // Services
-  private readonly developmentService = inject(DevelopmentService);
-  private readonly cookieService = inject(CookieService);
-  private readonly brandingValidation = inject(BrandingValidationService);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly cookies = inject(CookieService);
   private readonly projectService = inject(ProjectService);
+  private readonly brandingValidation = inject(BrandingValidationService);
 
-  // State management using signals
-  protected readonly developmentConfigs = signal<DevelopmentConfigsModel | null>(null);
-  protected readonly loading = signal<boolean>(false);
-  protected readonly error = signal<string | null>(null);
-  protected readonly projectId = signal<string>('');
+  private readonly webgenUrl = environment.services.webgen.url;
+  private readonly ideployUrl = environment.services.ideploy.url;
 
-  // Branding validation
-  protected readonly isBrandingComplete = signal<boolean>(false);
-  protected readonly brandingMissingElements = signal<string[]>([]);
+  protected readonly loading = signal(true);
+  protected readonly failed = signal(false);
+  protected readonly projectId = signal<string | null>(null);
   protected readonly project = signal<ProjectModel | null>(null);
-  protected readonly router = inject(Router);
-  protected readonly webgenUrl = environment.services.webgen.url;
+  protected readonly isBrandingComplete = signal(false);
 
-  // Last quick deployment (Netlify) published from iCode for this project
+  /** Dernière publication rapide faite depuis iCode, s'il y en a une. */
   protected readonly deployment = signal<AppDeploymentModel | null>(null);
-  protected readonly copiedDeployUrl = signal<boolean>(false);
-
-  // Existing iCode conversation: the CTA reopens it instead of starting over
+  /** Conversation iCode existante : on la reprend plutôt que d'en ouvrir une autre. */
   protected readonly appChat = signal<AppChatSummary | null>(null);
-  protected readonly hasExistingApp = computed(() => this.appChat() !== null);
+  protected readonly copied = signal(false);
 
-  // Computed signals to optimize template access
-  protected readonly configs = computed(() => this.developmentConfigs());
-  protected readonly hasConfigs = computed(() => this.developmentConfigs() !== null);
-  protected readonly frontend = computed(() => this.developmentConfigs()?.frontend);
-  protected readonly backend = computed(() => this.developmentConfigs()?.backend);
-  protected readonly database = computed(() => this.developmentConfigs()?.database);
-  protected readonly projectConfig = computed(() => this.developmentConfigs()?.projectConfig);
-  protected readonly constraints = computed(() => this.developmentConfigs()?.constraints);
-  protected readonly isLandingPageOnly = computed(
-    () => this.developmentConfigs()?.landingPageConfig === LandingPageConfig.ONLY_LANDING,
+  protected readonly configs = computed<DevelopmentConfigsModel | null>(
+    () => this.project()?.analysisResultModel?.development?.configs ?? null,
   );
+  protected readonly isApp = computed(() => isFullApplication(this.configs()));
+  protected readonly hasPlan = computed(
+    () => (this.project()?.analysisResultModel?.design?.sections?.length ?? 0) > 0,
+  );
+  protected readonly hasCode = computed(() => this.appChat() !== null);
+  protected readonly isLive = computed(() => !!this.deployment()?.url);
+
+  /** Ce qu'IDEM construit, lu sur la configuration plutôt que supposé. */
+  protected readonly stack = computed(() => {
+    const c = this.configs();
+    return {
+      frontend: c?.frontend?.framework || 'React',
+      backend: [c?.backend?.language, c?.backend?.framework].filter(Boolean).join(' · ') || 'Node.js · Express',
+      database: c?.database?.provider || c?.database?.type || 'PostgreSQL',
+    };
+  });
 
   /**
-   * Redirects to the web generator application with the project ID
-   * @param projectId The ID of the project to generate
+   * Les trois étapes et leur état. Une étape s'ouvre quand la précédente est
+   * faite ; la première ouverte et pas encore faite est « la prochaine », et
+   * c'est la seule dont le bouton est mis en avant.
    */
-  protected redirectToWebGenerator(projectId: string): void {
-    const generatorUrl = `${this.webgenUrl}?projectId=${projectId}`;
-    window.location.href = generatorUrl;
-  }
+  protected readonly steps = computed<AppStep[]>(() => {
+    // Une conversation iCode ouverte avant le plan (un ancien site vitrine,
+    // par exemple) ne compte pas : l'application n'a pas été bâtie dessus.
+    const done: Record<StepId, boolean> = {
+      plan: this.hasPlan(),
+      build: this.hasPlan() && this.hasCode(),
+      golive: this.hasPlan() && this.hasCode() && this.isLive(),
+    };
+    const open: Record<StepId, boolean> = {
+      plan: true,
+      build: done.plan,
+      golive: done.plan && done.build,
+    };
+    const ids: StepId[] = ['plan', 'build', 'golive'];
+    const next = ids.find((id) => open[id] && !done[id]) ?? null;
+
+    return ids.map((id, index) => ({
+      id,
+      number: index + 1,
+      state: done[id] ? 'done' : id === next ? 'next' : open[id] ? 'todo' : 'locked',
+    }));
+  });
+
   ngOnInit(): void {
-    const storedProjectId = this.cookieService.get('projectId');
-    if (storedProjectId) {
-      this.projectId.set(storedProjectId);
-      this.checkBrandingCompletion(storedProjectId);
-      this.loadDeployment(storedProjectId);
-      this.loadAppChat(storedProjectId);
-    } else {
-      this.error.set('No project ID found. Please select a project first.');
+    const projectId = this.cookies.get('projectId');
+    this.projectId.set(projectId);
+    if (!projectId) {
+      void this.router.navigate(['/projects']);
+      return;
     }
+    this.load(projectId);
   }
 
-  /**
-   * Check if project branding is complete before loading content
-   */
-  private checkBrandingCompletion(projectId: string): void {
-    this.loading.set(true);
-    this.projectService.getProjectById(projectId).subscribe({
-      next: (project) => {
-        this.project.set(project);
-        const { isComplete, missingElements } =
-          this.brandingValidation.checkBrandingCompletion(project);
-
-        this.isBrandingComplete.set(isComplete);
-        this.brandingMissingElements.set(missingElements);
-
-        // Only load development configs if branding is complete
-        if (isComplete) {
-          this.fetchDevelopmentConfigs(projectId);
-        } else {
-          this.loading.set(false);
-        }
-      },
-      error: (error) => {
-        console.error('Error checking branding completion:', error);
-        this.loading.set(false);
-        this.error.set('Erreur lors de la vérification du projet');
-      },
-    });
+  protected retry(): void {
+    const projectId = this.projectId();
+    if (projectId) this.load(projectId);
   }
 
-  private fetchDevelopmentConfigs(projectId: string): void {
+  private load(projectId: string): void {
     this.loading.set(true);
-    this.error.set(null);
+    this.failed.set(false);
 
-    console.log('Fetching development configs for project:', projectId);
+    this.projectService
+      .getProjectById(projectId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (project) => {
+          this.project.set(project);
+          this.isBrandingComplete.set(this.brandingValidation.checkBrandingCompletion(project).isComplete);
 
-    this.developmentService
-      .getDevelopmentConfigs(projectId)
-      .pipe(
-        tap((configs: DevelopmentConfigsModel | null) => {
-          console.log('Development configs received:', configs);
-          if (configs !== null) {
-            this.developmentConfigs.set(configs);
-          } else {
-            this.error.set('No development configurations found for this project.');
-            this.router.navigate(['/project/development/create']);
+          // Rien n'a encore été choisi : on commence par là.
+          if (this.isBrandingComplete() && !this.configs()) {
+            void this.router.navigate(['/project/development/create']);
+            return;
           }
-        }),
-        catchError((err) => {
-          console.error('Error fetching development configs:', err);
-          this.error.set('Failed to load development configurations. Please try again.');
-          return of(null);
-        }),
-        finalize(() => {
           this.loading.set(false);
-          console.log('Development configs fetch completed');
-        }),
-      )
-      .subscribe();
+        },
+        error: () => {
+          this.loading.set(false);
+          this.failed.set(true);
+        },
+      });
+
+    // Ces deux lectures répondent `null` en cas d'échec : la page reste juste,
+    // seule l'étape concernée apparaît comme pas encore faite.
+    this.projectService
+      .getAppChatSummary(projectId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((chat) => this.appChat.set(chat));
+    this.projectService
+      .getAppDeployment(projectId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((deployment) => this.deployment.set(deployment));
+  }
+
+  /** Ouvre iCode sur ce projet ; il lit lui-même la configuration et le plan. */
+  protected openICode(): void {
+    const projectId = this.projectId();
+    if (!projectId) return;
+    // L'application complète se construit sur le plan : sans lui, iCode
+    // n'aurait que la description du projet pour deviner les données.
+    if (this.isApp() && !this.hasPlan()) return;
+    window.location.href = `${this.webgenUrl}?projectId=${encodeURIComponent(projectId)}`;
   }
 
   /**
-   * Loads the live URL of the app already deployed from iCode, if any.
+   * Le guide « application 3 tiers » d'iDeploy : base de données, puis
+   * serveur (son `DATABASE_URL` est rempli tout seul), puis interface (son
+   * `VITE_API_URL` aussi).
    */
-  private loadDeployment(projectId: string): void {
-    this.projectService.getAppDeployment(projectId).subscribe((deployment) => {
-      this.deployment.set(deployment);
-    });
+  protected openGoLiveGuide(): void {
+    if (!this.hasCode()) return;
+    window.open(`${this.ideployUrl}/new-project/guide/3-tier`, '_blank', 'noopener');
   }
 
-  /**
-   * Detects an existing iCode conversation so the CTA reopens it rather than
-   * suggesting a fresh generation.
-   */
-  private loadAppChat(projectId: string): void {
-    this.projectService.getAppChatSummary(projectId).subscribe((session) => {
-      this.appChat.set(session);
-    });
-  }
-
-  protected openDeployedApp(): void {
+  protected openLiveApp(): void {
     const url = this.deployment()?.url;
-    if (url) {
-      window.open(url, '_blank', 'noopener');
-    }
+    if (url) window.open(url, '_blank', 'noopener');
   }
 
-  protected async copyDeployUrl(): Promise<void> {
+  protected async copyLiveUrl(): Promise<void> {
     const url = this.deployment()?.url;
     if (!url) return;
-
     try {
       await navigator.clipboard.writeText(url);
-      this.copiedDeployUrl.set(true);
-      setTimeout(() => this.copiedDeployUrl.set(false), 2000);
-    } catch (error) {
-      console.error('Unable to copy the deployment URL:', error);
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    } catch {
+      // Presse-papiers refusé (contexte non sécurisé) : le lien reste affiché.
     }
-  }
-
-  protected openApplication(): void {
-    // This would typically open the application in a new tab
-    // For now, we'll just redirect to a placeholder URL
-    const appUrl = `/preview/app/${this.projectId()}`;
-    window.open(appUrl, '_blank');
-  }
-
-  protected getFeaturesList(
-    features: string[] | string | Record<string, boolean | undefined>,
-  ): string {
-    if (!features) return 'None';
-
-    if (typeof features === 'string') {
-      return features;
-    } else if (Array.isArray(features)) {
-      return features.length > 0 ? features.join(', ') : 'None';
-    } else {
-      const enabledFeatures = Object.entries(features)
-        .filter(([_, enabled]) => enabled)
-        .map(([name, _]) => name);
-      return enabledFeatures.length > 0 ? enabledFeatures.join(', ') : 'None';
-    }
-  }
-
-  /**
-   * Safely gets object keys from a features object
-   */
-  protected getObjectKeys(features: any): string[] {
-    if (features && typeof features === 'object' && !Array.isArray(features)) {
-      return Object.keys(features);
-    }
-    return [];
-  }
-
-  /**
-   * Checks if a specific feature is enabled in a features object
-   */
-  protected isFeatureEnabled(features: any, featureName: string): boolean {
-    if (features && typeof features === 'object' && !Array.isArray(features)) {
-      return !!features[featureName];
-    }
-    return false;
-  }
-
-  /**
-   * Checks if features is an array
-   */
-  protected isFeatureArray(features: any): boolean {
-    return Array.isArray(features);
-  }
-
-  /**
-   * Safely gets features array
-   */
-  protected getFeatureArray(features: any): string[] {
-    if (Array.isArray(features)) {
-      return features as string[];
-    }
-    return [];
-  }
-
-  /**
-   * Formats custom options as a pretty-printed string
-   */
-  protected formatCustomOptions(options: any): string {
-    return options ? JSON.stringify(options, null, 2) : '';
   }
 }

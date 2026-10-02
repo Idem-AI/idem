@@ -1,6 +1,6 @@
 # @idem/shared-loader
 
-`<idem-loader>`: the only loading indicator of the IDEM platform. One component, shared by every application, so waiting looks the same everywhere. Local spinners (`.loader`, `.spinner`, `pi-spinner pi-spin`, hand-made `animate-spin` rings) have been removed from the design system and must not come back.
+`<idem-loader>`: the only loading indicator of the IDEM platform. It draws the sowing of awalé: eight lozenge seeds set in a circle like the board's pits, lit one after the other in the brand gradient, the way a player drops one seed in each pit before starting the round again. One component, shared by every application, so waiting looks the same everywhere. Local spinners (`.loader`, `.spinner`, `pi-spinner pi-spin`, hand-made `animate-spin` rings) have been removed from the design system and must not come back.
 
 ## Usage (Angular)
 

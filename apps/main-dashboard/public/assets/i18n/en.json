@@ -851,7 +851,7 @@
       "diagrams": "Diagrams",
       "development": "Site & App",
       "deploymentOverview": "Deployment Overview",
-      "deployment": "Deployment",
+      "deployment": "Go live",
       "viewAllProjects": "View All Projects",
       "communication": "Communication",
       "sr": {
@@ -1541,30 +1541,25 @@
       },
       "guidedHint": "After creation, IDEM will guide you step by step.",
       "modeChoice": {
-        "badge": "Support mode",
         "title": "How would you like to be supported?",
-        "subtitle": "Your description is saved. Pick the way of working that suits you — you can change it at any time.",
+        "subtitle": "Your description is saved. Nothing is final: the menu at the top of the screen lets you switch modes at any time.",
         "backToDescription": "Edit the description",
         "recommended": "Recommended",
-        "personalized": "Recommendation based on your answers",
-        "switchLater": "Whichever you pick, you can switch modes at any time from the menu at the top of the screen.",
+        "recommendedForYou": "Recommended from your answers",
         "guided": {
           "title": "Guided mode",
-          "tag": "Step by step",
           "description": "IDEM guides you in order: one step at a time, and the next unlocks once the previous one is done.",
           "forWho": "For you if you are starting out and do not know where to begin.",
           "button": "Guide me"
         },
         "chat": {
           "title": "Chat mode",
-          "tag": "Conversation",
           "description": "Describe what you need in plain language: IDEM generates it and answers you.",
           "forWho": "For you if you would rather ask than search.",
           "button": "Chat with IDEM"
         },
         "form": {
           "title": "Dashboard",
-          "tag": "Full access",
           "description": "A structured form, then the full workspace: every module freely available, in whatever order you like.",
           "forWho": "For you if you already know what you are looking for.",
           "button": "Open the dashboard"
@@ -4579,6 +4574,173 @@
           "useWhen": "Demo day, stage pitch, quick first contact."
         }
       }
+    },
+    "siteApp": {
+      "title": "Site & App",
+      "subtitleSite": "Your showcase website: the page that presents your business and brings customers in.",
+      "subtitleApp": "Your complete application, in three steps: the plan, the build, going live.",
+      "changeType": "Change type",
+      "resumeICode": "Resume in iCode",
+      "errors": {
+        "title": "This page could not be loaded",
+        "load": "The project could not be read. Check your connection and try again.",
+        "plan": "The plan could not be read. Check your connection and try again."
+      },
+      "live": {
+        "title": "Live",
+        "updated": "Updated on {{date}}",
+        "copy": "Copy link",
+        "copied": "Link copied",
+        "open": "Open"
+      },
+      "site": {
+        "title": "Your showcase website",
+        "titleExisting": "Your website is in progress in iCode",
+        "body": "iCode builds it with your brand — logo, colours, fonts — and your project's details. You then change it by talking to it.",
+        "bodyExisting": "Pick up where you left off: your conversation and your code are waiting.",
+        "cta": "Create my website"
+      },
+      "steps": {
+        "title": "Your application in three steps",
+        "lead": "Each step opens the next one. You always see where you are.",
+        "stepLabel": "Step {{n}}:",
+        "todo": "To do",
+        "plan": {
+          "title": "Draw the plan",
+          "body": "IDEM draws the screens, the data and how they connect, from your project. iCode uses it to build the right things.",
+          "done": "Plan ready",
+          "locked": "",
+          "cta": "Draw the plan",
+          "view": "View the plan"
+        },
+        "build": {
+          "title": "Build the application",
+          "body": "iCode writes the interface, the server and the database from the plan. You try it and change it by talking to it.",
+          "done": "Application started in iCode",
+          "locked": "Available once the plan is drawn",
+          "cta": "Build in iCode"
+        },
+        "golive": {
+          "title": "Go live",
+          "body": "Send the code to GitHub from iCode, then iDeploy creates the database, the server and the interface, and connects them for you.",
+          "done": "Application live",
+          "locked": "Available once the application is built",
+          "cta": "Go live with iDeploy"
+        }
+      },
+      "stack": {
+        "title": "What IDEM builds for you",
+        "lead": "Technologies chosen to go live as they are on iDeploy.",
+        "frontend": "Interface",
+        "frontendHint": "The screens your customers use, on phone and computer.",
+        "backend": "Server",
+        "backendHint": "Your business rules, accounts and security.",
+        "database": "Database",
+        "databaseHint": "Your data, organised and backed up."
+      },
+      "plan": {
+        "title": "Your application's plan",
+        "subtitle": "The screens, the data and how they connect. iCode reads it to build your application.",
+        "generatingLead": "IDEM is drawing the plan from your project. It takes one to two minutes; the diagrams appear as they are ready.",
+        "generating": "Drawing the plan",
+        "preparing": "Getting ready…",
+        "redraw": "Redraw",
+        "edit": "Edit",
+        "emptyTitle": "The plan has not been drawn yet",
+        "emptyBody": "It is the first step of a complete application: without a plan, iCode would have to guess your data.",
+        "readyTitle": "The plan is ready",
+        "readyBody": "Next step: iCode builds the interface, the server and the database from this plan."
+      },
+      "create": {
+        "title": "What do you want to build?",
+        "subtitle": "Pick what fits your project. You can change your mind later.",
+        "current": "Your current choice",
+        "error": "Your choice could not be saved. Check your connection and try again.",
+        "note": "IDEM picks the technologies so your website or application goes live with no setup.",
+        "site": {
+          "title": "A showcase website",
+          "body": "A page that presents your business, your offers and how to reach you.",
+          "point1": "Ready in a few minutes",
+          "point2": "In your brand's colours",
+          "cta": "Create my website"
+        },
+        "app": {
+          "title": "A complete application",
+          "body": "A tool your customers or your team use: accounts, data, dashboard.",
+          "point1": "Interface, server and database",
+          "point2": "Built on a plan drawn for your project",
+          "point3": "Guided go-live with iDeploy",
+          "cta": "Start my application"
+        }
+      }
+    },
+    "goLive": {
+      "title": "Go live",
+      "subtitle": "What is live on iDeploy, and how to add what you just built.",
+      "refresh": "Refresh",
+      "openIDeploy": "Open iDeploy",
+      "manage": "Manage in iDeploy",
+      "errors": {
+        "title": "iDeploy is not responding",
+        "body": "Your resources cannot be read right now. Try again in a moment."
+      },
+      "empty": {
+        "title": "Nothing is live yet",
+        "body": "When your website or application is ready, put it online here: iDeploy takes care of the servers.",
+        "build": "Build my website or application"
+      },
+      "brief": {
+        "title": "At a glance",
+        "online": "Applications live",
+        "onlineHint": "The ones answering right now.",
+        "databases": "Databases",
+        "databasesHint": "Where your applications keep their data.",
+        "servers": "Connected servers",
+        "serversHint": "Your own machines linked to iDeploy."
+      },
+      "apps": {
+        "title": "Your applications",
+        "none": "No application yet.",
+        "open": "Open",
+        "noAddress": "No address yet"
+      },
+      "databases": {
+        "title": "Databases",
+        "none": "No database."
+      },
+      "servers": {
+        "title": "Servers",
+        "none": "You are using IDEM's servers: nothing to manage.",
+        "connected": "Connected",
+        "offline": "Offline"
+      },
+      "state": {
+        "running": "Live",
+        "deploying": "Going live",
+        "restarting": "Restarting",
+        "stopped": "Stopped",
+        "unknown": "Unknown state"
+      },
+      "time": {
+        "now": "just now",
+        "minutes": "{{n}} min ago",
+        "hours": "{{n}} h ago",
+        "days": "{{n}} d ago"
+      },
+      "new": {
+        "titleFirst": "Go live",
+        "title": "Put something else online",
+        "app": {
+          "title": "A complete application",
+          "body": "Database, server and interface, created in the right order and connected automatically.",
+          "cta": "Open the guide"
+        },
+        "site": {
+          "title": "A website or a GitHub repository",
+          "body": "A showcase website, an API or any project already on GitHub.",
+          "cta": "Choose in iDeploy"
+        }
+      }
     }
   },
   "deployment": {
@@ -4687,11 +4849,11 @@
       "pitchDeck": "Pitch Deck",
       "legalDocs": "Legal Documents",
       "advisor": "Advisor",
-      "diagrams": "Diagrams",
-      "diagramsGenerate": "Diagrams Generation",
+      "diagrams": "Application plan",
+      "diagramsGenerate": "Drawing the plan",
       "createDevelopment": "Create Development",
       "development": "Development",
-      "ideploy": "iDeploy",
+      "ideploy": "Go live",
       "createDeployment": "Create Deployment",
       "deployments": "Deployments",
       "deploymentDetails": "Deployment Details",
@@ -5207,9 +5369,9 @@
       }
     },
     "deploy": {
-      "intro": "The **deployment assistant** takes your project live (infrastructure, Terraform, CI/CD). It needs a Git repository. Let's start a deployment or review previous ones.",
+      "intro": "**Going live** goes through iDeploy: it hosts your website or application, and for a complete application it creates the database, the server and the interface, then connects them.",
       "chips": {
-        "start": "Start a deployment",
+        "start": "Go live",
         "list": "View my deployments"
       }
     },

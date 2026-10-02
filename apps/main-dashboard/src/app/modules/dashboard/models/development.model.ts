@@ -133,3 +133,12 @@ export enum LandingPageConfig {
   INTEGRATED = 'INTEGRATED',
   ONLY_LANDING = 'ONLY_LANDING',
 }
+
+/**
+ * Une application complète (interface + serveur + base de données), par
+ * opposition au site vitrine seul. Les anciennes configurations « app »,
+ * « both » et « integrated » en sont toutes : elles ont un serveur et une base.
+ */
+export function isFullApplication(configs: DevelopmentConfigsModel | null | undefined): boolean {
+  return !!configs && configs.landingPageConfig !== LandingPageConfig.ONLY_LANDING;
+}

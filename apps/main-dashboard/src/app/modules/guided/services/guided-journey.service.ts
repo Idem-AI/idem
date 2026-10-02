@@ -125,7 +125,6 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     id: 'deployment',
     icon: 'pi pi-send',
     route: '/project/ideploy',
-    generateRoute: '/project/deployments/create',
     paths: ['/project/ideploy', '/project/deployments'],
     navLabelKey: 'dashboard.sidebar.deployment',
     required: false,

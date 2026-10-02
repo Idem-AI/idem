@@ -1,251 +1,203 @@
-<div class="p-8 max-w-7xl flex flex-col gap-8 min-h-full">
-  <!-- ══ HERO ═══════════════════════════════════════════ -->
-  <div class="glass-card p-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-text-primary">Infrastructure iDeploy</h1>
-        <p class="text-sm text-text-secondary mt-1">Gérez et monitorez toutes vos ressources déployées</p>
-      </div>
-      <div class="flex gap-3">
-        <button class="inner-button" (click)="openIDeploy()">
-          <i class="pi pi-send"></i> Ouvrir iDeploy
-        </button>
-        <button class="outer-button" (click)="load()">
-          <i class="pi pi-refresh" [ngClass]="{ 'animate-spin': loading() }"></i>
-        </button>
-      </div>
+<div class="gl space-y-8 p-4 md:p-2">
+  <!-- ═════════════ En-tête ═════════════ -->
+  <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-text-primary">{{ 'dashboard.goLive.title' | translate }}</h1>
+      <p class="text-text-secondary mt-1 text-sm max-w-2xl">{{ 'dashboard.goLive.subtitle' | translate }}</p>
     </div>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="outer-button button-sm"
+        [disabled]="loading()"
+        [attr.aria-label]="'dashboard.goLive.refresh' | translate"
+        (click)="load()"
+      >
+        @if (loading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-refresh" aria-hidden="true"></i> }
+      </button>
+      <button type="button" class="inner-button button-sm" (click)="openIDeploy()">
+        {{ 'dashboard.goLive.openIDeploy' | translate }}
+        <i class="pi pi-external-link" aria-hidden="true"></i>
+      </button>
+    </div>
+  </header>
 
-    @if (!loading() && !error() && stats()) {
-      <div class="grid grid-cols-5 gap-4 mt-6">
-        <div
-          class="flex flex-col p-4 bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] rounded-lg cursor-pointer hover:bg-[var(--glass-bg-light)] transition-colors"
-          (click)="openIDeploy('/project')"
-        >
-          <span class="text-2xl font-bold text-text-primary">{{ stats()?.totalApplications ?? 0 }}</span>
-          <span class="text-xs text-text-secondary mt-1">Applications</span>
-          @if ((stats()?.runningApplications ?? 0) > 0) {
-            <span class="text-xs text-green-400 mt-2"
-              >{{ stats()?.runningApplications }} actives</span
-            >
-          }
-        </div>
-        <div class="flex flex-col p-4 bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] rounded-lg">
-          <span class="text-2xl font-bold text-text-primary">{{ stats()?.totalDatabases ?? 0 }}</span>
-          <span class="text-xs text-text-secondary mt-1">Bases de données</span>
-        </div>
-        <div class="flex flex-col p-4 bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] rounded-lg">
-          <span class="text-2xl font-bold text-text-primary">{{ stats()?.totalServices ?? 0 }}</span>
-          <span class="text-xs text-text-secondary mt-1">Services</span>
-        </div>
-        <div
-          class="flex flex-col p-4 bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] rounded-lg cursor-pointer hover:bg-[var(--glass-bg-light)] transition-colors"
-          (click)="openIDeploy('/server')"
-        >
-          <span class="text-2xl font-bold text-text-primary">{{ stats()?.totalServers ?? 0 }}</span>
-          <span class="text-xs text-text-secondary mt-1">Serveurs</span>
-        </div>
-        <div class="flex flex-col p-4 bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] rounded-lg">
-          <span class="text-2xl font-bold text-text-primary">{{ stats()?.totalProjects ?? 0 }}</span>
-          <span class="text-xs text-text-secondary mt-1">Projets</span>
-        </div>
-      </div>
-    }
-  </div>
-
-  <!-- ══ Loading ═════════════════════════════════════════ -->
-  @if (loading()) {
-    <div class="flex flex-col gap-4">
-      <div class="grid grid-cols-4 gap-4">
-        @for (i of [1, 2, 3, 4]; track i) {
-          <div class="h-[200px] rounded-2xl bg-[var(--glass-bg-subtle)] animate-pulse"></div>
+  @if (loading() && !summary()) {
+    <!-- La forme de ce qui arrive -->
+    <div class="space-y-4" aria-hidden="true">
+      <div class="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        @for (i of [1, 2, 3]; track i) {
+          <div class="skeleton h-24 rounded-2xl"></div>
         }
       </div>
-      <div class="flex flex-col gap-2">
-        @for (i of [1, 2, 3, 4, 5]; track i) {
-          <div class="h-14 rounded-xl bg-[var(--glass-bg-subtle)] animate-pulse"></div>
-        }
-      </div>
+      @for (i of [1, 2, 3]; track i) {
+        <div class="skeleton h-16 rounded-2xl"></div>
+      }
     </div>
-  }
-
-  <!-- ══ Error ════════════════════════════════════════════ -->
-  @if (!loading() && error()) {
-    <app-error-state variant="panel" scene="connection" title="Connexion impossible" [message]="error()">
+  } @else if (failed()) {
+    <app-error-state variant="panel" scene="connection" [title]="'dashboard.goLive.errors.title' | translate" [message]="'dashboard.goLive.errors.body' | translate">
       <button type="button" class="outer-button !gap-2" (click)="load()">
         <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
-        Réessayer
+        {{ 'common.retry' | translate }}
       </button>
     </app-error-state>
-  }
-
-  <!-- ══ DASHBOARD ════════════════════════════════════════ -->
-  @if (!loading() && !error() && summary()) {
-    <!-- Applications -->
-    <div class="glass-card overflow-hidden">
-      <div class="flex items-center justify-between p-4 border-b border-[var(--glass-border)]">
+  } @else {
+    @if (isEmpty()) {
+      <!-- ═════════════ Rien encore en ligne ═════════════ -->
+      <section class="glass-card p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-6" aria-labelledby="gl-empty">
+        <app-site-app-illustration scene="golive" class="w-40 md:w-48 shrink-0" />
         <div>
-          <h2 class="text-base font-semibold text-text-primary">Applications déployées</h2>
-          <p class="text-xs text-text-secondary mt-0.5">
-            {{ (summary()?.applications ?? []).length }} applications ·
-            {{ stats()?.runningApplications ?? 0 }} actives
-          </p>
+          <h2 id="gl-empty" class="text-lg font-semibold text-text-primary">{{ 'dashboard.goLive.empty.title' | translate }}</h2>
+          <p class="text-sm text-text-secondary mt-1 max-w-xl">{{ 'dashboard.goLive.empty.body' | translate }}</p>
+          <a routerLink="/project/development" class="gl-link mt-3 inline-flex items-center gap-1.5">
+            {{ 'dashboard.goLive.empty.build' | translate }}
+            <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+          </a>
         </div>
-        <button class="btn-link" (click)="openIDeploy('/project')">
-          Gérer sur iDeploy <i class="pi pi-external-link"></i>
+      </section>
+    } @else {
+      <!-- ═════════════ En bref ═════════════ -->
+      <section aria-labelledby="gl-brief">
+        <h2 id="gl-brief" class="sr-only">{{ 'dashboard.goLive.brief.title' | translate }}</h2>
+        <div class="grid gap-4 grid-cols-1 sm:grid-cols-3">
+          <div class="glass-card p-5">
+            <p class="text-sm text-text-secondary">{{ 'dashboard.goLive.brief.online' | translate }}</p>
+            <p class="mt-1 text-2xl font-bold text-text-primary tabular-nums">{{ brief().running }} / {{ brief().apps }}</p>
+            <p class="mt-2 text-xs text-text-tertiary">{{ 'dashboard.goLive.brief.onlineHint' | translate }}</p>
+          </div>
+          <div class="glass-card p-5">
+            <p class="text-sm text-text-secondary">{{ 'dashboard.goLive.brief.databases' | translate }}</p>
+            <p class="mt-1 text-2xl font-bold text-text-primary tabular-nums">{{ brief().databases }}</p>
+            <p class="mt-2 text-xs text-text-tertiary">{{ 'dashboard.goLive.brief.databasesHint' | translate }}</p>
+          </div>
+          <div class="glass-card p-5">
+            <p class="text-sm text-text-secondary">{{ 'dashboard.goLive.brief.servers' | translate }}</p>
+            <p class="mt-1 text-2xl font-bold text-text-primary tabular-nums">{{ brief().reachable }} / {{ brief().servers }}</p>
+            <p class="mt-2 text-xs text-text-tertiary">{{ 'dashboard.goLive.brief.serversHint' | translate }}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════════ Applications ═════════════ -->
+      <section aria-labelledby="gl-apps">
+        <div class="flex items-end justify-between gap-4">
+          <h2 id="gl-apps" class="text-lg font-semibold text-text-primary">{{ 'dashboard.goLive.apps.title' | translate }}</h2>
+          <button type="button" class="gl-link inline-flex items-center gap-1.5" (click)="openIDeploy('/applications')">
+            {{ 'dashboard.goLive.manage' | translate }}
+            <i class="pi pi-external-link text-xs" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        @if (applications().length === 0) {
+          <p class="glass-card mt-4 p-5 text-sm text-text-secondary">{{ 'dashboard.goLive.apps.none' | translate }}</p>
+        } @else {
+          <ul class="glass-card mt-4 overflow-hidden gl-list">
+            @for (app of applications(); track app.uuid) {
+              <li class="gl-row">
+                <span class="gl-dot gl-dot--{{ state(app.status) }}" aria-hidden="true"></span>
+                <div class="gl-row__main">
+                  <button type="button" class="gl-row__name" (click)="openIDeploy('/applications/' + app.uuid)">{{ app.name }}</button>
+                  <p class="gl-row__meta">
+                    <span class="gl-state gl-state--{{ state(app.status) }}">{{ 'dashboard.goLive.state.' + state(app.status) | translate }}</span>
+                    @if (timeAgo(app.updated_at); as ago) {
+                      <span aria-hidden="true">·</span>
+                      <span>{{ ago.key | translate: ago.params }}</span>
+                    }
+                  </p>
+                </div>
+                @if (url(app); as address) {
+                  @if (state(app.status) === 'running') {
+                    <a class="outer-button button-sm gl-row__action" [href]="address" target="_blank" rel="noopener" [attr.aria-label]="('dashboard.goLive.apps.open' | translate) + ' ' + app.name">
+                      {{ 'dashboard.goLive.apps.open' | translate }}
+                      <i class="pi pi-external-link" aria-hidden="true"></i>
+                    </a>
+                  } @else {
+                    <span class="gl-row__address">{{ address }}</span>
+                  }
+                } @else {
+                  <span class="gl-row__address">{{ 'dashboard.goLive.apps.noAddress' | translate }}</span>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <!-- ═════════════ Données et machines ═════════════ -->
+      <div class="grid gap-6 lg:grid-cols-2">
+        <section aria-labelledby="gl-dbs">
+          <h2 id="gl-dbs" class="text-lg font-semibold text-text-primary">{{ 'dashboard.goLive.databases.title' | translate }}</h2>
+          @if (databases().length === 0) {
+            <p class="glass-card mt-4 p-5 text-sm text-text-secondary">{{ 'dashboard.goLive.databases.none' | translate }}</p>
+          } @else {
+            <ul class="glass-card mt-4 overflow-hidden gl-list">
+              @for (db of databases(); track db.uuid) {
+                <li class="gl-row">
+                  <span class="gl-dot gl-dot--{{ state(db.status) }}" aria-hidden="true"></span>
+                  <div class="gl-row__main">
+                    <button type="button" class="gl-row__name" (click)="openIDeploy('/databases')">{{ db.name }}</button>
+                    <p class="gl-row__meta">
+                      <span>{{ databaseLabel(db.type) }}</span>
+                      <span aria-hidden="true">·</span>
+                      <span class="gl-state gl-state--{{ state(db.status) }}">{{ 'dashboard.goLive.state.' + state(db.status) | translate }}</span>
+                    </p>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+
+        <section aria-labelledby="gl-servers">
+          <h2 id="gl-servers" class="text-lg font-semibold text-text-primary">{{ 'dashboard.goLive.servers.title' | translate }}</h2>
+          @if (servers().length === 0) {
+            <p class="glass-card mt-4 p-5 text-sm text-text-secondary">{{ 'dashboard.goLive.servers.none' | translate }}</p>
+          } @else {
+            <ul class="glass-card mt-4 overflow-hidden gl-list">
+              @for (server of servers(); track server.uuid) {
+                <li class="gl-row">
+                  <span class="gl-dot" [class.gl-dot--running]="server.is_reachable" [class.gl-dot--stopped]="!server.is_reachable" aria-hidden="true"></span>
+                  <div class="gl-row__main">
+                    <button type="button" class="gl-row__name" (click)="openIDeploy('/servers/' + server.uuid)">{{ server.name }}</button>
+                    <p class="gl-row__meta">
+                      <span class="gl-state" [class.gl-state--running]="server.is_reachable">
+                        {{ (server.is_reachable ? 'dashboard.goLive.servers.connected' : 'dashboard.goLive.servers.offline') | translate }}
+                      </span>
+                    </p>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      </div>
+    }
+
+    <!-- ═════════════ Mettre en ligne ═════════════ -->
+    <section aria-labelledby="gl-new">
+      <h2 id="gl-new" class="text-lg font-semibold text-text-primary">
+        {{ (isEmpty() ? 'dashboard.goLive.new.titleFirst' : 'dashboard.goLive.new.title') | translate }}
+      </h2>
+      <div class="grid gap-4 md:grid-cols-2 mt-4">
+        <button type="button" class="glass-card gl-choice" (click)="openIDeploy('/new-project/guide/3-tier')">
+          <app-site-app-illustration scene="app" class="w-24" />
+          <span class="gl-choice__title">{{ 'dashboard.goLive.new.app.title' | translate }}</span>
+          <span class="gl-choice__body">{{ 'dashboard.goLive.new.app.body' | translate }}</span>
+          <span class="gl-choice__cta">
+            {{ 'dashboard.goLive.new.app.cta' | translate }}
+            <i class="pi pi-external-link text-xs" aria-hidden="true"></i>
+          </span>
+        </button>
+        <button type="button" class="glass-card gl-choice" (click)="openIDeploy('/new-project')">
+          <app-site-app-illustration scene="site" class="w-24" />
+          <span class="gl-choice__title">{{ 'dashboard.goLive.new.site.title' | translate }}</span>
+          <span class="gl-choice__body">{{ 'dashboard.goLive.new.site.body' | translate }}</span>
+          <span class="gl-choice__cta">
+            {{ 'dashboard.goLive.new.site.cta' | translate }}
+            <i class="pi pi-external-link text-xs" aria-hidden="true"></i>
+          </span>
         </button>
       </div>
-
-      @if ((summary()?.applications ?? []).length === 0) {
-        <div class="flex flex-col items-center gap-3 py-12 px-6 text-center">
-          <i class="pi pi-cloud-upload text-3xl text-text-tertiary"></i>
-          <h3 class="text-sm font-medium text-text-primary m-0">Aucune application déployée</h3>
-          <p class="text-xs text-text-secondary m-0 max-w-[280px]">
-            Créez votre premier déploiement depuis la plateforme iDeploy
-          </p>
-          <button class="inner-button mt-2" (click)="openIDeploy('/project')">
-            <i class="pi pi-plus"></i> Créer un déploiement
-          </button>
-        </div>
-      } @else {
-        <div class="app-list">
-          <div class="al-head">
-            <span>Application</span>
-            <span>Statut</span>
-            <span>Accès direct</span>
-            <span>Mis à jour</span>
-          </div>
-
-          @for (app of summary()?.applications ?? []; track app.uuid) {
-            <div class="al-row {{ getStatusClass(app.status) }}">
-              <div class="al-app">
-                <div class="al-icon"><i class="pi {{ getBuildPackIcon(app.build_pack) }}"></i></div>
-                <div class="al-info">
-                  <span class="al-name">{{ app.name }}</span>
-                  @if (app.git_branch) {
-                    <span class="al-branch">
-                      <i class="pi pi-github"></i>{{ app.git_branch }}
-                    </span>
-                  }
-                </div>
-              </div>
-
-              <div class="al-status">
-                <span class="chip {{ getStatusClass(app.status) }}">
-                  <span class="chip-dot"></span>{{ getStatusLabel(app.status) }}
-                </span>
-              </div>
-
-              <div class="al-url">
-                @if (app.fqdn && getStatusClass(app.status) === 'status-running') {
-                  <a
-                    class="url-btn"
-                    [href]="app.fqdn"
-                    target="_blank"
-                    (click)="$event.stopPropagation()"
-                  >
-                    <i class="pi pi-external-link"></i> {{ app.fqdn | slice: 0 : 32
-                    }}{{ app.fqdn.length > 32 ? '…' : '' }}
-                  </a>
-                } @else if (app.fqdn) {
-                  <span class="url-muted"
-                    >{{ app.fqdn | slice: 0 : 32 }}{{ app.fqdn.length > 32 ? '…' : '' }}</span
-                  >
-                } @else {
-                  <span class="url-none">Pas d'URL</span>
-                }
-              </div>
-
-              <div class="al-time">{{ formatDate(app.updated_at) }}</div>
-            </div>
-          }
-        </div>
-      }
-    </div>
-
-    <!-- Bottom: DBs + Servers -->
-    <div class="grid grid-cols-2 gap-6">
-      <div class="glass-card overflow-hidden">
-        <div class="flex items-center justify-between p-4 border-b border-[var(--glass-border)]">
-          <div>
-            <h2 class="text-base font-semibold text-text-primary">Bases de données</h2>
-            <p class="text-xs text-text-secondary mt-0.5">
-              {{ recentDatabases().length }} base(s) configurée(s)
-            </p>
-          </div>
-          <button class="btn-link" (click)="openIDeploy()">
-            Voir tout <i class="pi pi-arrow-right"></i>
-          </button>
-        </div>
-
-        @if (recentDatabases().length === 0) {
-          <div class="flex flex-col items-center gap-2 py-8 text-center">
-            <i class="pi pi-database text-2xl text-text-tertiary"></i>
-            <p class="text-xs text-text-secondary m-0">Aucune base de données</p>
-          </div>
-        } @else {
-          <div class="app-list">
-            @for (db of recentDatabases(); track db.uuid) {
-              <div class="al-row">
-                <div class="al-app">
-                  <div class="al-icon emoji">{{ getDatabaseEmoji(db.type) }}</div>
-                  <div class="al-info">
-                    <span class="al-name">{{ db.name }}</span>
-                    <span class="al-branch">{{ db.type | uppercase }}</span>
-                  </div>
-                </div>
-                <div class="al-status">
-                  <span class="chip {{ getStatusClass(db.status) }}">
-                    <span class="chip-dot"></span>{{ getStatusLabel(db.status) }}
-                  </span>
-                </div>
-                <div class="al-url"></div>
-                <div class="al-time">—</div>
-              </div>
-            }
-          </div>
-        }
-      </div>
-
-      @if (servers().length > 0) {
-        <div class="glass-card overflow-hidden">
-          <div class="flex items-center justify-between p-4 border-b border-[var(--glass-border)]">
-            <div>
-              <h2 class="text-base font-semibold text-text-primary">Serveurs</h2>
-              <p class="text-xs text-text-secondary mt-0.5">
-                {{ servers().length }} serveur(s) configuré(s)
-              </p>
-            </div>
-            <button class="btn-link" (click)="openIDeploy('/server')">
-              Voir tout <i class="pi pi-arrow-right"></i>
-            </button>
-          </div>
-          <div class="app-list">
-            @for (srv of servers(); track srv.uuid) {
-              <div class="al-row">
-                <div class="al-app">
-                  <div class="srv-led" [class.ok]="srv.is_reachable"></div>
-                  <div class="al-info">
-                    <span class="al-name">{{ srv.name }}</span>
-                    <span class="al-branch al-ip">{{ srv.ip }}</span>
-                  </div>
-                </div>
-                <div class="al-status">
-                  <span
-                    class="chip"
-                    [class.status-running]="srv.is_reachable"
-                    [class.status-stopped]="!srv.is_reachable"
-                  >
-                    <span class="chip-dot"></span>{{ srv.is_reachable ? 'Connecté' : 'Hors ligne' }}
-                  </span>
-                </div>
-                <div class="al-url"></div>
-                <div class="al-time">—</div>
-              </div>
-            }
-          </div>
-        </div>
-      }
-    </div>
+    </section>
   }
 </div>

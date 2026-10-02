@@ -6,14 +6,29 @@ import { IDEM_LOADER_SIZES, type IdemLoaderSize } from '../index';
  *  se marchent dessus dès qu'une application en affiche plusieurs. */
 let instance = 0;
 
+/** Les cases du tour, la distance au centre (viewBox de 48) et la durée d'un tour. */
+const SEEDS = 8;
+const ORBIT = 16;
+const SOW_MS = 1200;
+
+/** Demi-longueur et demi-largeur d'une graine selon la taille. */
+const SEED_SHAPE: Record<IdemLoaderSize, [number, number]> = {
+  xs: [5.8, 4.8],
+  sm: [5.4, 4.4],
+  md: [4.9, 3.9],
+  lg: [4.5, 3.5],
+};
+
 /**
  * L'unique indicateur de chargement d'Idem.
  *
- * Un seul arc, tracé dans le dégradé de la marque, qui tourne pendant que sa
- * longueur varie : l'attente reste lisible même quand elle dure, sans jamais
- * donner l'impression d'une progression mesurée qu'on ne connaît pas. La piste
- * derrière lui vient de `--glass-border`, donc le composant se pose aussi bien
- * sur un fond clair que sombre, dans n'importe quelle application.
+ * Le semis de l'awalé : huit graines en losange, rangées en cercle comme les
+ * cases du plateau, et la main qui sème en dépose une dans chaque case, l'une
+ * après l'autre, avant de recommencer le tour. Le mouvement dit « ça
+ * travaille » sans jamais promettre une progression qu'on ne connaît pas, et
+ * l'objet est celui de la stratégie et du calcul. Les graines portent le
+ * dégradé de la marque ; au repos elles restent devinées, dans la même encre,
+ * donc le composant se pose aussi bien sur un fond clair que sombre.
  *
  * Il remplace toutes les variantes qui existaient auparavant — `<app-loader>`,
  * `.loader`, `.spinner`, `pi-spinner pi-spin`, les `animate-spin` maison. Les
@@ -59,27 +74,25 @@ let instance = 0;
         [attr.viewBox]="'0 0 ' + BOX + ' ' + BOX"
         aria-hidden="true">
         <defs>
-          <linearGradient [attr.id]="gradientId" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient
+            [attr.id]="gradientId"
+            gradientUnits="userSpaceOnUse"
+            x1="0"
+            y1="0"
+            [attr.x2]="BOX"
+            [attr.y2]="BOX">
             <stop offset="0%" stop-color="var(--color-primary-500, #1447e6)" />
             <stop offset="100%" stop-color="var(--color-secondary-500, #22d3ee)" />
           </linearGradient>
         </defs>
-        <circle
-          class="idem-loader__track"
-          [attr.cx]="BOX / 2"
-          [attr.cy]="BOX / 2"
-          [attr.r]="RADIUS"
-          fill="none"
-          [attr.stroke-width]="stroke()" />
-        <circle
-          class="idem-loader__arc"
-          [attr.cx]="BOX / 2"
-          [attr.cy]="BOX / 2"
-          [attr.r]="RADIUS"
-          fill="none"
-          [attr.stroke]="'url(#' + gradientId + ')'"
-          [attr.stroke-width]="stroke()"
-          stroke-linecap="round" />
+        <g [attr.fill]="'url(#' + gradientId + ')'">
+          @for (seed of seeds(); track $index) {
+            <path
+              class="idem-loader__seed"
+              [attr.d]="seed.d"
+              [style.animation-delay]="seed.delay" />
+          }
+        </g>
       </svg>
 
       @if (label(); as text) {
@@ -135,21 +148,14 @@ let instance = 0;
 
     .idem-loader__ring {
       display: block;
-      animation: idem-loader-turn 1.6s linear infinite;
-      transform-origin: center;
     }
 
-    .idem-loader__track {
-      stroke: var(--glass-border, rgba(15, 23, 42, 0.1));
-    }
-
-    /* Le périmètre vaut 2πr ≈ 132.7 pour r = 21.125. Le tiret et son décalage
-       sont animés ensemble : l'arc s'étire, se rétracte et glisse, ce qui donne
-       le mouvement continu sans jamais suggérer un pourcentage. */
-    .idem-loader__arc {
-      stroke-dasharray: 100 133;
-      stroke-dashoffset: 0;
-      animation: idem-loader-draw 1.6s ease-in-out infinite;
+    /* Chaque graine s'allume quand la main passe, puis retombe à l'état de
+       graine posée. Les délais, négatifs, sont répartis sur le tour : le
+       semis est déjà en cours au premier affichage, sans temps mort. */
+    .idem-loader__seed {
+      opacity: 0.2;
+      animation: idem-loader-sow 1.2s linear infinite;
     }
 
     .idem-loader__label {
@@ -159,36 +165,22 @@ let instance = 0;
       text-align: center;
     }
 
-    @keyframes idem-loader-turn {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    @keyframes idem-loader-draw {
+    @keyframes idem-loader-sow {
       0% {
-        stroke-dasharray: 8 133;
-        stroke-dashoffset: 0;
+        opacity: 1;
       }
-      50% {
-        stroke-dasharray: 90 133;
-        stroke-dashoffset: -30;
-      }
+      70%,
       100% {
-        stroke-dasharray: 8 133;
-        stroke-dashoffset: -132;
+        opacity: 0.2;
       }
     }
 
-    /* Une rotation régulière suffit à dire « ça travaille ». L'étirement, lui,
-       est le genre de mouvement que cette préférence demande de retirer. */
+    /* Le semis reste, mais au pas : une graine à la fois, lentement, sans le
+       sillage qui donne l'impression de tourner. */
     @media (prefers-reduced-motion: reduce) {
-      .idem-loader__ring {
-        animation-duration: 3s;
-      }
-      .idem-loader__arc {
-        animation: none;
-        stroke-dasharray: 60 133;
+      .idem-loader__seed {
+        animation-duration: 3.2s;
+        animation-timing-function: steps(1, end);
       }
     }
   `,
@@ -208,14 +200,26 @@ export class IdemLoaderComponent {
   readonly ariaLabel = input('Chargement');
 
   protected readonly BOX = 48;
-  protected readonly RADIUS = 21.125;
   protected readonly gradientId = `idem-loader-${++instance}`;
 
-  protected readonly px = computed(() => IDEM_LOADER_SIZES[this.size()]);
-  /** Le trait s'épaissit avec le cercle, mais moins vite : sinon un `lg` a
-   *  l'air d'un anneau plein et un `xs` d'un cheveu. */
-  protected readonly stroke = computed(() => {
-    const map: Record<IdemLoaderSize, number> = { xs: 6, sm: 5.5, md: 4.5, lg: 4 };
-    return map[this.size()];
+  /** Les graines, calculées une fois par taille : un losange à peine allongé
+   *  vers le centre (plus effilé, le cercle tournait au flocon), plus gros
+   *  quand le loader est petit pour rester lisible dans un bouton. */
+  protected readonly seeds = computed(() => {
+    const [long, wide] = SEED_SHAPE[this.size()];
+    const c = this.BOX / 2;
+    return Array.from({ length: SEEDS }, (_, i) => {
+      const a = (i / SEEDS) * 2 * Math.PI - Math.PI / 2;
+      const [ux, uy] = [Math.cos(a), Math.sin(a)];
+      const [cx, cy] = [c + ux * ORBIT, c + uy * ORBIT];
+      const pt = (r: number, t: number) =>
+        `${(cx + ux * r - uy * t).toFixed(2)} ${(cy + uy * r + ux * t).toFixed(2)}`;
+      return {
+        d: `M${pt(long, 0)} L${pt(0, wide)} L${pt(-long, 0)} L${pt(0, -wide)}Z`,
+        delay: `${((i - SEEDS) * SOW_MS) / SEEDS}ms`,
+      };
+    });
   });
+
+  protected readonly px = computed(() => IDEM_LOADER_SIZES[this.size()]);
 }
