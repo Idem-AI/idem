@@ -109,12 +109,27 @@ Format : **retenu** — candidats écartés (raison).
 | `team` | arbre à palabres |
 | `beads` (étiquettes) | perles enfilées, la perle-losange en couleur |
 | `net` (destinations, réseaux Docker) | épervier, un nœud en couleur |
+| `cowries` (prix, gratuit, paiement) | calebasse ouverte et ses cauris, un cauri en couleur |
 
 Pages de liste (état vide) : applications → `activity` (pirogue) ; serveurs →
 `server` ; services et catalogue → `market` ; espaces de travail → `box` ;
 destinations → `net` ; sources Git → `code` ; étiquettes → `beads` ; recherche
 sans résultat → `search`. Écartés pour les étiquettes : cauris (réservés à
 l'argent), tampon adinkra (réservé à l'identité de marque).
+
+Page d'accueil publique (`/`, sous le hero photographique) : hébergement →
+`managed-cloud` et `own-server` côte à côte ; catalogue → `market` ; « Et
+aussi » (bases, volumes) → `store`, en grand ; tarif → `cowries` à côté d'un
+reçu à 0 F (le reçu est en HTML, pas un dessin) ; appel final → `activity`
+(pirogue).
+La sécurité est illustrée par une capture d'écran redessinée au trait
+(`guard-console-illustration`). À gauche, le bouclier aux lances croisées
+arrête les requêtes, et son cœur est le seul détail en couleur ; à droite,
+ce que relève la console.
+Les quatre étapes sont illustrées par une capture d'écran redessinée au trait
+(`live-shop-illustration`) : une boutique en ligne sur `boutique.idem.africa`.
+Ses articles sont un panier tressé, une calebasse et des pagnes pliés, avec un
+pagne tendu en bannière. Le cadenas de l'adresse est le seul détail en couleur.
 
 ### Simulateur
 

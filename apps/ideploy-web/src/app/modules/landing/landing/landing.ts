@@ -4,27 +4,213 @@ import { TranslateModule } from '@ngx-translate/core';
 import { TrustedByComponent } from '@idem/shared-trusted-by/angular';
 import { LandingNavComponent } from '../shared/landing-nav';
 import { LandingFooterComponent } from '../shared/landing-footer';
+import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
+import { LiveShopIllustrationComponent } from './live-shop-illustration';
+import { GuardConsoleIllustrationComponent } from './guard-console-illustration';
 import { AuthService } from '../../../shared/services/auth.service';
 import { environment } from '../../../../environments/environment';
+
+/** A catalogue entry shown on the landing. `name` is a brand, never translated. */
+interface FeaturedService {
+  key: string;
+  name: string;
+  logo: string;
+  /** The file is drawn white-only (made for a dark ground): ink it dark in the light theme. */
+  whiteInk?: boolean;
+  /** The file carries wide inner margins (a wordmark): enlarge it to the size of its neighbours. */
+  scale?: number;
+}
+
+interface ServiceGroup {
+  key: string;
+  services: FeaturedService[];
+}
 
 /**
  * Public iDeploy landing page.
  *
- * Each section is composed differently on purpose, because each one says a
- * different kind of thing: the workflow is a numbered rail because it is an
- * order; hosting is a two-panel fork because it is a choice; security is one
- * console beside a plain list because it is one screen doing several jobs;
- * the remainder is a bare definition list because none of it needs a frame.
- * Only what is genuinely a separate object gets a `.glass-card`.
- *
- * Built from @idem/shared-styles' own components and tokens — `.glass-card`,
- * `.inner-button`, `.outer-button`, `.tag`, `.i-underline`, `.gradient-primary`,
- * `.transition-smooth` — with no styles defined for this page anywhere.
+ * The hero is untouched. Below it, each section leads with one large
+ * statement and a single drawn object from AGENTS.md § 4 that says the same
+ * thing: the granary and its door for where the app runs, the shield for
+ * protection, the market stall for the catalogue, the pirogue for going live.
+ * Sections alternate between the page ground and the raised surface so the
+ * page reads as chapters rather than one long column.
  */
 @Component({
   selector: 'app-landing',
-  imports: [RouterLink, TranslateModule, TrustedByComponent, LandingNavComponent, LandingFooterComponent],
+  imports: [
+    RouterLink,
+    TranslateModule,
+    TrustedByComponent,
+    LandingNavComponent,
+    LandingFooterComponent,
+    IllustrationComponent,
+    LiveShopIllustrationComponent,
+    GuardConsoleIllustrationComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: `
+    .lp-wrap {
+      max-width: 72rem;
+      margin-inline: auto;
+      padding-inline: 1.5rem;
+    }
+    .lp-section {
+      padding-block: 4.5rem;
+    }
+    @media (min-width: 768px) {
+      .lp-section {
+        padding-block: 7rem;
+      }
+    }
+    /* A chapter on the raised surface, framed top and bottom by a hairline. */
+    .lp-band {
+      background: var(--color-surface-1);
+      border-block: 1px solid var(--glass-border-subtle);
+    }
+    .lp-title {
+      font-weight: 900;
+      font-size: clamp(2rem, 4.2vw, 3.25rem);
+      line-height: 1.06;
+      color: var(--color-text-primary);
+    }
+    .lp-lead {
+      margin-top: 1.25rem;
+      max-width: 36rem;
+      font-size: 1.125rem;
+      line-height: 1.6;
+      color: var(--color-text-secondary);
+    }
+
+    /* Workflow — the order is the information, so the numerals carry it. */
+    .lp-step {
+      display: grid;
+      grid-template-columns: 4.25rem 1fr;
+      gap: 1rem;
+      padding-block: 1.5rem;
+      border-top: 1px solid var(--glass-border);
+    }
+    .lp-step:last-child {
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .lp-num {
+      font-weight: 900;
+      font-size: 2.5rem;
+      line-height: 1;
+      color: var(--color-primary-500);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Hosting choice — the whole panel answers to the pointer. */
+    .lp-choice {
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s ease;
+    }
+    .lp-choice:hover {
+      border-color: var(--color-primary-500);
+    }
+
+    /* Catalogue — the logo is the point, so it gets a real tile. */
+    .lp-logo {
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      width: 3.75rem;
+      height: 3.75rem;
+      border-radius: var(--radius-xl);
+      background: var(--color-bg-dark);
+      border: 1px solid var(--glass-border);
+      overflow: hidden;
+    }
+    .lp-logo img {
+      width: 2.5rem;
+      height: 2.5rem;
+      object-fit: contain;
+    }
+    .lp-service:hover .lp-logo {
+      border-color: var(--color-primary-500);
+    }
+
+    .lp-price {
+      font-weight: 900;
+      font-size: clamp(3.5rem, 8vw, 5.5rem);
+      line-height: 0.85;
+      color: var(--color-text-primary);
+    }
+
+    /* Pricing — a till receipt: torn top and bottom, every line at 0 F. */
+    .lp-receipt-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 28rem;
+      margin-inline: auto;
+      filter: drop-shadow(0 0 1px var(--glass-border))
+        drop-shadow(0 18px 28px color-mix(in srgb, var(--color-text-primary) 10%, transparent));
+    }
+    @media (min-width: 1024px) {
+      .lp-receipt-wrap {
+        transform: rotate(1.5deg);
+      }
+    }
+    .lp-receipt {
+      --tooth: 9px;
+      padding: 2.5rem 2rem;
+      background: var(--color-surface-1);
+      mask:
+        conic-gradient(from -45deg at bottom, transparent, black 1deg 89deg, transparent 90deg) bottom /
+          calc(2 * var(--tooth)) 51% repeat-x,
+        conic-gradient(from 135deg at top, transparent, black 1deg 89deg, transparent 90deg) top /
+          calc(2 * var(--tooth)) 51% repeat-x;
+    }
+    .lp-receipt__rule {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 2px dashed var(--glass-border);
+    }
+    .lp-receipt__row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      padding-block: 0.35rem;
+    }
+    .lp-receipt__leader {
+      flex: 1;
+      min-width: 1rem;
+      border-bottom: 1px dotted var(--color-text-tertiary);
+    }
+    .lp-stamp {
+      position: absolute;
+      top: -2.25rem;
+      right: -1.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 7rem;
+      height: 7rem;
+      border-radius: var(--radius-full);
+      border: 6px double var(--color-primary-500);
+      color: var(--color-primary-500);
+      transform: rotate(-14deg);
+      text-align: center;
+    }
+    @media (max-width: 640px) {
+      .lp-stamp {
+        right: -0.5rem;
+        top: -2rem;
+        width: 5.5rem;
+        height: 5.5rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .lp-choice,
+      .lp-logo {
+        transition: none;
+      }
+    }
+  `,
   template: `
     <div class="relative min-h-screen text-text-primary overflow-hidden">
       <app-landing-nav [overHero]="true" />
@@ -62,117 +248,92 @@ import { environment } from '../../../../environments/environment';
       </section>
 
       <!-- ===== PARTNERS ===== -->
-      <section class="py-14">
+      <section class="py-12 lp-band" style="border-top: 0;">
         <idem-trusted-by [label]="'landing.trustedBy' | translate" />
       </section>
 
-      <!-- ===== 1. WORKFLOW — a numbered rail, because it is an order ===== -->
-      <section id="how" class="py-24 px-6 border-t border-[var(--glass-border-subtle)]">
-        <div class="max-w-6xl mx-auto">
-          <h2 class="text-3xl md:text-4xl font-black mb-4 leading-tight">{{ 'landing.steps.title' | translate }}</h2>
-          <p class="text-lg text-text-secondary font-medium mb-16 max-w-2xl">
-            {{ 'landing.steps.subtitle' | translate }}
-          </p>
+      <!-- ===== 1. WORKFLOW — big numerals for the order, the drawn result beside ===== -->
+      <section id="how" class="lp-section">
+        <div class="lp-wrap grid gap-14 lg:grid-cols-[1fr_1.15fr] lg:items-center">
+          <div>
+            <h2 class="lp-title">{{ 'landing.steps.title' | translate }}</h2>
+            <p class="lp-lead">{{ 'landing.steps.subtitle' | translate }}</p>
 
-          <ol class="grid gap-y-10 md:grid-cols-4 md:gap-x-8 mb-16">
-            @for (step of steps; track step; let last = $last) {
-              <li class="relative md:pt-8">
-                <!-- The rail itself: a hairline between the numbers, stopping at the last -->
-                @if (!last) {
-                  <span
-                    class="hidden md:block absolute left-0 right-0 top-3 h-px"
-                    style="background: var(--glass-border);"></span>
-                }
-                <span
-                  class="hidden md:block absolute left-0 top-1.5 w-3 h-3 rounded-full gradient-primary"
-                  style="outline: 4px solid var(--color-bg-dark);"></span>
-                <span class="md:hidden font-mono text-xs text-text-tertiary">{{ step }}</span>
-                <h3 class="text-[1rem] font-bold mt-2 mb-2">{{ 'landing.steps.s' + step + '.title' | translate }}</h3>
-                <p class="text-sm text-text-secondary font-medium leading-relaxed">
-                  {{ 'landing.steps.s' + step + '.body' | translate }}
-                </p>
-              </li>
-            }
-          </ol>
-
-          <!-- One wide render of the result, not four small ones -->
-          <div class="glass-card overflow-hidden">
-            <div
-              class="flex items-center gap-3 px-5 py-3.5"
-              style="border-bottom: 1px solid var(--glass-border-subtle);">
-              <span class="w-2 h-2 rounded-full shrink-0" style="background: var(--color-success);"></span>
-              <span class="font-mono text-xs font-bold">{{ 'landing.steps.renderTitle' | translate }}</span>
-              <span class="font-mono text-xs text-text-tertiary ml-auto truncate">
-                {{ 'landing.steps.renderUrl' | translate }}
-              </span>
-            </div>
-            <ul class="px-5 py-4 font-mono text-xs leading-8">
-              @for (line of buildLog; track line) {
-                <li class="flex items-center gap-3">
-                  <i class="pi pi-check text-[9px]" style="color: var(--color-success);" aria-hidden="true"></i>
-                  <span>{{ 'landing.steps.log.' + line + '.label' | translate }}</span>
-                  <span class="ml-auto text-text-tertiary">{{ 'landing.steps.log.' + line + '.time' | translate }}</span>
+            <ol class="mt-12">
+              @for (step of steps; track step) {
+                <li class="lp-step">
+                  <span class="lp-num" aria-hidden="true">0{{ step }}</span>
+                  <div>
+                    <h3 class="text-lg font-bold">{{ 'landing.steps.s' + step + '.title' | translate }}</h3>
+                    <p class="mt-1 text-text-secondary leading-relaxed">
+                      {{ 'landing.steps.s' + step + '.body' | translate }}
+                    </p>
+                  </div>
                 </li>
               }
-            </ul>
-            <p class="px-5 py-3.5 font-mono text-xs font-bold" style="border-top: 1px solid var(--glass-border-subtle);">
-              {{ 'landing.steps.renderDone' | translate }}
-            </p>
+            </ol>
           </div>
+
+          <!-- The result, drawn: the shop as it looks once online -->
+          <app-live-shop-illustration
+            class="block lg:mt-24"
+            [url]="'landing.steps.renderUrl' | translate"
+            [status]="'landing.steps.renderDone' | translate" />
         </div>
       </section>
 
-      <!-- ===== 2. HOSTING — a fork, so two panels and the word between ===== -->
-      <section id="where" class="py-24 px-6 border-t border-[var(--glass-border-subtle)]">
-        <div class="max-w-6xl mx-auto">
-          <h2 class="text-3xl md:text-4xl font-black mb-4 leading-tight">{{ 'landing.where.title' | translate }}</h2>
-          <p class="text-lg text-text-secondary font-medium mb-14 max-w-2xl">
-            {{ 'landing.where.subtitle' | translate }}
-          </p>
+      <!-- ===== 2. HOSTING — the granary, or the door of your own ===== -->
+      <section id="where" class="lp-section lp-band">
+        <div class="lp-wrap">
+          <div class="max-w-2xl">
+            <h2 class="lp-title">{{ 'landing.where.title' | translate }}</h2>
+            <p class="lp-lead">{{ 'landing.where.subtitle' | translate }}</p>
+          </div>
 
-          <div class="relative grid gap-6 md:grid-cols-2">
-            @for (side of hosting; track side) {
-              <div class="glass-card p-8 flex flex-col">
-                <h3 class="text-xl font-bold mb-3">{{ 'landing.where.' + side + '.title' | translate }}</h3>
-                <p class="text-text-secondary font-medium leading-relaxed mb-7">
-                  {{ 'landing.where.' + side + '.body' | translate }}
+          <div class="relative grid gap-5 md:grid-cols-2 mt-14">
+            @for (side of hosting; track side.key) {
+              <article class="glass-card lp-choice p-8 md:p-10">
+                <app-illustration [name]="side.scene" [width]="132" class="block mb-8" />
+                <h3 class="text-2xl font-black">{{ 'landing.where.' + side.key + '.title' | translate }}</h3>
+                <p class="mt-3 text-text-secondary leading-relaxed">
+                  {{ 'landing.where.' + side.key + '.body' | translate }}
                 </p>
-                <ul class="flex flex-col gap-3 mt-auto">
+                <ul class="flex flex-col gap-3 mt-8 pt-6" style="border-top: 1px solid var(--glass-border-subtle);">
                   @for (n of [1, 2, 3]; track n) {
-                    <li class="flex items-start gap-3 text-sm font-semibold">
+                    <li class="flex items-start gap-3 font-semibold">
                       <i
-                        class="pi pi-check text-[10px] mt-1.5 shrink-0"
+                        class="pi pi-check text-xs mt-1.5 shrink-0"
                         style="color: var(--color-primary-500);"
                         aria-hidden="true"></i>
-                      <span>{{ 'landing.where.' + side + '.p' + n | translate }}</span>
+                      <span>{{ 'landing.where.' + side.key + '.p' + n | translate }}</span>
                     </li>
                   }
                 </ul>
-              </div>
+              </article>
             }
 
             <!-- The fork, named -->
             <span
-              class="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full items-center justify-center text-xs font-bold uppercase glass-card"
-              style="border-radius: var(--radius-full);">
+              class="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 items-center justify-center text-sm font-black uppercase"
+              style="border-radius: var(--radius-full); background: var(--color-bg-dark); border: 1px solid var(--glass-border);">
               {{ 'landing.where.or' | translate }}
             </span>
           </div>
         </div>
       </section>
 
-      <!-- ===== 3. SECURITY — one console beside a plain list ===== -->
-      <section class="py-24 px-6 border-t border-[var(--glass-border-subtle)]">
-        <div class="max-w-6xl mx-auto grid gap-12 lg:grid-cols-[1fr_1.15fr] lg:items-start">
+      <!-- ===== 3. SECURITY — the list, and the screen it describes, drawn ===== -->
+      <section class="lp-section">
+        <div class="lp-wrap grid gap-14 lg:grid-cols-[1fr_1.1fr] lg:items-center">
           <div>
-            <h2 class="text-3xl md:text-4xl font-black mb-4 leading-tight">{{ 'landing.guard.title' | translate }}</h2>
-            <p class="text-lg text-text-secondary font-medium mb-10">{{ 'landing.guard.subtitle' | translate }}</p>
+            <h2 class="lp-title">{{ 'landing.guard.title' | translate }}</h2>
+            <p class="lp-lead">{{ 'landing.guard.subtitle' | translate }}</p>
 
-            <dl class="flex flex-col">
+            <dl class="grid sm:grid-cols-2 gap-x-8 mt-10">
               @for (item of guards; track item) {
-                <div class="py-5" style="border-top: 1px solid var(--glass-border-subtle);">
-                  <dt class="text-[1rem] font-bold mb-1.5">{{ 'landing.guard.' + item + '.title' | translate }}</dt>
-                  <dd class="text-sm text-text-secondary font-medium leading-relaxed">
+                <div class="py-5" style="border-top: 1px solid var(--glass-border);">
+                  <dt class="font-bold">{{ 'landing.guard.' + item + '.title' | translate }}</dt>
+                  <dd class="mt-1 text-sm text-text-secondary leading-relaxed">
                     {{ 'landing.guard.' + item + '.body' | translate }}
                   </dd>
                 </div>
@@ -180,74 +341,80 @@ import { environment } from '../../../../environments/environment';
             </dl>
           </div>
 
-          <!-- The one screen the list is describing -->
-          <div class="glass-card overflow-hidden">
-            <div
-              class="flex items-center gap-3 px-5 py-3.5"
-              style="border-bottom: 1px solid var(--glass-border-subtle);">
-              <span class="w-2 h-2 rounded-full shrink-0" style="background: var(--color-success);"></span>
-              <span class="font-mono text-xs font-bold">{{ 'landing.guard.console.app' | translate }}</span>
-              <span class="font-mono text-xs text-text-tertiary ml-auto">
-                {{ 'landing.guard.console.state' | translate }}
-              </span>
-            </div>
+          <app-guard-console-illustration class="block" />
+        </div>
+      </section>
 
-            <div class="grid grid-cols-2" style="border-bottom: 1px solid var(--glass-border-subtle);">
-              <div class="px-5 py-5" style="border-right: 1px solid var(--glass-border-subtle);">
-                <div class="text-2xl font-black">184 302</div>
-                <div class="font-mono text-[11px] text-text-tertiary">
-                  {{ 'landing.guard.console.requests' | translate }}
-                </div>
+      <!-- ===== 4. CATALOGUE — the names people already know, by what they are for ===== -->
+      <section id="services" class="lp-section lp-band">
+        <div class="lp-wrap">
+          <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+            <div class="max-w-2xl">
+              <h2 class="lp-title">{{ 'landing.services.title' | translate }}</h2>
+              <p class="lp-lead">{{ 'landing.services.subtitle' | translate }}</p>
+            </div>
+            <app-illustration name="market" [width]="150" class="hidden md:block shrink-0" />
+          </div>
+
+          <div class="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-5 mt-14">
+            @for (group of serviceGroups; track group.key) {
+              <div>
+                <h3
+                  class="pb-3 text-sm font-bold text-text-secondary"
+                  style="border-bottom: 1px solid var(--glass-border);">
+                  {{ 'landing.services.groups.' + group.key | translate }}
+                </h3>
+                <ul>
+                  @for (s of group.services; track s.key) {
+                    <li class="lp-service flex items-center gap-4 py-3">
+                      <span class="lp-logo">
+                        <img
+                          [src]="'/assets/svgs/' + s.logo"
+                          alt=""
+                          width="40"
+                          height="40"
+                          loading="lazy"
+                          [class]="s.whiteInk ? 'invert dark:invert-0' : ''"
+                          [style.transform]="s.scale ? 'scale(' + s.scale + ')' : null" />
+                      </span>
+                      <span class="min-w-0">
+                        <span class="block font-bold">{{ s.name }}</span>
+                        <span class="block text-xs text-text-secondary leading-snug">
+                          {{ 'landing.services.items.' + s.key | translate }}
+                        </span>
+                      </span>
+                    </li>
+                  }
+                </ul>
               </div>
-              <div class="px-5 py-5">
-                <div class="text-2xl font-black" style="color: var(--color-danger);">2 471</div>
-                <div class="font-mono text-[11px] text-text-tertiary">
-                  {{ 'landing.guard.console.blocked' | translate }}
-                </div>
-              </div>
-            </div>
+            }
+          </div>
 
-            <div class="px-5 py-5 flex flex-col gap-4" style="border-bottom: 1px solid var(--glass-border-subtle);">
-              @for (m of meters; track m.key) {
-                <div>
-                  <div class="flex justify-between font-mono text-[11px] mb-2">
-                    <span class="text-text-tertiary">{{ 'landing.guard.console.' + m.key | translate }}</span>
-                    <span>{{ m.reading }}</span>
-                  </div>
-                  <div class="h-1.5 rounded-full overflow-hidden" style="background: var(--glass-border);">
-                    <div class="h-full rounded-full gradient-primary" [style.width.%]="m.percent"></div>
-                  </div>
-                </div>
-              }
-            </div>
-
-            <div class="px-5 py-5">
-              <p class="font-mono text-[11px] text-text-tertiary mb-3">
-                {{ 'landing.guard.console.stages' | translate }}
-              </p>
-              @for (scan of scans; track scan.key) {
-                <div class="flex items-center gap-3 py-1.5">
-                  <i class="pi pi-check text-[9px]" style="color: var(--color-success);" aria-hidden="true"></i>
-                  <span class="text-xs font-semibold">{{ 'landing.guard.console.' + scan.key | translate }}</span>
-                  <span class="ml-auto font-mono text-[11px] text-text-tertiary">
-                    {{ 'landing.guard.console.' + scan.result | translate }}
-                  </span>
-                </div>
-              }
-            </div>
+          <div
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 mt-14 pt-8"
+            style="border-top: 1px solid var(--glass-border);">
+            <p class="text-text-secondary max-w-2xl">
+              {{ 'landing.services.more' | translate: { count: catalogueSize - featuredCount } }}
+            </p>
+            <a [href]="loginUrl" class="outer-button px-6 py-3 shrink-0">
+              {{ 'landing.services.cta' | translate }}
+            </a>
           </div>
         </div>
       </section>
 
-      <!-- ===== 4. THE REST — a bare list, no frames ===== -->
-      <section class="py-24 px-6 border-t border-[var(--glass-border-subtle)]">
-        <div class="max-w-6xl mx-auto">
-          <h2 class="text-3xl md:text-4xl font-black mb-14 leading-tight">{{ 'landing.also.title' | translate }}</h2>
-          <dl class="grid md:grid-cols-2 md:gap-x-16">
+      <!-- ===== 5. THE REST — the jars, and a plain list ===== -->
+      <section class="lp-section">
+        <div class="lp-wrap grid gap-12 lg:grid-cols-[1fr_1.9fr]">
+          <div>
+            <h2 class="lp-title">{{ 'landing.also.title' | translate }}</h2>
+            <app-illustration name="store" [width]="280" class="block mt-10 max-w-full" />
+          </div>
+          <dl class="grid sm:grid-cols-2 gap-x-10">
             @for (item of alsoItems; track item) {
-              <div class="py-6" style="border-top: 1px solid var(--glass-border-subtle);">
-                <dt class="text-[1rem] font-bold mb-1.5">{{ 'landing.also.items.' + item + '.title' | translate }}</dt>
-                <dd class="text-sm text-text-secondary font-medium leading-relaxed">
+              <div class="py-6" style="border-top: 1px solid var(--glass-border);">
+                <dt class="text-lg font-bold">{{ 'landing.also.items.' + item + '.title' | translate }}</dt>
+                <dd class="mt-1.5 text-text-secondary leading-relaxed">
                   {{ 'landing.also.items.' + item + '.body' | translate }}
                 </dd>
               </div>
@@ -256,49 +423,14 @@ import { environment } from '../../../../environments/environment';
         </div>
       </section>
 
-      <!-- ===== 5. CATALOGUE — the logos themselves are the section ===== -->
-      <section id="services" class="py-24 border-t border-[var(--glass-border-subtle)]">
-        <div class="max-w-6xl mx-auto px-6 mb-12 text-center">
-          <h2 class="text-3xl md:text-4xl font-black mb-4 leading-tight">{{ 'landing.services.title' | translate }}</h2>
-          <p class="text-lg text-text-secondary font-medium mb-7 max-w-2xl mx-auto">
-            {{ 'landing.services.subtitle' | translate }}
-          </p>
-          <a [href]="loginUrl" class="outer-button px-6 py-3 text-sm inline-flex">
-            {{ 'landing.services.cta' | translate }}
-          </a>
-        </div>
-
-        @for (row of logoRows; track $index; let rowIndex = $index) {
-          <div class="marquee-wrapper mb-3">
-            @for (copy of [0, 1]; track copy) {
-              <div
-                class="marquee-content"
-                [attr.aria-hidden]="copy === 1 ? true : null"
-                [style.animation-direction]="rowIndex === 1 ? 'reverse' : null"
-                style="gap: 3rem; padding-right: 3rem; animation-duration: 75s;">
-                @for (logo of row; track logo) {
-                  <img
-                    [src]="'/assets/svgs/' + logo"
-                    alt=""
-                    class="h-7 w-7 shrink-0 object-contain opacity-60 grayscale dark:invert" />
-                }
-              </div>
-            }
-          </div>
-        }
-      </section>
-
-      <!-- ===== 6. PRICING — split, one card ===== -->
-      <section class="py-24 px-6 border-t border-[var(--glass-border-subtle)]">
-        <div class="max-w-6xl mx-auto grid gap-12 lg:grid-cols-2 lg:items-center">
+      <!-- ===== 6. PRICING — the receipt of what you pay: nothing ===== -->
+      <section class="lp-section" style="border-top: 1px solid var(--glass-border-subtle);">
+        <div class="lp-wrap grid gap-16 lg:grid-cols-[1fr_0.95fr] lg:items-center">
           <div>
-            <h2 class="text-3xl md:text-4xl font-black mb-4 leading-tight">
-              {{ 'landing.pricingTeaser.title' | translate }}
-            </h2>
-            <p class="text-lg text-text-secondary font-medium leading-relaxed mb-8">
-              {{ 'landing.pricingTeaser.subtitle' | translate }}
-            </p>
-            <div class="flex flex-col sm:flex-row gap-4">
+            <app-illustration name="cowries" [width]="210" class="block mb-8 max-w-full" />
+            <h2 class="lp-title">{{ 'landing.pricingTeaser.title' | translate }}</h2>
+            <p class="lp-lead">{{ 'landing.pricingTeaser.subtitle' | translate }}</p>
+            <div class="flex flex-col sm:flex-row gap-4 mt-10">
               <a [href]="loginUrl" class="inner-button px-8 py-4">{{ 'landing.pricingTeaser.cta' | translate }}</a>
               <a routerLink="/pricing" class="outer-button px-8 py-4">
                 {{ 'landing.pricingTeaser.secondaryCta' | translate }}
@@ -306,41 +438,57 @@ import { environment } from '../../../../environments/environment';
             </div>
           </div>
 
-          <div class="glass-card p-8">
-            <div class="flex items-baseline gap-2 mb-7">
-              <span class="text-4xl font-black">{{ 'landing.pricingTeaser.freePrice' | translate }}</span>
-              <span class="text-text-secondary font-medium">{{ 'landing.pricingTeaser.freeLabel' | translate }}</span>
+          <div class="lp-receipt-wrap">
+            <div class="lp-receipt">
+              <p class="text-center text-xl font-black">iDeploy</p>
+              <p class="text-center font-mono text-xs text-text-tertiary mt-1">
+                {{ 'landing.pricingTeaser.receipt.plan' | translate }}
+              </p>
+
+              <ul class="lp-receipt__rule font-mono text-sm">
+                @for (item of freePlan; track item) {
+                  <li class="lp-receipt__row">
+                    <span>{{ 'landing.pricingTeaser.free.' + item | translate }}</span>
+                    <span class="lp-receipt__leader" aria-hidden="true"></span>
+                    <span class="shrink-0 font-bold">{{ 'landing.pricingTeaser.freePrice' | translate }}</span>
+                  </li>
+                }
+              </ul>
+
+              <div class="lp-receipt__rule flex items-end justify-between gap-4">
+                <span class="font-mono text-sm font-bold uppercase">
+                  {{ 'landing.pricingTeaser.receipt.total' | translate }}
+                </span>
+                <span class="lp-price">{{ 'landing.pricingTeaser.freePrice' | translate }}</span>
+              </div>
+
+              <p class="lp-receipt__rule font-mono text-xs text-text-secondary text-center">
+                {{ 'landing.pricingTeaser.paidNote' | translate }}
+              </p>
             </div>
-            <ul class="flex flex-col gap-3 mb-7">
-              @for (item of freePlan; track item) {
-                <li class="flex items-start gap-3 text-sm font-semibold">
-                  <i
-                    class="pi pi-check text-[10px] mt-1.5 shrink-0"
-                    style="color: var(--color-primary-500);"
-                    aria-hidden="true"></i>
-                  <span>{{ 'landing.pricingTeaser.free.' + item | translate }}</span>
-                </li>
-              }
-            </ul>
-            <p
-              class="text-sm text-text-secondary font-medium pt-6"
-              style="border-top: 1px solid var(--glass-border-subtle);">
-              {{ 'landing.pricingTeaser.paidNote' | translate }}
+
+            <!-- The stamp: the one word that matters on this receipt -->
+            <p class="lp-stamp" aria-hidden="true">
+              <span class="text-xl font-black uppercase leading-none">{{ 'landing.pricingTeaser.receipt.stamp' | translate }}</span>
+              <span class="text-[10px] font-bold uppercase mt-1">{{ 'landing.pricingTeaser.freeLabel' | translate }}</span>
             </p>
           </div>
         </div>
       </section>
 
-      <!-- ===== 7. CLOSING — plain, no frame ===== -->
-      <section class="py-28 px-6 border-t border-[var(--glass-border-subtle)] text-center">
-        <div class="max-w-2xl mx-auto">
-          <h2 class="text-3xl md:text-4xl font-black mb-4 leading-tight">{{ 'landing.closing.title' | translate }}</h2>
-          <p class="text-lg text-text-secondary font-medium mb-9">{{ 'landing.closing.subtitle' | translate }}</p>
-          <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <!-- ===== 7. CLOSING — the pirogue, ready to leave ===== -->
+      <section class="lp-section lp-band text-center">
+        <div class="lp-wrap max-w-3xl">
+          <div class="flex justify-center mb-10">
+            <app-illustration name="activity" [width]="200" />
+          </div>
+          <h2 class="lp-title">{{ 'landing.closing.title' | translate }}</h2>
+          <p class="lp-lead mx-auto">{{ 'landing.closing.subtitle' | translate }}</p>
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
             <a [href]="loginUrl" class="inner-button px-8 py-4">{{ 'landing.getStartedFree' | translate }}</a>
             <a routerLink="/pricing" class="outer-button px-8 py-4">{{ 'landing.viewPricing' | translate }}</a>
           </div>
-          <p class="mt-8 font-mono text-xs text-text-tertiary">{{ 'landing.closing.note' | translate }}</p>
+          <p class="mt-8 text-sm text-text-tertiary">{{ 'landing.closing.note' | translate }}</p>
         </div>
       </section>
 
@@ -354,20 +502,13 @@ export class LandingComponent implements OnInit {
   protected readonly loginUrl = `${environment.services.console.url}/login?redirect=ideploy`;
 
   protected readonly steps = [1, 2, 3, 4];
-  protected readonly buildLog = ['clone', 'detect', 'build', 'ssl', 'swap'];
-  protected readonly hosting = ['idem', 'own'];
+
+  protected readonly hosting = [
+    { key: 'idem', scene: 'managed-cloud' as const },
+    { key: 'own', scene: 'own-server' as const },
+  ];
+
   protected readonly guards = ['firewall', 'pipeline', 'monitoring', 'alerts'];
-
-  protected readonly meters = [
-    { key: 'cpu', reading: '4 %', percent: 4 },
-    { key: 'memory', reading: '212 / 512 Mo', percent: 41 },
-    { key: 'disk', reading: '18 / 40 Go', percent: 45 },
-  ];
-
-  protected readonly scans = [
-    { key: 'sonar', result: 'sonarResult' },
-    { key: 'trivy', result: 'trivyResult' },
-  ];
 
   protected readonly alsoItems = [
     'database',
@@ -382,16 +523,64 @@ export class LandingComponent implements OnInit {
 
   protected readonly freePlan = ['apps', 'deployments', 'domain', 'database', 'commercial'];
 
+  /** Entries in apps/ideploy-api/templates/service-templates.json. */
+  protected readonly catalogueSize = 278;
+
   /**
-   * Real catalogue entries, picked for legibility: several of the 278 logos are
-   * drawn white-on-transparent and vanish on a light ground.
+   * The most widely used open-source tools of the catalogue, grouped by what
+   * an entrepreneur needs them for. Every one is a real template, and every
+   * logo was checked on both grounds: the white-only files are inked dark in
+   * the light theme rather than left to vanish.
    */
-  protected readonly logoRows: string[][] = [
-    ['wordpress.svg', 'strapi.svg', 'directus.svg', 'supabase.svg', 'appwrite.svg', 'grafana.svg',
-     'gitea.svg', 'mattermost.svg', 'chatwoot.svg', 'keycloak.svg', 'nocodb.svg', 'budibase.svg'],
-    ['listmonk.svg', 'rabbitmq.svg', 'redis.svg', 'postgres.svg', 'pocketbase.svg', 'typesense.png',
-     'excalidraw.svg', 'jellyfin.svg', 'documenso.png', 'authentik.png', 'langfuse.svg', 'windmill.svg'],
+  protected readonly serviceGroups: ServiceGroup[] = [
+    {
+      key: 'site',
+      services: [
+        { key: 'wordpress', name: 'WordPress', logo: 'wordpress.svg' },
+        { key: 'strapi', name: 'Strapi', logo: 'strapi.svg' },
+        { key: 'directus', name: 'Directus', logo: 'directus.svg' },
+        { key: 'moodle', name: 'Moodle', logo: 'moodle.png' },
+      ],
+    },
+    {
+      key: 'business',
+      services: [
+        { key: 'odoo', name: 'Odoo', logo: 'odoo.svg', scale: 2 },
+        { key: 'dolibarr', name: 'Dolibarr', logo: 'dolibarr.png' },
+        { key: 'invoiceninja', name: 'Invoice Ninja', logo: 'invoiceninja.png' },
+        { key: 'nextcloud', name: 'Nextcloud', logo: 'nextcloud.svg' },
+      ],
+    },
+    {
+      key: 'ai',
+      services: [
+        { key: 'n8n', name: 'n8n', logo: 'n8n.png', scale: 1.4 },
+        { key: 'ollama', name: 'Ollama', logo: 'ollama.svg' },
+        { key: 'openwebui', name: 'Open WebUI', logo: 'openwebui.svg' },
+        { key: 'librechat', name: 'LibreChat', logo: 'librechat.svg' },
+      ],
+    },
+    {
+      key: 'backend',
+      services: [
+        { key: 'supabase', name: 'Supabase', logo: 'supabase.svg' },
+        { key: 'appwrite', name: 'Appwrite', logo: 'appwrite.svg' },
+        { key: 'pocketbase', name: 'PocketBase', logo: 'pocketbase.svg' },
+        { key: 'nocodb', name: 'NocoDB', logo: 'nocodb.svg' },
+      ],
+    },
+    {
+      key: 'monitor',
+      services: [
+        { key: 'grafana', name: 'Grafana', logo: 'grafana.svg' },
+        { key: 'uptimekuma', name: 'Uptime Kuma', logo: 'uptime-kuma.svg' },
+        { key: 'umami', name: 'Umami', logo: 'umami.svg', whiteInk: true },
+        { key: 'metabase', name: 'Metabase', logo: 'metabase.svg' },
+      ],
+    },
   ];
+
+  protected readonly featuredCount = this.serviceGroups.reduce((n, g) => n + g.services.length, 0);
 
   ngOnInit(): void {
     void this.auth.ensureLoaded();

@@ -14,7 +14,8 @@ export type IllustrationName =
   | 'shield'
   | 'team'
   | 'beads'
-  | 'net';
+  | 'net'
+  | 'cowries';
 
 /**
  * Les illustrations de l'interface, dessinées en ligne plutôt que livrées en
@@ -232,6 +233,21 @@ export type IllustrationName =
           <g style="color: var(--color-primary-500)">
             <path d="M60 47 L64.5 51.5 L60 56 L55.5 51.5Z" stroke-width="1.8"/>
           </g>
+        }
+        @case ('cowries') {
+          <!-- Le prix : la calebasse ouverte, et les cauris qu'elle garde. -->
+          <path d="M16 44 C16 70 36 82 60 82 C84 82 104 70 104 44" stroke-width="2"/>
+          <ellipse cx="60" cy="44" rx="44" ry="7" stroke-width="2"/>
+          <path d="M22 58 L28 63 L34 58 L40 63 L46 58 L52 63 L58 58 L64 63 L70 58 L76 63 L82 58 L88 63 L94 58 L98 61" stroke-width="1.1" opacity=".7"/>
+          <path d="M34 72 h0.01 M47 76 h0.01 M60 77 h0.01 M73 76 h0.01 M86 72 h0.01" stroke-width="2.4" opacity=".55"/>
+          <g transform="rotate(-12 38 38)"><ellipse cx="38" cy="38" rx="7.5" ry="5" stroke-width="1.5"/><path d="M33.5 38 C36.5 36.8 39.5 39.2 42.5 38" stroke-width="1.1"/><path d="M35 36.4 v3.2 M38 36.2 v3.6 M41 36.4 v3.2" stroke-width=".7" opacity=".7"/></g>
+          <g transform="rotate(6 55 39)"><ellipse cx="55" cy="39" rx="7.5" ry="5" stroke-width="1.5"/><path d="M50.5 39 C53.5 37.8 56.5 40.2 59.5 39" stroke-width="1.1"/><path d="M52 37.4 v3.2 M55 37.2 v3.6 M58 37.4 v3.2" stroke-width=".7" opacity=".7"/></g>
+          <g transform="rotate(-8 72 38)"><ellipse cx="72" cy="38" rx="7.5" ry="5" stroke-width="1.5"/><path d="M67.5 38 C70.5 36.8 73.5 39.2 76.5 38" stroke-width="1.1"/><path d="M69 36.4 v3.2 M72 36.2 v3.6 M75 36.4 v3.2" stroke-width=".7" opacity=".7"/></g>
+          <g transform="rotate(14 88 39)"><ellipse cx="88" cy="39" rx="7.5" ry="5" stroke-width="1.5"/><path d="M83.5 39 C86.5 37.8 89.5 40.2 92.5 39" stroke-width="1.1"/><path d="M85 37.4 v3.2 M88 37.2 v3.6 M91 37.4 v3.2" stroke-width=".7" opacity=".7"/></g>
+          <g transform="rotate(10 47 27)"><ellipse cx="47" cy="27" rx="7.5" ry="5" stroke-width="1.5"/><path d="M42.5 27 C45.5 25.8 48.5 28.2 51.5 27" stroke-width="1.1"/><path d="M44 25.4 v3.2 M47 25.2 v3.6 M50 25.4 v3.2" stroke-width=".7" opacity=".7"/></g>
+          <g transform="rotate(-6 64 27)"><ellipse cx="64" cy="27" rx="7.5" ry="5" stroke-width="1.5"/><path d="M59.5 27 C62.5 25.8 65.5 28.2 68.5 27" stroke-width="1.1"/><path d="M61 25.4 v3.2 M64 25.2 v3.6 M67 25.4 v3.2" stroke-width=".7" opacity=".7"/></g>
+          <g transform="rotate(8 80 28)"><ellipse cx="80" cy="28" rx="7.5" ry="5" stroke-width="1.5"/><path d="M75.5 28 C78.5 26.8 81.5 29.2 84.5 28" stroke-width="1.1"/><path d="M77 26.4 v3.2 M80 26.2 v3.6 M83 26.4 v3.2" stroke-width=".7" opacity=".7"/></g>
+          <g style="color: var(--color-primary-500)"><g transform="rotate(-4 60 15)"><ellipse cx="60" cy="15" rx="7.5" ry="5" stroke-width="1.5"/><path d="M55.5 15 C58.5 13.8 61.5 16.2 64.5 15" stroke-width="1.1"/><path d="M57 13.4 v3.2 M60 13.2 v3.6 M63 13.4 v3.2" stroke-width=".7" opacity=".7"/></g></g>
         }
         @default {
           <!-- Ce qu'on déploie : le panier tressé, chargé et prêt à partir. -->
