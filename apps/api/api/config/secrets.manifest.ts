@@ -12,9 +12,6 @@ import type { SecretManifest } from './secret-loader';
 export const SECRET_MANIFEST = {
   app: 'api',
   required: [
-    // Compte de service Google Cloud (Vertex AI).
-    'GCP_SA_PRIVATE_KEY',
-    'GCP_SA_CLIENT_EMAIL',
     'MONGODB_PASSWORD',
     'MINIO_ACCESS_KEY',
     'MINIO_SECRET_KEY',

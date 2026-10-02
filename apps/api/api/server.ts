@@ -300,7 +300,7 @@ async function bootstrap() {
   await loadSecrets();
   checkAuthConfig();
 
-  // Backend Gemini (Vertex AI ou AI Studio) : tracé au démarrage plutôt qu'à la
+  // Backend Gemini (AI Studio) : tracé au démarrage plutôt qu'à la
   // première génération, pour qu'une configuration incomplète se voie tout de
   // suite et non au milieu d'un business plan.
   if (isGeminiConfigured()) {
@@ -308,7 +308,7 @@ async function bootstrap() {
   } else {
     console.error(
       `Gemini backend NON CONFIGURÉ — ${describeGeminiBackend()}. ` +
-        'Toute génération IA échouera. Voir docs/VERTEX_AI.md.'
+        'Toute génération IA échouera. Vérifiez GEMINI_API_KEY.'
     );
   }
 
