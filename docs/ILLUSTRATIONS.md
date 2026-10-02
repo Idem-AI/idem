@@ -118,7 +118,10 @@ sans résultat → `search`. Écartés pour les étiquettes : cauris (réservés
 l'argent), tampon adinkra (réservé à l'identité de marque).
 
 Page d'accueil publique (`/`, sous le hero photographique) : hébergement →
-`managed-cloud` et `own-server` côte à côte ; catalogue → `market` ; « Et
+un chemin qui bifurque (`hosting-fork-illustration`) : le panier tressé en
+haut, le sentier qui se sépare vers `managed-cloud` (grenier du village) et
+`own-server` (porte et clé), le cœur du panier seul en couleur ; sur
+téléphone, chaque destination s'affiche seule au-dessus de sa colonne ; catalogue → `market` ; « Et
 aussi » (bases, volumes) → `store`, en grand ; tarif → `cowries` à côté d'un
 reçu à 0 F (le reçu est en HTML, pas un dessin) ; appel final → `activity`
 (pirogue).

@@ -7,6 +7,7 @@ import { LandingFooterComponent } from '../shared/landing-footer';
 import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
 import { LiveShopIllustrationComponent } from './live-shop-illustration';
 import { GuardConsoleIllustrationComponent } from './guard-console-illustration';
+import { HostingForkIllustrationComponent } from './hosting-fork-illustration';
 import { AuthService } from '../../../shared/services/auth.service';
 import { environment } from '../../../../environments/environment';
 
@@ -47,6 +48,7 @@ interface ServiceGroup {
     IllustrationComponent,
     LiveShopIllustrationComponent,
     GuardConsoleIllustrationComponent,
+    HostingForkIllustrationComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
@@ -101,14 +103,43 @@ interface ServiceGroup {
       font-variant-numeric: tabular-nums;
     }
 
-    /* Hosting choice — the whole panel answers to the pointer. */
-    .lp-choice {
-      display: flex;
-      flex-direction: column;
-      transition: border-color 0.2s ease;
+    /* Hosting — two columns filled column by column, so each row lines up
+     * across: the same question answered for both sides. On a phone the
+     * columns simply stack. */
+    .lp-fork {
+      position: relative;
+      display: grid;
+      column-gap: 4rem;
     }
-    .lp-choice:hover {
-      border-color: var(--color-primary-500);
+    .lp-fork__head {
+      padding-bottom: 1.25rem;
+      text-align: center;
+    }
+    .lp-fork__head:not(:first-child) {
+      margin-top: 3.5rem;
+    }
+    .lp-fork__cell {
+      padding-block: 1.1rem;
+      border-top: 1px solid var(--glass-border);
+    }
+    @media (min-width: 768px) {
+      .lp-fork {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: repeat(5, auto);
+        grid-auto-flow: column;
+      }
+      .lp-fork__head:not(:first-child) {
+        margin-top: 0;
+      }
+      /* The path carries on between the two columns. */
+      .lp-fork::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        border-left: 3px dotted var(--glass-border);
+      }
     }
 
     /* Catalogue — the logo is the point, so it gets a real tile. */
@@ -204,12 +235,6 @@ interface ServiceGroup {
       }
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      .lp-choice,
-      .lp-logo {
-        transition: none;
-      }
-    }
   `,
   template: `
     <div class="relative min-h-screen text-text-primary overflow-hidden">
@@ -282,7 +307,7 @@ interface ServiceGroup {
         </div>
       </section>
 
-      <!-- ===== 2. HOSTING — the granary, or the door of your own ===== -->
+      <!-- ===== 2. HOSTING — one path that forks: the village granary, or your own door ===== -->
       <section id="where" class="lp-section lp-band">
         <div class="lp-wrap">
           <div class="max-w-2xl">
@@ -290,34 +315,32 @@ interface ServiceGroup {
             <p class="lp-lead">{{ 'landing.where.subtitle' | translate }}</p>
           </div>
 
-          <div class="relative grid gap-5 md:grid-cols-2 mt-14">
-            @for (side of hosting; track side.key) {
-              <article class="glass-card lp-choice p-8 md:p-10">
-                <app-illustration [name]="side.scene" [width]="132" class="block mb-8" />
-                <h3 class="text-2xl font-black">{{ 'landing.where.' + side.key + '.title' | translate }}</h3>
-                <p class="mt-3 text-text-secondary leading-relaxed">
-                  {{ 'landing.where.' + side.key + '.body' | translate }}
-                </p>
-                <ul class="flex flex-col gap-3 mt-8 pt-6" style="border-top: 1px solid var(--glass-border-subtle);">
-                  @for (n of [1, 2, 3]; track n) {
-                    <li class="flex items-start gap-3 font-semibold">
-                      <i
-                        class="pi pi-check text-xs mt-1.5 shrink-0"
-                        style="color: var(--color-primary-500);"
-                        aria-hidden="true"></i>
-                      <span>{{ 'landing.where.' + side.key + '.p' + n | translate }}</span>
-                    </li>
-                  }
-                </ul>
-              </article>
-            }
+          <app-hosting-fork-illustration class="hidden md:block mt-16" [or]="'landing.where.or' | translate" />
 
-            <!-- The fork, named -->
-            <span
-              class="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 items-center justify-center text-sm font-black uppercase"
-              style="border-radius: var(--radius-full); background: var(--color-bg-dark); border: 1px solid var(--glass-border);">
-              {{ 'landing.where.or' | translate }}
-            </span>
+          <!-- Read across: the same question, answered for each side -->
+          <div class="lp-fork mt-12 md:mt-6">
+            @for (side of hosting; track side) {
+              <div class="lp-fork__head">
+                <!-- On a phone the fork is too small to read: each side shows its own destination -->
+                <div class="flex justify-center mb-5 md:hidden">
+                  <app-illustration [name]="side === 'idem' ? 'managed-cloud' : 'own-server'" [width]="128" />
+                </div>
+                <h3 class="text-2xl md:text-3xl font-black">{{ 'landing.where.' + side + '.title' | translate }}</h3>
+                <p class="mt-2 text-text-secondary leading-relaxed">
+                  {{ 'landing.where.' + side + '.body' | translate }}
+                </p>
+              </div>
+              @for (row of hostingRows; track row) {
+                <div class="lp-fork__cell">
+                  <p class="text-xs font-bold uppercase text-text-tertiary">
+                    {{ 'landing.where.rows.' + row | translate }}
+                  </p>
+                  <p class="mt-1.5 font-semibold leading-relaxed">
+                    {{ 'landing.where.' + side + '.' + row | translate }}
+                  </p>
+                </div>
+              }
+            }
           </div>
         </div>
       </section>
@@ -503,10 +526,9 @@ export class LandingComponent implements OnInit {
 
   protected readonly steps = [1, 2, 3, 4];
 
-  protected readonly hosting = [
-    { key: 'idem', scene: 'managed-cloud' as const },
-    { key: 'own', scene: 'own-server' as const },
-  ];
+  protected readonly hosting = ['idem', 'own'];
+  /** Keep in step with `grid-template-rows` in `.lp-fork` (one head + these rows). */
+  protected readonly hostingRows = ['machine', 'care', 'data', 'fit'];
 
   protected readonly guards = ['firewall', 'pipeline', 'monitoring', 'alerts'];
 

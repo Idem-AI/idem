@@ -49,16 +49,24 @@
       "idem": {
         "title": "IDEM infrastructure",
         "body": "You look after nothing. We pick the machine, maintain it and replace it if it fails.",
-        "p1": "Nothing to prepare, nothing to install",
-        "p2": "Updates and security included",
-        "p3": "Billed with your plan"
+        "machine": "Picked and provided by IDEM.",
+        "care": "Updates, security, replacement if it fails: we handle it.",
+        "data": "Hosted on IDEM infrastructure, with your plan.",
+        "fit": "You just want it to run, without thinking about it."
       },
       "own": {
         "title": "Your own server",
         "body": "Plug your VPS in once with an SSH key. iDeploy installs it, secures it and keeps it current.",
-        "p1": "Connected once, then one click to deploy",
-        "p2": "Your data stays with you",
-        "p3": "Hetzner provisioning built in"
+        "machine": "Your VPS or server, plugged in once with an SSH key. No server yet? iDeploy rents one from Hetzner.",
+        "care": "iDeploy installs it, secures it and keeps it current.",
+        "data": "It never leaves your machine.",
+        "fit": "You already have a server, or your data has to stay with you."
+      },
+      "rows": {
+        "machine": "The machine",
+        "care": "Upkeep",
+        "data": "Your data",
+        "fit": "Right for you if…"
       }
     },
     "guard": {
