@@ -22,6 +22,7 @@ import {
   ChevronRight,
   ChevronDown,
   Minus,
+  Smartphone,
   Plus,
   ExternalLink,
   MessageSquarePlus,
@@ -51,6 +52,7 @@ import {
 } from './astEdit';
 import { buildInjectPlan, buildRemovePlan, type InstrumentationPlan } from './instrumentation';
 import { isMobileApp } from '@/utils/product';
+import { PHONES, PhoneMockup, phoneOuterSize, type PhoneDevice } from './PhoneMockup';
 import { SizeSelector, viewportStyle, WINDOW_SIZES, type WindowSize } from './ResponsiveViewport';
 
 interface EditablePreviewProps {
@@ -115,12 +117,30 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [layersOpen, setLayersOpen] = useState(true);
   const [agentReady, setAgentReady] = useState(false);
-  // Une application mobile s'ouvre dans un téléphone : c'est là qu'elle vivra.
+  const [size, setSize] = useState<WindowSize>(WINDOW_SIZES[0]);
+
+  // Une application mobile s'affiche dans un téléphone, iPhone ou Android : pas
+  // de tailles d'ordinateur, elles n'ont pas de sens pour elle. Le téléphone
+  // est réduit pour tenir en entier dans la hauteur disponible.
   const mobileApp = isMobileApp();
-  const [size, setSize] = useState<WindowSize>(
-    mobileApp ? WINDOW_SIZES.find((s) => s.name === 'Mobile') ?? WINDOW_SIZES[0] : WINDOW_SIZES[0]
-  );
-  const phoneFrame = mobileApp && size.name === 'Mobile';
+  const [device, setDevice] = useState<PhoneDevice>('ios');
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState(1);
+
+  useEffect(() => {
+    const surface = surfaceRef.current;
+    if (!mobileApp || !surface) return;
+    const update = () => {
+      const outer = phoneOuterSize(device);
+      // 24 px : le padding de la surface, pour que le téléphone ne touche pas les bords.
+      const scale = Math.min(1, (surface.clientHeight - 24) / outer.height, (surface.clientWidth - 24) / outer.width);
+      setFit(scale > 0.2 ? scale : 1);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(surface);
+    return () => observer.disconnect();
+  }, [mobileApp, device]);
   const { getTerminal, newTerminal } = useTerminalStore();
   const [toolMode, setToolMode] = useState<EditToolMode>('off');
   const [zoom, setZoom] = useState(1);
@@ -632,7 +652,30 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
             </span>
           </div>
 
-          <SizeSelector value={size} onChange={setSize} />
+          {mobileApp ? (
+            <div
+              className="flex items-center rounded-md bg-surface-2 border border-[var(--glass-border)] p-0.5"
+              role="group"
+              aria-label={t('preview.device')}
+            >
+              {(['ios', 'android'] as PhoneDevice[]).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDevice(d)}
+                  aria-pressed={device === d}
+                  className={`h-6 px-2 flex items-center gap-1 rounded text-[11px] font-medium transition-colors ${
+                    device === d ? 'bg-primary text-white' : 'text-text-tertiary hover:text-text-primary'
+                  }`}
+                >
+                  <Smartphone size={12} aria-hidden="true" />
+                  {PHONES[d].label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <SizeSelector value={size} onChange={setSize} />
+          )}
 
           <div className="flex items-center rounded-md bg-surface-2 border border-[var(--glass-border)]">
             <button
@@ -678,20 +721,62 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
         </div>
 
         {/* Surface d'aperçu */}
-        <div className="flex-1 relative overflow-auto bg-bg-dark/55 p-3 flex items-start justify-center">
-          {url ? (
+        <div
+          ref={surfaceRef}
+          className={`flex-1 relative bg-bg-dark/55 p-3 flex items-start justify-center ${mobileApp ? 'overflow-hidden' : 'overflow-auto'}`}
+        >
+          {mobileApp ? (
+            // Application mobile : le téléphone est là dès le départ. Tant que
+            // rien ne tourne, son écran porte le message et le bouton Exécuter ;
+            // l'application prend ensuite leur place.
             <div
-              className={
-                phoneFrame
-                  ? 'bg-black border-[10px] border-black rounded-[2.75rem] shadow-[var(--glass-shadow-xl)] overflow-hidden shrink-0 origin-top transition-transform box-content'
-                  : 'bg-white shadow-[var(--glass-shadow-xl)] rounded-lg overflow-hidden shrink-0 origin-top transition-transform'
-              }
+              className="shrink-0 transition-transform"
+              style={{
+                transform: `scale(${zoom * fit})`,
+                transformOrigin: 'top center',
+                // La place réservée suit la taille réduite : pas de défilement fantôme.
+                height: phoneOuterSize(device).height * zoom * fit,
+              }}
+            >
+              <PhoneMockup device={device}>
+                {url ? (
+                  <iframe
+                    ref={iframeRef}
+                    src={url}
+                    className="w-full h-full border-none bg-white block"
+                    title="preview"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
+                  />
+                ) : (
+                  // L'écran d'un téléphone reste clair quel que soit le thème
+                  // d'iCode : les couleurs du texte sont donc fixes ici.
+                  <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-8 text-neutral-500">
+                    <EmptyPreviewIllustration size={88} className="text-neutral-300!" />
+                    <p className="text-[15px] font-semibold text-neutral-900">{t('preview.noserverTitle')}</p>
+                    <p className="text-[13px] leading-relaxed text-neutral-500 text-pretty">{t('preview.noserverHint')}</p>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={runProject}
+                      loading={running}
+                      icon={<Play className="w-4 h-4" />}
+                      className="mt-2"
+                    >
+                      {t('preview.run')}
+                    </Button>
+                  </div>
+                )}
+              </PhoneMockup>
+            </div>
+          ) : url ? (
+            <div
+              className="bg-white shadow-[var(--glass-shadow-xl)] rounded-lg overflow-hidden shrink-0 origin-top transition-transform"
               style={{ ...viewportStyle(size), transform: `scale(${zoom})` }}
             >
               <iframe
                 ref={iframeRef}
                 src={url}
-                className={`w-full h-full border-none bg-white block ${phoneFrame ? 'rounded-[2rem]' : ''}`}
+                className="w-full h-full border-none bg-white block"
                 title="preview"
                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
               />

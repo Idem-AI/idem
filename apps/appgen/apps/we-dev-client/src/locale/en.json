@@ -239,7 +239,8 @@
     "runHint": "Installs dependencies, then starts the dev server",
     "restart": "Restart",
     "noserverTitle": "Nothing to show yet",
-    "runFailed": "The project could not start. Open the terminal for details."
+    "runFailed": "The project could not start. Open the terminal for details.",
+    "device": "Device"
   },
   "editor": {
     "editor": "Editor",
@@ -291,7 +292,12 @@
     "plan": "{{plan}} plan",
     "idemDashboard": "Idem dashboard",
     "openChat": "Open the chat",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "buildKind": {
+      "site": "Showcase website",
+      "web-app": "Web application",
+      "mobile-app": "Mobile application"
+    }
   },
   "explorer": {
     "clear_all": "Clear All",

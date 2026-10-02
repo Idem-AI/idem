@@ -5,12 +5,19 @@ import { ProjectModel } from '@/api/persistence/models/project.model';
 import ChatHistoryPanel from '@/components/ChatHistory/ChatHistoryPanel';
 import { ProjectLogo } from '@/components/ProjectLogo';
 import useChatHistoryStore from '@/stores/chatHistoryStore';
+import { useTranslation } from 'react-i18next';
+import { Globe, Monitor, Smartphone } from 'lucide-react';
+import { currentBuildKind } from '@/utils/product';
+
+/** Le type de ce qui se construit, avec son icône : dit en haut de l'atelier. */
+const KIND_ICON = { site: Globe, 'web-app': Monitor, 'mobile-app': Smartphone } as const;
 
 export function ProjectTitle() {
   const [projectData, setProjectData] = useState<ProjectModel | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { projectId } = useUrlData({ append: () => {} });
   const { sessions, activeChatUuid } = useChatHistoryStore();
+  const { t } = useTranslation();
 
   const activeSession = sessions.find((s) => s.uuid === activeChatUuid);
 
@@ -20,6 +27,11 @@ export function ProjectTitle() {
       .then((p) => setProjectData(p))
       .catch((e) => console.error('Error loading project:', e));
   }, [projectId]);
+
+  const kind = projectId
+    ? currentBuildKind(projectData?.analysisResultModel?.development?.configs as any)
+    : null;
+  const KindIcon = kind ? KIND_ICON[kind] : null;
 
   // Project mode: show project info
   if (projectId) {
@@ -36,6 +48,14 @@ export function ProjectTitle() {
           <div className="text-sm font-medium text-text-primary truncate">
             {projectData?.name || 'Project'}
           </div>
+          {kind && KindIcon && (
+            // Site vitrine, application web ou mobile : on sait toujours ce
+            // que cet atelier construit.
+            <div className="flex items-center gap-1 text-xs font-medium text-primary">
+              <KindIcon size={12} aria-hidden="true" />
+              <span>{t(`header.buildKind.${kind}`)}</span>
+            </div>
+          )}
         </div>
       </div>
     );

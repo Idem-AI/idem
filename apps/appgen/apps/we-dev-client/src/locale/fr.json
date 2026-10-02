@@ -239,7 +239,8 @@
     "runHint": "Installe les dépendances puis démarre le serveur de développement",
     "restart": "Redémarrer",
     "noserverTitle": "Rien à afficher pour l'instant",
-    "runFailed": "Le démarrage a échoué. Ouvrez le terminal pour voir le détail."
+    "runFailed": "Le démarrage a échoué. Ouvrez le terminal pour voir le détail.",
+    "device": "Appareil"
   },
   "editor": {
     "editor": "Éditeur",
@@ -291,7 +292,12 @@
     "plan": "Plan {{plan}}",
     "idemDashboard": "Tableau de bord Idem",
     "openChat": "Ouvrir le chat",
-    "signOut": "Se déconnecter"
+    "signOut": "Se déconnecter",
+    "buildKind": {
+      "site": "Site vitrine",
+      "web-app": "Application web",
+      "mobile-app": "Application mobile"
+    }
   },
   "explorer": {
     "clear_all": "Tout effacer",
