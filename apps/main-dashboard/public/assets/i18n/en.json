@@ -257,7 +257,8 @@
         "subtitle": "What you sell, what it costs, and what you keep — over three years. The tables for the bank are calculated for you.",
         "actions": {
           "import": "Import a file",
-          "ai": "Suggest with AI"
+          "ai": "Suggest with AI",
+          "paste": "Paste a table"
         },
         "imported": {
           "title": "Your file has been imported",
@@ -268,8 +269,9 @@
           "lead": "Pick whatever suits you. You can change everything afterwards.",
           "import": {
             "title": "I already have my figures",
-            "body": "Send your Excel, PDF or Word file. The AI reads it and puts your prices, costs and funding in the right place.",
-            "cta": "Import a file"
+            "body": "Paste your table from Excel or an AI, or send your file. Everything goes in the right place.",
+            "cta": "Import a file",
+            "paste": "Paste a table"
           },
           "ai": {
             "title": "Let the AI suggest",
@@ -744,6 +746,57 @@
           "size": "This file is over 15 MB. Save a lighter version without images, then try again.",
           "generic": "Reading failed. Check your connection and try again in a moment."
         }
+      },
+      "paste": {
+        "title": "Paste your table",
+        "lead": "One row per item, with these six columns in this order. Copy your table (Excel, Google Sheets, ChatGPT…), click the first cell, then paste with Ctrl+V.",
+        "columns": {
+          "section": "Section",
+          "name": "Name",
+          "amount": "Amount",
+          "unitCost": "Unit cost",
+          "start": "Start month",
+          "growth": "Monthly increase (%)"
+        },
+        "sections": {
+          "product": "Product",
+          "sale": "Sale",
+          "variable": "Sales-related cost",
+          "fixed": "Fixed cost",
+          "salary": "Salary",
+          "purchase": "Start-up purchase",
+          "funding": "Funding"
+        },
+        "exampleData": "Product\tWax print bag\t15000\t6000\t\t\nSale\tWax print bag\t60\t\t3\t4\nSales-related cost\tFabric purchases\t250000\t\t3\t\nFixed cost\tShop rent\t150000\t\t1\t\nSalary\tSales assistant\t120000\t\t3\t\nStart-up purchase\tSewing machine\t800000\t\t1\t\nFunding\tOwn contribution\t2000000\t\t\t\nFunding\tBank loan\t1500000\t\t\t",
+        "example": {
+          "show": "See an example",
+          "copy": "Copy the template for Excel",
+          "copied": "Template copied"
+        },
+        "understood": "Where the row will go",
+        "removeRow": "Remove row {{n}}",
+        "status": {
+          "empty": "Paste your table into the grid.",
+          "invalid": "{{count}} row(s) to fix — the reason is shown at the end of the row.",
+          "ready": "{{count}} row(s) ready."
+        },
+        "errors": {
+          "required": "This cell is required.",
+          "section": "Unknown section: pick one from the list.",
+          "number": "Enter a number, for example 150000.",
+          "positive": "The amount must be greater than 0.",
+          "month": "Month not recognised. Enter a number from 1 to 36 or a date like “March 2026”.",
+          "product": "This product does not exist. First add a “Product” row with this name.",
+          "funding": "Funding not recognised. Enter: Contribution, Bank loan, Partners' loan, Leasing or Grant."
+        },
+        "ai": {
+          "question": "Your table is not in this format?",
+          "button": "Let the AI sort it",
+          "cost": "uses 1 credit",
+          "fileName": "pasted-table.txt"
+        },
+        "clear": "Clear all",
+        "add": "Add to my forecast ({{count}})"
       }
     },
     "sidebar": {

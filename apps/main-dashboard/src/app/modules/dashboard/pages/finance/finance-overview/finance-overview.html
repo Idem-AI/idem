@@ -20,6 +20,10 @@
       </div>
       @if (hasData()) {
         <div class="flex flex-wrap items-center gap-2">
+          <button type="button" class="outer-button button-sm" (click)="openPaste()">
+            <i class="pi pi-table" aria-hidden="true"></i>
+            {{ 'dashboard.finance.home.actions.paste' | translate }}
+          </button>
           <button type="button" class="outer-button button-sm" (click)="openImport()">
             <i class="pi pi-upload" aria-hidden="true"></i>
             {{ 'dashboard.finance.home.actions.import' | translate }}
@@ -58,15 +62,22 @@
         <p class="text-sm text-text-secondary mt-1">{{ 'dashboard.finance.home.start.lead' | translate }}</p>
 
         <div class="grid gap-4 md:grid-cols-3 mt-5">
-          <button type="button" class="glass-card fo-choice" (click)="openImport()">
+          <!-- Deux voies pour qui a déjà ses chiffres : un tableau à coller, ou un fichier. -->
+          <div class="glass-card fo-choice">
             <app-finance-illustration scene="import" class="w-28" />
             <span class="fo-choice__title">{{ 'dashboard.finance.home.start.import.title' | translate }}</span>
             <span class="fo-choice__body">{{ 'dashboard.finance.home.start.import.body' | translate }}</span>
-            <span class="fo-choice__cta">
-              {{ 'dashboard.finance.home.start.import.cta' | translate }}
-              <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+            <span class="fo-choice__cta flex-wrap gap-x-4">
+              <button type="button" class="inline-flex items-center gap-1.5 hover:underline" (click)="openPaste()">
+                {{ 'dashboard.finance.home.start.import.paste' | translate }}
+                <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="inline-flex items-center gap-1.5 hover:underline" (click)="openImport()">
+                {{ 'dashboard.finance.home.start.import.cta' | translate }}
+                <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+              </button>
             </span>
-          </button>
+          </div>
 
           <button type="button" class="glass-card fo-choice" [disabled]="aiGlobalLoading()" (click)="onAutoFillGlobal()">
             <app-finance-illustration scene="ai" class="w-28" />
@@ -309,8 +320,19 @@
     </details>
   </div>
 
+  <app-finance-paste-dialog
+    [open]="pasteOpen()"
+    [projectId]="projectId()"
+    [finance]="finance()"
+    [monthLabels]="monthLabels()"
+    (closed)="pasteOpen.set(false)"
+    (imported)="onImported($event)"
+    (aiFallback)="onPasteAiFallback($event)"
+  />
+
   <app-finance-import-dialog
     [open]="importOpen()"
+    [initialText]="importText()"
     [projectId]="projectId()"
     [hasExistingData]="hasData()"
     [currency]="currency()"

@@ -257,7 +257,8 @@
         "subtitle": "Ce que vous vendez, ce que ça coûte, et ce qu'il vous reste — sur trois ans. Les tableaux pour la banque se calculent tout seuls.",
         "actions": {
           "import": "Importer un fichier",
-          "ai": "Proposer avec l'IA"
+          "ai": "Proposer avec l'IA",
+          "paste": "Coller un tableau"
         },
         "imported": {
           "title": "Votre fichier a été importé",
@@ -268,8 +269,9 @@
           "lead": "Choisissez la façon qui vous convient. Vous pourrez tout modifier ensuite.",
           "import": {
             "title": "J'ai déjà mes chiffres",
-            "body": "Envoyez votre fichier Excel, PDF ou Word. L'IA le lit et range vos prix, vos dépenses et vos financements au bon endroit.",
-            "cta": "Importer un fichier"
+            "body": "Collez votre tableau depuis Excel ou une IA, ou envoyez votre fichier. Tout est rangé au bon endroit.",
+            "cta": "Importer un fichier",
+            "paste": "Coller un tableau"
           },
           "ai": {
             "title": "L'IA propose pour moi",
@@ -744,6 +746,57 @@
           "size": "Ce fichier dépasse 15 Mo. Enregistrez une version plus légère, sans images, puis réessayez.",
           "generic": "La lecture a échoué. Vérifiez votre connexion et réessayez dans un instant."
         }
+      },
+      "paste": {
+        "title": "Coller votre tableau",
+        "lead": "Une ligne par élément, avec ces six colonnes dans cet ordre. Copiez votre tableau (Excel, Google Sheets, ChatGPT…), cliquez dans la première case, puis collez avec Ctrl+V.",
+        "columns": {
+          "section": "Rubrique",
+          "name": "Nom",
+          "amount": "Montant",
+          "unitCost": "Coût unitaire",
+          "start": "Mois de début",
+          "growth": "Hausse par mois (%)"
+        },
+        "sections": {
+          "product": "Produit",
+          "sale": "Vente",
+          "variable": "Dépense liée aux ventes",
+          "fixed": "Dépense fixe",
+          "salary": "Salaire",
+          "purchase": "Achat de démarrage",
+          "funding": "Financement"
+        },
+        "exampleData": "Produit\tSac en wax\t15000\t6000\t\t\nVente\tSac en wax\t60\t\t3\t4\nDépense liée aux ventes\tAchat de tissus\t250000\t\t3\t\nDépense fixe\tLoyer boutique\t150000\t\t1\t\nSalaire\tVendeuse\t120000\t\t3\t\nAchat de démarrage\tMachine à coudre\t800000\t\t1\t\nFinancement\tApport personnel\t2000000\t\t\t\nFinancement\tPrêt bancaire\t1500000\t\t\t",
+        "example": {
+          "show": "Voir un exemple",
+          "copy": "Copier le modèle pour Excel",
+          "copied": "Modèle copié"
+        },
+        "understood": "Où la ligne sera rangée",
+        "removeRow": "Retirer la ligne {{n}}",
+        "status": {
+          "empty": "Collez votre tableau dans la grille.",
+          "invalid": "{{count}} ligne(s) à corriger — la raison est écrite en bout de ligne.",
+          "ready": "{{count}} ligne(s) prêtes."
+        },
+        "errors": {
+          "required": "Cette case est obligatoire.",
+          "section": "Rubrique inconnue : choisissez-la dans la liste.",
+          "number": "Écrivez un nombre, par exemple 150000.",
+          "positive": "Le montant doit être supérieur à 0.",
+          "month": "Mois non reconnu. Écrivez un numéro de 1 à 36 ou une date comme « mars 2026 ».",
+          "product": "Ce produit n'existe pas. Ajoutez d'abord une ligne « Produit » avec ce nom.",
+          "funding": "Financement non reconnu. Écrivez : Apport, Prêt bancaire, Prêt des associés, Leasing ou Subvention."
+        },
+        "ai": {
+          "question": "Votre tableau n'est pas dans ce format ?",
+          "button": "Laisser l'IA le ranger",
+          "cost": "consomme 1 crédit",
+          "fileName": "tableau-colle.txt"
+        },
+        "clear": "Tout effacer",
+        "add": "Ajouter à mon prévisionnel ({{count}})"
       }
     },
     "sidebar": {

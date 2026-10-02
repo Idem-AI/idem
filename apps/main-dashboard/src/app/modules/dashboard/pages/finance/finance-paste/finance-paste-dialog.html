@@ -1,0 +1,121 @@
+<dialog
+  #dialog
+  class="fp-dialog"
+  [attr.aria-labelledby]="uid + '-title'"
+  (close)="closed.emit()"
+  (click)="onBackdropClick($event)"
+>
+  <div class="modal-panel fp-panel">
+    <button type="button" class="fp-close" [attr.aria-label]="'common.close' | translate" [disabled]="saving()" (click)="close()">
+      <i class="pi pi-times" aria-hidden="true"></i>
+    </button>
+
+    <div class="flex items-center gap-4 pr-8">
+      <app-finance-illustration scene="import" class="w-16 shrink-0 hidden sm:block" />
+      <div>
+        <h2 [id]="uid + '-title'" class="text-lg font-semibold text-text-primary">
+          {{ 'dashboard.finance.paste.title' | translate }}
+        </h2>
+        <p class="text-sm text-text-secondary mt-0.5">{{ 'dashboard.finance.paste.lead' | translate }}</p>
+      </div>
+    </div>
+
+    <!-- La grille : six colonnes, toujours dans cet ordre. -->
+    <div class="fp-grid-wrap" (paste)="onPaste($event)">
+      <table class="fp-grid">
+        <thead>
+          <tr>
+            <th scope="col" class="fp-num"><span class="sr-only">#</span></th>
+            @for (col of columns; track col) {
+              <th scope="col">{{ 'dashboard.finance.paste.columns.' + col | translate }}</th>
+            }
+            <th scope="col" class="fp-tail"><span class="sr-only">{{ 'dashboard.finance.paste.understood' | translate }}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of grid(); track $index; let r = $index) {
+            <tr>
+              <td class="fp-num">{{ r + 1 }}</td>
+              @for (col of columns; track col; let c = $index) {
+                <td [class.fp-bad]="errorOf(r, col)">
+                  <input
+                    type="text"
+                    class="fp-cell"
+                    [class.fp-cell--wide]="c === 1"
+                    [class.fp-cell--section]="c === 0"
+                    [attr.data-cell]="r + '-' + c"
+                    [value]="cell(r, c)"
+                    [attr.list]="c === 0 ? uid + '-sections' : null"
+                    [attr.inputmode]="c >= 2 ? 'decimal' : null"
+                    [attr.aria-label]="('dashboard.finance.paste.columns.' + col | translate) + ' ' + (r + 1)"
+                    [attr.aria-invalid]="!!errorOf(r, col)"
+                    [title]="errorOf(r, col) ? ('dashboard.finance.paste.errors.' + errorOf(r, col) | translate) : ''"
+                    (focus)="onFocus(r, c)"
+                    (input)="setCell(r, c, $any($event.target).value)"
+                    (keydown.enter)="onEnter($event, r, c)"
+                  />
+                </td>
+              }
+              <td class="fp-tail">
+                @if (!checks()[r]?.empty) {
+                  @if (rowError(r)) {
+                    <span class="text-xs text-danger">{{ rowError(r) }}</span>
+                  } @else {
+                    <span class="text-xs text-text-tertiary">{{ understood(r) }}</span>
+                  }
+                  <button type="button" class="fp-remove" [attr.aria-label]="'dashboard.finance.paste.removeRow' | translate: { n: r + 1 }" (click)="removeRow(r)">
+                    <i class="pi pi-times text-xs" aria-hidden="true"></i>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <datalist [id]="uid + '-sections'">
+      @for (label of sectionLabels(); track label) { <option [value]="label"></option> }
+    </datalist>
+
+    <!-- Une seule ligne d'état, qui dit quoi faire. -->
+    <div class="text-sm" role="status" aria-live="polite">
+      @if (filled().length === 0) {
+        <p class="text-text-tertiary">
+          {{ 'dashboard.finance.paste.status.empty' | translate }}
+          <button type="button" class="text-primary hover:underline" (click)="showExample()">{{ 'dashboard.finance.paste.example.show' | translate }}</button>
+          ·
+          <button type="button" class="text-primary hover:underline" (click)="copyTemplate()">
+            {{ (copied() ? 'dashboard.finance.paste.example.copied' : 'dashboard.finance.paste.example.copy') | translate }}
+          </button>
+        </p>
+      } @else if (invalidCount() > 0) {
+        <p class="text-danger">{{ 'dashboard.finance.paste.status.invalid' | translate: { count: invalidCount() } }}</p>
+        <p class="mt-1 text-text-secondary">
+          {{ 'dashboard.finance.paste.ai.question' | translate }}
+          <button type="button" class="text-primary hover:underline" (click)="askAi()">{{ 'dashboard.finance.paste.ai.button' | translate }}</button>
+          <span class="text-text-tertiary"> — {{ 'dashboard.finance.paste.ai.cost' | translate }}</span>
+        </p>
+      } @else {
+        <p class="text-success">{{ 'dashboard.finance.paste.status.ready' | translate: { count: readyCount() } }}</p>
+      }
+      @if (saveError()) {
+        <p class="mt-1 text-danger" role="alert">{{ saveError() }}</p>
+      }
+    </div>
+
+    <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        @if (filled().length > 0) {
+          <button type="button" class="button-ghost button-sm" [disabled]="saving()" (click)="clear()">
+            {{ 'dashboard.finance.paste.clear' | translate }}
+          </button>
+        }
+      </div>
+      <button type="button" class="inner-button" [disabled]="invalidCount() > 0 || readyCount() === 0 || saving()" (click)="add()">
+        @if (saving()) { <idem-loader size="xs" /> } @else { <i class="pi pi-check" aria-hidden="true"></i> }
+        {{ 'dashboard.finance.paste.add' | translate: { count: readyCount() } }}
+      </button>
+    </div>
+  </div>
+</dialog>

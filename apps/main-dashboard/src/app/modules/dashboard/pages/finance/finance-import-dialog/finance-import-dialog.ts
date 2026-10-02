@@ -9,6 +9,7 @@ import {
   OnDestroy,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -77,6 +78,11 @@ export class FinanceImportDialogComponent implements OnDestroy {
   /** Le prévisionnel a-t-il déjà des données ? Sinon, pas de choix à faire. */
   readonly hasExistingData = input<boolean>(false);
   readonly currency = input<string>('XAF');
+  /**
+   * Tableau collé qui ne suit pas le format imposé : la fenêtre s'ouvre
+   * directement sur sa lecture par l'IA, comme pour un fichier.
+   */
+  readonly initialText = input<string>('');
 
   readonly closed = output<void>();
   readonly imported = output<FinanceModel>();
@@ -101,6 +107,11 @@ export class FinanceImportDialogComponent implements OnDestroy {
       if (this.open() && !dialog.open) {
         this.reset();
         dialog.showModal();
+        const text = untracked(this.initialText);
+        if (text) {
+          const name = this.translate.instant('dashboard.finance.paste.ai.fileName');
+          this.read(new File([text], name, { type: 'text/plain' }));
+        }
       } else if (!this.open() && dialog.open) {
         dialog.close();
       }

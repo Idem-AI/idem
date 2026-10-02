@@ -23,6 +23,7 @@ import {
   FinanceSummary,
   FinanceSummaryResponse,
   SectionCompletionStatus,
+  financeMonthLabels,
 } from '../../../models/finance.model';
 import {
   AgentResearchConsoleComponent,
@@ -34,6 +35,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../../shared/components/error-state/error-state';
 import { FinanceIllustrationComponent } from '../finance-illustration/finance-illustration';
 import { FinanceImportDialogComponent } from '../finance-import-dialog/finance-import-dialog';
+import { FinancePasteDialogComponent } from '../finance-paste/finance-paste-dialog';
 
 /** Sujets de recherche marché (noms alignés sur le backend financeAIService). */
 const FINANCE_RESEARCH_TOPICS: { name: string; labelKey: string }[] = [
@@ -75,6 +77,7 @@ interface StepVM {
     IdemLoaderComponent,
     FinanceIllustrationComponent,
     FinanceImportDialogComponent,
+    FinancePasteDialogComponent,
   ],
   templateUrl: './finance-overview.html',
   styleUrl: './finance-overview.css',
@@ -93,6 +96,9 @@ export class FinanceOverviewComponent implements OnInit {
   protected readonly bpMissingDialogVisible = signal<boolean>(false);
   protected readonly importOpen = signal<boolean>(false);
   protected readonly importedNotice = signal<boolean>(false);
+  protected readonly pasteOpen = signal<boolean>(false);
+  /** Tableau collé hors format, confié à la lecture IA. */
+  protected readonly importText = signal<string>('');
 
   // Salle de contrôle de l'auto-fill sourcé (équipe d'agents).
   protected readonly researchVisible = signal<boolean>(false);
@@ -121,6 +127,9 @@ export class FinanceOverviewComponent implements OnInit {
   protected readonly reports = FINANCE_REPORTS;
 
   protected readonly currency = computed(() => this.finance()?.meta.currency || 'XAF');
+  protected readonly monthLabels = computed(() =>
+    financeMonthLabels(this.finance()?.fiscalCalendar, this.translate.currentLang || 'fr'),
+  );
 
   /**
    * Un prévisionnel « commencé » a au moins une étape renseignée. Le serveur
@@ -265,6 +274,18 @@ export class FinanceOverviewComponent implements OnInit {
 
   protected openImport(): void {
     this.importedNotice.set(false);
+    this.importText.set('');
+    this.importOpen.set(true);
+  }
+
+  protected openPaste(): void {
+    this.importedNotice.set(false);
+    this.pasteOpen.set(true);
+  }
+
+  /** Le tableau ne suit pas le format : l'IA le range (payant, annoncé dans la grille). */
+  protected onPasteAiFallback(text: string): void {
+    this.importText.set(text);
     this.importOpen.set(true);
   }
 
