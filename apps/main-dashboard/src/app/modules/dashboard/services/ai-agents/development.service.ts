@@ -43,15 +43,15 @@ export class DevelopmentService {
       {
         name: 'React + Express + PostgreSQL',
         description:
-          'React (Vite) interface, Node.js Express API with Prisma, PostgreSQL database hosted on iDeploy',
+          'React (Vite) interface, Express API with Prisma, PostgreSQL database created and connected by iDeploy',
         frontend: {
           framework: 'React',
           styling: ['Tailwind CSS'],
           features: ['Routing', 'State Management', 'Component Library'],
         },
         backend: {
-          language: 'TypeScript',
-          framework: 'Express.js',
+          language: 'Node.js',
+          framework: 'Express',
           apiType: 'REST API',
           features: ['Authentication', 'Authorization', 'Documentation'],
         },
@@ -65,16 +65,21 @@ export class DevelopmentService {
   }
 
   /**
-   * Configuration d'un site vitrine ou d'une application complète.
+   * Configuration d'un site vitrine, d'une application complète, ou des deux.
    *
-   * `landing` reste un site seul ; tout le reste est une application complète
-   * (interface + serveur + base de données) dont le plan doit exister avant la
-   * génération.
+   * `landing` est un site seul ; `app` une application (interface + serveur +
+   * base de données) ; `both` les deux, construits séparément. Le plan de
+   * l'application est recommandé, pas obligatoire.
    */
   generateQuickConfig(generationType: GenerationType): DevelopmentConfigsModel {
     const preset = this.getQuickGenerationPresets()[0];
     const isLanding = generationType === 'landing';
-    const landingPageConfig = isLanding ? LandingPageConfig.ONLY_LANDING : LandingPageConfig.NONE;
+    // `both` : un site vitrine ET une application, chacun dans son atelier iCode.
+    const landingPageConfig = isLanding
+      ? LandingPageConfig.ONLY_LANDING
+      : generationType === 'both'
+        ? LandingPageConfig.SEPARATE
+        : LandingPageConfig.NONE;
 
     return {
       mode: 'quick',

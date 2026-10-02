@@ -1,47 +1,46 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
+import { catchError, firstValueFrom, of } from 'rxjs';
 import { ProjectModel } from '@idem/shared-models';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { environment } from '../../../../../../environments/environment';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { ErrorStateComponent } from '../../../../../shared/components/error-state/error-state';
 import { IncompleteProjectBannerComponent } from '../../../components/incomplete-project-banner/incomplete-project-banner';
-import { DevelopmentConfigsModel, isFullApplication } from '../../../models/development.model';
+import {
+  DevelopmentConfigsModel,
+  GenerationType,
+  LandingPageConfig,
+  isFullApplication,
+} from '../../../models/development.model';
 import { BrandingValidationService } from '../../../services/branding-validation.service';
-import { AppChatSummary, AppDeploymentModel, ProjectService } from '../../../services/project.service';
+import { DevelopmentService } from '../../../services/ai-agents/development.service';
+import {
+  AppChatSummary,
+  AppDeploymentModel,
+  IcodeProduct,
+  ProjectService,
+} from '../../../services/project.service';
 import { SiteAppIllustrationComponent } from '../site-app-illustration';
 
-type StepId = 'plan' | 'build' | 'golive';
-type StepState = 'done' | 'next' | 'locked' | 'todo';
-
-interface AppStep {
-  id: StepId;
-  number: number;
-  state: StepState;
-}
-
 /**
- * « Site et app » — une seule page, qui dit où l'on en est et quoi faire ensuite.
+ * « Site & App » — deux cartes, le site vitrine et l'application, et une
+ * phrase avant elles : on peut faire les deux.
  *
- * Site vitrine : un bouton, vers iCode.
- * Application complète : trois étapes dans l'ordre, chacune ouverte par la
- * précédente —
- *   1. le plan (diagrammes), lu par iCode pour bâtir les bonnes données ;
- *   2. la construction dans iCode : interface, serveur et base de données ;
- *   3. la mise en ligne par le guide « application 3 tiers » d'iDeploy, qui
- *      crée la base, puis le serveur, puis l'interface, et les relie.
+ * La page ne change pas de forme une fois un produit commencé : chaque carte
+ * dit seulement où elle en est (« En cours », « En ligne ») et son bouton
+ * ouvre directement iCode sur le bon produit (`?product=site|app`), où chacun
+ * garde sa conversation, son code et son adresse publiée.
  *
- * Tout l'état se lit sur le projet (configuration, plan), la conversation
- * iCode et la dernière publication : trois requêtes, aucune saisie.
+ * La mise en ligne de l'application passe par le guide « application 3 tiers »
+ * d'iDeploy. Le plan (diagrammes) n'est pas proposé ici : iCode s'en sert
+ * s'il existe, sans jamais le demander.
  */
 @Component({
   selector: 'app-show-development',
   imports: [
-    DatePipe,
-    RouterLink,
     TranslateModule,
     IdemLoaderComponent,
     ErrorStateComponent,
@@ -57,6 +56,7 @@ export class ShowDevelopment implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly cookies = inject(CookieService);
   private readonly projectService = inject(ProjectService);
+  private readonly development = inject(DevelopmentService);
   private readonly brandingValidation = inject(BrandingValidationService);
 
   private readonly webgenUrl = environment.services.webgen.url;
@@ -67,60 +67,40 @@ export class ShowDevelopment implements OnInit {
   protected readonly projectId = signal<string | null>(null);
   protected readonly project = signal<ProjectModel | null>(null);
   protected readonly isBrandingComplete = signal(false);
+  /** Le produit dont le bouton vient d'être cliqué : il montre le chargement. */
+  protected readonly opening = signal<IcodeProduct | null>(null);
+  protected readonly copied = signal<IcodeProduct | null>(null);
 
-  /** Dernière publication rapide faite depuis iCode, s'il y en a une. */
-  protected readonly deployment = signal<AppDeploymentModel | null>(null);
-  /** Conversation iCode existante : on la reprend plutôt que d'en ouvrir une autre. */
+  /** Conversation iCode et dernière publication, pour chacun des deux produits. */
+  protected readonly siteChat = signal<AppChatSummary | null>(null);
   protected readonly appChat = signal<AppChatSummary | null>(null);
-  protected readonly copied = signal(false);
+  protected readonly siteLive = signal<AppDeploymentModel | null>(null);
+  protected readonly appLive = signal<AppDeploymentModel | null>(null);
 
-  protected readonly configs = computed<DevelopmentConfigsModel | null>(
+  private readonly configs = computed<DevelopmentConfigsModel | null>(
     () => this.project()?.analysisResultModel?.development?.configs ?? null,
   );
-  protected readonly isApp = computed(() => isFullApplication(this.configs()));
-  protected readonly hasPlan = computed(
-    () => (this.project()?.analysisResultModel?.design?.sections?.length ?? 0) > 0,
-  );
-  protected readonly hasCode = computed(() => this.appChat() !== null);
-  protected readonly isLive = computed(() => !!this.deployment()?.url);
-
-  /** Ce qu'IDEM construit, lu sur la configuration plutôt que supposé. */
-  protected readonly stack = computed(() => {
-    const c = this.configs();
-    return {
-      frontend: c?.frontend?.framework || 'React',
-      backend: [c?.backend?.language, c?.backend?.framework].filter(Boolean).join(' · ') || 'Node.js · Express',
-      database: c?.database?.provider || c?.database?.type || 'PostgreSQL',
-    };
-  });
+  protected readonly siteStarted = computed(() => this.siteChat() !== null);
+  protected readonly appStarted = computed(() => this.appChat() !== null);
 
   /**
-   * Les trois étapes et leur état. Une étape s'ouvre quand la précédente est
-   * faite ; la première ouverte et pas encore faite est « la prochaine », et
-   * c'est la seule dont le bouton est mis en avant.
+   * Ce que l'utilisateur a voulu créer : ce qui est commencé dans iCode, ou ce
+   * que dit la configuration (« les deux » commence par le site, l'application
+   * reste due).
    */
-  protected readonly steps = computed<AppStep[]>(() => {
-    // Une conversation iCode ouverte avant le plan (un ancien site vitrine,
-    // par exemple) ne compte pas : l'application n'a pas été bâtie dessus.
-    const done: Record<StepId, boolean> = {
-      plan: this.hasPlan(),
-      build: this.hasPlan() && this.hasCode(),
-      golive: this.hasPlan() && this.hasCode() && this.isLive(),
-    };
-    const open: Record<StepId, boolean> = {
-      plan: true,
-      build: done.plan,
-      golive: done.plan && done.build,
-    };
-    const ids: StepId[] = ['plan', 'build', 'golive'];
-    const next = ids.find((id) => open[id] && !done[id]) ?? null;
-
-    return ids.map((id, index) => ({
-      id,
-      number: index + 1,
-      state: done[id] ? 'done' : id === next ? 'next' : open[id] ? 'todo' : 'locked',
-    }));
+  private readonly wantsSite = computed(() => {
+    const lp = this.configs()?.landingPageConfig;
+    return this.siteStarted() || lp === LandingPageConfig.ONLY_LANDING || lp === LandingPageConfig.SEPARATE;
   });
+  private readonly wantsApp = computed(() => this.appStarted() || isFullApplication(this.configs()));
+
+  /** Où en est chaque produit, dit de la même façon pour les deux. */
+  protected readonly siteStatus = computed(() =>
+    this.siteLive()?.url ? 'live' : this.siteStarted() ? 'started' : 'notStarted',
+  );
+  protected readonly appStatus = computed(() =>
+    this.appLive()?.url ? 'live' : this.appStarted() ? 'started' : 'notStarted',
+  );
 
   ngOnInit(): void {
     const projectId = this.cookies.get('projectId');
@@ -148,12 +128,6 @@ export class ShowDevelopment implements OnInit {
         next: (project) => {
           this.project.set(project);
           this.isBrandingComplete.set(this.brandingValidation.checkBrandingCompletion(project).isComplete);
-
-          // Rien n'a encore été choisi : on commence par là.
-          if (this.isBrandingComplete() && !this.configs()) {
-            void this.router.navigate(['/project/development/create']);
-            return;
-          }
           this.loading.set(false);
         },
         error: () => {
@@ -162,26 +136,60 @@ export class ShowDevelopment implements OnInit {
         },
       });
 
-    // Ces deux lectures répondent `null` en cas d'échec : la page reste juste,
-    // seule l'étape concernée apparaît comme pas encore faite.
-    this.projectService
-      .getAppChatSummary(projectId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((chat) => this.appChat.set(chat));
-    this.projectService
-      .getAppDeployment(projectId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((deployment) => this.deployment.set(deployment));
+    // Ces lectures répondent `null` en cas d'échec : la page reste juste, le
+    // produit concerné apparaît seulement comme pas encore commencé.
+    const products: Array<[IcodeProduct, typeof this.siteChat, typeof this.siteLive]> = [
+      ['site', this.siteChat, this.siteLive],
+      ['app', this.appChat, this.appLive],
+    ];
+    for (const [product, chat, live] of products) {
+      this.projectService
+        .getAppChatSummary(projectId, product)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((summary) => chat.set(summary));
+      this.projectService
+        .getAppDeployment(projectId, product)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((deployment) => live.set(deployment));
+    }
   }
 
-  /** Ouvre iCode sur ce projet ; il lit lui-même la configuration et le plan. */
-  protected openICode(): void {
+  /**
+   * Ouvre iCode sur le site vitrine ou sur l'application, en un clic.
+   *
+   * La configuration du projet est mise à jour d'abord (site, application ou
+   * les deux) : le parcours Assisté et les réglages d'iCode la lisent. Son
+   * échec n'empêche pas d'ouvrir iCode, qui choisit son travail d'après
+   * l'adresse.
+   */
+  protected async openICode(product: IcodeProduct): Promise<void> {
     const projectId = this.projectId();
-    if (!projectId) return;
-    // L'application complète se construit sur le plan : sans lui, iCode
-    // n'aurait que la description du projet pour deviner les données.
-    if (this.isApp() && !this.hasPlan()) return;
-    window.location.href = `${this.webgenUrl}?projectId=${encodeURIComponent(projectId)}`;
+    if (!projectId || this.opening()) return;
+    this.opening.set(product);
+
+    const wanted = this.configFor(product);
+    if (wanted) {
+      await firstValueFrom(
+        this.development
+          .saveDevelopmentConfigs(this.development.generateQuickConfig(wanted), projectId, wanted)
+          .pipe(catchError(() => of(null))),
+      );
+    }
+
+    window.location.href =
+      `${this.webgenUrl}?projectId=${encodeURIComponent(projectId)}&product=${product}`;
+  }
+
+  /** La configuration à enregistrer pour ouvrir ce produit, ou `null` si elle le couvre déjà. */
+  private configFor(product: IcodeProduct): GenerationType | null {
+    const hasSite = this.wantsSite();
+    const hasApp = this.wantsApp();
+    if (product === 'site') {
+      if (hasSite) return null;
+      return hasApp ? 'both' : 'landing';
+    }
+    if (hasApp) return null;
+    return hasSite ? 'both' : 'app';
   }
 
   /**
@@ -190,22 +198,17 @@ export class ShowDevelopment implements OnInit {
    * `VITE_API_URL` aussi).
    */
   protected openGoLiveGuide(): void {
-    if (!this.hasCode()) return;
+    if (!this.appStarted()) return;
     window.open(`${this.ideployUrl}/new-project/guide/3-tier`, '_blank', 'noopener');
   }
 
-  protected openLiveApp(): void {
-    const url = this.deployment()?.url;
-    if (url) window.open(url, '_blank', 'noopener');
-  }
-
-  protected async copyLiveUrl(): Promise<void> {
-    const url = this.deployment()?.url;
+  protected async copy(product: IcodeProduct): Promise<void> {
+    const url = (product === 'site' ? this.siteLive() : this.appLive())?.url;
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
-      this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 2000);
+      this.copied.set(product);
+      setTimeout(() => this.copied.set(null), 2000);
     } catch {
       // Presse-papiers refusé (contexte non sécurisé) : le lien reste affiché.
     }

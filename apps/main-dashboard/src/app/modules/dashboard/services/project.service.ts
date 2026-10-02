@@ -6,6 +6,9 @@ import { environment } from '../../../../environments/environment';
 import { ProjectModel } from '@idem/shared-models';
 
 /** Existing iCode conversation attached to a project, without its messages. */
+/** Les deux produits qu'un projet peut construire dans iCode. */
+export type IcodeProduct = 'site' | 'app';
+
 export interface AppChatSummary {
   sessionId: string;
   title?: string;
@@ -217,11 +220,13 @@ export class ProjectService {
 
   /**
    * Lightweight check for an existing iCode conversation on this project.
-   * Returns null when the app has never been generated.
+   * A project has two products — its showcase website and its application —
+   * each with its own conversation. Returns null when it was never started.
    */
-  getAppChatSummary(projectId: string): Observable<AppChatSummary | null> {
+  getAppChatSummary(projectId: string, product: IcodeProduct = 'site'): Observable<AppChatSummary | null> {
+    const productParam = product === 'app' ? '&product=app' : '';
     return this.http
-      .get<AppChatSummary>(`${this.apiUrl}/${projectId}/chat-session?summary=1`)
+      .get<AppChatSummary>(`${this.apiUrl}/${projectId}/chat-session?summary=1${productParam}`)
       .pipe(catchError(() => of(null)));
   }
 
@@ -229,9 +234,10 @@ export class ProjectService {
    * Retrieves the last quick deployment (Netlify) published from iCode for a project.
    * Returns null when the project has never been deployed.
    */
-  getAppDeployment(projectId: string): Observable<AppDeploymentModel | null> {
+  getAppDeployment(projectId: string, product: IcodeProduct = 'site'): Observable<AppDeploymentModel | null> {
+    const productParam = product === 'app' ? '?product=app' : '';
     return this.http
-      .get<AppDeploymentModel>(`${this.apiUrl}/${projectId}/app-deployment`)
+      .get<AppDeploymentModel>(`${this.apiUrl}/${projectId}/app-deployment${productParam}`)
       .pipe(catchError(() => of(null)));
   }
 

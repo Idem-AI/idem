@@ -492,16 +492,9 @@ export const routes: Routes = [
     canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
-  {
-    path: 'project/development/create',
-    title: 'navigation.titles.createDevelopment',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/development/create-development/create-development').then(
-        (m) => m.CreateDevelopmentComponent,
-      ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
-    data: { layout: 'dashboard' },
-  },
+  // Un projet peut avoir son site vitrine et son application : il n'y a plus
+  // rien à choisir avant de commencer. L'ancienne page de choix mène à « Site & App ».
+  { path: 'project/development/create', redirectTo: 'project/development', pathMatch: 'full' },
   {
     path: 'project/development',
     title: 'navigation.titles.development',

@@ -105,6 +105,8 @@ export class ShowDiagramsComponent implements OnInit {
   /** Étape suivante : iCode bâtit l'application sur ce plan. */
   protected buildApp(): void {
     const projectId = this.projectId();
-    if (projectId) window.location.href = `${this.webgenUrl}?projectId=${encodeURIComponent(projectId)}`;
+    if (projectId) {
+      window.location.href = `${this.webgenUrl}?projectId=${encodeURIComponent(projectId)}&product=app`;
+    }
   }
 }

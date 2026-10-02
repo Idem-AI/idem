@@ -89,7 +89,6 @@ const KIND_CONFIG: Record<DeliverableKind, DeliverableKindConfig> = {
     titleKey: 'chat.deliverables.development',
     icon: 'pi pi-code',
     editorRoute: '/project/development',
-    generateRoute: '/project/development/create',
     pdfSupported: false,
   },
   deployment: {

@@ -1,5 +1,6 @@
 import { ProjectModel } from '@/api/persistence/models/project.model';
 import { LandingPageConfig } from '@/api/persistence/models/development.model';
+import { currentProduct } from '@/utils/product';
 
 export class MultiChatPromptService {
   /**
@@ -73,13 +74,12 @@ This platform primarily targets Sub-Saharan Africa. ALL generated content MUST r
    * "app", "both" and "integrated" choices all had a server and a database.
    */
   static isFullApplication(projectData: ProjectModel | null | undefined): boolean {
+    // Le tableau de bord dit quel produit il ouvre : le site vitrine et
+    // l'application d'un même projet ont chacun leur atelier.
+    const product = currentProduct();
+    if (product) return product === 'app';
     const configs = projectData?.analysisResultModel?.development?.configs;
     return !!configs && configs.landingPageConfig !== LandingPageConfig.ONLY_LANDING;
-  }
-
-  /** The application plan (diagrams) drawn on the IDEM dashboard. */
-  static hasPlan(projectData: ProjectModel | null | undefined): boolean {
-    return (projectData?.analysisResultModel?.design?.sections?.length ?? 0) > 0;
   }
 
   /**
@@ -127,9 +127,9 @@ Generate the complete landing page code with all necessary files.`;
     const brandInfo = this.getCompleteBrandInfo(projectData);
     const plan = this.getPlanInfo(projectData);
     const configs = projectData.analysisResultModel?.development?.configs;
-    const withLanding =
-      configs?.landingPageConfig === LandingPageConfig.INTEGRATED ||
-      configs?.landingPageConfig === LandingPageConfig.SEPARATE;
+    // Un site vitrine à part (SEPARATE) a son propre atelier : seule une
+    // vitrine intégrée vit dans l'application.
+    const withLanding = configs?.landingPageConfig === LandingPageConfig.INTEGRATED;
     const features = configs?.projectConfig;
 
     return `# Complete Web Application Generation (frontend + backend + database)
@@ -178,6 +178,8 @@ Generate the complete application code — both folders — with all necessary f
   private getPlanInfo(projectData: ProjectModel): string {
     const sections = projectData.analysisResultModel?.design?.sections ?? [];
     if (sections.length === 0) {
+      // Le plan n'est jamais demandé à l'utilisateur : sans lui, on part de la
+      // description du projet.
       return '## Application Plan\n- No plan available. Derive the entities and screens from the project description, and keep them few.';
     }
 

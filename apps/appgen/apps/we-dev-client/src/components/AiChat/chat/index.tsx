@@ -42,9 +42,8 @@ import { ProjectLogo } from '@/components/ProjectLogo';
 import { useLoading } from '../../loading';
 import { ProjectModel } from '@/api/persistence/models/project.model';
 import { MultiChatPromptService } from './services/multiChatPromptService';
+import { currentProduct } from '@/utils/product';
 import useChatHistoryStore from '@/stores/chatHistoryStore';
-
-const IDEM_DASHBOARD_URL = process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200';
 
 type WeMessages = (Message & {
   experimental_attachments?: Array<{
@@ -453,13 +452,6 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [projectData, setProjectData] = useState<ProjectModel | null>(null);
   const [isProjectLoaded, setIsProjectLoaded] = useState(false);
   const [showStartButton, setShowStartButton] = useState(false);
-  // Application complète sans plan : on renvoie dessiner le plan d'abord.
-  const planMissing = useMemo(
-    () =>
-      MultiChatPromptService.isFullApplication(projectData) &&
-      !MultiChatPromptService.hasPlan(projectData),
-    [projectData]
-  );
   const [hasGeneration, setHasGeneration] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -834,7 +826,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           }
 
           // Check if generation already exists
-          const existingGeneration = await getProjectGeneration(projectId);
+          // L'ancien marqueur de génération date d'avant les deux produits : il
+          // désigne le site. L'application se fie à sa propre conversation.
+          const existingGeneration =
+            currentProduct() === 'app' ? null : await getProjectGeneration(projectId);
           if (existingGeneration || hasStoredSession) {
             setHasGeneration(true);
             setIsGenerationComplete(true);
@@ -914,10 +909,6 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   // Function to manually start generation
   const handleStartGeneration = async () => {
     if (!projectData) return;
-    // Une application complète se bâtit sur son plan : sans lui, le modèle
-    // devinerait les données. Le bouton est déjà remplacé par un renvoi vers
-    // le tableau de bord ; ceci couvre tout autre déclenchement.
-    if (planMissing) return;
 
     try {
       console.log('🚀 CLIENT: Starting project generation');
@@ -1395,22 +1386,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                   {projectData.description || t('chatWorkspace.readyToGenerate')}
                 </p>
               </div>
-              {showStartButton && planMissing ? (
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold text-text-primary mb-2">
-                    {t('chatWorkspace.planRequired.title')}
-                  </h3>
-                  <p className="text-sm text-text-tertiary mb-4 max-w-md mx-auto">
-                    {t('chatWorkspace.planRequired.body')}
-                  </p>
-                  <a
-                    href={`${IDEM_DASHBOARD_URL}/project/development/diagrams/generate`}
-                    className="inner-button inline-flex items-center gap-2 px-6 py-3 font-semibold"
-                  >
-                    {t('chatWorkspace.planRequired.cta')}
-                  </a>
-                </div>
-              ) : showStartButton ? (
+              {showStartButton ? (
                 <div className="text-center">
                   <p className="text-sm text-text-tertiary mb-4">
                     {t('chatWorkspace.startHint')}

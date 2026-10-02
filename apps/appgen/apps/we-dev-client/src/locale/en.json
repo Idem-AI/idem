@@ -676,12 +676,7 @@
     "complete": "Generation complete",
     "completeBody": "Your application is generated and ready to publish.",
     "loadFailed": "Could not load the project",
-    "retry": "Try again",
-    "planRequired": {
-      "title": "Draw the application plan first",
-      "body": "A complete application is built on its plan: the screens, the data and how they connect. It takes one to two minutes on the IDEM dashboard; then come back here.",
-      "cta": "Draw the plan"
-    }
+    "retry": "Try again"
   },
   "checks": {
     "title": "Project checks",

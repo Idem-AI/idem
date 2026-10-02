@@ -2103,7 +2103,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         labelKey: 'chat.dev.chips.open',
         icon: 'pi pi-bolt',
         action: 'open-route',
-        payload: '/project/development/create',
+        payload: '/project/development',
       },
     ];
     if (hasConfig) {

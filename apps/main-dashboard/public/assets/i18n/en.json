@@ -4577,10 +4577,6 @@
     },
     "siteApp": {
       "title": "Site & App",
-      "subtitleSite": "Your showcase website: the page that presents your business and brings customers in.",
-      "subtitleApp": "Your complete application, in three steps: the plan, the build, going live.",
-      "changeType": "Change type",
-      "resumeICode": "Resume in iCode",
       "errors": {
         "title": "This page could not be loaded",
         "load": "The project could not be read. Check your connection and try again.",
@@ -4588,26 +4584,20 @@
       },
       "live": {
         "title": "Live",
-        "updated": "Updated on {{date}}",
         "copy": "Copy link",
-        "copied": "Link copied",
-        "open": "Open"
+        "copied": "Link copied"
       },
       "site": {
-        "title": "Your showcase website",
-        "titleExisting": "Your website is in progress in iCode",
-        "body": "iCode builds it with your brand — logo, colours, fonts — and your project's details. You then change it by talking to it.",
-        "bodyExisting": "Pick up where you left off: your conversation and your code are waiting.",
-        "cta": "Create my website"
+        "resume": "Resume my showcase website"
       },
       "steps": {
-        "title": "Your application in three steps",
-        "lead": "Each step opens the next one. You always see where you are.",
+        "title": "Your application's steps",
         "stepLabel": "Step {{n}}:",
         "todo": "To do",
         "plan": {
           "title": "Draw the plan",
-          "body": "IDEM draws the screens, the data and how they connect, from your project. iCode uses it to build the right things.",
+          "recommended": "Recommended",
+          "body": "IDEM draws your application's screens and information. With this plan, iCode builds exactly what you need.",
           "done": "Plan ready",
           "locked": "",
           "cta": "Draw the plan",
@@ -4615,28 +4605,20 @@
         },
         "build": {
           "title": "Build the application",
-          "body": "iCode writes the interface, the server and the database from the plan. You try it and change it by talking to it.",
+          "body": "iCode writes the interface, the server and the database. You try it and change it by talking to it.",
+          "withoutPlan": "Possible right now. The plan is recommended, not required.",
           "done": "Application started in iCode",
-          "locked": "Available once the plan is drawn",
-          "cta": "Build in iCode"
+          "locked": "",
+          "cta": "Build in iCode",
+          "resume": "Resume in iCode"
         },
         "golive": {
           "title": "Go live",
           "body": "Send the code to GitHub from iCode, then iDeploy creates the database, the server and the interface, and connects them for you.",
           "done": "Application live",
-          "locked": "Available once the application is built",
+          "locked": "Available once the application is started",
           "cta": "Go live with iDeploy"
         }
-      },
-      "stack": {
-        "title": "What IDEM builds for you",
-        "lead": "Technologies chosen to go live as they are on iDeploy.",
-        "frontend": "Interface",
-        "frontendHint": "The screens your customers use, on phone and computer.",
-        "backend": "Server",
-        "backendHint": "Your business rules, accounts and security.",
-        "database": "Database",
-        "databaseHint": "Your data, organised and backed up."
       },
       "plan": {
         "title": "Your application's plan",
@@ -4647,31 +4629,31 @@
         "redraw": "Redraw",
         "edit": "Edit",
         "emptyTitle": "The plan has not been drawn yet",
-        "emptyBody": "It is the first step of a complete application: without a plan, iCode would have to guess your data.",
+        "emptyBody": "Recommended before building your application: with it, iCode builds exactly what you need. You can also build without it.",
         "readyTitle": "The plan is ready",
         "readyBody": "Next step: iCode builds the interface, the server and the database from this plan."
       },
-      "create": {
-        "title": "What do you want to build?",
-        "subtitle": "Pick what fits your project. You can change your mind later.",
-        "current": "Your current choice",
-        "error": "Your choice could not be saved. Check your connection and try again.",
-        "note": "IDEM picks the technologies so your website or application goes live with no setup.",
+      "status": {
+        "notStarted": "Not started yet",
+        "started": "In progress",
+        "live": "Live"
+      },
+      "pick": {
+        "title": "Create your showcase website and your application",
         "site": {
           "title": "A showcase website",
-          "body": "A page that presents your business, your offers and how to reach you.",
-          "point1": "Ready in a few minutes",
-          "point2": "In your brand's colours",
-          "cta": "Create my website"
+          "line": "A page on the internet that presents your business, your services and your prices. Your customers discover you, see your work and contact you in one click, by phone or on WhatsApp.",
+          "cta": "Create my showcase website"
         },
         "app": {
-          "title": "A complete application",
-          "body": "A tool your customers or your team use: accounts, data, dashboard.",
-          "point1": "Interface, server and database",
-          "point2": "Built on a plan drawn for your project",
-          "point3": "Guided go-live with iDeploy",
-          "cta": "Start my application"
+          "title": "An application",
+          "line": "An online service your customers use with their own account: they book an appointment, place an order or track a delivery. You manage your customers, sales or stock in one place.",
+          "cta": "Create my application"
         }
+      },
+      "both": {
+        "title": "You can do both",
+        "body": "Your project can have a showcase website and an application. Start with whichever you want, then create the other when you are ready: each one moves on its own."
       }
     },
     "goLive": {

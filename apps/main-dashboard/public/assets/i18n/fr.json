@@ -4580,10 +4580,6 @@
     },
     "siteApp": {
       "title": "Site & App",
-      "subtitleSite": "Votre site vitrine : la page qui présente votre activité et fait venir vos clients.",
-      "subtitleApp": "Votre application complète, en trois étapes : le plan, la construction, la mise en ligne.",
-      "changeType": "Changer de type",
-      "resumeICode": "Reprendre dans iCode",
       "errors": {
         "title": "Impossible de charger cette page",
         "load": "Le projet n'a pas pu être lu. Vérifiez votre connexion et réessayez.",
@@ -4591,26 +4587,20 @@
       },
       "live": {
         "title": "En ligne",
-        "updated": "Mis à jour le {{date}}",
         "copy": "Copier le lien",
-        "copied": "Lien copié",
-        "open": "Ouvrir"
+        "copied": "Lien copié"
       },
       "site": {
-        "title": "Votre site vitrine",
-        "titleExisting": "Votre site est en cours dans iCode",
-        "body": "iCode le construit avec votre marque — logo, couleurs, polices — et les informations de votre projet. Vous le modifiez ensuite en lui parlant.",
-        "bodyExisting": "Reprenez là où vous vous êtes arrêté : vos échanges et votre code vous attendent.",
-        "cta": "Créer mon site"
+        "resume": "Reprendre mon site vitrine"
       },
       "steps": {
-        "title": "Votre application en trois étapes",
-        "lead": "Chaque étape ouvre la suivante. Vous voyez à tout moment où vous en êtes.",
+        "title": "Les étapes de votre application",
         "stepLabel": "Étape {{n}} :",
         "todo": "À faire",
         "plan": {
           "title": "Dessiner le plan",
-          "body": "IDEM dessine les écrans, les données et leurs liens à partir de votre projet. iCode s'en sert pour construire les bonnes choses.",
+          "recommended": "Recommandé",
+          "body": "IDEM dessine les écrans et les informations de votre application. Avec ce plan, iCode construit exactement ce qu'il vous faut.",
           "done": "Plan prêt",
           "locked": "",
           "cta": "Dessiner le plan",
@@ -4618,28 +4608,20 @@
         },
         "build": {
           "title": "Construire l'application",
-          "body": "iCode écrit l'interface, le serveur et la base de données d'après le plan. Vous l'essayez et la modifiez en lui parlant.",
+          "body": "iCode écrit l'interface, le serveur et la base de données. Vous l'essayez et la modifiez en lui parlant.",
+          "withoutPlan": "Possible dès maintenant. Le plan est conseillé, pas obligatoire.",
           "done": "Application commencée dans iCode",
-          "locked": "Disponible une fois le plan dessiné",
-          "cta": "Construire dans iCode"
+          "locked": "",
+          "cta": "Construire dans iCode",
+          "resume": "Reprendre dans iCode"
         },
         "golive": {
           "title": "Mettre en ligne",
           "body": "Envoyez le code sur GitHub depuis iCode, puis iDeploy crée la base de données, le serveur et l'interface, et les relie pour vous.",
           "done": "Application en ligne",
-          "locked": "Disponible une fois l'application construite",
+          "locked": "Disponible une fois l'application commencée",
           "cta": "Mettre en ligne avec iDeploy"
         }
-      },
-      "stack": {
-        "title": "Ce qu'IDEM construit pour vous",
-        "lead": "Des technologies choisies pour être mises en ligne telles quelles sur iDeploy.",
-        "frontend": "Interface",
-        "frontendHint": "Les écrans que vos clients utilisent, sur téléphone et ordinateur.",
-        "backend": "Serveur",
-        "backendHint": "Les règles de votre activité, les comptes et la sécurité.",
-        "database": "Base de données",
-        "databaseHint": "Vos données, rangées et sauvegardées."
       },
       "plan": {
         "title": "Le plan de votre application",
@@ -4650,31 +4632,31 @@
         "redraw": "Redessiner",
         "edit": "Modifier",
         "emptyTitle": "Le plan n'est pas encore dessiné",
-        "emptyBody": "C'est la première étape d'une application complète : sans plan, iCode devrait deviner vos données.",
+        "emptyBody": "Recommandé avant de construire votre application : avec lui, iCode construit exactement ce qu'il vous faut. Vous pouvez aussi construire sans lui.",
         "readyTitle": "Le plan est prêt",
         "readyBody": "Étape suivante : iCode construit l'interface, le serveur et la base de données d'après ce plan."
       },
-      "create": {
-        "title": "Que voulez-vous construire ?",
-        "subtitle": "Choisissez ce qui correspond à votre projet. Vous pourrez changer d'avis plus tard.",
-        "current": "Votre choix actuel",
-        "error": "Votre choix n'a pas pu être enregistré. Vérifiez votre connexion et réessayez.",
-        "note": "Les technologies sont choisies par IDEM pour que votre site ou votre application se mette en ligne sans réglage.",
+      "status": {
+        "notStarted": "Pas encore commencé",
+        "started": "En cours",
+        "live": "En ligne"
+      },
+      "pick": {
+        "title": "Créez votre site vitrine et votre application",
         "site": {
           "title": "Un site vitrine",
-          "body": "Une page qui présente votre activité, vos offres et comment vous contacter.",
-          "point1": "Prêt en quelques minutes",
-          "point2": "Aux couleurs de votre marque",
-          "cta": "Créer mon site"
+          "line": "Une page sur internet qui présente votre activité, vos services et vos prix. Vos clients vous découvrent, voient vos réalisations et vous contactent en un clic, par téléphone ou sur WhatsApp.",
+          "cta": "Créer mon site vitrine"
         },
         "app": {
-          "title": "Une application complète",
-          "body": "Un outil que vos clients ou votre équipe utilisent : comptes, données, tableau de bord.",
-          "point1": "Interface, serveur et base de données",
-          "point2": "Construite sur un plan dessiné pour votre projet",
-          "point3": "Mise en ligne guidée avec iDeploy",
-          "cta": "Commencer mon application"
+          "title": "Une application",
+          "line": "Un service en ligne que vos clients utilisent avec leur propre compte : ils réservent un rendez-vous, passent une commande ou suivent une livraison. Vous gérez vos clients, vos ventes ou votre stock au même endroit.",
+          "cta": "Créer mon application"
         }
+      },
+      "both": {
+        "title": "Vous pouvez faire les deux",
+        "body": "Votre projet peut avoir un site vitrine et une application. Commencez par celui que vous voulez, puis créez l'autre quand vous le souhaitez : chacun avance de son côté."
       }
     },
     "goLive": {

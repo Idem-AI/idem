@@ -9,179 +9,71 @@
     <app-incomplete-project-banner [project]="project()!" />
   </div>
 } @else {
-  <div class="sa space-y-8 p-4 md:p-2">
-    <!-- ═════════════ En-tête ═════════════ -->
-    <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-      <div>
-        <h1 class="text-2xl md:text-3xl font-bold text-text-primary">{{ 'dashboard.siteApp.title' | translate }}</h1>
-        <p class="text-text-secondary mt-1 text-sm max-w-2xl">
-          {{ (isApp() ? 'dashboard.siteApp.subtitleApp' : 'dashboard.siteApp.subtitleSite') | translate }}
-        </p>
-      </div>
-      <a routerLink="/project/development/create" class="outer-button button-sm self-start md:self-auto">
-        <i class="pi pi-sync" aria-hidden="true"></i>
-        {{ 'dashboard.siteApp.changeType' | translate }}
-      </a>
+  <div class="sa p-4 md:p-2">
+    <!-- Le titre et la phrase « les deux », centrés au-dessus des cartes. -->
+    <header class="sa-intro">
+      <h1 class="text-2xl md:text-3xl font-bold text-text-primary">{{ 'dashboard.siteApp.pick.title' | translate }}</h1>
+      <p class="sa-both" role="note">
+        <i class="pi pi-check-circle" aria-hidden="true"></i>
+        {{ 'dashboard.siteApp.both.title' | translate }}
+      </p>
+      <p class="sa-intro__body">{{ 'dashboard.siteApp.both.body' | translate }}</p>
     </header>
 
-    <!-- ═════════════ Déjà en ligne ═════════════ -->
-    @if (deployment(); as live) {
-      @if (live.url) {
-        <section class="glass-card sa-live p-5 flex flex-col md:flex-row md:items-center gap-4" aria-labelledby="sa-live">
-          <div class="flex-1 min-w-0">
-            <h2 id="sa-live" class="font-semibold text-text-primary flex items-center gap-2">
-              <span class="sa-dot" aria-hidden="true"></span>
-              {{ 'dashboard.siteApp.live.title' | translate }}
-            </h2>
-            <a [href]="live.url" target="_blank" rel="noopener" class="sa-link mt-1 block truncate">{{ live.url }}</a>
-            @if (live.lastDeployedAt) {
-              <p class="text-xs text-text-tertiary mt-1">
-                {{ 'dashboard.siteApp.live.updated' | translate: { date: (live.lastDeployedAt | date: 'dd/MM/yyyy HH:mm') } }}
-              </p>
-            }
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <button type="button" class="outer-button button-sm" (click)="copyLiveUrl()">
-              <i class="pi" [class.pi-check]="copied()" [class.pi-copy]="!copied()" aria-hidden="true"></i>
-              {{ (copied() ? 'dashboard.siteApp.live.copied' : 'dashboard.siteApp.live.copy') | translate }}
-            </button>
-            <button type="button" class="inner-button button-sm" (click)="openLiveApp()">
-              {{ 'dashboard.siteApp.live.open' | translate }}
-              <i class="pi pi-external-link" aria-hidden="true"></i>
-            </button>
-          </div>
-        </section>
-      }
-    }
+    <div class="sa-cards">
+      <!-- ═════════════ Site vitrine ═════════════ -->
+      <section class="glass-card sa-pick" [class.sa-pick--started]="siteStarted()" aria-labelledby="sa-site">
+        @if (siteStarted()) {
+          <span class="sa-badge sa-badge--{{ siteStatus() }}">{{ 'dashboard.siteApp.status.' + siteStatus() | translate }}</span>
+        }
+        <app-site-app-illustration scene="site" class="sa-pick__art" />
+        <h2 id="sa-site" class="sa-pick__title">{{ 'dashboard.siteApp.pick.site.title' | translate }}</h2>
+        <p class="sa-pick__line">{{ 'dashboard.siteApp.pick.site.line' | translate }}</p>
 
-    @if (!isApp()) {
-      <!-- ═════════════ Site vitrine : une seule action ═════════════ -->
-      <section class="glass-card sa-hero p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-6" aria-labelledby="sa-site">
-        <app-site-app-illustration scene="site" class="w-40 md:w-48 shrink-0" />
-        <div class="flex-1">
-          <h2 id="sa-site" class="text-lg font-semibold text-text-primary">
-            {{ (hasCode() ? 'dashboard.siteApp.site.titleExisting' : 'dashboard.siteApp.site.title') | translate }}
-          </h2>
-          <p class="text-sm text-text-secondary mt-1 max-w-xl">
-            {{ (hasCode() ? 'dashboard.siteApp.site.bodyExisting' : 'dashboard.siteApp.site.body') | translate }}
-          </p>
-          <button type="button" class="inner-button mt-5" (click)="openICode()">
-            {{ (hasCode() ? 'dashboard.siteApp.resumeICode' : 'dashboard.siteApp.site.cta') | translate }}
-            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+        @if (siteLive()?.url; as url) {
+          <div class="sa-live">
+            <a [href]="url" target="_blank" rel="noopener" class="sa-link truncate">{{ url }}</a>
+            <button type="button" class="sa-link-button" (click)="copy('site')">
+              {{ (copied() === 'site' ? 'dashboard.siteApp.live.copied' : 'dashboard.siteApp.live.copy') | translate }}
+            </button>
+          </div>
+        }
+
+        <button type="button" class="inner-button sa-pick__cta" [disabled]="opening() !== null" (click)="openICode('site')">
+          @if (opening() === 'site') { <idem-loader size="xs" /> }
+          {{ (siteStarted() ? 'dashboard.siteApp.site.resume' : 'dashboard.siteApp.pick.site.cta') | translate }}
+          <i class="pi pi-arrow-right" aria-hidden="true"></i>
+        </button>
+      </section>
+
+      <!-- ═════════════ Application ═════════════ -->
+      <section class="glass-card sa-pick" [class.sa-pick--started]="appStarted()" aria-labelledby="sa-app">
+        @if (appStarted()) {
+          <span class="sa-badge sa-badge--{{ appStatus() }}">{{ 'dashboard.siteApp.status.' + appStatus() | translate }}</span>
+        }
+        <app-site-app-illustration scene="app" class="sa-pick__art" />
+        <h2 id="sa-app" class="sa-pick__title">{{ 'dashboard.siteApp.pick.app.title' | translate }}</h2>
+        <p class="sa-pick__line">{{ 'dashboard.siteApp.pick.app.line' | translate }}</p>
+
+        @if (appLive()?.url; as url) {
+          <div class="sa-live">
+            <a [href]="url" target="_blank" rel="noopener" class="sa-link truncate">{{ url }}</a>
+          </div>
+        }
+
+        <button type="button" class="inner-button sa-pick__cta" [disabled]="opening() !== null" (click)="openICode('app')">
+          @if (opening() === 'app') { <idem-loader size="xs" /> }
+          {{ (appStarted() ? 'dashboard.siteApp.steps.build.resume' : 'dashboard.siteApp.pick.app.cta') | translate }}
+          <i class="pi pi-arrow-right" aria-hidden="true"></i>
+        </button>
+
+        @if (appStarted()) {
+          <button type="button" class="sa-extra__link" (click)="openGoLiveGuide()">
+            <i class="pi pi-send text-xs" aria-hidden="true"></i>
+            {{ 'dashboard.siteApp.steps.golive.cta' | translate }}
           </button>
-        </div>
+        }
       </section>
-    } @else {
-      <!-- ═════════════ Application complète : trois étapes ═════════════ -->
-      <section aria-labelledby="sa-steps">
-        <h2 id="sa-steps" class="text-lg font-semibold text-text-primary">{{ 'dashboard.siteApp.steps.title' | translate }}</h2>
-        <p class="text-sm text-text-secondary mt-1">{{ 'dashboard.siteApp.steps.lead' | translate }}</p>
-
-        <ol class="mt-5 grid gap-3">
-          @for (step of steps(); track step.id) {
-            <li class="glass-card sa-step" [class.sa-step--next]="step.state === 'next'" [class.sa-step--locked]="step.state === 'locked'">
-              <span class="sa-step__num" [class.sa-step__num--done]="step.state === 'done'" aria-hidden="true">
-                @if (step.state === 'done') { <i class="pi pi-check text-xs"></i> } @else { {{ step.number }} }
-              </span>
-
-              <app-site-app-illustration
-                [scene]="step.id === 'plan' ? 'plan' : step.id === 'build' ? 'app' : 'golive'"
-                class="sa-step__art"
-              />
-
-              <div class="sa-step__text">
-                <h3 class="font-semibold text-text-primary">
-                  <span class="sr-only">{{ 'dashboard.siteApp.steps.stepLabel' | translate: { n: step.number } }}</span>
-                  {{ 'dashboard.siteApp.steps.' + step.id + '.title' | translate }}
-                </h3>
-                <p class="text-sm text-text-secondary mt-1">{{ 'dashboard.siteApp.steps.' + step.id + '.body' | translate }}</p>
-                <p class="sa-status mt-2" [class.sa-status--done]="step.state === 'done'">
-                  @switch (step.state) {
-                    @case ('done') { {{ 'dashboard.siteApp.steps.' + step.id + '.done' | translate }} }
-                    @case ('locked') {
-                      <i class="pi pi-lock text-[10px]" aria-hidden="true"></i>
-                      {{ 'dashboard.siteApp.steps.' + step.id + '.locked' | translate }}
-                    }
-                    @default { {{ 'dashboard.siteApp.steps.todo' | translate }} }
-                  }
-                </p>
-              </div>
-
-              <div class="sa-step__action">
-                @switch (step.id) {
-                  @case ('plan') {
-                    @if (hasPlan()) {
-                      <a routerLink="/project/development/diagrams" class="outer-button button-sm">
-                        {{ 'dashboard.siteApp.steps.plan.view' | translate }}
-                      </a>
-                    } @else {
-                      <a routerLink="/project/development/diagrams/generate" class="inner-button button-sm">
-                        {{ 'dashboard.siteApp.steps.plan.cta' | translate }}
-                        <i class="pi pi-arrow-right" aria-hidden="true"></i>
-                      </a>
-                    }
-                  }
-                  @case ('build') {
-                    <button
-                      type="button"
-                      class="button-sm"
-                      [class.inner-button]="step.state === 'next'"
-                      [class.outer-button]="step.state !== 'next'"
-                      [disabled]="step.state === 'locked'"
-                      (click)="openICode()"
-                    >
-                      {{ (hasCode() ? 'dashboard.siteApp.resumeICode' : 'dashboard.siteApp.steps.build.cta') | translate }}
-                      @if (step.state === 'next') { <i class="pi pi-arrow-right" aria-hidden="true"></i> }
-                    </button>
-                  }
-                  @case ('golive') {
-                    <button
-                      type="button"
-                      class="button-sm"
-                      [class.inner-button]="step.state === 'next'"
-                      [class.outer-button]="step.state !== 'next'"
-                      [disabled]="step.state === 'locked'"
-                      (click)="openGoLiveGuide()"
-                    >
-                      {{ 'dashboard.siteApp.steps.golive.cta' | translate }}
-                      <i class="pi pi-external-link" aria-hidden="true"></i>
-                    </button>
-                  }
-                }
-              </div>
-            </li>
-          }
-        </ol>
-      </section>
-
-      <!-- ═════════════ Ce qu'IDEM construit ═════════════ -->
-      <section aria-labelledby="sa-stack">
-        <h2 id="sa-stack" class="text-lg font-semibold text-text-primary">{{ 'dashboard.siteApp.stack.title' | translate }}</h2>
-        <p class="text-sm text-text-secondary mt-1">{{ 'dashboard.siteApp.stack.lead' | translate }}</p>
-        <div class="grid gap-4 sm:grid-cols-3 mt-4">
-          <div class="glass-card p-5">
-            <p class="text-sm text-text-secondary flex items-center gap-2">
-              <i class="pi pi-desktop" aria-hidden="true"></i>{{ 'dashboard.siteApp.stack.frontend' | translate }}
-            </p>
-            <p class="mt-1 font-semibold text-text-primary">{{ stack().frontend }}</p>
-            <p class="mt-2 text-xs text-text-tertiary">{{ 'dashboard.siteApp.stack.frontendHint' | translate }}</p>
-          </div>
-          <div class="glass-card p-5">
-            <p class="text-sm text-text-secondary flex items-center gap-2">
-              <i class="pi pi-server" aria-hidden="true"></i>{{ 'dashboard.siteApp.stack.backend' | translate }}
-            </p>
-            <p class="mt-1 font-semibold text-text-primary">{{ stack().backend }}</p>
-            <p class="mt-2 text-xs text-text-tertiary">{{ 'dashboard.siteApp.stack.backendHint' | translate }}</p>
-          </div>
-          <div class="glass-card p-5">
-            <p class="text-sm text-text-secondary flex items-center gap-2">
-              <i class="pi pi-database" aria-hidden="true"></i>{{ 'dashboard.siteApp.stack.database' | translate }}
-            </p>
-            <p class="mt-1 font-semibold text-text-primary">{{ stack().database }}</p>
-            <p class="mt-2 text-xs text-text-tertiary">{{ 'dashboard.siteApp.stack.databaseHint' | translate }}</p>
-          </div>
-        </div>
-      </section>
-    }
+    </div>
   </div>
 }
