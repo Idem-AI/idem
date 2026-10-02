@@ -71,22 +71,17 @@ export interface ProviderCapabilities {
 /**
  * Backend qui sert les modèles Gemini.
  *
- * `vertex` facture sur Google Cloud et s'authentifie par compte de service ;
- * `ai-studio` facture sur une clé API. Les modèles servis sont les mêmes des
- * deux côtés — c'est bien un choix d'infrastructure, pas de capacités.
+ * Seul `ai-studio` est supporté : facturation par clé API GEMINI_API_KEY.
+ * Le support Vertex AI a été retiré.
  */
-export type GeminiBackendMode = 'vertex' | 'ai-studio';
+export type GeminiBackendMode = 'ai-studio';
 
 export interface GeminiBackend {
   mode: GeminiBackendMode;
-  /** Projet Google Cloud portant la facturation (mode vertex). */
-  project?: string;
-  /** Région Vertex, ou `global`. */
-  location: string;
-  /** Compte de service Google Cloud signant les appels (mode vertex). */
-  credentials?: { client_email: string; private_key: string };
-  /** Clé AI Studio (mode ai-studio). */
+  /** Clé AI Studio. */
   apiKey?: string;
+  /** Région (conservé pour compatibilité, inutilisé en ai-studio). */
+  location: string;
 }
 
 export interface ProviderDefinition {
@@ -255,8 +250,8 @@ export function canSuppressThinking(modelName: string): boolean {
 // dans ce fichier seul.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Mode par défaut : Vertex, pour que la consommation soit facturée sur GCP. */
-const DEFAULT_GEMINI_MODE: GeminiBackendMode = 'vertex';
+/** Mode unique : AI Studio via clé API GEMINI_API_KEY. */
+const DEFAULT_GEMINI_MODE: GeminiBackendMode = 'ai-studio';
 
 /**
  * Région par défaut.
@@ -291,26 +286,9 @@ export function getGeminiBackend(): GeminiBackend {
     return geminiBackend;
   }
 
-  const mode: GeminiBackendMode =
-    trimmed(process.env.GEMINI_BACKEND)?.toLowerCase() === 'ai-studio'
-      ? 'ai-studio'
-      : DEFAULT_GEMINI_MODE;
-
-  // Identité et projet Google Cloud : le compte de service `GCP_SA_*` signe
-  // les appels Vertex. Il lui faut le rôle `roles/aiplatform.user`
-  // (voir docs/VERTEX_AI.md).
-  const clientEmail = trimmed(process.env.GCP_SA_CLIENT_EMAIL);
-  // `secrets.normalize()` a déjà déséchappé les \n, mais la variable peut aussi
-  // arriver d'ailleurs (docker-compose, CI) : on reste tolérant.
-  const privateKey = trimmed(process.env.GCP_SA_PRIVATE_KEY)?.replace(/\\n/g, '\n');
-
   geminiBackend = {
-    mode,
-    project: trimmed(process.env.GCP_PROJECT_ID),
+    mode: 'ai-studio',
     location: trimmed(process.env.GOOGLE_CLOUD_LOCATION) ?? DEFAULT_GEMINI_LOCATION,
-    ...(clientEmail && privateKey
-      ? { credentials: { client_email: clientEmail, private_key: privateKey } }
-      : {}),
     apiKey: trimmed(process.env.GEMINI_API_KEY),
   };
 
@@ -331,43 +309,21 @@ export function resetGeminiBackend(): void {
 /** Le backend actif est-il utilisable ? */
 export function isGeminiConfigured(): boolean {
   const backend = getGeminiBackend();
-
-  // En mode Vertex il faut le projet ET le compte de service qui le signe : sans
-  // les deux, l'appel partirait sans authentification utilisable.
-  return backend.mode === 'vertex'
-    ? Boolean(backend.project && backend.credentials)
-    : Boolean(backend.apiKey);
+  return Boolean(backend.apiKey);
 }
 
 /** Description lisible du backend actif, pour les logs et les messages d'erreur. */
 export function describeGeminiBackend(): string {
   const backend = getGeminiBackend();
-
-  if (backend.mode === 'ai-studio') {
-    return `AI Studio (clé API${backend.apiKey ? '' : ' MANQUANTE'})`;
-  }
-
-  const auth = backend.credentials
-    ? `compte de service (${backend.credentials.client_email})`
-    : 'IDENTITÉ MANQUANTE (GCP_SA_CLIENT_EMAIL / GCP_SA_PRIVATE_KEY)';
-
-  const cache = providerSupportsContextCache() ? '' : ', sans cache de contexte';
-
-  return `Vertex AI (projet=${backend.project ?? 'MANQUANT'}, région=${backend.location}, auth=${auth}${cache})`;
+  return `AI Studio (clé API${backend.apiKey ? '' : ' MANQUANTE'})`;
 }
 
 /**
  * Le backend actif sert-il le cache de contexte ?
- *
- * Déclaré plutôt que découvert : sans cela chaque appel tenterait un
- * `caches.create` voué à échouer, avalé par son `catch`. Le coût serait un
- * aller-retour inutile par génération et une cause invisible dans les logs.
  */
 function providerSupportsContextCache(): boolean {
   const backend = getGeminiBackend();
-  return (
-    backend.mode !== 'vertex' || !LOCATIONS_WITHOUT_CONTEXT_CACHE.includes(backend.location)
-  );
+  return !LOCATIONS_WITHOUT_CONTEXT_CACHE.includes(backend.location);
 }
 
 const ALL_CAPABILITIES: ProviderCapabilities = {

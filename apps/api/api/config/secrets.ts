@@ -22,7 +22,7 @@ import { SECRET_MANIFEST } from './secrets.manifest';
  * Configuration indispensable qui N'EST PAS un secret : elle vient du `.env`
  * (ou de l'environnement du conteneur), jamais d'Infisical.
  */
-const REQUIRED_CONFIG = ['GCP_PROJECT_ID', 'SUPABASE_AUTH_URL'] as const;
+const REQUIRED_CONFIG = ['SUPABASE_AUTH_URL'] as const;
 
 let loaded = false;
 
@@ -115,8 +115,5 @@ function validateRequired(): void {
 }
 
 function normalize(): void {
-  // Service account private key stored as a single line with \n escapes -> real newlines.
-  if (process.env.GCP_SA_PRIVATE_KEY) {
-    process.env.GCP_SA_PRIVATE_KEY = process.env.GCP_SA_PRIVATE_KEY.replace(/\\n/g, '\n');
-  }
+  // no-op: Vertex AI removed; nothing to normalize.
 }
