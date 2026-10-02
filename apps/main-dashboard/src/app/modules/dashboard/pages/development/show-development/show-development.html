@@ -31,11 +31,35 @@
         <p class="sa-pick__line">{{ 'dashboard.siteApp.pick.site.line' | translate }}</p>
 
         @if (siteLive()?.url; as url) {
-          <div class="sa-live">
-            <a [href]="url" target="_blank" rel="noopener" class="sa-link truncate">{{ url }}</a>
-            <button type="button" class="sa-link-button" (click)="copy('site')">
-              {{ (copied() === 'site' ? 'dashboard.siteApp.live.copied' : 'dashboard.siteApp.live.copy') | translate }}
-            </button>
+          <!-- En ligne : l'adresse dans un champ, et ce qu'on en fait. -->
+          <div class="sa-url">
+            <p class="sa-url__status">
+              <span class="sa-dot" aria-hidden="true"></span>
+              {{ 'dashboard.siteApp.live.title' | translate }}
+            </p>
+            <div class="sa-url__field">
+              <i class="pi pi-globe sa-url__icon" aria-hidden="true"></i>
+              <a [href]="url" target="_blank" rel="noopener" class="sa-url__address">{{ displayUrl(url) }}</a>
+              <button
+                type="button"
+                class="sa-url__action"
+                [class.sa-url__action--done]="copied() === 'site'"
+                (click)="copy('site')"
+              >
+                <i class="pi" [class.pi-check]="copied() === 'site'" [class.pi-copy]="copied() !== 'site'" aria-hidden="true"></i>
+                {{ (copied() === 'site' ? 'dashboard.siteApp.live.copied' : 'dashboard.siteApp.live.copy') | translate }}
+              </button>
+              <a
+                [href]="url"
+                target="_blank"
+                rel="noopener"
+                class="sa-url__action"
+                [attr.aria-label]="'dashboard.siteApp.live.open' | translate"
+              >
+                <i class="pi pi-external-link" aria-hidden="true"></i>
+                <span class="sa-url__action-label">{{ 'dashboard.siteApp.live.open' | translate }}</span>
+              </a>
+            </div>
           </div>
         }
 
@@ -56,16 +80,76 @@
         <p class="sa-pick__line">{{ 'dashboard.siteApp.pick.app.line' | translate }}</p>
 
         @if (appLive()?.url; as url) {
-          <div class="sa-live">
-            <a [href]="url" target="_blank" rel="noopener" class="sa-link truncate">{{ url }}</a>
+          <!-- En ligne : l'adresse dans un champ, et ce qu'on en fait. -->
+          <div class="sa-url">
+            <p class="sa-url__status">
+              <span class="sa-dot" aria-hidden="true"></span>
+              {{ 'dashboard.siteApp.live.title' | translate }}
+            </p>
+            <div class="sa-url__field">
+              <i class="pi pi-globe sa-url__icon" aria-hidden="true"></i>
+              <a [href]="url" target="_blank" rel="noopener" class="sa-url__address">{{ displayUrl(url) }}</a>
+              <button
+                type="button"
+                class="sa-url__action"
+                [class.sa-url__action--done]="copied() === 'app'"
+                (click)="copy('app')"
+              >
+                <i class="pi" [class.pi-check]="copied() === 'app'" [class.pi-copy]="copied() !== 'app'" aria-hidden="true"></i>
+                {{ (copied() === 'app' ? 'dashboard.siteApp.live.copied' : 'dashboard.siteApp.live.copy') | translate }}
+              </button>
+              <a
+                [href]="url"
+                target="_blank"
+                rel="noopener"
+                class="sa-url__action"
+                [attr.aria-label]="'dashboard.siteApp.live.open' | translate"
+              >
+                <i class="pi pi-external-link" aria-hidden="true"></i>
+                <span class="sa-url__action-label">{{ 'dashboard.siteApp.live.open' | translate }}</span>
+              </a>
+            </div>
           </div>
         }
 
-        <button type="button" class="inner-button sa-pick__cta" [disabled]="opening() !== null" (click)="openICode('app')">
-          @if (opening() === 'app') { <idem-loader size="xs" /> }
-          {{ (appStarted() ? 'dashboard.siteApp.steps.build.resume' : 'dashboard.siteApp.pick.app.cta') | translate }}
-          <i class="pi pi-arrow-right" aria-hidden="true"></i>
-        </button>
+        @if (appStarted()) {
+          <span class="tag">{{ 'dashboard.siteApp.platform.' + appPlatform() + '.title' | translate }}</span>
+          <button type="button" class="inner-button sa-pick__cta" [disabled]="opening() !== null" (click)="openICode('app')">
+            @if (opening() === appPlatform()) { <idem-loader size="xs" /> }
+            {{ 'dashboard.siteApp.steps.build.resume' | translate }}
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          </button>
+        } @else {
+          <!-- Web ou mobile : le choix ouvre directement iCode. -->
+          <div class="sa-platforms" role="group" [attr.aria-label]="'dashboard.siteApp.platform.question' | translate">
+            <p class="sa-platforms__question">{{ 'dashboard.siteApp.platform.question' | translate }}</p>
+            @for (platform of platforms; track platform.id) {
+              <button
+                type="button"
+                class="sa-option"
+                [class.sa-option--recommended]="platform.recommended"
+                [disabled]="opening() !== null"
+                (click)="openICode('app', platform.id)"
+              >
+                <i class="pi {{ platform.icon }} sa-option__icon" aria-hidden="true"></i>
+                <span class="sa-option__text">
+                  <span class="sa-option__title">
+                    {{ 'dashboard.siteApp.platform.' + platform.id + '.title' | translate }}
+                    @if (platform.recommended) {
+                      <span class="sa-option__badge">{{ 'dashboard.siteApp.platform.recommended' | translate }}</span>
+                    }
+                  </span>
+                  <span class="sa-option__hint">{{ 'dashboard.siteApp.platform.' + platform.id + '.hint' | translate }}</span>
+                </span>
+                @if (opening() === platform.id) {
+                  <idem-loader size="xs" />
+                } @else {
+                  <i class="pi pi-arrow-right sa-option__arrow" aria-hidden="true"></i>
+                }
+              </button>
+            }
+          </div>
+        }
 
         @if (appStarted()) {
           <button type="button" class="sa-extra__link" (click)="openGoLiveGuide()">

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { ChatRequest } from '../types/project.js';
 import { handleBuilderMode } from '../handlers/builderHandler.js';
+import { resolveBuildTarget } from '../config/buildTarget.js';
 import { handleChatMode } from '../handlers/chatHandler.js';
 import { ChatLogger } from '../utils/logger.js';
 import { consumeGeneration, resolveBillableAction } from '../services/billingService.js';
@@ -40,6 +41,8 @@ router.post('/', async (req: Request, res: Response) => {
       qualityRepair,
       workspace,
       projectId,
+      product,
+      platform,
     } = req.body as ChatRequest;
 
     // User UI language (from the client) so the AI generates content in the right
@@ -163,7 +166,8 @@ router.post('/', async (req: Request, res: Response) => {
         tools,
         projectData,
         resolvedLanguage,
-        qualityRepair
+        qualityRepair,
+        resolveBuildTarget(product, platform, projectData)
       );
     }
 

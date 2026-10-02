@@ -4585,7 +4585,8 @@
       "live": {
         "title": "Live",
         "copy": "Copy link",
-        "copied": "Link copied"
+        "copied": "Link copied",
+        "open": "Open"
       },
       "site": {
         "resume": "Resume my showcase website"
@@ -4647,13 +4648,25 @@
         },
         "app": {
           "title": "An application",
-          "line": "An online service your customers use with their own account: they book an appointment, place an order or track a delivery. You manage your customers, sales or stock in one place.",
+          "line": "An online tool your customers or your team use with their own account. Everyone signs in, finds their information and does what they need, at any time.",
           "cta": "Create my application"
         }
       },
       "both": {
         "title": "You can do both",
         "body": "Your project can have a showcase website and an application. Start with whichever you want, then create the other when you are ready: each one moves on its own."
+      },
+      "platform": {
+        "question": "Where will it be used?",
+        "recommended": "Recommended",
+        "web": {
+          "title": "Web application",
+          "hint": "In the browser, on computer and phone. Nothing to install."
+        },
+        "mobile": {
+          "title": "Mobile application",
+          "hint": "Installed on the phone with its own icon, like the apps from the stores."
+        }
       }
     },
     "goLive": {

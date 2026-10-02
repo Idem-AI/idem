@@ -27,6 +27,12 @@ export interface SkillMeta {
   triggers: string[];
   /** Registers this skill applies to; empty means both. */
   registers: string[];
+  /**
+   * Build targets this skill applies to (`site`, `web-app`, `mobile-app`);
+   * empty means all. This is how the mobile build contract replaces the web
+   * one instead of contradicting it.
+   */
+  targets: string[];
   /** Tie-breaker when several skills score the same. Higher wins. */
   priority: number;
   /** Rough token cost of the body, used for budgeting. */
@@ -112,6 +118,7 @@ export function loadSkills(): Skill[] {
       tier: data.tier === 'core' ? 'core' : 'contextual',
       triggers: parseList(data.triggers),
       registers: parseList(data.registers),
+      targets: parseList(data.targets),
       priority: Number.parseInt(data.priority ?? '0', 10) || 0,
       tokens: estimateSkillTokens(body),
       body,

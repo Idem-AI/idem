@@ -5,6 +5,7 @@ tier: contextual
 registers: [product]
 priority: 60
 triggers: [dashboard, admin, app, workspace, table, crud, panel, analytics, management, backoffice, console, sidebar, kpi, reporting]
+targets: [site, web-app]
 ---
 
 # Application UI

@@ -4588,7 +4588,8 @@
       "live": {
         "title": "En ligne",
         "copy": "Copier le lien",
-        "copied": "Lien copié"
+        "copied": "Lien copié",
+        "open": "Ouvrir"
       },
       "site": {
         "resume": "Reprendre mon site vitrine"
@@ -4650,13 +4651,25 @@
         },
         "app": {
           "title": "Une application",
-          "line": "Un service en ligne que vos clients utilisent avec leur propre compte : ils réservent un rendez-vous, passent une commande ou suivent une livraison. Vous gérez vos clients, vos ventes ou votre stock au même endroit.",
+          "line": "Un outil en ligne que vos clients ou votre équipe utilisent avec leur propre compte. Chacun s'y connecte, retrouve ses informations et fait ce dont il a besoin, à tout moment.",
           "cta": "Créer mon application"
         }
       },
       "both": {
         "title": "Vous pouvez faire les deux",
         "body": "Votre projet peut avoir un site vitrine et une application. Commencez par celui que vous voulez, puis créez l'autre quand vous le souhaitez : chacun avance de son côté."
+      },
+      "platform": {
+        "question": "Où sera-t-elle utilisée ?",
+        "recommended": "Recommandé",
+        "web": {
+          "title": "Application web",
+          "hint": "Dans le navigateur, sur ordinateur et sur téléphone. Rien à installer."
+        },
+        "mobile": {
+          "title": "Application mobile",
+          "hint": "Installée sur le téléphone avec son icône, comme les applications des stores."
+        }
       }
     },
     "goLive": {

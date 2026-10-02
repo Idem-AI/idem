@@ -50,6 +50,7 @@ import {
   type EditResult,
 } from './astEdit';
 import { buildInjectPlan, buildRemovePlan, type InstrumentationPlan } from './instrumentation';
+import { isMobileApp } from '@/utils/product';
 import { SizeSelector, viewportStyle, WINDOW_SIZES, type WindowSize } from './ResponsiveViewport';
 
 interface EditablePreviewProps {
@@ -114,7 +115,12 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [layersOpen, setLayersOpen] = useState(true);
   const [agentReady, setAgentReady] = useState(false);
-  const [size, setSize] = useState<WindowSize>(WINDOW_SIZES[0]);
+  // Une application mobile s'ouvre dans un téléphone : c'est là qu'elle vivra.
+  const mobileApp = isMobileApp();
+  const [size, setSize] = useState<WindowSize>(
+    mobileApp ? WINDOW_SIZES.find((s) => s.name === 'Mobile') ?? WINDOW_SIZES[0] : WINDOW_SIZES[0]
+  );
+  const phoneFrame = mobileApp && size.name === 'Mobile';
   const { getTerminal, newTerminal } = useTerminalStore();
   const [toolMode, setToolMode] = useState<EditToolMode>('off');
   const [zoom, setZoom] = useState(1);
@@ -675,13 +681,17 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
         <div className="flex-1 relative overflow-auto bg-bg-dark/55 p-3 flex items-start justify-center">
           {url ? (
             <div
-              className="bg-white shadow-[var(--glass-shadow-xl)] rounded-lg overflow-hidden shrink-0 origin-top transition-transform"
+              className={
+                phoneFrame
+                  ? 'bg-black border-[10px] border-black rounded-[2.75rem] shadow-[var(--glass-shadow-xl)] overflow-hidden shrink-0 origin-top transition-transform box-content'
+                  : 'bg-white shadow-[var(--glass-shadow-xl)] rounded-lg overflow-hidden shrink-0 origin-top transition-transform'
+              }
               style={{ ...viewportStyle(size), transform: `scale(${zoom})` }}
             >
               <iframe
                 ref={iframeRef}
                 src={url}
-                className="w-full h-full border-none bg-white block"
+                className={`w-full h-full border-none bg-white block ${phoneFrame ? 'rounded-[2rem]' : ''}`}
                 title="preview"
                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
               />

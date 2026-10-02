@@ -2,6 +2,7 @@ import { stripIndents } from '../utils/stripIndent.js';
 import { ProjectModel } from '../types/project.js';
 import { forgeDesignSystem, renderDesignBrief, resolveRegister } from '../design/tokenForge.js';
 import { renderSkills, routeSkills, RouteResult } from '../skills/router.js';
+import { BuildTarget } from './buildTarget.js';
 
 export const WORK_DIR_NAME = 'project';
 export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
@@ -37,6 +38,7 @@ export interface AssembledPrompt {
     skills: RouteResult;
     systemChars: number;
     userChars: number;
+    target: BuildTarget;
     artDirection: string;
     seed: number;
   };
@@ -53,6 +55,8 @@ export interface AssembleOptions {
   language?: string;
   /** Extra constraints appended after the task (file trees, diffs, …). */
   extraContext?: string;
+  /** Site, web application or mobile application: picks the build contract. */
+  target: BuildTarget;
 }
 
 /**
@@ -71,10 +75,10 @@ export interface AssembleOptions {
  *   3. language          last, so it is the most recent instruction
  */
 export function assembleBuilderPrompt(options: AssembleOptions): AssembledPrompt {
-  const { request, projectBrief, brandLockup, projectData, language, extraContext } = options;
+  const { request, projectBrief, brandLockup, projectData, language, extraContext, target } = options;
 
   const register = resolveRegister(projectData);
-  const skills = routeSkills({ request, register, projectData });
+  const skills = routeSkills({ request, register, projectData, target });
   const designSystem = forgeDesignSystem(projectData);
 
   const system = [
@@ -105,6 +109,7 @@ export function assembleBuilderPrompt(options: AssembleOptions): AssembledPrompt
       skills,
       systemChars: system.length,
       userChars: user.length,
+      target,
       artDirection: designSystem.direction.id,
       seed: designSystem.seed,
     },

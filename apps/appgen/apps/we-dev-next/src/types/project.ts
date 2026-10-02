@@ -156,6 +156,13 @@ export interface ChatRequest {
    * lancée hors d'un projet.
    */
   projectId?: string;
+  /**
+   * Ce qui est construit dans ce projet : le site vitrine ou l'application
+   * (adresse iCode `?product=`), et pour l'application, web ou mobile
+   * (`?platform=`). Absents pour les liens d'avant : la configuration décide.
+   */
+  product?: 'site' | 'app';
+  platform?: 'web' | 'mobile';
   /** User UI language ('en' | 'fr') so the AI generates content in the right language. */
   language?: string;
   /**

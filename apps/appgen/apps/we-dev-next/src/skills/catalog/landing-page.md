@@ -5,6 +5,7 @@ tier: contextual
 registers: [marketing]
 priority: 60
 triggers: [landing, landing page, marketing, hero, homepage, conversion, cta, waitlist, only_landing, integrated, seo, testimonials, pricing]
+targets: [site, web-app]
 ---
 
 # Landing pages

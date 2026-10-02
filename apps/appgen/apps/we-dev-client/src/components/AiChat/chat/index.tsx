@@ -42,7 +42,7 @@ import { ProjectLogo } from '@/components/ProjectLogo';
 import { useLoading } from '../../loading';
 import { ProjectModel } from '@/api/persistence/models/project.model';
 import { MultiChatPromptService } from './services/multiChatPromptService';
-import { currentProduct } from '@/utils/product';
+import { currentPlatform, currentProduct } from '@/utils/product';
 import useChatHistoryStore from '@/stores/chatHistoryStore';
 
 type WeMessages = (Message & {
@@ -517,6 +517,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // Projet IDEM rattaché : le serveur en a besoin pour rattacher la
       // consommation de crédits au bon projet et vérifier qu'il est débloqué.
       projectId: new URLSearchParams(window.location.search).get('projectId') ?? undefined,
+      // Site vitrine ou application, web ou mobile : le serveur en tire le
+      // contrat de build (fichiers, mise en page, Capacitor pour le mobile).
+      product: currentProduct() ?? undefined,
+      platform: currentPlatform() ?? undefined,
       // User UI language so the AI answers/generates content in the right language.
       // (Distinct from otherConfig.backendLanguage, which is the target programming language.)
       language: i18n.language,

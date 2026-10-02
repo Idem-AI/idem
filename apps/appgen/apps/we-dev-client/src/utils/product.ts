@@ -25,3 +25,20 @@ export function productQuery(): string {
 export function productScope(id: string): string {
   return currentProduct() === 'app' ? `${id}:app` : id;
 }
+
+/**
+ * Pour l'application : web (par défaut) ou mobile. Le tableau de bord ajoute
+ * `?platform=mobile` ; l'aperçu s'ouvre alors dans un cadre de téléphone et le
+ * serveur génère une application pensée pour le téléphone.
+ */
+export type IdemPlatform = 'web' | 'mobile';
+
+export function currentPlatform(): IdemPlatform | null {
+  const platform = new URLSearchParams(window.location.search).get('platform');
+  return platform === 'web' || platform === 'mobile' ? platform : null;
+}
+
+/** L'atelier ouvert construit-il une application mobile ? */
+export function isMobileApp(): boolean {
+  return currentProduct() === 'app' && currentPlatform() === 'mobile';
+}

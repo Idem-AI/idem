@@ -15,12 +15,15 @@
 import { ProjectModel } from '../types/project.js';
 import { Register } from '../design/artDirections.js';
 import { Skill, loadSkills } from './registry.js';
+import { BuildTarget } from '../config/buildTarget.js';
 
 export interface RouteInput {
   /** The user's request, before any prompt assembly. */
   request: string;
   register: Register;
   projectData?: ProjectModel;
+  /** What is being built; skills scoped to other targets are left out. */
+  target: BuildTarget;
 }
 
 export interface RouteResult {
@@ -97,8 +100,11 @@ function scoreSkill(skill: Skill, haystack: string, register: Register): number 
   return score;
 }
 
+const appliesTo = (skill: Skill, target: BuildTarget): boolean =>
+  !skill.targets.length || skill.targets.includes(target);
+
 export function routeSkills(input: RouteInput): RouteResult {
-  const skills = loadSkills();
+  const skills = loadSkills().filter((skill) => appliesTo(skill, input.target));
   const haystack = buildHaystack(input);
 
   const core = skills

@@ -9,6 +9,13 @@ export type GenerationType = 'landing' | 'app' | 'both' | 'integrated';
 export type DevelopmentMode = 'quick' | 'advanced';
 
 /**
+ * L'application est web (par défaut, recommandée) ou mobile. Une application
+ * mobile est une application React pensée pour le téléphone, installable en
+ * PWA et emballée par Capacitor pour Android et iOS.
+ */
+export type AppPlatform = 'web' | 'mobile';
+
+/**
  * Quick generation preset configurations
  */
 export interface QuickGenerationPreset {
@@ -38,6 +45,8 @@ export interface QuickGenerationPreset {
 export interface DevelopmentConfigsModel {
   mode: DevelopmentMode;
   generationType: GenerationType;
+  /** Web ou mobile, pour l'application. Absent : web. */
+  appPlatform?: AppPlatform;
   constraints: string[];
   preset?: string; // For quick generation mode
   frontend: {

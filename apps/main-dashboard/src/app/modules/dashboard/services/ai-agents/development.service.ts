@@ -8,6 +8,7 @@ import {
   QuickGenerationPreset,
   GenerationType,
   LandingPageConfig,
+  AppPlatform,
 } from '../../models/development.model';
 import { ProjectModel } from '@idem/shared-models';
 
@@ -71,7 +72,10 @@ export class DevelopmentService {
    * base de données) ; `both` les deux, construits séparément. Le plan de
    * l'application est recommandé, pas obligatoire.
    */
-  generateQuickConfig(generationType: GenerationType): DevelopmentConfigsModel {
+  generateQuickConfig(
+    generationType: GenerationType,
+    appPlatform: AppPlatform = 'web',
+  ): DevelopmentConfigsModel {
     const preset = this.getQuickGenerationPresets()[0];
     const isLanding = generationType === 'landing';
     // `both` : un site vitrine ET une application, chacun dans son atelier iCode.
@@ -84,15 +88,19 @@ export class DevelopmentService {
     return {
       mode: 'quick',
       generationType,
+      appPlatform,
       preset: preset.name,
       constraints: isLanding
         ? ['Generate a landing page', 'Implement responsive design']
-        : [
-            'Generate a complete web application: frontend, backend and database',
-            'Follow the application plan (diagrams) generated for this project',
-            'frontend/ and backend/ live side by side in one repository',
-            'The backend reads DATABASE_URL and PORT; the frontend reads VITE_API_URL',
-          ],
+        : appPlatform === 'mobile'
+          ? [
+              'Generate a mobile application laid out for a phone (bottom tab bar)',
+              'Installable as a PWA; packaged for Android and iOS with Capacitor',
+            ]
+          : [
+              'Generate a complete web application: frontend, backend and database',
+              'The backend reads DATABASE_URL and PORT; the frontend reads VITE_API_URL',
+            ],
       frontend: {
         framework: preset.frontend.framework,
         styling: preset.frontend.styling,

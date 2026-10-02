@@ -10,6 +10,7 @@ import { CookieService } from '../../../../../shared/services/cookie.service';
 import { ErrorStateComponent } from '../../../../../shared/components/error-state/error-state';
 import { IncompleteProjectBannerComponent } from '../../../components/incomplete-project-banner/incomplete-project-banner';
 import {
+  AppPlatform,
   DevelopmentConfigsModel,
   GenerationType,
   LandingPageConfig,
@@ -68,7 +69,8 @@ export class ShowDevelopment implements OnInit {
   protected readonly project = signal<ProjectModel | null>(null);
   protected readonly isBrandingComplete = signal(false);
   /** Le produit dont le bouton vient d'être cliqué : il montre le chargement. */
-  protected readonly opening = signal<IcodeProduct | null>(null);
+  /** Le bouton qui vient d'être cliqué (site, application web ou mobile) : il montre le chargement. */
+  protected readonly opening = signal<'site' | AppPlatform | null>(null);
   protected readonly copied = signal<IcodeProduct | null>(null);
 
   /** Conversation iCode et dernière publication, pour chacun des deux produits. */
@@ -93,6 +95,19 @@ export class ShowDevelopment implements OnInit {
     return this.siteStarted() || lp === LandingPageConfig.ONLY_LANDING || lp === LandingPageConfig.SEPARATE;
   });
   private readonly wantsApp = computed(() => this.appStarted() || isFullApplication(this.configs()));
+  /** Les deux façons de faire l'application ; le web est conseillé. */
+  protected readonly platforms: ReadonlyArray<{ id: AppPlatform; icon: string; recommended: boolean }> = [
+    { id: 'web', icon: 'pi-desktop', recommended: true },
+    { id: 'mobile', icon: 'pi-mobile', recommended: false },
+  ];
+
+  /** L'adresse sans `https://` ni barre finale : ce qu'on lit et ce qu'on dicte. */
+  protected displayUrl(url: string): string {
+    return url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  }
+
+  /** Web (par défaut) ou mobile : ce que l'application en cours a choisi. */
+  protected readonly appPlatform = computed<AppPlatform>(() => this.configs()?.appPlatform ?? 'web');
 
   /** Où en est chaque produit, dit de la même façon pour les deux. */
   protected readonly siteStatus = computed(() =>
@@ -162,33 +177,35 @@ export class ShowDevelopment implements OnInit {
    * échec n'empêche pas d'ouvrir iCode, qui choisit son travail d'après
    * l'adresse.
    */
-  protected async openICode(product: IcodeProduct): Promise<void> {
+  protected async openICode(product: IcodeProduct, platform: AppPlatform = this.appPlatform()): Promise<void> {
     const projectId = this.projectId();
     if (!projectId || this.opening()) return;
-    this.opening.set(product);
+    this.opening.set(product === 'site' ? 'site' : platform);
 
-    const wanted = this.configFor(product);
+    const wanted = this.configFor(product, platform);
     if (wanted) {
       await firstValueFrom(
         this.development
-          .saveDevelopmentConfigs(this.development.generateQuickConfig(wanted), projectId, wanted)
+          .saveDevelopmentConfigs(this.development.generateQuickConfig(wanted, platform), projectId, wanted)
           .pipe(catchError(() => of(null))),
       );
     }
 
-    window.location.href =
-      `${this.webgenUrl}?projectId=${encodeURIComponent(projectId)}&product=${product}`;
+    const target = product === 'app' ? `&product=app&platform=${platform}` : '&product=site';
+    window.location.href = `${this.webgenUrl}?projectId=${encodeURIComponent(projectId)}${target}`;
   }
 
   /** La configuration à enregistrer pour ouvrir ce produit, ou `null` si elle le couvre déjà. */
-  private configFor(product: IcodeProduct): GenerationType | null {
+  private configFor(product: IcodeProduct, platform: AppPlatform): GenerationType | null {
     const hasSite = this.wantsSite();
     const hasApp = this.wantsApp();
     if (product === 'site') {
       if (hasSite) return null;
       return hasApp ? 'both' : 'landing';
     }
-    if (hasApp) return null;
+    // Une plateforme différente de celle enregistrée se réenregistre.
+    if (hasApp && this.configs()?.appPlatform === platform) return null;
+    if (hasApp && !this.configs()?.appPlatform && platform === 'web') return null;
     return hasSite ? 'both' : 'app';
   }
 
@@ -199,7 +216,10 @@ export class ShowDevelopment implements OnInit {
    */
   protected openGoLiveGuide(): void {
     if (!this.appStarted()) return;
-    window.open(`${this.ideployUrl}/new-project/guide/3-tier`, '_blank', 'noopener');
+    // L'application mobile se publie comme un site (PWA installable depuis son
+    // lien) ; l'application web passe par le guide 3 tiers.
+    const path = this.appPlatform() === 'mobile' ? '/new-project' : '/new-project/guide/3-tier';
+    window.open(`${this.ideployUrl}${path}`, '_blank', 'noopener');
   }
 
   protected async copy(product: IcodeProduct): Promise<void> {
