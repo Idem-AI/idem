@@ -21,10 +21,16 @@ import type { PricingConfig } from '../../../../packages/shared-models/src/prici
  * le fichier peut vivre ailleurs que dans le dépôt.
  */
 
-const DEFAULT_PATH = path.resolve(
-  __dirname,
-  '../../../../packages/shared-models/src/pricing/pricing.config.json'
-);
+// Same file, two depths: from the sources (apps/api/api/config) the repository
+// root is four levels up; once compiled (dist/apps/api/api/config in the image)
+// it is five. Resolving only the first made the production image look for
+// /app/dist/packages/… and refuse to start.
+const PRICING_FILE = 'packages/shared-models/src/pricing/pricing.config.json';
+const DEFAULT_CANDIDATES = [
+  path.resolve(__dirname, '../../../..', PRICING_FILE),
+  path.resolve(__dirname, '../../../../..', PRICING_FILE),
+];
+const DEFAULT_PATH = DEFAULT_CANDIDATES.find((p) => fs.existsSync(p)) ?? DEFAULT_CANDIDATES[0];
 
 interface LoadedPricing {
   path: string;
