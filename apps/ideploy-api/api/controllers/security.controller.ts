@@ -38,9 +38,26 @@ export async function getConfig(req: CustomRequest, res: Response): Promise<void
 }
 export async function updateConfig(req: CustomRequest, res: Response): Promise<void> {
   try {
-    ok(res, await firewall.updateConfig(team(req), appUuid(req), req.body ?? {}));
+    const before = await firewall.getOrCreateConfig(team(req), appUuid(req));
+    const config = await firewall.updateConfig(team(req), appUuid(req), req.body ?? {});
+    // Turning the firewall on or off must change what is blocked, not only a
+    // flag: reconcile now, and report it like Apply does. The setting is saved
+    // either way, so a failure to apply is reported beside it, not as a failed save.
+    let applied: Awaited<ReturnType<typeof firewall.deploy>> | undefined;
+    let applyError: string | undefined;
+    if (req.body?.enabled !== undefined) {
+      try {
+        applied = await firewall.deploy(team(req), appUuid(req), {
+          forceRedeploy: before.enabled !== config.enabled,
+        });
+      } catch (err) {
+        applyError = (err as Error).message;
+      }
+    }
+    const enforcement = await firewall.getEnforcementStatus(team(req), appUuid(req));
+    ok(res, { ...config, enforcement, applied, applyError });
   } catch (err) {
-    fail(res, (err as Error).message || 'Failed to update firewall config');
+    respondWithError(res, err, 'Updating the firewall configuration');
   }
 }
 export async function listRules(req: CustomRequest, res: Response): Promise<void> {
@@ -92,7 +109,7 @@ export async function listTraffic(req: CustomRequest, res: Response): Promise<vo
  */
 export async function deployFirewall(req: CustomRequest, res: Response): Promise<void> {
   try {
-    ok(res, await firewall.deploy(team(req), appUuid(req)));
+    ok(res, await firewall.deploy(team(req), appUuid(req), { redeploy: req.body?.redeploy }));
   } catch (err) {
     respondWithError(res, err, 'Applying the firewall rules');
   }
@@ -217,10 +234,15 @@ export async function removeRateLimit(req: CustomRequest, res: Response): Promis
 // ── CrowdSec (server-scoped) ──────────────────────────────
 export async function installCrowdSec(req: CustomRequest, res: Response): Promise<void> {
   try {
-    ok(res, await crowdsec.install(team(req), serverUuid(req)));
+    const result = await crowdsec.install(team(req), serverUuid(req));
+    if (!result.success) {
+      logger.error('CrowdSec install failed on the server', { output: result.output.slice(-4000) });
+      return fail(res, 'Installing CrowdSec failed on the server. Check the proxy logs, then retry.', 502, 'CROWDSEC_INSTALL_FAILED');
+    }
+    ok(res, result);
   } catch (err) {
     logger.error('installCrowdSec error', { message: (err as Error).message });
-    fail(res, (err as Error).message || 'Failed to install CrowdSec');
+    respondWithError(res, err, 'Installing CrowdSec');
   }
 }
 export async function crowdSecStatus(req: CustomRequest, res: Response): Promise<void> {
@@ -235,7 +257,7 @@ export async function addBouncer(req: CustomRequest, res: Response): Promise<voi
   try {
     ok(res, await crowdsec.addBouncer(team(req), serverUuid(req), String(req.body.name)), 201);
   } catch (err) {
-    fail(res, (err as Error).message || 'Failed to add bouncer');
+    respondWithError(res, err, 'Adding a CrowdSec bouncer');
   }
 }
 

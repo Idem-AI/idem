@@ -186,6 +186,20 @@ describe('banIp', () => {
     });
   });
 
+  it('bans a CIDR as a range, in both the alert source and the decision', async () => {
+    stubLogin();
+    stub.on('POST', '/v1/alerts', { status: 201, body: ['1'] });
+
+    await client.banIp({ ip: '10.0.0.0/8', scope: 'range', durationSeconds: 60 });
+
+    const body = stub.requests.find((r) => r.path === '/v1/alerts')!.body as Array<{
+      source: Record<string, string>;
+      decisions: Record<string, string>[];
+    }>;
+    expect(body[0].source).toMatchObject({ scope: 'range', value: '10.0.0.0/8' });
+    expect(body[0].decisions[0]).toMatchObject({ scope: 'range', value: '10.0.0.0/8' });
+  });
+
   it('attributes the decision to us, so ours can be told from CrowdSec’s own', async () => {
     stubLogin();
     stub.on('POST', '/v1/alerts', { status: 201, body: ['1'] });
@@ -276,6 +290,17 @@ describe('unbanIp', () => {
     expect(request.headers.authorization).toMatch(/^Bearer /);
   });
 
+  it('deletes a range with the range parameter — CrowdSec ignores `ip` for ranges', async () => {
+    stubLogin();
+    stub.on('DELETE', '/v1/decisions', { status: 200, body: { nbDeleted: '1' } });
+
+    await client.unbanIp('10.0.0.0/8', 'range');
+
+    const request = stub.requests.find((r) => r.method === 'DELETE' && r.path === '/v1/decisions')!;
+    expect(request.query.range).toBe('10.0.0.0/8');
+    expect(request.query.ip).toBeUndefined();
+  });
+
   it('throws when the deletion fails', async () => {
     stubLogin();
     stub.on('DELETE', '/v1/decisions', { status: 500 });
@@ -355,7 +380,14 @@ describe('health', () => {
     const health = await client.health();
 
     expect(health.reachable).toBe(true);
+    expect(health.authorized).toBe(false);
     expect(health.detail).toMatch(/key/i);
+  });
+
+  it('reports accepted credentials as authorized', async () => {
+    stub.on('GET', '/v1/decisions', { body: [] });
+
+    expect((await client.health()).authorized).toBe(true);
   });
 
   it('tolerates a missing version header', async () => {

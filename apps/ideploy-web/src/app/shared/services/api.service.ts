@@ -26,6 +26,9 @@ import {
   PrivateKey,
   ProxyStatus,
   CrowdSecStatus,
+  FirewallAlert,
+  FirewallApplyResult,
+  FirewallTrafficEntry,
   Server,
   ServerSettings,
   ServerHealth,
@@ -554,18 +557,24 @@ export class ApiService {
   deleteFirewallRule(uuid: string, ruleId: number): Observable<unknown> {
     return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/applications/${uuid}/firewall/rules/${ruleId}`));
   }
-  deployFirewall(uuid: string): Observable<{ rules: number }> {
-    return this.unwrap(this.http.post<ApiResponse<{ rules: number }>>(`${this.base}/applications/${uuid}/firewall/deploy`, {}));
-  }
-  /** Detections recorded by the agent, most recent first. */
-  listFirewallAlerts(uuid: string): Observable<Record<string, unknown>[]> {
+  /** `redeploy: true` also redeploys for changes only the caller knows about (rate limits). */
+  deployFirewall(uuid: string, redeploy?: boolean): Observable<FirewallApplyResult> {
     return this.unwrap(
-      this.http.get<ApiResponse<Record<string, unknown>[]>>(`${this.base}/applications/${uuid}/firewall/alerts`)
+      this.http.post<ApiResponse<FirewallApplyResult>>(
+        `${this.base}/applications/${uuid}/firewall/deploy`,
+        redeploy === undefined ? {} : { redeploy }
+      )
     );
   }
-  listFirewallTraffic(uuid: string): Observable<Record<string, unknown>[]> {
+  /** Detections recorded by the agent, most recent first. */
+  listFirewallAlerts(uuid: string): Observable<FirewallAlert[]> {
     return this.unwrap(
-      this.http.get<ApiResponse<Record<string, unknown>[]>>(`${this.base}/applications/${uuid}/firewall/traffic`)
+      this.http.get<ApiResponse<FirewallAlert[]>>(`${this.base}/applications/${uuid}/firewall/alerts`)
+    );
+  }
+  listFirewallTraffic(uuid: string): Observable<FirewallTrafficEntry[]> {
+    return this.unwrap(
+      this.http.get<ApiResponse<FirewallTrafficEntry[]>>(`${this.base}/applications/${uuid}/firewall/traffic`)
     );
   }
 
@@ -1096,9 +1105,9 @@ export class ApiService {
   }
 
   // ── CrowdSec bouncers ────────────────────────────────
-  addCrowdSecBouncer(serverUuid: string, name: string): Observable<{ key?: string }> {
+  addCrowdSecBouncer(serverUuid: string, name: string): Observable<{ apiKey: string }> {
     return this.unwrap(
-      this.http.post<ApiResponse<{ key?: string }>>(
+      this.http.post<ApiResponse<{ apiKey: string }>>(
         `${this.base}/servers/${serverUuid}/crowdsec/bouncers`,
         { name }
       )

@@ -1156,7 +1156,15 @@
       "noTraffic": "Aucun trafic enregistré.",
       "trafficError": "Impossible de charger le trafic.",
       "activity": "Activité",
-      "activityDesc": "Ce que l'agent a enregistré pour cette application."
+      "activityDesc": "Ce que l'agent a enregistré pour cette application.",
+      "applied": "Appliqué : {{blocked}} adresse(s) bloquée(s), {{released}} libérée(s).",
+      "redeployQueued": "Un redéploiement a été mis en file pour appliquer les règles pays et de limitation de débit.",
+      "redeployRunning": "Un déploiement est déjà en cours ; il appliquera les règles pays et de limitation de débit.",
+      "pendingRedeploy": "{{count}} règle(s) pays prendront effet au prochain déploiement.",
+      "geoMode": "Mode",
+      "geoModeBlock": "Bloquer les pays sélectionnés",
+      "geoModeAllow": "N’autoriser que les pays sélectionnés",
+      "currentlyAllowed": "Pays autorisés"
     },
     "tokens": {
       "title": "Identifiants & jetons",

@@ -1156,7 +1156,15 @@
       "noTraffic": "No traffic recorded.",
       "trafficError": "Could not load the traffic.",
       "activity": "Activity",
-      "activityDesc": "What the agent has recorded for this application."
+      "activityDesc": "What the agent has recorded for this application.",
+      "applied": "Applied: {{blocked}} address(es) blocked, {{released}} released.",
+      "redeployQueued": "A redeploy has been queued to apply country and rate-limit rules.",
+      "redeployRunning": "A deployment is already running; it will apply country and rate-limit rules.",
+      "pendingRedeploy": "{{count}} country rule(s) take effect at the next deploy.",
+      "geoMode": "Mode",
+      "geoModeBlock": "Block the selected countries",
+      "geoModeAllow": "Allow only the selected countries",
+      "currentlyAllowed": "Countries allowed"
     },
     "tokens": {
       "title": "Credentials & tokens",

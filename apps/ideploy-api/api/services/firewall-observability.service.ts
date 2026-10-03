@@ -21,7 +21,7 @@
  */
 import pool from '../config/db.config';
 import logger from '../config/logger';
-import { CrowdSecLapiClient, Alert } from './crowdsec-lapi.client';
+import { CrowdSecLapiClient, Alert, Decision } from './crowdsec-lapi.client';
 
 /**
  * How long observability rows are kept.
@@ -34,6 +34,16 @@ export const ALERT_RETENTION_DAYS = Number(process.env.FIREWALL_ALERT_RETENTION_
 
 /** Severity we record when CrowdSec does not classify an alert itself. */
 const DEFAULT_SEVERITY = 'medium';
+
+/**
+ * Alert statuses that mean "unresolved". Rows written by Laravel default to
+ * `active`, rows written here to `open`: both must count, and neither may be
+ * purged, or an incident disappears depending on which side recorded it.
+ */
+const UNRESOLVED_STATUSES = ['open', 'active'];
+
+/** Decides whether a CrowdSec record concerns the application being synced. */
+export type AlertFilter = (alert: Alert) => boolean;
 
 export interface SyncResult {
   /** Rows written on this pass. */
@@ -64,9 +74,10 @@ function alertAddress(alert: Alert): string | null {
 export async function syncAlerts(
   applicationId: number,
   client: CrowdSecLapiClient,
-  limit = 100
+  limit = 100,
+  belongs: AlertFilter = () => true
 ): Promise<SyncResult> {
-  const alerts = await client.listAlerts({ limit });
+  const alerts = (await client.listAlerts({ limit })).filter(belongs);
   let imported = 0;
   let skipped = 0;
 
@@ -120,22 +131,45 @@ export async function syncAlerts(
  */
 export async function syncTrafficFromDecisions(
   applicationId: number,
-  client: CrowdSecLapiClient
+  client: CrowdSecLapiClient,
+  targets?: ReadonlySet<string>
 ): Promise<SyncResult> {
-  const decisions = await client.listDecisions({ origin: 'ideploy' });
+  const decisions = ownDecisions(await client.listDecisions({ origin: 'ideploy' }), targets);
   let imported = 0;
+  let skipped = 0;
 
-  for (const decision of decisions.filter((d) => d.scope === 'ip')) {
-    await pool.query(
+  for (const decision of decisions) {
+    // Runs every few minutes: one row per address and day, not one per pass,
+    // or the "blocked" counter would measure how often the sync ran.
+    const { rowCount } = await pool.query(
       `INSERT INTO firewall_traffic_logs
          (application_id, ip_address, decision, rule_name, timestamp)
-       VALUES ($1, $2::inet, 'blocked', $3, now())`,
+       SELECT $1, $2::inet, 'blocked', $3, now()
+       WHERE NOT EXISTS (
+         SELECT 1 FROM firewall_traffic_logs
+         WHERE application_id = $1 AND ip_address = $2::inet AND decision = 'blocked'
+           AND timestamp > now() - interval '1 day'
+       )`,
       [applicationId, decision.value, decision.scenario ?? 'ideploy-rule']
     );
-    imported += 1;
+    if ((rowCount ?? 0) > 0) imported += 1;
+    else skipped += 1;
   }
 
-  return { imported, skipped: 0 };
+  return { imported, skipped };
+}
+
+/**
+ * Our own address/range decisions, narrowed to `targets` (keys from
+ * `targetKey`) when given. CrowdSec echoes the scope title-cased ("Ip",
+ * "Range"), and ignores the `origin` filter, so both are checked here.
+ */
+function ownDecisions(decisions: Decision[], targets?: ReadonlySet<string>): Decision[] {
+  return decisions.filter((d) => {
+    const scope = d.scope.toLowerCase();
+    if (d.origin !== 'ideploy' || (scope !== 'ip' && scope !== 'range')) return false;
+    return !targets || targets.has(`${scope}:${d.value}`);
+  });
 }
 
 export interface FirewallCounters {
@@ -153,17 +187,18 @@ export interface FirewallCounters {
  */
 export async function refreshCounters(
   applicationId: number,
-  client: CrowdSecLapiClient
+  client: CrowdSecLapiClient,
+  targets?: ReadonlySet<string>
 ): Promise<FirewallCounters> {
-  const decisions = await client.listDecisions({ origin: 'ideploy' });
+  const decisions = ownDecisions(await client.listDecisions({ origin: 'ideploy' }), targets);
 
   const { rows } = await pool.query<{ blocked: string; alerts: string }>(
     `SELECT
        (SELECT count(*)::text FROM firewall_traffic_logs
          WHERE application_id = $1 AND decision = 'blocked') AS blocked,
        (SELECT count(*)::text FROM firewall_alerts
-         WHERE application_id = $1 AND status = 'open') AS alerts`,
-    [applicationId]
+         WHERE application_id = $1 AND status = ANY($2)) AS alerts`,
+    [applicationId, UNRESOLVED_STATUSES]
   );
 
   const counters: FirewallCounters = {
@@ -204,8 +239,8 @@ export async function purgeExpired(): Promise<PurgeResult> {
 
   const alerts = await pool.query(
     `DELETE FROM firewall_alerts
-     WHERE status <> 'open' AND created_at < now() - ($1 || ' days')::interval`,
-    [String(ALERT_RETENTION_DAYS)]
+     WHERE status <> ALL($2) AND created_at < now() - ($1 || ' days')::interval`,
+    [String(ALERT_RETENTION_DAYS), UNRESOLVED_STATUSES]
   );
 
   const result = {
@@ -284,4 +319,75 @@ export function toCsv(rows: Record<string, unknown>[]): string {
     columns.join(','),
     ...rows.map((row) => columns.map((c) => escape(row[c])).join(',')),
   ].join('\n');
+}
+
+export interface ServerSyncResult {
+  applications: number;
+  alertsImported: number;
+  trafficImported: number;
+}
+
+/**
+ * Fill the alert and traffic tables for every protected application on one
+ * server, from that server's CrowdSec.
+ *
+ * CrowdSec is shared by the whole server, so its records have to be attributed:
+ * - a ban we pushed carries the application's uuid in its message, and belongs
+ *   to that application only;
+ * - a detection of CrowdSec's own (a scenario hitting the shared proxy) concerns
+ *   every protected application on the server, and is recorded for each.
+ * Traffic and counters keep only decisions matching the application's rules.
+ */
+export async function syncServer(serverId: number): Promise<ServerSyncResult> {
+  const { getServerCrowdSecClient, analyseRule, targetKey } = await import('./firewall-enforcement.service');
+  const { listEnabledConfigsOnServer, listRulesByConfigId } = await import('./firewall.service');
+
+  const result: ServerSyncResult = { applications: 0, alertsImported: 0, trafficImported: 0 };
+  const configs = await listEnabledConfigsOnServer(serverId);
+  if (configs.length === 0) return result;
+
+  const client = await getServerCrowdSecClient(serverId);
+  if (!client) return result;
+
+  const otherApps = (uuid: string) => configs.map((c) => c.appUuid).filter((u) => u !== uuid);
+
+  for (const config of configs) {
+    const rules = await listRulesByConfigId(config.configId);
+    const targets = new Set(
+      rules
+        .filter((r) => r.enabled)
+        .map(analyseRule)
+        .filter((a) => a.enforceability === 'enforceable' && a.enforcedBy === 'crowdsec')
+        .flatMap((a) => a.targets)
+        .map(targetKey)
+    );
+    const others = otherApps(config.appUuid);
+    const belongs: AlertFilter = (alert) => {
+      const message = typeof alert.message === 'string' ? alert.message : '';
+      if (message.includes(config.appUuid)) return true;
+      return !others.some((uuid) => message.includes(uuid));
+    };
+
+    const alerts = await syncAlerts(config.applicationId, client, 100, belongs);
+    const traffic = await syncTrafficFromDecisions(config.applicationId, client, targets);
+    await refreshCounters(config.applicationId, client, targets);
+
+    result.applications += 1;
+    result.alertsImported += alerts.imported;
+    result.trafficImported += traffic.imported;
+  }
+  return result;
+}
+
+/** Servers with CrowdSec provisioned and at least one protected application. */
+export async function listServersToSync(): Promise<number[]> {
+  const { rows } = await pool.query<{ id: string }>(
+    `SELECT DISTINCT s.id
+     FROM firewall_configs fw
+     JOIN applications a ON a.id = fw.application_id AND a.deleted_at IS NULL
+     JOIN standalone_dockers sd ON sd.id = a.destination_id AND a.destination_type LIKE '%StandaloneDocker'
+     JOIN servers s ON s.id = sd.server_id
+     WHERE fw.enabled = true AND s.crowdsec_api_key IS NOT NULL`
+  );
+  return rows.map((r) => Number(r.id));
 }

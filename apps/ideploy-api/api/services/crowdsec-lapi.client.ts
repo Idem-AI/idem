@@ -124,13 +124,22 @@ export interface Alert {
 
 export interface LapiHealth {
   reachable: boolean;
+  /**
+   * Whether our credentials were accepted. A CrowdSec that answers but refuses
+   * our key is reachable yet useless to us: callers deciding whether rules can be
+   * enforced must check both.
+   */
+  authorized: boolean;
   version: string | null;
   /** Why it is unreachable, when it is. */
   detail?: string;
 }
 
 export interface BanRequest {
+  /** An address, or a CIDR range when `scope` is `range`. */
   ip: string;
+  /** `ip` (default) or `range` — CrowdSec matches a range against every address inside it. */
+  scope?: 'ip' | 'range';
   /** How long the ban lasts. */
   durationSeconds: number;
   reason?: string;
@@ -318,7 +327,7 @@ export class CrowdSecLapiClient {
             message: request.reason ?? 'Blocked by an iDeploy firewall rule',
             events: [],
             events_count: 1,
-            source: { scope: 'ip', value: request.ip },
+            source: { scope: request.scope ?? 'ip', value: request.ip },
             // Both `start_at`/`stop_at` and `decisions[].duration` end up
             // governing the ban's actual length — verified live against a
             // real CrowdSec instance (v1.7.8) with an isolated repro: a
@@ -341,7 +350,7 @@ export class CrowdSecLapiClient {
                 duration: `${durationSeconds}s`,
                 origin: ORIGIN,
                 scenario: SCENARIO,
-                scope: 'ip',
+                scope: request.scope ?? 'ip',
                 type: request.type ?? 'ban',
                 value: request.ip,
               },
@@ -357,12 +366,16 @@ export class CrowdSecLapiClient {
     }
   }
 
-  /** Lift the ban on an address. Succeeds when there was nothing to lift. */
-  async unbanIp(ip: string): Promise<void> {
+  /**
+   * Lift the ban on an address, or on a range when `scope` is `range` (CrowdSec
+   * filters ranges with the `range` parameter, not `ip`). Succeeds when there was
+   * nothing to lift.
+   */
+  async unbanIp(ip: string, scope: 'ip' | 'range' = 'ip'): Promise<void> {
     const action = `unbanning ${ip}`;
     try {
       const response = await this.http.delete('/v1/decisions', {
-        params: { ip },
+        params: scope === 'range' ? { range: ip } : { ip },
         headers: await this.machineHeaders(),
       });
       this.assertOk(response.status, action);
@@ -425,23 +438,24 @@ export class CrowdSecLapiClient {
       const response = await this.http.get('/v1/decisions', { params: { ip: '127.0.0.1' }, headers });
 
       if (response.status === 401 || response.status === 403) {
-        return { reachable: true, version: null, detail: 'The API key was rejected.' };
+        return { reachable: true, authorized: false, version: null, detail: 'The API key was rejected.' };
       }
       if (response.status >= 400) {
-        return { reachable: true, version: null, detail: `CrowdSec answered ${response.status}.` };
+        return { reachable: true, authorized: true, version: null, detail: `CrowdSec answered ${response.status}.` };
       }
 
       // The version header is informational; its absence is not a failure.
       const version = (response.headers?.['x-crowdsec-version'] as string | undefined) ?? null;
-      return { reachable: true, version };
+      return { reachable: true, authorized: true, version };
     } catch (error) {
       if (error instanceof DomainError) {
         // No credentials at all still means "we could not check" here, not a
         // transport failure — but it should not masquerade as reachable.
-        return { reachable: false, version: null, detail: error.message };
+        return { reachable: false, authorized: false, version: null, detail: error.message };
       }
       return {
         reachable: false,
+        authorized: false,
         version: null,
         detail: isAxiosError(error) ? (error.code ?? error.message) : 'Unknown error',
       };

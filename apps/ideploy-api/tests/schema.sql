@@ -2245,6 +2245,7 @@ CREATE TABLE public.servers (
     crowdsec_lapi_url character varying(255),
     crowdsec_api_key text,
     crowdsec_bouncer_key text,
+    crowdsec_machine_id character varying(255),
     traffic_logger_installed boolean DEFAULT false NOT NULL,
     traefik_logging_enabled boolean DEFAULT false NOT NULL,
     traffic_logger_url character varying(255),
