@@ -176,9 +176,9 @@ async function resolveServer(teamId: number, destinationId: number) {
     destinationId,
   ]);
   if (!rows[0]) throw new Error('Destination not found');
-  const server = await serverService.getServerById(teamId, Number(rows[0].server_id));
+  const server = await serverService.getExecutionServer(teamId, Number(rows[0].server_id));
   if (!server) throw new Error('Server not found');
-  const key = await serverService.getPrivateKey(teamId, server.private_key_id);
+  const key = await serverService.getExecutionKey(server);
   if (!key) throw new Error('Private key not found');
   const network = rows[0].network ? String(rows[0].network) : null;
   return { server, key, network };

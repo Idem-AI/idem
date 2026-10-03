@@ -167,10 +167,10 @@ export async function resolveBackupForDownload(
     );
   }
 
-  const server = await serverService.getServerById(teamId, Number(row.server_id));
+  const server = await serverService.getExecutionServer(teamId, Number(row.server_id));
   if (!server) throw notFound('The server holding this backup');
 
-  const key = await serverService.getPrivateKey(teamId, server.private_key_id);
+  const key = await serverService.getExecutionKey(server);
   if (!key) throw notFound('The private key for that server');
 
   const info = await statRemoteFile(server, key, filename);
@@ -238,9 +238,9 @@ export async function backupNow(
     [db.destination_id]
   );
   if (!drows[0]) throw new Error('Destination not found');
-  const server = await serverService.getServerById(teamId, Number(drows[0].server_id));
+  const server = await serverService.getExecutionServer(teamId, Number(drows[0].server_id));
   if (!server) throw new Error('Server not found');
-  const key = await serverService.getPrivateKey(teamId, server.private_key_id);
+  const key = await serverService.getExecutionKey(server);
   if (!key) throw new Error('Private key not found');
 
   const creds = await loadCreds(t, dbUuid);

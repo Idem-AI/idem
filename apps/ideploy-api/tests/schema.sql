@@ -6231,3 +6231,13 @@ ALTER TABLE ONLY public.workspace_projects
 --
 
 
+
+-- Added by migrations/1785700000000_add-application-sources.sql (Node-owned).
+CREATE TABLE IF NOT EXISTS public.application_sources (
+  application_id bigint PRIMARY KEY REFERENCES public.applications(id) ON DELETE CASCADE,
+  archive bytea NOT NULL,
+  file_count integer NOT NULL,
+  byte_size integer NOT NULL,
+  origin character varying(32) NOT NULL DEFAULT 'icode',
+  updated_at timestamp with time zone NOT NULL DEFAULT now()
+);

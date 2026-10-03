@@ -14,6 +14,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { metricsMiddleware, register } from './middleware/metrics.js';
 import chatRouter from './routes/chat.js';
 import deployRouter from './routes/deploy.js';
+import ideployRouter from './routes/ideploy.js';
 import enhancedPromptRouter from './routes/enhancedPrompt.js';
 import modelRouter from './routes/model.js';
 import handoffRouter from './routes/handoff.js';
@@ -85,6 +86,8 @@ app.get('/health', (req: Request, res: Response) => {
 // réservées aux utilisateurs IDEM authentifiés.
 app.use('/api/chat', requireIdemUser, chatRouter);
 app.use('/api/deploy', requireIdemUser, deployRouter);
+// Mise en ligne par iDeploy, sans quitter iCode (site, PWA ou application complète).
+app.use('/api/ideploy', requireIdemUser, ideployRouter);
 app.use('/api/enhancedPrompt', requireIdemUser, enhancedPromptRouter);
 app.use('/api/model', modelRouter);
 // Stockage en mémoire : réservé aux utilisateurs connectés (sinon n'importe qui

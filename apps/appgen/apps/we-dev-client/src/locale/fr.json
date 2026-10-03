@@ -508,7 +508,74 @@
     "connect_idem_subtitle": "Créer ou associer à un projet existant",
     "cancel": "Annuler",
     "live": "En ligne",
-    "open_pipeline": "Ouvrir iDeploy"
+    "open_pipeline": "Ouvrir iDeploy",
+    "publish": {
+      "title": "Mettre en ligne",
+      "cta": "Mettre en ligne"
+    },
+    "update": {
+      "title": "Mettre à jour la version en ligne",
+      "cta": "Mettre à jour"
+    },
+    "done": {
+      "title": "C'est en ligne",
+      "body": "Votre application est accessible à cette adresse, depuis n'importe quel téléphone ou ordinateur.",
+      "toast": "Votre application est en ligne."
+    },
+    "lead": {
+      "static": "Votre site est publié à une adresse sécurisée, en quelques minutes. Rien à configurer.",
+      "fullstack": "IDEM prépare la base de données, le serveur et l'interface, et les relie pour vous. Rien à configurer."
+    },
+    "steps": {
+      "prepare": {
+        "title": "Préparation",
+        "hint": "Nous rassemblons votre application."
+      },
+      "send": {
+        "title": "Envoi",
+        "hint": "Votre site part vers nos serveurs."
+      },
+      "live": {
+        "title": "Mise en ligne",
+        "hint": "Encore quelques instants."
+      },
+      "database": {
+        "title": "Base de données",
+        "hint": "Création de l'espace où vos données seront gardées."
+      },
+      "server": {
+        "title": "Serveur de l'application",
+        "hint": "Installation et démarrage. Cela prend quelques minutes."
+      },
+      "interface": {
+        "title": "Interface",
+        "hint": "Construction des écrans de votre application."
+      }
+    },
+    "working_note": "Vous pouvez fermer cette fenêtre : la mise en ligne continue.",
+    "retry": "Réessayer",
+    "login": "Se connecter",
+    "open": "Ouvrir",
+    "close": "Terminer",
+    "errors": {
+      "login": "Votre session a expiré. Connectez-vous pour mettre en ligne.",
+      "build": "Votre application ne se construit pas : une erreur dans le code l'en empêche.",
+      "preview": "L'atelier n'est pas prêt. Lancez l'aperçu une fois, puis réessayez.",
+      "deploy_deploy": "La mise en ligne n'a pas abouti.",
+      "deploy_server": "Le serveur de l'application n'a pas démarré.",
+      "deploy_interface": "L'interface n'a pas pu être construite.",
+      "generic": "La mise en ligne n'a pas pu se faire. Réessayez dans un instant."
+    },
+    "advanced": {
+      "title": "Options avancées",
+      "name": "Nom de l'application",
+      "name_locked": "Le nom est fixé à la première mise en ligne.",
+      "what": "Ce qui est créé :",
+      "what_static": "un site statique servi par nginx, construit dans iCode, avec certificat HTTPS.",
+      "what_fullstack": "une base PostgreSQL, le serveur (dossier backend/, Node.js) et l'interface (dossier frontend/). DATABASE_URL et VITE_API_URL sont renseignées automatiquement.",
+      "api": "Adresse de l'API :",
+      "manage": "Gérer dans iDeploy"
+    }
   },
   "editMode": {
     "hint": "Clic pour sélectionner · recliquer pour l'élément en dessous · Maj+clic multi · double-clic éditer · glisser réordonner · Suppr supprimer",

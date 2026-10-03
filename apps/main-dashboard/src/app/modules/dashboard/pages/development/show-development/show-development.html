@@ -68,6 +68,13 @@
           {{ (siteStarted() ? 'dashboard.siteApp.site.resume' : 'dashboard.siteApp.pick.site.cta') | translate }}
           <i class="pi pi-arrow-right" aria-hidden="true"></i>
         </button>
+
+        @if (siteStarted()) {
+          <button type="button" class="sa-extra__link" (click)="openPublish('site')">
+            <i class="pi pi-send text-xs" aria-hidden="true"></i>
+            {{ 'dashboard.siteApp.publish' | translate }}
+          </button>
+        }
       </section>
 
       <!-- ═════════════ Application ═════════════ -->
@@ -152,9 +159,9 @@
         }
 
         @if (appStarted()) {
-          <button type="button" class="sa-extra__link" (click)="openGoLiveGuide()">
+          <button type="button" class="sa-extra__link" (click)="openPublish('app')">
             <i class="pi pi-send text-xs" aria-hidden="true"></i>
-            {{ 'dashboard.siteApp.steps.golive.cta' | translate }}
+            {{ 'dashboard.siteApp.publish' | translate }}
           </button>
         }
       </section>

@@ -27,8 +27,26 @@ interface SourceChoice {
   descKey: string;
 }
 
-/** How many one-click apps the page shows before sending to the full catalog. */
-const FEATURED_TEMPLATES = 6;
+/**
+ * The one-click apps shown up front: the most used open source software of the
+ * catalog, by popularity (GitHub stars, installs), not the catalog's alphabetical
+ * order. Each name is a key of the API's template catalog; one missing from it
+ * is simply not shown.
+ */
+const POPULAR_APPS: { template: string; label: string; descKey: string }[] = [
+  { template: 'wordpress-with-mysql', label: 'WordPress', descKey: 'projects.start.apps.wordpress' },
+  { template: 'n8n', label: 'n8n', descKey: 'projects.start.apps.n8n' },
+  { template: 'odoo', label: 'Odoo', descKey: 'projects.start.apps.odoo' },
+  { template: 'supabase', label: 'Supabase', descKey: 'projects.start.apps.supabase' },
+  { template: 'nextcloud', label: 'Nextcloud', descKey: 'projects.start.apps.nextcloud' },
+  { template: 'open-webui', label: 'Open WebUI', descKey: 'projects.start.apps.openWebui' },
+  { template: 'ghost', label: 'Ghost', descKey: 'projects.start.apps.ghost' },
+  { template: 'strapi', label: 'Strapi', descKey: 'projects.start.apps.strapi' },
+  { template: 'uptime-kuma', label: 'Uptime Kuma', descKey: 'projects.start.apps.uptimeKuma' },
+  { template: 'metabase', label: 'Metabase', descKey: 'projects.start.apps.metabase' },
+  { template: 'umami', label: 'Umami', descKey: 'projects.start.apps.umami' },
+  { template: 'chatwoot', label: 'Chatwoot', descKey: 'projects.start.apps.chatwoot' },
+];
 
 /**
  * New project — one question, then one panel.
@@ -37,7 +55,9 @@ const FEATURED_TEMPLATES = 6;
  * ready-made app) and only then shows the controls for that answer. Every
  * source iDeploy supports is still here — GitHub, GitLab, a public Git URL,
  * an image, a compose file, the template catalog and the architecture guides —
- * but never all on screen at once.
+ * but never all on screen at once. The guides for a project in several parts
+ * sit at the top of "My code": that is where someone with a site, an API and
+ * a database looks, and missing them means deploying the parts unconnected.
  */
 @Component({
   selector: 'app-new-project',
@@ -63,39 +83,42 @@ const FEATURED_TEMPLATES = 6;
       <span class="w-16" aria-hidden="true"></span>
     </header>
 
-    <main class="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
-      <h1 class="mb-2 text-center text-3xl font-bold text-text-primary">{{ 'projects.start.heading' | translate }}</h1>
-      <p class="mx-auto mb-10 max-w-xl text-center text-sm" style="color:var(--color-text-secondary);">
+    <main class="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <h1 class="mb-1 text-center text-2xl font-bold text-text-primary sm:text-3xl">{{ 'projects.start.heading' | translate }}</h1>
+      <p class="mx-auto mb-6 max-w-xl text-center text-sm" style="color:var(--color-text-secondary);">
         {{ 'projects.start.subheading' | translate }}
       </p>
 
-      <!-- Step 1 — the source -->
-      <div class="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" data-tour="ideploy-sources" [attr.aria-label]="'projects.start.sourceLabel' | translate">
+      <!-- Step 1 — the source: compact rows, so the panel below starts above the fold -->
+      <div class="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" data-tour="ideploy-sources" [attr.aria-label]="'projects.start.sourceLabel' | translate">
         @for (choice of sources; track choice.id) {
           <button
             type="button"
             role="radio"
             [attr.aria-checked]="source() === choice.id"
-            class="glass-card relative flex cursor-pointer items-center gap-4 rounded-2xl p-4 text-left transition-colors sm:flex-col sm:gap-2 sm:p-5 sm:text-center"
+            class="glass-card relative flex cursor-pointer items-center gap-4 rounded-2xl p-4 text-left transition-colors"
             [style.border-color]="source() === choice.id ? 'var(--color-primary-500)' : null"
             [style.box-shadow]="source() === choice.id ? '0 0 0 1px var(--color-primary-500)' : null"
             (click)="selectSource(choice.id)">
             @if (source() === choice.id) {
               <i class="pi pi-check-circle absolute right-3 top-3 text-sm" style="color:var(--color-primary-500);" aria-hidden="true"></i>
             }
-            <app-illustration class="shrink-0" [name]="choice.illustration" [width]="illustrationWidth" />
-            <span class="flex min-w-0 flex-col gap-1 pr-5 sm:pr-0">
-              <span class="font-semibold text-text-primary">{{ choice.titleKey | translate }}</span>
-              <span class="text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ choice.descKey | translate }}</span>
+            <app-illustration class="shrink-0" [name]="choice.illustration" [width]="88" />
+            <span class="flex min-w-0 flex-col gap-0.5 pr-5">
+              <span class="text-sm font-semibold text-text-primary">{{ choice.titleKey | translate }}</span>
+              <span class="text-xs leading-snug" style="color:var(--color-text-secondary);">{{ choice.descKey | translate }}</span>
             </span>
           </button>
         }
       </div>
 
-      <!-- Step 2 — the panel for that source -->
-      <section class="glass-card rounded-2xl p-5 sm:p-6" data-tour="ideploy-source-panel">
+      <!-- Step 2 — the panel for that source; for code, the guides sit beside it -->
+      <div class="grid grid-cols-1 items-start gap-4" [class.lg:grid-cols-3]="source() === 'code'">
+      <section class="glass-card rounded-2xl p-5 sm:p-6 lg:col-span-2" data-tour="ideploy-source-panel">
         @switch (source()) {
           @case ('code') {
+            <h2 class="font-semibold text-text-primary">{{ 'projects.start.singleRepoTitle' | translate }}</h2>
+            <p class="mb-4 mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'projects.start.singleRepoHint' | translate }}</p>
             <div class="mb-5 flex border-b" role="tablist" style="border-color:var(--glass-border-subtle);">
               @for (tab of codeTabs; track tab.id) {
                 <button type="button" role="tab" class="-mb-px flex flex-1 cursor-pointer items-center justify-center gap-2 border-b-2 py-2.5 text-sm font-medium transition-colors"
@@ -150,7 +173,7 @@ const FEATURED_TEMPLATES = 6;
               } @else if (filteredRepos().length === 0) {
                 <p class="py-8 text-center text-sm" style="color:var(--color-text-secondary);">{{ 'projects.start.noRepos' | translate }}</p>
               } @else {
-                <ul class="custom-scrollbar max-h-[420px] overflow-y-auto rounded-xl border" style="border-color:var(--glass-border-subtle);">
+                <ul class="custom-scrollbar max-h-72 overflow-y-auto rounded-xl border" style="border-color:var(--glass-border-subtle);">
                   @for (repo of filteredRepos(); track repo.fullName) {
                     <li class="flex items-center gap-3 border-b px-4 py-3 last:border-b-0" style="border-color:var(--glass-border-subtle);">
                       <div class="min-w-0 flex-1">
@@ -226,32 +249,33 @@ const FEATURED_TEMPLATES = 6;
           }
 
           @case ('template') {
-            <div class="mb-3 flex items-baseline justify-between">
+            <div class="mb-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <h2 class="font-semibold text-text-primary">{{ 'projects.start.popularApps' | translate }}</h2>
               <a routerLink="/templates" class="text-sm font-medium text-primary-500 hover:underline">{{ 'projects.start.browseCatalog' | translate }}</a>
             </div>
+            <p class="mb-4 text-xs" style="color:var(--color-text-secondary);">{{ 'projects.start.popularAppsHint' | translate }}</p>
 
             @if (templatesLoading()) {
-              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2" aria-hidden="true">
-                @for (i of [0, 1, 2, 3]; track i) { <div class="skeleton h-16 rounded-xl"></div> }
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+                @for (i of [0, 1, 2, 3, 4, 5]; track i) { <div class="skeleton h-28 rounded-xl"></div> }
               </div>
             } @else {
-              <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                @for (t of templates(); track t.name) {
-                  <li class="flex items-center gap-3 rounded-xl border p-3" style="border-color:var(--glass-border-subtle);">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" style="background:var(--glass-bg-subtle);">
-                      @if (templateLogo(t); as logo) {
-                        <img [src]="logo" class="h-6 w-6 object-contain" alt="" (error)="onLogoError($event)" />
-                      } @else {
-                        <i class="pi pi-box text-text-secondary" aria-hidden="true"></i>
-                      }
+              <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                @for (app of popularApps(); track app.template.name) {
+                  <li class="flex flex-col gap-3 rounded-xl border p-4" style="border-color:var(--glass-border-subtle);">
+                    <div class="flex items-center gap-3">
+                      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" style="background:var(--glass-bg-subtle);">
+                        @if (templateLogo(app.template); as logo) {
+                          <img [src]="logo" class="h-6 w-6 object-contain" alt="" (error)="onLogoError($event)" />
+                        } @else {
+                          <i class="pi pi-box text-text-secondary" aria-hidden="true"></i>
+                        }
+                      </div>
+                      <a [routerLink]="['/templates', app.template.name]" class="min-w-0 truncate text-sm font-semibold text-text-primary hover:underline">{{ app.label }}</a>
                     </div>
-                    <div class="min-w-0 flex-1">
-                      <div class="truncate text-sm font-medium capitalize text-text-primary">{{ t.name }}</div>
-                      <div class="truncate text-xs" style="color:var(--color-text-secondary);">{{ t.slogan || ('projects.start.readyToUse' | translate) }}</div>
-                    </div>
-                    <button type="button" class="outer-button button-sm" [disabled]="busy()" (click)="cloneTemplate(t)">
-                      @if (busyTemplate() === t.name) { <idem-loader size="xs" /> }
+                    <p class="flex-1 text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ app.descKey | translate }}</p>
+                    <button type="button" class="outer-button button-sm w-full" [disabled]="busy()" (click)="cloneTemplate(app.template)">
+                      @if (busyTemplate() === app.template.name) { <idem-loader size="xs" /> }
                       {{ 'projects.start.publishShort' | translate }}
                     </button>
                   </li>
@@ -262,25 +286,6 @@ const FEATURED_TEMPLATES = 6;
             @if (error()) {
               <p class="mt-3 text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
             }
-
-            <h2 class="mb-1 mt-8 font-semibold text-text-primary">{{ 'projects.start.architecturesTitle' | translate }}</h2>
-            <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'projects.start.architecturesHint' | translate }}</p>
-            <ul class="overflow-hidden rounded-xl border" style="border-color:var(--glass-border-subtle);">
-              @for (a of architectureTemplates; track a.id) {
-                <li class="border-b last:border-b-0" style="border-color:var(--glass-border-subtle);">
-                  <a [routerLink]="['/new-project/guide', a.id]" [queryParams]="workspaceUuid ? { workspace: workspaceUuid } : {}"
-                     class="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--glass-bg-subtle)]">
-                    <i [class]="a.icon" class="w-5 text-center text-text-secondary" aria-hidden="true"></i>
-                    <div class="min-w-0 flex-1">
-                      <div class="text-sm font-medium text-text-primary">{{ a.name | translate }}</div>
-                      <div class="truncate text-xs" style="color:var(--color-text-secondary);">{{ a.description | translate }}</div>
-                    </div>
-                    <span class="tag shrink-0 text-[10px]">{{ a.steps.length }} {{ 'architectures.steps' | translate }}</span>
-                    <i class="pi pi-chevron-right text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
-                  </a>
-                </li>
-              }
-            </ul>
           }
         }
 
@@ -289,7 +294,40 @@ const FEATURED_TEMPLATES = 6;
         }
       </section>
 
-      <p class="mt-8 text-center text-sm" style="color:var(--color-text-secondary);">
+      @if (source() === 'code') {
+        <!-- Second path: a project in several parts, guided step by step -->
+        <aside class="glass-card rounded-2xl p-5" aria-labelledby="guides-title">
+          <h2 id="guides-title" class="font-semibold text-text-primary">{{ 'projects.start.architecturesTitle' | translate }}</h2>
+          <p class="mb-4 mt-1 text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ 'projects.start.architecturesHint' | translate }}</p>
+          <ul class="space-y-2">
+            @for (a of multiPartGuides; track a.id) {
+              <li>
+                <a [routerLink]="['/new-project/guide', a.id]" [queryParams]="workspaceUuid ? { workspace: workspaceUuid } : {}"
+                   class="group flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors hover:border-primary-500 hover:bg-[var(--glass-bg-subtle)]"
+                   style="border-color:var(--glass-border-subtle);">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-sm font-medium text-text-primary">{{ a.name | translate }}</span>
+                      <span class="flex shrink-0 items-center gap-1 text-text-secondary" aria-hidden="true">
+                        @for (icon of a.pieces; track $index) {
+                          @if (!$first) { <span class="h-px w-2" style="background:var(--color-text-tertiary);"></span> }
+                          <i [class]="icon" class="text-[11px]"></i>
+                        }
+                      </span>
+                    </div>
+                    <p class="mt-1 text-xs leading-snug" style="color:var(--color-text-secondary);">{{ a.description | translate }}</p>
+                    <span class="mt-1.5 inline-block text-[11px]" style="color:var(--color-text-tertiary);">{{ 'projects.start.guideSteps' | translate: { count: a.steps.length } }}</span>
+                  </div>
+                  <i class="pi pi-chevron-right text-xs transition-transform group-hover:translate-x-0.5" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
+                </a>
+              </li>
+            }
+          </ul>
+        </aside>
+      }
+      </div>
+
+      <p class="mt-6 text-center text-sm" style="color:var(--color-text-secondary);">
         {{ 'projects.start.emptyPrompt' | translate }}
         <a routerLink="/workspaces/new" class="font-medium text-primary-500 hover:underline">{{ 'projects.start.emptyLink' | translate }}</a>
       </p>
@@ -306,8 +344,9 @@ export class NewProjectComponent implements OnInit {
 
   protected readonly sources: SourceChoice[] = [
     { id: 'code', illustration: 'code', titleKey: 'projects.start.sourceCode', descKey: 'projects.start.sourceCodeDesc' },
-    { id: 'docker', illustration: 'box', titleKey: 'projects.start.sourceDocker', descKey: 'projects.start.sourceDockerDesc' },
     { id: 'template', illustration: 'market', titleKey: 'projects.start.sourceTemplate', descKey: 'projects.start.sourceTemplateDesc' },
+    // Last: the path for people who already package their own images.
+    { id: 'docker', illustration: 'box', titleKey: 'projects.start.sourceDocker', descKey: 'projects.start.sourceDockerDesc' },
   ];
   protected readonly codeTabs: { id: CodeTab; icon: string; labelKey: string }[] = [
     { id: 'github', icon: 'pi pi-github', labelKey: 'projects.start.tabGithub' },
@@ -318,9 +357,15 @@ export class NewProjectComponent implements OnInit {
     { id: 'image', labelKey: 'projects.start.tabImage' },
     { id: 'compose', labelKey: 'projects.start.tabCompose' },
   ];
-  protected readonly architectureTemplates = ARCHITECTURE_TEMPLATES;
-  /** Smaller on phones, where the three choices sit as rows rather than columns. */
-  protected readonly illustrationWidth = window.matchMedia('(min-width: 640px)').matches ? 96 : 64;
+  /**
+   * Only the guides that assemble several parts — a single static site is
+   * just an import. `pieces` lists the parts in reading order (what the
+   * visitor sees first, the database last), the reverse of the build order.
+   */
+  protected readonly multiPartGuides = ARCHITECTURE_TEMPLATES.filter((a) => a.steps.length > 1).map((a) => ({
+    ...a,
+    pieces: a.steps.map((step) => step.icon).reverse(),
+  }));
 
   protected readonly source = signal<Source>('code');
   protected readonly codeTab = signal<CodeTab>('github');
@@ -335,6 +380,13 @@ export class NewProjectComponent implements OnInit {
   private readonly gitlabReposLoading = signal(false);
 
   protected readonly templates = signal<ServiceTemplate[]>([]);
+  protected readonly popularApps = computed(() => {
+    const byName = new Map(this.templates().map((t) => [t.name, t]));
+    return POPULAR_APPS.flatMap((app) => {
+      const template = byName.get(app.template);
+      return template ? [{ ...app, template }] : [];
+    });
+  });
   protected readonly templatesLoading = signal(true);
 
   protected readonly repoQuery = signal('');
@@ -380,7 +432,7 @@ export class NewProjectComponent implements OnInit {
 
     this.api.listServiceTemplates().subscribe({
       next: (t) => {
-        this.templates.set(t.slice(0, FEATURED_TEMPLATES));
+        this.templates.set(t);
         this.templatesLoading.set(false);
       },
       error: () => this.templatesLoading.set(false),

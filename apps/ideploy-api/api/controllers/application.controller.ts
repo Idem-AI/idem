@@ -5,6 +5,7 @@ import logger from '../config/logger';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
 import * as deploymentService from '../services/deployment.service';
+import { saveApplicationSource } from '../services/application-source.service';
 import * as taskService from '../services/scheduled-task.service';
 import * as volumeService from '../services/volume.service';
 import { resolveWorkspaceDestination, STANDALONE_DOCKER_TYPE } from '../services/workspace.service';
@@ -278,5 +279,28 @@ export async function exec(req: CustomRequest, res: Response): Promise<void> {
     ok(res, await appService.execCommand(req.user!.currentTeamId!, String(req.params.uuid), String(req.body.command)));
   } catch (err) {
     fail(res, (err as Error).message || 'Failed to exec command');
+  }
+}
+
+/**
+ * Replace the code of an application deployed from its files (iCode), and
+ * redeploy it unless `deploy: false`. How a published site gets its updates.
+ */
+export async function replaceSource(req: CustomRequest, res: Response): Promise<void> {
+  const files = req.body?.files;
+  if (!files || typeof files !== 'object') return fail(res, 'files is required', 422, 'VALIDATION');
+  try {
+    const teamId = req.user!.currentTeamId!;
+    const uuid = String(req.params.uuid);
+    const saved = await saveApplicationSource(teamId, uuid, files);
+    let deploymentUuid: string | null = null;
+    if (req.body?.deploy !== false) {
+      const app = await appService.getApplication(teamId, uuid);
+      if (!app) return fail(res, 'Application not found', 404, 'NOT_FOUND');
+      deploymentUuid = (await deploymentService.createDeployment(app, teamId, {})).deploymentUuid;
+    }
+    ok(res, { ...saved, deploymentUuid }, deploymentUuid ? 202 : 200);
+  } catch (err) {
+    respondWithError(res, err, 'Replacing the code of the application');
   }
 }

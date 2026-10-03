@@ -162,6 +162,14 @@ export async function setDeploymentStatus(deploymentUuid: string, status: string
   );
 }
 
+/** Keep why a deployment failed, in the existing `logs` column, for clients that poll. */
+export async function recordFailure(deploymentUuid: string, message: string): Promise<void> {
+  await pool.query(
+    'UPDATE application_deployment_queues SET logs = $1, updated_at = now() WHERE deployment_uuid = $2',
+    [message.slice(0, 4000), deploymentUuid]
+  );
+}
+
 /** Deployment history for an application (newest first) — used for rollback. */
 export async function listForApplication(
   teamId: number,

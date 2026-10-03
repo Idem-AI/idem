@@ -27,6 +27,23 @@ export const BUILD_PACKS: readonly BuildPack[] = [
 /** Image serving a built static site. */
 const STATIC_IMAGE = 'nginx:alpine';
 
+/**
+ * nginx for a single-page application: a path that is not a file falls back to
+ * `index.html`, so reloading `/orders/12` shows the app instead of a 404. A
+ * plain multi-page site loses nothing — its real files are still served first.
+ */
+export const STATIC_NGINX_CONF = [
+  'server {',
+  '  listen 80;',
+  '  root /usr/share/nginx/html;',
+  '  index index.html;',
+  '  location / {',
+  '    try_files $uri $uri/ /index.html;',
+  '  }',
+  '}',
+  '',
+].join('\n');
+
 export interface BuildContext {
   /** Where the repository was cloned on the server. */
   srcDir: string;
@@ -193,10 +210,13 @@ function staticPlan(context: BuildContext): BuildPlan {
   if (context.installCommand || context.buildCommand) {
     const install = context.installCommand ?? 'npm ci || npm install';
     const build = context.buildCommand ?? 'npm run build';
+    // The operator's build-time Variables reach the build — a site that bakes
+    // an API address in at build time (`VITE_API_URL`) gets it here or never.
+    const envFlags = (context.buildEnv ?? []).map((pair) => `-e ${quote(pair)} `).join('');
     steps.push({
       label: 'Building the site',
       command:
-        `cd ${quote(dir)} && docker run --rm -v ${quote(dir)}:/app -w /app node:20-alpine ` +
+        `cd ${quote(dir)} && docker run --rm ${envFlags}-v ${quote(dir)}:/app -w /app node:20-alpine ` +
         `sh -lc ${quote(`${install} && ${build}`)}`,
     });
   }
@@ -207,7 +227,8 @@ function staticPlan(context: BuildContext): BuildPlan {
       command:
         `cd ${quote(dir)} && ` +
         `{ test -d ${quote(publish)} || { echo ${quote(`Build output not found in ${publish}. Set the publish directory to match your build.`)} >&2; exit 1; }; } && ` +
-        `printf 'FROM ${STATIC_IMAGE}\\nCOPY %s /usr/share/nginx/html\\n' ${quote(publish)} > Dockerfile.ideploy-static`,
+        `echo ${Buffer.from(STATIC_NGINX_CONF, 'utf8').toString('base64')} | base64 -d > nginx.ideploy.conf && ` +
+        `printf 'FROM ${STATIC_IMAGE}\\nCOPY %s /usr/share/nginx/html\\nCOPY nginx.ideploy.conf /etc/nginx/conf.d/default.conf\\n' ${quote(publish)} > Dockerfile.ideploy-static`,
     },
     {
       label: 'Building image',

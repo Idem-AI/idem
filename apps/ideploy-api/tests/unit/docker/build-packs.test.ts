@@ -154,6 +154,26 @@ describe('planBuild — static', () => {
     expect(plan.steps.some((s) => s.label === 'Building the site')).toBe(false);
   });
 
+  it('passes build-time Variables to the build (VITE_API_URL baked into the site)', () => {
+    const plan = planBuild(
+      'static',
+      context({ buildCommand: 'npm run build', buildEnv: ['VITE_API_URL=https://api.example.com'] })
+    );
+
+    expect(script(plan)).toContain("-e 'VITE_API_URL=https://api.example.com'");
+  });
+
+  it('falls back to index.html, so reloading a page of a single-page app is not a 404', () => {
+    const plan = planBuild('static', context());
+    const conf = Buffer.from(
+      script(plan).match(/echo (\S+) \| base64 -d > nginx\.ideploy\.conf/)![1],
+      'base64'
+    ).toString('utf8');
+
+    expect(conf).toContain('try_files $uri $uri/ /index.html;');
+    expect(script(plan)).toContain('COPY nginx.ideploy.conf /etc/nginx/conf.d/default.conf');
+  });
+
   it('defaults the publish directory, and says so when it is wrong', () => {
     const plan = planBuild('static', context());
 

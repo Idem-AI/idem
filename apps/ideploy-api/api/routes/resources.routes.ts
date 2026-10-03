@@ -170,4 +170,23 @@ router.post('/quick-deploy', authenticate, requireTeam, async (req: CustomReques
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/quick-deploy/fullstack:
+ *   post:
+ *     summary: Deploy a complete application (PostgreSQL + backend/ + frontend/) from its files, linked automatically
+ *     tags: [System]
+ *     responses: { 202: { description: Accepted } }
+ */
+router.post('/quick-deploy/fullstack', authenticate, requireTeam, async (req: CustomRequest, res: Response) => {
+  const { name, files } = req.body ?? {};
+  if (!name) return fail(res, 'name is required', 422, 'VALIDATION');
+  if (!files || typeof files !== 'object') return fail(res, 'files is required', 422, 'VALIDATION');
+  try {
+    ok(res, await quickDeploy.quickDeployFullstack(req.user!.currentTeamId!, req.body), 202);
+  } catch (err) {
+    respondWithError(res, err, 'Deploying the complete application');
+  }
+});
+
 export default router;

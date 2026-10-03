@@ -617,9 +617,9 @@
       "sourceCode": "Mon code",
       "sourceCodeDesc": "Un dépôt GitHub, GitLab ou une adresse Git publique.",
       "sourceDocker": "Une image Docker",
-      "sourceDockerDesc": "Une image déjà publiée, ou un fichier docker-compose.",
+      "sourceDockerDesc": "Pour les initiés : une image déjà publiée ou un fichier docker-compose.",
       "sourceTemplate": "Une app prête à l'emploi",
-      "sourceTemplateDesc": "WordPress, n8n, Plausible… installée en un clic.",
+      "sourceTemplateDesc": "WordPress, n8n, Odoo… installée en un clic.",
       "tabGithub": "GitHub",
       "tabGitlab": "GitLab",
       "tabUrl": "Adresse publique",
@@ -653,13 +653,31 @@
       "publish": "Mettre en ligne",
       "publishing": "Mise en ligne…",
       "publishShort": "Installer",
-      "popularApps": "Apps populaires",
+      "popularApps": "Les apps libres les plus utilisées",
       "browseCatalog": "Voir tout le catalogue",
       "readyToUse": "Prête à l'emploi",
-      "architecturesTitle": "Plusieurs briques à assembler ?",
-      "architecturesHint": "Un guide pas à pas pour mettre en ligne un site, son API et sa base de données ensemble.",
+      "architecturesTitle": "Votre projet a plusieurs parties ?",
+      "architecturesHint": "Un site, son API, sa base de données… Un guide les met en ligne une par une et les relie pour vous.",
       "emptyPrompt": "Vous voulez seulement préparer un espace ?",
-      "emptyLink": "Créer un workspace vide"
+      "emptyLink": "Créer un workspace vide",
+      "guideSteps": "{{count}} étapes",
+      "singleRepoTitle": "Un seul dépôt à mettre en ligne ?",
+      "singleRepoHint": "Choisissez-le : on détecte comment le construire et vous vérifiez avant la mise en ligne.",
+      "popularAppsHint": "Des logiciels open source reconnus, installés en un clic sur votre serveur. Vous en restez propriétaire.",
+      "apps": {
+        "wordpress": "Site web, blog ou boutique en ligne.",
+        "n8n": "Automatisez vos tâches entre vos outils.",
+        "odoo": "Gestion d'entreprise : ventes, stock, compta.",
+        "supabase": "Base de données, comptes et API pour vos apps.",
+        "nextcloud": "Vos fichiers et agendas, sur votre serveur.",
+        "openWebui": "Votre propre assistant IA, type ChatGPT.",
+        "ghost": "Blog et newsletter professionnels.",
+        "strapi": "Gérez le contenu de votre site ou app.",
+        "uptimeKuma": "Soyez alerté quand un site tombe.",
+        "metabase": "Tableaux de bord à partir de vos données.",
+        "umami": "Statistiques de visites, sans cookies.",
+        "chatwoot": "Support client : chat, WhatsApp, e-mail."
+      }
     }
   },
   "servers": {
@@ -1212,8 +1230,8 @@
     "guideTitle": "Guide d'architecture",
     "notFound": "Guide introuvable.",
     "threeTier": {
-      "name": "Application 3-tiers",
-      "description": "Un frontend, une API backend, et une base de données — la structure classique en trois couches.",
+      "name": "Site + API + base de données",
+      "description": "Les pages visibles, le serveur qui les fait marcher, et les données.",
       "step1Title": "Déployez votre frontend",
       "step1Desc": "Importez votre application frontend depuis Git, ou déployez-la depuis un fichier Docker Compose ou une image.",
       "step2Title": "Déployez votre API backend",
@@ -1222,16 +1240,16 @@
       "step3Desc": "Provisionnez la base de données à laquelle votre backend se connecte (PostgreSQL, MySQL, MongoDB…)."
     },
     "monolith": {
-      "name": "Monolithe full-stack",
-      "description": "Une seule application gérant à la fois l'interface et la logique backend, adossée à une base de données.",
+      "name": "Application + base de données",
+      "description": "Une seule application qui fait tout, avec ses données.",
       "step1Title": "Déployez votre application",
       "step1Desc": "Importez votre application depuis Git, ou déployez-la depuis un fichier Docker Compose ou une image.",
       "step2Title": "Créez votre base de données",
       "step2Desc": "Provisionnez la base de données à laquelle votre application se connecte."
     },
     "apiDb": {
-      "name": "API + Base de données",
-      "description": "Une API backend sans frontend propre — juste le service et les données derrière.",
+      "name": "API + base de données",
+      "description": "Un serveur sans pages, avec ses données. Idéal pour une app mobile.",
       "step1Title": "Déployez votre API",
       "step1Desc": "Importez votre API depuis Git, ou déployez-la depuis un fichier Docker Compose ou une image.",
       "step2Title": "Créez votre base de données",
@@ -1244,8 +1262,8 @@
       "step1Desc": "Importez votre site statique depuis Git — il est détecté et construit automatiquement comme application statique."
     },
     "microservices": {
-      "name": "Microservices",
-      "description": "Plusieurs services indépendants partageant une base de données, plus un broker de messages pour le trafic entre eux.",
+      "name": "Plusieurs services reliés",
+      "description": "Plusieurs petites applications qui partagent leurs données.",
       "step1Title": "Déployez votre premier service",
       "step1Desc": "Importez-le depuis Git, ou déployez-le depuis un fichier Docker Compose ou une image.",
       "step2Title": "Déployez le service suivant",
@@ -1756,11 +1774,11 @@
     "new-project": {
       "sources": {
         "title": "D'où vient votre application ?",
-        "body": "Trois chemins : votre code (GitHub, GitLab ou une adresse Git), une image Docker déjà publiée, ou une app prête à l'emploi. Choisissez-en un."
+        "body": "Trois chemins : votre code (GitHub, GitLab ou une adresse Git), une app prête à l'emploi, ou une image Docker déjà publiée. Choisissez-en un."
       },
       "panel": {
         "title": "Complétez, puis mettez en ligne",
-        "body": "Ce cadre suit votre choix : vos dépôts, le nom de l'image, ou le catalogue d'apps. Côté apps prêtes à l'emploi, des guides aident à assembler plusieurs briques."
+        "body": "Ce cadre suit votre choix. Côté « Mon code », si votre projet a plusieurs parties (site, API, base de données), un guide les met en ligne et les relie pour vous."
       },
       "done": {
         "title": "À vous de jouer",

@@ -33,8 +33,8 @@ async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
   if (!app) throw new Error('Application not found');
   const ref = await appService.getApplicationServer(app.id);
   if (!ref) throw new Error('No server resolved for the application');
-  const server = await serverService.getServerById(teamId, ref.serverId);
-  const key = server ? await serverService.getPrivateKey(teamId, server.private_key_id) : null;
+  const server = await serverService.getExecutionServer(teamId, ref.serverId);
+  const key = server ? await serverService.getExecutionKey(server) : null;
   if (!server || !key) throw new Error('Server or key not found');
 
   const workdir = pipelineWorkdirFor(executionUuid);

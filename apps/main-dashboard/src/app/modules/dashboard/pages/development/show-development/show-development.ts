@@ -61,7 +61,6 @@ export class ShowDevelopment implements OnInit {
   private readonly brandingValidation = inject(BrandingValidationService);
 
   private readonly webgenUrl = environment.services.webgen.url;
-  private readonly ideployUrl = environment.services.ideploy.url;
 
   protected readonly loading = signal(true);
   protected readonly failed = signal(false);
@@ -210,16 +209,16 @@ export class ShowDevelopment implements OnInit {
   }
 
   /**
-   * Le guide « application 3 tiers » d'iDeploy : base de données, puis
-   * serveur (son `DATABASE_URL` est rempli tout seul), puis interface (son
-   * `VITE_API_URL` aussi).
+   * Mettre en ligne sans quitter iCode : iCode s'ouvre sur sa fenêtre de mise
+   * en ligne (`publish=1`), qui passe par iDeploy — site construit pour un site
+   * vitrine ou une application mobile, base + serveur + interface reliés pour
+   * une application complète.
    */
-  protected openGoLiveGuide(): void {
-    if (!this.appStarted()) return;
-    // L'application mobile se publie comme un site (PWA installable depuis son
-    // lien) ; l'application web passe par le guide 3 tiers.
-    const path = this.appPlatform() === 'mobile' ? '/new-project' : '/new-project/guide/3-tier';
-    window.open(`${this.ideployUrl}${path}`, '_blank', 'noopener');
+  protected openPublish(product: IcodeProduct): void {
+    const projectId = this.projectId();
+    if (!projectId) return;
+    const target = product === 'app' ? `&product=app&platform=${this.appPlatform()}` : '&product=site';
+    window.location.href = `${this.webgenUrl}?projectId=${encodeURIComponent(projectId)}${target}&publish=1`;
   }
 
   protected async copy(product: IcodeProduct): Promise<void> {
