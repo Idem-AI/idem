@@ -257,8 +257,7 @@
         "subtitle": "Ce que vous vendez, ce que ça coûte, et ce qu'il vous reste — sur trois ans. Les tableaux pour la banque se calculent tout seuls.",
         "actions": {
           "import": "Importer un fichier",
-          "ai": "Proposer avec l'IA",
-          "paste": "Coller un tableau"
+          "ai": "Proposer avec l'IA"
         },
         "imported": {
           "title": "Votre fichier a été importé",
@@ -797,6 +796,47 @@
         },
         "clear": "Tout effacer",
         "add": "Ajouter à mon prévisionnel ({{count}})"
+      },
+      "mode": {
+        "label": "Façon de saisir",
+        "steps": "Pas à pas",
+        "sheet": "Tableur",
+        "stepsHint": "Vous préférez tout saisir ou coller d'un bloc, comme dans Excel ? Passez en mode Tableur.",
+        "sheetHint": "Tout votre prévisionnel sur une grille. Les mêmes données qu'en mode Pas à pas."
+      },
+      "sheet": {
+        "lead": "Une ligne par élément, six colonnes dans cet ordre. Modifiez directement, ou collez un tableau copié depuis Excel, Google Sheets ou ChatGPT : cliquez dans une case, puis Ctrl+V.",
+        "detailKept": "Détail mois par mois conservé",
+        "count": "{{count}} ligne(s)",
+        "fixFirst": "Corrigez les cases en rouge pour enregistrer.",
+        "seeResults": "Voir mes résultats",
+        "toolbar": "Outils du tableur",
+        "undo": "Annuler",
+        "redo": "Rétablir",
+        "undoHint": "Annuler (Ctrl+Z ou ⌘Z)",
+        "redoHint": "Rétablir (Ctrl+Y ou ⌘⇧Z)",
+        "insertRow": "Insérer une ligne",
+        "deleteRow": "Supprimer la ligne",
+        "deleteRows": "Supprimer les {{count}} lignes",
+        "shortcuts": "Cliquez sur les numéros pour choisir des lignes · Maj ou Ctrl pour en prendre plusieurs · clic droit pour plus",
+        "selectRow": "Sélectionner la ligne {{n}}",
+        "menu": {
+          "copy": "Copier",
+          "cut": "Couper",
+          "insert": "Insérer une ligne",
+          "clear": "Vider les cases"
+        }
+      },
+      "nav": {
+        "overview": "Vue d'ensemble",
+        "sheet": "Tableur",
+        "products": "Ce que je vends",
+        "sales": "Mes ventes",
+        "variable": "Coûts des ventes",
+        "fixed": "Dépenses fixes",
+        "investments": "Achats de départ",
+        "financing": "Financement",
+        "reports": "Tableaux pour la banque"
       }
     },
     "sidebar": {
@@ -811,7 +851,7 @@
       "diagrams": "Diagrammes",
       "development": "Site & App",
       "deploymentOverview": "Aperçu du déploiement",
-      "deployment": "Déploiement",
+      "deployment": "Mise en ligne",
       "viewAllProjects": "Voir tous les projets",
       "communication": "Communication",
       "sr": {
@@ -1504,30 +1544,25 @@
       },
       "guidedHint": "Après la création, IDEM vous guidera étape par étape.",
       "modeChoice": {
-        "badge": "Mode d'accompagnement",
         "title": "Comment souhaitez-vous être accompagné ?",
-        "subtitle": "Votre description est enregistrée. Choisissez la façon de travailler qui vous ressemble — vous pourrez en changer à tout moment.",
+        "subtitle": "Votre description est enregistrée. Rien n'est définitif : le menu en haut de l'écran permet de changer de mode à tout moment.",
         "backToDescription": "Modifier la description",
         "recommended": "Conseillé",
-        "personalized": "Recommandation basée sur vos réponses",
-        "switchLater": "Quel que soit votre choix, vous pourrez changer de mode à tout moment depuis le menu en haut de l’écran.",
+        "recommendedForYou": "Conseillé d'après vos réponses",
         "guided": {
           "title": "Mode Assisté",
-          "tag": "Étape par étape",
           "description": "IDEM vous guide dans l'ordre : une seule étape à la fois, la suivante se débloque quand la précédente est terminée.",
           "forWho": "Pour vous si vous débutez et ne savez pas par où commencer.",
           "button": "Être guidé"
         },
         "chat": {
           "title": "Mode Chat",
-          "tag": "Conversation",
           "description": "Vous décrivez ce dont vous avez besoin en langage courant, IDEM le génère et vous répond.",
           "forWho": "Pour vous si vous préférez demander plutôt que chercher.",
           "button": "Discuter avec IDEM"
         },
         "form": {
           "title": "Tableau de bord",
-          "tag": "Accès complet",
           "description": "Un formulaire structuré, puis l'espace complet : tous les modules accessibles librement, dans l'ordre que vous voulez.",
           "forWho": "Pour vous si vous savez déjà ce que vous cherchez.",
           "button": "Ouvrir le tableau de bord"
@@ -4542,6 +4577,168 @@
           "useWhen": "Demo day, pitch sur scène, premier contact rapide."
         }
       }
+    },
+    "siteApp": {
+      "title": "Site & App",
+      "errors": {
+        "title": "Impossible de charger cette page",
+        "load": "Le projet n'a pas pu être lu. Vérifiez votre connexion et réessayez.",
+        "plan": "Le plan n'a pas pu être lu. Vérifiez votre connexion et réessayez."
+      },
+      "live": {
+        "title": "En ligne",
+        "copy": "Copier le lien",
+        "copied": "Lien copié",
+        "open": "Ouvrir"
+      },
+      "site": {
+        "resume": "Reprendre mon site vitrine"
+      },
+      "steps": {
+        "title": "Les étapes de votre application",
+        "stepLabel": "Étape {{n}} :",
+        "todo": "À faire",
+        "plan": {
+          "title": "Dessiner le plan",
+          "recommended": "Recommandé",
+          "body": "IDEM dessine les écrans et les informations de votre application. Avec ce plan, iCode construit exactement ce qu'il vous faut.",
+          "done": "Plan prêt",
+          "locked": "",
+          "cta": "Dessiner le plan",
+          "view": "Voir le plan"
+        },
+        "build": {
+          "title": "Construire l'application",
+          "body": "iCode écrit l'interface, le serveur et la base de données. Vous l'essayez et la modifiez en lui parlant.",
+          "withoutPlan": "Possible dès maintenant. Le plan est conseillé, pas obligatoire.",
+          "done": "Application commencée dans iCode",
+          "locked": "",
+          "cta": "Construire dans iCode",
+          "resume": "Reprendre dans iCode"
+        },
+        "golive": {
+          "title": "Mettre en ligne",
+          "body": "Envoyez le code sur GitHub depuis iCode, puis iDeploy crée la base de données, le serveur et l'interface, et les relie pour vous.",
+          "done": "Application en ligne",
+          "locked": "Disponible une fois l'application commencée",
+          "cta": "Mettre en ligne avec iDeploy"
+        }
+      },
+      "plan": {
+        "title": "Le plan de votre application",
+        "subtitle": "Les écrans, les données et leurs liens. iCode le lit pour construire votre application.",
+        "generatingLead": "IDEM dessine le plan à partir de votre projet. Cela prend une à deux minutes ; les schémas apparaissent au fur et à mesure.",
+        "generating": "Dessin du plan en cours",
+        "preparing": "Préparation…",
+        "redraw": "Redessiner",
+        "edit": "Modifier",
+        "emptyTitle": "Le plan n'est pas encore dessiné",
+        "emptyBody": "Recommandé avant de construire votre application : avec lui, iCode construit exactement ce qu'il vous faut. Vous pouvez aussi construire sans lui.",
+        "readyTitle": "Le plan est prêt",
+        "readyBody": "Étape suivante : iCode construit l'interface, le serveur et la base de données d'après ce plan."
+      },
+      "status": {
+        "notStarted": "Pas encore commencé",
+        "started": "En cours",
+        "live": "En ligne"
+      },
+      "pick": {
+        "title": "Créez votre site vitrine et votre application",
+        "site": {
+          "title": "Un site vitrine",
+          "line": "Une page sur internet qui présente votre activité, vos services et vos prix. Vos clients vous découvrent, voient vos réalisations et vous contactent en un clic, par téléphone ou sur WhatsApp.",
+          "cta": "Créer mon site vitrine"
+        },
+        "app": {
+          "title": "Une application",
+          "line": "Un outil en ligne que vos clients ou votre équipe utilisent avec leur propre compte. Chacun s'y connecte, retrouve ses informations et fait ce dont il a besoin, à tout moment.",
+          "cta": "Créer mon application"
+        }
+      },
+      "both": {
+        "title": "Vous pouvez faire les deux",
+        "body": "Votre projet peut avoir un site vitrine et une application. Commencez par celui que vous voulez, puis créez l'autre quand vous le souhaitez : chacun avance de son côté."
+      },
+      "platform": {
+        "question": "Où sera-t-elle utilisée ?",
+        "recommended": "Recommandé",
+        "web": {
+          "title": "Application web",
+          "hint": "Dans le navigateur, sur ordinateur et sur téléphone. Rien à installer."
+        },
+        "mobile": {
+          "title": "Application mobile",
+          "hint": "Installée sur le téléphone avec son icône, comme les applications des stores."
+        }
+      }
+    },
+    "goLive": {
+      "title": "Mise en ligne",
+      "subtitle": "Ce qui est en ligne avec iDeploy, et comment y ajouter ce que vous venez de construire.",
+      "refresh": "Actualiser",
+      "openIDeploy": "Ouvrir iDeploy",
+      "manage": "Gérer dans iDeploy",
+      "errors": {
+        "title": "iDeploy ne répond pas",
+        "body": "Impossible de lire vos ressources pour l'instant. Réessayez dans un moment."
+      },
+      "empty": {
+        "title": "Rien n'est encore en ligne",
+        "body": "Quand votre site ou votre application sera prêt, mettez-le en ligne ici : iDeploy s'occupe des serveurs.",
+        "build": "Construire mon site ou mon application"
+      },
+      "brief": {
+        "title": "En bref",
+        "online": "Applications en ligne",
+        "onlineHint": "Celles qui répondent en ce moment.",
+        "databases": "Bases de données",
+        "databasesHint": "Où vos applications rangent leurs données.",
+        "servers": "Serveurs connectés",
+        "serversHint": "Vos propres machines reliées à iDeploy."
+      },
+      "apps": {
+        "title": "Vos applications",
+        "none": "Aucune application pour l'instant.",
+        "open": "Ouvrir",
+        "noAddress": "Pas encore d'adresse"
+      },
+      "databases": {
+        "title": "Bases de données",
+        "none": "Aucune base de données."
+      },
+      "servers": {
+        "title": "Serveurs",
+        "none": "Vous utilisez les serveurs d'IDEM : rien à gérer.",
+        "connected": "Connecté",
+        "offline": "Hors ligne"
+      },
+      "state": {
+        "running": "En ligne",
+        "deploying": "Mise en ligne en cours",
+        "restarting": "Redémarrage",
+        "stopped": "Arrêtée",
+        "unknown": "État inconnu"
+      },
+      "time": {
+        "now": "à l'instant",
+        "minutes": "il y a {{n}} min",
+        "hours": "il y a {{n}} h",
+        "days": "il y a {{n}} j"
+      },
+      "new": {
+        "titleFirst": "Mettre en ligne",
+        "title": "Mettre autre chose en ligne",
+        "app": {
+          "title": "Une application complète",
+          "body": "Base de données, serveur et interface, créés dans le bon ordre et reliés automatiquement.",
+          "cta": "Ouvrir le guide"
+        },
+        "site": {
+          "title": "Un site ou un dépôt GitHub",
+          "body": "Un site vitrine, une API ou tout projet déjà sur GitHub.",
+          "cta": "Choisir dans iDeploy"
+        }
+      }
     }
   },
   "deployment": {
@@ -4605,11 +4802,11 @@
       "pitchDeck": "Pitch Deck",
       "legalDocs": "Documents légaux",
       "advisor": "Conseiller",
-      "diagrams": "Diagrammes",
-      "diagramsGenerate": "Génération de diagrammes",
+      "diagrams": "Plan de l'application",
+      "diagramsGenerate": "Dessin du plan",
       "createDevelopment": "Créer un développement",
       "development": "Développement",
-      "ideploy": "iDeploy",
+      "ideploy": "Mise en ligne",
       "createDeployment": "Créer un déploiement",
       "deployments": "Déploiements",
       "deploymentDetails": "Détails du déploiement",
@@ -5133,9 +5330,9 @@
       }
     },
     "deploy": {
-      "intro": "L'**assistant de déploiement** met votre projet en ligne (infrastructure, Terraform, CI/CD). Il a besoin d'un dépôt Git. Lançons un déploiement ou consultons les précédents.",
+      "intro": "La **mise en ligne** passe par iDeploy : il héberge votre site ou votre application, et pour une application complète il crée la base de données, le serveur et l'interface, puis les relie.",
       "chips": {
-        "start": "Lancer un déploiement",
+        "start": "Mettre en ligne",
         "list": "Voir mes déploiements"
       }
     },

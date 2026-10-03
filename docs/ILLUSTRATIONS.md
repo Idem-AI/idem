@@ -88,6 +88,9 @@ Format : **retenu** — candidats écartés (raison).
 | Finances : lecture du fichier par l'IA | **van de vannage, le grain utile reste** | métier à tisser (dit la rédaction) |
 | Finances : aperçu prêt / enregistrement | **grenier plein** | pagne déroulé (réservé aux livrables) |
 | Finances : étape vide, échec d'import | **calebasse vide** | — |
+| Site & App : site vitrine, application complète | **étal du marché ; façade en banco** | métier à tisser (dit le code, pas ce qu'on obtient) |
+| Site & App : plan, construction, mise en ligne | **filet de pêche ; façade en banco ; pirogue** | — |
+| Mise en ligne : rien encore en ligne | **pirogue** | grenier (dit la machine, pas le départ) |
 
 ### iDeploy
 
@@ -106,12 +109,30 @@ Format : **retenu** — candidats écartés (raison).
 | `team` | arbre à palabres |
 | `beads` (étiquettes) | perles enfilées, la perle-losange en couleur |
 | `net` (destinations, réseaux Docker) | épervier, un nœud en couleur |
+| `cowries` (prix, gratuit, paiement) | calebasse ouverte et ses cauris, un cauri en couleur |
 
 Pages de liste (état vide) : applications → `activity` (pirogue) ; serveurs →
 `server` ; services et catalogue → `market` ; espaces de travail → `box` ;
 destinations → `net` ; sources Git → `code` ; étiquettes → `beads` ; recherche
 sans résultat → `search`. Écartés pour les étiquettes : cauris (réservés à
 l'argent), tampon adinkra (réservé à l'identité de marque).
+
+Page d'accueil publique (`/`, sous le hero photographique) : hébergement →
+un chemin qui bifurque (`hosting-fork-illustration`) : le panier tressé en
+haut, le sentier qui se sépare vers `managed-cloud` (grenier du village) et
+`own-server` (porte et clé), le cœur du panier seul en couleur ; sur
+téléphone, chaque destination s'affiche seule au-dessus de sa colonne ; catalogue → `market` ; « Et
+aussi » (bases, volumes) → `store`, en grand ; tarif → `cowries` à côté d'un
+reçu à 0 F (le reçu est en HTML, pas un dessin) ; appel final → `activity`
+(pirogue).
+La sécurité est illustrée par une capture d'écran redessinée au trait
+(`guard-console-illustration`). À gauche, le bouclier aux lances croisées
+arrête les requêtes, et son cœur est le seul détail en couleur ; à droite,
+ce que relève la console.
+Les quatre étapes sont illustrées par une capture d'écran redessinée au trait
+(`live-shop-illustration`) : une boutique en ligne sur `boutique.idem.africa`.
+Ses articles sont un panier tressé, une calebasse et des pagnes pliés, avec un
+pagne tendu en bannière. Le cadenas de l'adresse est le seul détail en couleur.
 
 ### Simulateur
 
@@ -135,6 +156,7 @@ l'argent), tampon adinkra (réservé à l'identité de marque).
 | Entrée par une phrase | tambour parleur → façade en banco |
 | Entrée par un projet | baobab, tampon, filet → métier à tisser |
 | Visite guidée (5 étapes) | tambour → façade ; tambour ; étal ; clé-bouclier ; pirogue |
+| Maquette du produit (accueil) | coquille du builder gardée ; tambour parleur dans la conversation, façade en banco dans l'aperçu, page tissée en bandes (kente, losanges, bogolan), la dernière encore sur le métier, navette en couleur |
 
 ### Landing
 
@@ -176,6 +198,5 @@ comprendre le choix.
 - Types de logo (symbole, nom, monogramme) et modes de création : des exemples
   de logos.
 - Format de la charte (A4 / 16:9) : le format lui-même.
-- Maquette du produit AppGen : un schéma de l'interface.
 - Graphiques et jauges (finances, trésorerie, viabilité, courbe de prix,
   faisceau de trajectoires de la page simulateur) : des données.

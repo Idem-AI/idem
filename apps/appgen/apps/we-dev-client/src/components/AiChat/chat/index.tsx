@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Message, useChat } from 'ai/react';
 import { toast } from 'react-toastify';
 import { uploadImage } from '@/api/chat';
@@ -42,7 +42,9 @@ import { ProjectLogo } from '@/components/ProjectLogo';
 import { useLoading } from '../../loading';
 import { ProjectModel } from '@/api/persistence/models/project.model';
 import { MultiChatPromptService } from './services/multiChatPromptService';
+import { currentPlatform, currentProduct } from '@/utils/product';
 import useChatHistoryStore from '@/stores/chatHistoryStore';
+import useRunStatus from '@/stores/runStatusSlice';
 
 type WeMessages = (Message & {
   experimental_attachments?: Array<{
@@ -516,6 +518,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // Projet IDEM rattaché : le serveur en a besoin pour rattacher la
       // consommation de crédits au bon projet et vérifier qu'il est débloqué.
       projectId: new URLSearchParams(window.location.search).get('projectId') ?? undefined,
+      // Site vitrine ou application, web ou mobile : le serveur en tire le
+      // contrat de build (fichiers, mise en page, Capacitor pour le mobile).
+      product: currentProduct() ?? undefined,
+      platform: currentPlatform() ?? undefined,
       // User UI language so the AI answers/generates content in the right language.
       // (Distinct from otherConfig.backendLanguage, which is the target programming language.)
       language: i18n.language,
@@ -771,6 +777,20 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     return () => unsubscribe();
   }, [isLoading, append]);
 
+  // « Corriger automatiquement » depuis l'aperçu : l'erreur et son journal
+  // partent comme un message, que l'utilisateur voit dans la conversation.
+  useEffect(() => {
+    return eventEmitter.on('chat:fixError', (prompt: string) => {
+      if (!prompt) return;
+      if (isLoading) {
+        toast.info(t('preview.fix.busy'));
+        return;
+      }
+      useRunStatus.getState().clearError();
+      append({ id: uuidv4(), role: 'user', content: prompt });
+    });
+  }, [isLoading, append, t]);
+
   // Contexte poussé depuis l'espace de travail : sélection d'un élément,
   // annotation dessinée, thème à appliquer. On préremplit la saisie au lieu
   // d'envoyer directement — l'utilisateur a désigné *quoi*, il lui reste à dire
@@ -825,7 +845,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           }
 
           // Check if generation already exists
-          const existingGeneration = await getProjectGeneration(projectId);
+          // L'ancien marqueur de génération date d'avant les deux produits : il
+          // désigne le site. L'application se fie à sa propre conversation.
+          const existingGeneration =
+            currentProduct() === 'app' ? null : await getProjectGeneration(projectId);
           if (existingGeneration || hasStoredSession) {
             setHasGeneration(true);
             setIsGenerationComplete(true);
@@ -1309,6 +1332,25 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     setTimeout(() => setRetryingCodeLoad(false), 1200);
   };
 
+  // Les deux fonctions ci-dessous sont recréées à chaque rendu. Passées telles
+  // quelles en dépendances de `showJsx`, elles invalidaient le memo à chaque
+  // frappe dans le champ et à chaque jeton reçu : toute la conversation —
+  // artefacts de plusieurs milliers de lignes compris — se reconstruisait, et le
+  // navigateur finissait par signaler que la page ne répondait plus. Des
+  // versions stables qui appellent toujours la dernière définition suffisent.
+  const handleFileSelectRef = useRef(handleFileSelect);
+  handleFileSelectRef.current = handleFileSelect;
+  const stableHandleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => handleFileSelectRef.current(e),
+    []
+  );
+  const retryLoadProjectRef = useRef(retryLoadProject);
+  retryLoadProjectRef.current = retryLoadProject;
+  const stableRetryLoadProject = useCallback(() => retryLoadProjectRef.current(), []);
+  const handleStartGenerationRef = useRef(handleStartGeneration);
+  handleStartGenerationRef.current = handleStartGeneration;
+  const stableHandleStartGeneration = useCallback(() => handleStartGenerationRef.current(), []);
+
   const showJsx = useMemo(() => {
     // Show error state if project failed to load
     if (projectLoadError) {
@@ -1336,7 +1378,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
               </h3>
               <p className="text-sm text-red-700 dark:text-red-300 mb-6">{projectLoadError}</p>
               <button
-                onClick={retryLoadProject}
+                onClick={stableRetryLoadProject}
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1388,7 +1430,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                     {t('chatWorkspace.startHint')}
                   </p>
                   <button
-                    onClick={handleStartGeneration}
+                    onClick={stableHandleStartGeneration}
                     className="inner-button flex items-center gap-3 mx-auto px-8 py-4 text-lg font-semibold"
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1467,7 +1509,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
         {/* Only show tips if no project data */}
         {!projectData && (
-          <Tips append={append} setInput={setInput} handleFileSelect={handleFileSelect} />
+          <Tips append={append} setInput={setInput} handleFileSelect={stableHandleFileSelect} />
         )}
         <div className="max-w-[640px] w-full mx-auto space-y-3">
           {filterMessages.map((message, index) => (
@@ -1539,13 +1581,15 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     messages,
     isLoading,
     setInput,
-    handleFileSelect,
+    stableHandleFileSelect,
     showStartButton,
     hasGeneration,
     isGenerationComplete,
     projectData,
     projectLoadError,
-    retryLoadProject,
+    stableRetryLoadProject,
+    stableHandleStartGeneration,
+    t,
   ]);
 
   // show guide modal

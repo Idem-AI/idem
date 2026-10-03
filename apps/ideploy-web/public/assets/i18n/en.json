@@ -39,31 +39,8 @@
         "title": "It is live",
         "body": "Web address and certificate included."
       },
-      "renderTitle": "online-store",
       "renderUrl": "store.idem.africa",
-      "renderDone": "Live · 42s",
-      "log": {
-        "clone": {
-          "label": "Code fetched",
-          "time": "1.2s"
-        },
-        "detect": {
-          "label": "Language detected — Node 22",
-          "time": "0.4s"
-        },
-        "build": {
-          "label": "App built",
-          "time": "31.8s"
-        },
-        "ssl": {
-          "label": "HTTPS certificate issued",
-          "time": "8.3s"
-        },
-        "swap": {
-          "label": "Traffic switched, no downtime",
-          "time": "0.3s"
-        }
-      }
+      "renderDone": "Live · 42s"
     },
     "where": {
       "title": "Our servers, or yours",
@@ -72,16 +49,24 @@
       "idem": {
         "title": "IDEM infrastructure",
         "body": "You look after nothing. We pick the machine, maintain it and replace it if it fails.",
-        "p1": "Nothing to prepare, nothing to install",
-        "p2": "Updates and security included",
-        "p3": "Billed with your plan"
+        "machine": "Picked and provided by IDEM.",
+        "care": "Updates, security, replacement if it fails: we handle it.",
+        "data": "Hosted on IDEM infrastructure, with your plan.",
+        "fit": "You just want it to run, without thinking about it."
       },
       "own": {
         "title": "Your own server",
         "body": "Plug your VPS in once with an SSH key. iDeploy installs it, secures it and keeps it current.",
-        "p1": "Connected once, then one click to deploy",
-        "p2": "Your data stays with you",
-        "p3": "Hetzner provisioning built in"
+        "machine": "Your VPS or server, plugged in once with an SSH key. No server yet? iDeploy rents one from Hetzner.",
+        "care": "iDeploy installs it, secures it and keeps it current.",
+        "data": "It never leaves your machine.",
+        "fit": "You already have a server, or your data has to stay with you."
+      },
+      "rows": {
+        "machine": "The machine",
+        "care": "Upkeep",
+        "data": "Your data",
+        "fit": "Right for you if…"
       }
     },
     "guard": {
@@ -156,9 +141,39 @@
       }
     },
     "services": {
-      "title": "278 services ready to install",
-      "subtitle": "Invoicing, dashboards, file storage, AI assistants: one click, and the service runs on your side.",
-      "cta": "Browse the catalogue"
+      "title": "The most used open-source software, installed in one click",
+      "subtitle": "WordPress, Odoo, n8n, Supabase: the tools millions of teams already run. iDeploy installs them on our servers or yours, with a web address and backups.",
+      "cta": "Browse the catalogue",
+      "more": "And {{count}} more: team chat, project management, passwords, forms, databases…",
+      "groups": {
+        "site": "Website & content",
+        "business": "Run the business",
+        "ai": "AI & automation",
+        "backend": "Your app's back end",
+        "monitor": "Measure & monitor"
+      },
+      "items": {
+        "wordpress": "Website, blog and shop",
+        "strapi": "Managed content for your app",
+        "directus": "Back office on your database",
+        "odoo": "Sales, stock, accounting",
+        "dolibarr": "Quotes, invoices, customers",
+        "invoiceninja": "Invoices and payments",
+        "nextcloud": "Shared files and calendar",
+        "n8n": "Your repetitive tasks, automated",
+        "ollama": "AI models on your server",
+        "openwebui": "A private AI assistant",
+        "librechat": "Several AIs, one conversation",
+        "supabase": "Database, sign-in and files",
+        "appwrite": "Web and mobile back end",
+        "pocketbase": "A back end in a single file",
+        "nocodb": "Your database as a spreadsheet",
+        "grafana": "Dashboards",
+        "uptimekuma": "Alerted when your site goes down",
+        "umami": "Visitor statistics",
+        "metabase": "Your data as charts",
+        "moodle": "Online courses and training"
+      }
     },
     "pricingTeaser": {
       "title": "Your first app is on us",
@@ -174,7 +189,12 @@
         "database": "1 database",
         "commercial": "Commercial use allowed"
       },
-      "paidNote": "Paid plans from 2,999 F/month."
+      "paidNote": "Paid plans from 2,999 F/month.",
+      "receipt": {
+        "plan": "Free plan · monthly receipt",
+        "total": "Total this month",
+        "stamp": "Free"
+      }
     },
     "closing": {
       "title": "Ready to put your app online?",

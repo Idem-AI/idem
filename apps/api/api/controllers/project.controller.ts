@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
-import { projectService } from '../services/project.service';
+import { parseProjectProduct, projectService } from '../services/project.service';
 import { ProjectModel } from '../models/project.model'; // Assuming ProjectModel is an interface/type
 import logger from '../config/logger';
 
@@ -334,7 +334,11 @@ class ProjectController {
         return;
       }
 
-      const files = await projectService.getProjectCodeManifest(userId, projectId as string);
+      const files = await projectService.getProjectCodeManifest(
+        userId,
+        projectId as string,
+        parseProjectProduct(req.query.product)
+      );
       res.status(200).json({ files });
     } catch (error: any) {
       logger.error(
@@ -371,7 +375,8 @@ class ProjectController {
         projectId as string,
         upserts && typeof upserts === 'object' ? upserts : {},
         Array.isArray(deletions) ? deletions : [],
-        manifest
+        manifest,
+        parseProjectProduct(req.query.product)
       );
 
       res.status(200).json(result);
@@ -401,7 +406,11 @@ class ProjectController {
         return;
       }
 
-      const session = await projectService.getProjectChatSession(userId, projectId as string);
+      const session = await projectService.getProjectChatSession(
+        userId,
+        projectId as string,
+        parseProjectProduct(req.query.product)
+      );
       if (!session) {
         res.status(404).json({ message: 'No chat session found for this project' });
         return;
@@ -447,11 +456,12 @@ class ProjectController {
         return;
       }
 
-      const saved = await projectService.saveProjectChatSession(userId, projectId as string, {
-        sessionId,
-        title,
-        messages,
-      });
+      const saved = await projectService.saveProjectChatSession(
+        userId,
+        projectId as string,
+        { sessionId, title, messages },
+        parseProjectProduct(req.query.product)
+      );
 
       res.status(200).json(saved);
     } catch (error: any) {
@@ -476,7 +486,11 @@ class ProjectController {
         return;
       }
 
-      const deployment = await projectService.getAppDeployment(userId, projectId as string);
+      const deployment = await projectService.getAppDeployment(
+        userId,
+        projectId as string,
+        parseProjectProduct(req.query.product)
+      );
       if (!deployment) {
         res.status(404).json({ message: 'No deployment found for this project' });
         return;
@@ -510,14 +524,19 @@ class ProjectController {
         return;
       }
 
-      const deployment = await projectService.saveAppDeployment(userId, projectId as string, {
-        siteId,
-        siteName: siteName || null,
-        url,
-        adminUrl: adminUrl || null,
-        deployId: deployId || null,
-        target: target || 'app',
-      });
+      const deployment = await projectService.saveAppDeployment(
+        userId,
+        projectId as string,
+        {
+          siteId,
+          siteName: siteName || null,
+          url,
+          adminUrl: adminUrl || null,
+          deployId: deployId || null,
+          target: target || 'app',
+        },
+        parseProjectProduct(req.query.product)
+      );
 
       res.status(200).json(deployment);
     } catch (error: any) {
@@ -636,7 +655,8 @@ class ProjectController {
 
       const codeFiles = await projectService.getProjectCode(
         userId,
-        projectId as string
+        projectId as string,
+        parseProjectProduct(req.query.product)
       );
       if (!codeFiles) {
         logger.info(`No code found for project ${projectId} and user ${userId}.`);

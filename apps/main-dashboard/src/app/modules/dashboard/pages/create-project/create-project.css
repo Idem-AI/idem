@@ -163,6 +163,12 @@ section {
   }
 }
 
+/* Écran de choix du mode : la mise en page réserve déjà la barre de
+   navigation ; seul le bandeau AppGen, fixe, demande sa place en plus. */
+.content-under-banner {
+  padding-top: 52px;
+}
+
 /* Chat viewport : hauteur fixe sous la navbar/toggle pour éviter tout scroll
    externe. Seul le fil de messages (interne) défile. `dvh` gère la barre
    d'URL mobile. Le `margin-top` positionne le viewport sous le toggle fixe. */

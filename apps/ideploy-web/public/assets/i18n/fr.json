@@ -39,31 +39,8 @@
         "title": "C'est en ligne",
         "body": "Adresse web et certificat compris."
       },
-      "renderTitle": "boutique-en-ligne",
       "renderUrl": "boutique.idem.africa",
-      "renderDone": "En ligne · 42 s",
-      "log": {
-        "clone": {
-          "label": "Code récupéré",
-          "time": "1,2 s"
-        },
-        "detect": {
-          "label": "Langage détecté — Node 22",
-          "time": "0,4 s"
-        },
-        "build": {
-          "label": "Application construite",
-          "time": "31,8 s"
-        },
-        "ssl": {
-          "label": "Certificat HTTPS émis",
-          "time": "8,3 s"
-        },
-        "swap": {
-          "label": "Trafic basculé, sans coupure",
-          "time": "0,3 s"
-        }
-      }
+      "renderDone": "En ligne · 42 s"
     },
     "where": {
       "title": "Nos serveurs, ou le vôtre",
@@ -72,16 +49,24 @@
       "idem": {
         "title": "Infrastructure IDEM",
         "body": "Vous ne vous occupez de rien. Nous choisissons la machine, la maintenons et la remplaçons si elle tombe.",
-        "p1": "Rien à préparer, rien à installer",
-        "p2": "Mises à jour et sécurité incluses",
-        "p3": "Facturé avec votre forfait"
+        "machine": "Choisie et fournie par IDEM.",
+        "care": "Mises à jour, sécurité, remplacement en cas de panne : on s'en occupe.",
+        "data": "Hébergées sur l'infrastructure IDEM, avec votre forfait.",
+        "fit": "Vous voulez seulement que ça tourne, sans y penser."
       },
       "own": {
         "title": "Votre propre serveur",
         "body": "Vous branchez votre VPS une fois avec une clé SSH. iDeploy l'installe, le sécurise et le garde à jour.",
-        "p1": "Connecté une fois, puis un clic pour déployer",
-        "p2": "Vos données restent chez vous",
-        "p3": "Provisionnement Hetzner intégré"
+        "machine": "Votre VPS ou votre serveur, branché une fois par clé SSH. Pas encore de serveur ? iDeploy en loue un chez Hetzner.",
+        "care": "iDeploy l'installe, le sécurise et le garde à jour.",
+        "data": "Elles ne quittent pas votre machine.",
+        "fit": "Vous avez déjà un serveur, ou vos données doivent rester chez vous."
+      },
+      "rows": {
+        "machine": "La machine",
+        "care": "L'entretien",
+        "data": "Vos données",
+        "fit": "Pour vous si…"
       }
     },
     "guard": {
@@ -156,9 +141,39 @@
       }
     },
     "services": {
-      "title": "278 services prêts à installer",
-      "subtitle": "Facturation, tableaux de bord, fichiers, assistants IA : un clic, et le service tourne chez vous.",
-      "cta": "Parcourir le catalogue"
+      "title": "Les logiciels libres les plus utilisés, installés en un clic",
+      "subtitle": "WordPress, Odoo, n8n, Supabase : les outils que des millions d'équipes font déjà tourner. iDeploy les installe sur nos serveurs ou le vôtre, avec adresse web et sauvegardes.",
+      "cta": "Parcourir le catalogue",
+      "more": "Et {{count}} autres : messagerie, gestion de projet, mots de passe, formulaires, bases de données…",
+      "groups": {
+        "site": "Site et contenu",
+        "business": "Gérer l'entreprise",
+        "ai": "IA et automatisation",
+        "backend": "Le back-end de votre app",
+        "monitor": "Mesurer et surveiller"
+      },
+      "items": {
+        "wordpress": "Site, blog et boutique",
+        "strapi": "Contenu géré pour votre app",
+        "directus": "Back-office sur votre base",
+        "odoo": "Ventes, stocks, comptabilité",
+        "dolibarr": "Devis, factures, clients",
+        "invoiceninja": "Factures et paiements",
+        "nextcloud": "Fichiers et agenda partagés",
+        "n8n": "Vos tâches répétitives automatisées",
+        "ollama": "Des modèles d'IA sur votre serveur",
+        "openwebui": "Un assistant IA privé",
+        "librechat": "Plusieurs IA, une seule discussion",
+        "supabase": "Base, connexion et fichiers",
+        "appwrite": "Back-end web et mobile",
+        "pocketbase": "Un back-end en un seul fichier",
+        "nocodb": "Votre base vue comme un tableur",
+        "grafana": "Tableaux de bord",
+        "uptimekuma": "Prévenu si votre site tombe",
+        "umami": "Statistiques de visite",
+        "metabase": "Vos données en graphiques",
+        "moodle": "Cours et formations en ligne"
+      }
     },
     "pricingTeaser": {
       "title": "Votre première application est offerte",
@@ -174,7 +189,12 @@
         "database": "1 base de données",
         "commercial": "Usage commercial autorisé"
       },
-      "paidNote": "Forfaits payants à partir de 2 999 F/mois."
+      "paidNote": "Forfaits payants à partir de 2 999 F/mois.",
+      "receipt": {
+        "plan": "Forfait gratuit · reçu mensuel",
+        "total": "Total du mois",
+        "stamp": "Offert"
+      }
     },
     "closing": {
       "title": "Prêt à mettre votre application en ligne ?",

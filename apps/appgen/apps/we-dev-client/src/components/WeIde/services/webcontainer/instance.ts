@@ -12,6 +12,24 @@ let bootPromise: Promise<WebContainer> | null = null;
 let lastServerReady: { port: number; url: string } | null = null;
 const serverReadyListeners = new Set<(port: number, url: string) => void>();
 
+/**
+ * Tous les serveurs ouverts, par port. Une application complète en ouvre deux —
+ * l'API (`backend/`, port 3001) et l'interface (`frontend/`) — et l'aperçu doit
+ * savoir lesquels sont prêts, pas seulement le dernier.
+ */
+const openServers = new Map<number, string>();
+const serversListeners = new Set<(servers: Map<number, string>) => void>();
+const notifyServers = () => serversListeners.forEach((cb) => cb(new Map(openServers)));
+
+/** S'abonne à la liste des serveurs ouverts ; rappelle tout de suite avec l'état actuel. */
+export function onServersChange(cb: (servers: Map<number, string>) => void): () => void {
+  serversListeners.add(cb);
+  cb(new Map(openServers));
+  return () => {
+    serversListeners.delete(cb);
+  };
+}
+
 /** Dernière URL de serveur connue, ou null si aucun serveur n'est encore prêt. */
 export function getLastServerUrl(): { port: number; url: string } | null {
   return lastServerReady;
@@ -43,7 +61,21 @@ export async function getWebContainerInstance(): Promise<WebContainer | null> {
       // tous les abonnés (preview classique + mode Edit).
       webcontainerInstance.on('server-ready', (port, url) => {
         lastServerReady = { port, url };
+        openServers.set(port, url);
         serverReadyListeners.forEach((cb) => cb(port, url));
+        notifyServers();
+      });
+
+      // Un serveur arrêté (« Exécuter » relancé, crash, correction) n'est plus
+      // un aperçu valable.
+      webcontainerInstance.on('port', (port, type, url) => {
+        if (type === 'close') {
+          openServers.delete(port);
+          if (lastServerReady?.port === port) lastServerReady = null;
+        } else if (type === 'open') {
+          openServers.set(port, url);
+        }
+        notifyServers();
       });
 
       // Initialize the root directory

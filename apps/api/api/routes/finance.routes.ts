@@ -283,7 +283,7 @@ financeRoutes.post(
  * /project/finance/{projectId}/import/apply:
  *   post:
  *     tags: [Finance]
- *     summary: Enregistre un brouillon d'import validé (remplacer ou compléter)
+ *     summary: Enregistre un brouillon validé (compléter, remplacer, ou synchroniser depuis le tableur)
  *     security: [{ bearerAuth: [] }]
  */
 financeRoutes.post(

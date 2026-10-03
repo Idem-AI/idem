@@ -308,7 +308,7 @@
               @if (item.children && item.children.length > 0) {
                 <button
                   type="button"
-                  (click)="onNavGroupClick(item, $event)"
+                  (click)="onNavGroupClick(item, $event, true)"
                   [attr.aria-disabled]="item.locked ? 'true' : null"
                   class="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left"
                   [ngClass]="

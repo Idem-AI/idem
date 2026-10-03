@@ -6,6 +6,7 @@ import {
   buildExistingProjectContext,
   PromptExtra,
 } from '../config/prompts.js';
+import { BuildTarget } from '../config/buildTarget.js';
 import { determineFileType } from '../utils/fileTypeDetector.js';
 import { getHistoryDiff } from '../utils/diffGenerator.js';
 import { handleTokenLimit } from '../utils/tokenHandler.js';
@@ -82,7 +83,9 @@ export async function handleBuilderMode(
    * They never appear in the transcript: the chat shows a one-line summary while
    * the model receives the full checklist.
    */
-  qualityRepair?: string
+  qualityRepair?: string,
+  /** Site, application web ou application mobile : le contrat de build en dépend. */
+  target: BuildTarget = 'web-app'
 ) {
   const startTime = Date.now();
 
@@ -133,7 +136,7 @@ export async function handleBuilderMode(
     });
   } else if (projectData && isFirstTurn) {
     try {
-      projectBrief = new ProjectPromptService().generatePrompt(projectData);
+      projectBrief = new ProjectPromptService().generatePrompt(projectData, target);
     } catch (error) {
       ChatLogger.error('PROMPT_ERROR', 'Could not build the project brief', error);
     }
@@ -143,8 +146,14 @@ export async function handleBuilderMode(
     const displayName =
       projectData.name === 'MUI' ? 'MUI-African-Artisans-Marketplace' : projectData.name;
 
+    const product =
+      target === 'mobile-app'
+        ? 'mobile application'
+        : target === 'site'
+          ? 'showcase website'
+          : 'web application';
     request = [
-      `Build ${projectBrief ? 'the product described above' : 'a complete web application'} for: ${displayName}`,
+      `Build ${projectBrief ? `the ${product} described above` : `a complete ${product}`} for: ${displayName}`,
       projectData.description ? `\n${projectData.description}` : '',
       '',
       'Requirements:',
@@ -176,11 +185,13 @@ export async function handleBuilderMode(
     projectData,
     language,
     extraContext,
+    target,
   });
 
   applyPrompt(messages, system, user);
 
   ChatLogger.success('PROMPT_ASSEMBLED', 'Prompt assembled', {
+    target: diagnostics.target,
     artDirection: diagnostics.artDirection,
     seed: diagnostics.seed,
     systemChars: diagnostics.systemChars,

@@ -1,77 +1,85 @@
-<div class="w-full min-h-screen p-6 rounded-2xl relative">
-  @if (isLoading() == true) {
-    <!-- Loading State -->
-    <div class="max-w-6xl mx-auto">
-      <div class="text-center py-20">
-        <div class="mb-4">
-          <idem-loader block />
-        </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ 'common.loading' | translate }}</h3>
-        <p class="text-gray-600">{{ 'dashboard.showDiagrams.loading.checking' | translate }}</p>
-      </div>
+<div class="space-y-8 p-4 md:p-2">
+  <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div>
+      <a routerLink="/project/development" class="sd-back">
+        <i class="pi pi-arrow-left text-xs" aria-hidden="true"></i>
+        {{ 'dashboard.siteApp.title' | translate }}
+      </a>
+      <h1 class="text-2xl md:text-3xl font-bold text-text-primary">{{ 'dashboard.siteApp.plan.title' | translate }}</h1>
+      <p class="text-text-secondary mt-1 text-sm max-w-2xl">{{ 'dashboard.siteApp.plan.subtitle' | translate }}</p>
     </div>
-  } @else if (existingDiagram()) {
-    <!-- Display existing diagram -->
-    <app-diagram-display [diagram]="existingDiagram()!"></app-diagram-display>
-  } @else if (!isLoading() && projectIdFromCookie()) {
-    <!-- Has project ID but no diagram - show generate button -->
-    <div class="max-w-6xl mx-auto text-center py-10">
-      <div class="mb-6">
-        <svg
-          class="mx-auto h-16 w-16 text-blue-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-          ></path>
-        </svg>
-      </div>
-      <h3 class="text-2xl font-bold text-gray-900 mb-4">
-        {{ 'dashboard.showDiagrams.empty.title' | translate }}
-      </h3>
-      <p class="text-gray-600 mb-8">
-        {{ 'dashboard.showDiagrams.empty.subtitle' | translate }}
-      </p>
-      <div class="flex justify-center">
-        <button class="inner-button" (click)="generateDiagrams()">
-          {{ 'dashboard.showDiagrams.buttons.generate' | translate }}
+    @if (!loading() && sections().length > 0) {
+      <div class="flex flex-wrap gap-2">
+        <a routerLink="/project/development/diagrams/generate" class="outer-button button-sm">
+          <i class="pi pi-refresh" aria-hidden="true"></i>
+          {{ 'dashboard.siteApp.plan.redraw' | translate }}
+        </a>
+        <button type="button" class="outer-button button-sm" (click)="openEditor()">
+          <i class="pi pi-pencil" aria-hidden="true"></i>
+          {{ 'dashboard.siteApp.plan.edit' | translate }}
+        </button>
+        <button type="button" class="outer-button button-sm" (click)="downloadPdf()">
+          <i class="pi pi-file-pdf" aria-hidden="true"></i>
+          {{ 'common.pdf' | translate }}
         </button>
       </div>
-    </div>
+    }
+  </header>
+
+  @if (loading()) {
+    <idem-loader block class="min-h-[40vh]" [label]="'common.loading' | translate" />
+  } @else if (failed()) {
+    <app-error-state variant="panel" scene="connection" [title]="'dashboard.siteApp.errors.title' | translate" [message]="'dashboard.siteApp.errors.plan' | translate">
+      <button type="button" class="outer-button !gap-2" (click)="retry()">
+        <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
+        {{ 'common.retry' | translate }}
+      </button>
+    </app-error-state>
+  } @else if (sections().length === 0) {
+    <!-- Pas encore de plan -->
+    <section class="glass-card p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-6">
+      <app-site-app-illustration scene="plan" class="w-40 md:w-48 shrink-0" />
+      <div>
+        <h2 class="text-lg font-semibold text-text-primary">{{ 'dashboard.siteApp.plan.emptyTitle' | translate }}</h2>
+        <p class="text-sm text-text-secondary mt-1 max-w-xl">{{ 'dashboard.siteApp.plan.emptyBody' | translate }}</p>
+        <a routerLink="/project/development/diagrams/generate" class="inner-button mt-5">
+          {{ 'dashboard.siteApp.steps.plan.cta' | translate }}
+          <i class="pi pi-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+    </section>
   } @else {
-    <!-- Empty State - No project ID -->
-    <div class="text-center py-20">
-      <div class="mb-4">
-        <svg
-          class="mx-auto h-16 w-16 text-text-tertiary"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
-          />
-        </svg>
+    <!-- L'étape suivante, avant les schémas : c'est ce qu'on vient chercher ici. -->
+    <section class="glass-card sd-next p-5 flex flex-col md:flex-row md:items-center gap-4" aria-labelledby="sd-next">
+      <div class="flex-1">
+        <h2 id="sd-next" class="font-semibold text-text-primary flex items-center gap-2">
+          <i class="pi pi-check-circle text-success" aria-hidden="true"></i>
+          {{ 'dashboard.siteApp.plan.readyTitle' | translate }}
+        </h2>
+        <p class="text-sm text-text-secondary mt-1">{{ 'dashboard.siteApp.plan.readyBody' | translate }}</p>
       </div>
-      <h3 class="text-lg font-medium text-gray-900 mb-2">
-        {{ 'dashboard.showDiagrams.empty.noProject.title' | translate }}
-      </h3>
-      <p class="text-gray-600 mb-4">
-        {{ 'dashboard.showDiagrams.empty.noProject.subtitle' | translate }}
-      </p>
-      <div class="flex justify-center">
-        <button class="inner-button" (click)="goToProjects()">
-          {{ 'dashboard.showDiagrams.buttons.selectProject' | translate }}
-        </button>
-      </div>
-    </div>
+      <button type="button" class="inner-button" (click)="buildApp()">
+        {{ 'dashboard.siteApp.steps.build.cta' | translate }}
+        <i class="pi pi-arrow-right" aria-hidden="true"></i>
+      </button>
+    </section>
+
+    @for (section of sections(); track $index) {
+      <section class="glass-card overflow-hidden">
+        <header class="px-5 py-4 border-b border-[var(--glass-border-subtle)]">
+          <h2 class="font-semibold text-text-primary">{{ section.name }}</h2>
+          @if (section.summary) {
+            <p class="text-sm text-text-secondary mt-0.5">{{ section.summary }}</p>
+          }
+        </header>
+        @if (section.data) {
+          <div class="sd-sheet">
+            <markdown mermaid [data]="section.data"></markdown>
+          </div>
+        } @else {
+          <p class="px-5 py-4 text-sm text-text-tertiary">{{ 'common.noContent' | translate }}</p>
+        }
+      </section>
+    }
   }
 </div>

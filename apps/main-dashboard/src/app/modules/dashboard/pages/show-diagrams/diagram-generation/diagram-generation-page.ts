@@ -1,86 +1,62 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { CookieService } from '../../../../../shared/services/cookie.service';
-import { DiagramGeneration } from './diagram-generation/diagram-generation';
-import { DiagramModel } from '../../../models/diagram.model';
 import { UiModeService } from '../../../../../shared/services/ui-mode.service';
+import { DiagramGeneration } from './diagram-generation/diagram-generation';
 
+/**
+ * Dessin du plan de l'application. Une fois fini, on revient au plan — ou au
+ * parcours en mode Assisté, où l'étape se coche et la suivante s'ouvre.
+ */
 @Component({
   selector: 'app-diagram-generation-page',
-  standalone: true,
-  imports: [DiagramGeneration],
+  imports: [DiagramGeneration, RouterLink, TranslateModule],
   template: `
-    <div class="w-full min-h-screen p-6 rounded-2xl relative">
-      @if (projectId()) {
-        <app-diagram-generation
-          [projectId]="projectId()!"
-          (diagramGenerated)="onDiagramGenerated($event)"
-        ></app-diagram-generation>
-      } @else {
-        <!-- No project ID available -->
-        <div class="text-center py-20">
-          <div class="mb-4">
-            <svg
-              class="mx-auto h-16 w-16 text-text-tertiary"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
-              />
-            </svg>
-          </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">No Project Selected</h3>
-          <p class="text-gray-600 mb-4">Please select a project first to generate diagrams.</p>
-          <button
-            (click)="goToProjects()"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition-colors"
-          >
-            Select Project
-          </button>
-        </div>
+    <div class="space-y-6 p-4 md:p-2">
+      <header>
+        <a routerLink="/project/development" class="dg-back">
+          <i class="pi pi-arrow-left text-xs" aria-hidden="true"></i>
+          {{ 'dashboard.siteApp.title' | translate }}
+        </a>
+        <h1 class="text-2xl md:text-3xl font-bold text-text-primary">{{ 'dashboard.siteApp.plan.title' | translate }}</h1>
+        <p class="text-text-secondary mt-1 text-sm max-w-2xl">{{ 'dashboard.siteApp.plan.generatingLead' | translate }}</p>
+      </header>
+      @if (projectId(); as id) {
+        <app-diagram-generation [projectId]="id" (diagramGenerated)="onDiagramGenerated()" />
       }
     </div>
   `,
-  styleUrls: [],
+  styles: `
+    .dg-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+    }
+    .dg-back:hover,
+    .dg-back:focus-visible {
+      color: var(--color-primary-500);
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DiagramGenerationPage implements OnInit {
   private readonly router = inject(Router);
   private readonly uiMode = inject(UiModeService);
-  private readonly cookieService = inject(CookieService);
+  private readonly cookies = inject(CookieService);
 
   protected readonly projectId = signal<string | null>(null);
 
   ngOnInit(): void {
-    // Get project ID from cookies
-    const projectIdFromCookie = this.cookieService.get('projectId');
-    this.projectId.set(projectIdFromCookie);
-
-    if (!projectIdFromCookie) {
-      console.warn('No project ID found, redirecting to projects');
-      this.goToProjects();
-    }
+    const projectId = this.cookies.get('projectId');
+    this.projectId.set(projectId);
+    if (!projectId) void this.router.navigate(['/projects']);
   }
 
-  /**
-   * Handle diagram generation completion - redirect to diagrams display
-   */
-  protected onDiagramGenerated(diagram: DiagramModel): void {
-    console.log('Diagram generation completed, redirecting to display:', diagram);
-
-    // En mode Assisté, retour au parcours : l'étape se coche et la suivante s'ouvre.
-    this.uiMode.completeStep('/project/diagrams');
-  }
-
-  /**
-   * Navigate to projects page
-   */
-  protected goToProjects(): void {
-    this.router.navigate(['/projects']);
+  protected onDiagramGenerated(): void {
+    this.uiMode.completeStep('/project/development/diagrams');
   }
 }

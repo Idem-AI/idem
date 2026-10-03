@@ -81,11 +81,11 @@ const defaultModelConfigs: ModelConfig[] = [
     // 318 lignes de `resilientStream.ts` — détection du transitoire, bascule,
     // message utilisateur — n'avaient nulle part où basculer, et toute panne du
     // modèle principal devenait une panne du produit.
-    modelName: 'GLM 4.7',
-    modelKey: 'glm-4.7',
+    modelName: 'GLM 5.3 Flash',
+    modelKey: 'glm-5.3-flash',
     useImage: false,
     provider: 'glm',
-    description: 'GLM 4.7 — repli lorsque GLM 5.2 est saturé',
+    description: 'GLM 5.3 Flash — repli lorsque GLM 5.2 est saturé',
     functionCall: true,
     temperature: 0.35,
     topP: 0.9,

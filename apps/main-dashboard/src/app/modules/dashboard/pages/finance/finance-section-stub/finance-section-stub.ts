@@ -36,6 +36,7 @@ import {
 } from '../../../models/finance.model';
 import { FinanceIllustrationComponent } from '../finance-illustration/finance-illustration';
 import { MonthlyAmountEditorComponent } from '../monthly-amount-editor/monthly-amount-editor';
+import { FinanceModeSwitchComponent } from '../finance-mode-switch/finance-mode-switch';
 
 type PageKind = 'step' | 'setting' | 'report';
 type LoanKey = 'compteCourantAssocies' | 'cmt' | 'creditBail';
@@ -73,6 +74,7 @@ const newId = (prefix: string): string =>
     IdemLoaderComponent,
     FinanceIllustrationComponent,
     MonthlyAmountEditorComponent,
+    FinanceModeSwitchComponent,
   ],
   templateUrl: './finance-section-stub.html',
   styleUrl: './finance-section-stub.css',

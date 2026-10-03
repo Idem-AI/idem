@@ -9,6 +9,31 @@ import { storageService } from './storage.service';
 import { v4 as uuidv4 } from 'uuid';
 import { cacheService } from './cache.service';
 
+/**
+ * Un projet peut avoir deux produits construits dans iCode : son site vitrine
+ * et son application. Chacun garde sa conversation, son code et son adresse
+ * publiée. Le site garde les emplacements d'avant les deux produits, pour que
+ * les projets existants retrouvent leur travail sans migration.
+ */
+export type ProjectProduct = 'site' | 'app';
+
+export function parseProjectProduct(value: unknown): ProjectProduct {
+  return value === 'app' ? 'app' : 'site';
+}
+
+function productDocId(
+  projectId: string,
+  kind: 'chat' | 'deployment',
+  product: ProjectProduct
+): string {
+  return product === 'app' ? `${projectId}_app_${kind}` : `${projectId}_${kind}`;
+}
+
+/** Dossier de code : `projects/<id>/code` pour le site, `projects/<id>/app/code` pour l'application. */
+function productStorageId(projectId: string, product: ProjectProduct): string {
+  return product === 'app' ? `${projectId}/app` : projectId;
+}
+
 class ProjectService {
   private projectRepository: IRepository<ProjectModel>;
 
@@ -639,7 +664,11 @@ class ProjectService {
    * Returns the last quick deployment recorded for a project (site id + public url),
    * so a redeploy updates the existing site instead of creating a new one.
    */
-  async getAppDeployment(userId: string, projectId: string): Promise<any | null> {
+  async getAppDeployment(
+    userId: string,
+    projectId: string,
+    product: ProjectProduct = 'site'
+  ): Promise<any | null> {
     if (!userId || !projectId) {
       logger.error('User ID and Project ID are required to get an app deployment.');
       return null;
@@ -649,7 +678,7 @@ class ProjectService {
       // Bypass the repository cache: a redeploy rewrites this document and the
       // cache is not invalidated on create, which would serve a stale url/date.
       const deployment = await this.projectRepository.findById(
-        `${projectId}_deployment`,
+        productDocId(projectId, 'deployment', product),
         `users/${userId}/appDeployments`,
         { bypassCache: true }
       );
@@ -672,7 +701,8 @@ class ProjectService {
   async saveAppDeployment(
     userId: string,
     projectId: string,
-    deploymentData: any
+    deploymentData: any,
+    product: ProjectProduct = 'site'
   ): Promise<any> {
     if (!userId || !projectId || !deploymentData) {
       logger.error('User ID, Project ID, and deployment data are required.');
@@ -680,7 +710,7 @@ class ProjectService {
     }
 
     try {
-      const existing = await this.getAppDeployment(userId, projectId).catch(() => null);
+      const existing = await this.getAppDeployment(userId, projectId, product).catch(() => null);
 
       const deploymentRecord = {
         projectId,
@@ -695,7 +725,7 @@ class ProjectService {
       const saved = await this.projectRepository.create(
         deploymentRecord,
         `users/${userId}/appDeployments`,
-        `${projectId}_deployment`
+        productDocId(projectId, 'deployment', product)
       );
 
       logger.info(`App deployment saved for project ${projectId} and user ${userId}`, {
@@ -795,7 +825,8 @@ class ProjectService {
 
   async getProjectCode(
     userId: string,
-    projectId: string
+    projectId: string,
+    product: ProjectProduct = 'site'
   ): Promise<Record<string, string> | null> {
     if (!userId || !projectId) {
       logger.error('User ID and Project ID are required to get project code.');
@@ -809,7 +840,10 @@ class ProjectService {
 
       // Manifest-based storage is the current format; fall back to the legacy
       // full-ZIP layout for projects generated before the incremental sync.
-      const incrementalFiles = await storageService.downloadProjectCodeFiles(projectId, userId);
+      const incrementalFiles = await storageService.downloadProjectCodeFiles(
+        productStorageId(projectId, product),
+        userId
+      );
       if (incrementalFiles && Object.keys(incrementalFiles).length > 0) {
         logger.info(
           `Successfully retrieved ${Object.keys(incrementalFiles).length} code files from the incremental store for project ${projectId}`
@@ -817,6 +851,8 @@ class ProjectService {
         return incrementalFiles;
       }
 
+      // L'ancien format ZIP ne connaissait qu'un produit : le site.
+      if (product === 'app') return null;
       const codeFiles = await storageService.downloadProjectCodeZip(projectId, userId);
 
       if (!codeFiles || Object.keys(codeFiles).length === 0) {
@@ -843,9 +879,13 @@ class ProjectService {
    */
   async getProjectCodeManifest(
     userId: string,
-    projectId: string
+    projectId: string,
+    product: ProjectProduct = 'site'
   ): Promise<Record<string, string>> {
-    const manifest = await storageService.getProjectCodeManifest(projectId, userId);
+    const manifest = await storageService.getProjectCodeManifest(
+      productStorageId(projectId, product),
+      userId
+    );
     return manifest?.files || {};
   }
 
@@ -857,20 +897,31 @@ class ProjectService {
     projectId: string,
     upserts: Record<string, string>,
     deletions: string[],
-    manifest: Record<string, string>
+    manifest: Record<string, string>,
+    product: ProjectProduct = 'site'
   ): Promise<{ written: number; deleted: number; total: number }> {
     if (!userId || !projectId) {
       throw new Error('User ID and Project ID are required to sync project code.');
     }
 
-    return storageService.syncProjectCodeFiles(projectId, userId, upserts, deletions, manifest);
+    return storageService.syncProjectCodeFiles(
+      productStorageId(projectId, product),
+      userId,
+      upserts,
+      deletions,
+      manifest
+    );
   }
 
   // Chat session — the conversation that produced the code. Stored in the
   // database (small, text only) while the code itself lives in the bucket, so a
   // user reopening iCode from any machine lands back in the same chat.
 
-  async getProjectChatSession(userId: string, projectId: string): Promise<any | null> {
+  async getProjectChatSession(
+    userId: string,
+    projectId: string,
+    product: ProjectProduct = 'site'
+  ): Promise<any | null> {
     if (!userId || !projectId) {
       logger.error('User ID and Project ID are required to get a chat session.');
       return null;
@@ -878,7 +929,7 @@ class ProjectService {
 
     try {
       const session = await this.projectRepository.findById(
-        `${projectId}_chat`,
+        productDocId(projectId, 'chat', product),
         `users/${userId}/appChats`,
         { bypassCache: true }
       );
@@ -896,14 +947,17 @@ class ProjectService {
   async saveProjectChatSession(
     userId: string,
     projectId: string,
-    session: { sessionId: string; title?: string; messages: any[] }
+    session: { sessionId: string; title?: string; messages: any[] },
+    product: ProjectProduct = 'site'
   ): Promise<any> {
     if (!userId || !projectId || !session?.sessionId) {
       throw new Error('User ID, Project ID and sessionId are required.');
     }
 
     try {
-      const existing = await this.getProjectChatSession(userId, projectId).catch(() => null);
+      const existing = await this.getProjectChatSession(userId, projectId, product).catch(
+        () => null
+      );
 
       const record = {
         projectId,
@@ -919,7 +973,7 @@ class ProjectService {
       const saved = await this.projectRepository.create(
         record as any,
         `users/${userId}/appChats`,
-        `${projectId}_chat`
+        productDocId(projectId, 'chat', product)
       );
 
       logger.info(`Chat session saved for project ${projectId} and user ${userId}`, {

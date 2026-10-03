@@ -66,10 +66,17 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
   // metadata, prediction, reasoning_effort) et jette tout le reste en silence.
   // On l'injecte donc dans le corps via un `fetch` intermédiaire.
   if (provider === 'glm') {
+    // Le SDK `ai` fixe le timeout réseau à 10 000 ms (connect timeout). Sur des
+    // prompts lourds (system > 20 kB), Z.ai peut mettre plus de 10 s avant
+    // d'émettre le premier token : on passe le timeout à 60 s via un
+    // AbortSignal injecté dans le fetch intercepteur. Si un signal existe déjà
+    // (ex. abort client), on le garde ; sinon on en crée un propre à la requête.
+    const GLM_CONNECT_TIMEOUT_MS = 60_000;
     const glm = createOpenAI({
       apiKey,
       baseURL,
       fetch: async (input, init) => {
+        // Désactiver le raisonnement interne (champ hors-norme OpenAI).
         if (typeof init?.body === 'string') {
           try {
             const body = JSON.parse(init.body);
@@ -78,6 +85,14 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
           } catch {
             // Corps non-JSON : rien à injecter, on relaie tel quel.
           }
+        }
+        // Remplacer le signal par un timeout plus long si aucun n'est fourni.
+        if (!init?.signal) {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), GLM_CONNECT_TIMEOUT_MS);
+          const response = await fetch(input, { ...init, signal: controller.signal });
+          clearTimeout(timer);
+          return response;
         }
         return fetch(input, init);
       },

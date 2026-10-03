@@ -1,4 +1,6 @@
 import { ProjectModel } from '@/api/persistence/models/project.model';
+import { LandingPageConfig } from '@/api/persistence/models/development.model';
+import { currentProduct } from '@/utils/product';
 
 export class MultiChatPromptService {
   /**
@@ -41,17 +43,53 @@ LAYOUT IS WHERE IT IS WON:
 - Vary spacing to express hierarchy. Uniform \`gap-4 p-6\` everywhere reads as unfinished.`;
 
   /**
-   * Generate the appropriate prompt based on LandingPageConfig and ChatType
+   * Who the generated product is for. Shared by the website and the
+   * application prompts: a full application shows people and places too.
    */
-  generatePrompt(projectData: ProjectModel): string {
-    return this.generateLandingOnlyPrompt(projectData);
+  private static readonly AFRICA_AUDIENCE = `## TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL)
+This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
+
+### Images of People
+- ALWAYS use images featuring Black African people. NEVER use generic Western/European/Asian stock photos.
+- Use Unsplash with search terms: "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur"
+- For avatars/testimonials: use diverse Black African faces (men, women, young professionals)
+- For hero/team photos: show diverse African teams in modern work environments
+
+### UI and Cultural Context
+- Testimonials and user names MUST use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
+- Locations MUST reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
+- Currency references: use local currencies (XAF/FCFA, NGN, KES, GHS, XOF) or USD
+- Phone numbers: use African country codes (+237, +234, +254, +233, +225)
+
+### Content and Messaging
+- Use inclusive language that resonates with African audiences
+- Social proof should mention African companies, organizations, or communities
+- Success stories should feature African entrepreneurs and businesses
+- Placeholder company names should be African-sounding or Africa-based
+`;
+
+  /**
+   * A complete application: interface + server + database. Every development
+   * configuration that is not a showcase website alone is one — the older
+   * "app", "both" and "integrated" choices all had a server and a database.
+   */
+  static isFullApplication(projectData: ProjectModel | null | undefined): boolean {
+    // Le tableau de bord dit quel produit il ouvre : le site vitrine et
+    // l'application d'un même projet ont chacun leur atelier.
+    const product = currentProduct();
+    if (product) return product === 'app';
+    const configs = projectData?.analysisResultModel?.development?.configs;
+    return !!configs && configs.landingPageConfig !== LandingPageConfig.ONLY_LANDING;
   }
 
   /**
-   * Generate prompt for ONLY_LANDING config (landing page only)
+   * Generate the appropriate prompt based on the project's development choice:
+   * a showcase website, or a complete application built on its plan.
    */
-  private generateLandingOnlyPrompt(projectData: ProjectModel): string {
-    return this.generateLandingPagePrompt(projectData);
+  generatePrompt(projectData: ProjectModel): string {
+    return MultiChatPromptService.isFullApplication(projectData)
+      ? this.generateFullStackPrompt(projectData)
+      : this.generateLandingPagePrompt(projectData);
   }
 
   /**
@@ -61,78 +99,106 @@ LAYOUT IS WHERE IT IS WON:
     const projectInfo = this.getCompleteProjectInfo(projectData);
     const brandInfo = this.getCompleteBrandInfo(projectData);
 
-    const title = 'Landing Page Generation';
-
-    return `# ${title}
+    return `# Landing Page Generation
 
 ${projectInfo}
 
 ${brandInfo}
 
-## TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL)
-This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
-
-### Images of People
-- ALWAYS use images featuring Black African people. NEVER use generic Western/European/Asian stock photos.
-- Use Unsplash with search terms: "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur"
-- For avatars/testimonials: use diverse Black African faces (men, women, young professionals)
-- For hero/team photos: show diverse African teams in modern work environments
-
-### UI and Cultural Context
-- Testimonials and user names MUST use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
-- Locations MUST reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
-- Currency references: use local currencies (XAF/FCFA, NGN, KES, GHS, XOF) or USD
-- Phone numbers: use African country codes (+237, +234, +254, +233, +225)
-
-### Content and Messaging
-- Use inclusive language that resonates with African audiences
-- Social proof should mention African companies, organizations, or communities
-- Success stories should feature African entrepreneurs and businesses
-- Placeholder company names should be African-sounding or Africa-based
-
+${MultiChatPromptService.AFRICA_AUDIENCE}
 Generate the complete landing page code with all necessary files.`;
   }
 
   /**
-   * Generate comprehensive application prompt
+   * Complete application prompt: frontend + backend + database.
+   *
+   * Two things make it different from the website prompt, and both are
+   * contracts rather than suggestions:
+   * - the plan drawn on the dashboard is the source of truth for the data
+   *   model and the screens — without it the model invents a generic CRUD;
+   * - the repository layout and the environment variable names are exactly
+   *   what iDeploy's "3-tier application" guide wires on its own: it creates
+   *   PostgreSQL, fills the backend's DATABASE_URL, then fills the frontend's
+   *   VITE_API_URL with the backend's public address. Any other name and the
+   *   user has to wire it by hand.
    */
-  private generateApplicationPrompt(
-    projectData: ProjectModel,
-    type: 'separate' | 'integrated' | 'none'
-  ): string {
+  private generateFullStackPrompt(projectData: ProjectModel): string {
     const projectInfo = this.getCompleteProjectInfo(projectData);
     const brandInfo = this.getCompleteBrandInfo(projectData);
+    const plan = this.getPlanInfo(projectData);
+    const configs = projectData.analysisResultModel?.development?.configs;
+    // Un site vitrine à part (SEPARATE) a son propre atelier : seule une
+    // vitrine intégrée vit dans l'application.
+    const withLanding = configs?.landingPageConfig === LandingPageConfig.INTEGRATED;
+    const features = configs?.projectConfig;
 
-    let title = 'Web Application Generation';
-
-    return `# ${title}
+    return `# Complete Web Application Generation (frontend + backend + database)
 
 ${projectInfo}
 
+${plan}
+
+## Architecture — MANDATORY (this is exactly what iDeploy deploys)
+One repository, two folders side by side. No Docker files: iDeploy builds each folder on its own.
+
+### backend/ — Node.js + Express + TypeScript + Prisma + PostgreSQL
+- \`prisma/schema.prisma\` (provider "postgresql", url = env("DATABASE_URL")) derived from the plan above: one model per entity, the relations it shows, sensible indexes and timestamps.
+- Reads ONLY these variables: \`DATABASE_URL\`, \`PORT\` (default 3001), \`JWT_SECRET\`, \`CORS_ORIGIN\` (default "*"). Never hard-code a connection string.
+- REST API under \`/api\`, one router per entity, input validated (zod), errors returned as JSON \`{ error: string }\` with the right status code.
+- \`GET /health\` answers \`{ "status": "ok" }\` without touching the database.
+${features?.authentication !== false ? '- Authentication: email + password (bcrypt) and JWT; `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`. Protected routes check the token.\n' : ''}- package.json scripts: \`dev\` (tsx watch), \`build\` ("prisma generate && tsc"), \`start\` ("prisma migrate deploy && node dist/index.js"), \`seed\`.
+- A first migration in \`prisma/migrations\` and a seed script with realistic sample data (African names, cities, currencies).
+- \`.env.example\` listing every variable above.
+
+### frontend/ — React + Vite + TypeScript + Tailwind CSS + React Router
+- Calls the API through ONE client module whose base URL is \`import.meta.env.VITE_API_URL\` (fallback \`http://localhost:3001\`). Never another variable name.
+- One screen per use case of the plan, reachable from the navigation; lists, detail and forms for each main entity; a dashboard as the home of signed-in users.
+${withLanding ? '- A public home page at `/` presents the product (brand, offer, call to action); the application lives behind sign-in.\n' : ''}- Every screen handles three states: loading, empty, error. When the API cannot be reached (the in-browser preview runs the frontend only), show a clear message — never a blank page.
+- package.json scripts: \`dev\`, \`build\` (output in \`dist/\`), \`preview\`.
+- \`.env.example\` with \`VITE_API_URL\`.
+
+### Repository root
+- \`README.md\`: what the application does, the two folders, every environment variable, and how to run both locally.
+
+## Order of work
+1. The Prisma schema, from the plan.
+2. The backend routes, entity by entity.
+3. The frontend screens that call them.
+
 ${brandInfo}
 
-## TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL)
-This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
+${MultiChatPromptService.AFRICA_AUDIENCE}
+Generate the complete application code — both folders — with all necessary files.`;
+  }
 
-### Images of People
-- ALWAYS use images featuring Black African people. NEVER use generic Western/European/Asian stock photos.
-- Use Unsplash with search terms: "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur"
-- For avatars/testimonials: use diverse Black African faces (men, women, young professionals)
-- For hero/team photos: show diverse African teams in modern work environments
+  /**
+   * The plan drawn on the dashboard (diagrams), fenced so the model reads each
+   * one as Mermaid. It decides the data model and the screens.
+   */
+  private getPlanInfo(projectData: ProjectModel): string {
+    const sections = projectData.analysisResultModel?.design?.sections ?? [];
+    if (sections.length === 0) {
+      // Le plan n'est jamais demandé à l'utilisateur : sans lui, on part de la
+      // description du projet.
+      return '## Application Plan\n- No plan available. Derive the entities and screens from the project description, and keep them few.';
+    }
 
-### UI and Cultural Context
-- Testimonials and user names MUST use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
-- Locations MUST reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
-- Currency references: use local currencies (XAF/FCFA, NGN, KES, GHS, XOF) or USD
-- Phone numbers: use African country codes (+237, +234, +254, +233, +225)
+    const blocks = sections
+      .filter((section) => section?.data)
+      .map((section) => {
+        const data = String(section.data).trim();
+        const fenced = data.startsWith('```') ? data : `\`\`\`${data}\n\`\`\``;
+        return `### ${section.name}${section.summary ? `\n${section.summary}` : ''}\n${fenced}`;
+      });
 
-### Content and Messaging
-- Use inclusive language that resonates with African audiences
-- Social proof should mention African companies, organizations, or communities
-- Success stories should feature African entrepreneurs and businesses
-- Placeholder company names should be African-sounding or Africa-based
+    return `## Application Plan — SOURCE OF TRUTH
+These diagrams were drawn for this project before generation. Build exactly what they describe:
+- entities, attributes and relations → the Prisma models;
+- use cases and sequences → the API routes and the screens that call them;
+- actors → the user roles.
+Do not add entities the plan does not show, and do not drop any it does.
 
-Generate the complete application code with all necessary files.`;
+${blocks.join('\n\n')}`;
   }
 
   /**

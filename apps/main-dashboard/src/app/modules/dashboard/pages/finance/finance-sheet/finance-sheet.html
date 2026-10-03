@@ -1,0 +1,95 @@
+<div class="p-4 md:p-2 space-y-5" [class.pb-28]="dirty()">
+  <header class="space-y-4">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-text-primary">{{ 'dashboard.finance.home.title' | translate }}</h1>
+      <p class="text-text-secondary mt-1 text-sm max-w-3xl">{{ 'dashboard.finance.sheet.lead' | translate }}</p>
+    </div>
+    <app-finance-mode-switch mode="sheet" />
+  </header>
+
+  @if (isLoading()) {
+    <div class="skeleton h-80 rounded-2xl" aria-hidden="true"></div>
+    <span class="sr-only" role="status">{{ 'dashboard.finance.loading' | translate }}</span>
+  } @else if (loadError()) {
+    <div class="glass-card p-8 text-center" role="alert">
+      <app-finance-illustration scene="empty" class="w-28 mx-auto" />
+      <p class="mt-3 font-medium text-text-primary">{{ 'dashboard.finance.errors.failedToLoad' | translate }}</p>
+      <button type="button" class="inner-button mt-4" (click)="load()">{{ 'common.retry' | translate }}</button>
+    </div>
+  } @else {
+    <!-- La grille : six colonnes, toujours dans cet ordre. -->
+    <app-finance-sheet-grid
+      [rows]="rows()"
+      [columnLabels]="columnLabels()"
+      [cellErrors]="cellErrors()"
+      [notes]="notes()"
+      [sectionOptions]="sectionLabels()"
+      [resetToken]="resetToken()"
+      (rowsChange)="onRowsChange($event)"
+      (pasted)="onPasted($event)"
+    />
+
+    <!-- Une ligne d'état, qui dit quoi faire. -->
+    <div class="text-sm" role="status" aria-live="polite">
+      @if (filledCount() === 0) {
+        <p class="text-text-secondary">
+          {{ 'dashboard.finance.paste.status.empty' | translate }}
+          <button type="button" class="text-primary hover:underline" (click)="showExample()">{{ 'dashboard.finance.paste.example.show' | translate }}</button>
+          ·
+          <button type="button" class="text-primary hover:underline" (click)="copyTemplate()">
+            {{ (copied() ? 'dashboard.finance.paste.example.copied' : 'dashboard.finance.paste.example.copy') | translate }}
+          </button>
+        </p>
+      } @else if (invalidCount() > 0) {
+        <p class="text-danger">{{ 'dashboard.finance.paste.status.invalid' | translate: { count: invalidCount() } }}</p>
+        <p class="mt-1 text-text-secondary">
+          {{ 'dashboard.finance.paste.ai.question' | translate }}
+          <button type="button" class="text-primary hover:underline" (click)="askAi()">{{ 'dashboard.finance.paste.ai.button' | translate }}</button>
+          <span class="text-text-tertiary"> — {{ 'dashboard.finance.paste.ai.cost' | translate }}</span>
+        </p>
+      } @else {
+        <p class="text-text-tertiary">
+          {{ 'dashboard.finance.sheet.count' | translate: { count: filledCount() } }}
+          ·
+          <button type="button" class="text-primary hover:underline" (click)="copyTemplate()">
+            {{ (copied() ? 'dashboard.finance.paste.example.copied' : 'dashboard.finance.paste.example.copy') | translate }}
+          </button>
+        </p>
+      }
+    </div>
+  }
+</div>
+
+<!-- Enregistrer : toujours visible tant qu'il reste quelque chose à enregistrer. -->
+@if (dirty() || savedNotice()) {
+  <div class="fs-savebar glass" role="status" aria-live="polite">
+    @if (dirty()) {
+      <span class="text-sm" [class.text-danger]="invalidCount() > 0 || saveError()" [class.text-text-primary]="!invalidCount() && !saveError()">
+        {{ saveError() || ((invalidCount() > 0 ? 'dashboard.finance.sheet.fixFirst' : 'dashboard.finance.save.pending') | translate) }}
+      </span>
+      <div class="flex gap-2">
+        <button type="button" class="button-ghost button-sm" [disabled]="saving()" (click)="discard()">{{ 'dashboard.finance.save.discard' | translate }}</button>
+        <button type="button" class="inner-button button-sm" [disabled]="saving() || invalidCount() > 0" (click)="save()">
+          @if (saving()) { <idem-loader size="xs" /> }
+          {{ 'common.save' | translate }}
+        </button>
+      </div>
+    } @else {
+      <span class="text-sm text-text-primary flex items-center gap-2">
+        <i class="pi pi-check-circle text-success" aria-hidden="true"></i>
+        {{ 'dashboard.finance.save.done' | translate }}
+        <a routerLink="/project/finance" class="text-primary hover:underline">{{ 'dashboard.finance.sheet.seeResults' | translate }}</a>
+      </span>
+    }
+  </div>
+}
+
+<app-finance-import-dialog
+  [open]="importOpen()"
+  [initialText]="importText()"
+  [projectId]="projectId()"
+  [hasExistingData]="filledCount() > 0"
+  [currency]="finance()?.meta?.currency || 'XAF'"
+  (closed)="importOpen.set(false)"
+  (imported)="onImported($event)"
+/>

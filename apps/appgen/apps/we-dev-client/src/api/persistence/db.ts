@@ -1,3 +1,4 @@
+import { productQuery } from '@/utils/product';
 import type { ProjectModel } from './models/project.model';
 import type { UserModel } from './userModel';
 
@@ -186,7 +187,7 @@ export async function getProjectCode(
   try {
     await checkAuth();
 
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/code`, {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/code${productQuery()}`, {
       credentials: 'include',
     });
 
@@ -213,7 +214,7 @@ export async function getProjectCodeManifest(
   projectId: string
 ): Promise<Record<string, string>> {
   try {
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/code/manifest`, {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/code/manifest${productQuery()}`, {
       credentials: 'include',
     });
 
@@ -236,7 +237,7 @@ export async function syncProjectCode(
   }
 ): Promise<{ written: number; deleted: number; total: number } | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/code`, {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/code${productQuery()}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -270,7 +271,7 @@ export async function getProjectChatSession(
   projectId: string
 ): Promise<ProjectChatSession | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/chat-session`, {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/chat-session${productQuery()}`, {
       credentials: 'include',
     });
 
@@ -288,7 +289,7 @@ export async function saveProjectChatSession(
   session: ProjectChatSession
 ): Promise<void> {
   try {
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/chat-session`, {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/chat-session${productQuery()}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -317,7 +318,7 @@ export interface AppDeployment {
 
 export async function getAppDeployment(projectId: string): Promise<AppDeployment | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/app-deployment`, {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/app-deployment${productQuery()}`, {
       credentials: 'include',
     });
 
@@ -338,7 +339,7 @@ export async function saveAppDeployment(
   deployment: AppDeployment
 ): Promise<void> {
   try {
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/app-deployment`, {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/app-deployment${productQuery()}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

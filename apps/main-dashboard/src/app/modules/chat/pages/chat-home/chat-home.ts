@@ -2103,7 +2103,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         labelKey: 'chat.dev.chips.open',
         icon: 'pi pi-bolt',
         action: 'open-route',
-        payload: '/project/development/create',
+        payload: '/project/development',
       },
     ];
     if (hasConfig) {
@@ -2136,22 +2136,16 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     });
   }
 
-  /** Guide vers l'assistant de déploiement (Terraform / infrastructure). */
+  /** Guide vers la mise en ligne : une seule page, qui mène à iDeploy. */
   private openDeploymentGuide(): void {
     this.appendAssistant({
       content: this.translate.instant('chat.deploy.intro'),
       chips: [
         {
           labelKey: 'chat.deploy.chips.start',
-          icon: 'pi pi-bolt',
+          icon: 'pi pi-send',
           action: 'open-route',
-          payload: '/project/deployments/create',
-        },
-        {
-          labelKey: 'chat.deploy.chips.list',
-          icon: 'pi pi-list',
-          action: 'open-route',
-          payload: '/project/deployments',
+          payload: '/project/ideploy',
         },
       ],
     });

@@ -131,11 +131,11 @@
 
     @if (showModeChoice()) {
       <!-- ═══ ECRAN DE CHOIX DU MODE D'ACCOMPAGNEMENT ═══ -->
-      <div
-        class="w-full content-wrapper pb-12 flex items-center justify-center min-h-[75vh]"
-        [class.content-with-banner]="fromAppGen()"
-        [class.content-standard]="!fromAppGen()"
-      >
+      <!-- Le sélecteur de mode est masqué ici, et la mise en page réserve déjà
+           la place de la barre de navigation : on ne garde que celle du
+           bandeau AppGen, et le contenu part du haut au lieu d'être centré
+           dans 75 % de l'écran. -->
+      <div class="w-full content-wrapper pb-8" [class.content-under-banner]="fromAppGen()">
         <app-mode-choice
           [projectDescription]="project().longDescription ?? project().description"
           (selectMode)="onModeSelected($event)"

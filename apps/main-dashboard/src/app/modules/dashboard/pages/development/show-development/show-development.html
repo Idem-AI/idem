@@ -1,438 +1,163 @@
-<div class="w-full min-h-[80vh] max-w-5xl mx-auto py-12 px-4 sm:px-6 flex flex-col">
-  <!-- Loading state -->
-  @if (loading()) {
-    <div class="flex items-center justify-center py-20">
-      <idem-loader block />
-    </div>
-  } @else if (!loading() && !isBrandingComplete()) {
-    <!-- Incomplete Project Banner -->
+@if (loading()) {
+  <idem-loader block class="min-h-[60vh]" [label]="'common.loading' | translate" />
+} @else if (failed()) {
+  <app-error-state scene="connection" [title]="'dashboard.siteApp.errors.title' | translate" [message]="'dashboard.siteApp.errors.load' | translate">
+    <button type="button" class="inner-button" (click)="retry()">{{ 'common.retry' | translate }}</button>
+  </app-error-state>
+} @else if (!isBrandingComplete() && project()) {
+  <div class="p-4 md:p-2">
     <app-incomplete-project-banner [project]="project()!" />
-  }
+  </div>
+} @else {
+  <div class="sa p-4 md:p-2">
+    <!-- Le titre et la phrase « les deux », centrés au-dessus des cartes. -->
+    <header class="sa-intro">
+      <h1 class="text-2xl md:text-3xl font-bold text-text-primary">{{ 'dashboard.siteApp.pick.title' | translate }}</h1>
+      <p class="sa-both" role="note">
+        <i class="pi pi-check-circle" aria-hidden="true"></i>
+        {{ 'dashboard.siteApp.both.title' | translate }}
+      </p>
+      <p class="sa-intro__body">{{ 'dashboard.siteApp.both.body' | translate }}</p>
+    </header>
 
-  <!-- Error state -->
-  @if (error()) {
-    <div class="bg-red-500/10 border border-red-500/20 text-red-400 px-6 py-4 rounded-xl mb-8 flex items-center gap-3">
-      <i class="pi pi-exclamation-circle text-xl"></i>
-      <span class="font-medium">{{ error() }}</span>
-    </div>
-  }
+    <div class="sa-cards">
+      <!-- ═════════════ Site vitrine ═════════════ -->
+      <section class="glass-card sa-pick" [class.sa-pick--started]="siteStarted()" aria-labelledby="sa-site">
+        @if (siteStarted()) {
+          <span class="sa-badge sa-badge--{{ siteStatus() }}">{{ 'dashboard.siteApp.status.' + siteStatus() | translate }}</span>
+        }
+        <app-site-app-illustration scene="site" class="sa-pick__art" />
+        <h2 id="sa-site" class="sa-pick__title">{{ 'dashboard.siteApp.pick.site.title' | translate }}</h2>
+        <p class="sa-pick__line">{{ 'dashboard.siteApp.pick.site.line' | translate }}</p>
 
-  <!-- Development configs display -->
-  @if (!loading() && hasConfigs() && !error()) {
-    
-    <!-- Live application (already deployed from iCode) -->
-    @if (deployment(); as deployed) {
-      <div class="w-full mb-12">
-        <div class="bg-[var(--idem-surface-1)] border border-[var(--glass-border-subtle)] rounded-2xl p-6 md:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div class="flex items-start gap-5">
-            <div class="w-12 h-12 shrink-0 rounded-full bg-green-500/10 flex items-center justify-center">
-              <i class="pi pi-check text-green-500 text-xl"></i>
-            </div>
-            <div>
-              <div class="flex items-center gap-3 mb-2">
-                <h2 class="text-xl font-medium text-[var(--idem-text-primary)]">{{ 'dashboard.showDevelopment.liveApp' | translate }}</h2>
-                <span class="bg-green-500/10 text-green-600 dark:text-green-400 text-xs px-2.5 py-1 rounded-full font-medium">{{ 'dashboard.showDevelopment.deployed' | translate }}</span>
-              </div>
-              <a [href]="deployed.url" target="_blank" rel="noopener" class="text-primary hover:text-primary-600 transition-colors break-all text-base">
-                {{ deployed.url }}
-              </a>
-              @if (deployed.lastDeployedAt) {
-                <p class="text-[var(--idem-text-tertiary)] text-sm mt-2">
-                  {{ 'dashboard.showDevelopment.lastUpdated' | translate }} {{ deployed.lastDeployedAt | date: 'dd/MM/yyyy à HH:mm' }}
-                </p>
-              }
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 shrink-0">
-            <button type="button" (click)="copyDeployUrl()" class="outer-button flex items-center gap-2 px-5 py-2.5">
-              <i class="pi text-primary" [class.pi-check]="copiedDeployUrl()" [class.pi-copy]="!copiedDeployUrl()"></i>
-              <span>{{ copiedDeployUrl() ? 'Lien copié' : 'Copier le lien' }}</span>
-            </button>
-            <button type="button" (click)="openDeployedApp()" class="inner-button flex items-center gap-2 px-5 py-2.5">
-              <span>{{ 'dashboard.showDevelopment.open' | translate }}</span>
-              <i class="pi pi-external-link"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- Landing Page Only - Simplified Interface -->
-    @if (isLandingPageOnly()) {
-      <div class="w-full max-w-4xl mx-auto">
-        <div class="bg-[var(--idem-surface-1)] border border-[var(--glass-border-subtle)] rounded-3xl p-8 md:p-16 shadow-sm mb-12">
-          
-          <div class="max-w-2xl">
-            <h1 class="text-4xl md:text-5xl font-semibold text-[var(--idem-text-primary)] mb-6 leading-tight">
-              @if (hasExistingApp()) {
-                <span [innerHTML]="'dashboard.showDevelopment.landingReady' | translate"></span>
-              } @else {
-                <span [innerHTML]="'dashboard.showDevelopment.landingReadyToGenerate' | translate"></span>
-              }
-            </h1>
-
-            <p class="text-lg md:text-xl text-[var(--idem-text-secondary)] mb-10 leading-relaxed">
-              @if (hasExistingApp()) {
-                {{ 'dashboard.showDevelopment.landingExistingDesc' | translate }}
-              } @else {
-                {{ 'dashboard.showDevelopment.landingNewDesc' | translate }}
-              }
+        @if (siteLive()?.url; as url) {
+          <!-- En ligne : l'adresse dans un champ, et ce qu'on en fait. -->
+          <div class="sa-url">
+            <p class="sa-url__status">
+              <span class="sa-dot" aria-hidden="true"></span>
+              {{ 'dashboard.siteApp.live.title' | translate }}
             </p>
-
-            <button (click)="redirectToWebGenerator(projectId())" class="inner-button flex items-center gap-3 text-lg px-8 py-4">
-              <span class="font-medium">{{ hasExistingApp() ? ('dashboard.showDevelopment.resumeInIcode' | translate) : ('dashboard.showDevelopment.generateLanding' | translate) }}</span>
-              <i class="pi pi-arrow-right"></i>
-            </button>
-          </div>
-
-          <!-- Feature List (Editorial Style, not identical cards) -->
-          <div class="mt-16 pt-12 border-t border-[var(--glass-border-subtle)]">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div>
-                <h3 class="text-[var(--idem-text-primary)] font-medium text-lg mb-2 flex items-center gap-2">
-                  <i class="pi pi-palette text-primary"></i> Design Moderne
-                </h3>
-                <p class="text-[var(--idem-text-tertiary)] leading-relaxed">{{ 'dashboard.showDevelopment.features.designDesc' | translate }}</p>
-              </div>
-              <div>
-                <h3 class="text-[var(--idem-text-primary)] font-medium text-lg mb-2 flex items-center gap-2">
-                  <i class="pi pi-search text-primary"></i> Optimisé SEO
-                </h3>
-                <p class="text-[var(--idem-text-tertiary)] leading-relaxed">{{ 'dashboard.showDevelopment.features.seoDesc' | translate }}</p>
-              </div>
-              <div>
-                <h3 class="text-[var(--idem-text-primary)] font-medium text-lg mb-2 flex items-center gap-2">
-                  <i class="pi pi-cog text-primary"></i> Personnalisable
-                </h3>
-                <p class="text-[var(--idem-text-tertiary)] leading-relaxed">{{ 'dashboard.showDevelopment.features.customizableDesc' | translate }}</p>
-              </div>
+            <div class="sa-url__field">
+              <i class="pi pi-globe sa-url__icon" aria-hidden="true"></i>
+              <a [href]="url" target="_blank" rel="noopener" class="sa-url__address">{{ displayUrl(url) }}</a>
+              <button
+                type="button"
+                class="sa-url__action"
+                [class.sa-url__action--done]="copied() === 'site'"
+                (click)="copy('site')"
+              >
+                <i class="pi" [class.pi-check]="copied() === 'site'" [class.pi-copy]="copied() !== 'site'" aria-hidden="true"></i>
+                {{ (copied() === 'site' ? 'dashboard.siteApp.live.copied' : 'dashboard.siteApp.live.copy') | translate }}
+              </button>
+              <a
+                [href]="url"
+                target="_blank"
+                rel="noopener"
+                class="sa-url__action"
+                [attr.aria-label]="'dashboard.siteApp.live.open' | translate"
+              >
+                <i class="pi pi-external-link" aria-hidden="true"></i>
+                <span class="sa-url__action-label">{{ 'dashboard.siteApp.live.open' | translate }}</span>
+              </a>
             </div>
           </div>
-        </div>
-      </div>
-    }
+        }
 
-    <!-- Full Application - Original Interface -->
-    @if (!isLandingPageOnly()) {
-      
-      <!-- Hero Section Editorial Style -->
-      <div class="mb-16">
-        <div class="max-w-3xl">
-          <h1 class="text-4xl md:text-5xl font-semibold text-[var(--idem-text-primary)] mb-6 leading-tight">
-            @if (hasExistingApp()) {
-              {{ 'dashboard.showDevelopment.appExistingTitle' | translate }}
-            } @else {
-              {{ 'dashboard.showDevelopment.appNewTitle' | translate }}
-            }
-          </h1>
-          <p class="text-lg md:text-xl text-[var(--idem-text-secondary)] mb-10 leading-relaxed">
-            @if (hasExistingApp()) {
-              {{ 'dashboard.showDevelopment.appExistingDesc' | translate }}
-            } @else {
-              {{ 'dashboard.showDevelopment.appNewDesc' | translate }}
-            }
-          </p>
+        <button type="button" class="inner-button sa-pick__cta" [disabled]="opening() !== null" (click)="openICode('site')">
+          @if (opening() === 'site') { <idem-loader size="xs" /> }
+          {{ (siteStarted() ? 'dashboard.siteApp.site.resume' : 'dashboard.siteApp.pick.site.cta') | translate }}
+          <i class="pi pi-arrow-right" aria-hidden="true"></i>
+        </button>
+      </section>
 
-          <div class="flex flex-wrap items-center gap-4">
-            <button (click)="redirectToWebGenerator(projectId())" class="inner-button flex items-center gap-3 text-lg px-8 py-4">
-              <span class="font-medium">{{ hasExistingApp() ? ('dashboard.showDevelopment.resumeInIcode' | translate) : ('dashboard.showDevelopment.generateApp' | translate) }}</span>
-              <i class="pi pi-arrow-right"></i>
-            </button>
-            <button class="outer-button flex items-center gap-2 px-6 py-4">
-              <i class="pi pi-eye"></i>
-              <span>{{ 'dashboard.showDevelopment.preview' | translate }}</span>
-            </button>
-            <button class="outer-button flex items-center gap-2 px-6 py-4">
-              <i class="pi pi-download"></i>
-              <span>{{ 'dashboard.showDevelopment.exportConfig' | translate }}</span>
-            </button>
+      <!-- ═════════════ Application ═════════════ -->
+      <section class="glass-card sa-pick" [class.sa-pick--started]="appStarted()" aria-labelledby="sa-app">
+        @if (appStarted()) {
+          <span class="sa-badge sa-badge--{{ appStatus() }}">{{ 'dashboard.siteApp.status.' + appStatus() | translate }}</span>
+        }
+        <app-site-app-illustration scene="app" class="sa-pick__art" />
+        <h2 id="sa-app" class="sa-pick__title">{{ 'dashboard.siteApp.pick.app.title' | translate }}</h2>
+        <p class="sa-pick__line">{{ 'dashboard.siteApp.pick.app.line' | translate }}</p>
+
+        @if (appLive()?.url; as url) {
+          <!-- En ligne : l'adresse dans un champ, et ce qu'on en fait. -->
+          <div class="sa-url">
+            <p class="sa-url__status">
+              <span class="sa-dot" aria-hidden="true"></span>
+              {{ 'dashboard.siteApp.live.title' | translate }}
+            </p>
+            <div class="sa-url__field">
+              <i class="pi pi-globe sa-url__icon" aria-hidden="true"></i>
+              <a [href]="url" target="_blank" rel="noopener" class="sa-url__address">{{ displayUrl(url) }}</a>
+              <button
+                type="button"
+                class="sa-url__action"
+                [class.sa-url__action--done]="copied() === 'app'"
+                (click)="copy('app')"
+              >
+                <i class="pi" [class.pi-check]="copied() === 'app'" [class.pi-copy]="copied() !== 'app'" aria-hidden="true"></i>
+                {{ (copied() === 'app' ? 'dashboard.siteApp.live.copied' : 'dashboard.siteApp.live.copy') | translate }}
+              </button>
+              <a
+                [href]="url"
+                target="_blank"
+                rel="noopener"
+                class="sa-url__action"
+                [attr.aria-label]="'dashboard.siteApp.live.open' | translate"
+              >
+                <i class="pi pi-external-link" aria-hidden="true"></i>
+                <span class="sa-url__action-label">{{ 'dashboard.siteApp.live.open' | translate }}</span>
+              </a>
+            </div>
           </div>
-        </div>
-      </div>
+        }
 
-      <!-- Tech Stack Summary (Staggered Layout) -->
-      <div class="mb-16">
-        <h2 class="text-2xl font-medium text-[var(--idem-text-primary)] mb-8">{{ 'dashboard.showDevelopment.stackOverview' | translate }}</h2>
-        <div class="flex flex-col md:flex-row gap-6 md:gap-12 p-8 bg-[var(--idem-surface-1)] border border-[var(--glass-border-subtle)] rounded-2xl shadow-sm">
-          
-          @if (frontend()?.framework) {
-            <div class="flex-1">
-              <div class="flex items-center gap-3 mb-3">
-                <i class="pi pi-desktop text-[var(--idem-text-secondary)] text-xl"></i>
-                <h3 class="text-[var(--idem-text-secondary)] font-medium uppercase text-xs">{{ 'dashboard.showDevelopment.frontend' | translate }}</h3>
-              </div>
-              <p class="text-[var(--idem-text-primary)] text-xl font-medium">{{ frontend()!.framework }}</p>
-            </div>
-          }
-          
-          <!-- Divider -->
-          <div class="hidden md:block w-px bg-[var(--glass-border-subtle)] self-stretch"></div>
-
-          @if (backend()?.framework) {
-            <div class="flex-1">
-              <div class="flex items-center gap-3 mb-3">
-                <i class="pi pi-server text-[var(--idem-text-secondary)] text-xl"></i>
-                <h3 class="text-[var(--idem-text-secondary)] font-medium uppercase text-xs">{{ 'dashboard.showDevelopment.backend' | translate }}</h3>
-              </div>
-              <p class="text-[var(--idem-text-primary)] text-xl font-medium">{{ backend()!.framework }}</p>
-            </div>
-          }
-
-          <!-- Divider -->
-          <div class="hidden md:block w-px bg-[var(--glass-border-subtle)] self-stretch"></div>
-
-          @if (database()?.provider) {
-            <div class="flex-1">
-              <div class="flex items-center gap-3 mb-3">
-                <i class="pi pi-database text-[var(--idem-text-secondary)] text-xl"></i>
-                <h3 class="text-[var(--idem-text-secondary)] font-medium uppercase text-xs">{{ 'dashboard.showDevelopment.database' | translate }}</h3>
-              </div>
-              <p class="text-[var(--idem-text-primary)] text-xl font-medium">{{ database()!.provider }}</p>
-            </div>
-          }
-
-        </div>
-      </div>
-
-      <!-- Technical Details Section -->
-      <div class="w-full border-t border-[var(--glass-border-subtle)] pt-12">
-        
-        <details class="group">
-          <summary class="flex items-center justify-between cursor-pointer list-none py-4">
-            <h2 class="text-2xl font-medium text-[var(--idem-text-primary)]">{{ 'dashboard.showDevelopment.configDetails' | translate }}</h2>
-            <div class="w-10 h-10 rounded-full bg-[var(--idem-surface-2)] flex items-center justify-center group-open:rotate-180 transition-transform duration-300">
-              <i class="pi pi-chevron-down text-[var(--idem-text-secondary)]"></i>
-            </div>
-          </summary>
-
-          <div class="mt-8 space-y-12 pb-12">
-            
-            <!-- Frontend Details -->
-            <section class="flex flex-col lg:flex-row gap-8 items-start">
-              <div class="w-full lg:w-1/3">
-                <h3 class="text-xl font-medium text-[var(--idem-text-primary)] mb-2 flex items-center gap-3">
-                  <i class="pi pi-desktop text-primary"></i> Couche Client
-                </h3>
-                <p class="text-[var(--idem-text-tertiary)] leading-relaxed">{{ 'dashboard.showDevelopment.clientLayerDesc' | translate }}</p>
-              </div>
-              <div class="w-full lg:w-2/3 bg-[var(--idem-surface-1)] border border-[var(--glass-border-subtle)] rounded-2xl p-6 md:p-8 shadow-sm">
-                <div class="flex flex-wrap items-end gap-6 mb-8 pb-8 border-b border-[var(--glass-border-subtle)]">
-                  @if (frontend()?.frameworkIconUrl) {
-                    <img [src]="frontend()!.frameworkIconUrl" [alt]="frontend()!.framework" class="h-16 w-16 object-contain" />
-                  }
-                  <div>
-                    <h4 class="text-2xl font-medium text-[var(--idem-text-primary)]">{{ frontend()!.framework }}</h4>
-                    @if (frontend()?.frameworkVersion) {
-                      <span class="text-[var(--idem-text-tertiary)] font-mono text-sm mt-1 block">Version {{ frontend()!.frameworkVersion }}</span>
+        @if (appStarted()) {
+          <span class="tag">{{ 'dashboard.siteApp.platform.' + appPlatform() + '.title' | translate }}</span>
+          <button type="button" class="inner-button sa-pick__cta" [disabled]="opening() !== null" (click)="openICode('app')">
+            @if (opening() === appPlatform()) { <idem-loader size="xs" /> }
+            {{ 'dashboard.siteApp.steps.build.resume' | translate }}
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          </button>
+        } @else {
+          <!-- Web ou mobile : le choix ouvre directement iCode. -->
+          <div class="sa-platforms" role="group" [attr.aria-label]="'dashboard.siteApp.platform.question' | translate">
+            <p class="sa-platforms__question">{{ 'dashboard.siteApp.platform.question' | translate }}</p>
+            @for (platform of platforms; track platform.id) {
+              <button
+                type="button"
+                class="sa-option"
+                [class.sa-option--recommended]="platform.recommended"
+                [disabled]="opening() !== null"
+                (click)="openICode('app', platform.id)"
+              >
+                <i class="pi {{ platform.icon }} sa-option__icon" aria-hidden="true"></i>
+                <span class="sa-option__text">
+                  <span class="sa-option__title">
+                    {{ 'dashboard.siteApp.platform.' + platform.id + '.title' | translate }}
+                    @if (platform.recommended) {
+                      <span class="sa-option__badge">{{ 'dashboard.siteApp.platform.recommended' | translate }}</span>
                     }
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-3">{{ 'dashboard.showDevelopment.styling' | translate }}</h5>
-                    <p class="text-[var(--idem-text-primary)]">
-                      {{ typeof frontend()!.styling === 'string' ? frontend()!.styling : getFeaturesList(frontend()!.styling) }}
-                    </p>
-                  </div>
-                  @if (frontend()?.stateManagement) {
-                    <div>
-                      <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-3">{{ 'dashboard.showDevelopment.stateManagement' | translate }}</h5>
-                      <p class="text-[var(--idem-text-primary)]">{{ frontend()!.stateManagement }}</p>
-                    </div>
-                  }
-                </div>
-
-                @if (frontend()?.features) {
-                  <div class="mt-8">
-                    <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.enabledFeatures' | translate }}</h5>
-                    <div class="flex flex-wrap gap-2">
-                      @if (typeof frontend()!.features === 'object' && !isFeatureArray(frontend()!.features)) {
-                        @for (feature of getObjectKeys(frontend()!.features); track feature) {
-                          @if (isFeatureEnabled(frontend()!.features, feature)) {
-                            <span class="px-3 py-1.5 rounded-md bg-[var(--idem-surface-2)] border border-[var(--glass-border-subtle)] text-[var(--idem-text-secondary)] text-sm">{{ feature }}</span>
-                          }
-                        }
-                      } @else if (isFeatureArray(frontend()!.features)) {
-                        @for (feature of getFeatureArray(frontend()!.features); track feature) {
-                          <span class="px-3 py-1.5 rounded-md bg-[var(--idem-surface-2)] border border-[var(--glass-border-subtle)] text-[var(--idem-text-secondary)] text-sm">{{ feature }}</span>
-                        }
-                      }
-                    </div>
-                  </div>
+                  </span>
+                  <span class="sa-option__hint">{{ 'dashboard.siteApp.platform.' + platform.id + '.hint' | translate }}</span>
+                </span>
+                @if (opening() === platform.id) {
+                  <idem-loader size="xs" />
+                } @else {
+                  <i class="pi pi-arrow-right sa-option__arrow" aria-hidden="true"></i>
                 }
-              </div>
-            </section>
-
-            <!-- Backend Details -->
-            <section class="flex flex-col lg:flex-row gap-8 items-start">
-              <div class="w-full lg:w-1/3">
-                <h3 class="text-xl font-medium text-[var(--idem-text-primary)] mb-2 flex items-center gap-3">
-                  <i class="pi pi-server text-primary"></i> Couche Serveur
-                </h3>
-                <p class="text-[var(--idem-text-tertiary)] leading-relaxed">{{ 'dashboard.showDevelopment.serverLayerDesc' | translate }}</p>
-              </div>
-              <div class="w-full lg:w-2/3 bg-[var(--idem-surface-1)] border border-[var(--glass-border-subtle)] rounded-2xl p-6 md:p-8 shadow-sm">
-                
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8 pb-8 border-b border-[var(--glass-border-subtle)]">
-                  @if (backend()?.language) {
-                    <div>
-                      <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.language' | translate }}</h5>
-                      <p class="text-[var(--idem-text-primary)] font-medium">{{ backend()!.language }}</p>
-                    </div>
-                  }
-                  @if (backend()?.framework) {
-                    <div>
-                      <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.framework' | translate }}</h5>
-                      <p class="text-[var(--idem-text-primary)] font-medium">{{ backend()!.framework }}</p>
-                    </div>
-                  }
-                  @if (backend()?.apiType) {
-                    <div>
-                      <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.apiType' | translate }}</h5>
-                      <p class="text-[var(--idem-text-primary)] font-medium">{{ backend()!.apiType }}</p>
-                    </div>
-                  }
-                  @if (backend()?.orm) {
-                    <div>
-                      <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.orm' | translate }}</h5>
-                      <p class="text-[var(--idem-text-primary)] font-medium">{{ backend()!.orm }}</p>
-                    </div>
-                  }
-                </div>
-
-                @if (backend()?.features) {
-                  <div>
-                    <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.apiFeatures' | translate }}</h5>
-                    <div class="flex flex-wrap gap-2">
-                      @if (typeof backend()!.features === 'object' && !isFeatureArray(backend()!.features)) {
-                        @for (feature of getObjectKeys(backend()!.features); track feature) {
-                          @if (isFeatureEnabled(backend()!.features, feature)) {
-                            <span class="px-3 py-1.5 rounded-md bg-[var(--idem-surface-2)] border border-[var(--glass-border-subtle)] text-[var(--idem-text-secondary)] text-sm">{{ feature }}</span>
-                          }
-                        }
-                      } @else if (isFeatureArray(backend()!.features)) {
-                        @for (feature of getFeatureArray(backend()!.features); track feature) {
-                          <span class="px-3 py-1.5 rounded-md bg-[var(--idem-surface-2)] border border-[var(--glass-border-subtle)] text-[var(--idem-text-secondary)] text-sm">{{ feature }}</span>
-                        }
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
-            </section>
-
-            <!-- Database Details -->
-            <section class="flex flex-col lg:flex-row gap-8 items-start">
-              <div class="w-full lg:w-1/3">
-                <h3 class="text-xl font-medium text-[var(--idem-text-primary)] mb-2 flex items-center gap-3">
-                  <i class="pi pi-database text-primary"></i> Persistance
-                </h3>
-                <p class="text-[var(--idem-text-tertiary)] leading-relaxed">{{ 'dashboard.showDevelopment.persistenceDesc' | translate }}</p>
-              </div>
-              <div class="w-full lg:w-2/3 bg-[var(--idem-surface-1)] border border-[var(--glass-border-subtle)] rounded-2xl p-6 md:p-8 shadow-sm">
-                
-                <div class="flex items-center gap-6 mb-8 pb-8 border-b border-[var(--glass-border-subtle)]">
-                  @if (database()?.providerIconUrl) {
-                    <img [src]="database()!.providerIconUrl" [alt]="database()!.provider" class="h-12 w-12 object-contain" />
-                  }
-                  <div>
-                    <h4 class="text-xl font-medium text-[var(--idem-text-primary)]">{{ database()!.provider }}</h4>
-                    <div class="flex gap-4 mt-2">
-                      @if (database()?.type) {
-                        <span class="text-[var(--idem-text-secondary)] text-sm">{{ database()!.type }}</span>
-                      }
-                      @if (database()?.providerVersion) {
-                        <span class="text-[var(--idem-text-tertiary)] text-sm font-mono">v{{ database()!.providerVersion }}</span>
-                      }
-                    </div>
-                  </div>
-                </div>
-
-                @if (database()?.features) {
-                  <div>
-                    <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.configurations' | translate }}</h5>
-                    <div class="flex flex-wrap gap-2">
-                      @if (typeof database()!.features === 'object' && !isFeatureArray(database()!.features)) {
-                        @for (feature of getObjectKeys(database()!.features); track feature) {
-                          @if (isFeatureEnabled(database()!.features, feature)) {
-                            <span class="px-3 py-1.5 rounded-md bg-[var(--idem-surface-2)] border border-[var(--glass-border-subtle)] text-[var(--idem-text-secondary)] text-sm">{{ feature }}</span>
-                          }
-                        }
-                      } @else if (isFeatureArray(database()!.features)) {
-                        @for (feature of getFeatureArray(database()!.features); track feature) {
-                          <span class="px-3 py-1.5 rounded-md bg-[var(--idem-surface-2)] border border-[var(--glass-border-subtle)] text-[var(--idem-text-secondary)] text-sm">{{ feature }}</span>
-                        }
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
-            </section>
-
-            <!-- Project Level Config -->
-            <section class="flex flex-col lg:flex-row gap-8 items-start">
-              <div class="w-full lg:w-1/3">
-                <h3 class="text-xl font-medium text-[var(--idem-text-primary)] mb-2 flex items-center gap-3">
-                  <i class="pi pi-cog text-primary"></i> Globales
-                </h3>
-                <p class="text-[var(--idem-text-tertiary)] leading-relaxed">{{ 'dashboard.showDevelopment.globalsDesc' | translate }}</p>
-              </div>
-              <div class="w-full lg:w-2/3 bg-[var(--idem-surface-1)] border border-[var(--glass-border-subtle)] rounded-2xl p-6 md:p-8 shadow-sm">
-                
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-y-8 gap-x-6">
-                  
-                  <div>
-                    <h5 class="text-[var(--idem-text-primary)] font-medium flex items-center gap-2 mb-1">
-                      <i class="pi pi-search text-[var(--idem-text-tertiary)]"></i> SEO
-                    </h5>
-                    <span class="text-sm {{ projectConfig()?.seoEnabled ? 'text-green-600 dark:text-green-400' : 'text-[var(--idem-text-tertiary)]' }}">
-                      {{ projectConfig()?.seoEnabled ? 'Activé' : 'Désactivé' }}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h5 class="text-[var(--idem-text-primary)] font-medium flex items-center gap-2 mb-1">
-                      <i class="pi pi-globe text-[var(--idem-text-tertiary)]"></i> i18n
-                    </h5>
-                    <span class="text-sm {{ projectConfig()?.i18nEnabled ? 'text-green-600 dark:text-green-400' : 'text-[var(--idem-text-tertiary)]' }}">
-                      {{ projectConfig()?.i18nEnabled ? 'Activé' : 'Désactivé' }}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h5 class="text-[var(--idem-text-primary)] font-medium flex items-center gap-2 mb-1">
-                      <i class="pi pi-shield text-[var(--idem-text-tertiary)]"></i> Auth
-                    </h5>
-                    <span class="text-sm {{ projectConfig()?.authentication ? 'text-green-600 dark:text-green-400' : 'text-[var(--idem-text-tertiary)]' }}">
-                      {{ projectConfig()?.authentication ? 'Sécurisé' : 'Public' }}
-                    </span>
-                  </div>
-
-                </div>
-
-                @if (constraints() && constraints()!.length > 0) {
-                  <div class="mt-8 pt-8 border-t border-[var(--glass-border-subtle)]">
-                    <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.imposedConstraints' | translate }}</h5>
-                    <ul class="space-y-3">
-                      @for (constraint of constraints(); track constraint) {
-                        <li class="flex items-start gap-3 text-[var(--idem-text-primary)]">
-                          <i class="pi pi-info-circle text-[var(--idem-text-tertiary)] mt-0.5"></i>
-                          <span>{{ constraint }}</span>
-                        </li>
-                      }
-                    </ul>
-                  </div>
-                }
-
-              </div>
-            </section>
-
+              </button>
+            }
           </div>
-        </details>
-      </div>
+        }
 
-    }
-  }
-</div>
+        @if (appStarted()) {
+          <button type="button" class="sa-extra__link" (click)="openGoLiveGuide()">
+            <i class="pi pi-send text-xs" aria-hidden="true"></i>
+            {{ 'dashboard.siteApp.steps.golive.cta' | translate }}
+          </button>
+        }
+      </section>
+    </div>
+  </div>
+}

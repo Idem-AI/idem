@@ -1,3 +1,4 @@
+import useRunStatus from "@/stores/runStatusSlice";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -245,6 +246,11 @@ class Terminal {
 
   private async executeCommandInWeb(command: string): Promise<CommandResult> {
     const instance = await getWebContainerInstance();
+    // L'état d'exécution (installation, démarrage, erreur) se lit sur cette
+    // sortie : c'est ici que passent « Exécuter » comme les commandes de l'IA.
+    const runStatus = useRunStatus.getState();
+    runStatus.commandStarted(command);
+
     const process = await instance.spawn("jsh", ["-c", command], {
       env: { npm_config_yes: true },
     });
@@ -253,11 +259,13 @@ class Terminal {
       new WritableStream({
         write: (data) => {
           this.terminal?.write(data);
+          useRunStatus.getState().feed(data);
         },
       })
     );
 
     const exitCode = await process.exit;
+    useRunStatus.getState().commandExited(command, exitCode);
 
     return {
       output: [],

@@ -14,6 +14,7 @@ export const {
 // Container instance exports
 export const getContainerInstance = webContainer.getWebContainerInstance;
 export const onServerReady = webContainer.onServerReady;
+export const onServersChange = webContainer.onServersChange;
 export const getLastServerUrl = webContainer.getLastServerUrl;
 
 // Export types and constants

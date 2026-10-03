@@ -13,11 +13,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarkdownModule } from 'ngx-markdown';
-import { SkeletonModule } from 'primeng/skeleton';
-import { CardModule } from 'primeng/card';
-import { ProgressBarModule } from 'primeng/progressbar';
-import { ButtonModule } from 'primeng/button';
-import { TagModule } from 'primeng/tag';
 import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { DiagramsService } from '../../../../services/ai-agents/diagrams.service';
@@ -26,7 +21,6 @@ import { GenerationService } from '../../../../../../shared/services/generation.
 import { SSEGenerationState } from '../../../../../../shared/models/sse-step.model';
 import { generatePdf } from '../../../../../../utils/pdf-generator';
 import { environment } from '../../../../../../../environments/environment';
-import { Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
@@ -38,11 +32,6 @@ import { ErrorStateComponent } from '../../../../../../shared/components/error-s
     ErrorStateComponent,
     CommonModule,
     MarkdownModule,
-    SkeletonModule,
-    CardModule,
-    ProgressBarModule,
-    ButtonModule,
-    TagModule,
     TranslateModule, IdemLoaderComponent],
   templateUrl: './diagram-generation.html',
   styleUrls: ['./diagram-generation.css'],
@@ -52,7 +41,6 @@ export class DiagramGeneration implements OnInit, OnDestroy {
   private readonly diagramsService = inject(DiagramsService);
   private readonly generationService = inject(GenerationService);
   private readonly destroy$ = new Subject<void>();
-  private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
   // ViewChild for scroll container
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
@@ -160,7 +148,8 @@ export class DiagramGeneration implements OnInit, OnDestroy {
    */
   private handleGenerationComplete(state: SSEGenerationState): void {
     console.log('Diagram generation completed:', state);
-    this.router.navigate(['/project/diagrams']);
+    // La page parente décide où aller : le plan, ou le parcours Assisté.
+    this.diagramGenerated.emit(this.finalDiagram() ?? {});
   }
 
   /**

@@ -3,6 +3,7 @@ name: webcontainer-react
 description: Technical contract for the WebContainer target - Vite + React 18 + Tailwind v3, required files, and the boltArtifact output format.
 tier: core
 priority: 90
+targets: [site]
 ---
 
 # Build target

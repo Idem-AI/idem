@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { getContainerInstance, onServerReady } from '../WeIde/services';
+import { getContainerInstance, onServersChange } from '../WeIde/services';
+import useRunStatus, { API_PORT } from '@/stores/runStatusSlice';
+import { eventEmitter } from '../AiChat/utils/EventEmitter';
+import { RunErrorBanner } from './RunErrorBanner';
 import { useFileStore } from '../WeIde/stores/fileStore';
 import useTerminalStore from '@/stores/terminalSlice';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +25,7 @@ import {
   ChevronRight,
   ChevronDown,
   Minus,
+  Smartphone,
   Plus,
   ExternalLink,
   MessageSquarePlus,
@@ -50,6 +54,8 @@ import {
   type EditResult,
 } from './astEdit';
 import { buildInjectPlan, buildRemovePlan, type InstrumentationPlan } from './instrumentation';
+import { isMobileApp } from '@/utils/product';
+import { PHONES, PhoneMockup, phoneOuterSize, type PhoneDevice } from './PhoneMockup';
 import { SizeSelector, viewportStyle, WINDOW_SIZES, type WindowSize } from './ResponsiveViewport';
 
 interface EditablePreviewProps {
@@ -115,6 +121,29 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   const [layersOpen, setLayersOpen] = useState(true);
   const [agentReady, setAgentReady] = useState(false);
   const [size, setSize] = useState<WindowSize>(WINDOW_SIZES[0]);
+
+  // Une application mobile s'affiche dans un téléphone, iPhone ou Android : pas
+  // de tailles d'ordinateur, elles n'ont pas de sens pour elle. Le téléphone
+  // est réduit pour tenir en entier dans la hauteur disponible.
+  const mobileApp = isMobileApp();
+  const [device, setDevice] = useState<PhoneDevice>('ios');
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState(1);
+
+  useEffect(() => {
+    const surface = surfaceRef.current;
+    if (!mobileApp || !surface) return;
+    const update = () => {
+      const outer = phoneOuterSize(device);
+      // 24 px : le padding de la surface, pour que le téléphone ne touche pas les bords.
+      const scale = Math.min(1, (surface.clientHeight - 24) / outer.height, (surface.clientWidth - 24) / outer.width);
+      setFit(scale > 0.2 ? scale : 1);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(surface);
+    return () => observer.disconnect();
+  }, [mobileApp, device]);
   const { getTerminal, newTerminal } = useTerminalStore();
   const [toolMode, setToolMode] = useState<EditToolMode>('off');
   const [zoom, setZoom] = useState(1);
@@ -197,14 +226,31 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   }, []);
 
   /* -------- URL du serveur de dev -------- */
+  // Une application complète ouvre deux serveurs : l'API (`backend/`, port
+  // API_PORT, avec sa base de données) et l'interface (`frontend/`). L'aperçu
+  // montre toujours l'interface, et seulement une fois l'API ouverte : sinon le
+  // premier appel de la page échouerait et l'utilisateur verrait une erreur
+  // qui n'en est pas une.
+  const isFullstack = useFileStore((state) => 'backend/package.json' in state.files);
+  const runPhase = useRunStatus((state) => state.phase);
+  // Rien à montrer encore, mais ça démarre : on dit quoi plutôt que « rien ».
+  const waiting = !url && (runPhase === 'installing' || runPhase === 'starting');
+  const waitingKey =
+    runPhase === 'installing'
+      ? 'preview.waiting.install'
+      : isFullstack
+        ? 'preview.waiting.fullstack'
+        : 'preview.waiting.start';
+  const [servers, setServers] = useState<Map<number, string>>(new Map());
+
   useEffect(() => {
     let mounted = true;
     let unsubscribe: (() => void) | undefined;
     (async () => {
       await getContainerInstance();
       if (!mounted) return;
-      unsubscribe = onServerReady((_port, serverUrl) => {
-        if (mounted) setUrl(serverUrl);
+      unsubscribe = onServersChange((open) => {
+        if (mounted) setServers(open);
       });
     })();
     return () => {
@@ -212,6 +258,14 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
       unsubscribe?.();
     };
   }, []);
+
+  useEffect(() => {
+    const web = Array.from(servers.entries()).find(([port]) => port !== API_PORT);
+    const apiReady = servers.has(API_PORT);
+    const next = web && (!isFullstack || apiReady) ? web[1] : '';
+    setUrl(next);
+    if (next) useRunStatus.getState().markReady();
+  }, [servers, isFullstack]);
 
   /* -------- Injection / retrait de l'instrumentation -------- */
   useEffect(() => {
@@ -626,7 +680,30 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
             </span>
           </div>
 
-          <SizeSelector value={size} onChange={setSize} />
+          {mobileApp ? (
+            <div
+              className="flex items-center rounded-md bg-surface-2 border border-[var(--glass-border)] p-0.5"
+              role="group"
+              aria-label={t('preview.device')}
+            >
+              {(['ios', 'android'] as PhoneDevice[]).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDevice(d)}
+                  aria-pressed={device === d}
+                  className={`h-6 px-2 flex items-center gap-1 rounded text-[11px] font-medium transition-colors ${
+                    device === d ? 'bg-primary text-white' : 'text-text-tertiary hover:text-text-primary'
+                  }`}
+                >
+                  <Smartphone size={12} aria-hidden="true" />
+                  {PHONES[d].label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <SizeSelector value={size} onChange={setSize} />
+          )}
 
           <div className="flex items-center rounded-md bg-surface-2 border border-[var(--glass-border)]">
             <button
@@ -671,9 +748,62 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
           )}
         </div>
 
+        {/* L'erreur qui empêche l'application de tourner, et sa correction en un clic. */}
+        <RunErrorBanner onFix={(prompt) => eventEmitter.emit('chat:fixError', prompt)} />
+
         {/* Surface d'aperçu */}
-        <div className="flex-1 relative overflow-auto bg-bg-dark/55 p-3 flex items-start justify-center">
-          {url ? (
+        <div
+          ref={surfaceRef}
+          className={`flex-1 relative bg-bg-dark/55 p-3 flex items-start justify-center ${mobileApp ? 'overflow-hidden' : 'overflow-auto'}`}
+        >
+          {mobileApp ? (
+            // Application mobile : le téléphone est là dès le départ. Tant que
+            // rien ne tourne, son écran porte le message et le bouton Exécuter ;
+            // l'application prend ensuite leur place.
+            <div
+              className="shrink-0 transition-transform"
+              style={{
+                transform: `scale(${zoom * fit})`,
+                transformOrigin: 'top center',
+                // La place réservée suit la taille réduite : pas de défilement fantôme.
+                height: phoneOuterSize(device).height * zoom * fit,
+              }}
+            >
+              <PhoneMockup device={device}>
+                {url ? (
+                  <iframe
+                    ref={iframeRef}
+                    src={url}
+                    className="w-full h-full border-none bg-white block"
+                    title="preview"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
+                  />
+                ) : (
+                  // L'écran d'un téléphone reste clair quel que soit le thème
+                  // d'iCode : les couleurs du texte sont donc fixes ici.
+                  <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-8 text-neutral-500">
+                    <EmptyPreviewIllustration size={88} className="text-neutral-300!" />
+                    <p className="text-[15px] font-semibold text-neutral-900">
+                      {t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
+                    </p>
+                    <p className="text-[13px] leading-relaxed text-neutral-500 text-pretty">
+                      {t(waiting ? waitingKey : 'preview.noserverHint')}
+                    </p>
+                    <Button
+                      variant={waiting ? 'secondary' : 'primary'}
+                      size="sm"
+                      onClick={runProject}
+                      loading={running}
+                      icon={<Play className="w-4 h-4" />}
+                      className="mt-2"
+                    >
+                      {t(waiting ? 'preview.restart' : 'preview.run')}
+                    </Button>
+                  </div>
+                )}
+              </PhoneMockup>
+            </div>
+          ) : url ? (
             <div
               className="bg-white shadow-[var(--glass-shadow-xl)] rounded-lg overflow-hidden shrink-0 origin-top transition-transform"
               style={{ ...viewportStyle(size), transform: `scale(${zoom})` }}
@@ -690,20 +820,20 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
             <div className="flex-1 h-full flex flex-col items-center justify-center gap-3 text-center px-6">
               <EmptyPreviewIllustration size={96} />
               <p className="text-sm font-medium text-text-secondary">
-                {t('preview.noserverTitle')}
+                {t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
               </p>
               <p className="text-xs text-text-tertiary max-w-xs text-pretty">
-                {t('preview.noserverHint')}
+                {t(waiting ? waitingKey : 'preview.noserverHint')}
               </p>
               <Button
-                variant="primary"
+                variant={waiting ? 'secondary' : 'primary'}
                 size="sm"
                 onClick={runProject}
                 loading={running}
                 icon={<Play className="w-4 h-4" />}
                 className="mt-1"
               >
-                {t('preview.run')}
+                {t(waiting ? 'preview.restart' : 'preview.run')}
               </Button>
             </div>
           )}

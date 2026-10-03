@@ -21,6 +21,9 @@
       <p class="text-text-secondary mt-1 text-sm max-w-2xl">
         {{ 'dashboard.finance.guide.' + sectionKey() + '.help' | translate }}
       </p>
+      @if (kind() === 'step') {
+        <app-finance-mode-switch mode="steps" class="mt-4" />
+      }
     </div>
     @if (canAutoFill() && !isLoading() && !loadError()) {
       <button type="button" class="outer-button button-sm self-start md:self-auto" [disabled]="aiLoading() || saving()" (click)="onAutoFill()">

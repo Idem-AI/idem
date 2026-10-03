@@ -1,3 +1,4 @@
+import { productScope } from './product';
 import {
   getAppDeployment,
   saveAppDeployment,
@@ -44,10 +45,10 @@ export async function loadDeployment(
   if (projectId) {
     const remote = await getAppDeployment(projectId);
     if (remote?.siteId) {
-      writeLocal(projectId, remote);
+      writeLocal(productScope(projectId), remote);
       return remote;
     }
-    const local = readLocal(projectId);
+    const local = readLocal(productScope(projectId));
     if (local) return local;
   }
 
@@ -65,7 +66,7 @@ export async function persistDeployment(
 ): Promise<void> {
   if (draftId) writeLocal(draftId, deployment);
   if (projectId) {
-    writeLocal(projectId, deployment);
+    writeLocal(productScope(projectId), deployment);
     await saveAppDeployment(projectId, deployment);
   }
 }

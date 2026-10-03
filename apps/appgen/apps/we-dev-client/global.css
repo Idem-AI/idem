@@ -216,9 +216,10 @@ textarea,
   background-image: url('/assets/images/motif.png');
   background-repeat: repeat;
   background-position: top left;
-  /* Mêmes valeurs que `body::before` dans @idem/shared-styles : le motif doit
-     avoir exactement la même présence d'une application Idem à l'autre. */
-  opacity: calc(0.3 * var(--idem-motif-strength, 0.051));
+  /* Compensé : sur bg-surface-1 (plus clair que le body), le motif perd en
+     contraste. On double le multiplicateur pour qu'il ait visuellement la même
+     présence que sur les autres pages (ou sur le panneau de gauche). */
+  opacity: calc(0.6 * var(--idem-motif-strength, 0.051));
   pointer-events: none;
 }
 
@@ -226,7 +227,7 @@ textarea,
    paquet partagé. */
 .dark .motif-surface::before {
   filter: invert(1);
-  opacity: calc(0.35 * var(--idem-motif-strength, 0.051));
+  opacity: calc(0.7 * var(--idem-motif-strength, 0.051));
 }
 
 /* Les panneaux posés dans une surface à motif ne repeignent pas leur fond,

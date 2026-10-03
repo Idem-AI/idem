@@ -362,7 +362,7 @@ export const analyzeFinanceImportController = async (
 /**
  * Import d'un fichier financier — enregistrement du brouillon validé.
  * URL: POST /project/finance/:projectId/import/apply
- * Corps: { draft, suggestions?, mode: 'replace' | 'merge' }
+ * Corps: { draft, suggestions?, mode: 'replace' | 'merge' | 'sync' }
  */
 export const applyFinanceImportController = async (
   req: CustomRequest,
@@ -379,8 +379,8 @@ export const applyFinanceImportController = async (
     res.status(400).json({ message: 'draft is required' });
     return;
   }
-  if (mode !== 'replace' && mode !== 'merge') {
-    res.status(400).json({ message: "mode must be 'replace' or 'merge'" });
+  if (mode !== 'replace' && mode !== 'merge' && mode !== 'sync') {
+    res.status(400).json({ message: "mode must be 'replace', 'merge' or 'sync'" });
     return;
   }
   try {

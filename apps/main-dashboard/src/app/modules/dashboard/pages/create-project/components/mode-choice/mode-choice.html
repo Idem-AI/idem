@@ -1,124 +1,81 @@
-<section
-  class="flex flex-col min-h-[70vh] items-center justify-center text-text-primary w-full px-5 sm:px-6 lg:px-8 py-8 sm:py-12 animate-fadeIn"
->
-  <!-- Retour -->
-  <div class="w-full max-w-6xl mb-8 flex justify-start">
+<!-- En-tête serré : l'utilisateur vient d'écrire sa description, il n'a pas
+     besoin d'un écran d'accueil de plus. Les trois modes tiennent dans la
+     hauteur d'un petit portable sans faire défiler. -->
+<section class="w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 text-text-primary animate-fadeIn">
+  <header class="mb-5 sm:mb-6">
     <button
       type="button"
       (click)="onBack()"
-      class="inline-flex items-center gap-2 px-4 py-2.5 -ml-4 rounded-xl text-sm font-semibold text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-subtle)] transition-all duration-200 cursor-pointer"
+      class="inline-flex items-center gap-1.5 text-sm font-medium text-text-tertiary hover:text-text-primary transition-colors"
     >
       <i class="pi pi-arrow-left text-xs"></i>
-      <span>{{ 'dashboard.createProject.modeChoice.backToDescription' | translate }}</span>
+      {{ 'dashboard.createProject.modeChoice.backToDescription' | translate }}
     </button>
-  </div>
-
-  <!-- Titre -->
-  <div class="text-center mb-12 sm:mb-14 max-w-2xl">
-    <span
-      class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase mb-6"
-    >
-      <i class="pi pi-compass text-[11px]"></i>
-      {{ 'dashboard.createProject.modeChoice.badge' | translate }}
-    </span>
-    <h1
-      class="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-text-primary leading-[1.15] mb-5"
-    >
+    <h1 class="mt-3 text-2xl sm:text-3xl font-bold leading-tight">
       {{ 'dashboard.createProject.modeChoice.title' | translate }}
     </h1>
-    <p class="text-base sm:text-lg text-text-tertiary leading-relaxed">
+    <!-- Le « rien n'est définitif » vit ici, avec la consigne, et dit où se
+         trouve la bascule : c'est au moment de choisir qu'il rassure. -->
+    <p class="mt-1.5 text-sm sm:text-base text-text-tertiary">
       {{ 'dashboard.createProject.modeChoice.subtitle' | translate }}
     </p>
-    @if (isPersonalized()) {
-      <p class="mt-5 inline-flex items-center gap-2 text-sm text-primary font-semibold">
-        <i class="pi pi-sparkles text-[11px]"></i>
-        {{ 'dashboard.createProject.modeChoice.personalized' | translate }}
-      </p>
-    }
-  </div>
+  </header>
 
-  <!-- Les trois modes -->
-  <div class="w-full max-w-6xl mx-auto">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7 items-stretch">
-      @for (card of cards; track card.mode) {
-        <div
-          (click)="onSelect(card.mode)"
-          class="mode-card group relative rounded-3xl border-2 glass p-6 sm:p-7 flex flex-col cursor-pointer"
-          [ngClass]="
-            card.mode === recommendedMode()
-              ? 'border-primary shadow-2xl shadow-primary/15'
-              : 'border-[var(--glass-border)] hover:border-primary/50'
-          "
-        >
-          @if (card.mode === recommendedMode()) {
-            <span
-              class="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap z-20 inline-flex items-center gap-1.5 px-4 py-1.5 text-[11px] font-bold uppercase rounded-full bg-primary text-white shadow-lg shadow-primary/30"
-            >
-              <i class="pi pi-sparkles text-[10px]"></i>
-              <span>{{ 'dashboard.createProject.modeChoice.recommended' | translate }}</span>
-            </span>
-          }
+  <!-- Chaque carte est le bouton : un seul geste, et un seul arrêt au clavier.
+       Sous 1024 px, les cartes s'empilent en lignes basses — illustration,
+       texte, puis le bouton à droite ; sur téléphone, seule la phrase « pour
+       vous si… » reste, et un chevron remplace le bouton, pour que les trois
+       modes tiennent à l'écran. -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+    @for (card of cards; track card.mode) {
+      @let recommended = card.mode === recommendedMode();
+      <button
+        type="button"
+        (click)="onSelect(card.mode)"
+        class="mode-card glass-card w-full text-left p-4 sm:p-5 flex items-center lg:flex-col lg:items-stretch gap-4"
+        [class.mode-card--recommended]="recommended"
+      >
+        <app-mode-illustration
+          class="w-16 h-12 sm:w-28 sm:h-[4.5rem] lg:w-full lg:h-24 shrink-0"
+          [mode]="card.uiMode"
+        />
 
-          <!-- Illustration SVG : suit le thème, pas une capture figée -->
-          <div
-            class="w-full h-44 sm:h-48 rounded-2xl overflow-hidden mb-6 bg-[var(--color-surface-1)] border border-[var(--glass-border)]"
-          >
-            <app-mode-illustration [mode]="card.uiMode" />
-          </div>
-
-          <div class="flex items-center gap-3 mb-2">
-            <span
-              class="card-icon w-10 h-10 shrink-0 rounded-xl flex items-center justify-center"
-            >
-              <i class="text-base" [ngClass]="card.icon"></i>
-            </span>
-            <h2 class="text-xl sm:text-2xl font-bold text-text-primary leading-tight">
+        <span class="flex flex-col flex-1 min-w-0">
+          <!-- La recommandation est posée à côté du titre de la carte qu'elle
+               désigne : les trois titres restent alignés, et l'étiquette dit
+               d'où vient le conseil quand il s'appuie sur les réponses. -->
+          <span class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <span class="text-lg sm:text-xl font-bold leading-tight text-text-primary">
               {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.title' | translate }}
-            </h2>
-          </div>
-
-          <p
-            class="text-xs font-bold text-text-tertiary uppercase mb-4 pl-[52px]"
-          >
-            {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.tag' | translate }}
-          </p>
-
-          <p class="text-[15px] text-text-secondary leading-relaxed mb-5">
+            </span>
+            @if (recommended) {
+              <span class="tag mode-card__tag">
+                {{
+                  (isPersonalized()
+                    ? 'dashboard.createProject.modeChoice.recommendedForYou'
+                    : 'dashboard.createProject.modeChoice.recommended'
+                  ) | translate
+                }}
+              </span>
+            }
+          </span>
+          <span class="mt-1 text-sm text-text-secondary leading-snug hidden sm:block">
             {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.description' | translate }}
-          </p>
+          </span>
+          <span class="mt-1 sm:mt-2 text-sm text-text-tertiary leading-snug">
+            {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.forWho' | translate }}
+          </span>
+        </span>
 
-          <p
-            class="text-sm text-text-tertiary leading-relaxed mb-7 flex items-start gap-2.5 pt-5 border-t border-[var(--glass-border)] mt-auto"
-          >
-            <i class="pi pi-user text-[11px] mt-1 text-primary shrink-0"></i>
-            <span>
-              {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.forWho' | translate }}
-            </span>
-          </p>
-
-          <button
-            type="button"
-            class="w-full py-3.5 px-5 rounded-2xl text-[15px] font-semibold flex items-center justify-center gap-2.5 transition-all duration-200"
-            [ngClass]="
-              card.mode === recommendedMode()
-                ? 'bg-primary text-white shadow-lg shadow-primary/25 group-hover:bg-primary/90'
-                : 'border-2 border-[var(--glass-border-medium)] bg-[var(--color-surface-2)] text-text-primary group-hover:bg-primary group-hover:text-white group-hover:border-primary'
-            "
-          >
-            <span>
-              {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.button' | translate }}
-            </span>
-            <i class="pi pi-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
-          </button>
-        </div>
-      }
-    </div>
-
-    <p
-      class="text-center text-sm text-text-tertiary mt-10 flex items-center justify-center gap-2"
-    >
-      <i class="pi pi-info-circle text-xs"></i>
-      {{ 'dashboard.createProject.modeChoice.switchLater' | translate }}
-    </p>
+        <span
+          class="mode-card__cta button-sm shrink-0 lg:w-full items-center justify-center whitespace-nowrap"
+          [class.inner-button]="recommended"
+          [class.outer-button]="!recommended"
+        >
+          {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.button' | translate }}
+        </span>
+        <i class="mode-card__chevron pi pi-angle-right text-text-tertiary" aria-hidden="true"></i>
+      </button>
+    }
   </div>
 </section>

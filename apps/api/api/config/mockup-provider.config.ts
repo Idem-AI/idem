@@ -86,7 +86,7 @@ export function isGlmMockupAvailable(): boolean {
 /** Le fournisseur qui produira les prochaines mises en situation. */
 export async function resolveMockupProvider(): Promise<MockupProvider> {
   const wanted =
-    (await readStoredProvider()) ?? parseProvider(process.env.IDEM_MOCKUP_PROVIDER) ?? 'gemini';
+    (await readStoredProvider()) ?? parseProvider(process.env.IDEM_MOCKUP_PROVIDER) ?? 'glm';
   if (wanted === 'gemini' && Date.now() < geminiPausedUntil && isAvailable('glm')) return 'glm';
   if (isAvailable(wanted)) return wanted;
 

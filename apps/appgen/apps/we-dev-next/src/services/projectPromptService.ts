@@ -1,5 +1,6 @@
 import { ProjectModel } from '../types/project.js';
 import { generateDockerfilePrompt } from '../config/dockerfilePrompt.js';
+import { BuildTarget } from '../config/buildTarget.js';
 
 enum LandingPageConfig {
   NONE = 'NONE',
@@ -12,7 +13,7 @@ export class ProjectPromptService {
   /**
    * Generate the complete prompt based on ProjectModel
    */
-  generatePrompt(projectData: ProjectModel): string {
+  generatePrompt(projectData: ProjectModel, target?: BuildTarget): string {
     console.log('🔧 ProjectPromptService.generatePrompt called');
     console.log('Project data structure:', {
       name: projectData.name,
@@ -31,30 +32,51 @@ export class ProjectPromptService {
 
     let prompt = '';
 
-    switch (landingPageConfig) {
-      case LandingPageConfig.SEPARATE:
-        console.log('📝 Generating SEPARATE application prompt');
-        prompt = this.generateApplicationPrompt(projectData, 'separate');
-        break;
-      case LandingPageConfig.INTEGRATED:
-        console.log('📝 Generating INTEGRATED application prompt');
-        prompt = this.generateApplicationPrompt(projectData, 'integrated');
-        break;
-      case LandingPageConfig.ONLY_LANDING:
-        console.log('📝 Generating LANDING ONLY prompt');
-        prompt = this.generateLandingOnlyPrompt(projectData);
-        break;
-      case LandingPageConfig.NONE:
-      default:
-        console.log('📝 Generating DEFAULT application prompt (NONE config)');
-        prompt = this.generateApplicationPrompt(projectData, 'none');
-        break;
+    // Le produit ouvert dans iCode prime sur la configuration : un même projet
+    // peut avoir son site vitrine ET son application, chacun dans son atelier.
+    if (target === 'site') {
+      prompt = this.generateLandingOnlyPrompt(projectData);
+    } else if (target === 'mobile-app') {
+      prompt = this.generateMobileAppPrompt(projectData);
+    } else if (target === 'web-app') {
+      prompt = this.generateApplicationPrompt(
+        projectData,
+        landingPageConfig === LandingPageConfig.INTEGRATED
+          ? 'integrated'
+          : landingPageConfig === LandingPageConfig.SEPARATE
+            ? 'separate'
+            : 'none'
+      );
+    } else {
+      switch (landingPageConfig) {
+        case LandingPageConfig.SEPARATE:
+          console.log('📝 Generating SEPARATE application prompt');
+          prompt = this.generateApplicationPrompt(projectData, 'separate');
+          break;
+        case LandingPageConfig.INTEGRATED:
+          console.log('📝 Generating INTEGRATED application prompt');
+          prompt = this.generateApplicationPrompt(projectData, 'integrated');
+          break;
+        case LandingPageConfig.ONLY_LANDING:
+          console.log('📝 Generating LANDING ONLY prompt');
+          prompt = this.generateLandingOnlyPrompt(projectData);
+          break;
+        case LandingPageConfig.NONE:
+        default:
+          console.log('📝 Generating DEFAULT application prompt (NONE config)');
+          prompt = this.generateApplicationPrompt(projectData, 'none');
+          break;
+      }
     }
 
     console.log('Generated base prompt length:', prompt.length);
 
-    // Add Dockerfile prompt
-    const dockerPrompt = generateDockerfilePrompt(projectData);
+    // Add Dockerfile prompt. Ni pour le mobile (fichiers statiques + Capacitor),
+    // ni pour l'application complète : iDeploy construit `backend/` et
+    // `frontend/` séparément, et des Dockerfile contrediraient le contrat de la
+    // skill `webcontainer-fullstack`.
+    const dockerPrompt =
+      target === 'mobile-app' || target === 'web-app' ? '' : generateDockerfilePrompt(projectData);
     console.log('🐳 Docker prompt length:', dockerPrompt.length);
     prompt += dockerPrompt;
 
@@ -183,6 +205,36 @@ Generate the complete landing page code with all necessary files.`;
       techStack,
       features,
       'Generate the complete application code with all necessary files.',
+    ]
+      .filter((section) => section && section.trim().length > 0)
+      .join('\n\n');
+  }
+
+  /**
+   * Application mobile : une application React pensée pour le téléphone,
+   * installable en PWA et emballée par Capacitor pour Android et iOS. Le
+   * contrat technique (fichiers, Capacitor, manifeste) vit dans la skill
+   * `webcontainer-mobile` ; ce brief ne dit que le produit.
+   */
+  private generateMobileAppPrompt(projectData: ProjectModel): string {
+    const projectInfo = this.getCompleteProjectInfo(projectData);
+    const brandInfo = this.getCompleteBrandInfo(projectData);
+    const features = this.getCompleteFeatures(projectData);
+
+    return [
+      '# Mobile Application Generation',
+      projectInfo,
+      brandInfo,
+      `## Objective\nCreate the "${projectData.name}" mobile application: what its users open on their phone every day. Not a website shrunk to a phone, not a landing page.`,
+      `## Screens
+- **Welcome** (first launch only): the app's promise in one sentence, then "Create an account" and "Sign in".
+- **Sign in / Create an account**: phone number or email, one field per screen when possible.
+- **Home tab**: the one thing the user comes to do, reachable in one tap.
+- **2 to 3 more tabs** for the main activities of this product, derived from the project description.
+- **Detail screens** pushed from lists, with a back button in the top bar.
+- **Profile tab**: account, preferences, sign out.`,
+      features,
+      'Generate the complete mobile application code with all necessary files.',
     ]
       .filter((section) => section && section.trim().length > 0)
       .join('\n\n');

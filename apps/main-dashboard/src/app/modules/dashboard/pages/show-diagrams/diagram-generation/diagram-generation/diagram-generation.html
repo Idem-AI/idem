@@ -1,169 +1,4 @@
-@if (isGenerating()) {
-  <!-- Sticky Progress Header - Always Visible -->
-  <div
-    class="fixed top-0 left-0 right-0 z-50 bg-[var(--glass-bg-darker)] backdrop-blur-md border-b border-[var(--glass-border)]"
-  >
-    <div class="max-w-7xl mx-auto px-6 py-4">
-      <div class="flex items-center justify-between">
-        <!-- Left: Status Info -->
-        <div class="flex items-center space-x-4">
-          <div class="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center">
-            <idem-loader />
-          </div>
-          <div>
-            <h3 class="text-lg font-semibold text-text-primary">
-              {{ 'dashboard.diagramGeneration.inProgress.title' | translate }}
-            </h3>
-            <p class="text-sm text-text-tertiary">
-              {{ generationState().completedSteps }}/{{ generationState().totalSteps }}
-              {{ 'dashboard.diagramGeneration.inProgress.stepsCompleted' | translate }}
-            </p>
-            @if (generationState().stepsInProgress.length > 0) {
-              <p class="text-xs text-blue-400">
-                {{
-                  'dashboard.diagramGeneration.inProgress.current'
-                    | translate: { steps: generationState().stepsInProgress.join(', ') }
-                }}
-              </p>
-            }
-          </div>
-        </div>
-
-        <!-- Right: Progress Bar and Percentage -->
-        <div class="flex items-center space-x-4 min-w-0 flex-1 max-w-md ml-8">
-          <div class="flex-1">
-            <p-progressBar
-              [value]="progressPercentage()"
-              [showValue]="false"
-              styleClass="custom-progress-bar"
-            ></p-progressBar>
-            @if (generationState().stepsInProgress.length > 0) {
-              <div class="mt-1 text-xs text-blue-400">
-                {{
-                  'dashboard.diagramGeneration.steps.' + generationState().stepsInProgress[0]
-                    | translate
-                }}
-              </div>
-            }
-          </div>
-          <div class="text-right">
-            <span class="text-2xl font-bold text-text-primary">{{ progressPercentage() }}%</span>
-            <p class="text-xs text-text-tertiary">{{ 'common.completed' | translate }}</p>
-          </div>
-        </div>
-
-        <!-- Cancel Button -->
-        <div class="ml-6">
-          <p-button
-            [label]="'common.cancel' | translate"
-            icon="pi pi-times"
-            severity="danger"
-            size="small"
-            (onClick)="cancelGeneration()"
-            styleClass="cancel-button"
-          ></p-button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main Content with Top Padding -->
-  <div class="pt-32 min-h-screen">
-    <div class="max-w-7xl mx-auto px-6 space-y-8">
-      <!-- Steps In Progress Section - Multiple Loaders -->
-      @if (generationState().stepsInProgress.length > 0) {
-        <div class="space-y-4">
-          @for (stepName of generationState().stepsInProgress; track stepName) {
-            <div class="glass-card rounded-xl shadow-lg border border-[var(--glass-border-subtle)]">
-              <div class="bg-gradient-to-r px-6 py-4 border-b">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-3">
-                    <div
-                      class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center"
-                    >
-                      <idem-loader size="xs" />
-                    </div>
-                    <div>
-                      <h4 class="text-lg font-semibold text-blue-900">
-                        {{ 'dashboard.diagramGeneration.steps.' + stepName | translate }}
-                      </h4>
-                      <p class="text-sm text-blue-700">{{ 'common.generating' | translate }}</p>
-                    </div>
-                  </div>
-                  <p-tag
-                    [value]="'common.inProgress' | translate"
-                    severity="info"
-                    icon="pi pi-clock"
-                  ></p-tag>
-                </div>
-              </div>
-
-              <!-- Skeleton Loaders for Content Being Generated -->
-              <div class="p-6 space-y-4">
-                <p-skeleton height="2rem" class="mb-3"></p-skeleton>
-                <p-skeleton height="4rem" class="mb-3"></p-skeleton>
-                <div class="grid grid-cols-2 gap-4">
-                  <p-skeleton height="3rem"></p-skeleton>
-                  <p-skeleton height="3rem"></p-skeleton>
-                </div>
-                <p-skeleton height="2rem" width="70%"></p-skeleton>
-              </div>
-            </div>
-          }
-        </div>
-      }
-
-      <!-- Completed Steps Section -->
-      @if (hasCompletedSteps()) {
-        <div class="space-y-6">
-          <div class="grid gap-6">
-            @for (step of completedSteps(); track step.name) {
-              <div
-                class="glass-card rounded-xl shadow-md border border-[var(--glass-border-subtle)] overflow-hidden"
-              >
-                <div class="px-6 py-4 border-b">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                      <div
-                        class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center"
-                      >
-                        <i class="pi pi-check text-text-primary text-sm"></i>
-                      </div>
-                      <div>
-                        <h4 class="text-lg font-semibold text-green-900">
-                          {{ 'dashboard.diagramGeneration.steps.' + step.name | translate }}
-                        </h4>
-                        <p class="text-sm text-green-700">{{ step.summary }}</p>
-                      </div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                      <p-tag
-                        [value]="
-                          'dashboard.diagramGeneration.stepCompletedAt'
-                            | translate: { time: (step.timestamp | date: 'short') }
-                        "
-                        severity="success"
-                        icon="pi pi-clock"
-                      ></p-tag>
-                    </div>
-                  </div>
-                </div>
-
-                @if (step.content && step.content !== 'step_started') {
-                  <div class="p-6">
-                    <div class="prose max-w-none">
-                      <markdown mermaid [data]="step.content" class="mermaid"></markdown>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        </div>
-      }
-    </div>
-  </div>
-} @else if (generationError()) {
+@if (generationError()) {
   <app-error-state
     scene="generation"
     [title]="'dashboard.diagramGeneration.errors.title' | translate"
@@ -174,4 +9,60 @@
       {{ 'common.retry' | translate }}
     </button>
   </app-error-state>
+} @else {
+  <div class="space-y-6" #scrollContainer>
+    <!-- Où en est le dessin du plan -->
+    <section class="glass-card p-5" aria-live="polite">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <idem-loader size="sm" />
+          <div class="min-w-0">
+            <p class="font-semibold text-text-primary">{{ 'dashboard.siteApp.plan.generating' | translate }}</p>
+            <p class="text-sm text-text-secondary truncate">
+              @if (generationState().stepsInProgress.length > 0) {
+                {{ 'dashboard.diagramGeneration.steps.' + generationState().stepsInProgress[0] | translate }}
+              } @else {
+                {{ 'dashboard.siteApp.plan.preparing' | translate }}
+              }
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-semibold text-text-primary tabular-nums">{{ progressPercentage() }} %</span>
+          <button type="button" class="outer-button button-sm" (click)="cancelGeneration()">
+            {{ 'common.cancel' | translate }}
+          </button>
+        </div>
+      </div>
+      <progress class="w-full mt-4" max="100" [value]="progressPercentage()" [attr.aria-label]="'dashboard.siteApp.plan.generating' | translate"></progress>
+    </section>
+
+    <!-- Chaque schéma, dès qu'il est prêt -->
+    @for (step of completedSteps(); track step.name) {
+      <section class="glass-card overflow-hidden">
+        <header class="px-5 py-4 flex items-start gap-3 border-b border-[var(--glass-border-subtle)]">
+          <i class="pi pi-check-circle text-success mt-0.5" aria-hidden="true"></i>
+          <div class="min-w-0">
+            <h2 class="font-semibold text-text-primary">{{ 'dashboard.diagramGeneration.steps.' + step.name | translate }}</h2>
+            @if (step.summary) {
+              <p class="text-sm text-text-secondary mt-0.5">{{ step.summary }}</p>
+            }
+          </div>
+        </header>
+        @if (step.content && step.content !== 'step_started') {
+          <div class="dg-sheet">
+            <markdown mermaid [data]="step.content"></markdown>
+          </div>
+        }
+      </section>
+    }
+
+    <!-- La forme de ce qui arrive -->
+    @for (stepName of generationState().stepsInProgress; track stepName) {
+      <section class="glass-card p-5 space-y-3" aria-hidden="true">
+        <div class="skeleton h-5 w-1/3 rounded"></div>
+        <div class="skeleton h-40 w-full rounded"></div>
+      </section>
+    }
+  </div>
 }

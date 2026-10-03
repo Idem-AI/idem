@@ -1,0 +1,281 @@
+/* ----- La grille : des cases fines, comme un tableur ----- */
+.fp-grid-wrap {
+  overflow: auto;
+  max-height: 22rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.75rem;
+}
+
+.fp-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.fp-grid th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+  background: var(--idem-surface-1);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.fp-grid td {
+  padding: 0;
+  border-bottom: 1px solid var(--glass-border-subtle);
+  border-right: 1px solid var(--glass-border-subtle);
+}
+
+.fp-grid .fp-num {
+  width: 2.25rem;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--color-text-tertiary);
+  background: var(--glass-bg-subtle);
+}
+
+.fp-grid .fp-tail {
+  min-width: 12rem;
+  max-width: 16rem;
+  padding: 0.25rem 0.5rem;
+  border-right: none;
+  line-height: 1.3;
+}
+
+.fp-tail > span {
+  display: inline-block;
+  max-width: calc(100% - 2rem);
+  vertical-align: middle;
+}
+
+/* Champ de cellule : sans cadre propre, la grille fait le cadre. */
+.fp-grid input.fp-cell {
+  width: 100%;
+  min-width: 5.5rem;
+  height: 2.25rem;
+  margin: 0;
+  padding: 0 0.6rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+.fp-grid input.fp-cell:focus {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: -2px;
+  background: var(--glass-bg-subtle);
+  box-shadow: none;
+}
+
+.fp-grid td.fp-bad {
+  background: color-mix(in oklch, var(--color-danger) 10%, transparent);
+}
+
+.fp-grid td.fp-bad input.fp-cell {
+  outline: 1.5px solid var(--color-danger);
+  outline-offset: -2px;
+}
+
+.fp-remove {
+  float: right;
+  margin-left: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  color: var(--color-text-tertiary);
+  vertical-align: middle;
+}
+
+.fp-remove:hover,
+.fp-remove:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--glass-bg-light);
+}
+
+.fp-grid input.fp-cell--wide {
+  min-width: 10rem;
+}
+
+
+/* Dans la page, la grille prend la hauteur disponible. */
+.fp-grid-wrap {
+  max-height: min(64vh, 40rem);
+  padding: 0;
+}
+
+.fp-grid input.fp-cell--section {
+  min-width: 12.5rem;
+}
+
+
+/* ----- Le tableur : sélection, barre d'outils, menu ----- */
+:host {
+  position: relative;
+  display: block;
+}
+
+.fsg:focus {
+  outline: none;
+}
+
+.fsg--dragging,
+.fsg--dragging input {
+  user-select: none;
+  cursor: cell;
+}
+
+.fp-grid td.fsg-cell--on {
+  background: color-mix(in oklch, var(--color-primary-500) 12%, transparent);
+}
+
+.fp-grid td.fsg-cell--active input.fp-cell {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: -2px;
+}
+
+.fp-grid tr.fsg-row--on .fp-num {
+  background: var(--color-primary-500);
+}
+
+.fp-grid tr.fsg-row--on .fsg-rowhead {
+  color: var(--color-on-primary);
+}
+
+.fsg-rowhead {
+  width: 100%;
+  height: 2.25rem;
+  font-size: 0.7rem;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.fsg-rowhead:hover {
+  color: var(--color-text-primary);
+  background: var(--glass-bg-light);
+}
+
+.fsg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.fsg-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.fsg-tool:hover:not(:disabled),
+.fsg-tool:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--glass-bg-light);
+}
+
+.fsg-tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.fsg-tool--danger:hover:not(:disabled) {
+  color: var(--color-danger);
+}
+
+.fsg-sep {
+  width: 1px;
+  height: 1.25rem;
+  margin: 0 0.25rem;
+  background: var(--glass-border);
+}
+
+.fsg-hint {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+@media (max-width: 768px) {
+  .fsg-hint,
+  .fsg-tool span {
+    display: none;
+  }
+}
+
+.fsg-menu {
+  position: absolute;
+  z-index: 50;
+  min-width: 13rem;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.fsg-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  text-align: left;
+  color: var(--color-text-primary);
+}
+
+.fsg-menu button:hover,
+.fsg-menu button:focus-visible {
+  background: var(--glass-bg-light);
+}
+
+.fsg-menu i {
+  width: 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+}
+
+.fsg-menu kbd {
+  margin-left: auto;
+  font-family: inherit;
+  font-size: 0.7rem;
+  color: var(--color-text-tertiary);
+}
+
+.fsg-menu hr {
+  margin: 0.25rem 0;
+  border: none;
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+.fsg-menu__danger,
+.fsg-menu__danger i {
+  color: var(--color-danger) !important;
+}
+
+/* Les numéros de ligne sont des <th> : ils ne doivent rien hériter des en-têtes de colonnes. */
+.fp-grid tbody th.fp-num {
+  position: static;
+  padding: 0;
+  border-bottom: 1px solid var(--glass-border-subtle);
+  border-right: 1px solid var(--glass-border-subtle);
+  background: var(--glass-bg-subtle);
+  font-weight: 400;
+}
