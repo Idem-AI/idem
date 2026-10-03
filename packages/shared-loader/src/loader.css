@@ -55,9 +55,35 @@
 
 /* Chaque graine s'allume quand la main passe, puis retombe à l'état de graine
    posée. Les délais, négatifs, sont répartis sur le tour. */
-.idem-loader-host .idem-loader__seed {
-  opacity: 0.2;
-  animation: idem-loader-sow 1.2s linear infinite;
+.idem-loader-host .idem-loader__spiral-track,
+.idem-loader-host .idem-loader__spiral-active {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.idem-loader-host .idem-loader__spiral-track {
+  stroke: rgba(20, 71, 230, 0.08);
+  stroke-width: 5;
+}
+
+.idem-loader-host .idem-loader__spiral-active {
+  stroke: var(--color-primary-500, #1447e6);
+  stroke-width: 5;
+  stroke-dasharray: 0.18 0.82;
+  stroke-dashoffset: 0;
+  animation: spiralMove 2s linear infinite;
+}
+
+.idem-loader-host .idem-loader__spiral-dot {
+  fill: var(--color-primary-500, #1447e6);
+}
+
+.idem-loader-host .idem-loader__spiral-core {
+  fill: var(--color-primary-900, #000060);
+  opacity: 0.9;
+  animation: corePulse 2s ease-in-out infinite;
+  transform-origin: 62px 53px;
 }
 
 .idem-loader-host .idem-loader__label {
@@ -67,19 +93,35 @@
   text-align: center;
 }
 
-@keyframes idem-loader-sow {
-  0% {
-    opacity: 1;
+@keyframes spiralMove {
+  from {
+    stroke-dashoffset: 0;
   }
-  70%,
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+
+@keyframes corePulse {
+  0%,
   100% {
-    opacity: 0.2;
+    transform: scale(0.8);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .idem-loader-host .idem-loader__seed {
-    animation-duration: 3.2s;
-    animation-timing-function: steps(1, end);
+  .idem-loader-host .idem-loader__spiral-active,
+  .idem-loader-host .idem-loader__spiral-dot,
+  .idem-loader-host .idem-loader__spiral-core {
+    animation: none;
+  }
+
+  .idem-loader-host .idem-loader__spiral-active {
+    stroke-dashoffset: 0;
   }
 }

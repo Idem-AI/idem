@@ -8,8 +8,8 @@
   import {
     IDEM_LOADER_BOX,
     IDEM_LOADER_SIZES,
-    idemLoaderSeeds,
-    nextIdemLoaderGradientId,
+    IDEM_LOADER_PATH,
+    nextIdemLoaderId,
     type IdemLoaderSize
   } from '../index';
 
@@ -42,8 +42,7 @@
     class: className = ''
   }: Props = $props();
 
-  const gradientId = nextIdemLoaderGradientId();
-  const seeds = $derived(idemLoaderSeeds(size));
+  const pathId = nextIdemLoaderId();
   const px = $derived(IDEM_LOADER_SIZES[size]);
 </script>
 
@@ -59,23 +58,26 @@
       height={px}
       viewBox="0 0 {IDEM_LOADER_BOX} {IDEM_LOADER_BOX}"
       aria-hidden="true">
-      <defs>
-        <linearGradient
-          id={gradientId}
-          gradientUnits="userSpaceOnUse"
-          x1="0"
-          y1="0"
-          x2={IDEM_LOADER_BOX}
-          y2={IDEM_LOADER_BOX}>
-          <stop offset="0%" stop-color="var(--color-primary-500, #1447e6)" />
-          <stop offset="100%" stop-color="var(--color-secondary-500, #22d3ee)" />
-        </linearGradient>
-      </defs>
-      <g fill="url(#{gradientId})">
-        {#each seeds as seed, i (i)}
-          <path class="idem-loader__seed" d={seed.d} style:animation-delay={seed.delay} />
-        {/each}
-      </g>
+      <path
+        class="idem-loader__spiral-track"
+        pathLength="1"
+        d={IDEM_LOADER_PATH}
+      />
+      <path
+        id={pathId}
+        class="idem-loader__spiral-active"
+        pathLength="1"
+        d={IDEM_LOADER_PATH}
+      />
+      <circle class="idem-loader__spiral-dot" r="3.5">
+        <animateMotion
+          dur="2s"
+          repeatCount="indefinite"
+          calcMode="linear">
+          <mpath href="#{pathId}" />
+        </animateMotion>
+      </circle>
+      <circle class="idem-loader__spiral-core" cx="62" cy="53" r="3" />
     </svg>
     {#if label}
       <span class="idem-loader__label">{label}</span>

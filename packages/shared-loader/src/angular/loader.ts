@@ -3,8 +3,8 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input }
 import {
   IDEM_LOADER_BOX,
   IDEM_LOADER_SIZES,
-  idemLoaderSeeds,
-  nextIdemLoaderGradientId,
+  IDEM_LOADER_PATH,
+  nextIdemLoaderId,
   type IdemLoaderSize,
 } from '../index';
 
@@ -62,26 +62,34 @@ import {
         [attr.height]="px()"
         [attr.viewBox]="'0 0 ' + BOX + ' ' + BOX"
         aria-hidden="true">
-        <defs>
-          <linearGradient
-            [attr.id]="gradientId"
-            gradientUnits="userSpaceOnUse"
-            x1="0"
-            y1="0"
-            [attr.x2]="BOX"
-            [attr.y2]="BOX">
-            <stop offset="0%" stop-color="var(--color-primary-500, #1447e6)" />
-            <stop offset="100%" stop-color="var(--color-secondary-500, #22d3ee)" />
-          </linearGradient>
-        </defs>
-        <g [attr.fill]="'url(#' + gradientId + ')'">
-          @for (seed of seeds(); track $index) {
-            <path
-              class="idem-loader__seed"
-              [attr.d]="seed.d"
-              [style.animation-delay]="seed.delay" />
-          }
-        </g>
+
+        <!-- Trace discret -->
+        <path
+          class="idem-loader__spiral-track"
+          pathLength="1"
+          [attr.d]="PATH"
+        />
+
+        <!-- Segment actif -->
+        <path
+          [attr.id]="pathId"
+          class="idem-loader__spiral-active"
+          pathLength="1"
+          [attr.d]="PATH"
+        />
+
+        <!-- Point de progression -->
+        <circle class="idem-loader__spiral-dot" r="3.5">
+          <animateMotion
+            dur="2s"
+            repeatCount="indefinite"
+            calcMode="linear">
+            <mpath [attr.href]="'#' + pathId" />
+          </animateMotion>
+        </circle>
+
+        <!-- Centre -->
+        <circle class="idem-loader__spiral-core" cx="62" cy="53" r="3" />
       </svg>
 
       @if (label(); as text) {
@@ -139,14 +147,6 @@ import {
       display: block;
     }
 
-    /* Chaque graine s'allume quand la main passe, puis retombe à l'état de
-       graine posée. Les délais, négatifs, sont répartis sur le tour : le
-       semis est déjà en cours au premier affichage, sans temps mort. */
-    .idem-loader__seed {
-      opacity: 0.2;
-      animation: idem-loader-sow 1.2s linear infinite;
-    }
-
     .idem-loader__label {
       font-size: 0.8125rem;
       font-weight: 500;
@@ -154,22 +154,67 @@ import {
       text-align: center;
     }
 
-    @keyframes idem-loader-sow {
-      0% {
-        opacity: 1;
+    .idem-loader__spiral-track,
+    .idem-loader__spiral-active {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .idem-loader__spiral-track {
+      stroke: rgba(20, 71, 230, 0.08);
+      stroke-width: 5;
+    }
+
+    .idem-loader__spiral-active {
+      stroke: var(--color-primary-500, #1447e6);
+      stroke-width: 5;
+      stroke-dasharray: 0.18 0.82;
+      stroke-dashoffset: 0;
+      animation: spiralMove 2s linear infinite;
+    }
+
+    .idem-loader__spiral-dot {
+      fill: var(--color-primary-500, #1447e6);
+    }
+
+    .idem-loader__spiral-core {
+      fill: var(--color-primary-900, #000060);
+      opacity: 0.9;
+      animation: corePulse 2s ease-in-out infinite;
+      transform-origin: 62px 53px;
+    }
+
+    @keyframes spiralMove {
+      from {
+        stroke-dashoffset: 0;
       }
-      70%,
-      100% {
-        opacity: 0.2;
+      to {
+        stroke-dashoffset: -1;
       }
     }
 
-    /* Le semis reste, mais au pas : une graine à la fois, lentement, sans le
-       sillage qui donne l'impression de tourner. */
+    @keyframes corePulse {
+      0%,
+      100% {
+        transform: scale(0.8);
+        opacity: 0.55;
+      }
+      50% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .idem-loader__seed {
-        animation-duration: 3.2s;
-        animation-timing-function: steps(1, end);
+      .idem-loader__spiral-active,
+      .idem-loader__spiral-dot,
+      .idem-loader__spiral-core {
+        animation: none;
+      }
+
+      .idem-loader__spiral-active {
+        stroke-dashoffset: 0;
       }
     }
   `,
@@ -189,10 +234,8 @@ export class IdemLoaderComponent {
   readonly ariaLabel = input('Chargement');
 
   protected readonly BOX = IDEM_LOADER_BOX;
-  protected readonly gradientId = nextIdemLoaderGradientId();
-
-  /** Les graines, calculées une fois par taille (géométrie commune à tous les rendus). */
-  protected readonly seeds = computed(() => idemLoaderSeeds(this.size()));
+  protected readonly PATH = IDEM_LOADER_PATH;
+  protected readonly pathId = nextIdemLoaderId();
 
   protected readonly px = computed(() => IDEM_LOADER_SIZES[this.size()]);
 }

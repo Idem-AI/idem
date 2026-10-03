@@ -3,8 +3,8 @@ import { useMemo, useState } from 'react';
 import {
   IDEM_LOADER_BOX,
   IDEM_LOADER_SIZES,
-  idemLoaderSeeds,
-  nextIdemLoaderGradientId,
+  IDEM_LOADER_PATH,
+  nextIdemLoaderId,
   type IdemLoaderSize,
 } from '../index';
 
@@ -47,8 +47,7 @@ export function IdemLoader({
   ariaLabel = 'Chargement',
   className,
 }: IdemLoaderProps) {
-  const [gradientId] = useState(nextIdemLoaderGradientId);
-  const seeds = useMemo(() => idemLoaderSeeds(size), [size]);
+  const [pathId] = useState(nextIdemLoaderId);
   const px = IDEM_LOADER_SIZES[size];
 
   const hostClass = [
@@ -71,29 +70,27 @@ export function IdemLoader({
           viewBox={`0 0 ${IDEM_LOADER_BOX} ${IDEM_LOADER_BOX}`}
           aria-hidden="true"
         >
-          <defs>
-            <linearGradient
-              id={gradientId}
-              gradientUnits="userSpaceOnUse"
-              x1="0"
-              y1="0"
-              x2={IDEM_LOADER_BOX}
-              y2={IDEM_LOADER_BOX}
+          <path
+            className="idem-loader__spiral-track"
+            pathLength="1"
+            d={IDEM_LOADER_PATH}
+          />
+          <path
+            id={pathId}
+            className="idem-loader__spiral-active"
+            pathLength="1"
+            d={IDEM_LOADER_PATH}
+          />
+          <circle className="idem-loader__spiral-dot" r="3.5">
+            <animateMotion
+              dur="2s"
+              repeatCount="indefinite"
+              calcMode="linear"
             >
-              <stop offset="0%" stopColor="var(--color-primary-500, #1447e6)" />
-              <stop offset="100%" stopColor="var(--color-secondary-500, #22d3ee)" />
-            </linearGradient>
-          </defs>
-          <g fill={`url(#${gradientId})`}>
-            {seeds.map((seed, i) => (
-              <path
-                key={i}
-                className="idem-loader__seed"
-                d={seed.d}
-                style={{ animationDelay: seed.delay }}
-              />
-            ))}
-          </g>
+              <mpath href={`#${pathId}`} />
+            </animateMotion>
+          </circle>
+          <circle className="idem-loader__spiral-core" cx="62" cy="53" r="3" />
         </svg>
         {label ? <span className="idem-loader__label">{label}</span> : null}
       </span>
