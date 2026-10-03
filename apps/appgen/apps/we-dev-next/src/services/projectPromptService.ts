@@ -71,9 +71,12 @@ export class ProjectPromptService {
 
     console.log('Generated base prompt length:', prompt.length);
 
-    // Add Dockerfile prompt. Pas pour le mobile : l'application est publiée
-    // comme fichiers statiques (PWA) et emballée par Capacitor, sans conteneur.
-    const dockerPrompt = target === 'mobile-app' ? '' : generateDockerfilePrompt(projectData);
+    // Add Dockerfile prompt. Ni pour le mobile (fichiers statiques + Capacitor),
+    // ni pour l'application complète : iDeploy construit `backend/` et
+    // `frontend/` séparément, et des Dockerfile contrediraient le contrat de la
+    // skill `webcontainer-fullstack`.
+    const dockerPrompt =
+      target === 'mobile-app' || target === 'web-app' ? '' : generateDockerfilePrompt(projectData);
     console.log('🐳 Docker prompt length:', dockerPrompt.length);
     prompt += dockerPrompt;
 

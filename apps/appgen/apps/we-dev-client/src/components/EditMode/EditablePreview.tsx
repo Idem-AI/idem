@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { getContainerInstance, onServerReady } from '../WeIde/services';
+import { getContainerInstance, onServersChange } from '../WeIde/services';
+import useRunStatus, { API_PORT } from '@/stores/runStatusSlice';
+import { eventEmitter } from '../AiChat/utils/EventEmitter';
+import { RunErrorBanner } from './RunErrorBanner';
 import { useFileStore } from '../WeIde/stores/fileStore';
 import useTerminalStore from '@/stores/terminalSlice';
 import { useTranslation } from 'react-i18next';
@@ -223,14 +226,31 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   }, []);
 
   /* -------- URL du serveur de dev -------- */
+  // Une application complète ouvre deux serveurs : l'API (`backend/`, port
+  // API_PORT, avec sa base de données) et l'interface (`frontend/`). L'aperçu
+  // montre toujours l'interface, et seulement une fois l'API ouverte : sinon le
+  // premier appel de la page échouerait et l'utilisateur verrait une erreur
+  // qui n'en est pas une.
+  const isFullstack = useFileStore((state) => 'backend/package.json' in state.files);
+  const runPhase = useRunStatus((state) => state.phase);
+  // Rien à montrer encore, mais ça démarre : on dit quoi plutôt que « rien ».
+  const waiting = !url && (runPhase === 'installing' || runPhase === 'starting');
+  const waitingKey =
+    runPhase === 'installing'
+      ? 'preview.waiting.install'
+      : isFullstack
+        ? 'preview.waiting.fullstack'
+        : 'preview.waiting.start';
+  const [servers, setServers] = useState<Map<number, string>>(new Map());
+
   useEffect(() => {
     let mounted = true;
     let unsubscribe: (() => void) | undefined;
     (async () => {
       await getContainerInstance();
       if (!mounted) return;
-      unsubscribe = onServerReady((_port, serverUrl) => {
-        if (mounted) setUrl(serverUrl);
+      unsubscribe = onServersChange((open) => {
+        if (mounted) setServers(open);
       });
     })();
     return () => {
@@ -238,6 +258,14 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
       unsubscribe?.();
     };
   }, []);
+
+  useEffect(() => {
+    const web = Array.from(servers.entries()).find(([port]) => port !== API_PORT);
+    const apiReady = servers.has(API_PORT);
+    const next = web && (!isFullstack || apiReady) ? web[1] : '';
+    setUrl(next);
+    if (next) useRunStatus.getState().markReady();
+  }, [servers, isFullstack]);
 
   /* -------- Injection / retrait de l'instrumentation -------- */
   useEffect(() => {
@@ -720,6 +748,9 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
           )}
         </div>
 
+        {/* L'erreur qui empêche l'application de tourner, et sa correction en un clic. */}
+        <RunErrorBanner onFix={(prompt) => eventEmitter.emit('chat:fixError', prompt)} />
+
         {/* Surface d'aperçu */}
         <div
           ref={surfaceRef}
@@ -752,17 +783,21 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                   // d'iCode : les couleurs du texte sont donc fixes ici.
                   <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-8 text-neutral-500">
                     <EmptyPreviewIllustration size={88} className="text-neutral-300!" />
-                    <p className="text-[15px] font-semibold text-neutral-900">{t('preview.noserverTitle')}</p>
-                    <p className="text-[13px] leading-relaxed text-neutral-500 text-pretty">{t('preview.noserverHint')}</p>
+                    <p className="text-[15px] font-semibold text-neutral-900">
+                      {t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
+                    </p>
+                    <p className="text-[13px] leading-relaxed text-neutral-500 text-pretty">
+                      {t(waiting ? waitingKey : 'preview.noserverHint')}
+                    </p>
                     <Button
-                      variant="primary"
+                      variant={waiting ? 'secondary' : 'primary'}
                       size="sm"
                       onClick={runProject}
                       loading={running}
                       icon={<Play className="w-4 h-4" />}
                       className="mt-2"
                     >
-                      {t('preview.run')}
+                      {t(waiting ? 'preview.restart' : 'preview.run')}
                     </Button>
                   </div>
                 )}
@@ -785,20 +820,20 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
             <div className="flex-1 h-full flex flex-col items-center justify-center gap-3 text-center px-6">
               <EmptyPreviewIllustration size={96} />
               <p className="text-sm font-medium text-text-secondary">
-                {t('preview.noserverTitle')}
+                {t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
               </p>
               <p className="text-xs text-text-tertiary max-w-xs text-pretty">
-                {t('preview.noserverHint')}
+                {t(waiting ? waitingKey : 'preview.noserverHint')}
               </p>
               <Button
-                variant="primary"
+                variant={waiting ? 'secondary' : 'primary'}
                 size="sm"
                 onClick={runProject}
                 loading={running}
                 icon={<Play className="w-4 h-4" />}
                 className="mt-1"
               >
-                {t('preview.run')}
+                {t(waiting ? 'preview.restart' : 'preview.run')}
               </Button>
             </div>
           )}

@@ -240,7 +240,26 @@
     "restart": "Redémarrer",
     "noserverTitle": "Rien à afficher pour l'instant",
     "runFailed": "Le démarrage a échoué. Ouvrez le terminal pour voir le détail.",
-    "device": "Appareil"
+    "device": "Appareil",
+    "fix": {
+      "prompt": "L'aperçu affiche une erreur et l'application ne tourne pas. Corrige-la en changeant le moins de choses possible, sans toucher au reste de l'application.\n\nErreur : {{summary}}\n\nJournal :",
+      "title": {
+        "install": "Les dépendances n'ont pas pu s'installer",
+        "api": "Le serveur de l'application s'est arrêté",
+        "web": "L'application ne compile pas"
+      },
+      "cta": "Corriger automatiquement",
+      "details": "Détails",
+      "hideDetails": "Masquer",
+      "dismiss": "Ignorer cette erreur",
+      "busy": "Une génération est en cours : relancez la correction quand elle sera terminée."
+    },
+    "waiting": {
+      "title": "Démarrage en cours…",
+      "install": "Installation des dépendances. La première fois, cela prend une à deux minutes.",
+      "start": "Démarrage de l'application.",
+      "fullstack": "Démarrage de la base de données, du serveur puis de l'interface. Tout se relie tout seul."
+    }
   },
   "editor": {
     "editor": "Éditeur",

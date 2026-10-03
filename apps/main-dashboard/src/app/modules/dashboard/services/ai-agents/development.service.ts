@@ -44,7 +44,7 @@ export class DevelopmentService {
       {
         name: 'React + Express + PostgreSQL',
         description:
-          'React (Vite) interface, Express API with Prisma, PostgreSQL database created and connected by iDeploy',
+          'React (Vite) interface, Express API with plain SQL, PostgreSQL database (PGlite in the preview, created and connected by iDeploy online)',
         frontend: {
           framework: 'React',
           styling: ['Tailwind CSS'],
@@ -117,7 +117,9 @@ export class DevelopmentService {
         language: preset.backend.language,
         framework: preset.backend.framework,
         apiType: preset.backend.apiType,
-        orm: 'Prisma',
+        // SQL direct (pg en ligne, PGlite dans l'aperçu) : un ORM à moteur natif ne
+        // tourne pas dans l'aperçu d'iCode.
+        orm: 'SQL (pg / PGlite)',
         features: {
           authentication: !isLanding,
           authorization: !isLanding,
@@ -129,7 +131,9 @@ export class DevelopmentService {
       database: {
         type: preset.database.type,
         provider: preset.database.provider,
-        orm: 'Prisma',
+        // SQL direct (pg en ligne, PGlite dans l'aperçu) : un ORM à moteur natif ne
+        // tourne pas dans l'aperçu d'iCode.
+        orm: 'SQL (pg / PGlite)',
         features: {
           migrations: !isLanding,
           seeders: !isLanding,

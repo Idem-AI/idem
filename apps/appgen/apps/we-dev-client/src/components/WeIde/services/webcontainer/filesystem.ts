@@ -49,7 +49,7 @@ const ENTRY_CANDIDATES = [
  * s'exécute → page blanche silencieuse (aucune erreur console).
  *
  * On injecte la balise manquante avant le montage, uniquement si :
- *  - c'est bien le `index.html` racine,
+ *  - c'est bien le `index.html` de l'interface (racine, ou `frontend/`),
  *  - il ne contient AUCUN script module (on ne double-injecte jamais),
  *  - il a un `</body>` où insérer,
  *  - un point d'entrée connu existe réellement dans le projet.
@@ -60,11 +60,13 @@ function ensureHtmlEntryScript(
   contents: string,
   files: Record<string, unknown>
 ): string {
-  if (path !== 'index.html') return contents;
+  // Racine (site, application mobile) ou `frontend/` (application complète).
+  const dir = path === 'index.html' ? '' : path === 'frontend/index.html' ? 'frontend/' : null;
+  if (dir === null) return contents;
   if (/<script[^>]*type=["']module["'][^>]*>/i.test(contents)) return contents;
   if (!/<\/body>/i.test(contents)) return contents;
 
-  const entry = ENTRY_CANDIDATES.find((candidate) => candidate in files);
+  const entry = ENTRY_CANDIDATES.find((candidate) => `${dir}${candidate}` in files);
   if (!entry) return contents;
 
   console.warn(

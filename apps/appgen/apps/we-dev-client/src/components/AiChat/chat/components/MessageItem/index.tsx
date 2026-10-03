@@ -540,7 +540,7 @@ const ToolInvocationCard = ({
   );
 };
 
-export const MessageItem: React.FC<MessageItemProps> = ({
+const MessageItemView: React.FC<MessageItemProps> = ({
   message,
   isLoading,
   isEndMessage,
@@ -599,7 +599,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 isUser={isUser}
                 title={getArtifactTitle(message.content)}
                 message={message}
-                isComplete={!isLoading}
+                /* Seul le dernier message peut être en cours de génération. */
+                isComplete={!(isLoading && isEndMessage)}
               />
             ) : (
               <div className="flex flex-col gap-1">
@@ -878,3 +879,23 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     </div>
   );
 };
+
+/**
+ * Un message ne se redessine que si SON contenu change.
+ *
+ * Le composant parent se rend à chaque jeton reçu et à chaque frappe dans le
+ * champ de saisie. Sans ce filtre, tous les messages — dont des artefacts de
+ * plusieurs milliers de lignes, rendus en Markdown — étaient reconstruits à ce
+ * rythme, jusqu'à bloquer le navigateur. Les fonctions passées en props sont
+ * ignorées : recréées à chaque rendu, elles appellent toujours la même chose.
+ * `isLoading` ne compte que pour le dernier message, le seul qui l'affiche.
+ */
+export const MessageItem = memo(
+  MessageItemView,
+  (prev, next) =>
+    prev.message.id === next.message.id &&
+    prev.message.content === next.message.content &&
+    prev.message.experimental_attachments === next.message.experimental_attachments &&
+    prev.isEndMessage === next.isEndMessage &&
+    (!next.isEndMessage || prev.isLoading === next.isLoading)
+);

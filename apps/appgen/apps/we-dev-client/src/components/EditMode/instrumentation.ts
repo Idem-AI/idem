@@ -36,8 +36,22 @@ export interface InstrumentationPlan {
   reason?: string;
 }
 
+/**
+ * Le vite.config du projet : à la racine (site, application mobile) ou dans
+ * `frontend/` (application complète, à côté de `backend/`).
+ */
 export function findViteConfigPath(files: Record<string, string>): string | null {
-  return VITE_CONFIG_NAMES.find((name) => name in files) ?? null;
+  for (const dir of ['', 'frontend/']) {
+    const found = VITE_CONFIG_NAMES.find((name) => `${dir}${name}` in files);
+    if (found) return `${dir}${found}`;
+  }
+  return null;
+}
+
+/** Dossier du vite.config (`''` ou `'frontend/'`) : le plugin s'écrit à côté. */
+function configDir(configPath: string): string {
+  const slash = configPath.lastIndexOf('/');
+  return slash === -1 ? '' : configPath.slice(0, slash + 1);
 }
 
 /* ------------------------------------------------------------------ */
@@ -416,7 +430,12 @@ export const AGENT_SOURCE = [
 /* Corps en concaténation de chaînes pour éviter les template literals. */
 /* ------------------------------------------------------------------ */
 
-export function buildVitePluginSource(): string {
+/**
+ * `prefix` : le dossier de l'interface dans le projet (`frontend/` pour une
+ * application complète). Les identifiants posés sur le JSX portent le chemin
+ * depuis la racine du projet, pour que l'édition retombe sur le bon fichier.
+ */
+export function buildVitePluginSource(prefix = ''): string {
   return `import path from 'path';
 import babel from '@babel/core';
 
@@ -445,7 +464,7 @@ export function idemEditPlugin(){
       if (clean.charCodeAt(0) === 0) return null;
       if (clean.indexOf('node_modules') !== -1) return null;
       if (!/\\.(t|j)sx$/.test(clean)) return null;
-      var rel = path.relative(idemRoot, clean).split(path.sep).join('/');
+      var rel = ${JSON.stringify(prefix)} + path.relative(idemRoot, clean).split(path.sep).join('/');
       var ast;
       try {
         ast = babel.parseSync(code, {
@@ -547,9 +566,10 @@ export function buildInjectPlan(files: Record<string, string>): InstrumentationP
   if (newConfig === null) {
     return { ok: false, writes: {}, deletes: [], reason: 'tableau plugins introuvable dans vite.config' };
   }
+  const dir = configDir(configPath);
   return {
     ok: true,
-    writes: { [PLUGIN_PATH]: buildVitePluginSource(), [configPath]: newConfig },
+    writes: { [`${dir}${PLUGIN_PATH}`]: buildVitePluginSource(dir), [configPath]: newConfig },
     deletes: [],
   };
 }
@@ -560,5 +580,5 @@ export function buildRemovePlan(files: Record<string, string>): InstrumentationP
   if (configPath && files[configPath]) {
     writes[configPath] = removePluginFromViteConfig(files[configPath]);
   }
-  return { ok: true, writes, deletes: [PLUGIN_PATH] };
+  return { ok: true, writes, deletes: [`${configPath ? configDir(configPath) : ''}${PLUGIN_PATH}`] };
 }

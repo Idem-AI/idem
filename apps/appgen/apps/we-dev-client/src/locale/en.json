@@ -240,7 +240,26 @@
     "restart": "Restart",
     "noserverTitle": "Nothing to show yet",
     "runFailed": "The project could not start. Open the terminal for details.",
-    "device": "Device"
+    "device": "Device",
+    "fix": {
+      "prompt": "The preview shows an error and the application is not running. Fix it with the smallest possible change, without touching the rest of the application.\n\nError: {{summary}}\n\nLog:",
+      "title": {
+        "install": "Dependencies could not be installed",
+        "api": "The application server stopped",
+        "web": "The application does not compile"
+      },
+      "cta": "Fix automatically",
+      "details": "Details",
+      "hideDetails": "Hide",
+      "dismiss": "Dismiss this error",
+      "busy": "A generation is running: start the fix again once it has finished."
+    },
+    "waiting": {
+      "title": "Starting…",
+      "install": "Installing dependencies. The first time, this takes one to two minutes.",
+      "start": "Starting the application.",
+      "fullstack": "Starting the database, the server, then the interface. Everything connects on its own."
+    }
   },
   "editor": {
     "editor": "Editor",
