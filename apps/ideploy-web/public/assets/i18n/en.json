@@ -617,9 +617,9 @@
       "sourceCode": "My code",
       "sourceCodeDesc": "A GitHub or GitLab repository, or a public Git URL.",
       "sourceDocker": "A Docker image",
-      "sourceDockerDesc": "A published image, or a docker-compose file.",
+      "sourceDockerDesc": "For advanced users: a published image or a docker-compose file.",
       "sourceTemplate": "A ready-made app",
-      "sourceTemplateDesc": "WordPress, n8n, Plausible… installed in one click.",
+      "sourceTemplateDesc": "WordPress, n8n, Odoo… installed in one click.",
       "tabGithub": "GitHub",
       "tabGitlab": "GitLab",
       "tabUrl": "Public URL",
@@ -653,13 +653,31 @@
       "publish": "Put online",
       "publishing": "Putting online…",
       "publishShort": "Install",
-      "popularApps": "Popular apps",
-      "browseCatalog": "Browse the catalog",
+      "popularApps": "Most popular open source apps",
+      "browseCatalog": "Browse the full catalog",
       "readyToUse": "Ready to use",
-      "architecturesTitle": "Several pieces to assemble?",
-      "architecturesHint": "A step-by-step guide to put a site, its API and its database online together.",
+      "architecturesTitle": "Does your project have several parts?",
+      "architecturesHint": "A website, its API, its database… A guide puts them online one by one and connects them for you.",
       "emptyPrompt": "Just want to prepare a space?",
-      "emptyLink": "Create an empty workspace"
+      "emptyLink": "Create an empty workspace",
+      "guideSteps": "{{count}} steps",
+      "singleRepoTitle": "Just one repository to put online?",
+      "singleRepoHint": "Pick it: we detect how to build it and you review before it goes live.",
+      "popularAppsHint": "Well-known open source software, installed in one click on your server. You stay the owner.",
+      "apps": {
+        "wordpress": "Website, blog or online store.",
+        "n8n": "Automate tasks across your tools.",
+        "odoo": "Business management: sales, stock, accounting.",
+        "supabase": "Database, accounts and API for your apps.",
+        "nextcloud": "Your files and calendars, on your server.",
+        "openWebui": "Your own AI assistant, ChatGPT-style.",
+        "ghost": "Professional blog and newsletter.",
+        "strapi": "Manage your site's or app's content.",
+        "uptimeKuma": "Get alerted when a site goes down.",
+        "metabase": "Dashboards from your data.",
+        "umami": "Visitor analytics, without cookies.",
+        "chatwoot": "Customer support: chat, WhatsApp, email."
+      }
     }
   },
   "servers": {
@@ -1212,8 +1230,8 @@
     "guideTitle": "Architecture Guide",
     "notFound": "Guide not found.",
     "threeTier": {
-      "name": "3-Tier Application",
-      "description": "A frontend, a backend API, and a database — the classic three-layer web app shape.",
+      "name": "Website + API + database",
+      "description": "The visible pages, the server that runs them, and the data.",
       "step1Title": "Deploy your frontend",
       "step1Desc": "Import your frontend app from Git, or deploy it from a Docker Compose file or image.",
       "step2Title": "Deploy your backend API",
@@ -1222,16 +1240,16 @@
       "step3Desc": "Provision the database your backend connects to (PostgreSQL, MySQL, MongoDB…)."
     },
     "monolith": {
-      "name": "Full-Stack Monolith",
-      "description": "One application handling both the UI and the backend logic, backed by a database.",
+      "name": "App + database",
+      "description": "A single app that does everything, with its data.",
       "step1Title": "Deploy your application",
       "step1Desc": "Import your app from Git, or deploy it from a Docker Compose file or image.",
       "step2Title": "Create your database",
       "step2Desc": "Provision the database your application connects to."
     },
     "apiDb": {
-      "name": "API + Database",
-      "description": "A backend API with no frontend of its own — just the service and the data behind it.",
+      "name": "API + database",
+      "description": "A server with no pages, with its data. Ideal for a mobile app.",
       "step1Title": "Deploy your API",
       "step1Desc": "Import your API from Git, or deploy it from a Docker Compose file or image.",
       "step2Title": "Create your database",
@@ -1244,8 +1262,8 @@
       "step1Desc": "Import your static site from Git — it's auto-detected and built as a static app."
     },
     "microservices": {
-      "name": "Microservices",
-      "description": "Several independent services sharing a database, plus a message broker for the traffic between them.",
+      "name": "Several connected services",
+      "description": "Several small apps sharing their data.",
       "step1Title": "Deploy your first service",
       "step1Desc": "Import it from Git, or deploy it from a Docker Compose file or image.",
       "step2Title": "Deploy your next service",
@@ -1756,11 +1774,11 @@
     "new-project": {
       "sources": {
         "title": "Where does your application come from?",
-        "body": "Three paths: your code (GitHub, GitLab or a Git URL), a published Docker image, or a ready-made app. Pick one."
+        "body": "Three paths: your code (GitHub, GitLab or a Git URL), a ready-made app, or a published Docker image. Pick one."
       },
       "panel": {
         "title": "Fill in, then go live",
-        "body": "This panel follows your choice: your repositories, the image name, or the app catalog. On the ready-made side, guides help you assemble several pieces."
+        "body": "This panel follows your choice. Under “My code”, if your project has several parts (website, API, database), a guide puts them online and connects them for you."
       },
       "done": {
         "title": "Your turn",

@@ -22,5 +22,7 @@ export const SECRET_MANIFEST = {
     'GITHUB_CLIENT_SECRET',
     'GITLAB_CLIENT_SECRET',
     'STRIPE_SECRET_KEY',
+    // Adresses monapp.idem.africa ; absent = adresse automatique (sslip.io).
+    'NAMECHEAP_API_KEY',
   ],
 } as const satisfies SecretManifest;
