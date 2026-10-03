@@ -227,6 +227,12 @@ export interface PromptConfig {
   cachedContent?: string;
   /** Exempte cet appel du plafond global MAX_OUTPUT_TOKENS. */
   bypassOutputTokenCap?: boolean;
+  /**
+   * Modèle épinglé (cf. `FeatureAIConfig.pinModel`). Lu par les générations
+   * par sections : sans lui, une feature épinglée appelée hors `step.aiConfig`
+   * (le logo) perdait son épinglage et partait à l'étage de sa tâche.
+   */
+  pinModel?: boolean;
 }
 
 export interface AIChatMessage {

@@ -507,6 +507,10 @@ export class BrandingService extends GenericService {
     // n'atteignait jamais runPrompt (`fallbacks=0` dans les logs) : le
     // seul repli restant était celui codé en dur côté PromptService.
     fallbackModels: AI_CONFIG.branding.logo.fallbackModels,
+    // Sans lui, le routeur partait à l'étage de la tâche (glm-4.7, puis
+    // flashx en repli) : un SVG géométriquement faux ne se détecte pas, donc
+    // aucune escalade ne ramenait au modèle déclaré.
+    pinModel: AI_CONFIG.branding.logo.pinModel,
     llmOptions: {
       ...AI_CONFIG.branding.logo.llmOptions,
     },
