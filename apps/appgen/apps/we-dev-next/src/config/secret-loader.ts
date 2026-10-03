@@ -14,10 +14,13 @@
  * secrets (contrairement à un magasin partagé entre applications), le nom
  * du secret dans Infisical est directement `<VARIABLE>`.
  *
- * ## Ce qui est un secret
+ * ## Ce qui est chargé
  *
- * Uniquement ce que liste le manifeste de l'application. La configuration non
- * sensible (ports, URL, limites, identifiants publics) reste dans le `.env`.
+ * Toutes les variables du projet de l'application : en ajouter une dans
+ * Infisical suffit, sans toucher au code. Le manifeste ne filtre rien ; il dit
+ * ce qui est indispensable (`required` : l'application refuse de démarrer
+ * sans) et ce qu'il est utile de signaler s'il manque (`optional`).
+ * La configuration non sensible peut rester dans le `.env`.
  *
  * ## Activation
  *
@@ -37,6 +40,9 @@ export interface SecretManifest {
   /** Secrets propres à une fonctionnalité : absents, un avertissement suffit. */
   optional: readonly string[];
 }
+
+/** Ce qu'un nom de variable d'environnement peut être ; une autre clé du projet est ignorée. */
+const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export interface LoadSecretsResult {
   source: 'secret-manager' | 'env';
@@ -63,8 +69,6 @@ export async function loadSecretsFromManager(
   manifest: SecretManifest,
   log: Pick<Console, 'log' | 'warn' | 'error'> = console
 ): Promise<LoadSecretsResult> {
-  const all = [...manifest.required, ...manifest.optional];
-
   if (!isSecretManagerEnabled()) {
     const missingRequired = manifest.required.filter((k) => !process.env[k]);
     if (missingRequired.length > 0 && process.env.NODE_ENV !== 'test') {
@@ -86,8 +90,8 @@ export async function loadSecretsFromManager(
     );
   }
 
-  // Une seule requête pour tout le projet : il ne contient que les secrets de
-  // cette application. Un échec (auth, droits, réseau) est journalisé tel quel
+  // Une seule requête pour tout le projet : il ne contient que les variables
+  // de cette application, et toutes sont chargées. Un échec (auth, droits, réseau) est journalisé tel quel
   // plutôt que confondu avec des secrets absents ; le contrôle des requis
   // ci-dessous décide ensuite si l'application peut démarrer.
   const online = new Map<string, string>();
@@ -109,18 +113,27 @@ export async function loadSecretsFromManager(
   }
 
   const loaded: string[] = [];
-  for (const variable of all) {
-    const value = online.get(variable);
-    if (value === undefined) continue;
+  const invalid: string[] = [];
+  for (const [variable, value] of online) {
+    if (!ENV_NAME.test(variable)) {
+      invalid.push(variable);
+      continue;
+    }
     if (process.env[variable] === undefined || process.env[variable] === '') {
       process.env[variable] = value;
     }
     loaded.push(variable);
   }
+  loaded.sort();
 
+  // Les noms seulement, jamais les valeurs : de quoi vérifier d'un coup d'œil
+  // qu'une variable attendue vient bien d'Infisical.
   log.log(
-    `[secrets] ${manifest.app}: ${loaded.length}/${all.length} secrets loaded from Infisical (project=${projectId}, env=${INFISICAL_ENVIRONMENT}).`
+    `[secrets] ${manifest.app}: ${loaded.length} variable(s) loaded from Infisical (project=${projectId}, env=${INFISICAL_ENVIRONMENT}): ${loaded.join(', ') || '—'}.`
   );
+  if (invalid.length > 0) {
+    log.warn(`[secrets] ${manifest.app}: ignored, not valid environment variable names: ${invalid.join(', ')}`);
+  }
 
   const missingRequired = manifest.required.filter((k) => !process.env[k]);
   if (missingRequired.length > 0) {
