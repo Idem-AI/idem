@@ -1,8 +1,17 @@
-import { Component, input, output, signal, computed, effect, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  afterNextRender,
+  computed,
+  effect,
+  input,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { ColorModel } from '../../../../models/brand-identity.model';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 interface ColorHSL {
   h: number;
@@ -10,22 +19,43 @@ interface ColorHSL {
   l: number;
 }
 
+type ColorKey = keyof ColorModel['colors'];
+
+/** Durée de la sortie, alignée sur l'animation `cc-sink-out` du CSS. */
+const LEAVE_MS = 180;
+
+/**
+ * Ajustement d'une palette générée.
+ *
+ * L'aperçu de la marque suit chaque retouche ; les cinq couleurs sont toutes
+ * visibles, chacune avec son nuancier et son code. Quand une couleur en
+ * entraîne une autre (la principale règle l'accent, le fond règle le texte),
+ * la couleur ajustée le signale un instant : rien ne change en silence.
+ *
+ * La fenêtre s'anime à l'entrée et à la sortie ; elle ne prévient le parent
+ * (`closed`, `colorsUpdated`) qu'une fois sortie, pour que celui-ci puisse la
+ * retirer sans couper l'animation.
+ */
 @Component({
   selector: 'app-color-customizer',
-  standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule],
+  imports: [TranslateModule],
   templateUrl: './color-customizer.component.html',
   styleUrl: './color-customizer.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:keydown.escape)': 'close()',
+  },
 })
 export class ColorCustomizerComponent {
-  // Inputs
   readonly initialColors = input.required<ColorModel>();
+  /** Nom affiché dans l'aperçu (le nom du projet). */
+  readonly brandName = input<string>('');
 
-  // Outputs
   readonly colorsUpdated = output<ColorModel>();
   readonly closed = output<void>();
 
-  // State
+  private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
+
   protected readonly customColors = signal<ColorModel['colors']>({
     primary: '',
     secondary: '',
@@ -34,18 +64,30 @@ export class ColorCustomizerComponent {
     text: '',
   });
 
-  protected readonly activeColor = signal<keyof ColorModel['colors'] | null>(null);
+  protected readonly closing = signal(false);
+  /** Couleur que l'harmonisation vient de modifier, signalée un instant. */
+  protected readonly autoAdjusted = signal<ColorKey | null>(null);
+  private autoAdjustedTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // Color keys for iteration
-  private readonly translate = inject(TranslateService);
+  protected readonly colorKeys: ColorKey[] = ['primary', 'secondary', 'accent', 'background', 'text'];
 
-  protected readonly colorKeys: Array<keyof ColorModel['colors']> = [
-    'primary',
-    'secondary',
-    'accent',
-    'background',
-    'text',
-  ];
+  protected readonly onPrimary = computed(() => this.readableOn(this.customColors().primary));
+  protected readonly onSecondary = computed(() => this.readableOn(this.customColors().secondary));
+
+  /** Rapport de contraste WCAG du texte sur le fond (4,5:1 = lisible). */
+  protected readonly textContrast = computed(() => {
+    const { text, background } = this.customColors();
+    const a = this.luminance(text);
+    const b = this.luminance(background);
+    if (a === null || b === null) return 21;
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  });
+
+  protected readonly isDirty = computed(() => {
+    const initial = this.initialColors().colors;
+    const current = this.customColors();
+    return this.colorKeys.some((k) => initial[k]?.toLowerCase() !== current[k]?.toLowerCase());
+  });
 
   constructor() {
     effect(() => {
@@ -54,47 +96,102 @@ export class ColorCustomizerComponent {
         this.customColors.set({ ...initial.colors });
       }
     });
+    // Le focus entre dans la fenêtre : le clavier et les lecteurs d'écran y sont.
+    afterNextRender(() => this.panel()?.nativeElement.focus());
   }
 
-  protected selectColor(colorKey: keyof ColorModel['colors']): void {
-    this.activeColor.set(colorKey);
+  // ─────────────────────────────────────────────── Saisie
+
+  protected onPick(key: ColorKey, event: Event): void {
+    this.applyChange(key, (event.target as HTMLInputElement).value);
   }
 
-  protected updateColor(colorKey: keyof ColorModel['colors'], event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const newColor = target.value;
+  /** Code saisi à la main : appliqué seulement s'il est complet et valide. */
+  protected onHex(key: ColorKey, event: Event): void {
+    const field = event.target as HTMLInputElement;
+    const value = this.normalizeHex(field.value);
+    if (value) {
+      this.applyChange(key, value);
+      field.value = value;
+    } else {
+      field.value = this.customColors()[key];
+    }
+  }
 
-    const updatedColors = { ...this.customColors() };
-    updatedColors[colorKey] = newColor;
+  private applyChange(key: ColorKey, value: string): void {
+    const updated = { ...this.customColors(), [key]: value };
+    let adjusted: ColorKey | null = null;
 
-    // Apply intelligent color harmonization
-    if (colorKey === 'primary') {
-      updatedColors.accent = this.generateAccentColor(newColor);
-    } else if (colorKey === 'secondary') {
-      updatedColors.background = this.adjustBackgroundForSecondary(newColor);
-    } else if (colorKey === 'background') {
-      updatedColors.text = this.generateContrastingTextColor(newColor);
+    if (key === 'primary') {
+      updated.accent = this.generateAccentColor(value);
+      adjusted = 'accent';
+    } else if (key === 'secondary') {
+      updated.background = this.adjustBackgroundForSecondary(value);
+      adjusted = 'background';
+    } else if (key === 'background') {
+      updated.text = this.generateContrastingTextColor(value);
+      adjusted = 'text';
     }
 
-    this.customColors.set(updatedColors);
+    this.customColors.set(updated);
+    this.flagAutoAdjusted(adjusted);
   }
 
+  private flagAutoAdjusted(key: ColorKey | null): void {
+    if (this.autoAdjustedTimer) clearTimeout(this.autoAdjustedTimer);
+    this.autoAdjusted.set(key);
+    if (key) {
+      this.autoAdjustedTimer = setTimeout(() => this.autoAdjusted.set(null), 2500);
+    }
+  }
+
+  // ─────────────────────────────────────────────── Actions
+
   protected applyColors(): void {
-    const original = this.initialColors();
-    const updated: ColorModel = {
-      ...original,
-      colors: this.customColors(),
-    };
-    this.colorsUpdated.emit(updated);
+    const updated: ColorModel = { ...this.initialColors(), colors: this.customColors() };
+    this.leave(() => this.colorsUpdated.emit(updated));
   }
 
   protected resetColors(): void {
-    const initial = this.initialColors();
-    this.customColors.set({ ...initial.colors });
+    this.customColors.set({ ...this.initialColors().colors });
+    this.flagAutoAdjusted(null);
   }
 
   protected close(): void {
-    this.closed.emit();
+    this.leave(() => this.closed.emit());
+  }
+
+  /** Joue la sortie, puis prévient le parent. Une seule sortie à la fois. */
+  private leave(done: () => void): void {
+    if (this.closing()) return;
+    this.closing.set(true);
+    setTimeout(done, LEAVE_MS);
+  }
+
+  // ─────────────────────────────────────────────── Lisibilité
+
+  /** Encre lisible sur une couleur : sombre sur clair, blanche sur foncé. */
+  protected readableOn(hex: string): string {
+    const l = this.luminance(hex);
+    return l !== null && l > 0.4 ? '#111111' : '#ffffff';
+  }
+
+  private luminance(hex: string): number | null {
+    const value = this.normalizeHex(hex);
+    if (!value) return null;
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const v = parseInt(value.slice(i, i + 2), 16) / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  /** `#abc`, `abc`, `#aabbcc` → `#aabbcc` ; tout le reste → null. */
+  private normalizeHex(raw: string): string | null {
+    const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec((raw ?? '').trim());
+    if (!m) return null;
+    const hex = m[1].length === 3 ? m[1].replace(/./g, (c) => c + c) : m[1];
+    return `#${hex.toLowerCase()}`;
   }
 
   // Color harmony algorithms
@@ -212,13 +309,5 @@ export class ColorCustomizerComponent {
     const textLightness = isBackgroundDark ? 95 : 15;
     const textSat = isBackgroundDark ? 5 : 10;
     return this.hslToHex(hsl.h, textSat, textLightness);
-  }
-
-  protected getColorLabel(key: string): string {
-    return this.translate.instant(`dashboard.colorCustomizer.labels.${key}`);
-  }
-
-  protected getColorDescription(key: string): string {
-    return this.translate.instant(`dashboard.colorCustomizer.descriptions.${key}`);
   }
 }

@@ -1,21 +1,144 @@
-/* Component-specific styles if needed */
-input[type='color'] {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background: transparent;
+/*
+ * Fenêtre d'ajustement des couleurs. Les boutons, champs et surfaces sont ceux
+ * du design system (`.modal-panel`, `.inner-button`, `input[type=text]`…) ;
+ * ce fichier ne porte que la mise en scène et le nuancier.
+ */
+
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
 }
 
-input[type='color']::-webkit-color-swatch-wrapper {
-  padding: 0;
+/* ── Entrée et sortie : un fondu, le panneau monte d'un souffle ───────────── */
+
+.cc-scrim {
+  position: absolute;
+  inset: 0;
+  /* Voile neutre : il assombrit la page dans les deux thèmes. */
+  background: rgb(0 0 0 / 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: cc-fade-in 220ms var(--ease-out) both;
 }
 
-input[type='color']::-webkit-color-swatch {
-  border: none;
-  border-radius: 8px;
+.cc-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  pointer-events: none;
 }
 
-input[type='color']::-moz-color-swatch {
-  border: none;
-  border-radius: 8px;
+.cc-panel {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 52rem;
+  outline: none;
+  animation: cc-rise-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.cc-scrim.is-closing {
+  animation: cc-fade-out 180ms var(--ease-in) both;
+}
+
+.cc-frame.is-closing .cc-panel {
+  animation: cc-sink-out 180ms var(--ease-in) both;
+}
+
+@keyframes cc-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes cc-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes cc-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+@keyframes cc-sink-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-scrim,
+  .cc-panel,
+  .cc-scrim.is-closing,
+  .cc-frame.is-closing .cc-panel {
+    animation-duration: 1ms;
+  }
+}
+
+/* ── Nuancier : le sélecteur natif, invisible, posé sur une pastille ───────── */
+
+.cc-swatch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--glass-border-medium);
+  cursor: pointer;
+  transition: transform var(--duration-150) var(--ease-out);
+}
+
+.cc-swatch:hover {
+  transform: scale(1.04);
+}
+
+.cc-swatch:has(.cc-swatch__input:focus-visible) {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.cc-swatch__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.cc-swatch__icon {
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity var(--duration-150) var(--ease-out);
+  pointer-events: none;
+}
+
+.cc-swatch:hover .cc-swatch__icon {
+  opacity: 0.9;
+}
+
+/* Code HEX : le champ natif, en chiffres à chasse fixe. */
+.cc-hex {
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--font-size-sm);
+}
+
+/* « Ajustée » : signale une couleur que l'harmonisation vient de modifier. */
+.cc-auto {
+  font-size: 0.6875rem;
+  padding: 0 0.5rem;
+  color: var(--color-primary-500);
 }

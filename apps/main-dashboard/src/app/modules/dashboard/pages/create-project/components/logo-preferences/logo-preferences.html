@@ -188,12 +188,12 @@
         >
           <!-- Badge recommandé, posé sur la bordure haute -->
           <div
-            class="absolute -top-3.5 right-6 z-20 inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-full bg-primary text-white border border-blue-300/40 shadow-xl"
+            class="absolute -top-3.5 right-6 z-20 inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-full bg-primary text-[var(--color-on-primary)] shadow-xl"
           >
             <i class="pi pi-sparkles text-[11px]"></i>
             <span>{{ 'dashboard.logoPreferences.modes.ai.badge' | translate }}</span>
           </div>
-          <!-- Illustration : plusieurs concepts naissent d'un seul geste -->
+          <!-- Illustration : le tampon adinkra imprime trois signes, un est retenu -->
           <div
             class="relative h-40 sm:h-48 w-full overflow-hidden rounded-t-2xl bg-[var(--color-surface-1)] border-b border-[var(--glass-border-subtle)] p-4"
           >
@@ -202,9 +202,7 @@
             <!-- Selected badge -->
             @if (generationMode() === 'ai') {
               <div class="absolute top-3 right-3 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/40 animate-scale-in">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                </svg>
+                <i class="pi pi-check text-xs text-[var(--color-on-primary)]" aria-hidden="true"></i>
               </div>
             }
           </div>
@@ -224,9 +222,7 @@
             <div class="pt-4 border-t border-[var(--glass-border-subtle)] flex flex-col gap-2.5">
               @for (feature of aiFeatures; track feature) {
                 <div class="flex items-center gap-2.5 text-[15px] text-text-secondary">
-                  <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
+                  <i class="pi pi-check text-xs text-primary shrink-0" aria-hidden="true"></i>
                   <span class="font-medium">{{ feature | translate }}</span>
                 </div>
               }
@@ -245,7 +241,7 @@
               generationMode() !== 'custom',
           }"
         >
-          <!-- Illustration : un texte écrit produit une forme précise -->
+          <!-- Illustration : le tampon qu'on taille soi-même, d'après le motif tracé -->
           <div
             class="relative h-40 sm:h-48 w-full overflow-hidden rounded-t-2xl bg-[var(--color-surface-1)] border-b border-[var(--glass-border-subtle)] p-4"
           >
@@ -254,9 +250,7 @@
             <!-- Selected badge -->
             @if (generationMode() === 'custom') {
               <div class="absolute top-3 right-3 w-7 h-7 bg-secondary rounded-full flex items-center justify-center shadow-lg shadow-secondary/40 animate-scale-in">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                </svg>
+                <i class="pi pi-check text-xs text-[var(--color-on-primary)]" aria-hidden="true"></i>
               </div>
             }
           </div>
@@ -276,9 +270,7 @@
             <div class="pt-4 border-t border-[var(--glass-border-subtle)] flex flex-col gap-2.5">
               @for (feature of customFeatures; track feature) {
                 <div class="flex items-center gap-2.5 text-[15px] text-text-secondary">
-                  <svg class="w-4 h-4 text-secondary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
+                  <i class="pi pi-check text-xs text-secondary shrink-0" aria-hidden="true"></i>
                   <span class="font-medium">{{ feature | translate }}</span>
                 </div>
               }
@@ -292,14 +284,7 @@
           (click)="back()"
           class="outer-button px-5 sm:px-8 py-2.5 sm:py-3.5 text-sm sm:text-base flex items-center gap-2"
         >
-          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M11 17l-5-5m0 0l5-5m-5 5h12"
-            />
-          </svg>
+          <i class="pi pi-arrow-left text-sm" aria-hidden="true"></i>
           {{ 'common.back' | translate }}
         </button>
         <button
@@ -308,19 +293,7 @@
           class="inner-button px-6 sm:px-10 py-2.5 sm:py-3.5 text-sm sm:text-base flex items-center gap-2 group shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300"
         >
           <span>{{ 'common.continue' | translate }}</span>
-          <svg
-            class="w-5 h-5 group-hover:translate-x-1 transition-transform"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 7l5 5m0 0l-5 5m5-5H6"
-            />
-          </svg>
+          <i class="pi pi-arrow-right text-sm transition-transform group-hover:translate-x-1" aria-hidden="true"></i>
         </button>
       </div>
     </div>

@@ -1,26 +1,31 @@
 {
   "dashboard": {
     "colorCustomizer": {
-      "title": "Modifier les couleurs",
-      "pick": "Choisir",
-      "hex": "HEX",
-      "hexPlaceholder": "#000000",
-      "preview": "Aperçu",
-      "tip": "Cliquez sur un cercle de couleur pour ouvrir le sélecteur. Les couleurs associées s'ajustent automatiquement pour l'harmonie.",
+      "title": "Ajuster les couleurs",
+      "tip": "Certaines couleurs suivent les autres pour rester harmonieuses et lisibles : la principale règle l'accent, la secondaire règle le fond, le fond règle le texte. Vous pouvez ensuite les retoucher une à une.",
       "labels": {
-        "primary": "Couleur primaire",
-        "secondary": "Couleur secondaire",
-        "accent": "Couleur d'accentuation",
-        "background": "Couleur de fond",
-        "text": "Couleur du texte"
+        "primary": "Principale",
+        "secondary": "Secondaire",
+        "accent": "Accent",
+        "background": "Fond",
+        "text": "Texte"
       },
       "descriptions": {
-        "primary": "Couleur principale de la marque utilisée pour les boutons et les éléments clés",
-        "secondary": "Couleur de soutien qui complète votre couleur primaire",
-        "accent": "Couleur de mise en évidence pour les appels à l'action",
-        "background": "Couleur de fond de base pour vos créations",
-        "text": "Couleur de texte principale pour la lisibilité"
-      }
+        "primary": "Boutons et éléments clés",
+        "secondary": "Soutient la principale",
+        "accent": "Liens et appels à l'action",
+        "background": "Fond de vos créations",
+        "text": "Texte courant"
+      },
+      "subtitle": "Cliquez sur une pastille ou saisissez un code. L'aperçu suit en direct.",
+      "auto": "Ajustée",
+      "previewName": "Votre marque",
+      "previewText": "Voici à quoi ressemblera votre marque.",
+      "previewButton": "Commencer",
+      "previewLink": "En savoir plus",
+      "previewTag": "Nouveau",
+      "contrastGood": "Texte bien lisible sur le fond",
+      "contrastLow": "Texte peu lisible sur le fond"
     }
   }
 }

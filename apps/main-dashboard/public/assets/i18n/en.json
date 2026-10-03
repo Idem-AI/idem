@@ -880,32 +880,36 @@
       "simulations": "Simulations"
     },
     "colorCustomizer": {
-      "title": "Edit Colors",
-      "pick": "Pick",
-      "hex": "HEX",
-      "hexPlaceholder": "#000000",
-      "preview": "Preview",
-      "tip": "Click any color circle to open the picker. Related colors auto-adjust for harmony.",
+      "title": "Adjust colours",
+      "tip": "Some colours follow others to stay harmonious and readable: primary sets the accent, secondary sets the background, background sets the text. You can then fine-tune each one.",
       "labels": {
-        "primary": "Primary Color",
-        "secondary": "Secondary Color",
-        "accent": "Accent Color",
-        "background": "Background Color",
-        "text": "Text Color"
+        "primary": "Primary",
+        "secondary": "Secondary",
+        "accent": "Accent",
+        "background": "Background",
+        "text": "Text"
       },
       "descriptions": {
-        "primary": "Main brand color used for buttons and key elements",
-        "secondary": "Supporting color that complements your primary",
-        "accent": "Highlighting color for calls-to-action",
-        "background": "Base background color for your designs",
-        "text": "Primary text color for readability"
-      }
+        "primary": "Buttons and key elements",
+        "secondary": "Supports the primary",
+        "accent": "Links and calls to action",
+        "background": "Background of your designs",
+        "text": "Body text"
+      },
+      "subtitle": "Click a swatch or type a code. The preview updates live.",
+      "auto": "Adjusted",
+      "previewName": "Your brand",
+      "previewText": "This is how your brand will look.",
+      "previewButton": "Get started",
+      "previewLink": "Learn more",
+      "previewTag": "New",
+      "contrastGood": "Text reads well on the background",
+      "contrastLow": "Text is hard to read on the background"
     },
     "colorSelection": {
       "generating": {
         "title": "Generating Color Palettes...",
-        "whileYouWait": "While you wait...",
-        "tip": "Our AI is analyzing your project requirements to create harmonious color palettes that reflect your brand's personality and target audience. This process ensures each palette is optimized for accessibility and visual impact."
+        "subtitle": "IDEM is preparing three palettes from your project."
       },
       "errors": {
         "title": "Generation Failed",
@@ -913,12 +917,13 @@
         "noOptions": "No typography options available. Please go back to the color selection step."
       },
       "success": {
-        "title": "Select Your Brand Colors",
-        "subtitle": "Choose the color palette that best represents your brand's personality and values.",
-        "greatChoice": "Great choice! Click Next to continue to the next step."
+        "title": "Your colours",
+        "subtitle": "Pick a palette. You can fine-tune each colour afterwards.",
+        "selected": "Selected",
+        "choose": "Choose"
       },
       "buttons": {
-        "customize": "Customize Selected Colors"
+        "customize": "Adjust colours"
       },
       "tooltips": {
         "primary": "Primary Color",
@@ -927,14 +932,23 @@
         "background": "Background Color"
       },
       "preview": {
-        "sampleText": "Sample Text",
+        "sampleText": "This is how your brand will look.",
         "primary": "Primary",
-        "accent": "Accent"
+        "accent": "Accent",
+        "button": "Get started",
+        "link": "Learn more"
       },
       "auth": {
         "header": "Authentication Required",
         "title": "Please Sign In",
         "message": "You need to be authenticated to generate color palettes. Please sign in to continue."
+      },
+      "swatches": {
+        "primary": "Primary",
+        "secondary": "Secondary",
+        "accent": "Accent",
+        "background": "Background",
+        "text": "Text"
       }
     },
     "logoEditor": {

@@ -880,32 +880,36 @@
       "simulations": "Simulations"
     },
     "colorCustomizer": {
-      "title": "Modifier les couleurs",
-      "pick": "Choisir",
-      "hex": "HEX",
-      "hexPlaceholder": "#000000",
-      "preview": "Aperçu",
-      "tip": "Cliquez sur un cercle de couleur pour ouvrir le sélecteur. Les couleurs associées s'ajustent automatiquement pour l'harmonie.",
+      "title": "Ajuster les couleurs",
+      "tip": "Certaines couleurs suivent les autres pour rester harmonieuses et lisibles : la principale règle l'accent, la secondaire règle le fond, le fond règle le texte. Vous pouvez ensuite les retoucher une à une.",
       "labels": {
-        "primary": "Couleur primaire",
-        "secondary": "Couleur secondaire",
-        "accent": "Couleur d'accentuation",
-        "background": "Couleur de fond",
-        "text": "Couleur du texte"
+        "primary": "Principale",
+        "secondary": "Secondaire",
+        "accent": "Accent",
+        "background": "Fond",
+        "text": "Texte"
       },
       "descriptions": {
-        "primary": "Couleur principale de la marque utilisée pour les boutons et les éléments clés",
-        "secondary": "Couleur de soutien qui complète votre couleur primaire",
-        "accent": "Couleur de mise en évidence pour les appels à l'action",
-        "background": "Couleur de fond de base pour vos créations",
-        "text": "Couleur de texte principale pour la lisibilité"
-      }
+        "primary": "Boutons et éléments clés",
+        "secondary": "Soutient la principale",
+        "accent": "Liens et appels à l'action",
+        "background": "Fond de vos créations",
+        "text": "Texte courant"
+      },
+      "subtitle": "Cliquez sur une pastille ou saisissez un code. L'aperçu suit en direct.",
+      "auto": "Ajustée",
+      "previewName": "Votre marque",
+      "previewText": "Voici à quoi ressemblera votre marque.",
+      "previewButton": "Commencer",
+      "previewLink": "En savoir plus",
+      "previewTag": "Nouveau",
+      "contrastGood": "Texte bien lisible sur le fond",
+      "contrastLow": "Texte peu lisible sur le fond"
     },
     "colorSelection": {
       "generating": {
         "title": "Génération des palettes de couleurs...",
-        "whileYouWait": "Pendant que vous attendez...",
-        "tip": "Notre IA analyse les exigences de votre projet pour créer des palettes de couleurs harmonieuses qui reflètent la personnalité de votre marque et votre public cible. Ce processus garantit que chaque palette est optimisée pour l'accessibilité et l'impact visuel."
+        "subtitle": "IDEM prépare trois palettes à partir de votre projet."
       },
       "errors": {
         "title": "Échec de la génération",
@@ -913,12 +917,13 @@
         "noOptions": "Aucune option de typographie disponible. Veuillez revenir à l'étape de sélection des couleurs."
       },
       "success": {
-        "title": "Sélectionnez les couleurs de votre marque",
-        "subtitle": "Choisissez la palette de couleurs qui représente le mieux la personnalité et les valeurs de votre marque.",
-        "greatChoice": "Excellent choix ! Cliquez sur Suivant pour passer à l'étape suivante."
+        "title": "Vos couleurs",
+        "subtitle": "Choisissez une palette. Vous pourrez ajuster chaque couleur ensuite.",
+        "selected": "Choisie",
+        "choose": "Choisir"
       },
       "buttons": {
-        "customize": "Personnaliser les couleurs sélectionnées"
+        "customize": "Ajuster les couleurs"
       },
       "tooltips": {
         "primary": "Couleur primaire",
@@ -927,14 +932,23 @@
         "background": "Couleur de fond"
       },
       "preview": {
-        "sampleText": "Exemple de texte",
+        "sampleText": "Voici à quoi ressemblera votre marque.",
         "primary": "Primaire",
-        "accent": "Accentuation"
+        "accent": "Accentuation",
+        "button": "Commencer",
+        "link": "En savoir plus"
       },
       "auth": {
         "header": "Authentification requise",
         "title": "Veuillez vous connecter",
         "message": "Vous devez être authentifié pour générer des palettes de couleurs. Veuillez vous connecter pour continuer."
+      },
+      "swatches": {
+        "primary": "Principale",
+        "secondary": "Secondaire",
+        "accent": "Accent",
+        "background": "Fond",
+        "text": "Texte"
       }
     },
     "logoEditor": {

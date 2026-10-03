@@ -89,6 +89,7 @@ Format : **retenu** — candidats écartés (raison).
 | Génération de charte (8 phases) | **tampon ; canaris de teinture ; calebasse pyrogravée « Aa » ; kente ; panier ; tambour ; étoffes bien / mal tamponnées ; pagnes pliés** | — |
 | Éditeur d'identité : fini / le logo suit | **deux étoffes au même signe ; tampon au-dessus du canari** | — |
 | Avez-vous un logo : import / IA | **votre tampon déposé ; trois empreintes, une retenue** | — |
+| Comment créer votre logo : IA / description | **le tampon en plein geste, trois empreintes et une retenue ; le tampon qu'on taille soi-même au couteau, d'après le motif tracé** (`logo-mode-sample`) | baguette magique et étincelles (pas africain) ; feuillet et calame (dit la rédaction d'un document, pas la forme du signe) |
 | Stratégie de communication | **deux calebasses font parler le tambour** | boussole (pas africaine) |
 | Communication : accueil (parcours en 4 étapes) | **tambour parleur, ondes qui battent** | échelle dogon (l'écran dit d'abord « communiquer », la progression est portée par les étapes numérotées) |
 | Finances : importer mes chiffres | **feuillet apporté, tenu en colonnes** | calebasse de cauris (dit l'argent, pas le document) |
