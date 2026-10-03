@@ -21,6 +21,8 @@ import { conflict, unprocessable } from '../utils/errors';
 import { randomBytes } from 'crypto';
 import * as databaseService from './database.service';
 import { IncomingFiles, saveSourceForApplication } from './application-source.service';
+import { claimPlatformHost } from './platform-domain.service';
+import { getServerForDestination } from './domain.service';
 
 /**
  * Resolve the workspace this deployment belongs to, creating one if needed.
@@ -124,6 +126,24 @@ export interface QuickDeployDto {
    * would need it on every attempt after.
    */
   environment_variables?: { key: string; value: string }[];
+  /**
+   * Give the application an address on the platform domain
+   * (`monapp.idem.africa`, or `monapp-<id>` when taken) instead of the
+   * automatic one. What iCode asks for; off for every other caller.
+   */
+  platform_domain?: boolean;
+}
+
+/**
+ * The platform address for an application about to be created, or undefined
+ * to let `createApplication` generate the automatic one (feature off, or the
+ * DNS could not be updated — never a reason to fail the deployment).
+ */
+async function platformFqdn(name: string, destinationId: number, wanted?: boolean): Promise<string | undefined> {
+  if (!wanted) return undefined;
+  const server = await getServerForDestination(destinationId);
+  if (!server) return undefined;
+  return (await claimPlatformHost(name, server.ip)) ?? undefined;
 }
 
 export interface QuickDeployResult {
@@ -183,6 +203,7 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
   const app = await appService.createApplication(teamId, {
     name: dto.name,
     environment_id: environmentId,
+    fqdn: await platformFqdn(dto.name, destinationId, dto.platform_domain),
     // Vide quand le code arrive en fichiers : le worker lit alors l'archive.
     git_repository: dto.git_repository ?? '',
     git_branch: dto.git_branch || 'main',
@@ -239,6 +260,8 @@ export interface FullstackDeployDto {
   deployment_type?: workspaceService.DeploymentType;
   server_uuid?: string;
   region?: string;
+  /** `monapp.idem.africa` for the interface, `monapp-api.idem.africa` for the server. */
+  platform_domain?: boolean;
 }
 
 export interface FullstackDeployResult {
@@ -313,6 +336,7 @@ export async function quickDeployFullstack(
   const backend = await appService.createApplication(teamId, {
     name: `${dto.name}-api`,
     environment_id: environmentId,
+    fqdn: await platformFqdn(`${dto.name}-api`, destinationId, dto.platform_domain),
     git_repository: '',
     build_pack: 'nixpacks',
     base_directory: FULLSTACK.backendDir,
@@ -324,6 +348,7 @@ export async function quickDeployFullstack(
   const frontend = await appService.createApplication(teamId, {
     name: dto.name,
     environment_id: environmentId,
+    fqdn: await platformFqdn(dto.name, destinationId, dto.platform_domain),
     git_repository: '',
     build_pack: 'static',
     base_directory: FULLSTACK.frontendDir,

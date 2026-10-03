@@ -108,7 +108,7 @@ router.post('/publish', async (req: Request, res: Response) => {
         database: { uuid: string };
         backend: { uuid: string; url: string | null; deploymentUuid: string };
         frontend: { uuid: string; url: string | null; deploymentUuid: string };
-      }>(req, 'POST', '/quick-deploy/fullstack', { name: appName, files });
+      }>(req, 'POST', '/quick-deploy/fullstack', { name: appName, files, platform_domain: true });
 
       return res.json({
         success: true,
@@ -155,6 +155,8 @@ router.post('/publish', async (req: Request, res: Response) => {
         build_pack: 'static',
         publish_directory: 'dist',
         ports_exposes: '80',
+        // `monapp.idem.africa` (ou `monapp-<id>` si pris) plutôt qu'une adresse technique.
+        platform_domain: true,
       }
     );
     return res.json({
