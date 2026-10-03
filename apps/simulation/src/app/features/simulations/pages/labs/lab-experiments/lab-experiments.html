@@ -1,70 +1,54 @@
-<sim-lab-panel
-  lab="experiments"
-  [heading]="'lab.experiments.heading' | translate"
-  [body]="'lab.experiments.body' | translate"
->
+<sim-lab-panel lab="experiments">
   @if (report(); as report) {
-    <div class="flex flex-col gap-5">
-      <p class="rounded-xl border border-line bg-panel-sunken p-4 text-sm leading-relaxed text-ink-muted">
-        {{ report.rationale }}
-      </p>
+    <div class="flex flex-col gap-6">
+      @if (report.rationale) {
+        <p class="rounded-2xl border-l-4 border-primary-500 bg-[var(--glass-bg-subtle)] p-4 text-sm leading-relaxed text-text-primary md:text-base">
+          {{ report.rationale }}
+        </p>
+      }
 
-      <ol class="flex flex-col gap-3">
-        @for (experiment of ordered(); track experiment.id) {
+      <ol class="flex flex-col gap-4">
+        @for (experiment of ordered(); track experiment.id; let n = $index) {
           <li
             class="glass-card p-5"
-            [class.border-primary]="experiment.id === report.recommendedExperimentId"
+            [style.border-color]="experiment.id === report.recommendedExperimentId ? 'var(--color-primary-500)' : null"
           >
-            <div class="flex flex-wrap items-baseline justify-between gap-3">
-              <h3 class="text-sm font-semibold text-ink">{{ experiment.hypothesis }}</h3>
-              @if (experiment.id === report.recommendedExperimentId) {
-                <span
-                  class="rounded-full bg-primary px-2 py-0.5 text-[0.6875rem] font-semibold uppercase text-brand-ink"
-                >
-                  {{ 'lab.experiments.startHere' | translate }}
-                </span>
-              }
+            <div class="flex items-start gap-3">
+              <span class="grid size-8 shrink-0 place-items-center rounded-full bg-primary-500 text-sm font-bold text-[var(--color-on-primary)]">
+                {{ n + 1 }}
+              </span>
+              <div class="min-w-0 flex-1">
+                @if (experiment.id === report.recommendedExperimentId) {
+                  <span class="sim-pill sim-pill--info mb-2">
+                    <i class="pi pi-star text-xs" aria-hidden="true"></i>
+                    {{ 'lab.experiments.startHere' | translate }}
+                  </span>
+                }
+                <h2 class="text-lg font-semibold">{{ experiment.hypothesis }}</h2>
+
+                <div class="mt-3 flex flex-col gap-3">
+                  <div>
+                    <p class="text-sm font-semibold text-text-primary">{{ 'lab.experiments.method' | translate }}</p>
+                    <p class="mt-0.5 max-w-[70ch] text-sm leading-relaxed text-text-secondary">{{ experiment.method }}</p>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-text-primary">{{ 'lab.experiments.signal' | translate }}</p>
+                    <p class="mt-0.5 max-w-[70ch] text-sm leading-relaxed text-text-secondary">{{ experiment.signal }}</p>
+                  </div>
+                </div>
+
+                <div class="mt-4 flex flex-wrap gap-2">
+                  <span class="tag">
+                    <i class="pi pi-wallet text-xs" aria-hidden="true"></i>
+                    {{ 'lab.experiments.cost' | translate }} : {{ 'cost.' + experiment.cost | translate }}
+                  </span>
+                  <span class="tag">
+                    <i class="pi pi-clock text-xs" aria-hidden="true"></i>
+                    {{ 'lab.experiments.days' | translate: { days: experiment.durationDays } }}
+                  </span>
+                </div>
+              </div>
             </div>
-
-            <dl class="mt-3 flex flex-col gap-2.5">
-              <div>
-                <dt class="text-meta font-semibold text-ink-subtle">
-                  {{ 'lab.experiments.method' | translate }}
-                </dt>
-                <dd class="mt-0.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-                  {{ experiment.method }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-meta font-semibold text-ink-subtle">
-                  {{ 'lab.experiments.signal' | translate }}
-                </dt>
-                <dd class="mt-0.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-                  {{ experiment.signal }}
-                </dd>
-              </div>
-            </dl>
-
-            <dl class="mt-3 grid grid-cols-3 gap-3 border-t border-line pt-3">
-              <div>
-                <dt class="text-meta text-ink-subtle">{{ 'lab.experiments.cost' | translate }}</dt>
-                <dd class="text-sm text-ink-muted">{{ 'cost.' + experiment.cost | translate }}</dd>
-              </div>
-              <div>
-                <dt class="text-meta text-ink-subtle">{{ 'lab.experiments.duration' | translate }}</dt>
-                <dd class="text-sm tabular-nums text-ink-muted">
-                  {{ 'lab.experiments.days' | translate: { days: experiment.durationDays } }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-meta text-ink-subtle">
-                  {{ 'lab.experiments.uncertaintyDrop' | translate }}
-                </dt>
-                <dd class="text-sm font-semibold tabular-nums text-ink">
-                  −{{ experiment.uncertaintyReduction }}
-                </dd>
-              </div>
-            </dl>
           </li>
         }
       </ol>

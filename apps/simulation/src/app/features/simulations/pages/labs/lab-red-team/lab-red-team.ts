@@ -4,6 +4,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { LabPanel } from '../../../components/lab-panel/lab-panel';
 import { SimulationStore } from '../../../data-access';
 import { RedTeamRole, Vulnerability } from '../../../models';
+import { severityTone } from '../../../ui/tones';
 
 type RoleFilter = RedTeamRole | 'all';
 
@@ -37,6 +38,7 @@ export class LabRedTeam {
   protected readonly role = signal<RoleFilter>('all');
 
   protected readonly report = computed(() => this.store.labs().redTeam ?? null);
+  protected readonly tone = severityTone;
 
   protected readonly visible = computed<readonly Vulnerability[]>(() => {
     const role = this.role();

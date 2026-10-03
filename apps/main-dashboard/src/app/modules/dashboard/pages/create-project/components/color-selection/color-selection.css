@@ -1,76 +1,73 @@
-/* Color Selection Component Styles */
+/* Carte de palette : les couleurs occupent toute la carte. L'état choisi est
+   porté par l'anneau aux couleurs d'IDEM et la coche ; le halo reprend la
+   couleur principale de la palette (`--palette-glow`, posée par le gabarit). */
 
-@keyframes color-float-1 {
-  0%,
-  100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  50% {
-    transform: translate(5px, -8px) rotate(3deg);
-  }
+.palette-card {
+  position: relative;
+  display: block;
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition:
+    transform var(--duration-300) cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow var(--duration-300) var(--ease-out);
 }
 
-@keyframes color-float-2 {
-  0%,
-  100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  50% {
-    transform: translate(-6px, -5px) rotate(-4deg);
-  }
+.palette-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px -18px color-mix(in srgb, var(--palette-glow) 55%, transparent);
 }
 
-@keyframes color-float-3 {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(3px, -4px) scale(1.05);
-  }
+.palette-card:focus-visible {
+  outline: 3px solid var(--color-primary-500);
+  outline-offset: 3px;
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
+.palette-card--selected,
+.palette-card--selected:hover {
+  outline: 3px solid var(--color-primary-500);
+  outline-offset: 3px;
+  box-shadow: 0 22px 48px -16px color-mix(in srgb, var(--palette-glow) 65%, transparent);
+}
+
+/* Bandes : celle qu'on survole s'élargit, pour lire sa couleur de près. */
+.palette-band {
+  flex-basis: 0;
+  transition: flex-grow var(--duration-300) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.palette-band:hover {
+  flex-grow: 1.8 !important;
+}
+
+/* Coche, à l'encre lisible sur la couleur principale (currentColor). */
+.palette-card__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  border: 2px solid currentColor;
+  opacity: 0.7;
+}
+
+.palette-card--selected .palette-card__check {
+  opacity: 1;
+  background: currentColor;
+}
+
+.palette-card--selected .palette-card__check i {
+  color: var(--palette-glow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .palette-card,
+  .palette-band {
+    transition: none;
   }
-  100% {
-    background-position: 200% 0;
+
+  .palette-card:hover {
+    transform: none;
   }
-}
-
-.color-shape-1 {
-  animation: color-float-1 6s ease-in-out infinite;
-}
-
-.color-shape-2 {
-  animation: color-float-2 7s ease-in-out infinite;
-  animation-delay: -2s;
-}
-
-.color-shape-3 {
-  animation: color-float-3 5s ease-in-out infinite;
-  animation-delay: -4s;
-}
-
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.palette-shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    color-mix(in srgb, var(--color-text-primary) 5%, transparent) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 3s infinite;
 }

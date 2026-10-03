@@ -54,8 +54,15 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle';
   },
 
   template: `
+    <!-- Sobre (création de projet), comme l'écran de connexion : pas de barre
+         du tout — ni fond, ni logo, ni crédits —, le profil seul, posé en haut
+         à droite de la page. La barre transparente laisse passer les clics. -->
     <nav
-      class="fixed top-0 left-0 right-0 z-50 glass border-b border-[var(--glass-border)] px-3 py-3 lg:px-6"
+      class="fixed top-0 left-0 right-0 z-50 px-3 py-3 lg:px-6"
+      [class.glass]="!minimal()"
+      [class.border-b]="!minimal()"
+      [class.border-[var(--glass-border)]]="!minimal()"
+      [class.pointer-events-none]="minimal()"
     >
       <div class="flex items-center justify-between gap-3">
         <div class="flex min-w-0 items-center">
@@ -81,7 +88,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle';
           }
 
           <!-- Logo : vers la console, d'où partent tous les projets -->
-          <a routerLink="/console" class="flex shrink-0 items-center gap-2">
+          <a routerLink="/console" class="flex shrink-0 items-center gap-2" [class.hidden]="minimal()">
             <img
               src="/assets/icons/logo_white.png"
               [alt]="'dashboard.sidebar.logoAlt' | translate"
@@ -155,7 +162,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle';
           }
         </div>
 
-        <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div class="pointer-events-auto flex shrink-0 items-center gap-2 sm:gap-3">
           <!--
             L'état du compte, à la place de l'ancienne jauge.
             Celle-ci s'intitulait « Crédits » tout en affichant le quota de
@@ -163,7 +170,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle';
             chiffre qui ne correspondait jamais au solde réel. Ici c'est le
             solde de crédits, le même que sous « Mon compte ».
           -->
-          @if (account(); as summary) {
+          @if (!minimal() && account(); as summary) {
             <a
               routerLink="/account"
               class="flex items-center gap-1.5 rounded-lg border border-[var(--glass-border)] px-2 py-1.5 text-xs transition-colors hover:border-[var(--color-primary)] sm:gap-2 sm:px-2.5"
@@ -276,7 +283,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle';
                 </div>
               }
             </div>
-          } @else {
+          } @else if (!minimal()) {
             <div class="h-10 w-10 animate-pulse rounded-full bg-[var(--color-surface-3)]"></div>
           }
         </div>
@@ -297,6 +304,9 @@ export class TopbarComponent {
 
   /** Vrai sur les pages d'un projet, où il y a un projet à changer. */
   readonly withProjectSelector = input(false);
+
+  /** Barre sobre, comme l'écran de connexion : à plat, le profil seul à droite. */
+  readonly minimal = input(false);
 
   readonly toggleSidebar = output<void>();
   readonly openMobileDrawer = output<void>();

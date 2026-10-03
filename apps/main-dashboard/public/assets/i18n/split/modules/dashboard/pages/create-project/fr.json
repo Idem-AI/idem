@@ -39,8 +39,7 @@
       "guidedHint": "Après la création, IDEM vous guidera étape par étape.",
       "modeChoice": {
         "title": "Comment souhaitez-vous être accompagné ?",
-        "subtitle": "Votre description est enregistrée. Rien n'est définitif : le menu en haut de l'écran permet de changer de mode à tout moment.",
-        "backToDescription": "Modifier la description",
+        "subtitle": "Votre projet est créé. Rien n'est définitif : le bouton en bas à droite de l'écran permet de changer de mode à tout moment.",
         "recommended": "Conseillé",
         "recommendedForYou": "Conseillé d'après vos réponses",
         "guided": {
@@ -57,7 +56,7 @@
         },
         "form": {
           "title": "Tableau de bord",
-          "description": "Un formulaire structuré, puis l'espace complet : tous les modules accessibles librement, dans l'ordre que vous voulez.",
+          "description": "L'espace complet : tous les modules accessibles librement, dans l'ordre que vous voulez.",
           "forWho": "Pour vous si vous savez déjà ce que vous cherchez.",
           "button": "Ouvrir le tableau de bord"
         }

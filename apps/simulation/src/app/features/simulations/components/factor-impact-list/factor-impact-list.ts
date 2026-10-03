@@ -14,29 +14,29 @@ import { Factor } from '../../models';
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <ul class="flex flex-col divide-y divide-line">
+    <ul class="flex flex-col divide-y divide-[var(--glass-border-subtle)]">
       @for (factor of factors(); track factor.id) {
         <li class="py-3 first:pt-0 last:pb-0">
           <div class="flex items-baseline justify-between gap-4">
-            <span class="text-sm font-medium text-ink">{{ factor.name }}</span>
-            <span class="shrink-0 text-meta tabular-nums text-ink-subtle">{{ factor.impact }}</span>
+            <span class="text-sm font-medium text-text-primary">{{ factor.name }}</span>
+            <span class="shrink-0 text-xs tabular-nums text-text-tertiary">{{ factor.impact }}</span>
           </div>
           <div
-            class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-panel-sunken"
+            class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--glass-bg-subtle)]"
             role="meter"
             [attr.aria-valuenow]="factor.impact"
             aria-valuemin="0"
             aria-valuemax="100"
             [attr.aria-label]="factor.name"
           >
-            <div class="h-full rounded-full bg-brand" [style.width.%]="factor.impact"></div>
+            <div class="h-full rounded-full bg-primary" [style.width.%]="factor.impact"></div>
           </div>
           @if (showDescription()) {
-            <p class="mt-1.5 max-w-[70ch] text-meta leading-relaxed text-ink-muted">
+            <p class="mt-1.5 max-w-[70ch] text-xs leading-relaxed text-text-secondary">
               {{ factor.description }}
             </p>
           }
-          <p class="mt-1 text-meta text-ink-subtle">
+          <p class="mt-1 text-xs text-text-tertiary">
             {{ factor.category }} · {{ 'factorTier.' + factor.tier | translate }}
           </p>
         </li>

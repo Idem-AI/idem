@@ -1,11 +1,10 @@
 /**
  * Secrets de l'API IDEM dans Infisical (projet `api`, environnement `prod`).
  *
- * Seules les valeurs réellement secrètes figurent ici. Identifiants publics
- * (projet Google Cloud, client IDs OAuth), URL, ports, limites et
- * `ADMIN_EMAILS` sont de la configuration : ils restent dans `.env.production`.
- * Le script `scripts/secrets/idem-secrets.mjs` lit ce fichier : c'est la seule
- * liste qui fait foi.
+ * Toutes les variables du projet Infisical sont chargées, déclarées ici ou non :
+ * pour en ajouter une, il suffit de la créer dans Infisical. Cette liste dit
+ * seulement ce qui est requis (démarrage refusé sans) et ce qui est optionnel
+ * (signalé au démarrage quand il manque) — la tenir à jour sert de documentation.
  */
 import type { SecretManifest } from './secret-loader';
 

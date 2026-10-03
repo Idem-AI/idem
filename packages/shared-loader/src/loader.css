@@ -1,0 +1,127 @@
+/*
+ * Styles des rendus React et Svelte de <idem-loader>. Ce sont les mêmes règles
+ * que celles du composant Angular ; seul l'hôte change : un élément
+ * `.idem-loader-host` remplace le `:host` encapsulé.
+ */
+
+.idem-loader-host {
+  display: inline-flex;
+  line-height: 0;
+}
+
+/* Occupe la largeur et se centre : le cas d'une zone qui se remplit. */
+.idem-loader-host--block {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  padding: 2.5rem 0;
+}
+
+/* Par-dessus du contenu déjà là. L'ancêtre positionné est fourni par
+   l'application ; le voile reprend le verre du système de design pour que ce
+   qui est dessous reste deviné, pas effacé. */
+.idem-loader-host--overlay,
+.idem-loader-host--fullscreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inset: 0;
+  z-index: 20;
+  background: var(--glass-bg, rgba(255, 255, 255, 0.6));
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.idem-loader-host--overlay {
+  position: absolute;
+}
+
+.idem-loader-host--fullscreen {
+  position: fixed;
+  z-index: 9999;
+}
+
+.idem-loader-host .idem-loader {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  line-height: normal;
+}
+
+.idem-loader-host .idem-loader__ring {
+  display: block;
+}
+
+/* Chaque graine s'allume quand la main passe, puis retombe à l'état de graine
+   posée. Les délais, négatifs, sont répartis sur le tour. */
+.idem-loader-host .idem-loader__spiral-track,
+.idem-loader-host .idem-loader__spiral-active {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.idem-loader-host .idem-loader__spiral-track {
+  stroke: rgba(20, 71, 230, 0.08);
+  stroke-width: 5;
+}
+
+.idem-loader-host .idem-loader__spiral-active {
+  stroke: var(--color-primary-500, #1447e6);
+  stroke-width: 5;
+  stroke-dasharray: 0.18 0.82;
+  stroke-dashoffset: 0;
+  animation: spiralMove 2s linear infinite;
+}
+
+.idem-loader-host .idem-loader__spiral-dot {
+  fill: var(--color-primary-500, #1447e6);
+}
+
+.idem-loader-host .idem-loader__spiral-core {
+  fill: var(--color-primary-900, #000060);
+  opacity: 0.9;
+  animation: corePulse 2s ease-in-out infinite;
+  transform-origin: 62px 53px;
+}
+
+.idem-loader-host .idem-loader__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #64748b);
+  text-align: center;
+}
+
+@keyframes spiralMove {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+
+@keyframes corePulse {
+  0%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .idem-loader-host .idem-loader__spiral-active,
+  .idem-loader-host .idem-loader__spiral-dot,
+  .idem-loader-host .idem-loader__spiral-core {
+    animation: none;
+  }
+
+  .idem-loader-host .idem-loader__spiral-active {
+    stroke-dashoffset: 0;
+  }
+}

@@ -28,6 +28,9 @@
       "@idem/shared-tour": [
         "../../../../packages/shared-tour/src"
       ],
+      "@idem/shared-loader/*": [
+        "../../../../packages/shared-loader/src/*"
+      ],
       "@idem/shared-trusted-by": [
         "../../../../packages/shared-trusted-by/src"
       ],

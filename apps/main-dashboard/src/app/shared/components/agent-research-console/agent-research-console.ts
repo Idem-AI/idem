@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import {
   AgentRole,
   AgentStatus,
@@ -109,7 +110,7 @@ const ACTIVE_STATUSES: AgentStatus[] = [
  */
 @Component({
   selector: 'app-agent-research-console',
-  imports: [TranslateModule],
+  imports: [TranslateModule, IdemLoaderComponent],
   templateUrl: './agent-research-console.html',
   styleUrl: './agent-research-console.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -21,6 +21,7 @@ import { consumePendingContext } from './hooks/useAuth';
 import { AuthSync } from './components/Auth/AuthSync';
 import { useTour } from './hooks/useTour';
 import { eventEmitter } from './components/AiChat/utils/EventEmitter';
+import { IdemLoader } from '@idem/shared-loader/react';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
 
@@ -116,7 +117,7 @@ function App() {
       <div className="h-screen w-screen flex items-center justify-center bg-bg-darker">
         <div className="flex flex-col items-center gap-5">
           <BrandMark size={56} className="animate-pulse" />
-          <div className="w-5 h-5 border-2 border-[var(--glass-border-strong)] border-t-primary rounded-full animate-spin" />
+          <IdemLoader size="sm" />
         </div>
       </div>
     );

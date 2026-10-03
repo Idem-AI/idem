@@ -21,4 +21,13 @@ export class LabBlackSwan {
     const rate = this.report()?.absorptionRate;
     return rate === undefined ? null : Math.round(rate * 100);
   });
+
+  /** Le nombre d'imprévus surmontés : « 4 sur 6 » se lit mieux qu'un taux. */
+  protected readonly survived = computed(
+    () => (this.report()?.events ?? []).filter((event) => event.outcome?.survives).length,
+  );
+
+  protected amount(value: number): string {
+    return Math.round(value).toLocaleString('fr-FR');
+  }
 }

@@ -2,6 +2,7 @@ import logger from '../../config/logger';
 import { ProjectModel } from '../../models/project.model';
 import { LLMProvider, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
+import { isRateLimited } from '../../utils/retry';
 import { SvgToPsdService } from '../svgToPsd.service';
 import * as fs from 'fs-extra';
 
@@ -3383,7 +3384,10 @@ export class BrandingService extends GenericService {
             `Streamed logo concept ${index + 1} failed with model ${currentModel}:`,
             error
           );
-          if (modelIndex === modelsToTry.length - 1) {
+          // Sur un 429, `runPrompt` a déjà parcouru toute la chaîne de repli en
+          // respectant l'attente de quota : la rejouer ici multiplie les appels
+          // contre un quota partagé sans aucune chance de passer.
+          if (modelIndex === modelsToTry.length - 1 || isRateLimited(error)) {
             try {
               await streamCallback({
                 type: 'concept_error',

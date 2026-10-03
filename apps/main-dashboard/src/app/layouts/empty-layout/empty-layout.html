@@ -6,7 +6,7 @@
   désormais le composant partagé, avec les commandes de barre latérale
   désactivées puisqu'il n'y en a pas ici.
 -->
-<app-topbar />
+<app-topbar [minimal]="minimalTopbar()" />
 
 <div class="pt-20 min-h-screen pb-10">
   <router-outlet></router-outlet>

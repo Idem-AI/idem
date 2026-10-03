@@ -708,7 +708,9 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/create-project/create-project').then(
         (m) => m.CreateProjectComponent,
       ),
-    data: { layout: 'empty' },
+    // Comme l'écran de connexion : le profil seul en haut à droite, sans
+    // crédits ni barre, et sans le dock de changement de mode.
+    data: { layout: 'empty', topbar: 'minimal', modeDock: false },
   },
   // 404 Not Found route
   {

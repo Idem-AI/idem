@@ -17,21 +17,21 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
   template: `
     <div>
       <div class="mb-5 flex items-baseline justify-between gap-4">
-        <p class="text-label font-medium text-ink-muted" role="status" aria-live="polite">
+        <p class="text-sm font-medium text-text-secondary" role="status" aria-live="polite">
           {{ 'stage.' + activeStageId() | translate }}
         </p>
-        <span class="text-label tabular-nums text-ink-subtle">{{ progress().percent }} %</span>
+        <span class="text-sm tabular-nums text-text-tertiary">{{ progress().percent }} %</span>
       </div>
 
       <div
-        class="mb-6 h-1 w-full overflow-hidden rounded-full bg-panel-sunken"
+        class="mb-6 h-1 w-full overflow-hidden rounded-full bg-[var(--glass-bg-subtle)]"
         role="progressbar"
         [attr.aria-valuenow]="progress().percent"
         aria-valuemin="0"
         aria-valuemax="100"
       >
         <div
-          class="h-full rounded-full bg-brand transition-[width] duration-500 ease-[var(--ease-out-quint)]"
+          class="h-full rounded-full bg-primary transition-[width] duration-500 ease-[var(--ease-out-quint)]"
           [style.width.%]="progress().percent"
         ></div>
       </div>
@@ -42,7 +42,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
             @if (!$last) {
               <span
                 class="absolute left-[0.4375rem] top-4 bottom-0 w-px"
-                [class]="stage.state === 'done' ? 'bg-brand/50' : 'bg-line'"
+                [class]="stage.state === 'done' ? 'bg-primary/50' : 'bg-[var(--glass-border)]'"
                 aria-hidden="true"
               ></span>
             }
@@ -50,7 +50,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
             <span class="relative mt-0.5 grid size-3.5 shrink-0 place-items-center" aria-hidden="true">
               @switch (stage.state) {
                 @case ('done') {
-                  <svg viewBox="0 0 14 14" class="size-3.5 text-brand" fill="currentColor">
+                  <svg viewBox="0 0 14 14" class="size-3.5 text-primary-500" fill="currentColor">
                     <circle cx="7" cy="7" r="7" opacity="0.18" />
                     <path
                       d="m4 7.2 2 2L10 5"
@@ -66,10 +66,10 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
                   <idem-loader size="xs" />
                 }
                 @case ('failed') {
-                  <span class="size-2 rounded-full bg-verdict-stop"></span>
+                  <span class="size-2 rounded-full bg-danger"></span>
                 }
                 @default {
-                  <span class="size-2 rounded-full border border-line-strong"></span>
+                  <span class="size-2 rounded-full border border-[var(--glass-border-strong)]"></span>
                 }
               }
             </span>
@@ -77,12 +77,12 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
             <div class="min-w-0 flex-1">
               <p
                 class="text-sm font-medium"
-                [class]="stage.state === 'pending' ? 'text-ink-subtle' : 'text-ink'"
+                [class]="stage.state === 'pending' ? 'text-text-tertiary' : 'text-text-primary'"
               >
                 {{ 'stage.' + stage.id | translate }}
               </p>
               @if (stage.note && stage.state !== 'pending') {
-                <p class="mt-0.5 text-meta text-ink-subtle">{{ stage.note }}</p>
+                <p class="mt-0.5 text-xs text-text-tertiary">{{ stage.note }}</p>
               }
             </div>
           </li>

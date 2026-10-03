@@ -3,8 +3,7 @@
     "colorSelection": {
       "generating": {
         "title": "Generating Color Palettes...",
-        "whileYouWait": "While you wait...",
-        "tip": "Our AI is analyzing your project requirements to create harmonious color palettes that reflect your brand's personality and target audience. This process ensures each palette is optimized for accessibility and visual impact."
+        "subtitle": "IDEM is preparing three palettes from your project."
       },
       "errors": {
         "title": "Generation Failed",
@@ -12,12 +11,13 @@
         "noOptions": "No typography options available. Please go back to the color selection step."
       },
       "success": {
-        "title": "Select Your Brand Colors",
-        "subtitle": "Choose the color palette that best represents your brand's personality and values.",
-        "greatChoice": "Great choice! Click Next to continue to the next step."
+        "title": "Your colours",
+        "subtitle": "Pick a palette. You can fine-tune each colour afterwards.",
+        "selected": "Selected",
+        "choose": "Choose"
       },
       "buttons": {
-        "customize": "Customize Selected Colors"
+        "customize": "Adjust colours"
       },
       "tooltips": {
         "primary": "Primary Color",
@@ -26,14 +26,23 @@
         "background": "Background Color"
       },
       "preview": {
-        "sampleText": "Sample Text",
+        "sampleText": "This is how your brand will look.",
         "primary": "Primary",
-        "accent": "Accent"
+        "accent": "Accent",
+        "button": "Get started",
+        "link": "Learn more"
       },
       "auth": {
         "header": "Authentication Required",
         "title": "Please Sign In",
         "message": "You need to be authenticated to generate color palettes. Please sign in to continue."
+      },
+      "swatches": {
+        "primary": "Primary",
+        "secondary": "Secondary",
+        "accent": "Accent",
+        "background": "Background",
+        "text": "Text"
       }
     }
   }

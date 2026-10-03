@@ -6,38 +6,42 @@
     "back": "Retour",
     "retry": "Réessayer",
     "dismiss": "Fermer",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "continue": "Continuer",
+    "seeMore": "Voir le détail",
+    "seeLess": "Masquer le détail"
   },
   "nav": {
     "main": "Navigation principale",
-    "simulations": "Simulations",
+    "simulations": "Mes simulations",
     "backToIdem": "Retour à IDEM",
-    "account": "Compte",
+    "account": "Mon compte",
     "new": "Nouvelle simulation",
     "openMenu": "Ouvrir le menu",
     "closeMenu": "Fermer le menu",
     "toggleSidebar": "Replier ou déplier la navigation",
-    "overview": "Vue d'ensemble",
-    "understanding": "Compréhension",
-    "factors": "Facteurs",
-    "scenarios": "Scénarios",
-    "financials": "Finances",
-    "report": "Rapport",
-    "compare": "Comparaison",
+    "overview": "Le résultat",
+    "understanding": "Votre projet",
+    "factors": "Les points clés",
+    "scenarios": "Situations testées",
+    "financials": "Votre argent",
+    "report": "Le rapport",
+    "compare": "Avant / après",
     "group": {
-      "analysis": "Analyse",
-      "labs": "Laboratoires",
-      "deliverables": "Livrables"
+      "result": "Votre résultat",
+      "more": "Tests en plus",
+      "share": "À garder"
     },
     "lab": {
-      "redTeam": "Attaquer le projet",
-      "customers": "Simulateur de clients",
-      "investors": "Simulateur d'investisseurs",
-      "blackSwan": "Cygnes noirs",
-      "universes": "Univers parallèles",
-      "timeMachine": "Machine à remonter le temps",
-      "experiments": "Expériences à mener"
-    }
+      "redTeam": "Les points faibles",
+      "customers": "L'avis des clients",
+      "investors": "L'avis des investisseurs",
+      "blackSwan": "Les imprévus",
+      "universes": "D'autres façons de vendre",
+      "timeMachine": "Votre projet dans 5 ans",
+      "experiments": "Ce qu'il faut vérifier"
+    },
+    "labs": "Aller plus loin"
   },
   "theme": {
     "switchToLight": "Passer en thème clair",
@@ -63,102 +67,115 @@
     "failedBody": "Votre session IDEM n'a pas pu être confirmée. Connectez-vous pour continuer."
   },
   "error": {
-    "loadFailed": "Chargement impossible"
+    "loadFailed": "Impossible d'afficher cette page",
+    "loadFailedBody": "Vérifiez votre connexion internet, puis réessayez."
   },
   "status": {
     "running": "En cours"
   },
   "list": {
-    "heading": "Simulations",
-    "description": "Chaque simulation met un projet à l'épreuve : elle cherche les facteurs qui peuvent l'influencer, teste des scénarios et identifie les points de rupture.",
+    "heading": "Mes simulations",
+    "description": "Chaque simulation met votre projet face à des situations bonnes et mauvaises, pour savoir s'il tient la route.",
     "newRun": "Nouvelle simulation",
-    "loading": "Chargement des simulations",
+    "loading": "Chargement de vos simulations",
     "running": "En cours",
-    "completed": "Terminées",
+    "runningHint": "Nous testons votre projet. Cela prend environ 5 minutes.",
+    "follow": "Suivre",
+    "completed": "Mes résultats",
+    "failed": "Interrompue",
     "revision": "Version {{revision}}",
-    "reportAvailable": "Rapport",
+    "reportAvailable": "Rapport prêt",
+    "scoreLabel": "Note de solidité : {{value}} sur 100",
     "empty": {
-      "heading": "Aucune simulation pour le moment",
-      "body": "Sélectionnez un projet IDEM ou importez votre business plan. Le simulateur analyse d'abord ce qu'il sait de votre projet, avant toute facturation.",
-      "action": "Lancer une simulation"
+      "heading": "Vous n'avez encore testé aucun projet",
+      "body": "Choisissez un de vos projets IDEM ou envoyez votre business plan. En quelques minutes, vous saurez si votre projet tient la route et quoi améliorer.",
+      "action": "Tester mon projet"
     }
   },
   "newRun": {
     "title": "Nouvelle simulation",
     "heading": "Nouvelle simulation",
-    "description": "Quatre étapes : choisir le projet, valider ce que le moteur en sait, choisir le niveau de simulation, puis confirmer.",
+    "description": "Quatre étapes simples.",
     "step": {
-      "source": "Projet",
-      "analysis": "Analyse",
-      "plan": "Niveau",
-      "confirm": "Confirmation"
+      "source": "Votre projet",
+      "analysis": "Vérification",
+      "plan": "Formule",
+      "confirm": "Lancement"
     },
     "source": {
       "project": "Un projet IDEM",
-      "projectBody": "Le business plan, l'analyse de marché et les prévisions financières sont déjà disponibles. Tarif préférentiel.",
+      "projectBody": "Vous avez déjà créé votre projet sur IDEM : nous partons de ce qu'il contient.",
       "import": "Mon business plan",
-      "importBody": "Importez votre business plan. Le moteur en extrait l'activité, le marché, le modèle économique et les coûts — et crée le projet IDEM correspondant.",
-      "noProjects": "Aucun projet IDEM disponible sur ce compte.",
-      "assets": "{{count}} livrables",
-      "dropFile": "Choisir un fichier",
+      "importBody": "Envoyez votre business plan (PDF ou Word). Nous le lisons pour vous et créons votre projet IDEM.",
+      "noProjects": "Vous n'avez pas encore de projet sur IDEM. Choisissez plutôt « Mon business plan ».",
+      "assets": "{{count}} document(s) déjà prêts",
+      "pickProject": "Quel projet voulez-vous tester ?",
+      "dropFile": "Choisir mon fichier",
       "formats": "PDF, Word (.docx) ou Markdown — 20 Mo maximum",
       "signInHeading": "Connectez-vous pour voir vos projets",
-      "signInBody": "La liste de vos projets IDEM demande votre compte. Vous pouvez aussi importer un business plan sans compte, et vous connecter au moment de lancer l'analyse.",
-      "replaceFile": "Cliquez pour remplacer le document",
-      "unsupportedFormat": "Format non pris en charge. Importez votre business plan en PDF, Word (.docx) ou Markdown (.md)."
+      "signInBody": "Vos projets IDEM sont liés à votre compte. Vous pouvez aussi envoyer un business plan et vous connecter plus tard.",
+      "replaceFile": "Changer de fichier",
+      "fileReady": "Fichier prêt",
+      "unsupportedFormat": "Ce type de fichier n'est pas accepté. Envoyez un PDF, un fichier Word (.docx) ou Markdown (.md)."
     },
-    "analyse": "Analyser le projet",
-    "analysing": "Lecture du projet en cours",
-    "analysingBody": "Le moteur construit une représentation structurée du projet avant de simuler quoi que ce soit.",
-    "analysisFailed": "L'analyse du projet a échoué",
-    "profile": "Profil du projet",
-    "knowledge": "Ce que le moteur sait",
-    "knowledgeBody": "Avant toute simulation, le moteur sépare ce qui est établi de ce qu'il doit rechercher, de ce qui reste incertain et de ce qui manque. Cette distinction conditionne le niveau de confiance des résultats.",
-    "fillGaps": "Compléter les informations manquantes",
-    "fillGapsBody": "Facultatif, mais chaque réponse réduit l'incertitude des scénarios.",
+    "analyse": "Lire mon projet",
+    "analysing": "Nous lisons votre projet…",
+    "analysingBody": "Cela prend environ une minute. Restez sur cette page.",
+    "analysisFailed": "Nous n'avons pas pu lire votre projet",
+    "profile": "Voici ce que nous avons compris",
+    "knowledge": "Les informations utilisées",
+    "knowledgeBody": "Plus il y a d'informations sûres, plus le résultat sera fiable. Touchez une ligne pour voir le détail.",
+    "fillGaps": "Vous pouvez nous aider",
+    "fillGapsBody": "Ces informations manquent. Répondez si vous savez. Sinon, laissez vide : nous ferons une estimation.",
     "optional": "Facultatif",
-    "continueToPlan": "Continuer",
+    "continueToPlan": "C'est bien mon projet",
     "plan": {
-      "heading": "Niveau de simulation",
-      "body": "La simulation est facturée séparément du reste d'IDEM : elle mobilise des recherches externes, plusieurs agents et des calculs. Le montant est confirmé avant le lancement.",
-      "idemDiscount": "Tarif préférentiel appliqué : ce projet vient d'IDEM, le moteur a déjà accès à ses livrables.",
-      "recommended": "Recommandé",
+      "heading": "Choisissez votre formule",
+      "body": "La simulation fait des recherches sur votre marché et beaucoup de calculs. Le prix est affiché avant de lancer.",
+      "idemDiscount": "Prix réduit : votre projet vient d'IDEM.",
+      "recommended": "Conseillé",
       "betaBadge": "Bêta",
-      "betaBody": "La simulation mobilise des recherches externes, plusieurs agents et des calculs. Pendant la bêta, IDEM en prend le coût à sa charge.",
+      "betaBody": "Pendant la bêta, IDEM vous offre la simulation.",
       "betaFreeLead": "Gratuit pendant la bêta.",
-      "betaNotice": "Quel que soit le niveau choisi, cette simulation ne vous sera pas facturée. Les tarifs indiqués s'appliqueront à la sortie de bêta.",
+      "betaNotice": "Quelle que soit la formule choisie, vous ne payez rien. Les prix affichés s'appliqueront plus tard.",
       "free": "Gratuit",
-      "priceAfterBeta": "Tarif après la bêta :",
-      "continue": "Choisir ce niveau"
+      "priceAfterBeta": "Prix après la bêta :",
+      "continue": "Continuer"
     },
     "launch": "Lancer la simulation",
     "launching": "Lancement…",
-    "launchFailed": "Le lancement a échoué",
-    "pricingFailed": "Impossible de charger les tarifs",
+    "launchFailed": "La simulation n'a pas pu démarrer",
+    "pricingFailed": "Impossible d'afficher les prix",
     "noProject": "Choisissez d'abord un projet.",
     "hero": {
-      "heading": "Mettez votre projet à l'épreuve avant de le lancer.",
-      "subheading": "Le moteur cherche les facteurs qui peuvent faire basculer votre activité, les met sous tension, et vous dit où votre modèle casse. Commencez par ce que vous avez déjà.",
+      "heading": "Votre projet tient-il la route ?",
+      "subheading": "Avant d'investir votre argent, testez votre projet. Nous le mettons face à des situations difficiles et nous vous disons simplement s'il tient, et quoi améliorer.",
+      "question": "Par quoi voulez-vous commencer ?",
+      "how": {
+        "1": "Vous nous donnez votre projet",
+        "2": "Nous le testons dans des dizaines de situations",
+        "3": "Vous recevez une note sur 100 et des conseils"
+      },
       "choose": "Choisir",
-      "selected": "Sélectionné",
+      "selected": "Choisi",
       "trustedBy": "Ils nous font confiance",
-      "note": "Une simulation est un outil d'aide à la décision, jamais une prédiction. Chaque résultat est accompagné de son degré de confiance."
+      "note": "Une simulation vous aide à décider. Elle ne prédit pas l'avenir."
     },
     "confirm": {
-      "heading": "Vérifiez avant de lancer",
-      "body": "L'exécution dure quelques minutes et ne peut pas être reprise en cours de route. Voici ce sur quoi elle va travailler, et ce qu'elle vous rendra.",
-      "project": "Ce qui va être simulé",
-      "deliverable": "Ce que vous recevrez",
+      "heading": "Tout est prêt",
+      "body": "Vérifiez, acceptez les conditions, puis lancez.",
+      "project": "Le projet testé",
+      "deliverable": "Votre formule",
       "sourceProject": "Projet IDEM :",
-      "sourceDocument": "Business plan :",
-      "established": "établis",
-      "researched": "à rechercher",
-      "assumed": "estimés",
-      "answered": "{{count}} information(s) que vous avez complétée(s) à l'étape précédente.",
-      "createsProject": "Le projet IDEM correspondant sera créé dans votre espace, à partir de ce que le document a livré.",
-      "duration": "Quelques minutes. L'exécution continue si vous fermez la page, et rien n'est retenu si elle échoue.",
-      "changeTier": "Changer de niveau",
-      "knowledge": "Ce sur quoi le moteur s'appuiera :"
+      "sourceDocument": "Document :",
+      "established": "infos sûres",
+      "researched": "à chercher",
+      "assumed": "estimées",
+      "answered": "Vous avez ajouté {{count}} information(s). Merci !",
+      "createsProject": "Nous créerons aussi votre projet dans IDEM à partir de votre document.",
+      "duration": "Environ 5 minutes. Vous pouvez fermer la page : la simulation continue sans vous.",
+      "changeTier": "Changer de formule",
+      "knowledge": "Informations utilisées :"
     },
     "payment": {
       "heading": "Paiement",
@@ -168,7 +185,9 @@
       "confirmed": "Paiement confirmé. Votre simulation peut démarrer.",
       "failed": "Le paiement n'a pas abouti. Vous pouvez réessayer, rien n'a été débité.",
       "reused": "Ce règlement a déjà lancé une simulation. Un nouveau paiement est nécessaire."
-    }
+    },
+    "stepOf": "Étape {{current}} sur {{total}}",
+    "profileBody": "Vérifiez que c'est bien votre projet. Si quelque chose est faux, corrigez-le dans votre projet ou votre document, puis recommencez."
   },
   "tier": {
     "run": "Simulation",
@@ -176,270 +195,276 @@
     "pack": "Simulation + rapport"
   },
   "tierBody": {
-    "run": "Les scénarios, les facteurs déterminants et l'indice de viabilité.",
-    "report": "L'analyse détaillée et les recommandations, à partir d'une simulation déjà réalisée.",
-    "pack": "La simulation et son rapport complet, moins cher que les deux séparément."
+    "run": "Votre note sur 100, les points clés et les situations testées.",
+    "report": "Le rapport détaillé avec nos conseils, pour une simulation déjà faite.",
+    "pack": "La simulation et le rapport détaillé avec nos conseils. Le plus complet."
   },
   "pricing": {
     "includes": {
-      "scenarios": "Scénarios, stress tests et points de rupture",
-      "factors": "Facteurs identifiés et classés par impact",
-      "index": "Indice de viabilité, robustesse et niveau de confiance",
-      "report": "Rapport complet section par section",
-      "sensitivity": "Analyse de sensibilité et conditions de viabilité",
-      "recommendations": "Recommandations priorisées"
+      "scenarios": "Votre projet testé dans de nombreuses situations",
+      "factors": "Ce qui compte le plus pour réussir",
+      "index": "Une note sur 100 facile à comprendre",
+      "report": "Un rapport complet à télécharger (PDF)",
+      "sensitivity": "Les objectifs à atteindre pour tenir",
+      "recommendations": "Des conseils classés par priorité"
     }
   },
   "stage": {
-    "understand": "Lecture du projet",
-    "discover-factors": "Découverte des facteurs",
-    "research": "Recherche des données externes",
-    "model": "Construction du modèle",
-    "simulate": "Exécution des scénarios",
-    "analyse": "Analyse des résultats"
+    "understand": "Lecture de votre projet",
+    "discover-factors": "Recherche de ce qui compte pour réussir",
+    "research": "Recherche d'informations sur votre marché",
+    "model": "Préparation des calculs",
+    "simulate": "Test des situations, bonnes et mauvaises",
+    "analyse": "Préparation de vos résultats"
   },
   "run": {
     "title": "Simulation en cours",
-    "description": "La simulation continue même si vous fermez cette page. Vous serez redirigé dès que les résultats sont prêts.",
-    "failed": "La simulation s'est interrompue",
-    "failedBody": "Aucun montant n'est retenu pour une simulation qui n'aboutit pas. Relancez-la depuis la liste.",
-    "resumeHint": "L'analyse peut être reprise depuis l'étape où elle s'est arrêtée. Vos données déjà acquises sont conservées.",
+    "heading": "Nous testons votre projet",
+    "description": "La simulation continue même si vous fermez cette page.",
+    "body": "Cela prend environ 5 minutes. Vous pouvez fermer cette page : nous continuons sans vous, et le résultat vous attendra ici.",
+    "failed": "La simulation s'est arrêtée",
+    "failedBody": "Rien ne vous est facturé pour une simulation qui n'aboutit pas.",
+    "resumeHint": "Pas d'inquiétude : nous pouvons reprendre là où elle s'est arrêtée. Rien n'est perdu.",
     "resume": "Reprendre la simulation",
-    "resuming": "Reprise en cours…",
-    "resumeFailed": "La reprise a échoué",
-    "body": "L'analyse mobilise plusieurs agents et prend quelques minutes. Vous pouvez fermer cet écran : l'exécution continue.",
-    "inProgress": "En cours — {{percent}} %"
+    "resuming": "Reprise…",
+    "resumeFailed": "La reprise n'a pas fonctionné",
+    "inProgress": "En cours — {{percent}} %",
+    "technicalDetail": "Détail technique (pour l'assistance)"
   },
   "knowledge": {
-    "known": "Ce que nous savons",
-    "researchable": "Ce qui doit être recherché",
-    "uncertain": "Ce qui est incertain",
+    "known": "Ce que vous nous avez donné",
+    "researchable": "Ce que nous allons chercher",
+    "uncertain": "Ce que nous avons estimé",
     "missing": "Ce qui manque",
-    "extras": "Autres informations relevées",
-    "extrasHint": "Ce que votre document précise et qu'aucune fiche standard ne prévoit. Rien n'est écarté : ces éléments partent au moteur avec le reste."
+    "extras": "Autres informations trouvées",
+    "extrasHint": "Ces informations de votre document sont aussi utilisées."
   },
   "knowledgeHint": {
-    "knownDocument": "Lu tel quel dans votre business plan. Rien n'est ajouté ici ; ce que le moteur a estimé se trouve plus bas.",
-    "knownProject": "Renseigné tel quel dans votre projet IDEM. Ce que le moteur a estimé se trouve plus bas.",
-    "researchable": "Chiffres publiés que le moteur ira chercher pour ancrer la simulation dans votre marché.",
-    "uncertain": "Estimé par le moteur, faute de valeur dans la source. Chaque ligne dit sur quoi repose l'estimation et ce qui permettrait de trancher.",
-    "missing": "Absent de la source, et susceptible de déplacer les résultats. Vous pouvez le renseigner vous-même."
+    "knownDocument": "Lu tel quel dans votre business plan.",
+    "knownProject": "Lu tel quel dans votre projet IDEM.",
+    "researchable": "Nous irons chercher ces chiffres pour votre marché.",
+    "uncertain": "Votre projet ne le disait pas : nous avons fait une estimation.",
+    "missing": "Ces informations peuvent changer le résultat."
   },
   "profile": {
-    "sector": "Secteur",
-    "businessModel": "Modèle économique",
-    "product": "Produit",
-    "targetCustomer": "Clientèle visée",
-    "market": "Marché",
-    "location": "Localisation",
+    "sector": "Activité",
+    "businessModel": "Comment vous gagnez de l'argent",
+    "product": "Ce que vous vendez",
+    "targetCustomer": "Vos clients",
+    "market": "Votre marché",
+    "location": "Où",
     "pricePoint": "Prix",
     "plannedFunding": "Financement prévu",
     "teamSize": "Équipe"
   },
   "result": {
-    "index": "Indice de viabilité simulé",
-    "indexMeaning": "Cet indice mesure la robustesse du projet dans les scénarios étudiés. Il ne constitue pas une prédiction de réussite.",
-    "gaugeLabel": "Indice de viabilité simulé : {{value}} sur 100",
-    "robustness": "Robustesse",
-    "confidence": "Confiance",
-    "scenarioRange": "De {{min}} à {{max}} selon les scénarios",
-    "strengths": "Points forts",
-    "weaknesses": "Points faibles",
-    "uncertainties": "Principales incertitudes",
-    "uncertaintiesHint": "Un indice élevé assorti de fortes incertitudes ne vaut pas le même indice appuyé sur des données solides.",
-    "factors": "Facteurs analysés",
-    "factorsBody": "{{total}} facteurs ont été identifiés comme potentiellement pertinents pour ce projet, puis classés selon leur impact possible.",
-    "criticalFactors": "Facteurs critiques",
-    "scenarios": "Scénarios",
-    "scenariosBody": "{{total}} scénarios ont été exécutés. Le modèle ne tient pas dans {{broken}} d'entre eux.",
-    "risks": "Risques identifiés",
-    "shockResistance": "Résistance aux chocs",
-    "dataConfidence": "Fiabilité des données",
-    "indexCeiling": "Indice plafonné à {{ceiling}} sur 100 : une simulation évalue un modèle sous des scénarios choisis, jamais une certitude."
+    "index": "Note de solidité",
+    "indexMeaning": "Plus la note est haute, mieux votre projet résiste aux situations difficiles. Elle ne monte jamais à 100 : rien n'est certain.",
+    "gaugeLabel": "Note de solidité : {{value}} sur 100",
+    "outOf": "sur 100",
+    "robustness": "Résistance aux coups durs",
+    "confidence": "Fiabilité",
+    "scenarioRange": "Selon les situations, la note va de {{min}} à {{max}}",
+    "strengths": "Ce qui est solide",
+    "weaknesses": "Ce qui est fragile",
+    "uncertainties": "Ce qu'il reste à vérifier",
+    "uncertaintiesHint": "Ces points ne sont pas encore sûrs. Les vérifier rendra le résultat plus fiable.",
+    "scenariosBody": "Nous avons testé {{total}} situations. Votre projet ne tient pas dans {{broken}} d'entre elles.",
+    "risks": "Les problèmes à régler",
+    "risksBody": "Du plus grave au moins grave, avec notre conseil pour chacun.",
+    "shockResistance": "Résistance",
+    "dataConfidence": "Fiabilité",
+    "indexCeiling": "La note ne monte jamais à 100 : aucune simulation n'est une certitude."
   },
   "results": {
-    "title": "Résultats",
-    "compare": "Comparer les versions",
-    "openReport": "Ouvrir le rapport",
-    "getReport": "Obtenir le rapport complet",
+    "title": "Résultat",
+    "compare": "Comparer avec la version d'avant",
+    "openReport": "Voir le rapport",
+    "getReport": "Obtenir le rapport",
     "unlocking": "Préparation…",
-    "reportFailed": "Le rapport n'a pas pu être généré",
-    "notReady": "Les résultats de cette simulation ne sont pas encore disponibles.",
+    "reportFailed": "Le rapport n'a pas pu être créé",
+    "notReady": "Le résultat n'est pas encore prêt.",
     "followRun": "Suivre la simulation",
     "upsell": {
-      "heading": "Comprendre pourquoi ces scénarios apparaissent",
-      "body": "Le rapport complet détaille les hypothèses utilisées, l'analyse de sensibilité, les conditions nécessaires à la viabilité et les recommandations à appliquer en priorité."
+      "heading": "Le rapport complet",
+      "body": "Il explique chaque résultat et donne des conseils concrets, classés par priorité. Vous pouvez le télécharger en PDF."
     }
   },
   "verdict": {
-    "go": "Le modèle tient",
-    "go-with-conditions": "Le modèle tient, sous conditions",
-    "no-go": "Le modèle ne tient pas"
+    "go": "Votre projet tient la route",
+    "go-with-conditions": "Votre projet tient, à certaines conditions",
+    "no-go": "Votre projet est encore fragile"
   },
   "robustness": {
     "low": "Faible",
     "medium": "Moyenne",
-    "high": "Élevée"
+    "high": "Forte"
   },
   "confidence": {
     "low": "Faible",
-    "medium": "Moyen",
-    "high": "Élevé"
+    "medium": "Moyenne",
+    "high": "Bonne"
   },
   "evidenceKind": {
-    "data": "Donnée",
+    "data": "Chiffre vérifié",
     "estimate": "Estimation",
-    "assumption": "Hypothèse"
+    "assumption": "Supposition"
   },
   "factorTier": {
-    "critical": "Critiques",
+    "critical": "Décisifs",
     "important": "Importants",
-    "secondary": "Secondaires",
-    "unknown": "Incertains"
+    "secondary": "Moins importants",
+    "unknown": "Pas encore clairs"
   },
   "factorTierHint": {
-    "critical": "Impact potentiel très élevé sur les résultats simulés.",
-    "important": "Impact significatif, sans être déterminant à lui seul.",
-    "secondary": "Impact limité dans les scénarios étudiés.",
-    "unknown": "Informations insuffisantes pour estimer l'impact de façon fiable."
+    "critical": "Ils peuvent faire réussir ou échouer votre projet.",
+    "important": "Ils comptent beaucoup, sans décider seuls.",
+    "secondary": "Ils changent peu le résultat.",
+    "unknown": "Il manque des informations pour savoir s'ils comptent."
   },
   "severity": {
-    "critical": "Critique",
-    "high": "Élevé",
-    "moderate": "Modéré",
+    "critical": "Très grave",
+    "high": "Grave",
+    "moderate": "À surveiller",
     "important": "Important",
-    "secondary": "Secondaire"
+    "secondary": "Mineur"
   },
   "impact": {
     "low": "Faible",
     "medium": "Moyen",
-    "high": "Élevé"
+    "high": "Fort"
   },
   "priority": {
-    "low": "Basse",
-    "medium": "Moyenne",
-    "high": "Haute",
-    "critical": "Critique"
+    "low": "Plus tard",
+    "medium": "Bientôt",
+    "high": "Rapidement",
+    "critical": "Tout de suite"
   },
   "scenario": {
-    "name": "Scénario",
+    "name": "Situation",
     "kind": "Type",
-    "viability": "Indice",
-    "breakEven": "Point mort",
-    "runway": "Trésorerie",
-    "holds": "Le modèle tient",
-    "holdsYes": "Oui",
-    "holdsNo": "Non",
-    "never": "Jamais atteint",
+    "viability": "Note",
+    "breakEven": "Premiers bénéfices",
+    "runway": "Votre caisse tient",
+    "holds": "Résultat",
+    "holdsYes": "Votre projet tient",
+    "holdsNo": "Votre projet ne tient pas",
+    "never": "Jamais",
+    "enough": "Toujours",
     "monthN": "Mois {{month}}",
     "monthsN": "{{months}} mois",
-    "notComputed": "Non calculé"
+    "notComputed": "Pas calculé",
+    "changes": "Ce qui change dans cette situation",
+    "whatHappens": "Ce qui se passe"
   },
   "scenarioKind": {
-    "baseline": "Référence",
-    "favourable": "Favorable",
-    "adverse": "Défavorable",
-    "stress": "Stress test",
-    "extreme": "Extrême"
+    "baseline": "Situation normale",
+    "favourable": "Situation favorable",
+    "adverse": "Situation difficile",
+    "stress": "Coup dur",
+    "extreme": "Situation extrême"
   },
   "report": {
-    "title": "Rapport",
+    "title": "Rapport de simulation",
     "heading": "Rapport de simulation — {{name}}",
-    "generatedOn": "Généré le",
+    "generatedOn": "Créé le",
     "contents": "Sommaire",
-    "backToResults": "Retour aux résultats",
-    "unavailable": "Rapport indisponible",
-    "unavailableBody": "Ce rapport n'a pas encore été généré pour cette simulation.",
+    "backToResults": "Retour au résultat",
+    "unavailable": "Le rapport n'est pas encore prêt",
+    "unavailableBody": "Ce rapport n'a pas encore été créé pour cette simulation. Vous pouvez l'obtenir depuis la page du résultat.",
     "section": {
-      "summary": "Résumé exécutif",
-      "profile": "Profil du projet",
-      "factors": "Facteurs analysés",
-      "scenarios": "Scénarios",
-      "financials": "Résultats financiers",
-      "sensitivity": "Analyse de sensibilité",
-      "conditions": "Conditions de viabilité",
-      "recommendations": "Recommandations",
-      "evidence": "Données et hypothèses",
-      "validation": "À valider dans le monde réel",
-      "issues": "Problèmes et réponses"
+      "summary": "L'essentiel",
+      "profile": "Votre projet",
+      "factors": "Les points clés",
+      "scenarios": "Les situations testées",
+      "financials": "Votre argent",
+      "sensitivity": "Ce qui fait bouger la note",
+      "conditions": "Les objectifs à atteindre",
+      "recommendations": "Nos conseils",
+      "evidence": "Nos sources",
+      "validation": "À vérifier sur le terrain",
+      "issues": "Problèmes et solutions"
     },
     "factors": {
-      "body": "{{total}} facteurs ont été retenus comme potentiellement pertinents pour ce projet, puis classés selon leur impact possible sur les résultats."
+      "body": "Nous avons trouvé {{total}} points qui peuvent influencer votre projet, du plus important au moins important."
     },
     "financials": {
-      "body": "Ces chiffres sont des projections issues des scénarios simulés, et non des prévisions garanties.",
-      "burnRate": "Consommation mensuelle",
-      "capitalRequired": "Capital nécessaire",
-      "breakEvenMonth": "Point mort",
-      "runway": "Autonomie",
-      "chartTitle": "Trésorerie cumulée",
-      "chartLabel": "Évolution de la trésorerie cumulée mois par mois",
-      "chartCaption": "Trésorerie cumulée en {{currency}}, scénario de référence",
+      "body": "Ces chiffres sont des estimations, pas des promesses.",
+      "burnRate": "Dépenses nettes par mois",
+      "capitalRequired": "Argent nécessaire au départ",
+      "breakEvenMonth": "Premiers bénéfices",
+      "runway": "Votre caisse tient",
+      "chartTitle": "L'argent dans votre caisse, mois après mois",
+      "chartLabel": "Évolution de l'argent en caisse, mois par mois",
+      "chartCaption": "Argent en caisse ({{currency}}), situation normale",
       "monthShort": "M{{month}}",
-      "breakEven": "Point mort"
+      "breakEven": "Premiers bénéfices"
     },
     "sensitivity": {
-      "body": "Ce que chaque variation change réellement sur l'indice de viabilité, tous les autres facteurs restant constants.",
-      "unit": "Écart exprimé en points d'indice de viabilité."
+      "body": "Si un seul chiffre change, voici ce que gagne ou perd votre note.",
+      "unit": "En points, sur la note de 100."
     },
     "conditions": {
-      "body": "La viabilité du modèle dépend des seuils suivants. {{unmet}} ne sont pas atteints aujourd'hui.",
-      "condition": "Condition",
-      "required": "Seuil requis",
-      "current": "Valeur actuelle",
+      "body": "Pour que votre projet tienne, ces objectifs doivent être atteints. {{unmet}} ne le sont pas encore.",
+      "condition": "Objectif",
+      "required": "À atteindre",
+      "current": "Aujourd'hui",
       "status": "État",
       "met": "Atteint",
-      "unmet": "Non atteint",
-      "unknown": "Inconnu"
+      "unmet": "Pas encore",
+      "unknown": "On ne sait pas"
     },
     "recommendation": {
-      "impact": "Impact attendu",
-      "priority": "Priorité"
+      "impact": "Effet attendu",
+      "priority": "Quand"
     },
     "evidence": {
-      "body": "Chaque valeur utilisée est identifiée comme donnée observée, estimation dérivée ou hypothèse, avec sa source lorsqu'elle existe."
+      "body": "D'où viennent nos chiffres : vérifiés, estimés ou supposés."
     },
     "validation": {
-      "body": "La simulation réduit l'incertitude, elle ne la remplace pas. Ces points demandent une vérification sur le terrain."
+      "body": "Ces points restent à vérifier auprès de vrais clients, fournisseurs ou partenaires."
     },
     "download": "Télécharger le PDF",
-    "downloading": "Composition du PDF…",
-    "downloadFailed": "Le rapport n'a pas pu être généré.",
-    "downloadReport": "Télécharger le rapport",
+    "downloading": "Préparation du PDF…",
+    "downloadFailed": "Le PDF n'a pas pu être créé.",
+    "downloadReport": "Télécharger le rapport (PDF)",
     "issues": {
-      "body": "Chaque problème relevé par l'analyse porte, juste dessous, l'action qui y répond. Classés par gravité décroissante.",
-      "response": "Réponse",
-      "noResponse": "Aucune réponse dégagée par l'analyse : ce point reste ouvert et doit être arbitré.",
-      "otherActions": "Autres actions prioritaires",
-      "otherActionsBody": "Elles ne répondent à aucun des problèmes ci-dessus en particulier : elles renforcent le modèle dans son ensemble.",
-      "empty": "L'analyse n'a relevé aucun problème dans les scénarios testés."
+      "body": "Chaque problème est suivi de notre conseil. Du plus grave au moins grave.",
+      "response": "Notre conseil",
+      "noResponse": "Pas de solution évidente : à discuter avec votre équipe ou un conseiller.",
+      "otherActions": "Autres conseils",
+      "otherActionsBody": "Ils renforcent votre projet dans son ensemble.",
+      "empty": "Aucun problème trouvé dans les situations testées."
     }
   },
   "compare": {
-    "title": "Comparaison",
-    "heading": "Comparer deux versions",
-    "description": "Modifiez le projet, relancez la simulation, et mesurez ce qui change réellement.",
-    "previous": "Version {{revision}}",
-    "current": "Version {{revision}}",
-    "meaning": "Un indice plus élevé signifie que le modèle modifié résiste mieux aux scénarios étudiés. Il ne signifie pas que l'entreprise réussira.",
-    "flipped": "Scénarios dont l'issue a changé",
-    "nowHolds": "Le modèle tient désormais",
-    "nowBreaks": "Le modèle ne tient plus",
-    "noPrevious": "Cette simulation n'a pas de version antérieure à comparer.",
+    "title": "Avant / après",
+    "heading": "Avant / après",
+    "description": "Vous avez modifié votre projet ? Comparez la nouvelle note avec l'ancienne.",
+    "previous": "Avant (version {{revision}})",
+    "current": "Maintenant (version {{revision}})",
+    "better": "+{{delta}} points : votre projet résiste mieux",
+    "worse": "−{{delta}} points : votre projet résiste moins bien",
+    "meaning": "Une note plus haute veut dire que votre projet résiste mieux. Cela ne garantit pas sa réussite.",
+    "flipped": "Les situations qui ont changé",
+    "nowHolds": "Tient maintenant",
+    "nowBreaks": "Ne tient plus",
+    "noPreviousTitle": "Pas encore de version précédente",
+    "noPrevious": "Modifiez votre projet, puis relancez la simulation : vous pourrez comparer ici.",
     "relaunchHeading": "Relancer la simulation",
-    "relaunchBody": "Une nouvelle simulation reprend l'état actuel du projet et le confronte aux mêmes scénarios.",
+    "relaunchBody": "Nous testons à nouveau votre projet tel qu'il est aujourd'hui, avec les mêmes situations.",
     "relaunch": "Relancer la simulation"
   },
   "disclaimer": {
-    "heading": "Important",
-    "body": "Les résultats de cette simulation sont des estimations fondées sur les données, hypothèses et scénarios disponibles au moment de l'analyse. Un score élevé ne garantit ni la viabilité, ni la rentabilité, ni la survie à long terme de votre entreprise.",
-    "bothWays": "À l'inverse, un score faible ne signifie pas que le projet est impossible. Ces résultats sont un outil d'aide à la décision, pas une prédiction.",
-    "short": "Estimations issues des scénarios simulés. Ni une garantie, ni une prédiction."
+    "heading": "Bon à savoir",
+    "body": "Ces résultats sont des estimations faites avec les informations disponibles. Une bonne note ne garantit pas la réussite.",
+    "bothWays": "Une note basse ne veut pas dire que votre projet est impossible : elle montre ce qu'il faut améliorer.",
+    "short": "Ce sont des estimations, pas une garantie."
   },
   "notFound": {
-    "heading": "Page introuvable",
-    "body": "Ce lien ne correspond à aucune page du simulateur.",
-    "action": "Revenir aux simulations"
+    "heading": "Cette page n'existe pas",
+    "body": "Le lien est peut-être incomplet ou ancien. Revenez à vos simulations.",
+    "action": "Voir mes simulations"
   },
   "project": {
     "select": "Choisir un projet",
@@ -447,221 +472,276 @@
   },
   "origin": {
     "idem-project": "Projet IDEM",
-    "imported-document": "Document importé"
+    "imported-document": "Business plan envoyé"
   },
   "overview": {
-    "atAGlance": "Les facteurs qui pèsent sur ce projet",
-    "nextSteps": "La suite",
-    "why": "Pourquoi ce verdict"
+    "atAGlance": "Ce qui compte le plus",
+    "glanceLink": "Voir les points clés",
+    "why": "Pourquoi cette note ?",
+    "nextSteps": "Et maintenant ?",
+    "howToCheck": "Comment les vérifier",
+    "next": {
+      "report": {
+        "title": "Le rapport complet",
+        "body": "Tous les résultats expliqués, avec nos conseils. À télécharger en PDF pour votre banque ou vos associés."
+      },
+      "money": {
+        "title": "Votre argent",
+        "body": "Combien il vous faut, quand vous gagnerez de l'argent, combien de temps votre caisse tient.",
+        "cta": "Voir mes chiffres"
+      },
+      "labs": {
+        "title": "Aller plus loin",
+        "body": "7 tests en plus : l'avis des clients, des investisseurs, les imprévus…",
+        "cta": "Voir les tests"
+      }
+    }
   },
   "understanding": {
-    "profile": "Ce que le moteur a compris",
-    "baseline": "Les chiffres retenus",
-    "baselineBody": "Ce sont les seules valeurs que le moteur déterministe utilise. Tout le reste sert à les établir ou à les faire varier.",
-    "knowledge": "Ce qui est su, et ce qui ne l'est pas",
-    "knowledgeBody": "Les quatre états sont montrés ensemble : une hypothèse présentée comme une donnée fausserait tout ce qui suit.",
-    "evidence": "Sources",
-    "evidenceBody": "Chaque valeur porte son origine et son niveau de confiance.",
-    "pending": "L'analyse du projet n'est pas encore disponible."
+    "heading": "Votre projet",
+    "lead": "Ce que nous avons compris de votre projet, et les informations utilisées pour le tester.",
+    "profile": "Ce que nous avons compris",
+    "baseline": "Vos chiffres de départ",
+    "baselineBody": "Tous nos calculs partent de ces chiffres.",
+    "knowledge": "Les informations utilisées",
+    "knowledgeBody": "Pour chaque information, nous indiquons d'où elle vient. Touchez une ligne pour voir le détail.",
+    "evidence": "Nos sources",
+    "evidenceBody": "D'où vient chaque chiffre, et à quel point il est sûr.",
+    "pending": "Nous n'avons pas encore fini de lire votre projet."
   },
   "baseline": {
-    "unitPrice": "Prix unitaire",
-    "unitVariableCost": "Coût variable unitaire",
-    "monthlyFixedCosts": "Charges fixes mensuelles",
-    "acquisitionCost": "Coût d'acquisition client",
-    "startingCapital": "Capital de départ",
-    "initialMonthlyCustomers": "Nouveaux clients / mois",
-    "monthlyGrowthRate": "Croissance mensuelle",
-    "monthlyRetentionRate": "Rétention mensuelle",
-    "purchasesPerCustomerPerMonth": "Achats / client / mois"
+    "unitPrice": "Prix de vente",
+    "unitVariableCost": "Coût de chaque vente",
+    "monthlyFixedCosts": "Charges fixes par mois",
+    "acquisitionCost": "Coût pour trouver un client",
+    "startingCapital": "Argent de départ",
+    "initialMonthlyCustomers": "Nouveaux clients par mois",
+    "monthlyGrowthRate": "Croissance par mois",
+    "monthlyRetentionRate": "Clients qui restent chaque mois",
+    "purchasesPerCustomerPerMonth": "Achats par client et par mois"
   },
   "factors": {
-    "heading": "Facteurs découverts",
-    "body": "{{total}} facteurs identifiés pour ce secteur. La liste n'est pas fixe : elle dépend du projet analysé.",
-    "filter": "Filtrer par niveau",
+    "heading": "Les points clés",
+    "body": "Nous avons trouvé {{total}} points qui peuvent faire réussir ou échouer votre projet. Les plus importants sont en haut. Touchez un point pour comprendre.",
+    "filter": "Afficher",
     "all": "Tous",
-    "empty": "Aucun facteur à ce niveau.",
-    "noEvidence": "Aucune source rattachée : ce facteur reste une hypothèse du moteur."
+    "empty": "Aucun point dans cette catégorie.",
+    "noEvidence": "Pas de source : c'est une supposition de notre part.",
+    "importance": "Importance",
+    "importanceValue": "Importance : {{value}} sur 100",
+    "acts": "Agit sur {{lever}}"
   },
   "lever": {
-    "price": "Prix",
-    "variableCost": "Coût variable",
-    "fixedCost": "Charges fixes",
-    "acquisitionCost": "Acquisition",
-    "growth": "Croissance",
-    "retention": "Rétention",
-    "frequency": "Fréquence d'achat",
-    "capital": "Capital",
-    "none": "Aucun levier direct"
+    "price": "le prix",
+    "variableCost": "le coût de chaque vente",
+    "fixedCost": "les charges fixes",
+    "acquisitionCost": "le coût pour trouver des clients",
+    "growth": "la croissance",
+    "retention": "la fidélité des clients",
+    "frequency": "la fréquence d'achat",
+    "capital": "l'argent de départ",
+    "none": "rien directement"
   },
   "scenarios": {
-    "heading": "Combinaisons testées",
-    "body": "Chaque scénario croise plusieurs facteurs à la fois : c'est la combinaison qui casse un modèle, rarement un facteur isolé.",
-    "stress": "Tests de résistance",
-    "stressBody": "Ici la question n'est pas « est-ce probable » mais « à partir de quand ça casse ».",
-    "survival": "Le modèle tient dans {{percent}} % des scénarios"
+    "heading": "Les situations testées",
+    "body": "Nous avons imaginé des situations, bonnes ou mauvaises, et regardé si votre projet tenait dans chacune.",
+    "usual": "Les situations courantes",
+    "stress": "Les coups durs",
+    "stressBody": "Des situations très difficiles, pour savoir jusqu'où votre projet tient avant de casser.",
+    "survival": "Votre projet tient dans {{percent}} % des situations testées."
   },
   "financials": {
-    "heading": "Trajectoire financière",
-    "body": "Projection déterministe sur trois ans, reproductible : mêmes entrées, mêmes chiffres.",
-    "trajectory": "Trésorerie cumulée",
-    "breakEven": "Rentabilité",
-    "runway": "Autonomie",
-    "burn": "Consommation mensuelle",
-    "capital": "Capital nécessaire",
-    "margin": "Marge brute",
-    "revenueYear1": "CA année 1",
-    "revenueYear3": "CA année 3",
-    "never": "jamais atteinte",
-    "beyondHorizon": "au-delà de l'horizon",
-    "monthUnit": "e mois",
-    "monthsUnit": "mois",
-    "sensitivity": "Sensibilité",
-    "sensitivityBody": "Ce qu'un mouvement isolé change sur l'indice, tous les autres leviers restant constants.",
-    "conditions": "Conditions de viabilité",
-    "conditionsBody": "Les seuils que le modèle doit franchir pour que les scénarios tiennent.",
-    "pending": "Les résultats financiers ne sont pas encore disponibles."
+    "heading": "Votre argent",
+    "body": "Combien il vous faut, quand vous commencerez à gagner de l'argent, et combien de temps votre caisse tient. Calculé sur 3 ans.",
+    "capital": "Argent nécessaire",
+    "capitalHint": "Ce qu'il faut avoir au départ pour ne jamais manquer d'argent.",
+    "breakEven": "Premiers bénéfices",
+    "breakEvenHint": "Le mois où vous gagnez enfin plus que vous ne dépensez.",
+    "runway": "Votre caisse tient",
+    "runwayHint": "Combien de mois avant que l'argent manque, si rien ne change.",
+    "burn": "Pertes par mois au début",
+    "burnHint": "Ce que vous dépensez de plus que vous ne gagnez, chaque mois, au démarrage.",
+    "margin": "Ce qui reste sur chaque vente",
+    "revenueYear1": "Ventes la 1re année",
+    "revenueYear3": "Ventes la 3e année",
+    "never": "Pas dans les 3 ans",
+    "beyondHorizon": "Plus de 3 ans",
+    "monthN": "Au {{month}}e mois",
+    "monthsN": "{{months}} mois",
+    "trajectory": "L'argent dans votre caisse",
+    "trajectoryBody": "Mois après mois. Sous la ligne du zéro, il manque de l'argent.",
+    "sensitivity": "Ce qui fait bouger votre note",
+    "sensitivityBody": "Si un seul chiffre change, voici ce que gagne (+) ou perd (−) votre note.",
+    "conditions": "Les objectifs à atteindre",
+    "conditionsBody": "Pour que votre projet tienne, ces objectifs doivent être atteints.",
+    "goal": "Objectif",
+    "today": "Aujourd'hui",
+    "pending": "Vos chiffres ne sont pas encore prêts."
   },
   "condition": {
     "met": "Atteint",
-    "unmet": "Non atteint",
-    "unknown": "Inconnu"
+    "unmet": "Pas encore",
+    "unknown": "On ne sait pas"
   },
   "lab": {
-    "launch": "Lancer l'analyse",
-    "rerun": "Relancer",
-    "running": "En cours",
-    "runningBody": "Plusieurs agents travaillent sur cette analyse. Cela prend une à deux minutes.",
-    "notRun": "Cette analyse n'a pas encore été lancée. Elle s'appuie sur les résultats de la simulation et ne les remplace pas.",
-    "needsRun": "Cette analyse demande une simulation terminée.",
-    "done": "Analyse disponible",
+    "launch": "Faire ce test",
+    "rerun": "Refaire",
+    "running": "En cours…",
+    "runningBody": "Le test est en cours. Cela prend une à deux minutes. Vous pouvez rester ici.",
+    "notRun": "Ce test n'a pas encore été fait. Il part du résultat de votre simulation.",
+    "duration": "Une à deux minutes",
+    "needsRun": "Ces tests seront disponibles dès que votre simulation sera terminée.",
+    "done": "Fait",
+    "notDone": "À faire",
+    "backToLabs": "Tous les tests",
+    "hub": {
+      "heading": "Aller plus loin",
+      "lead": "Des tests en plus pour mieux préparer votre projet. Chacun répond à une question simple et prend une à deux minutes.",
+      "open": "Voir le résultat",
+      "start": "Faire ce test"
+    },
     "redTeam": {
-      "heading": "Attaquez mon business",
-      "body": "Six rôles cherchent où le projet casse. L'objectif n'est pas de rassurer, c'est de trouver ce qui n'a pas été prévu.",
-      "total": "Failles trouvées",
-      "filter": "Filtrer par rôle",
-      "allRoles": "Tous les rôles",
-      "attack": "L'attaque",
-      "exposure": "Ce qui la rend possible",
-      "mitigation": "Ce qui la referme"
+      "heading": "Les points faibles",
+      "question": "Qui pourrait faire tomber votre projet ?",
+      "body": "Nous jouons le rôle d'un concurrent, d'un client méfiant, d'un investisseur… pour trouver vos points faibles avant eux.",
+      "total": "Points faibles trouvés",
+      "filter": "Afficher selon qui les voit",
+      "allRoles": "Tous",
+      "seenBy": "Vu par : {{role}}",
+      "attack": "Le problème",
+      "exposure": "Pourquoi c'est possible",
+      "mitigation": "Comment vous protéger",
+      "empty": "Aucun point faible pour ce choix."
     },
     "customers": {
-      "heading": "Simulateur de clients",
-      "body": "Un panel de clients synthétiques réagit à votre offre et à votre prix. Ce sont des profils construits, pas des personnes réelles.",
-      "panelSize": "Profils simulés",
-      "segments": "Segments",
-      "optimalPrice": "Prix le plus rentable",
-      "curve": "Revenu selon le prix",
-      "curveLabel": "Revenu estimé en fonction du prix pratiqué",
-      "price": "Prix",
-      "conversion": "Conversion",
-      "buyers": "Acheteurs",
-      "revenue": "Revenu estimé",
+      "heading": "L'avis des clients",
+      "question": "Quel prix vos clients sont-ils prêts à payer ?",
+      "body": "Nous imaginons des groupes de clients typiques et regardons comment ils réagissent à votre prix. Ce ne sont pas de vraies personnes.",
+      "optimalPrice": "Le prix qui vous rapporte le plus",
+      "panelNote": "Calculé avec {{count}} clients imaginés, répartis en {{segments}} groupes.",
+      "curve": "Ce que vous gagnez selon le prix",
+      "curveBody": "Trop cher, peu de clients achètent. Pas assez cher, vous gagnez peu. Le point vert est le meilleur équilibre.",
+      "curveLabel": "Ventes estimées selon le prix pratiqué",
+      "pointLine": "{{percent}} des clients achètent · {{revenue}} de ventes",
+      "bestPrice": "Meilleur prix",
+      "segments": "Vos groupes de clients",
+      "share": "{{percent}} des clients",
       "budget": "Budget",
-      "willingness": "Disposition à payer",
-      "sensitivity": "Sensibilité au prix",
-      "frequency": "Achats / an"
+      "willingness": "Prêts à payer",
+      "sensitivity": "Regardent le prix",
+      "frequency": "Achats par an"
     },
     "investors": {
-      "heading": "Simulateur d'investisseurs",
-      "body": "Le dossier passé devant quatre profils. Ce qui compte ici, ce sont les objections : elles arriveront de toute façon.",
-      "readiness": "Préparation au financement",
-      "prepare": "À préparer avant le premier rendez-vous",
-      "secondMeeting": "Reverrait le projet",
+      "heading": "L'avis des investisseurs",
+      "question": "Un investisseur mettrait-il de l'argent dans votre projet ?",
+      "body": "Nous présentons votre projet à 4 types d'investisseurs et notons leurs questions. Préparez vos réponses avant de les rencontrer.",
+      "readiness": "Prêt à convaincre un investisseur",
+      "prepare": "Les questions à préparer avant un rendez-vous",
+      "questions": "Ses questions",
+      "secondMeeting": "Voudrait vous revoir",
       "noSecondMeeting": "Ne donnerait pas suite"
     },
     "blackSwan": {
-      "heading": "Cygnes noirs",
-      "body": "Des chocs rares mais possibles, rejoués dans le même moteur que les scénarios.",
-      "absorption": "Chocs absorbés",
-      "absorptionHint": "Part des chocs auxquels le modèle survit sans rupture de trésorerie.",
-      "lowestCash": "Trésorerie au plus bas"
+      "heading": "Les imprévus",
+      "question": "Votre projet survivrait-il à une crise ?",
+      "body": "Des événements rares mais possibles : panne, crise, nouvelle loi… Nous regardons si votre caisse tient le coup.",
+      "absorption": "Imprévus surmontés",
+      "absorptionHint": "Le nombre d'imprévus que votre projet traverse sans manquer d'argent.",
+      "survives": "Votre projet tient",
+      "breaks": "Votre projet ne tient pas",
+      "lowestCash": "Argent en caisse au pire moment"
     },
     "universes": {
-      "heading": "Univers parallèles",
-      "body": "Le même projet sous d'autres modèles économiques, passé dans les mêmes scénarios.",
-      "best": "Meilleur univers"
+      "heading": "D'autres façons de vendre",
+      "question": "Gagneriez-vous plus en vendant autrement ?",
+      "body": "Le même projet, vendu d'une autre façon (abonnement, vente en gros, location…), testé dans les mêmes situations.",
+      "best": "La meilleure option"
     },
     "timeMachine": {
-      "heading": "Machine à remonter le temps",
-      "body": "Le projet projeté sur cinq ans, une trajectoire par scénario, avec le moment où elles divergent."
+      "heading": "Votre projet dans 5 ans",
+      "question": "Où en serez-vous dans 5 ans ?",
+      "body": "Année après année : vos ventes, vos dépenses et l'argent en caisse, selon la situation choisie.",
+      "pick": "Choisir une situation",
+      "year": "Année {{year}}",
+      "end": "Au bout de 5 ans"
     },
     "experiments": {
-      "heading": "Expériences à mener",
-      "body": "Ce qu'il faut aller vérifier dans le monde réel pour transformer les hypothèses en données.",
+      "heading": "Ce qu'il faut vérifier",
+      "question": "Que vérifier sur le terrain avant de vous lancer ?",
+      "body": "Des petits tests simples à faire avec de vrais clients, pour remplacer nos suppositions par des certitudes.",
       "method": "Comment faire",
-      "signal": "Ce que le résultat trancherait",
+      "signal": "Ce que vous apprendrez",
       "cost": "Coût",
       "duration": "Durée",
       "days": "{{days}} jours",
-      "uncertaintyDrop": "Incertitude retirée",
-      "startHere": "Commencer par là"
+      "uncertaintyDrop": "Doute en moins",
+      "startHere": "Commencez par celui-ci"
     }
   },
   "redTeamRole": {
-    "competitor": "Concurrent",
-    "skeptical-customer": "Client sceptique",
-    "investor": "Investisseur",
-    "regulator": "Régulateur",
-    "cfo": "Directeur financier",
-    "operations": "Opérations"
+    "competitor": "Un concurrent",
+    "skeptical-customer": "Un client méfiant",
+    "investor": "Un investisseur",
+    "regulator": "L'administration",
+    "cfo": "Un comptable",
+    "operations": "Le terrain (livraison, stock…)"
   },
   "investorProfile": {
-    "growth": "Fonds de croissance",
-    "impact": "Investisseur à impact",
-    "technology": "Fonds technologique",
-    "regional": "Investisseur régional"
+    "growth": "Fonds qui vise une forte croissance",
+    "impact": "Investisseur à impact social",
+    "technology": "Fonds spécialisé en technologie",
+    "regional": "Investisseur de votre région"
   },
   "likelihood": {
     "rare": "Rare",
     "unlikely": "Peu probable",
-    "plausible": "Plausible"
+    "plausible": "Possible"
   },
   "timeline": {
-    "revenue": "Revenu",
-    "costs": "Coûts",
-    "cash": "Trésorerie",
-    "customers": "Clients actifs",
-    "divergesAt": "Divergence à partir de l'année {{year}}",
-    "noDivergence": "Aucune divergence marquée sur l'horizon"
+    "revenue": "Ventes",
+    "costs": "Dépenses",
+    "cash": "En caisse",
+    "customers": "Clients",
+    "divergesAt": "À partir de l'année {{year}} :",
+    "noDivergence": "Pas de grand changement sur 5 ans"
   },
   "cost": {
-    "low": "Faible",
+    "low": "Petit",
     "medium": "Moyen",
     "high": "Élevé"
   },
   "signIn": {
     "heading": "Connectez-vous pour continuer",
-    "sharedAccount": "Votre compte IDEM ouvre le simulateur, le dashboard et iDeploy. Il n'y a pas de compte séparé à créer.",
+    "sharedAccount": "Un seul compte IDEM pour tout : le simulateur, votre espace IDEM et iDeploy.",
     "later": "Plus tard",
-    "documentTooLarge": "Votre document est trop volumineux pour être conservé pendant la connexion : il faudra le sélectionner à nouveau au retour.",
+    "documentTooLarge": "Votre document est trop lourd pour être gardé pendant la connexion : il faudra le choisir à nouveau au retour.",
     "reason": {
-      "projects": "Vos projets IDEM sont rattachés à votre compte : connectez-vous pour les retrouver ici.",
-      "analyse": "L'analyse tourne sur nos serveurs, sous votre compte IDEM. Connectez-vous pour la lancer : votre document vous attendra ici.",
-      "launch": "Dernière étape : connectez-vous pour lancer la simulation et retrouver son rapport."
+      "projects": "Vos projets IDEM sont liés à votre compte : connectez-vous pour les retrouver ici.",
+      "analyse": "Pour lire votre projet, connectez-vous. Votre document vous attendra ici.",
+      "launch": "Dernière étape : connectez-vous pour lancer la simulation et retrouver votre résultat."
     }
   },
   "consent": {
-    "heading": "Votre accord avant le lancement",
-    "body": "Cette exécution lit votre projet, en crée la fiche IDEM lorsqu'il s'agit d'un business plan importé, et en confie un extrait à des moteurs d'intelligence artificielle. Votre accord est demandé à chaque lancement, et conservé avec l'exécution qu'il autorise.",
+    "heading": "Vos accords",
+    "body": "Pour tester votre projet, nous le lisons et en envoyons une partie à des outils d'intelligence artificielle. Nous vous demandons votre accord à chaque simulation.",
     "iAccept": "J'accepte",
     "document": {
       "privacy": "la politique de confidentialité",
-      "simulationTerms": "les conditions d'utilisation de la simulation",
-      "beta": "la politique bêta"
+      "simulationTerms": "les conditions d'utilisation du simulateur",
+      "beta": "la politique de la bêta"
     },
-    "required": "Ces accords sont nécessaires pour lancer la simulation.",
+    "required": "Cochez toutes les cases pour pouvoir lancer.",
     "confirm": "Accepter et lancer"
   },
   "verdictShort": {
-    "go": "Tient",
-    "go-with-conditions": "Tient sous conditions",
-    "no-go": "Ne tient pas"
+    "go": "Solide",
+    "go-with-conditions": "Solide sous conditions",
+    "no-go": "Fragile"
   },
   "verdictMeaning": {
-    "go": "L'indice est élevé et le modèle résiste à la plupart des scénarios de tension étudiés.",
-    "go-with-conditions": "Le modèle casse dans une partie des scénarios de tension : sa tenue dépend de conditions à réunir.",
-    "no-go": "L'indice est bas et le modèle casse dans la plupart des scénarios de tension étudiés."
+    "go": "Il résiste bien à la plupart des situations difficiles que nous avons testées.",
+    "go-with-conditions": "Il résiste dans beaucoup de situations, mais pas toutes. Regardez plus bas les problèmes à régler.",
+    "no-go": "Il ne résiste pas à la plupart des situations difficiles testées. Ce n'est pas un échec : la suite vous montre quoi changer."
   },
   "tour": {
     "common": {
@@ -674,28 +754,28 @@
     },
     "steps": {
       "welcome": {
-        "title": "Bienvenue dans le simulateur ! On fait le tour ?",
-        "body": "Quelques secondes pour comprendre ce que vous avez sous les yeux."
+        "title": "Bienvenue ! On fait le tour ?",
+        "body": "Trente secondes pour comprendre votre résultat."
       },
       "nav": {
-        "title": "Vos écrans",
-        "body": "Aperçu, facteurs, scénarios, comparaison : chaque écran creuse un aspect de la simulation. On commence toujours par l'aperçu."
+        "title": "Vos pages",
+        "body": "Le résultat, votre projet, vos chiffres… Commencez toujours par « Le résultat »."
       },
       "glance": {
-        "title": "Le verdict en un coup d’œil",
-        "body": "L'essentiel du résultat, sans le détail : de quoi décider s'il vaut la peine d'aller plus loin."
+        "title": "Ce qui compte le plus",
+        "body": "Le nombre de points décisifs pour votre projet. Touchez « Voir les points clés » pour le détail."
       },
       "risks": {
-        "title": "Les risques identifiés",
-        "body": "Ce qui pourrait faire échouer le projet, classé par gravité. À lire avant de se réjouir des bons chiffres."
+        "title": "Les problèmes à régler",
+        "body": "Du plus grave au moins grave, avec notre conseil pour chacun."
       },
       "next": {
         "title": "Et maintenant ?",
-        "body": "Les actions concrètes qui suivent le verdict : creuser un facteur, éprouver le scénario, comparer."
+        "body": "Le rapport à télécharger, vos chiffres, et des tests en plus."
       },
       "done": {
-        "title": "Vous êtes prêt !",
-        "body": "Une simulation est une hypothèse chiffrée, pas une prédiction. À vous de la mettre à l’épreuve."
+        "title": "C'est à vous !",
+        "body": "Une simulation aide à décider. Elle ne prédit pas l'avenir."
       }
     }
   },
@@ -720,5 +800,13 @@
         "effect": "Sans elle, le coût d'acquisition d'un client et le rythme de croissance sont supposés — les deux chiffres qui décident de votre date d'équilibre."
       }
     }
+  },
+  "level": {
+    "low": "Peu",
+    "medium": "Moyennement",
+    "high": "Très"
+  },
+  "evidence": {
+    "reliability": "Fiabilité : {{level}}"
   }
 }

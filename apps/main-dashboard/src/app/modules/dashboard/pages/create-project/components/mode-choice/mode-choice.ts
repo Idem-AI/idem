@@ -45,7 +45,6 @@ export class ModeChoiceComponent implements OnInit {
 
   readonly projectDescription = input<string>('');
   readonly selectMode = output<CreateMode>();
-  readonly back = output<void>();
 
   protected readonly cards = MODE_CARDS;
 
@@ -76,9 +75,5 @@ export class ModeChoiceComponent implements OnInit {
 
   protected onSelect(mode: CreateMode): void {
     this.selectMode.emit(mode);
-  }
-
-  protected onBack(): void {
-    this.back.emit();
   }
 }

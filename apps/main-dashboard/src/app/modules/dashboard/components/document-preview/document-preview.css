@@ -787,15 +787,6 @@
   animation: dp-pop 0.25s ease-out;
 }
 
-.dp-spinner {
-  width: 1rem;
-  height: 1rem;
-  border-radius: 9999px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
-  animation: dp-spin 0.7s linear infinite;
-}
-
 .dp-icon-btn:focus-visible,
 .dp-page-value:focus-visible,
 .dp-menu-item:focus-visible,
@@ -924,11 +915,6 @@
   }
 }
 
-@keyframes dp-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 
 @keyframes dp-shimmer {
   from {

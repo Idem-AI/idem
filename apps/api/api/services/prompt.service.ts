@@ -695,7 +695,14 @@ export class PromptService {
       try {
         response = await doCreate(modelName);
       } catch (primaryError: any) {
-        if (def.fallbackModel && def.fallbackModel !== modelName) {
+        // Pas de repli immédiat sur un 429 : le quota est partagé, le modèle de
+        // repli tomberait sur le même mur dans la seconde. La chaîne de
+        // `runPrompt` s'en charge, après l'attente prévue pour ce cas.
+        if (
+          def.fallbackModel &&
+          def.fallbackModel !== modelName &&
+          !isRateLimited(primaryError)
+        ) {
           logger.warn(
             `${provider} model "${modelName}" failed (${primaryError.message || primaryError}). Retrying with "${def.fallbackModel}"...`
           );
@@ -946,7 +953,7 @@ export class PromptService {
    *    l'observabilité ne doit jamais faire échouer une génération.
    */
   private async recordUsageAttempts(params: {
-    attempts: { model: string; sink: UsageSink; startedAt: number }[];
+    attempts: { model: string; sink: UsageSink; startedAt: number; error?: any }[];
     provider: LLMProvider;
     promptType?: string;
     userId?: string;
@@ -966,15 +973,23 @@ export class PromptService {
       // précédentes ont nécessairement échoué (la boucle sort au succès).
       const succeeded = isLast && !error && resultText !== undefined;
 
+      // Une tentative refusée par un 429 n'a jamais été traitée : le
+      // fournisseur ne la facture pas, l'estimer gonflerait les coûts.
+      const rejectedByQuota = !attempt.sink.usage && isRateLimited(attempt.error);
       const usage =
-        attempt.sink.usage ?? estimateUsage(promptText, succeeded ? (resultText ?? '') : '');
+        attempt.sink.usage ??
+        (rejectedByQuota
+          ? { inputTokens: 0, outputTokens: 0, estimated: true }
+          : estimateUsage(promptText, succeeded ? (resultText ?? '') : ''));
 
       await aiUsageService.record({
         provider,
         modelName: attempt.sink.modelUsed ?? attempt.model,
         usage,
         status: succeeded ? 'success' : 'error',
-        errorMessage: succeeded ? undefined : (error?.message ?? 'Model attempt failed'),
+        errorMessage: succeeded
+          ? undefined
+          : ((attempt.error ?? error)?.message ?? 'Model attempt failed'),
         durationMs: Date.now() - attempt.startedAt,
         promptType,
         userId,
@@ -1156,7 +1171,7 @@ export class PromptService {
     let lastError: any;
     // Un relevé par modèle essayé : un repli après échec a consommé des tokens
     // sur les DEUX modèles, et les deux doivent apparaître dans le journal.
-    const attempts: { model: string; sink: UsageSink; startedAt: number }[] = [];
+    const attempts: { model: string; sink: UsageSink; startedAt: number; error?: any }[] = [];
 
     /** Un appel, un modèle. Le choix de l'adaptateur ne dépend que du fournisseur. */
     const callModel = async (model: string, sink: UsageSink): Promise<string> => {
@@ -1215,7 +1230,12 @@ export class PromptService {
 
       const sink: UsageSink = {};
       const attemptStartedAt = Date.now();
-      attempts.push({ model: currentModel, sink, startedAt: attemptStartedAt });
+      const attempt: (typeof attempts)[number] = {
+        model: currentModel,
+        sink,
+        startedAt: attemptStartedAt,
+      };
+      attempts.push(attempt);
       try {
         // Chaque modèle a droit à plusieurs essais AVANT qu'on ne bascule : un
         // `fetch failed` est temporel, et le modèle suivant échouerait pareil
@@ -1229,6 +1249,7 @@ export class PromptService {
         break; // Success, exit retry loop
       } catch (error: any) {
         lastError = error;
+        attempt.error = error;
         if (i < modelsToTry.length - 1) {
           logger.warn(
             `Model ${currentModel} failed, falling back to ${modelsToTry[i + 1]}... Error: ${describeError(error)}`

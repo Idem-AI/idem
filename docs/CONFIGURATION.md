@@ -42,7 +42,7 @@ Two applications that use the same value each hold their own copy in their proje
 
 ### What is a secret
 
-The **manifest** of each back end is the single source of truth:
+Each back end loads **every variable of its Infisical project** at startup. Its **manifest** says which ones it cannot do without:
 
 | Application | Manifest |
 | --- | --- |
@@ -50,7 +50,7 @@ The **manifest** of each back end is the single source of truth:
 | AppGen server | `apps/appgen/apps/we-dev-next/src/config/secrets.manifest.ts` |
 | iDeploy API | `apps/ideploy-api/api/config/secrets.manifest.ts` |
 
-A manifest lists `required` secrets (the app refuses to start without them) and `optional` ones (a warning is logged). Secrets of the project that the manifest does not declare are ignored. The loader, `secret-loader.ts`, is the same file in the three back ends; CI checks that the three copies stay identical.
+A manifest lists `required` secrets (the app refuses to start without them) and `optional` ones (a warning is logged when they are missing). It does not filter: a variable of the project that the manifest does not declare is loaded too, so moving a value from the `.env` to Infisical needs no code change. The startup log lists the names loaded (never the values). The loader, `secret-loader.ts`, is the same file in the three back ends; CI checks that the three copies stay identical.
 
 ### Enabling it
 
@@ -89,14 +89,14 @@ export INFISICAL_PROJECT_ID_API=… INFISICAL_PROJECT_ID_APPGEN=… INFISICAL_PR
 
 npm run secrets -- plan                                  # what exists, what is missing — no write
 npm run secrets -- push <app> --from <file.env>          # create/update the manifest's secrets found in the file
+npm run secrets -- push <app> --from <file.env> --only A,B  # push these variables instead, declared or not
 cat value | npm run secrets -- rotate <app> <VARIABLE>   # new value from stdin (Infisical keeps the history)
 npm run secrets -- copy <from-app> <to-app> <VARIABLE>…  # duplicate a shared value
-npm run secrets -- prune [<app>]                         # delete secrets no manifest declares (asks first)
 ```
 
 No command ever prints a secret value. `--environment <slug>` targets another environment (`dev` for the local instance), `--dry-run` simulates, `--yes` skips confirmation. The Infisical web interface works too, including importing a `.env` file into an environment.
 
-To add a secret: add it to the manifest, set its value, deploy. To remove one: remove it from the manifest, deploy, then `prune`.
+To add a variable: create it in the project, then restart the back end; declare it in the manifest if the app needs it (required) or should warn without it (optional). To remove one: delete it in the Infisical interface, then restart — there is no bulk delete, since every variable of the project is in use.
 
 ### Operating the production instance
 

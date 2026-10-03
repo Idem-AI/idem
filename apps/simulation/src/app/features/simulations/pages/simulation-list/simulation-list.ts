@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { LanguageService } from '../../../../core/i18n/language.service';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
@@ -10,6 +11,7 @@ import { SkeletonList } from '../../../../shared/components/skeleton-list/skelet
 import { SimulationStore } from '../../data-access';
 import { SimulationSummary } from '../../models';
 import { VerdictBadge } from '../../components/verdict-badge/verdict-badge';
+import { scoreTone } from '../../ui/tones';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
@@ -43,6 +45,7 @@ export class SimulationList {
   );
 
   protected readonly project = this.store.project;
+  protected readonly lang = inject(LanguageService).language;
 
   constructor() {
     // Le projet actif peut changer depuis la barre supérieure sans que la page
@@ -59,6 +62,16 @@ export class SimulationList {
 
   protected sourceLabel(simulation: SimulationSummary): string {
     return simulation.projectName ?? simulation.documentName ?? '';
+  }
+
+  /** Le cercle de la note prend la couleur de la jauge : vert, orange ou rouge. */
+  protected scoreColor(value: number): string {
+    const tone = scoreTone(value);
+    return tone === 'go'
+      ? 'var(--color-success)'
+      : tone === 'warn'
+        ? 'var(--color-warning)'
+        : 'var(--color-danger)';
   }
 
   protected routeFor(simulation: SimulationSummary): string {

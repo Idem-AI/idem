@@ -11,16 +11,16 @@ import { ToastService } from '../../../core/ui/toast.service';
     <div class="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 p-4">
       @for (toast of toasts(); track toast.id) {
         <div
-          class="rise pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border p-3 shadow-raised"
+          class="rise pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border p-3 shadow-lg"
           [class]="toneClass(toast.tone)"
           role="status"
           aria-live="polite"
         >
           <span class="mt-0.5 size-2 shrink-0 rounded-full" [class]="dotClass(toast.tone)"></span>
           <div class="min-w-0 flex-1">
-            <p class="text-sm font-semibold text-ink">{{ toast.message }}</p>
+            <p class="text-sm font-semibold text-text-primary">{{ toast.message }}</p>
             @if (toast.detail) {
-              <p class="mt-0.5 text-meta text-ink-muted">{{ toast.detail }}</p>
+              <p class="mt-0.5 text-xs text-text-secondary">{{ toast.detail }}</p>
             }
           </div>
           <button
@@ -47,29 +47,29 @@ export class ToastStack {
   }
 
   protected toneClass(tone: string): string {
-    const base = 'bg-panel-raised';
+    const base = 'bg-surface-1';
     switch (tone) {
       case 'success':
-        return `${base} border-verdict-go/40`;
+        return `${base} border-success/40`;
       case 'warning':
-        return `${base} border-verdict-warn/40`;
+        return `${base} border-warning/40`;
       case 'error':
-        return `${base} border-verdict-stop/40`;
+        return `${base} border-danger/40`;
       default:
-        return `${base} border-line`;
+        return `${base} border-[var(--glass-border)]`;
     }
   }
 
   protected dotClass(tone: string): string {
     switch (tone) {
       case 'success':
-        return 'bg-verdict-go';
+        return 'bg-success';
       case 'warning':
-        return 'bg-verdict-warn';
+        return 'bg-warning';
       case 'error':
-        return 'bg-verdict-stop';
+        return 'bg-danger';
       default:
-        return 'bg-verdict-info';
+        return 'bg-info';
     }
   }
 }

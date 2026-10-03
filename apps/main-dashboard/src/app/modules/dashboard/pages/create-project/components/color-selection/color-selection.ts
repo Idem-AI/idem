@@ -3,14 +3,12 @@ import { CommonModule } from '@angular/common';
 import { ColorModel, TypographyModel } from '../../../../models/brand-identity.model';
 import { ProjectModel } from '@idem/shared-models';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
-import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
 import { Subject, takeUntil } from 'rxjs';
 import { AuthService } from '../../../../../auth/services/auth.service';
 import { LoginCardComponent } from '../../../../../auth/components/login-card/login-card';
 import { DialogModule } from 'primeng/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ColorCustomizerComponent } from '../color-customizer/color-customizer.component';
-import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
 
 @Component({
@@ -19,11 +17,10 @@ import { ErrorStateComponent } from '../../../../../../shared/components/error-s
   imports: [
     ErrorStateComponent,
     CommonModule,
-    CarouselComponent,
     DialogModule,
     LoginCardComponent,
     ColorCustomizerComponent,
-    TranslateModule, IdemLoaderComponent],
+    TranslateModule],
   templateUrl: './color-selection.html',
   styleUrl: './color-selection.css',
 })
@@ -328,20 +325,35 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
     this.previousStep.emit();
   }
 
-  protected onCarouselItemChanged(color: ColorModel): void {
-    // Auto-select the color when carousel navigation changes on mobile
-    if (color && color.id) {
-      this.selectColor(color.id);
-    }
+  /**
+   * Bandes de nuancier sous la couleur principale, dans l'ordre d'usage.
+   * Le poids règle la largeur : la secondaire et l'accent dominent, le texte
+   * n'a besoin que d'une tranche.
+   */
+  protected readonly bands = [
+    { key: 'secondary', label: 'dashboard.colorSelection.swatches.secondary', weight: 1.2 },
+    { key: 'accent', label: 'dashboard.colorSelection.swatches.accent', weight: 1 },
+    { key: 'background', label: 'dashboard.colorSelection.swatches.background', weight: 1 },
+    { key: 'text', label: 'dashboard.colorSelection.swatches.text', weight: 0.7 },
+  ] as const;
+
+  /** Trois cartes squelettes pendant la génération (l'IA propose trois palettes). */
+  protected readonly skeletonCards = [0, 1, 2];
+
+  /**
+   * Encre lisible posée sur une couleur de la marque (le bouton de l'aperçu) :
+   * sombre sur une couleur claire, blanche sur une couleur foncée, d'après la
+   * luminance relative WCAG.
+   */
+  protected readableOn(hex: string): string {
+    const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex?.trim() ?? '');
+    if (!m) return '#ffffff';
+    const full = m[1].length === 3 ? m[1].replace(/./g, (c) => c + c) : m[1];
+    const [r, g, b] = [0, 2, 4].map((i) => {
+      const v = parseInt(full.slice(i, i + 2), 16) / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminance > 0.4 ? '#111111' : '#ffffff';
   }
-
-  // Track function for carousel
-  protected readonly trackColor = (index: number, color: ColorModel): string => {
-    return color.id || `color-${index}`;
-  };
-
-  // Track function for skeleton loading
-  protected readonly trackSkeleton = (index: number, item: number): string => {
-    return `skeleton-${index}`;
-  };
 }

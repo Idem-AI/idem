@@ -29,6 +29,10 @@ export class LabTimeMachine {
     return timelines.find((timeline) => timeline.id === id) ?? timelines[0] ?? null;
   });
 
+  protected amount(value: number): string {
+    return Math.round(value).toLocaleString('fr-FR');
+  }
+
   protected select(id: string): void {
     this.selection.set(id);
   }

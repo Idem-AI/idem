@@ -1,151 +1,201 @@
-<section
-  class="flex flex-col min-h-[60vh] items-center justify-center text-text-primary w-full px-4 sm:px-6 lg:px-8"
->
-  <!-- Titre -->
-  <div class="text-center mb-8 sm:mb-12 max-w-4xl">
-    <h1
-      class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-text-primary leading-tight px-4"
-    >
-      {{ 'dashboard.projectDetails.title' | translate }}
-    </h1>
-  </div>
+<!-- Plein écran, comme la connexion : dès 1024 px, l'emblème occupe toute la
+     hauteur à gauche, par-dessus la barre du haut, avec le logo en haut à
+     gauche ; le formulaire prend le reste à droite. L'emblème est la croix
+     d'Agadez, que le père touareg remet au fils qui part faire sa vie :
+     « je te donne les quatre coins du monde ».
+     Les champs sont les éléments natifs stylés par @idem/shared-styles. -->
+<section class="w-full text-text-primary">
+  <!-- ═══ Emblème (≥ 1024 px) ═══ -->
+  <aside
+    class="hidden lg:flex fixed inset-y-0 left-0 z-[60] w-[var(--split-left)] items-center justify-center bg-[var(--color-surface-2)] border-r border-[var(--glass-border-subtle)] px-10 py-24"
+  >
+    <a routerLink="/console" class="absolute top-6 left-10">
+      <img
+        src="/assets/icons/logo_white.png"
+        [alt]="'dashboard.sidebar.logoAlt' | translate"
+        class="w-[104px] h-auto dark:hidden"
+        width="120"
+        height="40"
+      />
+      <img
+        src="/assets/icons/logo_dark.png"
+        [alt]="'dashboard.sidebar.logoAlt' | translate"
+        class="w-[104px] h-auto hidden dark:block"
+        width="120"
+        height="40"
+      />
+    </a>
+    <app-agadez-cross-illustration class="w-full max-w-[28rem] h-[min(76dvh,46rem)] text-text-primary" />
+  </aside>
 
-  <!-- Conteneur du formulaire -->
-  <div class="w-full max-w-xs sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
-    <div class="rounded-xl p-4 sm:p-6 lg:p-8 border border-[var(--glass-border)] glass">
-      <!-- Champs d'identité + questions cœur (toujours affichés, immédiats) -->
-      <div class="mb-8">
-        <h2 class="text-lg sm:text-xl font-semibold text-text-primary mb-4 sm:mb-6">
-          {{ 'dashboard.projectDetails.sections.details' | translate }}
-        </h2>
+  <!-- ═══ Formulaire ═══ -->
+  <div class="lg:ml-[var(--split-left)] px-4 sm:px-6 lg:px-12 pt-1 pb-6">
+    <div class="w-full max-w-2xl mx-auto">
+      <header class="mb-6">
+        <!-- Sur téléphone, le panneau est masqué : le logo vient ici. -->
+        <a routerLink="/console" class="lg:hidden inline-block mb-5">
+          <img
+            src="/assets/icons/logo_white.png"
+            [alt]="'dashboard.sidebar.logoAlt' | translate"
+            class="w-[96px] h-auto dark:hidden"
+            width="120"
+            height="40"
+          />
+          <img
+            src="/assets/icons/logo_dark.png"
+            [alt]="'dashboard.sidebar.logoAlt' | translate"
+            class="w-[96px] h-auto hidden dark:block"
+            width="120"
+            height="40"
+          />
+        </a>
+        <h1 class="text-2xl sm:text-3xl font-bold leading-tight">
+          {{ 'dashboard.projectDetails.title' | translate }}
+        </h1>
+        <p class="mt-1.5 text-sm sm:text-base text-text-tertiary">
+          {{ 'dashboard.projectDetails.subtitle' | translate }}
+        </p>
+      </header>
 
-        <!-- Nom du projet -->
-        <div class="mb-4 sm:mb-6 w-full">
-          <p-floatlabel variant="in">
-            <input
-              pInputText
-              id="dyn_project_name"
-              [ngModel]="name()"
-              (ngModelChange)="onNameChange($event)"
-              autocomplete="off"
-              class="w-full text-sm sm:text-base"
-            />
-            <label for="dyn_project_name" class="text-sm sm:text-base">{{
-              'dashboard.projectDetails.fields.projectName' | translate
-            }}</label>
-          </p-floatlabel>
-        </div>
-
-        <!-- Courte description du projet -->
-        <div class="mb-4 sm:mb-6 w-full">
-          <p-floatlabel variant="in">
-            <textarea
-              pInputTextarea
-              id="dyn_project_short_description"
-              [ngModel]="shortDescription()"
-              (ngModelChange)="onShortDescriptionChange($event)"
-              autocomplete="off"
-              maxlength="200"
-              rows="2"
-              class="w-full text-sm sm:text-base resize-none"
-            ></textarea>
-            <label for="dyn_project_short_description" class="text-sm sm:text-base">{{
-              'dashboard.createProject.steps.description' | translate
-            }} (Max 200)</label>
-          </p-floatlabel>
-        </div>
-
-        <!-- Type de projet -->
-        <div class="mb-6">
-          <label for="dyn_project_type" class="block text-sm sm:text-base font-medium mb-2">
-            {{ 'dashboard.projectDetails.fields.projectType' | translate }}
-          </label>
-          <div class="card flex justify-start w-full z-50">
-            <p-select
-              inputId="dyn_project_type"
-              [options]="groupedProjectTypes()"
-              [ngModel]="type()"
-              (ngModelChange)="onTypeChange($event)"
-              [placeholder]="'dashboard.projectDetails.placeholders.selectType' | translate"
-              [editable]="false"
-              optionLabel="name"
-              optionValue="code"
-              class="w-full text-sm sm:text-base z-50"
-            />
-          </div>
-        </div>
-
-        <!-- Questions cœur (devise, cible, portée, équipe) -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-          @for (question of coreQuestions(); track question.id) {
-            <ng-container
-              *ngTemplateOutlet="questionTpl; context: { $implicit: question }"
-            ></ng-container>
-          }
-        </div>
-      </div>
-
-      <!-- Questions contextuelles générées par l'IA -->
-      <div>
-        <div class="flex items-center gap-2 mb-4 sm:mb-6">
-          <i class="pi pi-sparkles text-primary text-sm"></i>
-          <h2 class="text-lg sm:text-xl font-semibold text-text-primary">
-            {{ 'dashboard.projectDetails.dynamic.sectionTitle' | translate }}
+      <div class="divide-y divide-[var(--glass-border-subtle)]">
+        <!-- L'essentiel : nom, type, description -->
+        <div class="pb-6">
+          <h2 class="text-base font-semibold text-text-primary mb-4">
+            {{ 'dashboard.projectDetails.sections.details' | translate }}
           </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="dyn_project_name" class="block">
+                {{ 'dashboard.projectDetails.fields.projectName' | translate }}
+              </label>
+              <input
+                type="text"
+                id="dyn_project_name"
+                [ngModel]="name()"
+                (ngModelChange)="onNameChange($event)"
+                autocomplete="off"
+                required
+              />
+            </div>
+
+            <div>
+              <label for="dyn_project_type" class="block">
+                {{ 'dashboard.projectDetails.fields.projectType' | translate }}
+              </label>
+              <select
+                id="dyn_project_type"
+                [ngModel]="type()"
+                (ngModelChange)="onTypeChange($event)"
+                required
+              >
+                <option value="" disabled>
+                  {{ 'dashboard.projectDetails.placeholders.selectType' | translate }}
+                </option>
+                @for (option of groupedProjectTypes(); track option.code) {
+                  <option [value]="option.code">{{ option.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="sm:col-span-2">
+              <div class="flex items-baseline justify-between gap-3">
+                <label for="dyn_project_short_description" class="block">
+                  {{ 'dashboard.projectDetails.fields.shortDescription' | translate }}
+                </label>
+                <span class="text-xs text-text-tertiary tabular-nums">
+                  {{ shortDescription().length }}/200
+                </span>
+              </div>
+              <textarea
+                id="dyn_project_short_description"
+                [ngModel]="shortDescription()"
+                (ngModelChange)="onShortDescriptionChange($event)"
+                autocomplete="off"
+                maxlength="200"
+                rows="2"
+                required
+                class="resize-none !min-h-20"
+                [placeholder]="'dashboard.projectDetails.placeholders.shortDescription' | translate"
+              ></textarea>
+            </div>
+          </div>
         </div>
 
-        @if (contextualPending()) {
-          <!-- Chargement des questions contextuelles -->
-          <div class="space-y-6" aria-live="polite">
-            <p class="text-sm text-text-tertiary flex items-center gap-2">
-              <idem-loader size="xs" />
-              {{ 'dashboard.projectDetails.dynamic.loading' | translate }}
-            </p>
-            @for (row of skeletonRows; track row) {
-              <div class="space-y-2">
-                <p-skeleton width="40%" height="1rem"></p-skeleton>
-                <p-skeleton width="100%" height="2.75rem" borderRadius="0.5rem"></p-skeleton>
-              </div>
-            }
-          </div>
-        } @else {
-          @if (contextualError()) {
-            <div
-              class="mb-6 flex items-center justify-between gap-3 rounded-lg border border-[var(--glass-border)] bg-[var(--color-surface-2)] px-4 py-3"
-              role="alert"
-            >
-              <span class="text-sm text-text-secondary flex items-center gap-2">
-                <i class="pi pi-exclamation-triangle text-yellow-500"></i>
-                {{ 'dashboard.projectDetails.dynamic.error' | translate }}
-              </span>
-              <button
-                type="button"
-                (click)="loadContextual()"
-                class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium inner-button rounded-lg transition-colors"
-              >
-                <i class="pi pi-refresh text-xs"></i>
-                {{ 'dashboard.projectDetails.dynamic.retry' | translate }}
-              </button>
-            </div>
-          }
-
-          <div class="grid grid-cols-1 gap-4 sm:gap-6">
-            @for (question of contextualQuestions(); track question.id) {
+        <!-- Le marché : devise, cible, portée, équipe -->
+        <div class="py-6">
+          <h2 class="text-base font-semibold text-text-primary mb-4">
+            {{ 'dashboard.projectDetails.sections.market' | translate }}
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            @for (question of coreQuestions(); track question.id) {
               <ng-container
                 *ngTemplateOutlet="questionTpl; context: { $implicit: question }"
               ></ng-container>
             }
           </div>
-        }
+        </div>
+
+        <!-- Questions contextuelles générées par l'IA -->
+        <div class="pt-6">
+          <h2 class="text-base font-semibold text-text-primary">
+            {{ 'dashboard.projectDetails.dynamic.sectionTitle' | translate }}
+          </h2>
+          <p class="mt-1 mb-4 text-sm text-text-tertiary">
+            {{ 'dashboard.projectDetails.dynamic.sectionHint' | translate }}
+          </p>
+
+          @if (contextualPending()) {
+            <p class="mb-4 text-sm text-text-tertiary flex items-center gap-2" aria-live="polite">
+              <idem-loader size="xs" />
+              {{ 'dashboard.projectDetails.dynamic.loading' | translate }}
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              @for (row of skeletonRows; track row) {
+                <div class="space-y-2">
+                  <div class="skeleton h-4 w-3/5 rounded"></div>
+                  <div class="skeleton h-11 w-full rounded-xl"></div>
+                </div>
+              }
+            </div>
+          } @else {
+            @if (contextualError()) {
+              <div
+                class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] px-4 py-3"
+                role="alert"
+              >
+                <span class="text-sm text-text-secondary flex items-center gap-2">
+                  <i class="pi pi-exclamation-triangle text-[var(--color-warning)]"></i>
+                  {{ 'dashboard.projectDetails.dynamic.error' | translate }}
+                </span>
+                <button type="button" (click)="loadContextual()" class="outer-button button-sm">
+                  <i class="pi pi-refresh text-xs"></i>
+                  {{ 'dashboard.projectDetails.dynamic.retry' | translate }}
+                </button>
+              </div>
+            }
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              @for (question of contextualQuestions(); track question.id) {
+                <ng-container
+                  *ngTemplateOutlet="questionTpl; context: { $implicit: question }"
+                ></ng-container>
+              }
+            </div>
+          }
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Rendu d'une question (choix → select + « Autre » ; ouverte → zone de texte) -->
+<!-- Une question : choix → liste déroulante (+ champ « Autre ») ; ouverte →
+     zone de texte sur toute la largeur. Le libellé pousse le champ en bas de
+     sa cellule : deux champs voisins restent alignés même si une question
+     tient sur deux lignes. -->
 <ng-template #questionTpl let-question>
-  <div class="space-y-2" [class.lg:col-span-2]="!isChoice(question)">
-    <label [for]="'dyn_q_' + question.id" class="block text-sm sm:text-base font-medium">
+  <div class="flex flex-col" [class.sm:col-span-2]="!isChoice(question)">
+    <label [for]="'dyn_q_' + question.id" class="block flex-1">
       {{ question.prompt }}
       @if (question.optional) {
         <span class="text-xs text-text-tertiary font-normal">
@@ -155,39 +205,38 @@
     </label>
 
     @if (isChoice(question)) {
-      <div class="card flex justify-start w-full">
-        <p-select
-          [inputId]="'dyn_q_' + question.id"
-          [options]="question.chips ?? []"
-          [ngModel]="answerValue(question)"
-          (ngModelChange)="onAnswerChange(question, $event)"
-          [placeholder]="'dashboard.projectDetails.dynamic.selectPlaceholder' | translate"
-          [editable]="false"
-          optionLabel="label"
-          optionValue="value"
-          class="w-full text-sm sm:text-base"
-        />
-      </div>
+      <select
+        [id]="'dyn_q_' + question.id"
+        [ngModel]="answerValue(question)"
+        (ngModelChange)="onAnswerChange(question, $event)"
+      >
+        <option value="" disabled>
+          {{ 'dashboard.projectDetails.dynamic.selectPlaceholder' | translate }}
+        </option>
+        @for (chip of question.chips ?? []; track chip.value) {
+          <option [value]="chip.value">{{ chip.label }}</option>
+        }
+      </select>
       @if (isOther(question)) {
         <input
-          pInputText
+          type="text"
           [id]="'dyn_q_' + question.id + '_other'"
           [ngModel]="customValue(question)"
           (ngModelChange)="onCustomTextChange(question, $event)"
           autocomplete="off"
-          class="w-full mt-2 text-sm sm:text-base"
+          class="mt-2"
+          [attr.aria-label]="question.prompt"
           [placeholder]="'dashboard.projectDetails.dynamic.otherPlaceholder' | translate"
         />
       }
     } @else {
       <textarea
-        pInputTextarea
         [id]="'dyn_q_' + question.id"
         [ngModel]="answerValue(question)"
         (ngModelChange)="onAnswerChange(question, $event)"
         rows="2"
         maxlength="500"
-        class="w-full text-sm sm:text-base"
+        class="!min-h-20"
         [placeholder]="'dashboard.projectDetails.dynamic.textPlaceholder' | translate"
       ></textarea>
     }

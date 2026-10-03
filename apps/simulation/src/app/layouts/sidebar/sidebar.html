@@ -1,7 +1,6 @@
 <div class="flex h-full flex-col">
-  <!-- Navigation -->
   <nav
-    class="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-4"
+    class="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-5"
     [attr.aria-label]="'nav.main' | translate"
     data-tour="sim-nav"
   >
@@ -17,13 +16,13 @@
             [class.justify-center]="isCompact()"
             (click)="navigate.emit()"
           >
-            <i [class]="item.icon" class="shrink-0 text-base" aria-hidden="true"></i>
+            <i [class]="item.icon" class="shrink-0 text-lg" aria-hidden="true"></i>
             @if (!isCompact()) {
               <span class="truncate">{{ item.labelKey | translate }}</span>
             } @else {
               <span class="sr-only">{{ item.labelKey | translate }}</span>
               <span
-                class="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-lg border border-line bg-panel-raised px-2 py-1 text-meta text-ink opacity-0 shadow-raised transition-opacity group-hover:opacity-100"
+                class="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-lg border border-[var(--glass-border)] bg-surface-1 px-2 py-1 text-sm text-text-primary opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
               >
                 {{ item.labelKey | translate }}
               </span>
@@ -35,19 +34,21 @@
 
     @if (groups().length) {
       @if (!isCompact() && activeName(); as name) {
-        <p class="mt-6 truncate px-3 text-meta text-ink-subtle" [title]="name">
-          <i class="pi pi-bookmark mr-1.5 text-[0.7rem]" aria-hidden="true"></i>{{ name }}
+        <p
+          class="mx-1 mt-6 flex items-center gap-2 truncate rounded-xl bg-[var(--glass-bg-subtle)] px-3 py-2 text-sm font-semibold text-text-primary"
+          [title]="name"
+        >
+          <i class="pi pi-bookmark text-xs text-primary-500" aria-hidden="true"></i>
+          <span class="truncate">{{ name }}</span>
         </p>
       }
 
       @for (group of groups(); track group.labelKey) {
         <div class="mt-4">
           @if (isCompact()) {
-            <hr class="mx-2 my-3 border-t border-line" />
+            <hr class="mx-2 my-3 border-t border-[var(--glass-border)]" />
           } @else {
-            <h2
-              class="px-3 pb-1.5 text-[0.7rem] font-semibold uppercase text-ink-subtle"
-            >
+            <h2 class="px-3 pb-1.5 text-xs font-semibold uppercase text-text-tertiary">
               {{ group.labelKey | translate }}
             </h2>
           }
@@ -63,29 +64,19 @@
                   [class.justify-center]="isCompact()"
                   (click)="navigate.emit()"
                 >
-                  <i [class]="item.icon" class="shrink-0 text-base" aria-hidden="true"></i>
+                  <i [class]="item.icon" class="shrink-0 text-lg" aria-hidden="true"></i>
                   @if (!isCompact()) {
                     <span class="flex-1 truncate">{{ item.labelKey | translate }}</span>
-                    @if (isPending(item)) {
+                    @if (isLabs(item.route) && labRunning()) {
                       <span
-                        class="size-1.5 animate-pulse rounded-full bg-verdict-info"
+                        class="size-2 animate-pulse rounded-full bg-primary-500"
                         [attr.aria-label]="'lab.running' | translate"
-                      ></span>
-                    } @else if (hasRun(item)) {
-                      <span
-                        class="size-1.5 rounded-full bg-verdict-go"
-                        [attr.aria-label]="'lab.done' | translate"
                       ></span>
                     }
                   } @else {
                     <span class="sr-only">{{ item.labelKey | translate }}</span>
-                    @if (hasRun(item)) {
-                      <span
-                        class="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-verdict-go"
-                      ></span>
-                    }
                     <span
-                      class="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-lg border border-line bg-panel-raised px-2 py-1 text-meta text-ink opacity-0 shadow-raised transition-opacity group-hover:opacity-100"
+                      class="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-lg border border-[var(--glass-border)] bg-surface-1 px-2 py-1 text-sm text-text-primary opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
                     >
                       {{ item.labelKey | translate }}
                     </span>

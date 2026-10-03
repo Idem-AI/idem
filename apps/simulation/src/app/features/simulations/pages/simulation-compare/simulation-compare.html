@@ -1,77 +1,52 @@
-<div class="mx-auto flex max-w-3xl flex-col gap-7">
+<div class="flex flex-col gap-7">
   @if (loading()) {
-    <div class="skeleton h-56 rounded-xl"></div>
+    <div class="skeleton h-56 rounded-2xl" aria-hidden="true"></div>
   } @else if (current(); as after) {
-    <div>
-      <h1 class="text-h1 font-semibold text-ink">{{ 'compare.heading' | translate }}</h1>
-      <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-        {{ 'compare.description' | translate }}
-      </p>
-    </div>
+    <sim-page-header
+      [heading]="'compare.heading' | translate"
+      [description]="'compare.description' | translate"
+    />
 
     @if (previous(); as before) {
-      <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
-        <div class="glass-card p-5">
-          <p class="text-meta text-ink-subtle">
-            {{ 'compare.previous' | translate: { revision: before.revision } }}
-          </p>
-          <p class="mt-1 text-4xl font-bold tabular-nums text-ink">
-            {{ before.result?.viabilityIndex ?? '—' }}
-          </p>
+      <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
+        <div class="glass-card p-5 text-center">
+          <p class="text-sm text-text-secondary">{{ 'compare.previous' | translate: { revision: before.revision } }}</p>
+          <p class="mt-1 text-5xl font-bold tabular-nums text-text-tertiary">{{ before.result?.viabilityIndex ?? '—' }}</p>
           @if (before.result) {
-            <div class="mt-3">
-              <sim-verdict-badge [verdict]="before.result.verdict" />
-            </div>
+            <div class="mt-3"><sim-verdict-badge [verdict]="before.result.verdict" /></div>
           }
         </div>
 
-        <div class="flex items-center justify-center py-2 sm:py-0">
-          <svg viewBox="0 0 24 24" class="size-5 rotate-90 text-ink-subtle sm:rotate-0" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </div>
+        <i class="pi pi-arrow-right rotate-90 justify-self-center text-xl text-text-tertiary sm:rotate-0" aria-hidden="true"></i>
 
-        <div class="rounded-xl border border-brand/50 bg-panel p-5">
-          <p class="text-meta text-ink-subtle">
-            {{ 'compare.current' | translate: { revision: after.revision } }}
-          </p>
-          <p class="mt-1 flex items-baseline gap-2">
-            <span class="text-4xl font-bold tabular-nums text-ink">
-              {{ after.result?.viabilityIndex ?? '—' }}
-            </span>
-            @if (delta(); as change) {
-              <span
-                class="text-sm font-semibold tabular-nums"
-                [class]="change > 0 ? 'text-verdict-go' : 'text-verdict-stop'"
-              >
-                {{ change > 0 ? '+' : '' }}{{ change }}
-              </span>
-            }
-          </p>
+        <div class="glass-card p-5 text-center" style="border-color: var(--color-primary-500)">
+          <p class="text-sm text-text-secondary">{{ 'compare.current' | translate: { revision: after.revision } }}</p>
+          <p class="mt-1 text-5xl font-bold tabular-nums text-text-primary">{{ after.result?.viabilityIndex ?? '—' }}</p>
           @if (after.result) {
-            <div class="mt-3">
-              <sim-verdict-badge [verdict]="after.result.verdict" />
-            </div>
+            <div class="mt-3"><sim-verdict-badge [verdict]="after.result.verdict" /></div>
           }
         </div>
       </div>
 
-      <p class="rounded-xl border border-line bg-panel-sunken p-4 text-sm leading-relaxed text-ink-muted">
+      @if (delta(); as change) {
+        <p class="text-center text-lg font-semibold" [style.color]="change > 0 ? 'var(--color-success)' : 'var(--color-danger)'">
+          {{ (change > 0 ? 'compare.better' : 'compare.worse') | translate: { delta: abs(change) } }}
+        </p>
+      }
+
+      <p class="flex items-start gap-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-4 text-sm leading-relaxed text-text-secondary">
+        <i class="pi pi-info-circle mt-0.5 shrink-0 text-primary-500" aria-hidden="true"></i>
         {{ 'compare.meaning' | translate }}
       </p>
 
       @if (flipped().length) {
-        <section>
-          <h2 class="text-h3 font-semibold text-ink">{{ 'compare.flipped' | translate }}</h2>
-          <ul class="mt-3 flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
+        <section class="flex flex-col gap-3" aria-labelledby="cmp-flip">
+          <h2 id="cmp-flip" class="text-xl font-bold">{{ 'compare.flipped' | translate }}</h2>
+          <ul class="flex flex-col gap-3">
             @for (scenario of flipped(); track scenario.name) {
-              <li class="flex flex-wrap items-center justify-between gap-3 p-4">
-                <span class="text-sm text-ink">{{ scenario.name }}</span>
-                <span
-                  class="inline-flex items-center gap-1.5 text-meta font-semibold"
-                  [class]="scenario.nowHolds ? 'text-verdict-go' : 'text-verdict-stop'"
-                >
-                  <span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
+              <li class="glass-card flex flex-wrap items-center justify-between gap-3 p-4">
+                <span class="text-base font-medium text-text-primary">{{ scenario.name }}</span>
+                <span class="sim-pill" [class.sim-pill--go]="scenario.nowHolds" [class.sim-pill--stop]="!scenario.nowHolds">
                   {{ (scenario.nowHolds ? 'compare.nowHolds' : 'compare.nowBreaks') | translate }}
                 </span>
               </li>
@@ -80,23 +55,22 @@
         </section>
       }
     } @else {
-      <div class="glass-card p-6">
-        <p class="text-sm text-ink-muted">{{ 'compare.noPrevious' | translate }}</p>
+      <div class="glass-card">
+        <sim-empty-state illustration="sankofa" [heading]="'compare.noPreviousTitle' | translate" [body]="'compare.noPrevious' | translate" />
       </div>
     }
 
-    <section class="rounded-xl border border-line bg-panel p-5">
-      <h2 class="text-h3 font-semibold text-ink">{{ 'compare.relaunchHeading' | translate }}</h2>
-      <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-        {{ 'compare.relaunchBody' | translate }}
-      </p>
-      <button
-        type="button"
-        class="inner-button mt-4"
-        [disabled]="relaunching()"
-        (click)="askToRelaunch()"
-      >
-        {{ (relaunching() ? 'newRun.launching' : 'compare.relaunch') | translate }}
+    <section class="glass-card flex flex-col items-start gap-3 p-6" aria-labelledby="cmp-relaunch">
+      <h2 id="cmp-relaunch" class="text-lg font-semibold">{{ 'compare.relaunchHeading' | translate }}</h2>
+      <p class="max-w-[70ch] text-sm leading-relaxed text-text-secondary">{{ 'compare.relaunchBody' | translate }}</p>
+      <button type="button" class="inner-button mt-1" [disabled]="relaunching()" (click)="askToRelaunch()">
+        @if (relaunching()) {
+          <idem-loader size="xs" />
+          {{ 'newRun.launching' | translate }}
+        } @else {
+          <i class="pi pi-refresh" aria-hidden="true"></i>
+          {{ 'compare.relaunch' | translate }}
+        }
       </button>
     </section>
 
@@ -105,8 +79,5 @@
 </div>
 
 @if (askingConsent()) {
-  <sim-consent-dialog
-    (dismissed)="askingConsent.set(false)"
-    (accepted)="relaunch($event)"
-  />
+  <sim-consent-dialog (dismissed)="askingConsent.set(false)" (accepted)="relaunch($event)" />
 }

@@ -39,8 +39,7 @@
       "guidedHint": "After creation, IDEM will guide you step by step.",
       "modeChoice": {
         "title": "How would you like to be supported?",
-        "subtitle": "Your description is saved. Nothing is final: the menu at the top of the screen lets you switch modes at any time.",
-        "backToDescription": "Edit the description",
+        "subtitle": "Your project is created. Nothing is final: the button at the bottom right of the screen lets you switch modes at any time.",
         "recommended": "Recommended",
         "recommendedForYou": "Recommended from your answers",
         "guided": {
@@ -57,7 +56,7 @@
         },
         "form": {
           "title": "Dashboard",
-          "description": "A structured form, then the full workspace: every module freely available, in whatever order you like.",
+          "description": "The full workspace: every module freely available, in whatever order you like.",
           "forWho": "For you if you already know what you are looking for.",
           "button": "Open the dashboard"
         }

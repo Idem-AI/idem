@@ -10,6 +10,7 @@ import useTerminalStore from '@/stores/terminalSlice';
 import { CodeBlock, isThinkContent, processStreamParts, processThinkContent } from '../MessageItem';
 import { parseFileFromContext } from '../../../utils/index';
 import { Message } from 'ai';
+import { IdemLoader } from '@idem/shared-loader/react';
 
 interface Task {
   status: 'done' | 'parsing';
@@ -399,7 +400,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                   )}
                   {task.status === 'parsing' && (
                     <div className="w-4 h-4">
-                      <div className="w-4 h-4 border-2 border-blue-500 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      <IdemLoader size="xs" />
                     </div>
                   )}
                 </div>
@@ -507,7 +508,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                         >
                           {commandStatus[cmd.command] === 'running' ? (
                             <div className="flex items-center gap-1">
-                              <div className="w-3 h-3 border-2 border-blue-500 dark:border-white border-t-transparent rounded-full animate-spin" />
+                              <IdemLoader size="xs" />
                               <span>Installing...</span>
                             </div>
                           ) : commandStatus[cmd.command] === 'completed' ? (
@@ -574,7 +575,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                         >
                           {commandStatus[cmd.command] === 'running' ? (
                             <div className="flex items-center gap-1">
-                              <div className="w-3 h-3 border-2 border-blue-500 dark:border-white border-t-transparent rounded-full animate-spin" />
+                              <IdemLoader size="xs" />
                               <span>Starting...</span>
                             </div>
                           ) : commandStatus[cmd.command] === 'completed' ? (

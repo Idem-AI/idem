@@ -4,106 +4,116 @@
     [description]="'list.description' | translate"
   >
     @if (project(); as current) {
-      <p breadcrumb class="mb-1 flex items-center gap-1.5 text-meta text-ink-subtle">
-        <i class="pi pi-folder text-[0.7rem]" aria-hidden="true"></i>
+      <p breadcrumb class="mb-1 flex items-center gap-1.5 text-sm text-text-tertiary">
+        <i class="pi pi-folder text-xs" aria-hidden="true"></i>
         {{ current.name }}
       </p>
     }
-    <a actions routerLink="/simulations/new" class="inner-button">
-      <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-      </svg>
-      {{ 'list.newRun' | translate }}
-    </a>
+    @if (!isEmpty()) {
+      <a actions routerLink="/simulations/new" class="inner-button">
+        <i class="pi pi-plus" aria-hidden="true"></i>
+        {{ 'list.newRun' | translate }}
+      </a>
+    }
   </sim-page-header>
 
   @if (isLoading()) {
     <sim-skeleton-list [count]="3" [label]="'list.loading' | translate" />
   } @else if (error()) {
-    <div class="glass-card p-6" role="alert">
-      <p class="text-sm font-medium text-ink">{{ 'error.loadFailed' | translate }}</p>
-      <p class="mt-1 text-meta text-ink-muted">{{ error() }}</p>
-      <button type="button" class="outer-button button-sm mt-3" (click)="reload()">
-        {{ 'action.retry' | translate }}
-      </button>
+    <div class="glass-card" role="alert">
+      <sim-empty-state
+        illustration="calabash-cracked"
+        [heading]="'error.loadFailed' | translate"
+        [body]="'error.loadFailedBody' | translate"
+      >
+        <button type="button" class="outer-button" (click)="reload()">
+          <i class="pi pi-refresh" aria-hidden="true"></i>
+          {{ 'action.retry' | translate }}
+        </button>
+      </sim-empty-state>
     </div>
   } @else if (isEmpty()) {
     <div class="glass-card">
       <sim-empty-state
+        illustration="awale"
         [heading]="'list.empty.heading' | translate"
         [body]="'list.empty.body' | translate"
       >
-        <svg icon viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-          <path d="M4 19V9m5 10V5m5 14v-7m5 7V8" stroke-linecap="round" />
-        </svg>
-        <a routerLink="/simulations/new" class="inner-button">
+        <a routerLink="/simulations/new" class="inner-button button-lg">
           {{ 'list.empty.action' | translate }}
+          <i class="pi pi-arrow-right" aria-hidden="true"></i>
         </a>
       </sim-empty-state>
     </div>
   } @else {
     @if (running().length) {
-      <section class="flex flex-col gap-2">
-        <h2 class="text-label font-semibold text-ink-muted">{{ 'list.running' | translate }}</h2>
+      <section class="flex flex-col gap-3" aria-labelledby="list-running">
+        <h2 id="list-running" class="text-lg font-semibold">{{ 'list.running' | translate }}</h2>
         @for (simulation of running(); track simulation.id) {
-          <a
-            [routerLink]="routeFor(simulation)"
-            class="glass-card flex items-center gap-4 p-4 transition-colors hover:border-line-strong"
-          >
-            <idem-loader size="xs" />
+          <a [routerLink]="routeFor(simulation)" class="glass-card sim-choice flex items-center gap-4 p-5">
+            <span class="grid size-14 shrink-0 place-items-center rounded-full bg-[var(--glass-bg-subtle)]">
+              <idem-loader size="sm" />
+            </span>
             <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-medium text-ink">{{ simulation.name }}</p>
-              <p class="truncate text-meta text-ink-subtle">{{ sourceLabel(simulation) }}</p>
+              <p class="truncate text-base font-semibold text-text-primary">{{ simulation.name }}</p>
+              <p class="truncate text-sm text-text-secondary">{{ 'list.runningHint' | translate }}</p>
             </div>
-            <span class="shrink-0 text-meta text-ink-muted">{{ 'status.running' | translate }}</span>
+            <span class="sim-link hidden shrink-0 sm:inline-flex">
+              {{ 'list.follow' | translate }}
+              <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+            </span>
           </a>
         }
       </section>
     }
 
-    <section class="flex flex-col gap-2">
+    <section class="flex flex-col gap-3" aria-labelledby="list-done">
       @if (running().length) {
-        <h2 class="text-label font-semibold text-ink-muted">{{ 'list.completed' | translate }}</h2>
+        <h2 id="list-done" class="text-lg font-semibold">{{ 'list.completed' | translate }}</h2>
+      } @else {
+        <h2 id="list-done" class="sr-only">{{ 'list.completed' | translate }}</h2>
       }
       @for (simulation of finished(); track simulation.id) {
         <a
           [routerLink]="routeFor(simulation)"
-          class="glass-card flex flex-wrap items-center gap-x-4 gap-y-3 p-4 transition-colors hover:border-line-strong"
+          class="glass-card sim-choice flex items-center gap-4 p-5"
+          [attr.aria-label]="simulation.name"
         >
           @if (simulation.viabilityIndex !== undefined) {
             <span
-              class="grid size-11 shrink-0 place-items-center rounded-lg border border-line bg-panel-sunken text-base font-bold tabular-nums text-ink"
-              [attr.aria-label]="'result.index' | translate"
+              class="grid size-14 shrink-0 place-items-center rounded-full border-4 text-lg font-bold tabular-nums text-text-primary"
+              [style.border-color]="scoreColor(simulation.viabilityIndex)"
+              [attr.aria-label]="'list.scoreLabel' | translate: { value: simulation.viabilityIndex }"
             >
               {{ simulation.viabilityIndex }}
             </span>
           } @else {
-            <span class="grid size-11 shrink-0 place-items-center rounded-lg border border-line bg-panel-sunken text-ink-subtle" aria-hidden="true">
-              —
+            <span class="grid size-14 shrink-0 place-items-center rounded-full border-4 border-[var(--glass-border)] text-text-tertiary" aria-hidden="true">
+              <i class="pi" [class.pi-exclamation-triangle]="simulation.status === 'failed'" [class.pi-minus]="simulation.status !== 'failed'"></i>
             </span>
           }
 
           <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium text-ink">{{ simulation.name }}</p>
-            <p class="truncate text-meta text-ink-subtle">
-              {{ sourceLabel(simulation) }}
-              @if (simulation.revision > 1) {
-                · {{ 'list.revision' | translate: { revision: simulation.revision } }}
+            <p class="truncate text-base font-semibold text-text-primary">{{ simulation.name }}</p>
+            <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              @if (simulation.verdict) {
+                <sim-verdict-badge [verdict]="simulation.verdict" />
+              } @else if (simulation.status === 'failed') {
+                <span class="sim-pill sim-pill--stop">{{ 'list.failed' | translate }}</span>
               }
-              · {{ simulation.updatedAt | date: 'mediumDate' }}
-            </p>
+              <span class="text-xs text-text-tertiary">
+                {{ simulation.updatedAt | date: 'mediumDate' : undefined : lang() }}
+                @if (simulation.revision > 1) {
+                  · {{ 'list.revision' | translate: { revision: simulation.revision } }}
+                }
+                @if (simulation.hasReport) {
+                  · {{ 'list.reportAvailable' | translate }}
+                }
+              </span>
+            </div>
           </div>
 
-          <div class="flex shrink-0 items-center gap-2">
-            @if (simulation.hasReport) {
-              <span class="rounded border border-line px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase text-ink-subtle">
-                {{ 'list.reportAvailable' | translate }}
-              </span>
-            }
-            @if (simulation.verdict) {
-              <sim-verdict-badge [verdict]="simulation.verdict" />
-            }
-          </div>
+          <i class="pi pi-chevron-right shrink-0 text-text-tertiary" aria-hidden="true"></i>
         </a>
       }
     </section>

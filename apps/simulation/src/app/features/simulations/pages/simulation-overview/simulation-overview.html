@@ -1,42 +1,28 @@
 @if (simulation(); as run) {
   @if (run.result; as result) {
     <div class="flex flex-col gap-8">
-      <!-- Verdict --------------------------------------------------------- -->
-      <section class="grid gap-6 lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] lg:items-start">
-        <div class="glass-card p-5">
-          <h2 class="mb-4 text-label font-semibold text-ink-muted">
-            {{ 'result.index' | translate }}
-          </h2>
-          <sim-viability-gauge
-            [value]="result.viabilityIndex"
-            [robustness]="result.robustness"
-            [confidence]="result.confidence"
-            [rangeMin]="scenarioRange()?.min ?? null"
-            [rangeMax]="scenarioRange()?.max ?? null"
-            [label]="'result.gaugeLabel' | translate: { value: result.viabilityIndex }"
-          />
-          <!-- Le verdict est la lecture de l'indice et de la résistance
-               affichés au-dessus : il se lit ici, à leur suite. Dans un
-               encadré séparé, il énonçait un jugement détaché du chiffre qui
-               le fonde, et répétait la même information deux fois à l'écran. -->
-          <p class="mt-4 border-t border-line pt-3 text-h3 font-semibold" [class]="verdictColor()">
-            {{ 'verdict.' + result.verdict | translate }}
-          </p>
-          <p class="mt-1 text-meta leading-relaxed text-ink-muted">
+      <!-- Le verdict : la note, et ce qu'elle veut dire, en une phrase. -->
+      <section class="glass-card grid items-center gap-6 p-6 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] md:p-8">
+        <sim-viability-gauge
+          [value]="result.viabilityIndex"
+          [robustness]="result.robustness"
+          [confidence]="result.confidence"
+          [rangeMin]="scenarioRange()?.min ?? null"
+          [rangeMax]="scenarioRange()?.max ?? null"
+          [label]="'result.gaugeLabel' | translate: { value: result.viabilityIndex }"
+        />
+        <div class="flex flex-col items-start gap-3">
+          <p class="text-sm font-medium text-text-secondary">{{ run.name }}</p>
+          <h1 class="text-2xl font-bold md:text-3xl">{{ 'verdict.' + result.verdict | translate }}</h1>
+          <sim-verdict-badge [verdict]="result.verdict" />
+          <p class="max-w-[60ch] text-base leading-relaxed text-text-secondary">
             {{ 'verdictMeaning.' + result.verdict | translate }}
           </p>
-
-          <p class="mt-3 text-meta leading-relaxed text-ink-subtle">
-            {{ 'result.indexMeaning' | translate }}
-          </p>
-
+          <p class="text-xs text-text-tertiary">{{ 'result.indexMeaning' | translate }}</p>
           @if (run.hasReport) {
-            <!-- Le PDF est ce que l'on transmet à une banque ou à un associé :
-                 sa place est sous le score qu'il documente, pas en bas de page
-                 parmi les destinations à visiter. -->
             <button
               type="button"
-              class="inner-button mt-4 w-full"
+              class="inner-button mt-1"
               [disabled]="downloading()"
               (click)="downloadReport()"
             >
@@ -50,52 +36,42 @@
             </button>
           }
         </div>
+      </section>
 
-        <div class="flex flex-col gap-5">
-          <div>
-            <h2 class="text-h2 font-semibold text-ink">{{ 'overview.why' | translate }}</h2>
-            <p class="mt-2 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+      <!-- Pourquoi -->
+      <section class="flex flex-col gap-4" aria-labelledby="ov-why">
+        <div>
+          <h2 id="ov-why" class="text-xl font-bold">{{ 'overview.why' | translate }}</h2>
+          @if (result.verdictRationale) {
+            <p class="mt-2 max-w-[70ch] text-sm leading-relaxed text-text-secondary md:text-base">
               {{ result.verdictRationale }}
             </p>
+          }
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="glass-card p-5">
+            <h3 class="flex items-center gap-2 text-base font-semibold">
+              <i class="pi pi-check-circle text-success" aria-hidden="true"></i>
+              {{ 'result.strengths' | translate }}
+            </h3>
+            <ul class="mt-3 flex flex-col gap-2">
+              @for (item of result.strengths; track item) {
+                <li class="flex items-start gap-2 text-sm leading-relaxed text-text-secondary">
+                  <i class="pi pi-plus mt-1 shrink-0 text-[0.65rem] text-success" aria-hidden="true"></i>
+                  {{ item }}
+                </li>
+              }
+            </ul>
           </div>
-
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-              <h3 class="mb-2 text-label font-semibold text-ink-muted">
-                {{ 'result.strengths' | translate }}
-              </h3>
-              <ul class="flex flex-col gap-1.5">
-                @for (item of result.strengths; track item) {
-                  <li class="flex items-start gap-2 text-sm leading-relaxed text-ink-muted">
-                    <span class="mt-2 size-1 shrink-0 rounded-full bg-verdict-go" aria-hidden="true"></span>
-                    {{ item }}
-                  </li>
-                }
-              </ul>
-            </div>
-            <div>
-              <h3 class="mb-2 text-label font-semibold text-ink-muted">
-                {{ 'result.weaknesses' | translate }}
-              </h3>
-              <ul class="flex flex-col gap-1.5">
-                @for (item of result.weaknesses; track item) {
-                  <li class="flex items-start gap-2 text-sm leading-relaxed text-ink-muted">
-                    <span class="mt-2 size-1 shrink-0 rounded-full bg-verdict-stop" aria-hidden="true"></span>
-                    {{ item }}
-                  </li>
-                }
-              </ul>
-            </div>
-          </div>
-
-          <div class="rounded-xl border border-line bg-panel-sunken p-4">
-            <h3 class="text-label font-semibold text-ink">{{ 'result.uncertainties' | translate }}</h3>
-            <p class="mt-0.5 text-meta leading-relaxed text-ink-subtle">
-              {{ 'result.uncertaintiesHint' | translate }}
-            </p>
-            <ul class="mt-2.5 flex flex-wrap gap-1.5">
-              @for (item of result.keyUncertainties; track item) {
-                <li class="rounded-full border border-line px-2.5 py-1 text-meta text-ink-muted">
+          <div class="glass-card p-5">
+            <h3 class="flex items-center gap-2 text-base font-semibold">
+              <i class="pi pi-exclamation-circle text-danger" aria-hidden="true"></i>
+              {{ 'result.weaknesses' | translate }}
+            </h3>
+            <ul class="mt-3 flex flex-col gap-2">
+              @for (item of result.weaknesses; track item) {
+                <li class="flex items-start gap-2 text-sm leading-relaxed text-text-secondary">
+                  <i class="pi pi-minus mt-1 shrink-0 text-[0.65rem] text-danger" aria-hidden="true"></i>
                   {{ item }}
                 </li>
               }
@@ -104,60 +80,55 @@
         </div>
       </section>
 
-      <!-- Repères --------------------------------------------------------- -->
-      <section data-tour="sim-glance">
-        <h2 class="mb-3 text-h2 font-semibold text-ink">{{ 'overview.atAGlance' | translate }}</h2>
-        <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
+      <!-- En bref -->
+      <section class="flex flex-col gap-4" data-tour="sim-glance" aria-labelledby="ov-glance">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="ov-glance" class="text-xl font-bold">{{ 'overview.atAGlance' | translate }}</h2>
+            <p class="mt-1 text-sm text-text-secondary">
+              {{ 'result.scenariosBody' | translate: { total: result.scenarios.length, broken: brokenScenarios() } }}
+            </p>
+          </div>
+          <a [routerLink]="['/simulations', run.id, 'factors']" class="sim-link">
+            {{ 'overview.glanceLink' | translate }}
+            <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+          </a>
+        </div>
+        <dl class="grid grid-cols-2 gap-4 lg:grid-cols-4">
           @for (entry of tierCounts(); track entry.tier) {
-            <div class="bg-panel p-4">
-              <dt class="text-meta text-ink-subtle">{{ 'factorTier.' + entry.tier | translate }}</dt>
-              <dd class="mt-0.5 text-h2 font-semibold tabular-nums text-ink">{{ entry.count }}</dd>
+            <div class="glass-card p-5">
+              <dt class="text-sm text-text-secondary">{{ 'factorTier.' + entry.tier | translate }}</dt>
+              <dd class="mt-1 text-2xl font-bold tabular-nums text-text-primary">{{ entry.count }}</dd>
+              <dd class="mt-1 text-xs leading-relaxed text-text-tertiary">{{ 'factorTierHint.' + entry.tier | translate }}</dd>
             </div>
           }
         </dl>
-        <p class="mt-2 text-meta text-ink-subtle">
-          {{
-            'result.scenariosBody'
-              | translate: { total: result.scenarios.length, broken: brokenScenarios() }
-          }}
-        </p>
       </section>
 
-      <!-- Problèmes et réponses ------------------------------------------- -->
-      <!--
-        Le problème et sa réponse se lisent ensemble. Les recommandations
-        arrivent avec le rapport : tant qu'il n'existe pas, seuls les problèmes
-        s'affichent — mais jamais dans une section séparée de leurs réponses.
-      -->
+      <!-- Les problèmes, chacun avec sa réponse -->
       @if (issues().length) {
-        <section class="flex flex-col gap-3" data-tour="sim-risks">
-          <h2 class="text-h2 font-semibold text-ink">{{ 'result.risks' | translate }}</h2>
-          <ul class="divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
+        <section class="flex flex-col gap-4" data-tour="sim-risks" aria-labelledby="ov-risks">
+          <div>
+            <h2 id="ov-risks" class="text-xl font-bold">{{ 'result.risks' | translate }}</h2>
+            <p class="mt-1 text-sm text-text-secondary">{{ 'result.risksBody' | translate }}</p>
+          </div>
+          <ul class="flex flex-col gap-3">
             @for (issue of issues(); track issue.risk.id) {
-              <li class="p-4">
-                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <h3 class="text-sm font-semibold text-ink">{{ issue.risk.title }}</h3>
-                  <span
-                    class="text-[0.6875rem] font-semibold uppercase"
-                    [class.text-verdict-stop]="issue.risk.severity === 'critical'"
-                    [class.text-verdict-warn]="issue.risk.severity === 'high'"
-                    [class.text-ink-subtle]="issue.risk.severity === 'moderate'"
-                  >
-                    {{ 'severity.' + issue.risk.severity | translate }}
-                  </span>
-                </div>
-                <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+              <li class="glass-card p-5">
+                <span [class]="'sim-pill sim-pill--' + tone(issue.risk.severity)">
+                  {{ 'severity.' + issue.risk.severity | translate }}
+                </span>
+                <h3 class="mt-2.5 text-base font-semibold">{{ issue.risk.title }}</h3>
+                <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-text-secondary">
                   {{ issue.risk.description }}
                 </p>
                 @for (response of issue.responses; track response.id) {
-                  <div class="mt-3 border-l-2 border-accent pl-3.5">
-                    <p class="text-[0.6875rem] font-semibold uppercase text-accent">
-                      {{ 'report.issues.response' | translate }}
+                  <div class="mt-3 rounded-xl border-l-4 border-success bg-[var(--glass-bg-subtle)] p-3">
+                    <p class="flex items-center gap-1.5 text-sm font-semibold text-text-primary">
+                      <i class="pi pi-lightbulb text-success" aria-hidden="true"></i>
+                      {{ 'report.issues.response' | translate }} : {{ response.title }}
                     </p>
-                    <p class="mt-0.5 text-sm font-semibold text-ink">{{ response.title }}</p>
-                    <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-                      {{ response.body }}
-                    </p>
+                    <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-text-secondary">{{ response.body }}</p>
                   </div>
                 }
               </li>
@@ -166,73 +137,107 @@
         </section>
       }
 
-      <!-- Suite ----------------------------------------------------------- -->
-      <section class="flex flex-col gap-3" data-tour="sim-next">
-        <h2 class="text-h2 font-semibold text-ink">{{ 'overview.nextSteps' | translate }}</h2>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="inner-button" [disabled]="generating()" (click)="openReport()">
-            <i class="pi pi-file" aria-hidden="true"></i>
-            {{
-              (run.hasReport ? 'results.openReport' : generating() ? 'results.unlocking' : 'results.getReport')
-                | translate
-            }}
-          </button>
-          <a [routerLink]="['/simulations', run.id, 'labs', 'red-team']" class="outer-button">
-            <i class="pi pi-bolt" aria-hidden="true"></i>
-            {{ 'nav.lab.redTeam' | translate }}
+      @if (result.keyUncertainties.length) {
+        <section class="rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-5" aria-labelledby="ov-unsure">
+          <h2 id="ov-unsure" class="text-lg font-semibold">{{ 'result.uncertainties' | translate }}</h2>
+          <p class="mt-1 text-sm text-text-secondary">{{ 'result.uncertaintiesHint' | translate }}</p>
+          <ul class="mt-3 flex flex-wrap gap-2">
+            @for (item of result.keyUncertainties; track item) {
+              <li class="tag">{{ item }}</li>
+            }
+          </ul>
+          <a [routerLink]="['/simulations', run.id, 'labs', 'experiments']" class="sim-link mt-4">
+            {{ 'overview.howToCheck' | translate }}
+            <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
           </a>
-          @if (run.previousRunId) {
-            <a [routerLink]="['/simulations', run.id, 'compare']" class="outer-button">
-              <i class="pi pi-arrows-h" aria-hidden="true"></i>
-              {{ 'results.compare' | translate }}
-            </a>
-          }
+        </section>
+      }
+
+      <!-- Et maintenant ? -->
+      <section class="flex flex-col gap-4" data-tour="sim-next" aria-labelledby="ov-next">
+        <h2 id="ov-next" class="text-xl font-bold">{{ 'overview.nextSteps' | translate }}</h2>
+        <div class="grid gap-4 md:grid-cols-3">
+          <button type="button" class="glass-card sim-choice flex flex-col items-start gap-2 p-5" [disabled]="generating()" (click)="openReport()">
+            <sim-illustration name="leaflet" class="w-20" />
+            <span class="mt-1 text-base font-semibold text-text-primary">{{ 'overview.next.report.title' | translate }}</span>
+            <span class="text-sm leading-relaxed text-text-secondary">{{ 'overview.next.report.body' | translate }}</span>
+            <span class="sim-link mt-auto pt-2">
+              @if (generating()) {
+                <idem-loader size="xs" />
+                {{ 'results.unlocking' | translate }}
+              } @else {
+                {{ (run.hasReport ? 'results.openReport' : 'results.getReport') | translate }}
+                <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+              }
+            </span>
+          </button>
+          <a [routerLink]="['/simulations', run.id, 'financials']" class="glass-card sim-choice flex flex-col items-start gap-2 p-5">
+            <sim-illustration name="cowries" class="w-20" />
+            <span class="mt-1 text-base font-semibold text-text-primary">{{ 'overview.next.money.title' | translate }}</span>
+            <span class="text-sm leading-relaxed text-text-secondary">{{ 'overview.next.money.body' | translate }}</span>
+            <span class="sim-link mt-auto pt-2">
+              {{ 'overview.next.money.cta' | translate }}
+              <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+            </span>
+          </a>
+          <a [routerLink]="['/simulations', run.id, 'labs']" class="glass-card sim-choice flex flex-col items-start gap-2 p-5">
+            <sim-illustration name="awale" class="w-20" />
+            <span class="mt-1 text-base font-semibold text-text-primary">{{ 'overview.next.labs.title' | translate }}</span>
+            <span class="text-sm leading-relaxed text-text-secondary">{{ 'overview.next.labs.body' | translate }}</span>
+            <span class="sim-link mt-auto pt-2">
+              {{ 'overview.next.labs.cta' | translate }}
+              <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+            </span>
+          </a>
         </div>
-        @if (!run.hasReport) {
-          <p class="max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
-            {{ 'results.upsell.body' | translate }}
-          </p>
+        @if (run.previousRunId) {
+          <a [routerLink]="['/simulations', run.id, 'compare']" class="sim-link">
+            <i class="pi pi-arrows-h text-xs" aria-hidden="true"></i>
+            {{ 'results.compare' | translate }}
+          </a>
         }
       </section>
 
       <sim-disclaimer-note />
     </div>
+  } @else if (run.status === 'failed') {
+    <div class="glass-card flex flex-col items-center gap-3 p-8 text-center" role="alert">
+      <sim-illustration name="calabash-cracked" class="w-36" />
+      <h1 class="mt-2 text-2xl font-bold">{{ 'run.failed' | translate }}</h1>
+      <p class="max-w-md text-sm leading-relaxed text-text-secondary md:text-base">{{ 'run.resumeHint' | translate }}</p>
+      <button
+        id="btn-resume-simulation"
+        type="button"
+        class="inner-button button-lg mt-2"
+        [disabled]="resuming()"
+        (click)="resume()"
+      >
+        @if (resuming()) {
+          <idem-loader size="xs" />
+          {{ 'run.resuming' | translate }}
+        } @else {
+          <i class="pi pi-refresh" aria-hidden="true"></i>
+          {{ 'run.resume' | translate }}
+        }
+      </button>
+      @if (run.failureReason) {
+        <details class="mt-3 w-full max-w-md text-left">
+          <summary class="cursor-pointer text-xs text-text-tertiary">{{ 'run.technicalDetail' | translate }}</summary>
+          <p class="mt-2 break-all font-mono text-xs text-text-tertiary">{{ run.failureReason }}</p>
+        </details>
+      }
+    </div>
   } @else {
-    <!-- Exécution en cours ou interrompue -------------------------------- -->
+    <!-- En cours : ce qui se passe, étape par étape. -->
     <div class="flex flex-col gap-6">
-      <div class="glass-card p-5">
+      <div class="glass-card flex flex-col items-center gap-2 p-6 text-center md:p-8">
+        <sim-illustration name="awale" class="w-40" />
+        <h1 class="mt-2 text-2xl font-bold md:text-3xl">{{ 'run.heading' | translate }}</h1>
+        <p class="max-w-lg text-sm leading-relaxed text-text-secondary md:text-base">{{ 'run.body' | translate }}</p>
+      </div>
+      <div class="glass-card p-5 md:p-6">
         <sim-pipeline-progress [progress]="run.progress" />
       </div>
-      @if (run.status === 'failed') {
-        <!-- Simulation échouée — proposition de reprise -->
-        <div class="rounded-xl border border-verdict-stop/40 bg-panel-sunken p-5 flex flex-col gap-4" role="alert">
-          <div>
-            <p class="text-label font-semibold text-ink">{{ 'run.failed' | translate }}</p>
-            @if (run.failureReason) {
-              <p class="mt-1 text-meta text-ink-muted font-mono break-all">{{ run.failureReason }}</p>
-            }
-          </div>
-          <p class="text-sm text-ink-muted">{{ 'run.resumeHint' | translate }}</p>
-          <button
-            id="btn-resume-simulation"
-            type="button"
-            class="inner-button w-fit"
-            [disabled]="resuming()"
-            (click)="resume()"
-          >
-            @if (resuming()) {
-              <span class="animate-pulse">{{ 'run.resuming' | translate }}</span>
-            } @else {
-              {{ 'run.resume' | translate }}
-            }
-          </button>
-        </div>
-      } @else {
-        <!-- En cours d'exécution -->
-        <p class="max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-          {{ 'run.body' | translate }}
-        </p>
-      }
       <sim-disclaimer-note [compact]="true" />
     </div>
   }

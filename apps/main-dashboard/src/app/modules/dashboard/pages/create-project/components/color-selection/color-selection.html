@@ -1,62 +1,34 @@
-<!-- Loading State -->
+<!-- Chargement : le même en-tête et la même grille que les palettes à venir,
+     en squelette. -->
 @if (isGenerating()) {
-  <div class="w-full min-h-[78vh] flex flex-col items-center justify-center sm:mt-0">
-    <!-- Header Section -->
-    <div class="text-center mb-12">
-      <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-[var(--glass-bg-light)] border border-[var(--glass-border)] mb-4">
-        <idem-loader size="xs" />
-        <span class="text-sm font-medium text-text-secondary">Génération des palettes...</span>
-      </div>
-      <h1 class="sm:text-4xl text-2xl font-bold text-text-primary mb-4">
+  <section class="w-full max-w-6xl mx-auto px-4 sm:px-6 text-text-primary" aria-busy="true">
+    <header class="mb-6">
+      <h1 class="text-2xl sm:text-3xl font-bold leading-tight">
         {{ 'dashboard.colorSelection.generating.title' | translate }}
       </h1>
-    </div>
+      <p class="mt-1.5 text-sm sm:text-base text-text-tertiary">
+        {{ 'dashboard.colorSelection.generating.subtitle' | translate }}
+      </p>
+    </header>
 
-    <div class="w-full max-w-7xl mx-auto">
-      <!-- Loading Carousel -->
-      <app-carousel
-        [items]="[1, 2, 3]"
-        [selectedItem]="null"
-        [trackByFn]="trackSkeleton"
-        [gridCols]="3"
-        [showDots]="true"
-        [showArrows]="false"
-        [infinite]="false"
-      >
-        <ng-template let-item>
-          <div class="p-4 sm:p-6 border-2 border-[var(--glass-border)] glass rounded-xl">
-            <idem-loader size="sm" />
-            <div class="flex gap-2 mb-4">
-              @for (color of [1, 2, 3, 4]; track color) {
-                <idem-loader size="lg" />
-              }
-            </div>
-            <div class="p-3 rounded-lg bg-[var(--glass-bg-light)] border border-[var(--glass-border-subtle)]">
-              <idem-loader size="xs" />
-              <div class="flex gap-2">
-                <idem-loader size="sm" />
-                <idem-loader size="sm" />
-              </div>
-            </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6" aria-hidden="true">
+      @for (item of skeletonCards; track item) {
+        <div class="rounded-3xl overflow-hidden border border-[var(--glass-border-subtle)]">
+          <div class="skeleton h-52 sm:h-60 w-full"></div>
+          <div class="flex h-28 sm:h-32 gap-px">
+            <div class="skeleton flex-[1.2]"></div>
+            <div class="skeleton flex-1"></div>
+            <div class="skeleton flex-1"></div>
+            <div class="skeleton flex-[0.7]"></div>
           </div>
-        </ng-template>
-      </app-carousel>
+          <div class="flex items-center justify-between px-5 py-4">
+            <div class="skeleton h-4 w-2/5 rounded"></div>
+            <div class="skeleton h-3 w-16 rounded"></div>
+          </div>
+        </div>
+      }
     </div>
-
-    <!-- Tips Section -->
-    <div class="mt-12 text-center">
-      <div
-        class="bg-[var(--glass-bg-subtle)] backdrop-blur-sm border border-[var(--glass-border-subtle)] rounded-xl p-6 max-w-2xl mx-auto"
-      >
-        <h3 class="text-lg font-semibold text-text-primary mb-3">
-          {{ 'dashboard.colorSelection.generating.whileYouWait' | translate }}
-        </h3>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          {{ 'dashboard.colorSelection.generating.tip' | translate }}
-        </p>
-      </div>
-    </div>
-  </div>
+  </section>
 }
 
 <!-- Error State -->
@@ -77,201 +49,110 @@
 @if (showColorCustomizer() && getSelectedColor()) {
   <app-color-customizer
     [initialColors]="getSelectedColor()!"
+    [brandName]="project().name"
     (colorsUpdated)="onColorsCustomized($event)"
     (closed)="closeColorCustomizer()"
   ></app-color-customizer>
 }
 
-<!-- Success State - Color Selection -->
+<!-- Palettes prêtes, toutes visibles pour les comparer. Les couleurs occupent
+     la carte : la principale en grand avec la marque posée dessus et le bouton
+     d'accent, puis les autres en bandes de nuancier, nom et code inscrits
+     dedans. Un clic choisit la palette ; « Ajuster les couleurs » s'applique à
+     celle qui est choisie. -->
 @if (!isGenerating() && !error() && hasGenerated()) {
-  <section
-    class="sm:min-h-[78vh] flex flex-col items-center justify-center w-full px-4 mt-[80px] sm:mt-0"
-  >
-    <div class="text-center mb-8">
-      <h1
-        class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-text-primary mb-4 max-w-4xl"
+  <section class="w-full max-w-6xl mx-auto px-4 sm:px-6 text-text-primary">
+    <header class="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold leading-tight">
+          {{ 'dashboard.colorSelection.success.title' | translate }}
+        </h1>
+        <p class="mt-1.5 text-sm sm:text-base text-text-tertiary">
+          {{ 'dashboard.colorSelection.success.subtitle' | translate }}
+        </p>
+      </div>
+      <button
+        type="button"
+        class="outer-button button-sm shrink-0 self-start sm:self-auto"
+        [disabled]="!selectedColorId()"
+        (click)="openColorCustomizer()"
       >
-        {{ 'dashboard.colorSelection.success.title' | translate }}
-      </h1>
-      <p class="text-text-tertiary sm:text-lg text-sm max-w-2xl mx-auto mb-4">
-        {{ 'dashboard.colorSelection.success.subtitle' | translate }}
-      </p>
+        <i class="pi pi-sliders-h text-xs" aria-hidden="true"></i>
+        {{ 'dashboard.colorSelection.buttons.customize' | translate }}
+      </button>
+    </header>
 
-      <!-- Customize Colors Button -->
-      @if (selectedColorId()) {
-        <div class="flex justify-center">
-          <button
-            (click)="openColorCustomizer()"
-            class="inner-button inline-flex items-center px-6 py-3"
-          >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-              />
-            </svg>
-            {{ 'dashboard.colorSelection.buttons.customize' | translate }}
-          </button>
-        </div>
-      }
-    </div>
-
-    <div class="w-full max-w-7xl mx-auto">
-      <!-- Responsive Color Display -->
-      <app-carousel
-        [items]="colorPalettes()"
-        [selectedItem]="null"
-        [trackByFn]="trackColor"
-        [gridCols]="3"
-        [showDots]="true"
-        [showArrows]="true"
-        [infinite]="false"
-        (currentItemChanged)="onCarouselItemChanged($event)"
-      >
-        <ng-template let-color let-index="index" let-isSelected="isSelected">
+    <div
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6"
+      role="radiogroup"
+      [attr.aria-label]="'dashboard.colorSelection.success.title' | translate"
+    >
+      @for (palette of colorPalettes(); track palette.id) {
+        @let selected = selectedColorId() === palette.id;
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="selected"
+          class="palette-card group text-left rounded-3xl overflow-hidden"
+          [class.palette-card--selected]="selected"
+          [style.--palette-glow]="palette.colors.primary"
+          (click)="selectColor(palette.id)"
+        >
+          <!-- La couleur principale, en grand, et la marque posée dessus -->
           <div
-            class="relative rounded-2xl cursor-pointer transition-all duration-500 overflow-hidden group hover:-translate-y-2 border-2"
-            [ngClass]="{
-              'scale-[1.02]': selectedColorId() === color.id,
-              'border-transparent hover:border-[var(--glass-border)]': selectedColorId() !== color.id,
-            }"
-            [style.boxShadow]="
-              selectedColorId() === color.id
-                ? '0 0 40px ' +
-                  color.colors.primary +
-                  '33, inset 0 0 30px ' +
-                  color.colors.primary +
-                  '10'
-                : 'none'
-            "
-            [style.borderColor]="selectedColorId() === color.id ? color.colors.primary : ''"
-            (click)="selectColor(color.id)"
+            class="relative flex h-52 sm:h-60 flex-col justify-between p-6"
+            [style.backgroundColor]="palette.colors.primary"
+            [style.color]="readableOn(palette.colors.primary)"
           >
-            <!-- Color Strips — Pantone Style -->
-            <div class="flex h-36 sm:h-44">
-              <div
-                class="flex-1 relative group/strip transition-all duration-300 hover:flex-[1.4]"
-                [style.backgroundColor]="color.colors.primary"
-                [title]="'dashboard.colorSelection.tooltips.primary' | translate"
-              >
-                <span
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
-                  >Primary</span
-                >
-              </div>
-              <div
-                class="flex-1 relative group/strip transition-all duration-300 hover:flex-[1.4]"
-                [style.backgroundColor]="color.colors.secondary"
-                [title]="'dashboard.colorSelection.tooltips.secondary' | translate"
-              >
-                <span
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
-                  >Secondary</span
-                >
-              </div>
-              <div
-                class="flex-1 relative group/strip transition-all duration-300 hover:flex-[1.4]"
-                [style.backgroundColor]="color.colors.accent"
-                [title]="'dashboard.colorSelection.tooltips.accent' | translate"
-              >
-                <span
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
-                  >Accent</span
-                >
-              </div>
-              <div
-                class="flex-[0.6] relative group/strip transition-all duration-300 hover:flex-1"
-                [style.backgroundColor]="color.colors.background"
-              >
-                <span
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
-                  [style.color]="color.colors.text"
-                  >Bg</span
-                >
-              </div>
-            </div>
-
-            <!-- Card Info -->
-            <div class="relative bg-[var(--color-bg-darker)] p-4 sm:p-5">
-              <!-- Palette Name + Check -->
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-text-primary text-base font-bold">{{ color.name }}</h3>
-                @if (selectedColorId() === color.id) {
-                  <div
-                    class="w-7 h-7 rounded-full flex items-center justify-center shadow-lg"
-                    [style.backgroundColor]="color.colors.primary"
-                    style="
-                      animation: scale-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-                    "
-                  >
-                    <svg
-                      class="w-4 h-4 text-text-primary"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2.5"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
+            <div class="flex items-start justify-between gap-3">
+              <span class="text-[11px] font-medium uppercase opacity-80">
+                {{ 'dashboard.colorSelection.swatches.primary' | translate }} · {{ palette.colors.primary }}
+              </span>
+              <span class="palette-card__check" aria-hidden="true">
+                @if (selected) {
+                  <i class="pi pi-check text-[11px]"></i>
                 }
-              </div>
-
-              <!-- Live Typography Preview -->
-              <div
-                class="rounded-xl overflow-hidden border border-[var(--glass-border-subtle)]"
-                [style.backgroundColor]="color.colors.background"
+              </span>
+            </div>
+            <div class="min-w-0">
+              <p class="text-3xl sm:text-4xl font-bold leading-none truncate">
+                {{ project().name || palette.name }}
+              </p>
+              <span
+                class="mt-4 inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold"
+                [style.backgroundColor]="palette.colors.accent"
+                [style.color]="readableOn(palette.colors.accent)"
               >
-                <div class="p-4">
-                  <p class="text-xl font-bold mb-1 leading-tight" [style.color]="color.colors.text">
-                    Aa Bb Cc
-                  </p>
-                  <p class="text-xs mb-3 opacity-60" [style.color]="color.colors.text">
-                    The quick brown fox jumps over the lazy dog
-                  </p>
-                  <div class="flex items-center gap-2">
-                    <div
-                      class="h-7 px-4 rounded-lg flex items-center justify-center"
-                      [style.backgroundColor]="color.colors.primary"
-                    >
-                      <span class="text-[10px] font-bold text-text-primary">Button</span>
-                    </div>
-                    <div
-                      class="h-7 px-4 rounded-lg flex items-center justify-center border"
-                      [style.borderColor]="color.colors.accent"
-                      [style.backgroundColor]="color.colors.accent + '15'"
-                    >
-                      <span
-                        class="text-[10px] font-bold"
-                        [style.color]="color.colors.accent"
-                        >Action</span
-                      >
-                    </div>
-                    <div
-                      class="ml-auto w-5 h-5 rounded-full"
-                      [style.backgroundColor]="color.colors.secondary"
-                    ></div>
-                  </div>
-                </div>
-              </div>
+                {{ 'dashboard.colorSelection.preview.button' | translate }}
+              </span>
             </div>
           </div>
-        </ng-template>
-      </app-carousel>
 
-      <!-- Navigation Hint -->
-      @if (selectedColorId()) {
-        <div class="text-center mt-8">
-          <p class="text-text-tertiary text-sm">
-            {{ 'dashboard.colorSelection.success.greatChoice' | translate }}
-          </p>
-        </div>
+          <!-- Les autres couleurs, en bandes de nuancier -->
+          <div class="flex h-28 sm:h-32">
+            @for (swatch of bands; track swatch.key) {
+              <div
+                class="palette-band flex min-w-0 flex-col justify-end p-2.5"
+                [style.flexGrow]="swatch.weight"
+                [style.backgroundColor]="palette.colors[swatch.key]"
+                [style.color]="readableOn(palette.colors[swatch.key])"
+              >
+                <span class="text-[11px] font-semibold truncate">{{ swatch.label | translate }}</span>
+                <span class="text-[10px] uppercase tabular-nums opacity-80 truncate">
+                  {{ palette.colors[swatch.key] }}
+                </span>
+              </div>
+            }
+          </div>
+
+          <!-- Le nom de la palette -->
+          <div class="flex items-center justify-between gap-3 bg-[var(--color-surface-1)] px-5 py-4">
+            <span class="text-base font-semibold text-text-primary truncate">{{ palette.name }}</span>
+            <span class="text-xs text-text-tertiary shrink-0">
+              {{ (selected ? 'dashboard.colorSelection.success.selected' : 'dashboard.colorSelection.success.choose') | translate }}
+            </span>
+          </div>
+        </button>
       }
     </div>
   </section>

@@ -1,11 +1,1 @@
-/* Dynamic (AI-driven) details form styles */
-
-:host ::ng-deep .p-select,
-:host ::ng-deep .p-textarea {
-  width: 100%;
-}
-
-:host ::ng-deep textarea[pInputTextarea] {
-  min-height: 2.75rem;
-  resize: vertical;
-}
+/* Rien ici : les champs sont les éléments natifs stylés par @idem/shared-styles. */

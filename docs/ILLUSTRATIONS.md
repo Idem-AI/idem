@@ -13,6 +13,11 @@ tiers, et les **schémas fonctionnels** qui montrent l'option elle-même
 
 ## Le vocabulaire
 
+Quand aucun objet de cette table ne dit ce que dit l'écran, on ne recycle pas
+le plus proche : on cherche sur internet un élément réel de la culture
+africaine, on vérifie son sens dans une source sérieuse, on dessine son SVG et
+on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
+
 | Objet | Ce qu'il dit | Où |
 | --- | --- | --- |
 | Bouclier aux lances croisées | accès, sécurité | connexion, iDeploy `shield`, vérification |
@@ -20,6 +25,7 @@ tiers, et les **schémas fonctionnels** qui montrent l'option elle-même
 | Cauris (et calebasse de cauris) | argent, prêt | module finance, banque, tontine |
 | Baobab et son fruit (pain de singe) | croissance qui rapporte | business plan, investisseur |
 | Jeune pousse | projet qu'on aide à grandir | SASU, bailleur |
+| Croix d'Agadez (tanaghilt) sur son cordon tressé | « je te donne les quatre coins du monde » : de quoi choisir sa route | création de projet — source : [Club des Voyages, « Les croix touarègues »](https://www.club-des-voyages.com/niger/les-croix-touaregues-12196.html) |
 | Tambour parleur (tama) | parole portée loin, conversation | pitch deck, mode chat, communication, aide |
 | Métier à tisser (bande étroite) | construire fil à fil, le code | développement, dépôt de code, document qui se tisse |
 | Pirogue à la proue dressée | départ, mise en ligne, équipage | publication, déploiements, SAS, équipe interne |
@@ -44,6 +50,8 @@ tiers, et les **schémas fonctionnels** qui montrent l'option elle-même
 | Calebasse vide / fêlée | rien encore / erreur | états vides et d'échec |
 | Perles enfilées | se reconnaître à un signe | étiquettes |
 | Baobab qui porte son fruit | le business qui rapporte | promesse d'IDEM (image de partage de l'accueil) |
+| Daba (houe à lame plate perpendiculaire au manche) | aller sur le terrain, vérifier en vrai | simulateur : « Ce qu'il faut vérifier » — source : [Daba (outil), Wikipédia](https://fr.wikipedia.org/wiki/Daba_(outil)) |
+| Kyinie (ombrelle d'apparat akan) | abriter, protéger des intempéries et des crises | simulateur : « Les imprévus » — source : [Ohene Kyinie, « le roi couvre »](https://adinkra.art/ohene-kyiniie-the-symbol-of-leadership-and-protection/) |
 
 Les motifs (chevrons, dents de scie, losanges, points) vivent dans les objets,
 jamais en fond. Le losange bleu du bouclier revient comme signature.
@@ -61,6 +69,7 @@ Format : **retenu** — candidats écartés (raison).
 | Erreur « génération » | **métier à tisser, fil de chaîne cassé** | calebasse fêlée (dit l'erreur, pas l'interruption) |
 | Erreur « aucun projet » | **grenier vide, porte ouverte** | tabouret vide, calebasse vide |
 | Page introuvable | **Sankofa** (« retourne chercher ») | carrefour, pirogue perdue (pas d'objet réel qui les dise) |
+| Création de projet : « Votre projet » | **croix d'Agadez pendue à son cordon, l'œil du caméléon en couleur** (`agadez-cross-illustration`) | jeune pousse de baobab (juste mais peu marquante en grand) ; baobab adulte (réservé à la promesse et au business plan) ; pyramides (monument funéraire) |
 | Mode assisté | **échelle dogon** | bande de kente en cours (moins lisible comme « étapes ») |
 | Mode chat | **tambour parleur** | arbre à palabres (réservé à l'équipe) |
 | Mode avancé | **awalé** | — |
@@ -80,6 +89,7 @@ Format : **retenu** — candidats écartés (raison).
 | Génération de charte (8 phases) | **tampon ; canaris de teinture ; calebasse pyrogravée « Aa » ; kente ; panier ; tambour ; étoffes bien / mal tamponnées ; pagnes pliés** | — |
 | Éditeur d'identité : fini / le logo suit | **deux étoffes au même signe ; tampon au-dessus du canari** | — |
 | Avez-vous un logo : import / IA | **votre tampon déposé ; trois empreintes, une retenue** | — |
+| Comment créer votre logo : IA / description | **le tampon en plein geste, trois empreintes et une retenue ; le tampon qu'on taille soi-même au couteau, d'après le motif tracé** (`logo-mode-sample`) | baguette magique et étincelles (pas africain) ; feuillet et calame (dit la rédaction d'un document, pas la forme du signe) |
 | Stratégie de communication | **deux calebasses font parler le tambour** | boussole (pas africaine) |
 | Communication : accueil (parcours en 4 étapes) | **tambour parleur, ondes qui battent** | échelle dogon (l'écran dit d'abord « communiquer », la progression est portée par les étapes numérotées) |
 | Finances : importer mes chiffres | **feuillet apporté, tenu en colonnes** | calebasse de cauris (dit l'argent, pas le document) |
@@ -141,6 +151,18 @@ pagne tendu en bannière. Le cadenas de l'adresse est le seul détail en couleur
 | Livrables manquants | calebasses qui sèment l'awalé ; les livrables absents laissent des cases vides |
 | Source : projet IDEM / import | grenier plein / feuillet apporté |
 | Offres : simulation, rapport, pack | awalé / feuillet / panier |
+| Simulation en cours, aucune simulation | awalé |
+| Échec de chargement / simulation interrompue | calebasse fêlée |
+| Connexion requise | bouclier aux lances croisées |
+| Accord avant lancement | balance akan (c'est un engagement juridique) |
+| Page introuvable | sankofa |
+| Test « Les points faibles » | bouclier aux lances croisées |
+| Test « L'avis des clients » (prix) | calebasse de cauris |
+| Test « L'avis des investisseurs » | baobab qui porte son fruit |
+| Test « Les imprévus » | **kyinie** (nouveau) — grenier fermé (dit « serveur/réserve », pas « abri ») |
+| Test « Ce qu'il faut vérifier » | **daba** (nouveau) — van (dit « trier/rechercher », pas « aller sur le terrain ») |
+| Test « D'autres façons de vendre » | étal du marché |
+| Test « Votre projet dans 5 ans » | échelle dogon, une année par marche |
 
 ### AppGen
 

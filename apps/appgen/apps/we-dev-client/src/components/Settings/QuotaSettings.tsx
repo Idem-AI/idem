@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { getTokenUsage } from "../../api/tokens";
-import { Spin } from "antd";
 import useUserStore, { TierType } from "../../stores/userSlice";
 import { useTranslation } from "react-i18next";
+import { IdemLoader } from '@idem/shared-loader/react';
 
 export function QuotaSettings() {
   const { t } = useTranslation();
@@ -50,7 +50,7 @@ export function QuotaSettings() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[200px]">
-        <Spin />
+        <IdemLoader size="md" />
       </div>
     );
   }

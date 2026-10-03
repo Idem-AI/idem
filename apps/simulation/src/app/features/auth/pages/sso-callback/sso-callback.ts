@@ -27,14 +27,14 @@ const RETRY_DELAY_MS = 400;
       class="mx-auto flex min-h-dvh max-w-sm flex-col items-center justify-center gap-4 px-6 text-center"
     >
       @if (failed()) {
-        <h1 class="text-h2 font-semibold text-ink">{{ 'handoff.failedHeading' | translate }}</h1>
-        <p class="text-sm leading-relaxed text-ink-muted">{{ 'handoff.failedBody' | translate }}</p>
+        <h1 class="text-xl font-semibold text-text-primary">{{ 'handoff.failedHeading' | translate }}</h1>
+        <p class="text-sm leading-relaxed text-text-secondary">{{ 'handoff.failedBody' | translate }}</p>
         <button type="button" class="inner-button mt-1" (click)="signIn()">
           {{ 'auth.signIn' | translate }}
         </button>
       } @else {
         <idem-loader size="sm" />
-        <p class="text-sm text-ink-muted" role="status" aria-live="polite">
+        <p class="text-sm text-text-secondary" role="status" aria-live="polite">
           {{ 'handoff.connecting' | translate }}
         </p>
       }

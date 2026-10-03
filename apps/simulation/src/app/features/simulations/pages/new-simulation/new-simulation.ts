@@ -13,7 +13,8 @@ import { ToastService } from '../../../../core/ui/toast.service';
 import { SignInDialog } from '../../../auth/components/sign-in-dialog/sign-in-dialog';
 import { InputsRequiredDialog } from '../../components/inputs-required-dialog/inputs-required-dialog';
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
-import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { Illustration, IllustrationName } from '../../../../shared/components/illustration/illustration';
+import { Tone } from '../../ui/tones';
 import { SimulationGateway, SimulationStore } from '../../data-access';
 import { canStashFile, saveDraft, takeDraft } from './new-run-draft';
 
@@ -72,7 +73,7 @@ type Step = 'source' | 'analysis' | 'plan' | 'confirm';
     FormsModule,
     RouterLink,
     TranslatePipe,
-    PageHeader,
+    Illustration,
     DisclaimerNote,
     SignInDialog,
     InputsRequiredDialog,
@@ -715,6 +716,26 @@ export class NewSimulation {
    * distingue alors le chemin parcouru de ce qui reste, et la barre cesse
    * d'être un repère.
    */
+  /** Le rang de l'étape affichée, pour « Étape 2 sur 4 ». */
+  protected stepNumber(): number {
+    return this.steps.findIndex((entry) => entry.id === this.step()) + 1;
+  }
+
+  /** Chaque formule porte son objet : awalé, feuillet, panier. */
+  protected tierIllustration(tier: SimulationTier): IllustrationName {
+    return tier === 'run' ? 'awale' : tier === 'report' ? 'leaflet' : 'basket';
+  }
+
+  protected knowledgeTone(state: KnowledgeState): Tone {
+    return state === 'known'
+      ? 'go'
+      : state === 'researchable'
+        ? 'info'
+        : state === 'uncertain'
+          ? 'warn'
+          : 'stop';
+  }
+
   protected stepState(id: Step): 'done' | 'current' | 'todo' {
     const current = this.steps.findIndex((entry) => entry.id === this.step());
     const target = this.steps.findIndex((entry) => entry.id === id);

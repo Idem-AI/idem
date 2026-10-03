@@ -1,142 +1,102 @@
-<sim-lab-panel
-  lab="customers"
-  [heading]="'lab.customers.heading' | translate"
-  [body]="'lab.customers.body' | translate"
->
+<sim-lab-panel lab="customers">
   @if (report(); as report) {
     <div class="flex flex-col gap-6">
-      <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3">
-        <div class="bg-panel p-4">
-          <dt class="text-meta text-ink-subtle">{{ 'lab.customers.panelSize' | translate }}</dt>
-          <dd class="mt-0.5 text-h2 font-semibold tabular-nums text-ink">
-            {{ report.panelSize.toLocaleString('fr-FR') }}
-          </dd>
-        </div>
-        <div class="bg-panel p-4">
-          <dt class="text-meta text-ink-subtle">{{ 'lab.customers.segments' | translate }}</dt>
-          <dd class="mt-0.5 text-h2 font-semibold tabular-nums text-ink">{{ report.segments.length }}</dd>
-        </div>
-        <div class="bg-panel p-4">
-          <dt class="text-meta text-ink-subtle">{{ 'lab.customers.optimalPrice' | translate }}</dt>
-          <dd class="mt-0.5 text-h2 font-semibold tabular-nums text-ink">
-            {{ report.optimalPrice.toLocaleString('fr-FR') }}
-            <span class="text-meta font-normal text-ink-subtle">{{ report.currency }}</span>
-          </dd>
-        </div>
-      </dl>
+      <!-- La réponse d'abord : le prix qui rapporte le plus. -->
+      <div class="glass-card flex flex-col gap-2 p-6 text-center">
+        <p class="text-sm text-text-secondary">{{ 'lab.customers.optimalPrice' | translate }}</p>
+        <p class="text-4xl font-bold tabular-nums text-text-primary md:text-5xl">
+          {{ money(report.optimalPrice, report.currency) }}
+        </p>
+        <p class="text-xs text-text-tertiary">
+          {{ 'lab.customers.panelNote' | translate: { count: panelSize(), segments: report.segments.length } }}
+        </p>
+      </div>
 
       @if (curve(); as curve) {
-        <div class="glass-card p-5">
-          <h3 class="text-label font-semibold text-ink-muted">
-            {{ 'lab.customers.curve' | translate }}
-          </h3>
+        <section class="glass-card p-5" aria-labelledby="lab-curve">
+          <h2 id="lab-curve" class="text-lg font-semibold">{{ 'lab.customers.curve' | translate }}</h2>
+          <p class="mt-1 text-sm text-text-secondary">{{ 'lab.customers.curveBody' | translate }}</p>
           <svg
             [attr.viewBox]="viewBox"
-            class="mt-4 h-52 w-full"
+            class="mt-4 h-44 w-full sm:h-52"
+            preserveAspectRatio="none"
             role="img"
             [attr.aria-label]="'lab.customers.curveLabel' | translate"
           >
-            <path [attr.d]="curve.path" fill="none" stroke="var(--color-primary)" stroke-width="2.5" />
+            <path [attr.d]="curve.path" fill="none" stroke="var(--color-primary)" stroke-width="2.5" vector-effect="non-scaling-stroke" />
             @for (dot of curve.dots; track dot.point.price) {
               <circle
                 [attr.cx]="dot.cx"
                 [attr.cy]="dot.cy"
-                [attr.r]="dot.best ? 5 : 3"
+                [attr.r]="dot.best ? 7 : 4"
                 [attr.fill]="dot.best ? 'var(--color-success)' : 'var(--color-primary)'"
               />
             }
           </svg>
-          <div class="mt-2 flex justify-between text-meta tabular-nums text-ink-subtle">
-            <span>{{ curve.minPrice.toLocaleString('fr-FR') }} {{ report.currency }}</span>
-            <span>{{ curve.maxPrice.toLocaleString('fr-FR') }} {{ report.currency }}</span>
+          <div class="mt-2 flex justify-between text-xs tabular-nums text-text-tertiary">
+            <span>{{ money(curve.minPrice, report.currency) }}</span>
+            <span>{{ money(curve.maxPrice, report.currency) }}</span>
           </div>
 
-          <div class="mt-4 overflow-x-auto">
-            <table class="w-full min-w-[30rem] border-collapse text-sm">
-              <caption class="sr-only">{{ 'lab.customers.curve' | translate }}</caption>
-              <thead>
-                <tr class="border-b border-line text-left">
-                  <th scope="col" class="py-2 pr-4 font-medium text-ink-subtle">
-                    {{ 'lab.customers.price' | translate }}
-                  </th>
-                  <th scope="col" class="py-2 pr-4 text-right font-medium text-ink-subtle">
-                    {{ 'lab.customers.conversion' | translate }}
-                  </th>
-                  <th scope="col" class="py-2 pr-4 text-right font-medium text-ink-subtle">
-                    {{ 'lab.customers.buyers' | translate }}
-                  </th>
-                  <th scope="col" class="py-2 text-right font-medium text-ink-subtle">
-                    {{ 'lab.customers.revenue' | translate }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (point of report.pricePoints; track point.price) {
-                  <tr class="border-b border-line last:border-0">
-                    <td class="py-2 pr-4 tabular-nums text-ink">
-                      {{ point.price.toLocaleString('fr-FR') }} {{ report.currency }}
-                    </td>
-                    <td class="py-2 pr-4 text-right tabular-nums text-ink-muted">
-                      {{ (point.conversionRate * 100).toFixed(1) }} %
-                    </td>
-                    <td class="py-2 pr-4 text-right tabular-nums text-ink-muted">
-                      {{ point.buyers.toLocaleString('fr-FR') }}
-                    </td>
-                    <td class="py-2 text-right tabular-nums font-medium text-ink">
-                      {{ point.estimatedRevenue.toLocaleString('fr-FR') }}
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <ul class="mt-5 flex flex-col divide-y divide-[var(--glass-border-subtle)]">
+            @for (point of report.pricePoints; track point.price) {
+              <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3">
+                <span class="flex items-center gap-2 text-base font-semibold tabular-nums text-text-primary">
+                  {{ money(point.price, report.currency) }}
+                  @if (point.price === report.optimalPrice) {
+                    <span class="sim-pill sim-pill--go">{{ 'lab.customers.bestPrice' | translate }}</span>
+                  }
+                </span>
+                <span class="text-sm text-text-secondary">
+                  {{ 'lab.customers.pointLine' | translate: { percent: percent(point.conversionRate), revenue: money(point.estimatedRevenue, report.currency) } }}
+                </span>
+              </li>
+            }
+          </ul>
+        </section>
       }
 
-      <div class="flex flex-col gap-3">
-        <h3 class="text-h3 font-semibold text-ink">{{ 'lab.customers.segments' | translate }}</h3>
-        <ul class="grid gap-3 sm:grid-cols-2">
+      <section aria-labelledby="lab-segments">
+        <h2 id="lab-segments" class="text-lg font-semibold">{{ 'lab.customers.segments' | translate }}</h2>
+        <ul class="mt-3 grid gap-4 sm:grid-cols-2">
           @for (segment of report.segments; track segment.id) {
             <li class="glass-card p-5">
               <div class="flex items-baseline justify-between gap-3">
-                <h4 class="text-sm font-semibold text-ink">{{ segment.name }}</h4>
-                <span class="text-meta tabular-nums text-ink-subtle">
-                  {{ (segment.share * 100).toFixed(0) }} %
+                <h3 class="text-base font-semibold">{{ segment.name }}</h3>
+                <span class="text-sm font-semibold tabular-nums text-text-secondary">
+                  {{ 'lab.customers.share' | translate: { percent: percent(segment.share, 0) } }}
                 </span>
               </div>
-              <p class="mt-1.5 max-w-[60ch] text-meta leading-relaxed text-ink-muted">{{ segment.needs }}</p>
-              <dl class="mt-3 grid grid-cols-2 gap-2 text-meta">
+              <p class="mt-1.5 text-sm leading-relaxed text-text-secondary">{{ segment.needs }}</p>
+              <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <dt class="text-ink-subtle">{{ 'lab.customers.budget' | translate }}</dt>
-                  <dd class="text-ink-muted">{{ segment.budget }}</dd>
+                  <dt class="text-xs text-text-tertiary">{{ 'lab.customers.willingness' | translate }}</dt>
+                  <dd class="font-semibold tabular-nums text-text-primary">{{ money(segment.willingnessToPay, report.currency) }}</dd>
                 </div>
                 <div>
-                  <dt class="text-ink-subtle">{{ 'lab.customers.willingness' | translate }}</dt>
-                  <dd class="tabular-nums text-ink-muted">
-                    {{ segment.willingnessToPay.toLocaleString('fr-FR') }} {{ report.currency }}
-                  </dd>
+                  <dt class="text-xs text-text-tertiary">{{ 'lab.customers.budget' | translate }}</dt>
+                  <dd class="text-text-primary">{{ segment.budget }}</dd>
                 </div>
                 <div>
-                  <dt class="text-ink-subtle">{{ 'lab.customers.sensitivity' | translate }}</dt>
-                  <dd class="tabular-nums text-ink-muted">
-                    {{ (segment.priceSensitivity * 100).toFixed(0) }} %
-                  </dd>
+                  <dt class="text-xs text-text-tertiary">{{ 'lab.customers.sensitivity' | translate }}</dt>
+                  <dd class="text-text-primary">{{ 'level.' + level(segment.priceSensitivity) | translate }}</dd>
                 </div>
                 <div>
-                  <dt class="text-ink-subtle">{{ 'lab.customers.frequency' | translate }}</dt>
-                  <dd class="tabular-nums text-ink-muted">
-                    {{ segment.purchaseFrequencyPerYear.toFixed(1) }}
-                  </dd>
+                  <dt class="text-xs text-text-tertiary">{{ 'lab.customers.frequency' | translate }}</dt>
+                  <dd class="tabular-nums text-text-primary">{{ segment.purchaseFrequencyPerYear.toFixed(0) }}</dd>
                 </div>
               </dl>
             </li>
           }
         </ul>
-      </div>
+      </section>
 
-      <p class="rounded-xl border border-verdict-warn/40 bg-panel-sunken p-4 text-meta leading-relaxed text-ink-muted">
-        {{ report.caveat }}
-      </p>
+      @if (report.caveat) {
+        <p class="flex items-start gap-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-4 text-sm leading-relaxed text-text-secondary">
+          <i class="pi pi-info-circle mt-0.5 shrink-0 text-primary-500" aria-hidden="true"></i>
+          {{ report.caveat }}
+        </p>
+      }
     </div>
   }
 </sim-lab-panel>

@@ -1,75 +1,89 @@
 @if (kind() === 'ai') {
-  <!-- IA : un geste, plusieurs concepts d'un coup -->
+  <!-- IA : le tampon adinkra, en plein geste, vient d'imprimer trois signes
+       différents sur l'étoffe ; celui du milieu, en couleur, est retenu.
+       Plusieurs propositions d'un coup, on garde celle qui parle. -->
   <svg
-    viewBox="0 0 268 120"
+    viewBox="0 0 320 200"
     fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    class="w-full h-full mode-sample is-ai"
-    role="img"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class="w-full h-full mode-sample"
     aria-hidden="true"
+    focusable="false"
   >
-    <!-- Étincelles : ce qui se produit tout seul -->
-    <path
-      d="M134 14 L138 26 L150 30 L138 34 L134 46 L130 34 L118 30 L130 26 Z"
-      class="sample-accent sample-spark"
-    />
-    <path
-      d="M92 24 L94 30 L100 32 L94 34 L92 40 L90 34 L84 32 L90 30 Z"
-      class="sample-accent sample-spark-sm"
-    />
-    <path
-      d="M178 22 L180 28 L186 30 L180 32 L178 38 L176 32 L170 30 L176 28 Z"
-      class="sample-accent sample-spark-sm sample-delay"
-    />
+    <!-- Le tampon : la calebasse taillée et ses bâtonnets noués en poignée -->
+    <g transform="translate(160 22)">
+      <path d="M-14 0 L-6 34 M14 0 L6 34 M-4 0 L-2 34 M4 0 L2 34" stroke-width="1.4"/>
+      <path d="M-18 0 H18" stroke-width="2"/>
+      <path d="M-7 12 H7 M-6 20 H6" stroke-width="1" opacity=".6"/>
+      <ellipse cx="0" cy="42" rx="26" ry="8" stroke-width="2"/>
+      <path d="M-26 42 V46 C-26 51 -14 55 0 55 C14 55 26 51 26 46 V42" stroke-width="1.5"/>
+    </g>
+    <!-- Le geste qui descend -->
+    <path d="M160 84 V96" stroke-width="1.5" stroke-dasharray="2 4" opacity=".55"/>
 
-    <!-- Trois concepts proposés d'emblée -->
-    <circle cx="66" cy="80" r="19" class="sample-outline" stroke-width="3" />
-    <path
-      d="M134 56 c13 15 21 22 21 32 a21 21 0 0 1 -42 0 c0 -10 8 -17 21 -32 z"
-      class="sample-accent"
-    />
-    <circle cx="134" cy="90" r="7" class="sample-counter" />
-    <polygon
-      points="221,61 234,68.5 234,83.5 221,91 208,83.5 208,68.5"
-      class="sample-outline"
-      stroke-width="3"
-    />
+    <!-- L'étoffe, sa lisière en dents de scie -->
+    <path d="M20 108 H300 V188 H20 Z" stroke-width="2"/>
+    <path d="M20 118 H300" stroke-width="1" opacity=".5"/>
+    <path d="M26 113 L31 117 L36 113 L41 117 L46 113 L51 117 L56 113 L61 117 L66 113 L71 117 L76 113 L81 117 L86 113 L91 117 L96 113 L101 117 L106 113 L111 117 L116 113 L121 117 L126 113 L131 117 L136 113 L141 117 L146 113 L151 117 L156 113 L161 117 L166 113 L171 117 L176 113 L181 117 L186 113 L191 117 L196 113 L201 117 L206 113 L211 117 L216 113 L221 117 L226 113 L231 117 L236 113 L241 117 L246 113 L251 117 L256 113 L261 117 L266 113 L271 117 L276 113 L281 117 L286 113 L291 117 L296 113" stroke-width=".9" opacity=".5"/>
+
+    <!-- Trois empreintes, trois signes -->
+    <g transform="translate(84 152)">
+      <circle r="20" stroke-width="2"/>
+      <path d="M0 -12 C7 -12 12 -7 12 0 C12 7 7 10 2 10 C-3 10 -7 7 -7 2 C-7 -2 -4 -5 0 -5 C3 -5 4 -3 4 -1" stroke-width="2"/>
+    </g>
+    <g style="color: var(--color-primary-500)" transform="translate(160 152)">
+      <path d="M0 -22 L22 0 L0 22 L-22 0Z M0 -10 L10 0 L0 10 L-10 0Z M-22 0 H-29 M22 0 H29 M0 -22 V-29 M0 22 V29" stroke-width="2.4"/>
+    </g>
+    <g transform="translate(236 152)">
+      <path d="M-20 -12 L-10 -21 L0 -12 L10 -21 L20 -12 M-20 1 L-10 -8 L0 1 L10 -8 L20 1 M-20 14 L-10 5 L0 14 L10 5 L20 14" stroke-width="2"/>
+    </g>
   </svg>
 } @else {
-  <!-- Sur mesure : un texte écrit produit une forme précise -->
+  <!-- Description : le tampon qu'on taille soi-même. La calebasse est posée
+       face gravée vers le haut, le couteau de l'artisan creuse le motif ; la
+       partie déjà taillée, en couleur, est le signe qu'on a décrit. -->
   <svg
-    viewBox="0 0 268 120"
+    viewBox="0 0 320 200"
     fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    class="w-full h-full mode-sample is-custom"
-    role="img"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class="w-full h-full mode-sample"
     aria-hidden="true"
+    focusable="false"
   >
-    <!-- Ce que vous écrivez -->
-    <rect x="20" y="26" width="108" height="70" rx="10" class="sample-brief" />
-    <rect x="32" y="40" width="66" height="6" rx="3" class="sample-line-strong" />
-    <rect x="32" y="54" width="84" height="6" rx="3" class="sample-line" />
-    <rect x="32" y="68" width="48" height="6" rx="3" class="sample-line" />
-    <rect x="84" y="66" width="3" height="11" rx="1.5" class="sample-accent sample-caret" />
+    <!-- Le plan de travail -->
+    <path d="M24 176 H296" stroke-width="1.5" opacity=".45"/>
 
-    <!-- Ce qui en sort -->
-    <path
-      d="M144 61 h28"
-      class="sample-outline"
-      stroke-width="2.5"
-      stroke-linecap="round"
-    />
-    <path
-      d="M166 55 l7 6 l-7 6"
-      class="sample-outline"
-      stroke-width="2.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-    <path
-      d="M216 36 c13 15 21 22 21 32 a21 21 0 0 1 -42 0 c0 -10 8 -17 21 -32 z"
-      class="sample-accent"
-    />
-    <circle cx="216" cy="70" r="7" class="sample-counter" />
+    <!-- La face de la calebasse, vue de trois quarts, et son épaisseur -->
+    <ellipse cx="146" cy="118" rx="88" ry="40" stroke-width="2"/>
+    <path d="M58 118 V128 C58 150 98 168 146 168 C194 168 234 150 234 128 V118" stroke-width="1.75"/>
+    <ellipse cx="146" cy="118" rx="76" ry="33" stroke-width="1" opacity=".5"/>
+
+    <!-- Le motif tracé à l'avance, en pointillé -->
+    <g transform="translate(146 118) scale(1 .44)" stroke-width="1.75" stroke-dasharray="3 5" opacity=".6">
+      <path d="M0 -62 L62 0 L0 62 L-62 0Z"/>
+      <path d="M-62 0 H-80 M62 0 H80 M0 62 V78"/>
+    </g>
+    <!-- La part déjà creusée, en couleur : le signe prend forme -->
+    <g style="color: var(--color-primary-500)" transform="translate(146 118) scale(1 .44)" stroke-width="2.6">
+      <path d="M-62 0 L0 -62 L62 0"/>
+      <path d="M-28 0 L0 -28 L28 0 L0 28 Z"/>
+      <path d="M0 -62 V-80"/>
+    </g>
+
+    <!-- Les copeaux, de la taille en cours -->
+    <path d="M206 88 C210 84 216 84 218 88 M222 98 C225 95 230 96 231 99 M196 80 C198 77 202 77 203 80" stroke-width="1.4"/>
+
+    <!-- Le couteau de l'artisan, lame courbe et manche ligaturé -->
+    <g transform="translate(227 77) rotate(218)">
+      <path d="M0 0 C-4 -14 -2 -30 8 -40 C10 -26 8 -12 4 0 Z" stroke-width="1.75"/>
+      <path d="M-4 0 H8 V40 C8 44 -4 44 -4 40 Z" stroke-width="1.75"/>
+      <path d="M-4 10 H8 M-4 15 H8 M-4 20 H8" stroke-width="1" opacity=".7"/>
+    </g>
   </svg>
 }

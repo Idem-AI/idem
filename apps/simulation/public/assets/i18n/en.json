@@ -6,38 +6,42 @@
     "back": "Back",
     "retry": "Try again",
     "dismiss": "Dismiss",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "seeMore": "See details",
+    "seeLess": "Hide details"
   },
   "nav": {
     "main": "Main navigation",
-    "simulations": "Simulations",
+    "simulations": "My simulations",
     "backToIdem": "Back to IDEM",
-    "account": "Account",
+    "account": "My account",
     "new": "New simulation",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "toggleSidebar": "Collapse or expand navigation",
-    "overview": "Overview",
-    "understanding": "Understanding",
-    "factors": "Factors",
-    "scenarios": "Scenarios",
-    "financials": "Financials",
-    "report": "Report",
-    "compare": "Comparison",
+    "overview": "The result",
+    "understanding": "Your project",
+    "factors": "Key points",
+    "scenarios": "Situations tested",
+    "financials": "Your money",
+    "report": "The report",
+    "compare": "Before / after",
     "group": {
-      "analysis": "Analysis",
-      "labs": "Labs",
-      "deliverables": "Deliverables"
+      "result": "Your result",
+      "more": "Extra tests",
+      "share": "To keep"
     },
     "lab": {
-      "redTeam": "Attack the project",
-      "customers": "Customer simulator",
-      "investors": "Investor simulator",
-      "blackSwan": "Black swans",
-      "universes": "Parallel universes",
-      "timeMachine": "Time machine",
-      "experiments": "Experiments to run"
-    }
+      "redTeam": "Weak spots",
+      "customers": "What customers think",
+      "investors": "What investors think",
+      "blackSwan": "The unexpected",
+      "universes": "Other ways to sell",
+      "timeMachine": "Your project in 5 years",
+      "experiments": "What to check"
+    },
+    "labs": "Go further"
   },
   "theme": {
     "switchToLight": "Switch to light theme",
@@ -63,102 +67,115 @@
     "failedBody": "Your IDEM session could not be confirmed. Sign in to continue."
   },
   "error": {
-    "loadFailed": "Could not load"
+    "loadFailed": "This page can't be shown",
+    "loadFailedBody": "Check your internet connection, then try again."
   },
   "status": {
     "running": "Running"
   },
   "list": {
-    "heading": "Simulations",
-    "description": "Each simulation puts a project under strain: it looks for the factors that can influence it, runs scenarios, and finds where the model breaks.",
+    "heading": "My simulations",
+    "description": "Each simulation puts your project through good and bad situations, to see whether it holds up.",
     "newRun": "New simulation",
-    "loading": "Loading simulations",
-    "running": "Running",
-    "completed": "Completed",
+    "loading": "Loading your simulations",
+    "running": "In progress",
+    "runningHint": "We are testing your project. It takes about 5 minutes.",
+    "follow": "Follow",
+    "completed": "My results",
+    "failed": "Stopped",
     "revision": "Version {{revision}}",
-    "reportAvailable": "Report",
+    "reportAvailable": "Report ready",
+    "scoreLabel": "Strength score: {{value}} out of 100",
     "empty": {
-      "heading": "No simulations yet",
-      "body": "Pick an IDEM project or import your business plan. The simulator first shows what it knows about your project, before anything is billed.",
-      "action": "Run a simulation"
+      "heading": "You haven't tested a project yet",
+      "body": "Pick one of your IDEM projects or send your business plan. In a few minutes you'll know whether your project holds up and what to improve.",
+      "action": "Test my project"
     }
   },
   "newRun": {
     "title": "New simulation",
     "heading": "New simulation",
-    "description": "Four steps: pick the project, agree on what the engine knows about it, choose the simulation level, then confirm.",
+    "description": "Four simple steps.",
     "step": {
-      "source": "Project",
-      "analysis": "Analysis",
-      "plan": "Level",
-      "confirm": "Confirm"
+      "source": "Your project",
+      "analysis": "Check",
+      "plan": "Plan",
+      "confirm": "Launch"
     },
     "source": {
       "project": "An IDEM project",
-      "projectBody": "The business plan, market analysis and financial forecasts are already available. Reduced price.",
+      "projectBody": "You already built your project on IDEM: we start from what it contains.",
       "import": "My business plan",
-      "importBody": "Import your business plan. The engine extracts the activity, market, business model and costs — and creates the matching IDEM project.",
-      "noProjects": "No IDEM project is available on this account.",
-      "assets": "{{count}} deliverables",
-      "dropFile": "Choose a file",
+      "importBody": "Send your business plan (PDF or Word). We read it for you and create your IDEM project.",
+      "noProjects": "You don't have an IDEM project yet. Choose “My business plan” instead.",
+      "assets": "{{count}} document(s) ready",
+      "pickProject": "Which project do you want to test?",
+      "dropFile": "Choose my file",
       "formats": "PDF, Word (.docx) or Markdown — 20 MB max",
       "signInHeading": "Sign in to see your projects",
-      "signInBody": "Listing your IDEM projects needs your account. You can also import a business plan without one, and sign in when it is time to run the analysis.",
-      "replaceFile": "Click to replace the document",
-      "unsupportedFormat": "Unsupported format. Import your business plan as PDF, Word (.docx) or Markdown (.md)."
+      "signInBody": "Your IDEM projects belong to your account. You can also send a business plan and sign in later.",
+      "replaceFile": "Change file",
+      "fileReady": "File ready",
+      "unsupportedFormat": "This file type isn't accepted. Send a PDF, a Word file (.docx) or Markdown (.md)."
     },
-    "analyse": "Analyse the project",
-    "analysing": "Reading the project",
-    "analysingBody": "The engine builds a structured picture of the project before simulating anything.",
-    "analysisFailed": "Project analysis failed",
-    "profile": "Project profile",
-    "knowledge": "What the engine knows",
-    "knowledgeBody": "Before simulating, the engine separates what is established from what it has to research, what stays uncertain, and what is missing. That split drives how much confidence the results carry.",
-    "fillGaps": "Fill in what is missing",
-    "fillGapsBody": "Optional, but every answer narrows the uncertainty in the scenarios.",
+    "analyse": "Read my project",
+    "analysing": "We are reading your project…",
+    "analysingBody": "It takes about a minute. Please stay on this page.",
+    "analysisFailed": "We couldn't read your project",
+    "profile": "Here is what we understood",
+    "knowledge": "The information used",
+    "knowledgeBody": "The more reliable information we have, the more reliable the result. Tap a line to see the details.",
+    "fillGaps": "You can help us",
+    "fillGapsBody": "This information is missing. Answer if you know. Otherwise leave it empty: we'll estimate it.",
     "optional": "Optional",
-    "continueToPlan": "Continue",
+    "continueToPlan": "Yes, this is my project",
     "plan": {
-      "heading": "Simulation level",
-      "body": "Simulation is billed separately from the rest of IDEM: it spends external research, several agents and compute. The amount is confirmed before anything starts.",
-      "idemDiscount": "Reduced price applied: this project comes from IDEM, so the engine already has its deliverables.",
+      "heading": "Choose your plan",
+      "body": "The simulation researches your market and runs many calculations. The price is shown before you launch.",
+      "idemDiscount": "Reduced price: your project comes from IDEM.",
       "recommended": "Recommended",
       "betaBadge": "Beta",
-      "betaBody": "Simulation spends external research, several agents and compute. During the beta, IDEM covers that cost.",
+      "betaBody": "During the beta, IDEM offers the simulation.",
       "betaFreeLead": "Free during the beta.",
-      "betaNotice": "Whichever level you pick, this simulation will not be billed. The prices shown will apply once the beta ends.",
+      "betaNotice": "Whatever plan you pick, you pay nothing. The prices shown will apply later.",
       "free": "Free",
       "priceAfterBeta": "Price after the beta:",
-      "continue": "Choose this level"
+      "continue": "Continue"
     },
-    "launch": "Start the simulation",
-    "launching": "Starting…",
-    "launchFailed": "Could not start the simulation",
-    "pricingFailed": "Could not load pricing",
-    "noProject": "Pick a project first.",
+    "launch": "Launch the simulation",
+    "launching": "Launching…",
+    "launchFailed": "The simulation couldn't start",
+    "pricingFailed": "Prices can't be shown",
+    "noProject": "Choose a project first.",
     "hero": {
-      "heading": "Put your project under strain before you launch it.",
-      "subheading": "The engine looks for the factors that can tip your business over, stress-tests them, and tells you where your model breaks. Start from what you already have.",
+      "heading": "Does your project hold up?",
+      "subheading": "Before investing your money, test your project. We put it through tough situations and tell you plainly whether it holds, and what to improve.",
+      "question": "Where do you want to start?",
+      "how": {
+        "1": "You give us your project",
+        "2": "We test it in dozens of situations",
+        "3": "You get a score out of 100 and advice"
+      },
       "choose": "Choose",
-      "selected": "Selected",
-      "trustedBy": "Trusted by",
-      "note": "A simulation is a decision-support tool, never a prediction. Every result comes with how confident the engine is."
+      "selected": "Chosen",
+      "trustedBy": "They trust us",
+      "note": "A simulation helps you decide. It does not predict the future."
     },
     "confirm": {
-      "heading": "Check before launching",
-      "body": "A run takes a few minutes and cannot be picked up midway. Here is what it will work on, and what it will hand back.",
-      "project": "What will be simulated",
-      "deliverable": "What you will receive",
+      "heading": "Everything is ready",
+      "body": "Check, accept the terms, then launch.",
+      "project": "Project tested",
+      "deliverable": "Your plan",
       "sourceProject": "IDEM project:",
-      "sourceDocument": "Business plan:",
-      "established": "established",
-      "researched": "to research",
+      "sourceDocument": "Document:",
+      "established": "reliable",
+      "researched": "to look up",
       "assumed": "estimated",
-      "answered": "{{count}} item(s) you filled in at the previous step.",
-      "createsProject": "The matching IDEM project will be created in your workspace, from what the document yielded.",
-      "duration": "A few minutes. The run continues if you close the page, and nothing is charged if it fails.",
-      "changeTier": "Change level",
-      "knowledge": "What the engine will work from:"
+      "answered": "You added {{count}} piece(s) of information. Thank you!",
+      "createsProject": "We will also create your project in IDEM from your document.",
+      "duration": "About 5 minutes. You can close the page: the simulation keeps going.",
+      "changeTier": "Change plan",
+      "knowledge": "Information used:"
     },
     "payment": {
       "heading": "Payment",
@@ -168,7 +185,9 @@
       "confirmed": "Payment confirmed. Your simulation can start.",
       "failed": "The payment did not go through. You can try again — nothing was charged.",
       "reused": "That payment already started a simulation. A new one is required."
-    }
+    },
+    "stepOf": "Step {{current}} of {{total}}",
+    "profileBody": "Check that this is your project. If something is wrong, fix it in your project or document, then start again."
   },
   "tier": {
     "run": "Simulation",
@@ -176,270 +195,276 @@
     "pack": "Simulation + report"
   },
   "tierBody": {
-    "run": "The scenarios, the deciding factors and the viability index.",
-    "report": "The detailed analysis and recommendations, for a simulation already run.",
-    "pack": "The simulation and its full report, cheaper than buying both separately."
+    "run": "Your score out of 100, the key points and the situations tested.",
+    "report": "The detailed report with our advice, for a simulation already done.",
+    "pack": "The simulation and the detailed report with our advice. The most complete."
   },
   "pricing": {
     "includes": {
-      "scenarios": "Scenarios, stress tests and breaking points",
-      "factors": "Factors found, ranked by impact",
-      "index": "Viability index, robustness and confidence level",
-      "report": "Full report, section by section",
-      "sensitivity": "Sensitivity analysis and viability conditions",
-      "recommendations": "Prioritised recommendations"
+      "scenarios": "Your project tested in many situations",
+      "factors": "What matters most to succeed",
+      "index": "A score out of 100, easy to read",
+      "report": "A full report to download (PDF)",
+      "sensitivity": "The goals to reach to hold up",
+      "recommendations": "Advice ranked by priority"
     }
   },
   "stage": {
-    "understand": "Reading the project",
-    "discover-factors": "Discovering factors",
-    "research": "Researching external data",
-    "model": "Building the model",
-    "simulate": "Running the scenarios",
-    "analyse": "Analysing results"
+    "understand": "Reading your project",
+    "discover-factors": "Finding what matters to succeed",
+    "research": "Looking up information on your market",
+    "model": "Preparing the calculations",
+    "simulate": "Testing good and bad situations",
+    "analyse": "Preparing your results"
   },
   "run": {
-    "title": "Simulation running",
-    "description": "The run continues if you close this page. You will be taken to the results as soon as they are ready.",
+    "title": "Simulation in progress",
+    "heading": "We are testing your project",
+    "description": "The simulation keeps going even if you close this page.",
+    "body": "It takes about 5 minutes. You can close this page: we keep going, and your result will be waiting here.",
     "failed": "The simulation stopped",
-    "failedBody": "Nothing is charged for a run that does not finish. Start it again from the list.",
-    "resumeHint": "The analysis can be resumed from the stage where it stopped. Your data already acquired is preserved.",
-    "resume": "Resume simulation",
+    "failedBody": "You are not charged for a simulation that doesn't finish.",
+    "resumeHint": "Don't worry: we can pick up where it stopped. Nothing is lost.",
+    "resume": "Resume the simulation",
     "resuming": "Resuming…",
-    "resumeFailed": "Could not resume the simulation",
-    "body": "The analysis runs several agents and takes a few minutes. You can close this screen — the run continues.",
-    "inProgress": "Running — {{percent}}%"
+    "resumeFailed": "Resuming didn't work",
+    "inProgress": "In progress — {{percent}}%",
+    "technicalDetail": "Technical detail (for support)"
   },
   "knowledge": {
-    "known": "What we know",
-    "researchable": "What has to be researched",
-    "uncertain": "What is uncertain",
+    "known": "What you gave us",
+    "researchable": "What we will look up",
+    "uncertain": "What we estimated",
     "missing": "What is missing",
-    "extras": "Other information picked up",
-    "extrasHint": "What your document states and no standard form has a field for. Nothing is dropped: these go to the engine with the rest."
+    "extras": "Other information found",
+    "extrasHint": "This information from your document is used too."
   },
   "knowledgeHint": {
-    "knownDocument": "Read as it stands in your business plan. Nothing is added here; what the engine estimated sits further down.",
-    "knownProject": "Stated as it stands in your IDEM project. What the engine estimated sits further down.",
-    "researchable": "Published figures the engine will collect to anchor the simulation in your market.",
-    "uncertain": "Estimated by the engine, for want of a value in the source. Each line says what the estimate rests on and what would settle it.",
-    "missing": "Absent from the source, and liable to move the results. You can supply it yourself."
+    "knownDocument": "Read as is in your business plan.",
+    "knownProject": "Read as is in your IDEM project.",
+    "researchable": "We will look up these figures for your market.",
+    "uncertain": "Your project didn't say: we made an estimate.",
+    "missing": "This information can change the result."
   },
   "profile": {
-    "sector": "Sector",
-    "businessModel": "Business model",
-    "product": "Product",
-    "targetCustomer": "Target customer",
-    "market": "Market",
-    "location": "Location",
+    "sector": "Activity",
+    "businessModel": "How you make money",
+    "product": "What you sell",
+    "targetCustomer": "Your customers",
+    "market": "Your market",
+    "location": "Where",
     "pricePoint": "Price",
     "plannedFunding": "Planned funding",
     "teamSize": "Team"
   },
   "result": {
-    "index": "Simulated viability index",
-    "indexMeaning": "This index measures how robust the project is across the scenarios that were run. It is not a prediction of success.",
-    "gaugeLabel": "Simulated viability index: {{value}} out of 100",
-    "robustness": "Robustness",
-    "confidence": "Confidence",
-    "scenarioRange": "From {{min}} to {{max}} across scenarios",
-    "strengths": "Strengths",
-    "weaknesses": "Weaknesses",
-    "uncertainties": "Main uncertainties",
-    "uncertaintiesHint": "A high index with wide uncertainty is not the same result as the same index backed by solid data.",
-    "factors": "Factors analysed",
-    "factorsBody": "{{total}} factors were found to be potentially relevant to this project, then ranked by the impact they can have.",
-    "criticalFactors": "Critical factors",
-    "scenarios": "Scenarios",
-    "scenariosBody": "{{total}} scenarios were run. The model does not hold in {{broken}} of them.",
-    "risks": "Risks found",
-    "shockResistance": "Resistance to shocks",
-    "dataConfidence": "Data reliability",
-    "indexCeiling": "Index capped at {{ceiling}} out of 100: a simulation grades a model under chosen scenarios, never a certainty."
+    "index": "Strength score",
+    "indexMeaning": "The higher the score, the better your project resists tough situations. It never reaches 100: nothing is certain.",
+    "gaugeLabel": "Strength score: {{value}} out of 100",
+    "outOf": "out of 100",
+    "robustness": "Resistance to hard times",
+    "confidence": "Reliability",
+    "scenarioRange": "Depending on the situation, the score goes from {{min}} to {{max}}",
+    "strengths": "What is solid",
+    "weaknesses": "What is fragile",
+    "uncertainties": "What remains to check",
+    "uncertaintiesHint": "These points aren't certain yet. Checking them will make the result more reliable.",
+    "scenariosBody": "We tested {{total}} situations. Your project doesn't hold in {{broken}} of them.",
+    "risks": "Problems to fix",
+    "risksBody": "From most to least serious, with our advice for each.",
+    "shockResistance": "Resistance",
+    "dataConfidence": "Reliability",
+    "indexCeiling": "The score never reaches 100: no simulation is a certainty."
   },
   "results": {
-    "title": "Results",
-    "compare": "Compare versions",
-    "openReport": "Open the report",
-    "getReport": "Get the full report",
+    "title": "Result",
+    "compare": "Compare with the previous version",
+    "openReport": "See the report",
+    "getReport": "Get the report",
     "unlocking": "Preparing…",
-    "reportFailed": "The report could not be generated",
-    "notReady": "Results for this simulation are not available yet.",
-    "followRun": "Follow the run",
+    "reportFailed": "The report couldn't be created",
+    "notReady": "The result isn't ready yet.",
+    "followRun": "Follow the simulation",
     "upsell": {
-      "heading": "Understand why these scenarios appear",
-      "body": "The full report sets out the assumptions used, the sensitivity analysis, the conditions viability depends on, and the recommendations worth acting on first."
+      "heading": "The full report",
+      "body": "It explains each result and gives concrete advice, ranked by priority. You can download it as a PDF."
     }
   },
   "verdict": {
-    "go": "The model holds",
-    "go-with-conditions": "The model holds, under conditions",
-    "no-go": "The model does not hold"
+    "go": "Your project holds up",
+    "go-with-conditions": "Your project holds up, under some conditions",
+    "no-go": "Your project is still fragile"
   },
   "robustness": {
     "low": "Low",
     "medium": "Medium",
-    "high": "High"
+    "high": "Strong"
   },
   "confidence": {
     "low": "Low",
     "medium": "Medium",
-    "high": "High"
+    "high": "Good"
   },
   "evidenceKind": {
-    "data": "Data",
+    "data": "Verified figure",
     "estimate": "Estimate",
     "assumption": "Assumption"
   },
   "factorTier": {
-    "critical": "Critical",
+    "critical": "Decisive",
     "important": "Important",
-    "secondary": "Secondary",
-    "unknown": "Uncertain"
+    "secondary": "Less important",
+    "unknown": "Not clear yet"
   },
   "factorTierHint": {
-    "critical": "Very high potential impact on the simulated results.",
-    "important": "Significant impact, without deciding the outcome on its own.",
-    "secondary": "Limited impact across the scenarios that were run.",
-    "unknown": "Not enough information to estimate the impact reliably."
+    "critical": "They can make your project succeed or fail.",
+    "important": "They matter a lot, without deciding alone.",
+    "secondary": "They change the result little.",
+    "unknown": "We lack information to know whether they matter."
   },
   "severity": {
-    "critical": "Critical",
-    "high": "High",
-    "moderate": "Moderate",
+    "critical": "Very serious",
+    "high": "Serious",
+    "moderate": "To watch",
     "important": "Important",
-    "secondary": "Secondary"
+    "secondary": "Minor"
   },
   "impact": {
     "low": "Low",
     "medium": "Medium",
-    "high": "High"
+    "high": "Strong"
   },
   "priority": {
-    "low": "Low",
-    "medium": "Medium",
-    "high": "High",
-    "critical": "Critical"
+    "low": "Later",
+    "medium": "Soon",
+    "high": "Quickly",
+    "critical": "Right now"
   },
   "scenario": {
-    "name": "Scenario",
+    "name": "Situation",
     "kind": "Type",
-    "viability": "Index",
-    "breakEven": "Break-even",
-    "runway": "Runway",
-    "holds": "Model holds",
-    "holdsYes": "Yes",
-    "holdsNo": "No",
-    "never": "Never reached",
+    "viability": "Score",
+    "breakEven": "First profits",
+    "runway": "Your cash lasts",
+    "holds": "Result",
+    "holdsYes": "Your project holds",
+    "holdsNo": "Your project doesn't hold",
+    "never": "Never",
+    "enough": "Always",
     "monthN": "Month {{month}}",
     "monthsN": "{{months}} months",
-    "notComputed": "Not computed"
+    "notComputed": "Not calculated",
+    "changes": "What changes in this situation",
+    "whatHappens": "What happens"
   },
   "scenarioKind": {
-    "baseline": "Baseline",
-    "favourable": "Favourable",
-    "adverse": "Adverse",
-    "stress": "Stress test",
-    "extreme": "Extreme"
+    "baseline": "Normal situation",
+    "favourable": "Good situation",
+    "adverse": "Difficult situation",
+    "stress": "Hard blow",
+    "extreme": "Extreme situation"
   },
   "report": {
-    "title": "Report",
+    "title": "Simulation report",
     "heading": "Simulation report — {{name}}",
-    "generatedOn": "Generated on",
+    "generatedOn": "Created on",
     "contents": "Contents",
-    "backToResults": "Back to results",
-    "unavailable": "Report unavailable",
-    "unavailableBody": "This report has not been generated for this simulation yet.",
+    "backToResults": "Back to the result",
+    "unavailable": "The report isn't ready yet",
+    "unavailableBody": "This report hasn't been created for this simulation yet. You can get it from the result page.",
     "section": {
-      "summary": "Executive summary",
-      "profile": "Project profile",
-      "factors": "Factors analysed",
-      "scenarios": "Scenarios",
-      "financials": "Financial results",
-      "sensitivity": "Sensitivity analysis",
-      "conditions": "Viability conditions",
-      "recommendations": "Recommendations",
-      "evidence": "Data and assumptions",
-      "validation": "To validate in the real world",
-      "issues": "Problems and responses"
+      "summary": "The essentials",
+      "profile": "Your project",
+      "factors": "Key points",
+      "scenarios": "Situations tested",
+      "financials": "Your money",
+      "sensitivity": "What moves the score",
+      "conditions": "Goals to reach",
+      "recommendations": "Our advice",
+      "evidence": "Our sources",
+      "validation": "To check in the field",
+      "issues": "Problems and solutions"
     },
     "factors": {
-      "body": "{{total}} factors were kept as potentially relevant to this project, then ranked by the impact they can have on the results."
+      "body": "We found {{total}} points that can affect your project, from most to least important."
     },
     "financials": {
-      "body": "These figures are projections from the simulated scenarios, not guaranteed forecasts.",
-      "burnRate": "Monthly burn",
-      "capitalRequired": "Capital required",
-      "breakEvenMonth": "Break-even",
-      "runway": "Runway",
-      "chartTitle": "Cumulative cash",
-      "chartLabel": "Cumulative cash month by month",
-      "chartCaption": "Cumulative cash in {{currency}}, baseline scenario",
+      "body": "These figures are estimates, not promises.",
+      "burnRate": "Net spending per month",
+      "capitalRequired": "Money needed at the start",
+      "breakEvenMonth": "First profits",
+      "runway": "Your cash lasts",
+      "chartTitle": "The money in your cash box, month by month",
+      "chartLabel": "Cash on hand, month by month",
+      "chartCaption": "Cash on hand ({{currency}}), normal situation",
       "monthShort": "M{{month}}",
-      "breakEven": "Break-even"
+      "breakEven": "First profits"
     },
     "sensitivity": {
-      "body": "What each move actually changes on the viability index, with every other factor held steady.",
-      "unit": "Change expressed in viability index points."
+      "body": "If a single figure changes, here is what your score gains or loses.",
+      "unit": "In points, on the score out of 100."
     },
     "conditions": {
-      "body": "Viability depends on the thresholds below. {{unmet}} are not met today.",
-      "condition": "Condition",
-      "required": "Required",
-      "current": "Current",
+      "body": "For your project to hold, these goals must be reached. {{unmet}} are not reached yet.",
+      "condition": "Goal",
+      "required": "To reach",
+      "current": "Today",
       "status": "Status",
-      "met": "Met",
-      "unmet": "Not met",
+      "met": "Reached",
+      "unmet": "Not yet",
       "unknown": "Unknown"
     },
     "recommendation": {
-      "impact": "Expected impact",
-      "priority": "Priority"
+      "impact": "Expected effect",
+      "priority": "When"
     },
     "evidence": {
-      "body": "Every value used is marked as observed data, a derived estimate or an assumption, with its source where one exists."
+      "body": "Where our figures come from: verified, estimated or assumed."
     },
     "validation": {
-      "body": "A simulation narrows uncertainty, it does not replace it. These points need checking against the real market."
+      "body": "These points still need checking with real customers, suppliers or partners."
     },
     "download": "Download the PDF",
-    "downloading": "Building the PDF…",
-    "downloadFailed": "The report could not be generated.",
-    "downloadReport": "Download the report",
+    "downloading": "Preparing the PDF…",
+    "downloadFailed": "The PDF couldn't be created.",
+    "downloadReport": "Download the report (PDF)",
     "issues": {
-      "body": "Every problem the analysis found carries, right below it, the action that answers it. Ordered by decreasing severity.",
-      "response": "Response",
-      "noResponse": "The analysis found no response to this one: it stays open and has to be decided.",
-      "otherActions": "Other priority actions",
-      "otherActionsBody": "These answer none of the problems above in particular: they strengthen the model as a whole.",
-      "empty": "The analysis found no problem in the scenarios tested."
+      "body": "Each problem comes with our advice. From most to least serious.",
+      "response": "Our advice",
+      "noResponse": "No obvious solution: discuss it with your team or an adviser.",
+      "otherActions": "Other advice",
+      "otherActionsBody": "It strengthens your project as a whole.",
+      "empty": "No problem found in the situations tested."
     }
   },
   "compare": {
-    "title": "Comparison",
-    "heading": "Compare two versions",
-    "description": "Change the project, run the simulation again, and measure what actually moved.",
-    "previous": "Version {{revision}}",
-    "current": "Version {{revision}}",
-    "meaning": "A higher index means the revised model holds up better across the scenarios that were run. It does not mean the business will succeed.",
-    "flipped": "Scenarios whose outcome changed",
-    "nowHolds": "The model now holds",
-    "nowBreaks": "The model no longer holds",
-    "noPrevious": "This simulation has no earlier version to compare against.",
-    "relaunchHeading": "Run it again",
-    "relaunchBody": "A new run takes the project as it stands today and puts it through the same scenarios.",
-    "relaunch": "Run the simulation again"
+    "title": "Before / after",
+    "heading": "Before / after",
+    "description": "Changed your project? Compare the new score with the old one.",
+    "previous": "Before (version {{revision}})",
+    "current": "Now (version {{revision}})",
+    "better": "+{{delta}} points: your project holds up better",
+    "worse": "−{{delta}} points: your project holds up less well",
+    "meaning": "A higher score means your project resists better. It doesn't guarantee success.",
+    "flipped": "Situations that changed",
+    "nowHolds": "Now holds",
+    "nowBreaks": "No longer holds",
+    "noPreviousTitle": "No previous version yet",
+    "noPrevious": "Change your project, then run the simulation again: you'll be able to compare here.",
+    "relaunchHeading": "Run the simulation again",
+    "relaunchBody": "We test your project again as it is today, with the same situations.",
+    "relaunch": "Run it again"
   },
   "disclaimer": {
-    "heading": "Important",
-    "body": "The results of this simulation are estimates based on the data, assumptions and scenarios available at the time of analysis. A high score guarantees neither viability, nor profitability, nor long-term survival.",
-    "bothWays": "A low score does not mean the project is impossible either. These results are a decision-support tool, not a prediction.",
-    "short": "Estimates from the simulated scenarios. Neither a guarantee nor a prediction."
+    "heading": "Good to know",
+    "body": "These results are estimates made with the information available. A good score doesn't guarantee success.",
+    "bothWays": "A low score doesn't mean your project is impossible: it shows what to improve.",
+    "short": "These are estimates, not a guarantee."
   },
   "notFound": {
-    "heading": "Page not found",
-    "body": "This link does not match any page in the simulator.",
-    "action": "Back to simulations"
+    "heading": "This page doesn't exist",
+    "body": "The link may be incomplete or old. Go back to your simulations.",
+    "action": "See my simulations"
   },
   "project": {
     "select": "Choose a project",
@@ -447,221 +472,276 @@
   },
   "origin": {
     "idem-project": "IDEM project",
-    "imported-document": "Imported document"
+    "imported-document": "Business plan sent"
   },
   "overview": {
-    "atAGlance": "The factors that weigh on this project",
-    "nextSteps": "What's next",
-    "why": "Why this verdict"
+    "atAGlance": "What matters most",
+    "glanceLink": "See the key points",
+    "why": "Why this score?",
+    "nextSteps": "What now?",
+    "howToCheck": "How to check them",
+    "next": {
+      "report": {
+        "title": "The full report",
+        "body": "All results explained, with our advice. Download it as a PDF for your bank or partners."
+      },
+      "money": {
+        "title": "Your money",
+        "body": "How much you need, when you'll make money, how long your cash lasts.",
+        "cta": "See my figures"
+      },
+      "labs": {
+        "title": "Go further",
+        "body": "7 extra tests: what customers think, investors, the unexpected…",
+        "cta": "See the tests"
+      }
+    }
   },
   "understanding": {
-    "profile": "What the engine understood",
-    "baseline": "The numbers it kept",
-    "baselineBody": "These are the only values the deterministic engine uses. Everything else exists to establish them or to move them.",
-    "knowledge": "What is known, and what is not",
-    "knowledgeBody": "All four states are shown together: an assumption dressed as data would distort everything that follows.",
-    "evidence": "Sources",
-    "evidenceBody": "Every value carries where it came from and how confident the engine is in it.",
-    "pending": "The project analysis is not available yet."
+    "heading": "Your project",
+    "lead": "What we understood of your project, and the information used to test it.",
+    "profile": "What we understood",
+    "baseline": "Your starting figures",
+    "baselineBody": "All our calculations start from these figures.",
+    "knowledge": "The information used",
+    "knowledgeBody": "For each piece of information, we say where it comes from. Tap a line to see the details.",
+    "evidence": "Our sources",
+    "evidenceBody": "Where each figure comes from, and how sure it is.",
+    "pending": "We haven't finished reading your project yet."
   },
   "baseline": {
-    "unitPrice": "Unit price",
-    "unitVariableCost": "Unit variable cost",
-    "monthlyFixedCosts": "Monthly fixed costs",
-    "acquisitionCost": "Customer acquisition cost",
-    "startingCapital": "Starting capital",
-    "initialMonthlyCustomers": "New customers / month",
-    "monthlyGrowthRate": "Monthly growth",
-    "monthlyRetentionRate": "Monthly retention",
-    "purchasesPerCustomerPerMonth": "Purchases / customer / month"
+    "unitPrice": "Selling price",
+    "unitVariableCost": "Cost of each sale",
+    "monthlyFixedCosts": "Fixed costs per month",
+    "acquisitionCost": "Cost to find a customer",
+    "startingCapital": "Starting money",
+    "initialMonthlyCustomers": "New customers per month",
+    "monthlyGrowthRate": "Growth per month",
+    "monthlyRetentionRate": "Customers who stay each month",
+    "purchasesPerCustomerPerMonth": "Purchases per customer per month"
   },
   "factors": {
-    "heading": "Discovered factors",
-    "body": "{{total}} factors identified for this sector. The list is not fixed — it follows the project being analysed.",
-    "filter": "Filter by tier",
+    "heading": "Key points",
+    "body": "We found {{total}} points that can make your project succeed or fail. The most important are at the top. Tap a point to understand it.",
+    "filter": "Show",
     "all": "All",
-    "empty": "No factor at this tier.",
-    "noEvidence": "No source attached: this factor remains an assumption made by the engine."
+    "empty": "No point in this category.",
+    "noEvidence": "No source: this is an assumption on our side.",
+    "importance": "Importance",
+    "importanceValue": "Importance: {{value}} out of 100",
+    "acts": "Affects {{lever}}"
   },
   "lever": {
-    "price": "Price",
-    "variableCost": "Variable cost",
-    "fixedCost": "Fixed costs",
-    "acquisitionCost": "Acquisition",
-    "growth": "Growth",
-    "retention": "Retention",
-    "frequency": "Purchase frequency",
-    "capital": "Capital",
-    "none": "No direct lever"
+    "price": "the price",
+    "variableCost": "the cost of each sale",
+    "fixedCost": "fixed costs",
+    "acquisitionCost": "the cost of finding customers",
+    "growth": "growth",
+    "retention": "customer loyalty",
+    "frequency": "how often people buy",
+    "capital": "starting money",
+    "none": "nothing directly"
   },
   "scenarios": {
-    "heading": "Combinations tested",
-    "body": "Each scenario moves several factors at once: it is the combination that breaks a model, rarely a single factor.",
-    "stress": "Stress tests",
-    "stressBody": "The question here is not “how likely” but “at what point does it break”.",
-    "survival": "The model holds in {{percent}}% of scenarios"
+    "heading": "Situations tested",
+    "body": "We imagined situations, good and bad, and checked whether your project held in each.",
+    "usual": "Everyday situations",
+    "stress": "Hard blows",
+    "stressBody": "Very tough situations, to see how far your project goes before it breaks.",
+    "survival": "Your project holds in {{percent}}% of the situations tested."
   },
   "financials": {
-    "heading": "Financial trajectory",
-    "body": "A deterministic three-year projection, reproducible: same inputs, same numbers.",
-    "trajectory": "Cumulative cash",
-    "breakEven": "Break-even",
-    "runway": "Runway",
-    "burn": "Monthly burn",
-    "capital": "Capital required",
-    "margin": "Gross margin",
-    "revenueYear1": "Year 1 revenue",
-    "revenueYear3": "Year 3 revenue",
-    "never": "never reached",
-    "beyondHorizon": "beyond the horizon",
-    "monthUnit": "th month",
-    "monthsUnit": "months",
-    "sensitivity": "Sensitivity",
-    "sensitivityBody": "What a single move changes on the index, every other lever held constant.",
-    "conditions": "Viability conditions",
-    "conditionsBody": "The thresholds the model has to clear for the scenarios to hold.",
-    "pending": "Financial results are not available yet."
+    "heading": "Your money",
+    "body": "How much you need, when you'll start making money, and how long your cash lasts. Calculated over 3 years.",
+    "capital": "Money needed",
+    "capitalHint": "What you need at the start never to run out of money.",
+    "breakEven": "First profits",
+    "breakEvenHint": "The month you finally earn more than you spend.",
+    "runway": "Your cash lasts",
+    "runwayHint": "How many months before money runs out, if nothing changes.",
+    "burn": "Monthly losses at the start",
+    "burnHint": "How much more you spend than you earn each month at the start.",
+    "margin": "What's left on each sale",
+    "revenueYear1": "Sales in year 1",
+    "revenueYear3": "Sales in year 3",
+    "never": "Not within 3 years",
+    "beyondHorizon": "Over 3 years",
+    "monthN": "Month {{month}}",
+    "monthsN": "{{months}} months",
+    "trajectory": "The money in your cash box",
+    "trajectoryBody": "Month by month. Below the zero line, money is missing.",
+    "sensitivity": "What moves your score",
+    "sensitivityBody": "If a single figure changes, here is what your score gains (+) or loses (−).",
+    "conditions": "Goals to reach",
+    "conditionsBody": "For your project to hold, these goals must be reached.",
+    "goal": "Goal",
+    "today": "Today",
+    "pending": "Your figures aren't ready yet."
   },
   "condition": {
-    "met": "Met",
-    "unmet": "Not met",
+    "met": "Reached",
+    "unmet": "Not yet",
     "unknown": "Unknown"
   },
   "lab": {
-    "launch": "Run this analysis",
+    "launch": "Run this test",
     "rerun": "Run again",
-    "running": "Running",
-    "runningBody": "Several agents are working on this analysis. It takes one to two minutes.",
-    "notRun": "This analysis has not been run yet. It builds on the simulation results rather than replacing them.",
-    "needsRun": "This analysis needs a completed simulation.",
-    "done": "Analysis available",
+    "running": "In progress…",
+    "runningBody": "The test is running. It takes one to two minutes. You can stay here.",
+    "notRun": "This test hasn't been run yet. It starts from your simulation result.",
+    "duration": "One to two minutes",
+    "needsRun": "These tests become available as soon as your simulation is finished.",
+    "done": "Done",
+    "notDone": "To do",
+    "backToLabs": "All tests",
+    "hub": {
+      "heading": "Go further",
+      "lead": "Extra tests to prepare your project better. Each answers a simple question and takes one to two minutes.",
+      "open": "See the result",
+      "start": "Run this test"
+    },
     "redTeam": {
-      "heading": "Attack my business",
-      "body": "Six roles look for where the project breaks. The point is not reassurance, it is finding what was not planned for.",
-      "total": "Weaknesses found",
-      "filter": "Filter by role",
-      "allRoles": "All roles",
-      "attack": "The attack",
-      "exposure": "What makes it possible",
-      "mitigation": "What closes it"
+      "heading": "Weak spots",
+      "question": "Who could bring your project down?",
+      "body": "We play a competitor, a wary customer, an investor… to find your weak spots before they do.",
+      "total": "Weak spots found",
+      "filter": "Show by who sees them",
+      "allRoles": "All",
+      "seenBy": "Seen by: {{role}}",
+      "attack": "The problem",
+      "exposure": "Why it's possible",
+      "mitigation": "How to protect yourself",
+      "empty": "No weak spot for this choice."
     },
     "customers": {
-      "heading": "Customer simulator",
-      "body": "A panel of synthetic customers reacts to your offer and your price. These are constructed profiles, not real people.",
-      "panelSize": "Profiles simulated",
-      "segments": "Segments",
-      "optimalPrice": "Most profitable price",
-      "curve": "Revenue by price",
-      "curveLabel": "Estimated revenue as a function of price",
-      "price": "Price",
-      "conversion": "Conversion",
-      "buyers": "Buyers",
-      "revenue": "Estimated revenue",
+      "heading": "What customers think",
+      "question": "What price are your customers ready to pay?",
+      "body": "We imagine typical groups of customers and see how they react to your price. They are not real people.",
+      "optimalPrice": "The price that earns you the most",
+      "panelNote": "Calculated with {{count}} imagined customers, in {{segments}} groups.",
+      "curve": "What you earn depending on the price",
+      "curveBody": "Too expensive, few buy. Too cheap, you earn little. The green dot is the best balance.",
+      "curveLabel": "Estimated sales by price",
+      "pointLine": "{{percent}} of customers buy · {{revenue}} in sales",
+      "bestPrice": "Best price",
+      "segments": "Your customer groups",
+      "share": "{{percent}} of customers",
       "budget": "Budget",
-      "willingness": "Willingness to pay",
-      "sensitivity": "Price sensitivity",
-      "frequency": "Purchases / year"
+      "willingness": "Ready to pay",
+      "sensitivity": "Watch the price",
+      "frequency": "Purchases per year"
     },
     "investors": {
-      "heading": "Investor simulator",
-      "body": "The case put in front of four profiles. What matters here are the objections — they are coming either way.",
-      "readiness": "Funding readiness",
-      "prepare": "To prepare before the first meeting",
-      "secondMeeting": "Would take a second meeting",
+      "heading": "What investors think",
+      "question": "Would an investor put money into your project?",
+      "body": "We present your project to 4 kinds of investors and note their questions. Prepare your answers before meeting them.",
+      "readiness": "Ready to convince an investor",
+      "prepare": "Questions to prepare before a meeting",
+      "questions": "Their questions",
+      "secondMeeting": "Would meet you again",
       "noSecondMeeting": "Would not follow up"
     },
     "blackSwan": {
-      "heading": "Black swans",
-      "body": "Rare but possible shocks, replayed through the same engine as the scenarios.",
-      "absorption": "Shocks absorbed",
-      "absorptionHint": "Share of shocks the model survives without running out of cash.",
-      "lowestCash": "Lowest cash"
+      "heading": "The unexpected",
+      "question": "Would your project survive a crisis?",
+      "body": "Rare but possible events: a breakdown, a crisis, a new law… We check whether your cash holds.",
+      "absorption": "Shocks survived",
+      "absorptionHint": "How many of these events your project gets through without running out of money.",
+      "survives": "Your project holds",
+      "breaks": "Your project doesn't hold",
+      "lowestCash": "Cash at the worst moment"
     },
     "universes": {
-      "heading": "Parallel universes",
-      "body": "The same project under other business models, run through the same scenarios.",
-      "best": "Best universe"
+      "heading": "Other ways to sell",
+      "question": "Would you earn more by selling differently?",
+      "body": "The same project, sold another way (subscription, wholesale, rental…), tested in the same situations.",
+      "best": "The best option"
     },
     "timeMachine": {
-      "heading": "Time machine",
-      "body": "The project projected over five years, one trajectory per scenario, with the point where they diverge."
+      "heading": "Your project in 5 years",
+      "question": "Where will you be in 5 years?",
+      "body": "Year by year: your sales, your spending and your cash, depending on the situation chosen.",
+      "pick": "Choose a situation",
+      "year": "Year {{year}}",
+      "end": "After 5 years"
     },
     "experiments": {
-      "heading": "Experiments to run",
-      "body": "What to go and check in the real world to turn assumptions into data.",
-      "method": "How to run it",
-      "signal": "What the result would settle",
+      "heading": "What to check",
+      "question": "What should you check in the field before launching?",
+      "body": "Small, simple tests to run with real customers, to replace our assumptions with certainties.",
+      "method": "How to do it",
+      "signal": "What you'll learn",
       "cost": "Cost",
       "duration": "Duration",
       "days": "{{days}} days",
-      "uncertaintyDrop": "Uncertainty removed",
-      "startHere": "Start here"
+      "uncertaintyDrop": "Less doubt",
+      "startHere": "Start with this one"
     }
   },
   "redTeamRole": {
-    "competitor": "Competitor",
-    "skeptical-customer": "Sceptical customer",
-    "investor": "Investor",
-    "regulator": "Regulator",
-    "cfo": "CFO",
-    "operations": "Operations"
+    "competitor": "A competitor",
+    "skeptical-customer": "A wary customer",
+    "investor": "An investor",
+    "regulator": "The authorities",
+    "cfo": "An accountant",
+    "operations": "Operations (delivery, stock…)"
   },
   "investorProfile": {
-    "growth": "Growth fund",
-    "impact": "Impact investor",
+    "growth": "Fund seeking strong growth",
+    "impact": "Social impact investor",
     "technology": "Technology fund",
-    "regional": "Regional investor"
+    "regional": "Investor from your region"
   },
   "likelihood": {
     "rare": "Rare",
     "unlikely": "Unlikely",
-    "plausible": "Plausible"
+    "plausible": "Possible"
   },
   "timeline": {
-    "revenue": "Revenue",
-    "costs": "Costs",
+    "revenue": "Sales",
+    "costs": "Spending",
     "cash": "Cash",
-    "customers": "Active customers",
-    "divergesAt": "Diverges from year {{year}}",
-    "noDivergence": "No marked divergence over the horizon"
+    "customers": "Customers",
+    "divergesAt": "From year {{year}}:",
+    "noDivergence": "No big change over 5 years"
   },
   "cost": {
-    "low": "Low",
+    "low": "Small",
     "medium": "Medium",
     "high": "High"
   },
   "signIn": {
     "heading": "Sign in to continue",
-    "sharedAccount": "Your IDEM account opens the simulator, the dashboard and iDeploy. There is no separate account to create.",
+    "sharedAccount": "One IDEM account for everything: the simulator, your IDEM space and iDeploy.",
     "later": "Later",
-    "documentTooLarge": "Your document is too large to keep while you sign in — you will need to select it again when you come back.",
+    "documentTooLarge": "Your document is too large to keep during sign-in: you'll need to choose it again when you come back.",
     "reason": {
       "projects": "Your IDEM projects belong to your account: sign in to find them here.",
-      "analyse": "The analysis runs on our servers, under your IDEM account. Sign in to start it — your document will be waiting here.",
-      "launch": "One last step: sign in to launch the simulation and keep its report."
+      "analyse": "To read your project, please sign in. Your document will wait for you here.",
+      "launch": "Last step: sign in to launch the simulation and find your result."
     }
   },
   "consent": {
-    "heading": "Your agreement before launching",
-    "body": "This run reads your project, creates its IDEM record when it comes from an imported business plan, and sends an extract of it to artificial intelligence engines. Your agreement is asked at every launch, and kept with the run it authorises.",
+    "heading": "Your agreement",
+    "body": "To test your project, we read it and send part of it to artificial intelligence tools. We ask for your agreement for each simulation.",
     "iAccept": "I accept",
     "document": {
       "privacy": "the privacy policy",
-      "simulationTerms": "the simulation terms of use",
+      "simulationTerms": "the simulator terms of use",
       "beta": "the beta policy"
     },
-    "required": "These agreements are required to launch the simulation.",
+    "required": "Tick every box to be able to launch.",
     "confirm": "Accept and launch"
   },
   "verdictShort": {
-    "go": "Holds",
-    "go-with-conditions": "Holds under conditions",
-    "no-go": "Does not hold"
+    "go": "Solid",
+    "go-with-conditions": "Solid with conditions",
+    "no-go": "Fragile"
   },
   "verdictMeaning": {
-    "go": "The index is high and the model withstands most of the stress scenarios that were run.",
-    "go-with-conditions": "The model breaks in some of the stress scenarios: whether it holds depends on conditions being met.",
-    "no-go": "The index is low and the model breaks in most of the stress scenarios that were run."
+    "go": "It holds up well in most of the tough situations we tested.",
+    "go-with-conditions": "It holds in many situations, but not all. See the problems to fix below.",
+    "no-go": "It doesn't hold in most of the tough situations tested. That isn't a failure: the rest shows what to change."
   },
   "tour": {
     "common": {
@@ -674,28 +754,28 @@
     },
     "steps": {
       "welcome": {
-        "title": "Welcome to the simulator! Shall we look around?",
-        "body": "A few seconds to understand what you are looking at."
+        "title": "Welcome! Shall we take a tour?",
+        "body": "Thirty seconds to understand your result."
       },
       "nav": {
-        "title": "Your screens",
-        "body": "Overview, factors, scenarios, comparison: each screen digs into one aspect of the simulation. Always start with the overview."
+        "title": "Your pages",
+        "body": "The result, your project, your figures… Always start with “The result”."
       },
       "glance": {
-        "title": "The verdict at a glance",
-        "body": "The gist of the result, without the detail: enough to decide whether it is worth going further."
+        "title": "What matters most",
+        "body": "How many points are decisive for your project. Tap “See the key points” for details."
       },
       "risks": {
-        "title": "Identified risks",
-        "body": "What could make the project fail, ranked by severity. Read this before celebrating good numbers."
+        "title": "Problems to fix",
+        "body": "From most to least serious, with our advice for each."
       },
       "next": {
         "title": "What now?",
-        "body": "The concrete moves that follow the verdict: dig into a factor, stress-test the scenario, compare."
+        "body": "The report to download, your figures, and extra tests."
       },
       "done": {
-        "title": "You are all set!",
-        "body": "A simulation is a costed hypothesis, not a prediction. It is up to you to put it to the test."
+        "title": "Over to you!",
+        "body": "A simulation helps you decide. It doesn't predict the future."
       }
     }
   },
@@ -720,5 +800,13 @@
         "effect": "Without it, customer acquisition cost and growth pace are assumed — the two figures that decide your break-even date."
       }
     }
+  },
+  "level": {
+    "low": "A little",
+    "medium": "Somewhat",
+    "high": "Very"
+  },
+  "evidence": {
+    "reliability": "Reliability: {{level}}"
   }
 }

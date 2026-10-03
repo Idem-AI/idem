@@ -3,6 +3,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { environment } from '@env';
 
+import { Illustration } from '../../../../shared/components/illustration/illustration';
 import { SimulationConsent } from '../../models';
 
 /** Les documents à accepter, dans l'ordre où ils se lisent. */
@@ -27,11 +28,11 @@ type DocumentKey = (typeof DOCUMENTS)[number]['key'];
  */
 @Component({
   selector: 'sim-consent-dialog',
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, Illustration],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'dismissed.emit()' },
   template: `
-    <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div class="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <button
         type="button"
         class="absolute inset-0 h-full w-full bg-black/60 backdrop-blur-sm"
@@ -43,31 +44,35 @@ type DocumentKey = (typeof DOCUMENTS)[number]['key'];
         role="dialog"
         aria-modal="true"
         aria-labelledby="sim-consent-heading"
-        class="glass-card rise relative w-full max-w-md p-6 shadow-raised"
+        class="modal-panel rise relative max-h-[92dvh] w-full max-w-md overflow-y-auto p-6 sm:p-7"
       >
-        <h2 id="sim-consent-heading" class="text-h3 font-semibold text-ink">
+        <!-- Donner son accord, c'est peser avant de s'engager : la balance akan. -->
+        <sim-illustration name="balance" class="mx-auto w-28" />
+        <h2 id="sim-consent-heading" class="mt-4 text-center text-xl font-bold">
           {{ 'consent.heading' | translate }}
         </h2>
 
-        <p class="mt-2 text-sm leading-relaxed text-ink-muted">{{ 'consent.body' | translate }}</p>
+        <p class="mt-2 text-sm leading-relaxed text-text-secondary">{{ 'consent.body' | translate }}</p>
 
-        <div class="mt-4 flex flex-col gap-2.5">
+        <div class="mt-5 flex flex-col gap-2">
           @for (document of documents; track document.key) {
             @if (document.key !== 'beta' || isBeta) {
-              <label class="flex items-start gap-2.5 text-sm">
+              <label
+                class="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--glass-border)] p-3 text-sm transition-colors hover:border-[var(--glass-border-strong)]"
+              >
                 <input
                   type="checkbox"
-                  class="mt-0.5 size-4 shrink-0 cursor-pointer accent-brand"
+                  class="mt-0.5 size-5 shrink-0 cursor-pointer accent-[var(--color-primary)]"
                   [checked]="isAccepted(document.key)"
                   (change)="toggle(document.key)"
                 />
-                <span class="leading-snug text-ink-muted">
+                <span class="leading-snug text-text-secondary">
                   {{ 'consent.iAccept' | translate }}
                   <a
                     [href]="legalUrl(document.path)"
                     target="_blank"
                     rel="noopener"
-                    class="font-medium text-brand underline underline-offset-2"
+                    class="sim-link !inline"
                   >
                     {{ 'consent.document.' + document.key | translate }}
                   </a>
@@ -77,17 +82,17 @@ type DocumentKey = (typeof DOCUMENTS)[number]['key'];
           }
         </div>
 
-        <div class="mt-5 flex flex-wrap justify-end gap-2">
-          <button type="button" class="button-ghost" (click)="dismissed.emit()">
-            {{ 'action.cancel' | translate }}
-          </button>
+        <div class="mt-6 flex flex-col gap-2">
           <button
             type="button"
-            class="inner-button"
+            class="inner-button w-full"
             [disabled]="!complete()"
             (click)="accepted.emit(consent())"
           >
             {{ 'consent.confirm' | translate }}
+          </button>
+          <button type="button" class="button-ghost w-full" (click)="dismissed.emit()">
+            {{ 'action.cancel' | translate }}
           </button>
         </div>
       </div>

@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { EvidenceChip } from '../../components/evidence-chip/evidence-chip';
+import { Tone } from '../../ui/tones';
 import { SimulationStore } from '../../data-access';
 import { Factor, FactorTier } from '../../models';
 
@@ -23,7 +25,7 @@ const TIER_ORDER: Record<FactorTier, number> = {
  */
 @Component({
   selector: 'sim-simulation-factors',
-  imports: [TranslatePipe, EvidenceChip],
+  imports: [TranslatePipe, EvidenceChip, PageHeader],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-factors.html',
 })
@@ -55,6 +57,10 @@ export class SimulationFactors {
         (a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || b.impact - a.impact,
       );
   });
+
+  protected tierTone(tier: FactorTier): Tone {
+    return tier === 'critical' ? 'stop' : tier === 'important' ? 'warn' : tier === 'unknown' ? 'info' : 'muted';
+  }
 
   protected toggle(id: string): void {
     this.expanded.update((current) => (current === id ? null : id));

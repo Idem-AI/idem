@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { base } from '$app/paths';
-  import Loader from '$/components/ui/Loader.svelte';
+  import { IdemLoader } from '@idem/shared-loader/svelte';
 
   onMount(async () => {
     // Handle old live editor links and redirect to new version
@@ -19,5 +19,5 @@
 
 <!-- Show loading state during redirect -->
 <div class="bg-background flex h-screen items-center justify-center">
-  <Loader size="lg" message="Redirection..." />
+  <IdemLoader size="lg" label="Redirection..." />
 </div>

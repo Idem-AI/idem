@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { Illustration } from '../../../../shared/components/illustration/illustration';
+
 /**
  * Demande la connexion au moment où elle devient nécessaire, sans quitter la
  * page.
@@ -11,11 +13,11 @@ import { TranslatePipe } from '@ngx-translate/core';
  */
 @Component({
   selector: 'sim-sign-in-dialog',
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, Illustration],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'dismissed.emit()' },
   template: `
-    <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div class="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <button
         type="button"
         class="absolute inset-0 h-full w-full bg-black/60 backdrop-blur-sm"
@@ -27,30 +29,32 @@ import { TranslatePipe } from '@ngx-translate/core';
         role="dialog"
         aria-modal="true"
         aria-labelledby="sim-sign-in-heading"
-        class="glass-card rise relative w-full max-w-md p-6 shadow-raised"
+        class="modal-panel rise relative w-full max-w-md p-6 text-center sm:p-7"
       >
-        <h2 id="sim-sign-in-heading" class="text-h3 font-semibold text-ink">
+        <!-- Se connecter, c'est entrer chez soi : le bouclier de la connexion IDEM. -->
+        <sim-illustration name="shield" class="mx-auto w-28" />
+        <h2 id="sim-sign-in-heading" class="mt-4 text-xl font-bold">
           {{ 'signIn.heading' | translate }}
         </h2>
 
-        <p class="mt-2 text-sm leading-relaxed text-ink-muted">{{ reason() | translate }}</p>
+        <p class="mt-2 text-sm leading-relaxed text-text-secondary md:text-base">{{ reason() | translate }}</p>
 
-        <p class="mt-3 text-meta leading-relaxed text-ink-subtle">
+        <p class="mt-3 text-xs leading-relaxed text-text-tertiary">
           {{ 'signIn.sharedAccount' | translate }}
         </p>
 
         @if (warnDraftLoss()) {
-          <p class="mt-3 rounded-lg border border-line bg-panel-sunken px-3 py-2 text-meta leading-relaxed text-ink-muted">
+          <p class="mt-3 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] px-3 py-2 text-left text-xs leading-relaxed text-text-secondary">
             {{ 'signIn.documentTooLarge' | translate }}
           </p>
         }
 
-        <div class="mt-5 flex flex-wrap justify-end gap-2">
-          <button type="button" class="button-ghost" (click)="dismissed.emit()">
-            {{ 'signIn.later' | translate }}
-          </button>
-          <button type="button" class="inner-button" (click)="confirmed.emit()">
+        <div class="mt-6 flex flex-col gap-2">
+          <button type="button" class="inner-button w-full" (click)="confirmed.emit()">
             {{ 'auth.signIn' | translate }}
+          </button>
+          <button type="button" class="button-ghost w-full" (click)="dismissed.emit()">
+            {{ 'signIn.later' | translate }}
           </button>
         </div>
       </div>

@@ -43,26 +43,26 @@
           align-items: center;
           gap: 1rem;
         ">
-        <div style="position: relative">
-          <div
-            style="
-              border: 0.125rem solid rgba(59, 130, 246, 0.3);
-              border-radius: 50%;
-              border-top: 0.125rem solid rgb(59, 130, 246);
-              width: 4rem;
-              height: 4rem;
-              animation: spin 1s linear infinite;
-            "></div>
-          <div
-            style="
-              position: absolute;
-              inset: 0;
-              border-radius: 50%;
-              animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-              background-color: rgba(59, 130, 246, 0.1);
-              backdrop-filter: blur(4px);
-            "></div>
-        </div>
+        <!-- Le semis d'awalé de @idem/shared-loader (taille lg), en SVG statique :
+             Svelte n'a pas encore démarré, le composant n'existe pas encore. -->
+        <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
+          <defs>
+            <linearGradient id="idem-boot-gradient" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="48" y2="48">
+              <stop offset="0%" stop-color="#1447e6" />
+              <stop offset="100%" stop-color="#22d3ee" />
+            </linearGradient>
+          </defs>
+          <g fill="url(#idem-boot-gradient)">
+          <path class="idem-boot-seed" style="animation-delay: -1200ms" d="M24.00 3.50 L27.50 8.00 L24.00 12.50 L20.50 8.00Z" />
+          <path class="idem-boot-seed" style="animation-delay: -1050ms" d="M38.50 9.50 L37.79 15.16 L32.13 15.87 L32.84 10.21Z" />
+          <path class="idem-boot-seed" style="animation-delay: -900ms" d="M44.50 24.00 L40.00 27.50 L35.50 24.00 L40.00 20.50Z" />
+          <path class="idem-boot-seed" style="animation-delay: -750ms" d="M38.50 38.50 L32.84 37.79 L32.13 32.13 L37.79 32.84Z" />
+          <path class="idem-boot-seed" style="animation-delay: -600ms" d="M24.00 44.50 L20.50 40.00 L24.00 35.50 L27.50 40.00Z" />
+          <path class="idem-boot-seed" style="animation-delay: -450ms" d="M9.50 38.50 L10.21 32.84 L15.87 32.13 L15.16 37.79Z" />
+          <path class="idem-boot-seed" style="animation-delay: -300ms" d="M3.50 24.00 L8.00 20.50 L12.50 24.00 L8.00 27.50Z" />
+          <path class="idem-boot-seed" style="animation-delay: -150ms" d="M9.50 9.50 L15.16 10.21 L15.87 15.87 L10.21 15.16Z" />
+          </g>
+        </svg>
         <div style="font-family: 'Vilevile', sans-serif; font-size: 1.1rem; font-weight: 500">
           Loading Idem Chart...
         </div>
@@ -70,22 +70,25 @@
     </div>
 
     <style>
-      @keyframes spin {
+      .idem-boot-seed {
+        opacity: 0.2;
+        animation: idem-boot-sow 1.2s linear infinite;
+      }
+
+      @keyframes idem-boot-sow {
         0% {
-          transform: rotate(0deg);
+          opacity: 1;
         }
+        70%,
         100% {
-          transform: rotate(360deg);
+          opacity: 0.2;
         }
       }
 
-      @keyframes pulse {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.5;
+      @media (prefers-reduced-motion: reduce) {
+        .idem-boot-seed {
+          animation-duration: 3.2s;
+          animation-timing-function: steps(1, end);
         }
       }
 

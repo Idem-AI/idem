@@ -62,7 +62,8 @@
     }
 
     <!-- Sélecteur de mode d'accompagnement (masqué sur la synthèse et l'écran de choix) -->
-    @if (!isSummaryPage() && !showModeChoice()) {
+    <!-- Masqué aussi sur l'étape plein écran « Votre projet », comme la connexion. -->
+    @if (!isSummaryPage() && !showModeChoice() && !isSplitStep()) {
       <div
         class="fixed-toggle-container"
         [class.toggle-with-banner]="fromAppGen()"
@@ -131,6 +132,8 @@
 
     @if (showModeChoice()) {
       <!-- ═══ ECRAN DE CHOIX DU MODE D'ACCOMPAGNEMENT ═══ -->
+      <!-- Dernier écran : le projet est créé (formulaire ou conversation), on
+           choisit le mode avant d'ouvrir l'espace. -->
       <!-- Le sélecteur de mode est masqué ici, et la mise en page réserve déjà
            la place de la barre de navigation : on ne garde que celle du
            bandeau AppGen, et le contenu part du haut au lieu d'être centré
@@ -139,7 +142,6 @@
         <app-mode-choice
           [projectDescription]="project().longDescription ?? project().description"
           (selectMode)="onModeSelected($event)"
-          (back)="onBackFromModeChoice()"
         ></app-mode-choice>
       </div>
     } @else if (mode() === 'chat') {
@@ -180,10 +182,13 @@
     } @else {
     <!-- ═══ MODE FORMULAIRE CLASSIQUE ═══ -->
     <!-- Content Area -->
+    <!-- L'étape « Votre projet » occupe toute la largeur (emblème à gauche). -->
     <div
-      class="w-full max-w-4xl mx-auto pb-36 content-wrapper"
+      class="w-full mx-auto pb-36 content-wrapper"
+      [class.max-w-4xl]="!isSplitStep()"
       [class.content-with-banner]="fromAppGen()"
-      [class.content-standard]="!fromAppGen()"
+      [class.content-standard]="!fromAppGen() && !isSplitStep()"
+      [class.content-split]="!fromAppGen() && isSplitStep()"
     >
       <!-- Step Content -->
       @if (isStepActive(0)) {
@@ -222,9 +227,10 @@
     </div>
 
     <!-- Navigation Controls -->
-    @if (currentStepIndex() !== 0 && mode() !== 'chat') {
+    @if (currentStepIndex() !== 0 && mode() !== 'chat' && !showModeChoice()) {
       <div
         class="fixed bottom-0 left-0 right-0 z-40 bg-[var(--glass-bg-darker)] backdrop-blur-sm border-t border-[var(--glass-border)]"
+        [class.lg:left-[var(--split-left)]]="isSplitStep()"
       >
         <div class="max-w-4xl mx-auto px-4 py-4">
           <div class="flex justify-between items-center">

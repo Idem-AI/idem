@@ -6,3 +6,4 @@ export * from './project.model';
 export * from './report.model';
 export * from './scenario.model';
 export * from './simulation.model';
+export * from './lab-catalog';

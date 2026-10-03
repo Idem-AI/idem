@@ -11,6 +11,9 @@
   "include": [
     "src/**/*.d.ts",
     "../../packages/shared-tour/src/**/*.ts",
-    "../../packages/shared-loader/src/**/*.ts"
+    // Seuls le point d'entrée neutre et le rendu Angular : les rendus React et
+    // Svelte du même paquet ne concernent pas cette application.
+    "../../packages/shared-loader/src/index.ts",
+    "../../packages/shared-loader/src/angular/**/*.ts"
   ]
 }

@@ -5,46 +5,43 @@
     <div class="skeleton h-72 rounded-xl"></div>
   </div>
 } @else if (failed() || !report()) {
-  <div class="glass-card p-6" role="alert">
-    <p class="text-sm font-medium text-ink">{{ 'report.unavailable' | translate }}</p>
-    <p class="mt-1 text-meta text-ink-muted">{{ 'report.unavailableBody' | translate }}</p>
-    <a routerLink=".." class="outer-button button-sm mt-3">
-      {{ 'report.backToResults' | translate }}
-    </a>
+  <div class="glass-card" role="alert">
+    <sim-empty-state
+      illustration="leaflet"
+      [heading]="'report.unavailable' | translate"
+      [body]="'report.unavailableBody' | translate"
+    >
+      <a routerLink=".." class="outer-button">{{ 'report.backToResults' | translate }}</a>
+    </sim-empty-state>
   </div>
 } @else if (report(); as doc) {
   <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_13rem] lg:items-start">
     <article class="flex min-w-0 flex-col gap-10">
-      <header class="flex flex-col gap-4 border-b border-line pb-6">
-        <div class="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 class="text-h1 font-semibold text-ink">
-              {{ 'report.heading' | translate: { name: doc.profile.name } }}
-            </h1>
-            <p class="mt-1 text-meta text-ink-subtle">
-              {{ 'report.generatedOn' | translate }} {{ doc.generatedAt | date: 'longDate' }}
-            </p>
-          </div>
-          <button type="button" class="outer-button" [disabled]="downloading()" (click)="download()">
-            @if (downloading()) {
-              <idem-loader size="xs" />
-              {{ 'report.downloading' | translate }}
-            } @else {
-              <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-                <path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-              {{ 'report.download' | translate }}
-            }
-          </button>
+      <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p class="text-sm font-medium text-text-secondary">{{ 'report.title' | translate }}</p>
+          <h1 class="text-2xl font-bold md:text-3xl">{{ doc.profile.name }}</h1>
+          <p class="mt-1 text-sm text-text-tertiary">
+            {{ 'report.generatedOn' | translate }} {{ doc.generatedAt | date: 'longDate' : undefined : lang() }}
+          </p>
         </div>
+        <button type="button" class="inner-button shrink-0" [disabled]="downloading()" (click)="download()">
+          @if (downloading()) {
+            <idem-loader size="xs" />
+            {{ 'report.downloading' | translate }}
+          } @else {
+            <i class="pi pi-download" aria-hidden="true"></i>
+            {{ 'report.download' | translate }}
+          }
+        </button>
       </header>
 
       <!-- 01 Executive summary -------------------------------------------- -->
       <section id="summary" class="scroll-mt-20">
-        <p class="mb-1 font-mono text-meta text-ink-subtle">{{ sectionNumber(0) }}</p>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.summary' | translate }}</h2>
+        <p class="mb-1 text-sm font-semibold text-primary-500">{{ sectionNumber(0) }}</p>
+        <h2 class="text-xl font-bold">{{ 'report.section.summary' | translate }}</h2>
 
-        <div class="mt-4 grid gap-6 rounded-xl border border-line bg-panel p-5 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
+        <div class="mt-4 grid gap-6 glass-card p-5 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
           <sim-viability-gauge
             [value]="doc.executiveSummary.viabilityIndex"
             [robustness]="doc.executiveSummary.robustness"
@@ -55,7 +52,7 @@
           />
           <div class="flex flex-col items-start gap-3">
             <sim-verdict-badge [verdict]="doc.executiveSummary.verdict" />
-            <p class="max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+            <p class="max-w-[70ch] text-sm leading-relaxed text-text-secondary">
               {{ doc.executiveSummary.statement }}
             </p>
             <sim-disclaimer-note [compact]="true" />
@@ -65,13 +62,13 @@
 
       <!-- 02 Profile ------------------------------------------------------ -->
       <section id="profile" class="scroll-mt-20">
-        <p class="mb-1 font-mono text-meta text-ink-subtle">{{ sectionNumber(1) }}</p>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.profile' | translate }}</h2>
-        <dl class="mt-4 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2">
+        <p class="mb-1 text-sm font-semibold text-primary-500">{{ sectionNumber(1) }}</p>
+        <h2 class="text-xl font-bold">{{ 'report.section.profile' | translate }}</h2>
+        <dl class="mt-4 grid gap-px overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--glass-border)] sm:grid-cols-2">
           @for (row of profileRows(); track row.labelKey) {
-            <div class="bg-panel p-4">
-              <dt class="text-meta text-ink-subtle">{{ row.labelKey | translate }}</dt>
-              <dd class="mt-0.5 text-sm text-ink">{{ row.value }}</dd>
+            <div class="bg-surface-1 p-4">
+              <dt class="text-xs text-text-tertiary">{{ row.labelKey | translate }}</dt>
+              <dd class="mt-0.5 text-sm text-text-primary">{{ row.value }}</dd>
             </div>
           }
         </dl>
@@ -79,21 +76,21 @@
 
       <!-- 03 Factors ------------------------------------------------------ -->
       <section id="factors" class="scroll-mt-20">
-        <p class="mb-1 font-mono text-meta text-ink-subtle">{{ sectionNumber(2) }}</p>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.factors' | translate }}</h2>
-        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+        <p class="mb-1 text-sm font-semibold text-primary-500">{{ sectionNumber(2) }}</p>
+        <h2 class="text-xl font-bold">{{ 'report.section.factors' | translate }}</h2>
+        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-text-secondary">
           {{ 'report.factors.body' | translate: { total: doc.factors.length } }}
         </p>
 
         <div class="mt-4 flex flex-col gap-4">
           @for (group of factorGroups(); track group.tier) {
             @if (group.count) {
-              <div class="rounded-xl border border-line bg-panel p-5">
-                <h3 class="text-label font-semibold text-ink">
+              <div class="glass-card p-5">
+                <h3 class="text-sm font-semibold text-text-primary">
                   {{ 'factorTier.' + group.tier | translate }}
-                  <span class="ml-1 font-normal text-ink-subtle">({{ group.count }})</span>
+                  <span class="ml-1 font-normal text-text-tertiary">({{ group.count }})</span>
                 </h3>
-                <p class="mt-0.5 text-meta leading-relaxed text-ink-subtle">
+                <p class="mt-0.5 text-xs leading-relaxed text-text-tertiary">
                   {{ 'factorTierHint.' + group.tier | translate }}
                 </p>
                 <div class="mt-3">
@@ -107,26 +104,26 @@
 
       <!-- 04 Scenarios ---------------------------------------------------- -->
       <section id="scenarios" class="scroll-mt-20">
-        <p class="mb-1 font-mono text-meta text-ink-subtle">{{ sectionNumber(3) }}</p>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.scenarios' | translate }}</h2>
-        <div class="mt-4 rounded-xl border border-line bg-panel p-5">
+        <p class="mb-1 text-sm font-semibold text-primary-500">{{ sectionNumber(3) }}</p>
+        <h2 class="text-xl font-bold">{{ 'report.section.scenarios' | translate }}</h2>
+        <div class="mt-4 glass-card p-5">
           <sim-scenario-table [scenarios]="doc.scenarios" [caption]="'report.section.scenarios' | translate" />
         </div>
       </section>
 
       <!-- 05 Financials --------------------------------------------------- -->
       <section id="financials" class="scroll-mt-20">
-        <p class="mb-1 font-mono text-meta text-ink-subtle">{{ sectionNumber(4) }}</p>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.financials' | translate }}</h2>
-        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+        <p class="mb-1 text-sm font-semibold text-primary-500">{{ sectionNumber(4) }}</p>
+        <h2 class="text-xl font-bold">{{ 'report.section.financials' | translate }}</h2>
+        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-text-secondary">
           {{ 'report.financials.body' | translate }}
         </p>
 
-        <dl class="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
+        <dl class="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--glass-border)] sm:grid-cols-4">
           @for (row of financialRows(); track row.labelKey) {
-            <div class="bg-panel p-4">
-              <dt class="text-meta text-ink-subtle">{{ row.labelKey | translate }}</dt>
-              <dd class="mt-0.5 text-sm font-semibold tabular-nums text-ink">
+            <div class="bg-surface-1 p-4">
+              <dt class="text-xs text-text-tertiary">{{ row.labelKey | translate }}</dt>
+              <dd class="mt-0.5 text-sm font-semibold tabular-nums text-text-primary">
                 @if (row.valueKey) {
                   {{ row.valueKey | translate: row.valueParams }}
                 } @else {
@@ -137,8 +134,8 @@
           }
         </dl>
 
-        <div class="mt-4 rounded-xl border border-line bg-panel p-5">
-          <h3 class="mb-3 text-label font-semibold text-ink-muted">
+        <div class="mt-4 glass-card p-5">
+          <h3 class="mb-3 text-sm font-semibold text-text-secondary">
             {{ 'report.financials.chartTitle' | translate }}
           </h3>
           <sim-cashflow-chart
@@ -151,70 +148,52 @@
 
       <!-- 06 Sensitivity -------------------------------------------------- -->
       <section id="sensitivity" class="scroll-mt-20">
-        <p class="mb-1 font-mono text-meta text-ink-subtle">{{ sectionNumber(5) }}</p>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.sensitivity' | translate }}</h2>
-        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+        <p class="mb-1 text-sm font-semibold text-primary-500">{{ sectionNumber(5) }}</p>
+        <h2 class="text-xl font-bold">{{ 'report.section.sensitivity' | translate }}</h2>
+        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-text-secondary">
           {{ 'report.sensitivity.body' | translate }}
         </p>
-        <div class="mt-4 rounded-xl border border-line bg-panel p-5">
+        <div class="mt-4 glass-card p-5">
           <sim-sensitivity-chart [entries]="doc.sensitivity" />
         </div>
       </section>
 
       <!-- 07 Conditions --------------------------------------------------- -->
       <section id="conditions" class="scroll-mt-20">
-        <p class="mb-1 font-mono text-meta text-ink-subtle">{{ sectionNumber(6) }}</p>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.conditions' | translate }}</h2>
-        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+        <p class="mb-1 text-sm font-semibold text-primary-500">{{ sectionNumber(6) }}</p>
+        <h2 class="text-xl font-bold">{{ 'report.section.conditions' | translate }}</h2>
+        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-text-secondary">
           {{ 'report.conditions.body' | translate: { unmet: unmetConditions() } }}
         </p>
 
-        <div class="mt-4 overflow-x-auto rounded-xl border border-line bg-panel">
-          <table class="w-full min-w-[34rem] border-collapse text-sm">
-            <caption class="sr-only">{{ 'report.section.conditions' | translate }}</caption>
-            <thead>
-              <tr class="border-b border-line text-left">
-                <th scope="col" class="px-4 py-2.5 font-medium text-ink-subtle">
-                  {{ 'report.conditions.condition' | translate }}
-                </th>
-                <th scope="col" class="px-4 py-2.5 text-right font-medium text-ink-subtle">
-                  {{ 'report.conditions.required' | translate }}
-                </th>
-                <th scope="col" class="px-4 py-2.5 text-right font-medium text-ink-subtle">
-                  {{ 'report.conditions.current' | translate }}
-                </th>
-                <th scope="col" class="px-4 py-2.5 font-medium text-ink-subtle">
-                  {{ 'report.conditions.status' | translate }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (condition of doc.conditions; track condition.id) {
-                <tr class="border-b border-line last:border-0">
-                  <td class="px-4 py-3 text-ink">{{ condition.label }}</td>
-                  <td class="px-4 py-3 text-right tabular-nums text-ink-muted">{{ condition.threshold }}</td>
-                  <td class="px-4 py-3 text-right tabular-nums text-ink-muted">{{ condition.currentValue || '—' }}</td>
-                  <td class="px-4 py-3">
-                    <span
-                      class="inline-flex items-center gap-1.5 text-meta font-semibold"
-                      [class]="condition.met === true ? 'text-verdict-go' : condition.met === false ? 'text-verdict-stop' : 'text-ink-subtle'"
-                    >
-                      <span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
-                      {{
-                        (condition.met === true
-                          ? 'report.conditions.met'
-                          : condition.met === false
-                            ? 'report.conditions.unmet'
-                            : 'report.conditions.unknown'
-                        ) | translate
-                      }}
-                    </span>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+        <ul class="mt-4 flex flex-col gap-3">
+          @for (condition of doc.conditions; track condition.id) {
+            <li class="glass-card flex flex-wrap items-center gap-3 p-4">
+              <div class="min-w-0 flex-1">
+                <p class="text-base font-semibold text-text-primary">{{ condition.label }}</p>
+                <p class="mt-0.5 text-sm text-text-secondary">
+                  {{ 'report.conditions.required' | translate }} : <strong class="font-semibold text-text-primary">{{ condition.threshold }}</strong>
+                  · {{ 'report.conditions.current' | translate }} : {{ condition.currentValue || '—' }}
+                </p>
+              </div>
+              <span
+                class="sim-pill"
+                [class.sim-pill--go]="condition.met === true"
+                [class.sim-pill--stop]="condition.met === false"
+                [class.sim-pill--muted]="condition.met === null"
+              >
+                {{
+                  (condition.met === true
+                    ? 'report.conditions.met'
+                    : condition.met === false
+                      ? 'report.conditions.unmet'
+                      : 'report.conditions.unknown'
+                  ) | translate
+                }}
+              </span>
+            </li>
+          }
+        </ul>
       </section>
 
       <!-- 08 Problems and their responses --------------------------------- -->
@@ -225,58 +204,53 @@
         ne le fait. Chaque problème porte donc sa réponse, immédiatement dessous.
       -->
       <section id="issues" class="scroll-mt-20">
-        <p class="mb-1 font-mono text-meta text-ink-subtle">{{ sectionNumber(7) }}</p>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.issues' | translate }}</h2>
-        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+        <p class="mb-1 text-sm font-semibold text-primary-500">{{ sectionNumber(7) }}</p>
+        <h2 class="text-xl font-bold">{{ 'report.section.issues' | translate }}</h2>
+        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-text-secondary">
           {{ 'report.issues.body' | translate }}
         </p>
 
         @if (issues().length) {
           <ol class="mt-4 flex flex-col gap-3">
             @for (issue of issues(); track issue.risk.id) {
-              <li class="rounded-xl border border-line bg-panel p-5">
+              <li class="glass-card p-5">
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <h3 class="text-sm font-semibold text-ink">{{ issue.risk.title }}</h3>
-                  <span
-                    class="text-[0.6875rem] font-semibold uppercase"
-                    [class.text-verdict-stop]="issue.risk.severity === 'critical'"
-                    [class.text-verdict-warn]="issue.risk.severity === 'high'"
-                    [class.text-ink-subtle]="issue.risk.severity === 'moderate'"
-                  >
+                  <h3 class="text-sm font-semibold text-text-primary">{{ issue.risk.title }}</h3>
+                  <span [class]="'sim-pill sim-pill--' + tone(issue.risk.severity)">
                     {{ 'severity.' + issue.risk.severity | translate }}
                   </span>
                 </div>
-                <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+                <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-text-secondary">
                   {{ issue.risk.description }}
                 </p>
 
                 @for (response of issue.responses; track response.id) {
-                  <div class="mt-4 border-l-2 border-accent pl-4">
-                    <p class="text-[0.6875rem] font-semibold uppercase text-accent">
+                  <div class="mt-4 rounded-xl border-l-4 border-success bg-[var(--glass-bg-subtle)] p-3">
+                    <p class="text-xs font-semibold uppercase text-success">
                       {{ 'report.issues.response' | translate }}
                     </p>
-                    <h4 class="mt-1 text-sm font-semibold text-ink">{{ response.title }}</h4>
-                    <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+                    <h4 class="mt-1 text-sm font-semibold text-text-primary">{{ response.title }}</h4>
+                    <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-text-secondary">
                       {{ response.body }}
                     </p>
-                    <dl class="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-meta">
+                    <dl class="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs">
                       <div class="flex gap-1.5">
-                        <dt class="text-ink-subtle">{{ 'report.recommendation.priority' | translate }}</dt>
-                        <dd class="font-semibold text-ink-muted">{{ 'priority.' + response.priority | translate }}</dd>
+                        <dt class="text-text-tertiary">{{ 'report.recommendation.priority' | translate }}</dt>
+                        <dd class="font-semibold text-text-secondary">{{ 'priority.' + response.priority | translate }}</dd>
                       </div>
                       <div class="flex gap-1.5">
-                        <dt class="text-ink-subtle">{{ 'report.recommendation.impact' | translate }}</dt>
-                        <dd class="font-semibold text-ink-muted">{{ 'impact.' + response.expectedImpact | translate }}</dd>
+                        <dt class="text-text-tertiary">{{ 'report.recommendation.impact' | translate }}</dt>
+                        <dd class="font-semibold text-text-secondary">{{ 'impact.' + response.expectedImpact | translate }}</dd>
                       </div>
                       <div class="flex gap-1.5">
-                        <dt class="text-ink-subtle">{{ 'result.confidence' | translate }}</dt>
-                        <dd class="font-semibold text-ink-muted">{{ 'confidence.' + response.confidence | translate }}</dd>
+                        <dt class="text-text-tertiary">{{ 'result.confidence' | translate }}</dt>
+                        <dd class="font-semibold text-text-secondary">{{ 'confidence.' + response.confidence | translate }}</dd>
                       </div>
                     </dl>
                   </div>
                 }
                 @if (!issue.responses.length) {
-                  <p class="mt-3 max-w-[70ch] text-meta leading-relaxed text-verdict-warn">
+                  <p class="mt-3 max-w-[70ch] text-xs leading-relaxed text-warning">
                     {{ 'report.issues.noResponse' | translate }}
                   </p>
                 }
@@ -284,35 +258,35 @@
             }
           </ol>
         } @else {
-          <p class="mt-4 text-sm text-ink-muted">{{ 'report.issues.empty' | translate }}</p>
+          <p class="mt-4 text-sm text-text-secondary">{{ 'report.issues.empty' | translate }}</p>
         }
 
         @if (unpairedRecommendations().length) {
-          <h3 class="mt-8 text-sm font-semibold text-ink">
+          <h3 class="mt-8 text-sm font-semibold text-text-primary">
             {{ 'report.issues.otherActions' | translate }}
           </h3>
-          <p class="mt-1 max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
+          <p class="mt-1 max-w-[70ch] text-xs leading-relaxed text-text-tertiary">
             {{ 'report.issues.otherActionsBody' | translate }}
           </p>
-          <ol class="mt-3 flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
+          <ol class="mt-3 flex flex-col divide-y divide-[var(--glass-border-subtle)] overflow-hidden glass-card">
             @for (recommendation of unpairedRecommendations(); track recommendation.id) {
               <li class="p-5">
-                <h4 class="text-sm font-semibold text-ink">{{ recommendation.title }}</h4>
-                <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+                <h4 class="text-sm font-semibold text-text-primary">{{ recommendation.title }}</h4>
+                <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-text-secondary">
                   {{ recommendation.body }}
                 </p>
-                <dl class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-meta">
+                <dl class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs">
                   <div class="flex gap-1.5">
-                    <dt class="text-ink-subtle">{{ 'report.recommendation.priority' | translate }}</dt>
-                    <dd class="font-semibold text-ink-muted">{{ 'priority.' + recommendation.priority | translate }}</dd>
+                    <dt class="text-text-tertiary">{{ 'report.recommendation.priority' | translate }}</dt>
+                    <dd class="font-semibold text-text-secondary">{{ 'priority.' + recommendation.priority | translate }}</dd>
                   </div>
                   <div class="flex gap-1.5">
-                    <dt class="text-ink-subtle">{{ 'report.recommendation.impact' | translate }}</dt>
-                    <dd class="font-semibold text-ink-muted">{{ 'impact.' + recommendation.expectedImpact | translate }}</dd>
+                    <dt class="text-text-tertiary">{{ 'report.recommendation.impact' | translate }}</dt>
+                    <dd class="font-semibold text-text-secondary">{{ 'impact.' + recommendation.expectedImpact | translate }}</dd>
                   </div>
                   <div class="flex gap-1.5">
-                    <dt class="text-ink-subtle">{{ 'result.confidence' | translate }}</dt>
-                    <dd class="font-semibold text-ink-muted">{{ 'confidence.' + recommendation.confidence | translate }}</dd>
+                    <dt class="text-text-tertiary">{{ 'result.confidence' | translate }}</dt>
+                    <dd class="font-semibold text-text-secondary">{{ 'confidence.' + recommendation.confidence | translate }}</dd>
                   </div>
                 </dl>
               </li>
@@ -323,15 +297,15 @@
 
       <!-- 09 Evidence ------------------------------------------------------ -->
       <section id="evidence" class="scroll-mt-20">
-        <p class="mb-1 font-mono text-meta text-ink-subtle">{{ sectionNumber(8) }}</p>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.evidence' | translate }}</h2>
-        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+        <p class="mb-1 text-sm font-semibold text-primary-500">{{ sectionNumber(8) }}</p>
+        <h2 class="text-xl font-bold">{{ 'report.section.evidence' | translate }}</h2>
+        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-text-secondary">
           {{ 'report.evidence.body' | translate }}
         </p>
-        <ul class="mt-4 flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
+        <ul class="mt-4 flex flex-col divide-y divide-[var(--glass-border-subtle)] overflow-hidden glass-card">
           @for (item of doc.evidence; track item.id) {
             <li class="p-4">
-              <p class="text-meta text-ink-subtle">{{ item.label }}</p>
+              <p class="text-xs text-text-tertiary">{{ item.label }}</p>
               <div class="mt-1">
                 <sim-evidence-chip [evidence]="item" />
               </div>
@@ -342,15 +316,15 @@
 
       <!-- 10 Validation ---------------------------------------------------- -->
       <section id="validation" class="scroll-mt-20">
-        <p class="mb-1 font-mono text-meta text-ink-subtle">{{ sectionNumber(9) }}</p>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.validation' | translate }}</h2>
-        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+        <p class="mb-1 text-sm font-semibold text-primary-500">{{ sectionNumber(9) }}</p>
+        <h2 class="text-xl font-bold">{{ 'report.section.validation' | translate }}</h2>
+        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-text-secondary">
           {{ 'report.validation.body' | translate }}
         </p>
         <ul class="mt-4 flex flex-col gap-2">
           @for (item of doc.validationNeeded; track item) {
-            <li class="flex items-start gap-2.5 rounded-lg border border-line bg-panel px-4 py-3 text-sm leading-relaxed text-ink-muted">
-              <span class="mt-2 size-1 shrink-0 rounded-full bg-brand" aria-hidden="true"></span>
+            <li class="flex items-start gap-2.5 rounded-lg border border-[var(--glass-border)] bg-surface-1 px-4 py-3 text-sm leading-relaxed text-text-secondary">
+              <span class="mt-2 size-1 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
               {{ item }}
             </li>
           }
@@ -365,7 +339,7 @@
       class="sticky top-20 hidden lg:block print:hidden"
       [attr.aria-label]="'report.contents' | translate"
     >
-      <p class="mb-2 text-meta font-semibold uppercase text-ink-subtle">
+      <p class="mb-2 text-xs font-semibold uppercase text-text-tertiary">
         {{ 'report.contents' | translate }}
       </p>
       <ol class="flex flex-col gap-0.5">
@@ -373,9 +347,9 @@
           <li>
             <a
               [href]="'#' + section.id"
-              class="flex gap-2 rounded-md px-2 py-1 text-meta text-ink-muted transition-colors hover:bg-panel-sunken hover:text-ink"
+              class="flex gap-2 rounded-md px-2 py-1 text-xs text-text-secondary transition-colors hover:bg-[var(--glass-bg-subtle)] hover:text-text-primary"
             >
-              <span class="font-mono text-ink-subtle">{{ sectionNumber(index) }}</span>
+              <span class="tabular-nums text-text-tertiary">{{ sectionNumber(index) }}</span>
               {{ section.labelKey | translate }}
             </a>
           </li>
