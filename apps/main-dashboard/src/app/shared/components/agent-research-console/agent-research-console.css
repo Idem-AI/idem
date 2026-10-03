@@ -253,15 +253,6 @@
   color: var(--color-text-secondary);
 }
 
-.rc__spin {
-  width: 0.9rem;
-  height: 0.9rem;
-  border: 2px solid var(--glass-border);
-  border-top-color: var(--color-primary);
-  border-radius: var(--radius-full);
-  animation: rc-spin 0.9s linear infinite;
-}
-
 .rc__foot {
   padding-top: var(--spacing-3);
   border-top: 1px solid var(--glass-border);
@@ -376,7 +367,6 @@
   .rc__source,
   .rc__pulse,
   .rc__caret,
-  .rc__spin,
   .rc__stage[data-scene='searching'] .rc__scene--searching > circle:first-of-type,
   .rc__stage[data-scene='searching'] .rc__scene--searching > path,
   .rc__stage[data-scene='writing'] .rc__scene--writing {

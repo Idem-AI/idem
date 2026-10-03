@@ -102,6 +102,8 @@ export default defineConfig(async ({ mode, command }) => {
         '@': path.resolve(__dirname, 'src'),
         // Moteur de visite guidée partagé par toutes les applications Idem.
         '@idem/shared-tour': path.resolve(__dirname, '../../../../packages/shared-tour/src'),
+        // L'unique indicateur de chargement d'Idem (rendu React).
+        '@idem/shared-loader': path.resolve(__dirname, '../../../../packages/shared-loader/src'),
         // Bandeau « Ils nous font confiance », partagé par les landing pages.
         '@idem/shared-trusted-by': path.resolve(
           __dirname,

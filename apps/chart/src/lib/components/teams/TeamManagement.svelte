@@ -3,6 +3,7 @@
   import TeamCard from './TeamCard.svelte';
   import CreateTeamModal from './CreateTeamModal.svelte';
   import InviteUserModal from './InviteUserModal.svelte';
+  import { IdemLoader } from '@idem/shared-loader/svelte';
 
   let showCreateModal = false;
   let showInviteModal: string | null = null;
@@ -41,10 +42,7 @@
 
   {#if loading}
     <div class="flex min-h-[400px] items-center justify-center">
-      <div class="text-center">
-        <div class="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
-        <p class="mt-4 text-gray-600">Loading teams...</p>
-      </div>
+      <IdemLoader size="lg" label="Loading teams..." />
     </div>
   {:else if error}
     <div class="flex min-h-[400px] items-center justify-center">

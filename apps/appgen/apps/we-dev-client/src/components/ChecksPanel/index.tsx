@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useFileStore } from '../WeIde/stores/fileStore';
 import Button from '@/components/ui/Button';
+import { IdemLoader } from '@idem/shared-loader/react';
 
 /* ------------------------------------------------------------------ */
 /* Types miroirs des rapports serveur                                  */
@@ -142,7 +143,7 @@ export function ChecksPanel({ onRepair }: ChecksPanelProps) {
             onClick={run}
             disabled={status === 'running'}
             className="shrink-0"
-            icon={<RefreshCw className={`w-4 h-4 ${status === 'running' ? 'animate-spin' : ''}`} />}
+            icon={status === 'running' ? <IdemLoader size="xs" /> : <RefreshCw className="w-4 h-4" />}
           >
             {t('checks.rerun')}
           </Button>

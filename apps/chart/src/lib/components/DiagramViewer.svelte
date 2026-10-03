@@ -3,7 +3,7 @@
   import type { SectionModel } from '$/models/section.model';
   import { onMount } from 'svelte';
   import { stateStore, updateCode } from '$lib/util/state';
-  import Loader from '$/components/ui/Loader.svelte';
+  import { IdemLoader } from '@idem/shared-loader/svelte';
 
   export let diagram: DiagramModel | undefined;
   export let selectedSection: string = '';
@@ -115,7 +115,7 @@
 {:else}
   <!-- Loading state or no diagram -->
   <div class="diagram-viewer">
-    <Loader size="md" message="Loading diagrams..." />
+    <IdemLoader block size="lg" label="Loading diagrams..." />
   </div>
 {/if}
 

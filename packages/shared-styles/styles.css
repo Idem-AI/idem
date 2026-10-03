@@ -1445,14 +1445,6 @@ meter::-webkit-meter-even-less-good-value {
   background: var(--glass-bg-medium);
 }
 
-/* Loading Spinner */
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* Utility Classes */
 .text-primary {
   color: var(--color-primary);
@@ -1499,11 +1491,6 @@ meter::-webkit-meter-even-less-good-value {
 .shadow-glass-hover {
   box-shadow: var(--glass-shadow-lg);
 }
-
-/* --------------------------------------------------------------------------
-   LOADER COMPONENT - Minimal spinner
-   -------------------------------------------------------------------------- */
-
 
 /* ============================================================================
    UTILITIES FOR IDEPLOY/COOLIFY COMPATIBILITY
@@ -1641,7 +1628,8 @@ meter::-webkit-meter-even-less-good-value {
   }
 }
 
-/* Le chargement, c'est `<idem-loader>` — @idem/shared-loader/angular.
+/* Le chargement, c'est `<idem-loader>` — @idem/shared-loader (/angular,
+   /react, /svelte).
    Une seule attente, partout pareille : ni `.loader`, ni `.spinner`, ni un
    anneau bricolé en bordures. Les squelettes ci-dessous restent, eux : ils ne
    disent pas « ça tourne » mais « voilà la forme de ce qui arrive ». */

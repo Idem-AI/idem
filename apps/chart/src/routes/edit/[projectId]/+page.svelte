@@ -32,11 +32,10 @@
   import { page } from '$app/stores';
   import { projectService } from '$/services/project.service';
   import type { ProjectModel } from '$/models/project.model';
-  import Loader from '$/components/ui/Loader.svelte';
   import ErrorMessage from '$/components/ui/ErrorMessage.svelte';
   import DiagramViewer from '$/components/DiagramViewer.svelte';
   import SkeletonLoader from '$/components/ui/SkeletonLoader.svelte';
-  import UserAvatarLoader from '$/components/ui/UserAvatarLoader.svelte';
+  import { IdemLoader } from '@idem/shared-loader/svelte';
 
   const panZoomState = new PanZoomState();
 
@@ -190,7 +189,7 @@
           {/if}
         </div>
       {:else}
-        <UserAvatarLoader size="md" />
+        <span class="flex h-10 w-10 items-center justify-center"><IdemLoader size="md" /></span>
       {/if}
       <McWrapper>
         <Button

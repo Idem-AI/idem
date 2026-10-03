@@ -45,6 +45,7 @@ import { MultiChatPromptService } from './services/multiChatPromptService';
 import { currentPlatform, currentProduct } from '@/utils/product';
 import useChatHistoryStore from '@/stores/chatHistoryStore';
 import useRunStatus from '@/stores/runStatusSlice';
+import { IdemLoader } from '@idem/shared-loader/react';
 
 type WeMessages = (Message & {
   experimental_attachments?: Array<{
@@ -1448,25 +1449,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-3 mb-2">
                     <div className="w-6 h-6 rounded-full flex items-center justify-center bg-primary/15">
-                      <svg
-                        className="w-4 h-4 animate-spin text-primary dark:text-blue-300"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
+                      <IdemLoader size="xs" />
                     </div>
                     <h3 className="text-lg font-semibold text-text-primary">
                       {t('chatWorkspace.inProgress')}
@@ -1535,26 +1518,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             <div className="group" key="loading-indicator">
               <div className="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-surface-2/[0.02] transition-colors">
                 <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-[rgba(45,45,45)] text-text-tertiary flex items-center justify-center text-xs border border-[var(--glass-border)]/50">
-                  <svg
-                    className="w-4 h-4 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
+                  <IdemLoader size="xs" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

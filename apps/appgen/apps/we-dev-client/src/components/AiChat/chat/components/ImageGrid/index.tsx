@@ -1,4 +1,5 @@
 import { FilePreview } from "@/stores/chatSlice";
+import { IdemLoader } from '@idem/shared-loader/react';
 
 export const ImagePreview = ({
   file,
@@ -19,7 +20,7 @@ export const ImagePreview = ({
         />
         {file.status === "uploading" && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            <IdemLoader size="sm" />
           </div>
         )}
       </div>

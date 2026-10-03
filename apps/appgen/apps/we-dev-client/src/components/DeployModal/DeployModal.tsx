@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Modal } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { Check, ChevronDown, Copy, ExternalLink, Loader2, RotateCcw, Wand2, X } from 'lucide-react';
+import { Check, ChevronDown, Copy, ExternalLink, RotateCcw, Wand2, X } from 'lucide-react';
 import Button, { ButtonLink } from '@/components/ui/Button';
 import { PublishQuickIllustration } from '@/components/ui/Illustrations';
 import { useFileStore } from '@/components/WeIde/stores/fileStore';
@@ -18,6 +18,7 @@ import {
   waitForDeployment,
   type PublishMode,
 } from '@/utils/ideployPublish';
+import { IdemLoader } from '@idem/shared-loader/react';
 
 interface DeployModalProps {
   open: boolean;
@@ -346,7 +347,7 @@ function StepIcon({ state }: { state: StepState }) {
     );
   }
   if (state === 'active') {
-    return <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-primary" aria-hidden />;
+    return <IdemLoader size="sm" className="mt-0.5 shrink-0" />;
   }
   return <span className="mt-0.5 h-5 w-5 shrink-0 rounded-full border-2 border-[var(--glass-border)]" aria-hidden />;
 }

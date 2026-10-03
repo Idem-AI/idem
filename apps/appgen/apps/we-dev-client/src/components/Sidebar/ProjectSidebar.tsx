@@ -4,6 +4,7 @@ import { getProjectById, getProjectGeneration } from "../../api/persistence/db";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { LandingPageConfig } from "../../api/persistence/models/development.model";
+import { IdemLoader } from '@idem/shared-loader/react';
 
 export enum ChatType {
   APPLICATION = "APPLICATION",
@@ -155,7 +156,7 @@ export function ProjectSidebar({
           <div className="p-4 flex-1 ">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <IdemLoader size="md" />
               </div>
             ) : projectData ? (
               <div className="space-y-4">

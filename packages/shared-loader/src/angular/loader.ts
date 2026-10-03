@@ -1,23 +1,12 @@
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-import { IDEM_LOADER_SIZES, type IdemLoaderSize } from '../index';
-
-/** Chaque instance a son propre dégradé : deux `id` identiques dans un document
- *  se marchent dessus dès qu'une application en affiche plusieurs. */
-let instance = 0;
-
-/** Les cases du tour, la distance au centre (viewBox de 48) et la durée d'un tour. */
-const SEEDS = 8;
-const ORBIT = 16;
-const SOW_MS = 1200;
-
-/** Demi-longueur et demi-largeur d'une graine selon la taille. */
-const SEED_SHAPE: Record<IdemLoaderSize, [number, number]> = {
-  xs: [5.8, 4.8],
-  sm: [5.4, 4.4],
-  md: [4.9, 3.9],
-  lg: [4.5, 3.5],
-};
+import {
+  IDEM_LOADER_BOX,
+  IDEM_LOADER_SIZES,
+  idemLoaderSeeds,
+  nextIdemLoaderGradientId,
+  type IdemLoaderSize,
+} from '../index';
 
 /**
  * L'unique indicateur de chargement d'Idem.
@@ -199,27 +188,11 @@ export class IdemLoaderComponent {
   /** Ce que lisent les lecteurs d'écran quand aucun `label` n'est affiché. */
   readonly ariaLabel = input('Chargement');
 
-  protected readonly BOX = 48;
-  protected readonly gradientId = `idem-loader-${++instance}`;
+  protected readonly BOX = IDEM_LOADER_BOX;
+  protected readonly gradientId = nextIdemLoaderGradientId();
 
-  /** Les graines, calculées une fois par taille : un losange à peine allongé
-   *  vers le centre (plus effilé, le cercle tournait au flocon), plus gros
-   *  quand le loader est petit pour rester lisible dans un bouton. */
-  protected readonly seeds = computed(() => {
-    const [long, wide] = SEED_SHAPE[this.size()];
-    const c = this.BOX / 2;
-    return Array.from({ length: SEEDS }, (_, i) => {
-      const a = (i / SEEDS) * 2 * Math.PI - Math.PI / 2;
-      const [ux, uy] = [Math.cos(a), Math.sin(a)];
-      const [cx, cy] = [c + ux * ORBIT, c + uy * ORBIT];
-      const pt = (r: number, t: number) =>
-        `${(cx + ux * r - uy * t).toFixed(2)} ${(cy + uy * r + ux * t).toFixed(2)}`;
-      return {
-        d: `M${pt(long, 0)} L${pt(0, wide)} L${pt(-long, 0)} L${pt(0, -wide)}Z`,
-        delay: `${((i - SEEDS) * SOW_MS) / SEEDS}ms`,
-      };
-    });
-  });
+  /** Les graines, calculées une fois par taille (géométrie commune à tous les rendus). */
+  protected readonly seeds = computed(() => idemLoaderSeeds(this.size()));
 
   protected readonly px = computed(() => IDEM_LOADER_SIZES[this.size()]);
 }

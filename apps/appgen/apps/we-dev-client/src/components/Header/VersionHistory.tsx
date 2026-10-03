@@ -4,6 +4,7 @@ import { RotateCcw, Trash2, FilePlus2, FileMinus2, FileEdit } from 'lucide-react
 import { toast } from 'react-toastify';
 import useVersionHistory, { diffSnapshots, type Snapshot } from '@/stores/versionHistory';
 import { useFileStore } from '@/components/WeIde/stores/fileStore';
+import { IdemLoader } from '@idem/shared-loader/react';
 
 /**
  * Liste des points de restauration.
@@ -150,7 +151,7 @@ function SnapshotRow({
             aria-label={t('versions.restore')}
             className="w-7 h-7 grid place-items-center rounded-md text-text-tertiary hover:text-primary hover:bg-surface-3 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
           >
-            <RotateCcw className={`w-3.5 h-3.5 ${busy ? 'animate-spin' : ''}`} />
+            {busy ? <IdemLoader size="xs" /> : <RotateCcw className="w-3.5 h-3.5" />}
           </button>
           <button
             type="button"

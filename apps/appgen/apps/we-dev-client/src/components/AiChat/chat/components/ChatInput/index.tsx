@@ -18,6 +18,7 @@ import { v4 as uuidv4 } from "uuid";
 import OptimizedPromptWord from "./OptimizedPromptWord";
 import useUserStore from "@/stores/userSlice";
 import { eventEmitter } from "../../../utils/EventEmitter";
+import { IdemLoader } from '@idem/shared-loader/react';
 // import type { ModelOption } from './UploadButtons';
 
 export enum ChatMode {
@@ -422,7 +423,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
           >
             {isUploading && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20">
-                <div className="w-8 h-8 border-2 border-gray-400 rounded-full animate-spin border-t-transparent"></div>
+                <IdemLoader size="md" />
               </div>
             )}
             <div className="relative ">

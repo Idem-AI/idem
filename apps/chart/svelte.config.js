@@ -16,7 +16,9 @@ const config = {
       '@idem/shared-models': '../../packages/shared-models/src',
       '@idem/shared-models/*': '../../packages/shared-models/src/*',
       '@idem/shared-auth-client': '../../packages/shared-auth-client/src',
-      '@idem/shared-auth-client/*': '../../packages/shared-auth-client/src/*'
+      '@idem/shared-auth-client/*': '../../packages/shared-auth-client/src/*',
+      '@idem/shared-loader': '../../packages/shared-loader/src',
+      '@idem/shared-loader/*': '../../packages/shared-loader/src/*'
     },
     adapter: adapter({
       pages: 'docs',

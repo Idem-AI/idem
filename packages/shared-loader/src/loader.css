@@ -1,0 +1,85 @@
+/*
+ * Styles des rendus React et Svelte de <idem-loader>. Ce sont les mêmes règles
+ * que celles du composant Angular ; seul l'hôte change : un élément
+ * `.idem-loader-host` remplace le `:host` encapsulé.
+ */
+
+.idem-loader-host {
+  display: inline-flex;
+  line-height: 0;
+}
+
+/* Occupe la largeur et se centre : le cas d'une zone qui se remplit. */
+.idem-loader-host--block {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  padding: 2.5rem 0;
+}
+
+/* Par-dessus du contenu déjà là. L'ancêtre positionné est fourni par
+   l'application ; le voile reprend le verre du système de design pour que ce
+   qui est dessous reste deviné, pas effacé. */
+.idem-loader-host--overlay,
+.idem-loader-host--fullscreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inset: 0;
+  z-index: 20;
+  background: var(--glass-bg, rgba(255, 255, 255, 0.6));
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.idem-loader-host--overlay {
+  position: absolute;
+}
+
+.idem-loader-host--fullscreen {
+  position: fixed;
+  z-index: 9999;
+}
+
+.idem-loader-host .idem-loader {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  line-height: normal;
+}
+
+.idem-loader-host .idem-loader__ring {
+  display: block;
+}
+
+/* Chaque graine s'allume quand la main passe, puis retombe à l'état de graine
+   posée. Les délais, négatifs, sont répartis sur le tour. */
+.idem-loader-host .idem-loader__seed {
+  opacity: 0.2;
+  animation: idem-loader-sow 1.2s linear infinite;
+}
+
+.idem-loader-host .idem-loader__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #64748b);
+  text-align: center;
+}
+
+@keyframes idem-loader-sow {
+  0% {
+    opacity: 1;
+  }
+  70%,
+  100% {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .idem-loader-host .idem-loader__seed {
+    animation-duration: 3.2s;
+    animation-timing-function: steps(1, end);
+  }
+}
