@@ -4670,7 +4670,8 @@
           "title": "Application mobile",
           "hint": "Installée sur le téléphone avec son icône, comme les applications des stores."
         }
-      }
+      },
+      "publish": "Mettre en ligne"
     },
     "goLive": {
       "title": "Mise en ligne",

@@ -4667,7 +4667,8 @@
           "title": "Mobile application",
           "hint": "Installed on the phone with its own icon, like the apps from the stores."
         }
-      }
+      },
+      "publish": "Put online"
     },
     "goLive": {
       "title": "Go live",

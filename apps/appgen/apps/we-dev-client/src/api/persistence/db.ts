@@ -304,9 +304,21 @@ export async function saveProjectChatSession(
   }
 }
 
-// Quick deployment (Netlify) tracking — lets a redeploy update the same site
+// Published site tracking — lets a republish update the same site, at the same address.
+export interface IdeployRecord {
+  mode: 'static' | 'fullstack';
+  applicationUuid?: string;
+  backendUuid?: string;
+  frontendUuid?: string;
+  databaseUuid?: string;
+  workspaceUuid?: string;
+  apiUrl?: string;
+}
+
 export interface AppDeployment {
   provider?: string;
+  /** Publié par iDeploy depuis iCode : les applications à republier. */
+  ideploy?: IdeployRecord | null;
   siteId: string;
   siteName?: string | null;
   url: string;

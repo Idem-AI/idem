@@ -508,7 +508,74 @@
     "connect_idem_subtitle": "Create or associate with an existing project",
     "cancel": "Cancel",
     "live": "Live",
-    "open_pipeline": "Open iDeploy"
+    "open_pipeline": "Open iDeploy",
+    "publish": {
+      "title": "Put online",
+      "cta": "Put online"
+    },
+    "update": {
+      "title": "Update the online version",
+      "cta": "Update"
+    },
+    "done": {
+      "title": "It's online",
+      "body": "Your application is reachable at this address, from any phone or computer.",
+      "toast": "Your application is online."
+    },
+    "lead": {
+      "static": "Your website goes online at a secure address, in a few minutes. Nothing to set up.",
+      "fullstack": "IDEM prepares the database, the server and the interface, and connects them for you. Nothing to set up."
+    },
+    "steps": {
+      "prepare": {
+        "title": "Preparing",
+        "hint": "Gathering your application."
+      },
+      "send": {
+        "title": "Sending",
+        "hint": "Your website is on its way to our servers."
+      },
+      "live": {
+        "title": "Going online",
+        "hint": "A few more moments."
+      },
+      "database": {
+        "title": "Database",
+        "hint": "Creating the place where your data will be kept."
+      },
+      "server": {
+        "title": "Application server",
+        "hint": "Installing and starting. This takes a few minutes."
+      },
+      "interface": {
+        "title": "Interface",
+        "hint": "Building the screens of your application."
+      }
+    },
+    "working_note": "You can close this window: putting online carries on.",
+    "retry": "Try again",
+    "login": "Sign in",
+    "open": "Open",
+    "close": "Done",
+    "errors": {
+      "login": "Your session has expired. Sign in to put your application online.",
+      "build": "Your application does not build: an error in the code prevents it.",
+      "preview": "The workspace is not ready. Run the preview once, then try again.",
+      "deploy_deploy": "Putting online did not succeed.",
+      "deploy_server": "The application server did not start.",
+      "deploy_interface": "The interface could not be built.",
+      "generic": "Putting online failed. Try again in a moment."
+    },
+    "advanced": {
+      "title": "Advanced options",
+      "name": "Application name",
+      "name_locked": "The name is set at the first publication.",
+      "what": "What is created:",
+      "what_static": "a static website served by nginx, built in iCode, with an HTTPS certificate.",
+      "what_fullstack": "a PostgreSQL database, the server (backend/ folder, Node.js) and the interface (frontend/ folder). DATABASE_URL and VITE_API_URL are filled in automatically.",
+      "api": "API address:",
+      "manage": "Manage in iDeploy"
+    }
   },
   "editMode": {
     "hint": "Click to select · click again to go deeper · Shift-click multi · dbl-click edit · drag reorder · Del delete",

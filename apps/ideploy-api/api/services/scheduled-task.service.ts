@@ -96,9 +96,9 @@ export async function runNow(teamId: number, uuid: string): Promise<{ success: b
 
   const serverRef = await appService.getApplicationServer(task.application_id);
   if (!serverRef) throw new Error('No server resolved for the application');
-  const server = await serverService.getServerById(teamId, serverRef.serverId);
+  const server = await serverService.getExecutionServer(teamId, serverRef.serverId);
   if (!server) throw new Error('Server not found');
-  const key = await serverService.getPrivateKey(teamId, server.private_key_id);
+  const key = await serverService.getExecutionKey(server);
   if (!key) throw new Error('Private key not found');
 
   const executionUuid = randomUUID();

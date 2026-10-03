@@ -12,7 +12,11 @@ import { QUEUE_NAMES } from '../queue/queues';
 import { registerWorker } from '../queue/worker';
 import logger from '../config/logger';
 import { realtime } from '../services/realtime.service';
-import { executeRemoteCommand, shellQuote } from '../ssh/ssh';
+import { executeRemoteCommand, shellQuote, uploadRemoteFile } from '../ssh/ssh';
+import { writeFile, rm } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { getSourceArchive } from '../services/application-source.service';
 import { assertComposeIsSafe } from '../docker/compose-policy';
 import { assertSafeGitBranch, assertSafeGitUrl } from '../validation/git-input';
 import { generateComposeFile, generateBuildlessCompose, appWorkdir } from '../docker/compose';
@@ -58,7 +62,7 @@ async function streamStep(
   await fn();
 }
 
-async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
+export async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
   const { deploymentUuid, applicationUuid, teamId } = job.data;
   const log = (line: string): Promise<void> => realtime.deploymentLog(deploymentUuid, line);
 
@@ -72,9 +76,9 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
     const serverRef = await appService.getApplicationServer(app.id);
     if (!serverRef) throw new Error('No server/destination resolved for this application');
 
-    const server = await serverService.getServerById(teamId, serverRef.serverId);
+    const server = await serverService.getExecutionServer(teamId, serverRef.serverId);
     if (!server) throw new Error('Server not found');
-    const key = await serverService.getPrivateKey(teamId, server.private_key_id);
+    const key = await serverService.getExecutionKey(server);
     if (!key) throw new Error('Private key not found');
 
     // Proxy + ownership labels. Without these the container runs but is not
@@ -130,34 +134,62 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
       if (r.exitCode !== 0) throw new Error(`Failed to prepare workdir: ${r.stderr.slice(0, 300)}`);
     });
 
-    if (!app.git_repository) {
+    // The code comes from a Git repository, or — for what iCode publishes — from
+    // the archive it sent (`application_sources`). Neither: placeholder.
+    const sourceArchive = app.git_repository ? null : await getSourceArchive(app.id);
+
+    if (!app.git_repository && !sourceArchive) {
       // Nothing to clone — placeholder static container.
       compose = generateComposeFile(app, 'nginx:alpine', labels, network, runtimeEnv, port);
     } else {
-      // A private repository needs something to authenticate the clone with
-      // — verified live: without this, a non-interactive `git clone` of a
-      // private repo fails every time with "could not read Username", since
-      // there's no TTY for git to prompt on. When the team has GitHub/GitLab
-      // connected, credentials.service resolves a clone URL carrying that
-      // token; a public repo (or one nobody's connected an account for)
-      // gets exactly today's plain URL back as `credential` being null.
-      const credential = await resolveGitCredential(teamId, app.git_repository);
-      const cloneUrl = credential?.authenticatedUrl ?? app.git_repository;
+      if (sourceArchive) {
+        // One archive, one upload, one `tar` — then the build below runs on it
+        // exactly as it would on a fresh clone.
+        await streamStep(deploymentUuid, 'Uploading the code', async () => {
+          const localArchive = join(tmpdir(), `ideploy-source-${deploymentUuid}.tgz`);
+          const remoteArchive = `${workdir}/source.tgz`;
+          await writeFile(localArchive, sourceArchive);
+          try {
+            await uploadRemoteFile(server, key, localArchive, remoteArchive);
+          } finally {
+            await rm(localArchive, { force: true });
+          }
+          const r = await executeRemoteCommand(
+            server,
+            key,
+            `mkdir -p ${shellQuote(srcDir)} && tar xzf ${shellQuote(remoteArchive)} -C ${shellQuote(srcDir)} && rm -f ${shellQuote(remoteArchive)} && ls -la ${shellQuote(srcDir)}`,
+            { onData: (c) => log(c) }
+          );
+          if (r.exitCode !== 0) throw new Error(`Unpacking the code failed: ${r.stderr.slice(0, 300)}`);
+        });
+      } else {
+        // A private repository needs something to authenticate the clone with
+        // — verified live: without this, a non-interactive `git clone` of a
+        // private repo fails every time with "could not read Username", since
+        // there's no TTY for git to prompt on. When the team has GitHub/GitLab
+        // connected, credentials.service resolves a clone URL carrying that
+        // token; a public repo (or one nobody's connected an account for)
+        // gets exactly today's plain URL back as `credential` being null.
+        // Sans archive, on n'arrive ici qu'avec un dépôt renseigné.
+        const repository = app.git_repository as string;
+        const credential = await resolveGitCredential(teamId, repository);
+        const cloneUrl = credential?.authenticatedUrl ?? repository;
 
-      // Branche et dépôt viennent de l'utilisateur et partent dans un shell sur
-      // l'hôte : format vérifié, puis chaque argument entre apostrophes.
-      const branch = assertSafeGitBranch(app.git_branch || 'main');
-      assertSafeGitUrl(app.git_repository);
+        // Branche et dépôt viennent de l'utilisateur et partent dans un shell sur
+        // l'hôte : format vérifié, puis chaque argument entre apostrophes.
+        const branch = assertSafeGitBranch(app.git_branch || 'main');
+        assertSafeGitUrl(repository);
 
-      await streamStep(deploymentUuid, 'Cloning repository', async () => {
-        const r = await executeRemoteCommand(
-          server,
-          key,
-          `git clone --depth 1 -b ${shellQuote(branch)} -- ${shellQuote(cloneUrl)} ${shellQuote(srcDir)} && ls -la ${shellQuote(srcDir)}`,
-          { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
-        );
-        if (r.exitCode !== 0) throw new Error(`git clone failed: ${r.stderr.slice(0, 300)}`);
-      });
+        await streamStep(deploymentUuid, 'Cloning repository', async () => {
+          const r = await executeRemoteCommand(
+            server,
+            key,
+            `git clone --depth 1 -b ${shellQuote(branch)} -- ${shellQuote(cloneUrl)} ${shellQuote(srcDir)} && ls -la ${shellQuote(srcDir)}`,
+            { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
+          );
+          if (r.exitCode !== 0) throw new Error(`git clone failed: ${r.stderr.slice(0, 300)}`);
+        });
+      }
 
       const pack = toBuildPack(app.build_pack);
       const plan = planBuild(pack, {
@@ -381,6 +413,9 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
     const message = (err as Error).message;
     logger.error('Deployment failed', { deploymentUuid, message });
     await log(`❌ Deployment failed: ${message}`);
+    // Le journal détaillé ne part qu'en temps réel ; la cause, elle, reste lisible
+    // après coup (iCode l'affiche dans ses « détails »).
+    await deploymentService.recordFailure(deploymentUuid, message).catch(() => undefined);
     const app = await appService.getApplication(teamId, applicationUuid);
     if (app) await finalize(app, deploymentUuid, teamId, false);
     throw err;

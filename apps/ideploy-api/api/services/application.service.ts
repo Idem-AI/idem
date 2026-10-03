@@ -148,7 +148,13 @@ function assertSafeBuildInputs(dto: {
   base_directory?: string | null;
   publish_directory?: string | null;
 }): void {
-  if (dto.git_repository !== undefined && dto.git_repository !== null && !isSafeGitUrl(dto.git_repository)) {
+  // Vide : pas de dépôt, le code arrive d'iCode (table `application_sources`).
+  if (
+    dto.git_repository !== undefined &&
+    dto.git_repository !== null &&
+    dto.git_repository !== '' &&
+    !isSafeGitUrl(dto.git_repository)
+  ) {
     throw unprocessable('INVALID_GIT_REPOSITORY', 'The repository URL must be https://… or git@host:path.');
   }
   if (dto.git_branch !== undefined && dto.git_branch !== null && dto.git_branch !== '' && !isSafeGitBranch(dto.git_branch)) {
@@ -319,9 +325,9 @@ async function teardownOnServer(teamId: number, app: ApplicationRow): Promise<Se
   if (!serverRef) return 'skipped';
 
   try {
-    const server = await serverService.getServerById(teamId, serverRef.serverId);
+    const server = await serverService.getExecutionServer(teamId, serverRef.serverId);
     if (!server) return 'skipped';
-    const key = await serverService.getPrivateKey(teamId, server.private_key_id);
+    const key = await serverService.getExecutionKey(server);
     if (!key) return 'failed';
 
     const workdir = appWorkdir(app);
@@ -403,9 +409,9 @@ export async function lifecycleAction(
   if (!app) throw new Error('Application not found');
   const serverRef = await getApplicationServer(app.id);
   if (!serverRef) throw new Error('No server/destination resolved for this application');
-  const server = await serverService.getServerById(teamId, serverRef.serverId);
+  const server = await serverService.getExecutionServer(teamId, serverRef.serverId);
   if (!server) throw new Error('Server not found');
-  const key = await serverService.getPrivateKey(teamId, server.private_key_id);
+  const key = await serverService.getExecutionKey(server);
   if (!key) throw new Error('Private key not found');
 
   const workdir = appWorkdir(app);
@@ -429,9 +435,9 @@ async function resolveAppServer(teamId: number, uuid: string) {
   if (!app) throw new Error('Application not found');
   const ref = await getApplicationServer(app.id);
   if (!ref) throw new Error('No server/destination resolved for this application');
-  const server = await serverService.getServerById(teamId, ref.serverId);
+  const server = await serverService.getExecutionServer(teamId, ref.serverId);
   if (!server) throw new Error('Server not found');
-  const key = await serverService.getPrivateKey(teamId, server.private_key_id);
+  const key = await serverService.getExecutionKey(server);
   if (!key) throw new Error('Private key not found');
   return { app, server, key };
 }

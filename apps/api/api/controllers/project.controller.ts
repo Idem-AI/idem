@@ -509,7 +509,7 @@ class ProjectController {
   async saveAppDeployment(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
     const userId = req.user?.uid;
     const { projectId } = req.params;
-    const { siteId, siteName, url, adminUrl, deployId, target } = req.body || {};
+    const { siteId, siteName, url, adminUrl, deployId, target, provider, ideploy } = req.body || {};
     try {
       if (!userId) {
         res.status(401).json({ message: 'User not authenticated' });
@@ -534,6 +534,10 @@ class ProjectController {
           adminUrl: adminUrl || null,
           deployId: deployId || null,
           target: target || 'app',
+          // Publié par iDeploy depuis iCode : on garde de quoi republier les mêmes
+          // applications (même adresse) à la mise à jour suivante.
+          provider: provider === 'ideploy' ? 'ideploy' : 'netlify',
+          ideploy: provider === 'ideploy' ? sanitizeIdeployRecord(ideploy) : null,
         },
         parseProjectProduct(req.query.product)
       );
@@ -728,3 +732,14 @@ class ProjectController {
 }
 
 export const projectController = new ProjectController();
+
+/** Only the identifiers iCode needs to republish — never anything else from the client. */
+function sanitizeIdeployRecord(value: unknown): Record<string, string> | null {
+  if (!value || typeof value !== 'object') return null;
+  const record: Record<string, string> = {};
+  for (const key of ['mode', 'applicationUuid', 'backendUuid', 'frontendUuid', 'databaseUuid', 'workspaceUuid', 'apiUrl']) {
+    const field = (value as Record<string, unknown>)[key];
+    if (typeof field === 'string' && field.length <= 300) record[key] = field;
+  }
+  return record;
+}

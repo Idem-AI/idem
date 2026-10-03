@@ -63,6 +63,34 @@ export async function getServerById(teamId: number, id: number): Promise<ServerR
   return rows[0] ? mapServer(rows[0]) : null;
 }
 
+/**
+ * The server a team's own resource runs on, for running commands there.
+ *
+ * Either the team's own server, or a server of IDEM's managed fleet — where
+ * `placeOnManagedServer` puts every workspace created on IDEM's
+ * infrastructure, whatever team owns the row. Without this second case, a
+ * workspace placed on the fleet could never be deployed, started or stopped:
+ * every command looked the server up within the user's team and answered
+ * « Server not found ».
+ *
+ * Only for paths that reached `id` through the team's OWN resource
+ * (application, database, service, destination of its workspace). Server
+ * administration (proxy, SSL, firewall, terminal) keeps `getServerById`: a
+ * shared server is not the user's to administer.
+ */
+export async function getExecutionServer(teamId: number, id: number): Promise<ServerRow | null> {
+  const { rows } = await pool.query(
+    'SELECT * FROM servers WHERE id = $1 AND (team_id = $2 OR idem_managed = true) LIMIT 1',
+    [id, teamId]
+  );
+  return rows[0] ? mapServer(rows[0]) : null;
+}
+
+/** The key that opens `server` — the one its owner registered (IDEM's, for the fleet). */
+export async function getExecutionKey(server: ServerRow): Promise<PrivateKeyRow | null> {
+  return getPrivateKey(server.team_id, server.private_key_id);
+}
+
 export interface ServerSettings {
   /**
    * A real domain pointed at this server (a wildcard `A`/`ALIAS` record — e.g.

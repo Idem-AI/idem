@@ -18,6 +18,9 @@ import * as envVarService from './env-var.service';
 import { STANDALONE_DOCKER_TYPE } from './workspace.service';
 import { getTemplateCompose } from './templates.service';
 import { conflict, unprocessable } from '../utils/errors';
+import { randomBytes } from 'crypto';
+import * as databaseService from './database.service';
+import { IncomingFiles, saveSourceForApplication } from './application-source.service';
 
 /**
  * Resolve the workspace this deployment belongs to, creating one if needed.
@@ -102,6 +105,13 @@ export interface QuickDeployDto {
   project_name?: string;
   /** Environment within the workspace. Defaults to `production`. */
   environment?: string;
+  /**
+   * The code itself, when there is no repository — what iCode sends. Text as a
+   * string, binary as `{ base64 }`. Kept in `application_sources` and unpacked
+   * on the server by the deployment worker.
+   */
+  files?: IncomingFiles;
+  publish_directory?: string;
   base_directory?: string;
   install_command?: string;
   build_command?: string;
@@ -119,6 +129,10 @@ export interface QuickDeployDto {
 export interface QuickDeployResult {
   kind: 'application' | 'service';
   deploymentUuid?: string;
+  /** The application created (git or files path). */
+  applicationUuid?: string;
+  /** Where it will answer once deployed. */
+  url?: string | null;
   serviceUuid?: string;
   /** Workspace the unit was created in. */
   workspace: { uuid: string; name: string };
@@ -159,17 +173,18 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
     };
   }
 
-  // Git path → create an application and deploy it.
-  if (!dto.git_repository) {
+  // Git path, or files sent directly (iCode) → create an application and deploy it.
+  if (!dto.git_repository && !dto.files) {
     throw unprocessable(
       'SOURCE_REQUIRED',
-      'Provide a Git repository URL, or pick a one-click template.'
+      'Provide a Git repository URL, the files of the project, or pick a one-click template.'
     );
   }
   const app = await appService.createApplication(teamId, {
     name: dto.name,
     environment_id: environmentId,
-    git_repository: dto.git_repository,
+    // Vide quand le code arrive en fichiers : le worker lit alors l'archive.
+    git_repository: dto.git_repository ?? '',
     git_branch: dto.git_branch || 'main',
     build_pack: dto.build_pack || 'nixpacks',
     destination_id: destinationId,
@@ -179,7 +194,11 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
     build_command: dto.build_command,
     start_command: dto.start_command,
     ports_exposes: dto.ports_exposes,
+    publish_directory: dto.publish_directory,
   });
+
+  // The code must be stored before the deployment is queued: the worker reads it.
+  if (dto.files) await saveSourceForApplication(app.id, dto.files);
 
   // Saved before the first deployment is created (see the DTO field's own
   // doc comment) — both build-time and runtime by default, since this form
@@ -199,7 +218,156 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
   return {
     kind: 'application',
     deploymentUuid,
+    applicationUuid: app.uuid,
+    url: appService.computeAppLink(app),
     workspace,
     internalHostname: workspaceService.internalHostname(app.name, app.uuid),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Complete application in one call: database + server + interface, linked.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface FullstackDeployDto {
+  /** Shown to the user: the interface takes this name, the others derive from it. */
+  name: string;
+  /** The whole project: `backend/` and `frontend/` side by side (iCode's layout). */
+  files: IncomingFiles;
+  workspace_uuid?: string;
+  workspace_name?: string;
+  deployment_type?: workspaceService.DeploymentType;
+  server_uuid?: string;
+  region?: string;
+}
+
+export interface FullstackDeployResult {
+  workspace: { uuid: string; name: string };
+  database: { uuid: string; name: string };
+  backend: { uuid: string; url: string | null; deploymentUuid: string };
+  frontend: { uuid: string; url: string | null; deploymentUuid: string };
+}
+
+/** Ports and folders of iCode's full-stack contract (skill `webcontainer-fullstack`). */
+export const FULLSTACK = {
+  backendDir: '/backend',
+  frontendDir: '/frontend',
+  backendPort: '3001',
+  staticPort: '80',
+} as const;
+
+/**
+ * The 3-tier guide, done server-side in one call — for people who do not know
+ * what a database URL is and should never have to.
+ *
+ *   1. a PostgreSQL in the workspace, started;
+ *   2. the server (`backend/`, nixpacks) with `DATABASE_URL` pointing at it on
+ *      the private network, plus `PORT`, `JWT_SECRET` and `CORS_ORIGIN`;
+ *   3. the interface (`frontend/`, static build) with `VITE_API_URL` set to the
+ *      server's public address at build time.
+ *
+ * Both applications are created before anything is deployed, so each knows the
+ * other's address. Both deployments are queued at once: the server is ready
+ * long before the interface finishes building.
+ */
+export async function quickDeployFullstack(
+  teamId: number,
+  dto: FullstackDeployDto
+): Promise<FullstackDeployResult> {
+  const files = dto.files ?? {};
+  for (const required of ['backend/package.json', 'frontend/package.json']) {
+    if (!(required in files)) {
+      throw unprocessable(
+        'NOT_A_FULLSTACK_PROJECT',
+        'A complete application needs a backend/ and a frontend/ folder, each with its package.json.'
+      );
+    }
+  }
+
+  const workspace = await resolveWorkspace(teamId, {
+    name: dto.name,
+    workspace_uuid: dto.workspace_uuid,
+    workspace_name: dto.workspace_name ?? dto.name,
+    deployment_type: dto.deployment_type,
+    server_uuid: dto.server_uuid,
+    region: dto.region,
+  });
+  const { destinationId, environmentId } = await workspaceService.resolveWorkspaceDestination(
+    teamId,
+    workspace.uuid
+  );
+
+  // 1. Database — started before the server is even queued.
+  const database = await databaseService.createDatabase(teamId, 'postgresql', {
+    name: `${dto.name}-db`,
+    environment_id: environmentId,
+    destination_id: destinationId,
+  });
+  await databaseService.lifecycle(teamId, 'postgresql', database.uuid, 'start');
+  const detail = await databaseService.getDatabaseDetail(teamId, 'postgresql', database.uuid);
+  if (!detail?.connection_url) {
+    throw new Error('The database was created but its address could not be built.');
+  }
+
+  // 2 & 3. Both applications first, so each has the other's address.
+  const backend = await appService.createApplication(teamId, {
+    name: `${dto.name}-api`,
+    environment_id: environmentId,
+    git_repository: '',
+    build_pack: 'nixpacks',
+    base_directory: FULLSTACK.backendDir,
+    start_command: 'npm start',
+    ports_exposes: FULLSTACK.backendPort,
+    destination_id: destinationId,
+    destination_type: STANDALONE_DOCKER_TYPE,
+  });
+  const frontend = await appService.createApplication(teamId, {
+    name: dto.name,
+    environment_id: environmentId,
+    git_repository: '',
+    build_pack: 'static',
+    base_directory: FULLSTACK.frontendDir,
+    install_command: 'npm install',
+    build_command: 'npm run build',
+    publish_directory: 'dist',
+    ports_exposes: FULLSTACK.staticPort,
+    destination_id: destinationId,
+    destination_type: STANDALONE_DOCKER_TYPE,
+  });
+  const backendUrl = appService.computeAppLink(backend);
+  const frontendUrl = appService.computeAppLink(frontend);
+
+  const runtime = { is_runtime: true, is_buildtime: false };
+  const backendEnv: Array<[string, string]> = [
+    ['DATABASE_URL', detail.connection_url],
+    ['PORT', FULLSTACK.backendPort],
+    ['NODE_ENV', 'production'],
+    ['JWT_SECRET', randomBytes(32).toString('hex')],
+    ['CORS_ORIGIN', frontendUrl ?? '*'],
+  ];
+  for (const [key, value] of backendEnv) {
+    await envVarService.upsertForApplication(teamId, backend.uuid, { key, value, ...runtime });
+  }
+  if (backendUrl) {
+    // Read by Vite at build time only: the interface is plain files afterwards.
+    await envVarService.upsertForApplication(teamId, frontend.uuid, {
+      key: 'VITE_API_URL',
+      value: backendUrl,
+      is_runtime: false,
+      is_buildtime: true,
+    });
+  }
+
+  await saveSourceForApplication(backend.id, files);
+  await saveSourceForApplication(frontend.id, files);
+
+  const backendDeployment = await deploymentService.createDeployment(backend, teamId, {});
+  const frontendDeployment = await deploymentService.createDeployment(frontend, teamId, {});
+
+  return {
+    workspace,
+    database: { uuid: database.uuid, name: database.name },
+    backend: { uuid: backend.uuid, url: backendUrl, deploymentUuid: backendDeployment.deploymentUuid },
+    frontend: { uuid: frontend.uuid, url: frontendUrl, deploymentUuid: frontendDeployment.deploymentUuid },
   };
 }
