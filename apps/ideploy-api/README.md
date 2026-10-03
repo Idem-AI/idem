@@ -133,13 +133,13 @@ In the dev stack this service runs as the `ideploy-api` container; see
 ## Secrets
 
 `index.ts` loads secrets before importing the app. With
-`USE_SECRET_MANAGER=true`, the values listed in
-[`api/config/secrets.manifest.ts`](api/config/secrets.manifest.ts) are read
-from Infisical (project `ideploy-api`):
+`USE_SECRET_MANAGER=true`, every variable of the Infisical project
+`ideploy-api` is loaded. [`api/config/secrets.manifest.ts`](api/config/secrets.manifest.ts)
+lists the ones that are required or expected:
 
 | Required | Optional |
 |---|---|
-| `IDEPLOY_DB_PASSWORD`, `APP_KEY` | `REDIS_PASSWORD`, `PUSHER_APP_SECRET`, `GITHUB_CLIENT_SECRET`, `GITLAB_CLIENT_SECRET`, `STRIPE_SECRET_KEY` |
+| `IDEPLOY_DB_PASSWORD`, `APP_KEY` | `REDIS_PASSWORD`, `PUSHER_APP_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITLAB_CLIENT_ID`, `GITLAB_CLIENT_SECRET`, `STRIPE_SECRET_KEY`, `NAMECHEAP_API_KEY` |
 
 The production machine identity (`ideploy-api-runtime`) can only read the
 `ideploy-api` project. A value already in the environment is never overwritten.

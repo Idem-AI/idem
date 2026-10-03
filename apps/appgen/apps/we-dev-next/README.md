@@ -29,7 +29,7 @@ The IDEM API must be reachable at `IDEM_API_URL` (default `http://localhost:3001
 
 [`src/main.ts`](src/main.ts) is the entry point. It loads secrets first (`loadSecretsFromManager`), then **dynamically** imports [`src/server.ts`](src/server.ts). The order matters: model clients read `process.env` when their module loads, and ESM hoists static imports.
 
-With `USE_SECRET_MANAGER=true`, the secrets listed in [`src/config/secrets.manifest.ts`](src/config/secrets.manifest.ts) are read from Infisical (project `appgen`, environment `INFISICAL_ENVIRONMENT`, machine identity `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`). A value already present in the environment is never overwritten. `secret-loader.ts` is shared byte for byte with the API and iDeploy API; CI checks the copies stay identical.
+With `USE_SECRET_MANAGER=true`, every variable of the Infisical project `appgen` is loaded (the manifest [`src/config/secrets.manifest.ts`](src/config/secrets.manifest.ts) lists the required and expected ones; environment `INFISICAL_ENVIRONMENT`, machine identity `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`). A value already present in the environment is never overwritten. `secret-loader.ts` is shared byte for byte with the API and iDeploy API; CI checks the copies stay identical.
 
 ## Layout
 

@@ -2,8 +2,9 @@
 /**
  * idem-secrets — gestion des secrets IDEM dans Infisical (self-hosted).
  *
- * Chaque backend déclare ses secrets dans son manifeste (seule liste qui fait
- * foi) :
+ * Chaque backend charge au démarrage TOUTES les variables de son projet
+ * Infisical. Son manifeste dit seulement lesquelles sont requises ou
+ * attendues :
  *   apps/api/api/config/secrets.manifest.ts
  *   apps/appgen/apps/we-dev-next/src/config/secrets.manifest.ts
  *   apps/ideploy-api/api/config/secrets.manifest.ts
@@ -15,11 +16,15 @@
  * Commandes :
  *   plan                                  État des lieux, aucune écriture.
  *   push <app> --from <fichier.env>       Crée/met à jour les secrets du manifeste présents dans le fichier.
+ *        [--only VAR,VAR…]                Pousse plutôt ces variables-là, déclarées ou non (le fichier
+ *                                         entier n'est jamais poussé : hôtes et ports n'ont rien à y faire).
  *   rotate <app> VAR                      Nouvelle valeur lue sur l'entrée standard (Infisical
  *                                         garde l'historique des versions automatiquement).
  *   copy <app-source> <app-cible> VAR…    Duplique une valeur partagée entre deux projets d'app.
- *   prune [<app>]                         Supprime les secrets qu'aucun manifeste ne déclare
- *                                         (tous les projets, ou un seul si <app> est donné).
+ *
+ * Pas de commande de suppression en masse : une variable absente du manifeste
+ * est quand même lue par l'application. Supprimer une variable se fait dans
+ * l'interface Infisical, une à une.
  *
  * Options : --environment <slug> (défaut "prod"), --yes (pas de question), --dry-run.
  *
@@ -62,7 +67,7 @@ function option(name) {
   const i = argv.indexOf(`--${name}`);
   return i >= 0 ? argv[i + 1] : undefined;
 }
-const positional = argv.filter((a, i) => !a.startsWith('--') && !['--from', '--environment'].includes(argv[i - 1]));
+const positional = argv.filter((a, i) => !a.startsWith('--') && !['--from', '--environment', '--only'].includes(argv[i - 1]));
 const [command, ...args] = positional;
 const DRY_RUN = flags.has('--dry-run');
 const YES = flags.has('--yes');
@@ -128,12 +133,6 @@ async function writeValue(app, variable, value, online) {
   return existed;
 }
 
-async function deleteValue(app, variable) {
-  if (DRY_RUN) return;
-  const c = await infisical();
-  await c.secrets().deleteSecret(variable, { environment: ENVIRONMENT, projectId: projectIdFor(app), secretPath: '/', type: 'shared' });
-}
-
 // ── Manifestes ───────────────────────────────────────────────────────────────
 
 async function loadManifests() {
@@ -186,8 +185,8 @@ async function cmdPlan(manifests) {
       const kind = m.required.includes(v) ? 'requis   ' : 'optionnel';
       console.log(`   ${kind}  ${v.padEnd(36)} ${online.has(v) ? '✓ présent' : '✗ absent'}`);
     }
-    const unused = [...online].filter((v) => !m.all.includes(v));
-    if (unused.length) console.log(`   déclarés par aucun manifeste (prune ${app}) : ${unused.join(', ')}`);
+    const extra = [...online].filter((v) => !m.all.includes(v));
+    if (extra.length) console.log(`   aussi chargés (non déclarés dans le manifeste) : ${extra.join(', ')}`);
     console.log('');
   }
 }
@@ -198,13 +197,16 @@ async function cmdPush(manifests) {
   const from = option('from');
   if (!m || !from) throw new Error('usage : push <app> --from <fichier.env>');
   const values = parseEnvFile(resolve(process.cwd(), from));
+  const only = option('only')?.split(',').map((v) => v.trim()).filter(Boolean);
+  const unknown = (only ?? []).filter((v) => !(v in values));
+  if (unknown.length) throw new Error(`absentes de ${from} : ${unknown.join(', ')}`);
   const online = await listOnline(app);
-
-  const plan = m.all.filter((v) => !isPlaceholder(values[v]));
-  const ignored = Object.keys(values).filter((k) => !m.all.includes(k));
+  const candidates = only ?? m.all;
+  const plan = candidates.filter((v) => !isPlaceholder(values[v]));
+  const ignored = Object.keys(values).filter((k) => !candidates.includes(k));
   console.log(`${app} : ${plan.length} secret(s) à pousser depuis ${from} : ${plan.join(', ') || '—'}`);
   if (ignored.length) console.log(`   ignorés (pas des secrets de ${app}, restent dans le .env) : ${ignored.length}`);
-  const missingRequired = m.required.filter((v) => !plan.includes(v));
+  const missingRequired = only ? [] : m.required.filter((v) => !plan.includes(v));
   if (missingRequired.length) console.log(`   ⚠ requis absents du fichier : ${missingRequired.join(', ')}`);
   if (!plan.length || !(await confirm(`Pousser ${plan.length} secret(s) vers le projet ${app} ?`))) return;
 
@@ -225,11 +227,14 @@ async function cmdRotate(manifests) {
   const [app, variable] = args;
   const m = manifests[app];
   if (!m || !variable) throw new Error('usage : rotate <app> VAR   (valeur sur l\'entrée standard)');
-  if (!m.all.includes(variable)) throw new Error(`${variable} n'est pas un secret déclaré de ${app}`);
+  const online = await listOnline(app);
+  // Une faute de frappe créerait une nouvelle variable au lieu de changer l'existante.
+  if (!m.all.includes(variable) && !online.has(variable)) {
+    throw new Error(`${variable} n'existe pas dans le projet ${app} et n'est pas déclaré dans son manifeste`);
+  }
   const value = await readStdin();
   if (!value) throw new Error('valeur vide, rotation annulée');
 
-  const online = await listOnline(app);
   await writeValue(app, variable, value, online);
   console.log(`${variable} : ${did('nouvelle valeur active')} (Infisical conserve l'historique des versions).`);
   console.log('Redémarrez l\'application concernée pour qu\'elle lise la nouvelle valeur.');
@@ -240,8 +245,6 @@ async function cmdCopy(manifests) {
   if (!manifests[fromApp] || !manifests[toApp] || !vars.length) {
     throw new Error('usage : copy <app-source> <app-cible> VAR…');
   }
-  const notDeclared = vars.filter((v) => !manifests[toApp].all.includes(v));
-  if (notDeclared.length) throw new Error(`non déclarés dans le manifeste de ${toApp} : ${notDeclared.join(', ')}`);
   if (!(await confirm(`Copier ${vars.join(', ')} de ${fromApp} vers ${toApp} ?`))) return;
   const online = await listOnline(toApp);
   for (const v of vars) {
@@ -255,24 +258,11 @@ async function cmdCopy(manifests) {
   }
 }
 
-async function cmdPrune(manifests) {
-  const targetApps = args[0] ? [args[0]] : Object.keys(manifests);
-  for (const app of targetApps) {
-    const m = manifests[app];
-    if (!m) throw new Error(`app inconnue : ${app}`);
-    const online = await listOnline(app);
-    const unused = [...online].filter((v) => !m.all.includes(v));
-    if (!unused.length) {
-      console.log(`${app} : rien à supprimer.`);
-      continue;
-    }
-    console.log(`${app} : ${unused.length} secret(s) à SUPPRIMER définitivement : ${unused.join(', ')}`);
-    if (!(await confirm(`Supprimer ces secrets du projet ${app} ? Irréversible.`))) continue;
-    for (const v of unused) {
-      await deleteValue(app, v);
-      console.log(`   ${did('supprimé')} ${v}`);
-    }
-  }
+async function cmdPruneRemoved() {
+  throw new Error(
+    "prune n'existe plus : les applications lisent toutes les variables de leur projet. " +
+      "Supprimez une variable depuis l'interface Infisical."
+  );
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -282,7 +272,7 @@ const COMMANDS = {
   push: cmdPush,
   rotate: cmdRotate,
   copy: cmdCopy,
-  prune: cmdPrune,
+  prune: cmdPruneRemoved,
 };
 
 try {
