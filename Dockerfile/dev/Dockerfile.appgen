@@ -24,5 +24,7 @@ RUN pnpm install --no-frozen-lockfile
 # Expose ports for both client and server
 EXPOSE 3002 3003
 
-# Start both apps using Turborepo
-CMD ["pnpm", "run", "dev"]
+# Start both apps — no "dev" script exists at the appgen root (no Turborepo
+# pipeline here despite this file's original comment); dev:next and dev:client
+# are the two scripts that actually exist, run side by side.
+CMD ["sh", "-c", "pnpm run dev:next & pnpm run dev:client & wait"]
