@@ -71,7 +71,9 @@ const LAYOUT_MODE: Readonly<Record<string, UiMode>> = {
  * Deux exceptions, portées par les données de route :
  *  - les pages d'édition de contenu (`documentType`), où l'éditeur est en
  *    plein écran et où rien ne doit flotter au-dessus du document ;
- *  - le paiement (`layout: 'bare'`), volontairement sans chrome.
+ *  - le paiement (`layout: 'bare'`), volontairement sans chrome ;
+ *  - toute route qui le refuse (`modeDock: false`), comme la création de
+ *    projet, plein écran à la manière de la connexion.
  */
 @Component({
   selector: 'app-mode-dock',
@@ -119,7 +121,7 @@ export class ModeDockComponent {
       return false;
     }
     const data = this.routeData();
-    return !data['documentType'] && data['layout'] !== 'bare';
+    return !data['documentType'] && data['layout'] !== 'bare' && data['modeDock'] !== false;
   });
 
   protected readonly activeMode = computed<UiMode>(() => {

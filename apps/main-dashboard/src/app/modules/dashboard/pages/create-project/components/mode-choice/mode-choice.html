@@ -1,17 +1,10 @@
-<!-- En-tête serré : l'utilisateur vient d'écrire sa description, il n'a pas
-     besoin d'un écran d'accueil de plus. Les trois modes tiennent dans la
+<!-- Dernier écran de la création, une fois le projet enregistré : on choisit
+     comment travailler avant d'ouvrir l'espace. Pas de retour possible, le
+     projet existe déjà. En-tête serré : les trois modes tiennent dans la
      hauteur d'un petit portable sans faire défiler. -->
 <section class="w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 text-text-primary animate-fadeIn">
   <header class="mb-5 sm:mb-6">
-    <button
-      type="button"
-      (click)="onBack()"
-      class="inline-flex items-center gap-1.5 text-sm font-medium text-text-tertiary hover:text-text-primary transition-colors"
-    >
-      <i class="pi pi-arrow-left text-xs"></i>
-      {{ 'dashboard.createProject.modeChoice.backToDescription' | translate }}
-    </button>
-    <h1 class="mt-3 text-2xl sm:text-3xl font-bold leading-tight">
+    <h1 class="text-2xl sm:text-3xl font-bold leading-tight">
       {{ 'dashboard.createProject.modeChoice.title' | translate }}
     </h1>
     <!-- Le « rien n'est définitif » vit ici, avec la consigne, et dit où se

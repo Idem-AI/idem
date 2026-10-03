@@ -4,21 +4,25 @@
       "backToProjects": "Retour aux projets",
       "generate": "Générer le plan d'affaires",
       "selectProject": "Sélectionner un projet",
-      "title": "Avant de continuer, nous avons besoin de plus d'informations sur votre projet",
+      "title": "Votre projet",
+      "subtitle": "Quelques précisions pour adapter la suite à votre projet.",
       "sections": {
         "details": "Détails du projet",
-        "businessOptions": "Options commerciales"
+        "businessOptions": "Options commerciales",
+        "market": "Votre marché"
       },
       "fields": {
         "projectName": "Nom du projet",
         "projectType": "Type de projet",
         "projectScope": "Portée du projet",
-        "projectTarget": "Cible principale du projet"
+        "projectTarget": "Cible principale du projet",
+        "shortDescription": "Description courte"
       },
       "placeholders": {
         "selectType": "Sélectionnez un type",
         "selectScope": "Sélectionnez une portée",
-        "selectTarget": "Sélectionnez une cible"
+        "selectTarget": "Sélectionnez une cible",
+        "shortDescription": "En une phrase : ce que fait votre projet et pour qui."
       },
       "dynamic": {
         "sectionTitle": "Questions adaptées à votre projet",
@@ -28,7 +32,8 @@
         "optional": "facultatif",
         "selectPlaceholder": "Sélectionnez une option",
         "textPlaceholder": "Votre réponse (facultatif)",
-        "otherPlaceholder": "Précisez…"
+        "otherPlaceholder": "Précisez…",
+        "sectionHint": "Facultatives, mais elles affinent le plan et les documents."
       }
     }
   }

@@ -1,3 +1,9 @@
+/* Largeur de l'emblème dans l'étape plein écran « Votre projet » : lue par le
+   formulaire (dynamic-details-form) et la barre du bas. */
+:host {
+  --split-left: 42vw;
+}
+
 /* Modern animations for step transitions */
 
 @keyframes fadeIn {
@@ -151,6 +157,15 @@ section {
   .content-standard {
     padding-top: 104px;
   }
+}
+
+/* Étape plein écran « Votre projet » : ni sélecteur de mode ni barre du haut
+   à réserver (seul le profil flotte, à droite). La disposition garde 5 rem
+   pour sa barre : le titre en reprend une partie pour s'aligner sous le logo
+   du panneau. */
+.content-split {
+  padding-top: 0;
+  margin-top: -1.5rem;
 }
 
 .content-with-banner {

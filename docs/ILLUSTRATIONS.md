@@ -25,6 +25,7 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | Cauris (et calebasse de cauris) | argent, prêt | module finance, banque, tontine |
 | Baobab et son fruit (pain de singe) | croissance qui rapporte | business plan, investisseur |
 | Jeune pousse | projet qu'on aide à grandir | SASU, bailleur |
+| Croix d'Agadez (tanaghilt) sur son cordon tressé | « je te donne les quatre coins du monde » : de quoi choisir sa route | création de projet — source : [Club des Voyages, « Les croix touarègues »](https://www.club-des-voyages.com/niger/les-croix-touaregues-12196.html) |
 | Tambour parleur (tama) | parole portée loin, conversation | pitch deck, mode chat, communication, aide |
 | Métier à tisser (bande étroite) | construire fil à fil, le code | développement, dépôt de code, document qui se tisse |
 | Pirogue à la proue dressée | départ, mise en ligne, équipage | publication, déploiements, SAS, équipe interne |
@@ -68,6 +69,7 @@ Format : **retenu** — candidats écartés (raison).
 | Erreur « génération » | **métier à tisser, fil de chaîne cassé** | calebasse fêlée (dit l'erreur, pas l'interruption) |
 | Erreur « aucun projet » | **grenier vide, porte ouverte** | tabouret vide, calebasse vide |
 | Page introuvable | **Sankofa** (« retourne chercher ») | carrefour, pirogue perdue (pas d'objet réel qui les dise) |
+| Création de projet : « Votre projet » | **croix d'Agadez pendue à son cordon, l'œil du caméléon en couleur** (`agadez-cross-illustration`) | jeune pousse de baobab (juste mais peu marquante en grand) ; baobab adulte (réservé à la promesse et au business plan) ; pyramides (monument funéraire) |
 | Mode assisté | **échelle dogon** | bande de kente en cours (moins lisible comme « étapes ») |
 | Mode chat | **tambour parleur** | arbre à palabres (réservé à l'équipe) |
 | Mode avancé | **awalé** | — |

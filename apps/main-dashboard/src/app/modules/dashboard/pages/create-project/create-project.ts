@@ -96,8 +96,20 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
   protected readonly mode = signal<CreateMode>(this.readMode());
   protected readonly isChatRecapActive = signal<boolean>(false);
 
-  // Choice screen display after description step
+  /**
+   * Choix du mode d'accompagnement : dernier écran, une fois le projet créé et
+   * avant d'ouvrir l'espace (parcours assisté, chat ou tableau de bord).
+   */
   protected readonly showModeChoice = signal<boolean>(false);
+
+  /**
+   * Étape « Votre projet » du formulaire : plein écran partagé, comme la
+   * connexion — l'emblème à gauche, le formulaire à droite. Le sélecteur de
+   * mode et la barre du bas se recentrent alors sur la colonne de droite.
+   */
+  protected readonly isSplitStep = computed(
+    () => this.mode() !== 'chat' && !this.showModeChoice() && this.currentStepIndex() === 1,
+  );
 
   /** Indique si la page actuelle est la page de synthèse / validation des politiques (où le changement de mode doit être masqué) */
   protected readonly isSummaryPage = computed(
@@ -369,19 +381,16 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Handle mode selection from mode choice screen
-   */
+  /** Mode choisi sur le dernier écran : on ouvre l'espace correspondant. */
   protected onModeSelected(selectedMode: CreateMode): void {
     this.setMode(selectedMode);
-    this.navigateToStep(1);
+    this.router.navigateByUrl(this.postCreationRoute());
   }
 
-  /**
-   * Back from mode choice screen to project description
-   */
-  protected onBackFromModeChoice(): void {
-    this.showModeChoice.set(false);
+  /** Projet créé : il reste à choisir comment travailler avant d'ouvrir l'espace. */
+  private openModeChoice(): void {
+    this.showModeChoice.set(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   /**
@@ -395,15 +404,6 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
    * Navigate to next step
    */
   protected async goToNextStep(): Promise<void> {
-    // After description step (index 0), ask user to choose between form or chat mode
-    if (this.currentStepIndex() === 0 && !this.showModeChoice()) {
-      if (this.canGoNext()) {
-        this.showModeChoice.set(true);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-      return;
-    }
-
     // After completing the "details" step (index 1), create the project in the database
     if (this.currentStepIndex() === 1 && !this.project().id) {
       const user = this.authService.getCurrentUser();
@@ -588,7 +588,7 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
    */
   protected async finalizeProject(): Promise<void> {
     this.cookieService.set('projectId', this.project().id!);
-    this.router.navigateByUrl(this.postCreationRoute());
+    this.openModeChoice();
   }
 
   /** Où atterrir une fois le projet créé, selon le mode d'accompagnement choisi. */
@@ -625,8 +625,7 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
   protected onConversationCreated(projectId: string): void {
     this.cookieService.set('projectId', projectId);
     this.cookieService.remove('draftProject');
-    // Retour dans le contexte d'origine (assisté, chat ou tableau de bord)
-    this.router.navigateByUrl(this.postCreationRoute());
+    this.openModeChoice();
   }
 
   /**

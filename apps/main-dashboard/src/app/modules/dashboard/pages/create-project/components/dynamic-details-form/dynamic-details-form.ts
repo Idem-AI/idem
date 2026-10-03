@@ -10,11 +10,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { InputTextModule } from 'primeng/inputtext';
-import { FloatLabel } from 'primeng/floatlabel';
-import { Select } from 'primeng/select';
-import { TextareaModule } from 'primeng/textarea';
-import { SkeletonModule } from 'primeng/skeleton';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ProjectModel } from '@idem/shared-models';
 
@@ -25,6 +20,8 @@ import {
   OnboardingResolvedAnswer,
 } from '../../../../../chat/services/onboarding-plan.service';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { RouterLink } from '@angular/router';
+import { AgadezCrossIllustrationComponent } from '../agadez-cross-illustration/agadez-cross-illustration';
 
 /**
  * Étape « détails » du mode formulaire, pilotée par l'IA.
@@ -38,16 +35,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
  */
 @Component({
   selector: 'app-dynamic-details-form',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    InputTextModule,
-    FloatLabel,
-    Select,
-    TextareaModule,
-    SkeletonModule,
-    TranslateModule, IdemLoaderComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, IdemLoaderComponent, RouterLink, AgadezCrossIllustrationComponent],
   templateUrl: './dynamic-details-form.html',
   styleUrl: './dynamic-details-form.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -155,6 +155,7 @@ Choisir l'élément par le **sens**, jamais par le décor :
 | Étapes, progression guidée | Échelle dogon |
 | Vérifier sur le terrain, tester en vrai | Daba (houe ouest-africaine à lame plate) |
 | S'abriter des imprévus, protéger d'une crise | Kyinie (ombrelle d'apparat akan, « le roi couvre ») |
+| Partir faire sa vie, choisir sa route, définir son projet | Croix d'Agadez (« je te donne les quatre coins du monde ») |
 
 ### Quand aucun objet ne colle : chercher, dessiner, ajouter
 

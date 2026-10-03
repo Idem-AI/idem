@@ -1,21 +1,25 @@
 {
   "dashboard": {
     "projectDetails": {
-      "title": "Before continuing, we need more information about your project",
+      "title": "Your project",
+      "subtitle": "A few details so we can tailor the next steps to your project.",
       "sections": {
         "details": "Project Details",
-        "businessOptions": "Business Options"
+        "businessOptions": "Business Options",
+        "market": "Your market"
       },
       "fields": {
         "projectName": "Project Name",
         "projectType": "Project Type",
         "projectScope": "Project Scope",
-        "projectTarget": "Main Project Target"
+        "projectTarget": "Main Project Target",
+        "shortDescription": "Short description"
       },
       "placeholders": {
         "selectType": "Select a type",
         "selectScope": "Select a scope",
-        "selectTarget": "Select a target"
+        "selectTarget": "Select a target",
+        "shortDescription": "In one sentence: what your project does and for whom."
       },
       "dynamic": {
         "sectionTitle": "Questions tailored to your project",
@@ -25,7 +29,8 @@
         "optional": "optional",
         "selectPlaceholder": "Select an option",
         "textPlaceholder": "Your answer (optional)",
-        "otherPlaceholder": "Please specify…"
+        "otherPlaceholder": "Please specify…",
+        "sectionHint": "Optional, but they sharpen the plan and the documents."
       }
     }
   }
