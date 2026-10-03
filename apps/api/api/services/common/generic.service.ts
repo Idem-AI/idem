@@ -1215,6 +1215,8 @@ export class GenericService {
     /** Étapes réellement en vol — sert de compteur de créneaux. */
     const running = new Set<string>();
     const pendingSteps = [...steps];
+    /** Erreur d'origine de chaque étape tombée — relevée si TOUTES tombent. */
+    const stepErrors = new Map<string, unknown>();
 
     logger.info(`Starting processSteps for ${steps.length} steps in project ${project.id}`);
 
@@ -1301,6 +1303,7 @@ export class GenericService {
         // elle n'emporte pas le livrable. Cf. le commentaire long plus haut.
         logger.error(`Error executing step ${step.stepName}:`, error);
         completedSteps.set(step.stepName, { name: step.stepName, content: '' });
+        stepErrors.set(step.stepName, error);
         return null;
       }
     };
@@ -1390,6 +1393,15 @@ export class GenericService {
       const indexB = stepOrder.indexOf(b.name);
       return indexA - indexB;
     });
+
+    // Aucune section produite et au moins une étape en échec : il n'y a rien à
+    // livrer. Rendre `[]` laissait les appelants à étape unique (logo, palette,
+    // typographie…) lire `sectionResults[0].parsedData` sur `undefined` — un
+    // TypeError qui masquait la vraie cause (429, timeout). On relève l'erreur
+    // d'origine, intacte, pour que les replis en amont la reconnaissent.
+    if (completedResults.length === 0 && stepErrors.size > 0) {
+      throw stepErrors.values().next().value;
+    }
 
     logger.info(`All steps completed for project ${project.id}`);
     return completedResults;
