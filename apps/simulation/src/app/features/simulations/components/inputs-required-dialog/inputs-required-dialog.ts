@@ -72,7 +72,7 @@ const AWALE_PITS = [
              le texte dit. -->
         <svg
           viewBox="0 0 208 108"
-          class="h-[6.75rem] w-full max-w-[20rem] self-center text-ink-subtle"
+          class="h-[6.75rem] w-full max-w-[20rem] self-center text-text-tertiary"
           fill="none"
           stroke="currentColor"
           stroke-width="1.5"
@@ -133,11 +133,11 @@ const AWALE_PITS = [
           </g>
         </svg>
 
-        <h2 id="sim-inputs-heading" class="mt-5 text-h2 font-semibold text-ink">
+        <h2 id="sim-inputs-heading" class="mt-5 text-xl font-semibold text-text-primary">
           {{ 'inputs.heading' | translate }}
         </h2>
 
-        <p id="sim-inputs-subtitle" class="mt-2 text-sm leading-relaxed text-ink-muted">
+        <p id="sim-inputs-subtitle" class="mt-2 text-sm leading-relaxed text-text-secondary">
           {{ 'inputs.subtitle' | translate }}
         </p>
 
@@ -146,18 +146,18 @@ const AWALE_PITS = [
              si l'on prend le temps de les produire. -->
         <ul class="mt-5 flex flex-col gap-2.5">
           @for (row of missingRows(); track row.key) {
-            <li class="flex items-start gap-3 rounded-xl border border-line bg-panel-sunken p-3.5">
+            <li class="flex items-start gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-3.5">
               <span
-                class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-verdict-warn/15 text-verdict-warn"
+                class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-warning/15 text-warning"
                 aria-hidden="true"
               >
                 <i class="pi pi-exclamation-triangle text-[0.7rem]"></i>
               </span>
               <span class="min-w-0">
-                <span class="block text-sm font-medium text-ink">
+                <span class="block text-sm font-medium text-text-primary">
                   {{ 'inputs.item.' + row.key + '.label' | translate }}
                 </span>
-                <span class="mt-0.5 block text-meta leading-relaxed text-ink-muted">
+                <span class="mt-0.5 block text-xs leading-relaxed text-text-secondary">
                   {{ 'inputs.item.' + row.key + '.effect' | translate }}
                 </span>
               </span>
@@ -165,7 +165,7 @@ const AWALE_PITS = [
           }
         </ul>
 
-        <p class="mt-4 text-meta leading-relaxed text-ink-subtle">
+        <p class="mt-4 text-xs leading-relaxed text-text-tertiary">
           {{ 'inputs.note' | translate }}
         </p>
 
@@ -174,7 +174,7 @@ const AWALE_PITS = [
                ce n'est pas ce que l'écran recommande. -->
           <button
             type="button"
-            class="button-ghost button-sm text-meta"
+            class="button-ghost button-sm text-xs"
             (click)="continued.emit()"
           >
             {{ 'inputs.continueAnyway' | translate }}

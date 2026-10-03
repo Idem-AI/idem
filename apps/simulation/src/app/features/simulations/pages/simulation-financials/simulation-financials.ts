@@ -2,17 +2,28 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
+import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
+import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { CashflowChart } from '../../components/cashflow-chart/cashflow-chart';
 import { SensitivityChart } from '../../components/sensitivity-chart/sensitivity-chart';
 import { SimulationStore } from '../../data-access';
+import { formatMoney } from '../../ui/tones';
+
+interface Metric {
+  key: string;
+  value?: string;
+  valueKey?: string;
+  params?: Record<string, unknown>;
+}
 
 /**
- * Les chiffres produits par le moteur déterministe : trajectoire de
- * trésorerie, sensibilité aux leviers, et seuils à franchir.
+ * « Votre argent » : combien il faut, quand on commence à gagner, combien de
+ * temps la caisse tient. Chaque chiffre porte une phrase qui dit ce qu'il
+ * mesure — personne n'a à savoir ce qu'est un point mort.
  */
 @Component({
   selector: 'sim-simulation-financials',
-  imports: [TranslatePipe, CashflowChart, SensitivityChart, DisclaimerNote],
+  imports: [TranslatePipe, CashflowChart, SensitivityChart, DisclaimerNote, PageHeader, EmptyState],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-financials.html',
 })
@@ -22,32 +33,32 @@ export class SimulationFinancials {
   protected readonly result = computed(() => this.store.active()?.result ?? null);
   protected readonly financials = computed(() => this.result()?.financials ?? null);
 
-  protected readonly headline = computed(() => {
+  protected readonly headline = computed<Metric[]>(() => {
     const financials = this.financials();
     if (!financials) {
       return [];
     }
-    const money = (value: number) =>
-      `${Math.round(value).toLocaleString('fr-FR')} ${financials.currency}`;
     return [
-      {
-        key: 'breakEven',
-        value:
-          financials.breakEvenMonth === null
-            ? null
-            : String(financials.breakEvenMonth),
-        suffixKey: financials.breakEvenMonth === null ? 'financials.never' : 'financials.monthUnit',
-      },
-      {
-        key: 'runway',
-        value: financials.runwayMonths === null ? null : String(financials.runwayMonths),
-        suffixKey: financials.runwayMonths === null ? 'financials.beyondHorizon' : 'financials.monthsUnit',
-      },
-      { key: 'burn', value: money(financials.monthlyBurnRate), suffixKey: null },
-      { key: 'capital', value: money(financials.capitalRequired), suffixKey: null },
-      { key: 'margin', value: `${Math.round(financials.grossMargin * 100)} %`, suffixKey: null },
-      { key: 'revenueYear1', value: money(financials.revenueYear1), suffixKey: null },
-      { key: 'revenueYear3', value: money(financials.revenueYear3), suffixKey: null },
+      { key: 'capital', value: formatMoney(financials.capitalRequired, financials.currency) },
+      financials.breakEvenMonth === null
+        ? { key: 'breakEven', valueKey: 'financials.never' }
+        : { key: 'breakEven', valueKey: 'financials.monthN', params: { month: financials.breakEvenMonth } },
+      financials.runwayMonths === null
+        ? { key: 'runway', valueKey: 'financials.beyondHorizon' }
+        : { key: 'runway', valueKey: 'financials.monthsN', params: { months: financials.runwayMonths } },
+      { key: 'burn', value: formatMoney(financials.monthlyBurnRate, financials.currency) },
+    ];
+  });
+
+  protected readonly secondary = computed<Metric[]>(() => {
+    const financials = this.financials();
+    if (!financials) {
+      return [];
+    }
+    return [
+      { key: 'margin', value: `${Math.round(financials.grossMargin * 100)} %` },
+      { key: 'revenueYear1', value: formatMoney(financials.revenueYear1, financials.currency) },
+      { key: 'revenueYear3', value: formatMoney(financials.revenueYear3, financials.currency) },
     ];
   });
 }

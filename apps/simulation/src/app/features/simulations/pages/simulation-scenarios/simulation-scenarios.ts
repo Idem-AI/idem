@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
+import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { ScenarioTable } from '../../components/scenario-table/scenario-table';
 import { SimulationStore } from '../../data-access';
 import { Scenario } from '../../models';
@@ -15,7 +16,7 @@ import { Scenario } from '../../models';
  */
 @Component({
   selector: 'sim-simulation-scenarios',
-  imports: [TranslatePipe, ScenarioTable, DisclaimerNote],
+  imports: [TranslatePipe, ScenarioTable, DisclaimerNote, PageHeader],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-scenarios.html',
 })
@@ -32,6 +33,13 @@ export class SimulationScenarios {
 
   protected readonly stressTests = computed(() =>
     this.scenarios().filter((scenario) => scenario.kind === 'stress' || scenario.kind === 'extreme'),
+  );
+
+  protected readonly evaluated = computed(
+    () => this.scenarios().filter((scenario) => scenario.outcome).length,
+  );
+  protected readonly survived = computed(
+    () => this.scenarios().filter((scenario) => scenario.outcome?.survives).length,
   );
 
   protected readonly survivalRate = computed(() => {

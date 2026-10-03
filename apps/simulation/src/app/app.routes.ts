@@ -45,6 +45,12 @@ const simulationRoutes: Routes = [
       ),
   },
   {
+    path: 'labs',
+    title: 'nav.labs',
+    loadComponent: () =>
+      import('./features/simulations/pages/labs/labs-home/labs-home').then((m) => m.LabsHome),
+  },
+  {
     path: 'labs/red-team',
     title: 'nav.lab.redTeam',
     loadComponent: () =>

@@ -31,20 +31,20 @@ import { LanguageService, SupportedLanguage } from '../../../core/i18n/language.
     @if (open()) {
       <div
         role="menu"
-        class="rise absolute right-0 top-full z-40 mt-1 w-36 overflow-hidden rounded-xl border border-line bg-panel-raised shadow-raised"
+        class="rise absolute right-0 top-full z-40 mt-1 w-36 overflow-hidden rounded-xl border border-[var(--glass-border)] bg-surface-1 shadow-lg"
       >
         @for (language of languages; track language) {
           <button
             type="button"
             role="menuitemradio"
             [attr.aria-checked]="current() === language"
-            class="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-ink-muted transition-colors hover:bg-panel-sunken hover:text-ink"
-            [class.text-ink]="current() === language"
+            class="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-text-secondary transition-colors hover:bg-[var(--glass-bg-subtle)] hover:text-text-primary"
+            [class.text-text-primary]="current() === language"
             (click)="choose(language)"
           >
             {{ 'language.' + language | translate }}
             @if (current() === language) {
-              <svg viewBox="0 0 24 24" class="size-4 text-brand" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="size-4 text-primary-500" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="m5 13 4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             }

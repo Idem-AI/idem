@@ -14,6 +14,9 @@ import { TourService } from '../../../../core/ui/tour.service';
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
 import { PipelineProgress } from '../../components/pipeline-progress/pipeline-progress';
 import { ViabilityGauge } from '../../components/viability-gauge/viability-gauge';
+import { VerdictBadge } from '../../components/verdict-badge/verdict-badge';
+import { Illustration } from '../../../../shared/components/illustration/illustration';
+import { severityTone } from '../../ui/tones';
 import { ReportDownloadService, SimulationStore } from '../../data-access';
 import { FactorTier, Recommendation, Risk } from '../../models';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
@@ -24,7 +27,16 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
  */
 @Component({
   selector: 'sim-simulation-overview',
-  imports: [RouterLink, TranslatePipe, ViabilityGauge, PipelineProgress, DisclaimerNote, IdemLoaderComponent],
+  imports: [
+    RouterLink,
+    TranslatePipe,
+    ViabilityGauge,
+    VerdictBadge,
+    PipelineProgress,
+    DisclaimerNote,
+    Illustration,
+    IdemLoaderComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-overview.html',
 })
@@ -49,6 +61,7 @@ export class SimulationOverview implements OnInit {
   protected readonly downloading = this.reportDownload.downloading;
 
   protected readonly result = computed(() => this.simulation()?.result ?? null);
+  protected readonly tone = severityTone;
 
   /** Dispersion de l'indice à travers les scénarios, tracée en bande. */
   /**
@@ -93,25 +106,6 @@ export class SimulationOverview implements OnInit {
           { tier: 'unknown' as const, count: summary.unknown },
         ]
       : [];
-  });
-
-  /**
-   * La couleur du verdict, et rien d'autre.
-   *
-   * Le verdict se lit sous la jauge, comme la conclusion du chiffre qu'elle
-   * affiche — pas dans un encadré teinté à côté, qui aurait donné un jugement
-   * détaché de ce qui le fonde. La couleur ne porte jamais le sens seule : la
-   * phrase le dit, et se suffit en noir et blanc.
-   */
-  protected readonly verdictColor = computed(() => {
-    switch (this.result()?.verdict) {
-      case 'go':
-        return 'text-verdict-go';
-      case 'no-go':
-        return 'text-verdict-stop';
-      default:
-        return 'text-verdict-warn';
-    }
   });
 
   protected readonly brokenScenarios = computed(

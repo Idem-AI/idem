@@ -13,6 +13,11 @@ tiers, et les **schémas fonctionnels** qui montrent l'option elle-même
 
 ## Le vocabulaire
 
+Quand aucun objet de cette table ne dit ce que dit l'écran, on ne recycle pas
+le plus proche : on cherche sur internet un élément réel de la culture
+africaine, on vérifie son sens dans une source sérieuse, on dessine son SVG et
+on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
+
 | Objet | Ce qu'il dit | Où |
 | --- | --- | --- |
 | Bouclier aux lances croisées | accès, sécurité | connexion, iDeploy `shield`, vérification |
@@ -44,6 +49,8 @@ tiers, et les **schémas fonctionnels** qui montrent l'option elle-même
 | Calebasse vide / fêlée | rien encore / erreur | états vides et d'échec |
 | Perles enfilées | se reconnaître à un signe | étiquettes |
 | Baobab qui porte son fruit | le business qui rapporte | promesse d'IDEM (image de partage de l'accueil) |
+| Daba (houe à lame plate perpendiculaire au manche) | aller sur le terrain, vérifier en vrai | simulateur : « Ce qu'il faut vérifier » — source : [Daba (outil), Wikipédia](https://fr.wikipedia.org/wiki/Daba_(outil)) |
+| Kyinie (ombrelle d'apparat akan) | abriter, protéger des intempéries et des crises | simulateur : « Les imprévus » — source : [Ohene Kyinie, « le roi couvre »](https://adinkra.art/ohene-kyiniie-the-symbol-of-leadership-and-protection/) |
 
 Les motifs (chevrons, dents de scie, losanges, points) vivent dans les objets,
 jamais en fond. Le losange bleu du bouclier revient comme signature.
@@ -141,6 +148,18 @@ pagne tendu en bannière. Le cadenas de l'adresse est le seul détail en couleur
 | Livrables manquants | calebasses qui sèment l'awalé ; les livrables absents laissent des cases vides |
 | Source : projet IDEM / import | grenier plein / feuillet apporté |
 | Offres : simulation, rapport, pack | awalé / feuillet / panier |
+| Simulation en cours, aucune simulation | awalé |
+| Échec de chargement / simulation interrompue | calebasse fêlée |
+| Connexion requise | bouclier aux lances croisées |
+| Accord avant lancement | balance akan (c'est un engagement juridique) |
+| Page introuvable | sankofa |
+| Test « Les points faibles » | bouclier aux lances croisées |
+| Test « L'avis des clients » (prix) | calebasse de cauris |
+| Test « L'avis des investisseurs » | baobab qui porte son fruit |
+| Test « Les imprévus » | **kyinie** (nouveau) — grenier fermé (dit « serveur/réserve », pas « abri ») |
+| Test « Ce qu'il faut vérifier » | **daba** (nouveau) — van (dit « trier/rechercher », pas « aller sur le terrain ») |
+| Test « D'autres façons de vendre » | étal du marché |
+| Test « Votre projet dans 5 ans » | échelle dogon, une année par marche |
 
 ### AppGen
 

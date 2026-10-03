@@ -1,118 +1,126 @@
 @if (understanding(); as understanding) {
   <div class="flex flex-col gap-8">
-    <section>
-      <h2 class="text-h2 font-semibold text-ink">{{ 'understanding.profile' | translate }}</h2>
+    <sim-page-header
+      [heading]="'understanding.heading' | translate"
+      [description]="'understanding.lead' | translate"
+    />
+
+    <section class="flex flex-col gap-4" aria-labelledby="un-profile">
+      <h2 id="un-profile" class="text-xl font-bold">{{ 'understanding.profile' | translate }}</h2>
       @if (understanding.narrative) {
-        <p class="mt-2 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+        <p class="rounded-2xl border-l-4 border-primary-500 bg-[var(--glass-bg-subtle)] p-4 text-sm leading-relaxed text-text-primary md:text-base">
           {{ understanding.narrative }}
         </p>
       }
-      <dl class="mt-4 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
+      <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         @for (row of profileRows(); track row.key) {
-          <div class="bg-panel p-4">
-            <dt class="text-meta text-ink-subtle">{{ 'profile.' + row.key | translate }}</dt>
-            <dd class="mt-0.5 text-sm font-medium text-ink">{{ row.value }}</dd>
+          <div class="glass-card p-4">
+            <dt class="text-sm text-text-secondary">{{ 'profile.' + row.key | translate }}</dt>
+            <dd class="mt-1 text-base font-semibold text-text-primary">{{ row.value }}</dd>
           </div>
         }
       </dl>
     </section>
 
-    <section>
-      <h2 class="text-h2 font-semibold text-ink">{{ 'understanding.baseline' | translate }}</h2>
-      <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-        {{ 'understanding.baselineBody' | translate }}
-      </p>
-      <dl class="mt-4 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
-        @for (row of baselineRows(); track row.key) {
-          <div class="bg-panel p-4">
-            <dt class="text-meta text-ink-subtle">{{ 'baseline.' + row.key | translate }}</dt>
-            <dd class="mt-0.5 text-sm font-semibold tabular-nums text-ink">{{ row.value }}</dd>
-          </div>
-        }
-      </dl>
-    </section>
-
-    <section class="flex flex-col gap-4">
+    <section class="flex flex-col gap-4" aria-labelledby="un-baseline">
       <div>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'understanding.knowledge' | translate }}</h2>
-        <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-          {{ 'understanding.knowledgeBody' | translate }}
-        </p>
+        <h2 id="un-baseline" class="text-xl font-bold">{{ 'understanding.baseline' | translate }}</h2>
+        <p class="mt-1 text-sm text-text-secondary">{{ 'understanding.baselineBody' | translate }}</p>
+      </div>
+      <dl class="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        @for (row of baselineRows(); track row.key) {
+          <div class="glass-card p-4">
+            <dt class="text-sm text-text-secondary">{{ 'baseline.' + row.key | translate }}</dt>
+            <dd class="mt-1 text-lg font-bold tabular-nums text-text-primary">{{ row.value }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <section class="flex flex-col gap-4" aria-labelledby="un-knowledge">
+      <div>
+        <h2 id="un-knowledge" class="text-xl font-bold">{{ 'understanding.knowledge' | translate }}</h2>
+        <p class="mt-1 text-sm text-text-secondary">{{ 'understanding.knowledgeBody' | translate }}</p>
       </div>
 
       @for (group of groups(); track group.state) {
-        <div class="glass-card p-5">
-          <div class="flex items-baseline gap-2">
-            <h3 class="text-label font-semibold text-ink">
-              {{ 'knowledge.' + group.state | translate }}
-            </h3>
-            <span class="text-meta tabular-nums text-ink-subtle">{{ group.items.length }}</span>
-          </div>
-          <p class="mt-0.5 text-meta leading-relaxed text-ink-subtle">
-            {{ knowledgeHintKey(group.state) | translate }}
-          </p>
-          <ul class="mt-3 divide-y divide-line">
+        <details class="glass-card group p-5" [open]="group.state !== 'known'">
+          <summary class="flex cursor-pointer list-none items-center gap-3">
+            <span [class]="'sim-pill sim-pill--' + knowledgeTone(group.state)">{{ group.items.length }}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-base font-semibold text-text-primary">{{ 'knowledge.' + group.state | translate }}</span>
+              <span class="block text-sm text-text-secondary">{{ knowledgeHintKey(group.state) | translate }}</span>
+            </span>
+            <i class="pi pi-chevron-down text-xs text-text-tertiary transition-transform group-open:rotate-180" aria-hidden="true"></i>
+          </summary>
+          <ul class="mt-4 flex flex-col divide-y divide-[var(--glass-border-subtle)]">
             @for (item of group.items; track item.id) {
-              <li class="py-2.5 first:pt-0 last:pb-0">
+              <li class="py-3 first:pt-0 last:pb-0">
                 <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
-                  <span class="text-sm font-medium text-ink">{{ item.label }}</span>
+                  <span class="text-sm font-semibold text-text-primary">{{ item.label }}</span>
                   @if (item.value) {
-                    <span class="text-sm tabular-nums text-ink-muted">{{ item.value }}</span>
+                    <span class="text-sm tabular-nums text-text-secondary">{{ item.value }}</span>
                   }
                 </div>
                 @if (item.detail) {
-                  <p class="mt-0.5 max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
-                    {{ item.detail }}
-                  </p>
+                  <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-text-tertiary">{{ item.detail }}</p>
                 }
                 @if (item.answer) {
-                  <p class="mt-1 text-meta text-ink-muted">
-                    <i class="pi pi-user mr-1 text-[0.7rem]" aria-hidden="true"></i>{{ item.answer }}
+                  <p class="mt-1 text-sm text-text-secondary">
+                    <i class="pi pi-user mr-1 text-xs" aria-hidden="true"></i>{{ item.answer }}
                   </p>
                 }
               </li>
             }
           </ul>
-        </div>
+        </details>
       }
 
       @if (extras().length) {
-        <div class="glass-card p-5">
-          <div class="flex items-baseline gap-2">
-            <h3 class="text-label font-semibold text-ink">
-              {{ 'knowledge.extras' | translate }}
-            </h3>
-            <span class="text-meta tabular-nums text-ink-subtle">{{ extras().length }}</span>
-          </div>
-          <p class="mt-0.5 max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
-            {{ 'knowledge.extrasHint' | translate }}
-          </p>
-          <ul class="mt-3 divide-y divide-line">
+        <details class="glass-card group p-5">
+          <summary class="flex cursor-pointer list-none items-center gap-3">
+            <span class="sim-pill sim-pill--muted">{{ extras().length }}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-base font-semibold text-text-primary">{{ 'knowledge.extras' | translate }}</span>
+              <span class="block text-sm text-text-secondary">{{ 'knowledge.extrasHint' | translate }}</span>
+            </span>
+            <i class="pi pi-chevron-down text-xs text-text-tertiary transition-transform group-open:rotate-180" aria-hidden="true"></i>
+          </summary>
+          <ul class="mt-4 flex flex-col divide-y divide-[var(--glass-border-subtle)]">
             @for (fact of extras(); track fact.label + fact.value) {
-              <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 py-2.5 first:pt-0 last:pb-0">
-                <span class="text-sm font-medium text-ink">{{ fact.label }}</span>
-                <span class="text-sm text-ink-muted">{{ fact.value }}</span>
+              <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 py-3 first:pt-0 last:pb-0">
+                <span class="text-sm font-semibold text-text-primary">{{ fact.label }}</span>
+                <span class="text-sm text-text-secondary">{{ fact.value }}</span>
               </li>
             }
           </ul>
-        </div>
+        </details>
       }
     </section>
 
     @if (evidence().length) {
-      <section>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'understanding.evidence' | translate }}</h2>
-        <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-          {{ 'understanding.evidenceBody' | translate }}
-        </p>
-        <ul class="mt-4 grid gap-3 sm:grid-cols-2">
+      <section class="flex flex-col gap-4" aria-labelledby="un-sources">
+        <div>
+          <h2 id="un-sources" class="text-xl font-bold">{{ 'understanding.evidence' | translate }}</h2>
+          <p class="mt-1 text-sm text-text-secondary">{{ 'understanding.evidenceBody' | translate }}</p>
+        </div>
+        <ul class="grid gap-4 sm:grid-cols-2">
           @for (item of evidence(); track item.id) {
-            <li><sim-evidence-chip [evidence]="item" /></li>
+            <li class="glass-card p-4">
+              <p class="mb-1 text-sm text-text-secondary">{{ item.label }}</p>
+              <sim-evidence-chip [evidence]="item" />
+            </li>
           }
         </ul>
       </section>
     }
   </div>
 } @else {
-  <p class="glass-card p-6 text-sm text-ink-muted">{{ 'understanding.pending' | translate }}</p>
+  <div class="glass-card">
+    <sim-empty-state
+      illustration="calabash-empty"
+      [heading]="'understanding.heading' | translate"
+      [body]="'understanding.pending' | translate"
+    />
+  </div>
 }

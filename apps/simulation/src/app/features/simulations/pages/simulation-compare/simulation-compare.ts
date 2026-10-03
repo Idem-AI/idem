@@ -5,6 +5,9 @@ import { firstValueFrom } from 'rxjs';
 
 import { ToastService } from '../../../../core/ui/toast.service';
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
+import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
+import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ConsentDialog } from '../../components/consent-dialog/consent-dialog';
 import { VerdictBadge } from '../../components/verdict-badge/verdict-badge';
 import { SimulationGateway, SimulationStore } from '../../data-access';
@@ -19,7 +22,15 @@ import { Simulation, SimulationConsent } from '../../models';
  */
 @Component({
   selector: 'sim-simulation-compare',
-  imports: [TranslatePipe, VerdictBadge, DisclaimerNote, ConsentDialog],
+  imports: [
+    TranslatePipe,
+    VerdictBadge,
+    DisclaimerNote,
+    ConsentDialog,
+    EmptyState,
+    PageHeader,
+    IdemLoaderComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-compare.html',
 })
@@ -87,6 +98,10 @@ export class SimulationCompare {
       this.previous.set(null);
     }
     this.loading.set(false);
+  }
+
+  protected abs(value: number): number {
+    return Math.abs(value);
   }
 
   /** Ouvre la demande d'accord ; la relance part de sa confirmation. */

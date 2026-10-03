@@ -1,3 +1,5 @@
+import { registerLocaleData } from '@angular/common';
+import localeFr from '@angular/common/locales/fr';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import {
   APP_INITIALIZER,
@@ -18,6 +20,9 @@ import { LanguageService } from './core/i18n/language.service';
 import { TranslatedTitleStrategy } from './core/seo/title.strategy';
 import { ThemeService } from './core/theme/theme.service';
 import { provideSimulationBackend } from './features/simulations/data-access';
+
+// Les dates s'affichent dans la langue choisie : « 2 oct. 2026 », pas « Oct 2, 2026 ».
+registerLocaleData(localeFr);
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {

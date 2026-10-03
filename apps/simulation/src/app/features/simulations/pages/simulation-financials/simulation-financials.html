@@ -1,96 +1,101 @@
 @if (financials(); as financials) {
   <div class="flex flex-col gap-8">
-    <section class="flex flex-col gap-4">
-      <div>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'financials.heading' | translate }}</h2>
-        <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-          {{ 'financials.body' | translate }}
-        </p>
-      </div>
+    <sim-page-header
+      [heading]="'financials.heading' | translate"
+      [description]="'financials.body' | translate"
+    />
 
-      <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line lg:grid-cols-4">
-        @for (metric of headline(); track metric.key) {
-          <div class="bg-panel p-4">
-            <dt class="text-meta text-ink-subtle">{{ 'financials.' + metric.key | translate }}</dt>
-            <dd class="mt-0.5 text-h3 font-semibold tabular-nums text-ink">
-              @if (metric.value) {
-                {{ metric.value }}
-              }
-              @if (metric.suffixKey) {
-                <span class="text-meta font-normal text-ink-subtle">
-                  {{ metric.suffixKey | translate }}
-                </span>
-              }
-            </dd>
-          </div>
-        }
-      </dl>
+    <!-- Les quatre réponses que l'on vient chercher, chacune expliquée. -->
+    <dl class="grid gap-4 sm:grid-cols-2">
+      @for (metric of headline(); track metric.key) {
+        <div class="glass-card p-5">
+          <dt class="text-sm text-text-secondary">{{ 'financials.' + metric.key | translate }}</dt>
+          <dd class="mt-1 text-2xl font-bold tabular-nums text-text-primary">
+            @if (metric.valueKey) {
+              {{ metric.valueKey | translate: metric.params }}
+            } @else {
+              {{ metric.value }}
+            }
+          </dd>
+          <dd class="mt-1 text-xs leading-relaxed text-text-tertiary">{{ 'financials.' + metric.key + 'Hint' | translate }}</dd>
+        </div>
+      }
+    </dl>
 
-      <div class="glass-card p-5">
-        <h3 class="mb-4 text-label font-semibold text-ink-muted">
-          {{ 'financials.trajectory' | translate }}
-        </h3>
-        <sim-cashflow-chart
-          [points]="financials.points"
-          [currency]="financials.currency"
-          [breakEvenMonth]="financials.breakEvenMonth"
-        />
-      </div>
+    <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      @for (metric of secondary(); track metric.key) {
+        <div class="glass-card p-4">
+          <dt class="text-sm text-text-secondary">{{ 'financials.' + metric.key | translate }}</dt>
+          <dd class="mt-1 text-lg font-bold tabular-nums text-text-primary">{{ metric.value }}</dd>
+        </div>
+      }
+    </dl>
+
+    <section class="glass-card p-5" aria-labelledby="fi-chart">
+      <h2 id="fi-chart" class="text-lg font-semibold">{{ 'financials.trajectory' | translate }}</h2>
+      <p class="mb-4 mt-1 text-sm text-text-secondary">{{ 'financials.trajectoryBody' | translate }}</p>
+      <sim-cashflow-chart
+        [points]="financials.points"
+        [currency]="financials.currency"
+        [breakEvenMonth]="financials.breakEvenMonth"
+      />
     </section>
 
     @if (result(); as result) {
-      @if (result.sensitivity.length) {
-        <section class="flex flex-col gap-4">
+      @if (result.conditions.length) {
+        <section class="flex flex-col gap-4" aria-labelledby="fi-goals">
           <div>
-            <h2 class="text-h2 font-semibold text-ink">{{ 'financials.sensitivity' | translate }}</h2>
-            <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-              {{ 'financials.sensitivityBody' | translate }}
-            </p>
+            <h2 id="fi-goals" class="text-xl font-bold">{{ 'financials.conditions' | translate }}</h2>
+            <p class="mt-1 text-sm text-text-secondary">{{ 'financials.conditionsBody' | translate }}</p>
+          </div>
+          <ul class="flex flex-col gap-3">
+            @for (condition of result.conditions; track condition.id) {
+              <li class="glass-card flex items-start gap-3 p-4">
+                <span
+                  class="grid size-8 shrink-0 place-items-center rounded-full"
+                  [style.background]="condition.met === true ? 'var(--color-success)' : condition.met === false ? 'var(--color-danger)' : 'var(--color-surface-3)'"
+                  aria-hidden="true"
+                >
+                  <i
+                    class="pi text-sm"
+                    [class.pi-check]="condition.met === true"
+                    [class.pi-times]="condition.met === false"
+                    [class.pi-question]="condition.met === null"
+                    [style.color]="condition.met === null ? 'var(--color-text-secondary)' : 'var(--color-on-primary)'"
+                  ></i>
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-base font-semibold text-text-primary">{{ condition.label }}</p>
+                  <p class="mt-0.5 text-sm text-text-secondary">
+                    {{ 'financials.goal' | translate }} : <strong class="font-semibold text-text-primary">{{ condition.threshold }}</strong>
+                    @if (condition.currentValue) {
+                      · {{ 'financials.today' | translate }} : {{ condition.currentValue }}
+                    }
+                  </p>
+                </div>
+                <span
+                  class="sim-pill shrink-0"
+                  [class.sim-pill--go]="condition.met === true"
+                  [class.sim-pill--stop]="condition.met === false"
+                  [class.sim-pill--muted]="condition.met === null"
+                >
+                  {{ (condition.met === true ? 'condition.met' : condition.met === false ? 'condition.unmet' : 'condition.unknown') | translate }}
+                </span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (result.sensitivity.length) {
+        <section class="flex flex-col gap-4" aria-labelledby="fi-sens">
+          <div>
+            <h2 id="fi-sens" class="text-xl font-bold">{{ 'financials.sensitivity' | translate }}</h2>
+            <p class="mt-1 text-sm text-text-secondary">{{ 'financials.sensitivityBody' | translate }}</p>
           </div>
           <div class="glass-card p-5">
             <sim-sensitivity-chart [entries]="result.sensitivity" />
           </div>
-        </section>
-      }
-
-      @if (result.conditions.length) {
-        <section class="flex flex-col gap-4">
-          <div>
-            <h2 class="text-h2 font-semibold text-ink">{{ 'financials.conditions' | translate }}</h2>
-            <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-              {{ 'financials.conditionsBody' | translate }}
-            </p>
-          </div>
-          <ul class="divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
-            @for (condition of result.conditions; track condition.id) {
-              <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 p-4">
-                <div class="min-w-0">
-                  <p class="text-sm font-medium text-ink">{{ condition.label }}</p>
-                  <p class="mt-0.5 text-meta text-ink-subtle">{{ condition.threshold }}</p>
-                </div>
-                <div class="flex items-center gap-3">
-                  @if (condition.currentValue) {
-                    <span class="text-sm tabular-nums text-ink-muted">{{ condition.currentValue }}</span>
-                  }
-                  <span
-                    class="inline-flex items-center gap-1.5 text-meta font-semibold"
-                    [class.text-verdict-go]="condition.met === true"
-                    [class.text-verdict-stop]="condition.met === false"
-                    [class.text-ink-subtle]="condition.met === null"
-                  >
-                    <span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
-                    {{
-                      (condition.met === true
-                        ? 'condition.met'
-                        : condition.met === false
-                          ? 'condition.unmet'
-                          : 'condition.unknown') | translate
-                    }}
-                  </span>
-                </div>
-              </li>
-            }
-          </ul>
         </section>
       }
     }
@@ -98,5 +103,11 @@
     <sim-disclaimer-note />
   </div>
 } @else {
-  <p class="glass-card p-6 text-sm text-ink-muted">{{ 'financials.pending' | translate }}</p>
+  <div class="glass-card">
+    <sim-empty-state
+      illustration="calabash-empty"
+      [heading]="'financials.heading' | translate"
+      [body]="'financials.pending' | translate"
+    />
+  </div>
 }

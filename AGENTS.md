@@ -153,9 +153,30 @@ Choisir l'élément par le **sens**, jamais par le décor :
 | Retour en arrière, page introuvable | Sankofa (poids akan en forme d'oiseau qui se retourne) |
 | Réseau, diagramme | Filet de pêche (épervier) |
 | Étapes, progression guidée | Échelle dogon |
+| Vérifier sur le terrain, tester en vrai | Daba (houe ouest-africaine à lame plate) |
+| S'abriter des imprévus, protéger d'une crise | Kyinie (ombrelle d'apparat akan, « le roi couvre ») |
 
-Si aucun élément de la table ne convient, en choisir un autre de la même
-nature (objet, outil, architecture, végétal, jeu) et l'ajouter ici.
+### Quand aucun objet ne colle : chercher, dessiner, ajouter
+
+**Ne pas recycler un objet qui dit autre chose.** Reprendre le grenier ou le van
+« parce qu'ils existent déjà » sur un écran dont le sens est différent est un
+défaut, au même titre qu'une icône générique. Si aucun élément de la table ni
+de `docs/ILLUSTRATIONS.md` ne dit exactement ce que dit l'écran :
+
+1. **Chercher sur internet** un élément réel de la culture africaine (objet,
+   outil, architecture, végétal, jeu, symbole adinkra porté par un objet) dont
+   le sens d'usage correspond à l'écran. Vérifier ce sens dans au moins une
+   source sérieuse (encyclopédie, musée, ouvrage d'ethnographie) et écarter
+   tout objet sacré ou rituel.
+2. **Dessiner son SVG** selon les règles ci-dessous (au trait, deux encres,
+   motifs à l'intérieur de l'objet), dans le composant d'illustration de
+   l'application concernée.
+3. **L'ajouter au répertoire** : une ligne dans la table ci-dessus, une ligne
+   dans le vocabulaire de `docs/ILLUSTRATIONS.md` avec sa source, et l'écran
+   qui l'utilise dans la section de l'application.
+
+Un même objet peut servir à plusieurs écrans **seulement** s'ils disent la même
+chose.
 
 **Ce qui est interdit :** masques et objets sacrés, animaux de safari, huttes au
 coucher du soleil, silhouette du continent par défaut, motifs ethniques plaqués
@@ -212,6 +233,7 @@ d'IDEM.
 - [ ] Chaque `<input>` a un `type`.
 - [ ] Chaque appel réseau a son `<idem-loader>` ou son squelette.
 - [ ] Chaque illustration représente un élément africain qui dit ce que dit l'écran (§ 4).
+- [ ] Aucun objet recyclé pour un sens qu'il ne porte pas ; tout nouvel objet est sourcé et ajouté à `docs/ILLUSTRATIONS.md`.
 - [ ] Aucune page vide, aucun grand blanc, aucun texte de remplissage.
 
 Dire ce qui n'a pas été fait. Un périmètre réduit en silence est pire qu'un

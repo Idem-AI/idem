@@ -1,10 +1,13 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { LanguageService } from '../../../../core/i18n/language.service';
 import { TranslatePipe } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
+import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
+import { severityTone } from '../../ui/tones';
 import { CashflowChart } from '../../components/cashflow-chart/cashflow-chart';
 import { EvidenceChip } from '../../components/evidence-chip/evidence-chip';
 import { FactorImpactList } from '../../components/factor-impact-list/factor-impact-list';
@@ -52,7 +55,10 @@ interface ReportRow {
     SensitivityChart,
     CashflowChart,
     EvidenceChip,
-    DisclaimerNote, IdemLoaderComponent],
+    DisclaimerNote,
+    EmptyState,
+    IdemLoaderComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-report.html',
 })
@@ -66,6 +72,8 @@ export class SimulationReportPage {
   protected readonly loading = signal(true);
   protected readonly failed = signal(false);
   protected readonly downloading = this.reportDownload.downloading;
+  protected readonly tone = severityTone;
+  protected readonly lang = inject(LanguageService).language;
 
   protected readonly sections: readonly ReportSection[] = [
     { id: 'summary', labelKey: 'report.section.summary' },

@@ -1,41 +1,30 @@
 <div class="flex flex-col gap-8">
-  <section class="flex flex-col gap-4">
-    <div class="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'scenarios.heading' | translate }}</h2>
-        <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-          {{ 'scenarios.body' | translate }}
-        </p>
-      </div>
-      @if (survivalRate() !== null) {
-        <p class="rounded-xl border border-line bg-panel-sunken px-4 py-2.5 text-meta text-ink-muted">
-          {{ 'scenarios.survival' | translate: { percent: survivalRate() } }}
-        </p>
-      }
-    </div>
+  <sim-page-header
+    [heading]="'scenarios.heading' | translate"
+    [description]="'scenarios.body' | translate"
+  />
 
-    <div class="glass-card p-5">
-      <sim-scenario-table
-        [scenarios]="combinations()"
-        [caption]="'scenarios.heading' | translate"
-      />
+  @if (survivalRate() !== null) {
+    <div class="glass-card flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
+      <p class="text-4xl font-bold tabular-nums text-text-primary">{{ survived() }}<span class="text-lg font-normal text-text-tertiary"> / {{ evaluated() }}</span></p>
+      <p class="text-base text-text-secondary">{{ 'scenarios.survival' | translate: { percent: survivalRate() } }}</p>
     </div>
-  </section>
+  }
+
+  @if (combinations().length) {
+    <section class="flex flex-col gap-4" aria-labelledby="sc-usual">
+      <h2 id="sc-usual" class="text-xl font-bold">{{ 'scenarios.usual' | translate }}</h2>
+      <sim-scenario-table [scenarios]="combinations()" [caption]="'scenarios.usual' | translate" />
+    </section>
+  }
 
   @if (stressTests().length) {
-    <section class="flex flex-col gap-4">
+    <section class="flex flex-col gap-4" aria-labelledby="sc-stress">
       <div>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'scenarios.stress' | translate }}</h2>
-        <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-          {{ 'scenarios.stressBody' | translate }}
-        </p>
+        <h2 id="sc-stress" class="text-xl font-bold">{{ 'scenarios.stress' | translate }}</h2>
+        <p class="mt-1 text-sm text-text-secondary">{{ 'scenarios.stressBody' | translate }}</p>
       </div>
-      <div class="glass-card p-5">
-        <sim-scenario-table
-          [scenarios]="stressTests()"
-          [caption]="'scenarios.stress' | translate"
-        />
-      </div>
+      <sim-scenario-table [scenarios]="stressTests()" [caption]="'scenarios.stress' | translate" />
     </section>
   }
 

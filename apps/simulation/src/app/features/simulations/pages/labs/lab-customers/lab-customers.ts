@@ -3,6 +3,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { LabPanel } from '../../../components/lab-panel/lab-panel';
 import { SimulationStore } from '../../../data-access';
+import { formatMoney } from '../../../ui/tones';
 
 const WIDTH = 640;
 const HEIGHT = 200;
@@ -22,6 +23,20 @@ export class LabCustomers {
 
   protected readonly viewBox = `0 0 ${WIDTH} ${HEIGHT}`;
   protected readonly report = computed(() => this.store.labs().customers ?? null);
+  protected readonly panelSize = computed(() =>
+    (this.report()?.panelSize ?? 0).toLocaleString('fr-FR'),
+  );
+
+  protected readonly money = formatMoney;
+
+  protected percent(fraction: number, digits = 1): string {
+    return `${(fraction * 100).toFixed(digits).replace('.', ',')} %`;
+  }
+
+  /** Une sensibilité au prix lue en mots : faible, moyenne ou forte. */
+  protected level(value: number): 'low' | 'medium' | 'high' {
+    return value >= 0.66 ? 'high' : value >= 0.33 ? 'medium' : 'low';
+  }
 
   /** Points de la courbe revenu/prix, normalisés dans le repère du SVG. */
   protected readonly curve = computed(() => {

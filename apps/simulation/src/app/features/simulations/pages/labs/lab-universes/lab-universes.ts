@@ -17,4 +17,15 @@ import { SimulationStore } from '../../../data-access';
 export class LabUniverses {
   private readonly store = inject(SimulationStore);
   protected readonly report = computed(() => this.store.labs().universes ?? null);
+
+  /** La meilleure option en premier, puis par note décroissante. */
+  protected readonly sorted = computed(() => {
+    const report = this.report();
+    if (!report) return [];
+    return [...report.universes].sort(
+      (a, b) =>
+        Number(b.id === report.bestUniverseId) - Number(a.id === report.bestUniverseId) ||
+        (b.outcome?.viability ?? 0) - (a.outcome?.viability ?? 0),
+    );
+  });
 }

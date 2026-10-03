@@ -3,8 +3,16 @@ import { DOCUMENT, Injectable, computed, effect, inject, signal } from '@angular
 export type ThemePreference = 'system' | 'dark' | 'light';
 export type ResolvedTheme = 'dark' | 'light';
 
-/** Must match the pre-paint script in index.html. */
-const STORAGE_KEY = 'idem_simulation_theme';
+/**
+ * Le cookie de thème commun à toutes les applications IDEM (dashboard,
+ * iDeploy, AppGen) : changer de thème ici le change partout. Même contrat que
+ * `apps/main-dashboard/src/app/shared/utils/theme-cookie.ts`.
+ */
+const COOKIE_NAME = 'idem_theme';
+const ONE_YEAR_SECONDS = 31_536_000;
+
+/** Ancienne clé locale du simulateur, lue une fois pour ne pas perdre le choix. */
+const LEGACY_STORAGE_KEY = 'idem_simulation_theme';
 
 /**
  * Thème clair/sombre de toute l'application.
@@ -17,7 +25,7 @@ export class ThemeService {
   private readonly document = inject(DOCUMENT);
   private readonly systemPrefersLight = signal(false);
 
-  readonly preference = signal<ThemePreference>(this.readStoredPreference());
+  readonly preference = signal<ThemePreference>(this.readPreference());
 
   readonly theme = computed<ResolvedTheme>(() => {
     const preference = this.preference();
@@ -28,46 +36,68 @@ export class ThemeService {
   });
 
   constructor() {
-    const media = this.document.defaultView?.matchMedia('(prefers-color-scheme: light)');
+    const view = this.document.defaultView;
+    const media = view?.matchMedia('(prefers-color-scheme: light)');
     if (media) {
       this.systemPrefersLight.set(media.matches);
       media.addEventListener('change', (event) => this.systemPrefersLight.set(event.matches));
     }
 
+    // Un autre onglet IDEM a pu changer le thème pendant que celui-ci était caché.
+    this.document.addEventListener('visibilitychange', () => {
+      if (this.document.visibilityState === 'visible') {
+        const shared = this.readCookie();
+        if (shared && shared !== this.preference()) {
+          this.preference.set(shared);
+        }
+      }
+    });
+
     effect(() => {
       const theme = this.theme();
       const root = this.document.documentElement;
-      // Le design system bascule sur les classes `.dark` / `.light` ;
-      // `data-theme` est lu par les règles de `styles.css`.
       root.dataset['theme'] = theme;
       root.classList.toggle('dark', theme === 'dark');
       root.classList.toggle('light', theme === 'light');
+      root.style.colorScheme = theme;
     });
   }
 
   set(preference: ThemePreference): void {
     this.preference.set(preference);
-    try {
-      this.document.defaultView?.localStorage.setItem(STORAGE_KEY, preference);
-    } catch {
-      // Storage can be blocked; the choice still applies for this session.
-    }
+    this.writeCookie(preference);
   }
 
-  /** Flips to the opposite of what is currently on screen. */
+  /** Passe au thème opposé à celui qui est à l'écran. */
   toggle(): void {
     this.set(this.theme() === 'dark' ? 'light' : 'dark');
   }
 
-  private readStoredPreference(): ThemePreference {
+  private readPreference(): ThemePreference {
+    const shared = this.readCookie();
+    if (shared) {
+      return shared;
+    }
     try {
-      const stored = this.document.defaultView?.localStorage.getItem(STORAGE_KEY);
-      if (stored === 'dark' || stored === 'light' || stored === 'system') {
-        return stored;
+      const legacy = this.document.defaultView?.localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacy === 'dark' || legacy === 'light') {
+        return legacy;
       }
     } catch {
-      // Fall through to the system default.
+      // Stockage bloqué : on suit le système.
     }
     return 'system';
+  }
+
+  private readCookie(): ThemePreference | null {
+    const match = this.document.cookie.match(/(?:^|;\s*)idem_theme=([^;]+)/);
+    const value = match ? decodeURIComponent(match[1]) : null;
+    return value === 'light' || value === 'dark' || value === 'system' ? value : null;
+  }
+
+  private writeCookie(preference: ThemePreference): void {
+    const host = this.document.location?.hostname ?? '';
+    const scope = host.endsWith('idem.africa') ? '; domain=.idem.africa; Secure' : '';
+    this.document.cookie = `${COOKIE_NAME}=${preference}; path=/; max-age=${ONE_YEAR_SECONDS}; SameSite=Lax${scope}`;
   }
 }

@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
+import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { EvidenceChip } from '../../components/evidence-chip/evidence-chip';
+import { Tone } from '../../ui/tones';
 import { SimulationStore } from '../../data-access';
 import { KnowledgeState, groupKnowledge } from '../../models';
 
@@ -12,7 +15,7 @@ import { KnowledgeState, groupKnowledge } from '../../models';
  */
 @Component({
   selector: 'sim-simulation-understanding',
-  imports: [TranslatePipe, EvidenceChip],
+  imports: [TranslatePipe, EvidenceChip, PageHeader, EmptyState],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-understanding.html',
 })
@@ -71,6 +74,17 @@ export class SimulationUnderstanding {
 
   /** Ce que la source dit et qu'aucun champ du profil n'accueille. */
   protected readonly extras = computed(() => this.understanding()?.extras ?? []);
+
+  /** Sûr en vert, à chercher en bleu, estimé en orange, manquant en rouge. */
+  protected knowledgeTone(state: KnowledgeState): Tone {
+    return state === 'known'
+      ? 'go'
+      : state === 'researchable'
+        ? 'info'
+        : state === 'uncertain'
+          ? 'warn'
+          : 'stop';
+  }
 
   /** La phrase de catégorie nomme la source réellement lue. */
   protected knowledgeHintKey(state: KnowledgeState): string {

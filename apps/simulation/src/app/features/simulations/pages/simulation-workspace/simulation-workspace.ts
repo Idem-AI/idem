@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, effect, inject, input, untracked } 
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
 import { SimulationStore } from '../../data-access';
 
 /**
@@ -13,7 +14,7 @@ import { SimulationStore } from '../../data-access';
  */
 @Component({
   selector: 'sim-simulation-workspace',
-  imports: [RouterOutlet, RouterLink, TranslatePipe],
+  imports: [RouterOutlet, RouterLink, TranslatePipe, EmptyState],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-workspace.html',
 })

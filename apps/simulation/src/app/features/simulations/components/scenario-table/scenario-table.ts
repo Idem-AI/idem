@@ -6,117 +6,107 @@ import { Scenario, ScenarioKind } from '../../models';
 const KIND_ORDER: ScenarioKind[] = ['baseline', 'favourable', 'adverse', 'stress', 'extreme'];
 
 /**
- * Les scénarios en table, pas en cartes : on compare des nombres d'une ligne à
- * l'autre, et une grille de cartes rend cette comparaison plus difficile.
+ * Les situations testées, une carte par situation.
+ *
+ * Une table de six colonnes défilait de côté sur téléphone et demandait de
+ * savoir lire « point mort » ou « autonomie ». Chaque carte dit d'abord si le
+ * projet tient, en toutes lettres, puis les deux chiffres qui comptent ; le
+ * détail s'ouvre sur demande.
  */
 @Component({
   selector: 'sim-scenario-table',
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="overflow-x-auto">
-      <table class="w-full min-w-[42rem] border-collapse text-sm">
-        <caption class="sr-only">{{ caption() }}</caption>
-        <thead>
-          <tr class="border-b border-line text-left">
-            <th scope="col" class="py-2 pr-4 font-medium text-ink-subtle">
-              {{ 'scenario.name' | translate }}
-            </th>
-            <th scope="col" class="py-2 pr-4 font-medium text-ink-subtle">
-              {{ 'scenario.kind' | translate }}
-            </th>
-            <th scope="col" class="py-2 pr-4 text-right font-medium text-ink-subtle">
-              {{ 'scenario.viability' | translate }}
-            </th>
-            <th scope="col" class="py-2 pr-4 text-right font-medium text-ink-subtle">
-              {{ 'scenario.breakEven' | translate }}
-            </th>
-            <th scope="col" class="py-2 pr-4 text-right font-medium text-ink-subtle">
-              {{ 'scenario.runway' | translate }}
-            </th>
-            <th scope="col" class="py-2 font-medium text-ink-subtle">
-              {{ 'scenario.holds' | translate }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (scenario of sorted(); track scenario.id) {
-            <tr class="border-b border-line align-top last:border-0">
-              <td class="py-3 pr-4">
-                <button
-                  type="button"
-                  class="text-left font-medium text-ink underline-offset-4 hover:underline"
-                  [attr.aria-expanded]="expanded() === scenario.id"
-                  (click)="toggle(scenario.id)"
-                >
-                  {{ scenario.name }}
-                </button>
-                <p class="mt-0.5 max-w-[40ch] text-meta leading-relaxed text-ink-subtle">
-                  {{ scenario.question }}
-                </p>
+    <ul class="flex flex-col gap-3" [attr.aria-label]="caption()">
+      @for (scenario of sorted(); track scenario.id) {
+        <li class="glass-card p-4 sm:p-5">
+          <div class="flex flex-wrap items-center gap-2">
+            @if (scenario.outcome; as outcome) {
+              <span class="sim-pill" [class.sim-pill--go]="outcome.survives" [class.sim-pill--stop]="!outcome.survives">
+                <i class="pi text-xs" [class.pi-check]="outcome.survives" [class.pi-times]="!outcome.survives" aria-hidden="true"></i>
+                {{ (outcome.survives ? 'scenario.holdsYes' : 'scenario.holdsNo') | translate }}
+              </span>
+            } @else {
+              <span class="sim-pill sim-pill--muted">{{ 'scenario.notComputed' | translate }}</span>
+            }
+            <span class="text-xs text-text-tertiary">{{ 'scenarioKind.' + scenario.kind | translate }}</span>
+          </div>
 
-                @if (expanded() === scenario.id) {
-                  <div class="rise mt-2.5 rounded-lg border border-line bg-panel-sunken p-3">
-                    @if (scenario.shifts.length) {
-                      <ul class="mb-2 flex flex-col gap-1">
-                        @for (shift of scenario.shifts; track shift.factorId + shift.label) {
-                          <li class="flex items-baseline justify-between gap-3 text-meta">
-                            <span class="text-ink-muted">{{ shift.label }}</span>
-                            <span class="font-semibold tabular-nums text-ink">{{ shift.delta }}</span>
-                          </li>
-                        }
-                      </ul>
-                    }
-                    @if (scenario.outcome; as outcome) {
-                      <p class="max-w-[65ch] text-meta leading-relaxed text-ink-muted">
-                        {{ outcome.narrative }}
-                      </p>
-                    }
-                  </div>
-                }
-              </td>
-              <td class="py-3 pr-4 text-ink-muted">
-                {{ 'scenarioKind.' + scenario.kind | translate }}
-              </td>
+          <h3 class="mt-2.5 text-base font-semibold">{{ scenario.name }}</h3>
+          @if (scenario.question) {
+            <p class="mt-0.5 text-sm leading-relaxed text-text-secondary">{{ scenario.question }}</p>
+          }
 
-              @if (scenario.outcome; as outcome) {
-                <td class="py-3 pr-4 text-right font-semibold tabular-nums text-ink">
-                  {{ outcome.viability }}
-                </td>
-                <td class="py-3 pr-4 text-right tabular-nums text-ink-muted">
+          @if (scenario.outcome; as outcome) {
+            <dl class="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-[var(--glass-bg-subtle)] p-3">
+              <div>
+                <dt class="text-xs text-text-tertiary">{{ 'scenario.viability' | translate }}</dt>
+                <dd class="text-base font-bold tabular-nums text-text-primary">{{ outcome.viability }}<span class="text-xs font-normal text-text-tertiary">/100</span></dd>
+              </div>
+              <div>
+                <dt class="text-xs text-text-tertiary">{{ 'scenario.breakEven' | translate }}</dt>
+                <dd class="text-sm font-semibold text-text-primary">
                   {{
                     outcome.breakEvenMonth === null
                       ? ('scenario.never' | translate)
                       : ('scenario.monthN' | translate: { month: outcome.breakEvenMonth })
                   }}
-                </td>
-                <td class="py-3 pr-4 text-right tabular-nums text-ink-muted">
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs text-text-tertiary">{{ 'scenario.runway' | translate }}</dt>
+                <dd class="text-sm font-semibold text-text-primary">
                   {{
                     outcome.runwayMonths === null
-                      ? '—'
+                      ? ('scenario.enough' | translate)
                       : ('scenario.monthsN' | translate: { months: outcome.runwayMonths })
                   }}
-                </td>
-                <td class="py-3">
-                  <span
-                    class="inline-flex items-center gap-1.5 text-meta font-semibold"
-                    [class.text-verdict-go]="outcome.survives"
-                    [class.text-verdict-stop]="!outcome.survives"
-                  >
-                    <span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
-                    {{ (outcome.survives ? 'scenario.holdsYes' : 'scenario.holdsNo') | translate }}
-                  </span>
-                </td>
-              } @else {
-                <td class="py-3 pr-4 text-right text-ink-subtle" colspan="4">
-                  {{ 'scenario.notComputed' | translate }}
-                </td>
-              }
-            </tr>
+                </dd>
+              </div>
+            </dl>
           }
-        </tbody>
-      </table>
-    </div>
+
+          @if (scenario.shifts.length || scenario.outcome?.narrative) {
+            <button
+              type="button"
+              class="sim-link mt-3"
+              [attr.aria-expanded]="expanded() === scenario.id"
+              (click)="toggle(scenario.id)"
+            >
+              {{ (expanded() === scenario.id ? 'action.seeLess' : 'action.seeMore') | translate }}
+              <i class="pi text-xs" [class.pi-chevron-down]="expanded() !== scenario.id" [class.pi-chevron-up]="expanded() === scenario.id" aria-hidden="true"></i>
+            </button>
+          }
+
+          @if (expanded() === scenario.id) {
+            <div class="rise mt-3 flex flex-col gap-3 border-t border-[var(--glass-border-subtle)] pt-3">
+              @if (scenario.shifts.length) {
+                <div>
+                  <p class="text-sm font-semibold text-text-primary">{{ 'scenario.changes' | translate }}</p>
+                  <ul class="mt-1.5 flex flex-col gap-1">
+                    @for (shift of scenario.shifts; track shift.factorId + shift.label) {
+                      <li class="flex items-baseline justify-between gap-3 text-sm">
+                        <span class="text-text-secondary">{{ shift.label }}</span>
+                        <span class="font-semibold tabular-nums text-text-primary">{{ shift.delta }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+              @if (scenario.outcome; as outcome) {
+                @if (outcome.narrative) {
+                  <div>
+                    <p class="text-sm font-semibold text-text-primary">{{ 'scenario.whatHappens' | translate }}</p>
+                    <p class="mt-1 text-sm leading-relaxed text-text-secondary">{{ outcome.narrative }}</p>
+                  </div>
+                }
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
   `,
 })
 export class ScenarioTable {

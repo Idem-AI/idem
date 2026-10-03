@@ -49,7 +49,7 @@ interface PlottedPoint {
               [attr.x]="padding.left - 8"
               [attr.y]="tick.y + 3"
               text-anchor="end"
-              class="fill-ink-subtle"
+              class="fill-text-tertiary"
               style="font-size: 10px"
             >
               {{ tick.label }}
@@ -81,7 +81,7 @@ interface PlottedPoint {
           <text
             [attr.x]="x + 5"
             [attr.y]="padding.top + 10"
-            class="fill-verdict-go"
+            class="fill-success"
             style="font-size: 10px; font-weight: 600"
           >
             {{ 'report.financials.breakEven' | translate }}
@@ -93,7 +93,7 @@ interface PlottedPoint {
             [attr.x]="tick.x"
             [attr.y]="height - 8"
             text-anchor="middle"
-            class="fill-ink-subtle"
+            class="fill-text-tertiary"
             style="font-size: 10px"
           >
             {{ 'report.financials.monthShort' | translate: { month: tick.month } }}
@@ -122,18 +122,18 @@ interface PlottedPoint {
 
       @if (hovered(); as active) {
         <div
-          class="pointer-events-none absolute top-2 rounded-lg border border-line bg-panel-raised px-2.5 py-1.5 text-meta shadow-raised"
+          class="pointer-events-none absolute top-2 rounded-lg border border-[var(--glass-border)] bg-surface-1 px-2.5 py-1.5 text-xs shadow-lg"
           [style.left.%]="(active.x / width) * 100"
           [style.transform]="'translateX(-50%)'"
         >
-          <p class="font-semibold text-ink">
+          <p class="font-semibold text-text-primary">
             {{ 'report.financials.monthShort' | translate: { month: active.point.month } }}
           </p>
-          <p class="tabular-nums text-ink-muted">{{ format(active.point.cash) }}</p>
+          <p class="tabular-nums text-text-secondary">{{ format(active.point.cash) }}</p>
         </div>
       }
 
-      <figcaption class="mt-2 text-meta text-ink-subtle">
+      <figcaption class="mt-2 text-xs text-text-tertiary">
         {{ 'report.financials.chartCaption' | translate: { currency: currency() } }}
       </figcaption>
     </figure>

@@ -13,56 +13,41 @@ import { Evidence } from '../../models';
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-      <span class="text-sm font-semibold text-ink">{{ evidence().value }}</span>
-      <span
-        class="inline-flex items-center rounded border px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase"
-        [class]="kindClasses()"
-      >
-        {{ 'evidenceKind.' + evidence().kind | translate }}
-      </span>
-      <span class="text-meta text-ink-subtle">
-        {{ 'result.confidence' | translate }}:
-        {{ 'confidence.' + evidence().confidence | translate }}
-      </span>
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+      <span class="text-base font-semibold text-text-primary">{{ evidence().value }}</span>
+      <span [class]="'sim-pill sim-pill--' + tone()">{{ 'evidenceKind.' + evidence().kind | translate }}</span>
     </div>
-
-    @if (evidence().source) {
-      <p class="mt-1 text-meta leading-relaxed text-ink-subtle">
+    <p class="mt-1 text-xs leading-relaxed text-text-tertiary">
+      {{ 'evidence.reliability' | translate: { level: ('confidence.' + evidence().confidence | translate) } }}
+      @if (evidence().source) {
+        ·
         @if (evidence().sourceUrl) {
-          <a
-            [href]="evidence().sourceUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline underline-offset-2 hover:text-ink-muted"
-          >
-            {{ evidence().source }}
-          </a>
+          <a [href]="evidence().sourceUrl" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-text-secondary">{{ evidence().source }}</a>
         } @else {
           {{ evidence().source }}
         }
-        @if (evidence().asOf) {
-          <span class="text-ink-subtle"> · {{ evidence().asOf }}</span>
-        }
-      </p>
-    }
-
+      }
+      @if (evidence().asOf) {
+        · {{ evidence().asOf }}
+      }
+    </p>
     @if (evidence().note) {
-      <p class="mt-1 text-meta leading-relaxed text-ink-subtle">{{ evidence().note }}</p>
+      <p class="mt-1 text-sm leading-relaxed text-text-secondary">{{ evidence().note }}</p>
     }
   `,
 })
 export class EvidenceChip {
   readonly evidence = input.required<Evidence>();
 
-  protected readonly kindClasses = computed(() => {
+  /** Vérifié en vert, estimé en bleu, supposé en orange : toujours avec le mot. */
+  protected readonly tone = computed(() => {
     switch (this.evidence().kind) {
       case 'data':
-        return 'border-verdict-go/40 text-verdict-go';
+        return 'go';
       case 'estimate':
-        return 'border-verdict-info/40 text-verdict-info';
+        return 'info';
       default:
-        return 'border-verdict-warn/40 text-verdict-warn';
+        return 'warn';
     }
   });
 }

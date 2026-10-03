@@ -24,13 +24,13 @@ const ARC_LENGTH = Math.PI * 80;
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <figure class="flex flex-col items-center gap-1">
-      <svg viewBox="0 0 200 116" class="w-full max-w-[15rem]" role="img" [attr.aria-label]="label()">
+    <figure class="flex flex-col items-center gap-2">
+      <svg viewBox="0 0 200 116" class="w-full max-w-[16rem]" role="img" [attr.aria-label]="label()">
         <path
           d="M 20 100 A 80 80 0 0 1 180 100"
           fill="none"
           stroke="var(--color-surface-3)"
-          stroke-width="14"
+          stroke-width="16"
           stroke-linecap="round"
         />
         @if (hasRange()) {
@@ -38,8 +38,8 @@ const ARC_LENGTH = Math.PI * 80;
             d="M 20 100 A 80 80 0 0 1 180 100"
             fill="none"
             stroke="var(--color-primary)"
-            stroke-opacity="0.22"
-            stroke-width="14"
+            stroke-opacity="0.18"
+            stroke-width="16"
             [attr.stroke-dasharray]="bandDash()"
             [attr.stroke-dashoffset]="bandOffset()"
           />
@@ -48,48 +48,34 @@ const ARC_LENGTH = Math.PI * 80;
           d="M 20 100 A 80 80 0 0 1 180 100"
           fill="none"
           [attr.stroke]="strokeColour()"
-          stroke-width="14"
+          stroke-width="16"
           stroke-linecap="round"
           [attr.stroke-dasharray]="valueDash()"
         />
-        <text
-          x="100"
-          y="88"
-          text-anchor="middle"
-          class="fill-ink"
-          style="font-size: 34px; font-weight: 700;"
-        >
+        <text x="100" y="88" text-anchor="middle" style="font-size: 40px; font-weight: 800; fill: var(--color-text-primary)">
           {{ value() }}
         </text>
-        <text x="100" y="108" text-anchor="middle" class="fill-ink-subtle" style="font-size: 11px">
-          / 100
+        <text x="100" y="110" text-anchor="middle" style="font-size: 12px; fill: var(--color-text-tertiary)">
+          {{ 'result.outOf' | translate }}
         </text>
       </svg>
 
-      <figcaption class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-meta">
-        <span class="text-ink-subtle">
-          {{ 'result.shockResistance' | translate }}
-          <span class="ml-1 font-semibold text-ink-muted">
-            {{ 'robustness.' + robustness() | translate }}
-          </span>
+      <figcaption class="flex flex-wrap items-center justify-center gap-2">
+        <span class="tag">
+          {{ 'result.shockResistance' | translate }} :
+          <strong class="font-semibold">{{ 'robustness.' + robustness() | translate }}</strong>
         </span>
-        <span class="text-ink-subtle">
-          {{ 'result.dataConfidence' | translate }}
-          <span class="ml-1 font-semibold text-ink-muted">
-            {{ 'confidence.' + confidence() | translate }}
-          </span>
+        <span class="tag">
+          {{ 'result.dataConfidence' | translate }} :
+          <strong class="font-semibold">{{ 'confidence.' + confidence() | translate }}</strong>
         </span>
       </figcaption>
 
       @if (hasRange()) {
-        <p class="text-meta text-ink-subtle">
+        <p class="text-center text-xs text-text-tertiary">
           {{ 'result.scenarioRange' | translate: { min: rangeMin(), max: rangeMax() } }}
         </p>
       }
-
-      <p class="max-w-[42ch] text-center text-meta text-ink-subtle">
-        {{ 'result.indexCeiling' | translate: { ceiling: ceiling } }}
-      </p>
     </figure>
   `,
 })

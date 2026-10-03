@@ -2,10 +2,10 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 /**
- * The mandatory caveat on every surface that shows a simulated number.
+ * La mise en garde obligatoire sous toute note simulée.
  *
- * It is a component rather than copy-pasted markup so it cannot drift, and so
- * it cannot be forgotten on a screen that shows a score.
+ * Un composant plutôt qu'un texte recopié : elle ne peut ni dériver ni être
+ * oubliée sur un écran qui affiche un résultat.
  */
 @Component({
   selector: 'sim-disclaimer-note',
@@ -13,42 +13,27 @@ import { TranslatePipe } from '@ngx-translate/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (compact()) {
-      <p class="text-meta leading-relaxed text-ink-subtle">
+      <p class="flex items-start gap-2 text-xs leading-relaxed text-text-tertiary">
+        <i class="pi pi-info-circle mt-0.5 shrink-0" aria-hidden="true"></i>
         {{ 'disclaimer.short' | translate }}
       </p>
     } @else {
       <aside
-        class="rounded-xl border border-line bg-panel-sunken p-4"
+        class="flex items-start gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-4"
         [attr.aria-label]="'disclaimer.heading' | translate"
       >
-        <div class="flex items-start gap-3">
-          <svg
-            viewBox="0 0 24 24"
-            class="mt-0.5 size-4.5 shrink-0 text-verdict-warn"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.7"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 8v5" stroke-linecap="round" />
-            <circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none" />
-          </svg>
-          <div class="space-y-2">
-            <h2 class="text-label font-semibold text-ink">{{ 'disclaimer.heading' | translate }}</h2>
-            <p class="max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-              {{ 'disclaimer.body' | translate }}
-            </p>
-            <p class="max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-              {{ 'disclaimer.bothWays' | translate }}
-            </p>
-          </div>
+        <i class="pi pi-info-circle mt-0.5 shrink-0 text-primary-500" aria-hidden="true"></i>
+        <div class="space-y-1">
+          <p class="text-sm font-semibold text-text-primary">{{ 'disclaimer.heading' | translate }}</p>
+          <p class="max-w-[70ch] text-sm leading-relaxed text-text-secondary">
+            {{ 'disclaimer.body' | translate }} {{ 'disclaimer.bothWays' | translate }}
+          </p>
         </div>
       </aside>
     }
   `,
 })
 export class DisclaimerNote {
-  /** Single-line variant, for placement directly under a score. */
+  /** Une seule ligne, pour une place juste sous une note. */
   readonly compact = input(false);
 }

@@ -43,10 +43,15 @@
 
     <script>
       // Resolve the theme before first paint so the app never flashes the
-      // wrong background. Mirrors ThemeService's storage key and resolution.
+      // wrong background. Same source as ThemeService: the `idem_theme`
+      // cookie shared by every IDEM app, then the former local key.
       (function () {
         try {
-          var stored = localStorage.getItem('idem_simulation_theme');
+          var m = document.cookie.match(/(?:^|;\s*)idem_theme=([^;]+)/);
+          var stored = m ? decodeURIComponent(m[1]) : null;
+          if (stored !== 'light' && stored !== 'dark' && stored !== 'system') {
+            stored = localStorage.getItem('idem_simulation_theme');
+          }
           var theme =
             stored === 'light' || stored === 'dark'
               ? stored
