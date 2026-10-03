@@ -129,7 +129,9 @@ export async function claimPlatformHost(name: string, serverIp: string): Promise
     logger.warn('Platform domain unavailable, keeping the automatic address', {
       event: 'dns.claim_failed',
       name,
-      error: (error as Error).message,
+      // Pas sous la clé `error` : le logger la réserve aux objets Error et
+      // n'affichait alors qu'un « Error: » vide.
+      reason: (error as Error).message,
     });
     return null;
   }

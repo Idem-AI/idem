@@ -27,9 +27,9 @@ describe('reading the zone', () => {
     expect(zone.hosts[3].address).toBe('v=spf1 include:_spf.example.com & ~all');
   });
 
-  it("stops with Namecheap's message on an error answer", () => {
-    const xml = `<ApiResponse Status="ERROR"><Errors><Error Number="1011150">Invalid request IP</Error></Errors></ApiResponse>`;
-    expect(() => parseGetHosts(xml)).toThrow(/Invalid request IP/);
+  it("stops with Namecheap's own sentence on an error answer, not a tag", () => {
+    const xml = `<ApiResponse Status="ERROR"><Errors><Error Number="1011150">Invalid request IP: 129.0.60.35</Error></Errors></ApiResponse>`;
+    expect(() => parseGetHosts(xml)).toThrow('Namecheap refused the request: Invalid request IP: 129.0.60.35');
   });
 });
 

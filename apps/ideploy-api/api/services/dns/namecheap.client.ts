@@ -42,10 +42,18 @@ function attributes(tag: string): Record<string, string> {
   return out;
 }
 
+/**
+ * The message of an error answer. `<Error\b` alone would also match the
+ * `<Errors>` wrapper and return a tag instead of the sentence.
+ */
+function namecheapError(xml: string): string | undefined {
+  return xml.match(/<Error(?:\s[^>]*)?>([^<]*)<\/Error>/i)?.[1]?.trim() || undefined;
+}
+
 /** Parse a `getHosts` answer; throws with Namecheap's own message on an error answer. */
 export function parseGetHosts(xml: string): DnsZone {
   if (!/<ApiResponse[^>]*Status="OK"/i.test(xml)) {
-    const error = xml.match(/<Error[^>]*>([\s\S]*?)<\/Error>/i)?.[1]?.trim();
+    const error = namecheapError(xml);
     throw new Error(`Namecheap refused the request: ${error ? decode(error) : 'unknown error'}`);
   }
   const result = xml.match(/<DomainDNSGetHostsResult[^>]*>/i)?.[0] ?? '';
@@ -130,7 +138,7 @@ export class NamecheapDnsProvider implements DnsProvider {
     });
     const xml = await response.text();
     if (!/<ApiResponse[^>]*Status="OK"/i.test(xml) || !/IsSuccess="true"/i.test(xml)) {
-      const error = xml.match(/<Error[^>]*>([\s\S]*?)<\/Error>/i)?.[1]?.trim();
+      const error = namecheapError(xml);
       throw new Error(`Namecheap did not save the zone: ${error ? decode(error) : 'unknown error'}`);
     }
   }
