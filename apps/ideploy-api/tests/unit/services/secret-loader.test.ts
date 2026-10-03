@@ -59,6 +59,7 @@ beforeEach(() => {
   delete process.env.INFISICAL_ENVIRONMENT;
   delete process.env.DEMO_REQUIRED;
   delete process.env.DEMO_OPTIONAL;
+  delete process.env.NOT_IN_MANIFEST;
 });
 
 afterEach(() => {
@@ -88,11 +89,38 @@ describe('loadSecretsFromManager', () => {
     expect(process.env.DEMO_REQUIRED).toBe('from-dev');
   });
 
-  it('ignores project secrets the manifest does not declare', async () => {
+  it('loads every variable of the project, declared in the manifest or not', async () => {
+    // Moving a variable out of the `.env` into Infisical must be enough: a
+    // manifest that filtered what is read left GitHub sign-in "not configured"
+    // once its client id had been moved.
     store.set('prod:DEMO_REQUIRED', 'r1');
     store.set('prod:NOT_IN_MANIFEST', 'x');
-    await loadSecretsFromManager(manifest, silent);
-    expect(process.env.NOT_IN_MANIFEST).toBeUndefined();
+
+    const result = await loadSecretsFromManager(manifest, silent);
+
+    expect(process.env.NOT_IN_MANIFEST).toBe('x');
+    expect(result.loaded).toEqual(['DEMO_REQUIRED', 'NOT_IN_MANIFEST']);
+  });
+
+  it('logs the names it loaded, never the values', async () => {
+    store.set('prod:DEMO_REQUIRED', 'very-secret-value');
+    const lines: string[] = [];
+    const log = { ...silent, log: (message: string) => lines.push(message) };
+
+    await loadSecretsFromManager(manifest, log);
+
+    expect(lines.join('\n')).toContain('DEMO_REQUIRED');
+    expect(lines.join('\n')).not.toContain('very-secret-value');
+  });
+
+  it('skips keys that cannot be environment variable names', async () => {
+    store.set('prod:DEMO_REQUIRED', 'r1');
+    store.set('prod:not-a-var', 'x');
+
+    const result = await loadSecretsFromManager(manifest, silent);
+
+    expect(result.loaded).toEqual(['DEMO_REQUIRED']);
+    expect(process.env['not-a-var']).toBeUndefined();
   });
 
   it('fails when a required secret is missing', async () => {
