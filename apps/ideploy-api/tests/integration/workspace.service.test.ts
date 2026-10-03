@@ -16,6 +16,7 @@ import { isDomainError } from '../../api/utils/errors';
 import { isTestDatabaseAvailable, testPool, truncateAll } from '../helpers/db';
 import {
   makeApplication,
+  makeDestination,
   makeManagedServer,
   makePrivateKey,
   makeServer,
@@ -58,6 +59,21 @@ async function setPlan(teamId: number, plan: string): Promise<void> {
     teamId,
     plan,
   ]);
+}
+
+/**
+ * Run as production. Outside production, a fleet with no capacity falls back to
+ * the local Docker host on purpose (placeSaasWorkspace); the refusal is the
+ * production behaviour.
+ */
+async function inProduction<T>(fn: () => Promise<T>): Promise<T> {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  try {
+    return await fn();
+  } finally {
+    process.env.NODE_ENV = previous;
+  }
 }
 
 /** Assert a rejection is a DomainError with the expected machine code. */
@@ -123,13 +139,15 @@ describe('createWorkspace — IDEM-managed target', () => {
   it('refuses, with a usable message, when the managed fleet has no capacity', async () => {
     const team = await makeTeam();
 
-    await expectCode(workspaces.createWorkspace(team.id, { name: 'Shop' }), 'NO_MANAGED_CAPACITY');
+    await inProduction(() =>
+      expectCode(workspaces.createWorkspace(team.id, { name: 'Shop' }), 'NO_MANAGED_CAPACITY')
+    );
   });
 
   it('does not leave a workspace behind when placement fails', async () => {
     const team = await makeTeam();
 
-    await workspaces.createWorkspace(team.id, { name: 'Shop' }).catch(() => undefined);
+    await inProduction(() => workspaces.createWorkspace(team.id, { name: 'Shop' }).catch(() => undefined));
 
     expect(await workspaces.listWorkspaces(team.id)).toEqual([]);
   });
@@ -153,6 +171,112 @@ describe('createWorkspace — IDEM-managed target', () => {
     const second = await workspaces.createWorkspace(two.id, { name: 'Shop' });
 
     expect(second.name).toBe('Shop');
+  });
+});
+
+describe('createWorkspace — resource-aware placement', () => {
+  it('places the workspace on the server of the zone with the most free resources', async () => {
+    const team = await makeTeam();
+    // The busy server hosts fewer resources (lower load_score): measured
+    // resources must win over the resource count.
+    await makeManagedServer({
+      name: 'busy',
+      loadScore: 0,
+      resources: { load1m: 3.8, memAvailableMb: 600, diskFreeGb: 20 },
+    });
+    const idle = await makeManagedServer({
+      name: 'idle',
+      loadScore: 30,
+      resources: { load1m: 0.2, memAvailableMb: 7000, diskFreeGb: 90 },
+    });
+
+    const workspace = await workspaces.createWorkspace(team.id, { name: 'Shop' });
+
+    expect(workspace.assignedServerId).toBe(idle.id);
+  });
+
+  it('stays in the requested zone even when another zone has a freer server', async () => {
+    const team = await makeTeam();
+    const local = await makeManagedServer({
+      countryCode: scheduling.DEFAULT_REGION,
+      resources: { load1m: 3, memAvailableMb: 1500 },
+    });
+    await makeManagedServer({ countryCode: 'ZZ', resources: { load1m: 0, memAvailableMb: 8000 } });
+
+    const workspace = await workspaces.createWorkspace(team.id, { name: 'Shop' });
+
+    expect(workspace.assignedServerId).toBe(local.id);
+  });
+
+  it('prefers a measured server to one whose figures are stale', async () => {
+    const team = await makeTeam();
+    await makeManagedServer({
+      name: 'stale',
+      resources: { load1m: 0, memAvailableMb: 8000, ageSeconds: 3600 },
+    });
+    const fresh = await makeManagedServer({ name: 'fresh', resources: { load1m: 2, memAvailableMb: 2000 } });
+
+    const workspace = await workspaces.createWorkspace(team.id, { name: 'Shop' });
+
+    expect(workspace.assignedServerId).toBe(fresh.id);
+  });
+
+  it('skips a server that is almost out of disk', async () => {
+    const team = await makeTeam();
+    await makeManagedServer({ name: 'full-disk', resources: { load1m: 0, memAvailableMb: 8000, diskFreeGb: 3 } });
+    const roomy = await makeManagedServer({ name: 'roomy', resources: { load1m: 3, memAvailableMb: 1000 } });
+
+    const workspace = await workspaces.createWorkspace(team.id, { name: 'Shop' });
+
+    expect(workspace.assignedServerId).toBe(roomy.id);
+  });
+
+  it('refuses with NO_MANAGED_CAPACITY when every server of the fleet is exhausted', async () => {
+    const team = await makeTeam();
+    await makeManagedServer({ resources: { memAvailableMb: 100 } });
+
+    await inProduction(() =>
+      expectCode(workspaces.createWorkspace(team.id, { name: 'Shop' }), 'NO_MANAGED_CAPACITY')
+    );
+  });
+
+  it('refuses a new resource on the workspace server once it is full, instead of moving it', async () => {
+    const team = await makeTeam();
+    const server = await makeManagedServer({ resources: {} });
+    const workspace = await workspaces.createWorkspace(team.id, { name: 'Shop' });
+    expect(workspace.assignedServerId).toBe(server.id);
+
+    await testPool().query('UPDATE servers SET max_applications = 0 WHERE id = $1', [server.id]);
+
+    await expectCode(workspaces.resolveWorkspaceDestination(team.id, workspace.uuid), 'SERVER_AT_CAPACITY');
+  });
+
+  it('does not police a customer-owned server', async () => {
+    const team = await makeTeam();
+    const key = await makePrivateKey(team.id);
+    const own = await makeServer(team.id, key.id);
+    await makeDestination(own.id);
+    await testPool().query('UPDATE servers SET max_applications = 0 WHERE id = $1', [own.id]);
+    const workspace = await workspaces.createWorkspace(team.id, {
+      name: 'Mine',
+      deployment_type: 'own',
+      server_uuid: own.uuid,
+    });
+
+    await expect(workspaces.resolveWorkspaceDestination(team.id, workspace.uuid)).resolves.toBeDefined();
+  });
+
+  it('keeps load_score equal to the number of hosted resources', async () => {
+    const team = await makeTeam();
+    const server = await makeManagedServer({ loadScore: 99 });
+    const workspace = await workspaces.createWorkspace(team.id, { name: 'Shop' });
+    const destination = await workspaces.resolveWorkspaceDestination(team.id, workspace.uuid);
+    await makeApplication(destination.environmentId, destination.destinationId);
+
+    await scheduling.refreshAllLoadScores();
+
+    const { rows } = await testPool().query('SELECT load_score FROM servers WHERE id = $1', [server.id]);
+    expect(Number(rows[0].load_score)).toBe(1);
   });
 });
 

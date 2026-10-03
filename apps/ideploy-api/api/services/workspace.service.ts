@@ -46,6 +46,7 @@ import {
   destinationForServer,
   Placement,
   placeOnManagedServer,
+  assertServerCanHost,
 } from './server-scheduling.service';
 import { ensureLocalServer } from './server.service';
 import { canSelectRegion } from './subscription.service';
@@ -722,6 +723,10 @@ export async function resolveWorkspaceDestination(
       serverId,
     });
   }
+
+  // The workspace keeps its server (shared Docker network): refuse rather than
+  // overload it. Only IDEM-managed servers are checked.
+  await assertServerCanHost(serverId);
 
   const environment = pickEnvironment(workspace, environmentName);
   const project = projectName

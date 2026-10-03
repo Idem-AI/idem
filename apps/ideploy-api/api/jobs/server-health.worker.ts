@@ -12,6 +12,7 @@ import logger from '../config/logger';
 import { QUEUE_NAMES, getQueue } from '../queue/queues';
 import { registerWorker } from '../queue/worker';
 import { checkAllServers } from '../services/server-health.service';
+import { refreshAllLoadScores } from '../services/server-scheduling.service';
 
 /** How often the fleet is swept. Matches Coolify's per-minute cadence. */
 const SWEEP_PATTERN = process.env.SERVER_HEALTH_CRON || '* * * * *';
@@ -20,6 +21,10 @@ const JOB_NAME = 'server-health-sweep';
 
 async function processSweep(_job: Job): Promise<void> {
   const outcomes = await checkAllServers();
+  // Orders the managed servers whose measurements are missing or stale (placement).
+  await refreshAllLoadScores().catch((err) =>
+    logger.error('Could not refresh server load scores', { message: (err as Error).message })
+  );
   const unreachable = outcomes.filter((o) => !o.reachable);
   const alerted = outcomes.filter((o) => o.notifications.length > 0);
 

@@ -140,6 +140,18 @@ export async function makeManagedServer(
     isReachable?: boolean;
     isUsable?: boolean;
     forceDisabled?: boolean;
+    /** Host resources as the health sweep would record them; omitted = never measured. */
+    resources?: {
+      cpuCores?: number;
+      load1m?: number;
+      ramMb?: number;
+      memAvailableMb?: number;
+      diskGb?: number;
+      diskFreeGb?: number;
+      /** How long ago the sweep measured them; default 30 s. */
+      ageSeconds?: number;
+    };
+    maxResources?: number;
   } = {}
 ): Promise<ManagedServerFixture> {
   const owner = await makeTeam({ name: `IDEM Fleet ${tag()}` });
@@ -165,6 +177,29 @@ export async function makeManagedServer(
     ]
   );
   const id = Number(rows[0].id);
+
+  if (overrides.resources) {
+    const r = overrides.resources;
+    await testPool().query(
+      `UPDATE servers
+       SET cpu_cores = $2, load_1m = $3, ram_mb = $4, mem_available_mb = $5, disk_gb = $6,
+           disk_free_gb = $7, resources_updated_at = now() - make_interval(secs => $8)
+       WHERE id = $1`,
+      [
+        id,
+        r.cpuCores ?? 4,
+        r.load1m ?? 1,
+        r.ramMb ?? 8192,
+        r.memAvailableMb ?? 4096,
+        r.diskGb ?? 100,
+        r.diskFreeGb ?? 50,
+        r.ageSeconds ?? 30,
+      ]
+    );
+  }
+  if (overrides.maxResources !== undefined) {
+    await testPool().query('UPDATE servers SET max_applications = $2 WHERE id = $1', [id, overrides.maxResources]);
+  }
 
   await testPool().query(
     `INSERT INTO server_settings (server_id, is_reachable, is_usable, force_disabled, created_at, updated_at)

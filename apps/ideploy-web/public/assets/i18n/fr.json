@@ -1683,7 +1683,16 @@
       "addHint": "Ce serveur devient disponible pour héberger automatiquement les workspaces en « Infrastructure IDEM ».",
       "addSubmit": "Ajouter à la flotte",
       "creating": "Ajout…",
-      "addError": "Échec de l'ajout du serveur."
+      "addError": "Échec de l'ajout du serveur.",
+      "resources": "Ressources",
+      "readiness": "Disponibilité {{score}} %",
+      "notMeasured": "Pas encore mesuré",
+      "resourceLine": "{{cpu}} CPU · charge {{load}} · {{mem}} Mo libres · {{disk}} Go de disque libres · {{count}}/{{max}} ressources",
+      "excluded": {
+        "full": "Plein : ne reçoit plus de workspace",
+        "memory": "Mémoire libre insuffisante",
+        "disk": "Disque presque plein"
+      }
     },
     "role": "Rôle",
     "teamCount": "Équipes"
