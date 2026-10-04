@@ -46,7 +46,9 @@ export async function createDeployment(
     commit: opts.commit ?? 'HEAD',
     forceRebuild: opts.forceRebuild ?? false,
   };
-  await deploymentQueue.add('deploy', data, { jobId: deploymentUuid });
+  // One attempt: a failed build replayed twice more flipped the status back to
+  // "in progress" and tripled the wait for an answer that would not change.
+  await deploymentQueue.add('deploy', data, { jobId: deploymentUuid, attempts: 1 });
 
   return { deploymentUuid };
 }
@@ -157,8 +159,33 @@ export async function rollbackTo(
 
 export async function setDeploymentStatus(deploymentUuid: string, status: string): Promise<void> {
   await pool.query(
-    'UPDATE application_deployment_queues SET status = $1, updated_at = now() WHERE deployment_uuid = $2',
+    `UPDATE application_deployment_queues
+     SET status = $1::varchar,
+         finished_at = CASE WHEN $1::varchar IN ('finished', 'failed') THEN now() ELSE finished_at END,
+         updated_at = now()
+     WHERE deployment_uuid = $2`,
     [status, deploymentUuid]
+  );
+}
+
+/**
+ * Record the commit a deployment actually built, on the deployment and on the
+ * application. Without it every deployment said `HEAD`, which rollback rightly
+ * refuses: it was the only thing rollback had to go back to.
+ */
+export async function recordCommit(deploymentUuid: string, applicationId: number, sha: string): Promise<void> {
+  await pool.query(
+    'UPDATE application_deployment_queues SET commit = $1, updated_at = now() WHERE deployment_uuid = $2',
+    [sha, deploymentUuid]
+  );
+  await pool.query('UPDATE applications SET git_commit_sha = $1 WHERE id = $2', [sha, applicationId]);
+}
+
+/** Keep a deployment's log once it is over (plain text, in the existing `logs` column). */
+export async function saveLogs(deploymentUuid: string, text: string): Promise<void> {
+  await pool.query(
+    'UPDATE application_deployment_queues SET logs = $1, updated_at = now() WHERE deployment_uuid = $2',
+    [text, deploymentUuid]
   );
 }
 

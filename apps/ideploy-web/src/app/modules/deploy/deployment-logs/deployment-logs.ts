@@ -144,7 +144,11 @@ export class DeploymentLogsComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (d) => {
-          if (d) this.deployment.set(d);
+          if (!d) return;
+          this.deployment.set(d);
+          // Opened once it was over: nothing streams any more, the kept log does.
+          const over = d.status !== 'queued' && d.status !== 'in_progress';
+          if (over && this.lines().length === 0 && d.logs) this.lines.set(storedLines(d.logs));
         },
         error: () => {},
       });
@@ -159,4 +163,15 @@ export class DeploymentLogsComponent implements OnInit, OnDestroy {
     this.unsubscribe?.();
     this.pollSub?.unsubscribe();
   }
+}
+
+/** A kept deployment log: plain text, or the JSON entries older deployments stored. */
+function storedLines(logs: string): string[] {
+  try {
+    const entries = JSON.parse(logs) as { output?: string }[];
+    if (Array.isArray(entries)) return entries.map((e) => e.output ?? '');
+  } catch {
+    // plain text
+  }
+  return logs.split('\n');
 }

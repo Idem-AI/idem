@@ -11,7 +11,7 @@ import { assertDomainsAvailable, generateFqdn, getServerForDestination, subdomai
 import { ApplicationRow } from '../models/ideploy.types';
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
-import { appWorkdir } from '../docker/compose';
+import { appWorkdir, composeCommand } from '../docker/compose';
 import { shellQuote } from '../ssh/ssh';
 import { isSafeGitBranch, isSafeGitUrl, isSafeRelativeDir } from '../validation/git-input';
 
@@ -334,7 +334,7 @@ async function teardownOnServer(teamId: number, app: ApplicationRow): Promise<Se
     const result = await executeRemoteCommand(
       server,
       key,
-      `if [ -d ${workdir} ]; then cd ${workdir} && docker compose down --volumes --remove-orphans; cd / && rm -rf ${workdir}; fi`
+      `if [ -d ${workdir} ]; then ${composeCommand(app, 'down --volumes --remove-orphans')}; cd / && rm -rf ${workdir}; fi`
     );
     if (result.exitCode !== 0) {
       logger.warn('Application teardown failed on server', { uuid: app.uuid, stderr: result.stderr });
@@ -414,13 +414,14 @@ export async function lifecycleAction(
   const key = await serverService.getExecutionKey(server);
   if (!key) throw new Error('Private key not found');
 
-  const workdir = appWorkdir(app);
+  // The live stack: a repository's own compose file runs from its release
+  // directory, not the application's, and both use the application's project.
   const cmd =
     action === 'stop'
-      ? `cd ${workdir} && docker compose down`
+      ? composeCommand(app, 'down')
       : action === 'restart'
-        ? `cd ${workdir} && docker compose restart`
-        : `cd ${workdir} && docker compose up -d`;
+        ? composeCommand(app, 'restart')
+        : composeCommand(app, 'up -d');
 
   const result = await executeRemoteCommand(server, key, cmd);
   if (result.exitCode === 0) {

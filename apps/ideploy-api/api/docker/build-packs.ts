@@ -61,6 +61,11 @@ export interface BuildContext {
   port: number;
   /** `KEY=value` — the operator's own build-time Variables, given to nixpacks so a build needing e.g. an API key has it. */
   buildEnv?: string[];
+  /**
+   * Compose project the stack runs under (`-p`). The images a compose build
+   * produces are named after it, so the build must use the one `up` will.
+   */
+  composeProject?: string;
 }
 
 export interface BuildStep {
@@ -258,7 +263,7 @@ function composePlan(context: BuildContext): BuildPlan {
       },
       {
         label: 'Building the stack',
-        command: `cd ${quote(dir)} && docker compose build`,
+        command: `cd ${quote(dir)} && docker compose${context.composeProject ? ` -p ${quote(context.composeProject)}` : ''} build`,
       },
     ],
   };
