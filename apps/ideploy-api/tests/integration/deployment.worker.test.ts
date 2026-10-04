@@ -95,6 +95,31 @@ describe('a build that fails', () => {
   });
 });
 
+describe('the root directory', () => {
+  it('builds from the folder that holds a file named as root directory, and says so', async () => {
+    // Saved from a free-text field as "./Dockerfile": every deployment failed
+    // on `cd: …/Dockerfile: Not a directory`.
+    const { teamId, app } = await anApplication('exited');
+    await testPool().query("UPDATE applications SET base_directory = './Dockerfile' WHERE id = $1", [app.id]);
+    ssh.on(/KIND=dir/, { stdout: 'KIND=file\n' });
+
+    const { deploymentUuid, outcome } = await run(teamId, app);
+    await outcome;
+
+    expect(ssh.ranMatching(/cd '[^']*\/src\/Dockerfile'/)).toBe(false);
+    expect((await row(deploymentUuid)).logs).toMatch(/root directory "\.\/Dockerfile" is a file/);
+  }, 45_000);
+
+  it('fails with what to set when the folder does not exist', async () => {
+    const { teamId, app } = await anApplication('exited');
+    await testPool().query("UPDATE applications SET base_directory = 'backend' WHERE id = $1", [app.id]);
+    ssh.on(/KIND=dir/, { stdout: 'KIND=none\n' });
+
+    const { outcome } = await run(teamId, app);
+    await expect(outcome).rejects.toThrow(/root directory "backend" does not exist/);
+  });
+});
+
 describe('a deployment that succeeds', () => {
   it('deploys the requested commit, keeps it, never prints secrets, and stays on its project', async () => {
     const { teamId, app } = await anApplication('exited');

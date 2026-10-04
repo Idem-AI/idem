@@ -48,6 +48,11 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static'] as con
               </select>
             </div>
             <div class="sm:col-span-2">
+              <label class="mb-1 block text-sm" for="cfg-base-dir">{{ 'projects.import.rootDirectory' | translate }}</label>
+              <input type="text" id="cfg-base-dir" class="font-mono text-sm" placeholder="./" formControlName="base_directory" />
+              <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.baseDirectoryHint' | translate }}</p>
+            </div>
+            <div class="sm:col-span-2">
               <label class="mb-1 block text-sm" for="cfg-fqdn">{{ 'applications.detail.fqdn' | translate }}</label>
               <input type="text" id="cfg-fqdn" class="font-mono text-sm" placeholder="https://app.mondomaine.com" formControlName="fqdn" />
               <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.fqdnHint' | translate }}</p>
@@ -201,6 +206,7 @@ export class AppSettingsTabComponent implements OnInit {
     git_repository: [''],
     git_branch: [''],
     build_pack: [''],
+    base_directory: [''],
     fqdn: [''],
   });
   protected readonly execForm = this.fb.nonNullable.group({ command: [''] });
@@ -211,6 +217,7 @@ export class AppSettingsTabComponent implements OnInit {
       git_repository: a.git_repository ?? '',
       git_branch: a.git_branch ?? '',
       build_pack: a.build_pack ?? 'nixpacks',
+      base_directory: a.base_directory ?? '',
       fqdn: a.fqdn ?? '',
     });
     this.reloadTags();

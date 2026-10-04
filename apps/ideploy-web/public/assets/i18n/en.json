@@ -520,7 +520,8 @@
       "redeployNow": "Redeploy now",
       "redeploying": "Redeploying…",
       "saveError": "The settings could not be saved.",
-      "redeployError": "The deployment could not be started."
+      "redeployError": "The deployment could not be started.",
+      "baseDirectoryHint": "Folder of the repository that holds the application — ./ for the root. A folder, not a file (not ./Dockerfile)."
     }
   },
   "projects": {
