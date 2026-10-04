@@ -708,6 +708,9 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
           this.deploymentInfo.set(d);
           if (d.status === 'finished' || d.status === 'failed') {
             this.unsubscribeRealtime?.();
+            // The live stream can miss everything (a blocked websocket, a
+            // deployment that failed in a second): the kept log says why.
+            if (this.consoleLines().length === 0 && d.logs) this.consoleLines.set(String(d.logs).split('\n'));
             this.stage.set('result');
           }
         },

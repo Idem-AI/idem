@@ -520,7 +520,8 @@
       "redeployNow": "Redéployer maintenant",
       "redeploying": "Redéploiement…",
       "saveError": "Les réglages n’ont pas pu être enregistrés.",
-      "redeployError": "Le déploiement n’a pas pu démarrer."
+      "redeployError": "Le déploiement n’a pas pu démarrer.",
+      "baseDirectoryHint": "Dossier du dépôt qui contient l’application — ./ pour la racine. Un dossier, pas un fichier (pas ./Dockerfile)."
     }
   },
   "projects": {
