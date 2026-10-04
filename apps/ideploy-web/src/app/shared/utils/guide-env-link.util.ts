@@ -61,3 +61,83 @@ export function forEcosystem(connectionUrl: string, ecosystem: string | null | u
   }
   return connectionUrl;
 }
+
+/** Engine of a connection URL, from its scheme (`postgres://`, `mysql://`, …). */
+export function engineOf(connectionUrl: string): string | null {
+  const scheme = /^(?:jdbc:)?([a-z0-9+]+):\/\//i.exec(connectionUrl)?.[1]?.toLowerCase();
+  if (!scheme) return null;
+  if (scheme === 'postgres' || scheme === 'postgresql') return 'postgresql';
+  if (scheme.startsWith('mongodb')) return 'mongodb';
+  return scheme;
+}
+
+/** MySQL and MariaDB speak the same protocol: either driver talks to either server. */
+export function engineCompatible(databaseType: string, engines: string[]): boolean {
+  if (engines.length === 0) return true;
+  const family = (e: string) => (e === 'mariadb' ? 'mysql' : e === 'postgres' ? 'postgresql' : e);
+  return engines.some((e) => family(e) === family(databaseType));
+}
+
+const JDBC_DRIVERS: Record<string, string> = {
+  postgresql: 'org.postgresql.Driver',
+  mysql: 'com.mysql.cj.jdbc.Driver',
+  mariadb: 'org.mariadb.jdbc.Driver',
+};
+
+/**
+ * Database-specific companion variables — prefixed by a database word only, so
+ * `PAYMENT_USER_NAME` or `SMTP_PASSWORD` are never touched.
+ */
+const DB_PREFIX = '(?:DATABASE|DB|SPRING_DATASOURCE|POSTGRES(?:QL)?|PG|MYSQL|MARIADB)';
+const COMPANIONS: { key: RegExp; field: 'username' | 'password' | 'driver' | 'host' | 'port' | 'name' }[] = [
+  { key: new RegExp(`^${DB_PREFIX}_(?:USER|USERNAME|USER_NAME)$`, 'i'), field: 'username' },
+  { key: new RegExp(`^${DB_PREFIX}_(?:PASSWORD|PASS|PWD)$`, 'i'), field: 'password' },
+  { key: new RegExp(`^${DB_PREFIX}_(?:DRIVER|DRIVER_CLASS|DRIVER_CLASS_NAME)$`, 'i'), field: 'driver' },
+  { key: new RegExp(`^${DB_PREFIX}_HOST$`, 'i'), field: 'host' },
+  { key: new RegExp(`^${DB_PREFIX}_PORT$`, 'i'), field: 'port' },
+  { key: new RegExp(`^${DB_PREFIX}_(?:NAME|DATABASE|DB)$`, 'i'), field: 'name' },
+];
+
+export interface DatasourceValues {
+  url: string;
+  /** Companion variable values, by field. */
+  fields: Partial<Record<'username' | 'password' | 'driver' | 'host' | 'port' | 'name', string>>;
+}
+
+/**
+ * What a database connection URL becomes for a given application: the URL
+ * itself, and the separate variables most projects also read.
+ *
+ * Java's JDBC needs `jdbc:postgresql://host:port/db` with the credentials in
+ * their own variables: the guide used to set `jdbc:postgres://user:pass@…`,
+ * which no JDBC driver accepts, and left the repository's own
+ * `DATABASE_USERNAME=root` and MySQL driver class in place.
+ */
+export function datasourceValues(connectionUrl: string, ecosystem: string | null | undefined): DatasourceValues {
+  let parsed: URL;
+  try {
+    parsed = new URL(connectionUrl);
+  } catch {
+    return { url: forEcosystem(connectionUrl, ecosystem), fields: {} };
+  }
+  const engine = engineOf(connectionUrl) ?? '';
+  const name = decodeURIComponent(parsed.pathname.replace(/^\//, ''));
+  const fields: DatasourceValues['fields'] = {
+    username: decodeURIComponent(parsed.username),
+    password: decodeURIComponent(parsed.password),
+    host: parsed.hostname,
+    port: parsed.port,
+    name,
+  };
+  if (ecosystem && JDBC_ECOSYSTEMS.has(ecosystem)) {
+    if (JDBC_DRIVERS[engine]) fields.driver = JDBC_DRIVERS[engine];
+    const port = parsed.port ? `:${parsed.port}` : '';
+    return { url: `jdbc:${engine}://${parsed.hostname}${port}/${name}`, fields };
+  }
+  return { url: connectionUrl, fields };
+}
+
+/** Which companion field a variable stands for, or null. */
+export function datasourceFieldOf(key: string): keyof DatasourceValues['fields'] | null {
+  return COMPANIONS.find((c) => c.key.test(key.trim()))?.field ?? null;
+}

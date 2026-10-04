@@ -1315,6 +1315,9 @@
       "continueAnyway": "Continue anyway",
       "connectionInfo": "Connection details",
       "readyHint": "You can find these again later on the database's own page, under Databases."
+    },
+    "appStep": {
+      "databaseMismatch": "This backend is built for {{expected}}, but the database created in the previous step ({{database}}) is {{created}}: it could not connect. Go back and create a {{expected}} database, or set the connection variables yourself."
     }
   },
   "templates": {

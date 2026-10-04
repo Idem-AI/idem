@@ -324,3 +324,54 @@ export function findManifestDirectories(treePaths: string[]): ManifestDirectory[
   }
   return [...byDir.values()];
 }
+
+/** A database engine an application can talk to. MySQL and MariaDB share a protocol. */
+export type DatabaseEngine = 'postgresql' | 'mysql' | 'mariadb' | 'mongodb';
+
+/** What each manifest names, per engine — the drivers and clients a project depends on. */
+const ENGINE_MARKERS: Record<DatabaseEngine, RegExp> = {
+  postgresql:
+    /(org\.postgresql|jdbc:postgresql|postgres(ql)?:\/\/|psycopg|asyncpg|"pg"\s*:|pg-promise|lib\/pq|jackc\/pgx|pdo_pgsql|PostgreSQL\w*Dialect)/i,
+  mysql: /(mysql-connector|com\.mysql|jdbc:mysql|mysql:\/\/|"mysql2?"\s*:|mysqlclient|pymysql|aiomysql|go-sql-driver\/mysql|pdo_mysql|MySQL\w*Dialect)/i,
+  mariadb: /(org\.mariadb|mariadb-java-client|jdbc:mariadb|mariadb:\/\/|"mariadb"\s*:|MariaDB\w*Dialect)/i,
+  mongodb: /(mongodb(\+srv)?:\/\/|"mongoose"\s*:|"mongodb"\s*:|pymongo|spring-boot-starter-data-mongodb|mongo-driver)/i,
+};
+
+/** Manifests and configuration files that name a project's database driver. */
+const ENGINE_SOURCES = [
+  'pom.xml',
+  'build.gradle',
+  'build.gradle.kts',
+  'package.json',
+  'requirements.txt',
+  'pyproject.toml',
+  'Pipfile',
+  'composer.json',
+  'Gemfile',
+  'go.mod',
+  'src/main/resources/application.properties',
+  'src/main/resources/application.yml',
+  '.env.example',
+  '.env',
+];
+
+/**
+ * The database engines a repository is built to talk to, from the drivers its
+ * manifests depend on.
+ *
+ * A Spring Boot backend with only `mysql-connector-j` was linked by the guide
+ * to the PostgreSQL database created the step before: no URL could have made
+ * it connect. Knowing what the code expects lets the guide say so before the
+ * deployment, instead of after a crash loop.
+ */
+export async function detectDatabaseEngines(repo: EcosystemRepoAccess): Promise<DatabaseEngine[]> {
+  const found = new Set<DatabaseEngine>();
+  for (const path of ENGINE_SOURCES) {
+    const content = await repo.getFile(path);
+    if (!content) continue;
+    for (const [engine, marker] of Object.entries(ENGINE_MARKERS) as [DatabaseEngine, RegExp][]) {
+      if (marker.test(content)) found.add(engine);
+    }
+  }
+  return [...found];
+}
