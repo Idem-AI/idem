@@ -186,6 +186,8 @@ export interface Application {
   git_repository: string | null;
   git_branch: string | null;
   build_pack: string | null;
+  /** Folder of the repository the application is built from (`./` or empty: the root). */
+  base_directory?: string | null;
   status: string | null;
   link?: string | null;
   fqdn?: string | null;
