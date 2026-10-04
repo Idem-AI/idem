@@ -723,7 +723,7 @@ export class GenericService {
           // silence — la section repartait à l'étage de sa tâche.
           pinModel: step.template
             ? step.aiConfig?.modelLocked === true
-            : step.aiConfig?.pinModel,
+            : (step.aiConfig?.pinModel ?? effectiveConfig.pinModel),
         },
         promptType: effectiveConfig.promptType ?? step.stepName,
         tools: useTools ? CONTEXT_TOOL_DECLARATIONS : undefined,

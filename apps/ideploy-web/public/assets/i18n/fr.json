@@ -1156,7 +1156,15 @@
       "noTraffic": "Aucun trafic enregistré.",
       "trafficError": "Impossible de charger le trafic.",
       "activity": "Activité",
-      "activityDesc": "Ce que l'agent a enregistré pour cette application."
+      "activityDesc": "Ce que l'agent a enregistré pour cette application.",
+      "applied": "Appliqué : {{blocked}} adresse(s) bloquée(s), {{released}} libérée(s).",
+      "redeployQueued": "Un redéploiement a été mis en file pour appliquer les règles pays et de limitation de débit.",
+      "redeployRunning": "Un déploiement est déjà en cours ; il appliquera les règles pays et de limitation de débit.",
+      "pendingRedeploy": "{{count}} règle(s) pays prendront effet au prochain déploiement.",
+      "geoMode": "Mode",
+      "geoModeBlock": "Bloquer les pays sélectionnés",
+      "geoModeAllow": "N’autoriser que les pays sélectionnés",
+      "currentlyAllowed": "Pays autorisés"
     },
     "tokens": {
       "title": "Identifiants & jetons",
@@ -1683,7 +1691,16 @@
       "addHint": "Ce serveur devient disponible pour héberger automatiquement les workspaces en « Infrastructure IDEM ».",
       "addSubmit": "Ajouter à la flotte",
       "creating": "Ajout…",
-      "addError": "Échec de l'ajout du serveur."
+      "addError": "Échec de l'ajout du serveur.",
+      "resources": "Ressources",
+      "readiness": "Disponibilité {{score}} %",
+      "notMeasured": "Pas encore mesuré",
+      "resourceLine": "{{cpu}} CPU · charge {{load}} · {{mem}} Mo libres · {{disk}} Go de disque libres · {{count}}/{{max}} ressources",
+      "excluded": {
+        "full": "Plein : ne reçoit plus de workspace",
+        "memory": "Mémoire libre insuffisante",
+        "disk": "Disque presque plein"
+      }
     },
     "role": "Rôle",
     "teamCount": "Équipes"

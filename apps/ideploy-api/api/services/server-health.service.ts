@@ -44,7 +44,19 @@ export interface HealthProbe {
   usable: boolean;
   /** Root filesystem usage, when it could be read. */
   diskUsedPercent: number | null;
+  /** Host capacity and free resources, used by placement. Null when unreachable. */
+  resources: ServerResources | null;
   output: string;
+}
+
+/** What the host has and what is still free; each figure is null when it could not be read. */
+export interface ServerResources {
+  cpuCores: number | null;
+  load1m: number | null;
+  memTotalMb: number | null;
+  memAvailableMb: number | null;
+  diskTotalGb: number | null;
+  diskFreeGb: number | null;
 }
 
 export interface HealthOutcome {
@@ -74,12 +86,35 @@ export interface MonitoredServer {
   diskThresholdPercent: number;
 }
 
-/** Single round trip: liveness, Docker usability and disk usage together. */
+/** Single round trip: liveness, Docker usability, disk usage and host resources together. */
 const HEALTH_PROBE = [
   'echo ALIVE',
   "echo \"DISK_USED_PCT=$(df -P / 2>/dev/null | awk 'NR==2{print $5}' | tr -d %)\"",
   'docker info >/dev/null 2>&1 && echo DOCKER_OK || echo DOCKER_FAIL',
+  'echo "CPU_CORES=$(nproc 2>/dev/null)"',
+  "echo \"LOAD_1M=$(cut -d' ' -f1 /proc/loadavg 2>/dev/null)\"",
+  "awk '/^MemTotal:/{print \"MEM_TOTAL_KB=\"$2} /^MemAvailable:/{print \"MEM_AVAILABLE_KB=\"$2}' /proc/meminfo 2>/dev/null",
+  "df -P -k / 2>/dev/null | awk 'NR==2{print \"DISK_TOTAL_KB=\"$2; print \"DISK_FREE_KB=\"$4}'",
 ].join('\n');
+
+function readNumber(stdout: string, key: string): number | null {
+  const match = new RegExp(`^${key}=([0-9]+(?:\\.[0-9]+)?)\\s*$`, 'm').exec(stdout);
+  const value = match ? Number(match[1]) : NaN;
+  return Number.isFinite(value) ? value : null;
+}
+
+const kbTo = (kb: number | null, divisor: number) => (kb === null ? null : Math.floor(kb / divisor));
+
+export function parseResources(stdout: string): ServerResources {
+  return {
+    cpuCores: readNumber(stdout, 'CPU_CORES'),
+    load1m: readNumber(stdout, 'LOAD_1M'),
+    memTotalMb: kbTo(readNumber(stdout, 'MEM_TOTAL_KB'), 1024),
+    memAvailableMb: kbTo(readNumber(stdout, 'MEM_AVAILABLE_KB'), 1024),
+    diskTotalGb: kbTo(readNumber(stdout, 'DISK_TOTAL_KB'), 1024 * 1024),
+    diskFreeGb: kbTo(readNumber(stdout, 'DISK_FREE_KB'), 1024 * 1024),
+  };
+}
 
 export function parseHealthProbe(stdout: string, reachable: boolean): HealthProbe {
   const match = /DISK_USED_PCT=(\d+)/.exec(stdout);
@@ -88,6 +123,7 @@ export function parseHealthProbe(stdout: string, reachable: boolean): HealthProb
     reachable,
     usable: reachable && stdout.includes('DOCKER_OK'),
     diskUsedPercent: Number.isFinite(parsed) ? parsed : null,
+    resources: reachable ? parseResources(stdout) : null,
     output: stdout,
   };
 }
@@ -97,7 +133,7 @@ export async function probeServer(server: ServerRow, key: PrivateKeyRow): Promis
   try {
     const connection = await testConnection(server, key);
     if (!connection.ok) {
-      return { reachable: false, usable: false, diskUsedPercent: null, output: connection.output };
+      return { reachable: false, usable: false, diskUsedPercent: null, resources: null, output: connection.output };
     }
 
     const result = await executeRemoteCommand(server, key, HEALTH_PROBE, { noRetry: true });
@@ -106,12 +142,13 @@ export async function probeServer(server: ServerRow, key: PrivateKeyRow): Promis
         reachable: false,
         usable: false,
         diskUsedPercent: null,
+        resources: null,
         output: result.stdout + result.stderr,
       };
     }
     return parseHealthProbe(result.stdout, true);
   } catch (err) {
-    return { reachable: false, usable: false, diskUsedPercent: null, output: (err as Error).message };
+    return { reachable: false, usable: false, diskUsedPercent: null, resources: null, output: (err as Error).message };
   }
 }
 
@@ -268,6 +305,25 @@ async function persistState(
      WHERE server_id = $1`,
     [monitored.server.id, probe.reachable, probe.usable]
   );
+
+  // Host resources feed placement (server-scheduling.service.ts). Only a fresh,
+  // successful reading is stored: an unreachable server keeps its last figures,
+  // and their age (resources_updated_at) is what lets placement ignore them.
+  if (probe.resources) {
+    const r = probe.resources;
+    await pool.query(
+      `UPDATE servers
+       SET cpu_cores = COALESCE($2, cpu_cores),
+           ram_mb = COALESCE($3, ram_mb),
+           disk_gb = COALESCE($4, disk_gb),
+           load_1m = $5,
+           mem_available_mb = $6,
+           disk_free_gb = $7,
+           resources_updated_at = now()
+       WHERE id = $1`,
+      [monitored.server.id, r.cpuCores, r.memTotalMb, r.diskTotalGb, r.load1m, r.memAvailableMb, r.diskFreeGb]
+    );
+  }
 }
 
 /**

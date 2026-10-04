@@ -21,27 +21,26 @@ import {
   traefikLabels,
 } from '../docker/labels';
 import { ConcurrencyOptions, GeoBlockOptions, RateLimitOptions } from '../docker/protection';
-import { GEO_RULE_NAME } from './geo-blocking.service';
+import { analyseRule } from './firewall-enforcement.service';
+import { FirewallRule } from './firewall.service';
 import { tryDecryptString } from '../utils/laravel-crypto';
 
 /**
- * Countries an enabled geo rule names, from its stored conditions.
+ * Countries the application's enabled rules block, whichever rule names them.
  *
- * Reads the raw shape `setGeoRule` writes (`[{ field: 'country', operator:
- * 'in', value: [...] }]`) directly, rather than round-tripping through
- * `analyseRule`: this runs on every deploy, and the classification that rule
- * needs is already known — it is a country rule because it has this name and
- * this shape, not because something reclassified it.
+ * Goes through `analyseRule`, the same classification the Apply button
+ * reports from: reading only the rule the geo screen writes ignored country
+ * rules created from the rules list, which Apply then announced as "pending
+ * redeploy" and no redeploy ever applied.
  */
-function parseGeoBlockedCountries(raw: unknown): string[] {
-  if (!raw) return [];
-  try {
-    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    const values = Array.isArray(parsed) ? parsed[0]?.value : undefined;
-    return Array.isArray(values) ? values.map((v) => String(v).toUpperCase()) : [];
-  } catch {
-    return [];
-  }
+function blockedCountriesOf(raw: unknown): string[] {
+  const rules = (typeof raw === 'string' ? JSON.parse(raw) : raw) as FirewallRule[] | null;
+  if (!Array.isArray(rules)) return [];
+  const countries = rules
+    .map(analyseRule)
+    .filter((a) => a.enforceability === 'enforceable' && a.enforcedBy === 'proxy')
+    .flatMap((a) => a.targets.map((t) => t.value));
+  return [...new Set(countries)].sort();
 }
 
 /** Everything the label generators need, resolved from the database. */
@@ -128,9 +127,10 @@ export async function loadLabelContext(app: ApplicationRow): Promise<LabelContex
             a.http_basic_auth_password,
             fw.enabled              AS firewall_enabled,
             s.crowdsec_bouncer_key  AS crowdsec_bouncer_key,
-            (SELECT r.conditions FROM firewall_rules r
-              WHERE r.firewall_config_id = fw.id AND r.name = $2 AND r.enabled = true
-              LIMIT 1) AS geo_conditions,
+            (SELECT json_agg(json_build_object(
+                      'id', r.id, 'name', r.name, 'action', r.action, 'conditions', r.conditions))
+               FROM firewall_rules r
+              WHERE r.firewall_config_id = fw.id AND r.enabled = true) AS firewall_rules,
             fw.rate_limit_average, fw.rate_limit_burst, fw.rate_limit_period_seconds,
             fw.concurrency_limit
      FROM applications a
@@ -143,7 +143,7 @@ export async function loadLabelContext(app: ApplicationRow): Promise<LabelContex
      LEFT JOIN firewall_configs fw  ON fw.application_id = a.id
      WHERE a.id = $1
      LIMIT 1`,
-    [app.id, GEO_RULE_NAME]
+    [app.id]
   );
 
   const r = rows[0];
@@ -180,7 +180,7 @@ export async function loadLabelContext(app: ApplicationRow): Promise<LabelContex
       ? { apiKey: bouncerKey, lapiHost: stripScheme(DEFAULT_LAPI_URL) }
       : null;
 
-  const blockedCountries = firewallEnabled ? parseGeoBlockedCountries(r.geo_conditions) : [];
+  const blockedCountries = firewallEnabled ? blockedCountriesOf(r.firewall_rules) : [];
   const geoBlock: GeoBlockOptions | null =
     blockedCountries.length > 0 ? { blockedCountries } : null;
 

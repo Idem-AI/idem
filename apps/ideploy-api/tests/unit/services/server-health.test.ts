@@ -40,7 +40,7 @@ function state(
 }
 
 function probe(overrides: Partial<HealthProbe> = {}): HealthProbe {
-  return { reachable: true, usable: true, diskUsedPercent: 40, output: '', ...overrides };
+  return { reachable: true, usable: true, diskUsedPercent: 40, resources: null, output: '', ...overrides };
 }
 
 const kinds = (notifications: { kind: string }[]) => notifications.map((n) => n.kind);
@@ -61,6 +61,39 @@ describe('parseHealthProbe', () => {
     expect(parseHealthProbe('ALIVE\nDOCKER_OK\n', true).usable).toBe(true);
     expect(parseHealthProbe('ALIVE\nDOCKER_FAIL\n', true).usable).toBe(false);
     expect(parseHealthProbe('ALIVE\n', true).usable).toBe(false);
+  });
+
+  it('reads the host resources used by placement', () => {
+    const stdout = [
+      'ALIVE',
+      'DISK_USED_PCT=40',
+      'DOCKER_OK',
+      'CPU_CORES=4',
+      'LOAD_1M=1.25',
+      'MEM_TOTAL_KB=8167360',
+      'MEM_AVAILABLE_KB=4194304',
+      'DISK_TOTAL_KB=104857600',
+      'DISK_FREE_KB=52428800',
+    ].join('\n');
+
+    expect(parseHealthProbe(stdout, true).resources).toEqual({
+      cpuCores: 4,
+      load1m: 1.25,
+      memTotalMb: 7975,
+      memAvailableMb: 4096,
+      diskTotalGb: 100,
+      diskFreeGb: 50,
+    });
+  });
+
+  it('leaves unreadable resources null instead of guessing', () => {
+    const resources = parseHealthProbe('ALIVE\nCPU_CORES=\nLOAD_1M=\n', true).resources;
+
+    expect(resources).toMatchObject({ cpuCores: null, load1m: null, memAvailableMb: null });
+  });
+
+  it('reports no resources for an unreachable server', () => {
+    expect(parseHealthProbe('', false).resources).toBeNull();
   });
 });
 
