@@ -158,9 +158,16 @@ async function layoutAudit(html: string, spec: { width: number; height: number }
   const hashes: Record<string, string> = {};
   try {
     const page = await browser.newPage();
+    // Une erreur dans le moteur (scène, kit, addon) est un défaut, pas un détail.
+    page.on('pageerror', (e) => issues.push(`erreur moteur : ${String((e as Error).message || e).slice(0, 160)}`));
     await page.setViewport({ width: spec.width, height: spec.height, deviceScaleFactor: 1 });
     await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
     await page.evaluate(() => (window as any).__IDEM_VIDEO__.ready);
+    const sections = await page.evaluate(() => document.querySelectorAll('section.scene').length);
+    if (sections !== scenes.length) {
+      issues.push(`${sections} scène(s) affichée(s) sur ${scenes.length}`);
+      return { issues, deterministic: false };
+    }
     for (const [i, s] of scenes.entries()) {
       const t = s.start + s.duration * 0.8;
       await page.evaluate((x: number) => (window as any).__IDEM_VIDEO__.seek(x), t);

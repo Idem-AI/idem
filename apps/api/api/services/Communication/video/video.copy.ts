@@ -145,8 +145,17 @@ export const MEDIA_QUERY_ENTRY: CopyPlanEntry = {
   slots: [{ key: 'visual', max: 48, hint: '2-5 English words describing the footage/photos to search (subject, place)' }],
 };
 
-export function copyPlan(sceneIds: string[], withMediaQuery = false): CopyPlanEntry[] {
-  const entries = sceneIds.map((sceneId, i) => ({ index: i + 1, sceneId, slots: SCENES[sceneId]?.slots ?? [] }));
+/**
+ * Plan de copie. `icons` : vocabulaire de concepts retenu par le graphe de
+ * capacités ; la scène « avantages » reçoit alors une ligne de plus (un mot par
+ * avantage), le seul choix « visuel » laissé au modèle.
+ */
+export function copyPlan(sceneIds: string[], withMediaQuery = false, icons?: string[]): CopyPlanEntry[] {
+  const entries = sceneIds.map((sceneId, i) => {
+    const slots = SCENES[sceneId]?.slots ?? [];
+    if (sceneId !== 'benefits' || !icons?.length) return { index: i + 1, sceneId, slots };
+    return { index: i + 1, sceneId, slots: [...slots, { key: 'icons', max: 90, hint: `one word per benefit, comma separated, from: ${icons.join(' ')}` }] };
+  });
   return withMediaQuery ? [MEDIA_QUERY_ENTRY, ...entries] : entries;
 }
 
@@ -568,9 +577,9 @@ export async function writeCopy(
   brief: VideoBrief,
   ctx: CopyContext,
   writer?: CopyWriter,
-  opts: { mediaQuery?: boolean } = {}
+  opts: { mediaQuery?: boolean; icons?: string[] } = {}
 ): Promise<WriteCopyResult> {
-  const plan = copyPlan(sceneIds, !!opts.mediaQuery);
+  const plan = copyPlan(sceneIds, !!opts.mediaQuery, opts.icons);
   const facts = extractFacts(`${brief.message}\n${brief.details || ''}`);
   let raw = '';
   let source: 'llm' | 'heuristic' = 'heuristic';

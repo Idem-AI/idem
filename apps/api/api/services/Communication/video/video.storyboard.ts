@@ -122,6 +122,8 @@ export interface StoryboardInput {
   videos?: string[];
   models?: string[];
   lotties?: string[];
+  /** Animations Rive importées (.riv) : prioritaires dans les scènes d'animation. */
+  rives?: string[];
   /** Objectif : choisit les animations Lottie intégrées. */
   objective?: string;
   /** Le logo peut être extrudé en 3D (SVG disponible) — et le type le souhaite. */
@@ -174,6 +176,8 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
   let modelCursor = 0;
   const userLotties = (input.lotties || []).filter(Boolean);
   let lottieCursor = 0;
+  const rives = (input.rives || []).filter(Boolean);
+  let riveCursor = 0;
 
   const minLast = input.sceneIds[input.sceneIds.length - 1] === 'logo' && input.durationSec >= 15 ? 2.2 : 1.2;
   const durations = snapToBeats(allocateDurations(input.sceneIds, input.slots, input.durationSec), input.beat, input.durationSec, minLast);
@@ -191,6 +195,7 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
     let video: string | undefined;
     let model: string | undefined;
     let lottie: string | undefined;
+    let rive: string | undefined;
     if (sceneId === 'product') image = nextImage();
     if (sceneId === 'footage') {
       if (videos.length) video = videos[videoCursor++ % videos.length];
@@ -204,7 +209,8 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
         imageCursor += 1;
       }
     }
-    if (sceneId === 'lottie') {
+    if (sceneId === 'lottie' && riveCursor < rives.length) rive = rives[riveCursor++];
+    else if (sceneId === 'lottie') {
       // Les animations importées d'abord, puis celles intégrées, choisies par objectif.
       lottie = lottieCursor < userLotties.length
         ? userLotties[lottieCursor]
@@ -252,6 +258,7 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
       ...(video ? { video } : {}),
       ...(model ? { model } : {}),
       ...(lottie ? { lottie } : {}),
+      ...(rive ? { rive } : {}),
     };
     start += durations[i];
     return scene;

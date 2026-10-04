@@ -12,8 +12,8 @@ import { Video } from './App';
 import { VideoData } from './context';
 import { allCues } from './cues';
 import { mediaReady, syncClipsExact, syncClipsPreview, syncLotties, syncThree } from './media';
-// Feuille de style embarquée par esbuild (loader « text »).
-import css from './engine.css';
+// Feuille compilée au paquet : Tailwind (thème de la charte + utilitaires) puis engine.css.
+import css from 'virtual:engine-css';
 
 declare global {
   interface Window {

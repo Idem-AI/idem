@@ -1,12 +1,13 @@
 /**
  * LE COMPOSITEUR — storyboard + charte → une page HTML autonome.
  *
- * La page contient tout : données de la vidéo, moteur React (scènes, techniques,
- * transitions, cf. apps/api/video-engine), Lottie et three.js si besoin (les
- * seules classes réellement utilisées, sans CDN ni réseau), GSAP et SplitText
- * en ligne, données de la vidéo et moteur. En mode RENDU, les images sont en
- * plus embarquées en data-URI : Chromium n'a plus rien à télécharger pendant la
- * capture, l'image 437 ne peut donc pas sortir sans sa photo.
+ * La page contient tout, sans CDN ni réseau : données de la vidéo, runtime
+ * React partagé, les SEULS addons que le graphe de capacités a retenus (three /
+ * R3F, GSAP, anime.js, flubber, Lottie, Rive), puis le moteur (scènes, kit
+ * Tailwind, techniques, transitions — cf. apps/api/video-engine et
+ * docs/VIDEO_ENGINE.md). En mode RENDU, les images sont en plus embarquées en
+ * data-URI : Chromium n'a plus rien à télécharger pendant la capture, l'image
+ * 437 ne peut donc pas sortir sans sa photo.
  */
 import axios from 'axios';
 import fs from 'fs';
@@ -16,7 +17,10 @@ import logger from '../../../config/logger';
 import { VideoFormat, VideoQuality, VideoStoryboard } from '../../../models/motionVideo.model';
 import { VideoTheme } from './video.theme';
 import { DirectionId, DIRECTIONS, isMotionDirection, planMotion } from './video.direction';
-import { engineBundle } from './video.engine';
+import { AddonId, engineBundles } from './video.engine';
+import { addonsForKit } from './video.capabilities';
+import { iconSvg } from './video.icons';
+import { analyzeLogo } from './video.logo';
 
 export type Orientation = 'portrait' | 'square' | 'landscape';
 import { builtinLottie, BuiltinLottie, BUILTIN_LOTTIES } from './video.lottie';
@@ -68,40 +72,6 @@ function safeZones(format: VideoFormat, spec: FrameSpec) {
     default:
       return { st: h * 0.08, sb: h * 0.08, sx: w * 0.08 };
   }
-}
-
-// ─── Scripts embarqués ──────────────────────────────────────────────────────
-
-let lottieBundle: string | null = null;
-let threeBundle: Promise<string> | null = null;
-
-function lottieScript(): string {
-  lottieBundle ??= fs.readFileSync(require.resolve('lottie-web/build/player/lottie.min.js'), 'utf8');
-  return lottieBundle;
-}
-
-/** three.js + chargeurs (GLB, SVG) + environnement, empaquetés une fois par esbuild. */
-export function threeScript(): Promise<string> {
-  threeBundle ??= (async () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const esbuild = require('esbuild');
-    const result = await esbuild.build({
-      stdin: {
-        contents:
-          "import * as THREE from 'three'; import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'; import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js'; import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'; window.THREE = THREE; window.THREE_EXTRA = { GLTFLoader, SVGLoader, RoomEnvironment };",
-        resolveDir: path.resolve(path.dirname(require.resolve('three')), '..'),
-        loader: 'js',
-      },
-      bundle: true,
-      format: 'iife',
-      minify: true,
-      write: false,
-      target: 'es2020',
-      logLevel: 'error',
-    });
-    return result.outputFiles[0].text as string;
-  })();
-  return threeBundle;
 }
 
 // ─── Images embarquées (rendu) ──────────────────────────────────────────────
@@ -202,6 +172,7 @@ export async function inlineAssets(
           : undefined,
         video: scene.video ? (mode === 'render' ? await inlineBinary(scene.video, 'video/webm', 80 * 1024 * 1024) : scene.video) : undefined,
         model: scene.model ? await inlineBinary(scene.model, 'model/gltf-binary', 25 * 1024 * 1024) : undefined,
+        rive: scene.rive ? await inlineBinary(scene.rive, 'application/octet-stream', 8 * 1024 * 1024) : undefined,
       };
     })
   );
@@ -210,7 +181,7 @@ export async function inlineAssets(
     onDark: await inlineImage(theme.logo.onDark),
     icon: await inlineImage(theme.logo.icon),
   };
-  return { storyboard: { ...storyboard, scenes }, theme: { ...theme, logo: { ...logo, svgMarkup: theme.logo.svgMarkup } } };
+  return { storyboard: { ...storyboard, scenes }, theme: { ...theme, logo: { ...logo, svgMarkup: theme.logo.svgMarkup, fullSvgMarkup: theme.logo.fullSvgMarkup } } };
 }
 
 // ─── La page ────────────────────────────────────────────────────────────────
@@ -263,6 +234,10 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
   const directionId: DirectionId = isMotionDirection(storyboard.direction) ? storyboard.direction : 'editorial';
   const fallbackPlan = planMotion(storyboard.scenes.map((s) => s.sceneId), directionId, storyboard.seed, { landscape });
 
+  // Kit du graphe de capacités (absent sur les vidéos d'avant le graphe : rendu inchangé).
+  const kit = storyboard.kit;
+  const logoInfo = kit ? analyzeLogo(theme.logo.fullSvgMarkup, theme.logo.svgMarkup !== theme.logo.fullSvgMarkup ? theme.logo.svgMarkup : undefined) : null;
+
   // Médias pilotés par le moteur : Lottie et 3D.
   const lotties: Record<string, unknown> = {};
   const scenes = await Promise.all(
@@ -283,7 +258,13 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
             ? { mode: 'cards', images: scene.images, ...colors }
             : { mode: 'shapes', ...colors };
       }
-      if (scene.sceneId === 'logo' && scene.variant === 2 && theme.logo.svgMarkup) extra.three = { mode: 'logo', svg: theme.logo.svgMarkup, ...colors };
+      const extrude = kit ? kit.logo === 'extrude' : scene.variant === 2;
+      if (scene.sceneId === 'logo' && extrude && theme.logo.svgMarkup) extra.three = { mode: 'logo', svg: theme.logo.svgMarkup, ...colors };
+      if (extra.three && kit?.postfx.length) (extra.three as Record<string, unknown>).postfx = kit.postfx;
+      // Kit : fond posé sur cette scène, pictogrammes de ses éléments (SVG lus côté serveur).
+      if (kit?.backdropScenes.includes(scene.key)) extra.backdrop = true;
+      const concepts = kit?.icons[scene.key];
+      if (concepts?.length) extra.icons = concepts.map((c) => iconSvg(kit!.iconSet, c) || '');
       const motion = scene.motion ? { ...fallbackPlan[i], ...scene.motion } : fallbackPlan[i];
       return {
         key: scene.key,
@@ -296,13 +277,24 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
         image: scene.image,
         images: scene.images,
         video: scene.video,
+        rive: scene.rive,
         motion,
         ...extra,
       };
     })
   );
-  const needsLottie = Object.keys(lotties).length > 0;
-  const needsThree = scenes.some((s: any) => s.three);
+  // Les addons : ceux qu'exige le kit, plus ceux des médias réellement présents.
+  const addons = new Set<AddonId>(kit ? addonsForKit(kit) : []);
+  if (Object.keys(lotties).length) addons.add('lottie');
+  // La 3D (≈ 1 Mo) seulement s'il y a réellement une scène 3D, quels que soient les effets du kit.
+  if (scenes.some((s: any) => s.three)) addons.add('three');
+  else addons.delete('three');
+  if (scenes.some((s: any) => s.rive)) addons.add('rive');
+  if (kit && !logoInfo && ['draw', 'trace', 'morph', 'assemble', 'wipe'].includes(kit.logo)) {
+    addons.delete('gsap');
+    addons.delete('flubber');
+  }
+  const bundles = await engineBundles();
 
   const data = {
     mode: opts.mode,
@@ -320,6 +312,18 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
     logo: { onLight: theme.logo.onLight, onDark: theme.logo.onDark, icon: theme.logo.icon },
     lotties,
     zones,
+    kit: kit
+      ? {
+          background: kit.background,
+          annotate: kit.annotate,
+          annotateScene: kit.annotateScene,
+          // Sans logo vectoriel exploitable, la signature de la direction reprend la main.
+          logo: logoInfo || !['draw', 'trace', 'morph', 'assemble', 'wipe'].includes(kit.logo) ? kit.logo : 'classic',
+          logoSvg: logoInfo?.svg,
+          logoIsIcon: logoInfo?.isIcon,
+          spring: kit.spring,
+        }
+      : undefined,
     music: opts.mode === 'preview' && opts.music ? opts.music : undefined,
     sfx: opts.mode === 'preview' ? opts.sfx : undefined,
   };
@@ -335,9 +339,9 @@ ${opts.mode === 'render' ? `html,body{width:${spec.width}px;height:${spec.height
 </style>
 </head><body>
 <script>window.__VIDEO_DATA__=${json};</script>
-${needsLottie ? `<script>${lottieScript()}</script>` : ''}
-${needsThree ? `<script>${await threeScript()}</script>` : ''}
-<script>${await engineBundle()}</script>
+<script>${bundles.runtime}</script>
+${[...addons].map((id) => `<script data-addon="${id}">${bundles.addons[id]}</script>`).join('\n')}
+<script>${bundles.engine}</script>
 </body></html>`;
   return { html, spec };
 }

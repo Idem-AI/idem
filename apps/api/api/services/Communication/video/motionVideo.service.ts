@@ -36,13 +36,17 @@ import {
   VideoMediaKind,
   VideoSfx,
   VideoType,
+  VideoKit,
+  VideoStoryboard,
   SfxKind,
 } from '../../../models/motionVideo.model';
 import { mediaWanted, planTypeScenes, TYPE_DEFS, MediaCounts } from './video.types';
 import { generateClip, generateStill, MediaStorage, Orientation, processUpload, searchPexelsPhotos, searchPexelsVideos } from './video.media';
 import { ensureSfxLibrary, pickSounds, publicSoundName, SFX_DENSITY, SFX_GAIN_DB, sfxLibrary, soundFile, SfxLibrary } from './video.sfx';
 import { apiBaseUrl } from '../visualUrl';
-import { DIRECTIONS, isMotionDirection, pickDirection, planMotion, styleOfDirection, surfacesFor } from './video.direction';
+import { DirectionId, DIRECTIONS, isMotionDirection, pickDirection, planMotion, styleOfDirection, surfacesFor } from './video.direction';
+import { applyKitOverrides, assignIcons, iconVocabulary, KitContext, KitOverrides, resolveKit } from './video.capabilities';
+import { analyzeLogo } from './video.logo';
 import { CommunicationService } from '../communication.service';
 import { StorageService } from '../../storage.service';
 import { extractFacts, writeCopy, CopyContext, CopyWriter, fitLength } from './video.copy';
@@ -97,7 +101,7 @@ export interface RenderCharge {
 }
 
 const MAX_IMAGES = 6;
-const MEDIA_KINDS: VideoMediaKind[] = ['image', 'video', 'model3d', 'lottie'];
+const MEDIA_KINDS: VideoMediaKind[] = ['image', 'video', 'model3d', 'lottie', 'rive'];
 
 /**
  * URL de média acceptée : http(s) uniquement. `VIDEO_ALLOW_FILE_URLS=1` (contrôles
@@ -197,6 +201,47 @@ export class MotionVideoService {
     const visuals: any[] = analysis.communication?.visuals || [];
     const otherVideos: MotionVideo[] = analysis.communication?.videos || [];
     return { project, theme, ctx, branding, visuals, otherVideos };
+  }
+
+  // ── Kit (graphe de capacités) ───────────────────────────────────────────
+
+  /** Contexte du routeur de capacités pour une vidéo. */
+  private kitContext(opts: {
+    type: VideoType;
+    brief: VideoBrief;
+    scope: VideoScope;
+    direction: DirectionId;
+    storyboard: VideoStoryboard;
+    theme: VideoTheme;
+    branding: any;
+    ctx: CopyContext;
+    media: VideoMediaAsset[];
+    otherVideos: MotionVideo[];
+  }): KitContext {
+    const { theme } = opts;
+    const count = (kind: VideoMediaKind) => opts.media.filter((a) => a.kind === kind).length;
+    return {
+      type: opts.type,
+      objective: opts.brief.objective,
+      direction: opts.direction,
+      artStyleId: opts.branding?.artDirection?.styleId,
+      quality: opts.scope.quality,
+      format: opts.scope.formats[0],
+      durationSec: opts.scope.durationSec,
+      logo: analyzeLogo(theme.logo.fullSvgMarkup, theme.logo.svgMarkup !== theme.logo.fullSvgMarkup ? theme.logo.svgMarkup : undefined),
+      hasLogoIcon: !!theme.logo.icon,
+      media: { images: count('image'), videos: count('video'), models: count('model3d'), lotties: count('lottie'), rive: count('rive') },
+      scenes: opts.storyboard.scenes.map((sc) => ({
+        key: sc.key,
+        sceneId: sc.sceneId,
+        hasMedia: !!(sc.image || sc.video || sc.images?.length),
+        hasTitle: (sc.slots.title || '').split(/\s+/).length >= 3,
+        three: sc.sceneId === 'showcase3d' || (sc.sceneId === 'logo' && sc.variant === 2),
+      })),
+      text: [opts.brief.message, opts.brief.details, opts.ctx.businessType, opts.ctx.valueProposition, ...(opts.ctx.keywords || [])].filter(Boolean).join(' '),
+      seed: opts.storyboard.seed,
+      recent: opts.otherVideos.map((v) => v.storyboard?.kit).filter(Boolean) as VideoKit[],
+    };
   }
 
   // ── Médias ──────────────────────────────────────────────────────────────
@@ -425,7 +470,7 @@ export class MotionVideoService {
       images: Math.max(own('image'), stockable ? 6 : 0, visuals.filter((v) => v.backgroundImageUrl).length),
       videos: Math.max(own('video'), stockable || brief.allowGenerate ? 4 : 0),
       models: own('model3d'),
-      lotties: own('lottie'),
+      lotties: own('lottie') + own('rive'),
     };
     emit('plan', 'running', { type });
     let sceneIds = planTypeScenes(type, brief.objective, scope.durationSec, facts, optimistic);
@@ -435,7 +480,12 @@ export class MotionVideoService {
 
     // 2. Copie (un appel) : textes + mots-clés de recherche des médias.
     emit('copy', 'running');
-    const copy = await writeCopy(sceneIds, brief, ctx, this.writerFor(userId), { mediaQuery: needsStock });
+    // Le graphe donne au modèle un vocabulaire court de concepts d'icônes (scène « avantages » seulement).
+    const vocabText = [brief.message, brief.details, ctx.businessType, ...(ctx.keywords || [])].filter(Boolean).join(' ');
+    const copy = await writeCopy(sceneIds, brief, ctx, this.writerFor(userId), {
+      mediaQuery: needsStock,
+      icons: sceneIds.includes('benefits') ? iconVocabulary(vocabText) : undefined,
+    });
     const query = (copy.copy[0]?.visual || [ctx.businessType, ...(ctx.keywords || []).slice(0, 2)].filter(Boolean).join(' ') || brief.message).slice(0, 60);
     const firstTitle = sceneIds.map((_, i) => copy.copy[i + 1]?.title || copy.copy[i + 1]?.l1).find(Boolean);
     emit('copy', 'done', {
@@ -499,15 +549,22 @@ export class MotionVideoService {
       videos: urls('video'),
       models: urls('model3d'),
       lotties: urls('lottie'),
+      rives: urls('rive'),
       objective: brief.objective,
       logo3d: typeDef.logoVariant === 2 && !!theme.logo.svgMarkup,
       direction,
       landscape: scope.formats[0] === 'landscape',
     });
 
+    // 5. Le kit : le graphe de capacités choisit fond, annotation, animation du logo,
+    //    icônes, effets — selon le projet, la DA, la charte et les médias.
+    const kit = resolveKit(this.kitContext({ type, brief, scope, direction, storyboard, theme, branding, ctx, media: media.assets, otherVideos }));
+    kit.icons = assignIcons(storyboard.scenes);
+    storyboard.kit = kit;
+
     const now = new Date().toISOString();
     const hook = storyboard.scenes.find((sc) => sc.slots.title)?.slots.title || brief.message;
-    const used = new Set(storyboard.scenes.flatMap((sc) => [sc.image, sc.video, sc.model, sc.lottie, ...(sc.images || [])].filter(Boolean)));
+    const used = new Set(storyboard.scenes.flatMap((sc) => [sc.image, sc.video, sc.model, sc.lottie, sc.rive, ...(sc.images || [])].filter(Boolean)));
     const video: MotionVideo = {
       id: videoId,
       title: fitLength(hook, 60),
@@ -529,6 +586,7 @@ export class MotionVideoService {
     emit('storyboard', 'done', {
       scenes: storyboard.scenes.map((sc) => ({ sceneId: sc.sceneId, duration: sc.duration, surface: sc.surface })),
       bpm: storyboard.beat?.bpm,
+      kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, addons: kit.addons },
     });
     await this.communication.saveVideo(userId, projectId, video);
     logger.info('video.created', {
@@ -542,6 +600,7 @@ export class MotionVideoService {
       music: music?.provider,
       media: media.report,
       sfx: sfx ? Object.keys(sfx.sounds).length : 0,
+      kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, addons: kit.addons },
     });
     this.lastMediaReport = media.report;
     return video;
@@ -564,6 +623,8 @@ export class MotionVideoService {
       scope?: unknown;
       sfx?: boolean;
       direction?: string;
+      /** Retouche du kit : acceptée seulement si le graphe la permet. */
+      kit?: KitOverrides;
     }
   ): Promise<MotionVideo | null> {
     const current = (await this.communication.listVideos(userId, projectId)).find((v) => v.id === videoId);
@@ -640,6 +701,28 @@ export class MotionVideoService {
     if (patch.sfx !== undefined) {
       sfx = patch.sfx ? (current.sfx?.sounds && Object.keys(current.sfx.sounds).length ? { ...current.sfx, enabled: true } : await this.chooseSfx(storyboard.seed)) : { enabled: false, sounds: current.sfx?.sounds || {} };
       brief = { ...brief, sfx: patch.sfx };
+    }
+
+    // Le kit suit la direction et la qualité ; les retouches explicites passent par le graphe.
+    const directionChanged = storyboard.direction !== current.storyboard.direction;
+    if (storyboard.kit || directionChanged || patch.kit) {
+      const { theme, branding, ctx, otherVideos } = await this.brandContext(userId, projectId);
+      const kctx = this.kitContext({
+        type: current.type || defaultType(brief),
+        brief,
+        scope,
+        direction: (isMotionDirection(storyboard.direction) ? storyboard.direction : 'editorial') as DirectionId,
+        storyboard,
+        theme,
+        branding,
+        ctx,
+        media: current.media || [],
+        otherVideos: otherVideos.filter((v) => v.id !== videoId),
+      });
+      let kit = storyboard.kit && !directionChanged ? storyboard.kit : resolveKit(kctx);
+      kit = { ...kit, icons: storyboard.kit?.icons || assignIcons(storyboard.scenes) };
+      if (patch.kit) kit = applyKitOverrides(kit, patch.kit, kctx).kit;
+      storyboard = { ...storyboard, kit };
     }
 
     storyboard = retime(storyboard, music?.beat);

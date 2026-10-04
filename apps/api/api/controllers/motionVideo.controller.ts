@@ -16,6 +16,7 @@ import { normalizeScope, pricingTable, videoCost } from '../services/Communicati
 import { SCENES } from '../services/Communication/video/video.scenes';
 import { TYPE_DEFS } from '../services/Communication/video/video.types';
 import { DIRECTION_IDS } from '../services/Communication/video/video.direction';
+import { CAPABILITIES } from '../services/Communication/video/video.capabilities';
 import { MediaInputError } from '../services/Communication/video/video.media';
 import { resolvePublicSound } from '../services/Communication/video/video.sfx';
 import { VIDEO_TYPES, VideoType } from '../models/motionVideo.model';
@@ -64,6 +65,10 @@ export const videoOptionsController = async (_req: CustomRequest, res: Response)
     moods: MUSIC_MOODS,
     styles: ['auto', ...MOTION_STYLES],
     directions: ['auto', ...DIRECTION_IDS],
+    // Les choix du kit (graphe de capacités) : la vidéo dit lesquels sont possibles pour elle.
+    kit: Object.fromEntries(
+      (['logo', 'background', 'annotate', 'icons'] as const).map((kind) => [kind, CAPABILITIES.filter((n) => n.kind === kind).map((n) => ({ id: n.id.split(':')[1], label: n.label }))])
+    ),
     // Les types de motion proposés à la création, avec ce dont ils ont besoin.
     types: VIDEO_TYPES.map((id) => ({ id, icon: TYPE_DEFS[id].icon, style: TYPE_DEFS[id].style, needs: TYPE_DEFS[id].needs, durations: TYPE_DEFS[id].durations })),
     // Les cases de chaque scène et leur longueur maximale : l'éditeur de textes les borne.
@@ -119,6 +124,13 @@ export const getVideoController = async (req: CustomRequest, res: Response): Pro
   }
 };
 
+/** Seuls les champs du kit, en texte court (la validation réelle est celle du graphe). */
+function pickKit(raw: Record<string, unknown>) {
+  const out: Record<string, string> = {};
+  for (const k of ['logo', 'background', 'annotate', 'iconSet']) if (typeof raw[k] === 'string' && (raw[k] as string).length < 40) out[k] = raw[k] as string;
+  return out;
+}
+
 /** PATCH /project/communication/:projectId/videos/:videoId — retouches gratuites. */
 export const updateVideoController = async (req: CustomRequest, res: Response): Promise<void> => {
   const id = ids(req, res);
@@ -133,6 +145,7 @@ export const updateVideoController = async (req: CustomRequest, res: Response): 
       scope: body.scope,
       sfx: typeof body.sfx === 'boolean' ? body.sfx : undefined,
       direction: typeof body.direction === 'string' ? body.direction : undefined,
+      kit: body.kit && typeof body.kit === 'object' ? pickKit(body.kit) : undefined,
     });
     if (!video) {
       res.status(404).json({ message: 'Video not found' });

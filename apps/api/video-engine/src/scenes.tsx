@@ -15,7 +15,9 @@ import { CSSProperties, ReactNode } from 'react';
 import { cue } from './cues';
 import { useEngine, useLocalTime, useScene } from './context';
 import { Composition, useEnter, useExitAt } from './layout';
-import { Clip, LottieBox, ThreeView } from './media';
+import { Icon } from './kit/Icon';
+import { LogoMotion, SVG_LOGO_VARIANTS } from './kit/LogoMotion';
+import { Clip, LottieBox, RiveBox, ThreeView } from './media';
 import { Kinetic, Odometer } from './text';
 import { clamp, mix, progress } from './time';
 
@@ -115,7 +117,7 @@ function Hook() {
   return (
     <Composition>
       <Kicker text={s.slots.kicker} at={0} />
-      <Headline text={s.slots.title} at={s.motion.kicker ? 0.25 : 0.05} fit={horizontal ? [15, 8, 2] : big ? [24, 10, 4] : [20, 9, 3]} emph={['kinetic', 'collage', 'drenched'].includes(data.direction.id)} />
+      <Headline text={s.slots.title} at={s.motion.kicker ? 0.25 : 0.05} fit={horizontal ? [15, 8, 2] : big ? [24, 10, 4] : [20, 9, 3]} emph={['kinetic', 'collage', 'drenched'].includes(data.direction.id) || data.kit?.annotateScene === s.key} />
       <Rule at={0.6} />
     </Composition>
   );
@@ -127,7 +129,7 @@ function Statement() {
   const g = data.direction.pacing.groupStagger;
   return (
     <Composition>
-      <Headline text={s.slots.title} fit={[14, 7, 4]} />
+      <Headline text={s.slots.title} fit={[14, 7, 4]} emph={data.kit?.annotateScene === s.key} />
       <Rule at={g + 0.3} />
       <Support text={s.slots.sub} at={g * 2} />
     </Composition>
@@ -207,6 +209,7 @@ function Benefits() {
             cue(`${s.key}:b${i}`, s.start + a, 'softwhoosh', 0.45);
             return (
               <span key={i} className="oaat-item" style={{ opacity: p * (1 - q), transform: `translateY(${(1 - p) * 3 - q * 3}vmin)`, filter: `blur(${(1 - p + q) * 6}px)` }}>
+                {s.icons?.[i] ? <Icon svg={s.icons[i]} className="mb-3 block size-12 text-hl-text" /> : null}
                 {it}
               </span>
             );
@@ -237,8 +240,13 @@ function Item({ text, at, index, exitAt }: { text: string; at: number; index: nu
   cue(`${s.key}:item${index}`, s.start + at, id === 'collage' || id === 'kinetic' ? 'pop' : 'click', 0.55);
   const tilt = id === 'collage' ? { rotate: `${[-2.5, 1.8, -1.2][index % 3]}deg` } : {};
   return (
-    <li className="list-item" style={{ ...style, ...tilt }}>
-      {id === 'editorial' || id === 'precision' ? <span className="list-dot" /> : null}
+    <li className="list-row" style={{ ...style, ...tilt }}>
+      {s.icons?.[index] ? (
+        // Pastille et autocollant portent déjà leur couleur : l'icône la reprend.
+        <Icon svg={s.icons[index]} className={id === 'kinetic' || id === 'collage' ? 'size-8 text-current' : id === 'swiss' || id === 'brutal' ? 'size-11 text-hl-text' : 'size-10 text-hl-text'} />
+      ) : id === 'editorial' || id === 'precision' ? (
+        <span className="list-dot" />
+      ) : null}
       <Kinetic text={text} technique={id === 'brutal' ? 'boxReveal' : 'blurWords'} at={at} role="support" fit={[id === 'swiss' || id === 'brutal' ? 10 : 7.5, 4.2, 2]} exitAt={exitAt} style={{ fontWeight: 600 }} />
     </li>
   );
@@ -343,20 +351,24 @@ function Event() {
       <Headline text={s.slots.title} fit={[14, 7, 3]} />
       <div className="event-rows">
         {rows.map((k, i) => (
-          <EventRow key={k} icon={ICON[k]} text={s.slots[k]} at={g * (1.6 + i)} exitAt={exitAt} />
+          <EventRow key={k} icon={ICON[k]} svg={s.icons?.[(['date', 'time', 'place'] as const).indexOf(k)]} text={s.slots[k]} at={g * (1.6 + i)} exitAt={exitAt} />
         ))}
       </div>
     </Composition>
   );
 }
 
-function EventRow({ icon, text, at, exitAt }: { icon: ReactNode; text: string; at: number; exitAt: number | null }) {
+function EventRow({ icon, svg, text, at, exitAt }: { icon: ReactNode; svg?: string; text: string; at: number; exitAt: number | null }) {
   const style = useEnter('slideLeft', at, 0.8, exitAt);
   return (
     <div className="event-row" style={style}>
-      <svg className="event-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        {icon}
-      </svg>
+      {svg ? (
+        <Icon svg={svg} className="event-icon" />
+      ) : (
+        <svg className="event-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {icon}
+        </svg>
+      )}
       <Kinetic text={text} technique="blurWords" at={at} role="support" fit={[5.6, 3.4, 2]} exitAt={exitAt} style={{ fontWeight: 600 }} />
     </div>
   );
@@ -464,7 +476,7 @@ function Cta() {
   const shape = ({ precision: 'btn-pill', kinetic: 'btn-pill', swiss: 'btn-rect', brutal: 'btn-block', collage: 'btn-sticker', drenched: 'btn-rect', cinematic: 'btn-ghost' } as Record<string, string>)[id] || 'btn-link';
   return (
     <Composition>
-      <Headline text={s.slots.title} fit={horizontal ? [12, 7, 2] : [15, 7, 3]} emph={['kinetic', 'collage', 'drenched'].includes(id)} />
+      <Headline text={s.slots.title} fit={horizontal ? [12, 7, 2] : [15, 7, 3]} emph={['kinetic', 'collage', 'drenched'].includes(id) || data.kit?.annotateScene === s.key} />
       <span className={`btn ${shape}`} style={{ ...btnStyle, scale: String(pulse) }}>
         {s.slots.action}
         <svg className="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -478,7 +490,7 @@ function Cta() {
 
 function Logo() {
   const s = useScene();
-  const { data, ease, horizontal } = useEngine();
+  const { data, ease, back, horizontal, u } = useEngine();
   const lt = useLocalTime();
   const sf = data.surfaces[s.surface] || data.surfaces.light;
   const src = sf.dark ? data.logo.onDark || data.logo.onLight : data.logo.onLight || data.logo.onDark;
@@ -502,6 +514,45 @@ function Logo() {
     );
   }
   const id = data.direction.id;
+  const kitLogo = data.kit?.logo || 'classic';
+  // Logo vectoriel animé (graphe de capacités) : tracé, plume, morphose, assemblage, balayage.
+  if (SVG_LOGO_VARIANTS.includes(kitLogo) && data.kit?.logoSvg) {
+    cue(`${s.key}:logo-motion`, s.tin, kitLogo === 'assemble' ? 'pop' : kitLogo === 'morph' ? 'whoosh' : 'softwhoosh', 0.6);
+    const anchor = id === 'swiss' || id === 'brutal' ? 'bottom-left' : 'center';
+    return (
+      <Composition anchor={anchor} gap={4}>
+        <LogoMotion variant={kitLogo} at={0.05} height={u * (data.kit.logoIsIcon ? 26 : horizontal ? 24 : 22)} align={anchor === 'center' ? 'center' : 'left'} />
+        {data.kit.logoIsIcon ? <Kinetic text={data.brandName} technique="maskUp" at={1.3} role="headline" fit={[11, 6, 1]} /> : null}
+        {s.slots.tagline ? (
+          <span className="tagline" style={tagStyle}>
+            {s.slots.tagline}
+          </span>
+        ) : null}
+      </Composition>
+    );
+  }
+  // Symbole puis nom : l'icône se pose, le nom glisse de derrière elle.
+  if (kitLogo === 'split' && data.logo.icon) {
+    const ip = back(progress(lt, 0, data.direction.pacing.enter));
+    const np = ease(progress(lt, 0.55, data.direction.pacing.enter * 1.2));
+    return (
+      <Composition anchor="center" gap={4}>
+        <div className="flex items-center justify-center" style={{ gap: u * 3 }}>
+          <img className="logo-icon" src={data.logo.icon} alt="" style={{ transform: `translateX(${(1 - np) * 40}%) scale(${mix(0.3, 1, ip)})`, opacity: clamp(ip * 2), position: 'relative', zIndex: 1 }} />
+          <div className="overflow-hidden">
+            <div style={{ transform: `translateX(${(1 - np) * -105}%)` }}>
+              <Kinetic text={data.brandName} technique="trackIn" at={0.55} role="headline" fit={[12, 6, 1]} />
+            </div>
+          </div>
+        </div>
+        {s.slots.tagline ? (
+          <span className="tagline" style={tagStyle}>
+            {s.slots.tagline}
+          </span>
+        ) : null}
+      </Composition>
+    );
+  }
   const p = ease(progress(lt, 0, data.direction.pacing.enter * 1.4));
   const logoImg = (style: CSSProperties = {}) =>
     src ? <img className="logo-img" src={src} alt="" style={style} /> : <Kinetic text={data.brandName} technique="trackIn" at={0} role="headline" fit={[14, 7, 2]} />;
@@ -656,7 +707,11 @@ function LottieScene() {
   if (s.lottieName === 'confetti' || s.lottieName === 'sparkle') cue(`${s.key}:lottie2`, s.tin + 0.3, 'shimmer', 0.55);
   return (
     <Composition>
-      {s.lottieKey ? (
+      {s.rive ? (
+        <div style={box} className="lottie-wrap">
+          <RiveBox src={s.rive} size={Math.round(Math.min(data.width, data.height) * 0.6)} className="lottie-box" />
+        </div>
+      ) : s.lottieKey ? (
         <div style={box} className="lottie-wrap">
           <LottieBox data={data.lotties[s.lottieKey]} loop={!!s.lottieLoop} className="lottie-box" />
         </div>

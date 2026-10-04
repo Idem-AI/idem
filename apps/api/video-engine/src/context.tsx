@@ -2,7 +2,7 @@
  * Les données de la vidéo et le temps courant, partagés par toutes les scènes.
  */
 import { createContext, useContext } from 'react';
-import { Bezier, bezier, quantize } from './time';
+import { Bezier, bezier, quantize, springEase } from './time';
 
 export interface SurfaceTokens {
   bg: string;
@@ -52,7 +52,34 @@ export interface SceneData {
   lottieName?: string;
   lottieLoop?: boolean;
   three?: Record<string, any>;
+  /** Fichier Rive importé (.riv) joué dans la scène d'animation. */
+  rive?: string;
+  /** Pictogrammes SVG (déjà choisis et normalisés par le serveur), un par élément. */
+  icons?: string[];
+  /** Le fond du kit est posé sur cette scène (le graphe en retient deux au plus). */
+  backdrop?: boolean;
   motion: SceneMotion;
+}
+
+/**
+ * Le kit retenu par le graphe de capacités (serveur, video.capabilities.ts) :
+ * l'IA n'écrit pas de code, elle reçoit ces choix déjà validés.
+ */
+export interface KitData {
+  /** Fond de quelques scènes : none | dot-grid | halftone | shape-field | stagger-grid | marquee | spotlight | ticks */
+  background: string;
+  /** Annotation du mot mis en valeur : none | marker | underline | circle */
+  annotate: string;
+  /** La seule scène annotée (clé de scène). */
+  annotateScene?: string;
+  /** Animation du logo : classic | draw | trace | morph | assemble | wipe | split | extrude */
+  logo: string;
+  /** Logo vectoriel nettoyé (scripts, liens externes et identifiants neutralisés). */
+  logoSvg?: string;
+  /** Le SVG n'est qu'un symbole : le nom de la marque s'écrit dessous. */
+  logoIsIcon?: boolean;
+  /** Rebond physique (ressort) pour les directions ludiques ; absent = courbe de la direction. */
+  spring?: { bounce: number };
 }
 
 export interface VideoData {
@@ -73,6 +100,7 @@ export interface VideoData {
   zones: { st: number; sb: number; sx: number };
   music?: { url: string; startAt: number };
   sfx?: { enabled: boolean; sounds: Record<string, { url: string; gain: number }> };
+  kit?: KitData;
 }
 
 /** Une scène replacée sur la ligne de temps, avec ses fenêtres calculées. */
@@ -123,9 +151,10 @@ export function useLocalTime(): number {
   return quantize(t - s.start, data.direction.stepped);
 }
 
-export function makeEasings(d: DirectionDef) {
+export function makeEasings(d: DirectionDef, kit?: KitData) {
   const out = bezier(d.ease.out);
   const easeIn = bezier(d.ease.in);
-  const back = d.overshoot ? bezier([0.34, 1.56, 0.64, 1]) : out;
+  // Rebond : un vrai ressort (motion) quand le kit le demande, sinon une courbe de Bézier.
+  const back = !d.overshoot ? out : kit?.spring ? springEase(kit.spring.bounce) : bezier([0.34, 1.56, 0.64, 1]);
   return { ease: out, easeIn, back };
 }

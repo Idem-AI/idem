@@ -4,7 +4,7 @@ html,body{overflow:hidden;background:#0b0b0c}
 #stage{position:relative;overflow:hidden;font-family:var(--f-body),system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
 .scene{position:absolute;inset:0;overflow:hidden;background:var(--bg);color:var(--ink);will-change:transform}
 .safe{position:absolute;left:var(--sx);right:var(--sx);top:var(--st);bottom:var(--sb);display:flex;flex-direction:column;transform-origin:50% 50%}
-.block{display:flex;flex-direction:column;max-width:100%}
+.comp-block{display:flex;flex-direction:column;max-width:100%}
 
 /* ── Textes ── */
 .kt{display:block;width:100%;min-width:0;overflow-wrap:normal;word-break:normal;hyphens:none;text-wrap:balance}
@@ -66,16 +66,16 @@ html,body{overflow:hidden;background:#0b0b0c}
 
 /* ── Listes (aucun numéro décoratif, aucun filet latéral) ── */
 .list{list-style:none;display:flex;flex-direction:column;width:100%}
-.list-item{display:flex;align-items:center;gap:calc(var(--u)*3)}
+.list-row{display:flex;align-items:center;gap:calc(var(--u)*3)}
 .list-rules{gap:0}
-.list-rules .list-item{padding:calc(var(--u)*3.4) 0;border-top:max(1px,calc(var(--u)*0.2)) solid color-mix(in srgb,var(--ink) 22%,transparent)}
-.list-rules .list-item:last-child{border-bottom:max(1px,calc(var(--u)*0.2)) solid color-mix(in srgb,var(--ink) 22%,transparent)}
+.list-rules .list-row{padding:calc(var(--u)*3.4) 0;border-top:max(1px,calc(var(--u)*0.2)) solid color-mix(in srgb,var(--ink) 22%,transparent)}
+.list-rules .list-row:last-child{border-bottom:max(1px,calc(var(--u)*0.2)) solid color-mix(in srgb,var(--ink) 22%,transparent)}
 .list-dot{flex:none;width:calc(var(--u)*1.6);height:calc(var(--u)*1.6);border-radius:999px;background:var(--hl)}
 .list-stack{gap:calc(var(--u)*2.2)}
 .list-pills{gap:calc(var(--u)*2.6);align-items:inherit}
-.list-pills .list-item{width:auto;padding:calc(var(--u)*2.2) calc(var(--u)*4.4);border-radius:999px;background:var(--hl);color:var(--hl-ink)}
+.list-pills .list-row{width:auto;padding:calc(var(--u)*2.2) calc(var(--u)*4.4);border-radius:999px;background:var(--hl);color:var(--hl-ink)}
 .list-stickers{gap:calc(var(--u)*3.4);align-items:inherit}
-.list-stickers .list-item{width:auto;padding:calc(var(--u)*2.4) calc(var(--u)*3.6);background:#fff;color:#16181d;box-shadow:0 calc(var(--u)*1) calc(var(--u)*3) rgba(0,0,0,.18)}
+.list-stickers .list-row{width:auto;padding:calc(var(--u)*2.4) calc(var(--u)*3.6);background:#fff;color:#16181d;box-shadow:0 calc(var(--u)*1) calc(var(--u)*3) rgba(0,0,0,.18)}
 .list-pills .kt,.list-stickers .kt{width:auto}
 .one-at-a-time{position:relative;width:100%;height:calc(var(--u)*28)}
 .oaat-item{position:absolute;left:0;right:0;top:50%;translate:0 -50%;font-family:var(--f-display);font-weight:700;font-size:calc(var(--u)*9);line-height:1.08;text-wrap:balance}
@@ -93,7 +93,7 @@ html,body{overflow:hidden;background:#0b0b0c}
 /* ── Citation, événement ── */
 .quote-mark{font-family:var(--f-display);font-size:calc(var(--u)*30);line-height:.6;height:calc(var(--u)*12);color:var(--hl)}
 .quote-author{font-weight:600;font-size:calc(var(--u)*4.4);color:var(--muted)}
-.event-rows{display:flex;flex-direction:column;gap:calc(var(--u)*3);width:100%}
+.event-rows{display:flex;flex-direction:column;align-items:inherit;gap:calc(var(--u)*3);width:100%}
 .event-row{display:flex;align-items:center;gap:calc(var(--u)*3)}
 .event-icon{flex:none;width:calc(var(--u)*7);height:calc(var(--u)*7);color:var(--hl-text)}
 
@@ -181,3 +181,8 @@ body.preview{display:flex;align-items:center;justify-content:center;width:100vw;
 .pv-fill{position:absolute;left:0;top:0;bottom:0;border-radius:9px;background:#fff;width:0}
 .pv-big{position:absolute;inset:0;z-index:950;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.18);cursor:pointer;border:0}
 .pv-big span{width:78px;height:78px;border-radius:999px;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+
+/* ── Kit (Tailwind pour le reste) ── */
+.kit-icon svg{width:100%;height:100%;display:block}
+.kit-logo{display:flex;align-items:center;width:100%}
+.kit-logo svg{width:100%;height:100%;overflow:visible;display:block}

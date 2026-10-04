@@ -26,11 +26,16 @@ sera livré.
 
 ## Moteur React et directions de motion
 
-Le rendu est un petit moteur React (`apps/api/video-engine`, empaqueté par
-esbuild dans `public/video-engine/engine.js`, ~250 ko avec React) : chaque
-scène est un composant, chaque style est une **fonction du temps** (`seek(t)`
-rend l'image t de façon déterministe, `flushSync`). `npm run build` construit le
-paquet ; en développement il est reconstruit dès qu'une source change.
+Le rendu est un moteur React + Tailwind (`apps/api/video-engine`, empaqueté par
+esbuild dans `public/video-engine/` : runtime React partagé, moteur, et un addon
+par bibliothèque lourde) : chaque scène est un composant, chaque style est une
+**fonction du temps** (`seek(t)` rend l'image t de façon déterministe,
+`flushSync`). `npm run build` construit les paquets ; en développement ils sont
+reconstruits dès qu'une source change.
+
+**Environnement complet (bibliothèques installées, kit, graphe de capacités qui
+dit à l'IA ce qu'elle peut utiliser selon le projet) : [VIDEO_ENGINE.md](VIDEO_ENGINE.md)
+et [VIDEO_CAPABILITIES.md](VIDEO_CAPABILITIES.md).**
 
 Huit **directions** (éditoriale, grille suisse, bloc brut, cinétique, cinéma,
 collage, précision, monochrome) fixent chacune : typographie (casse, chasse,
@@ -111,11 +116,14 @@ commercial).
 
 ## Rendu 3D, clips et Lottie
 
-- three.js (r180) empaqueté à la volée par esbuild et embarqué seulement si la
-  vidéo contient une scène 3D ; WebGL logiciel (SwiftShader) : pas de GPU requis,
-  mais le rendu d'une scène 3D est plus lent (~90 ms par image en 720p).
-- lottie-web embarqué seulement si la vidéo contient une animation Lottie.
-- Le moteur React est indépendant de GSAP (retiré) : techniques et transitions sont écrites en fonctions du temps.
+- 3D : addon three.js + React Three Fiber + drei + postprocessing, embarqué
+  seulement si la vidéo contient une scène 3D ; WebGL logiciel (SwiftShader) :
+  pas de GPU requis, mais une scène 3D est plus lente (~90 ms par image en 720p).
+- Lottie (addon lottie-web light, sans expressions) seulement si la vidéo en
+  contient une ; `.lottie` est décompressé côté serveur. Rive (`.riv`) importable.
+- GSAP, anime.js, flubber : addons chargés seulement si le kit les exige
+  (animation du logo, fond) ; techniques et transitions restent écrites en
+  fonctions du temps dans le moteur.
 - Les clips sont positionnés image par image (`currentTime` + `seeked`). Les
   onglets de rendu ont l'émulation de focus activée : sinon Chromium suspend le
   décodage vidéo des onglets « en arrière-plan ».

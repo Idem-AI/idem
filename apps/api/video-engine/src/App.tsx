@@ -4,6 +4,7 @@
  */
 import { CSSProperties, useLayoutEffect, useMemo } from 'react';
 import { Engine, EngineCtx, SceneCtx, Timed, VideoData, makeEasings, useEngine } from './context';
+import { Backdrop } from './kit/Backdrop';
 import { SCENE_COMPONENTS } from './scenes';
 import { clamp, progress } from './time';
 import { sceneStyle, timeline, TransitionLayers } from './transitions';
@@ -36,7 +37,7 @@ function useShrinkOverflow() {
       if (!safe) return;
       const fits = [...safe.querySelectorAll<HTMLElement>('[data-fit]')];
       for (let i = 0; i < 10; i++) {
-        const block = safe.querySelector<HTMLElement>('.block');
+        const block = safe.querySelector<HTMLElement>('.comp-block');
         if (!block || block.scrollHeight <= safe.clientHeight + 1) return;
         fits.forEach((el) => (el.style.fontSize = `${parseFloat(el.style.fontSize) * 0.9}px`));
       }
@@ -92,9 +93,12 @@ function Brandmark() {
   );
 }
 
+/** Rayon des formes par direction (classe `rounded-brand`). */
+const RADIUS: Record<string, string> = { brutal: '0px', swiss: '0px', precision: 'calc(var(--u) * 1.2)', kinetic: 'calc(var(--u) * 2.4)', collage: 'calc(var(--u) * 0.6)', editorial: 'calc(var(--u) * 0.4)', cinematic: 'calc(var(--u) * 0.8)', drenched: 'calc(var(--u) * 1.6)' };
+
 export function Video({ data, t }: { data: VideoData; t: number }) {
   const scenes = useTimeline(data);
-  const easings = useMemo(() => makeEasings(data.direction), [data]);
+  const easings = useMemo(() => makeEasings(data.direction, data.kit), [data]);
   const engine: Engine = {
     data,
     t,
@@ -111,6 +115,13 @@ export function Video({ data, t }: { data: VideoData; t: number }) {
     ['--st' as any]: `${data.zones.st}px`,
     ['--sb' as any]: `${data.zones.sb}px`,
     ['--sx' as any]: `${data.zones.sx}px`,
+    // La charte, pour les classes Tailwind (bg-primary, text-accent…).
+    ['--c-primary' as any]: data.palette.primary,
+    ['--c-secondary' as any]: data.palette.secondary,
+    ['--c-accent' as any]: data.palette.accent,
+    ['--c-background' as any]: data.palette.background,
+    ['--c-text' as any]: data.palette.text,
+    ['--radius' as any]: RADIUS[data.direction.id] ?? '0px',
   };
   return (
     <EngineCtx.Provider value={engine}>
@@ -121,6 +132,7 @@ export function Video({ data, t }: { data: VideoData; t: number }) {
           return (
             <SceneCtx.Provider key={s.key} value={s}>
               <section className={`scene scene-${s.sceneId}`} data-scene={s.sceneId} style={{ ...surfaceVars(data, s.surface), zIndex: 10 + s.index, visibility: on ? 'visible' : 'hidden', ...(on ? sceneStyle(engine, s) : {}) }}>
+                <Backdrop />
                 {Component ? <Component /> : null}
               </section>
             </SceneCtx.Provider>

@@ -5,6 +5,7 @@
  * de t, jamais accumulé image après image. L'image t est donc toujours la même,
  * quel que soit l'ordre de rendu.
  */
+import { interpolate, spring } from 'motion';
 
 export type Bezier = [number, number, number, number];
 
@@ -61,3 +62,26 @@ export function hash(n: number): number {
 /** Courbe « exponentielle » de référence quand la direction n'en impose pas. */
 export const EXPO_OUT: Bezier = [0.16, 1, 0.3, 1];
 export const EXPO_IN: Bezier = [0.7, 0, 0.84, 0];
+
+/**
+ * Ressort physique (motion, ex-Framer Motion) échantillonné une fois en table :
+ * p ∈ [0, 1] → valeur, qui dépasse 1 puis se pose. Le générateur de motion est
+ * une fonction pure du temps, donc l'image reste la même dans tous les onglets.
+ */
+export function springEase(bounce: number): (p: number) => number {
+  const g = spring({ keyframes: [0, 1], visualDuration: 0.6, bounce: clamp(bounce, 0, 0.6) });
+  const N = 96;
+  const table = Array.from({ length: N + 1 }, (_, i) => g.next((i / N) * 1000).value as number);
+  return (p: number) => {
+    if (p <= 0) return 0;
+    if (p >= 1) return 1;
+    const x = p * N;
+    const i = Math.floor(x);
+    return mix(table[i], table[i + 1], x - i);
+  };
+}
+
+/** Interpolation par images clés (motion) : `keyframes(lt, [0, 0.4, 1], [0, 1.1, 1])`. */
+export function keyframes(t: number, times: number[], values: number[], ease?: ((p: number) => number)[]): number {
+  return interpolate(times, values, { clamp: true, ease })(t);
+}

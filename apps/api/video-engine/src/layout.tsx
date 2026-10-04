@@ -29,7 +29,7 @@ export function Composition({ children, anchor, gap = 3, width }: { children: Re
   const camera = useCamera();
   return (
     <div className="safe" style={{ ...ANCHOR_STYLE[a], gap: `calc(var(--u) * ${gap})`, ...camera }}>
-      <div className="block" style={{ width: width || (a === 'right' ? '100%' : horizontal ? '62%' : '100%'), display: 'flex', flexDirection: 'column', alignItems: ANCHOR_STYLE[a].alignItems, gap: `calc(var(--u) * ${gap})` }}>
+      <div className="comp-block" style={{ width: width || (a === 'right' ? '100%' : horizontal ? '62%' : '100%'), display: 'flex', flexDirection: 'column', alignItems: ANCHOR_STYLE[a].alignItems, gap: `calc(var(--u) * ${gap})` }}>
         {children}
       </div>
     </div>

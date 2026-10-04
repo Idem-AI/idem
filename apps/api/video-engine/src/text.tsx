@@ -17,6 +17,7 @@
 import { CSSProperties, Fragment, useLayoutEffect, useRef } from 'react';
 import { cue, CueKind } from './cues';
 import { useEngine, useLocalTime, useScene } from './context';
+import { Em, EmDecor } from './kit/Em';
 import { clamp, hash, mix, progress } from './time';
 
 export type Role = 'headline' | 'support' | 'kicker' | 'label';
@@ -90,6 +91,19 @@ export function Kinetic(props: KineticProps) {
   const dur = role === 'headline' ? d.pacing.enter : d.pacing.enter * 0.8;
   const st = tech === 'stackPush' ? d.pacing.groupStagger * 0.55 : d.pacing.unitStagger;
   const at = props.at;
+  // L'annotation du mot mis en valeur se trace une fois le mot entièrement posé :
+  // après sa dernière lettre (techniques par lettre), après lui (par mot), après le bloc.
+  const emAt = (() => {
+    if (emph < 0) return at;
+    if (tech === 'charCascade' || tech === 'flipChars' || tech === 'scramble' || tech === 'typewriter') {
+      const total = words.join('').length;
+      const upTo = words.slice(0, emph + 1).join('').length;
+      const cst = tech === 'scramble' ? st * 1.6 : tech === 'typewriter' ? 0.035 : Math.min(st, 0.6 / Math.max(1, total));
+      return at + upTo * cst + (tech === 'typewriter' ? 0.2 : dur) + 0.1;
+    }
+    if (tech === 'trackIn' || tech === 'scaleBlur' || tech === 'boxReveal') return at + dur * 1.2 + 0.1;
+    return at + emph * st + dur + 0.1;
+  })();
 
   // Le son de l'entrée, une fois, au moment où le mouvement commence.
   if (props.sound) cue(`${scene.key}:${role}:${at}`, scene.start + at + 0.02, props.sound, role === 'headline' ? 1 : 0.6);
@@ -129,7 +143,7 @@ export function Kinetic(props: KineticProps) {
       <span ref={ref} data-fit={props.fit?.join(',')} className={`kt kt-${role} ${props.className || ''}`} style={{ ...baseStyle, ...block, ...exitStyle(exitP) }}>
         {words.map((w, i) => (
           <Fragment key={i}>
-            <span className={i === emph ? 'kt-em' : undefined}>{w}</span>
+            {i === emph ? <Em at={emAt}>{w}</Em> : <span>{w}</span>}
             {i < words.length - 1 ? ' ' : ''}
           </Fragment>
         ))}
@@ -147,7 +161,7 @@ export function Kinetic(props: KineticProps) {
         <span style={{ opacity: shown ? 1 : 0 }}>
           {words.map((w, i) => (
             <Fragment key={i}>
-              <span className={i === emph ? 'kt-em' : undefined}>{w}</span>
+              {i === emph ? <Em at={emAt}>{w}</Em> : <span>{w}</span>}
               {i < words.length - 1 ? ' ' : ''}
             </Fragment>
           ))}
@@ -178,7 +192,8 @@ export function Kinetic(props: KineticProps) {
       >
         {words.map((w, wi) => (
           <Fragment key={wi}>
-            <span className={`kt-word ${wi === emph ? 'kt-em' : ''}`}>
+            <span className={`kt-word ${wi === emph ? 'kt-em relative isolate' : ''}`}>
+              {wi === emph ? <EmDecor at={emAt} /> : null}
               {[...w].map((ch, k) => {
                 const i = ci++;
                 const cst = tech === 'scramble' ? st * 1.6 : tech === 'typewriter' ? 0.035 : Math.min(st, 0.6 / Math.max(1, totalChars));
@@ -245,11 +260,21 @@ export function Kinetic(props: KineticProps) {
         }
         return (
           <Fragment key={i}>
-            <span className={`kt-word ${masked ? 'kt-mask' : ''} ${i === emph ? 'kt-em' : ''}`} style={outer}>
-              <span className="kt-in" style={inner}>
-                {w}
+            {i === emph ? (
+              <Em at={emAt}>
+                <span className={`kt-word ${masked ? 'kt-mask' : ''}`} style={outer}>
+                  <span className="kt-in" style={inner}>
+                    {w}
+                  </span>
+                </span>
+              </Em>
+            ) : (
+              <span className={`kt-word ${masked ? 'kt-mask' : ''}`} style={outer}>
+                <span className="kt-in" style={inner}>
+                  {w}
+                </span>
               </span>
-            </span>
+            )}
             {i < words.length - 1 ? ' ' : ''}
           </Fragment>
         );

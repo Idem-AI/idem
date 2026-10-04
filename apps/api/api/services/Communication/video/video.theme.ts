@@ -42,7 +42,7 @@ export interface VideoTheme {
   surfaces: Record<SurfaceName, SurfaceTokens>;
   fonts: { display: string; body: string; links: string };
   /** Sources d'image du logo (URL ou data-URI), par polarité de fond. */
-  logo: { onLight?: string; onDark?: string; icon?: string; svgMarkup?: string };
+  logo: { onLight?: string; onDark?: string; icon?: string; svgMarkup?: string; fullSvgMarkup?: string };
 }
 
 const DEFAULTS = {
@@ -189,6 +189,8 @@ export function buildVideoTheme(
       onDark: toImageSrc(resolveLogoSlot(logo, 'assetUrls.withText.darkBackground')),
       icon: toImageSrc(resolveLogoSlot(logo, 'assetUrls.icon')),
       svgMarkup: svgMarkupOf(resolveLogoSlot(logo, 'iconSvg')) || svgMarkupOf(resolveLogoSlot(logo, 'svg')),
+      // Le logo complet (symbole + nom), pour les animations de logo vectoriel.
+      fullSvgMarkup: svgMarkupOf(resolveLogoSlot(logo, 'svg')),
     },
   };
 }

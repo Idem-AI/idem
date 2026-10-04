@@ -812,13 +812,13 @@ communicationRoutes.post(
  */
 /**
  * Médias importés pour les vidéos : photos, clips (réencodés en WebM 720p),
- * modèles 3D (GLB, 20 Mo) et animations Lottie (JSON, 3 Mo).
+ * modèles 3D (GLB, 20 Mo), animations Lottie (JSON ou .lottie, 3 Mo) et Rive (.riv, 6 Mo).
  */
 const videoMediaUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 80 * 1024 * 1024, files: 8 },
   fileFilter: (_req, file, cb) =>
-    cb(null, /^(image\/(jpeg|png|webp|heic|heif)|video\/(mp4|quicktime|webm|x-m4v)|model\/gltf-binary|application\/(json|octet-stream))$/.test(file.mimetype) || /\.(glb|json)$/i.test(file.originalname)),
+    cb(null, /^(image\/(jpeg|png|webp|heic|heif)|video\/(mp4|quicktime|webm|x-m4v)|model\/gltf-binary|application\/(json|octet-stream|zip))$/.test(file.mimetype) || /\.(glb|json|lottie|riv)$/i.test(file.originalname)),
 });
 communicationRoutes.post(
   `/${resource}/:projectId/videos/media`,
