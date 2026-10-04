@@ -65,6 +65,21 @@ export interface CreateVideoInput {
   language?: string;
 }
 
+/**
+ * Progression RÉELLE d'une création, étape par étape : l'interface la montre en
+ * direct (flux SSE). Les étapes médias, musique et effets tournent en parallèle.
+ */
+export type VideoProgressStage = 'plan' | 'copy' | 'media' | 'music' | 'sfx' | 'storyboard';
+
+export interface VideoProgressEvent {
+  stage: VideoProgressStage;
+  state: 'running' | 'done';
+  /** Détails affichables (scènes prévues, titre écrit, médias trouvés, piste…). */
+  data?: Record<string, unknown>;
+}
+
+export type VideoProgressListener = (event: VideoProgressEvent) => void;
+
 /** Ce que la création a fait pour trouver ses médias (journal et contrôles). */
 export interface MediaReport {
   stockPhotos: number;
@@ -317,11 +332,15 @@ export class MotionVideoService {
       // Une piste qui ne se télécharge pas ou ne s'analyse pas laisse sa place
       // à la suivante : la vidéo garde une musique calée sur le temps.
       const queue = [first, ...candidates.filter((t) => t.id !== first.id && !(opts.avoidIds || []).includes(t.id)).slice(0, 2)];
+      let fallback: VideoMusic | undefined;
       for (const track of queue) {
         const prepared = await this.prepareTrack(track, opts.durationSec);
         if (prepared.beat) return prepared;
+        fallback ??= prepared;
       }
-      return undefined;
+      // Aucune piste analysable (réseau) : mieux vaut une musique sans coupes
+      // calées sur le temps qu'une vidéo muette ; elle sera retéléchargée à l'export.
+      return fallback;
     } catch (error: any) {
       logger.warn('video.music_failed', { error: error.message });
       return undefined;
@@ -341,7 +360,12 @@ export class MotionVideoService {
         beat: { bpm: track.bpm && Math.abs(track.bpm - analysis.bpm) < 4 ? track.bpm : analysis.bpm, offset: 0, confidence: analysis.confidence },
       };
     } catch (error: any) {
-      logger.warn('video.track_analysis_failed', { id: track.id, error: error.message });
+      logger.warn('video.track_analysis_failed', {
+        id: track.id,
+        error: error?.message || String(error),
+        code: error?.code,
+        stack: String(error?.stack || '').split('\n').slice(0, 3).join(' | '),
+      });
       return { ...track, startAt: 0 };
     }
   }
@@ -355,7 +379,20 @@ export class MotionVideoService {
 
   // ── Création ─────────────────────────────────────────────────────────────
 
-  async createVideo(userId: string, projectId: string, input: CreateVideoInput, paidCredits: number): Promise<MotionVideo> {
+  async createVideo(
+    userId: string,
+    projectId: string,
+    input: CreateVideoInput,
+    paidCredits: number,
+    onProgress?: VideoProgressListener
+  ): Promise<MotionVideo> {
+    const emit = (stage: VideoProgressStage, state: 'running' | 'done', data?: Record<string, unknown>) => {
+      try {
+        onProgress?.({ stage, state, data });
+      } catch {
+        /* un client déconnecté ne doit pas interrompre la création */
+      }
+    };
     const scope = normalizeScope(input.scope);
     const brief = normalizeBrief(input.brief, input.language);
     const type: VideoType = VIDEO_TYPES.includes(input.type as VideoType) ? (input.type as VideoType) : defaultType(brief);
@@ -379,17 +416,33 @@ export class MotionVideoService {
       models: own('model3d'),
       lotties: own('lottie'),
     };
+    emit('plan', 'running', { type });
     let sceneIds = planTypeScenes(type, brief.objective, scope.durationSec, facts, optimistic);
+    emit('plan', 'done', { type, style, scenes: sceneIds, durationSec: scope.durationSec });
     const wanted = mediaWanted(sceneIds);
     const needsStock = (wanted.images > own('image') || wanted.videos > own('video')) && (brief.allowStock || brief.allowGenerate);
 
     // 2. Copie (un appel) : textes + mots-clés de recherche des médias.
+    emit('copy', 'running');
     const copy = await writeCopy(sceneIds, brief, ctx, this.writerFor(userId), { mediaQuery: needsStock });
     const query = (copy.copy[0]?.visual || [ctx.businessType, ...(ctx.keywords || []).slice(0, 2)].filter(Boolean).join(' ') || brief.message).slice(0, 60);
+    const firstTitle = sceneIds.map((_, i) => copy.copy[i + 1]?.title || copy.copy[i + 1]?.l1).find(Boolean);
+    emit('copy', 'done', {
+      title: firstTitle || brief.message,
+      lines: Object.values(copy.copy).reduce((n, slots) => n + Object.keys(slots || {}).length, 0),
+      source: copy.source,
+    });
 
     // 3. Médias, musique et effets sonores, en parallèle.
+    emit('media', 'running', { query, wanted });
+    emit('music', 'running', { mood: brief.musicMood });
+    if (brief.sfx) emit('sfx', 'running');
     const [media, music, sfx] = await Promise.all([
-      this.acquireMedia({ userId, projectId, videoId, brief, visuals, wanted, query, orientation, ctx }),
+      this.acquireMedia({ userId, projectId, videoId, brief, visuals, wanted, query, orientation, ctx }).then((m) => {
+        const preview = (a: VideoMediaAsset) => ({ kind: a.kind, origin: a.origin, url: a.kind === 'video' ? a.posterUrl : a.kind === 'image' ? a.url : undefined, credit: a.credit, name: a.name });
+        emit('media', 'done', { query, ...m.report, items: m.assets.slice(0, 8).map(preview) });
+        return m;
+      }),
       this.chooseMusic({
         mood: brief.musicMood,
         style,
@@ -397,9 +450,20 @@ export class MotionVideoService {
         durationSec: scope.durationSec,
         seed,
         avoidIds: otherVideos.map((v) => v.music?.id).filter(Boolean) as string[],
+      }).then((track) => {
+        emit('music', 'done', track ? { title: track.title, artist: track.artist, provider: track.provider, bpm: track.beat?.bpm, license: track.license } : { none: true });
+        return track;
       }),
-      brief.sfx ? this.chooseSfx(seed).catch(() => undefined) : Promise.resolve(undefined),
+      brief.sfx
+        ? this.chooseSfx(seed)
+            .catch(() => undefined)
+            .then((fx) => {
+              emit('sfx', 'done', { sounds: Object.values(fx?.sounds || {}).map((snd) => ({ kind: snd!.kind, title: snd!.title })) });
+              return fx;
+            })
+        : Promise.resolve(undefined),
     ]);
+    emit('storyboard', 'running');
     const urls = (kind: VideoMediaKind) => media.assets.filter((a) => a.kind === kind).map((a) => a.url);
     const images = urls('image');
 
@@ -449,6 +513,10 @@ export class MotionVideoService {
       createdAt: now,
       updatedAt: now,
     };
+    emit('storyboard', 'done', {
+      scenes: storyboard.scenes.map((sc) => ({ sceneId: sc.sceneId, duration: sc.duration, surface: sc.surface })),
+      bpm: storyboard.beat?.bpm,
+    });
     await this.communication.saveVideo(userId, projectId, video);
     logger.info('video.created', {
       event: 'video.created',

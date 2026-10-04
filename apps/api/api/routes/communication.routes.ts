@@ -45,6 +45,7 @@ import {
   updateVideoController,
   uploadVideoPhotosController,
   uploadVideoMediaController,
+  createVideoStreamController,
   sfxFileController,
   videoMusicController,
   videoOptionsController,
@@ -771,6 +772,34 @@ communicationRoutes.post(
     resolve: async (req) => ({ action: 'motion_video', cost: videoCost(normalizeScope(req.body?.scope)) }),
   }),
   createVideoController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos/stream:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Same as POST /videos, streamed (SSE) — every real step is sent as it happens (scenes, copy, media found, music, sound effects, cut).
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.post(
+  `/${resource}/:projectId/videos/stream`,
+  authenticate,
+  extendedTimeout,
+  checkPolicyAcceptance,
+  checkQuota,
+  (req, res, next) => {
+    const message = String(req.body?.brief?.message || '').trim();
+    if (message.length < 3) {
+      res.status(400).json({ error: 'message_required', message: 'brief.message is required' });
+      return;
+    }
+    next();
+  },
+  requireCredits('business', 'motion_video', {
+    resolve: async (req) => ({ action: 'motion_video', cost: videoCost(normalizeScope(req.body?.scope)) }),
+  }),
+  createVideoStreamController
 );
 
 /**

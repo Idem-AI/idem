@@ -21,6 +21,7 @@ import { VIDEO_TYPES, VideoType } from '../models/motionVideo.model';
 import { PromptService } from '../services/prompt.service';
 import { StorageService } from '../services/storage.service';
 import { getRequestLanguage } from '../utils/request-language';
+import { refundRequestCredits } from '../middleware/billing.middleware';
 
 const communicationService = new CommunicationService(new PromptService());
 export const motionVideoService = new MotionVideoService(communicationService);
@@ -265,4 +266,51 @@ export const sfxFileController = async (req: CustomRequest, res: Response): Prom
   res.setHeader('Content-Type', 'audio/mpeg');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.sendFile(file);
+};
+
+/**
+ * POST /project/communication/:projectId/videos/stream — création en flux (SSE).
+ *
+ * Même création que `POST …/videos`, mais chaque étape réelle est envoyée dès
+ * qu'elle a lieu (scènes prévues, textes écrits, médias trouvés, piste choisie,
+ * effets, montage) : l'utilisateur suit la fabrication en direct.
+ * Le code HTTP est déjà parti quand une erreur survient : les crédits sont
+ * restitués ici, explicitement.
+ */
+export const createVideoStreamController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const id = ids(req, res);
+  if (!id) return;
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+  let open = true;
+  req.on('close', () => (open = false));
+  const send = (payload: object) => {
+    if (!open) return;
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    (res as any).flush?.();
+  };
+  // Un battement toutes les 15 s : les proxys ne coupent pas un flux silencieux.
+  const heartbeat = setInterval(() => open && res.write(': ping\n\n'), 15000);
+  try {
+    const scope = normalizeScope(req.body?.scope);
+    const paid = req.billing?.charged ? req.billing.cost : videoCost(scope);
+    const video = await motionVideoService.createVideo(
+      id.userId,
+      id.projectId,
+      { brief: req.body?.brief, scope, type: VIDEO_TYPES.includes(req.body?.type) ? (req.body.type as VideoType) : undefined, language: getRequestLanguage() },
+      paid,
+      (event) => send({ type: 'progress', ...event })
+    );
+    send({ type: 'complete', video });
+  } catch (error: any) {
+    logger.error(`createVideoStreamController: ${error?.message}`, { stack: error?.stack });
+    await refundRequestCredits(req, 'Création de vidéo en échec — crédits restitués').catch(() => undefined);
+    send({ type: 'error', error: error instanceof VideoInputError ? error.message : 'video_failed' });
+  } finally {
+    clearInterval(heartbeat);
+    res.end();
+  }
 };

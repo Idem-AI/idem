@@ -86,7 +86,7 @@ html,body{overflow:hidden;background:#0b0b0c}
 .logo-plate{display:flex;align-items:center;justify-content:center;padding:calc(var(--u)*7);border-radius:calc(var(--u)*6);background:#fff;box-shadow:0 calc(var(--u)*3) calc(var(--u)*10) rgba(0,0,0,.14)}
 .logo-rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 .logo-rings span{position:absolute;width:calc(var(--u)*80);aspect-ratio:1;border-radius:999px;border:calc(var(--u)*0.8) solid var(--hl);opacity:0}
-#brandmark{position:absolute;z-index:500;top:calc(var(--st) * 0.45);left:var(--sx);height:calc(var(--u)*9);padding:calc(var(--u)*1.6) calc(var(--u)*2.6);border-radius:999px;background:#fff;box-shadow:0 calc(var(--u)*.6) calc(var(--u)*2.4) rgba(0,0,0,.16);visibility:hidden}
+#brandmark{position:absolute;z-index:500;top:calc(var(--st) * 0.45);right:var(--sx);height:calc(var(--u)*9);padding:calc(var(--u)*1.6) calc(var(--u)*2.6);border-radius:999px;background:#fff;box-shadow:0 calc(var(--u)*.6) calc(var(--u)*2.4) rgba(0,0,0,.16);visibility:hidden}
 #brandmark img{height:100%;width:auto;display:block}
 .tr-panel{position:absolute;inset:0;z-index:400;will-change:transform}
 .tr-flash{position:absolute;inset:0;z-index:401;opacity:0}
@@ -740,7 +740,9 @@ export const VIDEO_RUNTIME_JS = String.raw`
     scene.add(key, rim, new THREE.HemisphereLight(0xffffff, new THREE.Color(cfg.primary || '#888888'), 0.5));
     var root = new THREE.Group();
     // En portrait la légende occupe le bas : l'objet se pose plus haut.
-    root.position.y = HORIZONTAL ? 0.15 : 0.45;
+    var TALL = D.height / D.width > 1.5;
+    root.position.y = HORIZONTAL ? 0.15 : TALL ? 0.45 : 0.75;
+    m.compact = !HORIZONTAL && !TALL;
     // En paysage, l'objet passe à droite et la légende reste à gauche.
     if (HORIZONTAL && cfg.mode !== 'logo') root.position.x = 0.95;
     scene.add(root);
@@ -758,7 +760,7 @@ export const VIDEO_RUNTIME_JS = String.raw`
     var obj = gltf.scene;
     var box = new THREE.Box3().setFromObject(obj);
     var size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
-    var k = 2.1 / Math.max(size.x, size.y, size.z);
+    var k = (m.compact ? 1.6 : 2.1) / Math.max(size.x, size.y, size.z);
     obj.scale.setScalar(k);
     obj.position.copy(center.multiplyScalar(-k));
     var pivot = new THREE.Group();

@@ -290,7 +290,7 @@ export const SCENES: Record<string, SceneDef> = {
     nominal: 3.2,
     min: 2.4,
     max: 5,
-    surfaces: ['light', 'primary', 'accent'],
+    surfaces: ['light', 'primary'],
   },
   showcase3d: {
     id: 'showcase3d',

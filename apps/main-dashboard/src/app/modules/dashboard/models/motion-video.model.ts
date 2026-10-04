@@ -181,3 +181,39 @@ export function priceExport(pricing: VideoPricing, video: MotionVideo, scope: Vi
   if (video.exportCount <= 0) return upgrade;
   return upgrade + Math.max(pricing.minRerender, Math.ceil(full * pricing.rerenderFactor));
 }
+
+/** Étapes réelles d'une création, reçues en direct (flux SSE). */
+export type VideoProgressStage = 'plan' | 'copy' | 'media' | 'music' | 'sfx' | 'storyboard';
+
+export interface VideoProgressMediaItem {
+  kind: VideoMediaKind;
+  origin: string;
+  url?: string;
+  credit?: string;
+  name?: string;
+}
+
+export interface VideoProgressData {
+  type?: VideoType;
+  scenes?: (string | { sceneId: string; duration: number; surface?: string })[];
+  durationSec?: number;
+  title?: string;
+  lines?: number;
+  source?: 'llm' | 'heuristic';
+  query?: string;
+  stockPhotos?: number;
+  stockVideos?: number;
+  generatedVideos?: number;
+  generatedImages?: number;
+  items?: VideoProgressMediaItem[];
+  artist?: string;
+  provider?: string;
+  bpm?: number;
+  none?: boolean;
+  sounds?: { kind: SfxKind; title: string }[];
+}
+
+export type VideoStreamEvent =
+  | { type: 'progress'; stage: VideoProgressStage; state: 'running' | 'done'; data?: VideoProgressData }
+  | { type: 'complete'; video: MotionVideo }
+  | { type: 'error'; error: string; status?: number; cost?: number; balance?: number };

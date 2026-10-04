@@ -1,4 +1,8 @@
 <section class="vb glass-card" aria-labelledby="vdb-question">
+  @if (busy()) {
+    <!-- La création suivie en direct : chaque étape vient du serveur. -->
+    <app-video-composing [format]="formats()[0]" [progress]="progress()" />
+  } @else {
   <!-- ─────────────── Où on en est ─────────────── -->
   <ol class="vb-progress">
     @for (index of steps; track index) {
@@ -331,7 +335,7 @@
 
   <!-- ─────────────── Navigation ─────────────── -->
   <footer class="vb-footer">
-    <button type="button" class="outer-button" [disabled]="busy()" (click)="back()">
+    <button type="button" class="outer-button" (click)="back()">
       <i class="pi pi-arrow-left" aria-hidden="true"></i>
       {{ (step() === 1 ? 'common.cancel' : 'common.previous') | translate }}
     </button>
@@ -343,19 +347,10 @@
       </button>
     } @else if (step() === 4) {
       <button type="button" class="inner-button" [disabled]="!canAdvance()" (click)="submit()">
-        @if (busy()) {
-          <idem-loader size="xs" />
-          {{ 'dashboard.showCommunication.video.builder.creating' | translate }}
-        } @else {
-          <i class="pi pi-video" aria-hidden="true"></i>
-          {{ 'dashboard.showCommunication.video.builder.submit' | translate: { price: price() } }}
-        }
+        <i class="pi pi-video" aria-hidden="true"></i>
+        {{ 'dashboard.showCommunication.video.builder.submit' | translate: { price: price() } }}
       </button>
     }
   </footer>
-  @if (busy()) {
-    <p class="mt-3 text-sm text-[var(--color-text-secondary)]" role="status">
-      {{ 'dashboard.showCommunication.video.builder.creatingHint' | translate }}
-    </p>
   }
 </section>

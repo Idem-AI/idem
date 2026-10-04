@@ -958,6 +958,29 @@
         },
         "mediaCredits": {
           "title": "Crédits des médias"
+        },
+        "composing": {
+          "title": "Votre vidéo se monte…",
+          "note": "Vous pouvez rester sur cet écran : chaque étape s’affiche dès qu’elle est terminée.",
+          "stages": {
+            "plan": "Le découpage en scènes",
+            "copy": "Les textes à l’écran",
+            "media": "Les images et vidéos",
+            "music": "La musique",
+            "sfx": "Les effets sonores",
+            "storyboard": "Le montage, calé sur le rythme"
+          },
+          "details": {
+            "plan": "{{count}} scènes pour {{seconds}} s",
+            "copyLlm": "{{lines}} lignes écrites",
+            "copyHeuristic": "{{lines}} lignes tirées de votre message",
+            "media": "{{own}} à vous · Pexels : {{photos}} photo(s), {{videos}} vidéo(s) · {{generated}} générée(s) — « {{query}} »",
+            "mediaNone": "Aucune image nécessaire",
+            "music": "« {{title}} » — {{artist}} · {{bpm}} BPM",
+            "musicNone": "Sans musique",
+            "sfx": "{{count}} sons choisis",
+            "storyboard": "{{count}} scènes, coupes sur le temps ({{bpm}} BPM)"
+          }
         }
       }
     }

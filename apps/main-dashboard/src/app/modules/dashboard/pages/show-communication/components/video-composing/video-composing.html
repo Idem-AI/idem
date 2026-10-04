@@ -1,0 +1,104 @@
+<div class="vcm-wrap" role="status" aria-live="polite">
+  <!--
+    La vidéo qui s'assemble, à la forme exacte du format choisi. Chaque couche
+    arrive quand le serveur l'a produite : rien n'est simulé.
+  -->
+  <div class="vcm-frame" [style.aspect-ratio]="ratio()" aria-hidden="true">
+    <!-- Médias trouvés : ils glissent en mosaïque derrière le texte -->
+    @if (thumbs().length) {
+      <div class="vcm-thumbs" [class.vcm-thumbs-1]="thumbs().length === 1">
+        @for (item of thumbs(); track $index) {
+          <span class="vcm-thumb" [style.animation-delay.ms]="$index * 140">
+            <img [src]="item.url" alt="" />
+            @if (item.kind === 'video') {
+              <i class="pi pi-play vcm-thumb-play"></i>
+            }
+          </span>
+        }
+      </div>
+    } @else if (state('media') === 'running') {
+      <div class="vcm-searching">
+        <i class="pi pi-search"></i>
+        <span>{{ data('media').query }}</span>
+      </div>
+    }
+
+    <!-- Le texte d'accroche, dès qu'il est écrit -->
+    <div class="vcm-copy">
+      @if (title()) {
+        <p class="vcm-title">{{ title() }}</p>
+      } @else if (state('copy') === 'running') {
+        <span class="vcm-line vcm-line-1"></span>
+        <span class="vcm-line vcm-line-2"></span>
+      }
+    </div>
+
+    <!-- Effets sonores retenus -->
+    @if (sounds().length) {
+      <div class="vcm-sfx">
+        @for (snd of sounds(); track snd.kind) {
+          <span class="vcm-chip" [style.animation-delay.ms]="$index * 90">
+            {{ 'dashboard.showCommunication.video.sfx.kinds.' + snd.kind | translate }}
+          </span>
+        }
+      </div>
+    }
+
+    <!-- La musique : l'égaliseur bat au tempo détecté -->
+    @if (state('music') !== 'waiting' && !data('music').none) {
+      <div class="vcm-music" [class.vcm-music-done]="state('music') === 'done'">
+        <span class="vcm-eq" [style.--beat]="beat()">
+          @for (b of bars; track b) {
+            <span [style.animation-delay.ms]="b * 70"></span>
+          }
+        </span>
+        @if (state('music') === 'done') {
+          <span class="vcm-track">♪ {{ data('music').title }}</span>
+        }
+      </div>
+    }
+
+    <!-- Le montage : scènes prévues, puis minutées sur le rythme -->
+    @if (timeline().length) {
+      <div class="vcm-timeline" [class.vcm-timed]="state('storyboard') === 'done'">
+        @for (scene of timeline(); track $index) {
+          <span class="vcm-seg" [style.flex-basis.%]="scene.width" [style.animation-delay.ms]="$index * 80">
+            <span class="vcm-seg-label">{{ 'dashboard.showCommunication.video.scenes.' + scene.id | translate }}</span>
+          </span>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- ── Ce qui se passe, étape par étape, avec ce que chacune a produit ── -->
+  <div class="vcm-side">
+    <p class="vcm-heading">{{ 'dashboard.showCommunication.video.composing.title' | translate }}</p>
+    <ol class="vcm-steps">
+      @for (stage of stages; track stage) {
+        <li class="vcm-step" [class.vcm-done]="state(stage) === 'done'" [class.vcm-current]="state(stage) === 'running'">
+          <span class="vcm-bullet" aria-hidden="true">
+            @if (state(stage) === 'done') {
+              <i class="pi pi-check"></i>
+            } @else if (state(stage) === 'running') {
+              <idem-loader size="xs" />
+            }
+          </span>
+          <span class="vcm-step-text">
+            <span class="vcm-step-label">
+              {{ 'dashboard.showCommunication.video.composing.stages.' + stage | translate }}
+            </span>
+            @if (detail(stage); as d) {
+              <span class="vcm-step-detail">
+                {{ 'dashboard.showCommunication.video.composing.details.' + d.key | translate: d.params }}
+              </span>
+            }
+          </span>
+        </li>
+      }
+    </ol>
+    <div class="vcm-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="percent()">
+      <span class="vcm-bar-fill" [style.width.%]="percent()"></span>
+    </div>
+    <p class="vcm-note">{{ 'dashboard.showCommunication.video.composing.note' | translate }}</p>
+  </div>
+</div>
