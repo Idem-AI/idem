@@ -1,7 +1,8 @@
 /**
  * LE COMPOSITEUR — storyboard + charte → une page HTML autonome.
  *
- * La page contient tout : scènes, feuille Tailwind compilée côté serveur (les
+ * La page contient tout : données de la vidéo, moteur React (scènes, techniques,
+ * transitions, cf. apps/api/video-engine), Lottie et three.js si besoin (les
  * seules classes réellement utilisées, sans CDN ni réseau), GSAP et SplitText
  * en ligne, données de la vidéo et moteur. En mode RENDU, les images sont en
  * plus embarquées en data-URI : Chromium n'a plus rien à télécharger pendant la
@@ -13,9 +14,11 @@ import path from 'path';
 import sharp from 'sharp';
 import logger from '../../../config/logger';
 import { VideoFormat, VideoQuality, VideoStoryboard } from '../../../models/motionVideo.model';
-import { Orientation, sceneMarkup } from './video.scenes';
-import { VIDEO_ENGINE_CSS, VIDEO_RUNTIME_JS } from './video.runtime';
 import { VideoTheme } from './video.theme';
+import { DirectionId, DIRECTIONS, isMotionDirection, planMotion } from './video.direction';
+import { engineBundle } from './video.engine';
+
+export type Orientation = 'portrait' | 'square' | 'landscape';
 import { builtinLottie, BuiltinLottie, BUILTIN_LOTTIES } from './video.lottie';
 import { isRenderUrlAllowed } from '../../../utils/render-network-guard';
 
@@ -67,51 +70,8 @@ function safeZones(format: VideoFormat, spec: FrameSpec) {
   }
 }
 
-// ─── Tailwind compilé côté serveur ──────────────────────────────────────────
-
-type TailwindCompiler = { build(candidates: string[]): string };
-let compilerPromise: Promise<TailwindCompiler | null> | null = null;
-
-function tailwindCompiler(): Promise<TailwindCompiler | null> {
-  if (!compilerPromise) {
-    compilerPromise = (async () => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const { compile } = require('tailwindcss');
-        const twDir = path.dirname(require.resolve('tailwindcss/package.json'));
-        return await compile(
-          '@import "tailwindcss/theme.css" layer(theme);\n@import "tailwindcss/utilities.css" layer(utilities);',
-          {
-            base: twDir,
-            loadStylesheet: async (id: string, base: string) => {
-              const file = id.startsWith('tailwindcss/') ? path.join(twDir, id.slice('tailwindcss/'.length)) : path.resolve(base, id);
-              return { path: file, base: path.dirname(file), content: fs.readFileSync(file, 'utf8') };
-            },
-          }
-        );
-      } catch (error: any) {
-        logger.error('video.tailwind_unavailable', { error: error.message });
-        return null;
-      }
-    })();
-  }
-  return compilerPromise;
-}
-
-/** Feuille Tailwind des seules classes présentes dans le balisage. */
-export async function compileTailwind(html: string): Promise<string> {
-  const compiler = await tailwindCompiler();
-  if (!compiler) return '';
-  const candidates = new Set<string>();
-  for (const m of html.matchAll(/class="([^"]+)"/g)) {
-    for (const token of m[1].split(/\s+/)) if (token) candidates.add(token);
-  }
-  return compiler.build([...candidates]);
-}
-
 // ─── Scripts embarqués ──────────────────────────────────────────────────────
 
-let gsapBundle: string | null = null;
 let lottieBundle: string | null = null;
 let threeBundle: Promise<string> | null = null;
 
@@ -142,14 +102,6 @@ export function threeScript(): Promise<string> {
     return result.outputFiles[0].text as string;
   })();
   return threeBundle;
-}
-
-function gsapScripts(): string {
-  if (!gsapBundle) {
-    const read = (file: string) => fs.readFileSync(require.resolve(`gsap/dist/${file}`), 'utf8');
-    gsapBundle = `${read('gsap.min.js')}\n${read('SplitText.min.js')}`;
-  }
-  return gsapBundle;
 }
 
 // ─── Images embarquées (rendu) ──────────────────────────────────────────────
@@ -305,22 +257,16 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
   const { storyboard, theme, format } = opts;
   const spec = frameSpec(format, opts.quality);
   const zones = safeZones(format, spec);
-  const u = Math.min(spec.width, spec.height) / 100;
+  const landscape = spec.orient === 'landscape';
 
-  const sections = storyboard.scenes
-    .map((scene, index) => {
-      const surface = theme.surfaces[scene.surface] || theme.surfaces.light;
-      const plate = scene.sceneId === 'logo' && scene.variant === 1;
-      const logo = plate || !surface.dark ? theme.logo.onLight || theme.logo.onDark : theme.logo.onDark || theme.logo.onLight;
-      const inner = sceneMarkup({ scene, theme, orient: spec.orient, index, logo });
-      return `<section class="scene s-${scene.surface}" data-scene="${scene.sceneId}" data-key="${scene.key}">${inner}</section>`;
-    })
-    .join('\n');
+  // Direction et plan de mouvement : ceux du storyboard, sinon calculés (vidéos d'avant le moteur React).
+  const directionId: DirectionId = isMotionDirection(storyboard.direction) ? storyboard.direction : 'editorial';
+  const fallbackPlan = planMotion(storyboard.scenes.map((s) => s.sceneId), directionId, storyboard.seed, { landscape });
 
   // Médias pilotés par le moteur : Lottie et 3D.
   const lotties: Record<string, unknown> = {};
-  const sceneMedia = await Promise.all(
-    storyboard.scenes.map(async (scene) => {
+  const scenes = await Promise.all(
+    storyboard.scenes.map(async (scene, i) => {
       const extra: Record<string, unknown> = {};
       if (scene.sceneId === 'lottie') {
         const resolved = await resolveLottie(scene.lottie, theme);
@@ -337,23 +283,26 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
             ? { mode: 'cards', images: scene.images, ...colors }
             : { mode: 'shapes', ...colors };
       }
-      if (scene.sceneId === 'logo' && scene.variant === 2) extra.three = { mode: 'logo', svg: theme.logo.svgMarkup, ...colors };
-      return extra;
+      if (scene.sceneId === 'logo' && scene.variant === 2 && theme.logo.svgMarkup) extra.three = { mode: 'logo', svg: theme.logo.svgMarkup, ...colors };
+      const motion = scene.motion ? { ...fallbackPlan[i], ...scene.motion } : fallbackPlan[i];
+      return {
+        key: scene.key,
+        sceneId: scene.sceneId,
+        variant: scene.variant,
+        start: scene.start,
+        duration: scene.duration,
+        surface: scene.surface,
+        slots: scene.slots,
+        image: scene.image,
+        images: scene.images,
+        video: scene.video,
+        motion,
+        ...extra,
+      };
     })
   );
   const needsLottie = Object.keys(lotties).length > 0;
-  const needsThree = sceneMedia.some((m) => m.three);
-
-  const brandmark = theme.logo.icon ? `<div id="brandmark"><img src="${theme.logo.icon}" alt=""></div>` : '';
-  const body = `<div id="stage" data-format="${format}">${sections}${brandmark}</div>`;
-  const tailwind = await compileTailwind(body);
-
-  const surfaceCss = Object.entries(theme.surfaces)
-    .map(
-      ([name, s]) =>
-        `.s-${name}{--bg:${s.bg};--ink:${s.ink};--muted:${s.muted};--hl:${s.hl};--hl-ink:${s.hlInk};--hl-text:${s.hlText};--hl-soft:${s.hlSoft};--soft:${s.soft}}`
-    )
-    .join('\n');
+  const needsThree = scenes.some((s: any) => s.three);
 
   const data = {
     mode: opts.mode,
@@ -361,20 +310,18 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
     height: spec.height,
     fps: spec.fps,
     duration: storyboard.durationSec,
-    style: storyboard.style,
+    format,
+    direction: DIRECTIONS[directionId],
+    scenes,
+    surfaces: theme.surfaces,
+    palette: theme.palette,
     fonts: { display: theme.fonts.display, body: theme.fonts.body },
-    scenes: storyboard.scenes.map((s) => ({
-      sceneId: s.sceneId,
-      variant: s.variant,
-      start: s.start,
-      duration: s.duration,
-      surface: s.surface,
-      transitionIn: s.transitionIn,
-    })).map((s, i) => ({ ...s, ...sceneMedia[i] })),
+    brandName: theme.brandName,
+    logo: { onLight: theme.logo.onLight, onDark: theme.logo.onDark, icon: theme.logo.icon },
     lotties,
-    sfx: opts.mode === 'preview' ? opts.sfx : undefined,
-    surfaces: Object.fromEntries(Object.entries(theme.surfaces).map(([k, s]) => [k, { bg: s.bg, hl: s.hl }])),
+    zones,
     music: opts.mode === 'preview' && opts.music ? opts.music : undefined,
+    sfx: opts.mode === 'preview' ? opts.sfx : undefined,
   };
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
 
@@ -383,24 +330,14 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
 <meta name="viewport" content="width=device-width,initial-scale=1">
 ${theme.fonts.links}
 <style>
-/* Les utilitaires Tailwind doivent pouvoir surcharger le moteur (flex-row sur .safe…). */
-@layer theme, engine, utilities;
 :root{--f-display:${cssFamily(theme.fonts.display)};--f-body:${cssFamily(theme.fonts.body)}}
-#stage{width:${spec.width}px;height:${spec.height}px;--u:${u}px;--st:${zones.st}px;--sb:${zones.sb}px;--sx:${zones.sx}px}
 ${opts.mode === 'render' ? `html,body{width:${spec.width}px;height:${spec.height}px}` : ''}
-@layer engine {
-${VIDEO_ENGINE_CSS}
-}
-${surfaceCss}
 </style>
-<style>${tailwind}</style>
 </head><body>
-${body}
 <script>window.__VIDEO_DATA__=${json};</script>
-<script>${gsapScripts()}</script>
 ${needsLottie ? `<script>${lottieScript()}</script>` : ''}
 ${needsThree ? `<script>${await threeScript()}</script>` : ''}
-<script>${VIDEO_RUNTIME_JS}</script>
+<script>${await engineBundle()}</script>
 </body></html>`;
   return { html, spec };
 }

@@ -15,6 +15,7 @@ import { MotionVideoService, VideoInputError } from '../services/Communication/v
 import { normalizeScope, pricingTable, videoCost } from '../services/Communication/video/video.pricing';
 import { SCENES } from '../services/Communication/video/video.scenes';
 import { TYPE_DEFS } from '../services/Communication/video/video.types';
+import { DIRECTION_IDS } from '../services/Communication/video/video.direction';
 import { MediaInputError } from '../services/Communication/video/video.media';
 import { resolvePublicSound } from '../services/Communication/video/video.sfx';
 import { VIDEO_TYPES, VideoType } from '../models/motionVideo.model';
@@ -62,6 +63,7 @@ export const videoOptionsController = async (_req: CustomRequest, res: Response)
     objectives: VIDEO_OBJECTIVES,
     moods: MUSIC_MOODS,
     styles: ['auto', ...MOTION_STYLES],
+    directions: ['auto', ...DIRECTION_IDS],
     // Les types de motion proposés à la création, avec ce dont ils ont besoin.
     types: VIDEO_TYPES.map((id) => ({ id, icon: TYPE_DEFS[id].icon, style: TYPE_DEFS[id].style, needs: TYPE_DEFS[id].needs, durations: TYPE_DEFS[id].durations })),
     // Les cases de chaque scène et leur longueur maximale : l'éditeur de textes les borne.
@@ -130,6 +132,7 @@ export const updateVideoController = async (req: CustomRequest, res: Response): 
       musicTrackId: typeof body.musicTrackId === 'string' ? body.musicTrackId : undefined,
       scope: body.scope,
       sfx: typeof body.sfx === 'boolean' ? body.sfx : undefined,
+      direction: typeof body.direction === 'string' ? body.direction : undefined,
     });
     if (!video) {
       res.status(404).json({ message: 'Video not found' });

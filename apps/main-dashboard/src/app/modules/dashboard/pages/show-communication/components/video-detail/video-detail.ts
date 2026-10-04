@@ -69,6 +69,7 @@ export class VideoDetail {
   protected readonly allFormats: VideoFormat[] = ['story', 'square', 'portrait', 'landscape'];
   protected readonly qualities: VideoQuality[] = ['standard', 'hd', 'premium'];
   protected readonly styleChoices: MotionStyle[] = ['energetic', 'premium', 'playful', 'corporate'];
+  protected readonly directionChoices = computed(() => (this.options().directions ?? []).filter((d) => d !== 'auto'));
 
   protected readonly video = signal<MotionVideo | null>(null);
   protected readonly loading = signal(true);
@@ -242,6 +243,11 @@ export class VideoDetail {
 
   protected toggleSfx(enabled: boolean): void {
     this.patch('sfx', { sfx: enabled });
+  }
+
+  /** Autre direction : composition, techniques, transitions et couleur changent. Gratuit. */
+  protected changeDirection(direction: string): void {
+    this.patch('style', { direction });
   }
 
   protected changeStyle(style: MotionStyle): void {

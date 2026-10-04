@@ -110,6 +110,8 @@ export class VideoBuilder {
   protected readonly quality = signal<VideoQuality>('hd');
   protected readonly mood = signal<MusicMood>('auto');
   protected readonly style = signal<MotionStyle | 'auto'>('auto');
+  protected readonly direction = signal<string>('auto');
+  protected readonly directions = computed(() => this.options().directions ?? ['auto']);
   protected readonly busy = signal(false);
   /** Étapes réelles reçues du serveur pendant la création. */
   protected readonly progress = signal<VideoProgressState>({});
@@ -222,6 +224,7 @@ export class VideoBuilder {
           details: this.details().trim() || undefined,
           musicMood: this.mood(),
           style: this.style(),
+          direction: this.direction() === 'auto' ? undefined : this.direction(),
           media: this.media(),
           allowStock: this.allowStock(),
           allowGenerate: this.allowGenerate(),

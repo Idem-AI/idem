@@ -764,7 +764,8 @@
             "formats": "Formats (plusieurs possibles)",
             "quality": "Qualité",
             "music": "Musique",
-            "style": "Style d’animation"
+            "style": "Style d’animation",
+            "direction": "Direction de motion"
           },
           "price": {
             "total": "Prix : {{price}} crédits",
@@ -980,6 +981,45 @@
             "musicNone": "Sans musique",
             "sfx": "{{count}} sons choisis",
             "storyboard": "{{count}} scènes, coupes sur le temps ({{bpm}} BPM)"
+          }
+        },
+        "directions": {
+          "help": "Chaque direction change la composition, les entrées de texte, les transitions et la couleur. Gratuit.",
+          "auto": {
+            "label": "Choisie pour votre marque",
+            "hint": "IDEM choisit selon votre charte et évite de répéter vos dernières vidéos."
+          },
+          "editorial": {
+            "label": "Éditoriale",
+            "hint": "Texte ferré à gauche, filets fins, fondus : l’allure d’un magazine."
+          },
+          "swiss": {
+            "label": "Grille suisse",
+            "hint": "Grille, coupes nettes sur le temps, typographie serrée."
+          },
+          "brutal": {
+            "label": "Bloc brut",
+            "hint": "Très grand texte en capitales, blocs de couleur, coupes franches."
+          },
+          "kinetic": {
+            "label": "Cinétique",
+            "hint": "Lettres qui jaillissent, zooms traversants, couleurs franches."
+          },
+          "cinematic": {
+            "label": "Cinéma",
+            "hint": "Bandes noires, lents fondus, une idée à la fois."
+          },
+          "collage": {
+            "label": "Collage",
+            "hint": "Papier, polaroïds, autocollants, mouvement image par image."
+          },
+          "precision": {
+            "label": "Précision",
+            "hint": "Fond de studio, cartes nettes, ouvertures en iris."
+          },
+          "drenched": {
+            "label": "Monochrome",
+            "hint": "Une seule teinte en clair et en profond, images en bichromie."
           }
         }
       }

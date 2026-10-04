@@ -61,6 +61,7 @@ export interface VideoBrief {
   allowStock?: boolean;
   allowGenerate?: boolean;
   sfx?: boolean;
+  direction?: string;
 }
 
 export interface VideoSceneInstance {
@@ -80,6 +81,7 @@ export interface VideoStoryboard {
   version: 1;
   seed: number;
   style: MotionStyle;
+  direction?: string;
   durationSec: number;
   scenes: VideoSceneInstance[];
 }
@@ -158,6 +160,8 @@ export interface VideoOptions {
   objectives: VideoObjective[];
   moods: MusicMood[];
   styles: (MotionStyle | 'auto')[];
+  /** Directions de motion : systèmes visuels complets (composition, techniques, transitions, couleur). */
+  directions: string[];
   /** Cases de chaque scène, avec leur longueur maximale. */
   scenes: Record<string, SceneSlotSpec[]>;
   /** Types de motion proposés à la création. */

@@ -21,6 +21,7 @@ import {
 import { SCENES } from './video.scenes';
 import { rng } from './video.music';
 import { lottieForObjective } from './video.lottie';
+import { DirectionId, DIRECTIONS, planMotion, surfacesFor } from './video.direction';
 
 const TRANSITIONS: Record<MotionStyle, VideoTransition[]> = {
   energetic: ['flash', 'wipe', 'push', 'split', 'zoom', 'wipe'],
@@ -125,6 +126,9 @@ export interface StoryboardInput {
   objective?: string;
   /** Le logo peut être extrudé en 3D (SVG disponible) — et le type le souhaite. */
   logo3d?: boolean;
+  /** Direction de motion : composition, techniques, transitions, couleur. */
+  direction?: DirectionId;
+  landscape?: boolean;
 }
 
 function chooseVariant(
@@ -257,10 +261,24 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
   const last = scenes[scenes.length - 1];
   if (last) last.duration = Math.round((input.durationSec - last.start) * 1000) / 1000;
 
+  // La direction décide de la composition, des techniques et de la couleur.
+  if (input.direction) {
+    const ids = scenes.map((sc) => sc.sceneId);
+    const plan = planMotion(ids, input.direction, input.seed, { landscape: input.landscape });
+    const surfaces = surfacesFor(ids, DIRECTIONS[input.direction].color, input.seed);
+    scenes.forEach((sc, i) => {
+      sc.motion = plan[i];
+      sc.transitionIn = undefined;
+      // Une image plein cadre ou une scène 3D gardent une surface claire derrière elles.
+      sc.surface = sc.sceneId === 'logo' && sc.variant === 2 ? 'light' : surfaces[i];
+    });
+  }
+
   return {
     version: 1,
     seed: input.seed,
     style: input.style,
+    ...(input.direction ? { direction: input.direction } : {}),
     durationSec: input.durationSec,
     scenes,
     ...(input.beat ? { beat: input.beat } : {}),

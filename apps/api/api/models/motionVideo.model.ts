@@ -160,6 +160,8 @@ export interface VideoBrief {
   allowGenerate?: boolean;
   /** Effets sonores (whoosh, pop…) : activés par défaut. */
   sfx?: boolean;
+  /** Direction de motion imposée (sinon choisie par IDEM). */
+  direction?: string;
 }
 
 /** Une scène posée sur la ligne de temps. */
@@ -174,8 +176,8 @@ export interface VideoSceneInstance {
   start: number;
   /** Durée, en secondes. */
   duration: number;
-  /** Surface de la scène : claire, couleur primaire, secondaire ou accent. */
-  surface: 'light' | 'primary' | 'secondary' | 'accent';
+  /** Surface de la scène : claire, primaire, secondaire, accent, teinte claire ou profonde de la primaire. */
+  surface: 'light' | 'primary' | 'secondary' | 'accent' | 'tint' | 'deep';
   /** Transition qui OUVRE la scène (aucune pour la première). */
   transitionIn?: VideoTransition;
   /** Textes des cases, déjà bornés et réparés. */
@@ -190,6 +192,15 @@ export interface VideoSceneInstance {
   model?: string;
   /** Animation Lottie : URL d'un fichier importé, ou `builtin:<nom>`. */
   lottie?: string;
+  /** Plan de mouvement : ancrage, techniques d'entrée, transition (cf. video.direction.ts). */
+  motion?: {
+    anchor: string;
+    headline: string;
+    support: string;
+    align: 'left' | 'center';
+    transition?: string;
+    kicker: boolean;
+  };
 }
 
 export type VideoTransition = 'wipe' | 'circle' | 'push' | 'zoom' | 'split' | 'flash' | 'fade';
@@ -205,6 +216,8 @@ export interface VideoStoryboard {
   version: 1;
   seed: number;
   style: MotionStyle;
+  /** Direction de motion (système visuel complet), cf. video.direction.ts. */
+  direction?: string;
   durationSec: number;
   scenes: VideoSceneInstance[];
   beat?: VideoBeatGrid;

@@ -92,3 +92,6 @@ api/.DS_Store
 api/idem-agentic/.DS_Store
 api/idem-agentic/02_AI-DOCS/.DS_Store
 api/idem-agentic/03_SPECS/.DS_Store
+
+# Moteur vidéo React empaqueté (npm run build:video-engine)
+public/video-engine/

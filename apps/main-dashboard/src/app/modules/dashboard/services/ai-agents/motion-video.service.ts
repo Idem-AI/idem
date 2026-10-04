@@ -107,6 +107,7 @@ export class MotionVideoService {
       musicTrackId?: string;
       scope?: Partial<VideoScope>;
       sfx?: boolean;
+      direction?: string;
     },
   ): Observable<MotionVideo> {
     return this.http.patch<MotionVideo>(`${this.apiUrl}/${projectId}/videos/${videoId}`, patch);

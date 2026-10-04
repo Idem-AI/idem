@@ -42,6 +42,7 @@ import { mediaWanted, planTypeScenes, TYPE_DEFS, MediaCounts } from './video.typ
 import { generateClip, generateStill, MediaStorage, Orientation, processUpload, searchPexelsPhotos, searchPexelsVideos } from './video.media';
 import { ensureSfxLibrary, pickSounds, publicSoundName, SFX_DENSITY, SFX_GAIN_DB, sfxLibrary, soundFile, SfxLibrary } from './video.sfx';
 import { apiBaseUrl } from '../visualUrl';
+import { DIRECTIONS, isMotionDirection, pickDirection, planMotion, styleOfDirection, surfacesFor } from './video.direction';
 import { CommunicationService } from '../communication.service';
 import { StorageService } from '../../storage.service';
 import { extractFacts, writeCopy, CopyContext, CopyWriter, fitLength } from './video.copy';
@@ -140,6 +141,7 @@ export function normalizeBrief(raw: Partial<VideoBrief> | undefined, language?: 
     details: String(b.details || '').trim().slice(0, 800) || undefined,
     musicMood,
     style,
+    direction: isMotionDirection(b.direction) ? b.direction : undefined,
     imageUrls,
     language: String(b.language || language || 'fr').slice(0, 5),
     media: [
@@ -402,8 +404,17 @@ export class MotionVideoService {
 
     const videoId = `video-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
     const seed = crypto.randomInt(1, 2 ** 31 - 1);
-    // Le type choisi décide du langage de mouvement, sauf choix explicite.
-    const style = brief.style && brief.style !== 'auto' ? resolveStyle(brief.style, undefined, brief.objective) : typeDef.style || resolveStyle('auto', branding?.artDirection?.styleId, brief.objective);
+    // La direction de motion : compatible avec le type, proche de la direction
+    // artistique de la marque, différente des dernières vidéos du projet.
+    const direction = pickDirection({
+      type,
+      artStyleId: branding?.artDirection?.styleId,
+      seed,
+      avoid: otherVideos.map((v) => v.storyboard?.direction).filter(Boolean) as string[],
+      requested: isMotionDirection(brief.direction) ? brief.direction : undefined,
+    });
+    // Le langage de mouvement (effets sonores, ambiance musicale) suit la direction, sauf choix explicite.
+    const style = brief.style && brief.style !== 'auto' ? resolveStyle(brief.style, undefined, brief.objective) : styleOfDirection(direction);
     const orientation = orientationOf(scope.formats[0]);
     const facts = extractFacts(`${brief.message}\n${brief.details || ''}`);
 
@@ -418,7 +429,7 @@ export class MotionVideoService {
     };
     emit('plan', 'running', { type });
     let sceneIds = planTypeScenes(type, brief.objective, scope.durationSec, facts, optimistic);
-    emit('plan', 'done', { type, style, scenes: sceneIds, durationSec: scope.durationSec });
+    emit('plan', 'done', { type, style, direction, scenes: sceneIds, durationSec: scope.durationSec });
     const wanted = mediaWanted(sceneIds);
     const needsStock = (wanted.images > own('image') || wanted.videos > own('video')) && (brief.allowStock || brief.allowGenerate);
 
@@ -490,6 +501,8 @@ export class MotionVideoService {
       lotties: urls('lottie'),
       objective: brief.objective,
       logo3d: typeDef.logoVariant === 2 && !!theme.logo.svgMarkup,
+      direction,
+      landscape: scope.formats[0] === 'landscape',
     });
 
     const now = new Date().toISOString();
@@ -550,6 +563,7 @@ export class MotionVideoService {
       musicTrackId?: string | null;
       scope?: unknown;
       sfx?: boolean;
+      direction?: string;
     }
   ): Promise<MotionVideo | null> {
     const current = (await this.communication.listVideos(userId, projectId)).find((v) => v.id === videoId);
@@ -589,6 +603,20 @@ export class MotionVideoService {
     if (patch.style && MOTION_STYLES.includes(patch.style)) {
       storyboard = { ...storyboard, style: patch.style };
       brief = { ...brief, style: patch.style };
+    }
+
+    // Autre direction : nouvelle composition, nouvelles techniques, nouvelle couleur.
+    if (isMotionDirection(patch.direction) && patch.direction !== storyboard.direction) {
+      const ids = storyboard.scenes.map((sc) => sc.sceneId);
+      const plan = planMotion(ids, patch.direction, storyboard.seed, { landscape: scope.formats[0] === 'landscape' });
+      const surfaces = surfacesFor(ids, DIRECTIONS[patch.direction].color, storyboard.seed);
+      storyboard = {
+        ...storyboard,
+        direction: patch.direction,
+        style: styleOfDirection(patch.direction),
+        scenes: storyboard.scenes.map((sc, i) => ({ ...sc, motion: plan[i], surface: sc.sceneId === 'logo' && sc.variant === 2 ? 'light' : surfaces[i] })),
+      };
+      brief = { ...brief, direction: patch.direction };
     }
 
     if (patch.musicMood !== undefined || patch.musicTrackId !== undefined) {

@@ -300,14 +300,17 @@
         </select>
       </div>
       <div class="flex-1">
-        <label class="vdb-label" for="vdb-style">
-          {{ 'dashboard.showCommunication.video.builder.scope.style' | translate }}
+        <label class="vdb-label" for="vdb-direction">
+          {{ 'dashboard.showCommunication.video.builder.scope.direction' | translate }}
         </label>
-        <select id="vdb-style" [ngModel]="style()" (ngModelChange)="style.set($event)" name="vdbStyle">
-          @for (s of styles(); track s) {
-            <option [value]="s">{{ 'dashboard.showCommunication.video.styles.' + s | translate }}</option>
+        <select id="vdb-direction" [ngModel]="direction()" (ngModelChange)="direction.set($event)" name="vdbDirection">
+          @for (d of directions(); track d) {
+            <option [value]="d">{{ 'dashboard.showCommunication.video.directions.' + d + '.label' | translate }}</option>
           }
         </select>
+        <p class="mt-1 text-xs text-[var(--color-text-tertiary)]">
+          {{ 'dashboard.showCommunication.video.directions.' + direction() + '.hint' | translate }}
+        </p>
       </div>
     </div>
 
