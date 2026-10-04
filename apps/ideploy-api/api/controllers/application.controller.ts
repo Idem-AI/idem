@@ -3,6 +3,7 @@ import { CustomRequest } from '../interfaces/express.interface';
 import { ok, fail, respondWithError } from '../utils/response';
 import logger from '../config/logger';
 import * as appService from '../services/application.service';
+import { checkDomains, getServerForDestination } from '../services/domain.service';
 import * as envVarService from '../services/env-var.service';
 import * as deploymentService from '../services/deployment.service';
 import { saveApplicationSource } from '../services/application-source.service';
@@ -82,16 +83,27 @@ export async function createApplication(req: CustomRequest, res: Response): Prom
 
 export async function updateApplication(req: CustomRequest, res: Response): Promise<void> {
   try {
-    const updated = await appService.updateApplication(
-      req.user!.currentTeamId!,
-      String(req.params.uuid),
-      req.body ?? {}
-    );
+    const teamId = req.user!.currentTeamId!;
+    const uuid = String(req.params.uuid);
+    const before = await appService.getApplication(teamId, uuid);
+    const updated = await appService.updateApplication(teamId, uuid, req.body ?? {});
     if (!updated) return fail(res, 'Application not found', 404, 'NOT_FOUND');
-    ok(res, updated);
+
+    // A new domain only reaches the proxy with the next deployment, and only
+    // gets a certificate if its DNS points at the server: both said now,
+    // rather than discovered after a wait.
+    const domainChanged = Boolean(before) && (before!.fqdn ?? '') !== (updated.fqdn ?? '');
+    if (!domainChanged) return ok(res, updated);
+    const server = updated.destination_id ? await getServerForDestination(Number(updated.destination_id)) : null;
+    const domains = (updated.fqdn ?? '').split(',').map((d) => d.trim()).filter(Boolean);
+    ok(res, {
+      ...updated,
+      redeployRequired: true,
+      domainCheck: server ? await checkDomains(domains, server.ip) : [],
+    });
   } catch (err) {
-    logger.error('updateApplication error', { message: (err as Error).message });
-    fail(res, 'Failed to update application');
+    // DOMAIN_ALREADY_USED (409) and validation errors carry what to fix.
+    respondWithError(res, err, 'Updating the application');
   }
 }
 

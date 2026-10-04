@@ -136,3 +136,59 @@ export async function claimPlatformHost(name: string, serverIp: string): Promise
     return null;
   }
 }
+
+/**
+ * Give back the platform address of a deleted application: remove its A
+ * record from the zone.
+ *
+ * Records used to stay forever — the zone filled up, and the name stayed taken
+ * for the next application that wanted it. Only an A record under the platform
+ * domain, outside the reserved names and no longer used by any resource, is
+ * removed; the same read-back as `claimPlatformHost` guards the shared zone.
+ * Never throws: a deletion must not fail on DNS.
+ */
+export async function releasePlatformHost(host: string): Promise<boolean> {
+  const provider = getDnsProvider();
+  if (!provider) return false;
+
+  const lower = host.toLowerCase();
+  const suffix = `.${provider.domain.toLowerCase()}`;
+  if (!lower.endsWith(suffix)) return false;
+  const label = lower.slice(0, -suffix.length);
+  if (!label || label.includes('.') || RESERVED_LABELS.has(label)) return false;
+
+  try {
+    // Still served by another application or service: not ours to remove.
+    if ((await findConflicts([lower])).length > 0) return false;
+
+    return await withZoneLock(async () => {
+      const zone = await provider.getZone();
+      if (zone.hosts.length === 0) throw new Error('The DNS zone came back empty; nothing was written.');
+
+      const remaining = zone.hosts.filter((h) => !(h.name.toLowerCase() === label && h.type === 'A'));
+      if (remaining.length === zone.hosts.length) return false;
+
+      await provider.setZone({ emailType: zone.emailType, hosts: remaining });
+
+      const after = await provider.getZone();
+      if (after.hosts.length !== remaining.length || after.hosts.some((h) => h.name.toLowerCase() === label && h.type === 'A')) {
+        logger.error('Platform domain: zone not as expected after release', {
+          event: 'dns.zone_mismatch',
+          expected: remaining.length,
+          after: after.hosts.length,
+          label,
+          alert: 'critical',
+        });
+      }
+      logger.info('Platform domain released', { event: 'dns.released', host: lower });
+      return true;
+    });
+  } catch (error) {
+    logger.warn('Platform domain could not be released', {
+      event: 'dns.release_failed',
+      host: lower,
+      reason: (error as Error).message,
+    });
+    return false;
+  }
+}
