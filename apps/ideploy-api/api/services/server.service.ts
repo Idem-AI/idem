@@ -13,6 +13,7 @@ import { executeRemoteCommand, testConnection, isLocalServer } from '../ssh/ssh'
 import { encryptString } from '../utils/laravel-crypto';
 import { conflict, notFound } from '../utils/errors';
 import { DB_TYPES } from './database-types';
+import { assertWildcardReaches } from './domain.service';
 import {
   ProvisionResult,
   ServerReadiness,
@@ -122,7 +123,12 @@ export async function updateServerSettings(
   const server = await getServer(teamId, uuid);
   if (!server) throw notFound('Server');
   if (dto.wildcardDomain !== undefined) {
-    const value = dto.wildcardDomain?.trim().replace(/^https?:\/\//, '').replace(/\/$/, '') || null;
+    const value =
+      dto.wildcardDomain?.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^\*\./, '').replace(/\/$/, '') ||
+      null;
+    // Every application created here without a domain will be named after it:
+    // it has to reach this server first.
+    if (value) await assertWildcardReaches(value, server.ip);
     await pool.query('UPDATE server_settings SET wildcard_domain = $1, updated_at = now() WHERE server_id = $2', [
       value,
       server.id,

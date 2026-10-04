@@ -3,7 +3,9 @@
  * an id added only when it is taken, and a zone that never loses a record.
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { claimPlatformHost } from '../../api/services/platform-domain.service';
+import { claimPlatformHost, releasePlatformHost } from '../../api/services/platform-domain.service';
+import { testPool } from '../helpers/db';
+import { makeApplication, makeProject } from '../helpers/factories';
 import { DnsProvider, DnsZone, resetDnsProvider, setDnsProvider } from '../../api/services/dns/namecheap.client';
 import { quickDeploy, quickDeployFullstack } from '../../api/services/quick-deploy.service';
 import * as appService from '../../api/services/application.service';
@@ -97,6 +99,49 @@ describe('claimPlatformHost', () => {
   it('is off when no provider is configured', async () => {
     setDnsProvider(null);
     expect(await claimPlatformHost('boutique', '198.51.100.7')).toBeNull();
+  });
+});
+
+describe('releasePlatformHost', () => {
+  it('removes the record of an address no resource uses any more, and nothing else', async () => {
+    await claimPlatformHost('Boutique Amara', '198.51.100.7');
+
+    expect(await releasePlatformHost('boutique-amara.idem.africa')).toBe(true);
+
+    expect(dns.record('boutique-amara')).toBeUndefined();
+    expect(dns.zone.hosts).toHaveLength(4);
+  });
+
+  it("never touches IDEM's own names, the wildcard, or another domain", async () => {
+    expect(await releasePlatformHost('api.idem.africa')).toBe(false);
+    expect(await releasePlatformHost('idem.africa')).toBe(false);
+    expect(await releasePlatformHost('shop.example.com')).toBe(false);
+    expect(dns.writes).toBe(0);
+  });
+
+  it('keeps a record another application still serves', async () => {
+    const host = await claimPlatformHost('vitrine', '198.51.100.7');
+    const team = await makeTeam();
+    const server = await makeManagedServer();
+    const project = await makeProject(team.id);
+    const app = await makeApplication(project.environmentId, server.destinationId);
+    await testPool().query('UPDATE applications SET fqdn = $2 WHERE id = $1', [app.id, `https://${host}`]);
+
+    expect(await releasePlatformHost(host!)).toBe(false);
+    expect(dns.record('vitrine')).toBeDefined();
+  });
+
+  it('is released when its application is deleted', async () => {
+    const host = await claimPlatformHost('ephemere', '198.51.100.7');
+    const team = await makeTeam();
+    const server = await makeManagedServer();
+    const project = await makeProject(team.id);
+    const app = await makeApplication(project.environmentId, server.destinationId);
+    await testPool().query('UPDATE applications SET fqdn = $2 WHERE id = $1', [app.id, `https://${host}`]);
+
+    await appService.deleteApplication(team.id, app.uuid);
+
+    expect(dns.record('ephemere')).toBeUndefined();
   });
 });
 

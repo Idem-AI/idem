@@ -10,7 +10,7 @@
  * `https://x.com` are the same claim as far as the proxy is concerned.
  */
 import pool from '../config/db.config';
-import { conflict } from '../utils/errors';
+import { conflict, unprocessable } from '../utils/errors';
 import { parseDomain } from '../docker/labels';
 
 /** Tables that can hold an `fqdn`, with the label used when reporting a clash. */
@@ -171,13 +171,97 @@ export async function generateFqdn(serverId: number, serverIp: string, random: s
   return `${random}.${host}`;
 }
 
-/** Slug used as the auto-generated subdomain — same shape as the internal Docker hostname. */
+/** Longest DNS label (RFC 1035). A longer one is not a hostname: no resolver, no certificate. */
+export const MAX_DNS_LABEL = 63;
+
+/**
+ * Slug used as the auto-generated subdomain — same shape as the internal
+ * Docker hostname, `<name>-<uuid>`. The uuid alone takes 36 characters, so a
+ * name past 26 made a label longer than DNS allows and the application never
+ * got a certificate; the name is shortened to fit, the uuid kept whole.
+ */
 export function subdomainSlug(name: string, uuid: string): string {
-  return `${name}-${uuid}`
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+  const clean = (value: string): string =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  const id = clean(uuid);
+  const room = MAX_DNS_LABEL - id.length - 1;
+  const base = clean(name).slice(0, Math.max(room, 0)).replace(/-+$/g, '');
+  return base ? `${base}-${id}` : id.slice(0, MAX_DNS_LABEL);
+}
+
+/** A hostname as DNS accepts it: dot-separated labels of letters, digits and dashes. */
+export function isValidHostname(host: string): boolean {
+  if (host.length > 253) return false;
+  return host
+    .split('.')
+    .every((label) => label.length > 0 && label.length <= MAX_DNS_LABEL && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i.test(label));
+}
+
+/** The IPv4 addresses `host` resolves to, or an empty list. */
+async function addressesOf(host: string): Promise<string[]> {
+  const dns = await import('dns/promises');
+  try {
+    return await dns.resolve4(host);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Refuse a server wildcard domain whose names do not reach the server.
+ *
+ * Every application created on the server without a domain of its own gets
+ * `<name>-<uuid>.<wildcard>`. A wildcard whose DNS points elsewhere — the
+ * platform's own `idem.africa`, whose `*` points at IDEM's main server — gave
+ * every one of them an address that reached another machine: no route, no
+ * certificate. A random name is resolved, so the `*` record itself is tested.
+ *
+ * @throws DomainError WILDCARD_INVALID / WILDCARD_DNS_MISMATCH
+ */
+export async function assertWildcardReaches(wildcard: string, serverIp: string): Promise<void> {
+  if (!isValidHostname(wildcard) || !wildcard.includes('.')) {
+    throw unprocessable('WILDCARD_INVALID', `"${wildcard}" is not a domain name.`);
+  }
+  const probe = `ideploy-check-${Math.random().toString(36).slice(2, 10)}.${wildcard}`;
+  const addresses = await addressesOf(probe);
+  if (!addresses.includes(serverIp)) {
+    throw unprocessable(
+      'WILDCARD_DNS_MISMATCH',
+      addresses.length
+        ? `*.${wildcard} points to ${addresses.join(', ')}, not to this server (${serverIp}). ` +
+            `Create a DNS record *.${wildcard} → ${serverIp}, or leave the field empty to use automatic addresses.`
+        : `*.${wildcard} does not resolve. Create a DNS record *.${wildcard} → ${serverIp} first, ` +
+            'or leave the field empty to use automatic addresses.'
+    );
+  }
+}
+
+export interface DomainCheck {
+  domain: string;
+  host: string;
+  /** Whether the host resolves to the application's server. */
+  pointsHere: boolean;
+  /** What it resolves to instead (empty: it does not resolve). */
+  addresses: string[];
+}
+
+/**
+ * Where each of an application's domains points — shown after a domain is
+ * changed, before the user waits for a certificate that cannot be issued.
+ */
+export async function checkDomains(domains: string[], serverIp: string): Promise<DomainCheck[]> {
+  const checks: DomainCheck[] = [];
+  for (const domain of domains) {
+    const claim = toClaim(domain);
+    if (!claim) continue;
+    const addresses = await addressesOf(claim.host);
+    checks.push({ domain, host: claim.host, pointsHere: addresses.includes(serverIp), addresses });
+  }
+  return checks;
 }
 
 /** The server (id + IP) a Docker destination sits on — needed before the resource it belongs to exists yet. */

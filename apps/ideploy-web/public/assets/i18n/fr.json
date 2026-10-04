@@ -512,7 +512,15 @@
       "saved": "Enregistré",
       "tagsHint": "Pour regrouper et retrouver vos applications.",
       "noTagsYet": "Aucune étiquette. Créez-en dans la page Étiquettes.",
-      "operationsHint": "Pour vérifier rapidement l'état du conteneur, ou y lancer une commande."
+      "operationsHint": "Pour vérifier rapidement l'état du conteneur, ou y lancer une commande.",
+      "dnsOk": "{{host}} pointe vers ce serveur.",
+      "dnsElsewhere": "{{host}} pointe vers {{addresses}}, pas vers ce serveur : aucun certificat ne pourra être émis tant que son DNS n’est pas modifié.",
+      "dnsMissing": "{{host}} ne résout pas encore : créez son enregistrement DNS vers ce serveur.",
+      "domainRedeploy": "Le nouveau domaine s’applique au prochain déploiement.",
+      "redeployNow": "Redéployer maintenant",
+      "redeploying": "Redéploiement…",
+      "saveError": "Les réglages n’ont pas pu être enregistrés.",
+      "redeployError": "Le déploiement n’a pas pu démarrer."
     }
   },
   "projects": {
