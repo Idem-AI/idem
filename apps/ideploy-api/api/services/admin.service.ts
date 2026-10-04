@@ -18,6 +18,7 @@
 import pool from '../config/db.config';
 import * as serverService from './server.service';
 import { CreatedServer } from './server.service';
+import { rankManagedServers } from './server-scheduling.service';
 
 export interface InstanceOverview {
   users: number;
@@ -147,6 +148,25 @@ export interface AdminServerRow {
   isReachable: boolean;
   isUsable: boolean;
   createdAt: string | null;
+  /** Placement view of an IDEM-managed server; null for customers' own servers. */
+  resources: AdminServerResources | null;
+}
+
+export interface AdminServerResources {
+  cpuCores: number | null;
+  load1m: number | null;
+  ramMb: number | null;
+  freeMemoryMb: number | null;
+  diskGb: number | null;
+  diskFreeGb: number | null;
+  resourceCount: number;
+  maxResources: number;
+  measuredAt: string | null;
+  /** True when the figures are fresh enough to rank the server. */
+  measured: boolean;
+  /** 0-1, higher = more ready to take a new workspace. */
+  readiness: number;
+  excluded: 'full' | 'memory' | 'disk' | null;
 }
 
 export interface ServerFleetStats {
@@ -170,6 +190,9 @@ export async function listServers(): Promise<AdminServerRow[]> {
      LEFT JOIN server_settings ss ON ss.server_id = s.id
      ORDER BY s.idem_managed DESC, s.created_at DESC`
   );
+  const ranked = new Map(
+    (await rankManagedServers(undefined, undefined, { healthyOnly: false })).map((c) => [c.id, c])
+  );
   return rows.map((r) => ({
     id: Number(r.id),
     uuid: String(r.uuid),
@@ -184,7 +207,29 @@ export async function listServers(): Promise<AdminServerRow[]> {
     isReachable: Boolean(r.is_reachable),
     isUsable: Boolean(r.is_usable),
     createdAt: r.created_at ? String(r.created_at) : null,
+    resources: toAdminResources(ranked.get(Number(r.id))),
   }));
+}
+
+function toAdminResources(
+  candidate: Awaited<ReturnType<typeof rankManagedServers>>[number] | undefined
+): AdminServerResources | null {
+  if (!candidate) return null;
+  const { capacity, readiness } = candidate;
+  return {
+    cpuCores: capacity.cpuCores,
+    load1m: capacity.load1m,
+    ramMb: capacity.ramMb,
+    freeMemoryMb: readiness.freeMemoryMb ?? capacity.memAvailableMb,
+    diskGb: capacity.diskGb,
+    diskFreeGb: capacity.diskFreeGb,
+    resourceCount: capacity.resourceCount,
+    maxResources: capacity.maxResources,
+    measuredAt: capacity.resourcesUpdatedAt ? capacity.resourcesUpdatedAt.toISOString() : null,
+    measured: readiness.measured,
+    readiness: readiness.score,
+    excluded: readiness.excluded,
+  };
 }
 
 export async function getServerFleetStats(): Promise<ServerFleetStats> {

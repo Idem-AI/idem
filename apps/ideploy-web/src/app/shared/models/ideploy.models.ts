@@ -783,6 +783,24 @@ export interface AdminServerRow {
   isReachable: boolean;
   isUsable: boolean;
   createdAt: string | null;
+  /** Placement view of an IDEM-managed server; null for customers' own servers. */
+  resources: AdminServerResources | null;
+}
+
+export interface AdminServerResources {
+  cpuCores: number | null;
+  load1m: number | null;
+  ramMb: number | null;
+  freeMemoryMb: number | null;
+  diskGb: number | null;
+  diskFreeGb: number | null;
+  resourceCount: number;
+  maxResources: number;
+  measuredAt: string | null;
+  measured: boolean;
+  /** 0-1, higher = more ready to take a new workspace. */
+  readiness: number;
+  excluded: 'full' | 'memory' | 'disk' | null;
 }
 
 export interface ServerFleetStats {

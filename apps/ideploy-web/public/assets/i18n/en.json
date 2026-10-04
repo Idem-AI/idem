@@ -1691,7 +1691,16 @@
       "addHint": "This server becomes available to automatically host workspaces on “IDEM infrastructure”.",
       "addSubmit": "Add to fleet",
       "creating": "Adding…",
-      "addError": "Failed to add the server."
+      "addError": "Failed to add the server.",
+      "resources": "Resources",
+      "readiness": "Readiness {{score}}%",
+      "notMeasured": "Not measured yet",
+      "resourceLine": "{{cpu}} CPU · load {{load}} · {{mem}} MB free · {{disk}} GB disk free · {{count}}/{{max}} resources",
+      "excluded": {
+        "full": "Full: takes no new workspace",
+        "memory": "Not enough free memory",
+        "disk": "Disk almost full"
+      }
     },
     "role": "Role",
     "teamCount": "Teams"
