@@ -42,7 +42,7 @@ export interface VideoTheme {
   surfaces: Record<SurfaceName, SurfaceTokens>;
   fonts: { display: string; body: string; links: string };
   /** Sources d'image du logo (URL ou data-URI), par polarité de fond. */
-  logo: { onLight?: string; onDark?: string; icon?: string; svgMarkup?: string };
+  logo: { onLight?: string; onDark?: string; icon?: string; svgMarkup?: string; fullSvgMarkup?: string };
 }
 
 const DEFAULTS = {
@@ -102,6 +102,18 @@ function surfaceFor(bg: string, palette: VideoTheme['palette'], highlightOrder: 
   };
 }
 
+/** Teinte très claire d'une couleur (même teinte, clarté élevée, chroma réduite). */
+export function tintOf(hex: string, lightness: number): string {
+  const ok = hexToOklch(hex);
+  return ok ? oklchToHex({ l: lightness + (1 - lightness) * 0.6, c: Math.min(ok.c, 0.05), h: ok.h }) : hex;
+}
+
+/** Version profonde d'une couleur (même teinte, clarté basse). */
+export function deepOf(hex: string): string {
+  const ok = hexToOklch(hex);
+  return ok ? oklchToHex({ l: Math.min(ok.l, 0.3), c: Math.min(ok.c, 0.12), h: ok.h }) : hex;
+}
+
 /** Un SVG brut devient une source d'image utilisable dans `<img src>`. */
 export function toImageSrc(value?: string): string | undefined {
   const v = (value || '').trim();
@@ -149,6 +161,9 @@ export function buildVideoTheme(
     primary: surfaceFor(palette.primary, palette, [palette.accent, palette.background, palette.secondary]),
     secondary: surfaceFor(secondaryBg, palette, [palette.accent, palette.primary, palette.background]),
     accent: surfaceFor(palette.accent, palette, [palette.primary, palette.secondary, palette.background]),
+    // Stratégie « trempée » : la même teinte en clair et en profond.
+    tint: surfaceFor(tintOf(palette.primary, 0.9), palette, [palette.primary, palette.accent, palette.secondary]),
+    deep: surfaceFor(deepOf(palette.primary), palette, [palette.accent, tintOf(palette.primary, 0.85), palette.background]),
   };
 
   const fonts = readFonts(branding);
@@ -174,6 +189,8 @@ export function buildVideoTheme(
       onDark: toImageSrc(resolveLogoSlot(logo, 'assetUrls.withText.darkBackground')),
       icon: toImageSrc(resolveLogoSlot(logo, 'assetUrls.icon')),
       svgMarkup: svgMarkupOf(resolveLogoSlot(logo, 'iconSvg')) || svgMarkupOf(resolveLogoSlot(logo, 'svg')),
+      // Le logo complet (symbole + nom), pour les animations de logo vectoriel.
+      fullSvgMarkup: svgMarkupOf(resolveLogoSlot(logo, 'svg')),
     },
   };
 }

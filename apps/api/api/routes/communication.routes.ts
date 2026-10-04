@@ -45,6 +45,7 @@ import {
   updateVideoController,
   uploadVideoPhotosController,
   uploadVideoMediaController,
+  createVideoStreamController,
   sfxFileController,
   videoMusicController,
   videoOptionsController,
@@ -775,6 +776,34 @@ communicationRoutes.post(
 
 /**
  * @openapi
+ * /project/communication/{projectId}/videos/stream:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Same as POST /videos, streamed (SSE) — every real step is sent as it happens (scenes, copy, media found, music, sound effects, cut).
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.post(
+  `/${resource}/:projectId/videos/stream`,
+  authenticate,
+  extendedTimeout,
+  checkPolicyAcceptance,
+  checkQuota,
+  (req, res, next) => {
+    const message = String(req.body?.brief?.message || '').trim();
+    if (message.length < 3) {
+      res.status(400).json({ error: 'message_required', message: 'brief.message is required' });
+      return;
+    }
+    next();
+  },
+  requireCredits('business', 'motion_video', {
+    resolve: async (req) => ({ action: 'motion_video', cost: videoCost(normalizeScope(req.body?.scope)) }),
+  }),
+  createVideoStreamController
+);
+
+/**
+ * @openapi
  * /project/communication/{projectId}/videos/photos:
  *   post:
  *     tags: [Communication]
@@ -783,13 +812,13 @@ communicationRoutes.post(
  */
 /**
  * Médias importés pour les vidéos : photos, clips (réencodés en WebM 720p),
- * modèles 3D (GLB, 20 Mo) et animations Lottie (JSON, 3 Mo).
+ * modèles 3D (GLB, 20 Mo), animations Lottie (JSON ou .lottie, 3 Mo) et Rive (.riv, 6 Mo).
  */
 const videoMediaUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 80 * 1024 * 1024, files: 8 },
   fileFilter: (_req, file, cb) =>
-    cb(null, /^(image\/(jpeg|png|webp|heic|heif)|video\/(mp4|quicktime|webm|x-m4v)|model\/gltf-binary|application\/(json|octet-stream))$/.test(file.mimetype) || /\.(glb|json)$/i.test(file.originalname)),
+    cb(null, /^(image\/(jpeg|png|webp|heic|heif)|video\/(mp4|quicktime|webm|x-m4v)|model\/gltf-binary|application\/(json|octet-stream|zip))$/.test(file.mimetype) || /\.(glb|json|lottie|riv)$/i.test(file.originalname)),
 });
 communicationRoutes.post(
   `/${resource}/:projectId/videos/media`,

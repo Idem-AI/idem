@@ -83,7 +83,7 @@ export const TYPE_DEFS: Record<VideoType, VideoTypeDef> = {
     icon: 'pi pi-sparkles',
     style: 'playful',
     needs: {},
-    recipe: [['hook', 1], ['lottie', 1], ['benefits', 2], ['lottie', 3], ['@objective', 2], ['wordswap', 5], ['cta', 2], ['logo', 1]],
+    recipe: [['hook', 1], ['lottie', 1], ['benefits', 3], ['lottie', 2], ['@objective', 2], ['wordswap', 5], ['cta', 2], ['logo', 1]],
     openers: ['hook'],
   },
   slideshow: {
@@ -172,7 +172,12 @@ export function planTypeScenes(type: VideoType, objective: VideoObjective, durat
     guard++;
   }
 
-  if (!def.openers.includes(scenes[0])) scenes.unshift(def.openers[0]);
+  // Ouverture : la première admise par le type qui a de quoi s'afficher.
+  const opener = def.openers.find((id) => available(id, facts, media)) || 'hook';
+  if (!def.openers.includes(scenes[0]) || !available(scenes[0], facts, media)) {
+    if (!available(scenes[0], facts, media)) scenes.shift();
+    if (scenes[0] !== opener) scenes.unshift(opener);
+  }
   if (scenes[scenes.length - 1] !== 'logo') scenes.push('logo');
   return scenes;
 }

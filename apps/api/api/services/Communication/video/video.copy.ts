@@ -145,8 +145,17 @@ export const MEDIA_QUERY_ENTRY: CopyPlanEntry = {
   slots: [{ key: 'visual', max: 48, hint: '2-5 English words describing the footage/photos to search (subject, place)' }],
 };
 
-export function copyPlan(sceneIds: string[], withMediaQuery = false): CopyPlanEntry[] {
-  const entries = sceneIds.map((sceneId, i) => ({ index: i + 1, sceneId, slots: SCENES[sceneId]?.slots ?? [] }));
+/**
+ * Plan de copie. `icons` : vocabulaire de concepts retenu par le graphe de
+ * capacités ; la scène « avantages » reçoit alors une ligne de plus (un mot par
+ * avantage), le seul choix « visuel » laissé au modèle.
+ */
+export function copyPlan(sceneIds: string[], withMediaQuery = false, icons?: string[]): CopyPlanEntry[] {
+  const entries = sceneIds.map((sceneId, i) => {
+    const slots = SCENES[sceneId]?.slots ?? [];
+    if (sceneId !== 'benefits' || !icons?.length) return { index: i + 1, sceneId, slots };
+    return { index: i + 1, sceneId, slots: [...slots, { key: 'icons', max: 90, hint: `one word per benefit, comma separated, from: ${icons.join(' ')}` }] };
+  });
   return withMediaQuery ? [MEDIA_QUERY_ENTRY, ...entries] : entries;
 }
 
@@ -157,7 +166,8 @@ export function buildCopyPrompt(plan: CopyPlanEntry[], brief: VideoBrief, ctx: C
     `Language: ${lang}. Brand: ${ctx.brandName}${ctx.businessType ? ` (${ctx.businessType})` : ''}. Tone: ${ctx.tone || 'warm, confident'}.`,
     'Rules:',
     '- Respect the max characters. Short, concrete, punchy. Titles without final period.',
-    '- No emoji, no hashtag, no quotation marks.',
+    '- No emoji, no hashtag, no quotation marks, no em dash.',
+    '- No filler words (unique, ultimate, revolutionary, elevate, seamless...): say the concrete thing.',
     '- Prices, dates, figures, phone numbers: copy them EXACTLY from the brief. If absent, skip the line.',
     '- Every line says something different.',
     'Example:',
@@ -243,8 +253,19 @@ export function parseCopy(raw: string, plan: CopyPlanEntry[]): CopyResult {
   return result;
 }
 
+/**
+ * Mots de remplissage sans référent (règle « anti-slop » d'iCode) : retirés de
+ * la copie, qui doit dire la chose concrète.
+ */
+const FILLER = /\b(élevez|élever|boostez|booster|révolutionnez|révolutionner|révolutionnaire|incontournable|sans pareil|inégalé|ultime|de nouvelle génération|à la pointe|de classe mondiale|n'attendez plus|n’attendez plus|elevate|unlock|empower|supercharge|seamless|streamline|leverage|unleash|revolutionize|revolutionise|game-?changer|cutting-edge|next-generation|world-class)\b/gi;
+
 function cleanValue(value: string): string {
   return (value || '')
+    // Tiret cadratin et demi-cadratin d'incise : une virgule à la place.
+    .replace(/\s*[—–]\s*/g, ', ')
+    .replace(FILLER, '')
+    .replace(/\s+,/g, ',')
+    .replace(/!{2,}/g, '!')
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '')
     .replace(/#[\p{L}\d_]+/gu, '')
     .replace(/\s+/g, ' ')
@@ -556,9 +577,9 @@ export async function writeCopy(
   brief: VideoBrief,
   ctx: CopyContext,
   writer?: CopyWriter,
-  opts: { mediaQuery?: boolean } = {}
+  opts: { mediaQuery?: boolean; icons?: string[] } = {}
 ): Promise<WriteCopyResult> {
-  const plan = copyPlan(sceneIds, !!opts.mediaQuery);
+  const plan = copyPlan(sceneIds, !!opts.mediaQuery, opts.icons);
   const facts = extractFacts(`${brief.message}\n${brief.details || ''}`);
   let raw = '';
   let source: 'llm' | 'heuristic' = 'heuristic';

@@ -764,7 +764,8 @@
             "formats": "Formats (several allowed)",
             "quality": "Quality",
             "music": "Music",
-            "style": "Animation style"
+            "style": "Animation style",
+            "direction": "Motion direction"
           },
           "price": {
             "total": "Price: {{price}} credits",
@@ -958,6 +959,68 @@
         },
         "mediaCredits": {
           "title": "Media credits"
+        },
+        "composing": {
+          "title": "Your video is being edited…",
+          "note": "You can stay on this screen: each step shows up as soon as it’s done.",
+          "stages": {
+            "plan": "Scene breakdown",
+            "copy": "On-screen text",
+            "media": "Images and clips",
+            "music": "Music",
+            "sfx": "Sound effects",
+            "storyboard": "Edit, synced to the beat"
+          },
+          "details": {
+            "plan": "{{count}} scenes for {{seconds}} s",
+            "copyLlm": "{{lines}} lines written",
+            "copyHeuristic": "{{lines}} lines taken from your message",
+            "media": "{{own}} yours · Pexels: {{photos}} photo(s), {{videos}} clip(s) · {{generated}} generated — “{{query}}”",
+            "mediaNone": "No images needed",
+            "music": "“{{title}}” — {{artist}} · {{bpm}} BPM",
+            "musicNone": "No music",
+            "sfx": "{{count}} sounds picked",
+            "storyboard": "{{count}} scenes, cuts on the beat ({{bpm}} BPM)"
+          }
+        },
+        "directions": {
+          "help": "Each direction changes composition, text entrances, transitions and colour. Free.",
+          "auto": {
+            "label": "Picked for your brand",
+            "hint": "IDEM picks from your brand charter and avoids repeating your last videos."
+          },
+          "editorial": {
+            "label": "Editorial",
+            "hint": "Flush-left text, hairlines, dissolves: a magazine feel."
+          },
+          "swiss": {
+            "label": "Swiss grid",
+            "hint": "Grid, hard cuts on the beat, tight type."
+          },
+          "brutal": {
+            "label": "Brutal block",
+            "hint": "Huge uppercase type, colour blocks, hard cuts."
+          },
+          "kinetic": {
+            "label": "Kinetic",
+            "hint": "Bursting letters, zoom-throughs, bold colours."
+          },
+          "cinematic": {
+            "label": "Cinematic",
+            "hint": "Letterbox bars, slow dissolves, one idea at a time."
+          },
+          "collage": {
+            "label": "Collage",
+            "hint": "Paper, polaroids, stickers, stop-motion movement."
+          },
+          "precision": {
+            "label": "Precision",
+            "hint": "Studio backdrop, crisp cards, iris openings."
+          },
+          "drenched": {
+            "label": "Monochrome",
+            "hint": "One hue in light and deep, duotone images."
+          }
         }
       }
     }

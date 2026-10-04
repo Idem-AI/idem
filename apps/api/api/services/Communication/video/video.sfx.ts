@@ -4,7 +4,7 @@
  * Un motion design professionnel se reconnaît aussi à l'oreille : un « whoosh »
  * sur chaque transition, un « pop » quand un prix apparaît, un clic discret quand
  * un titre se pose, un scintillement sur le logo. Ces moments (« cues ») sont
- * posés par le moteur d'animation lui-même (`video.runtime.ts`), à l'image près :
+ * posés par le moteur d'animation lui-même (moteur React, `video-engine/src`), à l'image près :
  * le son ne peut pas tomber à côté du mouvement.
  *
  * SOURCES (licence CC0 uniquement : aucun crédit à afficher dans la vidéo)

@@ -85,7 +85,7 @@ export const VIDEO_TYPES: VideoType[] = [
 ];
 
 /** Un média de la vidéo : importé par l'utilisateur, trouvé sur Pexels ou généré. */
-export type VideoMediaKind = 'image' | 'video' | 'model3d' | 'lottie';
+export type VideoMediaKind = 'image' | 'video' | 'model3d' | 'lottie' | 'rive';
 
 export interface VideoMediaAsset {
   id: string;
@@ -160,6 +160,8 @@ export interface VideoBrief {
   allowGenerate?: boolean;
   /** Effets sonores (whoosh, pop…) : activés par défaut. */
   sfx?: boolean;
+  /** Direction de motion imposée (sinon choisie par IDEM). */
+  direction?: string;
 }
 
 /** Une scène posée sur la ligne de temps. */
@@ -174,8 +176,8 @@ export interface VideoSceneInstance {
   start: number;
   /** Durée, en secondes. */
   duration: number;
-  /** Surface de la scène : claire, couleur primaire, secondaire ou accent. */
-  surface: 'light' | 'primary' | 'secondary' | 'accent';
+  /** Surface de la scène : claire, primaire, secondaire, accent, teinte claire ou profonde de la primaire. */
+  surface: 'light' | 'primary' | 'secondary' | 'accent' | 'tint' | 'deep';
   /** Transition qui OUVRE la scène (aucune pour la première). */
   transitionIn?: VideoTransition;
   /** Textes des cases, déjà bornés et réparés. */
@@ -190,6 +192,17 @@ export interface VideoSceneInstance {
   model?: string;
   /** Animation Lottie : URL d'un fichier importé, ou `builtin:<nom>`. */
   lottie?: string;
+  /** Animation Rive importée (.riv). */
+  rive?: string;
+  /** Plan de mouvement : ancrage, techniques d'entrée, transition (cf. video.direction.ts). */
+  motion?: {
+    anchor: string;
+    headline: string;
+    support: string;
+    align: 'left' | 'center';
+    transition?: string;
+    kicker: boolean;
+  };
 }
 
 export type VideoTransition = 'wipe' | 'circle' | 'push' | 'zoom' | 'split' | 'flash' | 'fade';
@@ -205,9 +218,43 @@ export interface VideoStoryboard {
   version: 1;
   seed: number;
   style: MotionStyle;
+  /** Direction de motion (système visuel complet), cf. video.direction.ts. */
+  direction?: string;
   durationSec: number;
   scenes: VideoSceneInstance[];
   beat?: VideoBeatGrid;
+  /** Kit retenu par le graphe de capacités (cf. video.capabilities.ts). */
+  kit?: VideoKit;
+}
+
+/** Une décision du routeur de capacités : le nœud retenu, pourquoi, et les nœuds écartés. */
+export interface KitDecision {
+  kind: string;
+  chosen: string;
+  score: number;
+  why: string[];
+  rejected: { id: string; reason: string }[];
+}
+
+/** Les choix du kit pour une vidéo (graphe de capacités) : stables à la retouche et au réexport. */
+export interface VideoKit {
+  /** Fond du kit (none, dot-grid, halftone, shape-field, stagger-grid, marquee, spotlight, ticks). */
+  background: string;
+  /** Scènes qui portent le fond (deux au plus). */
+  backdropScenes: string[];
+  /** Annotation du mot mis en valeur (none, marker, underline, circle). */
+  annotate: string;
+  annotateScene?: string;
+  /** Animation du logo (classic, draw, trace, morph, assemble, wipe, split, extrude). */
+  logo: string;
+  /** Bibliothèque d'icônes (lucide, tabler, phosphor-*, heroicons-solid). */
+  iconSet: 'lucide' | 'tabler' | 'phosphor-thin' | 'phosphor-light' | 'phosphor-bold' | 'phosphor-fill' | 'phosphor-duotone' | 'heroicons-solid';
+  /** Concepts d'icônes par scène (clé de scène → un concept par élément). */
+  icons: Record<string, string[]>;
+  spring?: { bounce: number };
+  postfx: string[];
+  addons: ('three' | 'gsap' | 'anime' | 'flubber' | 'lottie' | 'rive')[];
+  trace: KitDecision[];
 }
 
 export type MusicLicense = 'cc0' | 'pdm' | 'cc-by' | 'cc-by-sa' | 'platform';

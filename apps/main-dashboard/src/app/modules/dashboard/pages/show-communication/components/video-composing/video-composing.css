@@ -1,0 +1,363 @@
+:host {
+  display: block;
+}
+
+.vcm-wrap {
+  display: grid;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+@media (min-width: 40rem) {
+  .vcm-wrap {
+    grid-template-columns: minmax(0, 16rem) minmax(0, 1fr);
+  }
+}
+
+/* ── La vidéo qui s'assemble ──────────────────────────────────────────────── */
+
+.vcm-frame {
+  position: relative;
+  width: 100%;
+  max-width: 16rem;
+  max-height: 26rem;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 0.9rem;
+  border: 1px solid var(--glass-border-medium);
+  background: var(--glass-bg-medium);
+}
+
+/* Les éléments arrivent posés (fondu + léger glissement), jamais en clignotant. */
+@keyframes vcm-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.vcm-thumbs {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  gap: 3px;
+  opacity: 0.55;
+}
+
+.vcm-thumbs-1 {
+  grid-template-columns: 1fr;
+}
+
+.vcm-thumb {
+  position: relative;
+  overflow: hidden;
+  animation: vcm-in 0.5s ease both;
+}
+
+.vcm-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vcm-thumb-play {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.35rem;
+  font-size: 0.7rem;
+  color: var(--color-text-primary);
+}
+
+.vcm-searching {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  display: inline-flex;
+  max-width: 85%;
+  transform: translateX(-50%);
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  background: var(--glass-bg-light);
+  padding: 0.25rem 0.65rem;
+  font-size: 0.68rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vcm-searching .pi {
+  animation: vcm-search 1.2s ease-in-out infinite;
+}
+
+@keyframes vcm-search {
+  50% {
+    transform: translateX(3px) rotate(-12deg);
+  }
+}
+
+.vcm-copy {
+  position: absolute;
+  left: 9%;
+  right: 9%;
+  top: 38%;
+}
+
+.vcm-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--color-text-primary);
+  /* Le texte se dévoile comme dans la vidéo : un volet qui glisse. */
+  animation: vcm-reveal 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes vcm-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.vcm-line {
+  display: block;
+  height: 0.7rem;
+  margin-bottom: 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  animation: vcm-pulse 1.1s ease-in-out infinite;
+}
+
+.vcm-line-1 {
+  width: 82%;
+}
+
+.vcm-line-2 {
+  width: 56%;
+  animation-delay: 0.2s;
+}
+
+@keyframes vcm-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.vcm-sfx {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 8%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.vcm-chip {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 22%, var(--glass-bg-light));
+  padding: 0.1rem 0.45rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  animation: vcm-in 0.35s ease both;
+}
+
+.vcm-music {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 3.1rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.45rem;
+}
+
+.vcm-eq {
+  display: inline-flex;
+  height: 1.1rem;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.vcm-eq span {
+  width: 3px;
+  height: 30%;
+  border-radius: 2px;
+  background: var(--color-primary);
+  animation: vcm-eq var(--beat, 0.5s) ease-in-out infinite alternate;
+}
+
+/* Tant que la piste n'est pas choisie, l'égaliseur « cherche » plus mollement. */
+.vcm-music:not(.vcm-music-done) .vcm-eq span {
+  opacity: 0.5;
+}
+
+@keyframes vcm-eq {
+  from {
+    height: 20%;
+  }
+  to {
+    height: 100%;
+  }
+}
+
+.vcm-track {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  animation: vcm-in 0.4s ease both;
+}
+
+.vcm-timeline {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 0.9rem;
+  display: flex;
+  gap: 2px;
+  height: 1.6rem;
+}
+
+.vcm-seg {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, var(--color-primary) 30%, var(--glass-bg-light));
+  transition: flex-basis 0.6s ease;
+  animation: vcm-in 0.4s ease both;
+}
+
+.vcm-timed .vcm-seg {
+  background: color-mix(in srgb, var(--color-primary) 55%, var(--glass-bg-light));
+}
+
+.vcm-seg-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 0.2rem;
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* ── Les étapes ───────────────────────────────────────────────────────────── */
+
+.vcm-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.vcm-steps {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.vcm-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.82rem;
+  color: var(--color-text-tertiary);
+  transition: color 0.3s ease;
+}
+
+.vcm-current {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.vcm-done {
+  color: var(--color-text-secondary);
+}
+
+.vcm-bullet {
+  display: inline-flex;
+  height: 1.15rem;
+  width: 1.15rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1.5px solid var(--glass-border-medium);
+  font-size: 0.6rem;
+}
+
+.vcm-done .vcm-bullet {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--color-success) 18%, transparent);
+  color: var(--color-success);
+}
+
+.vcm-current .vcm-bullet {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.vcm-step-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.vcm-step-detail {
+  font-size: 0.74rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  animation: vcm-in 0.35s ease both;
+}
+
+.vcm-bar {
+  margin-top: 1.1rem;
+  height: 0.3rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--glass-bg-medium);
+}
+
+.vcm-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gradient-primary, var(--color-primary));
+  transition: width 0.5s ease;
+}
+
+.vcm-note {
+  margin-top: 0.6rem;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vcm-thumb,
+  .vcm-title,
+  .vcm-chip,
+  .vcm-track,
+  .vcm-seg,
+  .vcm-step-detail,
+  .vcm-line,
+  .vcm-eq span,
+  .vcm-searching .pi {
+    animation: none;
+  }
+}

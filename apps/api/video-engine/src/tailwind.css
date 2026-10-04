@@ -1,0 +1,68 @@
+/*
+ * Tailwind v4 pour les vidéos — compilé au paquet (video.engine.ts).
+ *
+ * Pas de preflight : engine.css porte sa propre remise à zéro. Ordre des couches :
+ * le thème, puis la feuille du moteur, puis les utilitaires (une classe Tailwind
+ * l'emporte sur un style du moteur sur le même élément).
+ *
+ * LA CHARTE DANS LES CLASSES : la palette par défaut de Tailwind est retirée.
+ * `bg-blue-500` n'existe pas ; seules existent les couleurs de la marque et de la
+ * surface courante (bg, ink, muted, hl…), qui suivent la scène. Même règle pour
+ * les polices (font-display, font-body) et les unités : 1 pas = 1 % du petit
+ * côté de l'image (`p-4` = 4 %), donc un composant est juste dans tous les formats.
+ */
+@layer theme, engine, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme {
+  --color-*: initial;
+  --font-*: initial;
+  --text-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --blur-*: initial;
+}
+
+@theme inline {
+  /* Surface courante (changent à chaque scène) */
+  --color-bg: var(--bg);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-hl: var(--hl);
+  --color-hl-ink: var(--hl-ink);
+  --color-hl-text: var(--hl-text);
+  --color-hl-soft: var(--hl-soft);
+  --color-soft: var(--soft);
+  /* Charte (fixes sur toute la vidéo) */
+  --color-primary: var(--c-primary);
+  --color-secondary: var(--c-secondary);
+  --color-accent: var(--c-accent);
+  --color-paper: var(--c-background);
+  --color-text: var(--c-text);
+  --color-white: #fff;
+  --color-black: #000;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --font-display: var(--f-display), system-ui, sans-serif;
+  --font-body: var(--f-body), system-ui, sans-serif;
+
+  /* 1 pas = 1 % du petit côté */
+  --spacing: var(--u);
+
+  /* Échelle typographique relative à l'image */
+  --text-caption: calc(var(--u) * 2.8);
+  --text-body: calc(var(--u) * 3.8);
+  --text-lead: calc(var(--u) * 5.2);
+  --text-title: calc(var(--u) * 9);
+  --text-display: calc(var(--u) * 15);
+  --text-giant: calc(var(--u) * 26);
+
+  /* Rayons : ceux de la direction (posés sur le stage) */
+  --radius-brand: var(--radius, 0px);
+  --radius-pill: 999px;
+
+  --blur-soft: calc(var(--u) * 0.6);
+  --blur-strong: calc(var(--u) * 2);
+}

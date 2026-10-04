@@ -12,8 +12,8 @@ Module Communication, écran « Mes vidéos ». Code : `api/services/Communicati
 | Musique : plusieurs banques libres, tempo, extrait le plus énergique | code + ffmpeg | `video.music.ts`, `video.beats.ts` |
 | Storyboard : minutage au temps de lecture, coupes sur le temps, variantes / surfaces / transitions par graine | code | `video.storyboard.ts` |
 | Charte : palette par surface (contraste AA), polices, logo, surface claire | code | `video.theme.ts` |
-| Scènes : HTML + Tailwind (compilé côté serveur) | code écrit à la main | `video.scenes.ts` |
-| Animation : GSAP + SplitText, positionnable à l'instant t | code écrit à la main | `video.runtime.ts` |
+| Direction de motion (8 systèmes) + plan par scène + contrôle anti-réflexe | code | `video.direction.ts` |
+| Scènes, techniques de texte, transitions : composants React pilotés par le temps | code écrit à la main | `apps/api/video-engine/src/*.tsx` |
 | Rendu : Puppeteer image par image → ffmpeg (H.264 + AAC) | nos serveurs | `video.renderer.ts` |
 
 Budget mesuré : 300 à 700 tokens d'entrée et 70 à 420 de sortie selon la durée.
@@ -23,6 +23,60 @@ relais : la vidéo sort toujours.
 L'aperçu du dashboard est le **même moteur** que le rendu, joué en temps réel
 dans une iframe isolée (`sandbox="allow-scripts"`) : ce qu'on voit est ce qui
 sera livré.
+
+## Moteur React et directions de motion
+
+Le rendu est un moteur React + Tailwind (`apps/api/video-engine`, empaqueté par
+esbuild dans `public/video-engine/` : runtime React partagé, moteur, et un addon
+par bibliothèque lourde) : chaque scène est un composant, chaque style est une
+**fonction du temps** (`seek(t)` rend l'image t de façon déterministe,
+`flushSync`). `npm run build` construit les paquets ; en développement ils sont
+reconstruits dès qu'une source change.
+
+**Environnement complet (bibliothèques installées, kit, graphe de capacités qui
+dit à l'IA ce qu'elle peut utiliser selon le projet) : [VIDEO_ENGINE.md](VIDEO_ENGINE.md)
+et [VIDEO_CAPABILITIES.md](VIDEO_CAPABILITIES.md).**
+
+Huit **directions** (éditoriale, grille suisse, bloc brut, cinétique, cinéma,
+collage, précision, monochrome) fixent chacune : typographie (casse, chasse,
+graisse), grille d'ancrage, vocabulaire de 4 entrées de texte, transitions,
+rythme (durées, décalages), stratégie de couleur (retenue, engagée, trempée,
+palette, studio), décor (filets, grille, grain, bandes cinéma, papier, cadre),
+mouvement fluide ou image par image. La direction suit le type, la direction
+artistique de la marque, et évite les dernières vidéos du projet.
+
+**12 techniques de texte** : masque montant, cascade de lettres, resserrement
+de chasse, échelle + flou, machine à écrire, volet par mot, mots flous,
+lettres basculées, brouillage, révélation par bloc, empilement, glissements
+alternés ; compteur « odomètre » pour les chiffres. **10 transitions** : coupe,
+coupe + éclair, fondu, volet, poussée, zoom traversant, panoramique filé,
+iris (raccord graphique sur le point focal précédent), bandes, glissé dessus.
+
+### Règles appliquées en code (sources)
+
+- Une seule chose bouge quand l'attention compte ; le texte en mouvement ne se
+  lit pas : l'entrée livre, le temps fixe dit — [PromoHyper, « movement is cheap,
+  timing is the craft »](https://promohyper.com/blog/motion-graphics-video-maker).
+- Entrées très amorties (décélération), sorties en accélération, sortie ≈ 2/3
+  de l'entrée ; décalage 70 ms = ordre de lecture, 300 ms = événements
+  distincts — même source ; [Material Design, easing et durées](https://m3.material.io/styles/motion/easing-and-duration/tokens-specs).
+- Pas de mouvement linéaire, rebond réservé aux tons ludiques ; décalage et
+  chevauchement — [SVGator, bases du motion design](https://www.svgator.com/blog/motion-design-basics-guide/).
+- Coupe, fondu, coupe sur l'action, raccord, zoom infini, morph — [School of
+  Motion, six transitions essentielles](https://schoolofmotion.com/blog/six-essential-motion-design-transitions-tutorial).
+- Grille et ferrage à gauche (style suisse) — [Envato, Swiss Style](https://elements.envato.com/learn/swiss-style-graphic-design).
+- Temps de lecture : 1,5–2 s par message court, tenir après l'accroche —
+  [Opus, lisibilité des sous-titres](https://www.opus.pro/blog/video-captions-for-maximum-readability).
+
+### Anti-slop (repris des skills d'iCode, `apps/appgen/.../skills/catalog/anti-slop.md`)
+
+Interdits, appliqués par le moteur et `lintMotion` : petit libellé en capitales
+espacées sur chaque scène (au plus un, sur l'accroche), numérotation 01/02/03
+décorative, filets latéraux colorés, même entrée partout ou alternance A·B·A·B,
+tout centré, même transition partout, décor par défaut, mots de remplissage
+(« révolutionnaire », « élever »…) et tirets cadratins dans la copie.
+`npm run check:video:directions` rend le même brief dans les 8 directions et
+MESURE leur écart (empreinte d'images) : deux directions trop proches font échouer.
 
 ## Types de motion (choisis par l'utilisateur)
 
@@ -62,10 +116,14 @@ commercial).
 
 ## Rendu 3D, clips et Lottie
 
-- three.js (r180) empaqueté à la volée par esbuild et embarqué seulement si la
-  vidéo contient une scène 3D ; WebGL logiciel (SwiftShader) : pas de GPU requis,
-  mais le rendu d'une scène 3D est plus lent (~90 ms par image en 720p).
-- lottie-web embarqué seulement si la vidéo contient une animation Lottie.
+- 3D : addon three.js + React Three Fiber + drei + postprocessing, embarqué
+  seulement si la vidéo contient une scène 3D ; WebGL logiciel (SwiftShader) :
+  pas de GPU requis, mais une scène 3D est plus lente (~90 ms par image en 720p).
+- Lottie (addon lottie-web light, sans expressions) seulement si la vidéo en
+  contient une ; `.lottie` est décompressé côté serveur. Rive (`.riv`) importable.
+- GSAP, anime.js, flubber : addons chargés seulement si le kit les exige
+  (animation du logo, fond) ; techniques et transitions restent écrites en
+  fonctions du temps dans le moteur.
 - Les clips sont positionnés image par image (`currentTime` + `seeked`). Les
   onglets de rendu ont l'émulation de focus activée : sinon Chromium suspend le
   décodage vidéo des onglets « en arrière-plan ».
@@ -119,6 +177,7 @@ npm run check:video            # tout, avec 4 rendus MP4 (~2 min)
 npm run check:video -- --fast  # sans rendu
 npm run check:video -- --all   # rend tous les cas
 npm run check:video -- --online  # + Openverse et ccMixter réels
+npm run check:video:directions # même brief, 8 directions, diversité mesurée (~6 min)
 npm run check:video:types      # 8 exemples, un par type, vraies musiques, vrais effets, Pexels (~15 min)
 npm run check:video:types -- --veo  # + un clip généré par Gemini Veo (payant)
 ```

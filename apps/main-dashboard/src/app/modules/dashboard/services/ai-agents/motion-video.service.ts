@@ -1,6 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, shareReplay } from 'rxjs';
+import { Observable, from, shareReplay, switchMap } from 'rxjs';
+import { SseClient } from 'ngx-sse-client';
+import { TokenService } from '../../../../shared/services/token.service';
 import { environment } from '../../../../../environments/environment';
 import {
   MotionStyle,
@@ -13,12 +15,15 @@ import {
   VideoScope,
   VideoMediaAsset,
   VideoType,
+  VideoStreamEvent,
 } from '../../models/motion-video.model';
 
 /** Vidéos de promotion en motion design (module Communication). */
 @Injectable({ providedIn: 'root' })
 export class MotionVideoService {
   private readonly http = inject(HttpClient);
+  private readonly sse = inject(SseClient);
+  private readonly tokenService = inject(TokenService);
   private readonly apiUrl = `${environment.services.api.url}/project/communication`;
   private options$: Observable<VideoOptions> | null = null;
 
@@ -42,6 +47,56 @@ export class MotionVideoService {
     return this.http.post<MotionVideo>(`${this.apiUrl}/${projectId}/videos`, input);
   }
 
+  /**
+   * Création en flux : chaque étape réelle arrive dès qu'elle a lieu.
+   *
+   * `keepAlive: false` est ESSENTIEL : une reconnexion rejouerait le POST, donc
+   * créerait (et facturerait) une seconde vidéo.
+   */
+  createStream(projectId: string, input: { brief: VideoBrief; scope: VideoScope; type: VideoType }): Observable<VideoStreamEvent> {
+    return from(this.tokenService.getTokenAsync()).pipe(
+      switchMap(
+        (token: string | null) =>
+          new Observable<VideoStreamEvent>((observer) => {
+            const sub = this.sse
+              .stream(
+                `${this.apiUrl}/${projectId}/videos/stream`,
+                { keepAlive: false, responseType: 'event' },
+                {
+                  body: input,
+                  headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                },
+                'POST',
+              )
+              .subscribe({
+                next: (event: Event) => {
+                  if (event.type === 'error') {
+                    // Refus avant le flux (crédits insuffisants, champ manquant) :
+                    // la réponse HTTP d'erreur est portée par l'ErrorEvent.
+                    const http = (event as ErrorEvent).error as { status?: number; error?: unknown } | undefined;
+                    const body = typeof http?.error === 'string' ? safeJson(http.error) : (http?.error as any);
+                    observer.next({ type: 'error', error: body?.error || 'video_failed', status: http?.status, cost: body?.cost, balance: body?.balance });
+                    observer.complete();
+                    return;
+                  }
+                  if (event.type !== 'message') return;
+                  const data = (event as MessageEvent).data;
+                  if (typeof data !== 'string' || !data) return;
+                  const payload = safeJson(data) as VideoStreamEvent | null;
+                  if (!payload) return;
+                  observer.next(payload);
+                  if (payload.type === 'complete' || payload.type === 'error') observer.complete();
+                },
+                // L'erreur a déjà été traduite en événement ci-dessus.
+                error: () => observer.complete(),
+                complete: () => observer.complete(),
+              });
+            return () => sub.unsubscribe();
+          }),
+      ),
+    );
+  }
+
   update(
     projectId: string,
     videoId: string,
@@ -52,6 +107,7 @@ export class MotionVideoService {
       musicTrackId?: string;
       scope?: Partial<VideoScope>;
       sfx?: boolean;
+      direction?: string;
     },
   ): Observable<MotionVideo> {
     return this.http.patch<MotionVideo>(`${this.apiUrl}/${projectId}/videos/${videoId}`, patch);
@@ -87,5 +143,13 @@ export class MotionVideoService {
     const form = new FormData();
     files.slice(0, 6).forEach((file) => form.append('photos', file));
     return this.http.post<{ urls: string[] }>(`${this.apiUrl}/${projectId}/videos/photos`, form);
+  }
+}
+
+function safeJson(text: string): any {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
   }
 }

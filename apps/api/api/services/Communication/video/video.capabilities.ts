@@ -1,0 +1,591 @@
+/**
+ * LE GRAPHE DE CAPACITÉS — ce que la vidéo PEUT utiliser, et quand.
+ *
+ * Chaque nœud est une chose disponible dans l'environnement : une bibliothèque
+ * installée, un addon du moteur, une animation de logo, un fond, une
+ * annotation, une bibliothèque d'icônes, un effet 3D, une technique de texte,
+ * une transition. Les arêtes disent ce qu'un nœud EXIGE (`requires` : un autre
+ * nœud, donc un paquet à charger), ce qu'il EXCLUT (`conflicts`) et ce à quoi il
+ * CONVIENT (`suits` : directions de motion, types de vidéo, objectifs,
+ * directions artistiques de la marque, secteurs).
+ *
+ * Le ROUTEUR (`resolveKit`) parcourt le graphe avec le contexte du projet —
+ * type, objectif, direction de motion, direction artistique, charte (logo
+ * vectoriel analysé, symbole), médias disponibles, format, qualité, durée,
+ * secteur, vidéos précédentes — et rend :
+ *   - les choix du kit (fond, annotation, animation de logo, icônes, ressort, effets 3D) ;
+ *   - les addons à charger dans la page (rien d'autre n'est embarqué) ;
+ *   - le vocabulaire court que le modèle de copie peut employer (concepts d'icônes) ;
+ *   - une trace lisible de chaque décision (pourquoi ce nœud, pourquoi pas les autres).
+ *
+ * Le routeur est déterministe (graine de la vidéo) et n'appelle aucun modèle.
+ * Le modèle ne reçoit que le vocabulaire : il ne choisit jamais une bibliothèque.
+ *
+ * Doc générée depuis ce fichier : `npm run docs:video-graph` → docs/VIDEO_CAPABILITIES.md.
+ */
+import { KitDecision, VideoFormat, VideoKit, VideoObjective, VideoQuality, VideoType } from '../../../models/motionVideo.model';
+import type { AddonId } from './video.engine';
+import { ICON_CONCEPT_IDS, ICON_CONCEPTS, IconSetId, resolveConcept } from './video.icons';
+import { LogoSvgInfo } from './video.logo';
+import { DIRECTION_IDS, DirectionId, DIRECTIONS } from './video.direction';
+import { rng } from './video.music';
+
+// ─── Nœuds ──────────────────────────────────────────────────────────────────
+
+export type CapKind = 'library' | 'addon' | 'logo' | 'background' | 'annotate' | 'icons' | 'easing' | 'postfx' | 'media' | 'technique' | 'transition' | 'direction';
+
+/** Conditions déclaratives (lisibles dans la doc, évaluées par `meets`). */
+export interface CapWhen {
+  /** Un logo vectoriel exploitable. */
+  logoSvg?: boolean;
+  logoMinShapes?: number;
+  logoMaxShapes?: number;
+  /** Pas d'image matricielle dans le SVG. */
+  logoNoRaster?: boolean;
+  /** Pas de dégradé (la morphose garde les aplats). */
+  logoNoPaint?: boolean;
+  /** Le symbole de la marque en image (assetUrls.icon). */
+  logoIcon?: boolean;
+  /** Qualité minimale du rendu. */
+  minQuality?: VideoQuality;
+  /** Au moins une scène 3D dans le storyboard. */
+  scene3d?: boolean;
+  /** Scènes du storyboard qui doivent exister (une au moins). */
+  scenes?: string[];
+  /** Médias importés requis. */
+  media?: 'model3d' | 'lottie' | 'rive' | 'images' | 'video';
+  /** Formats où le nœud est lisible. */
+  formats?: VideoFormat[];
+  /** Le type de vidéo doit le demander (ex. logo extrudé : type « logo »). */
+  types?: VideoType[];
+}
+
+export type Determinism = 'pure' | 'seek' | 'clock-pinned' | 'static';
+
+export interface CapNode {
+  id: string;
+  kind: CapKind;
+  label: string;
+  summary: string;
+  /** Paquets npm qui l'implémentent. */
+  packages?: string[];
+  /** Le paquet de moteur à charger. */
+  addon?: AddonId;
+  /** Arêtes « exige ». */
+  requires?: string[];
+  /** Arêtes « exclut ». */
+  conflicts?: string[];
+  when?: CapWhen;
+  /** Affinités (poids ajoutés au score). */
+  suits?: {
+    directions?: Partial<Record<DirectionId, number>>;
+    types?: Partial<Record<VideoType, number>>;
+    objectives?: Partial<Record<VideoObjective, number>>;
+    /** styleId de la direction artistique de la marque. */
+    arts?: Record<string, number>;
+    /** Concepts de secteur (détectés dans le brief et le projet). */
+    sectors?: Record<string, number>;
+  };
+  /** Coût de rendu : 0 négligeable → 3 lourd (SwiftShader). */
+  cost: 0 | 1 | 2 | 3;
+  /** Comment la bibliothèque est rendue image par image. */
+  determinism: Determinism;
+  /** Où vit l'implémentation. */
+  impl?: string;
+  /** Le modèle de copie peut-il le choisir (via un vocabulaire) ? */
+  llm?: boolean;
+}
+
+const D = (o: Partial<Record<DirectionId, number>>) => o;
+
+/** Bibliothèques installées (apps/api/package.json) : nœuds de documentation et cibles des arêtes. */
+const LIBRARIES: CapNode[] = [
+  { id: 'lib:react', kind: 'library', label: 'React 19 + ReactDOM', summary: 'Le moteur entier : une image = un rendu synchrone (flushSync) de <Video t={t}/>.', packages: ['react', 'react-dom'], cost: 0, determinism: 'pure', impl: 'video-engine/src/runtime.ts' },
+  { id: 'lib:tailwind', kind: 'library', label: 'Tailwind CSS v4', summary: 'Utilitaires compilés au paquet ; palette par défaut retirée, seules les couleurs de la charte existent.', packages: ['tailwindcss', 'clsx', 'tailwind-merge'], cost: 0, determinism: 'static', impl: 'video-engine/src/tailwind.css' },
+  { id: 'lib:motion', kind: 'library', label: 'Motion (ex-Framer Motion)', summary: 'Ressorts physiques et interpolation par images clés, fonctions pures du temps (pas animate()).', packages: ['motion'], cost: 0, determinism: 'pure', impl: 'video-engine/src/time.ts' },
+  { id: 'lib:gsap', kind: 'library', label: 'GSAP 3 + DrawSVG, MorphSVG, MotionPath, CustomEase', summary: 'Timelines en pause posées par seek(t) ; horloge endormie.', packages: ['gsap', '@gsap/react'], addon: 'gsap', cost: 1, determinism: 'seek', impl: 'video-engine/src/addons/gsap.ts' },
+  { id: 'lib:anime', kind: 'library', label: 'anime.js v4', summary: 'Timelines autoplay:false posées par seek(ms) ; stagger en grille.', packages: ['animejs'], addon: 'anime', cost: 1, determinism: 'seek', impl: 'video-engine/src/addons/anime.ts' },
+  { id: 'lib:flubber', kind: 'library', label: 'flubber', summary: 'Morphose de formes SVG (1→1, 1→N, cercle→tracé), fonction pure.', packages: ['flubber'], addon: 'flubber', cost: 1, determinism: 'pure', impl: 'video-engine/src/addons/flubber.ts' },
+  { id: 'lib:three', kind: 'library', label: 'three.js + React Three Fiber v9 + drei + postprocessing', summary: 'Racine R3F frameloop "never", advance(t) par image, horloge posée sur t, lumière Lightformer sans fichier.', packages: ['three', '@react-three/fiber', '@react-three/drei', '@react-three/postprocessing', 'postprocessing'], addon: 'three', cost: 3, determinism: 'clock-pinned', impl: 'video-engine/src/addons/three.tsx' },
+  { id: 'lib:lottie', kind: 'library', label: 'lottie-web (light)', summary: 'Rendu SVG sans moteur d’expressions (aucun code d’un fichier importé ne s’exécute) ; goToAndStop(trame).', packages: ['lottie-web', 'jszip'], addon: 'lottie', cost: 1, determinism: 'seek', impl: 'video-engine/src/addons/lottie.ts' },
+  { id: 'lib:rive', kind: 'library', label: 'Rive (canvas)', summary: 'Fichiers .riv importés ; WebAssembly embarqué ; scrub(animation, t).', packages: ['@rive-app/canvas'], addon: 'rive', cost: 2, determinism: 'seek', impl: 'video-engine/src/addons/rive.ts' },
+  { id: 'lib:lucide', kind: 'library', label: 'Lucide', summary: '~2 100 icônes au trait ; SVG lus côté serveur, jamais embarqués en bloc.', packages: ['lucide-static'], cost: 0, determinism: 'static', impl: 'api/services/Communication/video/video.icons.ts' },
+  { id: 'lib:tabler', kind: 'library', label: 'Tabler Icons', summary: '~5 100 icônes au trait géométrique.', packages: ['@tabler/icons'], cost: 0, determinism: 'static', impl: 'api/services/Communication/video/video.icons.ts' },
+  { id: 'lib:phosphor', kind: 'library', label: 'Phosphor Icons', summary: '~1 500 icônes × 6 graisses (thin, light, regular, bold, fill, duotone).', packages: ['@phosphor-icons/core'], cost: 0, determinism: 'static', impl: 'api/services/Communication/video/video.icons.ts' },
+  { id: 'lib:heroicons', kind: 'library', label: 'Heroicons', summary: '~320 icônes pleines et denses.', packages: ['heroicons'], cost: 0, determinism: 'static', impl: 'api/services/Communication/video/video.icons.ts' },
+];
+
+const ADDONS: CapNode[] = (['three', 'gsap', 'anime', 'flubber', 'lottie', 'rive'] as AddonId[]).map((id) => ({
+  id: `addon:${id}`,
+  kind: 'addon',
+  label: `addon-${id}.js`,
+  summary: `Paquet du moteur chargé seulement si un nœud retenu l'exige.`,
+  addon: id,
+  requires: [`lib:${id}`],
+  cost: id === 'three' ? 3 : id === 'rive' ? 2 : 1,
+  determinism: id === 'three' ? 'clock-pinned' : id === 'flubber' ? 'pure' : 'seek',
+  impl: `public/video-engine/addon-${id}.js`,
+}));
+
+const LOGO: CapNode[] = [
+  {
+    id: 'logo:classic',
+    kind: 'logo',
+    label: 'Signature de la direction',
+    summary: 'Fin propre à la direction (mot-symbole géant, filet suisse, carte de papier, éclat…), logo en image.',
+    cost: 0,
+    determinism: 'pure',
+    suits: { directions: D({ brutal: 1.5, collage: 1.5, kinetic: 1, drenched: 1 }) },
+    impl: 'video-engine/src/scenes.tsx#Logo',
+  },
+  {
+    id: 'logo:draw',
+    kind: 'logo',
+    label: 'Tracé puis remplissage',
+    summary: 'Les contours du logo vectoriel se tracent, le remplissage monte ensuite.',
+    when: { logoSvg: true, logoMinShapes: 1, logoMaxShapes: 40, logoNoRaster: true },
+    cost: 0,
+    determinism: 'pure',
+    suits: { directions: D({ precision: 2, editorial: 1.5, swiss: 1, cinematic: 1 }), types: { logo: 1.5 }, arts: { minimalism: 1, swiss: 1, handwritten: 1.5 } },
+    impl: 'video-engine/src/kit/LogoMotion.tsx#drawPlan',
+  },
+  {
+    id: 'logo:trace',
+    kind: 'logo',
+    label: 'Plume',
+    summary: 'Une plume parcourt les contours (GSAP DrawSVG + CustomEase « main »), forme après forme.',
+    requires: ['addon:gsap'],
+    when: { logoSvg: true, logoMinShapes: 1, logoMaxShapes: 12, logoNoRaster: true },
+    cost: 1,
+    determinism: 'seek',
+    suits: { directions: D({ editorial: 2, collage: 1.5, precision: 1 }), arts: { handwritten: 2, bohemian: 1.5, retro: 1 } },
+    impl: 'video-engine/src/kit/LogoMotion.tsx#tracePlan',
+  },
+  {
+    id: 'logo:morph',
+    kind: 'logo',
+    label: 'Point → logo',
+    summary: 'Un point grossit puis se divise et prend la forme exacte de chaque partie du logo (flubber).',
+    requires: ['addon:flubber'],
+    when: { logoSvg: true, logoMinShapes: 1, logoMaxShapes: 16, logoNoRaster: true, logoNoPaint: true },
+    cost: 1,
+    determinism: 'pure',
+    suits: { directions: D({ kinetic: 2, drenched: 1.5, precision: 1, cinematic: 0.5 }), types: { logo: 1.5, illustrated: 1 }, arts: { futuristic: 1.5, 'pop-art': 1, clay: 1 } },
+    impl: 'video-engine/src/kit/LogoMotion.tsx#morphPlan',
+  },
+  {
+    id: 'logo:assemble',
+    kind: 'logo',
+    label: 'Assemblage',
+    summary: 'Les formes arrivent de directions différentes et s’emboîtent (ressort si la direction rebondit).',
+    when: { logoSvg: true, logoMinShapes: 2, logoMaxShapes: 48 },
+    cost: 0,
+    determinism: 'pure',
+    suits: { directions: D({ collage: 2, kinetic: 1.5, brutal: 1 }), arts: { maximalism: 1, 'collage-art': 2, y2k: 1 } },
+    impl: 'video-engine/src/kit/LogoMotion.tsx#assemblePlan',
+  },
+  {
+    id: 'logo:wipe',
+    kind: 'logo',
+    label: 'Balayage oblique',
+    summary: 'Une diagonale révèle le logo entier ; accepte tout SVG (texte, image, dégradé).',
+    when: { logoSvg: true },
+    cost: 0,
+    determinism: 'pure',
+    suits: { directions: D({ swiss: 2, brutal: 1.5, cinematic: 1, drenched: 1 }) },
+    impl: 'video-engine/src/kit/LogoMotion.tsx#wipePlan',
+  },
+  {
+    id: 'logo:split',
+    kind: 'logo',
+    label: 'Symbole puis nom',
+    summary: 'Le symbole se pose, le nom de la marque glisse de derrière lui.',
+    when: { logoIcon: true },
+    cost: 0,
+    determinism: 'pure',
+    suits: { directions: D({ precision: 1, swiss: 1, editorial: 1, cinematic: 1 }), objectives: { opening: 1, announce: 0.5 } },
+    impl: 'video-engine/src/scenes.tsx#Logo',
+  },
+  {
+    id: 'logo:extrude',
+    kind: 'logo',
+    label: 'Logo extrudé en 3D',
+    summary: 'Le symbole SVG extrudé, lumière de studio et reflet qui balaie la tranche (R3F).',
+    requires: ['addon:three'],
+    when: { logoSvg: true, logoNoRaster: true, types: ['logo'] },
+    cost: 3,
+    determinism: 'clock-pinned',
+    suits: { types: { logo: 3 }, directions: D({ precision: 1, cinematic: 1 }) },
+    impl: 'video-engine/src/addons/three.tsx#LogoRig',
+  },
+];
+
+const BACKGROUNDS: CapNode[] = [
+  { id: 'bg:none', kind: 'background', label: 'Aucun fond', summary: 'La surface seule : le choix par défaut des directions sobres (pas de décor par défaut).', cost: 0, determinism: 'static', suits: { directions: D({ precision: 2, cinematic: 2, editorial: 1.5, swiss: 1, drenched: 1, brutal: 1, kinetic: 0.5, collage: 0.5 }) } },
+  { id: 'bg:dot-grid', kind: 'background', label: 'Trame de points', summary: 'Points réguliers révélés depuis le coin libre.', cost: 0, determinism: 'pure', suits: { directions: D({ swiss: 2, precision: 1.5 }), arts: { minimalism: 1, swiss: 1.5, futuristic: 1 }, sectors: { code: 1, business: 1, chart: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#DotGrid' },
+  { id: 'bg:halftone', kind: 'background', label: 'Demi-teinte', summary: 'Trame d’imprimerie qui fleurit dans un coin, dérive lente.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 1.5, collage: 2 }), arts: { retro: 2, 'pop-art': 2, 'collage-art': 1 }, sectors: { fashion: 1, music: 1, book: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#Halftone' },
+  { id: 'bg:shape-field', kind: 'background', label: 'Formes de la marque', summary: 'Cercles, carrés, anneaux aux couleurs de la charte, groupés du côté libre.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 2, collage: 1.5 }), objectives: { promotion: 1, event: 1, opening: 1 }, arts: { maximalism: 1.5, y2k: 1.5, clay: 1, 'pop-art': 1 }, sectors: { family: 1, food: 0.5, smile: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#ShapeField' },
+  { id: 'bg:stagger-grid', kind: 'background', label: 'Vague en grille', summary: 'Grille de points qui s’allume en vague depuis le centre (anime.js stagger grid).', requires: ['addon:anime'], cost: 1, determinism: 'seek', suits: { directions: D({ kinetic: 1.5, drenched: 1.5, precision: 0.5 }), arts: { futuristic: 2, cyberpunk: 1.5 }, sectors: { code: 1.5, internet: 1, rocket: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#StaggerGrid' },
+  { id: 'bg:marquee', kind: 'background', label: 'Bandeau du nom', summary: 'Le nom de la marque en très grand, au trait, qui défile en fond.', cost: 0, determinism: 'pure', suits: { directions: D({ brutal: 2, kinetic: 1 }), objectives: { promotion: 1, event: 1 }, arts: { graffiti: 1.5, maximalism: 1, cyberpunk: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#Marquee' },
+  { id: 'bg:spotlight', kind: 'background', label: 'Halo', summary: 'Un halo de la couleur d’accent qui glisse lentement.', cost: 0, determinism: 'pure', suits: { directions: D({ cinematic: 1, drenched: 2 }), arts: { aurora: 2, glassmorphism: 1 }, sectors: { beauty: 1.5, drink: 0.5 } }, impl: 'video-engine/src/kit/Backdrop.tsx#Spotlight' },
+  { id: 'bg:ticks', kind: 'background', label: 'Graduations', summary: 'Graduations de règle sur deux bords : mesure, exactitude.', cost: 0, determinism: 'pure', suits: { directions: D({ precision: 2, swiss: 1 }), arts: { minimalism: 1, futuristic: 1 }, sectors: { tools: 1.5, chart: 1, health: 0.5, business: 0.5 } }, impl: 'video-engine/src/kit/Backdrop.tsx#Ticks' },
+];
+
+const ANNOTATIONS: CapNode[] = [
+  { id: 'annotate:none', kind: 'annotate', label: 'Aucune annotation', summary: 'Le mot mis en valeur change seulement de couleur.', cost: 0, determinism: 'static', suits: { directions: D({ precision: 2, cinematic: 2, swiss: 1.5, brutal: 1, drenched: 1, editorial: 0.5 }) } },
+  { id: 'annotate:marker', kind: 'annotate', label: 'Surligneur', summary: 'Un trait de surligneur glisse derrière le mot.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 1.5, collage: 1, editorial: 1 }), objectives: { promotion: 1 }, arts: { 'pop-art': 1, y2k: 1 } }, impl: 'video-engine/src/kit/Em.tsx' },
+  { id: 'annotate:underline', kind: 'annotate', label: 'Soulignement à la main', summary: 'Un trait de feutre souligne le mot.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 2, collage: 1 }), arts: { handwritten: 2, bohemian: 1 } }, impl: 'video-engine/src/kit/Em.tsx' },
+  { id: 'annotate:circle', kind: 'annotate', label: 'Cercle à la main', summary: 'Le mot est entouré d’un trait de feutre.', cost: 0, determinism: 'pure', suits: { directions: D({ collage: 2, kinetic: 1 }), objectives: { promotion: 1, event: 0.5 }, arts: { handwritten: 1.5, 'collage-art': 1.5, retro: 1 } }, impl: 'video-engine/src/kit/Em.tsx' },
+];
+
+const ICON_SETS: CapNode[] = [
+  { id: 'icons:lucide', kind: 'icons', label: 'Lucide (trait 1,6)', summary: 'Trait régulier et net.', requires: ['lib:lucide'], cost: 0, determinism: 'static', suits: { directions: D({ precision: 3, editorial: 0.5 }), arts: { minimalism: 1 } } },
+  { id: 'icons:tabler', kind: 'icons', label: 'Tabler (trait 1,75)', summary: 'Trait géométrique.', requires: ['lib:tabler'], cost: 0, determinism: 'static', suits: { directions: D({ swiss: 3, precision: 1 }), arts: { swiss: 1.5 } } },
+  { id: 'icons:phosphor-thin', kind: 'icons', label: 'Phosphor Thin', summary: 'Trait très fin, élégant.', requires: ['lib:phosphor'], cost: 0, determinism: 'static', suits: { directions: D({ cinematic: 3 }), arts: { victorian: 1, editorial: 1 } } },
+  { id: 'icons:phosphor-light', kind: 'icons', label: 'Phosphor Light', summary: 'Trait léger, éditorial.', requires: ['lib:phosphor'], cost: 0, determinism: 'static', suits: { directions: D({ editorial: 3, cinematic: 0.5 }) } },
+  { id: 'icons:phosphor-bold', kind: 'icons', label: 'Phosphor Bold', summary: 'Trait épais, affirmé.', requires: ['lib:phosphor'], cost: 0, determinism: 'static', suits: { directions: D({ brutal: 3 }), arts: { graffiti: 1 } } },
+  { id: 'icons:phosphor-fill', kind: 'icons', label: 'Phosphor Fill', summary: 'Pictogrammes pleins.', requires: ['lib:phosphor'], cost: 0, determinism: 'static', suits: { directions: D({ kinetic: 3, drenched: 1 }), arts: { 'pop-art': 1 } } },
+  { id: 'icons:phosphor-duotone', kind: 'icons', label: 'Phosphor Duotone', summary: 'Deux tons, façon découpage.', requires: ['lib:phosphor'], cost: 0, determinism: 'static', suits: { directions: D({ collage: 3 }), arts: { 'collage-art': 1, clay: 1 } } },
+  { id: 'icons:heroicons-solid', kind: 'icons', label: 'Heroicons Solid', summary: 'Plein et dense, lisible sur aplat.', requires: ['lib:heroicons'], cost: 0, determinism: 'static', suits: { directions: D({ drenched: 3 }) } },
+];
+
+const EXTRA: CapNode[] = [
+  { id: 'easing:spring', kind: 'easing', label: 'Ressort physique', summary: 'Rebond réel (motion spring) au lieu d’une courbe : réservé aux directions qui rebondissent.', requires: ['lib:motion'], cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 3, collage: 3 }) } },
+  { id: 'postfx:bloom', kind: 'postfx', label: 'Bloom 3D', summary: 'Halo léger sur les reflets de la scène 3D (premium seulement, coût SwiftShader).', requires: ['addon:three'], when: { scene3d: true, minQuality: 'premium' }, cost: 2, determinism: 'clock-pinned', suits: { directions: D({ cinematic: 2, precision: 1.5, drenched: 1 }) }, impl: 'video-engine/src/addons/three.tsx#Stage' },
+  { id: 'postfx:smaa', kind: 'postfx', label: 'Anticrénelage SMAA', summary: 'Bords nets de la 3D (posé avec tout effet 3D).', requires: ['addon:three'], when: { scene3d: true, minQuality: 'hd' }, cost: 1, determinism: 'clock-pinned', impl: 'video-engine/src/addons/three.tsx#Stage' },
+  { id: 'media:lottie', kind: 'media', label: 'Animation Lottie', summary: 'Lottie intégrée (aux couleurs de la marque) ou importée (.json, .lottie).', requires: ['addon:lottie'], when: { scenes: ['lottie'] }, cost: 1, determinism: 'seek', impl: 'video-engine/src/media.tsx#LottieBox' },
+  { id: 'media:rive', kind: 'media', label: 'Animation Rive', summary: 'Fichier .riv importé, joué image par image.', requires: ['addon:rive'], when: { media: 'rive' }, cost: 2, determinism: 'seek', impl: 'video-engine/src/media.tsx#RiveBox' },
+  { id: 'media:model3d', kind: 'media', label: 'Modèle 3D importé', summary: 'GLB tourné en studio, ombre de contact (R3F + drei).', requires: ['addon:three'], when: { media: 'model3d' }, cost: 3, determinism: 'clock-pinned', impl: 'video-engine/src/addons/three.tsx#ModelRig' },
+  { id: 'media:cards3d', kind: 'media', label: 'Photos en cartes 3D', summary: 'Photos posées en arc, caméra qui tourne (R3F + drei RoundedBox).', requires: ['addon:three'], when: { scene3d: true, media: 'images' }, cost: 3, determinism: 'clock-pinned', impl: 'video-engine/src/addons/three.tsx#CardsRig' },
+];
+
+/** Techniques de texte et transitions : générées depuis les directions (aucune double saisie). */
+function directionNodes(): CapNode[] {
+  const nodes: CapNode[] = [];
+  const techniques = new Map<string, Partial<Record<DirectionId, number>>>();
+  const transitions = new Map<string, Partial<Record<DirectionId, number>>>();
+  for (const id of DIRECTION_IDS) {
+    const d = DIRECTIONS[id];
+    nodes.push({ id: `direction:${id}`, kind: 'direction', label: id, summary: `Direction de motion « ${id} » (couleur ${d.color}, décor ${d.decor}).`, cost: 0, determinism: 'pure', impl: 'api/services/Communication/video/video.direction.ts' });
+    for (const t of [...d.headline, ...d.support]) techniques.set(t, { ...(techniques.get(t) || {}), [id]: 1 });
+    for (const t of d.transitions) transitions.set(t, { ...(transitions.get(t) || {}), [id]: 1 });
+  }
+  for (const [t, dirs] of techniques) nodes.push({ id: `technique:${t}`, kind: 'technique', label: t, summary: 'Technique d’entrée de texte.', cost: 0, determinism: 'pure', suits: { directions: dirs }, impl: 'video-engine/src/text.tsx' });
+  for (const [t, dirs] of transitions) nodes.push({ id: `transition:${t}`, kind: 'transition', label: t, summary: 'Transition entre scènes.', cost: 0, determinism: 'pure', suits: { directions: dirs }, impl: 'video-engine/src/transitions.tsx' });
+  return nodes;
+}
+
+export const CAPABILITIES: CapNode[] = [...LIBRARIES, ...ADDONS, ...LOGO, ...BACKGROUNDS, ...ANNOTATIONS, ...ICON_SETS, ...EXTRA, ...directionNodes()];
+export const CAP_BY_ID = new Map(CAPABILITIES.map((n) => [n.id, n]));
+
+/** Bibliothèques évaluées et écartées, avec la raison (documentées dans VIDEO_ENGINE.md). */
+export const EXCLUDED_LIBRARIES: { name: string; reason: string }[] = [
+  { name: 'react-spring / @react-spring/three', reason: 'animation physique en temps réel (horloge interne) : une image ne se recalcule pas à un instant t donné.' },
+  { name: 'motion animate() / <motion.div>', reason: 'lecture en temps réel ; seules les fonctions pures de motion (spring, interpolate) sont utilisées.' },
+  { name: '@formkit/auto-animate', reason: 'anime les changements du DOM au fil du temps : sans objet pour un rendu image par image.' },
+  { name: 'Remotion', reason: 'licence commerciale pour une entreprise ; le moteur maison couvre le besoin avec Puppeteer + ffmpeg.' },
+  { name: 'Theatre.js', reason: 'éditeur de timelines pour un humain ; trop lourd pour un rendu piloté par données.' },
+  { name: '@lottiefiles/dotlottie-web', reason: 'les .lottie sont décompressés côté serveur (jszip) et joués par lottie-web, sans second moteur WebAssembly.' },
+  { name: 'Vivus, Rough Notation, mo.js', reason: 'tracé, annotations et éclats couverts par le kit (LogoMotion, Em, Backdrop) en fonctions du temps ; mo.js n’est plus maintenu.' },
+  { name: 'Magic UI, React Bits, Aceternity, Motion Primitives', reason: 'collections à copier-coller pensées pour l’interaction (hover, scroll) ; leurs meilleures idées sont réécrites dans le kit en fonctions du temps, aux couleurs de la charte.' },
+  { name: 'drei <Float>, <Sparkles>, <Text>, <Environment preset>', reason: 'Float et Sparkles lisent l’horloge (déterministes ici, mais remplacés par la prop t) ; Text et les presets d’Environment téléchargent des fichiers pendant le rendu.' },
+  { name: 'lucide-react, @phosphor-icons/react', reason: 'tout le jeu d’icônes serait embarqué : le serveur n’injecte que les quelques SVG utilisés.' },
+];
+
+// ─── Contexte et routeur ────────────────────────────────────────────────────
+
+export interface KitContext {
+  type: VideoType;
+  objective: VideoObjective;
+  direction: DirectionId;
+  artStyleId?: string;
+  quality: VideoQuality;
+  format: VideoFormat;
+  durationSec: number;
+  logo: LogoSvgInfo | null;
+  /** Symbole de la marque en image. */
+  hasLogoIcon: boolean;
+  media: { images: number; videos: number; models: number; lotties: number; rive: number };
+  /** Scènes du storyboard (clé, type de scène, médias). */
+  scenes: { key: string; sceneId: string; hasMedia: boolean; hasTitle: boolean; three?: boolean }[];
+  /** Texte du brief et du projet, pour détecter le secteur. */
+  text: string;
+  seed: number;
+  /** Kits des vidéos précédentes du projet (variété). */
+  recent?: VideoKit[];
+}
+
+export type { KitDecision, VideoKit };
+
+const QUALITY_RANK: Record<VideoQuality, number> = { standard: 0, hd: 1, premium: 2 };
+
+/** Concepts de secteur présents dans le texte du projet. */
+export function sectorsOf(text: string): string[] {
+  return ICON_CONCEPT_IDS.filter((c) => ICON_CONCEPTS[c].keywords.test(text));
+}
+
+/** Pourquoi un nœud n'est pas possible dans ce contexte (null s'il l'est). */
+export function unmet(node: CapNode, ctx: KitContext): string | null {
+  const w = node.when;
+  if (w) {
+    const l = ctx.logo;
+    if (w.logoSvg && !l) return 'pas de logo vectoriel';
+    if (l && w.logoMinShapes != null && l.shapes < w.logoMinShapes) return `logo : ${l.shapes} forme(s) < ${w.logoMinShapes}`;
+    if (l && w.logoMaxShapes != null && l.shapes > w.logoMaxShapes) return `logo : ${l.shapes} formes > ${w.logoMaxShapes}`;
+    if (l && w.logoNoRaster && l.images > 0) return 'logo avec image matricielle';
+    if (l && w.logoNoPaint && l.paints > 0) return 'logo en dégradé';
+    if (w.logoIcon && !ctx.hasLogoIcon) return 'pas de symbole en image';
+    if (w.minQuality && QUALITY_RANK[ctx.quality] < QUALITY_RANK[w.minQuality]) return `qualité ${ctx.quality} < ${w.minQuality}`;
+    if (w.scene3d && !ctx.scenes.some((s) => s.three)) return 'pas de scène 3D';
+    if (w.scenes && !ctx.scenes.some((s) => w.scenes!.includes(s.sceneId))) return `aucune scène ${w.scenes.join('/')}`;
+    if (w.media === 'model3d' && !ctx.media.models) return 'aucun modèle 3D';
+    if (w.media === 'lottie' && !ctx.media.lotties) return 'aucune Lottie';
+    if (w.media === 'rive' && !ctx.media.rive) return 'aucun fichier Rive';
+    if (w.media === 'images' && !ctx.media.images) return 'aucune image';
+    if (w.media === 'video' && !ctx.media.videos) return 'aucun clip';
+    if (w.formats && !w.formats.includes(ctx.format)) return `format ${ctx.format}`;
+    if (w.types && !w.types.includes(ctx.type)) return `type ${ctx.type}`;
+  }
+  for (const r of node.requires || []) {
+    const dep = CAP_BY_ID.get(r);
+    if (!dep) return `dépendance inconnue ${r}`;
+    const why = unmet(dep, ctx);
+    if (why) return `${r} : ${why}`;
+  }
+  return null;
+}
+
+/** Score d'affinité d'un nœud possible, avec ses raisons. */
+function score(node: CapNode, ctx: KitContext, sectors: string[]): { score: number; why: string[] } {
+  const s = node.suits || {};
+  const why: string[] = [];
+  let v = 1;
+  const add = (w: number | undefined, label: string) => {
+    if (!w) return;
+    v += w;
+    why.push(`${label} +${w}`);
+  };
+  add((s.directions?.[ctx.direction] || 0) * 1.5, `direction ${ctx.direction}`);
+  add(s.types?.[ctx.type], `type ${ctx.type}`);
+  add(s.objectives?.[ctx.objective], `objectif ${ctx.objective}`);
+  if (ctx.artStyleId) add(s.arts?.[ctx.artStyleId.toLowerCase()], `DA ${ctx.artStyleId}`);
+  for (const sec of sectors) add(s.sectors?.[sec], `secteur ${sec}`);
+  // Coût : une option lourde doit mériter sa place (rendu SwiftShader).
+  if (node.cost >= 2) {
+    v -= node.cost * 0.4;
+    why.push(`coût ${node.cost} −${(node.cost * 0.4).toFixed(1)}`);
+  }
+  return { score: v, why };
+}
+
+/** Choisit un nœud d'un genre : possibles → scorés → variété (vidéos récentes) → tirage parmi les meilleurs. */
+function choose(kind: CapKind, ctx: KitContext, sectors: string[], recentIds: string[], salt: number, filter?: (n: CapNode) => boolean): KitDecision {
+  const rejected: { id: string; reason: string }[] = [];
+  const pool: { node: CapNode; score: number; why: string[] }[] = [];
+  for (const node of CAPABILITIES) {
+    if (node.kind !== kind || (filter && !filter(node))) continue;
+    const reason = unmet(node, ctx);
+    if (reason) {
+      rejected.push({ id: node.id, reason });
+      continue;
+    }
+    const sc = score(node, ctx, sectors);
+    if (recentIds.includes(node.id) && !node.id.endsWith(':none')) {
+      sc.score -= 1.5;
+      sc.why.push('déjà vu récemment −1.5');
+    }
+    pool.push({ node, ...sc });
+  }
+  pool.sort((a, b) => b.score - a.score || a.node.id.localeCompare(b.node.id));
+  if (!pool.length) return { kind, chosen: '', score: 0, why: ['aucun nœud possible'], rejected };
+  // Tirage déterministe parmi les nœuds proches du meilleur (variété sans perdre la cohérence).
+  const best = pool[0].score;
+  const close = pool.filter((p) => p.score >= best - 0.75);
+  const pick = close[Math.floor(rng(ctx.seed ^ salt)() * close.length)];
+  for (const p of pool) {
+    if (p === pick) continue;
+    rejected.push({ id: p.node.id, reason: close.includes(p) ? `score ${p.score.toFixed(2)}, proche du meilleur : non tiré` : `score ${p.score.toFixed(2)} < ${(best - 0.75).toFixed(2)}` });
+  }
+  return { kind, chosen: pick.node.id, score: pick.score, why: pick.why, rejected };
+}
+
+const BACKDROP_SCENES = ['statement', 'stat', 'kinetic', 'wordswap', 'cta', 'quote', 'benefits', 'offer', 'hook'];
+const ANNOTATABLE = ['hook', 'statement', 'cta'];
+
+/** Le kit d'une vidéo : choix validés, addons, trace. */
+export function resolveKit(ctx: KitContext): VideoKit {
+  const sectors = sectorsOf(ctx.text);
+  const recent = (ctx.recent || []).slice(-2);
+  const recentIds = (k: (v: VideoKit) => string) => recent.map(k);
+  const trace: KitDecision[] = [];
+
+  const logo = choose('logo', ctx, sectors, recentIds((v) => `logo:${v.logo}`), 0x10a0);
+  const bg = choose('background', ctx, sectors, recentIds((v) => `bg:${v.background}`), 0xb6);
+  const ann = choose('annotate', ctx, sectors, recentIds((v) => `annotate:${v.annotate}`), 0xa7);
+  const icons = choose('icons', ctx, sectors, [], 0x1c);
+  trace.push(logo, bg, ann, icons);
+
+  // Ressort : seulement si la direction rebondit déjà.
+  const springNode = CAP_BY_ID.get('easing:spring')!;
+  const spring = (springNode.suits?.directions?.[ctx.direction] || 0) > 0 && DIRECTIONS[ctx.direction].overshoot ? { bounce: ctx.direction === 'kinetic' ? 0.42 : 0.3 } : undefined;
+  if (spring) trace.push({ kind: 'easing', chosen: 'easing:spring', score: 1, why: [`direction ${ctx.direction} à rebond`], rejected: [] });
+
+  // Effets 3D : SMAA dès la HD, bloom en premium si la direction l'appelle — et
+  // seulement s'il reste une scène 3D une fois le logo choisi (un logo tracé n'est pas en 3D).
+  const postfx: string[] = [];
+  const ctx3d: KitContext = { ...ctx, scenes: ctx.scenes.map((s) => ({ ...s, three: !!s.three && (s.sceneId !== 'logo' || logo.chosen === 'logo:extrude') })) };
+  for (const id of ['postfx:smaa', 'postfx:bloom']) {
+    const n = CAP_BY_ID.get(id)!;
+    const reason = unmet(n, ctx3d);
+    if (reason) continue;
+    if (id === 'postfx:bloom' && !(n.suits?.directions?.[ctx.direction] || 0)) continue;
+    postfx.push(id.slice('postfx:'.length));
+  }
+
+  // Fond : sur deux scènes de texte au plus, jamais consécutives.
+  const background = bg.chosen.slice('bg:'.length) || 'none';
+  const backdropScenes: string[] = [];
+  if (background !== 'none') {
+    const candidates = ctx.scenes.map((s, i) => ({ s, i })).filter(({ s }) => BACKDROP_SCENES.includes(s.sceneId) && !s.hasMedia);
+    const order = candidates.sort((a, b) => BACKDROP_SCENES.indexOf(a.s.sceneId) - BACKDROP_SCENES.indexOf(b.s.sceneId));
+    const taken: number[] = [];
+    for (const c of order) {
+      if (taken.length >= 2) break;
+      if (taken.some((i) => Math.abs(i - c.i) < 2)) continue;
+      taken.push(c.i);
+      backdropScenes.push(c.s.key);
+    }
+  }
+
+  // Annotation : une seule scène, la première qui a un titre annotable.
+  const annotate = ann.chosen.slice('annotate:'.length) || 'none';
+  const annotateScene = annotate !== 'none' ? ctx.scenes.find((s) => ANNOTATABLE.includes(s.sceneId) && s.hasTitle)?.key : undefined;
+
+  const kit: VideoKit = {
+    background: backdropScenes.length ? background : 'none',
+    backdropScenes,
+    annotate: annotateScene ? annotate : 'none',
+    annotateScene,
+    logo: logo.chosen.slice('logo:'.length) || 'classic',
+    iconSet: (icons.chosen.slice('icons:'.length) || 'lucide') as IconSetId,
+    icons: {},
+    spring,
+    postfx,
+    addons: [],
+    trace,
+  };
+  kit.addons = addonsForKit(kit);
+  return kit;
+}
+
+/** Les addons qu'exigent les choix du kit (le montage y ajoute ceux des médias réels). */
+export function addonsForKit(kit: Pick<VideoKit, 'logo' | 'background' | 'postfx'>): AddonId[] {
+  const ids = [`logo:${kit.logo}`, `bg:${kit.background}`, ...kit.postfx.map((p) => `postfx:${p}`)];
+  const out = new Set<AddonId>();
+  const walk = (id: string) => {
+    const n = CAP_BY_ID.get(id);
+    if (!n) return;
+    if (n.kind === 'addon' && n.addon) out.add(n.addon);
+    (n.requires || []).forEach(walk);
+  };
+  ids.forEach(walk);
+  return [...out];
+}
+
+/**
+ * Vocabulaire d'icônes pour le modèle : les concepts du secteur d'abord, puis
+ * les plus génériques ; 30 au plus (≈ 60 tokens).
+ */
+export function iconVocabulary(text: string, max = 30): string[] {
+  const generic = ['quality', 'fast', 'price', 'delivery', 'secure', 'support', 'time', 'place', 'payment', 'mobile', 'community', 'star', 'heart', 'gift', 'check', 'growth', 'idea', 'world'];
+  const list = [...new Set([...sectorsOf(text), ...generic, ...ICON_CONCEPT_IDS])];
+  return list.slice(0, max);
+}
+
+/**
+ * Carte de capacités compacte, pour un modèle plus capable qui composerait une
+ * scène sur mesure : ce qui est possible dans CE contexte, rien d'autre.
+ */
+export function capabilityCard(ctx: KitContext): string {
+  const lines: string[] = [];
+  const kinds: CapKind[] = ['logo', 'background', 'annotate', 'icons', 'postfx', 'media'];
+  for (const kind of kinds) {
+    const ok = CAPABILITIES.filter((n) => n.kind === kind && !unmet(n, ctx)).map((n) => n.id.split(':')[1]);
+    if (ok.length) lines.push(`${kind}: ${ok.join(', ')}`);
+  }
+  const d = DIRECTIONS[ctx.direction];
+  lines.push(`techniques: ${[...new Set([...d.headline, ...d.support])].join(', ')}`);
+  lines.push(`transitions: ${d.transitions.join(', ')}`);
+  lines.push(`colors: bg ink muted hl hl-ink hl-text hl-soft soft primary secondary accent (Tailwind: bg-*, text-*)`);
+  lines.push(`icons vocabulary: ${iconVocabulary(ctx.text, 30).join(', ')}`);
+  return lines.join('\n');
+}
+
+// ─── Icônes des scènes, retouches du kit ────────────────────────────────────
+
+/**
+ * Concepts d'icônes par scène. Avantages : un concept par élément, celui que le
+ * modèle a proposé (case `icons`) s'il est dans le vocabulaire, sinon le repli
+ * par mots-clés sur le texte de l'élément. Événement : date, heure, lieu.
+ * La case `icons` est retirée des textes (elle n'est pas affichée).
+ */
+export function assignIcons(scenes: { key: string; sceneId: string; slots: Record<string, string> }[]): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const sc of scenes) {
+    if (sc.sceneId === 'benefits') {
+      const proposed = (sc.slots.icons || '').split(/[,;/|\s]+/).filter(Boolean);
+      const used: string[] = [];
+      const items = ['b1', 'b2', 'b3'].map((k) => sc.slots[k]).filter(Boolean);
+      out[sc.key] = items.map((text, i) => {
+        const c = resolveConcept(proposed[i], text, used);
+        used.push(c);
+        return c;
+      });
+    } else if (sc.sceneId === 'event') out[sc.key] = ['calendar', 'time', 'place'];
+    delete sc.slots.icons;
+  }
+  return out;
+}
+
+export interface KitOverrides {
+  logo?: string;
+  background?: string;
+  annotate?: string;
+  iconSet?: string;
+}
+
+/**
+ * Retouche du kit (interface ou agent) : une valeur n'est acceptée que si son
+ * nœud existe et est possible dans ce contexte ; sinon elle est ignorée et la
+ * raison est rendue.
+ */
+export function applyKitOverrides(kit: VideoKit, overrides: KitOverrides, ctx: KitContext): { kit: VideoKit; refused: { field: string; reason: string }[] } {
+  const next: VideoKit = { ...kit, trace: [...kit.trace] };
+  const refused: { field: string; reason: string }[] = [];
+  const prefix: Record<keyof KitOverrides, string> = { logo: 'logo', background: 'bg', annotate: 'annotate', iconSet: 'icons' };
+  for (const field of Object.keys(prefix) as (keyof KitOverrides)[]) {
+    const value = overrides[field];
+    if (value === undefined) continue;
+    const node = CAP_BY_ID.get(`${prefix[field]}:${value}`);
+    if (!node) {
+      refused.push({ field, reason: 'inconnu' });
+      continue;
+    }
+    const why = unmet(node, ctx);
+    if (why) {
+      refused.push({ field, reason: why });
+      continue;
+    }
+    (next as any)[field] = value;
+    next.trace.push({ kind: node.kind, chosen: node.id, score: 0, why: ['choix explicite'], rejected: [] });
+  }
+  // Un fond choisi à la main a besoin de scènes où se poser.
+  if (overrides.background !== undefined && next.background !== 'none' && !next.backdropScenes.length) {
+    const fresh = resolveKit({ ...ctx, seed: ctx.seed });
+    next.backdropScenes = fresh.backdropScenes.length ? fresh.backdropScenes : ctx.scenes.filter((s) => BACKDROP_SCENES.includes(s.sceneId) && !s.hasMedia).slice(0, 2).map((s) => s.key);
+  }
+  if (overrides.background === 'none') next.backdropScenes = [];
+  if (overrides.annotate !== undefined && next.annotate !== 'none' && !next.annotateScene) next.annotateScene = ctx.scenes.find((s) => ANNOTATABLE.includes(s.sceneId) && s.hasTitle)?.key;
+  next.addons = addonsForKit(next);
+  return { kit: next, refused };
+}

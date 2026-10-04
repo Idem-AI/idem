@@ -153,14 +153,21 @@ function servePhotos(files: Record<string, string>): Promise<{ base: string; clo
 // ─── Mise en page : chaque texte tient dans son cadre, à chaque scène ───────
 
 async function layoutAudit(html: string, spec: { width: number; height: number }, scenes: { start: number; duration: number }[]) {
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage', '--enable-unsafe-swiftshader'] });
   const issues: string[] = [];
   const hashes: Record<string, string> = {};
   try {
     const page = await browser.newPage();
+    // Une erreur dans le moteur (scène, kit, addon) est un défaut, pas un détail.
+    page.on('pageerror', (e) => issues.push(`erreur moteur : ${String((e as Error).message || e).slice(0, 160)}`));
     await page.setViewport({ width: spec.width, height: spec.height, deviceScaleFactor: 1 });
     await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
     await page.evaluate(() => (window as any).__IDEM_VIDEO__.ready);
+    const sections = await page.evaluate(() => document.querySelectorAll('section.scene').length);
+    if (sections !== scenes.length) {
+      issues.push(`${sections} scène(s) affichée(s) sur ${scenes.length}`);
+      return { issues, deterministic: false };
+    }
     for (const [i, s] of scenes.entries()) {
       const t = s.start + s.duration * 0.8;
       await page.evaluate((x: number) => (window as any).__IDEM_VIDEO__.seek(x), t);
@@ -174,7 +181,7 @@ async function layoutAudit(html: string, spec: { width: number; height: number }
           if (e.scrollWidth > e.clientWidth + 2) out.push(`texte trop large : « ${e.textContent?.trim().slice(0, 40)} »`);
         });
         if (safe) {
-          safe.querySelectorAll('h1,h2,p,blockquote,[data-r="price"],[data-r="button"]').forEach((el) => {
+          safe.querySelectorAll('.kt, .btn, .price, .badge, .tagline').forEach((el) => {
             const r = (el as HTMLElement).getBoundingClientRect();
             if (!r.width) return;
             if (r.left < stage.left - 2 || r.right > stage.right + 2 || r.top < stage.top - 2 || r.bottom > stage.bottom + 2) {
@@ -202,6 +209,19 @@ async function layoutAudit(html: string, spec: { width: number; height: number }
     await page.evaluate(() => (window as any).__IDEM_VIDEO__.seek(0));
     await page.evaluate((x: number) => (window as any).__IDEM_VIDEO__.seek(x), t);
     hashes.fromStart = await shot();
+    // Comparaison tolérante : Chromium peut réutiliser une couche rastérisée à
+    // une échelle voisine selon l'historique, d'où des écarts sous-pixel
+    // invisibles. Un vrai défaut (élément déplacé, texte absent) touche bien
+    // plus que 0,2 % des pixels.
+    const sharpLib = (await import('sharp')).default;
+    const raws = await Promise.all(shots.map((png) => sharpLib(png).raw().toBuffer()));
+    const changed = (a: Buffer, b: Buffer) => {
+      let n = 0;
+      for (let k = 0; k < a.length; k += 4) if (Math.abs(a[k] - b[k]) > 8 || Math.abs(a[k + 1] - b[k + 1]) > 8 || Math.abs(a[k + 2] - b[k + 2]) > 8) n++;
+      return n / (a.length / 4);
+    };
+    const worst = Math.max(changed(raws[0], raws[1]), changed(raws[1], raws[2]));
+    if (worst <= 0.002) Object.keys(hashes).forEach((k) => (hashes[k] = hashes.forward));
     if (new Set(Object.values(hashes)).size > 1) {
       // Diagnostic : les images et la zone qui diffère sont gardées.
       const stamp = Date.now().toString(36);
@@ -487,7 +507,7 @@ async function main() {
       const layoutIssues = audit.issues.filter((i) => !i.startsWith('images'));
       check(`${c.id} · ${format} : aucun texte qui déborde, aucun élément hors cadre`, layoutIssues.length === 0, layoutIssues.slice(0, 4).join(' ; '));
       check(`${c.id} · ${format} : image identique quel que soit l’ordre de lecture`, audit.deterministic, audit.issues.filter((i) => i.startsWith('images')).join(' ; '));
-      check(`${c.id} · ${format} : aucun script externe (GSAP et Tailwind embarqués)`, external === 0);
+      check(`${c.id} · ${format} : aucun script externe (moteur React embarqué)`, external === 0);
     }
     const preview = await service.previewHtml('test-user', c.brandId, video.id);
     check(`${c.id} : aperçu lecteur disponible (${Math.round((preview?.length || 0) / 1024)} ko)`, !!preview && preview.includes('"mode":"preview"'));
@@ -505,13 +525,13 @@ async function main() {
     await page.setViewport({ width: spec.width, height: spec.height });
     await page.setContent(html, { waitUntil: 'load' });
     await page.evaluate(() => (window as any).__IDEM_VIDEO__.ready);
+    await page.evaluate(() => (window as any).__IDEM_VIDEO__.seek(5.5));
     const state = await page.evaluate(() => {
-      const img = document.querySelector('.logo-img') as HTMLElement;
-      const fb = document.querySelector('[data-r="logo-fallback"]') as HTMLElement;
-      return { img: getComputedStyle(img).display, fallback: getComputedStyle(fb).display, text: fb.textContent };
+      const scene = document.querySelector('section.scene-logo') as HTMLElement;
+      return { img: !!scene.querySelector('.logo-img'), text: (scene.textContent || '').replace(/\s+/g, ' ').trim() };
     });
     await browser.close();
-    check('logo illisible → nom de la marque à la place', state.img === 'none' && state.fallback === 'block' && state.text === 'Wax & Co', JSON.stringify(state));
+    check('logo illisible → nom de la marque à la place', !state.img && state.text.includes('Wax & Co'), JSON.stringify(state));
   }
 
   // 11. Rendu MP4 ─────────────────────────────────────────────────────────────

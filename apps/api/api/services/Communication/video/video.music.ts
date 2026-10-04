@@ -415,19 +415,20 @@ export async function searchMusic(
   providers: MusicProvider[] = MUSIC_PROVIDERS
 ): Promise<MusicTrack[]> {
   const active = providers.filter((p) => p.enabled());
-  const settled = await Promise.allSettled(
-    active.map((p) =>
-      Promise.race([
-        p.search(query).then((tracks) => tracks.map((t) => ({ t, w: p.weight }))),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), HTTP_TIMEOUT + 1500)),
-      ])
-    )
-  );
+  const attempt = (p: MusicProvider) =>
+    Promise.race([
+      p.search(query).then((tracks) => tracks.map((t) => ({ t, w: p.weight }))),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), HTTP_TIMEOUT + 1500)),
+    ]);
+  // Une seconde tentative par source : une coupure réseau passagère ne doit pas
+  // laisser la vidéo sans musique.
+  const settled = await Promise.allSettled(active.map((p) => attempt(p).catch(() => attempt(p))));
   const seen = new Set<string>();
   const ranked: { t: MusicTrack; score: number }[] = [];
   settled.forEach((result, i) => {
     if (result.status !== 'fulfilled') {
-      logger.warn('video.music.provider_failed', { provider: active[i].id, error: (result.reason as Error)?.message });
+      const err = result.reason as { message?: string; code?: string; response?: { status?: number } };
+      logger.warn('video.music.provider_failed', { provider: active[i].id, error: err?.message || err?.code || (err?.response?.status ? `HTTP ${err.response.status}` : 'unknown') });
       return;
     }
     for (const { t, w } of result.value) {

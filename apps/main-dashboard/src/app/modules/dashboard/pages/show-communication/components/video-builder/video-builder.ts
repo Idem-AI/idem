@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
+import { VideoComposing, VideoProgressState } from '../video-composing/video-composing';
 import {
   MotionStyle,
   MotionVideo,
@@ -68,7 +69,7 @@ const MAX_MEDIA = 8;
  */
 @Component({
   selector: 'app-video-builder',
-  imports: [FormsModule, TranslateModule, IdemLoaderComponent],
+  imports: [FormsModule, TranslateModule, IdemLoaderComponent, VideoComposing],
   templateUrl: './video-builder.html',
   styleUrls: ['../visual-builder/visual-builder.css', './video-builder.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -109,7 +110,11 @@ export class VideoBuilder {
   protected readonly quality = signal<VideoQuality>('hd');
   protected readonly mood = signal<MusicMood>('auto');
   protected readonly style = signal<MotionStyle | 'auto'>('auto');
+  protected readonly direction = signal<string>('auto');
+  protected readonly directions = computed(() => this.options().directions ?? ['auto']);
   protected readonly busy = signal(false);
+  /** Étapes réelles reçues du serveur pendant la création. */
+  protected readonly progress = signal<VideoProgressState>({});
 
   protected readonly durations = computed(() => this.typeDef()?.durations ?? this.options().pricing.durations);
   protected readonly styles = computed(() => this.options().styles);
@@ -209,14 +214,17 @@ export class VideoBuilder {
     const type = this.type();
     if (!objective || !type || this.busy() || !this.canAdvance()) return;
     this.busy.set(true);
+    this.progress.set({});
+    let finished = false;
     this.videos
-      .create(this.projectId(), {
+      .createStream(this.projectId(), {
         brief: {
           objective,
           message: this.message().trim(),
           details: this.details().trim() || undefined,
           musicMood: this.mood(),
           style: this.style(),
+          direction: this.direction() === 'auto' ? undefined : this.direction(),
           media: this.media(),
           allowStock: this.allowStock(),
           allowGenerate: this.allowGenerate(),
@@ -227,17 +235,29 @@ export class VideoBuilder {
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (video) => {
-          this.busy.set(false);
-          this.created.emit(video);
-        },
-        error: (err) => {
-          this.busy.set(false);
-          if (err?.status === 402) {
-            this.needsCredits.emit({ cost: err.error?.cost ?? this.price(), balance: err.error?.balance ?? 0 });
-            return;
+        next: (event) => {
+          if (event.type === 'progress') {
+            this.progress.update((p) => ({ ...p, [event.stage]: { state: event.state, data: event.data } }));
+          } else if (event.type === 'complete') {
+            finished = true;
+            this.busy.set(false);
+            this.created.emit(event.video);
+          } else {
+            finished = true;
+            this.busy.set(false);
+            if (event.status === 402) {
+              this.needsCredits.emit({ cost: event.cost ?? this.price(), balance: event.balance ?? 0 });
+              return;
+            }
+            this.failed.emit('dashboard.showCommunication.video.errors.create');
           }
-          this.failed.emit('dashboard.showCommunication.video.errors.create');
+        },
+        complete: () => {
+          // Flux coupé sans conclusion (réseau) : on le dit plutôt que de laisser tourner.
+          if (!finished) {
+            this.busy.set(false);
+            this.failed.emit('dashboard.showCommunication.video.errors.create');
+          }
         },
       });
   }

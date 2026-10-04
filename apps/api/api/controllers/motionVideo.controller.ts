@@ -15,12 +15,15 @@ import { MotionVideoService, VideoInputError } from '../services/Communication/v
 import { normalizeScope, pricingTable, videoCost } from '../services/Communication/video/video.pricing';
 import { SCENES } from '../services/Communication/video/video.scenes';
 import { TYPE_DEFS } from '../services/Communication/video/video.types';
+import { DIRECTION_IDS } from '../services/Communication/video/video.direction';
+import { CAPABILITIES } from '../services/Communication/video/video.capabilities';
 import { MediaInputError } from '../services/Communication/video/video.media';
 import { resolvePublicSound } from '../services/Communication/video/video.sfx';
 import { VIDEO_TYPES, VideoType } from '../models/motionVideo.model';
 import { PromptService } from '../services/prompt.service';
 import { StorageService } from '../services/storage.service';
 import { getRequestLanguage } from '../utils/request-language';
+import { refundRequestCredits } from '../middleware/billing.middleware';
 
 const communicationService = new CommunicationService(new PromptService());
 export const motionVideoService = new MotionVideoService(communicationService);
@@ -61,6 +64,11 @@ export const videoOptionsController = async (_req: CustomRequest, res: Response)
     objectives: VIDEO_OBJECTIVES,
     moods: MUSIC_MOODS,
     styles: ['auto', ...MOTION_STYLES],
+    directions: ['auto', ...DIRECTION_IDS],
+    // Les choix du kit (graphe de capacités) : la vidéo dit lesquels sont possibles pour elle.
+    kit: Object.fromEntries(
+      (['logo', 'background', 'annotate', 'icons'] as const).map((kind) => [kind, CAPABILITIES.filter((n) => n.kind === kind).map((n) => ({ id: n.id.split(':')[1], label: n.label }))])
+    ),
     // Les types de motion proposés à la création, avec ce dont ils ont besoin.
     types: VIDEO_TYPES.map((id) => ({ id, icon: TYPE_DEFS[id].icon, style: TYPE_DEFS[id].style, needs: TYPE_DEFS[id].needs, durations: TYPE_DEFS[id].durations })),
     // Les cases de chaque scène et leur longueur maximale : l'éditeur de textes les borne.
@@ -116,6 +124,13 @@ export const getVideoController = async (req: CustomRequest, res: Response): Pro
   }
 };
 
+/** Seuls les champs du kit, en texte court (la validation réelle est celle du graphe). */
+function pickKit(raw: Record<string, unknown>) {
+  const out: Record<string, string> = {};
+  for (const k of ['logo', 'background', 'annotate', 'iconSet']) if (typeof raw[k] === 'string' && (raw[k] as string).length < 40) out[k] = raw[k] as string;
+  return out;
+}
+
 /** PATCH /project/communication/:projectId/videos/:videoId — retouches gratuites. */
 export const updateVideoController = async (req: CustomRequest, res: Response): Promise<void> => {
   const id = ids(req, res);
@@ -129,6 +144,8 @@ export const updateVideoController = async (req: CustomRequest, res: Response): 
       musicTrackId: typeof body.musicTrackId === 'string' ? body.musicTrackId : undefined,
       scope: body.scope,
       sfx: typeof body.sfx === 'boolean' ? body.sfx : undefined,
+      direction: typeof body.direction === 'string' ? body.direction : undefined,
+      kit: body.kit && typeof body.kit === 'object' ? pickKit(body.kit) : undefined,
     });
     if (!video) {
       res.status(404).json({ message: 'Video not found' });
@@ -265,4 +282,51 @@ export const sfxFileController = async (req: CustomRequest, res: Response): Prom
   res.setHeader('Content-Type', 'audio/mpeg');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.sendFile(file);
+};
+
+/**
+ * POST /project/communication/:projectId/videos/stream — création en flux (SSE).
+ *
+ * Même création que `POST …/videos`, mais chaque étape réelle est envoyée dès
+ * qu'elle a lieu (scènes prévues, textes écrits, médias trouvés, piste choisie,
+ * effets, montage) : l'utilisateur suit la fabrication en direct.
+ * Le code HTTP est déjà parti quand une erreur survient : les crédits sont
+ * restitués ici, explicitement.
+ */
+export const createVideoStreamController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const id = ids(req, res);
+  if (!id) return;
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+  let open = true;
+  req.on('close', () => (open = false));
+  const send = (payload: object) => {
+    if (!open) return;
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    (res as any).flush?.();
+  };
+  // Un battement toutes les 15 s : les proxys ne coupent pas un flux silencieux.
+  const heartbeat = setInterval(() => open && res.write(': ping\n\n'), 15000);
+  try {
+    const scope = normalizeScope(req.body?.scope);
+    const paid = req.billing?.charged ? req.billing.cost : videoCost(scope);
+    const video = await motionVideoService.createVideo(
+      id.userId,
+      id.projectId,
+      { brief: req.body?.brief, scope, type: VIDEO_TYPES.includes(req.body?.type) ? (req.body.type as VideoType) : undefined, language: getRequestLanguage() },
+      paid,
+      (event) => send({ type: 'progress', ...event })
+    );
+    send({ type: 'complete', video });
+  } catch (error: any) {
+    logger.error(`createVideoStreamController: ${error?.message}`, { stack: error?.stack });
+    await refundRequestCredits(req, 'Création de vidéo en échec — crédits restitués').catch(() => undefined);
+    send({ type: 'error', error: error instanceof VideoInputError ? error.message : 'video_failed' });
+  } finally {
+    clearInterval(heartbeat);
+    res.end();
+  }
 };

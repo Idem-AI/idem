@@ -14,7 +14,6 @@
  * application stopped while its old container kept running.
  */
 import { Job } from 'bullmq';
-import { randomBytes } from 'crypto';
 import { QUEUE_NAMES } from '../queue/queues';
 import { registerWorker } from '../queue/worker';
 import logger from '../config/logger';
@@ -72,10 +71,16 @@ const KEPT_LOG_CHARS = 200_000;
 
 /**
  * One deployment of an application at a time. Two at once used to share a
- * directory, each deleting what the other was building. The lock outlives any
- * real build; a crashed worker's lock expires on its own.
+ * directory, each deleting what the other was building.
+ *
+ * The lock lives a minute and is renewed while the deployment runs, so a
+ * worker that dies (an API redeploy mid-build) frees it within a minute. It
+ * used to last an hour: the deployment BullMQ re-ran after the restart then
+ * waited, as "in progress", for a lock held by a process that no longer
+ * existed — and every later deployment of that application with it.
  */
-const LOCK_TTL_MS = 60 * 60 * 1000;
+export const LOCK_TTL_MS = 60 * 1000;
+const LOCK_RENEW_MS = 20 * 1000;
 const LOCK_WAIT_MS = 30 * 60 * 1000;
 const LOCK_POLL_MS = 5000;
 
@@ -88,17 +93,28 @@ async function streamStep(
   await fn();
 }
 
-/** Run `work` holding the application's deployment lock, waiting for a running deployment to end. */
-async function withApplicationLock<T>(
+/**
+ * Run `work` holding the application's deployment lock, waiting for a running
+ * deployment to end.
+ *
+ * The lock holds the deployment's uuid: the same deployment run again by
+ * BullMQ after a worker died takes its own lock back instead of waiting on it.
+ */
+export async function withApplicationLock<T>(
   applicationId: number,
+  deploymentUuid: string,
   log: (line: string) => Promise<void>,
   work: () => Promise<T>
 ): Promise<T> {
   const key = `ideploy:deploy-lock:${applicationId}`;
-  const token = randomBytes(12).toString('hex');
   const started = Date.now();
   let announced = false;
-  while (!(await redis.set(key, token, 'PX', LOCK_TTL_MS, 'NX'))) {
+  for (;;) {
+    if (await redis.set(key, deploymentUuid, 'PX', LOCK_TTL_MS, 'NX')) break;
+    if ((await redis.get(key)) === deploymentUuid) {
+      await redis.pexpire(key, LOCK_TTL_MS);
+      break;
+    }
     if (Date.now() - started > LOCK_WAIT_MS) {
       throw new Error('Another deployment of this application is still running; try again once it has finished.');
     }
@@ -108,10 +124,20 @@ async function withApplicationLock<T>(
     }
     await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_MS));
   }
+
+  // Renewed while this deployment is alive; dies with it.
+  const renew = setInterval(() => {
+    redis
+      .get(key)
+      .then((owner) => (owner === deploymentUuid ? redis.pexpire(key, LOCK_TTL_MS) : undefined))
+      .catch(() => undefined);
+  }, LOCK_RENEW_MS);
+  renew.unref?.();
   try {
     return await work();
   } finally {
-    if ((await redis.get(key)) === token) await redis.del(key);
+    clearInterval(renew);
+    if ((await redis.get(key)) === deploymentUuid) await redis.del(key);
   }
 }
 
@@ -185,7 +211,7 @@ export async function processDeployment(job: Job<DeploymentJobData>): Promise<vo
   let switched = false;
 
   try {
-    await withApplicationLock(applicationId, log, () => deploy(job.data, log, () => (switched = true)));
+    await withApplicationLock(applicationId, deploymentUuid, log, () => deploy(job.data, log, () => (switched = true)));
     const app = await appService.getApplication(teamId, applicationUuid);
     if (app) await finalize(app, deploymentUuid, teamId, true);
     await log('✅ Deployment finished successfully');

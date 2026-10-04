@@ -332,19 +332,23 @@
         <section class="glass-card vd-card" aria-labelledby="vd-style-title">
           <h3 id="vd-style-title" class="vd-card-title">
             <i class="pi pi-sparkles" aria-hidden="true"></i>
-            {{ 'dashboard.showCommunication.video.builder.scope.style' | translate }}
+            {{ 'dashboard.showCommunication.video.builder.scope.direction' | translate }}
           </h3>
+          <p class="mt-1 text-xs text-[var(--color-text-tertiary)]">
+            {{ 'dashboard.showCommunication.video.directions.help' | translate }}
+          </p>
           <div class="vd-checks mt-3">
-            @for (s of styleChoices; track s) {
+            @for (dir of directionChoices(); track dir) {
               <button
                 type="button"
                 class="vd-style"
-                [class.vd-style-active]="v.storyboard.style === s"
-                [attr.aria-pressed]="v.storyboard.style === s"
+                [class.vd-style-active]="v.storyboard.direction === dir"
+                [attr.aria-pressed]="v.storyboard.direction === dir"
+                [attr.title]="'dashboard.showCommunication.video.directions.' + dir + '.hint' | translate"
                 [disabled]="saving() !== null"
-                (click)="changeStyle(s)"
+                (click)="changeDirection(dir)"
               >
-                {{ 'dashboard.showCommunication.video.styles.' + s | translate }}
+                {{ 'dashboard.showCommunication.video.directions.' + dir + '.label' | translate }}
               </button>
             }
           </div>

@@ -36,7 +36,11 @@ export const MEDIA_LIMITS = {
   video: 80 * 1024 * 1024,
   model3d: 20 * 1024 * 1024,
   lottie: 3 * 1024 * 1024,
+  rive: 6 * 1024 * 1024,
 };
+
+/** Taille maximale d'une animation décompressée depuis un .lottie (anti « bombe zip »). */
+const MAX_LOTTIE_JSON = 8 * 1024 * 1024;
 
 export type Orientation = 'portrait' | 'landscape' | 'square';
 
@@ -68,10 +72,37 @@ async function probeVideo(file: string): Promise<{ duration: number; width: numb
 export function detectKind(buffer: Buffer, mimetype: string, name: string): VideoMediaKind | null {
   const ext = path.extname(name || '').toLowerCase();
   if (buffer.slice(0, 4).toString('ascii') === 'glTF') return 'model3d';
+  if (buffer.slice(0, 4).toString('ascii') === 'RIVE') return 'rive';
+  // .lottie : archive zip qui contient l'animation JSON.
+  if (ext === '.lottie' && buffer.slice(0, 2).toString('ascii') === 'PK') return 'lottie';
   if (/^image\//.test(mimetype) || ['.jpg', '.jpeg', '.png', '.webp', '.heic'].includes(ext)) return 'image';
   if (/^video\//.test(mimetype) || ['.mp4', '.mov', '.webm', '.m4v'].includes(ext)) return 'video';
   if (ext === '.json' || mimetype === 'application/json') return 'lottie';
   return null;
+}
+
+/**
+ * Animation d'un fichier .lottie (dotLottie) : l'archive est ouverte ici, et
+ * l'animation JSON est jouée par lottie-web comme un import .json.
+ */
+export async function lottieFromArchive(buffer: Buffer): Promise<any> {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const JSZip = require('jszip');
+  const zip = await JSZip.loadAsync(buffer);
+  let target: string | undefined;
+  const manifest = zip.file('manifest.json');
+  if (manifest) {
+    const m = JSON.parse(await manifest.async('string'));
+    const first = m?.animations?.[0]?.id;
+    if (first) target = Object.keys(zip.files).find((f) => f === `animations/${first}.json` || f === `a/${first}.json`);
+  }
+  target ??= Object.keys(zip.files).find((f) => /^(animations|a)\/[^/]+\.json$/.test(f));
+  if (!target) throw new Error('no animation');
+  const entry = zip.file(target);
+  if ((entry?._data?.uncompressedSize || 0) > MAX_LOTTIE_JSON) throw new Error('animation too large');
+  const text: string = await entry.async('string');
+  if (text.length > MAX_LOTTIE_JSON) throw new Error('animation too large');
+  return JSON.parse(text);
 }
 
 /** Une animation Lottie valide : version, cadence, durée, taille et calques. */
@@ -176,9 +207,15 @@ export async function processUpload(
     return { id: key, kind, url: up.downloadURL, origin: 'upload', name };
   }
 
+  if (kind === 'rive') {
+    const key = id();
+    const up = await storage.uploadFile(file.buffer, `${key}.riv`, folder, 'application/octet-stream');
+    return { id: key, kind, url: up.downloadURL, origin: 'upload', name };
+  }
+
   let data: any;
   try {
-    data = JSON.parse(file.buffer.toString('utf8'));
+    data = file.buffer.slice(0, 2).toString('ascii') === 'PK' ? await lottieFromArchive(file.buffer) : JSON.parse(file.buffer.toString('utf8'));
   } catch {
     throw new MediaInputError('invalid_lottie');
   }
