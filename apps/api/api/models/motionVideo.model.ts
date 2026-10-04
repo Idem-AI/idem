@@ -59,6 +59,75 @@ export const VIDEO_OBJECTIVES: VideoObjective[] = [
   'recruitment',
 ];
 
+/**
+ * LE TYPE DE MOTION choisi par l'utilisateur : la famille visuelle de la vidéo.
+ * L'objectif (promotion, événement…) dit QUOI raconter ; le type dit COMMENT.
+ */
+export type VideoType =
+  | 'kinetic'
+  | 'product'
+  | 'promo'
+  | 'footage'
+  | 'showcase3d'
+  | 'illustrated'
+  | 'slideshow'
+  | 'logo';
+
+export const VIDEO_TYPES: VideoType[] = [
+  'kinetic',
+  'product',
+  'promo',
+  'footage',
+  'showcase3d',
+  'illustrated',
+  'slideshow',
+  'logo',
+];
+
+/** Un média de la vidéo : importé par l'utilisateur, trouvé sur Pexels ou généré. */
+export type VideoMediaKind = 'image' | 'video' | 'model3d' | 'lottie';
+
+export interface VideoMediaAsset {
+  id: string;
+  kind: VideoMediaKind;
+  /** URL publique (stockage IDEM ou source externe pour une image). */
+  url: string;
+  origin: 'upload' | 'pexels' | 'generated' | 'library' | 'visual';
+  name?: string;
+  /** Vidéo : durée (s) et dimensions ; image : dimensions. */
+  durationSec?: number;
+  width?: number;
+  height?: number;
+  /** Vignette (vidéo). */
+  posterUrl?: string;
+  /** Crédit (Pexels : auteur). */
+  credit?: string;
+  sourceUrl?: string;
+}
+
+/** Moments sonores posés par le moteur d'animation. */
+export type SfxKind = 'whoosh' | 'softwhoosh' | 'pop' | 'click' | 'tick' | 'impact' | 'shimmer' | 'riser';
+
+export const SFX_KINDS: SfxKind[] = ['whoosh', 'softwhoosh', 'pop', 'click', 'tick', 'impact', 'shimmer', 'riser'];
+
+export interface SfxSound {
+  id: string;
+  kind: SfxKind;
+  title: string;
+  author: string;
+  license: 'cc0' | 'cc-by' | 'generated';
+  sourceUrl?: string;
+  /** Durée après nettoyage (s). */
+  durationSec: number;
+  attribution?: string;
+}
+
+export interface VideoSfx {
+  enabled: boolean;
+  /** Un son retenu par moment sonore (tiré par la graine dans la sonothèque). */
+  sounds: Partial<Record<SfxKind, SfxSound>>;
+}
+
 /** Langage de mouvement : courbes, vitesses, transitions. */
 export type MotionStyle = 'energetic' | 'premium' | 'playful' | 'corporate';
 
@@ -83,6 +152,14 @@ export interface VideoBrief {
   imageUrls?: string[];
   /** Langue des textes à l'écran. */
   language?: string;
+  /** Médias importés par l'utilisateur (photos, vidéos, modèles 3D, Lottie). */
+  media?: VideoMediaAsset[];
+  /** IDEM peut chercher des photos et vidéos sur Pexels. */
+  allowStock?: boolean;
+  /** IDEM peut générer une vidéo (Gemini Veo) si Pexels ne trouve rien. */
+  allowGenerate?: boolean;
+  /** Effets sonores (whoosh, pop…) : activés par défaut. */
+  sfx?: boolean;
 }
 
 /** Une scène posée sur la ligne de temps. */
@@ -105,8 +182,14 @@ export interface VideoSceneInstance {
   slots: Record<string, string>;
   /** Image de la scène, quand elle en porte une. */
   image?: string;
-  /** Images supplémentaires (galerie). */
+  /** Images supplémentaires (galerie, cartes 3D). */
   images?: string[];
+  /** Clip vidéo de la scène (URL WebM). */
+  video?: string;
+  /** Modèle 3D (GLB). */
+  model?: string;
+  /** Animation Lottie : URL d'un fichier importé, ou `builtin:<nom>`. */
+  lottie?: string;
 }
 
 export type VideoTransition = 'wipe' | 'circle' | 'push' | 'zoom' | 'split' | 'flash' | 'fade';
@@ -177,6 +260,11 @@ export type MotionVideoStatus = 'draft' | 'rendering' | 'ready' | 'failed';
 export interface MotionVideo {
   id: string;
   title: string;
+  /** Type de motion choisi (absent sur les vidéos d'avant les types). */
+  type?: VideoType;
+  /** Tous les médias de la vidéo, quelle que soit leur origine. */
+  media?: VideoMediaAsset[];
+  sfx?: VideoSfx;
   brief: VideoBrief;
   scope: VideoScope;
   storyboard: VideoStoryboard;

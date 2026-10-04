@@ -31,7 +31,17 @@ import {
   VideoObjective,
   VideoRender,
   VideoScope,
+  VIDEO_TYPES,
+  VideoMediaAsset,
+  VideoMediaKind,
+  VideoSfx,
+  VideoType,
+  SfxKind,
 } from '../../../models/motionVideo.model';
+import { mediaWanted, planTypeScenes, TYPE_DEFS, MediaCounts } from './video.types';
+import { generateClip, generateStill, MediaStorage, Orientation, processUpload, searchPexelsPhotos, searchPexelsVideos } from './video.media';
+import { ensureSfxLibrary, pickSounds, publicSoundName, SFX_DENSITY, SFX_GAIN_DB, sfxLibrary, soundFile, SfxLibrary } from './video.sfx';
+import { apiBaseUrl } from '../visualUrl';
 import { CommunicationService } from '../communication.service';
 import { StorageService } from '../../storage.service';
 import { extractFacts, writeCopy, CopyContext, CopyWriter, fitLength } from './video.copy';
@@ -50,7 +60,18 @@ export class VideoInputError extends Error {}
 export interface CreateVideoInput {
   brief: Partial<VideoBrief>;
   scope: unknown;
+  /** Type de motion choisi par l'utilisateur. */
+  type?: VideoType;
   language?: string;
+}
+
+/** Ce que la création a fait pour trouver ses médias (journal et contrôles). */
+export interface MediaReport {
+  stockPhotos: number;
+  stockVideos: number;
+  generatedImages: number;
+  generatedVideos: number;
+  query?: string;
 }
 
 /** Facturation à restituer si le rendu échoue après la réponse HTTP. */
@@ -60,6 +81,32 @@ export interface RenderCharge {
 }
 
 const MAX_IMAGES = 6;
+const MEDIA_KINDS: VideoMediaKind[] = ['image', 'video', 'model3d', 'lottie'];
+
+/**
+ * URL de média acceptée : http(s) uniquement. `VIDEO_ALLOW_FILE_URLS=1` (contrôles
+ * locaux seulement, jamais en production) autorise aussi les fichiers du stockage de test.
+ */
+function mediaUrlAllowed(url: string): boolean {
+  if (/^https?:\/\/[^\s]+$/.test(url)) return true;
+  return process.env.VIDEO_ALLOW_FILE_URLS === '1' && process.env.NODE_ENV !== 'production' && /^file:\/\/\//.test(url);
+}
+
+/** Médias déclarés par le client : seuls les champs attendus, URL http(s) seulement. */
+function normalizeMedia(raw: unknown): VideoMediaAsset[] {
+  return (Array.isArray(raw) ? raw : [])
+    .filter((m: any) => m && MEDIA_KINDS.includes(m.kind) && mediaUrlAllowed(String(m.url || '')))
+    .slice(0, 16)
+    .map((m: any) => ({
+      id: String(m.id || crypto.randomBytes(4).toString('hex')).slice(0, 64),
+      kind: m.kind,
+      url: String(m.url),
+      origin: 'upload' as const,
+      name: m.name ? String(m.name).slice(0, 80) : undefined,
+      durationSec: Number(m.durationSec) || undefined,
+      posterUrl: mediaUrlAllowed(String(m.posterUrl || '')) ? String(m.posterUrl) : undefined,
+    }));
+}
 
 export function normalizeBrief(raw: Partial<VideoBrief> | undefined, language?: string): VideoBrief {
   const b = raw || {};
@@ -80,8 +127,25 @@ export function normalizeBrief(raw: Partial<VideoBrief> | undefined, language?: 
     style,
     imageUrls,
     language: String(b.language || language || 'fr').slice(0, 5),
+    media: [
+      ...normalizeMedia(b.media),
+      ...imageUrls.map((url, i) => ({ id: `legacy-${i}`, kind: 'image' as const, url, origin: 'upload' as const })),
+    ],
+    allowStock: b.allowStock !== false,
+    allowGenerate: b.allowGenerate !== false,
+    sfx: b.sfx !== false,
   };
 }
+
+/** Type par défaut (appels sans type) : déduit de l'objectif et des photos fournies. */
+export function defaultType(brief: VideoBrief): VideoType {
+  const hasPhotos = (brief.media || []).some((m) => m.kind === 'image');
+  if (brief.objective === 'promotion') return 'promo';
+  if (brief.objective === 'product' || hasPhotos) return 'product';
+  return 'kinetic';
+}
+
+const orientationOf = (format: VideoFormat): Orientation => (format === 'landscape' ? 'landscape' : format === 'square' ? 'square' : 'portrait');
 
 export class MotionVideoService {
   private readonly storage = new StorageService();
@@ -118,34 +182,118 @@ export class MotionVideoService {
     return { project, theme, ctx, branding, visuals, otherVideos };
   }
 
-  // ── Images ───────────────────────────────────────────────────────────────
+  // ── Médias ──────────────────────────────────────────────────────────────
+
+  /** Stockage des médias trouvés ou générés (remplaçable dans les tests). */
+  protected mediaStorage(): MediaStorage {
+    return this.storage as unknown as MediaStorage;
+  }
 
   /**
-   * Photos de la vidéo : celles de l'utilisateur d'abord, puis les photos déjà
-   * utilisées dans ses visuels (payées, à la charte), puis la banque d'images.
+   * Les médias de la vidéo, dans l'ordre : importés → photos des visuels →
+   * Pexels (photos, vidéos) → génération (image Gemini, clip Veo — un seul).
    */
-  private async gatherImages(brief: VideoBrief, visuals: any[], ctx: CopyContext, orientation: string): Promise<string[]> {
-    const own = brief.imageUrls || [];
-    if (own.length) return own;
-    const fromVisuals = [...visuals]
-      .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
-      .map((v) => v.backgroundImageUrl)
-      .filter((u: unknown): u is string => typeof u === 'string' && /^https?:\/\//.test(u));
-    const unique = [...new Set(fromVisuals)].slice(0, 4);
-    if (unique.length >= 2 || !process.env.PEXELS_API_KEY) return unique;
-    try {
-      const query = [ctx.businessType, ...(ctx.keywords || []).slice(0, 2)].filter(Boolean).join(' ') || brief.message.split(/\s+/).slice(0, 4).join(' ');
-      const res = await axios.get('https://api.pexels.com/v1/search', {
-        headers: { Authorization: process.env.PEXELS_API_KEY },
-        params: { query, per_page: 4, orientation, locale: ctx.language?.startsWith('en') ? 'en-US' : 'fr-FR' },
-        timeout: 8000,
-      });
-      const stock = (res.data?.photos || []).map((p: any) => p.src?.large2x || p.src?.large).filter(Boolean);
-      return [...unique, ...stock].slice(0, 4);
-    } catch (error: any) {
-      logger.warn('video.pexels_failed', { error: error.message });
-      return unique;
+  private async acquireMedia(opts: {
+    userId: string;
+    projectId: string;
+    videoId: string;
+    brief: VideoBrief;
+    visuals: any[];
+    wanted: { images: number; videos: number };
+    query: string;
+    orientation: Orientation;
+    ctx: CopyContext;
+  }): Promise<{ assets: VideoMediaAsset[]; report: MediaReport }> {
+    const { brief, wanted, query, orientation } = opts;
+    const assets: VideoMediaAsset[] = [...(brief.media || [])];
+    const report: MediaReport = { stockPhotos: 0, stockVideos: 0, generatedImages: 0, generatedVideos: 0, query };
+    const count = (kind: VideoMediaKind) => assets.filter((a) => a.kind === kind).length;
+    const folder = `users/${opts.userId}/projects/${opts.projectId}/videos/${opts.videoId}/media`;
+
+    // Les photos déjà utilisées dans ses visuels : payées et à la charte.
+    if (count('image') < wanted.images) {
+      const fromVisuals = [...new Set(
+        [...opts.visuals]
+          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+          .map((v) => v.backgroundImageUrl)
+          .filter((u: unknown): u is string => typeof u === 'string' && /^https?:\/\//.test(u))
+      )].slice(0, wanted.images - count('image'));
+      fromVisuals.forEach((url, i) => assets.push({ id: `visual-${i}`, kind: 'image', url, origin: 'visual' }));
     }
+
+    if (brief.allowStock && count('image') < wanted.images) {
+      const photos = await searchPexelsPhotos(query, orientation, wanted.images - count('image'), opts.ctx.language?.startsWith('en') ? 'en-US' : 'fr-FR').catch((e) => {
+        logger.warn('video.pexels_photos_failed', { error: e.message });
+        return [];
+      });
+      assets.push(...photos);
+      report.stockPhotos = photos.length;
+    }
+    if (brief.allowStock && count('video') < wanted.videos) {
+      const clips = await searchPexelsVideos(query, orientation, wanted.videos - count('video'), this.mediaStorage(), folder).catch((e) => {
+        logger.warn('video.pexels_videos_failed', { error: e.message });
+        return [];
+      });
+      assets.push(...clips);
+      report.stockVideos = clips.length;
+    }
+
+    const prompt = `${query}${opts.ctx.businessType ? `, ${opts.ctx.businessType}` : ''}, for ${opts.ctx.brandName}`;
+    // Aucune vidéo trouvée alors que le type en a besoin : Gemini Veo, un seul clip.
+    if (brief.allowGenerate && wanted.videos > 0 && count('video') === 0) {
+      try {
+        assets.push(await generateClip(prompt, orientation === 'landscape' ? 'landscape' : 'portrait', this.mediaStorage(), folder));
+        report.generatedVideos = 1;
+      } catch (error: any) {
+        logger.warn('video.veo_failed', { error: error.message });
+      }
+    }
+    // Pas une seule photo pour une vidéo qui en a besoin : une image générée.
+    if (brief.allowGenerate && wanted.images > 0 && count('image') === 0 && count('video') === 0) {
+      try {
+        assets.push(await generateStill(prompt, orientation, this.mediaStorage(), folder));
+        report.generatedImages = 1;
+      } catch (error: any) {
+        logger.warn('video.image_generation_failed', { error: error.message });
+      }
+    }
+    return { assets, report };
+  }
+
+  /** Fichier importé par l'utilisateur (photo, clip, modèle 3D, Lottie). */
+  async uploadMedia(userId: string, projectId: string, file: { buffer: Buffer; mimetype: string; originalname: string }): Promise<VideoMediaAsset> {
+    return processUpload(file, this.mediaStorage(), `users/${userId}/projects/${projectId}/videos/uploads`);
+  }
+
+  // ── Effets sonores ───────────────────────────────────────────────────────
+
+  /** La sonothèque, sans bloquer une création plus de 30 s (repli : synthèse). */
+  private async library(): Promise<SfxLibrary> {
+    const timer = new Promise<null>((r) => setTimeout(() => r(null), 30000));
+    const lib = await Promise.race([sfxLibrary(), timer]);
+    return lib || ensureSfxLibrary({ offline: true });
+  }
+
+  private async chooseSfx(seed: number): Promise<VideoSfx> {
+    const lib = await this.library();
+    const picked = pickSounds(lib, seed);
+    const sounds: VideoSfx['sounds'] = {};
+    for (const [kind, sound] of Object.entries(picked)) {
+      const { file: _file, score: _score, ...rest } = sound;
+      sounds[kind as SfxKind] = rest;
+    }
+    return { enabled: true, sounds };
+  }
+
+  /** Fichiers des sons retenus (rendu). */
+  private async sfxFiles(sfx?: VideoSfx): Promise<Partial<Record<SfxKind, string>>> {
+    const out: Partial<Record<SfxKind, string>> = {};
+    if (!sfx?.enabled) return out;
+    for (const [kind, sound] of Object.entries(sfx.sounds)) {
+      const file = sound ? await soundFile(sound) : null;
+      if (file) out[kind as SfxKind] = file;
+    }
+    return out;
   }
 
   // ── Musique ──────────────────────────────────────────────────────────────
@@ -164,9 +312,16 @@ export class MotionVideoService {
     if (!mood) return undefined;
     try {
       const candidates = await searchMusic({ mood, minDuration: opts.durationSec + 3 }, MUSIC_PROVIDERS);
-      const track = opts.trackId ? candidates.find((t) => t.id === opts.trackId) || null : pickTrack(candidates, opts.seed, opts.avoidIds);
-      if (!track) return undefined;
-      return await this.prepareTrack(track, opts.durationSec);
+      const first = opts.trackId ? candidates.find((t) => t.id === opts.trackId) || null : pickTrack(candidates, opts.seed, opts.avoidIds);
+      if (!first) return undefined;
+      // Une piste qui ne se télécharge pas ou ne s'analyse pas laisse sa place
+      // à la suivante : la vidéo garde une musique calée sur le temps.
+      const queue = [first, ...candidates.filter((t) => t.id !== first.id && !(opts.avoidIds || []).includes(t.id)).slice(0, 2)];
+      for (const track of queue) {
+        const prepared = await this.prepareTrack(track, opts.durationSec);
+        if (prepared.beat) return prepared;
+      }
+      return undefined;
     } catch (error: any) {
       logger.warn('video.music_failed', { error: error.message });
       return undefined;
@@ -203,16 +358,38 @@ export class MotionVideoService {
   async createVideo(userId: string, projectId: string, input: CreateVideoInput, paidCredits: number): Promise<MotionVideo> {
     const scope = normalizeScope(input.scope);
     const brief = normalizeBrief(input.brief, input.language);
+    const type: VideoType = VIDEO_TYPES.includes(input.type as VideoType) ? (input.type as VideoType) : defaultType(brief);
+    const typeDef = TYPE_DEFS[type];
     const { theme, ctx, branding, visuals, otherVideos } = await this.brandContext(userId, projectId);
     ctx.language = brief.language || ctx.language;
 
+    const videoId = `video-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
     const seed = crypto.randomInt(1, 2 ** 31 - 1);
-    const style = resolveStyle(brief.style, branding?.artDirection?.styleId, brief.objective);
-    const primary = scope.formats[0];
-    const orientation = primary === 'landscape' ? 'landscape' : primary === 'square' ? 'square' : 'portrait';
+    // Le type choisi décide du langage de mouvement, sauf choix explicite.
+    const style = brief.style && brief.style !== 'auto' ? resolveStyle(brief.style, undefined, brief.objective) : typeDef.style || resolveStyle('auto', branding?.artDirection?.styleId, brief.objective);
+    const orientation = orientationOf(scope.formats[0]);
+    const facts = extractFacts(`${brief.message}\n${brief.details || ''}`);
 
-    const [images, music] = await Promise.all([
-      this.gatherImages(brief, visuals, ctx, orientation),
+    // 1. Recette, avec les médias qu'on peut raisonnablement obtenir.
+    const own = (kind: VideoMediaKind) => (brief.media || []).filter((m) => m.kind === kind).length;
+    const stockable = brief.allowStock && !!process.env.PEXELS_API_KEY;
+    const optimistic: MediaCounts = {
+      images: Math.max(own('image'), stockable ? 6 : 0, visuals.filter((v) => v.backgroundImageUrl).length),
+      videos: Math.max(own('video'), stockable || brief.allowGenerate ? 4 : 0),
+      models: own('model3d'),
+      lotties: own('lottie'),
+    };
+    let sceneIds = planTypeScenes(type, brief.objective, scope.durationSec, facts, optimistic);
+    const wanted = mediaWanted(sceneIds);
+    const needsStock = (wanted.images > own('image') || wanted.videos > own('video')) && (brief.allowStock || brief.allowGenerate);
+
+    // 2. Copie (un appel) : textes + mots-clés de recherche des médias.
+    const copy = await writeCopy(sceneIds, brief, ctx, this.writerFor(userId), { mediaQuery: needsStock });
+    const query = (copy.copy[0]?.visual || [ctx.businessType, ...(ctx.keywords || []).slice(0, 2)].filter(Boolean).join(' ') || brief.message).slice(0, 60);
+
+    // 3. Médias, musique et effets sonores, en parallèle.
+    const [media, music, sfx] = await Promise.all([
+      this.acquireMedia({ userId, projectId, videoId, brief, visuals, wanted, query, orientation, ctx }),
       this.chooseMusic({
         mood: brief.musicMood,
         style,
@@ -221,33 +398,49 @@ export class MotionVideoService {
         seed,
         avoidIds: otherVideos.map((v) => v.music?.id).filter(Boolean) as string[],
       }),
+      brief.sfx ? this.chooseSfx(seed).catch(() => undefined) : Promise.resolve(undefined),
     ]);
+    const urls = (kind: VideoMediaKind) => media.assets.filter((a) => a.kind === kind).map((a) => a.url);
+    const images = urls('image');
 
-    const facts = extractFacts(`${brief.message}\n${brief.details || ''}`);
-    const sceneIds = planScenes(brief.objective, scope.durationSec, facts, images.length);
-    const copy = await writeCopy(sceneIds, brief, ctx, this.writerFor(userId));
-    const keptIds = sceneIds.filter((_, i) => !copy.dropped.includes(i + 1));
-    const slots = sceneIds.map((_, i) => copy.copy[i + 1]).filter((s, i) => !copy.dropped.includes(i + 1) && !!s);
+    // 4. Une scène dont le média manque se replie sur une scène sans média.
+    const slotsByIndex = sceneIds.map((_, i) => copy.copy[i + 1]);
+    const kept: { id: string; slots: Record<string, string> }[] = [];
+    sceneIds.forEach((id, i) => {
+      if (copy.dropped.includes(i + 1) || !slotsByIndex[i]) return;
+      if (id === 'gallery' && images.length < 2) return;
+      kept.push({ id, slots: slotsByIndex[i] });
+    });
+    sceneIds = kept.map((k) => k.id);
 
     const storyboard = buildStoryboard({
-      sceneIds: keptIds,
-      slots: keptIds.map((_, i) => slots[i] || {}),
+      sceneIds,
+      slots: kept.map((k) => k.slots),
       durationSec: scope.durationSec,
       style,
       seed,
       beat: music?.beat,
       images,
+      videos: urls('video'),
+      models: urls('model3d'),
+      lotties: urls('lottie'),
+      objective: brief.objective,
+      logo3d: typeDef.logoVariant === 2 && !!theme.logo.svgMarkup,
     });
 
     const now = new Date().toISOString();
-    const hook = storyboard.scenes[0]?.slots?.title || brief.message;
+    const hook = storyboard.scenes.find((sc) => sc.slots.title)?.slots.title || brief.message;
+    const used = new Set(storyboard.scenes.flatMap((sc) => [sc.image, sc.video, sc.model, sc.lottie, ...(sc.images || [])].filter(Boolean)));
     const video: MotionVideo = {
-      id: `video-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`,
+      id: videoId,
       title: fitLength(hook, 60),
+      type,
       brief,
       scope,
       storyboard,
       music,
+      sfx: sfx || (brief.sfx ? undefined : { enabled: false, sounds: {} }),
+      media: media.assets.filter((a) => used.has(a.url) || a.origin === 'upload'),
       renders: [],
       status: 'draft',
       paidCredits,
@@ -260,14 +453,21 @@ export class MotionVideoService {
     logger.info('video.created', {
       event: 'video.created',
       projectId,
-      videoId: video.id,
-      scenes: keptIds.length,
+      videoId,
+      type,
+      scenes: sceneIds.length,
       copySource: copy.source,
       tokens: copy.tokens,
       music: music?.provider,
+      media: media.report,
+      sfx: sfx ? Object.keys(sfx.sounds).length : 0,
     });
+    this.lastMediaReport = media.report;
     return video;
   }
+
+  /** Dernier rapport de médias (contrôles). */
+  lastMediaReport?: MediaReport;
 
   // ── Retouches (gratuites) ────────────────────────────────────────────────
 
@@ -281,6 +481,7 @@ export class MotionVideoService {
       musicMood?: MusicMood;
       musicTrackId?: string | null;
       scope?: unknown;
+      sfx?: boolean;
     }
   ): Promise<MotionVideo | null> {
     const current = (await this.communication.listVideos(userId, projectId)).find((v) => v.id === videoId);
@@ -339,6 +540,12 @@ export class MotionVideoService {
             });
     }
 
+    let sfx = current.sfx;
+    if (patch.sfx !== undefined) {
+      sfx = patch.sfx ? (current.sfx?.sounds && Object.keys(current.sfx.sounds).length ? { ...current.sfx, enabled: true } : await this.chooseSfx(storyboard.seed)) : { enabled: false, sounds: current.sfx?.sounds || {} };
+      brief = { ...brief, sfx: patch.sfx };
+    }
+
     storyboard = retime(storyboard, music?.beat);
 
     return this.communication.mutateVideo(userId, projectId, videoId, (v) => ({
@@ -347,7 +554,8 @@ export class MotionVideoService {
       scope,
       storyboard,
       music,
-      title: fitLength(storyboard.scenes[0]?.slots?.title || v.title, 60),
+      sfx,
+      title: fitLength(storyboard.scenes.find((sc) => sc.slots.title)?.slots.title || v.title, 60),
       dirty: v.exportCount > 0 ? true : v.dirty,
       updatedAt: new Date().toISOString(),
     }));
@@ -360,13 +568,22 @@ export class MotionVideoService {
     if (!video) return null;
     const { theme } = await this.brandContext(userId, projectId);
     const target = format && video.scope.formats.includes(format) ? format : video.scope.formats[0];
+    const assets = await inlineAssets(video.storyboard, theme, 'preview');
+    const files = await this.sfxFiles(video.sfx);
+    const density = SFX_DENSITY[video.storyboard.style] || {};
+    const sounds: Record<string, { url: string; gain: number }> = {};
+    for (const [kind, file] of Object.entries(files)) {
+      const db = SFX_GAIN_DB[kind as SfxKind] + (density[kind as SfxKind] ?? 0) + 6; // l'aperçu n'a pas de normalisation finale
+      if (db < -40) continue;
+      sounds[kind] = { url: `${apiBaseUrl()}/project/communication/sfx/${publicSoundName(file!)}`, gain: Math.min(1, Math.pow(10, db / 20)) };
+    }
     const { html } = await composeVideoHtml({
-      storyboard: video.storyboard,
-      theme,
+      ...assets,
       format: target,
       quality: 'standard',
       mode: 'preview',
       music: video.music ? { url: video.music.url, startAt: video.music.startAt } : undefined,
+      sfx: { enabled: !!video.sfx?.enabled, sounds },
     });
     return html;
   }
@@ -436,7 +653,8 @@ export class MotionVideoService {
     const video = (await this.communication.listVideos(userId, projectId)).find((v) => v.id === videoId);
     if (!video) return;
     const { theme } = await this.brandContext(userId, projectId);
-    const assets = await inlineAssets(video.storyboard, theme);
+    const assets = await inlineAssets(video.storyboard, theme, 'render');
+    const sfxFiles = await this.sfxFiles(video.sfx);
     let musicFile: string | undefined;
     if (video.music) {
       try {
@@ -461,6 +679,7 @@ export class MotionVideoService {
           durationSec: video.storyboard.durationSec,
           quality: video.scope.quality,
           music: musicFile && video.music ? { file: musicFile, startAt: video.music.startAt } : undefined,
+          sfx: Object.keys(sfxFiles).length ? { files: sfxFiles, style: video.storyboard.style } : undefined,
           posterAt: first ? first.start + Math.min(first.duration * 0.85, 2) : 1,
           onProgress: (r) => liveProgress.set(`${videoId}:${format}`, r),
         });

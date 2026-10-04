@@ -32,7 +32,10 @@ if (!ONLINE) {
   delete process.env.FREESOUND_API_KEY;
 }
 delete process.env.PEXELS_API_KEY;
+if (!ONLINE) process.env.VIDEO_SFX_OFFLINE = '1';
+process.env.VIDEO_SFX_DIR = path.resolve(__dirname, '../../tmp/motion-video-check/sfx');
 process.env.RENDER_ALLOWED_HOSTS = '127.0.0.1,localhost';
+process.env.VIDEO_ALLOW_FILE_URLS = '1';
 
 import { MotionVideo, VideoBrief } from '../models/motionVideo.model';
 import { exportCost, normalizeScope, videoCost, VIDEO_PRICING } from '../services/Communication/video/video.pricing';
@@ -51,6 +54,12 @@ import { SCENES } from '../services/Communication/video/video.scenes';
 import { BRANDS, brandById } from './fixtures/motion-video/brands';
 import { CASES, simulateModel, VideoCase } from './fixtures/motion-video/cases';
 import { makeMusic, makePhotos, SYNTH_TRACKS } from './fixtures/motion-video/media';
+import { planTypeScenes, TYPE_DEFS } from '../services/Communication/video/video.types';
+import { builtinLottie, BUILTIN_LOTTIES } from '../services/Communication/video/video.lottie';
+import { detectKind, processUpload, validateLottie } from '../services/Communication/video/video.media';
+import { refineCues, sfxLibrary, SFX_SPECS } from '../services/Communication/video/video.sfx';
+import { VIDEO_TYPES, SFX_KINDS } from '../models/motionVideo.model';
+import { starsLottie, makeBottleGlb } from './fixtures/motion-video/examples';
 
 const OUT = path.resolve(__dirname, '../../tmp/motion-video-check');
 fs.mkdirSync(OUT, { recursive: true });
@@ -372,6 +381,54 @@ async function main() {
     check(`${d} s : ~${input} tokens d’entrée + ~${output} de sortie (< 1 500 au total)`, input + output < 1500);
   }
 
+  // 8 bis. Types de motion ────────────────────────────────────────────────
+  section('8 bis. Types de motion : recette propre à chaque type');
+  for (const type of VIDEO_TYPES) {
+    for (const d of TYPE_DEFS[type].durations || [6, 15, 30]) {
+      const ids = planTypeScenes(type, 'promotion', d, wax, { images: 4, videos: 3, models: 1, lotties: 1 });
+      const signature: Record<string, string> = { kinetic: 'kinetic', footage: 'footage', showcase3d: 'showcase3d', illustrated: 'lottie', slideshow: 'gallery', product: 'product', promo: 'offer', logo: 'logo' };
+      check(
+        `${type} · ${d} s : ${ids.join(' → ')}`,
+        TYPE_DEFS[type].openers.includes(ids[0]) && ids[ids.length - 1] === 'logo' && ids.includes(signature[type])
+      );
+    }
+  }
+  const noMedia = planTypeScenes('footage', 'promotion', 15, noFacts, { images: 0, videos: 0, models: 0, lotties: 0 });
+  check('vidéo + texte sans aucun média : repli sans scène vidéo vide', !noMedia.includes('footage') && noMedia[0] === 'hook', noMedia.join(','));
+
+  // 8 ter. Lottie, imports, effets sonores ───────────────────────────────
+  section('8 ter. Lottie, imports et effets sonores');
+  const palette = { primary: '#c2410c', accent: '#facc15', secondary: '#1e3a5f', ink: '#1c1917' };
+  check(`${BUILTIN_LOTTIES.length} animations Lottie intégrées valides`, BUILTIN_LOTTIES.every((n) => validateLottie(builtinLottie(n, palette))));
+  check('Lottie importée (étoiles) valide', validateLottie(starsLottie()));
+  check('JSON quelconque refusé comme Lottie', !validateLottie({ hello: 'world' }));
+  const glbFile = path.join(OUT, 'bouteille.glb');
+  await makeBottleGlb(glbFile, { glass: '#9f1239', label: '#ffffff', cap: '#065f46' });
+  check('modèle GLB reconnu par son contenu', detectKind(fs.readFileSync(glbFile), 'application/octet-stream', 'x.bin') === 'model3d');
+  check('photo, vidéo, Lottie reconnues', detectKind(Buffer.from('x'), 'image/png', 'a.png') === 'image' && detectKind(Buffer.from('x'), 'video/mp4', 'a.mp4') === 'video' && detectKind(Buffer.from('{}'), 'application/json', 'a.json') === 'lottie');
+  const clipSrc = path.join(OUT, 'clip-source.mp4');
+  if (!fs.existsSync(clipSrc)) spawnSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=s=1920x1080:r=30:d=20', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', clipSrc]);
+  const uploadedClip = await processUpload({ buffer: fs.readFileSync(clipSrc), mimetype: 'video/mp4', originalname: 'clip.mp4' }, fakeStorage as any, 'test/uploads');
+  check(`clip importé réencodé en WebM ≤ 1280 px, 15 s max (${uploadedClip.width}×${uploadedClip.height}, ${uploadedClip.durationSec} s)`, uploadedClip.url.endsWith('.webm') && Math.max(uploadedClip.width || 0, uploadedClip.height || 0) <= 1280 && (uploadedClip.durationSec || 0) <= 15.1 && !!uploadedClip.posterUrl);
+  const uploadedGlb = await processUpload({ buffer: fs.readFileSync(glbFile), mimetype: 'model/gltf-binary', originalname: 'bouteille.glb' }, fakeStorage as any, 'test/uploads');
+  check('modèle 3D importé', uploadedGlb.kind === 'model3d' && uploadedGlb.url.endsWith('.glb'));
+  const uploadedLottie = await processUpload({ buffer: Buffer.from(JSON.stringify(starsLottie())), mimetype: 'application/json', originalname: 'etoiles.json' }, fakeStorage as any, 'test/uploads');
+  check(`Lottie importée (${uploadedLottie.durationSec} s)`, uploadedLottie.kind === 'lottie' && uploadedLottie.durationSec === 2);
+  let refused = false;
+  try {
+    await processUpload({ buffer: Buffer.from('{"a":1}'), mimetype: 'application/json', originalname: 'faux.json' }, fakeStorage as any, 'test/uploads');
+  } catch {
+    refused = true;
+  }
+  check('faux Lottie refusé à l’import', refused);
+  const lib = await sfxLibrary();
+  check(`sonothèque : un son pour chacun des ${SFX_KINDS.length} moments sonores`, SFX_KINDS.every((k) => (lib.sounds[k] || []).length > 0 && fs.existsSync(lib.sounds[k][0].file)));
+  check('sons dans leur gabarit de durée', SFX_KINDS.every((k) => lib.sounds[k].every((snd) => snd.durationSec <= SFX_SPECS[k].max + 0.1)));
+  const dense = Array.from({ length: 40 }, (_, i) => ({ t: i * 0.05, kind: 'click' as const }));
+  check('effets : densité plafonnée (40 clics serrés → quelques-uns)', refineCues(dense, 'energetic', 10).length <= 12);
+  check('style élégant : pas de clic', refineCues([{ t: 1, kind: 'click' }], 'premium', 10).length === 0);
+  check('effets hors durée ignorés', refineCues([{ t: 11, kind: 'pop' }], 'energetic', 10).length === 0);
+
   // 9. Pipeline complet, réponses simulées ────────────────────────────────────
   section('9. Pipeline complet (modèle simulé : propre, désordre, JSON, invention, vide, panne)');
   const photos = await makePhotos(path.join(OUT, 'photos'));
@@ -479,7 +536,7 @@ async function main() {
         const spec = frameSpec(r.format, done.scope.quality);
         check(
           `${c.id} · ${r.format} : ${info.width}×${info.height}, ${info.duration.toFixed(2)} s, ${Math.round(info.fps)} i/s, son ${info.hasAudio ? 'oui' : 'non'}, ${(r.sizeBytes! / 1024 / 1024).toFixed(1)} Mo`,
-          info.width === spec.width && info.height === spec.height && Math.abs(info.duration - c.scope.durationSec) < 0.15 && Math.abs(info.fps - spec.fps) < 0.5 && info.hasAudio === !!done.music
+          info.width === spec.width && info.height === spec.height && Math.abs(info.duration - c.scope.durationSec) < 0.15 && Math.abs(info.fps - spec.fps) < 0.5 && info.hasAudio === (!!done.music || !!done.sfx?.enabled)
         );
         const target = path.join(OUT, `${c.id}-${r.format}.mp4`);
         fs.copyFileSync(file, target);

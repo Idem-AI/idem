@@ -42,7 +42,7 @@ export interface VideoTheme {
   surfaces: Record<SurfaceName, SurfaceTokens>;
   fonts: { display: string; body: string; links: string };
   /** Sources d'image du logo (URL ou data-URI), par polarité de fond. */
-  logo: { onLight?: string; onDark?: string; icon?: string };
+  logo: { onLight?: string; onDark?: string; icon?: string; svgMarkup?: string };
 }
 
 const DEFAULTS = {
@@ -111,6 +111,15 @@ export function toImageSrc(value?: string): string | undefined {
   return undefined;
 }
 
+/** Le SVG brut du logo (pour l'extruder en 3D), quand la charte le porte. */
+export function svgMarkupOf(value?: string): string | undefined {
+  const v = (value || '').trim();
+  if (v.startsWith('<svg') || (v.startsWith('<?xml') && v.includes('<svg'))) return v;
+  const m = v.match(/^data:image\/svg\+xml;base64,(.+)$/);
+  if (m) return Buffer.from(m[1], 'base64').toString('utf8');
+  return undefined;
+}
+
 export function buildVideoTheme(
   branding: Partial<BrandIdentityModel> | null | undefined,
   brandName: string
@@ -164,6 +173,7 @@ export function buildVideoTheme(
       onLight: toImageSrc(resolveLogoSlot(logo, 'assetUrls.withText.lightBackground')),
       onDark: toImageSrc(resolveLogoSlot(logo, 'assetUrls.withText.darkBackground')),
       icon: toImageSrc(resolveLogoSlot(logo, 'assetUrls.icon')),
+      svgMarkup: svgMarkupOf(resolveLogoSlot(logo, 'iconSvg')) || svgMarkupOf(resolveLogoSlot(logo, 'svg')),
     },
   };
 }

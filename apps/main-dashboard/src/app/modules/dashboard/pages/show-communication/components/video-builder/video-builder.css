@@ -132,3 +132,96 @@
 .vdb-photo-busy {
   cursor: progress;
 }
+
+/* ── Types de motion ─────────────────────────────────────────────────────── */
+
+.vdb-types {
+  margin-top: 1.1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+@media (min-width: 48rem) {
+  .vdb-types {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.vdb-type-uses {
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Médias importés ─────────────────────────────────────────────────────── */
+
+.vdb-media-kinds {
+  display: grid;
+  gap: 0.9rem;
+}
+
+@media (min-width: 40rem) {
+  .vdb-media-kinds {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.vdb-media-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.vdb-file {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  background: var(--glass-bg-subtle);
+  font-size: 0.65rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+  word-break: break-all;
+}
+
+.vdb-file .pi {
+  font-size: 1.1rem;
+}
+
+.vdb-switches {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.vdb-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+
+.vdb-switch input {
+  margin-top: 0.2rem;
+}
+
+.vdb-switch-title {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.vdb-switch-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}

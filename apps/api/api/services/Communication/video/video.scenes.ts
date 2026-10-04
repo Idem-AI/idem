@@ -253,10 +253,61 @@ export const SCENES: Record<string, SceneDef> = {
     max: 4.5,
     surfaces: ['primary', 'accent', 'light'],
   },
+  footage: {
+    id: 'footage',
+    slots: [
+      { key: 'kicker', max: 24, hint: 'tiny label above' },
+      { key: 'title', max: 42, required: true, hint: 'line shown over the video, 3-7 words' },
+      { key: 'sub', max: 70, hint: 'supporting line' },
+    ],
+    variants: 3,
+    nominal: 3.4,
+    min: 2.4,
+    max: 6,
+    surfaces: ['secondary', 'primary', 'light'],
+  },
+  kinetic: {
+    id: 'kinetic',
+    slots: [
+      { key: 'l1', max: 16, required: true, hint: 'word or very short phrase' },
+      { key: 'l2', max: 16, required: true, hint: 'word or very short phrase' },
+      { key: 'l3', max: 16, hint: 'word or very short phrase' },
+      { key: 'l4', max: 24, hint: 'final punchline' },
+    ],
+    variants: 2,
+    nominal: 3.2,
+    min: 2.2,
+    max: 5,
+    surfaces: ['primary', 'secondary', 'light', 'accent'],
+  },
+  lottie: {
+    id: 'lottie',
+    slots: [
+      { key: 'title', max: 40, required: true, hint: 'line under the animation' },
+      { key: 'sub', max: 70, hint: 'supporting line' },
+    ],
+    variants: 2,
+    nominal: 3.2,
+    min: 2.4,
+    max: 5,
+    surfaces: ['light', 'primary', 'accent'],
+  },
+  showcase3d: {
+    id: 'showcase3d',
+    slots: [
+      { key: 'title', max: 36, required: true, hint: 'what is shown in 3D' },
+      { key: 'sub', max: 60, hint: 'supporting line' },
+    ],
+    variants: 1,
+    nominal: 4,
+    min: 3,
+    max: 7,
+    surfaces: ['light', 'secondary', 'primary'],
+  },
   logo: {
     id: 'logo',
     slots: [{ key: 'tagline', max: 48, hint: 'brand signature line' }],
-    variants: 2,
+    variants: 3,
     nominal: 2.4,
     min: 1.8,
     max: 3.5,
@@ -494,8 +545,85 @@ export function sceneMarkup(ctx: SceneContext): string {
 </div>`;
     }
 
+    case 'footage': {
+      const media = scene.video
+        ? `<video data-r="video" muted playsinline preload="auto" src="${attr(scene.video)}"></video>`
+        : scene.image
+          ? `<img data-r="img" src="${attr(scene.image)}" alt="">`
+          : '';
+      const title = `<h2 data-r="title" class="display fit" ${fit(13, 7, 3)}>${emphasize(s.title)}</h2>`;
+      const sub = s.sub ? `<p data-r="sub" class="body fit mt-[calc(var(--u)*2.5)]" ${fit(5, 3.4, 2)}>${esc(s.sub)}</p>` : '';
+      const kicker = s.kicker ? `<p data-r="kicker" class="kicker mb-[calc(var(--u)*2.5)]">${esc(s.kicker)}</p>` : '';
+      if (v === 1) {
+        return `${deco}
+<div class="safe ${land ? 'flex-row items-center gap-[calc(var(--u)*6)]' : 'justify-center'}">
+  <div data-r="card" class="card ${land ? 'h-full w-[55%]' : 'h-[56%] w-full'}">${media}</div>
+  <div class="${land ? 'flex-1' : 'mt-[calc(var(--u)*5)]'}">${kicker}${title}${sub}</div>
+</div>`;
+      }
+      if (v === 2) {
+        return `<div data-r="media" class="media">${media}</div>
+<div class="safe justify-end">
+  <div data-r="third" class="lower-third">${kicker}${title}${sub}</div>
+</div>`;
+      }
+      return `<div data-r="media" class="media">${media}</div>
+<div class="scrim"></div>
+<div class="safe justify-end">${kicker}${title}${sub}</div>`;
+    }
+
+    case 'kinetic': {
+      const lines = [s.l1, s.l2, s.l3, s.l4].filter(Boolean);
+      if (v === 1) {
+        return `${deco}
+<div class="safe items-center justify-center text-center">
+  <div class="kin-stage">
+    ${lines.map((l, i) => `<div data-r="kline" class="kin-solo display ${i % 2 ? 'kin-outline' : ''}"><span class="fit" ${fit(i === lines.length - 1 ? 17 : 22, 8, 2)}>${esc(l)}</span></div>`).join('')}
+  </div>
+</div>`;
+      }
+      return `${deco}
+<div class="safe justify-center">
+  ${lines.map((l, i) => `<div data-r="kline" class="kin-line display ${i % 2 ? 'text-right kin-hl' : ''} ${i === lines.length - 1 ? 'kin-last' : ''}"><span class="fit" ${fit(i === lines.length - 1 ? 13 : 17, 7, 2)}>${esc(l)}</span></div>`).join('')}
+</div>`;
+    }
+
+    case 'lottie': {
+      const anim = `<div data-r="lottie" class="lottie-box ${v === 1 && land ? 'lottie-side' : ''}"></div>`;
+      const text = `<h2 data-r="title" class="display fit" ${fit(11, 6, 3)}>${emphasize(s.title)}</h2>
+  ${s.sub ? `<p data-r="sub" class="body fit mt-[calc(var(--u)*3)]" style="color:var(--muted)" ${fit(5, 3.4, 2)}>${esc(s.sub)}</p>` : ''}`;
+      if (v === 1) {
+        return `${deco}
+<div class="safe ${land ? 'flex-row items-center gap-[calc(var(--u)*5)]' : 'justify-center'}">
+  ${anim}
+  <div class="${land ? 'flex-1' : 'mt-[calc(var(--u)*2)]'}">${text}</div>
+</div>`;
+      }
+      return `${deco}
+<div class="safe items-center justify-center text-center">
+  ${anim}
+  <div class="mt-[calc(var(--u)*2)] w-full">${text}</div>
+</div>`;
+    }
+
+    case 'showcase3d':
+      return `<canvas data-r="three" class="three-canvas"></canvas>
+<div class="safe justify-end">
+  <div class="three-caption">
+    <h2 data-r="title" class="display fit" ${fit(11, 6, 2)}>${emphasize(s.title)}</h2>
+    ${s.sub ? `<p data-r="sub" class="body fit mt-[calc(var(--u)*2)]" style="color:var(--muted)" ${fit(5, 3.4, 2)}>${esc(s.sub)}</p>` : ''}
+  </div>
+</div>`;
+
     case 'logo':
     default: {
+      if (v === 2) {
+        return `<canvas data-r="three" class="three-canvas"></canvas>
+<div class="safe items-center justify-end text-center">
+  <p data-r="brand" class="display fit" ${fit(9, 5, 1)}>${esc(ctx.theme.brandName)}</p>
+  ${s.tagline ? `<p data-r="tagline" class="body fit mt-[calc(var(--u)*2)] font-semibold" style="color:var(--muted)" ${fit(5, 3.4, 2)}>${esc(s.tagline)}</p>` : ''}
+</div>`;
+      }
       const mark = ctx.logo
         ? `<img data-r="logo" class="logo-img" src="${attr(ctx.logo)}" alt=""><div data-r="logo-fallback" class="display fit" style="display:none" ${fit(14, 7, 2)}>${esc(ctx.theme.brandName)}</div>`
         : `<div data-r="logo" class="display fit" ${fit(14, 7, 2)}>${esc(ctx.theme.brandName)}</div>`;

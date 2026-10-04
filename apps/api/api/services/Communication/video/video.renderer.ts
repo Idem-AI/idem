@@ -16,7 +16,8 @@ import os from 'os';
 import path from 'path';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import logger from '../../../config/logger';
-import { VideoQuality } from '../../../models/motionVideo.model';
+import { MotionStyle, SfxKind, VideoQuality } from '../../../models/motionVideo.model';
+import { refineCues, SfxCue } from './video.sfx';
 import { installRenderNetworkGuard } from '../../../utils/render-network-guard';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
@@ -47,6 +48,16 @@ async function getBrowser(): Promise<Browser> {
       '--font-render-hinting=none',
       '--disable-background-timer-throttling',
       '--disable-renderer-backgrounding',
+      // WebGL logiciel (SwiftShader) : les scènes 3D se rendent sans carte graphique.
+      '--enable-unsafe-swiftshader',
+      '--use-angle=swiftshader',
+      '--ignore-gpu-blocklist',
+      '--autoplay-policy=no-user-gesture-required',
+      // Les onglets de rendu tournent en parallèle : aucun ne doit être traité
+      // comme « en arrière-plan », sinon Chromium suspend le décodage de ses clips.
+      '--disable-background-media-suspend',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-features=MediaSessionService,BackForwardCache,CalculateNativeWinOcclusion',
     ],
     timeout: 30000,
   });
@@ -107,6 +118,8 @@ export interface RenderInput {
   music?: { file: string; startAt: number };
   /** Instant de l'affiche (vignette), en secondes. */
   posterAt?: number;
+  /** Effets sonores : un fichier par moment sonore, et le style (densité). */
+  sfx?: { files: Partial<Record<SfxKind, string>>; style: MotionStyle };
   onProgress?: (ratio: number) => void;
   concurrency?: number;
 }
@@ -119,12 +132,20 @@ export interface RenderOutput {
   height: number;
   fps: number;
   sizeBytes: number;
+  /** Moments sonores réellement mixés. */
+  cues: (SfxCue & { db: number })[];
 }
 
 async function preparePage(browser: Browser, input: RenderInput): Promise<Page> {
+  // Les clips et modèles embarqués peuvent dépasser le délai par défaut.
+
   const page = await browser.newPage();
   await page.setViewport({ width: input.width, height: input.height, deviceScaleFactor: 1 });
   await installRenderNetworkGuard(page);
+  // Chaque onglet se croit au premier plan : les clips vidéo y restent décodés.
+  const cdp = await page.createCDPSession();
+  await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => undefined);
+  await cdp.send('Page.setWebLifecycleState', { state: 'active' }).catch(() => undefined);
   await page.setContent(input.html, { waitUntil: 'load', timeout: 60000 });
   await page.evaluate(() => (window as any).__IDEM_VIDEO__.ready);
   return page;
@@ -153,6 +174,7 @@ async function renderChunk(
   const cdp = await page.createCDPSession();
   try {
     for (let f = from; f < to; f++) {
+      // `seek` renvoie une promesse quand un clip vidéo doit se positionner.
       await page.evaluate((t: number) => (window as any).__IDEM_VIDEO__.seek(t), f / input.fps);
       const shot = (await cdp.send('Page.captureScreenshot', {
         format: 'jpeg',
@@ -192,6 +214,7 @@ export async function renderVideo(input: RenderInput): Promise<RenderOutput> {
     }
   };
 
+  let rawCues: SfxCue[] = [];
   try {
     const per = Math.ceil(total / concurrency);
     const chunks = Array.from({ length: concurrency }, (_, i) => ({
@@ -204,6 +227,7 @@ export async function renderVideo(input: RenderInput): Promise<RenderOutput> {
       chunks.map(async (chunk) => {
         const page = await preparePage(browser, input);
         pages.push(page);
+        if (chunk.from === 0) rawCues = await page.evaluate(() => (window as any).__IDEM_VIDEO__.cues?.() || []);
         await renderChunk(page, input, chunk.from, chunk.to, chunk.file, tick);
       })
     );
@@ -214,24 +238,9 @@ export async function renderVideo(input: RenderInput): Promise<RenderOutput> {
     await run(['-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', silent]);
 
     const file = path.join(workDir, 'video.mp4');
-    if (input.music) {
-      const d = input.durationSec;
-      const fadeOut = Math.min(1.5, d * 0.2);
-      await run([
-        '-y', '-v', 'error',
-        '-i', silent,
-        '-ss', String(Math.max(0, input.music.startAt)), '-t', String(d + 0.5), '-i', input.music.file,
-        '-filter_complex', `[1:a]atrim=0:${d},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.35,afade=t=out:st=${Math.max(0, d - fadeOut).toFixed(3)}:d=${fadeOut.toFixed(3)},loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a]`,
-        '-map', '0:v', '-map', '[a]',
-        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k',
-        '-t', String(d),
-        '-movflags', '+faststart',
-        file,
-      ]);
-    } else {
-      await run(['-y', '-v', 'error', '-i', silent, '-c', 'copy', '-movflags', '+faststart', file]);
-    }
-
+    const d = input.durationSec;
+    const cues = input.sfx ? refineCues(rawCues, input.sfx.style, d).filter((c) => input.sfx!.files[c.kind]) : [];
+    await mixAudio({ silent, file, d, music: input.music, cues, files: input.sfx?.files || {} });
     const poster = path.join(workDir, 'poster.jpg');
     const posterAt = Math.max(0, Math.min(input.durationSec - 0.1, input.posterAt ?? input.durationSec * 0.2));
     await run(['-y', '-v', 'error', '-ss', posterAt.toFixed(3), '-i', file, '-frames:v', '1', '-q:v', '3', poster]);
@@ -245,6 +254,7 @@ export async function renderVideo(input: RenderInput): Promise<RenderOutput> {
       height: input.height,
       fps: input.fps,
       sizeBytes: fs.statSync(file).size,
+      cues,
     };
   } catch (error) {
     fs.rmSync(workDir, { recursive: true, force: true });
@@ -254,6 +264,67 @@ export async function renderVideo(input: RenderInput): Promise<RenderOutput> {
     activeRenders--;
     releaseBrowser();
   }
+}
+
+/**
+ * Le mixage : musique (extrait, fondus) + effets sonores posés à la milliseconde.
+ * La musique s'efface sous chaque effet (compression déclenchée par les effets),
+ * puis limiteur et normalisation à −14 LUFS (niveau des réseaux sociaux).
+ */
+async function mixAudio(opts: {
+  silent: string;
+  file: string;
+  d: number;
+  music?: { file: string; startAt: number };
+  cues: (SfxCue & { db: number })[];
+  files: Partial<Record<SfxKind, string>>;
+}): Promise<void> {
+  const { silent, file, d, music, cues, files } = opts;
+  if (!music && !cues.length) {
+    await run(['-y', '-v', 'error', '-i', silent, '-c', 'copy', '-movflags', '+faststart', file]);
+    return;
+  }
+  const args = ['-y', '-v', 'error', '-i', silent];
+  const filters: string[] = [];
+  let index = 1;
+  let musicLabel = '';
+  if (music) {
+    args.push('-ss', String(Math.max(0, music.startAt)), '-t', String(d + 0.5), '-i', music.file);
+    const fadeOut = Math.min(1.5, d * 0.2);
+    filters.push(
+      `[${index}:a]atrim=0:${d},asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,afade=t=in:st=0:d=0.35,afade=t=out:st=${Math.max(0, d - fadeOut).toFixed(3)}:d=${fadeOut.toFixed(3)},volume=-3dB[mus]`
+    );
+    musicLabel = '[mus]';
+    index++;
+  }
+  const sfxLabels: string[] = [];
+  for (const cue of cues) {
+    args.push('-i', files[cue.kind]!);
+    const ms = Math.round(cue.t * 1000);
+    filters.push(`[${index}:a]aresample=48000,aformat=channel_layouts=stereo,volume=${cue.db}dB,adelay=${ms}|${ms}[s${index}]`);
+    sfxLabels.push(`[s${index}]`);
+    index++;
+  }
+  const master = 'alimiter=limit=0.94:level=disabled,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000';
+  if (sfxLabels.length) {
+    filters.push(`${sfxLabels.join('')}amix=inputs=${sfxLabels.length}:normalize=0:dropout_transition=0,apad=whole_dur=${d}[sfx]`);
+    if (musicLabel) {
+      filters.push('[sfx]asplit=2[sfxa][sfxb]');
+      filters.push(`${musicLabel}[sfxa]sidechaincompress=threshold=0.04:ratio=5:attack=8:release=260:makeup=1[duck]`);
+      filters.push(`[duck][sfxb]amix=inputs=2:normalize=0:dropout_transition=0,${master}[a]`);
+    } else {
+      filters.push(`[sfx]${master}[a]`);
+    }
+  } else {
+    filters.push(`${musicLabel}${master}[a]`);
+  }
+  args.push(
+    '-filter_complex', filters.join(';'),
+    '-map', '0:v', '-map', '[a]',
+    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k',
+    '-t', String(d), '-movflags', '+faststart', file
+  );
+  await run(args);
 }
 
 /** Durée et flux d'un fichier, via ffprobe (contrôles et tests). */

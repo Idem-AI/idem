@@ -1,7 +1,7 @@
 <section class="vb glass-card" aria-labelledby="vdb-question">
   <!-- ─────────────── Où on en est ─────────────── -->
   <ol class="vb-progress">
-    @for (index of [1, 2, 3]; track index) {
+    @for (index of steps; track index) {
       <li>
         <button
           type="button"
@@ -27,8 +27,39 @@
     }
   </ol>
 
-  <!-- ═══════════ 1. Quoi ? ═══════════ -->
+  <!-- ═══════════ 1. Quel type de motion ? ═══════════ -->
   @if (step() === 1) {
+    <h2 id="vdb-question" class="vb-question">
+      {{ 'dashboard.showCommunication.video.builder.type.question' | translate }}
+    </h2>
+    <p class="vb-help">{{ 'dashboard.showCommunication.video.builder.type.help' | translate }}</p>
+
+    <div class="vdb-types">
+      @for (t of types(); track t.id) {
+        <button
+          type="button"
+          class="vb-kind vdb-type"
+          [class.vb-active]="type() === t.id"
+          [attr.aria-pressed]="type() === t.id"
+          (click)="chooseType(t.id)"
+        >
+          <i [class]="t.icon" class="vb-kind-icon" aria-hidden="true"></i>
+          <span class="vb-kind-label">
+            {{ 'dashboard.showCommunication.video.types.' + t.id + '.label' | translate }}
+          </span>
+          <span class="vb-kind-hint">
+            {{ 'dashboard.showCommunication.video.types.' + t.id + '.hint' | translate }}
+          </span>
+          <span class="vdb-type-uses">
+            {{ 'dashboard.showCommunication.video.types.' + t.id + '.uses' | translate }}
+          </span>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- ═══════════ 2. Quoi ? ═══════════ -->
+  @if (step() === 2) {
     <h2 id="vdb-question" class="vb-question">
       {{ 'dashboard.showCommunication.video.builder.what.question' | translate }}
     </h2>
@@ -55,8 +86,8 @@
     </div>
   }
 
-  <!-- ═══════════ 2. Les détails ═══════════ -->
-  @if (step() === 2) {
+  <!-- ═══════════ 3. Les détails ═══════════ -->
+  @if (step() === 3) {
     <h2 id="vdb-question" class="vb-question">
       {{ 'dashboard.showCommunication.video.builder.details.question' | translate }}
     </h2>
@@ -99,50 +130,87 @@
       }
     </ul>
 
-    <!-- Photos du commerce : la meilleure matière d'une vidéo. -->
+    <!-- Les médias de l'utilisateur : photos, clips, modèle 3D, animation Lottie. -->
     <div class="mt-5">
-      <p class="vdb-label">{{ 'dashboard.showCommunication.video.builder.photos.label' | translate }}</p>
+      <p class="vdb-label">{{ 'dashboard.showCommunication.video.builder.media.label' | translate }}</p>
       <p class="mt-1 text-xs text-[var(--color-text-tertiary)]">
-        {{ 'dashboard.showCommunication.video.builder.photos.hint' | translate }}
+        {{ 'dashboard.showCommunication.video.builder.media.hint' | translate }}
       </p>
-      <div class="vdb-photos mt-2">
-        @for (url of photos(); track url) {
-          <div class="vdb-photo">
-            <img [src]="url" alt="" />
-            <button
-              type="button"
-              class="vdb-photo-remove"
-              [attr.aria-label]="'dashboard.showCommunication.video.builder.photos.remove' | translate"
-              (click)="removePhoto(url)"
-            >
-              <i class="pi pi-times" aria-hidden="true"></i>
-            </button>
+      <div class="vdb-media-kinds mt-2">
+        @for (input of mediaInputs; track input.kind) {
+          <div class="vdb-media-kind">
+            <p class="vdb-media-title">
+              <i [class]="input.icon" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.video.builder.media.kinds.' + input.kind | translate }}
+            </p>
+            <div class="vdb-photos">
+              @for (m of mediaOf(input.kind); track m.id) {
+                <div class="vdb-photo">
+                  @if (m.kind === 'image') {
+                    <img [src]="m.url" alt="" />
+                  } @else if (m.kind === 'video' && m.posterUrl) {
+                    <img [src]="m.posterUrl" alt="" />
+                  } @else {
+                    <span class="vdb-file">
+                      <i [class]="input.icon" aria-hidden="true"></i>
+                      <span>{{ m.name }}</span>
+                    </span>
+                  }
+                  <button
+                    type="button"
+                    class="vdb-photo-remove"
+                    [attr.aria-label]="'dashboard.showCommunication.video.builder.media.remove' | translate"
+                    (click)="removeMedia(m.id)"
+                  >
+                    <i class="pi pi-times" aria-hidden="true"></i>
+                  </button>
+                </div>
+              }
+              @if (media().length < 8) {
+                <label class="vdb-photo-add" [class.vdb-photo-busy]="uploading()">
+                  @if (uploading()) {
+                    <idem-loader size="sm" />
+                  } @else {
+                    <i class="pi pi-plus" aria-hidden="true"></i>
+                    <span>{{ 'dashboard.showCommunication.video.builder.media.add' | translate }}</span>
+                  }
+                  <input
+                    type="file"
+                    class="sr-only"
+                    [attr.accept]="input.accept"
+                    multiple
+                    [disabled]="uploading()"
+                    (change)="onFiles($event)"
+                  />
+                </label>
+              }
+            </div>
           </div>
         }
-        @if (photos().length < 6) {
-          <label class="vdb-photo-add" [class.vdb-photo-busy]="uploading()">
-            @if (uploading()) {
-              <idem-loader size="sm" />
-            } @else {
-              <i class="pi pi-camera" aria-hidden="true"></i>
-              <span>{{ 'dashboard.showCommunication.video.builder.photos.add' | translate }}</span>
-            }
-            <input
-              type="file"
-              class="sr-only"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              [disabled]="uploading()"
-              (change)="onPhotos($event)"
-            />
-          </label>
-        }
+      </div>
+
+      <!-- Ce qu'IDEM peut faire quand les médias manquent. -->
+      <div class="vdb-switches mt-4">
+        <label class="vdb-switch">
+          <input type="checkbox" [ngModel]="allowStock()" (ngModelChange)="allowStock.set($event)" name="vdbStock" />
+          <span>
+            <span class="vdb-switch-title">{{ 'dashboard.showCommunication.video.builder.media.stock' | translate }}</span>
+            <span class="vdb-switch-hint">{{ 'dashboard.showCommunication.video.builder.media.stockHint' | translate }}</span>
+          </span>
+        </label>
+        <label class="vdb-switch">
+          <input type="checkbox" [ngModel]="allowGenerate()" (ngModelChange)="allowGenerate.set($event)" name="vdbGenerate" />
+          <span>
+            <span class="vdb-switch-title">{{ 'dashboard.showCommunication.video.builder.media.generate' | translate }}</span>
+            <span class="vdb-switch-hint">{{ 'dashboard.showCommunication.video.builder.media.generateHint' | translate }}</span>
+          </span>
+        </label>
       </div>
     </div>
   }
 
-  <!-- ═══════════ 3. Le périmètre ═══════════ -->
-  @if (step() === 3) {
+  <!-- ═══════════ 4. Le périmètre ═══════════ -->
+  @if (step() === 4) {
     <h2 id="vdb-question" class="vb-question">
       {{ 'dashboard.showCommunication.video.builder.scope.question' | translate }}
     </h2>
@@ -239,6 +307,14 @@
       </div>
     </div>
 
+    <label class="vdb-switch mt-4">
+      <input type="checkbox" [ngModel]="sfx()" (ngModelChange)="sfx.set($event)" name="vdbSfx" />
+      <span>
+        <span class="vdb-switch-title">{{ 'dashboard.showCommunication.video.builder.sfx.label' | translate }}</span>
+        <span class="vdb-switch-hint">{{ 'dashboard.showCommunication.video.builder.sfx.hint' | translate }}</span>
+      </span>
+    </label>
+
     <!-- Le prix, en direct : on sait ce qu'on paie avant de cliquer. -->
     <div class="vdb-price glass" role="status" aria-live="polite">
       <i class="pi pi-wallet text-[var(--color-primary-500)]" aria-hidden="true"></i>
@@ -260,12 +336,12 @@
       {{ (step() === 1 ? 'common.cancel' : 'common.previous') | translate }}
     </button>
 
-    @if (step() === 2) {
+    @if (step() === 3) {
       <button type="button" class="inner-button" [disabled]="!canAdvance()" (click)="next()">
         {{ 'common.next' | translate }}
         <i class="pi pi-arrow-right" aria-hidden="true"></i>
       </button>
-    } @else if (step() === 3) {
+    } @else if (step() === 4) {
       <button type="button" class="inner-button" [disabled]="!canAdvance()" (click)="submit()">
         @if (busy()) {
           <idem-loader size="xs" />

@@ -24,6 +24,9 @@ import {
   VideoOptions,
   VideoQuality,
   VideoScope,
+  VideoMediaAsset,
+  VideoMediaKind,
+  VideoType,
 } from '../../../../models/motion-video.model';
 
 const OBJECTIVES: { id: VideoObjective; icon: string }[] = [
@@ -46,8 +49,19 @@ const FORMATS: { id: VideoFormat; ratio: string; icons: string[] }[] = [
 
 const MOODS: MusicMood[] = ['auto', 'upbeat', 'afro', 'calm', 'epic', 'corporate', 'none'];
 
+/** Ce que chaque type de média accepte à l'import. */
+const MEDIA_INPUTS: { kind: VideoMediaKind; icon: string; accept: string }[] = [
+  { kind: 'image', icon: 'pi pi-camera', accept: 'image/jpeg,image/png,image/webp' },
+  { kind: 'video', icon: 'pi pi-video', accept: 'video/mp4,video/quicktime,video/webm' },
+  { kind: 'model3d', icon: 'pi pi-box', accept: '.glb,model/gltf-binary' },
+  { kind: 'lottie', icon: 'pi pi-sparkles', accept: '.json,application/json' },
+];
+
+const MAX_MEDIA = 8;
+
 /**
- * Créer une vidéo en trois questions : QUOI, les DÉTAILS, et le PÉRIMÈTRE.
+ * Créer une vidéo en quatre étapes : le TYPE de motion, QUOI annoncer, les
+ * DÉTAILS (et les médias de l'utilisateur), puis le PÉRIMÈTRE.
  *
  * Le périmètre (durée, formats, qualité) fixe le prix, affiché en direct à
  * partir du barème de l'API : on sait ce qu'on paie avant de cliquer.
@@ -75,12 +89,20 @@ export class VideoBuilder {
   protected readonly formatChoices = FORMATS;
   protected readonly moods = MOODS;
   protected readonly qualities: VideoQuality[] = ['standard', 'hd', 'premium'];
+  protected readonly mediaInputs = MEDIA_INPUTS;
+  protected readonly steps = [1, 2, 3, 4];
 
   protected readonly step = signal(1);
+  protected readonly type = signal<VideoType | null>(null);
+  protected readonly media = signal<VideoMediaAsset[]>([]);
+  protected readonly allowStock = signal(true);
+  protected readonly allowGenerate = signal(true);
+  protected readonly sfx = signal(true);
+  protected readonly types = computed(() => this.options().types);
+  protected readonly typeDef = computed(() => this.types().find((t) => t.id === this.type()) ?? null);
   protected readonly objective = signal<VideoObjective | null>(null);
   protected readonly message = signal('');
   protected readonly details = signal('');
-  protected readonly photos = signal<string[]>([]);
   protected readonly uploading = signal(false);
   protected readonly duration = signal<VideoDuration>(15);
   protected readonly formats = signal<VideoFormat[]>(['story']);
@@ -89,7 +111,7 @@ export class VideoBuilder {
   protected readonly style = signal<MotionStyle | 'auto'>('auto');
   protected readonly busy = signal(false);
 
-  protected readonly durations = computed(() => this.options().pricing.durations);
+  protected readonly durations = computed(() => this.typeDef()?.durations ?? this.options().pricing.durations);
   protected readonly styles = computed(() => this.options().styles);
 
   protected readonly scope = computed<VideoScope>(() => ({
@@ -104,21 +126,35 @@ export class VideoBuilder {
   protected readonly canAdvance = computed(() => {
     switch (this.step()) {
       case 1:
-        return !!this.objective();
+        return !!this.type();
       case 2:
+        return !!this.objective();
+      case 3:
         return this.message().trim().length >= 3 && !this.uploading();
       default:
         return this.formats().length > 0 && !this.busy();
     }
   });
 
-  protected chooseObjective(id: VideoObjective): void {
-    this.objective.set(id);
+  protected chooseType(id: VideoType): void {
+    this.type.set(id);
+    // Une durée hors des durées du type (révélation de logo : 6 ou 15 s) est ramenée.
+    const allowed = this.types().find((t) => t.id === id)?.durations;
+    if (allowed && !allowed.includes(this.duration())) this.duration.set(allowed[allowed.length - 1]);
     this.step.set(2);
   }
 
+  protected chooseObjective(id: VideoObjective): void {
+    this.objective.set(id);
+    this.step.set(3);
+  }
+
   protected next(): void {
-    if (this.canAdvance()) this.step.update((s) => Math.min(3, s + 1));
+    if (this.canAdvance()) this.step.update((s) => Math.min(4, s + 1));
+  }
+
+  protected mediaOf(kind: VideoMediaKind): VideoMediaAsset[] {
+    return this.media().filter((m) => m.kind === kind);
   }
 
   protected back(): void {
@@ -143,18 +179,18 @@ export class VideoBuilder {
     }
   }
 
-  protected onPhotos(event: Event): void {
+  protected onFiles(event: Event): void {
     const inputEl = event.target as HTMLInputElement;
-    const files = Array.from(inputEl.files || []).slice(0, 6 - this.photos().length);
+    const files = Array.from(inputEl.files || []).slice(0, MAX_MEDIA - this.media().length);
     inputEl.value = '';
     if (!files.length) return;
     this.uploading.set(true);
     this.videos
-      .uploadPhotos(this.projectId(), files)
+      .uploadMedia(this.projectId(), files)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ urls }) => {
-          this.photos.update((list) => [...list, ...urls].slice(0, 6));
+        next: ({ assets }) => {
+          this.media.update((list) => [...list, ...assets].slice(0, MAX_MEDIA));
           this.uploading.set(false);
         },
         error: () => {
@@ -164,13 +200,14 @@ export class VideoBuilder {
       });
   }
 
-  protected removePhoto(url: string): void {
-    this.photos.update((list) => list.filter((u) => u !== url));
+  protected removeMedia(id: string): void {
+    this.media.update((list) => list.filter((m) => m.id !== id));
   }
 
   protected submit(): void {
     const objective = this.objective();
-    if (!objective || this.busy() || !this.canAdvance()) return;
+    const type = this.type();
+    if (!objective || !type || this.busy() || !this.canAdvance()) return;
     this.busy.set(true);
     this.videos
       .create(this.projectId(), {
@@ -180,9 +217,13 @@ export class VideoBuilder {
           details: this.details().trim() || undefined,
           musicMood: this.mood(),
           style: this.style(),
-          imageUrls: this.photos(),
+          media: this.media(),
+          allowStock: this.allowStock(),
+          allowGenerate: this.allowGenerate(),
+          sfx: this.sfx(),
         },
         scope: this.scope(),
+        type,
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

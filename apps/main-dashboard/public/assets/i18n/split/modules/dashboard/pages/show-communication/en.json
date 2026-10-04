@@ -730,9 +730,10 @@
         },
         "builder": {
           "steps": {
-            "1": "What",
-            "2": "Details",
-            "3": "Scope"
+            "1": "Type",
+            "2": "What",
+            "3": "Details",
+            "4": "Scope"
           },
           "what": {
             "question": "What do you want people to know?",
@@ -771,7 +772,31 @@
           },
           "submit": "Create the video · {{price}} credits",
           "creating": "Creating…",
-          "creatingHint": "IDEM writes the text, picks the music and syncs the animation to the beat. Allow 10 to 40 seconds."
+          "creatingHint": "IDEM writes the text, picks the music and syncs the animation to the beat. Allow 10 to 40 seconds.",
+          "type": {
+            "question": "What kind of video do you want?",
+            "help": "Pick the motion style: the rest adapts."
+          },
+          "media": {
+            "label": "Your media (optional)",
+            "hint": "Photos, clips, a 3D model (.glb) or a Lottie animation (.json): IDEM places them in the right scenes. Up to 8 files.",
+            "kinds": {
+              "image": "Photos",
+              "video": "Clips (15 s max used)",
+              "model3d": "3D model (.glb)",
+              "lottie": "Lottie animation (.json)"
+            },
+            "add": "Add",
+            "remove": "Remove",
+            "stock": "Search Pexels for photos and clips if needed",
+            "stockHint": "Free library: the author is credited.",
+            "generate": "Generate a clip if nothing fits",
+            "generateHint": "With Gemini Veo, one clip per video, as a last resort."
+          },
+          "sfx": {
+            "label": "Sound effects",
+            "hint": "Whoosh on transitions, pop when a price appears, shimmer on the logo."
+          }
         },
         "detail": {
           "back": "My videos",
@@ -826,7 +851,11 @@
           "gallery": "Gallery",
           "wordswap": "Keywords",
           "cta": "Call to action",
-          "logo": "Sign-off"
+          "logo": "Sign-off",
+          "footage": "Video",
+          "kinetic": "Animated words",
+          "lottie": "Animation",
+          "showcase3d": "3D scene"
         },
         "slots": {
           "kicker": "Small title",
@@ -854,7 +883,11 @@
           "w2": "Word 2",
           "w3": "Word 3",
           "action": "Button",
-          "contact": "Contact"
+          "contact": "Contact",
+          "l1": "Word 1",
+          "l2": "Word 2",
+          "l3": "Word 3",
+          "l4": "Final line"
         },
         "errors": {
           "load": "Your videos could not be loaded.",
@@ -864,7 +897,67 @@
           "music": "Tracks could not be loaded.",
           "export": "The export could not start.",
           "delete": "The video could not be deleted.",
-          "upload": "Photos could not be uploaded (6 max, 10 MB each)."
+          "upload": "The file could not be uploaded (photo 12 MB, video 80 MB, 3D 20 MB, Lottie 3 MB)."
+        },
+        "types": {
+          "kinetic": {
+            "label": "Kinetic typography",
+            "hint": "Punchy words on the beat",
+            "uses": "Text only"
+          },
+          "product": {
+            "label": "Product showcase",
+            "hint": "Your product, its name, its price",
+            "uses": "Your photos or Pexels"
+          },
+          "promo": {
+            "label": "Flash offer",
+            "hint": "Struck price, discount, urgency",
+            "uses": "Price and discount from the brief"
+          },
+          "footage": {
+            "label": "Video + text",
+            "hint": "Full-screen clips with your titles",
+            "uses": "Your clips, Pexels or generated"
+          },
+          "showcase3d": {
+            "label": "3D showcase",
+            "hint": "3D object, extruded logo, 3D photos",
+            "uses": "Your 3D model (optional)"
+          },
+          "illustrated": {
+            "label": "Illustrated animations",
+            "hint": "Animated confetti, ticks, sparkles",
+            "uses": "Lottie animations"
+          },
+          "slideshow": {
+            "label": "Dynamic slideshow",
+            "hint": "Your photos, cut on the beat",
+            "uses": "Your photos or Pexels"
+          },
+          "logo": {
+            "label": "Logo reveal",
+            "hint": "A short brand sting",
+            "uses": "Your logo, 6 or 15 s"
+          }
+        },
+        "sfx": {
+          "title": "Sound effects",
+          "toggle": "Enable sound effects",
+          "license": "Royalty-free sounds (CC0, Freesound), cleaned and mixed under the music.",
+          "kinds": {
+            "whoosh": "Transition",
+            "softwhoosh": "Soft transition",
+            "pop": "Pop-in",
+            "click": "Title",
+            "tick": "Counter",
+            "impact": "Impact",
+            "shimmer": "Shimmer",
+            "riser": "Riser"
+          }
+        },
+        "mediaCredits": {
+          "title": "Media credits"
         }
       }
     }

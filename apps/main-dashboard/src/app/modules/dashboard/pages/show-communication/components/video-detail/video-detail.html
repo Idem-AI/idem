@@ -13,6 +13,9 @@
         {{ v.scope.durationSec }} s ·
         {{ 'dashboard.showCommunication.video.objectives.' + v.brief.objective + '.label' | translate }} ·
         {{ 'dashboard.showCommunication.video.styles.' + v.storyboard.style | translate }}
+        @if (v.type) {
+          · {{ 'dashboard.showCommunication.video.types.' + v.type + '.label' | translate }}
+        }
       </p>
     </header>
 
@@ -275,6 +278,55 @@
             </ul>
           }
         </section>
+
+        <!-- Effets sonores -->
+        <section class="glass-card vd-card" aria-labelledby="vd-sfx-title">
+          <h3 id="vd-sfx-title" class="vd-card-title">
+            <i class="pi pi-bolt" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.video.sfx.title' | translate }}
+          </h3>
+          <label class="vd-check mt-2">
+            <input
+              type="checkbox"
+              [checked]="!!v.sfx?.enabled"
+              [disabled]="saving() !== null"
+              (change)="toggleSfx(!v.sfx?.enabled)"
+            />
+            {{ 'dashboard.showCommunication.video.sfx.toggle' | translate }}
+            @if (saving() === 'sfx') {
+              <idem-loader size="xs" />
+            }
+          </label>
+          @if (v.sfx?.enabled && sfxSounds().length) {
+            <ul class="mt-2 space-y-1 text-xs text-[var(--color-text-secondary)]">
+              @for (snd of sfxSounds(); track snd!.id) {
+                <li>
+                  <span class="font-semibold text-[var(--color-text-primary)]">
+                    {{ 'dashboard.showCommunication.video.sfx.kinds.' + snd!.kind | translate }}
+                  </span>
+                  — {{ snd!.title }} · {{ snd!.author }}
+                </li>
+              }
+            </ul>
+            <p class="mt-2 text-xs text-[var(--color-text-tertiary)]">
+              {{ 'dashboard.showCommunication.video.sfx.license' | translate }}
+            </p>
+          }
+        </section>
+
+        @if (mediaCredits().length) {
+          <section class="glass-card vd-card" aria-labelledby="vd-media-title">
+            <h3 id="vd-media-title" class="vd-card-title">
+              <i class="pi pi-images" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.video.mediaCredits.title' | translate }}
+            </h3>
+            <ul class="mt-2 space-y-1 text-xs text-[var(--color-text-secondary)]">
+              @for (m of mediaCredits(); track m.id) {
+                <li>{{ m.credit }}</li>
+              }
+            </ul>
+          </section>
+        }
 
         <!-- Style -->
         <section class="glass-card vd-card" aria-labelledby="vd-style-title">

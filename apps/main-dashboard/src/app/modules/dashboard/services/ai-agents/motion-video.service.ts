@@ -11,6 +11,8 @@ import {
   VideoFormat,
   VideoOptions,
   VideoScope,
+  VideoMediaAsset,
+  VideoType,
 } from '../../models/motion-video.model';
 
 /** Vidéos de promotion en motion design (module Communication). */
@@ -36,7 +38,7 @@ export class MotionVideoService {
     return this.http.get<MotionVideo>(`${this.apiUrl}/${projectId}/videos/${videoId}`);
   }
 
-  create(projectId: string, input: { brief: VideoBrief; scope: VideoScope }): Observable<MotionVideo> {
+  create(projectId: string, input: { brief: VideoBrief; scope: VideoScope; type: VideoType }): Observable<MotionVideo> {
     return this.http.post<MotionVideo>(`${this.apiUrl}/${projectId}/videos`, input);
   }
 
@@ -49,6 +51,7 @@ export class MotionVideoService {
       musicMood?: MusicMood;
       musicTrackId?: string;
       scope?: Partial<VideoScope>;
+      sfx?: boolean;
     },
   ): Observable<MotionVideo> {
     return this.http.patch<MotionVideo>(`${this.apiUrl}/${projectId}/videos/${videoId}`, patch);
@@ -71,6 +74,13 @@ export class MotionVideoService {
 
   delete(projectId: string, videoId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${projectId}/videos/${videoId}`);
+  }
+
+  /** Photos, clips vidéo, modèles 3D (GLB) et animations Lottie (JSON). */
+  uploadMedia(projectId: string, files: File[]): Observable<{ assets: VideoMediaAsset[] }> {
+    const form = new FormData();
+    files.slice(0, 8).forEach((file) => form.append('files', file));
+    return this.http.post<{ assets: VideoMediaAsset[] }>(`${this.apiUrl}/${projectId}/videos/media`, form);
   }
 
   uploadPhotos(projectId: string, files: File[]): Observable<{ urls: string[] }> {

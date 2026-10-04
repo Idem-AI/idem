@@ -20,6 +20,7 @@ import {
 } from '../../../models/motionVideo.model';
 import { SCENES } from './video.scenes';
 import { rng } from './video.music';
+import { lottieForObjective } from './video.lottie';
 
 const TRANSITIONS: Record<MotionStyle, VideoTransition[]> = {
   energetic: ['flash', 'wipe', 'push', 'split', 'zoom', 'wipe'],
@@ -116,12 +117,30 @@ export interface StoryboardInput {
   seed: number;
   beat?: VideoBeatGrid;
   images: string[];
+  /** Clips vidéo (WebM), modèles 3D (GLB), animations Lottie importées. */
+  videos?: string[];
+  models?: string[];
+  lotties?: string[];
+  /** Objectif : choisit les animations Lottie intégrées. */
+  objective?: string;
+  /** Le logo peut être extrudé en 3D (SVG disponible) — et le type le souhaite. */
+  logo3d?: boolean;
 }
 
-function chooseVariant(sceneId: string, slots: Record<string, string>, hasImage: boolean, r: () => number, used: Set<string>): number {
+function chooseVariant(
+  sceneId: string,
+  slots: Record<string, string>,
+  hasImage: boolean,
+  r: () => number,
+  used: Set<string>,
+  logo3d = false
+): number {
   const def = SCENES[sceneId];
+  if (sceneId === 'logo' && logo3d) return 2;
   const allowed: number[] = [];
   for (let v = 0; v < def.variants; v++) {
+    if (sceneId === 'logo' && v === 2) continue;
+    if (sceneId === 'kinetic' && v === 1 && [slots.l1, slots.l2, slots.l3, slots.l4].filter(Boolean).length < 2) continue;
     if (sceneId === 'product' && hasImage && v === 2) continue;
     if (sceneId === 'product' && !hasImage && v !== 2) continue;
     if (sceneId === 'offer' && v === 1 && !slots.badge) continue;
@@ -145,6 +164,12 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
   const images = input.images.filter(Boolean);
   let imageCursor = 0;
   const nextImage = () => (images.length ? images[imageCursor++ % images.length] : undefined);
+  const videos = (input.videos || []).filter(Boolean);
+  let videoCursor = 0;
+  const models = (input.models || []).filter(Boolean);
+  let modelCursor = 0;
+  const userLotties = (input.lotties || []).filter(Boolean);
+  let lottieCursor = 0;
 
   const minLast = input.sceneIds[input.sceneIds.length - 1] === 'logo' && input.durationSec >= 15 ? 2.2 : 1.2;
   const durations = snapToBeats(allocateDurations(input.sceneIds, input.slots, input.durationSec), input.beat, input.durationSec, minLast);
@@ -159,18 +184,41 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
     const slots = input.slots[i] || {};
     let image: string | undefined;
     let sceneImages: string[] | undefined;
+    let video: string | undefined;
+    let model: string | undefined;
+    let lottie: string | undefined;
     if (sceneId === 'product') image = nextImage();
+    if (sceneId === 'footage') {
+      if (videos.length) video = videos[videoCursor++ % videos.length];
+      else image = nextImage();
+    }
+    if (sceneId === 'showcase3d') {
+      if (models.length) model = models[modelCursor++ % models.length];
+      else if (images.length) {
+        sceneImages = [];
+        for (let k = 0; k < Math.min(4, images.length); k++) sceneImages.push(images[(imageCursor + k) % images.length]);
+        imageCursor += 1;
+      }
+    }
+    if (sceneId === 'lottie') {
+      // Les animations importées d'abord, puis celles intégrées, choisies par objectif.
+      lottie = lottieCursor < userLotties.length
+        ? userLotties[lottieCursor]
+        : `builtin:${lottieForObjective(input.objective || 'promotion', lottieCursor - userLotties.length)}`;
+      lottieCursor++;
+    }
     if (sceneId === 'gallery') {
       sceneImages = [];
       for (let k = 0; k < Math.min(3, images.length); k++) sceneImages.push(images[(imageCursor + k) % images.length]);
       imageCursor += sceneImages.length;
     }
-    const variant = chooseVariant(sceneId, slots, !!image, r, used);
+    const variant = chooseVariant(sceneId, slots, !!image, r, used, sceneId === 'logo' && !!input.logo3d);
 
     // Surface : la préférée de la scène, jamais deux fois la même d'affilée.
     let surfaces = def.surfaces.slice();
     if (sceneId === 'logo') surfaces = variant === 1 ? ['primary', 'light'] : ['light', 'primary'];
     if (sceneId === 'product' && image && variant === 0) surfaces = ['light', 'secondary'];
+    if (sceneId === 'logo' && variant === 2) surfaces = ['light'];
     const rotation = i === 0 || sceneId === 'logo' ? 0 : Math.floor(r() * 2);
     const ordered = surfaces.slice(rotation).concat(surfaces.slice(0, rotation));
     const surface = ordered.find((s) => s !== lastSurface) || ordered[0];
@@ -197,6 +245,9 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
       slots,
       ...(image ? { image } : {}),
       ...(sceneImages ? { images: sceneImages } : {}),
+      ...(video ? { video } : {}),
+      ...(model ? { model } : {}),
+      ...(lottie ? { lottie } : {}),
     };
     start += durations[i];
     return scene;

@@ -75,7 +75,7 @@ export class VideoDetail {
   protected readonly previewFormat = signal<VideoFormat>('story');
   protected readonly previewHtml = signal<SafeHtml | null>(null);
   protected readonly previewLoading = signal(false);
-  protected readonly saving = signal<'texts' | 'music' | 'style' | null>(null);
+  protected readonly saving = signal<'texts' | 'music' | 'style' | 'sfx' | null>(null);
   protected readonly edits = signal<Edits>({});
   protected readonly tracks = signal<MusicTrack[] | null>(null);
   protected readonly tracksLoading = signal(false);
@@ -88,6 +88,8 @@ export class VideoDetail {
   protected readonly ratio = computed(() => RATIOS[this.previewFormat()]);
   protected readonly scenes = computed(() => this.video()?.storyboard.scenes ?? []);
   protected readonly rendering = computed(() => this.video()?.status === 'rendering');
+  protected readonly sfxSounds = computed(() => Object.values(this.video()?.sfx?.sounds ?? {}).filter((s) => !!s));
+  protected readonly mediaCredits = computed(() => (this.video()?.media ?? []).filter((m) => !!m.credit));
   protected readonly doneRenders = computed(() => (this.video()?.renders ?? []).filter((r) => r.status === 'done'));
 
   protected readonly exportScope = computed<VideoScope | null>(() => {
@@ -238,6 +240,10 @@ export class VideoDetail {
     this.patch('music', { musicTrackId: track.id, musicMood: v?.brief.musicMood === 'none' ? 'auto' : v?.brief.musicMood });
   }
 
+  protected toggleSfx(enabled: boolean): void {
+    this.patch('sfx', { sfx: enabled });
+  }
+
   protected changeStyle(style: MotionStyle): void {
     this.patch('style', { style });
   }
@@ -251,7 +257,7 @@ export class VideoDetail {
     });
   }
 
-  private patch(kind: 'texts' | 'music' | 'style', body: Parameters<MotionVideoService['update']>[2]): void {
+  private patch(kind: 'texts' | 'music' | 'style' | 'sfx', body: Parameters<MotionVideoService['update']>[2]): void {
     const v = this.video();
     if (!v || this.saving()) return;
     this.saving.set(kind);

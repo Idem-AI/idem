@@ -24,6 +24,54 @@ L'aperçu du dashboard est le **même moteur** que le rendu, joué en temps rée
 dans une iframe isolée (`sandbox="allow-scripts"`) : ce qu'on voit est ce qui
 sera livré.
 
+## Types de motion (choisis par l'utilisateur)
+
+| Type | Scènes caractéristiques | Médias |
+|---|---|---|
+| Typographie animée (`kinetic`) | mots animés, mots qui défilent | aucun |
+| Mise en avant produit (`product`) | produit, galerie | photos importées → visuels → Pexels |
+| Offre flash (`promo`) | offre (prix barré, pastille) | prix du brief |
+| Vidéo + texte (`footage`) | clips plein écran, bandeau titre | clips importés → Pexels vidéo → Gemini Veo (1 clip) |
+| Vitrine 3D (`showcase3d`) | modèle GLB en rotation, photos en cartes 3D, formes 3D, logo extrudé | modèle importé (facultatif) |
+| Animations illustrées (`illustrated`) | Lottie intégrées (confettis, coche, étincelles, onde, éclat, cœur) ou importées | Lottie importées (facultatif) |
+| Diaporama dynamique (`slideshow`) | galeries, produit | photos |
+| Révélation de logo (`logo`) | mots animés + logo (3D si le SVG est disponible) | logo de la charte |
+
+Recettes : `video.types.ts`. Les médias importés passent par `POST …/videos/media`
+(photo 12 Mo, clip 80 Mo réencodé en WebM VP9 720p 15 s, GLB 20 Mo, Lottie JSON 3 Mo).
+
+## Effets sonores
+
+Les moments sonores sont posés par le moteur d'animation, à l'image près :
+whoosh (transitions), pop (prix, pastilles, éléments qui apparaissent), clic
+(titres), tic (compteurs), impact (tampon, flash), scintillement (logo,
+confettis), montée (avant la signature). `video.sfx.ts` :
+
+- sonothèque construite à partir de **Freesound (CC0) via Openverse** (sans clé),
+  de Freesound directement (`FREESOUND_API_KEY`, tri par note) et d'un catalogue
+  maison (`VIDEO_SFX_CATALOG`) ; synthèse ffmpeg en repli (`VIDEO_SFX_OFFLINE=1`) ;
+- chaque son est nettoyé : silences retirés, durée utile, fondus, crête −3 dBFS ;
+- mixage : niveaux par type, densité selon le style (un style élégant ne
+  cliquette pas), musique compressée sous les effets, limiteur, −14 LUFS ;
+- cache disque `VIDEO_SFX_DIR` ; `npm run check:video:types` le construit.
+
+Autres banques professionnelles examinées : Mixkit, Pixabay Sound Effects,
+Zapsplat, Sonniss (lots GDC) — sans API publique ou avec crédit obligatoire,
+utilisables via le catalogue maison ; BBC Sound Effects écartée (usage non
+commercial).
+
+## Rendu 3D, clips et Lottie
+
+- three.js (r180) empaqueté à la volée par esbuild et embarqué seulement si la
+  vidéo contient une scène 3D ; WebGL logiciel (SwiftShader) : pas de GPU requis,
+  mais le rendu d'une scène 3D est plus lent (~90 ms par image en 720p).
+- lottie-web embarqué seulement si la vidéo contient une animation Lottie.
+- Les clips sont positionnés image par image (`currentTime` + `seeked`). Les
+  onglets de rendu ont l'émulation de focus activée : sinon Chromium suspend le
+  décodage vidéo des onglets « en arrière-plan ».
+- Gemini Veo : `VIDEO_VEO_MODEL` (défaut `veo-3.1-fast-generate-preview`), un
+  seul clip par vidéo, seulement si aucun clip importé ni Pexels ne convient.
+
 ## Prix (crédits iBusiness)
 
 Référence : 15 s, un format, HD = **2 × la charte graphique** (`BUSINESS_CREDIT_COSTS.motion_video`).
@@ -71,6 +119,8 @@ npm run check:video            # tout, avec 4 rendus MP4 (~2 min)
 npm run check:video -- --fast  # sans rendu
 npm run check:video -- --all   # rend tous les cas
 npm run check:video -- --online  # + Openverse et ccMixter réels
+npm run check:video:types      # 8 exemples, un par type, vraies musiques, vrais effets, Pexels (~15 min)
+npm run check:video:types -- --veo  # + un clip généré par Gemini Veo (payant)
 ```
 
 Aucun crédit de modèle n'est nécessaire : les réponses sont simulées

@@ -39,6 +39,7 @@
     "check:indexes": "ts-node --transpile-only api/scripts/checkIndexes.ts",
     "check:flyer": "ts-node --transpile-only api/scripts/checkFlyerComposition.ts",
     "check:video": "ts-node --transpile-only api/scripts/checkMotionVideo.ts",
+    "check:video:types": "ts-node --transpile-only api/scripts/checkMotionVideoTypes.ts",
     "check:comm": "ts-node --transpile-only api/scripts/checkCommunicationPlans.ts",
     "check:inputs": "ts-node --transpile-only api/scripts/checkProjectInputs.ts",
     "check:auth": "ts-node --transpile-only api/scripts/checkAuthFlow.ts"
@@ -64,6 +65,7 @@
     "hpp": "^0.2.3",
     "ioredis": "^5.4.1",
     "jszip": "^3.10.1",
+    "lottie-web": "^5.13.0",
     "minio": "^8.0.2",
     "mongoose": "^8.9.3",
     "morgan": "^1.10.0",
@@ -82,6 +84,7 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "tailwindcss": "^4.1.17",
+    "three": "^0.180.0",
     "uuid": "^11.1.0",
     "winston": "^3.17.0"
   },

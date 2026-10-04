@@ -474,12 +474,21 @@ export async function fetchTrack(track: Pick<MusicTrack, 'url' | 'provider'>): P
   const name = crypto.createHash('sha1').update(track.url).digest('hex');
   const file = path.join(MUSIC_CACHE_DIR, `${name}.audio`);
   if (fs.existsSync(file) && fs.statSync(file).size > 1024) return file;
-  const res = await axios.get(track.url, {
-    responseType: 'arraybuffer',
-    timeout: 30000,
-    maxContentLength: MAX_TRACK_BYTES,
-    maxRedirects: 5,
-  });
-  fs.writeFileSync(file, Buffer.from(res.data));
-  return file;
+  // Deux essais : les serveurs des banques sont parfois lents à répondre.
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await axios.get(track.url, {
+        responseType: 'arraybuffer',
+        timeout: 60000,
+        maxContentLength: MAX_TRACK_BYTES,
+        maxRedirects: 5,
+      });
+      fs.writeFileSync(file, Buffer.from(res.data));
+      return file;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error && lastError.message ? lastError : new Error(`track_download_failed: ${String((lastError as any)?.code || lastError)}`);
 }

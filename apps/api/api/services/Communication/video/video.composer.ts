@@ -16,6 +16,7 @@ import { VideoFormat, VideoQuality, VideoStoryboard } from '../../../models/moti
 import { Orientation, sceneMarkup } from './video.scenes';
 import { VIDEO_ENGINE_CSS, VIDEO_RUNTIME_JS } from './video.runtime';
 import { VideoTheme } from './video.theme';
+import { builtinLottie, BuiltinLottie, BUILTIN_LOTTIES } from './video.lottie';
 import { isRenderUrlAllowed } from '../../../utils/render-network-guard';
 
 export interface FrameSpec {
@@ -111,6 +112,37 @@ export async function compileTailwind(html: string): Promise<string> {
 // ─── Scripts embarqués ──────────────────────────────────────────────────────
 
 let gsapBundle: string | null = null;
+let lottieBundle: string | null = null;
+let threeBundle: Promise<string> | null = null;
+
+function lottieScript(): string {
+  lottieBundle ??= fs.readFileSync(require.resolve('lottie-web/build/player/lottie.min.js'), 'utf8');
+  return lottieBundle;
+}
+
+/** three.js + chargeurs (GLB, SVG) + environnement, empaquetés une fois par esbuild. */
+export function threeScript(): Promise<string> {
+  threeBundle ??= (async () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const esbuild = require('esbuild');
+    const result = await esbuild.build({
+      stdin: {
+        contents:
+          "import * as THREE from 'three'; import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'; import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js'; import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'; window.THREE = THREE; window.THREE_EXTRA = { GLTFLoader, SVGLoader, RoomEnvironment };",
+        resolveDir: path.resolve(path.dirname(require.resolve('three')), '..'),
+        loader: 'js',
+      },
+      bundle: true,
+      format: 'iife',
+      minify: true,
+      write: false,
+      target: 'es2020',
+      logLevel: 'error',
+    });
+    return result.outputFiles[0].text as string;
+  })();
+  return threeBundle;
+}
 
 function gsapScripts(): string {
   if (!gsapBundle) {
@@ -123,12 +155,24 @@ function gsapScripts(): string {
 // ─── Images embarquées (rendu) ──────────────────────────────────────────────
 
 const imageMemo = new Map<string, string>();
+
+/** Fichiers locaux : contrôles seulement (`VIDEO_ALLOW_FILE_URLS=1`), jamais en production. */
+function localFile(src: string): string | null {
+  if (!src.startsWith('file:///') || process.env.VIDEO_ALLOW_FILE_URLS !== '1' || process.env.NODE_ENV === 'production') return null;
+  const file = src.slice('file://'.length);
+  return fs.existsSync(file) ? file : null;
+}
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
 /** Télécharge, redimensionne (2000 px max) et embarque une image en data-URI. */
 export async function inlineImage(src: string | undefined): Promise<string | undefined> {
   if (!src) return undefined;
   if (src.startsWith('data:')) return src;
+  const local = localFile(src);
+  if (local) {
+    const buf = await sharp(fs.readFileSync(local)).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 86 }).toBuffer();
+    return `data:image/jpeg;base64,${buf.toString('base64')}`;
+  }
   if (!/^https?:\/\//.test(src)) return undefined;
   const hit = imageMemo.get(src);
   if (hit) return hit;
@@ -157,21 +201,64 @@ export async function inlineImage(src: string | undefined): Promise<string | und
   }
 }
 
-/** Storyboard et thème avec toutes les images embarquées. */
-export async function inlineAssets(storyboard: VideoStoryboard, theme: VideoTheme): Promise<{ storyboard: VideoStoryboard; theme: VideoTheme }> {
+const binaryMemo = new Map<string, string>();
+
+/** Télécharge un fichier binaire (clip, modèle 3D) en data-URI. */
+export async function inlineBinary(src: string | undefined, mime: string, maxBytes: number): Promise<string | undefined> {
+  if (!src) return undefined;
+  if (src.startsWith('data:')) return src;
+  if (src.startsWith('file://')) {
+    const file = localFile(src);
+    return file ? `data:${mime};base64,${fs.readFileSync(file).toString('base64')}` : undefined;
+  }
+  if (!/^https?:\/\//.test(src) || !(await isRenderUrlAllowed(src))) return undefined;
+  const hit = binaryMemo.get(src);
+  if (hit) return hit;
+  try {
+    const res = await axios.get(src, { responseType: 'arraybuffer', timeout: 60000, maxContentLength: maxBytes, maxRedirects: 0 });
+    const out = `data:${mime};base64,${Buffer.from(res.data).toString('base64')}`;
+    if (binaryMemo.size > 40) binaryMemo.clear();
+    binaryMemo.set(src, out);
+    return out;
+  } catch (error: any) {
+    logger.warn('video.inline_binary_failed', { src: src.slice(0, 120), error: error.message });
+    return undefined;
+  }
+}
+
+/**
+ * Storyboard et thème avec les médias embarqués.
+ *  - rendu : images, clips, modèles 3D en data-URI (rien à télécharger pendant la capture) ;
+ *  - aperçu : clips par URL (lecture native), mais modèles 3D et textures 3D embarqués
+ *    (WebGL exige des ressources de même origine, ce qu'une iframe isolée n'a pas).
+ */
+export async function inlineAssets(
+  storyboard: VideoStoryboard,
+  theme: VideoTheme,
+  mode: 'render' | 'preview' = 'render'
+): Promise<{ storyboard: VideoStoryboard; theme: VideoTheme }> {
   const scenes = await Promise.all(
-    storyboard.scenes.map(async (scene) => ({
-      ...scene,
-      image: scene.image ? await inlineImage(scene.image) : undefined,
-      images: scene.images ? ((await Promise.all(scene.images.map(inlineImage))).filter(Boolean) as string[]) : undefined,
-    }))
+    storyboard.scenes.map(async (scene) => {
+      const needs3dTextures = mode === 'render' || scene.sceneId === 'showcase3d';
+      return {
+        ...scene,
+        image: scene.image ? (mode === 'render' ? await inlineImage(scene.image) : scene.image) : undefined,
+        images: scene.images
+          ? needs3dTextures
+            ? ((await Promise.all(scene.images.map(inlineImage))).filter(Boolean) as string[])
+            : scene.images
+          : undefined,
+        video: scene.video ? (mode === 'render' ? await inlineBinary(scene.video, 'video/webm', 80 * 1024 * 1024) : scene.video) : undefined,
+        model: scene.model ? await inlineBinary(scene.model, 'model/gltf-binary', 25 * 1024 * 1024) : undefined,
+      };
+    })
   );
   const logo = {
     onLight: await inlineImage(theme.logo.onLight),
     onDark: await inlineImage(theme.logo.onDark),
     icon: await inlineImage(theme.logo.icon),
   };
-  return { storyboard: { ...storyboard, scenes }, theme: { ...theme, logo } };
+  return { storyboard: { ...storyboard, scenes }, theme: { ...theme, logo: { ...logo, svgMarkup: theme.logo.svgMarkup } } };
 }
 
 // ─── La page ────────────────────────────────────────────────────────────────
@@ -183,6 +270,33 @@ export interface ComposeOptions {
   quality: VideoQuality;
   mode: 'render' | 'preview';
   music?: { url: string; startAt: number };
+  /** Aperçu : sons à jouer par moment sonore (URL publique + gain linéaire). */
+  sfx?: { enabled: boolean; sounds: Record<string, { url: string; gain: number }> };
+}
+
+const LOOPING: BuiltinLottie[] = ['pulse', 'sparkle'];
+
+/** Animation Lottie d'une scène : importée (fichier JSON) ou intégrée (aux couleurs de la marque). */
+async function resolveLottie(ref: string | undefined, theme: VideoTheme): Promise<{ data: any; name: string; loop: boolean } | null> {
+  if (!ref) return null;
+  if (ref.startsWith('builtin:')) {
+    const name = ref.slice('builtin:'.length) as BuiltinLottie;
+    if (!BUILTIN_LOTTIES.includes(name)) return null;
+    const p = theme.palette;
+    return { data: builtinLottie(name, { primary: p.primary, accent: p.accent, secondary: p.secondary, ink: p.text }), name, loop: LOOPING.includes(name) };
+  }
+  try {
+    let text: string;
+    const local = ref.startsWith('file://') ? localFile(ref) : null;
+    if (local) text = fs.readFileSync(local, 'utf8');
+    else if (/^https?:\/\//.test(ref) && (await isRenderUrlAllowed(ref))) text = JSON.stringify((await axios.get(ref, { timeout: 15000, maxContentLength: 3 * 1024 * 1024 })).data);
+    else return null;
+    const data = typeof text === 'string' ? JSON.parse(text) : text;
+    return { data, name: 'custom', loop: true };
+  } catch (error: any) {
+    logger.warn('video.lottie_failed', { ref: ref.slice(0, 120), error: error.message });
+    return null;
+  }
 }
 
 const cssFamily = (family: string) => `'${family.replace(/'/g, '')}'`;
@@ -202,6 +316,33 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
       return `<section class="scene s-${scene.surface}" data-scene="${scene.sceneId}" data-key="${scene.key}">${inner}</section>`;
     })
     .join('\n');
+
+  // Médias pilotés par le moteur : Lottie et 3D.
+  const lotties: Record<string, unknown> = {};
+  const sceneMedia = await Promise.all(
+    storyboard.scenes.map(async (scene) => {
+      const extra: Record<string, unknown> = {};
+      if (scene.sceneId === 'lottie') {
+        const resolved = await resolveLottie(scene.lottie, theme);
+        if (resolved) {
+          lotties[scene.key] = resolved.data;
+          Object.assign(extra, { lottieKey: scene.key, lottieName: resolved.name, lottieLoop: resolved.loop });
+        }
+      }
+      const colors = { primary: theme.palette.primary, accent: theme.palette.accent, secondary: theme.palette.secondary };
+      if (scene.sceneId === 'showcase3d') {
+        extra.three = scene.model
+          ? { mode: 'model', model: scene.model, ...colors }
+          : scene.images && scene.images.length
+            ? { mode: 'cards', images: scene.images, ...colors }
+            : { mode: 'shapes', ...colors };
+      }
+      if (scene.sceneId === 'logo' && scene.variant === 2) extra.three = { mode: 'logo', svg: theme.logo.svgMarkup, ...colors };
+      return extra;
+    })
+  );
+  const needsLottie = Object.keys(lotties).length > 0;
+  const needsThree = sceneMedia.some((m) => m.three);
 
   const brandmark = theme.logo.icon ? `<div id="brandmark"><img src="${theme.logo.icon}" alt=""></div>` : '';
   const body = `<div id="stage" data-format="${format}">${sections}${brandmark}</div>`;
@@ -229,7 +370,9 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
       duration: s.duration,
       surface: s.surface,
       transitionIn: s.transitionIn,
-    })),
+    })).map((s, i) => ({ ...s, ...sceneMedia[i] })),
+    lotties,
+    sfx: opts.mode === 'preview' ? opts.sfx : undefined,
     surfaces: Object.fromEntries(Object.entries(theme.surfaces).map(([k, s]) => [k, { bg: s.bg, hl: s.hl }])),
     music: opts.mode === 'preview' && opts.music ? opts.music : undefined,
   };
@@ -255,6 +398,8 @@ ${surfaceCss}
 ${body}
 <script>window.__VIDEO_DATA__=${json};</script>
 <script>${gsapScripts()}</script>
+${needsLottie ? `<script>${lottieScript()}</script>` : ''}
+${needsThree ? `<script>${await threeScript()}</script>` : ''}
 <script>${VIDEO_RUNTIME_JS}</script>
 </body></html>`;
   return { html, spec };

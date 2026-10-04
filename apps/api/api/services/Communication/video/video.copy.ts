@@ -138,8 +138,16 @@ export type CopyWriter = (system: string, user: string) => Promise<string>;
 
 const LANG_NAMES: Record<string, string> = { fr: 'French', en: 'English', pt: 'Portuguese', ar: 'Arabic', es: 'Spanish', sw: 'Swahili' };
 
-export function copyPlan(sceneIds: string[]): CopyPlanEntry[] {
-  return sceneIds.map((sceneId, i) => ({ index: i + 1, sceneId, slots: SCENES[sceneId]?.slots ?? [] }));
+/** Case « 0 » : les mots-clés de recherche d'images et de vidéos (Pexels), en anglais. */
+export const MEDIA_QUERY_ENTRY: CopyPlanEntry = {
+  index: 0,
+  sceneId: '_media',
+  slots: [{ key: 'visual', max: 48, hint: '2-5 English words describing the footage/photos to search (subject, place)' }],
+};
+
+export function copyPlan(sceneIds: string[], withMediaQuery = false): CopyPlanEntry[] {
+  const entries = sceneIds.map((sceneId, i) => ({ index: i + 1, sceneId, slots: SCENES[sceneId]?.slots ?? [] }));
+  return withMediaQuery ? [MEDIA_QUERY_ENTRY, ...entries] : entries;
 }
 
 export function buildCopyPrompt(plan: CopyPlanEntry[], brief: VideoBrief, ctx: CopyContext): { system: string; user: string } {
@@ -328,7 +336,7 @@ export function repairCopy(input: RepairInput): { copy: CopyResult; dropped: num
     // Une pastille qui répète le prix n'apporte rien.
     if (slots.badge && slots.price && digitsOf(slots.badge) === digitsOf(slots.price)) delete slots.badge;
     const missingRequired = entry.slots.some((s) => s.required && !slots[s.key]);
-    if (missingRequired && entry.sceneId !== 'hook' && entry.sceneId !== 'logo') {
+    if (missingRequired && !['hook', 'logo', 'footage', 'kinetic', '_media'].includes(entry.sceneId)) {
       dropped.push(entry.index);
       continue;
     }
@@ -492,6 +500,29 @@ export function heuristicSlot(
       return contactAction();
     case 'cta.contact':
       return facts.phones[0] || facts.urls[0] || '';
+    case 'footage.kicker':
+      return L.kicker[obj] || '';
+    case 'footage.title':
+    case 'lottie.title':
+    case 'showcase3d.title':
+      return capitalize(stripFacts(pick(index - 1), facts).split(/[,:;]/)[0]);
+    case 'footage.sub':
+    case 'lottie.sub':
+    case 'showcase3d.sub':
+      return ctx.valueProposition ? sentences(ctx.valueProposition)[0] || '' : '';
+    case 'kinetic.l1':
+    case 'kinetic.l2':
+    case 'kinetic.l3': {
+      const n = Number(key.slice(1)) - 1;
+      const words = stripFacts(brief.message, facts).split(/\s+/).filter((w) => w.length > 2);
+      const kw = (ctx.keywords || []).filter((k) => k && k.length <= 16);
+      const pool = [...kw, ...L.words, ...words.map(capitalize)];
+      return capitalize(pool[n] || '');
+    }
+    case 'kinetic.l4':
+      return capitalize(stripFacts(msgSentences[0] || brief.message, facts).split(/[,:;]/)[0]);
+    case '_media.visual':
+      return [ctx.businessType, ...(ctx.keywords || []).slice(0, 2)].filter(Boolean).join(' ');
     case 'logo.tagline':
       return ctx.valueProposition ? fitLength(sentences(ctx.valueProposition)[0] || '', 48) : '';
     default:
@@ -524,9 +555,10 @@ export async function writeCopy(
   sceneIds: string[],
   brief: VideoBrief,
   ctx: CopyContext,
-  writer?: CopyWriter
+  writer?: CopyWriter,
+  opts: { mediaQuery?: boolean } = {}
 ): Promise<WriteCopyResult> {
-  const plan = copyPlan(sceneIds);
+  const plan = copyPlan(sceneIds, !!opts.mediaQuery);
   const facts = extractFacts(`${brief.message}\n${brief.details || ''}`);
   let raw = '';
   let source: 'llm' | 'heuristic' = 'heuristic';

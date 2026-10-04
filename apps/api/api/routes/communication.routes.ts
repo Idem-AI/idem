@@ -44,6 +44,8 @@ import {
   previewVideoController,
   updateVideoController,
   uploadVideoPhotosController,
+  uploadVideoMediaController,
+  sfxFileController,
   videoMusicController,
   videoOptionsController,
 } from '../controllers/motionVideo.controller';
@@ -62,6 +64,10 @@ import {
 export const communicationRoutes = Router();
 
 const resource = 'communication';
+
+// Sons CC0 de la sonothèque vidéo, lus par l'aperçu (balise <audio>, sans jeton).
+// Déclarée avant les routes `/:projectId` pour ne jamais être confondue avec elles.
+communicationRoutes.get(`/${resource}/sfx/:name`, sfxFileController);
 
 /** La retouche IA d'un visuel (HTML complet) dépasse le timeout par défaut. */
 const extendedTimeout = (req: any, res: any, next: any) => {
@@ -775,6 +781,24 @@ communicationRoutes.post(
  *     summary: Upload the business's own photos (product, team, shop) for a video.
  *     security: [{ bearerAuth: [] }]
  */
+/**
+ * Médias importés pour les vidéos : photos, clips (réencodés en WebM 720p),
+ * modèles 3D (GLB, 20 Mo) et animations Lottie (JSON, 3 Mo).
+ */
+const videoMediaUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 80 * 1024 * 1024, files: 8 },
+  fileFilter: (_req, file, cb) =>
+    cb(null, /^(image\/(jpeg|png|webp|heic|heif)|video\/(mp4|quicktime|webm|x-m4v)|model\/gltf-binary|application\/(json|octet-stream))$/.test(file.mimetype) || /\.(glb|json)$/i.test(file.originalname)),
+});
+communicationRoutes.post(
+  `/${resource}/:projectId/videos/media`,
+  authenticate,
+  extendedTimeout,
+  videoMediaUpload.array('files', 8),
+  uploadVideoMediaController
+);
+
 communicationRoutes.post(
   `/${resource}/:projectId/videos/photos`,
   authenticate,

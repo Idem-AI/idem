@@ -14,6 +14,32 @@ export type VideoObjective =
   | 'opening'
   | 'testimonial'
   | 'recruitment';
+export type VideoType = 'kinetic' | 'product' | 'promo' | 'footage' | 'showcase3d' | 'illustrated' | 'slideshow' | 'logo';
+export type VideoMediaKind = 'image' | 'video' | 'model3d' | 'lottie';
+
+export interface VideoMediaAsset {
+  id: string;
+  kind: VideoMediaKind;
+  url: string;
+  origin: 'upload' | 'pexels' | 'generated' | 'library' | 'visual';
+  name?: string;
+  durationSec?: number;
+  posterUrl?: string;
+  credit?: string;
+  sourceUrl?: string;
+}
+
+export type SfxKind = 'whoosh' | 'softwhoosh' | 'pop' | 'click' | 'tick' | 'impact' | 'shimmer' | 'riser';
+
+export interface SfxSound {
+  id: string;
+  kind: SfxKind;
+  title: string;
+  author: string;
+  license: string;
+  sourceUrl?: string;
+}
+
 export type MotionStyle = 'energetic' | 'premium' | 'playful' | 'corporate';
 export type MusicMood = 'auto' | 'upbeat' | 'calm' | 'epic' | 'corporate' | 'afro' | 'none';
 
@@ -31,6 +57,10 @@ export interface VideoBrief {
   style?: MotionStyle | 'auto';
   imageUrls?: string[];
   language?: string;
+  media?: VideoMediaAsset[];
+  allowStock?: boolean;
+  allowGenerate?: boolean;
+  sfx?: boolean;
 }
 
 export interface VideoSceneInstance {
@@ -88,6 +118,9 @@ export interface VideoRender {
 export interface MotionVideo {
   id: string;
   title: string;
+  type?: VideoType;
+  media?: VideoMediaAsset[];
+  sfx?: { enabled: boolean; sounds: Partial<Record<SfxKind, SfxSound>> };
   brief: VideoBrief;
   scope: VideoScope;
   storyboard: VideoStoryboard;
@@ -127,6 +160,8 @@ export interface VideoOptions {
   styles: (MotionStyle | 'auto')[];
   /** Cases de chaque scène, avec leur longueur maximale. */
   scenes: Record<string, SceneSlotSpec[]>;
+  /** Types de motion proposés à la création. */
+  types: { id: VideoType; icon: string; style: MotionStyle; needs: { images?: number; videos?: number }; durations?: VideoDuration[] }[];
 }
 
 /** Même formule que `video.pricing.ts` côté API (l'API reste l'autorité). */

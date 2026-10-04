@@ -4238,9 +4238,10 @@
         },
         "builder": {
           "steps": {
-            "1": "Quoi",
-            "2": "Détails",
-            "3": "Périmètre"
+            "1": "Type",
+            "2": "Quoi",
+            "3": "Détails",
+            "4": "Périmètre"
           },
           "what": {
             "question": "Que voulez-vous faire savoir ?",
@@ -4279,7 +4280,31 @@
           },
           "submit": "Créer la vidéo · {{price}} crédits",
           "creating": "Création…",
-          "creatingHint": "IDEM écrit les textes, choisit la musique et cale les animations sur le rythme. Comptez de 10 à 40 secondes."
+          "creatingHint": "IDEM écrit les textes, choisit la musique et cale les animations sur le rythme. Comptez de 10 à 40 secondes.",
+          "type": {
+            "question": "Quel type de vidéo voulez-vous ?",
+            "help": "Choisissez le style de motion : le reste s’adapte."
+          },
+          "media": {
+            "label": "Vos médias (facultatif)",
+            "hint": "Photos, vidéos, modèle 3D (.glb) ou animation Lottie (.json) : IDEM les place dans les bonnes scènes. Jusqu’à 8 fichiers.",
+            "kinds": {
+              "image": "Photos",
+              "video": "Vidéos (15 s max utilisées)",
+              "model3d": "Modèle 3D (.glb)",
+              "lottie": "Animation Lottie (.json)"
+            },
+            "add": "Ajouter",
+            "remove": "Retirer",
+            "stock": "Chercher des photos et vidéos sur Pexels si besoin",
+            "stockHint": "Banque gratuite : l’auteur est crédité dans la vidéo.",
+            "generate": "Générer une vidéo si rien ne convient",
+            "generateHint": "Par Gemini Veo, un seul clip par vidéo, en dernier recours."
+          },
+          "sfx": {
+            "label": "Effets sonores",
+            "hint": "Whoosh sur les transitions, pop quand un prix apparaît, scintillement sur le logo."
+          }
         },
         "detail": {
           "back": "Mes vidéos",
@@ -4334,7 +4359,11 @@
           "gallery": "Galerie",
           "wordswap": "Mots clés",
           "cta": "Appel à l’action",
-          "logo": "Signature"
+          "logo": "Signature",
+          "footage": "Vidéo",
+          "kinetic": "Mots animés",
+          "lottie": "Animation",
+          "showcase3d": "Scène 3D"
         },
         "slots": {
           "kicker": "Petit titre",
@@ -4362,7 +4391,11 @@
           "w2": "Mot 2",
           "w3": "Mot 3",
           "action": "Bouton",
-          "contact": "Contact"
+          "contact": "Contact",
+          "l1": "Mot 1",
+          "l2": "Mot 2",
+          "l3": "Mot 3",
+          "l4": "Phrase finale"
         },
         "errors": {
           "load": "Impossible de charger vos vidéos.",
@@ -4372,7 +4405,67 @@
           "music": "Impossible de charger les morceaux.",
           "export": "L’export n’a pas pu démarrer.",
           "delete": "La vidéo n’a pas pu être supprimée.",
-          "upload": "Les photos n’ont pas pu être envoyées (6 au plus, 10 Mo chacune)."
+          "upload": "Le fichier n’a pas pu être envoyé (photo 12 Mo, vidéo 80 Mo, 3D 20 Mo, Lottie 3 Mo)."
+        },
+        "types": {
+          "kinetic": {
+            "label": "Typographie animée",
+            "hint": "Des mots qui claquent, au rythme de la musique",
+            "uses": "Texte seul"
+          },
+          "product": {
+            "label": "Mise en avant produit",
+            "hint": "Votre produit, son nom, son prix",
+            "uses": "Vos photos ou Pexels"
+          },
+          "promo": {
+            "label": "Offre flash",
+            "hint": "Prix barré, remise, urgence",
+            "uses": "Prix et remise du brief"
+          },
+          "footage": {
+            "label": "Vidéo + texte",
+            "hint": "Des clips plein écran avec vos titres",
+            "uses": "Vos vidéos, Pexels ou générées"
+          },
+          "showcase3d": {
+            "label": "Vitrine 3D",
+            "hint": "Objet 3D, logo en relief, photos en 3D",
+            "uses": "Votre modèle 3D (facultatif)"
+          },
+          "illustrated": {
+            "label": "Animations illustrées",
+            "hint": "Confettis, coches, étincelles animés",
+            "uses": "Animations Lottie"
+          },
+          "slideshow": {
+            "label": "Diaporama dynamique",
+            "hint": "Vos photos, enchaînées en rythme",
+            "uses": "Vos photos ou Pexels"
+          },
+          "logo": {
+            "label": "Révélation de logo",
+            "hint": "Une signature de marque courte",
+            "uses": "Votre logo, 6 ou 15 s"
+          }
+        },
+        "sfx": {
+          "title": "Effets sonores",
+          "toggle": "Activer les effets sonores",
+          "license": "Sons libres de droits (CC0, Freesound), nettoyés et mixés sous la musique.",
+          "kinds": {
+            "whoosh": "Transition",
+            "softwhoosh": "Transition douce",
+            "pop": "Apparition",
+            "click": "Titre",
+            "tick": "Compteur",
+            "impact": "Impact",
+            "shimmer": "Scintillement",
+            "riser": "Montée"
+          }
+        },
+        "mediaCredits": {
+          "title": "Crédits des médias"
         }
       }
     },
