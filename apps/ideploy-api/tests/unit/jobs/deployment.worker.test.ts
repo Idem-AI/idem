@@ -3,7 +3,7 @@
  * the port the application is told to listen on.
  */
 import { describe, expect, it } from 'vitest';
-import { applicationPort, judgeContainers, parseComposePs } from '../../../api/jobs/deployment.worker';
+import { applicationPort, judgeContainers, normaliseBaseDirectory, parseComposePs } from '../../../api/jobs/deployment.worker';
 
 describe('parseComposePs', () => {
   it('reads one object per line (current Compose)', () => {
@@ -51,5 +51,13 @@ describe('applicationPort', () => {
   it('falls back to the container side of a mapping, then 3000', () => {
     expect(applicationPort({ ports_exposes: '', ports_mappings: '8080:5000' })).toBe(5000);
     expect(applicationPort({ ports_exposes: null, ports_mappings: null } as never)).toBe(3000);
+  });
+});
+
+describe('normaliseBaseDirectory', () => {
+  it('reduces the ways of writing "the root" to nothing, and keeps a folder', () => {
+    for (const root of ['', './', '/', '.', null]) expect(normaliseBaseDirectory(root)).toBe('');
+    expect(normaliseBaseDirectory('./backend/')).toBe('backend');
+    expect(normaliseBaseDirectory('./Dockerfile')).toBe('Dockerfile');
   });
 });

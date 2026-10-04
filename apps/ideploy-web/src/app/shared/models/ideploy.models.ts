@@ -186,6 +186,8 @@ export interface Application {
   git_repository: string | null;
   git_branch: string | null;
   build_pack: string | null;
+  /** Folder of the repository the application is built from (`./` or empty: the root). */
+  base_directory?: string | null;
   status: string | null;
   link?: string | null;
   fqdn?: string | null;
@@ -582,6 +584,8 @@ export interface DetectedFramework {
   /** Set only when the framework doesn't read $PORT on its own — the exact start command needed. */
   startCommandHint?: string;
   warnings: EcosystemWarning[];
+  /** Database engines the code is built for, from its drivers ('postgresql', 'mysql', 'mariadb', 'mongodb'); empty when none is named. */
+  databaseEngines?: string[];
   /** Set only when exactly one application root was found outside the repository root — the Root Directory field, pre-filled instead of blank. */
   rootDirSuggestion?: string;
   /** Set only when 2+ application roots were found and none could be picked automatically. */

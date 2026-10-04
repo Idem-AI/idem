@@ -337,12 +337,13 @@ async function deploy(
       });
     }
 
+    const baseDirectory = await resolveBaseDirectory(server, key, srcDir, app.base_directory, log);
     const pack = toBuildPack(app.build_pack);
     const buildContext = {
       srcDir,
       workdir: releaseDir,
       imageTag,
-      baseDirectory: app.base_directory,
+      baseDirectory,
       installCommand: app.install_command,
       buildCommand: app.build_command,
       startCommand: app.start_command,
@@ -540,6 +541,54 @@ async function deploy(
       `tail -n +${RELEASES_KEPT + 1} | xargs -r docker rmi >/dev/null 2>&1; true`,
     { noRetry: true }
   ).catch(() => undefined);
+}
+
+/** A root directory as the build reads it: no leading `./` or `/`, no trailing `/`. */
+export function normaliseBaseDirectory(raw: string | null | undefined): string {
+  return (raw ?? '').trim().replace(/^\.?\/+|\/+$/g, '').replace(/^\.$/, '');
+}
+
+/**
+ * Check the application's root directory in the fetched code.
+ *
+ * Typed by hand in a free-text field, it sometimes names a file: an
+ * application saved with `./Dockerfile` failed every deployment on
+ * `cd: …/Dockerfile: Not a directory`. A file stands for the folder that
+ * holds it, said in the log; a path that does not exist fails with what to
+ * set instead.
+ */
+async function resolveBaseDirectory(
+  server: Parameters<typeof executeRemoteCommand>[0],
+  key: Parameters<typeof executeRemoteCommand>[1],
+  srcDir: string,
+  raw: string | null | undefined,
+  log: (line: string) => Promise<void>
+): Promise<string> {
+  const base = normaliseBaseDirectory(raw);
+  if (!base) return '';
+  const r = await executeRemoteCommand(
+    server,
+    key,
+    `cd ${shellQuote(srcDir)} && if [ -d ${shellQuote(base)} ]; then echo KIND=dir; ` +
+      `elif [ -e ${shellQuote(base)} ]; then echo KIND=file; else echo KIND=none; fi`,
+    { noRetry: true }
+  );
+  const kind = /KIND=(dir|file|none)/.exec(r.stdout)?.[1];
+  if (kind === 'file') {
+    const parent = base.includes('/') ? base.slice(0, base.lastIndexOf('/')) : '';
+    await log(
+      `\n⚠ The root directory "${raw}" is a file, not a folder: building from ${parent ? `"${parent}"` : 'the repository root'} instead. ` +
+        'Fix it in the application settings.'
+    );
+    return parent;
+  }
+  if (kind === 'none') {
+    throw new Error(
+      `The root directory "${raw}" does not exist in the repository. ` +
+        'Set it to ./ for the repository root, or to the folder that holds the application, in the application settings.'
+    );
+  }
+  return base;
 }
 
 /** The port the application listens on inside its container. */

@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnDestroy, OnInit } from '@angular/core';
+import { forkJoin, Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
+import { DatabaseType } from '../../../shared/models/ideploy.models';
 import { ArchitectureTemplate, GuideStep, getArchitectureTemplate } from '../../../shared/data/architecture-templates';
 import { GuideSessionService } from '../../../shared/services/guide-session.service';
 import { GuideWorkspaceStepComponent } from './guide-workspace-step';
@@ -158,7 +161,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
     </div>
   `,
 })
-export class ArchitectureGuideComponent implements OnInit {
+export class ArchitectureGuideComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
   private translate = inject(TranslateService);
@@ -212,6 +215,7 @@ export class ArchitectureGuideComponent implements OnInit {
       this.guideSession.clear();
     }
     if (this.architectureId) this.guideSession.start(this.architectureId, workspaceUuid);
+    this.dropSessionIfResourcesAreGone(workspaceUuid);
 
     // A workspace uuid arriving via query param (from that workspace's own
     // "+ Nouvelle ressource" link) has no name yet — `start()` only stores
@@ -224,6 +228,54 @@ export class ArchitectureGuideComponent implements OnInit {
         error: () => undefined,
       });
     }
+  }
+
+  /**
+   * Leaving the guide inside the application ends its run: coming back starts
+   * over. It used to resume forever — even after its workspace was deleted.
+   * What must survive is untouched: the GitHub/GitLab sign-in and a reload
+   * leave the page entirely, and Angular does not destroy components then.
+   */
+  ngOnDestroy(): void {
+    this.guideSession.clear();
+  }
+
+  /**
+   * A resumed session can name resources deleted since — a workspace removed
+   * from its page left the guide failing with "That workspace does not
+   * exist". Each one is checked; if any is gone, the guide starts over.
+   */
+  private dropSessionIfResourcesAreGone(requestedWorkspace: string | null): void {
+    const id = this.architectureId;
+    if (!id || !this.guideSession.hasSession(id)) return;
+    const exists = (request: Observable<unknown>): Observable<boolean> =>
+      request.pipe(
+        map(() => true),
+        // Only a "not found" means gone; a network hiccup must not wipe progress.
+        catchError((e: { status?: number }) => of(e?.status !== 404))
+      );
+
+    const checks: Observable<boolean>[] = [];
+    const ws = this.guideSession.workspace(id);
+    if (ws) checks.push(exists(this.api.getWorkspace(ws.uuid)));
+    const db = this.guideSession.database(id);
+    if (db) checks.push(exists(this.api.getDatabase(db.type as DatabaseType, db.uuid)));
+    const cache = this.guideSession.cache(id);
+    if (cache) checks.push(exists(this.api.getDatabase(cache.type as DatabaseType, cache.uuid)));
+    for (let i = 0; i < this.guideSession.appCount(id); i++) {
+      const app = this.guideSession.appAt(id, i);
+      if (app?.uuid) checks.push(exists(this.api.getApplication(app.uuid)));
+    }
+    if (checks.length === 0) return;
+
+    forkJoin(checks).subscribe((results) => {
+      if (results.every(Boolean)) return;
+      this.guideSession.clear();
+      this.manuallyDone.set(new Set());
+      // Keep a workspace given in the link (its "+ New resource" button) if it still exists.
+      const keep = requestedWorkspace && ws?.uuid === requestedWorkspace && results[0] ? requestedWorkspace : null;
+      this.guideSession.start(id, keep);
+    });
   }
 
   /**

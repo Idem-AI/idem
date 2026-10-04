@@ -520,7 +520,8 @@
       "redeployNow": "Redéployer maintenant",
       "redeploying": "Redéploiement…",
       "saveError": "Les réglages n’ont pas pu être enregistrés.",
-      "redeployError": "Le déploiement n’a pas pu démarrer."
+      "redeployError": "Le déploiement n’a pas pu démarrer.",
+      "baseDirectoryHint": "Dossier du dépôt qui contient l’application — ./ pour la racine. Un dossier, pas un fichier (pas ./Dockerfile)."
     }
   },
   "projects": {
@@ -1314,6 +1315,9 @@
       "continueAnyway": "Continuer quand même",
       "connectionInfo": "Informations de connexion",
       "readyHint": "Vous les retrouverez plus tard sur la page de la base de données elle-même, dans Databases."
+    },
+    "appStep": {
+      "databaseMismatch": "Ce backend est prévu pour {{expected}}, mais la base créée à l’étape précédente ({{database}}) est {{created}} : il ne pourrait pas s’y connecter. Revenez créer une base {{expected}}, ou renseignez vous-même les variables de connexion."
     }
   },
   "templates": {

@@ -9,7 +9,14 @@ import { EcosystemWarning, GithubRepo, ManifestDirectory } from '../../../shared
 import { GuideSessionService } from '../../../shared/services/guide-session.service';
 import { GuideStepRole } from '../../../shared/data/architecture-templates';
 import { parseEnvFile } from '../../../shared/utils/parse-env-file.util';
-import { forEcosystem, isApiUrlKey, isDatabaseUrlKey, isRedisUrlKey } from '../../../shared/utils/guide-env-link.util';
+import {
+  datasourceFieldOf,
+  datasourceValues,
+  engineCompatible,
+  isApiUrlKey,
+  isDatabaseUrlKey,
+  isRedisUrlKey,
+} from '../../../shared/utils/guide-env-link.util';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 type GitProvider = 'github' | 'gitlab';
@@ -142,6 +149,13 @@ interface Preset {
               <input type="radio" name="guideAppBuildMethod" [checked]="buildMethod() === 'buildless'" (change)="buildMethod.set('buildless')" />
               <span><i class="pi pi-code mr-1 text-green-400"></i>{{ 'projects.import.withoutDocker' | translate }}</span>
             </label>
+          </div>
+        }
+
+        @if (databaseMismatch(); as m) {
+          <div class="rounded-xl p-3 text-sm border" role="alert" style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.3);color:#f87171;">
+            <i class="pi pi-exclamation-triangle mr-1.5" aria-hidden="true"></i>
+            {{ 'architectures.appStep.databaseMismatch' | translate: { database: m.database, created: m.created, expected: m.expected } }}
           </div>
         }
 
@@ -336,6 +350,10 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
   protected readonly buildMethod = signal<'docker' | 'buildless'>('buildless');
   protected readonly detecting = signal(false);
   protected readonly detectedEcosystem = signal<string | null>(null);
+  /** Database engines the repository's code is built for (its drivers). */
+  private readonly detectedEngines = signal<string[]>([]);
+  /** Set when the database this guide created is not one the code can talk to. */
+  protected readonly databaseMismatch = signal<{ database: string; created: string; expected: string } | null>(null);
   protected readonly detectedBuildTool = signal<string | null>(null);
   protected readonly rootDir = signal('./');
   protected readonly rootDirAutoDetected = signal(false);
@@ -435,6 +453,8 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
     this.hasDockerCompose.set(false);
     this.buildMethod.set('buildless');
     this.detectedEcosystem.set(null);
+    this.detectedEngines.set([]);
+    this.databaseMismatch.set(null);
     this.detectedBuildTool.set(null);
     this.rootDir.set('./');
     this.rootDirAutoDetected.set(false);
@@ -505,6 +525,7 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
       next: (d) => {
         this.detecting.set(false);
         this.detectedEcosystem.set(d.ecosystem ?? null);
+        this.detectedEngines.set(d.databaseEngines ?? []);
         this.detectedBuildTool.set(d.buildTool ?? null);
         const idx = this.presets.findIndex((p) => p.label === d.preset);
         if (idx >= 0) this.presetIndex.set(idx);
@@ -548,9 +569,24 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
     if (this.role() === 'backend') {
       const db = this.guideSession.database(this.architectureId());
       if (db?.connectionUrl) {
-        this.linkedDatabaseName.set(db.name);
-        const value = forEcosystem(db.connectionUrl, this.detectedEcosystem());
-        this.envRows.update((rows) => rows.map((r) => (isDatabaseUrlKey(r.key) ? { ...r, value, linkedFrom: 'database' } : r)));
+        // A database the code has no driver for cannot be linked: say so
+        // instead of filling variables that lead to a crash loop.
+        const engines = this.detectedEngines();
+        if (!engineCompatible(db.type, engines)) {
+          this.databaseMismatch.set({ database: db.name, created: db.type, expected: engines.join(', ') });
+        } else {
+          this.databaseMismatch.set(null);
+          this.linkedDatabaseName.set(db.name);
+          const { url, fields } = datasourceValues(db.connectionUrl, this.detectedEcosystem());
+          this.envRows.update((rows) =>
+            rows.map((r) => {
+              if (isDatabaseUrlKey(r.key)) return { ...r, value: url, linkedFrom: 'database' };
+              const field = datasourceFieldOf(r.key);
+              const value = field ? fields[field] : undefined;
+              return value ? { ...r, value, linkedFrom: 'database' } : r;
+            })
+          );
+        }
       }
       const cache = this.guideSession.cache(this.architectureId());
       if (cache?.connectionUrl) {
@@ -708,6 +744,9 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
           this.deploymentInfo.set(d);
           if (d.status === 'finished' || d.status === 'failed') {
             this.unsubscribeRealtime?.();
+            // The live stream can miss everything (a blocked websocket, a
+            // deployment that failed in a second): the kept log says why.
+            if (this.consoleLines().length === 0 && d.logs) this.consoleLines.set(String(d.logs).split('\n'));
             this.stage.set('result');
           }
         },
