@@ -1315,6 +1315,9 @@
       "continueAnyway": "Continuer quand même",
       "connectionInfo": "Informations de connexion",
       "readyHint": "Vous les retrouverez plus tard sur la page de la base de données elle-même, dans Databases."
+    },
+    "appStep": {
+      "databaseMismatch": "Ce backend est prévu pour {{expected}}, mais la base créée à l’étape précédente ({{database}}) est {{created}} : il ne pourrait pas s’y connecter. Revenez créer une base {{expected}}, ou renseignez vous-même les variables de connexion."
     }
   },
   "templates": {
