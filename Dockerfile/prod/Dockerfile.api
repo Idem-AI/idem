@@ -63,6 +63,8 @@ RUN apk update && apk upgrade && \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
+    # Vidéos motion design : encodage H.264/AAC et analyse du tempo des musiques.
+    ffmpeg \
     && rm -rf /var/cache/apk/*
 
 # Create non-root user for security

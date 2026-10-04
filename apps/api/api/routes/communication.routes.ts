@@ -34,6 +34,21 @@ import {
   updatePublicationController,
   updateStrategyController,
 } from '../controllers/communication.controller';
+import {
+  createVideoController,
+  deleteVideoController,
+  exportVideoController,
+  getVideoController,
+  listVideosController,
+  motionVideoService,
+  previewVideoController,
+  updateVideoController,
+  uploadVideoPhotosController,
+  videoMusicController,
+  videoOptionsController,
+} from '../controllers/motionVideo.controller';
+import { normalizeScope, videoCost } from '../services/Communication/video/video.pricing';
+import multer from 'multer';
 import { authenticate } from '../services/auth.service';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import { checkQuota } from '../middleware/quota.middleware';
@@ -668,6 +683,170 @@ communicationRoutes.post(
   `/${resource}/:projectId/visuals/:visualId/schedule`,
   authenticate,
   scheduleVisualController
+);
+
+// ===========================================================================
+// VIDÉOS MOTION DESIGN
+// ===========================================================================
+
+/**
+ * Photos du commerce pour les vidéos : 6 au plus, 10 Mo chacune, images seulement.
+ */
+const videoPhotoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 6 },
+  fileFilter: (_req, file, cb) => cb(null, /^image\/(jpeg|png|webp|heic|heif)$/.test(file.mimetype)),
+});
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos/options:
+ *   get:
+ *     tags: [Communication]
+ *     summary: Pricing table and choices for motion-design videos (the front prices the scope live).
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.get(`/${resource}/:projectId/videos/options`, authenticate, videoOptionsController);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos:
+ *   get:
+ *     tags: [Communication]
+ *     summary: Motion-design videos of the project (storyboards + MP4 renders).
+ *     security: [{ bearerAuth: [] }]
+ *   post:
+ *     tags: [Communication]
+ *     summary: Create a motion-design video. Price = 2 × brand charter at the reference scope (15 s, 1 format, HD), scaled by the chosen scope.
+ *     description: >
+ *       Only the on-screen copy is written by a model (one short call). Scenes, animation, brand,
+ *       music and timing are decided by code. The first MP4 export is included.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [brief, scope]
+ *             properties:
+ *               brief:
+ *                 type: object
+ *                 properties:
+ *                   objective: { type: string, enum: [promotion, product, announce, event, opening, testimonial, recruitment] }
+ *                   message: { type: string }
+ *                   details: { type: string }
+ *                   musicMood: { type: string, enum: [auto, upbeat, calm, epic, corporate, afro, none] }
+ *                   style: { type: string, enum: [auto, energetic, premium, playful, corporate] }
+ *                   imageUrls: { type: array, items: { type: string } }
+ *               scope:
+ *                 type: object
+ *                 properties:
+ *                   durationSec: { type: integer, enum: [6, 15, 30, 60] }
+ *                   formats: { type: array, items: { type: string, enum: [story, square, portrait, landscape] } }
+ *                   quality: { type: string, enum: [standard, hd, premium] }
+ */
+communicationRoutes.get(`/${resource}/:projectId/videos`, authenticate, listVideosController);
+communicationRoutes.post(
+  `/${resource}/:projectId/videos`,
+  authenticate,
+  extendedTimeout,
+  checkPolicyAcceptance,
+  checkQuota,
+  (req, res, next) => {
+    const message = String(req.body?.brief?.message || '').trim();
+    if (message.length < 3) {
+      res.status(400).json({ error: 'message_required', message: 'brief.message is required' });
+      return;
+    }
+    next();
+  },
+  // Le prix suit le PÉRIMÈTRE choisi ; il vient du barème (2 × la charte au périmètre de référence).
+  requireCredits('business', 'motion_video', {
+    resolve: async (req) => ({ action: 'motion_video', cost: videoCost(normalizeScope(req.body?.scope)) }),
+  }),
+  createVideoController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos/photos:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Upload the business's own photos (product, team, shop) for a video.
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.post(
+  `/${resource}/:projectId/videos/photos`,
+  authenticate,
+  videoPhotoUpload.array('photos', 6),
+  uploadVideoPhotosController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos/{videoId}:
+ *   get:
+ *     tags: [Communication]
+ *     summary: One video, with live render progress.
+ *     security: [{ bearerAuth: [] }]
+ *   patch:
+ *     tags: [Communication]
+ *     summary: Free edits — on-screen texts (by scene key), style, music mood or track, formats/quality.
+ *     security: [{ bearerAuth: [] }]
+ *   delete:
+ *     tags: [Communication]
+ *     summary: Delete a video.
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.get(`/${resource}/:projectId/videos/:videoId`, authenticate, getVideoController);
+communicationRoutes.patch(`/${resource}/:projectId/videos/:videoId`, authenticate, extendedTimeout, updateVideoController);
+communicationRoutes.delete(`/${resource}/:projectId/videos/:videoId`, authenticate, deleteVideoController);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos/{videoId}/preview:
+ *   get:
+ *     tags: [Communication]
+ *     summary: Self-contained HTML player of the video (same engine as the MP4 render), for an iframe srcdoc.
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.get(`/${resource}/:projectId/videos/:videoId/preview`, authenticate, previewVideoController);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos/{videoId}/music:
+ *   get:
+ *     tags: [Communication]
+ *     summary: Royalty-free tracks from all configured libraries, for "change music".
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.get(`/${resource}/:projectId/videos/:videoId/music`, authenticate, videoMusicController);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos/{videoId}/export:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Render the MP4 files (one per format) on IDEM servers. 202 + progress via GET.
+ *     description: >
+ *       First export included in the video price. Later exports cost 10 % of the scope, plus
+ *       the difference if the scope grows (extra format, premium quality).
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.post(
+  `/${resource}/:projectId/videos/:videoId/export`,
+  authenticate,
+  checkPolicyAcceptance,
+  requireCredits('business', 'motion_video_rerender', {
+    resolve: async (req) => {
+      const video = await motionVideoService.getVideo(req.user!.uid, req.params.projectId as string, req.params.videoId as string);
+      if (!video) return { action: 'motion_video_rerender', cost: 0 };
+      const { cost } = motionVideoService.quoteExport(video, req.body?.scope);
+      return { action: video.exportCount === 0 ? 'motion_video' : 'motion_video_rerender', cost };
+    },
+    element: (req) => req.params.videoId as string,
+  }),
+  exportVideoController
 );
 
 // ===========================================================================

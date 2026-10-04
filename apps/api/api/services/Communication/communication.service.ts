@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import logger from '../../config/logger';
 import { ProjectModel } from '../../models/project.model';
+import { MotionVideo } from '../../models/motionVideo.model';
 import {
   CommunicationContext,
   CommunicationModel,
@@ -232,6 +233,64 @@ export class CommunicationService extends GenericService {
     studio: StudioConversation
   ): Promise<void> {
     await this.patchCommunication(userId, projectId, (existing) => ({ ...existing, studio }));
+  }
+
+  // ── Vidéos motion design ─────────────────────────────────────────────────
+  // Exposées pour `MotionVideoService`, qui ne doit toucher qu'à `videos`.
+
+  async loadProjectForVideo(userId: string, projectId: string): Promise<ProjectModel | null> {
+    return this.getProject(projectId, userId);
+  }
+
+  async listVideos(userId: string, projectId: string): Promise<MotionVideo[]> {
+    const model = await this.getCommunication(userId, projectId);
+    return model?.videos ?? [];
+  }
+
+  /** Remplace (ou ajoute) une vidéo. Relit le document avant d'écrire. */
+  async saveVideo(userId: string, projectId: string, video: MotionVideo): Promise<void> {
+    await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      videos: [...(existing.videos || []).filter((v) => v.id !== video.id), video],
+    }));
+  }
+
+  /** Modifie une vidéo à partir de son état EN BASE (et non d'une copie périmée). */
+  async mutateVideo(
+    userId: string,
+    projectId: string,
+    videoId: string,
+    mutate: (video: MotionVideo) => MotionVideo
+  ): Promise<MotionVideo | null> {
+    let result: MotionVideo | null = null;
+    await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      videos: (existing.videos || []).map((v) => {
+        if (v.id !== videoId) return v;
+        result = mutate(v);
+        return result;
+      }),
+    }));
+    return result;
+  }
+
+  async removeVideo(userId: string, projectId: string, videoId: string): Promise<boolean> {
+    let removed = false;
+    await this.patchCommunication(userId, projectId, (existing) => {
+      const before = existing.videos || [];
+      const videos = before.filter((v) => v.id !== videoId);
+      removed = videos.length !== before.length;
+      return { ...existing, videos };
+    });
+    return removed;
+  }
+
+  /** Rédaction des textes d'une vidéo : petit modèle, sans raisonnement. */
+  async runVideoCopyPrompt(userId: string, system: string, user: string): Promise<string> {
+    return this.promptService.runPrompt(promptConfigFor(AI_CONFIG.communication.video, userId), [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ]);
   }
 
   /**

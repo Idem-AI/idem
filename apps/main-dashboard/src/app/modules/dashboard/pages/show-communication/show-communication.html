@@ -168,6 +168,12 @@
         (failed)="onError($event)"
         (needsCredits)="onNeedsCredits($event)"
       />
+    } @else if (activeScreen() === 'videos') {
+      <app-video-panel
+        [projectId]="projectId()!"
+        (failed)="onError($event)"
+        (needsCredits)="onNeedsCredits($event)"
+      />
     } @else if (activeScreen() === 'plans') {
       <app-plan-panel
         [projectId]="projectId()!"

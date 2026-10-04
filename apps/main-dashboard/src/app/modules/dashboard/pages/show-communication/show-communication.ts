@@ -34,11 +34,12 @@ import { LibraryPanel } from './components/library-panel/library-panel';
 import { PlanIntent, PlanPanel } from './components/plan-panel/plan-panel';
 import { StrategyInputsDialog } from './components/strategy-inputs-dialog/strategy-inputs-dialog';
 import { StudioPanel } from './components/studio-panel/studio-panel';
+import { VideoPanel } from './components/video-panel/video-panel';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
-type Screen = 'home' | 'studio' | 'plans' | 'library';
+type Screen = 'home' | 'studio' | 'videos' | 'plans' | 'library';
 
-const SCREENS: readonly Screen[] = ['home', 'studio', 'plans', 'library'];
+const SCREENS: readonly Screen[] = ['home', 'studio', 'videos', 'plans', 'library'];
 
 /**
  * Module Communication — la coquille.
@@ -48,6 +49,7 @@ const SCREENS: readonly Screen[] = ['home', 'studio', 'plans', 'library'];
  *
  *   ACCUEIL          où j'en suis, et quoi faire ensuite (le parcours guidé)
  *   CRÉER UN VISUEL  trois questions, le visuel sort à la charte
+ *   VIDÉOS           vidéos de promotion en motion design, à la charte
  *   MON CALENDRIER   ce qu'il y a à publier, et quel jour — avec des dates réelles
  *   MES VISUELS      tout ce qui a été produit, atteignable quoi qu'il arrive
  *   + MA FAÇON DE COMMUNIQUER, en panneau : définie une fois, relue rarement
@@ -74,7 +76,9 @@ const SCREENS: readonly Screen[] = ['home', 'studio', 'plans', 'library'];
     LibraryPanel,
     PlanPanel,
     StrategyInputsDialog,
-    StudioPanel, IdemLoaderComponent],
+    StudioPanel,
+    VideoPanel,
+    IdemLoaderComponent],
   templateUrl: './show-communication.html',
   styleUrls: ['./show-communication.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -141,6 +145,7 @@ export class ShowCommunication implements OnInit {
   protected readonly screens: { id: Screen; icon: string }[] = [
     { id: 'home', icon: 'pi pi-home' },
     { id: 'studio', icon: 'pi pi-image' },
+    { id: 'videos', icon: 'pi pi-video' },
     { id: 'plans', icon: 'pi pi-calendar' },
     { id: 'library', icon: 'pi pi-images' },
   ];

@@ -1,0 +1,99 @@
+@if (loading()) {
+  <idem-loader block [label]="'common.loading' | translate" />
+} @else if (options(); as opts) {
+  @switch (view().kind) {
+    @case ('create') {
+      <div class="mx-auto max-w-4xl">
+        <app-video-builder
+          [projectId]="projectId()"
+          [options]="opts"
+          (created)="onCreated($event)"
+          (cancelled)="toList()"
+          (failed)="failed.emit($event)"
+          (needsCredits)="needsCredits.emit($event)"
+        />
+      </div>
+    }
+    @case ('detail') {
+      <app-video-detail
+        [projectId]="projectId()"
+        [videoId]="detailId()!"
+        [options]="opts"
+        (back)="toList()"
+        (changed)="onChanged($event)"
+        (deleted)="onDeleted($event)"
+        (failed)="failed.emit($event)"
+        (needsCredits)="needsCredits.emit($event)"
+      />
+    }
+    @default {
+      <section class="mx-auto max-w-7xl">
+        <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-[var(--color-text-primary)]">
+              {{ 'dashboard.showCommunication.video.list.title' | translate }}
+            </h2>
+            <p class="mt-1 max-w-2xl text-sm text-[var(--color-text-secondary)]">
+              {{ 'dashboard.showCommunication.video.list.subtitle' | translate }}
+            </p>
+          </div>
+          @if (videos().length) {
+            <button type="button" class="inner-button" (click)="create()">
+              <i class="pi pi-plus" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.video.list.new' | translate }}
+            </button>
+          }
+        </div>
+
+        @if (videos().length === 0) {
+          <div class="glass-card vp-empty">
+            <app-video-kora class="vp-kora" />
+            <h3 class="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">
+              {{ 'dashboard.showCommunication.video.list.empty.title' | translate }}
+            </h3>
+            <p class="mx-auto mt-2 max-w-md text-sm text-[var(--color-text-secondary)]">
+              {{ 'dashboard.showCommunication.video.list.empty.body' | translate }}
+            </p>
+            <p class="mx-auto mt-2 max-w-md text-xs text-[var(--color-text-tertiary)]">
+              {{ 'dashboard.showCommunication.video.list.empty.price' | translate: { price: opts.pricing.referenceCost } }}
+            </p>
+            <button type="button" class="inner-button mt-6" (click)="create()">
+              <i class="pi pi-video" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.video.list.empty.cta' | translate }}
+            </button>
+          </div>
+        } @else {
+          <ul class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+            @for (video of videos(); track video.id) {
+              <li>
+                <button type="button" class="vp-card" (click)="open(video)">
+                  <span class="vp-thumb">
+                    @if (poster(video); as src) {
+                      <img [src]="src" alt="" />
+                    } @else {
+                      <span class="vp-thumb-empty">
+                        <i class="pi pi-video" aria-hidden="true"></i>
+                      </span>
+                    }
+                    <span class="vp-duration">{{ video.scope.durationSec }} s</span>
+                  </span>
+                  <span class="vp-meta">
+                    <span class="vp-title">{{ video.title }}</span>
+                    <span class="vp-sub">
+                      <span class="tag">
+                        {{ 'dashboard.showCommunication.video.status.' + video.status | translate }}
+                      </span>
+                      <span>
+                        {{ 'dashboard.showCommunication.video.list.formatsCount' | translate: { count: video.scope.formats.length } }}
+                      </span>
+                    </span>
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  }
+}

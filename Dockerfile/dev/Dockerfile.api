@@ -4,7 +4,8 @@
 FROM node:20-alpine
 
 # Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# ffmpeg : rendu des vidéos motion design (encodage, analyse du tempo).
+RUN apk add --no-cache dumb-init ffmpeg
 
 WORKDIR /app
 

@@ -38,6 +38,7 @@
     "mockups:provider": "ts-node --transpile-only api/scripts/setMockupProvider.ts",
     "check:indexes": "ts-node --transpile-only api/scripts/checkIndexes.ts",
     "check:flyer": "ts-node --transpile-only api/scripts/checkFlyerComposition.ts",
+    "check:video": "ts-node --transpile-only api/scripts/checkMotionVideo.ts",
     "check:comm": "ts-node --transpile-only api/scripts/checkCommunicationPlans.ts",
     "check:inputs": "ts-node --transpile-only api/scripts/checkProjectInputs.ts",
     "check:auth": "ts-node --transpile-only api/scripts/checkAuthFlow.ts"
@@ -45,10 +46,10 @@
   "author": "arolleaguekeng",
   "license": "MIT",
   "dependencies": {
-    "@infisical/sdk": "^5.0.2",
     "@google/genai": "^1.1.0",
     "@google/generative-ai": "^0.21.0",
     "@idem/shared-models": "^1.0.0",
+    "@infisical/sdk": "^5.0.2",
     "@octokit/rest": "^21.1.1",
     "ag-psd": "^28.3.1",
     "axios": "^1.7.9",
@@ -58,6 +59,7 @@
     "express": "^4.21.2",
     "file-type": "^16.5.4",
     "fs-extra": "^11.0.4",
+    "gsap": "^3.15.0",
     "helmet": "^8.1.0",
     "hpp": "^0.2.3",
     "ioredis": "^5.4.1",
@@ -79,6 +81,7 @@
     "svgson": "^5.3.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
+    "tailwindcss": "^4.1.17",
     "uuid": "^11.1.0",
     "winston": "^3.17.0"
   },

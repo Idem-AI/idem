@@ -3911,6 +3911,11 @@
           "label": "My visuals",
           "hint": "Everything you have already created",
           "short": "Visuals"
+        },
+        "videos": {
+          "label": "My videos",
+          "hint": "An animated video in your colours",
+          "short": "Videos"
         }
       },
       "home": {
@@ -4116,6 +4121,255 @@
             "2": "Download it, or get it in another format (story, banner…).",
             "3": "Publish it: the text is copied and the network opens, all that's left is to paste."
           }
+        }
+      },
+      "video": {
+        "list": {
+          "title": "My videos",
+          "subtitle": "Animated promo videos in your brand colours, with royalty-free music. Ready for WhatsApp, Instagram, TikTok and YouTube.",
+          "new": "New video",
+          "formatsCount": "{{count}} format(s)",
+          "empty": {
+            "title": "Tell your brand’s story on video",
+            "body": "Three questions, and IDEM edits an animated video with your colours, your logo and royalty-free music.",
+            "price": "15 s video, one format, HD: {{price}} credits. The price follows duration and number of formats.",
+            "cta": "Create my first video"
+          }
+        },
+        "status": {
+          "draft": "Draft",
+          "rendering": "Rendering",
+          "ready": "Ready",
+          "failed": "Failed"
+        },
+        "objectives": {
+          "promotion": {
+            "label": "A promotion",
+            "hint": "Sale, discount, limited offer",
+            "placeholder": "e.g. 30% off all our fabrics until December 31"
+          },
+          "product": {
+            "label": "A product",
+            "hint": "Show what you sell",
+            "placeholder": "e.g. our new hibiscus juice, no added sugar"
+          },
+          "announce": {
+            "label": "An announcement",
+            "hint": "News to share",
+            "placeholder": "e.g. we now deliver to Kumasi"
+          },
+          "event": {
+            "label": "An event",
+            "hint": "Date, time, place",
+            "placeholder": "e.g. free tasting on Saturday October 12 at 3pm"
+          },
+          "opening": {
+            "label": "An opening",
+            "hint": "New shop, new hours",
+            "placeholder": "e.g. our new shop opens in Lekki on November 5"
+          },
+          "testimonial": {
+            "label": "A customer review",
+            "hint": "What customers say",
+            "placeholder": "e.g. “Fast delivery, flawless products” — Ama K."
+          },
+          "recruitment": {
+            "label": "Hiring",
+            "hint": "Find who will join the team",
+            "placeholder": "e.g. we are hiring two sales reps in Nairobi"
+          }
+        },
+        "formats": {
+          "story": {
+            "label": "Vertical 9:16",
+            "hint": "WhatsApp Status, Reels, TikTok"
+          },
+          "square": {
+            "label": "Square 1:1",
+            "hint": "Instagram and Facebook feed"
+          },
+          "portrait": {
+            "label": "Portrait 4:5",
+            "hint": "Most visible in the feed"
+          },
+          "landscape": {
+            "label": "Landscape 16:9",
+            "hint": "YouTube, website, LinkedIn"
+          }
+        },
+        "durations": {
+          "6": "A flash message",
+          "15": "The sweet spot",
+          "30": "Tell more",
+          "60": "A full video"
+        },
+        "qualities": {
+          "standard": {
+            "label": "Light",
+            "hint": "720p · shares fast"
+          },
+          "hd": {
+            "label": "HD",
+            "hint": "1080p · recommended"
+          },
+          "premium": {
+            "label": "Ultra smooth",
+            "hint": "1080p · 60 fps"
+          }
+        },
+        "moods": {
+          "auto": "Picked for you",
+          "upbeat": "Upbeat",
+          "afro": "Afro",
+          "calm": "Gentle",
+          "epic": "Epic",
+          "corporate": "Motivating",
+          "none": "No music"
+        },
+        "styles": {
+          "auto": "Picked for your brand",
+          "energetic": "Energetic",
+          "premium": "Elegant",
+          "playful": "Playful",
+          "corporate": "Sober"
+        },
+        "builder": {
+          "steps": {
+            "1": "What",
+            "2": "Details",
+            "3": "Scope"
+          },
+          "what": {
+            "question": "What do you want people to know?",
+            "help": "Pick what is closest to your message."
+          },
+          "details": {
+            "question": "Say it in your own words",
+            "help": "One sentence is enough. IDEM writes the on-screen text, picks the animations and the music.",
+            "message": "Your message",
+            "more": "Useful details (optional)",
+            "morePlaceholder": "Price, previous price, date, address, WhatsApp number, what makes you different…",
+            "tips": {
+              "exact": "Prices, dates and numbers are copied as written, never invented",
+              "contact": "Add your number or website for the call to action",
+              "photos": "Your own photos make the video far more convincing"
+            }
+          },
+          "photos": {
+            "label": "Your photos (optional)",
+            "hint": "Product, shop, team: up to 6 photos. Without photos, IDEM uses those of your visuals.",
+            "add": "Add",
+            "remove": "Remove photo"
+          },
+          "scope": {
+            "question": "Choose the scope",
+            "help": "Duration, formats and quality set the price. The first MP4 export is included.",
+            "duration": "Duration",
+            "formats": "Formats (several allowed)",
+            "quality": "Quality",
+            "music": "Music",
+            "style": "Animation style"
+          },
+          "price": {
+            "total": "Price: {{price}} credits",
+            "reference": "Benchmark: 15 s, one format, HD = {{price}} credits (twice the brand charter)."
+          },
+          "submit": "Create the video · {{price}} credits",
+          "creating": "Creating…",
+          "creatingHint": "IDEM writes the text, picks the music and syncs the animation to the beat. Allow 10 to 40 seconds."
+        },
+        "detail": {
+          "back": "My videos",
+          "formats": "Video formats",
+          "previewTitle": "Video preview",
+          "previewHint": "Faithful preview: the same engine renders the MP4.",
+          "delete": "Delete video",
+          "deleteAsk": "Delete for good?",
+          "deleteConfirm": "Delete"
+        },
+        "texts": {
+          "title": "On-screen text",
+          "hint": "Edit freely, it’s free. The preview updates.",
+          "save": "Update preview"
+        },
+        "music": {
+          "title": "Music",
+          "none": "This video has no music.",
+          "credit": "CC BY licence: credit the artist in your post caption.",
+          "copy": "Copy credit",
+          "copied": "Credit copied",
+          "another": "Another track",
+          "browse": "Listen and choose",
+          "choose": "Choose",
+          "empty": "No track found for this mood. Try another one."
+        },
+        "export": {
+          "title": "Download the video",
+          "formats": "Formats",
+          "included": "Export MP4 · included",
+          "paid": "Export MP4 · {{price}} credits",
+          "download": "MP4",
+          "wait": "The video is being made on our servers. You can leave this screen.",
+          "dirty": "You edited the video since the last export: export again to get the new version.",
+          "failed": "The export failed. Your credits were refunded; start it again.",
+          "status": {
+            "queued": "Queued",
+            "rendering": "{{percent}}%",
+            "done": "Ready",
+            "failed": "Failed"
+          }
+        },
+        "scenes": {
+          "hook": "Hook",
+          "statement": "Message",
+          "product": "Product",
+          "benefits": "Strengths",
+          "stat": "Figure",
+          "offer": "Offer",
+          "quote": "Review",
+          "event": "Event",
+          "gallery": "Gallery",
+          "wordswap": "Keywords",
+          "cta": "Call to action",
+          "logo": "Sign-off"
+        },
+        "slots": {
+          "kicker": "Small title",
+          "title": "Title",
+          "sub": "Subtitle",
+          "name": "Name",
+          "tagline": "Line",
+          "price": "Price",
+          "b1": "Strength 1",
+          "b2": "Strength 2",
+          "b3": "Strength 3",
+          "value": "Figure",
+          "label": "What it means",
+          "oldPrice": "Previous price",
+          "badge": "Badge",
+          "note": "Condition",
+          "quote": "Quote",
+          "author": "Customer",
+          "date": "Date",
+          "time": "Time",
+          "place": "Place",
+          "caption": "Caption",
+          "lead": "Lead-in",
+          "w1": "Word 1",
+          "w2": "Word 2",
+          "w3": "Word 3",
+          "action": "Button",
+          "contact": "Contact"
+        },
+        "errors": {
+          "load": "Your videos could not be loaded.",
+          "create": "The video could not be created. Your credits were refunded.",
+          "preview": "The preview could not be loaded.",
+          "update": "The change could not be saved.",
+          "music": "Tracks could not be loaded.",
+          "export": "The export could not start.",
+          "delete": "The video could not be deleted.",
+          "upload": "Photos could not be uploaded (6 max, 10 MB each)."
         }
       }
     },
