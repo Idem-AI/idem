@@ -1131,6 +1131,19 @@ export const AI_CONFIG = {
       topK: 64,
       tokens: 20000,
     }),
+    // Textes à l'écran d'une vidéo motion design : des cases numérotées à
+    // remplir, une ligne par case. Tâche MÉCANIQUE par construction (le code
+    // choisit les scènes, l'animation, la charte et la musique) : sans
+    // raisonnement, petit budget — c'est ce qui la rend exécutable par le
+    // modèle le moins cher. Pas de mode JSON : le format ligne à ligne coûte
+    // moins de tokens et une ligne ratée ne perd que cette ligne.
+    video: feature({
+      role: 'mechanical',
+      promptType: 'communication_video_copy',
+      temperature: 0.7,
+      tokens: 900,
+      thinking: false,
+    }),
     // L'ATELIER : un agent à outils, en conversation. Il ne produit pas de
     // livrable, il TRADUIT une demande en appel d'outil — donc peu de tokens de
     // sortie, mais du raisonnement (choisir le format, l'intention, et savoir

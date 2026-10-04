@@ -406,6 +406,11 @@
           "label": "Mes visuels",
           "hint": "Tout ce que vous avez déjà créé",
           "short": "Visuels"
+        },
+        "videos": {
+          "label": "Mes vidéos",
+          "hint": "Une vidéo animée à vos couleurs",
+          "short": "Vidéos"
         }
       },
       "home": {
@@ -611,6 +616,348 @@
             "2": "Téléchargez-le, ou obtenez-le dans un autre format (story, bannière…).",
             "3": "Publiez-le : le texte est copié et le réseau s'ouvre, il ne reste qu'à coller."
           }
+        }
+      },
+      "video": {
+        "list": {
+          "title": "Mes vidéos",
+          "subtitle": "Des vidéos de promotion animées, à vos couleurs, avec musique libre de droits. Prêtes pour WhatsApp, Instagram, TikTok et YouTube.",
+          "new": "Nouvelle vidéo",
+          "formatsCount": "{{count}} format(s)",
+          "empty": {
+            "title": "Racontez votre marque en vidéo",
+            "body": "Trois questions, et IDEM monte une vidéo animée avec vos couleurs, votre logo et une musique libre de droits.",
+            "price": "Vidéo de 15 s, un format, HD : {{price}} crédits. Le prix suit la durée et le nombre de formats.",
+            "cta": "Créer ma première vidéo"
+          }
+        },
+        "status": {
+          "draft": "Brouillon",
+          "rendering": "En cours",
+          "ready": "Prête",
+          "failed": "Échec"
+        },
+        "objectives": {
+          "promotion": {
+            "label": "Une promotion",
+            "hint": "Soldes, remise, offre limitée",
+            "placeholder": "Ex. : -30 % sur tous nos pagnes jusqu’au 31 décembre"
+          },
+          "product": {
+            "label": "Un produit",
+            "hint": "Montrer ce que vous vendez",
+            "placeholder": "Ex. : notre nouveau jus de bissap, sans sucre ajouté"
+          },
+          "announce": {
+            "label": "Une annonce",
+            "hint": "Une nouvelle à faire savoir",
+            "placeholder": "Ex. : nous livrons désormais à Yamoussoukro"
+          },
+          "event": {
+            "label": "Un événement",
+            "hint": "Date, heure, lieu",
+            "placeholder": "Ex. : dégustation gratuite samedi 12 octobre à 15h"
+          },
+          "opening": {
+            "label": "Une ouverture",
+            "hint": "Nouveau magasin, nouvel horaire",
+            "placeholder": "Ex. : ouverture de notre boutique à Cocody le 5 novembre"
+          },
+          "testimonial": {
+            "label": "Un avis client",
+            "hint": "Ce que vos clients disent",
+            "placeholder": "Ex. : « Livraison rapide et produits impeccables » — Awa K."
+          },
+          "recruitment": {
+            "label": "Un recrutement",
+            "hint": "Trouver qui rejoindra l’équipe",
+            "placeholder": "Ex. : nous recrutons deux commerciaux à Dakar"
+          }
+        },
+        "formats": {
+          "story": {
+            "label": "Vertical 9:16",
+            "hint": "Statut WhatsApp, Reels, TikTok"
+          },
+          "square": {
+            "label": "Carré 1:1",
+            "hint": "Fil Instagram et Facebook"
+          },
+          "portrait": {
+            "label": "Portrait 4:5",
+            "hint": "Le plus visible dans le fil"
+          },
+          "landscape": {
+            "label": "Paysage 16:9",
+            "hint": "YouTube, site, LinkedIn"
+          }
+        },
+        "durations": {
+          "6": "Un message éclair",
+          "15": "Le format idéal",
+          "30": "Raconter davantage",
+          "60": "Une vidéo complète"
+        },
+        "qualities": {
+          "standard": {
+            "label": "Légère",
+            "hint": "720p · se partage vite"
+          },
+          "hd": {
+            "label": "HD",
+            "hint": "1080p · recommandé"
+          },
+          "premium": {
+            "label": "Très fluide",
+            "hint": "1080p · 60 images/s"
+          }
+        },
+        "moods": {
+          "auto": "Choisie pour vous",
+          "upbeat": "Joyeuse et rythmée",
+          "afro": "Afro",
+          "calm": "Douce",
+          "epic": "Grandiose",
+          "corporate": "Motivante",
+          "none": "Sans musique"
+        },
+        "styles": {
+          "auto": "Choisi pour votre marque",
+          "energetic": "Énergique",
+          "premium": "Élégant",
+          "playful": "Ludique",
+          "corporate": "Sobre"
+        },
+        "builder": {
+          "steps": {
+            "1": "Type",
+            "2": "Quoi",
+            "3": "Détails",
+            "4": "Périmètre"
+          },
+          "what": {
+            "question": "Que voulez-vous faire savoir ?",
+            "help": "Choisissez ce qui ressemble le plus à votre message."
+          },
+          "details": {
+            "question": "Dites-le avec vos mots",
+            "help": "Une phrase suffit. IDEM écrit les textes à l’écran, choisit les animations et la musique.",
+            "message": "Votre message",
+            "more": "Détails utiles (facultatif)",
+            "morePlaceholder": "Prix, ancien prix, date, adresse, numéro WhatsApp, ce qui vous distingue…",
+            "tips": {
+              "exact": "Les prix, dates et numéros sont repris tels quels, jamais inventés",
+              "contact": "Ajoutez votre numéro ou votre site pour l’appel à l’action",
+              "photos": "Vos propres photos rendent la vidéo bien plus parlante"
+            }
+          },
+          "photos": {
+            "label": "Vos photos (facultatif)",
+            "hint": "Produit, boutique, équipe : jusqu’à 6 photos. Sans photo, IDEM utilise celles de vos visuels.",
+            "add": "Ajouter",
+            "remove": "Retirer la photo"
+          },
+          "scope": {
+            "question": "Choisissez le périmètre",
+            "help": "La durée, les formats et la qualité fixent le prix. Le premier export MP4 est inclus.",
+            "duration": "Durée",
+            "formats": "Formats (plusieurs possibles)",
+            "quality": "Qualité",
+            "music": "Musique",
+            "style": "Style d’animation"
+          },
+          "price": {
+            "total": "Prix : {{price}} crédits",
+            "reference": "Repère : 15 s, un format, HD = {{price}} crédits (deux fois la charte graphique)."
+          },
+          "submit": "Créer la vidéo · {{price}} crédits",
+          "creating": "Création…",
+          "creatingHint": "IDEM écrit les textes, choisit la musique et cale les animations sur le rythme. Comptez de 10 à 40 secondes.",
+          "type": {
+            "question": "Quel type de vidéo voulez-vous ?",
+            "help": "Choisissez le style de motion : le reste s’adapte."
+          },
+          "media": {
+            "label": "Vos médias (facultatif)",
+            "hint": "Photos, vidéos, modèle 3D (.glb) ou animation Lottie (.json) : IDEM les place dans les bonnes scènes. Jusqu’à 8 fichiers.",
+            "kinds": {
+              "image": "Photos",
+              "video": "Vidéos (15 s max utilisées)",
+              "model3d": "Modèle 3D (.glb)",
+              "lottie": "Animation Lottie (.json)"
+            },
+            "add": "Ajouter",
+            "remove": "Retirer",
+            "stock": "Chercher des photos et vidéos sur Pexels si besoin",
+            "stockHint": "Banque gratuite : l’auteur est crédité dans la vidéo.",
+            "generate": "Générer une vidéo si rien ne convient",
+            "generateHint": "Par Gemini Veo, un seul clip par vidéo, en dernier recours."
+          },
+          "sfx": {
+            "label": "Effets sonores",
+            "hint": "Whoosh sur les transitions, pop quand un prix apparaît, scintillement sur le logo."
+          }
+        },
+        "detail": {
+          "back": "Mes vidéos",
+          "formats": "Formats de la vidéo",
+          "previewTitle": "Aperçu de la vidéo",
+          "previewHint": "Aperçu fidèle : c’est le même moteur qui fabrique le MP4.",
+          "delete": "Supprimer la vidéo",
+          "deleteAsk": "Supprimer définitivement ?",
+          "deleteConfirm": "Supprimer"
+        },
+        "texts": {
+          "title": "Les textes",
+          "hint": "Modifiez librement, c’est gratuit. L’aperçu se met à jour.",
+          "save": "Mettre à jour l’aperçu"
+        },
+        "music": {
+          "title": "La musique",
+          "none": "Cette vidéo est sans musique.",
+          "credit": "Licence CC BY : citez l’artiste dans la légende de votre publication.",
+          "copy": "Copier le crédit",
+          "copied": "Crédit copié",
+          "another": "Un autre morceau",
+          "browse": "Écouter et choisir",
+          "choose": "Choisir",
+          "empty": "Aucun morceau trouvé pour cette ambiance. Essayez-en une autre."
+        },
+        "export": {
+          "title": "Télécharger la vidéo",
+          "formats": "Formats",
+          "included": "Exporter en MP4 · inclus",
+          "paid": "Exporter en MP4 · {{price}} crédits",
+          "download": "MP4",
+          "wait": "La vidéo se fabrique sur nos serveurs. Vous pouvez quitter cet écran.",
+          "dirty": "Vous avez retouché la vidéo depuis le dernier export : exportez à nouveau pour obtenir la nouvelle version.",
+          "failed": "L’export n’a pas abouti. Vos crédits ont été restitués ; relancez l’export.",
+          "status": {
+            "queued": "En attente",
+            "rendering": "{{percent}} %",
+            "done": "Prêt",
+            "failed": "Échec"
+          }
+        },
+        "scenes": {
+          "hook": "Accroche",
+          "statement": "Message",
+          "product": "Produit",
+          "benefits": "Points forts",
+          "stat": "Chiffre",
+          "offer": "Offre",
+          "quote": "Avis client",
+          "event": "Rendez-vous",
+          "gallery": "Galerie",
+          "wordswap": "Mots clés",
+          "cta": "Appel à l’action",
+          "logo": "Signature",
+          "footage": "Vidéo",
+          "kinetic": "Mots animés",
+          "lottie": "Animation",
+          "showcase3d": "Scène 3D"
+        },
+        "slots": {
+          "kicker": "Petit titre",
+          "title": "Titre",
+          "sub": "Sous-titre",
+          "name": "Nom",
+          "tagline": "Phrase",
+          "price": "Prix",
+          "b1": "Point fort 1",
+          "b2": "Point fort 2",
+          "b3": "Point fort 3",
+          "value": "Chiffre",
+          "label": "Ce qu’il veut dire",
+          "oldPrice": "Ancien prix",
+          "badge": "Pastille",
+          "note": "Condition",
+          "quote": "Citation",
+          "author": "Client",
+          "date": "Date",
+          "time": "Heure",
+          "place": "Lieu",
+          "caption": "Légende",
+          "lead": "Introduction",
+          "w1": "Mot 1",
+          "w2": "Mot 2",
+          "w3": "Mot 3",
+          "action": "Bouton",
+          "contact": "Contact",
+          "l1": "Mot 1",
+          "l2": "Mot 2",
+          "l3": "Mot 3",
+          "l4": "Phrase finale"
+        },
+        "errors": {
+          "load": "Impossible de charger vos vidéos.",
+          "create": "La vidéo n’a pas pu être créée. Vos crédits ont été restitués.",
+          "preview": "L’aperçu n’a pas pu être chargé.",
+          "update": "La modification n’a pas pu être enregistrée.",
+          "music": "Impossible de charger les morceaux.",
+          "export": "L’export n’a pas pu démarrer.",
+          "delete": "La vidéo n’a pas pu être supprimée.",
+          "upload": "Le fichier n’a pas pu être envoyé (photo 12 Mo, vidéo 80 Mo, 3D 20 Mo, Lottie 3 Mo)."
+        },
+        "types": {
+          "kinetic": {
+            "label": "Typographie animée",
+            "hint": "Des mots qui claquent, au rythme de la musique",
+            "uses": "Texte seul"
+          },
+          "product": {
+            "label": "Mise en avant produit",
+            "hint": "Votre produit, son nom, son prix",
+            "uses": "Vos photos ou Pexels"
+          },
+          "promo": {
+            "label": "Offre flash",
+            "hint": "Prix barré, remise, urgence",
+            "uses": "Prix et remise du brief"
+          },
+          "footage": {
+            "label": "Vidéo + texte",
+            "hint": "Des clips plein écran avec vos titres",
+            "uses": "Vos vidéos, Pexels ou générées"
+          },
+          "showcase3d": {
+            "label": "Vitrine 3D",
+            "hint": "Objet 3D, logo en relief, photos en 3D",
+            "uses": "Votre modèle 3D (facultatif)"
+          },
+          "illustrated": {
+            "label": "Animations illustrées",
+            "hint": "Confettis, coches, étincelles animés",
+            "uses": "Animations Lottie"
+          },
+          "slideshow": {
+            "label": "Diaporama dynamique",
+            "hint": "Vos photos, enchaînées en rythme",
+            "uses": "Vos photos ou Pexels"
+          },
+          "logo": {
+            "label": "Révélation de logo",
+            "hint": "Une signature de marque courte",
+            "uses": "Votre logo, 6 ou 15 s"
+          }
+        },
+        "sfx": {
+          "title": "Effets sonores",
+          "toggle": "Activer les effets sonores",
+          "license": "Sons libres de droits (CC0, Freesound), nettoyés et mixés sous la musique.",
+          "kinds": {
+            "whoosh": "Transition",
+            "softwhoosh": "Transition douce",
+            "pop": "Apparition",
+            "click": "Titre",
+            "tick": "Compteur",
+            "impact": "Impact",
+            "shimmer": "Scintillement",
+            "riser": "Montée"
+          }
+        },
+        "mediaCredits": {
+          "title": "Crédits des médias"
         }
       }
     }

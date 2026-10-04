@@ -27,6 +27,7 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | Jeune pousse | projet qu'on aide à grandir | SASU, bailleur |
 | Croix d'Agadez (tanaghilt) sur son cordon tressé | « je te donne les quatre coins du monde » : de quoi choisir sa route | création de projet — source : [Club des Voyages, « Les croix touarègues »](https://www.club-des-voyages.com/niger/les-croix-touaregues-12196.html) |
 | Tambour parleur (tama) | parole portée loin, conversation | pitch deck, mode chat, communication, aide |
+| Kora (harpe-luth des griots), chevalet en couleur | raconter une histoire en musique | vidéos de promotion (état vide) — source : [Kora (instrument), Wikipédia](https://fr.wikipedia.org/wiki/Kora_(instrument)) |
 | Métier à tisser (bande étroite) | construire fil à fil, le code | développement, dépôt de code, document qui se tisse |
 | Pirogue à la proue dressée | départ, mise en ligne, équipage | publication, déploiements, SAS, équipe interne |
 | Grenier dogon (vide / fermé / plein) | réserve, serveur, récolte | serveur, cloud géré, projet absent, projet IDEM |
@@ -92,6 +93,7 @@ Format : **retenu** — candidats écartés (raison).
 | Comment créer votre logo : IA / description | **le tampon en plein geste, trois empreintes et une retenue ; le tampon qu'on taille soi-même au couteau, d'après le motif tracé** (`logo-mode-sample`) | baguette magique et étincelles (pas africain) ; feuillet et calame (dit la rédaction d'un document, pas la forme du signe) |
 | Stratégie de communication | **deux calebasses font parler le tambour** | boussole (pas africaine) |
 | Communication : accueil (parcours en 4 étapes) | **tambour parleur, ondes qui battent** | échelle dogon (l'écran dit d'abord « communiquer », la progression est portée par les étapes numérotées) |
+| Communication : mes vidéos (vide) | **kora, le chevalet en couleur** | tambour parleur (dit « communiquer », déjà pris par le module ; la vidéo dit « raconter en musique ») |
 | Finances : importer mes chiffres | **feuillet apporté, tenu en colonnes** | calebasse de cauris (dit l'argent, pas le document) |
 | Finances : l'IA propose | **plateau d'awalé, une case désignée** | tambour (dit la parole, pas le calcul) |
 | Finances : remplir pas à pas | **échelle dogon appuyée au grenier** | — |

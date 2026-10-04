@@ -1,0 +1,361 @@
+<section class="vb glass-card" aria-labelledby="vdb-question">
+  <!-- ─────────────── Où on en est ─────────────── -->
+  <ol class="vb-progress">
+    @for (index of steps; track index) {
+      <li>
+        <button
+          type="button"
+          class="vb-progress-step"
+          [class.vb-progress-done]="index < step()"
+          [class.vb-progress-current]="index === step()"
+          [attr.aria-current]="index === step() ? 'step' : null"
+          [disabled]="index >= step()"
+          (click)="goTo(index)"
+        >
+          <span class="vb-progress-num" aria-hidden="true">
+            @if (index < step()) {
+              <i class="pi pi-check"></i>
+            } @else {
+              {{ index }}
+            }
+          </span>
+          <span class="vb-progress-label">
+            {{ 'dashboard.showCommunication.video.builder.steps.' + index | translate }}
+          </span>
+        </button>
+      </li>
+    }
+  </ol>
+
+  <!-- ═══════════ 1. Quel type de motion ? ═══════════ -->
+  @if (step() === 1) {
+    <h2 id="vdb-question" class="vb-question">
+      {{ 'dashboard.showCommunication.video.builder.type.question' | translate }}
+    </h2>
+    <p class="vb-help">{{ 'dashboard.showCommunication.video.builder.type.help' | translate }}</p>
+
+    <div class="vdb-types">
+      @for (t of types(); track t.id) {
+        <button
+          type="button"
+          class="vb-kind vdb-type"
+          [class.vb-active]="type() === t.id"
+          [attr.aria-pressed]="type() === t.id"
+          (click)="chooseType(t.id)"
+        >
+          <i [class]="t.icon" class="vb-kind-icon" aria-hidden="true"></i>
+          <span class="vb-kind-label">
+            {{ 'dashboard.showCommunication.video.types.' + t.id + '.label' | translate }}
+          </span>
+          <span class="vb-kind-hint">
+            {{ 'dashboard.showCommunication.video.types.' + t.id + '.hint' | translate }}
+          </span>
+          <span class="vdb-type-uses">
+            {{ 'dashboard.showCommunication.video.types.' + t.id + '.uses' | translate }}
+          </span>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- ═══════════ 2. Quoi ? ═══════════ -->
+  @if (step() === 2) {
+    <h2 id="vdb-question" class="vb-question">
+      {{ 'dashboard.showCommunication.video.builder.what.question' | translate }}
+    </h2>
+    <p class="vb-help">{{ 'dashboard.showCommunication.video.builder.what.help' | translate }}</p>
+
+    <div class="vb-kinds">
+      @for (option of objectives; track option.id) {
+        <button
+          type="button"
+          class="vb-kind"
+          [class.vb-active]="objective() === option.id"
+          [attr.aria-pressed]="objective() === option.id"
+          (click)="chooseObjective(option.id)"
+        >
+          <i [class]="option.icon" class="vb-kind-icon" aria-hidden="true"></i>
+          <span class="vb-kind-label">
+            {{ 'dashboard.showCommunication.video.objectives.' + option.id + '.label' | translate }}
+          </span>
+          <span class="vb-kind-hint">
+            {{ 'dashboard.showCommunication.video.objectives.' + option.id + '.hint' | translate }}
+          </span>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- ═══════════ 3. Les détails ═══════════ -->
+  @if (step() === 3) {
+    <h2 id="vdb-question" class="vb-question">
+      {{ 'dashboard.showCommunication.video.builder.details.question' | translate }}
+    </h2>
+    <p class="vb-help">{{ 'dashboard.showCommunication.video.builder.details.help' | translate }}</p>
+
+    <label class="vdb-label mt-4" for="vdb-message">
+      {{ 'dashboard.showCommunication.video.builder.details.message' | translate }}
+    </label>
+    <textarea
+      id="vdb-message"
+      rows="2"
+      maxlength="400"
+      [ngModel]="message()"
+      (ngModelChange)="message.set($event)"
+      name="vdbMessage"
+      [attr.placeholder]="
+        'dashboard.showCommunication.video.objectives.' + objective() + '.placeholder' | translate
+      "
+    ></textarea>
+
+    <label class="vdb-label mt-4" for="vdb-details">
+      {{ 'dashboard.showCommunication.video.builder.details.more' | translate }}
+    </label>
+    <textarea
+      id="vdb-details"
+      rows="4"
+      maxlength="800"
+      [ngModel]="details()"
+      (ngModelChange)="details.set($event)"
+      name="vdbDetails"
+      [attr.placeholder]="'dashboard.showCommunication.video.builder.details.morePlaceholder' | translate"
+    ></textarea>
+
+    <ul class="vb-tips">
+      @for (tip of ['exact', 'contact', 'photos']; track tip) {
+        <li>
+          <i class="pi pi-check-circle" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.video.builder.details.tips.' + tip | translate }}
+        </li>
+      }
+    </ul>
+
+    <!-- Les médias de l'utilisateur : photos, clips, modèle 3D, animation Lottie. -->
+    <div class="mt-5">
+      <p class="vdb-label">{{ 'dashboard.showCommunication.video.builder.media.label' | translate }}</p>
+      <p class="mt-1 text-xs text-[var(--color-text-tertiary)]">
+        {{ 'dashboard.showCommunication.video.builder.media.hint' | translate }}
+      </p>
+      <div class="vdb-media-kinds mt-2">
+        @for (input of mediaInputs; track input.kind) {
+          <div class="vdb-media-kind">
+            <p class="vdb-media-title">
+              <i [class]="input.icon" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.video.builder.media.kinds.' + input.kind | translate }}
+            </p>
+            <div class="vdb-photos">
+              @for (m of mediaOf(input.kind); track m.id) {
+                <div class="vdb-photo">
+                  @if (m.kind === 'image') {
+                    <img [src]="m.url" alt="" />
+                  } @else if (m.kind === 'video' && m.posterUrl) {
+                    <img [src]="m.posterUrl" alt="" />
+                  } @else {
+                    <span class="vdb-file">
+                      <i [class]="input.icon" aria-hidden="true"></i>
+                      <span>{{ m.name }}</span>
+                    </span>
+                  }
+                  <button
+                    type="button"
+                    class="vdb-photo-remove"
+                    [attr.aria-label]="'dashboard.showCommunication.video.builder.media.remove' | translate"
+                    (click)="removeMedia(m.id)"
+                  >
+                    <i class="pi pi-times" aria-hidden="true"></i>
+                  </button>
+                </div>
+              }
+              @if (media().length < 8) {
+                <label class="vdb-photo-add" [class.vdb-photo-busy]="uploading()">
+                  @if (uploading()) {
+                    <idem-loader size="sm" />
+                  } @else {
+                    <i class="pi pi-plus" aria-hidden="true"></i>
+                    <span>{{ 'dashboard.showCommunication.video.builder.media.add' | translate }}</span>
+                  }
+                  <input
+                    type="file"
+                    class="sr-only"
+                    [attr.accept]="input.accept"
+                    multiple
+                    [disabled]="uploading()"
+                    (change)="onFiles($event)"
+                  />
+                </label>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Ce qu'IDEM peut faire quand les médias manquent. -->
+      <div class="vdb-switches mt-4">
+        <label class="vdb-switch">
+          <input type="checkbox" [ngModel]="allowStock()" (ngModelChange)="allowStock.set($event)" name="vdbStock" />
+          <span>
+            <span class="vdb-switch-title">{{ 'dashboard.showCommunication.video.builder.media.stock' | translate }}</span>
+            <span class="vdb-switch-hint">{{ 'dashboard.showCommunication.video.builder.media.stockHint' | translate }}</span>
+          </span>
+        </label>
+        <label class="vdb-switch">
+          <input type="checkbox" [ngModel]="allowGenerate()" (ngModelChange)="allowGenerate.set($event)" name="vdbGenerate" />
+          <span>
+            <span class="vdb-switch-title">{{ 'dashboard.showCommunication.video.builder.media.generate' | translate }}</span>
+            <span class="vdb-switch-hint">{{ 'dashboard.showCommunication.video.builder.media.generateHint' | translate }}</span>
+          </span>
+        </label>
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════ 4. Le périmètre ═══════════ -->
+  @if (step() === 4) {
+    <h2 id="vdb-question" class="vb-question">
+      {{ 'dashboard.showCommunication.video.builder.scope.question' | translate }}
+    </h2>
+    <p class="vb-help">{{ 'dashboard.showCommunication.video.builder.scope.help' | translate }}</p>
+
+    <fieldset class="vdb-group">
+      <legend class="vdb-label">{{ 'dashboard.showCommunication.video.builder.scope.duration' | translate }}</legend>
+      <div class="vdb-chips">
+        @for (d of durations(); track d) {
+          <button
+            type="button"
+            class="vdb-chip"
+            [class.vb-active]="duration() === d"
+            [attr.aria-pressed]="duration() === d"
+            (click)="duration.set(d)"
+          >
+            <span class="vdb-chip-main">{{ d }} s</span>
+            <span class="vdb-chip-hint">
+              {{ 'dashboard.showCommunication.video.durations.' + d | translate }}
+            </span>
+          </button>
+        }
+      </div>
+    </fieldset>
+
+    <fieldset class="vdb-group">
+      <legend class="vdb-label">{{ 'dashboard.showCommunication.video.builder.scope.formats' | translate }}</legend>
+      <div class="vb-places">
+        @for (f of formatChoices; track f.id) {
+          <button
+            type="button"
+            class="vb-place"
+            [class.vb-active]="formats().includes(f.id)"
+            [attr.aria-pressed]="formats().includes(f.id)"
+            (click)="toggleFormat(f.id)"
+          >
+            <span class="vb-shape-box" aria-hidden="true">
+              <span class="vb-shape" [class.vb-shape-banner]="f.id === 'landscape'" [style.aspect-ratio]="f.ratio"></span>
+            </span>
+            <span class="vb-place-label">
+              {{ 'dashboard.showCommunication.video.formats.' + f.id + '.label' | translate }}
+            </span>
+            <span class="vb-place-icons" aria-hidden="true">
+              @for (icon of f.icons; track icon) {
+                <i [class]="icon"></i>
+              }
+            </span>
+            <span class="vb-place-hint">
+              {{ 'dashboard.showCommunication.video.formats.' + f.id + '.hint' | translate }}
+            </span>
+          </button>
+        }
+      </div>
+    </fieldset>
+
+    <fieldset class="vdb-group">
+      <legend class="vdb-label">{{ 'dashboard.showCommunication.video.builder.scope.quality' | translate }}</legend>
+      <div class="vdb-chips">
+        @for (q of qualities; track q) {
+          <button
+            type="button"
+            class="vdb-chip"
+            [class.vb-active]="quality() === q"
+            [attr.aria-pressed]="quality() === q"
+            (click)="quality.set(q)"
+          >
+            <span class="vdb-chip-main">{{ 'dashboard.showCommunication.video.qualities.' + q + '.label' | translate }}</span>
+            <span class="vdb-chip-hint">{{ 'dashboard.showCommunication.video.qualities.' + q + '.hint' | translate }}</span>
+          </button>
+        }
+      </div>
+    </fieldset>
+
+    <div class="vdb-row">
+      <div class="flex-1">
+        <label class="vdb-label" for="vdb-mood">
+          {{ 'dashboard.showCommunication.video.builder.scope.music' | translate }}
+        </label>
+        <select id="vdb-mood" [ngModel]="mood()" (ngModelChange)="mood.set($event)" name="vdbMood">
+          @for (m of moods; track m) {
+            <option [value]="m">{{ 'dashboard.showCommunication.video.moods.' + m | translate }}</option>
+          }
+        </select>
+      </div>
+      <div class="flex-1">
+        <label class="vdb-label" for="vdb-style">
+          {{ 'dashboard.showCommunication.video.builder.scope.style' | translate }}
+        </label>
+        <select id="vdb-style" [ngModel]="style()" (ngModelChange)="style.set($event)" name="vdbStyle">
+          @for (s of styles(); track s) {
+            <option [value]="s">{{ 'dashboard.showCommunication.video.styles.' + s | translate }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <label class="vdb-switch mt-4">
+      <input type="checkbox" [ngModel]="sfx()" (ngModelChange)="sfx.set($event)" name="vdbSfx" />
+      <span>
+        <span class="vdb-switch-title">{{ 'dashboard.showCommunication.video.builder.sfx.label' | translate }}</span>
+        <span class="vdb-switch-hint">{{ 'dashboard.showCommunication.video.builder.sfx.hint' | translate }}</span>
+      </span>
+    </label>
+
+    <!-- Le prix, en direct : on sait ce qu'on paie avant de cliquer. -->
+    <div class="vdb-price glass" role="status" aria-live="polite">
+      <i class="pi pi-wallet text-[var(--color-primary-500)]" aria-hidden="true"></i>
+      <div>
+        <p class="font-semibold text-[var(--color-text-primary)]">
+          {{ 'dashboard.showCommunication.video.builder.price.total' | translate: { price: price() } }}
+        </p>
+        <p class="text-xs text-[var(--color-text-secondary)]">
+          {{ 'dashboard.showCommunication.video.builder.price.reference' | translate: { price: referencePrice() } }}
+        </p>
+      </div>
+    </div>
+  }
+
+  <!-- ─────────────── Navigation ─────────────── -->
+  <footer class="vb-footer">
+    <button type="button" class="outer-button" [disabled]="busy()" (click)="back()">
+      <i class="pi pi-arrow-left" aria-hidden="true"></i>
+      {{ (step() === 1 ? 'common.cancel' : 'common.previous') | translate }}
+    </button>
+
+    @if (step() === 3) {
+      <button type="button" class="inner-button" [disabled]="!canAdvance()" (click)="next()">
+        {{ 'common.next' | translate }}
+        <i class="pi pi-arrow-right" aria-hidden="true"></i>
+      </button>
+    } @else if (step() === 4) {
+      <button type="button" class="inner-button" [disabled]="!canAdvance()" (click)="submit()">
+        @if (busy()) {
+          <idem-loader size="xs" />
+          {{ 'dashboard.showCommunication.video.builder.creating' | translate }}
+        } @else {
+          <i class="pi pi-video" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.video.builder.submit' | translate: { price: price() } }}
+        }
+      </button>
+    }
+  </footer>
+  @if (busy()) {
+    <p class="mt-3 text-sm text-[var(--color-text-secondary)]" role="status">
+      {{ 'dashboard.showCommunication.video.builder.creatingHint' | translate }}
+    </p>
+  }
+</section>

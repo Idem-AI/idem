@@ -1,0 +1,186 @@
+:host {
+  display: block;
+}
+
+.vd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.vd-back:hover {
+  color: var(--color-text-primary);
+}
+
+/* Aperçu à gauche, réglages à droite ; une seule colonne au téléphone. */
+.vd-layout {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 64rem) {
+  .vd-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 24rem);
+    align-items: start;
+  }
+
+  .vd-preview-col {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+/*
+ * Le cadre garde la forme exacte du format (--r = largeur / hauteur) et ne
+ * dépasse jamais l'écran : une story est bornée par la hauteur, une vidéo
+ * paysage par la largeur.
+ */
+.vd-frame {
+  position: relative;
+  margin: 0 auto;
+  width: min(100%, calc(min(72vh, 52rem) * var(--r, 0.5625)));
+  aspect-ratio: var(--r, 0.5625);
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--glass-bg-subtle);
+}
+
+.vd-iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.vd-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.vd-tab {
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  padding: 0.3rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.vd-tab-active {
+  border-color: var(--color-primary-500);
+  color: var(--color-text-primary);
+}
+
+.vd-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.vd-card {
+  padding: 1rem 1.1rem;
+}
+
+.vd-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  cursor: default;
+}
+
+summary.vd-card-title {
+  cursor: pointer;
+}
+
+.vd-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: 0.25rem;
+}
+
+.vd-scene {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.vd-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.vd-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-text-primary);
+}
+
+.vd-style {
+  border-radius: 999px;
+  border: 1.5px solid var(--glass-border);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.vd-style-active {
+  border-color: var(--color-primary-500);
+  color: var(--color-text-primary);
+}
+
+.vd-file {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.vd-file-poster {
+  height: 3rem;
+  width: 3rem;
+  flex: none;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+
+.vd-track {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.vd-track audio {
+  height: 2rem;
+}
+
+.vd-note {
+  display: flex;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.vd-note-error,
+.vd-danger {
+  color: var(--color-danger);
+}

@@ -144,6 +144,14 @@ export const REGENERATION_MULTIPLIER = 1.5;
 
 const REVISION_COST = 1;
 const LOGO_RELAUNCH_COST = 10;
+/** La charte graphique (session de logo + identité). */
+const LOGO_BRAND_COST = 60;
+/**
+ * Vidéo motion design, au périmètre de référence (15 s, un format, HD) :
+ * DEUX FOIS la charte graphique. Le prix réel suit le périmètre choisi
+ * (cf. `services/Communication/video/video.pricing.ts`).
+ */
+const MOTION_VIDEO_REFERENCE_COST = 2 * LOGO_BRAND_COST;
 const regeneration = (base: number) => Math.ceil(base * REGENERATION_MULTIPLIER);
 
 /**
@@ -185,7 +193,14 @@ export const BUSINESS_CREDIT_COSTS = {
   procedures_manual: 45,
   /** Vidéo courte générée par IA (8 s) — le seul livrable réellement cher. */
   short_video: 60,
-  logo_brand: 60,
+  logo_brand: LOGO_BRAND_COST,
+  /** Vidéo motion design au périmètre de référence ; le prix réel suit le périmètre. */
+  motion_video: MOTION_VIDEO_REFERENCE_COST,
+  /**
+   * Nouvel export d'une vidéo déjà payée (textes ou musique retouchés) : une
+   * fraction du périmètre, calculée par `video.pricing.ts` — valeur nominale ici.
+   */
+  motion_video_rerender: Math.ceil(MOTION_VIDEO_REFERENCE_COST * 0.1),
   /** Kit juridique OHADA : statuts, pacte d'associés, CGV/CGU. */
   legal_kit: 65,
   business_plan: 70,

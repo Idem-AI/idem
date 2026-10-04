@@ -138,6 +138,7 @@ Choisir l'élément par le **sens**, jamais par le décor :
 | Argent, paiement, crédits, prix | Cauris (monnaie historique), calebasse qui les contient |
 | Croissance, business plan, ambition | Baobab (jeune pousse → arbre adulte selon l'étape) |
 | Communication, marketing, réseaux | Tambour parleur (tama, djembé) |
+| Raconter en musique, vidéo de promotion | Kora (harpe-luth du griot) |
 | Équipe, collaboration, partage | Arbre à palabres et tabourets en cercle |
 | Stratégie, simulation, calcul | Plateau d'awalé et ses graines |
 | Construction, application, code | Architecture de terre (murs en banco, torons de Djenné), métier à tisser |

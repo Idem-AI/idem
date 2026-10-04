@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ApiService } from '../../../shared/services/api.service';
-import { Application, Tag } from '../../../shared/models/ideploy.models';
+import { Application, DomainCheck, Tag } from '../../../shared/models/ideploy.models';
 
 /** The Eloquent morph class this Node API expects for an application. */
 const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
@@ -51,8 +51,31 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static'] as con
               <label class="mb-1 block text-sm" for="cfg-fqdn">{{ 'applications.detail.fqdn' | translate }}</label>
               <input type="text" id="cfg-fqdn" class="font-mono text-sm" placeholder="https://app.mondomaine.com" formControlName="fqdn" />
               <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.fqdnHint' | translate }}</p>
+              <!-- Where each new domain points, right after saving it. -->
+              @for (check of domainCheck(); track check.host) {
+                <p class="mt-1 text-xs" role="status" [style.color]="check.pointsHere ? 'var(--color-success)' : 'var(--color-warning)'">
+                  @if (check.pointsHere) {
+                    <i class="pi pi-check mr-1 text-xs" aria-hidden="true"></i>{{ 'applications.detail.dnsOk' | translate: { host: check.host } }}
+                  } @else if (check.addresses.length) {
+                    <i class="pi pi-exclamation-triangle mr-1 text-xs" aria-hidden="true"></i>{{ 'applications.detail.dnsElsewhere' | translate: { host: check.host, addresses: check.addresses.join(', ') } }}
+                  } @else {
+                    <i class="pi pi-exclamation-triangle mr-1 text-xs" aria-hidden="true"></i>{{ 'applications.detail.dnsMissing' | translate: { host: check.host } }}
+                  }
+                </p>
+              }
             </div>
           </div>
+          @if (saveError(); as message) {
+            <p class="text-sm" role="alert" style="color:var(--color-danger);">{{ message }}</p>
+          }
+          @if (redeployRequired()) {
+            <div class="flex flex-wrap items-center gap-3 rounded-lg p-3 text-sm" role="status" style="border:1px solid var(--color-surface-2);">
+              <span>{{ 'applications.detail.domainRedeploy' | translate }}</span>
+              <button class="outer-button ml-auto" type="button" (click)="redeploy()" [disabled]="redeploying()">
+                {{ (redeploying() ? 'applications.detail.redeploying' : 'applications.detail.redeployNow') | translate }}
+              </button>
+            </div>
+          }
           <div class="flex items-center justify-end gap-3">
             @if (saved()) {
               <span class="text-sm" style="color:var(--color-success);"><i class="pi pi-check mr-1 text-xs"></i>{{ 'applications.detail.saved' | translate }}</span>
@@ -149,6 +172,11 @@ export class AppSettingsTabComponent implements OnInit {
 
   protected readonly saving = signal(false);
   protected readonly saved = signal(false);
+  protected readonly saveError = signal<string | null>(null);
+  /** Set when the domain changed: it only reaches the proxy with a deployment. */
+  protected readonly redeployRequired = signal(false);
+  protected readonly redeploying = signal(false);
+  protected readonly domainCheck = signal<DomainCheck[]>([]);
   protected readonly appTags = signal<Tag[]>([]);
   private readonly allTags = signal<Tag[]>([]);
   protected readonly availableTags = computed(() => {
@@ -191,14 +219,37 @@ export class AppSettingsTabComponent implements OnInit {
   protected save(): void {
     this.saving.set(true);
     this.saved.set(false);
+    this.saveError.set(null);
     this.api.updateApplication(this.app().uuid, this.configForm.getRawValue()).subscribe({
       next: (a) => {
         this.saving.set(false);
         this.saved.set(true);
         this.configForm.markAsPristine();
+        this.domainCheck.set(a.domainCheck ?? []);
+        if (a.redeployRequired) this.redeployRequired.set(true);
         this.updated.emit(a);
       },
-      error: () => this.saving.set(false),
+      // A taken or invalid domain says which, and why.
+      error: (e) => {
+        this.saving.set(false);
+        const message = (e as { error?: { error?: { message?: string } } })?.error?.error?.message;
+        this.saveError.set(message ?? this.translate.instant('applications.detail.saveError'));
+      },
+    });
+  }
+
+  protected redeploy(): void {
+    this.redeploying.set(true);
+    this.api.deploy(this.app().uuid).subscribe({
+      next: () => {
+        this.redeploying.set(false);
+        this.redeployRequired.set(false);
+      },
+      error: (e) => {
+        this.redeploying.set(false);
+        const message = (e as { error?: { error?: { message?: string } } })?.error?.error?.message;
+        this.saveError.set(message ?? this.translate.instant('applications.detail.redeployError'));
+      },
     });
   }
 

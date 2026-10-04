@@ -1,3 +1,4 @@
+import { MotionVideo } from './motionVideo.model';
 /**
  * Communication feature models.
  *
@@ -472,6 +473,8 @@ export interface CommunicationModel {
   visuals?: Flyer[];
   /** Assisted/queued social publications. */
   publications?: Publication[];
+  /** Vidéos de promotion en motion design (storyboards + rendus MP4). */
+  videos?: MotionVideo[];
   /** Occasions suggérées, en cache. Alimentent les périodes (plus un onglet). */
   occasionSuggestions?: MomentSuggestion[];
   /** Version du schéma appliquée par la migration. Absent = pré-V2. */

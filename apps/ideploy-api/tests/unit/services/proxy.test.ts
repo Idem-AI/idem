@@ -14,6 +14,7 @@ import { parse } from 'yaml';
 import {
   buildTraefikCompose,
   isBouncerKey,
+  releaseForeignContainers,
   parseMachineCredentials,
 } from '../../../api/services/proxy.service';
 
@@ -80,5 +81,26 @@ describe('CrowdSec credentials read at provisioning', () => {
     expect(isBouncerKey('aB3dE5fG7hJ9kL1mN3pQ5rS7')).toBe(true);
     expect(isBouncerKey('Error: bouncer ideploy-x already exists')).toBe(false);
     expect(isBouncerKey('')).toBe(false);
+  });
+});
+
+describe('releaseForeignContainers', () => {
+  // The former "Install CrowdSec" ran `docker run --name ideploy-crowdsec`
+  // outside the proxy's Compose project: Compose then failed on the name
+  // conflict at every later start. Verified on a managed server.
+  const step = releaseForeignContainers('/data/ideploy/proxy');
+
+  it('checks both container names against the proxy project directory', () => {
+    for (const name of ['ideploy-proxy', 'ideploy-crowdsec']) {
+      expect(step).toContain(`docker inspect -f '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' ${name}`);
+      expect(step).toContain(`docker rm -f ${name}`);
+    }
+    expect(step).toContain('[ "$owner" != "/data/ideploy/proxy" ]');
+  });
+
+  it('never fails the provisioning chain itself', () => {
+    // Each check ends in `true`: an absent container, or one already owned by
+    // the project, must let `docker compose up` run.
+    expect(step.match(/; true; }/g)).toHaveLength(2);
   });
 });

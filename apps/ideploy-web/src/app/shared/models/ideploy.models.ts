@@ -171,6 +171,14 @@ export interface CreateWorkspaceProjectRequest {
   environment_name?: string;
 }
 
+/** Where one of an application's domains points, checked when it changes. */
+export interface DomainCheck {
+  domain: string;
+  host: string;
+  pointsHere: boolean;
+  addresses: string[];
+}
+
 export interface Application {
   id: number;
   uuid: string;
@@ -186,6 +194,10 @@ export interface Application {
   /** Only populated by `listApplications` — the workspace this application lives in. */
   workspace_name?: string;
   workspace_uuid?: string;
+  /** Set by an update that changed the domain: where each one points. */
+  domainCheck?: DomainCheck[];
+  /** Set by an update that changed the domain: it applies at the next deployment. */
+  redeployRequired?: boolean;
 }
 
 export interface ApiResponse<T> {
