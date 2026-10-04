@@ -194,6 +194,18 @@ describe('saving the selection', () => {
     expect(selection?.countries.map((c) => c.name)).toEqual(['Allemagne']);
   });
 
+  it('reads an allow-list back as the countries allowed, in allow mode', async () => {
+    // Showing the 200-odd blocked countries of an allow-list would make the
+    // screen unrecognisable to the person who chose two.
+    const { teamId, uuid } = await anApplication();
+    await geo.setGeoRule(teamId, uuid, { mode: 'allow_only', countries: ['FR', 'BE'] });
+
+    const selection = await geo.getSelection(teamId, uuid);
+
+    expect(selection?.mode).toBe('allow_only');
+    expect(selection?.countries.map((c) => c.code).sort()).toEqual(['BE', 'FR']);
+  });
+
   it('returns nothing when no selection was ever made', async () => {
     const { teamId, uuid } = await anApplication();
 
@@ -257,8 +269,8 @@ describe('the rule reaches enforcement, via the proxy rather than CrowdSec', () 
   });
 
   it('stores the selection in the shape the deploy pipeline reads back', async () => {
-    // `application-labels.service`'s `parseGeoBlockedCountries` reads exactly
-    // this shape on every deploy; a stored rule that does not match it would be
+    // `analyseRule`, which `application-labels.service` uses on every deploy,
+    // reads exactly this shape; a stored rule that does not match it would be
     // silently dropped from the container's labels.
     const { teamId, uuid } = await anApplication();
     const { rule } = await geo.setGeoRule(teamId, uuid, { mode: 'block', countries: ['RU', 'CN'] });

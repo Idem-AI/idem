@@ -1,12 +1,17 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import {
   Country,
+  FirewallAlert,
+  FirewallApplyResult,
   FirewallConfig,
   FirewallRule,
+  FirewallTrafficEntry,
+  GeoMode,
   GeoSelection,
   GeoWarning,
   RateLimitSettings,
@@ -39,7 +44,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
  */
 @Component({
   selector: 'app-application-security',
-  imports: [RouterLink, ReactiveFormsModule, TranslateModule],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a
@@ -80,6 +85,28 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
           {{ (applying() ? 'security.app.applying' : 'security.app.applyNow') | translate }}
         </button>
       </div>
+    }
+
+    <!-- What Apply did: blocked now, waiting for the redeploy, or refused. -->
+    @if (applyResult(); as r) {
+      <div class="mb-4 rounded-lg p-3 text-sm" role="status" style="border:1px solid var(--color-surface-2);">
+        <p>{{ 'security.app.applied' | translate: { blocked: r.blocked.length, released: r.released.length } }}</p>
+        @if (r.redeployment; as d) {
+          <p class="mt-1" style="color:var(--color-text-secondary);">
+            {{ (d.alreadyRunning ? 'security.app.redeployRunning' : 'security.app.redeployQueued') | translate }}
+          </p>
+        } @else if (r.pendingRedeploy.length > 0) {
+          <p class="mt-1" style="color:var(--color-warning);">
+            {{ 'security.app.pendingRedeploy' | translate: { count: r.pendingRedeploy.length } }}
+          </p>
+        }
+        @for (u of r.unsupported; track u.ruleId) {
+          <p class="mt-1" style="color:var(--color-warning);"><strong>{{ u.name }}</strong> — {{ u.reason }}</p>
+        }
+      </div>
+    }
+    @if (applyError(); as message) {
+      <p class="mb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ message }}</p>
     }
 
     <!--
@@ -295,7 +322,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
       @if (geo(); as g) {
         <div class="mb-3 rounded-xl border p-3" style="border-color:var(--color-surface-2);">
           <p class="mb-2 text-sm">
-            <span style="color:var(--color-text-secondary);">{{ 'security.app.currentlyBlocked' | translate }}</span>
+            <span style="color:var(--color-text-secondary);">{{ (g.mode === 'allow_only' ? 'security.app.currentlyAllowed' : 'security.app.currentlyBlocked') | translate }}</span>
             <strong class="ml-2" style="font-variant-numeric:tabular-nums;">{{ g.countries.length }}</strong>
           </p>
           <div class="flex flex-wrap gap-1.5">
@@ -312,6 +339,18 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
       } @else {
         <p class="mb-3 text-xs" style="color:var(--color-text-tertiary);">{{ 'security.app.noGeoRule' | translate }}</p>
       }
+
+      <fieldset class="mb-3 flex flex-wrap gap-4 text-sm">
+        <legend class="mb-1.5 font-medium">{{ 'security.app.geoMode' | translate }}</legend>
+        <label class="flex items-center gap-1.5">
+          <input type="radio" name="geo-mode" value="block" [checked]="geoMode() === 'block'" (change)="geoMode.set('block')" />
+          {{ 'security.app.geoModeBlock' | translate }}
+        </label>
+        <label class="flex items-center gap-1.5">
+          <input type="radio" name="geo-mode" value="allow_only" [checked]="geoMode() === 'allow_only'" (change)="geoMode.set('allow_only')" />
+          {{ 'security.app.geoModeAllow' | translate }}
+        </label>
+      </fieldset>
 
       <!-- Continents first: picking 250 countries one at a time is not a design. -->
       <div class="mb-3">
@@ -395,9 +434,9 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
             <tbody>
               @for (a of alerts(); track $index) {
                 <tr>
-                  <td><code class="font-mono text-xs">{{ a['source_ip'] || a['ip'] || '—' }}</code></td>
-                  <td style="color:var(--color-text-secondary);">{{ a['scenario'] || a['reason'] || '' }}</td>
-                  <td class="text-right text-xs whitespace-nowrap" style="color:var(--color-text-secondary);">{{ a['created_at'] }}</td>
+                  <td><code class="font-mono text-xs">{{ a.ip_address || '—' }}</code></td>
+                  <td style="color:var(--color-text-secondary);">{{ a.scenario || a.alert_type || '' }}</td>
+                  <td class="text-right text-xs whitespace-nowrap" style="color:var(--color-text-secondary);">{{ a.created_at | date: 'short' }}</td>
                 </tr>
               }
             </tbody>
@@ -419,9 +458,9 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
             <tbody>
               @for (t of traffic(); track $index) {
                 <tr>
-                  <td><code class="font-mono text-xs">{{ t['source_ip'] || t['ip'] || '—' }}</code></td>
-                  <td style="color:var(--color-text-secondary);">{{ t['path'] || t['uri'] || '' }}</td>
-                  <td class="text-right text-xs whitespace-nowrap" style="color:var(--color-text-secondary);">{{ t['created_at'] }}</td>
+                  <td><code class="font-mono text-xs">{{ t.ip_address || '—' }}</code></td>
+                  <td style="color:var(--color-text-secondary);">{{ t.uri || t.rule_name || t.decision || '' }}</td>
+                  <td class="text-right text-xs whitespace-nowrap" style="color:var(--color-text-secondary);">{{ t.timestamp | date: 'short' }}</td>
                 </tr>
               }
             </tbody>
@@ -441,8 +480,8 @@ export class ApplicationSecurityComponent implements OnInit {
 
   protected readonly firewall = signal<FirewallConfig | null>(null);
   protected readonly rules = signal<FirewallRule[]>([]);
-  protected readonly alerts = signal<Record<string, unknown>[]>([]);
-  protected readonly traffic = signal<Record<string, unknown>[]>([]);
+  protected readonly alerts = signal<FirewallAlert[]>([]);
+  protected readonly traffic = signal<FirewallTrafficEntry[]>([]);
 
   protected readonly geo = signal<GeoSelection | null>(null);
   protected readonly geoWarnings = signal<GeoWarning[]>([]);
@@ -460,6 +499,11 @@ export class ApplicationSecurityComponent implements OnInit {
   /** Set by any mutation the API flagged `applyRequired`. */
   protected readonly pendingApply = signal(false);
   protected readonly applying = signal(false);
+  /** Rate limits only reach the proxy through a redeploy, which Apply then has to request. */
+  private readonly rateLimitChanged = signal(false);
+  protected readonly applyResult = signal<FirewallApplyResult | null>(null);
+  protected readonly applyError = signal<string | null>(null);
+  protected readonly geoMode = signal<GeoMode>('block');
   protected readonly savingGeo = signal(false);
 
   protected readonly addingRule = signal(false);
@@ -635,8 +679,11 @@ export class ApplicationSecurityComponent implements OnInit {
   protected toggleFirewall(fw: FirewallConfig): void {
     this.api.updateFirewall(this.uuid, { enabled: !fw.enabled }).subscribe({
       next: (f) => {
+        // The toggle applies on its own; only a failure leaves work for Apply.
         this.firewall.set(f);
-        this.pendingApply.set(true);
+        this.applyResult.set(f.applied ?? null);
+        this.applyError.set(f.applyError ?? null);
+        this.pendingApply.set(Boolean(f.applyError));
       },
       error: (e) => this.report(e, 'security.app.wafError'),
     });
@@ -686,7 +733,7 @@ export class ApplicationSecurityComponent implements OnInit {
     this.error.set(null);
     this.api
       .setGeoBlocking(this.uuid, {
-        mode: 'block',
+        mode: this.geoMode(),
         countries: [...this.selectedCountries()],
         continents: [...this.selectedContinents()],
       })
@@ -709,7 +756,10 @@ export class ApplicationSecurityComponent implements OnInit {
 
   private refreshGeo(): void {
     const locale = this.translate.currentLang || 'en';
-    this.api.getGeoBlocking(this.uuid, locale).subscribe((g) => this.geo.set(g));
+    this.api.getGeoBlocking(this.uuid, locale).subscribe((g) => {
+      this.geo.set(g);
+      if (g) this.geoMode.set(g.mode);
+    });
   }
 
   protected clearGeo(): void {
@@ -731,6 +781,7 @@ export class ApplicationSecurityComponent implements OnInit {
       next: (rl) => {
         this.rateLimit.set(rl);
         this.pendingApply.set(rl.applyRequired);
+        this.rateLimitChanged.set(true);
       },
       error: (e) => this.report(e, 'security.app.rateLimitError'),
     });
@@ -743,6 +794,7 @@ export class ApplicationSecurityComponent implements OnInit {
       next: (rl) => {
         this.rateLimit.set(rl);
         this.pendingApply.set(rl.applyRequired);
+        this.rateLimitChanged.set(true);
       },
       error: (e) => this.report(e, 'security.app.rateLimitError'),
     });
@@ -753,6 +805,7 @@ export class ApplicationSecurityComponent implements OnInit {
       next: (r) => {
         this.rateLimit.set(null);
         this.pendingApply.set(r.applyRequired);
+        this.rateLimitChanged.set(true);
       },
       error: (e) => this.report(e, 'security.app.rateLimitError'),
     });
@@ -765,8 +818,11 @@ export class ApplicationSecurityComponent implements OnInit {
   protected applyNow(): void {
     this.applying.set(true);
     this.error.set(null);
-    this.api.deployFirewall(this.uuid).subscribe({
-      next: () => {
+    this.applyError.set(null);
+    this.api.deployFirewall(this.uuid, this.rateLimitChanged() || undefined).subscribe({
+      next: (result) => {
+        this.applyResult.set(result);
+        this.rateLimitChanged.set(false);
         this.applying.set(false);
         this.pendingApply.set(false);
         this.api.getFirewall(this.uuid).subscribe((f) => this.firewall.set(f));

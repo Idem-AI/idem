@@ -10,7 +10,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import * as geo from '../../api/services/geo-blocking.service';
-import { getOrCreateConfig, updateConfig } from '../../api/services/firewall.service';
+import { createRule, getOrCreateConfig, updateConfig } from '../../api/services/firewall.service';
 import { getApplication } from '../../api/services/application.service';
 import { resolveApplicationLabels } from '../../api/services/application-labels.service';
 import { isTestDatabaseAvailable, testPool, truncateAll } from '../helpers/db';
@@ -84,6 +84,20 @@ describe('a saved geo rule reaches the deployed labels', () => {
       false
     );
     expect(labels.some((l) => l.includes('.plugin.geoblock.countries['))).toBe(true);
+  });
+
+  it('also carries countries from a rule created in the rules list', async () => {
+    // Apply reports these as "pending redeploy"; the redeploy must apply them.
+    const { teamId, uuid } = await aRoutableApplication();
+    await createRule(teamId, uuid, {
+      name: 'no-scrapers',
+      conditions: [{ field: 'country', operator: 'in', value: ['kp'] }],
+      action: 'block',
+    });
+
+    const labels = await labelsFor(teamId, uuid);
+
+    expect(labels.some((l) => l.includes('.plugin.geoblock.countries[') && l.endsWith('=KP'))).toBe(true);
   });
 
   it('emits no geo label when the firewall is turned off, even with a rule saved', async () => {

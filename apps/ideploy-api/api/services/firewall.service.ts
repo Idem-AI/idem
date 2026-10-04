@@ -299,11 +299,62 @@ function generateRuleYaml(rule: FirewallRule): string {
  * which ones could not be translated and why — a rule matching on request path
  * still cannot be enforced, and saying so is the point.
  */
-export async function deploy(teamId: number, appUuid: string) {
+export async function deploy(
+  teamId: number,
+  appUuid: string,
+  opts: {
+    /**
+     * `true` redeploys whatever the rules need (rate limits, which only the
+     * caller knows changed), `false` never does; left out, the redeploy is
+     * queued exactly when country rules are waiting for one.
+     */
+    redeploy?: boolean;
+    /**
+     * Redeploy even without pending country rules — when the firewall was
+     * switched on or off, the CrowdSec bouncer middleware itself has to be
+     * added to or removed from the labels.
+     */
+    forceRedeploy?: boolean;
+  } = {}
+) {
   // Keep rendering the YAML: harmless, and the artefact stays available for the
   // day AppSec is decided on.
   await prepareRules(teamId, appUuid);
 
   const { enforce } = await import('./firewall-enforcement.service');
-  return enforce(teamId, appUuid);
+  const result = await enforce(teamId, appUuid);
+
+  // Country rules live in the container's proxy labels: "Apply" that stops at
+  // CrowdSec leaves them saved and never in force. Redeploying is what applies
+  // them, so it is queued here unless the caller opted out.
+  const redeployment =
+    (result.redeployRequired || opts.forceRedeploy || opts.redeploy === true) && opts.redeploy !== false
+      ? await queueRedeploy(teamId, appUuid)
+      : null;
+  return { ...result, redeployment };
+}
+
+export interface QueuedRedeploy {
+  deploymentUuid: string | null;
+  /** True when a deployment was already queued or running — it will pick the rules up. */
+  alreadyRunning: boolean;
+}
+
+async function queueRedeploy(teamId: number, appUuid: string): Promise<QueuedRedeploy> {
+  const app = await appService.getApplication(teamId, appUuid);
+  if (!app) return { deploymentUuid: null, alreadyRunning: false };
+
+  // Labels are computed when the deployment starts, so a queued one already
+  // carries the new rules; a second would only rebuild for nothing.
+  const { rows } = await pool.query(
+    `SELECT deployment_uuid FROM application_deployment_queues
+     WHERE application_id = $1 AND status IN ('queued', 'in_progress')
+     ORDER BY id DESC LIMIT 1`,
+    [String(app.id)]
+  );
+  if (rows[0]) return { deploymentUuid: String(rows[0].deployment_uuid), alreadyRunning: true };
+
+  const { createDeployment } = await import('./deployment.service');
+  const { deploymentUuid } = await createDeployment(app, teamId);
+  return { deploymentUuid, alreadyRunning: false };
 }

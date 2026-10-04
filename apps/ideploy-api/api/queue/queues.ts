@@ -18,6 +18,10 @@ export const QUEUE_NAMES = {
   databases: 'ideploy-databases',
   notifications: 'ideploy-notifications',
   scheduler: 'ideploy-scheduler',
+  // Firewall housekeeping (purge, CrowdSec sync). Its own queue: a worker on a
+  // shared queue receives the other workers' jobs too, and silently completed
+  // users' scheduled tasks when it shared `scheduler`.
+  firewall: 'ideploy-firewall',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

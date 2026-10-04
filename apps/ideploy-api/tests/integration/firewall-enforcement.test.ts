@@ -11,7 +11,7 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import * as enforcement from '../../api/services/firewall-enforcement.service';
-import { getOrCreateConfig, createRule, updateConfig } from '../../api/services/firewall.service';
+import { getOrCreateConfig, createRule, deploy, updateConfig } from '../../api/services/firewall.service';
 import { encryptString } from '../../api/utils/laravel-crypto';
 import { isTestDatabaseAvailable, testPool, truncateAll } from '../helpers/db';
 import { makeApplication, makeManagedServer, makeProject, makeTeam } from '../helpers/factories';
@@ -169,6 +169,116 @@ describe('enforce — address rules go to CrowdSec', () => {
 
     expect(result.redeployRequired).toBe(false);
     expect(result.reason).toBeUndefined();
+  });
+});
+
+describe('enforce — ranges', () => {
+  it('bans a CIDR rule as a range, not as an address', async () => {
+    const { teamId, uuid } = await anApplication();
+    stub.on('GET', '/v1/decisions', { body: [] });
+    await anAddressRule(teamId, uuid, '10.0.0.0/8');
+
+    const result = await enforcement.enforce(teamId, uuid);
+
+    expect(result.blocked).toEqual([{ scope: 'range', value: '10.0.0.0/8' }]);
+    const alert = stub.requests.find((r) => r.method === 'POST' && r.path === '/v1/alerts')!;
+    const body = alert.body as Array<{ decisions: Record<string, string>[] }>;
+    expect(body[0].decisions[0]).toMatchObject({ scope: 'range', value: '10.0.0.0/8' });
+  });
+
+  it('recognises a range CrowdSec echoes as "Range", and releases it by range', async () => {
+    const { teamId, uuid } = await anApplication();
+    stub.on('GET', '/v1/decisions', {
+      body: [{ value: '10.0.0.0/8', scope: 'Range', origin: 'ideploy' }],
+    });
+    stub.on('DELETE', '/v1/decisions', { body: null });
+
+    const result = await enforcement.enforce(teamId, uuid);
+
+    expect(result.released).toEqual([{ scope: 'range', value: '10.0.0.0/8' }]);
+    const deletion = stub.requests.find((r) => r.method === 'DELETE')!;
+    expect(deletion.query.range).toBe('10.0.0.0/8');
+  });
+});
+
+describe('enforce — the machine login', () => {
+  it('logs in under the machine name recorded at provisioning', async () => {
+    const { teamId, uuid, serverId } = await anApplication();
+    await testPool().query("UPDATE servers SET crowdsec_machine_id = 'abc123machine' WHERE id = $1", [serverId]);
+    stub.on('GET', '/v1/decisions', { body: [] });
+    await anAddressRule(teamId, uuid);
+
+    await enforcement.enforce(teamId, uuid);
+
+    const login = stub.requests.find((r) => r.path === '/v1/watchers/login')!;
+    expect((login.body as { machine_id: string }).machine_id).toBe('abc123machine');
+  });
+
+  it('falls back to "localhost" for servers provisioned before it was recorded', async () => {
+    const { teamId, uuid } = await anApplication();
+    stub.on('GET', '/v1/decisions', { body: [] });
+    await anAddressRule(teamId, uuid);
+
+    await enforcement.enforce(teamId, uuid);
+
+    const login = stub.requests.find((r) => r.path === '/v1/watchers/login')!;
+    expect((login.body as { machine_id: string }).machine_id).toBe('localhost');
+  });
+});
+
+describe('Apply — country rules are applied by a redeploy', () => {
+  async function queuedDeployments(appId: number): Promise<number> {
+    const { rows } = await testPool().query<{ n: string }>(
+      'SELECT count(*)::text AS n FROM application_deployment_queues WHERE application_id = $1',
+      [String(appId)]
+    );
+    return Number(rows[0].n);
+  }
+
+  it('queues a redeploy when a country rule waits for one', async () => {
+    const { teamId, uuid, appId } = await anApplication();
+    stub.on('GET', '/v1/decisions', { body: [] });
+    await aCountryRule(teamId, uuid);
+
+    const result = await deploy(teamId, uuid);
+
+    expect(result.redeployment?.alreadyRunning).toBe(false);
+    expect(result.redeployment?.deploymentUuid).toBeTruthy();
+    expect(await queuedDeployments(appId)).toBe(1);
+  });
+
+  it('does not queue a second one while a deployment is already queued', async () => {
+    const { teamId, uuid, appId } = await anApplication();
+    stub.on('GET', '/v1/decisions', { body: [] });
+    await aCountryRule(teamId, uuid);
+    await deploy(teamId, uuid);
+
+    const second = await deploy(teamId, uuid);
+
+    expect(second.redeployment?.alreadyRunning).toBe(true);
+    expect(await queuedDeployments(appId)).toBe(1);
+  });
+
+  it('queues nothing for address rules, which apply immediately', async () => {
+    const { teamId, uuid, appId } = await anApplication();
+    stub.on('GET', '/v1/decisions', { body: [] });
+    await anAddressRule(teamId, uuid);
+
+    const result = await deploy(teamId, uuid);
+
+    expect(result.redeployment).toBeNull();
+    expect(await queuedDeployments(appId)).toBe(0);
+  });
+
+  it('can be told not to redeploy', async () => {
+    const { teamId, uuid, appId } = await anApplication();
+    stub.on('GET', '/v1/decisions', { body: [] });
+    await aCountryRule(teamId, uuid);
+
+    const result = await deploy(teamId, uuid, { redeploy: false });
+
+    expect(result.redeployment).toBeNull();
+    expect(await queuedDeployments(appId)).toBe(0);
   });
 });
 

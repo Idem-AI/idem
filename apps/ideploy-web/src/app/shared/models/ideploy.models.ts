@@ -606,6 +606,10 @@ export interface FirewallConfig {
   application_id: number;
   enabled: boolean;
   enforcement?: FirewallEnforcement;
+  /** Set by a toggle: what reconciling right away did. */
+  applied?: FirewallApplyResult;
+  /** Set by a toggle when the setting was saved but could not be applied. */
+  applyError?: string;
   appsec_enabled: boolean;
   inband_enabled: boolean;
   default_remediation: string;
@@ -637,6 +641,54 @@ export interface CountryCatalogue {
 
 /** Stored as a block list either way — the interface shows what is blocked. */
 export type GeoMode = 'block' | 'allow_only';
+
+/** A detection imported from CrowdSec — the columns the API returns. */
+export interface FirewallAlert {
+  alert_type: string;
+  severity: string;
+  ip_address: string | null;
+  scenario: string | null;
+  status: string;
+  created_at: string;
+}
+
+/** One blocking recorded for an application. */
+export interface FirewallTrafficEntry {
+  ip_address: string | null;
+  method: string | null;
+  uri: string | null;
+  host: string | null;
+  decision: string;
+  rule_name: string | null;
+  country_code: string | null;
+  timestamp: string;
+}
+
+/** One address, range or country a rule blocks. */
+export interface FirewallTarget {
+  scope: 'ip' | 'range' | 'country';
+  value: string;
+}
+
+/** A rule that could not be translated into anything enforceable, and why. */
+export interface UnsupportedFirewallRule {
+  ruleId: number;
+  name: string;
+  reason?: string;
+}
+
+/** What "Apply" actually did — mirrors the API's `EnforcementResult`. */
+export interface FirewallApplyResult {
+  blocked: FirewallTarget[];
+  released: FirewallTarget[];
+  /** Saved, but only in force once the application is redeployed. */
+  pendingRedeploy: FirewallTarget[];
+  unsupported: UnsupportedFirewallRule[];
+  redeployRequired: boolean;
+  reason?: string;
+  /** The redeploy queued to apply the rules, when one was. */
+  redeployment: { deploymentUuid: string | null; alreadyRunning: boolean } | null;
+}
 
 export interface GeoSelection {
   mode: GeoMode;
