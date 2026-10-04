@@ -16,6 +16,8 @@ import { encryptString, tryDecryptString } from '../utils/laravel-crypto';
 import { detectEnvVars } from './env-detection.service';
 import { DetectedEnvVar } from '../utils/env-example';
 import {
+  DatabaseEngine,
+  detectDatabaseEngines,
   detectNonNodeEcosystem,
   detectNodePackageManager,
   findManifestDirectories,
@@ -183,6 +185,8 @@ export async function detectFramework(
   suggestedPort: number | null;
   startCommandHint?: string;
   warnings: EcosystemWarning[];
+  /** Database engines the code is built to talk to (from its drivers) — empty when none is named. */
+  databaseEngines: DatabaseEngine[];
   rootDirSuggestion?: string;
   monorepoCandidates?: ManifestDirectory[];
 }> {
@@ -362,12 +366,18 @@ export async function detectFramework(
         }
   );
 
+  // Which database the code is written for, scoped like the variables above.
+  const databaseEngines = await detectDatabaseEngines({
+    getFile: rootDirSuggestion ? (path: string) => fileContent(`${rootDirSuggestion}/${path}`) : fileContent,
+  });
+
   return {
     preset,
     buildPack,
     hasDockerfile,
     hasDockerCompose,
     envVars,
+    databaseEngines,
     ecosystem,
     buildTool,
     suggestedPort,
