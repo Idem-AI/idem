@@ -1,16 +1,24 @@
 /**
  * Deployment worker (BullMQ) — port of the core ApplicationDeploymentJob flow.
  *
- * Flow (vertical slice): resolve app + server → stream live logs to Soketi →
- * prepare remote workdir → write docker-compose → pull/build → `docker compose
- * up -d` → verify container → update status. Git clone + nixpacks build land in
- * a later phase; this proves the end-to-end pipeline (queue → SSH → Docker →
- * realtime logs).
+ * Flow: resolve app + server → stream live logs to Soketi → fetch the code into
+ * a fresh release directory → build → switch the live stack over → verify the
+ * container → update status.
+ *
+ * The running version is not touched until the new one is built. Each
+ * deployment works in its own `releases/<id>` directory; only once the build
+ * has succeeded is the compose file written and `docker compose up` run. A
+ * failed build therefore leaves the previous version serving, still manageable
+ * (start/stop/restart find its compose file), and the application's status
+ * unchanged — it used to wipe the application's directory first, then mark the
+ * application stopped while its old container kept running.
  */
 import { Job } from 'bullmq';
+import { randomBytes } from 'crypto';
 import { QUEUE_NAMES } from '../queue/queues';
 import { registerWorker } from '../queue/worker';
 import logger from '../config/logger';
+import redis from '../config/redis.config';
 import { realtime } from '../services/realtime.service';
 import { executeRemoteCommand, shellQuote, uploadRemoteFile } from '../ssh/ssh';
 import { writeFile, rm } from 'fs/promises';
@@ -18,8 +26,8 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { getSourceArchive } from '../services/application-source.service';
 import { assertComposeIsSafe } from '../docker/compose-policy';
-import { assertSafeGitBranch, assertSafeGitUrl } from '../validation/git-input';
-import { generateComposeFile, generateBuildlessCompose, appWorkdir } from '../docker/compose';
+import { assertSafeGitBranch, assertSafeGitUrl, isSafeCommitSha } from '../validation/git-input';
+import { generateComposeFile, appWorkdir, composeDirFile, composeProject } from '../docker/compose';
 import { planBuild, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
 import * as appService from '../services/application.service';
@@ -53,6 +61,24 @@ const SETTLE_MS = 12000;
  */
 const CONFIRM_GRACE_MS = 15000;
 
+/** Releases and images kept on the server: the live one and the one before it. */
+const RELEASES_KEPT = 2;
+
+/**
+ * How much of a deployment's log is kept once it is over. It used to exist
+ * only as it streamed: opening a finished deployment showed nothing.
+ */
+const KEPT_LOG_CHARS = 200_000;
+
+/**
+ * One deployment of an application at a time. Two at once used to share a
+ * directory, each deleting what the other was building. The lock outlives any
+ * real build; a crashed worker's lock expires on its own.
+ */
+const LOCK_TTL_MS = 60 * 60 * 1000;
+const LOCK_WAIT_MS = 30 * 60 * 1000;
+const LOCK_POLL_MS = 5000;
+
 async function streamStep(
   deploymentUuid: string,
   label: string,
@@ -62,373 +88,481 @@ async function streamStep(
   await fn();
 }
 
+/** Run `work` holding the application's deployment lock, waiting for a running deployment to end. */
+async function withApplicationLock<T>(
+  applicationId: number,
+  log: (line: string) => Promise<void>,
+  work: () => Promise<T>
+): Promise<T> {
+  const key = `ideploy:deploy-lock:${applicationId}`;
+  const token = randomBytes(12).toString('hex');
+  const started = Date.now();
+  let announced = false;
+  while (!(await redis.set(key, token, 'PX', LOCK_TTL_MS, 'NX'))) {
+    if (Date.now() - started > LOCK_WAIT_MS) {
+      throw new Error('Another deployment of this application is still running; try again once it has finished.');
+    }
+    if (!announced) {
+      await log('Waiting for the previous deployment of this application to finish…');
+      announced = true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_MS));
+  }
+  try {
+    return await work();
+  } finally {
+    if ((await redis.get(key)) === token) await redis.del(key);
+  }
+}
+
+export interface ContainerState {
+  service: string;
+  state: string;
+  exitCode: number;
+  health: string;
+}
+
+/**
+ * Parse `docker compose ps --format json`: a JSON array on older Compose, one
+ * object per line on newer ones. Returns null when the output is neither.
+ */
+export function parseComposePs(stdout: string): ContainerState[] | null {
+  const text = stdout.trim();
+  if (!text) return [];
+  const toState = (raw: Record<string, unknown>): ContainerState => ({
+    service: String(raw.Service ?? raw.Name ?? ''),
+    state: String(raw.State ?? '').toLowerCase(),
+    exitCode: Number(raw.ExitCode ?? 0),
+    health: String(raw.Health ?? '').toLowerCase(),
+  });
+  try {
+    if (text.startsWith('[')) return (JSON.parse(text) as Record<string, unknown>[]).map(toState);
+    return text
+      .split('\n')
+      .filter((line) => line.trim())
+      .map((line) => toState(JSON.parse(line) as Record<string, unknown>));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether the stack is up, and whether something in it crashed.
+ *
+ * A container that ran to completion (exit 0 — a migration, an init step) is
+ * not a crash; one that exited with an error, died or keeps restarting is.
+ */
+export function judgeContainers(states: ContainerState[]): { isUp: boolean; crashed: boolean } {
+  const crashed = states.some(
+    (c) =>
+      c.state === 'dead' ||
+      c.state === 'restarting' ||
+      (c.state === 'exited' && c.exitCode !== 0) ||
+      c.health === 'unhealthy'
+  );
+  const isUp = states.some((c) => c.state === 'running');
+  return { isUp, crashed };
+}
+
 export async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
-  const { deploymentUuid, applicationUuid, teamId } = job.data;
-  const log = (line: string): Promise<void> => realtime.deploymentLog(deploymentUuid, line);
+  const { deploymentUuid, applicationUuid, applicationId, teamId } = job.data;
+  const kept: string[] = [];
+  let keptChars = 0;
+  const log = (line: string): Promise<void> => {
+    kept.push(line);
+    keptChars += line.length;
+    while (keptChars > KEPT_LOG_CHARS && kept.length > 1) keptChars -= kept.shift()!.length;
+    return realtime.deploymentLog(deploymentUuid, line);
+  };
+  const saveLog = (): Promise<void> =>
+    deploymentService.saveLogs(deploymentUuid, kept.join('\n')).catch(() => undefined);
 
   await deploymentService.setDeploymentStatus(deploymentUuid, 'in_progress');
   await log(`Deployment ${deploymentUuid} started for application ${applicationUuid}`);
 
+  // Whether the live stack has been touched. Before that point a failure
+  // leaves the previous version running, and the application's status alone.
+  let switched = false;
+
   try {
+    await withApplicationLock(applicationId, log, () => deploy(job.data, log, () => (switched = true)));
     const app = await appService.getApplication(teamId, applicationUuid);
-    if (!app) throw new Error('Application not found');
-
-    const serverRef = await appService.getApplicationServer(app.id);
-    if (!serverRef) throw new Error('No server/destination resolved for this application');
-
-    const server = await serverService.getExecutionServer(teamId, serverRef.serverId);
-    if (!server) throw new Error('Server not found');
-    const key = await serverService.getExecutionKey(server);
-    if (!key) throw new Error('Private key not found');
-
-    // Proxy + ownership labels. Without these the container runs but is not
-    // reachable on its domain, and the platform cannot recognise it later.
-    const labelContext = await loadLabelContext(app);
-    const labels = labelContext ? buildApplicationLabels(app, labelContext) : undefined;
-    const network = labelContext?.network;
-
-    const workdir = appWorkdir(app);
-    const srcDir = `${workdir}/src`;
-    const imageTag = `${app.name}-${deploymentUuid.slice(0, 8)}`.toLowerCase().replace(/[^a-z0-9._-]/g, '-');
-
-    // The container's own listening port — needed to build the app
-    // (nixpacks/static start commands) and to verify it comes up, regardless
-    // of whether it ever reaches the host directly. This used to force-write
-    // a 1:1 ports_mappings ("gets an openable URL") into the database on
-    // every deployment; now that every application gets a real domain
-    // (domain.service.ts's generateFqdn, resolved at creation) reachable
-    // through Traefik on the shared network, that forced mapping did nothing
-    // but guarantee two applications using the same port — the near-universal
-    // default, 3000 — collide the instant both landed on one server. Publishing
-    // a host port is still available, just never forced: generateComposeFile
-    // honours an operator's own explicit ports_mappings, and only falls back
-    // to auto-publishing when there is no Traefik routing to use instead.
-    const port =
-      parseInt((app.ports_mappings || app.ports_exposes || '3000').split(',')[0].split(':')[0], 10) || 3000;
-
-    // The operator's own Variables — stored, shown back to them on the
-    // Variables tab, and never once reaching the container: nothing here
-    // ever read them before. Runtime ones go on the running container;
-    // build-time ones (is_buildtime) go to nixpacks below, so a build step
-    // needing e.g. an API key to compile has it without it also being an
-    // unnecessary runtime var on the final container.
-    const envVars = await envVarService.listForApplication(teamId, app.uuid);
-    const runtimeEnv = envVars
-      .filter((v) => v.is_runtime && v.value !== null)
-      .map((v) => `${v.key}=${v.value}`);
-    const buildEnv = envVars
-      .filter((v) => v.is_buildtime && v.value !== null)
-      .map((v) => `${v.key}=${v.value}`);
-
-    // build_pack 'dockerfile' → build the image; otherwise run buildless
-    // (base image + mounted source — no Dockerfile, no image build).
-    // Where `docker compose up` runs, and what it runs. A repository that
-    // ships its own compose file is deployed from its own directory.
-    let compose: string | null;
-    let composeDir = workdir;
-
-    await streamStep(deploymentUuid, 'Preparing workdir', async () => {
-      const r = await executeRemoteCommand(server, key, `rm -rf ${workdir} && mkdir -p ${workdir}`, {
-        onData: (c) => log(c),
-      });
-      if (r.exitCode !== 0) throw new Error(`Failed to prepare workdir: ${r.stderr.slice(0, 300)}`);
-    });
-
-    // The code comes from a Git repository, or — for what iCode publishes — from
-    // the archive it sent (`application_sources`). Neither: placeholder.
-    const sourceArchive = app.git_repository ? null : await getSourceArchive(app.id);
-
-    if (!app.git_repository && !sourceArchive) {
-      // Nothing to clone — placeholder static container.
-      compose = generateComposeFile(app, 'nginx:alpine', labels, network, runtimeEnv, port);
-    } else {
-      if (sourceArchive) {
-        // One archive, one upload, one `tar` — then the build below runs on it
-        // exactly as it would on a fresh clone.
-        await streamStep(deploymentUuid, 'Uploading the code', async () => {
-          const localArchive = join(tmpdir(), `ideploy-source-${deploymentUuid}.tgz`);
-          const remoteArchive = `${workdir}/source.tgz`;
-          await writeFile(localArchive, sourceArchive);
-          try {
-            await uploadRemoteFile(server, key, localArchive, remoteArchive);
-          } finally {
-            await rm(localArchive, { force: true });
-          }
-          const r = await executeRemoteCommand(
-            server,
-            key,
-            `mkdir -p ${shellQuote(srcDir)} && tar xzf ${shellQuote(remoteArchive)} -C ${shellQuote(srcDir)} && rm -f ${shellQuote(remoteArchive)} && ls -la ${shellQuote(srcDir)}`,
-            { onData: (c) => log(c) }
-          );
-          if (r.exitCode !== 0) throw new Error(`Unpacking the code failed: ${r.stderr.slice(0, 300)}`);
-        });
-      } else {
-        // A private repository needs something to authenticate the clone with
-        // — verified live: without this, a non-interactive `git clone` of a
-        // private repo fails every time with "could not read Username", since
-        // there's no TTY for git to prompt on. When the team has GitHub/GitLab
-        // connected, credentials.service resolves a clone URL carrying that
-        // token; a public repo (or one nobody's connected an account for)
-        // gets exactly today's plain URL back as `credential` being null.
-        // Sans archive, on n'arrive ici qu'avec un dépôt renseigné.
-        const repository = app.git_repository as string;
-        const credential = await resolveGitCredential(teamId, repository);
-        const cloneUrl = credential?.authenticatedUrl ?? repository;
-
-        // Branche et dépôt viennent de l'utilisateur et partent dans un shell sur
-        // l'hôte : format vérifié, puis chaque argument entre apostrophes.
-        const branch = assertSafeGitBranch(app.git_branch || 'main');
-        assertSafeGitUrl(repository);
-
-        await streamStep(deploymentUuid, 'Cloning repository', async () => {
-          const r = await executeRemoteCommand(
-            server,
-            key,
-            `git clone --depth 1 -b ${shellQuote(branch)} -- ${shellQuote(cloneUrl)} ${shellQuote(srcDir)} && ls -la ${shellQuote(srcDir)}`,
-            { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
-          );
-          if (r.exitCode !== 0) throw new Error(`git clone failed: ${r.stderr.slice(0, 300)}`);
-        });
-      }
-
-      const pack = toBuildPack(app.build_pack);
-      const plan = planBuild(pack, {
-        srcDir,
-        workdir,
-        imageTag,
-        baseDirectory: app.base_directory,
-        installCommand: app.install_command,
-        buildCommand: app.build_command,
-        startCommand: app.start_command,
-        publishDirectory: app.publish_directory,
-        port,
-        buildEnv,
-      });
-
-      await log(`\n──► Build strategy: ${plan.pack}`);
-
-      // Le compose d'un dépôt est du contenu utilisateur : il est contrôlé AVANT
-      // `docker compose build` (un contexte de build hors du dépôt lit déjà
-      // l'hôte) et avant tout `up`.
-      if (plan.runtime === 'compose-file') {
-        await streamStep(deploymentUuid, 'Checking the compose file', async () => {
-          const dir = buildDirectory({
-            srcDir,
-            workdir,
-            imageTag,
-            baseDirectory: app.base_directory,
-            port,
-          });
-          const r = await executeRemoteCommand(
-            server,
-            key,
-            `cd ${shellQuote(dir)} && (cat docker-compose.yml 2>/dev/null || cat docker-compose.yaml)`,
-            { noRetry: true }
-          );
-          if (r.exitCode !== 0) throw new Error('No docker-compose.yml found in the repository.');
-          assertComposeIsSafe(r.stdout);
-        });
-      }
-
-      let buildFailed = false;
-      for (const step of plan.steps) {
-        await streamStep(deploymentUuid, step.label, async () => {
-          const r = await executeRemoteCommand(server, key, step.command, {
-            onData: (c) => log(c),
-          });
-          if (r.exitCode !== 0) {
-            buildFailed = true;
-            throw new Error(`${step.label} failed: ${(r.stderr || r.stdout).slice(0, 400)}`);
-          }
-        });
-      }
-
-      if (plan.runtime === 'compose-file') {
-        // The repository ships its own stack; deploy it from its own directory
-        // rather than generating one over the top.
-        composeDir = buildDirectory({
-          srcDir,
-          workdir,
-          imageTag,
-          baseDirectory: app.base_directory,
-          port,
-        });
-        compose = null;
-      } else if (buildFailed) {
-        // Unreachable: the throw above aborts. Kept explicit so a future edit
-        // cannot silently fall through to deploying a stale image.
-        throw new Error('Build failed');
-      } else {
-        compose = generateComposeFile(app, imageTag, labels, network, runtimeEnv, port);
-      }
-    }
-
-    if (compose !== null) await streamStep(deploymentUuid, 'Writing docker-compose.yml', async () => {
-      const b64 = Buffer.from(compose as string, 'utf8').toString('base64');
-      const r = await executeRemoteCommand(
-        server,
-        key,
-        `echo '${b64}' | base64 -d > ${workdir}/docker-compose.yml && cat ${workdir}/docker-compose.yml`,
-        { onData: (c) => log(c) }
-      );
-      if (r.exitCode !== 0) throw new Error(`Failed to write compose file: ${r.stderr.slice(0, 300)}`);
-    });
-
-    await streamStep(deploymentUuid, 'Deploying (docker compose up)', async () => {
-      // `pull` only makes sense when the compose file can name a real registry
-      // image to fetch — the repository's own compose file (runtime
-      // 'compose-file') might. The compose file *we* generated never does:
-      // its image is always the tag `docker build` just produced locally, and
-      // `docker compose pull` on a bare local tag doesn't skip it as
-      // "already have it" — it tries Docker Hub and fails hard with "pull
-      // access denied … repository does not exist", which then made every
-      // nixpacks/Dockerfile deployment fail at the very last step, after a
-      // successful build, for a pull nothing needed.
-      const pullStep = compose === null ? 'docker compose pull --quiet 2>/dev/null; ' : '';
-      const r = await executeRemoteCommand(
-        server,
-        key,
-        // `down` first, not just `up --remove-orphans`: a retry (this job's own
-        // BullMQ attempts, or a re-deploy) can find a container this same
-        // compose file half-created on the previous attempt — still starting,
-        // holding the port or the name — which made `up` fail with an error
-        // that had nothing to do with the actual deployment, on every retry,
-        // indistinguishable from a real failure. Tearing it down first makes
-        // every attempt start from the same clean state the first one did.
-        `cd ${composeDir} && docker compose down --remove-orphans 2>/dev/null; ` +
-          `${pullStep}docker compose up -d --remove-orphans`,
-        { onData: (c) => log(c) }
-      );
-      if (r.exitCode !== 0) {
-        // Compose's own errors land on stderr; a connection-level failure
-        // (the SSH command itself never completing) leaves both empty — that
-        // used to surface as "docker compose up failed: " with nothing after
-        // the colon, impossible to act on from the log alone.
-        const detail =
-          r.stderr.trim().slice(0, 300) ||
-          r.stdout.trim().slice(0, 300) ||
-          `no output (exit code ${r.exitCode}) — the connection to the server may have dropped mid-command`;
-        throw new Error(`docker compose up failed: ${detail}`);
-      }
-    });
-
-    // Tracks how much of `docker compose logs` output has already been
-    // streamed, across both the polling loop and the later grace-period
-    // re-check — a single running total, not reset between them, so the
-    // confirmation check never re-sends lines the operator already saw.
-    let lastLogLength = 0;
-
-    /** One `docker compose ps` + fresh-log-tail read. Streams any new log output as a side effect. */
-    const checkContainerState = async (): Promise<{ isUp: boolean; hasExited: boolean; psOutput: string; allLogsLower: string }> => {
-      const logsResult = await executeRemoteCommand(server, key, `cd ${composeDir} && docker compose logs --no-color`, { noRetry: true });
-      const currentLogs = logsResult.stdout || '';
-      if (currentLogs.length > lastLogLength) {
-        await log(currentLogs.slice(lastLogLength));
-        lastLogLength = currentLogs.length;
-      }
-
-      const psResult = await executeRemoteCommand(server, key, `cd ${workdir} && docker compose ps`, { noRetry: true });
-      const psOutput = psResult.stdout.trim().toLowerCase();
-      const hasExited = psOutput.includes('exited') || psOutput.includes('dead') || psOutput.includes('exit');
-      const isUp = psOutput.includes('up') || psOutput.includes('running');
-      return { isUp, hasExited, psOutput, allLogsLower: currentLogs.toLowerCase() };
-    };
-
-    const READY_LOG_PHRASES = [
-      'listening on',
-      'ready in',
-      'local:',
-      'accepting connections',
-      'compiled successfully',
-      'http://localhost:',
-      'ready - started server',
-      'started application in', // Spring Boot's own "Started XyzApplication in 4.2 seconds" line
-    ];
-
-    await streamStep(deploymentUuid, 'Verifying container', async () => {
-      await log('Monitoring container startup and logs...');
-      const startTime = Date.now();
-      const maxWaitMs = 45000; // 45 seconds max wait for build and start
-      let confirmedUp = false;
-
-      while (Date.now() - startTime < maxWaitMs) {
-        const { isUp, hasExited, psOutput, allLogsLower } = await checkContainerState();
-
-        if (hasExited || (psOutput && !isUp)) {
-          throw new Error('Container exited unexpectedly during build/startup. Check the logs above for errors.');
-        }
-
-        if (READY_LOG_PHRASES.some((p) => allLogsLower.includes(p))) {
-          confirmedUp = true;
-          await log('\n✓ Application started successfully and is listening for connections.');
-          break;
-        }
-
-        // No crash and no recognised log line yet — the phrase list above is
-        // a best-effort shortcut, not a requirement: plenty of real
-        // applications (structured/JSON loggers, or ones that print nothing
-        // at all once up) will never match any of them, and previously that
-        // meant paying the full 45s wait on *every* deployment of one for no
-        // reason. A container still running this far past startup without
-        // having crashed is itself the thing worth verifying.
-        if (isUp && Date.now() - startTime > SETTLE_MS) {
-          confirmedUp = true;
-          await log('\n✓ Container is running and has not crashed.');
-          break;
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-      }
-
-      // Silence (nothing ever crashed, but nothing ever confirmed "up" either
-      // — e.g. `docker compose ps` kept returning empty) used to fall through
-      // this whole step and reach `finalize(..., true)` regardless. A
-      // deployment that never even confirmed the container came up is not a
-      // successful one.
-      if (!confirmedUp) {
-        throw new Error('Timed out waiting for the container to report as running within 45s. Check the logs above for what it was doing instead.');
-      }
-    });
-
-    await streamStep(deploymentUuid, 'Confirming container stays healthy', async () => {
-      // The one check above only proves the container hadn't crashed *yet* —
-      // some failures (a JVM app's JDBC driver rejecting its connection
-      // string, a slow dependency the app gives up waiting on) only surface
-      // a handful of seconds after that point, once startup actually
-      // finishes and the app tries the thing that's broken. Re-checking once
-      // more, after giving that a real chance to happen, is what makes
-      // "verified" mean the app is actually still up, not just that it was a
-      // few seconds ago.
-      await new Promise((resolve) => setTimeout(resolve, CONFIRM_GRACE_MS));
-      const { isUp, hasExited } = await checkContainerState();
-      if (hasExited || !isUp) {
-        throw new Error('Container crashed shortly after starting — it did not stay up. Check the logs above for the real error.');
-      }
-      await log('\n✓ Confirmed: still running after the grace period.');
-    });
-
-    await finalize(app, deploymentUuid, teamId, true);
+    if (app) await finalize(app, deploymentUuid, teamId, true);
     await log('✅ Deployment finished successfully');
+    await saveLog();
   } catch (err) {
     const message = (err as Error).message;
     logger.error('Deployment failed', { deploymentUuid, message });
     await log(`❌ Deployment failed: ${message}`);
-    // Le journal détaillé ne part qu'en temps réel ; la cause, elle, reste lisible
-    // après coup (iCode l'affiche dans ses « détails »).
-    await deploymentService.recordFailure(deploymentUuid, message).catch(() => undefined);
+    if (!switched) await log('The previous version, if any, is still the one serving.');
+    // Kept with the deployment, ending with the cause (iCode shows its tail).
+    await saveLog();
     const app = await appService.getApplication(teamId, applicationUuid);
-    if (app) await finalize(app, deploymentUuid, teamId, false);
+    if (app) await finalize(app, deploymentUuid, teamId, false, switched);
     throw err;
   }
+}
+
+async function deploy(
+  data: DeploymentJobData,
+  log: (line: string) => Promise<void>,
+  markSwitched: () => void
+): Promise<void> {
+  const { deploymentUuid, applicationUuid, teamId } = data;
+
+  const app = await appService.getApplication(teamId, applicationUuid);
+  if (!app) throw new Error('Application not found');
+
+  const serverRef = await appService.getApplicationServer(app.id);
+  if (!serverRef) throw new Error('No server/destination resolved for this application');
+
+  const server = await serverService.getExecutionServer(teamId, serverRef.serverId);
+  if (!server) throw new Error('Server not found');
+  const key = await serverService.getExecutionKey(server);
+  if (!key) throw new Error('Private key not found');
+
+  // Proxy + ownership labels. Without these the container runs but is not
+  // reachable on its domain, and the platform cannot recognise it later.
+  const labelContext = await loadLabelContext(app);
+  const labels = labelContext ? buildApplicationLabels(app, labelContext) : undefined;
+  const network = labelContext?.network;
+
+  const workdir = appWorkdir(app);
+  const project = composeProject(app);
+  const releasesDir = `${workdir}/releases`;
+  const releaseDir = `${releasesDir}/${deploymentUuid.slice(0, 8)}`;
+  const srcDir = `${releaseDir}/src`;
+  // One image repository per application, one tag per deployment: old images
+  // can then be removed without touching another application's, even one that
+  // shares its name.
+  const imageRepository = `ideploy-${app.uuid.toLowerCase()}`;
+  const imageTag = `${imageRepository}:${deploymentUuid.slice(0, 8)}`;
+
+  // The port the application listens on inside its container — the one
+  // Traefik routes to (`ports_exposes`), and the one it is told through PORT.
+  // `ports_mappings` ("host:container") only decides what is also published on
+  // the host; taking its host side here told an app mapped 8080:3000 to listen
+  // on 8080 while Traefik kept sending traffic to 3000.
+  const port = applicationPort(app);
+
+  // The operator's own Variables. Runtime ones go on the running container;
+  // build-time ones (is_buildtime) go to the build below, so a build step
+  // needing e.g. an API key has it without it also being an unnecessary
+  // runtime var on the final container.
+  const envVars = await envVarService.listForApplication(teamId, app.uuid);
+  const runtimeEnv = envVars
+    .filter((v) => v.is_runtime && v.value !== null)
+    .map((v) => `${v.key}=${v.value}`);
+  const buildEnv = envVars
+    .filter((v) => v.is_buildtime && v.value !== null)
+    .map((v) => `${v.key}=${v.value}`);
+
+  // What `docker compose up` runs, and from where: the file we generate lives
+  // in the application's directory; a repository's own compose file runs from
+  // its release.
+  let compose: string | null;
+  let composeDir = workdir;
+
+  await streamStep(deploymentUuid, 'Preparing the release', async () => {
+    const r = await executeRemoteCommand(
+      server,
+      key,
+      `mkdir -p ${shellQuote(workdir)} && rm -rf ${shellQuote(releaseDir)} && mkdir -p ${shellQuote(srcDir)}`,
+      { onData: (c) => log(c) }
+    );
+    if (r.exitCode !== 0) throw new Error(`Failed to prepare the release directory: ${r.stderr.slice(0, 300)}`);
+  });
+
+  // The code comes from a Git repository, or — for what iCode publishes — from
+  // the archive it sent (`application_sources`). Neither: placeholder.
+  const sourceArchive = app.git_repository ? null : await getSourceArchive(app.id);
+
+  if (!app.git_repository && !sourceArchive) {
+    // Nothing to fetch — placeholder static container.
+    compose = generateComposeFile(app, 'nginx:alpine', labels, network, runtimeEnv, port);
+  } else {
+    if (sourceArchive) {
+      // One archive, one upload, one `tar` — then the build below runs on it
+      // exactly as it would on a fresh clone.
+      await streamStep(deploymentUuid, 'Uploading the code', async () => {
+        const localArchive = join(tmpdir(), `ideploy-source-${deploymentUuid}.tgz`);
+        const remoteArchive = `${releaseDir}/source.tgz`;
+        await writeFile(localArchive, sourceArchive);
+        try {
+          await uploadRemoteFile(server, key, localArchive, remoteArchive);
+        } finally {
+          await rm(localArchive, { force: true });
+        }
+        const r = await executeRemoteCommand(
+          server,
+          key,
+          `tar xzf ${shellQuote(remoteArchive)} -C ${shellQuote(srcDir)} && rm -f ${shellQuote(remoteArchive)} && ls -la ${shellQuote(srcDir)}`,
+          { onData: (c) => log(c) }
+        );
+        if (r.exitCode !== 0) throw new Error(`Unpacking the code failed: ${r.stderr.slice(0, 300)}`);
+      });
+    } else {
+      // A private repository needs something to authenticate the clone with:
+      // a non-interactive `git` cannot prompt. When the team has GitHub/GitLab
+      // connected, credentials.service resolves a URL carrying that token; a
+      // public repo gets its plain URL back.
+      const repository = app.git_repository as string;
+      const credential = await resolveGitCredential(teamId, repository);
+      const cloneUrl = credential?.authenticatedUrl ?? repository;
+
+      // Branche, commit et dépôt viennent de l'utilisateur et partent dans un
+      // shell sur l'hôte : format vérifié, puis chaque argument entre apostrophes.
+      const branch = assertSafeGitBranch(app.git_branch || 'main');
+      assertSafeGitUrl(repository);
+      const requested = data.commit && data.commit !== 'HEAD' ? data.commit : null;
+      if (requested && !isSafeCommitSha(requested)) throw new Error(`"${requested}" is not a commit id.`);
+      // A specific commit (rollback, pipeline) is fetched by its id; it used to
+      // be ignored, and every "rollback" deployed the branch's latest commit.
+      const ref = requested ?? branch;
+
+      await streamStep(deploymentUuid, requested ? `Fetching commit ${requested}` : 'Cloning repository', async () => {
+        const r = await executeRemoteCommand(
+          server,
+          key,
+          `cd ${shellQuote(srcDir)} && git init -q && git remote add origin ${shellQuote(cloneUrl)} && ` +
+            `git fetch -q --depth 1 origin ${shellQuote(ref)} && git checkout -q FETCH_HEAD && ` +
+            // The remote URL may carry the team's token: not left in .git/config.
+            `git remote remove origin && ` +
+            `echo "COMMIT=$(git rev-parse HEAD)" && ls -la`,
+          { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
+        );
+        if (r.exitCode !== 0) throw new Error(`Fetching the code failed: ${r.stderr.slice(0, 300)}`);
+        const sha = /COMMIT=([0-9a-f]{40})/.exec(r.stdout)?.[1];
+        if (sha) await deploymentService.recordCommit(deploymentUuid, app.id, sha);
+      });
+    }
+
+    const pack = toBuildPack(app.build_pack);
+    const buildContext = {
+      srcDir,
+      workdir: releaseDir,
+      imageTag,
+      baseDirectory: app.base_directory,
+      installCommand: app.install_command,
+      buildCommand: app.build_command,
+      startCommand: app.start_command,
+      publishDirectory: app.publish_directory,
+      port,
+      buildEnv,
+      composeProject: project,
+    };
+    const plan = planBuild(pack, buildContext);
+
+    await log(`\n──► Build strategy: ${plan.pack}`);
+
+    // Le compose d'un dépôt est du contenu utilisateur : il est contrôlé AVANT
+    // `docker compose build` (un contexte de build hors du dépôt lit déjà
+    // l'hôte) et avant tout `up`.
+    if (plan.runtime === 'compose-file') {
+      await streamStep(deploymentUuid, 'Checking the compose file', async () => {
+        const dir = buildDirectory(buildContext);
+        const r = await executeRemoteCommand(
+          server,
+          key,
+          `cd ${shellQuote(dir)} && (cat docker-compose.yml 2>/dev/null || cat docker-compose.yaml)`,
+          { noRetry: true }
+        );
+        if (r.exitCode !== 0) throw new Error('No docker-compose.yml found in the repository.');
+        assertComposeIsSafe(r.stdout);
+      });
+    }
+
+    for (const step of plan.steps) {
+      await streamStep(deploymentUuid, step.label, async () => {
+        const r = await executeRemoteCommand(server, key, step.command, {
+          onData: (c) => log(c),
+        });
+        if (r.exitCode !== 0) throw new Error(`${step.label} failed: ${(r.stderr || r.stdout).slice(0, 400)}`);
+      });
+    }
+
+    if (plan.runtime === 'compose-file') {
+      // The repository ships its own stack; it runs from its own directory.
+      composeDir = buildDirectory(buildContext);
+      compose = null;
+    } else {
+      compose = generateComposeFile(app, imageTag, labels, network, runtimeEnv, port);
+    }
+  }
+
+  // From here on the live stack changes.
+  markSwitched();
+
+  await streamStep(deploymentUuid, 'Switching to the new version', async () => {
+    // Never printed: the file carries the application's runtime variables,
+    // its secrets among them, and the log is shown to everyone on the team.
+    const writeCompose =
+      compose !== null
+        ? `echo '${Buffer.from(compose, 'utf8').toString('base64')}' | base64 -d > ${shellQuote(`${workdir}/docker-compose.yml`)} && `
+        : '';
+    // Where start/stop/restart will find the live compose file.
+    const recordDir = `echo ${shellQuote(composeDir)} > ${shellQuote(composeDirFile(app))}`;
+    const r = await executeRemoteCommand(server, key, `${writeCompose}${recordDir}`, { noRetry: true });
+    if (r.exitCode !== 0) throw new Error(`Failed to write the compose file: ${r.stderr.slice(0, 300)}`);
+    await log(compose !== null ? 'Compose file written.' : `Using the repository's compose file in ${composeDir}.`);
+  });
+
+  await streamStep(deploymentUuid, 'Deploying (docker compose up)', async () => {
+    // `pull` only for a repository's compose file, which may name registry
+    // images. Ours always names the tag `docker build` just produced locally,
+    // and `pull` on it fails with "pull access denied".
+    const cd = `cd ${shellQuote(composeDir)} && `;
+    const dc = `docker compose -p ${shellQuote(project)}`;
+    const pull = compose === null ? `${dc} pull --quiet 2>/dev/null; ` : '';
+    // `up` replaces the containers in place. Only when it fails — a container
+    // half-created by an interrupted deployment holding a name — is the stack
+    // taken down and brought up again.
+    let r = await executeRemoteCommand(server, key, `${cd}${pull}${dc} up -d --remove-orphans`, {
+      onData: (c) => log(c),
+    });
+    if (r.exitCode !== 0) {
+      await log('\nRetrying after taking the previous containers down…');
+      r = await executeRemoteCommand(
+        server,
+        key,
+        `${cd}${dc} down --remove-orphans 2>/dev/null; ${dc} up -d --remove-orphans`,
+        { onData: (c) => log(c) }
+      );
+    }
+    if (r.exitCode !== 0) {
+      // A connection-level failure leaves both streams empty — say so rather
+      // than "docker compose up failed: " with nothing after the colon.
+      const detail =
+        r.stderr.trim().slice(0, 300) ||
+        r.stdout.trim().slice(0, 300) ||
+        `no output (exit code ${r.exitCode}) — the connection to the server may have dropped mid-command`;
+      throw new Error(`docker compose up failed: ${detail}`);
+    }
+  });
+
+  // Tracks how much of `docker compose logs` output has already been
+  // streamed, across both the polling loop and the later grace-period
+  // re-check, so the confirmation never re-sends lines already shown.
+  let lastLogLength = 0;
+
+  /** One `docker compose ps` + fresh-log-tail read. Streams any new log output as a side effect. */
+  const checkContainerState = async (): Promise<{ isUp: boolean; crashed: boolean; empty: boolean; allLogsLower: string }> => {
+    const base = `cd ${shellQuote(composeDir)} && docker compose -p ${shellQuote(project)}`;
+    const logsResult = await executeRemoteCommand(server, key, `${base} logs --no-color`, { noRetry: true });
+    const currentLogs = logsResult.stdout || '';
+    if (currentLogs.length > lastLogLength) {
+      await log(currentLogs.slice(lastLogLength));
+      lastLogLength = currentLogs.length;
+    }
+
+    const psResult = await executeRemoteCommand(server, key, `${base} ps -a --format json`, { noRetry: true });
+    const states = parseComposePs(psResult.stdout);
+    if (states !== null) {
+      return { ...judgeContainers(states), empty: states.length === 0, allLogsLower: currentLogs.toLowerCase() };
+    }
+    // Not JSON (a very old Compose): read the table.
+    const table = psResult.stdout.trim().toLowerCase();
+    return {
+      isUp: table.includes(' up ') || table.includes('running'),
+      crashed: /\bexited \((?!0\))|\bdead\b|\brestarting\b/.test(table),
+      empty: table.length === 0,
+      allLogsLower: currentLogs.toLowerCase(),
+    };
+  };
+
+  const READY_LOG_PHRASES = [
+    'listening on',
+    'ready in',
+    'local:',
+    'accepting connections',
+    'compiled successfully',
+    'http://localhost:',
+    'ready - started server',
+    'started application in', // Spring Boot's own "Started XyzApplication in 4.2 seconds" line
+  ];
+
+  await streamStep(deploymentUuid, 'Verifying container', async () => {
+    await log('Monitoring container startup and logs...');
+    const startTime = Date.now();
+    const maxWaitMs = 45000;
+    let confirmedUp = false;
+
+    while (Date.now() - startTime < maxWaitMs) {
+      const { isUp, crashed, empty, allLogsLower } = await checkContainerState();
+
+      if (crashed || (!empty && !isUp)) {
+        throw new Error('Container exited unexpectedly during startup. Check the logs above for errors.');
+      }
+
+      if (isUp && READY_LOG_PHRASES.some((p) => allLogsLower.includes(p))) {
+        confirmedUp = true;
+        await log('\n✓ Application started successfully and is listening for connections.');
+        break;
+      }
+
+      // The phrase list is a shortcut, not a requirement: plenty of
+      // applications never print any of them. A container still running this
+      // far past startup without having crashed is itself the signal.
+      if (isUp && Date.now() - startTime > SETTLE_MS) {
+        confirmedUp = true;
+        await log('\n✓ Container is running and has not crashed.');
+        break;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+
+    if (!confirmedUp) {
+      throw new Error('Timed out waiting for the container to report as running within 45s. Check the logs above for what it was doing instead.');
+    }
+  });
+
+  await streamStep(deploymentUuid, 'Confirming container stays healthy', async () => {
+    // The check above only proves the container had not crashed *yet*; some
+    // failures surface a few seconds later, once startup actually finishes.
+    await new Promise((resolve) => setTimeout(resolve, CONFIRM_GRACE_MS));
+    const { isUp, crashed } = await checkContainerState();
+    if (crashed || !isUp) {
+      throw new Error('Container crashed shortly after starting — it did not stay up. Check the logs above for the real error.');
+    }
+    await log('\n✓ Confirmed: still running after the grace period.');
+  });
+
+  // Older releases and images go; the live one and the previous one stay.
+  // Every deployment used to leave its image behind until the disk filled. The
+  // checkout the first deployments made in the application's directory goes too.
+  await executeRemoteCommand(
+    server,
+    key,
+    `cd ${shellQuote(releasesDir)} && ls -1t | tail -n +${RELEASES_KEPT + 1} | xargs -r rm -rf; ` +
+      `rm -rf ${shellQuote(`${workdir}/src`)}; ` +
+      `docker images ${shellQuote(imageRepository)} --format '{{.Repository}}:{{.Tag}}' | ` +
+      `tail -n +${RELEASES_KEPT + 1} | xargs -r docker rmi >/dev/null 2>&1; true`,
+    { noRetry: true }
+  ).catch(() => undefined);
+}
+
+/** The port the application listens on inside its container. */
+export function applicationPort(app: Pick<ApplicationRow, 'ports_exposes' | 'ports_mappings'>): number {
+  const exposed = parseInt((app.ports_exposes || '').split(',')[0], 10);
+  if (exposed > 0) return exposed;
+  // No exposed port declared: the container side of the first mapping.
+  const mapping = (app.ports_mappings || '').split(',')[0].trim();
+  const containerSide = parseInt(mapping.split(':').pop() || '', 10);
+  return containerSide > 0 ? containerSide : 3000;
 }
 
 async function finalize(
   app: ApplicationRow,
   deploymentUuid: string,
   teamId: number,
-  success: boolean
+  success: boolean,
+  switched = true
 ): Promise<void> {
   await deploymentService.setDeploymentStatus(deploymentUuid, success ? 'finished' : 'failed');
+  // A deployment that failed before touching the live stack changes nothing
+  // about what is running: the application keeps its status.
+  if (!success && !switched) return;
   await appService.setStatus(app.id, success ? 'running' : 'exited');
   await realtime.statusChanged(teamId, {
     type: 'application',

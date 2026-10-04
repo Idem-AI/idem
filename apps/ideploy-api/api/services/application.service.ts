@@ -7,11 +7,12 @@ import { randomUUID } from 'crypto';
 import pool, { withTransaction } from '../config/db.config';
 import logger from '../config/logger';
 import { conflict, unprocessable } from '../utils/errors';
-import { assertDomainsAvailable, generateFqdn, getServerForDestination, subdomainSlug } from './domain.service';
+import { assertDomainsAvailable, generateFqdn, getServerForDestination, subdomainSlug, toClaim, isValidHostname } from './domain.service';
+import { releasePlatformHost } from './platform-domain.service';
 import { ApplicationRow } from '../models/ideploy.types';
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
-import { appWorkdir } from '../docker/compose';
+import { appWorkdir, composeCommand } from '../docker/compose';
 import { shellQuote } from '../ssh/ssh';
 import { isSafeGitBranch, isSafeGitUrl, isSafeRelativeDir } from '../validation/git-input';
 
@@ -52,6 +53,21 @@ function splitDomains(fqdn: string): string[] {
     .split(',')
     .map((d) => d.trim())
     .filter(Boolean);
+}
+
+/**
+ * Refuse a domain the proxy could never serve: unreadable, or a name DNS does
+ * not accept. Saved as is, it produced a router no request would ever match.
+ *
+ * @throws DomainError DOMAIN_INVALID
+ */
+function assertDomainsValid(fqdn: string): void {
+  for (const domain of splitDomains(fqdn)) {
+    const claim = toClaim(domain);
+    if (!claim || !isValidHostname(claim.host) || !claim.host.includes('.')) {
+      throw unprocessable('DOMAIN_INVALID', `"${domain}" is not a valid domain (expected e.g. https://app.example.com).`);
+    }
+  }
 }
 
 export function computeAppLink(app: ApplicationRow): string | null {
@@ -178,6 +194,7 @@ export async function createApplication(
   // Refuse a domain another resource already serves: the proxy would resolve the
   // clash arbitrarily and one application would start answering for the other.
   if (dto.fqdn) {
+    assertDomainsValid(dto.fqdn);
     await assertDomainsAvailable(splitDomains(dto.fqdn));
   }
 
@@ -271,7 +288,8 @@ export async function updateApplication(
   assertSafeBuildInputs(dto);
 
   if (dto.fqdn !== undefined && dto.fqdn !== existing.fqdn) {
-    await assertDomainsAvailable(splitDomains(dto.fqdn), existing.id);
+    assertDomainsValid(dto.fqdn ?? '');
+    await assertDomainsAvailable(splitDomains(dto.fqdn ?? ''), existing.id);
   }
 
   const sets: string[] = [];
@@ -334,7 +352,7 @@ async function teardownOnServer(teamId: number, app: ApplicationRow): Promise<Se
     const result = await executeRemoteCommand(
       server,
       key,
-      `if [ -d ${workdir} ]; then cd ${workdir} && docker compose down --volumes --remove-orphans; cd / && rm -rf ${workdir}; fi`
+      `if [ -d ${workdir} ]; then ${composeCommand(app, 'down --volumes --remove-orphans')}; cd / && rm -rf ${workdir}; fi`
     );
     if (result.exitCode !== 0) {
       logger.warn('Application teardown failed on server', { uuid: app.uuid, stderr: result.stderr });
@@ -396,6 +414,12 @@ export async function deleteApplication(
   });
 
   logger.info('Application deleted', { uuid, teamId, serverCleanup });
+  // Its platform address (`monapp.idem.africa`) goes back to the pool.
+  for (const host of splitDomains(app.fqdn ?? '')) {
+    const parsed = toClaim(host);
+    if (parsed) await releasePlatformHost(parsed.host);
+  }
+
   return { serverCleanup };
 }
 
@@ -414,13 +438,14 @@ export async function lifecycleAction(
   const key = await serverService.getExecutionKey(server);
   if (!key) throw new Error('Private key not found');
 
-  const workdir = appWorkdir(app);
+  // The live stack: a repository's own compose file runs from its release
+  // directory, not the application's, and both use the application's project.
   const cmd =
     action === 'stop'
-      ? `cd ${workdir} && docker compose down`
+      ? composeCommand(app, 'down')
       : action === 'restart'
-        ? `cd ${workdir} && docker compose restart`
-        : `cd ${workdir} && docker compose up -d`;
+        ? composeCommand(app, 'restart')
+        : composeCommand(app, 'up -d');
 
   const result = await executeRemoteCommand(server, key, cmd);
   if (result.exitCode === 0) {

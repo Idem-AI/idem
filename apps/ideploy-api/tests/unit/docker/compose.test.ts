@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import YAML from 'yaml';
-import { generateBuildlessCompose, generateComposeFile } from '../../../api/docker/compose';
+import {
+  composeCommand,
+  escapeComposeLabel,
+  escapeComposeValue,
+  generateBuildlessCompose,
+  generateComposeFile,
+} from '../../../api/docker/compose';
 import { applicationRow } from '../../helpers/rows';
 
 /** Parse the generated YAML and return the single service definition. */
@@ -148,5 +154,30 @@ describe('generateBuildlessCompose', () => {
 
     expect(def.environment).toEqual(['PORT=4000', 'HOST=0.0.0.0']);
     expect(def.ports).toEqual(['4000:4000']);
+  });
+});
+
+describe('dollars reaching Compose', () => {
+  it('keeps a secret with a dollar intact in the environment', () => {
+    // `$word` was interpolated by Compose: `pa$word` reached the container as `pa`.
+    const compose = YAML.parse(
+      generateComposeFile(applicationRow(), 'img:1', undefined, undefined, ['DB_PASSWORD=pa$word'], 3000)
+    );
+    const service = Object.values(compose.services)[0] as { environment: string[] };
+    expect(service.environment).toContain('DB_PASSWORD=pa$$word');
+  });
+
+  it('escapes the dollars of a generated label, and keeps a user\'s own `$$`', () => {
+    expect(escapeComposeLabel('basicauth.users=admin:$2a$10$abc')).toBe('basicauth.users=admin:$$2a$$10$$abc');
+    expect(escapeComposeLabel('custom=already$$escaped')).toBe('custom=already$$escaped');
+    expect(escapeComposeValue('a$$b')).toBe('a$$$$b');
+  });
+});
+
+describe('composeCommand', () => {
+  it('runs on the application project, from the recorded compose directory', () => {
+    const cmd = composeCommand({ uuid: 'ABC-123' }, 'restart');
+    expect(cmd).toContain('docker compose -p abc-123 restart');
+    expect(cmd).toContain('cat /data/ideploy/applications/ABC-123/.compose-dir');
   });
 });

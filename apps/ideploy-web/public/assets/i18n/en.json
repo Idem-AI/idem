@@ -512,7 +512,15 @@
       "saved": "Saved",
       "tagsHint": "To group and find your applications.",
       "noTagsYet": "No tags. Create some on the Tags page.",
-      "operationsHint": "To quickly check the container's state, or run a command in it."
+      "operationsHint": "To quickly check the container's state, or run a command in it.",
+      "dnsOk": "{{host}} points to this server.",
+      "dnsElsewhere": "{{host}} points to {{addresses}}, not to this server: no certificate can be issued until its DNS is changed.",
+      "dnsMissing": "{{host}} does not resolve yet: create its DNS record pointing to this server.",
+      "domainRedeploy": "The new domain applies at the next deployment.",
+      "redeployNow": "Redeploy now",
+      "redeploying": "Redeploying…",
+      "saveError": "The settings could not be saved.",
+      "redeployError": "The deployment could not be started."
     }
   },
   "projects": {
