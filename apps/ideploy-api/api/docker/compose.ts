@@ -17,7 +17,7 @@ function networkingFor(
   network: string | undefined
 ): Record<string, unknown> {
   const extras: Record<string, unknown> = {};
-  if (labels && labels.length > 0) extras.labels = labels;
+  if (labels && labels.length > 0) extras.labels = labels.map(escapeComposeLabel);
   if (network) extras.networks = [network];
   return extras;
 }
@@ -69,7 +69,7 @@ export function generateComposeFile(
   // The operator's own vars, plus PORT/HOST — but never overriding a PORT the
   // operator explicitly set themselves under Variables; their value is the
   // one that should reach the app either way.
-  const environment = [...(envVars ?? [])];
+  const environment = (envVars ?? []).map(escapeComposeValue);
   const hasOwnPort = environment.some((e) => /^PORT=/.test(e));
   if (!hasOwnPort && port) environment.push(`PORT=${port}`);
   if (!environment.some((e) => /^HOST=/.test(e))) environment.push('HOST=0.0.0.0');
@@ -152,4 +152,57 @@ export function generateBuildlessCompose(
 /** Build the remote working directory path for an application's compose stack. */
 export function appWorkdir(app: ApplicationRow): string {
   return appWorkdirFor(app.uuid);
+}
+
+/**
+ * The Compose project of an application: its uuid.
+ *
+ * Always passed with `-p`. Left to Compose, the project is named after the
+ * directory the file sits in — the uuid for the file we generate (so existing
+ * containers keep their project), but `src` or the base directory for a
+ * repository's own compose file: two such applications on one server shared a
+ * project, and `--remove-orphans` on one removed the other's containers.
+ */
+export function composeProject(app: Pick<ApplicationRow, 'uuid'>): string {
+  return app.uuid.toLowerCase();
+}
+
+/**
+ * Where the live compose file is, recorded by the deployment worker: the
+ * application's directory for a generated file, the release's own directory for
+ * a repository's compose file.
+ */
+export function composeDirFile(app: Pick<ApplicationRow, 'uuid'>): string {
+  return `${appWorkdirFor(app.uuid)}/.compose-dir`;
+}
+
+/**
+ * `docker compose <args>` on the application's live stack, from the directory
+ * its compose file lives in (relative paths in it resolve from there).
+ */
+export function composeCommand(app: Pick<ApplicationRow, 'uuid'>, args: string): string {
+  const workdir = appWorkdirFor(app.uuid);
+  return (
+    `cd "$(cat ${composeDirFile(app)} 2>/dev/null || echo ${workdir})" && ` +
+    `docker compose -p ${composeProject(app)} ${args}`
+  );
+}
+
+/**
+ * A value as Compose must read it: `$` starts an interpolation in a compose
+ * file, so a secret like `pa$word` reached the container as `pa`. `$$` is
+ * Compose's literal dollar.
+ */
+export function escapeComposeValue(value: string): string {
+  return value.replace(/\$/g, '$$$$');
+}
+
+/**
+ * A label as Compose must read it. Generated labels carry literal dollars (a
+ * bcrypt hash for basic auth: `$2a$10$…`) that Compose would interpolate;
+ * a user's own label may already be written with `$$`, which is kept as is.
+ */
+export function escapeComposeLabel(label: string): string {
+  // A replacer function's result is literal (no `$$` → `$` rewriting).
+  return label.replace(/\$\$|\$/g, () => '$$');
 }

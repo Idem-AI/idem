@@ -52,3 +52,8 @@ export function isSafeRelativeDir(dir: unknown): boolean {
   if (typeof dir !== 'string' || dir.length > 300) return false;
   return /^[A-Za-z0-9._\/ -]+$/.test(dir) && !dir.split('/').includes('..');
 }
+
+/** A commit id as Git prints it: 7 to 40 hexadecimal characters. */
+export function isSafeCommitSha(sha: unknown): sha is string {
+  return typeof sha === 'string' && /^[0-9a-f]{7,40}$/i.test(sha);
+}

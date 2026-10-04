@@ -67,7 +67,7 @@ beforeEach(async () => {
   ssh?.cleanup();
   ssh = new CapturingExecutor();
   // The container comes up and says so: the worker's verification ends at once.
-  ssh.on(/compose ps/, { stdout: 'app  running  Up 2 seconds' });
+  ssh.on(/compose .*ps/, { stdout: 'app  running  Up 2 seconds' });
   ssh.on(/logs/, { stdout: 'API listening on http://localhost:3001' });
   setRemoteExecutor(ssh);
 });
