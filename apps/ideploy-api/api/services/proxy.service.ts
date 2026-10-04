@@ -183,6 +183,28 @@ export async function getProxyStatus(
   return { status, raw: out };
 }
 
+/**
+ * Shell step that frees the proxy's container names from containers this
+ * Compose project does not own.
+ *
+ * The former "Install CrowdSec" created `ideploy-crowdsec` with a plain
+ * `docker run`, outside the proxy's Compose project. Compose then refuses to
+ * create its own container under the same name, and every later
+ * `startProxy` failed on that conflict. A container whose Compose working
+ * directory is not this project's is removed so Compose can create its own;
+ * the proxy's own containers are left alone, and their data lives in bind
+ * mounts either way.
+ */
+export function releaseForeignContainers(projectDir: string = PROXY_PATH): string {
+  return [PROXY_CONTAINER, CROWDSEC_CONTAINER]
+    .map(
+      (name) =>
+        `{ owner=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' ${name} 2>/dev/null) ` +
+        `&& [ "$owner" != "${projectDir}" ] && echo "Removing ${name}, not managed by the proxy project" && docker rm -f ${name} >/dev/null; true; }`
+    )
+    .join(' && ');
+}
+
 export async function startProxy(
   teamId: number,
   serverUuid: string,
@@ -196,7 +218,10 @@ export async function startProxy(
     `mkdir -p ${PROXY_PATH}/dynamic ${PROXY_PATH}/crowdsec/data ${PROXY_PATH}/crowdsec/config`,
     `echo '${b64}' | base64 -d > ${PROXY_PATH}/docker-compose.yml`,
     `docker network inspect ideploy >/dev/null 2>&1 || docker network create --attachable ideploy`,
-    `cd ${PROXY_PATH} && docker compose pull && docker compose up -d --remove-orphans`,
+    `cd ${PROXY_PATH} && docker compose pull`,
+    // After the pull, so a failed download never leaves the server without a proxy.
+    releaseForeignContainers(),
+    `docker compose up -d --remove-orphans`,
   ].join(' && ');
 
   const r = await executeRemoteCommand(server, key, script, { onData });
