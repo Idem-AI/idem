@@ -744,7 +744,7 @@ export class ServerDetailComponent implements OnInit, OnDestroy {
     this.bouncerKey.set(null);
     this.api.addCrowdSecBouncer(this.uuid, this.bouncerForm.getRawValue().name).subscribe({
       next: (r) => {
-        this.bouncerKey.set(r.key ?? null);
+        this.bouncerKey.set(r.apiKey);
         this.bouncerForm.reset({ name: '' });
       },
       error: (e) => this.report(e, 'servers.detail.bouncerError'),

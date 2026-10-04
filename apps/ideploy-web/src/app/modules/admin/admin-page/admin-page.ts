@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -22,7 +23,7 @@ import {
  */
 @Component({
   selector: 'app-admin-page',
-  imports: [ReactiveFormsModule, RouterLink, TranslateModule],
+  imports: [DecimalPipe, ReactiveFormsModule, RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6">
@@ -149,6 +150,7 @@ import {
                     <th class="py-1.5 pr-3 text-left font-medium">{{ 'admin.servers.name' | translate }}</th>
                     <th class="py-1.5 pr-3 text-left font-medium">{{ 'admin.servers.fleet' | translate }}</th>
                     <th class="py-1.5 pr-3 text-left font-medium">{{ 'admin.servers.location' | translate }}</th>
+                    <th class="py-1.5 pr-3 text-left font-medium">{{ 'admin.servers.resources' | translate }}</th>
                     <th class="py-1.5 text-right font-medium">{{ 'admin.servers.status' | translate }}</th>
                   </tr>
                 </thead>
@@ -176,6 +178,23 @@ import {
                       </td>
                       <td class="py-1.5 pr-3 text-xs" style="color:var(--color-text-secondary);">
                         {{ s.city ? s.city + ', ' : '' }}{{ s.countryCode || '—' }}
+                      </td>
+                      <td class="py-1.5 pr-3 text-xs" style="color:var(--color-text-secondary);">
+                        @if (s.resources; as r) {
+                          @if (r.measured) {
+                            <span class="font-medium" style="color:var(--color-text-primary);">{{ 'admin.servers.readiness' | translate: { score: (r.readiness * 100 | number: '1.0-0') } }}</span>
+                            <span class="block">
+                              {{ 'admin.servers.resourceLine' | translate: { cpu: r.cpuCores ?? '?', load: (r.load1m ?? '?'), mem: r.freeMemoryMb ?? '?', disk: r.diskFreeGb ?? '?', count: r.resourceCount, max: r.maxResources } }}
+                            </span>
+                          } @else {
+                            {{ 'admin.servers.notMeasured' | translate }}
+                          }
+                          @if (r.excluded) {
+                            <span class="block" style="color:var(--color-danger);">{{ 'admin.servers.excluded.' + r.excluded | translate }}</span>
+                          }
+                        } @else {
+                          —
+                        }
                       </td>
                       <td class="py-1.5 text-right">
                         <span

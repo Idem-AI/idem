@@ -149,6 +149,91 @@ describe('syncAlerts', () => {
   });
 });
 
+describe('syncAlerts — attribution', () => {
+  it('keeps only the alerts the filter assigns to the application', async () => {
+    const applicationId = await anApplication();
+    stub.on('GET', '/v1/alerts', {
+      body: [
+        { ...crowdsecAlert(1), message: 'Blocked by an iDeploy firewall rule (app-a)' },
+        { ...crowdsecAlert(2), message: 'Blocked by an iDeploy firewall rule (app-b)' },
+        crowdsecAlert(3),
+      ],
+    });
+
+    const result = await observability.syncAlerts(
+      applicationId,
+      client,
+      100,
+      (alert) => !String(alert.message).includes('app-b')
+    );
+
+    expect(result.imported).toBe(2);
+    expect(await countIn('firewall_alerts', applicationId)).toBe(2);
+  });
+});
+
+describe('syncTrafficFromDecisions', () => {
+  const decisions = [
+    { type: 'ban', value: '203.0.113.1', scope: 'Ip', origin: 'ideploy', duration: '1h' },
+    { type: 'ban', value: '10.0.0.0/8', scope: 'Range', origin: 'ideploy', duration: '1h' },
+    { type: 'ban', value: '198.51.100.9', scope: 'Ip', origin: 'CAPI', duration: '1h' },
+  ];
+
+  it('records our address and range decisions, whatever case CrowdSec echoes', async () => {
+    const applicationId = await anApplication();
+    stub.on('GET', '/v1/decisions', { body: decisions });
+
+    const result = await observability.syncTrafficFromDecisions(applicationId, client);
+
+    expect(result.imported).toBe(2);
+    expect(await countIn('firewall_traffic_logs', applicationId)).toBe(2);
+  });
+
+  it('does not record the same blocking again on every pass', async () => {
+    const applicationId = await anApplication();
+    stub.on('GET', '/v1/decisions', { body: decisions });
+
+    await observability.syncTrafficFromDecisions(applicationId, client);
+    const second = await observability.syncTrafficFromDecisions(applicationId, client);
+
+    expect(second).toEqual({ imported: 0, skipped: 2 });
+    expect(await countIn('firewall_traffic_logs', applicationId)).toBe(2);
+  });
+
+  it('keeps only the targets of the application’s own rules', async () => {
+    const applicationId = await anApplication();
+    stub.on('GET', '/v1/decisions', { body: decisions });
+
+    const result = await observability.syncTrafficFromDecisions(
+      applicationId,
+      client,
+      new Set(['range:10.0.0.0/8'])
+    );
+
+    expect(result.imported).toBe(1);
+  });
+});
+
+describe('purgeExpired — unresolved alerts', () => {
+  it('keeps old alerts Laravel recorded as "active", like "open" ones', async () => {
+    const applicationId = await anApplication();
+    await testPool().query(
+      `INSERT INTO firewall_alerts (application_id, alert_type, severity, ip_address, status, created_at, updated_at)
+       VALUES ($1, 'crowdsec', 'medium', '203.0.113.1'::inet, 'active', now() - interval '400 days', now()),
+              ($1, 'crowdsec', 'medium', '203.0.113.2'::inet, 'resolved', now() - interval '400 days', now())`,
+      [applicationId]
+    );
+
+    await observability.purgeExpired();
+
+    const { rows } = await testPool().query<{ status: string }>(
+      'SELECT status FROM firewall_alerts WHERE application_id = $1',
+      [applicationId]
+    );
+    expect(rows.map((r) => r.status)).toEqual(['active']);
+  });
+});
+
 describe('queryTraffic', () => {
   /** Insert a traffic row directly: this suite is about reading, not writing. */
   async function addTraffic(
@@ -284,7 +369,14 @@ describe('refreshCounters', () => {
        VALUES ($1, 999, now(), now())`,
       [applicationId]
     );
-    stub.on('GET', '/v1/decisions', { body: [{ type: 'ban', value: '203.0.113.1', scope: 'ip' }] });
+    stub.on('GET', '/v1/decisions', {
+      body: [
+        { type: 'ban', value: '203.0.113.1', scope: 'Ip', origin: 'ideploy' },
+        // CrowdSec ignores the `origin` filter: the community blocklist comes
+        // back too, and is not ours to count.
+        { type: 'ban', value: '198.51.100.9', scope: 'Ip', origin: 'CAPI' },
+      ],
+    });
 
     const counters = await observability.refreshCounters(applicationId, client);
 

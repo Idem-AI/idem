@@ -33,6 +33,8 @@ import { unprocessable } from '../utils/errors';
 import { CrowdSecLapiClient } from './crowdsec-lapi.client';
 import * as appService from './application.service';
 import { FirewallRule, listRules } from './firewall.service';
+// Type only: the runtime import stays dynamic to avoid a cycle with proxy.service.
+import type { CrowdSecCredentials } from './proxy.service';
 
 /** Condition fields that map onto an address-scoped CrowdSec decision. */
 const ADDRESS_FIELDS = new Set(['ip', 'remote_addr', 'source_ip', 'client_ip']);
@@ -74,7 +76,10 @@ export interface RuleCondition {
 export type Enforceability = 'enforceable' | 'unsupported';
 
 /** What a decision applies to. CrowdSec calls this the decision's scope. */
-export type TargetScope = 'ip' | 'country';
+export type TargetScope = 'ip' | 'range' | 'country';
+
+/** Scopes enforced by a CrowdSec decision (as opposed to the proxy). */
+const CROWDSEC_SCOPES = new Set<TargetScope>(['ip', 'range']);
 
 export interface DecisionTarget {
   scope: TargetScope;
@@ -196,7 +201,10 @@ export function analyseRule(rule: FirewallRule): RuleAnalysis {
 
     for (const value of valuesOf(condition)) {
       // Country codes are compared upper-case; CrowdSec expects them that way.
-      targets.push({ scope, value: scope === 'country' ? value.toUpperCase() : value });
+      // A CIDR is a range decision: banned as `ip` it would be refused or never
+      // released, since CrowdSec filters ranges with their own parameter.
+      if (scope === 'country') targets.push({ scope, value: value.toUpperCase() });
+      else targets.push({ scope: value.includes('/') ? 'range' : 'ip', value });
     }
   }
 
@@ -216,8 +224,8 @@ export function analyseRule(rule: FirewallRule): RuleAnalysis {
   // A rule may not straddle the two layers: the halves would take effect at
   // different times, and a single rule reporting two states is not a state
   // anyone can act on.
-  const scopes = new Set(unique.map((t) => t.scope));
-  if (scopes.size > 1) {
+  const layers = new Set(unique.map((t) => (CROWDSEC_SCOPES.has(t.scope) ? 'crowdsec' : 'proxy')));
+  if (layers.size > 1) {
     return unsupported(
       'A rule cannot mix addresses and countries: they are applied by different ' +
         'layers and would take effect at different moments. Split it into two rules.'
@@ -244,7 +252,7 @@ export interface EnforcementConfigRow {
   /** null when the application has no server/destination resolved yet. */
   serverId: number | null;
   /** null when this application's server has no CrowdSec provisioned yet. */
-  crowdsec: { lapiUrl: string; machinePassword: string; bouncerKey: string | null; serverIp: string } | null;
+  crowdsec: CrowdSecCredentials | null;
 }
 
 /**
@@ -280,14 +288,7 @@ async function loadConfig(teamId: number, appUuid: string): Promise<EnforcementC
     enabled: Boolean(r.enabled),
     banDurationSeconds: Number(r.ban_duration ?? 3600),
     serverId: server?.serverId ?? null,
-    crowdsec: crowdsec
-      ? {
-          lapiUrl: crowdsec.lapiUrl,
-          machinePassword: crowdsec.machinePassword,
-          bouncerKey: crowdsec.bouncerKey,
-          serverIp: crowdsec.serverIp,
-        }
-      : null,
+    crowdsec,
   };
 }
 
@@ -335,7 +336,7 @@ function managementClient(config: EnforcementConfigRow): CrowdSecLapiClient {
   }
   return new CrowdSecLapiClient({
     baseUrl: config.crowdsec.lapiUrl,
-    machineId: 'localhost',
+    machineId: config.crowdsec.machineId,
     machinePassword: config.crowdsec.machinePassword,
     bouncerKey: config.crowdsec.bouncerKey ?? undefined,
     serverIp: config.crowdsec.serverIp,
@@ -433,11 +434,12 @@ export async function enforce(teamId: number, appUuid: string): Promise<Enforcem
   await runBounded(toBlock, (target) =>
     client.banIp({
       ip: target.value,
+      scope: target.scope === 'range' ? 'range' : 'ip',
       durationSeconds: config.banDurationSeconds,
       reason: `Blocked by an iDeploy firewall rule (${appUuid})`,
     })
   );
-  await runBounded(toRelease, (target) => client.unbanIp(target.value));
+  await runBounded(toRelease, (target) => client.unbanIp(target.value, target.scope === 'range' ? 'range' : 'ip'));
 
   logger.info('Firewall rules reconciled', {
     appUuid,
@@ -485,7 +487,7 @@ export async function getServerCrowdSecClient(serverId: number): Promise<CrowdSe
   if (!creds) return null;
   return new CrowdSecLapiClient({
     baseUrl: creds.lapiUrl,
-    machineId: 'localhost',
+    machineId: creds.machineId,
     machinePassword: creds.machinePassword,
     bouncerKey: creds.bouncerKey ?? undefined,
     serverIp: creds.serverIp,
@@ -513,8 +515,8 @@ async function ourDecisions(client: CrowdSecLapiClient): Promise<DecisionTarget[
   // was already blocked, and disabling the firewall never actually released
   // anything already in force.
   return decisions
-    .filter((d) => d.origin === DECISION_ORIGIN && d.scope.toLowerCase() === 'ip')
-    .map((d) => ({ scope: 'ip', value: d.value }));
+    .filter((d) => d.origin === DECISION_ORIGIN && CROWDSEC_SCOPES.has(d.scope.toLowerCase() as TargetScope))
+    .map((d) => ({ scope: d.scope.toLowerCase() as TargetScope, value: d.value }));
 }
 
 /**
@@ -579,7 +581,10 @@ export async function getLiveStatus(
   const proxyRules = enforceable.filter((a) => a.enforcedBy === 'proxy');
 
   const bouncerRegistered = Boolean(config.crowdsec?.bouncerKey);
-  const lapiReachable = config.crowdsec ? (await managementClient(config).health()).reachable : false;
+  // A Local API that answers but rejects our key cannot enforce anything: count
+  // it as unreachable here, or the status would claim protection that is not there.
+  const health = config.crowdsec ? await managementClient(config).health() : null;
+  const lapiReachable = Boolean(health?.reachable && health.authorized);
   const crowdsecReadyForLookup = lapiReachable && bouncerRegistered;
 
   // Whether CrowdSec *could* enforce an address rule is not whether it

@@ -2245,6 +2245,7 @@ CREATE TABLE public.servers (
     crowdsec_lapi_url character varying(255),
     crowdsec_api_key text,
     crowdsec_bouncer_key text,
+    crowdsec_machine_id character varying(255),
     traffic_logger_installed boolean DEFAULT false NOT NULL,
     traefik_logging_enabled boolean DEFAULT false NOT NULL,
     traffic_logger_url character varying(255),
@@ -2265,7 +2266,11 @@ CREATE TABLE public.servers (
     current_applications integer DEFAULT 0 NOT NULL,
     is_available boolean DEFAULT true NOT NULL,
     load_score integer DEFAULT 0 NOT NULL,
-    managed_by_idem boolean DEFAULT false NOT NULL
+    managed_by_idem boolean DEFAULT false NOT NULL,
+    load_1m numeric(8,2),
+    mem_available_mb integer,
+    disk_free_gb integer,
+    resources_updated_at timestamp with time zone
 );
 
 

@@ -183,6 +183,28 @@ export async function getProxyStatus(
   return { status, raw: out };
 }
 
+/**
+ * Shell step that frees the proxy's container names from containers this
+ * Compose project does not own.
+ *
+ * The former "Install CrowdSec" created `ideploy-crowdsec` with a plain
+ * `docker run`, outside the proxy's Compose project. Compose then refuses to
+ * create its own container under the same name, and every later
+ * `startProxy` failed on that conflict. A container whose Compose working
+ * directory is not this project's is removed so Compose can create its own;
+ * the proxy's own containers are left alone, and their data lives in bind
+ * mounts either way.
+ */
+export function releaseForeignContainers(projectDir: string = PROXY_PATH): string {
+  return [PROXY_CONTAINER, CROWDSEC_CONTAINER]
+    .map(
+      (name) =>
+        `{ owner=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' ${name} 2>/dev/null) ` +
+        `&& [ "$owner" != "${projectDir}" ] && echo "Removing ${name}, not managed by the proxy project" && docker rm -f ${name} >/dev/null; true; }`
+    )
+    .join(' && ');
+}
+
 export async function startProxy(
   teamId: number,
   serverUuid: string,
@@ -196,7 +218,10 @@ export async function startProxy(
     `mkdir -p ${PROXY_PATH}/dynamic ${PROXY_PATH}/crowdsec/data ${PROXY_PATH}/crowdsec/config`,
     `echo '${b64}' | base64 -d > ${PROXY_PATH}/docker-compose.yml`,
     `docker network inspect ideploy >/dev/null 2>&1 || docker network create --attachable ideploy`,
-    `cd ${PROXY_PATH} && docker compose pull && docker compose up -d --remove-orphans`,
+    `cd ${PROXY_PATH} && docker compose pull`,
+    // After the pull, so a failed download never leaves the server without a proxy.
+    releaseForeignContainers(),
+    `docker compose up -d --remove-orphans`,
   ].join(' && ');
 
   const r = await executeRemoteCommand(server, key, script, { onData });
@@ -244,7 +269,7 @@ async function ensureCrowdSecCredentials(
     `docker exec ${CROWDSEC_CONTAINER} cat /etc/crowdsec/local_api_credentials.yaml`,
   ].join(' && ');
   const creds = await executeRemoteCommand(server, key, waitScript, { onData, noRetry: true });
-  const password = /password:\s*(\S+)/.exec(creds.stdout)?.[1];
+  const { machineId, password } = parseMachineCredentials(creds.stdout);
 
   if (!password) {
     logger.warn('CrowdSec did not produce machine credentials in time', {
@@ -258,23 +283,34 @@ async function ensureCrowdSecCredentials(
   // address-scoped and shared across every application the bouncer plugin is
   // attached to on this one server — one bouncer identity is the correct
   // model, not one per app (see firewall-enforcement.service.ts).
-  const bouncerName = `ideploy-${server.uuid}`;
-  const bouncerScript =
-    `docker exec ${CROWDSEC_CONTAINER} cscli bouncers add ${bouncerName} -o raw 2>&1 || ` +
-    // Re-running startProxy after a partial failure must not treat "already
-    // exists" as fatal — but the key it already has cannot be recovered from
-    // `bouncers add` a second time (CrowdSec never re-displays it), so this
-    // path leaves crowdsec_bouncer_key unset for an operator to notice and
-    // re-register under a fresh name rather than silently limping on with none.
-    `echo ALREADY_EXISTS`;
-  const bouncer = await executeRemoteCommand(server, key, bouncerScript, { onData, noRetry: true });
-  const bouncerKey = bouncer.stdout.trim();
+  // A key CrowdSec has already shown once cannot be shown again, so when the
+  // name already exists (a previous run that failed half-way) a fresh suffixed
+  // name is registered instead of storing nothing. Only output that has the
+  // shape of a key is kept: an error message must never be saved as a key.
+  let bouncerKey: string | null = null;
+  for (const bouncerName of [`ideploy-${server.uuid}`, `ideploy-${server.uuid}-${Date.now()}`]) {
+    const bouncer = await executeRemoteCommand(
+      server,
+      key,
+      `docker exec ${CROWDSEC_CONTAINER} cscli bouncers add ${bouncerName} -o raw`,
+      { onData, noRetry: true }
+    );
+    const candidate = bouncer.stdout.trim();
+    if (bouncer.exitCode === 0 && isBouncerKey(candidate)) {
+      bouncerKey = candidate;
+      break;
+    }
+  }
+  if (!bouncerKey) {
+    logger.warn('CrowdSec bouncer could not be registered', { serverUuid: server.uuid });
+  }
 
   await pool.query(
     `UPDATE servers
      SET crowdsec_api_key = $2,
          crowdsec_bouncer_key = COALESCE($3, crowdsec_bouncer_key),
          crowdsec_lapi_url = $4,
+         crowdsec_machine_id = $5,
          crowdsec_installed = true,
          crowdsec_available = true,
          updated_at = now()
@@ -282,8 +318,9 @@ async function ensureCrowdSecCredentials(
     [
       server.id,
       encryptString(password),
-      bouncerKey && bouncerKey !== 'ALREADY_EXISTS' ? encryptString(bouncerKey) : null,
+      bouncerKey ? encryptString(bouncerKey) : null,
       `https://${crowdsecAdminHost(server.ip)}`,
+      machineId,
     ]
   );
   logger.info('CrowdSec provisioned', { serverUuid: server.uuid, bouncerRegistered: Boolean(bouncerKey) });
@@ -297,19 +334,49 @@ async function markCrowdSecAvailability(server: ServerRow): Promise<void> {
     const health = await client?.health();
     await pool.query('UPDATE servers SET crowdsec_available = $2, updated_at = now() WHERE id = $1', [
       server.id,
-      Boolean(health?.reachable),
+      Boolean(health?.reachable && health.authorized),
     ]);
   } catch {
     // Best-effort — a failed probe should not fail the proxy start it rides on.
   }
 }
 
+/**
+ * The machine login and password from CrowdSec's `local_api_credentials.yaml`.
+ *
+ * The login is whatever name CrowdSec generated — usually "localhost", but not
+ * always, and logging in under a guessed name fails with a valid password.
+ */
+export function parseMachineCredentials(yaml: string): { machineId: string; password: string | undefined } {
+  return {
+    machineId: /^\s*login:\s*(\S+)/m.exec(yaml)?.[1] ?? 'localhost',
+    password: /^\s*password:\s*(\S+)/m.exec(yaml)?.[1],
+  };
+}
+
+/**
+ * Whether `cscli bouncers add -o raw` printed a key rather than an error.
+ * An error message stored as a key would make every bouncer lookup fail.
+ */
+export function isBouncerKey(output: string): boolean {
+  return /^[A-Za-z0-9+/=_-]{16,}$/.test(output);
+}
+
+export interface CrowdSecCredentials {
+  lapiUrl: string;
+  /** Machine login ("localhost" for servers provisioned before it was recorded). */
+  machineId: string;
+  machinePassword: string;
+  bouncerKey: string | null;
+  serverIp: string;
+}
+
 /** Decrypted CrowdSec credentials for a server, or null if never provisioned. */
 export async function getCrowdSecCredentials(
   serverId: number
-): Promise<{ lapiUrl: string; machinePassword: string; bouncerKey: string | null; serverIp: string } | null> {
+): Promise<CrowdSecCredentials | null> {
   const { rows } = await pool.query(
-    'SELECT ip, crowdsec_lapi_url, crowdsec_api_key, crowdsec_bouncer_key FROM servers WHERE id = $1',
+    'SELECT ip, crowdsec_lapi_url, crowdsec_api_key, crowdsec_bouncer_key, crowdsec_machine_id FROM servers WHERE id = $1',
     [serverId]
   );
   const r = rows[0] as
@@ -318,6 +385,7 @@ export async function getCrowdSecCredentials(
         crowdsec_lapi_url: string | null;
         crowdsec_api_key: string | null;
         crowdsec_bouncer_key: string | null;
+        crowdsec_machine_id: string | null;
       }
     | undefined;
   if (!r?.crowdsec_lapi_url || !r.crowdsec_api_key) return null;
@@ -325,6 +393,7 @@ export async function getCrowdSecCredentials(
   if (!machinePassword) return null;
   return {
     lapiUrl: r.crowdsec_lapi_url,
+    machineId: r.crowdsec_machine_id || 'localhost',
     machinePassword,
     bouncerKey: tryDecryptString(r.crowdsec_bouncer_key),
     serverIp: r.ip,

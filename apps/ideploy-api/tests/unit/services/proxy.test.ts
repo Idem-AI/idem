@@ -11,7 +11,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
-import { buildTraefikCompose } from '../../../api/services/proxy.service';
+import {
+  buildTraefikCompose,
+  isBouncerKey,
+  releaseForeignContainers,
+  parseMachineCredentials,
+} from '../../../api/services/proxy.service';
 
 function command(): string[] {
   const doc = parse(buildTraefikCompose()) as {
@@ -54,5 +59,48 @@ describe('buildTraefikCompose', () => {
 
     expect(cmd).toContain('--entrypoints.https.address=:443');
     expect(cmd).toContain('--providers.docker=true');
+  });
+});
+
+describe('CrowdSec credentials read at provisioning', () => {
+  it('reads the machine login CrowdSec generated, not an assumed one', () => {
+    const yaml = 'url: http://0.0.0.0:8080\nlogin: 3f2a9c1b7e\npassword: s3cr3t-value\n';
+
+    expect(parseMachineCredentials(yaml)).toEqual({ machineId: '3f2a9c1b7e', password: 's3cr3t-value' });
+  });
+
+  it('falls back to "localhost" when the file names no login', () => {
+    expect(parseMachineCredentials('password: s3cr3t-value').machineId).toBe('localhost');
+  });
+
+  it('reports no password when the file was not written yet', () => {
+    expect(parseMachineCredentials('').password).toBeUndefined();
+  });
+
+  it('accepts a bouncer key and refuses an error message', () => {
+    expect(isBouncerKey('aB3dE5fG7hJ9kL1mN3pQ5rS7')).toBe(true);
+    expect(isBouncerKey('Error: bouncer ideploy-x already exists')).toBe(false);
+    expect(isBouncerKey('')).toBe(false);
+  });
+});
+
+describe('releaseForeignContainers', () => {
+  // The former "Install CrowdSec" ran `docker run --name ideploy-crowdsec`
+  // outside the proxy's Compose project: Compose then failed on the name
+  // conflict at every later start. Verified on a managed server.
+  const step = releaseForeignContainers('/data/ideploy/proxy');
+
+  it('checks both container names against the proxy project directory', () => {
+    for (const name of ['ideploy-proxy', 'ideploy-crowdsec']) {
+      expect(step).toContain(`docker inspect -f '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' ${name}`);
+      expect(step).toContain(`docker rm -f ${name}`);
+    }
+    expect(step).toContain('[ "$owner" != "/data/ideploy/proxy" ]');
+  });
+
+  it('never fails the provisioning chain itself', () => {
+    // Each check ends in `true`: an absent container, or one already owned by
+    // the project, must let `docker compose up` run.
+    expect(step.match(/; true; }/g)).toHaveLength(2);
   });
 });

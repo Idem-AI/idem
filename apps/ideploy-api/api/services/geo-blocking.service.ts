@@ -282,7 +282,12 @@ export async function setGeoRule(
     // This exact shape — `country` field, `in` operator, an array value — is
     // what `analyseRule` recognises and what `parseGeoBlockedCountries` reads
     // back at deploy time. Changing it here means changing both.
-    conditions: [{ field: 'country', operator: 'in', value: blockedCountries }],
+    // `mode` and `selected` are what the user chose, kept so the screen can
+    // show an allow-list as one; `value` stays the block list everything
+    // enforcing the rule reads.
+    conditions: [
+      { field: 'country', operator: 'in', value: blockedCountries, mode: selection.mode, selected },
+    ],
     action: 'block',
     // Ahead of the default 100: a country ban is a coarse decision and there is
     // no point evaluating finer rules for traffic that is refused outright.
@@ -322,12 +327,16 @@ export async function getSelection(
   if (!rule) return null;
 
   const raw = typeof rule.conditions === 'string' ? JSON.parse(rule.conditions) : rule.conditions;
-  const values = Array.isArray(raw) ? ((raw[0]?.value as string[]) ?? []) : [];
+  const condition = (Array.isArray(raw) ? raw[0] : undefined) as
+    | { value?: string[]; mode?: GeoMode; selected?: string[] }
+    | undefined;
+  // Rules saved before the mode was recorded hold only the block list.
+  const mode: GeoMode = condition?.mode === 'allow_only' ? 'allow_only' : 'block';
+  const values = (mode === 'allow_only' ? condition?.selected : condition?.value) ?? [];
   const catalogue = new Map(listCountries(locale).map((c) => [c.code, c]));
 
   return {
-    // Stored as a block list either way; the interface shows what is blocked.
-    mode: 'block',
+    mode,
     countries: values
       .map((code) => catalogue.get(code.toUpperCase()))
       .filter((c): c is Country => c !== undefined),

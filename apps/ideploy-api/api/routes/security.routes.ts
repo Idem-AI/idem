@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { z } from 'zod';
+import { validate } from '../middleware/validate.middleware';
 import { authenticate, requireTeam } from '../middleware/auth.middleware';
 import * as ctrl from '../controllers/security.controller';
 
@@ -13,13 +15,29 @@ router.use(authenticate, requireTeam);
  *   patch: { summary: Update firewall config, tags: [Security], responses: { 200: { description: OK } } }
  */
 router.get('/applications/:uuid/firewall', ctrl.getConfig);
-router.patch('/applications/:uuid/firewall', ctrl.updateConfig);
+/** Unknown keys are refused rather than ignored: a typo must not look saved. */
+export const updateFirewallConfigSchema = z
+  .object({
+    enabled: z.boolean(),
+    appsec_enabled: z.boolean(),
+    inband_enabled: z.boolean(),
+    outofband_enabled: z.boolean(),
+    default_remediation: z.enum(['ban', 'captcha']),
+    ban_duration: z.number().int().min(60).max(30 * 24 * 3600),
+    blocked_http_code: z.number().int().min(400).max(599),
+  })
+  .partial()
+  .strict();
+
+export const deployFirewallSchema = z.object({ redeploy: z.boolean().optional() }).strict();
+
+router.patch('/applications/:uuid/firewall', validate({ body: updateFirewallConfigSchema }), ctrl.updateConfig);
 router.get('/applications/:uuid/firewall/rules', ctrl.listRules);
 router.post('/applications/:uuid/firewall/rules', ctrl.createRule);
 router.delete('/applications/:uuid/firewall/rules/:ruleId', ctrl.deleteRule);
 router.get('/applications/:uuid/firewall/alerts', ctrl.listAlerts);
 router.get('/applications/:uuid/firewall/traffic', ctrl.listTraffic);
-router.post('/applications/:uuid/firewall/deploy', ctrl.deployFirewall);
+router.post('/applications/:uuid/firewall/deploy', validate({ body: deployFirewallSchema }), ctrl.deployFirewall);
 
 // ── Geo-blocking ──────────────────────────────────────────
 /**
