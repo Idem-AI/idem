@@ -263,3 +263,38 @@ export function simulateModel(testCase: VideoCase): (system: string, user: strin
     }
   };
 }
+
+/**
+ * Les agents de la vidéo (directeur artistique, animateur, sound designer, critique), simulés
+ * avec le même comportement que la copie : ils choisissent par lettre dans leurs menus, ou
+ * répondent en désordre, en JSON, inventent, se taisent ou tombent en panne.
+ */
+export async function simulateAgent(behaviour: ModelBehaviour, system: string, user: string): Promise<string> {
+  if (behaviour === 'down') throw new Error('GLM: insufficient balance (simulated)');
+  if (behaviour === 'empty') return '';
+  const options = user.split('\n').filter((l) => /^[a-p]\) /.test(l)).length;
+  if (/art director/i.test(system)) {
+    const letter = options > 1 ? 'b' : 'a';
+    const text = user.match(/TEXT: "([^"]+)"/)?.[1] || '';
+    const word = [...text.split(/\s+/)].sort((a, b) => b.length - a.length)[0] || '';
+    if (behaviour === 'json') return JSON.stringify({ layout: letter, word });
+    if (behaviour === 'messy') return `Sure! Here is my choice:\n- **Layout**: ${letter.toUpperCase()})\n- **Word**: "${word}" ✨`;
+    if (behaviour === 'hallucinate') return 'layout: hologram3d\nword: banane';
+    return `layout: ${letter}\nword: ${word}`;
+  }
+  if (/animator/i.test(system)) {
+    const scenes = user.split('\n').filter((l) => /^\d+\. /.test(l)).length;
+    const cuts = Array.from({ length: Math.max(0, scenes - 1) }, (_, i) => [i + 2, 'abcd'[i % 4]] as [number, string]);
+    if (behaviour === 'json') return JSON.stringify({ cuts: Object.fromEntries(cuts), camera: 'b', entrance: 'a' });
+    if (behaviour === 'hallucinate') return 'cuts: 2=teleport, 3=z\ncamera: drone\nlogo: fireworks';
+    const lines = [`cuts: ${cuts.map(([n, l]) => `${n}=${l}`).join(', ')}`, 'camera: b', 'entrance: a', 'logo: b'];
+    return behaviour === 'messy' ? `Voici :\n${lines.map((l) => `* **${l.replace(':', '**:')}`).join('\n')}` : lines.join('\n');
+  }
+  if (/sound designer/i.test(system)) return behaviour === 'hallucinate' ? 'track: z\nsfx: loud' : 'track: b\nsfx: normal';
+  if (/reviewing/i.test(system)) {
+    if (behaviour === 'hallucinate') return '1.layout=hologram\n9.cut=teleport';
+    const cuts = (user.match(/^CUTS: (.+)$/m)?.[1] || '').split(', ');
+    return behaviour === 'messy' && cuts[1] ? `2.cut=${cuts[1]}` : 'ok';
+  }
+  return '';
+}

@@ -129,6 +129,8 @@ export interface VideoSfx {
   enabled: boolean;
   /** Un son retenu par moment sonore (tiré par la graine dans la sonothèque). */
   sounds: Partial<Record<SfxKind, SfxSound>>;
+  /** Intensité décidée par l'agent sound designer : discrète (-4 dB), normale, appuyée (+3 dB). */
+  intensity?: 'subtle' | 'normal' | 'punchy';
 }
 
 /** Langage de mouvement : courbes, vitesses, transitions. */
@@ -179,6 +181,10 @@ export interface VideoSceneInstance {
   start: number;
   /** Durée, en secondes. */
   duration: number;
+  /** Mise en page (archétype) choisie par l'agent directeur artistique (video.layouts.ts). */
+  layout?: string;
+  /** Index, dans le titre, du mot mis en valeur par le directeur artistique. */
+  emphasis?: number;
   /** Surface de la scène : claire, primaire, secondaire, accent, teinte claire ou profonde de la primaire. */
   surface: 'light' | 'primary' | 'secondary' | 'accent' | 'tint' | 'deep';
   /** Transition qui OUVRE la scène (aucune pour la première). */
@@ -242,6 +248,8 @@ export interface VideoStoryboard {
   rhythm?: string;
   /** Contrôle des bonnes pratiques (video.rules.ts) : réparations faites, écarts restants. */
   qa?: { repaired: number; issues: { rule: string; scene?: string; detail: string }[]; warnings?: { rule: string; scene?: string; detail: string }[] };
+  /** Ce que chaque agent a décidé (cf. video.agents.ts) : source, tokens, décisions retenues. */
+  agents?: { agent: string; source: 'llm' | 'graph'; tokens: { input: number; output: number }; ms?: number; kept?: number }[];
 }
 
 /** La DA de la charte traduite en réglages du moteur. */

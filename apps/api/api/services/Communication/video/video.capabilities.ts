@@ -27,13 +27,14 @@ import { KitDecision, VideoFormat, VideoKit, VideoObjective, VideoQuality, Video
 import type { AddonId } from './video.engine';
 import { ICON_CONCEPT_IDS, ICON_CONCEPTS, IconSetId, resolveConcept } from './video.icons';
 import { LogoSvgInfo } from './video.logo';
-import { DIRECTION_IDS, DirectionId, DIRECTIONS } from './video.direction';
+import { DIRECTION_IDS, DirectionId, DIRECTIONS, TRANSITION_CATALOGUE, TRANSITION_IDS } from './video.direction';
+import { LAYOUT_CATALOGUE, LAYOUT_IDS } from './video.layouts';
 import { CONCEPT_IDS, CONCEPTS } from './video.concepts';
 import { rng } from './video.music';
 
 // ─── Nœuds ──────────────────────────────────────────────────────────────────
 
-export type CapKind = 'library' | 'addon' | 'concept' | 'rhythm' | 'camera' | 'entrance' | 'accent' | 'treatment' | 'logo' | 'background' | 'annotate' | 'icons' | 'brandmark' | 'easing' | 'postfx' | 'media' | 'technique' | 'transition' | 'direction';
+export type CapKind = 'library' | 'addon' | 'concept' | 'rhythm' | 'camera' | 'entrance' | 'accent' | 'treatment' | 'logo' | 'background' | 'annotate' | 'icons' | 'brandmark' | 'easing' | 'postfx' | 'media' | 'technique' | 'transition' | 'layout' | 'direction';
 
 /** Conditions déclaratives (lisibles dans la doc, évaluées par `meets`). */
 export interface CapWhen {
@@ -369,7 +370,18 @@ function directionNodes(): CapNode[] {
     for (const t of d.transitions) transitions.set(t, { ...(transitions.get(t) || {}), [id]: 1 });
   }
   for (const [t, dirs] of techniques) nodes.push({ id: `technique:${t}`, kind: 'technique', label: t, summary: 'Technique d’entrée de texte.', cost: 0, determinism: 'pure', suits: { directions: dirs }, impl: 'video-engine/src/text.tsx' });
-  for (const [t, dirs] of transitions) nodes.push({ id: `transition:${t}`, kind: 'transition', label: t, summary: 'Transition entre scènes.', cost: 0, determinism: 'pure', suits: { directions: dirs }, impl: 'video-engine/src/transitions.tsx' });
+  // Transitions : tout le catalogue (une direction emprunte celles qui s'accordent à son caractère).
+  for (const id of TRANSITION_IDS) {
+    const def = TRANSITION_CATALOGUE[id];
+    const dirs = { ...def.directions };
+    for (const [d, w] of transitions.get(id) ? Object.entries(transitions.get(id)!) : []) dirs[d as DirectionId] = (dirs[d as DirectionId] || 0) + (w as number);
+    nodes.push({ id: `transition:${id}`, kind: 'transition', label: id, summary: `${def.summary} (${def.feel})`, cost: 0, determinism: 'pure', suits: { directions: dirs }, impl: 'video-engine/src/transitions.tsx' });
+  }
+  // Mises en page : archétypes de composition, choisis scène par scène par l'agent directeur artistique.
+  for (const id of LAYOUT_IDS) {
+    const def = LAYOUT_CATALOGUE[id];
+    nodes.push({ id: `layout:${id}`, kind: 'layout', label: id, summary: `${def.summary} — scènes : ${def.scenes.join(', ')}.`, cost: 0, determinism: 'pure', suits: { directions: def.directions }, impl: 'video-engine/src/layouts.tsx' });
+  }
   return nodes;
 }
 
@@ -691,6 +703,9 @@ export interface KitOverrides {
   background?: string;
   annotate?: string;
   iconSet?: string;
+  /** Caméra et famille d'entrée : choisies par l'agent animateur dans le menu du graphe. */
+  camera?: string;
+  entrance?: string;
 }
 
 /**
@@ -701,7 +716,7 @@ export interface KitOverrides {
 export function applyKitOverrides(kit: VideoKit, overrides: KitOverrides, ctx: KitContext): { kit: VideoKit; refused: { field: string; reason: string }[] } {
   const next: VideoKit = { ...kit, trace: [...kit.trace] };
   const refused: { field: string; reason: string }[] = [];
-  const prefix: Record<keyof KitOverrides, string> = { logo: 'logo', background: 'bg', annotate: 'annotate', iconSet: 'icons' };
+  const prefix: Record<keyof KitOverrides, string> = { logo: 'logo', background: 'bg', annotate: 'annotate', iconSet: 'icons', camera: 'camera', entrance: 'entrance' };
   for (const field of Object.keys(prefix) as (keyof KitOverrides)[]) {
     const value = overrides[field];
     if (value === undefined) continue;

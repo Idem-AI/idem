@@ -18,12 +18,12 @@ import {
 
 export type VideoProgressState = Partial<Record<VideoProgressStage, { state: 'running' | 'done'; data?: VideoProgressData }>>;
 
-const STAGES: VideoProgressStage[] = ['plan', 'copy', 'media', 'music', 'sfx', 'storyboard'];
+const STAGES: VideoProgressStage[] = ['plan', 'copy', 'layout', 'media', 'music', 'sfx', 'storyboard', 'animation', 'critique'];
 
 /** Poids de chaque étape dans la barre, proportionnels à leur coût réel. */
-const WEIGHT: Record<VideoProgressStage, number> = { plan: 4, copy: 26, media: 30, music: 22, sfx: 8, storyboard: 10 };
+const WEIGHT: Record<VideoProgressStage, number> = { plan: 4, copy: 22, layout: 8, media: 26, music: 20, sfx: 6, storyboard: 4, animation: 6, critique: 4 };
 /** Durée attendue d'une étape (ms) : la barre avance doucement pendant qu'elle tourne. */
-const EXPECTED_MS: Record<VideoProgressStage, number> = { plan: 500, copy: 9000, media: 20000, music: 15000, sfx: 6000, storyboard: 1500 };
+const EXPECTED_MS: Record<VideoProgressStage, number> = { plan: 500, copy: 9000, layout: 5000, media: 20000, music: 15000, sfx: 6000, storyboard: 1500, animation: 4000, critique: 4000 };
 
 const RATIOS: Record<VideoFormat, string> = { story: '9 / 16', square: '1 / 1', portrait: '4 / 5', landscape: '16 / 9' };
 
@@ -118,6 +118,13 @@ export class VideoComposing {
   protected readonly sounds = computed(() => this.data('sfx').sounds ?? []);
   protected readonly bars = [0, 1, 2, 3, 4, 5, 6];
 
+  /** Noms traduits, sans doublon, des trois premiers éléments d'une liste (mises en page, transitions). */
+  private names(group: 'layouts' | 'transitions', ids: string[]): string {
+    const unique = [...new Set(ids)];
+    const shown = unique.slice(0, 3).map((id) => this.translate.instant(`dashboard.showCommunication.video.${group}.${id}`));
+    return unique.length > 3 ? `${shown.join(', ')}…` : shown.join(', ');
+  }
+
   /** Ligne de détail d'une étape terminée (paramètres de traduction). */
   protected detail(stage: VideoProgressStage): { key: string; params: Record<string, unknown> } | null {
     const d = this.data(stage);
@@ -150,9 +157,26 @@ export class VideoComposing {
         };
       }
       case 'music':
-        return d.none ? { key: 'musicNone', params: {} } : { key: 'music', params: { title: d.title, artist: d.artist, bpm: d.bpm ? Math.round(d.bpm) : '—' } };
+        if (d.none) return { key: 'musicNone', params: {} };
+        return { key: d.pickedBy === 'agent' ? 'musicAgent' : 'music', params: { title: d.title, artist: d.artist, bpm: d.bpm ? Math.round(d.bpm) : '—' } };
       case 'sfx':
         return { key: 'sfx', params: { count: (d.sounds ?? []).length } };
+      case 'layout': {
+        // Les mises en page retenues par les directeurs artistiques, nommées en clair.
+        const layouts = d.layouts ?? [];
+        if (!layouts.length) return { key: 'layoutClassic', params: {} };
+        return { key: 'layout', params: { count: layouts.length, names: this.names('layouts', layouts) } };
+      }
+      case 'animation':
+        return {
+          key: 'animation',
+          params: {
+            names: this.names('transitions', d.transitions ?? []),
+            camera: d.camera ? this.translate.instant(`dashboard.showCommunication.video.cameras.${d.camera}`) : '—',
+          },
+        };
+      case 'critique':
+        return d.fixes ? { key: 'critique', params: { count: d.fixes } } : { key: 'critiqueOk', params: {} };
       default:
         return { key: 'storyboard', params: { count: (d.scenes ?? []).length, bpm: d.bpm ? Math.round(d.bpm) : '—' } };
     }

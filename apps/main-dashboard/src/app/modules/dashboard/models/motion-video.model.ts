@@ -190,7 +190,7 @@ export function priceExport(pricing: VideoPricing, video: MotionVideo, scope: Vi
 }
 
 /** Étapes réelles d'une création, reçues en direct (flux SSE). */
-export type VideoProgressStage = 'plan' | 'copy' | 'media' | 'music' | 'sfx' | 'storyboard';
+export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'storyboard' | 'animation' | 'critique';
 
 export interface VideoProgressMediaItem {
   kind: VideoMediaKind;
@@ -220,6 +220,13 @@ export interface VideoProgressData {
   bpm?: number;
   none?: boolean;
   sounds?: { kind: SfxKind; title: string }[];
+  /** Agents : mises en page retenues, transitions, caméra, corrections du critique. */
+  layouts?: string[];
+  transitions?: string[];
+  camera?: string;
+  fixes?: number;
+  /** La piste a été choisie par l'agent sound designer. */
+  pickedBy?: 'agent' | 'graph';
 }
 
 export type VideoStreamEvent =

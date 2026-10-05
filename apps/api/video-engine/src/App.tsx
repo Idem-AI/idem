@@ -6,6 +6,7 @@ import { CSSProperties, useLayoutEffect, useMemo } from 'react';
 import { Engine, EngineCtx, SceneCtx, Timed, VideoData, makeEasings, useEngine, useScene } from './context';
 import { cue } from './cues';
 import { Backdrop } from './kit/Backdrop';
+import { layoutFor } from './layouts';
 import { SCENE_COMPONENTS } from './scenes';
 import { clamp, progress } from './time';
 import { sceneStyle, timeline, TransitionLayers } from './transitions';
@@ -153,10 +154,11 @@ export function Video({ data, t }: { data: VideoData; t: number }) {
       <div id="stage" className={`dir-${data.direction.id} fmt-${data.format}`} style={stageVars}>
         {scenes.map((s) => {
           const on = t >= s.visFrom && t < s.visTo;
-          const Component = SCENE_COMPONENTS[s.sceneId];
+          // La mise en page choisie par le directeur artistique, sinon la composition de la scène.
+          const Component = layoutFor(s) || SCENE_COMPONENTS[s.sceneId];
           return (
             <SceneCtx.Provider key={s.key} value={s}>
-              <section className={`scene scene-${s.sceneId}`} data-scene={s.sceneId} style={{ ...surfaceVars(data, s.surface), zIndex: 10 + s.index, visibility: on ? 'visible' : 'hidden', ...(on ? sceneStyle(engine, s) : {}) }}>
+              <section className={`scene scene-${s.sceneId}${s.layout ? ` ly-${s.layout}` : ''}`} data-scene={s.sceneId} style={{ ...surfaceVars(data, s.surface), zIndex: 10 + s.index, visibility: on ? 'visible' : 'hidden', ...(on ? sceneStyle(engine, s) : {}) }}>
                 <Backdrop />
                 {Component ? <Component /> : null}
                 {s.accent === 'punch' ? <AccentFlash /> : null}

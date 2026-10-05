@@ -119,7 +119,7 @@ export interface RenderInput {
   /** Instant de l'affiche (vignette), en secondes. */
   posterAt?: number;
   /** Effets sonores : un fichier par moment sonore, et le style (densité). */
-  sfx?: { files: Partial<Record<SfxKind, string>>; style: MotionStyle };
+  sfx?: { files: Partial<Record<SfxKind, string>>; style: MotionStyle; intensity?: 'subtle' | 'normal' | 'punchy' };
   onProgress?: (ratio: number) => void;
   concurrency?: number;
 }
@@ -239,7 +239,7 @@ export async function renderVideo(input: RenderInput): Promise<RenderOutput> {
 
     const file = path.join(workDir, 'video.mp4');
     const d = input.durationSec;
-    const cues = input.sfx ? refineCues(rawCues, input.sfx.style, d).filter((c) => input.sfx!.files[c.kind]) : [];
+    const cues = input.sfx ? refineCues(rawCues, input.sfx.style, d, input.sfx.intensity).filter((c) => input.sfx!.files[c.kind]) : [];
     await mixAudio({ silent, file, d, music: input.music, cues, files: input.sfx?.files || {} });
     const poster = path.join(workDir, 'poster.jpg');
     const posterAt = Math.max(0, Math.min(input.durationSec - 0.1, input.posterAt ?? input.durationSec * 0.2));

@@ -1023,10 +1023,13 @@
           "stages": {
             "plan": "Scene breakdown",
             "copy": "On-screen text",
+            "layout": "Each scene's layout",
             "media": "Images and clips",
             "music": "Music",
             "sfx": "Sound effects",
-            "storyboard": "Edit, synced to the beat"
+            "storyboard": "Edit, synced to the beat",
+            "animation": "Motion and transitions",
+            "critique": "Final review"
           },
           "details": {
             "plan": "{{count}} scenes for {{seconds}} s",
@@ -1039,7 +1042,13 @@
             "sfx": "{{count}} sounds picked",
             "storyboard": "{{count}} scenes, cuts on the beat ({{bpm}} BPM)",
             "planType": "{{type}} · {{count}} scenes for {{seconds}} s",
-            "planConcept": "{{type}} · {{concept}} · {{count}} scenes for {{seconds}} s"
+            "planConcept": "{{type}} · {{concept}} · {{count}} scenes for {{seconds}} s",
+            "layout": "{{count}} layouts: {{names}}",
+            "layoutClassic": "The direction's own compositions",
+            "animation": "Cuts: {{names}} · {{camera}} camera",
+            "critique": "{{count}} fix(es) from the creative director",
+            "critiqueOk": "Approved without changes",
+            "musicAgent": "“{{title}}” — {{artist}} · {{bpm}} BPM · picked for your brand"
           }
         },
         "directions": {
@@ -1095,6 +1104,50 @@
           "reasons": "Reasons to choose us",
           "celebration": "Celebration",
           "logo-sting": "Signature"
+        },
+        "layouts": {
+          "classic": "classic composition",
+          "wordStack": "word stack",
+          "marqueeBack": "scrolling word",
+          "bigNumber": "giant number",
+          "diagonalBand": "diagonal band",
+          "circleStage": "circle",
+          "splitBlock": "split blocks",
+          "layeredCards": "layered cards",
+          "gridCards": "card grid",
+          "checklist": "checklist",
+          "quoteBig": "big quote",
+          "priceBurst": "price burst",
+          "ticker": "tickers",
+          "spotlightWord": "spotlight word",
+          "frameOverlap": "block and frame"
+        },
+        "transitions": {
+          "cut": "cut",
+          "flashCut": "flash cut",
+          "glitch": "glitch",
+          "dissolve": "dissolve",
+          "zoomBlur": "zoom blur",
+          "zoomThrough": "zoom through",
+          "whip": "whip pan",
+          "cube": "3D cube",
+          "push": "push",
+          "slideOver": "slide over",
+          "iris": "iris",
+          "wipe": "wipe",
+          "blockStack": "color blocks",
+          "shapeWipe": "brand circle",
+          "stripes": "diagonal stripes",
+          "split": "split panels",
+          "liquid": "wave"
+        },
+        "cameras": {
+          "still": "still",
+          "push": "slow push",
+          "pull": "pull back",
+          "drift": "drift",
+          "rise": "rise",
+          "tilt": "tilt"
         }
       }
     }

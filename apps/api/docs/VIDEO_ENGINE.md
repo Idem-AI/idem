@@ -184,7 +184,9 @@ dans le texte l'emporte : « Qualité garantie » donne `quality`, pas `secure`)
 
 | Dans la charte | Dans la vidéo |
 |---|---|
-| style du catalogue (`styleId`) | directions de motion admises — la DA l'emporte sur le type (`pickDirection`) |
+| style du catalogue (`styleId`) | directions **préférées** (poids) et **exclues** (`ART_EXCLUDES`) : la DA écarte ce qui trahit son esprit sans enfermer la marque dans 2-3 directions (`pickDirection`) |
+| style du catalogue, « à éviter » | transitions et mises en page **exclues** (`ART_TRANSITION_EXCLUDES`, `ART_LAYOUT_EXCLUDES`, regex sur les « à éviter » : glitch, flash, « criard », 3D, promo) — jamais proposées aux agents |
+| mots-clés, éléments graphiques | bonus de transitions et de mises en page (cercle → disque de marque et cercle ; rayures → lames obliques et bandeau diagonal ; grille → grille de cartes ; typo géante → pile de mots) |
 | casse et interlettrage | casse des titres |
 | densité, espace négatif | rythme des entrées (aéré : ×1,15 ; dense : ×0,9) |
 | contraste, application des couleurs | stratégie de couleur des scènes (retenue, engagée) |
@@ -206,8 +208,9 @@ solution, le produit en héros, manifeste, offre choc, la preuve d'abord, sur le
 vitrine, les raisons, célébration, signature), leur dépliage en scènes selon les médias et la durée, 4 effets de
 grand moment (coup de poing, titre géant, temps suspendu, bascule de couleur), les menus, la validation.
 
-**Choisi par le modèle, dans des menus** : concept, enchaînement, grand moment, entrées de texte, animation du logo,
-objectif si l'utilisateur ne l'a pas dit.
+**Choisi par le modèle, dans des menus** : concept, enchaînement, grand moment, objectif si l'utilisateur ne l'a pas
+dit (le stratège) ; mises en page, transitions, entrées de texte, caméra, animation du logo, musique (les autres
+agents, §14).
 
 **Garanties, quel que soit le modèle** :
 
@@ -250,6 +253,9 @@ même brief donnent au moins 4 concepts et 10 combinaisons distinctes, même ave
 | entrées des éléments | rise, spring, flip, unfold, skew, iris, drop, pop, slideLeft (puces, boutons, prix, rangées) | graphe |
 | caméra | still, push, pull, drift, rise, tilt (3D) | graphe |
 | mises en scène des plans | split, window, blinds, magazine, knockout, inline, duotone, broadcast, cinema (`treatments.tsx`) | graphe, une par plan |
+| mises en page des scènes de texte | 14 archétypes + la composition de la direction (§15) | agent directeur artistique, une scène à la fois |
+| transitions | catalogue de 17, filtré par la direction et la DA (§15) | agent animateur, coupe par coupe |
+| musique, intensité des effets | piste parmi les 6 meilleures, discrète / normale / appuyée | agent sound designer |
 | grand moment, fond, annotation, logo, icônes | voir §5, §11 | graphe / modèle |
 
 Mesuré par `npm run check:video:variety` : même marque, même brief, 6 vidéos à la suite (parcours normal), puis
@@ -283,7 +289,14 @@ Règles du moteur apprises en route (chacune a causé un défaut réel, détect�
 - la taille d'un titre se mesure sans les transformations d'entrée ;
 - un clip est posé au milieu d'une image (30 i/s), puis on attend deux images d'affichage après `seeked` ;
 - les entrées lettre à lettre sont plafonnées (brouillage ≤ 0,9 s, machine à écrire ≤ 1,2 s) pour que le texte soit
-  lisible avant la fin de la scène.
+  lisible avant la fin de la scène ;
+- un flou n'est jamais négatif (`blur(${Math.max(0, …)})`) : avec une courbe à rebond, `1 - p` passe sous zéro, la
+  valeur CSS est invalide et l'élément garde le flou de l'image précédente (rendu qui dépend de l'ordre) ;
+- un conteneur flex n'étire jamais un odomètre au point de tasser ses colonnes de chiffres (`.kt-odo>*{flex:none}`) :
+  l'ajustement ne voyait pas le débordement et le chiffre sortait du cadre ;
+- en rendu, les polices de la charte sont embarquées dans la page (`video.fonts.ts` : feuilles lues côté serveur,
+  en cache, sous-ensembles latins, « vietnamese » seulement si le texte a des voyelles pointées) : une feuille Google
+  Fonts qui tardait bloquait l'événement `load` et faisait échouer l'export après 60 s.
 
 Sources des seuils : [University of Melbourne — Video captioning style guide](https://www.unimelb.edu.au/accessibility/video-captioning/style-guide) ·
 [Subtitle reading speed (CPS)](https://dev.to/ray_mac/subtitle-reading-speed-cps-the-limits-and-why-ai-subtitles-break-them-892) ·
@@ -291,6 +304,58 @@ Sources des seuils : [University of Melbourne — Video captioning style guide](
 [LottieFiles — motion design skill](https://github.com/LottieFiles/motion-design-skill/blob/main/skills/motion-design/SKILL.md) ·
 [Short-form video strategy 2026](https://www.teleprompter.com/blog/short-form-video-strategy) ·
 [Hooks des 3 premières secondes](https://www.capcut.com/create/short-form-video-hooks-first-3-second-patterns).
+
+## 14. L'équipe d'agents (`video.agents.ts`)
+
+Une seule grosse tâche (« fais la vidéo ») est mal faite par un petit modèle ; une tâche étroite (« choisis la mise
+en page de CETTE scène parmi ces trois ») est bien faite. La vidéo est donc partagée entre agents spécialisés,
+chacun avec un prompt court, une responsabilité, et des menus que le graphe a filtrés par la direction ET la DA :
+
+| Agent | Décide | Appels | Entrée ≈ |
+|---|---|---|---|
+| Stratège (`video.storyline.ts`) | objectif, concept, enchaînement, grand moment, rythme | 1 | 550 tokens |
+| Rédacteur (`video.copy.ts`) | textes à l'écran, mots-clés des médias | 1 | 700 tokens |
+| Directeur artistique | mise en page de **sa** scène + mot mis en valeur | 1 par scène de texte, en parallèle (4 à la fois), pendant la recherche des médias | 290 tokens |
+| Sound designer | la piste parmi les 6 meilleures candidates, l'intensité des effets (−4 / 0 / +3 dB) | 1, dans la recherche de musique | 220 tokens |
+| Animateur | transition de chaque coupe, ≤ 3 entrées de titre, caméra, famille d'entrée, animation du logo | 1 | 400 tokens |
+| Critique | relit le film résumé (mises en page, coupes, entrées, avertissements des règles) : ≤ 5 corrections `N.layout=` / `N.cut=` / `N.title=` | 1 | 440 tokens |
+
+Tous reçoivent la même **fiche de marque** (`brandSheet`) : couleurs de la charte, polices, DA (style, intention,
+mots-clés), « à faire », « à éviter ». Configuration : `AI_CONFIG.communication.videoAgents` (rôle *mechanical*,
+300 tokens de sortie, sans raisonnement). Garanties :
+
+- chaque réponse est lue ligne à ligne (lettres, identifiants, JSON, gras, majuscules) et chaque choix est validé
+  contre le menu de sa scène ; inventé, hors menu, répété ou hors bornes = remplacé par le choix du graphe ;
+- un agent en panne (quota, délai de 25 s, réponse vide) ne bloque jamais : la vidéo est faite par le graphe ;
+- après les agents, le code repasse : contrôle anti-réflexe (`lintMotion`), bonnes pratiques (`applyRules`), puis
+  revalidation des mises en page (un texte retiré par les règles fait repasser la scène en composition classique) ;
+- `storyboard.agents` garde, par agent, la source (modèle ou graphe), les tokens et le nombre de décisions retenues ;
+  le flux SSE montre trois étapes de plus (mise en page, mouvement, relecture).
+
+## 15. Mises en page et transitions
+
+**Mises en page** (`video-engine/src/layouts.tsx`, catalogue `video.layouts.ts`) : pile de mots (affiche
+typographique, lignes pleines et en contour), mot géant défilant derrière le titre, chiffre géant qui remplit le
+cadre (jamais rogné), bandeau diagonal, cercle de la marque (photo, chiffre ou symbole, anneau qui tourne), deux blocs de couleur,
+cartes superposées qui flottent, grille de cartes (le regard passe de case en case), liste cochée (coches tracées,
+fil qui les relie), grande citation, prix en étoile qui tourne, bandeaux défilants, mot sous le projecteur, bloc et
+cadre décalés. Chacune : tous formats, deux plans au moins qui dérivent en sens contraire (profondeur), du
+mouvement pendant la tenue, une pulsation sur le temps de la musique (`data.beat`), ses propres sons.
+Règles de film : jamais deux fois de suite la même mise en page, chaque archétype au plus une fois (deux au-delà
+de neuf scènes), la composition de la direction au plus sur un tiers des scènes, celles des dernières vidéos du
+projet reculent dans les menus. Clips, galeries, 3D, animations et signature gardent leurs propres compositions.
+
+**Transitions** : un catalogue de 17 (coupe, coupe éclair, glitch, fondu, zoom flou, traversée, filé, cube 3D,
+poussée, glissé, iris, volet, bandes, disque de marque, lames obliques, panneaux, vague) avec, pour chacune, son
+caractère et les directions qui la portent. `transitionMenu` en tire 6 pour la vidéo : signature de la direction
+(bonus), exclusions et bonus de la DA, celles des 3 dernières vidéos en recul. Dans un film, une transition sert au
+plus sur un tiers des coupes, jamais deux fois de suite ; la signature s'ouvre sur une transition douce ou graphique.
+Chaque transition a son son (tic, souffle, whoosh, impact). Les transitions « couvrantes » (disque, lames,
+panneaux, vague) couvrent tout le cadre à l'instant exact de la coupe.
+
+Contrôles : `check:video:engine` rend les 14 mises en page × 3 formats (déterminisme, aucun texte hors cadre,
+mouvement réel) et les 7 nouvelles transitions ; `check:video:creative` §8 éprouve les agents (réponses parfaites,
+lettres seules, JSON, inventions, vides, pannes ; budgets ; menus fidèles à la DA pour toutes les directions × DA).
 
 ## Sources
 

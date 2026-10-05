@@ -154,12 +154,12 @@ export function Kinetic(props: KineticProps) {
         ? {
             letterSpacing: `${mix(0.42, isDisplay ? d.type.tracking : 0, p)}em`,
             opacity: p,
-            filter: `blur(${(1 - p) * 0.08}em)`,
+            filter: `blur(${Math.max(0, (1 - p) * 0.08)}em)`,
           }
         : {
             transform: `scale(${mix(1.32, 1, p)})`,
             opacity: p,
-            filter: `blur(${(1 - p) * 0.12}em)`,
+            filter: `blur(${Math.max(0, (1 - p) * 0.12)}em)`,
           };
     return (
       <span ref={ref} data-fit={props.fit?.join(',')} className={`kt kt-${role} ${props.className || ''}`} style={{ ...baseStyle, ...block, ...exitStyle(exitP) }}>
@@ -311,8 +311,10 @@ export function Kinetic(props: KineticProps) {
             outer = { clipPath: `inset(-0.2em ${(1 - p) * 100}% -0.25em 0)` };
             inner = { transform: `translateX(${(1 - p) * -0.15}em)` };
             break;
+          // Un flou négatif est une valeur CSS invalide : le navigateur garderait le flou de l'image
+          // précédente (rendu qui dépend de l'ordre). Les courbes à rebond dépassent 1 : on borne.
           case 'blurWords':
-            inner = { opacity: p, filter: `blur(${(1 - p) * 0.1}em)`, transform: `translateY(${(1 - p) * 0.25}em)` };
+            inner = { opacity: p, filter: `blur(${Math.max(0, (1 - p) * 0.1)}em)`, transform: `translateY(${(1 - p) * 0.25}em)` };
             break;
           case 'slideAlternate':
             inner = { opacity: clamp(p * 1.5), transform: `translateX(${(i % 2 ? 1 : -1) * (1 - p) * 0.9}em)` };
@@ -323,7 +325,7 @@ export function Kinetic(props: KineticProps) {
             inner = p >= 1 ? {} : { opacity: clamp(p * 1.8), transform: `perspective(800px) rotateX(${(1 - p) * 80}deg)`, transformOrigin: '50% 100%' };
             break;
           case 'zoomWords':
-            inner = { opacity: clamp(p * 1.4), transform: `scale(${mix(2.2, 1, p)})`, filter: `blur(${(1 - p) * 0.08}em)` };
+            inner = { opacity: clamp(p * 1.4), transform: `scale(${mix(2.2, 1, p)})`, filter: `blur(${Math.max(0, (1 - p) * 0.08)}em)` };
             break;
           case 'skewIn':
             inner = { opacity: clamp(p * 1.6), transform: `translateX(${(1 - p) * -0.7}em) skewX(${(1 - p) * -18}deg)` };
@@ -362,7 +364,7 @@ export function Kinetic(props: KineticProps) {
 
 function exitStyle(q: number): CSSProperties {
   if (q <= 0) return {};
-  return { opacity: 1 - q, transform: `translateY(${-q * 0.35}em)`, filter: q > 0.05 ? `blur(${q * 0.08}em)` : undefined };
+  return { opacity: 1 - q, transform: `translateY(${-q * 0.35}em)`, filter: q > 0.05 ? `blur(${Math.max(0, q * 0.08)}em)` : undefined };
 }
 
 /**

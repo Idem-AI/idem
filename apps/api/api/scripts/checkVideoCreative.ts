@@ -7,17 +7,34 @@
  *  3. Variété : 12 vidéos du même projet et du même brief ne se ressemblent pas
  *     (concept, direction, logo, fond), même si le modèle répond toujours la même chose.
  *  4. Budget : tokens de la direction créative, de la copie, de « Améliorer ».
- *  5. Charte : la DA fixe les directions admises, la casse, le rythme, les bonus du graphe.
+ *  5. Charte : la DA exclut des directions, transitions et mises en page ; casse, rythme, bonus.
  *  6. « Améliorer ma demande » : faits gardés, chiffres inventés retirés.
  *  7. Calendrier : une vidéo sur trois au moins, chacune avec un type valide.
+ *  8. Agents : directeur artistique, animateur, sound designer, critique — réponses parfaites,
+ *     lettres seules, JSON, inventions, vides, pannes ; budgets ; menus fidèles à la DA.
  */
 import { VideoType } from '../models/motionVideo.model';
 import { ContentIdea } from '../models/communication.model';
 import { CONCEPTS, CONCEPT_IDS, ConceptId, expandConcept, mediaCapacity, mustShowScenes, pickConcept, sceneRange, TYPE_SIGNATURE } from '../services/Communication/video/video.concepts';
 import { buildCreativePrompt, CreativeInput, parseCreative, planCreative, SCENE_MENU } from '../services/Communication/video/video.storyline';
 import { copyPlan, buildCopyPrompt, estimateTokens, extractFacts } from '../services/Communication/video/video.copy';
-import { DIRECTION_IDS, DIRECTIONS, DirectionId, pickDirection } from '../services/Communication/video/video.direction';
-import { motionFromArtDirection } from '../services/Communication/video/video.artdirection';
+import { DIRECTION_IDS, DIRECTIONS, DirectionId, pickDirection, planMotion, transitionMenu } from '../services/Communication/video/video.direction';
+import { ART_TRANSITION_EXCLUDES, motionFromArtDirection } from '../services/Communication/video/video.artdirection';
+import { assignLayouts, layoutMenu, LayoutScene } from '../services/Communication/video/video.layouts';
+import {
+  AnimatorInput,
+  brandSheet,
+  buildAnimatorPrompt,
+  buildArtDirectorPrompt,
+  buildCriticPrompt,
+  buildSoundPrompt,
+  CriticInput,
+  parseAnimator,
+  parseArtDirector,
+  parseCritic,
+  parseSound,
+  runAnimator,
+} from '../services/Communication/video/video.agents';
 import { applyKitOverrides, KitContext, pickAccentEffect, resolveKit, topNodes } from '../services/Communication/video/video.capabilities';
 import { buildEnhancePrompt, enhanceRequest, groundEnhanced } from '../services/Communication/video/video.enhance';
 import { ensureVideoShare, suggestVideoType } from '../services/Communication/video/video.calendar';
@@ -216,12 +233,20 @@ function baseInput(over: Partial<CreativeInput> = {}): CreativeInput {
   check('DA minimaliste → directions précision / suisse / éditorial', minimal.directions.join(',') === 'precision,swiss,editorial', minimal.directions.join(','));
   check('casse, rythme, couleur, décor traduits (majuscules, aéré, retenu, grain)', minimal.overrides.displayCase === 'upper' && minimal.overrides.pace === 1.15 && minimal.overrides.color === 'restrained' && minimal.overrides.decor === 'grain', JSON.stringify(minimal.overrides));
   check('éléments graphiques et « à éviter » → bonus du graphe (grille, filets ; pas de rebond)', (minimal.boosts['bg:dot-grid'] || 0) > 0 && (minimal.boosts['bg:ticks'] || 0) > 0 && (minimal.boosts['easing:spring'] || 0) < 0, JSON.stringify(minimal.boosts));
-  let outside = 0;
+  // La DA EXCLUT (au lieu de restreindre à 2-3 directions, ce qui rendait toutes les vidéos
+  // d'une marque semblables) : jamais une direction exclue, une majorité de directions préférées,
+  // et de la variété d'une vidéo à l'autre.
+  const series: DirectionId[] = [];
   for (let seed = 1; seed <= 60; seed++) {
-    const d = pickDirection({ type: (['mix', 'product', 'promo', 'kinetic'] as VideoType[])[seed % 4], artDirections: minimal.directions, seed: seed * 977 });
-    if (!minimal.directions.includes(d)) outside++;
+    series.push(pickDirection({ type: (['mix', 'product', 'promo', 'kinetic'] as VideoType[])[seed % 4], artDirections: minimal.directions, artExcluded: minimal.excluded, seed: seed * 977, avoid: series.slice(-3) }));
   }
-  check('60 vidéos : la direction reste toujours dans celles de la DA', outside === 0, `${outside} hors DA`);
+  const excludedHits = series.filter((d) => minimal.excluded.includes(d)).length;
+  const preferred = series.filter((d) => minimal.directions.includes(d)).length;
+  const twins = series.filter((d, i) => i > 0 && d === series[i - 1]).length;
+  check('60 vidéos : jamais une direction exclue par la DA (brutal, collage)', excludedHits === 0, `${excludedHits} exclue(s)`);
+  check('60 vidéos : les directions préférées de la DA dominent (≥ 50 %)', preferred >= 30, `${preferred}/60`);
+  check('60 vidéos : au moins 4 directions, jamais deux fois de suite la même', new Set(series).size >= 4 && twins === 0, `${new Set(series).size} directions, ${twins} répétition(s)`);
+  check('DA minimaliste : transitions et mises en page tapageuses exclues', ['glitch', 'stripes', 'flashCut'].every((t) => minimal.excludedTransitions.includes(t)) && ['ticker', 'priceBurst'].every((l) => minimal.excludedLayouts.includes(l)), `${minimal.excludedTransitions.join(',')} | ${minimal.excludedLayouts.join(',')}`);
   const accents = new Map<DirectionId, Set<string>>();
   for (const dir of DIRECTION_IDS) accents.set(dir, new Set([1, 2, 3, 4, 5, 6].map((s) => pickAccentEffect(dir, s * 131))));
   check('grand moment : l’effet suit la direction (cinéma → temps suspendu, brutal → coup de poing)', accents.get('cinematic')!.has('hold') && accents.get('brutal')!.has('punch'), [...accents.entries()].map(([d, s]) => `${d}:${[...s].join('/')}`).join(' '));
@@ -257,6 +282,155 @@ function baseInput(over: Partial<CreativeInput> = {}): CreativeInput {
   check(`${videos.length}/12 contenus vidéo (au moins un sur trois), chacun avec un type valide`, videos.length >= 4 && videos.every((v) => !!v.videoType && v.videoType !== ('quote' as any)), videos.map((v) => `${v.channel}:${v.videoType}`).join(' '));
   check('jamais de vidéo pour un blog ou un e-mail', shared.filter((i) => ['blog', 'email'].includes(i.channel)).every((i) => i.format !== 'reel'));
   check('type déduit du contenu (promo → promo, coulisses → footage)', suggestVideoType({ title: 'Promo -20 %', hook: '', description: '', intent: 'promotion', channel: 'instagram' }, true) === 'promo' && suggestVideoType({ title: 'Les coulisses', hook: '', description: '', intent: 'awareness', channel: 'tiktok' }, true) === 'footage');
+
+  section('8. Équipe d’agents (directeur artistique, animateur, sound designer, critique)');
+  {
+    const sheet = brandSheet({
+      ctx,
+      palette: { primary: '#8B1E3F', secondary: '#F2C14E', accent: '#2E7D32', background: '#FFF8F0' },
+      fonts: { display: 'Fraunces', body: 'Inter' },
+      art: { styleId: 'minimalism', styleName: 'Minimalisme', tagline: 'Le goût, sans détour', keywords: ['épuré', 'naturel'], dos: ['Beaucoup d’air'], donts: ['Pas de rebond cartoon'] } as any,
+    });
+    check('fiche de marque : couleurs, polices, DA, à faire / à éviter', /#8B1E3F/.test(sheet) && /Fraunces/.test(sheet) && /sans détour/.test(sheet) && /AVOID: Pas de rebond/.test(sheet), sheet.replace(/\n/g, ' | ').slice(0, 160));
+
+    // Directeur artistique : une scène, un menu filtré par la direction et la DA.
+    const statScene = { sceneId: 'stat', slots: { value: '87 %', label: 'de clients fidèles' } };
+    const menu = layoutMenu(statScene, { direction: 'swiss', excluded: minimal.excludedLayouts });
+    check('menu de mise en page d’un chiffre (suisse) : grand chiffre en tête, « classic » en dernier', menu[0] === 'bigNumber' && menu[menu.length - 1] === 'classic' && menu.length <= 4, menu.join(','));
+    const adScene = { index: 2, count: 6, sceneId: 'stat', duration: 2.4, texts: ['87 %', 'de clients fidèles'], menu };
+    const adPrompt = buildArtDirectorPrompt(sheet, 'swiss', adScene);
+    const adIn = estimateTokens(adPrompt.system + adPrompt.user);
+    check(`directeur artistique ≈ ${adIn} tokens en entrée (≤ 380)`, adIn <= 380);
+    check('directeur artistique : « layout: b / word: … » compris', parseArtDirector('layout: b\nword: 87', adScene).layout === menu[1]);
+    check('directeur artistique : une lettre seule suffit', parseArtDirector(' a) ', adScene).layout === menu[0]);
+    check('directeur artistique : identifiant inventé ignoré', parseArtDirector('layout: hologram3d', adScene).layout === undefined);
+    const hookScene = { index: 0, count: 6, sceneId: 'hook', texts: ['Le bissap pressé chaque matin'], menu: layoutMenu({ sceneId: 'hook', slots: { title: 'Le bissap pressé chaque matin' } }, { direction: 'kinetic' }) };
+    check('directeur artistique : le mot mis en valeur retrouvé dans le titre', parseArtDirector('**Layout**: A\n**Word**: "Pressé"', hookScene).emphasis === 2, JSON.stringify(parseArtDirector('**Layout**: A\n**Word**: "Pressé"', hookScene)));
+
+    // Les menus respectent la DA, pour toutes les directions et tous les styles du catalogue.
+    let leaks = 0;
+    let thin = 0;
+    for (const style of Object.keys(ART_TRANSITION_EXCLUDES)) {
+      const art = motionFromArtDirection({ styleId: style } as any);
+      for (const dir of DIRECTION_IDS) {
+        const tm = transitionMenu(dir, { excluded: art.excludedTransitions });
+        if (tm.some((t) => art.excludedTransitions.includes(t.id))) leaks++;
+        if (tm.length < 3) thin++;
+        for (const sc of ['hook', 'statement', 'benefits', 'stat', 'cta']) {
+          const lm = layoutMenu({ sceneId: sc, slots: { title: 'Trois mots forts ici', sub: 'Un détail', b1: 'Un', b2: 'Deux', value: '87 %', label: 'clients', action: 'Commander' } }, { direction: dir, excluded: art.excludedLayouts });
+          if (lm.some((l) => art.excludedLayouts.includes(l))) leaks++;
+        }
+      }
+    }
+    check('menus de transitions et de mises en page : jamais une option exclue par la DA', leaks === 0, `${leaks} fuite(s)`);
+    check('menu de transitions : au moins 3 choix pour chaque direction × DA', thin === 0, `${thin} menu(s) trop court(s)`);
+    const recentHeavy = transitionMenu('kinetic', { recent: [['whip', 'zoomThrough', 'whip', 'stripes']] });
+    check('menu de transitions : celles de la vidéo précédente reculent', recentHeavy[0].id !== 'whip' && recentHeavy.findIndex((t) => t.id === 'whip') > 1, recentHeavy.map((t) => t.id).join(','));
+
+    // Plan de mouvement avec le catalogue : pas de répétition, plafond par transition.
+    const ids = ['hook', 'statement', 'benefits', 'stat', 'kinetic', 'quote', 'cta', 'logo'];
+    let repeats = 0;
+    let overCap = 0;
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 30; seed++) {
+      const dir = DIRECTION_IDS[seed % DIRECTION_IDS.length];
+      const plan = planMotion(ids, dir, seed * 31, { transitions: transitionMenu(dir) });
+      const cuts = plan.map((m) => m.transition).filter(Boolean) as string[];
+      cuts.forEach((c, i) => {
+        seen.add(c);
+        if (i > 0 && c === cuts[i - 1]) repeats++;
+      });
+      const counts = new Map<string, number>();
+      cuts.slice(0, -1).forEach((c) => counts.set(c, (counts.get(c) || 0) + 1));
+      if ([...counts.values()].some((n) => n > Math.ceil(cuts.length / 3) + 1)) overCap++;
+    }
+    check('30 films : jamais deux fois la même transition de suite, aucune transition sur-utilisée', repeats === 0 && overCap === 0, `${repeats} répétition(s), ${overCap} excès`);
+    check(`30 films : ${seen.size} transitions différentes utilisées (≥ 12 sur 17)`, seen.size >= 12, [...seen].join(','));
+
+    // Mises en page du film : choix de l'agent gardés s'ils sont valides, sinon le graphe.
+    const film: LayoutScene[] = [
+      { sceneId: 'hook', slots: { title: 'Le bissap pressé chaque matin' } },
+      { sceneId: 'statement', slots: { title: 'Rien d’autre que des fleurs', sub: 'Et un peu de menthe' } },
+      { sceneId: 'benefits', slots: { title: 'Pourquoi nous', b1: 'Frais', b2: 'Local', b3: 'Livré' } },
+      { sceneId: 'stat', slots: { value: '87 %', label: 'de clients fidèles' } },
+      { sceneId: 'footage', slots: { title: 'À Dakar' }, video: 'clip.mp4' },
+      { sceneId: 'cta', slots: { title: 'Commandez aujourd’hui', action: 'Commander' } },
+      { sceneId: 'logo', slots: {} },
+    ];
+    const layouts = assignLayouts(film, { direction: 'kinetic', seed: 7, chosen: { 0: 'wordStack', 1: 'wordStack', 2: 'hologram', 3: 'bigNumber' } });
+    check('mises en page : choix valides gardés (pile de mots, grand chiffre), répétition et invention remplacées', layouts[0] === 'wordStack' && layouts[1] !== 'wordStack' && layouts[2] !== ('hologram' as any) && !!layouts[2] && layouts[3] === 'bigNumber', layouts.join(','));
+    check('mises en page : clip et signature gardent leur composition', layouts[4] === undefined && layouts[6] === undefined);
+    let consecutive = 0;
+    let classicHeavy = 0;
+    const used = new Set<string>();
+    for (let seed = 1; seed <= 40; seed++) {
+      const dir = DIRECTION_IDS[seed % DIRECTION_IDS.length];
+      const l = assignLayouts(film, { direction: dir, seed: seed * 17 });
+      l.forEach((x, i) => {
+        if (x) used.add(x);
+        if (x && i > 0 && x === l[i - 1]) consecutive++;
+      });
+      if (l.filter((x) => x === 'classic').length > 2) classicHeavy++;
+    }
+    check('40 films : jamais deux fois la même mise en page de suite, « classic » minoritaire', consecutive === 0 && classicHeavy === 0, `${consecutive} répétition(s), ${classicHeavy} film(s) trop classiques`);
+    check(`40 films : ${used.size} mises en page différentes utilisées (≥ 10 sur 15)`, used.size >= 10, [...used].join(','));
+
+    // Animateur.
+    const animIn: AnimatorInput = {
+      sheet,
+      direction: 'kinetic',
+      rhythm: 'staccato',
+      scenes: film.map((f) => ({ sceneId: f.sceneId, duration: 2, title: f.slots.title })),
+      transitions: transitionMenu('kinetic'),
+      techniques: DIRECTIONS.kinetic.headline,
+      cameras: ['push', 'drift', 'tilt'],
+      entrances: ['spring', 'pop', 'skew'],
+      logos: ['assemble', 'morph', 'draw'],
+    };
+    const ap = buildAnimatorPrompt(animIn);
+    const apIn = estimateTokens(ap.system + ap.user);
+    check(`animateur ≈ ${apIn} tokens en entrée (≤ 700)`, apIn <= 700);
+    const ids2 = animIn.transitions.map((t) => t.id);
+    const anim = parseAnimator(`cuts: 2=a, 3=c, 4=${ids2[1]}, 9=a, 5=teleport\ntitles: 1=${DIRECTIONS.kinetic.headline[0]}, 2=explode\ncamera: tilt\nentrance: b\nlogo: fireworks`, animIn);
+    check('animateur : coupes par lettre ou identifiant, hors bornes et inventions ignorées', anim.cuts[1] === ids2[0] && anim.cuts[2] === ids2[2] && anim.cuts[3] === ids2[1] && !(8 in anim.cuts) && !(4 in anim.cuts), JSON.stringify(anim.cuts));
+    check('animateur : entrée, caméra et famille validées, logo inventé refusé', anim.titles[0] === DIRECTIONS.kinetic.headline[0] && !(1 in anim.titles) && anim.camera === 'tilt' && anim.entrance === 'pop' && !anim.logo, JSON.stringify({ t: anim.titles, c: anim.camera, e: anim.entrance, l: anim.logo }));
+    const animJson = parseAnimator(JSON.stringify({ cuts: { 2: 'b', 3: 'a' }, camera: 'drift' }), animIn);
+    check('animateur : réponse JSON comprise', animJson.cuts[1] === ids2[1] && animJson.cuts[2] === ids2[0] && animJson.camera === 'drift', JSON.stringify(animJson));
+    const silent = await runAnimator(async () => '', animIn);
+    const broken = await runAnimator(async () => {
+      throw new Error('quota');
+    }, animIn);
+    check('animateur : réponse vide ou modèle en panne → repli du graphe, sans erreur', silent.run.source === 'graph' && broken.run.source === 'graph' && !Object.keys(broken.choice.cuts).length);
+
+    // Sound designer.
+    const tracks = [
+      { id: 't1', title: 'Sad Piano Tears', artist: 'Anon', moods: ['sad'], bpm: 70, durationSec: 120 },
+      { id: 't2', title: 'Afro Sunrise', artist: 'Kora Lab', moods: ['upbeat', 'afro'], bpm: 108, durationSec: 150 },
+      { id: 't3', title: 'Corporate Light', artist: 'Studio', moods: ['corporate'], bpm: 96, durationSec: 140 },
+    ];
+    const soundIn = { sheet, request: MESSAGE, rhythm: 'steady', mood: 'afro', durationSec: 15, tracks };
+    const sp = buildSoundPrompt(soundIn);
+    check(`sound designer ≈ ${estimateTokens(sp.system + sp.user)} tokens en entrée (≤ 380)`, estimateTokens(sp.system + sp.user) <= 380);
+    const sound = parseSound('track: b\nsfx: punchy', soundIn);
+    check('sound designer : piste par lettre, intensité comprise', sound.trackId === 't2' && sound.intensity === 'punchy', JSON.stringify(sound));
+    check('sound designer : piste inventée ignorée', parseSound('track: z\nsfx: loud!!', soundIn).trackId === undefined);
+
+    // Critique.
+    const critIn: CriticInput = {
+      sheet,
+      direction: 'kinetic',
+      rhythm: 'staccato',
+      scenes: film.map((f, i) => ({ sceneId: f.sceneId, duration: 2, layout: layouts[i], transition: i ? ids2[i % ids2.length] : undefined, technique: 'maskUp', title: f.slots.title, layouts: layoutMenu(f, { direction: 'kinetic' }, 5) })),
+      transitions: ids2,
+      techniques: DIRECTIONS.kinetic.headline,
+      warnings: [],
+    };
+    const cp = buildCriticPrompt(critIn);
+    check(`critique ≈ ${estimateTokens(cp.system + cp.user)} tokens en entrée (≤ 750)`, estimateTokens(cp.system + cp.user) <= 750);
+    const fixes = parseCritic(`1.layout=${critIn.scenes[0].layouts[1]}\n3.cut=${ids2[0]}\n1.cut=${ids2[0]}\n2.title=${DIRECTIONS.kinetic.headline[1]}\n4.layout=hologram\n7.title=${DIRECTIONS.kinetic.headline[0]}\nok`, critIn);
+    check('critique : corrections valides gardées ; coupe de la 1re scène, signature et inventions refusées', fixes.length === 3 && fixes.every((f) => !(f.index === 0 && f.field === 'cut') && f.index !== 6), JSON.stringify(fixes));
+    check('critique : « ok » = aucune correction', parseCritic('ok', critIn).length === 0);
+  }
 
   console.log(failures ? `\n✗ ${failures} vérification(s) en échec.` : '\n✓ Direction créative : bornée, robuste, variée.');
   process.exit(failures ? 1 : 0);

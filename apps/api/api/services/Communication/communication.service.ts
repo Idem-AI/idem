@@ -327,6 +327,14 @@ export class CommunicationService extends GenericService {
     ]);
   }
 
+  /** Un agent de la vidéo (directeur artistique, animateur, sound designer, critique). */
+  async runVideoAgentPrompt(userId: string, system: string, user: string): Promise<string> {
+    return this.promptService.runPrompt(promptConfigFor(AI_CONFIG.communication.videoAgents, userId), [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ]);
+  }
+
   /**
    * Un appel de modèle sur la configuration de l'atelier.
    *

@@ -12,6 +12,9 @@
  *   moves       quelques entrées de texte, parmi celles de la direction retenue
  *   logo        l'animation du logo, parmi les 3 que le graphe recommande
  *
+ * Dans l'équipe d'agents (video.agents.ts), `delegateMotion` retire « moves » et « logo » :
+ * le stratège ne raconte que l'histoire, l'agent animateur décide du mouvement.
+ *
  * Un appel court (~550 tokens en entrée, ~60 en sortie). Chaque ligne est lue
  * seule et validée par le code ; une ligne absente, fausse ou inventée est
  * remplacée par le choix du graphe. Un modèle très faible, ou aucun modèle,
@@ -77,6 +80,11 @@ export interface CreativeInput {
   /** Rythmes proposés au modèle (graphe), et celui du graphe si le modèle n'en dit rien. */
   rhythmMenu?: string[];
   graphRhythm?: string;
+  /**
+   * Le mouvement (entrées de titre, animation du logo) est confié à l'agent animateur :
+   * le stratège ne fait alors que l'histoire (objectif, concept, scènes, grand moment, rythme).
+   */
+  delegateMotion?: boolean;
   seed: number;
 }
 
@@ -120,8 +128,8 @@ export function buildCreativePrompt(input: CreativeInput, concepts: ConceptId[],
     'concept: one id from CONCEPTS (the first one is recommended)',
     `scenes: ${min} to ${max} ids from SCENES, comma separated, in the concept's order; the last one is logo`,
     'accent: the number of the scene that gets the big moment',
-    'moves: up to 3 pairs "scene number=technique" from TECHNIQUES, e.g. 1=scramble',
-    input.logoMenu.length ? `logo: one of ${input.logoMenu.join(' | ')}` : '',
+    input.delegateMotion ? '' : 'moves: up to 3 pairs "scene number=technique" from TECHNIQUES, e.g. 1=scramble',
+    !input.delegateMotion && input.logoMenu.length ? `logo: one of ${input.logoMenu.join(' | ')}` : '',
     input.rhythmMenu?.length ? `rhythm: one of ${input.rhythmMenu.join(' | ')} (steady=even, crescendo=builds up, staccato=sharp cuts, breathe=long holds, drop=slow then fast)` : '',
     'Serve the request and the brand art direction. Combine techniques when it helps. Never the same scene twice in a row.',
   ]
@@ -138,7 +146,7 @@ export function buildCreativePrompt(input: CreativeInput, concepts: ConceptId[],
     ...concepts.map((id) => `${id}: ${CONCEPTS[id].pitch}`),
     'SCENES:',
     ...scenes.map((id) => `${id}: ${SCENE_MENU[id] || id}`),
-    `TECHNIQUES: ${input.techniques.join(', ')}`,
+    input.delegateMotion ? '' : `TECHNIQUES: ${input.techniques.join(', ')}`,
   ]
     .filter(Boolean)
     .join('\n');

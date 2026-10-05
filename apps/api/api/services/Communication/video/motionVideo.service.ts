@@ -50,7 +50,9 @@ import { enhanceRequest } from './video.enhance';
 import { generateClip, generateStill, MediaStorage, Orientation, processUpload, searchPexelsPhotos, searchPexelsVideos } from './video.media';
 import { ensureSfxLibrary, pickSounds, publicSoundName, SFX_DENSITY, SFX_GAIN_DB, sfxLibrary, soundFile, SfxLibrary } from './video.sfx';
 import { apiBaseUrl } from '../visualUrl';
-import { DirectionId, DIRECTIONS, isMotionDirection, lintMotion, pickDirection, planMotion, styleOfDirection, surfacesFor } from './video.direction';
+import { DirectionId, DIRECTIONS, isMotionDirection, lintMotion, MotionTransition, pickDirection, planMotion, styleOfDirection, surfacesFor, transitionMenu } from './video.direction';
+import { assignLayouts, layoutFits, layoutMenu, LayoutScene } from './video.layouts';
+import { AgentRun, ArtDirectorChoice, brandSheet, runAnimator, runArtDirectors, runCritic, runSoundDesigner } from './video.agents';
 import { applyKitOverrides, assignIcons, iconVocabulary, KitContext, KitOverrides, pickAccentEffect, pickRhythm, resolveKit, rhythmMenu, topNodes } from './video.capabilities';
 import { analyzeLogo } from './video.logo';
 import { CommunicationService } from '../communication.service';
@@ -82,7 +84,7 @@ export interface CreateVideoInput {
  * Progression RÉELLE d'une création, étape par étape : l'interface la montre en
  * direct (flux SSE). Les étapes médias, musique et effets tournent en parallèle.
  */
-export type VideoProgressStage = 'plan' | 'copy' | 'media' | 'music' | 'sfx' | 'storyboard';
+export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'storyboard' | 'animation' | 'critique';
 
 export interface VideoProgressEvent {
   stage: VideoProgressStage;
@@ -196,7 +198,10 @@ export class MotionVideoService {
     private readonly communication: CommunicationService,
     /** Remplaçable pour les tests (réponses écrites à la main, aucun appel réseau). */
     private readonly writerFor: (userId: string) => CopyWriter | undefined = (userId) => (system, user) =>
-      communication.runVideoCopyPrompt(userId, system, user)
+      communication.runVideoCopyPrompt(userId, system, user),
+    /** Les agents (directeur artistique, animateur, sound designer, critique) : leur propre configuration. */
+    private readonly agentWriterFor: (userId: string) => CopyWriter | undefined = (userId) => (system, user) =>
+      typeof communication.runVideoAgentPrompt === 'function' ? communication.runVideoAgentPrompt(userId, system, user) : Promise.reject(new Error('no_agent_model'))
   ) {}
 
   // ── Contexte de marque (sans appel de modèle) ────────────────────────────
@@ -423,12 +428,22 @@ export class MotionVideoService {
     seed: number;
     avoidIds?: string[];
     trackId?: string;
+    /** Ton et promesse de la marque : ils orientent l'ambiance quand elle est « automatique ». */
+    brandText?: string;
+    /** L'agent sound designer choisit parmi les meilleures pistes (sinon : tirage par la graine). */
+    pick?: (tracks: MusicTrack[], mood: string) => Promise<string | undefined>;
   }): Promise<VideoMusic | undefined> {
-    const mood = resolveMood(opts.mood, opts.style, opts.objective);
+    const mood = resolveMood(opts.mood, opts.style, opts.objective, opts.brandText);
     if (!mood) return undefined;
     try {
       const candidates = await searchMusic({ mood, minDuration: opts.durationSec + 3 }, MUSIC_PROVIDERS);
-      const first = opts.trackId ? candidates.find((t) => t.id === opts.trackId) || null : pickTrack(candidates, opts.seed, opts.avoidIds);
+      let first = opts.trackId ? candidates.find((t) => t.id === opts.trackId) || null : null;
+      if (!first && !opts.trackId && opts.pick && candidates.length > 1) {
+        const fresh = candidates.filter((t) => !(opts.avoidIds || []).includes(t.id)).slice(0, 6);
+        const id = await opts.pick(fresh.length ? fresh : candidates.slice(0, 6), mood).catch(() => undefined);
+        first = candidates.find((t) => t.id === id) || null;
+      }
+      first ??= opts.trackId ? null : pickTrack(candidates, opts.seed, opts.avoidIds);
       if (!first) return undefined;
       // Une piste qui ne se télécharge pas ou ne s'analyse pas laisse sa place
       // à la suivante : la vidéo garde une musique calée sur le temps.
@@ -530,6 +545,7 @@ export class MotionVideoService {
       type: requested ?? 'mix',
       artStyleId: branding?.artDirection?.styleId,
       artDirections: art.directions,
+      artExcluded: art.excluded,
       seed,
       avoid: otherVideos.map((v) => v.storyboard?.direction).filter(Boolean) as string[],
       requested: isMotionDirection(brief.direction) ? brief.direction : undefined,
@@ -568,6 +584,8 @@ export class MotionVideoService {
         recentConcepts: otherVideos.map((v) => v.storyboard?.concept).filter(Boolean) as string[],
         recentSequences: otherVideos.slice(-2).map((v) => (v.storyboard?.scenes || []).map((sc) => sc.sceneId).join('>')),
         recentLogos: otherVideos.map((v) => v.storyboard?.kit?.logo).filter(Boolean) as string[],
+        // Les entrées de titre et l'animation du logo reviennent à l'agent animateur.
+        delegateMotion: true,
         // Ce que l'utilisateur a fourni (et les photos de ses visuels) : toujours montré.
         owned: { images: own('image') || visuals.filter((v) => v.backgroundImageUrl).length, videos: own('video'), models: own('model3d'), lotties: own('lottie') + own('rive') },
         seed,
@@ -611,7 +629,42 @@ export class MotionVideoService {
       source: copy.source,
     });
 
-    // 3. Médias, musique et effets sonores, en parallèle.
+    // L'équipe d'agents : tous reçoivent la même fiche de la charte et de sa DA.
+    const sheet = brandSheet({ ctx, palette: theme.palette, fonts: theme.fonts, art: branding?.artDirection });
+    const agentWriter = this.agentWriterFor(userId);
+    const agentRuns: AgentRun[] = [
+      { agent: 'strategist', source: plan.source, tokens: storylineTokens, ms: 0 },
+      { agent: 'writer', source: copy.source === 'llm' ? 'llm' : 'graph', tokens: copy.tokens, ms: 0 },
+    ];
+    const layoutCtx = {
+      direction,
+      excluded: art.excludedLayouts,
+      boosts: art.boosts,
+      recent: otherVideos.map((v) => (v.storyboard?.scenes || []).map((sc) => sc.layout).filter(Boolean) as string[]),
+    };
+    const sceneOf = (id: string, i: number): LayoutScene => ({ sceneId: id, slots: copy.copy[i + 1] || {} });
+    const titleOf = (slots: Record<string, string> = {}) => slots.title || slots.name || slots.quote || slots.value || slots.price || slots.l1 || '';
+
+    // 3. Médias, musique (choisie par le sound designer) et effets sonores — et, en même temps,
+    //    un directeur artistique par scène pour sa mise en page.
+    emit('layout', 'running', { scenes: sceneIds.length });
+    const artDirectors = runArtDirectors(
+      agentWriter,
+      sheet,
+      direction,
+      sceneIds.map((id, i) => ({
+        index: i,
+        count: sceneIds.length,
+        sceneId: id,
+        texts: [titleOf(copy.copy[i + 1]), ...Object.entries(copy.copy[i + 1] || {}).filter(([k]) => !['title', 'name', 'quote', 'visual'].includes(k)).map(([, v]) => v)].slice(0, 4),
+        accent: i === plan.accent,
+        menu: layoutMenu(sceneOf(id, i), layoutCtx),
+      }))
+    ).then((res) => {
+      agentRuns.push(res.run);
+      return res;
+    });
+    let soundIntensity: 'subtle' | 'normal' | 'punchy' | undefined;
     emit('media', 'running', { query, wanted });
     emit('music', 'running', { mood: brief.musicMood });
     if (brief.sfx) emit('sfx', 'running');
@@ -628,8 +681,15 @@ export class MotionVideoService {
         durationSec: scope.durationSec,
         seed,
         avoidIds: otherVideos.map((v) => v.music?.id).filter(Boolean) as string[],
+        brandText: [ctx.tone, ctx.valueProposition, ctx.businessType, ...(ctx.keywords || []), brief.message].filter(Boolean).join(' '),
+        pick: async (tracks, mood) => {
+          const res = await runSoundDesigner(agentWriter, { sheet, request: `${brief.message} ${brief.details || ''}`, rhythm: plan.rhythm, mood, durationSec: scope.durationSec, tracks });
+          agentRuns.push(res.run);
+          soundIntensity = res.choice.intensity;
+          return res.choice.trackId;
+        },
       }).then((track) => {
-        emit('music', 'done', track ? { title: track.title, artist: track.artist, provider: track.provider, bpm: track.beat?.bpm, license: track.license } : { none: true });
+        emit('music', 'done', track ? { title: track.title, artist: track.artist, provider: track.provider, bpm: track.beat?.bpm, license: track.license, pickedBy: agentRuns.some((r) => r.agent === 'soundDesigner' && r.source === 'llm') ? 'agent' : 'graph' } : { none: true });
         return track;
       }),
       brief.sfx
@@ -641,6 +701,7 @@ export class MotionVideoService {
             })
         : Promise.resolve(undefined),
     ]);
+    const designed = await artDirectors;
     emit('storyboard', 'running');
     const urls = (kind: VideoMediaKind) => media.assets.filter((a) => a.kind === kind).map((a) => a.url);
     const images = urls('image');
@@ -674,6 +735,13 @@ export class MotionVideoService {
     // Le grand moment suit sa scène ; si elle est tombée, la première scène de contenu le reprend.
     const accentAt = kept.findIndex((k) => k.from === plan.accent);
     const accentIndex = accentAt >= 0 && sceneIds[accentAt] !== 'logo' ? accentAt : Math.min(1, Math.max(0, sceneIds.length - 2));
+    // Le menu des transitions : tout le catalogue, filtré par la direction et la DA de la charte,
+    // moins celles des dernières vidéos du projet.
+    const transitions = transitionMenu(direction, {
+      excluded: art.excludedTransitions,
+      boosts: art.boosts,
+      recent: otherVideos.map((v) => (v.storyboard?.scenes || []).map((sc) => sc.motion?.transition).filter(Boolean) as string[]),
+    });
 
     const storyboard = buildStoryboard({
       sceneIds,
@@ -697,30 +765,132 @@ export class MotionVideoService {
       rhythm: plan.rhythm,
       // Les entrées de titre de la dernière vidéo du projet : la nouvelle en prend d'autres.
       avoidHeadlines: (otherVideos[otherVideos.length - 1]?.storyboard?.scenes || []).map((sc) => sc.motion?.headline).filter(Boolean) as string[],
+      transitions: transitions,
     });
 
-    // Les entrées choisies par le modèle (dans le menu de la direction), puis le contrôle
-    // anti-réflexe : un choix qui créerait une répétition est réparé par le code.
-    const moved = Object.entries(plan.moves).map(([i, technique]) => [kept.findIndex((k) => k.from === Number(i)), technique] as [number, string]).filter(([i]) => i >= 0);
-    if (moved.length) {
-      const motions = storyboard.scenes.map((sc) => ({ ...sc.motion! }));
-      for (const [i, technique] of moved) if (motions[i]) motions[i].headline = technique;
-      const linted = lintMotion(motions as any, sceneIds, DIRECTIONS[direction]).plan;
-      storyboard.scenes.forEach((sc, i) => (sc.motion = linted[i] as any));
+    // Les mises en page : celles des directeurs artistiques, validées pour tout le film
+    // (menu de la scène, médias réellement obtenus, jamais deux fois de suite).
+    {
+      const chosen: Record<number, string> = {};
+      const emphasis: Record<number, number> = {};
+      kept.forEach((k, i) => {
+        const choice: ArtDirectorChoice | undefined = k.from >= 0 ? designed.choices[k.from] : undefined;
+        if (choice?.layout) chosen[i] = choice.layout;
+        if (choice?.emphasis != null) emphasis[i] = choice.emphasis;
+      });
+      const layouts = assignLayouts(
+        storyboard.scenes.map((sc) => ({ sceneId: sc.sceneId, slots: sc.slots, image: sc.image, video: sc.video })),
+        { ...layoutCtx, seed, chosen }
+      );
+      storyboard.scenes.forEach((sc, i) => {
+        if (layouts[i]) sc.layout = layouts[i];
+        if (emphasis[i] != null) sc.emphasis = emphasis[i];
+      });
+      emit('layout', 'done', { layouts: storyboard.scenes.map((sc) => sc.layout).filter((l) => l && l !== 'classic'), source: designed.run.source });
     }
 
     // 5. Le kit : le graphe de capacités choisit fond, annotation, animation du logo,
     //    icônes, effets — selon le projet, la DA, la charte et les médias.
     const kctx = this.kitContext({ type, brief, scope, direction, storyboard, theme, branding, ctx, media: media.assets, otherVideos });
     let kit = resolveKit(kctx);
-    // L'animation de logo choisie par le modèle, si elle est dans le menu du graphe et possible ici.
-    if (plan.logo && plan.logo !== kit.logo) kit = applyKitOverrides(kit, { logo: plan.logo }, kctx).kit;
+
+    // 6. L'agent animateur : la transition de chaque coupe (catalogue filtré), quelques entrées
+    //    de titre, la caméra, la famille d'entrée et l'animation du logo — dans les menus du graphe.
+    emit('animation', 'running');
+    const freshLogos = topNodes('logo', kctx, 4).filter((l) => !otherVideos.slice(-2).some((v) => v.storyboard?.kit?.logo === l));
+    const animator = await runAnimator(agentWriter, {
+      sheet,
+      direction,
+      rhythm: plan.rhythm,
+      scenes: storyboard.scenes.map((sc) => ({ sceneId: sc.sceneId, layout: sc.layout, duration: sc.duration, title: titleOf(sc.slots) })),
+      transitions,
+      techniques: DIRECTIONS[direction].headline,
+      cameras: topNodes('camera', kctx, 3),
+      entrances: topNodes('entrance', kctx, 3),
+      logos: freshLogos.length >= 2 ? freshLogos : topNodes('logo', kctx, 4),
+    });
+    agentRuns.push(animator.run);
+    {
+      // Les entrées du stratège (si un ancien modèle en propose encore), puis celles de l'animateur.
+      const motions = storyboard.scenes.map((sc) => ({ ...sc.motion! }));
+      for (const [i, technique] of Object.entries(plan.moves)) {
+        const at = kept.findIndex((k) => k.from === Number(i));
+        if (at >= 0 && motions[at]) motions[at].headline = technique as any;
+      }
+      for (const [i, technique] of Object.entries(animator.choice.titles)) if (motions[Number(i)]) motions[Number(i)].headline = technique as any;
+      for (const [i, cut] of Object.entries(animator.choice.cuts)) if (motions[Number(i)] && Number(i) > 0) motions[Number(i)].transition = cut;
+      // Le contrôle anti-réflexe : un choix qui créerait une répétition est réparé par le code.
+      const linted = lintMotion(motions as any, sceneIds, DIRECTIONS[direction], transitions.map((t) => t.id)).plan;
+      storyboard.scenes.forEach((sc, i) => (sc.motion = linted[i] as any));
+    }
+    const logoChoice = animator.choice.logo || plan.logo;
+    const overrides = { ...(logoChoice && logoChoice !== kit.logo ? { logo: logoChoice } : {}), ...(animator.choice.camera ? { camera: animator.choice.camera } : {}), ...(animator.choice.entrance ? { entrance: animator.choice.entrance } : {}) };
+    if (Object.keys(overrides).length) kit = applyKitOverrides(kit, overrides, kctx).kit;
     kit.icons = assignIcons(storyboard.scenes);
     storyboard.kit = kit;
     applyTreatmentSurfaces(storyboard);
+    emit('animation', 'done', {
+      transitions: storyboard.scenes.map((sc) => sc.motion?.transition).filter(Boolean),
+      camera: kit.camera,
+      logo: kit.logo,
+      source: animator.run.source,
+    });
+
     // Les bonnes pratiques (lecture, tenues, entrées, signature…) : vérifiées et réparées, toujours.
-    const qa = applyRules(storyboard, { objective: brief.objective });
+    let qa = applyRules(storyboard, { objective: brief.objective });
+
+    // 7. L'agent critique relit le film résumé : au plus cinq corrections, dans une grammaire
+    //    fermée (mise en page, coupe, entrée de titre), chacune validée par le code.
+    emit('critique', 'running');
+    const critic = await runCritic(agentWriter, {
+      sheet,
+      direction,
+      rhythm: plan.rhythm,
+      scenes: storyboard.scenes.map((sc) => ({
+        sceneId: sc.sceneId,
+        duration: sc.duration,
+        layout: sc.layout,
+        transition: sc.motion?.transition,
+        technique: sc.motion?.headline,
+        title: titleOf(sc.slots),
+        layouts: layoutMenu({ sceneId: sc.sceneId, slots: sc.slots, image: sc.image, video: sc.video }, layoutCtx, 5),
+      })),
+      transitions: transitions.map((t) => t.id),
+      techniques: DIRECTIONS[direction].headline,
+      warnings: (qa.warnings || []).map((w) => w.detail),
+    });
+    agentRuns.push(critic.run);
+    let applied = 0;
+    for (const fix of critic.fixes) {
+      const sc = storyboard.scenes[fix.index];
+      const prev = storyboard.scenes[fix.index - 1];
+      const next = storyboard.scenes[fix.index + 1];
+      if (fix.field === 'layout' && layoutFits(fix.value, { sceneId: sc.sceneId, slots: sc.slots, image: sc.image, video: sc.video }, layoutCtx) && fix.value !== prev?.layout && fix.value !== next?.layout) {
+        sc.layout = fix.value;
+        applied++;
+      } else if (fix.field === 'cut' && sc.motion && fix.value !== prev?.motion?.transition && fix.value !== next?.motion?.transition) {
+        sc.motion = { ...sc.motion, transition: fix.value as MotionTransition };
+        applied++;
+      } else if (fix.field === 'title' && sc.motion && fix.value !== prev?.motion?.headline && fix.value !== next?.motion?.headline) {
+        sc.motion = { ...sc.motion, headline: fix.value as any };
+        applied++;
+      }
+    }
+    if (applied) {
+      const linted = lintMotion(storyboard.scenes.map((sc) => ({ ...sc.motion! })) as any, sceneIds, DIRECTIONS[direction], transitions.map((t) => t.id)).plan;
+      storyboard.scenes.forEach((sc, i) => (sc.motion = linted[i] as any));
+      qa = applyRules(storyboard, { objective: brief.objective });
+    }
+    emit('critique', 'done', { fixes: applied, source: critic.run.source });
+    // Les réparations des règles (texte secondaire retiré, scène retirée) peuvent rendre une mise
+    // en page vide ou répétée : elle repasse alors à la composition de la direction.
+    storyboard.scenes.forEach((sc, i) => {
+      if (!sc.layout || sc.layout === 'classic') return;
+      const fits = layoutFits(sc.layout, { sceneId: sc.sceneId, slots: sc.slots, image: sc.image, video: sc.video }, layoutCtx);
+      if (!fits || sc.layout === storyboard.scenes[i - 1]?.layout) sc.layout = 'classic';
+    });
     storyboard.qa = { repaired: qa.repaired.length, issues: qa.issues, warnings: qa.warnings };
+    storyboard.agents = agentRuns.map((r) => ({ agent: r.agent, source: r.source, tokens: r.tokens, ms: r.ms, kept: r.kept }));
 
     const now = new Date().toISOString();
     const hook = storyboard.scenes.find((sc) => sc.slots.title)?.slots.title || brief.message;
@@ -733,13 +903,18 @@ export class MotionVideoService {
       scope,
       storyboard,
       music,
-      sfx: sfx || (brief.sfx ? undefined : { enabled: false, sounds: {} }),
+      sfx: sfx ? { ...sfx, ...(soundIntensity ? { intensity: soundIntensity } : {}) } : brief.sfx ? undefined : { enabled: false, sounds: {} },
       media: media.assets.filter((a) => used.has(a.url) || a.origin === 'upload'),
       renders: [],
       status: 'draft',
       paidCredits,
       exportCount: 0,
-      copyTokens: { input: copy.tokens.input + storylineTokens.input, output: copy.tokens.output + storylineTokens.output, source: copy.source },
+      // Tous les appels de modèle de la vidéo : stratège, rédacteur et agents.
+      copyTokens: {
+        input: agentRuns.reduce((n, r) => n + r.tokens.input, 0),
+        output: agentRuns.reduce((n, r) => n + r.tokens.output, 0),
+        source: copy.source,
+      },
       createdAt: now,
       updatedAt: now,
     };
@@ -763,6 +938,9 @@ export class MotionVideoService {
       sfx: sfx ? Object.keys(sfx.sounds).length : 0,
       kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, camera: kit.camera, entrance: kit.entrance, addons: kit.addons },
       creative: { concept: plan.concept, rhythm: plan.rhythm, source: plan.source },
+      agents: agentRuns.map((r) => `${r.agent}:${r.source}:${r.kept ?? 0}`).join(' '),
+      layouts: storyboard.scenes.map((sc) => sc.layout || '-').join(','),
+      transitions: storyboard.scenes.map((sc) => sc.motion?.transition || '-').join(','),
       qa: storyboard.qa,
     });
     this.lastMediaReport = media.report;
@@ -829,16 +1007,30 @@ export class MotionVideoService {
       brief = { ...brief, style: patch.style };
     }
 
-    // Autre direction : nouvelle composition, nouvelles techniques, nouvelle couleur.
+    // Autre direction : nouvelle composition, nouvelles techniques, nouvelle couleur — toujours
+    // dans ce que la DA de la charte admet (transitions et mises en page exclues retirées).
     if (isMotionDirection(patch.direction) && patch.direction !== storyboard.direction) {
+      const { branding, otherVideos } = await this.brandContext(userId, projectId);
+      const art = motionFromArtDirection(branding?.artDirection);
+      const others = otherVideos.filter((v) => v.id !== videoId);
       const ids = storyboard.scenes.map((sc) => sc.sceneId);
-      const plan = planMotion(ids, patch.direction, storyboard.seed, { landscape: scope.formats[0] === 'landscape' });
+      const transitions = transitionMenu(patch.direction, {
+        excluded: art.excludedTransitions,
+        boosts: art.boosts,
+        recent: others.map((v) => (v.storyboard?.scenes || []).map((sc) => sc.motion?.transition).filter(Boolean) as string[]),
+      });
+      const plan = planMotion(ids, patch.direction, storyboard.seed, { landscape: scope.formats[0] === 'landscape', transitions });
       const surfaces = surfacesFor(ids, storyboard.art?.color || DIRECTIONS[patch.direction].color, storyboard.seed);
+      // Les mises en page gardées si la nouvelle direction les porte, sinon tirées à nouveau.
+      const layoutCtx = { direction: patch.direction, excluded: art.excludedLayouts, boosts: art.boosts, recent: others.map((v) => (v.storyboard?.scenes || []).map((sc) => sc.layout).filter(Boolean) as string[]) };
+      const chosen: Record<number, string> = {};
+      storyboard.scenes.forEach((sc, i) => sc.layout && (chosen[i] = sc.layout));
+      const layouts = assignLayouts(storyboard.scenes.map((sc) => ({ sceneId: sc.sceneId, slots: sc.slots, image: sc.image, video: sc.video })), { ...layoutCtx, seed: storyboard.seed, chosen });
       storyboard = {
         ...storyboard,
         direction: patch.direction,
         style: styleOfDirection(patch.direction),
-        scenes: storyboard.scenes.map((sc, i) => ({ ...sc, motion: plan[i], surface: sc.sceneId === 'logo' && sc.variant === 2 ? 'light' : surfaces[i] })),
+        scenes: storyboard.scenes.map((sc, i) => ({ ...sc, motion: plan[i], layout: layouts[i], surface: sc.sceneId === 'logo' && sc.variant === 2 ? 'light' : surfaces[i] })),
       };
       brief = { ...brief, direction: patch.direction };
     }
@@ -920,7 +1112,8 @@ export class MotionVideoService {
     const density = SFX_DENSITY[video.storyboard.style] || {};
     const sounds: Record<string, { url: string; gain: number }> = {};
     for (const [kind, file] of Object.entries(files)) {
-      const db = SFX_GAIN_DB[kind as SfxKind] + (density[kind as SfxKind] ?? 0) + 6; // l'aperçu n'a pas de normalisation finale
+      const shift = video.sfx?.intensity === 'subtle' ? -4 : video.sfx?.intensity === 'punchy' ? 3 : 0;
+      const db = SFX_GAIN_DB[kind as SfxKind] + (density[kind as SfxKind] ?? 0) + shift + 6; // l'aperçu n'a pas de normalisation finale
       if (db < -40) continue;
       sounds[kind] = { url: `${apiBaseUrl()}/project/communication/sfx/${publicSoundName(file!)}`, gain: Math.min(1, Math.pow(10, db / 20)) };
     }
@@ -1026,7 +1219,7 @@ export class MotionVideoService {
           durationSec: video.storyboard.durationSec,
           quality: video.scope.quality,
           music: musicFile && video.music ? { file: musicFile, startAt: video.music.startAt } : undefined,
-          sfx: Object.keys(sfxFiles).length ? { files: sfxFiles, style: video.storyboard.style } : undefined,
+          sfx: Object.keys(sfxFiles).length ? { files: sfxFiles, style: video.storyboard.style, intensity: video.sfx?.intensity } : undefined,
           posterAt: first ? first.start + Math.min(first.duration * 0.85, 2) : 1,
           onProgress: (r) => liveProgress.set(`${videoId}:${format}`, r),
         });

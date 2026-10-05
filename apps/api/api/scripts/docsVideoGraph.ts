@@ -28,7 +28,8 @@ const KIND_TITLES: Partial<Record<CapKind, string>> = {
   postfx: 'Effets 3D',
   media: 'Médias pilotés',
   technique: 'Techniques de texte (générées depuis les directions)',
-  transition: 'Transitions (générées depuis les directions)',
+  transition: 'Transitions (catalogue global : l’agent animateur choisit dans le menu filtré par la direction et la DA)',
+  layout: 'Mises en page (archétypes : l’agent directeur artistique en choisit une par scène)',
 };
 
 const when = (w?: CapWhen): string => {
@@ -64,15 +65,18 @@ const esc = (t: string) => t.replace(/\|/g, '\\|');
 
 function table(kind: CapKind): string {
   const nodes = CAPABILITIES.filter((n) => n.kind === kind);
-  if (kind === 'technique' || kind === 'transition') {
+  if (kind === 'technique') {
     return `| Nœud | Directions |\n|---|---|\n${nodes.map((n) => `| \`${n.id}\` | ${Object.keys(n.suits?.directions || {}).join(', ')} |`).join('\n')}`;
+  }
+  if (kind === 'transition' || kind === 'layout') {
+    return `| Nœud | Rôle | Directions (poids) |\n|---|---|---|\n${nodes.map((n) => `| \`${n.id}\` | ${esc(n.summary)} | ${suits(n).replace(/^dir\. /, '')} |`).join('\n')}`;
   }
   const rows = nodes.map((n) => `| \`${n.id}\` | ${esc(n.label)} | ${esc(n.summary)} | ${(n.requires || []).map((r) => `\`${r}\``).join(' ') || '—'} | ${when(n.when)} | ${suits(n)} | ${n.cost} | ${n.determinism} | ${n.impl ? `\`${n.impl}\`` : n.packages ? n.packages.map((p) => `\`${p}\``).join(' ') : '—'} |`);
   return `| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |\n|---|---|---|---|---|---|---|---|---|\n${rows.join('\n')}`;
 }
 
 function mermaid(): string {
-  const shown = CAPABILITIES.filter((n) => !['technique', 'transition', 'direction'].includes(n.kind) && n.requires?.length);
+  const shown = CAPABILITIES.filter((n) => !['technique', 'transition', 'layout', 'direction'].includes(n.kind) && n.requires?.length);
   const id = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '_');
   const lines = ['```mermaid', 'graph LR'];
   const seen = new Set<string>();

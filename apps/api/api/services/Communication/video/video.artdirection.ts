@@ -44,9 +44,72 @@ export const ART_DIRECTIONS: Record<string, DirectionId[]> = {
   handwritten: ['collage', 'editorial'],
 };
 
+/**
+ * Directions que la DA EXCLUT (incompatibles avec son esprit). Toutes les autres restent
+ * possibles : la DA fixe le LOOK (couleurs, polices, casse, rythme, décor), pas un unique
+ * langage de mouvement — sinon toutes les vidéos d'une marque se ressemblent.
+ */
+export const ART_EXCLUDES: Record<string, DirectionId[]> = {
+  minimalism: ['brutal', 'collage'],
+  swiss: ['collage'],
+  editorial: ['brutal'],
+  maximalism: ['precision'],
+  'vector-art': [],
+  'collage-art': ['precision'],
+  retro: ['precision'],
+  cyberpunk: ['editorial'],
+  'pop-art': ['cinematic'],
+  glassmorphism: ['brutal', 'collage'],
+  clay: ['brutal', 'precision'],
+  'pixel-art': ['cinematic', 'editorial'],
+  y2k: ['cinematic'],
+  surreal: ['swiss'],
+  bohemian: ['brutal', 'precision'],
+  victorian: ['brutal', 'kinetic'],
+  graffiti: ['precision', 'cinematic'],
+  aurora: ['brutal'],
+  handwritten: ['precision', 'brutal'],
+  futuristic: ['collage'],
+};
+
+/**
+ * Transitions et mises en page que la DA EXCLUT : une marque minimaliste ne fait pas de
+ * glitch ni de bandeau défilant, une DA victorienne pas d'éclair. Le reste du catalogue
+ * reste ouvert (cf. TRANSITION_CATALOGUE, LAYOUT_CATALOGUE).
+ */
+export const ART_TRANSITION_EXCLUDES: Record<string, string[]> = {
+  minimalism: ['glitch', 'stripes', 'flashCut', 'blockStack', 'liquid'],
+  swiss: ['liquid', 'glitch', 'dissolve'],
+  editorial: ['glitch', 'stripes', 'flashCut'],
+  victorian: ['glitch', 'stripes', 'flashCut', 'cube', 'whip'],
+  bohemian: ['glitch', 'cube', 'flashCut'],
+  handwritten: ['glitch', 'cube'],
+  glassmorphism: ['glitch', 'blockStack', 'stripes'],
+  aurora: ['glitch', 'flashCut', 'blockStack'],
+  clay: ['glitch', 'flashCut'],
+  'pixel-art': ['dissolve', 'liquid', 'zoomBlur'],
+  retro: ['cube'],
+  surreal: ['blockStack'],
+};
+export const ART_LAYOUT_EXCLUDES: Record<string, string[]> = {
+  minimalism: ['ticker', 'priceBurst', 'marqueeBack', 'layeredCards'],
+  swiss: ['priceBurst', 'layeredCards', 'circleStage'],
+  editorial: ['priceBurst', 'ticker'],
+  victorian: ['priceBurst', 'ticker', 'diagonalBand', 'marqueeBack'],
+  glassmorphism: ['diagonalBand', 'ticker'],
+  aurora: ['ticker', 'priceBurst'],
+  bohemian: ['ticker'],
+};
+
 export interface MotionArt {
-  /** Directions admises par la DA (vide = pas de contrainte). */
+  /** Directions préférées par la DA (les premières pèsent plus). */
   directions: DirectionId[];
+  /** Directions exclues par la DA. */
+  excluded: DirectionId[];
+  /** Transitions exclues par la DA (style du catalogue + « à éviter » de la charte). */
+  excludedTransitions: string[];
+  /** Mises en page exclues par la DA. */
+  excludedLayouts: string[];
   /** Réglages posés sur la direction retenue. */
   overrides: VideoArtOverrides;
   /** Bonus de nœuds du graphe (id de nœud → poids). */
@@ -60,9 +123,13 @@ export interface MotionArt {
 const has = (text: string | undefined, re: RegExp) => !!text && re.test(text.toLowerCase());
 
 export function motionFromArtDirection(ad: Partial<ArtDirectionModel> | null | undefined): MotionArt {
-  const out: MotionArt = { directions: [], overrides: {}, boosts: {} };
+  const out: MotionArt = { directions: [], excluded: [], excludedTransitions: [], excludedLayouts: [], overrides: {}, boosts: {} };
   if (!ad) return out;
-  out.directions = ART_DIRECTIONS[(ad.styleId || '').toLowerCase()] || [];
+  const style = (ad.styleId || '').toLowerCase();
+  out.directions = ART_DIRECTIONS[style] || [];
+  out.excluded = ART_EXCLUDES[style] || [];
+  out.excludedTransitions = [...(ART_TRANSITION_EXCLUDES[style] || [])];
+  out.excludedLayouts = [...(ART_LAYOUT_EXCLUDES[style] || [])];
 
   const caseText = ad.typography?.caseAndTracking;
   if (has(caseText, /majuscul|capitales|uppercase|all.?caps/)) out.overrides.displayCase = 'upper';
@@ -97,6 +164,25 @@ export function motionFromArtDirection(ad: Partial<ArtDirectionModel> | null | u
   const donts = (ad.donts || []).join(' ').toLowerCase();
   if (/d[ée]cor|ornement|surcharg/.test(donts)) for (const id of ['bg:shape-field', 'bg:marquee', 'bg:halftone']) boost(id, -3);
   if (/rebond|bounce|cartoon|enfantin/.test(donts)) boost('easing:spring', -5);
+  const exclude = (list: string[], ...ids: string[]) => ids.forEach((id) => !list.includes(id) && list.push(id));
+  if (/glitch|parasit|bug/.test(donts)) exclude(out.excludedTransitions, 'glitch');
+  if (/flash|clignot|strobo|[ée]clair/.test(donts)) exclude(out.excludedTransitions, 'flashCut', 'glitch');
+  if (/agressi|criard|tape.?[àa].?l.?oeil|tapageu|trop charg|surcharg/.test(donts)) {
+    exclude(out.excludedTransitions, 'glitch', 'flashCut', 'stripes');
+    exclude(out.excludedLayouts, 'ticker', 'priceBurst', 'marqueeBack');
+  }
+  if (/3d|perspective/.test(donts)) exclude(out.excludedTransitions, 'cube');
+  if (/promo|soldes|discount|prix barr/.test(donts)) exclude(out.excludedLayouts, 'priceBurst');
+  // Ce que la DA revendique : bonus aux transitions et mises en page qui le prolongent.
+  const spirit = `${style} ${devices} ${(ad.keywords || []).join(' ')}`.toLowerCase();
+  if (/cyber|glitch|n[ée]on|tech/.test(spirit)) boost('transition:glitch', 1.5);
+  if (/fluide|organique|vague|liquid|aurora|aurore/.test(spirit)) boost('transition:liquid', 1.5);
+  if (/forme|cercle|g[ée]om[ée]tri|pastille|rond/.test(spirit)) (boost('transition:shapeWipe', 1.2), boost('layout:circleStage', 1.2));
+  if (/bande|rayure|stripe|diagonal|oblique/.test(spirit)) (boost('transition:stripes', 1.5), boost('layout:diagonalBand', 1.5));
+  if (/grille|grid|module|bento/.test(spirit)) (boost('layout:gridCards', 1.5), boost('layout:splitBlock', 1));
+  if (/typo g[ée]ante|typographi|lettrage|bold type|gros titre/.test(spirit)) (boost('layout:wordStack', 1.5), boost('layout:marqueeBack', 1));
+  if (/cadre|frame|bordure|contour/.test(spirit)) boost('layout:frameOverlap', 1.5);
+  if (/carte|card|superpos|layer|calque/.test(spirit)) boost('layout:layeredCards', 1.2);
 
   const medium = (ad.imagery?.medium || '').toLowerCase();
   if (['photography', 'illustration', 'render-3d', 'collage', 'abstract', 'mixed'].includes(medium)) out.medium = medium as MotionArt['medium'];

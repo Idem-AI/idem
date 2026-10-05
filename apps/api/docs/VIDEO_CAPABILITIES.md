@@ -287,20 +287,46 @@ graph LR
 | `technique:wave` | kinetic, collage |
 | `technique:typewriter` | collage |
 
-## Transitions (générées depuis les directions)
+## Transitions (catalogue global : l’agent animateur choisit dans le menu filtré par la direction et la DA)
 
-| Nœud | Directions |
-|---|---|
-| `transition:dissolve` | editorial, cinematic, precision |
-| `transition:cut` | editorial, swiss, brutal, cinematic, collage, precision, drenched |
-| `transition:wipe` | editorial, swiss, drenched |
-| `transition:slideOver` | editorial, collage, precision |
-| `transition:push` | swiss, brutal, kinetic, collage |
-| `transition:blockStack` | swiss, brutal, collage |
-| `transition:flashCut` | brutal, kinetic |
-| `transition:zoomThrough` | kinetic, cinematic, drenched |
-| `transition:whip` | kinetic |
-| `transition:iris` | kinetic, precision, drenched |
+| Nœud | Rôle | Directions (poids) |
+|---|---|---|
+| `transition:cut` | Coupe franche, sur le temps. (hard) | brutal 4, swiss 3.5, kinetic 2, precision 3, editorial 2.5, collage 2.5, drenched 2.5, cinematic 2 |
+| `transition:flashCut` | Coupe + éclair de la couleur d’accent. (hard) | brutal 4, kinetic 4, drenched 1.5, collage 1 |
+| `transition:glitch` | Coupe hachée : tranches décalées, une fraction de seconde. (hard) | brutal 2.5, kinetic 2, drenched 1.5, precision 0.8 |
+| `transition:dissolve` | Fondu enchaîné. (soft) | cinematic 4, editorial 4, precision 2.2, drenched 1.2 |
+| `transition:zoomBlur` | Sortie en zoom flou, entrée par un léger dézoom. (spatial) | kinetic 2.5, cinematic 2, drenched 2, precision 1.5 |
+| `transition:zoomThrough` | On traverse l’image. (spatial) | kinetic 4, cinematic 3, precision 2, drenched 2.5 |
+| `transition:whip` | Panoramique filé. (spatial) | kinetic 4, collage 1.5, brutal 1.5, drenched 1 |
+| `transition:cube` | Rotation de cube 3D : la scène suivante est la face voisine. (spatial) | precision 2, kinetic 2, drenched 1.5, swiss 1 |
+| `transition:push` | La scène suivante pousse la précédente. (graphic) | swiss 4, collage 3.5, brutal 3, kinetic 3, precision 1.5 |
+| `transition:slideOver` | La nouvelle scène glisse par-dessus. (graphic) | collage 4, editorial 3.5, precision 3, swiss 1.5 |
+| `transition:iris` | Raccord graphique depuis le point focal. (graphic) | precision 4, drenched 4, kinetic 3, cinematic 1.5, editorial 1 |
+| `transition:wipe` | Volet net, bord à la couleur d’accent. (graphic) | editorial 3.5, swiss 3.5, drenched 3.5, precision 1.5 |
+| `transition:blockStack` | Bandes de couleur qui recouvrent. (graphic) | swiss 3.5, brutal 3.5, collage 3.5, kinetic 1.5 |
+| `transition:shapeWipe` | Disque de la marque qui grandit, couvre, puis s’ouvre. (graphic) | drenched 3, precision 2, kinetic 2, collage 1.5, swiss 1.5, editorial 1 |
+| `transition:stripes` | Lames obliques aux couleurs de la marque. (graphic) | kinetic 3, collage 2.5, brutal 2, drenched 1.5 |
+| `transition:split` | Deux panneaux se referment puis s’écartent. (graphic) | swiss 2.5, editorial 2, precision 2, cinematic 1.5, drenched 1.5 |
+| `transition:liquid` | Volet au bord en vague. (soft) | drenched 2.5, collage 2, kinetic 1.5, cinematic 1 |
+
+## Mises en page (archétypes : l’agent directeur artistique en choisit une par scène)
+
+| Nœud | Rôle | Directions (poids) |
+|---|---|---|
+| `layout:wordStack` | poster type: the headline stacked word by word, huge, alternating solid and outline — scènes : hook, statement, cta. | brutal 3, kinetic 3, swiss 2.5, drenched 2, collage 1.5, editorial 1, precision 1, cinematic 0.8 |
+| `layout:marqueeBack` | a giant outlined keyword scrolls behind the headline — scènes : hook, statement, cta. | kinetic 3, brutal 2.5, drenched 2.5, collage 2, swiss 1.5, cinematic 1, precision 1, editorial 0.5 |
+| `layout:bigNumber` | the number fills the frame and bleeds off the edge, label in a color block — scènes : stat, offer. | swiss 3, brutal 3, precision 2.5, kinetic 2.5, drenched 2, editorial 2, cinematic 1.5, collage 1.5 |
+| `layout:diagonalBand` | a tilted brand-color band crosses the frame with the headline on it — scènes : hook, statement, cta, offer. | kinetic 3, brutal 2.5, collage 2.5, drenched 2, swiss 1 |
+| `layout:circleStage` | a big brand circle (photo, number or symbol) with a turning ring, text beside it — scènes : hook, statement, stat, cta, product. | precision 2.5, drenched 2.5, kinetic 2, collage 2, editorial 1.5, swiss 1, cinematic 1 |
+| `layout:splitBlock` | the frame split in two color blocks: headline on one, details on the other — scènes : statement, benefits, stat, cta, event. | swiss 3, precision 2.5, editorial 2.5, brutal 2, drenched 1.5, cinematic 1, kinetic 1, collage 1 |
+| `layout:layeredCards` | each item on a card, cards stacked with depth, floating — scènes : benefits, event. | collage 3, kinetic 2.5, precision 2, drenched 1.5, editorial 1 |
+| `layout:gridCards` | a bento grid: headline cell in brand color, one cell per item, focus moves cell to cell — scènes : benefits, event. | swiss 3, precision 3, brutal 2, editorial 1.5, kinetic 1.5, drenched 1 |
+| `layout:checklist` | items checked one by one, check marks drawn, a line connects them — scènes : benefits. | precision 2.5, editorial 2, swiss 2, cinematic 1.5, kinetic 1, drenched 1, brutal 1, collage 1 |
+| `layout:quoteBig` | a giant quotation mark behind the testimonial, author with a drawn rule — scènes : quote. | editorial 3, cinematic 2.5, collage 2, precision 2, swiss 1.5, drenched 1.5, brutal 1, kinetic 1 |
+| `layout:priceBurst` | the price inside a turning starburst, old price struck — scènes : offer, product. | kinetic 3, collage 3, brutal 2, drenched 1.5 |
+| `layout:ticker` | two scrolling news-ticker bands frame the headline — scènes : hook, cta, statement. | kinetic 3, brutal 3, drenched 2, collage 2, swiss 1.5 |
+| `layout:spotlightWord` | the sentence small, then its key word huge under a spotlight — scènes : hook, statement. | cinematic 3, drenched 2.5, editorial 2, precision 2, kinetic 1.5, swiss 1 |
+| `layout:frameOverlap` | headline on a brand-color block, an offset outline frame behind it — scènes : hook, statement, cta, product. | editorial 2.5, swiss 2, precision 2, collage 2, brutal 1.5, drenched 1.5, kinetic 1 |
 
 ## Bibliothèques écartées
 

@@ -1144,6 +1144,18 @@ export const AI_CONFIG = {
       tokens: 900,
       thinking: false,
     }),
+    // Les AGENTS de la vidéo (directeur artistique par scène, animateur, sound
+    // designer, critique) : chacun CHOISIT dans des menus courts filtrés par le
+    // graphe et la DA de la charte, et répond en deux à cinq lignes. Tâches
+    // mécaniques, petites, parallèles : le modèle le moins cher suffit, sans
+    // raisonnement ; un peu plus de température que la copie pour varier les choix.
+    videoAgents: feature({
+      role: 'mechanical',
+      promptType: 'communication_video_agents',
+      temperature: 0.85,
+      tokens: 300,
+      thinking: false,
+    }),
     // L'ATELIER : un agent à outils, en conversation. Il ne produit pas de
     // livrable, il TRADUIT une demande en appel d'outil — donc peu de tokens de
     // sortie, mais du raisonnement (choisir le format, l'intention, et savoir

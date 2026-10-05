@@ -52,7 +52,8 @@ import { closeRenderBrowser, probe } from '../services/Communication/video/video
 import { MotionVideoService, drainRenderQueue } from '../services/Communication/video/motionVideo.service';
 import { SCENES } from '../services/Communication/video/video.scenes';
 import { BRANDS, brandById } from './fixtures/motion-video/brands';
-import { CASES, simulateModel, VideoCase } from './fixtures/motion-video/cases';
+import { CASES, simulateAgent, simulateModel, VideoCase } from './fixtures/motion-video/cases';
+import { TRANSITION_IDS } from '../services/Communication/video/video.direction';
 import { makeMusic, makePhotos, SYNTH_TRACKS } from './fixtures/motion-video/media';
 import { planTypeScenes, TYPE_DEFS } from '../services/Communication/video/video.types';
 import { expandConcept, pickConcept } from '../services/Communication/video/video.concepts';
@@ -462,7 +463,15 @@ async function main() {
   check('sons dans leur gabarit de durée', SFX_KINDS.every((k) => lib.sounds[k].every((snd) => snd.durationSec <= SFX_SPECS[k].max + 0.1)));
   const dense = Array.from({ length: 40 }, (_, i) => ({ t: i * 0.05, kind: 'click' as const }));
   check('effets : densité plafonnée (40 clics serrés → quelques-uns)', refineCues(dense, 'energetic', 10).length <= 12);
-  check('style élégant : pas de clic', refineCues([{ t: 1, kind: 'click' }], 'premium', 10).length === 0);
+  // Un film élégant garde son design sonore : des clics plus discrets, jamais muets.
+  {
+    const premium = refineCues([{ t: 1, kind: 'click' }], 'premium', 10)[0];
+    const energetic = refineCues([{ t: 1, kind: 'click' }], 'energetic', 10)[0];
+    check('style élégant : clics présents mais plus discrets', !!premium && !!energetic && premium.db <= energetic.db - 6, `${premium?.db} dB / ${energetic?.db} dB`);
+    const subtle = refineCues([{ t: 1, kind: 'pop' }], 'energetic', 10, 'subtle')[0];
+    const punchy = refineCues([{ t: 1, kind: 'pop' }], 'energetic', 10, 'punchy')[0];
+    check('intensité du sound designer : discrète −4 dB, appuyée +3 dB', !!subtle && !!punchy && Math.round((punchy.db - subtle.db) * 10) === 70, `${subtle?.db} → ${punchy?.db}`);
+  }
   check('effets hors durée ignorés', refineCues([{ t: 11, kind: 'pop' }], 'energetic', 10).length === 0);
 
   // 9. Pipeline complet, réponses simulées ────────────────────────────────────
@@ -471,7 +480,12 @@ async function main() {
   const server = await servePhotos(photos);
   const fake = new FakeCommunication();
   let currentCase: VideoCase = CASES[0];
-  const service = new MotionVideoService(fake as any, () => (system, user) => simulateModel(currentCase)(system, user));
+  const service = new MotionVideoService(
+    fake as any,
+    () => (system, user) => simulateModel(currentCase)(system, user),
+    // Les agents : même comportement simulé que la copie (propre, désordre, invention, vide, panne).
+    () => (system, user) => simulateAgent(currentCase.behaviour, system, user)
+  );
   (service as any).storage = fakeStorage;
 
   const created: { c: VideoCase; video: MotionVideo }[] = [];
@@ -499,6 +513,23 @@ async function main() {
     if (c.photos?.length) check(`${c.id} : les photos du commerce sont utilisées`, sb.scenes.some((sc) => sc.image || sc.images?.length));
     // Les bonnes pratiques (video.rules.ts) : réparées si besoin, aucun écart restant.
     check(`${c.id} : bonnes pratiques respectées (${sb.qa?.repaired ?? 0} réparation(s), rythme ${sb.rhythm}, caméra ${sb.kit?.camera}, entrées ${sb.kit?.entrance})`, !!sb.qa && sb.qa.issues.length === 0, (sb.qa?.issues || []).map((i) => `${i.rule}: ${i.detail}`).join(' ; '));
+    // L'équipe d'agents : chacun a tourné ; ses choix sont dans les menus ; jamais de répétition.
+    {
+      const agents = sb.agents || [];
+      const names = agents.map((a) => a.agent);
+      const llm = (agent: string) => agents.find((a) => a.agent === agent)?.source === 'llm';
+      const expectLlm = c.behaviour === 'clean' || c.behaviour === 'messy';
+      check(
+        `${c.id} : agents ${agents.map((a) => `${a.agent}:${a.source}`).join(' ')}`,
+        ['strategist', 'writer', 'artDirector', 'animator', 'critic'].every((n) => names.includes(n)) && (!expectLlm || (llm('artDirector') && llm('animator'))) && (c.behaviour !== 'down' || !llm('animator'))
+      );
+      const layouts = sb.scenes.map((sc) => sc.layout);
+      const repeatedLayout = layouts.some((l, i) => l && l !== 'classic' && l === layouts[i - 1]);
+      const textScenes = sb.scenes.filter((sc) => ['hook', 'statement', 'stat', 'benefits', 'offer', 'quote', 'cta', 'event'].includes(sc.sceneId));
+      check(`${c.id} : mises en page ${layouts.map((l) => l || '-').join(',')} (aucune répétée, scènes de texte mises en page)`, !repeatedLayout && textScenes.every((sc) => !!sc.layout));
+      const cuts = sb.scenes.map((sc) => sc.motion?.transition).filter(Boolean) as string[];
+      check(`${c.id} : transitions ${cuts.join(',')} (catalogue, jamais deux fois de suite)`, cuts.every((t, i) => (TRANSITION_IDS as string[]).includes(t) && t !== cuts[i - 1]));
+    }
     console.log(`      ${sb.scenes.map((sc) => `${sc.sceneId}/${sc.variant}·${sc.surface}·${sc.duration.toFixed(1)}s${sc.transitionIn ? `←${sc.transitionIn}` : ''}`).join('  ')}`);
     console.log(`      « ${sb.scenes[0].slots.title} » … « ${sb.scenes[sb.scenes.length - 2]?.slots.action || sb.scenes[sb.scenes.length - 2]?.slots.title || ''} »`);
   }

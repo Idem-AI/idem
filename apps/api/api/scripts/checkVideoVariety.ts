@@ -8,7 +8,8 @@
  *   B. la MÊME direction imposée : 6 vidéos — le cas qui se ressemblait le plus.
  * Pour chaque paire : distance d'image (12 vignettes du MP4) et distance de structure
  * (enchaînement, durées, entrées de texte, caméra, entrées des éléments, rythme, mises
- * en scène, fond, logo). Les bonnes pratiques (video.rules.ts) doivent rester vertes.
+ * en scène, fond, logo, mises en page, transitions). Les bonnes pratiques (video.rules.ts)
+ * doivent rester vertes.
  *
  * Planche : tmp/motion-variety/index.html
  */
@@ -21,7 +22,8 @@ import { buildVideoTheme } from '../services/Communication/video/video.theme';
 import { buildStoryboard } from '../services/Communication/video/video.storyboard';
 import { composeVideoHtml, inlineAssets } from '../services/Communication/video/video.composer';
 import { renderVideo, closeRenderBrowser } from '../services/Communication/video/video.renderer';
-import { DirectionId, pickDirection } from '../services/Communication/video/video.direction';
+import { DirectionId, pickDirection, transitionMenu } from '../services/Communication/video/video.direction';
+import { assignLayouts } from '../services/Communication/video/video.layouts';
 import { expandConcept, pickConcept } from '../services/Communication/video/video.concepts';
 import { assignIcons, KitContext, pickAccentEffect, pickRhythm, resolveKit } from '../services/Communication/video/video.capabilities';
 import { motionFromArtDirection } from '../services/Communication/video/video.artdirection';
@@ -99,6 +101,9 @@ interface Facets {
   logo: string;
   concept?: string;
   direction?: string;
+  /** Mises en page (archétypes) scène par scène, et transitions du film. */
+  layouts: string;
+  transitions: Set<string>;
 }
 
 /** Distance de structure : part des facettes qui diffèrent (0 = même vidéo, 1 = tout diffère). */
@@ -125,6 +130,8 @@ function structureDistance(a: Facets, b: Facets): number {
     a.background !== b.background ? 1 : 0,
     a.logo !== b.logo ? 1 : 0,
     a.concept !== b.concept ? 1 : 0,
+    a.layouts !== b.layouts ? 1 : 0,
+    jaccard(a.transitions, b.transitions),
   ];
   return parts.reduce((x, y) => x + y, 0) / parts.length;
 }
@@ -141,11 +148,11 @@ function structureDistance(a: Facets, b: Facets): number {
 
   for (const [series, forced] of [['A · parcours normal', undefined], ['B · même direction imposée (kinetic)', 'kinetic']] as [string, DirectionId | undefined][]) {
     console.log(`\n${series}`);
-    const memory = { concepts: [] as string[], rhythms: [] as string[], directions: [] as string[], kits: [] as VideoKit[], headlines: [] as string[] };
+    const memory = { concepts: [] as string[], rhythms: [] as string[], directions: [] as string[], kits: [] as VideoKit[], headlines: [] as string[], transitions: [] as string[][], layouts: [] as string[][] };
     const videos: { facets: Facets; prints: Buffer[]; thumbs: string[]; label: string }[] = [];
     for (let i = 0; i < 6; i++) {
       const seed = 4242 + i * 7907;
-      const direction = forced ?? pickDirection({ type: 'promo', artStyleId: brand.branding.artDirection?.styleId, artDirections: art.directions, seed, avoid: memory.directions });
+      const direction = forced ?? pickDirection({ type: 'promo', artStyleId: brand.branding.artDirection?.styleId, artDirections: art.directions, artExcluded: art.excluded, seed, avoid: memory.directions });
       const kctx0: KitContext = {
         type: 'promo',
         objective: 'promotion',
@@ -180,7 +187,12 @@ function structureDistance(a: Facets, b: Facets): number {
         rhythm,
         art: art.overrides,
         avoidHeadlines: memory.headlines,
+        // Comme le service : le catalogue de transitions filtré par la DA, moins celles des vidéos précédentes.
+        transitions: transitionMenu(direction, { excluded: art.excludedTransitions, boosts: art.boosts, recent: memory.transitions }),
       });
+      // Les mises en page (repli du graphe : ici, aucun modèle).
+      const layouts = assignLayouts(sb.scenes.map((sc) => ({ sceneId: sc.sceneId, slots: sc.slots, image: sc.image, video: sc.video })), { direction, excluded: art.excludedLayouts, boosts: art.boosts, recent: memory.layouts, seed });
+      sb.scenes.forEach((sc, i) => layouts[i] && (sc.layout = layouts[i]));
       const kctx: KitContext = { ...kctx0, scenes: sb.scenes.map((sc) => ({ key: sc.key, sceneId: sc.sceneId, hasMedia: !!(sc.image || sc.images?.length), hasTitle: !!sc.slots.title, three: sc.sceneId === 'showcase3d' })) };
       const kit = resolveKit(kctx);
       kit.icons = assignIcons(sb.scenes);
@@ -196,7 +208,7 @@ function structureDistance(a: Facets, b: Facets): number {
       fs.copyFileSync(out.file, mp4);
       const fp = await fingerprint(mp4, 15);
       videos.push({
-        label: `${direction} · ${concept} · ${rhythm} · ${kit.camera}/${kit.entrance}`,
+        label: `${direction} · ${concept} · ${rhythm} · ${kit.camera}/${kit.entrance} · ${sb.scenes.map((s) => s.layout || s.sceneId).join(' ')}`,
         facets: {
           sequence: sb.scenes.map((s) => s.sceneId).join('>'),
           durations: sb.scenes.map((s) => s.duration),
@@ -209,6 +221,8 @@ function structureDistance(a: Facets, b: Facets): number {
           logo: kit.logo,
           concept,
           direction,
+          layouts: sb.scenes.map((s) => s.layout || '-').join(','),
+          transitions: new Set(sb.scenes.map((s) => s.motion?.transition || '').filter(Boolean)),
         },
         ...fp,
       });
@@ -217,6 +231,8 @@ function structureDistance(a: Facets, b: Facets): number {
       memory.directions.push(direction);
       memory.kits.push(kit);
       memory.headlines = sb.scenes.map((s) => s.motion?.headline || '');
+      memory.transitions.push(sb.scenes.map((s) => s.motion?.transition || '').filter(Boolean));
+      memory.layouts.push(sb.scenes.map((s) => s.layout || '').filter(Boolean));
     }
     const pairs: { img: number; struct: number }[] = [];
     for (let a = 0; a < videos.length; a++) for (let b = a + 1; b < videos.length; b++) pairs.push({ img: imageDistance(videos[a].prints, videos[b].prints), struct: structureDistance(videos[a].facets, videos[b].facets) });

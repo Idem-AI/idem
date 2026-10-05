@@ -1023,10 +1023,13 @@
           "stages": {
             "plan": "Le découpage en scènes",
             "copy": "Les textes à l’écran",
+            "layout": "La mise en page de chaque scène",
             "media": "Les images et vidéos",
             "music": "La musique",
             "sfx": "Les effets sonores",
-            "storyboard": "Le montage, calé sur le rythme"
+            "storyboard": "Le montage, calé sur le rythme",
+            "animation": "Le mouvement et les transitions",
+            "critique": "La relecture finale"
           },
           "details": {
             "plan": "{{count}} scènes pour {{seconds}} s",
@@ -1039,7 +1042,13 @@
             "sfx": "{{count}} sons choisis",
             "storyboard": "{{count}} scènes, coupes sur le temps ({{bpm}} BPM)",
             "planType": "{{type}} · {{count}} scènes pour {{seconds}} s",
-            "planConcept": "{{type}} · {{concept}} · {{count}} scènes pour {{seconds}} s"
+            "planConcept": "{{type}} · {{concept}} · {{count}} scènes pour {{seconds}} s",
+            "layout": "{{count}} mises en page : {{names}}",
+            "layoutClassic": "Compositions de la direction",
+            "animation": "Raccords : {{names}} · caméra {{camera}}",
+            "critique": "{{count}} correction(s) du directeur de création",
+            "critiqueOk": "Validé sans correction",
+            "musicAgent": "« {{title}} » — {{artist}} · {{bpm}} BPM · choisie pour votre marque"
           }
         },
         "directions": {
@@ -1095,6 +1104,50 @@
           "reasons": "Les raisons de nous choisir",
           "celebration": "Célébration",
           "logo-sting": "Signature"
+        },
+        "layouts": {
+          "classic": "composition classique",
+          "wordStack": "pile de mots",
+          "marqueeBack": "mot défilant",
+          "bigNumber": "chiffre géant",
+          "diagonalBand": "bandeau diagonal",
+          "circleStage": "cercle",
+          "splitBlock": "deux blocs",
+          "layeredCards": "cartes superposées",
+          "gridCards": "grille de cartes",
+          "checklist": "liste cochée",
+          "quoteBig": "grande citation",
+          "priceBurst": "prix en étoile",
+          "ticker": "bandeaux défilants",
+          "spotlightWord": "mot sous le projecteur",
+          "frameOverlap": "bloc et cadre"
+        },
+        "transitions": {
+          "cut": "coupe",
+          "flashCut": "coupe éclair",
+          "glitch": "glitch",
+          "dissolve": "fondu",
+          "zoomBlur": "zoom flou",
+          "zoomThrough": "traversée",
+          "whip": "filé",
+          "cube": "cube 3D",
+          "push": "poussée",
+          "slideOver": "glissé",
+          "iris": "iris",
+          "wipe": "volet",
+          "blockStack": "bandes",
+          "shapeWipe": "disque de marque",
+          "stripes": "lames obliques",
+          "split": "panneaux",
+          "liquid": "vague"
+        },
+        "cameras": {
+          "still": "fixe",
+          "push": "poussée lente",
+          "pull": "recul",
+          "drift": "dérive",
+          "rise": "montée",
+          "tilt": "bascule"
         }
       }
     }

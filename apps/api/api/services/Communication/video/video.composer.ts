@@ -9,6 +9,7 @@
  * data-URI : Chromium n'a plus rien à télécharger pendant la capture, l'image
  * 437 ne peut donc pas sortir sans sa photo.
  */
+import { inlineFontLinks } from './video.fonts';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
@@ -311,6 +312,8 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
         rive: scene.rive,
         accent: scene.accent,
         treatment: kit?.treatments?.[scene.key],
+        layout: scene.layout,
+        emphasis: scene.emphasis,
         pace: scene.pace,
         motion,
         ...extra,
@@ -364,13 +367,17 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
       : undefined,
     music: opts.mode === 'preview' && opts.music ? opts.music : undefined,
     sfx: opts.mode === 'preview' ? opts.sfx : undefined,
+    // Les mises en page pulsent sur le temps de la musique (grille en temps vidéo).
+    beat: storyboard.beat?.bpm ? { bpm: storyboard.beat.bpm, offset: storyboard.beat.offset || 0 } : undefined,
   };
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
+  // Rendu : polices embarquées (une feuille externe qui tarde bloquerait le chargement de la page).
+  const fontLinks = opts.mode === 'render' ? await inlineFontLinks(theme.fonts.links, [theme.brandName, ...storyboard.scenes.flatMap((sc) => Object.values(sc.slots || {}))].join(' ')) : theme.fonts.links;
 
   const html = `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-${theme.fonts.links}
+${fontLinks}
 <style>
 :root{--f-display:${cssFamily(theme.fonts.display)};--f-body:${cssFamily(theme.fonts.body)}}
 ${opts.mode === 'render' ? `html,body{width:${spec.width}px;height:${spec.height}px}` : ''}

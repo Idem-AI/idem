@@ -57,7 +57,14 @@ function baseKit(over: Partial<VideoKit>): VideoKit {
 }
 
 /** Rend une page, vérifie erreurs + déterminisme sur `times`, renvoie les images (data URI JPEG). */
-async function renderCheck(browser: Browser, html: string, spec: { width: number; height: number }, times: number[], label: string, opts: { mustMove?: boolean; clip?: boolean } = {}): Promise<string[]> {
+async function renderCheck(
+  browser: Browser,
+  html: string,
+  spec: { width: number; height: number },
+  times: number[],
+  label: string,
+  opts: { mustMove?: boolean; clip?: boolean; probe?: (page: import('puppeteer').Page) => Promise<void> } = {}
+): Promise<string[]> {
   const page = await browser.newPage();
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String((e as Error).message || e).slice(0, 200)));
@@ -77,6 +84,8 @@ async function renderCheck(browser: Browser, html: string, spec: { width: number
     };
     const forward: Buffer[] = [];
     for (const t of times) forward.push(await shoot(t));
+    // Contrôles de mise en page sur l'image posée (le dernier instant).
+    if (opts.probe) await opts.probe(page);
     const backward: Buffer[] = [];
     if (opts.clip) {
       // Clip : comme en production, un AUTRE onglet chargé à neuf, qui avance dans le même ordre.
@@ -366,6 +375,82 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
         await render(`caméra ${camera}`, 'precision', ['statement', 'logo'], [{ title: 'Le code propre, livré', sub: 'Studio logiciel' }, {}], (sb) => (sb.kit.camera = camera), [0.2, 1.4, 3.0]);
       }
       sheet.push({ group: 'Vocabulaire élargi', shots: vocabShots });
+    }
+
+    // Mises en page (archétypes) : chacune, dans les trois formats, posée sur une grille de tempo.
+    {
+      const layoutShots: Shot[] = [];
+      const brand = brandById('wax');
+      const theme = buildVideoTheme(brand.branding, brand.name);
+      const cases: [string, DirectionId, string, Record<string, string>][] = [
+        ['wordStack', 'brutal', 'hook', { title: 'Le wax qui vous ressemble vraiment' }],
+        ['marqueeBack', 'kinetic', 'statement', { title: 'Tissé à la main à Lomé', sub: 'Depuis 2019' }],
+        ['bigNumber', 'swiss', 'stat', { value: '87 %', label: 'de clientes fidèles' }],
+        ['diagonalBand', 'kinetic', 'cta', { title: 'Venez essayer en boutique', action: 'Réserver', contact: 'wax-lome.tg' }],
+        ['circleStage', 'precision', 'stat', { value: '12 000', label: 'pagnes vendus cette année' }],
+        ['splitBlock', 'swiss', 'benefits', { title: 'Pourquoi nous choisir', b1: 'Coton certifié', b2: 'Teintures fixes', b3: 'Retouches offertes' }],
+        ['layeredCards', 'collage', 'event', { title: 'Défilé de lancement', date: 'Samedi 14 juin', time: '19 h', place: 'Lomé, quartier Bè' }],
+        ['gridCards', 'precision', 'benefits', { title: 'Le wax premium', b1: 'Coton certifié', b2: 'Teintures fixes', b3: 'Retouches offertes' }],
+        ['checklist', 'editorial', 'benefits', { title: 'Ce qui change tout', b1: 'Coton certifié', b2: 'Teintures fixes', b3: 'Retouches offertes' }],
+        ['quoteBig', 'editorial', 'quote', { quote: 'Le plus beau wax que j’ai porté, et il tient au lavage.', author: 'Afi, Lomé' }],
+        ['priceBurst', 'collage', 'offer', { price: '15 000 F', oldPrice: '20 000 F', badge: '-25 %', note: 'Jusqu’à dimanche' }],
+        ['ticker', 'brutal', 'cta', { title: 'La collection arrive samedi', action: 'Réserver', contact: 'wax-lome.tg' }],
+        ['spotlightWord', 'cinematic', 'statement', { title: 'Chaque motif raconte une histoire', sub: 'Collection Héritage' }],
+        ['frameOverlap', 'editorial', 'hook', { title: 'Un tissu, mille histoires' }],
+      ];
+      for (const [layout, dir, sceneId, slots] of cases) {
+        for (const format of ['story', 'square', 'landscape'] as const) {
+          const sb = buildStoryboard({ sceneIds: [sceneId, 'logo'], slots: [slots, {}], durationSec: 6, style: 'premium', seed: 5, images: [], direction: dir });
+          sb.kit = baseKit({});
+          sb.scenes[0].layout = layout;
+          sb.beat = { bpm: 120, offset: 0, confidence: 1 };
+          const { html, spec } = await composeVideoHtml({ ...(await inlineAssets(sb, theme)), format, quality: 'standard', mode: 'render' });
+          // Une feuille de polices externe qui tarde bloquait le chargement de la page (export en échec) :
+          // en rendu, les polices de la charte sont embarquées.
+          if (ONLINE && layout === 'wordStack' && format === 'story') check('rendu : polices de la charte embarquées, aucune feuille externe', !/<link[^>]+stylesheet/i.test(html) && /@font-face/.test(html));
+          const d0 = sb.scenes[0].duration;
+          const label = `mise en page ${layout} · ${format}`;
+          const frames = await renderCheck(browser, html, spec, [0.15, 0.9, d0 - 0.35], label, {
+            mustMove: true,
+            probe: async (page) => {
+              // Posée : la mise en page est bien rendue, et aucun texte ne sort du cadre.
+              const res = await page.evaluate((w: number, h: number) => {
+                const sec = document.querySelector<HTMLElement>('section.scene[style*="visible"]');
+                const marker = sec?.className || '';
+                const out = [...(sec?.querySelectorAll<HTMLElement>('.kt') || [])]
+                  .filter((el) => !el.closest('.ly-bignum,.ly-marquee,.ly-ticker'))
+                  .filter((el) => {
+                    const r = el.getBoundingClientRect();
+                    return r.width > 0 && (r.left < -2 || r.top < -2 || r.right > w + 2 || r.bottom > h + 2);
+                  })
+                  .map((el) => (el.textContent || '').slice(0, 24));
+                return { marker, out };
+              }, spec.width, spec.height);
+              check(`${label} : rendue par l’archétype`, res.marker.includes(`ly-${layout}`), res.marker);
+              check(`${label} : aucun texte hors du cadre`, res.out.length === 0, res.out.join(' | '));
+            },
+          });
+          layoutShots.push({ label: `${layout} · ${format}`, frames });
+        }
+      }
+      sheet.push({ group: 'Mises en page', shots: layoutShots });
+    }
+
+    // Transitions du catalogue élargi : chacune autour de la coupe (avant, pendant, après, posée).
+    {
+      const trShots: Shot[] = [];
+      const brand = brandById('kofi');
+      const theme = buildVideoTheme(brand.branding, brand.name);
+      for (const kind of ['shapeWipe', 'stripes', 'split', 'liquid', 'zoomBlur', 'cube', 'glitch']) {
+        const sb = buildStoryboard({ sceneIds: ['hook', 'statement', 'logo'], slots: [{ title: 'Le studio qui livre vite' }, { title: 'Du code propre, testé', sub: 'Depuis Lomé' }, {}], durationSec: 6, style: 'premium', seed: 13, images: [], direction: 'kinetic' });
+        sb.kit = baseKit({});
+        sb.scenes[1].motion = { ...sb.scenes[1].motion!, transition: kind as any };
+        const { html, spec } = await composeVideoHtml({ ...(await inlineAssets(sb, theme)), format: 'square', quality: 'standard', mode: 'render' });
+        const c = sb.scenes[1].start;
+        const frames = await renderCheck(browser, html, spec, [c - 0.16, c, c + 0.12, c + 1.1], `transition ${kind}`, { mustMove: true });
+        trShots.push({ label: kind, frames });
+      }
+      sheet.push({ group: 'Transitions (catalogue élargi)', shots: trShots });
     }
 
     // Grand moment : l'effet que la direction donne à LA scène choisie.
