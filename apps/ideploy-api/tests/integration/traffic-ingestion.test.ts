@@ -58,17 +58,34 @@ describe('ingestServer', () => {
     ssh.on(/stat -c %s/, { stdout: String(Buffer.byteLength(log)) });
     ssh.on(/tail -c \+1 /, { stdout: log });
 
+    await testPool().query('INSERT INTO firewall_configs (application_id, created_at, updated_at) VALUES ($1, now(), now())', [app.id]);
     const first = await ingestServer(server, key);
     expect(first).toEqual({ requests: 3, blocked: 1 });
 
     const stats = await trafficStats(app.id, 24);
     expect(stats.totals).toEqual({ requests: 3, blocked: 1 });
-    const blocked = await testPool().query('SELECT host(ip_address) AS ip, uri, rule_name FROM firewall_traffic_logs WHERE application_id = $1', [app.id]);
-    expect(blocked.rows).toEqual([{ ip: '198.51.100.4', uri: '/admin', rule_name: 'firewall' }]);
+    const kept = await testPool().query(
+      'SELECT decision, status_code, rule_name FROM firewall_traffic_logs WHERE application_id = $1 ORDER BY decision',
+      [app.id]
+    );
+    // Blocked ones in detail, and the allowed ones for "Recent traffic", with their status.
+    expect(kept.rows).toEqual([
+      { decision: 'allowed', status_code: 200, rule_name: null },
+      { decision: 'allowed', status_code: 200, rule_name: null },
+      { decision: 'blocked', status_code: 403, rule_name: 'firewall' },
+    ]);
+
+    // The counters every screen shows move with the ingestion itself.
+    const totals = await testPool().query('SELECT total_requests, total_blocked FROM firewall_configs WHERE application_id = $1', [app.id]);
+    expect(totals.rows[0]).toMatchObject({ total_requests: '3', total_blocked: '1' });
 
     // Nothing new: nothing read twice.
     const second = await ingestServer(server, key);
     expect(second).toEqual({ requests: 0, blocked: 0 });
+    // The day's series covers the whole range, empty intervals included.
+    const day = await trafficStats(app.id, 24);
+    expect(day.buckets.length).toBeGreaterThanOrEqual(96);
+    expect(day.bucketMinutes).toBe(15);
     expect((await trafficStats(app.id, 24)).totals.requests).toBe(3);
   });
 

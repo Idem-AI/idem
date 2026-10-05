@@ -1179,7 +1179,19 @@
       "trafficAllowed": "Autorisé",
       "trafficBlocked": "Bloqué",
       "trafficTime": "Heure",
-      "trafficTotals": "{{requests}} requêtes · {{blocked}} bloquées"
+      "trafficTotals": "{{requests}} requêtes · {{blocked}} bloquées",
+      "trafficTitle": "Trafic entrant",
+      "trafficRequests": "Requêtes",
+      "trafficRange": "Période",
+      "trafficRequest": "Requête",
+      "trafficStatus": "Résultat",
+      "blockedFirewall": "Bloquée",
+      "blockedRateLimit": "Limitée",
+      "range": {
+        "1": "1 h",
+        "24": "24 h",
+        "168": "7 jours"
+      }
     },
     "tokens": {
       "title": "Identifiants & jetons",

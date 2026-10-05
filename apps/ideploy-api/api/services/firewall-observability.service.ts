@@ -301,7 +301,7 @@ export async function queryTraffic(
   const { rows } = await pool.query(
     // `host()` renders the address bare. A plain `inet` comes back as
     // `203.0.113.5/32`, which no client comparing against an IP will match.
-    `SELECT host(ip_address) AS ip_address, method, uri, host, decision, rule_name,
+    `SELECT host(ip_address) AS ip_address, method, uri, host, decision, rule_name, status_code,
             country_code, timestamp
      FROM firewall_traffic_logs
      WHERE ${conditions.join(' AND ')}

@@ -1179,7 +1179,19 @@
       "trafficAllowed": "Allowed",
       "trafficBlocked": "Blocked",
       "trafficTime": "Time",
-      "trafficTotals": "{{requests}} requests · {{blocked}} blocked"
+      "trafficTotals": "{{requests}} requests · {{blocked}} blocked",
+      "trafficTitle": "Incoming traffic",
+      "trafficRequests": "Requests",
+      "trafficRange": "Period",
+      "trafficRequest": "Request",
+      "trafficStatus": "Result",
+      "blockedFirewall": "Blocked",
+      "blockedRateLimit": "Rate-limited",
+      "range": {
+        "1": "1 h",
+        "24": "24 h",
+        "168": "7 days"
+      }
     },
     "tokens": {
       "title": "Credentials & tokens",

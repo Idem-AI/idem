@@ -33,6 +33,12 @@ const ROTATE_AT_BYTES = 50_000_000;
 const FIRST_READ_BYTES = 1_000_000;
 /** Blocked requests kept in detail per pass; counts are always complete. */
 const MAX_BLOCKED_ROWS = 500;
+/**
+ * Allowed requests kept per application for "Recent traffic": the latest
+ * ones only — every request of a busy site would fill the database, and the
+ * counts already say how many there were.
+ */
+const KEPT_ALLOWED_ROWS = 500;
 
 export interface AccessLogEntry {
   applicationUuid: string;
@@ -180,13 +186,48 @@ async function store(entries: AccessLogEntry[]): Promise<void> {
     );
   }
 
+  // Every blocked request (up to a cap), and the latest allowed ones per application.
   const blocked = entries.filter((e) => e.blocked && idOf.has(e.applicationUuid)).slice(-MAX_BLOCKED_ROWS);
-  for (const e of blocked) {
+  const allowed = [...idOf.keys()].flatMap((uuid) =>
+    entries.filter((e) => !e.blocked && e.applicationUuid === uuid).slice(-KEPT_ALLOWED_ROWS)
+  );
+  for (const e of [...blocked, ...allowed]) {
     await pool.query(
-      `INSERT INTO firewall_traffic_logs (application_id, ip_address, method, uri, host, decision, rule_name, "timestamp")
-       VALUES ($1, $2::inet, $3, $4, $5, 'blocked', $6, $7)`,
-      [idOf.get(e.applicationUuid), e.clientIp, e.method.slice(0, 10), e.path, e.host.slice(0, 255), e.reason, e.at]
+      `INSERT INTO firewall_traffic_logs (application_id, ip_address, method, uri, host, decision, rule_name, status_code, "timestamp")
+       VALUES ($1, $2::inet, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        idOf.get(e.applicationUuid),
+        e.clientIp,
+        e.method.slice(0, 10),
+        e.path,
+        e.host.slice(0, 255),
+        e.blocked ? 'blocked' : 'allowed',
+        e.reason,
+        e.status || null,
+        e.at,
+      ]
     ).catch((err: Error) => logger.warn('Traffic row skipped', { message: err.message }));
+  }
+
+  for (const id of new Set(idOf.values())) {
+    // Only the latest allowed requests stay; blocked ones follow the retention.
+    await pool.query(
+      `DELETE FROM firewall_traffic_logs WHERE application_id = $1 AND decision = 'allowed' AND id NOT IN (
+         SELECT id FROM firewall_traffic_logs WHERE application_id = $1 AND decision = 'allowed'
+         ORDER BY "timestamp" DESC, id DESC LIMIT $2)`,
+      [id, KEPT_ALLOWED_ROWS]
+    );
+    // The counters every screen shows, kept current by the ingestion itself:
+    // they used to move only with the CrowdSec sync, and stayed at 0 when it
+    // did not run.
+    await pool.query(
+      `UPDATE firewall_configs fc SET
+         total_requests = s.requests, total_blocked = s.blocked, updated_at = now()
+       FROM (SELECT coalesce(sum(allowed + blocked), 0) AS requests, coalesce(sum(blocked), 0) AS blocked
+             FROM firewall_traffic_stats WHERE application_id = $1) s
+       WHERE fc.application_id = $1`,
+      [id]
+    );
   }
 }
 
@@ -221,6 +262,8 @@ export async function ingestAll(): Promise<IngestResult> {
 
 export interface TrafficStats {
   buckets: { at: string; allowed: number; blocked: number }[];
+  /** Width of one bucket. */
+  bucketMinutes: number;
   totals: { requests: number; blocked: number };
 }
 
@@ -229,15 +272,28 @@ export interface TrafficStats {
  * chart: 5 minutes over a day or less, an hour beyond.
  */
 export async function trafficStats(applicationId: number, hours = 24): Promise<TrafficStats> {
-  const span = Math.min(Math.max(hours, 1), 24 * 30);
-  const bucketMinutes = span <= 24 ? 5 : 60;
+  const span = Math.min(Math.max(Math.round(hours), 1), 24 * 30);
+  // About a hundred bars whatever the range: 1 min for an hour, 15 min for a
+  // day, 2 h for a week.
+  const bucketMinutes = span <= 1 ? 1 : span <= 6 ? 5 : span <= 24 ? 15 : span <= 24 * 7 ? 120 : 360;
+  // Every interval of the range, empty ones included: time stays to scale on
+  // the chart instead of a single busy minute filling it.
   const { rows } = await pool.query<{ at: Date; allowed: string; blocked: string }>(
-    `SELECT to_timestamp(floor(extract(epoch FROM bucket) / ($3 * 60)) * ($3 * 60)) AS at,
-            sum(allowed)::text AS allowed, sum(blocked)::text AS blocked
-     FROM firewall_traffic_stats
-     WHERE application_id = $1 AND bucket >= now() - ($2 || ' hours')::interval
-     GROUP BY 1 ORDER BY 1`,
-    [applicationId, String(span), bucketMinutes]
+    `WITH slots AS (
+       SELECT generate_series(
+         to_timestamp(floor(extract(epoch FROM now() - ($2 || ' hours')::interval) / ($3 * 60)) * ($3 * 60)),
+         now(),
+         ($3 || ' minutes')::interval
+       ) AS at
+     )
+     SELECT slots.at,
+            coalesce(sum(s.allowed), 0)::text AS allowed,
+            coalesce(sum(s.blocked), 0)::text AS blocked
+     FROM slots
+     LEFT JOIN firewall_traffic_stats s
+       ON s.application_id = $1 AND s.bucket >= slots.at AND s.bucket < slots.at + ($3 || ' minutes')::interval
+     GROUP BY slots.at ORDER BY slots.at`,
+    [applicationId, String(span), String(bucketMinutes)]
   );
   const buckets = rows.map((r) => ({
     at: new Date(r.at).toISOString(),
@@ -246,5 +302,5 @@ export async function trafficStats(applicationId: number, hours = 24): Promise<T
   }));
   const blocked = buckets.reduce((sum, b) => sum + b.blocked, 0);
   const requests = buckets.reduce((sum, b) => sum + b.allowed + b.blocked, 0);
-  return { buckets, totals: { requests, blocked } };
+  return { buckets, bucketMinutes, totals: { requests, blocked } };
 }
