@@ -741,6 +741,8 @@ export interface FirewallApplyResult {
   unsupported: UnsupportedFirewallRule[];
   redeployRequired: boolean;
   reason?: string;
+  /** Countries, limits and the bouncer took effect at once (the proxy's firewall file). */
+  appliedLive?: boolean;
   /** The redeploy queued to apply the rules, when one was. */
   redeployment: { deploymentUuid: string | null; alreadyRunning: boolean } | null;
 }

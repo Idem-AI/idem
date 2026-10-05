@@ -40,7 +40,6 @@ export async function getConfig(req: CustomRequest, res: Response): Promise<void
 }
 export async function updateConfig(req: CustomRequest, res: Response): Promise<void> {
   try {
-    const before = await firewall.getOrCreateConfig(team(req), appUuid(req));
     const config = await firewall.updateConfig(team(req), appUuid(req), req.body ?? {});
     // Turning the firewall on or off must change what is blocked, not only a
     // flag: reconcile now, and report it like Apply does. The setting is saved
@@ -49,9 +48,9 @@ export async function updateConfig(req: CustomRequest, res: Response): Promise<v
     let applyError: string | undefined;
     if (req.body?.enabled !== undefined) {
       try {
-        applied = await firewall.deploy(team(req), appUuid(req), {
-          forceRedeploy: before.enabled !== config.enabled,
-        });
+        // Switching on or off rewrites the firewall file (the bouncer is in
+        // it): live, unless the container predates the file chain.
+        applied = await firewall.deploy(team(req), appUuid(req));
       } catch (err) {
         applyError = (err as Error).message;
       }

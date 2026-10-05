@@ -1191,7 +1191,8 @@
         "1": "1 h",
         "24": "24 h",
         "168": "7 jours"
-      }
+      },
+      "appliedLive": "Pays, limitation de débit et pare-feu sont en vigueur dès maintenant — sans redéploiement."
     },
     "tokens": {
       "title": "Identifiants & jetons",

@@ -324,14 +324,41 @@ export async function deploy(
   const { enforce } = await import('./firewall-enforcement.service');
   const result = await enforce(teamId, appUuid);
 
-  // Country rules live in the container's proxy labels: "Apply" that stops at
-  // CrowdSec leaves them saved and never in force. Redeploying is what applies
-  // them, so it is queued here unless the caller opted out.
+  // Countries, limits and the bouncer are applied live: the application's
+  // firewall file is rewritten and Traefik picks it up within a second.
+  // A container started before the file chain existed still carries the old
+  // labels: it is redeployed once to reference the chain.
+  const live = await applyLive(teamId, appUuid);
+  if (live === 'applied') {
+    const redeployment =
+      opts.redeploy === true ? await queueRedeploy(teamId, appUuid) : null;
+    return { ...result, pendingRedeploy: [], redeployRequired: false, reason: undefined, appliedLive: true, redeployment };
+  }
   const redeployment =
-    (result.redeployRequired || opts.forceRedeploy || opts.redeploy === true) && opts.redeploy !== false
+    (result.redeployRequired || opts.forceRedeploy || opts.redeploy === true || live === 'needs-redeploy') &&
+    opts.redeploy !== false
       ? await queueRedeploy(teamId, appUuid)
       : null;
-  return { ...result, redeployment };
+  return { ...result, appliedLive: false, redeployment };
+}
+
+/**
+ * Write the application's firewall file. `applied` when its running container
+ * already routes through it; `needs-redeploy` when the container predates it;
+ * `unavailable` when the server cannot be reached (nothing changes).
+ */
+async function applyLive(teamId: number, appUuid: string): Promise<'applied' | 'needs-redeploy' | 'unavailable'> {
+  const app = await appService.getApplication(teamId, appUuid);
+  if (!app) return 'unavailable';
+  const { applicationServer, containerUsesFirewallFile, writeFirewallFile } = await import('./firewall-file.service');
+  const target = await applicationServer(app.id);
+  if (!target) return 'unavailable';
+  try {
+    await writeFirewallFile(target.server, target.key, app);
+  } catch {
+    return 'unavailable';
+  }
+  return (await containerUsesFirewallFile(target.server, target.key, app.uuid)) ? 'applied' : 'needs-redeploy';
 }
 
 export interface QueuedRedeploy {

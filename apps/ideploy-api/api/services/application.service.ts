@@ -357,6 +357,8 @@ async function teardownOnServer(teamId: number, app: ApplicationRow): Promise<Se
     if (!key) return 'failed';
 
     const workdir = appWorkdir(app);
+    const { removeFirewallFile } = await import('./firewall-file.service');
+    await removeFirewallFile(server, key, app.uuid);
     const result = await executeRemoteCommand(
       server,
       key,

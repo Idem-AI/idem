@@ -264,6 +264,8 @@ export function buildApplicationLabels(
     geoBlock: context.geoBlock,
     rateLimit: context.rateLimit,
     concurrency: context.concurrency,
+    // Firewall applied live from the file provider (firewall-file.service.ts).
+    firewallFile: true,
   };
 
   const wantsTraefik = !context.exactLabelsOnly || context.proxyType === 'traefik';

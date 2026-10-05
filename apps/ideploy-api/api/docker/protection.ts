@@ -200,3 +200,24 @@ export function geoBlockStaticFlags(): string[] {
     `--experimental.plugins.${GEOBLOCK_PLUGIN}.version=${GEOBLOCK_VERSION}`,
   ];
 }
+
+/** The geoblock plugin's settings for the file provider (same values as the labels). */
+export function geoBlockPluginConfig(options: GeoBlockOptions): Record<string, unknown> {
+  return {
+    blackListMode: true,
+    api: GEO_API,
+    apiTimeoutMs: GEO_API_TIMEOUT_MS,
+    cacheSize: GEO_CACHE_SIZE,
+    cacheTtlSeconds: GEO_CACHE_TTL_SECONDS,
+    allowLocalRequests: true,
+    allowUnknownCountries: true,
+    ignoreAPITimeout: true,
+    ignoreAPIFailures: true,
+    logAllowedRequests: false,
+    logLocalRequests: false,
+    logApiRequests: false,
+    silentStartUp: false,
+    countries: options.blockedCountries.map((c) => c.toUpperCase()),
+    ...(options.excludedPaths?.length ? { excludedPathPatterns: options.excludedPaths } : {}),
+  };
+}
