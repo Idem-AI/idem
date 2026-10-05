@@ -9,6 +9,9 @@ on:
     branches: [ main ]
     paths:
       - 'apps/main-dashboard/**'
+      - 'packages/shared-loader/**'
+      - 'packages/shared-styles/**'
+      - 'packages/shared-tour/**'
       - 'Dockerfile.main-dashboard'
       - 'Dockerfile.main-dashboard.staging'
       - 'packages/shared-models/**'

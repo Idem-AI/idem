@@ -9,6 +9,9 @@ on:
     branches: [ main ]
     paths:
       - 'apps/landing/**'
+      - 'packages/shared-loader/**'
+      - 'packages/shared-models/**'
+      - 'packages/shared-styles/**'
       - 'Dockerfile.landing'
       - '.github/workflows/deploy-landing.yml'
   workflow_dispatch:
