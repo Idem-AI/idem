@@ -4,15 +4,17 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { tokens, disconnect, get, query } = vi.hoisted(() => ({
+const { tokens, disconnect, renewToken, get, query } = vi.hoisted(() => ({
   tokens: new Map<number, string>(),
   disconnect: vi.fn(),
+  renewToken: vi.fn(),
   get: vi.fn(),
   query: vi.fn(),
 }));
 vi.mock('../../../api/config/db.config', () => ({ default: { query } }));
 vi.mock('../../../api/services/github.service', () => ({
   getToken: async (userId: number) => tokens.get(userId) ?? null,
+  renewToken,
   disconnect,
 }));
 vi.mock('axios', () => ({ default: { get } }));
@@ -22,6 +24,8 @@ import { explainGitFailure, resolveGitCredential } from '../../../api/services/g
 beforeEach(() => {
   tokens.clear();
   disconnect.mockReset();
+  renewToken.mockReset();
+  renewToken.mockResolvedValue(null);
   get.mockReset();
   query.mockResolvedValue({ rows: [{ user_id: 1 }, { user_id: 2 }] });
 });
@@ -46,6 +50,21 @@ describe('resolveGitCredential', () => {
     get.mockResolvedValue({ status: 401 });
 
     expect(await resolveGitCredential(7, 'https://github.com/a/b.git')).toBeNull();
+  });
+});
+
+describe('resolveGitCredential — expired tokens', () => {
+  it('renews an expired token instead of dropping it', async () => {
+    tokens.set(1, 'expired');
+    renewToken.mockResolvedValue('renewed');
+    get.mockImplementation(async (_url: string, opts: { headers: { Authorization: string } }) => ({
+      status: opts.headers.Authorization === 'Bearer renewed' ? 200 : 401,
+    }));
+
+    const credential = await resolveGitCredential(7, 'https://github.com/a/b.git');
+
+    expect(credential?.token).toBe('renewed');
+    expect(disconnect).not.toHaveBeenCalled();
   });
 });
 

@@ -99,8 +99,14 @@ export async function resolveGitCredential(teamId: number, gitRepository: string
     if (!token) continue;
     const check = await checkToken(provider, token);
     if (check === 'valid') return { token, authenticatedUrl: withCredentials(gitRepository, username, token) };
-    if (check === 'invalid') await service.disconnect(userId);
-    else fallback ??= token; // provider unreachable: still worth trying
+    if (check === 'invalid') {
+      // Expired rather than revoked, most of the time: renew before giving up.
+      const renewed = await service.renewToken(userId);
+      if (renewed && (await checkToken(provider, renewed)) === 'valid') {
+        return { token: renewed, authenticatedUrl: withCredentials(gitRepository, username, renewed) };
+      }
+      await service.disconnect(userId);
+    } else fallback ??= token; // provider unreachable: still worth trying
   }
   return fallback ? { token: fallback, authenticatedUrl: withCredentials(gitRepository, username, fallback) } : null;
 }
