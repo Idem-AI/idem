@@ -202,6 +202,7 @@ interface Preset {
             <input type="text" class="font-mono" [ngModel]="buildCommand()" (ngModelChange)="buildCommand.set($event)" [placeholder]="'projects.import.buildCommandPlaceholder' | translate" autocomplete="off" />
             <input type="text" class="font-mono" [ngModel]="startCommand()" (ngModelChange)="onStartCommandEdit($event)" [placeholder]="'projects.import.startCommandPlaceholder' | translate" autocomplete="off" />
             <input type="text" class="font-mono" [ngModel]="portsExposes()" (ngModelChange)="onPortEdit($event)" [placeholder]="'projects.import.portPlaceholder' | translate" autocomplete="off" />
+            <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'projects.import.portHint' | translate }}</p>
           </div>
         }
 

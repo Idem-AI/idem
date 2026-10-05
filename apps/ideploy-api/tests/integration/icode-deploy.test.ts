@@ -67,6 +67,8 @@ beforeEach(async () => {
   ssh?.cleanup();
   ssh = new CapturingExecutor();
   // The container comes up and says so: the worker's verification ends at once.
+  // First match wins: the port probe also runs `compose ps -q`.
+  ssh.on(/\/net\/tcp/, { stdout: '  sl  local_address rem_address   st\n   0: 00000000:0050 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 1\n' });
   ssh.on(/compose .*ps/, { stdout: 'app  running  Up 2 seconds' });
   ssh.on(/logs/, { stdout: 'API listening on http://localhost:3001' });
   setRemoteExecutor(ssh);

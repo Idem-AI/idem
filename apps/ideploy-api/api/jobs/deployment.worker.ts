@@ -27,6 +27,7 @@ import { getSourceArchive } from '../services/application-source.service';
 import { assertComposeIsSafe } from '../docker/compose-policy';
 import { assertSafeGitBranch, assertSafeGitUrl, isSafeCommitSha } from '../validation/git-input';
 import { generateComposeFile, appWorkdir, composeDirFile, composeProject } from '../docker/compose';
+import { choosePort, parseExposedPorts, parseListeningPorts, PortChoice } from '../docker/listening-ports';
 import { planBuild, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
 import * as appService from '../services/application.service';
@@ -288,6 +289,8 @@ async function deploy(
   // its release.
   let compose: string | null;
   let composeDir = workdir;
+  // The image our generated compose file runs — null for a repository's own stack.
+  let composeImage: string | null = null;
 
   await streamStep(deploymentUuid, 'Preparing the release', async () => {
     const r = await executeRemoteCommand(
@@ -305,7 +308,8 @@ async function deploy(
 
   if (!app.git_repository && !sourceArchive) {
     // Nothing to fetch — placeholder static container.
-    compose = generateComposeFile(app, 'nginx:alpine', labels, network, runtimeEnv, port);
+    composeImage = 'nginx:alpine';
+    compose = generateComposeFile(app, composeImage, labels, network, runtimeEnv, port);
   } else {
     if (sourceArchive) {
       // One archive, one upload, one `tar` — then the build below runs on it
@@ -413,6 +417,7 @@ async function deploy(
       composeDir = buildDirectory(buildContext);
       compose = null;
     } else {
+      composeImage = imageTag;
       compose = generateComposeFile(app, imageTag, labels, network, runtimeEnv, port);
     }
   }
@@ -555,6 +560,44 @@ async function deploy(
     await log('\n✓ Confirmed: still running after the grace period.');
   });
 
+  // The port the proxy routes to must be the one the container listens on.
+  // Only for the compose file we generate: a repository's own stack carries
+  // its own routing.
+  if (compose !== null && composeImage) {
+    const image = composeImage;
+    await streamStep(deploymentUuid, 'Detecting the port', async () => {
+      const listening = await listeningPorts(server, key, composeDir, project);
+      const exposed = await imageExposedPorts(server, key, image);
+      const choice = choosePort(port, listening, exposed);
+      await log(describePortChoice(choice, port, listening));
+      if (choice.source === 'none' || choice.port === port) return;
+
+      // Route to the real port: new labels and PORT, saved on the application.
+      await appService.setExposedPort(app.id, choice.port);
+      const routed = { ...app, ports_exposes: String(choice.port) };
+      const routedLabels = labelContext ? buildApplicationLabels(routed, labelContext) : undefined;
+      const updated = generateComposeFile(routed, image, routedLabels, network, runtimeEnv, choice.port);
+      const r = await executeRemoteCommand(
+        server,
+        key,
+        `echo '${Buffer.from(updated, 'utf8').toString('base64')}' | base64 -d > ${shellQuote(`${workdir}/docker-compose.yml`)} && ` +
+          `cd ${shellQuote(composeDir)} && docker compose -p ${shellQuote(project)} up -d --remove-orphans`,
+        { onData: (c) => log(c) }
+      );
+      if (r.exitCode !== 0) throw new Error(`Re-routing to port ${choice.port} failed: ${(r.stderr || r.stdout).slice(0, 300)}`);
+      for (let attempt = 0; attempt < 10; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        const { isUp, crashed } = await checkContainerState();
+        if (crashed) throw new Error('The container crashed after being re-routed. Check the logs above.');
+        if (isUp) {
+          await log(`✓ Now routed to port ${choice.port}.`);
+          return;
+        }
+      }
+      throw new Error(`The container did not come back up after being re-routed to port ${choice.port}.`);
+    });
+  }
+
   // Older releases and images go; the live one and the previous one stay.
   // Every deployment used to leave its image behind until the disk filled. The
   // checkout the first deployments made in the application's directory goes too.
@@ -615,6 +658,64 @@ async function resolveBaseDirectory(
     );
   }
   return base;
+}
+
+/** How long to wait for an application to start listening before deciding it serves no port. */
+const LISTEN_WAIT_MS = 30_000;
+
+/**
+ * Ports the stack's container listens on, read from the host in its network
+ * namespace (`/proc/<pid>/net/tcp`): works for any image, even one without a
+ * shell. Retried for a while — a JVM can take seconds to bind.
+ */
+async function listeningPorts(
+  server: Parameters<typeof executeRemoteCommand>[0],
+  key: Parameters<typeof executeRemoteCommand>[1],
+  composeDir: string,
+  project: string
+): Promise<number[]> {
+  const command =
+    `cd ${shellQuote(composeDir)} && C=$(docker compose -p ${shellQuote(project)} ps -q | head -1) && ` +
+    `P=$(docker inspect -f '{{.State.Pid}}' "$C") && cat /proc/$P/net/tcp /proc/$P/net/tcp6 2>/dev/null`;
+  const started = Date.now();
+  for (;;) {
+    const r = await executeRemoteCommand(server, key, command, { noRetry: true }).catch(() => null);
+    const ports = r ? parseListeningPorts(r.stdout) : [];
+    if (ports.length > 0 || Date.now() - started > LISTEN_WAIT_MS) return ports;
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+}
+
+/** Ports an image declares with EXPOSE; empty when it declares none or cannot be read. */
+async function imageExposedPorts(
+  server: Parameters<typeof executeRemoteCommand>[0],
+  key: Parameters<typeof executeRemoteCommand>[1],
+  image: string
+): Promise<number[]> {
+  const r = await executeRemoteCommand(
+    server,
+    key,
+    `docker image inspect -f '{{json .Config.ExposedPorts}}' ${shellQuote(image)}`,
+    { noRetry: true }
+  ).catch(() => null);
+  return r && r.exitCode === 0 ? parseExposedPorts(r.stdout) : [];
+}
+
+/** The deployment log line saying which port is routed, and why. */
+export function describePortChoice(choice: PortChoice, requested: number, listening: number[]): string {
+  const seen = listening.length ? ` (listening: ${listening.join(', ')})` : '';
+  switch (choice.source) {
+    case 'requested':
+      return `Port ${choice.port}: the application listens on the port it was given${seen}.`;
+    case 'measured':
+      return `⚠ Port ${choice.port}: the application listens there, not on ${requested}${seen} — routing to ${choice.port}.`;
+    case 'image':
+      return `⚠ Port ${choice.port}: declared by the image among the ports it listens on${seen} — routing to ${choice.port}.`;
+    case 'common':
+      return `⚠ Port ${choice.port}: the usual HTTP port among those it listens on${seen} — routing to ${choice.port}. Set the port in the settings if another one serves HTTP.`;
+    case 'none':
+      return `⚠ No listening TCP port found after ${LISTEN_WAIT_MS / 1000}s: this application serves no HTTP (a worker?), or it is not listening on ${requested}. Routing stays on ${requested}.`;
+  }
 }
 
 /** The port the application listens on inside its container. */
