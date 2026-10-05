@@ -117,6 +117,19 @@ class FakeCommunication {
     comm.videos = comm.videos.filter((v: MotionVideo) => v.id !== videoId);
     return comm.videos.length !== before;
   }
+  // Calendrier éditorial (comme CommunicationService).
+  async findPlanItem(_u: string, projectId: string, contentId: string) {
+    for (const plan of this.projects.get(projectId)?.analysisResultModel.communication.plans || []) {
+      const hit = plan.items.find((i: any) => i.id === contentId);
+      if (hit) return JSON.parse(JSON.stringify(hit));
+    }
+    return null;
+  }
+  async linkVideoToContent(_u: string, projectId: string, contentId: string, videoId: string) {
+    for (const plan of this.projects.get(projectId)?.analysisResultModel.communication.plans || []) {
+      for (const item of plan.items) if (item.id === contentId) item.videoIds = [...(item.videoIds || []), videoId];
+    }
+  }
 }
 
 /** Stockage d'objets remplacé par des fichiers locaux. */
@@ -488,6 +501,21 @@ async function main() {
     check(`${c.id} : bonnes pratiques respectées (${sb.qa?.repaired ?? 0} réparation(s), rythme ${sb.rhythm}, caméra ${sb.kit?.camera}, entrées ${sb.kit?.entrance})`, !!sb.qa && sb.qa.issues.length === 0, (sb.qa?.issues || []).map((i) => `${i.rule}: ${i.detail}`).join(' ; '));
     console.log(`      ${sb.scenes.map((sc) => `${sc.sceneId}/${sc.variant}·${sc.surface}·${sc.duration.toFixed(1)}s${sc.transitionIn ? `←${sc.transitionIn}` : ''}`).join('  ')}`);
     console.log(`      « ${sb.scenes[0].slots.title} » … « ${sb.scenes[sb.scenes.length - 2]?.slots.action || sb.scenes[sb.scenes.length - 2]?.slots.title || ''} »`);
+  }
+
+  // Vidéo d'un contenu du calendrier : aucun message dans la demande (la route le laisse passer),
+  // le brief et le type viennent du contenu, la vidéo lui est rattachée.
+  {
+    const comm = fake.projects.get('wax').analysisResultModel.communication;
+    comm.plans = [{ id: 'plan-1', items: [{ id: 'content-promo', title: 'Soldes de fin d’année', hook: 'Vos pagnes wax à -30 % jusqu’au 31 décembre', description: 'Les soldes : livraison 24h à Abidjan.', callToAction: 'Commandez sur WhatsApp', intent: 'promotion', format: 'reel', channel: 'instagram', videoType: 'promo', scheduledFor: '2026-12-01', week: 1, hashtags: [], status: 'idea' }] }];
+    currentCase = { ...CASES[0], behaviour: 'down' } as VideoCase;
+    const fromCalendar = await service.createVideo('test-user', 'wax', { brief: { musicMood: 'none', sfx: false } as any, scope: { durationSec: 15, formats: ['story'], quality: 'standard' }, contentId: 'content-promo' }, 0);
+    const item = comm.plans[0].items[0];
+    check(
+      `calendrier : vidéo du type du contenu (${fromCalendar.type}), brief tiré du contenu, rattachée`,
+      fromCalendar.type === 'promo' && fromCalendar.brief.message.includes('-30 %') && fromCalendar.brief.objective === 'promotion' && (item.videoIds || []).includes(fromCalendar.id)
+    );
+    comm.videos = comm.videos.filter((v: MotionVideo) => v.id !== fromCalendar.id);
   }
 
   // Retouche gratuite des textes.

@@ -772,7 +772,9 @@ communicationRoutes.post(
   checkQuota,
   (req, res, next) => {
     const message = String(req.body?.brief?.message || '').trim();
-    if (message.length < 3) {
+    // Vidéo d'un contenu du calendrier : le message vient du contenu (accroche, angle), côté service.
+    const fromCalendar = typeof req.body?.contentId === 'string' && req.body.contentId.length > 0;
+    if (message.length < 3 && !fromCalendar) {
       res.status(400).json({ error: 'message_required', message: 'brief.message is required' });
       return;
     }
@@ -801,7 +803,9 @@ communicationRoutes.post(
   checkQuota,
   (req, res, next) => {
     const message = String(req.body?.brief?.message || '').trim();
-    if (message.length < 3) {
+    // Vidéo d'un contenu du calendrier : le message vient du contenu (accroche, angle), côté service.
+    const fromCalendar = typeof req.body?.contentId === 'string' && req.body.contentId.length > 0;
+    if (message.length < 3 && !fromCalendar) {
       res.status(400).json({ error: 'message_required', message: 'brief.message is required' });
       return;
     }
