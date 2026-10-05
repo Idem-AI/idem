@@ -369,14 +369,36 @@ export interface PipelineStageSummary {
 }
 
 /** Static-analysis output attached to one execution. */
+/** One vulnerability Trivy found. */
+export interface ScanFinding {
+  id: string;
+  package: string;
+  installed: string;
+  fixed: string | null;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
+  title: string;
+  target: string;
+}
+
 export interface PipelineScan {
   tool: string;
+  /** success, failed, or skipped (not run — never a pass). */
   status: string;
   quality_gate_status: string | null;
   bugs: number | null;
   vulnerabilities: number | null;
   code_smells: number | null;
+  security_hotspots?: number | null;
   coverage: number | null;
+  duplications?: number | null;
+  critical_count?: number | null;
+  high_count?: number | null;
+  medium_count?: number | null;
+  low_count?: number | null;
+  vulnerabilities_detail?: ScanFinding[] | null;
+  secrets_found?: { target: string; rule: string; severity: string; line: number | null }[] | null;
+  sonar_dashboard_url?: string | null;
+  summary?: string | null;
 }
 
 export interface PipelineExecution {
@@ -659,6 +681,18 @@ export interface CountryCatalogue {
 
 /** Stored as a block list either way — the interface shows what is blocked. */
 export type GeoMode = 'block' | 'allow_only';
+
+/** Requests in one interval, from the proxy's access log. */
+export interface FirewallTrafficBucket {
+  at: string;
+  allowed: number;
+  blocked: number;
+}
+
+export interface FirewallTrafficStats {
+  buckets: FirewallTrafficBucket[];
+  totals: { requests: number; blocked: number };
+}
 
 /** A detection imported from CrowdSec — the columns the API returns. */
 export interface FirewallAlert {

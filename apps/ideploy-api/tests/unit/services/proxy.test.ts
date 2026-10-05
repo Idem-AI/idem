@@ -104,3 +104,19 @@ describe('releaseForeignContainers', () => {
     expect(step.match(/; true; }/g)).toHaveLength(2);
   });
 });
+
+describe('the proxy sees what it serves', () => {
+  const compose = parse(buildTraefikCompose('203.0.113.10'));
+
+  it('writes a JSON access log CrowdSec and iDeploy both read', () => {
+    const cmd: string[] = compose.services.traefik.command;
+    expect(cmd).toEqual(expect.arrayContaining(['--accesslog=true', '--accesslog.format=json', '--accesslog.filepath=/traefik/logs/access.log']));
+    expect(compose.services.crowdsec.volumes).toEqual(expect.arrayContaining([expect.stringMatching(/\/logs:\/var\/log\/traefik:ro$/)]));
+    expect(compose.services.crowdsec.environment.COLLECTIONS).toContain('crowdsecurity/traefik');
+  });
+
+  it('never publishes the unauthenticated dashboard to the Internet', () => {
+    expect(compose.services.traefik.ports).toContain('127.0.0.1:8080:8080');
+    expect(compose.services.traefik.ports).not.toContain('8080:8080');
+  });
+});

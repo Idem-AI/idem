@@ -29,6 +29,7 @@ import {
   FirewallAlert,
   FirewallApplyResult,
   FirewallTrafficEntry,
+  FirewallTrafficStats,
   Server,
   ServerSettings,
   ServerHealth,
@@ -570,6 +571,12 @@ export class ApiService {
   listFirewallAlerts(uuid: string): Observable<FirewallAlert[]> {
     return this.unwrap(
       this.http.get<ApiResponse<FirewallAlert[]>>(`${this.base}/applications/${uuid}/firewall/alerts`)
+    );
+  }
+  /** Allowed and blocked requests over the last `hours`, for the firewall chart. */
+  firewallTrafficStats(uuid: string, hours = 24): Observable<FirewallTrafficStats> {
+    return this.unwrap(
+      this.http.get<ApiResponse<FirewallTrafficStats>>(`${this.base}/applications/${uuid}/firewall/traffic/stats?hours=${hours}`)
     );
   }
   listFirewallTraffic(uuid: string): Observable<FirewallTrafficEntry[]> {

@@ -190,7 +190,9 @@ export async function getExecution(teamId: number, executionUuid: string): Promi
     [execution.id]
   );
   const scans = await pool.query(
-    `SELECT tool, status, quality_gate_status, bugs, vulnerabilities, code_smells, coverage
+    `SELECT tool, status, quality_gate_status, bugs, vulnerabilities, code_smells, security_hotspots,
+            coverage, duplications, critical_count, high_count, medium_count, low_count,
+            vulnerabilities_detail, secrets_found, sonar_project_key, sonar_dashboard_url, summary
      FROM pipeline_scan_results WHERE pipeline_execution_id = $1`,
     [execution.id]
   );
@@ -303,31 +305,64 @@ export async function markStillRunningAsFailed(
   );
 }
 
-export async function recordScanResult(
-  executionId: number,
-  tool: string,
-  metrics: Record<string, unknown>
-): Promise<void> {
+export interface ScanResult {
+  /** `success`, `failed`, or `skipped` for a scan that did not run (never shown as a pass). */
+  status?: string;
+  quality_gate_status?: string | null;
+  bugs?: number | null;
+  vulnerabilities?: number | null;
+  code_smells?: number | null;
+  security_hotspots?: number | null;
+  coverage?: number | null;
+  duplications?: number | null;
+  critical_count?: number | null;
+  high_count?: number | null;
+  medium_count?: number | null;
+  low_count?: number | null;
+  vulnerabilities_detail?: unknown;
+  secrets_found?: unknown;
+  sonar_project_key?: string | null;
+  sonar_dashboard_url?: string | null;
+  summary?: string | null;
+}
+
+export async function recordScanResult(executionId: number, tool: string, result: ScanResult): Promise<void> {
   const { rows } = await pool.query(
     'SELECT id FROM pipeline_jobs WHERE pipeline_execution_id = $1 AND name = $2 LIMIT 1',
     [executionId, tool]
   );
   const jobId = rows[0]?.id ?? null;
+  const json = (v: unknown) => (v === undefined || v === null ? null : JSON.stringify(v));
   await pool.query(
     `INSERT INTO pipeline_scan_results
-       (uuid, pipeline_job_id, pipeline_execution_id, tool, status, quality_gate_status, bugs, vulnerabilities, code_smells, security_hotspots, coverage, created_at, updated_at)
-     VALUES ($1,$2,$3,$4,'success',$5,$6,$7,$8,$9,$10, now(), now())`,
+       (uuid, pipeline_job_id, pipeline_execution_id, tool, status, quality_gate_status,
+        bugs, vulnerabilities, code_smells, security_hotspots, coverage, duplications,
+        critical_count, high_count, medium_count, low_count,
+        vulnerabilities_detail, secrets_found, sonar_project_key, sonar_dashboard_url, summary,
+        created_at, updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::json,$18::json,$19,$20,$21, now(), now())`,
     [
       randomUUID(),
       jobId,
       executionId,
       tool,
-      (metrics.quality_gate_status as string) ?? null,
-      metrics.bugs ?? null,
-      metrics.vulnerabilities ?? null,
-      metrics.code_smells ?? null,
-      metrics.security_hotspots ?? null,
-      metrics.coverage ?? null,
+      result.status ?? 'success',
+      result.quality_gate_status ?? null,
+      result.bugs ?? null,
+      result.vulnerabilities ?? null,
+      result.code_smells ?? null,
+      result.security_hotspots ?? null,
+      result.coverage ?? null,
+      result.duplications ?? null,
+      result.critical_count ?? null,
+      result.high_count ?? null,
+      result.medium_count ?? null,
+      result.low_count ?? null,
+      json(result.vulnerabilities_detail),
+      json(result.secrets_found),
+      result.sonar_project_key ?? null,
+      result.sonar_dashboard_url ?? null,
+      result.summary ?? null,
     ]
   );
 }

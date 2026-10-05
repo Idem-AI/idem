@@ -357,11 +357,11 @@ describe('refreshCounters', () => {
     // A counter that only goes up drifts from reality the first time a write is
     // lost, and nothing surfaces the drift.
     const applicationId = await anApplication();
+    // Requests as the access-log ingestion records them, per minute.
     await testPool().query(
-      `INSERT INTO firewall_traffic_logs (application_id, ip_address, decision, timestamp)
-       VALUES ($1, '203.0.113.1'::inet, 'blocked', now()),
-              ($1, '203.0.113.2'::inet, 'blocked', now()),
-              ($1, '203.0.113.3'::inet, 'allowed', now())`,
+      `INSERT INTO firewall_traffic_stats (application_id, bucket, allowed, blocked)
+       VALUES ($1, date_trunc('minute', now()), 7, 2),
+              ($1, date_trunc('minute', now()) - interval '1 minute', 1, 0)`,
       [applicationId]
     );
     await testPool().query(
@@ -389,6 +389,10 @@ describe('refreshCounters', () => {
       [applicationId]
     );
     expect(Number(rows[0].total_blocked)).toBe(2);
+    const requests = await testPool().query('SELECT total_requests FROM firewall_configs WHERE application_id = $1', [
+      applicationId,
+    ]);
+    expect(Number(requests.rows[0].total_requests)).toBe(10);
   });
 });
 

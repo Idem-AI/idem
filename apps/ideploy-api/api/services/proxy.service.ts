@@ -95,7 +95,9 @@ export function buildTraefikCompose(serverIp?: string): string {
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
+      # The dashboard (--api.insecure) has no authentication: reachable from
+      # the server itself only, never from the Internet.
+      - "127.0.0.1:8080:8080"
     healthcheck:
       test: wget -qO- http://localhost:80/ping || exit 1
       interval: 4s
@@ -130,24 +132,34 @@ export function buildTraefikCompose(serverIp?: string): string {
       - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
       - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=http
       - --certificatesresolvers.letsencrypt.acme.storage=/traefik/acme.json
+      # One JSON line per request: what the firewall's traffic view and its
+      # allowed/blocked chart are built from (read by iDeploy, see
+      # traffic-ingestion.service.ts), and what CrowdSec reads to detect
+      # attacks. Without it the firewall could block but never see.
+      - --accesslog=true
+      - --accesslog.format=json
+      - --accesslog.filepath=/traefik/logs/access.log
+      - --accesslog.bufferingsize=100
+      - --accesslog.fields.headers.defaultmode=drop
 ${pluginCommandFlags()}
   crowdsec:
     container_name: ${CROWDSEC_CONTAINER}
-    # Local API only — this container never watches logs itself (COLLECTIONS
-    # left at the image default, i.e. none), because nothing here relies on
-    # CrowdSec's own scenario-based detection yet. What it does today is serve
-    # as the shared decision store: our own rules ban/unban addresses through
-    # it (POST/DELETE /v1/alerts, /v1/decisions — see crowdsec-lapi.client.ts),
-    # and every application's bouncer middleware asks it "is this address
-    # banned" on each request. Both need it running; neither needs it parsing
-    # anything.
+    # The shared decision store — our own rules ban/unban addresses through
+    # it (crowdsec-lapi.client.ts), and every application's bouncer middleware
+    # asks it "is this address banned" on each request — and the detector:
+    # it reads Traefik's access log (acquis.d/traefik.yaml, written by
+    # startProxy) with the Traefik collection, so scans, brute force and
+    # known exploits become alerts and bans on their own.
     image: crowdsecurity/crowdsec:latest
+    environment:
+      COLLECTIONS: crowdsecurity/traefik crowdsecurity/http-cve
     restart: unless-stopped
     networks:
       - ideploy
     volumes:
       - ${PROXY_PATH}/crowdsec/data:/var/lib/crowdsec/data
       - ${PROXY_PATH}/crowdsec/config:/etc/crowdsec
+      - ${PROXY_PATH}/logs:/var/log/traefik:ro
     healthcheck:
       test: ["CMD", "cscli", "lapi", "status"]
       interval: 10s
@@ -215,7 +227,9 @@ export async function startProxy(
   const b64 = Buffer.from(compose, 'utf8').toString('base64');
 
   const script = [
-    `mkdir -p ${PROXY_PATH}/dynamic ${PROXY_PATH}/crowdsec/data ${PROXY_PATH}/crowdsec/config`,
+    `mkdir -p ${PROXY_PATH}/dynamic ${PROXY_PATH}/crowdsec/data ${PROXY_PATH}/crowdsec/config/acquis.d ${PROXY_PATH}/logs`,
+    // CrowdSec reads Traefik's access log, labelled for the Traefik parsers.
+    `printf 'filenames:\\n  - /var/log/traefik/access.log\\nlabels:\\n  type: traefik\\n' > ${PROXY_PATH}/crowdsec/config/acquis.d/traefik.yaml`,
     `echo '${b64}' | base64 -d > ${PROXY_PATH}/docker-compose.yml`,
     `docker network inspect ideploy >/dev/null 2>&1 || docker network create --attachable ideploy`,
     `cd ${PROXY_PATH} && docker compose pull`,
