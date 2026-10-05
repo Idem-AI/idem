@@ -972,7 +972,8 @@ CREATE TABLE public.firewall_traffic_logs (
     country_code character varying(2),
     asn integer,
     reverse_dns character varying(255),
-    "timestamp" timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    "timestamp" timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    status_code smallint
 );
 
 
