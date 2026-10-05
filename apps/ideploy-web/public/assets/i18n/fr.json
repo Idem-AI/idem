@@ -521,7 +521,13 @@
       "redeploying": "Redéploiement…",
       "saveError": "Les réglages n’ont pas pu être enregistrés.",
       "redeployError": "Le déploiement n’a pas pu démarrer.",
-      "baseDirectoryHint": "Dossier du dépôt qui contient l’application — ./ pour la racine. Un dossier, pas un fichier (pas ./Dockerfile)."
+      "baseDirectoryHint": "Dossier du dépôt qui contient l’application — ./ pour la racine. Un dossier, pas un fichier (pas ./Dockerfile).",
+      "dockerfileLocation": "Dockerfile",
+      "dockerfileLocationHint": "Relatif au dossier racine, qui sert de contexte de build. Dans un monorepo : racine ./ et Dockerfile/prod/Dockerfile.api.",
+      "buildTarget": "Étape de build",
+      "buildTargetHint": "Facultatif : l’étape d’un Dockerfile multi-étapes à construire.",
+      "watchPaths": "Chemins surveillés",
+      "watchPathsHint": "Un push ne redéploie cette application que s’il modifie l’un de ces fichiers — un motif par ligne (apps/api/**, packages/**, !**/*.md). Vide : à chaque push."
     }
   },
   "projects": {

@@ -20,6 +20,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import pool from '../config/db.config';
 import logger from '../config/logger';
+import { matchesWatchPaths, parseWatchPaths } from '../utils/path-glob';
 import { notFound, unprocessable } from '../utils/errors';
 
 export type GitProvider = 'github' | 'gitlab' | 'bitbucket' | 'gitea';
@@ -125,6 +126,8 @@ export interface WebhookTarget {
   gitBranch: string;
   autoDeployEnabled: boolean;
   secret: string | null;
+  /** Patterns of the files this application is built from; empty = every push. */
+  watchPaths: string[];
 }
 
 /** Resolve the application a webhook is aimed at, with everything needed to judge it. */
@@ -133,7 +136,7 @@ export async function loadWebhookTarget(
   provider: GitProvider
 ): Promise<WebhookTarget | null> {
   const { rows } = await pool.query(
-    `SELECT a.id, a.uuid, a.name, a.git_branch,
+    `SELECT a.id, a.uuid, a.name, a.git_branch, a.watch_paths,
             a.${SECRET_COLUMN[provider]} AS secret,
             COALESCE(aps.is_auto_deploy_enabled, true) AS auto_deploy,
             p.team_id
@@ -157,6 +160,7 @@ export async function loadWebhookTarget(
     gitBranch: String(r.git_branch ?? 'main'),
     autoDeployEnabled: Boolean(r.auto_deploy),
     secret: (r.secret as string) ?? null,
+    watchPaths: parseWatchPaths(r.watch_paths as string | null),
   };
 }
 
@@ -235,6 +239,13 @@ export function decideWebhookAction(
       deploy: false,
       reason: `Pushed to "${event.branch}", which is not the deployed branch ("${target.gitBranch}").`,
     };
+  }
+  // In a monorepo every application receives every push: only those whose
+  // files changed redeploy. The changed files were read already and never
+  // used — every push rebuilt every application of the repository. A push
+  // that lists no files (some providers, very large pushes) still deploys.
+  if (target.watchPaths.length > 0 && event.changedFiles.length > 0 && !matchesWatchPaths(event.changedFiles, target.watchPaths)) {
+    return { deploy: false, reason: 'No changed file matches this application\'s watch paths.' };
   }
   return { deploy: true };
 }

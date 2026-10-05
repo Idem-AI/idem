@@ -521,7 +521,13 @@
       "redeploying": "Redeploying…",
       "saveError": "The settings could not be saved.",
       "redeployError": "The deployment could not be started.",
-      "baseDirectoryHint": "Folder of the repository that holds the application — ./ for the root. A folder, not a file (not ./Dockerfile)."
+      "baseDirectoryHint": "Folder of the repository that holds the application — ./ for the root. A folder, not a file (not ./Dockerfile).",
+      "dockerfileLocation": "Dockerfile",
+      "dockerfileLocationHint": "Relative to the root directory, which is the build context. In a monorepo: root ./ and Dockerfile/prod/Dockerfile.api.",
+      "buildTarget": "Build target",
+      "buildTargetHint": "Optional: the stage of a multi-stage Dockerfile to build.",
+      "watchPaths": "Watch paths",
+      "watchPathsHint": "A push redeploys this application only when it changes one of these files — one pattern per line (apps/api/**, packages/**, !**/*.md). Empty: every push."
     }
   },
   "projects": {

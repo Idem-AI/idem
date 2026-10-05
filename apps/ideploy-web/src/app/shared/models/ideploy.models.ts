@@ -190,6 +190,11 @@ export interface Application {
   ports_exposes?: string | null;
   /** Folder of the repository the application is built from (`./` or empty: the root). */
   base_directory?: string | null;
+  /** Dockerfile path, relative to the base directory (the build context). */
+  dockerfile_location?: string | null;
+  dockerfile_target_build?: string | null;
+  /** Patterns of the files a push must touch to redeploy this application. */
+  watch_paths?: string | null;
   status: string | null;
   link?: string | null;
   fqdn?: string | null;

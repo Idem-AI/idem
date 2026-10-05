@@ -32,6 +32,7 @@ function target(overrides: Partial<WebhookTarget> = {}): WebhookTarget {
     gitBranch: 'main',
     autoDeployEnabled: true,
     secret: SECRET,
+    watchPaths: [],
     ...overrides,
   };
 }
@@ -201,5 +202,29 @@ describe('trigger wiring', () => {
     if (decision.deploy) await trigger();
 
     expect(trigger).not.toHaveBeenCalled();
+  });
+});
+
+describe('decideWebhookAction — watch paths', () => {
+  // One push to the IDEM monorepo reached all eight applications' webhooks,
+  // and every one of them rebuilt.
+  const api = target({ watchPaths: ['apps/api/**', 'packages/**', '!**/*.md'] });
+  const push = (files: string[]) => ({ branch: 'main', changedFiles: files });
+
+  it('deploys an application whose files changed', () => {
+    expect(decideWebhookAction(api, push(['apps/api/api/index.ts'])).deploy).toBe(true);
+    expect(decideWebhookAction(api, push(['packages/shared-models/src/x.ts'])).deploy).toBe(true);
+  });
+
+  it('ignores a push that touched only other applications, or only excluded files', () => {
+    const other = decideWebhookAction(api, push(['apps/landing/src/main.ts', 'apps/chart/x.ts']));
+    expect(other.deploy).toBe(false);
+    expect(other.reason).toMatch(/watch paths/);
+    expect(decideWebhookAction(api, push(['apps/api/README.md'])).deploy).toBe(false);
+  });
+
+  it('deploys when the push lists no files, or the application watches nothing', () => {
+    expect(decideWebhookAction(api, push([])).deploy).toBe(true);
+    expect(decideWebhookAction(target(), push(['anything.txt'])).deploy).toBe(true);
   });
 });
