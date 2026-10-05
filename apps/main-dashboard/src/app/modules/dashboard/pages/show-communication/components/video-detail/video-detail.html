@@ -16,6 +16,9 @@
         @if (v.type) {
           · {{ 'dashboard.showCommunication.video.types.' + v.type + '.label' | translate }}
         }
+        @if (v.storyboard.concept) {
+          · {{ 'dashboard.showCommunication.video.concepts.' + v.storyboard.concept | translate }}
+        }
       </p>
     </header>
 

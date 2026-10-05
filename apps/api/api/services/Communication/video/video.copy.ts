@@ -150,11 +150,24 @@ export const MEDIA_QUERY_ENTRY: CopyPlanEntry = {
  * capacités ; la scène « avantages » reçoit alors une ligne de plus (un mot par
  * avantage), le seul choix « visuel » laissé au modèle.
  */
-export function copyPlan(sceneIds: string[], withMediaQuery = false, icons?: string[]): CopyPlanEntry[] {
+export function copyPlan(
+  sceneIds: string[],
+  withMediaQuery = false,
+  icons?: string[],
+  opts: { hints?: Record<string, Record<string, string>>; accentIndex?: number; durationSec?: number } = {}
+): CopyPlanEntry[] {
+  // Vidéo courte : textes plus courts (règle reading-time, ≤ 3 mots/s).
+  const scale = opts.durationSec && opts.durationSec <= 6 ? 0.65 : 1;
   const entries = sceneIds.map((sceneId, i) => {
-    const slots = SCENES[sceneId]?.slots ?? [];
-    if (sceneId !== 'benefits' || !icons?.length) return { index: i + 1, sceneId, slots };
-    return { index: i + 1, sceneId, slots: [...slots, { key: 'icons', max: 90, hint: `one word per benefit, comma separated, from: ${icons.join(' ')}` }] };
+    // Consignes du concept (question, problème, preuve…) et du grand moment, préfixées aux cases.
+    const conceptHints = opts.hints?.[sceneId] || {};
+    let slots = (SCENES[sceneId]?.slots ?? []).map((slot) => {
+      const extra = [conceptHints[slot.key], i === opts.accentIndex && (slot.key === 'title' || slot.key === 'l1') ? 'the strongest line of the video' : ''].filter(Boolean).join('; ');
+      const sized = scale < 1 && slot.max > 20 ? { ...slot, max: Math.max(18, Math.round(slot.max * scale)) } : slot;
+      return extra ? { ...sized, hint: `${extra}. ${sized.hint}` } : sized;
+    });
+    if (sceneId === 'benefits' && icons?.length) slots = [...slots, { key: 'icons', max: 90, hint: `one word per benefit, comma separated, from: ${icons.join(' ')}` }];
+    return { index: i + 1, sceneId, slots };
   });
   return withMediaQuery ? [MEDIA_QUERY_ENTRY, ...entries] : entries;
 }
@@ -577,9 +590,9 @@ export async function writeCopy(
   brief: VideoBrief,
   ctx: CopyContext,
   writer?: CopyWriter,
-  opts: { mediaQuery?: boolean; icons?: string[] } = {}
+  opts: { mediaQuery?: boolean; icons?: string[]; hints?: Record<string, Record<string, string>>; accentIndex?: number; durationSec?: number } = {}
 ): Promise<WriteCopyResult> {
-  const plan = copyPlan(sceneIds, !!opts.mediaQuery, opts.icons);
+  const plan = copyPlan(sceneIds, !!opts.mediaQuery, opts.icons, { hints: opts.hints, accentIndex: opts.accentIndex, durationSec: opts.durationSec });
   const facts = extractFacts(`${brief.message}\n${brief.details || ''}`);
   let raw = '';
   let source: 'llm' | 'heuristic' = 'heuristic';

@@ -145,7 +145,8 @@
           "sat": "Sam",
           "sun": "Dim"
         },
-        "briefToggle": "L'idée de ce calendrier"
+        "briefToggle": "L'idée de ce calendrier",
+        "videoToDo": "Vidéo à générer"
       },
       "wizard": {
         "progress": "Avancement",
@@ -238,7 +239,15 @@
           "caption": "Le texte du post",
           "hashtags": "Mots-clés (#)",
           "callToAction": "Ce qu'on demande au lecteur"
-        }
+        },
+        "videoTitle": "La vidéo",
+        "videoType": "Type de vidéo",
+        "changeType": "Changer",
+        "videoDone": "Une vidéo a été créée pour cette publication.",
+        "openVideo": "Ouvrir la vidéo",
+        "anotherVideo": "Générer une autre version · {{price}} crédits",
+        "createVideo": "Générer la vidéo · {{price}} crédits",
+        "visualInstead": "Créer plutôt un visuel"
       },
       "preview": {
         "loading": "Chargement du visuel…",
@@ -785,7 +794,8 @@
               "image": "Photos",
               "video": "Vidéos (15 s max utilisées)",
               "model3d": "Modèle 3D (.glb)",
-              "lottie": "Animation Lottie (.json)"
+              "lottie": "Animation Lottie (.json)",
+              "rive": "Animation Rive (.riv)"
             },
             "add": "Ajouter",
             "remove": "Retirer",
@@ -797,6 +807,47 @@
           "sfx": {
             "label": "Effets sonores",
             "hint": "Whoosh sur les transitions, pop quand un prix apparaît, scintillement sur le logo."
+          },
+          "steps2": {
+            "1": "Décrire",
+            "2": "Configurer"
+          },
+          "chat": {
+            "question": "Décrivez la vidéo que vous voulez",
+            "help": "Avec vos mots, comme à un monteur. IDEM choisit le type de vidéo, ou en combine plusieurs (3D, clips, typographie, animation), selon ce que vous demandez.",
+            "placeholder": "Ex. : une vidéo pour annoncer notre nouveau jus de bissap à 1 000 F, avec la bouteille en 3D, et qui donne envie de commander sur WhatsApp.",
+            "attached": "Fichiers joints",
+            "attach": "Joindre des fichiers",
+            "uploading": "Envoi…",
+            "attachHint": "Photos, vidéos, modèle 3D (.glb), animation Lottie ou Rive : 8 fichiers au plus.",
+            "examplesTitle": "Pour vous lancer",
+            "examples": {
+              "ex1": "Annoncer nos soldes de fin d’année : −30 % sur toute la boutique jusqu’au 31 décembre.",
+              "ex2": "Présenter notre nouveau produit en 3D, avec trois avantages et un appel à commander.",
+              "ex3": "Inviter nos clients à l’ouverture de notre deuxième boutique, avec la date et l’adresse."
+            },
+            "autoType": "Type de vidéo : choisi par IDEM selon votre demande",
+            "forceType": "Imposer un type",
+            "hideTypes": "Laisser IDEM choisir",
+            "autoShort": "Automatique",
+            "autoHint": "IDEM choisit, ou combine plusieurs types",
+            "enhance": "Améliorer ma demande",
+            "enhancing": "Amélioration…",
+            "enhanced": "Demande améliorée par IDEM. Vous pouvez la modifier.",
+            "restore": "Revenir à ma version"
+          },
+          "config": {
+            "question": "Configurez votre vidéo",
+            "help": "Quatre réglages, et c’est parti. Le reste est déjà réglé selon votre charte graphique.",
+            "where": "Où allez-vous la publier ?",
+            "whereHint": "Choisissez un ou plusieurs formats : chacun est livré dans sa vraie forme.",
+            "howLong": "Combien de temps ?",
+            "quality": "Quelle qualité ?",
+            "music": "Quelle ambiance sonore ?",
+            "more": "Plus d’options (direction de motion, effets sonores, banques d’images)",
+            "summary": "Votre vidéo",
+            "mediaCount": "{{count}} fichier(s) joint(s)",
+            "priceHint": "Le premier export MP4 est inclus. Les retouches de texte sont gratuites."
           }
         },
         "detail": {
@@ -898,7 +949,8 @@
           "music": "Impossible de charger les morceaux.",
           "export": "L’export n’a pas pu démarrer.",
           "delete": "La vidéo n’a pas pu être supprimée.",
-          "upload": "Le fichier n’a pas pu être envoyé (photo 12 Mo, vidéo 80 Mo, 3D 20 Mo, Lottie 3 Mo)."
+          "upload": "Le fichier n’a pas pu être envoyé (photo 12 Mo, vidéo 80 Mo, 3D 20 Mo, Lottie 3 Mo).",
+          "enhance": "La demande n’a pas pu être améliorée. Réessayez dans un instant."
         },
         "types": {
           "kinetic": {
@@ -940,6 +992,11 @@
             "label": "Révélation de logo",
             "hint": "Une signature de marque courte",
             "uses": "Votre logo, 6 ou 15 s"
+          },
+          "mix": {
+            "label": "Vidéo combinée",
+            "hint": "Plusieurs procédés dans la même vidéo : 3D, clips, typographie, animation",
+            "uses": "Tout ce qui sert le message"
           }
         },
         "sfx": {
@@ -980,7 +1037,9 @@
             "music": "« {{title}} » — {{artist}} · {{bpm}} BPM",
             "musicNone": "Sans musique",
             "sfx": "{{count}} sons choisis",
-            "storyboard": "{{count}} scènes, coupes sur le temps ({{bpm}} BPM)"
+            "storyboard": "{{count}} scènes, coupes sur le temps ({{bpm}} BPM)",
+            "planType": "{{type}} · {{count}} scènes pour {{seconds}} s",
+            "planConcept": "{{type}} · {{concept}} · {{count}} scènes pour {{seconds}} s"
           }
         },
         "directions": {
@@ -1021,6 +1080,21 @@
             "label": "Monochrome",
             "hint": "Une seule teinte en clair et en profond, images en bichromie."
           }
+        },
+        "concepts": {
+          "question": "Question → réponse",
+          "problem-solution": "Problème → solution",
+          "product-hero": "Le produit en héros",
+          "manifesto": "Manifeste",
+          "offer-blast": "Offre choc",
+          "proof": "La preuve d’abord",
+          "journey": "Sur le terrain",
+          "teaser": "Teaser",
+          "invitation": "Invitation",
+          "showcase": "Vitrine",
+          "reasons": "Les raisons de nous choisir",
+          "celebration": "Célébration",
+          "logo-sting": "Signature"
         }
       }
     }

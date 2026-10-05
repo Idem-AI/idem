@@ -41,7 +41,16 @@ export type TextTechnique =
   | 'scramble'
   | 'boxReveal'
   | 'stackPush'
-  | 'slideAlternate';
+  | 'slideAlternate'
+  // Vocabulaire élargi (ressorts motion, 3D, dispersion, contour) : chaque direction en reçoit quelques-unes.
+  | 'springUp'
+  | 'wave'
+  | 'stretch'
+  | 'rotateX'
+  | 'zoomWords'
+  | 'skewIn'
+  | 'scatter'
+  | 'outlineFill';
 
 /** Transitions (moteur React, `video-engine/src/transitions.ts`). */
 export type MotionTransition =
@@ -97,7 +106,7 @@ export interface DirectionDef {
   /** Mouvement « image par image » (2 = animé à 12 i/s, collage). 0 = fluide. */
   stepped: 0 | 2;
   /** Mouvement de caméra lent sur les scènes de lecture. */
-  camera: 'still' | 'push' | 'drift';
+  camera: 'still' | 'push' | 'drift' | 'pull' | 'rise' | 'tilt';
   /** Petit libellé au-dessus du titre : sur l'accroche seulement, ou jamais. */
   kicker: 'hook' | 'never';
 }
@@ -107,8 +116,8 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'editorial',
     type: { displayCase: 'none', tracking: -0.02, weight: 600, lineHeight: 1.06, scale: 0.95 },
     anchors: ['bottom-left', 'top-left', 'center-left', 'right'],
-    headline: ['lineWipe', 'maskUp', 'blurWords', 'trackIn'],
-    support: ['blurWords', 'lineWipe'],
+    headline: ['lineWipe', 'maskUp', 'blurWords', 'trackIn', 'rotateX', 'scatter', 'outlineFill'],
+    support: ['blurWords', 'lineWipe', 'scatter'],
     transitions: ['dissolve', 'cut', 'wipe', 'slideOver'],
     pacing: { enter: 0.9, unitStagger: 0.08, groupStagger: 0.32, transition: 0.7 },
     ease: { out: [0.16, 1, 0.3, 1], in: [0.7, 0, 0.84, 0] },
@@ -123,8 +132,8 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'swiss',
     type: { displayCase: 'none', tracking: -0.035, weight: 800, lineHeight: 0.98, scale: 1.05 },
     anchors: ['top-left', 'bottom-left', 'center-left', 'right'],
-    headline: ['slideAlternate', 'maskUp', 'trackIn', 'stackPush'],
-    support: ['maskUp', 'blurWords'],
+    headline: ['slideAlternate', 'maskUp', 'trackIn', 'stackPush', 'rotateX', 'skewIn'],
+    support: ['maskUp', 'blurWords', 'rotateX'],
     transitions: ['cut', 'push', 'wipe', 'blockStack'],
     pacing: { enter: 0.55, unitStagger: 0.06, groupStagger: 0.28, transition: 0.45 },
     ease: { out: [0.22, 1, 0.36, 1], in: [0.64, 0, 0.78, 0] },
@@ -139,8 +148,8 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'brutal',
     type: { displayCase: 'upper', tracking: -0.03, weight: 900, lineHeight: 0.92, scale: 1.25 },
     anchors: ['center-left', 'top-left', 'bottom-left', 'center'],
-    headline: ['stackPush', 'boxReveal', 'slideAlternate', 'maskUp'],
-    support: ['boxReveal', 'maskUp'],
+    headline: ['stackPush', 'boxReveal', 'slideAlternate', 'maskUp', 'skewIn', 'stretch', 'zoomWords'],
+    support: ['boxReveal', 'maskUp', 'skewIn'],
     transitions: ['cut', 'blockStack', 'flashCut', 'push'],
     pacing: { enter: 0.42, unitStagger: 0.05, groupStagger: 0.22, transition: 0.36 },
     ease: { out: [0.33, 1, 0.68, 1], in: [0.32, 0, 0.67, 0] },
@@ -155,8 +164,8 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'kinetic',
     type: { displayCase: 'none', tracking: -0.03, weight: 800, lineHeight: 1.0, scale: 1.12 },
     anchors: ['center', 'center-left', 'bottom-center', 'top-left'],
-    headline: ['charCascade', 'scaleBlur', 'flipChars', 'scramble'],
-    support: ['blurWords', 'charCascade'],
+    headline: ['charCascade', 'scaleBlur', 'flipChars', 'scramble', 'springUp', 'zoomWords', 'stretch', 'wave'],
+    support: ['blurWords', 'charCascade', 'springUp'],
     transitions: ['zoomThrough', 'whip', 'flashCut', 'iris', 'push'],
     pacing: { enter: 0.6, unitStagger: 0.025, groupStagger: 0.25, transition: 0.42 },
     ease: { out: [0.16, 1, 0.3, 1], in: [0.7, 0, 0.84, 0] },
@@ -171,8 +180,8 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'cinematic',
     type: { displayCase: 'none', tracking: 0.01, weight: 500, lineHeight: 1.1, scale: 0.9 },
     anchors: ['bottom-center', 'center', 'bottom-left'],
-    headline: ['blurWords', 'trackIn', 'scaleBlur', 'lineWipe'],
-    support: ['blurWords'],
+    headline: ['blurWords', 'trackIn', 'scaleBlur', 'lineWipe', 'outlineFill', 'rotateX'],
+    support: ['blurWords', 'lineWipe'],
     transitions: ['dissolve', 'dissolve', 'zoomThrough', 'cut'],
     pacing: { enter: 1.2, unitStagger: 0.1, groupStagger: 0.45, transition: 1.0 },
     ease: { out: [0.25, 1, 0.5, 1], in: [0.5, 0, 0.75, 0] },
@@ -187,8 +196,8 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'collage',
     type: { displayCase: 'none', tracking: -0.01, weight: 800, lineHeight: 1.02, scale: 1.0 },
     anchors: ['center-left', 'top-left', 'bottom-left', 'right', 'center'],
-    headline: ['boxReveal', 'slideAlternate', 'typewriter', 'charCascade'],
-    support: ['typewriter', 'boxReveal'],
+    headline: ['boxReveal', 'slideAlternate', 'typewriter', 'charCascade', 'wave', 'scatter', 'springUp'],
+    support: ['typewriter', 'boxReveal', 'scatter'],
     transitions: ['slideOver', 'push', 'cut', 'blockStack'],
     pacing: { enter: 0.6, unitStagger: 0.07, groupStagger: 0.3, transition: 0.5 },
     ease: { out: [0.34, 1.56, 0.64, 1], in: [0.36, 0, 0.66, -0.56] },
@@ -203,8 +212,8 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'precision',
     type: { displayCase: 'none', tracking: -0.025, weight: 600, lineHeight: 1.04, scale: 0.92 },
     anchors: ['center', 'top-center', 'bottom-left', 'center-left'],
-    headline: ['maskUp', 'trackIn', 'lineWipe', 'blurWords'],
-    support: ['maskUp', 'blurWords'],
+    headline: ['maskUp', 'trackIn', 'lineWipe', 'blurWords', 'rotateX', 'outlineFill'],
+    support: ['maskUp', 'blurWords', 'rotateX'],
     transitions: ['iris', 'dissolve', 'slideOver', 'cut'],
     pacing: { enter: 0.8, unitStagger: 0.07, groupStagger: 0.35, transition: 0.65 },
     ease: { out: [0.19, 1, 0.22, 1], in: [0.95, 0.05, 0.795, 0.035] },
@@ -219,8 +228,8 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'drenched',
     type: { displayCase: 'none', tracking: -0.03, weight: 800, lineHeight: 0.98, scale: 1.1 },
     anchors: ['bottom-left', 'center-left', 'top-left', 'center'],
-    headline: ['boxReveal', 'maskUp', 'stackPush', 'slideAlternate'],
-    support: ['maskUp', 'lineWipe'],
+    headline: ['boxReveal', 'maskUp', 'stackPush', 'slideAlternate', 'zoomWords', 'springUp', 'outlineFill'],
+    support: ['maskUp', 'lineWipe', 'zoomWords'],
     transitions: ['iris', 'wipe', 'cut', 'zoomThrough'],
     pacing: { enter: 0.7, unitStagger: 0.06, groupStagger: 0.3, transition: 0.55 },
     ease: { out: [0.22, 1, 0.36, 1], in: [0.64, 0, 0.78, 0] },
@@ -243,6 +252,8 @@ const TYPE_AFFINITY: Record<VideoType, DirectionId[]> = {
   illustrated: ['collage', 'kinetic', 'drenched', 'editorial'],
   slideshow: ['editorial', 'cinematic', 'swiss', 'collage', 'precision'],
   logo: ['precision', 'cinematic', 'brutal', 'drenched'],
+  // Combinée : toutes les directions, la DA de la marque départage.
+  mix: ['editorial', 'swiss', 'brutal', 'kinetic', 'cinematic', 'collage', 'precision', 'drenched'],
 };
 
 /** Direction artistique de la marque → directions qui lui ressemblent (poids). */
@@ -273,18 +284,24 @@ const ART_AFFINITY: Record<string, DirectionId[]> = {
 export function pickDirection(opts: {
   type: VideoType;
   artStyleId?: string;
+  /** Directions admises par la DA de la charte (video.artdirection.ts) : elles l'emportent sur le type. */
+  artDirections?: DirectionId[];
   seed: number;
   avoid?: string[];
   requested?: DirectionId;
 }): DirectionId {
   if (opts.requested && DIRECTION_IDS.includes(opts.requested)) return opts.requested;
-  const pool = TYPE_AFFINITY[opts.type] || DIRECTION_IDS;
-  const art = ART_AFFINITY[(opts.artStyleId || '').toLowerCase()] || [];
+  const typePool = TYPE_AFFINITY[opts.type] || DIRECTION_IDS;
+  const art = opts.artDirections?.length ? opts.artDirections : ART_AFFINITY[(opts.artStyleId || '').toLowerCase()] || [];
+  // La charte d'abord : les directions de sa DA compatibles avec le type, sinon celles de la DA seules.
+  const both = typePool.filter((id) => art.includes(id));
+  const pool = art.length ? (both.length ? both : art) : typePool;
   const recent = (opts.avoid || []).slice(-3);
   const weighted: DirectionId[] = [];
   for (const id of pool) {
     if (recent.includes(id) && pool.some((p) => !recent.includes(p))) continue;
-    const weight = 1 + (art.includes(id) ? 2 : 0);
+    // La première direction de la DA est la plus fidèle : elle pèse plus.
+    const weight = 1 + (art[0] === id ? 2 : art.includes(id) ? 1 : 0);
     for (let k = 0; k < weight; k++) weighted.push(id);
   }
   const r = rng(opts.seed ^ 0xd1ec7);
@@ -319,7 +336,7 @@ const FIXED_LAYOUT = new Set(['logo', 'gallery', 'showcase3d']);
  * Le plan de mouvement : ancrage, techniques et transition pour chaque scène,
  * tirés dans la direction, puis passés au contrôle anti-réflexe.
  */
-export function planMotion(sceneIds: string[], direction: DirectionId, seed: number, opts: { landscape?: boolean } = {}): SceneMotion[] {
+export function planMotion(sceneIds: string[], direction: DirectionId, seed: number, opts: { landscape?: boolean; avoidHeadlines?: string[] } = {}): SceneMotion[] {
   const d = DIRECTIONS[direction];
   const r = rng(seed ^ 0x5ce4e);
   const pick = <T,>(list: T[], avoid?: T): T => {
@@ -328,10 +345,12 @@ export function planMotion(sceneIds: string[], direction: DirectionId, seed: num
     return from[Math.floor(r() * from.length)];
   };
   // « Le moins récemment utilisé » : ni répétition, ni alternance A·B·A·B.
-  const recent: Record<string, unknown[]> = { headline: [], transition: [], anchor: [] };
+  // Les entrées de la vidéo précédente du projet partent « déjà utilisées » : la nouvelle en choisit d'autres.
+  const recent: Record<string, unknown[]> = { headline: [...(opts.avoidHeadlines || [])].filter((h) => (d.headline as string[]).includes(h)), transition: [], anchor: [] };
   const lru = <T,>(key: string, list: T[]): T => {
     const used = recent[key] as T[];
-    const fresh = list.filter((x) => !used.slice(-Math.min(list.length - 1, 2)).includes(x));
+    // Fenêtre d'oubli : 2 pour les petits menus, 4 quand la direction offre 6 entrées ou plus.
+    const fresh = list.filter((x) => !used.slice(-Math.min(list.length - 1, list.length >= 6 ? 4 : 2)).includes(x));
     const choice = (fresh.length ? fresh : list)[Math.floor(r() * (fresh.length || list.length))];
     used.push(choice);
     return choice;

@@ -39,6 +39,9 @@ export class VideoPanel {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly projectId = input.required<string>();
+  /** Vidéo à ouvrir dès qu'elle est chargée (depuis le calendrier). */
+  readonly openVideoId = input<string | null>(null);
+  readonly openHandled = output<void>();
   readonly failed = output<string>();
   readonly needsCredits = output<{ cost: number; balance: number }>();
 
@@ -52,9 +55,19 @@ export class VideoPanel {
       const projectId = this.projectId();
       untracked(() => this.load(projectId));
     });
+    // Une vidéo demandée depuis le calendrier s'ouvre dès que la liste est là.
+    effect(() => {
+      const id = this.openVideoId();
+      if (!id || this.loading()) return;
+      untracked(() => {
+        if (this.videos().some((v) => v.id === id)) this.view.set({ kind: 'detail', videoId: id });
+        else this.load(this.projectId(), id);
+        this.openHandled.emit();
+      });
+    });
   }
 
-  private load(projectId: string): void {
+  private load(projectId: string, open?: string): void {
     this.loading.set(true);
     forkJoin({ options: this.service.options(projectId), videos: this.service.list(projectId) })
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -63,6 +76,7 @@ export class VideoPanel {
           this.options.set(options);
           this.videos.set(this.sorted(videos));
           this.loading.set(false);
+          if (open && videos.some((v) => v.id === open)) this.view.set({ kind: 'detail', videoId: open });
         },
         error: () => {
           this.loading.set(false);

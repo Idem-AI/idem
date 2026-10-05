@@ -33,6 +33,9 @@ graph LR
   addon_rive["addon:rive"]
   lib_rive["lib:rive"]
   addon_rive --> lib_rive
+  entrance_spring["entrance:spring"]
+  lib_motion["lib:motion"]
+  entrance_spring --> lib_motion
   logo_trace["logo:trace"]
   logo_trace --> addon_gsap
   logo_morph["logo:morph"]
@@ -62,7 +65,6 @@ graph LR
   lib_heroicons["lib:heroicons"]
   icons_heroicons_solid --> lib_heroicons
   easing_spring["easing:spring"]
-  lib_motion["lib:motion"]
   easing_spring --> lib_motion
   postfx_bloom["postfx:bloom"]
   postfx_bloom --> addon_three
@@ -106,6 +108,82 @@ graph LR
 | `addon:flubber` | addon-flubber.js | Paquet du moteur chargé seulement si un nœud retenu l'exige. | `lib:flubber` | — | — | 1 | pure | `public/video-engine/addon-flubber.js` |
 | `addon:lottie` | addon-lottie.js | Paquet du moteur chargé seulement si un nœud retenu l'exige. | `lib:lottie` | — | — | 1 | seek | `public/video-engine/addon-lottie.js` |
 | `addon:rive` | addon-rive.js | Paquet du moteur chargé seulement si un nœud retenu l'exige. | `lib:rive` | — | — | 2 | seek | `public/video-engine/addon-rive.js` |
+
+## Concepts narratifs (le modèle en choisit un, parmi les 5 que le graphe propose)
+
+| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
+|---|---|---|---|---|---|---|---|---|
+| `concept:question` | question | ask the audience's own question, then answer it | — | — | dir. editorial 1, swiss 1, precision 1 · types kinetic 1.5, product 1, illustrated 1, mix 1 · obj. announce 1.5, product 1, recruitment 1, testimonial 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:problem-solution` | problem-solution | name an everyday problem, then show it solved | — | — | dir. kinetic 1, brutal 1, swiss 0.5 · types product 1.5, showcase3d 1, kinetic 1, footage 1, mix 1.5 · obj. product 1.5, promotion 1, announce 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:product-hero` | product-hero | reveal the product like a hero, then its strengths | — | — | dir. precision 1, cinematic 1, drenched 1 · types product 2, showcase3d 2.5, promo 1, slideshow 1, mix 1 · obj. product 2.5, promotion 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:manifesto` | manifesto | short brand beliefs, one after another | — | — | dir. brutal 2, swiss 1, kinetic 1, editorial 0.5 · types kinetic 2.5, mix 1 · obj. announce 1.5, recruitment 1, opening 0.5 · DA maximalism 1, graffiti 1.5, swiss 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:offer-blast` | offer-blast | hit with the offer, create urgency, then act | — | — | dir. kinetic 1.5, brutal 1.5, drenched 1 · types promo 3, product 0.5, mix 1 · obj. promotion 3 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:proof` | proof | lead with proof: a number, a customer's words | — | — | dir. precision 1.5, editorial 1, swiss 1 · types kinetic 1, footage 0.5, mix 1 · obj. testimonial 3, recruitment 1, product 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:journey` | journey | real scenes from the field, with captions | — | — | dir. cinematic 2, editorial 1 · types footage 3, slideshow 1, mix 1 · obj. announce 1, opening 1, recruitment 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:teaser` | teaser | intrigue first, reveal at the end | — | — | dir. cinematic 1.5, kinetic 1, drenched 1 · types showcase3d 1.5, kinetic 1, product 1, footage 0.5, mix 1.5 · obj. event 1.5, opening 1.5, product 1, announce 1 · DA surreal 1, aurora 1, futuristic 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:invitation` | invitation | invite: the occasion, the date, the place | — | — | dir. collage 1, editorial 1, kinetic 0.5 · types illustrated 2, kinetic 1, slideshow 0.5, mix 1 · obj. event 3, opening 2.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:showcase` | showcase | a gallery of the work, then one strong line | — | — | dir. editorial 1.5, collage 1, cinematic 1 · types slideshow 3, product 1, mix 1 · obj. product 1, announce 1, opening 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:reasons` | reasons | why choose us: the reasons, one by one | — | — | dir. swiss 1, precision 1, collage 0.5 · types kinetic 1, product 1, illustrated 1, promo 0.5, mix 1 · obj. recruitment 1.5, product 1, announce 1, promotion 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:celebration` | celebration | celebrate a moment with the community | — | — | dir. collage 2, kinetic 1, drenched 0.5 · types illustrated 2.5, mix 1 · obj. event 1, announce 1, opening 1 · DA pop-art 1, clay 1, y2k 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:logo-sting` | logo-sting | a short signature: one word, then the logo | — | — | types logo 5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+
+## Rythmes (le modèle en choisit un parmi 3 ; jamais celui des dernières vidéos)
+
+| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
+|---|---|---|---|---|---|---|---|---|
+| `rhythm:steady` | Régulier | Chaque scène a son temps de lecture, coupes sur le temps. | — | — | dir. precision 1.5, swiss 1.5, editorial 1 · obj. announce 0.5, recruitment 0.5 | 0 | pure | `api/services/Communication/video/video.rhythm.ts` |
+| `rhythm:crescendo` | Crescendo | Ça s’accélère jusqu’au grand moment, puis la signature respire. | — | — | dir. kinetic 2, drenched 1.5, brutal 1, swiss 0.5 · obj. promotion 1, event 1, opening 1 | 0 | pure | `api/services/Communication/video/video.rhythm.ts` |
+| `rhythm:staccato` | Staccato | Coupes sèches sur chaque temps, textes brefs. | — | — | dir. brutal 2, kinetic 2, collage 1 · obj. promotion 1.5 | 0 | pure | `api/services/Communication/video/video.rhythm.ts` |
+| `rhythm:breathe` | Ample | Longues tenues, entrées lentes, coupes à la mesure. | — | — | dir. cinematic 2.5, editorial 2, precision 1 · obj. testimonial 1, announce 0.5 | 0 | pure | `api/services/Communication/video/video.rhythm.ts` |
+| `rhythm:drop` | Montée puis drop | Une montée lente, puis tout s’accélère au grand moment. | — | — | dir. drenched 2, kinetic 1.5, cinematic 1, brutal 1, collage 0.5 · obj. product 1, opening 1 | 0 | pure | `api/services/Communication/video/video.rhythm.ts` |
+
+## Caméras (une par vidéo)
+
+| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
+|---|---|---|---|---|---|---|---|---|
+| `camera:still` | Fixe | Aucun mouvement de caméra : la typographie porte tout. | — | — | dir. swiss 2, brutal 2, collage 1.5 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
+| `camera:push` | Poussée | La caméra avance lentement vers le texte. | — | — | dir. cinematic 2, kinetic 1.5, drenched 1.5 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
+| `camera:pull` | Recul | La caméra recule et se pose. | — | — | dir. precision 1.5, cinematic 1.5, editorial 1 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
+| `camera:drift` | Dérive | Un glissement latéral, dans un sens puis dans l’autre. | — | — | dir. editorial 2, precision 1.5, cinematic 1 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
+| `camera:rise` | Élévation | Le bloc monte doucement pendant la scène. | — | — | dir. drenched 1, kinetic 1, collage 1, editorial 0.5 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
+| `camera:tilt` | Bascule 3D | Légère rotation en perspective, comme un plan tourné. | — | — | dir. kinetic 1.5, precision 1, drenched 1 · DA futuristic 2, glassmorphism 1.5, cyberpunk 1 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
+
+## Entrées des éléments (une famille par vidéo)
+
+| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
+|---|---|---|---|---|---|---|---|---|
+| `entrance:rise` | Montée | Les éléments montent en fondu. | — | — | dir. editorial 1.5, precision 1.5, cinematic 1.5, swiss 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
+| `entrance:spring` | Ressort | Les éléments dépassent leur place puis se posent (ressort physique motion). | `lib:motion` | — | dir. kinetic 2, collage 1.5, drenched 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
+| `entrance:flip` | Bascule | Les éléments basculent vers le spectateur (3D). | — | — | dir. swiss 1.5, precision 1.5, kinetic 1, editorial 0.5 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
+| `entrance:unfold` | Dépliage | Les éléments se déplient depuis leur bord haut. | — | — | dir. editorial 1.5, swiss 1.5, brutal 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
+| `entrance:skew` | Glissé penché | Les éléments arrivent penchés, puis se redressent. | — | — | dir. brutal 2, kinetic 1, swiss 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
+| `entrance:iris` | Iris | Les éléments s’ouvrent depuis leur centre. | — | — | dir. cinematic 1.5, drenched 1.5, precision 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
+| `entrance:drop` | Chute | Les éléments tombent et se posent de travers, comme des papiers. | — | — | dir. collage 2, kinetic 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
+| `entrance:pop` | Pop | Les éléments jaillissent en tournant légèrement. | — | — | dir. kinetic 1.5, collage 1.5 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
+| `entrance:slideLeft` | Glissé | Les éléments glissent depuis la droite. | — | — | dir. swiss 1.5, brutal 1.5, precision 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
+
+## Mises en scène des plans (une par plan, jamais deux fois de suite)
+
+| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
+|---|---|---|---|---|---|---|---|---|
+| `treatment:split` | Écran partagé | Le clip sur une moitié du cadre, le texte sur l’aplat de la marque, une couture de couleur. | — | — | dir. swiss 2, precision 2, editorial 1, brutal 1 · DA swiss 1.5, minimalism 1 | 0 | pure | `video-engine/src/treatments.tsx#Split` |
+| `treatment:window` | Fenêtre | Le clip apparaît dans une forme qui s’ouvre : arche, cercle ou rectangle. | — | — | dir. editorial 2, collage 2, cinematic 1, drenched 1, kinetic 1, precision 1 · DA bohemian 1.5, retro 1, handwritten 1, victorian 1 | 0 | pure | `video-engine/src/treatments.tsx#Window` |
+| `treatment:blinds` | Lames | Des lames découvrent le clip ; une bande reste et porte le titre. | — | — | dir. brutal 2, swiss 1.5, kinetic 1.5, drenched 1 · DA maximalism 1, graffiti 1 | 0 | pure | `video-engine/src/treatments.tsx#Blinds` |
+| `treatment:magazine` | Page de magazine | Titre en haut, clip encadré au centre, légende en bas, filet décalé. | — | — | dir. editorial 2.5, precision 1.5, swiss 1, collage 1 · DA editorial 2, minimalism 1 | 0 | pure | `video-engine/src/treatments.tsx#Magazine` |
+| `treatment:knockout` | Clip dans les lettres | Le clip joue dans les lettres géantes du titre, puis la caméra traverse le texte. | — | — | dir. kinetic 2, brutal 2, drenched 1.5, swiss 1, editorial 0.5 · DA maximalism 1.5, pop-art 1, cyberpunk 1, futuristic 1 | 0 | pure | `video-engine/src/treatments.tsx#Knockout` |
+| `treatment:inline` | Clip dans la phrase | Le clip dans une capsule insérée au milieu du titre. | — | — | dir. kinetic 2, collage 2, editorial 1, precision 1 · DA y2k 1.5, clay 1, pop-art 1 | 0 | pure | `video-engine/src/treatments.tsx#Inline` |
+| `treatment:duotone` | Bichromie | Le clip aux couleurs de la marque, titre géant au trait. | — | — | dir. drenched 3, kinetic 1, brutal 1 · DA aurora 1, surreal 1, pop-art 1 | 0 | pure | `video-engine/src/treatments.tsx#Duotone` |
+| `treatment:broadcast` | Barre de titre | Barre et onglet façon télévision, sur le clip plein cadre. | — | — | dir. precision 2, swiss 1.5 | 0 | pure | `video-engine/src/treatments.tsx#Broadcast` |
+| `treatment:cinema` | Cinéma | Sous-titres sur le clip, vignettage de film. | — | — | dir. cinematic 3 | 0 | pure | `video-engine/src/treatments.tsx#Cinema` |
+
+## Grand moment (la scène est choisie par le modèle, l’effet par la direction)
+
+| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
+|---|---|---|---|---|---|---|---|---|
+| `accent:punch` | Coup de poing | Zoom bref et éclair de couleur à l’entrée de la scène, son d’impact. | — | — | dir. brutal 2.5, kinetic 2, collage 1.5 | 0 | pure | `video-engine/src/App.tsx#AccentFlash` |
+| `accent:giant` | Titre géant | Le titre de la scène occupe tout le cadre. | — | — | dir. swiss 2, brutal 1.5, drenched 1.5, precision 1, kinetic 1 | 0 | pure | `video-engine/src/scenes.tsx#Headline` |
+| `accent:hold` | Temps suspendu | La scène dure plus longtemps et ses entrées ralentissent : on laisse respirer. | — | — | dir. cinematic 2.5, editorial 2, precision 1 | 0 | pure | `video-engine/src/text.tsx#Kinetic` |
+| `accent:flip` | Bascule de couleur | La scène prend la couleur qui tranche avec ses voisines. | — | — | dir. drenched 2, swiss 1.5, precision 1, editorial 0.5 | 0 | static | `api/services/Communication/video/video.storyboard.ts` |
 
 ## Animations du logo
 
@@ -155,6 +233,13 @@ graph LR
 | `icons:phosphor-duotone` | Phosphor Duotone | Deux tons, façon découpage. | `lib:phosphor` | — | dir. collage 3 · DA collage-art 1, clay 1 | 0 | static | — |
 | `icons:heroicons-solid` | Heroicons Solid | Plein et dense, lisible sur aplat. | `lib:heroicons` | — | dir. drenched 3 | 0 | static | — |
 
+## Logo pendant la vidéo
+
+| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
+|---|---|---|---|---|---|---|---|---|
+| `brandmark:none` | Pas de logo pendant la vidéo | Le logo n’apparaît qu’à la signature finale. | — | — | dir. brutal 2, cinematic 2, kinetic 1.5, collage 1.5, drenched 1 · types logo 3, kinetic 1 | 0 | static | — |
+| `brandmark:corner` | Logo discret en coin | Le logo en monochrome (couleur du texte de la scène), sans conteneur, dans le coin que la composition laisse libre ; masqué sur les plans plein cadre. | — | logo SVG | dir. swiss 2, precision 2, editorial 1.5 · types footage 1.5, slideshow 1, product 1, mix 1 · DA minimalism 1, swiss 1.5, editorial 1 | 0 | pure | `video-engine/src/App.tsx#Brandmark` |
+
 ## Courbes
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
@@ -185,13 +270,21 @@ graph LR
 | `technique:maskUp` | editorial, swiss, brutal, precision, drenched |
 | `technique:blurWords` | editorial, swiss, kinetic, cinematic, precision |
 | `technique:trackIn` | editorial, swiss, cinematic, precision |
+| `technique:rotateX` | editorial, swiss, cinematic, precision |
+| `technique:scatter` | editorial, collage |
+| `technique:outlineFill` | editorial, cinematic, precision, drenched |
 | `technique:slideAlternate` | swiss, brutal, collage, drenched |
 | `technique:stackPush` | swiss, brutal, drenched |
+| `technique:skewIn` | swiss, brutal |
 | `technique:boxReveal` | brutal, collage, drenched |
+| `technique:stretch` | brutal, kinetic |
+| `technique:zoomWords` | brutal, kinetic, drenched |
 | `technique:charCascade` | kinetic, collage |
 | `technique:scaleBlur` | kinetic, cinematic |
 | `technique:flipChars` | kinetic |
 | `technique:scramble` | kinetic |
+| `technique:springUp` | kinetic, collage, drenched |
+| `technique:wave` | kinetic, collage |
 | `technique:typewriter` | collage |
 
 ## Transitions (générées depuis les directions)
@@ -238,7 +331,13 @@ Kit : logo `assemble`, fond `shape-field` sur stat-3, hook-1, annotation `marker
     - écartés : `annotate:circle` (score 3.50, proche du meilleur : non tiré), `annotate:none` (score 1.00 < 3.50), `annotate:underline` (score 1.00 < 3.50)
   - **icons** → `icons:phosphor-fill` (score 5.50 : direction kinetic +4.5)
     - écartés : `icons:heroicons-solid` (score 1.00 < 4.75), `icons:lucide` (score 1.00 < 4.75), `icons:phosphor-bold` (score 1.00 < 4.75), `icons:phosphor-duotone` (score 1.00 < 4.75), `icons:phosphor-light` (score 1.00 < 4.75), `icons:phosphor-thin` (score 1.00 < 4.75)
+  - **brandmark** → `brandmark:none` (score 3.25 : direction kinetic +2.25)
+    - écartés : `brandmark:corner` (score 1.00 < 2.50)
   - **easing** → `easing:spring` (score 1.00 : direction kinetic à rebond)
+  - **camera** → `camera:rise` (score 2.50 : direction kinetic +1.5)
+    - écartés : `camera:push` (score 3.25, proche du meilleur : non tiré), `camera:tilt` (score 3.25, proche du meilleur : non tiré), `camera:drift` (score 1.00 < 2.50), `camera:pull` (score 1.00 < 2.50), `camera:still` (score 1.00 < 2.50)
+  - **entrance** → `entrance:spring` (score 4.00 : direction kinetic +3)
+    - écartés : `entrance:pop` (score 3.25, proche du meilleur : non tiré), `entrance:drop` (score 2.50 < 3.25), `entrance:flip` (score 2.50 < 3.25), `entrance:skew` (score 2.50 < 3.25), `entrance:iris` (score 1.00 < 3.25), `entrance:rise` (score 1.00 < 3.25)
 
 ### Bissap Délices — produit, éditorial
 
@@ -252,6 +351,12 @@ Kit : logo `trace`, fond `halftone` sur stat-3, hook-1, annotation `underline`, 
     - écartés : `annotate:marker` (score 2.50 < 3.25), `annotate:none` (score 1.75 < 3.25), `annotate:circle` (score 1.00 < 3.25)
   - **icons** → `icons:phosphor-light` (score 5.50 : direction editorial +4.5)
     - écartés : `icons:lucide` (score 1.75 < 4.75), `icons:heroicons-solid` (score 1.00 < 4.75), `icons:phosphor-bold` (score 1.00 < 4.75), `icons:phosphor-duotone` (score 1.00 < 4.75), `icons:phosphor-fill` (score 1.00 < 4.75), `icons:phosphor-thin` (score 1.00 < 4.75)
+  - **brandmark** → `brandmark:corner` (score 4.25 : direction editorial +2.25, type product +1)
+    - écartés : `brandmark:none` (score 1.00 < 3.50)
+  - **camera** → `camera:drift` (score 4.00 : direction editorial +3)
+    - écartés : `camera:pull` (score 2.50 < 3.25), `camera:rise` (score 1.75 < 3.25), `camera:push` (score 1.00 < 3.25), `camera:still` (score 1.00 < 3.25), `camera:tilt` (score 1.00 < 3.25)
+  - **entrance** → `entrance:rise` (score 3.25 : direction editorial +2.25)
+    - écartés : `entrance:unfold` (score 3.25, proche du meilleur : non tiré), `entrance:flip` (score 1.75 < 2.50), `entrance:drop` (score 1.00 < 2.50), `entrance:iris` (score 1.00 < 2.50), `entrance:pop` (score 1.00 < 2.50), `entrance:skew` (score 1.00 < 2.50)
 
 ### Kofi Tech — logo, précision, premium
 
@@ -265,6 +370,12 @@ Kit : logo `draw`, fond `none` sur —, annotation `none`, icônes `lucide`, add
     - écartés : `annotate:circle` (score 1.00 < 3.25), `annotate:marker` (score 1.00 < 3.25), `annotate:underline` (score 1.00 < 3.25)
   - **icons** → `icons:lucide` (score 5.50 : direction precision +4.5)
     - écartés : `icons:tabler` (score 2.50 < 4.75), `icons:heroicons-solid` (score 1.00 < 4.75), `icons:phosphor-bold` (score 1.00 < 4.75), `icons:phosphor-duotone` (score 1.00 < 4.75), `icons:phosphor-fill` (score 1.00 < 4.75), `icons:phosphor-light` (score 1.00 < 4.75)
+  - **brandmark** → `brandmark:none` (score 4.00 : type logo +3)
+    - écartés : `brandmark:corner` (score 4.00, proche du meilleur : non tiré)
+  - **camera** → `camera:tilt` (score 2.50 : direction precision +1.5)
+    - écartés : `camera:drift` (score 3.25, proche du meilleur : non tiré), `camera:pull` (score 3.25, proche du meilleur : non tiré), `camera:push` (score 1.00 < 2.50), `camera:rise` (score 1.00 < 2.50), `camera:still` (score 1.00 < 2.50)
+  - **entrance** → `entrance:rise` (score 3.25 : direction precision +2.25)
+    - écartés : `entrance:flip` (score 3.25, proche du meilleur : non tiré), `entrance:iris` (score 2.50, proche du meilleur : non tiré), `entrance:slideLeft` (score 2.50, proche du meilleur : non tiré), `entrance:drop` (score 1.00 < 2.50), `entrance:pop` (score 1.00 < 2.50), `entrance:skew` (score 1.00 < 2.50)
 
 ### Mama Kitchen (sans logo) — événement, collage
 
@@ -278,4 +389,10 @@ Kit : logo `classic`, fond `shape-field` sur stat-3, hook-1, annotation `circle`
     - écartés : `annotate:marker` (score 2.50 < 3.75), `annotate:underline` (score 2.50 < 3.75), `annotate:none` (score 1.00 < 3.75)
   - **icons** → `icons:phosphor-duotone` (score 5.50 : direction collage +4.5)
     - écartés : `icons:heroicons-solid` (score 1.00 < 4.75), `icons:lucide` (score 1.00 < 4.75), `icons:phosphor-bold` (score 1.00 < 4.75), `icons:phosphor-fill` (score 1.00 < 4.75), `icons:phosphor-light` (score 1.00 < 4.75), `icons:phosphor-thin` (score 1.00 < 4.75)
+  - **brandmark** → `brandmark:none` (score 3.25 : direction collage +2.25)
+    - écartés : `brandmark:corner` (pas de logo vectoriel)
   - **easing** → `easing:spring` (score 1.00 : direction collage à rebond)
+  - **camera** → `camera:rise` (score 2.50 : direction collage +1.5)
+    - écartés : `camera:still` (score 3.25, proche du meilleur : non tiré), `camera:drift` (score 1.00 < 2.50), `camera:pull` (score 1.00 < 2.50), `camera:push` (score 1.00 < 2.50), `camera:tilt` (score 1.00 < 2.50)
+  - **entrance** → `entrance:pop` (score 3.25 : direction collage +2.25)
+    - écartés : `entrance:drop` (score 4.00, proche du meilleur : non tiré), `entrance:spring` (score 3.25, proche du meilleur : non tiré), `entrance:flip` (score 1.00 < 3.25), `entrance:iris` (score 1.00 < 3.25), `entrance:rise` (score 1.00 < 3.25), `entrance:skew` (score 1.00 < 3.25)

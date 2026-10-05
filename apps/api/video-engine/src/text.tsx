@@ -18,7 +18,11 @@ import { CSSProperties, Fragment, useLayoutEffect, useRef } from 'react';
 import { cue, CueKind } from './cues';
 import { useEngine, useLocalTime, useScene } from './context';
 import { Em, EmDecor } from './kit/Em';
-import { clamp, hash, mix, progress } from './time';
+import { clamp, hash, mix, progress, springEase } from './time';
+
+/** Ressort des entrées par lettre (motion), échantillonné une seule fois. */
+let SPRING: ((p: number) => number) | null = null;
+const spring = (p: number) => (SPRING ??= springEase(0.45))(p);
 
 export type Role = 'headline' | 'support' | 'kicker' | 'label';
 
@@ -47,6 +51,9 @@ function useFit(ref: React.RefObject<HTMLElement | null>, spec: [number, number,
     let hi = spec[0] * u * scale;
     let lo = spec[1] * u;
     let best = lo;
+    // Mesure sans les transformations d'entrée (mots décalés, réduits, penchés) : sinon la
+    // largeur mesurée au départ sous-estime la largeur finale et le texte déborde une fois posé.
+    el.classList.add('kt-measuring');
     for (let k = 0; k < 14; k++) {
       const mid = (lo + hi) / 2;
       el.style.fontSize = `${mid}px`;
@@ -58,6 +65,7 @@ function useFit(ref: React.RefObject<HTMLElement | null>, spec: [number, number,
       } else hi = mid;
     }
     el.style.fontSize = `${best}px`;
+    el.classList.remove('kt-measuring');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }
@@ -74,6 +82,18 @@ function emphasisIndex(words: string[]): number {
 
 const GLYPHS = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789#%&';
 
+/**
+ * Pas entre deux lettres. Plafonné pour que le texte soit entièrement lisible bien avant la
+ * fin de la scène, quelle que soit sa longueur (règle reading-time) : brouillage ≤ 0,9 s,
+ * machine à écrire ≤ 1,2 s, cascade ≤ 0,6 s.
+ */
+function charStep(tech: string, st: number, total: number): number {
+  const n = Math.max(1, total);
+  if (tech === 'scramble') return Math.min(st * 1.6, 0.9 / n);
+  if (tech === 'typewriter') return Math.min(0.035, 1.2 / n);
+  return Math.min(st, 0.6 / n);
+}
+
 export function Kinetic(props: KineticProps) {
   const { data, u, ease, easeIn, back } = useEngine();
   const scene = useScene();
@@ -88,17 +108,19 @@ export function Kinetic(props: KineticProps) {
   const words = text.split(/\s+/).filter(Boolean);
   const emph = props.emph ? emphasisIndex(words) : -1;
   const tech = props.technique;
-  const dur = role === 'headline' ? d.pacing.enter : d.pacing.enter * 0.8;
+  // Grand moment « temps suspendu » : les entrées de la scène ralentissent.
+  const pace = (scene.accent === 'hold' ? 1.45 : 1) * (scene.pace || 1);
+  const dur = (role === 'headline' ? d.pacing.enter : d.pacing.enter * 0.8) * pace;
   const st = tech === 'stackPush' ? d.pacing.groupStagger * 0.55 : d.pacing.unitStagger;
   const at = props.at;
   // L'annotation du mot mis en valeur se trace une fois le mot entièrement posé :
   // après sa dernière lettre (techniques par lettre), après lui (par mot), après le bloc.
   const emAt = (() => {
     if (emph < 0) return at;
-    if (tech === 'charCascade' || tech === 'flipChars' || tech === 'scramble' || tech === 'typewriter') {
+    if (tech === 'charCascade' || tech === 'flipChars' || tech === 'scramble' || tech === 'typewriter' || tech === 'springUp' || tech === 'wave' || tech === 'stretch') {
       const total = words.join('').length;
       const upTo = words.slice(0, emph + 1).join('').length;
-      const cst = tech === 'scramble' ? st * 1.6 : tech === 'typewriter' ? 0.035 : Math.min(st, 0.6 / Math.max(1, total));
+      const cst = charStep(tech, st, total);
       return at + upTo * cst + (tech === 'typewriter' ? 0.2 : dur) + 0.1;
     }
     if (tech === 'trackIn' || tech === 'scaleBlur' || tech === 'boxReveal') return at + dur * 1.2 + 0.1;
@@ -151,6 +173,33 @@ export function Kinetic(props: KineticProps) {
     );
   }
 
+  // ── Contour tracé, puis remplissage ───────────────────────────────────────
+  if (tech === 'outlineFill') {
+    const draw = ease(progress(lt, at, dur * 0.9));
+    const fill = ease(progress(lt, at + dur * 0.6, dur * 0.8));
+    return (
+      <span
+        ref={ref}
+        data-fit={props.fit?.join(',')}
+        className={`kt kt-${role} ${props.className || ''}`}
+        style={{
+          ...baseStyle,
+          WebkitTextStroke: `${mix(0.025, 0, fill)}em currentColor`,
+          color: `color-mix(in srgb, currentColor ${Math.round(fill * 100)}%, transparent)`,
+          clipPath: `inset(-0.2em ${(1 - draw) * 100}% -0.3em -0.1em)`,
+          ...exitStyle(exitP),
+        }}
+      >
+        {words.map((w, i) => (
+          <Fragment key={i}>
+            {i === emph ? <Em at={emAt}>{w}</Em> : <span>{w}</span>}
+            {i < words.length - 1 ? ' ' : ''}
+          </Fragment>
+        ))}
+      </span>
+    );
+  }
+
   // ── Révélation par bloc de couleur ────────────────────────────────────────
   if (tech === 'boxReveal') {
     const p1 = ease(progress(lt, at, dur * 0.5));
@@ -178,10 +227,10 @@ export function Kinetic(props: KineticProps) {
   }
 
   // ── Techniques par LETTRE ─────────────────────────────────────────────────
-  if (tech === 'charCascade' || tech === 'flipChars' || tech === 'scramble' || tech === 'typewriter') {
+  if (tech === 'charCascade' || tech === 'flipChars' || tech === 'scramble' || tech === 'typewriter' || tech === 'springUp' || tech === 'wave' || tech === 'stretch') {
     let ci = 0;
     const totalChars = words.join('').length;
-    const typingEnd = at + totalChars * 0.035;
+    const typingEnd = at + totalChars * charStep('typewriter', st, totalChars);
     const caretOn = tech === 'typewriter' && lt < typingEnd + 0.6 && Math.floor(lt * 2.4) % 2 === 0;
     return (
       <span
@@ -196,7 +245,7 @@ export function Kinetic(props: KineticProps) {
               {wi === emph ? <EmDecor at={emAt} /> : null}
               {[...w].map((ch, k) => {
                 const i = ci++;
-                const cst = tech === 'scramble' ? st * 1.6 : tech === 'typewriter' ? 0.035 : Math.min(st, 0.6 / Math.max(1, totalChars));
+                const cst = charStep(tech, st, totalChars);
                 const start = at + i * cst;
                 if (tech === 'typewriter') {
                   return (
@@ -215,11 +264,22 @@ export function Kinetic(props: KineticProps) {
                     </span>
                   );
                 }
-                const p = (tech === 'charCascade' ? back : ease)(progress(lt, start, dur * 0.8));
-                const style: CSSProperties =
-                  tech === 'flipChars'
-                    ? { display: 'inline-block', transform: `rotateX(${(1 - p) * -95}deg)`, transformOrigin: '50% 100%', opacity: clamp(p * 1.6) }
-                    : { display: 'inline-block', transform: `translateY(${(1 - p) * 0.55}em) rotate(${(1 - p) * 8}deg)`, opacity: clamp(p * 1.4) };
+                const raw = progress(lt, start, dur * 0.8);
+                const p = (tech === 'charCascade' ? back : ease)(raw);
+                let style: CSSProperties;
+                if (tech === 'flipChars') style = p >= 1 ? { display: 'inline-block' } : { display: 'inline-block', transform: `rotateX(${(1 - p) * -95}deg)`, transformOrigin: '50% 100%', opacity: clamp(p * 1.6) };
+                else if (tech === 'springUp') {
+                  // Ressort physique : la lettre dépasse, puis se pose.
+                  const k = spring(raw);
+                  style = { display: 'inline-block', transform: `translateY(${(1 - k) * 0.7}em)`, opacity: clamp(raw * 3) };
+                } else if (tech === 'wave') {
+                  // Une vague qui traverse le mot et s'amortit.
+                  const damp = 1 - ease(clamp((lt - start) / (dur * 1.6)));
+                  style = { display: 'inline-block', transform: `translateY(${Math.sin((lt - start) * 9) * 0.22 * damp - (1 - p) * -0.4}em)`, opacity: clamp(raw * 2.5) };
+                } else if (tech === 'stretch') {
+                  const k = spring(raw);
+                  style = { display: 'inline-block', transform: `scaleY(${k})`, transformOrigin: '50% 90%', opacity: clamp(raw * 4) };
+                } else style = { display: 'inline-block', transform: `translateY(${(1 - p) * 0.55}em) rotate(${(1 - p) * 8}deg)`, opacity: clamp(p * 1.4) };
                 return (
                   <span key={k} style={style}>
                     {ch}
@@ -237,10 +297,13 @@ export function Kinetic(props: KineticProps) {
 
   // ── Techniques par MOT ────────────────────────────────────────────────────
   const masked = tech === 'maskUp' || tech === 'stackPush';
+  // « Dispersion » : les mots arrivent dans un ordre aléatoire (déterministe), pas de gauche à droite.
+  const order = tech === 'scatter' ? words.map((_, i) => i).sort((a, b) => hash(a * 7.7 + words.length) - hash(b * 7.7 + words.length)) : null;
   return (
     <span ref={ref} data-fit={props.fit?.join(',')} className={`kt kt-${role} ${props.className || ''}`} style={{ ...baseStyle, ...exitStyle(exitP) }}>
       {words.map((w, i) => {
-        const p = ease(progress(lt, at + i * st, dur));
+        const rank = order ? order.indexOf(i) : i;
+        const p = ease(progress(lt, at + rank * (order ? st * 1.8 : st), dur));
         let inner: CSSProperties = {};
         let outer: CSSProperties = {};
         switch (tech) {
@@ -253,6 +316,20 @@ export function Kinetic(props: KineticProps) {
             break;
           case 'slideAlternate':
             inner = { opacity: clamp(p * 1.5), transform: `translateX(${(i % 2 ? 1 : -1) * (1 - p) * 0.9}em)` };
+            break;
+          case 'rotateX':
+            // Le mot bascule vers le spectateur depuis sa ligne de base (3D). Posé : plus aucune
+            // transformation 3D, sinon le texte reste dans un calque rastérisé selon l'historique.
+            inner = p >= 1 ? {} : { opacity: clamp(p * 1.8), transform: `perspective(800px) rotateX(${(1 - p) * 80}deg)`, transformOrigin: '50% 100%' };
+            break;
+          case 'zoomWords':
+            inner = { opacity: clamp(p * 1.4), transform: `scale(${mix(2.2, 1, p)})`, filter: `blur(${(1 - p) * 0.08}em)` };
+            break;
+          case 'skewIn':
+            inner = { opacity: clamp(p * 1.6), transform: `translateX(${(1 - p) * -0.7}em) skewX(${(1 - p) * -18}deg)` };
+            break;
+          case 'scatter':
+            inner = { opacity: p, transform: `translateY(${(1 - p) * (hash(i + 3.1) - 0.5) * 0.8}em) scale(${mix(0.85, 1, p)})` };
             break;
           default:
             // maskUp / stackPush : le mot monte derrière un masque.

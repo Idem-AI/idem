@@ -104,6 +104,16 @@ export const TYPE_DEFS: Record<VideoType, VideoTypeDef> = {
     openers: ['kinetic', 'logo'],
     durations: [6, 15],
   },
+  // Combinée : l'enchaînement est choisi par le modèle (video.storyline.ts) ;
+  // cette recette n'est que le repli quand le modèle ne répond pas.
+  mix: {
+    id: 'mix',
+    icon: 'pi pi-th-large',
+    style: 'energetic',
+    needs: {},
+    recipe: [['hook', 1], ['kinetic', 2], ['@objective', 1], ['showcase3d', 4], ['benefits', 3], ['footage', 4], ['lottie', 5], ['cta', 1], ['logo', 1]],
+    openers: ['hook', 'footage', 'kinetic'],
+  },
 };
 
 /** La scène qui porte l'objectif, quand le brief contient de quoi la remplir. */
@@ -123,7 +133,7 @@ function objectiveScene(objective: VideoObjective, facts: BriefFacts, media: Med
 const MAX_SCENES: Record<number, number> = { 6: 3, 15: 6, 30: 9, 60: 16 };
 
 /** Disponibilité propre aux types (3D, Lottie et clips ont toujours un repli). */
-function available(scene: string, facts: BriefFacts, media: MediaCounts): boolean {
+export function available(scene: string, facts: BriefFacts, media: MediaCounts): boolean {
   if (scene === 'footage') return media.videos + media.images > 0;
   if (['showcase3d', 'lottie', 'kinetic'].includes(scene)) return true;
   return sceneAvailable(scene, facts, media.images);

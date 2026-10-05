@@ -8,7 +8,7 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import {
   VideoFormat,
@@ -50,6 +50,7 @@ const RATIOS: Record<VideoFormat, string> = { story: '9 / 16', square: '1 / 1', 
 })
 export class VideoComposing {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   readonly format = input<VideoFormat>('story');
   readonly progress = input<VideoProgressState>({});
@@ -123,7 +124,15 @@ export class VideoComposing {
     if (this.state(stage) !== 'done') return null;
     switch (stage) {
       case 'plan':
-        return { key: 'plan', params: { count: (d.scenes ?? []).length, seconds: d.durationSec } };
+        // Le type choisi (par l'utilisateur ou par le modèle) est dit en clair.
+        if (!d.type) return { key: 'plan', params: { count: (d.scenes ?? []).length, seconds: d.durationSec } };
+        {
+          const type = this.translate.instant(`dashboard.showCommunication.video.types.${d.type}.label`);
+          // Le concept narratif retenu (par le modèle, ou par le graphe) est dit en clair.
+          return d.concept
+            ? { key: 'planConcept', params: { type, concept: this.translate.instant(`dashboard.showCommunication.video.concepts.${d.concept}`), count: (d.scenes ?? []).length, seconds: d.durationSec } }
+            : { key: 'planType', params: { type, count: (d.scenes ?? []).length, seconds: d.durationSec } };
+        }
       case 'copy':
         return { key: d.source === 'llm' ? 'copyLlm' : 'copyHeuristic', params: { lines: d.lines } };
       case 'media': {

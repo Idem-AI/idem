@@ -320,10 +320,11 @@ export async function generateClip(prompt: string, orientation: Orientation, sto
 }
 
 /** Image générée (Gemini) quand ni l'utilisateur ni Pexels n'en ont. */
-export async function generateStill(prompt: string, orientation: Orientation, storage: MediaStorage, folder: string): Promise<VideoMediaAsset> {
+export async function generateStill(prompt: string, orientation: Orientation, storage: MediaStorage, folder: string, styled = false): Promise<VideoMediaAsset> {
   const { generateImage } = await import('../../glm-media.service');
   const size = orientation === 'landscape' ? '1344x768' : orientation === 'square' ? '1024x1024' : '768x1344';
-  const image = await generateImage(`${prompt}. Photographic, natural light, no text, no logo.`, { provider: 'gemini', size, tag: 'motion-video' });
+  // Sans DA, une photo naturelle ; avec la DA de la charte, c'est elle qui fixe le rendu.
+  const image = await generateImage(`${prompt}${styled ? '. No text, no logo.' : '. Photographic, natural light, no text, no logo.'}`, { provider: 'gemini', size, tag: 'motion-video' });
   const jpeg = await sharp(image.buffer).jpeg({ quality: 88 }).toBuffer();
   const key = id();
   const up = await storage.uploadFile(jpeg, `${key}.jpg`, folder, 'image/jpeg');

@@ -340,3 +340,39 @@
     -webkit-backdrop-filter: blur(12px);
   }
 }
+
+/* ── Contenu vidéo ── */
+.cd-video {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.cd-video-type {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  padding: 0.8rem;
+}
+
+.cd-video-type-icon {
+  display: inline-flex;
+  height: 2.4rem;
+  width: 2.4rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  background: var(--glass-bg-light);
+  font-size: 1.1rem;
+  color: var(--color-primary-500);
+}
+
+.cd-video-type-name {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}

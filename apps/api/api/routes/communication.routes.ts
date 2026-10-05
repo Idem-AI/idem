@@ -49,6 +49,7 @@ import {
   sfxFileController,
   videoMusicController,
   videoOptionsController,
+  enhanceVideoRequestController,
 } from '../controllers/motionVideo.controller';
 import { normalizeScope, videoCost } from '../services/Communication/video/video.pricing';
 import multer from 'multer';
@@ -717,6 +718,16 @@ communicationRoutes.get(`/${resource}/:projectId/videos/options`, authenticate, 
 
 /**
  * @openapi
+ * /project/communication/{projectId}/videos/enhance:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Rewrite the user's video request (key message, what to show, tone, CTA). Facts are kept, invented numbers removed. Free.
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.post(`/${resource}/:projectId/videos/enhance`, authenticate, enhanceVideoRequestController);
+
+/**
+ * @openapi
  * /project/communication/{projectId}/videos:
  *   get:
  *     tags: [Communication]
@@ -761,7 +772,9 @@ communicationRoutes.post(
   checkQuota,
   (req, res, next) => {
     const message = String(req.body?.brief?.message || '').trim();
-    if (message.length < 3) {
+    // Vidéo d'un contenu du calendrier : le message vient du contenu (accroche, angle), côté service.
+    const fromCalendar = typeof req.body?.contentId === 'string' && req.body.contentId.length > 0;
+    if (message.length < 3 && !fromCalendar) {
       res.status(400).json({ error: 'message_required', message: 'brief.message is required' });
       return;
     }
@@ -790,7 +803,9 @@ communicationRoutes.post(
   checkQuota,
   (req, res, next) => {
     const message = String(req.body?.brief?.message || '').trim();
-    if (message.length < 3) {
+    // Vidéo d'un contenu du calendrier : le message vient du contenu (accroche, angle), côté service.
+    const fromCalendar = typeof req.body?.contentId === 'string' && req.body.contentId.length > 0;
+    if (message.length < 3 && !fromCalendar) {
       res.status(400).json({ error: 'message_required', message: 'brief.message is required' });
       return;
     }

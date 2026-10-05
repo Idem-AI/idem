@@ -34,7 +34,8 @@ par bibliothèque lourde) : chaque scène est un composant, chaque style est une
 reconstruits dès qu'une source change.
 
 **Environnement complet (bibliothèques installées, kit, graphe de capacités qui
-dit à l'IA ce qu'elle peut utiliser selon le projet) : [VIDEO_ENGINE.md](VIDEO_ENGINE.md)
+dit à l'IA ce qu'elle peut utiliser selon le projet, direction créative bornée,
+charte et DA traduites en mouvement, calendrier) : [VIDEO_ENGINE.md](VIDEO_ENGINE.md)
 et [VIDEO_CAPABILITIES.md](VIDEO_CAPABILITIES.md).**
 
 Huit **directions** (éditoriale, grille suisse, bloc brut, cinétique, cinéma,

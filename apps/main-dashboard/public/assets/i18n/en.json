@@ -3624,7 +3624,8 @@
         },
         "clickHint": "Click a post to see it in full and edit it.",
         "visualToDo": "Visual to create",
-        "briefToggle": "The idea behind this calendar"
+        "briefToggle": "The idea behind this calendar",
+        "videoToDo": "Video to generate"
       },
       "studio": {
         "empty": {
@@ -3838,7 +3839,15 @@
           "caption": "The post text",
           "hashtags": "Keywords (#)",
           "callToAction": "What you ask the reader"
-        }
+        },
+        "videoTitle": "The video",
+        "videoType": "Video type",
+        "changeType": "Change",
+        "videoDone": "A video was created for this post.",
+        "openVideo": "Open the video",
+        "anotherVideo": "Generate another version · {{price}} credits",
+        "createVideo": "Generate the video · {{price}} credits",
+        "visualInstead": "Make a visual instead"
       },
       "preview": {
         "loading": "Loading the visual…",
@@ -4290,7 +4299,8 @@
               "image": "Photos",
               "video": "Clips (15 s max used)",
               "model3d": "3D model (.glb)",
-              "lottie": "Lottie animation (.json)"
+              "lottie": "Lottie animation (.json)",
+              "rive": "Rive animation (.riv)"
             },
             "add": "Add",
             "remove": "Remove",
@@ -4302,6 +4312,47 @@
           "sfx": {
             "label": "Sound effects",
             "hint": "Whoosh on transitions, pop when a price appears, shimmer on the logo."
+          },
+          "steps2": {
+            "1": "Describe",
+            "2": "Configure"
+          },
+          "chat": {
+            "question": "Describe the video you want",
+            "help": "In your own words, as you would to an editor. IDEM picks the video type, or combines several (3D, clips, typography, animation), based on your request.",
+            "placeholder": "E.g.: a video announcing our new hibiscus juice at 1,000 F, with the bottle in 3D, that makes people order on WhatsApp.",
+            "attached": "Attached files",
+            "attach": "Attach files",
+            "uploading": "Uploading…",
+            "attachHint": "Photos, videos, 3D model (.glb), Lottie or Rive animation: up to 8 files.",
+            "examplesTitle": "To get started",
+            "examples": {
+              "ex1": "Announce our end-of-year sale: 30% off the whole shop until December 31.",
+              "ex2": "Present our new product in 3D, with three benefits and a call to order.",
+              "ex3": "Invite our customers to the opening of our second shop, with the date and address."
+            },
+            "autoType": "Video type: chosen by IDEM from your request",
+            "forceType": "Choose a type",
+            "hideTypes": "Let IDEM choose",
+            "autoShort": "Automatic",
+            "autoHint": "IDEM picks, or combines several types",
+            "enhance": "Improve my request",
+            "enhancing": "Improving…",
+            "enhanced": "Request improved by IDEM. You can edit it.",
+            "restore": "Back to my version"
+          },
+          "config": {
+            "question": "Configure your video",
+            "help": "Four settings and you're done. Everything else already follows your brand guidelines.",
+            "where": "Where will you post it?",
+            "whereHint": "Pick one or more formats: each is delivered in its real shape.",
+            "howLong": "How long?",
+            "quality": "Which quality?",
+            "music": "Which sound mood?",
+            "more": "More options (motion direction, sound effects, stock media)",
+            "summary": "Your video",
+            "mediaCount": "{{count}} attached file(s)",
+            "priceHint": "The first MP4 export is included. Text edits are free."
           }
         },
         "detail": {
@@ -4403,7 +4454,8 @@
           "music": "Tracks could not be loaded.",
           "export": "The export could not start.",
           "delete": "The video could not be deleted.",
-          "upload": "The file could not be uploaded (photo 12 MB, video 80 MB, 3D 20 MB, Lottie 3 MB)."
+          "upload": "The file could not be uploaded (photo 12 MB, video 80 MB, 3D 20 MB, Lottie 3 MB).",
+          "enhance": "The request could not be improved. Try again in a moment."
         },
         "types": {
           "kinetic": {
@@ -4445,6 +4497,11 @@
             "label": "Logo reveal",
             "hint": "A short brand sting",
             "uses": "Your logo, 6 or 15 s"
+          },
+          "mix": {
+            "label": "Combined video",
+            "hint": "Several techniques in one video: 3D, clips, typography, animation",
+            "uses": "Whatever serves the message"
           }
         },
         "sfx": {
@@ -4485,7 +4542,9 @@
             "music": "“{{title}}” — {{artist}} · {{bpm}} BPM",
             "musicNone": "No music",
             "sfx": "{{count}} sounds picked",
-            "storyboard": "{{count}} scenes, cuts on the beat ({{bpm}} BPM)"
+            "storyboard": "{{count}} scenes, cuts on the beat ({{bpm}} BPM)",
+            "planType": "{{type}} · {{count}} scenes for {{seconds}} s",
+            "planConcept": "{{type}} · {{concept}} · {{count}} scenes for {{seconds}} s"
           }
         },
         "directions": {
@@ -4526,6 +4585,21 @@
             "label": "Monochrome",
             "hint": "One hue in light and deep, duotone images."
           }
+        },
+        "concepts": {
+          "question": "Question → answer",
+          "problem-solution": "Problem → solution",
+          "product-hero": "Product as the hero",
+          "manifesto": "Manifesto",
+          "offer-blast": "Offer blast",
+          "proof": "Proof first",
+          "journey": "In the field",
+          "teaser": "Teaser",
+          "invitation": "Invitation",
+          "showcase": "Showcase",
+          "reasons": "Reasons to choose us",
+          "celebration": "Celebration",
+          "logo-sting": "Signature"
         }
       }
     },

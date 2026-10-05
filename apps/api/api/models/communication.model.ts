@@ -1,4 +1,4 @@
-import { MotionVideo } from './motionVideo.model';
+import { MotionVideo, VideoType } from './motionVideo.model';
 /**
  * Communication feature models.
  *
@@ -176,6 +176,13 @@ export interface ContentIdea {
   status: ContentStatus;
   /** Set after a flyer is generated on-demand for this content. */
   flyerIds?: string[];
+  /**
+   * Type de vidéo proposé pour ce contenu (formats vidéo : reel, short-video,
+   * story) — « Générer » crée une vidéo de CE type. Cf. motionVideo.model.ts.
+   */
+  videoType?: VideoType;
+  /** Vidéos créées pour ce contenu. */
+  videoIds?: string[];
   /**
    * Période propriétaire. Absent = contenu libre, né dans l'atelier et pas
    * encore rattaché à une période.

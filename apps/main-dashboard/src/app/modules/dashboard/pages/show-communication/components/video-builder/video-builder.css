@@ -1,28 +1,240 @@
 /*
  * Le parcours reprend la feuille de « Créer un visuel » (chargée avant celle-ci
  * dans le composant) : mêmes étapes, mêmes cartes, même pied. Ne vit ici que ce
- * qui est propre à la vidéo.
+ * qui est propre à la vidéo : l'espace de discussion (étape 1) et la page de
+ * configuration avec son récapitulatif (étape 2).
  */
 
 .vdb-label {
-  display: block;
-  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--color-text-tertiary);
-  margin-bottom: 0.35rem;
+  color: var(--color-text-primary);
+  margin-bottom: 0.4rem;
 }
 
 .vdb-group {
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
   border: 0;
   padding: 0;
 }
 
+.vdb-group-hint {
+  margin: -0.15rem 0 0.6rem;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.vdb-step-num {
+  display: inline-flex;
+  height: 1.5rem;
+  width: 1.5rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-primary-500);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.vdb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-primary-600);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── 1. L'espace de discussion ───────────────────────────────────────────── */
+
+.vdb-chat {
+  margin-top: 1rem;
+  border-radius: 1.1rem;
+  border: 1.5px solid var(--glass-border-medium);
+  background: var(--glass-bg-subtle);
+  padding: 0.75rem;
+}
+
+.vdb-chat:focus-within {
+  border-color: var(--color-primary-500);
+}
+
+.vdb-chat-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 7.5rem;
+  border: 0;
+  background: transparent;
+  padding: 0.25rem 0.35rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.vdb-chat-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.vdb-attach {
+  cursor: pointer;
+}
+
+.vdb-chat-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+.vdb-chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.vdb-attached {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.vdb-attached-item {
+  display: flex;
+  max-width: 14rem;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-light);
+  padding: 0.2rem 0.3rem 0.2rem 0.25rem;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.vdb-attached-item img {
+  height: 1.8rem;
+  width: 1.8rem;
+  flex: none;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.vdb-attached-item .pi:first-child {
+  display: inline-flex;
+  height: 1.8rem;
+  width: 1.8rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--glass-bg-subtle);
+}
+
+.vdb-attached-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vdb-attached-remove {
+  display: inline-flex;
+  height: 1.4rem;
+  width: 1.4rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  color: var(--color-text-secondary);
+}
+
+.vdb-attached-remove:hover {
+  background: var(--glass-bg-subtle);
+  color: var(--color-text-primary);
+}
+
+.vdb-enhanced {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.vdb-examples {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 1.1rem;
+}
+
+.vdb-example {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-light);
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.vdb-example:hover {
+  border-color: var(--glass-border-strong);
+  color: var(--color-text-primary);
+}
+
+.vdb-example .pi {
+  margin-top: 0.15rem;
+  color: var(--color-primary-500);
+}
+
+.vdb-type-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+}
+
+.vdb-type-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.vdb-type-current .pi {
+  color: var(--color-primary-500);
+}
+
+.vdb-type-chips {
+  margin-top: 0.6rem;
+}
+
 .vdb-chips {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
   gap: 0.5rem;
 }
 
@@ -30,7 +242,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.1rem;
+  gap: 0.15rem;
   border-radius: 0.8rem;
   border: 1.5px solid var(--glass-border);
   background: var(--glass-bg-subtle);
@@ -43,6 +255,9 @@
 }
 
 .vdb-chip-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-weight: 700;
   color: var(--color-text-primary);
 }
@@ -53,153 +268,154 @@
   color: var(--color-text-secondary);
 }
 
-.vdb-row {
-  margin-top: 1.25rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.vdb-price {
-  margin-top: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  border-radius: 0.9rem;
-  padding: 0.8rem 1rem;
-}
-
-.vdb-price .pi {
-  font-size: 1.3rem;
-}
-
-/* ── Photos ──────────────────────────────────────────────────────────────── */
-
-.vdb-photos {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
-  gap: 0.5rem;
-}
-
-.vdb-photo,
-.vdb-photo-add {
-  position: relative;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border-radius: 0.75rem;
-}
-
-.vdb-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.vdb-photo-remove {
-  position: absolute;
-  right: 0.3rem;
-  top: 0.3rem;
-  display: flex;
-  height: 1.6rem;
-  width: 1.6rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: var(--glass-bg-light);
-  color: var(--color-text-primary);
-  font-size: 0.7rem;
-}
-
-.vdb-photo-add {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  border: 1.5px dashed var(--glass-border-medium);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.vdb-photo-add:hover,
-.vdb-photo-add:focus-within {
-  border-color: var(--color-primary-500);
-  color: var(--color-text-primary);
-}
-
 .vdb-photo-busy {
   cursor: progress;
 }
 
-/* ── Types de motion ─────────────────────────────────────────────────────── */
+/* ── 2. La configuration ─────────────────────────────────────────────────── */
 
-.vdb-types {
-  margin-top: 1.1rem;
+.vdb-config {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
 }
 
-@media (min-width: 48rem) {
-  .vdb-types {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+@media (min-width: 64rem) {
+  .vdb-config {
+    grid-template-columns: minmax(0, 1fr) 17rem;
+    align-items: start;
   }
 }
 
-.vdb-type-uses {
-  margin-top: 0.35rem;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--color-text-tertiary);
-}
-
-/* ── Médias importés ─────────────────────────────────────────────────────── */
-
-.vdb-media-kinds {
+.vdb-segmented {
   display: grid;
-  gap: 0.9rem;
-}
-
-@media (min-width: 40rem) {
-  .vdb-media-kinds {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.vdb-media-title {
-  display: flex;
-  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
   gap: 0.4rem;
-  margin-bottom: 0.4rem;
-  font-size: 0.8rem;
+  border-radius: 0.9rem;
+  background: var(--glass-bg-subtle);
+  padding: 0.3rem;
+}
+
+.vdb-seg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  border-radius: 0.7rem;
+  border: 1.5px solid transparent;
+  padding: 0.55rem 0.5rem;
+  text-align: center;
+}
+
+.vdb-seg:hover {
+  background: var(--glass-bg-light);
+}
+
+.vdb-seg.vb-active {
+  background: var(--glass-bg-light);
+}
+
+.vdb-seg-main {
   font-weight: 700;
   color: var(--color-text-primary);
 }
 
-.vdb-file {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  padding: 0.4rem;
-  background: var(--glass-bg-subtle);
-  font-size: 0.65rem;
+.vdb-seg-hint {
+  font-size: 0.7rem;
+  line-height: 1.25;
   color: var(--color-text-secondary);
-  text-align: center;
-  word-break: break-all;
 }
 
-.vdb-file .pi {
-  font-size: 1.1rem;
+.vdb-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
-.vdb-switches {
+.vdb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.vdb-pill:hover {
+  border-color: var(--glass-border-strong);
+}
+
+.vdb-more {
+  margin-top: 1.5rem;
+}
+
+.vdb-more-body {
   display: grid;
-  gap: 0.6rem;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--glass-border);
+  padding: 0.9rem;
+}
+
+.vdb-summary {
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-light);
+  padding: 1rem;
+}
+
+@media (min-width: 64rem) {
+  .vdb-summary {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.vdb-summary-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.vdb-summary-request {
+  display: -webkit-box;
+  margin-top: 0.4rem;
+  overflow: hidden;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+.vdb-summary-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.8rem 0;
+  font-size: 0.82rem;
+  color: var(--color-text-primary);
+}
+
+.vdb-summary-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.vdb-summary-list .pi {
+  margin-top: 0.15rem;
+  color: var(--color-primary-500);
+}
+
+.vdb-summary-price {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .vdb-switch {

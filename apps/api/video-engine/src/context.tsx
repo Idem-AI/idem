@@ -25,7 +25,7 @@ export interface DirectionDef {
   color: string;
   decor: 'none' | 'rules' | 'grid' | 'grain' | 'letterbox' | 'paper' | 'frame';
   stepped: 0 | 2;
-  camera: 'still' | 'push' | 'drift';
+  camera: 'still' | 'push' | 'drift' | 'pull' | 'rise' | 'tilt';
 }
 
 export interface SceneMotion {
@@ -58,6 +58,12 @@ export interface SceneData {
   icons?: string[];
   /** Le fond du kit est posé sur cette scène (le graphe en retient deux au plus). */
   backdrop?: boolean;
+  /** Tempo des entrées de la scène (rythme) : < 1 plus vif, > 1 plus posé. */
+  pace?: number;
+  /** Mise en scène d'un plan (clip ou photo plein cadre) : split, window, blinds, magazine, knockout, inline, duotone, broadcast, cinema. */
+  treatment?: string;
+  /** Le grand moment de la vidéo : punch (zoom + éclair), giant (titre géant), hold (temps suspendu), flip (couleur). */
+  accent?: 'punch' | 'giant' | 'hold' | 'flip';
   motion: SceneMotion;
 }
 
@@ -78,6 +84,13 @@ export interface KitData {
   logoSvg?: string;
   /** Le SVG n'est qu'un symbole : le nom de la marque s'écrit dessous. */
   logoIsIcon?: boolean;
+  /** Caméra de la vidéo (graphe) : still | push | pull | drift | rise | tilt. */
+  camera?: string;
+  /** Famille d'entrée des éléments (graphe) : rise | spring | flip | unfold | skew | iris | drop | pop | slideLeft. */
+  entrance?: string;
+  /** Logo pendant la vidéo : none | corner ; et le coin libre calculé au montage. */
+  brandmark?: string;
+  brandmarkCorner?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
   /** Rebond physique (ressort) pour les directions ludiques ; absent = courbe de la direction. */
   spring?: { bounce: number };
 }

@@ -26,6 +26,7 @@ export const AGENT_PLAN_CONTENT_PROMPT = `<role>Senior content planner</role>
       "hashtags": ["3-6 tags, no # sign"],
       "callToAction": "CTA for the post CAPTION, never printed on the visual (max 60 chars)",
       "intent": "awareness" | "celebration" | "promotion" | "recruitment" | "announcement",
+      "videoType": "ONLY when format is reel or short-video: kinetic (typography) | product (product photos) | promo (offer, price) | footage (real-life clips) | showcase3d (3D object) | illustrated (animated illustrations) | slideshow (photo series) | logo (logo reveal) | mix (combines several, for richer stories)",
       "theme": "label of the brief theme this content serves",
       "occasion": "occasion name — ONLY for contents tied to one, omit otherwise",
       "status": "idea"
@@ -46,6 +47,7 @@ These rules are arithmetic, not style — a date outside the period makes the co
 - Output ONLY valid JSON. No backticks, no code fences, no commentary.
 - Each content must serve one of the brief's themes, and the set must cover ALL of them.
 - Vary formats and channels. Only use the channels listed in the enum above — they are the ones the user retained.
+- Video performs best on social networks: at least one content in three is a video (format "reel" or "short-video") on the networks that favour it (TikTok, Instagram, Facebook, YouTube, LinkedIn). Give each video the videoType that fits its angle and what the brand can show.
 - No two contents may share the same angle reworded. If you catch yourself writing "discover our…" twice, one of the two is filler.
 - Focus on textual angles; do NOT describe the visual in detail (the visual is composed later, by another agent, from the brand charter).
 - Write in the language given by context.language.

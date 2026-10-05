@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import logger from '../../config/logger';
 import { ProjectModel } from '../../models/project.model';
-import { MotionVideo } from '../../models/motionVideo.model';
+import { MotionVideo, VIDEO_TYPES, VideoType } from '../../models/motionVideo.model';
 import {
   CommunicationContext,
   CommunicationModel,
@@ -59,6 +59,7 @@ import { AGENT_MOMENT_CONTENT_PROMPT } from './prompts/agent-moment-content.prom
 import { AGENT_OCCASIONS_PROMPT } from './prompts/agent-occasions.prompt';
 import { AGENT_PLAN_BRIEF_PROMPT } from './prompts/agent-plan-brief.prompt';
 import { AGENT_PLAN_CONTENT_PROMPT } from './prompts/agent-plan-content.prompt';
+import { ensureVideoShare } from './video/video.calendar';
 import { buildFlyerEditPrompt } from './prompts/agent-flyer-edit.prompt';
 import {
   imageSourcingService,
@@ -248,6 +249,39 @@ export class CommunicationService extends GenericService {
   }
 
   /** Remplace (ou ajoute) une vidéo. Relit le document avant d'écrire. */
+  /** Le projet a-t-il déjà des photos à mettre en scène (visuels avec image de fond) ? */
+  private async projectHasPhotos(userId: string, projectId: string | undefined): Promise<boolean> {
+    if (!projectId) return false;
+    try {
+      const project: any = await this.loadProjectForVideo(userId, projectId);
+      const visuals: any[] = project?.analysisResultModel?.communication?.visuals || [];
+      return visuals.some((v) => v.backgroundImageUrl);
+    } catch {
+      return false;
+    }
+  }
+
+  /** Rattache une vidéo au contenu du calendrier qui l'a demandée. */
+  async linkVideoToContent(userId: string, projectId: string, contentId: string, videoId: string): Promise<void> {
+    await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      plans: (existing.plans || []).map((plan) => ({
+        ...plan,
+        items: plan.items.map((item) => (item.id === contentId ? { ...item, videoIds: Array.from(new Set([...(item.videoIds || []), videoId])) } : item)),
+      })),
+    }));
+  }
+
+  /** Le contenu du calendrier (toutes périodes) par son identifiant. */
+  async findPlanItem(userId: string, projectId: string, contentId: string): Promise<ContentIdea | null> {
+    const project: any = await this.loadProjectForVideo(userId, projectId);
+    for (const plan of project?.analysisResultModel?.communication?.plans || []) {
+      const hit = (plan.items || []).find((i: ContentIdea) => i.id === contentId);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
   async saveVideo(userId: string, projectId: string, video: MotionVideo): Promise<void> {
     await this.patchCommunication(userId, projectId, (existing) => ({
       ...existing,
@@ -875,7 +909,7 @@ export class CommunicationService extends GenericService {
 
     // ── Les contenus datés, qui exécutent le brief
     await stream?.({ type: 'step-start', step: 'content' });
-    const items = await this.generatePlanContent(userId, existingPlan, context, brief);
+    const items = await this.generatePlanContent(userId, existingPlan, context, brief, projectId);
     await stream?.({ type: 'step-complete', step: 'content', payload: items });
 
     const generated: CommunicationPlan = {
@@ -883,7 +917,7 @@ export class CommunicationService extends GenericService {
       brief,
       // Les contenus déjà porteurs d'un visuel SURVIVENT à une régénération :
       // l'utilisateur les a payés, et c'est exactement ce que la V1 perdait.
-      items: [...existingPlan.items.filter((item) => (item.flyerIds?.length ?? 0) > 0), ...items],
+      items: [...existingPlan.items.filter((item) => (item.flyerIds?.length ?? 0) > 0 || (item.videoIds?.length ?? 0) > 0), ...items],
       status: existingPlan.status === 'draft' ? 'active' : existingPlan.status,
       generatedAt: new Date(),
       updatedAt: new Date(),
@@ -970,6 +1004,8 @@ export class CommunicationService extends GenericService {
     updates: Partial<ContentIdea>
   ): Promise<CommunicationPlan | null> {
     let updated: CommunicationPlan | null = null;
+    // Un type de vidéo inconnu ne s'enregistre pas (il casserait la génération).
+    if (updates.videoType !== undefined && !VIDEO_TYPES.includes(updates.videoType as VideoType)) delete updates.videoType;
     await this.patchCommunication(userId, projectId, (existing) => {
       const plans = (existing.plans || []).map((plan) => {
         if (plan.id !== planId) return plan;
@@ -1227,7 +1263,8 @@ export class CommunicationService extends GenericService {
     userId: string,
     plan: CommunicationPlan,
     context: CommunicationContext,
-    brief: PlanBrief
+    brief: PlanBrief,
+    projectId?: string
   ): Promise<ContentIdea[]> {
     const itemCount = this.expectedItemCount(plan);
     const channelEnum = plan.channels.map((channel) => `"${channel}"`).join(' | ');
@@ -1268,10 +1305,13 @@ export class CommunicationService extends GenericService {
 
     const parsed = this.safeJson<{ items: Partial<ContentIdea>[] }>(raw);
     const items = Array.isArray(parsed?.items) ? parsed!.items : [];
-    return items
+    const normalised = items
       .filter((item) => item && item.title)
       .slice(0, itemCount)
       .map((item, index) => this.normalisePlanItem(item, index, plan, itemCount));
+    // Vidéos : une sur trois au moins, chacune avec son type (cf. video.calendar.ts).
+    const hasPhotos = await this.projectHasPhotos(userId, projectId);
+    return ensureVideoShare(normalised, hasPhotos);
   }
 
   /**
@@ -1318,6 +1358,7 @@ export class CommunicationService extends GenericService {
       // une consigne de composition.
       callToAction: raw.callToAction || '',
       intent: raw.intent,
+      videoType: raw.videoType,
       status: 'idea',
       flyerIds: [],
       planId: plan.id,

@@ -171,6 +171,8 @@
     } @else if (activeScreen() === 'videos') {
       <app-video-panel
         [projectId]="projectId()!"
+        [openVideoId]="videoToOpen()"
+        (openHandled)="videoToOpen.set(null)"
         (failed)="onError($event)"
         (needsCredits)="onNeedsCredits($event)"
       />
@@ -186,6 +188,8 @@
         (plansChange)="onPlansChange($event)"
         (visualCreated)="onVisualCreated($event)"
         (failed)="onError($event)"
+        (openVideo)="openVideoFromPlan($event)"
+        (needsCredits)="onNeedsCredits($event)"
       />
     } @else {
       <app-library-panel

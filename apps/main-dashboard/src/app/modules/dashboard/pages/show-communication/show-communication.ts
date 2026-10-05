@@ -236,6 +236,14 @@ export class ShowCommunication implements OnInit {
 
   // ── Navigation ───────────────────────────────────────────────────────────
 
+  /** Vidéo à ouvrir dans l'écran Vidéos (depuis un contenu du calendrier). */
+  protected readonly videoToOpen = signal<string | null>(null);
+
+  protected openVideoFromPlan(videoId: string): void {
+    this.videoToOpen.set(videoId);
+    this.setScreen('videos');
+  }
+
   protected setScreen(screen: Screen): void {
     this.activeScreen.set(screen);
     this.errorMessage.set('');

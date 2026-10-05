@@ -3,7 +3,8 @@
  * calques de transition et le décor propre à la direction.
  */
 import { CSSProperties, useLayoutEffect, useMemo } from 'react';
-import { Engine, EngineCtx, SceneCtx, Timed, VideoData, makeEasings, useEngine } from './context';
+import { Engine, EngineCtx, SceneCtx, Timed, VideoData, makeEasings, useEngine, useScene } from './context';
+import { cue } from './cues';
 import { Backdrop } from './kit/Backdrop';
 import { SCENE_COMPONENTS } from './scenes';
 import { clamp, progress } from './time';
@@ -79,18 +80,42 @@ function Decor() {
   }
 }
 
+/** Grand moment « coup de poing » : un éclair de la couleur d'accent, très bref, et un impact. */
+function AccentFlash() {
+  const { t } = useEngine();
+  const s = useScene();
+  cue(`${s.key}:accent`, s.tin, 'impact', 0.9);
+  const o = t >= s.tin ? 0.75 * (1 - clamp(progress(t, s.tin, 0.16))) : 0;
+  return o > 0 ? <div className="pointer-events-none absolute inset-0 z-[400] bg-hl" style={{ opacity: o }} aria-hidden /> : null;
+}
+
+/** Scènes dont le plan plein cadre (photo, clip, 3D) ne doit pas porter de logo par-dessus. */
+const FULL_BLEED = new Set(['footage', 'gallery', 'showcase3d']);
+
+/**
+ * Le logo pendant la vidéo — seulement si le graphe l'a retenu (`brandmark: corner`) :
+ * monochrome, à la couleur du texte de la scène visible, sans conteneur, dans le coin
+ * que les compositions laissent libre. Jamais sur un plan plein cadre ni sur la signature.
+ */
 function Brandmark() {
-  const { data, t, scenes } = useEngine();
-  if (!data.logo.icon || scenes.length < 3 || ['brutal', 'cinematic'].includes(data.direction.id)) return null;
-  const from = scenes[1].tin + 0.3;
-  const to = scenes[scenes.length - 1].start - 0.1;
-  const o = clamp(progress(t, from, 0.4)) * (1 - clamp(progress(t, to - 0.3, 0.3)));
+  const { data, t, scenes, u } = useEngine();
+  const kit = data.kit;
+  const html = useMemo(() => ({ __html: kit?.logoSvg || '' }), [kit?.logoSvg]);
+  if (!kit || kit.brandmark !== 'corner' || !kit.logoSvg || scenes.length < 3) return null;
+  const current = scenes.find((s) => t >= s.visFrom && t < s.visTo && t >= s.start) || scenes.find((s) => t >= s.visFrom && t < s.visTo);
+  if (!current || current.sceneId === 'logo') return null;
+  const fullBleed = FULL_BLEED.has(current.sceneId) || (current.sceneId === 'product' && !!current.image && current.variant === 0);
+  const from = scenes[0].tin + 0.6;
+  const to = scenes[scenes.length - 1].start;
+  const o = clamp(progress(t, from, 0.4)) * (1 - clamp(progress(t, to - 0.35, 0.3))) * (fullBleed ? 0 : 1);
   if (o <= 0) return null;
-  return (
-    <div className="brandmark" style={{ opacity: o }}>
-      <img src={data.logo.icon} alt="" />
-    </div>
-  );
+  const sf = data.surfaces[current.surface] || data.surfaces.light;
+  const corner = kit.brandmarkCorner || 'top-right';
+  const pos: CSSProperties = {
+    [corner.startsWith('top') ? 'top' : 'bottom']: corner.startsWith('top') ? 'calc(var(--st) * 0.45)' : 'calc(var(--sb) * 0.45)',
+    [corner.endsWith('left') ? 'left' : 'right']: 'var(--sx)',
+  };
+  return <div className="kit-mark" style={{ ...pos, height: u * 4.6, color: sf.ink, opacity: o * 0.9 }} dangerouslySetInnerHTML={html} aria-hidden />;
 }
 
 /** Rayon des formes par direction (classe `rounded-brand`). */
@@ -134,6 +159,7 @@ export function Video({ data, t }: { data: VideoData; t: number }) {
               <section className={`scene scene-${s.sceneId}`} data-scene={s.sceneId} style={{ ...surfaceVars(data, s.surface), zIndex: 10 + s.index, visibility: on ? 'visible' : 'hidden', ...(on ? sceneStyle(engine, s) : {}) }}>
                 <Backdrop />
                 {Component ? <Component /> : null}
+                {s.accent === 'punch' ? <AccentFlash /> : null}
               </section>
             </SceneCtx.Provider>
           );

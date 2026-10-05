@@ -1,3 +1,4 @@
+import { VideoType } from './motion-video.model';
 /**
  * Frontend mirror of the backend Communication model.
  * Kept in sync with `apps/api/api/models/communication.model.ts`.
@@ -112,6 +113,10 @@ export interface ContentIdea {
   intent?: VisualIntent;
   status: ContentStatus;
   flyerIds?: string[];
+  /** Type de vidéo proposé (formats vidéo) : « Générer » crée ce type. */
+  videoType?: VideoType;
+  /** Vidéos créées pour ce contenu. */
+  videoIds?: string[];
   /** Période propriétaire. Absent = contenu libre né dans l'atelier. */
   planId?: string;
   /** Occasion qui a motivé ce contenu (absorbe l'ancien `MomentIdea`). */

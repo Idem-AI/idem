@@ -93,6 +93,9 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
     @if (applyResult(); as r) {
       <div class="mb-4 rounded-lg p-3 text-sm" role="status" style="border:1px solid var(--color-surface-2);">
         <p>{{ 'security.app.applied' | translate: { blocked: r.blocked.length, released: r.released.length } }}</p>
+        @if (r.appliedLive) {
+          <p class="mt-1" style="color:var(--color-success);"><i class="pi pi-bolt mr-1 text-xs" aria-hidden="true"></i>{{ 'security.app.appliedLive' | translate }}</p>
+        }
         @if (r.redeployment; as d) {
           <p class="mt-1" style="color:var(--color-text-secondary);">
             {{ (d.alreadyRunning ? 'security.app.redeployRunning' : 'security.app.redeployQueued') | translate }}

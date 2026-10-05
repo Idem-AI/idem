@@ -41,10 +41,77 @@
       <!-- ═══════════ Colonne gauche : le visuel ═══════════ -->
       <section class="cd-visual">
         <h3 class="cd-section-title">
-          {{ 'dashboard.showCommunication.detail.visualTitle' | translate }}
+          {{ (isVideo() && !preferVisual() ? 'dashboard.showCommunication.detail.videoTitle' : 'dashboard.showCommunication.detail.visualTitle') | translate }}
         </h3>
 
-        @if (visual(); as current) {
+        @if (isVideo() && !preferVisual()) {
+          <!-- Contenu vidéo : son type, et un seul geste pour la générer. -->
+          <div class="cd-video">
+            @if (videoBusy()) {
+              <app-video-composing [format]="videoFormat()" [progress]="videoProgress()" />
+            } @else {
+              <div class="cd-video-type">
+                <i [class]="videoTypeIcon()" class="cd-video-type-icon" aria-hidden="true"></i>
+                <div class="min-w-0 flex-1">
+                  <p class="cd-label">{{ 'dashboard.showCommunication.detail.videoType' | translate }}</p>
+                  <p class="cd-video-type-name">{{ 'dashboard.showCommunication.video.types.' + videoType() + '.label' | translate }}</p>
+                  <p class="cd-note">{{ 'dashboard.showCommunication.video.types.' + videoType() + '.hint' | translate }}</p>
+                </div>
+                @if (videoTypes().length) {
+                  <button type="button" class="cd-edit-btn" [attr.aria-expanded]="choosingVideoType()" (click)="choosingVideoType.set(!choosingVideoType())">
+                    <i class="pi pi-pencil" aria-hidden="true"></i>
+                    {{ 'dashboard.showCommunication.detail.changeType' | translate }}
+                  </button>
+                }
+              </div>
+
+              @if (choosingVideoType()) {
+                <div class="cd-chips mt-2">
+                  @for (t of videoTypes(); track t.id) {
+                    <button
+                      type="button"
+                      class="rounded-xl px-3 py-1.5 text-sm"
+                      [class.inner-button]="videoType() === t.id"
+                      [class.outer-button]="videoType() !== t.id"
+                      [attr.aria-pressed]="videoType() === t.id"
+                      (click)="setVideoType(t.id)"
+                    >
+                      <i [class]="t.icon" aria-hidden="true"></i>
+                      {{ 'dashboard.showCommunication.video.types.' + t.id + '.label' | translate }}
+                    </button>
+                  }
+                </div>
+              }
+
+              <p class="cd-note mt-3">
+                {{ 'dashboard.showCommunication.video.formats.' + videoFormat() + '.label' | translate }} · 15 s · HD
+              </p>
+
+              @if (lastVideoId(); as videoId) {
+                <p class="cd-note">{{ 'dashboard.showCommunication.detail.videoDone' | translate }}</p>
+                <div class="cd-visual-actions">
+                  <button type="button" class="inner-button button-sm" (click)="openVideo.emit(videoId)">
+                    <i class="pi pi-play" aria-hidden="true"></i>
+                    {{ 'dashboard.showCommunication.detail.openVideo' | translate }}
+                  </button>
+                  <button type="button" class="outer-button button-sm" (click)="createVideo()">
+                    {{ 'dashboard.showCommunication.detail.anotherVideo' | translate: { price: videoPrice() ?? '…' } }}
+                  </button>
+                </div>
+              } @else {
+                <button type="button" class="inner-button mt-3" (click)="createVideo()">
+                  <i class="pi pi-video" aria-hidden="true"></i>
+                  {{ 'dashboard.showCommunication.detail.createVideo' | translate: { price: videoPrice() ?? '…' } }}
+                </button>
+              }
+
+              <button type="button" class="cd-edit-btn mt-3" (click)="preferVisual.set(true)">
+                <i class="pi pi-image" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.detail.visualInstead' | translate }}
+              </button>
+            }
+          </div>
+        } @else if (visual(); as current) {
           <!--
             L'aperçu réagit au survol et au clic, comme celui de la charte :
             désigner un élément puis « Modifier » ouvre l'éditeur dessus.

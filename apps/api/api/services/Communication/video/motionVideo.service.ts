@@ -41,15 +41,21 @@ import {
   SfxKind,
 } from '../../../models/motionVideo.model';
 import { mediaWanted, planTypeScenes, TYPE_DEFS, MediaCounts } from './video.types';
+import { planCreative } from './video.storyline';
+import { conceptCopyHints, ensureScenes, sceneRange } from './video.concepts';
+import { applyRules } from './video.rules';
+import { objectiveForContent } from './video.calendar';
+import { motionFromArtDirection } from './video.artdirection';
+import { enhanceRequest } from './video.enhance';
 import { generateClip, generateStill, MediaStorage, Orientation, processUpload, searchPexelsPhotos, searchPexelsVideos } from './video.media';
 import { ensureSfxLibrary, pickSounds, publicSoundName, SFX_DENSITY, SFX_GAIN_DB, sfxLibrary, soundFile, SfxLibrary } from './video.sfx';
 import { apiBaseUrl } from '../visualUrl';
-import { DirectionId, DIRECTIONS, isMotionDirection, pickDirection, planMotion, styleOfDirection, surfacesFor } from './video.direction';
-import { applyKitOverrides, assignIcons, iconVocabulary, KitContext, KitOverrides, resolveKit } from './video.capabilities';
+import { DirectionId, DIRECTIONS, isMotionDirection, lintMotion, pickDirection, planMotion, styleOfDirection, surfacesFor } from './video.direction';
+import { applyKitOverrides, assignIcons, iconVocabulary, KitContext, KitOverrides, pickAccentEffect, pickRhythm, resolveKit, rhythmMenu, topNodes } from './video.capabilities';
 import { analyzeLogo } from './video.logo';
 import { CommunicationService } from '../communication.service';
 import { StorageService } from '../../storage.service';
-import { extractFacts, writeCopy, CopyContext, CopyWriter, fitLength } from './video.copy';
+import { extractFacts, writeCopy, CopyContext, CopyWriter, fitLength, heuristicSlot } from './video.copy';
 import { planScenes } from './video.recipes';
 import { buildStoryboard, resolveStyle, retime } from './video.storyboard';
 import { buildVideoTheme, VideoTheme } from './video.theme';
@@ -65,9 +71,11 @@ export class VideoInputError extends Error {}
 export interface CreateVideoInput {
   brief: Partial<VideoBrief>;
   scope: unknown;
-  /** Type de motion choisi par l'utilisateur. */
-  type?: VideoType;
+  /** Type de motion : imposé (calendrier, choix explicite), ou « auto » / « mix » = choisi par le modèle. */
+  type?: VideoType | 'auto';
   language?: string;
+  /** Contenu du calendrier éditorial qui demande cette vidéo (rattachement). */
+  contentId?: string;
 }
 
 /**
@@ -166,6 +174,19 @@ export function defaultType(brief: VideoBrief): VideoType {
   return 'kinetic';
 }
 
+/**
+ * Surfaces exigées par certaines mises en scène : le clip dans les lettres a besoin
+ * d'un aplat très clair (ou très sombre) pour que seules les lettres laissent passer
+ * l'image ; la bichromie prend la couleur de la marque.
+ */
+export function applyTreatmentSurfaces(storyboard: VideoStoryboard): void {
+  for (const sc of storyboard.scenes) {
+    const t = storyboard.kit?.treatments?.[sc.key];
+    if (t === 'knockout' && !['light', 'tint', 'deep'].includes(sc.surface)) sc.surface = 'light';
+    if (t === 'duotone' && ['light', 'tint'].includes(sc.surface)) sc.surface = 'primary';
+  }
+}
+
 const orientationOf = (format: VideoFormat): Orientation => (format === 'landscape' ? 'landscape' : format === 'square' ? 'square' : 'portrait');
 
 export class MotionVideoService {
@@ -201,6 +222,35 @@ export class MotionVideoService {
     const visuals: any[] = analysis.communication?.visuals || [];
     const otherVideos: MotionVideo[] = analysis.communication?.videos || [];
     return { project, theme, ctx, branding, visuals, otherVideos };
+  }
+
+  // ── « Améliorer ma demande » ─────────────────────────────────────────────
+
+  /** Réécrit la demande de l'utilisateur, dans le contexte de la marque et de sa DA (gratuit). */
+  async enhanceRequest(userId: string, projectId: string, text: string, media: VideoMediaAsset[] = []): Promise<{ prompt: string; source: 'llm' | 'template' }> {
+    const clean = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 1200);
+    if (clean.length < 3) throw new VideoInputError('message_required');
+    const { ctx, branding } = await this.brandContext(userId, projectId);
+    const count = (kind: VideoMediaKind) => media.filter((m) => m?.kind === kind).length;
+    const result = await enhanceRequest(
+      { text: clean, ctx, media: { images: count('image'), videos: count('video'), models: count('model3d'), lotties: count('lottie') + count('rive') }, art: motionFromArtDirection(branding?.artDirection).summary },
+      this.writerFor(userId)
+    );
+    logger.info('video.request_enhanced', { event: 'video.request_enhanced', projectId, source: result.source, tokens: result.tokens });
+    return { prompt: result.prompt, source: result.source };
+  }
+
+  // ── Calendrier éditorial ─────────────────────────────────────────────────
+
+  /** Complète la demande avec le contenu du calendrier : ce que l'utilisateur n'a pas écrit vient du post. */
+  private async inputFromContent(userId: string, projectId: string, input: CreateVideoInput): Promise<CreateVideoInput> {
+    const item = await this.communication.findPlanItem(userId, projectId, input.contentId!);
+    if (!item) return input;
+    const brief = { ...(input.brief || {}) };
+    if (!brief.message || String(brief.message).trim().length < 3) brief.message = (item.hook || item.title).slice(0, 400);
+    if (!brief.details) brief.details = [item.title !== brief.message ? item.title : '', item.description, item.callToAction].filter(Boolean).join('\n').slice(0, 800);
+    if (!brief.objective) brief.objective = objectiveForContent(item);
+    return { ...input, brief, type: input.type || item.videoType || 'auto' };
   }
 
   // ── Kit (graphe de capacités) ───────────────────────────────────────────
@@ -241,6 +291,7 @@ export class MotionVideoService {
       text: [opts.brief.message, opts.brief.details, opts.ctx.businessType, opts.ctx.valueProposition, ...(opts.ctx.keywords || [])].filter(Boolean).join(' '),
       seed: opts.storyboard.seed,
       recent: opts.otherVideos.map((v) => v.storyboard?.kit).filter(Boolean) as VideoKit[],
+      boosts: motionFromArtDirection(opts.branding?.artDirection).boosts,
     };
   }
 
@@ -256,6 +307,8 @@ export class MotionVideoService {
    * Pexels (photos, vidéos) → génération (image Gemini, clip Veo — un seul).
    */
   private async acquireMedia(opts: {
+    /** Rendu imposé par la DA de la charte aux images et clips générés. */
+    artModifier?: string;
     userId: string;
     projectId: string;
     videoId: string;
@@ -300,7 +353,8 @@ export class MotionVideoService {
       report.stockVideos = clips.length;
     }
 
-    const prompt = `${query}${opts.ctx.businessType ? `, ${opts.ctx.businessType}` : ''}, for ${opts.ctx.brandName}`;
+    // Ce qui est généré suit la DA de la charte (traitement, lumière, cadrage), comme les visuels.
+    const prompt = `${query}${opts.ctx.businessType ? `, ${opts.ctx.businessType}` : ''}, for ${opts.ctx.brandName}${opts.artModifier ? `. ${opts.artModifier.slice(0, 300)}` : ''}`;
     // Aucune vidéo trouvée alors que le type en a besoin : Gemini Veo, un seul clip.
     if (brief.allowGenerate && wanted.videos > 0 && count('video') === 0) {
       try {
@@ -313,7 +367,7 @@ export class MotionVideoService {
     // Pas une seule photo pour une vidéo qui en a besoin : une image générée.
     if (brief.allowGenerate && wanted.images > 0 && count('image') === 0 && count('video') === 0) {
       try {
-        assets.push(await generateStill(prompt, orientation, this.mediaStorage(), folder));
+        assets.push(await generateStill(prompt, orientation, this.mediaStorage(), folder, !!opts.artModifier));
         report.generatedImages = 1;
       } catch (error: any) {
         logger.warn('video.image_generation_failed', { error: error.message });
@@ -440,26 +494,19 @@ export class MotionVideoService {
         /* un client déconnecté ne doit pas interrompre la création */
       }
     };
+    // Depuis le calendrier : le brief vient du contenu (accroche, angle, appel à
+    // l'action), le type est celui que le calendrier affiche.
+    if (input.contentId) input = await this.inputFromContent(userId, projectId, input);
     const scope = normalizeScope(input.scope);
     const brief = normalizeBrief(input.brief, input.language);
-    const type: VideoType = VIDEO_TYPES.includes(input.type as VideoType) ? (input.type as VideoType) : defaultType(brief);
-    const typeDef = TYPE_DEFS[type];
+    const objectiveGiven = VIDEO_OBJECTIVES.includes(input.brief?.objective as VideoObjective);
     const { theme, ctx, branding, visuals, otherVideos } = await this.brandContext(userId, projectId);
     ctx.language = brief.language || ctx.language;
+    // La DA de la charte, traduite en paramètres de motion (directions, casse, rythme, couleur, décor).
+    const art = motionFromArtDirection(branding?.artDirection);
 
     const videoId = `video-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
     const seed = crypto.randomInt(1, 2 ** 31 - 1);
-    // La direction de motion : compatible avec le type, proche de la direction
-    // artistique de la marque, différente des dernières vidéos du projet.
-    const direction = pickDirection({
-      type,
-      artStyleId: branding?.artDirection?.styleId,
-      seed,
-      avoid: otherVideos.map((v) => v.storyboard?.direction).filter(Boolean) as string[],
-      requested: isMotionDirection(brief.direction) ? brief.direction : undefined,
-    });
-    // Le langage de mouvement (effets sonores, ambiance musicale) suit la direction, sauf choix explicite.
-    const style = brief.style && brief.style !== 'auto' ? resolveStyle(brief.style, undefined, brief.objective) : styleOfDirection(direction);
     const orientation = orientationOf(scope.formats[0]);
     const facts = extractFacts(`${brief.message}\n${brief.details || ''}`);
 
@@ -472,9 +519,75 @@ export class MotionVideoService {
       models: own('model3d'),
       lotties: own('lottie') + own('rive'),
     };
-    emit('plan', 'running', { type });
-    let sceneIds = planTypeScenes(type, brief.objective, scope.durationSec, facts, optimistic);
-    emit('plan', 'done', { type, style, direction, scenes: sceneIds, durationSec: scope.durationSec });
+
+    // Type demandé (calendrier, choix explicite), ou « auto » / « mix » : le modèle compose.
+    const requested = VIDEO_TYPES.includes(input.type as VideoType) ? (input.type as VideoType) : null;
+    emit('plan', 'running', { type: requested || 'auto' });
+
+    // La direction de motion d'abord : celle de la DA de la charte, différente des
+    // dernières vidéos du projet. Elle fixe le menu des entrées et l'effet du grand moment.
+    const direction = pickDirection({
+      type: requested ?? 'mix',
+      artStyleId: branding?.artDirection?.styleId,
+      artDirections: art.directions,
+      seed,
+      avoid: otherVideos.map((v) => v.storyboard?.direction).filter(Boolean) as string[],
+      requested: isMotionDirection(brief.direction) ? brief.direction : undefined,
+    });
+
+    // La direction créative : le modèle CHOISIT dans des menus que le graphe a filtrés
+    // (concepts, scènes, grand moment, entrées, animation du logo) ; le code valide tout.
+    const prelim = this.kitContext({
+      type: requested ?? 'mix',
+      brief,
+      scope,
+      direction,
+      storyboard: { version: 1, seed, style: 'premium', durationSec: scope.durationSec, scenes: [] },
+      theme,
+      branding,
+      ctx,
+      media: brief.media || [],
+      otherVideos,
+    });
+    const plan = await planCreative(
+      {
+        message: brief.message,
+        details: brief.details,
+        durationSec: scope.durationSec,
+        media: optimistic,
+        facts,
+        ctx,
+        objective: objectiveGiven ? brief.objective : undefined,
+        type: requested ?? undefined,
+        direction,
+        techniques: DIRECTIONS[direction].headline,
+        logoMenu: topNodes('logo', prelim, 4),
+        rhythmMenu: rhythmMenu(prelim, otherVideos.map((v) => v.storyboard?.rhythm).filter(Boolean) as string[]),
+        graphRhythm: pickRhythm(prelim, otherVideos.map((v) => v.storyboard?.rhythm).filter(Boolean) as string[]),
+        art: { medium: art.medium, summary: art.summary, styleId: branding?.artDirection?.styleId },
+        recentConcepts: otherVideos.map((v) => v.storyboard?.concept).filter(Boolean) as string[],
+        recentSequences: otherVideos.slice(-2).map((v) => (v.storyboard?.scenes || []).map((sc) => sc.sceneId).join('>')),
+        recentLogos: otherVideos.map((v) => v.storyboard?.kit?.logo).filter(Boolean) as string[],
+        // Ce que l'utilisateur a fourni (et les photos de ses visuels) : toujours montré.
+        owned: { images: own('image') || visuals.filter((v) => v.backgroundImageUrl).length, videos: own('video'), models: own('model3d'), lotties: own('lottie') + own('rive') },
+        seed,
+      },
+      this.writerFor(userId)
+    );
+    const type: VideoType = plan.type;
+    brief.objective = plan.objective;
+    // Règle « call-to-action » appliquée dès le plan : un objectif qui vend, invite ou ouvre a son appel.
+    let sceneIds = plan.scenes;
+    if (['promotion', 'event', 'opening', 'product', 'recruitment'].includes(plan.objective) && scope.durationSec >= 15 && !sceneIds.some((id) => id === 'cta' || id === 'offer' || id === 'event')) {
+      sceneIds = ensureScenes(sceneIds, ['cta'], scope.durationSec);
+    }
+    const storylineTokens = plan.tokens;
+    const typeDef = TYPE_DEFS[type];
+    const accentEffect = pickAccentEffect(direction, seed, art.boosts);
+
+    // Le langage de mouvement (effets sonores, ambiance musicale) suit la direction, sauf choix explicite.
+    const style = brief.style && brief.style !== 'auto' ? resolveStyle(brief.style, undefined, brief.objective) : styleOfDirection(direction);
+    emit('plan', 'done', { type, objective: brief.objective, concept: plan.concept, rhythm: plan.rhythm, accent: accentEffect, style, direction, scenes: sceneIds, durationSec: scope.durationSec, source: plan.source });
     const wanted = mediaWanted(sceneIds);
     const needsStock = (wanted.images > own('image') || wanted.videos > own('video')) && (brief.allowStock || brief.allowGenerate);
 
@@ -485,6 +598,10 @@ export class MotionVideoService {
     const copy = await writeCopy(sceneIds, brief, ctx, this.writerFor(userId), {
       mediaQuery: needsStock,
       icons: sceneIds.includes('benefits') ? iconVocabulary(vocabText) : undefined,
+      // Le concept oriente les textes (question, problème, preuve…) ; le grand moment reçoit la ligne la plus forte.
+      hints: conceptCopyHints(plan.concept),
+      accentIndex: plan.accent,
+      durationSec: scope.durationSec,
     });
     const query = (copy.copy[0]?.visual || [ctx.businessType, ...(ctx.keywords || []).slice(0, 2)].filter(Boolean).join(' ') || brief.message).slice(0, 60);
     const firstTitle = sceneIds.map((_, i) => copy.copy[i + 1]?.title || copy.copy[i + 1]?.l1).find(Boolean);
@@ -499,7 +616,7 @@ export class MotionVideoService {
     emit('music', 'running', { mood: brief.musicMood });
     if (brief.sfx) emit('sfx', 'running');
     const [media, music, sfx] = await Promise.all([
-      this.acquireMedia({ userId, projectId, videoId, brief, visuals, wanted, query, orientation, ctx }).then((m) => {
+      this.acquireMedia({ userId, projectId, videoId, brief, visuals, wanted, query, orientation, ctx, artModifier: branding?.artDirection?.imagePromptModifier }).then((m) => {
         const preview = (a: VideoMediaAsset) => ({ kind: a.kind, origin: a.origin, url: a.kind === 'video' ? a.posterUrl : a.kind === 'image' ? a.url : undefined, credit: a.credit, name: a.name });
         emit('media', 'done', { query, ...m.report, items: m.assets.slice(0, 8).map(preview) });
         return m;
@@ -530,13 +647,33 @@ export class MotionVideoService {
 
     // 4. Une scène dont le média manque se replie sur une scène sans média.
     const slotsByIndex = sceneIds.map((_, i) => copy.copy[i + 1]);
-    const kept: { id: string; slots: Record<string, string> }[] = [];
+    const kept: { id: string; slots: Record<string, string>; from: number }[] = [];
     sceneIds.forEach((id, i) => {
       if (copy.dropped.includes(i + 1) || !slotsByIndex[i]) return;
       if (id === 'gallery' && images.length < 2) return;
-      kept.push({ id, slots: slotsByIndex[i] });
+      kept.push({ id, slots: slotsByIndex[i], from: i });
     });
+    // Trop peu de scènes pour la durée (le modèle en a laissé de côté) : des scènes de texte tirées
+    // du brief les remplacent, pour que chaque scène garde un temps de lecture juste (video.rules.ts).
+    {
+      const [minScenes] = sceneRange(scope.durationSec);
+      for (const id of ['statement', 'benefits', 'kinetic', 'wordswap']) {
+        if (kept.length >= minScenes) break;
+        if (kept.some((k) => k.id === id)) continue;
+        const slots: Record<string, string> = {};
+        for (const slot of SCENES[id].slots) {
+          const value = fitLength(heuristicSlot(id, slot.key, kept.length + 1, brief, facts, ctx), slot.max);
+          if (value) slots[slot.key] = value;
+        }
+        if (SCENES[id].slots.some((sl) => sl.required && !slots[sl.key])) continue;
+        const ctaAt = kept.findIndex((k) => k.id === 'cta' || k.id === 'logo');
+        kept.splice(ctaAt > 0 ? ctaAt : kept.length, 0, { id, slots, from: -1 });
+      }
+    }
     sceneIds = kept.map((k) => k.id);
+    // Le grand moment suit sa scène ; si elle est tombée, la première scène de contenu le reprend.
+    const accentAt = kept.findIndex((k) => k.from === plan.accent);
+    const accentIndex = accentAt >= 0 && sceneIds[accentAt] !== 'logo' ? accentAt : Math.min(1, Math.max(0, sceneIds.length - 2));
 
     const storyboard = buildStoryboard({
       sceneIds,
@@ -554,13 +691,36 @@ export class MotionVideoService {
       logo3d: typeDef.logoVariant === 2 && !!theme.logo.svgMarkup,
       direction,
       landscape: scope.formats[0] === 'landscape',
+      art: art.overrides,
+      accent: sceneIds.length > 2 ? { index: accentIndex, effect: accentEffect } : undefined,
+      concept: plan.concept,
+      rhythm: plan.rhythm,
+      // Les entrées de titre de la dernière vidéo du projet : la nouvelle en prend d'autres.
+      avoidHeadlines: (otherVideos[otherVideos.length - 1]?.storyboard?.scenes || []).map((sc) => sc.motion?.headline).filter(Boolean) as string[],
     });
+
+    // Les entrées choisies par le modèle (dans le menu de la direction), puis le contrôle
+    // anti-réflexe : un choix qui créerait une répétition est réparé par le code.
+    const moved = Object.entries(plan.moves).map(([i, technique]) => [kept.findIndex((k) => k.from === Number(i)), technique] as [number, string]).filter(([i]) => i >= 0);
+    if (moved.length) {
+      const motions = storyboard.scenes.map((sc) => ({ ...sc.motion! }));
+      for (const [i, technique] of moved) if (motions[i]) motions[i].headline = technique;
+      const linted = lintMotion(motions as any, sceneIds, DIRECTIONS[direction]).plan;
+      storyboard.scenes.forEach((sc, i) => (sc.motion = linted[i] as any));
+    }
 
     // 5. Le kit : le graphe de capacités choisit fond, annotation, animation du logo,
     //    icônes, effets — selon le projet, la DA, la charte et les médias.
-    const kit = resolveKit(this.kitContext({ type, brief, scope, direction, storyboard, theme, branding, ctx, media: media.assets, otherVideos }));
+    const kctx = this.kitContext({ type, brief, scope, direction, storyboard, theme, branding, ctx, media: media.assets, otherVideos });
+    let kit = resolveKit(kctx);
+    // L'animation de logo choisie par le modèle, si elle est dans le menu du graphe et possible ici.
+    if (plan.logo && plan.logo !== kit.logo) kit = applyKitOverrides(kit, { logo: plan.logo }, kctx).kit;
     kit.icons = assignIcons(storyboard.scenes);
     storyboard.kit = kit;
+    applyTreatmentSurfaces(storyboard);
+    // Les bonnes pratiques (lecture, tenues, entrées, signature…) : vérifiées et réparées, toujours.
+    const qa = applyRules(storyboard, { objective: brief.objective });
+    storyboard.qa = { repaired: qa.repaired.length, issues: qa.issues, warnings: qa.warnings };
 
     const now = new Date().toISOString();
     const hook = storyboard.scenes.find((sc) => sc.slots.title)?.slots.title || brief.message;
@@ -579,7 +739,7 @@ export class MotionVideoService {
       status: 'draft',
       paidCredits,
       exportCount: 0,
-      copyTokens: { ...copy.tokens, source: copy.source },
+      copyTokens: { input: copy.tokens.input + storylineTokens.input, output: copy.tokens.output + storylineTokens.output, source: copy.source },
       createdAt: now,
       updatedAt: now,
     };
@@ -589,6 +749,7 @@ export class MotionVideoService {
       kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, addons: kit.addons },
     });
     await this.communication.saveVideo(userId, projectId, video);
+    if (input.contentId) await this.communication.linkVideoToContent(userId, projectId, input.contentId, videoId).catch(() => undefined);
     logger.info('video.created', {
       event: 'video.created',
       projectId,
@@ -600,7 +761,9 @@ export class MotionVideoService {
       music: music?.provider,
       media: media.report,
       sfx: sfx ? Object.keys(sfx.sounds).length : 0,
-      kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, addons: kit.addons },
+      kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, camera: kit.camera, entrance: kit.entrance, addons: kit.addons },
+      creative: { concept: plan.concept, rhythm: plan.rhythm, source: plan.source },
+      qa: storyboard.qa,
     });
     this.lastMediaReport = media.report;
     return video;
@@ -670,7 +833,7 @@ export class MotionVideoService {
     if (isMotionDirection(patch.direction) && patch.direction !== storyboard.direction) {
       const ids = storyboard.scenes.map((sc) => sc.sceneId);
       const plan = planMotion(ids, patch.direction, storyboard.seed, { landscape: scope.formats[0] === 'landscape' });
-      const surfaces = surfacesFor(ids, DIRECTIONS[patch.direction].color, storyboard.seed);
+      const surfaces = surfacesFor(ids, storyboard.art?.color || DIRECTIONS[patch.direction].color, storyboard.seed);
       storyboard = {
         ...storyboard,
         direction: patch.direction,
@@ -722,10 +885,15 @@ export class MotionVideoService {
       let kit = storyboard.kit && !directionChanged ? storyboard.kit : resolveKit(kctx);
       kit = { ...kit, icons: storyboard.kit?.icons || assignIcons(storyboard.scenes) };
       if (patch.kit) kit = applyKitOverrides(kit, patch.kit, kctx).kit;
-      storyboard = { ...storyboard, kit };
+      storyboard = { ...storyboard, kit, scenes: storyboard.scenes.map((sc) => ({ ...sc })) };
+      applyTreatmentSurfaces(storyboard);
     }
 
     storyboard = retime(storyboard, music?.beat);
+    {
+      const qa = applyRules(storyboard, { objective: brief.objective });
+      storyboard = { ...storyboard, qa: { repaired: qa.repaired.length, issues: qa.issues, warnings: qa.warnings } };
+    }
 
     return this.communication.mutateVideo(userId, projectId, videoId, (v) => ({
       ...v,

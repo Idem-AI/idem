@@ -53,7 +53,12 @@ export class MotionVideoService {
    * `keepAlive: false` est ESSENTIEL : une reconnexion rejouerait le POST, donc
    * créerait (et facturerait) une seconde vidéo.
    */
-  createStream(projectId: string, input: { brief: VideoBrief; scope: VideoScope; type: VideoType }): Observable<VideoStreamEvent> {
+  /**
+   * Crée une vidéo en suivant les étapes en direct. `type: 'auto'` : le modèle
+   * choisit le type (ou en combine plusieurs) d'après la demande ; `contentId` :
+   * vidéo d'un contenu du calendrier (brief et type viennent du contenu).
+   */
+  createStream(projectId: string, input: { brief: Partial<VideoBrief>; scope: VideoScope; type: VideoType | 'auto'; contentId?: string }): Observable<VideoStreamEvent> {
     return from(this.tokenService.getTokenAsync()).pipe(
       switchMap(
         (token: string | null) =>
@@ -137,6 +142,14 @@ export class MotionVideoService {
     const form = new FormData();
     files.slice(0, 8).forEach((file) => form.append('files', file));
     return this.http.post<{ assets: VideoMediaAsset[] }>(`${this.apiUrl}/${projectId}/videos/media`, form);
+  }
+
+  /** « Améliorer ma demande » : réécriture précise, faits conservés (gratuit). */
+  enhanceRequest(projectId: string, text: string, media: VideoMediaAsset[]): Observable<{ prompt: string; source: 'llm' | 'template' }> {
+    return this.http.post<{ prompt: string; source: 'llm' | 'template' }>(`${this.apiUrl}/${projectId}/videos/enhance`, {
+      text,
+      media: media.map((m) => ({ kind: m.kind })),
+    });
   }
 
   uploadPhotos(projectId: string, files: File[]): Observable<{ urls: string[] }> {
