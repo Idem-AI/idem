@@ -13,6 +13,7 @@ import * as geo from '../../api/services/geo-blocking.service';
 import { createRule, getOrCreateConfig, updateConfig } from '../../api/services/firewall.service';
 import { getApplication } from '../../api/services/application.service';
 import { resolveApplicationLabels } from '../../api/services/application-labels.service';
+import { resolveFirewallFile } from '../../api/services/firewall-file.service';
 import { isTestDatabaseAvailable, testPool, truncateAll } from '../helpers/db';
 import { makeApplication, makeManagedServer, makeProject, makeTeam } from '../helpers/factories';
 
@@ -49,16 +50,22 @@ async function labelsFor(teamId: number, uuid: string): Promise<string[]> {
   return resolveApplicationLabels(app);
 }
 
-describe('a saved geo rule reaches the deployed labels', () => {
-  it('carries the blocked countries onto the container', async () => {
+/** The application's firewall file — where countries are applied from now. */
+async function fileFor(teamId: number, uuid: string): Promise<string> {
+  const app = await getApplication(teamId, uuid);
+  if (!app) throw new Error('fixture application vanished');
+  return resolveFirewallFile(app);
+}
+
+describe('a saved geo rule reaches the proxy', () => {
+  it('carries the blocked countries into the firewall file', async () => {
     const { teamId, uuid } = await aRoutableApplication();
     await geo.setGeoRule(teamId, uuid, { mode: 'block', countries: ['RU', 'CN'] });
 
-    const labels = await labelsFor(teamId, uuid);
+    const file = await fileFor(teamId, uuid);
 
-    const countries = labels.filter((l) => l.includes('.plugin.geoblock.countries['));
-    expect(countries.some((l) => l.endsWith('=RU'))).toBe(true);
-    expect(countries.some((l) => l.endsWith('=CN'))).toBe(true);
+    expect(file).toContain('- RU');
+    expect(file).toContain('- CN');
   });
 
   it('references the middleware on the router, not only declares it', async () => {
@@ -70,20 +77,19 @@ describe('a saved geo rule reaches the deployed labels', () => {
       l.startsWith('traefik.http.routers.https-0-' + uuid + '.middlewares=')
     );
 
-    expect(middlewaresLabel).toBeDefined();
-    expect(middlewaresLabel).toContain('geoblock-' + uuid);
+    // The router references the chain; the chain holds geo-blocking.
+    expect(middlewaresLabel).toContain(`firewall-${uuid}@file`);
+    expect(await fileFor(teamId, uuid)).toContain(`- geoblock-${uuid}`);
   });
 
   it('stores an allow-list as the complement, and that is what reaches the label', async () => {
     const { teamId, uuid } = await aRoutableApplication();
     await geo.setGeoRule(teamId, uuid, { mode: 'allow_only', countries: ['FR'] });
 
-    const labels = await labelsFor(teamId, uuid);
+    const file = await fileFor(teamId, uuid);
 
-    expect(labels.some((l) => l.includes('.plugin.geoblock.countries[') && l.endsWith('=FR'))).toBe(
-      false
-    );
-    expect(labels.some((l) => l.includes('.plugin.geoblock.countries['))).toBe(true);
+    expect(file).toContain('countries:');
+    expect(file).not.toContain('- FR\n');
   });
 
   it('also carries countries from a rule created in the rules list', async () => {
@@ -95,9 +101,7 @@ describe('a saved geo rule reaches the deployed labels', () => {
       action: 'block',
     });
 
-    const labels = await labelsFor(teamId, uuid);
-
-    expect(labels.some((l) => l.includes('.plugin.geoblock.countries[') && l.endsWith('=KP'))).toBe(true);
+    expect(await fileFor(teamId, uuid)).toContain('- KP');
   });
 
   it('emits no geo label when the firewall is turned off, even with a rule saved', async () => {
@@ -107,17 +111,13 @@ describe('a saved geo rule reaches the deployed labels', () => {
     await geo.setGeoRule(teamId, uuid, { mode: 'block', countries: ['RU'] });
     await updateConfig(teamId, uuid, { enabled: false });
 
-    const labels = await labelsFor(teamId, uuid);
-
-    expect(labels.some((l) => l.includes('geoblock'))).toBe(false);
+    expect(await fileFor(teamId, uuid)).not.toContain('geoblock');
   });
 
   it('emits no geo label when there is no geo rule at all', async () => {
     const { teamId, uuid } = await aRoutableApplication();
 
-    const labels = await labelsFor(teamId, uuid);
-
-    expect(labels.some((l) => l.includes('geoblock'))).toBe(false);
+    expect(await fileFor(teamId, uuid)).not.toContain('geoblock');
   });
 
   it('drops the label once the rule is removed', async () => {
@@ -125,8 +125,6 @@ describe('a saved geo rule reaches the deployed labels', () => {
     await geo.setGeoRule(teamId, uuid, { mode: 'block', countries: ['RU'] });
     await geo.removeGeoRule(teamId, uuid);
 
-    const labels = await labelsFor(teamId, uuid);
-
-    expect(labels.some((l) => l.includes('geoblock'))).toBe(false);
+    expect(await fileFor(teamId, uuid)).not.toContain('geoblock');
   });
 });

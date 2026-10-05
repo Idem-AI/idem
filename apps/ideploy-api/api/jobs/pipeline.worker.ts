@@ -16,7 +16,7 @@ import * as appService from '../services/application.service';
 import * as serverService from '../services/server.service';
 import * as pipelineService from '../services/pipeline.service';
 import * as deploymentService from '../services/deployment.service';
-import { resolveGitCredential } from '../services/git-credentials.service';
+import { explainGitFailure, resolveGitCredential } from '../services/git-credentials.service';
 import { pipelineWorkdirFor } from '../utils/paths';
 import { PipelineJobData } from '../services/pipeline.service';
 
@@ -76,7 +76,7 @@ export async function processPipeline(job: Job<PipelineJobData>): Promise<void> 
           { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
         );
         await pipelineService.setJobStatus(executionId, stage, r.exitCode === 0 ? 'success' : 'failed', r.stdout + r.stderr);
-        if (r.exitCode !== 0) throw new Error('git clone failed');
+        if (r.exitCode !== 0) throw new Error(`git clone failed: ${explainGitFailure(r.stderr)}`);
         commit = /COMMIT=([0-9a-f]{40})/.exec(r.stdout)?.[1] ?? null;
       } else if (stage === 'trivy') {
         await runTrivy(server, key, workdir, executionId, log);

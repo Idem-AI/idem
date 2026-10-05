@@ -30,11 +30,12 @@ import { generateComposeFile, appWorkdir, composeDirFile, composeProject } from 
 import { choosePort, parseExposedPorts, parseListeningPorts, PortChoice } from '../docker/listening-ports';
 import { planBuild, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
+import { writeFirewallFile } from '../services/firewall-file.service';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
 import * as serverService from '../services/server.service';
 import * as deploymentService from '../services/deployment.service';
-import { resolveGitCredential } from '../services/git-credentials.service';
+import { explainGitFailure, resolveGitCredential } from '../services/git-credentials.service';
 import { DeploymentJobData } from '../services/deployment.service';
 import { ApplicationRow } from '../models/ideploy.types';
 
@@ -354,14 +355,17 @@ async function deploy(
         const r = await executeRemoteCommand(
           server,
           key,
-          `cd ${shellQuote(srcDir)} && git init -q && git remote add origin ${shellQuote(cloneUrl)} && ` +
+          // Retry-safe: a connection hiccup re-runs this whole command, and a
+          // second `remote add` on the already-initialised checkout failed
+          // with "remote origin already exists", hiding the real cause.
+          `cd ${shellQuote(srcDir)} && rm -rf .git && git init -q && git remote add origin ${shellQuote(cloneUrl)} && ` +
             `git fetch -q --depth 1 origin ${shellQuote(ref)} && git checkout -q FETCH_HEAD && ` +
             // The remote URL may carry the team's token: not left in .git/config.
             `git remote remove origin && ` +
             `echo "COMMIT=$(git rev-parse HEAD)" && ls -la`,
           { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
         );
-        if (r.exitCode !== 0) throw new Error(`Fetching the code failed: ${r.stderr.slice(0, 300)}`);
+        if (r.exitCode !== 0) throw new Error(`Fetching the code failed: ${explainGitFailure(r.stderr)}`);
         const sha = /COMMIT=([0-9a-f]{40})/.exec(r.stdout)?.[1];
         if (sha) await deploymentService.recordCommit(deploymentUuid, app.id, sha);
       });
@@ -432,6 +436,9 @@ async function deploy(
       compose !== null
         ? `echo '${Buffer.from(compose, 'utf8').toString('base64')}' | base64 -d > ${shellQuote(`${workdir}/docker-compose.yml`)} && `
         : '';
+    // The firewall chain the labels reference must exist before the
+    // container starts: a router naming a missing middleware serves nothing.
+    if (compose !== null && labelContext) await writeFirewallFile(server, key, app);
     // Where start/stop/restart will find the live compose file.
     const recordDir = `echo ${shellQuote(composeDir)} > ${shellQuote(composeDirFile(app))}`;
     const r = await executeRemoteCommand(server, key, `${writeCompose}${recordDir}`, { noRetry: true });

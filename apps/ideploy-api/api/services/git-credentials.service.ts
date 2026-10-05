@@ -46,37 +46,83 @@ function withCredentials(gitUrl: string, username: string, token: string): strin
  * connected — either way, a plain clone (today's behaviour, correct for a
  * public repository) is the right fallback, not an error.
  */
+/** Whether a token is still accepted by its provider; network errors count as "maybe". */
+type TokenCheck = 'valid' | 'invalid' | 'unknown';
+
+async function checkToken(provider: 'github' | 'gitlab', token: string): Promise<TokenCheck> {
+  const axios = (await import('axios')).default;
+  const url =
+    provider === 'github'
+      ? 'https://api.github.com/user'
+      : `${process.env.GITLAB_INSTANCE_URL || 'https://gitlab.com'}/api/v4/user`;
+  try {
+    const r = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 8000,
+      validateStatus: () => true,
+    });
+    if (r.status === 200) return 'valid';
+    return r.status === 401 ? 'invalid' : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+/**
+ * A working token from one of the team's connected accounts.
+ *
+ * Every member's token is tried, and each is checked with the provider first:
+ * the first one found used to be taken as is, and a revoked or expired one —
+ * or one issued by a previous OAuth app — made every clone fail with
+ * "Invalid username or token". A token the provider rejects (401) is dropped,
+ * so its owner sees GitHub/GitLab as disconnected and reconnects.
+ */
 export async function resolveGitCredential(teamId: number, gitRepository: string): Promise<GitCredential | null> {
   let host: string;
   try {
     host = new URL(gitRepository).hostname;
   } catch {
-    // Not an http(s) URL — e.g. an SSH remote (git@host:owner/repo.git).
-    // Deploy keys are that form's own answer to authentication; nothing to add here.
     return null;
   }
-
   const userIds = await teamUserIds(teamId);
   if (userIds.length === 0) return null;
 
-  if (host === 'github.com') {
-    const { getToken } = await import('./github.service');
-    for (const userId of userIds) {
-      const token = await getToken(userId);
-      if (token) return { token, authenticatedUrl: withCredentials(gitRepository, 'x-access-token', token) };
-    }
-    return null;
-  }
-
   const gitlabHost = new URL(process.env.GITLAB_INSTANCE_URL || 'https://gitlab.com').hostname;
-  if (host === gitlabHost) {
-    const { getToken } = await import('./gitlab.service');
-    for (const userId of userIds) {
-      const token = await getToken(userId);
-      if (token) return { token, authenticatedUrl: withCredentials(gitRepository, 'oauth2', token) };
-    }
-    return null;
-  }
+  const provider = host === 'github.com' ? 'github' : host === gitlabHost ? 'gitlab' : null;
+  if (!provider) return null;
 
-  return null;
+  const service = provider === 'github' ? await import('./github.service') : await import('./gitlab.service');
+  const username = provider === 'github' ? 'x-access-token' : 'oauth2';
+  let fallback: string | null = null;
+  for (const userId of userIds) {
+    const token = await service.getToken(userId);
+    if (!token) continue;
+    const check = await checkToken(provider, token);
+    if (check === 'valid') return { token, authenticatedUrl: withCredentials(gitRepository, username, token) };
+    if (check === 'invalid') await service.disconnect(userId);
+    else fallback ??= token; // provider unreachable: still worth trying
+  }
+  return fallback ? { token: fallback, authenticatedUrl: withCredentials(gitRepository, username, fallback) } : null;
+}
+
+/**
+ * What git's failure means, in terms the user can act on. The raw message
+ * ("Password authentication is not supported for Git operations") reads like
+ * a platform bug; it means the repository needs a connected account.
+ */
+export function explainGitFailure(stderr: string): string {
+  const text = stderr.trim();
+  if (/Invalid username or token|Authentication failed|could not read Username|terminal prompts disabled/i.test(text)) {
+    return (
+      'the repository refused access. Connect (or reconnect) the GitHub/GitLab account that can read it ' +
+      'in iDeploy, then retry.'
+    );
+  }
+  if (/Repository not found|not found/i.test(text)) {
+    return 'the repository was not found, or the connected account cannot read it.';
+  }
+  if (/couldn't find remote ref|Remote branch .* not found/i.test(text)) {
+    return 'that branch or commit does not exist in the repository.';
+  }
+  return text.slice(0, 300);
 }
