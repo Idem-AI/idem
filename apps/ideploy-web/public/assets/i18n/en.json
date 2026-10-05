@@ -1592,7 +1592,34 @@
       "bugs": "Bugs",
       "vulnerabilities": "Vulnerabilities",
       "codeSmells": "Code smells",
-      "coverage": "Coverage"
+      "coverage": "Coverage",
+      "hotspots": "Security hotspots",
+      "duplications": "Duplications"
+    },
+    "tool": {
+      "sonarqube": "SonarQube",
+      "trivy": "Trivy",
+      "language_detection": "Code checkout",
+      "deploy": "Deployment"
+    },
+    "scan": {
+      "notRun": "Not run",
+      "gate": "Quality gate",
+      "openSonar": "Open in SonarQube",
+      "secrets": "Secrets",
+      "severity": "Severity",
+      "vulnerability": "Vulnerability",
+      "package": "Package",
+      "installed": "Installed",
+      "fixed": "Fixed in",
+      "clean": "No known vulnerability or secret."
+    },
+    "severity": {
+      "CRITICAL": "Critical",
+      "HIGH": "High",
+      "MEDIUM": "Medium",
+      "LOW": "Low",
+      "UNKNOWN": "Unknown"
     }
   },
   "deployments": {

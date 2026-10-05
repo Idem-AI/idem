@@ -11,6 +11,7 @@ import { registerWorker } from '../queue/worker';
 import { realtime } from '../services/realtime.service';
 import { executeRemoteCommand, shellQuote } from '../ssh/ssh';
 import { assertSafeGitBranch, assertSafeGitUrl } from '../validation/git-input';
+import { Severity, SonarClient, sonarConfig, summariseTrivy, trivyFails } from '../services/pipeline-scanners.service';
 import * as appService from '../services/application.service';
 import * as serverService from '../services/server.service';
 import * as pipelineService from '../services/pipeline.service';
@@ -78,24 +79,9 @@ export async function processPipeline(job: Job<PipelineJobData>): Promise<void> 
         if (r.exitCode !== 0) throw new Error('git clone failed');
         commit = /COMMIT=([0-9a-f]{40})/.exec(r.stdout)?.[1] ?? null;
       } else if (stage === 'trivy') {
-        const r = await executeRemoteCommand(
-          server,
-          key,
-          `docker run --rm -v ${workdir}:/scan aquasec/trivy:latest fs --scanners vuln --quiet /scan | tail -40`,
-          { onData: (c) => log(c) }
-        );
-        await pipelineService.setJobStatus(executionId, stage, r.exitCode === 0 ? 'success' : 'failed', r.stdout);
-        // Best-effort: count CRITICAL/HIGH lines as a proxy metric.
-        const vulns = (r.stdout.match(/CRITICAL|HIGH/g) ?? []).length;
-        await pipelineService.recordScanResult(executionId, 'trivy', { vulnerabilities: vulns });
+        await runTrivy(server, key, workdir, executionId, log);
       } else if (stage === 'sonarqube') {
-        // Not analysed is not "passed": it used to record a quality gate "OK"
-        // without any analysis having run. The full analysis is its own change.
-        const message =
-          'SonarQube is not configured on the platform (SONARQUBE_URL and SONARQUBE_ADMIN_TOKEN): no analysis was run.';
-        await log(message);
-        await pipelineService.setJobStatus(executionId, stage, 'skipped', message);
-        await pipelineService.recordScanResult(executionId, 'sonarqube', { status: 'skipped', quality_gate_status: null });
+        await runSonar(server, key, workdir, app, executionUuid, executionId, log);
       } else if (stage === 'deploy') {
         // The commit the pipeline checked, not the branch name — the worker
         // only accepts a commit id, and a branch would move under it.
@@ -129,4 +115,133 @@ export async function processPipeline(job: Job<PipelineJobData>): Promise<void> 
 export function registerPipelineWorker(): void {
   registerWorker<PipelineJobData>(QUEUE_NAMES.pipelines, processPipeline, 2);
   logger.info('Pipeline worker registered');
+}
+
+type Server = Parameters<typeof executeRemoteCommand>[0];
+type Key = Parameters<typeof executeRemoteCommand>[1];
+
+/** Severity at or above which Trivy fails the pipeline (`NONE` reports only). */
+const TRIVY_FAIL_ON = (process.env.PIPELINE_TRIVY_FAIL_ON || 'CRITICAL').toUpperCase() as Severity | 'NONE';
+
+/**
+ * Trivy on the checked-out code: dependency vulnerabilities and committed
+ * secrets, as JSON, summarised into counts by severity and the worst findings.
+ */
+async function runTrivy(server: Server, key: Key, workdir: string, executionId: number, log: (l: string) => Promise<void>): Promise<void> {
+  const r = await executeRemoteCommand(
+    server,
+    key,
+    // A named volume keeps Trivy's vulnerability database between runs.
+    `docker run --rm -v ideploy-trivy-cache:/root/.cache -v ${shellQuote(workdir)}:/scan:ro aquasec/trivy:latest ` +
+      `fs --quiet --format json --scanners vuln,secret /scan`,
+    { noRetry: true }
+  );
+  if (r.exitCode !== 0) {
+    const detail = (r.stderr || r.stdout).slice(-400);
+    await pipelineService.setJobStatus(executionId, 'trivy', 'failed', detail);
+    await pipelineService.recordScanResult(executionId, 'trivy', { status: 'failed', summary: detail });
+    throw new Error('Trivy could not scan the code');
+  }
+  const summary = summariseTrivy(r.stdout);
+  const { counts } = summary;
+  const line = `Vulnerabilities — critical ${counts.CRITICAL}, high ${counts.HIGH}, medium ${counts.MEDIUM}, low ${counts.LOW}; secrets ${summary.secrets.length}`;
+  await log(line);
+  for (const f of summary.findings.slice(0, 10)) {
+    await log(`  ${f.severity.padEnd(8)} ${f.id} ${f.package} ${f.installed}${f.fixed ? ` → ${f.fixed}` : ''}`);
+  }
+  const fails = trivyFails(counts, TRIVY_FAIL_ON) || summary.secrets.length > 0;
+  await pipelineService.recordScanResult(executionId, 'trivy', {
+    status: fails ? 'failed' : 'success',
+    vulnerabilities: counts.CRITICAL + counts.HIGH + counts.MEDIUM + counts.LOW + counts.UNKNOWN,
+    critical_count: counts.CRITICAL,
+    high_count: counts.HIGH,
+    medium_count: counts.MEDIUM,
+    low_count: counts.LOW,
+    vulnerabilities_detail: summary.findings,
+    secrets_found: summary.secrets,
+    summary: line,
+  });
+  await pipelineService.setJobStatus(executionId, 'trivy', fails ? 'failed' : 'success', line);
+  if (fails) {
+    throw new Error(
+      summary.secrets.length > 0
+        ? 'Trivy found secrets committed in the code.'
+        : `Trivy found vulnerabilities at or above ${TRIVY_FAIL_ON}.`
+    );
+  }
+}
+
+/**
+ * SonarQube on the checked-out code: the project and a one-off analysis token
+ * are created through its API, the scanner runs on the deployment server and
+ * waits for the quality gate, then the gate and the measures are read back.
+ */
+async function runSonar(
+  server: Server,
+  key: Key,
+  workdir: string,
+  app: { uuid: string; name: string },
+  executionUuid: string,
+  executionId: number,
+  log: (l: string) => Promise<void>
+): Promise<void> {
+  const config = sonarConfig();
+  if (!config) {
+    const message =
+      'SonarQube is not configured on the platform (SONARQUBE_URL and SONARQUBE_ADMIN_TOKEN): no analysis was run.';
+    await log(message);
+    await pipelineService.setJobStatus(executionId, 'sonarqube', 'skipped', message);
+    await pipelineService.recordScanResult(executionId, 'sonarqube', { status: 'skipped', summary: message });
+    return;
+  }
+  const sonar = new SonarClient(config);
+  if (!(await sonar.isUp())) throw new Error(`SonarQube does not answer at ${config.url}.`);
+
+  const projectKey = `ideploy-${app.uuid}`;
+  const tokenName = `ideploy-${executionUuid}`;
+  await sonar.ensureProject(projectKey, app.name);
+  const token = await sonar.analysisToken(projectKey, tokenName);
+  try {
+    await log(`Analysing ${projectKey} on ${config.url}…`);
+    const r = await executeRemoteCommand(
+      server,
+      key,
+      `docker run --rm -e SONAR_HOST_URL=${shellQuote(config.url)} -e SONAR_TOKEN=${shellQuote(token)} ` +
+        `-v ${shellQuote(workdir)}:/usr/src sonarsource/sonar-scanner-cli ` +
+        `-Dsonar.projectKey=${shellQuote(projectKey)} -Dsonar.sources=. ` +
+        // Java needs compiled classes; without a build, analyse the sources only.
+        `-Dsonar.java.binaries=. ` +
+        `-Dsonar.exclusions=${shellQuote('**/node_modules/**,**/vendor/**,**/dist/**,**/build/**,**/target/**')} ` +
+        `-Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300`,
+      { onData: (c) => log(c), redact: [token], noRetry: true }
+    );
+    const result = await sonar.result(projectKey);
+    const m = result.measures;
+    const line =
+      `Quality gate ${result.qualityGate} — bugs ${m.bugs ?? '–'}, vulnerabilities ${m.vulnerabilities ?? '–'}, ` +
+      `code smells ${m.code_smells ?? '–'}, hotspots ${m.security_hotspots ?? '–'}, coverage ${m.coverage ?? '–'}%`;
+    await log(line);
+    // The scanner exits non-zero when the gate fails; when it failed before
+    // reaching the server, there is no gate to read.
+    const analysed = result.qualityGate !== 'NONE';
+    const passed = analysed && result.qualityGate !== 'ERROR';
+    await pipelineService.recordScanResult(executionId, 'sonarqube', {
+      status: passed ? 'success' : 'failed',
+      quality_gate_status: analysed ? result.qualityGate : null,
+      bugs: m.bugs ?? null,
+      vulnerabilities: m.vulnerabilities ?? null,
+      code_smells: m.code_smells ?? null,
+      security_hotspots: m.security_hotspots ?? null,
+      coverage: m.coverage ?? null,
+      duplications: m.duplicated_lines_density ?? null,
+      sonar_project_key: projectKey,
+      sonar_dashboard_url: result.dashboardUrl,
+      summary: line,
+    });
+    await pipelineService.setJobStatus(executionId, 'sonarqube', passed ? 'success' : 'failed', line);
+    if (!analysed) throw new Error(`The SonarQube analysis failed: ${(r.stderr || r.stdout).slice(-300)}`);
+    if (!passed) throw new Error('The SonarQube quality gate failed.');
+  } finally {
+    await sonar.revokeToken(tokenName);
+  }
 }

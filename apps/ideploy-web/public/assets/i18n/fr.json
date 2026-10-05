@@ -1592,7 +1592,34 @@
       "bugs": "Bugs",
       "vulnerabilities": "Vulnérabilités",
       "codeSmells": "Code smells",
-      "coverage": "Couverture"
+      "coverage": "Couverture",
+      "hotspots": "Points sensibles",
+      "duplications": "Duplication"
+    },
+    "tool": {
+      "sonarqube": "SonarQube",
+      "trivy": "Trivy",
+      "language_detection": "Récupération du code",
+      "deploy": "Déploiement"
+    },
+    "scan": {
+      "notRun": "Non exécuté",
+      "gate": "Quality gate",
+      "openSonar": "Ouvrir dans SonarQube",
+      "secrets": "Secrets",
+      "severity": "Sévérité",
+      "vulnerability": "Vulnérabilité",
+      "package": "Paquet",
+      "installed": "Installé",
+      "fixed": "Corrigé en",
+      "clean": "Aucune vulnérabilité ni secret connus."
+    },
+    "severity": {
+      "CRITICAL": "Critique",
+      "HIGH": "Élevée",
+      "MEDIUM": "Moyenne",
+      "LOW": "Faible",
+      "UNKNOWN": "Inconnue"
     }
   },
   "deployments": {
