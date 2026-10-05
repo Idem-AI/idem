@@ -413,7 +413,23 @@ async function deploy(
       composeDir = buildDirectory(buildContext);
       compose = null;
     } else {
-      compose = generateComposeFile(app, imageTag, labels, network, runtimeEnv, port);
+      // The image may listen elsewhere than the port configured for the
+      // application (an nginx Dockerfile exposing 80, with the default 3000
+      // configured): the proxy then had nothing to reach — "Bad Gateway".
+      const exposed = await imageExposedPorts(server, key, imageTag);
+      const actualPort = portToRoute(port, exposed);
+      if (actualPort !== port) {
+        await log(
+          `\n⚠ The image listens on port ${actualPort}, not ${port}: routing to ${actualPort} ` +
+            '(saved as the application\'s port).'
+        );
+        await appService.setExposedPort(app.id, actualPort);
+        const routed = { ...app, ports_exposes: String(actualPort) };
+        const routedLabels = labelContext ? buildApplicationLabels(routed, labelContext) : undefined;
+        compose = generateComposeFile(routed, imageTag, routedLabels, network, runtimeEnv, actualPort);
+      } else {
+        compose = generateComposeFile(app, imageTag, labels, network, runtimeEnv, port);
+      }
     }
   }
 
@@ -615,6 +631,46 @@ async function resolveBaseDirectory(
     );
   }
   return base;
+}
+
+/** Ports an image declares with EXPOSE (`80/tcp` → 80). Empty when it declares none or cannot be read. */
+async function imageExposedPorts(
+  server: Parameters<typeof executeRemoteCommand>[0],
+  key: Parameters<typeof executeRemoteCommand>[1],
+  imageTag: string
+): Promise<number[]> {
+  const r = await executeRemoteCommand(
+    server,
+    key,
+    `docker image inspect -f '{{json .Config.ExposedPorts}}' ${shellQuote(imageTag)}`,
+    { noRetry: true }
+  ).catch(() => null);
+  if (!r || r.exitCode !== 0) return [];
+  return parseExposedPorts(r.stdout);
+}
+
+/** `{"80/tcp":{}}` → [80]. */
+export function parseExposedPorts(json: string): number[] {
+  try {
+    const parsed = JSON.parse(json.trim() || 'null') as Record<string, unknown> | null;
+    return Object.keys(parsed ?? {})
+      .filter((p) => !p.endsWith('/udp'))
+      .map((p) => parseInt(p, 10))
+      .filter((p) => p > 0);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The port to route to: the configured one when the image exposes it or says
+ * nothing (nixpacks images declare no port and read $PORT), otherwise the one
+ * port the image declares. Several declared ports, none configured: the
+ * configured port stands — nothing says which one serves HTTP.
+ */
+export function portToRoute(configured: number, exposed: number[]): number {
+  if (exposed.length === 0 || exposed.includes(configured)) return configured;
+  return exposed.length === 1 ? exposed[0] : configured;
 }
 
 /** The port the application listens on inside its container. */

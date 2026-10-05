@@ -3,7 +3,14 @@
  * the port the application is told to listen on.
  */
 import { describe, expect, it } from 'vitest';
-import { applicationPort, judgeContainers, normaliseBaseDirectory, parseComposePs } from '../../../api/jobs/deployment.worker';
+import {
+  applicationPort,
+  judgeContainers,
+  normaliseBaseDirectory,
+  parseComposePs,
+  parseExposedPorts,
+  portToRoute,
+} from '../../../api/jobs/deployment.worker';
 
 describe('parseComposePs', () => {
   it('reads one object per line (current Compose)', () => {
@@ -59,5 +66,18 @@ describe('normaliseBaseDirectory', () => {
     for (const root of ['', './', '/', '.', null]) expect(normaliseBaseDirectory(root)).toBe('');
     expect(normaliseBaseDirectory('./backend/')).toBe('backend');
     expect(normaliseBaseDirectory('./Dockerfile')).toBe('Dockerfile');
+  });
+});
+
+describe('portToRoute', () => {
+  it('routes to the one port an image exposes when the configured one is not it', () => {
+    // An nginx frontend (EXPOSE 80) with the default 3000 configured: Bad Gateway.
+    expect(portToRoute(3000, parseExposedPorts('{"80/tcp":{}}'))).toBe(80);
+  });
+
+  it('keeps the configured port when the image exposes it, exposes nothing, or several', () => {
+    expect(portToRoute(8080, [8080, 9090])).toBe(8080);
+    expect(portToRoute(3000, parseExposedPorts('null'))).toBe(3000);
+    expect(portToRoute(3000, [80, 443])).toBe(3000);
   });
 });

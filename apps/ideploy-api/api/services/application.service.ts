@@ -309,6 +309,14 @@ export async function updateApplication(
   return mapApp(rows[0]);
 }
 
+/** Record the port the application's image actually listens on. */
+export async function setExposedPort(applicationId: number, port: number): Promise<void> {
+  await pool.query('UPDATE applications SET ports_exposes = $1, updated_at = now() WHERE id = $2', [
+    String(port),
+    applicationId,
+  ]);
+}
+
 export async function setStatus(applicationId: number, status: string): Promise<void> {
   await pool.query('UPDATE applications SET status = $1, updated_at = now() WHERE id = $2', [
     status,

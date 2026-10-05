@@ -120,6 +120,24 @@ describe('the root directory', () => {
   });
 });
 
+describe('the port the image listens on', () => {
+  it('routes to the port an image exposes when the configured one is not it, and keeps it', async () => {
+    const { teamId, app } = await anApplication('exited');
+    await testPool().query("UPDATE applications SET build_pack = 'dockerfile', ports_exposes = '3000' WHERE id = $1", [app.id]);
+    ssh.on(/docker image inspect/, { stdout: '{"80/tcp":{}}\n' });
+
+    const { deploymentUuid, outcome } = await run(teamId, app);
+    await outcome;
+
+    const { rows } = await testPool().query('SELECT ports_exposes FROM applications WHERE id = $1', [app.id]);
+    expect(rows[0].ports_exposes).toBe('80');
+    expect((await row(deploymentUuid)).logs).toMatch(/listens on port 80, not 3000/);
+    const write = ssh.calls.find((c) => c.command.includes('base64 -d >'))!.command;
+    const compose = Buffer.from(/echo '([^']+)'/.exec(write)![1], 'base64').toString();
+    expect(compose).toContain('PORT=80');
+  }, 45_000);
+});
+
 describe('a deployment that succeeds', () => {
   it('deploys the requested commit, keeps it, never prints secrets, and stays on its project', async () => {
     const { teamId, app } = await anApplication('exited');
