@@ -691,6 +691,7 @@ export interface FirewallTrafficBucket {
 
 export interface FirewallTrafficStats {
   buckets: FirewallTrafficBucket[];
+  bucketMinutes?: number;
   totals: { requests: number; blocked: number };
 }
 
@@ -712,6 +713,8 @@ export interface FirewallTrafficEntry {
   host: string | null;
   decision: string;
   rule_name: string | null;
+  /** HTTP status the request got (allowed requests); null for older rows. */
+  status_code?: number | null;
   country_code: string | null;
   timestamp: string;
 }
