@@ -21,16 +21,26 @@ import logger from '../config/logger';
 import { QUEUE_NAMES, getQueue } from '../queue/queues';
 import { registerWorker } from '../queue/worker';
 import { listServersToSync, purgeExpired, syncServer } from '../services/firewall-observability.service';
+import { ingestAll } from '../services/traffic-ingestion.service';
 
 export const PURGE_JOB = 'firewall-observability-purge';
 export const SYNC_JOB = 'firewall-observability-sync';
+export const INGEST_JOB = 'firewall-traffic-ingest';
 
 /** Daily is enough: retention is measured in days, not minutes. */
 const PURGE_PATTERN = process.env.FIREWALL_PURGE_CRON || '17 3 * * *';
 /** Often enough for an incident to show up while it is happening. */
 const SYNC_PATTERN = process.env.FIREWALL_SYNC_CRON || '*/5 * * * *';
+/** Every minute: the chart and counters stay a minute behind the proxy at most. */
+const INGEST_PATTERN = process.env.FIREWALL_INGEST_CRON || '* * * * *';
 
 export async function processFirewallJob(job: Job): Promise<void> {
+  if (job.name === INGEST_JOB) {
+    // Each server is read on its own; ingestAll never throws for one of them.
+    await ingestAll();
+    return;
+  }
+
   if (job.name === PURGE_JOB) {
     try {
       await purgeExpired();
@@ -65,6 +75,7 @@ export async function registerFirewallObservabilityScheduler(): Promise<void> {
     const queue = getQueue(QUEUE_NAMES.firewall);
     await queue.add(PURGE_JOB, {}, { repeat: { pattern: PURGE_PATTERN }, jobId: PURGE_JOB });
     await queue.add(SYNC_JOB, {}, { repeat: { pattern: SYNC_PATTERN }, jobId: SYNC_JOB });
+    await queue.add(INGEST_JOB, {}, { repeat: { pattern: INGEST_PATTERN }, jobId: INGEST_JOB });
     logger.info(`Firewall observability scheduled (purge ${PURGE_PATTERN}, sync ${SYNC_PATTERN})`);
   } catch (err) {
     logger.warn('Could not schedule firewall observability', { message: (err as Error).message });

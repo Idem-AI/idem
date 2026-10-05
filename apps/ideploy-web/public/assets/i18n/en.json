@@ -1174,7 +1174,12 @@
       "geoMode": "Mode",
       "geoModeBlock": "Block the selected countries",
       "geoModeAllow": "Allow only the selected countries",
-      "currentlyAllowed": "Countries allowed"
+      "currentlyAllowed": "Countries allowed",
+      "trafficChart": "Incoming traffic (24 h)",
+      "trafficAllowed": "Allowed",
+      "trafficBlocked": "Blocked",
+      "trafficTime": "Time",
+      "trafficTotals": "{{requests}} requests · {{blocked}} blocked"
     },
     "tokens": {
       "title": "Credentials & tokens",

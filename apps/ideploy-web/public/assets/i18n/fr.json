@@ -1174,7 +1174,12 @@
       "geoMode": "Mode",
       "geoModeBlock": "Bloquer les pays sélectionnés",
       "geoModeAllow": "N’autoriser que les pays sélectionnés",
-      "currentlyAllowed": "Pays autorisés"
+      "currentlyAllowed": "Pays autorisés",
+      "trafficChart": "Trafic entrant (24 h)",
+      "trafficAllowed": "Autorisé",
+      "trafficBlocked": "Bloqué",
+      "trafficTime": "Heure",
+      "trafficTotals": "{{requests}} requêtes · {{blocked}} bloquées"
     },
     "tokens": {
       "title": "Identifiants & jetons",

@@ -660,6 +660,18 @@ export interface CountryCatalogue {
 /** Stored as a block list either way — the interface shows what is blocked. */
 export type GeoMode = 'block' | 'allow_only';
 
+/** Requests in one interval, from the proxy's access log. */
+export interface FirewallTrafficBucket {
+  at: string;
+  allowed: number;
+  blocked: number;
+}
+
+export interface FirewallTrafficStats {
+  buckets: FirewallTrafficBucket[];
+  totals: { requests: number; blocked: number };
+}
+
 /** A detection imported from CrowdSec — the columns the API returns. */
 export interface FirewallAlert {
   alert_type: string;
