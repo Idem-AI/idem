@@ -545,7 +545,7 @@
       "buildCommandLabel": "Build command",
       "startCommandPlaceholder": "Start command (optional, e.g. npm run start)",
       "startCommandLabel": "Start command",
-      "portPlaceholder": "Exposed port (e.g. 3000)",
+      "portPlaceholder": "Port (optional — detected at deployment)",
       "portLabel": "Exposed port",
       "envVariables": "Environment Variables",
       "envDetectedBadge": "{{count}} Detected",
@@ -573,7 +573,8 @@
       "errLocalSetup": "Failed to set up local server",
       "errMissingRepo": "Missing repository URL.",
       "applicationName": "Application name",
-      "linkedFromCache": "Filled from the Redis cache \"{{name}}\" this guide created"
+      "linkedFromCache": "Filled from the Redis cache \"{{name}}\" this guide created",
+      "portHint": "Leave empty: the port the application really listens on is detected at each deployment and used for routing. Fill it only to force a port."
     },
     "configure": {
       "changeSource": "Change source",

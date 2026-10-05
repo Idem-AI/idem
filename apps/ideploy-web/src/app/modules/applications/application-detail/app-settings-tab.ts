@@ -53,6 +53,11 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static'] as con
               <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.baseDirectoryHint' | translate }}</p>
             </div>
             <div class="sm:col-span-2">
+              <label class="mb-1 block text-sm" for="cfg-port">{{ 'projects.import.portLabel' | translate }}</label>
+              <input type="text" id="cfg-port" class="font-mono text-sm" inputmode="numeric" [placeholder]="'projects.import.portPlaceholder' | translate" formControlName="ports_exposes" />
+              <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'projects.import.portHint' | translate }}</p>
+            </div>
+            <div class="sm:col-span-2">
               <label class="mb-1 block text-sm" for="cfg-fqdn">{{ 'applications.detail.fqdn' | translate }}</label>
               <input type="text" id="cfg-fqdn" class="font-mono text-sm" placeholder="https://app.mondomaine.com" formControlName="fqdn" />
               <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.fqdnHint' | translate }}</p>
@@ -207,6 +212,7 @@ export class AppSettingsTabComponent implements OnInit {
     git_branch: [''],
     build_pack: [''],
     base_directory: [''],
+    ports_exposes: [''],
     fqdn: [''],
   });
   protected readonly execForm = this.fb.nonNullable.group({ command: [''] });
@@ -218,6 +224,7 @@ export class AppSettingsTabComponent implements OnInit {
       git_branch: a.git_branch ?? '',
       build_pack: a.build_pack ?? 'nixpacks',
       base_directory: a.base_directory ?? '',
+      ports_exposes: a.ports_exposes ?? '',
       fqdn: a.fqdn ?? '',
     });
     this.reloadTags();
