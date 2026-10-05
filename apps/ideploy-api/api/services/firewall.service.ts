@@ -229,8 +229,8 @@ export async function listAlerts(teamId: number, appUuid: string): Promise<Recor
 export async function listTrafficLogs(teamId: number, appUuid: string): Promise<Record<string, unknown>[]> {
   const app = await appOr404(teamId, appUuid);
   const { rows } = await pool.query(
-    `SELECT host(ip_address) AS ip_address, method, uri, decision, rule_name, country_code, timestamp
-     FROM firewall_traffic_logs WHERE application_id = $1 ORDER BY timestamp DESC LIMIT 100`,
+    `SELECT host(ip_address) AS ip_address, method, uri, host, decision, rule_name, status_code, country_code, timestamp
+     FROM firewall_traffic_logs WHERE application_id = $1 ORDER BY timestamp DESC, id DESC LIMIT 100`,
     [app.id]
   );
   return rows;

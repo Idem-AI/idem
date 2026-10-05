@@ -186,6 +186,8 @@ export interface Application {
   git_repository: string | null;
   git_branch: string | null;
   build_pack: string | null;
+  /** Port the application listens on — detected at each deployment when left empty. */
+  ports_exposes?: string | null;
   /** Folder of the repository the application is built from (`./` or empty: the root). */
   base_directory?: string | null;
   status: string | null;
@@ -367,14 +369,36 @@ export interface PipelineStageSummary {
 }
 
 /** Static-analysis output attached to one execution. */
+/** One vulnerability Trivy found. */
+export interface ScanFinding {
+  id: string;
+  package: string;
+  installed: string;
+  fixed: string | null;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
+  title: string;
+  target: string;
+}
+
 export interface PipelineScan {
   tool: string;
+  /** success, failed, or skipped (not run — never a pass). */
   status: string;
   quality_gate_status: string | null;
   bugs: number | null;
   vulnerabilities: number | null;
   code_smells: number | null;
+  security_hotspots?: number | null;
   coverage: number | null;
+  duplications?: number | null;
+  critical_count?: number | null;
+  high_count?: number | null;
+  medium_count?: number | null;
+  low_count?: number | null;
+  vulnerabilities_detail?: ScanFinding[] | null;
+  secrets_found?: { target: string; rule: string; severity: string; line: number | null }[] | null;
+  sonar_dashboard_url?: string | null;
+  summary?: string | null;
 }
 
 export interface PipelineExecution {
@@ -658,6 +682,19 @@ export interface CountryCatalogue {
 /** Stored as a block list either way — the interface shows what is blocked. */
 export type GeoMode = 'block' | 'allow_only';
 
+/** Requests in one interval, from the proxy's access log. */
+export interface FirewallTrafficBucket {
+  at: string;
+  allowed: number;
+  blocked: number;
+}
+
+export interface FirewallTrafficStats {
+  buckets: FirewallTrafficBucket[];
+  bucketMinutes?: number;
+  totals: { requests: number; blocked: number };
+}
+
 /** A detection imported from CrowdSec — the columns the API returns. */
 export interface FirewallAlert {
   alert_type: string;
@@ -676,6 +713,8 @@ export interface FirewallTrafficEntry {
   host: string | null;
   decision: string;
   rule_name: string | null;
+  /** HTTP status the request got (allowed requests); null for older rows. */
+  status_code?: number | null;
   country_code: string | null;
   timestamp: string;
 }

@@ -129,24 +129,91 @@ const POLL_INTERVAL_MS = 3_000;
       </div>
 
       @if (selectedJob(); as job) {
-        <!-- Scan metrics, when the stage produced any -->
+        <!-- Scan results, when the stage produced any -->
         @if (scanFor(job.name); as scan) {
           <div class="glass-card p-4 mb-4">
-            <div class="mb-3 flex items-center gap-2">
-              <h3 class="text-sm font-semibold">{{ scan.tool }}</h3>
-              @if (scan.quality_gate_status) {
-                <span class="text-xs font-semibold" [style.color]="gateColor(scan.quality_gate_status)">
-                  {{ scan.quality_gate_status }}
+            <div class="mb-3 flex flex-wrap items-center gap-2">
+              <h3 class="text-sm font-semibold">{{ 'pipeline.tool.' + scan.tool | translate }}</h3>
+              @if (scan.status === 'skipped') {
+                <span class="rounded-full px-2 py-0.5 text-xs" style="background:var(--color-surface-2);color:var(--color-text-secondary);">{{ 'pipeline.scan.notRun' | translate }}</span>
+              } @else if (scan.quality_gate_status) {
+                <span class="rounded-full px-2 py-0.5 text-xs font-semibold" [style.color]="gateColor(scan.quality_gate_status)" [style.border]="'1px solid ' + gateColor(scan.quality_gate_status)">
+                  <i class="pi mr-1 text-[10px]" [class.pi-check]="isPassed(scan.quality_gate_status)" [class.pi-times]="!isPassed(scan.quality_gate_status)" aria-hidden="true"></i>{{ 'pipeline.scan.gate' | translate }} {{ scan.quality_gate_status }}
                 </span>
               }
-            </div>
-            <div class="flex flex-wrap gap-4 text-sm" style="font-variant-numeric:tabular-nums;">
-              @for (metric of scanMetrics(scan); track metric.key) {
-                <span style="color:var(--color-text-secondary);">
-                  {{ 'pipeline.metric.' + metric.key | translate }}: <strong style="color:var(--color-text-primary);">{{ metric.value }}</strong>
-                </span>
+              @if (scan.sonar_dashboard_url) {
+                <a class="ml-auto text-xs" [href]="scan.sonar_dashboard_url" target="_blank" rel="noopener noreferrer" style="color:var(--color-primary-400);">
+                  {{ 'pipeline.scan.openSonar' | translate }} <i class="pi pi-external-link text-[10px]" aria-hidden="true"></i>
+                </a>
               }
             </div>
+
+            @if (scan.status === 'skipped') {
+              <p class="text-sm" style="color:var(--color-text-secondary);">{{ scan.summary }}</p>
+            }
+
+            <!-- SonarQube measures -->
+            @if (scanMetrics(scan).length > 0) {
+              <dl class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 text-sm" style="font-variant-numeric:tabular-nums;">
+                @for (metric of scanMetrics(scan); track metric.key) {
+                  <div>
+                    <dt class="text-xs" style="color:var(--color-text-secondary);">{{ 'pipeline.metric.' + metric.key | translate }}</dt>
+                    <dd class="text-lg font-semibold">{{ metric.value }}{{ metric.key === 'coverage' || metric.key === 'duplications' ? '%' : '' }}</dd>
+                  </div>
+                }
+              </dl>
+            }
+
+            <!-- Trivy: counts by severity, then the findings -->
+            @if (scan.tool === 'trivy' && scan.status !== 'skipped') {
+              <div class="mb-3 flex flex-wrap gap-2 text-xs" style="font-variant-numeric:tabular-nums;">
+                @for (sev of severities; track sev.key) {
+                  <span class="rounded-md px-2 py-1" [style.border]="'1px solid ' + sev.color" [style.color]="sev.color">
+                    <i class="pi mr-1 text-[10px]" [class]="sev.icon" aria-hidden="true"></i>{{ 'pipeline.severity.' + sev.key | translate }} <strong>{{ severityCount(scan, sev.key) }}</strong>
+                  </span>
+                }
+                @if (scan.secrets_found?.length) {
+                  <span class="rounded-md px-2 py-1" style="border:1px solid var(--color-danger);color:var(--color-danger);">
+                    <i class="pi pi-key mr-1 text-[10px]" aria-hidden="true"></i>{{ 'pipeline.scan.secrets' | translate }} <strong>{{ scan.secrets_found?.length }}</strong>
+                  </span>
+                }
+              </div>
+              @if (scan.secrets_found?.length) {
+                <ul class="mb-3 space-y-1 text-xs">
+                  @for (secret of scan.secrets_found; track $index) {
+                    <li style="color:var(--color-danger);"><code class="font-mono">{{ secret.target }}{{ secret.line ? ':' + secret.line : '' }}</code> — {{ secret.rule }}</li>
+                  }
+                </ul>
+              }
+              @if (scan.vulnerabilities_detail?.length) {
+                <div class="overflow-x-auto">
+                  <table class="vtable w-full text-xs">
+                    <thead>
+                      <tr>
+                        <th scope="col" class="text-left">{{ 'pipeline.scan.severity' | translate }}</th>
+                        <th scope="col" class="text-left">{{ 'pipeline.scan.vulnerability' | translate }}</th>
+                        <th scope="col" class="text-left">{{ 'pipeline.scan.package' | translate }}</th>
+                        <th scope="col" class="text-left">{{ 'pipeline.scan.installed' | translate }}</th>
+                        <th scope="col" class="text-left">{{ 'pipeline.scan.fixed' | translate }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (f of scan.vulnerabilities_detail; track f.id + f.package) {
+                        <tr>
+                          <td><span class="font-semibold" [style.color]="severityColor(f.severity)">{{ 'pipeline.severity.' + f.severity | translate }}</span></td>
+                          <td><code class="font-mono">{{ f.id }}</code>@if (f.title) {<div style="color:var(--color-text-secondary);">{{ f.title }}</div>}</td>
+                          <td><code class="font-mono">{{ f.package }}</code></td>
+                          <td><code class="font-mono">{{ f.installed }}</code></td>
+                          <td>@if (f.fixed) {<code class="font-mono" style="color:var(--color-success);">{{ f.fixed }}</code>} @else {<span style="color:var(--color-text-tertiary);">—</span>}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else if (!scan.secrets_found?.length) {
+                <p class="text-sm" style="color:var(--color-success);"><i class="pi pi-check mr-1" aria-hidden="true"></i>{{ 'pipeline.scan.clean' | translate }}</p>
+              }
+            }
           </div>
         }
 
@@ -257,22 +324,51 @@ export class PipelineExecutionDetailComponent implements OnInit, OnDestroy {
     return this.execution()?.scans?.find((s) => s.tool === stageName) ?? null;
   }
 
+  protected isPassed(gate: string): boolean {
+    return gate.toUpperCase() === 'OK' || gate.toUpperCase() === 'PASSED';
+  }
+
   protected gateColor(gate: string): string {
-    return gate.toUpperCase() === 'OK' || gate.toUpperCase() === 'PASSED'
-      ? 'var(--color-success)'
-      : 'var(--color-danger)';
+    return this.isPassed(gate) ? 'var(--color-success)' : 'var(--color-danger)';
+  }
+
+  /** Severities in order, each with an icon so color is never the only cue. */
+  protected readonly severities = [
+    { key: 'CRITICAL', color: 'var(--color-danger)', icon: 'pi-times-circle' },
+    { key: 'HIGH', color: 'var(--color-warning)', icon: 'pi-exclamation-triangle' },
+    { key: 'MEDIUM', color: 'var(--color-text-primary)', icon: 'pi-exclamation-circle' },
+    { key: 'LOW', color: 'var(--color-text-secondary)', icon: 'pi-info-circle' },
+  ] as const;
+
+  protected severityColor(severity: string): string {
+    return this.severities.find((s) => s.key === severity)?.color ?? 'var(--color-text-secondary)';
+  }
+
+  protected severityCount(scan: PipelineScan, severity: string): number {
+    const counts: Record<string, number | null | undefined> = {
+      CRITICAL: scan.critical_count,
+      HIGH: scan.high_count,
+      MEDIUM: scan.medium_count,
+      LOW: scan.low_count,
+    };
+    return counts[severity] ?? 0;
   }
 
   /** Only the metrics the scan actually reported — blanks are not information. */
   protected scanMetrics(scan: PipelineScan): { key: string; value: number }[] {
-    const candidates: [string, number | null][] = [
+    // Trivy's counts are shown by severity instead.
+    if (scan.tool === 'trivy') return [];
+    const candidates: [string, number | null | undefined][] = [
       ['bugs', scan.bugs],
       ['vulnerabilities', scan.vulnerabilities],
       ['codeSmells', scan.code_smells],
+      ['hotspots', scan.security_hotspots],
       ['coverage', scan.coverage],
+      ['duplications', scan.duplications],
     ];
     return candidates
       .filter((entry): entry is [string, number] => entry[1] !== null && entry[1] !== undefined)
+      .map(([key, value]) => [key, Number(value)] as [string, number])
       .map(([key, value]) => ({ key, value }));
   }
 

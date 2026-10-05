@@ -949,6 +949,14 @@ ALTER SEQUENCE public.firewall_rules_id_seq OWNED BY public.firewall_rules.id;
 -- Name: firewall_traffic_logs; Type: TABLE; Schema: public; Owner: -
 --
 
+CREATE TABLE public.firewall_traffic_stats (
+    application_id bigint NOT NULL,
+    bucket timestamp with time zone NOT NULL,
+    allowed integer DEFAULT 0 NOT NULL,
+    blocked integer DEFAULT 0 NOT NULL,
+    CONSTRAINT firewall_traffic_stats_pkey PRIMARY KEY (application_id, bucket)
+);
+
 CREATE TABLE public.firewall_traffic_logs (
     id bigint NOT NULL,
     application_id bigint NOT NULL,
@@ -964,7 +972,8 @@ CREATE TABLE public.firewall_traffic_logs (
     country_code character varying(2),
     asn integer,
     reverse_dns character varying(255),
-    "timestamp" timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    "timestamp" timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    status_code smallint
 );
 
 

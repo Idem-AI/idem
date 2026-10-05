@@ -545,7 +545,7 @@
       "buildCommandLabel": "Build command",
       "startCommandPlaceholder": "Start command (optional, e.g. npm run start)",
       "startCommandLabel": "Start command",
-      "portPlaceholder": "Exposed port (e.g. 3000)",
+      "portPlaceholder": "Port (optional — detected at deployment)",
       "portLabel": "Exposed port",
       "envVariables": "Environment Variables",
       "envDetectedBadge": "{{count}} Detected",
@@ -573,7 +573,8 @@
       "errLocalSetup": "Failed to set up local server",
       "errMissingRepo": "Missing repository URL.",
       "applicationName": "Application name",
-      "linkedFromCache": "Filled from the Redis cache \"{{name}}\" this guide created"
+      "linkedFromCache": "Filled from the Redis cache \"{{name}}\" this guide created",
+      "portHint": "Leave empty: the port the application really listens on is detected at each deployment and used for routing. Fill it only to force a port."
     },
     "configure": {
       "changeSource": "Change source",
@@ -1173,7 +1174,24 @@
       "geoMode": "Mode",
       "geoModeBlock": "Block the selected countries",
       "geoModeAllow": "Allow only the selected countries",
-      "currentlyAllowed": "Countries allowed"
+      "currentlyAllowed": "Countries allowed",
+      "trafficChart": "Incoming traffic (24 h)",
+      "trafficAllowed": "Allowed",
+      "trafficBlocked": "Blocked",
+      "trafficTime": "Time",
+      "trafficTotals": "{{requests}} requests · {{blocked}} blocked",
+      "trafficTitle": "Incoming traffic",
+      "trafficRequests": "Requests",
+      "trafficRange": "Period",
+      "trafficRequest": "Request",
+      "trafficStatus": "Result",
+      "blockedFirewall": "Blocked",
+      "blockedRateLimit": "Rate-limited",
+      "range": {
+        "1": "1 h",
+        "24": "24 h",
+        "168": "7 days"
+      }
     },
     "tokens": {
       "title": "Credentials & tokens",
@@ -1591,7 +1609,34 @@
       "bugs": "Bugs",
       "vulnerabilities": "Vulnerabilities",
       "codeSmells": "Code smells",
-      "coverage": "Coverage"
+      "coverage": "Coverage",
+      "hotspots": "Security hotspots",
+      "duplications": "Duplications"
+    },
+    "tool": {
+      "sonarqube": "SonarQube",
+      "trivy": "Trivy",
+      "language_detection": "Code checkout",
+      "deploy": "Deployment"
+    },
+    "scan": {
+      "notRun": "Not run",
+      "gate": "Quality gate",
+      "openSonar": "Open in SonarQube",
+      "secrets": "Secrets",
+      "severity": "Severity",
+      "vulnerability": "Vulnerability",
+      "package": "Package",
+      "installed": "Installed",
+      "fixed": "Fixed in",
+      "clean": "No known vulnerability or secret."
+    },
+    "severity": {
+      "CRITICAL": "Critical",
+      "HIGH": "High",
+      "MEDIUM": "Medium",
+      "LOW": "Low",
+      "UNKNOWN": "Unknown"
     }
   },
   "deployments": {

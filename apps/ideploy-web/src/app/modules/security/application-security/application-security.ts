@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { TrafficChartComponent } from './traffic-chart';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import {
@@ -11,6 +12,7 @@ import {
   FirewallConfig,
   FirewallRule,
   FirewallTrafficEntry,
+  FirewallTrafficStats,
   GeoMode,
   GeoSelection,
   GeoWarning,
@@ -44,7 +46,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
  */
 @Component({
   selector: 'app-application-security',
-  imports: [RouterLink, ReactiveFormsModule, TranslateModule, DatePipe],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, DatePipe, TrafficChartComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a
@@ -413,6 +415,15 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
       }
     </section>
 
+    <!-- What reached the application, allowed and blocked, from the proxy's log. -->
+    <section class="glass-card mt-6 p-5">
+      <h2 class="mb-4 flex items-center gap-2 text-sm font-semibold">
+        <i class="pi pi-chart-bar text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+        {{ 'security.app.trafficTitle' | translate }}
+      </h2>
+      <app-traffic-chart [stats]="trafficStats()" [hours]="trafficHours()" (rangeChange)="setTrafficRange($event)" />
+    </section>
+
     <!-- What the agent has seen -->
     <h2 class="mt-6 mb-1 flex items-center gap-2 text-sm font-semibold">
       <i class="pi pi-eye text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
@@ -454,17 +465,39 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
         @if (traffic().length === 0) {
           <p class="px-5 pb-5 text-sm" style="color:var(--color-text-secondary);">{{ 'security.app.noTraffic' | translate }}</p>
         } @else {
-          <table class="vtable">
-            <tbody>
-              @for (t of traffic(); track $index) {
+          <div class="max-h-96 overflow-auto">
+            <table class="vtable w-full text-xs">
+              <thead>
                 <tr>
-                  <td><code class="font-mono text-xs">{{ t.ip_address || '—' }}</code></td>
-                  <td style="color:var(--color-text-secondary);">{{ t.uri || t.rule_name || t.decision || '' }}</td>
-                  <td class="text-right text-xs whitespace-nowrap" style="color:var(--color-text-secondary);">{{ t.timestamp | date: 'short' }}</td>
+                  <th scope="col" class="text-left">{{ 'security.app.trafficTime' | translate }}</th>
+                  <th scope="col" class="text-left">{{ 'security.app.trafficRequest' | translate }}</th>
+                  <th scope="col" class="text-left">{{ 'security.app.trafficStatus' | translate }}</th>
+                  <th scope="col" class="text-left">IP</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (t of traffic(); track $index) {
+                  <tr>
+                    <td class="whitespace-nowrap" style="color:var(--color-text-secondary);font-variant-numeric:tabular-nums;">{{ t.timestamp | date: 'HH:mm:ss' }}</td>
+                    <td class="max-w-[16rem]">
+                      <span class="font-mono"><strong>{{ t.method }}</strong> {{ t.uri }}</span>
+                      @if (t.host) {<div class="truncate" style="color:var(--color-text-tertiary);">{{ t.host }}</div>}
+                    </td>
+                    <td class="whitespace-nowrap">
+                      @if (t.decision === 'blocked') {
+                        <span class="rounded-full px-2 py-0.5 font-semibold" style="color:var(--color-danger);border:1px solid var(--color-danger);">
+                          <i class="pi pi-ban mr-1 text-[10px]" aria-hidden="true"></i>{{ (t.rule_name === 'rate-limit' ? 'security.app.blockedRateLimit' : 'security.app.blockedFirewall') | translate }}
+                        </span>
+                      } @else {
+                        <span class="font-mono" [style.color]="statusColor(t.status_code)">{{ t.status_code ?? '—' }}</span>
+                      }
+                    </td>
+                    <td><code class="font-mono">{{ t.ip_address || '—' }}</code></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         }
       </section>
     </div>
@@ -482,6 +515,9 @@ export class ApplicationSecurityComponent implements OnInit {
   protected readonly rules = signal<FirewallRule[]>([]);
   protected readonly alerts = signal<FirewallAlert[]>([]);
   protected readonly traffic = signal<FirewallTrafficEntry[]>([]);
+  /** Allowed/blocked requests over the last 24 hours, for the chart. */
+  protected readonly trafficStats = signal<FirewallTrafficStats | null>(null);
+  protected readonly trafficHours = signal(24);
 
   protected readonly geo = signal<GeoSelection | null>(null);
   protected readonly geoWarnings = signal<GeoWarning[]>([]);
@@ -674,6 +710,27 @@ export class ApplicationSecurityComponent implements OnInit {
       next: (t) => this.traffic.set(t),
       error: (e) => this.report(e, 'security.app.trafficError'),
     });
+    this.loadTrafficStats();
+  }
+
+  private loadTrafficStats(): void {
+    this.api.firewallTrafficStats(this.uuid, this.trafficHours()).subscribe({
+      next: (s) => this.trafficStats.set(s),
+      error: () => this.trafficStats.set(null),
+    });
+  }
+
+  protected setTrafficRange(hours: number): void {
+    this.trafficHours.set(hours);
+    this.loadTrafficStats();
+  }
+
+  /** 2xx/3xx read as fine, 4xx as a client problem, 5xx as the application failing. */
+  protected statusColor(status: number | null | undefined): string {
+    if (!status) return 'var(--color-text-tertiary)';
+    if (status >= 500) return 'var(--color-danger)';
+    if (status >= 400) return 'var(--color-warning)';
+    return 'var(--color-success)';
   }
 
   protected toggleFirewall(fw: FirewallConfig): void {
