@@ -36,6 +36,7 @@ router.get('/applications/:uuid/firewall/rules', ctrl.listRules);
 router.post('/applications/:uuid/firewall/rules', ctrl.createRule);
 router.delete('/applications/:uuid/firewall/rules/:ruleId', ctrl.deleteRule);
 router.get('/applications/:uuid/firewall/alerts', ctrl.listAlerts);
+router.get('/applications/:uuid/firewall/traffic/stats', ctrl.trafficStats);
 router.get('/applications/:uuid/firewall/traffic', ctrl.listTraffic);
 router.post('/applications/:uuid/firewall/deploy', validate({ body: deployFirewallSchema }), ctrl.deployFirewall);
 

@@ -3,6 +3,8 @@ import { CustomRequest } from '../interfaces/express.interface';
 import { ok, fail, respondWithError } from '../utils/response';
 import logger from '../config/logger';
 import * as firewall from '../services/firewall.service';
+import * as appService from '../services/application.service';
+import * as trafficIngestion from '../services/traffic-ingestion.service';
 import * as geo from '../services/geo-blocking.service';
 import * as rateLimit from '../services/rate-limit-templates.service';
 import * as crowdsec from '../services/crowdsec.service';
@@ -93,6 +95,18 @@ export async function listAlerts(req: CustomRequest, res: Response): Promise<voi
     fail(res, (err as Error).message || 'Failed to list alerts');
   }
 }
+/** Allowed and blocked requests over time, for the firewall's chart and counters. */
+export async function trafficStats(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    const app = await appService.getApplication(team(req), appUuid(req));
+    if (!app) return fail(res, 'Application not found', 404, 'NOT_FOUND');
+    const hours = Number(req.query.hours ?? 24) || 24;
+    ok(res, await trafficIngestion.trafficStats(app.id, hours));
+  } catch (err) {
+    respondWithError(res, err, 'Loading the traffic statistics');
+  }
+}
+
 export async function listTraffic(req: CustomRequest, res: Response): Promise<void> {
   try {
     ok(res, await firewall.listTrafficLogs(team(req), appUuid(req)));

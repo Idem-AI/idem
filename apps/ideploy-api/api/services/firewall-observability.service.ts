@@ -12,12 +12,12 @@
  * ## Scope
  *
  * Alerts come from the Local API, which is where CrowdSec records what it
- * detected. **Per-request traffic logging is not covered here**: it requires
- * reading the proxy's access log, which on the Laravel side means deploying a
- * sidecar container alongside the proxy. That is its own piece of work, and
- * pretending otherwise would repeat the mistake this phase started by fixing —
- * so `syncTrafficFromDecisions` records blocking *decisions*, which is honest
- * about being a coarser signal than a request log.
+ * detected — now from Traefik's access log, which it reads. Requests
+ * themselves (allowed and blocked, per minute, and the detail of blocked
+ * ones) come from the same log, read by traffic-ingestion.service.ts; the
+ * counters here are derived from what that recorded.
+ * `syncTrafficFromDecisions` (banned addresses as rows) is kept for callers
+ * but no longer used by the sync: a ban is not a request.
  */
 import pool from '../config/db.config';
 import logger from '../config/logger';
@@ -192,10 +192,11 @@ export async function refreshCounters(
 ): Promise<FirewallCounters> {
   const decisions = ownDecisions(await client.listDecisions({ origin: 'ideploy' }), targets);
 
-  const { rows } = await pool.query<{ blocked: string; alerts: string }>(
+  // Requests counted from the proxy's access log (traffic-ingestion.service.ts).
+  const { rows } = await pool.query<{ requests: string; blocked: string; alerts: string }>(
     `SELECT
-       (SELECT count(*)::text FROM firewall_traffic_logs
-         WHERE application_id = $1 AND decision = 'blocked') AS blocked,
+       (SELECT coalesce(sum(allowed + blocked), 0)::text FROM firewall_traffic_stats WHERE application_id = $1) AS requests,
+       (SELECT coalesce(sum(blocked), 0)::text FROM firewall_traffic_stats WHERE application_id = $1) AS blocked,
        (SELECT count(*)::text FROM firewall_alerts
          WHERE application_id = $1 AND status = ANY($2)) AS alerts`,
     [applicationId, UNRESOLVED_STATUSES]
@@ -208,8 +209,8 @@ export async function refreshCounters(
   };
 
   await pool.query(
-    'UPDATE firewall_configs SET total_blocked = $2, updated_at = now() WHERE application_id = $1',
-    [applicationId, counters.totalBlocked]
+    'UPDATE firewall_configs SET total_requests = $2, total_blocked = $3, updated_at = now() WHERE application_id = $1',
+    [applicationId, Number(rows[0].requests), counters.totalBlocked]
   );
 
   return counters;
@@ -234,6 +235,11 @@ export async function purgeExpired(): Promise<PurgeResult> {
   const traffic = await pool.query(
     `DELETE FROM firewall_traffic_logs
      WHERE timestamp < now() - ($1 || ' days')::interval`,
+    [String(TRAFFIC_RETENTION_DAYS)]
+  );
+
+  await pool.query(
+    `DELETE FROM firewall_traffic_stats WHERE bucket < now() - ($1 || ' days')::interval`,
     [String(TRAFFIC_RETENTION_DAYS)]
   );
 
@@ -369,7 +375,8 @@ export async function syncServer(serverId: number): Promise<ServerSyncResult> {
     };
 
     const alerts = await syncAlerts(config.applicationId, client, 100, belongs);
-    const traffic = await syncTrafficFromDecisions(config.applicationId, client, targets);
+    // Real requests now come from the access log; a banned address is not traffic.
+    const traffic = { imported: 0 };
     await refreshCounters(config.applicationId, client, targets);
 
     result.applications += 1;

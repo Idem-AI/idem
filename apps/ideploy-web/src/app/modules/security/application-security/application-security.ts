@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { TrafficChartComponent } from './traffic-chart';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import {
@@ -11,6 +12,7 @@ import {
   FirewallConfig,
   FirewallRule,
   FirewallTrafficEntry,
+  FirewallTrafficStats,
   GeoMode,
   GeoSelection,
   GeoWarning,
@@ -44,7 +46,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
  */
 @Component({
   selector: 'app-application-security',
-  imports: [RouterLink, ReactiveFormsModule, TranslateModule, DatePipe],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, DatePipe, TrafficChartComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a
@@ -413,6 +415,22 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
       }
     </section>
 
+    <!-- What reached the application, allowed and blocked, from the proxy's log. -->
+    <section class="glass-card mt-6 p-5">
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <h2 class="flex items-center gap-2 text-sm font-semibold">
+          <i class="pi pi-chart-bar text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+          {{ 'security.app.trafficChart' | translate }}
+        </h2>
+        @if (trafficStats(); as s) {
+          <span class="text-xs" style="color:var(--color-text-secondary);font-variant-numeric:tabular-nums;">
+            {{ 'security.app.trafficTotals' | translate: { requests: s.totals.requests, blocked: s.totals.blocked } }}
+          </span>
+        }
+      </div>
+      <app-traffic-chart [buckets]="trafficStats()?.buckets ?? []" />
+    </section>
+
     <!-- What the agent has seen -->
     <h2 class="mt-6 mb-1 flex items-center gap-2 text-sm font-semibold">
       <i class="pi pi-eye text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
@@ -482,6 +500,8 @@ export class ApplicationSecurityComponent implements OnInit {
   protected readonly rules = signal<FirewallRule[]>([]);
   protected readonly alerts = signal<FirewallAlert[]>([]);
   protected readonly traffic = signal<FirewallTrafficEntry[]>([]);
+  /** Allowed/blocked requests over the last 24 hours, for the chart. */
+  protected readonly trafficStats = signal<FirewallTrafficStats | null>(null);
 
   protected readonly geo = signal<GeoSelection | null>(null);
   protected readonly geoWarnings = signal<GeoWarning[]>([]);
@@ -673,6 +693,10 @@ export class ApplicationSecurityComponent implements OnInit {
     this.api.listFirewallTraffic(this.uuid).subscribe({
       next: (t) => this.traffic.set(t),
       error: (e) => this.report(e, 'security.app.trafficError'),
+    });
+    this.api.firewallTrafficStats(this.uuid, 24).subscribe({
+      next: (s) => this.trafficStats.set(s),
+      error: () => this.trafficStats.set(null),
     });
   }
 
