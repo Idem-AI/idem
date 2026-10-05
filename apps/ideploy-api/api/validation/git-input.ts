@@ -53,6 +53,18 @@ export function isSafeRelativeDir(dir: unknown): boolean {
   return /^[A-Za-z0-9._\/ -]+$/.test(dir) && !dir.split('/').includes('..');
 }
 
+/** A `docker build --target` stage name. */
+export function isSafeBuildTarget(target: unknown): boolean {
+  if (target === null || target === undefined || target === '') return true;
+  return typeof target === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(target);
+}
+
+/** Watch-path patterns: printable path characters and glob syntax, nothing a shell could read. */
+export function isSafeWatchPaths(value: unknown): boolean {
+  if (value === null || value === undefined || value === '') return true;
+  return typeof value === 'string' && value.length <= 2000 && /^[A-Za-z0-9._\/*?!#, \n\r-]+$/.test(value);
+}
+
 /** A commit id as Git prints it: 7 to 40 hexadecimal characters. */
 export function isSafeCommitSha(sha: unknown): sha is string {
   return typeof sha === 'string' && /^[0-9a-f]{7,40}$/i.test(sha);

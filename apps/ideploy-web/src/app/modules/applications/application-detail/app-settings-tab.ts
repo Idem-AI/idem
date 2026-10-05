@@ -52,6 +52,23 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static'] as con
               <input type="text" id="cfg-base-dir" class="font-mono text-sm" placeholder="./" formControlName="base_directory" />
               <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.baseDirectoryHint' | translate }}</p>
             </div>
+            @if (configForm.controls.build_pack.value === 'dockerfile') {
+              <div>
+                <label class="mb-1 block text-sm" for="cfg-dockerfile">{{ 'applications.detail.dockerfileLocation' | translate }}</label>
+                <input type="text" id="cfg-dockerfile" class="font-mono text-sm" placeholder="Dockerfile" formControlName="dockerfile_location" />
+                <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.dockerfileLocationHint' | translate }}</p>
+              </div>
+              <div>
+                <label class="mb-1 block text-sm" for="cfg-target">{{ 'applications.detail.buildTarget' | translate }}</label>
+                <input type="text" id="cfg-target" class="font-mono text-sm" placeholder="runtime" formControlName="dockerfile_target_build" />
+                <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.buildTargetHint' | translate }}</p>
+              </div>
+            }
+            <div class="sm:col-span-2">
+              <label class="mb-1 block text-sm" for="cfg-watch">{{ 'applications.detail.watchPaths' | translate }}</label>
+              <textarea id="cfg-watch" rows="3" class="font-mono text-sm w-full" placeholder="apps/api/**&#10;packages/**" formControlName="watch_paths"></textarea>
+              <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.watchPathsHint' | translate }}</p>
+            </div>
             <div class="sm:col-span-2">
               <label class="mb-1 block text-sm" for="cfg-port">{{ 'projects.import.portLabel' | translate }}</label>
               <input type="text" id="cfg-port" class="font-mono text-sm" inputmode="numeric" [placeholder]="'projects.import.portPlaceholder' | translate" formControlName="ports_exposes" />
@@ -212,6 +229,9 @@ export class AppSettingsTabComponent implements OnInit {
     git_branch: [''],
     build_pack: [''],
     base_directory: [''],
+    dockerfile_location: [''],
+    dockerfile_target_build: [''],
+    watch_paths: [''],
     ports_exposes: [''],
     fqdn: [''],
   });
@@ -224,6 +244,9 @@ export class AppSettingsTabComponent implements OnInit {
       git_branch: a.git_branch ?? '',
       build_pack: a.build_pack ?? 'nixpacks',
       base_directory: a.base_directory ?? '',
+      dockerfile_location: a.dockerfile_location ?? '',
+      dockerfile_target_build: a.dockerfile_target_build ?? '',
+      watch_paths: a.watch_paths ?? '',
       ports_exposes: a.ports_exposes ?? '',
       fqdn: a.fqdn ?? '',
     });

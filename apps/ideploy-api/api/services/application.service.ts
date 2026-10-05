@@ -14,7 +14,7 @@ import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
 import { appWorkdir, composeCommand } from '../docker/compose';
 import { shellQuote } from '../ssh/ssh';
-import { isSafeGitBranch, isSafeGitUrl, isSafeRelativeDir } from '../validation/git-input';
+import { isSafeBuildTarget, isSafeGitBranch, isSafeGitUrl, isSafeRelativeDir, isSafeWatchPaths } from '../validation/git-input';
 
 function mapApp(r: Record<string, unknown>): ApplicationRow {
   return {
@@ -38,6 +38,9 @@ function mapApp(r: Record<string, unknown>): ApplicationRow {
     start_command: (r.start_command as string) ?? null,
     install_command: (r.install_command as string) ?? null,
     publish_directory: (r.publish_directory as string) ?? null,
+    dockerfile_location: (r.dockerfile_location as string) ?? null,
+    dockerfile_target_build: (r.dockerfile_target_build as string) ?? null,
+    watch_paths: (r.watch_paths as string) ?? null,
     workspace_name: (r.workspace_name as string) ?? undefined,
     workspace_uuid: (r.workspace_uuid as string) ?? undefined,
   };
@@ -163,6 +166,9 @@ function assertSafeBuildInputs(dto: {
   git_branch?: string | null;
   base_directory?: string | null;
   publish_directory?: string | null;
+  dockerfile_location?: string | null;
+  dockerfile_target_build?: string | null;
+  watch_paths?: string | null;
 }): void {
   // Vide : pas de dépôt, le code arrive d'iCode (table `application_sources`).
   if (
@@ -181,6 +187,15 @@ function assertSafeBuildInputs(dto: {
   }
   if (!isSafeRelativeDir(dto.publish_directory)) {
     throw unprocessable('INVALID_PUBLISH_DIRECTORY', 'The publish directory must be a relative path inside the repository.');
+  }
+  if (!isSafeRelativeDir(dto.dockerfile_location)) {
+    throw unprocessable('INVALID_DOCKERFILE_LOCATION', 'The Dockerfile location must be a relative path inside the repository.');
+  }
+  if (!isSafeBuildTarget(dto.dockerfile_target_build)) {
+    throw unprocessable('INVALID_BUILD_TARGET', 'The build target must be a stage name (letters, digits, . _ -).');
+  }
+  if (!isSafeWatchPaths(dto.watch_paths)) {
+    throw unprocessable('INVALID_WATCH_PATHS', 'Watch paths are path patterns, one per line (e.g. apps/api/**).');
   }
 }
 
@@ -259,6 +274,9 @@ export interface UpdateApplicationDto {
   start_command?: string;
   base_directory?: string;
   publish_directory?: string;
+  dockerfile_location?: string | null;
+  dockerfile_target_build?: string | null;
+  watch_paths?: string | null;
 }
 
 const UPDATABLE: (keyof UpdateApplicationDto)[] = [
@@ -275,6 +293,9 @@ const UPDATABLE: (keyof UpdateApplicationDto)[] = [
   'start_command',
   'base_directory',
   'publish_directory',
+  'dockerfile_location',
+  'dockerfile_target_build',
+  'watch_paths',
 ];
 
 export async function updateApplication(

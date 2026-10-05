@@ -80,7 +80,7 @@ describe('planBuild — dockerfile', () => {
 
     expect(plan.runtime).toBe('image');
     expect(plan.imageTag).toBe('my-app-abc123');
-    expect(script(plan)).toContain("docker build -t 'my-app-abc123'");
+    expect(script(plan)).toContain("docker build -f 'Dockerfile' -t 'my-app-abc123'");
   });
 
   it('explains a missing Dockerfile instead of failing opaquely', () => {
@@ -218,5 +218,26 @@ describe('toBuildPack', () => {
   it('defaults anything unknown to nixpacks', () => {
     expect(toBuildPack(null)).toBe('nixpacks');
     expect(toBuildPack('herokuish')).toBe('nixpacks');
+  });
+});
+
+describe('dockerfile plan — monorepo layout', () => {
+  it('builds with the base directory as context and the Dockerfile where it lives', () => {
+    const plan = planBuild('dockerfile', {
+      srcDir: '/w/src',
+      workdir: '/w',
+      imageTag: 'ideploy-x:1',
+      port: 3000,
+      dockerfileLocation: '/Dockerfile/prod/Dockerfile.api',
+      dockerfileTarget: 'runtime',
+    });
+    const command = plan.steps[0].command;
+    expect(command).toContain("cd '/w/src'");
+    expect(command).toContain("docker build -f 'Dockerfile/prod/Dockerfile.api' --target 'runtime' -t 'ideploy-x:1' .");
+  });
+
+  it('defaults to ./Dockerfile', () => {
+    const plan = planBuild('dockerfile', { srcDir: '/w/src', workdir: '/w', imageTag: 't', port: 3000 });
+    expect(plan.steps[0].command).toContain("docker build -f 'Dockerfile' -t 't' .");
   });
 });
