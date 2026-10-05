@@ -385,6 +385,8 @@ async function deploy(
       port,
       buildEnv,
       composeProject: project,
+      dockerfileLocation: app.dockerfile_location,
+      dockerfileTarget: app.dockerfile_target_build,
     };
     const plan = planBuild(pack, buildContext);
 
