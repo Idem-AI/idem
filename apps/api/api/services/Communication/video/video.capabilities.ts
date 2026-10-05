@@ -28,11 +28,12 @@ import type { AddonId } from './video.engine';
 import { ICON_CONCEPT_IDS, ICON_CONCEPTS, IconSetId, resolveConcept } from './video.icons';
 import { LogoSvgInfo } from './video.logo';
 import { DIRECTION_IDS, DirectionId, DIRECTIONS } from './video.direction';
+import { CONCEPT_IDS, CONCEPTS } from './video.concepts';
 import { rng } from './video.music';
 
 // ─── Nœuds ──────────────────────────────────────────────────────────────────
 
-export type CapKind = 'library' | 'addon' | 'logo' | 'background' | 'annotate' | 'icons' | 'easing' | 'postfx' | 'media' | 'technique' | 'transition' | 'direction';
+export type CapKind = 'library' | 'addon' | 'concept' | 'accent' | 'logo' | 'background' | 'annotate' | 'icons' | 'brandmark' | 'easing' | 'postfx' | 'media' | 'technique' | 'transition' | 'direction';
 
 /** Conditions déclaratives (lisibles dans la doc, évaluées par `meets`). */
 export interface CapWhen {
@@ -249,6 +250,51 @@ const ICON_SETS: CapNode[] = [
   { id: 'icons:heroicons-solid', kind: 'icons', label: 'Heroicons Solid', summary: 'Plein et dense, lisible sur aplat.', requires: ['lib:heroicons'], cost: 0, determinism: 'static', suits: { directions: D({ drenched: 3 }) } },
 ];
 
+/**
+ * Le GRAND MOMENT : une scène par vidéo (choisie par le modèle, ou par le concept)
+ * reçoit un effet — l'effet, lui, vient de la direction, donc de la charte.
+ */
+const ACCENTS: CapNode[] = [
+  { id: 'accent:punch', kind: 'accent', label: 'Coup de poing', summary: 'Zoom bref et éclair de couleur à l’entrée de la scène, son d’impact.', cost: 0, determinism: 'pure', suits: { directions: D({ brutal: 2.5, kinetic: 2, collage: 1.5 }) }, impl: 'video-engine/src/App.tsx#AccentFlash' },
+  { id: 'accent:giant', kind: 'accent', label: 'Titre géant', summary: 'Le titre de la scène occupe tout le cadre.', cost: 0, determinism: 'pure', suits: { directions: D({ swiss: 2, brutal: 1.5, drenched: 1.5, precision: 1, kinetic: 1 }) }, impl: 'video-engine/src/scenes.tsx#Headline' },
+  { id: 'accent:hold', kind: 'accent', label: 'Temps suspendu', summary: 'La scène dure plus longtemps et ses entrées ralentissent : on laisse respirer.', cost: 0, determinism: 'pure', suits: { directions: D({ cinematic: 2.5, editorial: 2, precision: 1 }) }, impl: 'video-engine/src/text.tsx#Kinetic' },
+  { id: 'accent:flip', kind: 'accent', label: 'Bascule de couleur', summary: 'La scène prend la couleur qui tranche avec ses voisines.', cost: 0, determinism: 'static', suits: { directions: D({ drenched: 2, swiss: 1.5, precision: 1, editorial: 0.5 }) }, impl: 'api/services/Communication/video/video.storyboard.ts' },
+];
+
+/** Les concepts narratifs, nœuds du graphe (générés depuis video.concepts.ts). */
+function conceptNodes(): CapNode[] {
+  return CONCEPT_IDS.map((id) => {
+    const c = CONCEPTS[id];
+    return {
+      id: `concept:${id}`,
+      kind: 'concept' as const,
+      label: id,
+      summary: c.pitch,
+      cost: 0 as const,
+      determinism: 'static' as const,
+      suits: { objectives: c.suits.objectives, types: c.suits.types, directions: c.suits.directions, arts: c.suits.arts },
+      impl: 'api/services/Communication/video/video.concepts.ts',
+      llm: true,
+    };
+  });
+}
+
+/** Le logo pendant la vidéo (en plus de la signature finale). */
+const BRANDMARKS: CapNode[] = [
+  { id: 'brandmark:none', kind: 'brandmark', label: 'Pas de logo pendant la vidéo', summary: 'Le logo n’apparaît qu’à la signature finale.', cost: 0, determinism: 'static', suits: { directions: D({ brutal: 2, cinematic: 2, kinetic: 1.5, collage: 1.5, drenched: 1 }), types: { logo: 3, kinetic: 1 } } },
+  {
+    id: 'brandmark:corner',
+    kind: 'brandmark',
+    label: 'Logo discret en coin',
+    summary: 'Le logo en monochrome (couleur du texte de la scène), sans conteneur, dans le coin que la composition laisse libre ; masqué sur les plans plein cadre.',
+    when: { logoSvg: true },
+    cost: 0,
+    determinism: 'pure',
+    suits: { directions: D({ swiss: 2, precision: 2, editorial: 1.5 }), types: { footage: 1.5, slideshow: 1, product: 1, mix: 1 }, arts: { minimalism: 1, swiss: 1.5, editorial: 1 } },
+    impl: 'video-engine/src/App.tsx#Brandmark',
+  },
+];
+
 const EXTRA: CapNode[] = [
   { id: 'easing:spring', kind: 'easing', label: 'Ressort physique', summary: 'Rebond réel (motion spring) au lieu d’une courbe : réservé aux directions qui rebondissent.', requires: ['lib:motion'], cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 3, collage: 3 }) } },
   { id: 'postfx:bloom', kind: 'postfx', label: 'Bloom 3D', summary: 'Halo léger sur les reflets de la scène 3D (premium seulement, coût SwiftShader).', requires: ['addon:three'], when: { scene3d: true, minQuality: 'premium' }, cost: 2, determinism: 'clock-pinned', suits: { directions: D({ cinematic: 2, precision: 1.5, drenched: 1 }) }, impl: 'video-engine/src/addons/three.tsx#Stage' },
@@ -275,7 +321,7 @@ function directionNodes(): CapNode[] {
   return nodes;
 }
 
-export const CAPABILITIES: CapNode[] = [...LIBRARIES, ...ADDONS, ...LOGO, ...BACKGROUNDS, ...ANNOTATIONS, ...ICON_SETS, ...EXTRA, ...directionNodes()];
+export const CAPABILITIES: CapNode[] = [...LIBRARIES, ...ADDONS, ...conceptNodes(), ...ACCENTS, ...LOGO, ...BACKGROUNDS, ...ANNOTATIONS, ...ICON_SETS, ...BRANDMARKS, ...EXTRA, ...directionNodes()];
 export const CAP_BY_ID = new Map(CAPABILITIES.map((n) => [n.id, n]));
 
 /** Bibliothèques évaluées et écartées, avec la raison (documentées dans VIDEO_ENGINE.md). */
@@ -313,6 +359,8 @@ export interface KitContext {
   seed: number;
   /** Kits des vidéos précédentes du projet (variété). */
   recent?: VideoKit[];
+  /** Bonus venus de la DA de la charte (éléments graphiques, à éviter) : id de nœud → poids. */
+  boosts?: Record<string, number>;
 }
 
 export type { KitDecision, VideoKit };
@@ -370,6 +418,12 @@ function score(node: CapNode, ctx: KitContext, sectors: string[]): { score: numb
   add(s.objectives?.[ctx.objective], `objectif ${ctx.objective}`);
   if (ctx.artStyleId) add(s.arts?.[ctx.artStyleId.toLowerCase()], `DA ${ctx.artStyleId}`);
   for (const sec of sectors) add(s.sectors?.[sec], `secteur ${sec}`);
+  // La charte : ses éléments graphiques poussent un nœud, ses « à éviter » l'écartent.
+  const b = ctx.boosts?.[node.id];
+  if (b) {
+    v += b;
+    why.push(`charte ${b > 0 ? '+' : ''}${b}`);
+  }
   // Coût : une option lourde doit mériter sa place (rendu SwiftShader).
   if (node.cost >= 2) {
     v -= node.cost * 0.4;
@@ -415,7 +469,7 @@ const ANNOTATABLE = ['hook', 'statement', 'cta'];
 /** Le kit d'une vidéo : choix validés, addons, trace. */
 export function resolveKit(ctx: KitContext): VideoKit {
   const sectors = sectorsOf(ctx.text);
-  const recent = (ctx.recent || []).slice(-2);
+  const recent = (ctx.recent || []).slice(-3);
   const recentIds = (k: (v: VideoKit) => string) => recent.map(k);
   const trace: KitDecision[] = [];
 
@@ -423,11 +477,12 @@ export function resolveKit(ctx: KitContext): VideoKit {
   const bg = choose('background', ctx, sectors, recentIds((v) => `bg:${v.background}`), 0xb6);
   const ann = choose('annotate', ctx, sectors, recentIds((v) => `annotate:${v.annotate}`), 0xa7);
   const icons = choose('icons', ctx, sectors, [], 0x1c);
-  trace.push(logo, bg, ann, icons);
+  const mark = choose('brandmark', ctx, sectors, [], 0xb4);
+  trace.push(logo, bg, ann, icons, mark);
 
   // Ressort : seulement si la direction rebondit déjà.
   const springNode = CAP_BY_ID.get('easing:spring')!;
-  const spring = (springNode.suits?.directions?.[ctx.direction] || 0) > 0 && DIRECTIONS[ctx.direction].overshoot ? { bounce: ctx.direction === 'kinetic' ? 0.42 : 0.3 } : undefined;
+  const spring = (springNode.suits?.directions?.[ctx.direction] || 0) > 0 && DIRECTIONS[ctx.direction].overshoot && (ctx.boosts?.['easing:spring'] || 0) >= 0 ? { bounce: ctx.direction === 'kinetic' ? 0.42 : 0.3 } : undefined;
   if (spring) trace.push({ kind: 'easing', chosen: 'easing:spring', score: 1, why: [`direction ${ctx.direction} à rebond`], rejected: [] });
 
   // Effets 3D : SMAA dès la HD, bloom en premium si la direction l'appelle — et
@@ -468,6 +523,7 @@ export function resolveKit(ctx: KitContext): VideoKit {
     annotateScene,
     logo: logo.chosen.slice('logo:'.length) || 'classic',
     iconSet: (icons.chosen.slice('icons:'.length) || 'lucide') as IconSetId,
+    brandmark: mark.chosen.slice('brandmark:'.length) || 'none',
     icons: {},
     spring,
     postfx,
@@ -508,7 +564,7 @@ export function iconVocabulary(text: string, max = 30): string[] {
  */
 export function capabilityCard(ctx: KitContext): string {
   const lines: string[] = [];
-  const kinds: CapKind[] = ['logo', 'background', 'annotate', 'icons', 'postfx', 'media'];
+  const kinds: CapKind[] = ['logo', 'background', 'annotate', 'icons', 'brandmark', 'postfx', 'media'];
   for (const kind of kinds) {
     const ok = CAPABILITIES.filter((n) => n.kind === kind && !unmet(n, ctx)).map((n) => n.id.split(':')[1]);
     if (ok.length) lines.push(`${kind}: ${ok.join(', ')}`);
@@ -588,4 +644,38 @@ export function applyKitOverrides(kit: VideoKit, overrides: KitOverrides, ctx: K
   if (overrides.annotate !== undefined && next.annotate !== 'none' && !next.annotateScene) next.annotateScene = ctx.scenes.find((s) => ANNOTATABLE.includes(s.sceneId) && s.hasTitle)?.key;
   next.addons = addonsForKit(next);
   return { kit: next, refused };
+}
+
+
+// ─── Menus pour le modèle, effets décidés par la direction ──────────────────
+
+/**
+ * Les k meilleurs nœuds possibles d'un genre : c'est le menu court proposé au
+ * modèle (il choisit DANS ce que le graphe juge pertinent, jamais hors de lui).
+ */
+export function topNodes(kind: CapKind, ctx: KitContext, k: number): string[] {
+  const d = choose(kind, ctx, sectorsOf(ctx.text), [], 0x70a);
+  const scoredRejected = d.rejected.filter((r) => /^score/.test(r.reason)).map((r) => r.id);
+  return [d.chosen, ...scoredRejected].filter(Boolean).slice(0, k).map((id) => id.split(':')[1]);
+}
+
+/** L'effet du grand moment : celui que la direction appelle (graphe, déterministe). */
+export function pickAccentEffect(direction: DirectionId, seed: number, boosts?: Record<string, number>): 'punch' | 'giant' | 'hold' | 'flip' {
+  const ctx: KitContext = {
+    type: 'mix',
+    objective: 'announce',
+    direction,
+    quality: 'hd',
+    format: 'story',
+    durationSec: 15,
+    logo: null,
+    hasLogoIcon: false,
+    media: { images: 0, videos: 0, models: 0, lotties: 0, rive: 0 },
+    scenes: [],
+    text: '',
+    seed,
+    boosts,
+  };
+  const chosen = choose('accent', ctx, [], [], 0xacc).chosen.split(':')[1];
+  return (['punch', 'giant', 'hold', 'flip'].includes(chosen) ? chosen : 'giant') as 'punch' | 'giant' | 'hold' | 'flip';
 }

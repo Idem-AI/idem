@@ -246,7 +246,7 @@
                         />
                       } @else {
                         <span class="pp-card-noimg">
-                          <i class="pi pi-image" aria-hidden="true"></i>
+                          <i [class]="isVideo(item) ? 'pi pi-video' : 'pi pi-image'" aria-hidden="true"></i>
                         </span>
                       }
                     </span>
@@ -277,7 +277,18 @@
                           aria-hidden="true"
                         ></i>
                         <span class="pp-card-day">{{ day(item.scheduledFor) }}</span>
-                        @if (!visualOf(item)) {
+                        @if (isVideo(item)) {
+                          <!-- Vidéo : son type est dit sur la carte ; « Générer » créera ce type. -->
+                          <span class="pp-card-video">
+                            <i class="pi pi-video" aria-hidden="true"></i>
+                            {{ 'dashboard.showCommunication.video.types.' + (item.videoType || 'mix') + '.label' | translate }}
+                          </span>
+                          @if (!item.videoIds?.length) {
+                            <span class="pp-card-todo">
+                              {{ 'dashboard.showCommunication.plans.videoToDo' | translate }}
+                            </span>
+                          }
+                        } @else if (!visualOf(item)) {
                           <span class="pp-card-todo">
                             {{ 'dashboard.showCommunication.plans.visualToDo' | translate }}
                           </span>
@@ -333,6 +344,9 @@
                                 class="text-[9px]"
                                 aria-hidden="true"
                               ></i>
+                              @if (isVideo(item)) {
+                                <i class="pi pi-video text-[9px]" aria-hidden="true"></i>
+                              }
                               {{ item.title }}
                             </button>
                           }
@@ -387,6 +401,8 @@
       (deleted)="onItemDeleted($event)"
       (closed)="closeDetail()"
       (failed)="failed.emit($event)"
+      (openVideo)="openVideo.emit($event)"
+      (needsCredits)="needsCredits.emit($event)"
     />
   }
 }

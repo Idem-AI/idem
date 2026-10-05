@@ -55,6 +55,7 @@ import { BRANDS, brandById } from './fixtures/motion-video/brands';
 import { CASES, simulateModel, VideoCase } from './fixtures/motion-video/cases';
 import { makeMusic, makePhotos, SYNTH_TRACKS } from './fixtures/motion-video/media';
 import { planTypeScenes, TYPE_DEFS } from '../services/Communication/video/video.types';
+import { expandConcept, pickConcept } from '../services/Communication/video/video.concepts';
 import { builtinLottie, BUILTIN_LOTTIES } from '../services/Communication/video/video.lottie';
 import { detectKind, processUpload, validateLottie } from '../services/Communication/video/video.media';
 import { refineCues, sfxLibrary, SFX_SPECS } from '../services/Communication/video/video.sfx';
@@ -402,14 +403,16 @@ async function main() {
   }
 
   // 8 bis. Types de motion ────────────────────────────────────────────────
-  section('8 bis. Types de motion : recette propre à chaque type');
-  for (const type of VIDEO_TYPES) {
+  section('8 bis. Types de motion : concept tiré par le graphe, type garanti');
+  for (const type of VIDEO_TYPES.filter((t) => t !== 'mix')) {
     for (const d of TYPE_DEFS[type].durations || [6, 15, 30]) {
-      const ids = planTypeScenes(type, 'promotion', d, wax, { images: 4, videos: 3, models: 1, lotties: 1 });
+      const media = { images: 4, videos: 3, models: 1, lotties: 1 };
+      const concept = pickConcept({ objective: 'promotion', type, direction: 'editorial', durationSec: d, facts: wax, media, seed: 7 });
+      const ids = expandConcept(concept, { durationSec: d, facts: wax, media, type }).scenes;
       const signature: Record<string, string> = { kinetic: 'kinetic', footage: 'footage', showcase3d: 'showcase3d', illustrated: 'lottie', slideshow: 'gallery', product: 'product', promo: 'offer', logo: 'logo' };
       check(
-        `${type} · ${d} s : ${ids.join(' → ')}`,
-        TYPE_DEFS[type].openers.includes(ids[0]) && ids[ids.length - 1] === 'logo' && ids.includes(signature[type])
+        `${type} · ${d} s · ${concept} : ${ids.join(' → ')}`,
+        !['cta', 'logo'].includes(ids[0]) || type === 'logo' ? ids[ids.length - 1] === 'logo' && ids.includes(signature[type]) : false
       );
     }
   }
@@ -467,7 +470,8 @@ async function main() {
     const sb = video.storyboard;
     const total = sb.scenes.reduce((a, sc) => a + sc.duration, 0);
     const allText = sb.scenes.flatMap((sc) => Object.values(sc.slots)).join(' | ');
-    check(`${c.id} [${c.behaviour}] : ${sb.scenes.length} scènes, ${total.toFixed(2)} s, copie ${video.copyTokens?.source}`, Math.abs(total - c.scope.durationSec) < 0.01 && sb.scenes[0].sceneId === 'hook' && sb.scenes[sb.scenes.length - 1].sceneId === 'logo');
+    // L'ouverture dépend du concept (accroche, offre, chiffre, clip…) ; jamais l'appel à l'action ni la signature.
+    check(`${c.id} [${c.behaviour}] : ${sb.scenes.length} scènes, ${total.toFixed(2)} s, concept ${sb.concept}, copie ${video.copyTokens?.source}`, Math.abs(total - c.scope.durationSec) < 0.01 && !['cta', 'logo'].includes(sb.scenes[0].sceneId) && sb.scenes[sb.scenes.length - 1].sceneId === 'logo');
     const tooLong = sb.scenes.flatMap((sc) => (SCENES[sc.sceneId].slots || []).filter((sl) => (sc.slots[sl.key] || '').length > sl.max).map((sl) => `${sc.sceneId}.${sl.key}`));
     check(`${c.id} : toutes les cases respectent leur longueur`, tooLong.length === 0, tooLong.join(','));
     const required = sb.scenes.flatMap((sc) => (SCENES[sc.sceneId].slots || []).filter((sl) => sl.required && !sc.slots[sl.key]).map((sl) => `${sc.sceneId}.${sl.key}`));
@@ -486,9 +490,10 @@ async function main() {
 
   // Retouche gratuite des textes.
   const first = created[0].video;
-  const hookKey = first.storyboard.scenes[0].key;
+  const titled = first.storyboard.scenes.find((sc) => SCENES[sc.sceneId]?.slots.some((sl) => sl.key === 'title')) || first.storyboard.scenes[0];
+  const hookKey = titled.key;
   const edited = await service.updateVideo('test-user', 'wax', first.id, { slots: { [hookKey]: { title: 'Un titre retouché à la main par la commerçante, beaucoup trop long pour la case' } } });
-  check('retouche : texte borné à la longueur de la case', !!edited && edited.storyboard.scenes[0].slots.title.length <= SCENES.hook.slots[1].max, edited?.storyboard.scenes[0].slots.title);
+  check('retouche : texte borné à la longueur de la case', !!edited && (edited.storyboard.scenes.find((sc) => sc.key === hookKey)?.slots.title || '').length <= (SCENES[titled.sceneId].slots.find((sl) => sl.key === 'title')?.max || 999), edited?.storyboard.scenes.find((sc) => sc.key === hookKey)?.slots.title);
   const restyled = await service.updateVideo('test-user', 'wax', first.id, { style: 'premium' });
   check('retouche : changement de style', restyled?.storyboard.style === 'premium');
   await service.updateVideo('test-user', 'wax', first.id, { slots: { [hookKey]: { title: 'Vos pagnes à prix doux' } } });

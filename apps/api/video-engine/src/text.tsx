@@ -88,7 +88,9 @@ export function Kinetic(props: KineticProps) {
   const words = text.split(/\s+/).filter(Boolean);
   const emph = props.emph ? emphasisIndex(words) : -1;
   const tech = props.technique;
-  const dur = role === 'headline' ? d.pacing.enter : d.pacing.enter * 0.8;
+  // Grand moment « temps suspendu » : les entrées de la scène ralentissent.
+  const pace = scene.accent === 'hold' ? 1.45 : 1;
+  const dur = (role === 'headline' ? d.pacing.enter : d.pacing.enter * 0.8) * pace;
   const st = tech === 'stackPush' ? d.pacing.groupStagger * 0.55 : d.pacing.unitStagger;
   const at = props.at;
   // L'annotation du mot mis en valeur se trace une fois le mot entièrement posé :

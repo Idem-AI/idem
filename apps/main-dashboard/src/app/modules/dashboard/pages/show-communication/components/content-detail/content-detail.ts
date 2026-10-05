@@ -2,10 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -28,7 +30,23 @@ import {
 } from '../../communication-ui';
 import { VisualComposing } from '../visual-composing/visual-composing';
 import { VisualPreview } from '../visual-preview/visual-preview';
+import { VideoComposing, VideoProgressState } from '../video-composing/video-composing';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
+import { priceVideo, VideoFormat, VideoOptions, VideoType } from '../../../../models/motion-video.model';
+
+/** Formats de contenu qui sont des vidéos. */
+const VIDEO_CONTENT_FORMATS = ['reel', 'short-video'];
+
+/** Le format vidéo naturel de chaque réseau. */
+const VIDEO_FORMAT_BY_CHANNEL: Partial<Record<ContentChannel, VideoFormat>> = {
+  tiktok: 'story',
+  instagram: 'story',
+  facebook: 'story',
+  youtube: 'landscape',
+  linkedin: 'square',
+  x: 'square',
+};
 
 /** Champ actuellement en cours de modification. `null` = tout est en lecture. */
 type EditableField =
@@ -56,7 +74,7 @@ type EditableField =
  */
 @Component({
   selector: 'app-content-detail',
-  imports: [FormsModule, TranslateModule, VisualComposing, VisualPreview, IdemLoaderComponent],
+  imports: [FormsModule, TranslateModule, VisualComposing, VisualPreview, VideoComposing, IdemLoaderComponent],
   templateUrl: './content-detail.html',
   styleUrl: './content-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -64,6 +82,7 @@ type EditableField =
 export class ContentDetail {
   private readonly communication = inject(CommunicationService);
   private readonly translate = inject(TranslateService);
+  private readonly motionVideos = inject(MotionVideoService);
 
   readonly projectId = input.required<string>();
   readonly planId = input.required<string>();
@@ -78,6 +97,9 @@ export class ContentDetail {
   readonly deleted = output<string>();
   readonly closed = output<void>();
   readonly failed = output<string>();
+  /** Ouvrir une vidéo de ce contenu dans l'écran Vidéos. */
+  readonly openVideo = output<string>();
+  readonly needsCredits = output<{ cost: number; balance: number }>();
 
   protected readonly channelIcon = channelIcon;
   protected readonly channelLabelKey = channelLabelKey;
@@ -107,6 +129,42 @@ export class ContentDetail {
   });
 
   protected readonly hashtagsText = computed(() => (this.item().hashtags ?? []).join(', '));
+
+  // ── Vidéo (contenus vidéo du calendrier) ─────────────────────────────────
+
+  /** Un contenu vidéo montre sa vidéo, pas un visuel ; l'utilisateur peut basculer. */
+  protected readonly isVideo = computed(() => VIDEO_CONTENT_FORMATS.includes(this.item().format) || !!this.item().videoType);
+  protected readonly preferVisual = signal(false);
+  protected readonly videoType = computed<VideoType>(() => this.item().videoType ?? 'mix');
+  protected readonly videoOptions = signal<VideoOptions | null>(null);
+  protected readonly videoBusy = signal(false);
+  protected readonly videoProgress = signal<VideoProgressState>({});
+  protected readonly videoFormat = computed<VideoFormat>(() => VIDEO_FORMAT_BY_CHANNEL[this.item().channel] ?? 'story');
+  protected readonly videoTypes = computed(() => this.videoOptions()?.types ?? []);
+  protected readonly videoPrice = computed(() => {
+    const options = this.videoOptions();
+    return options ? priceVideo(options.pricing, { durationSec: 15, formats: [this.videoFormat()], quality: 'hd' }) : null;
+  });
+  protected readonly lastVideoId = computed(() => (this.item().videoIds ?? []).slice(-1)[0] ?? null);
+  protected readonly choosingVideoType = signal(false);
+  protected readonly videoTypeIcon = computed(() => this.videoTypes().find((t) => t.id === this.videoType())?.icon ?? 'pi pi-video');
+
+  private optionsRequested = false;
+
+  constructor() {
+    // Le barème des vidéos (pour dire le prix avant de générer), une fois, pour un contenu vidéo.
+    effect(() => {
+      if (!this.isVideo() || this.optionsRequested) return;
+      this.optionsRequested = true;
+      const projectId = this.projectId();
+      untracked(() =>
+        this.motionVideos.options(projectId).subscribe({
+          next: (options) => this.videoOptions.set(options),
+          error: () => undefined,
+        })
+      );
+    });
+  }
 
   // ── Édition champ par champ ──────────────────────────────────────────────
 
@@ -233,6 +291,59 @@ export class ContentDetail {
         this.isCreatingVisual.set(false);
       },
     });
+  }
+
+  /** Le type de vidéo se change d'un clic (enregistré sur le contenu). */
+  protected setVideoType(type: VideoType): void {
+    this.choosingVideoType.set(false);
+    if (type === this.item().videoType) return;
+    this.communication.updatePlanItem(this.projectId(), this.planId(), this.item().id, { videoType: type }).subscribe({
+      next: (plan) => {
+        const updated = plan.items.find((candidate) => candidate.id === this.item().id);
+        if (updated) this.itemChange.emit(updated);
+      },
+      error: (err) => this.failed.emit(err?.error?.message || 'content-update'),
+    });
+  }
+
+  /** Génère LA vidéo de ce contenu : son type, son brief (accroche, angle, appel à l'action). */
+  protected createVideo(): void {
+    if (this.videoBusy()) return;
+    this.videoBusy.set(true);
+    this.videoProgress.set({});
+    let finished = false;
+    this.motionVideos
+      .createStream(this.projectId(), {
+        brief: { musicMood: 'auto', sfx: true, allowStock: true, allowGenerate: true },
+        scope: { durationSec: 15, formats: [this.videoFormat()], quality: 'hd' },
+        type: this.videoType(),
+        contentId: this.item().id,
+      })
+      .subscribe({
+        next: (event) => {
+          if (event.type === 'progress') {
+            this.videoProgress.update((p) => ({ ...p, [event.stage]: { state: event.state, data: event.data } }));
+          } else if (event.type === 'complete') {
+            finished = true;
+            this.videoBusy.set(false);
+            this.itemChange.emit({ ...this.item(), videoIds: [...(this.item().videoIds ?? []), event.video.id] });
+          } else {
+            finished = true;
+            this.videoBusy.set(false);
+            if (event.status === 402) {
+              this.needsCredits.emit({ cost: event.cost ?? this.videoPrice() ?? 0, balance: event.balance ?? 0 });
+              return;
+            }
+            this.failed.emit('dashboard.showCommunication.video.errors.create');
+          }
+        },
+        complete: () => {
+          if (!finished) {
+            this.videoBusy.set(false);
+            this.failed.emit('dashboard.showCommunication.video.errors.create');
+          }
+        },
+      });
   }
 
   protected download(): void {

@@ -46,7 +46,8 @@
     "check:inputs": "ts-node --transpile-only api/scripts/checkProjectInputs.ts",
     "check:auth": "ts-node --transpile-only api/scripts/checkAuthFlow.ts",
     "check:video:engine": "ts-node --transpile-only api/scripts/checkVideoEngine.ts",
-    "docs:video-graph": "ts-node --transpile-only api/scripts/docsVideoGraph.ts"
+    "docs:video-graph": "ts-node --transpile-only api/scripts/docsVideoGraph.ts",
+    "check:video:creative": "ts-node --transpile-only api/scripts/checkVideoCreative.ts"
   },
   "author": "arolleaguekeng",
   "license": "MIT",

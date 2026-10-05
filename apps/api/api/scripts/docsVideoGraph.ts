@@ -13,10 +13,13 @@ import { brandById } from './fixtures/motion-video/brands';
 const KIND_TITLES: Partial<Record<CapKind, string>> = {
   library: 'Bibliothèques installées',
   addon: 'Addons du moteur (paquets chargés à la demande)',
+  concept: 'Concepts narratifs (le modèle en choisit un, parmi les 5 que le graphe propose)',
+  accent: 'Grand moment (la scène est choisie par le modèle, l’effet par la direction)',
   logo: 'Animations du logo',
   background: 'Fonds',
   annotate: 'Annotations du mot mis en valeur',
   icons: "Bibliothèques d'icônes",
+  brandmark: 'Logo pendant la vidéo',
   easing: 'Courbes',
   postfx: 'Effets 3D',
   media: 'Médias pilotés',

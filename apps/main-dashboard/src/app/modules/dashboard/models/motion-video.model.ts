@@ -14,8 +14,8 @@ export type VideoObjective =
   | 'opening'
   | 'testimonial'
   | 'recruitment';
-export type VideoType = 'kinetic' | 'product' | 'promo' | 'footage' | 'showcase3d' | 'illustrated' | 'slideshow' | 'logo';
-export type VideoMediaKind = 'image' | 'video' | 'model3d' | 'lottie';
+export type VideoType = 'kinetic' | 'product' | 'promo' | 'footage' | 'showcase3d' | 'illustrated' | 'slideshow' | 'logo' | 'mix';
+export type VideoMediaKind = 'image' | 'video' | 'model3d' | 'lottie' | 'rive';
 
 export interface VideoMediaAsset {
   id: string;
@@ -50,7 +50,8 @@ export interface VideoScope {
 }
 
 export interface VideoBrief {
-  objective: VideoObjective;
+  /** Absent : déduit de la demande par le modèle. */
+  objective?: VideoObjective;
   message: string;
   details?: string;
   musicMood: MusicMood;
@@ -82,6 +83,8 @@ export interface VideoStoryboard {
   seed: number;
   style: MotionStyle;
   direction?: string;
+  /** Concept narratif retenu (question → réponse, le produit en héros…). */
+  concept?: string;
   durationSec: number;
   scenes: VideoSceneInstance[];
 }
@@ -199,6 +202,8 @@ export interface VideoProgressMediaItem {
 
 export interface VideoProgressData {
   type?: VideoType;
+  /** Concept narratif retenu (étape « plan »). */
+  concept?: string;
   scenes?: (string | { sceneId: string; duration: number; surface?: string })[];
   durationSec?: number;
   title?: string;

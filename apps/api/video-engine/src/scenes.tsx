@@ -34,7 +34,9 @@ function Headline({ text, at = 0, fit, emph }: { text?: string; at?: number; fit
   const exitAt = useExitAt();
   const sound = useHeadlineSound();
   if (!text) return null;
-  return <Kinetic text={text} technique={s.motion.headline} at={at} role="headline" fit={fit} emph={emph} exitAt={exitAt} sound={sound} />;
+  // Grand moment « titre géant » : le titre prend tout le cadre (l'ajustement garde la lisibilité).
+  const sized: [number, number, number] = s.accent === 'giant' ? [fit[0] * 1.35, fit[1] * 1.15, fit[2]] : fit;
+  return <Kinetic text={text} technique={s.motion.headline} at={at} role="headline" fit={sized} emph={emph} exitAt={exitAt} sound={s.accent === 'giant' ? 'impact' : sound} />;
 }
 
 function Support({ text, at, fit = [6, 3.6, 3], muted = true }: { text?: string; at: number; fit?: [number, number, number]; muted?: boolean }) {

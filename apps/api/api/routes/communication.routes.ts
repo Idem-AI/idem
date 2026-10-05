@@ -49,6 +49,7 @@ import {
   sfxFileController,
   videoMusicController,
   videoOptionsController,
+  enhanceVideoRequestController,
 } from '../controllers/motionVideo.controller';
 import { normalizeScope, videoCost } from '../services/Communication/video/video.pricing';
 import multer from 'multer';
@@ -714,6 +715,16 @@ const videoPhotoUpload = multer({
  *     security: [{ bearerAuth: [] }]
  */
 communicationRoutes.get(`/${resource}/:projectId/videos/options`, authenticate, videoOptionsController);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos/enhance:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Rewrite the user's video request (key message, what to show, tone, CTA). Facts are kept, invented numbers removed. Free.
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.post(`/${resource}/:projectId/videos/enhance`, authenticate, enhanceVideoRequestController);
 
 /**
  * @openapi

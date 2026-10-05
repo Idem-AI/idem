@@ -58,6 +58,8 @@ export interface SceneData {
   icons?: string[];
   /** Le fond du kit est posé sur cette scène (le graphe en retient deux au plus). */
   backdrop?: boolean;
+  /** Le grand moment de la vidéo : punch (zoom + éclair), giant (titre géant), hold (temps suspendu), flip (couleur). */
+  accent?: 'punch' | 'giant' | 'hold' | 'flip';
   motion: SceneMotion;
 }
 
@@ -78,6 +80,9 @@ export interface KitData {
   logoSvg?: string;
   /** Le SVG n'est qu'un symbole : le nom de la marque s'écrit dessous. */
   logoIsIcon?: boolean;
+  /** Logo pendant la vidéo : none | corner ; et le coin libre calculé au montage. */
+  brandmark?: string;
+  brandmarkCorner?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
   /** Rebond physique (ressort) pour les directions ludiques ; absent = courbe de la direction. */
   spring?: { bounce: number };
 }

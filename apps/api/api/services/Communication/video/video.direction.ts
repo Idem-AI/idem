@@ -243,6 +243,8 @@ const TYPE_AFFINITY: Record<VideoType, DirectionId[]> = {
   illustrated: ['collage', 'kinetic', 'drenched', 'editorial'],
   slideshow: ['editorial', 'cinematic', 'swiss', 'collage', 'precision'],
   logo: ['precision', 'cinematic', 'brutal', 'drenched'],
+  // Combinée : toutes les directions, la DA de la marque départage.
+  mix: ['editorial', 'swiss', 'brutal', 'kinetic', 'cinematic', 'collage', 'precision', 'drenched'],
 };
 
 /** Direction artistique de la marque → directions qui lui ressemblent (poids). */
@@ -273,18 +275,24 @@ const ART_AFFINITY: Record<string, DirectionId[]> = {
 export function pickDirection(opts: {
   type: VideoType;
   artStyleId?: string;
+  /** Directions admises par la DA de la charte (video.artdirection.ts) : elles l'emportent sur le type. */
+  artDirections?: DirectionId[];
   seed: number;
   avoid?: string[];
   requested?: DirectionId;
 }): DirectionId {
   if (opts.requested && DIRECTION_IDS.includes(opts.requested)) return opts.requested;
-  const pool = TYPE_AFFINITY[opts.type] || DIRECTION_IDS;
-  const art = ART_AFFINITY[(opts.artStyleId || '').toLowerCase()] || [];
+  const typePool = TYPE_AFFINITY[opts.type] || DIRECTION_IDS;
+  const art = opts.artDirections?.length ? opts.artDirections : ART_AFFINITY[(opts.artStyleId || '').toLowerCase()] || [];
+  // La charte d'abord : les directions de sa DA compatibles avec le type, sinon celles de la DA seules.
+  const both = typePool.filter((id) => art.includes(id));
+  const pool = art.length ? (both.length ? both : art) : typePool;
   const recent = (opts.avoid || []).slice(-3);
   const weighted: DirectionId[] = [];
   for (const id of pool) {
     if (recent.includes(id) && pool.some((p) => !recent.includes(p))) continue;
-    const weight = 1 + (art.includes(id) ? 2 : 0);
+    // La première direction de la DA est la plus fidèle : elle pèse plus.
+    const weight = 1 + (art[0] === id ? 2 : art.includes(id) ? 1 : 0);
     for (let k = 0; k < weight; k++) weighted.push(id);
   }
   const r = rng(opts.seed ^ 0xd1ec7);

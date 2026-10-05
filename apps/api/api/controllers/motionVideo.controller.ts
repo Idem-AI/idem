@@ -57,6 +57,21 @@ function fail(res: Response, error: any, label: string): void {
   res.status(500).json({ message: 'Video generation failed' });
 }
 
+/** POST /project/communication/:projectId/videos/enhance — « Améliorer ma demande » (gratuit). */
+export const enhanceVideoRequestController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const id = ids(req, res);
+  if (!id) return;
+  try {
+    const media = Array.isArray(req.body?.media) ? req.body.media.slice(0, 8) : [];
+    res.json(await motionVideoService.enhanceRequest(id.userId, id.projectId, String(req.body?.text || ''), media));
+  } catch (error) {
+    fail(res, error, 'enhanceVideoRequestController');
+  }
+};
+
+/** Type demandé : un des types, ou « auto » (le modèle choisit). */
+const videoTypeOf = (raw: unknown): VideoType | 'auto' | undefined => (raw === 'auto' ? 'auto' : VIDEO_TYPES.includes(raw as VideoType) ? (raw as VideoType) : undefined);
+
 /** GET /project/communication/:projectId/videos/options */
 export const videoOptionsController = async (_req: CustomRequest, res: Response): Promise<void> => {
   res.json({
@@ -99,7 +114,7 @@ export const createVideoController = async (req: CustomRequest, res: Response): 
     const video = await motionVideoService.createVideo(
       id.userId,
       id.projectId,
-      { brief: req.body?.brief, scope, type: VIDEO_TYPES.includes(req.body?.type) ? (req.body.type as VideoType) : undefined, language: getRequestLanguage() },
+      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage() },
       paid
     );
     res.status(201).json(video);
@@ -316,7 +331,7 @@ export const createVideoStreamController = async (req: CustomRequest, res: Respo
     const video = await motionVideoService.createVideo(
       id.userId,
       id.projectId,
-      { brief: req.body?.brief, scope, type: VIDEO_TYPES.includes(req.body?.type) ? (req.body.type as VideoType) : undefined, language: getRequestLanguage() },
+      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage() },
       paid,
       (event) => send({ type: 'progress', ...event })
     );

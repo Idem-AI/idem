@@ -303,3 +303,16 @@
     width: 4rem;
   }
 }
+
+/* Vidéo : le type, dit sur la carte. */
+.pp-card-video {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  background: var(--glass-bg-subtle);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}

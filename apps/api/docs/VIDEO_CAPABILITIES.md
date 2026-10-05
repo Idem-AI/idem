@@ -107,6 +107,33 @@ graph LR
 | `addon:lottie` | addon-lottie.js | Paquet du moteur chargé seulement si un nœud retenu l'exige. | `lib:lottie` | — | — | 1 | seek | `public/video-engine/addon-lottie.js` |
 | `addon:rive` | addon-rive.js | Paquet du moteur chargé seulement si un nœud retenu l'exige. | `lib:rive` | — | — | 2 | seek | `public/video-engine/addon-rive.js` |
 
+## Concepts narratifs (le modèle en choisit un, parmi les 5 que le graphe propose)
+
+| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
+|---|---|---|---|---|---|---|---|---|
+| `concept:question` | question | ask the audience's own question, then answer it | — | — | dir. editorial 1, swiss 1, precision 1 · types kinetic 1.5, product 1, illustrated 1, mix 1 · obj. announce 1.5, product 1, recruitment 1, testimonial 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:problem-solution` | problem-solution | name an everyday problem, then show it solved | — | — | dir. kinetic 1, brutal 1, swiss 0.5 · types product 1.5, showcase3d 1, kinetic 1, footage 1, mix 1.5 · obj. product 1.5, promotion 1, announce 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:product-hero` | product-hero | reveal the product like a hero, then its strengths | — | — | dir. precision 1, cinematic 1, drenched 1 · types product 2, showcase3d 2.5, promo 1, slideshow 1, mix 1 · obj. product 2.5, promotion 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:manifesto` | manifesto | short brand beliefs, one after another | — | — | dir. brutal 2, swiss 1, kinetic 1, editorial 0.5 · types kinetic 2.5, mix 1 · obj. announce 1.5, recruitment 1, opening 0.5 · DA maximalism 1, graffiti 1.5, swiss 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:offer-blast` | offer-blast | hit with the offer, create urgency, then act | — | — | dir. kinetic 1.5, brutal 1.5, drenched 1 · types promo 3, product 0.5, mix 1 · obj. promotion 3 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:proof` | proof | lead with proof: a number, a customer's words | — | — | dir. precision 1.5, editorial 1, swiss 1 · types kinetic 1, footage 0.5, mix 1 · obj. testimonial 3, recruitment 1, product 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:journey` | journey | real scenes from the field, with captions | — | — | dir. cinematic 2, editorial 1 · types footage 3, slideshow 1, mix 1 · obj. announce 1, opening 1, recruitment 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:teaser` | teaser | intrigue first, reveal at the end | — | — | dir. cinematic 1.5, kinetic 1, drenched 1 · types showcase3d 1.5, kinetic 1, product 1, footage 0.5, mix 1.5 · obj. event 1.5, opening 1.5, product 1, announce 1 · DA surreal 1, aurora 1, futuristic 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:invitation` | invitation | invite: the occasion, the date, the place | — | — | dir. collage 1, editorial 1, kinetic 0.5 · types illustrated 2, kinetic 1, slideshow 0.5, mix 1 · obj. event 3, opening 2.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:showcase` | showcase | a gallery of the work, then one strong line | — | — | dir. editorial 1.5, collage 1, cinematic 1 · types slideshow 3, product 1, mix 1 · obj. product 1, announce 1, opening 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:reasons` | reasons | why choose us: the reasons, one by one | — | — | dir. swiss 1, precision 1, collage 0.5 · types kinetic 1, product 1, illustrated 1, promo 0.5, mix 1 · obj. recruitment 1.5, product 1, announce 1, promotion 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:celebration` | celebration | celebrate a moment with the community | — | — | dir. collage 2, kinetic 1, drenched 0.5 · types illustrated 2.5, mix 1 · obj. event 1, announce 1, opening 1 · DA pop-art 1, clay 1, y2k 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:logo-sting` | logo-sting | a short signature: one word, then the logo | — | — | types logo 5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+
+## Grand moment (la scène est choisie par le modèle, l’effet par la direction)
+
+| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
+|---|---|---|---|---|---|---|---|---|
+| `accent:punch` | Coup de poing | Zoom bref et éclair de couleur à l’entrée de la scène, son d’impact. | — | — | dir. brutal 2.5, kinetic 2, collage 1.5 | 0 | pure | `video-engine/src/App.tsx#AccentFlash` |
+| `accent:giant` | Titre géant | Le titre de la scène occupe tout le cadre. | — | — | dir. swiss 2, brutal 1.5, drenched 1.5, precision 1, kinetic 1 | 0 | pure | `video-engine/src/scenes.tsx#Headline` |
+| `accent:hold` | Temps suspendu | La scène dure plus longtemps et ses entrées ralentissent : on laisse respirer. | — | — | dir. cinematic 2.5, editorial 2, precision 1 | 0 | pure | `video-engine/src/text.tsx#Kinetic` |
+| `accent:flip` | Bascule de couleur | La scène prend la couleur qui tranche avec ses voisines. | — | — | dir. drenched 2, swiss 1.5, precision 1, editorial 0.5 | 0 | static | `api/services/Communication/video/video.storyboard.ts` |
+
 ## Animations du logo
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
@@ -154,6 +181,13 @@ graph LR
 | `icons:phosphor-fill` | Phosphor Fill | Pictogrammes pleins. | `lib:phosphor` | — | dir. kinetic 3, drenched 1 · DA pop-art 1 | 0 | static | — |
 | `icons:phosphor-duotone` | Phosphor Duotone | Deux tons, façon découpage. | `lib:phosphor` | — | dir. collage 3 · DA collage-art 1, clay 1 | 0 | static | — |
 | `icons:heroicons-solid` | Heroicons Solid | Plein et dense, lisible sur aplat. | `lib:heroicons` | — | dir. drenched 3 | 0 | static | — |
+
+## Logo pendant la vidéo
+
+| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
+|---|---|---|---|---|---|---|---|---|
+| `brandmark:none` | Pas de logo pendant la vidéo | Le logo n’apparaît qu’à la signature finale. | — | — | dir. brutal 2, cinematic 2, kinetic 1.5, collage 1.5, drenched 1 · types logo 3, kinetic 1 | 0 | static | — |
+| `brandmark:corner` | Logo discret en coin | Le logo en monochrome (couleur du texte de la scène), sans conteneur, dans le coin que la composition laisse libre ; masqué sur les plans plein cadre. | — | logo SVG | dir. swiss 2, precision 2, editorial 1.5 · types footage 1.5, slideshow 1, product 1, mix 1 · DA minimalism 1, swiss 1.5, editorial 1 | 0 | pure | `video-engine/src/App.tsx#Brandmark` |
 
 ## Courbes
 
@@ -238,6 +272,8 @@ Kit : logo `assemble`, fond `shape-field` sur stat-3, hook-1, annotation `marker
     - écartés : `annotate:circle` (score 3.50, proche du meilleur : non tiré), `annotate:none` (score 1.00 < 3.50), `annotate:underline` (score 1.00 < 3.50)
   - **icons** → `icons:phosphor-fill` (score 5.50 : direction kinetic +4.5)
     - écartés : `icons:heroicons-solid` (score 1.00 < 4.75), `icons:lucide` (score 1.00 < 4.75), `icons:phosphor-bold` (score 1.00 < 4.75), `icons:phosphor-duotone` (score 1.00 < 4.75), `icons:phosphor-light` (score 1.00 < 4.75), `icons:phosphor-thin` (score 1.00 < 4.75)
+  - **brandmark** → `brandmark:none` (score 3.25 : direction kinetic +2.25)
+    - écartés : `brandmark:corner` (score 1.00 < 2.50)
   - **easing** → `easing:spring` (score 1.00 : direction kinetic à rebond)
 
 ### Bissap Délices — produit, éditorial
@@ -252,6 +288,8 @@ Kit : logo `trace`, fond `halftone` sur stat-3, hook-1, annotation `underline`, 
     - écartés : `annotate:marker` (score 2.50 < 3.25), `annotate:none` (score 1.75 < 3.25), `annotate:circle` (score 1.00 < 3.25)
   - **icons** → `icons:phosphor-light` (score 5.50 : direction editorial +4.5)
     - écartés : `icons:lucide` (score 1.75 < 4.75), `icons:heroicons-solid` (score 1.00 < 4.75), `icons:phosphor-bold` (score 1.00 < 4.75), `icons:phosphor-duotone` (score 1.00 < 4.75), `icons:phosphor-fill` (score 1.00 < 4.75), `icons:phosphor-thin` (score 1.00 < 4.75)
+  - **brandmark** → `brandmark:corner` (score 4.25 : direction editorial +2.25, type product +1)
+    - écartés : `brandmark:none` (score 1.00 < 3.50)
 
 ### Kofi Tech — logo, précision, premium
 
@@ -265,6 +303,8 @@ Kit : logo `draw`, fond `none` sur —, annotation `none`, icônes `lucide`, add
     - écartés : `annotate:circle` (score 1.00 < 3.25), `annotate:marker` (score 1.00 < 3.25), `annotate:underline` (score 1.00 < 3.25)
   - **icons** → `icons:lucide` (score 5.50 : direction precision +4.5)
     - écartés : `icons:tabler` (score 2.50 < 4.75), `icons:heroicons-solid` (score 1.00 < 4.75), `icons:phosphor-bold` (score 1.00 < 4.75), `icons:phosphor-duotone` (score 1.00 < 4.75), `icons:phosphor-fill` (score 1.00 < 4.75), `icons:phosphor-light` (score 1.00 < 4.75)
+  - **brandmark** → `brandmark:none` (score 4.00 : type logo +3)
+    - écartés : `brandmark:corner` (score 4.00, proche du meilleur : non tiré)
 
 ### Mama Kitchen (sans logo) — événement, collage
 
@@ -278,4 +318,6 @@ Kit : logo `classic`, fond `shape-field` sur stat-3, hook-1, annotation `circle`
     - écartés : `annotate:marker` (score 2.50 < 3.75), `annotate:underline` (score 2.50 < 3.75), `annotate:none` (score 1.00 < 3.75)
   - **icons** → `icons:phosphor-duotone` (score 5.50 : direction collage +4.5)
     - écartés : `icons:heroicons-solid` (score 1.00 < 4.75), `icons:lucide` (score 1.00 < 4.75), `icons:phosphor-bold` (score 1.00 < 4.75), `icons:phosphor-fill` (score 1.00 < 4.75), `icons:phosphor-light` (score 1.00 < 4.75), `icons:phosphor-thin` (score 1.00 < 4.75)
+  - **brandmark** → `brandmark:none` (score 3.25 : direction collage +2.25)
+    - écartés : `brandmark:corner` (pas de logo vectoriel)
   - **easing** → `easing:spring` (score 1.00 : direction collage à rebond)

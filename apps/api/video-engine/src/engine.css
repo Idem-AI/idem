@@ -168,8 +168,11 @@ html,body{overflow:hidden;background:#0b0b0c}
 .grain{position:absolute;inset:-10%;z-index:590;pointer-events:none;opacity:.06;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
 .grain-paper{opacity:.09;mix-blend-mode:multiply}
 .frame-line{position:absolute;inset:calc(var(--u)*3);z-index:590;pointer-events:none;border:max(1px,calc(var(--u)*0.22)) solid currentColor;opacity:.25}
-.brandmark{position:absolute;z-index:500;top:calc(var(--st) * 0.42);right:var(--sx);height:calc(var(--u)*8);padding:calc(var(--u)*1.4) calc(var(--u)*2.2);border-radius:999px;background:#fff;box-shadow:0 calc(var(--u)*.5) calc(var(--u)*2) rgba(0,0,0,.14)}
-.brandmark img{height:100%;width:auto;display:block}
+/* Logo pendant la vidéo : monochrome (couleur du texte de la scène), sans conteneur. */
+.kit-mark{position:absolute;z-index:500;display:flex}
+.kit-mark svg{height:100%;width:auto;display:block;overflow:visible}
+.kit-mark svg *:not(g):not(defs):not(stop){fill:currentColor !important}
+.kit-mark svg [stroke]:not([stroke="none"]){stroke:currentColor !important}
 
 /* ── Aperçu ── */
 body.preview{display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;background:transparent}

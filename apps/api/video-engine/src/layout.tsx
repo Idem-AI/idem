@@ -38,16 +38,18 @@ export function Composition({ children, anchor, gap = 3, width }: { children: Re
 
 /** Mouvement de caméra lent : une poussée ou une dérive, jamais sur toutes les directions. */
 export function useCamera(): CSSProperties {
-  const { t, data } = useEngine();
+  const { t, data, ease } = useEngine();
   const s = useScene();
   const p = clamp((t - s.visFrom) / Math.max(0.1, s.span));
+  // Grand moment « coup de poing » : un zoom bref à l'entrée de la scène, qui retombe vite.
+  const punch = s.accent === 'punch' ? 1 + 0.08 * (1 - ease(progress(t, s.tin, 0.4))) * (t >= s.tin ? 1 : 0) : 1;
   switch (data.direction.camera) {
     case 'push':
-      return { transform: `scale(${mix(1, 1.045, p)})` };
+      return { transform: `scale(${mix(1, 1.045, p) * punch})` };
     case 'drift':
-      return { transform: `translateX(${mix(-0.6, 0.6, p)}%)` };
+      return { transform: `translateX(${mix(-0.6, 0.6, p)}%) scale(${punch})` };
     default:
-      return {};
+      return punch !== 1 ? { transform: `scale(${punch})` } : {};
   }
 }
 

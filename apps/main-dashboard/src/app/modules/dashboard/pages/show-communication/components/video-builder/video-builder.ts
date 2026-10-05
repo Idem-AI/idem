@@ -10,35 +10,23 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
 import { VideoComposing, VideoProgressState } from '../video-composing/video-composing';
 import {
-  MotionStyle,
   MotionVideo,
   MusicMood,
   priceVideo,
   VideoDuration,
   VideoFormat,
-  VideoObjective,
+  VideoMediaAsset,
+  VideoMediaKind,
   VideoOptions,
   VideoQuality,
   VideoScope,
-  VideoMediaAsset,
-  VideoMediaKind,
   VideoType,
 } from '../../../../models/motion-video.model';
-
-const OBJECTIVES: { id: VideoObjective; icon: string }[] = [
-  { id: 'promotion', icon: 'pi pi-tag' },
-  { id: 'product', icon: 'pi pi-box' },
-  { id: 'announce', icon: 'pi pi-megaphone' },
-  { id: 'event', icon: 'pi pi-calendar' },
-  { id: 'opening', icon: 'pi pi-shop' },
-  { id: 'testimonial', icon: 'pi pi-comments' },
-  { id: 'recruitment', icon: 'pi pi-users' },
-];
 
 /** La forme réelle de chaque format, et où on le publie. */
 const FORMATS: { id: VideoFormat; ratio: string; icons: string[] }[] = [
@@ -48,24 +36,38 @@ const FORMATS: { id: VideoFormat; ratio: string; icons: string[] }[] = [
   { id: 'landscape', ratio: '16 / 9', icons: ['pi pi-youtube', 'pi pi-linkedin', 'pi pi-globe'] },
 ];
 
-const MOODS: MusicMood[] = ['auto', 'upbeat', 'afro', 'calm', 'epic', 'corporate', 'none'];
-
-/** Ce que chaque type de média accepte à l'import. */
-const MEDIA_INPUTS: { kind: VideoMediaKind; icon: string; accept: string }[] = [
-  { kind: 'image', icon: 'pi pi-camera', accept: 'image/jpeg,image/png,image/webp' },
-  { kind: 'video', icon: 'pi pi-video', accept: 'video/mp4,video/quicktime,video/webm' },
-  { kind: 'model3d', icon: 'pi pi-box', accept: '.glb,model/gltf-binary' },
-  { kind: 'lottie', icon: 'pi pi-sparkles', accept: '.json,application/json' },
+const MOODS: { id: MusicMood; icon: string }[] = [
+  { id: 'auto', icon: 'pi pi-sparkles' },
+  { id: 'upbeat', icon: 'pi pi-bolt' },
+  { id: 'afro', icon: 'pi pi-sun' },
+  { id: 'calm', icon: 'pi pi-moon' },
+  { id: 'epic', icon: 'pi pi-star' },
+  { id: 'corporate', icon: 'pi pi-briefcase' },
+  { id: 'none', icon: 'pi pi-volume-off' },
 ];
 
+/** Tout ce que la vidéo sait utiliser, en un seul bouton « joindre ». */
+const MEDIA_ACCEPT = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm,.glb,.json,.lottie,.riv';
+const MEDIA_ICON: Record<VideoMediaKind, string> = {
+  image: 'pi pi-image',
+  video: 'pi pi-video',
+  model3d: 'pi pi-box',
+  lottie: 'pi pi-sparkles',
+  rive: 'pi pi-play-circle',
+};
+
 const MAX_MEDIA = 8;
+const EXAMPLES = ['ex1', 'ex2', 'ex3'];
 
 /**
- * Créer une vidéo en quatre étapes : le TYPE de motion, QUOI annoncer, les
- * DÉTAILS (et les médias de l'utilisateur), puis le PÉRIMÈTRE.
+ * Créer une vidéo en DEUX temps.
  *
- * Le périmètre (durée, formats, qualité) fixe le prix, affiché en direct à
- * partir du barème de l'API : on sait ce qu'on paie avant de cliquer.
+ * 1. Décrire : un espace de discussion. L'utilisateur dit ce qu'il veut, avec ses
+ *    mots, et joint ses médias. Le modèle choisit le type de vidéo — ou en combine
+ *    plusieurs, une partie en 3D, une autre en clips… — d'après la demande.
+ * 2. Configurer : où la publier, combien de temps, quelle qualité, quelle musique.
+ *    Le reste (direction de motion, effets, banques d'images) est replié : les
+ *    bons réglages sont déjà posés. Le prix se met à jour en direct.
  */
 @Component({
   selector: 'app-video-builder',
@@ -77,6 +79,7 @@ const MAX_MEDIA = 8;
 export class VideoBuilder {
   private readonly videos = inject(MotionVideoService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   readonly projectId = input.required<string>();
   readonly options = input.required<VideoOptions>();
@@ -86,102 +89,98 @@ export class VideoBuilder {
   readonly failed = output<string>();
   readonly needsCredits = output<{ cost: number; balance: number }>();
 
-  protected readonly objectives = OBJECTIVES;
   protected readonly formatChoices = FORMATS;
   protected readonly moods = MOODS;
   protected readonly qualities: VideoQuality[] = ['standard', 'hd', 'premium'];
-  protected readonly mediaInputs = MEDIA_INPUTS;
-  protected readonly steps = [1, 2, 3, 4];
+  protected readonly mediaAccept = MEDIA_ACCEPT;
+  protected readonly mediaIcon = MEDIA_ICON;
+  protected readonly examples = EXAMPLES;
+  protected readonly maxMedia = MAX_MEDIA;
 
-  protected readonly step = signal(1);
-  protected readonly type = signal<VideoType | null>(null);
+  protected readonly step = signal<1 | 2>(1);
+  protected readonly request = signal('');
   protected readonly media = signal<VideoMediaAsset[]>([]);
-  protected readonly allowStock = signal(true);
-  protected readonly allowGenerate = signal(true);
-  protected readonly sfx = signal(true);
-  protected readonly types = computed(() => this.options().types);
-  protected readonly typeDef = computed(() => this.types().find((t) => t.id === this.type()) ?? null);
-  protected readonly objective = signal<VideoObjective | null>(null);
-  protected readonly message = signal('');
-  protected readonly details = signal('');
   protected readonly uploading = signal(false);
+  /** « auto » : le modèle choisit. Un type précis seulement si l'utilisateur l'impose. */
+  protected readonly type = signal<VideoType | 'auto'>('auto');
+  protected readonly showTypes = signal(false);
+  protected readonly types = computed(() => this.options().types);
+
   protected readonly duration = signal<VideoDuration>(15);
   protected readonly formats = signal<VideoFormat[]>(['story']);
   protected readonly quality = signal<VideoQuality>('hd');
   protected readonly mood = signal<MusicMood>('auto');
-  protected readonly style = signal<MotionStyle | 'auto'>('auto');
   protected readonly direction = signal<string>('auto');
   protected readonly directions = computed(() => this.options().directions ?? ['auto']);
+  protected readonly sfx = signal(true);
+  protected readonly allowStock = signal(true);
+  protected readonly allowGenerate = signal(true);
+  protected readonly showMore = signal(false);
+
   protected readonly busy = signal(false);
   /** Étapes réelles reçues du serveur pendant la création. */
   protected readonly progress = signal<VideoProgressState>({});
 
-  protected readonly durations = computed(() => this.typeDef()?.durations ?? this.options().pricing.durations);
-  protected readonly styles = computed(() => this.options().styles);
+  protected readonly durations = computed<VideoDuration[]>(() => {
+    const t = this.type();
+    const forced = t !== 'auto' ? this.types().find((d) => d.id === t)?.durations : undefined;
+    return forced ?? this.options().pricing.durations;
+  });
 
   protected readonly scope = computed<VideoScope>(() => ({
     durationSec: this.duration(),
     formats: this.formats(),
     quality: this.quality(),
   }));
-
   protected readonly price = computed(() => priceVideo(this.options().pricing, this.scope()));
-  protected readonly referencePrice = computed(() => this.options().pricing.referenceCost);
 
-  protected readonly canAdvance = computed(() => {
-    switch (this.step()) {
-      case 1:
-        return !!this.type();
-      case 2:
-        return !!this.objective();
-      case 3:
-        return this.message().trim().length >= 3 && !this.uploading();
-      default:
-        return this.formats().length > 0 && !this.busy();
-    }
-  });
+  protected readonly canNext = computed(() => this.request().trim().length >= 8 && !this.uploading() && !this.enhancing());
 
-  protected chooseType(id: VideoType): void {
+  /** « Améliorer ma demande » : la version d'avant reste à un clic. */
+  protected readonly enhancing = signal(false);
+  protected readonly previousRequest = signal<string | null>(null);
+  protected readonly canEnhance = computed(() => this.request().trim().length >= 3 && !this.enhancing());
+  protected readonly canSubmit = computed(() => this.formats().length > 0 && !this.busy());
+
+  // ── 1. Décrire ───────────────────────────────────────────────────────────
+
+  protected useExample(key: string): void {
+    this.request.set(this.translate.instant(`dashboard.showCommunication.video.builder.chat.examples.${key}`));
+  }
+
+  protected enhance(): void {
+    if (!this.canEnhance()) return;
+    const before = this.request();
+    this.enhancing.set(true);
+    this.videos
+      .enhanceRequest(this.projectId(), before.trim(), this.media())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ prompt }) => {
+          this.enhancing.set(false);
+          if (prompt && prompt.trim() !== before.trim()) {
+            this.previousRequest.set(before);
+            this.request.set(prompt);
+          }
+        },
+        error: () => {
+          this.enhancing.set(false);
+          this.failed.emit('dashboard.showCommunication.video.errors.enhance');
+        },
+      });
+  }
+
+  protected restoreRequest(): void {
+    const before = this.previousRequest();
+    if (before == null) return;
+    this.request.set(before);
+    this.previousRequest.set(null);
+  }
+
+  protected chooseType(id: VideoType | 'auto'): void {
     this.type.set(id);
-    // Une durée hors des durées du type (révélation de logo : 6 ou 15 s) est ramenée.
-    const allowed = this.types().find((t) => t.id === id)?.durations;
-    if (allowed && !allowed.includes(this.duration())) this.duration.set(allowed[allowed.length - 1]);
-    this.step.set(2);
-  }
-
-  protected chooseObjective(id: VideoObjective): void {
-    this.objective.set(id);
-    this.step.set(3);
-  }
-
-  protected next(): void {
-    if (this.canAdvance()) this.step.update((s) => Math.min(4, s + 1));
-  }
-
-  protected mediaOf(kind: VideoMediaKind): VideoMediaAsset[] {
-    return this.media().filter((m) => m.kind === kind);
-  }
-
-  protected back(): void {
-    if (this.step() === 1) {
-      this.cancelled.emit();
-      return;
-    }
-    this.step.update((s) => Math.max(1, s - 1));
-  }
-
-  protected goTo(step: number): void {
-    if (step < this.step()) this.step.set(step);
-  }
-
-  protected toggleFormat(format: VideoFormat): void {
-    const current = this.formats();
-    if (current.includes(format)) {
-      // Au moins un format : on ne retire pas le dernier.
-      if (current.length > 1) this.formats.set(current.filter((f) => f !== format));
-    } else {
-      this.formats.set([...current, format]);
-    }
+    const allowed = this.durations();
+    if (!allowed.includes(this.duration())) this.duration.set(allowed[allowed.length - 1]);
   }
 
   protected onFiles(event: Event): void {
@@ -209,21 +208,41 @@ export class VideoBuilder {
     this.media.update((list) => list.filter((m) => m.id !== id));
   }
 
+  protected next(): void {
+    if (this.canNext()) this.step.set(2);
+  }
+
+  protected back(): void {
+    if (this.step() === 1) this.cancelled.emit();
+    else this.step.set(1);
+  }
+
+  // ── 2. Configurer ────────────────────────────────────────────────────────
+
+  protected toggleFormat(format: VideoFormat): void {
+    const current = this.formats();
+    if (current.includes(format)) {
+      // Au moins un format : on ne retire pas le dernier.
+      if (current.length > 1) this.formats.set(current.filter((f) => f !== format));
+    } else {
+      this.formats.set([...current, format]);
+    }
+  }
+
   protected submit(): void {
-    const objective = this.objective();
-    const type = this.type();
-    if (!objective || !type || this.busy() || !this.canAdvance()) return;
+    if (!this.canSubmit()) return;
+    // Une demande longue : la première phrase sert de message, le tout de détails.
+    const text = this.request().trim();
+    const message = text.length <= 400 ? text : text.slice(0, 400).replace(/\s+\S*$/, '');
     this.busy.set(true);
     this.progress.set({});
     let finished = false;
     this.videos
       .createStream(this.projectId(), {
         brief: {
-          objective,
-          message: this.message().trim(),
-          details: this.details().trim() || undefined,
+          message,
+          details: text.length > message.length ? text.slice(0, 800) : undefined,
           musicMood: this.mood(),
-          style: this.style(),
           direction: this.direction() === 'auto' ? undefined : this.direction(),
           media: this.media(),
           allowStock: this.allowStock(),
@@ -231,7 +250,7 @@ export class VideoBuilder {
           sfx: this.sfx(),
         },
         scope: this.scope(),
-        type,
+        type: this.type(),
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

@@ -22,6 +22,7 @@ import { SCENES } from './video.scenes';
 import { rng } from './video.music';
 import { lottieForObjective } from './video.lottie';
 import { DirectionId, DIRECTIONS, planMotion, surfacesFor } from './video.direction';
+import { VideoArtOverrides } from '../../../models/motionVideo.model';
 
 const TRANSITIONS: Record<MotionStyle, VideoTransition[]> = {
   energetic: ['flash', 'wipe', 'push', 'split', 'zoom', 'wipe'],
@@ -54,11 +55,17 @@ const wordCount = (slots: Record<string, string>): number =>
   Object.values(slots).reduce((n, v) => n + (v ? v.split(/\s+/).filter(Boolean).length : 0), 0);
 
 /** Durées des scènes, en secondes, sommant exactement à `total`. */
-export function allocateDurations(sceneIds: string[], slots: Record<string, string>[], total: number): number[] {
+/** Le grand moment prend un peu plus de temps (et nettement plus s'il « tient » l'image). */
+export function accentBoost(effect: string | undefined): number {
+  return effect === 'hold' ? 1.3 : effect ? 1.12 : 1;
+}
+
+export function allocateDurations(sceneIds: string[], slots: Record<string, string>[], total: number, boost?: { index: number; factor: number }): number[] {
   const defs = sceneIds.map((id) => SCENES[id]);
   const want = defs.map((def, i) => {
     const reading = 0.9 + wordCount(slots[i] || {}) / 2.6;
-    return Math.min(def.max, Math.max(def.min, Math.max(def.nominal, reading)));
+    const base = Math.min(def.max, Math.max(def.min, Math.max(def.nominal, reading)));
+    return boost && boost.index === i ? Math.min(def.max * 1.3, base * boost.factor) : base;
   });
   // La signature finale doit laisser le temps de lire le logo.
   const lo = defs.map((d) => (d.id === 'logo' && total >= 15 ? 2.2 : d.min * 0.75));
@@ -131,6 +138,12 @@ export interface StoryboardInput {
   /** Direction de motion : composition, techniques, transitions, couleur. */
   direction?: DirectionId;
   landscape?: boolean;
+  /** Réglages issus de la direction artistique de la charte (cf. video.artdirection.ts). */
+  art?: VideoArtOverrides;
+  /** Le grand moment : la scène (index) et l'effet retenu par la direction. */
+  accent?: { index: number; effect: VideoSceneInstance['accent'] };
+  /** Le concept narratif (cf. video.concepts.ts). */
+  concept?: string;
 }
 
 function chooseVariant(
@@ -180,7 +193,8 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
   let riveCursor = 0;
 
   const minLast = input.sceneIds[input.sceneIds.length - 1] === 'logo' && input.durationSec >= 15 ? 2.2 : 1.2;
-  const durations = snapToBeats(allocateDurations(input.sceneIds, input.slots, input.durationSec), input.beat, input.durationSec, minLast);
+  const boost = input.accent ? { index: input.accent.index, factor: accentBoost(input.accent.effect) } : undefined;
+  const durations = snapToBeats(allocateDurations(input.sceneIds, input.slots, input.durationSec, boost), input.beat, input.durationSec, minLast);
 
   const transitions = TRANSITIONS[input.style];
   let lastTransition: VideoTransition | undefined;
@@ -272,7 +286,7 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
   if (input.direction) {
     const ids = scenes.map((sc) => sc.sceneId);
     const plan = planMotion(ids, input.direction, input.seed, { landscape: input.landscape });
-    const surfaces = surfacesFor(ids, DIRECTIONS[input.direction].color, input.seed);
+    const surfaces = surfacesFor(ids, input.art?.color || DIRECTIONS[input.direction].color, input.seed);
     scenes.forEach((sc, i) => {
       sc.motion = plan[i];
       sc.transitionIn = undefined;
@@ -281,7 +295,19 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
     });
   }
 
+  // Le grand moment : l'effet sur sa scène ; « bascule » = la couleur qui tranche avec ses voisines.
+  if (input.accent && scenes[input.accent.index] && scenes[input.accent.index].sceneId !== 'logo') {
+    const i = input.accent.index;
+    scenes[i].accent = input.accent.effect;
+    if (input.accent.effect === 'flip') {
+      const calm = (sf?: string) => !sf || sf === 'light' || sf === 'tint';
+      scenes[i].surface = calm(scenes[i - 1]?.surface) && calm(scenes[i + 1]?.surface) ? 'primary' : 'light';
+    }
+  }
+
   return {
+    ...(input.art && Object.keys(input.art).length ? { art: input.art } : {}),
+    ...(input.concept ? { concept: input.concept } : {}),
     version: 1,
     seed: input.seed,
     style: input.style,
@@ -295,8 +321,9 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
 /** Recalcule le minutage après une retouche (textes, musique) sans changer les choix visuels. */
 export function retime(storyboard: VideoStoryboard, beat?: VideoBeatGrid): VideoStoryboard {
   const ids = storyboard.scenes.map((s) => s.sceneId);
+  const accentIndex = storyboard.scenes.findIndex((s) => s.accent);
   const durations = snapToBeats(
-    allocateDurations(ids, storyboard.scenes.map((s) => s.slots), storyboard.durationSec),
+    allocateDurations(ids, storyboard.scenes.map((s) => s.slots), storyboard.durationSec, accentIndex >= 0 ? { index: accentIndex, factor: accentBoost(storyboard.scenes[accentIndex].accent) } : undefined),
     beat,
     storyboard.durationSec,
     ids[ids.length - 1] === 'logo' && storyboard.durationSec >= 15 ? 2.2 : 1.2

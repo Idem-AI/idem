@@ -222,6 +222,37 @@ async function resolveLottie(ref: string | undefined, theme: VideoTheme): Promis
   }
 }
 
+/**
+ * Le coin que les compositions occupent le moins (pour le logo pendant la vidéo).
+ * En story, jamais en bas : l'interface de TikTok, Reels ou Statut y est.
+ */
+function freeCorner(anchors: (string | undefined)[], format: VideoFormat, seed: number): 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' {
+  const corners = (format === 'story' ? ['top-right', 'top-left'] : ['top-right', 'top-left', 'bottom-right', 'bottom-left']) as ('top-right' | 'top-left' | 'bottom-right' | 'bottom-left')[];
+  const load: Record<string, number> = {};
+  for (const a of anchors) {
+    if (a === 'top-left') load['top-left'] = (load['top-left'] || 0) + 1;
+    if (a === 'bottom-left') load['bottom-left'] = (load['bottom-left'] || 0) + 1;
+    if (a === 'top-center') ['top-left', 'top-right'].forEach((c) => (load[c] = (load[c] || 0) + 0.5));
+    if (a === 'bottom-center') ['bottom-left', 'bottom-right'].forEach((c) => (load[c] = (load[c] || 0) + 0.5));
+    if (a === 'right') load['top-right'] = (load['top-right'] || 0) + 0.3;
+  }
+  const best = Math.min(...corners.map((c) => load[c] || 0));
+  const free = corners.filter((c) => (load[c] || 0) === best);
+  return free[seed % free.length];
+}
+
+/** La direction, réglée par la DA de la charte (casse, décor, rythme). */
+function withArt(d: (typeof DIRECTIONS)[DirectionId], art: VideoStoryboard['art']) {
+  if (!art) return d;
+  const k = art.pace && art.pace > 0.6 && art.pace < 1.6 ? art.pace : 1;
+  return {
+    ...d,
+    type: { ...d.type, ...(art.displayCase ? { displayCase: art.displayCase } : {}) },
+    decor: art.decor && d.decor === 'none' ? art.decor : d.decor,
+    pacing: { ...d.pacing, enter: d.pacing.enter * k, groupStagger: d.pacing.groupStagger * k },
+  };
+}
+
 const cssFamily = (family: string) => `'${family.replace(/'/g, '')}'`;
 
 export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: string; spec: FrameSpec }> {
@@ -278,6 +309,7 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
         images: scene.images,
         video: scene.video,
         rive: scene.rive,
+        accent: scene.accent,
         motion,
         ...extra,
       };
@@ -303,7 +335,7 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
     fps: spec.fps,
     duration: storyboard.durationSec,
     format,
-    direction: DIRECTIONS[directionId],
+    direction: withArt(DIRECTIONS[directionId], storyboard.art),
     scenes,
     surfaces: theme.surfaces,
     palette: theme.palette,
@@ -321,6 +353,8 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
           logo: logoInfo || !['draw', 'trace', 'morph', 'assemble', 'wipe'].includes(kit.logo) ? kit.logo : 'classic',
           logoSvg: logoInfo?.svg,
           logoIsIcon: logoInfo?.isIcon,
+          brandmark: kit.brandmark,
+          brandmarkCorner: freeCorner(scenes.map((sc: any) => sc.motion?.anchor), format, storyboard.seed),
           spring: kit.spring,
         }
       : undefined,

@@ -71,7 +71,9 @@ export type VideoType =
   | 'showcase3d'
   | 'illustrated'
   | 'slideshow'
-  | 'logo';
+  | 'logo'
+  /** Combinée : le modèle choisit l'enchaînement des scènes (3D, clips, Lottie, typo…). */
+  | 'mix';
 
 export const VIDEO_TYPES: VideoType[] = [
   'kinetic',
@@ -82,6 +84,7 @@ export const VIDEO_TYPES: VideoType[] = [
   'illustrated',
   'slideshow',
   'logo',
+  'mix',
 ];
 
 /** Un média de la vidéo : importé par l'utilisateur, trouvé sur Pexels ou généré. */
@@ -194,6 +197,8 @@ export interface VideoSceneInstance {
   lottie?: string;
   /** Animation Rive importée (.riv). */
   rive?: string;
+  /** Le grand moment de la vidéo (une scène au plus) : effet choisi par la direction. */
+  accent?: 'punch' | 'giant' | 'hold' | 'flip';
   /** Plan de mouvement : ancrage, techniques d'entrée, transition (cf. video.direction.ts). */
   motion?: {
     anchor: string;
@@ -225,6 +230,19 @@ export interface VideoStoryboard {
   beat?: VideoBeatGrid;
   /** Kit retenu par le graphe de capacités (cf. video.capabilities.ts). */
   kit?: VideoKit;
+  /** Réglages imposés par la direction artistique de la charte (cf. video.artdirection.ts). */
+  art?: VideoArtOverrides;
+  /** Concept narratif (cf. video.concepts.ts) : sert aussi à varier les vidéos d'un projet. */
+  concept?: string;
+}
+
+/** La DA de la charte traduite en réglages du moteur. */
+export interface VideoArtOverrides {
+  displayCase?: 'none' | 'upper';
+  decor?: 'grain' | 'rules' | 'grid' | 'paper';
+  /** Multiplicateur des durées d'entrée (> 1 = plus posé). */
+  pace?: number;
+  color?: 'restrained' | 'committed' | 'drenched';
 }
 
 /** Une décision du routeur de capacités : le nœud retenu, pourquoi, et les nœuds écartés. */
@@ -251,6 +269,8 @@ export interface VideoKit {
   iconSet: 'lucide' | 'tabler' | 'phosphor-thin' | 'phosphor-light' | 'phosphor-bold' | 'phosphor-fill' | 'phosphor-duotone' | 'heroicons-solid';
   /** Concepts d'icônes par scène (clé de scène → un concept par élément). */
   icons: Record<string, string[]>;
+  /** Logo pendant la vidéo : none (signature finale seulement) ou corner (discret, sans conteneur). */
+  brandmark?: string;
   spring?: { bounce: number };
   postfx: string[];
   addons: ('three' | 'gsap' | 'anime' | 'flubber' | 'lottie' | 'rive')[];

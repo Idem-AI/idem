@@ -101,6 +101,14 @@ export class PlanPanel {
   readonly intentHandled = output<void>();
   readonly visualCreated = output<Flyer>();
   readonly failed = output<string>();
+  /** Ouvrir la vidéo d'un contenu dans l'écran Vidéos. */
+  readonly openVideo = output<string>();
+  readonly needsCredits = output<{ cost: number; balance: number }>();
+
+  /** Contenu vidéo (reel, vidéo courte, ou type de vidéo posé). */
+  protected isVideo(item: ContentIdea): boolean {
+    return item.format === 'reel' || item.format === 'short-video' || !!item.videoType;
+  }
 
   protected readonly channelIcon = channelIcon;
   protected readonly statusPillClass = statusPillClass;

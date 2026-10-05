@@ -275,6 +275,30 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
     }
     sheet.push({ group: 'Annotations', shots: annShots });
 
+    // Grand moment : l'effet que la direction donne à LA scène choisie.
+    const accentShots: Shot[] = [];
+    for (const [effect, dir] of [['punch', 'brutal'], ['giant', 'swiss'], ['hold', 'cinematic'], ['flip', 'drenched']] as [string, DirectionId][]) {
+      const brand = brandById('wax');
+      const theme = buildVideoTheme(brand.branding, brand.name);
+      const sb = buildStoryboard({
+        sceneIds: ['hook', 'statement', 'logo'],
+        slots: [{ title: 'Le wax qui vous ressemble' }, { title: 'Tissé pour durer', sub: 'Depuis 2019' }, {}],
+        durationSec: 6,
+        style: 'premium',
+        seed: 9,
+        images: [],
+        direction: dir,
+        accent: { index: 1, effect: effect as any },
+      });
+      sb.kit = baseKit({});
+      const { html, spec } = await composeVideoHtml({ ...(await inlineAssets(sb, theme)), format: 'square', quality: 'standard', mode: 'render' });
+      const s1 = sb.scenes[1];
+      check(`grand moment ${effect} posé sur sa scène (${s1.surface})`, s1.accent === effect);
+      const frames = await renderCheck(browser, html, spec, [s1.start + 0.05, s1.start + 0.25, s1.start + s1.duration * 0.7], `grand moment ${effect} · ${dir}`);
+      accentShots.push({ label: `${effect} · ${dir}`, frames });
+    }
+    sheet.push({ group: 'Grand moment', shots: accentShots });
+
     const iconShots: Shot[] = [];
     for (const [set, dir] of [['lucide', 'precision'], ['tabler', 'swiss'], ['phosphor-light', 'editorial'], ['phosphor-bold', 'brutal'], ['phosphor-fill', 'kinetic'], ['phosphor-duotone', 'collage'], ['phosphor-thin', 'cinematic'], ['heroicons-solid', 'drenched']] as [IconSetId, DirectionId][]) {
       const { html, spec, sb } = await composeKit({
