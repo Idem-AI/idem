@@ -161,6 +161,7 @@ dans le texte l'emporte : « Qualité garantie » donne `quality`, pas `secure`)
 |---|---|
 | `npm run check:video:engine` | paquets et addons, Tailwind (charte, collisions), icônes, nettoyage du logo, graphe (arêtes, implémentations, paquets installés, routeur déterministe, choix possibles, variété, qualité, retouches), rendu de chaque animation de logo, fond, annotation et bibliothèque d'icônes : aucune erreur, même image à l'aller et au retour, animation qui progresse. Planche : `tmp/video-engine-kit/index.html`. `--online` : un vrai fichier Rive. |
 | `npm run check:video:creative` | concepts dépliés (13 × 4 durées × 6 profils de médias), modèles faibles (JSON, bavard, inventé, vide, en panne), médias de l'utilisateur garantis, variété sur 12 vidéos, budget de tokens, traduction de la charte, « Améliorer ma demande », part de vidéos du calendrier |
+| `npm run check:video:variety` | 12 vidéos rendues d'une même marque (dont 6 dans la même direction) : distances d'image et de structure, bonnes pratiques |
 | `npm run docs:video-graph` | régénère `docs/VIDEO_CAPABILITIES.md` |
 | `npm run check:video` | pipeline complet (copie, médias, musique, rendu MP4) |
 | `npm run check:video:types` | les 8 types de vidéo avec vrais médias et vraie musique |
@@ -232,6 +233,64 @@ même brief donnent au moins 4 concepts et 10 combinaisons distinctes, même ave
   (`video.calendar.ts`), chacune avec son **type** (proposé par le planificateur, validé, sinon déduit du contenu).
   La carte affiche le type ; « Générer la vidéo » crée **ce** type, avec le brief du contenu (accroche, angle, appel
   à l'action), au format du réseau, et rattache la vidéo au contenu (`contentId`).
+
+## 13. Variété réelle et bonnes pratiques toujours appliquées
+
+**Pourquoi les vidéos se ressemblaient** : dans une direction, toutes les vidéos avaient le même tempo, les mêmes
+3-4 entrées de texte, les mêmes entrées d'éléments, la même caméra et, pour les clips, la même mise en scène
+(« fond + dégradé + boîte »). La DA de la charte limitant une marque à 2-3 directions, ses vidéos se ressemblaient.
+
+**Ce qui varie désormais, vidéo par vidéo** (graphe + mémoire du projet, sans token sauf les choix du modèle) :
+
+| Axe | Valeurs | Choisi par |
+|---|---|---|
+| concept | 13 récits | modèle (menu de 5) / graphe |
+| rythme | steady, crescendo, staccato, breathe, drop — courbe des durées, tempo des entrées, grille des coupes (`video.rhythm.ts`) | modèle (menu de 3) / graphe |
+| entrées de texte | 6 à 8 par direction (dont springUp, wave, stretch — ressorts motion —, rotateX 3D, zoomWords, skewIn, scatter, outlineFill) ; celles de la vidéo précédente évitées | plan de mouvement (LRU) + modèle (3 au plus) |
+| entrées des éléments | rise, spring, flip, unfold, skew, iris, drop, pop, slideLeft (puces, boutons, prix, rangées) | graphe |
+| caméra | still, push, pull, drift, rise, tilt (3D) | graphe |
+| mises en scène des plans | split, window, blinds, magazine, knockout, inline, duotone, broadcast, cinema (`treatments.tsx`) | graphe, une par plan |
+| grand moment, fond, annotation, logo, icônes | voir §5, §11 | graphe / modèle |
+
+Mesuré par `npm run check:video:variety` : même marque, même brief, 6 vidéos à la suite (parcours normal), puis
+6 vidéos dans la **même direction** : distances d'image (vignettes du MP4) et de structure (enchaînement, durées,
+entrées, caméra, rythme, mises en scène, fond, logo), planche `tmp/motion-variety/index.html`.
+
+**Bonnes pratiques** (`video.rules.ts`), vérifiées et réparées sur CHAQUE vidéo, à la création et après chaque
+retouche ; le rapport est gardé dans `storyboard.qa` et `check:video` exige zéro écart :
+
+| Règle | Seuil | Réparation |
+|---|---|---|
+| hook-first-seconds | accroche lisible tout de suite, 1,6 à 4 s | durées |
+| reading-time | ≤ 3 mots/s, entrée comprise (un nombre et son unité = un mot) | durées, puis texte secondaire retiré, puis scène la moins utile retirée, puis titre raccourci au mot |
+| min-hold | texte 1,6 à 7 s, média jusqu'à 9 s | durées, scènes de texte ajoutées au plan si la vidéo est longue |
+| logo-hold | ≥ 1,5 s (2,2 s dès 15 s) | durées |
+| entrance-duration | 0,3 à 1,2 s | tempo de la scène |
+| exit-shorter, no-linear | sortie ≈ 2/3 de l'entrée, courbes amorties | garanti par le moteur et les directions |
+| one-accent | un grand moment | les autres retirés |
+| call-to-action | objectif vente, événement, ouverture, produit, recrutement (≥ 15 s) | scène d'appel ajoutée au plan |
+| sound-off | chaque scène porte son texte | signalé |
+| cuts-on-beat | coupes sur le temps | recalées si la lecture le permet ; sinon avertissement (la lecture prime) |
+| ends-on-brand | fin sur la signature | signalé |
+
+Règles du moteur apprises en route (chacune a causé un défaut réel, détecté par les contrôles) :
+
+- jamais de transformation 3D sur un texte posé, jamais de `will-change` sur un texte ou une scène : le calque
+  serait rastérisé à une échelle qui dépend de l'historique (images différentes selon l'ordre de rendu, texte flou) ;
+- un clip n'est jamais découpé (`clip-path`) ni redimensionné : une fenêtre, un partage ou une révélation se font
+  par un cache de la couleur de la surface posé au-dessus (sinon image de retard au compositeur) ;
+- un enfant ne déclare jamais `visibility: visible` (il passerait au-dessus des autres scènes) : `inherit` ;
+- la taille d'un titre se mesure sans les transformations d'entrée ;
+- un clip est posé au milieu d'une image (30 i/s), puis on attend deux images d'affichage après `seeked` ;
+- les entrées lettre à lettre sont plafonnées (brouillage ≤ 0,9 s, machine à écrire ≤ 1,2 s) pour que le texte soit
+  lisible avant la fin de la scène.
+
+Sources des seuils : [University of Melbourne — Video captioning style guide](https://www.unimelb.edu.au/accessibility/video-captioning/style-guide) ·
+[Subtitle reading speed (CPS)](https://dev.to/ray_mac/subtitle-reading-speed-cps-the-limits-and-why-ai-subtitles-break-them-892) ·
+[Material Design 3 — Easing and duration](https://m3.material.io/styles/motion/easing-and-duration/applying-easing-and-duration) ·
+[LottieFiles — motion design skill](https://github.com/LottieFiles/motion-design-skill/blob/main/skills/motion-design/SKILL.md) ·
+[Short-form video strategy 2026](https://www.teleprompter.com/blog/short-form-video-strategy) ·
+[Hooks des 3 premières secondes](https://www.capcut.com/create/short-form-video-hooks-first-3-second-patterns).
 
 ## Sources
 

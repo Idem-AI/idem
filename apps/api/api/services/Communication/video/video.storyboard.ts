@@ -23,6 +23,7 @@ import { rng } from './video.music';
 import { lottieForObjective } from './video.lottie';
 import { DirectionId, DIRECTIONS, planMotion, surfacesFor } from './video.direction';
 import { VideoArtOverrides } from '../../../models/motionVideo.model';
+import { rhythmPlan } from './video.rhythm';
 
 const TRANSITIONS: Record<MotionStyle, VideoTransition[]> = {
   energetic: ['flash', 'wipe', 'push', 'split', 'zoom', 'wipe'],
@@ -60,11 +61,12 @@ export function accentBoost(effect: string | undefined): number {
   return effect === 'hold' ? 1.3 : effect ? 1.12 : 1;
 }
 
-export function allocateDurations(sceneIds: string[], slots: Record<string, string>[], total: number, boost?: { index: number; factor: number }): number[] {
+export function allocateDurations(sceneIds: string[], slots: Record<string, string>[], total: number, boost?: { index: number; factor: number }, weights?: number[]): number[] {
   const defs = sceneIds.map((id) => SCENES[id]);
   const want = defs.map((def, i) => {
     const reading = 0.9 + wordCount(slots[i] || {}) / 2.6;
-    const base = Math.min(def.max, Math.max(def.min, Math.max(def.nominal, reading)));
+    // Le rythme module le temps voulu ; jamais sous le temps de lecture.
+    const base = Math.max(reading * 0.92, Math.min(def.max * 1.2, Math.max(def.min, Math.max(def.nominal, reading)) * (weights?.[i] ?? 1)));
     return boost && boost.index === i ? Math.min(def.max * 1.3, base * boost.factor) : base;
   });
   // La signature finale doit laisser le temps de lire le logo.
@@ -90,10 +92,12 @@ export function allocateDurations(sceneIds: string[], slots: Record<string, stri
  * (> 133 BPM) est regroupé par deux : une coupe tous les 0,4 s ne se lit pas.
  * Une coupe qui écraserait une scène sous 1,2 s reste où elle était.
  */
-export function snapToBeats(durations: number[], beat: VideoBeatGrid | undefined, total: number, minLast = 1.2): number[] {
+export function snapToBeats(durations: number[], beat: VideoBeatGrid | undefined, total: number, minLast = 1.2, step: 1 | 2 = 1): number[] {
   if (!beat || !beat.bpm || beat.confidence < 0.15) return durations;
   let unit = 60 / beat.bpm;
   while (unit < 0.45) unit *= 2;
+  // Rythme ample : les coupes tombent toutes les deux pulsations.
+  if (step === 2 && unit * 2 <= 2.4) unit *= 2;
   const offset = ((beat.offset % unit) + unit) % unit;
   const cuts: number[] = [];
   let acc = 0;
@@ -144,6 +148,10 @@ export interface StoryboardInput {
   accent?: { index: number; effect: VideoSceneInstance['accent'] };
   /** Le concept narratif (cf. video.concepts.ts). */
   concept?: string;
+  /** Le rythme (cf. video.rhythm.ts). */
+  rhythm?: string;
+  /** Entrées de titre de la vidéo précédente du projet : à éviter. */
+  avoidHeadlines?: string[];
 }
 
 function chooseVariant(
@@ -194,7 +202,8 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
 
   const minLast = input.sceneIds[input.sceneIds.length - 1] === 'logo' && input.durationSec >= 15 ? 2.2 : 1.2;
   const boost = input.accent ? { index: input.accent.index, factor: accentBoost(input.accent.effect) } : undefined;
-  const durations = snapToBeats(allocateDurations(input.sceneIds, input.slots, input.durationSec, boost), input.beat, input.durationSec, minLast);
+  const rhythm = rhythmPlan(input.rhythm, input.sceneIds, input.accent?.index);
+  const durations = snapToBeats(allocateDurations(input.sceneIds, input.slots, input.durationSec, boost, rhythm.weights), input.beat, input.durationSec, minLast, rhythm.step);
 
   const transitions = TRANSITIONS[input.style];
   let lastTransition: VideoTransition | undefined;
@@ -285,7 +294,7 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
   // La direction décide de la composition, des techniques et de la couleur.
   if (input.direction) {
     const ids = scenes.map((sc) => sc.sceneId);
-    const plan = planMotion(ids, input.direction, input.seed, { landscape: input.landscape });
+    const plan = planMotion(ids, input.direction, input.seed, { landscape: input.landscape, avoidHeadlines: input.avoidHeadlines });
     const surfaces = surfacesFor(ids, input.art?.color || DIRECTIONS[input.direction].color, input.seed);
     scenes.forEach((sc, i) => {
       sc.motion = plan[i];
@@ -305,9 +314,13 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
     }
   }
 
+  // Tempo des entrées de chaque scène, selon le rythme.
+  if (input.rhythm) scenes.forEach((sc, i) => (sc.pace = Math.round(rhythm.paces[i] * 100) / 100));
+
   return {
     ...(input.art && Object.keys(input.art).length ? { art: input.art } : {}),
     ...(input.concept ? { concept: input.concept } : {}),
+    ...(input.rhythm ? { rhythm: input.rhythm } : {}),
     version: 1,
     seed: input.seed,
     style: input.style,
@@ -322,11 +335,13 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
 export function retime(storyboard: VideoStoryboard, beat?: VideoBeatGrid): VideoStoryboard {
   const ids = storyboard.scenes.map((s) => s.sceneId);
   const accentIndex = storyboard.scenes.findIndex((s) => s.accent);
+  const rhythm = rhythmPlan(storyboard.rhythm, ids, accentIndex);
   const durations = snapToBeats(
-    allocateDurations(ids, storyboard.scenes.map((s) => s.slots), storyboard.durationSec, accentIndex >= 0 ? { index: accentIndex, factor: accentBoost(storyboard.scenes[accentIndex].accent) } : undefined),
+    allocateDurations(ids, storyboard.scenes.map((s) => s.slots), storyboard.durationSec, accentIndex >= 0 ? { index: accentIndex, factor: accentBoost(storyboard.scenes[accentIndex].accent) } : undefined, storyboard.rhythm ? rhythm.weights : undefined),
     beat,
     storyboard.durationSec,
-    ids[ids.length - 1] === 'logo' && storyboard.durationSec >= 15 ? 2.2 : 1.2
+    ids[ids.length - 1] === 'logo' && storyboard.durationSec >= 15 ? 2.2 : 1.2,
+    rhythm.step
   );
   let start = 0;
   const scenes = storyboard.scenes.map((scene, i) => {

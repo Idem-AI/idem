@@ -310,6 +310,8 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
         video: scene.video,
         rive: scene.rive,
         accent: scene.accent,
+        treatment: kit?.treatments?.[scene.key],
+        pace: scene.pace,
         motion,
         ...extra,
       };
@@ -354,6 +356,8 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
           logoSvg: logoInfo?.svg,
           logoIsIcon: logoInfo?.isIcon,
           brandmark: kit.brandmark,
+          camera: kit.camera,
+          entrance: kit.entrance,
           brandmarkCorner: freeCorner(scenes.map((sc: any) => sc.motion?.anchor), format, storyboard.seed),
           spring: kit.spring,
         }

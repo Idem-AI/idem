@@ -484,6 +484,8 @@ async function main() {
     if (c.brief.musicMood === 'none') check(`${c.id} : sans musique demandée → vidéo muette`, !video.music);
     else check(`${c.id} : musique ${video.music?.title} (${video.music?.beat?.bpm} BPM, extrait à ${video.music?.startAt}s)`, !!video.music && !!video.music.beat);
     if (c.photos?.length) check(`${c.id} : les photos du commerce sont utilisées`, sb.scenes.some((sc) => sc.image || sc.images?.length));
+    // Les bonnes pratiques (video.rules.ts) : réparées si besoin, aucun écart restant.
+    check(`${c.id} : bonnes pratiques respectées (${sb.qa?.repaired ?? 0} réparation(s), rythme ${sb.rhythm}, caméra ${sb.kit?.camera}, entrées ${sb.kit?.entrance})`, !!sb.qa && sb.qa.issues.length === 0, (sb.qa?.issues || []).map((i) => `${i.rule}: ${i.detail}`).join(' ; '));
     console.log(`      ${sb.scenes.map((sc) => `${sc.sceneId}/${sc.variant}·${sc.surface}·${sc.duration.toFixed(1)}s${sc.transitionIn ? `←${sc.transitionIn}` : ''}`).join('  ')}`);
     console.log(`      « ${sb.scenes[0].slots.title} » … « ${sb.scenes[sb.scenes.length - 2]?.slots.action || sb.scenes[sb.scenes.length - 2]?.slots.title || ''} »`);
   }

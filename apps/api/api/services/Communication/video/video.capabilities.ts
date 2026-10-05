@@ -33,7 +33,7 @@ import { rng } from './video.music';
 
 // ─── Nœuds ──────────────────────────────────────────────────────────────────
 
-export type CapKind = 'library' | 'addon' | 'concept' | 'accent' | 'logo' | 'background' | 'annotate' | 'icons' | 'brandmark' | 'easing' | 'postfx' | 'media' | 'technique' | 'transition' | 'direction';
+export type CapKind = 'library' | 'addon' | 'concept' | 'rhythm' | 'camera' | 'entrance' | 'accent' | 'treatment' | 'logo' | 'background' | 'annotate' | 'icons' | 'brandmark' | 'easing' | 'postfx' | 'media' | 'technique' | 'transition' | 'direction';
 
 /** Conditions déclaratives (lisibles dans la doc, évaluées par `meets`). */
 export interface CapWhen {
@@ -261,6 +261,58 @@ const ACCENTS: CapNode[] = [
   { id: 'accent:flip', kind: 'accent', label: 'Bascule de couleur', summary: 'La scène prend la couleur qui tranche avec ses voisines.', cost: 0, determinism: 'static', suits: { directions: D({ drenched: 2, swiss: 1.5, precision: 1, editorial: 0.5 }) }, impl: 'api/services/Communication/video/video.storyboard.ts' },
 ];
 
+/**
+ * Mises en scène des plans (clips, photos plein cadre) : une par plan, jamais deux
+ * fois la même de suite, différente des vidéos récentes. Plus de « fond + dégradé + boîte ».
+ */
+const TREATMENTS: CapNode[] = [
+  { id: 'treatment:split', kind: 'treatment', label: 'Écran partagé', summary: 'Le clip sur une moitié du cadre, le texte sur l’aplat de la marque, une couture de couleur.', cost: 0, determinism: 'pure', suits: { directions: D({ swiss: 2, precision: 2, editorial: 1, brutal: 1 }), arts: { swiss: 1.5, minimalism: 1 } }, impl: 'video-engine/src/treatments.tsx#Split' },
+  { id: 'treatment:window', kind: 'treatment', label: 'Fenêtre', summary: 'Le clip apparaît dans une forme qui s’ouvre : arche, cercle ou rectangle.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 2, collage: 2, cinematic: 1, drenched: 1, kinetic: 1, precision: 1 }), arts: { bohemian: 1.5, retro: 1, handwritten: 1, victorian: 1 } }, impl: 'video-engine/src/treatments.tsx#Window' },
+  { id: 'treatment:blinds', kind: 'treatment', label: 'Lames', summary: 'Des lames découvrent le clip ; une bande reste et porte le titre.', cost: 0, determinism: 'pure', suits: { directions: D({ brutal: 2, swiss: 1.5, kinetic: 1.5, drenched: 1 }), arts: { maximalism: 1, graffiti: 1 } }, impl: 'video-engine/src/treatments.tsx#Blinds' },
+  { id: 'treatment:magazine', kind: 'treatment', label: 'Page de magazine', summary: 'Titre en haut, clip encadré au centre, légende en bas, filet décalé.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 2.5, precision: 1.5, swiss: 1, collage: 1 }), arts: { editorial: 2, minimalism: 1 } }, impl: 'video-engine/src/treatments.tsx#Magazine' },
+  { id: 'treatment:knockout', kind: 'treatment', label: 'Clip dans les lettres', summary: 'Le clip joue dans les lettres géantes du titre, puis la caméra traverse le texte.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 2, brutal: 2, drenched: 1.5, swiss: 1, editorial: 0.5 }), arts: { maximalism: 1.5, 'pop-art': 1, cyberpunk: 1, futuristic: 1 } }, impl: 'video-engine/src/treatments.tsx#Knockout' },
+  { id: 'treatment:inline', kind: 'treatment', label: 'Clip dans la phrase', summary: 'Le clip dans une capsule insérée au milieu du titre.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 2, collage: 2, editorial: 1, precision: 1 }), arts: { y2k: 1.5, clay: 1, 'pop-art': 1 } }, impl: 'video-engine/src/treatments.tsx#Inline' },
+  { id: 'treatment:duotone', kind: 'treatment', label: 'Bichromie', summary: 'Le clip aux couleurs de la marque, titre géant au trait.', cost: 0, determinism: 'pure', suits: { directions: D({ drenched: 3, kinetic: 1, brutal: 1 }), arts: { aurora: 1, surreal: 1, 'pop-art': 1 } }, impl: 'video-engine/src/treatments.tsx#Duotone' },
+  { id: 'treatment:broadcast', kind: 'treatment', label: 'Barre de titre', summary: 'Barre et onglet façon télévision, sur le clip plein cadre.', cost: 0, determinism: 'pure', suits: { directions: D({ precision: 2, swiss: 1.5 }) }, impl: 'video-engine/src/treatments.tsx#Broadcast' },
+  { id: 'treatment:cinema', kind: 'treatment', label: 'Cinéma', summary: 'Sous-titres sur le clip, vignettage de film.', cost: 0, determinism: 'pure', suits: { directions: D({ cinematic: 3 }) }, impl: 'video-engine/src/treatments.tsx#Cinema' },
+];
+
+/**
+ * RYTHME, CAMÉRA, ENTRÉES : ce qui faisait que deux vidéos d'une même direction se
+ * ressemblaient (même tempo, même caméra, mêmes entrées). Désormais choisis par vidéo.
+ */
+const RHYTHMS: CapNode[] = [
+  { id: 'rhythm:steady', kind: 'rhythm', label: 'Régulier', summary: 'Chaque scène a son temps de lecture, coupes sur le temps.', cost: 0, determinism: 'pure', suits: { directions: D({ precision: 1.5, swiss: 1.5, editorial: 1 }), objectives: { announce: 0.5, recruitment: 0.5 } }, impl: 'api/services/Communication/video/video.rhythm.ts' },
+  { id: 'rhythm:crescendo', kind: 'rhythm', label: 'Crescendo', summary: 'Ça s’accélère jusqu’au grand moment, puis la signature respire.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 2, drenched: 1.5, brutal: 1, swiss: 0.5 }), objectives: { promotion: 1, event: 1, opening: 1 } }, impl: 'api/services/Communication/video/video.rhythm.ts' },
+  { id: 'rhythm:staccato', kind: 'rhythm', label: 'Staccato', summary: 'Coupes sèches sur chaque temps, textes brefs.', cost: 0, determinism: 'pure', suits: { directions: D({ brutal: 2, kinetic: 2, collage: 1 }), objectives: { promotion: 1.5 } }, impl: 'api/services/Communication/video/video.rhythm.ts' },
+  { id: 'rhythm:breathe', kind: 'rhythm', label: 'Ample', summary: 'Longues tenues, entrées lentes, coupes à la mesure.', cost: 0, determinism: 'pure', suits: { directions: D({ cinematic: 2.5, editorial: 2, precision: 1 }), objectives: { testimonial: 1, announce: 0.5 } }, impl: 'api/services/Communication/video/video.rhythm.ts' },
+  { id: 'rhythm:drop', kind: 'rhythm', label: 'Montée puis drop', summary: 'Une montée lente, puis tout s’accélère au grand moment.', cost: 0, determinism: 'pure', suits: { directions: D({ drenched: 2, kinetic: 1.5, cinematic: 1, brutal: 1, collage: 0.5 }), objectives: { product: 1, opening: 1 } }, impl: 'api/services/Communication/video/video.rhythm.ts' },
+];
+
+const CAMERAS: CapNode[] = [
+  { id: 'camera:still', kind: 'camera', label: 'Fixe', summary: 'Aucun mouvement de caméra : la typographie porte tout.', cost: 0, determinism: 'pure', suits: { directions: D({ swiss: 2, brutal: 2, collage: 1.5 }) }, impl: 'video-engine/src/layout.tsx#useCamera' },
+  { id: 'camera:push', kind: 'camera', label: 'Poussée', summary: 'La caméra avance lentement vers le texte.', cost: 0, determinism: 'pure', suits: { directions: D({ cinematic: 2, kinetic: 1.5, drenched: 1.5 }) }, impl: 'video-engine/src/layout.tsx#useCamera' },
+  { id: 'camera:pull', kind: 'camera', label: 'Recul', summary: 'La caméra recule et se pose.', cost: 0, determinism: 'pure', suits: { directions: D({ precision: 1.5, cinematic: 1.5, editorial: 1 }) }, impl: 'video-engine/src/layout.tsx#useCamera' },
+  { id: 'camera:drift', kind: 'camera', label: 'Dérive', summary: 'Un glissement latéral, dans un sens puis dans l’autre.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 2, precision: 1.5, cinematic: 1 }) }, impl: 'video-engine/src/layout.tsx#useCamera' },
+  { id: 'camera:rise', kind: 'camera', label: 'Élévation', summary: 'Le bloc monte doucement pendant la scène.', cost: 0, determinism: 'pure', suits: { directions: D({ drenched: 1, kinetic: 1, collage: 1, editorial: 0.5 }) }, impl: 'video-engine/src/layout.tsx#useCamera' },
+  { id: 'camera:tilt', kind: 'camera', label: 'Bascule 3D', summary: 'Légère rotation en perspective, comme un plan tourné.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 1.5, precision: 1, drenched: 1 }), arts: { futuristic: 2, glassmorphism: 1.5, cyberpunk: 1 } }, impl: 'video-engine/src/layout.tsx#useCamera' },
+];
+
+const ENTRANCES: CapNode[] = [
+  { id: 'entrance:rise', kind: 'entrance', label: 'Montée', summary: 'Les éléments montent en fondu.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 1.5, precision: 1.5, cinematic: 1.5, swiss: 1 }) }, impl: 'video-engine/src/layout.tsx#useEnter' },
+  { id: 'entrance:spring', kind: 'entrance', label: 'Ressort', summary: 'Les éléments dépassent leur place puis se posent (ressort physique motion).', requires: ['lib:motion'], cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 2, collage: 1.5, drenched: 1 }) }, impl: 'video-engine/src/layout.tsx#useEnter' },
+  { id: 'entrance:flip', kind: 'entrance', label: 'Bascule', summary: 'Les éléments basculent vers le spectateur (3D).', cost: 0, determinism: 'pure', suits: { directions: D({ swiss: 1.5, precision: 1.5, kinetic: 1, editorial: 0.5 }) }, impl: 'video-engine/src/layout.tsx#useEnter' },
+  { id: 'entrance:unfold', kind: 'entrance', label: 'Dépliage', summary: 'Les éléments se déplient depuis leur bord haut.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 1.5, swiss: 1.5, brutal: 1 }) }, impl: 'video-engine/src/layout.tsx#useEnter' },
+  { id: 'entrance:skew', kind: 'entrance', label: 'Glissé penché', summary: 'Les éléments arrivent penchés, puis se redressent.', cost: 0, determinism: 'pure', suits: { directions: D({ brutal: 2, kinetic: 1, swiss: 1 }) }, impl: 'video-engine/src/layout.tsx#useEnter' },
+  { id: 'entrance:iris', kind: 'entrance', label: 'Iris', summary: 'Les éléments s’ouvrent depuis leur centre.', cost: 0, determinism: 'pure', suits: { directions: D({ cinematic: 1.5, drenched: 1.5, precision: 1 }) }, impl: 'video-engine/src/layout.tsx#useEnter' },
+  { id: 'entrance:drop', kind: 'entrance', label: 'Chute', summary: 'Les éléments tombent et se posent de travers, comme des papiers.', cost: 0, determinism: 'pure', suits: { directions: D({ collage: 2, kinetic: 1 }) }, impl: 'video-engine/src/layout.tsx#useEnter' },
+  { id: 'entrance:pop', kind: 'entrance', label: 'Pop', summary: 'Les éléments jaillissent en tournant légèrement.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 1.5, collage: 1.5 }) }, impl: 'video-engine/src/layout.tsx#useEnter' },
+  { id: 'entrance:slideLeft', kind: 'entrance', label: 'Glissé', summary: 'Les éléments glissent depuis la droite.', cost: 0, determinism: 'pure', suits: { directions: D({ swiss: 1.5, brutal: 1.5, precision: 1 }) }, impl: 'video-engine/src/layout.tsx#useEnter' },
+];
+
+/** Directions où la photo d'un produit passe en plein cadre (et reçoit une mise en scène). */
+const FULL_BLEED_PRODUCT = new Set(['cinematic', 'drenched', 'kinetic']);
+
 /** Les concepts narratifs, nœuds du graphe (générés depuis video.concepts.ts). */
 function conceptNodes(): CapNode[] {
   return CONCEPT_IDS.map((id) => {
@@ -321,7 +373,7 @@ function directionNodes(): CapNode[] {
   return nodes;
 }
 
-export const CAPABILITIES: CapNode[] = [...LIBRARIES, ...ADDONS, ...conceptNodes(), ...ACCENTS, ...LOGO, ...BACKGROUNDS, ...ANNOTATIONS, ...ICON_SETS, ...BRANDMARKS, ...EXTRA, ...directionNodes()];
+export const CAPABILITIES: CapNode[] = [...LIBRARIES, ...ADDONS, ...conceptNodes(), ...RHYTHMS, ...CAMERAS, ...ENTRANCES, ...ACCENTS, ...TREATMENTS, ...LOGO, ...BACKGROUNDS, ...ANNOTATIONS, ...ICON_SETS, ...BRANDMARKS, ...EXTRA, ...directionNodes()];
 export const CAP_BY_ID = new Map(CAPABILITIES.map((n) => [n.id, n]));
 
 /** Bibliothèques évaluées et écartées, avec la raison (documentées dans VIDEO_ENGINE.md). */
@@ -444,9 +496,15 @@ function choose(kind: CapKind, ctx: KitContext, sectors: string[], recentIds: st
       continue;
     }
     const sc = score(node, ctx, sectors);
-    if (recentIds.includes(node.id) && !node.id.endsWith(':none')) {
-      sc.score -= 1.5;
-      sc.why.push('déjà vu récemment −1.5');
+    // Mémoire décroissante (plus récent en dernier) : −1,5 pour les deux dernières vidéos,
+    // −1 pour les deux d'avant, −0,5 au-delà. Des fenêtres fixes et identiques sur tous les
+    // axes faisaient revenir la même combinaison toutes les quatre vidéos.
+    const at = recentIds.lastIndexOf(node.id);
+    if (at >= 0 && !node.id.endsWith(':none')) {
+      const age = recentIds.length - 1 - at;
+      const malus = age < 2 ? 1.5 : age < 4 ? 1 : 0.5;
+      sc.score -= malus;
+      sc.why.push(`déjà vu il y a ${age + 1} vidéo(s) −${malus}`);
     }
     pool.push({ node, ...sc });
   }
@@ -469,7 +527,7 @@ const ANNOTATABLE = ['hook', 'statement', 'cta'];
 /** Le kit d'une vidéo : choix validés, addons, trace. */
 export function resolveKit(ctx: KitContext): VideoKit {
   const sectors = sectorsOf(ctx.text);
-  const recent = (ctx.recent || []).slice(-3);
+  const recent = (ctx.recent || []).slice(-6);
   const recentIds = (k: (v: VideoKit) => string) => recent.map(k);
   const trace: KitDecision[] = [];
 
@@ -516,7 +574,32 @@ export function resolveKit(ctx: KitContext): VideoKit {
   const annotate = ann.chosen.slice('annotate:'.length) || 'none';
   const annotateScene = annotate !== 'none' ? ctx.scenes.find((s) => ANNOTATABLE.includes(s.sceneId) && s.hasTitle)?.key : undefined;
 
+  // Mises en scène des plans : une par plan, jamais la même que le plan précédent,
+  // les déjà vues (dans cette vidéo et les dernières du projet) pénalisées.
+  const treatments: Record<string, string> = {};
+  const usedInVideo: string[] = [];
+  const recentTreatments = recent.flatMap((v) => Object.values(v.treatments || {})).map((t) => `treatment:${t}`);
+  ctx.scenes.forEach((sc, i) => {
+    const needs = sc.sceneId === 'footage' || (sc.sceneId === 'product' && sc.hasMedia && FULL_BLEED_PRODUCT.has(ctx.direction));
+    if (!needs) return;
+    const previous = usedInVideo[usedInVideo.length - 1];
+    const d = choose('treatment', ctx, sectors, [...usedInVideo, ...recentTreatments], 0x7e0 + i * 31, (n) => n.id !== previous);
+    if (!d.chosen) return;
+    treatments[sc.key] = d.chosen.slice('treatment:'.length);
+    usedInVideo.push(d.chosen);
+    trace.push({ ...d, why: [`plan ${sc.key}`, ...d.why] });
+  });
+
+  // Caméra et famille d'entrée des éléments : par vidéo, jamais celles des dernières vidéos si possible.
+  const camera = choose('camera', ctx, sectors, recentIds((v) => `camera:${v.camera}`), 0xca3);
+  const springBanned = (ctx.boosts?.['easing:spring'] || 0) < 0;
+  const entrance = choose('entrance', ctx, sectors, recentIds((v) => `entrance:${v.entrance}`), 0xe47, (n) => !(springBanned && n.id === 'entrance:spring'));
+  trace.push(camera, entrance);
+
   const kit: VideoKit = {
+    treatments,
+    camera: camera.chosen.slice('camera:'.length) || undefined,
+    entrance: entrance.chosen.slice('entrance:'.length) || undefined,
     background: backdropScenes.length ? background : 'none',
     backdropScenes,
     annotate: annotateScene ? annotate : 'none',
@@ -564,7 +647,7 @@ export function iconVocabulary(text: string, max = 30): string[] {
  */
 export function capabilityCard(ctx: KitContext): string {
   const lines: string[] = [];
-  const kinds: CapKind[] = ['logo', 'background', 'annotate', 'icons', 'brandmark', 'postfx', 'media'];
+  const kinds: CapKind[] = ['rhythm', 'camera', 'entrance', 'logo', 'background', 'annotate', 'icons', 'brandmark', 'treatment', 'postfx', 'media'];
   for (const kind of kinds) {
     const ok = CAPABILITIES.filter((n) => n.kind === kind && !unmet(n, ctx)).map((n) => n.id.split(':')[1]);
     if (ok.length) lines.push(`${kind}: ${ok.join(', ')}`);
@@ -678,4 +761,27 @@ export function pickAccentEffect(direction: DirectionId, seed: number, boosts?: 
   };
   const chosen = choose('accent', ctx, [], [], 0xacc).chosen.split(':')[1];
   return (['punch', 'giant', 'hold', 'flip'].includes(chosen) ? chosen : 'giant') as 'punch' | 'giant' | 'hold' | 'flip';
+}
+
+
+/** Rythmes qui demandent du temps : une montée ou de longues tenues n'ont pas de sens en 6 s. */
+const LONG_RHYTHMS = new Set(['rhythm:breathe', 'rhythm:drop', 'rhythm:crescendo']);
+const rhythmFits = (ctx: KitContext) => (n: CapNode) => ctx.durationSec >= 15 || !LONG_RHYTHMS.has(n.id);
+
+/** Le rythme d'une vidéo (graphe) : le mieux noté pour la direction et l'objectif, différent des dernières vidéos. */
+export function pickRhythm(ctx: KitContext, recent: string[] = []): string {
+  // Jamais le rythme de la vidéo précédente (s'il reste un choix), mémoire décroissante au-delà.
+  const last = recent[recent.length - 1];
+  const fits = rhythmFits(ctx);
+  const others = CAPABILITIES.filter((n) => n.kind === 'rhythm' && fits(n) && n.id !== `rhythm:${last}`).length;
+  const filter = (n: CapNode) => fits(n) && (!last || others === 0 || n.id !== `rhythm:${last}`);
+  return choose('rhythm', ctx, sectorsOf(ctx.text), recent.slice(-6).map((r) => `rhythm:${r}`), 0x7b7, filter).chosen.split(':')[1] || 'steady';
+}
+
+/** Menu de rythmes pour le modèle : les 3 meilleurs, sans ceux des 2 dernières vidéos (s'il en reste 2). */
+export function rhythmMenu(ctx: KitContext, recent: string[] = []): string[] {
+  const d = choose('rhythm', ctx, sectorsOf(ctx.text), [], 0x70b, rhythmFits(ctx));
+  const top = [d.chosen, ...d.rejected.filter((r) => /^score/.test(r.reason)).map((r) => r.id)].filter(Boolean).map((id) => id.split(':')[1]);
+  const fresh = top.filter((r) => !recent.slice(-2).includes(r));
+  return (fresh.length >= 2 ? fresh : top).slice(0, 3);
 }

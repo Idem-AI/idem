@@ -14,11 +14,12 @@
 import { CSSProperties, ReactNode } from 'react';
 import { cue } from './cues';
 import { useEngine, useLocalTime, useScene } from './context';
-import { Composition, useEnter, useExitAt } from './layout';
+import { Composition, useEnter, useExitAt, useFamilyKind } from './layout';
 import { Icon } from './kit/Icon';
 import { LogoMotion, SVG_LOGO_VARIANTS } from './kit/LogoMotion';
 import { Clip, LottieBox, RiveBox, ThreeView } from './media';
 import { Kinetic, Odometer } from './text';
+import { MediaTreatment, treatmentFor } from './treatments';
 import { clamp, mix, progress } from './time';
 
 // ─── Briques communes ───────────────────────────────────────────────────────
@@ -29,14 +30,14 @@ function useHeadlineSound(): 'pop' | 'click' | null {
   return ({ kinetic: 'pop', collage: 'pop', brutal: 'click', swiss: 'click', drenched: 'click' } as Record<string, 'pop' | 'click'>)[data.direction.id] ?? null;
 }
 
-function Headline({ text, at = 0, fit, emph }: { text?: string; at?: number; fit: [number, number, number]; emph?: boolean }) {
+function Headline({ text, at = 0, fit, emph, technique }: { text?: string; at?: number; fit: [number, number, number]; emph?: boolean; technique?: string }) {
   const s = useScene();
   const exitAt = useExitAt();
   const sound = useHeadlineSound();
   if (!text) return null;
   // Grand moment « titre géant » : le titre prend tout le cadre (l'ajustement garde la lisibilité).
   const sized: [number, number, number] = s.accent === 'giant' ? [fit[0] * 1.35, fit[1] * 1.15, fit[2]] : fit;
-  return <Kinetic text={text} technique={s.motion.headline} at={at} role="headline" fit={sized} emph={emph} exitAt={exitAt} sound={s.accent === 'giant' ? 'impact' : sound} />;
+  return <Kinetic text={text} technique={technique || s.motion.headline} at={at} role="headline" fit={sized} emph={emph} exitAt={exitAt} sound={s.accent === 'giant' ? 'impact' : sound} />;
 }
 
 function Support({ text, at, fit = [6, 3.6, 3], muted = true }: { text?: string; at: number; fit?: [number, number, number]; muted?: boolean }) {
@@ -144,7 +145,7 @@ function Product() {
   const g = data.direction.pacing.groupStagger;
   const id = data.direction.id;
   const exitAt = useExitAt();
-  const priceStyle = useEnter(id === 'collage' || id === 'kinetic' ? 'pop' : 'rise', g * 2.2, 0.8, exitAt);
+  const priceStyle = useEnter(useFamilyKind(id === 'collage' || id === 'kinetic' ? 'pop' : 'rise'), g * 2.2, 0.8, exitAt);
   const price = s.slots.price ? (
     <span className={`price price-${id}`} style={priceStyle}>
       {s.slots.price}
@@ -168,12 +169,18 @@ function Product() {
       </Composition>
     );
   }
-  if (fullBleedDirections.has(id)) {
+  if (fullBleedDirections.has(id) || s.treatment) {
+    // Photo produit plein cadre : la même bibliothèque de mises en scène que les clips.
     return (
-      <>
-        <Media src={s.image} at={0} mode="full" />
-        <Composition anchor={s.motion.anchor === 'center' ? 'bottom-center' : 'bottom-left'}>{text}</Composition>
-      </>
+      <MediaTreatment
+        kind={treatmentFor(s.treatment, id, s.index)}
+        src={s.image}
+        title={s.slots.name}
+        sub={s.slots.tagline}
+        renderTitle={(fit, at, technique) => <Headline text={s.slots.name} at={at} fit={fit} technique={technique} />}
+        renderSub={(at, muted = true) => <Support text={s.slots.tagline} at={at} muted={muted} />}
+        extra={price}
+      />
     );
   }
   return (
@@ -238,7 +245,7 @@ function Item({ text, at, index, exitAt }: { text: string; at: number; index: nu
   const { data } = useEngine();
   const id = data.direction.id;
   const kind = id === 'collage' ? 'drop' : id === 'kinetic' ? 'pop' : id === 'swiss' || id === 'brutal' ? 'slideLeft' : 'rise';
-  const style = useEnter(kind, at, 0.85, exitAt);
+  const style = useEnter(useFamilyKind(kind), at, 0.85, exitAt);
   cue(`${s.key}:item${index}`, s.start + at, id === 'collage' || id === 'kinetic' ? 'pop' : 'click', 0.55);
   const tilt = id === 'collage' ? { rotate: `${[-2.5, 1.8, -1.2][index % 3]}deg` } : {};
   return (
@@ -279,7 +286,7 @@ function Offer() {
   const oldStyle = useEnter('fade', 0.05, 0.7, exitAt);
   const strike = ease(progress(lt, g, data.direction.pacing.enter * 0.6));
   const badgeAt = g * 2.4;
-  const badgeStyle = useEnter(id === 'editorial' || id === 'precision' ? 'rise' : 'pop', badgeAt, 0.7, exitAt);
+  const badgeStyle = useEnter(useFamilyKind(id === 'editorial' || id === 'precision' ? 'rise' : 'pop'), badgeAt, 0.7, exitAt);
   if (s.slots.oldPrice) cue(`${s.key}:strike`, s.start + g, 'click', 0.7);
   if (s.slots.badge) cue(`${s.key}:badge`, s.start + badgeAt, id === 'editorial' || id === 'precision' ? 'click' : 'impact', 0.6);
   const badgeShape = ({ collage: 'badge-stamp', kinetic: 'badge-burst', swiss: 'badge-rect', brutal: 'badge-block', drenched: 'badge-rect' } as Record<string, string>)[id] || 'badge-text';
@@ -361,7 +368,7 @@ function Event() {
 }
 
 function EventRow({ icon, svg, text, at, exitAt }: { icon: ReactNode; svg?: string; text: string; at: number; exitAt: number | null }) {
-  const style = useEnter('slideLeft', at, 0.8, exitAt);
+  const style = useEnter(useFamilyKind('slideLeft'), at, 0.8, exitAt);
   return (
     <div className="event-row" style={style}>
       {svg ? (
@@ -470,7 +477,7 @@ function Cta() {
   const exitAt = useExitAt();
   const id = data.direction.id;
   const g = data.direction.pacing.groupStagger;
-  const btnStyle = useEnter(id === 'collage' || id === 'kinetic' ? 'pop' : 'rise', g * 1.6, 0.8, exitAt);
+  const btnStyle = useEnter(useFamilyKind(id === 'collage' || id === 'kinetic' ? 'pop' : 'rise'), g * 1.6, 0.8, exitAt);
   cue(`${s.key}:btn`, s.start + g * 1.6, id === 'editorial' ? 'click' : 'pop', 0.8);
   // Une seule pulsation, tardive : attirer l'œil une fois, pas clignoter.
   const pulseT = lt - (g * 1.6 + 1.1);
@@ -635,29 +642,19 @@ function Logo() {
 function Footage() {
   const s = useScene();
   const { data } = useEngine();
-  const g = data.direction.pacing.groupStagger;
-  const exitAt = useExitAt();
-  const boxStyle = useEnter('wipeRight', 0.05, 1, exitAt);
-  const id = data.direction.id;
-  const boxed = id === 'swiss' || id === 'precision';
+  // Une mise en scène par plan, tirée par le graphe (treatments.tsx) : plus de « fond + dégradé + boîte ».
+  const kind = treatmentFor(s.treatment, data.direction.id, s.index);
   return (
-    <>
-      <Media src={s.image} video={s.video} at={0} mode="full" />
-      <Composition anchor={s.motion.align === 'center' ? 'bottom-center' : 'bottom-left'}>
-        {boxed ? (
-          <div className="footage-box" style={boxStyle}>
-            <Headline text={s.slots.title} at={0.3} fit={[10, 5.5, 3]} />
-            <Support text={s.slots.sub} at={g * 1.6} fit={[4.6, 3.2, 2]} />
-          </div>
-        ) : (
-          <>
-            <Kicker text={s.slots.kicker} at={0} />
-            <Headline text={s.slots.title} at={0.2} fit={[12, 6, 3]} />
-            <Support text={s.slots.sub} at={g * 1.6} muted={false} />
-          </>
-        )}
-      </Composition>
-    </>
+    <MediaTreatment
+      kind={kind}
+      src={s.image}
+      video={s.video}
+      title={s.slots.title}
+      sub={s.slots.sub}
+      kicker={s.motion.kicker ? s.slots.kicker : undefined}
+      renderTitle={(fit, at, technique) => <Headline text={s.slots.title} at={at} fit={fit} technique={technique} />}
+      renderSub={(at, muted = true) => <Support text={s.slots.sub} at={at} fit={[4.6, 3.2, 2]} muted={muted} />}
+    />
   );
 }
 
@@ -704,7 +701,7 @@ function LottieScene() {
   const s = useScene();
   const { data } = useEngine();
   const g = data.direction.pacing.groupStagger;
-  const box = useEnter('scale', 0, 0.8, useExitAt());
+  const box = useEnter(useFamilyKind('scale'), 0, 0.8, useExitAt());
   cue(`${s.key}:lottie`, s.tin + 0.05, 'pop');
   if (s.lottieName === 'confetti' || s.lottieName === 'sparkle') cue(`${s.key}:lottie2`, s.tin + 0.3, 'shimmer', 0.55);
   return (

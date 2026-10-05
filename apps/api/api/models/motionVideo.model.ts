@@ -197,6 +197,10 @@ export interface VideoSceneInstance {
   lottie?: string;
   /** Animation Rive importée (.riv). */
   rive?: string;
+  /** Mise en scène du plan (recopiée du kit au montage). */
+  treatment?: string;
+  /** Tempo des entrées de la scène (rythme de la vidéo) : < 1 plus vif, > 1 plus posé. */
+  pace?: number;
   /** Le grand moment de la vidéo (une scène au plus) : effet choisi par la direction. */
   accent?: 'punch' | 'giant' | 'hold' | 'flip';
   /** Plan de mouvement : ancrage, techniques d'entrée, transition (cf. video.direction.ts). */
@@ -234,6 +238,10 @@ export interface VideoStoryboard {
   art?: VideoArtOverrides;
   /** Concept narratif (cf. video.concepts.ts) : sert aussi à varier les vidéos d'un projet. */
   concept?: string;
+  /** Rythme (cf. video.rhythm.ts) : steady, crescendo, staccato, breathe, drop. */
+  rhythm?: string;
+  /** Contrôle des bonnes pratiques (video.rules.ts) : réparations faites, écarts restants. */
+  qa?: { repaired: number; issues: { rule: string; scene?: string; detail: string }[]; warnings?: { rule: string; scene?: string; detail: string }[] };
 }
 
 /** La DA de la charte traduite en réglages du moteur. */
@@ -271,6 +279,12 @@ export interface VideoKit {
   icons: Record<string, string[]>;
   /** Logo pendant la vidéo : none (signature finale seulement) ou corner (discret, sans conteneur). */
   brandmark?: string;
+  /** Mise en scène de chaque plan (clé de scène → split, window, blinds, magazine, knockout, inline, duotone, broadcast, cinema). */
+  treatments?: Record<string, string>;
+  /** Caméra de la vidéo (still, push, pull, drift, rise, tilt). */
+  camera?: string;
+  /** Famille d'entrée des éléments (rise, spring, flip, unfold, skew, iris, drop, pop, slideLeft). */
+  entrance?: string;
   spring?: { bounce: number };
   postfx: string[];
   addons: ('three' | 'gsap' | 'anime' | 'flubber' | 'lottie' | 'rive')[];

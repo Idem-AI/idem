@@ -24,6 +24,9 @@ export function mediaReady(): Promise<unknown> {
   return Promise.all(pending);
 }
 
+/** Cadence des clips (tous réencodés à 30 i/s, cf. video.media.ts). */
+const CLIP_FPS = 30;
+
 const visible = (s: Timed, t: number) => t >= s.visFrom - 0.05 && t <= s.visTo + 0.05;
 
 function clipTime(c: ClipEntry, t: number): number {
@@ -31,7 +34,10 @@ function clipTime(c: ClipEntry, t: number): number {
   if (!dur) return 0;
   const local = Math.max(0, t - c.s.visFrom);
   const usable = Math.max(0.5, dur - 0.05);
-  return local > usable ? local % usable : local;
+  const x = local > usable ? local % usable : local;
+  // Le milieu d'une image du clip (réencodé à 30 i/s) : un temps qui tombe entre deux images
+  // serait arrondi différemment selon le sens du déplacement, et l'image ne serait plus la même.
+  return Math.min(usable, Math.floor(x * CLIP_FPS) / CLIP_FPS + 0.5 / CLIP_FPS);
 }
 
 /** Rendu : chaque clip visible est posé exactement à son image (promesse). */
@@ -50,7 +56,16 @@ export function syncClipsExact(t: number): Promise<unknown> | null {
             res();
           }
         };
-        c.v.addEventListener('seeked', fin, { once: true });
+        // « seeked » dit que l'image est décodée, pas qu'elle est affichée : on attend aussi
+        // que la nouvelle image soit présentée au compositeur (sinon une capture peut avoir une image de retard).
+        const presented = () => {
+          const v = c.v as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number };
+          if (typeof v.requestVideoFrameCallback === 'function') {
+            v.requestVideoFrameCallback(() => fin());
+            setTimeout(fin, 400);
+          } else fin();
+        };
+        c.v.addEventListener('seeked', presented, { once: true });
         try {
           c.v.currentTime = want;
         } catch {
@@ -60,7 +75,11 @@ export function syncClipsExact(t: number): Promise<unknown> | null {
       })
     );
   }
-  return jobs.length ? Promise.all(jobs) : null;
+  if (!jobs.length) return null;
+  // Avec un rendu GPU logiciel (SwiftShader, celui des serveurs), l'image du clip arrive au
+  // compositeur un peu après « seeked » : deux images d'affichage garantissent qu'elle est à l'écran.
+  const twoFrames = () => new Promise<void>((res) => requestAnimationFrame(() => requestAnimationFrame(() => res())));
+  return Promise.all(jobs).then(twoFrames);
 }
 
 /** Aperçu : les clips jouent nativement, recalés s'ils dérivent. */

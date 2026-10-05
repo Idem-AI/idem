@@ -74,6 +74,9 @@ export interface CreativeInput {
   recentSequences?: string[];
   /** Animations de logo des dernières vidéos : retirées du menu tant qu'il reste un choix. */
   recentLogos?: string[];
+  /** Rythmes proposés au modèle (graphe), et celui du graphe si le modèle n'en dit rien. */
+  rhythmMenu?: string[];
+  graphRhythm?: string;
   seed: number;
 }
 
@@ -88,6 +91,8 @@ export interface CreativePlan {
   moves: Record<number, string>;
   /** Animation de logo choisie dans le menu du graphe. */
   logo?: string;
+  /** Rythme (video.rhythm.ts). */
+  rhythm: string;
   source: 'llm' | 'graph';
   tokens: { input: number; output: number };
 }
@@ -117,6 +122,7 @@ export function buildCreativePrompt(input: CreativeInput, concepts: ConceptId[],
     'accent: the number of the scene that gets the big moment',
     'moves: up to 3 pairs "scene number=technique" from TECHNIQUES, e.g. 1=scramble',
     input.logoMenu.length ? `logo: one of ${input.logoMenu.join(' | ')}` : '',
+    input.rhythmMenu?.length ? `rhythm: one of ${input.rhythmMenu.join(' | ')} (steady=even, crescendo=builds up, staccato=sharp cuts, breathe=long holds, drop=slow then fast)` : '',
     'Serve the request and the brand art direction. Combine techniques when it helps. Never the same scene twice in a row.',
   ]
     .filter(Boolean)
@@ -140,6 +146,7 @@ export function buildCreativePrompt(input: CreativeInput, concepts: ConceptId[],
 }
 
 export interface ParsedCreative {
+  rhythm?: string;
   objective?: string;
   concept?: string;
   scenes?: string[];
@@ -164,7 +171,7 @@ export function parseCreative(raw: string): ParsedCreative {
     }
   }
   for (const line of text.split(/\r?\n/)) {
-    const m = line.match(/^\W*(objective|concept|scenes|accent|moves|logo)\W*[:=]\s*(.+)$/i);
+    const m = line.match(/^\W*(objective|concept|scenes|accent|moves|logo|rhythm)\W*[:=]\s*(.+)$/i);
     if (!m) continue;
     const key = m[1].toLowerCase();
     const value = m[2].trim().replace(/^["'[]+|["'\].]+$/g, '');
@@ -222,6 +229,7 @@ export async function planCreative(input: CreativeInput, writer?: CopyWriter): P
     scenes: graphExpanded.scenes,
     accent: graphExpanded.accent,
     moves: {},
+    rhythm: input.graphRhythm || 'steady',
     source: 'graph',
     tokens: { input: 0, output: 0 },
   };
@@ -274,6 +282,7 @@ export async function planCreative(input: CreativeInput, writer?: CopyWriter): P
     if (match && index >= 0 && index < scenes.length - 1 && Object.keys(moves).length < 3) moves[index] = match;
   }
   const logo = parsed.logo && logoMenu.includes(parsed.logo) ? parsed.logo : undefined;
+  const rhythm = parsed.rhythm && (input.rhythmMenu || []).includes(parsed.rhythm) ? parsed.rhythm : graphPlan.rhythm;
 
   const answered = !!(parsed.concept || parsed.scenes || parsed.accent != null);
   return {
@@ -284,6 +293,7 @@ export async function planCreative(input: CreativeInput, writer?: CopyWriter): P
     accent,
     moves,
     logo,
+    rhythm,
     source: answered ? 'llm' : 'graph',
     tokens: { input: estimateTokens(prompt.system + prompt.user), output: estimateTokens(raw) },
   };

@@ -192,6 +192,9 @@ export const TYPE_SIGNATURE: Partial<Record<VideoType, string[]>> = {
   kinetic: ['kinetic'],
 };
 
+/** Types qui se reconnaissent à la répétition de leur scène signature (dès 15 s). */
+const TYPE_REPEAT: Partial<Record<VideoType, string>> = { illustrated: 'lottie', footage: 'footage' };
+
 export interface ConceptContext {
   objective: VideoObjective;
   type?: VideoType;
@@ -251,7 +254,10 @@ export function rankConcepts(ctx: ConceptContext): ScoredConcept[] {
       const s = c.suits;
       // Un concept qui met en scène ce que l'utilisateur a fourni (photos, clips, 3D…) passe devant.
       const usesOwned = !!ctx.owned && c.beats.some((beat) => beat.scenes.some((id) => SHOWS[id] && (ctx.owned![SHOWS[id]] || 0) > 0));
-      const score = 1 + (s.objectives?.[ctx.objective] || 0) * 1.5 + (ctx.type ? s.types?.[ctx.type] || 0 : 0) + (s.directions?.[ctx.direction] || 0) + (ctx.artStyleId ? s.arts?.[ctx.artStyleId.toLowerCase()] || 0 : 0) + (usesOwned ? 2 : 0);
+      // Au-delà des trois exclus, les concepts un peu plus anciens restent pénalisés (mémoire décroissante).
+      const olderAt = (ctx.recent || []).slice(-6, -3).lastIndexOf(c.id);
+      const older = olderAt >= 0 ? 0.6 + olderAt * 0.3 : 0;
+      const score = 1 + (s.objectives?.[ctx.objective] || 0) * 1.5 + (ctx.type ? s.types?.[ctx.type] || 0 : 0) + (s.directions?.[ctx.direction] || 0) + (ctx.artStyleId ? s.arts?.[ctx.artStyleId.toLowerCase()] || 0 : 0) + (usesOwned ? 2 : 0) - Math.max(0, older);
       return { id: c.id, score };
     })
     .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
@@ -315,6 +321,17 @@ export function expandConcept(conceptId: ConceptId, ctx: Pick<ConceptContext, 'd
     if (picked[at - 1]?.scene === scene || picked[at]?.scene === scene) continue;
     picked.splice(at, 0, { scene, beat: i, optional: true });
   }
+  // Toujours trop court (concept bref, vidéo longue) : des scènes de texte encore inutilisées,
+  // avant l'appel à l'action, jamais deux fois de suite.
+  for (const id of ['statement', 'benefits', 'kinetic', 'wordswap', 'stat', 'quote']) {
+    if (picked.length + 1 >= min) break;
+    if (!ok(id) || picked.some((p) => p.scene === id)) continue;
+    const ctaAt = picked.findIndex((p) => p.scene === 'cta');
+    const at = ctaAt > 0 ? ctaAt : picked.length;
+    if (picked[at - 1]?.scene === id) continue;
+    picked.splice(at, 0, { scene: id, beat: -3, optional: true });
+  }
+
   // Le type demandé doit se voir, et les médias de l'utilisateur être montrés :
   // leurs scènes sont garanties (avant l'appel à l'action), dans la limite de ce que
   // la durée permet — par priorité : signature du type, 3D, clips, photos, animation.
@@ -325,9 +342,24 @@ export function expandConcept(conceptId: ConceptId, ctx: Pick<ConceptContext, 'd
     if (replace >= 0 && picked.length + 1 >= max) picked[replace] = { scene: id, beat: picked[replace].beat, optional: false };
     else picked.splice(at < 1 ? picked.length : at, 0, { scene: id, beat: -1, optional: false });
   }
+  // Certains types se reconnaissent à la répétition (deux animations, deux clips) dès 15 s.
+  const repeat = ctx.type ? TYPE_REPEAT[ctx.type] : undefined;
+  if (repeat && ctx.durationSec >= 15 && ok(repeat) && picked.filter((p) => p.scene === repeat).length === 1) {
+    const first = picked.findIndex((p) => p.scene === repeat);
+    const ctaAt = picked.findIndex((p) => p.scene === 'cta');
+    let at = ctaAt > first + 1 ? ctaAt : picked.length;
+    if (at === first + 1) at = Math.min(picked.length, first + 2);
+    if (picked.length + 1 >= max) {
+      const k = picked.findIndex((p, i) => i > 0 && i !== first && p.optional && p.scene !== repeat);
+      if (k >= 0) picked.splice(k, 1);
+      if (k >= 0 && k < at) at--;
+    }
+    if (picked[at - 1]?.scene !== repeat && picked[at]?.scene !== repeat) picked.splice(at, 0, { scene: repeat, beat: -2, optional: false });
+  }
   if (!picked.length) picked.push({ scene: 'hook', beat: 0, optional: false });
   // Les scènes garanties ont pu dépasser : on retire d'abord le facultatif, puis le texte du milieu.
   const guaranteed = new Set(ensureList(ctx).slice(0, mediaCapacity(ctx.durationSec)));
+  if (repeat) guaranteed.add(repeat);
   while (picked.length + 1 > max) {
     let k = picked.findIndex((p, i) => i > 0 && p.optional && !guaranteed.has(p.scene));
     if (k < 0) k = picked.findIndex((p, i) => i > 0 && !guaranteed.has(p.scene) && p.scene !== 'cta');

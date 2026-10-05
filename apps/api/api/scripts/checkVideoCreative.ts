@@ -165,7 +165,7 @@ function baseInput(over: Partial<CreativeInput> = {}): CreativeInput {
         scenes: plan.scenes.map((id, k) => ({ key: `${id}-${k}`, sceneId: id, hasMedia: ['product', 'gallery', 'footage'].includes(id), hasTitle: true, three: id === 'showcase3d' })),
         text: MESSAGE,
         seed,
-        recent: kits.slice(-2),
+        recent: kits.slice(-6),
         boosts: art.boosts,
       };
       let kit = resolveKit(kctx);

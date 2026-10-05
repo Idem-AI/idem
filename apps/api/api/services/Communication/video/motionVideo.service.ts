@@ -42,7 +42,8 @@ import {
 } from '../../../models/motionVideo.model';
 import { mediaWanted, planTypeScenes, TYPE_DEFS, MediaCounts } from './video.types';
 import { planCreative } from './video.storyline';
-import { conceptCopyHints } from './video.concepts';
+import { conceptCopyHints, ensureScenes, sceneRange } from './video.concepts';
+import { applyRules } from './video.rules';
 import { objectiveForContent } from './video.calendar';
 import { motionFromArtDirection } from './video.artdirection';
 import { enhanceRequest } from './video.enhance';
@@ -50,11 +51,11 @@ import { generateClip, generateStill, MediaStorage, Orientation, processUpload, 
 import { ensureSfxLibrary, pickSounds, publicSoundName, SFX_DENSITY, SFX_GAIN_DB, sfxLibrary, soundFile, SfxLibrary } from './video.sfx';
 import { apiBaseUrl } from '../visualUrl';
 import { DirectionId, DIRECTIONS, isMotionDirection, lintMotion, pickDirection, planMotion, styleOfDirection, surfacesFor } from './video.direction';
-import { applyKitOverrides, assignIcons, iconVocabulary, KitContext, KitOverrides, pickAccentEffect, resolveKit, topNodes } from './video.capabilities';
+import { applyKitOverrides, assignIcons, iconVocabulary, KitContext, KitOverrides, pickAccentEffect, pickRhythm, resolveKit, rhythmMenu, topNodes } from './video.capabilities';
 import { analyzeLogo } from './video.logo';
 import { CommunicationService } from '../communication.service';
 import { StorageService } from '../../storage.service';
-import { extractFacts, writeCopy, CopyContext, CopyWriter, fitLength } from './video.copy';
+import { extractFacts, writeCopy, CopyContext, CopyWriter, fitLength, heuristicSlot } from './video.copy';
 import { planScenes } from './video.recipes';
 import { buildStoryboard, resolveStyle, retime } from './video.storyboard';
 import { buildVideoTheme, VideoTheme } from './video.theme';
@@ -171,6 +172,19 @@ export function defaultType(brief: VideoBrief): VideoType {
   if (brief.objective === 'promotion') return 'promo';
   if (brief.objective === 'product' || hasPhotos) return 'product';
   return 'kinetic';
+}
+
+/**
+ * Surfaces exigées par certaines mises en scène : le clip dans les lettres a besoin
+ * d'un aplat très clair (ou très sombre) pour que seules les lettres laissent passer
+ * l'image ; la bichromie prend la couleur de la marque.
+ */
+export function applyTreatmentSurfaces(storyboard: VideoStoryboard): void {
+  for (const sc of storyboard.scenes) {
+    const t = storyboard.kit?.treatments?.[sc.key];
+    if (t === 'knockout' && !['light', 'tint', 'deep'].includes(sc.surface)) sc.surface = 'light';
+    if (t === 'duotone' && ['light', 'tint'].includes(sc.surface)) sc.surface = 'primary';
+  }
 }
 
 const orientationOf = (format: VideoFormat): Orientation => (format === 'landscape' ? 'landscape' : format === 'square' ? 'square' : 'portrait');
@@ -548,6 +562,8 @@ export class MotionVideoService {
         direction,
         techniques: DIRECTIONS[direction].headline,
         logoMenu: topNodes('logo', prelim, 4),
+        rhythmMenu: rhythmMenu(prelim, otherVideos.map((v) => v.storyboard?.rhythm).filter(Boolean) as string[]),
+        graphRhythm: pickRhythm(prelim, otherVideos.map((v) => v.storyboard?.rhythm).filter(Boolean) as string[]),
         art: { medium: art.medium, summary: art.summary, styleId: branding?.artDirection?.styleId },
         recentConcepts: otherVideos.map((v) => v.storyboard?.concept).filter(Boolean) as string[],
         recentSequences: otherVideos.slice(-2).map((v) => (v.storyboard?.scenes || []).map((sc) => sc.sceneId).join('>')),
@@ -560,14 +576,18 @@ export class MotionVideoService {
     );
     const type: VideoType = plan.type;
     brief.objective = plan.objective;
+    // Règle « call-to-action » appliquée dès le plan : un objectif qui vend, invite ou ouvre a son appel.
     let sceneIds = plan.scenes;
+    if (['promotion', 'event', 'opening', 'product', 'recruitment'].includes(plan.objective) && scope.durationSec >= 15 && !sceneIds.some((id) => id === 'cta' || id === 'offer' || id === 'event')) {
+      sceneIds = ensureScenes(sceneIds, ['cta'], scope.durationSec);
+    }
     const storylineTokens = plan.tokens;
     const typeDef = TYPE_DEFS[type];
     const accentEffect = pickAccentEffect(direction, seed, art.boosts);
 
     // Le langage de mouvement (effets sonores, ambiance musicale) suit la direction, sauf choix explicite.
     const style = brief.style && brief.style !== 'auto' ? resolveStyle(brief.style, undefined, brief.objective) : styleOfDirection(direction);
-    emit('plan', 'done', { type, objective: brief.objective, concept: plan.concept, accent: accentEffect, style, direction, scenes: sceneIds, durationSec: scope.durationSec, source: plan.source });
+    emit('plan', 'done', { type, objective: brief.objective, concept: plan.concept, rhythm: plan.rhythm, accent: accentEffect, style, direction, scenes: sceneIds, durationSec: scope.durationSec, source: plan.source });
     const wanted = mediaWanted(sceneIds);
     const needsStock = (wanted.images > own('image') || wanted.videos > own('video')) && (brief.allowStock || brief.allowGenerate);
 
@@ -581,6 +601,7 @@ export class MotionVideoService {
       // Le concept oriente les textes (question, problème, preuve…) ; le grand moment reçoit la ligne la plus forte.
       hints: conceptCopyHints(plan.concept),
       accentIndex: plan.accent,
+      durationSec: scope.durationSec,
     });
     const query = (copy.copy[0]?.visual || [ctx.businessType, ...(ctx.keywords || []).slice(0, 2)].filter(Boolean).join(' ') || brief.message).slice(0, 60);
     const firstTitle = sceneIds.map((_, i) => copy.copy[i + 1]?.title || copy.copy[i + 1]?.l1).find(Boolean);
@@ -632,6 +653,23 @@ export class MotionVideoService {
       if (id === 'gallery' && images.length < 2) return;
       kept.push({ id, slots: slotsByIndex[i], from: i });
     });
+    // Trop peu de scènes pour la durée (le modèle en a laissé de côté) : des scènes de texte tirées
+    // du brief les remplacent, pour que chaque scène garde un temps de lecture juste (video.rules.ts).
+    {
+      const [minScenes] = sceneRange(scope.durationSec);
+      for (const id of ['statement', 'benefits', 'kinetic', 'wordswap']) {
+        if (kept.length >= minScenes) break;
+        if (kept.some((k) => k.id === id)) continue;
+        const slots: Record<string, string> = {};
+        for (const slot of SCENES[id].slots) {
+          const value = fitLength(heuristicSlot(id, slot.key, kept.length + 1, brief, facts, ctx), slot.max);
+          if (value) slots[slot.key] = value;
+        }
+        if (SCENES[id].slots.some((sl) => sl.required && !slots[sl.key])) continue;
+        const ctaAt = kept.findIndex((k) => k.id === 'cta' || k.id === 'logo');
+        kept.splice(ctaAt > 0 ? ctaAt : kept.length, 0, { id, slots, from: -1 });
+      }
+    }
     sceneIds = kept.map((k) => k.id);
     // Le grand moment suit sa scène ; si elle est tombée, la première scène de contenu le reprend.
     const accentAt = kept.findIndex((k) => k.from === plan.accent);
@@ -656,6 +694,9 @@ export class MotionVideoService {
       art: art.overrides,
       accent: sceneIds.length > 2 ? { index: accentIndex, effect: accentEffect } : undefined,
       concept: plan.concept,
+      rhythm: plan.rhythm,
+      // Les entrées de titre de la dernière vidéo du projet : la nouvelle en prend d'autres.
+      avoidHeadlines: (otherVideos[otherVideos.length - 1]?.storyboard?.scenes || []).map((sc) => sc.motion?.headline).filter(Boolean) as string[],
     });
 
     // Les entrées choisies par le modèle (dans le menu de la direction), puis le contrôle
@@ -676,6 +717,10 @@ export class MotionVideoService {
     if (plan.logo && plan.logo !== kit.logo) kit = applyKitOverrides(kit, { logo: plan.logo }, kctx).kit;
     kit.icons = assignIcons(storyboard.scenes);
     storyboard.kit = kit;
+    applyTreatmentSurfaces(storyboard);
+    // Les bonnes pratiques (lecture, tenues, entrées, signature…) : vérifiées et réparées, toujours.
+    const qa = applyRules(storyboard, { objective: brief.objective });
+    storyboard.qa = { repaired: qa.repaired.length, issues: qa.issues, warnings: qa.warnings };
 
     const now = new Date().toISOString();
     const hook = storyboard.scenes.find((sc) => sc.slots.title)?.slots.title || brief.message;
@@ -716,7 +761,9 @@ export class MotionVideoService {
       music: music?.provider,
       media: media.report,
       sfx: sfx ? Object.keys(sfx.sounds).length : 0,
-      kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, addons: kit.addons },
+      kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, camera: kit.camera, entrance: kit.entrance, addons: kit.addons },
+      creative: { concept: plan.concept, rhythm: plan.rhythm, source: plan.source },
+      qa: storyboard.qa,
     });
     this.lastMediaReport = media.report;
     return video;
@@ -838,10 +885,15 @@ export class MotionVideoService {
       let kit = storyboard.kit && !directionChanged ? storyboard.kit : resolveKit(kctx);
       kit = { ...kit, icons: storyboard.kit?.icons || assignIcons(storyboard.scenes) };
       if (patch.kit) kit = applyKitOverrides(kit, patch.kit, kctx).kit;
-      storyboard = { ...storyboard, kit };
+      storyboard = { ...storyboard, kit, scenes: storyboard.scenes.map((sc) => ({ ...sc })) };
+      applyTreatmentSurfaces(storyboard);
     }
 
     storyboard = retime(storyboard, music?.beat);
+    {
+      const qa = applyRules(storyboard, { objective: brief.objective });
+      storyboard = { ...storyboard, qa: { repaired: qa.repaired.length, issues: qa.issues, warnings: qa.warnings } };
+    }
 
     return this.communication.mutateVideo(userId, projectId, videoId, (v) => ({
       ...v,

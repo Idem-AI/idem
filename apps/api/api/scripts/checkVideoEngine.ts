@@ -29,6 +29,7 @@ import { buildStoryboard } from '../services/Communication/video/video.storyboar
 import { composeVideoHtml, inlineAssets } from '../services/Communication/video/video.composer';
 import { DIRECTION_IDS, DirectionId } from '../services/Communication/video/video.direction';
 import { brandById } from './fixtures/motion-video/brands';
+import { makePhotos } from './fixtures/motion-video/media';
 
 const ONLINE = process.argv.includes('--online');
 const OUT = path.resolve(process.cwd(), 'tmp/video-engine-kit');
@@ -56,7 +57,7 @@ function baseKit(over: Partial<VideoKit>): VideoKit {
 }
 
 /** Rend une page, vérifie erreurs + déterminisme sur `times`, renvoie les images (data URI JPEG). */
-async function renderCheck(browser: Browser, html: string, spec: { width: number; height: number }, times: number[], label: string, opts: { mustMove?: boolean } = {}): Promise<string[]> {
+async function renderCheck(browser: Browser, html: string, spec: { width: number; height: number }, times: number[], label: string, opts: { mustMove?: boolean; clip?: boolean } = {}): Promise<string[]> {
   const page = await browser.newPage();
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String((e as Error).message || e).slice(0, 200)));
@@ -65,6 +66,9 @@ async function renderCheck(browser: Browser, html: string, spec: { width: number
   });
   try {
     await page.setViewport({ width: spec.width, height: spec.height, deviceScaleFactor: 1 });
+    // Comme le moteur de rendu : sans focus émulé, Chromium ne décode pas les clips d'un onglet.
+    const cdp = await page.createCDPSession();
+    await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => undefined);
     await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
     await page.evaluate(() => (window as any).__IDEM_VIDEO__.ready);
     const shoot = async (t: number) => {
@@ -74,7 +78,20 @@ async function renderCheck(browser: Browser, html: string, spec: { width: number
     const forward: Buffer[] = [];
     for (const t of times) forward.push(await shoot(t));
     const backward: Buffer[] = [];
-    for (const t of [...times].reverse()) backward.unshift(await shoot(t));
+    if (opts.clip) {
+      // Clip : comme en production, un AUTRE onglet chargé à neuf, qui avance dans le même ordre.
+      const other = await browser.newPage();
+      const cdp2 = await other.createCDPSession();
+      await cdp2.send('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => undefined);
+      await other.setViewport({ width: spec.width, height: spec.height, deviceScaleFactor: 1 });
+      await other.setContent(html, { waitUntil: 'load', timeout: 60000 });
+      await other.evaluate(() => (window as any).__IDEM_VIDEO__.ready);
+      for (const t of times) {
+        await other.evaluate((x: number) => (window as any).__IDEM_VIDEO__.seek(x), t);
+        backward.push(Buffer.from(await other.screenshot({ type: 'png' })));
+      }
+      await other.close();
+    } else for (const t of [...times].reverse()) backward.unshift(await shoot(t));
     const sharp = (await import('sharp')).default;
     let worst = 0;
     for (let i = 0; i < times.length; i++) {
@@ -90,9 +107,23 @@ async function renderCheck(browser: Browser, html: string, spec: { width: number
       for (let k = 0; k < a.length; k += 4) if (Math.abs(a[k] - b[k]) > 24 || Math.abs(a[k + 1] - b[k + 1]) > 24 || Math.abs(a[k + 2] - b[k + 2]) > 24) n++;
       check(`${label} : l'animation progresse`, n / (a.length / 4) > 0.01, `${((n / (a.length / 4)) * 100).toFixed(1)} % de pixels changent`);
     }
+    // Une scène cachée ne doit rien laisser voir (un enfant en « visibility: visible » passerait au-dessus).
+    const leaks = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('section.scene')]
+        .filter((sec) => sec.style.visibility === 'hidden')
+        .flatMap((sec) => [...sec.querySelectorAll<HTMLElement>('*')].filter((el) => getComputedStyle(el).visibility === 'visible').map((el) => `${sec.dataset.scene}>${el.className}`))
+        .slice(0, 3)
+    );
+    check(`${label} : rien ne déborde d’une scène cachée`, leaks.length === 0, leaks.join(', '));
     const sections = await page.evaluate(() => document.querySelectorAll('section.scene').length);
     check(`${label} : aucune erreur, scènes présentes`, errors.length === 0 && sections > 0, errors.slice(0, 2).join(' | '));
-    check(`${label} : même image à l'aller et au retour`, worst <= 0.002, `écart ${(worst * 100).toFixed(2)} %`);
+    if (worst > 0.002) {
+      // Diagnostic : les deux images de l'instant le plus différent sont gardées.
+      const slug = label.replace(/[^a-z0-9]+/gi, '-');
+      forward.forEach((png, i) => fs.writeFileSync(path.join(OUT, `diff-${slug}-${i}-aller.png`), png));
+      backward.forEach((png, i) => fs.writeFileSync(path.join(OUT, `diff-${slug}-${i}-retour.png`), png));
+    }
+    check(`${label} : ${opts.clip ? 'même image dans deux onglets' : 'même image à l’aller et au retour'}`, worst <= 0.002, `écart ${(worst * 100).toFixed(2)} %`);
     return Promise.all(forward.map(async (p) => `data:image/jpeg;base64,${(await sharp(p).resize({ width: 300 }).jpeg({ quality: 70 }).toBuffer()).toString('base64')}`));
   } finally {
     await page.close();
@@ -274,6 +305,68 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
       }
     }
     sheet.push({ group: 'Annotations', shots: annShots });
+
+    // Mises en scène des plans : chacune sur une vraie photo (et un vrai clip s'il y en a un en cache).
+    {
+      process.env.VIDEO_ALLOW_FILE_URLS = '1';
+      const photos = await makePhotos(path.join(OUT, 'photos'));
+      const clip = (() => {
+        const dir = path.resolve(process.cwd(), 'tmp/motion-video-examples/storage');
+        const walk = (d: string): string[] => (fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith('.webm') ? [path.join(d, e.name)] : [])) : []);
+        return walk(dir)[0];
+      })();
+      const treatmentShots: Shot[] = [];
+      const plan: [string, DirectionId][] = [['split', 'swiss'], ['window', 'editorial'], ['blinds', 'brutal'], ['magazine', 'editorial'], ['knockout', 'kinetic'], ['inline', 'collage'], ['duotone', 'drenched'], ['broadcast', 'precision'], ['cinema', 'cinematic']];
+      for (const [kind, dir] of plan) {
+        for (const format of ['story', 'landscape'] as const) {
+          const brand = brandById('bissap');
+          const theme = buildVideoTheme(brand.branding, brand.name);
+          const useClip = !!clip && format === 'story';
+          const sb = buildStoryboard({
+            sceneIds: ['footage', 'logo'],
+            slots: [{ title: 'Pressé chaque matin à Dakar', sub: 'Bissap, gingembre, baobab' }, {}],
+            durationSec: 6,
+            style: 'premium',
+            seed: 4,
+            images: [`file://${photos[Object.keys(photos)[0]]}`],
+            videos: useClip ? [`file://${clip}`] : [],
+            direction: dir,
+          });
+          sb.kit = baseKit({ treatments: { [sb.scenes[0].key]: kind } });
+          if (kind === 'knockout' && !['light', 'tint', 'deep'].includes(sb.scenes[0].surface)) sb.scenes[0].surface = 'light';
+          const { html, spec } = await composeVideoHtml({ ...(await inlineAssets(sb, theme)), format, quality: 'standard', mode: 'render' });
+          const f = sb.scenes[0];
+          const frames = await renderCheck(browser, html, spec, [0.15, 0.8, Math.min(f.duration - 0.3, 2.6)], `plan ${kind} · ${dir} · ${format}${useClip ? ' (clip)' : ''}`, { mustMove: true, clip: useClip });
+          treatmentShots.push({ label: `${kind} · ${format}${useClip ? ' · clip' : ''}`, frames });
+        }
+      }
+      sheet.push({ group: 'Mises en scène des plans', shots: treatmentShots });
+    }
+
+    // Vocabulaire élargi : chaque nouvelle entrée de texte, chaque famille d'entrée des éléments, chaque caméra.
+    {
+      const vocabShots: Shot[] = [];
+      const brand = brandById('kofi');
+      const theme = buildVideoTheme(brand.branding, brand.name);
+      const render = async (label: string, dir: DirectionId, ids: string[], slots: Record<string, string>[], tweak: (sb: any) => void, times: number[]) => {
+        const sb = buildStoryboard({ sceneIds: ids, slots, durationSec: 6, style: 'premium', seed: 21, images: [], direction: dir });
+        sb.kit = baseKit({});
+        tweak(sb);
+        const { html, spec } = await composeVideoHtml({ ...(await inlineAssets(sb, theme)), format: 'square', quality: 'standard', mode: 'render' });
+        const frames = await renderCheck(browser, html, spec, times, label, { mustMove: true });
+        vocabShots.push({ label, frames });
+      };
+      for (const tech of ['springUp', 'wave', 'stretch', 'rotateX', 'zoomWords', 'skewIn', 'scatter', 'outlineFill']) {
+        await render(`entrée ${tech}`, 'kinetic', ['statement', 'logo'], [{ title: 'Le studio qui livre vite', sub: 'Remote, depuis Lomé' }, {}], (sb) => (sb.scenes[0].motion.headline = tech), [0.1, 0.45, 2.4]);
+      }
+      for (const family of ['spring', 'flip', 'unfold', 'skew', 'iris']) {
+        await render(`éléments ${family}`, 'swiss', ['benefits', 'logo'], [{ title: 'Pourquoi Kofi', b1: 'Livraison en 24 h', b2: 'Paiement mobile', b3: 'Support 7j/7' }, {}], (sb) => (sb.kit.entrance = family), [0.3, 1.0, 2.8]);
+      }
+      for (const camera of ['tilt', 'pull', 'rise']) {
+        await render(`caméra ${camera}`, 'precision', ['statement', 'logo'], [{ title: 'Le code propre, livré', sub: 'Studio logiciel' }, {}], (sb) => (sb.kit.camera = camera), [0.2, 1.4, 3.0]);
+      }
+      sheet.push({ group: 'Vocabulaire élargi', shots: vocabShots });
+    }
 
     // Grand moment : l'effet que la direction donne à LA scène choisie.
     const accentShots: Shot[] = [];
