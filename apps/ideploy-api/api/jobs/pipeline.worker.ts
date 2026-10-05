@@ -9,7 +9,8 @@ import logger from '../config/logger';
 import { QUEUE_NAMES } from '../queue/queues';
 import { registerWorker } from '../queue/worker';
 import { realtime } from '../services/realtime.service';
-import { executeRemoteCommand } from '../ssh/ssh';
+import { executeRemoteCommand, shellQuote } from '../ssh/ssh';
+import { assertSafeGitBranch, assertSafeGitUrl } from '../validation/git-input';
 import * as appService from '../services/application.service';
 import * as serverService from '../services/server.service';
 import * as pipelineService from '../services/pipeline.service';
@@ -22,7 +23,7 @@ function pipelineLog(uuid: string, line: string): Promise<void> {
   return realtime.emit(`pipeline.${uuid}`, 'log', { line, at: Date.now() });
 }
 
-async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
+export async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
   const { executionUuid, executionId, applicationUuid, teamId, stages, branch } = job.data;
   const log = (l: string) => pipelineLog(executionUuid, l);
 
@@ -43,6 +44,8 @@ async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
   // non-zero exit) still marks it 'failed' instead of leaving it 'running'
   // forever — indistinguishable, in the UI, from a pipeline stuck mid-flight.
   let currentStage: string | null = null;
+  // The commit the clone stage fetched: what the deploy stage deploys.
+  let commit: string | null = null;
 
   try {
     for (const stage of stages) {
@@ -60,14 +63,20 @@ async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
         // Verified live against a real private repo (`Ebolo1/wegift-backend`).
         const credential = await resolveGitCredential(teamId, app.git_repository);
         const cloneUrl = credential?.authenticatedUrl ?? app.git_repository;
+        // Branch and URL come from the user and reach a shell on the host:
+        // checked, then quoted. The commit fetched is kept for the deploy stage.
+        assertSafeGitUrl(app.git_repository);
+        const safeBranch = assertSafeGitBranch(branch || app.git_branch || 'main');
         const r = await executeRemoteCommand(
           server,
           key,
-          `rm -rf ${workdir} && git clone --depth 1 -b ${branch} ${cloneUrl} ${workdir} && ls ${workdir}`,
+          `rm -rf ${shellQuote(workdir)} && git clone --depth 1 -b ${shellQuote(safeBranch)} -- ${shellQuote(cloneUrl)} ${shellQuote(workdir)} && ` +
+            `git -C ${shellQuote(workdir)} remote remove origin && echo "COMMIT=$(git -C ${shellQuote(workdir)} rev-parse HEAD)" && ls ${shellQuote(workdir)}`,
           { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
         );
         await pipelineService.setJobStatus(executionId, stage, r.exitCode === 0 ? 'success' : 'failed', r.stdout + r.stderr);
         if (r.exitCode !== 0) throw new Error('git clone failed');
+        commit = /COMMIT=([0-9a-f]{40})/.exec(r.stdout)?.[1] ?? null;
       } else if (stage === 'trivy') {
         const r = await executeRemoteCommand(
           server,
@@ -80,17 +89,17 @@ async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
         const vulns = (r.stdout.match(/CRITICAL|HIGH/g) ?? []).length;
         await pipelineService.recordScanResult(executionId, 'trivy', { vulnerabilities: vulns });
       } else if (stage === 'sonarqube') {
-        // Requires a configured SonarQube server; run the scanner if SONAR_HOST_URL is set on the host.
-        const r = await executeRemoteCommand(
-          server,
-          key,
-          `if [ -n "$SONAR_HOST_URL" ]; then docker run --rm -v ${workdir}:/usr/src sonarsource/sonar-scanner-cli || true; else echo "SonarQube not configured, skipping"; fi`,
-          { onData: (c) => log(c) }
-        );
-        await pipelineService.setJobStatus(executionId, stage, 'success', r.stdout);
-        await pipelineService.recordScanResult(executionId, 'sonarqube', { quality_gate_status: 'OK' });
+        // Not analysed is not "passed": it used to record a quality gate "OK"
+        // without any analysis having run. The full analysis is its own change.
+        const message =
+          'SonarQube is not configured on the platform (SONARQUBE_URL and SONARQUBE_ADMIN_TOKEN): no analysis was run.';
+        await log(message);
+        await pipelineService.setJobStatus(executionId, stage, 'skipped', message);
+        await pipelineService.recordScanResult(executionId, 'sonarqube', { status: 'skipped', quality_gate_status: null });
       } else if (stage === 'deploy') {
-        await deploymentService.createDeployment(app, teamId, { commit: branch });
+        // The commit the pipeline checked, not the branch name — the worker
+        // only accepts a commit id, and a branch would move under it.
+        await deploymentService.createDeployment(app, teamId, { commit: commit ?? 'HEAD' });
         await pipelineService.setJobStatus(executionId, stage, 'success', 'Deployment queued');
         await log('Deployment queued');
       } else {
@@ -113,7 +122,7 @@ async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
     await pipelineService.setExecutionStatus(executionId, 'failed');
     throw err;
   } finally {
-    await executeRemoteCommand(server, key, `rm -rf ${workdir}`, { noRetry: true });
+    await executeRemoteCommand(server, key, `rm -rf ${shellQuote(workdir)}`, { noRetry: true });
   }
 }
 

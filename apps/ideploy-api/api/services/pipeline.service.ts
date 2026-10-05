@@ -316,7 +316,7 @@ export async function recordScanResult(
   await pool.query(
     `INSERT INTO pipeline_scan_results
        (uuid, pipeline_job_id, pipeline_execution_id, tool, status, quality_gate_status, bugs, vulnerabilities, code_smells, security_hotspots, coverage, created_at, updated_at)
-     VALUES ($1,$2,$3,$4,'success',$5,$6,$7,$8,$9,$10, now(), now())`,
+     VALUES ($1,$2,$3,$4,$11,$5,$6,$7,$8,$9,$10, now(), now())`,
     [
       randomUUID(),
       jobId,
@@ -328,6 +328,8 @@ export async function recordScanResult(
       metrics.code_smells ?? null,
       metrics.security_hotspots ?? null,
       metrics.coverage ?? null,
+      // `skipped` for a scan that did not run: never shown as a pass.
+      (metrics.status as string) ?? 'success',
     ]
   );
 }
