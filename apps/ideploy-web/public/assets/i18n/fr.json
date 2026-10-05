@@ -545,7 +545,7 @@
       "buildCommandLabel": "Commande de build",
       "startCommandPlaceholder": "Commande de démarrage (optionnel, ex. npm run start)",
       "startCommandLabel": "Commande de démarrage",
-      "portPlaceholder": "Port exposé (ex. 3000)",
+      "portPlaceholder": "Port (facultatif — détecté au déploiement)",
       "portLabel": "Port exposé",
       "envVariables": "Variables d'environnement",
       "envDetectedBadge": "{{count}} détectées",
@@ -573,7 +573,8 @@
       "errLocalSetup": "Échec de la configuration du serveur local",
       "errMissingRepo": "URL du dépôt manquante.",
       "applicationName": "Nom de l'application",
-      "linkedFromCache": "Rempli depuis le cache Redis « {{name}} » créé par ce guide"
+      "linkedFromCache": "Rempli depuis le cache Redis « {{name}} » créé par ce guide",
+      "portHint": "Laissez vide : le port sur lequel l’application écoute réellement est détecté à chaque déploiement et utilisé pour le routage. Ne le remplissez que pour imposer un port."
     },
     "configure": {
       "changeSource": "Changer de source",

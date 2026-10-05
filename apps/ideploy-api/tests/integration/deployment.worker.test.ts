@@ -29,13 +29,23 @@ beforeAll(async () => {
   }
 });
 
-beforeEach(async () => {
-  await truncateAll();
+/** A fake server whose container listens on the given /proc/net/tcp content. */
+function useExecutor(listening: string): void {
   ssh = new FakeRemoteExecutor();
+  // First match wins: the port probe also runs `compose ps -q`, so it goes first.
+  ssh.on(/\/net\/tcp/, { stdout: listening });
   ssh.on(/compose -p \S+ ps/, { stdout: '{"Service":"web","State":"running","ExitCode":0,"Health":""}' });
   ssh.on(/compose -p \S+ logs/, { stdout: 'Server listening on http://0.0.0.0:3000' });
   ssh.on(/git fetch/, { stdout: `COMMIT=${SHA}\n` });
   setRemoteExecutor(ssh);
+}
+
+/** The container listens on 3000, the port it was given. */
+const LISTENING_3000 = '  sl  local_address rem_address   st\n   0: 00000000:0BB8 00000000:0000 0A 0 0 0\n';
+
+beforeEach(async () => {
+  await truncateAll();
+  useExecutor(LISTENING_3000);
 });
 
 afterAll(async () => {
@@ -118,6 +128,25 @@ describe('the root directory', () => {
     const { outcome } = await run(teamId, app);
     await expect(outcome).rejects.toThrow(/root directory "backend" does not exist/);
   });
+});
+
+describe('the port the application listens on', () => {
+  it('routes to the port the container really listens on, whatever was configured', async () => {
+    // A home-grown server on 4721, with the default 3000 configured: it used to be a 502.
+    const { teamId, app } = await anApplication('exited');
+    useExecutor('  sl  local_address rem_address   st\n   0: 00000000:1271 00000000:0000 0A 0 0 0\n   1: 0100007F:1F90 00000000:0000 0A 0 0 0\n');
+
+    const { deploymentUuid, outcome } = await run(teamId, app);
+    await outcome;
+
+    const { rows } = await testPool().query('SELECT ports_exposes FROM applications WHERE id = $1', [app.id]);
+    expect(rows[0].ports_exposes).toBe('4721');
+    expect((await row(deploymentUuid)).logs).toMatch(/listens there, not on 3000.*routing to 4721/);
+    // Rewritten and brought up again with the real port.
+    const rewrites = ssh.calls.filter((c) => c.command.includes('base64 -d >'));
+    const last = Buffer.from(/echo '([^']+)'/.exec(rewrites[rewrites.length - 1].command)![1], 'base64').toString();
+    expect(last).toContain('PORT=4721');
+  }, 60_000);
 });
 
 describe('a deployment that succeeds', () => {

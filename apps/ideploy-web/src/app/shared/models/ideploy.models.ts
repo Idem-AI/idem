@@ -186,6 +186,8 @@ export interface Application {
   git_repository: string | null;
   git_branch: string | null;
   build_pack: string | null;
+  /** Port the application listens on — detected at each deployment when left empty. */
+  ports_exposes?: string | null;
   /** Folder of the repository the application is built from (`./` or empty: the root). */
   base_directory?: string | null;
   status: string | null;
