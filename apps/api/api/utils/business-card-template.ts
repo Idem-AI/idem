@@ -44,7 +44,9 @@ export const EMPTY_FIELD_CLEANUP = `
   for (var i = nodes.length - 1; i >= 0; i--) {
     var el = nodes[i];
     var hasText = (el.textContent || '').trim().length > 0;
-    var hasMedia = el.querySelector('img[src], svg') !== null;
+    // Une icône SVG accompagne une ligne de contact : sans la valeur, elle partirait seule.
+    // Seule une image (logo) garde un bloc vide de texte.
+    var hasMedia = el.querySelector('img[src]') !== null;
     if (!hasText && !hasMedia) el.remove();
   }
 })();

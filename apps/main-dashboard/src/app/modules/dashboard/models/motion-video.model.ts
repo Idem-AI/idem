@@ -190,7 +190,7 @@ export function priceExport(pricing: VideoPricing, video: MotionVideo, scope: Vi
 }
 
 /** Étapes réelles d'une création, reçues en direct (flux SSE). */
-export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'storyboard' | 'animation' | 'critique';
+export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'storyboard' | 'animation' | 'critique' | 'code';
 
 export interface VideoProgressMediaItem {
   kind: VideoMediaKind;
@@ -227,6 +227,9 @@ export interface VideoProgressData {
   fixes?: number;
   /** La piste a été choisie par l'agent sound designer. */
   pickedBy?: 'agent' | 'graph';
+  /** Cran Ultra : scènes écrites par l'IA et retenues après contrôle. */
+  coded?: number;
+  tried?: number;
 }
 
 export type VideoStreamEvent =

@@ -1,3 +1,8 @@
+import { CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
+import { DocumentDesignPlan, planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../creativity/documentDesign';
+import { runtimeCall } from '../creativity/orchestrator';
+import { brandSheet } from '../creativity/agent-io';
+import { ultraPageComposer } from '../creativity/pageComposer';
 import crypto from 'crypto';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -253,7 +258,9 @@ export class PitchDeckService extends GenericService {
     streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
     forceRegenerate = false,
     targetSections: string[] = [],
-    documentId?: string
+    documentId?: string,
+    /** La jauge de créativité (cf. creativity/documentDesign.ts) ; Medium par défaut. */
+    creativity?: CreativityLevel
   ): Promise<PitchDeckDocument | null> {
     logger.info(
       `Generating pitch deck with streaming for userId: ${userId}, projectId: ${projectId}, documentId: ${documentId ?? '(primary)'}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
@@ -350,6 +357,49 @@ export class PitchDeckService extends GenericService {
     const designKey = documentDesignKey('pitchdeck', projectId, deck.id);
     const deckSeed = buildDocumentSeed(artDirection?.styleId, designKey);
 
+    // LA JAUGE DE CRÉATIVITÉ : famille du deck (Medium+), archétype et réglages de chaque slide
+    // (High+, Max+), slides composées par le modèle avec le gabarit en repli (Ultra).
+    const level = normalizeCreativity(creativity);
+    const seedArchetypes: Record<string, string> = {};
+    {
+      const probe = new Set<string>();
+      for (const def of deckSlides) if (!def.freeform) seedArchetypes[def.name] = buildSectionSeed(artDirection?.styleId, designKey, def.name, probe).archetype;
+    }
+    const brandingForSheet = project.analysisResultModel?.branding as any;
+    // La fiche de la marque, la même pour tous les agents créatifs du deck.
+    const deckSheet = brandSheet({
+      brandName: project.name || 'Brand',
+      businessType: project.type,
+      palette: brandingForSheet?.colors?.colors || {},
+      fonts: { display: brandingForSheet?.typography?.primaryFont || 'Archivo', body: brandingForSheet?.typography?.secondaryFont || 'Inter' },
+      art: artDirection,
+    });
+    // Des slides gardées (reprise, régénération ciblée) : la direction enregistrée est reprise,
+    // pour que la slide refaite ressemble à ses voisines. Sinon, les agents décident et la
+    // direction est enregistrée avec le deck.
+    const keepsSlides =
+      !forceRegenerate && currentSections.some((section) => slideOrder.includes(section.name) && !targetSections.includes(section.name));
+    const designPlan: DocumentDesignPlan | null = keepsSlides ? resumedDesignPlan(deck.design, level) : await planDocumentDesign({
+      level,
+      call: runtimeCall({ userId, projectId, element: 'pitch_deck' }),
+      sheet: deckSheet,
+      styleId: artDirection?.styleId,
+      document: 'pitch deck',
+      pages: deckSlides.filter((d) => !d.freeform).map((d) => ({ name: d.name, brief: composeSlideBrief(d.name, deckType.audience) ?? undefined })),
+      seedArchetypes,
+    })
+      .then(async (plan) => {
+        await deliverableDocumentStore
+          .update(userId, projectId, 'pitchDeck', deck.id, (current) => ({ ...current, design: savedDesignOf(plan) }), { touch: false })
+          .catch((error: any) => logger.warn('[DECK] Direction des slides non enregistrée', { error: error?.message }));
+        return plan;
+      })
+      .catch((error: any) => {
+        logger.warn('[DECK] Direction artistique des slides en échec, la graine décide', { error: error?.message });
+        return null;
+      });
+    if (designPlan?.family) deckSeed.family = designPlan.family;
+
     // Flat, explicit brand context — LLM uses bg-[#hex], text-[#hex] directly
     const brandContext = [
       `Brand Name: ${brandName}`,
@@ -415,8 +465,12 @@ export class PitchDeckService extends GenericService {
     const usedArchetypes = new Set<string>();
     let slideIndex = 0;
 
-    const seedFor = (stepName: string) =>
-      buildSectionSeed(artDirection?.styleId, designKey, stepName, usedArchetypes);
+    // La graine de la slide, puis les choix du directeur artistique (High+) par-dessus.
+    const seedFor = (stepName: string) => ({
+      ...buildSectionSeed(artDirection?.styleId, designKey, stepName, usedArchetypes),
+      ...(designPlan?.family ? { family: designPlan.family } : {}),
+      ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, v]) => !!v)),
+    });
 
     /** Prompt HTML de repli : écrit à la main pour les slides historiques, composé sinon. */
     const htmlPromptFor = (stepName: string): string =>
@@ -433,6 +487,7 @@ export class PitchDeckService extends GenericService {
     const slide = (stepName: string): IPromptStep => {
       slideIndex += 1;
       const fallbackPrompt = htmlPromptFor(stepName);
+      const seed = seedFor(stepName);
       return {
         stepName,
         // Prompt d'origine : le repli quand le gabarit est coupé.
@@ -443,7 +498,11 @@ export class PitchDeckService extends GenericService {
           // destinataire du deck : la mise en page est au rendu.
           contentBrief: composeSlideBrief(stepName, deckType.audience) ?? fallbackPrompt,
           designSystem,
-          seed: seedFor(stepName),
+          seed,
+          // Cran Ultra : le contenu validé de la slide part au compositeur, le gabarit en repli.
+          compose: designPlan?.freeCompose
+            ? ultraPageComposer({ ds: designSystem, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: deckSheet, document: 'pitch deck', call: runtimeCall({ userId, projectId, element: 'pitch_deck' }), name: stepName })
+            : undefined,
           volume: '3 to 4',
           render: {
             ...renderOptions,

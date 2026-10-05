@@ -175,6 +175,7 @@
         <p class="text-text-tertiary mb-8 max-w-lg mx-auto">
           {{ 'dashboard.showPitchDeck.draft.subtitle' | translate: { count: expectedSlides().length } }}
         </p>
+        <app-creativity-gauge class="max-w-lg mx-auto mb-6 text-left" [(value)]="creativity" [baseCost]="creativityBaseCost()" />
         <button type="button" class="inner-button" (click)="startGeneration()">
           {{ 'dashboard.showPitchDeck.actions.generate' | translate }}
         </button>

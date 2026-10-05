@@ -12,6 +12,9 @@ export * from './projects/project.model';
 export * from './pricing/pricing';
 export * from './pricing/defaults';
 
+// Jauge de créativité : crans, multiplicateurs de prix, normalisation (API + dashboard).
+export * from './creativity/creativity';
+
 // Utility types
 export interface BaseModel {
   id?: string;

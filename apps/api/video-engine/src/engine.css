@@ -21,8 +21,9 @@ html,body{overflow:hidden;background:#0b0b0c}
 /* Colonnes incompressibles : étirées dans un conteneur flex, elles se seraient tassées sous la largeur
    des chiffres (débordement invisible pour l'ajustement, chiffre rogné). */
 .kt-odo>*{flex:none}
-.kt-odo-col{display:inline-block;height:1em;overflow:hidden;line-height:1}
-.kt-odo-strip{display:flex;flex-direction:column}
+.kt-odo-col{position:relative;display:inline-block;height:1em;overflow:hidden;line-height:1}
+.kt-odo-size{display:inline-block;visibility:hidden}
+.kt-odo-strip{position:absolute;left:50%;top:0;display:flex;flex-direction:column;align-items:center}
 .kt-odo-strip span{height:1em;line-height:1}
 
 /* Le petit libellé : jamais en capitales espacées (le tic n°1 des pages générées). */

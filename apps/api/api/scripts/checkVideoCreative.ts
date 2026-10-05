@@ -430,6 +430,19 @@ function baseInput(over: Partial<CreativeInput> = {}): CreativeInput {
     const fixes = parseCritic(`1.layout=${critIn.scenes[0].layouts[1]}\n3.cut=${ids2[0]}\n1.cut=${ids2[0]}\n2.title=${DIRECTIONS.kinetic.headline[1]}\n4.layout=hologram\n7.title=${DIRECTIONS.kinetic.headline[0]}\nok`, critIn);
     check('critique : corrections valides gardées ; coupe de la 1re scène, signature et inventions refusées', fixes.length === 3 && fixes.every((f) => !(f.index === 0 && f.field === 'cut') && f.index !== 6), JSON.stringify(fixes));
     check('critique : « ok » = aucune correction', parseCritic('ok', critIn).length === 0);
+
+    // Cran Max : réglages bornés du directeur artistique, corrections de taille et de tempo du critique.
+    const tuned = { ...adScene, tune: { surfaces: ['light', 'primary', 'tint'] } };
+    const tunedPrompt = buildArtDirectorPrompt(sheet, 'swiss', tuned);
+    check('cran Max : le prompt du directeur artistique demande taille, alignement, surface (menu), tempo, décor', /scale:/.test(tunedPrompt.system) && /surface: one of light \| primary \| tint/.test(tunedPrompt.system) && /tempo:/.test(tunedPrompt.system));
+    const t1 = parseArtDirector('layout: a\nscale: 1.6\nalign: Center\nsurface: b\ntempo: lively\ndecor: yes', tuned).tuning;
+    check('cran Max : taille ramenée dans ses bornes (1,6 → 1,25), surface par lettre, tempo et décor compris', t1?.scale === 1.25 && t1?.align === 'center' && t1?.surface === 'primary' && t1?.tempo === 'lively' && t1?.decor === true, JSON.stringify(t1));
+    const t2 = parseArtDirector('layout: a\nsurface: neon-pink\nscale: huge', tuned).tuning;
+    check('cran Max : surface hors du menu de la DA et taille illisible refusées', !t2?.surface && t2?.scale === undefined, JSON.stringify(t2));
+    check('sous Max : aucun réglage lu, même si le modèle en propose', parseArtDirector('layout: a\nscale: 1.2\nsurface: a', adScene).tuning === undefined);
+    const tuningFixes = parseCritic('2.scale=1.4\n3.tempo=calm\n4.tempo=furious', { ...critIn, tuning: true });
+    check('cran Max : le critique corrige taille (bornée) et tempo (menu)', tuningFixes.some((f) => f.field === 'scale' && f.value === '1.25') && tuningFixes.some((f) => f.field === 'tempo' && f.value === 'calm') && !tuningFixes.some((f) => f.value === 'furious'), JSON.stringify(tuningFixes));
+    check('sous Max : le critique ne touche ni taille ni tempo', parseCritic('2.scale=1.1\n3.tempo=calm', critIn).length === 0);
   }
 
   console.log(failures ? `\n✗ ${failures} vérification(s) en échec.` : '\n✓ Direction créative : bornée, robuste, variée.');

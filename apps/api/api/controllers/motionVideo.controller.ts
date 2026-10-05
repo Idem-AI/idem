@@ -1,3 +1,4 @@
+import { normalizeCreativity } from '../models/creativity.model';
 import { Response } from 'express';
 import sharp from 'sharp';
 import logger from '../config/logger';
@@ -114,7 +115,7 @@ export const createVideoController = async (req: CustomRequest, res: Response): 
     const video = await motionVideoService.createVideo(
       id.userId,
       id.projectId,
-      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage() },
+      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage(), creativity: normalizeCreativity(req.body?.creativity) },
       paid
     );
     res.status(201).json(video);
@@ -331,7 +332,7 @@ export const createVideoStreamController = async (req: CustomRequest, res: Respo
     const video = await motionVideoService.createVideo(
       id.userId,
       id.projectId,
-      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage() },
+      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage(), creativity: normalizeCreativity(req.body?.creativity) },
       paid,
       (event) => send({ type: 'progress', ...event })
     );

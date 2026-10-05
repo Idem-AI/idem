@@ -76,14 +76,14 @@ export function useBeatPulse(): number {
 }
 
 /** Avancement de la scène (0 → 1 sur toute sa visibilité) : la base des dérives lentes. */
-function useSceneProgress(): number {
+export function useSceneProgress(): number {
   const { t } = useEngine();
   const s = useScene();
   return clamp((t - s.visFrom) / Math.max(0.1, s.span));
 }
 
 /** Sortie d'un élément graphique (accélération) quand la transition suivante ne couvre pas la scène. */
-function useExitFactor(): number {
+export function useExitFactor(): number {
   const { easeIn } = useEngine();
   const lt = useLocalTime();
   const exitAt = useExitAt();
@@ -122,7 +122,7 @@ export function stackLines(text: string, maxLines: number): string[] {
 }
 
 /** Une étiquette pleine (couleur de la marque) qui entre en volet. */
-function LabelBlock({ text, at, className = '' }: { text?: string; at: number; className?: string }) {
+export function LabelBlock({ text, at, className = '' }: { text?: string; at: number; className?: string }) {
   const s = useScene();
   const style = useEnter('wipeRight', at, 0.8, useExitAt());
   if (!text) return null;
@@ -295,7 +295,9 @@ function CircleStage() {
   const p = useSceneProgress();
   const out = useExitFactor();
   const k = back(progress(lt, 0, data.direction.pacing.enter * 1.1));
-  const size = u * (horizontal ? 60 : 64);
+  // En colonne, le cercle laisse la place au texte : 42 % de la hauteur du cadre au plus. À
+  // 64 unités sur un carré, cercle + titre sur deux lignes + sous-titre sortaient du cadre.
+  const size = u * (horizontal ? 60 : Math.min(64, (data.height / u) * 0.42));
   cue(`${s.key}:circle`, s.start + 0.03, 'pop', 0.7);
   const inner = s.image ? (
     <img className="media-el" src={s.image} alt="" style={{ transform: `scale(${mix(1.15, 1.03, p)})` }} />

@@ -102,7 +102,8 @@ export function Kinetic(props: KineticProps) {
   const d = data.direction;
   const role = props.role ?? 'headline';
   const isDisplay = role === 'headline';
-  useFit(ref, props.fit, u, isDisplay ? d.type.scale : 1);
+  // Taille des titres : celle de la direction, réglée scène par scène au cran Max (0,85 à 1,25).
+  useFit(ref, props.fit, u, isDisplay ? d.type.scale * Math.min(1.25, Math.max(0.85, scene.scale || 1)) : 1);
 
   const text = isDisplay && d.type.displayCase === 'upper' ? props.text.toUpperCase() : props.text;
   const words = text.split(/\s+/).filter(Boolean);
@@ -389,7 +390,9 @@ export function Odometer({ text, at, dur, fit }: { text: string; at: number; dur
       style={{ fontFamily: 'var(--f-display)', fontWeight: data.direction.type.weight, letterSpacing: '-0.04em', lineHeight: 1 }}
     >
       {chars.map((c, i) => {
-        if (!/\d/.test(c)) return <span key={i}>{c}</span>;
+        // En inline-flex, une espace seule dans son élément est réduite à rien : « 15 000 F CFA »
+        // s'affichait « 15000FCFA ». L'espace devient insécable, elle garde sa largeur.
+        if (!/\d/.test(c)) return <span key={i}>{/\s/.test(c) ? '\u00A0' : c}</span>;
         const order = di++;
         const turns = digits - order - 1;
         const p = ease(progress(lt, at + order * 0.06, dur));
@@ -397,7 +400,11 @@ export function Odometer({ text, at, dur, fit }: { text: string; at: number; dur
         const pos = target * p;
         return (
           <span key={i} className="kt-odo-col">
-            <span className="kt-odo-strip" style={{ transform: `translateY(${(-(pos % 10) * 100) / 11}%)` }}>
+            {/* La colonne prend la largeur de SON chiffre (un « 1 » est étroit) : le bandeau défile au centre. */}
+            <span className="kt-odo-size" aria-hidden>
+              {c}
+            </span>
+            <span className="kt-odo-strip" style={{ transform: `translate(-50%, ${(-(pos % 10) * 100) / 11}%)` }}>
               {Array.from({ length: 11 }, (_, n) => (
                 <span key={n}>{n % 10}</span>
               ))}

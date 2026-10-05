@@ -16,6 +16,9 @@ import { PitchDeckService } from '../../../services/ai-agents/pitch-deck.service
 import { PitchDeckType, PitchDeckTypeCatalog } from '../../../models/pitchDeck.model';
 import { pitchDeckTypeLabel } from '../../../utils/deliverable-labels';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { CreativityLevel, DEFAULT_CREATIVITY } from '@idem/shared-models';
+import { CreativityGaugeComponent } from '../../../../../shared/components/creativity-gauge/creativity-gauge';
+import { CreativityService } from '../../../../../shared/services/creativity.service';
 
 /** Une carte de type, libellés résolus. */
 interface TypeCard extends PitchDeckType {
@@ -45,7 +48,7 @@ const TYPE_ICONS: Record<string, string> = {
  */
 @Component({
   selector: 'app-pitch-deck-new',
-  imports: [TranslateModule, ReactiveFormsModule, IdemLoaderComponent],
+  imports: [TranslateModule, ReactiveFormsModule, IdemLoaderComponent, CreativityGaugeComponent],
   templateUrl: './pitch-deck-new.html',
   styleUrl: './pitch-deck-new.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,6 +59,7 @@ export class PitchDeckNewPage implements OnInit {
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly creativityPricing = inject(CreativityService);
 
   protected readonly isLoading = signal(true);
   protected readonly loadError = signal(false);
@@ -63,6 +67,10 @@ export class PitchDeckNewPage implements OnInit {
   protected readonly createError = signal<string | null>(null);
   private readonly catalog = signal<PitchDeckTypeCatalog | null>(null);
   protected readonly selectedTypeId = signal('');
+  /** Cran de la jauge de créativité, transmis à la page du deck qui lance la génération. */
+  protected readonly creativity = signal<CreativityLevel>(DEFAULT_CREATIVITY);
+  /** Prix du deck au cran Low / Medium pour ce projet (null : prix non affiché). */
+  protected readonly creativityBaseCost = signal<number | null>(null);
 
   protected readonly nameControl = new FormControl('', {
     nonNullable: true,
@@ -97,6 +105,13 @@ export class PitchDeckNewPage implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    const projectId = this.cookieService.get('projectId');
+    if (projectId) {
+      this.creativityPricing
+        .baseCost(projectId, 'pitch_deck')
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((cost) => this.creativityBaseCost.set(cost));
+    }
   }
 
   protected load(): void {
@@ -144,7 +159,9 @@ export class PitchDeckNewPage implements OnInit {
       .subscribe({
         next: (deck) => {
           // La page du deck lance la génération : c'est elle qui en affiche la progression.
-          this.router.navigate(['/project/pitch-deck', deck.id], { queryParams: { generate: 'true' } });
+          this.router.navigate(['/project/pitch-deck', deck.id], {
+            queryParams: { generate: 'true', creativity: this.creativity() },
+          });
         },
         error: () => {
           this.isCreating.set(false);

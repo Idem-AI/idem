@@ -1,4 +1,6 @@
 import { Router, Request, Response } from 'express';
+import { creditCost, firstThenRevision } from '../middleware/billing.middleware';
+import { CREATIVITY_LEVELS, creativityCost } from '../models/creativity.model';
 import billingController from '../controllers/billing.controller';
 import { authenticate } from '../services/auth.service';
 import { verifyApiKey } from '../middleware/verifyApiKey';
@@ -238,6 +240,46 @@ router.get('/payments', authenticate, (req: Request, res: Response) =>
 router.get('/credits', authenticate, (req: Request, res: Response) =>
   billingController.getCreditStatement(req as any, res)
 );
+
+/**
+ * @openapi
+ * /billing/creativity/{projectId}:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Prix d'un livrable à chaque cran de la jauge de créativité
+ *     description: >
+ *       Le prix de base suit le barème du livrable POUR CE PROJET (plein tarif la première
+ *       fois, révision ensuite), puis le multiplicateur de chaque cran (Low ×1 … Ultra ×2).
+ *       Le dashboard affiche exactement ce que la route de génération débitera.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: projectId, required: true, schema: { type: string } }
+ *       - { in: query, name: action, required: true, schema: { type: string, enum: [flyer, carousel, business_card, pitch_deck, business_plan, logo_brand] } }
+ */
+const CREATIVITY_ACTIONS: Record<string, string | null> = {
+  flyer: null,
+  carousel: null,
+  business_card: 'revision',
+  pitch_deck: 'revision',
+  business_plan: 'revision',
+  logo_brand: 'logo_relaunch',
+};
+router.get('/creativity/:projectId', authenticate, async (req: Request, res: Response) => {
+  const action = String(req.query.action || '');
+  if (!(action in CREATIVITY_ACTIONS)) {
+    res.status(400).json({ error: 'unknown_action' });
+    return;
+  }
+  const repeat = CREATIVITY_ACTIONS[action];
+  const base = repeat
+    ? await firstThenRevision('business', action, repeat)(req as any)
+    : { action, cost: creditCost('business', action) };
+  res.json({
+    action: base.action,
+    baseCost: base.cost,
+    costs: Object.fromEntries(CREATIVITY_LEVELS.map((level) => [level, creativityCost(base.cost, level)])),
+  });
+});
 
 /**
  * @openapi

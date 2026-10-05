@@ -19,7 +19,9 @@ import {
   SSEConnectionConfig,
 } from '../../../../../../shared/models/sse-step.model';
 import { BusinessPlanModel } from '../../../../models/businessPlan.model';
-import { ProjectModel } from '@idem/shared-models';
+import { CreativityLevel, DEFAULT_CREATIVITY, ProjectModel } from '@idem/shared-models';
+import { CreativityGaugeComponent } from '../../../../../../shared/components/creativity-gauge/creativity-gauge';
+import { CreativityService } from '../../../../../../shared/services/creativity.service';
 import { AdditionalInfoFormComponent } from '../additional-info-form/additional-info-form';
 import { BusinessPlanStructureComponent } from '../business-plan-structure/business-plan-structure';
 import { BusinessPlanStructureSelection } from '../../../../models/business-plan-structure.model';
@@ -60,6 +62,7 @@ const DEFAULT_BUSINESS_PLAN_SECTIONS = [
     AdditionalInfoFormComponent,
     AgentResearchConsoleComponent,
     BusinessPlanStructureComponent,
+    CreativityGaugeComponent,
     TranslateModule, IdemLoaderComponent],
   templateUrl: './business-plan-generation.html',
   styleUrl: './business-plan-generation.css',
@@ -72,6 +75,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
+  private readonly creativityPricing = inject(CreativityService);
   private readonly destroy$ = new Subject<void>();
   private isForcingRegeneration = false;
   private targetSections: string[] = [];
@@ -96,6 +100,10 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   /** Sections de la structure retenue, dans l'ordre — pilotent la console. */
   protected readonly plannedSectionNames = signal<string[]>(DEFAULT_BUSINESS_PLAN_SECTIONS);
   protected readonly additionalInfos = signal<any>(null);
+  /** Cran de la jauge de créativité, choisi avec les informations complémentaires. */
+  protected readonly creativity = signal<CreativityLevel>(DEFAULT_CREATIVITY);
+  /** Prix du plan au cran Low / Medium pour ce projet (null : prix non affiché). */
+  protected readonly creativityBaseCost = signal<number | null>(null);
   protected readonly isSavingAdditionalInfo = signal<boolean>(false);
   protected readonly additionalInfoError = signal<string | null>(null);
   protected readonly isPostProcessing = signal<boolean>(false);
@@ -150,6 +158,13 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
+    const projectId = this.projectId();
+    if (projectId) {
+      this.creativityPricing
+        .baseCost(projectId, 'business_plan')
+        .pipe(takeUntil(this.destroy$))
+        .subscribe((cost) => this.creativityBaseCost.set(cost));
+    }
     this.documentId.set(this.route.snapshot.queryParams['documentId'] ?? null);
     this.isForcingRegeneration = this.route.snapshot.queryParams['force'] === 'true';
 
@@ -231,6 +246,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
       this.isForcingRegeneration,
       this.targetSections,
       this.documentId(),
+      this.creativity(),
     );
 
     this.startGenerationProcess(sseConnection);
@@ -262,6 +278,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
       this.isForcingRegeneration,
       [],
       this.documentId(),
+      this.creativity(),
     );
 
     // Use the generation service to handle the SSE connection properly

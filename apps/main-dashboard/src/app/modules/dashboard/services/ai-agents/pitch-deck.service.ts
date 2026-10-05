@@ -8,6 +8,7 @@ import {
   DeliverableDocumentSummary,
   documentIdQuery,
 } from '../../models/deliverable-document.model';
+import { CreativityLevel } from '@idem/shared-models';
 import { SSEService } from '../../../../shared/services/sse.service';
 import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
 
@@ -35,12 +36,15 @@ export class PitchDeckService {
     force = false,
     sections: string[] = [],
     documentId?: string | null,
+    /** Cran de la jauge de créativité (prix et délégation à l'IA) ; absent, Medium. */
+    creativity?: CreativityLevel,
   ): Observable<SSEStepEvent> {
     this.closeSSEConnection();
     const params = new URLSearchParams();
     if (documentId) params.set('documentId', documentId);
     if (force) params.set('force', 'true');
     if (sections.length > 0) params.set('sections', sections.join(','));
+    if (creativity) params.set('creativity', creativity);
     const query = params.toString();
     const config: SSEConnectionConfig = {
       url: `${this.apiUrl}/generate/${projectId}${query ? `?${query}` : ''}`,

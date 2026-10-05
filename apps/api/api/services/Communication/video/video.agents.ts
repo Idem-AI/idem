@@ -25,8 +25,12 @@ import { MusicTrack } from '../../../models/motionVideo.model';
 import { CopyContext, CopyWriter, estimateTokens } from './video.copy';
 import { DirectionId, MotionTransition, TRANSITION_CATALOGUE, WeightedTransition } from './video.direction';
 import { LAYOUT_CATALOGUE, LayoutId } from './video.layouts';
+import { agentLines, boundedNumber, brandSheet as genericBrandSheet, LETTERS, menuLines, pairs, pickOption } from '../../creativity/agent-io';
 
-export type AgentName = 'strategist' | 'writer' | 'artDirector' | 'animator' | 'soundDesigner' | 'critic';
+// Les lecteurs de réponse sont communs à tous les livrables ; réexportés pour les contrôles.
+export { agentLines, pairs, pickOption };
+
+export type AgentName = 'strategist' | 'writer' | 'artDirector' | 'animator' | 'soundDesigner' | 'critic' | (string & {});
 
 export interface AgentRun {
   agent: AgentName;
@@ -38,7 +42,6 @@ export interface AgentRun {
   kept?: number;
 }
 
-const LETTERS = 'abcdefghijklmnop';
 const AGENT_TIMEOUT_MS = 25000;
 
 /** Un appel d'agent : délai borné, jamais d'exception (une réponse vide = repli). */
@@ -53,48 +56,6 @@ export async function callAgent(writer: CopyWriter | undefined, system: string, 
   }
   return { raw: String(raw || ''), tokens: { input: estimateTokens(system + user), output: estimateTokens(raw || '') }, ms: Date.now() - started };
 }
-
-/** Lignes `clé: valeur` d'une réponse, quelle qu'en soit la forme (puces, gras, JSON, majuscules). */
-export function agentLines(raw: string): Record<string, string> {
-  let text = (raw || '').replace(/```[a-z]*\n?/gi, '').trim();
-  if (/^\{/.test(text)) {
-    try {
-      const data = JSON.parse(text);
-      text = Object.entries(data)
-        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : typeof v === 'object' && v ? Object.entries(v as Record<string, unknown>).map(([a, b]) => `${a}=${b}`).join(', ') : v}`)
-        .join('\n');
-    } catch {
-      /* lignes telles quelles */
-    }
-  }
-  const out: Record<string, string> = {};
-  for (const line of text.split(/\r?\n/)) {
-    const m = line.match(/^[\s*_#>-]*([a-zA-Zéè]+)[*_\s]*[:=]\s*(.+)$/);
-    if (m) out[m[1].toLowerCase()] = m[2].trim().replace(/^["'*`]+|["'*`.]+$/g, '');
-  }
-  return out;
-}
-
-/** Une option désignée par sa lettre (« b », « b) », « B - ») ou par son identifiant. */
-export function pickOption<T extends string>(value: string | undefined, options: readonly T[]): T | undefined {
-  if (!value) return undefined;
-  const v = value.trim();
-  const letter = v.match(/^([a-p])(?:\W|$)/i);
-  if (letter) {
-    const i = LETTERS.indexOf(letter[1].toLowerCase());
-    if (i >= 0 && i < options.length) return options[i];
-  }
-  const id = v.toLowerCase().replace(/[^a-z0-9-]/g, '');
-  return options.find((o) => o.toLowerCase() === id) || options.find((o) => id.includes(o.toLowerCase()));
-}
-
-/** Paires « n=valeur » (« 2=b, 3=split », « 2: b », « scene 2 → b »). */
-export function pairs(value: string | undefined): [number, string][] {
-  if (!value) return [];
-  return [...value.matchAll(/(\d{1,2})\s*[=:→>-]+\s*([a-zA-Z][a-zA-Z-]*)/g)].map((m) => [Number(m[1]), m[2]] as [number, string]);
-}
-
-const menuLines = (ids: readonly string[], describe: (id: string) => string) => ids.map((id, i) => `${LETTERS[i]}) ${id} — ${describe(id)}`);
 
 // ─── La fiche de marque, commune à tous les agents ──────────────────────────
 
@@ -117,23 +78,9 @@ export interface BrandSheetInput {
   art?: Partial<ArtDirectionModel> | null;
 }
 
-/** La charte et sa DA, en 3 à 5 lignes : la même pour tous les agents. */
+/** La charte et sa DA, en 3 à 5 lignes : la même pour tous les agents (cf. creativity/agent-io.ts). */
 export function brandSheet({ ctx, palette, fonts, art }: BrandSheetInput): string {
-  const colors = ['primary', 'secondary', 'accent', 'background']
-    .filter((k) => palette[k])
-    .map((k) => `${k} ${palette[k]}`)
-    .join(', ');
-  const lines = [
-    `BRAND: ${ctx.brandName}${ctx.businessType ? ` — ${ctx.businessType}` : ''}${ctx.tone ? ` · tone: ${ctx.tone}` : ''}`,
-    `CHARTER: colors ${colors}; fonts ${fonts.display} (titles) / ${fonts.body} (text)`,
-  ];
-  if (art) {
-    const da = [art.styleName || art.styleId, art.tagline, (art.keywords || []).slice(0, 5).join(', ')].filter(Boolean).join(' · ');
-    if (da) lines.push(`ART DIRECTION: ${da}`.slice(0, 260));
-    if (art.dos?.length) lines.push(`DO: ${art.dos.slice(0, 3).join('; ')}`.slice(0, 220));
-    if (art.donts?.length) lines.push(`AVOID: ${art.donts.slice(0, 3).join('; ')}`.slice(0, 220));
-  }
-  return lines.join('\n');
+  return genericBrandSheet({ brandName: ctx.brandName, businessType: ctx.businessType, tone: ctx.tone, palette, fonts, art });
 }
 
 // ─── Directeur artistique : une scène à la fois ─────────────────────────────
@@ -148,20 +95,50 @@ export interface ArtDirectorScene {
   /** Le grand moment du film ? */
   accent?: boolean;
   menu: LayoutId[];
+  /**
+   * Cran Max : l'agent règle aussi des paramètres BORNÉS de la scène. `surfaces` est le menu
+   * des surfaces admises (celles que la stratégie de couleur de la DA emploie déjà).
+   */
+  tune?: { surfaces: string[] };
+}
+
+/** Paramètres de composition réglés par le directeur artistique au cran Max (tous bornés). */
+export interface SceneTuning {
+  /** Taille des titres : 0,85 (retenue) à 1,25 (affiche). */
+  scale?: number;
+  align?: 'left' | 'center';
+  surface?: string;
+  /** Tempo des entrées de la scène. */
+  tempo?: 'calm' | 'normal' | 'lively';
+  /** Fond graphique du kit posé sur la scène. */
+  decor?: boolean;
 }
 
 export interface ArtDirectorChoice {
   layout?: LayoutId;
   /** Index du mot mis en valeur dans le titre. */
   emphasis?: number;
+  tuning?: SceneTuning;
 }
+
+/** Tempo → multiplicateur du rythme des entrées. */
+export const TEMPO_PACE: Record<NonNullable<SceneTuning['tempo']>, number> = { calm: 1.15, normal: 1, lively: 0.88 };
 
 export function buildArtDirectorPrompt(sheet: string, direction: DirectionId, scene: ArtDirectorScene, previous?: string): { system: string; user: string } {
   const system = [
     'You are the art director of a professional motion-design video. You lay out ONE scene, true to the brand charter and its art direction.',
-    'Output ONLY these two lines:',
+    'Output ONLY these lines:',
     'layout: the letter of one option from LAYOUTS',
     'word: the single most important word of the headline, copied exactly',
+    ...(scene.tune
+      ? [
+          'scale: headline size from 0.85 (restrained) to 1.25 (poster)',
+          'align: left | center',
+          `surface: one of ${scene.tune.surfaces.join(' | ')}`,
+          'tempo: calm | normal | lively',
+          'decor: yes | no (graphic background behind this scene)',
+        ]
+      : []),
     'Prefer a bold, graphic layout over the classic one unless the brand asks for restraint.',
   ].join('\n');
   const user = [
@@ -190,6 +167,24 @@ export function parseArtDirector(raw: string, scene: ArtDirectorScene): ArtDirec
     const at = words.findIndex((w) => w === word);
     if (at >= 0) out.emphasis = at;
   }
+  if (scene.tune) {
+    const tuning: SceneTuning = {};
+    const scale = boundedNumber(lines.scale || lines.size, 0.85, 1.25);
+    if (scale != null) tuning.scale = Math.round(scale * 100) / 100;
+    const align = (lines.align || lines.alignment || '').toLowerCase();
+    if (/^(left|gauche)/.test(align)) tuning.align = 'left';
+    else if (/^(center|centre|middle)/.test(align)) tuning.align = 'center';
+    const surface = pickOption(lines.surface || lines.color || lines.colour, scene.tune.surfaces);
+    if (surface) tuning.surface = surface;
+    const tempo = (lines.tempo || lines.pace || '').toLowerCase();
+    if (/calm|slow|pos/.test(tempo)) tuning.tempo = 'calm';
+    else if (/live|fast|viv|energ/.test(tempo)) tuning.tempo = 'lively';
+    else if (/normal|medium/.test(tempo)) tuning.tempo = 'normal';
+    const decor = (lines.decor || lines.background || '').toLowerCase();
+    if (/^(yes|oui|true|on)/.test(decor)) tuning.decor = true;
+    else if (/^(no|non|false|off)/.test(decor)) tuning.decor = false;
+    if (Object.keys(tuning).length) out.tuning = tuning;
+  }
   return out;
 }
 
@@ -199,7 +194,12 @@ export async function runArtDirectors(
   sheet: string,
   direction: DirectionId,
   scenes: ArtDirectorScene[],
-  concurrency = 4
+  concurrency = 4,
+  /**
+   * Cran Max : les scènes à fort enjeu (accroche, grand moment) sont tirées plusieurs fois en
+   * parallèle et départagées par le CODE (`score`, plus bas = meilleur) — jamais par un juge IA.
+   */
+  bestOf?: { samples: (scene: ArtDirectorScene) => number; score: (choice: ArtDirectorChoice, scene: ArtDirectorScene) => number }
 ): Promise<{ choices: Record<number, ArtDirectorChoice>; run: AgentRun }> {
   const choices: Record<number, ArtDirectorChoice> = {};
   const run: AgentRun = { agent: 'artDirector', source: 'graph', tokens: { input: 0, output: 0 }, ms: 0, kept: 0 };
@@ -210,11 +210,17 @@ export async function runArtDirectors(
     while (next < queue.length) {
       const scene = queue[next++];
       const prompt = buildArtDirectorPrompt(sheet, direction, scene);
-      const res = await callAgent(writer, prompt.system, prompt.user);
-      run.tokens.input += res.tokens.input;
-      run.tokens.output += res.tokens.output;
-      const choice = parseArtDirector(res.raw, scene);
-      if (choice.layout || choice.emphasis != null) {
+      const n = writer && bestOf ? Math.max(1, Math.min(3, bestOf.samples(scene))) : 1;
+      const results = await Promise.all(Array.from({ length: n }, () => callAgent(writer, prompt.system, prompt.user)));
+      const parsed: ArtDirectorChoice[] = [];
+      for (const res of results) {
+        run.tokens.input += res.tokens.input;
+        run.tokens.output += res.tokens.output;
+        const c = parseArtDirector(res.raw, scene);
+        if (c.layout || c.emphasis != null || c.tuning) parsed.push(c);
+      }
+      const choice = parsed.length > 1 && bestOf ? parsed.map((c) => ({ c, s: bestOf.score(c, scene) })).sort((a, b) => a.s - b.s)[0].c : parsed[0] || {};
+      if (choice.layout || choice.emphasis != null || choice.tuning) {
         choices[scene.index] = choice;
         run.kept = (run.kept || 0) + 1;
       }
@@ -369,6 +375,9 @@ export interface CriticScene {
   title?: string;
   /** Mises en page possibles pour cette scène (menu du graphe). */
   layouts: string[];
+  /** Cran Max : taille des titres et tempo actuels (le critique peut les corriger). */
+  scale?: number;
+  tempo?: string;
 }
 
 export interface CriticInput {
@@ -379,11 +388,13 @@ export interface CriticInput {
   transitions: string[];
   techniques: string[];
   warnings: string[];
+  /** Cran Max : le critique corrige aussi la taille des titres et le tempo. */
+  tuning?: boolean;
 }
 
 export interface CriticFix {
   index: number;
-  field: 'layout' | 'cut' | 'title';
+  field: 'layout' | 'cut' | 'title' | 'scale' | 'tempo';
   value: string;
 }
 
@@ -394,6 +405,7 @@ export function buildCriticPrompt(input: CriticInput): { system: string; user: s
     'N.layout=id (id from that scene’s OPTIONS)',
     'N.cut=id (transition into scene N, from CUTS)',
     'N.title=id (title entrance, from TECHNIQUES)',
+    ...(input.tuning ? ['N.scale=0.85 to 1.25 (headline size)', 'N.tempo=calm|normal|lively'] : []),
     'If nothing needs fixing, answer: ok',
   ].join('\n');
   const user = [
@@ -402,7 +414,7 @@ export function buildCriticPrompt(input: CriticInput): { system: string; user: s
     'VIDEO:',
     ...input.scenes.map(
       (s, i) =>
-        `${i + 1}. ${s.sceneId} ${s.duration.toFixed(1)}s layout=${s.layout || '-'} cut=${s.transition || '-'} title=${s.technique || '-'}${s.title ? ` "${s.title.slice(0, 50)}"` : ''}${s.layouts.length ? ` OPTIONS: ${s.layouts.join(', ')}` : ''}`
+        `${i + 1}. ${s.sceneId} ${s.duration.toFixed(1)}s layout=${s.layout || '-'} cut=${s.transition || '-'} title=${s.technique || '-'}${input.tuning ? ` scale=${s.scale ?? 1} tempo=${s.tempo || 'normal'}` : ''}${s.title ? ` "${s.title.slice(0, 50)}"` : ''}${s.layouts.length ? ` OPTIONS: ${s.layouts.join(', ')}` : ''}`
     ),
     `CUTS: ${input.transitions.join(', ')}`,
     `TECHNIQUES: ${input.techniques.join(', ')}`,
@@ -415,18 +427,27 @@ export function buildCriticPrompt(input: CriticInput): { system: string; user: s
 
 export function parseCritic(raw: string, input: CriticInput): CriticFix[] {
   const fixes: CriticFix[] = [];
-  for (const m of (raw || '').matchAll(/(\d{1,2})\s*\.\s*(layout|cut|transition|title|technique)\s*[=:]\s*([a-zA-Z][a-zA-Z-]*)/gi)) {
+  for (const m of (raw || '').matchAll(/(\d{1,2})\s*\.\s*(layout|cut|transition|title|technique|scale|size|tempo|pace)\s*[=:]\s*([a-zA-Z][a-zA-Z-]*|\d+(?:[.,]\d+)?)/gi)) {
     const index = Number(m[1]) - 1;
-    const field = (/cut|transition/i.test(m[2]) ? 'cut' : /title|technique/i.test(m[2]) ? 'title' : 'layout') as CriticFix['field'];
+    const key = m[2].toLowerCase();
+    const field = (/cut|transition/.test(key) ? 'cut' : /title|technique/.test(key) ? 'title' : /scale|size/.test(key) ? 'scale' : /tempo|pace/.test(key) ? 'tempo' : 'layout') as CriticFix['field'];
     const scene = input.scenes[index];
     if (!scene) continue;
-    const value = m[3];
+    let value = m[3];
+    if (field === 'scale') {
+      const n = boundedNumber(value, 0.85, 1.25);
+      if (n == null) continue;
+      value = String(Math.round(n * 100) / 100);
+    }
     const ok =
       field === 'layout'
         ? scene.layouts.includes(value)
         : field === 'cut'
           ? index >= 1 && input.transitions.includes(value)
-          : index < input.scenes.length - 1 && input.techniques.includes(value);
+          : field === 'scale' || field === 'tempo'
+            ? !!input.tuning && index < input.scenes.length - 1 && (field === 'scale' || ['calm', 'normal', 'lively'].includes(value.toLowerCase()))
+            : index < input.scenes.length - 1 && input.techniques.includes(value);
+    if (field === 'tempo') value = value.toLowerCase();
     if (ok && !fixes.some((f) => f.index === index && f.field === field)) fixes.push({ index, field, value });
     if (fixes.length >= 5) break;
   }

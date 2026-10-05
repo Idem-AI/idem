@@ -1,3 +1,4 @@
+import type { SavedDocumentDesign } from './creativity.model';
 import { ArtDirectionModel } from './art-direction.model';
 import { LogoModel, LogoPreferences } from './logo.model';
 import { SectionModel } from './section.model';
@@ -77,6 +78,8 @@ export interface BrandIdentityModel {
    * même projet ne se ressemblaient pas. Cf. models/art-direction.model.ts.
    */
   artDirection?: ArtDirectionModel;
+  /** Direction des pages de la charte décidée par la jauge de créativité (reprises, régénérations ciblées). */
+  charterDesign?: SavedDocumentDesign;
   pdfFormat?: string; // Format PDF choisi (A4_PORTRAIT ou SLIDE_16_9)
   /**
    * Bannières de réseaux sociaux et photo de profil, rendues en fichiers pour

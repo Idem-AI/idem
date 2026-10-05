@@ -97,14 +97,16 @@ export function layoutRuns(
         }
 
         const path = glyph.getPath(pen, 0, fontSize);
-        const data = path.toPathData(PATH_PRECISION);
+        // `commands` existe sur le tracé d'opentype.js, mais ses typages ne le déclarent pas.
+        const data = safePathData((path as unknown as { commands: Record<string, any>[] }).commands || []);
         if (data) {
           segments.push(data);
           const box = path.getBoundingBox();
-          inkLeft = Math.min(inkLeft, box.x1);
-          inkRight = Math.max(inkRight, box.x2);
-          inkTop = Math.min(inkTop, box.y1);
-          inkBottom = Math.max(inkBottom, box.y2);
+          // Même prudence que pour le tracé : une boîte illisible n'élargit rien.
+          if (Number.isFinite(box.x1)) inkLeft = Math.min(inkLeft, box.x1);
+          if (Number.isFinite(box.x2)) inkRight = Math.max(inkRight, box.x2);
+          if (Number.isFinite(box.y1)) inkTop = Math.min(inkTop, box.y1);
+          if (Number.isFinite(box.y2)) inkBottom = Math.max(inkBottom, box.y2);
         }
 
         pen += (glyph.advanceWidth ?? 0) * scale + tracking;
@@ -121,6 +123,43 @@ export function layoutRuns(
   if (!paths.length || !Number.isFinite(inkLeft) || inkRight <= inkLeft) return null;
 
   return { paths, inkLeft, inkRight, inkTop, inkBottom };
+}
+
+/**
+ * Données de tracé d'un glyphe, sans coordonnée non finie.
+ *
+ * opentype.js rend parfois un `NaN` dans un tracé (contours quadratiques de certaines polices
+ * variables — Fraunces, par exemple). Un moteur SVG arrête de dessiner le chemin entier à la
+ * première valeur illisible : le mot s'arrêtait net après une lettre (« Verd ι »). La coordonnée
+ * manquante reprend celle du point courant (ou du point d'arrivée pour un point de contrôle) ;
+ * une commande sans point d'arrivée lisible est écartée.
+ */
+function safePathData(commands: ReadonlyArray<Record<string, any>>): string {
+  const n = (v: number) => {
+    const r = Math.round(v * 10 ** PATH_PRECISION) / 10 ** PATH_PRECISION;
+    return Object.is(r, -0) ? '0' : String(r);
+  };
+  const ok = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+  let cx = 0;
+  let cy = 0;
+  const out: string[] = [];
+  for (const c of commands) {
+    if (c.type === 'Z') {
+      out.push('Z');
+      continue;
+    }
+    const x = ok(c.x) ? c.x : cx;
+    const y = ok(c.y) ? c.y : cy;
+    if (!ok(c.x) && !ok(c.y)) continue;
+    if (c.type === 'M' || c.type === 'L') out.push(`${c.type}${n(x)} ${n(y)}`);
+    else if (c.type === 'Q') out.push(`Q${n(ok(c.x1) ? c.x1 : x)} ${n(ok(c.y1) ? c.y1 : y)} ${n(x)} ${n(y)}`);
+    else if (c.type === 'C')
+      out.push(`C${n(ok(c.x1) ? c.x1 : cx)} ${n(ok(c.y1) ? c.y1 : cy)} ${n(ok(c.x2) ? c.x2 : x)} ${n(ok(c.y2) ? c.y2 : y)} ${n(x)} ${n(y)}`);
+    else continue;
+    cx = x;
+    cy = y;
+  }
+  return out.join('');
 }
 
 export function buildWordmarkGeometry(

@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable, throwError, from } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { SseClient } from 'ngx-sse-client';
+import { CreativityLevel } from '@idem/shared-models';
 import { environment } from '../../../../../environments/environment';
 import { TokenService } from '../../../../shared/services/token.service';
 import {
@@ -103,16 +104,16 @@ export class CommunicationService {
   }
 
   /** POST on-demand flyer generation */
-  generateFlyer(projectId: string, contentId: string, format: FlyerFormat): Observable<Flyer> {
+  generateFlyer(projectId: string, contentId: string, format: FlyerFormat, creativity?: CreativityLevel): Observable<Flyer> {
     return this.http
-      .post<Flyer>(`${this.apiUrl}/${projectId}/flyer/${contentId}`, { format })
+      .post<Flyer>(`${this.apiUrl}/${projectId}/flyer/${contentId}`, { format, creativity })
       .pipe(catchError((err) => throwError(() => err)));
   }
 
   /** POST force flyer regeneration */
-  regenerateFlyer(projectId: string, contentId: string, format: FlyerFormat): Observable<Flyer> {
+  regenerateFlyer(projectId: string, contentId: string, format: FlyerFormat, creativity?: CreativityLevel): Observable<Flyer> {
     return this.http
-      .post<Flyer>(`${this.apiUrl}/${projectId}/flyer/${contentId}/regenerate`, { format })
+      .post<Flyer>(`${this.apiUrl}/${projectId}/flyer/${contentId}/regenerate`, { format, creativity })
       .pipe(catchError((err) => throwError(() => err)));
   }
 
@@ -387,6 +388,7 @@ export class CommunicationService {
       intent?: VisualIntent;
       withPhoto?: boolean;
       variants?: number;
+      creativity?: CreativityLevel;
     },
   ): Observable<Flyer[]> {
     return this.http

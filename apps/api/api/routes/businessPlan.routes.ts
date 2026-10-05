@@ -20,7 +20,7 @@ import {
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
-import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
+import { firstThenRevision, requireCredits, withCreativity } from '../middleware/billing.middleware';
 import multer from 'multer';
 
 export const businessPlanRoutes = Router();
@@ -117,8 +117,9 @@ businessPlanRoutes.get(
   checkQuota,
   // 70 crédits pour le business plan ; le régénérer ensuite vaut une révision,
   // sans quoi le barème punirait l'itération que le produit encourage.
+  // Le cran de créativité (paramètre `creativity` du flux) multiplie le prix du livrable.
   requireCredits('business', 'business_plan', {
-    resolve: firstThenRevision('business', 'business_plan', 'revision'),
+    resolve: withCreativity('business', 'business_plan', firstThenRevision('business', 'business_plan', 'revision')),
   }),
   generateBusinessPlanStreamingController
 );

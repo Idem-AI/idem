@@ -1,3 +1,4 @@
+import type { SavedDocumentDesign } from './creativity.model';
 import { SectionModel } from './section.model';
 import { BusinessPlanStructure } from './businessPlanStructure.model';
 
@@ -67,4 +68,6 @@ export interface BusinessPlanDocument extends BusinessPlanModel {
   id: string;
   /** Nom donné par l'utilisateur. */
   name?: string;
+  /** Direction artistique des pages décidée par la jauge de créativité (reprises, régénérations ciblées). */
+  design?: SavedDocumentDesign;
 }

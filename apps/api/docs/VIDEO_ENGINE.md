@@ -164,6 +164,7 @@ dans le texte l'emporte : « Qualité garantie » donne `quality`, pas `secure`)
 | `npm run check:video:variety` | 12 vidéos rendues d'une même marque (dont 6 dans la même direction) : distances d'image et de structure, bonnes pratiques |
 | `npm run docs:video-graph` | régénère `docs/VIDEO_CAPABILITIES.md` |
 | `npm run check:video` | pipeline complet (copie, médias, musique, rendu MP4) |
+| `npm run check:video:layouts` | chaque mise en page × chaque scène acceptée × 4 formats, textes au plus long : rien hors cadre, rien de trop large |
 | `npm run check:video:types` | les 8 types de vidéo avec vrais médias et vraie musique |
 | `npm run check:video:directions` | diversité des 8 directions |
 
@@ -294,6 +295,13 @@ Règles du moteur apprises en route (chacune a causé un défaut réel, détect�
   valeur CSS est invalide et l'élément garde le flou de l'image précédente (rendu qui dépend de l'ordre) ;
 - un conteneur flex n'étire jamais un odomètre au point de tasser ses colonnes de chiffres (`.kt-odo>*{flex:none}`) :
   l'ajustement ne voyait pas le débordement et le chiffre sortait du cadre ;
+- dans un odomètre, une espace est insécable (en `inline-flex`, une espace seule disparaît : « 15 000 F » s'affichait
+  « 15000F ») et chaque colonne prend la largeur de SON chiffre (le « 1 » étroit ne laisse plus de trou) ;
+- une scène qui déborde de sa zone sûre réduit d'abord ses textes, puis tout son bloc (`useShrinkOverflow`, App.tsx) :
+  la mesure porte sur les boîtes de TOUS les textes de chaque `.safe`, pas sur le seul premier bloc. Elle voit donc
+  une colonne cercle + texte, ou des cartes dont la hauteur vient des icônes et des marges. Mesurée une fois, sans
+  les transformations d'animation, elle donne la même image quel que soit l'instant ;
+- en colonne, le cercle de `circleStage` occupe au plus 42 % de la hauteur du cadre (64 unités débordaient en carré) ;
 - en rendu, les polices de la charte sont embarquées dans la page (`video.fonts.ts` : feuilles lues côté serveur,
   en cache, sous-ensembles latins, « vietnamese » seulement si le texte a des voyelles pointées) : une feuille Google
   Fonts qui tardait bloquait l'événement `load` et faisait échouer l'export après 60 s.
@@ -306,6 +314,11 @@ Sources des seuils : [University of Melbourne — Video captioning style guide](
 [Hooks des 3 premières secondes](https://www.capcut.com/create/short-form-video-hooks-first-3-second-patterns).
 
 ## 14. L'équipe d'agents (`video.agents.ts`)
+
+> Les agents s'activent selon la **jauge de créativité** choisie avant la génération (Low → Ultra) :
+> le stratège et le sound designer dès Medium, la composition dès High, les réglages bornés au cran
+> Max, et au cran Ultra un agent codeur écrit le composant React de chaque scène. Voir
+> [CREATIVITY.md](CREATIVITY.md).
 
 Une seule grosse tâche (« fais la vidéo ») est mal faite par un petit modèle ; une tâche étroite (« choisis la mise
 en page de CETTE scène parmi ces trois ») est bien faite. La vidéo est donc partagée entre agents spécialisés,
@@ -354,7 +367,9 @@ Chaque transition a son son (tic, souffle, whoosh, impact). Les transitions « c
 panneaux, vague) couvrent tout le cadre à l'instant exact de la coupe.
 
 Contrôles : `check:video:engine` rend les 14 mises en page × 3 formats (déterminisme, aucun texte hors cadre,
-mouvement réel) et les 7 nouvelles transitions ; `check:video:creative` §8 éprouve les agents (réponses parfaites,
+mouvement réel) et les 7 nouvelles transitions ; `check:video:layouts` rend chaque mise en page, pour chaque scène
+qu'elle accepte, avec des textes à la longueur MAXIMALE de leurs cases et les icônes de production, dans les quatre
+formats (le pipeline tirant sa graine au hasard, `check:video` n'essaie qu'une combinaison par passage) ; `check:video:creative` §8 éprouve les agents (réponses parfaites,
 lettres seules, JSON, inventions, vides, pannes ; budgets ; menus fidèles à la DA pour toutes les directions × DA).
 
 ## Sources

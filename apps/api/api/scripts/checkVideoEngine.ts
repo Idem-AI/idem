@@ -388,6 +388,9 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
         ['bigNumber', 'swiss', 'stat', { value: '87 %', label: 'de clientes fidèles' }],
         ['diagonalBand', 'kinetic', 'cta', { title: 'Venez essayer en boutique', action: 'Réserver', contact: 'wax-lome.tg' }],
         ['circleStage', 'precision', 'stat', { value: '12 000', label: 'pagnes vendus cette année' }],
+        // Le cas qui sortait du cadre en carré : cercle plein + titre long + sous-titre + bouton.
+        ['circleStage', 'precision', 'cta', { title: 'Le wax authentique, livré chez vous', action: 'Commander', contact: 'wax-lome.tg' }],
+        ['circleStage', 'editorial', 'statement', { title: 'Le wax authentique, livré chez vous partout', sub: 'Tissé à la main à Lomé, depuis 2019' }],
         ['splitBlock', 'swiss', 'benefits', { title: 'Pourquoi nous choisir', b1: 'Coton certifié', b2: 'Teintures fixes', b3: 'Retouches offertes' }],
         ['layeredCards', 'collage', 'event', { title: 'Défilé de lancement', date: 'Samedi 14 juin', time: '19 h', place: 'Lomé, quartier Bè' }],
         ['gridCards', 'precision', 'benefits', { title: 'Le wax premium', b1: 'Coton certifié', b2: 'Teintures fixes', b3: 'Retouches offertes' }],

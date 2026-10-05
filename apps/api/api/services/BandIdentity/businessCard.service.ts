@@ -1,3 +1,8 @@
+import { atLeast, CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
+import { CreativeOrchestrator, runtimeCall } from '../creativity/orchestrator';
+import { brandSheet } from '../creativity/agent-io';
+import { CARD_STRUCTURES, pickCardLayout, renderCardBack, renderCardFront } from './businessCardLayouts';
+import { cardConceptTask, cardLayoutTask, cardStructureTask, cardTuningTask } from './businessCardCreative';
 import crypto from 'crypto';
 import logger from '../../config/logger';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -38,6 +43,13 @@ export interface GenerateTemplateOptions {
   /** Direction artistique libre saisie par l'utilisateur. */
   styleBrief?: string;
   language?: SupportedLanguage;
+  /**
+   * La jauge de créativité. Low → Max : le CODE compose recto et verso
+   * (businessCardLayouts.ts), les agents décident selon le cran. Ultra : l'IA écrit les deux
+   * faces en HTML, chaque face est contrôlée à l'impression, et retombe sur le rendu Max si
+   * elle échoue.
+   */
+  creativity?: CreativityLevel;
 }
 
 /**
@@ -102,59 +114,114 @@ export class BusinessCardService extends GenericService {
       throw new Error('BRANDING_REQUIRED');
     }
 
-    const prompt = buildBusinessCardPrompt({
-      projectName: project.name || 'Brand',
-      projectDescription: project.longDescription || project.description || '',
-      industry: project.type || project.scope || 'general',
-      orientation,
-      width: orientation === 'landscape' ? 85 : 55,
-      height: orientation === 'landscape' ? 55 : 85,
-      colors: {
-        primary: branding?.colors?.colors?.primary || '#111827',
-        secondary: branding?.colors?.colors?.secondary || '#374151',
-        accent: branding?.colors?.colors?.accent || '#2563EB',
-        background: branding?.colors?.colors?.background || '#FFFFFF',
-        text: branding?.colors?.colors?.text || '#111827',
-      },
-      typography: {
-        primaryFont: branding?.typography?.primaryFont || 'Archivo',
-        secondaryFont: branding?.typography?.secondaryFont || 'IBM Plex Sans',
-      },
-      logos: this.collectLogoUrls(branding),
-      styleBrief: options.styleBrief?.trim() || undefined,
-      // La carte est tenue à côté du logo : c'est le support où un écart avec
-      // la direction artistique de la marque se voit le plus.
-      artDirectionBlock: buildArtDirectionBlock(branding?.artDirection, { medium: 'poster' }),
-    });
-
-    const config: PromptConfig = {
-      provider: AI_CONFIG.branding.businessCard.provider,
-      modelName: AI_CONFIG.branding.businessCard.modelName,
-      fallbackModels: AI_CONFIG.branding.businessCard.fallbackModels,
-      llmOptions: { ...AI_CONFIG.branding.businessCard.llmOptions },
-      userId,
-      promptType: 'branding_business_card',
-      language: options.language,
+    const level = normalizeCreativity(options.creativity);
+    const palette = {
+      primary: branding?.colors?.colors?.primary || '#111827',
+      secondary: branding?.colors?.colors?.secondary || '#374151',
+      accent: branding?.colors?.colors?.accent || '#2563EB',
+      background: branding?.colors?.colors?.background || '#FFFFFF',
+      text: branding?.colors?.colors?.text || '#111827',
     };
-    const messages: AIChatMessage[] = [{ role: 'user', content: prompt }];
+    const typography = {
+      primaryFont: branding?.typography?.primaryFont || 'Archivo',
+      secondaryFont: branding?.typography?.secondaryFont || 'IBM Plex Sans',
+    };
+    const logos = this.collectLogoUrls(branding);
+    const width = orientation === 'landscape' ? 85 : 55;
+    const height = orientation === 'landscape' ? 55 : 85;
+    const sheet = brandSheet({
+      brandName: project.name || 'Brand',
+      businessType: project.type || project.scope,
+      palette,
+      fonts: { display: typography.primaryFont, body: typography.secondaryFont },
+      art: branding?.artDirection,
+    });
+    const orchestrator = new CreativeOrchestrator({ level, call: runtimeCall({ userId, projectId, element: 'business_card' }) });
 
-    logger.info('[BusinessCard] generating template', { projectId, orientation });
-    const raw = await this.promptService.runPrompt(config, messages);
-    const parsed = this.parseTemplateResponse(raw);
+    // Le CODE compose (crans Low → Max) : structure, recto/verso, réglages bornés selon le cran.
+    const composeByCode = async () => {
+      const seed = crypto.randomInt(1, 2 ** 31 - 1);
+      const structure = (await orchestrator.run(cardStructureTask(sheet, pickCardLayout(seed).structure))).value;
+      const base = pickCardLayout(seed, structure);
+      const chosen = (await orchestrator.run(cardLayoutTask(sheet, structure, { front: base.front, back: base.back }))).value;
+      const surfaces = (['primary', 'secondary', 'accent'] as const).filter((k) => /^#[0-9a-f]{6}$/i.test(palette[k]));
+      const tuning = (await orchestrator.run(cardTuningTask(sheet, [...surfaces]))).value;
+      const input = {
+        width,
+        height,
+        brandName: project.name || 'Brand',
+        palette,
+        logos: { onLight: logos.withTextLight, onDark: logos.withTextDark, iconLight: logos.iconLight, iconDark: logos.iconDark },
+        tuning,
+      };
+      return {
+        name: `${CARD_STRUCTURES[structure].summary.split(',')[0]}`,
+        concept: `${structure} · ${chosen.front} / ${chosen.back}`,
+        frontHtml: renderCardFront(chosen.front, input),
+        backHtml: renderCardBack(chosen.back, input),
+        layout: `${chosen.front}/${chosen.back}`,
+      };
+    };
 
-    const frontHtml = sanitizeSectionHtml(parsed.frontHtml ?? '');
-    const backHtml = sanitizeSectionHtml(parsed.backHtml ?? '');
-    if (!frontHtml) {
-      // Trace de quoi diagnostiquer sans déverser une réponse entière (plusieurs
-      // milliers de caractères) dans les logs.
-      logger.error('[BusinessCard] AI returned no usable front face', {
-        projectId,
-        rawLength: raw?.length ?? 0,
-        rawHead: (raw ?? '').slice(0, 300),
-        rawTail: (raw ?? '').slice(-300),
+    let parsed: GeneratedTemplate & { layout?: string } = {};
+    let frontHtml = '';
+    let backHtml = '';
+    if (atLeast(level, 'ultra')) {
+      // Cran Ultra : l'idée d'abord (agent concept), puis l'IA écrit les deux faces.
+      const concept = (await orchestrator.run(cardConceptTask(sheet))).value;
+      const prompt = buildBusinessCardPrompt({
+        projectName: project.name || 'Brand',
+        projectDescription: project.longDescription || project.description || '',
+        industry: project.type || project.scope || 'general',
+        orientation,
+        width,
+        height,
+        colors: palette,
+        typography,
+        logos,
+        styleBrief: [options.styleBrief?.trim(), concept ? `Creative direction: ${concept}` : ''].filter(Boolean).join('\n') || undefined,
+        // La carte est tenue à côté du logo : c'est le support où un écart avec
+        // la direction artistique de la marque se voit le plus.
+        artDirectionBlock: buildArtDirectionBlock(branding?.artDirection, { medium: 'poster' }),
       });
-      throw new Error('TEMPLATE_GENERATION_FAILED');
+
+      const config: PromptConfig = {
+        provider: AI_CONFIG.branding.businessCard.provider,
+        modelName: AI_CONFIG.branding.businessCard.modelName,
+        fallbackModels: AI_CONFIG.branding.businessCard.fallbackModels,
+        llmOptions: { ...AI_CONFIG.branding.businessCard.llmOptions },
+        userId,
+        promptType: 'branding_business_card',
+        language: options.language,
+      };
+      const messages: AIChatMessage[] = [{ role: 'user', content: prompt }];
+
+      logger.info('[BusinessCard] generating template (ultra)', { projectId, orientation });
+      const raw = await this.promptService.runPrompt(config, messages).catch(() => '');
+      parsed = this.parseTemplateResponse(raw);
+      frontHtml = sanitizeSectionHtml(parsed.frontHtml ?? '');
+      backHtml = sanitizeSectionHtml(parsed.backHtml ?? '');
+      // Chaque face est contrôlée à l'impression ; une face défaillante fait retomber la carte sur le rendu Max.
+      const issues = frontHtml
+        ? [
+            ...(await businessCardRenderService.inspect(frontHtml, orientation, typography).catch(() => ['render failed'])),
+            ...(backHtml ? await businessCardRenderService.inspect(backHtml, orientation, typography).catch(() => ['render failed']) : []),
+          ]
+        : ['no front face'];
+      if (issues.length) {
+        logger.warn('[BusinessCard] Ultra card rejected, falling back to the code composition', { projectId, issues: issues.slice(0, 4) });
+        const byCode = await composeByCode();
+        parsed = byCode;
+        frontHtml = byCode.frontHtml;
+        backHtml = byCode.backHtml;
+      }
+    } else {
+      const byCode = await composeByCode();
+      parsed = byCode;
+      frontHtml = byCode.frontHtml;
+      backHtml = byCode.backHtml;
     }
+    if (!frontHtml) throw new Error('TEMPLATE_GENERATION_FAILED');
 
     const sections: SectionModel[] = [
       {
@@ -182,6 +249,8 @@ export class BusinessCardService extends GenericService {
         name: parsed?.name?.trim() || 'Business card',
         concept: parsed?.concept?.trim() || '',
         orientation,
+        creativity: level,
+        layout: parsed.layout,
         fields: this.normalizeFields(parsed?.fields, `${frontHtml}${backHtml}`),
         createdAt: existing.template?.createdAt ?? new Date(),
         updatedAt: new Date(),

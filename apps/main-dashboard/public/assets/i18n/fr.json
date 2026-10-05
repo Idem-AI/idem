@@ -48,7 +48,39 @@
     "apply": "Appliquer",
     "reset": "Réinitialiser",
     "close": "Fermer",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "creativity": {
+      "title": "Créativité",
+      "help": "Plus vous montez, plus l'IA prend de décisions — et plus la génération consomme de crédits.",
+      "cost": "{{cost}} crédits",
+      "levels": {
+        "low": {
+          "label": "Low",
+          "hint": "Éprouvé",
+          "description": "Des mises en page éprouvées, adaptées à votre charte et à sa direction artistique. L'IA écrit les textes."
+        },
+        "medium": {
+          "label": "Medium",
+          "hint": "Guidé",
+          "description": "L'IA choisit aussi la structure (sections, scènes, slides) parmi des options validées. Le plus sûr au prix habituel."
+        },
+        "high": {
+          "label": "High",
+          "hint": "Inspiré",
+          "description": "L'IA compose chaque partie : mises en page, transitions, enchaînements, dans des options filtrées par votre direction artistique."
+        },
+        "max": {
+          "label": "Max",
+          "hint": "Audacieux",
+          "description": "L'IA règle aussi les détails : emphase, couleurs, rythme, densité — dans des bornes qui garantissent la lisibilité."
+        },
+        "ultra": {
+          "label": "Ultra",
+          "hint": "Libre",
+          "description": "L'IA crée tout : mises en page, compositions, animations. Votre charte et les bonnes pratiques restent garanties ; une partie qui échoue aux contrôles est refaite au niveau Max."
+        }
+      }
+    }
   },
   "dashboard": {
     "createDevelopment": {
@@ -4537,7 +4569,8 @@
             "sfx": "Les effets sonores",
             "storyboard": "Le montage, calé sur le rythme",
             "animation": "Le mouvement et les transitions",
-            "critique": "La relecture finale"
+            "critique": "La relecture finale",
+            "code": "L'écriture des scènes (Ultra)"
           },
           "details": {
             "plan": "{{count}} scènes pour {{seconds}} s",
@@ -4556,7 +4589,8 @@
             "animation": "Raccords : {{names}} · caméra {{camera}}",
             "critique": "{{count}} correction(s) du directeur de création",
             "critiqueOk": "Validé sans correction",
-            "musicAgent": "« {{title}} » — {{artist}} · {{bpm}} BPM · choisie pour votre marque"
+            "musicAgent": "« {{title}} » — {{artist}} · {{bpm}} BPM · choisie pour votre marque",
+            "code": "{{coded}} scène(s) sur {{tried}} écrite(s) par l'IA et validée(s)"
           }
         },
         "directions": {

@@ -8,6 +8,7 @@ import {
   BusinessPlanStructure,
   BusinessPlanStructureCatalog,
 } from '../../models/business-plan-structure.model';
+import { CreativityLevel } from '@idem/shared-models';
 import { SSEService } from '../../../../shared/services/sse.service';
 import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
 import {
@@ -41,6 +42,8 @@ export class BusinessPlanService {
     sections: string[] = [],
     /** Plan à générer ; absent, l'API retient le plan le plus récent. */
     documentId?: string | null,
+    /** Cran de la jauge de créativité (prix et délégation à l'IA) ; absent, Medium. */
+    creativity?: CreativityLevel,
   ): Observable<SSEStepEvent> {
     console.log('Starting business plan generation with SSE...', {
       projectId,
@@ -56,6 +59,7 @@ export class BusinessPlanService {
     if (documentId) generationParams.set('documentId', documentId);
     if (force) generationParams.set('force', 'true');
     if (sections.length > 0) generationParams.set('sections', sections.join(','));
+    if (creativity) generationParams.set('creativity', creativity);
 
     // If additional infos are provided, send them first then start SSE
     if (additionalInfos) {

@@ -185,6 +185,13 @@ export interface VideoSceneInstance {
   layout?: string;
   /** Index, dans le titre, du mot mis en valeur par le directeur artistique. */
   emphasis?: number;
+  /** Cran Max : taille des titres réglée par le directeur artistique (0,85 à 1,25). */
+  scale?: number;
+  /**
+   * Cran Ultra : le composant React de la scène, écrit par l'agent codeur et validé (lint,
+   * compilation, rendu). Absent : la scène garde sa composition « Max ».
+   */
+  code?: { tsx: string; agent?: string };
   /** Surface de la scène : claire, primaire, secondaire, accent, teinte claire ou profonde de la primaire. */
   surface: 'light' | 'primary' | 'secondary' | 'accent' | 'tint' | 'deep';
   /** Transition qui OUVRE la scène (aucune pour la première). */
@@ -368,6 +375,8 @@ export interface MotionVideo {
   dirty?: boolean;
   /** Mesure : tokens consommés par la rédaction (entrée + sortie estimées). */
   copyTokens?: { input: number; output: number; source: 'llm' | 'heuristic' };
+  /** Cran de la jauge de créativité choisi à la création (prix et décisions confiées à l'IA). */
+  creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
   createdAt: Date | string;
   updatedAt: Date | string;
 }

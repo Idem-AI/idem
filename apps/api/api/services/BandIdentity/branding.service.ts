@@ -60,6 +60,7 @@ import {
   describeDocumentSeed,
   describePaletteConstraint,
   describeSectionSeed,
+  SectionSeed,
 } from '../design/designSeed';
 import {
   buildDocumentDesignSystem,
@@ -86,6 +87,14 @@ import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.promp
 import { USAGE_GUIDELINES_SECTION_PROMPT } from './prompts/04_usage-guidelines-section.prompt';
 import { brandMotifs } from '../design/brandMotifs';
 import { buildComposedCharterPages, clip, wideSeed } from './charterComposedPages';
+import { atLeast, CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
+import { composeTemplateLogos } from './logoTemplates';
+import { logoDirectionsTask, logoDraftCount, logoJuryTask } from './logoCreative';
+import { CreativeOrchestrator } from '../creativity/orchestrator';
+import { DocumentDesignPlan, planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../creativity/documentDesign';
+import { ultraPageComposer } from '../creativity/pageComposer';
+import { runtimeCall } from '../creativity/orchestrator';
+import { brandSheet } from '../creativity/agent-io';
 import { composeCover, coverDateLabel, coverVariant } from '../design/coverComposer';
 import { CoverBriefService } from '../design/coverBrief.service';
 import {
@@ -960,7 +969,9 @@ export class BrandingService extends GenericService {
     streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
     pdfFormat: string = 'SLIDE_16_9',
     forceRegenerate = false,
-    targetSections: string[] = []
+    targetSections: string[] = [],
+    /** Cran de la jauge de créativité (creativity/documentDesign.ts) ; absent, Medium. */
+    creativity?: CreativityLevel
   ): Promise<ProjectModel | null> {
     logger.info(
       `Generating branding with streaming for userId: ${userId}, projectId: ${projectId}, pdfFormat: ${pdfFormat}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
@@ -997,6 +1008,9 @@ export class BrandingService extends GenericService {
     // en page. Le tirage est borné par le style retenu (cf. designSeed.ts), donc
     // il ne peut pas contredire la direction artistique.
     const brandSeed = buildDocumentSeed(artDirection?.styleId, `branding:${projectId}`);
+    // LA JAUGE DE CRÉATIVITÉ : famille de la charte (Medium+), archétype et réglages des pages
+    // rédigées (High+, Max+), pages composées par le compositeur, gabarit en repli (Ultra).
+    const level = normalizeCreativity(creativity);
     const designDirectives = [
       artDirectionBlock,
       `<composition_invariants>\n${describeDocumentSeed(brandSeed)}\n</composition_invariants>`,
@@ -1045,6 +1059,7 @@ export class BrandingService extends GenericService {
           // direction artistique resservait la charte précédente depuis le cache.
           artDirection: artDirection?.styleId,
           brandSeed,
+          creativity: level,
           projectDescription,
         })
       )
@@ -1343,6 +1358,82 @@ export class BrandingService extends GenericService {
       //
       // Les pages FABRIQUÉES (mockups, `execute`) sont exclues : elles ne
       // passent pas par le modèle, leur donner une graine n'aurait aucun effet.
+      /**
+       * Pages de la charte RENDUES PAR GABARIT.
+       *
+       * Les pages laissées libres sont celles dont la composition EST le
+       * livrable : la couverture, les pages qui PRÉSENTENT un logo en grand, et
+       * la page de direction artistique — qui doit démontrer le style en le
+       * construisant, ce qu'aucun gabarit ne peut faire à sa place.
+       */
+      const TEMPLATED_PAGES = new Set([
+        'Color Palette',
+        'Typography',
+        'Logo Bonnes Pratiques',
+        'Usage Couleurs & Typographie',
+        // Les pages dont le spécimen est FABRIQUÉ par le code : échelle
+        // typographique, motifs, créations et bannières sociales. Aucune n'a
+        // de raison de passer par une composition libre — leur matière est
+        // exacte, et le modèle n'y écrit qu'une légende.
+        'Logomark',
+        'Typeface Hierarchy',
+        'Graphic Patterns',
+        // Les quatre pages de présentation du logo REJOIGNENT le gabarit. Cf.
+        // `specimensFor` : laissées libres, elles produisaient des références
+        // administratives inventées et, sur la page monochrome, un débordement.
+        'Logo Principal',
+        'Logo Variation Fond Clair',
+        'Logo Variation Fond Sombre',
+        'Logo Variation Monochrome',
+      ]);
+
+      // La direction artistique des pages rédigées, selon le cran (creativity/documentDesign.ts).
+      // Les archétypes de la graine sont calculés d'abord : repli de chaque page, point de départ
+      // des menus. La famille choisie s'applique à toute la charte, design system compris.
+      const charterBranding = project.analysisResultModel?.branding;
+      const charterSheet = brandSheet({
+        brandName: project.name || 'Brand',
+        businessType: project.type,
+        palette: (charterBranding?.colors?.colors as Record<string, string | undefined>) || {},
+        fonts: { display: charterBranding?.typography?.primaryFont || 'Archivo', body: charterBranding?.typography?.secondaryFont || 'Inter' },
+        art: artDirection,
+      });
+      const directedSteps = steps.filter((step) => TEMPLATED_PAGES.has(step.stepName));
+      const seedProbe = new Set<string>();
+      const seedArchetypes = Object.fromEntries(
+        directedSteps.map((step) => [step.stepName, buildSectionSeed(artDirection?.styleId, `branding:${projectId}`, step.stepName, seedProbe).archetype])
+      );
+      // Des pages gardées (reprise, régénération ciblée) : la direction enregistrée est reprise,
+      // pour que la page refaite ressemble à ses voisines.
+      const keepsPages =
+        !forceRegenerate && currentSections.some((section) => steps.some((step) => step.stepName === section.name) && !targetSections.includes(section.name));
+      const designPlan: DocumentDesignPlan | null = keepsPages ? resumedDesignPlan(charterBranding?.charterDesign, level) : await planDocumentDesign({
+        level,
+        call: runtimeCall({ userId, projectId, element: 'branding' }),
+        sheet: charterSheet,
+        styleId: artDirection?.styleId,
+        document: 'brand guidelines book',
+        pages: directedSteps.map((step) => ({ name: step.stepName, brief: CHARTER_PAGE_BRIEFS[step.stepName] })),
+        seedArchetypes,
+      }).catch((error: any) => {
+        logger.warn('[BRANDING] Direction artistique des pages en échec, la graine décide', { error: error?.message });
+        return null;
+      });
+      if (designPlan?.family) brandSeed.family = designPlan.family;
+      // Enregistrée avec l'identité (écrite avec la première page de la charte).
+      if (designPlan && !keepsPages && project.analysisResultModel?.branding) {
+        project.analysisResultModel.branding.charterDesign = savedDesignOf(designPlan);
+      }
+      logger.info(
+        `[BRANDING] Créativité ${level} : ${designPlan ? `${Object.keys(designPlan.pages).length} page(s) dirigée(s)${designPlan.family ? `, famille ${designPlan.family}` : ''}${designPlan.freeCompose ? ', compositeur' : ''}` : 'graine'}`
+      );
+      /** La graine d'une page, puis les choix des agents par-dessus (famille, archétype, réglages). */
+      const directSeed = (seed: SectionSeed, stepName: string): SectionSeed => ({
+        ...seed,
+        ...(designPlan?.family ? { family: designPlan.family } : {}),
+        ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, value]) => !!value)),
+      });
+
       // DESIGN SYSTEM de la charte : calculé une fois, partagé par ses pages.
       const charterDesignSystem = buildDocumentDesignSystem(
         project.analysisResultModel?.branding,
@@ -1498,34 +1589,6 @@ export class BrandingService extends GenericService {
         return undefined;
       };
 
-      /**
-       * Pages de la charte RENDUES PAR GABARIT.
-       *
-       * Les pages laissées libres sont celles dont la composition EST le
-       * livrable : la couverture, les pages qui PRÉSENTENT un logo en grand, et
-       * la page de direction artistique — qui doit démontrer le style en le
-       * construisant, ce qu'aucun gabarit ne peut faire à sa place.
-       */
-      const TEMPLATED_PAGES = new Set([
-        'Color Palette',
-        'Typography',
-        'Logo Bonnes Pratiques',
-        'Usage Couleurs & Typographie',
-        // Les pages dont le spécimen est FABRIQUÉ par le code : échelle
-        // typographique, motifs, créations et bannières sociales. Aucune n'a
-        // de raison de passer par une composition libre — leur matière est
-        // exacte, et le modèle n'y écrit qu'une légende.
-        'Logomark',
-        'Typeface Hierarchy',
-        'Graphic Patterns',
-        // Les quatre pages de présentation du logo REJOIGNENT le gabarit. Cf.
-        // `specimensFor` : laissées libres, elles produisaient des références
-        // administratives inventées et, sur la page monochrome, un débordement.
-        'Logo Principal',
-        'Logo Variation Fond Clair',
-        'Logo Variation Fond Sombre',
-        'Logo Variation Monochrome',
-      ]);
 
       // ── LA PAGE DU LOGO L'EXPLIQUE ─────────────────────────────────────
       //
@@ -1643,7 +1706,7 @@ export class BrandingService extends GenericService {
           const index = pageIndex;
           // Pages de démonstration : leurs blocs ont besoin de la pleine largeur.
           const composedSeed = wideSeed(
-            buildSectionSeed(artDirection?.styleId, `branding:${projectId}`, step.stepName, usedArchetypes),
+            directSeed(buildSectionSeed(artDirection?.styleId, `branding:${projectId}`, step.stepName, usedArchetypes), step.stepName),
             artDirection?.styleId
           );
           step.execute = () => compose(composedSeed, index);
@@ -1659,8 +1722,9 @@ export class BrandingService extends GenericService {
         );
         // Le logo et son explication se lisent côte à côte : pas dans une
         // colonne des 7/12.
+        const pageSeed = directSeed(baseSeed, step.stepName);
         const seed =
-          step.stepName === 'Logo Principal' ? wideSeed(baseSeed, artDirection?.styleId) : baseSeed;
+          step.stepName === 'Logo Principal' ? wideSeed(pageSeed, artDirection?.styleId) : pageSeed;
 
         if (TEMPLATED_PAGES.has(step.stepName)) {
           step.template = {
@@ -1690,6 +1754,25 @@ export class BrandingService extends GenericService {
             volume: CHARTER_PAGE_VOLUMES[step.stepName] ?? '1',
             prependBlocks: specimensFor(step.stepName),
             composeBlocks: step.stepName === 'Logo Principal' ? composeLogoStory : undefined,
+            // Cran Ultra : le contenu validé de la page (spécimens compris) part au compositeur ;
+            // fidélité, rendu mesuré et règles de la charte contrôlés, le gabarit en repli.
+            compose: designPlan?.freeCompose
+              ? ultraPageComposer({
+                  ds: charterDesignSystem,
+                  seed,
+                  page: charterPage,
+                  singlePage: true,
+                  sheet: charterSheet,
+                  document: 'brand guidelines book',
+                  call: runtimeCall({ userId, projectId, element: 'branding' }),
+                  name: step.stepName,
+                  lint: {
+                    palette: charterBranding?.colors?.colors,
+                    styleId: artDirection?.styleId,
+                    label: `charte/ultra/${step.stepName}`,
+                  },
+                })
+              : undefined,
             render: {
               logoUrl,
               brandName: project.name,
@@ -2263,6 +2346,98 @@ export class BrandingService extends GenericService {
       typography,
       project: updatedProject || createdProject,
     };
+  }
+
+  /**
+   * LA JAUGE DE CRÉATIVITÉ DU LOGO (logoCreative.ts) : ce qui s'ajoute au dessin par l'IA selon
+   * le cran — les directions de création (High+), les brouillons départagés par le jury (Max+).
+   * Au cran Low, aucun de ces agents : les logos sont composés par le code (`templateLogos`).
+   */
+  private async logoCreativePlan(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    level: CreativityLevel,
+    preferences: LogoPreferences | undefined,
+    count: number
+  ): Promise<{ orchestrator: CreativeOrchestrator; sheet: string; directions: string[] | null; drafts: number }> {
+    const branding = project.analysisResultModel?.branding;
+    const orchestrator = new CreativeOrchestrator({ level, call: runtimeCall({ userId, projectId, element: 'logo' }) });
+    const sheet = brandSheet({
+      brandName: this.resolveBrandName(project),
+      businessType: project.type,
+      palette: (branding?.colors?.colors as Record<string, string | undefined>) || {},
+      fonts: { display: branding?.typography?.primaryFont || 'Archivo', body: branding?.typography?.secondaryFont || 'Inter' },
+      art: branding?.artDirection,
+    });
+    const directions = (
+      await orchestrator.run(logoDirectionsTask(sheet, preferences?.type || 'name', count, preferences?.customDescription))
+    ).value;
+    if (directions) logger.info(`[LOGO] Créativité ${level} : ${directions.length} directions de création`);
+    return { orchestrator, sheet, directions, drafts: logoDraftCount(level) };
+  }
+
+  /**
+   * Une proposition dessinée par l'IA : sa direction de création (High+) ajoutée au prompt, et,
+   * au-dessus de Max, plusieurs brouillons dont le jury retient le meilleur parmi ceux qui
+   * passent la grille `svgGate`.
+   */
+  private async draftLogoConcept(
+    prompt: string,
+    project: ProjectModel,
+    index: number,
+    preferences: LogoPreferences | undefined,
+    skipQuotaCheck: boolean,
+    model: string | undefined,
+    creative?: { orchestrator: CreativeOrchestrator; sheet: string; directions: string[] | null; drafts: number }
+  ): Promise<LogoModel> {
+    const direction = creative?.directions?.[index % creative.directions.length];
+    const conceptPrompt = direction
+      ? `${prompt}\n\n**CREATIVE DIRECTION FOR THIS PROPOSAL (follow it — the proposals must be clearly different from one another):** ${direction}`
+      : prompt;
+    const drafts = creative?.drafts ?? 1;
+    if (drafts <= 1) return this.generateRawLogoConcept(conceptPrompt, project, index, preferences, skipQuotaCheck, model);
+
+    const settled = await Promise.allSettled(
+      Array.from({ length: drafts }, () => this.generateRawLogoConcept(conceptPrompt, project, index, preferences, skipQuotaCheck, model))
+    );
+    const done = settled.filter((r): r is PromiseFulfilledResult<LogoModel> => r.status === 'fulfilled').map((r) => r.value);
+    if (!done.length) throw (settled[0] as PromiseRejectedResult).reason;
+    const palette = Object.values(project.analysisResultModel?.branding?.colors?.colors || {}).filter(
+      (value): value is string => typeof value === 'string'
+    );
+    const sound = done.filter((logo) => inspectSvg(logo.iconSvg || logo.svg || '', { palette }).ok);
+    const pool = sound.length ? sound : done;
+    if (pool.length === 1) return pool[0];
+    const verdict = await creative!.orchestrator.run(logoJuryTask(creative!.sheet, pool, index));
+    logger.info(`[LOGO] Proposition ${index + 1} : brouillon ${verdict.value + 1}/${pool.length} retenu (${verdict.source})`);
+    return pool[verdict.value] ?? pool[0];
+  }
+
+  /** Cran Low : les propositions composées par le code, distinctes de celles déjà présentées. */
+  private async templateLogos(
+    project: ProjectModel,
+    preferences: LogoPreferences | undefined,
+    existing: LogoModel[],
+    count: number,
+    fresh: boolean
+  ): Promise<LogoModel[]> {
+    const branding = project.analysisResultModel?.branding;
+    const seen = new Set(existing.map((logo) => logo.name));
+    const logos = await composeTemplateLogos({
+      brandName: this.resolveBrandName(project),
+      type: preferences?.type || 'name',
+      palette: (branding?.colors?.colors as Record<string, string | undefined>) || {},
+      typography: { family: branding?.typography?.primaryFont || 'Archivo', cssUrl: branding?.typography?.primary?.cssUrl },
+      styleId: branding?.artDirection?.styleId,
+      // Une relance propose d'autres formes ; une reprise garde celles du projet.
+      seed: fresh ? `${project.id}:${Date.now()}` : `${project.id}`,
+      count: count + seen.size,
+    });
+    return logos
+      .filter((logo) => !seen.has(logo.name))
+      .slice(0, count)
+      .map((logo, i) => ({ ...logo, id: `concept${String(existing.length + i + 1).padStart(2, '0')}`, customDescription: preferences?.customDescription }));
   }
 
   /**
@@ -2880,7 +3055,9 @@ export class BrandingService extends GenericService {
     userId: string,
     projectId: string,
     forceRegenerate = false,
-    skipQuotaCheck = false
+    skipQuotaCheck = false,
+    /** Cran de la jauge de créativité (logoCreative.ts) ; absent, Medium. */
+    creativity?: CreativityLevel
   ): Promise<{
     logos: LogoModel[];
   }> {
@@ -2942,6 +3119,18 @@ export class BrandingService extends GenericService {
       preferences
     );
 
+    // Cran Low : les propositions composées par le code, sans appel au modèle.
+    const level = normalizeCreativity(creativity);
+    if (!atLeast(level, 'medium')) {
+      const composed = SvgOptimizerService.optimizeLogos(
+        await this.templateLogos(project, preferences, existingLogos, logosToGenerateCount, forceRegenerate)
+      ) as LogoModel[];
+      const logos = [...existingLogos, ...composed];
+      await this.updateProjectWithLogosAsync(userId, projectId, logos);
+      return { logos };
+    }
+    const creative = await this.logoCreativePlan(userId, projectId, project, level, preferences, logosToGenerateCount);
+
     // Étape 3: Génération AI parallèle PURE (sans optimisation SVG)
     const aiStartTime = Date.now();
 
@@ -2970,13 +3159,14 @@ export class BrandingService extends GenericService {
       const retryPromises = failedIndexes.map(async (index) => {
         return {
           index,
-          result: await this.generateRawLogoConcept(
+          result: await this.draftLogoConcept(
             optimizedPrompt,
             project,
             index + existingLogosCount,
             preferences,
             isRetry,
-            currentModel
+            currentModel,
+            creative
           ),
         };
       });
@@ -3249,7 +3439,9 @@ export class BrandingService extends GenericService {
     projectId: string,
     streamCallback: (event: ILogoStreamEvent) => Promise<void>,
     forceRegenerate = false,
-    preferencesOverride?: LogoPreferences
+    preferencesOverride?: LogoPreferences,
+    /** Cran de la jauge de créativité (logoCreative.ts) ; absent, Medium. */
+    creativity?: CreativityLevel
   ): Promise<LogoModel[]> {
     openAiUsageBatch({
       userId,
@@ -3323,6 +3515,35 @@ export class BrandingService extends GenericService {
         });
     };
 
+    // Cran Low : les propositions composées par le code, sans appel au modèle.
+    const level = normalizeCreativity(creativity);
+    if (!atLeast(level, 'medium')) {
+      try {
+        for (let offset = 0; offset < logosToGenerateCount; offset++) {
+          await streamCallback({ type: 'concept_started', conceptIndex: existingLogos.length + offset });
+        }
+        const composed = await this.templateLogos(project, preferences, existingLogos, logosToGenerateCount, forceRegenerate);
+        for (let offset = 0; offset < logosToGenerateCount; offset++) {
+          const index = existingLogos.length + offset;
+          const logo = composed[offset] ? this.optimizeLogoSvgs(composed[offset]) : null;
+          if (!logo) {
+            await streamCallback({ type: 'concept_error', conceptIndex: index, message: 'No composed logo available' });
+            continue;
+          }
+          await streamCallback({ type: 'concept_generated', conceptIndex: index, logo });
+          finalLogos.push(logo);
+          persistLogos();
+          await streamCallback({ type: 'concept_finalized', conceptIndex: index, logo });
+        }
+        await persistChain;
+        logger.info(`Template logos composed (creativity low) - ProjectId: ${projectId}, finalized: ${finalLogos.length}`);
+        return finalLogos;
+      } finally {
+        BrandingService.activeLogoGenerations.delete(generationKey);
+      }
+    }
+    const creative = await this.logoCreativePlan(userId, projectId, project, level, preferences, logosToGenerateCount);
+
     const modelsToTry = [
       AI_CONFIG.branding.logo.modelName,
       ...(AI_CONFIG.branding.logo.fallbackModels || []),
@@ -3342,13 +3563,14 @@ export class BrandingService extends GenericService {
           if (modelIndex === 0)
             await streamCallback({ type: 'concept_started', conceptIndex: index });
 
-          let logo = await this.generateRawLogoConcept(
+          let logo = await this.draftLogoConcept(
             optimizedPrompt,
             project,
             index,
             preferences,
             isRetry,
-            currentModel
+            currentModel,
+            creative
           );
           logo = this.optimizeLogoSvgs(logo);
           await streamCallback({ type: 'concept_generated', conceptIndex: index, logo });

@@ -39,6 +39,22 @@ function allowedHosts(): Set<string> {
   return new Set(hosts);
 }
 
+/**
+ * Mode STRICT (pages qui exécutent du code écrit par l'IA, cran Ultra) : seuls les schémas
+ * locaux (`data`, `blob`, `about`) et les hôtes explicitement autorisés (stockage, API) passent.
+ * À utiliser comme `extraFilter` de `installRenderNetworkGuard`.
+ */
+export function isStrictRenderRequest(rawUrl: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+  if (url.protocol === 'data:' || url.protocol === 'blob:' || url.protocol === 'about:') return true;
+  return allowedHosts().has(url.hostname.toLowerCase().replace(/^\[|\]$/g, ''));
+}
+
 /** Vrai pour toute adresse qui ne doit pas être joignable depuis un rendu. */
 export function isPrivateAddress(address: string): boolean {
   if (net.isIPv4(address)) {

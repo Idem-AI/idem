@@ -1,3 +1,4 @@
+import { creativityOf } from '../middleware/billing.middleware';
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { BusinessPlanService } from '../services/BusinessPlan/businessPlan.service';
@@ -646,7 +647,8 @@ export const generateBusinessPlanStreamingController = async (
         streamCallback,
         forceRegenerate,
         targetSections,
-        plan.id
+        plan.id,
+        creativityOf(req as any)
       );
     } else {
       // Nouveau flux: équipe d'agents de recherche sourcée + salle de contrôle.
@@ -658,7 +660,9 @@ export const generateBusinessPlanStreamingController = async (
         emit,
         forceRegenerate,
         targetSections,
-        plan.id
+        plan.id,
+        // Le cran de la jauge de créativité (paramètre du flux, déjà appliqué au prix par la route).
+        creativityOf(req as any)
       );
     }
 

@@ -22,7 +22,9 @@ import {
   PITCH_DECK_SECTION_NAMES,
 } from '../../models/generation-completeness';
 import { ProjectService } from '../../services/project.service';
-import { ProjectModel } from '@idem/shared-models';
+import { CreativityLevel, normalizeCreativity, ProjectModel } from '@idem/shared-models';
+import { CreativityGaugeComponent } from '../../../../shared/components/creativity-gauge/creativity-gauge';
+import { CreativityService } from '../../../../shared/services/creativity.service';
 import { pitchDeckTypeLabel } from '../../utils/deliverable-labels';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
@@ -48,7 +50,7 @@ const STEP_CLASSES: Record<StepStatus, string> = {
 @Component({
   selector: 'app-show-pitch-deck',
   imports: [
-    ErrorStateComponent,TranslateModule, DocumentPreviewComponent, IncompleteProjectBannerComponent, IdemLoaderComponent],
+    ErrorStateComponent,TranslateModule, DocumentPreviewComponent, IncompleteProjectBannerComponent, IdemLoaderComponent, CreativityGaugeComponent],
   templateUrl: './show-pitch-deck.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -61,6 +63,7 @@ export class ShowPitchDeck implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly creativityPricing = inject(CreativityService);
 
   protected readonly stepClasses = STEP_CLASSES;
 
@@ -87,6 +90,16 @@ export class ShowPitchDeck implements OnInit {
    * la génération démarre d'elle-même, une seule fois.
    */
   private autoStart = this.route.snapshot.queryParamMap.get('generate') === 'true';
+
+  /**
+   * Cran de la jauge de créativité : celui choisi à la création du deck (`?creativity=`),
+   * sinon Medium. Les reprises et régénérations de la page le réutilisent.
+   */
+  protected readonly creativity = signal<CreativityLevel>(
+    normalizeCreativity(this.route.snapshot.queryParamMap.get('creativity')),
+  );
+  /** Prix du deck au cran Low / Medium pour ce projet (null : prix non affiché). */
+  protected readonly creativityBaseCost = signal<number | null>(null);
 
   /** Slides attendues : celles du type du deck (levée, banque, commercial…). */
   protected readonly expectedSlides = computed<readonly string[]>(() => {
@@ -116,6 +129,10 @@ export class ShowPitchDeck implements OnInit {
       return;
     }
     this.checkBrandingCompletion(pid);
+    this.creativityPricing
+      .baseCost(pid, 'pitch_deck')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((cost) => this.creativityBaseCost.set(cost));
   }
 
   /**
@@ -186,7 +203,7 @@ export class ShowPitchDeck implements OnInit {
     // Retiré de l'URL : recharger la page ne relance pas une génération facturée.
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { generate: null },
+      queryParams: { generate: null, creativity: null },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
@@ -218,7 +235,7 @@ export class ShowPitchDeck implements OnInit {
     );
 
     this.pitchDeckService
-      .generatePitchDeck(pid, force, sections, documentId)
+      .generatePitchDeck(pid, force, sections, documentId, this.creativity())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (event: SSEStepEvent) => this.handleSseEvent(event),

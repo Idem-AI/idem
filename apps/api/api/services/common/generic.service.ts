@@ -27,7 +27,7 @@ import { DeliverableGraph, graphDepth, validateGraph } from '../agents/deliverab
 import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
 import { DocumentDesignSystem } from '../design/documentDesignSystem';
 import { SectionSeed } from '../design/designSeed';
-import { Block, normalizeSectionContent } from '../design/sectionContent';
+import { Block, normalizeSectionContent, SectionContent } from '../design/sectionContent';
 import { htmlToSectionContent, looksLikeHtmlPage } from '../design/htmlToSectionContent';
 import {
   SECTION_PLAN_CONTRACT,
@@ -111,6 +111,13 @@ export interface SectionTemplate {
    * côte à côte, et non l'un sous l'autre au gré de la grille.
    */
   composeBlocks?: (blocks: Block[]) => Block[];
+  /**
+   * Cran Ultra de la jauge de créativité : le contenu VALIDÉ (spécimens et titre imposé
+   * compris) est confié au compositeur de page (`creativity/pageComposer.ts`), qui en écrit
+   * la mise en page en HTML. `null` — page refusée par la fidélité, le rendu mesuré ou les
+   * règles de design — et la page est rendue par le gabarit, comme aux autres crans.
+   */
+  compose?: (content: SectionContent) => Promise<string | null>;
 }
 
 /**
@@ -790,16 +797,27 @@ export class GenericService {
           ? { ...composed, title: step.template.heading.title, kicker: step.template.heading.kicker }
           : composed;
 
-        content = renderSection(
-          headed,
-          step.template.designSystem,
-          step.template.seed,
-          step.template.render ?? {}
-        );
-        logger.info(
-          `Section '${step.stepName}' rendue par gabarit ` +
-            `(archétype ${step.template.seed.archetype}, ${parsed.blocks.length} blocs, ${content.length} car.)`
-        );
+        const composedHtml = step.template.compose
+          ? await step.template.compose(headed).catch((error: any) => {
+              logger.warn(`Section '${step.stepName}' : compositeur en échec (${error?.message}) → gabarit`);
+              return null;
+            })
+          : null;
+        if (composedHtml) {
+          content = composedHtml;
+          logger.info(`Section '${step.stepName}' composée par le compositeur (cran Ultra, ${content.length} car.)`);
+        } else {
+          content = renderSection(
+            headed,
+            step.template.designSystem,
+            step.template.seed,
+            step.template.render ?? {}
+          );
+          logger.info(
+            `Section '${step.stepName}' rendue par gabarit ` +
+              `(archétype ${step.template.seed.archetype}, ${parsed.blocks.length} blocs, ${content.length} car.)`
+          );
+        }
       } else {
         // ── LA SORTIE BRUTE NE DEVIENT JAMAIS UNE PAGE ────────────────────
         //

@@ -2,6 +2,7 @@ import { NextFunction, Response } from 'express';
 import logger from '../config/logger';
 import { BillingRequestContext, CustomRequest } from '../interfaces/express.interface';
 import { BUSINESS_CREDIT_COSTS, BillingEngine } from '../models/billing.model';
+import { CreativityLevel, creativityCost, normalizeCreativity } from '../models/creativity.model';
 import { APPGEN_CREDIT_COSTS } from '../models/plan-limits.model';
 import { SimulationOrigin } from '../models/simulation.model';
 import { simulationService } from '../services/Simulation/simulation.service';
@@ -49,7 +50,7 @@ export interface RequireCreditsOptions {
    * Coût ET libellé calculés à l'exécution, quand le prix dépend de l'état du
    * projet — voir `firstThenRevision`.
    */
-  resolve?: (req: CustomRequest) => Promise<{ action: string; cost: number }>;
+  resolve?: (req: CustomRequest) => Promise<{ action: string; cost: number; note?: string }>;
   /** Exemption conditionnelle, évaluée sur les droits résolus. */
   exempt?: (req: CustomRequest, entitlements: Entitlements) => boolean;
   /**
@@ -110,6 +111,31 @@ export function firstThenRevision(
     return alreadyCharged
       ? { action: repeatAction, cost: creditCost(engine, repeatAction) }
       : { action: firstAction, cost: creditCost(engine, firstAction) };
+  };
+}
+
+/** Le cran de créativité d'une requête (corps, puis paramètre d'URL pour les flux SSE en GET). */
+export function creativityOf(req: CustomRequest): CreativityLevel {
+  return normalizeCreativity((req.body as Record<string, unknown> | undefined)?.creativity ?? (req.query as Record<string, unknown> | undefined)?.creativity);
+}
+
+/**
+ * La jauge de créativité appliquée au barème d'un livrable.
+ *
+ * Enveloppe le coût habituel (prix fixe, ou `firstThenRevision`, ou un coût calculé
+ * comme celui de la vidéo) et le multiplie selon le cran choisi avant la génération :
+ * Low et Medium gardent le prix historique, High ×1,25, Max ×1,5, Ultra ×2
+ * (`packages/shared-models/src/creativity`). Le cran est inscrit au relevé.
+ */
+export function withCreativity(
+  engine: BillingEngine,
+  action: string,
+  resolve?: (req: CustomRequest) => Promise<{ action: string; cost: number }>
+): (req: CustomRequest) => Promise<{ action: string; cost: number; note: string }> {
+  return async (req: CustomRequest) => {
+    const base = resolve ? await resolve(req) : { action, cost: creditCost(engine, action) };
+    const level = creativityOf(req);
+    return { ...base, cost: creativityCost(base.cost, level), note: `creativity:${level}` };
   };
 }
 
@@ -243,6 +269,7 @@ export function requireCredits(
 
       const chargedAction = resolved.action;
       const cost = Math.max(0, Math.round(resolved.cost));
+      const note = 'note' in resolved ? resolved.note : undefined;
 
       // Action incluse dans un livrable déjà payé : rien à débiter, mais on
       // l'inscrit au relevé — sinon l'utilisateur ne verrait pas ce qu'il a
@@ -289,6 +316,8 @@ export function requireCredits(
         projectId: (req.params?.projectId as string) ?? undefined,
         feature: engine,
         element: options.element?.(req),
+        // Le cran de créativité, lisible au relevé (« pourquoi ce livrable a coûté 1,5 × »).
+        ...(note ? { note } : {}),
       });
 
       if (!result.allowed) {

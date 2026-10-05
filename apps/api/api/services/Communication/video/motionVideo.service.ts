@@ -39,6 +39,7 @@ import {
   VideoKit,
   VideoStoryboard,
   SfxKind,
+  VideoSceneInstance,
 } from '../../../models/motionVideo.model';
 import { mediaWanted, planTypeScenes, TYPE_DEFS, MediaCounts } from './video.types';
 import { planCreative } from './video.storyline';
@@ -51,8 +52,9 @@ import { generateClip, generateStill, MediaStorage, Orientation, processUpload, 
 import { ensureSfxLibrary, pickSounds, publicSoundName, SFX_DENSITY, SFX_GAIN_DB, sfxLibrary, soundFile, SfxLibrary } from './video.sfx';
 import { apiBaseUrl } from '../visualUrl';
 import { DirectionId, DIRECTIONS, isMotionDirection, lintMotion, MotionTransition, pickDirection, planMotion, styleOfDirection, surfacesFor, transitionMenu } from './video.direction';
-import { assignLayouts, layoutFits, layoutMenu, LayoutScene } from './video.layouts';
-import { AgentRun, ArtDirectorChoice, brandSheet, runAnimator, runArtDirectors, runCritic, runSoundDesigner } from './video.agents';
+import { atLeast, CreativityLevel, normalizeCreativity } from '../../../models/creativity.model';
+import { assignLayouts, LAYOUT_CATALOGUE, LayoutId, layoutFits, layoutMenu, LayoutScene } from './video.layouts';
+import { AgentRun, ArtDirectorChoice, brandSheet, runAnimator, runArtDirectors, runCritic, runSoundDesigner, TEMPO_PACE } from './video.agents';
 import { applyKitOverrides, assignIcons, iconVocabulary, KitContext, KitOverrides, pickAccentEffect, pickRhythm, resolveKit, rhythmMenu, topNodes } from './video.capabilities';
 import { analyzeLogo } from './video.logo';
 import { CommunicationService } from '../communication.service';
@@ -64,7 +66,9 @@ import { buildVideoTheme, VideoTheme } from './video.theme';
 import { composeVideoHtml, inlineAssets } from './video.composer';
 import { analyzeTrack, pickExcerptStart } from './video.beats';
 import { fetchTrack, pickTrack, resolveMood, searchMusic, MUSIC_PROVIDERS } from './video.music';
-import { cleanupRender, renderVideo } from './video.renderer';
+import { cleanupRender, renderVideo, withRenderPage } from './video.renderer';
+import { codeScenes } from './video.coder';
+import { AgentCall, CreativeOrchestrator, runtimeCall } from '../../creativity/orchestrator';
 import { exportCost, normalizeScope, videoCost } from './video.pricing';
 import { SCENES } from './video.scenes';
 
@@ -78,13 +82,15 @@ export interface CreateVideoInput {
   language?: string;
   /** Contenu du calendrier éditorial qui demande cette vidéo (rattachement). */
   contentId?: string;
+  /** Cran de la jauge de créativité (cf. packages/shared-models/src/creativity) ; Medium par défaut. */
+  creativity?: CreativityLevel;
 }
 
 /**
  * Progression RÉELLE d'une création, étape par étape : l'interface la montre en
  * direct (flux SSE). Les étapes médias, musique et effets tournent en parallèle.
  */
-export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'storyboard' | 'animation' | 'critique';
+export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'storyboard' | 'animation' | 'critique' | 'code';
 
 export interface VideoProgressEvent {
   stage: VideoProgressStage;
@@ -201,7 +207,9 @@ export class MotionVideoService {
       communication.runVideoCopyPrompt(userId, system, user),
     /** Les agents (directeur artistique, animateur, sound designer, critique) : leur propre configuration. */
     private readonly agentWriterFor: (userId: string) => CopyWriter | undefined = (userId) => (system, user) =>
-      typeof communication.runVideoAgentPrompt === 'function' ? communication.runVideoAgentPrompt(userId, system, user) : Promise.reject(new Error('no_agent_model'))
+      typeof communication.runVideoAgentPrompt === 'function' ? communication.runVideoAgentPrompt(userId, system, user) : Promise.reject(new Error('no_agent_model')),
+    /** Cran Ultra : l'agent codeur (runtime d'agents, étage créatif) ; remplaçable dans les contrôles. */
+    private readonly coderCallFor: (userId: string, projectId: string) => AgentCall | undefined = (userId, projectId) => runtimeCall({ userId, projectId, element: 'motion_video' })
   ) {}
 
   // ── Contexte de marque (sans appel de modèle) ────────────────────────────
@@ -522,6 +530,10 @@ export class MotionVideoService {
 
     const videoId = `video-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
     const seed = crypto.randomInt(1, 2 ** 31 - 1);
+    // La jauge de créativité : ce que l'IA décide à ce cran (cf. CREATIVITY.md). En dessous,
+    // le graphe et les mises en page éprouvées décident — toujours à partir de la charte et de sa DA.
+    const creativity: CreativityLevel = normalizeCreativity(input.creativity);
+    const aiFrom = (min: CreativityLevel) => atLeast(creativity, min);
     const orientation = orientationOf(scope.formats[0]);
     const facts = extractFacts(`${brief.message}\n${brief.details || ''}`);
 
@@ -590,7 +602,8 @@ export class MotionVideoService {
         owned: { images: own('image') || visuals.filter((v) => v.backgroundImageUrl).length, videos: own('video'), models: own('model3d'), lotties: own('lottie') + own('rive') },
         seed,
       },
-      this.writerFor(userId)
+      // Structure (concept, scènes, grand moment, rythme) : l'IA dès Medium, le graphe en dessous.
+      aiFrom('medium') ? this.writerFor(userId) : undefined
     );
     const type: VideoType = plan.type;
     brief.objective = plan.objective;
@@ -631,7 +644,10 @@ export class MotionVideoService {
 
     // L'équipe d'agents : tous reçoivent la même fiche de la charte et de sa DA.
     const sheet = brandSheet({ ctx, palette: theme.palette, fonts: theme.fonts, art: branding?.artDirection });
-    const agentWriter = this.agentWriterFor(userId);
+    // Les agents de composition (mises en page, transitions, relecture) : dès High.
+    const agentWriter = aiFrom('high') ? this.agentWriterFor(userId) : undefined;
+    // Le sound designer (piste, intensité des effets) : dès Medium.
+    const soundWriter = aiFrom('medium') ? this.agentWriterFor(userId) : undefined;
     const agentRuns: AgentRun[] = [
       { agent: 'strategist', source: plan.source, tokens: storylineTokens, ms: 0 },
       { agent: 'writer', source: copy.source === 'llm' ? 'llm' : 'graph', tokens: copy.tokens, ms: 0 },
@@ -643,6 +659,8 @@ export class MotionVideoService {
       recent: otherVideos.map((v) => (v.storyboard?.scenes || []).map((sc) => sc.layout).filter(Boolean) as string[]),
     };
     const sceneOf = (id: string, i: number): LayoutScene => ({ sceneId: id, slots: copy.copy[i + 1] || {} });
+    // Les surfaces que la stratégie de couleur de la DA emploie pour ce film (+ la surface claire).
+    const strategySurfaces = [...new Set([...surfacesFor(sceneIds, art.overrides.color || DIRECTIONS[direction].color, seed), 'light'])];
     const titleOf = (slots: Record<string, string> = {}) => slots.title || slots.name || slots.quote || slots.value || slots.price || slots.l1 || '';
 
     // 3. Médias, musique (choisie par le sound designer) et effets sonores — et, en même temps,
@@ -659,7 +677,23 @@ export class MotionVideoService {
         texts: [titleOf(copy.copy[i + 1]), ...Object.entries(copy.copy[i + 1] || {}).filter(([k]) => !['title', 'name', 'quote', 'visual'].includes(k)).map(([, v]) => v)].slice(0, 4),
         accent: i === plan.accent,
         menu: layoutMenu(sceneOf(id, i), layoutCtx),
-      }))
+        // Cran Max : paramètres bornés ; surfaces limitées à celles que la stratégie de couleur de la DA emploie.
+        ...(aiFrom('max') && id !== 'logo' ? { tune: { surfaces: strategySurfaces } } : {}),
+      })),
+      4,
+      // Cran Max : accroche et grand moment tirés trois fois, départagés par le code (poids du catalogue
+      // pour la direction, mises en page des dernières vidéos évitées, composition classique en dernier).
+      aiFrom('max')
+        ? {
+            samples: (sc) => (sc.index === 0 || sc.accent ? 3 : 1),
+            score: (choice) =>
+              !choice.layout
+                ? 9
+                : -((choice.layout === 'classic' ? 0 : LAYOUT_CATALOGUE[choice.layout as Exclude<LayoutId, 'classic'>]?.directions[direction]) || 0) +
+                  (layoutCtx.recent.flat().includes(choice.layout) ? 2 : 0) +
+                  (choice.layout === 'classic' ? 1.5 : 0),
+          }
+        : undefined
     ).then((res) => {
       agentRuns.push(res.run);
       return res;
@@ -683,7 +717,7 @@ export class MotionVideoService {
         avoidIds: otherVideos.map((v) => v.music?.id).filter(Boolean) as string[],
         brandText: [ctx.tone, ctx.valueProposition, ctx.businessType, ...(ctx.keywords || []), brief.message].filter(Boolean).join(' '),
         pick: async (tracks, mood) => {
-          const res = await runSoundDesigner(agentWriter, { sheet, request: `${brief.message} ${brief.details || ''}`, rhythm: plan.rhythm, mood, durationSec: scope.durationSec, tracks });
+          const res = await runSoundDesigner(soundWriter, { sheet, request: `${brief.message} ${brief.details || ''}`, rhythm: plan.rhythm, mood, durationSec: scope.durationSec, tracks });
           agentRuns.push(res.run);
           soundIntensity = res.choice.intensity;
           return res.choice.trackId;
@@ -768,6 +802,7 @@ export class MotionVideoService {
       transitions: transitions,
     });
 
+    const decorWanted = new Map<string, boolean>();
     // Les mises en page : celles des directeurs artistiques, validées pour tout le film
     // (menu de la scène, médias réellement obtenus, jamais deux fois de suite).
     {
@@ -785,6 +820,18 @@ export class MotionVideoService {
       storyboard.scenes.forEach((sc, i) => {
         if (layouts[i]) sc.layout = layouts[i];
         if (emphasis[i] != null) sc.emphasis = emphasis[i];
+        // Cran Max : les réglages bornés du directeur artistique (revalidés ici, puis par les règles).
+        const tuning = kept[i]?.from >= 0 ? designed.choices[kept[i].from]?.tuning : undefined;
+        if (!tuning || sc.sceneId === 'logo') return;
+        if (tuning.scale) sc.scale = tuning.scale;
+        if (tuning.surface && strategySurfaces.includes(tuning.surface)) sc.surface = tuning.surface as VideoSceneInstance['surface'];
+        if (tuning.tempo) sc.pace = Math.min(1.3, Math.max(0.8, (sc.pace || 1) * TEMPO_PACE[tuning.tempo]));
+        if (tuning.align && sc.motion) {
+          const centered = ['center', 'bottom-center', 'top-center'].includes(sc.motion.anchor);
+          if (tuning.align === 'center' && !centered) sc.motion = { ...sc.motion, anchor: 'center', align: 'center' };
+          if (tuning.align === 'left' && centered) sc.motion = { ...sc.motion, anchor: 'center-left', align: 'left' };
+        }
+        if (tuning.decor !== undefined) decorWanted.set(sc.key, tuning.decor);
       });
       emit('layout', 'done', { layouts: storyboard.scenes.map((sc) => sc.layout).filter((l) => l && l !== 'classic'), source: designed.run.source });
     }
@@ -827,6 +874,12 @@ export class MotionVideoService {
     const overrides = { ...(logoChoice && logoChoice !== kit.logo ? { logo: logoChoice } : {}), ...(animator.choice.camera ? { camera: animator.choice.camera } : {}), ...(animator.choice.entrance ? { entrance: animator.choice.entrance } : {}) };
     if (Object.keys(overrides).length) kit = applyKitOverrides(kit, overrides, kctx).kit;
     kit.icons = assignIcons(storyboard.scenes);
+    // Cran Max : le fond du kit posé (ou retiré) là où le directeur artistique l'a voulu.
+    if (kit.background !== 'none' && decorWanted.size) {
+      const backdrops = new Set(kit.backdropScenes);
+      for (const [key, on] of decorWanted) (on ? backdrops.add(key) : backdrops.delete(key));
+      kit = { ...kit, backdropScenes: [...backdrops].slice(0, 3) };
+    }
     storyboard.kit = kit;
     applyTreatmentSurfaces(storyboard);
     emit('animation', 'done', {
@@ -854,10 +907,13 @@ export class MotionVideoService {
         technique: sc.motion?.headline,
         title: titleOf(sc.slots),
         layouts: layoutMenu({ sceneId: sc.sceneId, slots: sc.slots, image: sc.image, video: sc.video }, layoutCtx, 5),
+        scale: sc.scale,
+        tempo: sc.pace && sc.pace > 1.05 ? 'calm' : sc.pace && sc.pace < 0.95 ? 'lively' : 'normal',
       })),
       transitions: transitions.map((t) => t.id),
       techniques: DIRECTIONS[direction].headline,
       warnings: (qa.warnings || []).map((w) => w.detail),
+      tuning: aiFrom('max'),
     });
     agentRuns.push(critic.run);
     let applied = 0;
@@ -873,6 +929,12 @@ export class MotionVideoService {
         applied++;
       } else if (fix.field === 'title' && sc.motion && fix.value !== prev?.motion?.headline && fix.value !== next?.motion?.headline) {
         sc.motion = { ...sc.motion, headline: fix.value as any };
+        applied++;
+      } else if (fix.field === 'scale') {
+        sc.scale = Number(fix.value);
+        applied++;
+      } else if (fix.field === 'tempo' && fix.value in TEMPO_PACE) {
+        sc.pace = Math.min(1.3, Math.max(0.8, TEMPO_PACE[fix.value as keyof typeof TEMPO_PACE]));
         applied++;
       }
     }
@@ -890,6 +952,29 @@ export class MotionVideoService {
       if (!fits || sc.layout === storyboard.scenes[i - 1]?.layout) sc.layout = 'classic';
     });
     storyboard.qa = { repaired: qa.repaired.length, issues: qa.issues, warnings: qa.warnings };
+    // 8. Cran Ultra : l'agent codeur écrit le composant React de chaque scène possible. Chaque
+    //    composant est linté, compilé et rendu en bac à sable ; refusé, la scène garde son rendu Max.
+    if (aiFrom('ultra')) {
+      emit('code', 'running', { scenes: storyboard.scenes.length });
+      const orchestrator = new CreativeOrchestrator({ level: creativity, call: this.coderCallFor(userId, projectId) });
+      const coded = await codeScenes(
+        {
+          storyboard,
+          sheet,
+          direction,
+          formats: scope.formats,
+          compose: async (sb) => composeVideoHtml({ ...(await inlineAssets(sb, theme, 'render')), format: scope.formats[0], quality: 'standard', mode: 'render' }),
+          withPage: withRenderPage,
+        },
+        orchestrator
+      ).catch((error: any) => {
+        logger.warn('video.code_scenes_failed', { projectId, error: error?.message });
+        return { tried: 0, coded: 0, rejected: {} as Record<string, string[]> };
+      });
+      for (const trace of orchestrator.traces) agentRuns.push({ agent: trace.agent, source: trace.source, tokens: trace.tokens, ms: trace.ms, kept: trace.source === 'llm' ? 1 : 0 });
+      if (Object.keys(coded.rejected).length) logger.info('video.code_scenes_rejected', { projectId, rejected: coded.rejected });
+      emit('code', 'done', { coded: coded.coded, tried: coded.tried });
+    }
     storyboard.agents = agentRuns.map((r) => ({ agent: r.agent, source: r.source, tokens: r.tokens, ms: r.ms, kept: r.kept }));
 
     const now = new Date().toISOString();
@@ -908,6 +993,7 @@ export class MotionVideoService {
       renders: [],
       status: 'draft',
       paidCredits,
+      creativity,
       exportCount: 0,
       // Tous les appels de modèle de la vidéo : stratège, rédacteur et agents.
       copyTokens: {
@@ -1132,7 +1218,7 @@ export class MotionVideoService {
 
   quoteExport(video: MotionVideo, scopeInput?: unknown): { cost: number; scope: VideoScope } {
     const scope = scopeInput ? { ...normalizeScope(scopeInput), durationSec: video.scope.durationSec } : video.scope;
-    return { cost: exportCost({ paidCredits: video.paidCredits, exportCount: video.exportCount, scope }), scope };
+    return { cost: exportCost({ paidCredits: video.paidCredits, exportCount: video.exportCount, scope, creativity: video.creativity }), scope };
   }
 
   async getVideo(userId: string, projectId: string, videoId: string): Promise<MotionVideo | null> {
@@ -1222,6 +1308,8 @@ export class MotionVideoService {
           sfx: Object.keys(sfxFiles).length ? { files: sfxFiles, style: video.storyboard.style, intensity: video.sfx?.intensity } : undefined,
           posterAt: first ? first.start + Math.min(first.duration * 0.85, 2) : 1,
           onProgress: (r) => liveProgress.set(`${videoId}:${format}`, r),
+          // Code écrit par l'IA (cran Ultra) dans la page : garde réseau strict.
+          strict: video.storyboard.scenes.some((sc) => !!sc.code?.tsx),
         });
         const folder = `users/${userId}/projects/${projectId}/videos/${videoId}`;
         const stamp = Date.now().toString(36);

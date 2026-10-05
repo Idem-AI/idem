@@ -48,7 +48,39 @@
     "apply": "Apply",
     "reset": "Reset",
     "close": "Close",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "creativity": {
+      "title": "Creativity",
+      "help": "The higher you go, the more decisions the AI makes — and the more credits the generation uses.",
+      "cost": "{{cost}} credits",
+      "levels": {
+        "low": {
+          "label": "Low",
+          "hint": "Proven",
+          "description": "Proven layouts, adapted to your brand guidelines and their art direction. The AI writes the copy."
+        },
+        "medium": {
+          "label": "Medium",
+          "hint": "Guided",
+          "description": "The AI also picks the structure (sections, scenes, slides) among validated options. The safest at the usual price."
+        },
+        "high": {
+          "label": "High",
+          "hint": "Inspired",
+          "description": "The AI composes each part — layouts, transitions, sequencing — among options filtered by your art direction."
+        },
+        "max": {
+          "label": "Max",
+          "hint": "Bold",
+          "description": "The AI also tunes the details — emphasis, colours, rhythm, density — within bounds that keep everything legible."
+        },
+        "ultra": {
+          "label": "Ultra",
+          "hint": "Free",
+          "description": "The AI creates everything: layouts, compositions, animations. Your brand guidelines and best practices stay guaranteed; any part that fails the checks is redone at Max."
+        }
+      }
+    }
   },
   "dashboard": {
     "createDevelopment": {
@@ -4534,7 +4566,8 @@
             "sfx": "Sound effects",
             "storyboard": "Edit, synced to the beat",
             "animation": "Motion and transitions",
-            "critique": "Final review"
+            "critique": "Final review",
+            "code": "Writing the scenes (Ultra)"
           },
           "details": {
             "plan": "{{count}} scenes for {{seconds}} s",
@@ -4553,7 +4586,8 @@
             "animation": "Cuts: {{names}} · {{camera}} camera",
             "critique": "{{count}} fix(es) from the creative director",
             "critiqueOk": "Approved without changes",
-            "musicAgent": "“{{title}}” — {{artist}} · {{bpm}} BPM · picked for your brand"
+            "musicAgent": "“{{title}}” — {{artist}} · {{bpm}} BPM · picked for your brand",
+            "code": "{{coded}} of {{tried}} scene(s) written by the AI and validated"
           }
         },
         "directions": {

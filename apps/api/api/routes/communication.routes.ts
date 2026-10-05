@@ -56,12 +56,7 @@ import multer from 'multer';
 import { authenticate } from '../services/auth.service';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import { checkQuota } from '../middleware/quota.middleware';
-import {
-  creditCost,
-  firstThenRevision,
-  planScope,
-  requireCredits,
-} from '../middleware/billing.middleware';
+import { creditCost, firstThenRevision, planScope, requireCredits, withCreativity } from '../middleware/billing.middleware';
 
 export const communicationRoutes = Router();
 
@@ -298,9 +293,8 @@ communicationRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
-  // 2 crédits : le flyer repose sur un moteur de templates, pas sur une
-  // génération d'image — c'est ce qui permet un visuel à 40 F.
-  requireCredits('business', 'flyer'),
+  // 2 crédits au cran Low / Medium ; le cran de la jauge de créativité multiplie le prix.
+  requireCredits('business', 'flyer', { resolve: withCreativity('business', 'flyer') }),
   generateFlyerController
 );
 
@@ -317,7 +311,8 @@ communicationRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
-  requireCredits('business', 'flyer'),
+  // Le cran de la jauge de créativité multiplie le prix du visuel.
+  requireCredits('business', 'flyer', { resolve: withCreativity('business', 'flyer') }),
   regenerateFlyerController
 );
 
@@ -608,13 +603,13 @@ communicationRoutes.post(
   // Trois variantes du même brief coûtent le prix d'un carrousel plutôt que
   // trois visuels : explorer doit rester moins cher que recommencer.
   requireCredits('business', 'flyer', {
-    resolve: async (req) => {
+    resolve: withCreativity('business', 'flyer', async (req) => {
       const variants = Math.min(3, Math.max(1, Number(req.body?.variants) || 1));
       // Le prix vient du barème, jamais d'un nombre recopié ici : un tarif ajusté
       // dans `BUSINESS_CREDIT_COSTS` doit valoir pour toutes les routes.
       const action = variants > 1 ? 'carousel' : 'flyer';
       return { action, cost: creditCost('business', action) };
-    },
+    }),
   }),
   createVisualController
 );
@@ -780,9 +775,9 @@ communicationRoutes.post(
     }
     next();
   },
-  // Le prix suit le PÉRIMÈTRE choisi ; il vient du barème (2 × la charte au périmètre de référence).
+  // Le prix suit le PÉRIMÈTRE choisi (2 × la charte au périmètre de référence), puis le cran de créativité.
   requireCredits('business', 'motion_video', {
-    resolve: async (req) => ({ action: 'motion_video', cost: videoCost(normalizeScope(req.body?.scope)) }),
+    resolve: withCreativity('business', 'motion_video', async (req) => ({ action: 'motion_video', cost: videoCost(normalizeScope(req.body?.scope)) })),
   }),
   createVideoController
 );
@@ -812,7 +807,7 @@ communicationRoutes.post(
     next();
   },
   requireCredits('business', 'motion_video', {
-    resolve: async (req) => ({ action: 'motion_video', cost: videoCost(normalizeScope(req.body?.scope)) }),
+    resolve: withCreativity('business', 'motion_video', async (req) => ({ action: 'motion_video', cost: videoCost(normalizeScope(req.body?.scope)) })),
   }),
   createVideoStreamController
 );

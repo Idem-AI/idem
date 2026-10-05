@@ -52,7 +52,8 @@ import { closeRenderBrowser, probe } from '../services/Communication/video/video
 import { MotionVideoService, drainRenderQueue } from '../services/Communication/video/motionVideo.service';
 import { SCENES } from '../services/Communication/video/video.scenes';
 import { BRANDS, brandById } from './fixtures/motion-video/brands';
-import { CASES, simulateAgent, simulateModel, VideoCase } from './fixtures/motion-video/cases';
+import { CASES, simulateAgent, simulateCoder, simulateModel, VideoCase } from './fixtures/motion-video/cases';
+import { CreativityLevel } from '../models/creativity.model';
 import { TRANSITION_IDS } from '../services/Communication/video/video.direction';
 import { makeMusic, makePhotos, SYNTH_TRACKS } from './fixtures/motion-video/media';
 import { planTypeScenes, TYPE_DEFS } from '../services/Communication/video/video.types';
@@ -484,15 +485,19 @@ async function main() {
     fake as any,
     () => (system, user) => simulateModel(currentCase)(system, user),
     // Les agents : même comportement simulé que la copie (propre, désordre, invention, vide, panne).
-    () => (system, user) => simulateAgent(currentCase.behaviour, system, user)
+    () => (system, user) => simulateAgent(currentCase.behaviour, system, user),
+    // L'agent codeur du cran Ultra : un composant générique, éprouvé par le vrai lint et le vrai rendu.
+    () => async () => simulateCoder(currentCase.behaviour)
   );
+  // Chaque comportement de modèle tourne à un cran différent de la jauge de créativité.
+  const LEVEL_OF: Record<string, CreativityLevel> = { clean: 'ultra', messy: 'max', json: 'high', hallucinate: 'high', down: 'low', empty: 'medium' };
   (service as any).storage = fakeStorage;
 
   const created: { c: VideoCase; video: MotionVideo }[] = [];
   for (const c of CASES) {
     currentCase = c;
     const brief: VideoBrief = { ...c.brief, imageUrls: (c.photos || []).map((p) => `${server.base}/${p}.jpg`) };
-    const video = await service.createVideo('test-user', c.brandId, { brief, scope: c.scope }, videoCost(c.scope));
+    const video = await service.createVideo('test-user', c.brandId, { brief, scope: c.scope, creativity: LEVEL_OF[c.behaviour] }, videoCost(c.scope));
     created.push({ c, video });
     const sb = video.storyboard;
     const total = sb.scenes.reduce((a, sc) => a + sc.duration, 0);
@@ -518,11 +523,18 @@ async function main() {
       const agents = sb.agents || [];
       const names = agents.map((a) => a.agent);
       const llm = (agent: string) => agents.find((a) => a.agent === agent)?.source === 'llm';
+      const level = LEVEL_OF[c.behaviour];
       const expectLlm = c.behaviour === 'clean' || c.behaviour === 'messy';
       check(
-        `${c.id} : agents ${agents.map((a) => `${a.agent}:${a.source}`).join(' ')}`,
-        ['strategist', 'writer', 'artDirector', 'animator', 'critic'].every((n) => names.includes(n)) && (!expectLlm || (llm('artDirector') && llm('animator'))) && (c.behaviour !== 'down' || !llm('animator'))
+        `${c.id} [${level}] : agents ${agents.filter((a) => !a.agent.startsWith('sceneCoder')).map((a) => `${a.agent}:${a.source}`).join(' ')}`,
+        ['strategist', 'writer', 'artDirector', 'animator', 'critic'].every((n) => names.includes(n)) && (!expectLlm || (llm('artDirector') && llm('animator'))) && (c.behaviour !== 'down' || !llm('animator')) && video.creativity === level
       );
+      // Sous High, aucun agent de composition n'est appelé : la décision est celle du code.
+      if (level === 'low' || level === 'medium') check(`${c.id} [${level}] : mises en page, transitions et relecture décidées par le code`, ['artDirector', 'animator', 'critic'].every((n) => !llm(n)));
+      if (level === 'ultra') {
+        const coded = sb.scenes.filter((sc) => sc.code?.tsx);
+        check(`${c.id} [ultra] : ${coded.length} scène(s) écrite(s) par l’agent codeur, contrôlée(s) et retenue(s)`, coded.length >= 1 && agents.some((a) => a.agent.startsWith('sceneCoder') && a.source === 'llm'));
+      }
       const layouts = sb.scenes.map((sc) => sc.layout);
       const repeatedLayout = layouts.some((l, i) => l && l !== 'classic' && l === layouts[i - 1]);
       const textScenes = sb.scenes.filter((sc) => ['hook', 'statement', 'stat', 'benefits', 'offer', 'quote', 'cta', 'event'].includes(sc.sceneId));

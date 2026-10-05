@@ -29,6 +29,9 @@ import { RenderContext } from '../../../document-editor/models/editor.types';
 import { buildTimeline, GenerationPhase, phaseOfPage } from './generation-chapters';
 import { GenerationStageIllustrationComponent } from './generation-stage-illustration';
 import { LivePagePreviewComponent } from './live-page-preview';
+import { CreativityLevel, DEFAULT_CREATIVITY } from '@idem/shared-models';
+import { CreativityGaugeComponent } from '../../../../../../shared/components/creativity-gauge/creativity-gauge';
+import { CreativityService } from '../../../../../../shared/services/creativity.service';
 
 @Component({
   selector: 'app-branding-generation',
@@ -38,6 +41,7 @@ import { LivePagePreviewComponent } from './live-page-preview';
     IdemLoaderComponent,
     GenerationStageIllustrationComponent,
     LivePagePreviewComponent,
+    CreativityGaugeComponent,
   ],
   templateUrl: './branding-generation.html',
   styleUrl: './branding-generation.css',
@@ -51,6 +55,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
   private readonly projectService = inject(ProjectService);
+  private readonly creativityPricing = inject(CreativityService);
   private readonly destroy$ = new Subject<void>();
 
   // Outputs
@@ -59,6 +64,14 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
   // Signals for reactive state management
   protected readonly projectId = signal<string | null>(null);
   protected readonly pdfFormat = signal<string>('SLIDE_16_9');
+  /**
+   * Jauge de créativité de la charte : Medium = famille de mise en page choisie par un agent,
+   * High = archétype de chaque page, Max = réglages et critique du rythme, Ultra = pages
+   * composées par le compositeur (gabarit en repli).
+   */
+  protected readonly creativity = signal<CreativityLevel>(DEFAULT_CREATIVITY);
+  /** Prix au cran Low / Medium pour ce projet (null : prix non affiché). */
+  protected readonly creativityBaseCost = signal<number | null>(null);
   protected readonly isSelectingFormat = signal<boolean>(true);
   protected readonly isPostProcessing = signal<boolean>(false);
   protected readonly postProcessingMessage = signal<string>(
@@ -171,6 +184,13 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
+    const projectId = this.projectId();
+    if (projectId) {
+      this.creativityPricing
+        .baseCost(projectId, 'logo_brand')
+        .pipe(takeUntil(this.destroy$))
+        .subscribe((cost) => this.creativityBaseCost.set(cost));
+    }
     this.isForcingRegeneration = this.route.snapshot.queryParams['force'] === 'true';
 
     const sectionsParam = this.route.snapshot.queryParams['sections'];
@@ -292,6 +312,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
       this.pdfFormat(),
       this.isForcingRegeneration,
       this.targetSections,
+      this.creativity(),
     );
 
     this.generationService

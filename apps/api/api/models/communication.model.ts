@@ -380,6 +380,12 @@ export interface Flyer {
   intent?: VisualIntent;
   /** The exact logo declension URL the AI placed inside the visual. */
   logoUsed?: string;
+  /** Composition du code retenue (crans Low → High de la jauge de créativité, cf. flyerLayouts.ts). */
+  layout?: string;
+  /** Cran de la jauge de créativité choisi pour ce visuel. */
+  creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
+  /** Ce que chaque agent a décidé (source modèle ou code, tokens). */
+  agents?: { agent: string; source: 'llm' | 'graph'; tokens: { input: number; output: number }; ms: number; reason?: string }[];
   /** Single-line Tailwind HTML used internally to render the PNG. */
   html: string;
   /** Public URL of the rendered flyer PNG (served from MinIO). */

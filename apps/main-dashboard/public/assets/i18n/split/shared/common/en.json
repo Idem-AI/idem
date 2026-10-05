@@ -48,6 +48,38 @@
     "apply": "Apply",
     "reset": "Reset",
     "close": "Close",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "creativity": {
+      "title": "Creativity",
+      "help": "The higher you go, the more decisions the AI makes — and the more credits the generation uses.",
+      "cost": "{{cost}} credits",
+      "levels": {
+        "low": {
+          "label": "Low",
+          "hint": "Proven",
+          "description": "Proven layouts, adapted to your brand guidelines and their art direction. The AI writes the copy."
+        },
+        "medium": {
+          "label": "Medium",
+          "hint": "Guided",
+          "description": "The AI also picks the structure (sections, scenes, slides) among validated options. The safest at the usual price."
+        },
+        "high": {
+          "label": "High",
+          "hint": "Inspired",
+          "description": "The AI composes each part — layouts, transitions, sequencing — among options filtered by your art direction."
+        },
+        "max": {
+          "label": "Max",
+          "hint": "Bold",
+          "description": "The AI also tunes the details — emphasis, colours, rhythm, density — within bounds that keep everything legible."
+        },
+        "ultra": {
+          "label": "Ultra",
+          "hint": "Free",
+          "description": "The AI creates everything: layouts, compositions, animations. Your brand guidelines and best practices stay guaranteed; any part that fails the checks is redone at Max."
+        }
+      }
+    }
   }
 }

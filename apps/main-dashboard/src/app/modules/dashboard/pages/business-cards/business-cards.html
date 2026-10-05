@@ -38,8 +38,9 @@
               <button
                 type="button"
                 class="glass-card px-4 py-2.5 text-sm text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors rounded-xl flex items-center gap-2 disabled:opacity-50"
-                (click)="generateTemplate()"
+                (click)="showRegenerate.set(!showRegenerate())"
                 [disabled]="isGenerating()"
+                [attr.aria-expanded]="showRegenerate()"
               >
                 <idem-loader size="xs" />
                 {{ 'dashboard.businessCards.actions.regenerate' | translate }}
@@ -47,6 +48,21 @@
             </div>
           }
         </div>
+        <!-- Régénérer passe par la jauge de créativité : ce que l'IA décide, et ce que ça coûte. -->
+        @if (showRegenerate() && !isGenerating()) {
+          <div class="glass-card rounded-2xl p-5 mb-6 flex flex-col gap-4">
+            <app-creativity-gauge [(value)]="creativity" [baseCost]="creativityBaseCost()" />
+            <div class="flex flex-wrap gap-2 justify-end">
+              <button type="button" class="outer-button" (click)="showRegenerate.set(false)">
+                {{ 'common.cancel' | translate }}
+              </button>
+              <button type="button" class="inner-button" (click)="generateTemplate()">
+                <i class="pi pi-sparkles" aria-hidden="true"></i>
+                {{ 'dashboard.businessCards.actions.regenerate' | translate }}
+              </button>
+            </div>
+          </div>
+        }
 
         @if (templateMeta(); as meta) {
           <div class="mt-5 pt-5 border-t border-[var(--glass-border)] flex flex-wrap items-center gap-3">
@@ -155,6 +171,8 @@
                     [placeholder]="'dashboard.businessCards.empty.generate.briefPlaceholder' | translate"
                   />
                 </div>
+
+                <app-creativity-gauge class="mb-6" [(value)]="creativity" [baseCost]="creativityBaseCost()" [disabled]="isGenerating()" />
 
                 <button
                   type="button"

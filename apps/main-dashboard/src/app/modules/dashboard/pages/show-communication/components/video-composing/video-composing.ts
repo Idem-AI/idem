@@ -18,12 +18,12 @@ import {
 
 export type VideoProgressState = Partial<Record<VideoProgressStage, { state: 'running' | 'done'; data?: VideoProgressData }>>;
 
-const STAGES: VideoProgressStage[] = ['plan', 'copy', 'layout', 'media', 'music', 'sfx', 'storyboard', 'animation', 'critique'];
+const STAGES: VideoProgressStage[] = ['plan', 'copy', 'layout', 'media', 'music', 'sfx', 'storyboard', 'animation', 'critique', 'code'];
 
 /** Poids de chaque étape dans la barre, proportionnels à leur coût réel. */
-const WEIGHT: Record<VideoProgressStage, number> = { plan: 4, copy: 22, layout: 8, media: 26, music: 20, sfx: 6, storyboard: 4, animation: 6, critique: 4 };
+const WEIGHT: Record<VideoProgressStage, number> = { plan: 4, copy: 22, layout: 8, media: 26, music: 20, sfx: 6, storyboard: 4, animation: 6, critique: 4, code: 30 };
 /** Durée attendue d'une étape (ms) : la barre avance doucement pendant qu'elle tourne. */
-const EXPECTED_MS: Record<VideoProgressStage, number> = { plan: 500, copy: 9000, layout: 5000, media: 20000, music: 15000, sfx: 6000, storyboard: 1500, animation: 4000, critique: 4000 };
+const EXPECTED_MS: Record<VideoProgressStage, number> = { plan: 500, copy: 9000, layout: 5000, media: 20000, music: 15000, sfx: 6000, storyboard: 1500, animation: 4000, critique: 4000, code: 60000 };
 
 const RATIOS: Record<VideoFormat, string> = { story: '9 / 16', square: '1 / 1', portrait: '4 / 5', landscape: '16 / 9' };
 
@@ -55,7 +55,8 @@ export class VideoComposing {
   readonly format = input<VideoFormat>('story');
   readonly progress = input<VideoProgressState>({});
 
-  protected readonly stages = STAGES;
+  /** L'étape « écriture des scènes » n'existe qu'au cran Ultra : elle n'apparaît que si le serveur l'annonce. */
+  protected readonly stages = computed(() => STAGES.filter((s) => s !== 'code' || !!this.progress()['code']));
   protected readonly ratio = computed(() => RATIOS[this.format()] ?? '9 / 16');
 
   /** Horloge (rafraîchie 4 fois par seconde) : l'avancée douce des étapes en cours. */
@@ -84,7 +85,7 @@ export class VideoComposing {
   protected readonly percent = computed(() => {
     const now = this.now();
     const p = this.progress();
-    const total = STAGES.reduce((n, s) => n + WEIGHT[s], 0);
+    const total = this.stages().reduce((n, s) => n + WEIGHT[s], 0);
     let value = 0;
     for (const stage of STAGES) {
       const entry = p[stage];
@@ -177,6 +178,8 @@ export class VideoComposing {
         };
       case 'critique':
         return d.fixes ? { key: 'critique', params: { count: d.fixes } } : { key: 'critiqueOk', params: {} };
+      case 'code':
+        return { key: 'code', params: { coded: d.coded ?? 0, tried: d.tried ?? 0 } };
       default:
         return { key: 'storyboard', params: { count: (d.scenes ?? []).length, bpm: d.bpm ? Math.round(d.bpm) : '—' } };
     }

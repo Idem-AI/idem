@@ -756,6 +756,26 @@ export const AI_CONFIG = {
     fallbackModels: [GLM_MODELS.writing],
   }),
 
+  /**
+   * LES AGENTS DE LA JAUGE DE CRÉATIVITÉ (services/creativity/orchestrator.ts).
+   *
+   * Trois profils, pas un par livrable : ce qui distingue les agents est la NATURE de
+   * leur tâche, pas le livrable qu'ils servent.
+   *  - `agents` : un choix dans un menu court (mise en page, transition, structure…).
+   *    Tâche mécanique, deux à cinq lignes : le plus petit modèle, sans raisonnement,
+   *    une température qui varie les choix d'une génération à l'autre.
+   *  - `critic` : une relecture qui propose au plus cinq corrections dans une
+   *    grammaire fermée. Plus froide : on veut des corrections, pas de l'inspiration.
+   *  - `coder` : le cran Ultra, où l'IA ÉCRIT la composition (HTML, React, SVG).
+   *    Assez de tokens pour un composant entier ; le code est ensuite compilé, linté
+   *    et rendu en bac à sable — c'est là que se joue la qualité, pas dans le prompt.
+   */
+  creative: {
+    agents: feature({ role: 'mechanical', promptType: 'creative_agents', temperature: 0.85, tokens: 400, thinking: false }),
+    critic: feature({ role: 'mechanical', promptType: 'creative_critic', temperature: 0.3, tokens: 400, thinking: false }),
+    coder: feature({ role: 'writing', promptType: 'creative_coder', temperature: 0.7, tokens: 6000, thinking: false }),
+  },
+
   /** Replis nommés, pour les appelants qui choisissent leur modèle eux-mêmes. */
   fallback: {
     textModel: GLM_MODELS.mechanical,

@@ -298,3 +298,44 @@ export async function simulateAgent(behaviour: ModelBehaviour, system: string, u
   }
   return '';
 }
+
+/**
+ * L'agent codeur du cran Ultra, simulé : un composant générique (tous les textes de la scène,
+ * un calque de marque qui balaie, des points qui pulsent) — de quoi éprouver le chemin réel
+ * (lint, compilation, rendu de contrôle, scène retenue) sans modèle.
+ */
+export const SIMULATED_SCENE_CODE = `
+import { useScene, useEngine, useLocalTime, useSceneProgress, useBeatPulse, useExitAt, Kinetic, progress, mix, cue } from '@idem/kit';
+
+export default function Scene() {
+  const s = useScene();
+  const { u, horizontal, ease, data } = useEngine();
+  const lt = useLocalTime();
+  const p = useSceneProgress();
+  const beat = useBeatPulse();
+  const exitAt = useExitAt();
+  const g = data.direction.pacing.groupStagger;
+  const keys = Object.keys(s.slots).filter((k) => !!s.slots[k]);
+  const sweep = ease(progress(lt, 0, 0.7));
+  cue(\`\${s.key}:sweep\`, s.start, 'whoosh', 0.6);
+  return (
+    <>
+      <div style={{ position: 'absolute', left: 0, top: 0, width: \`\${sweep * (horizontal ? 38 : 100)}%\`, height: horizontal ? '100%' : '26%', background: 'var(--hl)', transform: \`translateY(\${mix(0, -1.5, p)}%)\` }} />
+      <span style={{ position: 'absolute', right: '9%', top: '12%', width: 3 * u, height: 3 * u, borderRadius: 999, background: 'var(--hl-text)', opacity: 0.5 + beat * 0.4 }} />
+      <div className="safe" style={{ justifyContent: 'center', paddingLeft: horizontal ? '40%' : 0 }}>
+        {keys.map((k, i) => (
+          <div key={k} style={{ width: '100%', marginTop: i ? 2 * u : 0 }}>
+            <Kinetic text={s.slots[k]} technique={i === 0 ? 'maskUp' : 'blurWords'} at={0.25 + i * g} role={i === 0 ? 'headline' : 'support'} fit={i === 0 ? [horizontal ? 10 : 12, 5, 3] : [5, 3, 2]} exitAt={exitAt} />
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+`.trim();
+
+export async function simulateCoder(behaviour: ModelBehaviour): Promise<string> {
+  if (behaviour === 'down') throw new Error('GLM: insufficient balance (simulated)');
+  if (behaviour === 'empty') return '';
+  return 'Voici la scène :\n```tsx\n' + SIMULATED_SCENE_CODE + '\n```';
+}

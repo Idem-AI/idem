@@ -1,3 +1,4 @@
+import { creativityOf } from '../middleware/billing.middleware';
 import { Response } from 'express';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
@@ -59,6 +60,8 @@ export const generateBusinessCardTemplateController = async (
       orientation: orientation === 'portrait' ? 'portrait' : 'landscape',
       styleBrief: typeof req.body?.styleBrief === 'string' ? req.body.styleBrief : undefined,
       language: getRequestLanguage(),
+      // Le cran de la jauge de créativité (déjà appliqué au prix par la route).
+      creativity: creativityOf(req as any),
     });
     res.status(200).json(card);
   } catch (error: any) {

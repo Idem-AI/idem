@@ -1029,7 +1029,8 @@
             "sfx": "Les effets sonores",
             "storyboard": "Le montage, calé sur le rythme",
             "animation": "Le mouvement et les transitions",
-            "critique": "La relecture finale"
+            "critique": "La relecture finale",
+            "code": "L'écriture des scènes (Ultra)"
           },
           "details": {
             "plan": "{{count}} scènes pour {{seconds}} s",
@@ -1048,7 +1049,8 @@
             "animation": "Raccords : {{names}} · caméra {{camera}}",
             "critique": "{{count}} correction(s) du directeur de création",
             "critiqueOk": "Validé sans correction",
-            "musicAgent": "« {{title}} » — {{artist}} · {{bpm}} BPM · choisie pour votre marque"
+            "musicAgent": "« {{title}} » — {{artist}} · {{bpm}} BPM · choisie pour votre marque",
+            "code": "{{coded}} scène(s) sur {{tried}} écrite(s) par l'IA et validée(s)"
           }
         },
         "directions": {

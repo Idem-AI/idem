@@ -9,7 +9,7 @@ import {
   SocialAssetFile,
   TypographyModel,
 } from '../../models/brand-identity.model';
-import { ProjectModel } from '@idem/shared-models';
+import { CreativityLevel, ProjectModel } from '@idem/shared-models';
 import { LogoModel, LogoPreferencesModel } from '../../models/logo.model';
 import {
   HarmonizeResult,
@@ -54,6 +54,8 @@ export class BrandingService {
     pdfFormat: string = 'SLIDE_16_9',
     force = false,
     sections: string[] = [],
+    /** Cran de la jauge de créativité (prix et délégation à l'IA) ; absent, Medium. */
+    creativity?: CreativityLevel,
   ): Observable<SSEStepEvent> {
     console.log('Starting branding generation with SSE and format:', pdfFormat);
 
@@ -64,6 +66,7 @@ export class BrandingService {
     params.set('format', pdfFormat);
     if (force) params.set('force', 'true');
     if (sections.length > 0) params.set('sections', sections.join(','));
+    if (creativity) params.set('creativity', creativity);
 
     const config: SSEConnectionConfig = {
       url: `${this.apiUrl}/generate/${projectId}?${params.toString()}`,
@@ -93,6 +96,8 @@ export class BrandingService {
     projectId: string,
     force = false,
     preferences?: LogoPreferencesModel | null,
+    /** Cran de la jauge de créativité (prix et délégation à l'IA) ; absent, Medium. */
+    creativity?: CreativityLevel,
   ): Observable<SSEStepEvent> {
     this.sseService.closeConnection('logo');
 
@@ -106,6 +111,7 @@ export class BrandingService {
         params.set('prefDesc', preferences.customDescription.slice(0, 800));
       }
     }
+    if (creativity) params.set('creativity', creativity);
     const query = params.toString();
 
     const config: SSEConnectionConfig = {

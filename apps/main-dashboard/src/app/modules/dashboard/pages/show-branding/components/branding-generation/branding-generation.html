@@ -10,6 +10,9 @@
       </p>
     </div>
 
+    <!-- Le cran se choisit avant le format : choisir un format lance la génération. -->
+    <app-creativity-gauge class="glass-card max-w-2xl mx-auto p-5 mb-7" [(value)]="creativity" [baseCost]="creativityBaseCost()" />
+
     <app-pdf-format-selector (formatSelected)="onFormatSelected($event)"></app-pdf-format-selector>
   </div>
 } @else if (isGenerating() || isPostProcessing()) {

@@ -12,6 +12,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { CreativityLevel, creativityCost, DEFAULT_CREATIVITY } from '@idem/shared-models';
+import { CreativityGaugeComponent } from '../../../../../../shared/components/creativity-gauge/creativity-gauge';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
 import { VideoComposing, VideoProgressState } from '../video-composing/video-composing';
 import {
@@ -71,7 +73,7 @@ const EXAMPLES = ['ex1', 'ex2', 'ex3'];
  */
 @Component({
   selector: 'app-video-builder',
-  imports: [FormsModule, TranslateModule, IdemLoaderComponent, VideoComposing],
+  imports: [FormsModule, TranslateModule, IdemLoaderComponent, VideoComposing, CreativityGaugeComponent],
   templateUrl: './video-builder.html',
   styleUrls: ['../visual-builder/visual-builder.css', './video-builder.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -132,7 +134,10 @@ export class VideoBuilder {
     formats: this.formats(),
     quality: this.quality(),
   }));
-  protected readonly price = computed(() => priceVideo(this.options().pricing, this.scope()));
+  /** Prix du périmètre (cran Low / Medium), puis celui du cran de créativité choisi. */
+  protected readonly basePrice = computed(() => priceVideo(this.options().pricing, this.scope()));
+  protected readonly creativity = signal<CreativityLevel>(DEFAULT_CREATIVITY);
+  protected readonly price = computed(() => creativityCost(this.basePrice(), this.creativity()));
 
   protected readonly canNext = computed(() => this.request().trim().length >= 8 && !this.uploading() && !this.enhancing());
 
@@ -251,6 +256,7 @@ export class VideoBuilder {
         },
         scope: this.scope(),
         type: this.type(),
+        creativity: this.creativity(),
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

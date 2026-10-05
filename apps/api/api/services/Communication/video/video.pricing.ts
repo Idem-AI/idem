@@ -16,6 +16,7 @@
  * Un nouvel export après retouche ne repaie pas la vidéo : il coûte une
  * fraction du périmètre, plus la différence si le périmètre a été élargi.
  */
+import { CreativityLevel, creativityCost } from '../../../models/creativity.model';
 import { BUSINESS_CREDIT_COSTS } from '../../../models/billing.model';
 import {
   VIDEO_DURATIONS,
@@ -88,8 +89,9 @@ export function videoCost(scope: VideoScope): number {
  * - ensuite : 10 % du périmètre demandé, plus la différence avec ce qui a déjà
  *   été payé si le périmètre grandit (ajouter un format, passer en premium).
  */
-export function exportCost(opts: { paidCredits: number; exportCount: number; scope: VideoScope }): number {
-  const full = videoCost(opts.scope);
+export function exportCost(opts: { paidCredits: number; exportCount: number; scope: VideoScope; creativity?: CreativityLevel }): number {
+  // Le cran de créativité choisi à la création s'applique aussi au périmètre élargi.
+  const full = creativityCost(videoCost(opts.scope), opts.creativity || 'medium');
   const upgrade = Math.max(0, full - (opts.paidCredits || 0));
   if (opts.exportCount <= 0) return upgrade;
   const fee = Math.max(VIDEO_PRICING.minRerender, Math.ceil(full * VIDEO_PRICING.rerenderFactor));

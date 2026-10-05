@@ -10,6 +10,7 @@
  * 437 ne peut donc pas sortir sans sa photo.
  */
 import { inlineFontLinks } from './video.fonts';
+import { compileSceneCode } from './video.coder';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
@@ -256,6 +257,48 @@ function withArt(d: (typeof DIRECTIONS)[DirectionId], art: VideoStoryboard['art'
 
 const cssFamily = (family: string) => `'${family.replace(/'/g, '')}'`;
 
+/** Les scènes écrites par l'IA (cran Ultra), compilées : clé de scène → module CommonJS. */
+async function customScenesOf(storyboard: VideoStoryboard): Promise<Record<string, string> | undefined> {
+  const coded = storyboard.scenes.filter((sc) => sc.code?.tsx);
+  if (!coded.length) return undefined;
+  const out: Record<string, string> = {};
+  for (const sc of coded) {
+    try {
+      out[sc.key] = await compileSceneCode(sc.code!.tsx);
+    } catch {
+      /* code illisible : la scène garde sa composition */
+    }
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * Politique de sécurité d'une page qui exécute du code écrit par l'IA : aucune requête vers
+ * une origine qui n'est pas DÉJÀ dans les données de la page (médias, polices, musique).
+ * Le code de l'IA ne peut donc rien envoyer ailleurs, même s'il contournait le lint.
+ */
+export function contentSecurityPolicy(pageText: string): string {
+  const found = [...pageText.matchAll(/https?:\/\/[a-z0-9.-]+(?::\d+)?/gi)].map((m) => m[0].toLowerCase());
+  // Une feuille Google Fonts (aperçu) sert ses fichiers depuis gstatic.
+  if (found.includes('https://fonts.googleapis.com')) found.push('https://fonts.gstatic.com');
+  const origins = [...new Set(found)].join(' ');
+  const src = `data: blob: ${origins}`.trim();
+  return [
+    "default-src 'none'",
+    "script-src 'unsafe-inline' 'unsafe-eval'",
+    `style-src 'unsafe-inline' ${origins}`.trim(),
+    `font-src ${src}`,
+    `img-src ${src}`,
+    `media-src ${src}`,
+    `connect-src ${src}`,
+    'worker-src blob:',
+    "frame-src 'none'",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'none'",
+  ].join('; ');
+}
+
 export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: string; spec: FrameSpec }> {
   const { storyboard, theme, format } = opts;
   const spec = frameSpec(format, opts.quality);
@@ -314,6 +357,7 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
         treatment: kit?.treatments?.[scene.key],
         layout: scene.layout,
         emphasis: scene.emphasis,
+        scale: scene.scale,
         pace: scene.pace,
         motion,
         ...extra,
@@ -369,14 +413,19 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
     sfx: opts.mode === 'preview' ? opts.sfx : undefined,
     // Les mises en page pulsent sur le temps de la musique (grille en temps vidéo).
     beat: storyboard.beat?.bpm ? { bpm: storyboard.beat.bpm, offset: storyboard.beat.offset || 0 } : undefined,
+    // Cran Ultra : les scènes écrites par l'IA (validées à la création), compilées pour le moteur.
+    customScenes: await customScenesOf(storyboard),
   };
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
+  // Code écrit par l'IA dans la page : le réseau est limité aux origines que la page emploie déjà.
+  const csp = data.customScenes && Object.keys(data.customScenes).length ? `<meta http-equiv="Content-Security-Policy" content="${contentSecurityPolicy(json + theme.fonts.links)}">` : '';
   // Rendu : polices embarquées (une feuille externe qui tarde bloquerait le chargement de la page).
   const fontLinks = opts.mode === 'render' ? await inlineFontLinks(theme.fonts.links, [theme.brandName, ...storyboard.scenes.flatMap((sc) => Object.values(sc.slots || {}))].join(' ')) : theme.fonts.links;
 
   const html = `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+${csp}
 ${fontLinks}
 <style>
 :root{--f-display:${cssFamily(theme.fonts.display)};--f-body:${cssFamily(theme.fonts.body)}}

@@ -182,6 +182,14 @@ function spaceOf(style: ArtDirectionStyle) {
 }
 
 /**
+ * L'espace de composition qu'un style autorise (archétypes, densités, tensions…) et les
+ * positions d'image : les MENUS que la jauge de créativité propose aux agents des documents.
+ */
+export function styleSpaceOf(styleId: string | null | undefined): ReturnType<typeof spaceOf> & { imagePositions: string[] } {
+  return { ...spaceOf(resolveStyle(styleId)), imagePositions: [...IMAGE_POSITIONS] };
+}
+
+/**
  * Construit une graine dans l'espace autorisé par le style.
  *
  * @param styleId  Identifiant du style de la direction artistique.

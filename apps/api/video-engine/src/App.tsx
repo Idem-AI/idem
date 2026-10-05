@@ -2,10 +2,11 @@
  * La vidéo : la scène (« stage »), les scènes visibles à l'instant t, les
  * calques de transition et le décor propre à la direction.
  */
-import { CSSProperties, useLayoutEffect, useMemo } from 'react';
+import { Component, CSSProperties, ReactNode, useLayoutEffect, useMemo } from 'react';
 import { Engine, EngineCtx, SceneCtx, Timed, VideoData, makeEasings, useEngine, useScene } from './context';
 import { cue } from './cues';
 import { Backdrop } from './kit/Backdrop';
+import { loadCustomScenes, SCENE_ERRORS } from './kit-api';
 import { layoutFor } from './layouts';
 import { SCENE_COMPONENTS } from './scenes';
 import { clamp, progress } from './time';
@@ -31,18 +32,57 @@ function surfaceVars(data: VideoData, surface: string): CSSProperties {
   };
 }
 
-/** Si une scène déborde malgré l'ajustement, toutes ses tailles réduisent ensemble. */
+/** Boîte de mise en page d'un élément dans la zone sûre — sans les transformations d'animation. */
+function boxIn(el: HTMLElement, safe: HTMLElement): { top: number; bottom: number; left: number; right: number } | null {
+  let top = 0;
+  let left = 0;
+  let node: HTMLElement | null = el;
+  while (node && node !== safe) {
+    top += node.offsetTop;
+    left += node.offsetLeft;
+    const parent = node.offsetParent as HTMLElement | null;
+    // Positionné hors de la zone sûre (décor, fond) : ce n'est pas du contenu de la zone.
+    if (!parent || !safe.contains(parent)) return null;
+    node = parent;
+  }
+  if (node !== safe || !el.offsetWidth) return null;
+  return { top, bottom: top + Math.max(el.offsetHeight, el.scrollHeight), left, right: left + el.offsetWidth };
+}
+
+/** Débordement (px) des textes de la zone sûre, en hauteur ou en largeur. */
+function overflowOf(safe: HTMLElement): number {
+  let worst = 0;
+  safe.querySelectorAll<HTMLElement>('.kt, [data-fit], .btn, .price, .badge, .tagline').forEach((el) => {
+    // Les textes qui débordent exprès (chiffre géant, défilants) ne comptent pas.
+    if (el.closest('.ly-bignum,.ly-marquee,.ly-ticker,[data-bleed]')) return;
+    const b = boxIn(el, safe);
+    if (!b) return;
+    worst = Math.max(worst, -b.top, b.bottom - safe.clientHeight, -b.left, b.right - safe.clientWidth);
+  });
+  return worst;
+}
+
+/**
+ * Si une scène déborde de sa zone sûre malgré l'ajustement des textes, toutes ses tailles
+ * réduisent ensemble : les textes d'abord (dix pas de 10 % au plus), puis, si la hauteur vient
+ * du reste (cercle, icônes, marges des cartes), le bloc entier. Mesuré une fois, sur les boîtes
+ * de mise en page (sans les transformations d'animation) : la même image, quel que soit l'instant.
+ */
 function useShrinkOverflow() {
   useLayoutEffect(() => {
     document.querySelectorAll<HTMLElement>('section.scene').forEach((scene) => {
-      const safe = scene.querySelector<HTMLElement>('.safe');
-      if (!safe) return;
-      const fits = [...safe.querySelectorAll<HTMLElement>('[data-fit]')];
-      for (let i = 0; i < 10; i++) {
-        const block = safe.querySelector<HTMLElement>('.comp-block');
-        if (!block || block.scrollHeight <= safe.clientHeight + 1) return;
-        fits.forEach((el) => (el.style.fontSize = `${parseFloat(el.style.fontSize) * 0.9}px`));
-      }
+      scene.querySelectorAll<HTMLElement>('.safe').forEach((safe) => {
+        const fits = [...safe.querySelectorAll<HTMLElement>('[data-fit]')];
+        for (let i = 0; i < 10 && overflowOf(safe) > 1; i++) {
+          fits.forEach((el) => (el.style.fontSize = `${parseFloat(el.style.fontSize) * 0.9}px`));
+        }
+        const over = overflowOf(safe);
+        if (over <= 1) return;
+        const flow = [...safe.children].filter((el): el is HTMLElement => el instanceof HTMLElement && !/absolute|fixed/.test(getComputedStyle(el).position));
+        const room = Math.min(safe.clientHeight, safe.clientWidth);
+        const k = Math.max(0.55, Math.min(1, room / (room + 2 * over)));
+        flow.forEach((el) => (el.style.zoom = String(Math.round(k * 100) / 100)));
+      });
     });
   }, []);
 }
@@ -119,12 +159,32 @@ function Brandmark() {
   return <div className="kit-mark" style={{ ...pos, height: u * 4.6, color: sf.ink, opacity: o * 0.9 }} dangerouslySetInnerHTML={html} aria-hidden />;
 }
 
+/**
+ * Barrière d'une scène écrite par l'IA (cran Ultra) : si son composant lève une erreur,
+ * la scène retombe sur sa composition « Max » et l'erreur est notée pour le contrôle.
+ */
+class SceneBoundary extends Component<{ sceneKey: string; fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: Error) {
+    SCENE_ERRORS[this.props.sceneKey] = `rendu : ${error.message}`.slice(0, 300);
+  }
+  render() {
+    // Marque sans boîte (display: contents) : le contrôle de rendu sait que la scène de l'IA s'affiche.
+    return this.state.failed ? this.props.fallback : <div data-custom-scene={this.props.sceneKey} style={{ display: 'contents' }}>{this.props.children}</div>;
+  }
+}
+
 /** Rayon des formes par direction (classe `rounded-brand`). */
 const RADIUS: Record<string, string> = { brutal: '0px', swiss: '0px', precision: 'calc(var(--u) * 1.2)', kinetic: 'calc(var(--u) * 2.4)', collage: 'calc(var(--u) * 0.6)', editorial: 'calc(var(--u) * 0.4)', cinematic: 'calc(var(--u) * 0.8)', drenched: 'calc(var(--u) * 1.6)' };
 
 export function Video({ data, t }: { data: VideoData; t: number }) {
   const scenes = useTimeline(data);
   const easings = useMemo(() => makeEasings(data.direction, data.kit), [data]);
+  // Scènes écrites par l'IA (cran Ultra), compilées côté serveur ; chargées une fois.
+  const custom = useMemo(() => loadCustomScenes(data.customScenes), [data]);
   const engine: Engine = {
     data,
     t,
@@ -156,11 +216,18 @@ export function Video({ data, t }: { data: VideoData; t: number }) {
           const on = t >= s.visFrom && t < s.visTo;
           // La mise en page choisie par le directeur artistique, sinon la composition de la scène.
           const Component = layoutFor(s) || SCENE_COMPONENTS[s.sceneId];
+          const Custom = custom[s.key];
           return (
             <SceneCtx.Provider key={s.key} value={s}>
               <section className={`scene scene-${s.sceneId}${s.layout ? ` ly-${s.layout}` : ''}`} data-scene={s.sceneId} style={{ ...surfaceVars(data, s.surface), zIndex: 10 + s.index, visibility: on ? 'visible' : 'hidden', ...(on ? sceneStyle(engine, s) : {}) }}>
                 <Backdrop />
-                {Component ? <Component /> : null}
+                {Custom ? (
+                  <SceneBoundary sceneKey={s.key} fallback={Component ? <Component /> : null}>
+                    <Custom />
+                  </SceneBoundary>
+                ) : Component ? (
+                  <Component />
+                ) : null}
                 {s.accent === 'punch' ? <AccentFlash /> : null}
               </section>
             </SceneCtx.Provider>

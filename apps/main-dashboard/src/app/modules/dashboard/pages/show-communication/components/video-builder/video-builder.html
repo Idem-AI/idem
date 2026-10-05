@@ -247,6 +247,11 @@
             </div>
           </fieldset>
 
+          <!-- La jauge de créativité : ce que l'IA décide, et ce que ça coûte. -->
+          <div class="vdb-group">
+            <app-creativity-gauge [(value)]="creativity" [baseCost]="basePrice()" [disabled]="busy()" />
+          </div>
+
           <!-- Le reste est déjà bien réglé : replié. -->
           <div class="vdb-more">
             <button type="button" class="vdb-link" [attr.aria-expanded]="showMore()" (click)="showMore.set(!showMore())">
@@ -311,6 +316,7 @@
               }
             </li>
             <li><i class="pi pi-clock" aria-hidden="true"></i> {{ duration() }} s · {{ 'dashboard.showCommunication.video.qualities.' + quality() + '.label' | translate }}</li>
+            <li><i class="pi pi-bolt" aria-hidden="true"></i> {{ 'common.creativity.title' | translate }} · {{ 'common.creativity.levels.' + creativity() + '.label' | translate }}</li>
             @if (media().length) {
               <li><i class="pi pi-paperclip" aria-hidden="true"></i> {{ 'dashboard.showCommunication.video.builder.config.mediaCount' | translate: { count: media().length } }}</li>
             }
