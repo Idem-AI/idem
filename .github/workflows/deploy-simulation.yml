@@ -9,6 +9,8 @@ on:
     branches: [ main ]
     paths:
       - 'apps/simulation/**'
+      - 'packages/shared-loader/**'
+      - 'packages/shared-tour/**'
       - 'packages/shared-styles/**'
       - 'Dockerfile/prod/Dockerfile.simulation'
       - '.github/workflows/deploy-simulation.yml'

@@ -9,6 +9,9 @@ on:
     branches: [ main, dev ]
     paths:
       - 'apps/ideploy-web/**'
+      - 'packages/shared-loader/**'
+      - 'packages/shared-styles/**'
+      - 'packages/shared-tour/**'
       - 'Dockerfile/prod/Dockerfile.ideploy-web'
       - 'packages/shared-models/**'
       - '.github/workflows/deploy-ideploy-web.yml'

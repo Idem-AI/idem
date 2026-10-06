@@ -9,6 +9,8 @@ on:
     branches: [ main ]
     paths:
       - 'apps/chart/**'
+      - 'packages/shared-loader/**'
+      - 'packages/shared-styles/**'
       - 'Dockerfile.chart'
       - '.github/workflows/deploy-chart.yml'
   workflow_dispatch:
