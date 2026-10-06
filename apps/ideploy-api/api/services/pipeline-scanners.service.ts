@@ -79,6 +79,11 @@ export function summariseTrivy(json: string, limit = 100): TrivySummary {
   return { counts, findings: findings.slice(0, limit), secrets };
 }
 
+/** Severity at or above which a Trivy scan fails (`NONE` reports only). */
+export function trivyFailThreshold(env: NodeJS.ProcessEnv = process.env): Severity | 'NONE' {
+  return (env.PIPELINE_TRIVY_FAIL_ON || 'CRITICAL').toUpperCase() as Severity | 'NONE';
+}
+
 /** Whether a scan fails the pipeline: any finding at or above `failOn`. */
 export function trivyFails(counts: Record<Severity, number>, failOn: Severity | 'NONE' = 'CRITICAL'): boolean {
   if (failOn === 'NONE') return false;
