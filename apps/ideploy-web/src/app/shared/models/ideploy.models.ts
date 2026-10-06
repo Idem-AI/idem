@@ -524,6 +524,23 @@ export interface ServiceDatabase {
  * A stack with everything the compose file produced. `GET /services/:uuid`
  * returns the row and its sub-resources flattened together.
  */
+export interface ComposeAnalysis {
+  variables: { key: string; default: string | null; required: boolean }[];
+  envFiles: string[];
+  services: string[];
+  warnings: { code: string; message: string }[];
+}
+
+/** One start / stop / restart of a service, with its console output. */
+export interface ServiceOperation {
+  id: number;
+  action: 'start' | 'stop' | 'restart';
+  status: 'running' | 'succeeded' | 'failed';
+  output: string;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
 export interface ServiceDetail extends Service {
   docker_compose_raw: string | null;
   environment_id: number;

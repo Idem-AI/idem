@@ -1,15 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Observable, of } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { Observable, forkJoin, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map, switchMap } from 'rxjs/operators';
 import { SlicePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ApiService } from '../../../shared/services/api.service';
-import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.models';
+import { ComposeAnalysis, GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.models';
 import { ARCHITECTURE_TEMPLATES } from '../../../shared/data/architecture-templates';
 import { serviceLogoUrl } from '../../../shared/utils/service-logo.util';
+import { EnvRow, EnvVarsEditorComponent } from '../../../shared/components/env-vars-editor/env-vars-editor';
 import { TourService } from '../../../shared/services/tour.service';
 import { IllustrationComponent, IllustrationName } from '../../../shared/components/illustration/illustration';
 import {
@@ -69,6 +70,7 @@ const POPULAR_APPS: { template: string; label: string; descKey: string }[] = [
     SlicePipe,
     TranslateModule,
     IdemLoaderComponent,
+    EnvVarsEditorComponent,
     IllustrationComponent,
     WorkspaceTargetPickerComponent,
   ],
@@ -245,6 +247,18 @@ const POPULAR_APPS: { template: string; label: string; descKey: string }[] = [
                   <p class="mt-1.5 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.composeHint' | translate }}</p>
                 </div>
               }
+
+              @for (w of composeWarnings(); track w.code + w.message) {
+                <p class="text-xs" role="status" style="color:var(--color-warning, var(--color-text-secondary));">
+                  <i class="pi pi-exclamation-triangle mr-1" aria-hidden="true"></i>{{ w.message }}
+                </p>
+              }
+
+              <div>
+                <p class="mb-1 text-sm font-medium">{{ 'projects.start.envTitle' | translate }}</p>
+                <p class="mb-2 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.envHint' | translate }}</p>
+                <app-env-vars-editor [(rows)]="envRows" [expected]="expectedVariables()" />
+              </div>
 
               <app-workspace-target-picker class="block" (targetChange)="target.set($event)" />
 
@@ -430,6 +444,10 @@ export class NewProjectComponent implements OnInit {
     return q ? repos.filter((r) => r.fullName.toLowerCase().includes(q)) : repos;
   });
   protected readonly providerIcon = computed(() => (this.codeTab() === 'gitlab' ? 'pi pi-sitemap' : 'pi pi-github'));
+  protected readonly envRows = signal<EnvRow[]>([]);
+  private readonly composeAnalysis = signal<ComposeAnalysis | null>(null);
+  protected readonly expectedVariables = computed(() => (this.dockerTab() === 'compose' ? (this.composeAnalysis()?.variables ?? []) : []));
+  protected readonly composeWarnings = computed(() => (this.dockerTab() === 'compose' ? (this.composeAnalysis()?.warnings ?? []) : []));
   protected readonly dockerReady = computed(() => {
     const v = this.dockerValue();
     const payload = this.dockerTab() === 'image' ? v.image : v.compose;
@@ -442,6 +460,21 @@ export class NewProjectComponent implements OnInit {
 
     this.workspaceUuid = this.route.snapshot.queryParamMap.get('workspace');
     this.dockerForm.valueChanges.subscribe(() => this.dockerValue.set(this.dockerForm.getRawValue()));
+    // What the compose file expects (its ${VARIABLES}, env files), once typing pauses.
+    this.dockerForm.controls.compose.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        switchMap((text) =>
+          text.trim()
+            ? this.api.analyseCompose(text).pipe(
+                map((a): ComposeAnalysis | null => a),
+                catchError(() => of(null))
+              )
+            : of(null)
+        )
+      )
+      .subscribe((a) => this.composeAnalysis.set(a));
 
     this.api.listServiceTemplates().subscribe({
       next: (t) => {
@@ -630,6 +663,7 @@ export class NewProjectComponent implements OnInit {
       login$
         .pipe(
           switchMap(create),
+          switchMap((app) => this.saveImageEnv(app.uuid).pipe(map(() => app))),
           switchMap((app) => this.api.deploy(app.uuid))
         )
         .subscribe({
@@ -647,11 +681,23 @@ export class NewProjectComponent implements OnInit {
         environment_name: target.environment_name,
         project_name: target.project_name,
         docker_compose_raw: raw,
+        environment_variables: this.filledEnv(),
       })
       .subscribe({
         next: (svc) => this.router.navigate(['/services', svc.uuid]),
         error: (e) => this.fail(e),
       });
+  }
+
+  private filledEnv(): EnvRow[] {
+    return this.envRows().filter((r) => r.key.trim() !== '').map((r) => ({ key: r.key.trim(), value: r.value }));
+  }
+
+  /** The image's variables are stored before its first deployment, so it starts with them. */
+  private saveImageEnv(uuid: string): Observable<unknown> {
+    const rows = this.filledEnv();
+    if (rows.length === 0) return of(null);
+    return forkJoin(rows.map((r) => this.api.upsertEnvVar(uuid, { key: r.key, value: r.value, is_runtime: true, is_buildtime: false })));
   }
 
   private fail(e: unknown): void {

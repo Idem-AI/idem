@@ -20,10 +20,14 @@ router.use(authenticate, requireTeam);
  */
 router.get('/', ctrl.list);
 router.post('/', ctrl.create);
+router.post('/analyse', ctrl.analyse);
 router.post('/from-template', ctrl.createFromTemplate);
 
 router.get('/:uuid', ctrl.get);
 router.delete('/:uuid', ctrl.remove);
+router.get('/:uuid/operations/latest', ctrl.latestOperation);
+router.get('/:uuid/env', ctrl.getEnv);
+router.put('/:uuid/env', ctrl.putEnv);
 router.post('/:uuid/start', ctrl.start);
 router.post('/:uuid/stop', ctrl.stop);
 router.post('/:uuid/restart', ctrl.restart);

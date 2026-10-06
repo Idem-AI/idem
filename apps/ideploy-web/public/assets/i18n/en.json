@@ -711,7 +711,9 @@
       "privateRegistry": "Private image",
       "privateRegistryHint": "For a private registry (ghcr.io, Docker Hub…): the login is saved for your team and used to pull the image.",
       "registryUser": "Username",
-      "registryToken": "Access token"
+      "registryToken": "Access token",
+      "envTitle": "Environment variables",
+      "envHint": "Optional. The values the application reads (database URL, API keys…). Type them, paste a .env or upload one."
     }
   },
   "servers": {
@@ -1003,7 +1005,24 @@
       "deleteHint": "The stack and all of its containers will be deleted.",
       "deleteService": "Delete service",
       "deleting": "Deleting…",
-      "deleteError": "Deleting failed."
+      "deleteError": "Deleting failed.",
+      "consoleEmpty": "Nothing yet. Press Start to see what happens here.",
+      "action": {
+        "start": "Start",
+        "stop": "Stop",
+        "restart": "Restart"
+      },
+      "status": {
+        "running": "running",
+        "succeeded": "succeeded",
+        "failed": "failed"
+      },
+      "envTitle": "Environment variables",
+      "envHint": "Written to the .env file next to the compose file at every start. Values are stored encrypted.",
+      "envSave": "Save",
+      "envSaveRestart": "Save and restart",
+      "envSaved": "Saved. Restart to apply.",
+      "envError": "Could not save the variables."
     },
     "subtitle": "The ready-made software you installed — a database, an automation tool, a CMS…",
     "emptyHint": "Pick a service from the catalog: it is installed and configured for you.",
@@ -1906,5 +1925,17 @@
         "body": "You can replay this tour anytime from your avatar menu."
       }
     }
+  },
+  "envEditor": {
+    "expected": "The compose file expects these variables — click to add:",
+    "key": "Variable name",
+    "value": "Value",
+    "remove": "Remove variable",
+    "add": "Add variable",
+    "paste": "Paste a .env",
+    "upload": "Upload a .env file",
+    "import": "Import",
+    "show": "Show values",
+    "hide": "Hide values"
   }
 }

@@ -23,6 +23,8 @@ import {
   DeployResponse,
   Destination,
   EnvVar,
+  ComposeAnalysis,
+  ServiceOperation,
   PrivateKey,
   ProxyStatus,
   CrowdSecStatus,
@@ -488,6 +490,7 @@ export class ApiService {
     environment_name?: string;
     project_name?: string;
     docker_compose_raw: string;
+    environment_variables?: { key: string; value: string }[];
   }): Observable<Service> {
     return this.unwrap(this.http.post<ApiResponse<Service>>(`${this.base}/services`, body));
   }
@@ -506,10 +509,29 @@ export class ApiService {
   getService(uuid: string): Observable<ServiceDetail> {
     return this.unwrap(this.http.get<ApiResponse<ServiceDetail>>(`${this.base}/services/${uuid}`));
   }
-  serviceLifecycle(uuid: string, action: 'start' | 'stop' | 'restart'): Observable<unknown> {
+  /** Starts the operation in the background; follow it with `latestServiceOperation`. */
+  serviceLifecycle(uuid: string, action: 'start' | 'stop' | 'restart'): Observable<ServiceOperation> {
     return this.unwrap(
-      this.http.post<ApiResponse<unknown>>(`${this.base}/services/${uuid}/${action}`, {})
+      this.http.post<ApiResponse<ServiceOperation>>(`${this.base}/services/${uuid}/${action}`, {})
     );
+  }
+  latestServiceOperation(uuid: string): Observable<ServiceOperation | null> {
+    return this.unwrap(
+      this.http.get<ApiResponse<ServiceOperation | null>>(`${this.base}/services/${uuid}/operations/latest`)
+    );
+  }
+  getServiceEnv(uuid: string): Observable<{ variables: { key: string; value: string }[]; analysis: ComposeAnalysis }> {
+    return this.unwrap(
+      this.http.get<ApiResponse<{ variables: { key: string; value: string }[]; analysis: ComposeAnalysis }>>(`${this.base}/services/${uuid}/env`)
+    );
+  }
+  saveServiceEnv(uuid: string, variables: { key: string; value: string }[]): Observable<{ variables: { key: string; value: string }[] }> {
+    return this.unwrap(
+      this.http.put<ApiResponse<{ variables: { key: string; value: string }[] }>>(`${this.base}/services/${uuid}/env`, { variables })
+    );
+  }
+  analyseCompose(docker_compose_raw: string): Observable<ComposeAnalysis> {
+    return this.unwrap(this.http.post<ApiResponse<ComposeAnalysis>>(`${this.base}/services/analyse`, { docker_compose_raw }));
   }
   deleteService(uuid: string): Observable<unknown> {
     return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/services/${uuid}`));
