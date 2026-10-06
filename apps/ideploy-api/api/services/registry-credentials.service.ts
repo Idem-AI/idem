@@ -1,7 +1,7 @@
 /**
  * Logins to private image registries, per team.
  *
- * Deploying `ghcr.io/organisation/app` needs the registry's login on the
+ * Deploying `registry.example.com/organisation/app` needs the registry's login on the
  * server that pulls it. The token is stored encrypted, never returned, and
  * given to `docker login` only through a throw-away Docker config directory
  * for the pull (image-deploy.service in the worker): a login written to the
@@ -44,7 +44,7 @@ export async function saveRegistryCredential(
 ): Promise<RegistryCredentialView> {
   const registry = normaliseRegistry(dto.registry);
   if (!/^[a-z0-9]+(?:[.-][a-z0-9]+)*(?::[0-9]+)?$/.test(registry)) {
-    throw unprocessable('INVALID_REGISTRY', 'The registry must be a host such as ghcr.io or registry.example.com:5000.');
+    throw unprocessable('INVALID_REGISTRY', 'The registry must be a host such as docker.io or registry.example.com:5000.');
   }
   if (!dto.username.trim() || !dto.password) {
     throw unprocessable('VALIDATION', 'A username and a token are required.');

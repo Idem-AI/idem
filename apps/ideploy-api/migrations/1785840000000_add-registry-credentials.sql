@@ -1,5 +1,5 @@
 -- Up Migration
--- Logins to private image registries (ghcr.io, Docker Hub, …), per team. The
+-- Logins to private image registries (Docker Hub, GitLab, your own registry…), per team. The
 -- password (an access token) is stored encrypted and never returned by the API.
 CREATE TABLE IF NOT EXISTS registry_credentials (
     id bigserial PRIMARY KEY,

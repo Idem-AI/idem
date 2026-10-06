@@ -204,7 +204,7 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
   // Git path, or files sent directly (iCode) → create an application and deploy it.
   const isImage = dto.build_pack === 'dockerimage';
   if (isImage && !dto.docker_image) {
-    throw unprocessable('SOURCE_REQUIRED', 'Provide the image to run, e.g. ghcr.io/organisation/app.');
+    throw unprocessable('SOURCE_REQUIRED', 'Provide the image to run, e.g. registry.example.com/organisation/app.');
   }
   if (!isImage && !dto.git_repository && !dto.files) {
     throw unprocessable(

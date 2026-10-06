@@ -321,7 +321,7 @@ async function deploy(
     // application's own tag.
     const name = app.docker_registry_image_name;
     if (!name || !isSafeImageName(name)) {
-      throw new Error('This application has no image to run: set the image (e.g. ghcr.io/organisation/app) in its settings.');
+      throw new Error('This application has no image to run: set the image (e.g. registry.example.com/organisation/app) in its settings.');
     }
     const version = data.commit && data.commit !== 'HEAD' ? data.commit : app.docker_registry_image_tag || 'latest';
     if (!isSafeImageTag(version)) throw new Error(`"${version}" is not a valid image tag.`);

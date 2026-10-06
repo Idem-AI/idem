@@ -678,7 +678,7 @@
       "name": "Nom",
       "namePlaceholder": "mon-application",
       "imageLabel": "Image",
-      "imageHint": "Par exemple nginx:latest ou ghcr.io/organisation/app:1.0.",
+      "imageHint": "Par exemple nginx:latest ou registry.example.com/organisation/app:1.0.",
       "composeHint": "Collez le contenu de votre fichier docker-compose.yml.",
       "publish": "Mettre en ligne",
       "publishing": "Mise en ligne…",
@@ -709,7 +709,7 @@
         "chatwoot": "Support client : chat, WhatsApp, e-mail."
       },
       "privateRegistry": "Image privée",
-      "privateRegistryHint": "Pour un registre privé (ghcr.io, Docker Hub…) : l’accès est enregistré pour votre équipe et sert à récupérer l’image.",
+      "privateRegistryHint": "Pour un registre privé (Docker Hub, GitLab, votre propre registre…) : l’accès est enregistré pour votre équipe et sert à récupérer l’image.",
       "registryUser": "Nom d’utilisateur",
       "registryToken": "Jeton d’accès",
       "envTitle": "Variables d'environnement",

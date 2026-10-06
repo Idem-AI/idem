@@ -678,7 +678,7 @@
       "name": "Name",
       "namePlaceholder": "my-app",
       "imageLabel": "Image",
-      "imageHint": "For example nginx:latest or ghcr.io/org/app:1.0.",
+      "imageHint": "For example nginx:latest or registry.example.com/org/app:1.0.",
       "composeHint": "Paste the content of your docker-compose.yml file.",
       "publish": "Put online",
       "publishing": "Putting online…",
@@ -709,7 +709,7 @@
         "chatwoot": "Customer support: chat, WhatsApp, email."
       },
       "privateRegistry": "Private image",
-      "privateRegistryHint": "For a private registry (ghcr.io, Docker Hub…): the login is saved for your team and used to pull the image.",
+      "privateRegistryHint": "For a private registry (Docker Hub, GitLab, your own registry…): the login is saved for your team and used to pull the image.",
       "registryUser": "Username",
       "registryToken": "Access token",
       "envTitle": "Environment variables",

@@ -210,7 +210,7 @@ function assertSafeBuildInputs(dto: {
     throw unprocessable('INVALID_BUILD_TARGET', 'The build target must be a stage name (letters, digits, . _ -).');
   }
   if (dto.docker_registry_image_name && !isSafeImageName(dto.docker_registry_image_name)) {
-    throw unprocessable('INVALID_IMAGE', 'The image must be a registry path like ghcr.io/organisation/app (lower case, no tag).');
+    throw unprocessable('INVALID_IMAGE', 'The image must be a registry path like registry.example.com/organisation/app (lower case, no tag).');
   }
   if (dto.docker_registry_image_tag && !isSafeImageTag(dto.docker_registry_image_tag)) {
     throw unprocessable('INVALID_IMAGE_TAG', 'The image tag may contain letters, digits, . _ - (128 characters at most).');

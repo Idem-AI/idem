@@ -55,7 +55,7 @@ export function isSafeRelativeDir(dir: unknown): boolean {
 
 /**
  * A Docker image reference without its tag: `[registry[:port]/]path`, lower
- * case as Docker requires (`ghcr.io/idem-ai/idem-api`, `nginx`, `org/app`).
+ * case as Docker requires (`registry.example.com/acme/api`, `nginx`, `org/app`).
  */
 export function isSafeImageName(name: unknown): boolean {
   if (typeof name !== 'string' || name.length === 0 || name.length > 255) return false;

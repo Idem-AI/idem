@@ -708,7 +708,7 @@ export class NewProjectComponent implements OnInit {
   }
 }
 
-/** `ghcr.io/org/app:v1` → the image and its tag (`latest` when none; a port in the registry host is not a tag). */
+/** `registry.example.com/org/app:v1` → the image and its tag (`latest` when none; a port in the registry host is not a tag). */
 export function splitImageReference(reference: string): { repository: string; tag: string } {
   const ref = reference.trim();
   const colon = ref.lastIndexOf(':');

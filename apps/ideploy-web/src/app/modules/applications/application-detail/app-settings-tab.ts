@@ -55,7 +55,7 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
             @if (configForm.controls.build_pack.value === 'dockerimage') {
               <div>
                 <label class="mb-1 block text-sm" for="cfg-image">{{ 'applications.detail.imageName' | translate }}</label>
-                <input type="text" id="cfg-image" class="font-mono text-sm" placeholder="ghcr.io/organisation/app" formControlName="docker_registry_image_name" />
+                <input type="text" id="cfg-image" class="font-mono text-sm" placeholder="registry.example.com/organisation/app" formControlName="docker_registry_image_name" />
               </div>
               <div>
                 <label class="mb-1 block text-sm" for="cfg-image-tag">{{ 'applications.detail.imageTag' | translate }}</label>
@@ -162,7 +162,7 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
             }
           </ul>
           <form class="grid gap-2 sm:grid-cols-4" [formGroup]="registryForm" (ngSubmit)="addRegistry()">
-            <input type="text" class="font-mono text-sm" formControlName="registry" placeholder="ghcr.io" />
+            <input type="text" class="font-mono text-sm" formControlName="registry" placeholder="registry.example.com" />
             <input type="text" class="font-mono text-sm" formControlName="username" [placeholder]="'projects.start.registryUser' | translate" autocomplete="off" />
             <input type="password" class="font-mono text-sm" formControlName="password" [placeholder]="'projects.start.registryToken' | translate" autocomplete="new-password" />
             <button class="inner-button" type="submit" [disabled]="registryForm.invalid">{{ 'applications.detail.save' | translate }}</button>
@@ -255,7 +255,7 @@ export class AppSettingsTabComponent implements OnInit {
   protected readonly ci = signal<{ url: string; secret: string } | null>(null);
   protected readonly registries = signal<RegistryCredential[]>([]);
   protected readonly registryForm = this.fb.nonNullable.group({
-    registry: ['ghcr.io', Validators.required],
+    registry: ['', Validators.required],
     username: ['', Validators.required],
     password: ['', Validators.required],
   });

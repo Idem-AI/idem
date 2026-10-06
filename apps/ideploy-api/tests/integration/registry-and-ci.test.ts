@@ -18,25 +18,25 @@ afterAll(async () => closeInfrastructure());
 describe('registry credentials', () => {
   it('stores the token encrypted, never returns it, and finds the login by registry', async () => {
     const team = await makeTeam();
-    await registry.saveRegistryCredential(team.id, { registry: 'https://GHCR.io/', username: 'ci', password: 'ghp_token' });
+    await registry.saveRegistryCredential(team.id, { registry: 'https://Registry.Example.com/', username: 'ci', password: 'tok_secret' });
 
     const list = await registry.listRegistryCredentials(team.id);
-    expect(list).toEqual([{ id: expect.any(Number), registry: 'ghcr.io', username: 'ci' }]);
-    expect(JSON.stringify(list)).not.toContain('ghp_token');
+    expect(list).toEqual([{ id: expect.any(Number), registry: 'registry.example.com', username: 'ci' }]);
+    expect(JSON.stringify(list)).not.toContain('tok_secret');
     const stored = await testPool().query('SELECT password FROM registry_credentials');
-    expect(stored.rows[0].password).not.toContain('ghp_token');
+    expect(stored.rows[0].password).not.toContain('tok_secret');
 
-    expect(await registry.resolveRegistryLogin(team.id, 'ghcr.io/idem-ai/app')).toEqual({ registry: 'ghcr.io', username: 'ci', password: 'ghp_token' });
+    expect(await registry.resolveRegistryLogin(team.id, 'registry.example.com/acme/app')).toEqual({ registry: 'registry.example.com', username: 'ci', password: 'tok_secret' });
     expect(await registry.resolveRegistryLogin(team.id, 'nginx')).toBeNull();
   });
 
   it('replaces the login of a registry, and keeps teams apart', async () => {
     const [a, b] = [await makeTeam(), await makeTeam()];
-    await registry.saveRegistryCredential(a.id, { registry: 'ghcr.io', username: 'old', password: 'p1' });
-    await registry.saveRegistryCredential(a.id, { registry: 'ghcr.io', username: 'new', password: 'p2' });
+    await registry.saveRegistryCredential(a.id, { registry: 'registry.example.com', username: 'old', password: 'p1' });
+    await registry.saveRegistryCredential(a.id, { registry: 'registry.example.com', username: 'new', password: 'p2' });
 
     expect((await registry.listRegistryCredentials(a.id)).map((c) => c.username)).toEqual(['new']);
-    expect(await registry.resolveRegistryLogin(b.id, 'ghcr.io/x/y')).toBeNull();
+    expect(await registry.resolveRegistryLogin(b.id, 'registry.example.com/x/y')).toBeNull();
   });
 
   it('refuses a registry that is not a host', async () => {

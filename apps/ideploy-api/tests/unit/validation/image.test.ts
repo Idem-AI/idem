@@ -3,7 +3,7 @@ import { isSafeImageName, isSafeImageTag, registryOf } from '../../../api/valida
 
 describe('isSafeImageName', () => {
   it('accepts registry paths, with or without a registry or a port', () => {
-    for (const name of ['nginx', 'org/app', 'ghcr.io/idem-ai/idem-api', 'registry.example.com:5000/team/app', 'a/b/c']) {
+    for (const name of ['nginx', 'org/app', 'registry.example.com/acme/api', 'registry.example.com:5000/team/app', 'a/b/c']) {
       expect(isSafeImageName(name)).toBe(true);
     }
   });
@@ -29,7 +29,7 @@ describe('isSafeImageTag', () => {
 
 describe('registryOf', () => {
   it('reads the registry host, defaulting to Docker Hub', () => {
-    expect(registryOf('ghcr.io/idem-ai/app')).toBe('ghcr.io');
+    expect(registryOf('registry.example.com/acme/app')).toBe('registry.example.com');
     expect(registryOf('registry.example.com:5000/app')).toBe('registry.example.com:5000');
     expect(registryOf('nginx')).toBe('docker.io');
     expect(registryOf('org/app')).toBe('docker.io');
