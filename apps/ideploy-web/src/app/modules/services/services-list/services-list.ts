@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
@@ -186,6 +186,7 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
   `,
 })
 export class ServicesListComponent implements OnInit {
+  private readonly router = inject(Router);
   private api = inject(ApiService);
   private fb = inject(FormBuilder);
   private translate = inject(TranslateService);
@@ -288,9 +289,10 @@ export class ServicesListComponent implements OnInit {
   protected action(svc: Service, act: 'start' | 'stop' | 'restart'): void {
     this.acting.set(svc.uuid);
     this.api.serviceLifecycle(svc.uuid, act).subscribe({
+      // The operation runs in the background: its console is on the detail page.
       next: () => {
         this.acting.set(null);
-        this.load();
+        void this.router.navigate(['/services', svc.uuid]);
       },
       error: () => this.acting.set(null),
     });

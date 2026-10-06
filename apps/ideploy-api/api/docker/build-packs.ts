@@ -15,13 +15,15 @@
  * executing and streaming.
  */
 
-export type BuildPack = 'nixpacks' | 'static' | 'dockerfile' | 'dockercompose';
+export type BuildPack = 'nixpacks' | 'static' | 'dockerfile' | 'dockercompose' | 'dockerimage';
 
 export const BUILD_PACKS: readonly BuildPack[] = [
   'nixpacks',
   'static',
   'dockerfile',
   'dockercompose',
+  // Nothing is built: an image already pushed to a registry is pulled and run.
+  'dockerimage',
 ] as const;
 
 /** Image serving a built static site. */
@@ -294,6 +296,9 @@ export function planBuild(pack: BuildPack, context: BuildContext): BuildPlan {
       return staticPlan(context);
     case 'dockercompose':
       return composePlan(context);
+    case 'dockerimage':
+      // The worker pulls the image itself (it needs the team's registry login).
+      return { pack: 'dockerimage', runtime: 'image', imageTag: context.imageTag, steps: [] };
     case 'nixpacks':
     default:
       return nixpacksPlan(context);

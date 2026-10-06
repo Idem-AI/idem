@@ -14,6 +14,8 @@ import { executeRemoteCommand } from '../ssh/ssh';
 import { serviceWorkdirFor } from '../utils/paths';
 import { resolveCompose, ensureNamedVolumes, applyProxyLabels } from './service-variables.service';
 import { getTemplatePort } from './templates.service';
+import { renderDotEnv } from './compose-env.service';
+import * as serviceEnv from './service-env.service';
 
 const STANDALONE_DOCKER_MODEL = 'App\\Models\\StandaloneDocker';
 
@@ -208,7 +210,7 @@ export async function lifecycle(
   const log = (line: string) => onData?.(line);
 
   if (action === 'stop') {
-    const result = await executeRemoteCommand(server, key, `cd ${workdir} && docker compose down`, { onData });
+    const result = await executeRemoteCommand(server, key, `cd ${workdir} && { [ -f .env ] || touch .env; } && docker compose down`, { onData });
     // `down` removes the containers outright — nothing left for `compose ps`
     // to report, so "every sub-resource is exited" is simply the true state.
     await pool.query('UPDATE service_applications SET status = $1, updated_at = now() WHERE service_id = $2', [
@@ -219,7 +221,7 @@ export async function lifecycle(
   }
 
   if (action === 'restart') {
-    const result = await executeRemoteCommand(server, key, `cd ${workdir} && docker compose restart`, { onData });
+    const result = await executeRemoteCommand(server, key, `cd ${workdir} && { [ -f .env ] || touch .env; } && docker compose restart`, { onData });
     await settleAndSync(server, key, workdir, service.id, log);
     return { success: result.exitCode === 0, output: result.stdout + result.stderr };
   }
@@ -267,14 +269,20 @@ export async function lifecycle(
   }
 
   const b64 = Buffer.from(resolvedCompose, 'utf8').toString('base64');
+  // Always written, even empty: `env_file: .env` and `${VAR}` both read it, and
+  // Compose refuses the whole stack when the file is missing.
+  const vars = await serviceEnv.listByServiceId(service.id);
+  const envB64 = Buffer.from(renderDotEnv(vars), 'utf8').toString('base64');
+  await log(`Writing .env (${vars.length} variable${vars.length === 1 ? '' : 's'})…\n`);
   const cmd = [
     `mkdir -p ${workdir}`,
     `echo '${b64}' | base64 -d > ${workdir}/docker-compose.yml`,
+    `(umask 077; echo '${envB64}' | base64 -d > ${workdir}/.env)`,
     `docker network inspect ideploy >/dev/null 2>&1 || docker network create --attachable ideploy`,
     // `down` first: retry-safe. A previous failed attempt's containers (wrong
     // secrets, a since-fixed image tag) must not still be sitting there
     // conflicting with this one.
-    `cd ${workdir} && docker compose down --remove-orphans 2>/dev/null; docker compose pull --quiet 2>/dev/null; docker compose up -d --remove-orphans`,
+    `cd ${workdir} && docker compose down --remove-orphans 2>/dev/null; docker compose pull --quiet; docker compose up -d --remove-orphans`,
   ].join(' && ');
 
   const result = await executeRemoteCommand(server, key, cmd, { onData });

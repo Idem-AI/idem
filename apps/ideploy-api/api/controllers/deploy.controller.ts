@@ -4,6 +4,7 @@ import { ok, fail, respondWithError } from '../utils/response';
 import logger from '../config/logger';
 import * as appService from '../services/application.service';
 import * as deploymentService from '../services/deployment.service';
+import { isSafeImageTag } from '../validation/git-input';
 
 /** POST /api/v1/deploy { uuid } — trigger a deployment for an application. */
 export async function deploy(req: CustomRequest, res: Response): Promise<void> {
@@ -15,10 +16,15 @@ export async function deploy(req: CustomRequest, res: Response): Promise<void> {
     const app = await appService.getApplication(teamId, uuid);
     if (!app) return fail(res, 'Application not found', 404, 'NOT_FOUND');
 
+    // `commit` enables rollback; `image_tag` is the same thing for an
+    // application that runs a registry image (what a CI pipeline sends).
+    const version = (req.body?.commit as string) || (req.body?.image_tag as string) || undefined;
+    if (req.body?.image_tag && !isSafeImageTag(req.body.image_tag)) {
+      return fail(res, 'image_tag may contain letters, digits, . _ - (128 characters at most)', 422, 'INVALID_IMAGE_TAG');
+    }
     const { deploymentUuid } = await deploymentService.createDeployment(app, teamId, {
       forceRebuild: Boolean(req.body?.force_rebuild),
-      // `commit` enables rollback: redeploy a previous commit from history.
-      commit: (req.body?.commit as string) || undefined,
+      commit: version,
     });
     ok(res, { deploymentUuid, message: 'Deployment queued' }, 202);
   } catch (err) {

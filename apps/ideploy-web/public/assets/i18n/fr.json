@@ -369,7 +369,7 @@
       "fqdn": "Adresse (domaine)",
       "save": "Enregistrer",
       "environmentVariables": "Variables d'environnement",
-      "remove": "supprimer",
+      "remove": "Retirer",
       "keyPlaceholder": "DATABASE_URL",
       "valuePlaceholder": "postgres://…",
       "add": "Ajouter",
@@ -506,7 +506,8 @@
         "nixpacks": "Automatique (détection)",
         "dockerfile": "Dockerfile",
         "dockercompose": "Docker Compose",
-        "static": "Site statique"
+        "static": "Site statique",
+        "dockerimage": "Image Docker (registre)"
       },
       "fqdnHint": "Plusieurs adresses possibles, séparées par des virgules. Pensez à pointer le DNS vers votre serveur.",
       "saved": "Enregistré",
@@ -527,7 +528,20 @@
       "buildTarget": "Étape de build",
       "buildTargetHint": "Facultatif : l’étape d’un Dockerfile multi-étapes à construire.",
       "watchPaths": "Chemins surveillés",
-      "watchPathsHint": "Un push ne redéploie cette application que s’il modifie l’un de ces fichiers — un motif par ligne (apps/api/**, packages/**, !**/*.md). Vide : à chaque push."
+      "watchPathsHint": "Un push ne redéploie cette application que s’il modifie l’un de ces fichiers — un motif par ligne (apps/api/**, packages/**, !**/*.md). Vide : à chaque push.",
+      "imageName": "Image",
+      "imageTag": "Tag",
+      "imageTagHint": "Ce que lance un simple redéploiement. Un pipeline déploie un autre tag en l’envoyant (voir plus bas).",
+      "ciTitle": "Déploiement continu",
+      "ciHint": "Laissez votre CI déployer cette application après avoir poussé une image : un jeton, valable pour cette seule application.",
+      "ciShow": "Afficher le jeton de déploiement",
+      "ciUrl": "URL de déploiement",
+      "ciToken": "Jeton (en-tête X-Ideploy-Token)",
+      "ciExample": "Depuis votre pipeline",
+      "ciRotate": "Générer un nouveau jeton (l’ancien cesse de fonctionner)",
+      "registryTitle": "Registres privés",
+      "registryHint": "Le jeton doit avoir un accès en lecture à l’image. Il est chiffré et ne sert qu’à récupérer l’image.",
+      "noRegistry": "Aucun accès à un registre — une image publique n’en demande pas."
     }
   },
   "projects": {
@@ -664,7 +678,7 @@
       "name": "Nom",
       "namePlaceholder": "mon-application",
       "imageLabel": "Image",
-      "imageHint": "Par exemple nginx:latest ou ghcr.io/organisation/app:1.0.",
+      "imageHint": "Par exemple nginx:latest ou registry.example.com/organisation/app:1.0.",
       "composeHint": "Collez le contenu de votre fichier docker-compose.yml.",
       "publish": "Mettre en ligne",
       "publishing": "Mise en ligne…",
@@ -693,7 +707,13 @@
         "metabase": "Tableaux de bord à partir de vos données.",
         "umami": "Statistiques de visites, sans cookies.",
         "chatwoot": "Support client : chat, WhatsApp, e-mail."
-      }
+      },
+      "privateRegistry": "Image privée",
+      "privateRegistryHint": "Pour un registre privé (Docker Hub, GitLab, votre propre registre…) : l’accès est enregistré pour votre équipe et sert à récupérer l’image.",
+      "registryUser": "Nom d’utilisateur",
+      "registryToken": "Jeton d’accès",
+      "envTitle": "Variables d'environnement",
+      "envHint": "Facultatif. Les valeurs lues par l'application (URL de base de données, clés d'API…). Saisissez-les, collez un .env ou importez-en un."
     }
   },
   "servers": {
@@ -985,7 +1005,24 @@
       "deleteHint": "Le stack et tous ses conteneurs seront supprimés.",
       "deleteService": "Supprimer le service",
       "deleting": "Suppression…",
-      "deleteError": "La suppression a échoué."
+      "deleteError": "La suppression a échoué.",
+      "consoleEmpty": "Rien pour le moment. Appuyez sur Démarrer pour voir ce qui se passe ici.",
+      "action": {
+        "start": "Démarrage",
+        "stop": "Arrêt",
+        "restart": "Redémarrage"
+      },
+      "status": {
+        "running": "en cours",
+        "succeeded": "réussi",
+        "failed": "échec"
+      },
+      "envTitle": "Variables d'environnement",
+      "envHint": "Écrites dans le fichier .env à côté du compose à chaque démarrage. Les valeurs sont stockées chiffrées.",
+      "envSave": "Enregistrer",
+      "envSaveRestart": "Enregistrer et redémarrer",
+      "envSaved": "Enregistré. Redémarrez pour appliquer.",
+      "envError": "Impossible d'enregistrer les variables."
     },
     "subtitle": "Les logiciels prêts à l'emploi que vous avez installés — base de données, outil d'automatisation, CMS…",
     "emptyHint": "Choisissez un service dans le catalogue : il est installé et configuré pour vous.",
@@ -1889,5 +1926,17 @@
         "body": "Vous pouvez revoir cette visite à tout moment depuis le menu de votre avatar."
       }
     }
+  },
+  "envEditor": {
+    "expected": "Le compose attend ces variables — cliquez pour les ajouter :",
+    "key": "Nom de la variable",
+    "value": "Valeur",
+    "remove": "Supprimer la variable",
+    "add": "Ajouter une variable",
+    "paste": "Coller un .env",
+    "upload": "Importer un fichier .env",
+    "import": "Importer",
+    "show": "Afficher les valeurs",
+    "hide": "Masquer les valeurs"
   }
 }

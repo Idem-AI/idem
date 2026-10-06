@@ -129,6 +129,9 @@ export interface ApplicationRow {
   dockerfile_location?: string | null;
   /** Multi-stage build target (`docker build --target`). */
   dockerfile_target_build?: string | null;
+  /** `dockerimage` applications: the image (without tag) and the tag to run. */
+  docker_registry_image_name?: string | null;
+  docker_registry_image_tag?: string | null;
   /** Patterns of the files this application is built from (webhooks redeploy on those only). */
   watch_paths?: string | null;
   /** The named Project ("frontend", "backend", …) this belongs to, if any. */
