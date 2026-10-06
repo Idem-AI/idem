@@ -13,6 +13,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { processDeployment } from '../../api/jobs/deployment.worker';
 import * as envVarService from '../../api/services/env-var.service';
 import { createDeployment, DeploymentJobData } from '../../api/services/deployment.service';
+import * as pipelineService from '../../api/services/pipeline.service';
 import { setRemoteExecutor } from '../../api/ssh/ssh';
 import { FakeRemoteExecutor } from '../helpers/fake-executor';
 import { isTestDatabaseAvailable, testPool, truncateAll } from '../helpers/db';
@@ -147,6 +148,56 @@ describe('the port the application listens on', () => {
     const last = Buffer.from(/echo '([^']+)'/.exec(rewrites[rewrites.length - 1].command)![1], 'base64').toString();
     expect(last).toContain('PORT=4721');
   }, 60_000);
+});
+
+describe('the image scan of a pipeline deployment', () => {
+  async function runFromPipeline(teamId: number, app: { id: number; uuid: string }, executionId: number) {
+    const { deploymentUuid } = await createDeployment(app, teamId, { commit: 'HEAD', pipelineExecutionId: executionId });
+    const outcome = processDeployment({
+      data: { deploymentUuid, applicationId: app.id, applicationUuid: app.uuid, teamId, commit: 'HEAD', forceRebuild: false, pipelineExecutionId: executionId },
+    } as Job<DeploymentJobData>);
+    return { deploymentUuid, outcome };
+  }
+
+  async function anExecution(teamId: number, appUuid: string): Promise<number> {
+    const { executionUuid } = await pipelineService.trigger(teamId, appUuid, { branch: 'main' });
+    const { rows } = await testPool().query('SELECT id FROM pipeline_executions WHERE uuid = $1', [executionUuid]);
+    return Number(rows[0].id);
+  }
+
+  it('records the scan and stops before switching when the image has a critical vulnerability', async () => {
+    const { teamId, app } = await anApplication('running');
+    const executionId = await anExecution(teamId, app.uuid);
+    ssh.on(/aquasec\/trivy.*image/, {
+      stdout: JSON.stringify({ Results: [{ Target: 'alpine', Vulnerabilities: [{ VulnerabilityID: 'CVE-1', PkgName: 'openssl', InstalledVersion: '3.0', Severity: 'CRITICAL' }] }] }),
+    });
+
+    const { outcome } = await runFromPipeline(teamId, app, executionId);
+    await expect(outcome).rejects.toThrow(/vulnerabilities at or above CRITICAL/);
+
+    const scan = await testPool().query("SELECT status, critical_count FROM pipeline_scan_results WHERE tool = 'trivy-image'");
+    expect(scan.rows[0]).toMatchObject({ status: 'failed', critical_count: 1 });
+    // Nothing was switched: the serving version and status stay.
+    expect(ssh.ranMatching(/compose -p \S+ up/)).toBe(false);
+    const { rows } = await testPool().query('SELECT status FROM applications WHERE id = $1', [app.id]);
+    expect(rows[0].status).toBe('running');
+  });
+
+  it('deploys when the image is clean, and a normal deployment never runs the scan', async () => {
+    const { teamId, app } = await anApplication('exited');
+    const executionId = await anExecution(teamId, app.uuid);
+    ssh.on(/aquasec\/trivy.*image/, { stdout: JSON.stringify({ Results: [] }) });
+
+    const { outcome } = await runFromPipeline(teamId, app, executionId);
+    await outcome;
+    expect(ssh.ranMatching(/aquasec\/trivy.*image/)).toBe(true);
+
+    ssh.clear();
+    useExecutor(LISTENING_3000);
+    const plain = await run(teamId, app);
+    await plain.outcome;
+    expect(ssh.ranMatching(/aquasec\/trivy/)).toBe(false);
+  }, 90_000);
 });
 
 describe('a deployment that succeeds', () => {

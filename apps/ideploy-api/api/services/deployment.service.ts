@@ -16,12 +16,18 @@ export interface DeploymentJobData {
   teamId: number;
   commit: string;
   forceRebuild: boolean;
+  /**
+   * Set when a pipeline queued this deployment: the built image is then
+   * scanned (Trivy) before anything is switched, and the result recorded on
+   * that pipeline execution.
+   */
+  pipelineExecutionId?: number;
 }
 
 export async function createDeployment(
   application: { id: number; uuid: string },
   teamId: number,
-  opts: { commit?: string; forceRebuild?: boolean; isWebhook?: boolean; rollback?: boolean } = {}
+  opts: { commit?: string; forceRebuild?: boolean; isWebhook?: boolean; rollback?: boolean; pipelineExecutionId?: number } = {}
 ): Promise<{ deploymentUuid: string }> {
   const deploymentUuid = randomUUID();
   await pool.query(
@@ -45,6 +51,7 @@ export async function createDeployment(
     teamId,
     commit: opts.commit ?? 'HEAD',
     forceRebuild: opts.forceRebuild ?? false,
+    ...(opts.pipelineExecutionId ? { pipelineExecutionId: opts.pipelineExecutionId } : {}),
   };
   // One attempt: a failed build replayed twice more flipped the status back to
   // "in progress" and tripled the wait for an answer that would not change.

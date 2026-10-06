@@ -1624,7 +1624,8 @@
       "sonarqube": "SonarQube",
       "trivy": "Trivy",
       "language_detection": "Code checkout",
-      "deploy": "Deployment"
+      "deploy": "Deployment",
+      "trivy-image": "Trivy (image)"
     },
     "scan": {
       "notRun": "Not run",

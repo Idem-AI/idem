@@ -130,7 +130,7 @@ const POLL_INTERVAL_MS = 3_000;
 
       @if (selectedJob(); as job) {
         <!-- Scan results, when the stage produced any -->
-        @if (scanFor(job.name); as scan) {
+        @for (scan of scansFor(job.name); track scan.tool) {
           <div class="glass-card p-4 mb-4">
             <div class="mb-3 flex flex-wrap items-center gap-2">
               <h3 class="text-sm font-semibold">{{ 'pipeline.tool.' + scan.tool | translate }}</h3>
@@ -165,7 +165,7 @@ const POLL_INTERVAL_MS = 3_000;
             }
 
             <!-- Trivy: counts by severity, then the findings -->
-            @if (scan.tool === 'trivy' && scan.status !== 'skipped') {
+            @if (scan.tool.startsWith('trivy') && scan.status !== 'skipped') {
               <div class="mb-3 flex flex-wrap gap-2 text-xs" style="font-variant-numeric:tabular-nums;">
                 @for (sev of severities; track sev.key) {
                   <span class="rounded-md px-2 py-1" [style.border]="'1px solid ' + sev.color" [style.color]="sev.color">
@@ -320,8 +320,10 @@ export class PipelineExecutionDetailComponent implements OnInit, OnDestroy {
     return duration ?? this.translate.instant('pipeline.status.' + job.status);
   }
 
-  protected scanFor(stageName: string): PipelineScan | null {
-    return this.execution()?.scans?.find((s) => s.tool === stageName) ?? null;
+  /** The scans a stage produced: its own, plus the image scan the deployment runs (shown under "deploy"). */
+  protected scansFor(stageName: string): PipelineScan[] {
+    const scans = this.execution()?.scans ?? [];
+    return scans.filter((s) => s.tool === stageName || (stageName === 'deploy' && s.tool === 'trivy-image'));
   }
 
   protected isPassed(gate: string): boolean {
@@ -357,7 +359,7 @@ export class PipelineExecutionDetailComponent implements OnInit, OnDestroy {
   /** Only the metrics the scan actually reported — blanks are not information. */
   protected scanMetrics(scan: PipelineScan): { key: string; value: number }[] {
     // Trivy's counts are shown by severity instead.
-    if (scan.tool === 'trivy') return [];
+    if (scan.tool.startsWith('trivy')) return [];
     const candidates: [string, number | null | undefined][] = [
       ['bugs', scan.bugs],
       ['vulnerabilities', scan.vulnerabilities],
