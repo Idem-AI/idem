@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Observable, of } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { SlicePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
@@ -227,6 +229,14 @@ const POPULAR_APPS: { template: string; label: string; descKey: string }[] = [
                   <input id="docker-image" type="text" class="font-mono" formControlName="image" placeholder="nginx:latest" />
                   <p class="mt-1.5 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.imageHint' | translate }}</p>
                 </div>
+                <details class="rounded-lg p-3" style="border:1px solid var(--color-surface-2);">
+                  <summary class="cursor-pointer text-sm font-medium">{{ 'projects.start.privateRegistry' | translate }}</summary>
+                  <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.privateRegistryHint' | translate }}</p>
+                  <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                    <input type="text" class="font-mono" formControlName="registryUsername" [placeholder]="'projects.start.registryUser' | translate" autocomplete="off" />
+                    <input type="password" class="font-mono" formControlName="registryToken" [placeholder]="'projects.start.registryToken' | translate" autocomplete="new-password" />
+                  </div>
+                </details>
               } @else {
                 <div>
                   <label for="docker-compose" class="mb-1.5 block text-sm font-medium">docker-compose.yml</label>
@@ -403,6 +413,9 @@ export class NewProjectComponent implements OnInit {
     name: ['', Validators.required],
     image: [''],
     compose: [''],
+    /** Private image: the registry login (saved for the team). */
+    registryUsername: [''],
+    registryToken: [''],
   });
   /** Reactive-form values are not signals; mirrored so `dockerReady` can be computed. */
   private readonly dockerValue = signal(this.dockerForm.getRawValue());
@@ -590,14 +603,43 @@ export class NewProjectComponent implements OnInit {
   protected deployDocker(): void {
     const target = this.target();
     if (!this.dockerReady() || !target) return;
-    const { name, image, compose } = this.dockerForm.getRawValue();
-    const raw =
-      this.dockerTab() === 'image'
-        ? `services:\n  app:\n    image: '${image.trim()}'\n    restart: unless-stopped\n`
-        : compose;
+    const { name, image, compose, registryUsername, registryToken } = this.dockerForm.getRawValue();
 
     this.busy.set(true);
     this.error.set(null);
+
+    // An image becomes a real application: a domain, routing, variables,
+    // firewall and deployments, like any other. (It used to be wrapped into a
+    // one-service Compose stack that had none of it.)
+    if (this.dockerTab() === 'image') {
+      const { repository, tag } = splitImageReference(image);
+      const create = () =>
+        this.api.createApplication({
+          name: name.trim(),
+          workspace_uuid: target.workspace_uuid,
+          environment_name: target.environment_name,
+          project_name: target.project_name,
+          build_pack: 'dockerimage',
+          docker_registry_image_name: repository,
+          docker_registry_image_tag: tag,
+        });
+      const login$: Observable<unknown> =
+        registryUsername.trim() && registryToken
+          ? this.api.saveRegistryCredential({ registry: registryOf(repository), username: registryUsername.trim(), password: registryToken })
+          : of(null);
+      login$
+        .pipe(
+          switchMap(create),
+          switchMap((app) => this.api.deploy(app.uuid))
+        )
+        .subscribe({
+          next: (d) => this.router.navigate(['/deployments', d.deploymentUuid]),
+          error: (e) => this.fail(e),
+        });
+      return;
+    }
+
+    const raw = compose;
     this.api
       .createService({
         name: name.trim(),
@@ -618,4 +660,18 @@ export class NewProjectComponent implements OnInit {
     const message = (e as { error?: { error?: { message?: string } } })?.error?.error?.message;
     this.error.set(message ?? this.translate.instant('projects.common.deploymentFailed'));
   }
+}
+
+/** `ghcr.io/org/app:v1` → the image and its tag (`latest` when none; a port in the registry host is not a tag). */
+export function splitImageReference(reference: string): { repository: string; tag: string } {
+  const ref = reference.trim();
+  const colon = ref.lastIndexOf(':');
+  if (colon > ref.lastIndexOf('/')) return { repository: ref.slice(0, colon), tag: ref.slice(colon + 1) || 'latest' };
+  return { repository: ref, tag: 'latest' };
+}
+
+/** The registry host of an image: its first segment when it looks like a host, else Docker Hub. */
+export function registryOf(repository: string): string {
+  const first = repository.split('/')[0];
+  return repository.includes('/') && (first.includes('.') || first.includes(':') || first === 'localhost') ? first : 'docker.io';
 }

@@ -171,6 +171,13 @@ export interface CreateWorkspaceProjectRequest {
   environment_name?: string;
 }
 
+/** A saved login to a private image registry (the token is never returned). */
+export interface RegistryCredential {
+  id: number;
+  registry: string;
+  username: string;
+}
+
 /** Where one of an application's domains points, checked when it changes. */
 export interface DomainCheck {
   domain: string;
@@ -190,6 +197,9 @@ export interface Application {
   ports_exposes?: string | null;
   /** Folder of the repository the application is built from (`./` or empty: the root). */
   base_directory?: string | null;
+  /** `dockerimage` applications: the registry image (no tag) and the tag it runs. */
+  docker_registry_image_name?: string | null;
+  docker_registry_image_tag?: string | null;
   /** Dockerfile path, relative to the base directory (the build context). */
   dockerfile_location?: string | null;
   dockerfile_target_build?: string | null;

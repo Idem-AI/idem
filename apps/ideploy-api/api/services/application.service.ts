@@ -14,7 +14,15 @@ import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
 import { appWorkdir, composeCommand } from '../docker/compose';
 import { shellQuote } from '../ssh/ssh';
-import { isSafeBuildTarget, isSafeGitBranch, isSafeGitUrl, isSafeRelativeDir, isSafeWatchPaths } from '../validation/git-input';
+import {
+  isSafeBuildTarget,
+  isSafeGitBranch,
+  isSafeGitUrl,
+  isSafeImageName,
+  isSafeImageTag,
+  isSafeRelativeDir,
+  isSafeWatchPaths,
+} from '../validation/git-input';
 
 function mapApp(r: Record<string, unknown>): ApplicationRow {
   return {
@@ -38,6 +46,8 @@ function mapApp(r: Record<string, unknown>): ApplicationRow {
     start_command: (r.start_command as string) ?? null,
     install_command: (r.install_command as string) ?? null,
     publish_directory: (r.publish_directory as string) ?? null,
+    docker_registry_image_name: (r.docker_registry_image_name as string) ?? null,
+    docker_registry_image_tag: (r.docker_registry_image_tag as string) ?? null,
     dockerfile_location: (r.dockerfile_location as string) ?? null,
     dockerfile_target_build: (r.dockerfile_target_build as string) ?? null,
     watch_paths: (r.watch_paths as string) ?? null,
@@ -141,6 +151,9 @@ export interface CreateApplicationDto {
   start_command?: string;
   install_command?: string;
   publish_directory?: string;
+  /** `dockerimage`: the image to run (without tag) and its tag. */
+  docker_registry_image_name?: string;
+  docker_registry_image_tag?: string;
   /** The Project this belongs to, resolved server-side — never client-chosen. */
   project_id?: number | null;
 }
@@ -169,6 +182,8 @@ function assertSafeBuildInputs(dto: {
   dockerfile_location?: string | null;
   dockerfile_target_build?: string | null;
   watch_paths?: string | null;
+  docker_registry_image_name?: string | null;
+  docker_registry_image_tag?: string | null;
 }): void {
   // Vide : pas de dépôt, le code arrive d'iCode (table `application_sources`).
   if (
@@ -193,6 +208,12 @@ function assertSafeBuildInputs(dto: {
   }
   if (!isSafeBuildTarget(dto.dockerfile_target_build)) {
     throw unprocessable('INVALID_BUILD_TARGET', 'The build target must be a stage name (letters, digits, . _ -).');
+  }
+  if (dto.docker_registry_image_name && !isSafeImageName(dto.docker_registry_image_name)) {
+    throw unprocessable('INVALID_IMAGE', 'The image must be a registry path like ghcr.io/organisation/app (lower case, no tag).');
+  }
+  if (dto.docker_registry_image_tag && !isSafeImageTag(dto.docker_registry_image_tag)) {
+    throw unprocessable('INVALID_IMAGE_TAG', 'The image tag may contain letters, digits, . _ - (128 characters at most).');
   }
   if (!isSafeWatchPaths(dto.watch_paths)) {
     throw unprocessable('INVALID_WATCH_PATHS', 'Watch paths are path patterns, one per line (e.g. apps/api/**).');
@@ -233,8 +254,8 @@ export async function createApplication(
        (uuid, name, description, git_repository, git_branch, git_commit_sha,
         build_pack, ports_exposes, fqdn, environment_id, destination_id, destination_type,
         base_directory, build_command, start_command, install_command, publish_directory,
-        project_id, status, created_at, updated_at)
-     VALUES ($1,$2,$3,$4,$5,'HEAD',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'exited', now(), now())
+        project_id, docker_registry_image_name, docker_registry_image_tag, status, created_at, updated_at)
+     VALUES ($1,$2,$3,$4,$5,'HEAD',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'exited', now(), now())
      RETURNING *`,
     [
       uuid,
@@ -254,6 +275,8 @@ export async function createApplication(
       dto.install_command ?? null,
       dto.publish_directory ?? null,
       dto.project_id ?? null,
+      dto.docker_registry_image_name ?? null,
+      dto.docker_registry_image_tag ?? null,
     ]
   );
   return mapApp(rows[0]);
@@ -277,6 +300,8 @@ export interface UpdateApplicationDto {
   dockerfile_location?: string | null;
   dockerfile_target_build?: string | null;
   watch_paths?: string | null;
+  docker_registry_image_name?: string | null;
+  docker_registry_image_tag?: string | null;
 }
 
 const UPDATABLE: (keyof UpdateApplicationDto)[] = [
@@ -296,6 +321,8 @@ const UPDATABLE: (keyof UpdateApplicationDto)[] = [
   'dockerfile_location',
   'dockerfile_target_build',
   'watch_paths',
+  'docker_registry_image_name',
+  'docker_registry_image_tag',
 ];
 
 export async function updateApplication(
@@ -328,6 +355,14 @@ export async function updateApplication(
     params
   );
   return mapApp(rows[0]);
+}
+
+/** Record the image tag an application now runs (`dockerimage` applications). */
+export async function setImageTag(applicationId: number, tag: string): Promise<void> {
+  await pool.query('UPDATE applications SET docker_registry_image_tag = $1, updated_at = now() WHERE id = $2', [
+    tag,
+    applicationId,
+  ]);
 }
 
 /** Record the port the application actually listens on, measured at deployment. */

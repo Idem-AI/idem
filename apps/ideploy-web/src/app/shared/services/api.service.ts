@@ -27,6 +27,7 @@ import {
   ProxyStatus,
   CrowdSecStatus,
   FirewallAlert,
+  RegistryCredential,
   FirewallApplyResult,
   FirewallTrafficEntry,
   FirewallTrafficStats,
@@ -301,11 +302,33 @@ export class ApiService {
     workspace_uuid: string;
     environment_name?: string;
     project_name?: string;
-    git_repository: string;
+    git_repository?: string;
     git_branch?: string;
     build_pack?: string;
+    /** `build_pack: 'dockerimage'`: the image to run (no tag) and its tag. */
+    docker_registry_image_name?: string;
+    docker_registry_image_tag?: string;
+    ports_exposes?: string;
   }): Observable<Application> {
     return this.unwrap(this.http.post<ApiResponse<Application>>(`${this.base}/applications`, body));
+  }
+
+  // ── Private registries and CI ────────────────────────
+  listRegistryCredentials(): Observable<RegistryCredential[]> {
+    return this.unwrap(this.http.get<ApiResponse<RegistryCredential[]>>(`${this.base}/registry-credentials`));
+  }
+  saveRegistryCredential(body: { registry: string; username: string; password: string }): Observable<RegistryCredential> {
+    return this.unwrap(this.http.post<ApiResponse<RegistryCredential>>(`${this.base}/registry-credentials`, body));
+  }
+  deleteRegistryCredential(id: number): Observable<unknown> {
+    return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/registry-credentials/${id}`));
+  }
+  /** The URL and token a CI pipeline uses to deploy this application. */
+  ciDeployToken(uuid: string, rotate = false): Observable<{ url: string; secret: string }> {
+    const path = `${this.base}/applications/${uuid}/webhooks/ci${rotate ? '/rotate' : ''}`;
+    return this.unwrap(
+      rotate ? this.http.post<ApiResponse<{ url: string; secret: string }>>(path, {}) : this.http.get<ApiResponse<{ url: string; secret: string }>>(path)
+    );
   }
   getApplication(uuid: string): Observable<Application> {
     return this.unwrap(this.http.get<ApiResponse<Application>>(`${this.base}/applications/${uuid}`));

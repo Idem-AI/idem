@@ -13,6 +13,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { processDeployment } from '../../api/jobs/deployment.worker';
 import * as envVarService from '../../api/services/env-var.service';
 import { createDeployment, DeploymentJobData } from '../../api/services/deployment.service';
+import { saveRegistryCredential } from '../../api/services/registry-credentials.service';
 import { setRemoteExecutor } from '../../api/ssh/ssh';
 import { FakeRemoteExecutor } from '../helpers/fake-executor';
 import { isTestDatabaseAvailable, testPool, truncateAll } from '../helpers/db';
@@ -147,6 +148,79 @@ describe('the port the application listens on', () => {
     const last = Buffer.from(/echo '([^']+)'/.exec(rewrites[rewrites.length - 1].command)![1], 'base64').toString();
     expect(last).toContain('PORT=4721');
   }, 60_000);
+});
+
+describe('an application that runs a registry image', () => {
+  async function anImageApplication(tag: string | null = 'v1', name = 'ghcr.io/idem-ai/idem-landing') {
+    const { teamId, app } = await anApplication('exited');
+    await testPool().query(
+      "UPDATE applications SET build_pack = 'dockerimage', git_repository = '', docker_registry_image_name = $2, docker_registry_image_tag = $3 WHERE id = $1",
+      [app.id, name, tag]
+    );
+    return { teamId, app };
+  }
+
+  it('pulls the image — no clone, no build — runs it, and remembers the version', async () => {
+    const { teamId, app } = await anImageApplication('v1');
+    ssh.on(/image inspect -f '\{\{index \.RepoDigests 0\}\}'/, { stdout: 'ghcr.io/idem-ai/idem-landing@sha256:abc123\n' });
+
+    const { deploymentUuid, outcome } = await run(teamId, app);
+    await outcome;
+
+    expect(ssh.ranMatching(/docker pull 'ghcr\.io\/idem-ai\/idem-landing:v1'/)).toBe(true);
+    expect(ssh.ranMatching(/git fetch|git clone|docker build|nixpacks/)).toBe(false);
+    const deployment = await row(deploymentUuid);
+    expect(deployment.status).toBe('finished');
+    expect(deployment.commit).toBe('v1');
+    expect(deployment.logs).toContain('Digest: ghcr.io/idem-ai/idem-landing@sha256:abc123');
+    // The compose file runs that exact image.
+    const write = ssh.calls.find((c) => c.command.includes('docker-compose.yml') && c.command.includes('base64 -d >'))!.command;
+    expect(Buffer.from(/echo '([^']+)'/.exec(write)![1], 'base64').toString()).toContain('image: ghcr.io/idem-ai/idem-landing:v1');
+  }, 60_000);
+
+  it('deploys the tag a pipeline sends, and a plain redeploy then runs that tag again', async () => {
+    const { teamId, app } = await anImageApplication('v1');
+
+    const first = await run(teamId, app, 'sha-9f3c2d1');
+    await first.outcome;
+
+    expect(ssh.ranMatching(/docker pull 'ghcr\.io\/idem-ai\/idem-landing:sha-9f3c2d1'/)).toBe(true);
+    const { rows } = await testPool().query('SELECT docker_registry_image_tag FROM applications WHERE id = $1', [app.id]);
+    expect(rows[0].docker_registry_image_tag).toBe('sha-9f3c2d1');
+
+    ssh.clear();
+    useExecutor(LISTENING_3000);
+    const again = await run(teamId, app);
+    await again.outcome;
+    expect(ssh.ranMatching(/docker pull 'ghcr\.io\/idem-ai\/idem-landing:sha-9f3c2d1'/)).toBe(true);
+  }, 90_000);
+
+  it('logs in to a private registry through a throw-away Docker config, never printing the token', async () => {
+    const { teamId, app } = await anImageApplication('v1');
+    await saveRegistryCredential(teamId, { registry: 'ghcr.io', username: 'ci-bot', password: 'ghp_secrettoken' });
+
+    const { deploymentUuid, outcome } = await run(teamId, app);
+    await outcome;
+
+    const pull = ssh.calls.find((c) => c.command.includes('docker login'))!;
+    expect(pull.command).toContain('DOCKER_CONFIG="$D" docker login');
+    expect(pull.command).toContain("trap 'rm -rf \"$D\"' EXIT");
+    expect(pull.opts.redact).toContain('ghp_secrettoken');
+    expect((await row(deploymentUuid)).logs).not.toContain('ghp_secrettoken');
+  }, 60_000);
+
+  it('says what to do when the registry refuses the pull, and leaves the serving version alone', async () => {
+    const { teamId, app } = await anImageApplication('v1');
+    await testPool().query("UPDATE applications SET status = 'running' WHERE id = $1", [app.id]);
+    ssh.on(/docker pull/, { exitCode: 1, stderr: 'Error response from daemon: denied: requested access to the resource is denied' });
+
+    const { deploymentUuid, outcome } = await run(teamId, app);
+    await expect(outcome).rejects.toThrow(/image is private: add a login for ghcr\.io/);
+
+    expect((await row(deploymentUuid)).status).toBe('failed');
+    const { rows } = await testPool().query('SELECT status FROM applications WHERE id = $1', [app.id]);
+    expect(rows[0].status).toBe('running');
+  });
 });
 
 describe('a deployment that succeeds', () => {

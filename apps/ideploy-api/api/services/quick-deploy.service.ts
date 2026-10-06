@@ -9,6 +9,8 @@
  * Callers may pass an explicit `workspace_uuid`; otherwise a workspace is found
  * or created by name, so the simplest flow stays one step.
  */
+import * as registryService from './registry-credentials.service';
+import { registryOf } from '../validation/git-input';
 import pool from '../config/db.config';
 import * as appService from './application.service';
 import * as deploymentService from './deployment.service';
@@ -113,6 +115,12 @@ export interface QuickDeployDto {
    * on the server by the deployment worker.
    */
   files?: IncomingFiles;
+  /** Run an image already in a registry instead of building one (`build_pack: 'dockerimage'`). */
+  docker_image?: string;
+  docker_image_tag?: string;
+  /** Registry login for a private image, saved for the team. */
+  registry_username?: string;
+  registry_password?: string;
   publish_directory?: string;
   base_directory?: string;
   install_command?: string;
@@ -194,11 +202,22 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
   }
 
   // Git path, or files sent directly (iCode) → create an application and deploy it.
-  if (!dto.git_repository && !dto.files) {
+  const isImage = dto.build_pack === 'dockerimage';
+  if (isImage && !dto.docker_image) {
+    throw unprocessable('SOURCE_REQUIRED', 'Provide the image to run, e.g. ghcr.io/organisation/app.');
+  }
+  if (!isImage && !dto.git_repository && !dto.files) {
     throw unprocessable(
       'SOURCE_REQUIRED',
       'Provide a Git repository URL, the files of the project, or pick a one-click template.'
     );
+  }
+  if (isImage && dto.registry_username && dto.registry_password) {
+    await registryService.saveRegistryCredential(teamId, {
+      registry: registryOf(dto.docker_image as string),
+      username: dto.registry_username,
+      password: dto.registry_password,
+    });
   }
   const app = await appService.createApplication(teamId, {
     name: dto.name,
@@ -216,6 +235,9 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
     start_command: dto.start_command,
     ports_exposes: dto.ports_exposes,
     publish_directory: dto.publish_directory,
+    ...(isImage
+      ? { docker_registry_image_name: dto.docker_image, docker_registry_image_tag: dto.docker_image_tag || 'latest' }
+      : {}),
   });
 
   // The code must be stored before the deployment is queued: the worker reads it.

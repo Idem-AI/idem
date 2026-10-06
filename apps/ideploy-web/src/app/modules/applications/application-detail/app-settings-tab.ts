@@ -1,16 +1,16 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ApiService } from '../../../shared/services/api.service';
-import { Application, DomainCheck, Tag } from '../../../shared/models/ideploy.models';
+import { Application, DomainCheck, RegistryCredential, Tag } from '../../../shared/models/ideploy.models';
 
 /** The Eloquent morph class this Node API expects for an application. */
 const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
 
 /** Build packs the API knows, with the words a non-specialist would use. */
-const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static'] as const;
+const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'dockerimage'] as const;
 
 /**
  * Settings of one application, most-used first: where the code comes from
@@ -52,6 +52,17 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static'] as con
               <input type="text" id="cfg-base-dir" class="font-mono text-sm" placeholder="./" formControlName="base_directory" />
               <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.baseDirectoryHint' | translate }}</p>
             </div>
+            @if (configForm.controls.build_pack.value === 'dockerimage') {
+              <div>
+                <label class="mb-1 block text-sm" for="cfg-image">{{ 'applications.detail.imageName' | translate }}</label>
+                <input type="text" id="cfg-image" class="font-mono text-sm" placeholder="ghcr.io/organisation/app" formControlName="docker_registry_image_name" />
+              </div>
+              <div>
+                <label class="mb-1 block text-sm" for="cfg-image-tag">{{ 'applications.detail.imageTag' | translate }}</label>
+                <input type="text" id="cfg-image-tag" class="font-mono text-sm" placeholder="latest" formControlName="docker_registry_image_tag" />
+                <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.imageTagHint' | translate }}</p>
+              </div>
+            }
             @if (configForm.controls.build_pack.value === 'dockerfile') {
               <div>
                 <label class="mb-1 block text-sm" for="cfg-dockerfile">{{ 'applications.detail.dockerfileLocation' | translate }}</label>
@@ -114,6 +125,50 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static'] as con
           </div>
         </form>
       </section>
+
+      <!-- Continuous deployment: a CI pipeline deploys this application with its own token. -->
+      <section class="glass-card p-5">
+        <h2 class="font-semibold text-text-primary">{{ 'applications.detail.ciTitle' | translate }}</h2>
+        <p class="mb-4 mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'applications.detail.ciHint' | translate }}</p>
+        @if (ci(); as c) {
+          <p class="mb-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.ciUrl' | translate }}</p>
+          <code class="mb-3 block overflow-x-auto rounded-lg p-2 text-xs font-mono" style="background:var(--color-surface-2);">POST {{ c.url }}</code>
+          <p class="mb-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.ciToken' | translate }}</p>
+          <code class="mb-3 block overflow-x-auto rounded-lg p-2 text-xs font-mono" style="background:var(--color-surface-2);">{{ c.secret }}</code>
+          <p class="mb-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.ciExample' | translate }}</p>
+          <pre class="mb-3 overflow-x-auto rounded-lg p-2 text-xs font-mono" style="background:var(--color-surface-2);">curl -X POST {{ c.url }} \
+  -H 'X-Ideploy-Token: $IDEPLOY_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{{ '{' }}"image_tag": "'$GITHUB_SHA'"{{ '}' }}'</pre>
+          <button type="button" class="outer-button text-xs px-3 py-1.5" (click)="rotateCi()">{{ 'applications.detail.ciRotate' | translate }}</button>
+        } @else {
+          <button type="button" class="inner-button" (click)="loadCi()">{{ 'applications.detail.ciShow' | translate }}</button>
+        }
+      </section>
+
+      <!-- Logins to private registries, for image applications -->
+      @if (configForm.controls.build_pack.value === 'dockerimage') {
+        <section class="glass-card p-5">
+          <h2 class="font-semibold text-text-primary">{{ 'applications.detail.registryTitle' | translate }}</h2>
+          <p class="mb-4 mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'applications.detail.registryHint' | translate }}</p>
+          <ul class="mb-3 space-y-1 text-sm">
+            @for (r of registries(); track r.id) {
+              <li class="flex items-center gap-3">
+                <code class="font-mono">{{ r.registry }}</code><span style="color:var(--color-text-secondary);">{{ r.username }}</span>
+                <button type="button" class="ml-auto text-xs" style="color:var(--color-danger);" (click)="removeRegistry(r.id)">{{ 'applications.detail.remove' | translate }}</button>
+              </li>
+            } @empty {
+              <li style="color:var(--color-text-secondary);">{{ 'applications.detail.noRegistry' | translate }}</li>
+            }
+          </ul>
+          <form class="grid gap-2 sm:grid-cols-4" [formGroup]="registryForm" (ngSubmit)="addRegistry()">
+            <input type="text" class="font-mono text-sm" formControlName="registry" placeholder="ghcr.io" />
+            <input type="text" class="font-mono text-sm" formControlName="username" [placeholder]="'projects.start.registryUser' | translate" autocomplete="off" />
+            <input type="password" class="font-mono text-sm" formControlName="password" [placeholder]="'projects.start.registryToken' | translate" autocomplete="new-password" />
+            <button class="inner-button" type="submit" [disabled]="registryForm.invalid">{{ 'applications.detail.save' | translate }}</button>
+          </form>
+        </section>
+      }
 
       <!-- Tags -->
       <section class="glass-card p-5">
@@ -197,6 +252,13 @@ export class AppSettingsTabComponent implements OnInit {
   /** The application as the API returned it after a save — the header shows it right away. */
   readonly updated = output<Application>();
 
+  protected readonly ci = signal<{ url: string; secret: string } | null>(null);
+  protected readonly registries = signal<RegistryCredential[]>([]);
+  protected readonly registryForm = this.fb.nonNullable.group({
+    registry: ['ghcr.io', Validators.required],
+    username: ['', Validators.required],
+    password: ['', Validators.required],
+  });
   protected readonly saving = signal(false);
   protected readonly saved = signal(false);
   protected readonly saveError = signal<string | null>(null);
@@ -232,6 +294,8 @@ export class AppSettingsTabComponent implements OnInit {
     dockerfile_location: [''],
     dockerfile_target_build: [''],
     watch_paths: [''],
+    docker_registry_image_name: [''],
+    docker_registry_image_tag: [''],
     ports_exposes: [''],
     fqdn: [''],
   });
@@ -247,10 +311,13 @@ export class AppSettingsTabComponent implements OnInit {
       dockerfile_location: a.dockerfile_location ?? '',
       dockerfile_target_build: a.dockerfile_target_build ?? '',
       watch_paths: a.watch_paths ?? '',
+      docker_registry_image_name: a.docker_registry_image_name ?? '',
+      docker_registry_image_tag: a.docker_registry_image_tag ?? '',
       ports_exposes: a.ports_exposes ?? '',
       fqdn: a.fqdn ?? '',
     });
     this.reloadTags();
+    this.loadRegistries();
   }
 
   protected save(): void {
@@ -273,6 +340,36 @@ export class AppSettingsTabComponent implements OnInit {
         this.saveError.set(message ?? this.translate.instant('applications.detail.saveError'));
       },
     });
+  }
+
+  protected loadCi(): void {
+    this.api.ciDeployToken(this.app().uuid).subscribe((c) => this.ci.set(c));
+  }
+
+  protected rotateCi(): void {
+    this.api.ciDeployToken(this.app().uuid, true).subscribe((c) => this.ci.set(c));
+  }
+
+  private loadRegistries(): void {
+    this.api.listRegistryCredentials().subscribe((r) => this.registries.set(r));
+  }
+
+  protected addRegistry(): void {
+    if (this.registryForm.invalid) return;
+    this.api.saveRegistryCredential(this.registryForm.getRawValue()).subscribe({
+      next: () => {
+        this.registryForm.patchValue({ username: '', password: '' });
+        this.loadRegistries();
+      },
+      error: (e) => {
+        const message = (e as { error?: { error?: { message?: string } } })?.error?.error?.message;
+        this.saveError.set(message ?? this.translate.instant('applications.detail.saveError'));
+      },
+    });
+  }
+
+  protected removeRegistry(id: number): void {
+    this.api.deleteRegistryCredential(id).subscribe(() => this.loadRegistries());
   }
 
   protected redeploy(): void {

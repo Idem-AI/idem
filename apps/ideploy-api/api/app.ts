@@ -45,6 +45,7 @@ import githubRoutes from './routes/github.routes';
 import gitlabRoutes from './routes/gitlab.routes';
 import adminRoutes from './routes/admin.routes';
 import webhookRoutes, { managementRouter as webhookManagementRoutes } from './routes/webhook.routes';
+import registryRoutes from './routes/registry.routes';
 
 const swaggerSpec = swaggerJsdoc({
   definition: {
@@ -110,6 +111,7 @@ export function createApp(): Express {
   app.use('/api/v1/databases', databaseRoutes);
   app.use('/api/v1/services', serviceRoutes);
   app.use('/api/v1/tags', tagRoutes);
+  app.use('/api/v1/registry-credentials', registryRoutes);
   app.use('/api/v1/shared-variables', sharedEnvRoutes);
   app.use('/api/v1', securityRoutes); // /applications/:uuid/firewall/*, /servers/:uuid/crowdsec|certificates
   app.use('/api/v1', pipelineRoutes); // /applications/:uuid/pipeline/*, /pipeline/executions/:uuid

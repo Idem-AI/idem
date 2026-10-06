@@ -42,12 +42,21 @@ router.post('/:provider/:uuid', validate({ params: providerParam }), async (req,
         signature:
           (req.headers['x-hub-signature-256'] as string | undefined) ??
           (req.headers['x-gitea-signature'] as string | undefined),
-        token: req.headers['x-gitlab-token'] as string | undefined,
+        // GitLab's own header, or the pipeline token of a `ci` call.
+        token:
+          (req.headers['x-ideploy-token'] as string | undefined) ??
+          (req.headers['x-gitlab-token'] as string | undefined),
+        imageTag: typeof req.body?.image_tag === 'string' ? req.body.image_tag : undefined,
       },
-      async (target) => {
+      async (target, version) => {
         const app = await appService.getApplicationById(target.applicationId);
         if (!app) throw new Error('Application vanished between verification and deployment');
-        const { deploymentUuid } = await deploymentService.createDeployment(app, target.teamId, {});
+        // The version a pipeline deploys: the image tag of a `dockerimage`
+        // application (its `commit` column carries the version, see the worker).
+        const { deploymentUuid } = await deploymentService.createDeployment(app, target.teamId, {
+          isWebhook: true,
+          ...(version ? { commit: version } : {}),
+        });
         return deploymentUuid;
       }
     );

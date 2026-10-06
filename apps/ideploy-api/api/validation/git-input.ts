@@ -53,6 +53,28 @@ export function isSafeRelativeDir(dir: unknown): boolean {
   return /^[A-Za-z0-9._\/ -]+$/.test(dir) && !dir.split('/').includes('..');
 }
 
+/**
+ * A Docker image reference without its tag: `[registry[:port]/]path`, lower
+ * case as Docker requires (`ghcr.io/idem-ai/idem-api`, `nginx`, `org/app`).
+ */
+export function isSafeImageName(name: unknown): boolean {
+  if (typeof name !== 'string' || name.length === 0 || name.length > 255) return false;
+  return /^(?:[a-z0-9]+(?:[.-][a-z0-9]+)*(?::[0-9]+)?\/)?[a-z0-9]+(?:[._-][a-z0-9]+)*(?:\/[a-z0-9]+(?:[._-][a-z0-9]+)*)*$/.test(name);
+}
+
+/** An image tag (Docker's own rule: up to 128 of [A-Za-z0-9_.-], not starting with . or -). */
+export function isSafeImageTag(tag: unknown): boolean {
+  return typeof tag === 'string' && /^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$/.test(tag);
+}
+
+/** The registry host of an image name: the first segment when it looks like a host, else Docker Hub. */
+export function registryOf(imageName: string): string {
+  const first = imageName.split('/')[0];
+  return imageName.includes('/') && (first.includes('.') || first.includes(':') || first === 'localhost')
+    ? first
+    : 'docker.io';
+}
+
 /** A `docker build --target` stage name. */
 export function isSafeBuildTarget(target: unknown): boolean {
   if (target === null || target === undefined || target === '') return true;

@@ -53,9 +53,19 @@ export async function getApplication(req: CustomRequest, res: Response): Promise
  * reason a workspace exists — so none is accepted here.
  */
 export async function createApplication(req: CustomRequest, res: Response): Promise<void> {
-  const { name, workspace_uuid, environment_name, project_name, git_repository } = req.body ?? {};
-  if (!name || !workspace_uuid || !git_repository) {
-    return fail(res, 'name, workspace_uuid and git_repository are required', 422, 'VALIDATION');
+  const { name, workspace_uuid, environment_name, project_name, git_repository, build_pack, docker_registry_image_name } =
+    req.body ?? {};
+  // An image application has no repository: its image is its source.
+  const isImage = build_pack === 'dockerimage';
+  if (!name || !workspace_uuid || (isImage ? !docker_registry_image_name : !git_repository)) {
+    return fail(
+      res,
+      isImage
+        ? 'name, workspace_uuid and docker_registry_image_name are required'
+        : 'name, workspace_uuid and git_repository are required',
+      422,
+      'VALIDATION'
+    );
   }
   try {
     const teamId = req.user!.currentTeamId!;
@@ -69,6 +79,7 @@ export async function createApplication(req: CustomRequest, res: Response): Prom
       res,
       await appService.createApplication(teamId, {
         ...req.body,
+        git_repository: git_repository ?? '',
         environment_id: destination.environmentId,
         destination_id: destination.destinationId,
         destination_type: STANDALONE_DOCKER_TYPE,
