@@ -69,9 +69,15 @@ describe('resolveGitCredential — expired tokens', () => {
 });
 
 describe('explainGitFailure', () => {
-  it('says to reconnect the account instead of quoting git', () => {
-    const raw =
-      "remote: Invalid username or token. Password authentication is not supported for Git operations.\nfatal: Authentication failed for 'https://github.com/Ebolo1/wegift-backend.git/'";
-    expect(explainGitFailure(raw)).toMatch(/Connect \(or reconnect\) the GitHub\/GitLab account/);
+  const raw =
+    "remote: Invalid username or token. Password authentication is not supported for Git operations.\nfatal: Authentication failed for 'https://github.com/Ebolo1/wegift-backend.git/'";
+
+  it('tells a team with no connected account to connect one', () => {
+    expect(explainGitFailure(raw, false)).toMatch(/no GitHub\/GitLab account is connected/);
+    expect(explainGitFailure('fatal: could not read Username for https://github.com', false)).toMatch(/no GitHub\/GitLab account/);
+  });
+
+  it('tells a team whose account was refused that this account cannot read the repository', () => {
+    expect(explainGitFailure(raw, true)).toMatch(/connected GitHub\/GitLab account cannot read/);
   });
 });

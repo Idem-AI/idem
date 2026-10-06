@@ -1661,7 +1661,8 @@
       "sonarqube": "SonarQube",
       "trivy": "Trivy",
       "language_detection": "Récupération du code",
-      "deploy": "Déploiement"
+      "deploy": "Déploiement",
+      "trivy-image": "Trivy (image)"
     },
     "scan": {
       "notRun": "Non exécuté",

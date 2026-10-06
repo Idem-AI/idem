@@ -37,6 +37,8 @@ import * as serverService from '../services/server.service';
 import * as deploymentService from '../services/deployment.service';
 import { explainGitFailure, resolveGitCredential } from '../services/git-credentials.service';
 import { explainPullFailure, resolveRegistryLogin } from '../services/registry-credentials.service';
+import * as pipelineService from '../services/pipeline.service';
+import { summariseTrivy, trivyFailThreshold, trivyFails } from '../services/pipeline-scanners.service';
 import { DeploymentJobData } from '../services/deployment.service';
 import { ApplicationRow } from '../models/ideploy.types';
 
@@ -416,7 +418,7 @@ async function deploy(
             `echo "COMMIT=$(git rev-parse HEAD)" && ls -la`,
           { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
         );
-        if (r.exitCode !== 0) throw new Error(`Fetching the code failed: ${explainGitFailure(r.stderr)}`);
+        if (r.exitCode !== 0) throw new Error(`Fetching the code failed: ${explainGitFailure(r.stderr, Boolean(credential))}`);
         const sha = /COMMIT=([0-9a-f]{40})/.exec(r.stdout)?.[1];
         if (sha) await deploymentService.recordCommit(deploymentUuid, app.id, sha);
       });
@@ -477,6 +479,15 @@ async function deploy(
       composeImage = imageTag;
       compose = generateComposeFile(app, imageTag, labels, network, runtimeEnv, port);
     }
+  }
+
+  // A pipeline's deployment checks the image it just built — what actually
+  // ships, dependencies of the base image included — before the live stack is
+  // touched: a critical finding stops here with the previous version serving.
+  if (data.pipelineExecutionId && composeImage) {
+    await streamStep(deploymentUuid, 'Scanning the image (Trivy)', async () => {
+      await scanBuiltImage(server, key, composeImage as string, data.pipelineExecutionId as number, log);
+    });
   }
 
   // From here on the live stack changes.
@@ -721,6 +732,49 @@ async function resolveBaseDirectory(
     );
   }
   return base;
+}
+
+/**
+ * Trivy on the image just built. The result is recorded on the pipeline
+ * execution that asked for the deployment; a finding at or above the
+ * threshold fails the deployment before it switches anything.
+ */
+async function scanBuiltImage(
+  server: Parameters<typeof executeRemoteCommand>[0],
+  key: Parameters<typeof executeRemoteCommand>[1],
+  image: string,
+  executionId: number,
+  log: (line: string) => Promise<void>
+): Promise<void> {
+  const r = await executeRemoteCommand(
+    server,
+    key,
+    `docker run --rm -v ideploy-trivy-cache:/root/.cache -v /var/run/docker.sock:/var/run/docker.sock:ro ` +
+      `aquasec/trivy:latest image --quiet --format json --scanners vuln ${shellQuote(image)}`,
+    { noRetry: true }
+  );
+  if (r.exitCode !== 0) {
+    const detail = (r.stderr || r.stdout).slice(-300);
+    await log(`The image could not be scanned: ${detail}`);
+    await pipelineService.recordScanResult(executionId, 'trivy-image', { status: 'failed', summary: detail });
+    throw new Error('Trivy could not scan the built image');
+  }
+  const { counts, findings } = summariseTrivy(r.stdout);
+  const line = `Image vulnerabilities — critical ${counts.CRITICAL}, high ${counts.HIGH}, medium ${counts.MEDIUM}, low ${counts.LOW}`;
+  await log(line);
+  const threshold = trivyFailThreshold();
+  const fails = trivyFails(counts, threshold);
+  await pipelineService.recordScanResult(executionId, 'trivy-image', {
+    status: fails ? 'failed' : 'success',
+    vulnerabilities: counts.CRITICAL + counts.HIGH + counts.MEDIUM + counts.LOW + counts.UNKNOWN,
+    critical_count: counts.CRITICAL,
+    high_count: counts.HIGH,
+    medium_count: counts.MEDIUM,
+    low_count: counts.LOW,
+    vulnerabilities_detail: findings,
+    summary: line,
+  });
+  if (fails) throw new Error(`The built image has vulnerabilities at or above ${threshold}; nothing was deployed.`);
 }
 
 /** How long to wait for an application to start listening before deciding it serves no port. */
