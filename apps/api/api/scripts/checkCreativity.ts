@@ -369,10 +369,16 @@ export default function Scene() {
     let repairPrompt = '';
     const repaired = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market',
       call: async ({ user }) => { calls++; if (calls === 2) repairPrompt = user; return md(calls === 1 ? tooTall : fits); } });
-    check('compositeur : page refusée par la mesure → réparée au 2e essai', !!repaired.html && calls === 2 && /MEASURED AND REJECTED/.test(repairPrompt) && /must fit|below the bottom/.test(repairPrompt));
+    check('compositeur : page refusée par la mesure → réparée au 2e essai', !!repaired.html && calls === 2 && /CHECKED AND REJECTED/.test(repairPrompt) && /must fit|below the bottom/.test(repairPrompt));
     calls = 0;
     const fallback = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', call: async () => { calls++; return md(tooTall); } });
-    check('compositeur : toujours trop haute → null (le gabarit rend la page), deux appels seulement', fallback.html === null && calls === 2, `${calls} appel(s)`);
+    check('compositeur : toujours trop haute → null (le gabarit rend la page) après trois tours', fallback.html === null && calls === 3, `${calls} appel(s)`);
+    // La fidélité n'est plus un couperet : le défaut repart au compositeur, qui corrige.
+    calls = 0;
+    let fidelityPrompt = '';
+    const fixedNumber = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', inspect: async () => [],
+      call: async ({ user }) => { calls++; if (calls === 2) fidelityPrompt = user; return md(calls === 1 ? fits.replace('</section>', '<p style="font-size:14px">Page 07 · 2026</p></section>') : fits); } });
+    check('compositeur : chiffre inventé → signalé au compositeur et corrigé au 2e tour', !!fixedNumber.html && calls === 2 && /remove these numbers/.test(fidelityPrompt) && /07|2026/.test(fidelityPrompt) && /PREVIOUS PAGE/.test(fidelityPrompt));
     const down = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', call: async () => { throw new Error('quota'); } });
     check('compositeur : modèle en panne → null (le gabarit rend la page)', down.html === null);
     // Les images du contenu partent au modèle sous forme de repères, et reviennent en URL.

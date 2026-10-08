@@ -22,9 +22,7 @@ import { AtelierNote, GenerationAtelierComponent } from '../generation-atelier/g
 import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { CreativityLevel, DEFAULT_CREATIVITY, ProjectModel } from '@idem/shared-models';
-import { CreativityGaugeComponent } from '../../../../../../shared/components/creativity-gauge/creativity-gauge';
-import { CreativityService } from '../../../../../../shared/services/creativity.service';
+import { ProjectModel } from '@idem/shared-models';
 import { SSEStepEvent } from '../../../../../../shared/models/sse-step.model';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
@@ -86,7 +84,6 @@ const CONCEPT_WEIGHT: Record<ConceptSlotStatus, number> = {
     LogoEditorChat,
     LogoCreationSimulatorComponent,
     GenerationAtelierComponent,
-    CreativityGaugeComponent,
     TranslateModule, IdemLoaderComponent],
   templateUrl: './logo-selection.html',
   styleUrl: './logo-selection.css',
@@ -96,7 +93,6 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   private readonly brandingService = inject(BrandingService);
   private readonly destroy$ = new Subject<void>();
   private readonly translate = inject(TranslateService);
-  private readonly creativityPricing = inject(CreativityService);
 
   @ViewChild(LogoCreationSimulatorComponent) simulator?: LogoCreationSimulatorComponent;
 
@@ -113,15 +109,6 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   readonly projectUpdate = output<ProjectModel>();
   readonly nextStep = output<void>();
 
-  /**
-   * Jauge de créativité : Low = logos composés par le code, Medium = dessinés par l'IA,
-   * High = trois directions de création, Max / Ultra = brouillons départagés par un jury.
-   */
-  protected readonly creativity = signal<CreativityLevel>(DEFAULT_CREATIVITY);
-  /** Prix de la session de logos au cran Low / Medium pour ce projet (null : non affiché). */
-  protected readonly creativityBaseCost = signal<number | null>(null);
-  /** Le panneau de relance (jauge + confirmation) est ouvert. */
-  protected readonly showRegeneratePanel = signal(false);
 
   // Internal state
   protected readonly isGenerating = signal(false);
@@ -273,13 +260,6 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
-    const projectId = this.projectId();
-    if (projectId) {
-      this.creativityPricing
-        .baseCost(projectId, 'logo_brand')
-        .pipe(takeUntil(this.destroy$))
-        .subscribe((cost) => this.creativityBaseCost.set(cost));
-    }
     const hasNoLogos = !this.logos() || this.logos()?.length === 0;
 
     if (hasNoLogos && !this.hasStartedGeneration()) {
@@ -440,7 +420,8 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     this.pushNote('brief', {});
 
     this.brandingService
-      .generateLogoConceptsStream(this.projectId()!, force, this.logoPreferences(), this.creativity())
+      // Le logo est toujours dessiné au cran Ultra (au prix habituel de la session) : pas de jauge ici.
+      .generateLogoConceptsStream(this.projectId()!, force, this.logoPreferences(), 'ultra')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (event) => this.handleLogoStreamEvent(event),
@@ -719,7 +700,6 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     console.log('✅ Preferences found. Starting regeneration...');
 
     // Reset state
-    this.showRegeneratePanel.set(false);
     this.error.set(null);
     this.archiveCurrentProposals();
     this.generatedLogos.set([]);

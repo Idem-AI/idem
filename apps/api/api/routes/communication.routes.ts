@@ -574,7 +574,7 @@ communicationRoutes.get(
  * /project/communication/{projectId}/visuals:
  *   get:
  *     tags: [Communication]
- *     summary: All the visuals of a project, WITHOUT their HTML (filters: planId, format, origin).
+ *     summary: All the visuals of a project, WITHOUT their HTML (filters planId, format, origin).
  *     security: [{ bearerAuth: [] }]
  *   post:
  *     tags: [Communication]

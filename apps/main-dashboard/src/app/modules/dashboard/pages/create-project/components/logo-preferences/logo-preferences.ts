@@ -1,6 +1,4 @@
-import { Component, effect, input, model, output, signal, computed, inject } from '@angular/core';
-import { CreativityLevel, DEFAULT_CREATIVITY } from '@idem/shared-models';
-import { CreativityGaugeComponent } from '../../../../../../shared/components/creativity-gauge/creativity-gauge';
+import { Component, effect, input, output, signal, computed, inject } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +9,7 @@ import { LogoModeSampleComponent } from './logo-mode-sample/logo-mode-sample';
 @Component({
   selector: 'app-logo-preferences',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, LogoTypeSampleComponent, LogoModeSampleComponent, CreativityGaugeComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, LogoTypeSampleComponent, LogoModeSampleComponent],
   templateUrl: './logo-preferences.html',
   styleUrl: './logo-preferences.css',
 })
@@ -19,10 +17,6 @@ export class LogoPreferences {
   // Inputs
   /** Préférences pré-remplies (ex. issues de l'analyse IA d'un logo importé) */
   readonly initialPreferences = input<LogoPreferencesModel | null>(null);
-  /** Cran de la jauge de créativité, choisi avant le bouton qui lance la génération. */
-  readonly creativity = model<CreativityLevel>(DEFAULT_CREATIVITY);
-  /** Prix de la session de logos au cran Low / Medium (null : prix non affiché). */
-  readonly creativityBaseCost = input<number | null>(null);
 
   // Outputs
   readonly preferencesSelected = output<LogoPreferencesModel>();

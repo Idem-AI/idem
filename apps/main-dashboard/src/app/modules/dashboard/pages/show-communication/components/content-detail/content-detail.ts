@@ -35,7 +35,8 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
 import { priceVideo, VideoFormat, VideoOptions, VideoType } from '../../../../models/motion-video.model';
 import { CreativityLevel, creativityCost, DEFAULT_CREATIVITY } from '@idem/shared-models';
-import { CreativityGaugeComponent } from '../../../../../../shared/components/creativity-gauge/creativity-gauge';
+import { CreativityPickerComponent } from '../../../../../../shared/components/creativity-picker/creativity-picker';
+import { CreativityCostPipe } from '../../../../../../shared/pipes/creativity-cost.pipe';
 import { CreativityService } from '../../../../../../shared/services/creativity.service';
 
 /** Formats de contenu qui sont des vidéos. */
@@ -77,7 +78,7 @@ type EditableField =
  */
 @Component({
   selector: 'app-content-detail',
-  imports: [FormsModule, TranslateModule, VisualComposing, VisualPreview, VideoComposing, IdemLoaderComponent, CreativityGaugeComponent],
+  imports: [FormsModule, TranslateModule, VisualComposing, VisualPreview, VideoComposing, IdemLoaderComponent, CreativityPickerComponent, CreativityCostPipe],
   templateUrl: './content-detail.html',
   styleUrl: './content-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

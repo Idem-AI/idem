@@ -13,7 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { CreativityLevel, creativityCost, DEFAULT_CREATIVITY } from '@idem/shared-models';
-import { CreativityGaugeComponent } from '../../../../../../shared/components/creativity-gauge/creativity-gauge';
+import { CreativityPickerComponent } from '../../../../../../shared/components/creativity-picker/creativity-picker';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
 import { VideoComposing, VideoProgressState } from '../video-composing/video-composing';
 import {
@@ -73,7 +73,7 @@ const EXAMPLES = ['ex1', 'ex2', 'ex3'];
  */
 @Component({
   selector: 'app-video-builder',
-  imports: [FormsModule, TranslateModule, IdemLoaderComponent, VideoComposing, CreativityGaugeComponent],
+  imports: [FormsModule, TranslateModule, IdemLoaderComponent, VideoComposing, CreativityPickerComponent],
   templateUrl: './video-builder.html',
   styleUrls: ['../visual-builder/visual-builder.css', './video-builder.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -19,7 +19,10 @@
 import { CSSProperties, ReactNode } from 'react';
 import { cue } from './cues';
 import { Timed, useEngine, useLocalTime, useScene } from './context';
+import { ChartJs } from './kit/Chart';
+import { numbersIn, percentIn } from './kit/data';
 import { Icon } from './kit/Icon';
+import { DataArc } from './kit/Viz';
 import { ANCHOR_STYLE, Composition, useCamera, useEnter, useExitAt, useFamilyKind } from './layout';
 import { ActionButton, Headline, Support, useHeadlineSound } from './scenes';
 import { Kinetic, Odometer } from './text';
@@ -243,6 +246,99 @@ function BigNumber() {
         <Support text={note} at={g * 2.4} fit={[4.6, 3.2, 2]} />
       </Composition>
     </>
+  );
+}
+
+// ─── Graphiques : l'anneau, la jauge, la comparaison de prix ────────────────
+//
+// Les chiffres viennent des cases de la scène, et d'elles seules (règle « aucun chiffre
+// inventé ») : le pourcentage de `value`, l'ancien et le nouveau prix d'une offre.
+
+/** Taille du disque d'un graphique rond : la place que le texte lui laisse (cf. CircleStage). */
+function useDiscSize(): number {
+  const { data, horizontal, u } = useEngine();
+  return u * (horizontal ? 58 : Math.min(62, (data.height / u) * 0.42));
+}
+
+function ChartRing() {
+  const s = useScene();
+  const { data, horizontal } = useEngine();
+  const c = contentOf(s);
+  const g = data.direction.pacing.groupStagger;
+  const out = useExitFactor();
+  const pulse = useBeatPulse();
+  const size = useDiscSize();
+  const v = percentIn(c.value) ?? 0;
+  const dur = Math.min(1.6, s.duration * 0.45);
+  cue(`${s.key}:ring`, s.start + 0.1, 'riser', 0.5);
+  return (
+    <div className={`safe ly-circle-wrap ${horizontal ? 'ly-row' : 'ly-col'}`} style={useCamera()}>
+      <div className="ly-circle-holder" style={{ width: size, height: size, opacity: 1 - out, transform: `scale(${1 + pulse * 0.015})` }}>
+        <ChartJs type="doughnut" data={{ datasets: [{ data: [v, 100 - v] }] }} options={{ cutout: '74%' }} at={0.1} dur={dur} />
+        <div className="ly-ring-value">
+          <Odometer text={c.value || ''} at={0.1} dur={dur} fit={[horizontal ? 14 : 15, 6, 1]} />
+        </div>
+      </div>
+      <div className="comp-block ly-circle-text" style={{ alignItems: horizontal ? 'flex-start' : 'center', textAlign: horizontal ? 'left' : 'center' }}>
+        <Headline text={c.sub} at={g * 1.2} fit={horizontal ? [8, 5, 3] : [9, 5, 3]} />
+      </div>
+    </div>
+  );
+}
+
+function DataArcLayout() {
+  const s = useScene();
+  const { data, horizontal } = useEngine();
+  const c = contentOf(s);
+  const g = data.direction.pacing.groupStagger;
+  const out = useExitFactor();
+  const size = useDiscSize();
+  const v = percentIn(c.value) ?? 0;
+  const dur = Math.min(1.8, s.duration * 0.5);
+  cue(`${s.key}:arc`, s.start + 0.15, 'riser', 0.45);
+  return (
+    <div className={`safe ly-circle-wrap ${horizontal ? 'ly-row' : 'ly-col'}`} style={useCamera()}>
+      <div className="ly-circle-holder" style={{ width: size, height: size, opacity: 1 - out }}>
+        <DataArc value={v} at={0.15} dur={dur} thickness={13} />
+        <div className="ly-ring-value">
+          <Odometer text={c.value || ''} at={0.1} dur={dur} fit={[horizontal ? 15 : 16, 6, 1]} />
+        </div>
+      </div>
+      <div className="comp-block ly-circle-text" style={{ alignItems: horizontal ? 'flex-start' : 'center', textAlign: horizontal ? 'left' : 'center' }}>
+        <Headline text={c.sub} at={g * 1.4} fit={horizontal ? [8, 5, 3] : [9, 5, 3]} />
+      </div>
+    </div>
+  );
+}
+
+function BarCompare() {
+  const s = useScene();
+  const { data, horizontal, u } = useEngine();
+  const c = contentOf(s);
+  const g = data.direction.pacing.groupStagger;
+  const out = useExitFactor();
+  const oldV = numbersIn(c.oldPrice)[0] ?? 0;
+  const newV = numbersIn(c.value)[0] ?? 0;
+  const shown = [c.oldPrice || '', c.value || ''];
+  cue(`${s.key}:bars`, s.start + 0.2, 'whoosh', 0.5);
+  return (
+    <div className={`safe ${horizontal ? 'ly-row' : 'ly-col'}`} style={{ ...useCamera(), justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ width: horizontal ? '46%' : '92%', height: horizontal ? '78%' : '50%', opacity: 1 - out }}>
+        <ChartJs
+          type="bar"
+          data={{ labels: ['', ''], datasets: [{ data: [oldV, newV], backgroundColor: ['var(--soft)', 'var(--hl)'], borderRadius: u, barPercentage: 0.78, categoryPercentage: 0.9 }] }}
+          options={{ scales: { x: { display: false }, y: { display: false } }, layout: { padding: { top: u * 7 } }, plugins: { datalabels: { display: true, formatter: (_v: number, ctx: any) => shown[ctx.dataIndex] } } }}
+          values
+          at={0.25}
+          dur={Math.min(1.4, s.duration * 0.4)}
+          stagger={0.35}
+        />
+      </div>
+      <div className="comp-block" style={{ gap: u * 2.4, alignItems: horizontal ? 'flex-start' : 'center', textAlign: horizontal ? 'left' : 'center', maxWidth: horizontal ? '44%' : '92%' }}>
+        <LabelBlock text={c.badge} at={g * 2} />
+        <Support text={c.sub} at={g * 2.6} fit={[4.6, 3.2, 2]} />
+      </div>
+    </div>
   );
 }
 
@@ -704,6 +800,9 @@ export const LAYOUT_COMPONENTS: Record<string, () => ReactNode> = {
   wordStack: WordStack,
   marqueeBack: MarqueeBack,
   bigNumber: BigNumber,
+  chartRing: ChartRing,
+  dataArc: DataArcLayout,
+  barCompare: BarCompare,
   diagonalBand: DiagonalBand,
   circleStage: CircleStage,
   splitBlock: SplitBlock,

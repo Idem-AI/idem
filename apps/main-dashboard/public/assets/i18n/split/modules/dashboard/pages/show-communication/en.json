@@ -857,7 +857,19 @@
           "previewHint": "Faithful preview: the same engine renders the MP4.",
           "delete": "Delete video",
           "deleteAsk": "Delete for good?",
-          "deleteConfirm": "Delete"
+          "deleteConfirm": "Delete",
+          "ai": {
+            "authored": "Authored film · {{coded}} of {{shots}} shots created by the AI",
+            "decided": "decided by the AI:",
+            "roles": {
+              "writer": "copy",
+              "strategist": "structure",
+              "soundDesigner": "music",
+              "artDirector": "layouts",
+              "animator": "transitions and motion",
+              "critic": "review"
+            }
+          }
         },
         "texts": {
           "title": "On-screen text",
@@ -1030,7 +1042,9 @@
             "storyboard": "Edit, synced to the beat",
             "animation": "Motion and transitions",
             "critique": "Final review",
-            "code": "Writing the scenes (Ultra)"
+            "code": "Writing the scenes (Ultra)",
+            "direction": "The film imagined by the AI director",
+            "shots": "Every shot created by the AI, reviewed and corrected"
           },
           "details": {
             "plan": "{{count}} scenes for {{seconds}} s",
@@ -1050,7 +1064,15 @@
             "critique": "{{count}} fix(es) from the creative director",
             "critiqueOk": "Approved without changes",
             "musicAgent": "“{{title}}” — {{artist}} · {{bpm}} BPM · picked for your brand",
-            "code": "{{coded}} of {{tried}} scene(s) written by the AI and validated"
+            "code": "{{coded}} of {{tried}} scene(s) written by the AI and validated",
+            "direction": "“{{title}}” · {{count}} shots",
+            "directionFallback": "Fell back to the guided composition",
+            "shotsStart": "{{total}} shots to write",
+            "shots_writing": "Shot {{current}}/{{total}}: writing · {{done}} done",
+            "shots_review": "Shot {{current}}/{{total}}: visual review · {{done}} done",
+            "shots_revise": "Shot {{current}}/{{total}}: correcting · {{done}} done",
+            "shots_done": "{{done}} of {{total}} shots done",
+            "shots": "{{coded}} of {{total}} shots created by the AI · {{reviewed}} reviewed by the art director"
           }
         },
         "directions": {

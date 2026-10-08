@@ -27,6 +27,29 @@ import { DirectionId } from './video.direction';
 import { DIRECTION_PITCH } from './video.agents';
 import { SCENES } from './video.scenes';
 
+// ─── Les bibliothèques qu'une scène écrite par l'IA fait charger ─────────────
+
+/** Brique du kit → addon du moteur qu'elle exige (chargé au montage seulement si la scène l'importe). */
+export const KIT_ADDONS: Record<string, 'chart' | 'viz' | 'draw' | 'zdog'> = {
+  ChartJs: 'chart',
+  useViz: 'viz',
+  DataArc: 'viz',
+  GrowArea: 'viz',
+  AfricaMap: 'viz',
+  VoronoiField: 'viz',
+  Sketch: 'draw',
+  Brush: 'draw',
+  useNoise: 'draw',
+  FlowField: 'draw',
+  Flat3D: 'zdog',
+};
+
+/** Les addons qu'importe le code d'une scène (`import { ChartJs, Sketch } from '@idem/kit'`). */
+export function addonsOfSceneCode(tsx: string): ('chart' | 'viz' | 'draw' | 'zdog')[] {
+  const names = [...(tsx || '').matchAll(/import\s*\{([^}]*)\}\s*from\s*['"]@idem\/kit['"]/g)].flatMap((m) => m[1].split(',').map((n) => n.trim().split(/\s+as\s+/)[0]));
+  return [...new Set(names.map((n) => KIT_ADDONS[n]).filter(Boolean))];
+}
+
 // ─── Le manifeste du kit (ce que l'agent peut utiliser) ─────────────────────
 
 /** Tout ce que l'agent codeur peut importer, et les règles du moteur. Tenu à jour avec video-engine/src/kit-api.ts. */
@@ -56,9 +79,18 @@ TEXT (always through these — they fit the text to the available width and neve
 
 MOTION
 - useEnter(kind, at, durScale?, exitAt?) → style for non-text elements; kinds: rise, scale, pop, wipeRight, clipUp, slideLeft, fade, drop, spring, flip, unfold, skew, iris.
-- Pure helpers: progress(t, at, dur) → 0..1, mix(a, b, p), clamp(v, lo?, hi?), ease(p) / easeIn(p) / back(p) from useEngine, keyframes(t, times[], values[]), springEase(bounce)(p), hash(n) → 0..1.
+- Pure helpers (import them from "@idem/kit"): progress(t, at, dur) → 0..1, mix(a, b, p), clamp(v, lo?, hi?), ease(p), easeIn(p), back(p), keyframes(t, times[], values[]), springEase(bounce)(p), hash(n) → 0..1. The direction's own curve is useEngine().ease.
 - Sound: cue(\`\${s.key}:name\`, s.start + at, kind, gain?) at the exact moment something moves; kinds: whoosh, softwhoosh, pop, click, tick, impact, shimmer, riser.
 - <Icon svg={s.icons?.[i]} style={{ width: 9 * u, height: 9 * u, color: 'var(--hl-text)' }} />. <LogoMotion variant="draw" height={20 * u} /> animates the brand logo.
+
+DATA, CHARTS, DRAWING (all driven by time — pass progress values, never animate on your own)
+- Numbers come ONLY from the texts: numbersIn(text) → number[] (« 12 000 », « 87 % » → 12000, 87), slotNumbers(s.slots), percentIn(text) → 87 | null. Never write a number yourself: a chart showing a number absent from the texts is rejected.
+- <ChartJs type="bar|line|doughnut|pie|radar|polarArea|bubble|treemap|sankey|matrix" data={{ labels, datasets: [{ data }] }} options={{…}} at={0.2} dur={1.2} grow="rise|sweep|reveal" values /> — Chart.js 4 in brand colours; colours may be written 'var(--hl)'. Wrap it in a sized box (position absolute + width/height).
+- const viz = useViz(): the visx component library + d3 (viz.shape.{Arc, Pie, AreaClosed, LinePath, Bar, BarRounded…}, viz.scale.{scaleLinear, scaleBand…}, viz.curve.{curveMonotoneX…}, viz.gradient.{LinearGradient, RadialGradient}, viz.pattern.{PatternLines…}, viz.text.Text, viz.hierarchy.{Treemap, Pack…}, viz.d3.interpolate, viz.d3.Delaunay, viz.d3.geo) — draw your own data-art in an <svg viewBox="0 0 100 100">. Null-check viz.
+- Ready data bricks: <DataArc value={87} /> (gauge), <GrowArea values={[…]} /> (area that draws itself), <AfricaMap highlightIn={s.slots.title} /> (Africa; only the countries/cities NAMED in the text light up), <VoronoiField cells={24} />.
+- Hand-made touch: <Sketch draw={{ shape: 'circle'|'ellipse'|'rectangle'|'line'|'arc'|'polygon'|'curve'|'path', … }} p={0..1} color="var(--hl)" roughness={1.2} seed={3} /> (rough.js, viewBox 100×100); <Brush points={[[x,y],…]} p={0..1} size={4} /> (brush stroke); <FlowField seed={5} /> (organic noise lines); const { noise2D, noise3D } = useNoise(seed) for organic motion.
+- Flat 3D without WebGL: <Flat3D items={[{ kind: 'box'|'cylinder'|'cone'|'hemisphere'|'ring'|'disc'|'polygon'|'sphere'|'rect'|'line', width, height, depth, diameter, color: 'var(--hl)', shade: 'var(--c-primary)', x, y, z }]} rotate={{ x: -0.4, y: lt * 0.8 }} /> (Zdog, coordinates -50..50).
+- Use these tools when they SERVE the idea (a number becomes a chart or a gauge, places become a map, a promise gets a hand-drawn circle, depth comes from flat 3D) — not as decoration everywhere.
 
 RULES (checked by code; a scene that breaks one is rejected)
 - Every text of s.slots must be fully on screen and readable before the last 0.6 s of the scene; nothing outside the frame.
@@ -185,6 +217,18 @@ const ALLOWED_GLOBALS = new Set(['React', 'Math', 'Number', 'String', 'Array', '
 const FORBIDDEN_MEMBERS = new Set(['constructor', '__proto__', 'prototype', '__defineGetter__', '__defineSetter__', '__lookupGetter__', 'caller', 'callee', 'random', 'now', 'innerHTML', 'outerHTML', 'dangerouslySetInnerHTML', 'defineProperty', 'getPrototypeOf', 'setPrototypeOf']);
 const FORBIDDEN_HOOKS = new Set(['useState', 'useEffect', 'useLayoutEffect', 'useRef', 'useReducer', 'useCallback', 'useImperativeHandle', 'useInsertionEffect', 'useSyncExternalStore', 'useTransition', 'useDeferredValue', 'useId']);
 const ALLOWED_MODULES = new Set(['@idem/kit', 'react']);
+/** Les noms exportés par `@idem/kit` (video-engine/src/kit-api.ts#KIT) : tout autre import est une faute. */
+export const KIT_NAMES = new Set([
+  'useScene', 'useLocalTime', 'useEngine', 'useSceneProgress', 'useExitAt', 'useExitFactor', 'useBeatPulse', 'useCamera', 'contentOf',
+  'useEnter', 'useFamilyKind', 'Composition', 'ANCHOR_STYLE',
+  'Kinetic', 'Odometer', 'Headline', 'Support', 'ActionButton', 'LabelBlock', 'stackLines', 'useHeadlineSound',
+  'Icon', 'LogoMotion', 'cue',
+  'clamp', 'mix', 'progress', 'hash', 'keyframes', 'springEase', 'ease', 'easeIn', 'back',
+  'numbersIn', 'slotNumbers', 'percentIn', 'countriesIn',
+  'ChartJs', 'useViz', 'DataArc', 'GrowArea', 'AfricaMap', 'VoronoiField',
+  'Sketch', 'Brush', 'useNoise', 'FlowField', 'Flat3D',
+]);
+const REACT_NAMES = new Set(['React', 'useMemo', 'Fragment']);
 const MAX_SOURCE = 16000;
 
 type AcornNode = { type: string; start: number; end: number; [k: string]: any };
@@ -200,7 +244,18 @@ export async function lintSceneCode(tsx: string, slotKeys: string[]): Promise<st
   // Les imports sont lus sur la SOURCE : esbuild retire ceux qui ne servent pas avant l'analyse.
   for (const m of tsx.matchAll(/import\s+(?:type\s+)?([\s\S]*?)\s+from\s+['"]([^'"]+)['"]/g)) {
     if (!ALLOWED_MODULES.has(m[2])) issues.push(`import from "${m[2]}" is forbidden (only @idem/kit and react)`);
-    for (const name of m[1].replace(/[{}]/g, ' ').split(/[\s,]+/)) if (FORBIDDEN_HOOKS.has(name)) issues.push(`${name} is forbidden: the scene is a pure function of time`);
+    const names = m[1].replace(/[{}]/g, ' ').split(/[\s,]+/).filter((n) => n && n !== 'as' && n !== '*');
+    for (const name of names) if (FORBIDDEN_HOOKS.has(name)) issues.push(`${name} is forbidden: the scene is a pure function of time`);
+    // Un nom absent du kit ne se voyait qu'au rendu (« import_kit.back is not a function »).
+    if (m[2] === '@idem/kit') {
+      const unknown = names.filter((n) => /^[A-Za-z_]\w*$/.test(n) && !KIT_NAMES.has(n));
+      const aliased = new Set([...m[1].matchAll(/\bas\s+(\w+)/g)].map((a) => a[1]));
+      const missing = unknown.filter((n) => !aliased.has(n));
+      if (missing.length) issues.push(`not exported by @idem/kit: ${missing.join(', ')} (available: see the KIT list)`);
+    } else if (m[2] === 'react') {
+      const bad = names.filter((n) => /^[A-Za-z_]\w*$/.test(n) && !REACT_NAMES.has(n) && !FORBIDDEN_HOOKS.has(n));
+      if (bad.length) issues.push(`from react only useMemo and Fragment may be imported (not ${bad.join(', ')})`);
+    }
   }
   if (/\brequire\s*\(|\bimport\s*\(/.test(tsx)) issues.push('dynamic imports and require are forbidden');
 
@@ -348,7 +403,18 @@ export interface CheckTarget {
  * Les défauts constatés sur la page RENDUE (vide = la scène est acceptée). La page est
  * fournie par l'appelant (navigateur de rendu, réseau filtré strictement).
  */
-export async function inspectRenderedScene(page: Page, target: CheckTarget, size: { width: number; height: number }): Promise<string[]> {
+/** Les nombres d'un texte (« 12 000 », « 87 % », « 1,5 ») — même lecture que le kit (`kit/data.ts#numbersIn`). */
+export function numbersOfText(text?: string | null): number[] {
+  const out: number[] = [];
+  for (const m of String(text || '').matchAll(/[-−]?\d{1,3}(?:[ \u00a0\u202f.,]\d{3})+(?:[.,]\d+)?|[-−]?\d+(?:[.,]\d+)?/g)) {
+    const raw = m[0].replace('−', '-').replace(/[ \u00a0\u202f]/g, '').replace(/[.,](?=\d{3}(?:\D|$))/g, '').replace(',', '.');
+    const n = Number(raw);
+    if (Number.isFinite(n)) out.push(n);
+  }
+  return out;
+}
+
+export async function inspectRenderedScene(page: Page, target: CheckTarget, size: { width: number; height: number }, capture?: { frames: Buffer[] }): Promise<string[]> {
   const issues: string[] = [];
   const sharp = (await import('sharp')).default;
   const times = [target.start + 0.12, target.start + target.duration * 0.45, target.start + Math.max(0.5, target.duration - 0.55)];
@@ -358,6 +424,7 @@ export async function inspectRenderedScene(page: Page, target: CheckTarget, size
   };
   const forward: Buffer[] = [];
   for (const t of times) forward.push(await shoot(t));
+  if (capture) capture.frames = forward.slice();
 
   // État posé (dernier instant) : erreurs, scène affichée, textes présents et dans le cadre.
   const probe = await page.evaluate(
@@ -380,7 +447,16 @@ export async function inspectRenderedScene(page: Page, target: CheckTarget, size
           if (r.width > 0 && (r.left < -2 || r.top < -2 || r.right > w + 2 || r.bottom > h + 2)) outside.push((el.textContent || '').trim().slice(0, 30));
         }
       }
-      return { error: errors[key] as string | undefined, shown: !!host, missing, outside: outside.slice(0, 4) };
+      // Les chiffres affichés par les graphiques du kit (ChartJs, DataArc, GrowArea).
+      const charted: number[] = [];
+      section?.querySelectorAll('[data-chart-values]').forEach((el) => {
+        try {
+          for (const v of JSON.parse(el.getAttribute('data-chart-values') || '[]')) if (typeof v === 'number') charted.push(v);
+        } catch {
+          /* attribut illisible : ignoré */
+        }
+      });
+      return { error: errors[key] as string | undefined, shown: !!host, missing, outside: outside.slice(0, 4), charted };
     },
     target.key,
     target.texts,
@@ -391,6 +467,14 @@ export async function inspectRenderedScene(page: Page, target: CheckTarget, size
   if (!probe.shown && !probe.error) issues.push('the component did not render');
   if (probe.missing.length) issues.push(`texts not visible at the end of the scene: ${probe.missing.map((t) => `"${t.slice(0, 30)}"`).join(', ')}`);
   if (probe.outside.length) issues.push(`text outside the frame: ${probe.outside.map((t) => `"${t}"`).join(', ')}`);
+  // Règle des livrables : aucun chiffre inventé. Un graphique ne montre que des nombres des textes
+  // (ou le complément à 100 d'un pourcentage : la part restante d'un anneau).
+  if (probe.charted.length) {
+    const known = target.texts.flatMap((t) => numbersOfText(t));
+    const ok = (v: number) => known.some((k) => Math.abs(k - v) < 1e-6 || Math.abs(100 - k - v) < 1e-6);
+    const invented = [...new Set(probe.charted.filter((v) => !ok(v)))];
+    if (invented.length) issues.push(`the chart shows numbers that are not in the texts (${invented.slice(0, 5).join(', ')}): build data with numbersIn(s.slots.…) only`);
+  }
 
   const raw = (png: Buffer) => sharp(png).raw().toBuffer();
   const diff = async (a: Buffer, b: Buffer, threshold: number) => {

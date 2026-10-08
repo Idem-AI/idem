@@ -75,38 +75,59 @@ S'y ajoute la **fiche de marque** (`brandSheet`) : couleurs, polices, DA, à fai
 
 ## Vidéo motion
 
-| Cran | Ce que l'IA décide |
-|---|---|
-| Low | les textes (rédacteur). Concept, scènes, mises en page, transitions et musique viennent du graphe. |
-| Medium | + le stratège (concept, scènes, grand moment, rythme) et le sound designer (piste, intensité des effets). |
-| High | + un directeur artistique par scène (14 mises en page), l'animateur (transitions coupe par coupe parmi 17, entrées, caméra, logo) et le critique. |
-| Max | + des paramètres bornés par scène : taille des titres de 0,85 à 1,25, alignement, surface parmi celles de la stratégie de couleur de la DA, tempo, décor. Accroche et grand moment sont tirés trois fois et départagés par le code ; le critique corrige aussi taille et tempo. |
-| Ultra | + l'**agent codeur** écrit le composant React de chaque scène de texte. |
+| Cran | Ce que l'IA décide | Étage du modèle |
+|---|---|---|
+| Low | les textes (rédacteur). Concept, scènes, mises en page, transitions et musique viennent du graphe. | flashx |
+| Medium | + le stratège (concept, scènes, grand moment, rythme), **même quand le type de vidéo est imposé** (choix explicite, calendrier : il choisit DANS ce type), et le sound designer (piste, intensité des effets). | rédaction |
+| High | + un directeur artistique par scène (17 mises en page, dont l'anneau Chart.js, la comparaison de prix et la jauge visx), l'animateur (transitions coupe par coupe parmi 17, entrées, caméra, logo) et le critique. | rédaction |
+| Max | + des paramètres bornés par scène : taille des titres de 0,85 à 1,25, alignement, surface parmi celles de la stratégie de couleur de la DA, tempo, décor. Accroche et grand moment sont tirés trois fois et départagés par le code ; le critique corrige aussi taille et tempo. | stratège au raisonnement |
+| Ultra | **le film d'auteur** : l'IA invente et crée tout le film (ci-dessous). | raisonnement |
 
-### Le cran Ultra (`video.coder.ts`)
+Les appels vidéo sont retentés une fois sur panne passagère ou réponse vide (`communication.service.ts#runVideoTieredPrompt`) : un agent en repli ramenait la vidéo aux choix du code, et les crans finissaient par se ressembler. Le résultat dit ce que l'IA a décidé : le détail d'une vidéo affiche « décidé par l'IA : textes, structure, mises en page… », ou, en Ultra, « Film d'auteur · 7 plans sur 7 créés par l'IA ».
+
+### Le film d'auteur (`video.author.ts`)
+
+Plus aucun menu. Les médias, la musique et les effets viennent des étapes existantes du service.
+
+1. **Le directeur** (étage raisonnement) invente le film : un concept, une « bible » (signature de mouvement, usage des couleurs, typographie) et chaque plan. Pour chaque plan, il écrit la durée, les textes, ce qu'on voit et comment ça bouge, les outils, le média et le passage au plan suivant. Il connaît les outils du moteur : typographie ajustée, graphiques Chart.js, data-viz visx, carte de l'Afrique, croquis, pinceau, bruit, 3D plate, logo animé, photos. Le code ne fait que **valider** :
+   - durées au temps de lecture du moteur (`video.rules.ts#requiredHold`) et somme exacte ;
+   - longueurs ;
+   - aucun chiffre absent du brief (`isGrounded`), contact copié du brief ;
+   - une signature à la fin.
+
+   Un film trop dense perd des plans du milieu, jamais l'ouverture ni l'appel à l'action. Deux échecs du directeur : la création reprend le pipeline des menus.
+2. **Un codeur par plan** (trois en parallèle) écrit le composant React du plan avec tout le kit (`KIT_MANIFEST`). Son entrée et sa sortie font la transition imaginée par le directeur ; le moteur coupe franc entre les plans.
+3. **La boucle de qualité**, trois tours au plus :
+   - lint (dont les noms importés du kit) ;
+   - compilation ;
+   - rendu réel mesuré (`inspectRenderedScene` : erreurs, textes visibles et dans le cadre, mouvement, déterminisme, **chiffres des graphiques issus des textes**) ;
+   - **critique visuelle** : une planche de trois images du plan envoyée au modèle de vision (`glm-media.service.ts#analyzeImage`), qui juge lisibilité, composition, fidélité à la charte et effet « modèle tout fait ».
+
+   Défauts et critique repartent au codeur. Un plan qui échoue trois fois aux contrôles reprend la composition éprouvée de sa scène (`statement`, `cta` ou `logo`), et le résultat le dit.
+4. **Retouches** : un film d'auteur garde le minutage de son directeur (ni `retime`, ni règles du graphe) ; les plans codés lisent leurs cases, une retouche de texte s'y affiche.
+
+L'ancien codeur de scènes (`video.coder.ts#codeScenes`) reste le repli du film d'auteur quand le directeur échoue.
+
+### Le code écrit par l'IA (`video.coder.ts`)
 
 1. **Prompt** : la fiche de marque et le **manifeste du kit** (`KIT_MANIFEST`), c'est-à-dire tout ce que l'agent peut importer de `@idem/kit` :
    - les hooks de temps et de scène ;
    - la typographie ajustée (`Kinetic`, `Odometer`) ;
    - les entrées (`useEnter`), les sons (`cue`), les icônes, le logo animé ;
+   - les graphiques et le dessin : `ChartJs`, `useViz` (visx + d3), `DataArc`, `GrowArea`, `AfricaMap`, `Sketch`, `Brush`, `useNoise`, `FlowField`, `Flat3D` ; les chiffres par `numbersIn` ;
    - les variables de la charte et les règles du moteur.
 
-   Le kit est exposé par `video-engine/src/kit-api.ts`.
+   Le kit est exposé par `video-engine/src/kit-api.ts` ; les addons qu'un plan importe sont chargés au montage (`addonsOfSceneCode`).
 2. **Lint** sur l'arbre syntaxique (acorn). Sont refusés :
-   - les imports autres que `@idem/kit` et `react` ;
+   - les imports autres que `@idem/kit` et `react`, et les noms que le kit n'exporte pas ;
    - les globaux libres (`window`, `document`, `fetch`, `Date`…) ;
    - `Math.random`, `constructor`, `__proto__` et les accès calculés par chaîne ;
    - l'état et les effets React ;
    - les boucles `while` et les `for` non bornés ;
-   - la CSS animée et la 3D ;
+   - la CSS animée et la 3D CSS ;
    - les URL, les textes écrits en dur, les cases jamais affichées.
 3. **Compilation** esbuild, de TSX vers CommonJS. Le moteur l'évalue avec `require` limité au kit et à React.
-4. **Rendu de contrôle** sur la page réelle, avec le garde réseau strict. Il vérifie que :
-   - la scène s'affiche sans erreur ;
-   - tous ses textes sont visibles et dans le cadre ;
-   - l'image bouge ;
-   - l'image est la même rendue dans les deux sens.
-5. **Une réparation**, avec les défauts renvoyés à l'agent. Sinon, la scène garde sa composition Max.
+4. **Rendu de contrôle** sur la page réelle, avec le garde réseau strict.
 
 **Sécurité.** Le lint garantit un code pur. La frontière de sécurité, elle, n'en dépend pas :
 
@@ -166,7 +187,7 @@ Deux agents distincts : le rédacteur écrit et fait valider le contenu (spécim
 3. **le rendu mesuré** au format réel (`creativity/pageInspect.ts`, Chromium) ne trouve rien : diapositive ou page de charte plus haute que sa page, texte hors page ou coupé, corps sous 7 pt, contraste insuffisant ;
 4. **les règles de design** sont réparées sur place (`enforceDesignRules`).
 
-Les constats de la mesure repartent au compositeur pour **une** réparation. Sinon, la page est rendue par le gabarit, avec les choix des agents des crans inférieurs. Couverture et tableaux financiers restent posés par le code à tous les crans.
+Ces contrôles ne sont pas des couperets : **chaque défaut repart au compositeur**, formulé pour être corrigé (« écris ces textes tels quels », « retire ces nombres : 07, 2026 », « pose ces couleurs »), avec sa page précédente, **trois tours au plus**. Ce n'est qu'ensuite que la page est rendue par le gabarit, avec les choix des agents des crans inférieurs. (Avant : la première faute de fidélité jetait la page ; 21 pages de charte Ultra sur 22 retombaient ainsi sur le gabarit.) Couverture et tableaux financiers restent posés par le code à tous les crans.
 
 Deux détails :
 
@@ -180,6 +201,8 @@ La direction décidée par les agents (cran, famille, réglages des pages) est e
 ## Identité visuelle
 
 ### Le logo (`BandIdentity/logoTemplates.ts`, `logoCreative.ts`)
+
+**Le logo est toujours généré au cran Ultra, au prix habituel de la session** (60 crédits, 10 par relance) : pas de jauge sur ses écrans, le contrôleur impose `ultra` quel que soit le point d'entrée (tableau de bord, chat), et ses routes facturent sans multiplicateur (`branding.routes.ts#chargeLogoSession`). L'échelle ci-dessous reste celle du service.
 
 | Cran | Ce que l'IA décide |
 |---|---|
@@ -201,13 +224,25 @@ Elle suit l'échelle des documents. Les pages rédigées (logo, déclinaisons, p
 
 Palettes et paires typographiques restent des propositions de l'IA parmi lesquelles l'utilisateur choisit. Leur étape n'est pas facturée à la session et ne porte pas de jauge.
 
-### Où se règle la jauge
+## L'interface : le sélecteur de créativité
 
-- **Préférences du logo** : dernière étape, juste avant « Générer » ; le panneau « Régénérer » la reprend.
-- **Charte** : au-dessus du choix du format, qui lance la génération.
+`shared/components/creativity-picker` : un bouton compact « ✦ Créativité · Medium ▾ » posé **à côté du bouton de génération**, comme le choix d'effort d'un modèle. Son menu liste les cinq crans, une ligne chacun sur ce que l'IA décide, et leur prix pour ce projet ; le bouton de génération affiche le prix du cran retenu (`creativityCost` pipe). Accessible : `aria-haspopup="menu"`, cases `menuitemradio`, flèches, Échap.
+
+Où il se trouve :
+
+- vidéo (pied du créateur, détail d'un contenu) ;
+- visuel (détail d'un contenu) ;
+- carte de visite (génération et régénération) ;
+- business plan (rangée de boutons du formulaire, état vide) ;
+- pitch deck (création, deck vide) ;
+- charte (au-dessus du choix du format, qui lance la génération).
+
+Pas de sélecteur pour le logo (toujours Ultra).
 
 ## Contrôles
 
+- `npm run check:video` §9 bis rend **la même vidéo aux cinq crans** et vérifie que l'IA décide davantage à chaque cran (Low : textes ; Medium : + structure ; High : + mises en page, transitions, relecture ; Max : réglages appliqués ; Ultra : directeur + tous les plans écrits par l'IA, critique visuelle comprise).
+- `npm run check:video:layouts` : chaque mise en page × chaque scène acceptée × quatre formats, textes au plus long.
 - `npm run check:creativity` couvre :
   - les prix et la normalisation, l'orchestrateur et le lint du code Ultra ;
   - le rendu en Chromium d'une scène écrite comme par l'agent, et de scènes qui échouent, sortent du cadre ou ne bougent pas ; la CSP ;

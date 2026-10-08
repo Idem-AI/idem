@@ -46,6 +46,10 @@ très faible, ou aucun modèle, donne une vidéo complète : chaque ligne de ré
 | `addon-flubber.js` | ~50 ko | flubber (morphose de formes) | logo « point → logo » |
 | `addon-lottie.js` | ~170 ko | lottie-web light (sans moteur d'expressions) | scène Lottie |
 | `addon-rive.js` | ~2,8 Mo | runtime Rive + WebAssembly embarqué | fichier .riv importé |
+| `addon-chart.js` | ~280 ko | Chart.js 4 + datalabels, annotation, treemap, sankey, matrix | mise en page `chartRing` / `barCompare`, plan codé qui l'importe |
+| `addon-viz.js` | ~350 ko | visx (composants de data-visualisation) + d3 (interpolate, delaunay, geo) + carte du monde | `dataArc`, fond `voronoi`, carte de l'Afrique, plan codé |
+| `addon-draw.js` | ~35 ko | rough.js + perfect-freehand + simplex-noise | fonds `flow-field` / `sketch-shapes`, annotations `sketch-circle` / `brush`, plan codé |
+| `addon-zdog.js` | ~30 ko | Zdog (pseudo-3D plate en SVG) | fond `flat3d`, plan codé |
 
 Ordre dans la page : runtime → addons → moteur. Les addons importent `react` : au paquet, ces imports sont
 redirigés vers le runtime (plugin `shared-react` de `video.engine.ts`), une seule instance de React existe.
@@ -71,6 +75,13 @@ donné, dans n'importe quel ordre (rendu en onglets parallèles). Une bibliothè
 | lottie-web (light) | 5 | Lottie intégrées et importées (.json, .lottie) | `goToAndStop(trame)` |
 | @rive-app/canvas | 2 | animations Rive importées | `scrub(animation, t)` |
 | lucide-static, @tabler/icons, @phosphor-icons/core, heroicons | — | pictogrammes | SVG lus côté serveur |
+| Chart.js + plugins | 4.5 | graphiques : barres, lignes, anneaux, radar, aires polaires, bulles, treemap, sankey, matrice ; étiquettes, repères | `animation:false`, `responsive:false` ; valeurs de l'instant posées puis `update('none')` |
+| visx | 4 | **librairie de composants** de data-visualisation (formes, échelles, dégradés, motifs, courbes, hiérarchies, projections, axes) | rendu React en SVG, sans animation propre |
+| d3-interpolate, d3-delaunay, d3-geo, topojson-client, world-atlas | 3 / 6 / 3 / 3 / 2 | interpolations, mosaïques de Voronoï, carte de l'Afrique (pays nommés dans le texte) | fonctions pures |
+| rough.js | 4.6 | formes dessinées à la main | générateur à graine fixe, tracé révélé par `stroke-dashoffset` |
+| perfect-freehand | 1.2 | traits de pinceau à pression | fonction pure |
+| simplex-noise | 4 | bruit continu (champs de flux, mouvements organiques) | graine du moteur (`hash`), jamais `Math.random` |
+| Zdog | 1.1 | objets 3D plats et ronds en SVG | rotation posée puis `updateRenderGraph()` |
 
 Écartées, avec la raison : voir la table « Bibliothèques écartées » de [VIDEO_CAPABILITIES.md](VIDEO_CAPABILITIES.md)
 (react-spring, animate() de motion, auto-animate, Remotion, Theatre.js, dotlottie-web, Vivus, Rough Notation, mo.js,
@@ -100,9 +111,14 @@ kit** en fonctions du temps, aux couleurs de la charte.
 | Composant | Rôle | Nœuds du graphe |
 |---|---|---|
 | `LogoMotion` | anime le logo vectoriel posé en ligne : `draw`, `trace`, `morph`, `assemble`, `wipe` | `logo:*` |
-| `Backdrop` | fond de deux scènes au plus : `dot-grid`, `halftone`, `shape-field`, `stagger-grid`, `marquee`, `spotlight`, `ticks` | `bg:*` |
-| `Em` / `EmDecor` | annotation du mot mis en valeur, une scène par vidéo : `marker`, `underline`, `circle` | `annotate:*` |
+| `Backdrop` | fond de deux scènes au plus : `dot-grid`, `halftone`, `shape-field`, `stagger-grid`, `marquee`, `spotlight`, `ticks`, `flow-field`, `sketch-shapes`, `voronoi`, `flat3d` | `bg:*` |
+| `Em` / `EmDecor` | annotation du mot mis en valeur, une scène par vidéo : `marker`, `underline`, `circle`, `sketch-circle`, `brush` | `annotate:*` |
 | `Icon` | pictogramme SVG choisi par le serveur, couleur héritée | `icons:*` |
+| `ChartJs` | graphique Chart.js piloté par le temps (`grow` : rise, sweep, reveal), couleurs `var(--…)` résolues, valeurs exposées dans `data-chart-values` | `layout:chartRing`, `layout:barCompare` |
+| `useViz`, `DataArc`, `GrowArea`, `AfricaMap`, `VoronoiField` | visx + d3 pour l'agent codeur ; jauge, aire qui se dessine, carte de l'Afrique (seuls les pays **nommés** dans le texte s'allument), mosaïque | `layout:dataArc`, `bg:voronoi` |
+| `Sketch`, `Brush`, `useNoise`, `FlowField` | croquis rough.js, pinceau, bruit simplex, lignes de flux | `bg:flow-field`, `bg:sketch-shapes`, `annotate:sketch-circle`, `annotate:brush` |
+| `Flat3D` | objets Zdog (boîte, cylindre, cône, anneau, sphère…) | `bg:flat3d` |
+| `numbersIn`, `percentIn`, `countriesIn` | les chiffres et les pays des TEXTES de la scène : un graphique n'en montre pas d'autres (contrôlé au rendu des plans codés) | — |
 | `cn` | classes conditionnelles sans doublon | — |
 
 Animations du logo (`LogoMotion`, sur le SVG de la charte) :

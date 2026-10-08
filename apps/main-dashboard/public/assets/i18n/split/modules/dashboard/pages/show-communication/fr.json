@@ -857,7 +857,19 @@
           "previewHint": "Aperçu fidèle : c’est le même moteur qui fabrique le MP4.",
           "delete": "Supprimer la vidéo",
           "deleteAsk": "Supprimer définitivement ?",
-          "deleteConfirm": "Supprimer"
+          "deleteConfirm": "Supprimer",
+          "ai": {
+            "authored": "Film d'auteur · {{coded}} plan(s) sur {{shots}} créés par l'IA",
+            "decided": "décidé par l'IA :",
+            "roles": {
+              "writer": "textes",
+              "strategist": "structure",
+              "soundDesigner": "musique",
+              "artDirector": "mises en page",
+              "animator": "transitions et mouvement",
+              "critic": "relecture"
+            }
+          }
         },
         "texts": {
           "title": "Les textes",
@@ -1030,7 +1042,9 @@
             "storyboard": "Le montage, calé sur le rythme",
             "animation": "Le mouvement et les transitions",
             "critique": "La relecture finale",
-            "code": "L'écriture des scènes (Ultra)"
+            "code": "L'écriture des scènes (Ultra)",
+            "direction": "Le film imaginé par le directeur IA",
+            "shots": "Chaque plan créé par l'IA, revu et corrigé"
           },
           "details": {
             "plan": "{{count}} scènes pour {{seconds}} s",
@@ -1050,7 +1064,15 @@
             "critique": "{{count}} correction(s) du directeur de création",
             "critiqueOk": "Validé sans correction",
             "musicAgent": "« {{title}} » — {{artist}} · {{bpm}} BPM · choisie pour votre marque",
-            "code": "{{coded}} scène(s) sur {{tried}} écrite(s) par l'IA et validée(s)"
+            "code": "{{coded}} scène(s) sur {{tried}} écrite(s) par l'IA et validée(s)",
+            "direction": "« {{title}} » · {{count}} plans",
+            "directionFallback": "Repli sur la composition guidée",
+            "shotsStart": "{{total}} plans à écrire",
+            "shots_writing": "Plan {{current}}/{{total}} : écriture · {{done}} terminé(s)",
+            "shots_review": "Plan {{current}}/{{total}} : revue visuelle · {{done}} terminé(s)",
+            "shots_revise": "Plan {{current}}/{{total}} : correction · {{done}} terminé(s)",
+            "shots_done": "{{done}} plan(s) sur {{total}} terminé(s)",
+            "shots": "{{coded}} plan(s) sur {{total}} créés par l'IA · {{reviewed}} revu(s) par le directeur artistique"
           }
         },
         "directions": {

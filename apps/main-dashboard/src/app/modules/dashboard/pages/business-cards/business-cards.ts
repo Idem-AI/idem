@@ -31,7 +31,8 @@ import { HolderFormComponent } from './components/holder-form/holder-form';
 import { CardPreviewFonts } from './utils/business-card-preview';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { CreativityLevel, DEFAULT_CREATIVITY } from '@idem/shared-models';
-import { CreativityGaugeComponent } from '../../../../shared/components/creativity-gauge/creativity-gauge';
+import { CreativityPickerComponent } from '../../../../shared/components/creativity-picker/creativity-picker';
+import { CreativityCostPipe } from '../../../../shared/pipes/creativity-cost.pipe';
 import { CreativityService } from '../../../../shared/services/creativity.service';
 
 /** Panneau de droite : consultation d'une carte ou saisie d'une personne. */
@@ -54,7 +55,8 @@ type WorkspaceMode = 'view' | 'form';
     GenerationPreviewComponent,
     HolderFormComponent,
     IdemLoaderComponent,
-    CreativityGaugeComponent,
+    CreativityPickerComponent,
+    CreativityCostPipe,
   ],
   templateUrl: './business-cards.html',
   styleUrl: './business-cards.css',
@@ -63,12 +65,10 @@ type WorkspaceMode = 'view' | 'form';
 export class BusinessCardsPage implements OnInit {
   private readonly cardService = inject(BusinessCardService);
   private readonly creativityPricing = inject(CreativityService);
-  /** La jauge de créativité, posée avant chaque génération ; Medium par défaut. */
+  /** Le cran de créativité, choisi à côté du bouton de génération ; Medium par défaut. */
   protected readonly creativity = signal<CreativityLevel>(DEFAULT_CREATIVITY);
   /** Prix de la carte pour ce projet (Low / Medium) : la jauge en déduit chaque cran. */
   protected readonly creativityBaseCost = signal<number | null>(null);
-  /** Régénérer passe par la jauge : le panneau s'ouvre avant de relancer. */
-  protected readonly showRegenerate = signal(false);
   private readonly projectService = inject(ProjectService);
   private readonly cookieService = inject(CookieService);
   private readonly translate = inject(TranslateService);
@@ -244,7 +244,6 @@ export class BusinessCardsPage implements OnInit {
     if (!projectId || this.isGenerating()) return;
 
     this.isGenerating.set(true);
-    this.showRegenerate.set(false);
     this.errorMessage.set('');
     this.startStepTimeline();
     this.cardService

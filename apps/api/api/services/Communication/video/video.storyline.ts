@@ -241,8 +241,11 @@ export async function planCreative(input: CreativeInput, writer?: CopyWriter): P
     source: 'graph',
     tokens: { input: 0, output: 0 },
   };
-  // Type imposé, ou pas de modèle : le graphe décide seul (zéro token).
-  if (fixedType || !writer) return graphPlan;
+  // Pas de modèle (cran Low) : le graphe décide seul (zéro token). Un type IMPOSÉ (choix explicite,
+  // calendrier) ne coupe plus le stratège : il choisit concept, scènes et grand moment DANS ce type
+  // (le menu des concepts est déjà filtré par le type) — sans quoi la structure de toutes les vidéos
+  // à type imposé venait du code, quel que soit le cran.
+  if (!writer) return graphPlan;
 
   const menu = rankConcepts(conceptCtx).slice(0, 5).map((c) => c.id);
   if (!menu.length) return graphPlan;
@@ -295,7 +298,7 @@ export async function planCreative(input: CreativeInput, writer?: CopyWriter): P
   const answered = !!(parsed.concept || parsed.scenes || parsed.accent != null);
   return {
     objective,
-    type: input.type === 'mix' ? 'mix' : typeOfScenes(concept, scenes),
+    type: fixedType ?? (input.type === 'mix' ? 'mix' : typeOfScenes(concept, scenes)),
     concept,
     scenes,
     accent,

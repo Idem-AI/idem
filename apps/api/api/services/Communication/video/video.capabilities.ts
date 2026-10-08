@@ -111,21 +111,28 @@ const LIBRARIES: CapNode[] = [
   { id: 'lib:three', kind: 'library', label: 'three.js + React Three Fiber v9 + drei + postprocessing', summary: 'Racine R3F frameloop "never", advance(t) par image, horloge posée sur t, lumière Lightformer sans fichier.', packages: ['three', '@react-three/fiber', '@react-three/drei', '@react-three/postprocessing', 'postprocessing'], addon: 'three', cost: 3, determinism: 'clock-pinned', impl: 'video-engine/src/addons/three.tsx' },
   { id: 'lib:lottie', kind: 'library', label: 'lottie-web (light)', summary: 'Rendu SVG sans moteur d’expressions (aucun code d’un fichier importé ne s’exécute) ; goToAndStop(trame).', packages: ['lottie-web', 'jszip'], addon: 'lottie', cost: 1, determinism: 'seek', impl: 'video-engine/src/addons/lottie.ts' },
   { id: 'lib:rive', kind: 'library', label: 'Rive (canvas)', summary: 'Fichiers .riv importés ; WebAssembly embarqué ; scrub(animation, t).', packages: ['@rive-app/canvas'], addon: 'rive', cost: 2, determinism: 'seek', impl: 'video-engine/src/addons/rive.ts' },
+  { id: 'lib:chartjs', kind: 'library', label: 'Chart.js 4 + datalabels, annotation, treemap, sankey, matrix', summary: 'Graphiques sur toile : animation coupée, valeurs de l’instant posées puis update("none") (dessin synchrone).', packages: ['chart.js', 'chartjs-plugin-datalabels', 'chartjs-plugin-annotation', 'chartjs-chart-treemap', 'chartjs-chart-sankey', 'chartjs-chart-matrix'], addon: 'chart', cost: 1, determinism: 'seek', impl: 'video-engine/src/addons/chart.ts' },
+  { id: 'lib:visx', kind: 'library', label: 'visx v4 (composants de data-visualisation) + d3 (interpolate, delaunay, geo) + world-atlas', summary: 'Composants React en SVG sans animation propre (formes, échelles, dégradés, motifs, courbes, hiérarchies, projections) ; carte du monde en topojson.', packages: ['@visx/shape', '@visx/scale', '@visx/group', '@visx/gradient', '@visx/pattern', '@visx/curve', '@visx/text', '@visx/hierarchy', '@visx/heatmap', '@visx/glyph', '@visx/marker', '@visx/geo', '@visx/grid', '@visx/axis', 'd3-interpolate', 'd3-delaunay', 'd3-geo', 'topojson-client', 'world-atlas'], addon: 'viz', cost: 1, determinism: 'pure', impl: 'video-engine/src/addons/viz.ts' },
+  { id: 'lib:draw', kind: 'library', label: 'rough.js + perfect-freehand + simplex-noise', summary: 'Formes dessinées à la main (graine fixe), traits de pinceau à pression, bruit continu à graine du moteur.', packages: ['roughjs', 'perfect-freehand', 'simplex-noise'], addon: 'draw', cost: 1, determinism: 'pure', impl: 'video-engine/src/addons/draw.ts' },
+  { id: 'lib:zdog', kind: 'library', label: 'Zdog', summary: 'Objets en pseudo-3D plats et ronds rendus en SVG ; rotation posée puis updateRenderGraph(), sans boucle.', packages: ['zdog'], addon: 'zdog', cost: 1, determinism: 'pure', impl: 'video-engine/src/addons/zdog.ts' },
   { id: 'lib:lucide', kind: 'library', label: 'Lucide', summary: '~2 100 icônes au trait ; SVG lus côté serveur, jamais embarqués en bloc.', packages: ['lucide-static'], cost: 0, determinism: 'static', impl: 'api/services/Communication/video/video.icons.ts' },
   { id: 'lib:tabler', kind: 'library', label: 'Tabler Icons', summary: '~5 100 icônes au trait géométrique.', packages: ['@tabler/icons'], cost: 0, determinism: 'static', impl: 'api/services/Communication/video/video.icons.ts' },
   { id: 'lib:phosphor', kind: 'library', label: 'Phosphor Icons', summary: '~1 500 icônes × 6 graisses (thin, light, regular, bold, fill, duotone).', packages: ['@phosphor-icons/core'], cost: 0, determinism: 'static', impl: 'api/services/Communication/video/video.icons.ts' },
   { id: 'lib:heroicons', kind: 'library', label: 'Heroicons', summary: '~320 icônes pleines et denses.', packages: ['heroicons'], cost: 0, determinism: 'static', impl: 'api/services/Communication/video/video.icons.ts' },
 ];
 
-const ADDONS: CapNode[] = (['three', 'gsap', 'anime', 'flubber', 'lottie', 'rive'] as AddonId[]).map((id) => ({
+/** Bibliothèque de chaque addon (nœud `lib:*`). */
+const ADDON_LIB: Record<AddonId, string> = { three: 'three', gsap: 'gsap', anime: 'anime', flubber: 'flubber', lottie: 'lottie', rive: 'rive', chart: 'chartjs', viz: 'visx', draw: 'draw', zdog: 'zdog' };
+
+const ADDONS: CapNode[] = (Object.keys(ADDON_LIB) as AddonId[]).map((id) => ({
   id: `addon:${id}`,
   kind: 'addon',
   label: `addon-${id}.js`,
   summary: `Paquet du moteur chargé seulement si un nœud retenu l'exige.`,
   addon: id,
-  requires: [`lib:${id}`],
+  requires: [`lib:${ADDON_LIB[id]}`],
   cost: id === 'three' ? 3 : id === 'rive' ? 2 : 1,
-  determinism: id === 'three' ? 'clock-pinned' : id === 'flubber' ? 'pure' : 'seek',
+  determinism: id === 'three' ? 'clock-pinned' : ['flubber', 'viz', 'draw', 'zdog'].includes(id) ? 'pure' : 'seek',
   impl: `public/video-engine/addon-${id}.js`,
 }));
 
@@ -224,6 +231,10 @@ const LOGO: CapNode[] = [
 
 const BACKGROUNDS: CapNode[] = [
   { id: 'bg:none', kind: 'background', label: 'Aucun fond', summary: 'La surface seule : le choix par défaut des directions sobres (pas de décor par défaut).', cost: 0, determinism: 'static', suits: { directions: D({ precision: 2, cinematic: 2, editorial: 1.5, swiss: 1, drenched: 1, brutal: 1, kinetic: 0.5, collage: 0.5 }) } },
+  { id: 'bg:flow-field', kind: 'background', label: 'Lignes de flux', summary: 'Lignes qui ondulent dans un champ de bruit simplex, aux couleurs de la marque, du côté libre.', requires: ['addon:draw'], cost: 1, determinism: 'pure', suits: { directions: D({ cinematic: 1.5, precision: 1, drenched: 1.5, editorial: 0.5 }), arts: { aurora: 2, surreal: 1.5, futuristic: 1, minimalism: 0.5 }, sectors: { water: 1.5, eco: 1, health: 1, internet: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#FlowFieldBg' },
+  { id: 'bg:sketch-shapes', kind: 'background', label: 'Formes au crayon', summary: 'Cercle, carré, trait et arc de la charte tracés à la main (rough.js), l’un après l’autre.', requires: ['addon:draw'], cost: 1, determinism: 'pure', suits: { directions: D({ collage: 2, editorial: 1.5, kinetic: 1 }), arts: { handwritten: 2.5, bohemian: 1.5, 'collage-art': 1.5, clay: 1 }, sectors: { education: 1.5, book: 1, family: 1, smile: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#SketchShapesBg' },
+  { id: 'bg:voronoi', kind: 'background', label: 'Mosaïque', summary: 'Cellules de Voronoï aux couleurs de la charte qui dérivent lentement (d3-delaunay).', requires: ['addon:viz'], cost: 1, determinism: 'pure', suits: { directions: D({ swiss: 1, precision: 1, drenched: 1.5, kinetic: 1 }), arts: { 'vector-art': 2, maximalism: 1, futuristic: 1, 'pop-art': 0.5 }, sectors: { chart: 1, code: 1, design: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#VoronoiBg' },
+  { id: 'bg:flat3d', kind: 'background', label: 'Objets 3D plats', summary: 'Boîte, anneau et sphère en pseudo-3D (Zdog) qui tournent lentement du côté libre, sans WebGL.', requires: ['addon:zdog'], cost: 1, determinism: 'pure', suits: { directions: D({ kinetic: 1.5, collage: 1, precision: 1 }), arts: { clay: 2, y2k: 1.5, 'vector-art': 1.5, futuristic: 1 }, sectors: { delivery: 1.5, rocket: 1, store: 1, gift: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#Flat3DBg' },
   { id: 'bg:dot-grid', kind: 'background', label: 'Trame de points', summary: 'Points réguliers révélés depuis le coin libre.', cost: 0, determinism: 'pure', suits: { directions: D({ swiss: 2, precision: 1.5 }), arts: { minimalism: 1, swiss: 1.5, futuristic: 1 }, sectors: { code: 1, business: 1, chart: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#DotGrid' },
   { id: 'bg:halftone', kind: 'background', label: 'Demi-teinte', summary: 'Trame d’imprimerie qui fleurit dans un coin, dérive lente.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 1.5, collage: 2 }), arts: { retro: 2, 'pop-art': 2, 'collage-art': 1 }, sectors: { fashion: 1, music: 1, book: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#Halftone' },
   { id: 'bg:shape-field', kind: 'background', label: 'Formes de la marque', summary: 'Cercles, carrés, anneaux aux couleurs de la charte, groupés du côté libre.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 2, collage: 1.5 }), objectives: { promotion: 1, event: 1, opening: 1 }, arts: { maximalism: 1.5, y2k: 1.5, clay: 1, 'pop-art': 1 }, sectors: { family: 1, food: 0.5, smile: 1 } }, impl: 'video-engine/src/kit/Backdrop.tsx#ShapeField' },
@@ -237,6 +248,8 @@ const ANNOTATIONS: CapNode[] = [
   { id: 'annotate:none', kind: 'annotate', label: 'Aucune annotation', summary: 'Le mot mis en valeur change seulement de couleur.', cost: 0, determinism: 'static', suits: { directions: D({ precision: 2, cinematic: 2, swiss: 1.5, brutal: 1, drenched: 1, editorial: 0.5 }) } },
   { id: 'annotate:marker', kind: 'annotate', label: 'Surligneur', summary: 'Un trait de surligneur glisse derrière le mot.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 1.5, collage: 1, editorial: 1 }), objectives: { promotion: 1 }, arts: { 'pop-art': 1, y2k: 1 } }, impl: 'video-engine/src/kit/Em.tsx' },
   { id: 'annotate:underline', kind: 'annotate', label: 'Soulignement à la main', summary: 'Un trait de feutre souligne le mot.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 2, collage: 1 }), arts: { handwritten: 2, bohemian: 1 } }, impl: 'video-engine/src/kit/Em.tsx' },
+  { id: 'annotate:sketch-circle', kind: 'annotate', label: 'Cercle au crayon', summary: 'Le mot est entouré d’un double trait de crayon (rough.js).', requires: ['addon:draw'], cost: 1, determinism: 'pure', suits: { directions: D({ collage: 1.5, editorial: 1, kinetic: 0.5 }), objectives: { promotion: 0.5, event: 0.5 }, arts: { handwritten: 2, 'collage-art': 1, bohemian: 1 } }, impl: 'video-engine/src/kit/Em.tsx' },
+  { id: 'annotate:brush', kind: 'annotate', label: 'Coup de pinceau', summary: 'Un coup de pinceau à pression variable passe sous le mot (perfect-freehand).', requires: ['addon:draw'], cost: 1, determinism: 'pure', suits: { directions: D({ editorial: 1.5, kinetic: 1, collage: 1, drenched: 0.5 }), objectives: { promotion: 0.5 }, arts: { handwritten: 1.5, bohemian: 1.5, retro: 1, aurora: 0.5 } }, impl: 'video-engine/src/kit/Em.tsx' },
   { id: 'annotate:circle', kind: 'annotate', label: 'Cercle à la main', summary: 'Le mot est entouré d’un trait de feutre.', cost: 0, determinism: 'pure', suits: { directions: D({ collage: 2, kinetic: 1 }), objectives: { promotion: 1, event: 0.5 }, arts: { handwritten: 1.5, 'collage-art': 1.5, retro: 1 } }, impl: 'video-engine/src/kit/Em.tsx' },
 ];
 
@@ -400,6 +413,11 @@ export const EXCLUDED_LIBRARIES: { name: string; reason: string }[] = [
   { name: 'Magic UI, React Bits, Aceternity, Motion Primitives', reason: 'collections à copier-coller pensées pour l’interaction (hover, scroll) ; leurs meilleures idées sont réécrites dans le kit en fonctions du temps, aux couleurs de la charte.' },
   { name: 'drei <Float>, <Sparkles>, <Text>, <Environment preset>', reason: 'Float et Sparkles lisent l’horloge (déterministes ici, mais remplacés par la prop t) ; Text et les presets d’Environment téléchargent des fichiers pendant le rendu.' },
   { name: 'lucide-react, @phosphor-icons/react', reason: 'tout le jeu d’icônes serait embarqué : le serveur n’injecte que les quelques SVG utilisés.' },
+  { name: 'Recharts', reason: 'rendu en plusieurs passes par son store et ses effets : une image n’est pas garantie en un seul rendu synchrone ; visx couvre les composants de data-visualisation.' },
+  { name: 'Nivo, Victory', reason: 'animations par react-spring ou minuteries (horloge interne).' },
+  { name: 'ECharts, ApexCharts', reason: 'horloge d’animation propre et poids ; Chart.js (animation coupée, valeurs posées à chaque image) couvre le besoin.' },
+  { name: 'p5.js, paper.js', reason: 'boucle de dessin propre et poids ; Zdog, rough.js, perfect-freehand et simplex-noise couvrent le dessin génératif image par image.' },
+  { name: 'chartjs-chart-wordcloud, @visx/wordcloud', reason: 'placement des mots aléatoire : une image changerait d’une lecture à l’autre.' },
 ];
 
 // ─── Contexte et routeur ────────────────────────────────────────────────────
@@ -630,8 +648,8 @@ export function resolveKit(ctx: KitContext): VideoKit {
 }
 
 /** Les addons qu'exigent les choix du kit (le montage y ajoute ceux des médias réels). */
-export function addonsForKit(kit: Pick<VideoKit, 'logo' | 'background' | 'postfx'>): AddonId[] {
-  const ids = [`logo:${kit.logo}`, `bg:${kit.background}`, ...kit.postfx.map((p) => `postfx:${p}`)];
+export function addonsForKit(kit: Pick<VideoKit, 'logo' | 'background' | 'postfx'> & { annotate?: string }): AddonId[] {
+  const ids = [`logo:${kit.logo}`, `bg:${kit.background}`, ...(kit.annotate ? [`annotate:${kit.annotate}`] : []), ...kit.postfx.map((p) => `postfx:${p}`)];
   const out = new Set<AddonId>();
   const walk = (id: string) => {
     const n = CAP_BY_ID.get(id);

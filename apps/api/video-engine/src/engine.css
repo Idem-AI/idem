@@ -23,7 +23,8 @@ html,body{overflow:hidden;background:#0b0b0c}
 .kt-odo>*{flex:none}
 .kt-odo-col{position:relative;display:inline-block;height:1em;overflow:hidden;line-height:1}
 .kt-odo-size{display:inline-block;visibility:hidden}
-.kt-odo-strip{position:absolute;left:50%;top:0;display:flex;flex-direction:column;align-items:center}
+/* Centrée par la mise en page (pas par translate(-50%) : une position sous-pixel rendait l'image dépendante de l'ordre de lecture). */
+.kt-odo-strip{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;align-items:center}
 .kt-odo-strip span{height:1em;line-height:1}
 
 /* Le petit libellé : jamais en capitales espacées (le tic n°1 des pages générées). */
@@ -249,6 +250,7 @@ body.preview{display:flex;align-items:center;justify-content:center;width:100vw;
 .ly-circle-value{width:78%}
 .ly-circle-icon{width:46%;height:46%;object-fit:contain}
 .ly-ring{position:absolute;inset:0;width:100%;height:100%;color:var(--hl-text)}
+.ly-ring-value{position:absolute;inset:22%;display:flex;align-items:center;justify-content:center;color:var(--hl-text)}
 .ly-circle-text{flex:1;min-width:0;gap:calc(var(--u)*2.6)}
 .ly-split-block{position:absolute;background:var(--hl);z-index:0}
 .ly-split-zone{position:absolute;display:flex;flex-direction:column;justify-content:center;gap:calc(var(--u)*3);z-index:1}

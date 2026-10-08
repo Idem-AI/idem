@@ -57,29 +57,35 @@
         "low": {
           "label": "Low",
           "hint": "Proven",
-          "description": "Proven layouts, adapted to your brand guidelines and their art direction. The AI writes the copy."
+          "description": "Proven layouts, adapted to your brand guidelines and their art direction. The AI writes the copy.",
+          "line": "Proven layouts adapted to your brand. The AI writes the copy."
         },
         "medium": {
           "label": "Medium",
           "hint": "Guided",
-          "description": "The AI also picks the structure (sections, scenes, slides) among validated options. The safest at the usual price."
+          "description": "The AI also picks the structure (sections, scenes, slides) among validated options. The safest at the usual price.",
+          "line": "The AI also picks the structure and the sequence."
         },
         "high": {
           "label": "High",
           "hint": "Inspired",
-          "description": "The AI composes each part — layouts, transitions, sequencing — among options filtered by your art direction."
+          "description": "The AI composes each part — layouts, transitions, sequencing — among options filtered by your art direction.",
+          "line": "The AI composes each part: layouts, transitions."
         },
         "max": {
           "label": "Max",
           "hint": "Bold",
-          "description": "The AI also tunes the details — emphasis, colours, rhythm, density — within bounds that keep everything legible."
+          "description": "The AI also tunes the details — emphasis, colours, rhythm, density — within bounds that keep everything legible.",
+          "line": "The AI also tunes the details: emphasis, colours, rhythm."
         },
         "ultra": {
           "label": "Ultra",
           "hint": "Free",
-          "description": "The AI creates everything: layouts, compositions, animations. Your brand guidelines and best practices stay guaranteed; any part that fails the checks is redone at Max."
+          "description": "The AI invents and creates everything: the composition, every part, the animations. Your brand guidelines and best practices stay guaranteed: each part is checked, critiqued and corrected before delivery.",
+          "line": "The AI invents and creates everything, checked and corrected before delivery."
         }
-      }
+      },
+      "withCost": "{{label}} · {{cost}} credits"
     }
   },
   "dashboard": {
@@ -4394,7 +4400,19 @@
           "previewHint": "Faithful preview: the same engine renders the MP4.",
           "delete": "Delete video",
           "deleteAsk": "Delete for good?",
-          "deleteConfirm": "Delete"
+          "deleteConfirm": "Delete",
+          "ai": {
+            "authored": "Authored film · {{coded}} of {{shots}} shots created by the AI",
+            "decided": "decided by the AI:",
+            "roles": {
+              "writer": "copy",
+              "strategist": "structure",
+              "soundDesigner": "music",
+              "artDirector": "layouts",
+              "animator": "transitions and motion",
+              "critic": "review"
+            }
+          }
         },
         "texts": {
           "title": "On-screen text",
@@ -4567,7 +4585,9 @@
             "storyboard": "Edit, synced to the beat",
             "animation": "Motion and transitions",
             "critique": "Final review",
-            "code": "Writing the scenes (Ultra)"
+            "code": "Writing the scenes (Ultra)",
+            "direction": "The film imagined by the AI director",
+            "shots": "Every shot created by the AI, reviewed and corrected"
           },
           "details": {
             "plan": "{{count}} scenes for {{seconds}} s",
@@ -4587,7 +4607,15 @@
             "critique": "{{count}} fix(es) from the creative director",
             "critiqueOk": "Approved without changes",
             "musicAgent": "“{{title}}” — {{artist}} · {{bpm}} BPM · picked for your brand",
-            "code": "{{coded}} of {{tried}} scene(s) written by the AI and validated"
+            "code": "{{coded}} of {{tried}} scene(s) written by the AI and validated",
+            "direction": "“{{title}}” · {{count}} shots",
+            "directionFallback": "Fell back to the guided composition",
+            "shotsStart": "{{total}} shots to write",
+            "shots_writing": "Shot {{current}}/{{total}}: writing · {{done}} done",
+            "shots_review": "Shot {{current}}/{{total}}: visual review · {{done}} done",
+            "shots_revise": "Shot {{current}}/{{total}}: correcting · {{done}} done",
+            "shots_done": "{{done}} of {{total}} shots done",
+            "shots": "{{coded}} of {{total}} shots created by the AI · {{reviewed}} reviewed by the art director"
           }
         },
         "directions": {

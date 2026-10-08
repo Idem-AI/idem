@@ -20,7 +20,8 @@ import {
 } from '../../../../../../shared/models/sse-step.model';
 import { BusinessPlanModel } from '../../../../models/businessPlan.model';
 import { CreativityLevel, DEFAULT_CREATIVITY, ProjectModel } from '@idem/shared-models';
-import { CreativityGaugeComponent } from '../../../../../../shared/components/creativity-gauge/creativity-gauge';
+import { CreativityPickerComponent } from '../../../../../../shared/components/creativity-picker/creativity-picker';
+import { CreativityCostPipe } from '../../../../../../shared/pipes/creativity-cost.pipe';
 import { CreativityService } from '../../../../../../shared/services/creativity.service';
 import { AdditionalInfoFormComponent } from '../additional-info-form/additional-info-form';
 import { BusinessPlanStructureComponent } from '../business-plan-structure/business-plan-structure';
@@ -62,7 +63,8 @@ const DEFAULT_BUSINESS_PLAN_SECTIONS = [
     AdditionalInfoFormComponent,
     AgentResearchConsoleComponent,
     BusinessPlanStructureComponent,
-    CreativityGaugeComponent,
+    CreativityPickerComponent,
+    CreativityCostPipe,
     TranslateModule, IdemLoaderComponent],
   templateUrl: './business-plan-generation.html',
   styleUrl: './business-plan-generation.css',

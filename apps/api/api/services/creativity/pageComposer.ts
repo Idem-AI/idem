@@ -120,27 +120,46 @@ export function buildComposerPrompt(input: {
   return { system, user };
 }
 
-/** Le HTML d'une réponse, s'il passe forme et fidélité ; sinon undefined. */
-export function acceptComposedPage(raw: string, content: SectionContent): string | undefined {
+/** Le HTML d'une réponse (bloc ```html, ou la réponse entière si elle commence par <section>). */
+export function extractComposedHtml(raw: string): string | undefined {
   const html = ((raw || '').match(/```(?:html)?\s*\n([\s\S]*?)```/i)?.[1] || (/^\s*<section\b/i.test(raw || '') ? raw : '')).trim();
-  if (!html || /<script\b/i.test(html)) return undefined;
-  if (inspectOutput(html, { format: 'html', minChars: 300 }).blocking.length) return undefined;
+  return html || undefined;
+}
+
+/**
+ * Les défauts de forme et de FIDÉLITÉ d'une page composée (vide = la page est fidèle) : chacun est
+ * formulé pour être corrigé par le compositeur au tour suivant, jamais seulement constaté.
+ */
+export function fidelityIssues(html: string, content: SectionContent): string[] {
+  const issues: string[] = [];
+  if (/<script\b/i.test(html)) issues.push('remove every <script>');
+  const form = inspectOutput(html, { format: 'html', minChars: 300 });
+  if (form.blocking.length) issues.push(`form: ${form.summary}`);
   const page = norm(html);
   const texts = contentTexts(content);
-  const present = texts.filter((t) => page.includes(norm(t).slice(0, 36))).length;
-  if (texts.length && present / texts.length < 0.85) return undefined;
+  const missing = texts.filter((t) => !page.includes(norm(t).slice(0, 36)));
+  if (texts.length && missing.length / texts.length > 0.15) issues.push(`these texts of the content are missing — write them verbatim: ${missing.slice(0, 4).map((t) => `"${t.slice(0, 70)}"`).join(' · ')}`);
   // Aucun chiffre qui n'était pas dans le contenu (un chiffre inventé dans un plan est une faute).
   const known = new Set(numbersOf(strings(content).filter((s) => !URL_RE.test(s.trim())).join(' ')));
-  if (numbersOf(html.replace(/<[^>]+>/g, ' ')).some((n) => !known.has(n))) return undefined;
+  const invented = [...new Set(numbersOf(html.replace(/<[^>]+>/g, ' ')).filter((n) => !known.has(n)))];
+  if (invented.length) issues.push(`remove these numbers, they are not in the content (no page numbers, sizes or figures of your own): ${invented.slice(0, 8).join(', ')}`);
   // Les spécimens : chaque couleur du contenu est posée, chaque image aussi, et aucune autre.
   const lower = html.toLowerCase();
   const hexes = [...new Set(strings(content).flatMap((s) => s.match(HEX_RE) || []).map((h) => h.toLowerCase()))];
-  if (hexes.some((h) => !lower.includes(h))) return undefined;
+  const absent = hexes.filter((h) => !lower.includes(h));
+  if (absent.length) issues.push(`show these colours of the content (written as given): ${absent.join(', ')}`);
   const images = imagesOf(content);
-  if (images.some((u) => !html.includes(u))) return undefined;
+  const lost = images.filter((u) => !html.includes(u));
+  if (lost.length) issues.push(`place every image of the content (${lost.length} missing): use each placeholder once as <img src>`);
   const called = [...html.matchAll(/(?:src\s*=\s*["']|url\(\s*["']?)((?:https?:|data:)[^"')\s]+)/gi)].map((m) => m[1]);
-  if (called.some((u) => !images.includes(u))) return undefined;
-  return html;
+  if (called.some((u) => !images.includes(u))) issues.push('use no image other than the placeholders of the content (no external URL, no CSS background image)');
+  return issues;
+}
+
+/** Le HTML d'une réponse, s'il passe forme et fidélité ; sinon undefined. */
+export function acceptComposedPage(raw: string, content: SectionContent): string | undefined {
+  const html = extractComposedHtml(raw);
+  return html && !fidelityIssues(html, content).length ? html : undefined;
 }
 
 export async function composePageHtml(input: {
@@ -167,23 +186,33 @@ export async function composePageHtml(input: {
   const base = buildComposerPrompt(input);
   const images = imagesOf(input.content);
   let issues: string[] = [];
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const repair = attempt > 0;
-    const res = await orchestrator.run<string | null>({
+  let previous: string | null = null;
+  // Trois tours : la forme et la fidélité, puis la mesure du rendu, repartent au compositeur.
+  // Une page n'est rendue par le gabarit qu'après trois essais.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const repair: boolean = attempt > 0 && !!previous;
+    const res: { value: string | null } = await orchestrator.run<string | null>({
       role: 'pageComposer',
-      key: `pageComposer:${input.name}${repair ? ':repair' : ''}`,
+      key: `pageComposer:${input.name}${attempt ? `:r${attempt}` : ''}`,
       minLevel: 'ultra',
       profile: 'coder',
-      prompt: () =>
+      prompt: (): { system: string; user: string } =>
         repair
-          ? { system: base.system, user: `${base.user}\n\nYOUR PREVIOUS PAGE WAS MEASURED AND REJECTED. Fix ALL of these and answer with the whole corrected page:\n- ${issues.join('\n- ')}` }
+          ? { system: base.system, user: `${base.user}\n\nYOUR PREVIOUS PAGE WAS CHECKED AND REJECTED. Fix ALL of these and answer with the whole corrected page in a single \`\`\`html block:\n- ${issues.join('\n- ')}\n\nPREVIOUS PAGE:\n\`\`\`html\n${previous}\n\`\`\`` }
           : base,
-      parse: (raw) => acceptComposedPage(restoreImages(raw, images), input.content),
+      parse: (raw) => extractComposedHtml(raw),
       fallback: () => null,
     });
-    if (!res.value) return { html: null, traces: orchestrator.traces, issues };
+    if (!res.value) {
+      issues = ['no HTML was returned: answer with the whole page in a single ```html block'];
+      continue;
+    }
+    const composed = restoreImages(res.value, images);
+    previous = res.value;
+    issues = fidelityIssues(composed, input.content);
+    if (issues.length) continue;
     // Les règles de design (tics de génération, couleurs hors charte, ornements) réparées sur place.
-    const html = enforceDesignRules(res.value, { ...input.lint, label: input.lint?.label ?? `ultra/${input.name}` }).html || res.value;
+    const html = enforceDesignRules(composed, { ...input.lint, label: input.lint?.label ?? `ultra/${input.name}` }).html || composed;
     issues = await inspect(html);
     if (!issues.length) return { html, traces: orchestrator.traces };
   }

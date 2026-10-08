@@ -10,8 +10,10 @@
       </p>
     </div>
 
-    <!-- Le cran se choisit avant le format : choisir un format lance la génération. -->
-    <app-creativity-gauge class="glass-card max-w-2xl mx-auto p-5 mb-7" [(value)]="creativity" [baseCost]="creativityBaseCost()" />
+    <!-- Choisir un format lance la génération : le cran de créativité se règle juste au-dessus. -->
+    <div class="flex justify-center mb-6">
+      <app-creativity-picker [(value)]="creativity" [baseCost]="creativityBaseCost()" [showCost]="true" />
+    </div>
 
     <app-pdf-format-selector (formatSelected)="onFormatSelected($event)"></app-pdf-format-selector>
   </div>

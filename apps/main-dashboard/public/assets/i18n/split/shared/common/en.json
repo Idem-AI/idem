@@ -57,29 +57,35 @@
         "low": {
           "label": "Low",
           "hint": "Proven",
-          "description": "Proven layouts, adapted to your brand guidelines and their art direction. The AI writes the copy."
+          "description": "Proven layouts, adapted to your brand guidelines and their art direction. The AI writes the copy.",
+          "line": "Proven layouts adapted to your brand. The AI writes the copy."
         },
         "medium": {
           "label": "Medium",
           "hint": "Guided",
-          "description": "The AI also picks the structure (sections, scenes, slides) among validated options. The safest at the usual price."
+          "description": "The AI also picks the structure (sections, scenes, slides) among validated options. The safest at the usual price.",
+          "line": "The AI also picks the structure and the sequence."
         },
         "high": {
           "label": "High",
           "hint": "Inspired",
-          "description": "The AI composes each part — layouts, transitions, sequencing — among options filtered by your art direction."
+          "description": "The AI composes each part — layouts, transitions, sequencing — among options filtered by your art direction.",
+          "line": "The AI composes each part: layouts, transitions."
         },
         "max": {
           "label": "Max",
           "hint": "Bold",
-          "description": "The AI also tunes the details — emphasis, colours, rhythm, density — within bounds that keep everything legible."
+          "description": "The AI also tunes the details — emphasis, colours, rhythm, density — within bounds that keep everything legible.",
+          "line": "The AI also tunes the details: emphasis, colours, rhythm."
         },
         "ultra": {
           "label": "Ultra",
           "hint": "Free",
-          "description": "The AI creates everything: layouts, compositions, animations. Your brand guidelines and best practices stay guaranteed; any part that fails the checks is redone at Max."
+          "description": "The AI invents and creates everything: the composition, every part, the animations. Your brand guidelines and best practices stay guaranteed: each part is checked, critiqued and corrected before delivery.",
+          "line": "The AI invents and creates everything, checked and corrected before delivery."
         }
-      }
+      },
+      "withCost": "{{label}} · {{cost}} credits"
     }
   }
 }

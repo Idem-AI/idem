@@ -50,11 +50,18 @@
           [ngModel]="request()"
           (ngModelChange)="request.set($event)"
           name="vdbRequest"
-          [attr.placeholder]="'dashboard.showCommunication.video.builder.chat.placeholder' | translate"
+          [attr.placeholder]="
+            'dashboard.showCommunication.video.builder.chat.placeholder' | translate
+          "
         ></textarea>
 
         @if (media().length) {
-          <ul class="vdb-attached" [attr.aria-label]="'dashboard.showCommunication.video.builder.chat.attached' | translate">
+          <ul
+            class="vdb-attached"
+            [attr.aria-label]="
+              'dashboard.showCommunication.video.builder.chat.attached' | translate
+            "
+          >
             @for (m of media(); track m.id) {
               <li class="vdb-attached-item">
                 @if (m.kind === 'image') {
@@ -64,11 +71,16 @@
                 } @else {
                   <i [class]="mediaIcon[m.kind]" aria-hidden="true"></i>
                 }
-                <span class="vdb-attached-name">{{ m.name || ('dashboard.showCommunication.video.builder.media.kinds.' + m.kind | translate) }}</span>
+                <span class="vdb-attached-name">{{
+                  m.name ||
+                    ('dashboard.showCommunication.video.builder.media.kinds.' + m.kind | translate)
+                }}</span>
                 <button
                   type="button"
                   class="vdb-attached-remove"
-                  [attr.aria-label]="'dashboard.showCommunication.video.builder.media.remove' | translate"
+                  [attr.aria-label]="
+                    'dashboard.showCommunication.video.builder.media.remove' | translate
+                  "
                   (click)="removeMedia(m.id)"
                 >
                   <i class="pi pi-times" aria-hidden="true"></i>
@@ -88,12 +100,26 @@
                 <i class="pi pi-paperclip" aria-hidden="true"></i>
                 {{ 'dashboard.showCommunication.video.builder.chat.attach' | translate }}
               }
-              <input type="file" class="sr-only" [attr.accept]="mediaAccept" multiple [disabled]="uploading()" (change)="onFiles($event)" />
+              <input
+                type="file"
+                class="sr-only"
+                [attr.accept]="mediaAccept"
+                multiple
+                [disabled]="uploading()"
+                (change)="onFiles($event)"
+              />
             </label>
           }
-          <span class="vdb-chat-hint">{{ 'dashboard.showCommunication.video.builder.chat.attachHint' | translate }}</span>
+          <span class="vdb-chat-hint">{{
+            'dashboard.showCommunication.video.builder.chat.attachHint' | translate
+          }}</span>
           <div class="vdb-chat-actions">
-            <button type="button" class="inner-button button-sm" [disabled]="!canEnhance()" (click)="enhance()">
+            <button
+              type="button"
+              class="inner-button button-sm"
+              [disabled]="!canEnhance()"
+              (click)="enhance()"
+            >
               @if (enhancing()) {
                 <idem-loader size="xs" />
                 {{ 'dashboard.showCommunication.video.builder.chat.enhancing' | translate }}
@@ -118,7 +144,9 @@
       <!-- Des exemples, pour qui ne sait pas par où commencer. -->
       @if (!request().trim()) {
         <div class="vdb-examples">
-          <p class="vdb-label">{{ 'dashboard.showCommunication.video.builder.chat.examplesTitle' | translate }}</p>
+          <p class="vdb-label">
+            {{ 'dashboard.showCommunication.video.builder.chat.examplesTitle' | translate }}
+          </p>
           @for (ex of examples; track ex) {
             <button type="button" class="vdb-example" (click)="useExample(ex)">
               <i class="pi pi-comment" aria-hidden="true"></i>
@@ -138,20 +166,52 @@
             {{ 'dashboard.showCommunication.video.types.' + type() + '.label' | translate }}
           }
         </span>
-        <button type="button" class="vdb-link" [attr.aria-expanded]="showTypes()" (click)="showTypes.set(!showTypes())">
-          {{ (showTypes() ? 'dashboard.showCommunication.video.builder.chat.hideTypes' : 'dashboard.showCommunication.video.builder.chat.forceType') | translate }}
+        <button
+          type="button"
+          class="vdb-link"
+          [attr.aria-expanded]="showTypes()"
+          (click)="showTypes.set(!showTypes())"
+        >
+          {{
+            (showTypes()
+              ? 'dashboard.showCommunication.video.builder.chat.hideTypes'
+              : 'dashboard.showCommunication.video.builder.chat.forceType'
+            ) | translate
+          }}
         </button>
       </div>
       @if (showTypes()) {
         <div class="vdb-chips vdb-type-chips">
-          <button type="button" class="vdb-chip" [class.vb-active]="type() === 'auto'" [attr.aria-pressed]="type() === 'auto'" (click)="chooseType('auto')">
-            <span class="vdb-chip-main"><i class="pi pi-sparkles" aria-hidden="true"></i> {{ 'dashboard.showCommunication.video.builder.chat.autoShort' | translate }}</span>
-            <span class="vdb-chip-hint">{{ 'dashboard.showCommunication.video.builder.chat.autoHint' | translate }}</span>
+          <button
+            type="button"
+            class="vdb-chip"
+            [class.vb-active]="type() === 'auto'"
+            [attr.aria-pressed]="type() === 'auto'"
+            (click)="chooseType('auto')"
+          >
+            <span class="vdb-chip-main"
+              ><i class="pi pi-sparkles" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.video.builder.chat.autoShort' | translate }}</span
+            >
+            <span class="vdb-chip-hint">{{
+              'dashboard.showCommunication.video.builder.chat.autoHint' | translate
+            }}</span>
           </button>
           @for (t of types(); track t.id) {
-            <button type="button" class="vdb-chip" [class.vb-active]="type() === t.id" [attr.aria-pressed]="type() === t.id" (click)="chooseType(t.id)">
-              <span class="vdb-chip-main"><i [class]="t.icon" aria-hidden="true"></i> {{ 'dashboard.showCommunication.video.types.' + t.id + '.label' | translate }}</span>
-              <span class="vdb-chip-hint">{{ 'dashboard.showCommunication.video.types.' + t.id + '.uses' | translate }}</span>
+            <button
+              type="button"
+              class="vdb-chip"
+              [class.vb-active]="type() === t.id"
+              [attr.aria-pressed]="type() === t.id"
+              (click)="chooseType(t.id)"
+            >
+              <span class="vdb-chip-main"
+                ><i [class]="t.icon" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.video.types.' + t.id + '.label' | translate }}</span
+              >
+              <span class="vdb-chip-hint">{{
+                'dashboard.showCommunication.video.types.' + t.id + '.uses' | translate
+              }}</span>
             </button>
           }
         </div>
@@ -163,7 +223,9 @@
       <h2 id="vdb-question" class="vb-question">
         {{ 'dashboard.showCommunication.video.builder.config.question' | translate }}
       </h2>
-      <p class="vb-help">{{ 'dashboard.showCommunication.video.builder.config.help' | translate }}</p>
+      <p class="vb-help">
+        {{ 'dashboard.showCommunication.video.builder.config.help' | translate }}
+      </p>
 
       <div class="vdb-config">
         <div class="vdb-config-main">
@@ -173,7 +235,9 @@
               <span class="vdb-step-num" aria-hidden="true">1</span>
               {{ 'dashboard.showCommunication.video.builder.config.where' | translate }}
             </legend>
-            <p class="vdb-group-hint">{{ 'dashboard.showCommunication.video.builder.config.whereHint' | translate }}</p>
+            <p class="vdb-group-hint">
+              {{ 'dashboard.showCommunication.video.builder.config.whereHint' | translate }}
+            </p>
             <div class="vb-places">
               @for (f of formatChoices; track f.id) {
                 <button
@@ -184,7 +248,11 @@
                   (click)="toggleFormat(f.id)"
                 >
                   <span class="vb-shape-box" aria-hidden="true">
-                    <span class="vb-shape" [class.vb-shape-banner]="f.id === 'landscape'" [style.aspect-ratio]="f.ratio"></span>
+                    <span
+                      class="vb-shape"
+                      [class.vb-shape-banner]="f.id === 'landscape'"
+                      [style.aspect-ratio]="f.ratio"
+                    ></span>
                   </span>
                   <span class="vb-place-label">
                     {{ 'dashboard.showCommunication.video.formats.' + f.id + '.label' | translate }}
@@ -207,9 +275,18 @@
             </legend>
             <div class="vdb-segmented" role="radiogroup">
               @for (d of durations(); track d) {
-                <button type="button" role="radio" class="vdb-seg" [class.vb-active]="duration() === d" [attr.aria-checked]="duration() === d" (click)="duration.set(d)">
+                <button
+                  type="button"
+                  role="radio"
+                  class="vdb-seg"
+                  [class.vb-active]="duration() === d"
+                  [attr.aria-checked]="duration() === d"
+                  (click)="duration.set(d)"
+                >
                   <span class="vdb-seg-main">{{ d }} s</span>
-                  <span class="vdb-seg-hint">{{ 'dashboard.showCommunication.video.durations.' + d | translate }}</span>
+                  <span class="vdb-seg-hint">{{
+                    'dashboard.showCommunication.video.durations.' + d | translate
+                  }}</span>
                 </button>
               }
             </div>
@@ -223,9 +300,20 @@
             </legend>
             <div class="vdb-segmented" role="radiogroup">
               @for (q of qualities; track q) {
-                <button type="button" role="radio" class="vdb-seg" [class.vb-active]="quality() === q" [attr.aria-checked]="quality() === q" (click)="quality.set(q)">
-                  <span class="vdb-seg-main">{{ 'dashboard.showCommunication.video.qualities.' + q + '.label' | translate }}</span>
-                  <span class="vdb-seg-hint">{{ 'dashboard.showCommunication.video.qualities.' + q + '.hint' | translate }}</span>
+                <button
+                  type="button"
+                  role="radio"
+                  class="vdb-seg"
+                  [class.vb-active]="quality() === q"
+                  [attr.aria-checked]="quality() === q"
+                  (click)="quality.set(q)"
+                >
+                  <span class="vdb-seg-main">{{
+                    'dashboard.showCommunication.video.qualities.' + q + '.label' | translate
+                  }}</span>
+                  <span class="vdb-seg-hint">{{
+                    'dashboard.showCommunication.video.qualities.' + q + '.hint' | translate
+                  }}</span>
                 </button>
               }
             </div>
@@ -239,7 +327,13 @@
             </legend>
             <div class="vdb-pills">
               @for (m of moods; track m.id) {
-                <button type="button" class="vdb-pill" [class.vb-active]="mood() === m.id" [attr.aria-pressed]="mood() === m.id" (click)="mood.set(m.id)">
+                <button
+                  type="button"
+                  class="vdb-pill"
+                  [class.vb-active]="mood() === m.id"
+                  [attr.aria-pressed]="mood() === m.id"
+                  (click)="mood.set(m.id)"
+                >
                   <i [class]="m.icon" aria-hidden="true"></i>
                   {{ 'dashboard.showCommunication.video.moods.' + m.id | translate }}
                 </button>
@@ -247,15 +341,20 @@
             </div>
           </fieldset>
 
-          <!-- La jauge de créativité : ce que l'IA décide, et ce que ça coûte. -->
-          <div class="vdb-group">
-            <app-creativity-gauge [(value)]="creativity" [baseCost]="basePrice()" [disabled]="busy()" />
-          </div>
-
           <!-- Le reste est déjà bien réglé : replié. -->
           <div class="vdb-more">
-            <button type="button" class="vdb-link" [attr.aria-expanded]="showMore()" (click)="showMore.set(!showMore())">
-              <i class="pi" [class.pi-chevron-down]="!showMore()" [class.pi-chevron-up]="showMore()" aria-hidden="true"></i>
+            <button
+              type="button"
+              class="vdb-link"
+              [attr.aria-expanded]="showMore()"
+              (click)="showMore.set(!showMore())"
+            >
+              <i
+                class="pi"
+                [class.pi-chevron-down]="!showMore()"
+                [class.pi-chevron-up]="showMore()"
+                aria-hidden="true"
+              ></i>
               {{ 'dashboard.showCommunication.video.builder.config.more' | translate }}
             </button>
             @if (showMore()) {
@@ -263,32 +362,73 @@
                 <label class="vdb-label" for="vdb-direction">
                   {{ 'dashboard.showCommunication.video.builder.scope.direction' | translate }}
                 </label>
-                <select id="vdb-direction" [ngModel]="direction()" (ngModelChange)="direction.set($event)" name="vdbDirection">
+                <select
+                  id="vdb-direction"
+                  [ngModel]="direction()"
+                  (ngModelChange)="direction.set($event)"
+                  name="vdbDirection"
+                >
                   @for (d of directions(); track d) {
-                    <option [value]="d">{{ 'dashboard.showCommunication.video.directions.' + d + '.label' | translate }}</option>
+                    <option [value]="d">
+                      {{
+                        'dashboard.showCommunication.video.directions.' + d + '.label' | translate
+                      }}
+                    </option>
                   }
                 </select>
-                <p class="vdb-group-hint">{{ 'dashboard.showCommunication.video.directions.' + direction() + '.hint' | translate }}</p>
+                <p class="vdb-group-hint">
+                  {{
+                    'dashboard.showCommunication.video.directions.' + direction() + '.hint'
+                      | translate
+                  }}
+                </p>
 
                 <label class="vdb-switch">
-                  <input type="checkbox" [ngModel]="sfx()" (ngModelChange)="sfx.set($event)" name="vdbSfx" />
+                  <input
+                    type="checkbox"
+                    [ngModel]="sfx()"
+                    (ngModelChange)="sfx.set($event)"
+                    name="vdbSfx"
+                  />
                   <span>
-                    <span class="vdb-switch-title">{{ 'dashboard.showCommunication.video.builder.sfx.label' | translate }}</span>
-                    <span class="vdb-switch-hint">{{ 'dashboard.showCommunication.video.builder.sfx.hint' | translate }}</span>
+                    <span class="vdb-switch-title">{{
+                      'dashboard.showCommunication.video.builder.sfx.label' | translate
+                    }}</span>
+                    <span class="vdb-switch-hint">{{
+                      'dashboard.showCommunication.video.builder.sfx.hint' | translate
+                    }}</span>
                   </span>
                 </label>
                 <label class="vdb-switch">
-                  <input type="checkbox" [ngModel]="allowStock()" (ngModelChange)="allowStock.set($event)" name="vdbStock" />
+                  <input
+                    type="checkbox"
+                    [ngModel]="allowStock()"
+                    (ngModelChange)="allowStock.set($event)"
+                    name="vdbStock"
+                  />
                   <span>
-                    <span class="vdb-switch-title">{{ 'dashboard.showCommunication.video.builder.media.stock' | translate }}</span>
-                    <span class="vdb-switch-hint">{{ 'dashboard.showCommunication.video.builder.media.stockHint' | translate }}</span>
+                    <span class="vdb-switch-title">{{
+                      'dashboard.showCommunication.video.builder.media.stock' | translate
+                    }}</span>
+                    <span class="vdb-switch-hint">{{
+                      'dashboard.showCommunication.video.builder.media.stockHint' | translate
+                    }}</span>
                   </span>
                 </label>
                 <label class="vdb-switch">
-                  <input type="checkbox" [ngModel]="allowGenerate()" (ngModelChange)="allowGenerate.set($event)" name="vdbGenerate" />
+                  <input
+                    type="checkbox"
+                    [ngModel]="allowGenerate()"
+                    (ngModelChange)="allowGenerate.set($event)"
+                    name="vdbGenerate"
+                  />
                   <span>
-                    <span class="vdb-switch-title">{{ 'dashboard.showCommunication.video.builder.media.generate' | translate }}</span>
-                    <span class="vdb-switch-hint">{{ 'dashboard.showCommunication.video.builder.media.generateHint' | translate }}</span>
+                    <span class="vdb-switch-title">{{
+                      'dashboard.showCommunication.video.builder.media.generate' | translate
+                    }}</span>
+                    <span class="vdb-switch-hint">{{
+                      'dashboard.showCommunication.video.builder.media.generateHint' | translate
+                    }}</span>
                   </span>
                 </label>
               </div>
@@ -298,7 +438,9 @@
 
         <!-- Le récapitulatif reste sous les yeux : ce qu'on demande, ce qu'on paie. -->
         <aside class="vdb-summary" aria-live="polite">
-          <p class="vdb-summary-title">{{ 'dashboard.showCommunication.video.builder.config.summary' | translate }}</p>
+          <p class="vdb-summary-title">
+            {{ 'dashboard.showCommunication.video.builder.config.summary' | translate }}
+          </p>
           <p class="vdb-summary-request">« {{ request().trim() }} »</p>
           <ul class="vdb-summary-list">
             <li>
@@ -312,17 +454,40 @@
             <li>
               <i class="pi pi-mobile" aria-hidden="true"></i>
               @for (f of formats(); track f; let last = $last) {
-                {{ 'dashboard.showCommunication.video.formats.' + f + '.label' | translate }}{{ last ? '' : ', ' }}
+                {{ 'dashboard.showCommunication.video.formats.' + f + '.label' | translate
+                }}{{ last ? '' : ', ' }}
               }
             </li>
-            <li><i class="pi pi-clock" aria-hidden="true"></i> {{ duration() }} s · {{ 'dashboard.showCommunication.video.qualities.' + quality() + '.label' | translate }}</li>
-            <li><i class="pi pi-bolt" aria-hidden="true"></i> {{ 'common.creativity.title' | translate }} · {{ 'common.creativity.levels.' + creativity() + '.label' | translate }}</li>
+            <li>
+              <i class="pi pi-clock" aria-hidden="true"></i> {{ duration() }} s ·
+              {{
+                'dashboard.showCommunication.video.qualities.' + quality() + '.label' | translate
+              }}
+            </li>
+            <li>
+              <i class="pi pi-bolt" aria-hidden="true"></i>
+              {{ 'common.creativity.title' | translate }} ·
+              {{ 'common.creativity.levels.' + creativity() + '.label' | translate }}
+            </li>
             @if (media().length) {
-              <li><i class="pi pi-paperclip" aria-hidden="true"></i> {{ 'dashboard.showCommunication.video.builder.config.mediaCount' | translate: { count: media().length } }}</li>
+              <li>
+                <i class="pi pi-paperclip" aria-hidden="true"></i>
+                {{
+                  'dashboard.showCommunication.video.builder.config.mediaCount'
+                    | translate: { count: media().length }
+                }}
+              </li>
             }
           </ul>
-          <p class="vdb-summary-price">{{ 'dashboard.showCommunication.video.builder.price.total' | translate: { price: price() } }}</p>
-          <p class="vdb-group-hint">{{ 'dashboard.showCommunication.video.builder.config.priceHint' | translate }}</p>
+          <p class="vdb-summary-price">
+            {{
+              'dashboard.showCommunication.video.builder.price.total'
+                | translate: { price: price() }
+            }}
+          </p>
+          <p class="vdb-group-hint">
+            {{ 'dashboard.showCommunication.video.builder.config.priceHint' | translate }}
+          </p>
         </aside>
       </div>
     }
@@ -339,10 +504,14 @@
           <i class="pi pi-arrow-right" aria-hidden="true"></i>
         </button>
       } @else {
-        <button type="button" class="inner-button" [disabled]="!canSubmit()" (click)="submit()">
-          <i class="pi pi-video" aria-hidden="true"></i>
-          {{ 'dashboard.showCommunication.video.builder.submit' | translate: { price: price() } }}
-        </button>
+        <!-- Le cran de créativité se choisit au moment de lancer : à côté du bouton, prix compris. -->
+        <div class="vb-footer-go">
+          <app-creativity-picker [(value)]="creativity" [baseCost]="basePrice()" [disabled]="busy()" placement="top" align="end" />
+          <button type="button" class="inner-button" [disabled]="!canSubmit()" (click)="submit()">
+            <i class="pi pi-video" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.video.builder.submit' | translate: { price: price() } }}
+          </button>
+        </div>
       }
     </footer>
   }

@@ -206,10 +206,58 @@ export const CASES: VideoCase[] = [
 const LINE = /^(\d+)\.([a-zA-Z0-9]+) \(max (\d+)/;
 
 /** Répond au prompt réel (cases demandées dans `user`) selon le comportement du cas. */
+/**
+ * Le DIRECTEUR du film d'auteur (cran Ultra) : un film écrit comme par un bon modèle, à partir
+ * des réponses du cas (textes déjà fondés sur le brief), au format demandé par le prompt.
+ */
+export function simulateDirector(testCase: VideoCase, system: string, user: string): string {
+  const range = system.match(/(\d+) to (\d+) shots, total EXACTLY ([\d.]+) s/);
+  const [min, max, total] = range ? [Number(range[1]), Number(range[2]), Number(range[3])] : [3, 5, 15];
+  const a = testCase.answers;
+  const first = (k: string) => (Array.isArray(a[k]) ? (a[k] as string[])[0] : (a[k] as string | undefined));
+  const second = (k: string) => (Array.isArray(a[k]) ? (a[k] as string[])[1] : undefined);
+  const photo = /MEDIA: #1/.test(user) ? '1' : 'none';
+  const body: string[][] = [
+    [`TITLE: ${first('title') || testCase.brief.message.slice(0, 55)}`, first('kicker') ? `SUB: ${first('kicker')}` : '', 'VISUAL: A brand-colour block sweeps in from the left; the title rises word by word; photo #1 is framed on the right with a slow parallax.', `MEDIA: ${photo}`, 'HANDOFF: the block widens to fill the frame and becomes the next background.'],
+    [`TITLE: ${[first('name'), first('price')].filter(Boolean).join(' à ') || first('l1') || first('b1') || testCase.brief.message.slice(0, 55)}`, first('oldPrice') ? `SUB: au lieu de ${first('oldPrice')}` : '', 'VISUAL: The price lands like a stamp; a hand-drawn circle wraps it; the old price is struck through.', 'MEDIA: none', 'HANDOFF: a wipe in the accent colour.'],
+    [`TITLE: ${first('b1') || second('title') || testCase.brief.message.slice(0, 55)}`, first('b2') ? `SUB: ${first('b2')}` : '', 'VISUAL: Three flat 3D cubes stack in rhythm with the beat, each benefit appearing beside its cube.', 'MEDIA: none', 'HANDOFF: zoom through the last cube.'],
+  ];
+  if (first('action')) body.push([`TITLE: ${second('title') || first('title') || testCase.brief.message.slice(0, 55)}`, `ACTION: ${first('action')}`, first('contact') ? `CONTACT: ${first('contact')}` : '', 'VISUAL: A clean card with the call to action as a pulsing button.', 'MEDIA: none', 'HANDOFF: cut to the logo.']);
+  const count = Math.max(min - 1, Math.min(max - 1, body.length));
+  const shots = body.slice(0, count);
+  const each = (total - 2.6) / shots.length;
+  const out = ['FILM: Les soldes qui racontent une histoire', 'CONCEPT: The price drop told as a celebration of the fabric.', 'BIBLE: Bold kinetic type that lands on the beat; one brand colour per shot; hand-drawn accents as signature.'];
+  shots.forEach((lines, i) => out.push(`SHOT ${i + 1} | ${each.toFixed(1)}s | surface: ${i % 2 ? 'light' : 'primary'}`, ...lines.filter(Boolean)));
+  out.push(`SHOT ${shots.length + 1} | 2.6s | surface: light`, 'SIGNATURE: yes', first('tagline_logo') || first('tagline') ? `TAGLINE: ${first('tagline_logo') || first('tagline')}` : '', 'VISUAL: The logo draws itself in the centre.');
+  return out.filter(Boolean).join('\n');
+}
+
+/**
+ * Le STRATÈGE (dès Medium) : il choisit réellement — le deuxième concept du menu (pas la
+ * recommandation du code), des scènes du menu, un grand moment et un rythme.
+ */
+export function simulateStrategist(system: string, user: string): string {
+  const between = (from: string, to?: string) => {
+    const a = user.indexOf(from);
+    if (a < 0) return [] as string[];
+    const b = to ? user.indexOf(to, a + from.length) : -1;
+    return user.slice(a + from.length, b > 0 ? b : undefined).split('\n').map((l) => l.match(/^([A-Za-z0-9]+):/)?.[1]).filter(Boolean) as string[];
+  };
+  const concepts = between('CONCEPTS:', 'SCENES:');
+  const scenes = between('SCENES:', 'TECHNIQUES:').filter((id) => id !== 'logo');
+  const range = system.match(/scenes: (\d+) to (\d+) ids/);
+  const want = range ? Math.max(Number(range[1]), Math.min(Number(range[2]), 5)) : 4;
+  const picked = [...scenes.slice(0, want - 1), 'logo'];
+  const rhythms = system.match(/rhythm: one of ([a-z |]+)/)?.[1].split('|').map((r) => r.trim()) || [];
+  return [`concept: ${concepts[1] || concepts[0] || ''}`, `scenes: ${picked.join(', ')}`, 'accent: 2', rhythms[1] ? `rhythm: ${rhythms[1]}` : ''].filter(Boolean).join('\n');
+}
+
 export function simulateModel(testCase: VideoCase): (system: string, user: string) => Promise<string> {
   return async (_system, user) => {
     if (testCase.behaviour === 'down') throw new Error('GLM: insufficient balance (simulated)');
     if (testCase.behaviour === 'empty') return '';
+    if (/creative director AND author/.test(_system)) return simulateDirector(testCase, _system, user);
+    if (/creative director of a short brand video/.test(_system)) return simulateStrategist(_system, user);
 
     const cursors: Record<string, number> = {};
     const requested = user
@@ -280,7 +328,9 @@ export async function simulateAgent(behaviour: ModelBehaviour, system: string, u
     if (behaviour === 'json') return JSON.stringify({ layout: letter, word });
     if (behaviour === 'messy') return `Sure! Here is my choice:\n- **Layout**: ${letter.toUpperCase()})\n- **Word**: "${word}" ✨`;
     if (behaviour === 'hallucinate') return 'layout: hologram3d\nword: banane';
-    return `layout: ${letter}\nword: ${word}`;
+    // Cran Max : les réglages bornés (taille, tempo, décor) quand le prompt les demande.
+    const tuning = /scale/i.test(system) ? '\nscale: 1.15\ntempo: lively\ndecor: yes' : '';
+    return `layout: ${letter}\nword: ${word}${tuning}`;
   }
   if (/animator/i.test(system)) {
     const scenes = user.split('\n').filter((l) => /^\d+\. /.test(l)).length;

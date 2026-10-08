@@ -212,7 +212,8 @@ export const generateLogoConceptsController = async (
       projectId as string,
       forceRegenerate,
       isRetry,
-      creativityOf(req as any)
+      // Le logo est toujours dessiné au cran Ultra (au prix habituel de la session).
+      'ultra'
     );
 
     if (!logos) {
@@ -330,7 +331,8 @@ export const generateLogoConceptsStreamController = async (
       streamCallback,
       forceRegenerate,
       preferencesOverride,
-      creativityOf(req as any)
+      // Le logo est toujours dessiné au cran Ultra (au prix habituel de la session).
+      'ultra'
     );
 
     if (!isRetry && logos.length > 0) {

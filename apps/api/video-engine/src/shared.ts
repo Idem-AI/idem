@@ -41,6 +41,44 @@ export interface RiveAddon {
   mount(canvas: HTMLCanvasElement, buffer: ArrayBuffer): Promise<{ seek(t: number): void; duration: number }>;
 }
 
+/** Chart.js 4 et ses modules (treemap, sankey, matrice, étiquettes, repères), sans animation propre. */
+export interface ChartAddon {
+  Chart: any;
+}
+
+/** visx (composants React de data-visualisation) et les modules d3 purs qui les complètent. */
+export interface VizAddon {
+  axis: any;
+  curve: any;
+  geo: any;
+  glyph: any;
+  gradient: any;
+  grid: any;
+  group: any;
+  heatmap: any;
+  hierarchy: any;
+  marker: any;
+  pattern: any;
+  scale: any;
+  shape: any;
+  text: any;
+  d3: { interpolate: any; Delaunay: any; geo: any };
+  countries(): { type: 'FeatureCollection'; features: { id?: string; properties: { name: string }; geometry: unknown }[] };
+}
+
+/** rough.js, perfect-freehand, simplex-noise. */
+export interface DrawAddon {
+  generator(): any;
+  getStroke(points: number[][], options?: Record<string, unknown>): number[][];
+  createNoise2D(random?: () => number): (x: number, y: number) => number;
+  createNoise3D(random?: () => number): (x: number, y: number, z: number) => number;
+}
+
+/** Zdog : pseudo-3D plate rendue en SVG. */
+export interface ZdogAddon {
+  Zdog: any;
+}
+
 export interface Addons {
   three?: ThreeAddon;
   gsap?: GsapAddon;
@@ -48,6 +86,10 @@ export interface Addons {
   flubber?: FlubberAddon;
   lottie?: LottieAddon;
   rive?: RiveAddon;
+  chart?: ChartAddon;
+  viz?: VizAddon;
+  draw?: DrawAddon;
+  zdog?: ZdogAddon;
 }
 
 const registry = (): Addons => {

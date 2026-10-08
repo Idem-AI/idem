@@ -255,6 +255,12 @@ export interface VideoStoryboard {
   rhythm?: string;
   /** Contrôle des bonnes pratiques (video.rules.ts) : réparations faites, écarts restants. */
   qa?: { repaired: number; issues: { rule: string; scene?: string; detail: string }[]; warnings?: { rule: string; scene?: string; detail: string }[] };
+  /**
+   * Cran Ultra : le film d'auteur (cf. video.author.ts). Le directeur IA l'a inventé ; `coded`
+   * plans sur `shots` ont été écrits par l'IA et validés, les autres (`fallback`) ont repris la
+   * composition éprouvée de leur scène.
+   */
+  authored?: { title: string; concept: string; bible: string; shots: number; coded: number; fallback: string[]; reviewed: number; rounds: Record<string, number> };
   /** Ce que chaque agent a décidé (cf. video.agents.ts) : source, tokens, décisions retenues. */
   agents?: { agent: string; source: 'llm' | 'graph'; tokens: { input: number; output: number }; ms?: number; kept?: number }[];
 }
@@ -302,7 +308,7 @@ export interface VideoKit {
   entrance?: string;
   spring?: { bounce: number };
   postfx: string[];
-  addons: ('three' | 'gsap' | 'anime' | 'flubber' | 'lottie' | 'rive')[];
+  addons: ('three' | 'gsap' | 'anime' | 'flubber' | 'lottie' | 'rive' | 'chart' | 'viz' | 'draw' | 'zdog')[];
   trace: KitDecision[];
 }
 

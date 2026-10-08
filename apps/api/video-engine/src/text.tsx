@@ -404,7 +404,9 @@ export function Odometer({ text, at, dur, fit }: { text: string; at: number; dur
             <span className="kt-odo-size" aria-hidden>
               {c}
             </span>
-            <span className="kt-odo-strip" style={{ transform: `translate(-50%, ${(-(pos % 10) * 100) / 11}%)` }}>
+            {/* Déplacée par `top` (mise en page), pas par transform : une bande déjà défilée restait
+                sur sa propre couche et lissait ses chiffres autrement (image dépendante de l'ordre). */}
+            <span className="kt-odo-strip" style={{ top: `${-(pos % 10)}em` }}>
               {Array.from({ length: 11 }, (_, n) => (
                 <span key={n}>{n % 10}</span>
               ))}

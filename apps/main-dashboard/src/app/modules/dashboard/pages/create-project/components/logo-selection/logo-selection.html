@@ -3,8 +3,6 @@
   <!-- Logo Preferences Step -->
   @if (shouldShowPreferences()) {
     <app-logo-preferences
-      [(creativity)]="creativity"
-      [creativityBaseCost]="creativityBaseCost()"
       (preferencesSelected)="onPreferencesSelected($event)"
     ></app-logo-preferences>
   }
@@ -310,9 +308,7 @@
           @if (displayedLogos().length > 0 && !isGenerating()) {
             <button
               type="button"
-              (click)="showRegeneratePanel.set(!showRegeneratePanel())"
-              [attr.aria-expanded]="showRegeneratePanel()"
-              aria-controls="logo-regenerate-panel"
+              (click)="regenerateAllLogos()"
               class="outer-button inline-flex items-center px-4 py-2 text-sm"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -328,21 +324,6 @@
           }
         </div>
       </div>
-
-      <!-- Relance : le cran de créativité se choisit avant chaque génération, relances comprises. -->
-      @if (showRegeneratePanel() && !isGenerating()) {
-        <div id="logo-regenerate-panel" class="glass-card w-full max-w-2xl mx-auto p-5 mb-6">
-          <app-creativity-gauge class="mb-5" [(value)]="creativity" [baseCost]="creativityBaseCost()" />
-          <div class="flex flex-wrap justify-end gap-3">
-            <button type="button" class="outer-button px-4 py-2 text-sm" (click)="showRegeneratePanel.set(false)">
-              {{ 'common.cancel' | translate }}
-            </button>
-            <button type="button" class="inner-button px-4 py-2 text-sm" (click)="regenerateAllLogos()">
-              {{ 'dashboard.logoSelection.buttons.regenerate' | translate }}
-            </button>
-          </div>
-        </div>
-      }
 
       <!-- Responsive Logo Display -->
       <app-carousel

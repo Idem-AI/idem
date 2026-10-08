@@ -98,15 +98,6 @@
   gap: 0.4rem;
 }
 
-.cd-empty-visual {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  border-radius: 1rem;
-  border: 1px dashed var(--glass-border-medium);
-  padding: 2rem 1.25rem;
-  text-align: center;
-}
 
 .cd-empty-icon {
   font-size: 2.25rem;
@@ -345,7 +336,8 @@
 .cd-video {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
+  width: 100%;
 }
 
 .cd-video-type {
@@ -375,4 +367,33 @@
 .cd-video-type-name {
   font-weight: 700;
   color: var(--color-text-primary);
+}
+
+/* —— Lancer : le cran de créativité accolé au bouton ———————————— */
+.cd-go {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.cd-cost {
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dans le bloc visuel vide, les enfants s'étirent en pleine largeur */
+.cd-empty-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 1rem;
+  border: 1px dashed var(--glass-border-medium);
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
+.cd-empty-visual .cd-go {
+  justify-content: center;
 }

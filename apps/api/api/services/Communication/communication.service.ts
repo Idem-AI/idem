@@ -332,6 +332,31 @@ export class CommunicationService extends GenericService {
     ]);
   }
 
+  /**
+   * Un appel vidéo à l'étage voulu par la jauge de créativité (`mechanical` → `reasoning`). Une
+   * panne passagère (quota, réseau) ou une réponse vide est retentée une fois : un agent qui
+   * tombe en repli ramène le film au choix du code, et les crans finissent par se ressembler.
+   */
+  async runVideoTieredPrompt(userId: string, system: string, user: string, tier: 'mechanical' | 'writing' | 'reasoning', kind: 'copy' | 'agents' = 'copy'): Promise<string> {
+    const base =
+      tier === 'reasoning' ? AI_CONFIG.communication.videoReasoning : tier === 'writing' ? AI_CONFIG.communication.videoWriting : kind === 'agents' ? AI_CONFIG.communication.videoAgents : AI_CONFIG.communication.video;
+    const config = kind === 'agents' && tier !== 'mechanical' ? { ...base, promptType: 'communication_video_agents', llmOptions: { ...base.llmOptions, maxOutputTokens: Math.min(base.llmOptions?.maxOutputTokens ?? 1200, 1200) } } : base;
+    const messages = [
+      { role: 'system' as const, content: system },
+      { role: 'user' as const, content: user },
+    ];
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const text = await this.promptService.runPrompt(promptConfigFor(config, userId), messages);
+        if (text && text.trim()) return text;
+        if (attempt >= 1) return text;
+      } catch (error) {
+        if (attempt >= 1) throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+  }
+
   /** Un agent de la vidéo (directeur artistique, animateur, sound designer, critique). */
   async runVideoAgentPrompt(userId: string, system: string, user: string): Promise<string> {
     return this.promptService.runPrompt(promptConfigFor(AI_CONFIG.communication.videoAgents, userId), [

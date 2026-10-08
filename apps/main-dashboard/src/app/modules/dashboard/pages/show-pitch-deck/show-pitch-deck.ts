@@ -23,7 +23,8 @@ import {
 } from '../../models/generation-completeness';
 import { ProjectService } from '../../services/project.service';
 import { CreativityLevel, normalizeCreativity, ProjectModel } from '@idem/shared-models';
-import { CreativityGaugeComponent } from '../../../../shared/components/creativity-gauge/creativity-gauge';
+import { CreativityPickerComponent } from '../../../../shared/components/creativity-picker/creativity-picker';
+import { CreativityCostPipe } from '../../../../shared/pipes/creativity-cost.pipe';
 import { CreativityService } from '../../../../shared/services/creativity.service';
 import { pitchDeckTypeLabel } from '../../utils/deliverable-labels';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
@@ -50,7 +51,7 @@ const STEP_CLASSES: Record<StepStatus, string> = {
 @Component({
   selector: 'app-show-pitch-deck',
   imports: [
-    ErrorStateComponent,TranslateModule, DocumentPreviewComponent, IncompleteProjectBannerComponent, IdemLoaderComponent, CreativityGaugeComponent],
+    ErrorStateComponent,TranslateModule, DocumentPreviewComponent, IncompleteProjectBannerComponent, IdemLoaderComponent, CreativityPickerComponent, CreativityCostPipe],
   templateUrl: './show-pitch-deck.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

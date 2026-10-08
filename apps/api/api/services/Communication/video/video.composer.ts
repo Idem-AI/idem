@@ -10,7 +10,8 @@
  * 437 ne peut donc pas sortir sans sa photo.
  */
 import { inlineFontLinks } from './video.fonts';
-import { compileSceneCode } from './video.coder';
+import { addonsOfSceneCode, compileSceneCode } from './video.coder';
+import { LAYOUT_CATALOGUE, LayoutId } from './video.layouts';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
@@ -371,6 +372,12 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
   if (scenes.some((s: any) => s.three)) addons.add('three');
   else addons.delete('three');
   if (scenes.some((s: any) => s.rive)) addons.add('rive');
+  // Les mises en page à graphique et les scènes écrites par l'IA apportent leurs bibliothèques.
+  for (const sc of storyboard.scenes) {
+    const needed = sc.layout ? LAYOUT_CATALOGUE[sc.layout as Exclude<LayoutId, 'classic'>]?.addon : undefined;
+    if (needed) addons.add(needed);
+    if (sc.code?.tsx) addonsOfSceneCode(sc.code.tsx).forEach((id) => addons.add(id));
+  }
   if (kit && !logoInfo && ['draw', 'trace', 'morph', 'assemble', 'wipe'].includes(kit.logo)) {
     addons.delete('gsap');
     addons.delete('flubber');

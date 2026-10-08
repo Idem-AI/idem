@@ -1,0 +1,146 @@
+/* Mise en page seulement : surfaces, couleurs et textes viennent des jetons du design system. */
+:host {
+  position: relative;
+  display: inline-flex;
+}
+
+.cp-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2.5rem;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.cp-trigger:hover:not(:disabled),
+.cp-trigger[aria-expanded='true'] {
+  background: var(--glass-bg-light);
+  color: var(--color-text-primary);
+}
+
+.cp-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cp-trigger:focus-visible,
+.cp-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cp-icon {
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--color-primary) 60%, var(--color-text-primary));
+}
+
+.cp-value {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.cp-cost {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+}
+
+.cp-chevron {
+  font-size: 0.7rem;
+}
+
+.cp-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 60;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 0.4rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--glass-border);
+  background: var(--color-surface-2);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.cp-menu-up {
+  top: auto;
+  bottom: calc(100% + 0.5rem);
+}
+
+.cp-menu-end {
+  left: auto;
+  right: 0;
+}
+
+.cp-help {
+  margin: 0.25rem 0.55rem 0.45rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-tertiary);
+}
+
+.cp-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  border-radius: 0.6rem;
+  text-align: left;
+  color: var(--color-text-secondary);
+}
+
+.cp-item:hover {
+  background: var(--glass-bg-subtle);
+  color: var(--color-text-primary);
+}
+
+.cp-item-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.cp-item-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.cp-item-line {
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.cp-item-cost {
+  flex: none;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+}
+
+/* Bleu mêlé au texte : contraste AA sur la surface sombre comme sur la claire. */
+.cp-item[aria-checked='true'] .cp-item-name {
+  color: color-mix(in srgb, var(--color-primary) 55%, var(--color-text-primary));
+}
+
+.cp-check {
+  flex: none;
+  font-size: 0.75rem;
+  color: color-mix(in srgb, var(--color-primary) 55%, var(--color-text-primary));
+}
+
+/* Écran étroit : le libellé « Créativité » cède la place, le cran reste lisible. */
+@media (max-width: 420px) {
+  .cp-label {
+    display: none;
+  }
+}

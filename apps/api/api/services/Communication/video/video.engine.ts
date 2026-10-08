@@ -7,8 +7,9 @@
  *   runtime.js        React 19 + ReactDOM, partagés (window.__IDEM_RT__)
  *   engine.js         le moteur : scènes, techniques, transitions, kit, styles
  *   addon-<id>.js     une bibliothèque lourde chacun (three/R3F, GSAP, anime.js,
- *                     flubber, Lottie, Rive) : la page ne charge que ceux que le
- *                     graphe de capacités retient pour la vidéo
+ *                     flubber, Lottie, Rive, Chart.js, visx + d3, rough + pinceau +
+ *                     bruit, Zdog) : la page ne charge que ceux que le graphe de
+ *                     capacités retient pour la vidéo
  *
  * Ordre dans la page : runtime → addons → engine (les addons s'inscrivent dans
  * window.__IDEM_ADDONS__ avant le premier rendu). Les addons importent React par
@@ -26,7 +27,7 @@ import path from 'path';
 import logger from '../../../config/logger';
 
 /** Les addons du moteur, un paquet chacun. */
-export const ADDON_IDS = ['three', 'gsap', 'anime', 'flubber', 'lottie', 'rive'] as const;
+export const ADDON_IDS = ['three', 'gsap', 'anime', 'flubber', 'lottie', 'rive', 'chart', 'viz', 'draw', 'zdog'] as const;
 export type AddonId = (typeof ADDON_IDS)[number];
 
 const BUNDLES: Record<string, string> = {

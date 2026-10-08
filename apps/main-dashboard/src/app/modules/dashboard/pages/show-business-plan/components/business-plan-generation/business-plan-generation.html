@@ -14,8 +14,8 @@
     (formSubmitted)="onAdditionalInfoSubmitted($event)"
     (formCancelled)="onAdditionalInfoCancelled()"
   >
-    <!-- Les deux boutons du formulaire lancent la génération : la jauge vient juste avant. -->
-    <app-creativity-gauge formFooter class="sm:glass sm:p-8" [(value)]="creativity" [baseCost]="creativityBaseCost()" />
+    <!-- Les boutons du formulaire lancent la génération : le cran de créativité se règle à côté. -->
+    <app-creativity-picker formFooter [(value)]="creativity" [baseCost]="creativityBaseCost()" [showCost]="true" placement="top" />
   </app-additional-info-form>
 } @else if (isSavingAdditionalInfo()) {
   <!-- Saving Additional Info Loading State -->
@@ -102,10 +102,15 @@
         <p class="text-text-secondary mb-8">
           {{ 'dashboard.businessPlanGeneration.empty.subtitle' | translate }}
         </p>
-        <app-creativity-gauge class="mb-6 text-left" [(value)]="creativity" [baseCost]="creativityBaseCost()" />
-        <button (click)="generateBusinessPlan()" class="w-full inner-button">
-          {{ 'dashboard.businessPlanGeneration.buttons.generate' | translate }}
-        </button>
+        <div class="flex flex-wrap items-center justify-center gap-2.5">
+          <app-creativity-picker [(value)]="creativity" [baseCost]="creativityBaseCost()" />
+          <button type="button" (click)="generateBusinessPlan()" class="inner-button">
+            {{ 'dashboard.businessPlanGeneration.buttons.generate' | translate }}
+            @if (creativityBaseCost() | creativityCost: creativity(); as cost) {
+              · {{ 'common.creativity.cost' | translate: { cost } }}
+            }
+          </button>
+        </div>
       </div>
     </div>
   </div>

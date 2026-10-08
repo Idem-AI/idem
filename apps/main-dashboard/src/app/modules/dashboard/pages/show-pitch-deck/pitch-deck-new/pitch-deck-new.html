@@ -92,7 +92,7 @@
               [formControl]="nameControl"
               (input)="onNameInput()"
             />
-            <app-creativity-gauge class="pdn-creativity" [(value)]="creativity" [baseCost]="creativityBaseCost()" [disabled]="isCreating()" />
+            <app-creativity-picker class="pdn-creativity" [(value)]="creativity" [baseCost]="creativityBaseCost()" [disabled]="isCreating()" />
             @if (createError()) {
               <p class="pdn-error" role="alert">{{ createError() }}</p>
             }
@@ -101,7 +101,12 @@
                 <idem-loader size="xs" />
                 <span>{{ 'dashboard.pitchDeckTypes.creating' | translate }}</span>
               } @else {
-                <span>{{ 'dashboard.pitchDeckTypes.generate' | translate }}</span>
+                <span>
+                  {{ 'dashboard.pitchDeckTypes.generate' | translate }}
+                  @if (creativityBaseCost() | creativityCost: creativity(); as cost) {
+                    · {{ 'common.creativity.cost' | translate: { cost } }}
+                  }
+                </span>
                 <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
               }
             </button>

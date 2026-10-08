@@ -1176,6 +1176,24 @@ export const AI_CONFIG = {
       tokens: 300,
       thinking: false,
     }),
+    // LA JAUGE DE CRÉATIVITÉ : plus le cran monte, plus les décisions confiées à l'IA comptent —
+    // et plus le modèle qui les prend est fort. Medium et au-dessus : la copie, le stratège et les
+    // agents passent à l'étage de rédaction ; Max et Ultra (film d'auteur) : à l'étage de
+    // raisonnement, sans réflexion (elle viderait le budget), budget de sortie plus large.
+    videoWriting: feature({
+      role: 'writing',
+      promptType: 'communication_video_copy',
+      temperature: 0.8,
+      tokens: 1600,
+      thinking: false,
+    }),
+    videoReasoning: feature({
+      role: 'reasoning',
+      promptType: 'communication_video_copy',
+      temperature: 0.85,
+      tokens: 4000,
+      thinking: false,
+    }),
     // L'ATELIER : un agent à outils, en conversation. Il ne produit pas de
     // livrable, il TRADUIT une demande en appel d'outil — donc peu de tokens de
     // sortie, mais du raisonnement (choisir le format, l'intention, et savoir

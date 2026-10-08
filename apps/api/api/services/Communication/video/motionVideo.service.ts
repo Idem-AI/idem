@@ -68,6 +68,8 @@ import { analyzeTrack, pickExcerptStart } from './video.beats';
 import { fetchTrack, pickTrack, resolveMood, searchMusic, MUSIC_PROVIDERS } from './video.music';
 import { cleanupRender, renderVideo, withRenderPage } from './video.renderer';
 import { codeScenes } from './video.coder';
+import { AuthoredFilm, authorShots, buildDirectorPrompt, DirectorInput, parseFilm } from './video.author';
+import { analyzeImage } from '../../glm-media.service';
 import { AgentCall, CreativeOrchestrator, runtimeCall } from '../../creativity/orchestrator';
 import { exportCost, normalizeScope, videoCost } from './video.pricing';
 import { SCENES } from './video.scenes';
@@ -90,7 +92,7 @@ export interface CreateVideoInput {
  * Progression RÉELLE d'une création, étape par étape : l'interface la montre en
  * direct (flux SSE). Les étapes médias, musique et effets tournent en parallèle.
  */
-export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'storyboard' | 'animation' | 'critique' | 'code';
+export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'storyboard' | 'animation' | 'critique' | 'code' | 'direction' | 'shots';
 
 export interface VideoProgressEvent {
   stage: VideoProgressStage;
@@ -195,6 +197,21 @@ export function applyTreatmentSurfaces(storyboard: VideoStoryboard): void {
   }
 }
 
+/** Étage du modèle d'un appel vidéo. */
+export type VideoModelTier = 'mechanical' | 'writing' | 'reasoning';
+
+/**
+ * L'étage du modèle selon le cran de créativité et le rôle de l'appel : la copie passe à
+ * l'étage de rédaction dès Medium ; les agents de composition dès High ; le stratège au
+ * raisonnement en Max ; le film d'auteur (Ultra) est écrit à l'étage de raisonnement.
+ */
+export function tierFor(level: CreativityLevel, role: 'copy' | 'strategist' | 'agents'): VideoModelTier {
+  if (level === 'low') return 'mechanical';
+  if (role === 'strategist') return atLeast(level, 'max') ? 'reasoning' : 'writing';
+  if (role === 'agents') return atLeast(level, 'high') ? 'writing' : 'mechanical';
+  return 'writing';
+}
+
 const orientationOf = (format: VideoFormat): Orientation => (format === 'landscape' ? 'landscape' : format === 'square' ? 'square' : 'portrait');
 
 export class MotionVideoService {
@@ -203,13 +220,21 @@ export class MotionVideoService {
   constructor(
     private readonly communication: CommunicationService,
     /** Remplaçable pour les tests (réponses écrites à la main, aucun appel réseau). */
-    private readonly writerFor: (userId: string) => CopyWriter | undefined = (userId) => (system, user) =>
-      communication.runVideoCopyPrompt(userId, system, user),
+    // L'étage du modèle suit la jauge de créativité (`tierFor`) : plus l'IA décide, plus le modèle est fort.
+    private readonly writerFor: (userId: string, tier?: VideoModelTier) => CopyWriter | undefined = (userId, tier = 'mechanical') => (system, user) =>
+      typeof communication.runVideoTieredPrompt === 'function' ? communication.runVideoTieredPrompt(userId, system, user, tier, 'copy') : communication.runVideoCopyPrompt(userId, system, user),
     /** Les agents (directeur artistique, animateur, sound designer, critique) : leur propre configuration. */
-    private readonly agentWriterFor: (userId: string) => CopyWriter | undefined = (userId) => (system, user) =>
-      typeof communication.runVideoAgentPrompt === 'function' ? communication.runVideoAgentPrompt(userId, system, user) : Promise.reject(new Error('no_agent_model')),
+    private readonly agentWriterFor: (userId: string, tier?: VideoModelTier) => CopyWriter | undefined = (userId, tier = 'mechanical') => (system, user) =>
+      typeof communication.runVideoTieredPrompt === 'function'
+        ? communication.runVideoTieredPrompt(userId, system, user, tier, 'agents')
+        : typeof communication.runVideoAgentPrompt === 'function'
+          ? communication.runVideoAgentPrompt(userId, system, user)
+          : Promise.reject(new Error('no_agent_model')),
     /** Cran Ultra : l'agent codeur (runtime d'agents, étage créatif) ; remplaçable dans les contrôles. */
-    private readonly coderCallFor: (userId: string, projectId: string) => AgentCall | undefined = (userId, projectId) => runtimeCall({ userId, projectId, element: 'motion_video' })
+    private readonly coderCallFor: (userId: string, projectId: string) => AgentCall | undefined = (userId, projectId) => runtimeCall({ userId, projectId, element: 'motion_video' }),
+    /** Cran Ultra : la critique visuelle des plans (modèle de vision) ; remplaçable dans les contrôles. */
+    private readonly visionCritic: ((png: Buffer, prompt: string) => Promise<string>) | undefined = (png, prompt) =>
+      analyzeImage(png.toString('base64'), 'image/png', prompt, { maxOutputTokens: 400, temperature: 0.2 })
   ) {}
 
   // ── Contexte de marque (sans appel de modèle) ────────────────────────────
@@ -563,6 +588,16 @@ export class MotionVideoService {
       requested: isMotionDirection(brief.direction) ? brief.direction : undefined,
     });
 
+    // Cran Ultra : le FILM D'AUTEUR — l'IA invente et crée tout (video.author.ts). Si le directeur
+    // échoue deux fois, la création continue par le pipeline des menus (repli complet, au même cran).
+    if (creativity === 'ultra') {
+      const authored = await this.createAuthoredVideo({ userId, projectId, input, scope, brief, theme, ctx, branding, visuals, otherVideos, art, videoId, seed, direction, orientation, facts, paidCredits, requested, emit }).catch((error: any) => {
+        logger.warn('video.authored_failed', { projectId, error: error?.message });
+        return null;
+      });
+      if (authored) return authored;
+    }
+
     // La direction créative : le modèle CHOISIT dans des menus que le graphe a filtrés
     // (concepts, scènes, grand moment, entrées, animation du logo) ; le code valide tout.
     const prelim = this.kitContext({
@@ -603,7 +638,7 @@ export class MotionVideoService {
         seed,
       },
       // Structure (concept, scènes, grand moment, rythme) : l'IA dès Medium, le graphe en dessous.
-      aiFrom('medium') ? this.writerFor(userId) : undefined
+      aiFrom('medium') ? this.writerFor(userId, tierFor(creativity, 'strategist')) : undefined
     );
     const type: VideoType = plan.type;
     brief.objective = plan.objective;
@@ -626,7 +661,7 @@ export class MotionVideoService {
     emit('copy', 'running');
     // Le graphe donne au modèle un vocabulaire court de concepts d'icônes (scène « avantages » seulement).
     const vocabText = [brief.message, brief.details, ctx.businessType, ...(ctx.keywords || [])].filter(Boolean).join(' ');
-    const copy = await writeCopy(sceneIds, brief, ctx, this.writerFor(userId), {
+    const copy = await writeCopy(sceneIds, brief, ctx, this.writerFor(userId, tierFor(creativity, 'copy')), {
       mediaQuery: needsStock,
       icons: sceneIds.includes('benefits') ? iconVocabulary(vocabText) : undefined,
       // Le concept oriente les textes (question, problème, preuve…) ; le grand moment reçoit la ligne la plus forte.
@@ -645,9 +680,9 @@ export class MotionVideoService {
     // L'équipe d'agents : tous reçoivent la même fiche de la charte et de sa DA.
     const sheet = brandSheet({ ctx, palette: theme.palette, fonts: theme.fonts, art: branding?.artDirection });
     // Les agents de composition (mises en page, transitions, relecture) : dès High.
-    const agentWriter = aiFrom('high') ? this.agentWriterFor(userId) : undefined;
+    const agentWriter = aiFrom('high') ? this.agentWriterFor(userId, tierFor(creativity, 'agents')) : undefined;
     // Le sound designer (piste, intensité des effets) : dès Medium.
-    const soundWriter = aiFrom('medium') ? this.agentWriterFor(userId) : undefined;
+    const soundWriter = aiFrom('medium') ? this.agentWriterFor(userId, tierFor(creativity, 'agents')) : undefined;
     const agentRuns: AgentRun[] = [
       { agent: 'strategist', source: plan.source, tokens: storylineTokens, ms: 0 },
       { agent: 'writer', source: copy.source === 'llm' ? 'llm' : 'graph', tokens: copy.tokens, ms: 0 },
@@ -1033,6 +1068,224 @@ export class MotionVideoService {
     return video;
   }
 
+  /**
+   * LE FILM D'AUTEUR (cran Ultra, video.author.ts) : le directeur IA invente le film, un codeur
+   * IA écrit chaque plan avec tout le kit du moteur, la boucle rendu → contrôles → critique
+   * visuelle → correction garantit la qualité. `null` si le directeur n'a pas livré de film
+   * utilisable (le service reprend alors le pipeline des menus).
+   */
+  private async createAuthoredVideo(o: {
+    userId: string;
+    projectId: string;
+    input: CreateVideoInput;
+    scope: VideoScope;
+    brief: VideoBrief;
+    theme: VideoTheme;
+    ctx: CopyContext;
+    branding: any;
+    visuals: any[];
+    otherVideos: MotionVideo[];
+    art: ReturnType<typeof motionFromArtDirection>;
+    videoId: string;
+    seed: number;
+    direction: DirectionId;
+    orientation: Orientation;
+    facts: ReturnType<typeof extractFacts>;
+    paidCredits: number;
+    requested: VideoType | null;
+    emit: (stage: VideoProgressStage, state: 'running' | 'done', data?: Record<string, unknown>) => void;
+  }): Promise<MotionVideo | null> {
+    const { userId, projectId, scope, brief, theme, ctx, branding, otherVideos, art, videoId, seed, direction, emit } = o;
+    const agentRuns: AgentRun[] = [];
+    const sheet = brandSheet({ ctx, palette: theme.palette, fonts: theme.fonts, art: branding?.artDirection });
+    const briefText = `${brief.message}\n${brief.details || ''}`;
+    const style = brief.style && brief.style !== 'auto' ? resolveStyle(brief.style, undefined, brief.objective) : styleOfDirection(direction);
+
+    // 1. Les photos d'abord : le directeur compose avec ce qui existe vraiment.
+    const query = ([ctx.businessType, ...(ctx.keywords || []).slice(0, 2)].filter(Boolean).join(' ') || brief.message).slice(0, 60);
+    emit('media', 'running', { query, wanted: { images: 4, videos: 0 } });
+    const media = await this.acquireMedia({ userId, projectId, videoId, brief, visuals: o.visuals, wanted: { images: 4, videos: 0 }, query, orientation: o.orientation, ctx, artModifier: branding?.artDirection?.imagePromptModifier });
+    const photos = media.assets.filter((a) => a.kind === 'image');
+    emit('media', 'done', { query, ...media.report, items: photos.slice(0, 8).map((a) => ({ kind: a.kind, origin: a.origin, url: a.url, credit: a.credit, name: a.name })) });
+
+    // 2. Le directeur invente le film (deux tentatives) ; le code le valide.
+    emit('direction', 'running');
+    const directorInput: DirectorInput = {
+      brief: { message: brief.message, details: brief.details, objective: brief.objective },
+      briefText,
+      facts: o.facts,
+      sheet,
+      direction,
+      durationSec: scope.durationSec,
+      formats: scope.formats,
+      range: sceneRange(scope.durationSec),
+      media: photos.map((a) => [a.origin === 'upload' ? 'photo of the brand (provided by the client)' : a.origin === 'visual' ? 'photo from the brand visuals' : a.origin === 'generated' ? 'generated photo' : 'stock photo', a.name || query].join(': ').slice(0, 120)),
+      brandName: theme.brandName,
+      language: brief.language || ctx.language || 'fr',
+      recentConcepts: otherVideos.map((v) => v.storyboard?.authored?.concept || v.storyboard?.concept).filter(Boolean) as string[],
+    };
+    const director = this.writerFor(userId, 'reasoning');
+    let film: AuthoredFilm | undefined;
+    for (let attempt = 0; attempt < 2 && !film && director; attempt++) {
+      const prompt = buildDirectorPrompt(directorInput);
+      const started = Date.now();
+      const raw = await director(prompt.system, attempt ? `${prompt.user}\n\nYour previous answer could not be used: follow the OUTPUT format exactly, with ${directorInput.range[0]} to ${directorInput.range[1]} shots and a TITLE on every shot but the signature.` : prompt.user).catch(() => '');
+      film = parseFilm(raw, directorInput);
+      agentRuns.push({ agent: 'director', source: film ? 'llm' : 'graph', tokens: { input: Math.round((prompt.system.length + prompt.user.length) / 4), output: Math.round(raw.length / 4) }, ms: Date.now() - started, kept: film ? 1 : 0 });
+    }
+    if (!film) {
+      emit('direction', 'done', { fallback: true });
+      return null;
+    }
+    emit('direction', 'done', { title: film.title, concept: film.concept, shots: film.shots.map((sh) => ({ kind: sh.kind, duration: sh.duration, visual: sh.visual.slice(0, 140) })) });
+
+    // 3. Musique et effets sonores, pendant que les plans s'écrivent.
+    emit('music', 'running', { mood: brief.musicMood });
+    if (brief.sfx) emit('sfx', 'running');
+    const soundWriter = this.agentWriterFor(userId, 'writing');
+    const musicP = this.chooseMusic({
+      mood: brief.musicMood,
+      style,
+      objective: brief.objective,
+      durationSec: scope.durationSec,
+      seed,
+      avoidIds: otherVideos.map((v) => v.music?.id).filter(Boolean) as string[],
+      brandText: [ctx.tone, ctx.valueProposition, ctx.businessType, ...(ctx.keywords || []), brief.message, film.concept].filter(Boolean).join(' '),
+      pick: async (tracks, mood) => {
+        const res = await runSoundDesigner(soundWriter, { sheet, request: `${brief.message} ${film!.concept}`, rhythm: 'steady', mood, durationSec: scope.durationSec, tracks });
+        agentRuns.push(res.run);
+        return res.choice.trackId;
+      },
+    }).then((track) => {
+      emit('music', 'done', track ? { title: track.title, artist: track.artist, provider: track.provider, bpm: track.beat?.bpm, license: track.license, pickedBy: 'agent' } : { none: true });
+      return track;
+    });
+    const sfxP = brief.sfx
+      ? this.chooseSfx(seed)
+          .catch(() => undefined)
+          .then((fx) => {
+            emit('sfx', 'done', { sounds: Object.values(fx?.sounds || {}).map((snd) => ({ kind: snd!.kind, title: snd!.title })) });
+            return fx;
+          })
+      : Promise.resolve(undefined);
+    const music = await musicP;
+
+    // 4. Le storyboard aux durées, surfaces et photos du directeur ; coupes franches (chaque plan
+    //    fait lui-même son entrée et sa sortie, comme le directeur les a imaginées).
+    const storyboard = buildStoryboard({
+      sceneIds: film.shots.map((sh) => sh.kind),
+      slots: film.shots.map((sh) => sh.slots),
+      durationSec: scope.durationSec,
+      style,
+      seed,
+      beat: music?.beat,
+      images: [],
+      objective: brief.objective,
+      direction,
+      landscape: scope.formats[0] === 'landscape',
+      art: art.overrides,
+    });
+    let start = 0;
+    storyboard.scenes.forEach((sc, i) => {
+      const shot = film!.shots[i];
+      sc.start = Math.round(start * 1000) / 1000;
+      sc.duration = shot.duration;
+      start += shot.duration;
+      if (shot.surface) sc.surface = shot.surface;
+      if (shot.media && photos[shot.media - 1]) sc.image = photos[shot.media - 1].url;
+      if (sc.motion) sc.motion = { ...sc.motion, transition: 'cut' as MotionTransition };
+      delete sc.accent;
+      delete sc.layout;
+    });
+    const last = storyboard.scenes[storyboard.scenes.length - 1];
+    if (last) last.duration = Math.round((scope.durationSec - last.start) * 1000) / 1000;
+    const type: VideoType = o.requested ?? 'mix';
+    const kctx = this.kitContext({ type, brief, scope, direction, storyboard, theme, branding, ctx, media: media.assets, otherVideos });
+    // Le kit ne décore plus rien : l'IA dessine ses fonds et ses annotations. Il garde l'animation
+    // du logo et les icônes (repli de la signature, briques du codeur).
+    storyboard.kit = { ...resolveKit(kctx), background: 'none', backdropScenes: [], annotate: 'none', annotateScene: undefined };
+    storyboard.kit.icons = {};
+
+    // 5. Chaque plan écrit par un codeur IA, rendu, contrôlé, critiqué, corrigé.
+    emit('shots', 'running', { total: storyboard.scenes.length, done: 0, coded: 0 });
+    const orchestrator = new CreativeOrchestrator({ level: 'ultra', call: this.coderCallFor(userId, projectId) });
+    let done = 0;
+    let codedSoFar = 0;
+    const result = await authorShots({
+      storyboard,
+      film,
+      sheet,
+      direction,
+      formats: scope.formats,
+      compose: async (sb) => composeVideoHtml({ ...(await inlineAssets(sb, theme, 'render')), format: scope.formats[0], quality: 'standard', mode: 'render' }),
+      withPage: withRenderPage,
+      orchestrator,
+      critic: this.visionCritic,
+      rounds: 3,
+      onShot: (index, state, info) => {
+        if (state === 'done') {
+          done++;
+          if (info?.ok) codedSoFar++;
+        }
+        emit('shots', 'running', { total: storyboard.scenes.length, done, coded: codedSoFar, current: index + 1, step: state, round: info?.round });
+      },
+    });
+    for (const trace of orchestrator.traces) agentRuns.push({ agent: trace.agent, source: trace.source, tokens: trace.tokens, ms: trace.ms, kept: trace.source === 'llm' ? 1 : 0 });
+    if (result.fallback.length) logger.info('video.authored_fallback', { projectId, fallback: result.fallback, rejected: result.rejected });
+    emit('shots', 'done', { total: storyboard.scenes.length, coded: result.coded, reviewed: result.reviewed });
+
+    storyboard.authored = { title: film.title, concept: film.concept, bible: film.bible, shots: storyboard.scenes.length, coded: result.coded, fallback: result.fallback, reviewed: result.reviewed, rounds: result.rounds };
+    storyboard.concept = 'authored';
+    storyboard.agents = agentRuns.map((r) => ({ agent: r.agent, source: r.source, tokens: r.tokens, ms: r.ms, kept: r.kept }));
+    const sfx = await sfxP;
+
+    const now = new Date().toISOString();
+    const used = new Set(storyboard.scenes.map((sc) => sc.image).filter(Boolean));
+    const video: MotionVideo = {
+      id: videoId,
+      title: fitLength(film.title || brief.message, 60),
+      type,
+      brief,
+      scope,
+      storyboard,
+      music,
+      sfx: sfx ? sfx : brief.sfx ? undefined : { enabled: false, sounds: {} },
+      media: media.assets.filter((a) => used.has(a.url) || a.origin === 'upload'),
+      renders: [],
+      status: 'draft',
+      paidCredits: o.paidCredits,
+      creativity: 'ultra',
+      exportCount: 0,
+      copyTokens: {
+        input: agentRuns.reduce((n, r) => n + r.tokens.input, 0),
+        output: agentRuns.reduce((n, r) => n + r.tokens.output, 0),
+        source: 'llm',
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
+    emit('storyboard', 'done', {
+      scenes: storyboard.scenes.map((sc) => ({ sceneId: sc.sceneId, duration: sc.duration, surface: sc.surface })),
+      bpm: storyboard.beat?.bpm,
+      authored: { shots: storyboard.authored.shots, coded: storyboard.authored.coded },
+    });
+    await this.communication.saveVideo(userId, projectId, video);
+    if (o.input.contentId) await this.communication.linkVideoToContent(userId, projectId, o.input.contentId, videoId).catch(() => undefined);
+    logger.info('video.created', {
+      event: 'video.created',
+      projectId,
+      videoId,
+      type,
+      creativity: 'ultra',
+      authored: { title: film.title, concept: film.concept, shots: storyboard.authored.shots, coded: result.coded, fallback: result.fallback, reviewed: result.reviewed, rounds: result.rounds },
+      agents: agentRuns.map((r) => `${r.agent}:${r.source}:${r.kept ?? 0}`).join(' '),
+      music: music?.provider,
+      media: media.report,
+    });
+    this.lastMediaReport = media.report;
+    return video;
+  }
+
   /** Dernier rapport de médias (contrôles). */
   lastMediaReport?: MediaReport;
 
@@ -1167,10 +1420,15 @@ export class MotionVideoService {
       applyTreatmentSurfaces(storyboard);
     }
 
-    storyboard = retime(storyboard, music?.beat);
-    {
+    // Un film d'auteur (Ultra) garde le minutage et le découpage de son directeur : re-minuter ou
+    // réparer par les règles du graphe défairait ce que l'IA a composé (les plans codés lisent
+    // leurs cases, une retouche de texte s'y affiche telle quelle).
+    if (!storyboard.authored) {
+      storyboard = retime(storyboard, music?.beat);
       const qa = applyRules(storyboard, { objective: brief.objective });
       storyboard = { ...storyboard, qa: { repaired: qa.repaired.length, issues: qa.issues, warnings: qa.warnings } };
+    } else if (music?.beat) {
+      storyboard = { ...storyboard, beat: music.beat };
     }
 
     return this.communication.mutateVideo(userId, projectId, videoId, (v) => ({

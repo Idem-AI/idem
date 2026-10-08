@@ -32,7 +32,10 @@ export type LayoutId =
   | 'priceBurst'
   | 'ticker'
   | 'spotlightWord'
-  | 'frameOverlap';
+  | 'frameOverlap'
+  | 'chartRing'
+  | 'barCompare'
+  | 'dataArc';
 
 export interface LayoutScene {
   sceneId: string;
@@ -47,12 +50,25 @@ export interface LayoutDef {
   /** Le contenu de la scène permet-il cette mise en page ? */
   needs: (sc: LayoutScene) => boolean;
   directions: Partial<Record<DirectionId, number>>;
+  /** Bibliothèque du moteur qu'exige cette mise en page (chargée par le montage). */
+  addon?: 'chart' | 'viz' | 'draw' | 'zdog';
 }
 
 const words = (text?: string) => (text || '').split(/\s+/).filter(Boolean);
 const title = (sc: LayoutScene) => sc.slots.title || sc.slots.name || sc.slots.quote || '';
 const items = (sc: LayoutScene) => (sc.sceneId === 'event' ? ['date', 'time', 'place'] : ['b1', 'b2', 'b3']).filter((k) => sc.slots[k]).length;
 const numeric = (v?: string) => !!v && /\d/.test(v) && v.length <= 10;
+/** Un pourcentage entre 0 et 100 écrit dans la case (« 87 % ») : le graphique ne montre que lui. */
+const percent = (v?: string) => {
+  const m = String(v || '').match(/(\d+(?:[.,]\d+)?)\s*%/);
+  const n = m ? Number(m[1].replace(',', '.')) : NaN;
+  return n > 0 && n <= 100;
+};
+/** Le premier nombre d'un prix (« 15 000 F » → 15000). */
+const amount = (v?: string) => {
+  const m = String(v || '').replace(/[\u00a0\u202f]/g, ' ').match(/\d{1,3}(?:[ .,]\d{3})+|\d+/);
+  return m ? Number(m[0].replace(/[ .,]/g, '')) : NaN;
+};
 
 export const LAYOUT_CATALOGUE: Record<Exclude<LayoutId, 'classic'>, LayoutDef> = {
   wordStack: {
@@ -84,6 +100,27 @@ export const LAYOUT_CATALOGUE: Record<Exclude<LayoutId, 'classic'>, LayoutDef> =
     scenes: ['hook', 'statement', 'stat', 'cta', 'product'],
     needs: (sc) => !!title(sc) || !!sc.slots.label,
     directions: { precision: 2.5, drenched: 2.5, kinetic: 2, collage: 2, editorial: 1.5, swiss: 1, cinematic: 1 },
+  },
+  chartRing: {
+    summary: 'the percentage as a Chart.js ring that sweeps to its value, the number rolling in its center',
+    scenes: ['stat'],
+    needs: (sc) => percent(sc.slots.value),
+    directions: { precision: 3, swiss: 2.5, drenched: 2, editorial: 2, kinetic: 1.5, cinematic: 1 },
+    addon: 'chart',
+  },
+  barCompare: {
+    summary: 'old price and new price as two Chart.js bars that rise, the saving made visible',
+    scenes: ['offer'],
+    needs: (sc) => amount(sc.slots.oldPrice) > amount(sc.slots.price) && amount(sc.slots.price) > 0,
+    directions: { swiss: 2.5, brutal: 2.5, kinetic: 2, precision: 2, collage: 1.5, drenched: 1.5 },
+    addon: 'chart',
+  },
+  dataArc: {
+    summary: 'a thick 270° gauge (visx) that fills to the percentage, label under it',
+    scenes: ['stat'],
+    needs: (sc) => percent(sc.slots.value),
+    directions: { cinematic: 2.5, precision: 2, drenched: 2.5, editorial: 1.5, kinetic: 1.5, collage: 1 },
+    addon: 'viz',
   },
   splitBlock: {
     summary: 'the frame split in two color blocks: headline on one, details on the other',
