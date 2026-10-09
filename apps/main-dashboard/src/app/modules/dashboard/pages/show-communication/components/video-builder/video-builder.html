@@ -402,16 +402,16 @@
                 <label class="vdb-switch">
                   <input
                     type="checkbox"
-                    [ngModel]="allowStock()"
-                    (ngModelChange)="allowStock.set($event)"
-                    name="vdbStock"
+                    [ngModel]="voice()"
+                    (ngModelChange)="voice.set($event)"
+                    name="vdbVoice"
                   />
                   <span>
                     <span class="vdb-switch-title">{{
-                      'dashboard.showCommunication.video.builder.media.stock' | translate
+                      'dashboard.showCommunication.video.builder.voice.label' | translate
                     }}</span>
                     <span class="vdb-switch-hint">{{
-                      'dashboard.showCommunication.video.builder.media.stockHint' | translate
+                      'dashboard.showCommunication.video.builder.voice.hint' | translate
                     }}</span>
                   </span>
                 </label>
@@ -428,6 +428,22 @@
                     }}</span>
                     <span class="vdb-switch-hint">{{
                       'dashboard.showCommunication.video.builder.media.generateHint' | translate
+                    }}</span>
+                  </span>
+                </label>
+                <label class="vdb-switch">
+                  <input
+                    type="checkbox"
+                    [ngModel]="allowStock()"
+                    (ngModelChange)="allowStock.set($event)"
+                    name="vdbStock"
+                  />
+                  <span>
+                    <span class="vdb-switch-title">{{
+                      'dashboard.showCommunication.video.builder.media.stock' | translate
+                    }}</span>
+                    <span class="vdb-switch-hint">{{
+                      'dashboard.showCommunication.video.builder.media.stockHint' | translate
                     }}</span>
                   </span>
                 </label>

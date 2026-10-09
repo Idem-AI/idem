@@ -154,6 +154,11 @@ export interface StoryboardInput {
   avoidHeadlines?: string[];
   /** Menu de transitions de la vidéo (catalogue filtré par la direction et la DA, cf. transitionMenu). */
   transitions?: WeightedTransition[];
+  /**
+   * Les médias produits POUR une scène (index dans `sceneIds`, cf. video.sourcing.ts) : ils
+   * passent avant le partage des listes, pour que chaque plan corresponde à son texte.
+   */
+  sceneMedia?: Record<number, { image?: string; images?: string[]; video?: string }>;
 }
 
 function chooseVariant(
@@ -221,13 +226,17 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
     let model: string | undefined;
     let lottie: string | undefined;
     let rive: string | undefined;
-    if (sceneId === 'product') image = nextImage();
+    const own = input.sceneMedia?.[i];
+    if (sceneId === 'product') image = own?.image || own?.images?.[0] || nextImage();
     if (sceneId === 'footage') {
-      if (videos.length) video = videos[videoCursor++ % videos.length];
+      if (own?.video) video = own.video;
+      else if (own?.image) image = own.image;
+      else if (videos.length) video = videos[videoCursor++ % videos.length];
       else image = nextImage();
     }
     if (sceneId === 'showcase3d') {
       if (models.length) model = models[modelCursor++ % models.length];
+      else if (own?.images?.length) sceneImages = own.images.slice(0, 4);
       else if (images.length) {
         sceneImages = [];
         for (let k = 0; k < Math.min(4, images.length); k++) sceneImages.push(images[(imageCursor + k) % images.length]);
@@ -243,9 +252,13 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
       lottieCursor++;
     }
     if (sceneId === 'gallery') {
-      sceneImages = [];
-      for (let k = 0; k < Math.min(3, images.length); k++) sceneImages.push(images[(imageCursor + k) % images.length]);
-      imageCursor += sceneImages.length;
+      sceneImages = (own?.images || []).slice(0, 3);
+      // Une galerie incomplète se complète avec les autres photos du film.
+      for (let k = 0; sceneImages.length < Math.min(3, images.length) && k < images.length; k++) {
+        const next = images[(imageCursor + k) % images.length];
+        if (!sceneImages.includes(next)) sceneImages.push(next);
+      }
+      if (!own?.images?.length) imageCursor += sceneImages.length;
     }
     const variant = chooseVariant(sceneId, slots, !!image, r, used, sceneId === 'logo' && !!input.logo3d);
 

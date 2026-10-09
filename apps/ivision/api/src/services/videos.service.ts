@@ -36,7 +36,7 @@ export async function createVideo(
     brandId,
     {
       // Le message (400 signes) porte l'idée ; la suite de la demande devient le détail.
-      brief: { message: clean.slice(0, 400), details: extra ? extra.slice(0, 800) : undefined, musicMood: (input.options.musicMood as never) || 'auto', media: input.media, sfx: input.options.sfx !== false },
+      brief: { message: clean.slice(0, 400), details: extra ? extra.slice(0, 800) : undefined, musicMood: (input.options.musicMood as never) || 'auto', media: input.media, sfx: input.options.sfx !== false, voice: input.options.voice === true },
       scope: scopeOf(input.options),
       type,
       language: input.language,

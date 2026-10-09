@@ -23,7 +23,7 @@ import { creditLedgerService } from '../services/billing/credit-ledger.service';
 import { entitlementsService } from '../services/billing/entitlements.service';
 import { CommunicationService } from '../services/Communication/communication.service';
 import { AgentProfile, runtimeCall } from '../services/creativity/orchestrator';
-import { idemAnalyzeImage, idemGenerateImage } from '../services/ivision/host';
+import { idemAnalyzeImage, idemGenerateImage, idemGenerateVideo, idemSynthesizeSpeech } from '../services/ivision/host';
 import { PromptService } from '../services/prompt.service';
 import { projectService } from '../services/project.service';
 import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
@@ -127,7 +127,7 @@ router.post(
       res.status(400).json({ error: 'invalid_image' });
       return;
     }
-    const purpose = ['visual-analysis', 'shot-critic', 'reference', 'site'].includes(options?.purpose) ? options.purpose : undefined;
+    const purpose = ['visual-analysis', 'shot-critic', 'reference', 'site', 'media-check'].includes(options?.purpose) ? options.purpose : undefined;
     const out = await asUser(req, 'communication', () =>
       idemAnalyzeImage(base64, mimeType, text(instruction, 20_000), {
         ...(typeof options?.maxOutputTokens === 'number' ? { maxOutputTokens: Math.min(4000, options.maxOutputTokens) } : {}),
@@ -153,6 +153,63 @@ router.post(
       })
     );
     res.json({ base64: image.buffer.toString('base64'), mimeType: image.mimeType, model: image.model });
+  })
+);
+
+/** Un clip d'un plan de vidéo (CogVideoX-3) : l'URL rendue par Z.ai, qu'iVision télécharge. */
+router.post(
+  '/ai/video',
+  route(async (req, res) => {
+    const { prompt, image, size, durationSec, quality, tag } = req.body || {};
+    if (typeof prompt !== 'string' || !prompt.trim()) {
+      res.status(400).json({ error: 'prompt_required' });
+      return;
+    }
+    const start = image && typeof image.base64 === 'string' && /^image\/(png|jpeg)$/.test(String(image.mimeType)) ? { base64: image.base64, mimeType: image.mimeType } : undefined;
+    const clip = await asUser(req, 'communication', () =>
+      idemGenerateVideo({
+        prompt: text(prompt, 600),
+        image: start,
+        size: text(size, 16) || '1280x720',
+        durationSec: durationSec === 10 ? 10 : 5,
+        quality: quality === 'quality' ? 'quality' : 'speed',
+        tag: text(tag, 64) || 'ivision',
+      })
+    );
+    res.json(clip);
+  })
+);
+
+/** Une ligne de voix off (GLM-TTS, repli Gemini TTS) : l'audio en base64. */
+router.post(
+  '/ai/speech',
+  route(async (req, res) => {
+    const { text: line, language, provider, voice, style, tag } = req.body || {};
+    if (typeof line !== 'string' || !line.trim()) {
+      res.status(400).json({ error: 'text_required' });
+      return;
+    }
+    try {
+      const speech = await asUser(req, 'communication', () =>
+        idemSynthesizeSpeech({
+          text: text(line, 1000),
+          language: text(language, 5) || 'fr',
+          provider: provider === 'glm' ? 'glm' : 'gemini',
+          voice: text(voice, 40),
+          style: text(style, 60) || undefined,
+          tag: text(tag, 64) || 'ivision',
+        })
+      );
+      res.json({ base64: speech.buffer.toString('base64'), mimeType: speech.mimeType, provider: speech.provider, model: speech.model, voice: speech.voice });
+    } catch (error) {
+      // Une langue refusée n'est pas une panne : iVision crée la vidéo sans voix.
+      const message = (error as Error).message;
+      if (/voice_language_unsupported|voice_unavailable/.test(message)) {
+        res.status(422).json({ error: message, message });
+        return;
+      }
+      throw error;
+    }
   })
 );
 

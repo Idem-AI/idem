@@ -204,6 +204,7 @@
         "media": "Images and clips",
         "music": "Music",
         "sfx": "Sound effects",
+        "voice": "Voice-over",
         "storyboard": "Edit",
         "animation": "Animations",
         "critique": "Review",
@@ -222,6 +223,8 @@
       "duration": "Duration",
       "format": "Format",
       "photo": "With photo",
+      "voice": "Voice-over",
+      "voiceHint": "A voice tells the message, scene by scene, in your language.",
       "price": "{{cost}} credits"
     },
     "choice": {
@@ -300,6 +303,9 @@
     "sound": "Sound",
     "music": "Music",
     "sfx": "Sound effects",
+    "voice": "Voice-over",
+    "voiceLines": "{{count}} line(s), scenes synced to the voice",
+    "voiceUnavailable": "Voice-over unavailable for this language.",
     "export": "Export as MP4",
     "firstExport": "The first export is included in the video price.",
     "nextExport": "A new export costs a fraction of the video price.",

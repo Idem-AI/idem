@@ -1,11 +1,12 @@
 /**
- * MÉDIAS DES VIDÉOS — importés, trouvés sur Pexels, ou générés.
+ * MÉDIAS DES VIDÉOS — importés, générés, ou trouvés sur Pexels.
  *
- * Ordre de priorité, pour chaque besoin de la vidéo :
+ * Ordre de priorité, pour chaque besoin de la vidéo (cf. `video.sourcing.ts`) :
  *   1. ce que l'utilisateur a importé (photos, clips, modèles 3D, Lottie) ;
- *   2. les photos déjà utilisées dans ses visuels (payées, à la charte) ;
- *   3. Pexels — photos ET vidéos (`PEXELS_API_KEY`), si l'utilisateur l'autorise ;
- *   4. génération : image (Gemini) ou clip vidéo (Gemini Veo, un seul par vidéo).
+ *   2. génération par les modèles de l'hôte (famille GLM chez IDEM) : image (GLM-Image,
+ *      repli CogView-4), clip (CogVideoX-3, image → vidéo) — trois essais par média ;
+ *   3. Pexels — photos ET vidéos (`PEXELS_API_KEY`), après trois échecs de génération ;
+ *   4. les photos déjà utilisées dans ses visuels (dernier recours, images seulement).
  *
  * Tout clip, d'où qu'il vienne, est réencodé en WebM VP9 (720p, 15 s max, sans
  * son) : lisible par tous les Chromium (y compris ceux sans H.264) et rapide à
@@ -20,8 +21,7 @@ import path from 'path';
 import sharp from 'sharp';
 import logger from '../runtime/logger';
 import { VideoMediaAsset, VideoMediaKind } from './video.model';
-import { generateVeoClip } from './video.veo';
-import { requirePort } from '../runtime/host';
+import { requirePort, VideoClipRequest } from '../runtime/host';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 const FFPROBE = process.env.FFPROBE_PATH || 'ffprobe';
@@ -308,26 +308,55 @@ export async function searchPexelsVideos(
 
 // ─── Génération ─────────────────────────────────────────────────────────────
 
-/** Clip généré par Gemini Veo (dernier recours, un seul par vidéo). */
-export async function generateClip(prompt: string, orientation: Orientation, storage: MediaStorage, folder: string, model?: string): Promise<VideoMediaAsset> {
+/** Taille d'un clip généré, selon l'orientation du format (le clip est ensuite ramené à 1280 px). */
+export const clipSize = (orientation: Orientation): string => (orientation === 'landscape' ? '1280x720' : orientation === 'square' ? '1024x1024' : '720x1280');
+
+/** Taille d'une image générée (multiples de 32, acceptés par GLM-Image comme par CogView-4). */
+export const stillSize = (orientation: Orientation): string => (orientation === 'landscape' ? '1728x960' : orientation === 'square' ? '1280x1280' : '960x1728');
+
+/** Clip généré par le modèle vidéo de l'hôte (CogVideoX-3 chez IDEM), réencodé et déposé. */
+export async function generateClip(
+  request: Omit<VideoClipRequest, 'size' | 'durationSec' | 'tag'> & { orientation: Orientation; durationSec?: 5 | 10 },
+  storage: MediaStorage,
+  folder: string,
+  name?: string
+): Promise<VideoMediaAsset> {
+  const generateVideo = requirePort('generateVideo');
+  const { orientation, ...rest } = request;
+  const clip = await generateVideo({ ...rest, size: clipSize(orientation), durationSec: request.durationSec ?? 5, tag: 'motion-video' });
   const dir = tmpDir();
   try {
-    const raw = path.join(dir, 'veo.mp4');
-    const result = await generateVeoClip({ prompt, aspectRatio: orientation === 'landscape' ? '16:9' : '9:16', model }, raw);
-    return await storeClip(raw, storage, folder, { origin: 'generated', name: prompt.slice(0, 80), credit: `Généré (${result.model})` });
+    const raw = path.join(dir, 'clip.mp4');
+    if (clip.buffer) fs.writeFileSync(raw, clip.buffer);
+    else if (clip.url) {
+      const dl = await axios.get(clip.url, { responseType: 'arraybuffer', timeout: 120000, maxContentLength: MEDIA_LIMITS.video });
+      fs.writeFileSync(raw, Buffer.from(dl.data));
+    } else throw new Error('clip_empty');
+    return await storeClip(raw, storage, folder, { origin: 'generated', name: (name || request.prompt).slice(0, 80), credit: `Généré (${clip.model})` });
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }
 
-/** Image générée (Gemini) quand ni l'utilisateur ni Pexels n'en ont. */
-export async function generateStill(prompt: string, orientation: Orientation, storage: MediaStorage, folder: string, styled = false): Promise<VideoMediaAsset> {
+/** Image générée par le modèle d'image de l'hôte (GLM-Image chez IDEM). Rend aussi ses octets (image → vidéo). */
+export async function generateStill(
+  prompt: string,
+  orientation: Orientation,
+  storage: MediaStorage,
+  folder: string,
+  styled = false,
+  name?: string
+): Promise<VideoMediaAsset & { jpeg: Buffer }> {
   const generateImage = requirePort('generateImage');
-  const size = orientation === 'landscape' ? '1344x768' : orientation === 'square' ? '1024x1024' : '768x1344';
   // Sans DA, une photo naturelle ; avec la DA de la charte, c'est elle qui fixe le rendu.
-  const image = await generateImage(`${prompt}${styled ? '. No text, no logo.' : '. Photographic, natural light, no text, no logo.'}`, { size, tag: 'motion-video', purpose: 'video-still' });
-  const jpeg = await sharp(image.buffer).jpeg({ quality: 88 }).toBuffer();
+  const image = await generateImage(`${prompt}${styled ? '. No text, no letters, no logo, no watermark.' : '. Photographic, natural light. No text, no letters, no logo, no watermark.'}`, {
+    size: stillSize(orientation),
+    tag: 'motion-video',
+    purpose: 'video-still',
+  });
+  const jpeg = await sharp(image.buffer).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 88 }).toBuffer();
+  const meta = await sharp(jpeg).metadata();
   const key = id();
   const up = await storage.uploadFile(jpeg, `${key}.jpg`, folder, 'image/jpeg');
-  return { id: key, kind: 'image', url: up.downloadURL, origin: 'generated', credit: `Généré (${image.model})` };
+  return { id: key, kind: 'image', url: up.downloadURL, origin: 'generated', name: (name || prompt).slice(0, 80), credit: `Généré (${image.model})`, width: meta.width, height: meta.height, jpeg };
 }

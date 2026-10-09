@@ -10,6 +10,7 @@ import { MOTION_STYLES, MUSIC_MOODS, VIDEO_OBJECTIVES, VIDEO_TYPES } from './vid
 import { pricingTable } from './video.pricing';
 import { SCENES } from './video.scenes';
 import { TYPE_DEFS } from './video.types';
+import { GLM_TTS_LANGUAGES, VOICE_PERSONAS } from './video.voice';
 
 export function videoOptions() {
   return {
@@ -26,5 +27,7 @@ export function videoOptions() {
     types: VIDEO_TYPES.map((id) => ({ id, icon: TYPE_DEFS[id].icon, style: TYPE_DEFS[id].style, needs: TYPE_DEFS[id].needs, durations: TYPE_DEFS[id].durations })),
     // Les cases de chaque scène et leur longueur maximale : l'éditeur de textes les borne.
     scenes: Object.fromEntries(Object.values(SCENES).map((scene) => [scene.id, scene.slots.map(({ key, max, required }) => ({ key, max, required: !!required }))])),
+    // La voix off : dite par GLM-TTS dans ses langues, par le repli de l'hôte dans les autres.
+    voice: { glmLanguages: GLM_TTS_LANGUAGES, personas: VOICE_PERSONAS.map(({ id, gender, character }) => ({ id, gender, character })) },
   };
 }

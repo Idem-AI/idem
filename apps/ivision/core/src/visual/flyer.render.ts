@@ -221,6 +221,22 @@ export class FlyerRenderService {
   }
 
   /**
+   * Une page du navigateur partagé, aux dimensions données, protégée par la garde réseau ;
+   * fermée après usage. Sert au moteur de visuels (`poster/poster.render.ts`).
+   */
+  async withPage<T>(width: number, height: number, run: (page: Page) => Promise<T>): Promise<T> {
+    const browser = await this.getBrowser();
+    const page = await browser.newPage();
+    await installRenderNetworkGuard(page);
+    try {
+      await page.setViewport({ width, height, deviceScaleFactor: 1 });
+      return await run(page);
+    } finally {
+      await page.close().catch(() => undefined);
+    }
+  }
+
+  /**
    * Render an AI-generated flyer HTML body into a PNG and upload it.
    *
    * @param innerHtml  Single-line Tailwind HTML produced by the flyer agent.

@@ -32,7 +32,7 @@ import { charge, Charge, PaymentRequired, quote, refund } from './billing';
 import { brandView, getBrand, scanBrand } from './brands.service';
 import { blueprintOf, getReference, referenceView } from './references.service';
 import { createVideo, scopeOf } from './videos.service';
-import { createVisual, visualView } from './visuals.service';
+import { createVisual, getVisual, visualView } from './visuals.service';
 
 const sessions = () => collection<ChatSession>('sessions');
 const now = () => new Date().toISOString();
@@ -127,6 +127,28 @@ export function messageOf(request: string): string {
   return out.charAt(0).toUpperCase() + out.slice(1);
 }
 
+/**
+ * Un RETOUR sur le visuel précédent, pas une nouvelle demande : « ce n'est pas pro », « propose
+ * autre chose », « refais », « plus sobre ». La demande d'origine est rejouée autrement ; la
+ * phrase de l'utilisateur n'est jamais le texte du visuel.
+ */
+const FEEDBACK = /(pas (?:assez |tr[eè]s )?(?:pro|professionn?el|beau|terrible|top|bien)|moche|nul|bof|autre chose|une? autre (?:version|proposition|id[ée]e)|propose[rz]? (?:autre|encore|mieux)|refai[st]|recommence|essaie encore|encore une|change[rz]?|plus (?:sobre|color[ée]|lisible|moderne|pro|grand|petit|clair|sombre|simple|[ée]pur[ée])|moins (?:charg[ée]|color[ée]|sombre|clair)|je n.aime pas|[çc]a ne (?:me )?(?:pla[iî]t|va) pas|not (?:professional|good)|try again|another one)/i;
+
+export function isFeedback(text: string): boolean {
+  return FEEDBACK.test(text) && text.split(/\s+/).length <= 16;
+}
+
+/** Le format nommé dans la demande (« une story… », « une bannière… ») l'emporte sur le réglage. */
+export function formatIn(text: string): FlyerFormat | undefined {
+  const t = text.toLowerCase();
+  if (/\bstor(?:y|ies)\b|\bstatut\b|\breel\b|9\s*[:/x]\s*16|vertical/.test(t)) return 'story';
+  if (/banni[eè]re|banner|couverture|cover|16\s*[:/x]\s*9|linkedin|twitter|youtube/.test(t)) return 'banner';
+  if (/\ba4\b|affiche (?:à |a )?imprimer|flyer imprim|impression/.test(t)) return 'a4';
+  if (/4\s*[:/x]\s*5|portrait/.test(t)) return 'post';
+  if (/\bcarr[ée]\b|square|1\s*[:/x]\s*1/.test(t)) return 'square';
+  return undefined;
+}
+
 /** Une seule génération à la fois par conversation (double clic, deux onglets). */
 const running = new Set<string>();
 
@@ -187,6 +209,7 @@ export async function runTurn(userId: string, sessionId: string, input: TurnInpu
 }
 
 async function turn(userId: string, session: ChatSession, input: TurnInput, emit: (e: ChatEvent) => void, language?: string): Promise<void> {
+  // (`input` est complété plus bas pour une révision : la décision de modèle d'avant vaut.)
   const pending = session.pending;
   const written = String(input.text || '').trim().slice(0, 2000);
   // Reprise : la demande en attente, avec les réglages et médias d'alors (complétés par ceux d'aujourd'hui).
@@ -254,8 +277,26 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     return;
   }
 
+  // Un retour sur le visuel précédent (« pas pro, autre chose ») : la même demande, autrement.
+  let feedback: string | undefined;
+  let avoid: { template?: string; scheme?: string }[] = [];
+  let revisedRequest: string | undefined;
+  if (session.mode === 'image' && !url && written && isFeedback(written)) {
+    const last = [...session.messages].reverse().find((m) => m.result?.kind === 'visual');
+    const previous = last?.result?.kind === 'visual' ? await getVisual(userId, last.result.visualId).catch(() => null) : null;
+    if (previous) {
+      feedback = written;
+      revisedRequest = previous.prompt;
+      avoid = [{ template: previous.layout, scheme: previous.scheme }];
+      // Pas de nouvelle question de modèle pour une révision : la décision d'avant vaut.
+      input = { ...input, ...(previous.referenceId ? { referenceId: previous.referenceId } : { noReference: true }) };
+      // Le format de la version précédente, sauf si le retour en nomme un autre (« en story »).
+      options.format = formatIn(written) || previous.format;
+    }
+  }
+
   // Rien à créer encore (le lien seul, une salutation).
-  const request = (url ? rest : text).trim();
+  const request = (revisedRequest || (url ? rest : text)).trim();
   if (request.length < 3) {
     const msg = message('assistant', session.mode === 'video' ? 'Que doit raconter votre vidéo ? Une offre, un produit, un événement…' : 'Que doit dire votre visuel ? Une offre, un produit, un événement…', { i18n: { key: `chat.ask.what.${session.mode}` } });
     await push(session._id, msg, {}, ['pending']);
@@ -310,12 +351,15 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     } else {
       paid = await charge(userId, quote.visual(level), session._id);
       emit({ type: 'status', key: 'chat.status.visual.start', text: 'Je compose votre visuel…', data: { cost: paid.cost } });
-      const format: FlyerFormat = FLYER_FORMATS.includes(options.format as FlyerFormat) ? (options.format as FlyerFormat) : 'square';
+      // Le format nommé dans la demande (« une story ») l'emporte sur le réglage par défaut.
+      const named = formatIn(request);
+      const format: FlyerFormat = named || (FLYER_FORMATS.includes(options.format as FlyerFormat) ? (options.format as FlyerFormat) : 'square');
+      const wantsDark = /fond (?:noir|sombre)|dark|sombre/i.test(`${request} ${feedback || ''}`);
       const image = reference?.image ? ({ ...reference.image, id: reference._id } as ReferenceImage & { id: string }) : undefined;
       const visual = await createVisual(
         userId,
         brand,
-        { prompt: messageOf(request), brief: request, format, creativity: level, withPhoto: options.withPhoto !== false, photoUrl: photoUrl || media.find((m) => m.kind === 'image')?.url, reference: image, sessionId: session._id },
+        { prompt: messageOf(request), brief: request, format, creativity: level, withPhoto: options.withPhoto !== false, photoUrl: photoUrl || media.find((m) => m.kind === 'image')?.url, reference: image, sessionId: session._id, feedback, avoid, wantsDark },
         paid.cost
       );
       const msg = message('assistant', image ? 'Voici votre visuel, composé comme le modèle, à votre marque.' : 'Voici votre visuel.', {

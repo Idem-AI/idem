@@ -26,8 +26,6 @@ RUN npm install --legacy-peer-deps --ignore-scripts
 
 # Installer les dépendances de l'application landing
 WORKDIR /app/apps/landing
-RUN npm install --legacy-peer-deps --ignore-scripts && \
-    npm install @angular/animations@^20.3.0 --save --legacy-peer-deps --ignore-scripts
 
 # --- Génération de l'environnement (src/environments/environment.ts) ---
 

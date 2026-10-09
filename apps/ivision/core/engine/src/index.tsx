@@ -147,6 +147,20 @@ function setupPreview() {
     }
   }
   const cueList = (allCues() as { t: number; kind: string; gain: number }[]).filter((c) => pools[c.kind]);
+  // La voix off : une piste par ligne, jouée à son instant ; la musique baisse pendant qu'elle parle.
+  const voices = (data.voice || []).map((line) => ({ ...line, el: Object.assign(new Audio(line.url), { preload: 'auto' }) }));
+  const speaking = (t: number) => voices.some((v) => t >= v.at - 0.2 && t <= v.at + v.durationSec + 0.3);
+  const syncVoices = (t: number, play: boolean) => {
+    for (const v of voices) {
+      const inside = t >= v.at && t < v.at + v.durationSec;
+      if (play && inside) {
+        if (v.el.paused || Math.abs(v.el.currentTime - (t - v.at)) > 0.25) {
+          v.el.currentTime = Math.max(0, t - v.at);
+          v.el.play().catch(() => undefined);
+        }
+      } else if (!v.el.paused) v.el.pause();
+    }
+  };
 
   const ui = document.createElement('div');
   ui.className = 'pv-ui';
@@ -175,7 +189,8 @@ function setupPreview() {
     if (!audio || !data.music) return;
     const want = (data.music.startAt || 0) + t;
     if (Math.abs(audio.currentTime - want) > 0.15) audio.currentTime = want;
-    audio.volume = Math.max(0, Math.min(1, Math.min(t / 0.5, (data.duration - t) / 1.2))) * 0.85;
+    // Sous les effets, la musique reste en retrait ; sous la voix, elle s'efface.
+    audio.volume = Math.max(0, Math.min(1, Math.min(t / 0.5, (data.duration - t) / 1.2))) * (speaking(t) ? 0.22 : 0.5);
   };
   const play = () => {
     if (offset >= data.duration - 0.05) offset = 0;
@@ -194,6 +209,7 @@ function setupPreview() {
     playing = false;
     btn.textContent = '▶';
     audio?.pause();
+    syncVoices(offset, false);
   };
   const fmt = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t) % 60).padStart(2, '0')}`;
   const loop = () => {
@@ -204,6 +220,7 @@ function setupPreview() {
     time.textContent = fmt(t);
     if (playing) {
       syncAudio(t);
+      syncVoices(t, true);
       for (const c of cueList) {
         if (c.t > lastT && c.t <= t) {
           const pool = pools[c.kind];
@@ -217,6 +234,7 @@ function setupPreview() {
         offset = 0;
         playing = false;
         audio?.pause();
+        syncVoices(0, false);
         btn.textContent = '▶';
         big.style.display = 'flex';
         draw(poster);
@@ -236,6 +254,7 @@ function setupPreview() {
     startedAt = performance.now();
     lastT = offset;
     if (audio) syncAudio(offset);
+    syncVoices(offset, playing);
     big.style.display = 'none';
   });
   requestAnimationFrame(loop);

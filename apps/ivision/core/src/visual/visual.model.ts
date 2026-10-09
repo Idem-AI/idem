@@ -53,6 +53,8 @@ export interface VisualBrandContext {
   tone: string;
   keywords: string[];
   language: string;
+  /** La promesse de la marque : de quoi écrire un titre fort quand la demande est mince. */
+  valueProposition?: string;
   branding: {
     primary: string;
     secondary: string;

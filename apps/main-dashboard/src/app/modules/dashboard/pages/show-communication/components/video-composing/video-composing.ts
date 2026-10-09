@@ -18,15 +18,16 @@ import {
 
 export type VideoProgressState = Partial<Record<VideoProgressStage, { state: 'running' | 'done'; data?: VideoProgressData }>>;
 
-const STAGES: VideoProgressStage[] = ['plan', 'copy', 'layout', 'media', 'music', 'sfx', 'storyboard', 'animation', 'critique', 'code'];
+const STAGES: VideoProgressStage[] = ['plan', 'copy', 'layout', 'media', 'music', 'sfx', 'voice', 'storyboard', 'animation', 'critique', 'code'];
 /** Le film d'auteur (Ultra) : le directeur invente le film, chaque plan est écrit, revu, corrigé. */
-const AUTHORED_STAGES: VideoProgressStage[] = ['media', 'direction', 'music', 'sfx', 'shots', 'storyboard'];
+const AUTHORED_STAGES: VideoProgressStage[] = ['media', 'direction', 'music', 'sfx', 'voice', 'shots', 'storyboard'];
 const ALL_STAGES: VideoProgressStage[] = [...STAGES, 'direction', 'shots'];
 
 /** Poids de chaque étape dans la barre, proportionnels à leur coût réel. */
-const WEIGHT: Record<VideoProgressStage, number> = { plan: 4, copy: 22, layout: 8, media: 26, music: 20, sfx: 6, storyboard: 4, animation: 6, critique: 4, code: 30, direction: 20, shots: 90 };
+const WEIGHT: Record<VideoProgressStage, number> = { plan: 4, copy: 22, layout: 8, media: 40, music: 20, sfx: 6, voice: 10, storyboard: 4, animation: 6, critique: 4, code: 30, direction: 20, shots: 90 };
 /** Durée attendue d'une étape (ms) : la barre avance doucement pendant qu'elle tourne. */
-const EXPECTED_MS: Record<VideoProgressStage, number> = { plan: 500, copy: 9000, layout: 5000, media: 20000, music: 15000, sfx: 6000, storyboard: 1500, animation: 4000, critique: 4000, code: 60000, direction: 30000, shots: 180000 };
+// Les médias générés (images, puis clips animés à partir d'elles) prennent une à trois minutes.
+const EXPECTED_MS: Record<VideoProgressStage, number> = { plan: 500, copy: 9000, layout: 5000, media: 90000, music: 15000, sfx: 6000, voice: 15000, storyboard: 1500, animation: 4000, critique: 4000, code: 60000, direction: 30000, shots: 180000 };
 
 const RATIOS: Record<VideoFormat, string> = { story: '9 / 16', square: '1 / 1', portrait: '4 / 5', landscape: '16 / 9' };
 
@@ -64,8 +65,10 @@ export class VideoComposing {
    */
   protected readonly stages = computed(() => {
     const p = this.progress();
-    if (p['direction'] && !p['direction']?.data?.fallback) return AUTHORED_STAGES.filter((s) => s !== 'sfx' || !!p['sfx']);
-    return STAGES.filter((s) => s !== 'code' || !!p['code']);
+    // Effets, voix off et plans écrits par l'IA : seulement quand le serveur les annonce.
+    const announced = (s: VideoProgressStage) => !['sfx', 'voice', 'code'].includes(s) || !!p[s];
+    if (p['direction'] && !p['direction']?.data?.fallback) return AUTHORED_STAGES.filter(announced);
+    return STAGES.filter(announced);
   });
   protected readonly ratio = computed(() => RATIOS[this.format()] ?? '9 / 16');
 
@@ -143,6 +146,10 @@ export class VideoComposing {
     if (stage === 'shots' && this.state(stage) === 'running' && d.total) {
       return { key: d.current ? `shots_${d.step ?? 'writing'}` : 'shotsStart', params: { current: d.current ?? 0, total: d.total, done: d.done ?? 0, coded: d.coded ?? 0 } };
     }
+    // Les médias générés se suivent en direct : plans produits sur plans demandés.
+    if (stage === 'media' && this.state(stage) === 'running' && d.total) {
+      return { key: 'mediaGenerating', params: { done: d.done ?? 0, total: d.total } };
+    }
     if (this.state(stage) !== 'done') return null;
     switch (stage) {
       case 'direction':
@@ -180,6 +187,8 @@ export class VideoComposing {
         return { key: d.pickedBy === 'agent' ? 'musicAgent' : 'music', params: { title: d.title, artist: d.artist, bpm: d.bpm ? Math.round(d.bpm) : '—' } };
       case 'sfx':
         return { key: 'sfx', params: { count: (d.sounds ?? []).length } };
+      case 'voice':
+        return d.unavailable ? { key: 'voiceUnavailable', params: {} } : { key: 'voice', params: { count: d.lines ?? 0, language: (d.language ?? '').toUpperCase() } };
       case 'layout': {
         // Les mises en page retenues par les directeurs artistiques, nommées en clair.
         const layouts = d.layouts ?? [];

@@ -60,6 +60,15 @@
               <input type="checkbox" [checked]="!!v.sfx?.enabled" (change)="setSfx($any($event.target).checked)" [disabled]="!!saving()" />
               {{ 'edit.sfx' | translate }}
             </label>
+            <label class="!flex items-center gap-2 text-sm !mb-0">
+              <input type="checkbox" [checked]="!!v.voice?.enabled" (change)="setVoice($any($event.target).checked)" [disabled]="!!saving()" />
+              {{ 'edit.voice' | translate }}
+            </label>
+            @if (v.voice?.enabled && v.voice?.lines?.length) {
+              <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'edit.voiceLines' | translate: { count: v.voice!.lines.length } }}</p>
+            } @else if (v.voice?.unavailable) {
+              <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'edit.voiceUnavailable' | translate }}</p>
+            }
           </div>
         </section>
 

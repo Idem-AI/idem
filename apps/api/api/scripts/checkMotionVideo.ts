@@ -65,6 +65,12 @@ import { detectKind, processUpload, validateLottie } from '../../../ivision/core
 import { refineCues, sfxLibrary, SFX_SPECS } from '../../../ivision/core/src/video/video.sfx';
 import { VIDEO_TYPES, SFX_KINDS } from '../models/motionVideo.model';
 import { starsLottie, makeBottleGlb } from './fixtures/motion-video/examples';
+import { fitScenesToVoice, heuristicNarration, parseNarration, personaMenu, processSpeech, speechProviderFor, VOICE_TAIL, NarratorInput } from '../../../ivision/core/src/video/video.voice';
+import { GENERATION_ATTEMPTS, planMediaNeeds, sourceShots, heuristicMediaDirection } from '../../../ivision/core/src/video/video.sourcing';
+import { mixAudio } from '../../../ivision/core/src/video/video.renderer';
+import { coreHost } from '../../../ivision/core/src/runtime/host';
+import axios from 'axios';
+import sharp from 'sharp';
 
 const OUT = path.resolve(__dirname, '../../tmp/motion-video-check');
 fs.mkdirSync(OUT, { recursive: true });
@@ -654,6 +660,215 @@ async function main() {
     });
     await browser.close();
     check('logo illisible → nom de la marque à la place', !state.img && state.text.includes('Wax & Co'), JSON.stringify(state));
+  }
+
+  // 10 bis. Voix off, médias générés, niveau des effets ──────────────────────
+  section('10 bis. Voix off, médias générés (3 essais puis Pexels), niveau des effets');
+  {
+    const ff = process.env.FFMPEG_PATH || 'ffmpeg';
+    const tmp = path.join(OUT, 'voice-media');
+    fs.mkdirSync(tmp, { recursive: true });
+
+    // Langue → modèle de voix : GLM-TTS ne parle que chinois et anglais.
+    check('voix : anglais et chinois → GLM-TTS, français → repli', speechProviderFor('en-US') === 'glm' && speechProviderFor('zh') === 'glm' && speechProviderFor('fr') === 'gemini');
+
+    // Le narrateur : chiffres inventés retirés, étiquettes ignorées, mots bornés, personnage du menu.
+    const narratorInput: NarratorInput = {
+      sheet: 'BRAND: Wax & Co',
+      brandName: 'Wax & Co',
+      language: 'fr',
+      brief: 'Nos pagnes wax à -30 % jusqu’au 31 décembre',
+      facts: extractFacts('Nos pagnes wax à -30 % jusqu’au 31 décembre'),
+      style: 'energetic',
+      scenes: [
+        { sceneId: 'hook', duration: 2.5, texts: ['Le wax à prix doux'] },
+        { sceneId: 'offer', duration: 3, texts: ['-30 %'] },
+        { sceneId: 'logo', duration: 2.4, texts: [] },
+      ],
+      personas: personaMenu('energetic', 7),
+    };
+    const parsed = parseNarration('Voici :\n1: Le wax que vous aimez, enfin à prix doux.\n2. voice: Moins 30 % sur tout, et seulement 5 000 F le pagne.\n3: Wax & Co.\nvoice: b\nstyle: warm and lively', narratorInput);
+    check('narrateur : lignes lues, ligne au prix inventé retirée, personnage du menu', !!parsed && !!parsed.lines[0] && !parsed.lines[1] && /^Wax & Co\.?$/.test(parsed.lines[2] || '') && parsed.persona === narratorInput.personas[1].id && parsed.style === 'warm and lively', JSON.stringify(parsed));
+    const fallback = heuristicNarration(narratorInput);
+    check('narrateur en panne : la voix reprend les titres et signe avec la marque', fallback.lines[0] === 'Le wax à prix doux' && fallback.lines[2] === 'Wax & Co', JSON.stringify(fallback.lines));
+
+    // Calage : chaque scène dure le temps de sa ligne, la durée achetée ne bouge pas, une ligne qui ne tient pas part.
+    {
+      const sb = buildStoryboard({ sceneIds: ['hook', 'statement', 'cta', 'logo'], slots: [{ title: 'Titre' }, { title: 'Une idée' }, { action: 'Venez' }, {}], durationSec: 15, style: 'premium', seed: 3, images: [] });
+      const lines = sb.scenes.map((sc, i) => ({ sceneKey: sc.key, text: `ligne ${i}`, url: 'file:///dev/null', durationSec: [3.0, 4.2, 2.6, 1.2][i], offset: 0 }));
+      const fitted = fitScenesToVoice(sb, { enabled: true, language: 'fr', persona: 'warm', provider: 'gemini', model: 'test', voice: 'Sulafat', lines, source: 'llm' });
+      const total = fitted.storyboard.scenes.reduce((n, sc) => n + sc.duration, 0);
+      const fits = fitted.voice.lines.every((l) => {
+        const sc = fitted.storyboard.scenes.find((x) => x.key === l.sceneKey)!;
+        return sc.duration + 0.002 >= l.offset + l.durationSec + VOICE_TAIL;
+      });
+      check(`calage voix : ${fitted.storyboard.scenes.map((sc) => sc.duration.toFixed(2)).join(' / ')} s, chaque ligne tient, 15 s au total`, fits && Math.abs(total - 15) < 0.01 && !fitted.dropped.length);
+      const short = buildStoryboard({ sceneIds: ['hook', 'statement', 'logo'], slots: [{ title: 'Titre' }, { title: 'Une idée' }, {}], durationSec: 6, style: 'premium', seed: 3, images: [] });
+      const tooLong = fitScenesToVoice(short, { enabled: true, language: 'fr', persona: 'warm', provider: 'gemini', model: 'test', voice: 'Sulafat', lines: short.scenes.map((sc) => ({ sceneKey: sc.key, text: 'x', url: '', durationSec: 2.6, offset: 0 })), source: 'llm' });
+      check(`calage voix : film trop court → ligne retirée (${tooLong.dropped.join(', ')}), jamais coupée ni accélérée en douce`, tooLong.dropped.length >= 1 && Math.abs(tooLong.storyboard.scenes.reduce((n, sc) => n + sc.duration, 0) - 6) < 0.01);
+    }
+
+    // Les besoins : les imports d'abord, puis ce qu'il faut produire.
+    {
+      const { assigned, missing } = planMediaNeeds(
+        [{ sceneId: 'hook', texts: [] }, { sceneId: 'footage', texts: ['Le marché'] }, { sceneId: 'gallery', texts: ['Nos modèles'] }, { sceneId: 'product', texts: ['Le pagne'] }],
+        { images: ['u1'], videos: [], models: 0 }
+      );
+      check(`besoins : 1 import placé (galerie), ${missing.length} à produire (1 clip, 3 photos)`, assigned[2]?.images?.[0] === 'u1' && missing.filter((m) => m.kind === 'video').length === 1 && missing.filter((m) => m.kind === 'image').length === 3);
+    }
+
+    // Les ports de l'hôte simulés : image (échoue au premier appel), clip, voix, vision.
+    const clipFile = path.join(tmp, 'clip.mp4');
+    if (!fs.existsSync(clipFile)) spawnSync(ff, ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=720x1280:rate=30', '-t', '3', '-pix_fmt', 'yuv420p', '-c:v', 'libx264', clipFile]);
+    let imageCalls = 0;
+    let speechCalls = 0;
+    const clipRequests: { image: boolean }[] = [];
+    let clipsFail = false;
+    configureCore({
+      storage: fakeStorage,
+      generateImage: async () => {
+        if (imageCalls++ === 0) throw new Error('glm-image: 429 (simulé)');
+        const shade = 60 + ((imageCalls * 37) % 160);
+        return { buffer: await sharp({ create: { width: 960, height: 1728, channels: 3, background: { r: shade, g: 120, b: 200 - shade / 2 } } }).jpeg().toBuffer(), mimeType: 'image/jpeg', model: 'glm-image' };
+      },
+      generateVideo: async (request) => {
+        clipRequests.push({ image: !!request.image });
+        if (clipsFail) throw new Error('cogvideox-3: FAIL (simulé)');
+        return { buffer: fs.readFileSync(clipFile), model: 'cogvideox-3' };
+      },
+      synthesizeSpeech: async (request) => {
+        speechCalls++;
+        const seconds = Math.max(0.6, request.text.split(/\s+/).length / 2.7);
+        const wav = path.join(tmp, `speech-${speechCalls}.wav`);
+        spawnSync(ff, ['-v', 'error', '-y', '-f', 'lavfi', '-i', `sine=frequency=210:duration=${seconds.toFixed(2)}`, '-ar', '24000', '-ac', '1', wav]);
+        return { buffer: fs.readFileSync(wav), mimeType: 'audio/wav', provider: request.provider, model: request.provider === 'glm' ? 'glm-tts' : 'gemini-3.8-flash-lite-tts', voice: request.voice };
+      },
+      analyzeImage: async () => 'text: no\nmatch: yes',
+    });
+
+    // Trois échecs de génération AVANT Pexels ; sans clip, la scène garde l'image générée pour elle.
+    {
+      clipsFail = true;
+      process.env.PEXELS_API_KEY = 'test';
+      const http0 = axios.get;
+      const order: string[] = [];
+      const before = clipRequests.length;
+      (axios as any).get = async (url: string, cfg: any) => {
+        if (/api\.pexels\.com/.test(url)) {
+          order.push(`pexels@${clipRequests.length - before}`);
+          return { data: { videos: [], photos: [] } };
+        }
+        return http0(url, cfg);
+      };
+      const direction = heuristicMediaDirection({ sheet: '', brief: 'Marché de tissus', facts: extractFacts(''), query: 'african fabric market', needs: [{ scene: 1, sceneId: 'footage', kind: 'video', slot: 0, texts: ['Le marché'] }], orientation: 'portrait' });
+      const sourced = await sourceShots({ direction, orientation: 'portrait', storage: fakeStorage as any, folder: 'test/sourcing', allowGenerate: true, allowStock: true, clipQuality: 'speed', visualPhotos: [] });
+      (axios as any).get = http0;
+      delete process.env.PEXELS_API_KEY;
+      clipsFail = false;
+      const attempts = clipRequests.length - before;
+      check(`clip : ${attempts} essais de génération, puis Pexels (${order.join(', ')})`, attempts === GENERATION_ATTEMPTS && order[0] === `pexels@${GENERATION_ATTEMPTS}`);
+      check('clip introuvable : la scène garde la photo générée pour elle', sourced.assets.length === 1 && sourced.assets[0].kind === 'image' && sourced.assets[0].origin === 'generated');
+    }
+
+    // Une vidéo complète, avec voix off, sans aucun média fourni : tout est généré pour SA scène.
+    // (Cran Low : la recette du type « plans filmés » vient du graphe ; le stratège simulé l'ignorerait.)
+    const voiceService = new MotionVideoService(
+      new IdemVideoStore(fake as any),
+      () => async (system, user) => {
+        if (/VOICE-OVER/.test(system)) {
+          const scenes = user.split('\n').map((l) => l.match(/^(\d+)\. (\w+), [\d.]+ s, max (\d+) words/)).filter((m): m is RegExpMatchArray => !!m);
+          const words = ['Chez', 'nous', 'le', 'wax', 'se', 'porte', 'avec', 'fierté', 'tous', 'les', 'jours'];
+          return [...scenes.map((m) => `${m[1]}: ${m[2] === 'logo' ? 'Wax & Co' : words.slice(0, Math.max(2, Math.min(Number(m[3]) - 1, words.length))).join(' ')}`), 'voice: a', 'style: warm and confident'].join('\n');
+        }
+        if (/director of photography/.test(system)) {
+          const shots = user.split('\n').map((l) => l.match(/^(\d+)\. (video clip|photo)/)).filter((m): m is RegExpMatchArray => !!m);
+          return ['look: warm morning light, saturated wax colors, 35 mm', ...shots.flatMap((m) => [`${m[1]}.shot: medium shot of a tailor folding bright wax fabric in a busy Abidjan market stall, scene ${m[1]}`, `${m[1]}.move: a`, `${m[1]}.query: african wax fabric`])].join('\n');
+        }
+        return simulateModel(CASES.find((cc) => cc.behaviour === 'clean')!)(system, user);
+      },
+      () => (system, user) => simulateAgent('clean', system, user)
+    );
+    const imagesBefore = imageCalls;
+    const vv = await voiceService.createVideo(
+      'test-user',
+      'wax',
+      { brief: { objective: 'promotion', message: 'Nos pagnes wax à -30 % jusqu’au 31 décembre, au marché de Treichville', musicMood: 'auto', voice: true, sfx: true } as any, scope: { durationSec: 15, formats: ['story'], quality: 'standard' }, type: 'footage', creativity: 'low', language: 'fr' },
+      0
+    );
+    const vsb = vv.storyboard;
+    const footage = vsb.scenes.filter((sc) => sc.sceneId === 'footage');
+    check(`médias générés : ${(vv.media || []).filter((m) => m.origin === 'generated').length} (dont ${(vv.media || []).filter((m) => m.kind === 'video').length} clip(s)), chaque plan filmé a SON clip`, footage.length > 0 && footage.every((sc) => !!sc.video) && new Set(footage.map((sc) => sc.video)).size === footage.length, `${vsb.scenes.map((sc) => `${sc.sceneId}${sc.video ? '[clip]' : sc.image ? '[photo]' : ''}`).join(' ')} · ${JSON.stringify(voiceService.lastMediaReport)}`);
+    check('clips : image → vidéo (le plan généré est animé, fidèle à la charte)', clipRequests.slice(-footage.length).every((r) => r.image) && imageCalls > imagesBefore);
+    check(`agents : ${(vsb.agents || []).filter((a) => ['narrator', 'mediaDirector'].includes(a.agent)).map((a) => `${a.agent}:${a.source}`).join(' ')}`, (vsb.agents || []).some((a) => a.agent === 'narrator' && a.source === 'llm') && (vsb.agents || []).some((a) => a.agent === 'mediaDirector' && a.source === 'llm'));
+    const voice = vv.voice;
+    const voiceTotal = vsb.scenes.reduce((n, sc) => n + sc.duration, 0);
+    const synced = !!voice && voice.lines.every((l) => {
+      const sc = vsb.scenes.find((x) => x.key === l.sceneKey);
+      return !!sc && sc.duration + 0.002 >= l.offset + l.durationSec + VOICE_TAIL;
+    });
+    check(`voix off : ${voice?.lines.length} ligne(s) en ${voice?.language} par ${voice?.provider} (${voice?.voice}), scènes calées, ${voiceTotal.toFixed(2)} s`, !!voice?.enabled && voice.lines.length >= 3 && voice.provider === 'gemini' && voice.language === 'fr' && synced && Math.abs(voiceTotal - 15) < 0.01, JSON.stringify(voice?.lines.map((l) => [l.sceneKey, l.durationSec, l.offset])));
+    const vPreview = await voiceService.previewHtml('test-user', 'wax', vv.id);
+    check('aperçu : la voix off est jouée (lignes posées sur la ligne de temps)', !!vPreview && /"voice":\[\{"url"/.test(vPreview));
+    // Retouches : couper la garde, la remettre ne la redit pas ; une retouche de texte garde la synchronisation.
+    const callsBefore = speechCalls;
+    const off = await voiceService.updateVideo('test-user', 'wax', vv.id, { voice: false });
+    const on = await voiceService.updateVideo('test-user', 'wax', vv.id, { voice: true });
+    const hook = on!.storyboard.scenes.find((sc) => sc.slots.title)!;
+    const retouched = await voiceService.updateVideo('test-user', 'wax', vv.id, { slots: { [hook.key]: { title: 'Le wax à -30 % chez Wax & Co, toute la semaine au marché' } } });
+    const still = retouched!.voice!.lines.every((l) => {
+      const sc = retouched!.storyboard.scenes.find((x) => x.key === l.sceneKey)!;
+      return sc.duration + 0.002 >= l.offset + l.durationSec + VOICE_TAIL;
+    });
+    check('retouches : voix coupée puis remise sans nouvel enregistrement, texte retouché sans perdre la synchronisation', off?.voice?.enabled === false && off.voice.lines.length === voice!.lines.length && on?.voice?.enabled === true && speechCalls === callsBefore && still);
+
+    // Le niveau des effets : un whoosh doit dominer nettement la musique (mesure sur le mixage réel).
+    {
+      const silent = path.join(tmp, 'silent.mp4');
+      spawnSync(ff, ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'color=c=white:s=320x240:r=30', '-t', '4', '-pix_fmt', 'yuv420p', '-c:v', 'libx264', silent]);
+      const lib = await sfxLibrary();
+      const whoosh = lib.sounds.whoosh[0].file;
+      const musicTrack = path.join(OUT, 'music', `${SYNTH_TRACKS[0].id}.mp3`);
+      const mixed = path.join(tmp, 'mix.mp4');
+      const cues = refineCues([{ t: 2, kind: 'whoosh' }], 'energetic', 4);
+      await mixAudio({ silent, file: mixed, d: 4, music: { file: musicTrack, startAt: 12 }, cues, files: { whoosh }, voice: [] });
+      const level = (from: number, dur: number) => {
+        const out = spawnSync(ff, ['-hide_banner', '-ss', String(from), '-t', String(dur), '-i', mixed, '-af', 'volumedetect', '-f', 'null', '-']).stderr.toString();
+        return Number(out.match(/mean_volume: (-?[\d.]+) dB/)?.[1] ?? -99);
+      };
+      const musicOnly = level(0.6, 1.0);
+      const withFx = level(2.0, 0.5);
+      check(`effets : un whoosh passe ${(withFx - musicOnly).toFixed(1)} dB au-dessus de la musique (musique ${musicOnly} dB, whoosh ${withFx} dB)`, withFx - musicOnly >= 3, `${musicOnly} → ${withFx}`);
+    }
+
+    // Sous la voix (traitée comme en production : −16 LUFS), la musique s'efface puis revient.
+    // La « voix » est un son à 3 kHz : un passe-bas raide isole la musique (sous 400 Hz).
+    {
+      const silent = path.join(tmp, 'silent.mp4');
+      const raw = path.join(tmp, 'voice-3k.wav');
+      const line = path.join(tmp, 'voice-3k.mp3');
+      spawnSync(ff, ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'sine=frequency=3000:duration=1.2', raw]);
+      await processSpeech(raw, 'audio/wav', line);
+      const mixed = path.join(tmp, 'mix-voice.mp4');
+      await mixAudio({ silent, file: mixed, d: 4, music: { file: path.join(OUT, 'music', `${SYNTH_TRACKS[0].id}.mp3`), startAt: 12 }, cues: [], files: {}, voice: [{ file: line, at: 1.5 }] });
+      const bed = (from: number, dur: number) => Number(spawnSync(ff, ['-hide_banner', '-ss', String(from), '-t', String(dur), '-i', mixed, '-af', 'lowpass=f=400,lowpass=f=400,lowpass=f=400,volumedetect', '-f', 'null', '-']).stderr.toString().match(/mean_volume: (-?[\d.]+) dB/)?.[1] ?? -99);
+      const before = bed(0.3, 1.0);
+      const under = bed(1.8, 0.8);
+      check(`voix off : la musique s'efface de ${(before - under).toFixed(1)} dB sous la voix`, before - under >= 6, `${before} → ${under}`);
+    }
+
+    // Rendu : la voix est dans le MP4.
+    if (!FAST) {
+      await voiceService.startExport('test-user', 'wax', vv.id, undefined, { cost: 0, action: 'motion_video' });
+      await drainRenderQueue();
+      const done = (await fake.listVideos('test-user', 'wax')).find((v) => v.id === vv.id)!;
+      const render = done.renders[0];
+      const file = (render?.url || '').replace('file://', '');
+      const info = render?.status === 'done' && fs.existsSync(file) ? await probe(file) : null;
+      if (info) fs.copyFileSync(file, path.join(OUT, 'voice-footage-story.mp4'));
+      check(`rendu avec voix off : ${info ? `${info.duration.toFixed(2)} s, son ${info.hasAudio ? 'oui' : 'non'}` : render?.error || 'absent'}`, !!info && info.hasAudio && Math.abs(info.duration - 15) < 0.15);
+    }
+    // Les sections suivantes n'ont pas de ports de génération (aucun média généré par erreur).
+    for (const port of ['generateImage', 'generateVideo', 'synthesizeSpeech', 'analyzeImage'] as const) delete (coreHost() as any)[port];
   }
 
   // 11. Rendu MP4 ─────────────────────────────────────────────────────────────

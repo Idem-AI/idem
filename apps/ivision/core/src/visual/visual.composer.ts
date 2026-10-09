@@ -24,6 +24,7 @@ import { FLYER_LAYOUTS, FlyerLayoutId, flyerLayoutMenu, FlyerStructure, pickFlye
 import type { ReferenceImage } from '../reference/reference.analyzer';
 import { artDirectorTask, conceptTask, copywriterTask, heuristicFlyerCopy, structureTask } from './flyer.agents';
 import { imageSourcingService, ImageBrief, ImageSourcingPreferences, SourcedImage } from './image.sourcing';
+import { composePoster } from './poster/poster.compose';
 import { flyerRenderService, minLogoWidthFor, LogoDeclensionSet, FORMAT_DIMENSIONS } from './flyer.render';
 import { brandFontsHref } from '../design/google-fonts';
 import { buildArtDirectionBlock, buildImageNegativePrompt, buildImageStyleModifier } from '../brand/art-direction.util';
@@ -61,12 +62,14 @@ export interface ComposedVisual {
 }
 
 /**
- * Compose un visuel : brief d'image, image (banque ou génération), puis
- * composition HTML à la charte et passes déterministes.
+ * Compose un visuel — IDEM (calendrier, atelier, charte) et iVision (conversation).
  *
- * Extrait de `generateFlyer` pour servir aussi la charte graphique, qui montre
- * des publications composées par CE pipeline — les visuels qu'on promet dans
- * la charte doivent être ceux que le module communication produira ensuite.
+ * Le visuel est DESSINÉ PAR LE CODE (`poster/`) : une composition éprouvée, la palette de la
+ * charte avec contraste vérifié, des textes ajustés au millimètre, le logo là où il se lit, la
+ * photo choisie pour sa pertinence. L'IA écrit les mots et, selon le cran, choisit et juge
+ * les compositions — elle n'écrit jamais de HTML (c'est ce qui rendait les crans Max et Ultra
+ * confus : texte coupé, éléments empilés, décor sans fonction).
+ *
  * Aucune écriture ici : l'appelant décide de ce qu'il persiste.
  */
 export async function composeVisual(
@@ -80,33 +83,25 @@ export async function composeVisual(
   seedKey: string,
   /** Réglages de sourcing d'un appelant hors module (la charte graphique). */
   sourcing?: ImageSourcingPreferences,
-  /**
-   * Composition 100 % typographique, sans photo.
-   *
-   * Ce n'est pas une dégradation : un prix, une date ou une phrase forte se
-   * portent mieux sans image — et le prompt de composition sait déjà traiter ce
-   * cas (`IMAGE_URL` reçoit alors une consigne explicite). L'atelier l'expose à
-   * l'utilisateur (« sans photo »), et cela économise au passage l'appel de
-   * brief d'image ET l'appel de sourcing.
-   */
+  /** Composition typographique, sans photo (demandé). */
   skipImage?: boolean,
-  /**
-   * La jauge de créativité. Low → High : le CODE compose (flyerLayouts.ts), l'IA écrit les
-   * mots puis choisit structure et composition selon le cran. Max : l'IA écrit le HTML dans la
-   * grille (pipeline historique, défaut des appelants internes). Ultra : un agent concept
-   * décide de l'idée, deux compositions sont écrites, rendues, et la meilleure est gardée.
-   */
   creative: {
     creativity?: CreativityLevel;
     recentLayouts?: string[];
     /**
-     * Une image modèle (iVision) : sa structure et sa composition sont reprises — mise en page
-     * du code la plus proche (Low → High), description donnée au compositeur (Max, Ultra).
-     * Ses textes et ses photos ne le sont jamais : ce sont ceux de la marque.
+     * Une image modèle (iVision) : sa structure oriente le choix de la composition. Ses textes
+     * et ses photos ne sont jamais repris : ce sont ceux de la marque.
      */
     reference?: Pick<ReferenceImage, 'layout' | 'structure' | 'hasPhoto' | 'description'>;
     /** La photo de l'utilisateur (iVision) : posée à la place d'une photo de banque ou générée. */
     image?: { url: string };
+    /** Les images de la marque (site, projet, imports) : seules les vraies photos sont gardées. */
+    brandPhotos?: string[];
+    /** Fond sombre admis (demande explicite, ou la marque fait elle-même des visuels sombres). */
+    allowDark?: boolean;
+    /** Retour sur la version précédente, et ce qu'elle était (pour proposer autre chose). */
+    feedback?: string;
+    avoid?: { template?: string; scheme?: string }[];
   } = {}
 ): Promise<{
   html: string;
@@ -117,219 +112,29 @@ export async function composeVisual(
   png: Buffer;
   audit: VisualAuditReport;
 }> {
-  const creativity: CreativityLevel = creative.creativity || 'max';
-  // ---- Step 5a: grille de composition -------------------------------------
-  // La graine est tirée AVANT le brief d'image : c'est elle qui décide de
-  // l'axe de la césure 62/38, donc de la zone que la photo doit laisser libre.
-  // Tant qu'elle était tirée après, on demandait une image « avec de l'espace
-  // pour le texte » sans savoir de quel côté, et le brief ne servait à rien.
-  const seed = generateDesignSeed(context, seedKey);
-  const dims = FORMAT_DIMENSIONS[format] || FORMAT_DIMENSIONS.square;
-  const grid = buildCompositionGrid(
-    { width: dims.width, height: dims.height, print: format === 'a4' },
-    seed,
+  const result = await composePoster(
+    { agentCall: ports.agentCall },
     {
-      primary: context.branding.primary,
-      secondary: context.branding.secondary,
-      accent: context.branding.accent,
-      background: context.branding.background,
-      text: context.branding.text,
-    }
-  );
-
-  // ---- Step 5b/5c: image brief puis sourcing — sautés si « sans photo » ---
-  let sourced: SourcedImage | null = null;
-  if (!skipImage && creative.image?.url) {
-    // Sa photo, lue par la vision (sujet, couleurs, zone libre) : la composition s'y accorde.
-    const brief = heuristicImageBrief(content, context, format);
-    sourced = { url: creative.image.url, source: 'upload', attribution: { provider: 'other', author: context.brandName }, analysis: await imageSourcingService.analyzeImage(creative.image.url, brief) };
-  } else if (!skipImage) {
-    // Le choix de l'image est confié à l'IA dès High ; en dessous, le brief vient du contenu.
-    const brief = atLeast(creativity, 'high') ? await buildImageBrief(ports, userId, content, context, format, grid) : heuristicImageBrief(content, context, format);
-    try {
-      sourced = await imageSourcingService.sourceImage(brief, {
-        userId,
-        projectId,
-        tag,
-        ...sourcing,
-      });
-    } catch (err: any) {
-      logger.warn('Flyer image sourcing failed, falling back to text-only flyer', {
-        error: err?.message,
-      });
-    }
-  }
-
-  // ---- Step 5d: composition (copy + HTML coherent with the image) --------
-  const intent = inferVisualIntent(content);
-  const sheet = brandSheet({
-    brandName: context.brandName,
-    businessType: context.businessType,
-    tone: context.tone,
-    palette: { primary: context.branding.primary, secondary: context.branding.secondary, accent: context.branding.accent, background: context.branding.background, text: context.branding.text },
-    fonts: { display: context.branding.primaryFont || 'Archivo', body: context.branding.secondaryFont || context.branding.primaryFont || 'Inter' },
-    art: context.artDirection,
-  });
-  const orchestrator = new CreativeOrchestrator({ level: creativity, call: ports.agentCall });
-  const render = async (candidate: string, meta: Partial<VisualMeta>) => {
-    let finalHtml = ensureLogoPresence(candidate, context, format);
-    finalHtml = applyDesignLint(finalHtml, context, `visuel/${format}`, sourced?.analysis.dominantColors || []);
-    const out = await flyerRenderService.renderFlyer(
-      finalHtml,
+      userId,
+      brandId: projectId,
+      content,
+      context,
       format,
-      { url: context.branding.fontUrl, primaryFont: context.branding.primaryFont, secondaryFont: context.branding.secondaryFont },
-      logoDeclensions(context, meta.logoUsed),
-      {
-        grid,
-        palette: { primary: context.branding.primary, secondary: context.branding.secondary, accent: context.branding.accent, background: context.branding.background, text: context.branding.text },
-        label: `visuel/${format}`,
-      }
-    );
-    return { html: out.html ? sanitizeSectionHtml(out.html) : finalHtml, parsed: meta, sourced, intent, png: out.png, audit: out.audit };
-  };
-
-  // Crans Low → High : le CODE compose, les agents décident selon le cran.
-  if (!atLeast(creativity, 'max')) {
-    const brief = { title: content.title, hook: content.hook, description: content.description, intent, language: context.language };
-    const copy = (await orchestrator.run(copywriterTask(sheet, brief))).value;
-    const hasImage = !!sourced?.url;
-    // Une citation (avis, témoignage) se reconnaît à ses guillemets ou à son vocabulaire.
-    const quoteLike = /^[«"“]|t[ée]moign|avis client|nos clients disent|review/i.test(`${content.hook || ''} ${content.title}`);
-    const structures: FlyerStructure[] = [...(hasImage ? ['photo' as const] : []), 'type', ...(copy.detail ? ['fact' as const] : []), ...(quoteLike ? ['quote' as const] : [])];
-    const fallbackStructure: FlyerStructure = quoteLike ? 'quote' : hasImage ? 'photo' : copy.detail ? 'fact' : 'type';
-    const referenced = creative.reference && structures.includes(creative.reference.structure) ? creative.reference.structure : undefined;
-    const structure = referenced || (await orchestrator.run(structureTask(sheet, copy, structures, fallbackStructure))).value;
-    const styleId = context.artDirection?.styleId;
-    const seedNumber = parseInt(crypto.createHash('sha1').update(seedKey).digest('hex').slice(0, 8), 16);
-    const menu = flyerLayoutMenu(structure, { styleId, recent: creative.recentLayouts });
-    const chosen = (await orchestrator.run(artDirectorTask(sheet, copy, menu, pickFlyerLayout(structure, seedNumber, { styleId, recent: creative.recentLayouts })))).value;
-    // La composition du modèle passe avant le choix de l'agent, si elle porte cette structure.
-    const refLayout = creative.reference?.layout as FlyerLayoutId | undefined;
-    const decided = refLayout && FLYER_LAYOUTS[refLayout]?.structures.includes(structure) ? { ...chosen, layout: refLayout } : chosen;
-    const logos = context.branding.logoUrls;
-    const codeHtml = renderFlyerLayout(decided.layout, {
-      copy,
-      brandName: context.brandName,
-      palette: { primary: context.branding.primary, secondary: context.branding.secondary, accent: context.branding.accent, background: context.branding.background, text: context.branding.text },
-      logo: { onLight: logos?.withText?.light || logos?.primary, onDark: logos?.withText?.dark || logos?.primary },
-      image: sourced?.url,
-      width: dims.width,
-      height: dims.height,
-      grid,
-      emphasis: decided.emphasis,
-    });
-    return render(codeHtml, {
-      concept: `${structure} · ${decided.layout}`,
-      layoutNotes: FLYER_LAYOUTS[decided.layout].summary,
-      marketingText: { headline: copy.headline, subheadline: copy.sub, body: [copy.kicker, copy.detail].filter(Boolean).join(' · ') },
-      layout: decided.layout,
-      creativity,
-      agents: orchestrator.traces,
-    } as Partial<VisualMeta>);
-  }
-
-  // Cran Ultra : l'idée de composition est décidée d'abord, par un agent concept.
-  const ultraConcept = atLeast(creativity, 'ultra')
-    ? (await orchestrator.run(conceptTask(sheet, heuristicFlyerCopy({ title: content.title, hook: content.hook, description: content.description }), !!sourced?.url))).value
-    : null;
-  // Un SEUL passage de substitution, piloté par une table exhaustive : les
-  // remplacements en cascade laissaient passer des marqueurs non résolus
-  // ({{DESIGN_SEED.archetype}}, {{IMAGE_DOMINANT_COLORS}}…) que le modèle
-  // recevait littéralement — au mieux du bruit, au pire une consigne illisible
-  // là où on croyait lui donner la charte.
-  const systemPrompt = applyPlaceholders(
-    AGENT_FLYER_GENERATION_PROMPT,
-    buildFlyerPlaceholders(context, seed, intent, format, sourced, grid)
+      tag,
+      seedKey,
+      creativity: creative.creativity || 'medium',
+      recentLayouts: creative.recentLayouts,
+      photoUrl: creative.image?.url,
+      brandPhotos: creative.brandPhotos,
+      skipImage: skipImage && !creative.image?.url,
+      sourcing,
+      allowDark: creative.allowDark,
+      feedback: creative.feedback,
+      avoid: creative.avoid,
+      reference: creative.reference,
+    }
   );
-
-  // Strip the heavy inline SVG markup before sending branding to the LLM: it
-  // bloats the payload and tempts the model into pasting raw SVG. The resolved
-  // logoUrls remain available (both in the prompt and here).
-  const { logoSvg, ...brandingForLlm } = context.branding;
-
-  const userPayload: Record<string, unknown> = {
-    BRAND: {
-      name: context.brandName,
-      tone: context.tone,
-      branding: brandingForLlm, // Detailed branding including logoUrls (no raw SVG)
-      colors: brandingForLlm, // Legacy path for color placeholders
-    },
-    VISUAL_INTENT: intent,
-    DESIGN_SEED: seed,
-    CONTENT_IDEA: {
-      title: content.title,
-      hook: content.hook,
-      description: content.description,
-      format: content.format,
-      channel: content.channel,
-      intent,
-      // `callToAction` n'est VOLONTAIREMENT pas transmis : c'est le texte de la
-      // légende du post, pas un élément du visuel. Tant qu'on l'envoyait ici,
-      // le modèle le prenait pour une consigne de composition et dessinait un
-      // bouton sur chaque visuel — d'autant plus que la valeur par défaut du
-      // calendrier est « Learn more ». Le visuel ne porte aucun CTA.
-      hashtags: content.hashtags,
-    },
-    FORMAT: format,
-    ...(ultraConcept ? { CREATIVE_DIRECTION: ultraConcept } : {}),
-    ...(creative.reference
-      ? { REFERENCE_COMPOSITION: `${creative.reference.description} — reproduce this composition (placement, hierarchy, proportions) with THIS brand's colours, fonts, texts and image; never copy the reference's texts.` }
-      : {}),
-  };
-  if (sourced) {
-    userPayload.IMAGE_URL = sourced.url;
-    userPayload.IMAGE_SUBJECT = sourced.analysis.subject;
-    userPayload.IMAGE_MOOD = sourced.analysis.mood;
-    userPayload.IMAGE_DOMINANT_COLORS = sourced.analysis.dominantColors;
-    userPayload.IMAGE_LUMINANCE = sourced.analysis.luminance;
-    userPayload.IMAGE_COMPOSITION = sourced.analysis.composition;
-    userPayload.IMAGE_DETECTED_TEXT = sourced.analysis.detectedText;
-  }
-
-  const messages: PromptMessage[] = [
-    {
-      role: 'system',
-      content: ultraConcept
-        ? `${systemPrompt}\n\nCREATIVE_DIRECTION (in the user payload) is the composition chosen by the creative director: follow its idea, make its focal point dominant and let its brand colour lead. Do not fall back to a stock layout.`
-        : systemPrompt,
-    },
-    { role: 'user', content: JSON.stringify(userPayload, null, 2) },
-  ];
-
-  const compose = () => ports.runPrompt('flyer', messages);
-  // Cran Ultra : deux compositions écrites EN PARALLÈLE (la seconde ne coûte pas d'attente).
-  const [raw, secondRaw] = await Promise.all([compose(), atLeast(creativity, 'ultra') ? compose().catch(() => '') : Promise.resolve('')]);
-  // Le balisage voyage désormais dans un bloc <html>, pas dans une chaîne
-  // JSON : une page de Tailwind porte des centaines de guillemets doubles, et
-  // c'est leur échappement qui perdait la génération entière. Les métadonnées
-  // (concept, texte marketing) restent en JSON — elles n'ont pas ce problème.
-  const parsed = parseFlyerResponse(raw);
-
-  const toHtml = (candidate: Partial<VisualMeta>) =>
-    typeof candidate.html === 'string' && candidate.html.trim().length > 0
-      ? enforceBrandTypography(stripCtaButtons(candidate.html), context)
-      : fallbackFlyerHtml(content, context, format, sourced?.url);
-
-  // ---- Step 5e: contrôle de composition MESURÉ ---------------------------
-  // Le visuel est monté dans un navigateur, mesuré et réparé (zone de
-  // sécurité, texte rogné, alignement, hiérarchie, contraste réel sur les
-  // pixels rendus, fond perdu), puis photographié. Ce que les passes
-  // précédentes ne peuvent pas voir — elles lisent une chaîne, pas une page —
-  // est attrapé ici, et le balisage renvoyé est celui qui a produit l'image.
-  const first = await render(toHtml(parsed), { ...parsed, creativity });
-  if (!atLeast(creativity, 'ultra')) return first;
-  // Cran Ultra : une seconde composition, écrite et rendue ; la meilleure au contrôle mesuré est gardée.
-  try {
-    if (!secondRaw) return first;
-    const secondParsed = parseFlyerResponse(secondRaw);
-    const second = await render(toHtml(secondParsed), { ...secondParsed, creativity });
-    const better = (a: typeof first, b: typeof first) => (a.audit.blocking !== b.audit.blocking ? (a.audit.blocking ? b : a) : b.audit.score > a.audit.score ? b : a);
-    const best = better(first, second);
-    return { ...best, parsed: { ...best.parsed, agents: orchestrator.traces } as Partial<VisualMeta> };
-  } catch (err: any) {
-    logger.warn('[Communication] Seconde composition Ultra en échec, la première est gardée', { error: err?.message });
-    return first;
-  }
+  return { html: result.html, parsed: result.parsed, sourced: result.sourced, intent: inferVisualIntent(content), png: result.png, audit: result.audit };
 }
 
 /**

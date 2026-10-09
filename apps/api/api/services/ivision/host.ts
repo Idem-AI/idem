@@ -3,16 +3,17 @@
  *
  * Le core contient toute la logique créative (vidéos, et bientôt visuels) ; il demande à son
  * hôte quelques branchements. Ici, ceux d'IDEM : le journal winston, le stockage MinIO, le
- * modèle de vision et la génération d'image (glm-media), le client Google GenAI (Veo), le
- * runtime d'agents (étages, escalade, suivi d'usage), la restitution de crédits, et le
- * barème des prix. L'API iVision fait la même chose de son côté (`apps/ivision/api`).
+ * modèle de vision, la génération d'image, de clip (CogVideoX-3) et de voix (GLM-TTS, repli
+ * Gemini TTS) — tous dans glm-media —, le runtime d'agents (étages, escalade, suivi d'usage),
+ * la restitution de crédits, et le barème des prix. L'API iVision fait la même chose de son
+ * côté (`apps/ivision/api`).
  *
  * Importer ce module suffit (effet de bord idempotent). Tout est paresseux : rien ne se
  * connecte avant le premier appel, donc l'ordre de chargement des secrets est respecté.
  */
 import logger from '../../config/logger';
 import { BUSINESS_CREDIT_COSTS } from '../../models/billing.model';
-import { configureCore, ImageOptions, VisionOptions } from '../../../../ivision/core/src/runtime/host';
+import { configureCore, ImageOptions, SpeechRequest, SynthesizedSpeech, VideoClipRequest, VisionOptions } from '../../../../ivision/core/src/runtime/host';
 import { AI_CONFIG } from '../../config/ai.config';
 import { setVideoPricingBase } from '../../../../ivision/core/src/video/video.pricing';
 import { apiBaseUrl } from '../Communication/visualUrl';
@@ -39,14 +40,36 @@ export async function idemAnalyzeImage(base64: string, mimeType: string, instruc
   );
 }
 
-/** Les modèles d'image d'IDEM, par finalité (fond de visuel : ceux du sourcing ; image de vidéo : Gemini). */
+/**
+ * Les modèles d'image d'IDEM, par finalité. Fond de visuel : ceux du sourcing. Plan d'une
+ * vidéo : la famille GLM (GLM-Image, repli CogView-4) dès que sa clé existe — la vidéo anime
+ * ensuite cette image avec CogVideoX-3 ; sans clé GLM, Gemini.
+ */
 export async function idemGenerateImage(prompt: string, options: ImageOptions) {
   const media = await import('../glm-media.service');
+  const { getGlmApiKey } = await import('../../config/ai-providers.config');
   const sourcing = AI_CONFIG.communication.imageSourcing;
   if (options.purpose === 'visual-background') {
     return media.generateImage(prompt, { model: options.model || sourcing.imageModel, fallbackModel: options.fallbackModel || sourcing.imageFallbackModel, tag: options.tag, ...(options.size ? { size: options.size } : {}) });
   }
-  return media.generateImage(prompt, { provider: 'gemini', size: options.size, tag: options.tag, ...(options.model ? { model: options.model } : {}) });
+  const videoMedia = AI_CONFIG.communication.videoMedia;
+  if (getGlmApiKey()) {
+    return media.generateImage(prompt, { provider: 'glm', model: options.model || videoMedia.imageModel, fallbackModel: options.fallbackModel || videoMedia.imageFallbackModel, tag: options.tag, ...(options.size ? { size: options.size } : {}) });
+  }
+  return media.generateImage(prompt, { provider: 'gemini', size: options.size, tag: options.tag });
+}
+
+/** Un clip d'un plan de vidéo : CogVideoX-3 (Z.ai). Partagé avec la passerelle d'iVision. */
+export async function idemGenerateVideo(request: VideoClipRequest): Promise<{ url: string; model: string }> {
+  const media = await import('../glm-media.service');
+  const { url, model } = await media.generateVideo({ prompt: request.prompt, image: request.image, size: request.size, durationSec: request.durationSec, quality: request.quality, tag: request.tag });
+  return { url, model };
+}
+
+/** Une ligne de voix off : GLM-TTS dans ses langues, Gemini TTS sinon. Partagé avec iVision. */
+export async function idemSynthesizeSpeech(request: SpeechRequest): Promise<SynthesizedSpeech> {
+  const media = await import('../glm-media.service');
+  return media.generateSpeech({ text: request.text, language: request.language, provider: request.provider, voice: request.voice, style: request.style, tag: request.tag });
 }
 
 export function configureIvisionCoreForIdem(): void {
@@ -65,8 +88,8 @@ export function configureIvisionCoreForIdem(): void {
     storage: { uploadFile: (content, fileName, folder, contentType) => lazyStorage().uploadFile(content, fileName, folder, contentType) },
     analyzeImage: idemAnalyzeImage,
     generateImage: idemGenerateImage,
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    googleGenAI: () => require('../../config/google-genai.client').getGoogleGenAIClient(),
+    generateVideo: idemGenerateVideo,
+    synthesizeSpeech: idemSynthesizeSpeech,
     agentCall: (ctx) => runtimeCall(ctx),
     refundCredits: async (userId, cost, meta) => {
       const { creditLedgerService } = await import('../billing/credit-ledger.service');

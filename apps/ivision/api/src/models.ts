@@ -82,6 +82,8 @@ export interface ChatOptions {
   type?: string;
   musicMood?: string;
   sfx?: boolean;
+  /** Voix off dans la langue de l'utilisateur (désactivée par défaut). */
+  voice?: boolean;
   /** Visuel. */
   format?: FlyerFormat;
   withPhoto?: boolean;
@@ -131,6 +133,8 @@ export interface IvisionVisual {
   imageUrl: string;
   html: string;
   layout?: string;
+  /** Palette de la composition (paper, brand, ink…) : une révision en propose une autre. */
+  scheme?: string;
   creativity: CreativityLevel;
   referenceId?: string;
   audit?: { score: number; blocking: boolean };

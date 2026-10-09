@@ -149,6 +149,11 @@ export class VideoEditPage {
     this.save('sfx', { sfx: enabled }, true);
   }
 
+  /** Voix off : la couper la garde ; l'ajouter l'écrit et l'enregistre (le minutage se recale). */
+  protected setVoice(enabled: boolean): void {
+    this.save('voice', { voice: enabled }, true);
+  }
+
   protected pickPhoto(key: string, input: HTMLInputElement): void {
     this.replacing = key;
     input.click();

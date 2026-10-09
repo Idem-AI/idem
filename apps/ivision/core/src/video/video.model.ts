@@ -133,6 +133,36 @@ export interface VideoSfx {
   intensity?: 'subtle' | 'normal' | 'punchy';
 }
 
+/** Une ligne de voix off, posée sur SA scène (la scène dure au moins le temps de la dire). */
+export interface VoiceLine {
+  /** Clé de la scène qui la porte. */
+  sceneKey: string;
+  text: string;
+  /** Fichier traité (MP3 48 kHz, loudness normalisée), dans le stockage. */
+  url: string;
+  durationSec: number;
+  /** Décalage depuis le début de la scène (laisse passer la transition). */
+  offset: number;
+}
+
+export interface VideoVoice {
+  enabled: boolean;
+  /** Langue de la voix : celle de la vidéo (langue de l'utilisateur à la création). */
+  language: string;
+  /** Personnage de voix (catalogue `video.voice.ts`), traduit en voix du fournisseur. */
+  persona: string;
+  provider: 'glm' | 'gemini';
+  model: string;
+  voice: string;
+  /** Jeu demandé par l'agent narrateur. */
+  style?: string;
+  lines: VoiceLine[];
+  /** llm = texte écrit par l'agent narrateur ; heuristic = tiré des textes à l'écran. */
+  source: 'llm' | 'heuristic';
+  /** Absente : la langue ou le service ne permettaient pas de voix (la vidéo reste sans). */
+  unavailable?: string;
+}
+
 /** Langage de mouvement : courbes, vitesses, transitions. */
 export type MotionStyle = 'energetic' | 'premium' | 'playful' | 'corporate';
 
@@ -159,12 +189,14 @@ export interface VideoBrief {
   language?: string;
   /** Médias importés par l'utilisateur (photos, vidéos, modèles 3D, Lottie). */
   media?: VideoMediaAsset[];
-  /** IDEM peut chercher des photos et vidéos sur Pexels. */
+  /** IDEM peut chercher des photos et vidéos sur Pexels (après trois échecs de génération). */
   allowStock?: boolean;
-  /** IDEM peut générer une vidéo (Gemini Veo) si Pexels ne trouve rien. */
+  /** IDEM génère les photos et les clips que l'utilisateur n'a pas fournis (modèles GLM). */
   allowGenerate?: boolean;
   /** Effets sonores (whoosh, pop…) : activés par défaut. */
   sfx?: boolean;
+  /** Voix off, dans la langue de la vidéo : choisie par l'utilisateur, désactivée par défaut. */
+  voice?: boolean;
   /** Direction de motion imposée (sinon choisie par IDEM). */
   direction?: string;
 }
@@ -418,6 +450,8 @@ export interface MotionVideo {
   /** Tous les médias de la vidéo, quelle que soit leur origine. */
   media?: VideoMediaAsset[];
   sfx?: VideoSfx;
+  /** Voix off (si l'utilisateur l'a demandée) : les scènes sont calées sur ses lignes. */
+  voice?: VideoVoice;
   brief: VideoBrief;
   scope: VideoScope;
   storyboard: VideoStoryboard;

@@ -143,6 +143,7 @@ export const updateVideoController = async (req: CustomRequest, res: Response): 
       musicTrackId: typeof body.musicTrackId === 'string' ? body.musicTrackId : undefined,
       scope: body.scope,
       sfx: typeof body.sfx === 'boolean' ? body.sfx : undefined,
+      voice: typeof body.voice === 'boolean' ? body.voice : undefined,
       direction: typeof body.direction === 'string' ? body.direction : undefined,
       kit: body.kit && typeof body.kit === 'object' ? pickKit(body.kit) : undefined,
       images: body.images && typeof body.images === 'object' ? body.images : undefined,

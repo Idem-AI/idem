@@ -16,6 +16,8 @@
 import axios from 'axios';
 import crypto from 'crypto';
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import logger from '../runtime/logger';
 import {
   MOTION_STYLES,
@@ -40,6 +42,7 @@ import {
   VideoStoryboard,
   SfxKind,
   VideoSceneInstance,
+  VideoVoice,
 } from './video.model';
 import { mediaWanted, planTypeScenes, TYPE_DEFS, MediaCounts } from './video.types';
 import { planCreative } from './video.storyline';
@@ -47,8 +50,10 @@ import { conceptCopyHints, ensureScenes, sceneRange } from './video.concepts';
 import { applyRules } from './video.rules';
 import { motionFromArtDirection } from './video.artdirection';
 import { enhanceRequest } from './video.enhance';
-import { generateClip, generateStill, MediaStorage, Orientation, processUpload, searchPexelsPhotos, searchPexelsVideos } from './video.media';
-import { ensureSfxLibrary, pickSounds, publicSoundName, SFX_DENSITY, SFX_GAIN_DB, sfxLibrary, soundFile, SfxLibrary } from './video.sfx';
+import { MediaStorage, Orientation, processUpload } from './video.media';
+import { planMediaNeeds, runMediaDirector, SceneMedia, sceneMediaOf, sourceShots } from './video.sourcing';
+import { fitScenesToVoice, personaById, personaMenu, runNarrator, sceneTexts, speakable, speechAvailable, synthesizeVoice, voiceTimeline } from './video.voice';
+import { ensureSfxLibrary, pickSounds, previewGain, publicSoundName, SFX_DENSITY, SFX_GAIN_DB, sfxLibrary, soundFile, SfxLibrary } from './video.sfx';
 import { coreHost, requirePort } from '../runtime/host';
 import { DirectionId, DIRECTIONS, isMotionDirection, lintMotion, MotionTransition, pickDirection, planMotion, styleOfDirection, surfacesFor, transitionMenu } from './video.direction';
 import { atLeast, CreativityLevel, normalizeCreativity } from '../creativity/levels';
@@ -59,7 +64,7 @@ import { analyzeLogo } from './video.logo';
 import { VideoStore } from './video.store';
 import { extractFacts, writeCopy, CopyContext, CopyWriter, fitLength, heuristicSlot } from './video.copy';
 import { planScenes } from './video.recipes';
-import { buildStoryboard, resolveStyle, retime } from './video.storyboard';
+import { allocateDurations, buildStoryboard, resolveStyle, retime } from './video.storyboard';
 import { buildVideoTheme, VideoTheme } from './video.theme';
 import { composeVideoHtml, inlineAssets } from './video.composer';
 import { analyzeTrack, pickExcerptStart } from './video.beats';
@@ -109,7 +114,7 @@ export interface CreateVideoInput {
  * Progression RÉELLE d'une création, étape par étape : l'interface la montre en
  * direct (flux SSE). Les étapes médias, musique et effets tournent en parallèle.
  */
-export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'storyboard' | 'animation' | 'critique' | 'code' | 'direction' | 'shots';
+export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'voice' | 'storyboard' | 'animation' | 'critique' | 'code' | 'direction' | 'shots';
 
 export interface VideoProgressEvent {
   stage: VideoProgressStage;
@@ -126,6 +131,12 @@ export interface MediaReport {
   stockVideos: number;
   generatedImages: number;
   generatedVideos: number;
+  /** Essais de génération en échec (trois par média avant Pexels). */
+  failedAttempts?: number;
+  /** Photos reprises des visuels de la marque (dernier recours). */
+  fromVisuals?: number;
+  /** Plans demandés au directeur photo (médias que l'utilisateur n'a pas fournis). */
+  planned?: number;
   query?: string;
 }
 
@@ -190,6 +201,8 @@ export function normalizeBrief(raw: Partial<VideoBrief> | undefined, language?: 
     allowStock: b.allowStock !== false,
     allowGenerate: b.allowGenerate !== false,
     sfx: b.sfx !== false,
+    // La voix off se choisit : jamais imposée.
+    voice: b.voice === true,
   };
 }
 
@@ -367,8 +380,10 @@ export class MotionVideoService {
   }
 
   /**
-   * Les médias de la vidéo, dans l'ordre : importés → photos des visuels →
-   * Pexels (photos, vidéos) → génération (image Gemini, clip Veo — un seul).
+   * Les médias de la vidéo (cf. video.sourcing.ts) : les imports de l'utilisateur remplissent
+   * d'abord les scènes ; pour le reste, le directeur photo écrit un plan par besoin (au texte de
+   * SA scène), les modèles de l'hôte le génèrent (trois essais), Pexels ne vient qu'après trois
+   * échecs, puis les photos des visuels de la marque.
    */
   private async acquireMedia(opts: {
     /** Rendu imposé par la DA de la charte aux images et clips générés. */
@@ -378,66 +393,138 @@ export class MotionVideoService {
     videoId: string;
     brief: VideoBrief;
     visuals: any[];
-    wanted: { images: number; videos: number };
+    /** Les scènes prévues (type et textes à l'écran) : chacune a ses besoins. */
+    scenes: { sceneId: string; texts: string[] }[];
     query: string;
     orientation: Orientation;
     ctx: CopyContext;
-  }): Promise<{ assets: VideoMediaAsset[]; report: MediaReport }> {
-    const { brief, wanted, query, orientation } = opts;
-    const assets: VideoMediaAsset[] = [...(brief.media || [])];
-    const report: MediaReport = { stockPhotos: 0, stockVideos: 0, generatedImages: 0, generatedVideos: 0, query };
-    const count = (kind: VideoMediaKind) => assets.filter((a) => a.kind === kind).length;
+    facts: ReturnType<typeof extractFacts>;
+    sheet: string;
+    writer?: CopyWriter;
+    clipQuality: 'speed' | 'quality';
+    onProgress?: (data: Record<string, unknown>) => void;
+  }): Promise<{ assets: VideoMediaAsset[]; sceneMedia: Record<number, SceneMedia>; report: MediaReport; run?: AgentRun }> {
+    const { brief, orientation } = opts;
+    const own = brief.media || [];
     const folder = `users/${opts.userId}/projects/${opts.projectId}/videos/${opts.videoId}/media`;
+    const { assigned, missing } = planMediaNeeds(opts.scenes, {
+      images: own.filter((a) => a.kind === 'image').map((a) => a.url),
+      videos: own.filter((a) => a.kind === 'video').map((a) => a.url),
+      models: own.filter((a) => a.kind === 'model3d').length,
+    });
+    const report: MediaReport = { stockPhotos: 0, stockVideos: 0, generatedImages: 0, generatedVideos: 0, failedAttempts: 0, fromVisuals: 0, planned: missing.length, query: opts.query };
+    if (!missing.length || (!brief.allowGenerate && !brief.allowStock)) return { assets: [...own], sceneMedia: assigned, report };
 
-    // Les photos déjà utilisées dans ses visuels : payées et à la charte.
-    if (count('image') < wanted.images) {
-      const fromVisuals = [...new Set(
-        [...opts.visuals]
-          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
-          .map((v) => v.backgroundImageUrl)
-          .filter((u: unknown): u is string => typeof u === 'string' && /^https?:\/\//.test(u))
-      )].slice(0, wanted.images - count('image'));
-      fromVisuals.forEach((url, i) => assets.push({ id: `visual-${i}`, kind: 'image', url, origin: 'visual' }));
-    }
+    const { direction, run } = await runMediaDirector(opts.writer, {
+      sheet: opts.sheet,
+      brief: `${brief.message}\n${brief.details || ''}`,
+      businessType: opts.ctx.businessType,
+      facts: opts.facts,
+      artModifier: opts.artModifier,
+      query: opts.query,
+      needs: missing,
+      orientation,
+    });
+    opts.onProgress?.({ planned: direction.shots.length, look: direction.look, source: direction.source });
+    const visualPhotos = [...new Set(
+      [...opts.visuals]
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+        .map((v) => v.backgroundImageUrl)
+        .filter((u: unknown): u is string => typeof u === 'string' && /^https?:\/\//.test(u))
+    )];
+    const sourced = await sourceShots({
+      direction,
+      orientation,
+      storage: this.mediaStorage(),
+      folder,
+      allowGenerate: brief.allowGenerate !== false,
+      allowStock: brief.allowStock !== false,
+      artModifier: opts.artModifier,
+      clipQuality: opts.clipQuality,
+      visualPhotos,
+      onProgress: (done, total, last) => opts.onProgress?.({ done, total, ...(last ? { last } : {}) }),
+    });
+    Object.assign(report, sourced.report);
+    return { assets: [...own, ...sourced.assets], sceneMedia: sceneMediaOf(assigned, sourced.byNeed), report, run };
+  }
 
-    if (brief.allowStock && count('image') < wanted.images) {
-      const photos = await searchPexelsPhotos(query, orientation, wanted.images - count('image'), opts.ctx.language?.startsWith('en') ? 'en-US' : 'fr-FR').catch((e) => {
-        logger.warn('video.pexels_photos_failed', { error: e.message });
-        return [];
+  // ── Voix off ────────────────────────────────────────────────────────────
+
+  /**
+   * Écrit la voix off (agent narrateur) et la fait dire (modèle de voix de l'hôte), ligne par
+   * ligne, dans la langue de la vidéo. Les lignes sont rendues par index de scène : l'appelant
+   * les rattache aux clés des scènes une fois le storyboard posé.
+   */
+  private async narrate(opts: {
+    userId: string;
+    projectId: string;
+    videoId: string;
+    language: string;
+    brandName: string;
+    sheet: string;
+    brief: string;
+    facts: ReturnType<typeof extractFacts>;
+    style: MotionStyle;
+    seed: number;
+    scenes: { sceneId: string; duration: number; texts: string[] }[];
+    writer?: CopyWriter;
+    concept?: string;
+  }): Promise<{ voice: Omit<VideoVoice, 'lines'>; lines: { index: number; text: string; url: string; durationSec: number }[]; run?: AgentRun }> {
+    const base = { enabled: true, language: opts.language.slice(0, 5), persona: 'warm', provider: 'glm' as const, model: '', voice: '', source: 'heuristic' as const };
+    if (!speechAvailable()) return { voice: { ...base, enabled: false, unavailable: 'no_speech_model' }, lines: [] };
+    const personas = personaMenu(opts.style, opts.seed);
+    const { narration, run } = await runNarrator(opts.writer, {
+      sheet: opts.sheet,
+      brandName: opts.brandName,
+      language: opts.language,
+      brief: opts.brief,
+      facts: opts.facts,
+      style: opts.style,
+      scenes: opts.scenes,
+      personas,
+      concept: opts.concept,
+    });
+    const persona = personaById(narration.persona);
+    try {
+      const said = await synthesizeVoice({
+        lines: Object.entries(narration.lines).map(([i, text]) => ({ index: Number(i), text, maxSec: speakable(opts.scenes[Number(i)].duration, Number(i) === 0) * 1.25 })),
+        language: opts.language,
+        persona,
+        style: narration.style,
+        storage: this.mediaStorage(),
+        folder: `users/${opts.userId}/projects/${opts.projectId}/videos/${opts.videoId}/voice`,
       });
-      assets.push(...photos);
-      report.stockPhotos = photos.length;
+      return {
+        voice: { ...base, persona: persona.id, provider: said.provider, model: said.model, voice: said.voice, style: narration.style, source: narration.source === 'llm' ? 'llm' : 'heuristic' },
+        lines: said.lines,
+        run,
+      };
+    } catch (error: any) {
+      logger.warn('video.voice_failed', { projectId: opts.projectId, error: error?.message });
+      return { voice: { ...base, persona: persona.id, enabled: false, unavailable: String(error?.message || 'voice_failed').slice(0, 60) }, lines: [], run };
     }
-    if (brief.allowStock && count('video') < wanted.videos) {
-      const clips = await searchPexelsVideos(query, orientation, wanted.videos - count('video'), this.mediaStorage(), folder).catch((e) => {
-        logger.warn('video.pexels_videos_failed', { error: e.message });
-        return [];
-      });
-      assets.push(...clips);
-      report.stockVideos = clips.length;
-    }
+  }
 
-    // Ce qui est généré suit la DA de la charte (traitement, lumière, cadrage), comme les visuels.
-    const prompt = `${query}${opts.ctx.businessType ? `, ${opts.ctx.businessType}` : ''}, for ${opts.ctx.brandName}${opts.artModifier ? `. ${opts.artModifier.slice(0, 300)}` : ''}`;
-    // Aucune vidéo trouvée alors que le type en a besoin : Gemini Veo, un seul clip.
-    if (brief.allowGenerate && wanted.videos > 0 && count('video') === 0) {
-      try {
-        assets.push(await generateClip(prompt, orientation === 'landscape' ? 'landscape' : 'portrait', this.mediaStorage(), folder));
-        report.generatedVideos = 1;
-      } catch (error: any) {
-        logger.warn('video.veo_failed', { error: error.message });
-      }
-    }
-    // Pas une seule photo pour une vidéo qui en a besoin : une image générée.
-    if (brief.allowGenerate && wanted.images > 0 && count('image') === 0 && count('video') === 0) {
-      try {
-        assets.push(await generateStill(prompt, orientation, this.mediaStorage(), folder, !!opts.artModifier));
-        report.generatedImages = 1;
-      } catch (error: any) {
-        logger.warn('video.image_generation_failed', { error: error.message });
-      }
-    }
-    return { assets, report };
+  /**
+   * Rattache les lignes dites à leurs scènes (par clé) et cale le minutage sur elles. Modifie
+   * les scènes du storyboard en place ; rend la voix de la vidéo (absente si non demandée).
+   */
+  private attachVoice(
+    storyboard: VideoStoryboard,
+    narrated: Awaited<ReturnType<MotionVideoService['narrate']>> | undefined,
+    keyOf: (index: number) => string | undefined
+  ): VideoVoice | undefined {
+    if (!narrated) return undefined;
+    const lines = narrated.lines
+      .map((l) => ({ sceneKey: keyOf(l.index) || '', text: l.text, url: l.url, durationSec: l.durationSec, offset: 0 }))
+      .filter((l) => l.sceneKey);
+    const voice: VideoVoice = { ...narrated.voice, lines };
+    if (!voice.enabled) return voice;
+    if (!lines.length) return { ...voice, enabled: false, unavailable: voice.unavailable || 'no_lines' };
+    const fitted = fitScenesToVoice(storyboard, voice);
+    storyboard.scenes = fitted.storyboard.scenes;
+    if (fitted.dropped.length) logger.info('video.voice.lines_dropped', { dropped: fitted.dropped });
+    return fitted.voice;
   }
 
   /** Fichier importé par l'utilisateur (photo, clip, modèle 3D, Lottie). */
@@ -818,11 +905,34 @@ export class MotionVideoService {
       return res;
     });
     let soundIntensity: 'subtle' | 'normal' | 'punchy' | undefined;
+    // Le rédacteur (étage de la copie) écrit aussi les plans des médias et la voix off : du contenu.
+    const contentWriter = this.writerFor(userId, tierFor(creativity, 'copy'));
     emit('media', 'running', { query, wanted });
     emit('music', 'running', { mood: brief.musicMood });
     if (brief.sfx) emit('sfx', 'running');
-    const [media, music, sfx] = await Promise.all([
-      this.acquireMedia({ userId, projectId, videoId, brief, visuals, wanted, query, orientation, ctx, artModifier: branding?.artDirection?.imagePromptModifier }).then((m) => {
+    if (brief.voice) emit('voice', 'running', { language: brief.language });
+    const planned = sceneIds.map((id, i) => ({ sceneId: id, texts: sceneTexts(copy.copy[i + 1]) }));
+    // La voix off s'écrit sur les durées prévues (même calcul que le storyboard) ; le calage final suit.
+    const plannedDurations = allocateDurations(sceneIds, sceneIds.map((_, i) => copy.copy[i + 1] || {}), scope.durationSec);
+    const [media, music, sfx, narrated] = await Promise.all([
+      this.acquireMedia({
+        userId,
+        projectId,
+        videoId,
+        brief,
+        visuals,
+        scenes: planned,
+        query,
+        orientation,
+        ctx,
+        facts,
+        sheet,
+        writer: contentWriter,
+        clipQuality: aiFrom('high') ? 'quality' : 'speed',
+        artModifier: branding?.artDirection?.imagePromptModifier,
+        onProgress: (data) => emit('media', 'running', { query, wanted, ...data }),
+      }).then((m) => {
+        if (m.run) agentRuns.push(m.run);
         const preview = (a: VideoMediaAsset) => ({ kind: a.kind, origin: a.origin, url: a.kind === 'video' ? a.posterUrl : a.kind === 'image' ? a.url : undefined, credit: a.credit, name: a.name });
         emit('media', 'done', { query, ...m.report, items: m.assets.slice(0, 8).map(preview) });
         return m;
@@ -852,6 +962,26 @@ export class MotionVideoService {
               emit('sfx', 'done', { sounds: Object.values(fx?.sounds || {}).map((snd) => ({ kind: snd!.kind, title: snd!.title })) });
               return fx;
             })
+        : Promise.resolve(undefined),
+      brief.voice
+        ? this.narrate({
+            userId,
+            projectId,
+            videoId,
+            language: brief.language || ctx.language,
+            brandName: theme.brandName,
+            sheet,
+            brief: `${brief.message}\n${brief.details || ''}`,
+            facts,
+            style,
+            seed,
+            scenes: planned.map((p, i) => ({ ...p, duration: plannedDurations[i] })),
+            writer: contentWriter,
+          }).then((res) => {
+            if (res.run) agentRuns.push(res.run);
+            emit('voice', 'done', res.voice.enabled ? { lines: res.lines.length, language: res.voice.language, provider: res.voice.provider, persona: res.voice.persona } : { unavailable: res.voice.unavailable });
+            return res;
+          })
         : Promise.resolve(undefined),
     ]);
     const designed = await artDirectors;
@@ -921,7 +1051,13 @@ export class MotionVideoService {
       // Les entrées de titre de la dernière vidéo du projet : la nouvelle en prend d'autres.
       avoidHeadlines: (otherVideos[otherVideos.length - 1]?.storyboard?.scenes || []).map((sc) => sc.motion?.headline).filter(Boolean) as string[],
       transitions: transitions,
+      // Chaque scène reçoit le média produit pour SON texte (imports, génération, Pexels).
+      sceneMedia: kept.reduce<Record<number, SceneMedia>>((acc, k, i) => (k.from >= 0 && media.sceneMedia[k.from] ? { ...acc, [i]: media.sceneMedia[k.from] } : acc), {}),
     });
+    // La voix off a été écrite par index de scène prévue : elle suit sa scène par sa clé (les
+    // règles peuvent ensuite retirer une scène, sa ligne part avec elle).
+    const sceneKeyOf = new Map<number, string>();
+    kept.forEach((k, i) => k.from >= 0 && storyboard.scenes[i] && sceneKeyOf.set(k.from, storyboard.scenes[i].key));
     // Une vidéo modèle : chaque scène prend la durée de SON plan (à l'échelle) ; les règles de
     // lecture passent après et rallongent un plan trop court pour être lu.
     if (refPlan) {
@@ -1169,6 +1305,10 @@ export class MotionVideoService {
       reconcilePatterns(storyboard, preferredPatterns);
     }
 
+    // La voix off, en dernier sur le minutage : chaque scène dure au moins le temps de sa ligne
+    // (la durée achetée ne change pas). Les plans écrits par l'IA (étape 8) lisent ces durées.
+    const voice = this.attachVoice(storyboard, narrated, (index) => sceneKeyOf.get(index));
+
     // 8. Cran Ultra : l'agent codeur écrit le composant React de chaque scène possible. Chaque
     //    composant est linté, compilé et rendu en bac à sable ; refusé, la scène garde son rendu Max.
     if (aiFrom('ultra')) {
@@ -1225,6 +1365,7 @@ export class MotionVideoService {
       storyboard,
       music,
       sfx: sfx ? { ...sfx, ...(soundIntensity ? { intensity: soundIntensity } : {}) } : brief.sfx ? undefined : { enabled: false, sounds: {} },
+      ...(voice ? { voice } : {}),
       media: media.assets.filter((a) => used.has(a.url) || a.origin === 'upload'),
       renders: [],
       status: 'draft',
@@ -1273,6 +1414,7 @@ export class MotionVideoService {
       music: music?.provider,
       media: media.report,
       sfx: sfx ? Object.keys(sfx.sounds).length : 0,
+      voice: voice ? (voice.enabled ? { lines: voice.lines.length, provider: voice.provider, language: voice.language } : { unavailable: voice.unavailable }) : undefined,
       kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, camera: kit.camera, entrance: kit.entrance, addons: kit.addons },
       creative: { concept: plan.concept, rhythm: plan.rhythm, source: plan.source, strategy: creative.strategy.label, families: creative.strategy.families, accent: accent.applied?.pattern, experimental, novelty: novelty.nearest, verdict: novelty.verdict, lint: lint.issues.length, repaired: lint.repaired.length },
       patterns: storyboard.scenes.map((sc) => sc.pattern || '-').join(','),
@@ -1324,7 +1466,27 @@ export class MotionVideoService {
     // 1. Les photos d'abord : le directeur compose avec ce qui existe vraiment.
     const query = ([ctx.businessType, ...(ctx.keywords || []).slice(0, 2)].filter(Boolean).join(' ') || brief.message).slice(0, 60);
     emit('media', 'running', { query, wanted: { images: 4, videos: 0 } });
-    const media = await this.acquireMedia({ userId, projectId, videoId, brief, visuals: o.visuals, wanted: { images: 4, videos: 0 }, query, orientation: o.orientation, ctx, artModifier: branding?.artDirection?.imagePromptModifier });
+    // Quatre photos de la marque pour le directeur : l'offre, les gens, le lieu, un détail.
+    const angles = ['the offer itself, hero shot', 'the people it serves, in their daily life', 'the place and its atmosphere', 'a telling close-up detail'];
+    const contentWriter = this.writerFor(userId, 'writing');
+    const media = await this.acquireMedia({
+      userId,
+      projectId,
+      videoId,
+      brief,
+      visuals: o.visuals,
+      scenes: angles.map((angle) => ({ sceneId: 'product', texts: [angle, brief.message] })),
+      query,
+      orientation: o.orientation,
+      ctx,
+      facts: o.facts,
+      sheet,
+      writer: contentWriter,
+      clipQuality: 'quality',
+      artModifier: branding?.artDirection?.imagePromptModifier,
+      onProgress: (data) => emit('media', 'running', { query, wanted: { images: 4, videos: 0 }, ...data }),
+    });
+    if (media.run) agentRuns.push(media.run);
     const photos = media.assets.filter((a) => a.kind === 'image');
     emit('media', 'done', { query, ...media.report, items: photos.slice(0, 8).map((a) => ({ kind: a.kind, origin: a.origin, url: a.url, credit: a.credit, name: a.name })) });
 
@@ -1393,6 +1555,29 @@ export class MotionVideoService {
             return fx;
           })
       : Promise.resolve(undefined);
+    // La voix off, sur les plans du directeur (pendant que la musique se prépare).
+    if (brief.voice) emit('voice', 'running', { language: brief.language });
+    const voiceP = brief.voice
+      ? this.narrate({
+          userId,
+          projectId,
+          videoId,
+          language: brief.language || ctx.language,
+          brandName: theme.brandName,
+          sheet,
+          brief: briefText,
+          facts: o.facts,
+          style,
+          seed,
+          scenes: film.shots.map((sh) => ({ sceneId: sh.kind, duration: sh.duration, texts: sceneTexts(sh.slots) })),
+          writer: contentWriter,
+          concept: film.concept,
+        }).then((res) => {
+          if (res.run) agentRuns.push(res.run);
+          emit('voice', 'done', res.voice.enabled ? { lines: res.lines.length, language: res.voice.language, provider: res.voice.provider, persona: res.voice.persona } : { unavailable: res.voice.unavailable });
+          return res;
+        })
+      : Promise.resolve(undefined);
     const music = await musicP;
 
     // 4. Le storyboard aux durées, surfaces et photos du directeur ; coupes franches (chaque plan
@@ -1425,6 +1610,8 @@ export class MotionVideoService {
     });
     const last = storyboard.scenes[storyboard.scenes.length - 1];
     if (last) last.duration = Math.round((scope.durationSec - last.start) * 1000) / 1000;
+    // Les plans durent au moins le temps de leur ligne : les codeurs écrivent sur ces durées.
+    const voice = this.attachVoice(storyboard, await voiceP, (i) => storyboard.scenes[i]?.key);
     const type: VideoType = o.requested ?? 'mix';
     const kctx = this.kitContext({ type, brief, scope, direction, storyboard, theme, branding, ctx, media: media.assets, otherVideos });
     // Le kit ne décore plus rien : l'IA dessine ses fonds et ses annotations. Il garde l'animation
@@ -1503,6 +1690,7 @@ export class MotionVideoService {
       storyboard,
       music,
       sfx: sfx ? sfx : brief.sfx ? undefined : { enabled: false, sounds: {} },
+      ...(voice ? { voice } : {}),
       media: media.assets.filter((a) => used.has(a.url) || a.origin === 'upload'),
       renders: [],
       status: 'draft',
@@ -1574,6 +1762,8 @@ export class MotionVideoService {
       musicTrackId?: string | null;
       scope?: unknown;
       sfx?: boolean;
+      /** Voix off : coupée (gardée pour plus tard) ou ajoutée (écrite et dite dans la langue de la vidéo). */
+      voice?: boolean;
       direction?: string;
       /** Retouche du kit : acceptée seulement si le graphe la permet. */
       kit?: KitOverrides;
@@ -1719,6 +1909,42 @@ export class MotionVideoService {
       storyboard = { ...storyboard, beat: music.beat };
     }
 
+    // La voix off : coupée, elle est gardée (la remettre est gratuit) ; demandée sans lignes (ou
+    // dans une autre langue), elle est écrite et dite. Active, le minutage se recale sur elle.
+    let voice = current.voice;
+    if (patch.voice === false && voice) voice = { ...voice, enabled: false };
+    if (patch.voice === true) {
+      const language = brief.language || 'fr';
+      if (voice?.lines.length && voice.language === language.slice(0, 5)) voice = { ...voice, enabled: true, unavailable: undefined };
+      else {
+        const { theme, ctx, branding } = await this.brandContext(userId, projectId);
+        const sb: VideoStoryboard = { ...storyboard, scenes: storyboard.scenes.map((sc) => ({ ...sc })) };
+        const narrated = await this.narrate({
+          userId,
+          projectId,
+          videoId,
+          language,
+          brandName: theme.brandName,
+          sheet: brandSheet({ ctx, palette: theme.palette, fonts: theme.fonts, art: branding?.artDirection }),
+          brief: `${brief.message}\n${brief.details || ''}`,
+          facts: extractFacts(`${brief.message}\n${brief.details || ''}`),
+          style: storyboard.style,
+          seed: storyboard.seed,
+          scenes: sb.scenes.map((sc) => ({ sceneId: sc.sceneId, duration: sc.duration, texts: sceneTexts(sc.slots) })),
+          writer: this.writerFor(userId, tierFor(normalizeCreativity(current.creativity), 'copy')),
+          concept: storyboard.authored?.concept,
+        });
+        voice = this.attachVoice(sb, narrated, (i) => sb.scenes[i]?.key);
+        storyboard = sb;
+      }
+      brief = { ...brief, voice: true };
+    } else if (patch.voice === false) brief = { ...brief, voice: false };
+    if (voice?.enabled && voice.lines.length) {
+      const fitted = fitScenesToVoice(storyboard, voice);
+      storyboard = fitted.storyboard;
+      voice = fitted.voice;
+    }
+
     // L'empreinte suit la retouche (autre direction, autres mises en page, autre kit) : la mémoire du
     // projet reste juste, et la nouveauté affichée est celle de la vidéo telle qu'elle est.
     {
@@ -1735,6 +1961,7 @@ export class MotionVideoService {
       storyboard,
       music,
       sfx,
+      ...(voice ? { voice } : {}),
       title: fitLength(storyboard.scenes.find((sc) => sc.slots.title)?.slots.title || v.title, 60),
       dirty: v.exportCount > 0 ? true : v.dirty,
       updatedAt: new Date().toISOString(),
@@ -1754,9 +1981,9 @@ export class MotionVideoService {
     const sounds: Record<string, { url: string; gain: number }> = {};
     for (const [kind, file] of Object.entries(files)) {
       const shift = video.sfx?.intensity === 'subtle' ? -4 : video.sfx?.intensity === 'punchy' ? 3 : 0;
-      const db = SFX_GAIN_DB[kind as SfxKind] + (density[kind as SfxKind] ?? 0) + shift + 6; // l'aperçu n'a pas de normalisation finale
+      const db = SFX_GAIN_DB[kind as SfxKind] + (density[kind as SfxKind] ?? 0) + shift;
       if (db < -40) continue;
-      sounds[kind] = { url: coreHost().sfxUrl(publicSoundName(file!)), gain: Math.min(1, Math.pow(10, db / 20)) };
+      sounds[kind] = { url: coreHost().sfxUrl(publicSoundName(file!)), gain: previewGain(db) };
     }
     const { html } = await composeVideoHtml({
       ...assets,
@@ -1765,6 +1992,7 @@ export class MotionVideoService {
       mode: 'preview',
       music: video.music ? { url: video.music.url, startAt: video.music.startAt } : undefined,
       sfx: { enabled: !!video.sfx?.enabled, sounds },
+      voice: voiceTimeline(video.storyboard, video.voice),
     });
     return html;
   }
@@ -1845,6 +2073,19 @@ export class MotionVideoService {
       }
     }
 
+    // La voix off : chaque ligne téléchargée une fois, mixée à son instant dans chaque format.
+    const voiceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-voice-render-'));
+    const voiceFiles: { file: string; at: number }[] = [];
+    for (const [i, line] of voiceTimeline(video.storyboard, video.voice).entries()) {
+      try {
+        const file = path.join(voiceDir, `line-${i}.mp3`);
+        await downloadTo(line.url, file);
+        voiceFiles.push({ file, at: line.at });
+      } catch (error: any) {
+        logger.warn('video.voice_download_failed', { videoId, line: i, error: error.message });
+      }
+    }
+
     const results: VideoRender[] = [];
     let failed = false;
     for (const format of video.scope.formats) {
@@ -1861,6 +2102,7 @@ export class MotionVideoService {
           quality: video.scope.quality,
           music: musicFile && video.music ? { file: musicFile, startAt: video.music.startAt } : undefined,
           sfx: Object.keys(sfxFiles).length ? { files: sfxFiles, style: video.storyboard.style, intensity: video.sfx?.intensity } : undefined,
+          voice: voiceFiles,
           posterAt: first ? first.start + Math.min(first.duration * 0.85, 2) : 1,
           onProgress: (r) => liveProgress.set(`${videoId}:${format}`, r),
           // Code écrit par l'IA (cran Ultra) dans la page : garde réseau strict.
@@ -1899,6 +2141,8 @@ export class MotionVideoService {
       }));
     }
 
+    fs.rmSync(voiceDir, { recursive: true, force: true });
+
     const allFailed = results.every((r) => r.status === 'failed');
     // L'utilisateur a exporté : le signal le plus fiable pour la mémoire globale du moteur créatif.
     if (!allFailed && !video.exportCount) {
@@ -1920,6 +2164,18 @@ export class MotionVideoService {
       logger.warn('video.partial_render', { videoId });
     }
   }
+}
+
+// ─── Téléchargement d'un fichier du stockage (voix off) ─────────────────────
+
+async function downloadTo(url: string, file: string): Promise<void> {
+  if (url.startsWith('file://') && process.env.VIDEO_ALLOW_FILE_URLS === '1' && process.env.NODE_ENV !== 'production') {
+    fs.copyFileSync(url.replace('file://', ''), file);
+    return;
+  }
+  if (!/^https?:\/\//.test(url)) throw new Error('voice_url_refused');
+  const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000, maxContentLength: 20 * 1024 * 1024 });
+  fs.writeFileSync(file, Buffer.from(res.data));
 }
 
 // ─── Restitution des crédits d'un rendu en échec ───────────────────────────

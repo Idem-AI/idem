@@ -37,9 +37,13 @@ et le remplace par le sien s'il est absent, faux ou inventé.
 | Garde-fous : coupe au mot, anti-invention (prix, dates, numéros), copie de repli | code | `video.copy.ts` |
 | Mises en page, transitions, entrées, caméra, logo, relecture | graphe ; **agents** dès High | `video.agents.ts` |
 | Réglages par scène (taille, alignement, surface, tempo, décor) | graphe ; **agents** au cran Max, dans des bornes | `video.agents.ts` |
+| Médias que l'utilisateur n'a pas fournis : un plan par besoin, au texte de SA scène, look commun, mouvement de caméra (menu), requête de banque | **directeur photo**, à tous les crans | `video.sourcing.ts` |
+| Génération : image (GLM-Image, repli CogView-4) contrôlée par la vision, clip (CogVideoX-3, l'image animée) ; **3 essais** par média, puis Pexels, puis les photos des visuels | code + modèles GLM de l'hôte | `video.sourcing.ts`, `video.media.ts` |
+| Voix off (si l'utilisateur la demande) : une ligne parlée par scène, dans la langue de la vidéo | **narrateur**, à tous les crans ; GLM-TTS ou son repli | `video.voice.ts` |
 | Musique : plusieurs banques libres, tempo, extrait le plus énergique | code + ffmpeg ; **sound designer** dès Medium | `video.music.ts`, `video.beats.ts` |
 | Storyboard : minutage au temps de lecture, coupes sur le temps, variantes / surfaces / transitions par graine | code | `video.storyboard.ts` |
 | Bonnes pratiques : lecture, tenues, accroche, appel à l'action, signature | code, après les agents | `video.rules.ts` |
+| Calage sur la voix : chaque scène dure au moins le temps de sa ligne, durée achetée inchangée | code, en dernier sur le minutage | `video.voice.ts#fitScenesToVoice` |
 | Charte : palette par surface (contraste AA), polices, logo, surface claire | code | `video.theme.ts` |
 | Direction de motion (8 systèmes) + plan par scène + contrôle anti-réflexe | code | `video.direction.ts` |
 | Scènes, techniques de texte, transitions : composants React pilotés par le temps | code écrit à la main | `apps/ivision/core/engine/src/*.tsx` |
@@ -61,10 +65,10 @@ Plus aucun menu : l'IA invente le film et écrit le code de chaque plan
 
 | Étape | Qui | Fichier |
 |---|---|---|
-| Photos (4 au plus) : importées, visuels du projet, banque, générées | code | `motionVideo.service.ts#acquireMedia` |
+| Photos (4 au plus) : importées, sinon générées (l'offre, les gens, le lieu, un détail), puis Pexels, puis visuels du projet | **directeur photo** + code | `motionVideo.service.ts#acquireMedia`, `video.sourcing.ts` |
 | Le film : concept, « bible » (signature de mouvement, couleurs, typographie) et chaque plan (durée, textes, ce qu'on voit, comment ça bouge, photo, passage au plan suivant, motif ou exploration), à partir de l'univers créatif | **directeur**, modèle de raisonnement, deux tentatives | `video.author.ts#buildDirectorPrompt`, `video.planner.ts#creativeUniverse` |
 | Validation : chaque plan assez long pour être lu (`video.rules.ts#requiredHold`) et 8 s au plus, somme exacte, longueurs, aucun chiffre absent du brief, contact copié du brief, signature à la fin | code | `video.author.ts#parseFilm` |
-| Musique et effets sonores, pendant l'écriture des plans | **sound designer** + code | `video.music.ts`, `video.sfx.ts` |
+| Musique, effets sonores et voix off (sur les plans du directeur), pendant l'écriture des plans | **sound designer**, **narrateur** + code | `video.music.ts`, `video.sfx.ts`, `video.voice.ts` |
 | Chaque plan : un composant React écrit avec les briques du kit de son motif (manifeste restreint) | **codeur**, un par plan, trois en parallèle | `video.author.ts#authorShots`, `video.coder.ts#scopedKitManifest` |
 | Contrôle de chaque plan : lint, compilation, rendu mesuré, **critique visuelle** | code + modèle de vision | `video.coder.ts#inspectRenderedScene` |
 | Rendu | nos serveurs | `video.renderer.ts` |
@@ -100,9 +104,10 @@ création est nettement plus longue qu'aux autres crans.
 L'aperçu du dashboard est le **même moteur** que le rendu, joué en temps réel
 dans une iframe isolée (`sandbox="allow-scripts"`) : ce qu'on voit est ce qui
 sera livré. Pendant la création, le flux SSE montre les étapes du cran : plan,
-copie, médias, mise en page, musique, effets sonores, mouvement, relecture ; en
-Ultra : médias, direction du film, musique, puis chaque plan (écrit, revu,
-corrigé, retenu).
+copie, médias (plans produits sur plans demandés, en direct), mise en page,
+musique, effets sonores, voix off, mouvement, relecture ; en Ultra : médias,
+direction du film, musique, voix off, puis chaque plan (écrit, revu, corrigé,
+retenu). L'aperçu joue la voix off et baisse la musique pendant qu'elle parle.
 
 ## Moteur React et directions de motion
 
@@ -183,9 +188,9 @@ MESURE leur écart (empreinte d'images) : deux directions trop proches font éch
 | Type | Scènes caractéristiques | Médias |
 |---|---|---|
 | Typographie animée (`kinetic`) | mots animés, mots qui défilent | aucun |
-| Mise en avant produit (`product`) | produit, galerie | photos importées → visuels → Pexels |
+| Mise en avant produit (`product`) | produit, galerie | photos importées → générées → Pexels → visuels |
 | Offre flash (`promo`) | offre (prix barré, pastille) | prix du brief |
-| Vidéo + texte (`footage`) | clips plein écran, bandeau titre | clips importés → Pexels vidéo → Gemini Veo (1 clip) |
+| Vidéo + texte (`footage`) | clips plein écran, bandeau titre | clips importés → générés (CogVideoX-3) → Pexels vidéo → l'image générée du plan |
 | Vitrine 3D (`showcase3d`) | modèle GLB en rotation, photos en cartes 3D, formes 3D, logo extrudé | modèle importé (facultatif) |
 | Animations illustrées (`illustrated`) | Lottie intégrées (confettis, coche, étincelles, onde, éclat, cœur) ou importées | Lottie importées (facultatif) |
 | Diaporama dynamique (`slideshow`) | galeries, produit | photos |
@@ -209,8 +214,12 @@ confettis), montée (avant la signature). `video.sfx.ts` :
   de Freesound directement (`FREESOUND_API_KEY`, tri par note) et d'un catalogue
   maison (`VIDEO_SFX_CATALOG`) ; synthèse ffmpeg en repli (`VIDEO_SFX_OFFLINE=1`) ;
 - chaque son est nettoyé : silences retirés, durée utile, fondus, crête −3 dBFS ;
-- mixage : niveaux par type, densité selon le style (un style élégant ne
-  cliquette pas), musique compressée sous les effets, limiteur, −14 LUFS ;
+- mixage : niveaux par type (`SFX_GAIN_DB` : whoosh −2 dB, impact −1, pop −3,
+  clic −8, tic −10…), densité selon le style (un style élégant ne cliquette
+  pas), musique à −7 dB et compressée sous chaque effet (seuil 0,03, ratio 6),
+  limiteur, −14 LUFS. Mesuré par `check:video` §10 bis : un whoosh passe
+  **11 dB** au-dessus de la musique (2 dB avant le 2026-10-09 : les effets
+  étaient inaudibles) ;
 - cache disque `VIDEO_SFX_DIR` ; `npm run check:video:types` le construit.
 
 Autres banques professionnelles examinées : Mixkit, Pixabay Sound Effects,
@@ -232,8 +241,61 @@ commercial).
 - Les clips sont positionnés image par image (`currentTime` + `seeked`). Les
   onglets de rendu ont l'émulation de focus activée : sinon Chromium suspend le
   décodage vidéo des onglets « en arrière-plan ».
-- Gemini Veo : `VIDEO_VEO_MODEL` (défaut `veo-3.1-fast-generate-preview`), un
-  seul clip par vidéo, seulement si aucun clip importé ni Pexels ne convient.
+- Clips générés : CogVideoX-3 (voir « Médias générés »), réencodés comme les
+  clips importés.
+
+## Médias générés
+
+Ce que l'utilisateur n'a pas fourni est **généré pour sa scène**, avec les modèles de la
+famille GLM (hôte IDEM : `glm-media.service.ts`, `AI_CONFIG.communication.videoMedia`) :
+
+1. **Besoins** (`video.sourcing.ts#planMediaNeeds`) : produit 1 photo, galerie 3, vitrine 3D 2
+   (sans modèle importé), plan filmé 1 clip. Les imports remplissent d'abord les scènes, dans
+   l'ordre du film. Plafonds : `VIDEO_GEN_MAX_IMAGES` (6), `VIDEO_GEN_MAX_CLIPS` (4).
+2. **Directeur photo** (agent, à tous les crans) : un plan par besoin, au texte de SA scène
+   (sujet, action, décor, cadrage), un « look » commun au film, la DA de la charte
+   (`imagePromptModifier`), le mouvement de caméra d'un clip dans un menu de 8, la requête de
+   banque. Repli du code si le modèle ne répond pas.
+3. **Génération** : l'image d'abord — **GLM-Image** (0,015 $), repli **CogView-4** —, contrôlée
+   par la vision (aucun texte imprimé, le bon sujet ; `VIDEO_MEDIA_CHECK=off` pour couper) ;
+   le clip **anime cette image** avec **CogVideoX-3** (image → vidéo, 5 s, 0,2 $, « quality »
+   dès High, « speed » sinon), muet (musique, effets et voix sont les nôtres). Trois essais par
+   média, la consigne resserrée à chaque essai ; le troisième essai d'un clip part du texte seul.
+4. **Pexels** seulement après trois échecs, avec la requête du plan ; un plan filmé sans clip
+   garde l'image générée pour lui ; en dernier recours, les photos des visuels de la marque.
+
+CogVideoX-3 est le seul modèle vidéo du catalogue Z.ai (Vidu en a été retiré, octobre 2026).
+Une création qui génère des clips dure une à trois minutes de plus (tâches asynchrones,
+`IDEM_VIDEO_CLIP_TIMEOUT_MS`, 6 min par défaut). Sans clé GLM, les images passent par Gemini.
+
+## Voix off
+
+**Choisie par l'utilisateur** (case « Voix off » à la création, et dans le détail de la vidéo),
+désactivée par défaut, dans la **langue de la vidéo** (celle de l'interface à la création).
+
+- **Narrateur** (agent, `video.voice.ts`) : une ligne PARLÉE par scène, bornée au temps de la
+  scène (mots par seconde de la langue : fr 2,7, en 2,6…), même idée que l'écran au même
+  moment sans le lire mot à mot, signature avec le nom de la marque ; chiffres et prix copiés
+  du brief ou retirés ; personnage de voix choisi dans un menu de 3 filtré par le langage de
+  mouvement (`VOICE_PERSONAS`). Repli : les titres des scènes.
+- **Modèle de voix** : **GLM-TTS** (`glm-tts`) — il ne parle que **chinois et anglais** et
+  n'est servi que par la plateforme chinoise (`GLM_TTS_URL`, défaut
+  `https://open.bigmodel.cn/api/paas/v4/audio/speech`, clé `GLM_TTS_API_KEY`, sinon
+  `GLM_API_KEY`). Les autres langues (français…) passent par le repli **Gemini TTS**
+  (`IDEM_GEMINI_TTS_MODEL`, défaut `gemini-3.8-flash-lite-tts`, puis
+  `gemini-3.1-flash-tts-preview`) — décision utilisateur du 2026-10-09. `VIDEO_TTS_FALLBACK=off`
+  coupe le repli : la vidéo est alors créée sans voix, et le dit.
+- **Traitement** : silences retirés, passe-haut, accélération de 18 % au plus si la ligne
+  déborde, −16 LUFS, MP3 déposé dans le stockage (`…/videos/<id>/voice/`).
+- **Synchronisation** (`fitScenesToVoice`) : chaque scène dure au moins entrée (0,28 s) +
+  ligne + souffle (0,32 s) ; la durée achetée ne change pas — les autres scènes rendent du
+  temps ; une ligne qui ne tient vraiment pas est retirée (les scènes de texte du milieu
+  d'abord), jamais coupée. Recalée après chaque retouche (texte, direction, musique) ; en
+  Ultra, les plans sont calés avant d'être écrits par l'IA.
+- **Mixage** : la voix au premier plan, musique à −10 dB et compressée sous chaque ligne
+  (ratio 8), effets légèrement retenus pendant qu'elle parle.
+- **Retouche** : couper la voix la garde (la remettre est gratuit, sans nouvel
+  enregistrement) ; l'ajouter à une vidéo existante l'écrit et l'enregistre.
 
 ## Prix (crédits iBusiness)
 
@@ -295,7 +357,7 @@ npm run check:video:variety    # 12 vidéos d'une même marque, écarts mesurés
 npm run check:video:novelty    # moteur créatif : motifs, empreinte, exploration, 10 vidéos par cran, mémoire
 npm run check:video:directions # même brief, 8 directions, diversité mesurée (~6 min)
 npm run check:video:types      # 8 exemples, un par type, vraies musiques, vrais effets, Pexels (~15 min)
-npm run check:video:types -- --veo  # + un clip généré par Gemini Veo (payant)
+npm run check:video:types -- --generate  # + une vidéo aux médias générés (GLM-Image, CogVideoX-3) avec voix off (payant)
 ```
 
 `check:video` §9 bis rend **la même vidéo aux cinq crans** et vérifie que l'IA
@@ -303,6 +365,13 @@ décide davantage à chaque cran : textes (Low), structure (Medium), mises en
 page, transitions et relecture (High), réglages (Max), puis directeur et tous
 les plans écrits par l'IA, critique visuelle comprise (Ultra). Les plans Ultra
 y sont réellement lintés, compilés, rendus et contrôlés.
+
+`check:video` §10 bis vérifie la voix off et les médias générés avec des ports d'hôte simulés :
+langue → modèle de voix, narrateur (chiffre inventé retiré, étiquettes ignorées), calage (chaque
+ligne tient, durée achetée gardée, ligne retirée si le film est trop court), besoins remplis
+par les imports, **trois essais de génération avant Pexels**, clips animés à partir de l'image
+générée, retouches qui gardent la synchronisation, niveau mesuré d'un whoosh sur la musique,
+et le MP4 avec voix.
 
 Aucun crédit de modèle n'est nécessaire : les réponses sont simulées
 (`api/scripts/fixtures/motion-video/cases.ts` : propre, désordre, JSON, prix

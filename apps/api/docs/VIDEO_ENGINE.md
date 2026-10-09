@@ -229,7 +229,7 @@ dans le texte l'emporte : « Qualité garantie » donne `quality`, pas `secure`)
 | éléments graphiques, geste signature | bonus des nœuds du graphe (grille → trame de points, trame → demi-teinte, surligné → surligneur…) |
 | « à éviter » | malus (pas de décor si la charte refuse l'ornement, pas de ressort si elle refuse le rebond) |
 | médium d'image | découpage privilégié (3D, illustration, photo, combiné) |
-| `imagePromptModifier` | rendu des images et clips générés (Gemini, Veo) |
+| `imagePromptModifier` | rendu des images et clips générés (GLM-Image, CogVideoX-3), repris par le directeur photo |
 
 Le logo pendant la vidéo n'est plus une pastille blanche en haut à droite : c'est un nœud du graphe
 (`brandmark:none` ou `brandmark:corner`). En coin, il est monochrome (couleur du texte de la scène visible), sans
@@ -368,7 +368,7 @@ Sources des seuils : [University of Melbourne — Video captioning style guide](
 ## 14. L'équipe d'agents (`video.agents.ts`)
 
 > Les agents s'activent selon la **jauge de créativité** choisie avant la génération (Low → Ultra) :
-> le rédacteur à tous les crans, le stratège et le sound designer dès Medium, la composition
+> le rédacteur, le directeur photo et le narrateur (voix off demandée) à tous les crans, le stratège et le sound designer dès Medium, la composition
 > (directeurs artistiques, animateur, critique) dès High, les réglages bornés au cran Max. Au cran
 > Ultra, ces agents cèdent la place au film d'auteur : un directeur et un codeur par plan (§16).
 > Voir [CREATIVITY.md](CREATIVITY.md).
@@ -383,6 +383,8 @@ chacun avec un prompt court, une responsabilité, et des menus que le graphe a f
 | Rédacteur (`video.copy.ts`) | textes à l'écran, mots-clés des médias | 1 | 700 tokens |
 | Directeur artistique | le **motif** de sa scène, parmi 3 à 5 que le moteur créatif a classés (§17), + mot mis en valeur ; le code résout le motif en mise en page et entrée de titre | 1 par scène de contenu, en parallèle (4 à la fois), pendant la recherche des médias | 230 tokens |
 | Sound designer | la piste parmi les 6 meilleures candidates, l'intensité des effets (−4 / 0 / +3 dB) | 1, dans la recherche de musique | 220 tokens |
+| Directeur photo (`video.sourcing.ts`) | un plan par média que l'utilisateur n'a pas fourni (au texte de sa scène), le look commun, le mouvement de caméra d'un clip (menu de 8), la requête de banque — à tous les crans | 1, pendant la musique | 350 tokens |
+| Narrateur (`video.voice.ts`) | si la voix off est demandée : une ligne parlée par scène (mots bornés au temps de la scène), le personnage de voix (menu de 3), le jeu — à tous les crans | 1, pendant les médias | 380 tokens |
 | Animateur | transition de chaque coupe, ≤ 3 entrées de titre, caméra, famille d'entrée, animation du logo | 1 | 400 tokens |
 | Critique | relit le film résumé (mises en page, coupes, entrées, avertissements des règles) : ≤ 5 corrections `N.layout=` / `N.cut=` / `N.title=` | 1 | 440 tokens |
 
@@ -397,6 +399,7 @@ finissaient par se ressembler :
 |---|---|---|---|---|---|
 | Rédacteur | mécanique (`video`) | rédaction (`videoWriting`) | rédaction | rédaction | — (le directeur écrit les textes) |
 | Stratège | — | rédaction | rédaction | raisonnement (`videoReasoning`) | — |
+| Directeur photo, narrateur | mécanique (`video`) | rédaction (`videoWriting`) | rédaction | rédaction | rédaction |
 | Sound designer | — | mécanique (`videoAgents`) | rédaction | rédaction | rédaction |
 | Directeurs artistiques, animateur, critique | — | — | rédaction | rédaction | — |
 | Directeur du film, codeurs de plans, critique visuelle | — | — | — | — | §16 |

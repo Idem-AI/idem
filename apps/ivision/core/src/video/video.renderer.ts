@@ -17,7 +17,7 @@ import path from 'path';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import logger from '../runtime/logger';
 import { MotionStyle, SfxKind, VideoQuality } from './video.model';
-import { refineCues, SfxCue } from './video.sfx';
+import { MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, refineCues, SfxCue } from './video.sfx';
 import { installRenderNetworkGuard, isStrictRenderRequest } from '../render/network-guard';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
@@ -140,6 +140,8 @@ export interface RenderInput {
   posterAt?: number;
   /** Effets sonores : un fichier par moment sonore, et le style (densité). */
   sfx?: { files: Partial<Record<SfxKind, string>>; style: MotionStyle; intensity?: 'subtle' | 'normal' | 'punchy' };
+  /** Voix off : un fichier par ligne, posé à son instant (calé sur sa scène). */
+  voice?: { file: string; at: number }[];
   onProgress?: (ratio: number) => void;
   concurrency?: number;
   /** La page exécute du code écrit par l'IA (cran Ultra) : garde réseau strict. */
@@ -263,7 +265,7 @@ export async function renderVideo(input: RenderInput): Promise<RenderOutput> {
     const file = path.join(workDir, 'video.mp4');
     const d = input.durationSec;
     const cues = input.sfx ? refineCues(rawCues, input.sfx.style, d, input.sfx.intensity).filter((c) => input.sfx!.files[c.kind]) : [];
-    await mixAudio({ silent, file, d, music: input.music, cues, files: input.sfx?.files || {} });
+    await mixAudio({ silent, file, d, music: input.music, cues, files: input.sfx?.files || {}, voice: input.voice || [] });
     const poster = path.join(workDir, 'poster.jpg');
     const posterAt = Math.max(0, Math.min(input.durationSec - 0.1, input.posterAt ?? input.durationSec * 0.2));
     await run(['-y', '-v', 'error', '-ss', posterAt.toFixed(3), '-i', file, '-frames:v', '1', '-q:v', '3', poster]);
@@ -290,36 +292,46 @@ export async function renderVideo(input: RenderInput): Promise<RenderOutput> {
 }
 
 /**
- * Le mixage : musique (extrait, fondus) + effets sonores posés à la milliseconde.
- * La musique s'efface sous chaque effet (compression déclenchée par les effets),
- * puis limiteur et normalisation à −14 LUFS (niveau des réseaux sociaux).
+ * Le mixage : musique (extrait, fondus), effets sonores posés à la milliseconde, voix off.
+ *
+ *   effets   franchement au-dessus de la musique : la musique (−7 dB) s'efface sous chacun ;
+ *   voix     au premier plan : musique abaissée (−10 dB) et compressée sous chaque ligne, effets
+ *            légèrement retenus pendant qu'elle parle (un whoosh ne couvre pas un mot) ;
+ *   master   limiteur puis normalisation à −14 LUFS (niveau des réseaux sociaux).
+ *
+ * Exporté pour les contrôles (`check:video` mesure le niveau des effets sur la musique).
  */
-async function mixAudio(opts: {
+export async function mixAudio(opts: {
   silent: string;
   file: string;
   d: number;
   music?: { file: string; startAt: number };
   cues: (SfxCue & { db: number })[];
   files: Partial<Record<SfxKind, string>>;
+  voice: { file: string; at: number }[];
 }): Promise<void> {
-  const { silent, file, d, music, cues, files } = opts;
-  if (!music && !cues.length) {
+  const { silent, file, d, music, cues, files, voice } = opts;
+  if (!music && !cues.length && !voice.length) {
     await run(['-y', '-v', 'error', '-i', silent, '-c', 'copy', '-movflags', '+faststart', file]);
     return;
   }
   const args = ['-y', '-v', 'error', '-i', silent];
   const filters: string[] = [];
   let index = 1;
-  let musicLabel = '';
+  let bed = '';
   if (music) {
     args.push('-ss', String(Math.max(0, music.startAt)), '-t', String(d + 0.5), '-i', music.file);
     const fadeOut = Math.min(1.5, d * 0.2);
     filters.push(
-      `[${index}:a]atrim=0:${d},asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,afade=t=in:st=0:d=0.35,afade=t=out:st=${Math.max(0, d - fadeOut).toFixed(3)}:d=${fadeOut.toFixed(3)},volume=-3dB[mus]`
+      `[${index}:a]atrim=0:${d},asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,afade=t=in:st=0:d=0.35,afade=t=out:st=${Math.max(0, d - fadeOut).toFixed(3)}:d=${fadeOut.toFixed(3)},volume=${voice.length ? MUSIC_UNDER_VOICE_DB : MUSIC_GAIN_DB}dB[mus]`
     );
-    musicLabel = '[mus]';
+    bed = '[mus]';
     index++;
   }
+  /** Un bus : les entrées posées à leur instant, sommées, étendues à toute la durée. */
+  const bus = (label: string, inputs: string[]) => {
+    filters.push(`${inputs.join('')}amix=inputs=${inputs.length}:normalize=0:dropout_transition=0,apad=whole_dur=${d}[${label}]`);
+  };
   const sfxLabels: string[] = [];
   for (const cue of cues) {
     args.push('-i', files[cue.kind]!);
@@ -328,19 +340,47 @@ async function mixAudio(opts: {
     sfxLabels.push(`[s${index}]`);
     index++;
   }
-  const master = 'alimiter=limit=0.94:level=disabled,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000';
-  if (sfxLabels.length) {
-    filters.push(`${sfxLabels.join('')}amix=inputs=${sfxLabels.length}:normalize=0:dropout_transition=0,apad=whole_dur=${d}[sfx]`);
-    if (musicLabel) {
-      filters.push('[sfx]asplit=2[sfxa][sfxb]');
-      filters.push(`${musicLabel}[sfxa]sidechaincompress=threshold=0.04:ratio=5:attack=8:release=260:makeup=1[duck]`);
-      filters.push(`[duck][sfxb]amix=inputs=2:normalize=0:dropout_transition=0,${master}[a]`);
-    } else {
-      filters.push(`[sfx]${master}[a]`);
-    }
-  } else {
-    filters.push(`${musicLabel}${master}[a]`);
+  const voiceLabels: string[] = [];
+  for (const line of voice) {
+    args.push('-i', line.file);
+    const ms = Math.round(Math.max(0, line.at) * 1000);
+    filters.push(`[${index}:a]aresample=48000,aformat=channel_layouts=stereo,adelay=${ms}|${ms}[v${index}]`);
+    voiceLabels.push(`[v${index}]`);
+    index++;
   }
+  const finals: string[] = [];
+  let sfx = '';
+  if (sfxLabels.length) {
+    bus('sfx', sfxLabels);
+    sfx = '[sfx]';
+  }
+  if (voiceLabels.length) {
+    bus('vo', voiceLabels);
+    // La voix pilote deux compresseurs : la musique, et (plus doucement) les effets.
+    const keys = 1 + (bed ? 1 : 0) + (sfx ? 1 : 0);
+    filters.push(`[vo]asplit=${keys}${['[vom]', '[vok]', '[vos]'].slice(0, keys).join('')}`);
+    finals.push('[vom]');
+    let k = 1;
+    if (bed) {
+      filters.push(`${bed}[${['vom', 'vok', 'vos'][k++]}]sidechaincompress=threshold=0.02:ratio=8:attack=15:release=420:makeup=1[bedv]`);
+      bed = '[bedv]';
+    }
+    if (sfx) {
+      filters.push(`${sfx}[${['vom', 'vok', 'vos'][k++]}]sidechaincompress=threshold=0.05:ratio=2.5:attack=5:release=200:makeup=1[sfxv]`);
+      sfx = '[sfxv]';
+    }
+  }
+  if (sfx && bed) {
+    // La musique s'efface sous chaque effet : c'est ce qui les fait entendre.
+    filters.push(`${sfx}asplit=2[sfxa][sfxb]`);
+    filters.push(`${bed}[sfxa]sidechaincompress=threshold=0.03:ratio=6:attack=5:release=240:makeup=1[duck]`);
+    finals.push('[duck]', '[sfxb]');
+  } else {
+    if (bed) finals.push(bed);
+    if (sfx) finals.push(sfx);
+  }
+  const master = 'alimiter=limit=0.94:level=disabled,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000';
+  filters.push(finals.length > 1 ? `${finals.join('')}amix=inputs=${finals.length}:normalize=0:dropout_transition=0,${master}[a]` : `${finals[0]}${master}[a]`);
   args.push(
     '-filter_complex', filters.join(';'),
     '-map', '0:v', '-map', '[a]',

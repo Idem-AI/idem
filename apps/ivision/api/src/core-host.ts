@@ -2,8 +2,8 @@
  * iVision, hôte du moteur partagé (`apps/ivision/core`).
  *
  * Mêmes ports que l'hôte IDEM (`apps/api/api/services/ivision/host.ts`), branchés autrement :
- * le stockage est le MinIO d'IDEM (préfixe `ivision/`), les modèles et les crédits passent par
- * la passerelle interne de l'API IDEM. Le core est donc exécuté à l'identique des deux côtés.
+ * le stockage est le MinIO d'IDEM (préfixe `ivision/`), les modèles (texte, vision, image,
+ * clip, voix) et les crédits passent par la passerelle interne de l'API IDEM. Le core est donc exécuté à l'identique des deux côtés.
  */
 import { configureCore } from '../../core/src/runtime/host';
 import { setVideoPricingBase } from '../../core/src/video/video.pricing';
@@ -22,6 +22,12 @@ export function configureCoreForIvision(): void {
     generateImage: async (prompt, options) => {
       const image = await idem.ai.image({ prompt, size: options.size, tag: options.tag, purpose: options.purpose, model: options.model, fallbackModel: options.fallbackModel });
       return { buffer: Buffer.from(image.base64, 'base64'), mimeType: image.mimeType, model: image.model };
+    },
+    // Clips et voix off : les modèles d'IDEM (CogVideoX-3, GLM-TTS et son repli), par la passerelle.
+    generateVideo: (request) => idem.ai.video(request),
+    synthesizeSpeech: async (request) => {
+      const speech = await idem.ai.speech(request);
+      return { buffer: Buffer.from(speech.base64, 'base64'), mimeType: speech.mimeType, provider: speech.provider, model: speech.model, voice: speech.voice };
     },
     // Le runtime d'IDEM ne voit pas la fonction de validation (elle ne voyage pas) : elle est
     // appliquée ici, et une réponse illisible est redemandée une fois — comme l'escalade d'IDEM.

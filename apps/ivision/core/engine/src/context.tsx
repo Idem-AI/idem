@@ -119,6 +119,8 @@ export interface VideoData {
   zones: { st: number; sb: number; sx: number };
   music?: { url: string; startAt: number };
   sfx?: { enabled: boolean; sounds: Record<string, { url: string; gain: number }> };
+  /** Aperçu : la voix off, ligne par ligne (instant absolu, durée). */
+  voice?: { url: string; at: number; durationSec: number }[];
   kit?: KitData;
   /** Grille du temps de la musique (en temps vidéo) : les mises en page pulsent dessus. */
   beat?: { bpm: number; offset: number };

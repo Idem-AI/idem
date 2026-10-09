@@ -246,6 +246,10 @@
             <select id="iv-vformat" class="!w-auto !py-1.5 !text-sm" (change)="videoFormat.set($any($event.target).value)">
               @for (f of formats(); track f) { <option [value]="f" [selected]="f === videoFormat()">{{ 'formats.' + f | translate }}</option> }
             </select>
+            <label class="!flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] !mb-0" [title]="'chat.options.voiceHint' | translate">
+              <input type="checkbox" [checked]="voice()" (change)="voice.set($any($event.target).checked)" />
+              {{ 'chat.options.voice' | translate }}
+            </label>
           } @else {
             <label class="sr-only" for="iv-iformat">{{ 'chat.options.format' | translate }}</label>
             <select id="iv-iformat" class="!w-auto !py-1.5 !text-sm" (change)="imageFormat.set($any($event.target).value)">

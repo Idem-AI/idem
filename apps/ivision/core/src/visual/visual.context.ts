@@ -81,6 +81,7 @@ export function visualContextFromBrand(input: { brandName: string; voice: BrandV
     tone: input.voice.tone || 'clear, confident, helpful',
     keywords: input.voice.keywords || [],
     language: input.voice.language || 'fr',
+    ...(input.voice.valueProposition ? { valueProposition: input.voice.valueProposition } : {}),
     branding: visualBrandingFromKit(input.branding),
     ...(input.branding?.artDirection ? { artDirection: input.branding.artDirection as ArtDirectionModel } : {}),
   };

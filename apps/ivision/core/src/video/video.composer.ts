@@ -198,6 +198,8 @@ export interface ComposeOptions {
   music?: { url: string; startAt: number };
   /** Aperçu : sons à jouer par moment sonore (URL publique + gain linéaire). */
   sfx?: { enabled: boolean; sounds: Record<string, { url: string; gain: number }> };
+  /** Aperçu : les lignes de voix off, à leur instant (la musique baisse sous elles). */
+  voice?: { url: string; at: number; durationSec: number }[];
 }
 
 const LOOPING: BuiltinLottie[] = ['pulse', 'sparkle'];
@@ -418,6 +420,7 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
       : undefined,
     music: opts.mode === 'preview' && opts.music ? opts.music : undefined,
     sfx: opts.mode === 'preview' ? opts.sfx : undefined,
+    voice: opts.mode === 'preview' && opts.voice?.length ? opts.voice : undefined,
     // Les mises en page pulsent sur le temps de la musique (grille en temps vidéo).
     beat: storyboard.beat?.bpm ? { bpm: storyboard.beat.bpm, offset: storyboard.beat.offset || 0 } : undefined,
     // Cran Ultra : les scènes écrites par l'IA (validées à la création), compilées pour le moteur.

@@ -218,6 +218,7 @@ const turnBody = z.object({
       type: z.string().max(24).optional(),
       musicMood: z.string().max(16).optional(),
       sfx: z.boolean().optional(),
+      voice: z.boolean().optional(),
       format: z.enum(FLYER_FORMATS as unknown as [string, ...string[]]).optional(),
       withPhoto: z.boolean().optional(),
     })
@@ -327,7 +328,7 @@ v1.get(
   asyncRoute<AuthedRequest>(async (req, res) => res.json(await videoOr404(req)))
 );
 
-/** Retouches gratuites : textes par scène, style, musique, effets, direction, kit. */
+/** Retouches gratuites : textes par scène, style, musique, effets, voix off, direction, kit. */
 v1.patch(
   '/brands/:brandId/videos/:videoId',
   asyncRoute<AuthedRequest>(async (req, res) => {
@@ -342,6 +343,7 @@ v1.patch(
         musicTrackId: typeof body.musicTrackId === 'string' ? body.musicTrackId : undefined,
         scope: body.scope,
         sfx: typeof body.sfx === 'boolean' ? body.sfx : undefined,
+        voice: typeof body.voice === 'boolean' ? body.voice : undefined,
         direction: typeof body.direction === 'string' ? body.direction : undefined,
         kit: Object.keys(kit).length ? kit : undefined,
         images: body.images && typeof body.images === 'object' ? body.images : undefined,

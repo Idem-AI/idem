@@ -78,6 +78,7 @@ export interface ChatOptions {
   quality?: string;
   musicMood?: string;
   sfx?: boolean;
+  voice?: boolean;
   format?: string;
   withPhoto?: boolean;
 }
@@ -142,9 +143,11 @@ export interface MotionVideo {
   status: 'draft' | 'rendering' | 'ready' | 'failed';
   scope: { durationSec: number; formats: string[]; quality: string };
   storyboard: { scenes: VideoScene[]; style: string; direction?: string; creative?: { reference?: { shots: number; summary: string } } };
-  brief: { message: string; musicMood: string; sfx?: boolean };
+  brief: { message: string; musicMood: string; sfx?: boolean; voice?: boolean; language?: string };
   music?: { title: string; artist: string };
   sfx?: { enabled: boolean };
+  /** Voix off : une ligne par scène ; `unavailable` quand la langue ou le service l'ont empêchée. */
+  voice?: { enabled: boolean; language: string; persona: string; lines: { sceneKey: string; text: string }[]; unavailable?: string };
   renders: VideoRender[];
   exportCount: number;
   paidCredits: number;

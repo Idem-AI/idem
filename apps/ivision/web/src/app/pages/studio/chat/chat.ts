@@ -70,6 +70,8 @@ export class ChatPage {
   protected readonly videoFormat = signal('story');
   protected readonly imageFormat = signal('square');
   protected readonly withPhoto = signal(true);
+  /** Voix off dans la langue de l'interface (désactivée par défaut). */
+  protected readonly voice = signal(false);
   protected readonly media = signal<MediaAsset[]>([]);
   protected readonly uploading = signal(false);
   protected readonly reference = signal<Reference | null>(null);
@@ -200,7 +202,7 @@ export class ChatPage {
 
   protected options(): ChatOptions {
     return this.mode() === 'video'
-      ? { creativity: this.creativity(), durationSec: this.durationSec(), formats: [this.videoFormat()], quality: 'hd' }
+      ? { creativity: this.creativity(), durationSec: this.durationSec(), formats: [this.videoFormat()], quality: 'hd', voice: this.voice() }
       : { creativity: this.creativity(), format: this.imageFormat(), withPhoto: this.withPhoto() };
   }
 

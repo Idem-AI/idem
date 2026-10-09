@@ -306,6 +306,46 @@
           }
         </section>
 
+        <!-- Voix off -->
+        <section class="glass-card vd-card" aria-labelledby="vd-voice-title">
+          <h3 id="vd-voice-title" class="vd-card-title">
+            <i class="pi pi-microphone" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.video.voice.title' | translate }}
+          </h3>
+          <label class="vd-check mt-2">
+            <input
+              type="checkbox"
+              [checked]="!!v.voice?.enabled"
+              [disabled]="saving() !== null"
+              (change)="toggleVoice(!v.voice?.enabled)"
+            />
+            {{ 'dashboard.showCommunication.video.voice.toggle' | translate }}
+            @if (saving() === 'voice') {
+              <idem-loader size="xs" />
+            }
+          </label>
+          @if (v.voice?.enabled && v.voice?.lines?.length) {
+            <p class="mt-2 text-xs text-[var(--color-text-secondary)]">
+              {{
+                'dashboard.showCommunication.video.voice.lines'
+                  | translate
+                    : {
+                        count: v.voice!.lines.length,
+                        persona: ('dashboard.showCommunication.video.voice.personas.' + v.voice!.persona | translate),
+                      }
+              }}
+            </p>
+          } @else if (v.voice?.unavailable) {
+            <p class="mt-2 text-xs text-[var(--color-text-tertiary)]">
+              {{ 'dashboard.showCommunication.video.voice.unavailable' | translate }}
+            </p>
+          } @else {
+            <p class="mt-2 text-xs text-[var(--color-text-tertiary)]">
+              {{ 'dashboard.showCommunication.video.voice.hint' | translate }}
+            </p>
+          }
+        </section>
+
         @if (mediaCredits().length) {
           <section class="glass-card vd-card" aria-labelledby="vd-media-title">
             <h3 id="vd-media-title" class="vd-card-title">

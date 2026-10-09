@@ -294,6 +294,8 @@ export function resolveSectionConfig(
  *   glm-ocr         0,03 / 0,03   OCR        : texte dans une image
  *   glm-image       0,015 / image génération d'image
  *   cogview-4       0,010 / image repli image
+ *   cogvideox-3     0,20 / clip    vidéo : clips de 5 ou 10 s (texte ou image → vidéo)
+ *   glm-tts         voix off (chinois, anglais) — servi par open.bigmodel.cn, pas par api.z.ai
  */
 export const GLM_MODELS = {
   /** Tâches mécaniques : résumé, vérification, classification, extraction. */
@@ -329,6 +331,18 @@ export const GLM_MODELS = {
   /** Génération d'image, et son repli. */
   image: 'glm-image',
   imageFallback: 'cogview-4-250304',
+  /**
+   * Génération de clip (vidéos motion design : plans que l'utilisateur n'a pas fournis). Seul
+   * modèle vidéo du catalogue Z.ai (Vidu en a été retiré) ; l'image du plan, générée d'abord
+   * par `image`, est animée (image → vidéo) pour rester fidèle à la charte.
+   */
+  video: 'cogvideox-3',
+  /**
+   * Voix off. ⚠️ GLM-TTS ne parle que le chinois et l'anglais, et n'est servi que par la
+   * plateforme chinoise (`open.bigmodel.cn`, clé distincte de celle de Z.ai) : les autres
+   * langues passent par le repli Gemini TTS (cf. `glm-media.service.ts#generateSpeech`).
+   */
+  tts: 'glm-tts',
   /** Moteur de recherche web de Z.ai (endpoint `/web_search`). */
   searchEngine: 'search-prime',
 } as const;
@@ -1234,6 +1248,23 @@ export const AI_CONFIG = {
        * choisies au hasard.
        */
       visionMaxOutputTokens: 1500,
+    },
+    /**
+     * Médias et voix des vidéos motion design (moteur partagé `apps/ivision/core`) : la famille
+     * GLM d'abord. Images des plans et clips que l'utilisateur n'a pas fournis (trois essais
+     * par média avant Pexels), voix off dans la langue de la vidéo.
+     */
+    videoMedia: {
+      imageModel: GLM_MODELS.image,
+      imageFallbackModel: GLM_MODELS.imageFallback,
+      videoModel: process.env.IDEM_VIDEO_CLIP_MODEL || GLM_MODELS.video,
+      ttsModel: GLM_MODELS.tts,
+      /** Les langues que GLM-TTS parle ; les autres passent par le repli. */
+      ttsLanguages: ['zh', 'en'],
+      /** Repli des autres langues (français…) : Gemini TTS, coupé par `VIDEO_TTS_FALLBACK=off`. */
+      ttsFallbackModel: process.env.IDEM_GEMINI_TTS_MODEL || 'gemini-3.8-flash-lite-tts',
+      /** Attente maximale d'un clip (CogVideoX-3 répond en 1 à 3 minutes). */
+      clipTimeoutMs: Number(process.env.IDEM_VIDEO_CLIP_TIMEOUT_MS ?? 6 * 60 * 1000),
     },
   },
 

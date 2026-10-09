@@ -204,6 +204,7 @@
         "media": "Images et clips",
         "music": "Musique",
         "sfx": "Effets sonores",
+        "voice": "Voix off",
         "storyboard": "Montage",
         "animation": "Animations",
         "critique": "Relecture",
@@ -222,6 +223,8 @@
       "duration": "Durée",
       "format": "Format",
       "photo": "Avec photo",
+      "voice": "Voix off",
+      "voiceHint": "Une voix dit le message, scène par scène, dans votre langue.",
       "price": "{{cost}} crédits"
     },
     "choice": {
@@ -300,6 +303,9 @@
     "sound": "Son",
     "music": "Musique",
     "sfx": "Effets sonores",
+    "voice": "Voix off",
+    "voiceLines": "{{count}} ligne(s), scènes calées sur la voix",
+    "voiceUnavailable": "Voix off indisponible pour cette langue.",
     "export": "Exporter en MP4",
     "firstExport": "Le premier export est inclus dans le prix de la vidéo.",
     "nextExport": "Un nouvel export coûte une fraction du prix de la vidéo.",

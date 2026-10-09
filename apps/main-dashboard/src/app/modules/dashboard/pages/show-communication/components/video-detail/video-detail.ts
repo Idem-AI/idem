@@ -81,7 +81,7 @@ export class VideoDetail {
   protected readonly previewHtml = signal<string | null>(null);
   protected readonly editorLang = signal<'fr' | 'en'>('fr');
   protected readonly previewLoading = signal(false);
-  protected readonly saving = signal<'texts' | 'photo' | 'music' | 'style' | 'sfx' | null>(null);
+  protected readonly saving = signal<'texts' | 'photo' | 'music' | 'style' | 'sfx' | 'voice' | null>(null);
   protected readonly tracks = signal<MusicTrack[] | null>(null);
   protected readonly tracksLoading = signal(false);
   protected readonly exportFormats = signal<VideoFormat[]>([]);
@@ -97,7 +97,7 @@ export class VideoDetail {
    * l'échelle de créativité : textes, structure, musique, mises en page, transitions, relecture.
    */
   protected readonly aiDecisions = computed(() => {
-    const order = ['writer', 'strategist', 'soundDesigner', 'artDirector', 'animator', 'critic'];
+    const order = ['writer', 'strategist', 'mediaDirector', 'narrator', 'soundDesigner', 'artDirector', 'animator', 'critic'];
     const kept = new Set((this.video()?.storyboard.agents ?? []).filter((a) => a.source === 'llm').map((a) => a.agent.replace(/:.*$/, '')));
     return order.filter((a) => kept.has(a));
   });
@@ -277,6 +277,11 @@ export class VideoDetail {
     this.patch('sfx', { sfx: enabled });
   }
 
+  /** Voix off : la couper la garde ; l'ajouter l'écrit et l'enregistre (le minutage se recale). */
+  protected toggleVoice(enabled: boolean): void {
+    this.patch('voice', { voice: enabled });
+  }
+
   /** Autre direction : composition, techniques, transitions et couleur changent. Gratuit. */
   protected changeDirection(direction: string): void {
     this.patch('style', { direction });
@@ -295,7 +300,7 @@ export class VideoDetail {
     });
   }
 
-  private patch(kind: 'texts' | 'photo' | 'music' | 'style' | 'sfx', body: Parameters<MotionVideoService['update']>[2]): void {
+  private patch(kind: 'texts' | 'photo' | 'music' | 'style' | 'sfx' | 'voice', body: Parameters<MotionVideoService['update']>[2]): void {
     const v = this.video();
     if (!v || this.saving()) return;
     this.saving.set(kind);

@@ -59,26 +59,40 @@ export const SFX_SPECS: Record<SfxKind, KindSpec> = {
   riser: { queries: ['riser', 'swell transition', 'reverse cymbal'], min: 0.9, max: 3.5, ideal: 2, exclude: /\b(loop|siren|alarm)\b/i, keywords: /riser|rise|rising|swell|reverse|build ?up|uplifter/i },
 };
 
-/** Niveau de chaque moment sonore dans le mixage (dB) : discret, jamais criard. */
+/**
+ * Niveau de chaque moment sonore dans le mixage (dB, sur des sons normalisés à −3 dBFS crête).
+ *
+ * Relevés de 6 à 9 dB (2026-10-09) : un son court normalisé en CRÊTE a peu d'énergie, et sous
+ * une musique à −3 dB les effets disparaissaient. La musique est désormais à −7 dB et s'efface
+ * nettement sous chaque effet (cf. `mixAudio`) ; un whoosh ou un impact se pose franchement,
+ * un clic ou un tic reste un détail.
+ */
 export const SFX_GAIN_DB: Record<SfxKind, number> = {
-  whoosh: -9,
-  softwhoosh: -13,
-  pop: -11,
-  click: -17,
-  tick: -19,
-  impact: -8,
-  shimmer: -11,
-  riser: -12,
+  whoosh: -2,
+  softwhoosh: -5,
+  pop: -3,
+  click: -8,
+  tick: -10,
+  impact: -1,
+  shimmer: -4,
+  riser: -5,
 };
 
 /** Densité par langage de mouvement : un style élégant ne cliquette pas. */
 export const SFX_DENSITY: Record<MotionStyle, Partial<Record<SfxKind, number>>> = {
   energetic: {},
   playful: {},
-  corporate: { click: -4, tick: -4 },
+  corporate: { click: -3, tick: -3 },
   // Premium : plus bas, jamais muet (un film élégant a quand même son design sonore).
-  premium: { click: -8, tick: -8, pop: -6, whoosh: -3 },
+  premium: { click: -6, tick: -6, pop: -4, whoosh: -2 },
 };
+
+/** Niveau de la musique dans le mixage (dB) : sous les effets, et plus bas encore sous une voix off. */
+export const MUSIC_GAIN_DB = -7;
+export const MUSIC_UNDER_VOICE_DB = -10;
+
+/** Gain linéaire d'un effet dans l'aperçu (sans normalisation finale : 2 dB de plus qu'au rendu). */
+export const previewGain = (db: number) => Math.min(1, Math.pow(10, (db + 2) / 20));
 
 export interface LibrarySound extends SfxSound {
   /** Fichier traité, sur disque. */

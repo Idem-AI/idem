@@ -9,6 +9,7 @@ import type { CreativityLevel } from '../../../core/src/creativity/levels';
 import { coreHost } from '../../../core/src/runtime/host';
 import type { ReferenceImage } from '../../../core/src/reference/reference.analyzer';
 import { composeVisual } from '../../../core/src/visual/visual.composer';
+import { classifyImage } from '../../../core/src/visual/poster/poster.images';
 import { visualContextFromBrand } from '../../../core/src/visual/visual.context';
 import type { FlyerFormat } from '../../../core/src/visual/visual.model';
 import { collection } from '../config/db';
@@ -30,12 +31,31 @@ function contentOf(prompt: string) {
 export async function createVisual(
   userId: string,
   brand: IvisionBrand,
-  input: { prompt: string; brief?: string; format: FlyerFormat; creativity: CreativityLevel; withPhoto: boolean; photoUrl?: string; reference?: ReferenceImage & { id: string }; sessionId?: string },
+  input: {
+    prompt: string;
+    brief?: string;
+    format: FlyerFormat;
+    creativity: CreativityLevel;
+    withPhoto: boolean;
+    photoUrl?: string;
+    reference?: ReferenceImage & { id: string };
+    sessionId?: string;
+    /** Retour sur la version précédente (« pas assez pro ») et ce qu'elle était. */
+    feedback?: string;
+    avoid?: { template?: string; scheme?: string }[];
+    /** Fond sombre demandé explicitement. */
+    wantsDark?: boolean;
+  },
   paidCredits: number
 ): Promise<IvisionVisual> {
   const id = `vis_${Date.now().toString(36)}${crypto.randomBytes(4).toString('hex')}`;
   const context = visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit });
   const recent = await visuals().find({ userId, brandId: brand._id }, { projection: { layout: 1 } }).sort({ createdAt: -1 }).limit(6).toArray();
+  // Les propres visuels de la marque (affiches trouvées sur son site) disent si elle assume les
+  // fonds sombres ; sinon, surfaces claires.
+  const kinds = await Promise.all(brand.photos.slice(0, 12).map((url) => classifyImage(url).catch(() => null)));
+  const posters = kinds.filter((k): k is NonNullable<typeof k> => !!k && k.kind === 'poster');
+  const darkBrand = posters.length > 0 && posters.reduce((sum, p) => sum + p.luminance, 0) / posters.length < 0.24;
   const started = Date.now();
   const composed = await composeVisual(
     {
@@ -58,6 +78,10 @@ export async function createVisual(
       recentLayouts: recent.map((v) => v.layout).filter((l): l is string => !!l),
       ...(input.reference ? { reference: input.reference } : {}),
       ...(input.photoUrl ? { image: { url: input.photoUrl } } : {}),
+      brandPhotos: brand.photos,
+      allowDark: !!input.wantsDark || darkBrand,
+      ...(input.feedback ? { feedback: input.feedback } : {}),
+      ...(input.avoid?.length ? { avoid: input.avoid } : {}),
     }
   );
   const uploaded = await storage.uploadFile(composed.png, `${id}.png`, `users/${userId}/brands/${brand._id}/visuals`, 'image/png');
@@ -71,6 +95,7 @@ export async function createVisual(
     imageUrl: uploaded.downloadURL,
     html: composed.html,
     layout: (composed.parsed as { layout?: string }).layout,
+    scheme: (composed.parsed as { scheme?: string }).scheme,
     creativity: input.creativity,
     ...(input.reference ? { referenceId: input.reference.id } : {}),
     audit: { score: composed.audit.score, blocking: composed.audit.blocking },

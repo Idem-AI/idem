@@ -44,6 +44,9 @@ export function startFakeIdem(options: { port?: number; key?: string; origins?: 
   app.post('/internal/ivision/ai/prompt', (_req, res) => res.json({ text: '' }));
   app.post('/internal/ivision/ai/vision', (_req, res) => res.json({ text: '{}' }));
   app.post('/internal/ivision/ai/image', (_req, res) => res.status(503).json({ error: 'no_image_model' }));
+  // Hors ligne : ni clip ni voix (la vidéo passe à Pexels, puis se crée sans voix off).
+  app.post('/internal/ivision/ai/video', (_req, res) => res.status(503).json({ error: 'no_video_model' }));
+  app.post('/internal/ivision/ai/speech', (_req, res) => res.status(422).json({ error: 'voice_unavailable', message: 'voice_unavailable' }));
   app.post('/internal/ivision/billing/charge', (req, res) => {
     if (req.body.userId === 'poor-user') return res.status(402).json({ error: 'payment_required', cost: req.body.cost, balance: 0, missing: req.body.cost, suggestions: [] });
     charges.push({ userId: req.body.userId, action: req.body.action, cost: req.body.cost });
