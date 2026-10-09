@@ -20,15 +20,23 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import pool from '../config/db.config';
 import logger from '../config/logger';
+import { matchesWatchPaths, parseWatchPaths } from '../utils/path-glob';
 import { notFound, unprocessable } from '../utils/errors';
+import { isSafeImageTag } from '../validation/git-input';
 
-export type GitProvider = 'github' | 'gitlab' | 'bitbucket' | 'gitea';
+/**
+ * Who calls the webhook. `ci` is not a git host: it is a build pipeline (GitHub
+ * Actions, GitLab CI…) telling iDeploy that an image was pushed — one token per
+ * application, presented in `X-Ideploy-Token`, deploying only that application.
+ */
+export type GitProvider = 'github' | 'gitlab' | 'bitbucket' | 'gitea' | 'ci';
 
 export const GIT_PROVIDERS: readonly GitProvider[] = [
   'github',
   'gitlab',
   'bitbucket',
   'gitea',
+  'ci',
 ] as const;
 
 const SECRET_COLUMN: Record<GitProvider, string> = {
@@ -36,6 +44,7 @@ const SECRET_COLUMN: Record<GitProvider, string> = {
   gitlab: 'manual_webhook_secret_gitlab',
   bitbucket: 'manual_webhook_secret_bitbucket',
   gitea: 'manual_webhook_secret_gitea',
+  ci: 'manual_webhook_secret_ci',
 };
 
 /**
@@ -125,6 +134,8 @@ export interface WebhookTarget {
   gitBranch: string;
   autoDeployEnabled: boolean;
   secret: string | null;
+  /** Patterns of the files this application is built from; empty = every push. */
+  watchPaths: string[];
 }
 
 /** Resolve the application a webhook is aimed at, with everything needed to judge it. */
@@ -133,7 +144,7 @@ export async function loadWebhookTarget(
   provider: GitProvider
 ): Promise<WebhookTarget | null> {
   const { rows } = await pool.query(
-    `SELECT a.id, a.uuid, a.name, a.git_branch,
+    `SELECT a.id, a.uuid, a.name, a.git_branch, a.watch_paths,
             a.${SECRET_COLUMN[provider]} AS secret,
             COALESCE(aps.is_auto_deploy_enabled, true) AS auto_deploy,
             p.team_id
@@ -157,6 +168,7 @@ export async function loadWebhookTarget(
     gitBranch: String(r.git_branch ?? 'main'),
     autoDeployEnabled: Boolean(r.auto_deploy),
     secret: (r.secret as string) ?? null,
+    watchPaths: parseWatchPaths(r.watch_paths as string | null),
   };
 }
 
@@ -211,6 +223,8 @@ export interface WebhookRequest {
   payload: Payload;
   signature?: string;
   token?: string;
+  /** `ci` only: the image tag (or version) to deploy, from the pipeline. */
+  imageTag?: string;
 }
 
 /**
@@ -236,6 +250,13 @@ export function decideWebhookAction(
       reason: `Pushed to "${event.branch}", which is not the deployed branch ("${target.gitBranch}").`,
     };
   }
+  // In a monorepo every application receives every push: only those whose
+  // files changed redeploy. The changed files were read already and never
+  // used — every push rebuilt every application of the repository. A push
+  // that lists no files (some providers, very large pushes) still deploys.
+  if (target.watchPaths.length > 0 && event.changedFiles.length > 0 && !matchesWatchPaths(event.changedFiles, target.watchPaths)) {
+    return { deploy: false, reason: 'No changed file matches this application\'s watch paths.' };
+  }
   return { deploy: true };
 }
 
@@ -247,7 +268,7 @@ export function decideWebhookAction(
  */
 export async function handleWebhook(
   request: WebhookRequest,
-  triggerDeployment: (target: WebhookTarget) => Promise<string>
+  triggerDeployment: (target: WebhookTarget, version?: string) => Promise<string>
 ): Promise<WebhookOutcome> {
   const target = await loadWebhookTarget(request.applicationUuid, request.provider);
 
@@ -258,7 +279,7 @@ export async function handleWebhook(
   }
 
   const verified =
-    request.provider === 'gitlab'
+    request.provider === 'gitlab' || request.provider === 'ci'
       ? verifySharedToken(request.token, target.secret)
       : verifyHmacSignature(request.rawBody, request.signature, target.secret);
 
@@ -268,6 +289,20 @@ export async function handleWebhook(
       provider: request.provider,
     });
     throw unprocessable('INVALID_SIGNATURE', 'The webhook signature could not be verified.');
+  }
+
+  // A pipeline's call is the decision to deploy: no branch, no changed files.
+  if (request.provider === 'ci') {
+    if (request.imageTag !== undefined && !isSafeImageTag(request.imageTag)) {
+      throw unprocessable('INVALID_IMAGE_TAG', 'The image tag may contain letters, digits, . _ - (128 characters at most).');
+    }
+    const deploymentUuid = await triggerDeployment(target, request.imageTag);
+    logger.info('A pipeline triggered a deployment', {
+      applicationUuid: target.applicationUuid,
+      version: request.imageTag ?? null,
+      deploymentUuid,
+    });
+    return { action: 'deployed', deploymentUuid, branch: request.imageTag ?? '' };
   }
 
   const event = parsePushEvent(request.provider, request.payload);

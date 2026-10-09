@@ -121,6 +121,15 @@ export interface FqdnLabelOptions {
   extraMiddlewares?: string[];
   /** Firewall bouncer, when the application has one configured and enabled. */
   crowdsec?: CrowdSecBouncer | null;
+  /**
+   * Reference the application's firewall chain from Traefik's file provider
+   * (`firewall-<uuid>@file`, written by firewall-file.service.ts) instead of
+   * declaring geo, limits and bouncer as labels. Labels are read once, when
+   * the container starts: rules saved later waited for a redeploy — which
+   * failing once meant a country "blocked" in the interface kept reaching the
+   * site. The file is re-read by Traefik within a second of being written.
+   */
+  firewallFile?: boolean;
   /** Countries to refuse. CrowdSec cannot do this; the proxy can. */
   geoBlock?: GeoBlockOptions | null;
   /** Per-client request rate cap. Native Traefik. */
@@ -239,6 +248,10 @@ function buildMiddlewares(
   // Cheapest check first: geo and the two limiters decide from the connection
   // alone, while the bouncer may have to ask CrowdSec. Refusing a banned country
   // costs nothing and saves that round trip.
+  if (options.firewallFile) {
+    middlewares.push(`${firewallMiddlewareName(options.uuid)}@file`);
+    return { labels, middlewares };
+  }
   if (options.geoBlock && options.geoBlock.blockedCountries.length > 0) {
     middlewares.push(geoBlockMiddlewareName(options.uuid));
   }
@@ -247,6 +260,31 @@ function buildMiddlewares(
   if (options.crowdsec) middlewares.push(crowdsecMiddlewareName(options.uuid));
 
   return { labels, middlewares };
+}
+
+/** The chain holding an application's firewall, in the file provider. */
+export function firewallMiddlewareName(uuid: string): string {
+  return `firewall-${uuid}`;
+}
+
+/**
+ * The bouncer's settings as the plugin reads them (keys are Go struct fields,
+ * hence PascalCase) — shared by the labels and the firewall file.
+ */
+export function crowdsecPluginConfig(bouncer: CrowdSecBouncer): Record<string, string | number | boolean> {
+  return {
+    enabled: true,
+    CrowdsecLapiKey: bouncer.apiKey,
+    CrowdsecLapiHost: bouncer.lapiHost,
+    CrowdsecLapiScheme: bouncer.scheme ?? 'http',
+    CrowdsecMode: 'live',
+    DefaultDecisionSeconds: 30,
+    HttpTimeoutSeconds: 10,
+    UpdateIntervalSeconds: 5,
+    LogLevel: BOUNCER_LOG_LEVEL,
+    ForwardedHeadersTrustedIPs: TRUSTED_FORWARDED_RANGES,
+    RedisCacheEnabled: false,
+  };
 }
 
 /** Middleware name for an application's bouncer. */
@@ -336,16 +374,19 @@ export function traefikLabels(options: FqdnLabelOptions): string[] {
     );
   }
 
-  if (options.crowdsec) {
+  // With the firewall in the file provider, none of it is declared here.
+  if (options.crowdsec && !options.firewallFile) {
     labels.push(...crowdsecLabels(options.uuid, options.crowdsec));
   }
-  if (options.geoBlock && options.geoBlock.blockedCountries.length > 0) {
+  if (options.firewallFile) {
+    // nothing: geo, limits and bouncer live in firewall-<uuid>.yml
+  } else if (options.geoBlock && options.geoBlock.blockedCountries.length > 0) {
     labels.push(...geoBlockLabels(options.uuid, options.geoBlock));
   }
-  if (options.rateLimit) {
+  if (options.rateLimit && !options.firewallFile) {
     labels.push(...rateLimitLabels(options.uuid, options.rateLimit));
   }
-  if (options.concurrency) {
+  if (options.concurrency && !options.firewallFile) {
     labels.push(...concurrencyLabels(options.uuid, options.concurrency));
   }
 

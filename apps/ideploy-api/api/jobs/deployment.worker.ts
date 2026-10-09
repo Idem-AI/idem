@@ -25,16 +25,20 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { getSourceArchive } from '../services/application-source.service';
 import { assertComposeIsSafe } from '../docker/compose-policy';
-import { assertSafeGitBranch, assertSafeGitUrl, isSafeCommitSha } from '../validation/git-input';
+import { assertSafeGitBranch, assertSafeGitUrl, isSafeCommitSha, isSafeImageName, isSafeImageTag } from '../validation/git-input';
 import { generateComposeFile, appWorkdir, composeDirFile, composeProject } from '../docker/compose';
 import { choosePort, parseExposedPorts, parseListeningPorts, PortChoice } from '../docker/listening-ports';
 import { planBuild, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
+import { writeFirewallFile } from '../services/firewall-file.service';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
 import * as serverService from '../services/server.service';
 import * as deploymentService from '../services/deployment.service';
-import { resolveGitCredential } from '../services/git-credentials.service';
+import { explainGitFailure, resolveGitCredential } from '../services/git-credentials.service';
+import { explainPullFailure, resolveRegistryLogin } from '../services/registry-credentials.service';
+import * as pipelineService from '../services/pipeline.service';
+import { summariseTrivy, trivyFailThreshold, trivyFails } from '../services/pipeline-scanners.service';
 import { DeploymentJobData } from '../services/deployment.service';
 import { ApplicationRow } from '../models/ideploy.types';
 
@@ -262,8 +266,15 @@ async function deploy(
   // One image repository per application, one tag per deployment: old images
   // can then be removed without touching another application's, even one that
   // shares its name.
-  const imageRepository = `ideploy-${app.uuid.toLowerCase()}`;
+  // An application that runs a registry image keeps the registry's own name,
+  // so its old tags can be pruned like the images this platform builds.
+  const imageDeploy = toBuildPack(app.build_pack) === 'dockerimage';
+  const imageRepository = imageDeploy
+    ? (app.docker_registry_image_name ?? '')
+    : `ideploy-${app.uuid.toLowerCase()}`;
   const imageTag = `${imageRepository}:${deploymentUuid.slice(0, 8)}`;
+  // The version actually deployed of a registry image (tag, or a rollback's).
+  let imageVersion: string | null = null;
 
   // The port the application listens on inside its container — the one
   // Traefik routes to (`ports_exposes`), and the one it is told through PORT.
@@ -306,7 +317,50 @@ async function deploy(
   // the archive it sent (`application_sources`). Neither: placeholder.
   const sourceArchive = app.git_repository ? null : await getSourceArchive(app.id);
 
-  if (!app.git_repository && !sourceArchive) {
+  if (imageDeploy) {
+    // Nothing to fetch or build: the image is pulled and run. The version is
+    // the one the caller asked for (a pipeline's tag, a rollback), else the
+    // application's own tag.
+    const name = app.docker_registry_image_name;
+    if (!name || !isSafeImageName(name)) {
+      throw new Error('This application has no image to run: set the image (e.g. registry.example.com/organisation/app) in its settings.');
+    }
+    const version = data.commit && data.commit !== 'HEAD' ? data.commit : app.docker_registry_image_tag || 'latest';
+    if (!isSafeImageTag(version)) throw new Error(`"${version}" is not a valid image tag.`);
+    const reference = `${name}:${version}`;
+
+    await streamStep(deploymentUuid, `Pulling ${reference}`, async () => {
+      const login = await resolveRegistryLogin(teamId, name);
+      // The login lives in a throw-away Docker config for this pull only: one
+      // written to the server's own ~/.docker would stay for every team on it.
+      const pull = login
+        ? `D=$(mktemp -d) && trap 'rm -rf "$D"' EXIT && ` +
+          `printf %s ${shellQuote(login.password)} | DOCKER_CONFIG="$D" docker login ${shellQuote(login.registry)} -u ${shellQuote(login.username)} --password-stdin >/dev/null && ` +
+          `DOCKER_CONFIG="$D" docker pull ${shellQuote(reference)}`
+        : `docker pull ${shellQuote(reference)}`;
+      const r = await executeRemoteCommand(server, key, pull, {
+        onData: (c) => log(c),
+        redact: login ? [login.password] : undefined,
+        noRetry: true,
+      });
+      if (r.exitCode !== 0) {
+        throw new Error(`Pulling the image failed: ${explainPullFailure(r.stderr, name, Boolean(login))}`);
+      }
+      const digest = await executeRemoteCommand(
+        server,
+        key,
+        `docker image inspect -f '{{index .RepoDigests 0}}' ${shellQuote(reference)}`,
+        { noRetry: true }
+      ).catch(() => null);
+      if (digest?.exitCode === 0 && digest.stdout.trim()) await log(`Digest: ${digest.stdout.trim()}`);
+      // The version is what rollback goes back to.
+      await deploymentService.recordCommit(deploymentUuid, app.id, version);
+    });
+
+    imageVersion = version;
+    composeImage = reference;
+    compose = generateComposeFile(app, reference, labels, network, runtimeEnv, port);
+  } else if (!app.git_repository && !sourceArchive) {
     // Nothing to fetch — placeholder static container.
     composeImage = 'nginx:alpine';
     compose = generateComposeFile(app, composeImage, labels, network, runtimeEnv, port);
@@ -354,14 +408,17 @@ async function deploy(
         const r = await executeRemoteCommand(
           server,
           key,
-          `cd ${shellQuote(srcDir)} && git init -q && git remote add origin ${shellQuote(cloneUrl)} && ` +
+          // Retry-safe: a connection hiccup re-runs this whole command, and a
+          // second `remote add` on the already-initialised checkout failed
+          // with "remote origin already exists", hiding the real cause.
+          `cd ${shellQuote(srcDir)} && rm -rf .git && git init -q && git remote add origin ${shellQuote(cloneUrl)} && ` +
             `git fetch -q --depth 1 origin ${shellQuote(ref)} && git checkout -q FETCH_HEAD && ` +
             // The remote URL may carry the team's token: not left in .git/config.
             `git remote remove origin && ` +
             `echo "COMMIT=$(git rev-parse HEAD)" && ls -la`,
           { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
         );
-        if (r.exitCode !== 0) throw new Error(`Fetching the code failed: ${r.stderr.slice(0, 300)}`);
+        if (r.exitCode !== 0) throw new Error(`Fetching the code failed: ${explainGitFailure(r.stderr, Boolean(credential))}`);
         const sha = /COMMIT=([0-9a-f]{40})/.exec(r.stdout)?.[1];
         if (sha) await deploymentService.recordCommit(deploymentUuid, app.id, sha);
       });
@@ -381,6 +438,8 @@ async function deploy(
       port,
       buildEnv,
       composeProject: project,
+      dockerfileLocation: app.dockerfile_location,
+      dockerfileTarget: app.dockerfile_target_build,
     };
     const plan = planBuild(pack, buildContext);
 
@@ -422,6 +481,15 @@ async function deploy(
     }
   }
 
+  // A pipeline's deployment checks the image it just built — what actually
+  // ships, dependencies of the base image included — before the live stack is
+  // touched: a critical finding stops here with the previous version serving.
+  if (data.pipelineExecutionId && composeImage) {
+    await streamStep(deploymentUuid, 'Scanning the image (Trivy)', async () => {
+      await scanBuiltImage(server, key, composeImage as string, data.pipelineExecutionId as number, log);
+    });
+  }
+
   // From here on the live stack changes.
   markSwitched();
 
@@ -432,6 +500,9 @@ async function deploy(
       compose !== null
         ? `echo '${Buffer.from(compose, 'utf8').toString('base64')}' | base64 -d > ${shellQuote(`${workdir}/docker-compose.yml`)} && `
         : '';
+    // The firewall chain the labels reference must exist before the
+    // container starts: a router naming a missing middleware serves nothing.
+    if (compose !== null && labelContext) await writeFirewallFile(server, key, app);
     // Where start/stop/restart will find the live compose file.
     const recordDir = `echo ${shellQuote(composeDir)} > ${shellQuote(composeDirFile(app))}`;
     const r = await executeRemoteCommand(server, key, `${writeCompose}${recordDir}`, { noRetry: true });
@@ -598,6 +669,9 @@ async function deploy(
     });
   }
 
+  // What is running now is what a plain redeploy runs again.
+  if (imageVersion) await appService.setImageTag(app.id, imageVersion);
+
   // Older releases and images go; the live one and the previous one stay.
   // Every deployment used to leave its image behind until the disk filled. The
   // checkout the first deployments made in the application's directory goes too.
@@ -658,6 +732,49 @@ async function resolveBaseDirectory(
     );
   }
   return base;
+}
+
+/**
+ * Trivy on the image just built. The result is recorded on the pipeline
+ * execution that asked for the deployment; a finding at or above the
+ * threshold fails the deployment before it switches anything.
+ */
+async function scanBuiltImage(
+  server: Parameters<typeof executeRemoteCommand>[0],
+  key: Parameters<typeof executeRemoteCommand>[1],
+  image: string,
+  executionId: number,
+  log: (line: string) => Promise<void>
+): Promise<void> {
+  const r = await executeRemoteCommand(
+    server,
+    key,
+    `docker run --rm -v ideploy-trivy-cache:/root/.cache -v /var/run/docker.sock:/var/run/docker.sock:ro ` +
+      `aquasec/trivy:latest image --quiet --format json --scanners vuln ${shellQuote(image)}`,
+    { noRetry: true }
+  );
+  if (r.exitCode !== 0) {
+    const detail = (r.stderr || r.stdout).slice(-300);
+    await log(`The image could not be scanned: ${detail}`);
+    await pipelineService.recordScanResult(executionId, 'trivy-image', { status: 'failed', summary: detail });
+    throw new Error('Trivy could not scan the built image');
+  }
+  const { counts, findings } = summariseTrivy(r.stdout);
+  const line = `Image vulnerabilities — critical ${counts.CRITICAL}, high ${counts.HIGH}, medium ${counts.MEDIUM}, low ${counts.LOW}`;
+  await log(line);
+  const threshold = trivyFailThreshold();
+  const fails = trivyFails(counts, threshold);
+  await pipelineService.recordScanResult(executionId, 'trivy-image', {
+    status: fails ? 'failed' : 'success',
+    vulnerabilities: counts.CRITICAL + counts.HIGH + counts.MEDIUM + counts.LOW + counts.UNKNOWN,
+    critical_count: counts.CRITICAL,
+    high_count: counts.HIGH,
+    medium_count: counts.MEDIUM,
+    low_count: counts.LOW,
+    vulnerabilities_detail: findings,
+    summary: line,
+  });
+  if (fails) throw new Error(`The built image has vulnerabilities at or above ${threshold}; nothing was deployed.`);
 }
 
 /** How long to wait for an application to start listening before deciding it serves no port. */

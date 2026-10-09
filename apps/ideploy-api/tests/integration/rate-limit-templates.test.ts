@@ -12,6 +12,7 @@ import * as rateLimit from '../../api/services/rate-limit-templates.service';
 import { getOrCreateConfig, updateConfig } from '../../api/services/firewall.service';
 import { getApplication } from '../../api/services/application.service';
 import { resolveApplicationLabels } from '../../api/services/application-labels.service';
+import { resolveFirewallFile } from '../../api/services/firewall-file.service';
 import { isTestDatabaseAvailable, testPool, truncateAll } from '../helpers/db';
 import { makeApplication, makeManagedServer, makeProject, makeTeam } from '../helpers/factories';
 
@@ -152,51 +153,55 @@ describe('getRateLimit / clearRateLimit', () => {
   });
 });
 
-describe('the configured limit reaches the deployed labels', () => {
-  it('carries the average, burst, period and concurrency onto the container', async () => {
+describe('the configured limit reaches the proxy', () => {
+  /** What Traefik applies: the router labels, and the application's firewall file. */
+  async function applied(teamId: number, uuid: string) {
+    const app = await getApplication(teamId, uuid);
+    return { labels: await resolveApplicationLabels(app!), file: await resolveFirewallFile(app!) };
+  }
+
+  it('carries the average, burst and concurrency into the firewall file', async () => {
     const { teamId, uuid } = await aRoutableApplication();
     await rateLimit.applyTemplate(teamId, uuid, 'strict');
     const template = rateLimit.RATE_LIMIT_TEMPLATES.strict;
 
-    const app = await getApplication(teamId, uuid);
-    const labels = await resolveApplicationLabels(app!);
+    const { file } = await applied(teamId, uuid);
 
-    expect(labels).toContain(`traefik.http.middlewares.ratelimit-${uuid}.ratelimit.average=${template.averagePerSecond}`);
-    expect(labels).toContain(`traefik.http.middlewares.ratelimit-${uuid}.ratelimit.burst=${template.burst}`);
-    expect(labels).toContain(`traefik.http.middlewares.inflight-${uuid}.inflightreq.amount=${template.concurrencyLimit}`);
+    expect(file).toContain(`average: ${template.averagePerSecond}`);
+    expect(file).toContain(`burst: ${template.burst}`);
+    expect(file).toContain(`amount: ${template.concurrencyLimit}`);
+    // Per client as Traefik sees it — a forwarded header is neither present nor trustworthy.
+    expect(file).not.toContain('ipStrategy');
   });
 
-  it('references both middlewares on the router, not only declares them', async () => {
+  it('chains both into the firewall the router references', async () => {
     const { teamId, uuid } = await aRoutableApplication();
     await rateLimit.applyTemplate(teamId, uuid, 'standard');
 
-    const app = await getApplication(teamId, uuid);
-    const labels = await resolveApplicationLabels(app!);
-    const middlewaresLabel = labels.find((l) =>
-      l.startsWith(`traefik.http.routers.https-0-${uuid}.middlewares=`)
-    );
+    const { labels, file } = await applied(teamId, uuid);
+    const middlewaresLabel = labels.find((l) => l.startsWith(`traefik.http.routers.https-0-${uuid}.middlewares=`));
 
-    expect(middlewaresLabel).toContain(`ratelimit-${uuid}`);
-    expect(middlewaresLabel).toContain(`inflight-${uuid}`);
+    expect(middlewaresLabel).toContain(`firewall-${uuid}@file`);
+    expect(file).toContain(`- ratelimit-${uuid}`);
+    expect(file).toContain(`- inflight-${uuid}`);
   });
 
-  it('emits neither label when the firewall is turned off', async () => {
+  it('applies neither when the firewall is turned off', async () => {
     const { teamId, uuid } = await aRoutableApplication();
     await rateLimit.applyTemplate(teamId, uuid, 'standard');
     await updateConfig(teamId, uuid, { enabled: false });
 
-    const app = await getApplication(teamId, uuid);
-    const labels = await resolveApplicationLabels(app!);
+    const { file } = await applied(teamId, uuid);
 
-    expect(labels.some((l) => l.includes('ratelimit-') || l.includes('inflight-'))).toBe(false);
+    expect(file).not.toMatch(/ratelimit-|inflight-/);
   });
 
-  it('emits nothing when no rate limit is configured', async () => {
+  it('applies nothing when no rate limit is configured', async () => {
     const { teamId, uuid } = await aRoutableApplication();
 
-    const app = await getApplication(teamId, uuid);
-    const labels = await resolveApplicationLabels(app!);
+    const { file } = await applied(teamId, uuid);
 
-    expect(labels.some((l) => l.includes('ratelimit-') || l.includes('inflight-'))).toBe(false);
+    expect(file).not.toMatch(/ratelimit-|inflight-/);
   });
 });
+

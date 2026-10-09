@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, effect, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, OnDestroy, OnInit, effect, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { RealtimeService } from '../../../shared/services/realtime.service';
-import { ServiceDetail } from '../../../shared/models/ideploy.models';
+import { ComposeAnalysis, ServiceDetail, ServiceOperation } from '../../../shared/models/ideploy.models';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { EnvRow, EnvVarsEditorComponent } from '../../../shared/components/env-vars-editor/env-vars-editor';
 
 /**
  * Service (stack) detail — what the compose file produced, and the controls
@@ -17,7 +18,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
  */
 @Component({
   selector: 'app-service-detail',
-  imports: [RouterLink, TranslateModule, IdemLoaderComponent],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent, EnvVarsEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a
@@ -64,26 +65,29 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
         with nothing anywhere saying which, or why. Same channel/format as
         the pipeline and server-provision consoles elsewhere in this app.
       -->
-      @if (consoleLines().length > 0) {
-        <section class="glass-card overflow-hidden mb-4">
-          <div class="box-header">
-            <h2 class="box-title flex items-center gap-2">
-              @if (busy()) {
-                <idem-loader size="xs" />
-              } @else {
-                <i class="pi pi-code text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
-              }
-              {{ 'services.detail.console' | translate }}
-            </h2>
-          </div>
-          <pre
-            #consoleEl
-            class="max-h-80 overflow-auto p-4 font-mono text-xs leading-relaxed"
-            style="background:#080b12;color:#c9d1d9;"
-          >@for (line of consoleLines(); track $index) {<span>{{ line }}</span>
-}@if (busy()) {<span class="animate-pulse">▋</span>}</pre>
-        </section>
-      }
+      <section class="glass-card overflow-hidden mb-4" aria-live="off">
+        <div class="box-header">
+          <h2 class="box-title flex items-center gap-2">
+            @if (busy()) {
+              <idem-loader size="xs" />
+            } @else {
+              <i class="pi pi-code text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
+            }
+            {{ 'services.detail.console' | translate }}
+            @if (operation(); as op) {
+              <span class="text-xs font-normal" style="color:var(--color-text-secondary);">
+                · {{ 'services.detail.action.' + op.action | translate }} ·
+                {{ 'services.detail.status.' + op.status | translate }}
+              </span>
+            }
+          </h2>
+        </div>
+        <pre
+          #consoleEl
+          class="max-h-80 min-h-24 overflow-auto p-4 font-mono text-xs leading-relaxed"
+          style="background:#080b12;color:#c9d1d9;"
+        >@if (output()) {<span>{{ output() }}</span>} @else {<span style="color:#8b949e;">{{ 'services.detail.consoleEmpty' | translate }}</span>}@if (busy()) {<span class="animate-pulse">▋</span>}</pre>
+      </section>
 
       <div class="grid gap-4 lg:grid-cols-2">
         <section class="glass-card p-4">
@@ -158,6 +162,26 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
         }
       </section>
 
+      <section class="glass-card p-4 mt-4">
+        <h2 class="mb-1 text-sm font-semibold">{{ 'services.detail.envTitle' | translate }}</h2>
+        <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'services.detail.envHint' | translate }}</p>
+        <app-env-vars-editor [(rows)]="envRows" [expected]="analysis()?.variables ?? []" />
+        @for (w of analysis()?.warnings ?? []; track w.code + w.message) {
+          <p class="mt-2 text-xs" style="color:var(--color-warning, var(--color-text-secondary));">{{ w.message }}</p>
+        }
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <button class="inner-button" (click)="saveEnv(false)" [disabled]="savingEnv() || busy()">
+            {{ 'services.detail.envSave' | translate }}
+          </button>
+          <button class="outer-button" (click)="saveEnv(true)" [disabled]="savingEnv() || busy()">
+            {{ 'services.detail.envSaveRestart' | translate }}
+          </button>
+          @if (envSaved()) {
+            <span class="text-xs" role="status" style="color:var(--color-text-secondary);">{{ 'services.detail.envSaved' | translate }}</span>
+          }
+        </div>
+      </section>
+
       <section class="glass-card p-4 mt-4" style="border-color:color-mix(in srgb, var(--color-danger) 35%, transparent);">
         <h2 class="mb-1 text-sm font-semibold">{{ 'services.detail.dangerZone' | translate }}</h2>
         <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
@@ -184,18 +208,26 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
   protected readonly error = signal<string | null>(null);
   protected readonly busy = signal(false);
   protected readonly deleting = signal(false);
-  protected readonly consoleLines = signal<string[]>([]);
+  protected readonly operation = signal<ServiceOperation | null>(null);
+  protected readonly output = computed(() => this.operation()?.output ?? '');
+  protected readonly envRows = signal<EnvRow[]>([]);
+  protected readonly analysis = signal<ComposeAnalysis | null>(null);
+  protected readonly savingEnv = signal(false);
+  protected readonly envSaved = signal(false);
 
   private readonly consoleEl = viewChild<ElementRef<HTMLElement>>('consoleEl');
   private unsubscribeRealtime?: () => void;
 
   private uuid = '';
+  private polling = false;
+  private destroyed = false;
+  private pollTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
     // Auto-scroll: a console that doesn't follow the newest line is not one
     // anyone can watch a deploy through.
     effect(() => {
-      this.consoleLines();
+      this.output();
       const el = this.consoleEl()?.nativeElement;
       if (el) el.scrollTop = el.scrollHeight;
     });
@@ -204,13 +236,46 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.uuid = this.route.snapshot.paramMap.get('uuid') ?? '';
     this.reload();
-    this.unsubscribeRealtime = this.realtime.subscribeToService(this.uuid, (line) => {
-      this.consoleLines.update((lines) => [...lines, line]);
-    });
+    this.loadEnv();
+    // The console is read back from the API: it shows the last operation even
+    // after a reload, and does not depend on the realtime channel.
+    this.refreshOperation();
+    this.unsubscribeRealtime = this.realtime.subscribeToService(this.uuid, () => this.refreshOperation());
   }
 
   ngOnDestroy(): void {
     this.unsubscribeRealtime?.();
+    clearTimeout(this.pollTimer);
+    this.destroyed = true;
+  }
+
+  private loadEnv(): void {
+    this.api.getServiceEnv(this.uuid).subscribe({
+      next: (r) => {
+        this.envRows.set(r.variables);
+        this.analysis.set(r.analysis);
+      },
+    });
+  }
+
+  /** Reads the last operation; keeps polling while it runs. */
+  private refreshOperation(): void {
+    if (this.polling) return;
+    this.polling = true;
+    this.api.latestServiceOperation(this.uuid).subscribe({
+      next: (op) => {
+        this.polling = false;
+        const wasRunning = this.busy();
+        this.operation.set(op);
+        this.busy.set(op?.status === 'running');
+        if (op?.status === 'running' && !this.destroyed) {
+          this.pollTimer = setTimeout(() => this.refreshOperation(), 1500);
+        } else if (wasRunning) {
+          this.reload();
+        }
+      },
+      error: () => (this.polling = false),
+    });
   }
 
   private reload(): void {
@@ -231,15 +296,33 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
   protected lifecycle(action: 'start' | 'stop' | 'restart'): void {
     this.busy.set(true);
     this.error.set(null);
-    this.consoleLines.set([]);
     this.api.serviceLifecycle(this.uuid, action).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.reload();
+      next: (op) => {
+        this.operation.set(op);
+        this.refreshOperation();
       },
       error: (e) => {
         this.report(e, 'services.detail.lifecycleError');
         this.busy.set(false);
+      },
+    });
+  }
+
+  protected saveEnv(thenRestart: boolean): void {
+    this.savingEnv.set(true);
+    this.envSaved.set(false);
+    this.error.set(null);
+    const variables = this.envRows().filter((r) => r.key.trim() !== '').map((r) => ({ key: r.key.trim(), value: r.value }));
+    this.api.saveServiceEnv(this.uuid, variables).subscribe({
+      next: (r) => {
+        this.envRows.set(r.variables);
+        this.savingEnv.set(false);
+        this.envSaved.set(true);
+        if (thenRestart) this.lifecycle('start');
+      },
+      error: (e) => {
+        this.report(e, 'services.detail.envError');
+        this.savingEnv.set(false);
       },
     });
   }

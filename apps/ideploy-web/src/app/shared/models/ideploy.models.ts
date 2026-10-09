@@ -171,6 +171,13 @@ export interface CreateWorkspaceProjectRequest {
   environment_name?: string;
 }
 
+/** A saved login to a private image registry (the token is never returned). */
+export interface RegistryCredential {
+  id: number;
+  registry: string;
+  username: string;
+}
+
 /** Where one of an application's domains points, checked when it changes. */
 export interface DomainCheck {
   domain: string;
@@ -190,6 +197,14 @@ export interface Application {
   ports_exposes?: string | null;
   /** Folder of the repository the application is built from (`./` or empty: the root). */
   base_directory?: string | null;
+  /** `dockerimage` applications: the registry image (no tag) and the tag it runs. */
+  docker_registry_image_name?: string | null;
+  docker_registry_image_tag?: string | null;
+  /** Dockerfile path, relative to the base directory (the build context). */
+  dockerfile_location?: string | null;
+  dockerfile_target_build?: string | null;
+  /** Patterns of the files a push must touch to redeploy this application. */
+  watch_paths?: string | null;
   status: string | null;
   link?: string | null;
   fqdn?: string | null;
@@ -509,6 +524,23 @@ export interface ServiceDatabase {
  * A stack with everything the compose file produced. `GET /services/:uuid`
  * returns the row and its sub-resources flattened together.
  */
+export interface ComposeAnalysis {
+  variables: { key: string; default: string | null; required: boolean }[];
+  envFiles: string[];
+  services: string[];
+  warnings: { code: string; message: string }[];
+}
+
+/** One start / stop / restart of a service, with its console output. */
+export interface ServiceOperation {
+  id: number;
+  action: 'start' | 'stop' | 'restart';
+  status: 'running' | 'succeeded' | 'failed';
+  output: string;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
 export interface ServiceDetail extends Service {
   docker_compose_raw: string | null;
   environment_id: number;
@@ -741,6 +773,8 @@ export interface FirewallApplyResult {
   unsupported: UnsupportedFirewallRule[];
   redeployRequired: boolean;
   reason?: string;
+  /** Countries, limits and the bouncer took effect at once (the proxy's firewall file). */
+  appliedLive?: boolean;
   /** The redeploy queued to apply the rules, when one was. */
   redeployment: { deploymentUuid: string | null; alreadyRunning: boolean } | null;
 }

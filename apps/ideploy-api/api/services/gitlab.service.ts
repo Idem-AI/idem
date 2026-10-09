@@ -12,7 +12,7 @@
 import axios from 'axios';
 import redis from '../config/redis.config';
 import logger from '../config/logger';
-import { encryptString, tryDecryptString } from '../utils/laravel-crypto';
+import { fromOAuthResponse, freshToken, saveToken } from './oauth-token-store.service';
 import { detectEnvVars } from './env-detection.service';
 import { DetectedEnvVar } from '../utils/env-example';
 import {
@@ -94,12 +94,13 @@ export async function handleCallback(code: string, state: string): Promise<strin
       },
       { headers: { Accept: 'application/json' }, timeout: 15000 }
     );
-    const accessToken: string | undefined = data?.access_token;
-    if (!accessToken) {
+    const token = fromOAuthResponse(data);
+    if (!token) {
       logger.warn('GitLab OAuth: no access_token in response', { error: data?.error });
       return buildRedirect(parsed.returnTo, 'error');
     }
-    await redis.set(tokenKey(parsed.userId), encryptString(accessToken));
+    // With its refresh token and expiry: the access token alone stopped working after hours.
+    await saveToken(tokenKey(parsed.userId), token);
     logger.info('GitLab connected for user', { userId: parsed.userId });
     return buildRedirect(parsed.returnTo, 'connected');
   } catch (err) {
@@ -108,9 +109,29 @@ export async function handleCallback(code: string, state: string): Promise<strin
   }
 }
 
+async function renew(refreshToken: string): Promise<unknown> {
+  const { data } = await axios.post(
+    `${INSTANCE_URL}/oauth/token`,
+    {
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+      redirect_uri: callbackUrl(),
+    },
+    { headers: { Accept: 'application/json' }, timeout: 15000 }
+  );
+  return data;
+}
+
+/** A usable token for this user, renewed first when it is about to expire. */
 export async function getToken(userId: number): Promise<string | null> {
-  const stored = await redis.get(tokenKey(userId));
-  return stored ? tryDecryptString(stored) : null;
+  return freshToken(tokenKey(userId), renew);
+}
+
+/** Renew now (the provider just refused the token); null when it cannot be renewed. */
+export async function renewToken(userId: number): Promise<string | null> {
+  return freshToken(tokenKey(userId), renew, true);
 }
 
 /** Returns the connected GitLab username, or null if not connected. */

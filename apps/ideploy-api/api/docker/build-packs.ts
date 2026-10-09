@@ -15,13 +15,15 @@
  * executing and streaming.
  */
 
-export type BuildPack = 'nixpacks' | 'static' | 'dockerfile' | 'dockercompose';
+export type BuildPack = 'nixpacks' | 'static' | 'dockerfile' | 'dockercompose' | 'dockerimage';
 
 export const BUILD_PACKS: readonly BuildPack[] = [
   'nixpacks',
   'static',
   'dockerfile',
   'dockercompose',
+  // Nothing is built: an image already pushed to a registry is pulled and run.
+  'dockerimage',
 ] as const;
 
 /** Image serving a built static site. */
@@ -61,6 +63,10 @@ export interface BuildContext {
   port: number;
   /** `KEY=value` — the operator's own build-time Variables, given to nixpacks so a build needing e.g. an API key has it. */
   buildEnv?: string[];
+  /** Dockerfile, relative to the build directory (the context). Default `Dockerfile`. */
+  dockerfileLocation?: string | null;
+  /** `docker build --target`. */
+  dockerfileTarget?: string | null;
   /**
    * Compose project the stack runs under (`-p`). The images a compose build
    * produces are named after it, so the build must use the one `up` will.
@@ -124,8 +130,20 @@ export function detectBuildPack(files: string[]): BuildPack {
 }
 
 /** Steps that build an image from the repository's own Dockerfile. */
+/** The Dockerfile path as given, made relative to the build context. */
+export function dockerfilePath(location: string | null | undefined): string {
+  const p = (location ?? '').trim().replace(/^\.?\/+/, '');
+  return p || 'Dockerfile';
+}
+
 function dockerfilePlan(context: BuildContext): BuildPlan {
   const dir = buildDirectory(context);
+  // The base directory is the build context; the Dockerfile may live
+  // elsewhere in it — a monorepo keeping its Dockerfiles in one folder
+  // (`Dockerfile/prod/Dockerfile.api`) builds with the repository root as
+  // context, which the shared packages need.
+  const file = dockerfilePath(context.dockerfileLocation);
+  const target = context.dockerfileTarget ? ` --target ${quote(context.dockerfileTarget)}` : '';
   return {
     pack: 'dockerfile',
     runtime: 'image',
@@ -137,8 +155,8 @@ function dockerfilePlan(context: BuildContext): BuildPlan {
         // pack was chosen but no Dockerfile exists.
         command:
           `cd ${quote(dir)} && ` +
-          `{ test -f Dockerfile || { echo "No Dockerfile found in ${dir}." >&2; exit 1; }; } && ` +
-          `docker build -t ${quote(context.imageTag)} .`,
+          `{ test -f ${quote(file)} || { echo ${quote(`No Dockerfile found at ${file} (build context ${dir}).`)} >&2; exit 1; }; } && ` +
+          `docker build -f ${quote(file)}${target} -t ${quote(context.imageTag)} .`,
       },
     ],
   };
@@ -278,6 +296,9 @@ export function planBuild(pack: BuildPack, context: BuildContext): BuildPlan {
       return staticPlan(context);
     case 'dockercompose':
       return composePlan(context);
+    case 'dockerimage':
+      // The worker pulls the image itself (it needs the team's registry login).
+      return { pack: 'dockerimage', runtime: 'image', imageTag: context.imageTag, steps: [] };
     case 'nixpacks':
     default:
       return nixpacksPlan(context);

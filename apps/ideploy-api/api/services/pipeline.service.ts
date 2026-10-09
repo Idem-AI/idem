@@ -146,7 +146,10 @@ export async function trigger(
   };
   // BullMQ rejects a custom job id containing ':' outright (throws, uncaught
   // it takes the whole process down with it — this crashed every trigger).
-  await getQueue(QUEUE_NAMES.pipelines).add('pipeline', data, { jobId: executionUuid });
+  // One attempt: a pipeline failing on a refused clone or a failed scan fails
+  // the same way twice more, tripling the wait for the same answer (as
+  // deployments, which already run once).
+  await getQueue(QUEUE_NAMES.pipelines).add('pipeline', data, { jobId: executionUuid, attempts: 1 });
   return { executionUuid };
 }
 

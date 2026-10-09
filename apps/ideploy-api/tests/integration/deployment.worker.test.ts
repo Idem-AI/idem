@@ -13,6 +13,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { processDeployment } from '../../api/jobs/deployment.worker';
 import * as envVarService from '../../api/services/env-var.service';
 import { createDeployment, DeploymentJobData } from '../../api/services/deployment.service';
+import { saveRegistryCredential } from '../../api/services/registry-credentials.service';
+import * as pipelineService from '../../api/services/pipeline.service';
 import { setRemoteExecutor } from '../../api/ssh/ssh';
 import { FakeRemoteExecutor } from '../helpers/fake-executor';
 import { isTestDatabaseAvailable, testPool, truncateAll } from '../helpers/db';
@@ -147,6 +149,127 @@ describe('the port the application listens on', () => {
     const last = Buffer.from(/echo '([^']+)'/.exec(rewrites[rewrites.length - 1].command)![1], 'base64').toString();
     expect(last).toContain('PORT=4721');
   }, 60_000);
+});
+
+describe('an application that runs a registry image', () => {
+  async function anImageApplication(tag: string | null = 'v1', name = 'registry.example.com/acme/web') {
+    const { teamId, app } = await anApplication('exited');
+    await testPool().query(
+      "UPDATE applications SET build_pack = 'dockerimage', git_repository = '', docker_registry_image_name = $2, docker_registry_image_tag = $3 WHERE id = $1",
+      [app.id, name, tag]
+    );
+    return { teamId, app };
+  }
+
+  it('pulls the image — no clone, no build — runs it, and remembers the version', async () => {
+    const { teamId, app } = await anImageApplication('v1');
+    ssh.on(/image inspect -f '\{\{index \.RepoDigests 0\}\}'/, { stdout: 'registry.example.com/acme/web@sha256:abc123\n' });
+
+    const { deploymentUuid, outcome } = await run(teamId, app);
+    await outcome;
+
+    expect(ssh.ranMatching(/docker pull 'registry\.example\.com\/acme\/web:v1'/)).toBe(true);
+    expect(ssh.ranMatching(/git fetch|git clone|docker build|nixpacks/)).toBe(false);
+    const deployment = await row(deploymentUuid);
+    expect(deployment.status).toBe('finished');
+    expect(deployment.commit).toBe('v1');
+    expect(deployment.logs).toContain('Digest: registry.example.com/acme/web@sha256:abc123');
+    // The compose file runs that exact image.
+    const write = ssh.calls.find((c) => c.command.includes('docker-compose.yml') && c.command.includes('base64 -d >'))!.command;
+    expect(Buffer.from(/echo '([^']+)'/.exec(write)![1], 'base64').toString()).toContain('image: registry.example.com/acme/web:v1');
+  }, 60_000);
+
+  it('deploys the tag a pipeline sends, and a plain redeploy then runs that tag again', async () => {
+    const { teamId, app } = await anImageApplication('v1');
+
+    const first = await run(teamId, app, 'sha-9f3c2d1');
+    await first.outcome;
+
+    expect(ssh.ranMatching(/docker pull 'registry\.example\.com\/acme\/web:sha-9f3c2d1'/)).toBe(true);
+    const { rows } = await testPool().query('SELECT docker_registry_image_tag FROM applications WHERE id = $1', [app.id]);
+    expect(rows[0].docker_registry_image_tag).toBe('sha-9f3c2d1');
+
+    ssh.clear();
+    useExecutor(LISTENING_3000);
+    const again = await run(teamId, app);
+    await again.outcome;
+    expect(ssh.ranMatching(/docker pull 'registry\.example\.com\/acme\/web:sha-9f3c2d1'/)).toBe(true);
+  }, 90_000);
+
+  it('logs in to a private registry through a throw-away Docker config, never printing the token', async () => {
+    const { teamId, app } = await anImageApplication('v1');
+    await saveRegistryCredential(teamId, { registry: 'registry.example.com', username: 'ci-bot', password: 'tok_secrettoken' });
+
+    const { deploymentUuid, outcome } = await run(teamId, app);
+    await outcome;
+
+    const pull = ssh.calls.find((c) => c.command.includes('docker login'))!;
+    expect(pull.command).toContain('DOCKER_CONFIG="$D" docker login');
+    expect(pull.command).toContain("trap 'rm -rf \"$D\"' EXIT");
+    expect(pull.opts.redact).toContain('tok_secrettoken');
+    expect((await row(deploymentUuid)).logs).not.toContain('tok_secrettoken');
+  }, 60_000);
+
+  it('says what to do when the registry refuses the pull, and leaves the serving version alone', async () => {
+    const { teamId, app } = await anImageApplication('v1');
+    await testPool().query("UPDATE applications SET status = 'running' WHERE id = $1", [app.id]);
+    ssh.on(/docker pull/, { exitCode: 1, stderr: 'Error response from daemon: denied: requested access to the resource is denied' });
+
+    const { deploymentUuid, outcome } = await run(teamId, app);
+    await expect(outcome).rejects.toThrow(/image is private: add a login for registry\.example\.com/);
+
+    expect((await row(deploymentUuid)).status).toBe('failed');
+    const { rows } = await testPool().query('SELECT status FROM applications WHERE id = $1', [app.id]);
+    expect(rows[0].status).toBe('running');
+  });
+describe('the image scan of a pipeline deployment', () => {
+  async function runFromPipeline(teamId: number, app: { id: number; uuid: string }, executionId: number) {
+    const { deploymentUuid } = await createDeployment(app, teamId, { commit: 'HEAD', pipelineExecutionId: executionId });
+    const outcome = processDeployment({
+      data: { deploymentUuid, applicationId: app.id, applicationUuid: app.uuid, teamId, commit: 'HEAD', forceRebuild: false, pipelineExecutionId: executionId },
+    } as Job<DeploymentJobData>);
+    return { deploymentUuid, outcome };
+  }
+
+  async function anExecution(teamId: number, appUuid: string): Promise<number> {
+    const { executionUuid } = await pipelineService.trigger(teamId, appUuid, { branch: 'main' });
+    const { rows } = await testPool().query('SELECT id FROM pipeline_executions WHERE uuid = $1', [executionUuid]);
+    return Number(rows[0].id);
+  }
+
+  it('records the scan and stops before switching when the image has a critical vulnerability', async () => {
+    const { teamId, app } = await anApplication('running');
+    const executionId = await anExecution(teamId, app.uuid);
+    ssh.on(/aquasec\/trivy.*image/, {
+      stdout: JSON.stringify({ Results: [{ Target: 'alpine', Vulnerabilities: [{ VulnerabilityID: 'CVE-1', PkgName: 'openssl', InstalledVersion: '3.0', Severity: 'CRITICAL' }] }] }),
+    });
+
+    const { outcome } = await runFromPipeline(teamId, app, executionId);
+    await expect(outcome).rejects.toThrow(/vulnerabilities at or above CRITICAL/);
+
+    const scan = await testPool().query("SELECT status, critical_count FROM pipeline_scan_results WHERE tool = 'trivy-image'");
+    expect(scan.rows[0]).toMatchObject({ status: 'failed', critical_count: 1 });
+    // Nothing was switched: the serving version and status stay.
+    expect(ssh.ranMatching(/compose -p \S+ up/)).toBe(false);
+    const { rows } = await testPool().query('SELECT status FROM applications WHERE id = $1', [app.id]);
+    expect(rows[0].status).toBe('running');
+  });
+
+  it('deploys when the image is clean, and a normal deployment never runs the scan', async () => {
+    const { teamId, app } = await anApplication('exited');
+    const executionId = await anExecution(teamId, app.uuid);
+    ssh.on(/aquasec\/trivy.*image/, { stdout: JSON.stringify({ Results: [] }) });
+
+    const { outcome } = await runFromPipeline(teamId, app, executionId);
+    await outcome;
+    expect(ssh.ranMatching(/aquasec\/trivy.*image/)).toBe(true);
+
+    ssh.clear();
+    useExecutor(LISTENING_3000);
+    const plain = await run(teamId, app);
+    await plain.outcome;
+    expect(ssh.ranMatching(/aquasec\/trivy/)).toBe(false);
+  }, 90_000);
 });
 
 describe('a deployment that succeeds', () => {

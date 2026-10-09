@@ -17,6 +17,7 @@ import { isTestDatabaseAvailable, testPool, truncateAll } from '../helpers/db';
 import { makeApplication, makeManagedServer, makeProject, makeTeam } from '../helpers/factories';
 import { StubServer } from '../helpers/stub-server';
 import { closeInfrastructure } from '../helpers/teardown';
+import { useFakeExecutor } from '../helpers/fake-executor';
 
 const stub = new StubServer();
 
@@ -226,7 +227,9 @@ describe('enforce — the machine login', () => {
   });
 });
 
-describe('Apply — country rules are applied by a redeploy', () => {
+describe('Apply — countries, limits and the bouncer are applied live', () => {
+  const ssh = useFakeExecutor();
+
   async function queuedDeployments(appId: number): Promise<number> {
     const { rows } = await testPool().query<{ n: string }>(
       'SELECT count(*)::text AS n FROM application_deployment_queues WHERE application_id = $1',
@@ -235,44 +238,46 @@ describe('Apply — country rules are applied by a redeploy', () => {
     return Number(rows[0].n);
   }
 
-  it('queues a redeploy when a country rule waits for one', async () => {
+  /** The running container already routes through the file chain (count of matching containers). */
+  const containerUsesFile = (yes: boolean) => ssh.on(/@file/, { stdout: yes ? '1\n' : '0\n' });
+
+  it('writes the firewall file and needs no redeploy when the container routes through it', async () => {
     const { teamId, uuid, appId } = await anApplication();
     stub.on('GET', '/v1/decisions', { body: [] });
-    await aCountryRule(teamId, uuid);
+    containerUsesFile(true);
+    await aCountryRule(teamId, uuid, 'CM');
 
     const result = await deploy(teamId, uuid);
 
-    expect(result.redeployment?.alreadyRunning).toBe(false);
-    expect(result.redeployment?.deploymentUuid).toBeTruthy();
-    expect(await queuedDeployments(appId)).toBe(1);
+    expect(result.appliedLive).toBe(true);
+    expect(result.redeployment).toBeNull();
+    expect(result.redeployRequired).toBe(false);
+    expect(await queuedDeployments(appId)).toBe(0);
+    // The file reached the server, atomically, with the country in it.
+    const write = ssh.calls.find((c) => c.command.includes(`firewall-${uuid}.yml.tmp`))!;
+    const content = Buffer.from(/echo '([^']+)'/.exec(write.command)![1], 'base64').toString();
+    expect(content).toContain('- CM');
+    expect(content).toContain(`firewall-${uuid}:`);
   });
 
-  it('does not queue a second one while a deployment is already queued', async () => {
+  it('redeploys once a container that predates the file chain, and not twice', async () => {
     const { teamId, uuid, appId } = await anApplication();
     stub.on('GET', '/v1/decisions', { body: [] });
+    containerUsesFile(false);
     await aCountryRule(teamId, uuid);
-    await deploy(teamId, uuid);
 
+    const first = await deploy(teamId, uuid);
     const second = await deploy(teamId, uuid);
 
+    expect(first.redeployment?.alreadyRunning).toBe(false);
     expect(second.redeployment?.alreadyRunning).toBe(true);
     expect(await queuedDeployments(appId)).toBe(1);
-  });
-
-  it('queues nothing for address rules, which apply immediately', async () => {
-    const { teamId, uuid, appId } = await anApplication();
-    stub.on('GET', '/v1/decisions', { body: [] });
-    await anAddressRule(teamId, uuid);
-
-    const result = await deploy(teamId, uuid);
-
-    expect(result.redeployment).toBeNull();
-    expect(await queuedDeployments(appId)).toBe(0);
   });
 
   it('can be told not to redeploy', async () => {
     const { teamId, uuid, appId } = await anApplication();
     stub.on('GET', '/v1/decisions', { body: [] });
+    containerUsesFile(false);
     await aCountryRule(teamId, uuid);
 
     const result = await deploy(teamId, uuid, { redeploy: false });
@@ -281,6 +286,7 @@ describe('Apply — country rules are applied by a redeploy', () => {
     expect(await queuedDeployments(appId)).toBe(0);
   });
 });
+
 
 describe('enforce — country rules never reach CrowdSec', () => {
   it('creates no decision for a country rule', async () => {
