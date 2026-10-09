@@ -40,6 +40,13 @@ export interface TextChangeEvent {
   html: string;
 }
 
+/** Une modification de style effectuée directement dans le canevas. */
+export interface StyleChangeEvent {
+  sectionId: string;
+  path: string;
+  style: ElementStyle;
+}
+
 /** Demande de réordonnancement remontée depuis l'iframe. */
 export interface ReorderEvent {
   sectionId: string;
@@ -145,15 +152,21 @@ interface ViewBox {
   `,
   styles: [
     `
-      :host { display: block; height: 100%; }
-      :host(.canvas-host-inline) { height: auto; }
+      :host {
+        display: block;
+        height: 100%;
+      }
+      :host(.canvas-host-inline) {
+        height: auto;
+      }
       .canvas-scroll {
         position: relative;
-        width: 100%; height: 100%; overflow: auto;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
         overscroll-behavior: contain;
         touch-action: pan-x pan-y;
-        background:
-          radial-gradient(circle at center, var(--glass-bg-subtle) 1px, transparent 1px);
+        background: radial-gradient(circle at center, var(--glass-bg-subtle) 1px, transparent 1px);
         background-size: 22px 22px;
         padding: 24px;
       }
@@ -174,17 +187,25 @@ interface ViewBox {
       }
       /* margin auto plutôt qu'un centrage flex : un document plus large que la
          vue reste accessible par défilement jusqu'à son bord gauche. */
-      .zoom-wrap { position: relative; margin: 0 auto; }
+      .zoom-wrap {
+        position: relative;
+        margin: 0 auto;
+      }
       /* color-scheme: light — le document rendu est toujours clair (parité PDF).
          Sans cela, en thème sombre, l'iframe hérite de color-scheme: dark ;
          le navigateur, voyant deux schémas différents, peint un fond blanc
          opaque derrière tout le document au lieu de laisser le fond transparent. */
       .editor-iframe {
-        border: none; background: transparent; transform-origin: top left; display: block;
+        border: none;
+        background: transparent;
+        transform-origin: top left;
+        display: block;
         color-scheme: light;
       }
       @media (max-width: 640px) {
-        .canvas-scroll { padding: 8px; }
+        .canvas-scroll {
+          padding: 8px;
+        }
       }
     `,
   ],
@@ -217,6 +238,7 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   readonly ready = output<void>();
   readonly selectionChange = output<EditorSelection | null>();
   readonly textChange = output<TextChangeEvent>();
+  readonly styleChange = output<StyleChangeEvent>();
   readonly reorderRequest = output<ReorderEvent>();
   /** Échap pressé dans le document, hors édition de texte. */
   readonly escape = output<void>();
@@ -339,7 +361,10 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   fitToWidth(): void {
     this.fittingState.set(true);
     const view = this.viewBox();
-    this.applyZoom(this.fitZoom(), view ? { cx: view.left + view.width / 2, cy: view.top } : undefined);
+    this.applyZoom(
+      this.fitZoom(),
+      view ? { cx: view.left + view.width / 2, cy: view.top } : undefined,
+    );
   }
 
   /**
@@ -480,7 +505,10 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
     this.resizeObserver = new ResizeObserver(() => {
       if (this.fittingState()) {
         const box = this.viewBox();
-        this.applyZoom(this.fitZoom(), box ? { cx: box.left + box.width / 2, cy: box.top } : undefined);
+        this.applyZoom(
+          this.fitZoom(),
+          box ? { cx: box.left + box.width / 2, cy: box.top } : undefined,
+        );
       }
       this.syncViewport();
     });
@@ -611,6 +639,9 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
         break;
       case 'text-change':
         this.textChange.emit({ sectionId: msg.sectionId, path: msg.path, html: msg.html });
+        break;
+      case 'style-change':
+        this.styleChange.emit({ sectionId: msg.sectionId, path: msg.path, style: msg.style });
         break;
       case 'reorder':
         this.reorderRequest.emit({

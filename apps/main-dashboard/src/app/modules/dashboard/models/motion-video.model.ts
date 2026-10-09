@@ -91,6 +91,11 @@ export interface VideoStoryboard {
   authored?: { title: string; concept: string; bible: string; shots: number; coded: number; fallback: string[]; reviewed: number };
   /** Ce que chaque agent a décidé : `llm` = décision de l'IA retenue, `graph` = décision du code. */
   agents?: { agent: string; source: 'llm' | 'graph' }[];
+  /** Le moteur créatif : écart à la vidéo la plus proche de la marque, touche inattendue. */
+  creative?: {
+    accent?: { index: number; pattern: string; family: string };
+    novelty?: { nearest: number | null; verdict: 'too-close' | 'acceptable' | 'distinct' | 'first' };
+  };
 }
 
 export interface MusicTrack {

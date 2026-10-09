@@ -41,6 +41,17 @@
           }
         </p>
       }
+      <!-- Le moteur créatif : l'écart à la vidéo la plus proche de la marque et la touche inattendue. -->
+      @if (novelty(); as n) {
+        <p class="vd-ai">
+          <i class="pi pi-compass" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.video.detail.creative.' + n.verdict | translate: { percent: n.percent } }}
+          @if (n.family) {
+            · {{ 'dashboard.showCommunication.video.detail.creative.accent' | translate }}
+            {{ 'dashboard.showCommunication.video.detail.creative.families.' + n.family | translate }}
+          }
+        </p>
+      }
     </header>
 
     <div class="vd-layout">

@@ -2405,18 +2405,12 @@
         "a4Portrait": {
           "title": "A4 portrait",
           "description": "Un document à imprimer, à relier ou à joindre à un e-mail.",
-          "uses": [
-            "Impression et envoi par e-mail",
-            "Lecture page par page, comme un livret"
-          ]
+          "uses": ["Impression et envoi par e-mail", "Lecture page par page, comme un livret"]
         },
         "landscape": {
           "title": "Paysage 16:9",
           "description": "Une présentation qui se lit à l'écran et se projette en réunion.",
-          "uses": [
-            "Projection et partage d'écran",
-            "Lecture confortable sur ordinateur"
-          ]
+          "uses": ["Projection et partage d'écran", "Lecture confortable sur ordinateur"]
         },
         "startGeneration": "Générer ma charte",
         "changeLater": "Vous pourrez régénérer la charte dans l'autre format plus tard."
@@ -3280,6 +3274,24 @@
         "fontWeight": "Graisse",
         "align": "Alignement",
         "opacity": "Opacité",
+        "position": "Position",
+        "freePosition": "Placement libre",
+        "flowPosition": "Revenir au flux",
+        "x": "X",
+        "y": "Y",
+        "dragHint": "Faites aussi glisser la poignée bleue sur le canevas pour positionner l’élément.",
+        "size": "Dimensions et contour",
+        "width": "Largeur",
+        "height": "Hauteur",
+        "radius": "Rayon",
+        "border": "Bordure",
+        "borderColor": "Couleur de bordure",
+        "layers": "Calques",
+        "layer": "Niveau de calque",
+        "bringToFront": "Au premier plan",
+        "sendToBack": "À l’arrière-plan",
+        "bringForward": "Avancer",
+        "sendBackward": "Reculer",
         "arrange": "Disposition",
         "moveUp": "Monter",
         "moveDown": "Descendre",
@@ -4414,6 +4426,22 @@
               "artDirector": "mises en page",
               "animator": "transitions et mouvement",
               "critic": "relecture"
+            }
+          },
+          "creative": {
+            "first": "Première vidéo de la marque : les suivantes seront comparées à elle",
+            "distinct": "Réellement différente de vos vidéos précédentes (écart {{percent}} %)",
+            "acceptable": "Différente de vos vidéos précédentes (écart {{percent}} %)",
+            "too-close": "Proche d’une vidéo précédente (écart {{percent}} %)",
+            "accent": "touche inattendue :",
+            "families": {
+              "type": "typographique",
+              "data": "données",
+              "graphic": "graphique",
+              "drawn": "dessinée à la main",
+              "spatial": "spatiale",
+              "photo": "photographique",
+              "brand": "logo"
             }
           }
         },

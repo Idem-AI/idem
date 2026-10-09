@@ -326,7 +326,27 @@ export class ShowCommunication implements OnInit {
    */
   protected onVisualCreated(visual: Flyer): void {
     const existing = this.visuals().filter((item) => item.id !== visual.id);
-    this.patch({ visuals: [...existing, visual] });
+    const contentId = visual.contentId;
+
+    // La réponse de génération porte déjà le contenu propriétaire. On rattache
+    // donc le visuel et le post dans la même mise à jour locale : le détail du
+    // post ouvert peut afficher le résultat tout de suite, sans attendre que
+    // la remontée de `flyerIds` traverse les composants enfants (ni un reload).
+    const plans = contentId
+      ? this.plans().map((plan) => ({
+          ...plan,
+          items: plan.items.map((item) =>
+            item.id === contentId
+              ? {
+                  ...item,
+                  flyerIds: Array.from(new Set([...(item.flyerIds ?? []), visual.id])),
+                }
+              : item,
+          ),
+        }))
+      : this.plans();
+
+    this.patch({ visuals: [...existing, visual], plans });
   }
 
   /**

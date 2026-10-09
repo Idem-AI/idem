@@ -869,6 +869,22 @@
               "animator": "transitions and motion",
               "critic": "review"
             }
+          },
+          "creative": {
+            "first": "The brand’s first video: the next ones will be compared with it",
+            "distinct": "Truly different from your previous videos ({{percent}} % apart)",
+            "acceptable": "Different from your previous videos ({{percent}} % apart)",
+            "too-close": "Close to a previous video ({{percent}} % apart)",
+            "accent": "unexpected touch:",
+            "families": {
+              "type": "typographic",
+              "data": "data",
+              "graphic": "graphic",
+              "drawn": "hand-drawn",
+              "spatial": "spatial",
+              "photo": "photographic",
+              "brand": "logo"
+            }
           }
         },
         "texts": {

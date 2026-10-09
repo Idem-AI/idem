@@ -24,10 +24,11 @@ import { VideoSceneInstance, VideoStoryboard } from '../../../models/motionVideo
 import { agentLines } from '../../creativity/agent-io';
 import { CreativeOrchestrator } from '../../creativity/orchestrator';
 import { DIRECTION_PITCH } from './video.agents';
-import { compileSceneCode, extractCode, inspectRenderedScene, KIT_MANIFEST, lintSceneCode, visibleTexts } from './video.coder';
+import { compileSceneCode, extractCode, inspectRenderedScene, KIT_NAMES, lintSceneCode, scopedKitManifest, visibleTexts } from './video.coder';
 import { BriefFacts, fitLength, isGrounded } from './video.copy';
 import { DirectionId } from './video.direction';
 import { requiredHold } from './video.rules';
+import { inferPatternFromText, isExperimental, kitOfPatterns, PATTERN_BY_ID } from './video.patterns';
 
 // ─── Le film, tel que le directeur l'écrit ──────────────────────────────────
 
@@ -49,6 +50,10 @@ export interface AuthoredShot {
   /** Le passage au plan suivant. */
   handoff?: string;
   surface?: Surface;
+  /** Le motif nommé par le directeur dans l'univers créatif (video.patterns.ts). */
+  pattern?: string;
+  /** Chemin d'exploration : une combinaison de briques du kit que le directeur invente (« Flat3D+FlowField »). */
+  explore?: string[];
 }
 
 export interface AuthoredFilm {
@@ -87,6 +92,8 @@ export interface DirectorInput {
   brandName: string;
   language: string;
   recentConcepts?: string[];
+  /** L'univers créatif (video.planner.ts#creativeUniverse) : motifs, sous-explorés, combinaisons, ADN. */
+  universe?: string;
 }
 
 const LANG: Record<string, string> = { fr: 'French', en: 'English' };
@@ -127,6 +134,7 @@ export function buildDirectorPrompt(input: DirectorInput): { system: string; use
     'SUB: …',
     'VISUAL: <what we see and how it moves, which tools; photo #n if used>',
     'MEDIA: <n or none>',
+    ...(input.universe ? ['PATTERN: <one id from CREATIVE UNIVERSE, or "explore A+B" to combine engine tools in a new way>'] : []),
     'HANDOFF: <how it hands over to the next shot>',
     'SHOT 2 | 4s | surface: light',
     '…',
@@ -147,6 +155,7 @@ export function buildDirectorPrompt(input: DirectorInput): { system: string; use
     `MEDIA: ${input.media.length ? input.media.map((m, i) => `#${i + 1} ${m}`).join(' · ') : 'no photo — draw everything'}`,
     `DURATION: ${input.durationSec} s · FORMATS: ${input.formats.join(', ')}`,
     input.recentConcepts?.length ? `RECENT FILMS OF THIS BRAND (do something different): ${input.recentConcepts.slice(-3).join(' / ')}` : '',
+    input.universe || '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -227,6 +236,12 @@ export function parseFilm(raw: string, input: DirectorInput): AuthoredFilm | und
       slots = kind === 'cta' ? { title, action: action!, ...(contact ? { contact } : {}) } : { title, ...(sub && sub !== title ? { sub } : {}) };
     }
     const media = Number((l.media || '').match(/\d+/)?.[0]);
+    // Le motif : un identifiant de l'univers, ou une exploration (« explore Flat3D+FlowField »),
+    // dont chaque brique doit exister dans le kit ; sinon il est lu dans la consigne visuelle.
+    const said = (l.pattern || '').trim();
+    const exploreNames = /^explore\b/i.test(said) ? said.replace(/^explore\W*/i, '').split(/[+,&]|\band\b/).map((n) => n.trim()).filter((n) => KIT_NAMES.has(n)) : [];
+    const named = said.match(/[A-Za-z][A-Za-z0-9]+/g)?.find((w) => PATTERN_BY_ID.has(w));
+    const pattern = named || (exploreNames.length ? undefined : inferPatternFromText(l.visual || '')[0]);
     shots.push({
       kind,
       duration: Number(String(m[2] || '').replace(',', '.')) || 0,
@@ -235,6 +250,8 @@ export function parseFilm(raw: string, input: DirectorInput): AuthoredFilm | und
       ...(media >= 1 && media <= input.media.length ? { media } : {}),
       ...(l.handoff ? { handoff: l.handoff.slice(0, 200) } : {}),
       ...(surface && (SURFACES as readonly string[]).includes(surface) ? { surface } : {}),
+      ...(signature ? {} : pattern ? { pattern } : {}),
+      ...(!signature && exploreNames.length >= 2 ? { explore: exploreNames.slice(0, 4) } : {}),
     });
   });
   // La signature : une seule, à la fin.
@@ -277,13 +294,33 @@ export interface ShotBrief {
   hasImage: boolean;
 }
 
+/**
+ * Les briques du kit qu'un plan appelle : celles de son motif, de son exploration, et celles que
+ * sa consigne nomme. `undefined` (manifeste complet) si rien n'est reconnu.
+ */
+export function shotKit(shot: Pick<AuthoredShot, 'kind' | 'pattern' | 'explore' | 'visual'>): string[] | undefined {
+  const inferred = inferPatternFromText(shot.visual);
+  const names = [...(shot.explore || []), ...kitOfPatterns([...(shot.pattern ? [shot.pattern] : []), ...inferred])];
+  if (shot.kind === 'logo') names.push('LogoMotion');
+  return names.length ? [...new Set(names)] : undefined;
+}
+
+/** Un plan qui explore (combinaison inventée, ou motif expérimental) passe une validation renforcée. */
+export function isExploratoryShot(shot: Pick<AuthoredShot, 'pattern' | 'explore'>, direction: DirectionId): boolean {
+  if (shot.explore?.length) return true;
+  const p = shot.pattern ? PATTERN_BY_ID.get(shot.pattern) : undefined;
+  return !!p && isExperimental(p, direction);
+}
+
 export function buildShotPrompt(b: ShotBrief): { system: string; user: string } {
   const prev = b.index > 0 ? b.film.shots[b.index - 1] : undefined;
+  // Le codeur ne reçoit que les briques de son motif (le lint accepte toujours tout le kit).
   const system = [
     'You are a senior motion designer who codes. You are one of the authors of an ORIGINAL brand film: you write the React component of ONE shot, exactly as the creative director imagined it — an original composition, never a stock template.',
     'Answer with the TSX code only, in a single ```tsx block.',
-    KIT_MANIFEST,
+    scopedKitManifest(shotKit(b.shot)),
   ].join('\n');
+  const pattern = b.shot.pattern ? PATTERN_BY_ID.get(b.shot.pattern) : undefined;
   const texts = Object.entries(b.shot.slots).map(([k, v]) => `s.slots.${k} = "${v}"`);
   const user = [
     b.sheet,
@@ -292,6 +329,8 @@ export function buildShotPrompt(b: ShotBrief): { system: string; user: string } 
     b.film.bible ? `VISUAL BIBLE (every shot follows it): ${b.film.bible}` : '',
     `SHOT ${b.index + 1} of ${b.film.shots.length} · ${b.shot.duration.toFixed(1)} s${b.shot.kind === 'logo' ? ' · THE SIGNATURE: the brand logo must end clearly visible (<LogoMotion variant="draw" height={…} /> or data.logo images)' : ''}${b.shot.kind === 'cta' ? ' · THE CALL TO ACTION: the action must read as a button' : ''}.`,
     `DIRECTOR'S NOTES: ${b.shot.visual}`,
+    pattern?.recipe ? `PATTERN: ${pattern.id} — ${pattern.recipe} (a starting point: the director's notes win)` : '',
+    b.shot.explore?.length ? `EXPLORATION: combine ${b.shot.explore.join(' + ')} in a way the brand has never seen — keep it legible and true to the charter.` : '',
     prev?.handoff ? `ENTRANCE: the previous shot hands over like this — ${prev.handoff}. Start your shot accordingly.` : 'ENTRANCE: this is the opening of the film — grab attention in the first second.',
     b.shot.handoff ? `EXIT: hand over to the next shot like this — ${b.shot.handoff}. Do it in the last 0.4 s (useExitAt / useExitFactor).` : '',
     texts.length ? `TEXTS (read them from s.slots, show ALL of them, fully on screen): ${texts.join(' · ')}` : 'TEXTS: none — the shot is visual.',
@@ -376,12 +415,16 @@ export interface AuthorShotsResult {
   rejected: Record<string, string[]>;
   /** Plans revus par la critique visuelle. */
   reviewed: number;
+  /** Dernier verdict de la critique visuelle par plan (mémoire d'expérience). */
+  critic: Record<string, 'ok' | 'revise'>;
+  /** Plans qui ont exploré (combinaison inventée ou motif expérimental) : validation renforcée. */
+  explored: string[];
 }
 
 export async function authorShots(input: AuthorShotsInput): Promise<AuthorShotsResult> {
   const { storyboard, film } = input;
   const rounds = input.rounds ?? 3;
-  const result: AuthorShotsResult = { tried: 0, coded: 0, fallback: [], rounds: {}, rejected: {}, reviewed: 0 };
+  const result: AuthorShotsResult = { tried: 0, coded: 0, fallback: [], rounds: {}, rejected: {}, reviewed: 0, critic: {}, explored: [] };
   // Les rendus de contrôle passent un par un (CPU) ; les appels au modèle, eux, en parallèle.
   let lock: Promise<unknown> = Promise.resolve();
   const exclusive = <T>(job: () => Promise<T>): Promise<T> => {
@@ -416,7 +459,11 @@ export async function authorShots(input: AuthorShotsInput): Promise<AuthorShotsR
     /** Le dernier code qui a passé tous les contrôles mesurés (la critique visuelle est un conseil). */
     let sound: string | null = null;
     let used = 0;
-    for (let round = 0; round < rounds; round++) {
+    // Chemin d'exploration : un tour de plus, et la critique visuelle relit aussi le dernier tour.
+    const exploratory = isExploratoryShot(film.shots[i], input.direction);
+    if (exploratory) result.explored.push(sc.key);
+    const maxRounds = exploratory ? Math.min(4, rounds + 1) : rounds;
+    for (let round = 0; round < maxRounds; round++) {
       used = round + 1;
       input.onShot?.(i, round ? 'revise' : 'writing', { round });
       const user: string = round && tsx ? buildRevisionPrompt(tsx, issues, critique) : shotPrompt.user;
@@ -446,12 +493,15 @@ export async function authorShots(input: AuthorShotsInput): Promise<AuthorShotsR
       sound = tsx;
       issues = [];
       // Critique visuelle : conseil d'un directeur artistique sur les images réelles du plan.
-      if (input.critic && capture.frames.length && round < rounds - 1) {
+      if (input.critic && capture.frames.length && (round < maxRounds - 1 || exploratory)) {
         input.onShot?.(i, 'review', { round });
         const sheetPng = await contactSheet(capture.frames).catch(() => null);
         const verdict = sheetPng ? parseCritique(await input.critic(sheetPng, buildCritiquePrompt(brief)).catch(() => null)) : null;
-        if (verdict) result.reviewed++;
-        if (verdict?.verdict === 'revise') {
+        if (verdict) {
+          result.reviewed++;
+          result.critic[sc.key] = verdict.verdict;
+        }
+        if (verdict?.verdict === 'revise' && round < maxRounds - 1) {
           critique = verdict.fixes;
           continue;
         }

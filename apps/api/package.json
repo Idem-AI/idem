@@ -50,7 +50,8 @@
     "check:video:creative": "ts-node --transpile-only api/scripts/checkVideoCreative.ts",
     "check:video:variety": "ts-node --transpile-only api/scripts/checkVideoVariety.ts",
     "check:creativity": "ts-node --transpile-only api/scripts/checkCreativity.ts",
-    "check:video:layouts": "ts-node --transpile-only api/scripts/checkVideoLayouts.ts"
+    "check:video:layouts": "ts-node --transpile-only api/scripts/checkVideoLayouts.ts",
+    "check:video:novelty": "ts-node --transpile-only api/scripts/checkVideoNovelty.ts"
   },
   "author": "arolleaguekeng",
   "license": "MIT",

@@ -217,10 +217,11 @@ export function simulateDirector(testCase: VideoCase, system: string, user: stri
   const first = (k: string) => (Array.isArray(a[k]) ? (a[k] as string[])[0] : (a[k] as string | undefined));
   const second = (k: string) => (Array.isArray(a[k]) ? (a[k] as string[])[1] : undefined);
   const photo = /MEDIA: #1/.test(user) ? '1' : 'none';
+  const universe = /CREATIVE UNIVERSE/.test(user);
   const body: string[][] = [
-    [`TITLE: ${first('title') || testCase.brief.message.slice(0, 55)}`, first('kicker') ? `SUB: ${first('kicker')}` : '', 'VISUAL: A brand-colour block sweeps in from the left; the title rises word by word; photo #1 is framed on the right with a slow parallax.', `MEDIA: ${photo}`, 'HANDOFF: the block widens to fill the frame and becomes the next background.'],
+    [`TITLE: ${first('title') || testCase.brief.message.slice(0, 55)}`, first('kicker') ? `SUB: ${first('kicker')}` : '', 'VISUAL: A brand-colour block sweeps in from the left; the title rises word by word; photo #1 is framed on the right with a slow parallax.', `MEDIA: ${photo}`, universe ? 'PATTERN: frameOffset' : '', 'HANDOFF: the block widens to fill the frame and becomes the next background.'],
     [`TITLE: ${[first('name'), first('price')].filter(Boolean).join(' à ') || first('l1') || first('b1') || testCase.brief.message.slice(0, 55)}`, first('oldPrice') ? `SUB: au lieu de ${first('oldPrice')}` : '', 'VISUAL: The price lands like a stamp; a hand-drawn circle wraps it; the old price is struck through.', 'MEDIA: none', 'HANDOFF: a wipe in the accent colour.'],
-    [`TITLE: ${first('b1') || second('title') || testCase.brief.message.slice(0, 55)}`, first('b2') ? `SUB: ${first('b2')}` : '', 'VISUAL: Three flat 3D cubes stack in rhythm with the beat, each benefit appearing beside its cube.', 'MEDIA: none', 'HANDOFF: zoom through the last cube.'],
+    [`TITLE: ${first('b1') || second('title') || testCase.brief.message.slice(0, 55)}`, first('b2') ? `SUB: ${first('b2')}` : '', 'VISUAL: Three flat 3D cubes stack in rhythm with the beat, each benefit appearing beside its cube.', 'MEDIA: none', universe ? 'PATTERN: explore Flat3D+Kinetic' : '', 'HANDOFF: zoom through the last cube.'],
   ];
   if (first('action')) body.push([`TITLE: ${second('title') || first('title') || testCase.brief.message.slice(0, 55)}`, `ACTION: ${first('action')}`, first('contact') ? `CONTACT: ${first('contact')}` : '', 'VISUAL: A clean card with the call to action as a pulsing button.', 'MEDIA: none', 'HANDOFF: cut to the logo.']);
   const count = Math.max(min - 1, Math.min(max - 1, body.length));
@@ -249,7 +250,9 @@ export function simulateStrategist(system: string, user: string): string {
   const want = range ? Math.max(Number(range[1]), Math.min(Number(range[2]), 5)) : 4;
   const picked = [...scenes.slice(0, want - 1), 'logo'];
   const rhythms = system.match(/rhythm: one of ([a-z |]+)/)?.[1].split('|').map((r) => r.trim()) || [];
-  return [`concept: ${concepts[1] || concepts[0] || ''}`, `scenes: ${picked.join(', ')}`, 'accent: 2', rhythms[1] ? `rhythm: ${rhythms[1]}` : ''].filter(Boolean).join('\n');
+  // Cran Max : la direction créative (la deuxième des trois, pas la recommandation du code).
+  const creative = /creative: the letter of one CREATIVE DIRECTION/.test(system) ? 'creative: b' : '';
+  return [`concept: ${concepts[1] || concepts[0] || ''}`, `scenes: ${picked.join(', ')}`, 'accent: 2', rhythms[1] ? `rhythm: ${rhythms[1]}` : '', creative].filter(Boolean).join('\n');
 }
 
 export function simulateModel(testCase: VideoCase): (system: string, user: string) => Promise<string> {

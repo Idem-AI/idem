@@ -73,6 +73,11 @@ import { analyzeImage } from '../../glm-media.service';
 import { AgentCall, CreativeOrchestrator, runtimeCall } from '../../creativity/orchestrator';
 import { exportCost, normalizeScope, videoCost } from './video.pricing';
 import { SCENES } from './video.scenes';
+import { applyCreativeAccent, briefCreative, CreativeBrief, creativeIntent, creativeUniverse, experimentalIn, patternTechnique, planPatterns, projectMemory, reconcilePatterns, refreshCreative, strategyMenu, withStrategy } from './video.planner';
+import { PATTERN_BY_ID } from './video.patterns';
+import { fingerprintOf, noveltyAgainst } from './video.fingerprint';
+import { creativeLint } from './video.creativeLint';
+import { ExperienceMemory, PatternOutcome, videoExperience } from './video.experience';
 
 export class VideoInputError extends Error {}
 
@@ -234,7 +239,9 @@ export class MotionVideoService {
     private readonly coderCallFor: (userId: string, projectId: string) => AgentCall | undefined = (userId, projectId) => runtimeCall({ userId, projectId, element: 'motion_video' }),
     /** Cran Ultra : la critique visuelle des plans (modèle de vision) ; remplaçable dans les contrôles. */
     private readonly visionCritic: ((png: Buffer, prompt: string) => Promise<string>) | undefined = (png, prompt) =>
-      analyzeImage(png.toString('base64'), 'image/png', prompt, { maxOutputTokens: 400, temperature: 0.2 })
+      analyzeImage(png.toString('base64'), 'image/png', prompt, { maxOutputTokens: 400, temperature: 0.2 }),
+    /** La mémoire globale du moteur créatif (ce qui marche, tous projets) ; en mémoire dans les contrôles. */
+    private readonly experience: ExperienceMemory = videoExperience
   ) {}
 
   // ── Contexte de marque (sans appel de modèle) ────────────────────────────
@@ -305,6 +312,8 @@ export class MotionVideoService {
     ctx: CopyContext;
     media: VideoMediaAsset[];
     otherVideos: MotionVideo[];
+    /** Le moteur créatif : usage des nœuds dans le projet, exploration du cran, expérience. */
+    memory?: KitContext['memory'];
   }): KitContext {
     const { theme } = opts;
     const count = (kind: VideoMediaKind) => opts.media.filter((a) => a.kind === kind).length;
@@ -330,7 +339,13 @@ export class MotionVideoService {
       seed: opts.storyboard.seed,
       recent: opts.otherVideos.map((v) => v.storyboard?.kit).filter(Boolean) as VideoKit[],
       boosts: motionFromArtDirection(opts.branding?.artDirection).boosts,
+      ...(opts.memory ? { memory: opts.memory } : {}),
     };
+  }
+
+  /** La mémoire du routeur du kit, tirée du brief créatif. */
+  private kitMemory(creative: CreativeBrief): NonNullable<KitContext['memory']> {
+    return { usage: creative.memory.nodeUsage, exploration: creative.budget, delta: (id: string) => this.experience.nodeDelta(id) };
   }
 
   // ── Médias ──────────────────────────────────────────────────────────────
@@ -588,10 +603,29 @@ export class MotionVideoService {
       requested: isMotionDirection(brief.direction) ? brief.direction : undefined,
     });
 
+    // Le moteur créatif (video.planner.ts) : la mémoire du projet (empreintes de ses vidéos), la
+    // mémoire globale (ce qui marche), la part d'exploration du cran et trois directions créatives.
+    // Zéro token : tout est calculé ; les agents ne reçoivent ensuite que ses meilleures options.
+    const startedAt = Date.now();
+    await this.experience.refresh();
+    const memory = projectMemory(otherVideos);
+    const brief0 = briefCreative({
+      level: creativity,
+      direction,
+      facts,
+      photos: own('image') + visuals.filter((v) => v.backgroundImageUrl).length,
+      durationSec: scope.durationSec,
+      excludedLayouts: art.excludedLayouts,
+      boosts: art.boosts,
+      memory,
+      experience: this.experience,
+      seed,
+    });
+
     // Cran Ultra : le FILM D'AUTEUR — l'IA invente et crée tout (video.author.ts). Si le directeur
     // échoue deux fois, la création continue par le pipeline des menus (repli complet, au même cran).
     if (creativity === 'ultra') {
-      const authored = await this.createAuthoredVideo({ userId, projectId, input, scope, brief, theme, ctx, branding, visuals, otherVideos, art, videoId, seed, direction, orientation, facts, paidCredits, requested, emit }).catch((error: any) => {
+      const authored = await this.createAuthoredVideo({ userId, projectId, input, scope, brief, theme, ctx, branding, visuals, otherVideos, art, videoId, seed, direction, orientation, facts, paidCredits, requested, emit, creative: brief0, startedAt }).catch((error: any) => {
         logger.warn('video.authored_failed', { projectId, error: error?.message });
         return null;
       });
@@ -611,6 +645,7 @@ export class MotionVideoService {
       ctx,
       media: brief.media || [],
       otherVideos,
+      memory: this.kitMemory(brief0),
     });
     const plan = await planCreative(
       {
@@ -635,6 +670,10 @@ export class MotionVideoService {
         delegateMotion: true,
         // Ce que l'utilisateur a fourni (et les photos de ses visuels) : toujours montré.
         owned: { images: own('image') || visuals.filter((v) => v.backgroundImageUrl).length, videos: own('video'), models: own('model3d'), lotties: own('lottie') + own('rive') },
+        // Les concepts sous-explorés dans le projet passent devant (moteur créatif).
+        conceptBoosts: brief0.conceptBoosts,
+        // Cran Max : le stratège choisit aussi la direction créative parmi les trois du planificateur.
+        strategies: aiFrom('max') ? strategyMenu(brief0) : undefined,
         seed,
       },
       // Structure (concept, scènes, grand moment, rythme) : l'IA dès Medium, le graphe en dessous.
@@ -649,11 +688,12 @@ export class MotionVideoService {
     }
     const storylineTokens = plan.tokens;
     const typeDef = TYPE_DEFS[type];
+    const creative = withStrategy(brief0, plan.strategy);
     const accentEffect = pickAccentEffect(direction, seed, art.boosts);
 
     // Le langage de mouvement (effets sonores, ambiance musicale) suit la direction, sauf choix explicite.
     const style = brief.style && brief.style !== 'auto' ? resolveStyle(brief.style, undefined, brief.objective) : styleOfDirection(direction);
-    emit('plan', 'done', { type, objective: brief.objective, concept: plan.concept, rhythm: plan.rhythm, accent: accentEffect, style, direction, scenes: sceneIds, durationSec: scope.durationSec, source: plan.source });
+    emit('plan', 'done', { type, objective: brief.objective, concept: plan.concept, rhythm: plan.rhythm, accent: accentEffect, style, direction, scenes: sceneIds, durationSec: scope.durationSec, source: plan.source, creative: { strategy: creative.strategy.label, exploration: creative.strategy.exploration } });
     const wanted = mediaWanted(sceneIds);
     const needsStock = (wanted.images > own('image') || wanted.videos > own('video')) && (brief.allowStock || brief.allowGenerate);
 
@@ -694,9 +734,17 @@ export class MotionVideoService {
       recent: otherVideos.map((v) => (v.storyboard?.scenes || []).map((sc) => sc.layout).filter(Boolean) as string[]),
     };
     const sceneOf = (id: string, i: number): LayoutScene => ({ sceneId: id, slots: copy.copy[i + 1] || {} });
+    // Les motifs que le planificateur jugeait les meilleurs pour la scène i du film (repli des réconciliations).
+    let preferredPatterns = (_i: number): string[] => [];
     // Les surfaces que la stratégie de couleur de la DA emploie pour ce film (+ la surface claire).
     const strategySurfaces = [...new Set([...surfacesFor(sceneIds, art.overrides.color || DIRECTIONS[direction].color, seed), 'light'])];
     const titleOf = (slots: Record<string, string> = {}) => slots.title || slots.name || slots.quote || slots.value || slots.price || slots.l1 || '';
+
+    // Un motif par scène (intention → motif → mise en page, entrée du titre), l'accent créatif et
+    // les menus des agents : 3 à 5 motifs jugés pertinents, nouveaux et fidèles à la charte.
+    const patternPlan = planPatterns(creative, sceneIds.map((id, i) => ({ sceneId: id, slots: copy.copy[i + 1] || {} })), { concept: plan.concept, accentIndex: plan.accent, seed });
+    const menuOf = (i: number) =>
+      patternPlan.scenes[i]?.options.length >= 2 ? { patterns: patternPlan.scenes[i].options.map((id) => ({ id, pitch: PATTERN_BY_ID.get(id)!.pitch, layout: PATTERN_BY_ID.get(id)!.tools.layout })), intent: patternPlan.scenes[i].intent } : {};
 
     // 3. Médias, musique (choisie par le sound designer) et effets sonores — et, en même temps,
     //    un directeur artistique par scène pour sa mise en page.
@@ -712,6 +760,7 @@ export class MotionVideoService {
         texts: [titleOf(copy.copy[i + 1]), ...Object.entries(copy.copy[i + 1] || {}).filter(([k]) => !['title', 'name', 'quote', 'visual'].includes(k)).map(([, v]) => v)].slice(0, 4),
         accent: i === plan.accent,
         menu: layoutMenu(sceneOf(id, i), layoutCtx),
+        ...menuOf(i),
         // Cran Max : paramètres bornés ; surfaces limitées à celles que la stratégie de couleur de la DA emploie.
         ...(aiFrom('max') && id !== 'logo' ? { tune: { surfaces: strategySurfaces } } : {}),
       })),
@@ -721,12 +770,16 @@ export class MotionVideoService {
       aiFrom('max')
         ? {
             samples: (sc) => (sc.index === 0 || sc.accent ? 3 : 1),
-            score: (choice) =>
-              !choice.layout
-                ? 9
-                : -((choice.layout === 'classic' ? 0 : LAYOUT_CATALOGUE[choice.layout as Exclude<LayoutId, 'classic'>]?.directions[direction]) || 0) +
-                  (layoutCtx.recent.flat().includes(choice.layout) ? 2 : 0) +
-                  (choice.layout === 'classic' ? 1.5 : 0),
+            // Un motif se départage par le score créatif du planificateur ; une mise en page seule,
+            // par son poids pour la direction (dernières vidéos évitées, composition classique en dernier).
+            score: (choice, sc) =>
+              choice.pattern
+                ? -10 * (patternPlan.scenes[sc.index]?.scored.find((x) => x.id === choice.pattern)?.score ?? 0) + (choice.layout && layoutCtx.recent.flat().includes(choice.layout) ? 2 : 0)
+                : !choice.layout
+                  ? 9
+                  : -((choice.layout === 'classic' ? 0 : LAYOUT_CATALOGUE[choice.layout as Exclude<LayoutId, 'classic'>]?.directions[direction]) || 0) +
+                    (layoutCtx.recent.flat().includes(choice.layout) ? 2 : 0) +
+                    (choice.layout === 'classic' ? 1.5 : 0),
           }
         : undefined
     ).then((res) => {
@@ -801,6 +854,7 @@ export class MotionVideoService {
       }
     }
     sceneIds = kept.map((k) => k.id);
+    preferredPatterns = (i) => (kept[i]?.from >= 0 ? patternPlan.scenes[kept[i].from]?.scored.map((x) => x.id) || [] : []);
     // Le grand moment suit sa scène ; si elle est tombée, la première scène de contenu le reprend.
     const accentAt = kept.findIndex((k) => k.from === plan.accent);
     const accentIndex = accentAt >= 0 && sceneIds[accentAt] !== 'logo' ? accentAt : Math.min(1, Math.max(0, sceneIds.length - 2));
@@ -843,9 +897,23 @@ export class MotionVideoService {
     {
       const chosen: Record<number, string> = {};
       const emphasis: Record<number, number> = {};
+      // Mémoire de session : un motif déjà servi dans le film (autre que la composition de la
+      // direction) n'est pas repris, même si l'agent le choisit ; le planificateur reprend la main.
+      const servedPatterns: string[] = [];
       kept.forEach((k, i) => {
         const choice: ArtDirectorChoice | undefined = k.from >= 0 ? designed.choices[k.from] : undefined;
-        if (choice?.layout) chosen[i] = choice.layout;
+        const planned = k.from >= 0 ? patternPlan.scenes[k.from] : undefined;
+        const free = (id?: string) => !!id && (PATTERN_BY_ID.get(id)?.generic || !servedPatterns.includes(id));
+        // Le motif de l'agent, sinon celui du planificateur (à tous les crans : Low = créativité du moteur).
+        const agentPattern = free(choice?.pattern) ? choice!.pattern : undefined;
+        const pattern = agentPattern || (free(planned?.pattern) ? planned!.pattern : planned?.options.find(free));
+        if (pattern) {
+          storyboard.scenes[i].pattern = pattern;
+          servedPatterns.push(pattern);
+        }
+        const layout = pattern ? PATTERN_BY_ID.get(pattern)?.tools.layout : undefined;
+        if (choice?.layout && (agentPattern || !choice.pattern)) chosen[i] = choice.layout;
+        else if (layout) chosen[i] = layout;
         if (choice?.emphasis != null) emphasis[i] = choice.emphasis;
       });
       const layouts = assignLayouts(
@@ -868,12 +936,14 @@ export class MotionVideoService {
         }
         if (tuning.decor !== undefined) decorWanted.set(sc.key, tuning.decor);
       });
+      // Une mise en page remplacée par la validation (répétition, médias) emporte son motif.
+      reconcilePatterns(storyboard, preferredPatterns);
       emit('layout', 'done', { layouts: storyboard.scenes.map((sc) => sc.layout).filter((l) => l && l !== 'classic'), source: designed.run.source });
     }
 
     // 5. Le kit : le graphe de capacités choisit fond, annotation, animation du logo,
     //    icônes, effets — selon le projet, la DA, la charte et les médias.
-    const kctx = this.kitContext({ type, brief, scope, direction, storyboard, theme, branding, ctx, media: media.assets, otherVideos });
+    const kctx = this.kitContext({ type, brief, scope, direction, storyboard, theme, branding, ctx, media: media.assets, otherVideos, memory: this.kitMemory(creative) });
     let kit = resolveKit(kctx);
 
     // 6. L'agent animateur : la transition de chaque coupe (catalogue filtré), quelques entrées
@@ -893,8 +963,16 @@ export class MotionVideoService {
     });
     agentRuns.push(animator.run);
     {
-      // Les entrées du stratège (si un ancien modèle en propose encore), puis celles de l'animateur.
+      // Les entrées des motifs (dans le vocabulaire de la direction), puis celles du stratège (si un
+      // ancien modèle en propose encore), puis celles de l'animateur.
       const motions = storyboard.scenes.map((sc) => ({ ...sc.motion! }));
+      const lastHeadlines = (otherVideos[otherVideos.length - 1]?.storyboard?.scenes || []).map((sc) => sc.motion?.headline).filter(Boolean) as string[];
+      const usedTitles: string[] = [];
+      storyboard.scenes.forEach((sc, i) => {
+        const t = motions[i] ? patternTechnique(sc.pattern, direction, motions[i - 1]?.headline, usedTitles, lastHeadlines) : undefined;
+        if (t) motions[i].headline = t as any;
+        if (motions[i]?.headline) usedTitles.push(motions[i].headline);
+      });
       for (const [i, technique] of Object.entries(plan.moves)) {
         const at = kept.findIndex((k) => k.from === Number(i));
         if (at >= 0 && motions[at]) motions[at].headline = technique as any;
@@ -915,7 +993,12 @@ export class MotionVideoService {
       for (const [key, on] of decorWanted) (on ? backdrops.add(key) : backdrops.delete(key));
       kit = { ...kit, backdropScenes: [...backdrops].slice(0, 3) };
     }
+    // L'accent créatif : la touche inattendue d'une autre famille, sur UNE scène (fond, annotation
+    // ou traversée) — l'ADN de la vidéo reste celui de sa direction partout ailleurs.
+    const accent = applyCreativeAccent(storyboard, kit, patternPlan.accent ? { ...patternPlan.accent, index: kept.findIndex((k) => k.from === patternPlan.accent!.index) } : undefined, kctx, art.excludedTransitions);
+    kit = accent.kit;
     storyboard.kit = kit;
+    reconcilePatterns(storyboard, preferredPatterns);
     applyTreatmentSurfaces(storyboard);
     emit('animation', 'done', {
       transitions: storyboard.scenes.map((sc) => sc.motion?.transition).filter(Boolean),
@@ -952,6 +1035,8 @@ export class MotionVideoService {
     });
     agentRuns.push(critic.run);
     let applied = 0;
+    // Les scènes que la relecture a dû corriger (mémoire d'expérience : un motif réparé a moins réussi).
+    const touched = new Set<number>();
     for (const fix of critic.fixes) {
       const sc = storyboard.scenes[fix.index];
       const prev = storyboard.scenes[fix.index - 1];
@@ -959,18 +1044,23 @@ export class MotionVideoService {
       if (fix.field === 'layout' && layoutFits(fix.value, { sceneId: sc.sceneId, slots: sc.slots, image: sc.image, video: sc.video }, layoutCtx) && fix.value !== prev?.layout && fix.value !== next?.layout) {
         sc.layout = fix.value;
         applied++;
+        touched.add(fix.index);
       } else if (fix.field === 'cut' && sc.motion && fix.value !== prev?.motion?.transition && fix.value !== next?.motion?.transition) {
         sc.motion = { ...sc.motion, transition: fix.value as MotionTransition };
         applied++;
+        touched.add(fix.index);
       } else if (fix.field === 'title' && sc.motion && fix.value !== prev?.motion?.headline && fix.value !== next?.motion?.headline) {
         sc.motion = { ...sc.motion, headline: fix.value as any };
         applied++;
+        touched.add(fix.index);
       } else if (fix.field === 'scale') {
         sc.scale = Number(fix.value);
         applied++;
+        touched.add(fix.index);
       } else if (fix.field === 'tempo' && fix.value in TEMPO_PACE) {
         sc.pace = Math.min(1.3, Math.max(0.8, TEMPO_PACE[fix.value as keyof typeof TEMPO_PACE]));
         applied++;
+        touched.add(fix.index);
       }
     }
     if (applied) {
@@ -987,6 +1077,30 @@ export class MotionVideoService {
       if (!fits || sc.layout === storyboard.scenes[i - 1]?.layout) sc.layout = 'classic';
     });
     storyboard.qa = { repaired: qa.repaired.length, issues: qa.issues, warnings: qa.warnings };
+
+    // Le contrôle créatif : récit, composition, mouvement, coupes, motifs, outils, tempo, attention,
+    // accent — et l'empreinte, réparée si elle est trop proche d'une vidéo récente du projet. Les
+    // réparations restent dans les menus de la direction et de la DA, puis l'anti-réflexe repasse.
+    const lintScene = (sc: VideoSceneInstance): LayoutScene => ({ sceneId: sc.sceneId, slots: sc.slots, image: sc.image, video: sc.video });
+    const lint = creativeLint(storyboard, {
+      direction,
+      memory,
+      transitions: transitions.map((t) => t.id),
+      layoutsFor: (i) => layoutMenu(lintScene(storyboard.scenes[i]), layoutCtx, 6).filter((l) => layoutFits(l, lintScene(storyboard.scenes[i]), layoutCtx)),
+      cameras: topNodes('camera', kctx, 4),
+      entrances: topNodes('entrance', kctx, 4),
+      experience: this.experience,
+      repair: true,
+    });
+    if (lint.repaired.length) {
+      const ids = storyboard.scenes.map((sc) => sc.sceneId);
+      const linted = lintMotion(storyboard.scenes.map((sc) => ({ ...sc.motion! })) as any, ids, DIRECTIONS[direction], transitions.map((t) => t.id)).plan;
+      storyboard.scenes.forEach((sc, i) => (sc.motion = linted[i] as any));
+      kit = storyboard.kit!;
+      for (const m of lint.repaired.join(' ').matchAll(/scène (\d+)/g)) touched.add(Number(m[1]) - 1);
+      reconcilePatterns(storyboard, preferredPatterns);
+    }
+
     // 8. Cran Ultra : l'agent codeur écrit le composant React de chaque scène possible. Chaque
     //    composant est linté, compilé et rendu en bac à sable ; refusé, la scène garde son rendu Max.
     if (aiFrom('ultra')) {
@@ -1011,6 +1125,24 @@ export class MotionVideoService {
       emit('code', 'done', { coded: coded.coded, tried: coded.tried });
     }
     storyboard.agents = agentRuns.map((r) => ({ agent: r.agent, source: r.source, tokens: r.tokens, ms: r.ms, kept: r.kept }));
+
+    // Le rapport du moteur créatif : exploration, ADN, accent, intention, empreinte, nouveauté.
+    const experimental = storyboard.scenes.filter((sc) => sc.pattern && PATTERN_BY_ID.has(sc.pattern) && experimentalIn(PATTERN_BY_ID.get(sc.pattern)!, creative)).length + (accent.applied?.kind === 'overlay' && experimentalIn(PATTERN_BY_ID.get(accent.applied.pattern)!, creative) ? 1 : 0);
+    storyboard.creative = {
+      v: 1,
+      level: creativity,
+      exploration: { budget: creative.strategy.exploration, experimental, scenes: patternPlan.considered },
+      dna: { direction, rhythm: plan.rhythm, families: creative.strategy.families },
+      strategy: { id: creative.strategy.id, label: creative.strategy.label, source: plan.strategy ? 'llm' : 'graph' },
+      // L'accent est suivi par sa clé : une scène retirée par les règles ne laisse pas d'index faux.
+      ...(accent.applied && storyboard.scenes.some((sc) => sc.key === accent.applied!.key) ? { accent: { ...accent.applied, index: storyboard.scenes.findIndex((sc) => sc.key === accent.applied!.key) } } : {}),
+      lint: { issues: lint.issues, repaired: lint.repaired },
+    };
+    const fingerprint = fingerprintOf(storyboard);
+    const { index: _nearestIndex, ...novelty } = noveltyAgainst(fingerprint, memory.fingerprints);
+    storyboard.creative.fingerprint = fingerprint;
+    storyboard.creative.novelty = { ...novelty, target: creative.noveltyTarget, compared: memory.fingerprints.length };
+    storyboard.creative.intent = creativeIntent({ concept: plan.concept, strategy: creative.strategy, direction, rhythm: plan.rhythm, camera: kit.camera, entrance: kit.entrance, narrative: fingerprint.narrative, accent: storyboard.creative.accent });
 
     const now = new Date().toISOString();
     const hook = storyboard.scenes.find((sc) => sc.slots.title)?.slots.title || brief.message;
@@ -1043,9 +1175,24 @@ export class MotionVideoService {
       scenes: storyboard.scenes.map((sc) => ({ sceneId: sc.sceneId, duration: sc.duration, surface: sc.surface })),
       bpm: storyboard.beat?.bpm,
       kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, addons: kit.addons },
+      novelty: { verdict: novelty.verdict, nearest: novelty.nearest },
     });
     await this.communication.saveVideo(userId, projectId, video);
     if (input.contentId) await this.communication.linkVideoToContent(userId, projectId, input.contentId, videoId).catch(() => undefined);
+    // La mémoire globale : ce que chaque motif a donné (retenu, réparé), sans attendre l'écriture.
+    {
+      const outcomes: PatternOutcome[] = [];
+      storyboard.scenes.forEach((sc, i) => {
+        if (!sc.pattern || !PATTERN_BY_ID.has(sc.pattern)) return;
+        const def = PATTERN_BY_ID.get(sc.pattern)!;
+        outcomes.push({ pattern: sc.pattern, direction, transitionIn: sc.motion?.transition, experimental: experimentalIn(def, creative), kept: true, repaired: touched.has(i) });
+        // Le motif voulu par le planificateur (ou l'agent) et remplacé en route : il n'a pas tenu.
+        const planned = kept[i]?.from >= 0 ? patternPlan.scenes[kept[i].from]?.pattern : undefined;
+        if (planned && planned !== sc.pattern && PATTERN_BY_ID.has(planned)) outcomes.push({ pattern: planned, direction, experimental: experimentalIn(PATTERN_BY_ID.get(planned)!, creative), kept: false });
+      });
+      if (accent.applied?.kind === 'overlay') outcomes.push({ pattern: accent.applied.pattern, direction, experimental: experimentalIn(PATTERN_BY_ID.get(accent.applied.pattern)!, creative), kept: true });
+      void this.experience.record({ level: creativity, direction, patterns: outcomes, nodes: fingerprint.nodes, novelty: novelty.nearest, tokens: video.copyTokens || { input: 0, output: 0 }, ms: Date.now() - startedAt });
+    }
     logger.info('video.created', {
       event: 'video.created',
       projectId,
@@ -1058,7 +1205,8 @@ export class MotionVideoService {
       media: media.report,
       sfx: sfx ? Object.keys(sfx.sounds).length : 0,
       kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, camera: kit.camera, entrance: kit.entrance, addons: kit.addons },
-      creative: { concept: plan.concept, rhythm: plan.rhythm, source: plan.source },
+      creative: { concept: plan.concept, rhythm: plan.rhythm, source: plan.source, strategy: creative.strategy.label, families: creative.strategy.families, accent: accent.applied?.pattern, experimental, novelty: novelty.nearest, verdict: novelty.verdict, lint: lint.issues.length, repaired: lint.repaired.length },
+      patterns: storyboard.scenes.map((sc) => sc.pattern || '-').join(','),
       agents: agentRuns.map((r) => `${r.agent}:${r.source}:${r.kept ?? 0}`).join(' '),
       layouts: storyboard.scenes.map((sc) => sc.layout || '-').join(','),
       transitions: storyboard.scenes.map((sc) => sc.motion?.transition || '-').join(','),
@@ -1094,8 +1242,11 @@ export class MotionVideoService {
     paidCredits: number;
     requested: VideoType | null;
     emit: (stage: VideoProgressStage, state: 'running' | 'done', data?: Record<string, unknown>) => void;
+    /** Le brief du moteur créatif : mémoire du projet, ADN, accent, univers des motifs. */
+    creative: CreativeBrief;
+    startedAt: number;
   }): Promise<MotionVideo | null> {
-    const { userId, projectId, scope, brief, theme, ctx, branding, otherVideos, art, videoId, seed, direction, emit } = o;
+    const { userId, projectId, scope, brief, theme, ctx, branding, otherVideos, art, videoId, seed, direction, emit, creative } = o;
     const agentRuns: AgentRun[] = [];
     const sheet = brandSheet({ ctx, palette: theme.palette, fonts: theme.fonts, art: branding?.artDirection });
     const briefText = `${brief.message}\n${brief.details || ''}`;
@@ -1123,6 +1274,9 @@ export class MotionVideoService {
       brandName: theme.brandName,
       language: brief.language || ctx.language || 'fr',
       recentConcepts: otherVideos.map((v) => v.storyboard?.authored?.concept || v.storyboard?.concept).filter(Boolean) as string[],
+      // L'univers créatif au lieu de la documentation du moteur : motifs possibles, ce qui a servi,
+      // ce qui reste sous-exploré, des combinaisons à explorer, l'ADN et l'accent suggérés.
+      universe: creativeUniverse(creative, { photos: photos.length }).text,
     };
     const director = this.writerFor(userId, 'reasoning');
     let film: AuthoredFilm | undefined;
@@ -1196,6 +1350,7 @@ export class MotionVideoService {
       if (sc.motion) sc.motion = { ...sc.motion, transition: 'cut' as MotionTransition };
       delete sc.accent;
       delete sc.layout;
+      if (shot.pattern) sc.pattern = shot.pattern;
     });
     const last = storyboard.scenes[storyboard.scenes.length - 1];
     if (last) last.duration = Math.round((scope.durationSec - last.start) * 1000) / 1000;
@@ -1203,7 +1358,7 @@ export class MotionVideoService {
     const kctx = this.kitContext({ type, brief, scope, direction, storyboard, theme, branding, ctx, media: media.assets, otherVideos });
     // Le kit ne décore plus rien : l'IA dessine ses fonds et ses annotations. Il garde l'animation
     // du logo et les icônes (repli de la signature, briques du codeur).
-    storyboard.kit = { ...resolveKit(kctx), background: 'none', backdropScenes: [], annotate: 'none', annotateScene: undefined };
+    storyboard.kit = { ...resolveKit({ ...kctx, memory: this.kitMemory(creative) }), background: 'none', backdropScenes: [], annotate: 'none', annotateScene: undefined };
     storyboard.kit.icons = {};
 
     // 5. Chaque plan écrit par un codeur IA, rendu, contrôlé, critiqué, corrigé.
@@ -1237,6 +1392,24 @@ export class MotionVideoService {
     storyboard.authored = { title: film.title, concept: film.concept, bible: film.bible, shots: storyboard.scenes.length, coded: result.coded, fallback: result.fallback, reviewed: result.reviewed, rounds: result.rounds };
     storyboard.concept = 'authored';
     storyboard.agents = agentRuns.map((r) => ({ agent: r.agent, source: r.source, tokens: r.tokens, ms: r.ms, kept: r.kept }));
+    // Le moteur créatif en Ultra : l'IA est libre, le code mesure. L'accent est le premier plan (ni
+    // l'ouverture ni la signature) dont le motif sort de l'ADN ; rien n'est réparé, tout est signalé.
+    reconcilePatterns(storyboard);
+    const dna = creative.strategy.families;
+    const accentAt = storyboard.scenes.findIndex((sc, i) => i > 0 && i < storyboard.scenes.length - 1 && !!sc.pattern && PATTERN_BY_ID.has(sc.pattern) && !dna.includes(PATTERN_BY_ID.get(sc.pattern)!.family) && PATTERN_BY_ID.get(sc.pattern)!.family !== 'brand');
+    const authoredAccent = accentAt > 0 ? { index: accentAt, key: storyboard.scenes[accentAt].key, pattern: storyboard.scenes[accentAt].pattern!, family: PATTERN_BY_ID.get(storyboard.scenes[accentAt].pattern!)!.family, kind: 'scene' as const } : undefined;
+    storyboard.creative = {
+      v: 1,
+      level: 'ultra',
+      exploration: { budget: creative.budget, experimental: result.explored.length, scenes: film.shots.length - 1 },
+      dna: { direction, families: dna },
+      strategy: { id: creative.strategy.id, label: creative.strategy.label, source: 'graph' },
+      ...(authoredAccent ? { accent: authoredAccent } : {}),
+    };
+    const lint = creativeLint(storyboard, { direction, memory: creative.memory, transitions: [], repair: false });
+    const { index: _nearest, ...novelty } = lint.novelty;
+    storyboard.creative = { ...storyboard.creative, fingerprint: lint.fingerprint, novelty: { ...novelty, target: creative.noveltyTarget, compared: creative.memory.fingerprints.length }, lint: { issues: lint.issues, repaired: [] } };
+    storyboard.creative.intent = { ...creativeIntent({ concept: film.concept, strategy: creative.strategy, direction, narrative: lint.fingerprint.narrative, accent: authoredAccent }), concept: film.concept };
     const sfx = await sfxP;
 
     const now = new Date().toISOString();
@@ -1271,12 +1444,31 @@ export class MotionVideoService {
     });
     await this.communication.saveVideo(userId, projectId, video);
     if (o.input.contentId) await this.communication.linkVideoToContent(userId, projectId, o.input.contentId, videoId).catch(() => undefined);
+    // La mémoire globale : chaque plan, son motif (ou son exploration), ses tours, son repli, sa critique.
+    void this.experience.record({
+      level: 'ultra',
+      direction,
+      patterns: storyboard.scenes
+        .map((sc, i) => {
+          const shot = film!.shots[i];
+          const id = shot?.explore?.length ? `explore:${[...shot.explore].sort().join('+')}` : sc.pattern;
+          if (!id || sc.sceneId === 'logo') return null;
+          return { pattern: id, direction, experimental: result.explored.includes(sc.key), kept: !result.fallback.includes(sc.key), fallback: result.fallback.includes(sc.key), repaired: (result.rounds[sc.key] || 1) > 1, critic: result.critic[sc.key] } as PatternOutcome;
+        })
+        .filter((x): x is PatternOutcome => !!x),
+      nodes: lint.fingerprint.nodes,
+      novelty: novelty.nearest,
+      tokens: video.copyTokens || { input: 0, output: 0 },
+      ms: Date.now() - o.startedAt,
+    });
     logger.info('video.created', {
       event: 'video.created',
       projectId,
       videoId,
       type,
       creativity: 'ultra',
+      creative: { strategy: creative.strategy.label, explored: result.explored.length, accent: authoredAccent?.pattern, novelty: novelty.nearest, verdict: novelty.verdict, lint: lint.issues.length },
+      patterns: storyboard.scenes.map((sc) => sc.pattern || '-').join(','),
       authored: { title: film.title, concept: film.concept, shots: storyboard.authored.shots, coded: result.coded, fallback: result.fallback, reviewed: result.reviewed, rounds: result.rounds },
       agents: agentRuns.map((r) => `${r.agent}:${r.source}:${r.kept ?? 0}`).join(' '),
       music: music?.provider,
@@ -1307,7 +1499,8 @@ export class MotionVideoService {
       kit?: KitOverrides;
     }
   ): Promise<MotionVideo | null> {
-    const current = (await this.communication.listVideos(userId, projectId)).find((v) => v.id === videoId);
+    const all = await this.communication.listVideos(userId, projectId);
+    const current = all.find((v) => v.id === videoId);
     if (!current) return null;
 
     let storyboard = current.storyboard;
@@ -1429,6 +1622,15 @@ export class MotionVideoService {
       storyboard = { ...storyboard, qa: { repaired: qa.repaired.length, issues: qa.issues, warnings: qa.warnings } };
     } else if (music?.beat) {
       storyboard = { ...storyboard, beat: music.beat };
+    }
+
+    // L'empreinte suit la retouche (autre direction, autres mises en page, autre kit) : la mémoire du
+    // projet reste juste, et la nouveauté affichée est celle de la vidéo telle qu'elle est.
+    {
+      const sb: VideoStoryboard = { ...storyboard, scenes: storyboard.scenes.map((sc) => ({ ...sc })) };
+      reconcilePatterns(sb);
+      const before = all.filter((v) => v.id !== videoId && (!v.createdAt || !current.createdAt || v.createdAt <= current.createdAt));
+      storyboard = { ...sb, creative: refreshCreative(sb, projectMemory(before), normalizeCreativity(current.creativity)) };
     }
 
     return this.communication.mutateVideo(userId, projectId, videoId, (v) => ({
@@ -1603,6 +1805,11 @@ export class MotionVideoService {
     }
 
     const allFailed = results.every((r) => r.status === 'failed');
+    // L'utilisateur a exporté : le signal le plus fiable pour la mémoire globale du moteur créatif.
+    if (!allFailed && !video.exportCount) {
+      const fp = video.storyboard.creative?.fingerprint || fingerprintOf(video.storyboard);
+      void this.experience.recordExport(fp.patterns.filter((p) => PATTERN_BY_ID.has(p)), fp.nodes, video.storyboard.direction);
+    }
     await this.communication.mutateVideo(userId, projectId, videoId, (v) => ({
       ...v,
       status: allFailed ? 'failed' : 'ready',

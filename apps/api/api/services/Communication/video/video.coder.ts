@@ -52,53 +52,72 @@ export function addonsOfSceneCode(tsx: string): ('chart' | 'viz' | 'draw' | 'zdo
 
 // ─── Le manifeste du kit (ce que l'agent peut utiliser) ─────────────────────
 
-/** Tout ce que l'agent codeur peut importer, et les règles du moteur. Tenu à jour avec video-engine/src/kit-api.ts. */
-export const KIT_MANIFEST = `
-CONTRACT
+/**
+ * Le manifeste du kit, par sections : tout ce que l'agent codeur peut importer, et les règles du
+ * moteur. Tenu à jour avec video-engine/src/kit-api.ts. Le film d'auteur n'envoie à chaque codeur
+ * que le cœur et les sections des briques de SON motif (`scopedKitManifest`) ; le lint, lui,
+ * accepte toujours tout le kit.
+ */
+const MANIFEST_CORE = [
+  `CONTRACT
 - Write ONE React component in TSX: \`export default function Scene() { ... }\`.
 - Import only from "@idem/kit" (and React hooks useMemo from "react" if needed). No other import.
 - The component is a PURE FUNCTION OF TIME: everything visible is computed from \`useLocalTime()\` (seconds since the scene starts). No state, no effects, no refs, no timers, no randomness (use hash(n) for pseudo-random), no Date, no fetch, no document/window.
-- Fill the whole frame (the scene element is position:absolute; inset:0). Absolutely positioned layers are welcome.
-
-DATA
+- Fill the whole frame (the scene element is position:absolute; inset:0). Absolutely positioned layers are welcome.`,
+  `DATA
 - const s = useScene(): s.key, s.sceneId, s.slots (THE TEXTS — always read texts from s.slots, never write copy yourself), s.duration (s), s.start, s.icons (array of SVG strings or undefined), s.image (photo URL or undefined), s.motion.anchor, s.accent.
 - const { data, u, horizontal, ease, easeIn, back } = useEngine(): u = 1% of the frame's short side in px (size everything in u), horizontal = landscape frame, data.brandName, data.logo.icon / data.logo.onLight / data.logo.onDark (image URLs or undefined), data.direction.pacing.enter (entrance duration s), data.direction.pacing.groupStagger (s), data.format.
-- const lt = useLocalTime(); const p = useSceneProgress() (0→1 over the scene, for slow drifts); const beat = useBeatPulse() (1 on each music beat, decays to 0); const exitAt = useExitAt() (local time when elements must leave, or null); const out = useExitFactor() (0→1 during the exit).
-
-COLOURS & TYPE (brand charter of THIS scene — never hard-code colours)
+- const lt = useLocalTime(); const p = useSceneProgress() (0→1 over the scene, for slow drifts); const beat = useBeatPulse() (1 on each music beat, decays to 0); const exitAt = useExitAt() (local time when elements must leave, or null); const out = useExitFactor() (0→1 during the exit).`,
+  `COLOURS & TYPE (brand charter of THIS scene — never hard-code colours)
 - CSS variables: var(--bg) background, var(--ink) text, var(--muted) secondary text, var(--hl) brand highlight, var(--hl-ink) text ON --hl, var(--hl-text) highlight colour usable as text on --bg, var(--hl-soft) soft tint, var(--soft) soft panel. Also var(--c-primary), var(--c-secondary), var(--c-accent).
 - Fonts: var(--f-display) titles, var(--f-body) text. Use inline style objects (Tailwind classes are NOT available at runtime).
-- Safe zone: keep every text inside top var(--st), bottom var(--sb), sides var(--sx). The class "safe" is a ready absolutely-positioned box with those margins (display:flex; flex-direction:column).
-
-TEXT (always through these — they fit the text to the available width and never overflow)
+- Safe zone: keep every text inside top var(--st), bottom var(--sb), sides var(--sx). The class "safe" is a ready absolutely-positioned box with those margins (display:flex; flex-direction:column).`,
+  `TEXT (always through these — they fit the text to the available width and never overflow)
 - <Kinetic text={s.slots.title} technique="maskUp" at={0.2} role="headline" fit={[maxSizeU, minSizeU, maxLines]} exitAt={exitAt} sound="click" style={{...}} />
   techniques: maskUp, lineWipe, blurWords, trackIn, scaleBlur, charCascade, flipChars, scramble, typewriter, springUp, wave, stretch, zoomWords, skewIn, scatter, slideAlternate, stackPush, boxReveal, outlineFill. role "support" for secondary text.
 - <Odometer text={s.slots.value} at={0.1} dur={1.2} fit={[maxU, minU, 1]} /> rolls the digits of a number.
 - Ready blocks: <Headline text at fit />, <Support text at fit? />, <ActionButton text={s.slots.action} at />, <LabelBlock text at /> (text on a --hl label), <Composition anchor="center-left" gap={3} width="62%">…</Composition> (safe-zone block at an anchor).
-- stackLines(text, maxLines) splits a headline into poster lines.
-
-MOTION
+- stackLines(text, maxLines) splits a headline into poster lines.`,
+  `MOTION
 - useEnter(kind, at, durScale?, exitAt?) → style for non-text elements; kinds: rise, scale, pop, wipeRight, clipUp, slideLeft, fade, drop, spring, flip, unfold, skew, iris.
 - Pure helpers (import them from "@idem/kit"): progress(t, at, dur) → 0..1, mix(a, b, p), clamp(v, lo?, hi?), ease(p), easeIn(p), back(p), keyframes(t, times[], values[]), springEase(bounce)(p), hash(n) → 0..1. The direction's own curve is useEngine().ease.
 - Sound: cue(\`\${s.key}:name\`, s.start + at, kind, gain?) at the exact moment something moves; kinds: whoosh, softwhoosh, pop, click, tick, impact, shimmer, riser.
-- <Icon svg={s.icons?.[i]} style={{ width: 9 * u, height: 9 * u, color: 'var(--hl-text)' }} />. <LogoMotion variant="draw" height={20 * u} /> animates the brand logo.
-
-DATA, CHARTS, DRAWING (all driven by time — pass progress values, never animate on your own)
-- Numbers come ONLY from the texts: numbersIn(text) → number[] (« 12 000 », « 87 % » → 12000, 87), slotNumbers(s.slots), percentIn(text) → 87 | null. Never write a number yourself: a chart showing a number absent from the texts is rejected.
-- <ChartJs type="bar|line|doughnut|pie|radar|polarArea|bubble|treemap|sankey|matrix" data={{ labels, datasets: [{ data }] }} options={{…}} at={0.2} dur={1.2} grow="rise|sweep|reveal" values /> — Chart.js 4 in brand colours; colours may be written 'var(--hl)'. Wrap it in a sized box (position absolute + width/height).
-- const viz = useViz(): the visx component library + d3 (viz.shape.{Arc, Pie, AreaClosed, LinePath, Bar, BarRounded…}, viz.scale.{scaleLinear, scaleBand…}, viz.curve.{curveMonotoneX…}, viz.gradient.{LinearGradient, RadialGradient}, viz.pattern.{PatternLines…}, viz.text.Text, viz.hierarchy.{Treemap, Pack…}, viz.d3.interpolate, viz.d3.Delaunay, viz.d3.geo) — draw your own data-art in an <svg viewBox="0 0 100 100">. Null-check viz.
-- Ready data bricks: <DataArc value={87} /> (gauge), <GrowArea values={[…]} /> (area that draws itself), <AfricaMap highlightIn={s.slots.title} /> (Africa; only the countries/cities NAMED in the text light up), <VoronoiField cells={24} />.
-- Hand-made touch: <Sketch draw={{ shape: 'circle'|'ellipse'|'rectangle'|'line'|'arc'|'polygon'|'curve'|'path', … }} p={0..1} color="var(--hl)" roughness={1.2} seed={3} /> (rough.js, viewBox 100×100); <Brush points={[[x,y],…]} p={0..1} size={4} /> (brush stroke); <FlowField seed={5} /> (organic noise lines); const { noise2D, noise3D } = useNoise(seed) for organic motion.
-- Flat 3D without WebGL: <Flat3D items={[{ kind: 'box'|'cylinder'|'cone'|'hemisphere'|'ring'|'disc'|'polygon'|'sphere'|'rect'|'line', width, height, depth, diameter, color: 'var(--hl)', shade: 'var(--c-primary)', x, y, z }]} rotate={{ x: -0.4, y: lt * 0.8 }} /> (Zdog, coordinates -50..50).
-- Use these tools when they SERVE the idea (a number becomes a chart or a gauge, places become a map, a promise gets a hand-drawn circle, depth comes from flat 3D) — not as decoration everywhere.
-
-RULES (checked by code; a scene that breaks one is rejected)
+- <Icon svg={s.icons?.[i]} style={{ width: 9 * u, height: 9 * u, color: 'var(--hl-text)' }} />. <LogoMotion variant="draw" height={20 * u} /> animates the brand logo.`,
+];
+const MANIFEST_RULES = `RULES (checked by code; a scene that breaks one is rejected)
 - Every text of s.slots must be fully on screen and readable before the last 0.6 s of the scene; nothing outside the frame.
 - Professional motion design: 2–4 depth layers moving at different speeds, a clear focal point, generous negative space, one accent colour, eased motion (no linear), entrances 0.3–1.2 s, the main text settles early and HOLDS.
 - No CSS animations/transitions/@keyframes (time drives everything). No 3D transforms (perspective, rotateX/Y/Z, translateZ). Blur radius never negative: blur(\${Math.max(0, x)}px).
 - No while/do loops; for-loops only over arrays or small fixed counts (≤ 60). At most ~40 elements.
-- Must work in portrait, square and landscape: size with u and %, branch on \`horizontal\` when needed.
-`.trim();
+- Must work in portrait, square and landscape: size with u and %, branch on \`horizontal\` when needed.`;
+const DATA_HEADER = `DATA, CHARTS, DRAWING (all driven by time — pass progress values, never animate on your own)`;
+/** Sections facultatives : briques du kit → leur ligne du manifeste. */
+const MANIFEST_SECTIONS: { id: string; names: string[]; text: string }[] = [
+  { id: 'numbers', names: ['numbersIn', 'slotNumbers', 'percentIn', 'countriesIn', 'ChartJs', 'useViz', 'DataArc', 'GrowArea', 'AfricaMap'], text: `- Numbers come ONLY from the texts: numbersIn(text) → number[] (« 12 000 », « 87 % » → 12000, 87), slotNumbers(s.slots), percentIn(text) → 87 | null. Never write a number yourself: a chart showing a number absent from the texts is rejected.` },
+  { id: 'chart', names: ['ChartJs'], text: `- <ChartJs type="bar|line|doughnut|pie|radar|polarArea|bubble|treemap|sankey|matrix" data={{ labels, datasets: [{ data }] }} options={{…}} at={0.2} dur={1.2} grow="rise|sweep|reveal" values /> — Chart.js 4 in brand colours; colours may be written 'var(--hl)'. Wrap it in a sized box (position absolute + width/height).` },
+  { id: 'viz', names: ['useViz'], text: `- const viz = useViz(): the visx component library + d3 (viz.shape.{Arc, Pie, AreaClosed, LinePath, Bar, BarRounded…}, viz.scale.{scaleLinear, scaleBand…}, viz.curve.{curveMonotoneX…}, viz.gradient.{LinearGradient, RadialGradient}, viz.pattern.{PatternLines…}, viz.text.Text, viz.hierarchy.{Treemap, Pack…}, viz.d3.interpolate, viz.d3.Delaunay, viz.d3.geo) — draw your own data-art in an <svg viewBox="0 0 100 100">. Null-check viz.` },
+  { id: 'bricks', names: ['DataArc', 'GrowArea', 'AfricaMap', 'VoronoiField'], text: `- Ready data bricks: <DataArc value={87} /> (gauge), <GrowArea values={[…]} /> (area that draws itself), <AfricaMap highlightIn={s.slots.title} /> (Africa; only the countries/cities NAMED in the text light up), <VoronoiField cells={24} />.` },
+  { id: 'draw', names: ['Sketch', 'Brush', 'FlowField', 'useNoise'], text: `- Hand-made touch: <Sketch draw={{ shape: 'circle'|'ellipse'|'rectangle'|'line'|'arc'|'polygon'|'curve'|'path', … }} p={0..1} color="var(--hl)" roughness={1.2} seed={3} /> (rough.js, viewBox 100×100); <Brush points={[[x,y],…]} p={0..1} size={4} /> (brush stroke); <FlowField seed={5} /> (organic noise lines); const { noise2D, noise3D } = useNoise(seed) for organic motion.` },
+  { id: 'flat3d', names: ['Flat3D'], text: `- Flat 3D without WebGL: <Flat3D items={[{ kind: 'box'|'cylinder'|'cone'|'hemisphere'|'ring'|'disc'|'polygon'|'sphere'|'rect'|'line', width, height, depth, diameter, color: 'var(--hl)', shade: 'var(--c-primary)', x, y, z }]} rotate={{ x: -0.4, y: lt * 0.8 }} /> (Zdog, coordinates -50..50).` },
+];
+const SERVE_LINE = `- Use these tools when they SERVE the idea (a number becomes a chart or a gauge, places become a map, a promise gets a hand-drawn circle, depth comes from flat 3D) — not as decoration everywhere.`;
+
+const optionalBlock = (sections: typeof MANIFEST_SECTIONS) => [DATA_HEADER, ...sections.map((x) => x.text), SERVE_LINE].join('\n');
+
+/** Le manifeste complet (codeur de scènes, plan sans motif reconnu). */
+export const KIT_MANIFEST = [...MANIFEST_CORE, optionalBlock(MANIFEST_SECTIONS), MANIFEST_RULES].join('\n\n').trim();
+
+/**
+ * Le manifeste restreint d'un plan : le cœur (contrat, données de la scène, couleurs, texte,
+ * mouvement, règles) et seulement les sections des briques que son motif appelle. Sans liste,
+ * le manifeste complet : un plan n'est jamais privé d'un outil dont il aurait besoin.
+ */
+export function scopedKitManifest(names: string[] | undefined): string {
+  if (!names) return KIT_MANIFEST;
+  const wanted = new Set(names);
+  const sections = MANIFEST_SECTIONS.filter((x) => x.names.some((n) => wanted.has(n)));
+  return [...MANIFEST_CORE, ...(sections.length ? [optionalBlock(sections)] : []), MANIFEST_RULES].join('\n\n').trim();
+}
 
 const EXAMPLE = `
 import { useScene, useEngine, useLocalTime, useSceneProgress, useBeatPulse, useExitAt, useEnter, Kinetic, progress, mix, cue } from '@idem/kit';

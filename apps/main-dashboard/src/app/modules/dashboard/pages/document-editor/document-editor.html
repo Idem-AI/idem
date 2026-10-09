@@ -32,7 +32,11 @@
       </app-error-state>
     </div>
   } @else {
-    <div class="editor-body" [class.layers-open]="layersOpen()" [class.has-selection]="!!selection()">
+    <div
+      class="editor-body"
+      [class.layers-open]="layersOpen()"
+      [class.has-selection]="!!selection()"
+    >
       <!-- Panneau gauche : pages / calques (tiroir sur petit écran) -->
       <aside id="editor-layers" class="editor-side editor-side-left">
         <app-layers-panel
@@ -62,6 +66,7 @@
           (ready)="onCanvasReady()"
           (selectionChange)="onSelectionChange($event)"
           (textChange)="onTextChange($event)"
+          (styleChange)="onCanvasStyleChange($event)"
           (reorderRequest)="onReorderRequest($event)"
           (escape)="closeInspector()"
         />
@@ -77,13 +82,18 @@
       </main>
 
       <!-- Panneau droit : inspecteur (panneau bas sur petit écran) -->
-      <aside class="editor-side editor-side-right" [attr.aria-label]="'dashboard.documentEditor.inspector' | translate">
+      <aside
+        class="editor-side editor-side-right"
+        [attr.aria-label]="'dashboard.documentEditor.inspector' | translate"
+      >
         @if (selection(); as sel) {
           <div class="inspector-scroll">
             <header class="inspector-header">
               <span class="sheet-grip" aria-hidden="true"></span>
               <span class="inspector-tag">{{ sel.tag }}</span>
-              <span class="text-xs text-text-tertiary truncate flex-1">{{ selectedSectionName() }}</span>
+              <span class="text-xs text-text-tertiary truncate flex-1">{{
+                selectedSectionName()
+              }}</span>
               <button
                 type="button"
                 class="inspector-close"

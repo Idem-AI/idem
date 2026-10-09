@@ -443,6 +443,11 @@ export interface KitContext {
   recent?: VideoKit[];
   /** Bonus venus de la DA de la charte (éléments graphiques, à éviter) : id de nœud → poids. */
   boosts?: Record<string, number>;
+  /**
+   * Le moteur créatif (video.planner.ts) : usage des nœuds dans la mémoire du projet (0 à 1),
+   * part d'exploration du cran, et écart appris par la mémoire globale (video.experience.ts).
+   */
+  memory?: { usage: Record<string, number>; exploration: number; delta?: (id: string) => number };
 }
 
 export type { KitDecision, VideoKit };
@@ -485,6 +490,9 @@ export function unmet(node: CapNode, ctx: KitContext): string | null {
   return null;
 }
 
+/** Genres où l'exploration peut tirer un nœud que la direction ne porte pas d'ordinaire. */
+const EXPLORABLE = new Set<CapKind>(['background', 'annotate', 'camera', 'entrance', 'logo', 'treatment']);
+
 /** Score d'affinité d'un nœud possible, avec ses raisons. */
 function score(node: CapNode, ctx: KitContext, sectors: string[]): { score: number; why: string[] } {
   const s = node.suits || {};
@@ -510,6 +518,28 @@ function score(node: CapNode, ctx: KitContext, sectors: string[]): { score: numb
   if (node.cost >= 2) {
     v -= node.cost * 0.4;
     why.push(`coût ${node.cost} −${(node.cost * 0.4).toFixed(1)}`);
+  }
+  // Le moteur créatif : la nouveauté (ce que le projet a peu vu, au-delà des dernières vidéos),
+  // la qualité observée (mémoire globale) et l'exploration du cran (un nœud compatible que la
+  // direction ne porte pas d'ordinaire). La nouveauté ne remplace pas la pénalité de réutilisation
+  // récente (`choose`) : l'une évite de répéter, l'autre cherche ce qui reste à explorer.
+  const m = ctx.memory;
+  if (m) {
+    const novelty = Math.round(0.6 * (1 - Math.min(1, m.usage[node.id] || 0)) * 100) / 100;
+    if (novelty) {
+      v += novelty;
+      why.push(`nouveauté +${novelty}`);
+    }
+    const learned = m.delta?.(node.id) || 0;
+    if (learned) {
+      v += learned;
+      why.push(`expérience ${learned > 0 ? '+' : ''}${learned.toFixed(2)}`);
+    }
+    if (EXPLORABLE.has(node.kind) && !(s.directions?.[ctx.direction] || 0) && m.exploration > 0 && !node.id.endsWith(':none')) {
+      const bonus = Math.round(m.exploration * 0.8 * 100) / 100;
+      v += bonus;
+      why.push(`exploration +${bonus}`);
+    }
   }
   return { score: v, why };
 }

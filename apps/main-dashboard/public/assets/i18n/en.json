@@ -2402,18 +2402,12 @@
         "a4Portrait": {
           "title": "A4 portrait",
           "description": "A document to print, bind or attach to an email.",
-          "uses": [
-            "Printing and sending by email",
-            "Page-by-page reading, like a booklet"
-          ]
+          "uses": ["Printing and sending by email", "Page-by-page reading, like a booklet"]
         },
         "landscape": {
           "title": "Landscape 16:9",
           "description": "A presentation read on screen and projected in meetings.",
-          "uses": [
-            "Projection and screen sharing",
-            "Comfortable reading on a computer"
-          ]
+          "uses": ["Projection and screen sharing", "Comfortable reading on a computer"]
         },
         "startGeneration": "Generate my guidelines",
         "changeLater": "You can regenerate the guidelines in the other format later."
@@ -3277,6 +3271,24 @@
         "fontWeight": "Weight",
         "align": "Alignment",
         "opacity": "Opacity",
+        "position": "Position",
+        "freePosition": "Free placement",
+        "flowPosition": "Return to flow",
+        "x": "X",
+        "y": "Y",
+        "dragHint": "You can also drag the blue handle on the canvas to position the element.",
+        "size": "Size and border",
+        "width": "Width",
+        "height": "Height",
+        "radius": "Radius",
+        "border": "Border",
+        "borderColor": "Border color",
+        "layers": "Layers",
+        "layer": "Layer level",
+        "bringToFront": "Bring to front",
+        "sendToBack": "Send to back",
+        "bringForward": "Bring forward",
+        "sendBackward": "Send backward",
         "arrange": "Arrange",
         "moveUp": "Move up",
         "moveDown": "Move down",
@@ -4411,6 +4423,22 @@
               "artDirector": "layouts",
               "animator": "transitions and motion",
               "critic": "review"
+            }
+          },
+          "creative": {
+            "first": "The brand’s first video: the next ones will be compared with it",
+            "distinct": "Truly different from your previous videos ({{percent}} % apart)",
+            "acceptable": "Different from your previous videos ({{percent}} % apart)",
+            "too-close": "Close to a previous video ({{percent}} % apart)",
+            "accent": "unexpected touch:",
+            "families": {
+              "type": "typographic",
+              "data": "data",
+              "graphic": "graphic",
+              "drawn": "hand-drawn",
+              "spatial": "spatial",
+              "photo": "photographic",
+              "brand": "logo"
             }
           }
         },

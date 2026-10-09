@@ -869,6 +869,22 @@
               "animator": "transitions et mouvement",
               "critic": "relecture"
             }
+          },
+          "creative": {
+            "first": "Première vidéo de la marque : les suivantes seront comparées à elle",
+            "distinct": "Réellement différente de vos vidéos précédentes (écart {{percent}} %)",
+            "acceptable": "Différente de vos vidéos précédentes (écart {{percent}} %)",
+            "too-close": "Proche d’une vidéo précédente (écart {{percent}} %)",
+            "accent": "touche inattendue :",
+            "families": {
+              "type": "typographique",
+              "data": "données",
+              "graphic": "graphique",
+              "drawn": "dessinée à la main",
+              "spatial": "spatiale",
+              "photo": "photographique",
+              "brand": "logo"
+            }
           }
         },
         "texts": {

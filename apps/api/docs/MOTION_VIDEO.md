@@ -2,27 +2,107 @@
 
 Module Communication, écran « Mes vidéos ». Code : `api/services/Communication/video/`.
 
-## Le principe : le modèle ne code jamais
+## Qui décide : la jauge de créativité
+
+Avant la génération, l'utilisateur choisit un cran de créativité : **Low · Medium · High · Max · Ultra**
+(Medium par défaut, sélecteur posé à côté du bouton de génération). Le cran fixe la part du film
+confiée à l'IA, l'étage du modèle et le prix. Détail de l'échelle et des prix :
+[CREATIVITY.md](CREATIVITY.md).
+
+| Cran | Ce que l'IA décide | Pipeline | Exploration |
+|---|---|---|---|
+| Low | les textes | des menus | 5 % |
+| Medium | + concept, scènes, grand moment, rythme (stratège, même quand le type est imposé) ; musique (sound designer) | des menus | 15 % |
+| High | + motif (donc mise en page) de chaque scène, transitions, entrées, caméra, logo, relecture | des menus | 25 % |
+| Max | + direction créative parmi trois ; réglages bornés par scène (taille, alignement, surface, tempo, décor) | des menus | 40 % |
+| Ultra | **tout le film**, plan par plan, code compris, dans l'univers créatif | le film d'auteur | 70 % |
+
+À tous les crans, le **moteur créatif** ([VIDEO_ENGINE.md §17](VIDEO_ENGINE.md#17-le-moteur-créatif)) cherche dans
+l'espace des motifs une combinaison pertinente, fidèle à la charte et nouvelle pour la marque : un motif par scène, un
+ADN de mouvement, un accent créatif (une seule scène qui casse l'ADN exprès). Il ne coûte aucun token : ce que les
+agents reçoivent, ce sont ses 3 à 5 meilleures options. Chaque vidéo a une **empreinte créative** ; le contrôle créatif
+garantit qu'aucune n'est rendue à moins de 0,30 de la vidéo la plus proche de la marque, et le détail de la vidéo
+affiche cet écart et la touche inattendue.
+
+### Low à Max : le pipeline des menus
+
+Le code construit le film. Les agents IA choisissent dans des menus courts que le graphe de
+capacités et la direction artistique (DA) de la charte ont filtrés. Le code valide chaque choix
+et le remplace par le sien s'il est absent, faux ou inventé.
 
 | Étape | Qui | Fichier |
 |---|---|---|
-| Recette : objectif + durée + faits du brief → suite de scènes | code | `video.recipes.ts` |
-| Copie : cases numérotées, une ligne par case | **LLM** (un appel, rôle `mechanical`, sans raisonnement) | `video.copy.ts` |
+| Recette : objectif + durée + faits du brief → suite de scènes | code (Low) ; **stratège** dès Medium | `video.recipes.ts`, `video.storyline.ts` |
+| Copie : cases numérotées, une ligne par case | **rédacteur**, à tous les crans | `video.copy.ts` |
 | Garde-fous : coupe au mot, anti-invention (prix, dates, numéros), copie de repli | code | `video.copy.ts` |
-| Musique : plusieurs banques libres, tempo, extrait le plus énergique | code + ffmpeg | `video.music.ts`, `video.beats.ts` |
+| Mises en page, transitions, entrées, caméra, logo, relecture | graphe ; **agents** dès High | `video.agents.ts` |
+| Réglages par scène (taille, alignement, surface, tempo, décor) | graphe ; **agents** au cran Max, dans des bornes | `video.agents.ts` |
+| Musique : plusieurs banques libres, tempo, extrait le plus énergique | code + ffmpeg ; **sound designer** dès Medium | `video.music.ts`, `video.beats.ts` |
 | Storyboard : minutage au temps de lecture, coupes sur le temps, variantes / surfaces / transitions par graine | code | `video.storyboard.ts` |
+| Bonnes pratiques : lecture, tenues, accroche, appel à l'action, signature | code, après les agents | `video.rules.ts` |
 | Charte : palette par surface (contraste AA), polices, logo, surface claire | code | `video.theme.ts` |
 | Direction de motion (8 systèmes) + plan par scène + contrôle anti-réflexe | code | `video.direction.ts` |
 | Scènes, techniques de texte, transitions : composants React pilotés par le temps | code écrit à la main | `apps/api/video-engine/src/*.tsx` |
 | Rendu : Puppeteer image par image → ffmpeg (H.264 + AAC) | nos serveurs | `video.renderer.ts` |
 
-Budget mesuré : 300 à 700 tokens d'entrée et 70 à 420 de sortie selon la durée.
-Si le modèle est indisponible, une copie heuristique tirée du brief prend le
-relais : la vidéo sort toujours.
+L'étage du modèle monte avec le cran (`motionVideo.service.ts#tierFor`) : modèle mécanique au
+cran Low, modèle de rédaction dès Medium, modèle de raisonnement pour le stratège au cran Max.
+Chaque appel est retenté une fois sur panne passagère ou réponse vide
+(`communication.service.ts#runVideoTieredPrompt`). Si le modèle reste indisponible, une copie
+heuristique tirée du brief prend le relais et le graphe fait les choix : la vidéo sort toujours.
+
+Budget de la copie seule (cran Low) : 300 à 700 tokens d'entrée et 70 à 420 de sortie selon la
+durée. Budget de chaque agent : [VIDEO_ENGINE.md §14](VIDEO_ENGINE.md#14-léquipe-dagents-videoagentsts).
+
+### Ultra : le film d'auteur
+
+Plus aucun menu : l'IA invente le film et écrit le code de chaque plan
+(`video.author.ts`, branché par `motionVideo.service.ts#createAuthoredVideo`).
+
+| Étape | Qui | Fichier |
+|---|---|---|
+| Photos (4 au plus) : importées, visuels du projet, banque, générées | code | `motionVideo.service.ts#acquireMedia` |
+| Le film : concept, « bible » (signature de mouvement, couleurs, typographie) et chaque plan (durée, textes, ce qu'on voit, comment ça bouge, photo, passage au plan suivant, motif ou exploration), à partir de l'univers créatif | **directeur**, modèle de raisonnement, deux tentatives | `video.author.ts#buildDirectorPrompt`, `video.planner.ts#creativeUniverse` |
+| Validation : chaque plan assez long pour être lu (`video.rules.ts#requiredHold`) et 8 s au plus, somme exacte, longueurs, aucun chiffre absent du brief, contact copié du brief, signature à la fin | code | `video.author.ts#parseFilm` |
+| Musique et effets sonores, pendant l'écriture des plans | **sound designer** + code | `video.music.ts`, `video.sfx.ts` |
+| Chaque plan : un composant React écrit avec les briques du kit de son motif (manifeste restreint) | **codeur**, un par plan, trois en parallèle | `video.author.ts#authorShots`, `video.coder.ts#scopedKitManifest` |
+| Contrôle de chaque plan : lint, compilation, rendu mesuré, **critique visuelle** | code + modèle de vision | `video.coder.ts#inspectRenderedScene` |
+| Rendu | nos serveurs | `video.renderer.ts` |
+
+La boucle de qualité d'un plan fait **trois tours au plus**. Les défauts mesurés et la critique
+visuelle repartent au codeur avec son code précédent. La critique est un conseil : le dernier code
+qui a passé les contrôles mesurés est gardé. Un plan qui n'en passe aucun en trois tours reprend
+la composition éprouvée de sa scène (`statement`, `cta` ou `logo`), et la vidéo l'affiche :
+« Film d'auteur · 7 plans sur 8 créés par l'IA ». Si le directeur échoue deux fois, la vidéo
+passe par le pipeline des menus, au même cran.
+
+Un film trop dense pour sa durée perd d'abord ses plans de texte du milieu ; l'ouverture et la
+signature restent toujours, l'appel à l'action ne part qu'en dernier recours. Entre deux plans, le moteur coupe franc : chaque plan fait lui-même l'entrée et
+la sortie imaginées par le directeur.
+
+Coût d'une vidéo Ultra : un appel du directeur (deux au plus, univers créatif ≈ 260 tokens compris),
+puis par plan jusqu'à trois appels du codeur (quatre pour un plan qui explore) et deux critiques
+visuelles ; chaque appel du codeur ne porte que les briques de son motif (≈ 540 tokens de moins
+qu'avec tout le kit pour un plan typographique). Les rendus de contrôle passent un plan à la fois : la
+création est nettement plus longue qu'aux autres crans.
+
+**Limites actuelles du film d'auteur :**
+
+- le type de vidéo choisi (produit, offre flash, révélation de logo…) n'est pas transmis au
+  directeur : il invente le film à partir du brief ;
+- le directeur ne compose qu'avec des photos : clips, modèles 3D et animations Lottie importés
+  restent attachés à la vidéo mais n'y sont pas montrés ;
+- une retouche garde le minutage du directeur : un texte rallongé n'allonge pas son plan (les plans
+  codés ajustent la taille du texte au cadre).
+
+### L'aperçu
 
 L'aperçu du dashboard est le **même moteur** que le rendu, joué en temps réel
 dans une iframe isolée (`sandbox="allow-scripts"`) : ce qu'on voit est ce qui
-sera livré.
+sera livré. Pendant la création, le flux SSE montre les étapes du cran : plan,
+copie, médias, mise en page, musique, effets sonores, mouvement, relecture ; en
+Ultra : médias, direction du film, musique, puis chaque plan (écrit, revu,
+corrigé, retenu).
 
 ## Moteur React et directions de motion
 
@@ -40,18 +120,37 @@ et [VIDEO_CAPABILITIES.md](VIDEO_CAPABILITIES.md).**
 
 Huit **directions** (éditoriale, grille suisse, bloc brut, cinétique, cinéma,
 collage, précision, monochrome) fixent chacune : typographie (casse, chasse,
-graisse), grille d'ancrage, vocabulaire de 4 entrées de texte, transitions,
+graisse), grille d'ancrage, vocabulaire de 6 à 8 entrées de texte, transitions,
 rythme (durées, décalages), stratégie de couleur (retenue, engagée, trempée,
 palette, studio), décor (filets, grille, grain, bandes cinéma, papier, cadre),
 mouvement fluide ou image par image. La direction suit le type, la direction
 artistique de la marque, et évite les dernières vidéos du projet.
 
-**12 techniques de texte** : masque montant, cascade de lettres, resserrement
+**20 techniques de texte** : masque montant, cascade de lettres, resserrement
 de chasse, échelle + flou, machine à écrire, volet par mot, mots flous,
 lettres basculées, brouillage, révélation par bloc, empilement, glissements
-alternés ; compteur « odomètre » pour les chiffres. **10 transitions** : coupe,
-coupe + éclair, fondu, volet, poussée, zoom traversant, panoramique filé,
-iris (raccord graphique sur le point focal précédent), bandes, glissé dessus.
+alternés, ressort montant, vague, étirement, bascule 3D, zoom par mot,
+inclinaison, dispersion, contour qui se remplit ; compteur « odomètre » pour
+les chiffres. **17 transitions** : coupe, coupe éclair, glitch, fondu, zoom
+flou, traversée, filé, cube 3D, poussée, glissé, iris (raccord graphique sur le
+point focal précédent), volet, bandes, disque de marque, lames obliques,
+panneaux, vague.
+
+**18 mises en page** pour les scènes de texte : la composition de la direction
+et 17 archétypes (pile de mots, mot géant défilant, chiffre géant, bandeau
+diagonal, cercle de la marque, deux blocs, cartes superposées, grille de cartes,
+liste cochée, grande citation, prix en étoile, bandeaux défilants, mot sous le
+projecteur, cadre décalé, et trois mises en page de données : anneau Chart.js
+qui se remplit jusqu'au pourcentage, ancien et nouveau prix en barres Chart.js,
+jauge visx). Détail : [VIDEO_ENGINE.md §15](VIDEO_ENGINE.md#15-mises-en-page-et-transitions).
+
+**Graphiques et dessin** : le moteur embarque Chart.js (et ses extensions
+treemap, sankey, matrice, étiquettes, repères), visx et d3 (jauges, aires,
+mosaïques, carte de l'Afrique dont les pays nommés dans le texte s'allument),
+rough.js et perfect-freehand (croquis, pinceau), simplex-noise (champs de flux)
+et Zdog (3D plate). Chaque bibliothèque est un addon chargé seulement si la
+vidéo s'en sert. Un graphique ne montre que des chiffres écrits dans les textes
+de sa scène : c'est contrôlé au rendu. Détail : [VIDEO_ENGINE.md §3 et §5](VIDEO_ENGINE.md#3-bibliothèques-installées).
 
 ### Règles appliquées en code (sources)
 
@@ -95,6 +194,10 @@ MESURE leur écart (empreinte d'images) : deux directions trop proches font éch
 Recettes : `video.types.ts`. Les médias importés passent par `POST …/videos/media`
 (photo 12 Mo, clip 80 Mo réencodé en WebM VP9 720p 15 s, GLB 20 Mo, Lottie JSON 3 Mo).
 
+Au cran Ultra, le type ne guide pas encore le film : le directeur invente à
+partir du brief et ne compose qu'avec des photos ; la vidéo garde le type
+demandé (`mix` sinon). Voir « Limites actuelles du film d'auteur ».
+
 ## Effets sonores
 
 Les moments sonores sont posés par le moteur d'animation, à l'image près :
@@ -122,9 +225,10 @@ commercial).
   pas de GPU requis, mais une scène 3D est plus lente (~90 ms par image en 720p).
 - Lottie (addon lottie-web light, sans expressions) seulement si la vidéo en
   contient une ; `.lottie` est décompressé côté serveur. Rive (`.riv`) importable.
-- GSAP, anime.js, flubber : addons chargés seulement si le kit les exige
-  (animation du logo, fond) ; techniques et transitions restent écrites en
-  fonctions du temps dans le moteur.
+- GSAP, anime.js, flubber, Chart.js, visx, outils de dessin, Zdog : addons
+  chargés seulement si le kit, une mise en page ou un plan écrit par l'IA les
+  exige (`addonsOfSceneCode` lit les imports du plan) ; techniques et
+  transitions restent écrites en fonctions du temps dans le moteur.
 - Les clips sont positionnés image par image (`currentTime` + `seeked`). Les
   onglets de rendu ont l'émulation de focus activée : sinon Chromium suspend le
   décodage vidéo des onglets « en arrière-plan ».
@@ -138,10 +242,13 @@ Le périmètre choisi module ce prix (`video.pricing.ts`) :
 
 - durée : 6 s ×0,5 · 15 s ×1 · 30 s ×1,75 · 60 s ×3 ;
 - chaque format en plus : +35 % ;
-- qualité : légère (720p) ×0,8 · HD ×1 · très fluide (1080p 60 i/s) ×1,3.
+- qualité : légère (720p) ×0,8 · HD ×1 · très fluide (1080p 60 i/s) ×1,3 ;
+- cran de créativité : Low et Medium ×1 · High ×1,25 · Max ×1,5 · Ultra ×2
+  (`withCreativity`, `communication.routes.ts`). Le cran est inscrit au relevé.
 
 Le premier export MP4 est inclus. Ensuite : 10 % du périmètre, plus la
-différence si le périmètre grandit. Un export en échec restitue ses crédits.
+différence si le périmètre grandit ; un export à un périmètre plus large
+applique le cran choisi à la création. Un export en échec restitue ses crédits.
 Les retouches (textes, musique, style) sont gratuites.
 
 ## Musique libre de droits
@@ -170,20 +277,37 @@ Les recherches sont gardées 24 h ; les pistes téléchargées sont en cache dis
   l'utilisateur passent par la garde réseau (pas de requête vers le réseau interne).
 - Un rendu interrompu (redémarrage) apparaît en échec et peut être relancé
   gratuitement (le compteur d'exports n'avance qu'en cas de succès).
+- Au cran Ultra, chaque plan écrit par l'IA est rendu pour contrôle **pendant la
+  création**, sur la page réelle, avec le garde réseau strict. Ces rendus de
+  contrôle passent un à la fois ; seuls les appels au modèle sont parallèles.
 
 ## Contrôle
 
 ```bash
-npm run check:video            # tout, avec 4 rendus MP4 (~2 min)
+npm run check:video            # tout, aux cinq crans, avec 4 rendus MP4 (~2 min)
 npm run check:video -- --fast  # sans rendu
 npm run check:video -- --all   # rend tous les cas
 npm run check:video -- --online  # + Openverse et ccMixter réels
+npm run check:video:creative   # agents et direction créative, réponses de modèles faibles
+npm run check:video:engine     # moteur, kit, bibliothèques, 17 mises en page (-- --online : vrai fichier Rive)
+npm run check:video:layouts    # chaque mise en page, textes au plus long, 4 formats
+npm run check:video:variety    # 12 vidéos d'une même marque, écarts mesurés
+npm run check:video:novelty    # moteur créatif : motifs, empreinte, exploration, 10 vidéos par cran, mémoire
 npm run check:video:directions # même brief, 8 directions, diversité mesurée (~6 min)
 npm run check:video:types      # 8 exemples, un par type, vraies musiques, vrais effets, Pexels (~15 min)
 npm run check:video:types -- --veo  # + un clip généré par Gemini Veo (payant)
 ```
 
+`check:video` §9 bis rend **la même vidéo aux cinq crans** et vérifie que l'IA
+décide davantage à chaque cran : textes (Low), structure (Medium), mises en
+page, transitions et relecture (High), réglages (Max), puis directeur et tous
+les plans écrits par l'IA, critique visuelle comprise (Ultra). Les plans Ultra
+y sont réellement lintés, compilés, rendus et contrôlés.
+
 Aucun crédit de modèle n'est nécessaire : les réponses sont simulées
 (`api/scripts/fixtures/motion-video/cases.ts` : propre, désordre, JSON, prix
-inventé, vide, fournisseur en panne). Photos et musiques de test sont fabriquées
-sur place. Sorties (MP4, affiches, planches-contact) : `tmp/motion-video-check/`.
+inventé, vide, fournisseur en panne ; stratège et directeur du film). Les
+codeurs de plans et la critique visuelle (qui demande une correction, puis
+valide) sont simulés dans `checkMotionVideo.ts`.
+Photos et musiques de test sont fabriquées sur place. Sorties (MP4, affiches,
+planches-contact) : `tmp/motion-video-check/`.

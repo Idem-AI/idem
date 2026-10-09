@@ -208,6 +208,8 @@ export interface ConceptContext {
   recent?: string[];
   /** Médias fournis par l'utilisateur (ou déjà dans ses visuels) : ils DOIVENT apparaître. */
   owned?: MediaCounts;
+  /** Bonus de nouveauté du planificateur créatif : les concepts sous-explorés dans le projet passent devant. */
+  boosts?: Record<string, number>;
 }
 
 /** Les scènes qui montrent les médias de l'utilisateur (une par sorte de média fournie). */
@@ -257,7 +259,7 @@ export function rankConcepts(ctx: ConceptContext): ScoredConcept[] {
       // Au-delà des trois exclus, les concepts un peu plus anciens restent pénalisés (mémoire décroissante).
       const olderAt = (ctx.recent || []).slice(-6, -3).lastIndexOf(c.id);
       const older = olderAt >= 0 ? 0.6 + olderAt * 0.3 : 0;
-      const score = 1 + (s.objectives?.[ctx.objective] || 0) * 1.5 + (ctx.type ? s.types?.[ctx.type] || 0 : 0) + (s.directions?.[ctx.direction] || 0) + (ctx.artStyleId ? s.arts?.[ctx.artStyleId.toLowerCase()] || 0 : 0) + (usesOwned ? 2 : 0) - Math.max(0, older);
+      const score = 1 + (s.objectives?.[ctx.objective] || 0) * 1.5 + (ctx.type ? s.types?.[ctx.type] || 0 : 0) + (s.directions?.[ctx.direction] || 0) + (ctx.artStyleId ? s.arts?.[ctx.artStyleId.toLowerCase()] || 0 : 0) + (usesOwned ? 2 : 0) - Math.max(0, older) + (ctx.boosts?.[c.id] || 0);
       return { id: c.id, score };
     })
     .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));

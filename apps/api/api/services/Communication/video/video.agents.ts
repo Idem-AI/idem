@@ -96,6 +96,14 @@ export interface ArtDirectorScene {
   accent?: boolean;
   menu: LayoutId[];
   /**
+   * Le menu du moteur créatif (video.planner.ts) : 3 à 5 MOTIFS déjà jugés pertinents, nouveaux et
+   * fidèles à la charte. Présent, il remplace le menu des mises en page : l'agent choisit une façon
+   * de servir l'intention de la scène, le code la résout en mise en page et en entrée de titre.
+   */
+  patterns?: { id: string; pitch: string; layout?: string }[];
+  /** L'intention de la scène (ce qu'elle doit faire ressentir). */
+  intent?: string;
+  /**
    * Cran Max : l'agent règle aussi des paramètres BORNÉS de la scène. `surfaces` est le menu
    * des surfaces admises (celles que la stratégie de couleur de la DA emploie déjà).
    */
@@ -116,6 +124,8 @@ export interface SceneTuning {
 
 export interface ArtDirectorChoice {
   layout?: LayoutId;
+  /** Motif choisi dans le menu du moteur créatif. */
+  pattern?: string;
   /** Index du mot mis en valeur dans le titre. */
   emphasis?: number;
   tuning?: SceneTuning;
@@ -128,7 +138,7 @@ export function buildArtDirectorPrompt(sheet: string, direction: DirectionId, sc
   const system = [
     'You are the art director of a professional motion-design video. You lay out ONE scene, true to the brand charter and its art direction.',
     'Output ONLY these lines:',
-    'layout: the letter of one option from LAYOUTS',
+    scene.patterns?.length ? 'pattern: the letter of one option from PATTERNS' : 'layout: the letter of one option from LAYOUTS',
     'word: the single most important word of the headline, copied exactly',
     ...(scene.tune
       ? [
@@ -139,16 +149,18 @@ export function buildArtDirectorPrompt(sheet: string, direction: DirectionId, sc
           'decor: yes | no (graphic background behind this scene)',
         ]
       : []),
-    'Prefer a bold, graphic layout over the classic one unless the brand asks for restraint.',
+    scene.patterns?.length ? 'Pick the option that best serves the INTENT, true to the brand; the first one is recommended.' : 'Prefer a bold, graphic layout over the classic one unless the brand asks for restraint.',
   ].join('\n');
   const user = [
     sheet,
     `MOTION DIRECTION: ${DIRECTION_PITCH[direction]}`,
     `SCENE ${scene.index + 1} of ${scene.count}: ${scene.sceneId}${scene.duration ? `, ${scene.duration.toFixed(1)} s` : ''}${scene.accent ? ' — the big moment of the video' : ''}`,
     `TEXT: ${scene.texts.filter(Boolean).map((t) => `"${t}"`).join(' / ')}`,
+    scene.intent ? `INTENT: ${scene.intent}` : '',
     previous ? `PREVIOUS SCENE LAYOUT: ${previous} (do not repeat it)` : '',
-    'LAYOUTS:',
-    ...menuLines(scene.menu, (id) => (id === 'classic' ? 'the motion direction’s own composition' : LAYOUT_CATALOGUE[id as Exclude<LayoutId, 'classic'>].summary)),
+    ...(scene.patterns?.length
+      ? ['PATTERNS:', ...menuLines(scene.patterns.map((p) => p.id), (id) => scene.patterns!.find((p) => p.id === id)!.pitch)]
+      : ['LAYOUTS:', ...menuLines(scene.menu, (id) => (id === 'classic' ? 'the motion direction’s own composition' : LAYOUT_CATALOGUE[id as Exclude<LayoutId, 'classic'>].summary))]),
   ]
     .filter(Boolean)
     .join('\n');
@@ -159,8 +171,16 @@ export function parseArtDirector(raw: string, scene: ArtDirectorScene): ArtDirec
   const lines = agentLines(raw);
   const out: ArtDirectorChoice = {};
   // Un modèle qui ne répond qu'une lettre : elle vaut pour la mise en page.
-  const layoutValue = lines.layout || lines.mise || lines.option || (/^\W*[a-p]\W*$/i.test(raw.trim()) ? raw.trim() : undefined);
-  out.layout = pickOption(layoutValue, scene.menu);
+  const layoutValue = lines.pattern || lines.motif || lines.layout || lines.mise || lines.option || (/^\W*[a-p]\W*$/i.test(raw.trim()) ? raw.trim() : undefined);
+  if (scene.patterns?.length) {
+    // Un motif du menu (par lettre ou par identifiant) : le code le résout en mise en page.
+    const id = pickOption(layoutValue, scene.patterns.map((p) => p.id));
+    const picked = scene.patterns.find((p) => p.id === id);
+    if (picked) {
+      out.pattern = picked.id;
+      if (picked.layout) out.layout = picked.layout as LayoutId;
+    }
+  } else out.layout = pickOption(layoutValue, scene.menu);
   const word = (lines.word || lines.mot || '').toLowerCase().replace(/[^\p{L}\p{N}%€$'-]/gu, '');
   if (word) {
     const words = (scene.texts[0] || '').split(/\s+/).map((w) => w.toLowerCase().replace(/[^\p{L}\p{N}%€$'-]/gu, ''));
@@ -204,7 +224,7 @@ export async function runArtDirectors(
   const choices: Record<number, ArtDirectorChoice> = {};
   const run: AgentRun = { agent: 'artDirector', source: 'graph', tokens: { input: 0, output: 0 }, ms: 0, kept: 0 };
   const started = Date.now();
-  const queue = scenes.filter((s) => s.menu.length >= 2);
+  const queue = scenes.filter((s) => (s.patterns?.length || s.menu.length) >= 2);
   let next = 0;
   const worker = async () => {
     while (next < queue.length) {
@@ -217,10 +237,10 @@ export async function runArtDirectors(
         run.tokens.input += res.tokens.input;
         run.tokens.output += res.tokens.output;
         const c = parseArtDirector(res.raw, scene);
-        if (c.layout || c.emphasis != null || c.tuning) parsed.push(c);
+        if (c.layout || c.pattern || c.emphasis != null || c.tuning) parsed.push(c);
       }
       const choice = parsed.length > 1 && bestOf ? parsed.map((c) => ({ c, s: bestOf.score(c, scene) })).sort((a, b) => a.s - b.s)[0].c : parsed[0] || {};
-      if (choice.layout || choice.emphasis != null || choice.tuning) {
+      if (choice.layout || choice.pattern || choice.emphasis != null || choice.tuning) {
         choices[scene.index] = choice;
         run.kept = (run.kept || 0) + 1;
       }

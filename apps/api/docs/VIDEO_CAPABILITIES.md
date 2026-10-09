@@ -8,8 +8,10 @@ Le graphe dit ce que la vidéo **peut** utiliser et **quand**. Le routeur (`reso
 précédentes) et rend un kit validé, les addons à charger et le vocabulaire court laissé au modèle.
 
 Score d'un nœud possible = 1 + 1,5 × affinité de direction + type + objectif + DA + secteurs − 0,4 × coût (si coût ≥ 2)
-− 1,5 s'il a servi dans les deux dernières vidéos du projet. Tirage déterministe (graine de la vidéo) parmi les nœuds à moins
-de 0,75 du meilleur.
+− 1,5 s'il a servi dans les deux dernières vidéos du projet ; avec le moteur créatif : + 0,6 × nouveauté (part des vidéos du
+projet où il n'a pas servi) + écart appris par la mémoire globale (±0,4, vidéos exportées) + exploration du cran (0,8 × part
+d'exploration, pour un nœud compatible que la direction ne porte pas d'ordinaire). Tirage déterministe (graine de la vidéo)
+parmi les nœuds à moins de 0,75 du meilleur.
 
 ## Arêtes « exige »
 
@@ -368,6 +370,114 @@ graph LR
 | `layout:ticker` | two scrolling news-ticker bands frame the headline — scènes : hook, cta, statement. | kinetic 3, brutal 3, drenched 2, collage 2, swiss 1.5 |
 | `layout:spotlightWord` | the sentence small, then its key word huge under a spotlight — scènes : hook, statement. | cinematic 3, drenched 2.5, editorial 2, precision 2, kinetic 1.5, swiss 1 |
 | `layout:frameOverlap` | headline on a brand-color block, an offset outline frame behind it — scènes : hook, statement, cta, product. | editorial 2.5, swiss 2, precision 2, collage 2, brutal 1.5, drenched 1.5, kinetic 1 |
+
+## La couche des motifs (moteur créatif)
+
+Source : `video.patterns.ts` (motifs), `video.planner.ts` (planificateur), `video.fingerprint.ts` (empreinte),
+`video.experience.ts` (mémoire globale). Le graphe dit ce qui est **possible** ; les motifs disent ce qui est
+**intéressant** : intention → capacité → motif → outil → primitive. Un même motif sert à tous les crans : en Low → Max il
+se résout en choix du moteur (mise en page, entrée du titre, fond, annotation, coupe) ; en Ultra il donne au codeur les
+seules briques de son plan (manifeste restreint).
+
+Score créatif d'un motif = 0,35 × pertinence + 0,25 × qualité + 0,2 × nouveauté + 0,1 × fidélité à la marque + 0,1 × faisabilité
++ bonus d'exploration − répétitions dans le film. Part d'exploration par cran : low 5 % · medium 15 % · high 25 % · max 40 % · ultra 70 %.
+Écart à la vidéo la plus proche du projet : sous 0,3 la vidéo est « trop proche » et le contrôle créatif
+la répare (jusqu'au seuil, pas au-delà : la créativité n'est pas la distance maximale) ; au-delà de 0,55 elle est
+« réellement différente ». Repère indicatif par cran, affiché dans le rapport : low 0,35 · medium 0,4 · high 0,45 · max 0,5 · ultra 0,55.
+
+Poids de l'empreinte : narrative 0,12 · concept 0,07 · patterns 0,13 · layouts 0,08 · motion 0,08 · transitions 0,08 · composition 0,07 · direction 0,08 · tools 0,07 · camera 0,03 · entrance 0,02 · tempo 0,04 · density 0,03 · contrast 0,03 · kit 0,04 · surfaces 0,03.
+
+### Intentions → capacités → motifs
+
+| Intention | Ce qu'elle doit faire ressentir | Capacités | Motifs |
+|---|---|---|---|
+| `grab` | capter l’attention dès la première seconde | typographie d’affiche, typographie animée (20 techniques), bandeaux défilants, aplats de la marque, croquis à la main (rough.js), coup de pinceau (perfect-freehand), 3D plate (Zdog), profondeur, caméra, plans superposés, bruit organique, lignes de flux, mosaïque de Voronoï, grille, bento | `posterStack` `marqueeEcho` `tickerFrame` `kineticBurst` `typeCascade` `diagonalCross` `handCircle` `brushUnderline` `sketchBackdrop` `flatObjects` `flowField` `mosaicField` `waveGrid` `depthPush` `shapeField` `halftoneBloom` `nameMarquee` `flowReveal` `brushReveal` |
+| `question` | poser la question que le public se pose | projecteur, halo, typographie animée (20 techniques), croquis à la main (rough.js) | `wordSpotlight` `questionReveal` `handCircle` |
+| `problem` | nommer un problème du quotidien | typographie animée (20 techniques) | `questionReveal` |
+| `promise` | affirmer une promesse, une conviction | typographie d’affiche, typographie animée (20 techniques), bandeaux défilants, projecteur, halo, aplats de la marque, profondeur, caméra, plans superposés, cercle, anneau, étoile, croquis à la main (rough.js), coup de pinceau (perfect-freehand), 3D plate (Zdog), bruit organique, lignes de flux, mosaïque de Voronoï, grille, bento, compteur à rouleaux, photo mise en scène | `posterStack` `marqueeEcho` `wordSpotlight` `kineticBurst` `typeCascade` `colorSplit` `frameOffset` `circleStage` `handCircle` `brushUnderline` `penUnderline` `markerSweep` `sketchBackdrop` `flatObjects` `flowField` `mosaicField` `dotGridReveal` `haloDrift` `halftoneBloom` `illustratedMoment` `spatialClimb` `flowReveal` `brushReveal` `orbitProduct` |
+| `growth` | faire ressentir une croissance, un chiffre qui monte | typographie animée (20 techniques), compteur à rouleaux, typographie d’affiche, graphiques Chart.js, cercle, anneau, étoile, jauge visx, grille, bento, profondeur, caméra, plans superposés, 3D plate (Zdog), carte de l’Afrique, croquis à la main (rough.js), aire qui se dessine | `counterAcceleration` `ringSweep` `gaugeFill` `metricStage` `waveGrid` `depthPush` `rulerTicks` `chartExplosion` `spatialClimb` `mapLightUp` `sketchProof` `areaGrowth` |
+| `proof` | prouver : un chiffre, un fait | typographie animée (20 techniques), typographie d’affiche, compteur à rouleaux, graphiques Chart.js, cercle, anneau, étoile, jauge visx, croquis à la main (rough.js), pictogrammes, grille, bento, carte de l’Afrique | `quoteGiant` `counterAcceleration` `ringSweep` `gaugeFill` `metricStage` `checkTrail` `dotGridReveal` `rulerTicks` `chartExplosion` `mapLightUp` `sketchProof` |
+| `comparison` | comparer : avant / après, ancien / nouveau prix | typographie animée (20 techniques), graphiques Chart.js, aplats de la marque, compteur à rouleaux | `priceDrop` `colorSplit` `chartExplosion` |
+| `list` | énumérer des avantages | typographie animée (20 techniques), aplats de la marque, grille, bento, pictogrammes, croquis à la main (rough.js), profondeur, caméra, plans superposés | `colorSplit` `bentoFocus` `checkTrail` `sketchBackdrop` `cardStack` |
+| `urgency` | créer l’urgence d’une offre | bandeaux défilants, typographie animée (20 techniques), compteur à rouleaux, typographie d’affiche, graphiques Chart.js, aplats de la marque, cercle, anneau, étoile, croquis à la main (rough.js) | `tickerFrame` `kineticBurst` `counterAcceleration` `priceDrop` `diagonalCross` `priceBurst` `markerSweep` `shapeField` `sketchProof` |
+| `reveal` | révéler un produit, une image | projecteur, halo, typographie animée (20 techniques), aplats de la marque, profondeur, caméra, plans superposés, cercle, anneau, étoile, 3D plate (Zdog), bruit organique, lignes de flux, photo mise en scène, croquis à la main (rough.js), mosaïque de Voronoï | `wordSpotlight` `frameOffset` `circleStage` `priceBurst` `flatObjects` `flowField` `depthPush` `haloDrift` `photoSplit` `photoWindow` `photoBlinds` `photoMagazine` `photoKnockout` `photoInline` `photoDuotone` `photoBroadcast` `photoCinema` `photoGallery` `productTurn` `illustratedMoment` `flowReveal` `photoMosaic` `orbitProduct` |
+| `place` | situer : un lieu, une date, un pays | typographie animée (20 techniques), aplats de la marque, grille, bento, pictogrammes, profondeur, caméra, plans superposés, carte de l’Afrique | `colorSplit` `bentoFocus` `cardStack` `mapLightUp` |
+| `testimony` | faire parler un client | typographie animée (20 techniques), typographie d’affiche | `quoteGiant` |
+| `action` | pousser à l’action | typographie d’affiche, typographie animée (20 techniques), bandeaux défilants, aplats de la marque, cercle, anneau, étoile, croquis à la main (rough.js), coup de pinceau (perfect-freehand) | `posterStack` `tickerFrame` `colorSplit` `diagonalCross` `circleStage` `handCircle` `brushUnderline` `penUnderline` `markerSweep` `nameMarquee` `brushReveal` |
+| `signature` | finir sur la marque | logo animé | `logoDraw` `logoTrace` `logoMorph` `logoAssemble` `logoWipe` `logoSplit` `logoExtrude` `logoClassic` |
+
+### Les 67 motifs
+
+| Motif | Nom | Famille | Rôle | Statut | Scènes | Outils (menus) | Briques du kit (Ultra) |
+|---|---|---|---|---|---|---|---|
+| `posterStack` | Affiche typographique | type | scène | éprouvé | hook, statement, cta | `layout:wordStack`, entrées `stackPush` `slideAlternate` `maskUp` | `Kinetic` `stackLines` `useEnter` `useBeatPulse` |
+| `marqueeEcho` | Mot géant en écho | type | scène | éprouvé | hook, statement, cta | `layout:marqueeBack`, entrées `trackIn` `scaleBlur` `maskUp` | `Kinetic` `useSceneProgress` `mix` |
+| `wordSpotlight` | Mot sous le projecteur | type | scène | éprouvé | hook, statement | `layout:spotlightWord`, entrées `blurWords` `scaleBlur` `trackIn` | `Kinetic` `useSceneProgress` `progress` |
+| `tickerFrame` | Bandeaux d’actualité | type | scène | éprouvé | hook, cta, statement | `layout:ticker`, entrées `slideAlternate` `skewIn` `maskUp` | `Kinetic` `useSceneProgress` `mix` |
+| `questionReveal` | La question qui s’écrit | type | scène | éprouvé | hook, statement | `layout:classic`, entrées `typewriter` `charCascade` `blurWords` | `Kinetic` `useEnter` |
+| `directionClassic` | Composition de la direction | type | scène | éprouvé | hook, statement, stat, benefits, offer, quote, cta, event, product | `layout:classic` | `Headline` `Support` `Composition` `useEnter` |
+| `kineticBurst` | Mots qui jaillissent | type | scène | éprouvé | kinetic, wordswap | entrées `zoomWords` `scatter` `springUp` | `Kinetic` `useBeatPulse` |
+| `typeCascade` | Cascade de lettres | type | scène | éprouvé | kinetic, wordswap | entrées `charCascade` `wave` `flipChars` | `Kinetic` |
+| `quoteGiant` | Grande citation | type | scène | éprouvé | quote | `layout:quoteBig`, entrées `blurWords` `lineWipe` `maskUp` | `Kinetic` `useEnter` |
+| `counterAcceleration` | Le compteur qui accélère | data | scène | éprouvé | stat, offer | `layout:bigNumber`, entrées `scaleBlur` `maskUp` `trackIn` | `Odometer` `springEase` `progress` `useBeatPulse` |
+| `ringSweep` | L’anneau qui se remplit | data | scène | éprouvé | stat | `layout:chartRing` | `ChartJs` `percentIn` `Odometer` |
+| `gaugeFill` | La jauge | data | scène | éprouvé | stat | `layout:dataArc` | `DataArc` `percentIn` `Odometer` |
+| `priceDrop` | Le prix qui baisse | data | scène | éprouvé | offer | `layout:barCompare` | `ChartJs` `numbersIn` |
+| `metricStage` | Le chiffre en scène | data | scène | éprouvé | stat | `layout:circleStage`, entrées `maskUp` `trackIn` | `Odometer` `useSceneProgress` `useEnter` |
+| `colorSplit` | Deux blocs de couleur | graphic | scène | éprouvé | statement, benefits, stat, cta, event | `layout:splitBlock`, entrées `maskUp` `slideAlternate` `lineWipe` | `Kinetic` `useEnter` `progress` |
+| `diagonalCross` | Bandeau diagonal | graphic | scène | éprouvé | hook, statement, cta, offer | `layout:diagonalBand`, entrées `skewIn` `slideAlternate` `stackPush` | `Kinetic` `useEnter` `mix` |
+| `frameOffset` | Bloc et cadre décalés | graphic | scène | éprouvé | hook, statement, cta, product | `layout:frameOverlap`, entrées `maskUp` `lineWipe` `trackIn` | `Kinetic` `useEnter` `useSceneProgress` |
+| `bentoFocus` | Grille bento | graphic | scène | éprouvé | benefits, event | `layout:gridCards` | `Icon` `useEnter` `progress` |
+| `circleStage` | Le cercle de la marque | graphic | scène | éprouvé | hook, statement, cta, product | `layout:circleStage`, entrées `maskUp` `trackIn` `blurWords` | `Kinetic` `useSceneProgress` `useEnter` |
+| `priceBurst` | Prix en étoile | graphic | scène | éprouvé | offer, product | `layout:priceBurst` | `Odometer` `useSceneProgress` `useEnter` |
+| `checkTrail` | Liste cochée | drawn | scène | éprouvé | benefits | `layout:checklist` | `Sketch` `Icon` `progress` |
+| `handCircle` | Cercle au crayon | drawn | surcouche (accent) | éprouvé | hook, statement, cta | `layout:classic`, `annotate:sketch-circle` | `Sketch` `Kinetic` `progress` |
+| `brushUnderline` | Coup de pinceau | drawn | surcouche (accent) | éprouvé | hook, statement, cta | `layout:classic`, `annotate:brush` | `Brush` `Kinetic` `progress` |
+| `penUnderline` | Souligné au feutre | drawn | surcouche (accent) | éprouvé | hook, statement, cta | `layout:classic`, `annotate:underline` | `Sketch` `Kinetic` |
+| `markerSweep` | Surligneur | drawn | surcouche (accent) | éprouvé | hook, statement, cta | `layout:classic`, `annotate:marker` | `Kinetic` `progress` |
+| `sketchBackdrop` | Formes au crayon | drawn | surcouche (accent) | éprouvé | hook, statement, stat, kinetic, wordswap, cta, quote, benefits, offer | `bg:sketch-shapes` | `Sketch` `progress` |
+| `cardStack` | Cartes superposées | spatial | scène | éprouvé | benefits, event | `layout:layeredCards` | `Icon` `useEnter` `useSceneProgress` |
+| `flatObjects` | Objets 3D plats | spatial | surcouche (accent) | éprouvé | hook, statement, stat, kinetic, wordswap, cta, quote, benefits, offer | `bg:flat3d` | `Flat3D` `useLocalTime` |
+| `flowField` | Lignes de flux | spatial | surcouche (accent) | éprouvé | hook, statement, stat, kinetic, wordswap, cta, quote, benefits, offer | `bg:flow-field` | `FlowField` `useNoise` |
+| `mosaicField` | Mosaïque | spatial | surcouche (accent) | éprouvé | hook, statement, stat, kinetic, wordswap, cta, quote, benefits, offer | `bg:voronoi` | `VoronoiField` |
+| `waveGrid` | Vague en grille | spatial | surcouche (accent) | éprouvé | hook, statement, stat, kinetic, wordswap, cta, quote, benefits, offer | `bg:stagger-grid` | `useLocalTime` `progress` |
+| `depthPush` | Traversée | spatial | surcouche (accent) | éprouvé | hook, statement, stat, benefits, offer, quote, cta, event, product | coupe `zoomThrough` `zoomBlur` `cube` | `useCamera` `useEnter` |
+| `dotGridReveal` | Trame de points | graphic | surcouche (accent) | éprouvé | hook, statement, stat, kinetic, wordswap, cta, quote, benefits, offer | `bg:dot-grid` | `useLocalTime` |
+| `shapeField` | Formes de la marque | graphic | surcouche (accent) | éprouvé | hook, statement, stat, kinetic, wordswap, cta, quote, benefits, offer | `bg:shape-field` | `useEnter` `useSceneProgress` |
+| `haloDrift` | Halo | graphic | surcouche (accent) | éprouvé | hook, statement, stat, kinetic, wordswap, cta, quote, benefits, offer | `bg:spotlight` | `useSceneProgress` |
+| `halftoneBloom` | Demi-teinte | graphic | surcouche (accent) | éprouvé | hook, statement, stat, kinetic, wordswap, cta, quote, benefits, offer | `bg:halftone` | `useLocalTime` |
+| `rulerTicks` | Graduations | graphic | surcouche (accent) | éprouvé | hook, statement, stat, kinetic, wordswap, cta, quote, benefits, offer | `bg:ticks` | `useLocalTime` |
+| `nameMarquee` | Bandeau du nom | type | surcouche (accent) | éprouvé | hook, statement, stat, kinetic, wordswap, cta, quote, benefits, offer | `bg:marquee` | `useSceneProgress` |
+| `photoSplit` | Écran partagé | photo | lu sur le kit | éprouvé | footage, product | `treatment:split` | `useEnter` `useSceneProgress` `Kinetic` |
+| `photoWindow` | Fenêtre | photo | lu sur le kit | éprouvé | footage, product | `treatment:window` | `useEnter` `useSceneProgress` `Kinetic` |
+| `photoBlinds` | Lames | photo | lu sur le kit | éprouvé | footage, product | `treatment:blinds` | `useEnter` `useSceneProgress` `Kinetic` |
+| `photoMagazine` | Page de magazine | photo | lu sur le kit | éprouvé | footage, product | `treatment:magazine` | `useEnter` `useSceneProgress` `Kinetic` |
+| `photoKnockout` | Image dans les lettres | photo | lu sur le kit | éprouvé | footage, product | `treatment:knockout` | `useEnter` `useSceneProgress` `Kinetic` |
+| `photoInline` | Image dans la phrase | photo | lu sur le kit | éprouvé | footage, product | `treatment:inline` | `useEnter` `useSceneProgress` `Kinetic` |
+| `photoDuotone` | Bichromie | photo | lu sur le kit | éprouvé | footage, product | `treatment:duotone` | `useEnter` `useSceneProgress` `Kinetic` |
+| `photoBroadcast` | Barre de titre | photo | lu sur le kit | éprouvé | footage, product | `treatment:broadcast` | `useEnter` `useSceneProgress` `Kinetic` |
+| `photoCinema` | Cinéma | photo | lu sur le kit | éprouvé | footage, product | `treatment:cinema` | `useEnter` `useSceneProgress` `Kinetic` |
+| `photoGallery` | Galerie | photo | lu sur le kit | éprouvé | gallery | — (écrit en code) | `useEnter` `useBeatPulse` |
+| `productTurn` | Vitrine 3D | spatial | lu sur le kit | éprouvé | showcase3d | — (écrit en code) | — |
+| `illustratedMoment` | Animation illustrée | drawn | lu sur le kit | éprouvé | lottie | — (écrit en code) | — |
+| `logoDraw` | Logo tracé | brand | lu sur le kit | éprouvé | logo | `logo:draw` | `LogoMotion` `Kinetic` `useEnter` |
+| `logoTrace` | Logo à la plume | brand | lu sur le kit | éprouvé | logo | `logo:trace` | `LogoMotion` `Kinetic` `useEnter` |
+| `logoMorph` | Point → logo | brand | lu sur le kit | éprouvé | logo | `logo:morph` | `LogoMotion` `Kinetic` `useEnter` |
+| `logoAssemble` | Logo assemblé | brand | lu sur le kit | éprouvé | logo | `logo:assemble` | `LogoMotion` `Kinetic` `useEnter` |
+| `logoWipe` | Logo balayé | brand | lu sur le kit | éprouvé | logo | `logo:wipe` | `LogoMotion` `Kinetic` `useEnter` |
+| `logoSplit` | Symbole puis nom | brand | lu sur le kit | éprouvé | logo | `logo:split` | `LogoMotion` `Kinetic` `useEnter` |
+| `logoExtrude` | Logo extrudé | brand | lu sur le kit | éprouvé | logo | `logo:extrude` | `LogoMotion` `Kinetic` `useEnter` |
+| `logoClassic` | Signature de la direction | brand | lu sur le kit | éprouvé | logo | `logo:classic` | `LogoMotion` `Kinetic` `useEnter` |
+| `chartExplosion` | Graphique qui explose | data | Ultra (code) | expérimental | statement, stat | — (écrit en code) | `ChartJs` `numbersIn` `slotNumbers` `Odometer` `cue` |
+| `spatialClimb` | L’ascension | spatial | Ultra (code) | expérimental | statement, stat | — (écrit en code) | `Flat3D` `Odometer` `springEase` `useSceneProgress` |
+| `mapLightUp` | La carte qui s’allume | data | Ultra (code) | expérimental | statement, event, cta | — (écrit en code) | `AfricaMap` `countriesIn` `Kinetic` |
+| `flowReveal` | Le texte né du flux | spatial | Ultra (code) | expérimental | hook, statement | — (écrit en code) | `FlowField` `useNoise` `Kinetic` |
+| `brushReveal` | Révélé au pinceau | drawn | Ultra (code) | expérimental | hook, statement, cta | — (écrit en code) | `Brush` `Kinetic` `progress` |
+| `sketchProof` | La preuve entourée | drawn | Ultra (code) | expérimental | stat, offer, statement | — (écrit en code) | `Sketch` `Odometer` `progress` |
+| `areaGrowth` | La courbe qui monte | data | Ultra (code) | expérimental | statement, stat | — (écrit en code) | `GrowArea` `numbersIn` `Odometer` |
+| `photoMosaic` | Photo en mosaïque | photo | Ultra (code) | expérimental | statement, product | — (écrit en code) | `VoronoiField` `useEnter` |
+| `orbitProduct` | Le produit en orbite | spatial | Ultra (code) | expérimental | statement, product | — (écrit en code) | `Flat3D` `useEnter` `useSceneProgress` |
+
 
 ## Bibliothèques écartées
 

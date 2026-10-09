@@ -85,6 +85,13 @@ export interface CreativeInput {
    * le stratège ne fait alors que l'histoire (objectif, concept, scènes, grand moment, rythme).
    */
   delegateMotion?: boolean;
+  /** Bonus de nouveauté des concepts (planificateur créatif : sous-explorés dans le projet). */
+  conceptBoosts?: Record<string, number>;
+  /**
+   * Cran Max : les trois directions créatives du planificateur (« a) signature: … ») ; le stratège
+   * en choisit une. Absent : le planificateur choisit seul.
+   */
+  strategies?: string[];
   seed: number;
 }
 
@@ -101,6 +108,8 @@ export interface CreativePlan {
   logo?: string;
   /** Rythme (video.rhythm.ts). */
   rhythm: string;
+  /** Direction créative choisie par le stratège (cran Max), lettre du menu du planificateur. */
+  strategy?: string;
   source: 'llm' | 'graph';
   tokens: { input: number; output: number };
 }
@@ -131,6 +140,7 @@ export function buildCreativePrompt(input: CreativeInput, concepts: ConceptId[],
     input.delegateMotion ? '' : 'moves: up to 3 pairs "scene number=technique" from TECHNIQUES, e.g. 1=scramble',
     !input.delegateMotion && input.logoMenu.length ? `logo: one of ${input.logoMenu.join(' | ')}` : '',
     input.rhythmMenu?.length ? `rhythm: one of ${input.rhythmMenu.join(' | ')} (steady=even, crescendo=builds up, staccato=sharp cuts, breathe=long holds, drop=slow then fast)` : '',
+    input.strategies?.length ? `creative: the letter of one CREATIVE DIRECTION (the whole film keeps it; one scene breaks it on purpose)` : '',
     'Serve the request and the brand art direction. Combine techniques when it helps. Never the same scene twice in a row.',
   ]
     .filter(Boolean)
@@ -142,6 +152,7 @@ export function buildCreativePrompt(input: CreativeInput, concepts: ConceptId[],
     `BRAND: ${input.ctx.brandName}${input.ctx.businessType ? ` (${input.ctx.businessType})` : ''}`,
     input.art?.summary ? `ART DIRECTION: ${input.art.summary}` : '',
     `DURATION: ${input.durationSec} s · MEDIA: ${m.images} photo(s), ${m.videos} clip(s), ${m.models} 3D model(s), ${m.lotties} animation(s)`,
+    ...(input.strategies?.length ? ['CREATIVE DIRECTIONS:', ...input.strategies] : []),
     'CONCEPTS:',
     ...concepts.map((id) => `${id}: ${CONCEPTS[id].pitch}`),
     'SCENES:',
@@ -155,6 +166,7 @@ export function buildCreativePrompt(input: CreativeInput, concepts: ConceptId[],
 
 export interface ParsedCreative {
   rhythm?: string;
+  creative?: string;
   objective?: string;
   concept?: string;
   scenes?: string[];
@@ -179,7 +191,7 @@ export function parseCreative(raw: string): ParsedCreative {
     }
   }
   for (const line of text.split(/\r?\n/)) {
-    const m = line.match(/^\W*(objective|concept|scenes|accent|moves|logo|rhythm)\W*[:=]\s*(.+)$/i);
+    const m = line.match(/^\W*(objective|concept|scenes|accent|moves|logo|rhythm|creative)\W*[:=]\s*(.+)$/i);
     if (!m) continue;
     const key = m[1].toLowerCase();
     const value = m[2].trim().replace(/^["'[]+|["'\].]+$/g, '');
@@ -225,6 +237,7 @@ export async function planCreative(input: CreativeInput, writer?: CopyWriter): P
     seed: input.seed,
     recent: input.recentConcepts,
     owned: input.owned,
+    boosts: input.conceptBoosts,
   } as const;
 
   // Le choix du graphe : toujours calculé, c'est le repli de chaque ligne.
@@ -294,6 +307,10 @@ export async function planCreative(input: CreativeInput, writer?: CopyWriter): P
   }
   const logo = parsed.logo && logoMenu.includes(parsed.logo) ? parsed.logo : undefined;
   const rhythm = parsed.rhythm && (input.rhythmMenu || []).includes(parsed.rhythm) ? parsed.rhythm : graphPlan.rhythm;
+  // La direction créative : par lettre (« b », « B) contraste ») ou par son nom (« contraste »).
+  const directions = (input.strategies || []).map((l) => l.match(/^([a-c])\)\s*([a-z]+)/i)).filter(Boolean).map((m) => ({ letter: m![1].toLowerCase(), label: m![2].toLowerCase() }));
+  const said = parsed.creative || '';
+  const strategy = directions.find((o) => said === o.letter || (said.startsWith(o.letter) && said.slice(1) === o.label))?.letter || directions.find((o) => said.includes(o.label))?.letter;
 
   const answered = !!(parsed.concept || parsed.scenes || parsed.accent != null);
   return {
@@ -305,6 +322,7 @@ export async function planCreative(input: CreativeInput, writer?: CopyWriter): P
     moves,
     logo,
     rhythm,
+    ...(strategy ? { strategy } : {}),
     source: answered ? 'llm' : 'graph',
     tokens: { input: estimateTokens(prompt.system + prompt.user), output: estimateTokens(raw) },
   };

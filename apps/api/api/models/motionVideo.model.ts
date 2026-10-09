@@ -183,6 +183,8 @@ export interface VideoSceneInstance {
   duration: number;
   /** Mise en page (archétype) choisie par l'agent directeur artistique (video.layouts.ts). */
   layout?: string;
+  /** Motif de la scène (video.patterns.ts) : la façon de servir son intention, résolue en choix du moteur. */
+  pattern?: string;
   /** Index, dans le titre, du mot mis en valeur par le directeur artistique. */
   emphasis?: number;
   /** Cran Max : taille des titres réglée par le directeur artistique (0,85 à 1,25). */
@@ -263,6 +265,53 @@ export interface VideoStoryboard {
   authored?: { title: string; concept: string; bible: string; shots: number; coded: number; fallback: string[]; reviewed: number; rounds: Record<string, number> };
   /** Ce que chaque agent a décidé (cf. video.agents.ts) : source, tokens, décisions retenues. */
   agents?: { agent: string; source: 'llm' | 'graph'; tokens: { input: number; output: number }; ms?: number; kept?: number }[];
+  /** Le moteur créatif (cf. video.planner.ts) : exploration, ADN, accent, empreinte, nouveauté. */
+  creative?: VideoCreativeReport;
+}
+
+/** L'empreinte créative d'une vidéo (cf. video.fingerprint.ts) : ce qu'un spectateur perçoit. */
+export interface VideoCreativeFingerprint {
+  v: 1;
+  direction?: string;
+  concept?: string;
+  rhythm?: string;
+  narrative: string[];
+  patterns: string[];
+  families: string[];
+  layouts: string[];
+  motion: string[];
+  transitions: string[];
+  composition: string[];
+  camera?: string;
+  entrance?: string;
+  kit: string[];
+  surfaces: string[];
+  tools: string[];
+  tempo: 'low' | 'medium' | 'high';
+  density: 'low' | 'medium' | 'high';
+  contrast: 'low' | 'medium' | 'high';
+  accent?: string;
+  nodes: string[];
+}
+
+/** Ce que le moteur créatif a décidé pour une vidéo, et en quoi elle est nouvelle. */
+export interface VideoCreativeReport {
+  v: 1;
+  level: string;
+  /** Part d'exploration du cran, et ce qui a été réellement exploré (scènes expérimentales / scènes). */
+  exploration: { budget: number; experimental: number; scenes: number };
+  /** L'ADN de mouvement : le style global que la vidéo garde partout. */
+  dna: { direction?: string; rhythm?: string; families: string[] };
+  /** La direction créative retenue parmi trois (au cran Max, choisie par l'IA). */
+  strategy?: { id: string; label: string; source: 'llm' | 'graph' };
+  /** L'accent créatif : la touche inattendue, sur une scène (20 à 30 % du film au plus). */
+  accent?: { index: number; key?: string; pattern: string; family: string; kind: 'scene' | 'overlay' };
+  intent?: { concept?: string; narrativeShape: string; visualStrategy: string; motionStrategy: string; surprise?: string };
+  fingerprint?: VideoCreativeFingerprint;
+  /** Écart à la vidéo la plus proche du projet (0 = même film, 1 = rien en commun). */
+  novelty?: { nearest: number | null; mean: number | null; verdict: 'too-close' | 'acceptable' | 'distinct' | 'first'; target: number; compared: number };
+  /** Contrôle créatif (video.creativeLint.ts) : écarts restants et réparations faites. */
+  lint?: { issues: string[]; repaired: string[] };
 }
 
 /** La DA de la charte traduite en réglages du moteur. */

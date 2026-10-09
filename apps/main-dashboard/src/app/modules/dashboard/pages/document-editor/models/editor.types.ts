@@ -45,6 +45,17 @@ export interface ElementStyle {
   fontWeight?: string;
   textAlign?: string;
   opacity?: string;
+  /** Placement libre sur la page, comme sur un canevas de design. */
+  position?: string;
+  left?: string;
+  top?: string;
+  width?: string;
+  height?: string;
+  /** Ordre visuel : une valeur plus grande passe devant les autres calques. */
+  zIndex?: string;
+  borderRadius?: string;
+  borderWidth?: string;
+  borderColor?: string;
 }
 
 /** Un jeu de données Chart.js simplifié pour l'édition. */
@@ -155,7 +166,21 @@ export type IframeMessage =
   /** Bouton d'action du document (`data-idem-action`), ex. « Régénérer » d'une page manquante. */
   | { source: typeof IFRAME_TO_HOST; type: 'action'; action: string; name: string }
   | { source: typeof IFRAME_TO_HOST; type: 'deselect' }
-  | { source: typeof IFRAME_TO_HOST; type: 'text-change'; sectionId: string; path: string; html: string }
+  | {
+      source: typeof IFRAME_TO_HOST;
+      type: 'text-change';
+      sectionId: string;
+      path: string;
+      html: string;
+    }
+  /** Une poignée a déplacé un élément dans le canevas ; le DOM est déjà à jour. */
+  | {
+      source: typeof IFRAME_TO_HOST;
+      type: 'style-change';
+      sectionId: string;
+      path: string;
+      style: ElementStyle;
+    }
   | {
       source: typeof IFRAME_TO_HOST;
       type: 'reorder';
@@ -167,12 +192,43 @@ export type IframeMessage =
 
 /** Messages émis par l'hôte Angular vers le runtime de l'iframe. */
 export type HostMessage =
-  | { source: typeof HOST_TO_IFRAME; type: 'apply-style'; sectionId: string; path: string; style: ElementStyle }
-  | { source: typeof HOST_TO_IFRAME; type: 'apply-chart'; sectionId: string; path: string; config: ChartConfigLite }
-  | { source: typeof HOST_TO_IFRAME; type: 'apply-attr'; sectionId: string; path: string; name: string; value: string | null }
-  | { source: typeof HOST_TO_IFRAME; type: 'move-node'; sectionId: string; path: string; toIndex: number }
+  | {
+      source: typeof HOST_TO_IFRAME;
+      type: 'apply-style';
+      sectionId: string;
+      path: string;
+      style: ElementStyle;
+    }
+  | {
+      source: typeof HOST_TO_IFRAME;
+      type: 'apply-chart';
+      sectionId: string;
+      path: string;
+      config: ChartConfigLite;
+    }
+  | {
+      source: typeof HOST_TO_IFRAME;
+      type: 'apply-attr';
+      sectionId: string;
+      path: string;
+      name: string;
+      value: string | null;
+    }
+  | {
+      source: typeof HOST_TO_IFRAME;
+      type: 'move-node';
+      sectionId: string;
+      path: string;
+      toIndex: number;
+    }
   | { source: typeof HOST_TO_IFRAME; type: 'remove-node'; sectionId: string; path: string }
-  | { source: typeof HOST_TO_IFRAME; type: 'select-path'; sectionId: string; path: string; reveal?: boolean }
+  | {
+      source: typeof HOST_TO_IFRAME;
+      type: 'select-path';
+      sectionId: string;
+      path: string;
+      reveal?: boolean;
+    }
   | { source: typeof HOST_TO_IFRAME; type: 'clear-selection' }
   | { source: typeof HOST_TO_IFRAME; type: 'set-theme'; dark: boolean };
 
@@ -242,7 +298,11 @@ export interface DocumentTypeAdapter {
    */
   load(projectId: string, documentId?: string | null): Observable<LoadedDocument>;
   /** Persiste l'ensemble des sections éditées. */
-  save(projectId: string, sections: EditableSection[], documentId?: string | null): Observable<unknown>;
+  save(
+    projectId: string,
+    sections: EditableSection[],
+    documentId?: string | null,
+  ): Observable<unknown>;
   /** Édition IA d'une section : renvoie le nouveau HTML. */
   aiEdit(
     projectId: string,

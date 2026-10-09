@@ -77,11 +77,13 @@ S'y ajoute la **fiche de marque** (`brandSheet`) : couleurs, polices, DA, à fai
 
 | Cran | Ce que l'IA décide | Étage du modèle |
 |---|---|---|
-| Low | les textes (rédacteur). Concept, scènes, mises en page, transitions et musique viennent du graphe. | flashx |
+| Low | les textes (rédacteur). Concept, scènes, motifs (donc mises en page), transitions et musique viennent du graphe et du moteur créatif : créativité algorithmique, 5 % d'exploration. | flashx |
 | Medium | + le stratège (concept, scènes, grand moment, rythme), **même quand le type de vidéo est imposé** (choix explicite, calendrier : il choisit DANS ce type), et le sound designer (piste, intensité des effets). | rédaction |
-| High | + un directeur artistique par scène (17 mises en page, dont l'anneau Chart.js, la comparaison de prix et la jauge visx), l'animateur (transitions coupe par coupe parmi 17, entrées, caméra, logo) et le critique. | rédaction |
-| Max | + des paramètres bornés par scène : taille des titres de 0,85 à 1,25, alignement, surface parmi celles de la stratégie de couleur de la DA, tempo, décor. Accroche et grand moment sont tirés trois fois et départagés par le code ; le critique corrige aussi taille et tempo. | stratège au raisonnement |
+| High | + un directeur artistique par scène (il choisit le **motif** parmi 3 à 5 classés par le moteur créatif, résolu en mise en page parmi 17 et en entrée de titre), l'animateur (transitions coupe par coupe parmi 17, entrées, caméra, logo) et le critique. 25 % d'exploration. | rédaction |
+| Max | + la **direction créative** parmi trois (signature, contraste, exploration : ADN et famille de l'accent), choisie par le stratège ; des paramètres bornés par scène : taille des titres de 0,85 à 1,25, alignement, surface parmi celles de la stratégie de couleur de la DA, tempo, décor. Accroche et grand moment sont tirés trois fois et départagés par le score créatif ; le critique corrige aussi taille et tempo. 40 % d'exploration. | stratège au raisonnement |
 | Ultra | **le film d'auteur** : l'IA invente et crée tout le film (ci-dessous). | raisonnement |
+
+**Un seul moteur créatif pour les cinq crans** ([VIDEO_ENGINE.md §17](VIDEO_ENGINE.md#17-le-moteur-créatif)). Medium, High, Max et Ultra ne sont pas quatre architectures : ce sont quatre niveaux de délégation sur la même recherche dans l'espace des motifs (intention → capacité → motif → outil → primitive). Le planificateur, sans aucun token, choisit un motif par scène au score créatif (pertinence, qualité apprise, nouveauté pour la marque, fidélité, faisabilité), garde un ADN de mouvement et pose un accent sur une scène. Le cran fixe la part d'exploration (Low 5 % → Ultra 70 %) et qui décide : le planificateur en Low et Medium ; l'agent parmi ses 3 à 5 meilleurs motifs dès High ; la direction créative parmi trois au cran Max ; le directeur, dans l'univers créatif, au cran Ultra. Chaque vidéo a son empreinte : aucune n'est rendue à moins de 0,30 de la vidéo la plus proche de la marque (le contrôle créatif la répare).
 
 Les appels vidéo sont retentés une fois sur panne passagère ou réponse vide (`communication.service.ts#runVideoTieredPrompt`) : un agent en repli ramenait la vidéo aux choix du code, et les crans finissaient par se ressembler. Le résultat dit ce que l'IA a décidé : le détail d'une vidéo affiche « décidé par l'IA : textes, structure, mises en page… », ou, en Ultra, « Film d'auteur · 7 plans sur 7 créés par l'IA ».
 
@@ -89,14 +91,14 @@ Les appels vidéo sont retentés une fois sur panne passagère ou réponse vide 
 
 Plus aucun menu. Les médias, la musique et les effets viennent des étapes existantes du service.
 
-1. **Le directeur** (étage raisonnement) invente le film : un concept, une « bible » (signature de mouvement, usage des couleurs, typographie) et chaque plan. Pour chaque plan, il écrit la durée, les textes, ce qu'on voit et comment ça bouge, les outils, le média et le passage au plan suivant. Il connaît les outils du moteur : typographie ajustée, graphiques Chart.js, data-viz visx, carte de l'Afrique, croquis, pinceau, bruit, 3D plate, logo animé, photos. Le code ne fait que **valider** :
+1. **Le directeur** (étage raisonnement) invente le film : un concept, une « bible » (signature de mouvement, usage des couleurs, typographie) et chaque plan. Pour chaque plan, il écrit la durée, les textes, ce qu'on voit et comment ça bouge, les outils, le média, le passage au plan suivant et son **motif** (`PATTERN:`), ou une exploration (`PATTERN: explore A+B`). Il connaît les outils du moteur, et reçoit l'**univers créatif** (≈ 260 tokens) : motifs par famille, ceux que la marque vient d'utiliser, les sous-explorés, des combinaisons compatibles, l'ADN, l'accent et le budget d'exploration (70 %). Le code ne fait que **valider** :
    - durées au temps de lecture du moteur (`video.rules.ts#requiredHold`) et somme exacte ;
    - longueurs ;
    - aucun chiffre absent du brief (`isGrounded`), contact copié du brief ;
    - une signature à la fin.
 
-   Un film trop dense perd des plans du milieu, jamais l'ouverture ni l'appel à l'action. Deux échecs du directeur : la création reprend le pipeline des menus.
-2. **Un codeur par plan** (trois en parallèle) écrit le composant React du plan avec tout le kit (`KIT_MANIFEST`). Son entrée et sa sortie font la transition imaginée par le directeur ; le moteur coupe franc entre les plans.
+   Un film trop dense perd d'abord ses plans de texte du milieu ; l'ouverture et la signature restent toujours, l'appel à l'action ne part qu'en dernier recours. Deux échecs du directeur : la création reprend le pipeline des menus.
+2. **Un codeur par plan** (trois en parallèle) écrit le composant React du plan. Il ne reçoit que le cœur du manifeste du kit et les briques du motif de son plan (`scopedKitManifest` : ≈ 1 170 tokens au lieu de 1 710 pour un plan typographique, à chaque tour), avec la consigne du motif ; sans motif reconnu, tout le kit (`KIT_MANIFEST`). Son entrée et sa sortie font la transition imaginée par le directeur ; le moteur coupe franc entre les plans. Un plan qui explore passe une validation renforcée : un tour de plus et la critique visuelle relit aussi le dernier tour.
 3. **La boucle de qualité**, trois tours au plus :
    - lint (dont les noms importés du kit) ;
    - compilation ;
@@ -243,6 +245,7 @@ Pas de sélecteur pour le logo (toujours Ultra).
 
 - `npm run check:video` §9 bis rend **la même vidéo aux cinq crans** et vérifie que l'IA décide davantage à chaque cran (Low : textes ; Medium : + structure ; High : + mises en page, transitions, relecture ; Max : réglages appliqués ; Ultra : directeur + tous les plans écrits par l'IA, critique visuelle comprise).
 - `npm run check:video:layouts` : chaque mise en page × chaque scène acceptée × quatre formats, textes au plus long.
+- `npm run check:video:novelty` : le moteur créatif (motifs, empreinte, exploration par cran, accent, menus des agents, direction créative au cran Max, contrôle créatif, mémoire d'expérience, univers et manifeste restreint d'Ultra) ; 10 vidéos par cran par le vrai pipeline, aucune à moins de 0,30 d'une précédente.
 - `npm run check:creativity` couvre :
   - les prix et la normalisation, l'orchestrateur et le lint du code Ultra ;
   - le rendu en Chromium d'une scène écrite comme par l'agent, et de scènes qui échouent, sortent du cadre ou ne bougent pas ; la CSP ;
