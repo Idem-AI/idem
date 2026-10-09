@@ -15,12 +15,12 @@
  */
 import { VideoType } from '../models/motionVideo.model';
 import { ContentIdea } from '../models/communication.model';
-import { CONCEPTS, CONCEPT_IDS, ConceptId, expandConcept, mediaCapacity, mustShowScenes, pickConcept, sceneRange, TYPE_SIGNATURE } from '../services/Communication/video/video.concepts';
-import { buildCreativePrompt, CreativeInput, parseCreative, planCreative, SCENE_MENU } from '../services/Communication/video/video.storyline';
-import { copyPlan, buildCopyPrompt, estimateTokens, extractFacts } from '../services/Communication/video/video.copy';
-import { DIRECTION_IDS, DIRECTIONS, DirectionId, pickDirection, planMotion, transitionMenu } from '../services/Communication/video/video.direction';
-import { ART_TRANSITION_EXCLUDES, motionFromArtDirection } from '../services/Communication/video/video.artdirection';
-import { assignLayouts, layoutMenu, LayoutScene } from '../services/Communication/video/video.layouts';
+import { CONCEPTS, CONCEPT_IDS, ConceptId, expandConcept, mediaCapacity, mustShowScenes, pickConcept, sceneRange, TYPE_SIGNATURE } from '../../../ivision/core/src/video/video.concepts';
+import { buildCreativePrompt, CreativeInput, parseCreative, planCreative, SCENE_MENU } from '../../../ivision/core/src/video/video.storyline';
+import { copyPlan, buildCopyPrompt, estimateTokens, extractFacts } from '../../../ivision/core/src/video/video.copy';
+import { DIRECTION_IDS, DIRECTIONS, DirectionId, pickDirection, planMotion, transitionMenu } from '../../../ivision/core/src/video/video.direction';
+import { ART_TRANSITION_EXCLUDES, motionFromArtDirection } from '../../../ivision/core/src/video/video.artdirection';
+import { assignLayouts, layoutMenu, LayoutScene } from '../../../ivision/core/src/video/video.layouts';
 import {
   AnimatorInput,
   brandSheet,
@@ -34,14 +34,14 @@ import {
   parseCritic,
   parseSound,
   runAnimator,
-} from '../services/Communication/video/video.agents';
-import { applyKitOverrides, KitContext, pickAccentEffect, resolveKit, topNodes } from '../services/Communication/video/video.capabilities';
-import { buildEnhancePrompt, enhanceRequest, groundEnhanced } from '../services/Communication/video/video.enhance';
+} from '../../../ivision/core/src/video/video.agents';
+import { applyKitOverrides, KitContext, pickAccentEffect, resolveKit, topNodes } from '../../../ivision/core/src/video/video.capabilities';
+import { buildEnhancePrompt, enhanceRequest, groundEnhanced } from '../../../ivision/core/src/video/video.enhance';
 import { ensureVideoShare, suggestVideoType } from '../services/Communication/video/video.calendar';
-import { SCENES } from '../services/Communication/video/video.scenes';
-import { available, MediaCounts } from '../services/Communication/video/video.types';
-import { analyzeLogo } from '../services/Communication/video/video.logo';
-import { buildVideoTheme } from '../services/Communication/video/video.theme';
+import { SCENES } from '../../../ivision/core/src/video/video.scenes';
+import { available, MediaCounts } from '../../../ivision/core/src/video/video.types';
+import { analyzeLogo } from '../../../ivision/core/src/video/video.logo';
+import { buildVideoTheme } from '../../../ivision/core/src/video/video.theme';
 import { brandById } from './fixtures/motion-video/brands';
 
 let failures = 0;

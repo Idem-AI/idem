@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr" class="light">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      // Thème avant le premier rendu : le cookie partagé `idem_theme`, sinon le navigateur.
+      (function () {
+        try {
+          var m = document.cookie.match(/(?:^|;\s*)idem_theme=([^;]+)/);
+          var pref = m ? decodeURIComponent(m[1]) : null;
+          if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+          var dark = pref === 'dark' || (pref === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var el = document.documentElement;
+          el.classList.toggle('dark', dark);
+          el.classList.toggle('light', !dark);
+          el.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
+    <title>iVision — Vos visuels et vidéos, à votre marque | IDEM</title>
+    <meta name="description" content="Décrivez ce que vous voulez dire : iVision lit votre site, reprend vos couleurs et vos polices, et crée vos visuels et vos vidéos motion design. Montrez une vidéo modèle, il en reproduit les animations." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="application-name" content="iVision" />
+    <meta name="theme-color" content="#1447e6" />
+    <link rel="canonical" href="https://ivision.idem.africa/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="IDEM" />
+    <meta property="og:url" content="https://ivision.idem.africa/" />
+    <meta property="og:title" content="iVision — Vos visuels et vidéos, à votre marque | IDEM" />
+    <meta property="og:description" content="Visuels et vidéos motion design créés en conversation, à votre marque. Montrez un modèle, iVision en reproduit les animations." />
+    <meta property="og:image" content="https://api.idem.africa/og/fr/communication.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>(function(){try{var m=document.cookie.match(/(?:^|;\s*)idem_lang=(fr|en)/);var l=m?m[1]:(navigator.language||'').toLowerCase().indexOf('en')===0?'en':'fr';document.documentElement.lang=l;}catch(e){}})();</script>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/assets/icon ivision.svg" />
+  </head>
+  <body>
+    <iv-root></iv-root>
+  </body>
+</html>

@@ -1,0 +1,347 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "close": "Close",
+    "back": "Back",
+    "remove": "Remove",
+    "logout": "Sign out",
+    "switchLanguage": "Change language",
+    "switchTheme": "Change theme"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again in a moment.",
+    "upload": "The file could not be sent. Check its format and size."
+  },
+  "landing": {
+    "home": "iVision home",
+    "nav": "Navigation",
+    "howLink": "How it works",
+    "openStudio": "Open the studio",
+    "signIn": "Sign in",
+    "kicker": "An IDEM service",
+    "title": "Your visuals and videos, on brand.",
+    "subtitle": "Say what you want to announce. iVision reads your website, picks up your colours and fonts, and creates the visual or the motion-design video. Show a model video: it reproduces its animations with your texts and images.",
+    "ctaVideo": "Create a video",
+    "ctaImage": "Create a visual",
+    "account": "With your IDEM account and IDEM credits: nothing else to set up.",
+    "demo": {
+      "label": "Sample conversation with iVision",
+      "user": "A video for our year-end sale, 30% off everything",
+      "ask": "Do you have a model video to reproduce? I’ll reuse its animations and rhythm, with your brand.",
+      "addModel": "Add a model",
+      "noModel": "No model",
+      "model": "promo-model.mp4",
+      "done": "Your video is ready: the model’s four shots, with your texts, photos and colours.",
+      "shots": "The video’s shots",
+      "frames": {
+        "kicker": "Year end",
+        "hook": "Everything must go",
+        "offer": "on the whole shop",
+        "when": "Until",
+        "date": "December 31",
+        "brand": "Kora Café"
+      }
+    },
+    "how": {
+      "title": "Three steps, no more",
+      "site": {
+        "title": "Your website becomes your brand book",
+        "text": "Paste your website link: iVision reads its colours, fonts, logo and tone, then offers three palettes and three typography pairings. You choose, it remembers."
+      },
+      "model": {
+        "title": "Show a model, it reproduces it",
+        "text": "A video or poster you like? Add it: iVision reuses its cuts, motion and layout — with your texts, your images, your music."
+      },
+      "edit": {
+        "title": "Edit live",
+        "text": "Click a text: the video jumps to the moment it shows, and changes as you type. Replace a photo in one click."
+      }
+    },
+    "modes": {
+      "title": "Visuals and videos — each its own studio",
+      "text": "No mixing: one conversation makes visuals, another makes videos. Each keeps its settings and history.",
+      "image": {
+        "title": "Visuals",
+        "text": "Posters, posts, stories, banners: laid out precisely and checked before delivery."
+      },
+      "video": {
+        "title": "Motion-design videos",
+        "text": "From 6 to 60 seconds, story, square, portrait or landscape, with royalty-free music and sound effects."
+      }
+    },
+    "credits": {
+      "title": "Same account, same credits",
+      "text": "iVision uses your IDEM account: same credits, same prices as your dashboard. Import an IDEM project’s brand book in one click.",
+      "cta": "Get started"
+    },
+    "footer": "Create and launch a profitable business",
+    "dashboard": "Dashboard"
+  },
+  "studio": {
+    "sidebar": "Studio",
+    "modes": "Creation type",
+    "video": "Videos",
+    "image": "Visuals",
+    "newVideo": "New video",
+    "newImage": "New visual",
+    "history": "Conversations",
+    "noHistory": "No conversation yet.",
+    "brands": "Brands",
+    "credits": "{{count}} credits",
+    "account": "My account",
+    "tabs": "Studio sections"
+  },
+  "creativity": {
+    "label": "Creativity",
+    "hint": "The higher the level, the more the AI decides (and the higher the price).",
+    "levels": {
+      "low": "Low ×1",
+      "medium": "Medium ×1",
+      "high": "High ×1.25",
+      "max": "Max ×1.5",
+      "ultra": "Ultra ×2"
+    }
+  },
+  "formats": {
+    "story": "Story 9:16",
+    "square": "Square 1:1",
+    "portrait": "Portrait 4:5",
+    "landscape": "Landscape 16:9",
+    "post": "Post 4:5",
+    "banner": "Banner",
+    "a4": "A4 poster"
+  },
+  "qualities": {
+    "standard": "Standard (720p)",
+    "hd": "HD (1080p)",
+    "premium": "Premium"
+  },
+  "moods": {
+    "auto": "Automatic",
+    "upbeat": "Upbeat",
+    "afro": "Afro",
+    "calm": "Calm",
+    "epic": "Epic",
+    "corporate": "Corporate",
+    "none": "No music"
+  },
+  "chat": {
+    "newVideo": "New video",
+    "newImage": "New visual",
+    "thinking": "Thinking…",
+    "brand": {
+      "none": "Choose a brand",
+      "pick": "Choose a brand",
+      "empty": "No brand ready.",
+      "add": "Add a brand"
+    },
+    "empty": {
+      "videoTitle": "What video do you want?",
+      "videoText": "Describe the announcement, product or event. Paste your website link so the video matches your brand.",
+      "imageTitle": "What visual do you want?",
+      "imageText": "Describe the offer, announcement or message. Paste your website link so the visual matches your brand.",
+      "ideas": {
+        "video1": "A 15-second video for this week’s promo",
+        "video2": "Introduce our new product as a story",
+        "video3": "Announce our shop opening",
+        "image1": "A poster for our sale: 20% off everything",
+        "image2": "A post for our new menu",
+        "image3": "A story announcing our Saturday event"
+      }
+    },
+    "attach": {
+      "model": "Model",
+      "media": "File",
+      "videoModel": "Add a model video",
+      "imageModel": "Add a model image",
+      "myMedia": "Add my photos or clips",
+      "myPhoto": "Add my photo",
+      "needBrand": "Choose a brand first"
+    },
+    "ask": {
+      "brand": "So the result matches your brand: paste your website link, import an IDEM project, or choose a brand.",
+      "brandChoice": "I’ve read your website. Pick the palette and typography that feel like you — I’ll apply them to everything I create.",
+      "referenceVideo": "Do you have a model video to reproduce? I’ll reuse its animations and rhythm, with your texts, images and brand.",
+      "referenceImage": "Do you have a model image? I’ll reuse its layout, with your texts, colours and logo.",
+      "what": {
+        "video": "What should your video tell? An offer, a product, an event…",
+        "image": "What should your visual say? An offer, a product, an event…"
+      },
+      "pasteSite": "Paste my website link",
+      "importIdem": "Import an IDEM project",
+      "noCharter": "no brand book",
+      "noProjects": "No IDEM project.",
+      "addVideoModel": "Add a model video",
+      "addImageModel": "Add a model image",
+      "recentModels": "A model I already added",
+      "noModel": "No, create freely",
+      "noRecent": "No model analysed yet.",
+      "modelHintVideo": "I reproduce cuts, motion and transitions — never the model’s music, sounds, images or texts.",
+      "modelHintImage": "I reproduce the layout — never the model’s texts or images."
+    },
+    "result": {
+      "previewTitle": "Video preview",
+      "watch": "Watch",
+      "edit": "Edit and export",
+      "fromReference": "Reproduced from a model in {{shots}} shots.",
+      "download": "Download",
+      "video": "Your video is ready. Edit texts and images, then export.",
+      "videoFromReference": "Your video is ready: the model’s animations, with your brand. Edit texts and images, then export.",
+      "visual": "Here is your visual.",
+      "visualFromReference": "Here is your visual, laid out like the model, on brand."
+    },
+    "payment": {
+      "cta": "Top up my credits",
+      "detail": "This creation costs {{cost}} credits; you have {{balance}} left. Your request is kept: run it again after topping up.",
+      "short": "Not enough credits for this export."
+    },
+    "progress": {
+      "label": "Creation steps",
+      "stages": {
+        "plan": "Video plan",
+        "copy": "Texts",
+        "layout": "Layouts",
+        "media": "Images and clips",
+        "music": "Music",
+        "sfx": "Sound effects",
+        "storyboard": "Edit",
+        "animation": "Animations",
+        "critique": "Review",
+        "code": "Custom shots",
+        "direction": "Film direction",
+        "shots": "Film shots"
+      }
+    },
+    "composer": {
+      "label": "Your request",
+      "placeholderVideo": "Describe your video, or paste your website link…",
+      "placeholderImage": "Describe your visual, or paste your website link…",
+      "send": "Send"
+    },
+    "options": {
+      "duration": "Duration",
+      "format": "Format",
+      "photo": "With photo",
+      "price": "{{cost}} credits"
+    },
+    "choice": {
+      "palettes": "Palette",
+      "typographies": "Typography",
+      "sample": "The text of your visuals and videos.",
+      "name": "Brand name",
+      "confirm": "Use this brand book",
+      "palette": {
+        "site": "The website’s",
+        "contrast": "More contrast",
+        "harmony": "More harmony"
+      },
+      "paletteWhy": {
+        "site": "The colours found on your website, as they are.",
+        "contrast": "The same hues, bolder: readable on phones and in video.",
+        "harmony": "Your main colour, surrounded by neighbouring hues computed for it."
+      },
+      "typography": {
+        "site": "The website’s",
+        "pairing": "A proven pairing",
+        "alternative": "An alternative"
+      }
+    },
+    "status": {
+      "scan": {
+        "open": "Visiting your website…",
+        "colors": "Reading your colours…",
+        "fonts": "Recognising your fonts…",
+        "logo": "Looking for your logo…",
+        "content": "Reading your pages…",
+        "voice": "Getting your tone…",
+        "art": "Looking at your art direction…",
+        "done": "Done reading.",
+        "copy": "Keeping your images…"
+      },
+      "reference": {
+        "probe": "Opening the model…",
+        "cuts": "Finding the shots…",
+        "frames": "Looking at each shot…",
+        "vision": "Describing the animations…",
+        "done": "Model analysed."
+      },
+      "video": {
+        "start": "Preparing your video…"
+      },
+      "visual": {
+        "start": "Composing your visual…"
+      }
+    },
+    "error": {
+      "scan": {
+        "invalid_url": "This link is not valid.",
+        "blocked_url": "This website can’t be read.",
+        "unreachable": "I can’t reach this website.",
+        "timeout": "The website takes too long to respond.",
+        "failed": "I couldn’t read this website. Check the link, or choose a brand another way."
+      },
+      "reference": "This model could not be analysed.",
+      "referenceKind": {
+        "video": "This model is an image: in video mode, add a model video.",
+        "image": "This model is a video: in visuals mode, add a model image."
+      },
+      "generation": "The creation failed. Your credits were refunded; you can try again.",
+      "payment": "Not enough credits for this creation. Top up your IDEM account, then try again."
+    }
+  },
+  "edit": {
+    "title": "Video",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "loadError": "This video could not be loaded.",
+    "previewFormat": "Preview format",
+    "preparingPreview": "Preparing the preview…",
+    "replacePhoto": "Replace photo",
+    "sound": "Sound",
+    "music": "Music",
+    "sfx": "Sound effects",
+    "export": "Export as MP4",
+    "firstExport": "The first export is included in the video price.",
+    "nextExport": "A new export costs a fraction of the video price.",
+    "formats": "Formats",
+    "quality": "Quality",
+    "exportCta": "Export",
+    "included": "Included",
+    "price": "{{cost}} credits",
+    "rendering": "Rendering — {{percent}}%"
+  },
+  "brands": {
+    "title": "Brands",
+    "subtitle": "The colours, fonts, logos and photos your creations follow.",
+    "scan": {
+      "title": "From your website",
+      "text": "Paste the link: I read your colours, fonts, logo and tone, then offer three palettes and three typography pairings.",
+      "label": "Your website link",
+      "cta": "Read the website"
+    },
+    "other": "Other sources",
+    "idem": {
+      "title": "From IDEM",
+      "text": "One of your IDEM projects’ brand book, as is.",
+      "cta": "See my projects"
+    },
+    "manual": {
+      "title": "By hand",
+      "name": "Name",
+      "color": "Colour",
+      "cta": "Create"
+    },
+    "mine": "My brands",
+    "source": {
+      "site": "Website read",
+      "idem": "IDEM project",
+      "manual": "Manual"
+    },
+    "draft": "to confirm",
+    "palette": "Brand palette",
+    "addPhotos": "Add photos",
+    "delete": "Delete",
+    "confirmDelete": "Confirm deletion",
+    "empty": "No brand yet: read your website to start."
+  }
+}

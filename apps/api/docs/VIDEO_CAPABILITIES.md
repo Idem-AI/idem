@@ -1,6 +1,6 @@
 # Graphe de capacités du moteur vidéo
 
-> Fichier généré par `npm run docs:video-graph` depuis `api/services/Communication/video/video.capabilities.ts`.
+> Fichier généré par `npm run docs:video-graph` depuis `apps/ivision/core/src/video/video.capabilities.ts` (moteur partagé avec iVision).
 > Ne pas éditer à la main. Guide de l'environnement : [VIDEO_ENGINE.md](VIDEO_ENGINE.md).
 
 Le graphe dit ce que la vidéo **peut** utiliser et **quand**. Le routeur (`resolveKit`) le parcourt avec le contexte du projet
@@ -110,23 +110,23 @@ graph LR
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
-| `lib:react` | React 19 + ReactDOM | Le moteur entier : une image = un rendu synchrone (flushSync) de <Video t={t}/>. | — | — | — | 0 | pure | `video-engine/src/runtime.ts` |
-| `lib:tailwind` | Tailwind CSS v4 | Utilitaires compilés au paquet ; palette par défaut retirée, seules les couleurs de la charte existent. | — | — | — | 0 | static | `video-engine/src/tailwind.css` |
-| `lib:motion` | Motion (ex-Framer Motion) | Ressorts physiques et interpolation par images clés, fonctions pures du temps (pas animate()). | — | — | — | 0 | pure | `video-engine/src/time.ts` |
-| `lib:gsap` | GSAP 3 + DrawSVG, MorphSVG, MotionPath, CustomEase | Timelines en pause posées par seek(t) ; horloge endormie. | — | — | — | 1 | seek | `video-engine/src/addons/gsap.ts` |
-| `lib:anime` | anime.js v4 | Timelines autoplay:false posées par seek(ms) ; stagger en grille. | — | — | — | 1 | seek | `video-engine/src/addons/anime.ts` |
-| `lib:flubber` | flubber | Morphose de formes SVG (1→1, 1→N, cercle→tracé), fonction pure. | — | — | — | 1 | pure | `video-engine/src/addons/flubber.ts` |
-| `lib:three` | three.js + React Three Fiber v9 + drei + postprocessing | Racine R3F frameloop "never", advance(t) par image, horloge posée sur t, lumière Lightformer sans fichier. | — | — | — | 3 | clock-pinned | `video-engine/src/addons/three.tsx` |
-| `lib:lottie` | lottie-web (light) | Rendu SVG sans moteur d’expressions (aucun code d’un fichier importé ne s’exécute) ; goToAndStop(trame). | — | — | — | 1 | seek | `video-engine/src/addons/lottie.ts` |
-| `lib:rive` | Rive (canvas) | Fichiers .riv importés ; WebAssembly embarqué ; scrub(animation, t). | — | — | — | 2 | seek | `video-engine/src/addons/rive.ts` |
-| `lib:chartjs` | Chart.js 4 + datalabels, annotation, treemap, sankey, matrix | Graphiques sur toile : animation coupée, valeurs de l’instant posées puis update("none") (dessin synchrone). | — | — | — | 1 | seek | `video-engine/src/addons/chart.ts` |
-| `lib:visx` | visx v4 (composants de data-visualisation) + d3 (interpolate, delaunay, geo) + world-atlas | Composants React en SVG sans animation propre (formes, échelles, dégradés, motifs, courbes, hiérarchies, projections) ; carte du monde en topojson. | — | — | — | 1 | pure | `video-engine/src/addons/viz.ts` |
-| `lib:draw` | rough.js + perfect-freehand + simplex-noise | Formes dessinées à la main (graine fixe), traits de pinceau à pression, bruit continu à graine du moteur. | — | — | — | 1 | pure | `video-engine/src/addons/draw.ts` |
-| `lib:zdog` | Zdog | Objets en pseudo-3D plats et ronds rendus en SVG ; rotation posée puis updateRenderGraph(), sans boucle. | — | — | — | 1 | pure | `video-engine/src/addons/zdog.ts` |
-| `lib:lucide` | Lucide | ~2 100 icônes au trait ; SVG lus côté serveur, jamais embarqués en bloc. | — | — | — | 0 | static | `api/services/Communication/video/video.icons.ts` |
-| `lib:tabler` | Tabler Icons | ~5 100 icônes au trait géométrique. | — | — | — | 0 | static | `api/services/Communication/video/video.icons.ts` |
-| `lib:phosphor` | Phosphor Icons | ~1 500 icônes × 6 graisses (thin, light, regular, bold, fill, duotone). | — | — | — | 0 | static | `api/services/Communication/video/video.icons.ts` |
-| `lib:heroicons` | Heroicons | ~320 icônes pleines et denses. | — | — | — | 0 | static | `api/services/Communication/video/video.icons.ts` |
+| `lib:react` | React 19 + ReactDOM | Le moteur entier : une image = un rendu synchrone (flushSync) de <Video t={t}/>. | — | — | — | 0 | pure | `engine/src/runtime.ts` |
+| `lib:tailwind` | Tailwind CSS v4 | Utilitaires compilés au paquet ; palette par défaut retirée, seules les couleurs de la charte existent. | — | — | — | 0 | static | `engine/src/tailwind.css` |
+| `lib:motion` | Motion (ex-Framer Motion) | Ressorts physiques et interpolation par images clés, fonctions pures du temps (pas animate()). | — | — | — | 0 | pure | `engine/src/time.ts` |
+| `lib:gsap` | GSAP 3 + DrawSVG, MorphSVG, MotionPath, CustomEase | Timelines en pause posées par seek(t) ; horloge endormie. | — | — | — | 1 | seek | `engine/src/addons/gsap.ts` |
+| `lib:anime` | anime.js v4 | Timelines autoplay:false posées par seek(ms) ; stagger en grille. | — | — | — | 1 | seek | `engine/src/addons/anime.ts` |
+| `lib:flubber` | flubber | Morphose de formes SVG (1→1, 1→N, cercle→tracé), fonction pure. | — | — | — | 1 | pure | `engine/src/addons/flubber.ts` |
+| `lib:three` | three.js + React Three Fiber v9 + drei + postprocessing | Racine R3F frameloop "never", advance(t) par image, horloge posée sur t, lumière Lightformer sans fichier. | — | — | — | 3 | clock-pinned | `engine/src/addons/three.tsx` |
+| `lib:lottie` | lottie-web (light) | Rendu SVG sans moteur d’expressions (aucun code d’un fichier importé ne s’exécute) ; goToAndStop(trame). | — | — | — | 1 | seek | `engine/src/addons/lottie.ts` |
+| `lib:rive` | Rive (canvas) | Fichiers .riv importés ; WebAssembly embarqué ; scrub(animation, t). | — | — | — | 2 | seek | `engine/src/addons/rive.ts` |
+| `lib:chartjs` | Chart.js 4 + datalabels, annotation, treemap, sankey, matrix | Graphiques sur toile : animation coupée, valeurs de l’instant posées puis update("none") (dessin synchrone). | — | — | — | 1 | seek | `engine/src/addons/chart.ts` |
+| `lib:visx` | visx v4 (composants de data-visualisation) + d3 (interpolate, delaunay, geo) + world-atlas | Composants React en SVG sans animation propre (formes, échelles, dégradés, motifs, courbes, hiérarchies, projections) ; carte du monde en topojson. | — | — | — | 1 | pure | `engine/src/addons/viz.ts` |
+| `lib:draw` | rough.js + perfect-freehand + simplex-noise | Formes dessinées à la main (graine fixe), traits de pinceau à pression, bruit continu à graine du moteur. | — | — | — | 1 | pure | `engine/src/addons/draw.ts` |
+| `lib:zdog` | Zdog | Objets en pseudo-3D plats et ronds rendus en SVG ; rotation posée puis updateRenderGraph(), sans boucle. | — | — | — | 1 | pure | `engine/src/addons/zdog.ts` |
+| `lib:lucide` | Lucide | ~2 100 icônes au trait ; SVG lus côté serveur, jamais embarqués en bloc. | — | — | — | 0 | static | `src/video/video.icons.ts` |
+| `lib:tabler` | Tabler Icons | ~5 100 icônes au trait géométrique. | — | — | — | 0 | static | `src/video/video.icons.ts` |
+| `lib:phosphor` | Phosphor Icons | ~1 500 icônes × 6 graisses (thin, light, regular, bold, fill, duotone). | — | — | — | 0 | static | `src/video/video.icons.ts` |
+| `lib:heroicons` | Heroicons | ~320 icônes pleines et denses. | — | — | — | 0 | static | `src/video/video.icons.ts` |
 
 ## Addons du moteur (paquets chargés à la demande)
 
@@ -147,118 +147,118 @@ graph LR
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
-| `concept:question` | question | ask the audience's own question, then answer it | — | — | dir. editorial 1, swiss 1, precision 1 · types kinetic 1.5, product 1, illustrated 1, mix 1 · obj. announce 1.5, product 1, recruitment 1, testimonial 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:problem-solution` | problem-solution | name an everyday problem, then show it solved | — | — | dir. kinetic 1, brutal 1, swiss 0.5 · types product 1.5, showcase3d 1, kinetic 1, footage 1, mix 1.5 · obj. product 1.5, promotion 1, announce 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:product-hero` | product-hero | reveal the product like a hero, then its strengths | — | — | dir. precision 1, cinematic 1, drenched 1 · types product 2, showcase3d 2.5, promo 1, slideshow 1, mix 1 · obj. product 2.5, promotion 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:manifesto` | manifesto | short brand beliefs, one after another | — | — | dir. brutal 2, swiss 1, kinetic 1, editorial 0.5 · types kinetic 2.5, mix 1 · obj. announce 1.5, recruitment 1, opening 0.5 · DA maximalism 1, graffiti 1.5, swiss 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:offer-blast` | offer-blast | hit with the offer, create urgency, then act | — | — | dir. kinetic 1.5, brutal 1.5, drenched 1 · types promo 3, product 0.5, mix 1 · obj. promotion 3 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:proof` | proof | lead with proof: a number, a customer's words | — | — | dir. precision 1.5, editorial 1, swiss 1 · types kinetic 1, footage 0.5, mix 1 · obj. testimonial 3, recruitment 1, product 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:journey` | journey | real scenes from the field, with captions | — | — | dir. cinematic 2, editorial 1 · types footage 3, slideshow 1, mix 1 · obj. announce 1, opening 1, recruitment 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:teaser` | teaser | intrigue first, reveal at the end | — | — | dir. cinematic 1.5, kinetic 1, drenched 1 · types showcase3d 1.5, kinetic 1, product 1, footage 0.5, mix 1.5 · obj. event 1.5, opening 1.5, product 1, announce 1 · DA surreal 1, aurora 1, futuristic 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:invitation` | invitation | invite: the occasion, the date, the place | — | — | dir. collage 1, editorial 1, kinetic 0.5 · types illustrated 2, kinetic 1, slideshow 0.5, mix 1 · obj. event 3, opening 2.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:showcase` | showcase | a gallery of the work, then one strong line | — | — | dir. editorial 1.5, collage 1, cinematic 1 · types slideshow 3, product 1, mix 1 · obj. product 1, announce 1, opening 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:reasons` | reasons | why choose us: the reasons, one by one | — | — | dir. swiss 1, precision 1, collage 0.5 · types kinetic 1, product 1, illustrated 1, promo 0.5, mix 1 · obj. recruitment 1.5, product 1, announce 1, promotion 0.5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:celebration` | celebration | celebrate a moment with the community | — | — | dir. collage 2, kinetic 1, drenched 0.5 · types illustrated 2.5, mix 1 · obj. event 1, announce 1, opening 1 · DA pop-art 1, clay 1, y2k 1 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
-| `concept:logo-sting` | logo-sting | a short signature: one word, then the logo | — | — | types logo 5 | 0 | static | `api/services/Communication/video/video.concepts.ts` |
+| `concept:question` | question | ask the audience's own question, then answer it | — | — | dir. editorial 1, swiss 1, precision 1 · types kinetic 1.5, product 1, illustrated 1, mix 1 · obj. announce 1.5, product 1, recruitment 1, testimonial 0.5 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:problem-solution` | problem-solution | name an everyday problem, then show it solved | — | — | dir. kinetic 1, brutal 1, swiss 0.5 · types product 1.5, showcase3d 1, kinetic 1, footage 1, mix 1.5 · obj. product 1.5, promotion 1, announce 0.5 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:product-hero` | product-hero | reveal the product like a hero, then its strengths | — | — | dir. precision 1, cinematic 1, drenched 1 · types product 2, showcase3d 2.5, promo 1, slideshow 1, mix 1 · obj. product 2.5, promotion 1 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:manifesto` | manifesto | short brand beliefs, one after another | — | — | dir. brutal 2, swiss 1, kinetic 1, editorial 0.5 · types kinetic 2.5, mix 1 · obj. announce 1.5, recruitment 1, opening 0.5 · DA maximalism 1, graffiti 1.5, swiss 1 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:offer-blast` | offer-blast | hit with the offer, create urgency, then act | — | — | dir. kinetic 1.5, brutal 1.5, drenched 1 · types promo 3, product 0.5, mix 1 · obj. promotion 3 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:proof` | proof | lead with proof: a number, a customer's words | — | — | dir. precision 1.5, editorial 1, swiss 1 · types kinetic 1, footage 0.5, mix 1 · obj. testimonial 3, recruitment 1, product 0.5 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:journey` | journey | real scenes from the field, with captions | — | — | dir. cinematic 2, editorial 1 · types footage 3, slideshow 1, mix 1 · obj. announce 1, opening 1, recruitment 1 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:teaser` | teaser | intrigue first, reveal at the end | — | — | dir. cinematic 1.5, kinetic 1, drenched 1 · types showcase3d 1.5, kinetic 1, product 1, footage 0.5, mix 1.5 · obj. event 1.5, opening 1.5, product 1, announce 1 · DA surreal 1, aurora 1, futuristic 1 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:invitation` | invitation | invite: the occasion, the date, the place | — | — | dir. collage 1, editorial 1, kinetic 0.5 · types illustrated 2, kinetic 1, slideshow 0.5, mix 1 · obj. event 3, opening 2.5 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:showcase` | showcase | a gallery of the work, then one strong line | — | — | dir. editorial 1.5, collage 1, cinematic 1 · types slideshow 3, product 1, mix 1 · obj. product 1, announce 1, opening 0.5 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:reasons` | reasons | why choose us: the reasons, one by one | — | — | dir. swiss 1, precision 1, collage 0.5 · types kinetic 1, product 1, illustrated 1, promo 0.5, mix 1 · obj. recruitment 1.5, product 1, announce 1, promotion 0.5 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:celebration` | celebration | celebrate a moment with the community | — | — | dir. collage 2, kinetic 1, drenched 0.5 · types illustrated 2.5, mix 1 · obj. event 1, announce 1, opening 1 · DA pop-art 1, clay 1, y2k 1 | 0 | static | `src/video/video.concepts.ts` |
+| `concept:logo-sting` | logo-sting | a short signature: one word, then the logo | — | — | types logo 5 | 0 | static | `src/video/video.concepts.ts` |
 
 ## Rythmes (le modèle en choisit un parmi 3 ; jamais celui des dernières vidéos)
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
-| `rhythm:steady` | Régulier | Chaque scène a son temps de lecture, coupes sur le temps. | — | — | dir. precision 1.5, swiss 1.5, editorial 1 · obj. announce 0.5, recruitment 0.5 | 0 | pure | `api/services/Communication/video/video.rhythm.ts` |
-| `rhythm:crescendo` | Crescendo | Ça s’accélère jusqu’au grand moment, puis la signature respire. | — | — | dir. kinetic 2, drenched 1.5, brutal 1, swiss 0.5 · obj. promotion 1, event 1, opening 1 | 0 | pure | `api/services/Communication/video/video.rhythm.ts` |
-| `rhythm:staccato` | Staccato | Coupes sèches sur chaque temps, textes brefs. | — | — | dir. brutal 2, kinetic 2, collage 1 · obj. promotion 1.5 | 0 | pure | `api/services/Communication/video/video.rhythm.ts` |
-| `rhythm:breathe` | Ample | Longues tenues, entrées lentes, coupes à la mesure. | — | — | dir. cinematic 2.5, editorial 2, precision 1 · obj. testimonial 1, announce 0.5 | 0 | pure | `api/services/Communication/video/video.rhythm.ts` |
-| `rhythm:drop` | Montée puis drop | Une montée lente, puis tout s’accélère au grand moment. | — | — | dir. drenched 2, kinetic 1.5, cinematic 1, brutal 1, collage 0.5 · obj. product 1, opening 1 | 0 | pure | `api/services/Communication/video/video.rhythm.ts` |
+| `rhythm:steady` | Régulier | Chaque scène a son temps de lecture, coupes sur le temps. | — | — | dir. precision 1.5, swiss 1.5, editorial 1 · obj. announce 0.5, recruitment 0.5 | 0 | pure | `src/video/video.rhythm.ts` |
+| `rhythm:crescendo` | Crescendo | Ça s’accélère jusqu’au grand moment, puis la signature respire. | — | — | dir. kinetic 2, drenched 1.5, brutal 1, swiss 0.5 · obj. promotion 1, event 1, opening 1 | 0 | pure | `src/video/video.rhythm.ts` |
+| `rhythm:staccato` | Staccato | Coupes sèches sur chaque temps, textes brefs. | — | — | dir. brutal 2, kinetic 2, collage 1 · obj. promotion 1.5 | 0 | pure | `src/video/video.rhythm.ts` |
+| `rhythm:breathe` | Ample | Longues tenues, entrées lentes, coupes à la mesure. | — | — | dir. cinematic 2.5, editorial 2, precision 1 · obj. testimonial 1, announce 0.5 | 0 | pure | `src/video/video.rhythm.ts` |
+| `rhythm:drop` | Montée puis drop | Une montée lente, puis tout s’accélère au grand moment. | — | — | dir. drenched 2, kinetic 1.5, cinematic 1, brutal 1, collage 0.5 · obj. product 1, opening 1 | 0 | pure | `src/video/video.rhythm.ts` |
 
 ## Caméras (une par vidéo)
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
-| `camera:still` | Fixe | Aucun mouvement de caméra : la typographie porte tout. | — | — | dir. swiss 2, brutal 2, collage 1.5 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
-| `camera:push` | Poussée | La caméra avance lentement vers le texte. | — | — | dir. cinematic 2, kinetic 1.5, drenched 1.5 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
-| `camera:pull` | Recul | La caméra recule et se pose. | — | — | dir. precision 1.5, cinematic 1.5, editorial 1 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
-| `camera:drift` | Dérive | Un glissement latéral, dans un sens puis dans l’autre. | — | — | dir. editorial 2, precision 1.5, cinematic 1 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
-| `camera:rise` | Élévation | Le bloc monte doucement pendant la scène. | — | — | dir. drenched 1, kinetic 1, collage 1, editorial 0.5 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
-| `camera:tilt` | Bascule 3D | Légère rotation en perspective, comme un plan tourné. | — | — | dir. kinetic 1.5, precision 1, drenched 1 · DA futuristic 2, glassmorphism 1.5, cyberpunk 1 | 0 | pure | `video-engine/src/layout.tsx#useCamera` |
+| `camera:still` | Fixe | Aucun mouvement de caméra : la typographie porte tout. | — | — | dir. swiss 2, brutal 2, collage 1.5 | 0 | pure | `engine/src/layout.tsx#useCamera` |
+| `camera:push` | Poussée | La caméra avance lentement vers le texte. | — | — | dir. cinematic 2, kinetic 1.5, drenched 1.5 | 0 | pure | `engine/src/layout.tsx#useCamera` |
+| `camera:pull` | Recul | La caméra recule et se pose. | — | — | dir. precision 1.5, cinematic 1.5, editorial 1 | 0 | pure | `engine/src/layout.tsx#useCamera` |
+| `camera:drift` | Dérive | Un glissement latéral, dans un sens puis dans l’autre. | — | — | dir. editorial 2, precision 1.5, cinematic 1 | 0 | pure | `engine/src/layout.tsx#useCamera` |
+| `camera:rise` | Élévation | Le bloc monte doucement pendant la scène. | — | — | dir. drenched 1, kinetic 1, collage 1, editorial 0.5 | 0 | pure | `engine/src/layout.tsx#useCamera` |
+| `camera:tilt` | Bascule 3D | Légère rotation en perspective, comme un plan tourné. | — | — | dir. kinetic 1.5, precision 1, drenched 1 · DA futuristic 2, glassmorphism 1.5, cyberpunk 1 | 0 | pure | `engine/src/layout.tsx#useCamera` |
 
 ## Entrées des éléments (une famille par vidéo)
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
-| `entrance:rise` | Montée | Les éléments montent en fondu. | — | — | dir. editorial 1.5, precision 1.5, cinematic 1.5, swiss 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
-| `entrance:spring` | Ressort | Les éléments dépassent leur place puis se posent (ressort physique motion). | `lib:motion` | — | dir. kinetic 2, collage 1.5, drenched 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
-| `entrance:flip` | Bascule | Les éléments basculent vers le spectateur (3D). | — | — | dir. swiss 1.5, precision 1.5, kinetic 1, editorial 0.5 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
-| `entrance:unfold` | Dépliage | Les éléments se déplient depuis leur bord haut. | — | — | dir. editorial 1.5, swiss 1.5, brutal 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
-| `entrance:skew` | Glissé penché | Les éléments arrivent penchés, puis se redressent. | — | — | dir. brutal 2, kinetic 1, swiss 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
-| `entrance:iris` | Iris | Les éléments s’ouvrent depuis leur centre. | — | — | dir. cinematic 1.5, drenched 1.5, precision 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
-| `entrance:drop` | Chute | Les éléments tombent et se posent de travers, comme des papiers. | — | — | dir. collage 2, kinetic 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
-| `entrance:pop` | Pop | Les éléments jaillissent en tournant légèrement. | — | — | dir. kinetic 1.5, collage 1.5 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
-| `entrance:slideLeft` | Glissé | Les éléments glissent depuis la droite. | — | — | dir. swiss 1.5, brutal 1.5, precision 1 | 0 | pure | `video-engine/src/layout.tsx#useEnter` |
+| `entrance:rise` | Montée | Les éléments montent en fondu. | — | — | dir. editorial 1.5, precision 1.5, cinematic 1.5, swiss 1 | 0 | pure | `engine/src/layout.tsx#useEnter` |
+| `entrance:spring` | Ressort | Les éléments dépassent leur place puis se posent (ressort physique motion). | `lib:motion` | — | dir. kinetic 2, collage 1.5, drenched 1 | 0 | pure | `engine/src/layout.tsx#useEnter` |
+| `entrance:flip` | Bascule | Les éléments basculent vers le spectateur (3D). | — | — | dir. swiss 1.5, precision 1.5, kinetic 1, editorial 0.5 | 0 | pure | `engine/src/layout.tsx#useEnter` |
+| `entrance:unfold` | Dépliage | Les éléments se déplient depuis leur bord haut. | — | — | dir. editorial 1.5, swiss 1.5, brutal 1 | 0 | pure | `engine/src/layout.tsx#useEnter` |
+| `entrance:skew` | Glissé penché | Les éléments arrivent penchés, puis se redressent. | — | — | dir. brutal 2, kinetic 1, swiss 1 | 0 | pure | `engine/src/layout.tsx#useEnter` |
+| `entrance:iris` | Iris | Les éléments s’ouvrent depuis leur centre. | — | — | dir. cinematic 1.5, drenched 1.5, precision 1 | 0 | pure | `engine/src/layout.tsx#useEnter` |
+| `entrance:drop` | Chute | Les éléments tombent et se posent de travers, comme des papiers. | — | — | dir. collage 2, kinetic 1 | 0 | pure | `engine/src/layout.tsx#useEnter` |
+| `entrance:pop` | Pop | Les éléments jaillissent en tournant légèrement. | — | — | dir. kinetic 1.5, collage 1.5 | 0 | pure | `engine/src/layout.tsx#useEnter` |
+| `entrance:slideLeft` | Glissé | Les éléments glissent depuis la droite. | — | — | dir. swiss 1.5, brutal 1.5, precision 1 | 0 | pure | `engine/src/layout.tsx#useEnter` |
 
 ## Mises en scène des plans (une par plan, jamais deux fois de suite)
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
-| `treatment:split` | Écran partagé | Le clip sur une moitié du cadre, le texte sur l’aplat de la marque, une couture de couleur. | — | — | dir. swiss 2, precision 2, editorial 1, brutal 1 · DA swiss 1.5, minimalism 1 | 0 | pure | `video-engine/src/treatments.tsx#Split` |
-| `treatment:window` | Fenêtre | Le clip apparaît dans une forme qui s’ouvre : arche, cercle ou rectangle. | — | — | dir. editorial 2, collage 2, cinematic 1, drenched 1, kinetic 1, precision 1 · DA bohemian 1.5, retro 1, handwritten 1, victorian 1 | 0 | pure | `video-engine/src/treatments.tsx#Window` |
-| `treatment:blinds` | Lames | Des lames découvrent le clip ; une bande reste et porte le titre. | — | — | dir. brutal 2, swiss 1.5, kinetic 1.5, drenched 1 · DA maximalism 1, graffiti 1 | 0 | pure | `video-engine/src/treatments.tsx#Blinds` |
-| `treatment:magazine` | Page de magazine | Titre en haut, clip encadré au centre, légende en bas, filet décalé. | — | — | dir. editorial 2.5, precision 1.5, swiss 1, collage 1 · DA editorial 2, minimalism 1 | 0 | pure | `video-engine/src/treatments.tsx#Magazine` |
-| `treatment:knockout` | Clip dans les lettres | Le clip joue dans les lettres géantes du titre, puis la caméra traverse le texte. | — | — | dir. kinetic 2, brutal 2, drenched 1.5, swiss 1, editorial 0.5 · DA maximalism 1.5, pop-art 1, cyberpunk 1, futuristic 1 | 0 | pure | `video-engine/src/treatments.tsx#Knockout` |
-| `treatment:inline` | Clip dans la phrase | Le clip dans une capsule insérée au milieu du titre. | — | — | dir. kinetic 2, collage 2, editorial 1, precision 1 · DA y2k 1.5, clay 1, pop-art 1 | 0 | pure | `video-engine/src/treatments.tsx#Inline` |
-| `treatment:duotone` | Bichromie | Le clip aux couleurs de la marque, titre géant au trait. | — | — | dir. drenched 3, kinetic 1, brutal 1 · DA aurora 1, surreal 1, pop-art 1 | 0 | pure | `video-engine/src/treatments.tsx#Duotone` |
-| `treatment:broadcast` | Barre de titre | Barre et onglet façon télévision, sur le clip plein cadre. | — | — | dir. precision 2, swiss 1.5 | 0 | pure | `video-engine/src/treatments.tsx#Broadcast` |
-| `treatment:cinema` | Cinéma | Sous-titres sur le clip, vignettage de film. | — | — | dir. cinematic 3 | 0 | pure | `video-engine/src/treatments.tsx#Cinema` |
+| `treatment:split` | Écran partagé | Le clip sur une moitié du cadre, le texte sur l’aplat de la marque, une couture de couleur. | — | — | dir. swiss 2, precision 2, editorial 1, brutal 1 · DA swiss 1.5, minimalism 1 | 0 | pure | `engine/src/treatments.tsx#Split` |
+| `treatment:window` | Fenêtre | Le clip apparaît dans une forme qui s’ouvre : arche, cercle ou rectangle. | — | — | dir. editorial 2, collage 2, cinematic 1, drenched 1, kinetic 1, precision 1 · DA bohemian 1.5, retro 1, handwritten 1, victorian 1 | 0 | pure | `engine/src/treatments.tsx#Window` |
+| `treatment:blinds` | Lames | Des lames découvrent le clip ; une bande reste et porte le titre. | — | — | dir. brutal 2, swiss 1.5, kinetic 1.5, drenched 1 · DA maximalism 1, graffiti 1 | 0 | pure | `engine/src/treatments.tsx#Blinds` |
+| `treatment:magazine` | Page de magazine | Titre en haut, clip encadré au centre, légende en bas, filet décalé. | — | — | dir. editorial 2.5, precision 1.5, swiss 1, collage 1 · DA editorial 2, minimalism 1 | 0 | pure | `engine/src/treatments.tsx#Magazine` |
+| `treatment:knockout` | Clip dans les lettres | Le clip joue dans les lettres géantes du titre, puis la caméra traverse le texte. | — | — | dir. kinetic 2, brutal 2, drenched 1.5, swiss 1, editorial 0.5 · DA maximalism 1.5, pop-art 1, cyberpunk 1, futuristic 1 | 0 | pure | `engine/src/treatments.tsx#Knockout` |
+| `treatment:inline` | Clip dans la phrase | Le clip dans une capsule insérée au milieu du titre. | — | — | dir. kinetic 2, collage 2, editorial 1, precision 1 · DA y2k 1.5, clay 1, pop-art 1 | 0 | pure | `engine/src/treatments.tsx#Inline` |
+| `treatment:duotone` | Bichromie | Le clip aux couleurs de la marque, titre géant au trait. | — | — | dir. drenched 3, kinetic 1, brutal 1 · DA aurora 1, surreal 1, pop-art 1 | 0 | pure | `engine/src/treatments.tsx#Duotone` |
+| `treatment:broadcast` | Barre de titre | Barre et onglet façon télévision, sur le clip plein cadre. | — | — | dir. precision 2, swiss 1.5 | 0 | pure | `engine/src/treatments.tsx#Broadcast` |
+| `treatment:cinema` | Cinéma | Sous-titres sur le clip, vignettage de film. | — | — | dir. cinematic 3 | 0 | pure | `engine/src/treatments.tsx#Cinema` |
 
 ## Grand moment (la scène est choisie par le modèle, l’effet par la direction)
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
-| `accent:punch` | Coup de poing | Zoom bref et éclair de couleur à l’entrée de la scène, son d’impact. | — | — | dir. brutal 2.5, kinetic 2, collage 1.5 | 0 | pure | `video-engine/src/App.tsx#AccentFlash` |
-| `accent:giant` | Titre géant | Le titre de la scène occupe tout le cadre. | — | — | dir. swiss 2, brutal 1.5, drenched 1.5, precision 1, kinetic 1 | 0 | pure | `video-engine/src/scenes.tsx#Headline` |
-| `accent:hold` | Temps suspendu | La scène dure plus longtemps et ses entrées ralentissent : on laisse respirer. | — | — | dir. cinematic 2.5, editorial 2, precision 1 | 0 | pure | `video-engine/src/text.tsx#Kinetic` |
-| `accent:flip` | Bascule de couleur | La scène prend la couleur qui tranche avec ses voisines. | — | — | dir. drenched 2, swiss 1.5, precision 1, editorial 0.5 | 0 | static | `api/services/Communication/video/video.storyboard.ts` |
+| `accent:punch` | Coup de poing | Zoom bref et éclair de couleur à l’entrée de la scène, son d’impact. | — | — | dir. brutal 2.5, kinetic 2, collage 1.5 | 0 | pure | `engine/src/App.tsx#AccentFlash` |
+| `accent:giant` | Titre géant | Le titre de la scène occupe tout le cadre. | — | — | dir. swiss 2, brutal 1.5, drenched 1.5, precision 1, kinetic 1 | 0 | pure | `engine/src/scenes.tsx#Headline` |
+| `accent:hold` | Temps suspendu | La scène dure plus longtemps et ses entrées ralentissent : on laisse respirer. | — | — | dir. cinematic 2.5, editorial 2, precision 1 | 0 | pure | `engine/src/text.tsx#Kinetic` |
+| `accent:flip` | Bascule de couleur | La scène prend la couleur qui tranche avec ses voisines. | — | — | dir. drenched 2, swiss 1.5, precision 1, editorial 0.5 | 0 | static | `src/video/video.storyboard.ts` |
 
 ## Animations du logo
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
-| `logo:classic` | Signature de la direction | Fin propre à la direction (mot-symbole géant, filet suisse, carte de papier, éclat…), logo en image. | — | — | dir. brutal 1.5, collage 1.5, kinetic 1, drenched 1 | 0 | pure | `video-engine/src/scenes.tsx#Logo` |
-| `logo:draw` | Tracé puis remplissage | Les contours du logo vectoriel se tracent, le remplissage monte ensuite. | — | logo SVG, ≥ 1 forme(s), ≤ 40 formes, sans image matricielle | dir. precision 2, editorial 1.5, swiss 1, cinematic 1 · types logo 1.5 · DA minimalism 1, swiss 1, handwritten 1.5 | 0 | pure | `video-engine/src/kit/LogoMotion.tsx#drawPlan` |
-| `logo:trace` | Plume | Une plume parcourt les contours (GSAP DrawSVG + CustomEase « main »), forme après forme. | `addon:gsap` | logo SVG, ≥ 1 forme(s), ≤ 12 formes, sans image matricielle | dir. editorial 2, collage 1.5, precision 1 · DA handwritten 2, bohemian 1.5, retro 1 | 1 | seek | `video-engine/src/kit/LogoMotion.tsx#tracePlan` |
-| `logo:morph` | Point → logo | Un point grossit puis se divise et prend la forme exacte de chaque partie du logo (flubber). | `addon:flubber` | logo SVG, ≥ 1 forme(s), ≤ 16 formes, sans image matricielle, sans dégradé | dir. kinetic 2, drenched 1.5, precision 1, cinematic 0.5 · types logo 1.5, illustrated 1 · DA futuristic 1.5, pop-art 1, clay 1 | 1 | pure | `video-engine/src/kit/LogoMotion.tsx#morphPlan` |
-| `logo:assemble` | Assemblage | Les formes arrivent de directions différentes et s’emboîtent (ressort si la direction rebondit). | — | logo SVG, ≥ 2 forme(s), ≤ 48 formes | dir. collage 2, kinetic 1.5, brutal 1 · DA maximalism 1, collage-art 2, y2k 1 | 0 | pure | `video-engine/src/kit/LogoMotion.tsx#assemblePlan` |
-| `logo:wipe` | Balayage oblique | Une diagonale révèle le logo entier ; accepte tout SVG (texte, image, dégradé). | — | logo SVG | dir. swiss 2, brutal 1.5, cinematic 1, drenched 1 | 0 | pure | `video-engine/src/kit/LogoMotion.tsx#wipePlan` |
-| `logo:split` | Symbole puis nom | Le symbole se pose, le nom de la marque glisse de derrière lui. | — | symbole en image | dir. precision 1, swiss 1, editorial 1, cinematic 1 · obj. opening 1, announce 0.5 | 0 | pure | `video-engine/src/scenes.tsx#Logo` |
-| `logo:extrude` | Logo extrudé en 3D | Le symbole SVG extrudé, lumière de studio et reflet qui balaie la tranche (R3F). | `addon:three` | logo SVG, sans image matricielle, type logo | dir. precision 1, cinematic 1 · types logo 3 | 3 | clock-pinned | `video-engine/src/addons/three.tsx#LogoRig` |
+| `logo:classic` | Signature de la direction | Fin propre à la direction (mot-symbole géant, filet suisse, carte de papier, éclat…), logo en image. | — | — | dir. brutal 1.5, collage 1.5, kinetic 1, drenched 1 | 0 | pure | `engine/src/scenes.tsx#Logo` |
+| `logo:draw` | Tracé puis remplissage | Les contours du logo vectoriel se tracent, le remplissage monte ensuite. | — | logo SVG, ≥ 1 forme(s), ≤ 40 formes, sans image matricielle | dir. precision 2, editorial 1.5, swiss 1, cinematic 1 · types logo 1.5 · DA minimalism 1, swiss 1, handwritten 1.5 | 0 | pure | `engine/src/kit/LogoMotion.tsx#drawPlan` |
+| `logo:trace` | Plume | Une plume parcourt les contours (GSAP DrawSVG + CustomEase « main »), forme après forme. | `addon:gsap` | logo SVG, ≥ 1 forme(s), ≤ 12 formes, sans image matricielle | dir. editorial 2, collage 1.5, precision 1 · DA handwritten 2, bohemian 1.5, retro 1 | 1 | seek | `engine/src/kit/LogoMotion.tsx#tracePlan` |
+| `logo:morph` | Point → logo | Un point grossit puis se divise et prend la forme exacte de chaque partie du logo (flubber). | `addon:flubber` | logo SVG, ≥ 1 forme(s), ≤ 16 formes, sans image matricielle, sans dégradé | dir. kinetic 2, drenched 1.5, precision 1, cinematic 0.5 · types logo 1.5, illustrated 1 · DA futuristic 1.5, pop-art 1, clay 1 | 1 | pure | `engine/src/kit/LogoMotion.tsx#morphPlan` |
+| `logo:assemble` | Assemblage | Les formes arrivent de directions différentes et s’emboîtent (ressort si la direction rebondit). | — | logo SVG, ≥ 2 forme(s), ≤ 48 formes | dir. collage 2, kinetic 1.5, brutal 1 · DA maximalism 1, collage-art 2, y2k 1 | 0 | pure | `engine/src/kit/LogoMotion.tsx#assemblePlan` |
+| `logo:wipe` | Balayage oblique | Une diagonale révèle le logo entier ; accepte tout SVG (texte, image, dégradé). | — | logo SVG | dir. swiss 2, brutal 1.5, cinematic 1, drenched 1 | 0 | pure | `engine/src/kit/LogoMotion.tsx#wipePlan` |
+| `logo:split` | Symbole puis nom | Le symbole se pose, le nom de la marque glisse de derrière lui. | — | symbole en image | dir. precision 1, swiss 1, editorial 1, cinematic 1 · obj. opening 1, announce 0.5 | 0 | pure | `engine/src/scenes.tsx#Logo` |
+| `logo:extrude` | Logo extrudé en 3D | Le symbole SVG extrudé, lumière de studio et reflet qui balaie la tranche (R3F). | `addon:three` | logo SVG, sans image matricielle, type logo | dir. precision 1, cinematic 1 · types logo 3 | 3 | clock-pinned | `engine/src/addons/three.tsx#LogoRig` |
 
 ## Fonds
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
 | `bg:none` | Aucun fond | La surface seule : le choix par défaut des directions sobres (pas de décor par défaut). | — | — | dir. precision 2, cinematic 2, editorial 1.5, swiss 1, drenched 1, brutal 1, kinetic 0.5, collage 0.5 | 0 | static | — |
-| `bg:flow-field` | Lignes de flux | Lignes qui ondulent dans un champ de bruit simplex, aux couleurs de la marque, du côté libre. | `addon:draw` | — | dir. cinematic 1.5, precision 1, drenched 1.5, editorial 0.5 · DA aurora 2, surreal 1.5, futuristic 1, minimalism 0.5 · secteurs water 1.5, eco 1, health 1, internet 1 | 1 | pure | `video-engine/src/kit/Backdrop.tsx#FlowFieldBg` |
-| `bg:sketch-shapes` | Formes au crayon | Cercle, carré, trait et arc de la charte tracés à la main (rough.js), l’un après l’autre. | `addon:draw` | — | dir. collage 2, editorial 1.5, kinetic 1 · DA handwritten 2.5, bohemian 1.5, collage-art 1.5, clay 1 · secteurs education 1.5, book 1, family 1, smile 1 | 1 | pure | `video-engine/src/kit/Backdrop.tsx#SketchShapesBg` |
-| `bg:voronoi` | Mosaïque | Cellules de Voronoï aux couleurs de la charte qui dérivent lentement (d3-delaunay). | `addon:viz` | — | dir. swiss 1, precision 1, drenched 1.5, kinetic 1 · DA vector-art 2, maximalism 1, futuristic 1, pop-art 0.5 · secteurs chart 1, code 1, design 1 | 1 | pure | `video-engine/src/kit/Backdrop.tsx#VoronoiBg` |
-| `bg:flat3d` | Objets 3D plats | Boîte, anneau et sphère en pseudo-3D (Zdog) qui tournent lentement du côté libre, sans WebGL. | `addon:zdog` | — | dir. kinetic 1.5, collage 1, precision 1 · DA clay 2, y2k 1.5, vector-art 1.5, futuristic 1 · secteurs delivery 1.5, rocket 1, store 1, gift 1 | 1 | pure | `video-engine/src/kit/Backdrop.tsx#Flat3DBg` |
-| `bg:dot-grid` | Trame de points | Points réguliers révélés depuis le coin libre. | — | — | dir. swiss 2, precision 1.5 · DA minimalism 1, swiss 1.5, futuristic 1 · secteurs code 1, business 1, chart 1 | 0 | pure | `video-engine/src/kit/Backdrop.tsx#DotGrid` |
-| `bg:halftone` | Demi-teinte | Trame d’imprimerie qui fleurit dans un coin, dérive lente. | — | — | dir. editorial 1.5, collage 2 · DA retro 2, pop-art 2, collage-art 1 · secteurs fashion 1, music 1, book 1 | 0 | pure | `video-engine/src/kit/Backdrop.tsx#Halftone` |
-| `bg:shape-field` | Formes de la marque | Cercles, carrés, anneaux aux couleurs de la charte, groupés du côté libre. | — | — | dir. kinetic 2, collage 1.5 · obj. promotion 1, event 1, opening 1 · DA maximalism 1.5, y2k 1.5, clay 1, pop-art 1 · secteurs family 1, food 0.5, smile 1 | 0 | pure | `video-engine/src/kit/Backdrop.tsx#ShapeField` |
-| `bg:stagger-grid` | Vague en grille | Grille de points qui s’allume en vague depuis le centre (anime.js stagger grid). | `addon:anime` | — | dir. kinetic 1.5, drenched 1.5, precision 0.5 · DA futuristic 2, cyberpunk 1.5 · secteurs code 1.5, internet 1, rocket 1 | 1 | seek | `video-engine/src/kit/Backdrop.tsx#StaggerGrid` |
-| `bg:marquee` | Bandeau du nom | Le nom de la marque en très grand, au trait, qui défile en fond. | — | — | dir. brutal 2, kinetic 1 · obj. promotion 1, event 1 · DA graffiti 1.5, maximalism 1, cyberpunk 1 | 0 | pure | `video-engine/src/kit/Backdrop.tsx#Marquee` |
-| `bg:spotlight` | Halo | Un halo de la couleur d’accent qui glisse lentement. | — | — | dir. cinematic 1, drenched 2 · DA aurora 2, glassmorphism 1 · secteurs beauty 1.5, drink 0.5 | 0 | pure | `video-engine/src/kit/Backdrop.tsx#Spotlight` |
-| `bg:ticks` | Graduations | Graduations de règle sur deux bords : mesure, exactitude. | — | — | dir. precision 2, swiss 1 · DA minimalism 1, futuristic 1 · secteurs tools 1.5, chart 1, health 0.5, business 0.5 | 0 | pure | `video-engine/src/kit/Backdrop.tsx#Ticks` |
+| `bg:flow-field` | Lignes de flux | Lignes qui ondulent dans un champ de bruit simplex, aux couleurs de la marque, du côté libre. | `addon:draw` | — | dir. cinematic 1.5, precision 1, drenched 1.5, editorial 0.5 · DA aurora 2, surreal 1.5, futuristic 1, minimalism 0.5 · secteurs water 1.5, eco 1, health 1, internet 1 | 1 | pure | `engine/src/kit/Backdrop.tsx#FlowFieldBg` |
+| `bg:sketch-shapes` | Formes au crayon | Cercle, carré, trait et arc de la charte tracés à la main (rough.js), l’un après l’autre. | `addon:draw` | — | dir. collage 2, editorial 1.5, kinetic 1 · DA handwritten 2.5, bohemian 1.5, collage-art 1.5, clay 1 · secteurs education 1.5, book 1, family 1, smile 1 | 1 | pure | `engine/src/kit/Backdrop.tsx#SketchShapesBg` |
+| `bg:voronoi` | Mosaïque | Cellules de Voronoï aux couleurs de la charte qui dérivent lentement (d3-delaunay). | `addon:viz` | — | dir. swiss 1, precision 1, drenched 1.5, kinetic 1 · DA vector-art 2, maximalism 1, futuristic 1, pop-art 0.5 · secteurs chart 1, code 1, design 1 | 1 | pure | `engine/src/kit/Backdrop.tsx#VoronoiBg` |
+| `bg:flat3d` | Objets 3D plats | Boîte, anneau et sphère en pseudo-3D (Zdog) qui tournent lentement du côté libre, sans WebGL. | `addon:zdog` | — | dir. kinetic 1.5, collage 1, precision 1 · DA clay 2, y2k 1.5, vector-art 1.5, futuristic 1 · secteurs delivery 1.5, rocket 1, store 1, gift 1 | 1 | pure | `engine/src/kit/Backdrop.tsx#Flat3DBg` |
+| `bg:dot-grid` | Trame de points | Points réguliers révélés depuis le coin libre. | — | — | dir. swiss 2, precision 1.5 · DA minimalism 1, swiss 1.5, futuristic 1 · secteurs code 1, business 1, chart 1 | 0 | pure | `engine/src/kit/Backdrop.tsx#DotGrid` |
+| `bg:halftone` | Demi-teinte | Trame d’imprimerie qui fleurit dans un coin, dérive lente. | — | — | dir. editorial 1.5, collage 2 · DA retro 2, pop-art 2, collage-art 1 · secteurs fashion 1, music 1, book 1 | 0 | pure | `engine/src/kit/Backdrop.tsx#Halftone` |
+| `bg:shape-field` | Formes de la marque | Cercles, carrés, anneaux aux couleurs de la charte, groupés du côté libre. | — | — | dir. kinetic 2, collage 1.5 · obj. promotion 1, event 1, opening 1 · DA maximalism 1.5, y2k 1.5, clay 1, pop-art 1 · secteurs family 1, food 0.5, smile 1 | 0 | pure | `engine/src/kit/Backdrop.tsx#ShapeField` |
+| `bg:stagger-grid` | Vague en grille | Grille de points qui s’allume en vague depuis le centre (anime.js stagger grid). | `addon:anime` | — | dir. kinetic 1.5, drenched 1.5, precision 0.5 · DA futuristic 2, cyberpunk 1.5 · secteurs code 1.5, internet 1, rocket 1 | 1 | seek | `engine/src/kit/Backdrop.tsx#StaggerGrid` |
+| `bg:marquee` | Bandeau du nom | Le nom de la marque en très grand, au trait, qui défile en fond. | — | — | dir. brutal 2, kinetic 1 · obj. promotion 1, event 1 · DA graffiti 1.5, maximalism 1, cyberpunk 1 | 0 | pure | `engine/src/kit/Backdrop.tsx#Marquee` |
+| `bg:spotlight` | Halo | Un halo de la couleur d’accent qui glisse lentement. | — | — | dir. cinematic 1, drenched 2 · DA aurora 2, glassmorphism 1 · secteurs beauty 1.5, drink 0.5 | 0 | pure | `engine/src/kit/Backdrop.tsx#Spotlight` |
+| `bg:ticks` | Graduations | Graduations de règle sur deux bords : mesure, exactitude. | — | — | dir. precision 2, swiss 1 · DA minimalism 1, futuristic 1 · secteurs tools 1.5, chart 1, health 0.5, business 0.5 | 0 | pure | `engine/src/kit/Backdrop.tsx#Ticks` |
 
 ## Annotations du mot mis en valeur
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
 | `annotate:none` | Aucune annotation | Le mot mis en valeur change seulement de couleur. | — | — | dir. precision 2, cinematic 2, swiss 1.5, brutal 1, drenched 1, editorial 0.5 | 0 | static | — |
-| `annotate:marker` | Surligneur | Un trait de surligneur glisse derrière le mot. | — | — | dir. kinetic 1.5, collage 1, editorial 1 · obj. promotion 1 · DA pop-art 1, y2k 1 | 0 | pure | `video-engine/src/kit/Em.tsx` |
-| `annotate:underline` | Soulignement à la main | Un trait de feutre souligne le mot. | — | — | dir. editorial 2, collage 1 · DA handwritten 2, bohemian 1 | 0 | pure | `video-engine/src/kit/Em.tsx` |
-| `annotate:sketch-circle` | Cercle au crayon | Le mot est entouré d’un double trait de crayon (rough.js). | `addon:draw` | — | dir. collage 1.5, editorial 1, kinetic 0.5 · obj. promotion 0.5, event 0.5 · DA handwritten 2, collage-art 1, bohemian 1 | 1 | pure | `video-engine/src/kit/Em.tsx` |
-| `annotate:brush` | Coup de pinceau | Un coup de pinceau à pression variable passe sous le mot (perfect-freehand). | `addon:draw` | — | dir. editorial 1.5, kinetic 1, collage 1, drenched 0.5 · obj. promotion 0.5 · DA handwritten 1.5, bohemian 1.5, retro 1, aurora 0.5 | 1 | pure | `video-engine/src/kit/Em.tsx` |
-| `annotate:circle` | Cercle à la main | Le mot est entouré d’un trait de feutre. | — | — | dir. collage 2, kinetic 1 · obj. promotion 1, event 0.5 · DA handwritten 1.5, collage-art 1.5, retro 1 | 0 | pure | `video-engine/src/kit/Em.tsx` |
+| `annotate:marker` | Surligneur | Un trait de surligneur glisse derrière le mot. | — | — | dir. kinetic 1.5, collage 1, editorial 1 · obj. promotion 1 · DA pop-art 1, y2k 1 | 0 | pure | `engine/src/kit/Em.tsx` |
+| `annotate:underline` | Soulignement à la main | Un trait de feutre souligne le mot. | — | — | dir. editorial 2, collage 1 · DA handwritten 2, bohemian 1 | 0 | pure | `engine/src/kit/Em.tsx` |
+| `annotate:sketch-circle` | Cercle au crayon | Le mot est entouré d’un double trait de crayon (rough.js). | `addon:draw` | — | dir. collage 1.5, editorial 1, kinetic 0.5 · obj. promotion 0.5, event 0.5 · DA handwritten 2, collage-art 1, bohemian 1 | 1 | pure | `engine/src/kit/Em.tsx` |
+| `annotate:brush` | Coup de pinceau | Un coup de pinceau à pression variable passe sous le mot (perfect-freehand). | `addon:draw` | — | dir. editorial 1.5, kinetic 1, collage 1, drenched 0.5 · obj. promotion 0.5 · DA handwritten 1.5, bohemian 1.5, retro 1, aurora 0.5 | 1 | pure | `engine/src/kit/Em.tsx` |
+| `annotate:circle` | Cercle à la main | Le mot est entouré d’un trait de feutre. | — | — | dir. collage 2, kinetic 1 · obj. promotion 1, event 0.5 · DA handwritten 1.5, collage-art 1.5, retro 1 | 0 | pure | `engine/src/kit/Em.tsx` |
 
 ## Bibliothèques d'icônes
 
@@ -278,7 +278,7 @@ graph LR
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
 | `brandmark:none` | Pas de logo pendant la vidéo | Le logo n’apparaît qu’à la signature finale. | — | — | dir. brutal 2, cinematic 2, kinetic 1.5, collage 1.5, drenched 1 · types logo 3, kinetic 1 | 0 | static | — |
-| `brandmark:corner` | Logo discret en coin | Le logo en monochrome (couleur du texte de la scène), sans conteneur, dans le coin que la composition laisse libre ; masqué sur les plans plein cadre. | — | logo SVG | dir. swiss 2, precision 2, editorial 1.5 · types footage 1.5, slideshow 1, product 1, mix 1 · DA minimalism 1, swiss 1.5, editorial 1 | 0 | pure | `video-engine/src/App.tsx#Brandmark` |
+| `brandmark:corner` | Logo discret en coin | Le logo en monochrome (couleur du texte de la scène), sans conteneur, dans le coin que la composition laisse libre ; masqué sur les plans plein cadre. | — | logo SVG | dir. swiss 2, precision 2, editorial 1.5 · types footage 1.5, slideshow 1, product 1, mix 1 · DA minimalism 1, swiss 1.5, editorial 1 | 0 | pure | `engine/src/App.tsx#Brandmark` |
 
 ## Courbes
 
@@ -290,17 +290,17 @@ graph LR
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
-| `postfx:bloom` | Bloom 3D | Halo léger sur les reflets de la scène 3D (premium seulement, coût SwiftShader). | `addon:three` | qualité ≥ premium, scène 3D | dir. cinematic 2, precision 1.5, drenched 1 | 2 | clock-pinned | `video-engine/src/addons/three.tsx#Stage` |
-| `postfx:smaa` | Anticrénelage SMAA | Bords nets de la 3D (posé avec tout effet 3D). | `addon:three` | qualité ≥ hd, scène 3D | — | 1 | clock-pinned | `video-engine/src/addons/three.tsx#Stage` |
+| `postfx:bloom` | Bloom 3D | Halo léger sur les reflets de la scène 3D (premium seulement, coût SwiftShader). | `addon:three` | qualité ≥ premium, scène 3D | dir. cinematic 2, precision 1.5, drenched 1 | 2 | clock-pinned | `engine/src/addons/three.tsx#Stage` |
+| `postfx:smaa` | Anticrénelage SMAA | Bords nets de la 3D (posé avec tout effet 3D). | `addon:three` | qualité ≥ hd, scène 3D | — | 1 | clock-pinned | `engine/src/addons/three.tsx#Stage` |
 
 ## Médias pilotés
 
 | Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |
 |---|---|---|---|---|---|---|---|---|
-| `media:lottie` | Animation Lottie | Lottie intégrée (aux couleurs de la marque) ou importée (.json, .lottie). | `addon:lottie` | scène lottie | — | 1 | seek | `video-engine/src/media.tsx#LottieBox` |
-| `media:rive` | Animation Rive | Fichier .riv importé, joué image par image. | `addon:rive` | média rive | — | 2 | seek | `video-engine/src/media.tsx#RiveBox` |
-| `media:model3d` | Modèle 3D importé | GLB tourné en studio, ombre de contact (R3F + drei). | `addon:three` | média model3d | — | 3 | clock-pinned | `video-engine/src/addons/three.tsx#ModelRig` |
-| `media:cards3d` | Photos en cartes 3D | Photos posées en arc, caméra qui tourne (R3F + drei RoundedBox). | `addon:three` | scène 3D, média images | — | 3 | clock-pinned | `video-engine/src/addons/three.tsx#CardsRig` |
+| `media:lottie` | Animation Lottie | Lottie intégrée (aux couleurs de la marque) ou importée (.json, .lottie). | `addon:lottie` | scène lottie | — | 1 | seek | `engine/src/media.tsx#LottieBox` |
+| `media:rive` | Animation Rive | Fichier .riv importé, joué image par image. | `addon:rive` | média rive | — | 2 | seek | `engine/src/media.tsx#RiveBox` |
+| `media:model3d` | Modèle 3D importé | GLB tourné en studio, ombre de contact (R3F + drei). | `addon:three` | média model3d | — | 3 | clock-pinned | `engine/src/addons/three.tsx#ModelRig` |
+| `media:cards3d` | Photos en cartes 3D | Photos posées en arc, caméra qui tourne (R3F + drei RoundedBox). | `addon:three` | scène 3D, média images | — | 3 | clock-pinned | `engine/src/addons/three.tsx#CardsRig` |
 
 ## Techniques de texte (générées depuis les directions)
 

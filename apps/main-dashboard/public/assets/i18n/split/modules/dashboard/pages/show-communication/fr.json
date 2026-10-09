@@ -632,6 +632,8 @@
           "title": "Mes vidéos",
           "subtitle": "Des vidéos de promotion animées, à vos couleurs, avec musique libre de droits. Prêtes pour WhatsApp, Instagram, TikTok et YouTube.",
           "new": "Nouvelle vidéo",
+          "ivision": "Ouvrir dans iVision",
+          "ivisionHint": "La même création en conversation, avec la charte de ce projet.",
           "formatsCount": "{{count}} format(s)",
           "empty": {
             "title": "Racontez votre marque en vidéo",
@@ -889,8 +891,10 @@
         },
         "texts": {
           "title": "Les textes",
-          "hint": "Modifiez librement, c’est gratuit. L’aperçu se met à jour.",
-          "save": "Mettre à jour l’aperçu"
+          "hint": "Cliquez dans un texte : la vidéo se place à l’instant où il s’affiche et change pendant que vous écrivez. Gratuit.",
+          "save": "Mettre à jour l’aperçu",
+          "replacePhoto": "Remplacer la photo de la scène",
+          "saving": "Enregistrement des retouches…"
         },
         "music": {
           "title": "La musique",

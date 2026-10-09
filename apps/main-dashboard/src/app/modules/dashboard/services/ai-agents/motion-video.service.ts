@@ -114,6 +114,8 @@ export class MotionVideoService {
       scope?: Partial<VideoScope>;
       sfx?: boolean;
       direction?: string;
+      /** Clé de scène → nouvelle photo (URL importée). */
+      images?: Record<string, string>;
     },
   ): Observable<MotionVideo> {
     return this.http.patch<MotionVideo>(`${this.apiUrl}/${projectId}/videos/${videoId}`, patch);

@@ -28,6 +28,10 @@ WORKDIR /app
 # Copy API application
 COPY ./apps/api ./apps/api
 
+# Le moteur créatif partagé avec iVision (vidéos, visuels, scan de site) : compilé avec l'API
+# (imports relatifs) et source du moteur vidéo empaqueté par `build:video-engine`.
+COPY ./apps/ivision/core ./apps/ivision/core
+
 # Prepare directory structure
 WORKDIR /app/apps/api
 

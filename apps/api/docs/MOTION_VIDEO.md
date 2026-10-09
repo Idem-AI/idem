@@ -1,6 +1,6 @@
 # Vidéos de promotion en motion design
 
-Module Communication, écran « Mes vidéos ». Code : `api/services/Communication/video/`.
+Module Communication, écran « Mes vidéos ». Code : moteur partagé avec iVision, `apps/ivision/core/src/video/` (moteur React : `apps/ivision/core/engine/src/`) ; IDEM le branche par `api/services/ivision/host.ts` et `Communication/video/idemVideoStore.ts`.
 
 ## Qui décide : la jauge de créativité
 
@@ -42,7 +42,7 @@ et le remplace par le sien s'il est absent, faux ou inventé.
 | Bonnes pratiques : lecture, tenues, accroche, appel à l'action, signature | code, après les agents | `video.rules.ts` |
 | Charte : palette par surface (contraste AA), polices, logo, surface claire | code | `video.theme.ts` |
 | Direction de motion (8 systèmes) + plan par scène + contrôle anti-réflexe | code | `video.direction.ts` |
-| Scènes, techniques de texte, transitions : composants React pilotés par le temps | code écrit à la main | `apps/api/video-engine/src/*.tsx` |
+| Scènes, techniques de texte, transitions : composants React pilotés par le temps | code écrit à la main | `apps/ivision/core/engine/src/*.tsx` |
 | Rendu : Puppeteer image par image → ffmpeg (H.264 + AAC) | nos serveurs | `video.renderer.ts` |
 
 L'étage du modèle monte avec le cran (`motionVideo.service.ts#tierFor`) : modèle mécanique au
@@ -106,7 +106,7 @@ corrigé, retenu).
 
 ## Moteur React et directions de motion
 
-Le rendu est un moteur React + Tailwind (`apps/api/video-engine`, empaqueté par
+Le rendu est un moteur React + Tailwind (`apps/ivision/core/engine`, empaqueté par
 esbuild dans `public/video-engine/` : runtime React partagé, moteur, et un addon
 par bibliothèque lourde) : chaque scène est un composant, chaque style est une
 **fonction du temps** (`seek(t)` rend l'image t de façon déterministe,

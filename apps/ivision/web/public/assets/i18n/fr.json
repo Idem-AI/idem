@@ -1,0 +1,347 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "close": "Fermer",
+    "back": "Retour",
+    "remove": "Retirer",
+    "logout": "Se déconnecter",
+    "switchLanguage": "Changer de langue",
+    "switchTheme": "Changer de thème"
+  },
+  "errors": {
+    "generic": "Une erreur est survenue. Réessayez dans un instant.",
+    "upload": "Le fichier n’a pas pu être envoyé. Vérifiez son format et sa taille."
+  },
+  "landing": {
+    "home": "Accueil iVision",
+    "nav": "Navigation",
+    "howLink": "Comment ça marche",
+    "openStudio": "Ouvrir l’atelier",
+    "signIn": "Se connecter",
+    "kicker": "Un service IDEM",
+    "title": "Vos visuels et vos vidéos, à votre marque.",
+    "subtitle": "Dites ce que vous voulez annoncer. iVision lit votre site, reprend vos couleurs et vos polices, et crée le visuel ou la vidéo motion design. Montrez une vidéo modèle : il en reproduit les animations, avec vos textes et vos images.",
+    "ctaVideo": "Créer une vidéo",
+    "ctaImage": "Créer un visuel",
+    "account": "Avec votre compte IDEM et vos crédits IDEM : rien de plus à créer.",
+    "demo": {
+      "label": "Exemple de conversation avec iVision",
+      "user": "Une vidéo pour nos soldes de fin d’année, -30 % sur tout",
+      "ask": "Avez-vous une vidéo modèle à reproduire ? J’en reprends les animations et le rythme, avec votre marque.",
+      "addModel": "Ajouter un modèle",
+      "noModel": "Sans modèle",
+      "model": "modele-promo.mp4",
+      "done": "Votre vidéo est prête : les quatre plans du modèle, avec vos textes, vos photos et vos couleurs.",
+      "shots": "Les plans de la vidéo",
+      "frames": {
+        "kicker": "Fin d’année",
+        "hook": "Tout doit partir",
+        "offer": "sur toute la boutique",
+        "when": "Jusqu’au",
+        "date": "31 décembre",
+        "brand": "Kora Café"
+      }
+    },
+    "how": {
+      "title": "Trois gestes, pas un de plus",
+      "site": {
+        "title": "Votre site devient votre charte",
+        "text": "Collez le lien de votre site : iVision en lit les couleurs, les polices, le logo et le ton, puis vous propose trois palettes et trois typographies. Vous choisissez, il s’en souvient."
+      },
+      "model": {
+        "title": "Montrez un modèle, il le reproduit",
+        "text": "Une vidéo ou une affiche qui vous plaît ? Ajoutez-la : iVision en reprend le découpage, les mouvements et la composition — avec vos textes, vos images, votre musique."
+      },
+      "edit": {
+        "title": "Retouchez en direct",
+        "text": "Cliquez sur un texte : la vidéo se place à l’instant où il s’affiche, et change pendant que vous écrivez. Remplacez une photo d’un clic."
+      }
+    },
+    "modes": {
+      "title": "Des visuels, des vidéos — chacun son atelier",
+      "text": "On ne mélange pas : une conversation crée des visuels, une autre des vidéos. Chacune garde ses réglages et son historique.",
+      "image": {
+        "title": "Visuels",
+        "text": "Affiches, publications, stories, bannières : composés au millimètre, contrôlés à l’œil avant d’être livrés."
+      },
+      "video": {
+        "title": "Vidéos motion design",
+        "text": "De 6 à 60 secondes, en story, carré, portrait ou paysage, avec musique libre de droits et effets sonores."
+      }
+    },
+    "credits": {
+      "title": "Le même compte, les mêmes crédits",
+      "text": "iVision utilise votre compte IDEM : mêmes crédits, mêmes prix que dans votre tableau de bord. Importez la charte d’un projet IDEM en un clic.",
+      "cta": "Commencer"
+    },
+    "footer": "Créer et lancer un business rentable",
+    "dashboard": "Tableau de bord"
+  },
+  "studio": {
+    "sidebar": "Atelier",
+    "modes": "Type de création",
+    "video": "Vidéos",
+    "image": "Visuels",
+    "newVideo": "Nouvelle vidéo",
+    "newImage": "Nouveau visuel",
+    "history": "Conversations",
+    "noHistory": "Aucune conversation pour l’instant.",
+    "brands": "Marques",
+    "credits": "{{count}} crédits",
+    "account": "Mon compte",
+    "tabs": "Sections de l’atelier"
+  },
+  "creativity": {
+    "label": "Créativité",
+    "hint": "Plus le cran est haut, plus l’IA décide (et plus le prix monte).",
+    "levels": {
+      "low": "Low ×1",
+      "medium": "Medium ×1",
+      "high": "High ×1,25",
+      "max": "Max ×1,5",
+      "ultra": "Ultra ×2"
+    }
+  },
+  "formats": {
+    "story": "Story 9:16",
+    "square": "Carré 1:1",
+    "portrait": "Portrait 4:5",
+    "landscape": "Paysage 16:9",
+    "post": "Publication 4:5",
+    "banner": "Bannière",
+    "a4": "Affiche A4"
+  },
+  "qualities": {
+    "standard": "Standard (720p)",
+    "hd": "HD (1080p)",
+    "premium": "Premium"
+  },
+  "moods": {
+    "auto": "Automatique",
+    "upbeat": "Entraînante",
+    "afro": "Afro",
+    "calm": "Calme",
+    "epic": "Épique",
+    "corporate": "Institutionnelle",
+    "none": "Sans musique"
+  },
+  "chat": {
+    "newVideo": "Nouvelle vidéo",
+    "newImage": "Nouveau visuel",
+    "thinking": "Je réfléchis…",
+    "brand": {
+      "none": "Choisir une marque",
+      "pick": "Choisir une marque",
+      "empty": "Aucune marque prête.",
+      "add": "Ajouter une marque"
+    },
+    "empty": {
+      "videoTitle": "Quelle vidéo voulez-vous ?",
+      "videoText": "Décrivez l’annonce, le produit ou l’événement. Collez le lien de votre site pour que la vidéo soit à votre marque.",
+      "imageTitle": "Quel visuel voulez-vous ?",
+      "imageText": "Décrivez l’offre, l’annonce ou le message. Collez le lien de votre site pour que le visuel soit à votre marque.",
+      "ideas": {
+        "video1": "Une vidéo de 15 s pour notre promo de la semaine",
+        "video2": "Présenter notre nouveau produit en story",
+        "video3": "Annoncer l’ouverture de notre boutique",
+        "image1": "Une affiche pour nos soldes : -20 % sur tout",
+        "image2": "Une publication pour notre nouveau menu",
+        "image3": "Une story pour annoncer notre événement samedi"
+      }
+    },
+    "attach": {
+      "model": "Modèle",
+      "media": "Fichier",
+      "videoModel": "Ajouter une vidéo modèle",
+      "imageModel": "Ajouter une image modèle",
+      "myMedia": "Ajouter mes photos ou clips",
+      "myPhoto": "Ajouter ma photo",
+      "needBrand": "Choisissez d’abord une marque"
+    },
+    "ask": {
+      "brand": "Pour que le résultat respecte votre marque : collez le lien de votre site, importez un projet IDEM, ou choisissez une marque.",
+      "brandChoice": "J’ai lu votre site. Choisissez la palette et la typographie qui vous ressemblent — je les applique à tout ce que je crée.",
+      "referenceVideo": "Avez-vous une vidéo modèle à reproduire ? J’en reprends les animations et le rythme, avec vos textes, vos images et votre marque.",
+      "referenceImage": "Avez-vous une image modèle ? J’en reprends la composition, avec vos textes, vos couleurs et votre logo.",
+      "what": {
+        "video": "Que doit raconter votre vidéo ? Une offre, un produit, un événement…",
+        "image": "Que doit dire votre visuel ? Une offre, un produit, un événement…"
+      },
+      "pasteSite": "Coller le lien de mon site",
+      "importIdem": "Importer un projet IDEM",
+      "noCharter": "pas de charte",
+      "noProjects": "Aucun projet IDEM.",
+      "addVideoModel": "Ajouter une vidéo modèle",
+      "addImageModel": "Ajouter une image modèle",
+      "recentModels": "Un modèle déjà ajouté",
+      "noModel": "Non, créer librement",
+      "noRecent": "Aucun modèle analysé pour l’instant.",
+      "modelHintVideo": "Je reproduis le découpage, les mouvements et les transitions — jamais la musique, les sons, les images ni les textes du modèle.",
+      "modelHintImage": "Je reproduis la composition — jamais les textes ni les images du modèle."
+    },
+    "result": {
+      "previewTitle": "Aperçu de la vidéo",
+      "watch": "Regarder",
+      "edit": "Retoucher et exporter",
+      "fromReference": "Reproduit d’un modèle en {{shots}} plans.",
+      "download": "Télécharger",
+      "video": "Votre vidéo est prête. Retouchez les textes et les images, puis exportez.",
+      "videoFromReference": "Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez.",
+      "visual": "Voici votre visuel.",
+      "visualFromReference": "Voici votre visuel, composé comme le modèle, à votre marque."
+    },
+    "payment": {
+      "cta": "Recharger mes crédits",
+      "detail": "Cette création coûte {{cost}} crédits ; il vous en reste {{balance}}. Votre demande est gardée : relancez-la après la recharge.",
+      "short": "Vos crédits ne suffisent pas pour cet export."
+    },
+    "progress": {
+      "label": "Étapes de la création",
+      "stages": {
+        "plan": "Plan de la vidéo",
+        "copy": "Textes",
+        "layout": "Mises en page",
+        "media": "Images et clips",
+        "music": "Musique",
+        "sfx": "Effets sonores",
+        "storyboard": "Montage",
+        "animation": "Animations",
+        "critique": "Relecture",
+        "code": "Plans sur mesure",
+        "direction": "Direction du film",
+        "shots": "Plans du film"
+      }
+    },
+    "composer": {
+      "label": "Votre demande",
+      "placeholderVideo": "Décrivez votre vidéo, ou collez le lien de votre site…",
+      "placeholderImage": "Décrivez votre visuel, ou collez le lien de votre site…",
+      "send": "Envoyer"
+    },
+    "options": {
+      "duration": "Durée",
+      "format": "Format",
+      "photo": "Avec photo",
+      "price": "{{cost}} crédits"
+    },
+    "choice": {
+      "palettes": "Palette",
+      "typographies": "Typographie",
+      "sample": "Le texte de vos visuels et de vos vidéos.",
+      "name": "Nom de la marque",
+      "confirm": "Utiliser cette charte",
+      "palette": {
+        "site": "Celle du site",
+        "contrast": "Plus contrastée",
+        "harmony": "Plus harmonieuse"
+      },
+      "paletteWhy": {
+        "site": "Les couleurs relevées sur votre site, telles quelles.",
+        "contrast": "Les mêmes teintes, plus affirmées : lisibles sur mobile et en vidéo.",
+        "harmony": "Votre couleur principale, entourée de teintes voisines calculées pour elle."
+      },
+      "typography": {
+        "site": "Celle du site",
+        "pairing": "Un accord éprouvé",
+        "alternative": "Une alternative"
+      }
+    },
+    "status": {
+      "scan": {
+        "open": "Je visite votre site…",
+        "colors": "Je relève vos couleurs…",
+        "fonts": "Je reconnais vos polices…",
+        "logo": "Je cherche votre logo…",
+        "content": "Je lis vos pages…",
+        "voice": "Je saisis votre ton…",
+        "art": "Je regarde votre direction artistique…",
+        "done": "Lecture terminée.",
+        "copy": "Je garde vos images…"
+      },
+      "reference": {
+        "probe": "J’ouvre le modèle…",
+        "cuts": "Je repère les plans…",
+        "frames": "J’observe chaque plan…",
+        "vision": "Je décris les animations…",
+        "done": "Modèle analysé."
+      },
+      "video": {
+        "start": "Je prépare votre vidéo…"
+      },
+      "visual": {
+        "start": "Je compose votre visuel…"
+      }
+    },
+    "error": {
+      "scan": {
+        "invalid_url": "Ce lien n’est pas valide.",
+        "blocked_url": "Ce site ne peut pas être lu.",
+        "unreachable": "Je n’arrive pas à joindre ce site.",
+        "timeout": "Le site met trop de temps à répondre.",
+        "failed": "Je n’ai pas pu lire ce site. Vérifiez le lien, ou choisissez une marque autrement."
+      },
+      "reference": "Ce modèle n’a pas pu être analysé.",
+      "referenceKind": {
+        "video": "Ce modèle est une image : en mode vidéo, ajoutez une vidéo modèle.",
+        "image": "Ce modèle est une vidéo : en mode visuels, ajoutez une image modèle."
+      },
+      "generation": "La création a échoué. Vos crédits ont été restitués ; vous pouvez relancer.",
+      "payment": "Vos crédits ne suffisent pas pour cette création. Rechargez votre compte IDEM, puis relancez."
+    }
+  },
+  "edit": {
+    "title": "Vidéo",
+    "saving": "Enregistrement…",
+    "saved": "Enregistré",
+    "loadError": "Cette vidéo n’a pas pu être chargée.",
+    "previewFormat": "Format de l’aperçu",
+    "preparingPreview": "Préparation de l’aperçu…",
+    "replacePhoto": "Remplacer la photo",
+    "sound": "Son",
+    "music": "Musique",
+    "sfx": "Effets sonores",
+    "export": "Exporter en MP4",
+    "firstExport": "Le premier export est inclus dans le prix de la vidéo.",
+    "nextExport": "Un nouvel export coûte une fraction du prix de la vidéo.",
+    "formats": "Formats",
+    "quality": "Qualité",
+    "exportCta": "Exporter",
+    "included": "Inclus",
+    "price": "{{cost}} crédits",
+    "rendering": "Rendu en cours — {{percent}} %"
+  },
+  "brands": {
+    "title": "Marques",
+    "subtitle": "Les couleurs, polices, logos et photos que vos créations respectent.",
+    "scan": {
+      "title": "Depuis votre site",
+      "text": "Collez le lien : je lis vos couleurs, vos polices, votre logo et votre ton, puis je vous propose trois palettes et trois typographies.",
+      "label": "Lien de votre site",
+      "cta": "Lire le site"
+    },
+    "other": "Autres sources",
+    "idem": {
+      "title": "Depuis IDEM",
+      "text": "La charte d’un de vos projets IDEM, telle quelle.",
+      "cta": "Voir mes projets"
+    },
+    "manual": {
+      "title": "À la main",
+      "name": "Nom",
+      "color": "Couleur",
+      "cta": "Créer"
+    },
+    "mine": "Mes marques",
+    "source": {
+      "site": "Site lu",
+      "idem": "Projet IDEM",
+      "manual": "Saisie"
+    },
+    "draft": "à valider",
+    "palette": "Palette de la marque",
+    "addPhotos": "Ajouter des photos",
+    "delete": "Supprimer",
+    "confirmDelete": "Confirmer la suppression",
+    "empty": "Aucune marque pour l’instant : lisez votre site pour commencer."
+  }
+}

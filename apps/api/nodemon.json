@@ -1,0 +1,4 @@
+{
+  "watch": ["api", "../ivision/core/src"],
+  "ext": "ts,json"
+}

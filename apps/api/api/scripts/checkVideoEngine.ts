@@ -20,14 +20,14 @@ import path from 'path';
 import axios from 'axios';
 import puppeteer, { Browser } from 'puppeteer';
 import { VideoKit } from '../models/motionVideo.model';
-import { buildVideoEngine, ADDON_IDS, buildEngineCss } from '../services/Communication/video/video.engine';
-import { CAP_BY_ID, CAPABILITIES, KitContext, resolveKit, unmet, applyKitOverrides, assignIcons, capabilityCard } from '../services/Communication/video/video.capabilities';
-import { ICON_CONCEPT_IDS, ICON_CONCEPTS, iconFile, iconSvg, IconSetId } from '../services/Communication/video/video.icons';
-import { analyzeLogo, sanitizeLogoSvg } from '../services/Communication/video/video.logo';
-import { buildVideoTheme } from '../services/Communication/video/video.theme';
-import { buildStoryboard } from '../services/Communication/video/video.storyboard';
-import { composeVideoHtml, inlineAssets } from '../services/Communication/video/video.composer';
-import { DIRECTION_IDS, DirectionId } from '../services/Communication/video/video.direction';
+import { buildVideoEngine, ADDON_IDS, buildEngineCss } from '../../../ivision/core/src/video/video.engine';
+import { CAP_BY_ID, CAPABILITIES, KitContext, resolveKit, unmet, applyKitOverrides, assignIcons, capabilityCard } from '../../../ivision/core/src/video/video.capabilities';
+import { ICON_CONCEPT_IDS, ICON_CONCEPTS, iconFile, iconSvg, IconSetId } from '../../../ivision/core/src/video/video.icons';
+import { analyzeLogo, sanitizeLogoSvg } from '../../../ivision/core/src/video/video.logo';
+import { buildVideoTheme } from '../../../ivision/core/src/video/video.theme';
+import { buildStoryboard } from '../../../ivision/core/src/video/video.storyboard';
+import { composeVideoHtml, inlineAssets } from '../../../ivision/core/src/video/video.composer';
+import { DIRECTION_IDS, DirectionId } from '../../../ivision/core/src/video/video.direction';
 import { brandById } from './fixtures/motion-video/brands';
 import { makePhotos } from './fixtures/motion-video/media';
 
@@ -43,6 +43,8 @@ function check(label: string, ok: boolean, detail = '') {
 const section = (t: string) => console.log(`\n${t}`);
 
 const API_ROOT = path.resolve(__dirname, '../..');
+/** Le moteur partagé iVision : sources du moteur React et implémentations du graphe. */
+const CORE_ROOT = path.resolve(__dirname, '../../../ivision/core');
 
 // ─── 6. Outils de rendu ─────────────────────────────────────────────────────
 
@@ -171,7 +173,7 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
     }
 
     section('2. Tailwind (charte dans les classes)');
-    const css = await buildEngineCss(path.join(API_ROOT, 'video-engine/src'));
+    const css = await buildEngineCss(path.join(CORE_ROOT, 'engine/src'));
     for (const cls of ['.bg-hl-soft', '.text-hl-text', '.font-display', '.rounded-pill']) check(`classe ${cls} compilée`, css.includes(cls));
     check('palette par défaut absente (bg-blue-500, --color-red-500)', !css.includes('.bg-blue-500') && !css.includes('--color-red-500'));
     check('couches dans l’ordre : thème, moteur, utilitaires', css.includes('@layer theme, engine, utilities;'));
@@ -199,11 +201,14 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
     section('5. Graphe de capacités');
     const dangling = CAPABILITIES.flatMap((n) => (n.requires || []).filter((r) => !CAP_BY_ID.has(r)).map((r) => `${n.id}→${r}`));
     check(`${CAPABILITIES.length} nœuds, aucune arête vers un nœud absent`, dangling.length === 0, dangling.join(' '));
-    const impls = CAPABILITIES.filter((n) => n.impl && !n.impl.startsWith('public/')).filter((n) => !fs.existsSync(path.join(API_ROOT, n.impl!.split('#')[0])));
+    const impls = CAPABILITIES.filter((n) => n.impl && !n.impl.startsWith('public/')).filter((n) => !fs.existsSync(path.join(CORE_ROOT, n.impl!.split('#')[0])));
     check('chaque implémentation citée existe', impls.length === 0, impls.map((n) => n.id).join(' '));
-    const pkg = JSON.parse(fs.readFileSync(path.join(API_ROOT, 'package.json'), 'utf8'));
-    const notInstalled = CAPABILITIES.flatMap((n) => n.packages || []).filter((p) => !pkg.dependencies?.[p] && !pkg.devDependencies?.[p]);
-    check('chaque paquet cité est installé', notInstalled.length === 0, notInstalled.join(' '));
+    // Le moteur partagé déclare ses paquets ; l'API IDEM, qui l'exécute dans son processus, les installe aussi.
+    const pkgOf = (root: string) => JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+    const [corePkg, apiPkg] = [pkgOf(CORE_ROOT), pkgOf(API_ROOT)];
+    const declared = (pkg: any, p: string) => !!(pkg.dependencies?.[p] || pkg.devDependencies?.[p]);
+    const notInstalled = CAPABILITIES.flatMap((n) => n.packages || []).filter((p) => !declared(corePkg, p) || !declared(apiPkg, p));
+    check('chaque paquet cité est déclaré par le moteur partagé et installé par l’API IDEM', notInstalled.length === 0, notInstalled.join(' '));
 
     const ctxFor = (over: Partial<KitContext>): KitContext => ({
       type: 'promo',

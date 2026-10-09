@@ -22,11 +22,11 @@ import { CREATIVITY_LEVELS, CREATIVITY_MULTIPLIER, creativityCost, normalizeCrea
 import { CreativeOrchestrator, AgentCall } from '../services/creativity/orchestrator';
 import { createRunBudget } from '../services/agents/run-budget';
 import { pickOption, agentLines } from '../services/creativity/agent-io';
-import { compileSceneCode, extractCode, inspectRenderedScene, lintSceneCode, visibleTexts } from '../services/Communication/video/video.coder';
-import { buildStoryboard } from '../services/Communication/video/video.storyboard';
-import { composeVideoHtml, contentSecurityPolicy, inlineAssets } from '../services/Communication/video/video.composer';
-import { buildVideoTheme } from '../services/Communication/video/video.theme';
-import { closeRenderBrowser, withRenderPage } from '../services/Communication/video/video.renderer';
+import { compileSceneCode, extractCode, inspectRenderedScene, lintSceneCode, visibleTexts } from '../../../ivision/core/src/video/video.coder';
+import { buildStoryboard } from '../../../ivision/core/src/video/video.storyboard';
+import { composeVideoHtml, contentSecurityPolicy, inlineAssets } from '../../../ivision/core/src/video/video.composer';
+import { buildVideoTheme } from '../../../ivision/core/src/video/video.theme';
+import { closeRenderBrowser, withRenderPage } from '../../../ivision/core/src/video/video.renderer';
 import { BUSINESS_CREDIT_COSTS } from '../models/billing.model';
 import { brandById } from './fixtures/motion-video/brands';
 import { makePhotos } from './fixtures/motion-video/media';

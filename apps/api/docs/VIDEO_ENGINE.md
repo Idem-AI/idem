@@ -106,7 +106,7 @@ kit** en fonctions du temps, aux couleurs de la charte.
 
 ## 4. Tailwind : la charte dans les classes
 
-`video-engine/src/tailwind.css`, compilé par `buildEngineCss` à partir des classes réellement écrites dans les sources.
+`apps/ivision/core/engine/src/tailwind.css`, compilé par `buildEngineCss` à partir des classes réellement écrites dans les sources.
 
 - **Palette par défaut retirée** (`--color-*: initial`) : `bg-blue-500` n'existe pas. Seules existent
   - les couleurs de la surface courante, qui changent à chaque scène : `bg`, `ink`, `muted`, `hl`, `hl-ink`,
@@ -121,7 +121,7 @@ kit** en fonctions du temps, aux couleurs de la charte.
   construire (cas vécu : `.list-item`, que Tailwind redéfinit en `display: list-item`).
 - Classes écrites en entier dans le code (pas de `bg-${x}`), sinon Tailwind ne les voit pas.
 
-## 5. Le kit (`video-engine/src/kit/`)
+## 5. Le kit (`apps/ivision/core/engine/src/kit/`)
 
 | Composant | Rôle | Nœuds du graphe |
 |---|---|---|
@@ -180,9 +180,9 @@ dans le texte l'emporte : « Qualité garantie » donne `quality`, pas `secure`)
 
 1. Installer le paquet dans `apps/api`, vérifier qu'il se pilote à un instant t (sinon : fonctions pures seulement,
    ou l'écarter et l'ajouter à `EXCLUDED_LIBRARIES`).
-2. Lourd ? Créer `video-engine/src/addons/<id>.ts` qui appelle `registerAddon`, ajouter `<id>` à `ADDON_IDS`
+2. Lourd ? Créer `apps/ivision/core/engine/src/addons/<id>.ts` qui appelle `registerAddon`, ajouter `<id>` à `ADDON_IDS`
    (`video.engine.ts`) et son type à `shared.ts`.
-3. Écrire le composant dans `video-engine/src/kit/` (Tailwind, jetons de surface, fonction du temps).
+3. Écrire le composant dans `apps/ivision/core/engine/src/kit/` (Tailwind, jetons de surface, fonction du temps).
 4. Déclarer le nœud dans `video.capabilities.ts` : `requires`, `when`, `suits`, `cost`, `determinism`, `impl`.
 5. Pour que les codeurs du cran Ultra s'en servent : l'exporter dans `kit-api.ts`, ajouter son nom à `KIT_NAMES` et,
    s'il dépend d'un addon, à `KIT_ADDONS` (`video.coder.ts`), puis le décrire dans `KIT_MANIFEST`.
@@ -417,7 +417,7 @@ vidéo passe par le pipeline des menus avec les étages du cran Ultra (comme Max
 
 ## 15. Mises en page et transitions
 
-**Mises en page** (`video-engine/src/layouts.tsx`, catalogue `video.layouts.ts`) : pile de mots (affiche
+**Mises en page** (`apps/ivision/core/engine/src/layouts.tsx`, catalogue `video.layouts.ts`) : pile de mots (affiche
 typographique, lignes pleines et en contour), mot géant défilant derrière le titre, chiffre géant qui remplit le
 cadre (jamais rogné), bandeau diagonal, cercle de la marque (photo, chiffre ou symbole, anneau qui tourne), deux blocs de couleur,
 cartes superposées qui flottent, grille de cartes (le regard passe de case en case), liste cochée (coches tracées,
@@ -464,7 +464,7 @@ cœur du manifeste (contrat, données de la scène, couleurs, texte, mouvement, 
 ce motif (`scopedKitManifest`) : ≈ 1 170 tokens pour un plan typographique au lieu de 1 710, à chaque tour. Sans
 motif reconnu, le manifeste complet. Le lint, lui, accepte toujours tout le kit.
 
-**Ce que le codeur peut importer** : `react` et `@idem/kit` (`video-engine/src/kit-api.ts`, décrit au codeur par
+**Ce que le codeur peut importer** : `react` et `@idem/kit` (`apps/ivision/core/engine/src/kit-api.ts`, décrit au codeur par
 `KIT_MANIFEST`) :
 
 | Famille | Exports |

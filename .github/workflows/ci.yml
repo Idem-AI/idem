@@ -34,6 +34,7 @@ jobs:
       ideploy: ${{ steps.filter.outputs.ideploy }}
       ideploy-api: ${{ steps.filter.outputs.ideploy-api }}
       ideploy-web: ${{ steps.filter.outputs.ideploy-web }}
+      ivision: ${{ steps.filter.outputs.ivision }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -71,6 +72,10 @@ jobs:
             ideploy-web:
               - 'apps/ideploy-web/**'
               - 'packages/shared-models/**'
+            ivision:
+              - 'apps/ivision/**'
+              - 'packages/shared-video-editor/**'
+              - 'packages/shared-models/**'
 
   # ==========================
   # Quality checks
@@ -88,7 +93,8 @@ jobs:
       needs.detect-changes.outputs.appgen == 'true' ||
       needs.detect-changes.outputs.packages == 'true' ||
       needs.detect-changes.outputs.ideploy-api == 'true' ||
-      needs.detect-changes.outputs.ideploy-web == 'true'
+      needs.detect-changes.outputs.ideploy-web == 'true' ||
+      needs.detect-changes.outputs.ivision == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -126,6 +132,11 @@ jobs:
       - name: Typecheck iDeploy Web
         if: needs.detect-changes.outputs.ideploy-web == 'true'
         run: npm run typecheck:ideploy-web
+
+      # Le moteur partagé, l'API et le front d'iVision (l'API IDEM compile aussi le moteur).
+      - name: Typecheck iVision (core, API, web)
+        if: needs.detect-changes.outputs.ivision == 'true'
+        run: npm run typecheck:ivision
 
   # ==========================
   # Summary

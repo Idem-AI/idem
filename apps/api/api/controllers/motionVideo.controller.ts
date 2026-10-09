@@ -8,26 +8,25 @@ import {
   MUSIC_MOODS,
   MotionStyle,
   MusicMood,
-  VIDEO_OBJECTIVES,
   VideoFormat,
 } from '../models/motionVideo.model';
 import { CommunicationService } from '../services/Communication/communication.service';
-import { MotionVideoService, VideoInputError } from '../services/Communication/video/motionVideo.service';
-import { normalizeScope, pricingTable, videoCost } from '../services/Communication/video/video.pricing';
-import { SCENES } from '../services/Communication/video/video.scenes';
-import { TYPE_DEFS } from '../services/Communication/video/video.types';
-import { DIRECTION_IDS } from '../services/Communication/video/video.direction';
-import { CAPABILITIES } from '../services/Communication/video/video.capabilities';
-import { MediaInputError } from '../services/Communication/video/video.media';
-import { resolvePublicSound } from '../services/Communication/video/video.sfx';
+import { MotionVideoService, VideoInputError } from '../../../ivision/core/src/video/motionVideo.service';
+import { normalizeScope, videoCost } from '../../../ivision/core/src/video/video.pricing';
+import { videoOptions } from '../../../ivision/core/src/video/video.options';
+import { MediaInputError } from '../../../ivision/core/src/video/video.media';
+import { resolvePublicSound } from '../../../ivision/core/src/video/video.sfx';
 import { VIDEO_TYPES, VideoType } from '../models/motionVideo.model';
 import { PromptService } from '../services/prompt.service';
+import '../services/ivision/host';
+import { IdemVideoStore } from '../services/Communication/video/idemVideoStore';
 import { StorageService } from '../services/storage.service';
 import { getRequestLanguage } from '../utils/request-language';
 import { refundRequestCredits } from '../middleware/billing.middleware';
 
 const communicationService = new CommunicationService(new PromptService());
-export const motionVideoService = new MotionVideoService(communicationService);
+// Le service vidéo est celui du moteur partagé iVision ; IDEM lui donne ses projets.
+export const motionVideoService = new MotionVideoService(new IdemVideoStore(communicationService));
 const storage = new StorageService();
 
 function ids(req: CustomRequest, res: Response): { userId: string; projectId: string } | null {
@@ -73,25 +72,9 @@ export const enhanceVideoRequestController = async (req: CustomRequest, res: Res
 /** Type demandé : un des types, ou « auto » (le modèle choisit). */
 const videoTypeOf = (raw: unknown): VideoType | 'auto' | undefined => (raw === 'auto' ? 'auto' : VIDEO_TYPES.includes(raw as VideoType) ? (raw as VideoType) : undefined);
 
-/** GET /project/communication/:projectId/videos/options */
+/** GET /project/communication/:projectId/videos/options — la même description qu'iVision (moteur partagé). */
 export const videoOptionsController = async (_req: CustomRequest, res: Response): Promise<void> => {
-  res.json({
-    pricing: pricingTable(),
-    objectives: VIDEO_OBJECTIVES,
-    moods: MUSIC_MOODS,
-    styles: ['auto', ...MOTION_STYLES],
-    directions: ['auto', ...DIRECTION_IDS],
-    // Les choix du kit (graphe de capacités) : la vidéo dit lesquels sont possibles pour elle.
-    kit: Object.fromEntries(
-      (['logo', 'background', 'annotate', 'icons'] as const).map((kind) => [kind, CAPABILITIES.filter((n) => n.kind === kind).map((n) => ({ id: n.id.split(':')[1], label: n.label }))])
-    ),
-    // Les types de motion proposés à la création, avec ce dont ils ont besoin.
-    types: VIDEO_TYPES.map((id) => ({ id, icon: TYPE_DEFS[id].icon, style: TYPE_DEFS[id].style, needs: TYPE_DEFS[id].needs, durations: TYPE_DEFS[id].durations })),
-    // Les cases de chaque scène et leur longueur maximale : l'éditeur de textes les borne.
-    scenes: Object.fromEntries(
-      Object.values(SCENES).map((scene) => [scene.id, scene.slots.map(({ key, max, required }) => ({ key, max, required: !!required }))])
-    ),
-  });
+  res.json(videoOptions());
 };
 
 /** GET /project/communication/:projectId/videos */
@@ -162,6 +145,7 @@ export const updateVideoController = async (req: CustomRequest, res: Response): 
       sfx: typeof body.sfx === 'boolean' ? body.sfx : undefined,
       direction: typeof body.direction === 'string' ? body.direction : undefined,
       kit: body.kit && typeof body.kit === 'object' ? pickKit(body.kit) : undefined,
+      images: body.images && typeof body.images === 'object' ? body.images : undefined,
     });
     if (!video) {
       res.status(404).json({ message: 'Video not found' });

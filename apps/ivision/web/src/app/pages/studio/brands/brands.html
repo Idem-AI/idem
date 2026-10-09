@@ -1,0 +1,132 @@
+<div class="custom-scrollbar h-full overflow-y-auto">
+  <div class="mx-auto max-w-5xl px-4 py-6">
+    <h1 class="text-2xl font-semibold tracking-tight">{{ 'brands.title' | translate }}</h1>
+    <p class="mt-1 text-[var(--color-text-secondary)]">{{ 'brands.subtitle' | translate }}</p>
+
+    <!-- Trois façons d'ajouter une marque. -->
+    <div class="mt-6 grid gap-4 lg:grid-cols-3">
+      <section class="glass-card p-5 lg:col-span-2" [attr.aria-label]="'brands.scan.title' | translate">
+        <div class="flex items-start gap-4">
+          <iv-illustration class="h-16 w-16 shrink-0 text-[var(--color-text-secondary)]" kind="stamp" />
+          <div class="min-w-0 flex-1">
+            <h2 class="font-semibold">{{ 'brands.scan.title' | translate }}</h2>
+            <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ 'brands.scan.text' | translate }}</p>
+            <form class="mt-3 flex flex-wrap gap-2" (submit)="$event.preventDefault(); scan()">
+              <label class="sr-only" for="iv-site">{{ 'brands.scan.label' | translate }}</label>
+              <input id="iv-site" type="url" class="!min-w-0 flex-1" placeholder="https://" [value]="url()" (input)="url.set($any($event.target).value)" [disabled]="scanning()" />
+              <button type="submit" class="inner-button button-sm" [disabled]="scanning() || url().trim().length < 4">
+                @if (scanning()) { <idem-loader size="xs" /> }
+                {{ 'brands.scan.cta' | translate }}
+              </button>
+            </form>
+            @if (scanStep(); as step) {
+              <p class="mt-2 flex items-center gap-2 text-sm text-[var(--color-text-secondary)]" role="status"><idem-loader size="xs" /> {{ step }}</p>
+            }
+            @if (scanError(); as e) {
+              <p class="mt-2 text-sm text-[var(--color-danger)]" role="alert">{{ e }}</p>
+            }
+            @if (draft(); as d) {
+              <iv-brand-choice [brand]="d" (chosen)="chosen($event)" />
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="glass-card flex flex-col gap-4 p-5" [attr.aria-label]="'brands.other' | translate">
+        <div>
+          <h2 class="font-semibold">{{ 'brands.idem.title' | translate }}</h2>
+          <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ 'brands.idem.text' | translate }}</p>
+          @if (projects(); as list) {
+            <ul class="mt-2 flex flex-col gap-1">
+              @for (p of list; track p.id) {
+                <li>
+                  <button type="button" class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-[var(--glass-bg-light)] disabled:opacity-50" [disabled]="!p.hasBrand || !!importing()" (click)="importProject(p.id)">
+                    <span class="h-3 w-3 rounded" [style.background]="p.primary || 'var(--color-surface-3)'" aria-hidden="true"></span>
+                    <span class="flex-1 truncate">{{ p.name }}</span>
+                    @if (importing() === p.id) { <idem-loader size="xs" /> }
+                  </button>
+                </li>
+              } @empty {
+                <li class="text-sm text-[var(--color-text-tertiary)]">{{ 'chat.ask.noProjects' | translate }}</li>
+              }
+            </ul>
+          } @else {
+            <button type="button" class="outer-button button-sm mt-2" (click)="loadProjects()">{{ 'brands.idem.cta' | translate }}</button>
+          }
+        </div>
+        <form class="border-t border-[var(--glass-border-subtle)] pt-4" (submit)="$event.preventDefault(); createManual()">
+          <h2 class="font-semibold">{{ 'brands.manual.title' | translate }}</h2>
+          <div class="mt-2 flex items-end gap-2">
+            <label class="!flex min-w-0 flex-1 flex-col gap-1 text-sm !mb-0">
+              <span>{{ 'brands.manual.name' | translate }}</span>
+              <input type="text" maxlength="80" [value]="manualName()" (input)="manualName.set($any($event.target).value)" />
+            </label>
+            <label class="!flex flex-col gap-1 text-sm !mb-0">
+              <span>{{ 'brands.manual.color' | translate }}</span>
+              <input type="color" class="!h-10 !w-12 !p-1" [value]="manualColor()" (input)="manualColor.set($any($event.target).value)" />
+            </label>
+          </div>
+          <button type="submit" class="outer-button button-sm mt-3" [disabled]="creating() || !manualName().trim()">
+            @if (creating()) { <idem-loader size="xs" /> }
+            {{ 'brands.manual.cta' | translate }}
+          </button>
+        </form>
+      </section>
+    </div>
+
+    <!-- Les marques. -->
+    <h2 class="mt-10 text-lg font-semibold">{{ 'brands.mine' | translate }}</h2>
+    @if (!state.brandsLoaded()) {
+      <div class="mt-4 grid gap-4 md:grid-cols-2">
+        <div class="skeleton h-40 rounded-2xl"></div>
+        <div class="skeleton h-40 rounded-2xl"></div>
+      </div>
+    } @else {
+      <div class="mt-4 grid gap-4 md:grid-cols-2">
+        @for (b of state.brands(); track b.id) {
+          <article class="glass-card p-5" (mouseenter)="fontsOf(b)" (focusin)="fontsOf(b)">
+            <header class="flex items-center gap-3">
+              @if (b.logoUrl) {
+                <img [src]="b.logoUrl" alt="" class="h-10 w-10 rounded-lg border border-[var(--glass-border-subtle)] object-contain p-1" />
+              }
+              <div class="min-w-0 flex-1">
+                <h3 class="truncate font-semibold" [style.font-family]="quote(b.fonts.display)">{{ b.name }}</h3>
+                <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'brands.source.' + b.source | translate }}@if (b.status === 'draft') { · {{ 'brands.draft' | translate }} }</p>
+              </div>
+            </header>
+            <div class="mt-4 flex h-7 overflow-hidden rounded-lg border border-[var(--glass-border-subtle)]" [attr.aria-label]="'brands.palette' | translate" role="img">
+              @for (role of roles; track role) {
+                @if (b.palette[role]) { <span class="flex-1" [style.background]="b.palette[role]" [attr.title]="role + ' ' + b.palette[role]"></span> }
+              }
+            </div>
+            <p class="mt-3 text-sm text-[var(--color-text-secondary)]">
+              <span [style.font-family]="quote(b.fonts.display)">{{ b.fonts.display || '—' }}</span> · <span [style.font-family]="quote(b.fonts.body)">{{ b.fonts.body || '—' }}</span>
+            </p>
+            @if (b.photos.length) {
+              <div class="mt-3 flex gap-1.5 overflow-hidden">
+                @for (p of b.photos.slice(0, 6); track p) {
+                  <img [src]="p" alt="" class="h-12 w-12 shrink-0 rounded-md object-cover" loading="lazy" />
+                }
+              </div>
+            }
+            <div class="mt-4 flex flex-wrap gap-2">
+              <label class="outer-button button-sm cursor-pointer">
+                @if (uploading() === b.id) { <idem-loader size="xs" /> } @else { <i class="pi pi-images" aria-hidden="true"></i> }
+                {{ 'brands.addPhotos' | translate }}
+                <input type="file" class="sr-only" multiple accept="image/jpeg,image/png,image/webp" (change)="addPhotos(b, $event)" />
+              </label>
+              <button type="button" class="button-ghost button-sm" (click)="remove(b)">
+                {{ (confirmDelete() === b.id ? 'brands.confirmDelete' : 'brands.delete') | translate }}
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="col-span-full flex flex-col items-center py-10 text-center">
+            <iv-illustration class="h-24 w-24 text-[var(--color-text-secondary)]" kind="calabash" />
+            <p class="mt-3 text-[var(--color-text-secondary)]">{{ 'brands.empty' | translate }}</p>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

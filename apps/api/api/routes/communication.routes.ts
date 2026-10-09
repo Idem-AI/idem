@@ -51,7 +51,7 @@ import {
   videoOptionsController,
   enhanceVideoRequestController,
 } from '../controllers/motionVideo.controller';
-import { normalizeScope, videoCost } from '../services/Communication/video/video.pricing';
+import { normalizeScope, videoCost } from '../../../ivision/core/src/video/video.pricing';
 import multer from 'multer';
 import { authenticate } from '../services/auth.service';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';

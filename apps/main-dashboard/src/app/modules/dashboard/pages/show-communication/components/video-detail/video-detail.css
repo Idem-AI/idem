@@ -83,6 +83,13 @@
   gap: 1rem;
 }
 
+/* Sous l'éditeur : les réglages en cartes, côte à côte quand la largeur le permet. */
+.vd-side--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  align-items: start;
+}
+
 .vd-card {
   padding: 1rem 1.1rem;
 }

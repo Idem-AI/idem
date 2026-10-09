@@ -38,29 +38,31 @@ process.env.RENDER_ALLOWED_HOSTS = '127.0.0.1,localhost';
 process.env.VIDEO_ALLOW_FILE_URLS = '1';
 
 import { MotionVideo, VideoBrief } from '../models/motionVideo.model';
-import { exportCost, normalizeScope, videoCost, VIDEO_PRICING } from '../services/Communication/video/video.pricing';
+import { exportCost, normalizeScope, videoCost, VIDEO_PRICING } from '../../../ivision/core/src/video/video.pricing';
 import { BUSINESS_CREDIT_COSTS } from '../models/billing.model';
-import { extractFacts, fitLength, isGrounded, parseCopy, copyPlan, writeCopy, buildCopyPrompt, estimateTokens } from '../services/Communication/video/video.copy';
-import { planScenes, RECIPES } from '../services/Communication/video/video.recipes';
-import { allocateDurations, buildStoryboard, snapToBeats, retime } from '../services/Communication/video/video.storyboard';
-import { buildVideoTheme } from '../services/Communication/video/video.theme';
+import { extractFacts, fitLength, isGrounded, parseCopy, copyPlan, writeCopy, buildCopyPrompt, estimateTokens } from '../../../ivision/core/src/video/video.copy';
+import { planScenes, RECIPES } from '../../../ivision/core/src/video/video.recipes';
+import { allocateDurations, buildStoryboard, snapToBeats, retime } from '../../../ivision/core/src/video/video.storyboard';
+import { buildVideoTheme } from '../../../ivision/core/src/video/video.theme';
 import { contrastRatio } from '../services/design/color';
-import { analyzeTrack, pickExcerptStart } from '../services/Communication/video/video.beats';
-import { licenseFromUrl, pickTrack, registerLocalTracks, searchMusic, MUSIC_PROVIDERS, openverseProvider, ccmixterProvider } from '../services/Communication/video/video.music';
-import { composeVideoHtml, inlineAssets, frameSpec } from '../services/Communication/video/video.composer';
-import { closeRenderBrowser, probe } from '../services/Communication/video/video.renderer';
-import { MotionVideoService, drainRenderQueue } from '../services/Communication/video/motionVideo.service';
-import { SCENES } from '../services/Communication/video/video.scenes';
+import { analyzeTrack, pickExcerptStart } from '../../../ivision/core/src/video/video.beats';
+import { licenseFromUrl, pickTrack, registerLocalTracks, searchMusic, MUSIC_PROVIDERS, openverseProvider, ccmixterProvider } from '../../../ivision/core/src/video/video.music';
+import { composeVideoHtml, inlineAssets, frameSpec } from '../../../ivision/core/src/video/video.composer';
+import { closeRenderBrowser, probe } from '../../../ivision/core/src/video/video.renderer';
+import { IdemVideoStore } from '../services/Communication/video/idemVideoStore';
+import { configureCore } from '../../../ivision/core/src/runtime/host';
+import { MotionVideoService, drainRenderQueue } from '../../../ivision/core/src/video/motionVideo.service';
+import { SCENES } from '../../../ivision/core/src/video/video.scenes';
 import { BRANDS, brandById } from './fixtures/motion-video/brands';
 import { CASES, simulateAgent, simulateCoder, simulateModel, VideoCase } from './fixtures/motion-video/cases';
 import { CreativityLevel } from '../models/creativity.model';
-import { TRANSITION_IDS } from '../services/Communication/video/video.direction';
+import { TRANSITION_IDS } from '../../../ivision/core/src/video/video.direction';
 import { makeMusic, makePhotos, SYNTH_TRACKS } from './fixtures/motion-video/media';
-import { planTypeScenes, TYPE_DEFS } from '../services/Communication/video/video.types';
-import { expandConcept, pickConcept } from '../services/Communication/video/video.concepts';
-import { builtinLottie, BUILTIN_LOTTIES } from '../services/Communication/video/video.lottie';
-import { detectKind, processUpload, validateLottie } from '../services/Communication/video/video.media';
-import { refineCues, sfxLibrary, SFX_SPECS } from '../services/Communication/video/video.sfx';
+import { planTypeScenes, TYPE_DEFS } from '../../../ivision/core/src/video/video.types';
+import { expandConcept, pickConcept } from '../../../ivision/core/src/video/video.concepts';
+import { builtinLottie, BUILTIN_LOTTIES } from '../../../ivision/core/src/video/video.lottie';
+import { detectKind, processUpload, validateLottie } from '../../../ivision/core/src/video/video.media';
+import { refineCues, sfxLibrary, SFX_SPECS } from '../../../ivision/core/src/video/video.sfx';
 import { VIDEO_TYPES, SFX_KINDS } from '../models/motionVideo.model';
 import { starsLottie, makeBottleGlb } from './fixtures/motion-video/examples';
 
@@ -483,8 +485,10 @@ async function main() {
   const server = await servePhotos(photos);
   const fake = new FakeCommunication();
   let currentCase: VideoCase = CASES[0];
+  // Le stockage d'objets du moteur partagé : des fichiers locaux.
+  configureCore({ storage: fakeStorage });
   const service = new MotionVideoService(
-    fake as any,
+    new IdemVideoStore(fake as any),
     () => (system, user) => simulateModel(currentCase)(system, user),
     // Les agents : même comportement simulé que la copie (propre, désordre, invention, vide, panne).
     () => (system, user) => simulateAgent(currentCase.behaviour, system, user),

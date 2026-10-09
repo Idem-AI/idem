@@ -1,6 +1,6 @@
 # Observability — logs, Grafana and alerts
 
-The three back ends (`idem-api`, `ideploy-api`, `appgen`) write one JSON line per event. Grafana Alloy ships those lines to Loki, Grafana displays them, and Grafana e-mails the team when something critical happens.
+The back ends (`idem-api`, `ideploy-api`, `appgen`, `ivision-api`) write one JSON line per event. Grafana Alloy ships those lines to Loki, Grafana displays them, and Grafana e-mails the team when something critical happens.
 
 This document covers the whole process: the log format, how to write logs, how to debug with Grafana, what to do when an alert arrives, and how the stack runs in production.
 
@@ -10,15 +10,16 @@ This document covers the whole process: the log format, how to write logs, how t
 │ idem-api     │ ───────────────────► │       │ ◄────────────────────────────── │       │
 │ ideploy-api  │ ───────────────────► │ Alloy │ ──► Loki ──► Grafana ──► SMTP ──► e-mail
 │ appgen       │ ───────────────────► │       │                                 │       │
+│ ivision-api  │ ───────────────────► │       │                                 │       │
 └──────────────┘                      └───────┘                                 └───────┘
 ```
 
 | What | Where |
 | --- | --- |
-| Log format (three identical copies, checked by CI) | `apps/api/api/config/log-format.ts`, `apps/ideploy-api/api/config/log-format.ts`, `apps/appgen/apps/we-dev-next/src/config/log-format.ts` |
+| Log format (identical copies, checked by CI) | `apps/api/api/config/log-format.ts`, `apps/ideploy-api/api/config/log-format.ts`, `apps/appgen/apps/we-dev-next/src/config/log-format.ts`, `apps/ivision/api/src/config/log-format.ts` |
 | Logger of each service | `config/logger.ts` in each service |
-| Request context (`requestId`, user, job) | `utils/trace.util.ts` (api, ideploy-api), `src/utils/trace.ts` (appgen) |
-| HTTP logging | `middleware/request-trace.middleware.ts` (api, ideploy-api), `src/middleware/requestTrace.ts` (appgen) |
+| Request context (`requestId`, user, job) | `utils/trace.util.ts` (api, ideploy-api, ivision-api), `src/utils/trace.ts` (appgen) |
+| HTTP logging | `middleware/request-trace.middleware.ts` (api, ideploy-api, ivision-api), `src/middleware/requestTrace.ts` (appgen) |
 | Local stack | `infra/observability/docker-compose.yml` |
 | Production stack | `infra/observability/docker-compose.prod.yml` |
 | Collection | `infra/observability/alloy/config.alloy` (files, local), `config.prod.alloy` (Docker stdout, production) |

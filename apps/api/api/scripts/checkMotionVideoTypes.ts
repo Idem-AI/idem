@@ -24,10 +24,12 @@ import axios from 'axios';
 import { spawnSync } from 'child_process';
 import { loadSecrets } from '../config/secrets';
 import { MotionVideo } from '../models/motionVideo.model';
-import { MotionVideoService, drainRenderQueue } from '../services/Communication/video/motionVideo.service';
-import { closeRenderBrowser, probe } from '../services/Communication/video/video.renderer';
-import { videoCost } from '../services/Communication/video/video.pricing';
-import { sfxLibrary } from '../services/Communication/video/video.sfx';
+import { IdemVideoStore } from '../services/Communication/video/idemVideoStore';
+import { configureCore } from '../../../ivision/core/src/runtime/host';
+import { MotionVideoService, drainRenderQueue } from '../../../ivision/core/src/video/motionVideo.service';
+import { closeRenderBrowser, probe } from '../../../ivision/core/src/video/video.renderer';
+import { videoCost } from '../../../ivision/core/src/video/video.pricing';
+import { sfxLibrary } from '../../../ivision/core/src/video/video.sfx';
 import { BRANDS, brandById } from './fixtures/motion-video/brands';
 import { EXAMPLES, ExampleCase, makeBottleGlb, starsLottie, VEO_EXAMPLE } from './fixtures/motion-video/examples';
 import { simulateModel } from './fixtures/motion-video/cases';
@@ -158,9 +160,8 @@ async function main() {
 
   const fake = new FakeCommunication();
   let current: ExampleCase = cases[0];
-  const service = new MotionVideoService(fake as any, () => (system, user) => simulateModel({ ...current, behaviour: 'clean' } as any)(system, user));
-  (service as any).storage = fakeStorage;
-  (service as any).mediaStorage = () => fakeStorage;
+  const service = new MotionVideoService(new IdemVideoStore(fake as any), () => (system, user) => simulateModel({ ...current, behaviour: 'clean' } as any)(system, user));
+  configureCore({ storage: fakeStorage });
 
   const results: Result[] = [];
   for (const c of cases) {

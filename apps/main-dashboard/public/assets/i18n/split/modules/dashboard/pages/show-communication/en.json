@@ -632,6 +632,8 @@
           "title": "My videos",
           "subtitle": "Animated promo videos in your brand colours, with royalty-free music. Ready for WhatsApp, Instagram, TikTok and YouTube.",
           "new": "New video",
+          "ivision": "Open in iVision",
+          "ivisionHint": "The same creation as a conversation, with this project’s brand book.",
           "formatsCount": "{{count}} format(s)",
           "empty": {
             "title": "Tell your brand’s story on video",
@@ -889,8 +891,10 @@
         },
         "texts": {
           "title": "On-screen text",
-          "hint": "Edit freely, it’s free. The preview updates.",
-          "save": "Update preview"
+          "hint": "Click a text: the video jumps to the moment it shows and changes as you type. Free.",
+          "save": "Update preview",
+          "replacePhoto": "Replace the scene photo",
+          "saving": "Saving your edits…"
         },
         "music": {
           "title": "Music",

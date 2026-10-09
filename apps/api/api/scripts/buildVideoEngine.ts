@@ -1,5 +1,5 @@
 /** `npm run build:video-engine` — empaquette le moteur React des vidéos (runtime, moteur, addons). */
-import { buildVideoEngine } from '../services/Communication/video/video.engine';
+import { buildVideoEngine } from '../../../ivision/core/src/video/video.engine';
 
 buildVideoEngine()
   .then((b) => {

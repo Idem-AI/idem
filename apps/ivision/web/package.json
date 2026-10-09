@@ -1,0 +1,42 @@
+{
+  "name": "ivision-web",
+  "version": "1.0.0",
+  "description": "iVision — la conversation qui crée vos visuels et vos vidéos motion design, à votre marque (Angular 20).",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "env:dev": "node scripts/set-env.js",
+    "env:prod": "NODE_ENV=production node scripts/set-env.js",
+    "prestart": "npm run env:dev",
+    "start": "ng serve --port 4204",
+    "prebuild": "npm run env:prod",
+    "build": "ng build",
+    "typecheck": "npm run env:dev && tsc --noEmit -p tsconfig.app.json"
+  },
+  "dependencies": {
+    "@angular/common": "^20.0.0",
+    "@angular/compiler": "^20.0.0",
+    "@angular/core": "^20.0.0",
+    "@angular/forms": "^20.0.0",
+    "@angular/platform-browser": "^20.0.0",
+    "@angular/router": "^20.0.0",
+    "@idem/shared-loader": "file:../../../packages/shared-loader",
+    "@idem/shared-styles": "file:../../../packages/shared-styles",
+    "@idem/shared-video-editor": "file:../../../packages/shared-video-editor",
+    "@ngx-translate/core": "^17.0.0",
+    "@ngx-translate/http-loader": "^17.0.0",
+    "@tailwindcss/postcss": "^4.1.16",
+    "postcss": "^8.5.6",
+    "primeicons": "^7.0.0",
+    "rxjs": "~7.8.0",
+    "tailwindcss": "^4.1.16",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^20.0.0",
+    "@angular/cli": "^20.0.0",
+    "@angular/compiler-cli": "^20.0.0",
+    "typescript": "~5.8.2"
+  }
+}

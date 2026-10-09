@@ -9,6 +9,8 @@ on:
     branches: [ main ]
     paths:
       - 'apps/api/**'
+      # Le moteur créatif partagé avec iVision est compilé dans l'API.
+      - 'apps/ivision/core/**'
       - 'Dockerfile.api'
       - 'packages/shared-models/**'
       - '.github/workflows/deploy-api.yml'

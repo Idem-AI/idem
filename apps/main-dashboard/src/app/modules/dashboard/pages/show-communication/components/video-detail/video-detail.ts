@@ -12,9 +12,9 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { IdemVideoEditorComponent } from '@idem/shared-video-editor/angular';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
 import {
   MotionStyle,
@@ -39,20 +39,24 @@ const MOODS: MusicMood[] = ['auto', 'upbeat', 'afro', 'calm', 'epic', 'corporate
 
 type Edits = Record<string, Record<string, string>>;
 
+/** Le minutage d'une vidéo : s'il bouge après une retouche (temps de lecture), l'aperçu est recomposé. */
+const timing = (v: MotionVideo | null) => (v?.storyboard.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}`).join('|');
+
 /**
- * Une vidéo : l'aperçu (le même moteur que le MP4, joué dans le navigateur),
- * les retouches gratuites (textes, musique, style) et l'export.
+ * Une vidéo : l'éditeur partagé avec iVision (`@idem/shared-video-editor` : l'aperçu — le même
+ * moteur que le MP4 — et les textes, vus en direct à l'instant où ils s'affichent), les retouches
+ * gratuites (musique, style, effets) et l'export.
  */
 @Component({
   selector: 'app-video-detail',
-  imports: [FormsModule, TranslateModule, IdemLoaderComponent],
+  imports: [FormsModule, TranslateModule, IdemLoaderComponent, IdemVideoEditorComponent],
   templateUrl: './video-detail.html',
   styleUrl: './video-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VideoDetail {
   private readonly videos = inject(MotionVideoService);
-  private readonly sanitizer = inject(DomSanitizer);
+  private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly projectId = input.required<string>();
@@ -74,10 +78,10 @@ export class VideoDetail {
   protected readonly video = signal<MotionVideo | null>(null);
   protected readonly loading = signal(true);
   protected readonly previewFormat = signal<VideoFormat>('story');
-  protected readonly previewHtml = signal<SafeHtml | null>(null);
+  protected readonly previewHtml = signal<string | null>(null);
+  protected readonly editorLang = signal<'fr' | 'en'>('fr');
   protected readonly previewLoading = signal(false);
-  protected readonly saving = signal<'texts' | 'music' | 'style' | 'sfx' | null>(null);
-  protected readonly edits = signal<Edits>({});
+  protected readonly saving = signal<'texts' | 'photo' | 'music' | 'style' | 'sfx' | null>(null);
   protected readonly tracks = signal<MusicTrack[] | null>(null);
   protected readonly tracksLoading = signal(false);
   protected readonly exportFormats = signal<VideoFormat[]>([]);
@@ -120,14 +124,9 @@ export class VideoDetail {
     return v && scope ? priceExport(this.options().pricing, v, scope) : 0;
   });
 
-  protected readonly hasTextChanges = computed(() => {
-    const v = this.video();
-    if (!v) return false;
-    const edits = this.edits();
-    return v.storyboard.scenes.some((scene) =>
-      Object.entries(edits[scene.key] || {}).some(([k, value]) => (scene.slots[k] || '') !== value),
-    );
-  });
+  /** Retouches de texte arrivées pendant un enregistrement : envoyées juste après. */
+  private queuedTexts: Edits | null = null;
+  private replacing: string | null = null;
 
   private pollTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -137,6 +136,8 @@ export class VideoDetail {
       const videoId = this.videoId();
       untracked(() => this.load(projectId, videoId));
     });
+    this.editorLang.set(this.translate.currentLang === 'en' ? 'en' : 'fr');
+    this.translate.onLangChange.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((e) => this.editorLang.set(e.lang === 'en' ? 'en' : 'fr'));
     this.destroyRef.onDestroy(() => this.stopPolling());
   }
 
@@ -162,9 +163,6 @@ export class VideoDetail {
   /** Nouvel état de la vidéo : formulaire réaligné, suivi du rendu relancé si besoin. */
   private apply(video: MotionVideo): void {
     this.video.set(video);
-    this.edits.set(
-      Object.fromEntries(video.storyboard.scenes.map((scene) => [scene.key, { ...scene.slots }])),
-    );
     this.exportFormats.set([...video.scope.formats]);
     this.exportQuality.set(video.scope.quality);
     this.changed.emit(video);
@@ -180,9 +178,9 @@ export class VideoDetail {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ({ html }) => {
-          // HTML composé par l'API (textes échappés) et joué dans une iframe
-          // isolée (`sandbox="allow-scripts"`, sans accès à cette page).
-          this.previewHtml.set(this.sanitizer.bypassSecurityTrustHtml(html));
+          // HTML composé par l'API (textes échappés), joué par l'éditeur partagé dans une
+          // iframe isolée (`sandbox="allow-scripts"`, sans accès à cette page).
+          this.previewHtml.set(html);
           this.previewLoading.set(false);
         },
         error: () => {
@@ -198,24 +196,43 @@ export class VideoDetail {
     this.loadPreview();
   }
 
-  // ── Textes ───────────────────────────────────────────────────────────────
+  // ── Textes et photos (éditeur partagé) ───────────────────────────────
 
-  protected slotSpecs(sceneId: string) {
-    return this.options().scenes[sceneId] ?? [];
+  /** Les textes retouchés dans l'éditeur ; l'aperçu n'est recomposé que si le minutage a bougé. */
+  protected saveTexts(edits: Edits): void {
+    if (this.saving()) {
+      this.queuedTexts = { ...(this.queuedTexts || {}), ...edits };
+      return;
+    }
+    this.patch('texts', { slots: edits });
   }
 
-  protected slotValue(sceneKey: string, slot: string): string {
-    return this.edits()[sceneKey]?.[slot] ?? '';
+  protected pickPhoto(key: string, input: HTMLInputElement): void {
+    this.replacing = key;
+    input.click();
   }
 
-  protected setSlot(sceneKey: string, slot: string, value: string): void {
-    this.edits.update((all) => ({ ...all, [sceneKey]: { ...(all[sceneKey] || {}), [slot]: value } }));
-  }
-
-  protected saveTexts(): void {
-    const v = this.video();
-    if (!v || !this.hasTextChanges()) return;
-    this.patch('texts', { slots: this.edits() });
+  /** Une autre photo pour une scène : importée, montrée tout de suite, puis enregistrée. */
+  protected onPhoto(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    const key = this.replacing;
+    if (!file || !key || this.saving()) return;
+    this.saving.set('photo');
+    this.videos
+      .uploadMedia(this.projectId(), [file])
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ assets }) => {
+          this.saving.set(null);
+          if (assets[0]?.url) this.patch('photo', { images: { [key]: assets[0].url } });
+        },
+        error: () => {
+          this.saving.set(null);
+          this.failed.emit('dashboard.showCommunication.video.errors.update');
+        },
+      });
   }
 
   // ── Musique & style ──────────────────────────────────────────────────────
@@ -278,7 +295,7 @@ export class VideoDetail {
     });
   }
 
-  private patch(kind: 'texts' | 'music' | 'style' | 'sfx', body: Parameters<MotionVideoService['update']>[2]): void {
+  private patch(kind: 'texts' | 'photo' | 'music' | 'style' | 'sfx', body: Parameters<MotionVideoService['update']>[2]): void {
     const v = this.video();
     if (!v || this.saving()) return;
     this.saving.set(kind);
@@ -288,8 +305,14 @@ export class VideoDetail {
       .subscribe({
         next: (video) => {
           this.saving.set(null);
+          const moved = timing(video) !== timing(v);
           this.apply(video);
-          this.loadPreview();
+          // Un texte ou une photo est déjà à l'écran (pont d'édition) : on ne recompose l'aperçu
+          // que si le minutage a changé ; la musique, le style et les effets, toujours.
+          if ((kind !== 'texts' && kind !== 'photo') || moved) this.loadPreview();
+          const queued = this.queuedTexts;
+          this.queuedTexts = null;
+          if (queued) this.saveTexts(queued);
         },
         error: () => {
           this.saving.set(null);

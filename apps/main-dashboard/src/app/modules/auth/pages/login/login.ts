@@ -73,6 +73,10 @@ export class Login implements OnInit {
         redirectToApp('simulation', this.returnUrl);
         return;
       }
+      if (this.redirectTarget === 'ivision') {
+        redirectToApp('ivision', this.returnUrl);
+        return;
+      }
       if (this.from === 'appgen') {
         redirectToApp('appgen', this.returnUrl);
         return;

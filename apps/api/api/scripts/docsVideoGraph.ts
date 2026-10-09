@@ -5,13 +5,13 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { CAPABILITIES, CapKind, CapNode, CapWhen, EXCLUDED_LIBRARIES, KitContext, resolveKit } from '../services/Communication/video/video.capabilities';
-import { analyzeLogo } from '../services/Communication/video/video.logo';
-import { buildVideoTheme } from '../services/Communication/video/video.theme';
+import { CAPABILITIES, CapKind, CapNode, CapWhen, EXCLUDED_LIBRARIES, KitContext, resolveKit } from '../../../ivision/core/src/video/video.capabilities';
+import { analyzeLogo } from '../../../ivision/core/src/video/video.logo';
+import { buildVideoTheme } from '../../../ivision/core/src/video/video.theme';
 import { brandById } from './fixtures/motion-video/brands';
-import { CAPABILITY_LABELS, capabilitiesForIntent, INTENTS, IntentId, PATTERNS, PatternDef } from '../services/Communication/video/video.patterns';
-import { CREATIVE_WEIGHTS, EXPLORATION_BUDGET, NOVELTY_TARGET } from '../services/Communication/video/video.planner';
-import { FINGERPRINT_WEIGHTS, SIMILARITY } from '../services/Communication/video/video.fingerprint';
+import { CAPABILITY_LABELS, capabilitiesForIntent, INTENTS, IntentId, PATTERNS, PatternDef } from '../../../ivision/core/src/video/video.patterns';
+import { CREATIVE_WEIGHTS, EXPLORATION_BUDGET, NOVELTY_TARGET } from '../../../ivision/core/src/video/video.planner';
+import { FINGERPRINT_WEIGHTS, SIMILARITY } from '../../../ivision/core/src/video/video.fingerprint';
 
 const KIND_TITLES: Partial<Record<CapKind, string>> = {
   library: 'Bibliothèques installées',
@@ -193,7 +193,7 @@ ${rows}
 
 const out = `# Graphe de capacités du moteur vidéo
 
-> Fichier généré par \`npm run docs:video-graph\` depuis \`api/services/Communication/video/video.capabilities.ts\`.
+> Fichier généré par \`npm run docs:video-graph\` depuis \`apps/ivision/core/src/video/video.capabilities.ts\` (moteur partagé avec iVision).
 > Ne pas éditer à la main. Guide de l'environnement : [VIDEO_ENGINE.md](VIDEO_ENGINE.md).
 
 Le graphe dit ce que la vidéo **peut** utiliser et **quand**. Le routeur (\`resolveKit\`) le parcourt avec le contexte du projet
