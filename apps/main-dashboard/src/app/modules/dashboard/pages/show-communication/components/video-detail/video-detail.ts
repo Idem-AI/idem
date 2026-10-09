@@ -88,6 +88,21 @@ export class VideoDetail {
 
   protected readonly ratio = computed(() => RATIOS[this.previewFormat()]);
   protected readonly scenes = computed(() => this.video()?.storyboard.scenes ?? []);
+  /**
+   * Ce que l'IA a décidé dans cette vidéo (agents dont la décision a été retenue), dans l'ordre de
+   * l'échelle de créativité : textes, structure, musique, mises en page, transitions, relecture.
+   */
+  protected readonly aiDecisions = computed(() => {
+    const order = ['writer', 'strategist', 'soundDesigner', 'artDirector', 'animator', 'critic'];
+    const kept = new Set((this.video()?.storyboard.agents ?? []).filter((a) => a.source === 'llm').map((a) => a.agent.replace(/:.*$/, '')));
+    return order.filter((a) => kept.has(a));
+  });
+  /** Le moteur créatif : en quoi la vidéo est nouvelle pour la marque, et sa touche inattendue. */
+  protected readonly novelty = computed(() => {
+    const c = this.video()?.storyboard.creative;
+    if (!c?.novelty) return null;
+    return { verdict: c.novelty.verdict, percent: Math.round((c.novelty.nearest ?? 0) * 100), family: c.accent?.family };
+  });
   protected readonly rendering = computed(() => this.video()?.status === 'rendering');
   protected readonly sfxSounds = computed(() => Object.values(this.video()?.sfx?.sounds ?? {}).filter((s) => !!s));
   protected readonly mediaCredits = computed(() => (this.video()?.media ?? []).filter((m) => !!m.credit));

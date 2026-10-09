@@ -13,6 +13,13 @@
  *               focal de la précédente (là où était son texte)
  *  blockStack   bandes de couleur qui balayent et recouvrent
  *  slideOver    la nouvelle scène glisse par-dessus l'ancienne, qui s'efface
+ *  shapeWipe    un disque de la couleur de la marque grandit depuis le point focal, couvre, puis découvre
+ *  stripes      des bandes obliques aux couleurs de la marque balaient le cadre
+ *  split        deux panneaux se referment au centre, puis s'écartent sur la scène suivante
+ *  liquid       un volet à bord ondulé (vague), couleur de la marque
+ *  zoomBlur     la scène sort en zoom flou, la suivante arrive d'un léger dézoom flou
+ *  cube         rotation 3D d'un cube : la scène suivante est la face d'à côté
+ *  glitch       coupe hachée : tranches décalées et couleur d'accent, une fraction de seconde
  *
  * Sortie à gauche + entrée à droite se lit comme une progression : les
  * transitions directionnelles suivent cette convention.
@@ -22,8 +29,8 @@ import { cue } from './cues';
 import { Engine, Timed } from './context';
 import { clamp, progress } from './time';
 
-export const COVER = new Set(['wipe', 'blockStack', 'flashCut']);
-export const HARD = new Set(['cut', 'flashCut']);
+export const COVER = new Set(['wipe', 'blockStack', 'flashCut', 'shapeWipe', 'stripes', 'split', 'liquid']);
+export const HARD = new Set(['cut', 'flashCut', 'glitch']);
 
 /** Fenêtres de visibilité et d'entrée de chaque scène, selon ses transitions. */
 export function timeline(scenes: Omit<Timed, 'index' | 'end' | 'visFrom' | 'visTo' | 'tin' | 'tout' | 'span'>[], tr: number, duration: number): Timed[] {
@@ -86,13 +93,13 @@ export function sceneStyle(e: Engine, s: Timed): CSSProperties {
         const q = ease(progress(t, c - tr * 0.25, tr * 0.75));
         style.opacity = q;
         transforms.push(`scale(${1.25 - 0.25 * q})`);
-        if (q < 1) filters.push(`blur(${(1 - q) * 10}px)`);
+        if (q < 1) filters.push(`blur(${Math.max(0, (1 - q) * 10)}px)`);
         break;
       }
       case 'whip': {
         const q = ease(progress(t, c - tr * 0.2, tr * 0.55));
         transforms.push(`translateX(${(1 - q) * 45}%) skewX(${(1 - q) * -8}deg)`);
-        if (q < 1) filters.push(`blur(${(1 - q) * 22}px)`);
+        if (q < 1) filters.push(`blur(${Math.max(0, (1 - q) * 22)}px)`);
         break;
       }
       case 'iris': {
@@ -104,6 +111,30 @@ export function sceneStyle(e: Engine, s: Timed): CSSProperties {
         transforms.push(`translateY(${(1 - p) * 100}%)`);
         style.boxShadow = '0 -2vmin 6vmin rgba(0,0,0,0.18)';
         break;
+      case 'zoomBlur': {
+        const q = ease(progress(t, c - tr * 0.1, tr * 0.6));
+        style.opacity = clamp(q * 1.5);
+        if (q < 1) {
+          transforms.push(`scale(${0.86 + 0.14 * q})`);
+          filters.push(`blur(${Math.max(0, (1 - q) * 14)}px)`);
+        }
+        break;
+      }
+      case 'cube': {
+        // La scène suivante est la face voisine d'un cube : elle tourne depuis la droite.
+        const q = ease(progress(t, c - tr * 0.5, tr));
+        if (q < 1) {
+          style.transformOrigin = '0% 50%';
+          transforms.push(`perspective(${e.data.width * 1.6}px) translateX(${(1 - q) * 100}%) rotateY(${(1 - q) * 80}deg)`);
+        }
+        break;
+      }
+      case 'glitch': {
+        // Les premières images : la scène arrive décalée, en tranches (cf. calques).
+        const q = clamp(progress(t, c, 0.14));
+        if (q < 1) transforms.push(`translateX(${Math.sin(t * 160) * (1 - q) * 3}%)`);
+        break;
+      }
       default:
         break;
     }
@@ -127,12 +158,27 @@ export function sceneStyle(e: Engine, s: Timed): CSSProperties {
       case 'whip': {
         const q = e.easeIn(progress(t, c - tr * 0.45, tr * 0.45));
         transforms.push(`translateX(${-q * 45}%) skewX(${q * 8}deg)`);
-        if (q > 0) filters.push(`blur(${q * 22}px)`);
+        if (q > 0) filters.push(`blur(${Math.max(0, q * 22)}px)`);
         break;
       }
       case 'slideOver': {
         const dim = clamp(p) * 0.25;
         filters.push(`brightness(${1 - dim})`);
+        break;
+      }
+      case 'zoomBlur': {
+        const q = e.easeIn(progress(t, c - tr * 0.5, tr * 0.5));
+        transforms.push(`scale(${1 + 0.35 * q})`);
+        if (q > 0) filters.push(`blur(${Math.max(0, q * 16)}px)`);
+        style.opacity = Number(style.opacity ?? 1) * (1 - q * 0.7);
+        break;
+      }
+      case 'cube': {
+        const q = ease(progress(t, c - tr * 0.5, tr));
+        if (q > 0) {
+          style.transformOrigin = '100% 50%';
+          transforms.push(`perspective(${e.data.width * 1.6}px) translateX(${-q * 100}%) rotateY(${-q * 80}deg)`);
+        }
         break;
       }
       default:
@@ -156,10 +202,12 @@ export function TransitionLayers({ e }: { e: Engine }): ReactNode {
     const c = s.start;
     const sf = data.surfaces[s.surface] || data.surfaces.light;
     // Le son de la transition.
+    // Chaque coupe s'entend : une coupe sèche reçoit un tic (doux en direction élégante).
     if (kind === 'cut') {
-      if (i % 2 === 0) cue(`tr:${s.key}`, c - 0.02, 'click', 0.5);
+      cue(`tr:${s.key}`, c - 0.02, i % 2 === 0 ? 'click' : 'tick', 0.55);
     } else if (kind === 'flashCut') cue(`tr:${s.key}`, c - 0.04, 'impact', 0.7);
-    else if (kind === 'dissolve' || kind === 'iris') cue(`tr:${s.key}`, c - tr * 0.5, 'softwhoosh', 0.7);
+    else if (kind === 'glitch') cue(`tr:${s.key}`, c - 0.02, 'tick', 0.9);
+    else if (kind === 'dissolve' || kind === 'iris' || kind === 'liquid' || kind === 'split') cue(`tr:${s.key}`, c - tr * 0.5, 'softwhoosh', 0.7);
     else cue(`tr:${s.key}`, c - tr * 0.5, 'whoosh');
 
     if (t < c - tr || t > c + tr) return;
@@ -182,6 +230,61 @@ export function TransitionLayers({ e }: { e: Engine }): ReactNode {
     if (kind === 'flashCut') {
       const o = t < c ? clamp(progress(t, c - 0.08, 0.08)) : 1 - clamp(progress(t, c, 0.16));
       if (o > 0) layers.push(<div key={`f${i}`} className="tr-layer" style={{ background: sf.hl, opacity: o * 0.9 }} />);
+    }
+    // Disque de marque : grandit depuis le point focal de la scène précédente, couvre,
+    // puis s'ouvre depuis le point focal de la suivante (raccord graphique).
+    if (kind === 'shapeWipe') {
+      const [x, y] = focal(e.scenes[i - 1]?.motion.anchor || 'center');
+      const [x2, y2] = focal(s.motion.anchor || 'center');
+      const grow = ease(progress(t, c - tr * 0.55, tr * 0.55));
+      const open = easeIn(progress(t, c, tr * 0.5));
+      if (t < c) {
+        if (grow > 0) layers.push(<div key={`sw${i}`} className="tr-layer" style={{ background: sf.hl, clipPath: `circle(${grow * 150}% at ${x}% ${y}%)` }} />);
+      } else if (open < 1) {
+        const hole = `radial-gradient(circle at ${x2}% ${y2}%, transparent ${open * 104}%, #000 ${open * 104 + 0.5}%)`;
+        layers.push(<div key={`sw${i}`} className="tr-layer" style={{ background: sf.hl, WebkitMaskImage: hole, maskImage: hole }} />);
+      }
+    }
+    // Bandes obliques : six lames aux couleurs de la marque traversent le cadre ;
+    // réunies, elles le couvrent entièrement à l'instant de la coupe.
+    if (kind === 'stripes') {
+      const colors = [sf.hl, data.surfaces.primary?.bg || sf.hl, data.surfaces.accent?.bg || sf.hl, sf.hl, data.surfaces.secondary?.bg || sf.hl, sf.hl];
+      colors.forEach((col, k) => {
+        const p = ease(progress(t, c - tr * 0.55 + k * tr * 0.05, tr * 0.3));
+        const q = easeIn(progress(t, c + k * tr * 0.05, tr * 0.3));
+        const pos = t < c ? (1 - p) * -130 : q * 130;
+        const a = k * 20;
+        layers.push(<div key={`st${i}${k}`} className="tr-layer" style={{ background: col, clipPath: `polygon(${a}% 0, ${a + 24}% 0, ${a + 4}% 100%, ${a - 20}% 100%)`, transform: `translateY(${k % 2 ? -pos : pos}%)` }} />);
+      });
+    }
+    // Deux panneaux se referment au centre, puis s'écartent.
+    if (kind === 'split') {
+      const close = ease(progress(t, c - tr * 0.5, tr * 0.5));
+      const open = easeIn(progress(t, c, tr * 0.5));
+      const k = t < c ? close : 1 - open;
+      if (k > 0) {
+        layers.push(<div key={`sp${i}a`} className="tr-layer" style={{ background: sf.hl, transform: e.horizontal ? `translateX(${(k - 1) * 50 - 50}%)` : `translateY(${(k - 1) * 50 - 50}%)` }} />);
+        layers.push(<div key={`sp${i}b`} className="tr-layer" style={{ background: sf.hl, transform: e.horizontal ? `translateX(${(1 - k) * 50 + 50}%)` : `translateY(${(1 - k) * 50 + 50}%)` }} />);
+      }
+    }
+    // Volet liquide : une bande plus large que le cadre, aux deux bords en vague,
+    // qui le traverse (elle le couvre tout entier à l'instant de la coupe).
+    if (kind === 'liquid') {
+      // Entrée décélérée jusqu'à la coupe (bande de -20 % à 120 %), sortie accélérée après.
+      const front = t < c ? -10 + ease(progress(t, c - tr * 0.55, tr * 0.55)) * 130 : 120 + easeIn(progress(t, c, tr * 0.55)) * 130;
+      const p = clamp(progress(t, c - tr * 0.55, tr * 1.1));
+      const wave = (k: number, shift: number) => `${front - shift + Math.sin(k * 0.9 + t * 6) * 6}% ${(k / 12) * 100}%`;
+      const edge = Array.from({ length: 13 }, (_, k) => wave(k, 0));
+      const tail = Array.from({ length: 13 }, (_, k) => wave(12 - k, 140));
+      if (p > 0 && p < 1) layers.push(<div key={`lq${i}`} className="tr-layer" style={{ background: sf.hl, clipPath: `polygon(${[...edge, ...tail].join(',')})` }} />);
+    }
+    // Coupe hachée : des tranches décalées, un éclat de couleur.
+    if (kind === 'glitch' && t >= c - 0.04 && t < c + 0.16) {
+      const q = clamp(progress(t, c - 0.04, 0.2));
+      for (let k = 0; k < 6; k++) {
+        const top = (k * 17 + ((t * 97) % 7)) % 100;
+        layers.push(<div key={`gl${i}${k}`} className="tr-layer" style={{ background: k % 2 ? sf.hl : data.surfaces.accent?.bg || sf.hl, top: `${top}%`, height: `${3 + (k % 3) * 2}%`, bottom: 'auto', transform: `translateX(${(k % 2 ? 1 : -1) * (1 - q) * 30}%)`, opacity: (1 - q) * 0.85 }} />);
+      }
     }
   });
   return <>{layers}</>;

@@ -1,3 +1,4 @@
+import { CreativityLevel } from '@idem/shared-models';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable, from, shareReplay, switchMap } from 'rxjs';
@@ -58,7 +59,7 @@ export class MotionVideoService {
    * choisit le type (ou en combine plusieurs) d'après la demande ; `contentId` :
    * vidéo d'un contenu du calendrier (brief et type viennent du contenu).
    */
-  createStream(projectId: string, input: { brief: Partial<VideoBrief>; scope: VideoScope; type: VideoType | 'auto'; contentId?: string }): Observable<VideoStreamEvent> {
+  createStream(projectId: string, input: { brief: Partial<VideoBrief>; scope: VideoScope; type: VideoType | 'auto'; contentId?: string; creativity?: CreativityLevel }): Observable<VideoStreamEvent> {
     return from(this.tokenService.getTokenAsync()).pipe(
       switchMap(
         (token: string | null) =>

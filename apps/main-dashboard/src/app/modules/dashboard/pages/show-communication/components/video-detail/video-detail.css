@@ -184,3 +184,23 @@ summary.vd-card-title {
 .vd-danger {
   color: var(--color-danger);
 }
+
+/* Ce que l'IA a décidé dans cette vidéo. */
+.vd-ai {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.vd-ai .pi {
+  font-size: 0.75rem;
+  color: color-mix(in srgb, var(--color-primary) 60%, var(--color-text-primary));
+}
+
+.vd-ai-concept {
+  color: var(--color-text-tertiary);
+}

@@ -109,6 +109,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   readonly projectUpdate = output<ProjectModel>();
   readonly nextStep = output<void>();
 
+
   // Internal state
   protected readonly isGenerating = signal(false);
   protected readonly generatedLogos = signal<LogoModel[]>([]);
@@ -419,7 +420,8 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     this.pushNote('brief', {});
 
     this.brandingService
-      .generateLogoConceptsStream(this.projectId()!, force, this.logoPreferences())
+      // Le logo est toujours dessiné au cran Ultra (au prix habituel de la session) : pas de jauge ici.
+      .generateLogoConceptsStream(this.projectId()!, force, this.logoPreferences(), 'ultra')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (event) => this.handleLogoStreamEvent(event),

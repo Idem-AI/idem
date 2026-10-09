@@ -14,7 +14,7 @@ import { clamp, mix, progress, springEase } from './time';
 let SPRING_EL: ((p: number) => number) | null = null;
 const springKind = (p: number) => (SPRING_EL ??= springEase(0.38))(p);
 
-const ANCHOR_STYLE: Record<string, CSSProperties> = {
+export const ANCHOR_STYLE: Record<string, CSSProperties> = {
   'top-left': { justifyContent: 'flex-start', alignItems: 'flex-start', textAlign: 'left' },
   'center-left': { justifyContent: 'center', alignItems: 'flex-start', textAlign: 'left' },
   'bottom-left': { justifyContent: 'flex-end', alignItems: 'flex-start', textAlign: 'left' },
@@ -25,13 +25,13 @@ const ANCHOR_STYLE: Record<string, CSSProperties> = {
 };
 
 /** Le bloc de contenu d'une scène, posé selon l'ancrage, dans la zone de sécurité. */
-export function Composition({ children, anchor, gap = 3, width }: { children: ReactNode; anchor?: string; gap?: number; width?: string }) {
+export function Composition({ children, anchor, gap = 3, width, style }: { children: ReactNode; anchor?: string; gap?: number; width?: string; style?: CSSProperties }) {
   const { horizontal } = useEngine();
   const scene = useScene();
   const a = anchor || scene.motion.anchor;
   const camera = useCamera();
   return (
-    <div className="safe" style={{ ...ANCHOR_STYLE[a], gap: `calc(var(--u) * ${gap})`, ...camera }}>
+    <div className="safe" style={{ ...ANCHOR_STYLE[a], gap: `calc(var(--u) * ${gap})`, ...camera, ...style }}>
       <div className="comp-block" style={{ width: width || (a === 'right' ? '100%' : horizontal ? '62%' : '100%'), display: 'flex', flexDirection: 'column', alignItems: ANCHOR_STYLE[a].alignItems, gap: `calc(var(--u) * ${gap})` }}>
         {children}
       </div>

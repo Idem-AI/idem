@@ -21,7 +21,7 @@ import {
 import { SCENES } from './video.scenes';
 import { rng } from './video.music';
 import { lottieForObjective } from './video.lottie';
-import { DirectionId, DIRECTIONS, planMotion, surfacesFor } from './video.direction';
+import { DirectionId, DIRECTIONS, planMotion, surfacesFor, WeightedTransition } from './video.direction';
 import { VideoArtOverrides } from '../../../models/motionVideo.model';
 import { rhythmPlan } from './video.rhythm';
 
@@ -152,6 +152,8 @@ export interface StoryboardInput {
   rhythm?: string;
   /** Entrées de titre de la vidéo précédente du projet : à éviter. */
   avoidHeadlines?: string[];
+  /** Menu de transitions de la vidéo (catalogue filtré par la direction et la DA, cf. transitionMenu). */
+  transitions?: WeightedTransition[];
 }
 
 function chooseVariant(
@@ -294,7 +296,7 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
   // La direction décide de la composition, des techniques et de la couleur.
   if (input.direction) {
     const ids = scenes.map((sc) => sc.sceneId);
-    const plan = planMotion(ids, input.direction, input.seed, { landscape: input.landscape, avoidHeadlines: input.avoidHeadlines });
+    const plan = planMotion(ids, input.direction, input.seed, { landscape: input.landscape, avoidHeadlines: input.avoidHeadlines, transitions: input.transitions });
     const surfaces = surfacesFor(ids, input.art?.color || DIRECTIONS[input.direction].color, input.seed);
     scenes.forEach((sc, i) => {
       sc.motion = plan[i];

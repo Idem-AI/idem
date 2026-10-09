@@ -1,3 +1,4 @@
+import type { SavedDocumentDesign } from './creativity.model';
 import { SectionModel } from './section.model';
 
 /**
@@ -30,6 +31,8 @@ export interface PitchDeckDocument extends PitchDeckModel {
   id: string;
   /** Nom donné par l'utilisateur. */
   name?: string;
+  /** Direction artistique des pages décidée par la jauge de créativité (reprises, régénérations ciblées). */
+  design?: SavedDocumentDesign;
   /** Type de deck (`PitchDeck/deck-types.ts`) ; absent sur le deck historique = investisseur. */
   type?: string;
   createdAt?: Date;

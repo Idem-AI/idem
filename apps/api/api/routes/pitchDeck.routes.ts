@@ -15,7 +15,7 @@ import {
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
-import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
+import { firstThenRevision, requireCredits, withCreativity } from '../middleware/billing.middleware';
 
 export const pitchDeckRoutes = Router();
 const resourceName = 'pitchDecks';
@@ -70,8 +70,9 @@ pitchDeckRoutes.get(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  // Le cran de créativité (paramètre `creativity` du flux) multiplie le prix du livrable.
   requireCredits('business', 'pitch_deck', {
-    resolve: firstThenRevision('business', 'pitch_deck', 'revision'),
+    resolve: withCreativity('business', 'pitch_deck', firstThenRevision('business', 'pitch_deck', 'revision')),
   }),
   generatePitchDeckStreamingController
 );

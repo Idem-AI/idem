@@ -1,13 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Observable, forkJoin, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map, switchMap } from 'rxjs/operators';
 import { SlicePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ApiService } from '../../../shared/services/api.service';
-import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.models';
+import { ComposeAnalysis, GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.models';
 import { ARCHITECTURE_TEMPLATES } from '../../../shared/data/architecture-templates';
 import { serviceLogoUrl } from '../../../shared/utils/service-logo.util';
+import { EnvRow, EnvVarsEditorComponent } from '../../../shared/components/env-vars-editor/env-vars-editor';
 import { TourService } from '../../../shared/services/tour.service';
 import { IllustrationComponent, IllustrationName } from '../../../shared/components/illustration/illustration';
 import {
@@ -67,6 +70,7 @@ const POPULAR_APPS: { template: string; label: string; descKey: string }[] = [
     SlicePipe,
     TranslateModule,
     IdemLoaderComponent,
+    EnvVarsEditorComponent,
     IllustrationComponent,
     WorkspaceTargetPickerComponent,
   ],
@@ -227,6 +231,14 @@ const POPULAR_APPS: { template: string; label: string; descKey: string }[] = [
                   <input id="docker-image" type="text" class="font-mono" formControlName="image" placeholder="nginx:latest" />
                   <p class="mt-1.5 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.imageHint' | translate }}</p>
                 </div>
+                <details class="rounded-lg p-3" style="border:1px solid var(--color-surface-2);">
+                  <summary class="cursor-pointer text-sm font-medium">{{ 'projects.start.privateRegistry' | translate }}</summary>
+                  <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.privateRegistryHint' | translate }}</p>
+                  <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                    <input type="text" class="font-mono" formControlName="registryUsername" [placeholder]="'projects.start.registryUser' | translate" autocomplete="off" />
+                    <input type="password" class="font-mono" formControlName="registryToken" [placeholder]="'projects.start.registryToken' | translate" autocomplete="new-password" />
+                  </div>
+                </details>
               } @else {
                 <div>
                   <label for="docker-compose" class="mb-1.5 block text-sm font-medium">docker-compose.yml</label>
@@ -235,6 +247,18 @@ const POPULAR_APPS: { template: string; label: string; descKey: string }[] = [
                   <p class="mt-1.5 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.composeHint' | translate }}</p>
                 </div>
               }
+
+              @for (w of composeWarnings(); track w.code + w.message) {
+                <p class="text-xs" role="status" style="color:var(--color-warning, var(--color-text-secondary));">
+                  <i class="pi pi-exclamation-triangle mr-1" aria-hidden="true"></i>{{ w.message }}
+                </p>
+              }
+
+              <div>
+                <p class="mb-1 text-sm font-medium">{{ 'projects.start.envTitle' | translate }}</p>
+                <p class="mb-2 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.envHint' | translate }}</p>
+                <app-env-vars-editor [(rows)]="envRows" [expected]="expectedVariables()" />
+              </div>
 
               <app-workspace-target-picker class="block" (targetChange)="target.set($event)" />
 
@@ -403,6 +427,9 @@ export class NewProjectComponent implements OnInit {
     name: ['', Validators.required],
     image: [''],
     compose: [''],
+    /** Private image: the registry login (saved for the team). */
+    registryUsername: [''],
+    registryToken: [''],
   });
   /** Reactive-form values are not signals; mirrored so `dockerReady` can be computed. */
   private readonly dockerValue = signal(this.dockerForm.getRawValue());
@@ -417,6 +444,10 @@ export class NewProjectComponent implements OnInit {
     return q ? repos.filter((r) => r.fullName.toLowerCase().includes(q)) : repos;
   });
   protected readonly providerIcon = computed(() => (this.codeTab() === 'gitlab' ? 'pi pi-sitemap' : 'pi pi-github'));
+  protected readonly envRows = signal<EnvRow[]>([]);
+  private readonly composeAnalysis = signal<ComposeAnalysis | null>(null);
+  protected readonly expectedVariables = computed(() => (this.dockerTab() === 'compose' ? (this.composeAnalysis()?.variables ?? []) : []));
+  protected readonly composeWarnings = computed(() => (this.dockerTab() === 'compose' ? (this.composeAnalysis()?.warnings ?? []) : []));
   protected readonly dockerReady = computed(() => {
     const v = this.dockerValue();
     const payload = this.dockerTab() === 'image' ? v.image : v.compose;
@@ -429,6 +460,21 @@ export class NewProjectComponent implements OnInit {
 
     this.workspaceUuid = this.route.snapshot.queryParamMap.get('workspace');
     this.dockerForm.valueChanges.subscribe(() => this.dockerValue.set(this.dockerForm.getRawValue()));
+    // What the compose file expects (its ${VARIABLES}, env files), once typing pauses.
+    this.dockerForm.controls.compose.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        switchMap((text) =>
+          text.trim()
+            ? this.api.analyseCompose(text).pipe(
+                map((a): ComposeAnalysis | null => a),
+                catchError(() => of(null))
+              )
+            : of(null)
+        )
+      )
+      .subscribe((a) => this.composeAnalysis.set(a));
 
     this.api.listServiceTemplates().subscribe({
       next: (t) => {
@@ -590,14 +636,44 @@ export class NewProjectComponent implements OnInit {
   protected deployDocker(): void {
     const target = this.target();
     if (!this.dockerReady() || !target) return;
-    const { name, image, compose } = this.dockerForm.getRawValue();
-    const raw =
-      this.dockerTab() === 'image'
-        ? `services:\n  app:\n    image: '${image.trim()}'\n    restart: unless-stopped\n`
-        : compose;
+    const { name, image, compose, registryUsername, registryToken } = this.dockerForm.getRawValue();
 
     this.busy.set(true);
     this.error.set(null);
+
+    // An image becomes a real application: a domain, routing, variables,
+    // firewall and deployments, like any other. (It used to be wrapped into a
+    // one-service Compose stack that had none of it.)
+    if (this.dockerTab() === 'image') {
+      const { repository, tag } = splitImageReference(image);
+      const create = () =>
+        this.api.createApplication({
+          name: name.trim(),
+          workspace_uuid: target.workspace_uuid,
+          environment_name: target.environment_name,
+          project_name: target.project_name,
+          build_pack: 'dockerimage',
+          docker_registry_image_name: repository,
+          docker_registry_image_tag: tag,
+        });
+      const login$: Observable<unknown> =
+        registryUsername.trim() && registryToken
+          ? this.api.saveRegistryCredential({ registry: registryOf(repository), username: registryUsername.trim(), password: registryToken })
+          : of(null);
+      login$
+        .pipe(
+          switchMap(create),
+          switchMap((app) => this.saveImageEnv(app.uuid).pipe(map(() => app))),
+          switchMap((app) => this.api.deploy(app.uuid))
+        )
+        .subscribe({
+          next: (d) => this.router.navigate(['/deployments', d.deploymentUuid]),
+          error: (e) => this.fail(e),
+        });
+      return;
+    }
+
+    const raw = compose;
     this.api
       .createService({
         name: name.trim(),
@@ -605,11 +681,23 @@ export class NewProjectComponent implements OnInit {
         environment_name: target.environment_name,
         project_name: target.project_name,
         docker_compose_raw: raw,
+        environment_variables: this.filledEnv(),
       })
       .subscribe({
         next: (svc) => this.router.navigate(['/services', svc.uuid]),
         error: (e) => this.fail(e),
       });
+  }
+
+  private filledEnv(): EnvRow[] {
+    return this.envRows().filter((r) => r.key.trim() !== '').map((r) => ({ key: r.key.trim(), value: r.value }));
+  }
+
+  /** The image's variables are stored before its first deployment, so it starts with them. */
+  private saveImageEnv(uuid: string): Observable<unknown> {
+    const rows = this.filledEnv();
+    if (rows.length === 0) return of(null);
+    return forkJoin(rows.map((r) => this.api.upsertEnvVar(uuid, { key: r.key, value: r.value, is_runtime: true, is_buildtime: false })));
   }
 
   private fail(e: unknown): void {
@@ -618,4 +706,18 @@ export class NewProjectComponent implements OnInit {
     const message = (e as { error?: { error?: { message?: string } } })?.error?.error?.message;
     this.error.set(message ?? this.translate.instant('projects.common.deploymentFailed'));
   }
+}
+
+/** `registry.example.com/org/app:v1` → the image and its tag (`latest` when none; a port in the registry host is not a tag). */
+export function splitImageReference(reference: string): { repository: string; tag: string } {
+  const ref = reference.trim();
+  const colon = ref.lastIndexOf(':');
+  if (colon > ref.lastIndexOf('/')) return { repository: ref.slice(0, colon), tag: ref.slice(colon + 1) || 'latest' };
+  return { repository: ref, tag: 'latest' };
+}
+
+/** The registry host of an image: its first segment when it looks like a host, else Docker Hub. */
+export function registryOf(repository: string): string {
+  const first = repository.split('/')[0];
+  return repository.includes('/') && (first.includes('.') || first.includes(':') || first === 'localhost') ? first : 'docker.io';
 }

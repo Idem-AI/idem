@@ -48,7 +48,45 @@
     "apply": "Appliquer",
     "reset": "Réinitialiser",
     "close": "Fermer",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "creativity": {
+      "title": "Créativité",
+      "help": "Plus vous montez, plus l'IA prend de décisions — et plus la génération consomme de crédits.",
+      "cost": "{{cost}} crédits",
+      "levels": {
+        "low": {
+          "label": "Low",
+          "hint": "Éprouvé",
+          "description": "Des mises en page éprouvées, adaptées à votre charte et à sa direction artistique. L'IA écrit les textes.",
+          "line": "Mises en page éprouvées, adaptées à votre charte. L'IA écrit les textes."
+        },
+        "medium": {
+          "label": "Medium",
+          "hint": "Guidé",
+          "description": "L'IA choisit aussi la structure (sections, scènes, slides) parmi des options validées. Le plus sûr au prix habituel.",
+          "line": "L'IA choisit aussi la structure et l'enchaînement."
+        },
+        "high": {
+          "label": "High",
+          "hint": "Inspiré",
+          "description": "L'IA compose chaque partie : mises en page, transitions, enchaînements, dans des options filtrées par votre direction artistique.",
+          "line": "L'IA compose chaque partie : mises en page, transitions."
+        },
+        "max": {
+          "label": "Max",
+          "hint": "Audacieux",
+          "description": "L'IA règle aussi les détails : emphase, couleurs, rythme, densité — dans des bornes qui garantissent la lisibilité.",
+          "line": "L'IA règle aussi les détails : emphase, couleurs, rythme."
+        },
+        "ultra": {
+          "label": "Ultra",
+          "hint": "Libre",
+          "description": "L'IA invente et crée tout : la composition, chaque partie, les animations. Votre charte et les bonnes pratiques restent garanties : chaque partie est vérifiée, critiquée et corrigée avant livraison.",
+          "line": "L'IA invente et crée tout, vérifié et corrigé avant livraison."
+        }
+      },
+      "withCost": "{{label}} · {{cost}} crédits"
+    }
   },
   "dashboard": {
     "createDevelopment": {
@@ -2367,18 +2405,12 @@
         "a4Portrait": {
           "title": "A4 portrait",
           "description": "Un document à imprimer, à relier ou à joindre à un e-mail.",
-          "uses": [
-            "Impression et envoi par e-mail",
-            "Lecture page par page, comme un livret"
-          ]
+          "uses": ["Impression et envoi par e-mail", "Lecture page par page, comme un livret"]
         },
         "landscape": {
           "title": "Paysage 16:9",
           "description": "Une présentation qui se lit à l'écran et se projette en réunion.",
-          "uses": [
-            "Projection et partage d'écran",
-            "Lecture confortable sur ordinateur"
-          ]
+          "uses": ["Projection et partage d'écran", "Lecture confortable sur ordinateur"]
         },
         "startGeneration": "Générer ma charte",
         "changeLater": "Vous pourrez régénérer la charte dans l'autre format plus tard."
@@ -3242,6 +3274,24 @@
         "fontWeight": "Graisse",
         "align": "Alignement",
         "opacity": "Opacité",
+        "position": "Position",
+        "freePosition": "Placement libre",
+        "flowPosition": "Revenir au flux",
+        "x": "X",
+        "y": "Y",
+        "dragHint": "Faites aussi glisser la poignée bleue sur le canevas pour positionner l’élément.",
+        "size": "Dimensions et contour",
+        "width": "Largeur",
+        "height": "Hauteur",
+        "radius": "Rayon",
+        "border": "Bordure",
+        "borderColor": "Couleur de bordure",
+        "layers": "Calques",
+        "layer": "Niveau de calque",
+        "bringToFront": "Au premier plan",
+        "sendToBack": "À l’arrière-plan",
+        "bringForward": "Avancer",
+        "sendBackward": "Reculer",
         "arrange": "Disposition",
         "moveUp": "Monter",
         "moveDown": "Descendre",
@@ -4365,7 +4415,35 @@
           "previewHint": "Aperçu fidèle : c’est le même moteur qui fabrique le MP4.",
           "delete": "Supprimer la vidéo",
           "deleteAsk": "Supprimer définitivement ?",
-          "deleteConfirm": "Supprimer"
+          "deleteConfirm": "Supprimer",
+          "ai": {
+            "authored": "Film d'auteur · {{coded}} plan(s) sur {{shots}} créés par l'IA",
+            "decided": "décidé par l'IA :",
+            "roles": {
+              "writer": "textes",
+              "strategist": "structure",
+              "soundDesigner": "musique",
+              "artDirector": "mises en page",
+              "animator": "transitions et mouvement",
+              "critic": "relecture"
+            }
+          },
+          "creative": {
+            "first": "Première vidéo de la marque : les suivantes seront comparées à elle",
+            "distinct": "Réellement différente de vos vidéos précédentes (écart {{percent}} %)",
+            "acceptable": "Différente de vos vidéos précédentes (écart {{percent}} %)",
+            "too-close": "Proche d’une vidéo précédente (écart {{percent}} %)",
+            "accent": "touche inattendue :",
+            "families": {
+              "type": "typographique",
+              "data": "données",
+              "graphic": "graphique",
+              "drawn": "dessinée à la main",
+              "spatial": "spatiale",
+              "photo": "photographique",
+              "brand": "logo"
+            }
+          }
         },
         "texts": {
           "title": "Les textes",
@@ -4531,10 +4609,16 @@
           "stages": {
             "plan": "Le découpage en scènes",
             "copy": "Les textes à l’écran",
+            "layout": "La mise en page de chaque scène",
             "media": "Les images et vidéos",
             "music": "La musique",
             "sfx": "Les effets sonores",
-            "storyboard": "Le montage, calé sur le rythme"
+            "storyboard": "Le montage, calé sur le rythme",
+            "animation": "Le mouvement et les transitions",
+            "critique": "La relecture finale",
+            "code": "L'écriture des scènes (Ultra)",
+            "direction": "Le film imaginé par le directeur IA",
+            "shots": "Chaque plan créé par l'IA, revu et corrigé"
           },
           "details": {
             "plan": "{{count}} scènes pour {{seconds}} s",
@@ -4547,7 +4631,22 @@
             "sfx": "{{count}} sons choisis",
             "storyboard": "{{count}} scènes, coupes sur le temps ({{bpm}} BPM)",
             "planType": "{{type}} · {{count}} scènes pour {{seconds}} s",
-            "planConcept": "{{type}} · {{concept}} · {{count}} scènes pour {{seconds}} s"
+            "planConcept": "{{type}} · {{concept}} · {{count}} scènes pour {{seconds}} s",
+            "layout": "{{count}} mises en page : {{names}}",
+            "layoutClassic": "Compositions de la direction",
+            "animation": "Raccords : {{names}} · caméra {{camera}}",
+            "critique": "{{count}} correction(s) du directeur de création",
+            "critiqueOk": "Validé sans correction",
+            "musicAgent": "« {{title}} » — {{artist}} · {{bpm}} BPM · choisie pour votre marque",
+            "code": "{{coded}} scène(s) sur {{tried}} écrite(s) par l'IA et validée(s)",
+            "direction": "« {{title}} » · {{count}} plans",
+            "directionFallback": "Repli sur la composition guidée",
+            "shotsStart": "{{total}} plans à écrire",
+            "shots_writing": "Plan {{current}}/{{total}} : écriture · {{done}} terminé(s)",
+            "shots_review": "Plan {{current}}/{{total}} : revue visuelle · {{done}} terminé(s)",
+            "shots_revise": "Plan {{current}}/{{total}} : correction · {{done}} terminé(s)",
+            "shots_done": "{{done}} plan(s) sur {{total}} terminé(s)",
+            "shots": "{{coded}} plan(s) sur {{total}} créés par l'IA · {{reviewed}} revu(s) par le directeur artistique"
           }
         },
         "directions": {
@@ -4603,6 +4702,50 @@
           "reasons": "Les raisons de nous choisir",
           "celebration": "Célébration",
           "logo-sting": "Signature"
+        },
+        "layouts": {
+          "classic": "composition classique",
+          "wordStack": "pile de mots",
+          "marqueeBack": "mot défilant",
+          "bigNumber": "chiffre géant",
+          "diagonalBand": "bandeau diagonal",
+          "circleStage": "cercle",
+          "splitBlock": "deux blocs",
+          "layeredCards": "cartes superposées",
+          "gridCards": "grille de cartes",
+          "checklist": "liste cochée",
+          "quoteBig": "grande citation",
+          "priceBurst": "prix en étoile",
+          "ticker": "bandeaux défilants",
+          "spotlightWord": "mot sous le projecteur",
+          "frameOverlap": "bloc et cadre"
+        },
+        "transitions": {
+          "cut": "coupe",
+          "flashCut": "coupe éclair",
+          "glitch": "glitch",
+          "dissolve": "fondu",
+          "zoomBlur": "zoom flou",
+          "zoomThrough": "traversée",
+          "whip": "filé",
+          "cube": "cube 3D",
+          "push": "poussée",
+          "slideOver": "glissé",
+          "iris": "iris",
+          "wipe": "volet",
+          "blockStack": "bandes",
+          "shapeWipe": "disque de marque",
+          "stripes": "lames obliques",
+          "split": "panneaux",
+          "liquid": "vague"
+        },
+        "cameras": {
+          "still": "fixe",
+          "push": "poussée lente",
+          "pull": "recul",
+          "drift": "dérive",
+          "rise": "montée",
+          "tilt": "bascule"
         }
       }
     },

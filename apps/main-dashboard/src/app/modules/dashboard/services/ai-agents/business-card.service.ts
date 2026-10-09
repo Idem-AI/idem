@@ -1,3 +1,4 @@
+import { CreativityLevel } from '@idem/shared-models';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable, catchError, throwError } from 'rxjs';
@@ -26,7 +27,7 @@ export class BusinessCardService {
   /** POST — (re)génère le template IA depuis la charte graphique. */
   generateTemplate(
     projectId: string,
-    options: { orientation?: BusinessCardOrientation; styleBrief?: string } = {},
+    options: { orientation?: BusinessCardOrientation; styleBrief?: string; creativity?: CreativityLevel } = {},
   ): Observable<BusinessCardModel> {
     return this.http
       .post<BusinessCardModel>(`${this.apiUrl}/${projectId}/generate`, options)

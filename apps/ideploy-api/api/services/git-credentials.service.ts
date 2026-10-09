@@ -114,15 +114,18 @@ export async function resolveGitCredential(teamId: number, gitRepository: string
 /**
  * What git's failure means, in terms the user can act on. The raw message
  * ("Password authentication is not supported for Git operations") reads like
- * a platform bug; it means the repository needs a connected account.
+ * a platform bug.
+ *
+ * `hadCredential` says whether the clone was attempted with a token: with
+ * none, the team has no connected account (connect one); with one, that
+ * account cannot read this repository (use another, or get access).
  */
-export function explainGitFailure(stderr: string): string {
+export function explainGitFailure(stderr: string, hadCredential = true): string {
   const text = stderr.trim();
   if (/Invalid username or token|Authentication failed|could not read Username|terminal prompts disabled/i.test(text)) {
-    return (
-      'the repository refused access. Connect (or reconnect) the GitHub/GitLab account that can read it ' +
-      'in iDeploy, then retry.'
-    );
+    return hadCredential
+      ? 'the connected GitHub/GitLab account cannot read this repository. Connect an account that has access to it, then retry.'
+      : 'no GitHub/GitLab account is connected for this team (or its access expired). Connect the account that can read the repository in iDeploy, then retry.';
   }
   if (/Repository not found|not found/i.test(text)) {
     return 'the repository was not found, or the connected account cannot read it.';

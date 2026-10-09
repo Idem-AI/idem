@@ -1,3 +1,4 @@
+import { creativityOf } from '../middleware/billing.middleware';
 import { Response } from 'express';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
@@ -317,6 +318,8 @@ export const generateFlyerController = async (
     const flyer = await communicationService.generateFlyer(userId, projectId, contentId, {
       format,
       force,
+      // Le cran de la jauge de créativité (déjà appliqué au prix par la route).
+      creativity: creativityOf(req),
     });
     res.status(200).json(flyer);
   } catch (error: any) {
@@ -346,7 +349,7 @@ export const regenerateFlyerController = async (
   const format = (req.body?.format || queryString(req.query.format) || 'square') as FlyerFormat;
 
   try {
-    const flyer = await communicationService.regenerateFlyer(userId, projectId, contentId, format);
+    const flyer = await communicationService.regenerateFlyer(userId, projectId, contentId, format, creativityOf(req));
     res.status(200).json(flyer);
   } catch (error: any) {
     logger.error(`regenerateFlyerController error: ${error.message}`, { stack: error.stack });
@@ -948,6 +951,7 @@ export const createVisualController = async (req: CustomRequest, res: Response):
     format: (req.body?.format || 'square') as FlyerFormat,
     intent: req.body?.intent as VisualIntent | undefined,
     withPhoto: req.body?.withPhoto !== false,
+    creativity: creativityOf(req),
   };
 
   try {

@@ -375,8 +375,9 @@
           <p-message severity="error" [text]="error()!" class="w-full"></p-message>
         }
 
-        <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <!-- Action Buttons (le parent y pose le cran de créativité de la génération qui suit) -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <ng-content select="[formFooter]" />
           <button
             type="button"
             class="p-button-outlined p-button-secondary outer-button"

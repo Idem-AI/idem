@@ -192,6 +192,11 @@
   color: var(--color-danger, #dc2626);
 }
 
+.pdn-creativity {
+  margin-top: 0.75rem;
+  align-self: flex-start;
+}
+
 .pdn-submit {
   display: inline-flex;
   align-items: center;

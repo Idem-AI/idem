@@ -24,13 +24,16 @@ import { clamp, mix, progress } from './time';
 
 // ─── Briques communes ───────────────────────────────────────────────────────
 
-/** Le son d'un titre selon la direction : une direction élégante ne cliquette pas. */
-function useHeadlineSound(): 'pop' | 'click' | null {
+/**
+ * Le son d'un titre selon la direction : une direction élégante ne cliquette pas, elle
+ * souffle (souffle doux) — mais chaque titre s'entend, dans toutes les directions.
+ */
+export function useHeadlineSound(): 'pop' | 'click' | 'softwhoosh' {
   const { data } = useEngine();
-  return ({ kinetic: 'pop', collage: 'pop', brutal: 'click', swiss: 'click', drenched: 'click' } as Record<string, 'pop' | 'click'>)[data.direction.id] ?? null;
+  return ({ kinetic: 'pop', collage: 'pop', brutal: 'click', swiss: 'click', drenched: 'click' } as Record<string, 'pop' | 'click'>)[data.direction.id] ?? 'softwhoosh';
 }
 
-function Headline({ text, at = 0, fit, emph, technique }: { text?: string; at?: number; fit: [number, number, number]; emph?: boolean; technique?: string }) {
+export function Headline({ text, at = 0, fit, emph, technique }: { text?: string; at?: number; fit: [number, number, number]; emph?: boolean; technique?: string }) {
   const s = useScene();
   const exitAt = useExitAt();
   const sound = useHeadlineSound();
@@ -40,7 +43,7 @@ function Headline({ text, at = 0, fit, emph, technique }: { text?: string; at?: 
   return <Kinetic text={text} technique={technique || s.motion.headline} at={at} role="headline" fit={sized} emph={emph} exitAt={exitAt} sound={s.accent === 'giant' ? 'impact' : sound} />;
 }
 
-function Support({ text, at, fit = [6, 3.6, 3], muted = true }: { text?: string; at: number; fit?: [number, number, number]; muted?: boolean }) {
+export function Support({ text, at, fit = [6, 3.6, 3], muted = true }: { text?: string; at: number; fit?: [number, number, number]; muted?: boolean }) {
   const s = useScene();
   const exitAt = useExitAt();
   if (!text) return null;
@@ -217,7 +220,7 @@ function Benefits() {
             const q = i < items.length - 1 ? clamp(progress(lt, a + per - 0.25, 0.25)) : 0;
             cue(`${s.key}:b${i}`, s.start + a, 'softwhoosh', 0.45);
             return (
-              <span key={i} className="oaat-item" style={{ opacity: p * (1 - q), transform: `translateY(${(1 - p) * 3 - q * 3}vmin)`, filter: `blur(${(1 - p + q) * 6}px)` }}>
+              <span key={i} className="oaat-item" style={{ opacity: p * (1 - q), transform: `translateY(${(1 - p) * 3 - q * 3}vmin)`, filter: `blur(${Math.max(0, (1 - p + q) * 6)}px)` }}>
                 {s.icons?.[i] ? <Icon svg={s.icons[i]} className="mb-3 block size-12 text-hl-text" /> : null}
                 {it}
               </span>
@@ -470,28 +473,39 @@ function Wordswap() {
   );
 }
 
-function Cta() {
+/** Le bouton d'appel à l'action, à la forme de la direction ; une seule pulsation, tardive. */
+export function ActionButton({ text, at, className = '' }: { text?: string; at: number; className?: string }) {
   const s = useScene();
-  const { data, horizontal } = useEngine();
+  const { data } = useEngine();
   const lt = useLocalTime();
   const exitAt = useExitAt();
   const id = data.direction.id;
-  const g = data.direction.pacing.groupStagger;
-  const btnStyle = useEnter(useFamilyKind(id === 'collage' || id === 'kinetic' ? 'pop' : 'rise'), g * 1.6, 0.8, exitAt);
-  cue(`${s.key}:btn`, s.start + g * 1.6, id === 'editorial' ? 'click' : 'pop', 0.8);
+  const btnStyle = useEnter(useFamilyKind(id === 'collage' || id === 'kinetic' ? 'pop' : 'rise'), at, 0.8, exitAt);
+  if (!text) return null;
+  cue(`${s.key}:btn`, s.start + at, id === 'editorial' ? 'click' : 'pop', 0.8);
   // Une seule pulsation, tardive : attirer l'œil une fois, pas clignoter.
-  const pulseT = lt - (g * 1.6 + 1.1);
+  const pulseT = lt - (at + 1.1);
   const pulse = pulseT > 0 && pulseT < 0.5 && id !== 'editorial' && id !== 'cinematic' ? 1 + Math.sin((pulseT / 0.5) * Math.PI) * 0.05 : 1;
   const shape = ({ precision: 'btn-pill', kinetic: 'btn-pill', swiss: 'btn-rect', brutal: 'btn-block', collage: 'btn-sticker', drenched: 'btn-rect', cinematic: 'btn-ghost' } as Record<string, string>)[id] || 'btn-link';
   return (
+    <span className={`btn ${shape} ${className}`} style={{ ...btnStyle, scale: String(pulse) }}>
+      {text}
+      <svg className="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 12h15M13 6l6 6-6 6" />
+      </svg>
+    </span>
+  );
+}
+
+function Cta() {
+  const s = useScene();
+  const { data, horizontal } = useEngine();
+  const id = data.direction.id;
+  const g = data.direction.pacing.groupStagger;
+  return (
     <Composition>
       <Headline text={s.slots.title} fit={horizontal ? [12, 7, 2] : [15, 7, 3]} emph={['kinetic', 'collage', 'drenched'].includes(id) || data.kit?.annotateScene === s.key} />
-      <span className={`btn ${shape}`} style={{ ...btnStyle, scale: String(pulse) }}>
-        {s.slots.action}
-        <svg className="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 12h15M13 6l6 6-6 6" />
-        </svg>
-      </span>
+      <ActionButton text={s.slots.action} at={g * 1.6} />
       <Support text={s.slots.contact} at={g * 2.6} fit={[4.6, 3.2, 1]} />
     </Composition>
   );
@@ -504,7 +518,8 @@ function Logo() {
   const sf = data.surfaces[s.surface] || data.surfaces.light;
   const src = sf.dark ? data.logo.onDark || data.logo.onLight : data.logo.onLight || data.logo.onDark;
   // Une montée avant la signature, puis un scintillement quand elle apparaît.
-  if (s.start > 3 && !['editorial', 'precision', 'cinematic'].includes(data.direction.id)) cue(`${s.key}:riser`, Math.max(0, s.start - 1.5), 'riser', 0.6);
+  // Une montée avant la signature, partout (plus discrète dans les directions élégantes).
+  if (s.start > 3) cue(`${s.key}:riser`, Math.max(0, s.start - 1.5), 'riser', ['editorial', 'precision', 'cinematic'].includes(data.direction.id) ? 0.35 : 0.6);
   cue(`${s.key}:shimmer`, s.tin + 0.05, 'shimmer');
   const tagStyle = useEnter('rise', 0.9, 0.9, null);
   if (s.three) {
@@ -624,7 +639,7 @@ function Logo() {
     const q = ease(progress(lt, 0, 1.6));
     return (
       <Composition anchor="center" gap={4}>
-        {logoImg({ opacity: q, filter: `blur(${(1 - q) * 12}px)`, transform: `scale(${mix(1.06, 1, q)})` })}
+        {logoImg({ opacity: q, filter: `blur(${Math.max(0, (1 - q) * 12)}px)`, transform: `scale(${mix(1.06, 1, q)})` })}
         {tagline}
       </Composition>
     );
@@ -677,7 +692,7 @@ function KineticScene() {
             const last = i === lines.length - 1;
             cue(`${s.key}:k${i}`, s.start + a, last ? 'impact' : 'pop', last ? 0.55 : 0.75);
             return (
-              <div key={i} className={`kin-solo ${i % 2 && !last ? 'kin-outline' : ''} ${last ? 'kin-last' : ''}`} style={{ opacity: p * (1 - q), transform: `scale(${mix(1.5, 1, p) * mix(1, 0.9, q)})`, filter: `blur(${(1 - p) * 10}px)` }}>
+              <div key={i} className={`kin-solo ${i % 2 && !last ? 'kin-outline' : ''} ${last ? 'kin-last' : ''}`} style={{ opacity: p * (1 - q), transform: `scale(${mix(1.5, 1, p) * mix(1, 0.9, q)})`, filter: `blur(${Math.max(0, (1 - p) * 10)}px)` }}>
                 <Kinetic text={l} technique="trackIn" at={a} role="headline" fit={[last ? 17 : 22, 8, 2]} />
               </div>
             );

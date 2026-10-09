@@ -369,7 +369,7 @@
       "fqdn": "Address (domain)",
       "save": "Save",
       "environmentVariables": "Environment variables",
-      "remove": "remove",
+      "remove": "Remove",
       "keyPlaceholder": "DATABASE_URL",
       "valuePlaceholder": "postgres://…",
       "add": "Add",
@@ -506,7 +506,8 @@
         "nixpacks": "Automatic (detection)",
         "dockerfile": "Dockerfile",
         "dockercompose": "Docker Compose",
-        "static": "Static site"
+        "static": "Static site",
+        "dockerimage": "Docker image (registry)"
       },
       "fqdnHint": "Several addresses allowed, comma-separated. Remember to point the DNS at your server.",
       "saved": "Saved",
@@ -527,7 +528,20 @@
       "buildTarget": "Build target",
       "buildTargetHint": "Optional: the stage of a multi-stage Dockerfile to build.",
       "watchPaths": "Watch paths",
-      "watchPathsHint": "A push redeploys this application only when it changes one of these files — one pattern per line (apps/api/**, packages/**, !**/*.md). Empty: every push."
+      "watchPathsHint": "A push redeploys this application only when it changes one of these files — one pattern per line (apps/api/**, packages/**, !**/*.md). Empty: every push.",
+      "imageName": "Image",
+      "imageTag": "Tag",
+      "imageTagHint": "What a plain redeploy runs. A pipeline deploys another tag by sending it (see below).",
+      "ciTitle": "Continuous deployment",
+      "ciHint": "Let your CI deploy this application after it pushes an image: one token, valid for this application only.",
+      "ciShow": "Show the deployment token",
+      "ciUrl": "Deployment URL",
+      "ciToken": "Token (header X-Ideploy-Token)",
+      "ciExample": "From your pipeline",
+      "ciRotate": "Generate a new token (the old one stops working)",
+      "registryTitle": "Private registries",
+      "registryHint": "The token needs read access to the image. It is stored encrypted and only used to pull.",
+      "noRegistry": "No registry login yet — public images need none."
     }
   },
   "projects": {
@@ -664,7 +678,7 @@
       "name": "Name",
       "namePlaceholder": "my-app",
       "imageLabel": "Image",
-      "imageHint": "For example nginx:latest or ghcr.io/org/app:1.0.",
+      "imageHint": "For example nginx:latest or registry.example.com/org/app:1.0.",
       "composeHint": "Paste the content of your docker-compose.yml file.",
       "publish": "Put online",
       "publishing": "Putting online…",
@@ -693,7 +707,13 @@
         "metabase": "Dashboards from your data.",
         "umami": "Visitor analytics, without cookies.",
         "chatwoot": "Customer support: chat, WhatsApp, email."
-      }
+      },
+      "privateRegistry": "Private image",
+      "privateRegistryHint": "For a private registry (Docker Hub, GitLab, your own registry…): the login is saved for your team and used to pull the image.",
+      "registryUser": "Username",
+      "registryToken": "Access token",
+      "envTitle": "Environment variables",
+      "envHint": "Optional. The values the application reads (database URL, API keys…). Type them, paste a .env or upload one."
     }
   },
   "servers": {
@@ -985,7 +1005,24 @@
       "deleteHint": "The stack and all of its containers will be deleted.",
       "deleteService": "Delete service",
       "deleting": "Deleting…",
-      "deleteError": "Deleting failed."
+      "deleteError": "Deleting failed.",
+      "consoleEmpty": "Nothing yet. Press Start to see what happens here.",
+      "action": {
+        "start": "Start",
+        "stop": "Stop",
+        "restart": "Restart"
+      },
+      "status": {
+        "running": "running",
+        "succeeded": "succeeded",
+        "failed": "failed"
+      },
+      "envTitle": "Environment variables",
+      "envHint": "Written to the .env file next to the compose file at every start. Values are stored encrypted.",
+      "envSave": "Save",
+      "envSaveRestart": "Save and restart",
+      "envSaved": "Saved. Restart to apply.",
+      "envError": "Could not save the variables."
     },
     "subtitle": "The ready-made software you installed — a database, an automation tool, a CMS…",
     "emptyHint": "Pick a service from the catalog: it is installed and configured for you.",
@@ -1624,7 +1661,8 @@
       "sonarqube": "SonarQube",
       "trivy": "Trivy",
       "language_detection": "Code checkout",
-      "deploy": "Deployment"
+      "deploy": "Deployment",
+      "trivy-image": "Trivy (image)"
     },
     "scan": {
       "notRun": "Not run",
@@ -1888,5 +1926,17 @@
         "body": "You can replay this tour anytime from your avatar menu."
       }
     }
+  },
+  "envEditor": {
+    "expected": "The compose file expects these variables — click to add:",
+    "key": "Variable name",
+    "value": "Value",
+    "remove": "Remove variable",
+    "add": "Add variable",
+    "paste": "Paste a .env",
+    "upload": "Upload a .env file",
+    "import": "Import",
+    "show": "Show values",
+    "hide": "Hide values"
   }
 }

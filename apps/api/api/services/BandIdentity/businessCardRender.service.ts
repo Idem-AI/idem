@@ -132,6 +132,80 @@ export class BusinessCardRenderService {
     }
   }
 
+  /**
+   * Contrôle MESURÉ d'une face (cran Ultra de la jauge de créativité) : la face est rendue avec
+   * des valeurs de démonstration réalistes (nom long, adresse sur deux lignes) puis mesurée.
+   * Défauts : texte hors de la carte ou dans la marge de sécurité (4 mm), corps sous 7 pt,
+   * contraste sous 4,5:1 sur un fond uni. Vide = la face est imprimable.
+   */
+  async inspect(faceHtml: string, orientation: BusinessCardOrientation, typography?: BusinessCardRenderOptions['typography']): Promise<string[]> {
+    const size = BUSINESS_CARD_SIZE_MM[orientation];
+    const sample: Record<string, string> = {
+      fullName: 'Adjoa Mensah-Kouassi',
+      jobTitle: 'Directrice commerciale',
+      email: 'adjoa.mensah@exemple-entreprise.com',
+      phone: '+225 27 22 49 00 00',
+      mobile: '+225 07 08 09 10 11',
+      website: 'www.exemple-entreprise.com',
+      address: 'Rue des Jardins, Cocody, Abidjan',
+      linkedin: 'linkedin.com/in/adjoa-mensah',
+      companyName: 'Exemple',
+      tagline: 'Le goût du travail bien fait',
+    };
+    const html = this.buildDocument(faceHtml.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_m, k: string) => sample[k] ?? ''), size, typography);
+    const browser = await this.getBrowser();
+    const page = await browser.newPage();
+    await installRenderNetworkGuard(page);
+    try {
+      const cssWidth = Math.round((size.width / MM_PER_INCH) * 96);
+      const cssHeight = Math.round((size.height / MM_PER_INCH) * 96);
+      await page.setViewport({ width: cssWidth, height: cssHeight, deviceScaleFactor: 1 });
+      await page.setContent(html, { waitUntil: 'load', timeout: 30000 });
+      await page.evaluate(() => document.fonts?.ready);
+      return await page.evaluate((w: number, h: number, safe: number) => {
+        const issues: string[] = [];
+        const parse = (c: string) => (c.match(/[\d.]+/g) || []).map(Number);
+        const lum = (rgb: number[]) => {
+          const [r, g, b] = rgb.slice(0, 3).map((v) => {
+            const x = v / 255;
+            return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const bgOf = (el: Element | null): number[] | null => {
+          for (let n = el; n; n = n.parentElement) {
+            const st = getComputedStyle(n);
+            if (st.backgroundImage && st.backgroundImage !== 'none') return null;
+            const c = parse(st.backgroundColor);
+            if (c.length >= 3 && (c[3] === undefined || c[3] > 0.9)) return c;
+          }
+          return [255, 255, 255];
+        };
+        for (const el of Array.from(document.body.querySelectorAll<HTMLElement>('*'))) {
+          const own = Array.from(el.childNodes).some((n) => n.nodeType === 3 && (n.textContent || '').trim().length > 0);
+          // Le texte décoratif (filigrane, monogramme rogné) est déclaré comme tel.
+          if (!own || el.closest('[aria-hidden="true"]')) continue;
+          const st = getComputedStyle(el);
+          if (st.visibility === 'hidden' || st.display === 'none' || Number(st.opacity) < 0.05) continue;
+          const r = el.getBoundingClientRect();
+          const label = (el.textContent || '').trim().slice(0, 24);
+          if (r.left < safe - 1 || r.top < safe - 1 || r.right > w - safe + 1 || r.bottom > h - safe + 1) issues.push(`text in the 4 mm safety margin or outside the card: "${label}"`);
+          if (parseFloat(st.fontSize) < 9.2) issues.push(`text smaller than 7 pt: "${label}" (${parseFloat(st.fontSize).toFixed(1)} px)`);
+          const bg = bgOf(el);
+          if (bg && st.color !== 'rgba(0, 0, 0, 0)') {
+            const a = lum(parse(st.color));
+            const b = lum(bg);
+            const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+            if (ratio < 4.5) issues.push(`low contrast (${ratio.toFixed(1)}:1): "${label}"`);
+          }
+        }
+        return [...new Set(issues)].slice(0, 8);
+      }, cssWidth, cssHeight, Math.round((4 / MM_PER_INCH) * 96));
+    } finally {
+      await page.close().catch(() => undefined);
+    }
+  }
+
   /** Document hors-écran isolé (Tailwind + polices de marque + nettoyage). */
   private buildDocument(
     innerHtml: string,

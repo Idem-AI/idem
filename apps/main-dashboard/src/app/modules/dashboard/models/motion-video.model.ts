@@ -87,6 +87,15 @@ export interface VideoStoryboard {
   concept?: string;
   durationSec: number;
   scenes: VideoSceneInstance[];
+  /** Cran Ultra : le film d'auteur (le directeur IA l'a inventé, `coded` plans écrits par l'IA). */
+  authored?: { title: string; concept: string; bible: string; shots: number; coded: number; fallback: string[]; reviewed: number };
+  /** Ce que chaque agent a décidé : `llm` = décision de l'IA retenue, `graph` = décision du code. */
+  agents?: { agent: string; source: 'llm' | 'graph' }[];
+  /** Le moteur créatif : écart à la vidéo la plus proche de la marque, touche inattendue. */
+  creative?: {
+    accent?: { index: number; pattern: string; family: string };
+    novelty?: { nearest: number | null; verdict: 'too-close' | 'acceptable' | 'distinct' | 'first' };
+  };
 }
 
 export interface MusicTrack {
@@ -137,6 +146,8 @@ export interface MotionVideo {
   dirty?: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Cran de créativité de la création. */
+  creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
 }
 
 /** Barème renvoyé par l'API : le prix se calcule en direct, sans aller-retour. */
@@ -190,7 +201,7 @@ export function priceExport(pricing: VideoPricing, video: MotionVideo, scope: Vi
 }
 
 /** Étapes réelles d'une création, reçues en direct (flux SSE). */
-export type VideoProgressStage = 'plan' | 'copy' | 'media' | 'music' | 'sfx' | 'storyboard';
+export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'storyboard' | 'animation' | 'critique' | 'code' | 'direction' | 'shots';
 
 export interface VideoProgressMediaItem {
   kind: VideoMediaKind;
@@ -220,6 +231,27 @@ export interface VideoProgressData {
   bpm?: number;
   none?: boolean;
   sounds?: { kind: SfxKind; title: string }[];
+  /** Agents : mises en page retenues, transitions, caméra, corrections du critique. */
+  layouts?: string[];
+  transitions?: string[];
+  camera?: string;
+  fixes?: number;
+  /** La piste a été choisie par l'agent sound designer. */
+  pickedBy?: 'agent' | 'graph';
+  /** Cran Ultra : scènes écrites par l'IA et retenues après contrôle. */
+  coded?: number;
+  tried?: number;
+  /** Film d'auteur (Ultra) : le directeur a imaginé le film (étape « direction »). */
+  shots?: { kind: string; duration: number; visual: string }[];
+  fallback?: boolean;
+  /** Film d'auteur : avancée des plans (étape « shots »). */
+  total?: number;
+  done?: number;
+  current?: number;
+  step?: 'writing' | 'review' | 'revise' | 'done';
+  round?: number;
+  reviewed?: number;
+  authored?: { shots: number; coded: number };
 }
 
 export type VideoStreamEvent =

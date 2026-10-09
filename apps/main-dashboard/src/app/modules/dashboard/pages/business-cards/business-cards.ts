@@ -30,6 +30,10 @@ import { GenerationPreviewComponent } from './components/generation-preview/gene
 import { HolderFormComponent } from './components/holder-form/holder-form';
 import { CardPreviewFonts } from './utils/business-card-preview';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { CreativityLevel, DEFAULT_CREATIVITY } from '@idem/shared-models';
+import { CreativityPickerComponent } from '../../../../shared/components/creativity-picker/creativity-picker';
+import { CreativityCostPipe } from '../../../../shared/pipes/creativity-cost.pipe';
+import { CreativityService } from '../../../../shared/services/creativity.service';
 
 /** Panneau de droite : consultation d'une carte ou saisie d'une personne. */
 type WorkspaceMode = 'view' | 'form';
@@ -49,13 +53,22 @@ type WorkspaceMode = 'view' | 'form';
     TranslateModule,
     CardPreviewComponent,
     GenerationPreviewComponent,
-    HolderFormComponent, IdemLoaderComponent],
+    HolderFormComponent,
+    IdemLoaderComponent,
+    CreativityPickerComponent,
+    CreativityCostPipe,
+  ],
   templateUrl: './business-cards.html',
   styleUrl: './business-cards.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BusinessCardsPage implements OnInit {
   private readonly cardService = inject(BusinessCardService);
+  private readonly creativityPricing = inject(CreativityService);
+  /** Le cran de créativité, choisi à côté du bouton de génération ; Medium par défaut. */
+  protected readonly creativity = signal<CreativityLevel>(DEFAULT_CREATIVITY);
+  /** Prix de la carte pour ce projet (Low / Medium) : la jauge en déduit chaque cran. */
+  protected readonly creativityBaseCost = signal<number | null>(null);
   private readonly projectService = inject(ProjectService);
   private readonly cookieService = inject(CookieService);
   private readonly translate = inject(TranslateService);
@@ -178,6 +191,7 @@ export class BusinessCardsPage implements OnInit {
       this.isLoading.set(false);
       return;
     }
+    this.creativityPricing.baseCost(projectId, 'business_card').subscribe((cost) => this.creativityBaseCost.set(cost));
     this.load(projectId);
   }
 
@@ -236,6 +250,7 @@ export class BusinessCardsPage implements OnInit {
       .generateTemplate(projectId, {
         orientation: this.orientation(),
         styleBrief: this.styleBrief.trim() || undefined,
+        creativity: this.creativity(),
       })
       .subscribe({
         next: (card) => {

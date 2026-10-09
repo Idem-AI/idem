@@ -147,16 +147,42 @@ const INTERACTION_RUNTIME = `
     return c || null;
   }
 
-  function readStyle(el) {
+  // Le contenant de coordonnées est le premier ancêtre positionné, ou la page.
+  // Ainsi un élément déplacé reste exactement là où l'utilisateur l'a posé,
+  // même au sein d'une grille ou d'un groupe en position relative.
+  function positioningParent(el, sectionEl) {
+    var parent = el.parentElement;
+    while (parent && parent !== sectionEl) {
+      if (getComputedStyle(parent).position !== 'static') return parent;
+      parent = parent.parentElement;
+    }
+    return sectionEl;
+  }
+
+  function readStyle(el, sectionEl) {
     var cs = getComputedStyle(el);
     var inline = el.style;
+    var containing = positioningParent(el, sectionEl);
+    var rect = el.getBoundingClientRect();
+    var containingRect = containing.getBoundingClientRect();
     return {
       color: inline.color || cs.color,
       backgroundColor: inline.backgroundColor || (cs.backgroundColor === 'rgba(0, 0, 0, 0)' ? '' : cs.backgroundColor),
       fontSize: inline.fontSize || cs.fontSize,
       fontWeight: inline.fontWeight || cs.fontWeight,
       textAlign: inline.textAlign || cs.textAlign,
-      opacity: inline.opacity || cs.opacity
+      opacity: inline.opacity || cs.opacity,
+      position: inline.position || cs.position,
+      // Pour un élément encore dans le flux, les champs X/Y proposent sa
+      // position visuelle actuelle plutôt que la valeur CSS auto : l'activer ne le téléporte pas.
+      left: inline.left || (cs.left !== 'auto' ? cs.left : Math.round(rect.left - containingRect.left) + 'px'),
+      top: inline.top || (cs.top !== 'auto' ? cs.top : Math.round(rect.top - containingRect.top) + 'px'),
+      width: inline.width || cs.width,
+      height: inline.height || cs.height,
+      zIndex: inline.zIndex || (cs.zIndex === 'auto' ? '0' : cs.zIndex),
+      borderRadius: inline.borderRadius || cs.borderRadius,
+      borderWidth: inline.borderWidth || cs.borderTopWidth,
+      borderColor: inline.borderColor || cs.borderTopColor
     };
   }
 
@@ -220,7 +246,7 @@ const INTERACTION_RUNTIME = `
       index: Array.prototype.indexOf.call(el.parentElement.children, el),
       siblingCount: el.parentElement.children.length,
       textContent: (el.textContent || '').trim().slice(0, 400),
-      style: readStyle(el),
+      style: readStyle(el, sectionEl),
       attributes: readAttributes(el),
       chart: canvas ? chartLite(canvas) : undefined,
       rect: docRect(el)
@@ -276,7 +302,7 @@ const INTERACTION_RUNTIME = `
     place(selBox, el);
   }
 
-  /* ----- Glisser-déposer LIVE (façon Figma) parmi les frères ----- */
+  /* ----- Réorganisation structurelle parmi les frères ----- */
   var drag = null;
   var justDragged = false;
   var indicator = document.createElement('div');
@@ -363,16 +389,107 @@ const INTERACTION_RUNTIME = `
     select(d.el, true);
   }
 
-  // Démarrage d'un glissement en pressant l'élément déjà sélectionné (seuil de 5px).
+  /* ----- Déplacement libre sur le canevas ----- */
+  var freeMove = null;
+
+  function beginFreeMove(el, e) {
+    var sectionEl = sectionOf(el);
+    // Déplacer la page elle-même casserait la pile de pages : seuls ses enfants
+    // sont des calques libres.
+    if (!sectionEl || el === sectionEl) return;
+    var containing = positioningParent(el, sectionEl);
+    var rect = el.getBoundingClientRect();
+    var containingRect = containing.getBoundingClientRect();
+    var cs = getComputedStyle(el);
+    var left = parseFloat(el.style.left);
+    var top = parseFloat(el.style.top);
+    if (!isFinite(left)) left = rect.left - containingRect.left;
+    if (!isFinite(top)) top = rect.top - containingRect.top;
+
+    freeMove = {
+      el: el,
+      sectionEl: sectionEl,
+      containing: containing,
+      left: left,
+      top: top,
+      width: rect.width,
+      height: rect.height,
+      startX: e.clientX,
+      startY: e.clientY,
+      started: false,
+      // Une position calculée depuis right/bottom est ramenée à left/top.
+      position: cs.position
+    };
+    window.addEventListener('pointermove', onFreeMove, true);
+    window.addEventListener('pointerup', onFreeMoveUp, true);
+  }
+
+  function onFreeMove(e) {
+    if (!freeMove) return;
+    var move = freeMove;
+    var dx = e.clientX - move.startX;
+    var dy = e.clientY - move.startY;
+    if (!move.started) {
+      if (Math.abs(dx) + Math.abs(dy) < 3) return;
+      move.started = true;
+      document.body.style.cursor = 'grabbing';
+    }
+
+    // Le calque ne sort pas de son plan de travail, tout en restant déplaçable
+    // pixel par pixel dans toutes les directions.
+    var maxLeft = Math.max(0, move.containing.clientWidth - move.width);
+    var maxTop = Math.max(0, move.containing.clientHeight - move.height);
+    var left = Math.max(0, Math.min(maxLeft, move.left + dx));
+    var top = Math.max(0, Math.min(maxTop, move.top + dy));
+    move.el.style.position = 'absolute';
+    move.el.style.left = Math.round(left * 100) / 100 + 'px';
+    move.el.style.top = Math.round(top * 100) / 100 + 'px';
+    // Le passage en absolute ne doit pas faire rétrécir un bloc (largeur auto)
+    // ni modifier la composition avant sa sauvegarde.
+    move.el.style.width = Math.round(move.width * 100) / 100 + 'px';
+    move.el.style.height = Math.round(move.height * 100) / 100 + 'px';
+    place(selBox, move.el);
+  }
+
+  function onFreeMoveUp() {
+    window.removeEventListener('pointermove', onFreeMove, true);
+    window.removeEventListener('pointerup', onFreeMoveUp, true);
+    document.body.style.cursor = '';
+    if (!freeMove) return;
+    var move = freeMove;
+    freeMove = null;
+    if (!move.started) return;
+    justDragged = true;
+    setTimeout(function () { justDragged = false; }, 0);
+    post({
+      type: 'style-change',
+      sectionId: move.sectionEl.getAttribute('data-section-id'),
+      path: pathOf(move.el, move.sectionEl),
+      style: {
+        position: 'absolute',
+        left: move.el.style.left,
+        top: move.el.style.top,
+        width: move.el.style.width,
+        height: move.el.style.height
+      }
+    });
+    select(move.el, true);
+  }
+
+  // Un glissement d'un élément sélectionné le place librement. Alt/Option garde
+  // le geste de réorganisation structurelle pour les mises en page texte.
   document.addEventListener('pointerdown', function (e) {
-    if (PREVIEW || editingEl || drag) return;
+    if (PREVIEW || editingEl || drag || freeMove) return;
     if (e.target.closest && e.target.closest('[data-idem-ui]')) return;
-    if (selectedEl && e.target === selectedEl && sectionOf(selectedEl)) beginDrag(selectedEl, e);
+    if (selectedEl && e.target === selectedEl && sectionOf(selectedEl)) {
+      if (e.altKey) beginDrag(selectedEl, e);
+      else beginFreeMove(selectedEl, e);
+    }
   }, true);
 
   /* ----- Événements globaux ----- */
   document.addEventListener('mousemove', function (e) {
-    if (drag || editingEl) return;
+    if (drag || freeMove || editingEl) return;
     var el = e.target;
     if (!el || el === document.body || el.hasAttribute('data-idem-ui') || el.closest('[data-idem-ui]')) { hoverBox.style.display = 'none'; return; }
     if (!sectionOf(el)) { hoverBox.style.display = 'none'; return; }
@@ -517,25 +634,25 @@ const INTERACTION_RUNTIME = `
     window.__idemCharts.set(canvas, inst);
   }
 
-  /* ----- Poignée de déplacement (bouton flottant sur la sélection) ----- */
+  /* ----- Poignée de placement libre (bouton flottant sur la sélection) ----- */
   var handle = document.createElement('button');
   handle.setAttribute('data-idem-ui', '');
   handle.setAttribute('aria-hidden', 'true');
   handle.style.cssText = 'position:absolute;display:none;width:22px;height:22px;border:none;border-radius:6px;background:#1447e6;color:#fff;cursor:grab;pointer-events:auto;z-index:2147483002;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:12px;line-height:22px;text-align:center;';
   handle.textContent = '\\u2195';
-  handle.title = 'Glisser pour déplacer';
+  handle.title = 'Glisser pour positionner librement';
   layer.appendChild(handle);
   handle.addEventListener('pointerdown', function (e) {
     if (!selectedEl) return;
     e.preventDefault();
     e.stopPropagation();
-    beginDrag(selectedEl, e);
+    beginFreeMove(selectedEl, e);
   });
 
   var _place = place;
   place = function (box, el) {
     _place(box, el);
-    if (box === selBox && !PREVIEW) {
+    if (box === selBox && !PREVIEW && sectionOf(el) !== el) {
       var r = el.getBoundingClientRect();
       handle.style.left = (r.left + window.scrollX - 11) + 'px';
       handle.style.top = (r.top + window.scrollY - 11) + 'px';

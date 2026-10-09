@@ -16,10 +16,42 @@
         @if (v.type) {
           · {{ 'dashboard.showCommunication.video.types.' + v.type + '.label' | translate }}
         }
-        @if (v.storyboard.concept) {
+        @if (v.storyboard.concept && !v.storyboard.authored) {
           · {{ 'dashboard.showCommunication.video.concepts.' + v.storyboard.concept | translate }}
         }
       </p>
+      <!-- Ce que l'IA a décidé : le film entier (Ultra), sinon les décisions retenues de ses agents. -->
+      @if (v.storyboard.authored; as a) {
+        <p class="vd-ai">
+          <i class="pi pi-sparkles" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.video.detail.ai.authored' | translate: { coded: a.coded, shots: a.shots } }}
+          @if (a.concept) {
+            <span class="vd-ai-concept">— {{ a.concept }}</span>
+          }
+        </p>
+      } @else if (aiDecisions().length) {
+        <p class="vd-ai">
+          <i class="pi pi-sparkles" aria-hidden="true"></i>
+          @if (v.creativity) {
+            {{ 'common.creativity.levels.' + v.creativity + '.label' | translate }} ·
+          }
+          {{ 'dashboard.showCommunication.video.detail.ai.decided' | translate }}
+          @for (d of aiDecisions(); track d; let last = $last) {
+            {{ 'dashboard.showCommunication.video.detail.ai.roles.' + d | translate }}{{ last ? '' : ', ' }}
+          }
+        </p>
+      }
+      <!-- Le moteur créatif : l'écart à la vidéo la plus proche de la marque et la touche inattendue. -->
+      @if (novelty(); as n) {
+        <p class="vd-ai">
+          <i class="pi pi-compass" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.video.detail.creative.' + n.verdict | translate: { percent: n.percent } }}
+          @if (n.family) {
+            · {{ 'dashboard.showCommunication.video.detail.creative.accent' | translate }}
+            {{ 'dashboard.showCommunication.video.detail.creative.families.' + n.family | translate }}
+          }
+        </p>
+      }
     </header>
 
     <div class="vd-layout">

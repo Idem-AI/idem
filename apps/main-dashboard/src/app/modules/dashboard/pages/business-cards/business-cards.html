@@ -35,19 +35,27 @@
                 <i class="pi pi-pencil text-xs" aria-hidden="true"></i>
                 {{ 'dashboard.businessCards.actions.editTemplate' | translate }}
               </button>
+              <!-- Régénérer : le cran de créativité accolé au bouton, prix compris. -->
+              <app-creativity-picker [(value)]="creativity" [baseCost]="creativityBaseCost()" [disabled]="isGenerating()" align="end" />
               <button
                 type="button"
                 class="glass-card px-4 py-2.5 text-sm text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors rounded-xl flex items-center gap-2 disabled:opacity-50"
                 (click)="generateTemplate()"
                 [disabled]="isGenerating()"
               >
-                <idem-loader size="xs" />
+                @if (isGenerating()) {
+                  <idem-loader size="xs" />
+                } @else {
+                  <i class="pi pi-sparkles text-xs" aria-hidden="true"></i>
+                }
                 {{ 'dashboard.businessCards.actions.regenerate' | translate }}
+                @if (creativityBaseCost() | creativityCost: creativity(); as cost) {
+                  <span class="text-text-tertiary">· {{ 'common.creativity.cost' | translate: { cost } }}</span>
+                }
               </button>
             </div>
           }
         </div>
-
         @if (templateMeta(); as meta) {
           <div class="mt-5 pt-5 border-t border-[var(--glass-border)] flex flex-wrap items-center gap-3">
             <span
@@ -156,22 +164,29 @@
                   />
                 </div>
 
-                <button
-                  type="button"
-                  class="inner-button"
-                  (click)="generateTemplate()"
-                  [disabled]="isGenerating()"
-                >
-                  <idem-loader size="xs" />
-                  <span>
-                    {{
-                      (isGenerating()
-                        ? 'dashboard.businessCards.empty.generate.generating'
-                        : 'dashboard.businessCards.empty.generate.cta'
-                      ) | translate
-                    }}
-                  </span>
-                </button>
+                <!-- Lancer : le cran de créativité à côté du bouton, prix compris. -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                  <app-creativity-picker [(value)]="creativity" [baseCost]="creativityBaseCost()" [disabled]="isGenerating()" />
+                  <button
+                    type="button"
+                    class="inner-button"
+                    (click)="generateTemplate()"
+                    [disabled]="isGenerating()"
+                  >
+                    <idem-loader size="xs" />
+                    <span>
+                      {{
+                        (isGenerating()
+                          ? 'dashboard.businessCards.empty.generate.generating'
+                          : 'dashboard.businessCards.empty.generate.cta'
+                        ) | translate
+                      }}
+                      @if (!isGenerating() && (creativityBaseCost() | creativityCost: creativity()); as cost) {
+                        · {{ 'common.creativity.cost' | translate: { cost } }}
+                      }
+                    </span>
+                  </button>
+                </div>
                 <p class="text-xs text-text-tertiary mt-3" aria-live="polite">
                   @if (isGenerating()) {
                     {{ 'dashboard.businessCards.empty.generate.wait' | translate }}

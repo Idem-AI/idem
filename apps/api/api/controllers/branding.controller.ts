@@ -1,3 +1,4 @@
+import { creativityOf } from '../middleware/billing.middleware';
 import { Response } from 'express';
 import { BrandingService } from '../services/BandIdentity/branding.service';
 import { PromptService } from '../services/prompt.service';
@@ -210,7 +211,9 @@ export const generateLogoConceptsController = async (
       userId,
       projectId as string,
       forceRegenerate,
-      isRetry
+      isRetry,
+      // Le logo est toujours dessiné au cran Ultra (au prix habituel de la session).
+      'ultra'
     );
 
     if (!logos) {
@@ -327,7 +330,9 @@ export const generateLogoConceptsStreamController = async (
       projectId as string,
       streamCallback,
       forceRegenerate,
-      preferencesOverride
+      preferencesOverride,
+      // Le logo est toujours dessiné au cran Ultra (au prix habituel de la session).
+      'ultra'
     );
 
     if (!isRetry && logos.length > 0) {
@@ -853,7 +858,8 @@ export const generateBrandingStreamingController = async (
       streamCallback, // Passer le callback de streaming
       pdfFormat, // Passer le format PDF
       forceRegenerate,
-      targetSections
+      targetSections,
+      creativityOf(req as any)
     );
 
     if (!updatedProject) {

@@ -25,8 +25,8 @@ import {
 import { normalizeSectionContent, Block, SectionContent } from '../design/sectionContent';
 import { htmlToSectionContent, looksLikeHtmlPage } from '../design/htmlToSectionContent';
 import { renderSection } from '../design/sectionRenderer';
-import { buildDocumentSeed, buildSectionSeed } from '../design/designSeed';
-import { BrandCharter, buildDocumentDesignSystem } from '../design/documentDesignSystem';
+import { buildDocumentSeed, buildSectionSeed, SectionSeed } from '../design/designSeed';
+import { BrandCharter, buildDocumentDesignSystem, DocumentDesignSystem } from '../design/documentDesignSystem';
 import { ArtDirectionModel } from '../../models/art-direction.model';
 import { parseLlmJson } from '../../utils/llm-json.util';
 import { cacheService } from '../cache.service';
@@ -103,6 +103,16 @@ export interface ResearchTeamContext {
   usedArchetypes?: Set<string>;
   logoUrl?: string;
   brandName?: string;
+  /**
+   * La jauge de créativité (creativity/documentDesign.ts) : famille du document et réglages
+   * de chaque page décidés par les agents, appliqués par-dessus la graine.
+   */
+  designPlan?: { family?: string; pages: Record<string, Partial<SectionSeed>> };
+  /**
+   * Cran Ultra : la page est composée en HTML par le compositeur (creativity/pageComposer.ts)
+   * à partir du contenu validé ; `null` = refusée, le gabarit la rend.
+   */
+  composePage?: (sectionName: string, content: SectionContent, seed: SectionSeed, ds: DocumentDesignSystem) => Promise<string | null>;
 }
 
 const RESEARCH_CONFIG: PromptConfig = {
@@ -385,7 +395,7 @@ export class ResearchTeamService {
       // définit — une composition pleine page à hauteur fixe.
       const finalizedHtml = section.freeform
         ? finalData
-        : this.renderResearchedSection(
+        : await this.finalizeResearchedSection(
             finalData,
             sources,
             ctx,
@@ -1099,9 +1109,9 @@ export class ResearchTeamService {
 
     const artDirection = ctx.artDirection ?? null;
     const documentKey = ctx.documentKey ?? 'research';
-    const documentSeed = buildDocumentSeed(artDirection?.styleId, documentKey);
+    const documentSeed = this.withPlanFamily(buildDocumentSeed(artDirection?.styleId, documentKey), ctx);
     const designSystem = buildDocumentDesignSystem(ctx.charter, artDirection, documentSeed);
-    const seed = buildSectionSeed(artDirection?.styleId, documentKey, sectionName, ctx.usedArchetypes);
+    const seed = this.withPlanFamily(buildSectionSeed(artDirection?.styleId, documentKey, sectionName, ctx.usedArchetypes), ctx);
 
     const html = renderSection(content, designSystem, seed, {
       logoUrl: ctx.logoUrl,
@@ -1179,6 +1189,16 @@ export class ResearchTeamService {
     sectionName: string,
     index: number
   ): string {
+    const prepared = this.prepareResearchedPage(content, ctx, sectionName);
+    return renderSection(prepared.page, prepared.designSystem, prepared.seed, { logoUrl: ctx.logoUrl, brandName: ctx.brandName, index });
+  }
+
+  /** La page d'une section de recherche, prête à rendre : contenu, système de design, graine. */
+  private prepareResearchedPage(
+    content: string,
+    ctx: ResearchTeamContext,
+    sectionName: string
+  ): { page: SectionContent; designSystem: DocumentDesignSystem; seed: SectionSeed } {
     const parsed = normalizeSectionContent(parseLlmJson(content)) ?? this.salvage(content, sectionName);
 
     if (!parsed) {
@@ -1220,20 +1240,41 @@ export class ResearchTeamService {
 
     const artDirection = ctx.artDirection ?? null;
     const documentKey = ctx.documentKey ?? 'research';
-    const documentSeed = buildDocumentSeed(artDirection?.styleId, documentKey);
+    const documentSeed = this.withPlanFamily(buildDocumentSeed(artDirection?.styleId, documentKey), ctx);
     const designSystem = buildDocumentDesignSystem(ctx.charter, artDirection, documentSeed);
-    const seed = buildSectionSeed(
-      artDirection?.styleId,
-      documentKey,
-      sectionName,
-      ctx.usedArchetypes ?? new Set()
+    const seed = this.withPlanPage(
+      buildSectionSeed(artDirection?.styleId, documentKey, sectionName, ctx.usedArchetypes ?? new Set()),
+      ctx,
+      sectionName
     );
+    return { page: { ...parsed, blocks }, designSystem, seed };
+  }
 
-    return renderSection({ ...parsed, blocks }, designSystem, seed, {
-      logoUrl: ctx.logoUrl,
-      brandName: ctx.brandName,
-      index,
-    });
+  /**
+   * Rend une page de recherche : le gabarit, ou — au cran Ultra de la jauge de créativité —
+   * la composition HTML du compositeur à partir du MÊME contenu validé (gabarit en repli).
+   */
+  private async finalizeResearchedSection(content: string, sources: ResearchSource[], ctx: ResearchTeamContext, sectionName: string, index: number): Promise<string> {
+    if (!ctx.composePage) return this.renderResearchedSection(content, sources, ctx, sectionName, index);
+    const prepared = this.prepareResearchedPage(content, ctx, sectionName);
+    const composed = await ctx.composePage(sectionName, prepared.page, prepared.seed, prepared.designSystem).catch(() => null);
+    if (composed) {
+      logger.info(`ResearchTeam « ${sectionName} » : page composée par le compositeur (cran Ultra)`);
+      return composed;
+    }
+    return renderSection(prepared.page, prepared.designSystem, prepared.seed, { logoUrl: ctx.logoUrl, brandName: ctx.brandName, index });
+  }
+
+  /** Famille de mise en page choisie par l'agent (jauge de créativité), sinon celle de la graine. */
+  private withPlanFamily<T extends { family: string }>(seed: T, ctx: ResearchTeamContext): T {
+    return ctx.designPlan?.family ? { ...seed, family: ctx.designPlan.family } : seed;
+  }
+
+  /** Réglages de la page décidés par l'agent (archétype, densité, tension, image), par-dessus la graine. */
+  private withPlanPage(seed: SectionSeed, ctx: ResearchTeamContext, sectionName: string): SectionSeed {
+    const page = ctx.designPlan?.pages[sectionName];
+    const defined = page ? Object.fromEntries(Object.entries(page).filter(([, v]) => v != null && v !== '')) : {};
+    return this.withPlanFamily({ ...seed, ...defined }, ctx);
   }
 
   private escapeHtml(text: string): string {

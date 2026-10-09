@@ -18,7 +18,7 @@ import puppeteer, { Browser, Page } from 'puppeteer';
 import logger from '../../../config/logger';
 import { MotionStyle, SfxKind, VideoQuality } from '../../../models/motionVideo.model';
 import { refineCues, SfxCue } from './video.sfx';
-import { installRenderNetworkGuard } from '../../../utils/render-network-guard';
+import { installRenderNetworkGuard, isStrictRenderRequest } from '../../../utils/render-network-guard';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
@@ -75,6 +75,26 @@ function releaseBrowser(): void {
   idleTimer.unref?.();
 }
 
+/**
+ * Une page de contrôle sur le navigateur de rendu partagé : même préparation qu'un rendu
+ * (garde réseau, focus, polices, médias prêts), un délai borné, la page toujours refermée.
+ * Sert au contrôle des scènes écrites par l'IA (video.coder.ts).
+ */
+export async function withRenderPage<T>(input: { html: string; width: number; height: number; strict?: boolean }, fn: (page: Page) => Promise<T>, timeoutMs = 90000): Promise<T> {
+  activeRenders++;
+  let page: Page | null = null;
+  try {
+    const browser = await getBrowser();
+    page = await preparePage(browser, { ...input, fps: 30, durationSec: 0, quality: 'standard' } as RenderInput);
+    const p = page;
+    return await Promise.race([fn(p), new Promise<never>((_, reject) => setTimeout(() => reject(new Error('render_check_timeout')), timeoutMs))]);
+  } finally {
+    await page?.close().catch(() => undefined);
+    activeRenders--;
+    releaseBrowser();
+  }
+}
+
 export async function closeRenderBrowser(): Promise<void> {
   if (idleTimer) clearTimeout(idleTimer);
   const b = await browserPromise?.catch(() => null);
@@ -119,9 +139,11 @@ export interface RenderInput {
   /** Instant de l'affiche (vignette), en secondes. */
   posterAt?: number;
   /** Effets sonores : un fichier par moment sonore, et le style (densité). */
-  sfx?: { files: Partial<Record<SfxKind, string>>; style: MotionStyle };
+  sfx?: { files: Partial<Record<SfxKind, string>>; style: MotionStyle; intensity?: 'subtle' | 'normal' | 'punchy' };
   onProgress?: (ratio: number) => void;
   concurrency?: number;
+  /** La page exécute du code écrit par l'IA (cran Ultra) : garde réseau strict. */
+  strict?: boolean;
 }
 
 export interface RenderOutput {
@@ -141,7 +163,8 @@ async function preparePage(browser: Browser, input: RenderInput): Promise<Page> 
 
   const page = await browser.newPage();
   await page.setViewport({ width: input.width, height: input.height, deviceScaleFactor: 1 });
-  await installRenderNetworkGuard(page);
+  // Une page qui exécute du code écrit par l'IA (cran Ultra) n'a droit qu'aux données embarquées et au stockage.
+  await installRenderNetworkGuard(page, input.strict ? (req) => isStrictRenderRequest(req.url()) : undefined);
   // Chaque onglet se croit au premier plan : les clips vidéo y restent décodés.
   const cdp = await page.createCDPSession();
   await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => undefined);
@@ -239,7 +262,7 @@ export async function renderVideo(input: RenderInput): Promise<RenderOutput> {
 
     const file = path.join(workDir, 'video.mp4');
     const d = input.durationSec;
-    const cues = input.sfx ? refineCues(rawCues, input.sfx.style, d).filter((c) => input.sfx!.files[c.kind]) : [];
+    const cues = input.sfx ? refineCues(rawCues, input.sfx.style, d, input.sfx.intensity).filter((c) => input.sfx!.files[c.kind]) : [];
     await mixAudio({ silent, file, d, music: input.music, cues, files: input.sfx?.files || {} });
     const poster = path.join(workDir, 'poster.jpg');
     const posterAt = Math.max(0, Math.min(input.durationSec - 0.1, input.posterAt ?? input.durationSec * 0.2));

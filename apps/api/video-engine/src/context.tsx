@@ -62,6 +62,12 @@ export interface SceneData {
   pace?: number;
   /** Mise en scène d'un plan (clip ou photo plein cadre) : split, window, blinds, magazine, knockout, inline, duotone, broadcast, cinema. */
   treatment?: string;
+  /** Mise en page (archétype de composition) choisie par l'agent directeur artistique, cf. layouts.tsx. */
+  layout?: string;
+  /** Le mot que le directeur artistique met en valeur (index dans le titre). */
+  emphasis?: number;
+  /** Cran Max : taille des titres réglée par le directeur artistique (0,85 à 1,25). */
+  scale?: number;
   /** Le grand moment de la vidéo : punch (zoom + éclair), giant (titre géant), hold (temps suspendu), flip (couleur). */
   accent?: 'punch' | 'giant' | 'hold' | 'flip';
   motion: SceneMotion;
@@ -114,6 +120,10 @@ export interface VideoData {
   music?: { url: string; startAt: number };
   sfx?: { enabled: boolean; sounds: Record<string, { url: string; gain: number }> };
   kit?: KitData;
+  /** Grille du temps de la musique (en temps vidéo) : les mises en page pulsent dessus. */
+  beat?: { bpm: number; offset: number };
+  /** Cran Ultra : composants de scène écrits par l'IA, compilés (CommonJS), par clé de scène. */
+  customScenes?: Record<string, string>;
 }
 
 /** Une scène replacée sur la ligne de temps, avec ses fenêtres calculées. */

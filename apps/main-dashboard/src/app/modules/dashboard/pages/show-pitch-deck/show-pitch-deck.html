@@ -175,9 +175,15 @@
         <p class="text-text-tertiary mb-8 max-w-lg mx-auto">
           {{ 'dashboard.showPitchDeck.draft.subtitle' | translate: { count: expectedSlides().length } }}
         </p>
-        <button type="button" class="inner-button" (click)="startGeneration()">
-          {{ 'dashboard.showPitchDeck.actions.generate' | translate }}
-        </button>
+        <div class="flex flex-wrap items-center justify-center gap-2.5">
+          <app-creativity-picker [(value)]="creativity" [baseCost]="creativityBaseCost()" />
+          <button type="button" class="inner-button" (click)="startGeneration()">
+            {{ 'dashboard.showPitchDeck.actions.generate' | translate }}
+            @if (creativityBaseCost() | creativityCost: creativity(); as cost) {
+              · {{ 'common.creativity.cost' | translate: { cost } }}
+            }
+          </button>
+        </div>
         @if (errorMessage()) {
           <p class="mt-6 text-sm text-red-400" role="alert">{{ errorMessage() }}</p>
         }

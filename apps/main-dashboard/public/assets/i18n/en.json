@@ -48,7 +48,45 @@
     "apply": "Apply",
     "reset": "Reset",
     "close": "Close",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "creativity": {
+      "title": "Creativity",
+      "help": "The higher you go, the more decisions the AI makes — and the more credits the generation uses.",
+      "cost": "{{cost}} credits",
+      "levels": {
+        "low": {
+          "label": "Low",
+          "hint": "Proven",
+          "description": "Proven layouts, adapted to your brand guidelines and their art direction. The AI writes the copy.",
+          "line": "Proven layouts adapted to your brand. The AI writes the copy."
+        },
+        "medium": {
+          "label": "Medium",
+          "hint": "Guided",
+          "description": "The AI also picks the structure (sections, scenes, slides) among validated options. The safest at the usual price.",
+          "line": "The AI also picks the structure and the sequence."
+        },
+        "high": {
+          "label": "High",
+          "hint": "Inspired",
+          "description": "The AI composes each part — layouts, transitions, sequencing — among options filtered by your art direction.",
+          "line": "The AI composes each part: layouts, transitions."
+        },
+        "max": {
+          "label": "Max",
+          "hint": "Bold",
+          "description": "The AI also tunes the details — emphasis, colours, rhythm, density — within bounds that keep everything legible.",
+          "line": "The AI also tunes the details: emphasis, colours, rhythm."
+        },
+        "ultra": {
+          "label": "Ultra",
+          "hint": "Free",
+          "description": "The AI invents and creates everything: the composition, every part, the animations. Your brand guidelines and best practices stay guaranteed: each part is checked, critiqued and corrected before delivery.",
+          "line": "The AI invents and creates everything, checked and corrected before delivery."
+        }
+      },
+      "withCost": "{{label}} · {{cost}} credits"
+    }
   },
   "dashboard": {
     "createDevelopment": {
@@ -2364,18 +2402,12 @@
         "a4Portrait": {
           "title": "A4 portrait",
           "description": "A document to print, bind or attach to an email.",
-          "uses": [
-            "Printing and sending by email",
-            "Page-by-page reading, like a booklet"
-          ]
+          "uses": ["Printing and sending by email", "Page-by-page reading, like a booklet"]
         },
         "landscape": {
           "title": "Landscape 16:9",
           "description": "A presentation read on screen and projected in meetings.",
-          "uses": [
-            "Projection and screen sharing",
-            "Comfortable reading on a computer"
-          ]
+          "uses": ["Projection and screen sharing", "Comfortable reading on a computer"]
         },
         "startGeneration": "Generate my guidelines",
         "changeLater": "You can regenerate the guidelines in the other format later."
@@ -3239,6 +3271,24 @@
         "fontWeight": "Weight",
         "align": "Alignment",
         "opacity": "Opacity",
+        "position": "Position",
+        "freePosition": "Free placement",
+        "flowPosition": "Return to flow",
+        "x": "X",
+        "y": "Y",
+        "dragHint": "You can also drag the blue handle on the canvas to position the element.",
+        "size": "Size and border",
+        "width": "Width",
+        "height": "Height",
+        "radius": "Radius",
+        "border": "Border",
+        "borderColor": "Border color",
+        "layers": "Layers",
+        "layer": "Layer level",
+        "bringToFront": "Bring to front",
+        "sendToBack": "Send to back",
+        "bringForward": "Bring forward",
+        "sendBackward": "Send backward",
         "arrange": "Arrange",
         "moveUp": "Move up",
         "moveDown": "Move down",
@@ -4362,7 +4412,35 @@
           "previewHint": "Faithful preview: the same engine renders the MP4.",
           "delete": "Delete video",
           "deleteAsk": "Delete for good?",
-          "deleteConfirm": "Delete"
+          "deleteConfirm": "Delete",
+          "ai": {
+            "authored": "Authored film · {{coded}} of {{shots}} shots created by the AI",
+            "decided": "decided by the AI:",
+            "roles": {
+              "writer": "copy",
+              "strategist": "structure",
+              "soundDesigner": "music",
+              "artDirector": "layouts",
+              "animator": "transitions and motion",
+              "critic": "review"
+            }
+          },
+          "creative": {
+            "first": "The brand’s first video: the next ones will be compared with it",
+            "distinct": "Truly different from your previous videos ({{percent}} % apart)",
+            "acceptable": "Different from your previous videos ({{percent}} % apart)",
+            "too-close": "Close to a previous video ({{percent}} % apart)",
+            "accent": "unexpected touch:",
+            "families": {
+              "type": "typographic",
+              "data": "data",
+              "graphic": "graphic",
+              "drawn": "hand-drawn",
+              "spatial": "spatial",
+              "photo": "photographic",
+              "brand": "logo"
+            }
+          }
         },
         "texts": {
           "title": "On-screen text",
@@ -4528,10 +4606,16 @@
           "stages": {
             "plan": "Scene breakdown",
             "copy": "On-screen text",
+            "layout": "Each scene's layout",
             "media": "Images and clips",
             "music": "Music",
             "sfx": "Sound effects",
-            "storyboard": "Edit, synced to the beat"
+            "storyboard": "Edit, synced to the beat",
+            "animation": "Motion and transitions",
+            "critique": "Final review",
+            "code": "Writing the scenes (Ultra)",
+            "direction": "The film imagined by the AI director",
+            "shots": "Every shot created by the AI, reviewed and corrected"
           },
           "details": {
             "plan": "{{count}} scenes for {{seconds}} s",
@@ -4544,7 +4628,22 @@
             "sfx": "{{count}} sounds picked",
             "storyboard": "{{count}} scenes, cuts on the beat ({{bpm}} BPM)",
             "planType": "{{type}} · {{count}} scenes for {{seconds}} s",
-            "planConcept": "{{type}} · {{concept}} · {{count}} scenes for {{seconds}} s"
+            "planConcept": "{{type}} · {{concept}} · {{count}} scenes for {{seconds}} s",
+            "layout": "{{count}} layouts: {{names}}",
+            "layoutClassic": "The direction's own compositions",
+            "animation": "Cuts: {{names}} · {{camera}} camera",
+            "critique": "{{count}} fix(es) from the creative director",
+            "critiqueOk": "Approved without changes",
+            "musicAgent": "“{{title}}” — {{artist}} · {{bpm}} BPM · picked for your brand",
+            "code": "{{coded}} of {{tried}} scene(s) written by the AI and validated",
+            "direction": "“{{title}}” · {{count}} shots",
+            "directionFallback": "Fell back to the guided composition",
+            "shotsStart": "{{total}} shots to write",
+            "shots_writing": "Shot {{current}}/{{total}}: writing · {{done}} done",
+            "shots_review": "Shot {{current}}/{{total}}: visual review · {{done}} done",
+            "shots_revise": "Shot {{current}}/{{total}}: correcting · {{done}} done",
+            "shots_done": "{{done}} of {{total}} shots done",
+            "shots": "{{coded}} of {{total}} shots created by the AI · {{reviewed}} reviewed by the art director"
           }
         },
         "directions": {
@@ -4600,6 +4699,50 @@
           "reasons": "Reasons to choose us",
           "celebration": "Celebration",
           "logo-sting": "Signature"
+        },
+        "layouts": {
+          "classic": "classic composition",
+          "wordStack": "word stack",
+          "marqueeBack": "scrolling word",
+          "bigNumber": "giant number",
+          "diagonalBand": "diagonal band",
+          "circleStage": "circle",
+          "splitBlock": "split blocks",
+          "layeredCards": "layered cards",
+          "gridCards": "card grid",
+          "checklist": "checklist",
+          "quoteBig": "big quote",
+          "priceBurst": "price burst",
+          "ticker": "tickers",
+          "spotlightWord": "spotlight word",
+          "frameOverlap": "block and frame"
+        },
+        "transitions": {
+          "cut": "cut",
+          "flashCut": "flash cut",
+          "glitch": "glitch",
+          "dissolve": "dissolve",
+          "zoomBlur": "zoom blur",
+          "zoomThrough": "zoom through",
+          "whip": "whip pan",
+          "cube": "3D cube",
+          "push": "push",
+          "slideOver": "slide over",
+          "iris": "iris",
+          "wipe": "wipe",
+          "blockStack": "color blocks",
+          "shapeWipe": "brand circle",
+          "stripes": "diagonal stripes",
+          "split": "split panels",
+          "liquid": "wave"
+        },
+        "cameras": {
+          "still": "still",
+          "push": "slow push",
+          "pull": "pull back",
+          "drift": "drift",
+          "rise": "rise",
+          "tilt": "tilt"
         }
       }
     },

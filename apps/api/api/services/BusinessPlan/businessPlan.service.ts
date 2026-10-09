@@ -1,3 +1,8 @@
+import { CreativityLevel, normalizeCreativity, SavedDocumentDesign } from '../../models/creativity.model';
+import { DocumentDesignPlan, planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../creativity/documentDesign';
+import { ultraPageComposer } from '../creativity/pageComposer';
+import { runtimeCall } from '../creativity/orchestrator';
+import { brandSheet } from '../creativity/agent-io';
 import { LLMProvider, PromptConfig, PromptService, AIChatMessage } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
 
@@ -154,7 +159,9 @@ export class BusinessPlanService extends GenericService {
     streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
     forceRegenerate = false,
     targetSections: string[] = [],
-    documentId?: string
+    documentId?: string,
+    /** La jauge de créativité (cf. creativity/documentDesign.ts) ; Medium par défaut. */
+    creativity?: CreativityLevel
   ): Promise<BusinessPlanDocument | null> {
     logger.info(
       `Generating business plan with streaming for userId: ${userId}, projectId: ${projectId}, documentId: ${documentId ?? '(primary)'}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
@@ -289,6 +296,18 @@ export class BusinessPlanService extends GenericService {
       const artDirection = project.analysisResultModel?.branding?.artDirection;
       const documentSeed = buildDocumentSeed(artDirection?.styleId, designKey);
 
+      // LA JAUGE DE CRÉATIVITÉ : la famille du document, l'archétype et les réglages de chaque
+      // page passent aux agents selon le cran ; au cran Ultra, les pages sont composées par le
+      // modèle (gabarit en repli). Les archétypes de la graine sont calculés d'abord : ils sont
+      // le repli de chaque page et le point de départ des menus.
+      const level = normalizeCreativity(creativity);
+      // Des pages gardées (reprise, régénération ciblée) : la direction enregistrée est reprise.
+      const keepsPages =
+        !forceRegenerate && currentSections.some((section) => planSections.some((p) => p.name === section.name) && !targetSections.includes(section.name));
+      const designPlan = await this.planPagesDesign(userId, projectId, project, planSections, planAudience, designKey, level, plan.id, keepsPages, plan.design);
+      if (designPlan?.family) documentSeed.family = designPlan.family;
+      logger.info(`[BP] Créativité ${level} : ${designPlan ? `${Object.keys(designPlan.pages).length} page(s) dirigée(s)${designPlan.family ? `, famille ${designPlan.family}` : ''}${designPlan.freeCompose ? ', composition libre' : ''}` : 'graine'}`);
+
       // DESIGN SYSTEM CALCULÉ pour ce document : rampes, encres contrastées,
       // échelle typographique, rayon, rythme. Une fois par livrable — les neuf
       // pages le partagent, ce qui est très exactement ce qui en fait un
@@ -325,6 +344,12 @@ export class BusinessPlanService extends GenericService {
         prependBlocks?: Block[]
       ): IPromptStep => {
         sectionIndex += 1;
+        // La graine de la page, puis les choix du directeur artistique (High+) par-dessus.
+        const seed = {
+          ...buildSectionSeed(artDirection?.styleId, designKey, stepName, usedArchetypes),
+          ...(designPlan?.family ? { family: designPlan.family } : {}),
+          ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, v]) => !!v)),
+        };
         return {
           promptConstant: htmlPrompt,
           stepName,
@@ -336,12 +361,7 @@ export class BusinessPlanService extends GenericService {
             // elle prend la place de celles qui comptent.
             contentBrief,
             designSystem,
-            seed: buildSectionSeed(
-              artDirection?.styleId,
-              designKey,
-              stepName,
-              usedArchetypes
-            ),
+            seed,
             volume,
             render: { ...renderOptions, index: sectionIndex },
             // Les tableaux financiers viennent du module Finance, pas du
@@ -349,6 +369,10 @@ export class BusinessPlanService extends GenericService {
             // milliers de mots est un chiffre altéré, et c'est le défaut qu'un
             // lecteur de plan repère en premier.
             prependBlocks,
+            // Cran Ultra : le contenu validé de la page part au compositeur, le gabarit en repli.
+            compose: designPlan?.freeCompose
+              ? ultraPageComposer({ ds: designSystem, seed, page: PORTRAIT_A4, singlePage: false, sheet: this.creativeSheet(project), document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name: stepName })
+              : undefined,
           },
         };
       };
@@ -626,7 +650,9 @@ export class BusinessPlanService extends GenericService {
     emit: ResearchEmit,
     forceRegenerate = false,
     targetSections: string[] = [],
-    documentId?: string
+    documentId?: string,
+    /** La jauge de créativité (famille, pages dirigées, composition libre au cran Ultra). */
+    creativity?: CreativityLevel
   ): Promise<BusinessPlanDocument | null> {
     logger.info(
       `Generating business plan with RESEARCH TEAM for userId: ${userId}, projectId: ${projectId}, documentId: ${documentId ?? '(primary)'}, force: ${forceRegenerate}, targets: [${targetSections.join(', ')}]`
@@ -786,6 +812,9 @@ export class BusinessPlanService extends GenericService {
     // retomberaient sur un design system par défaut et le plan aurait deux
     // identités visuelles — ce qu'il avait.
     const researchArtDirection = project.analysisResultModel?.branding?.artDirection;
+    const level = normalizeCreativity(creativity);
+    const designPlan = await this.planPagesDesign(userId, projectId, project, planSections, planAudience, designKey, level, plan.id, existingSections.length > 0, plan.design);
+    const sheet = this.creativeSheet(project);
     await researchTeamService.runResearchTeam(
       sectionsToGenerate,
       {
@@ -810,6 +839,13 @@ export class BusinessPlanService extends GenericService {
         usedArchetypes: new Set<string>(),
         logoUrl: collectLogoUrls(project.analysisResultModel?.branding?.logo)[0],
         brandName: project.name,
+        // La jauge de créativité : famille et réglages des pages par les agents ; au cran Ultra,
+        // chaque page composée par le compositeur à partir du contenu validé (gabarit en repli).
+        designPlan: designPlan ? { family: designPlan.family, pages: designPlan.pages } : undefined,
+        composePage: designPlan?.freeCompose
+          ? (name, content, seed, ds) =>
+              ultraPageComposer({ ds, seed, page: PORTRAIT_A4, singlePage: false, sheet, document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name })(content)
+          : undefined,
       },
       emit,
       persistSection
@@ -821,6 +857,68 @@ export class BusinessPlanService extends GenericService {
     return deliverableDocumentStore.find(userId, projectId, 'businessPlan', plan.id);
   }
 
+
+  /**
+   * LA JAUGE DE CRÉATIVITÉ du business plan (creativity/documentDesign.ts) : famille du
+   * document (Medium+), archétype et réglages de chaque page (High+, Max+), composition libre
+   * des pages (Ultra). Les archétypes de la graine sont calculés d'abord : ils sont le repli de
+   * chaque page et le point de départ des menus. Un échec laisse la graine décider.
+   */
+  private async planPagesDesign(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    planSections: ReadonlyArray<BusinessPlanSectionDefinition>,
+    planAudience: BusinessPlanAudience | string | undefined,
+    designKey: string,
+    level: CreativityLevel,
+    documentId: string,
+    /** Des pages du plan sont gardées : leur direction, enregistrée, est reprise telle quelle. */
+    keepsPages: boolean,
+    saved?: SavedDocumentDesign
+  ): Promise<DocumentDesignPlan | null> {
+    if (keepsPages) {
+      logger.info(`[BP] Reprise : direction ${saved ? `enregistrée (${saved.level})` : 'de la graine'} conservée pour les pages refaites`);
+      return resumedDesignPlan(saved, level);
+    }
+    const branding = project.analysisResultModel?.branding as any;
+    const artDirection = branding?.artDirection;
+    const seedArchetypes: Record<string, string> = {};
+    const probe = new Set<string>();
+    for (const section of planSections) if (!section.freeform) seedArchetypes[section.name] = buildSectionSeed(artDirection?.styleId, designKey, section.name, probe).archetype;
+    try {
+      const plan = await planDocumentDesign({
+        level,
+        call: runtimeCall({ userId, projectId, element: 'business_plan' }),
+        sheet: this.creativeSheet(project),
+        styleId: artDirection?.styleId,
+        document: 'business plan',
+        pages: planSections.filter((s) => !s.freeform).map((s) => ({ name: s.name, brief: composeBrief(s.key, { audience: planAudience as BusinessPlanAudience, position: 1, total: planSections.length }) ?? undefined })),
+        seedArchetypes,
+      });
+      logger.info(`[BP] Créativité ${level} : ${Object.keys(plan.pages).length} page(s) dirigée(s)${plan.family ? `, famille ${plan.family}` : ''}${plan.freeCompose ? ', compositeur' : ''}`);
+      // Enregistrée avec le plan : une reprise ou une régénération ciblée la reprendra.
+      await deliverableDocumentStore
+        .update(userId, projectId, 'businessPlan', documentId, (current) => ({ ...current, design: savedDesignOf(plan) }), { touch: false })
+        .catch((error: any) => logger.warn('[BP] Direction des pages non enregistrée', { error: error?.message }));
+      return plan;
+    } catch (error: any) {
+      logger.warn('[BP] Direction artistique des pages en échec, la graine décide', { error: error?.message });
+      return null;
+    }
+  }
+
+  /** La fiche de la marque, la même pour tous les agents créatifs du plan. */
+  private creativeSheet(project: ProjectModel): string {
+    const branding = project.analysisResultModel?.branding as any;
+    return brandSheet({
+      brandName: project.name || 'Brand',
+      businessType: project.type,
+      palette: branding?.colors?.colors || {},
+      fonts: { display: branding?.typography?.primaryFont || 'Archivo', body: branding?.typography?.secondaryFont || 'Inter' },
+      art: branding?.artDirection,
+    });
+  }
 
   /**
    * Contexte de marque transmis à CHAQUE agent du plan.

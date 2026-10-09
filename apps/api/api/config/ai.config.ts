@@ -756,6 +756,26 @@ export const AI_CONFIG = {
     fallbackModels: [GLM_MODELS.writing],
   }),
 
+  /**
+   * LES AGENTS DE LA JAUGE DE CRÉATIVITÉ (services/creativity/orchestrator.ts).
+   *
+   * Trois profils, pas un par livrable : ce qui distingue les agents est la NATURE de
+   * leur tâche, pas le livrable qu'ils servent.
+   *  - `agents` : un choix dans un menu court (mise en page, transition, structure…).
+   *    Tâche mécanique, deux à cinq lignes : le plus petit modèle, sans raisonnement,
+   *    une température qui varie les choix d'une génération à l'autre.
+   *  - `critic` : une relecture qui propose au plus cinq corrections dans une
+   *    grammaire fermée. Plus froide : on veut des corrections, pas de l'inspiration.
+   *  - `coder` : le cran Ultra, où l'IA ÉCRIT la composition (HTML, React, SVG).
+   *    Assez de tokens pour un composant entier ; le code est ensuite compilé, linté
+   *    et rendu en bac à sable — c'est là que se joue la qualité, pas dans le prompt.
+   */
+  creative: {
+    agents: feature({ role: 'mechanical', promptType: 'creative_agents', temperature: 0.85, tokens: 400, thinking: false }),
+    critic: feature({ role: 'mechanical', promptType: 'creative_critic', temperature: 0.3, tokens: 400, thinking: false }),
+    coder: feature({ role: 'writing', promptType: 'creative_coder', temperature: 0.7, tokens: 6000, thinking: false }),
+  },
+
   /** Replis nommés, pour les appelants qui choisissent leur modèle eux-mêmes. */
   fallback: {
     textModel: GLM_MODELS.mechanical,
@@ -1142,6 +1162,36 @@ export const AI_CONFIG = {
       promptType: 'communication_video_copy',
       temperature: 0.7,
       tokens: 900,
+      thinking: false,
+    }),
+    // Les AGENTS de la vidéo (directeur artistique par scène, animateur, sound
+    // designer, critique) : chacun CHOISIT dans des menus courts filtrés par le
+    // graphe et la DA de la charte, et répond en deux à cinq lignes. Tâches
+    // mécaniques, petites, parallèles : le modèle le moins cher suffit, sans
+    // raisonnement ; un peu plus de température que la copie pour varier les choix.
+    videoAgents: feature({
+      role: 'mechanical',
+      promptType: 'communication_video_agents',
+      temperature: 0.85,
+      tokens: 300,
+      thinking: false,
+    }),
+    // LA JAUGE DE CRÉATIVITÉ : plus le cran monte, plus les décisions confiées à l'IA comptent —
+    // et plus le modèle qui les prend est fort. Medium et au-dessus : la copie, le stratège et les
+    // agents passent à l'étage de rédaction ; Max et Ultra (film d'auteur) : à l'étage de
+    // raisonnement, sans réflexion (elle viderait le budget), budget de sortie plus large.
+    videoWriting: feature({
+      role: 'writing',
+      promptType: 'communication_video_copy',
+      temperature: 0.8,
+      tokens: 1600,
+      thinking: false,
+    }),
+    videoReasoning: feature({
+      role: 'reasoning',
+      promptType: 'communication_video_copy',
+      temperature: 0.85,
+      tokens: 4000,
       thinking: false,
     }),
     // L'ATELIER : un agent à outils, en conversation. Il ne produit pas de

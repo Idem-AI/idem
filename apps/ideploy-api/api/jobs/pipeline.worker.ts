@@ -11,7 +11,7 @@ import { registerWorker } from '../queue/worker';
 import { realtime } from '../services/realtime.service';
 import { executeRemoteCommand, shellQuote } from '../ssh/ssh';
 import { assertSafeGitBranch, assertSafeGitUrl } from '../validation/git-input';
-import { Severity, SonarClient, sonarConfig, summariseTrivy, trivyFails } from '../services/pipeline-scanners.service';
+import { SonarClient, sonarConfig, summariseTrivy, trivyFailThreshold, trivyFails } from '../services/pipeline-scanners.service';
 import * as appService from '../services/application.service';
 import * as serverService from '../services/server.service';
 import * as pipelineService from '../services/pipeline.service';
@@ -76,7 +76,7 @@ export async function processPipeline(job: Job<PipelineJobData>): Promise<void> 
           { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
         );
         await pipelineService.setJobStatus(executionId, stage, r.exitCode === 0 ? 'success' : 'failed', r.stdout + r.stderr);
-        if (r.exitCode !== 0) throw new Error(`git clone failed: ${explainGitFailure(r.stderr)}`);
+        if (r.exitCode !== 0) throw new Error(`git clone failed: ${explainGitFailure(r.stderr, Boolean(credential))}`);
         commit = /COMMIT=([0-9a-f]{40})/.exec(r.stdout)?.[1] ?? null;
       } else if (stage === 'trivy') {
         await runTrivy(server, key, workdir, executionId, log);
@@ -85,7 +85,7 @@ export async function processPipeline(job: Job<PipelineJobData>): Promise<void> 
       } else if (stage === 'deploy') {
         // The commit the pipeline checked, not the branch name — the worker
         // only accepts a commit id, and a branch would move under it.
-        await deploymentService.createDeployment(app, teamId, { commit: commit ?? 'HEAD' });
+        await deploymentService.createDeployment(app, teamId, { commit: commit ?? 'HEAD', pipelineExecutionId: executionId });
         await pipelineService.setJobStatus(executionId, stage, 'success', 'Deployment queued');
         await log('Deployment queued');
       } else {
@@ -120,8 +120,7 @@ export function registerPipelineWorker(): void {
 type Server = Parameters<typeof executeRemoteCommand>[0];
 type Key = Parameters<typeof executeRemoteCommand>[1];
 
-/** Severity at or above which Trivy fails the pipeline (`NONE` reports only). */
-const TRIVY_FAIL_ON = (process.env.PIPELINE_TRIVY_FAIL_ON || 'CRITICAL').toUpperCase() as Severity | 'NONE';
+const TRIVY_FAIL_ON = trivyFailThreshold();
 
 /**
  * Trivy on the checked-out code: dependency vulnerabilities and committed

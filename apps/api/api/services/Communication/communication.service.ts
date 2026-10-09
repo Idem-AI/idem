@@ -1,3 +1,8 @@
+import { atLeast, CreativityLevel } from '../../models/creativity.model';
+import { CreativeOrchestrator, runtimeCall } from '../creativity/orchestrator';
+import { brandSheet } from '../creativity/agent-io';
+import { FLYER_LAYOUTS, flyerLayoutMenu, FlyerStructure, pickFlyerLayout, renderFlyerLayout } from './flyerLayouts';
+import { artDirectorTask, conceptTask, copywriterTask, heuristicFlyerCopy, structureTask } from './flyerCreative';
 import crypto from 'crypto';
 import logger from '../../config/logger';
 import { ProjectModel } from '../../models/project.model';
@@ -322,6 +327,39 @@ export class CommunicationService extends GenericService {
   /** Rédaction des textes d'une vidéo : petit modèle, sans raisonnement. */
   async runVideoCopyPrompt(userId: string, system: string, user: string): Promise<string> {
     return this.promptService.runPrompt(promptConfigFor(AI_CONFIG.communication.video, userId), [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ]);
+  }
+
+  /**
+   * Un appel vidéo à l'étage voulu par la jauge de créativité (`mechanical` → `reasoning`). Une
+   * panne passagère (quota, réseau) ou une réponse vide est retentée une fois : un agent qui
+   * tombe en repli ramène le film au choix du code, et les crans finissent par se ressembler.
+   */
+  async runVideoTieredPrompt(userId: string, system: string, user: string, tier: 'mechanical' | 'writing' | 'reasoning', kind: 'copy' | 'agents' = 'copy'): Promise<string> {
+    const base =
+      tier === 'reasoning' ? AI_CONFIG.communication.videoReasoning : tier === 'writing' ? AI_CONFIG.communication.videoWriting : kind === 'agents' ? AI_CONFIG.communication.videoAgents : AI_CONFIG.communication.video;
+    const config = kind === 'agents' && tier !== 'mechanical' ? { ...base, promptType: 'communication_video_agents', llmOptions: { ...base.llmOptions, maxOutputTokens: Math.min(base.llmOptions?.maxOutputTokens ?? 1200, 1200) } } : base;
+    const messages = [
+      { role: 'system' as const, content: system },
+      { role: 'user' as const, content: user },
+    ];
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const text = await this.promptService.runPrompt(promptConfigFor(config, userId), messages);
+        if (text && text.trim()) return text;
+        if (attempt >= 1) return text;
+      } catch (error) {
+        if (attempt >= 1) throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+  }
+
+  /** Un agent de la vidéo (directeur artistique, animateur, sound designer, critique). */
+  async runVideoAgentPrompt(userId: string, system: string, user: string): Promise<string> {
+    return this.promptService.runPrompt(promptConfigFor(AI_CONFIG.communication.videoAgents, userId), [
       { role: 'system', content: system },
       { role: 'user', content: user },
     ]);
@@ -1498,7 +1536,7 @@ export class CommunicationService extends GenericService {
     userId: string,
     projectId: string,
     contentId: string,
-    opts: { format?: FlyerFormat; force?: boolean } = {}
+    opts: { format?: FlyerFormat; force?: boolean; creativity?: CreativityLevel } = {}
   ): Promise<Flyer> {
     const format = opts.format || 'square';
     logger.info(`[Communication] Generating flyer`, { userId, projectId, contentId, format });
@@ -1518,7 +1556,7 @@ export class CommunicationService extends GenericService {
       'communication-flyer',
       userId,
       projectId,
-      this.shortHash({ contentId, format, content, brand: context.branding })
+      this.shortHash({ contentId, format, content, brand: context.branding, creativity: opts.creativity || 'max' })
     );
     if (!opts.force) {
       const cached = await cacheService.get<Flyer>(cacheKey, { prefix: 'ai', ttl: 7200 });
@@ -1533,7 +1571,10 @@ export class CommunicationService extends GenericService {
       context,
       format,
       flyerId,
-      `flyer:${projectId}:${contentId}:${format}`
+      `flyer:${projectId}:${contentId}:${format}`,
+      undefined,
+      undefined,
+      { creativity: opts.creativity, recentLayouts: this.recentVisualLayouts(communication) }
     );
 
     // Note: We no longer need the post-processing regex replace for {{IMAGE_URL}} 
@@ -1558,6 +1599,9 @@ export class CommunicationService extends GenericService {
       format,
       intent,
       logoUsed: (parsed as Partial<Flyer>).logoUsed,
+      layout: (parsed as Partial<Flyer>).layout,
+      creativity: (parsed as Partial<Flyer>).creativity,
+      agents: (parsed as Partial<Flyer>).agents,
       concept: parsed.concept || '',
       layoutNotes: parsed.layoutNotes || '',
       marketingText: {
@@ -1623,7 +1667,14 @@ export class CommunicationService extends GenericService {
      * l'utilisateur (« sans photo »), et cela économise au passage l'appel de
      * brief d'image ET l'appel de sourcing.
      */
-    skipImage?: boolean
+    skipImage?: boolean,
+    /**
+     * La jauge de créativité. Low → High : le CODE compose (flyerLayouts.ts), l'IA écrit les
+     * mots puis choisit structure et composition selon le cran. Max : l'IA écrit le HTML dans la
+     * grille (pipeline historique, défaut des appelants internes). Ultra : un agent concept
+     * décide de l'idée, deux compositions sont écrites, rendues, et la meilleure est gardée.
+     */
+    creative: { creativity?: CreativityLevel; recentLayouts?: string[] } = {}
   ): Promise<{
     html: string;
     parsed: Partial<Flyer>;
@@ -1633,6 +1684,7 @@ export class CommunicationService extends GenericService {
     png: Buffer;
     audit: VisualAuditReport;
   }> {
+    const creativity: CreativityLevel = creative.creativity || 'max';
     // ---- Step 5a: grille de composition -------------------------------------
     // La graine est tirée AVANT le brief d'image : c'est elle qui décide de
     // l'axe de la césure 62/38, donc de la zone que la photo doit laisser libre.
@@ -1655,7 +1707,8 @@ export class CommunicationService extends GenericService {
     // ---- Step 5b/5c: image brief puis sourcing — sautés si « sans photo » ---
     let sourced: SourcedImage | null = null;
     if (!skipImage) {
-      const brief = await this.buildImageBrief(userId, content, context, format, grid);
+      // Le choix de l'image est confié à l'IA dès High ; en dessous, le brief vient du contenu.
+      const brief = atLeast(creativity, 'high') ? await this.buildImageBrief(userId, content, context, format, grid) : this.heuristicImageBrief(content, context, format);
       try {
         sourced = await imageSourcingService.sourceImage(brief, {
           userId,
@@ -1672,6 +1725,72 @@ export class CommunicationService extends GenericService {
 
     // ---- Step 5d: composition (copy + HTML coherent with the image) --------
     const intent = this.inferVisualIntent(content);
+    const sheet = brandSheet({
+      brandName: context.brandName,
+      businessType: context.businessType,
+      tone: context.tone,
+      palette: { primary: context.branding.primary, secondary: context.branding.secondary, accent: context.branding.accent, background: context.branding.background, text: context.branding.text },
+      fonts: { display: context.branding.primaryFont || 'Archivo', body: context.branding.secondaryFont || context.branding.primaryFont || 'Inter' },
+      art: context.artDirection,
+    });
+    const orchestrator = new CreativeOrchestrator({ level: creativity, call: runtimeCall({ userId, projectId, element: 'flyer' }) });
+    const render = async (candidate: string, meta: Partial<Flyer>) => {
+      let finalHtml = this.ensureLogoPresence(candidate, context, format);
+      finalHtml = this.applyDesignLint(finalHtml, context, `visuel/${format}`, sourced?.analysis.dominantColors || []);
+      const out = await flyerRenderService.renderFlyer(
+        finalHtml,
+        format,
+        { url: context.branding.fontUrl, primaryFont: context.branding.primaryFont, secondaryFont: context.branding.secondaryFont },
+        this.logoDeclensions(context, meta.logoUsed),
+        {
+          grid,
+          palette: { primary: context.branding.primary, secondary: context.branding.secondary, accent: context.branding.accent, background: context.branding.background, text: context.branding.text },
+          label: `visuel/${format}`,
+        }
+      );
+      return { html: out.html ? sanitizeSectionHtml(out.html) : finalHtml, parsed: meta, sourced, intent, png: out.png, audit: out.audit };
+    };
+
+    // Crans Low → High : le CODE compose, les agents décident selon le cran.
+    if (!atLeast(creativity, 'max')) {
+      const brief = { title: content.title, hook: content.hook, description: content.description, intent, language: context.language };
+      const copy = (await orchestrator.run(copywriterTask(sheet, brief))).value;
+      const hasImage = !!sourced?.url;
+      // Une citation (avis, témoignage) se reconnaît à ses guillemets ou à son vocabulaire.
+      const quoteLike = /^[«"“]|t[ée]moign|avis client|nos clients disent|review/i.test(`${content.hook || ''} ${content.title}`);
+      const structures: FlyerStructure[] = [...(hasImage ? ['photo' as const] : []), 'type', ...(copy.detail ? ['fact' as const] : []), ...(quoteLike ? ['quote' as const] : [])];
+      const fallbackStructure: FlyerStructure = quoteLike ? 'quote' : hasImage ? 'photo' : copy.detail ? 'fact' : 'type';
+      const structure = (await orchestrator.run(structureTask(sheet, copy, structures, fallbackStructure))).value;
+      const styleId = context.artDirection?.styleId;
+      const seedNumber = parseInt(crypto.createHash('sha1').update(seedKey).digest('hex').slice(0, 8), 16);
+      const menu = flyerLayoutMenu(structure, { styleId, recent: creative.recentLayouts });
+      const decided = (await orchestrator.run(artDirectorTask(sheet, copy, menu, pickFlyerLayout(structure, seedNumber, { styleId, recent: creative.recentLayouts })))).value;
+      const logos = context.branding.logoUrls;
+      const codeHtml = renderFlyerLayout(decided.layout, {
+        copy,
+        brandName: context.brandName,
+        palette: { primary: context.branding.primary, secondary: context.branding.secondary, accent: context.branding.accent, background: context.branding.background, text: context.branding.text },
+        logo: { onLight: logos?.withText?.light || logos?.primary, onDark: logos?.withText?.dark || logos?.primary },
+        image: sourced?.url,
+        width: dims.width,
+        height: dims.height,
+        grid,
+        emphasis: decided.emphasis,
+      });
+      return render(codeHtml, {
+        concept: `${structure} · ${decided.layout}`,
+        layoutNotes: FLYER_LAYOUTS[decided.layout].summary,
+        marketingText: { headline: copy.headline, subheadline: copy.sub, body: [copy.kicker, copy.detail].filter(Boolean).join(' · ') },
+        layout: decided.layout,
+        creativity,
+        agents: orchestrator.traces,
+      } as Partial<Flyer>);
+    }
+
+    // Cran Ultra : l'idée de composition est décidée d'abord, par un agent concept.
+    const ultraConcept = atLeast(creativity, 'ultra')
+      ? (await orchestrator.run(conceptTask(sheet, heuristicFlyerCopy({ title: content.title, hook: content.hook, description: content.description }), !!sourced?.url))).value
+      : null;
     // Un SEUL passage de substitution, piloté par une table exhaustive : les
     // remplacements en cascade laissaient passer des marqueurs non résolus
     // ({{DESIGN_SEED.archetype}}, {{IMAGE_DOMINANT_COLORS}}…) que le modèle
@@ -1711,6 +1830,7 @@ export class CommunicationService extends GenericService {
         hashtags: content.hashtags,
       },
       FORMAT: format,
+      ...(ultraConcept ? { CREATIVE_DIRECTION: ultraConcept } : {}),
     };
     if (sourced) {
       userPayload.IMAGE_URL = sourced.url;
@@ -1723,31 +1843,28 @@ export class CommunicationService extends GenericService {
     }
 
     const messages: AIChatMessage[] = [
-      { role: 'system', content: systemPrompt },
+      {
+        role: 'system',
+        content: ultraConcept
+          ? `${systemPrompt}\n\nCREATIVE_DIRECTION (in the user payload) is the composition chosen by the creative director: follow its idea, make its focal point dominant and let its brand colour lead. Do not fall back to a stock layout.`
+          : systemPrompt,
+      },
       { role: 'user', content: JSON.stringify(userPayload, null, 2) },
     ];
 
-    const raw = await this.promptService.runPrompt(
-      promptConfigFor(AI_CONFIG.communication.flyer, userId),
-      messages
-    );
+    const compose = () => this.promptService.runPrompt(promptConfigFor(AI_CONFIG.communication.flyer, userId), messages);
+    // Cran Ultra : deux compositions écrites EN PARALLÈLE (la seconde ne coûte pas d'attente).
+    const [raw, secondRaw] = await Promise.all([compose(), atLeast(creativity, 'ultra') ? compose().catch(() => '') : Promise.resolve('')]);
     // Le balisage voyage désormais dans un bloc <html>, pas dans une chaîne
     // JSON : une page de Tailwind porte des centaines de guillemets doubles, et
     // c'est leur échappement qui perdait la génération entière. Les métadonnées
     // (concept, texte marketing) restent en JSON — elles n'ont pas ce problème.
     const parsed = this.parseFlyerResponse(raw);
 
-    let html =
-      typeof parsed.html === 'string' && parsed.html.trim().length > 0
-        ? this.enforceBrandTypography(this.stripCtaButtons(parsed.html), context)
+    const toHtml = (candidate: Partial<Flyer>) =>
+      typeof candidate.html === 'string' && candidate.html.trim().length > 0
+        ? this.enforceBrandTypography(this.stripCtaButtons(candidate.html), context)
         : this.fallbackFlyerHtml(content, context, format, sourced?.url);
-    html = this.ensureLogoPresence(html, context, format);
-    html = this.applyDesignLint(
-      html,
-      context,
-      `visuel/${format}`,
-      sourced?.analysis.dominantColors || []
-    );
 
     // ---- Step 5e: contrôle de composition MESURÉ ---------------------------
     // Le visuel est monté dans un navigateur, mesuré et réparé (zone de
@@ -1755,36 +1872,20 @@ export class CommunicationService extends GenericService {
     // pixels rendus, fond perdu), puis photographié. Ce que les passes
     // précédentes ne peuvent pas voir — elles lisent une chaîne, pas une page —
     // est attrapé ici, et le balisage renvoyé est celui qui a produit l'image.
-    const rendered = await flyerRenderService.renderFlyer(
-      html,
-      format,
-      {
-        url: context.branding.fontUrl,
-        primaryFont: context.branding.primaryFont,
-        secondaryFont: context.branding.secondaryFont,
-      },
-      this.logoDeclensions(context, parsed.logoUsed),
-      {
-        grid,
-        palette: {
-          primary: context.branding.primary,
-          secondary: context.branding.secondary,
-          accent: context.branding.accent,
-          background: context.branding.background,
-          text: context.branding.text,
-        },
-        label: `visuel/${format}`,
-      }
-    );
-
-    return {
-      html: rendered.html ? sanitizeSectionHtml(rendered.html) : html,
-      parsed,
-      sourced,
-      intent,
-      png: rendered.png,
-      audit: rendered.audit,
-    };
+    const first = await render(toHtml(parsed), { ...parsed, creativity });
+    if (!atLeast(creativity, 'ultra')) return first;
+    // Cran Ultra : une seconde composition, écrite et rendue ; la meilleure au contrôle mesuré est gardée.
+    try {
+      if (!secondRaw) return first;
+      const secondParsed = this.parseFlyerResponse(secondRaw);
+      const second = await render(toHtml(secondParsed), { ...secondParsed, creativity });
+      const better = (a: typeof first, b: typeof first) => (a.audit.blocking !== b.audit.blocking ? (a.audit.blocking ? b : a) : b.audit.score > a.audit.score ? b : a);
+      const best = better(first, second);
+      return { ...best, parsed: { ...best.parsed, agents: orchestrator.traces } as Partial<Flyer> };
+    } catch (err: any) {
+      logger.warn('[Communication] Seconde composition Ultra en échec, la première est gardée', { error: err?.message });
+      return first;
+    }
   }
 
   /**
@@ -1852,9 +1953,18 @@ export class CommunicationService extends GenericService {
     userId: string,
     projectId: string,
     contentId: string,
-    format: FlyerFormat
+    format: FlyerFormat,
+    creativity?: CreativityLevel
   ): Promise<Flyer> {
-    return this.generateFlyer(userId, projectId, contentId, { format, force: true });
+    return this.generateFlyer(userId, projectId, contentId, { format, force: true, creativity });
+  }
+
+  /** Les compositions du code des derniers visuels du projet : les suivants en prennent d'autres. */
+  private recentVisualLayouts(communication: { visuals?: Flyer[]; flyers?: Flyer[] } | null | undefined): string[] {
+    return [...(communication?.visuals || communication?.flyers || [])]
+      .slice(-6)
+      .map((v) => v.layout)
+      .filter((l): l is string => !!l);
   }
 
   // --------------------------------------------------------------------------
@@ -1889,6 +1999,8 @@ export class CommunicationService extends GenericService {
       planId?: string;
       /** Différencie les tirages d'un même brief (variantes). */
       variantIndex?: number;
+      /** Cran de la jauge de créativité. */
+      creativity?: CreativityLevel;
     }
   ): Promise<Flyer> {
     const brief = (input.brief || '').trim();
@@ -1911,7 +2023,8 @@ export class CommunicationService extends GenericService {
       // trois fois le même visuel.
       `studio:${projectId}:${this.shortHash(brief)}:${format}:${input.variantIndex ?? 0}`,
       undefined,
-      input.withPhoto === false
+      input.withPhoto === false,
+      { creativity: input.creativity, recentLayouts: this.recentVisualLayouts(await this.getCommunication(userId, projectId).catch(() => null)) }
     );
 
     const visual: Flyer = {
@@ -1923,6 +2036,9 @@ export class CommunicationService extends GenericService {
       format,
       intent,
       logoUsed: (parsed as Partial<Flyer>).logoUsed,
+      layout: (parsed as Partial<Flyer>).layout,
+      creativity: (parsed as Partial<Flyer>).creativity,
+      agents: (parsed as Partial<Flyer>).agents,
       concept: parsed.concept || '',
       layoutNotes: parsed.layoutNotes || '',
       marketingText: {
@@ -1973,6 +2089,7 @@ export class CommunicationService extends GenericService {
       intent?: VisualIntent;
       withPhoto?: boolean;
       count?: number;
+      creativity?: CreativityLevel;
     }
   ): Promise<Flyer[]> {
     const count = Math.min(3, Math.max(1, input.count || 3));
@@ -3660,6 +3777,16 @@ export class CommunicationService extends GenericService {
         orientation,
       };
     }
+  }
+
+  /** Brief d'image sans modèle (crans Low et Medium) : la recherche vient du contenu et de la DA. */
+  private heuristicImageBrief(content: ContentIdea, context: CommunicationContext, format: FlyerFormat): ImageBrief {
+    return {
+      searchQuery: this.fallbackSearchQuery(content, context),
+      generationPrompt: this.fallbackGenerationPrompt(content, context),
+      negativePrompt: buildImageNegativePrompt(context.artDirection),
+      orientation: format === 'banner' ? 'landscape' : format === 'square' ? 'square' : 'portrait',
+    };
   }
 
   private fallbackSearchQuery(content: ContentIdea, context: CommunicationContext): string {

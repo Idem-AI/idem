@@ -34,7 +34,8 @@ export type ConcreteMood = Exclude<MusicMood, 'auto' | 'none'>;
 export const MOOD_TERMS: Record<ConcreteMood, string[]> = {
   upbeat: ['upbeat', 'happy', 'energetic', 'pop'],
   calm: ['calm', 'chill', 'ambient', 'acoustic'],
-  epic: ['epic', 'cinematic', 'inspiring', 'trailer'],
+  // « Épique » = élan, espoir : jamais la bande-annonce sombre.
+  epic: ['inspiring', 'uplifting', 'hopeful', 'cinematic'],
   corporate: ['corporate', 'motivational', 'business', 'positive'],
   afro: ['afrobeat', 'african', 'afro', 'highlife', 'world percussion'],
 };
@@ -46,17 +47,23 @@ export const MOOD_TERMS: Record<ConcreteMood, string[]> = {
 const MOOD_EXCLUDE: Record<ConcreteMood, RegExp> = {
   upbeat: /\b(dark|sad|horror|creepy|funeral|drone|doom|melanchol)/i,
   calm: /\b(hardcore|metal|techno|dubstep|trap|drum ?(and|&|n) ?bass|aggressive|scream|noise|punk|hard ?rock|epic)/i,
-  epic: /\b(lullaby|sleep|lo-?fi|comedy|funny)/i,
+  epic: /\b(lullaby|sleep|lo-?fi|comedy|funny|dark|heavy|horror|war|battle|doom|trailer|villain|evil)/i,
   corporate: /\b(dark|horror|metal|hardcore|creepy|sad|punk)/i,
   afro: /\b(metal|hardcore|dubstep|horror)/i,
 };
-/** Jamais dans une publicité, quelle que soit l'ambiance. */
-const ALWAYS_EXCLUDE = /\b(horror|scream|creepy|explicit|nsfw|gore|satan|war ?sound|gunshot)/i;
+/** Jamais dans une publicité, quelle que soit l'ambiance (titres qui contredisent une marque). */
+const ALWAYS_EXCLUDE = /\b(horror|scream|creepy|explicit|nsfw|gore|satan|war ?sound|gunshot|fail(ed|ure)?|parody|meme|funeral|depress\w*|suicid\w*|sad(ness)?|tears?|cry(ing)?|grief|lament)\b/i;
 
 /** Ambiance par défaut : déduite du langage de mouvement et de l'objectif. */
-export function resolveMood(mood: MusicMood, style: MotionStyle, objective: VideoObjective): ConcreteMood | null {
+export function resolveMood(mood: MusicMood, style: MotionStyle, objective: VideoObjective, brandText = ''): ConcreteMood | null {
   if (mood === 'none') return null;
   if (mood !== 'auto') return mood;
+  // Le ton de la marque d'abord : une marque de motivation n'a pas la musique d'une boutique de luxe.
+  const t = brandText.toLowerCase();
+  if (/inspir|motiv|transform|confian|r[êe]ve|briller|r[ée]ussi|d[ée]passer|courage|ambition|espoir|rise|shine|grandir/.test(t)) return 'epic';
+  if (/f[êe]te|festi|soir[ée]e|danse|afro|wax|pagne|maquis|ambiance/.test(t)) return objective === 'promotion' ? 'upbeat' : 'afro';
+  if (/luxe|premium|[ée]l[ée]gan|raffin|spa|bien-[êe]tre|zen|soin/.test(t)) return 'calm';
+  if (/b2b|entreprise|conseil|cabinet|logiciel|software|finance|assurance|juridique/.test(t)) return 'corporate';
   if (objective === 'recruitment' || objective === 'testimonial') return 'corporate';
   if (objective === 'event' || objective === 'opening') return style === 'premium' ? 'epic' : 'afro';
   switch (style) {

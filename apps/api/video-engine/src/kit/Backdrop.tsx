@@ -11,6 +11,9 @@ import { CSSProperties, ReactElement, useLayoutEffect, useMemo, useRef } from 'r
 import { useEngine, useLocalTime, useScene } from '../context';
 import { addon } from '../shared';
 import { clamp, hash, mix, progress } from '../time';
+import { FlowField, Sketch, SketchShape } from './Sketch';
+import { VoronoiField } from './Viz';
+import { Flat3D } from './Zdog';
 
 /** Coin opposé au texte : le fond occupe l'espace que la composition laisse libre. */
 function useFreeCorner(): { x: number; y: number } {
@@ -191,7 +194,82 @@ function Ticks() {
   );
 }
 
+/** Masque radial qui découvre le fond depuis le coin libre (l'espace que le texte laisse). */
+function useCornerMask(spread = 85, dur = 1.4): CSSProperties {
+  const { ease } = useEngine();
+  const lt = useLocalTime();
+  const c = useFreeCorner();
+  const r = mix(0, spread, ease(progress(lt, 0, dur)));
+  const mask = `radial-gradient(circle at ${c.x}% ${c.y}%, #000 ${r * 0.5}%, transparent ${r}%)`;
+  return { maskImage: mask, WebkitMaskImage: mask };
+}
+
+/** Lignes de flux dans un champ de bruit simplex, du côté libre (addon draw). */
+function FlowFieldBg() {
+  const mask = useCornerMask(95, 1.6);
+  return (
+    <div className="absolute inset-0" style={mask}>
+      <FlowField lines={38} steps={24} seed={11} opacity={0.4} />
+    </div>
+  );
+}
+
+/** Formes de la marque tracées à la main (rough.js), qui se dessinent l'une après l'autre. */
+function SketchShapesBg() {
+  const { ease } = useEngine();
+  const lt = useLocalTime();
+  const c = useFreeCorner();
+  const cx = c.x > 50 ? 78 : 22;
+  const cy = c.y > 50 ? 76 : 24;
+  const shapes: { draw: SketchShape; color: string }[] = [
+    { draw: { shape: 'circle', cx, cy, d: 26 }, color: 'var(--hl)' },
+    { draw: { shape: 'rectangle', x: cx - 16, y: cy - 6, w: 20, h: 20 }, color: 'var(--c-primary)' },
+    { draw: { shape: 'line', x1: cx - 22, y1: cy + 16, x2: cx + 14, y2: cy + 8 }, color: 'var(--ink)' },
+    { draw: { shape: 'arc', cx: cx + 6, cy: cy - 14, w: 18, h: 18, start: Math.PI, stop: Math.PI * 1.9 }, color: 'var(--c-accent)' },
+  ];
+  return (
+    <div className="absolute inset-0" style={{ opacity: 0.55 }}>
+      {shapes.map((sh, i) => (
+        <Sketch key={i} draw={sh.draw} color={sh.color} p={ease(progress(lt, 0.15 + i * 0.25, 0.9))} weight={0.35} roughness={1.4} seed={13 + i} preserve="xMidYMid meet" />
+      ))}
+    </div>
+  );
+}
+
+/** Mosaïque de Voronoï aux couleurs de la charte, du côté libre (addon viz). */
+function VoronoiBg() {
+  const mask = useCornerMask(80, 1.5);
+  return (
+    <div className="absolute inset-0" style={mask}>
+      <VoronoiField cells={24} seed={9} opacity={0.28} />
+    </div>
+  );
+}
+
+/** Objets plats en pseudo-3D (Zdog) qui tournent lentement du côté libre. */
+function Flat3DBg() {
+  const lt = useLocalTime();
+  const c = useFreeCorner();
+  const pos: CSSProperties = { position: 'absolute', width: '42%', height: '42%', left: c.x > 50 ? '56%' : '2%', top: c.y > 50 ? '56%' : '2%', opacity: clamp(lt / 0.8) * 0.85 };
+  return (
+    <div style={pos}>
+      <Flat3D
+        rotate={{ x: -0.35 + Math.sin(lt * 0.4) * 0.08, y: lt * 0.45 }}
+        items={[
+          { kind: 'box', width: 22, height: 22, depth: 22, color: 'var(--hl)', shade: 'var(--c-primary)', x: -14, y: 6 },
+          { kind: 'ring', diameter: 30, stroke: 3, color: 'var(--c-accent)', x: 14, y: -10, rotate: { x: Math.PI / 2.4 } },
+          { kind: 'sphere', diameter: 12, color: 'var(--c-secondary)', x: 18, y: 16 },
+        ]}
+      />
+    </div>
+  );
+}
+
 const BACKDROPS: Record<string, () => ReactElement> = {
+  'flow-field': FlowFieldBg,
+  'sketch-shapes': SketchShapesBg,
+  voronoi: VoronoiBg,
+  flat3d: Flat3DBg,
   'dot-grid': DotGrid,
   halftone: Halftone,
   'shape-field': ShapeField,

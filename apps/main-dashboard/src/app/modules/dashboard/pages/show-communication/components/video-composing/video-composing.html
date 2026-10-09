@@ -74,7 +74,7 @@
   <div class="vcm-side">
     <p class="vcm-heading">{{ 'dashboard.showCommunication.video.composing.title' | translate }}</p>
     <ol class="vcm-steps">
-      @for (stage of stages; track stage) {
+      @for (stage of stages(); track stage) {
         <li class="vcm-step" [class.vcm-done]="state(stage) === 'done'" [class.vcm-current]="state(stage) === 'running'">
           <span class="vcm-bullet" aria-hidden="true">
             @if (state(stage) === 'done') {

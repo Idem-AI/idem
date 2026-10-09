@@ -441,3 +441,12 @@
   font-size: 0.75rem;
   color: var(--color-text-secondary);
 }
+
+/* Lancer : le cran de créativité accolé au bouton. */
+.vb-footer-go {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}

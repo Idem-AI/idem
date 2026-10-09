@@ -18,12 +18,15 @@ import {
 
 export type VideoProgressState = Partial<Record<VideoProgressStage, { state: 'running' | 'done'; data?: VideoProgressData }>>;
 
-const STAGES: VideoProgressStage[] = ['plan', 'copy', 'media', 'music', 'sfx', 'storyboard'];
+const STAGES: VideoProgressStage[] = ['plan', 'copy', 'layout', 'media', 'music', 'sfx', 'storyboard', 'animation', 'critique', 'code'];
+/** Le film d'auteur (Ultra) : le directeur invente le film, chaque plan est écrit, revu, corrigé. */
+const AUTHORED_STAGES: VideoProgressStage[] = ['media', 'direction', 'music', 'sfx', 'shots', 'storyboard'];
+const ALL_STAGES: VideoProgressStage[] = [...STAGES, 'direction', 'shots'];
 
 /** Poids de chaque étape dans la barre, proportionnels à leur coût réel. */
-const WEIGHT: Record<VideoProgressStage, number> = { plan: 4, copy: 26, media: 30, music: 22, sfx: 8, storyboard: 10 };
+const WEIGHT: Record<VideoProgressStage, number> = { plan: 4, copy: 22, layout: 8, media: 26, music: 20, sfx: 6, storyboard: 4, animation: 6, critique: 4, code: 30, direction: 20, shots: 90 };
 /** Durée attendue d'une étape (ms) : la barre avance doucement pendant qu'elle tourne. */
-const EXPECTED_MS: Record<VideoProgressStage, number> = { plan: 500, copy: 9000, media: 20000, music: 15000, sfx: 6000, storyboard: 1500 };
+const EXPECTED_MS: Record<VideoProgressStage, number> = { plan: 500, copy: 9000, layout: 5000, media: 20000, music: 15000, sfx: 6000, storyboard: 1500, animation: 4000, critique: 4000, code: 60000, direction: 30000, shots: 180000 };
 
 const RATIOS: Record<VideoFormat, string> = { story: '9 / 16', square: '1 / 1', portrait: '4 / 5', landscape: '16 / 9' };
 
@@ -55,7 +58,15 @@ export class VideoComposing {
   readonly format = input<VideoFormat>('story');
   readonly progress = input<VideoProgressState>({});
 
-  protected readonly stages = STAGES;
+  /**
+   * Les étapes affichées : celles du film d'auteur quand le serveur annonce son directeur (Ultra),
+   * sinon celles du pipeline des menus (« écriture des scènes » seulement si le serveur l'annonce).
+   */
+  protected readonly stages = computed(() => {
+    const p = this.progress();
+    if (p['direction'] && !p['direction']?.data?.fallback) return AUTHORED_STAGES.filter((s) => s !== 'sfx' || !!p['sfx']);
+    return STAGES.filter((s) => s !== 'code' || !!p['code']);
+  });
   protected readonly ratio = computed(() => RATIOS[this.format()] ?? '9 / 16');
 
   /** Horloge (rafraîchie 4 fois par seconde) : l'avancée douce des étapes en cours. */
@@ -67,7 +78,7 @@ export class VideoComposing {
     this.destroyRef.onDestroy(() => clearInterval(timer));
     effect(() => {
       const p = this.progress();
-      for (const stage of STAGES) {
+      for (const stage of ALL_STAGES) {
         if (p[stage] && this.startedAt[stage] === undefined) this.startedAt[stage] = Date.now();
       }
     });
@@ -84,9 +95,9 @@ export class VideoComposing {
   protected readonly percent = computed(() => {
     const now = this.now();
     const p = this.progress();
-    const total = STAGES.reduce((n, s) => n + WEIGHT[s], 0);
+    const total = this.stages().reduce((n, s) => n + WEIGHT[s], 0);
     let value = 0;
-    for (const stage of STAGES) {
+    for (const stage of this.stages()) {
       const entry = p[stage];
       if (entry?.state === 'done') value += WEIGHT[stage];
       else if (entry?.state === 'running') {
@@ -118,11 +129,26 @@ export class VideoComposing {
   protected readonly sounds = computed(() => this.data('sfx').sounds ?? []);
   protected readonly bars = [0, 1, 2, 3, 4, 5, 6];
 
+  /** Noms traduits, sans doublon, des trois premiers éléments d'une liste (mises en page, transitions). */
+  private names(group: 'layouts' | 'transitions', ids: string[]): string {
+    const unique = [...new Set(ids)];
+    const shown = unique.slice(0, 3).map((id) => this.translate.instant(`dashboard.showCommunication.video.${group}.${id}`));
+    return unique.length > 3 ? `${shown.join(', ')}…` : shown.join(', ');
+  }
+
   /** Ligne de détail d'une étape terminée (paramètres de traduction). */
   protected detail(stage: VideoProgressStage): { key: string; params: Record<string, unknown> } | null {
     const d = this.data(stage);
+    // Les plans du film d'auteur se suivent en direct : plan en cours et ce qui lui arrive.
+    if (stage === 'shots' && this.state(stage) === 'running' && d.total) {
+      return { key: d.current ? `shots_${d.step ?? 'writing'}` : 'shotsStart', params: { current: d.current ?? 0, total: d.total, done: d.done ?? 0, coded: d.coded ?? 0 } };
+    }
     if (this.state(stage) !== 'done') return null;
     switch (stage) {
+      case 'direction':
+        return d.fallback ? { key: 'directionFallback', params: {} } : { key: 'direction', params: { title: d.title ?? '', count: (d.shots ?? []).length } };
+      case 'shots':
+        return { key: 'shots', params: { coded: d.coded ?? 0, total: d.total ?? 0, reviewed: d.reviewed ?? 0 } };
       case 'plan':
         // Le type choisi (par l'utilisateur ou par le modèle) est dit en clair.
         if (!d.type) return { key: 'plan', params: { count: (d.scenes ?? []).length, seconds: d.durationSec } };
@@ -150,9 +176,28 @@ export class VideoComposing {
         };
       }
       case 'music':
-        return d.none ? { key: 'musicNone', params: {} } : { key: 'music', params: { title: d.title, artist: d.artist, bpm: d.bpm ? Math.round(d.bpm) : '—' } };
+        if (d.none) return { key: 'musicNone', params: {} };
+        return { key: d.pickedBy === 'agent' ? 'musicAgent' : 'music', params: { title: d.title, artist: d.artist, bpm: d.bpm ? Math.round(d.bpm) : '—' } };
       case 'sfx':
         return { key: 'sfx', params: { count: (d.sounds ?? []).length } };
+      case 'layout': {
+        // Les mises en page retenues par les directeurs artistiques, nommées en clair.
+        const layouts = d.layouts ?? [];
+        if (!layouts.length) return { key: 'layoutClassic', params: {} };
+        return { key: 'layout', params: { count: layouts.length, names: this.names('layouts', layouts) } };
+      }
+      case 'animation':
+        return {
+          key: 'animation',
+          params: {
+            names: this.names('transitions', d.transitions ?? []),
+            camera: d.camera ? this.translate.instant(`dashboard.showCommunication.video.cameras.${d.camera}`) : '—',
+          },
+        };
+      case 'critique':
+        return d.fixes ? { key: 'critique', params: { count: d.fixes } } : { key: 'critiqueOk', params: {} };
+      case 'code':
+        return { key: 'code', params: { coded: d.coded ?? 0, tried: d.tried ?? 0 } };
       default:
         return { key: 'storyboard', params: { count: (d.scenes ?? []).length, bpm: d.bpm ? Math.round(d.bpm) : '—' } };
     }

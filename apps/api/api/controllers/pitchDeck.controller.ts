@@ -1,3 +1,4 @@
+import { creativityOf } from '../middleware/billing.middleware';
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { PitchDeckService } from '../services/PitchDeck/pitchDeck.service';
@@ -313,7 +314,9 @@ export const generatePitchDeckStreamingController = async (
       streamCallback,
       forceRegenerate,
       targetSections,
-      deck.id
+      deck.id,
+      // Le cran de la jauge de créativité (paramètre du flux, déjà appliqué au prix par la route).
+      creativityOf(req as any)
     );
 
     if (!updatedDeck) {

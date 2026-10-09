@@ -1,0 +1,50 @@
+<button
+  type="button"
+  class="cp-trigger"
+  aria-haspopup="menu"
+  [attr.aria-expanded]="open()"
+  [attr.aria-controls]="uid + '-menu'"
+  [disabled]="disabled()"
+  (click)="toggle()"
+  (keydown)="onTriggerKey($event)"
+>
+  <i class="pi pi-sparkles cp-icon" aria-hidden="true"></i>
+  <span class="cp-label">{{ 'common.creativity.title' | translate }}</span>
+  <span class="cp-value">{{ 'common.creativity.levels.' + value() + '.label' | translate }}</span>
+  @if (showCost() && current() != null) {
+    <span class="cp-cost">· {{ 'common.creativity.cost' | translate: { cost: current() } }}</span>
+  }
+  <i class="pi pi-angle-down cp-chevron" aria-hidden="true"></i>
+</button>
+
+@if (open()) {
+  <div
+    class="cp-menu"
+    [class.cp-menu-up]="placement() === 'top'"
+    [class.cp-menu-end]="align() === 'end'"
+    role="menu"
+    [id]="uid + '-menu'"
+    [attr.aria-label]="'common.creativity.title' | translate"
+  >
+    <p class="cp-help">{{ 'common.creativity.help' | translate }}</p>
+    @for (level of levels; track level; let i = $index) {
+      <button
+        type="button"
+        role="menuitemradio"
+        class="cp-item"
+        [attr.aria-checked]="value() === level"
+        (click)="select(level)"
+        (keydown)="onItemKey($event, i)"
+      >
+        <span class="cp-item-text">
+          <span class="cp-item-name">{{ 'common.creativity.levels.' + level + '.label' | translate }}</span>
+          <span class="cp-item-line">{{ 'common.creativity.levels.' + level + '.line' | translate }}</span>
+        </span>
+        @if (costs(); as c) {
+          <span class="cp-item-cost">{{ 'common.creativity.cost' | translate: { cost: c[level] } }}</span>
+        }
+        <i class="pi pi-check cp-check" [class.invisible]="value() !== level" aria-hidden="true"></i>
+      </button>
+    }
+  </div>
+}

@@ -10,6 +10,11 @@
       </p>
     </div>
 
+    <!-- Choisir un format lance la génération : le cran de créativité se règle juste au-dessus. -->
+    <div class="flex justify-center mb-6">
+      <app-creativity-picker [(value)]="creativity" [baseCost]="creativityBaseCost()" [showCost]="true" />
+    </div>
+
     <app-pdf-format-selector (formatSelected)="onFormatSelected($event)"></app-pdf-format-selector>
   </div>
 } @else if (isGenerating() || isPostProcessing()) {

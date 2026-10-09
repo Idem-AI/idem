@@ -76,7 +76,8 @@ export const SFX_DENSITY: Record<MotionStyle, Partial<Record<SfxKind, number>>> 
   energetic: {},
   playful: {},
   corporate: { click: -4, tick: -4 },
-  premium: { click: -99, tick: -99, pop: -4, whoosh: -3 },
+  // Premium : plus bas, jamais muet (un film élégant a quand même son design sonore).
+  premium: { click: -8, tick: -8, pop: -6, whoosh: -3 },
 };
 
 export interface LibrarySound extends SfxSound {
@@ -412,14 +413,16 @@ export interface SfxCue {
  * Filtre les moments sonores : densité du style, espacement minimal par type
  * et plafond global (au-delà de 3 sons par seconde, l'oreille sature).
  */
-export function refineCues(cues: SfxCue[], style: MotionStyle, duration: number): (SfxCue & { db: number })[] {
+export function refineCues(cues: SfxCue[], style: MotionStyle, duration: number, intensity: 'subtle' | 'normal' | 'punchy' = 'normal'): (SfxCue & { db: number })[] {
   const density = SFX_DENSITY[style] || {};
+  // L'intensité choisie par le sound designer déplace tout le mixage des effets.
+  const shift = intensity === 'subtle' ? -4 : intensity === 'punchy' ? 3 : 0;
   const minGap: Partial<Record<SfxKind, number>> = { click: 0.18, tick: 0.09, pop: 0.12, whoosh: 0.3, softwhoosh: 0.3, impact: 0.6, shimmer: 1, riser: 1.5 };
   const lastAt: Partial<Record<SfxKind, number>> = {};
   const out: (SfxCue & { db: number })[] = [];
   for (const cue of [...cues].sort((a, b) => a.t - b.t)) {
     if (cue.t < 0 || cue.t > duration - 0.05) continue;
-    const db = SFX_GAIN_DB[cue.kind] + (density[cue.kind] ?? 0) + 20 * Math.log10(Math.max(0.05, cue.gain ?? 1));
+    const db = SFX_GAIN_DB[cue.kind] + (density[cue.kind] ?? 0) + shift + 20 * Math.log10(Math.max(0.05, cue.gain ?? 1));
     if (db < -40) continue;
     if (lastAt[cue.kind] !== undefined && cue.t - (lastAt[cue.kind] as number) < (minGap[cue.kind] ?? 0.15)) continue;
     const window = out.filter((c) => cue.t - c.t < 1).length;

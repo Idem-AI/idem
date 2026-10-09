@@ -34,6 +34,10 @@ import { VideoComposing, VideoProgressState } from '../video-composing/video-com
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
 import { priceVideo, VideoFormat, VideoOptions, VideoType } from '../../../../models/motion-video.model';
+import { CreativityLevel, creativityCost, DEFAULT_CREATIVITY } from '@idem/shared-models';
+import { CreativityPickerComponent } from '../../../../../../shared/components/creativity-picker/creativity-picker';
+import { CreativityCostPipe } from '../../../../../../shared/pipes/creativity-cost.pipe';
+import { CreativityService } from '../../../../../../shared/services/creativity.service';
 
 /** Formats de contenu qui sont des vidéos. */
 const VIDEO_CONTENT_FORMATS = ['reel', 'short-video'];
@@ -74,7 +78,7 @@ type EditableField =
  */
 @Component({
   selector: 'app-content-detail',
-  imports: [FormsModule, TranslateModule, VisualComposing, VisualPreview, VideoComposing, IdemLoaderComponent],
+  imports: [FormsModule, TranslateModule, VisualComposing, VisualPreview, VideoComposing, IdemLoaderComponent, CreativityPickerComponent, CreativityCostPipe],
   templateUrl: './content-detail.html',
   styleUrl: './content-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -83,6 +87,7 @@ export class ContentDetail {
   private readonly communication = inject(CommunicationService);
   private readonly translate = inject(TranslateService);
   private readonly motionVideos = inject(MotionVideoService);
+  private readonly creativityPricing = inject(CreativityService);
 
   readonly projectId = input.required<string>();
   readonly planId = input.required<string>();
@@ -141,17 +146,33 @@ export class ContentDetail {
   protected readonly videoProgress = signal<VideoProgressState>({});
   protected readonly videoFormat = computed<VideoFormat>(() => VIDEO_FORMAT_BY_CHANNEL[this.item().channel] ?? 'story');
   protected readonly videoTypes = computed(() => this.videoOptions()?.types ?? []);
-  protected readonly videoPrice = computed(() => {
+  /** La jauge de créativité de ce contenu (visuel et vidéo) ; Medium par défaut. */
+  protected readonly creativity = signal<CreativityLevel>(DEFAULT_CREATIVITY);
+  /** Prix du visuel au cran Low / Medium pour ce projet (lu sur l'API). */
+  protected readonly visualBaseCost = signal<number | null>(null);
+  protected readonly videoBasePrice = computed(() => {
     const options = this.videoOptions();
     return options ? priceVideo(options.pricing, { durationSec: 15, formats: [this.videoFormat()], quality: 'hd' }) : null;
+  });
+  protected readonly videoPrice = computed(() => {
+    const base = this.videoBasePrice();
+    return base == null ? null : creativityCost(base, this.creativity());
   });
   protected readonly lastVideoId = computed(() => (this.item().videoIds ?? []).slice(-1)[0] ?? null);
   protected readonly choosingVideoType = signal(false);
   protected readonly videoTypeIcon = computed(() => this.videoTypes().find((t) => t.id === this.videoType())?.icon ?? 'pi pi-video');
 
   private optionsRequested = false;
+  private visualPriceRequested = false;
 
   constructor() {
+    // Le prix d'un visuel pour ce projet (cran Low / Medium) : la jauge en déduit chaque cran.
+    effect(() => {
+      if (this.visualPriceRequested) return;
+      this.visualPriceRequested = true;
+      const projectId = this.projectId();
+      untracked(() => this.creativityPricing.baseCost(projectId, 'flyer').subscribe((cost) => this.visualBaseCost.set(cost)));
+    });
     // Le barème des vidéos (pour dire le prix avant de générer), une fois, pour un contenu vidéo.
     effect(() => {
       if (!this.isVideo() || this.optionsRequested) return;
@@ -253,7 +274,7 @@ export class ContentDetail {
     this.isCreatingVisual.set(true);
 
     this.communication
-      .generateFlyer(this.projectId(), this.item().id, this.chosenFormat())
+      .generateFlyer(this.projectId(), this.item().id, this.chosenFormat(), this.creativity())
       .subscribe({
         next: (visual) => {
           this.visualCreated.emit(visual);
@@ -318,6 +339,7 @@ export class ContentDetail {
         scope: { durationSec: 15, formats: [this.videoFormat()], quality: 'hd' },
         type: this.videoType(),
         contentId: this.item().id,
+        creativity: this.creativity(),
       })
       .subscribe({
         next: (event) => {

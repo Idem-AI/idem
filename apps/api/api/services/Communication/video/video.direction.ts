@@ -63,7 +63,80 @@ export type MotionTransition =
   | 'iris'
   | 'blockStack'
   | 'slideOver'
-  | 'flashCut';
+  | 'flashCut'
+  // Catalogue élargi : chaque direction en emprunte quelques-unes (cf. TRANSITION_CATALOGUE).
+  | 'shapeWipe'
+  | 'stripes'
+  | 'split'
+  | 'liquid'
+  | 'zoomBlur'
+  | 'cube'
+  | 'glitch';
+
+/**
+ * LE CATALOGUE GLOBAL DES TRANSITIONS. Une direction n'est plus enfermée dans ses quatre
+ * transitions : elle garde sa signature (bonus) et emprunte au catalogue celles qui
+ * s'accordent à son caractère (poids > 0). Poids 0 ou absent = incompatible.
+ */
+export const TRANSITION_CATALOGUE: Record<MotionTransition, { feel: 'hard' | 'soft' | 'graphic' | 'spatial'; summary: string; directions: Partial<Record<DirectionId, number>> }> = {
+  cut: { feel: 'hard', summary: 'Coupe franche, sur le temps.', directions: { brutal: 3, swiss: 2.5, kinetic: 2, precision: 2, editorial: 1.5, collage: 1.5, drenched: 1.5, cinematic: 1 } },
+  flashCut: { feel: 'hard', summary: 'Coupe + éclair de la couleur d’accent.', directions: { brutal: 3, kinetic: 3, drenched: 1.5, collage: 1 } },
+  glitch: { feel: 'hard', summary: 'Coupe hachée : tranches décalées, une fraction de seconde.', directions: { brutal: 2.5, kinetic: 2, drenched: 1.5, precision: 0.8 } },
+  dissolve: { feel: 'soft', summary: 'Fondu enchaîné.', directions: { cinematic: 3, editorial: 3, precision: 1.2, drenched: 1.2 } },
+  zoomBlur: { feel: 'spatial', summary: 'Sortie en zoom flou, entrée par un léger dézoom.', directions: { kinetic: 2.5, cinematic: 2, drenched: 2, precision: 1.5 } },
+  zoomThrough: { feel: 'spatial', summary: 'On traverse l’image.', directions: { kinetic: 3, cinematic: 2, precision: 2, drenched: 1.5 } },
+  whip: { feel: 'spatial', summary: 'Panoramique filé.', directions: { kinetic: 3, collage: 1.5, brutal: 1.5, drenched: 1 } },
+  cube: { feel: 'spatial', summary: 'Rotation de cube 3D : la scène suivante est la face voisine.', directions: { precision: 2, kinetic: 2, drenched: 1.5, swiss: 1 } },
+  push: { feel: 'graphic', summary: 'La scène suivante pousse la précédente.', directions: { swiss: 3, collage: 2.5, brutal: 2, kinetic: 2, precision: 1.5 } },
+  slideOver: { feel: 'graphic', summary: 'La nouvelle scène glisse par-dessus.', directions: { collage: 3, editorial: 2.5, precision: 2, swiss: 1.5 } },
+  iris: { feel: 'graphic', summary: 'Raccord graphique depuis le point focal.', directions: { precision: 3, drenched: 3, kinetic: 2, cinematic: 1.5, editorial: 1 } },
+  wipe: { feel: 'graphic', summary: 'Volet net, bord à la couleur d’accent.', directions: { editorial: 2.5, swiss: 2.5, drenched: 2.5, precision: 1.5 } },
+  blockStack: { feel: 'graphic', summary: 'Bandes de couleur qui recouvrent.', directions: { swiss: 2.5, brutal: 2.5, collage: 2.5, kinetic: 1.5 } },
+  shapeWipe: { feel: 'graphic', summary: 'Disque de la marque qui grandit, couvre, puis s’ouvre.', directions: { drenched: 3, precision: 2, kinetic: 2, collage: 1.5, swiss: 1.5, editorial: 1 } },
+  stripes: { feel: 'graphic', summary: 'Lames obliques aux couleurs de la marque.', directions: { kinetic: 3, collage: 2.5, brutal: 2, drenched: 1.5 } },
+  split: { feel: 'graphic', summary: 'Deux panneaux se referment puis s’écartent.', directions: { swiss: 2.5, editorial: 2, precision: 2, cinematic: 1.5, drenched: 1.5 } },
+  liquid: { feel: 'soft', summary: 'Volet au bord en vague.', directions: { drenched: 2.5, collage: 2, kinetic: 1.5, cinematic: 1 } },
+};
+export const TRANSITION_IDS = Object.keys(TRANSITION_CATALOGUE) as MotionTransition[];
+
+export interface WeightedTransition {
+  id: MotionTransition;
+  weight: number;
+}
+
+/**
+ * Le menu de transitions d'une vidéo : le catalogue filtré par la direction et la DA de la
+ * charte (exclusions), pondéré (signature de la direction, bonus de la DA), moins celles
+ * des dernières vidéos du projet (mémoire qui s'estompe). C'est dans ce menu, et seulement
+ * là, que l'agent animateur choisit.
+ */
+export function transitionMenu(direction: DirectionId, opts: { excluded?: string[]; boosts?: Record<string, number>; recent?: string[][]; size?: number } = {}): WeightedTransition[] {
+  const d = DIRECTIONS[direction];
+  const excluded = new Set(opts.excluded || []);
+  // Mémoire : la dernière vidéo pèse plus que l'avant-dernière.
+  const recency = new Map<string, number>();
+  (opts.recent || []).slice(-3).forEach((list, k, all) => {
+    const w = k === all.length - 1 ? 0.9 : k === all.length - 2 ? 0.5 : 0.25;
+    for (const id of new Set(list)) recency.set(id, (recency.get(id) || 0) + w);
+  });
+  const scored = TRANSITION_IDS.filter((id) => !excluded.has(id))
+    .map((id) => {
+      const base = TRANSITION_CATALOGUE[id].directions[direction] || 0;
+      if (base <= 0) return { id, weight: 0 };
+      const signature = d.transitions.includes(id) ? 1.2 : 0;
+      return { id, weight: Math.max(0.1, base + signature + (opts.boosts?.[`transition:${id}`] || 0) - (recency.get(id) || 0) * 1.4) };
+    })
+    .filter((t) => t.weight > 0)
+    .sort((a, b) => b.weight - a.weight || a.id.localeCompare(b.id));
+  const menu = scored.slice(0, opts.size ?? 6);
+  // Jamais moins de trois : la signature de la direction complète (hors exclusions).
+  for (const id of d.transitions) if (menu.length < 3 && !excluded.has(id) && !menu.some((m) => m.id === id)) menu.push({ id, weight: 1 });
+  if (!menu.length) menu.push({ id: 'cut', weight: 1 });
+  return menu;
+}
+
+/** Transitions d'ouverture de la signature finale (douces ou graphiques), par ordre de préférence. */
+const LOGO_TRANSITIONS: MotionTransition[] = ['iris', 'shapeWipe', 'dissolve', 'split', 'liquid', 'wipe', 'slideOver'];
 
 /** Ancrages de composition : où se pose le bloc principal d'une scène. */
 export type Anchor = 'top-left' | 'center-left' | 'bottom-left' | 'center' | 'bottom-center' | 'top-center' | 'right';
@@ -284,8 +357,10 @@ const ART_AFFINITY: Record<string, DirectionId[]> = {
 export function pickDirection(opts: {
   type: VideoType;
   artStyleId?: string;
-  /** Directions admises par la DA de la charte (video.artdirection.ts) : elles l'emportent sur le type. */
+  /** Directions préférées par la DA de la charte (video.artdirection.ts) : elles pèsent plus. */
   artDirections?: DirectionId[];
+  /** Directions exclues par la DA : jamais tirées. */
+  artExcluded?: DirectionId[];
   seed: number;
   avoid?: string[];
   requested?: DirectionId;
@@ -293,19 +368,20 @@ export function pickDirection(opts: {
   if (opts.requested && DIRECTION_IDS.includes(opts.requested)) return opts.requested;
   const typePool = TYPE_AFFINITY[opts.type] || DIRECTION_IDS;
   const art = opts.artDirections?.length ? opts.artDirections : ART_AFFINITY[(opts.artStyleId || '').toLowerCase()] || [];
-  // La charte d'abord : les directions de sa DA compatibles avec le type, sinon celles de la DA seules.
-  const both = typePool.filter((id) => art.includes(id));
-  const pool = art.length ? (both.length ? both : art) : typePool;
+  // Toutes les directions, sauf celles que la DA exclut : la DA donne le LOOK, pas un seul langage.
+  const allowed = DIRECTION_IDS.filter((id) => !(opts.artExcluded || []).includes(id));
   const recent = (opts.avoid || []).slice(-3);
+  const fresh = allowed.filter((id) => !recent.includes(id));
+  const pool = fresh.length >= 2 ? fresh : allowed;
   const weighted: DirectionId[] = [];
   for (const id of pool) {
-    if (recent.includes(id) && pool.some((p) => !recent.includes(p))) continue;
-    // La première direction de la DA est la plus fidèle : elle pèse plus.
-    const weight = 1 + (art[0] === id ? 2 : art.includes(id) ? 1 : 0);
+    // Préférée par la DA : 3, 2.5, 2 ; compatible avec le type : +1 ; sinon 1.
+    const a = art.indexOf(id);
+    const weight = Math.round((1 + (a === 0 ? 2 : a === 1 ? 1.5 : a >= 2 ? 1 : 0) + (typePool.includes(id) ? 1 : 0)) * 2);
     for (let k = 0; k < weight; k++) weighted.push(id);
   }
   const r = rng(opts.seed ^ 0xd1ec7);
-  return weighted[Math.floor(r() * weighted.length)] || pool[0];
+  return weighted[Math.floor(r() * weighted.length)] || pool[0] || 'editorial';
 }
 
 /** Langage de mouvement (effets sonores, musique) cohérent avec la direction. */
@@ -336,7 +412,19 @@ const FIXED_LAYOUT = new Set(['logo', 'gallery', 'showcase3d']);
  * Le plan de mouvement : ancrage, techniques et transition pour chaque scène,
  * tirés dans la direction, puis passés au contrôle anti-réflexe.
  */
-export function planMotion(sceneIds: string[], direction: DirectionId, seed: number, opts: { landscape?: boolean; avoidHeadlines?: string[] } = {}): SceneMotion[] {
+export function planMotion(
+  sceneIds: string[],
+  direction: DirectionId,
+  seed: number,
+  opts: {
+    landscape?: boolean;
+    avoidHeadlines?: string[];
+    /** Menu de transitions (catalogue filtré par la direction et la DA) ; à défaut, celles de la direction. */
+    transitions?: WeightedTransition[];
+    /** Transitions choisies par l'agent animateur (index de scène → transition du menu). */
+    chosen?: Record<number, MotionTransition>;
+  } = {}
+): SceneMotion[] {
   const d = DIRECTIONS[direction];
   const r = rng(seed ^ 0x5ce4e);
   const pick = <T,>(list: T[], avoid?: T): T => {
@@ -355,6 +443,28 @@ export function planMotion(sceneIds: string[], direction: DirectionId, seed: num
     used.push(choice);
     return choice;
   };
+  const menu = opts.transitions?.length ? opts.transitions : d.transitions.map((id) => ({ id, weight: 1 }));
+  const cuts = Math.max(1, sceneIds.length - 1);
+  // Une même transition au plus sur un tiers des coupes : le film varie ses raccords.
+  const cap = Math.max(1, Math.ceil(cuts / 3));
+  const usedCount = new Map<string, number>();
+  const pickTransition = (i: number, sceneId: string, previous?: MotionTransition): MotionTransition => {
+    const chosen = opts.chosen?.[i];
+    if (chosen && menu.some((m) => m.id === chosen) && chosen !== previous) return chosen;
+    if (sceneId === 'logo') return LOGO_TRANSITIONS.find((t) => menu.some((m) => m.id === t) && t !== previous) || menu.find((m) => m.id !== previous)?.id || menu[0].id;
+    const pool = menu.filter((m) => m.id !== previous && (usedCount.get(m.id) || 0) < cap);
+    const from = pool.length ? pool : menu.filter((m) => m.id !== previous);
+    const list = from.length ? from : menu;
+    // Une transition déjà vue dans le film pèse moins : on varie les raccords avant de les répéter.
+    const weightOf = (m: WeightedTransition) => m.weight / (1 + (usedCount.get(m.id) || 0) * 1.5);
+    const total = list.reduce((n, m) => n + weightOf(m), 0);
+    let x = r() * total;
+    for (const m of list) {
+      x -= weightOf(m);
+      if (x <= 0) return m.id;
+    }
+    return list[list.length - 1].id;
+  };
   let prev: SceneMotion | undefined;
   const plan = sceneIds.map((sceneId, i) => {
     let anchor = FIXED_LAYOUT.has(sceneId) ? 'center' : lru('anchor', d.anchors);
@@ -365,13 +475,14 @@ export function planMotion(sceneIds: string[], direction: DirectionId, seed: num
       headline: lru('headline', d.headline),
       support: pick(d.support),
       align: CENTERED.includes(anchor) ? 'center' : 'left',
-      transition: i === 0 ? undefined : sceneId === 'logo' ? (d.transitions.includes('iris') ? 'iris' : d.transitions[0]) : lru('transition', d.transitions),
+      transition: i === 0 ? undefined : pickTransition(i, sceneId, prev?.transition),
       kicker: d.kicker === 'hook' && i === 0,
     };
+    if (motion.transition) usedCount.set(motion.transition, (usedCount.get(motion.transition) || 0) + 1);
     prev = motion;
     return motion;
   });
-  return lintMotion(plan, sceneIds, d).plan;
+  return lintMotion(plan, sceneIds, d, menu.map((m) => m.id)).plan;
 }
 
 // ─── Contrôle anti-réflexe (pendant vidéo de l'« anti-slop » d'iCode) ───────
@@ -389,20 +500,21 @@ export interface MotionLintReport {
  *  - la même transition partout, ou deux fois de suite ;
  *  - un petit libellé au-dessus de chaque titre (au plus un, sur l'accroche).
  */
-export function lintMotion(plan: SceneMotion[], sceneIds: string[], d: DirectionDef): MotionLintReport {
+export function lintMotion(plan: SceneMotion[], sceneIds: string[], d: DirectionDef, transitions?: MotionTransition[]): MotionLintReport {
   // Une réparation peut créer un autre défaut : on repasse jusqu'à stabilité.
   let current = plan;
-  const first = lintPass(plan, sceneIds, d);
+  const menu = transitions?.length ? transitions : d.transitions;
+  const first = lintPass(plan, sceneIds, d, menu);
   current = first.plan;
   for (let pass = 0; pass < 3; pass++) {
-    const next = lintPass(current, sceneIds, d);
+    const next = lintPass(current, sceneIds, d, menu);
     current = next.plan;
     if (!next.issues.length) break;
   }
   return { plan: current, issues: first.issues };
 }
 
-function lintPass(plan: SceneMotion[], sceneIds: string[], d: DirectionDef): MotionLintReport {
+function lintPass(plan: SceneMotion[], sceneIds: string[], d: DirectionDef, menu: MotionTransition[]): MotionLintReport {
   const issues: string[] = [];
   const out = plan.map((m) => ({ ...m }));
   // D'abord le « tout centré » (il déplace des ancrages), puis les répétitions.
@@ -433,7 +545,7 @@ function lintPass(plan: SceneMotion[], sceneIds: string[], d: DirectionDef): Mot
     }
     if (out[i].transition && out[i].transition === out[i - 1].transition && sceneIds[i] !== 'logo') {
       issues.push(`transition répétée « ${out[i].transition} » (scène ${i + 1})`);
-      out[i].transition = d.transitions.find((t) => t !== out[i - 1].transition) || out[i].transition;
+      out[i].transition = menu.find((t) => t !== out[i - 1].transition && t !== out[i + 1]?.transition) || out[i].transition;
     }
   }
   // Alternance mécanique A·B·A·B des entrées : un motif aussi reconnaissable qu'une répétition.

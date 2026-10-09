@@ -57,7 +57,14 @@ function baseKit(over: Partial<VideoKit>): VideoKit {
 }
 
 /** Rend une page, vérifie erreurs + déterminisme sur `times`, renvoie les images (data URI JPEG). */
-async function renderCheck(browser: Browser, html: string, spec: { width: number; height: number }, times: number[], label: string, opts: { mustMove?: boolean; clip?: boolean } = {}): Promise<string[]> {
+async function renderCheck(
+  browser: Browser,
+  html: string,
+  spec: { width: number; height: number },
+  times: number[],
+  label: string,
+  opts: { mustMove?: boolean; clip?: boolean; probe?: (page: import('puppeteer').Page) => Promise<void> } = {}
+): Promise<string[]> {
   const page = await browser.newPage();
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String((e as Error).message || e).slice(0, 200)));
@@ -77,6 +84,8 @@ async function renderCheck(browser: Browser, html: string, spec: { width: number
     };
     const forward: Buffer[] = [];
     for (const t of times) forward.push(await shoot(t));
+    // Contrôles de mise en page sur l'image posée (le dernier instant).
+    if (opts.probe) await opts.probe(page);
     const backward: Buffer[] = [];
     if (opts.clip) {
       // Clip : comme en production, un AUTRE onglet chargé à neuf, qui avance dans le même ordre.
@@ -275,7 +284,7 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
     sheet.push({ group: 'Animations de logo', shots: logoShots });
 
     const bgShots: Shot[] = [];
-    for (const bg of ['dot-grid', 'halftone', 'shape-field', 'stagger-grid', 'marquee', 'spotlight', 'ticks']) {
+    for (const bg of ['dot-grid', 'halftone', 'shape-field', 'stagger-grid', 'marquee', 'spotlight', 'ticks', 'flow-field', 'sketch-shapes', 'voronoi', 'flat3d']) {
       const { html, spec, sb } = await composeKit({
         brandId: 'bissap',
         sceneIds: ['statement', 'cta'],
@@ -285,13 +294,16 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
         kit: (keys) => baseKit({ background: bg, backdropScenes: [keys[0]] }),
       });
       const s0 = sb.scenes[0];
+      // La page ne charge que la bibliothèque qu'exige le fond, et pas les autres.
+      const wanted = ({ 'flow-field': 'draw', 'sketch-shapes': 'draw', voronoi: 'viz', flat3d: 'zdog' } as Record<string, string>)[bg];
+      if (wanted) check(`fond ${bg} : addon-${wanted} chargé, aucun autre addon de dessin`, html.includes(`data-addon="${wanted}"`) && ['chart', 'viz', 'draw', 'zdog'].filter((a) => a !== wanted).every((a) => !html.includes(`data-addon="${a}"`)));
       const frames = await renderCheck(browser, html, spec, [0.4, 1.0, s0.duration - 0.3], `fond ${bg}`);
       bgShots.push({ label: bg, frames });
     }
     sheet.push({ group: 'Fonds', shots: bgShots });
 
     const annShots: Shot[] = [];
-    for (const ann of ['marker', 'underline', 'circle']) {
+    for (const ann of ['marker', 'underline', 'circle', 'sketch-circle', 'brush']) {
       for (const dir of ['editorial', 'kinetic', 'swiss'] as DirectionId[]) {
         const { html, spec } = await composeKit({
           brandId: 'wax',
@@ -305,6 +317,53 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
       }
     }
     sheet.push({ group: 'Annotations', shots: annShots });
+
+    // Graphiques et dessin : chaque brique du kit, dans une scène écrite comme par l'agent codeur.
+    {
+      const drawShots: Shot[] = [];
+      const brand = brandById('kofi');
+      const theme = buildVideoTheme(brand.branding, brand.name);
+      const head = (names: string) => `import { useScene, useEngine, useLocalTime, Kinetic, ${names} } from '@idem/kit';\n`;
+      const title = `<div className="safe" style={{ justifyContent: 'flex-start' }}><div style={{ width: '70%' }}><Kinetic text={s.slots.title || ''} technique="maskUp" at={0.1} role="headline" fit={[8, 4, 2]} /></div></div>`;
+      const scenes: [string, string, string, Record<string, string>][] = [
+        ['Chart.js barres', 'ChartJs, numbersIn', `<div style={{ position: 'absolute', left: '8%', right: '8%', top: '34%', bottom: '10%' }}><ChartJs type="bar" values data={{ labels: ['2024', '2025', '2026'], datasets: [{ data: numbersIn(s.slots.sub) }] }} /></div>`, { title: 'Nos ventes progressent', sub: '120 puis 340 puis 610 commandes' }],
+        ['Chart.js ligne', 'ChartJs, numbersIn', `<div style={{ position: 'absolute', left: '8%', right: '8%', top: '34%', bottom: '10%' }}><ChartJs type="line" grow="reveal" data={{ labels: ['T1', 'T2', 'T3', 'T4'], datasets: [{ data: numbersIn(s.slots.sub) }] }} /></div>`, { title: 'Une année de croissance', sub: '40, 55, 90 et 130 clients' }],
+        ['Chart.js radar', 'ChartJs, numbersIn', `<div style={{ position: 'absolute', left: '12%', right: '12%', top: '30%', bottom: '6%' }}><ChartJs type="radar" data={{ labels: ['Prix', 'Délai', 'Qualité', 'Service', 'Choix'], datasets: [{ data: numbersIn(s.slots.sub) }] }} /></div>`, { title: 'Notre profil', sub: '8, 9, 7, 9 et 6 sur 10' }],
+        ['Chart.js treemap', 'ChartJs, numbersIn', `<div style={{ position: 'absolute', left: '8%', right: '8%', top: '32%', bottom: '8%' }}><ChartJs type="treemap" data={{ datasets: [{ tree: numbersIn(s.slots.sub), labels: { display: false } }] }} /></div>`, { title: 'Nos ventes par rayon', sub: '45, 25, 18 et 12 %' }],
+        ['Chart.js sankey', 'ChartJs, numbersIn', `<div style={{ position: 'absolute', left: '6%', right: '6%', top: '32%', bottom: '8%' }}><ChartJs type="sankey" data={{ datasets: [{ data: [{ from: 'Web', to: 'Ventes', flow: numbersIn(s.slots.sub)[0] }, { from: 'Boutique', to: 'Ventes', flow: numbersIn(s.slots.sub)[1] }] }] }} /></div>`, { title: 'D’où viennent nos clients', sub: '60 en ligne, 40 en boutique' }],
+        ['visx aire', 'GrowArea, numbersIn', `<div style={{ position: 'absolute', left: '6%', right: '6%', top: '36%', bottom: '8%' }}><GrowArea values={numbersIn(s.slots.sub)} /></div>`, { title: 'Une courbe qui monte', sub: '10, 14, 22, 35 et 52' }],
+        ['visx jauge', 'DataArc, percentIn', `<div style={{ position: 'absolute', left: '25%', right: '25%', top: '30%', bottom: '6%' }}><DataArc value={percentIn(s.slots.sub) || 0} /></div>`, { title: 'Clients satisfaits', sub: '92 %' }],
+        ['carte de l’Afrique', 'AfricaMap', `<div style={{ position: 'absolute', left: '18%', right: '18%', top: '26%', bottom: '4%' }}><AfricaMap highlightIn={s.slots.sub} /></div>`, { title: 'Livrés dans 3 pays', sub: 'Togo, Bénin et Côte d’Ivoire' }],
+        ['croquis rough', 'Sketch, progress', `<Sketch draw={{ shape: 'ellipse', cx: 50, cy: 62, w: 70, h: 40 }} p={progress(lt, 0.3, 1)} weight={0.6} />`, { title: 'Dessiné à la main' }],
+        ['pinceau', 'Brush, progress', `<Brush points={[[10, 70], [30, 62], [55, 72], [80, 60], [92, 66]]} p={progress(lt, 0.2, 1.2)} size={6} />`, { title: 'Un coup de pinceau' }],
+        ['flux de bruit', 'FlowField', `<FlowField seed={4} opacity={0.5} />`, { title: 'Un champ vivant' }],
+        ['Zdog', 'Flat3D', `<div style={{ position: 'absolute', left: '20%', right: '20%', top: '32%', bottom: '6%' }}><Flat3D rotate={{ x: -0.4, y: lt * 0.9 }} items={[{ kind: 'box', width: 30, height: 30, depth: 30, color: 'var(--hl)', shade: 'var(--c-primary)' }, { kind: 'ring', diameter: 56, stroke: 3, color: 'var(--c-accent)', rotate: { x: 1.3 } }]} /></div>`, { title: 'Un objet en 3D plate' }],
+      ];
+      for (const [label, names, body, slots] of scenes) {
+        const tsx = `${head(names)}\nexport default function Scene() {\n  const s = useScene();\n  const { u } = useEngine();\n  const lt = useLocalTime();\n  return (<>${body}${title}</>);\n}\n`;
+        const sb = buildStoryboard({ sceneIds: ['statement', 'logo'], slots: [slots, {}], durationSec: 6, style: 'premium', seed: 4, images: [], direction: 'precision' });
+        sb.kit = baseKit({});
+        (sb.scenes[0] as any).code = { tsx, agent: 'check' };
+        const { html, spec } = await composeVideoHtml({ ...(await inlineAssets(sb, theme)), format: 'square', quality: 'standard', mode: 'render' });
+        const d0 = sb.scenes[0].duration;
+        const frames = await renderCheck(browser, html, spec, [0.25, 0.9, d0 - 0.4], label, {
+          mustMove: true,
+          probe: async (page) => {
+            const res = await page.evaluate(() => ({
+              errors: (window as any).__IDEM_SCENE_ERRORS__ || {},
+              drawn: !!document.querySelector('section.scene canvas, section.scene svg path'),
+              values: [...document.querySelectorAll('[data-chart-values]')].map((el) => el.getAttribute('data-chart-values')),
+              map: document.querySelector('[data-map-highlight]')?.getAttribute('data-map-highlight') || null,
+            }));
+            check(`${label} : la scène codée se rend sans erreur, la brique dessine`, !Object.keys(res.errors).length && res.drawn, JSON.stringify(res.errors).slice(0, 160));
+            if (res.values.length) check(`${label} : les valeurs du graphique viennent des textes`, res.values.every((v) => (JSON.parse(v || '[]') as number[]).length > 0), res.values.join(' '));
+            if (res.map) check(`${label} : les pays nommés dans le texte sont mis en valeur (et eux seuls)`, res.map === JSON.stringify(['768', '204', '384']), res.map);
+          },
+        });
+        drawShots.push({ label, frames });
+      }
+      sheet.push({ group: 'Graphiques et dessin', shots: drawShots });
+    }
 
     // Mises en scène des plans : chacune sur une vraie photo (et un vrai clip s'il y en a un en cache).
     {
@@ -366,6 +425,88 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
         await render(`caméra ${camera}`, 'precision', ['statement', 'logo'], [{ title: 'Le code propre, livré', sub: 'Studio logiciel' }, {}], (sb) => (sb.kit.camera = camera), [0.2, 1.4, 3.0]);
       }
       sheet.push({ group: 'Vocabulaire élargi', shots: vocabShots });
+    }
+
+    // Mises en page (archétypes) : chacune, dans les trois formats, posée sur une grille de tempo.
+    {
+      const layoutShots: Shot[] = [];
+      const brand = brandById('wax');
+      const theme = buildVideoTheme(brand.branding, brand.name);
+      const cases: [string, DirectionId, string, Record<string, string>][] = [
+        ['wordStack', 'brutal', 'hook', { title: 'Le wax qui vous ressemble vraiment' }],
+        ['marqueeBack', 'kinetic', 'statement', { title: 'Tissé à la main à Lomé', sub: 'Depuis 2019' }],
+        ['bigNumber', 'swiss', 'stat', { value: '87 %', label: 'de clientes fidèles' }],
+        ['diagonalBand', 'kinetic', 'cta', { title: 'Venez essayer en boutique', action: 'Réserver', contact: 'wax-lome.tg' }],
+        ['circleStage', 'precision', 'stat', { value: '12 000', label: 'pagnes vendus cette année' }],
+        ['chartRing', 'precision', 'stat', { value: '87 %', label: 'de clientes reviennent dans l’année' }],
+        ['dataArc', 'cinematic', 'stat', { value: '72 %', label: 'des commandes livrées en 24 h' }],
+        ['barCompare', 'swiss', 'offer', { price: '15 000 F', oldPrice: '20 000 F', badge: '-25 %', note: 'Jusqu’à dimanche seulement' }],
+        // Le cas qui sortait du cadre en carré : cercle plein + titre long + sous-titre + bouton.
+        ['circleStage', 'precision', 'cta', { title: 'Le wax authentique, livré chez vous', action: 'Commander', contact: 'wax-lome.tg' }],
+        ['circleStage', 'editorial', 'statement', { title: 'Le wax authentique, livré chez vous partout', sub: 'Tissé à la main à Lomé, depuis 2019' }],
+        ['splitBlock', 'swiss', 'benefits', { title: 'Pourquoi nous choisir', b1: 'Coton certifié', b2: 'Teintures fixes', b3: 'Retouches offertes' }],
+        ['layeredCards', 'collage', 'event', { title: 'Défilé de lancement', date: 'Samedi 14 juin', time: '19 h', place: 'Lomé, quartier Bè' }],
+        ['gridCards', 'precision', 'benefits', { title: 'Le wax premium', b1: 'Coton certifié', b2: 'Teintures fixes', b3: 'Retouches offertes' }],
+        ['checklist', 'editorial', 'benefits', { title: 'Ce qui change tout', b1: 'Coton certifié', b2: 'Teintures fixes', b3: 'Retouches offertes' }],
+        ['quoteBig', 'editorial', 'quote', { quote: 'Le plus beau wax que j’ai porté, et il tient au lavage.', author: 'Afi, Lomé' }],
+        ['priceBurst', 'collage', 'offer', { price: '15 000 F', oldPrice: '20 000 F', badge: '-25 %', note: 'Jusqu’à dimanche' }],
+        ['ticker', 'brutal', 'cta', { title: 'La collection arrive samedi', action: 'Réserver', contact: 'wax-lome.tg' }],
+        ['spotlightWord', 'cinematic', 'statement', { title: 'Chaque motif raconte une histoire', sub: 'Collection Héritage' }],
+        ['frameOverlap', 'editorial', 'hook', { title: 'Un tissu, mille histoires' }],
+      ];
+      for (const [layout, dir, sceneId, slots] of cases) {
+        for (const format of ['story', 'square', 'landscape'] as const) {
+          const sb = buildStoryboard({ sceneIds: [sceneId, 'logo'], slots: [slots, {}], durationSec: 6, style: 'premium', seed: 5, images: [], direction: dir });
+          sb.kit = baseKit({});
+          sb.scenes[0].layout = layout;
+          sb.beat = { bpm: 120, offset: 0, confidence: 1 };
+          const { html, spec } = await composeVideoHtml({ ...(await inlineAssets(sb, theme)), format, quality: 'standard', mode: 'render' });
+          // Une feuille de polices externe qui tarde bloquait le chargement de la page (export en échec) :
+          // en rendu, les polices de la charte sont embarquées.
+          if (ONLINE && layout === 'wordStack' && format === 'story') check('rendu : polices de la charte embarquées, aucune feuille externe', !/<link[^>]+stylesheet/i.test(html) && /@font-face/.test(html));
+          const d0 = sb.scenes[0].duration;
+          const label = `mise en page ${layout} · ${format}`;
+          const frames = await renderCheck(browser, html, spec, [0.15, 0.9, d0 - 0.35], label, {
+            mustMove: true,
+            probe: async (page) => {
+              // Posée : la mise en page est bien rendue, et aucun texte ne sort du cadre.
+              const res = await page.evaluate((w: number, h: number) => {
+                const sec = document.querySelector<HTMLElement>('section.scene[style*="visible"]');
+                const marker = sec?.className || '';
+                const out = [...(sec?.querySelectorAll<HTMLElement>('.kt') || [])]
+                  .filter((el) => !el.closest('.ly-bignum,.ly-marquee,.ly-ticker'))
+                  .filter((el) => {
+                    const r = el.getBoundingClientRect();
+                    return r.width > 0 && (r.left < -2 || r.top < -2 || r.right > w + 2 || r.bottom > h + 2);
+                  })
+                  .map((el) => (el.textContent || '').slice(0, 24));
+                return { marker, out };
+              }, spec.width, spec.height);
+              check(`${label} : rendue par l’archétype`, res.marker.includes(`ly-${layout}`), res.marker);
+              check(`${label} : aucun texte hors du cadre`, res.out.length === 0, res.out.join(' | '));
+            },
+          });
+          layoutShots.push({ label: `${layout} · ${format}`, frames });
+        }
+      }
+      sheet.push({ group: 'Mises en page', shots: layoutShots });
+    }
+
+    // Transitions du catalogue élargi : chacune autour de la coupe (avant, pendant, après, posée).
+    {
+      const trShots: Shot[] = [];
+      const brand = brandById('kofi');
+      const theme = buildVideoTheme(brand.branding, brand.name);
+      for (const kind of ['shapeWipe', 'stripes', 'split', 'liquid', 'zoomBlur', 'cube', 'glitch']) {
+        const sb = buildStoryboard({ sceneIds: ['hook', 'statement', 'logo'], slots: [{ title: 'Le studio qui livre vite' }, { title: 'Du code propre, testé', sub: 'Depuis Lomé' }, {}], durationSec: 6, style: 'premium', seed: 13, images: [], direction: 'kinetic' });
+        sb.kit = baseKit({});
+        sb.scenes[1].motion = { ...sb.scenes[1].motion!, transition: kind as any };
+        const { html, spec } = await composeVideoHtml({ ...(await inlineAssets(sb, theme)), format: 'square', quality: 'standard', mode: 'render' });
+        const c = sb.scenes[1].start;
+        const frames = await renderCheck(browser, html, spec, [c - 0.16, c, c + 0.12, c + 1.1], `transition ${kind}`, { mustMove: true });
+        trShots.push({ label: kind, frames });
+      }
+      sheet.push({ group: 'Transitions (catalogue élargi)', shots: trShots });
     }
 
     // Grand moment : l'effet que la direction donne à LA scène choisie.

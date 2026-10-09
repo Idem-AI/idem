@@ -36,6 +36,7 @@ import { AiEditPanelComponent } from './components/ai-edit-panel/ai-edit-panel';
 import {
   EditorCanvasComponent,
   ReorderEvent,
+  StyleChangeEvent,
   TextChangeEvent,
 } from './components/editor-canvas/editor-canvas';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
@@ -72,7 +73,9 @@ const WIDE_QUERY = '(min-width: 1280px)';
     ChartEditorPanelComponent,
     AttributesPanelComponent,
     AiEditPanelComponent,
-    EditorCanvasComponent, IdemLoaderComponent],
+    EditorCanvasComponent,
+    IdemLoaderComponent,
+  ],
   providers: [DocumentModelService, EditorHistoryService],
   templateUrl: './document-editor.html',
   styleUrl: './document-editor.css',
@@ -137,12 +140,16 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     this.unlistenKeys = this.renderer.listen('document', 'keydown', (e: KeyboardEvent) =>
       this.onKeydown(e),
     );
-    this.unlistenBeforeUnload = this.renderer.listen('window', 'beforeunload', (e: BeforeUnloadEvent) => {
-      if (this.saveState() === 'dirty' || this.saveState() === 'saving') {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    });
+    this.unlistenBeforeUnload = this.renderer.listen(
+      'window',
+      'beforeunload',
+      (e: BeforeUnloadEvent) => {
+        if (this.saveState() === 'dirty' || this.saveState() === 'saving') {
+          e.preventDefault();
+          e.returnValue = '';
+        }
+      },
+    );
 
     const query = this.route.snapshot.queryParamMap;
     this.documentId = query.get(EDITOR_TARGET_PARAMS.document);
@@ -243,6 +250,16 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   protected onTextChange(event: TextChangeEvent): void {
     this.record(`text-${event.sectionId}-${event.path}`);
     this.model.setText(event.sectionId, event.path, event.html);
+    this.markDirty();
+  }
+
+  /**
+   * Le déplacement libre est déjà visible dans l'iframe. On persiste seulement
+   * son état final ici, sans reconstruire le canevas sous le pointeur.
+   */
+  protected onCanvasStyleChange(event: StyleChangeEvent): void {
+    this.record(`style-${event.sectionId}-${event.path}`);
+    this.model.setStyle(event.sectionId, event.path, event.style);
     this.markDirty();
   }
 

@@ -48,6 +48,44 @@
     "apply": "Appliquer",
     "reset": "Réinitialiser",
     "close": "Fermer",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "creativity": {
+      "title": "Créativité",
+      "help": "Plus vous montez, plus l'IA prend de décisions — et plus la génération consomme de crédits.",
+      "cost": "{{cost}} crédits",
+      "levels": {
+        "low": {
+          "label": "Low",
+          "hint": "Éprouvé",
+          "description": "Des mises en page éprouvées, adaptées à votre charte et à sa direction artistique. L'IA écrit les textes.",
+          "line": "Mises en page éprouvées, adaptées à votre charte. L'IA écrit les textes."
+        },
+        "medium": {
+          "label": "Medium",
+          "hint": "Guidé",
+          "description": "L'IA choisit aussi la structure (sections, scènes, slides) parmi des options validées. Le plus sûr au prix habituel.",
+          "line": "L'IA choisit aussi la structure et l'enchaînement."
+        },
+        "high": {
+          "label": "High",
+          "hint": "Inspiré",
+          "description": "L'IA compose chaque partie : mises en page, transitions, enchaînements, dans des options filtrées par votre direction artistique.",
+          "line": "L'IA compose chaque partie : mises en page, transitions."
+        },
+        "max": {
+          "label": "Max",
+          "hint": "Audacieux",
+          "description": "L'IA règle aussi les détails : emphase, couleurs, rythme, densité — dans des bornes qui garantissent la lisibilité.",
+          "line": "L'IA règle aussi les détails : emphase, couleurs, rythme."
+        },
+        "ultra": {
+          "label": "Ultra",
+          "hint": "Libre",
+          "description": "L'IA invente et crée tout : la composition, chaque partie, les animations. Votre charte et les bonnes pratiques restent garanties : chaque partie est vérifiée, critiquée et corrigée avant livraison.",
+          "line": "L'IA invente et crée tout, vérifié et corrigé avant livraison."
+        }
+      },
+      "withCost": "{{label}} · {{cost}} crédits"
+    }
   }
 }

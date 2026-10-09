@@ -33,11 +33,7 @@ import {
 } from '../controllers/brandIdentity.controller';
 import { authenticate } from '../services/auth.service'; // Updated import path
 import { checkQuota } from '../middleware/quota.middleware';
-import {
-  firstThenRevision,
-  includedThenRepeat,
-  requireCredits,
-} from '../middleware/billing.middleware';
+import { firstThenRevision, includedThenRepeat, requireCredits, withCreativity } from '../middleware/billing.middleware';
 
 export const brandingRoutes = Router();
 
@@ -64,6 +60,14 @@ const resourceName = 'brandings';
  * c'est précisément celui qu'il ne faut pas laisser tourner gratuitement.
  */
 const chargeBrandSession = requireCredits('business', 'logo_brand', {
+  resolve: withCreativity('business', 'logo_brand', firstThenRevision('business', 'logo_brand', 'logo_relaunch')),
+});
+
+/**
+ * La session de logos : toujours dessinée au cran Ultra (l'IA crée tout), au prix habituel
+ * de la session — le logo n'a pas de jauge, son cran n'est pas facturé en plus.
+ */
+const chargeLogoSession = requireCredits('business', 'logo_brand', {
   resolve: firstThenRevision('business', 'logo_brand', 'logo_relaunch'),
 });
 
@@ -274,7 +278,7 @@ brandingRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
-  chargeBrandSession,
+  chargeLogoSession,
   generateLogoConceptsController
 );
 
@@ -314,7 +318,7 @@ brandingRoutes.get(
   authenticate,
   extendedTimeout,
   checkQuota,
-  chargeBrandSession,
+  chargeLogoSession,
   generateLogoConceptsStreamController
 );
 

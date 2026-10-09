@@ -228,3 +228,10 @@ describe('decideWebhookAction — watch paths', () => {
     expect(decideWebhookAction(target(), push(['anything.txt'])).deploy).toBe(true);
   });
 });
+
+describe('the ci provider', () => {
+  it('is one of the providers with its own secret', async () => {
+    const { GIT_PROVIDERS } = await import('../../../api/services/webhook.service');
+    expect(GIT_PROVIDERS).toContain('ci');
+  });
+});

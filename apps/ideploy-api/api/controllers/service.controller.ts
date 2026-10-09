@@ -5,8 +5,15 @@ import logger from '../config/logger';
 import * as service from '../services/service.service';
 import * as templates from '../services/templates.service';
 import { resolveWorkspaceDestination } from '../services/workspace.service';
-import { realtime } from '../services/realtime.service';
+import * as operations from '../services/service-operation.service';
+import * as serviceEnv from '../services/service-env.service';
+import { analyseCompose } from '../services/compose-env.service';
+import { z } from 'zod';
 import { assertComposeIsSafe, ComposePolicyError } from '../docker/compose-policy';
+
+const envBody = z.object({
+  variables: z.array(z.object({ key: z.string().min(1).max(255), value: z.string().max(65_536) })).max(500),
+});
 
 export async function list(req: CustomRequest, res: Response): Promise<void> {
   try {
@@ -37,6 +44,8 @@ export async function get(req: CustomRequest, res: Response): Promise<void> {
  */
 export async function create(req: CustomRequest, res: Response): Promise<void> {
   const { name, workspace_uuid, environment_name, project_name, docker_compose_raw } = req.body ?? {};
+  const env = envBody.safeParse({ variables: req.body?.environment_variables ?? [] });
+  if (!env.success) return fail(res, 'environment_variables must be a list of { key, value }', 422, 'VALIDATION');
   if (!name || !workspace_uuid || !docker_compose_raw) {
     return fail(res, 'name, workspace_uuid and docker_compose_raw are required', 422, 'VALIDATION');
   }
@@ -62,9 +71,7 @@ export async function create(req: CustomRequest, res: Response): Promise<void> {
       environment_name,
       project_name
     );
-    ok(
-      res,
-      await service.createService(teamId, {
+    const created = await service.createService(teamId, {
         // Champs explicites : recopier le corps laissait le client fixer des
         // colonnes réservées au serveur (`service_type`, par exemple).
         name,
@@ -72,9 +79,9 @@ export async function create(req: CustomRequest, res: Response): Promise<void> {
         environment_id: destination.environmentId,
         destination_id: destination.destinationId,
         project_id: destination.projectId,
-      }),
-      201
-    );
+    });
+    if (env.data.variables.length > 0) await serviceEnv.replaceForServiceId(created.id, env.data.variables);
+    ok(res, created, 201);
   } catch (err) {
     respondWithError(res, err, 'Creating the service');
   }
@@ -128,23 +135,57 @@ async function lifecycle(
   res: Response,
   action: 'start' | 'stop' | 'restart'
 ): Promise<void> {
-  const uuid = String(req.params.uuid);
   try {
-    ok(
-      res,
-      await service.lifecycle(req.user!.currentTeamId!, uuid, action, (chunk) =>
-        realtime.serviceLog(uuid, chunk)
-      )
-    );
+    ok(res, await operations.begin(req.user!.currentTeamId!, String(req.params.uuid), action), 202);
   } catch (err) {
-    logger.error(`service ${action} error`, { message: (err as Error).message });
-    void realtime.serviceLog(uuid, `\n❌ ${(err as Error).message || `Failed to ${action} service`}\n`);
-    fail(res, (err as Error).message || `Failed to ${action} service`);
+    respondWithError(res, err, `Service ${action}`);
   }
 }
 export const start = (req: CustomRequest, res: Response) => lifecycle(req, res, 'start');
 export const stop = (req: CustomRequest, res: Response) => lifecycle(req, res, 'stop');
 export const restart = (req: CustomRequest, res: Response) => lifecycle(req, res, 'restart');
+
+/** The last start/stop/restart with its console output (polled by the UI). */
+export async function latestOperation(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(res, await operations.latest(req.user!.currentTeamId!, String(req.params.uuid)));
+  } catch (err) {
+    respondWithError(res, err, 'Reading the service operation');
+  }
+}
+
+// ── Environment variables ─────────────────────────────────
+export async function getEnv(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    const teamId = req.user!.currentTeamId!;
+    const uuid = String(req.params.uuid);
+    const svc = await service.getService(teamId, uuid);
+    if (!svc) return fail(res, 'Service not found', 404, 'NOT_FOUND');
+    const variables = await serviceEnv.listForService(teamId, uuid);
+    ok(res, { variables, analysis: analyseCompose(svc.docker_compose_raw ?? '') });
+  } catch (err) {
+    respondWithError(res, err, 'Reading the service variables');
+  }
+}
+
+export async function putEnv(req: CustomRequest, res: Response): Promise<void> {
+  const parsed = envBody.safeParse(req.body);
+  if (!parsed.success) return fail(res, 'variables must be a list of { key, value }', 422, 'VALIDATION');
+  try {
+    ok(res, { variables: await serviceEnv.replaceForService(req.user!.currentTeamId!, String(req.params.uuid), parsed.data.variables) });
+  } catch (err) {
+    respondWithError(res, err, 'Saving the service variables');
+  }
+}
+
+/** What a compose file expects, before anything is created. */
+export async function analyse(req: CustomRequest, res: Response): Promise<void> {
+  const compose = req.body?.docker_compose_raw;
+  if (typeof compose !== 'string' || compose.length > 200_000) {
+    return fail(res, 'docker_compose_raw must be a string (≤ 200 KB)', 422, 'VALIDATION');
+  }
+  ok(res, analyseCompose(compose));
+}
 
 // ── Templates ─────────────────────────────────────────────
 export async function listTemplates(_req: CustomRequest, res: Response): Promise<void> {
