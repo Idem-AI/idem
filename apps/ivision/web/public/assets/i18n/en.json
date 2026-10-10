@@ -598,5 +598,90 @@
     "transcriptHint": "Tap a word to jump to it or fix a typo.",
     "introHint": "An animated title in your colours, before you talk.",
     "outroHint": "The last screen: your brand, your contact."
+  },
+  "tour": {
+    "replay": "See the guide again",
+    "common": {
+      "next": "Next",
+      "back": "Back",
+      "skip": "Skip",
+      "finish": "Let’s go",
+      "stepOf": "Step {current} of {total}",
+      "dialogLabel": "iVision guide"
+    },
+    "studio": {
+      "welcome": {
+        "title": "Welcome to iVision",
+        "body": "Here you create videos and images to promote your business. You write what you want, iVision makes it."
+      },
+      "tabs": {
+        "title": "Video or image?",
+        "body": "Choose here what you want to create: a video, or an image to post."
+      },
+      "choices": {
+        "title": "Two ways to make a video",
+        "body": "Describe it and I create it as an animation. Or add the video where you talk, and I edit it for you."
+      },
+      "composer": {
+        "title": "Write the way you talk",
+        "body": "For example: “a video for our back-to-school sale”. Then press the arrow."
+      },
+      "brand": {
+        "title": "Your colours, if you like",
+        "body": "Add your website, logo or colours. It’s optional: without them, I pick colours that work."
+      },
+      "creativity": {
+        "title": "More or less daring",
+        "body": "Choose the level of creativity. The price in credits shows right next to it, before you start."
+      },
+      "history": {
+        "title": "Everything you created",
+        "body": "Your creations stay here. Click one to see it again or change it."
+      },
+      "credits": {
+        "title": "Your credits",
+        "body": "Each creation uses credits. You see them here, and you can add more."
+      },
+      "done": {
+        "title": "Your turn!",
+        "body": "Write your first request. You can see this guide again anytime with “See the guide again”."
+      }
+    },
+    "result": {
+      "ready": {
+        "title": "Your video is ready",
+        "body": "Press play to watch it."
+      },
+      "say": {
+        "title": "Something to change?",
+        "body": "Just write it: “no music”, “change the title”, “add an intro”. I’ll take care of it."
+      },
+      "edit": {
+        "title": "Or change it yourself",
+        "body": "The “Edit” button opens a page to adjust everything by clicking."
+      },
+      "download": {
+        "title": "Download it",
+        "body": "When you like it, download it to post on your social networks."
+      }
+    },
+    "editor": {
+      "preview": {
+        "title": "Your video",
+        "body": "It updates with every change. Press play to watch it again."
+      },
+      "timeline": {
+        "title": "The video timeline",
+        "body": "Each dot is an item that appears on screen. Tap one to jump to it."
+      },
+      "tabs": {
+        "title": "Everything is set here",
+        "body": "What appears, captions, start and end, music and format."
+      },
+      "save": {
+        "title": "Nothing to save",
+        "body": "Your changes save on their own. When it’s ready, download the video."
+      }
+    }
   }
 }

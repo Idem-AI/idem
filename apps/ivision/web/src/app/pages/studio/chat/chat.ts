@@ -9,6 +9,7 @@ import { ApiService } from '../../../core/api.service';
 import { HttpEventType } from '@angular/common/http';
 import { Brand, ChatEvent, ChatMessage, ChatMode, ChatOptions, ChatSession, Creativity, MediaAsset, Montage, MontageUpload, MotionVideo, Reference, Visual } from '../../../core/models';
 import { StudioState } from '../../../core/studio.state';
+import { TourService } from '../../../core/tour.service';
 import { CreativitySelect } from '../../../shared/components/creativity-select';
 import { BrandHint } from '../../../shared/components/brand-hint';
 import { Illustration } from '../../../shared/components/illustration';
@@ -46,6 +47,7 @@ export class ChatPage {
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly state = inject(StudioState);
+  private readonly tours = inject(TourService);
   protected readonly accountUrl = `${environment.services.dashboard.url}/account`;
 
   /** Paramètres de route (liaison des entrées du routeur). */
@@ -90,6 +92,8 @@ export class ChatPage {
   protected readonly removeSilences = signal(true);
   protected readonly montageMusic = signal(true);
   protected readonly montages = signal<Record<string, Montage>>({});
+  /** Le dernier message qui porte une création (sa carte reçoit le repère du guide). */
+  protected readonly lastResultId = computed(() => [...this.messages()].reverse().find((m) => !!m.result)?.id ?? null);
   /** La conversation a déjà une vidéo (montage ou motion design) : un message la retouche. */
   protected readonly revisingMontage = computed(() => {
     if (this.mode() !== 'video' || this.videos().length || this.media().length) return false;
@@ -203,6 +207,8 @@ export class ChatPage {
       this.session.set(null);
       this.messages.set([]);
       this.pendingBrand.set(null);
+      // Première ouverture de l'atelier : le guide (une fois par compte).
+      void this.tours.maybeStart('studio');
       return;
     }
     this.loading.set(true);

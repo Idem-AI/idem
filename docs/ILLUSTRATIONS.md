@@ -110,6 +110,7 @@ Format : **retenu** — candidats écartés (raison).
 | iVision : montrez un modèle, il le reproduit | **pochoir d'adire** (nouveau) | tampon adinkra (dit la marque, pas la copie d'un modèle) ; métier à tisser (dit le code) |
 | iVision : retouchez en direct | **feuillet et calame** (les textes qu'on écrit) | — |
 | iVision : montage d'une prise de parole | **étoffe de raphia kuba à pièces appliquées** (nouveau) : la coupe et la pièce cousue | kora (dit la vidéo racontée en musique, pas la parole montée) ; tambour parleur (réservé à « communiquer ») ; métier à tisser (dit le code) |
+| iVision : guide de première visite (atelier, création prête, éditeur) | **bandes de kente** (bienvenue : on compose) ; **kora** (les deux façons de faire une vidéo) ; **feuillet et calame** (écrire sa demande, écrire un changement) ; **tampon adinkra** (la marque) ; **cauris** (les crédits) ; **étoffe kuba** (l'éditeur du montage) | aucun objet nouveau : chaque bulle reprend l'objet qui dit déjà la même chose |
 | iVision : mêmes crédits ; marques (vide) ; erreur | **cauris** ; **calebasse vide** ; **calebasse fêlée** | — |
 
 ### iDeploy

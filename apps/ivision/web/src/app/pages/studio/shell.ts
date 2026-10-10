@@ -10,6 +10,7 @@ import { LanguageService } from '../../core/language.service';
 import { ChatMode } from '../../core/models';
 import { StudioState } from '../../core/studio.state';
 import { ThemeService } from '../../core/theme.service';
+import { TourService } from '../../core/tour.service';
 import { BrandMark } from '../../shared/components/brand-mark';
 
 /**
@@ -28,6 +29,7 @@ export class StudioShell {
   protected readonly state = inject(StudioState);
   protected readonly theme = inject(ThemeService);
   protected readonly language = inject(LanguageService);
+  private readonly tours = inject(TourService);
   protected readonly accountUrl = `${environment.services.dashboard.url}/account`;
   /** Les deux ateliers : vidéos (motion design ET montage) et visuels. */
   protected readonly tabs: { mode: ChatMode; icon: string; label: string }[] = [
@@ -61,6 +63,13 @@ export class StudioShell {
     });
     last = this.mode();
     refresh(last);
+  }
+
+  /** « Revoir le guide » : depuis l'atelier vidéo, là où il commence. */
+  protected replayGuide(): void {
+    this.state.drawerOpen.set(false);
+    if (this.url().startsWith('/studio/video') && !this.activeSession()) this.tours.start('studio');
+    else void this.router.navigate(['/studio/video'], { queryParams: { new: Date.now() } }).then(() => this.tours.start('studio'));
   }
 
   protected toggleTheme(): void {

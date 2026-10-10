@@ -22,6 +22,7 @@
     "@angular/router": "^20.0.0",
     "@idem/shared-loader": "file:../../../packages/shared-loader",
     "@idem/shared-styles": "file:../../../packages/shared-styles",
+    "@idem/shared-tour": "file:../../../packages/shared-tour",
     "@idem/shared-video-editor": "file:../../../packages/shared-video-editor",
     "@ngx-translate/core": "^17.0.0",
     "@ngx-translate/http-loader": "^17.0.0",

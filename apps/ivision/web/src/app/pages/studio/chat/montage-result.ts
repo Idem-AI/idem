@@ -7,6 +7,7 @@ import { environment } from '../../../../environments/environment';
 import { ApiService } from '../../../core/api.service';
 import { Montage, MontageStage } from '../../../core/models';
 import { StudioState } from '../../../core/studio.state';
+import { TourService } from '../../../core/tour.service';
 import { RouterLink } from '@angular/router';
 
 const RATIOS: Record<string, string> = { story: '9 / 16', square: '1 / 1', portrait: '4 / 5', landscape: '16 / 9' };
@@ -60,11 +61,11 @@ const SUGGESTIONS = ['addIntro', 'noMusic', 'soberCaptions', 'square'];
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <button type="button" class="inner-button button-sm" [disabled]="m.status !== 'ready' || exporting() || rendering() || downloading()" (click)="getVideo()">
+            <button type="button" data-tour="iv-result-download" class="inner-button button-sm" [disabled]="m.status !== 'ready' || exporting() || rendering() || downloading()" (click)="getVideo()">
               @if (exporting() || rendering() || downloading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-download" aria-hidden="true"></i> }
               {{ (rendering() ? 'montage.chat.rendering' : 'montage.download') | translate: { percent: renderPercent() } }}
             </button>
-            <a class="outer-button button-sm" [routerLink]="['/studio/montage', m.id]">
+            <a data-tour="iv-result-edit" class="outer-button button-sm" [routerLink]="['/studio/montage', m.id]">
               <i class="pi pi-pencil" aria-hidden="true"></i> {{ 'chat.result.edit' | translate }}
             </a>
           </div>
@@ -95,6 +96,7 @@ export class MontageResult {
   private readonly api = inject(ApiService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly state = inject(StudioState);
+  private readonly tours = inject(TourService);
   protected readonly accountUrl = `${environment.services.dashboard.url}/account`;
 
   readonly montageId = input.required<string>();
@@ -155,6 +157,8 @@ export class MontageResult {
     const before = this.montage();
     this.montage.set(m);
     const becameReady = m.status === 'ready' && before?.status !== 'ready';
+    // La première création prête : le guide montre comment la changer et la télécharger.
+    if (becameReady && this.latest()) void this.tours.maybeStart('result');
     if (m.status === 'ready' && (reloadPreview || becameReady)) {
       this.api.montagePreview(m.id).subscribe({ next: ({ html }) => this.html.set(this.sanitizer.bypassSecurityTrustHtml(html)), error: () => undefined });
     }

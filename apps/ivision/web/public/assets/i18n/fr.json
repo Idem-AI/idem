@@ -598,5 +598,90 @@
     "transcriptHint": "Touchez un mot pour y aller ou corriger une faute.",
     "introHint": "Un titre animé à vos couleurs, avant que vous parliez.",
     "outroHint": "Le dernier écran : votre marque, votre contact."
+  },
+  "tour": {
+    "replay": "Revoir le guide",
+    "common": {
+      "next": "Suivant",
+      "back": "Retour",
+      "skip": "Passer",
+      "finish": "C’est parti",
+      "stepOf": "Étape {current} sur {total}",
+      "dialogLabel": "Guide d’iVision"
+    },
+    "studio": {
+      "welcome": {
+        "title": "Bienvenue dans iVision",
+        "body": "Ici, vous créez des vidéos et des images pour faire connaître votre activité. Vous écrivez ce que vous voulez, iVision le fabrique."
+      },
+      "tabs": {
+        "title": "Vidéo ou image ?",
+        "body": "Choisissez ici ce que vous voulez créer : une vidéo, ou une image à publier."
+      },
+      "choices": {
+        "title": "Deux façons de faire une vidéo",
+        "body": "Décrivez-la, et je la crée en animation. Ou ajoutez la vidéo où vous parlez, et je la monte pour vous."
+      },
+      "composer": {
+        "title": "Écrivez comme vous parlez",
+        "body": "Par exemple : « une vidéo pour nos soldes de la rentrée ». Puis appuyez sur la flèche."
+      },
+      "brand": {
+        "title": "Vos couleurs, si vous voulez",
+        "body": "Ajoutez votre site, votre logo ou vos couleurs. Ce n’est pas obligatoire : sans eux, je choisis des couleurs qui vont bien."
+      },
+      "creativity": {
+        "title": "Plus ou moins d’audace",
+        "body": "Choisissez le niveau de créativité. Le prix en crédits s’affiche juste à côté, avant de lancer."
+      },
+      "history": {
+        "title": "Tout ce que vous avez créé",
+        "body": "Vos créations restent ici. Cliquez sur l’une d’elles pour la revoir ou la changer."
+      },
+      "credits": {
+        "title": "Vos crédits",
+        "body": "Chaque création utilise des crédits. Vous les voyez ici, et vous pouvez en ajouter."
+      },
+      "done": {
+        "title": "À vous de jouer !",
+        "body": "Écrivez votre première demande. Vous pourrez revoir ce guide quand vous voulez, avec « Revoir le guide »."
+      }
+    },
+    "result": {
+      "ready": {
+        "title": "Votre vidéo est prête",
+        "body": "Appuyez sur lecture pour la regarder."
+      },
+      "say": {
+        "title": "Quelque chose à changer ?",
+        "body": "Écrivez-le simplement : « sans musique », « change le titre », « ajoute une intro ». Je m’en occupe."
+      },
+      "edit": {
+        "title": "Ou changez-la vous-même",
+        "body": "Le bouton « Modifier » ouvre une page pour tout régler en cliquant."
+      },
+      "download": {
+        "title": "Téléchargez-la",
+        "body": "Quand elle vous plaît, téléchargez-la pour la publier sur vos réseaux."
+      }
+    },
+    "editor": {
+      "preview": {
+        "title": "Votre vidéo",
+        "body": "Elle se met à jour à chaque changement. Appuyez sur lecture pour la revoir."
+      },
+      "timeline": {
+        "title": "Le fil de la vidéo",
+        "body": "Chaque rond est un élément qui apparaît à l’écran. Touchez-en un pour y aller."
+      },
+      "tabs": {
+        "title": "Tout se règle ici",
+        "body": "Ce qui apparaît, les sous-titres, le début et la fin, la musique et le format."
+      },
+      "save": {
+        "title": "Rien à enregistrer",
+        "body": "Vos changements s’enregistrent tout seuls. Quand c’est prêt, téléchargez la vidéo."
+      }
+    }
   }
 }

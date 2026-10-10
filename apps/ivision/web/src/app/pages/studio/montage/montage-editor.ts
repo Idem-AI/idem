@@ -8,6 +8,7 @@ import { environment } from '../../../../environments/environment';
 import { ApiService } from '../../../core/api.service';
 import { CaptionStyle, Montage, MontageElement, MontageElementType } from '../../../core/models';
 import { StudioState } from '../../../core/studio.state';
+import { TourService } from '../../../core/tour.service';
 import { Illustration } from '../../../shared/components/illustration';
 
 type Tab = 'screen' | 'captions' | 'ends' | 'sound';
@@ -53,6 +54,7 @@ export class MontageEditor {
   private readonly api = inject(ApiService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly state = inject(StudioState);
+  private readonly tours = inject(TourService);
   protected readonly accountUrl = `${environment.services.dashboard.url}/account`;
 
   readonly montageId = input.required<string>();
@@ -184,6 +186,8 @@ export class MontageEditor {
       this.outro.set({ on: !!m.outro, text: m.outro?.text ?? '', detail: m.outro?.detail ?? '' });
     }
     if (m.status === 'ready' && (reloadPreview || before?.status === 'processing')) this.loadPreview();
+    // Première ouverture de l'éditeur : le guide (une fois par compte).
+    if (!before && m.status === 'ready') void this.tours.maybeStart('editor');
     if (m.status === 'processing' || m.renders.some((r) => r.status === 'rendering')) this.watch();
     if (this.autoDownload && m.renders.some((r) => r.status === 'done') && !m.renders.some((r) => r.status === 'rendering')) {
       this.autoDownload = false;

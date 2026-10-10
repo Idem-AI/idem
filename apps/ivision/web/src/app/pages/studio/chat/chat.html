@@ -20,7 +20,7 @@
           <!-- Rien encore : un seul choix à faire, deux grandes tuiles illustrées. -->
           <section class="flex flex-col items-center py-8 text-center" [attr.aria-label]="'chat.empty.choose' | translate">
             <h2 class="text-xl font-semibold">{{ 'chat.empty.choose' | translate }}</h2>
-            <div class="mt-6 grid w-full max-w-xl gap-3 sm:grid-cols-2 sm:gap-4">
+            <div data-tour="iv-video-choices" class="mt-6 grid w-full max-w-xl gap-3 sm:grid-cols-2 sm:gap-4">
               <button type="button" class="glass-card shadow-glass-hover transition-smooth group flex h-full items-center gap-4 !border-2 !border-transparent p-4 text-left hover:-translate-y-0.5 hover:!border-[var(--color-primary-500)] focus-visible:!border-[var(--color-primary-500)] sm:flex-col sm:gap-3 sm:p-6 sm:text-center" (click)="focusComposer()">
                 <iv-illustration class="h-16 w-16 flex-none text-[var(--color-text-secondary)] transition-smooth group-hover:text-[var(--color-text-primary)] sm:h-24 sm:w-24" kind="kora" />
                 <span class="flex min-w-0 flex-col gap-1 sm:items-center sm:gap-3">
@@ -152,12 +152,12 @@
             @if (m.result; as r) {
               @if (r.kind === 'video' && session()?.brandId && latestFor(m)) {
                 @defer (on viewport) {
-                  <iv-video-result [brandId]="session()!.brandId!" [videoId]="r.videoId" [video]="motionVideos()[r.videoId]" />
+                  <iv-video-result [attr.data-tour]="m.id === lastResultId() ? 'iv-result' : null" [brandId]="session()!.brandId!" [videoId]="r.videoId" [video]="motionVideos()[r.videoId]" />
                 } @placeholder {
                   <div class="skeleton mt-3 h-72 w-40 rounded-xl"></div>
                 }
               } @else if (r.kind === 'montage' && latestFor(m)) {
-                <iv-montage-result [montageId]="r.montageId" [initial]="montages()[r.montageId] ?? null" [version]="montageVersions()[r.montageId] ?? 0" [latest]="m.id === messages().at(-1)?.id" (say)="say($event)" />
+                <iv-montage-result [attr.data-tour]="m.id === lastResultId() ? 'iv-result' : null" [montageId]="r.montageId" [initial]="montages()[r.montageId] ?? null" [version]="montageVersions()[r.montageId] ?? 0" [latest]="m.id === messages().at(-1)?.id" (say)="say($event)" />
               } @else if (r.kind === 'visual') {
                 @if (visuals()[r.visualId]; as v) {
                   @defer (on viewport) {
@@ -244,9 +244,9 @@
 
       <input #videoInput type="file" class="sr-only" multiple accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/3gpp,.mp4,.mov,.webm,.m4v,.3gp,.mkv" (change)="onVideoFiles($event)" [attr.aria-label]="'chat.empty.editTitle' | translate" />
       <!-- La marque, proposée sans insister (jamais exigée). -->
-      <iv-brand-hint class="mb-2 block" [brand]="brand()" (chosen)="onHintBrand($event)" />
+      <iv-brand-hint data-tour="iv-brand-hint" class="mb-2 block" [brand]="brand()" (chosen)="onHintBrand($event)" />
 
-      <div class="glass-card !rounded-2xl p-2">
+      <div data-tour="iv-composer" class="glass-card !rounded-2xl p-2">
         <label for="iv-composer" class="sr-only">{{ 'chat.composer.label' | translate }}</label>
         <textarea
           #composer
@@ -313,7 +313,7 @@
           }
 
           <span class="ml-auto flex items-center gap-2">
-            <iv-creativity-select [(value)]="creativity" />
+            <iv-creativity-select data-tour="iv-creativity" [(value)]="creativity" />
             @if (price() !== null) {
               <span class="text-xs tabular-nums text-[var(--color-text-tertiary)]">{{ 'chat.options.price' | translate: { cost: price() } }}</span>
             }

@@ -6,7 +6,7 @@
     <span class="hidden text-xs text-[var(--color-text-tertiary)] sm:inline" role="status">
       @if (saving()) { <idem-loader size="xs" /> {{ 'edit.saving' | translate }} } @else if (saveFailed()) { {{ 'montage.saveFailed' | translate }} } @else if (saved()) { <i class="pi pi-check text-xs" aria-hidden="true"></i> {{ 'montageEditor.saved' | translate }} }
     </span>
-    <button type="button" class="inner-button button-sm" [disabled]="!ready() || exporting() || rendering() || downloading()" (click)="getVideo()">
+    <button type="button" data-tour="iv-editor-download" class="inner-button button-sm" [disabled]="!ready() || exporting() || rendering() || downloading()" (click)="getVideo()">
       @if (exporting() || rendering() || downloading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-download" aria-hidden="true"></i> }
       {{ (rendering() ? 'montage.chat.rendering' : 'montage.download') | translate: { percent: renderPercent() } }}
     </button>
@@ -26,7 +26,7 @@
     <div class="custom-scrollbar min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden">
       <!-- La vidéo et sa frise. -->
       <section class="flex flex-col items-center gap-4 px-4 py-5 lg:min-h-0 lg:overflow-y-auto" [attr.aria-label]="'montage.previewTitle' | translate">
-        <div class="relative w-full shrink-0 overflow-hidden rounded-xl bg-[var(--glass-bg-light)]" [style.aspect-ratio]="ratio()" [style.max-width]="previewWidth()">
+        <div data-tour="iv-editor-preview" class="relative w-full shrink-0 overflow-hidden rounded-xl bg-[var(--glass-bg-light)]" [style.aspect-ratio]="ratio()" [style.max-width]="previewWidth()">
           @if (m.status === 'processing') {
             <idem-loader overlay [label]="'montage.recutting' | translate" />
           }
@@ -38,7 +38,7 @@
         </div>
 
         <!-- La frise : début, éléments, fin ; un clic y amène. -->
-        <div class="w-full max-w-[760px]">
+        <div data-tour="iv-editor-timeline" class="w-full max-w-[760px]">
           <div #bar class="relative h-14 cursor-pointer rounded-lg bg-[var(--glass-bg-light)]" (click)="seekAtBar($event, bar)" role="slider" tabindex="0" [attr.aria-label]="'montageEditor.timeline' | translate" [attr.aria-valuenow]="time()" aria-valuemin="0" [attr.aria-valuemax]="total()">
             @if (m.intro) {
               <span class="absolute inset-y-1 left-1 rounded-md bg-[var(--color-primary-500)] opacity-30" [style.width]="percent(m.intro.durationSec)" aria-hidden="true"></span>
@@ -63,7 +63,7 @@
 
       <!-- Les réglages, en quatre onglets. -->
       <aside class="flex flex-col border-t lg:min-h-0 border-[var(--glass-border-subtle)] lg:border-l lg:border-t-0" [attr.aria-label]="'montageEditor.settings' | translate">
-        <div class="grid grid-cols-4 gap-1 border-b border-[var(--glass-border-subtle)] p-2" role="tablist">
+        <div data-tour="iv-editor-tabs" class="grid grid-cols-4 gap-1 border-b border-[var(--glass-border-subtle)] p-2" role="tablist">
           @for (t of tabs; track t) {
             <button type="button" role="tab" class="flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-xs font-medium" [attr.aria-selected]="tab() === t"
               [class]="tab() === t ? 'bg-[var(--color-primary-500)] text-[var(--color-on-primary)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--glass-bg-light)]'" (click)="tab.set(t)">

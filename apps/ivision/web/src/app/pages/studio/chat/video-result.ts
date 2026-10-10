@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ApiService } from '../../../core/api.service';
+import { TourService } from '../../../core/tour.service';
 import { MotionVideo } from '../../../core/models';
 
 const RATIOS: Record<string, string> = { story: '9 / 16', square: '1 / 1', portrait: '4 / 5', landscape: '16 / 9' };
@@ -55,7 +56,7 @@ const RATIOS: Record<string, string> = { story: '9 / 16', square: '1 / 1', portr
           <i class="pi pi-expand" aria-hidden="true"></i> {{ 'chat.result.fullscreen' | translate }}
         </button>
         @if (mp4()) {
-          <button type="button" class="outer-button button-sm" (click)="download()" [disabled]="downloading()">
+          <button type="button" data-tour="iv-result-download" class="outer-button button-sm" (click)="download()" [disabled]="downloading()">
             @if (downloading()) {
               <idem-loader size="xs" />
             } @else {
@@ -64,7 +65,7 @@ const RATIOS: Record<string, string> = { story: '9 / 16', square: '1 / 1', portr
             {{ 'chat.result.download' | translate }}
           </button>
         }
-        <a class="inner-button button-sm" [routerLink]="['/studio/video', brandId(), videoId()]">
+        <a data-tour="iv-result-edit" class="inner-button button-sm" [routerLink]="['/studio/video', brandId(), videoId()]">
           <i class="pi pi-pencil" aria-hidden="true"></i> {{ 'chat.result.edit' | translate }}
         </a>
       </div>
@@ -77,6 +78,7 @@ const RATIOS: Record<string, string> = { story: '9 / 16', square: '1 / 1', portr
 export class VideoResult implements OnInit {
   private readonly api = inject(ApiService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly tours = inject(TourService);
   readonly brandId = input.required<string>();
   readonly videoId = input.required<string>();
   readonly video = input<MotionVideo | undefined>();
@@ -103,6 +105,8 @@ export class VideoResult implements OnInit {
   ngOnInit(): void {
     // Le composant n'est créé qu'une fois visible (`@defer (on viewport)` dans la conversation).
     if (!this.mp4()) this.loadPreview();
+    // La première création prête : le guide montre comment la changer et la télécharger.
+    void this.tours.maybeStart('result');
   }
 
   protected loadPreview(): void {
