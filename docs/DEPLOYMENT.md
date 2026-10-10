@@ -67,6 +67,40 @@ Two services, `ivision-api` (port 3006) and `ivision-web`, deployed by `deploy-i
 
 The IDEM API image now also compiles `apps/ivision/core`: `deploy-api.yml` runs on changes there.
 
+## iDeploy API: processes, limits and shutdown
+
+One image, two roles chosen by `IDEPLOY_ROLE`:
+
+| Value | Runs |
+| --- | --- |
+| `all` (default) | the HTTP API and every background worker |
+| `api` | the HTTP API only |
+| `worker` | the background jobs only (deployments, pipelines, backups, scheduled tasks, server health, firewall) |
+
+In production, run one `api` and one or more `worker` containers from the same image: a burst of deployments no longer slows the API, and a worker that crashes or restarts does not take the API down. Give the workers time to finish on a redeploy:
+
+```yaml
+  ideploy-worker:
+    image: ghcr.io/idem-ai/ideploy-api:<tag>
+    environment:
+      IDEPLOY_ROLE: worker
+      WORKER_CONCURRENCY_DEPLOYMENTS: 4
+    stop_grace_period: 10m
+```
+
+On `SIGTERM` a process stops taking requests and jobs, lets the running jobs finish (up to `SHUTDOWN_TIMEOUT_MS`, 10 minutes by default), then closes Redis and Postgres. Docker's default grace period is 10 seconds: without `stop_grace_period`, deployments in flight are still cut off.
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `WORKER_CONCURRENCY_<QUEUE>` | in code (deployments 3, pipelines 2, databases 2, scheduler 3) | jobs one process runs at once on that queue (`DEPLOYMENTS`, `PIPELINES`, `DATABASES`, `SCHEDULER`, `SERVERS`, `FIREWALL`) |
+| `DEPLOY_MAX_PER_TEAM` | 2 | deployments of one team running at once; the others wait in the queue without holding a worker |
+| `DEPLOY_MAX_PER_SERVER` | 2 | deployments building on one server at once |
+| `RATE_LIMIT_READ_PER_MIN` / `RATE_LIMIT_WRITE_PER_MIN` / `RATE_LIMIT_WEBHOOK_PER_MIN` | 600 / 120 / 60 | API requests per minute and per session (or token, or IP); webhooks per application. Above: `429` with `Retry-After`. |
+| `IDEPLOY_DB_POOL_MAX` | 10 | Postgres connections per process; at least the total worker concurrency plus a few for requests |
+| `SHUTDOWN_TIMEOUT_MS` | 600000 | how long running jobs get to finish on `SIGTERM` |
+
+**Redis** holds every queued job. It must run with `maxmemory-policy noeviction` and persistence (`appendonly yes`): otherwise jobs are dropped under memory pressure or lost when Redis restarts. The API checks both at start-up and logs a critical line (`redis.eviction_policy`, `redis.no_persistence`) when one is missing.
+
 ## Publishing from iCode
 
 « Mettre en ligne » in iCode sends the generated application to iDeploy, which builds it on an IDEM-managed server and gives it an address. Three hops, each with its own requirement:

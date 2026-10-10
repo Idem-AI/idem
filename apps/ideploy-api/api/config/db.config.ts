@@ -20,7 +20,8 @@ const pool = new Pool({
   // doit faire échouer la connexion, pas tomber sur un mot de passe connu.
   password:
     process.env.IDEPLOY_DB_PASSWORD || (process.env.NODE_ENV === 'production' ? undefined : 'password'),
-  max: 10,
+  // Sized with the workers: each running job can hold a connection.
+  max: parseInt(process.env.IDEPLOY_DB_POOL_MAX || '10', 10),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 });

@@ -18,7 +18,7 @@ export function registerWorker<T = unknown>(
   const worker = new Worker<T>(queueName, tracedProcessor(queueName, processor), {
     connection: redisOptions,
     prefix: QUEUE_PREFIX,
-    concurrency,
+    concurrency: workerConcurrency(queueName, concurrency),
   });
 
   worker.on('failed', (job: Job | undefined, err: Error) => {
@@ -47,6 +47,17 @@ export function registerWorker<T = unknown>(
 
   workers.push(worker);
   return worker;
+}
+
+/**
+ * Jobs one process runs at once on a queue: WORKER_CONCURRENCY_<QUEUE>
+ * (e.g. WORKER_CONCURRENCY_DEPLOYMENTS=6), else the default given in code.
+ * With several worker processes, the total is this times the number of them.
+ */
+export function workerConcurrency(queueName: string, fallback: number, env: NodeJS.ProcessEnv = process.env): number {
+  const key = `WORKER_CONCURRENCY_${queueName.replace(/^ideploy-/, '').toUpperCase()}`;
+  const value = Number(env[key]);
+  return Number.isInteger(value) && value > 0 ? value : fallback;
 }
 
 type TraceCarrier = { __trace?: { requestId?: string; userId?: string | number } };
