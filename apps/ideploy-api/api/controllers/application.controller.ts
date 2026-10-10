@@ -1,3 +1,4 @@
+import { domainGuide } from '../services/domain-dns.service';
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { ok, fail, respondWithError } from '../utils/response';
@@ -296,6 +297,20 @@ export async function metrics(req: CustomRequest, res: Response): Promise<void> 
     fail(res, (err as Error).message || 'Failed to get metrics');
   }
 }
+/**
+ * What to put in DNS for the application's domains, and whether it is there:
+ * the record (with the server's IP), the state of public DNS, HTTPS.
+ * `?domains=` checks domains as typed, before they are saved.
+ */
+export async function domainDns(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    const typed = typeof req.query.domains === 'string' ? req.query.domains.slice(0, 2000) : undefined;
+    ok(res, await domainGuide(req.user!.currentTeamId!, String(req.params.uuid), typed));
+  } catch (err) {
+    respondWithError(res, err, 'Checking the domain DNS');
+  }
+}
+
 export async function exec(req: CustomRequest, res: Response): Promise<void> {
   if (!req.body?.command) return fail(res, 'command is required', 422, 'VALIDATION');
   try {
