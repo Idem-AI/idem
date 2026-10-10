@@ -17,7 +17,7 @@ discovery.relabel "idem" {
 
   rule {
     source_labels = ["__meta_docker_container_name"]
-    regex         = "/(idem-api|ideploy-api|appgen-server|ivision-api)(-staging)?"
+    regex         = "/(idem-api|ideploy-api|appgen-server|ivision-api|idem-backup)(-staging)?"
     action        = "keep"
   }
   rule {
@@ -28,6 +28,13 @@ discovery.relabel "idem" {
   rule {
     source_labels = ["__meta_docker_container_name"]
     regex         = "/(idem-api|ideploy-api|ivision-api)(-staging)?"
+    target_label  = "service"
+  }
+  // The nightly backup job: its JSON lines carry service "backup".
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/idem-backup"
+    replacement   = "backup"
     target_label  = "service"
   }
   rule {
