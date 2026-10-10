@@ -49,7 +49,9 @@ export async function createVisual(
     /** Fond sombre demandé explicitement. */
     wantsDark?: boolean;
   },
-  paidCredits: number
+  paidCredits: number,
+  /** L'avancement réel de la composition (étapes du chat). */
+  onStage?: (stage: string, state: 'running' | 'done') => void
 ): Promise<IvisionVisual> {
   const id = `vis_${Date.now().toString(36)}${crypto.randomBytes(4).toString('hex')}`;
   const context = visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit });
@@ -85,6 +87,7 @@ export async function createVisual(
       allowDark: !!input.wantsDark || darkBrand,
       ...(input.feedback ? { feedback: input.feedback } : {}),
       ...(input.avoid?.length ? { avoid: input.avoid } : {}),
+      ...(onStage ? { onStage } : {}),
     }
   );
   const uploaded = await storage.uploadFile(composed.png, `${id}.png`, `users/${userId}/brands/${brand._id}/visuals`, 'image/png');

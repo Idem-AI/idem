@@ -213,7 +213,10 @@
         "critique": "Review",
         "code": "Custom shots",
         "direction": "Film direction",
-        "shots": "Film shots"
+        "shots": "Film shots",
+        "concept": "Creative concepts",
+        "design": "Visual design",
+        "photo": "Photo selection"
       }
     },
     "composer": {

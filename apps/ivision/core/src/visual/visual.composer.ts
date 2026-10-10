@@ -1,41 +1,25 @@
 /**
  * LA COMPOSITION D'UN VISUEL — flyer, publication, bannière, page A4.
  *
- * Le même compositeur pour IDEM (module Communication, charte graphique) et pour iVision :
+ * Le même compositeur pour IDEM (module Communication, charte graphique) et pour iVision.
+ * Il délègue au moteur d'affiches (`poster/`) : des gabarits DESSINÉS PAR LE CODE (aucun HTML
+ * écrit par l'IA, à aucun cran), des mots bornés écrits par l'IA, une photo choisie (celle de
+ * l'utilisateur, de la marque, puis vérifiée par la vision), un rendu MESURÉ (texte ajusté,
+ * débordements et chevauchements refusés). La jauge de créativité décide qui choisit la
+ * composition : les règles (Low, Medium), un directeur artistique (High, Max), un critique
+ * visuel qui compare les rendus (Ultra).
  *
- *   1. graine de design (bornée par la direction artistique) et grille de composition ;
- *   2. brief d'image (par l'IA dès High, sinon depuis le contenu), image de banque ou générée ;
- *   3. composition : de Low à High, le CODE compose (12 compositions, `flyer.layouts.ts`) et les
- *      agents choisissent mots, structure et composition ; au cran Max, l'IA écrit le HTML dans la
- *      grille ; en Ultra, un agent concept décide de l'idée, deux compositions sont écrites et la
- *      meilleure au contrôle mesuré est gardée ;
- *   4. passes déterministes (logo réel, typographie de la charte, aucun bouton, règles de design)
- *      et rendu MESURÉ (zone de sécurité, texte rogné, contraste sur les pixels, fond perdu).
- *
- * L'hôte fournit les modèles (`VisualPorts`) : dans IDEM, le service de prompts et le runtime
- * d'agents ; dans iVision, la passerelle interne de l'API IDEM.
+ * Restent ici les passes utilisées par l'édition des visuels d'IDEM (logo, typographie, boutons).
  */
-import crypto from 'crypto';
 import logger from '../runtime/logger';
-import { atLeast, CreativityLevel } from '../creativity/levels';
-import { AgentCall, CreativeOrchestrator } from '../creativity/orchestrator';
-import { brandSheet } from '../creativity/agent-io';
-import { FLYER_LAYOUTS, FlyerLayoutId, flyerLayoutMenu, FlyerStructure, pickFlyerLayout, renderFlyerLayout } from './flyer.layouts';
+import { CreativityLevel } from '../creativity/levels';
+import { AgentCall } from '../creativity/orchestrator';
 import type { ReferenceImage } from '../reference/reference.analyzer';
-import { artDirectorTask, conceptTask, copywriterTask, heuristicFlyerCopy, structureTask } from './flyer.agents';
-import { imageSourcingService, ImageBrief, ImageSourcingPreferences, SourcedImage } from './image.sourcing';
+import { ImageSourcingPreferences, SourcedImage } from './image.sourcing';
 import { composePoster } from './poster/poster.compose';
-import { flyerRenderService, minLogoWidthFor, LogoDeclensionSet, FORMAT_DIMENSIONS } from './flyer.render';
-import { brandFontsHref } from '../design/google-fonts';
-import { buildArtDirectionBlock, buildImageNegativePrompt, buildImageStyleModifier } from '../brand/art-direction.util';
-import { ANTI_SLOP_BLOCK } from '../design/antiSlop.prompt';
-import { DesignSeed, buildDesignSeed, describeSeed } from '../design/designSeed';
-import { buildCompositionGrid, CompositionGrid, describeCompositionGrid, describeImageNeed } from '../design/compositionGrid';
+import { minLogoWidthFor } from './flyer.render';
 import { VisualAuditReport } from '../design/visualAudit';
 import { enforceDesignRules } from '../design/slopLint';
-import { sanitizeSectionHtml } from '../render/sanitize-html';
-import { AGENT_FLYER_GENERATION_PROMPT } from './prompts/flyer-generation.prompt';
-import { AGENT_IMAGE_BRIEF_PROMPT } from './prompts/image-brief.prompt';
 import { FlyerFormat, VisualBrandContext, VisualContent, VisualIntent, VisualMeta } from './visual.model';
 
 export interface PromptMessage {
@@ -102,6 +86,8 @@ export async function composeVisual(
     /** Retour sur la version précédente, et ce qu'elle était (pour proposer autre chose). */
     feedback?: string;
     avoid?: { template?: string; scheme?: string }[];
+    /** L'avancement réel, pour l'interface (iVision : la liste des étapes du chat). */
+    onStage?: (stage: string, state: 'running' | 'done') => void;
   } = {}
 ): Promise<{
   html: string;
@@ -132,39 +118,10 @@ export async function composeVisual(
       feedback: creative.feedback,
       avoid: creative.avoid,
       reference: creative.reference,
+      onStage: creative.onStage,
     }
   );
   return { html: result.html, parsed: result.parsed, sourced: result.sourced, intent: inferVisualIntent(content), png: result.png, audit: result.audit };
-}
-
-/**
- * Table des déclinaisons de logo attendue par le rendu.
- *
- * Le rendu doit pouvoir RECONNAÎTRE le logo posé par le modèle (pour le
- * remonter au seuil de lisibilité) et le REMPLACER par la bonne polarité si
- * le contraste mesuré sous lui est insuffisant : il lui faut donc l'URL
- * utilisée ET toutes les déclinaisons disponibles.
- */
-export function logoDeclensions(context: VisualBrandContext, used?: unknown): LogoDeclensionSet {
-  const logos = context.branding.logoUrls;
-  return {
-    used: typeof used === 'string' ? used : undefined,
-    primary: logos?.primary,
-    withText: logos?.withText
-      ? {
-          lightBackground: logos.withText.light,
-          darkBackground: logos.withText.dark,
-          monochrome: logos.withText.mono,
-        }
-      : undefined,
-    iconOnly: logos?.iconOnly
-      ? {
-          lightBackground: logos.iconOnly.light,
-          darkBackground: logos.iconOnly.dark,
-          monochrome: logos.iconOnly.mono,
-        }
-      : undefined,
-  };
 }
 
 /**
@@ -198,92 +155,6 @@ export function inferVisualIntent(content: {
 }
 
 /**
- * Table de substitution du prompt de composition.
- *
- * Elle porte la CHARTE (hex exacts, familles typographiques, déclinaisons de
- * logo réelles) : ce sont des valeurs, pas des chemins symboliques — le modèle
- * ne doit jamais avoir à deviner une couleur ni à inventer une URL. Toute
- * valeur manquante reçoit un repli explicite plutôt que de laisser un trou.
- */
-function buildFlyerPlaceholders(
-  context: VisualBrandContext,
-  seed: DesignSeed,
-  intent: VisualIntent,
-  format: FlyerFormat,
-  sourced: SourcedImage | null,
-  grid: CompositionGrid
-): Record<string, string> {
-  const branding = context.branding;
-  const logos = branding.logoUrls;
-  const primaryLogo = logos?.primary || '';
-  const pickLogo = (url?: string) => (url && url.trim()) || primaryLogo || '(no logo available)';
-
-  return {
-    BRAND_NAME: context.brandName,
-    BRAND_PRIMARY: branding.primary,
-    BRAND_SECONDARY: branding.secondary,
-    // Sans accent défini, renvoyer la primaire plutôt qu'un vide : le modèle
-    // comblerait un trou de palette par une couleur de son cru.
-    BRAND_ACCENT: branding.accent || branding.primary,
-    BRAND_BACKGROUND: branding.background || '#ffffff',
-    BRAND_TEXT: branding.text || '#0f172a',
-    BRAND_PRIMARY_FONT: branding.primaryFont || 'Archivo',
-    BRAND_SECONDARY_FONT: branding.secondaryFont || branding.primaryFont || 'IBM Plex Sans',
-    // `branding.fontUrl` vient de `typography.url`, qui est un slug : le
-    // transmettre tel quel faisait recopier au modèle un <link> mort, et le
-    // visuel sortait dans la police système. On construit l'URL réelle.
-    BRAND_FONT_URL: brandFontsHref(
-      { url: branding.fontUrl, primaryFont: branding.primaryFont, secondaryFont: branding.secondaryFont },
-      'https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&display=swap'
-    ),
-
-    LOGO_PRIMARY: primaryLogo || '(no logo available)',
-    LOGO_WITHTEXT_LIGHT: pickLogo(logos?.withText?.light),
-    LOGO_WITHTEXT_DARK: pickLogo(logos?.withText?.dark),
-    LOGO_WITHTEXT_MONO: pickLogo(logos?.withText?.mono),
-    LOGO_ICON_LIGHT: pickLogo(logos?.iconOnly?.light),
-    LOGO_ICON_DARK: pickLogo(logos?.iconOnly?.dark),
-    LOGO_ICON_MONO: pickLogo(logos?.iconOnly?.mono),
-    // Même seuil que celui appliqué à la mesure au moment du rendu : le
-    // modèle est prévenu de la règle qui sera de toute façon imposée.
-    LOGO_MIN_WIDTH: String(minLogoWidthFor(format)),
-
-    format,
-    VISUAL_INTENT: intent,
-
-    // La direction artistique et la graine sont DÉVELOPPÉES en consignes.
-    // Transmettre {"archetype":"D"} revenait à ne rien transmettre : le
-    // modèle ignore ce que « D » recouvre, et composait au jugé.
-    ART_DIRECTION:
-      buildArtDirectionBlock(context.artDirection, { medium: 'poster' }) ||
-      '(no art direction defined for this brand — compose from the charter alone)',
-    SEED_DIRECTIVES: describeSeed(seed),
-    // Le squelette de la composition, en pixels. C'est la seule partie du
-    // prompt qui soit VÉRIFIABLE au pixel près après coup : chacun de ces
-    // nombres a son contrôle dans `visualAudit.ts`.
-    COMPOSITION_GRID: describeCompositionGrid(grid),
-    ANTI_SLOP: ANTI_SLOP_BLOCK,
-    // Traitement d'image de la marque, à appliquer à la photo de fond.
-    AD_IMAGE_TREATMENT:
-      buildImageStyleModifier(context.artDirection) ||
-      'no mandated treatment — stay consistent with the charter',
-
-    DESIGN_SEED: JSON.stringify(seed, null, 2),
-    'DESIGN_SEED.archetype': seed.archetype,
-    'DESIGN_SEED.colorStrategy': seed.colorStrategy,
-    'DESIGN_SEED.typographyMood': seed.typographyMood,
-    'DESIGN_SEED.layoutTension': seed.layoutTension,
-    'DESIGN_SEED.spacingMultiplier': String(seed.spacingMultiplier),
-
-    IMAGE_URL: sourced?.url || '(no image — build a purely typographic composition)',
-    IMAGE_DOMINANT_COLORS: sourced?.analysis.dominantColors?.join(', ') || 'unknown',
-    IMAGE_LUMINANCE: sourced?.analysis.luminance || 'mixed',
-    IMAGE_COMPOSITION: sourced?.analysis.composition || 'balanced',
-    IMAGE_DETECTED_TEXT: sourced?.analysis.detectedText || 'none',
-  };
-}
-
-/**
  * Substitue les `{{MARQUEURS}}` d'un prompt en un seul passage.
  *
  * Un marqueur absent de la table est laissé tel quel ET signalé : un `{{…}}`
@@ -303,81 +174,6 @@ export function applyPlaceholders(template: string, values: Record<string, strin
     });
   }
   return rendered;
-}
-
-/**
- * Lit la réponse du compositeur de visuel : un bloc <meta> JSON et un bloc
- * <html> brut.
- *
- * Le repli sur l'ancien contrat (tout en JSON, balisage échappé) est
- * volontaire et durable : les réponses en cache ont été produites sous
- * l'ancien format, et un modèle de repli peut très bien répondre à l'ancienne.
- * Aucune des deux formes ne doit perdre un visuel.
- */
-export function parseFlyerResponse(raw: string): Partial<VisualMeta> {
-  const htmlBlock = raw.match(/<html>([\s\S]*?)<\/html>/i);
-  const metaBlock = raw.match(/<meta>([\s\S]*?)<\/meta>/i);
-
-  if (htmlBlock) {
-    const meta = metaBlock ? (safeJson<Partial<VisualMeta>>(metaBlock[1]) ?? {}) : {};
-    return { ...meta, html: htmlBlock[1].trim() };
-  }
-
-  // Ancien contrat : tout dans un objet JSON.
-  return safeJson<Partial<VisualMeta>>(raw) ?? {};
-}
-
-function safeJson<T>(raw: string): T | null {
-  if (!raw) return null;
-  const cleaned = raw
-    .replace(/^```(json)?\s*/i, '')
-    .replace(/```$/g, '')
-    .trim();
-  try {
-    return JSON.parse(cleaned) as T;
-  } catch (err) {
-    // Try to recover the first {...} or [...] block.
-    const match = cleaned.match(/[\[{][\s\S]*[\]}]/);
-    if (match) {
-      try {
-        return JSON.parse(match[0]) as T;
-      } catch {
-        /* ignore */
-      }
-    }
-    logger.warn('CommunicationService: failed to parse JSON output', {
-      preview: cleaned.slice(0, 200),
-    });
-    return null;
-  }
-}
-
-export function fallbackFlyerHtml(
-  content: VisualContent,
-  context: VisualBrandContext,
-  format: FlyerFormat,
-  imageUrl?: string
-): string {
-  const size =
-    format === 'story'
-      ? 'w-[1080px] h-[1920px]'
-      : format === 'banner'
-        ? 'w-[1200px] h-[630px]'
-        : format === 'post'
-          ? 'w-[1200px] h-[1500px]'
-          : format === 'a4'
-            ? 'w-[1240px] h-[1754px]'
-            : 'w-[1080px] h-[1080px]';
-  const primary = context.branding.primary || '#0ea5e9';
-  const secondary = context.branding.secondary || '#0f172a';
-  const text = context.branding.text || '#ffffff';
-  const bgImage = imageUrl
-    ? `<img src="${imageUrl}" class="absolute inset-0 w-full h-full object-cover" /><div class="absolute inset-0 bg-gradient-to-t from-[${secondary}]/90 via-[${secondary}]/40 to-transparent"></div>`
-    : '';
-  // Pied de page : signature de marque typographique, jamais un bouton — ce
-  // repli servait auparavant une pastille contenant le callToAction, ce qui
-  // reproduisait dans le fallback le défaut qu'on corrige côté modèle.
-  return `<div class="${size} relative overflow-hidden flex flex-col justify-between p-16 bg-[${secondary}] text-[${text}]">${bgImage}<div class="relative text-xs uppercase tracking-[0.3em] opacity-70">${context.brandName}</div><div class="relative flex-1 flex flex-col justify-end gap-6"><div class="text-6xl font-black leading-[1.05] max-w-[80%]">${escapeHtml(content.title)}</div><div class="text-lg max-w-[75%] opacity-90">${escapeHtml(content.description || "")}</div></div><div class="relative flex items-end justify-between border-t border-[${text}]/25 pt-6"><div class="text-xs uppercase tracking-[0.35em] opacity-80">${escapeHtml(context.brandName)}</div><div class="h-[4px] w-28 bg-[${primary}]"></div></div></div>`;
 }
 
 /**
@@ -594,137 +390,6 @@ export function applyDesignLint(
   return enforceDesignRules(html, options).html;
 }
 
-/**
- * Tiny LLM call to decide what to search / generate. Returns sensible
- * defaults if parsing fails so the pipeline never blocks on this step.
- */
-async function buildImageBrief(
-  ports: VisualPorts,
-  userId: string,
-  content: VisualContent,
-  context: VisualBrandContext,
-  format: FlyerFormat,
-  /**
-   * Grille du visuel. Elle dit OÙ le texte va tomber : sans elle, le brief
-   * demandait « une image avec de l'espace pour le texte » sans savoir de
-   * quel côté, et la photo revenait avec son sujet précisément là où le
-   * titre devait se poser.
-   */
-  grid?: CompositionGrid
-): Promise<ImageBrief> {
-  const orientation: 'portrait' | 'landscape' | 'square' =
-    format === 'banner' ? 'landscape' : format === 'square' ? 'square' : 'portrait';
-
-  try {
-    // Le brief d'image décide de 70 % de la surface du visuel : il doit
-    // connaître la direction artistique, sans quoi il ramène la photo de
-    // banque d'images par défaut, étrangère au reste de la marque.
-    const imageryDirection = context.artDirection
-      ? [
-          `Medium: ${context.artDirection.imagery?.medium || 'photography'}`,
-          `Brand subjects: ${context.artDirection.imagery?.subjects || ''}`,
-          `Treatment: ${context.artDirection.imagery?.treatment || ''}`,
-          `Lighting: ${context.artDirection.imagery?.lighting || ''}`,
-          `Framing: ${context.artDirection.imagery?.framing || ''}`,
-          `Render modifier (English, reuse it in generationPrompt): ${buildImageStyleModifier(context.artDirection)}`,
-        ]
-          .filter((line) => line.split(':').slice(1).join(':').trim())
-          .join('\n')
-      : 'No art direction defined: pick a restrained image, consistent with the charter, and avoid generic illustration imagery.';
-
-    const messages: PromptMessage[] = [
-      {
-        role: 'system',
-        content: AGENT_IMAGE_BRIEF_PROMPT.replace('{{AD_IMAGERY}}', imageryDirection).replace(
-          '{{COMPOSITION_NEED}}',
-          grid ? describeImageNeed(grid) : 'The text may land anywhere: keep one calm, uncluttered zone.'
-        ),
-      },
-      {
-        role: 'user',
-        content: JSON.stringify({
-          BRAND: {
-            businessType: context.businessType,
-            tone: context.tone,
-            keywords: context.keywords,
-          },
-          CONTENT: {
-            title: content.title,
-            hook: content.hook,
-            description: content.description,
-            format: content.format,
-          },
-          FORMAT: format,
-        }),
-      },
-    ];
-    const raw = await ports.runPrompt('imageBrief', messages);
-    const parsed = safeJson<Partial<ImageBrief>>(raw) ?? {};
-    return {
-      searchQuery:
-        (parsed.searchQuery && parsed.searchQuery.trim()) ||
-        fallbackSearchQuery(content, context),
-      generationPrompt:
-        (parsed.generationPrompt && parsed.generationPrompt.trim()) ||
-        fallbackGenerationPrompt(content, context),
-      // Prompt négatif : celui décidé par l'agent, complété par celui du style
-      // retenu. Les deux visent la même chose — écarter les tics de rendu qui
-      // signent une image générée.
-      negativePrompt: [
-        (parsed as any).negativePrompt,
-        buildImageNegativePrompt(context.artDirection),
-      ]
-        .filter(Boolean)
-        .join(', '),
-      preferGenerated: !!parsed.preferGenerated,
-      orientation: (parsed.orientation as ImageBrief['orientation']) || orientation,
-    };
-  } catch (err: any) {
-    logger.warn('buildImageBrief failed, using heuristic brief', { error: err?.message });
-    return {
-      searchQuery: fallbackSearchQuery(content, context),
-      generationPrompt: fallbackGenerationPrompt(content, context),
-      negativePrompt: buildImageNegativePrompt(context.artDirection),
-      orientation,
-    };
-  }
-}
-
-/** Brief d'image sans modèle (crans Low et Medium) : la recherche vient du contenu et de la DA. */
-function heuristicImageBrief(content: VisualContent, context: VisualBrandContext, format: FlyerFormat): ImageBrief {
-  return {
-    searchQuery: fallbackSearchQuery(content, context),
-    generationPrompt: fallbackGenerationPrompt(content, context),
-    negativePrompt: buildImageNegativePrompt(context.artDirection),
-    orientation: format === 'banner' ? 'landscape' : format === 'square' ? 'square' : 'portrait',
-  };
-}
-
-function fallbackSearchQuery(content: VisualContent, context: VisualBrandContext): string {
-  const base = [content.title, ...(context.keywords || []).slice(0, 2)].filter(Boolean).join(' ');
-  return base.replace(/[^a-zA-Z0-9 ]+/g, '').slice(0, 60) || context.businessType || 'business';
-}
-
-/**
- * Repli quand l'agent de brief échoue.
- *
- * Il porte le style de la marque plutôt qu'un « photorealistic editorial »
- * générique : un repli qui ignore la direction artistique produit exactement
- * l'image que le module cherche à éviter, et il sert justement dans les cas
- * dégradés, où personne ne repasse derrière.
- */
-function fallbackGenerationPrompt(content: VisualContent, context: VisualBrandContext): string {
-  const style = buildImageStyleModifier(context.artDirection);
-  return (
-    `Photograph for a ${context.businessType} brand. ` +
-    `Subject relates to: ${content.title}. ` +
-    `Mood: ${context.tone}. ` +
-    (style ? `Render: ${style}. ` : 'Soft natural lighting, restrained color grading. ') +
-    `Clean composition with generous negative space in the upper third for overlay text. ` +
-    `No on-image typography, no logos, no watermarks, no staged corporate stock scene.`
-  );
-}
-
 export function escapeHtml(raw: string): string {
   return (raw || '')
     .replace(/&/g, '&amp;')
@@ -732,30 +397,4 @@ export function escapeHtml(raw: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-/**
- * Graine de composition d'un visuel.
- *
- * Le tirage était libre : deux visuels de la même marque pouvaient sortir en
- * « néon sur fond noir » puis en « luxe minimal », sans parenté. Il est
- * désormais borné par le style de la direction artistique (cf.
- * design/designSeed.ts) — la variété d'un post à l'autre reste entière, mais
- * à l'intérieur de l'univers de la marque.
- *
- * La clé d'entropie est l'IDENTITÉ DU VISUEL, pas l'horloge : deux visuels
- * d'une même marque diffèrent bien entre eux (clés différentes), mais LE MÊME
- * visuel regénéré retrouve sa composition.
- *
- * Sans clé, le tirage était aléatoire à chaque appel — donc non reproductible.
- * Le cache Redis (`generateAIKey`) n'inclut pas la graine : la version servie
- * pouvait donc ne plus correspondre à celle qui avait été composée, et un
- * simple rafraîchissement changeait la mise en page sous les yeux de
- * l'utilisateur.
- */
-function generateDesignSeed(
-  context: VisualBrandContext,
-  entropyKey?: string
-): DesignSeed {
-  return buildDesignSeed(context.artDirection?.styleId, entropyKey);
 }

@@ -140,7 +140,7 @@ work. MongoDB and MinIO are the IDEM development ones.
 
 | Command | What it proves |
 | --- | --- |
-| `npm run check --prefix apps/ivision/core` | the engine alone, without IDEM: site scan (palette, fonts, logo, voice), model video analysis (cuts by luminance and by colour), reproduction plan, video reproduced by the service, visual composed and audited |
+| `npm run check --prefix apps/ivision/core` | the engine alone, without IDEM: site scan (palette, fonts, logo, voice), model video analysis (cuts by luminance and by colour), reproduction plan, video reproduced by the service, visual composed and audited, every poster layout rendered in 3 formats without overflow, copy rules |
 | `npm run check --prefix apps/ivision/api` | the iVision API end to end with a fake IDEM: delegated identity, brand asked, site scanned, palette chosen, model asked/analysed/reproduced, IDEM prices debited, preview with edit bridge, live text edit, image studio, model kind refused, 402 kept pending, project import, privacy |
 | `npm run check:ivision --prefix apps/api` | the IDEM gateway: closed without key, admin key refused, debits bounded, IDEM price list |
 | `npm run typecheck:ivision` | core, API and web |

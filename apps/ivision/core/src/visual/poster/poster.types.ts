@@ -54,6 +54,8 @@ export interface PosterImage {
   /** Largeur / hauteur de l'image source. */
   aspect: number;
   origin: 'user' | 'brand' | 'stock' | 'generated';
+  /** Ce que montre la photo (vision), pour les designers. */
+  subject?: string;
 }
 
 export interface PosterLogo {
@@ -129,6 +131,8 @@ export interface PosterMeasure {
   overlaps: string[];
   outside: string[];
   tooSmall: string[];
+  /** Textes au contraste insuffisant sur ce qui est réellement dessous (pixels). */
+  lowContrast?: { name: string; ratio: number; blocking: boolean }[];
   /** Taille finale du titre, en unités (1 % du petit côté). */
   headlineU: number;
   score: number;

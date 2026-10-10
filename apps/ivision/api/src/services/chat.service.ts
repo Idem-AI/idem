@@ -360,7 +360,8 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
         userId,
         brand,
         { prompt: messageOf(request), brief: request, format, creativity: level, withPhoto: options.withPhoto !== false, photoUrl: photoUrl || media.find((m) => m.kind === 'image')?.url, reference: image, sessionId: session._id, feedback, avoid, wantsDark },
-        paid.cost
+        paid.cost,
+        (stage, state) => emit({ type: 'progress', stage, state })
       );
       const msg = message('assistant', image ? 'Voici votre visuel, composé comme le modèle, à votre marque.' : 'Voici votre visuel.', {
         result: { kind: 'visual', visualId: visual._id },

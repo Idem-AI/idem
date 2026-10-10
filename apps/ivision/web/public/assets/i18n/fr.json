@@ -213,7 +213,10 @@
         "critique": "Relecture",
         "code": "Plans sur mesure",
         "direction": "Direction du film",
-        "shots": "Plans du film"
+        "shots": "Plans du film",
+        "concept": "Concepts créatifs",
+        "design": "Conception du visuel",
+        "photo": "Choix de la photo"
       }
     },
     "composer": {
