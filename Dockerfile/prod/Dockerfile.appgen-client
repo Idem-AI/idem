@@ -17,6 +17,8 @@ COPY ./apps/appgen/apps/we-dev-client/package.json ./
 
 # Copy shared packages
 COPY ./packages/shared-styles /packages/shared-styles
+# `file:../../../../packages/shared-loader` se résout vers /packages depuis /app.
+COPY ./packages/shared-loader /packages/shared-loader
 COPY ./packages/shared-tour  ./packages/shared-tour
 COPY ./packages/shared-trusted-by ./packages/shared-trusted-by
 # Install dependencies
@@ -44,6 +46,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/vite.config.ts ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /packages/shared-styles /packages/shared-styles
+COPY --from=builder /packages/shared-loader /packages/shared-loader
 
 # Environment variables
 ENV NODE_ENV=production

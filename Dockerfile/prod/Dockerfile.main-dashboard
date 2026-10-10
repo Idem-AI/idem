@@ -11,6 +11,7 @@ COPY ./packages/shared-styles ./packages/shared-styles
 COPY ./packages/shared-tour ./packages/shared-tour
 COPY ./packages/shared-loader  ./packages/shared-loader
 COPY ./packages/shared-video-editor ./packages/shared-video-editor
+COPY ./packages/shared-document-editor ./packages/shared-document-editor
 
 # 3. Copier l'application
 COPY ./apps/main-dashboard ./apps/main-dashboard

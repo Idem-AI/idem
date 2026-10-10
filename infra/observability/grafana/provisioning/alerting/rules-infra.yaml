@@ -1,0 +1,207 @@
+apiVersion: 1
+
+# Alertes d'infrastructure : disque, mémoire, redémarrages en boucle (Prometheus
+# de l'hôte), Redis bloqué, jobs iDeploy et sauvegardes (Loki).
+groups:
+  - orgId: 1
+    name: idem-infrastructure
+    folder: IDEM
+    interval: 1m
+    rules:
+      - uid: infra-disk-full
+        title: 'Disque presque plein'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              editorMode: code
+              instant: true
+              expr: '100 * (1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="rootfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="rootfs"})'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [80] } }] }
+        noDataState: OK
+        # Local stack: no Prometheus, so these rules have nothing to read there.
+        execErrState: OK
+        for: 10m
+        annotations:
+          summary: 'Le disque du serveur dépasse 80 %'
+          description: 'Au-delà de 95 %, Redis refuse les écritures (MISCONF) et plus aucun déploiement ne part. Voir docker system df : images, cache de build, logs de conteneurs.'
+        labels:
+          severity: critical
+        isPaused: false
+      - uid: infra-memory-low
+        title: 'Mémoire presque épuisée'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              editorMode: code
+              instant: true
+              expr: '100 * node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: lt, params: [10] } }] }
+        noDataState: OK
+        # Local stack: no Prometheus, so these rules have nothing to read there.
+        execErrState: OK
+        for: 10m
+        annotations:
+          summary: 'Moins de 10 % de mémoire disponible sur le serveur'
+          description: 'Le noyau va tuer des processus (OOM). Repérer le conteneur qui consomme le plus (cAdvisor) avant quil ne tombe.'
+        labels:
+          severity: critical
+        isPaused: false
+      - uid: infra-container-restarts
+        title: 'Conteneur qui redémarre en boucle'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              editorMode: code
+              instant: true
+              expr: 'sum by (name) (changes(container_start_time_seconds{name!=""}[15m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [2] } }] }
+        noDataState: OK
+        # Local stack: no Prometheus, so these rules have nothing to read there.
+        execErrState: OK
+        for: 0s
+        annotations:
+          summary: 'Un conteneur a redémarré plus de 2 fois en 15 minutes'
+          description: 'Il plante au démarrage : voir docker logs du conteneur indiqué dans le libellé name.'
+        labels:
+          severity: critical
+        isPaused: false
+      - uid: infra-redis-misconf
+        title: 'Redis refuse les écritures'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              editorMode: code
+              queryType: instant
+              expr: 'sum by (service) (count_over_time({service=~".+"} |= "MISCONF" [5m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [0] } }] }
+        noDataState: OK
+        # Local stack: no Prometheus, so these rules have nothing to read there.
+        execErrState: OK
+        for: 0s
+        annotations:
+          summary: 'Redis refuse les écritures (MISCONF)'
+          description: 'Presque toujours un disque plein : plus aucune file (déploiements, pipelines) navance. Libérer de la place, puis vérifier que Redis écrit de nouveau.'
+        labels:
+          severity: critical
+        isPaused: false
+      - uid: ideploy-jobs-failing
+        title: 'Jobs iDeploy en échec'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              editorMode: code
+              queryType: instant
+              expr: 'sum by (queue) (count_over_time({service="ideploy-api"} | json | event="job.failed" [15m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [5] } }] }
+        noDataState: OK
+        # Local stack: no Prometheus, so these rules have nothing to read there.
+        execErrState: OK
+        for: 0s
+        annotations:
+          summary: 'Plus de 5 jobs iDeploy en échec en 15 minutes'
+          description: 'Déploiements, pipelines ou sauvegardes échouent en série : souvent un serveur injoignable ou une dépendance tombée. Voir le tableau IDEM · Journaux, filtré sur event=job.failed.'
+        labels:
+          severity: warning
+        isPaused: false
+      - uid: backup-failed
+        title: 'Sauvegarde en échec'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 93600, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              editorMode: code
+              queryType: instant
+              expr: 'sum by (target) (count_over_time({service="backup"} | json | event="backup.failed" [26h]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [0] } }] }
+        noDataState: OK
+        # Local stack: no Prometheus, so these rules have nothing to read there.
+        execErrState: OK
+        for: 0s
+        annotations:
+          summary: 'Une sauvegarde de base a échoué'
+          description: 'Le libellé target indique la base. Relancer /root/application/backup/backup.sh à la main et lire sa sortie.'
+        labels:
+          severity: critical
+        isPaused: false
+      - uid: backup-missing
+        title: 'Aucune sauvegarde depuis 26 heures'
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 93600, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              editorMode: code
+              queryType: instant
+              expr: 'sum(count_over_time({service="backup"} | json | event="backup.completed" [26h]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last, settings: { mode: dropNN } }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: lt, params: [1] } }] }
+        # No log at all is exactly the failure: no backup ran.
+        noDataState: Alerting
+        # Local stack: no Prometheus, so these rules have nothing to read there.
+        execErrState: OK
+        for: 30m
+        annotations:
+          summary: 'Aucune sauvegarde réussie depuis plus de 26 heures'
+          description: 'La tâche cron de /root/application/backup ne tourne plus, ou toutes les bases échouent.'
+        labels:
+          severity: critical
+        isPaused: false

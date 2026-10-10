@@ -12,6 +12,7 @@
     "apps/ideploy-api",
     "apps/ideploy-web",
     "apps/simulation",
+    "apps/ivision/web",
     "packages/shared-models",
     "packages/shared-auth-client",
     "packages/shared-styles",
@@ -102,6 +103,7 @@
     "npm": ">=9.0.0"
   },
   "overrides": {
-    "lodash-es": "^4.18.1"
+    "lodash-es": "^4.18.1",
+    "proxy-addr": "^2.0.8"
   }
 }

@@ -13,7 +13,8 @@
  * unchanged — it used to wipe the application's directory first, then mark the
  * application stopped while its old container kept running.
  */
-import { Job } from 'bullmq';
+import { DelayedError, Job } from 'bullmq';
+import { acquireSlots, HeldSlots, retryLater } from './deploy-slots';
 import { QUEUE_NAMES } from '../queue/queues';
 import { registerWorker } from '../queue/worker';
 import logger from '../config/logger';
@@ -109,7 +110,8 @@ export async function withApplicationLock<T>(
   applicationId: number,
   deploymentUuid: string,
   log: (line: string) => Promise<void>,
-  work: () => Promise<T>
+  work: () => Promise<T>,
+  opts: { onBusy?: () => Promise<never> } = {}
 ): Promise<T> {
   const key = `ideploy:deploy-lock:${applicationId}`;
   const started = Date.now();
@@ -127,6 +129,7 @@ export async function withApplicationLock<T>(
       await log('Waiting for the previous deployment of this application to finish…');
       announced = true;
     }
+    if (opts.onBusy) await opts.onBusy();
     await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_MS));
   }
 
@@ -195,7 +198,7 @@ export function judgeContainers(states: ContainerState[]): { isUp: boolean; cras
   return { isUp, crashed };
 }
 
-export async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
+export async function processDeployment(job: Job<DeploymentJobData>, token?: string): Promise<void> {
   const { deploymentUuid, applicationUuid, applicationId, teamId } = job.data;
   const kept: string[] = [];
   let keptChars = 0;
@@ -207,7 +210,40 @@ export async function processDeployment(job: Job<DeploymentJobData>): Promise<vo
   };
   const saveLog = (): Promise<void> =>
     deploymentService.saveLogs(deploymentUuid, kept.join('\n')).catch(() => undefined);
+  let heldSlots: HeldSlots | undefined;
 
+  // Fair share of the workers: a team or a server at its limit, or this
+  // application already deploying, sends the job back to the queue for a few
+  // seconds instead of holding a worker while it waits.
+  const serverRef = await appService.getApplicationServer(applicationId).catch(() => null);
+  for (;;) {
+    const slots = await acquireSlots(deploymentUuid, teamId, serverRef?.serverId ?? null);
+    if ('held' in slots) {
+      heldSlots = slots.held;
+      break;
+    }
+    const why =
+      slots.full === 'team'
+        ? `your team already has ${slots.limit} deployments running`
+        : `this server is already building ${slots.limit} deployments`;
+    await realtime.deploymentLog(deploymentUuid, `Queued: ${why}; starting as soon as one finishes.`);
+    await retryLater(job, token);
+  }
+
+  try {
+    await runDeployment(job, token, log, saveLog);
+  } finally {
+    await heldSlots?.release();
+  }
+}
+
+async function runDeployment(
+  job: Job<DeploymentJobData>,
+  token: string | undefined,
+  log: (line: string) => Promise<void>,
+  saveLog: () => Promise<void>
+): Promise<void> {
+  const { deploymentUuid, applicationUuid, applicationId, teamId } = job.data;
   await deploymentService.setDeploymentStatus(deploymentUuid, 'in_progress');
   await log(`Deployment ${deploymentUuid} started for application ${applicationUuid}`);
 
@@ -216,12 +252,21 @@ export async function processDeployment(job: Job<DeploymentJobData>): Promise<vo
   let switched = false;
 
   try {
-    await withApplicationLock(applicationId, deploymentUuid, log, () => deploy(job.data, log, () => (switched = true)));
+    await withApplicationLock(applicationId, deploymentUuid, log, () => deploy(job.data, log, () => (switched = true)), {
+      // Behind another deployment of the same application: back to the queue,
+      // the worker goes to someone else meanwhile.
+      onBusy: token ? () => retryLater(job, token) as Promise<never> : undefined,
+    });
     const app = await appService.getApplication(teamId, applicationUuid);
     if (app) await finalize(app, deploymentUuid, teamId, true);
     await log('✅ Deployment finished successfully');
     await saveLog();
   } catch (err) {
+    // Sent back to the queue (application busy): not a failure, nothing ran.
+    if (err instanceof DelayedError) {
+      await deploymentService.setDeploymentStatus(deploymentUuid, 'queued');
+      throw err;
+    }
     const message = (err as Error).message;
     logger.error('Deployment failed', { deploymentUuid, message });
     await log(`❌ Deployment failed: ${message}`);

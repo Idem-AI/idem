@@ -1,0 +1,11 @@
+apiVersion: 1
+
+# Host and container metrics (node-exporter, cAdvisor) from the Prometheus
+# already running on the server; used by the infrastructure alerts.
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: ${PROMETHEUS_URL}
+    editable: false

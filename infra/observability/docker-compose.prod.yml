@@ -81,6 +81,7 @@ services:
       GF_SMTP_STARTTLS_POLICY: '${SMTP_STARTTLS_POLICY:-MandatoryStartTLS}'
       GF_SMTP_SKIP_VERIFY: 'false'
       ALERT_EMAIL_TO: '${ALERT_EMAIL_TO:?set ALERT_EMAIL_TO in .env.prod}'
+      PROMETHEUS_URL: '${PROMETHEUS_URL:-http://prometheus:9090}'
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -88,7 +89,21 @@ services:
     depends_on:
       loki:
         condition: service_healthy
+    networks:
+      - default
+      # The reverse proxy reaches Grafana by name on its own network.
+      - proxy
+      # Prometheus (node-exporter, cAdvisor): disk, memory, restarts.
+      - metrics
     logging: *logging
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-idem}
+  metrics:
+    external: true
+    name: ${METRICS_NETWORK:-dockprom_monitor-net}
 
 volumes:
   loki_data:
