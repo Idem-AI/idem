@@ -39,31 +39,61 @@ async function bootstrap(): Promise<void> {
     './jobs/firewall-observability.worker'
   );
 
-  const app = createApp();
-  const port = parseInt(process.env.PORT || '3002', 10);
+  const { processRole, runsApi, runsWorkers } = await import('./config/role');
+  const { installShutdown, onShutdown, closeHttpServer } = await import('./config/shutdown');
+  const { closeWorkers } = await import('./queue/worker');
+  const { closeQueues } = await import('./queue/queues');
+  const { default: redis } = await import('./config/redis.config');
+  const { default: pool } = await import('./config/db.config');
+  const { checkRedisForQueues } = await import('./queue/redis-check');
 
-  registerDeploymentWorker();
-  registerBackupWorker();
-  await registerBackupScheduler();
-  registerScheduledTaskWorker();
-  await registerScheduledTaskScheduler();
-  registerPipelineWorker();
-  registerServerHealthWorker();
-  await registerServerHealthScheduler();
-  registerFirewallObservabilityWorker();
-  await registerFirewallObservabilityScheduler();
-  // An explicit http.Server so the terminal gateway can share this port: the
-  // WebSocket then has the same origin as the API, and the same session cookie.
-  const server = http.createServer(app);
-  registerTerminalGateway(server);
-  server.listen(port, () => {
-    logger.info(`iDeploy API listening on port ${port}`, {
-      event: 'process.start',
-      port,
-      node: process.version,
-      logLevel: logger.level,
+  const role = processRole();
+  installShutdown();
+  void checkRedisForQueues();
+
+  // Stop order: no new requests, then no new jobs (running ones finish), then
+  // the connections they were using.
+  let server: http.Server | null = null;
+  if (runsApi(role)) {
+    const app = createApp();
+    const port = parseInt(process.env.PORT || '3002', 10);
+    // An explicit http.Server so the terminal gateway can share this port: the
+    // WebSocket then has the same origin as the API, and the same session cookie.
+    server = http.createServer(app);
+    registerTerminalGateway(server);
+    server.listen(port, () => {
+      logger.info(`iDeploy API listening on port ${port}`, {
+        event: 'process.start',
+        role,
+        port,
+        node: process.version,
+        logLevel: logger.level,
+      });
     });
-  });
+    const httpServer = server;
+    onShutdown('http', () => closeHttpServer(httpServer));
+  }
+
+  if (runsWorkers(role)) {
+    registerDeploymentWorker();
+    registerBackupWorker();
+    await registerBackupScheduler();
+    registerScheduledTaskWorker();
+    await registerScheduledTaskScheduler();
+    registerPipelineWorker();
+    registerServerHealthWorker();
+    await registerServerHealthScheduler();
+    registerFirewallObservabilityWorker();
+    await registerFirewallObservabilityScheduler();
+    onShutdown('workers', () => closeWorkers());
+    if (!runsApi(role)) {
+      logger.info('iDeploy workers started', { event: 'process.start', role, node: process.version });
+    }
+  }
+
+  onShutdown('queues', () => closeQueues());
+  onShutdown('redis', () => redis.quit());
+  onShutdown('postgres', () => pool.end());
 }
 
 bootstrap().catch((err) => {

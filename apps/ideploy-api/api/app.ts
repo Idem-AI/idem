@@ -8,6 +8,7 @@
  * That split is what lets contract tests exercise the real routing stack with
  * supertest without opening a socket, connecting to Redis or spawning workers.
  */
+import { rateLimit } from './middleware/rate-limit.middleware';
 import express, { Express } from 'express';
 import helmet from 'helmet';
 import hpp from 'hpp';
@@ -92,6 +93,8 @@ export function createApp(): Express {
 
   // ── Routes ───────────────────────────────────────────
   app.use('/', healthRoutes);
+  // After /health (never limited), before every API route.
+  app.use(rateLimit());
 
   // Push-to-deploy, mounted FIRST and deliberately so.
   //
