@@ -1,141 +1,36 @@
-name: Deploy iDeploy Web
-
-concurrency:
-  group: deploy-ideploy-web
-  cancel-in-progress: false
+name: Deploy iDeploy web
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
     paths:
       - 'apps/ideploy-web/**'
+      - 'packages/**'
       - 'Dockerfile/prod/Dockerfile.ideploy-web'
-      - 'packages/shared-models/**'
       - '.github/workflows/deploy-ideploy-web.yml'
+      - '.github/workflows/_service.yml'
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'apps/ideploy-web/**'
+      - 'packages/**'
+      - 'Dockerfile/prod/Dockerfile.ideploy-web'
+      - '.github/workflows/deploy-ideploy-web.yml'
+      - '.github/workflows/_service.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
-  build-and-deploy:
-    name: Build & Deploy iDeploy Web
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
-    environment:
-      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - name: Get commit info
-        id: vars
-        run: |
-          echo "commit_id=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-
-      - name: Build, Push & Deploy
-        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 30m
-          script: |
-            set -e
-
-            # Acquire lock to serialize deployment on the server (avoid parallel conflicts)
-            exec 200>/tmp/idem-deploy.lock
-            flock -x -w 600 200 || { echo "ERROR: another deployment still holds /tmp/idem-deploy.lock after 10 minutes; nothing was deployed. Re-run this workflow."; exit 1; }
-
-            # Variables
-            REPO_DIR="/root/idem"
-            DEPLOYMENT_DIR="/root/application"
-            BRANCH="${{ steps.vars.outputs.branch }}"
-            COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
-
-            # Different tags for staging and production
-            if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
-              IMAGE_TAG="ghcr.io/idem-ai/ideploy-web:$COMMIT_ID"
-            else
-              IMAGE_TAG="ghcr.io/idem-ai/ideploy-web:$COMMIT_ID-staging"
-            fi
-
-            echo "Branch: $BRANCH"
-            echo "Commit: $COMMIT_ID"
-            echo "Image: $IMAGE_TAG"
-
-            # Update repository
-            cd $REPO_DIR
-
-            # Sync the checkout to exactly origin/$BRANCH (deployments are serialized
-            # by the flock above, so only a stale lock can be left behind).
-            #  - fetch + reset --hard instead of pull: a pull refuses any local
-            #    divergence, and the previous loop then carried on and built
-            #    whatever was on disk;
-            #  - clean: files deleted upstream, or left over from another branch,
-            #    are not removed by checkout/pull and end up in the image. Only the
-            #    build inputs are cleaned; ignored files (.env, node_modules) stay;
-            #  - .git/index is removed only as a last resort (corrupted index).
-            rm -f .git/index.lock
-            synced=0
-            for i in {1..5}; do
-              if git fetch --prune origin \
-                && git checkout -f "$BRANCH" \
-                && git reset --hard "origin/$BRANCH" \
-                && git clean -fd -- apps packages Dockerfile; then
-                synced=1
-                break
-              fi
-              echo "Retry $i/5..."
-              rm -f .git/index.lock .git/index
-              sleep $((RANDOM % 3 + 1))
-            done
-            if [ "$synced" != 1 ] || [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$BRANCH")" ]; then
-              echo "ERROR: could not sync the repository to origin/$BRANCH, refusing to build stale code"
-              exit 1
-            fi
-            echo "Repository at $(git rev-parse --short HEAD) (origin/$BRANCH)"
-
-            # Build image — frontend env values are baked in at build time
-            # from the server's own .env (Dockerfile.ideploy-web copies it
-            # in, same as Dockerfile.landing does for apps/landing), not
-            # read at runtime.
-            echo "Building Docker image..."
-            docker build -f Dockerfile/prod/Dockerfile.ideploy-web -t $IMAGE_TAG .
-
-            # Push image
-            echo "Pushing image to registry..."
-            docker push $IMAGE_TAG
-
-            # Determine environment and deploy
-            if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
-
-              cd $DEPLOYMENT_DIR
-              COMPOSE_FILE="docker-compose.prod.yml"
-              SERVICE_NAME="ideploy-web"
-
-              echo "Updating $COMPOSE_FILE..."
-              sed -i "s|image: ghcr.io/idem-ai/ideploy-web:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
-
-              echo "Deploying to production..."
-              docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
-              docker-compose -f $COMPOSE_FILE up -d $SERVICE_NAME
-            else
-              cd $DEPLOYMENT_DIR
-              COMPOSE_FILE="docker-compose.staging.yml"
-              SERVICE_NAME="ideploy-web-staging"
-
-              echo "Updating $COMPOSE_FILE..."
-              sed -i "s|image: ghcr.io/idem-ai/ideploy-web:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
-
-              echo "Deploying to staging..."
-              docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
-              docker-compose -f $COMPOSE_FILE up -d $SERVICE_NAME
-            fi
-
-            # Cleanup
-            echo "Cleaning up old images..."
-            docker image prune -f
-
-            echo "iDeploy Web deployed successfully!"
+  service:
+    uses: ./.github/workflows/_service.yml
+    with:
+      image: ideploy-web
+      dockerfile: Dockerfile/prod/Dockerfile.ideploy-web
+      service: ideploy-web
+      build-env: true
+      deploy: true
+      free-disk: false
+    secrets: inherit

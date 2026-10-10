@@ -63,7 +63,7 @@ Two services, `ivision-api` (port 3006) and `ivision-web`, deployed by `deploy-i
 3. **Non-secret configuration** of `ivision-api`: `IDEM_API_URL`, `IVISION_API_URL` (its public URL), `IVISION_ALLOWED_ORIGINS` (the iVision front and the dashboard), `MONGODB_*`, `MINIO_*` (same MongoDB and MinIO as the API).
 4. **Front build** (`.env` of the server checkout): `IVISION_API_URL`, `SERVICES_API_URL`, `SERVICES_DASHBOARD_URL` — the build fails if one is missing.
 5. **IDEM side.** Add the iVision front origin to the API's `CORS_ALLOWED_ORIGINS` (it reads `/auth/profile` with the session cookie) and `SERVICES_IVISION_URL` to the dashboard's `.env` (login redirect and « Ouvrir dans iVision »).
-6. **Compose.** Add `ivision-api` and `ivision-web` (and their `-staging` twins) to `/root/application/docker-compose.prod.yml` / `docker-compose.staging.yml`, with the reverse-proxy routes for their domains; the workflows only swap image tags.
+6. **Compose and domains** (done on the production server): `ivision-api` and `ivision-web` are in `/root/application/docker-compose.prod.yml`; nginx serves `ivision.idem.africa` (front) and `api-ivision.idem.africa` (API) with one Let's Encrypt certificate (`ivision.idem.africa`). The Infisical machine identity of `ivision-api` goes in `/root/application/infisical/ivision-api.env`. The workflows only swap image tags.
 
 The IDEM API image now also compiles `apps/ivision/core`: `deploy-api.yml` runs on changes there.
 
@@ -123,8 +123,28 @@ Applications run on a server marked `idem_managed`; their `A` record points at i
 
 To turn the addresses off, empty `IDEPLOY_PLATFORM_DOMAIN` and restart the iDeploy API. Records already created stay in the zone; delete them by hand if needed.
 
+## CI/CD
+
+Every service has a small `deploy-<service>.yml` that calls `.github/workflows/_service.yml`:
+
+| Event | What happens |
+| --- | --- |
+| Pull request to `dev` or `main` | The image is built on a GitHub runner. Nothing is pushed: the PR shows whether it builds. |
+| Push to `dev` | Built and pushed as `ghcr.io/idem-ai/<image>:<sha>-staging`. No staging deployment. |
+| Push to `main` | Built and pushed as `<sha>`, then deployed: on the production server, the service's `image:` line in `/root/application/docker-compose.prod.yml` takes the new tag, then `docker compose pull` and `up -d` for that service only. |
+
+Nothing is built on the production server any more: builds filled its disk and held the deploy lock for up to 30 minutes.
+
+**Secrets of the repository**
+
+| Secret | Use |
+| --- | --- |
+| `SERVER_HOST`, `SERVER_USER`, `SSH_PRIVATE_KEY` | The deploy step (SSH to the production server). |
+| `PROD_BUILD_ENV` | The `.env` the front ends are built with. **Public values only** (addresses `SERVICES_*`, `IVISION_API_URL`, `VITE_*`, `REACT_APP_*`, flags): never a password or an API key, they would end up in a bundle. |
+| `GHCR_USER`, `GHCR_TOKEN` (optional) | A token with `write:packages`. Needed while the existing ghcr.io packages are not linked to this repository (package settings → *Manage Actions access* → add `Idem-AI/idem` with *Write*). Once linked, the job's own token is enough and these can be removed. |
+
+A service is deployed only if it is declared in `docker-compose.prod.yml`; otherwise the deploy step stops and says so. `deploy-chart.yml` builds and pushes but does not deploy: the running `idem-chart` container comes from `/root/idem/docker-compose.prod.yml`, not from the production compose file.
+
 ## Known gaps
 
-- `deploy-ideploy.yml` and `Dockerfile/prod/Dockerfile.ideploy` still target `apps/ideploy` (the former Laravel application), which is no longer in the repository.
 - The nginx front-end images run nginx as root inside the container.
-- Builds run on the production server itself; building in CI and only pulling on the server would isolate production from build load.
