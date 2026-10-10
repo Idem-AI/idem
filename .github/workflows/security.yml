@@ -49,7 +49,8 @@ jobs:
             RANGE="${BEFORE}..${HEAD_SHA}"
           fi
           echo "Scanning $RANGE"
-          gitleaks git --redact --no-banner --log-opts="$RANGE" .
+          # --verbose: which file, line and rule (the value stays redacted).
+          gitleaks git --redact --verbose --no-banner --log-opts="$RANGE" .
 
   dependencies:
     name: Dependency audit (critical)
