@@ -13,10 +13,12 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
  *   calabash  calebasse vide : rien encore
  *   cracked   calebasse fêlée : une erreur
  *   cauris    cauris : les crédits
+ *   kuba      étoffe de raphia kuba : une zone découpée, une pièce appliquée cousue — le MONTAGE
+ *             (on coupe la prise, puis on l'habille)
  *
  * Sources des objets ajoutés pour iVision : `docs/ILLUSTRATIONS.md`.
  */
-export type IllustrationKind = 'kora' | 'kente' | 'stamp' | 'stencil' | 'calame' | 'calabash' | 'cracked' | 'cauris';
+export type IllustrationKind = 'kora' | 'kente' | 'stamp' | 'stencil' | 'calame' | 'calabash' | 'cracked' | 'cauris' | 'kuba';
 
 @Component({
   selector: 'iv-illustration',
@@ -109,6 +111,23 @@ export type IllustrationKind = 'kora' | 'kente' | 'stamp' | 'stencil' | 'calame'
           <path d="M80 134 V142 M66 142 H94" stroke-width="1.6" />
           <path d="M84 74 L78 88 L88 98 L80 112 L86 124" stroke="var(--color-primary-500)" stroke-width="2.2" />
         }
+        @case ('kuba') {
+          <!-- L'étoffe de raphia tissée ; une zone découpée (la coupe) ; une pièce appliquée, cousue au point (l'habillage). -->
+          <rect x="22" y="22" width="116" height="116" rx="3" />
+          @for (x of weave; track x) {
+            <path [attr.d]="'M' + x + ' 24 V136 M24 ' + x + ' H136'" stroke-width="0.6" opacity="0.35" />
+          }
+          <path d="M22 138 v8 M30 138 v10 M38 138 v7 M46 138 v10 M54 138 v8 M62 138 v10 M70 138 v7 M78 138 v10 M86 138 v8 M94 138 v10 M102 138 v7 M110 138 v10 M118 138 v8 M126 138 v10 M134 138 v7" stroke-width="1.1" />
+          <rect x="38" y="40" width="26" height="22" rx="2" stroke-dasharray="3 4" style="fill: var(--color-surface-1)" />
+          <path d="M44 51 h14" stroke-width="1.2" opacity="0.5" />
+          <g stroke="var(--color-primary-500)">
+            <path d="M98 58 C112 58 120 68 120 80 C120 94 110 102 98 102 C86 102 76 94 76 80 C76 68 84 58 98 58Z" stroke-width="2" style="fill: var(--color-surface-1)" />
+            <path d="M98 52 C116 52 126 64 126 80 C126 98 114 108 98 108 C82 108 70 98 70 80 C70 64 80 52 98 52Z" stroke-width="1.3" stroke-dasharray="2 5" />
+            <path d="M98 68 L108 80 L98 92 L88 80Z" stroke-width="1.6" />
+          </g>
+          <path d="M46 98 L58 110 L46 122 L34 110Z" style="fill: var(--color-surface-1)" />
+          <path d="M46 92 L64 110 L46 128 L28 110Z" stroke-width="1.1" stroke-dasharray="2 5" />
+        }
         @case ('cauris') {
           @for (c of cowries; track c.x; let i = $index) {
             <g [attr.transform]="'translate(' + c.x + ' ' + c.y + ') rotate(' + c.r + ')'" [attr.stroke]="i === 1 ? 'var(--color-primary-500)' : null">
@@ -126,6 +145,8 @@ export class Illustration {
   readonly kind = input.required<IllustrationKind>();
 
   protected readonly rings = [14, 22, 30, 38, 46, 54, 62];
+  /** La trame du raphia (kuba). */
+  protected readonly weave = [32, 42, 52, 62, 72, 82, 92, 102, 112, 122, 132];
   protected readonly strings = [
     { x: 74, y: 16, bx: 74, by: 90 },
     { x: 74, y: 28, bx: 74, by: 100 },

@@ -163,6 +163,11 @@ export class VideoEditPage {
   }
 
   /** Voix off : la couper la garde ; l'ajouter l'écrit et l'enregistre (le minutage se recale). */
+  /** La langue refusée par la voix (définitif) ; le reste est une panne passagère, qu'on retente. */
+  protected languageRefused(reason: string): boolean {
+    return /voice_language_unsupported|no_speech_model/.test(reason);
+  }
+
   protected setVoice(enabled: boolean): void {
     this.save('voice', { voice: enabled }, true);
   }

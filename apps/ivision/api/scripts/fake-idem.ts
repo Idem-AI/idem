@@ -35,6 +35,23 @@ export function startFakeIdem(options: { port?: number; key?: string; origins?: 
   // Rédacteur simulé : chaque case demandée reçoit un texte court et fondé.
   app.post('/internal/ivision/ai/text', (req, res) => {
     const user = String(req.body.user || '');
+    // Monteur simulé (montage d'une prise de parole) : des éléments ancrés sur les index de la
+    // transcription, plus un mot-clé jamais prononcé que le code doit refuser.
+    if (/video editor of a social-media team/.test(String(req.body.system || ''))) {
+      const words = [...user.matchAll(/(\d+):(\S+)/g)].map((m) => ({ i: Number(m[1]), w: m[2] }));
+      const at = (re: RegExp) => words.find((x) => re.test(x.w))?.i;
+      const awa = at(/^awa/i);
+      const price = at(/^1000$/);
+      const bissa = at(/^bissa/i);
+      const elements = [
+        awa !== undefined ? { type: 'lowerThird', from: awa, to: awa + 1, value: 'Awa Diop', label: 'Fondatrice' } : null,
+        bissa !== undefined ? { type: 'keyword', from: bissa, to: bissa, text: words.find((x) => x.i === bissa)!.w.replace(/[.,]/g, '') } : null,
+        price !== undefined ? { type: 'stat', from: price, to: price + 1, value: '1000 F', label: 'la bouteille' } : null,
+        { type: 'keyword', from: 2, to: 2, text: 'GRATUIT' },
+        { type: 'zoom', from: 4 },
+      ].filter(Boolean);
+      return res.json({ text: JSON.stringify({ title: 'Le bissap de Saveurs', captions: 'pop', elements, outro: { text: 'Commandez sur WhatsApp', detail: '07 08 09 10' } }) });
+    }
     const text = [...user.matchAll(/^(\d+)\.([a-zA-Z0-9]+) \(max (\d+)/gm)]
       .map((m) => `${m[1]}.${m[2]}: ${({ title: 'Le café qui réveille', sub: 'Torréfié chaque lundi', action: 'Commander', tagline: 'Kora Café', l1: 'Frais', l2: 'Local', label: 'clients chaque mois', value: '500', kicker: 'Nouveau' } as Record<string, string>)[m[2]] || 'Café frais'}`.slice(0, Number(m[3])))
       .join('\n');

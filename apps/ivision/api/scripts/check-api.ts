@@ -70,6 +70,15 @@ function syntheticVideo(file: string) {
   if (r.status !== 0) throw new Error(`ffmpeg: ${r.stderr}`);
 }
 
+/** Une prise de parole de synthèse (voix macOS sur une mire), avec pauses et faux départ. */
+function speechSample(file: string): boolean {
+  if (process.platform !== 'darwin') return false;
+  const aiff = file.replace(/\.mp4$/, '.aiff');
+  const said = spawnSync('say', ['-v', 'Thomas', '-o', aiff, "Bonjour, je m'appelle Awa Diop, fondatrice de Saveurs d'Abidjan. [[slnc 1500]] Aujourd'hui je vais... [[slnc 700]] Aujourd'hui je vais vous présenter notre nouveau jus de bissap. [[slnc 1200]] Il est cent pour cent naturel. [[slnc 1400]] Seulement 1000 francs la bouteille ! [[slnc 1000]] Commandez dès maintenant sur WhatsApp."]);
+  if (said.status !== 0) return false;
+  return spawnSync(process.env.FFMPEG_PATH || 'ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=1280x720:rate=30', '-i', aiff, '-shortest', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', file]).status === 0;
+}
+
 /** Un tour de conversation en flux : tous les événements, dans l'ordre. */
 async function turn(api: string, cookie: string, sessionId: string, body: object): Promise<any[]> {
   const res = await fetch(`${api}/v1/sessions/${sessionId}/turn`, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: cookie }, body: JSON.stringify(body) });
@@ -212,6 +221,57 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     check('refus avant débit : rien à restituer', refunds.every((r) => r.userId !== 'poor-user'));
     check('aucune création n’a échoué (aucune restitution)', refunds.length === 0);
     check('la marque d’un autre utilisateur reste privée', (await json('GET', `/v1/brands/${brand.id}`, undefined, 'session=poor')).status === 404);
+
+    section('7. Montage d’une prise de parole');
+    const talk = path.join(tmp, 'prise.mp4');
+    const status = await json('GET', '/v1/montages/status');
+    if (!status.body?.available || !speechSample(talk)) {
+      console.log('  — ignoré : Whisper local ou voix de synthèse absents sur ce poste');
+    } else {
+      const seconds = Number(spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', talk]).stdout.toString()) || 0;
+      const quoteRes = await json('POST', '/v1/montages/quote', { durationSec: seconds, creativity: 'medium' });
+      check('prix d’un montage annoncé avant l’envoi', quoteRes.body?.cost > 0, `${quoteRes.body?.cost} crédits pour ${seconds.toFixed(1)} s`);
+      const form = new FormData();
+      form.append('brandId', brand.id);
+      form.append('prompt', 'Finir par notre WhatsApp 07 08 09 10');
+      form.append('format', 'story');
+      form.append('creativity', 'medium');
+      form.append('file', new Blob([fs.readFileSync(talk)], { type: 'video/mp4' }), 'prise.mp4');
+      const chargesBefore = charges.length;
+      const created = await fetch(`${api}/v1/montages`, { method: 'POST', headers: { Cookie: good }, body: form });
+      const montage = await created.json();
+      check('vidéo reçue : montage lancé en tâche de fond (202)', created.status === 202 && montage.status === 'processing', `${created.status} ${montage?.message || ''}`);
+      check('débit au prix annoncé (durée réelle)', charges.length === chargesBefore + 1 && charges[charges.length - 1].cost === quoteRes.body.cost, JSON.stringify(charges[charges.length - 1]));
+      const until = async (id: string, done: (m: any) => boolean, ms = 6 * 60_000) => {
+        const end = Date.now() + ms;
+        for (;;) {
+          const m = (await json('GET', `/v1/montages/${id}`)).body;
+          if (done(m) || Date.now() > end) return m;
+          await new Promise((r) => setTimeout(r, 1500));
+        }
+      };
+      let m = await until(montage.id, (x) => x?.status !== 'processing');
+      check('montage prêt : transcrit, coupé, recadré', m?.status === 'ready' && m.words.length > 20 && m.edit?.width === 1080 && m.edit.durationSec < m.source.durationSec - 4, `${m?.status} ${m?.error || ''} · ${m?.words?.length} mots · ${m?.source?.durationSec}s → ${m?.edit?.durationSec}s`);
+      check('le monteur IA a choisi (nom, mot-clé, chiffre)', m.plannedBy === 'llm' && m.elements.some((e: any) => e.type === 'lowerThird' && e.value === 'Awa Diop') && m.elements.some((e: any) => e.type === 'stat'), `${m.elements.map((e: any) => e.type).join(',')} · « ${m.words.slice(0, 8).map((w: any) => w.text).join(' ')} »`);
+      check('un mot-clé jamais prononcé est refusé par le code', !m.elements.some((e: any) => e.text === 'GRATUIT'));
+      check('le contact écrit dans la demande passe au carton de fin', m.outro?.detail === '07 08 09 10');
+      const preview = await json('GET', `/v1/montages/${m.id}/preview`);
+      check('aperçu : la page du montage (même page que le MP4)', preview.status === 200 && preview.body.html.includes('__MONTAGE__') && preview.body.html.includes(m.edit.url));
+      const fixAt = m.words.findIndex((w: any) => /^bissa/i.test(w.text));
+      const patched = await json('PATCH', `/v1/montages/${m.id}`, { captions: 'karaoke', words: { [String(Math.max(0, fixAt))]: 'bissap.' } });
+      check('retouche gratuite : style des sous-titres et mot corrigé', patched.body?.captions?.style === 'karaoke' && patched.body.words[Math.max(0, fixAt)].text === 'bissap.' && charges.length === chargesBefore + 1);
+      const tight = m.edit.durationSec;
+      await json('PATCH', `/v1/montages/${m.id}`, { cuts: 'natural' });
+      m = await until(m.id, (x) => x?.status === 'ready');
+      check('coupes « naturelles » : la vidéo remontée est plus longue, l’habillage suit', m.edit.durationSec > tight && m.elements.some((e: any) => e.type === 'lowerThird'), `${tight}s → ${m.edit.durationSec}s`);
+      const exported = await json('POST', `/v1/montages/${m.id}/export`);
+      check('export lancé, premier export inclus (aucun débit)', exported.status === 202 && charges.length === chargesBefore + 1);
+      m = await until(m.id, (x) => !x?.renders?.some((r: any) => r.status === 'rendering'), 8 * 60_000);
+      const file = await fetch(`${api}/v1/montages/${m.id}/file`, { headers: { Cookie: good } });
+      check('MP4 rendu et téléchargeable en pièce jointe', m.renders[0]?.status === 'done' && file.status === 200 && /attachment/.test(file.headers.get('content-disposition') || ''), `${m.renders[0]?.status} ${m.renders[0]?.error || ''} · ${m.renders[0]?.sizeBytes} octets`);
+      check('le montage d’un autre utilisateur reste privé', (await json('GET', `/v1/montages/${m.id}`, undefined, 'session=poor')).status === 404);
+      check('aucun montage n’a été remboursé (tout a abouti)', refunds.length === 0);
+    }
     fs.rmSync(tmp, { recursive: true, force: true });
   } finally {
     await mongoose.connection.db!.dropDatabase().catch(() => undefined);

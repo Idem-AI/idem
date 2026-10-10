@@ -39,6 +39,7 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | Arbre à palabres et tabourets | l'équipe, le conseil | équipe iDeploy |
 | Tampon adinkra en calebasse | le signe de la marque | identité, logo, charte |
 | Pochoir d'adire eleko (tôle découpée, pâte de manioc) et le motif réimprimé | reproduire le motif d'un modèle sur une autre étoffe, dans d'autres couleurs | iVision : « Montrez un modèle, il le reproduit » — source : [Adire (textile art), Wikipédia](https://en.wikipedia.org/wiki/Adire_(textile_art)) (« metal stencils cut from the sheets of tin that lined tea chests ») |
+| Étoffe de raphia kuba à pièces appliquées (une zone découpée, une pièce cousue au point) | couper la matière brute puis l'habiller : le montage | iVision : atelier « Montage » (accueil, préparation) — sources : [WAAC, « Kuba Textiles: An Introduction »](https://cool.culturalheritage.org/waac/wn/wn08/wn08-1/wn08-102.html) (« patterns are created by cutting and removing areas of the base cloth… patched »), [UMMA, Raffia Textile Panel](https://umma.umich.edu/objects/raffia-textile-panel-1985-1-142/) |
 | Bandes de kente assemblées | la composition | direction artistique |
 | Pagnes pliés en pile | livrable complet | charte finalisée |
 | Filet de pêche (épervier) | un réseau de nœuds | diagrammes, réseaux iDeploy |
@@ -108,6 +109,7 @@ Format : **retenu** — candidats écartés (raison).
 | iVision : votre site devient votre charte | **tampon adinkra et son empreinte** | canaris de teinture (dit seulement la couleur, pas toute la marque) |
 | iVision : montrez un modèle, il le reproduit | **pochoir d'adire** (nouveau) | tampon adinkra (dit la marque, pas la copie d'un modèle) ; métier à tisser (dit le code) |
 | iVision : retouchez en direct | **feuillet et calame** (les textes qu'on écrit) | — |
+| iVision : montage d'une prise de parole | **étoffe de raphia kuba à pièces appliquées** (nouveau) : la coupe et la pièce cousue | kora (dit la vidéo racontée en musique, pas la parole montée) ; tambour parleur (réservé à « communiquer ») ; métier à tisser (dit le code) |
 | iVision : mêmes crédits ; marques (vide) ; erreur | **cauris** ; **calebasse vide** ; **calebasse fêlée** | — |
 
 ### iDeploy

@@ -25,6 +25,8 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'video' },
       { path: 'brands', loadComponent: () => import('./pages/studio/brands/brands').then((m) => m.BrandsPage) },
+      { path: 'montage', loadComponent: () => import('./pages/studio/montage/montage').then((m) => m.MontagePage) },
+      { path: 'montage/:montageId', loadComponent: () => import('./pages/studio/montage/montage-edit').then((m) => m.MontageEditPage) },
       { path: 'video/:brandId/:videoId', loadComponent: () => import('./pages/studio/video-edit/video-edit').then((m) => m.VideoEditPage) },
       { matcher: chatMatcher, loadComponent: () => import('./pages/studio/chat/chat').then((m) => m.ChatPage) },
     ],

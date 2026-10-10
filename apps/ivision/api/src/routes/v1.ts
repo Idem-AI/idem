@@ -13,6 +13,10 @@ import { MOTION_STYLES, MUSIC_MOODS, MotionStyle, MusicMood, VideoFormat } from 
 import { videoOptions } from '../../../core/src/video/video.options';
 import { resolvePublicSound } from '../../../core/src/video/video.sfx';
 import { SiteScanError } from '../../../core/src/site/site-scanner';
+import { CAPTION_STYLES, CUT_MODES, MONTAGE_LIMITS } from '../../../core/src/montage/montage.model';
+import { MontageInputError } from '../../../core/src/montage/montage.service';
+import fs from 'fs';
+import os from 'os';
 import { FLYER_FORMATS } from '../../../core/src/visual/visual.model';
 import axios from 'axios';
 import { publicUrl, storage } from '../config/storage';
@@ -25,6 +29,7 @@ import * as brands from '../services/brands.service';
 import * as chat from '../services/chat.service';
 import { idem } from '../services/idem.client';
 import * as refs from '../services/references.service';
+import { montages, montageView, refundMontage } from '../services/montages.service';
 import { motionVideos } from '../services/videos.service';
 import * as visuals from '../services/visuals.service';
 import { openSse } from '../utils/sse';
@@ -34,9 +39,21 @@ export const v1 = Router();
 const uid = (req: AuthedRequest) => req.user!.uid;
 const lang = (req: AuthedRequest) => (String(req.headers['accept-language'] || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr');
 
+/** Les refus du montage, dits à l'utilisateur. */
+const MONTAGE_MESSAGES: Record<string, string> = {
+  unreadable_video: 'Cette vidéo ne peut pas être lue. Essayez un MP4 ou un MOV.',
+  no_audio: 'Cette vidéo n’a pas de son : le montage part de ce que vous dites.',
+  too_short: 'La vidéo est trop courte (3 secondes au moins).',
+  too_long: `La vidéo est trop longue (${MONTAGE_LIMITS.maxDurationSec / 60} minutes au plus).`,
+  still_processing: 'Le montage est encore en préparation.',
+  already_rendering: 'Un export est déjà en cours.',
+  not_ready: 'Le montage n’est pas encore prêt.',
+};
+
 /** Les erreurs du moteur, traduites en réponses HTTP lisibles. */
 function engineError(error: unknown): never {
   if (error instanceof MediaInputError) throw new HttpError(400, 'invalid_media', error.message);
+  if (error instanceof MontageInputError) throw new HttpError(['still_processing', 'already_rendering'].includes(error.message) ? 409 : 400, error.message, MONTAGE_MESSAGES[error.message] || error.message);
   if (error instanceof VideoInputError) throw new HttpError(error.message === 'project_not_found' ? 404 : error.message === 'already_rendering' ? 409 : 400, error.message);
   throw error;
 }
@@ -418,6 +435,200 @@ v1.post(
       await refund(uid(req), paid, 'Export vidéo iVision refusé — crédits restitués');
       engineError(error);
     }
+  })
+);
+
+// ─── Montages (une prise de parole → une vidéo prête à publier) ─────────────
+
+const montageUpload = multer({
+  storage: multer.diskStorage({ destination: os.tmpdir(), filename: (_req, file, cb) => cb(null, `ivision-montage-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}${(file.originalname.match(/\.[a-z0-9]{2,5}$/i) || ['.mp4'])[0].toLowerCase()}`) }),
+  limits: { fileSize: MONTAGE_LIMITS.maxBytes, files: 1 },
+  fileFilter: (_req, file, cb) => cb(null, /^video\/(mp4|quicktime|webm|x-m4v|3gpp|x-matroska)$/.test(file.mimetype) || /\.(mp4|mov|webm|m4v|3gp|mkv)$/i.test(file.originalname)),
+});
+
+v1.get('/montages/status', (_req, res) => {
+  res.json({ available: montages.available(), limits: MONTAGE_LIMITS });
+});
+
+/** Le prix pour une durée (lue par le navigateur) : affiché avant de lancer. */
+v1.post(
+  '/montages/quote',
+  validate({ body: z.object({ durationSec: z.number().min(0).max(3600), creativity: z.string().optional() }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const level = (CREATIVITY_LEVELS as readonly string[]).includes(String(req.body.creativity)) ? req.body.creativity : 'medium';
+    res.json(montages.quote(req.body.durationSec, level));
+  })
+);
+
+v1.get(
+  '/montages',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const list = await montages.list(uid(req), typeof req.query.brandId === 'string' ? req.query.brandId : undefined);
+    res.json({ montages: list.map((x) => montageView(x.brandId, x.montage)) });
+  })
+);
+
+/** Création : la vidéo est sondée (durée → prix), le prix débité, puis le montage tourne en tâche de fond. */
+v1.post(
+  '/montages',
+  montageUpload.single('file'),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const file = req.file;
+    if (!file) throw new HttpError(400, 'file_required', 'Ajoutez la vidéo où vous parlez.');
+    let handedOver = false;
+    try {
+      if (!montages.available()) throw new HttpError(503, 'transcription_unavailable', 'Le montage est momentanément indisponible.');
+      const body = req.body || {};
+      const brand = await brands.getBrand(uid(req), String(body.brandId || ''));
+      const level = (CREATIVITY_LEVELS as readonly string[]).includes(String(body.creativity)) ? body.creativity : 'medium';
+      let info;
+      try {
+        info = await montages.inspect(file.path);
+      } catch (error) {
+        engineError(error);
+      }
+      const q = montages.quote(info.durationSec, level);
+      let paid;
+      try {
+        paid = await charge(uid(req), q, `montage:${brand._id}`);
+      } catch (error) {
+        if (error instanceof PaymentRequired) {
+          res.status(402).json(error.body);
+          return;
+        }
+        throw error;
+      }
+      try {
+        handedOver = true;
+        const montage = await montages.create(
+          uid(req),
+          brand._id,
+          {
+            file: file.path,
+            name: file.originalname,
+            prompt: String(body.prompt || '').slice(0, 1200),
+            format: body.format,
+            creativity: level,
+            cuts: (CUT_MODES as readonly string[]).includes(body.cuts) ? body.cuts : 'tight',
+            music: body.music !== 'false',
+          },
+          paid.charged ? paid.cost : 0,
+          (failed) => refundMontage(uid(req), failed)
+        );
+        res.status(202).json(montageView(brand._id, montage));
+      } catch (error) {
+        handedOver = false;
+        await refund(uid(req), paid, 'Montage iVision refusé — crédits restitués');
+        engineError(error);
+      }
+    } finally {
+      if (!handedOver) fs.rmSync(file.path, { force: true });
+    }
+  })
+);
+
+async function montageOr404(req: AuthedRequest) {
+  const found = await montages.get(uid(req), req.params.id);
+  if (!found) throw new HttpError(404, 'montage_not_found', 'Montage introuvable.');
+  return found;
+}
+
+v1.get(
+  '/montages/:id',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const found = await montageOr404(req);
+    res.json(montageView(found.brandId, found.montage));
+  })
+);
+
+/** Retouches gratuites : sous-titres, mots corrigés, éléments, carton final, musique, coupes, format. */
+v1.patch(
+  '/montages/:id',
+  validate({
+    body: z.object({
+      title: z.string().max(80).optional(),
+      captions: z.enum(CAPTION_STYLES as unknown as [string, ...string[]]).optional(),
+      words: z.record(z.string(), z.string().max(60)).optional(),
+      elements: z.array(z.record(z.string(), z.unknown())).max(80).optional(),
+      outro: z.object({ text: z.string().max(80).optional(), detail: z.string().max(80).optional() }).nullable().optional(),
+      music: z.boolean().optional(),
+      cuts: z.enum(CUT_MODES as unknown as [string, ...string[]]).optional(),
+      format: z.enum(['story', 'square', 'portrait', 'landscape']).optional(),
+    }),
+  }),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const found = await montageOr404(req);
+    try {
+      const updated = await montages.update(uid(req), req.params.id, req.body);
+      if (!updated) throw new HttpError(404, 'montage_not_found', 'Montage introuvable.');
+      res.json(montageView(found.brandId, updated));
+    } catch (error) {
+      engineError(error);
+    }
+  })
+);
+
+v1.get(
+  '/montages/:id/preview',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const html = await montages.previewHtml(uid(req), req.params.id);
+    if (!html) throw new HttpError(404, 'montage_not_ready', 'Le montage n’est pas encore prêt.');
+    res.json({ html });
+  })
+);
+
+v1.post(
+  '/montages/:id/export-quote',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const found = await montageOr404(req);
+    res.json(montages.quoteExport(found.montage));
+  })
+);
+
+/** Export MP4 : le premier est inclus, les suivants coûtent 10 % du montage. */
+v1.post(
+  '/montages/:id/export',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const found = await montageOr404(req);
+    const { cost } = montages.quoteExport(found.montage);
+    let paid;
+    if (cost > 0) {
+      try {
+        paid = await charge(uid(req), { action: 'motion_video_rerender', cost }, found.montage.id);
+      } catch (error) {
+        if (error instanceof PaymentRequired) {
+          res.status(402).json(error.body);
+          return;
+        }
+        throw error;
+      }
+    }
+    try {
+      const started = await montages.startExport(uid(req), req.params.id, paid?.charged ? { cost: paid.cost, action: paid.action } : undefined);
+      if (!started) throw new HttpError(404, 'montage_not_found', 'Montage introuvable.');
+      res.status(202).json(montageView(found.brandId, started));
+    } catch (error) {
+      await refund(uid(req), paid, 'Export du montage refusé — crédits restitués');
+      engineError(error);
+    }
+  })
+);
+
+v1.get(
+  '/montages/:id/file',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const found = await montageOr404(req);
+    const render = found.montage.renders.find((r) => r.status === 'done' && r.url);
+    if (!render?.url) throw new HttpError(404, 'montage_not_rendered', 'Exportez d’abord le montage.');
+    await sendAttachment(res, render.url, `ivision-montage-${req.params.id.slice(-6)}.mp4`, 'video/mp4');
+  })
+);
+
+v1.delete(
+  '/montages/:id',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const removed = await montages.remove(uid(req), req.params.id);
+    res.status(removed ? 204 : 404).end();
   })
 );
 

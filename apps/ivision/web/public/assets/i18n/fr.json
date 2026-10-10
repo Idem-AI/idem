@@ -6,7 +6,9 @@
     "remove": "Retirer",
     "logout": "Se déconnecter",
     "switchLanguage": "Changer de langue",
-    "switchTheme": "Changer de thème"
+    "switchTheme": "Changer de thème",
+    "save": "Enregistrer",
+    "cancel": "Annuler"
   },
   "errors": {
     "generic": "Une erreur est survenue. Réessayez dans un instant.",
@@ -89,7 +91,11 @@
     "brands": "Marques",
     "credits": "{{count}} crédits",
     "account": "Mon compte",
-    "tabs": "Sections de l’atelier"
+    "tabs": "Sections de l’atelier",
+    "montage": "Montage",
+    "newMontage": "Nouveau montage",
+    "noMontages": "Aucun montage pour l’instant.",
+    "montageHistory": "Mes montages"
   },
   "creativity": {
     "label": "Créativité",
@@ -189,7 +195,9 @@
       "close": "Fermer",
       "downloadFailed": "Le téléchargement a échoué. Réessayez.",
       "video": "Votre vidéo est prête. Retouchez les textes et les images, puis exportez.",
+      "videoNoVoice": "Votre vidéo est prête. Retouchez les textes et les images, puis exportez. La voix off n’a pas pu être générée : réessayez-la depuis la retouche.",
       "videoFromReference": "Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez.",
+      "videoFromReferenceNoVoice": "Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez. La voix off n’a pas pu être générée : réessayez-la depuis la retouche.",
       "visual": "Voici votre visuel.",
       "visualFromReference": "Voici votre visuel, composé comme le modèle, à votre marque."
     },
@@ -312,6 +320,7 @@
     "voice": "Voix off",
     "voiceLines": "{{count}} ligne(s), scènes calées sur la voix",
     "voiceUnavailable": "Voix off indisponible pour cette langue.",
+    "voiceFailed": "La voix off n’a pas pu être générée (service momentanément indisponible). Cochez à nouveau pour réessayer.",
     "export": "Exporter en MP4",
     "firstExport": "Le premier export est inclus dans le prix de la vidéo.",
     "nextExport": "Un nouvel export coûte une fraction du prix de la vidéo.",
@@ -358,5 +367,99 @@
   },
   "visualEdit": {
     "title": "Modifier le visuel"
+  },
+  "montage": {
+    "title": "Montez votre prise de parole",
+    "subtitle": "Importez une vidéo où vous parlez : iVision coupe les blancs, ajoute les sous-titres et fait apparaître ce que vous dites. Prête à publier.",
+    "unavailable": "Le montage est momentanément indisponible. Réessayez un peu plus tard.",
+    "needBrand": "Créez d’abord une marque : ses couleurs, sa police et son logo habillent le montage.",
+    "pickFile": "Choisir la vidéo",
+    "changeFile": "Changer de vidéo",
+    "fileHint": "MP4, MOV ou WebM, avec le son. {{minutes}} minutes au plus.",
+    "brand": "Marque",
+    "prompt": "Ce que vous voulez (facultatif)",
+    "promptPlaceholder": "Ex. : style dynamique, terminer par « Commandez sur WhatsApp au 07 00 00 00 », montrer le produit quand j’en parle.",
+    "format": "Format",
+    "cuts": "Coupes",
+    "cutModes": {
+      "tight": "Rythmées (blancs et faux départs retirés)",
+      "natural": "Naturelles (longs blancs retirés)",
+      "none": "Aucune (vidéo intacte)"
+    },
+    "music": "Musique douce sous la voix",
+    "price": "{{cost}} crédits",
+    "start": "Monter ma vidéo",
+    "uploading": "Envoi de la vidéo… {{percent}} %",
+    "mine": "Mes montages",
+    "errors": {
+      "tooBig": "Fichier trop lourd (600 Mo au plus).",
+      "tooShort": "Vidéo trop courte (3 secondes au moins).",
+      "tooLong": "Vidéo trop longue ({{minutes}} minutes au plus).",
+      "upload": "L’envoi a échoué. Réessayez."
+    },
+    "preparing": "Votre montage se prépare",
+    "canLeave": "Vous pouvez quitter cette page : le montage continue.",
+    "stages": {
+      "transcribe": "J’écoute ce que vous dites",
+      "cut": "Je coupe les blancs et les hésitations",
+      "plan": "Je choisis ce qui apparaît à l’écran",
+      "media": "Je prépare les images et la musique"
+    },
+    "recutting": "Nouvelles coupes en cours…",
+    "previewTitle": "Aperçu du montage",
+    "loadError": "Ce montage n’a pas pu être chargé.",
+    "failed": "Le montage n’a pas abouti.",
+    "failedNoSpeech": "Aucune parole n’a été entendue dans cette vidéo.",
+    "refunded": "Vos {{cost}} crédits ont été restitués.",
+    "retry": "Essayer avec une autre vidéo",
+    "saveFailed": "La retouche n’a pas été enregistrée.",
+    "transcript": "Ce que vous dites",
+    "transcriptHint": "Cliquez un mot pour y aller et corriger une faute. Les mots barrés ont été coupés.",
+    "removed": "{{sec}} s de blancs retirées",
+    "cutWord": "Coupé au montage",
+    "fixWord": "Corriger le mot",
+    "elements": "Ce qui apparaît",
+    "byRules": "Habillage simple",
+    "noElements": "Rien d’autre que les sous-titres.",
+    "show": "Afficher",
+    "remove": "Retirer",
+    "saveElements": "Enregistrer l’habillage",
+    "types": {
+      "keyword": "Mot-clé",
+      "stat": "Chiffre",
+      "icon": "Pictogramme",
+      "list": "Liste",
+      "callout": "Encadré",
+      "broll": "Image",
+      "lowerThird": "Nom et rôle",
+      "cta": "Appel à l’action",
+      "zoom": "Zoom"
+    },
+    "fields": {
+      "text": "Texte",
+      "value": "Chiffre",
+      "label": "Légende",
+      "name": "Nom",
+      "role": "Rôle",
+      "items": "Un point par ligne",
+      "contact": "Contact (site, numéro)"
+    },
+    "settings": "Réglages",
+    "captions": "Sous-titres",
+    "captionStyles": {
+      "pop": "Percutants, mot par mot",
+      "karaoke": "Ligne qui s’allume",
+      "minimal": "Sobres",
+      "none": "Sans sous-titres"
+    },
+    "outro": "Carton de fin",
+    "outroText": "Phrase de fin",
+    "outroDetail": "Contact (facultatif)",
+    "outroRemove": "Sans carton",
+    "firstExport": "Le premier export est inclus.",
+    "nextExport": "Un nouvel export après retouche.",
+    "saveFirst": "Enregistrez l’habillage avant d’exporter.",
+    "renderFailed": "L’export a échoué ; vos crédits ont été restitués. Réessayez.",
+    "download": "Télécharger le MP4"
   }
 }

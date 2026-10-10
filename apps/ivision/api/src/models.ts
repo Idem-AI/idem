@@ -11,6 +11,7 @@ import type { PaletteProposal } from '../../core/src/site/palette';
 import type { TypographyProposal } from '../../core/src/site/typography';
 import type { ReferenceBlueprint, ReferenceImage, ReferenceShot } from '../../core/src/reference/reference.analyzer';
 import type { MotionVideo, VideoMediaAsset } from '../../core/src/video/video.model';
+import type { MontageVideo } from '../../core/src/montage/montage.model';
 import type { CreativityLevel } from '../../core/src/creativity/levels';
 import type { FlyerFormat } from '../../core/src/visual/visual.model';
 
@@ -145,6 +146,15 @@ export interface IvisionVisual {
 }
 
 /** Une vidéo d'iVision : la vidéo du moteur, rangée sous sa marque. */
+/** Un montage d'une vidéo parlée (moteur partagé, `core/src/montage`). */
+export interface IvisionMontageDoc {
+  _id: string;
+  userId: string;
+  brandId: string;
+  montage: MontageVideo;
+  updatedAt: string;
+}
+
 export interface IvisionVideoDoc {
   _id: string;
   userId: string;

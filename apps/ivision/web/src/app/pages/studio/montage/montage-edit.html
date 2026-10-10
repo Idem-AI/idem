@@ -1,0 +1,257 @@
+<div class="custom-scrollbar h-full overflow-y-auto">
+  <div class="mx-auto max-w-6xl px-4 py-5">
+    <header class="mb-5 flex flex-wrap items-center gap-3">
+      <a class="button-icon !p-2" routerLink="/studio/montage" [attr.aria-label]="'common.back' | translate"><i class="pi pi-arrow-left" aria-hidden="true"></i></a>
+      <h1 class="min-w-0 flex-1 truncate text-lg font-semibold">{{ montage()?.title || ('montage.title' | translate) }}</h1>
+      @if (saving()) {
+        <span class="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]"><idem-loader size="xs" /> {{ 'edit.saving' | translate }}</span>
+      } @else if (saveFailed()) {
+        <span class="text-sm" role="alert">{{ 'montage.saveFailed' | translate }}</span>
+      } @else if (saved()) {
+        <span class="text-sm text-[var(--color-text-tertiary)]"><i class="pi pi-check" aria-hidden="true"></i> {{ 'edit.saved' | translate }}</span>
+      }
+    </header>
+
+    @if (loading()) {
+      <idem-loader block [label]="'common.loading' | translate" />
+    } @else if (loadFailed() || !montage()) {
+      <div class="flex flex-col items-center py-16 text-center">
+        <iv-illustration class="h-28 w-28 text-[var(--color-text-secondary)]" kind="cracked" />
+        <p class="mt-4">{{ 'montage.loadError' | translate }}</p>
+        <a class="outer-button button-sm mt-4" routerLink="/studio/montage">{{ 'common.back' | translate }}</a>
+      </div>
+    } @else if (montage(); as m) {
+      @if (m.status === 'failed') {
+        <div class="flex flex-col items-center py-16 text-center">
+          <iv-illustration class="h-28 w-28 text-[var(--color-text-secondary)]" kind="cracked" />
+          <p class="mt-4 font-medium">{{ (m.error === 'no_speech' ? 'montage.failedNoSpeech' : 'montage.failed') | translate }}</p>
+          @if (m.paidCredits > 0) {
+            <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ 'montage.refunded' | translate: { cost: m.paidCredits } }}</p>
+          }
+          <a class="outer-button button-sm mt-4" routerLink="/studio/montage">{{ 'montage.retry' | translate }}</a>
+        </div>
+      } @else if (m.status === 'processing' && !m.edit) {
+        <!-- Préparation : les étapes réelles du serveur. -->
+        <section class="glass-card mx-auto max-w-lg p-6" [attr.aria-label]="'montage.preparing' | translate" aria-live="polite">
+          <div class="flex items-center gap-4">
+            <iv-illustration class="h-16 w-16 flex-none text-[var(--color-text-secondary)]" kind="kuba" />
+            <div>
+              <h2 class="font-semibold">{{ 'montage.preparing' | translate }}</h2>
+              <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ 'montage.canLeave' | translate }}</p>
+            </div>
+          </div>
+          <ol class="mt-5 flex flex-col gap-3">
+            @for (s of stages; track s) {
+              <li class="flex items-center gap-3 text-sm" [class]="stageState(s) === 'todo' ? 'text-[var(--color-text-tertiary)]' : ''">
+                <span class="flex h-5 w-5 flex-none items-center justify-center">
+                  @switch (stageState(s)) {
+                    @case ('done') { <i class="pi pi-check text-[var(--color-primary-500)]" aria-hidden="true"></i> }
+                    @case ('running') { <idem-loader size="xs" /> }
+                    @default { <span class="status-dot" aria-hidden="true"></span> }
+                  }
+                </span>
+                <span>{{ 'montage.stages.' + s | translate }}</span>
+                @if (stageState(s) === 'running' && s === 'transcribe' && m.progress) {
+                  <span class="ml-auto text-[var(--color-text-secondary)]">{{ (m.progress * 100).toFixed(0) }} %</span>
+                }
+              </li>
+            }
+          </ol>
+        </section>
+      } @else {
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <!-- Aperçu + transcription. -->
+          <div class="min-w-0">
+            <div class="mx-auto w-full" [style.max-width]="m.format === 'landscape' ? '100%' : '420px'">
+              <div class="relative w-full overflow-hidden rounded-xl bg-[var(--glass-bg-light)]" [style.aspect-ratio]="ratio()">
+                @if (m.status === 'processing') {
+                  <idem-loader overlay [label]="'montage.recutting' | translate" />
+                }
+                @if (html(); as h) {
+                  <iframe #frame class="absolute inset-0 h-full w-full border-0" [srcdoc]="h" sandbox="allow-scripts" [title]="'montage.previewTitle' | translate"></iframe>
+                } @else if (m.status === 'ready') {
+                  <idem-loader block [label]="'edit.preparingPreview' | translate" />
+                }
+              </div>
+            </div>
+
+            <section class="glass-card mt-5 p-5" [attr.aria-label]="'montage.transcript' | translate">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 class="font-semibold">{{ 'montage.transcript' | translate }}</h2>
+                @if (m.cuts.removedSec > 0) {
+                  <span class="text-xs text-[var(--color-text-tertiary)]">{{ 'montage.removed' | translate: { sec: m.cuts.removedSec } }}</span>
+                }
+              </div>
+              <p class="mt-1 text-xs text-[var(--color-text-tertiary)]">{{ 'montage.transcriptHint' | translate }}</p>
+              <p class="mt-3 text-sm leading-7">
+                @for (w of m.words; track $index; let i = $index) {
+                  @if (timed()[i]) {
+                    <button type="button" class="rounded px-0.5"
+                      [class]="i === activeWord() ? 'bg-[var(--color-primary-500)] text-[var(--color-on-primary)]' : i === selectedWord() ? 'bg-[var(--glass-bg-light)]' : ''"
+                      [class.underline]="(w.p ?? 1) < 0.5" [class.decoration-dotted]="(w.p ?? 1) < 0.5"
+                      (click)="selectWord(i)">{{ w.text }}</button>{{ ' ' }}
+                  } @else {
+                    <s class="text-[var(--color-text-tertiary)]" [title]="'montage.cutWord' | translate">{{ w.text }}</s>{{ ' ' }}
+                  }
+                }
+              </p>
+              @if (selectedWord() !== null) {
+                <form class="mt-3 flex flex-wrap items-end gap-2" (submit)="$event.preventDefault(); saveWord()">
+                  <label class="!flex min-w-0 flex-1 flex-col gap-1 text-sm !mb-0">
+                    <span>{{ 'montage.fixWord' | translate }}</span>
+                    <input type="text" maxlength="40" [value]="wordDraft()" (input)="wordDraft.set($any($event.target).value)" />
+                  </label>
+                  <button type="submit" class="inner-button button-sm" [disabled]="!!saving()">{{ 'common.save' | translate }}</button>
+                  <button type="button" class="button-ghost button-sm" (click)="selectedWord.set(null)">{{ 'common.cancel' | translate }}</button>
+                </form>
+              }
+            </section>
+          </div>
+
+          <!-- Réglages. -->
+          <div class="flex flex-col gap-5">
+            <section class="glass-card p-5" [attr.aria-label]="'montage.elements' | translate">
+              <div class="flex items-baseline justify-between gap-2">
+                <h2 class="font-semibold">{{ 'montage.elements' | translate }}</h2>
+                @if (m.plannedBy === 'rules') {
+                  <span class="tag">{{ 'montage.byRules' | translate }}</span>
+                }
+              </div>
+              @if (!draft().length) {
+                <p class="mt-2 text-sm text-[var(--color-text-secondary)]">{{ 'montage.noElements' | translate }}</p>
+              }
+              <ul class="mt-3 flex flex-col divide-y divide-[var(--glass-border-subtle)]">
+                @for (e of draft(); track e.id) {
+                  <li class="py-3" [class.opacity-60]="e.off">
+                    <div class="flex items-center gap-2 text-sm">
+                      <input type="checkbox" [checked]="!e.off" (change)="toggleElement(e.id, $any($event.target).checked)" [attr.aria-label]="'montage.show' | translate" />
+                      <button type="button" class="min-w-0 flex-1 truncate text-left font-medium" (click)="seek(elementTime(e) ?? 0)">
+                        {{ 'montage.types.' + e.type | translate }} <span class="font-normal text-[var(--color-text-tertiary)]">· {{ clock(elementTime(e)) }}</span>
+                      </button>
+                      <button type="button" class="button-icon !p-1.5" (click)="removeElement(e.id)" [attr.aria-label]="'montage.remove' | translate"><i class="pi pi-trash text-xs" aria-hidden="true"></i></button>
+                    </div>
+                    @switch (e.type) {
+                      @case ('stat') {
+                        <div class="mt-2 grid grid-cols-2 gap-2">
+                          <input type="text" maxlength="40" [value]="e.value ?? ''" (input)="editElement(e.id, 'value', $any($event.target).value)" [attr.aria-label]="'montage.fields.value' | translate" />
+                          <input type="text" maxlength="60" [value]="e.label ?? ''" (input)="editElement(e.id, 'label', $any($event.target).value)" [attr.aria-label]="'montage.fields.label' | translate" />
+                        </div>
+                      }
+                      @case ('lowerThird') {
+                        <div class="mt-2 grid grid-cols-2 gap-2">
+                          <input type="text" maxlength="40" [value]="e.value ?? ''" (input)="editElement(e.id, 'value', $any($event.target).value)" [attr.aria-label]="'montage.fields.name' | translate" />
+                          <input type="text" maxlength="60" [value]="e.label ?? ''" (input)="editElement(e.id, 'label', $any($event.target).value)" [attr.aria-label]="'montage.fields.role' | translate" />
+                        </div>
+                      }
+                      @case ('list') {
+                        <textarea class="mt-2" rows="3" [value]="itemsText(e)" (input)="editItems(e.id, $any($event.target).value)" [attr.aria-label]="'montage.fields.items' | translate"></textarea>
+                      }
+                      @case ('icon') {
+                        <input class="mt-2" type="text" maxlength="40" [value]="e.label ?? ''" (input)="editElement(e.id, 'label', $any($event.target).value)" [attr.aria-label]="'montage.fields.label' | translate" />
+                      }
+                      @case ('broll') {
+                        @if (e.image) {
+                          <img [src]="e.image" alt="" class="mt-2 h-20 w-auto rounded-md object-cover" loading="lazy" />
+                        }
+                        @if (e.credit) { <p class="mt-1 text-xs text-[var(--color-text-tertiary)]">{{ e.credit }}</p> }
+                      }
+                      @case ('zoom') {}
+                      @default {
+                        <input class="mt-2" type="text" maxlength="80" [value]="e.text ?? ''" (input)="editElement(e.id, 'text', $any($event.target).value)" [attr.aria-label]="'montage.fields.text' | translate" />
+                        @if (e.type === 'cta') {
+                          <input class="mt-2" type="text" maxlength="60" [value]="e.value ?? ''" (input)="editElement(e.id, 'value', $any($event.target).value)" [placeholder]="'montage.fields.contact' | translate" [attr.aria-label]="'montage.fields.contact' | translate" />
+                        }
+                      }
+                    }
+                  </li>
+                }
+              </ul>
+              @if (draftDirty()) {
+                <button type="button" class="inner-button button-sm mt-3" [disabled]="!!saving()" (click)="saveElements()">
+                  @if (saving() === 'elements') { <idem-loader size="xs" /> }
+                  {{ 'montage.saveElements' | translate }}
+                </button>
+              }
+            </section>
+
+            <section class="glass-card flex flex-col gap-4 p-5" [attr.aria-label]="'montage.settings' | translate">
+              <h2 class="font-semibold">{{ 'montage.settings' | translate }}</h2>
+              <label class="!flex flex-col gap-1 text-sm !mb-0">
+                <span>{{ 'montage.captions' | translate }}</span>
+                <select (change)="setCaptions($any($event.target).value)" [disabled]="!!saving() || !ready()">
+                  @for (c of captionStyles; track c) { <option [value]="c" [selected]="c === m.captions.style">{{ 'montage.captionStyles.' + c | translate }}</option> }
+                </select>
+              </label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="!flex flex-col gap-1 text-sm !mb-0">
+                  <span>{{ 'montage.cuts' | translate }}</span>
+                  <select (change)="setCuts($any($event.target).value)" [disabled]="!!saving() || !ready()">
+                    @for (c of cutModes; track c) { <option [value]="c" [selected]="c === m.cuts.mode">{{ 'montage.cutModes.' + c | translate }}</option> }
+                  </select>
+                </label>
+                <label class="!flex flex-col gap-1 text-sm !mb-0">
+                  <span>{{ 'montage.format' | translate }}</span>
+                  <select (change)="setFormat($any($event.target).value)" [disabled]="!!saving() || !ready()">
+                    @for (f of formats; track f) { <option [value]="f" [selected]="f === m.format">{{ 'formats.' + f | translate }}</option> }
+                  </select>
+                </label>
+              </div>
+              <label class="!flex items-center gap-2 text-sm !mb-0">
+                <input type="checkbox" [checked]="m.musicEnabled" (change)="setMusic($any($event.target).checked)" [disabled]="!!saving() || !ready()" />
+                {{ 'montage.music' | translate }}
+              </label>
+              @if (m.musicEnabled && m.music) {
+                <p class="-mt-2 text-xs text-[var(--color-text-tertiary)]">{{ m.music.attribution || m.music.title + ' — ' + m.music.artist }}</p>
+              }
+              <fieldset class="flex flex-col gap-2">
+                <legend class="mb-1 text-sm">{{ 'montage.outro' | translate }}</legend>
+                <input type="text" maxlength="60" [value]="outroText()" (input)="outroText.set($any($event.target).value)" [attr.aria-label]="'montage.outroText' | translate" [placeholder]="'montage.outroText' | translate" />
+                <input type="text" maxlength="60" [value]="outroDetail()" (input)="outroDetail.set($any($event.target).value)" [attr.aria-label]="'montage.outroDetail' | translate" [placeholder]="'montage.outroDetail' | translate" />
+                <div class="flex gap-2">
+                  <button type="button" class="outer-button button-sm" [disabled]="!!saving() || !outroText().trim()" (click)="saveOutro(true)">{{ 'common.save' | translate }}</button>
+                  @if (m.outro) {
+                    <button type="button" class="button-ghost button-sm" [disabled]="!!saving()" (click)="saveOutro(false)">{{ 'montage.outroRemove' | translate }}</button>
+                  }
+                </div>
+              </fieldset>
+            </section>
+
+            <section class="glass-card p-5" [attr.aria-label]="'edit.export' | translate">
+              <h2 class="font-semibold">{{ 'edit.export' | translate }}</h2>
+              <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ (m.exportCount === 0 ? 'montage.firstExport' : 'montage.nextExport') | translate }}</p>
+              <div class="mt-4 flex flex-wrap items-center gap-3">
+                <button type="button" class="inner-button button-sm" [disabled]="exporting() || rendering() || !ready() || draftDirty()" (click)="exportMp4()">
+                  @if (exporting()) { <idem-loader size="xs" /> }
+                  {{ 'edit.exportCta' | translate }}
+                </button>
+                @if (exportPrice() !== null) {
+                  <span class="text-sm text-[var(--color-text-secondary)]">{{ (exportPrice() === 0 ? 'edit.included' : 'edit.price') | translate: { cost: exportPrice() } }}</span>
+                }
+              </div>
+              @if (draftDirty()) {
+                <p class="mt-2 text-xs text-[var(--color-text-tertiary)]">{{ 'montage.saveFirst' | translate }}</p>
+              }
+              @if (needCredits()) {
+                <p class="mt-3 text-sm" role="alert">{{ 'chat.payment.short' | translate }} <a class="text-[var(--color-primary-500)] underline" [href]="accountUrl">{{ 'chat.payment.cta' | translate }}</a></p>
+              }
+              @if (rendering()) {
+                <div class="mt-4" aria-live="polite">
+                  <p class="flex items-center gap-2 text-sm"><idem-loader size="xs" /> {{ 'edit.rendering' | translate: { percent: renderPercent() } }}</p>
+                  <progress class="mt-2 w-full" max="100" [value]="renderPercent()"></progress>
+                </div>
+              } @else if (renderFailed()) {
+                <p class="mt-3 text-sm" role="alert">{{ 'montage.renderFailed' | translate }}</p>
+              }
+              @if (render() && !rendering()) {
+                <button type="button" class="outer-button button-sm mt-4 inline-flex" (click)="download()" [disabled]="downloading()">
+                  @if (downloading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-download" aria-hidden="true"></i> }
+                  {{ 'montage.download' | translate }}
+                </button>
+              }
+            </section>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

@@ -27,6 +27,10 @@ async function bootstrap(): Promise<void> {
   await sync();
   setInterval(() => void sync(), 10 * 60 * 1000).unref();
 
+  // Les montages qu'un arrêt a laissés en route : en échec (et remboursés) ou rétablis.
+  const { recoverMontages } = await import('./services/montages.service');
+  await recoverMontages();
+
   const { createApp } = await import('./app');
   createApp().listen(env.port, () => {
     logger.info('ivision.started', { event: 'ivision.started', port: env.port, idemApi: env.idemApiUrl, publicUrl: env.publicUrl });

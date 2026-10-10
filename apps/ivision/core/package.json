@@ -6,7 +6,8 @@
   "main": "src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "check": "ts-node --transpile-only scripts/check-core.ts"
+    "check": "ts-node --transpile-only scripts/check-core.ts",
+    "check:montage": "ts-node --transpile-only scripts/check-montage.ts"
   },
   "dependencies": {
     "react": "^19.2.0",

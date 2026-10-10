@@ -341,10 +341,13 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
         paid.charged ? paid.cost : videoCost(scopeOf(options)),
         (event) => emit({ type: 'progress', stage: event.stage, state: event.state, data: event.data })
       );
-      const msg = message('assistant', reference ? 'Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez.' : 'Votre vidéo est prête. Retouchez les textes et les images, puis exportez.', {
+      // La voix off demandée mais pas obtenue (service en panne, langue refusée) : on le dit.
+      const voiceMissed = options.voice === true && !video.voice?.enabled;
+      const ready = reference ? 'Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez.' : 'Votre vidéo est prête. Retouchez les textes et les images, puis exportez.';
+      const msg = message('assistant', voiceMissed ? `${ready} La voix off n’a pas pu être générée : réessayez-la depuis la retouche.` : ready, {
         result: { kind: 'video', videoId: video.id },
         status: 'done',
-        i18n: { key: reference ? 'chat.result.videoFromReference' : 'chat.result.video' },
+        i18n: { key: `${reference ? 'chat.result.videoFromReference' : 'chat.result.video'}${voiceMissed ? 'NoVoice' : ''}` },
       });
       await push(session._id, msg, {}, ['pending']);
       emit({ type: 'result', message: msg, video });

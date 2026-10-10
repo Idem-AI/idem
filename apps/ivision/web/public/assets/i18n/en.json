@@ -6,7 +6,9 @@
     "remove": "Remove",
     "logout": "Sign out",
     "switchLanguage": "Change language",
-    "switchTheme": "Change theme"
+    "switchTheme": "Change theme",
+    "save": "Save",
+    "cancel": "Cancel"
   },
   "errors": {
     "generic": "Something went wrong. Please try again in a moment.",
@@ -89,7 +91,11 @@
     "brands": "Brands",
     "credits": "{{count}} credits",
     "account": "My account",
-    "tabs": "Studio sections"
+    "tabs": "Studio sections",
+    "montage": "Edit",
+    "newMontage": "New edit",
+    "noMontages": "No edits yet.",
+    "montageHistory": "My edits"
   },
   "creativity": {
     "label": "Creativity",
@@ -189,7 +195,9 @@
       "close": "Close",
       "downloadFailed": "The download failed. Try again.",
       "video": "Your video is ready. Edit texts and images, then export.",
+      "videoNoVoice": "Your video is ready. Edit the texts and images, then export. The voice-over could not be generated: try again from the editor.",
       "videoFromReference": "Your video is ready: the model’s animations, with your brand. Edit texts and images, then export.",
+      "videoFromReferenceNoVoice": "Your video is ready: the template's animations, with your brand. Edit the texts and images, then export. The voice-over could not be generated: try again from the editor.",
       "visual": "Here is your visual.",
       "visualFromReference": "Here is your visual, laid out like the model, on brand."
     },
@@ -312,6 +320,7 @@
     "voice": "Voice-over",
     "voiceLines": "{{count}} line(s), scenes synced to the voice",
     "voiceUnavailable": "Voice-over unavailable for this language.",
+    "voiceFailed": "The voice-over could not be generated (service temporarily unavailable). Tick it again to retry.",
     "export": "Export as MP4",
     "firstExport": "The first export is included in the video price.",
     "nextExport": "A new export costs a fraction of the video price.",
@@ -358,5 +367,99 @@
   },
   "visualEdit": {
     "title": "Edit the visual"
+  },
+  "montage": {
+    "title": "Edit your talking video",
+    "subtitle": "Upload a video of you talking: iVision cuts the silences, adds captions and brings up what you say on screen. Ready to post.",
+    "unavailable": "Video editing is temporarily unavailable. Please try again later.",
+    "needBrand": "Create a brand first: its colours, font and logo dress the edit.",
+    "pickFile": "Choose the video",
+    "changeFile": "Change video",
+    "fileHint": "MP4, MOV or WebM, with sound. {{minutes}} minutes max.",
+    "brand": "Brand",
+    "prompt": "What you want (optional)",
+    "promptPlaceholder": "E.g. dynamic style, end with “Order on WhatsApp”, show the product when I talk about it.",
+    "format": "Format",
+    "cuts": "Cuts",
+    "cutModes": {
+      "tight": "Snappy (silences and false starts removed)",
+      "natural": "Natural (long silences removed)",
+      "none": "None (video untouched)"
+    },
+    "music": "Soft music under the voice",
+    "price": "{{cost}} credits",
+    "start": "Edit my video",
+    "uploading": "Uploading… {{percent}}%",
+    "mine": "My edits",
+    "errors": {
+      "tooBig": "File too large (600 MB max).",
+      "tooShort": "Video too short (3 seconds min).",
+      "tooLong": "Video too long ({{minutes}} minutes max).",
+      "upload": "Upload failed. Please try again."
+    },
+    "preparing": "Your edit is being prepared",
+    "canLeave": "You can leave this page: the edit keeps going.",
+    "stages": {
+      "transcribe": "Listening to what you say",
+      "cut": "Cutting silences and hesitations",
+      "plan": "Choosing what appears on screen",
+      "media": "Preparing images and music"
+    },
+    "recutting": "Applying new cuts…",
+    "previewTitle": "Edit preview",
+    "loadError": "This edit could not be loaded.",
+    "failed": "The edit did not complete.",
+    "failedNoSpeech": "No speech was heard in this video.",
+    "refunded": "Your {{cost}} credits were refunded.",
+    "retry": "Try another video",
+    "saveFailed": "The change was not saved.",
+    "transcript": "What you say",
+    "transcriptHint": "Click a word to jump to it and fix a typo. Struck-through words were cut.",
+    "removed": "{{sec}} s of silence removed",
+    "cutWord": "Cut in the edit",
+    "fixWord": "Fix the word",
+    "elements": "What appears",
+    "byRules": "Simple dressing",
+    "noElements": "Nothing but captions.",
+    "show": "Show",
+    "remove": "Remove",
+    "saveElements": "Save the dressing",
+    "types": {
+      "keyword": "Keyword",
+      "stat": "Number",
+      "icon": "Pictogram",
+      "list": "List",
+      "callout": "Callout",
+      "broll": "Image",
+      "lowerThird": "Name and role",
+      "cta": "Call to action",
+      "zoom": "Zoom"
+    },
+    "fields": {
+      "text": "Text",
+      "value": "Number",
+      "label": "Caption",
+      "name": "Name",
+      "role": "Role",
+      "items": "One point per line",
+      "contact": "Contact (website, number)"
+    },
+    "settings": "Settings",
+    "captions": "Captions",
+    "captionStyles": {
+      "pop": "Punchy, word by word",
+      "karaoke": "Line that lights up",
+      "minimal": "Sober",
+      "none": "No captions"
+    },
+    "outro": "End card",
+    "outroText": "Closing line",
+    "outroDetail": "Contact (optional)",
+    "outroRemove": "No end card",
+    "firstExport": "The first export is included.",
+    "nextExport": "A new export after changes.",
+    "saveFirst": "Save the dressing before exporting.",
+    "renderFailed": "The export failed; your credits were refunded. Please try again.",
+    "download": "Download the MP4"
   }
 }

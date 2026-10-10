@@ -7,7 +7,7 @@ import { filter, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
 import { LanguageService } from '../../core/language.service';
-import { ChatMode } from '../../core/models';
+import { ChatMode, StudioMode } from '../../core/models';
 import { StudioState } from '../../core/studio.state';
 import { ThemeService } from '../../core/theme.service';
 import { BrandMark } from '../../shared/components/brand-mark';
@@ -29,6 +29,12 @@ export class StudioShell {
   protected readonly theme = inject(ThemeService);
   protected readonly language = inject(LanguageService);
   protected readonly accountUrl = `${environment.services.dashboard.url}/account`;
+  /** Les trois ateliers, jamais mélangés. */
+  protected readonly tabs: { mode: StudioMode; icon: string; label: string }[] = [
+    { mode: 'video', icon: 'pi-video', label: 'studio.video' },
+    { mode: 'image', icon: 'pi-image', label: 'studio.image' },
+    { mode: 'montage', icon: 'pi-microphone', label: 'studio.montage' },
+  ];
 
   protected readonly url = toSignal(
     this.router.events.pipe(
@@ -37,24 +43,25 @@ export class StudioShell {
     ),
     { initialValue: this.router.url },
   );
-  /** Le mode de la page courante : celui de la conversation, sinon vidéo. */
-  protected readonly mode = computed<ChatMode>(() => (/^\/studio\/image/.test(this.url()) ? 'image' : 'video'));
-  protected readonly activeSession = computed(() => /^\/studio\/(?:image|video)\/([^/?]+)/.exec(this.url())?.[1] ?? null);
+  /** Le mode de la page courante : celui de la conversation, le montage, sinon vidéo. */
+  protected readonly mode = computed<StudioMode>(() => (/^\/studio\/image/.test(this.url()) ? 'image' : /^\/studio\/montage/.test(this.url()) ? 'montage' : 'video'));
+  protected readonly activeSession = computed(() => /^\/studio\/(?:image|video|montage)\/([^/?]+)/.exec(this.url())?.[1] ?? null);
 
   constructor() {
     this.state.refreshCredits();
     this.state.refreshBrands();
-    let last: ChatMode | null = null;
-    // Les conversations listées suivent le mode : on ne mélange pas images et vidéos.
+    let last: StudioMode | null = null;
+    // L'historique suit l'atelier : on ne mélange pas images, vidéos et montages.
+    const refresh = (mode: StudioMode) => (mode === 'montage' ? this.state.refreshMontages() : this.state.refreshSessions(mode as ChatMode));
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe(() => {
       if (this.mode() !== last) {
         last = this.mode();
-        this.state.refreshSessions(last);
+        refresh(last);
       }
       this.state.drawerOpen.set(false);
     });
     last = this.mode();
-    this.state.refreshSessions(last);
+    refresh(last);
   }
 
   protected toggleTheme(): void {

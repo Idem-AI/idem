@@ -1,9 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEvent } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { readLocaleCookie } from './locale-cookie';
-import { Brand, ChatEvent, ChatMode, ChatOptions, ChatSession, MediaAsset, MotionVideo, Reference, SessionSummary, VideoOptions, Visual } from './models';
+import { Brand, ChatEvent, ChatMode, ChatOptions, ChatSession, MediaAsset, Montage, MotionVideo, Reference, SessionSummary, VideoOptions, Visual } from './models';
 
 /** Le client de l'API iVision (`/v1`). Les flux (conversation, scan) passent par `fetch`. */
 @Injectable({ providedIn: 'root' })
@@ -115,6 +115,42 @@ export class ApiService {
   }
   exportVideo(brandId: string, videoId: string, scope: unknown) {
     return this.http.post<MotionVideo>(`${this.base}/brands/${brandId}/videos/${videoId}/export`, { scope });
+  }
+
+  // ── Montages ──
+  montageStatus() {
+    return this.http.get<{ available: boolean; limits: { maxBytes: number; maxDurationSec: number; minDurationSec: number } }>(`${this.base}/montages/status`);
+  }
+  montageQuote(durationSec: number, creativity: string) {
+    return this.http.post<{ cost: number }>(`${this.base}/montages/quote`, { durationSec, creativity });
+  }
+  montages(brandId?: string) {
+    return this.http.get<{ montages: Montage[] }>(`${this.base}/montages`, { params: brandId ? { brandId } : {} });
+  }
+  /** Envoi de la vidéo : les événements d'envoi (progression) puis la réponse. */
+  createMontage(file: File, fields: Record<string, string>): Observable<HttpEvent<Montage>> {
+    const form = new FormData();
+    Object.entries(fields).forEach(([k, v]) => form.append(k, v));
+    form.append('file', file);
+    return this.http.post<Montage>(`${this.base}/montages`, form, { reportProgress: true, observe: 'events' });
+  }
+  montage(id: string) {
+    return this.http.get<Montage>(`${this.base}/montages/${id}`);
+  }
+  updateMontage(id: string, patch: Record<string, unknown>) {
+    return this.http.patch<Montage>(`${this.base}/montages/${id}`, patch);
+  }
+  montagePreview(id: string) {
+    return this.http.get<{ html: string }>(`${this.base}/montages/${id}/preview`);
+  }
+  montageExportQuote(id: string) {
+    return this.http.post<{ cost: number }>(`${this.base}/montages/${id}/export-quote`, {});
+  }
+  exportMontage(id: string) {
+    return this.http.post<Montage>(`${this.base}/montages/${id}/export`, {});
+  }
+  deleteMontage(id: string) {
+    return this.http.delete<void>(`${this.base}/montages/${id}`);
   }
 
   // ── Visuels ──

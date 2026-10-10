@@ -67,7 +67,7 @@
             @if (v.voice?.enabled && v.voice?.lines?.length) {
               <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'edit.voiceLines' | translate: { count: v.voice!.lines.length } }}</p>
             } @else if (v.voice?.unavailable) {
-              <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'edit.voiceUnavailable' | translate }}</p>
+              <p class="text-xs text-[var(--color-text-tertiary)]">{{ (languageRefused(v.voice!.unavailable!) ? 'edit.voiceUnavailable' : 'edit.voiceFailed') | translate }}</p>
             }
           </div>
         </section>

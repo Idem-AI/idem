@@ -22,20 +22,26 @@ import { installRenderNetworkGuard, isStrictRenderRequest } from '../render/netw
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
-let browserPromise: Promise<Browser> | null = null;
+/**
+ * Deux navigateurs possibles : avec WebGL logiciel (SwiftShader, pour les scènes 3D) ou sans
+ * (le montage d'une prise de parole : sans 3D, la capture d'une image y coûte deux fois moins).
+ */
+const browsers: Record<'webgl' | 'plain', Promise<Browser> | null> = { webgl: null, plain: null };
 let idleTimer: NodeJS.Timeout | null = null;
 let activeRenders = 0;
 
-async function getBrowser(): Promise<Browser> {
+async function getBrowser(webgl = true): Promise<Browser> {
   if (idleTimer) {
     clearTimeout(idleTimer);
     idleTimer = null;
   }
-  if (browserPromise) {
-    const b = await browserPromise.catch(() => null);
+  const kind = webgl ? 'webgl' : 'plain';
+  const current = browsers[kind];
+  if (current) {
+    const b = await current.catch(() => null);
     if (b && b.isConnected()) return b;
   }
-  browserPromise = puppeteer.launch({
+  browsers[kind] = puppeteer.launch({
     headless: true,
     args: [
       '--no-sandbox',
@@ -49,9 +55,7 @@ async function getBrowser(): Promise<Browser> {
       '--disable-background-timer-throttling',
       '--disable-renderer-backgrounding',
       // WebGL logiciel (SwiftShader) : les scènes 3D se rendent sans carte graphique.
-      '--enable-unsafe-swiftshader',
-      '--use-angle=swiftshader',
-      '--ignore-gpu-blocklist',
+      ...(webgl ? ['--enable-unsafe-swiftshader', '--use-angle=swiftshader', '--ignore-gpu-blocklist'] : []),
       '--autoplay-policy=no-user-gesture-required',
       // Les onglets de rendu tournent en parallèle : aucun ne doit être traité
       // comme « en arrière-plan », sinon Chromium suspend le décodage de ses clips.
@@ -61,18 +65,22 @@ async function getBrowser(): Promise<Browser> {
     ],
     timeout: 30000,
   });
-  return browserPromise;
+  return browsers[kind]!;
 }
 
-/** Le navigateur est fermé après 2 minutes sans rendu : il pèse plusieurs centaines de Mo. */
+/** Les navigateurs sont fermés après 2 minutes sans rendu : ils pèsent plusieurs centaines de Mo. */
 function releaseBrowser(): void {
   if (activeRenders > 0) return;
-  idleTimer = setTimeout(async () => {
-    const b = await browserPromise?.catch(() => null);
-    browserPromise = null;
-    await b?.close().catch(() => undefined);
-  }, 120000);
+  idleTimer = setTimeout(() => void closeBrowsers(), 120000);
   idleTimer.unref?.();
+}
+
+async function closeBrowsers(): Promise<void> {
+  for (const kind of ['webgl', 'plain'] as const) {
+    const b = await browsers[kind]?.catch(() => null);
+    browsers[kind] = null;
+    await b?.close().catch(() => undefined);
+  }
 }
 
 /**
@@ -97,9 +105,7 @@ export async function withRenderPage<T>(input: { html: string; width: number; he
 
 export async function closeRenderBrowser(): Promise<void> {
   if (idleTimer) clearTimeout(idleTimer);
-  const b = await browserPromise?.catch(() => null);
-  browserPromise = null;
-  await b?.close().catch(() => undefined);
+  await closeBrowsers();
 }
 
 function run(args: string[], input?: NodeJS.ReadableStream): Promise<void> {
@@ -146,6 +152,8 @@ export interface RenderInput {
   concurrency?: number;
   /** La page exécute du code écrit par l'IA (cran Ultra) : garde réseau strict. */
   strict?: boolean;
+  /** Faux : la page n'a pas de 3D (navigateur sans WebGL logiciel, capture plus rapide). */
+  webgl?: boolean;
 }
 
 export interface RenderOutput {
@@ -226,7 +234,7 @@ export async function renderVideo(input: RenderInput): Promise<RenderOutput> {
     Math.min(input.concurrency ?? (Number(process.env.VIDEO_RENDER_CONCURRENCY) || Math.min(3, Math.max(1, os.cpus().length - 1))), 6, Math.ceil(total / 30))
   );
   activeRenders++;
-  const browser = await getBrowser();
+  const browser = await getBrowser(input.webgl !== false);
   const pages: Page[] = [];
   let done = 0;
   let lastReport = 0;

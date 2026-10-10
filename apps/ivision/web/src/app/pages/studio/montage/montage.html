@@ -1,0 +1,132 @@
+<div class="custom-scrollbar h-full overflow-y-auto">
+  <div class="mx-auto max-w-3xl px-4 py-6">
+    <header class="flex items-center gap-4">
+      <iv-illustration class="h-20 w-20 flex-none text-[var(--color-text-secondary)]" kind="kuba" />
+      <div class="min-w-0">
+        <h1 class="text-xl font-semibold">{{ 'montage.title' | translate }}</h1>
+        <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ 'montage.subtitle' | translate }}</p>
+      </div>
+    </header>
+
+    @if (available() === null) {
+      <idem-loader block [label]="'common.loading' | translate" />
+    } @else if (!available()) {
+      <p class="glass-card mt-6 p-5 text-sm" role="status">{{ 'montage.unavailable' | translate }}</p>
+    } @else if (state.brandsLoaded() && !state.brands().length) {
+      <div class="glass-card mt-6 p-5 text-sm">
+        <p>{{ 'montage.needBrand' | translate }}</p>
+        <a class="outer-button button-sm mt-3 inline-flex" routerLink="/studio/brands">{{ 'studio.brands' | translate }}</a>
+      </div>
+    } @else {
+      <form class="glass-card mt-6 flex flex-col gap-5 p-5" (submit)="$event.preventDefault(); send()">
+        <!-- La vidéo. -->
+        <div>
+          <label class="outer-button button-sm inline-flex cursor-pointer items-center gap-2 !mb-0">
+            <i class="pi pi-upload" aria-hidden="true"></i>
+            {{ (file() ? 'montage.changeFile' : 'montage.pickFile') | translate }}
+            <input type="file" class="sr-only" accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/3gpp,.mp4,.mov,.webm,.m4v,.3gp,.mkv" (change)="onFile($event)" [disabled]="uploading()" />
+          </label>
+          <p class="mt-2 text-xs text-[var(--color-text-tertiary)]">{{ 'montage.fileHint' | translate: { minutes: limits().maxDurationSec / 60 } }}</p>
+          @if (fileUrl(); as url) {
+            <div class="mt-3 flex flex-wrap items-start gap-4">
+              <video class="max-h-56 max-w-full rounded-lg bg-[var(--glass-bg-light)]" [src]="url" controls muted playsinline preload="metadata" (loadedmetadata)="onMetadata($event)" (error)="onVideoError()"></video>
+              <div class="min-w-0 text-sm">
+                <p class="truncate font-medium">{{ file()?.name }}</p>
+                @if (durationSec()) {
+                  <p class="text-[var(--color-text-secondary)]">{{ minutes(durationSec()!) }}</p>
+                }
+                @if (fileError(); as e) {
+                  <p class="mt-1 text-[var(--color-danger)]" role="alert">{{ e | translate: { minutes: limits().maxDurationSec / 60 } }}</p>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <label class="!flex flex-col gap-1 text-sm !mb-0">
+          <span>{{ 'montage.brand' | translate }}</span>
+          <select (change)="brandId.set($any($event.target).value)" [disabled]="uploading()">
+            @for (b of state.brands(); track b.id) {
+              <option [value]="b.id" [selected]="b.id === brandId()">{{ b.name }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="!flex flex-col gap-1 text-sm !mb-0">
+          <span>{{ 'montage.prompt' | translate }}</span>
+          <textarea rows="3" maxlength="1200" [value]="prompt()" (input)="prompt.set($any($event.target).value)" [placeholder]="'montage.promptPlaceholder' | translate" [disabled]="uploading()"></textarea>
+        </label>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="!flex flex-col gap-1 text-sm !mb-0">
+            <span>{{ 'montage.format' | translate }}</span>
+            <select (change)="format.set($any($event.target).value)" [disabled]="uploading()">
+              @for (f of formats; track f) {
+                <option [value]="f" [selected]="f === format()">{{ 'formats.' + f | translate }}</option>
+              }
+            </select>
+          </label>
+          <label class="!flex flex-col gap-1 text-sm !mb-0">
+            <span>{{ 'montage.cuts' | translate }}</span>
+            <select (change)="cuts.set($any($event.target).value)" [disabled]="uploading()">
+              @for (c of cutModes; track c) {
+                <option [value]="c" [selected]="c === cuts()">{{ 'montage.cutModes.' + c | translate }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <label class="!flex items-center gap-2 text-sm !mb-0">
+          <input type="checkbox" [checked]="music()" (change)="music.set($any($event.target).checked)" [disabled]="uploading()" />
+          {{ 'montage.music' | translate }}
+        </label>
+
+        <div class="flex flex-wrap items-center gap-3 border-t border-[var(--glass-border-subtle)] pt-4">
+          <iv-creativity-select [(value)]="creativity" />
+          @if (price() !== null) {
+            <span class="text-sm text-[var(--color-text-secondary)]">{{ 'montage.price' | translate: { cost: price() } }}</span>
+          }
+          <button type="submit" class="inner-button ml-auto" [disabled]="!canSend()">
+            @if (uploading()) { <idem-loader size="xs" /> }
+            {{ 'montage.start' | translate }}
+          </button>
+        </div>
+
+        @if (uploading()) {
+          <div>
+            <p class="text-sm">{{ 'montage.uploading' | translate: { percent: uploadPercent() } }}</p>
+            <progress class="mt-2 w-full" max="100" [value]="uploadPercent()"></progress>
+          </div>
+        }
+        @if (needCredits()) {
+          <p class="text-sm" role="alert">{{ 'chat.payment.short' | translate }} <a class="text-[var(--color-primary-500)] underline" [href]="accountUrl">{{ 'chat.payment.cta' | translate }}</a></p>
+        }
+        @if (error(); as e) {
+          <p class="text-sm" role="alert">{{ e.startsWith('montage.') ? (e | translate) : e }}</p>
+        }
+      </form>
+
+      @if (state.montages().length) {
+        <section class="mt-8" [attr.aria-label]="'montage.mine' | translate">
+          <h2 class="mb-3 font-semibold">{{ 'montage.mine' | translate }}</h2>
+          <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            @for (m of state.montages(); track m.id) {
+              <li>
+                <a [routerLink]="['/studio/montage', m.id]" class="glass-card block overflow-hidden">
+                  @if (m.edit?.posterUrl) {
+                    <img [src]="m.edit!.posterUrl" alt="" class="aspect-square w-full object-cover" loading="lazy" />
+                  } @else {
+                    <div class="flex aspect-square w-full items-center justify-center bg-[var(--glass-bg-light)]">
+                      @if (m.status === 'processing') { <idem-loader size="sm" /> } @else { <i class="pi pi-microphone text-xl text-[var(--color-text-tertiary)]" aria-hidden="true"></i> }
+                    </div>
+                  }
+                  <span class="block truncate px-3 py-2 text-sm">{{ m.title }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    }
+  </div>
+</div>

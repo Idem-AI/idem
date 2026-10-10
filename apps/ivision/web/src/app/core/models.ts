@@ -1,5 +1,7 @@
 /** Les objets de l'API iVision, tels que l'interface les lit. */
 export type ChatMode = 'image' | 'video';
+/** Les ateliers du studio : les deux conversations, et le montage d'une prise de parole. */
+export type StudioMode = ChatMode | 'montage';
 export type Creativity = 'low' | 'medium' | 'high' | 'max' | 'ultra';
 export type PaletteRole = 'primary' | 'secondary' | 'accent' | 'background' | 'text';
 
@@ -172,3 +174,55 @@ export type ChatEvent =
   | { type: 'result'; message: ChatMessage; video?: MotionVideo; visual?: Visual }
   | { type: 'error'; error: string; message: string; payment?: { cost?: number; balance?: number; missing?: number } }
   | { type: 'done' };
+
+// ── Montage d'une prise de parole ──
+
+export type MontageElementType = 'keyword' | 'stat' | 'icon' | 'list' | 'callout' | 'broll' | 'lowerThird' | 'cta' | 'zoom';
+export type CaptionStyle = 'pop' | 'karaoke' | 'minimal' | 'none';
+export type CutMode = 'tight' | 'natural' | 'none';
+export type MontageStage = 'upload' | 'transcribe' | 'cut' | 'plan' | 'media' | 'ready';
+
+export interface MontageElement {
+  id: string;
+  type: MontageElementType;
+  from: number;
+  to: number;
+  text?: string;
+  value?: string;
+  label?: string;
+  items?: string[];
+  icon?: string;
+  image?: string;
+  mode?: 'full' | 'card';
+  credit?: string;
+  off?: boolean;
+}
+
+export interface Montage {
+  id: string;
+  brandId: string;
+  title: string;
+  status: 'processing' | 'ready' | 'failed';
+  stage: MontageStage;
+  progress?: number;
+  error?: string;
+  prompt: string;
+  format: string;
+  creativity: Creativity;
+  language?: string;
+  source: { url: string; durationSec: number; width: number; height: number; name?: string };
+  edit?: { url: string; posterUrl?: string; durationSec: number; width: number; height: number };
+  words: { text: string; start: number; end: number; p?: number }[];
+  cuts: { mode: CutMode; ranges: { start: number; end: number; at: number }[]; removedSec: number; dropped?: number[] };
+  captions: { style: CaptionStyle };
+  elements: MontageElement[];
+  outro?: { text: string; detail?: string; durationSec: number };
+  music?: { title: string; artist: string; attribution?: string };
+  musicEnabled: boolean;
+  plannedBy?: 'llm' | 'rules';
+  paidCredits: number;
+  exportCount: number;
+  renders: VideoRender[];
+  createdAt: string;
+  updatedAt: string;
+}
