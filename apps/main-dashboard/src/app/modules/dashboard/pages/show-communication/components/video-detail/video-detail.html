@@ -54,45 +54,49 @@
       }
     </header>
 
-    <div class="vd-layout">
-      <!-- ═══════════ Aperçu ═══════════ -->
-      <div class="vd-preview-col">
-        @if (v.scope.formats.length > 1) {
-          <div class="vd-tabs" role="tablist" [attr.aria-label]="'dashboard.showCommunication.video.detail.formats' | translate">
-            @for (f of v.scope.formats; track f) {
-              <button
-                type="button"
-                role="tab"
-                class="vd-tab"
-                [class.vd-tab-active]="previewFormat() === f"
-                [attr.aria-selected]="previewFormat() === f"
-                (click)="setPreviewFormat(f)"
-              >
-                {{ 'dashboard.showCommunication.video.formats.' + f + '.label' | translate }}
-              </button>
-            }
-          </div>
+    <!-- ═══════════ Aperçu et textes : l'éditeur partagé avec iVision ═══════════ -->
+    @if (v.scope.formats.length > 1) {
+      <div class="vd-tabs" role="tablist" [attr.aria-label]="'dashboard.showCommunication.video.detail.formats' | translate">
+        @for (f of v.scope.formats; track f) {
+          <button
+            type="button"
+            role="tab"
+            class="vd-tab"
+            [class.vd-tab-active]="previewFormat() === f"
+            [attr.aria-selected]="previewFormat() === f"
+            (click)="setPreviewFormat(f)"
+          >
+            {{ 'dashboard.showCommunication.video.formats.' + f + '.label' | translate }}
+          </button>
         }
-        <div class="vd-frame" [style.--r]="ratio()">
-          @if (previewHtml(); as html) {
-            <iframe
-              class="vd-iframe"
-              sandbox="allow-scripts"
-              [srcdoc]="html"
-              [title]="'dashboard.showCommunication.video.detail.previewTitle' | translate"
-            ></iframe>
-          }
-          @if (previewLoading()) {
-            <idem-loader overlay />
-          }
-        </div>
-        <p class="mt-2 text-center text-xs text-[var(--color-text-tertiary)]">
-          {{ 'dashboard.showCommunication.video.detail.previewHint' | translate }}
-        </p>
       </div>
+    }
+    <div class="relative">
+      @if (previewHtml(); as html) {
+        <idem-video-editor
+          [html]="html"
+          [scenes]="scenes()"
+          [slotDefs]="options().scenes"
+          [ratio]="ratio()"
+          [lang]="editorLang()"
+          (edit)="saveTexts($event)"
+          (replaceImage)="pickPhoto($event.key, photoInput)"
+        />
+      } @else {
+        <idem-loader block [label]="'common.loading' | translate" />
+      }
+      @if (previewLoading() && previewHtml()) {
+        <idem-loader overlay />
+      }
+      <input #photoInput type="file" class="sr-only" accept="image/jpeg,image/png,image/webp" (change)="onPhoto($event)" [attr.aria-label]="'dashboard.showCommunication.video.texts.replacePhoto' | translate" />
+      @if (saving() === 'texts' || saving() === 'photo') {
+        <p class="mt-2 flex items-center gap-2 text-xs text-[var(--color-text-tertiary)]" role="status"><idem-loader size="xs" /> {{ 'dashboard.showCommunication.video.texts.saving' | translate }}</p>
+      }
+    </div>
 
+    <div class="vd-settings mt-6">
       <!-- ═══════════ Réglages ═══════════ -->
-      <div class="vd-side">
+      <div class="vd-side vd-side--grid">
         <!-- Export -->
         <section class="glass-card vd-card" aria-labelledby="vd-export-title">
           <h3 id="vd-export-title" class="vd-card-title">
@@ -194,53 +198,6 @@
             </button>
           }
         </section>
-
-        <!-- Textes -->
-        <details class="glass-card vd-card" open>
-          <summary class="vd-card-title">
-            <i class="pi pi-pencil" aria-hidden="true"></i>
-            {{ 'dashboard.showCommunication.video.texts.title' | translate }}
-          </summary>
-          <p class="mt-1 text-xs text-[var(--color-text-tertiary)]">
-            {{ 'dashboard.showCommunication.video.texts.hint' | translate }}
-          </p>
-          <ol class="mt-3 space-y-4">
-            @for (scene of scenes(); track scene.key) {
-              <li>
-                <p class="vd-scene">
-                  <span>{{ 'dashboard.showCommunication.video.scenes.' + scene.sceneId | translate }}</span>
-                  <span class="text-[var(--color-text-tertiary)]">{{ scene.start.toFixed(1) }} s</span>
-                </p>
-                @for (slot of slotSpecs(scene.sceneId); track slot.key) {
-                  <label class="vd-label mt-2" [for]="'vd-' + scene.key + '-' + slot.key">
-                    {{ 'dashboard.showCommunication.video.slots.' + slot.key | translate }}
-                  </label>
-                  <input
-                    type="text"
-                    [id]="'vd-' + scene.key + '-' + slot.key"
-                    [maxLength]="slot.max"
-                    [ngModel]="slotValue(scene.key, slot.key)"
-                    (ngModelChange)="setSlot(scene.key, slot.key, $event)"
-                    [name]="'vd-' + scene.key + '-' + slot.key"
-                  />
-                }
-              </li>
-            }
-          </ol>
-          <button
-            type="button"
-            class="inner-button mt-4 w-full"
-            [disabled]="!hasTextChanges() || saving() !== null"
-            (click)="saveTexts()"
-          >
-            @if (saving() === 'texts') {
-              <idem-loader size="xs" />
-            } @else {
-              <i class="pi pi-refresh" aria-hidden="true"></i>
-            }
-            {{ 'dashboard.showCommunication.video.texts.save' | translate }}
-          </button>
-        </details>
 
         <!-- Musique -->
         <section class="glass-card vd-card" aria-labelledby="vd-music-title">
@@ -345,6 +302,46 @@
             </ul>
             <p class="mt-2 text-xs text-[var(--color-text-tertiary)]">
               {{ 'dashboard.showCommunication.video.sfx.license' | translate }}
+            </p>
+          }
+        </section>
+
+        <!-- Voix off -->
+        <section class="glass-card vd-card" aria-labelledby="vd-voice-title">
+          <h3 id="vd-voice-title" class="vd-card-title">
+            <i class="pi pi-microphone" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.video.voice.title' | translate }}
+          </h3>
+          <label class="vd-check mt-2">
+            <input
+              type="checkbox"
+              [checked]="!!v.voice?.enabled"
+              [disabled]="saving() !== null"
+              (change)="toggleVoice(!v.voice?.enabled)"
+            />
+            {{ 'dashboard.showCommunication.video.voice.toggle' | translate }}
+            @if (saving() === 'voice') {
+              <idem-loader size="xs" />
+            }
+          </label>
+          @if (v.voice?.enabled && v.voice?.lines?.length) {
+            <p class="mt-2 text-xs text-[var(--color-text-secondary)]">
+              {{
+                'dashboard.showCommunication.video.voice.lines'
+                  | translate
+                    : {
+                        count: v.voice!.lines.length,
+                        persona: ('dashboard.showCommunication.video.voice.personas.' + v.voice!.persona | translate),
+                      }
+              }}
+            </p>
+          } @else if (v.voice?.unavailable) {
+            <p class="mt-2 text-xs text-[var(--color-text-tertiary)]">
+              {{ 'dashboard.showCommunication.video.voice.unavailable' | translate }}
+            </p>
+          } @else {
+            <p class="mt-2 text-xs text-[var(--color-text-tertiary)]">
+              {{ 'dashboard.showCommunication.video.voice.hint' | translate }}
             </p>
           }
         </section>

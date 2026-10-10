@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   effect,
   inject,
@@ -14,6 +15,7 @@ import { forkJoin } from 'rxjs';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
+import { ivisionUrl } from '../../../../../../shared/utils/app-redirect';
 import { MotionVideo, VideoOptions } from '../../../../models/motion-video.model';
 import { VideoBuilder } from '../video-builder/video-builder';
 import { VideoDetail } from '../video-detail/video-detail';
@@ -39,6 +41,8 @@ export class VideoPanel {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly projectId = input.required<string>();
+  /** La même vidéo dans iVision (conversation), avec la charte de ce projet importée. */
+  protected readonly ivisionLink = computed(() => `${ivisionUrl()}/studio/video?project=${encodeURIComponent(this.projectId())}`);
   /** Vidéo à ouvrir dès qu'elle est chargée (depuis le calendrier). */
   readonly openVideoId = input<string | null>(null);
   readonly openHandled = output<void>();

@@ -115,6 +115,8 @@ export class VideoBuilder {
   protected readonly direction = signal<string>('auto');
   protected readonly directions = computed(() => this.options().directions ?? ['auto']);
   protected readonly sfx = signal(true);
+  /** Voix off : choisie par l'utilisateur, jamais imposée. */
+  protected readonly voice = signal(false);
   protected readonly allowStock = signal(true);
   protected readonly allowGenerate = signal(true);
   protected readonly showMore = signal(false);
@@ -253,6 +255,7 @@ export class VideoBuilder {
           allowStock: this.allowStock(),
           allowGenerate: this.allowGenerate(),
           sfx: this.sfx(),
+          voice: this.voice(),
         },
         scope: this.scope(),
         type: this.type(),

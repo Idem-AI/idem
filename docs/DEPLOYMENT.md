@@ -45,13 +45,27 @@ Production images per application:
 
 | Application | Dockerfile | Serves with |
 | --- | --- | --- |
-| API | `Dockerfile.api` | Node 20 + system Chromium (PDF rendering) |
+| API | `Dockerfile.api` | Node 20 + system Chromium (PDF rendering) + ffmpeg; also compiles the shared engine `apps/ivision/core` |
+| iVision API | `Dockerfile.ivision-api` | Node 20 + system Chromium + ffmpeg (video and visual rendering) |
 | AppGen server | `Dockerfile.appgen-server` | Node 20, entry point `dist/main.js` |
 | AppGen client | `Dockerfile.appgen-client` | `vite preview` |
 | iDeploy API | `Dockerfile.ideploy-api` | Node 20 |
-| Main dashboard, landing, simulation, iDeploy web, chart | `Dockerfile.<app>` | nginx (static build) |
+| Main dashboard, landing, simulation, iDeploy web, iVision web, chart | `Dockerfile.<app>` | nginx (static build) |
 
 Front-end images are built with the root `.env` of the server checkout, because front-end configuration is compiled in. That file must only contain public values for them (see [front-end variables](CONFIGURATION.md#front-end-variables-are-public)).
+
+## iVision
+
+Two services, `ivision-api` (port 3006) and `ivision-web`, deployed by `deploy-ivision-api.yml` and `deploy-ivision-web.yml`. Before the first deployment:
+
+1. **Shared service key.** Create `IVISION_SERVICE_KEY` (`openssl rand -hex 32`) in **both** Infisical projects, `api` and `ivision-api`. The IDEM API refuses its `/internal/ivision/*` gateway (503) without it.
+2. **Infisical project `ivision-api`** with `MONGODB_PASSWORD`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `IVISION_SERVICE_KEY` (required) and `PEXELS_API_KEY`, `JAMENDO_CLIENT_ID` (optional).
+3. **Non-secret configuration** of `ivision-api`: `IDEM_API_URL`, `IVISION_API_URL` (its public URL), `IVISION_ALLOWED_ORIGINS` (the iVision front and the dashboard), `MONGODB_*`, `MINIO_*` (same MongoDB and MinIO as the API).
+4. **Front build** (`.env` of the server checkout): `IVISION_API_URL`, `SERVICES_API_URL`, `SERVICES_DASHBOARD_URL` — the build fails if one is missing.
+5. **IDEM side.** Add the iVision front origin to the API's `CORS_ALLOWED_ORIGINS` (it reads `/auth/profile` with the session cookie) and `SERVICES_IVISION_URL` to the dashboard's `.env` (login redirect and « Ouvrir dans iVision »).
+6. **Compose.** Add `ivision-api` and `ivision-web` (and their `-staging` twins) to `/root/application/docker-compose.prod.yml` / `docker-compose.staging.yml`, with the reverse-proxy routes for their domains; the workflows only swap image tags.
+
+The IDEM API image now also compiles `apps/ivision/core`: `deploy-api.yml` runs on changes there.
 
 ## Publishing from iCode
 

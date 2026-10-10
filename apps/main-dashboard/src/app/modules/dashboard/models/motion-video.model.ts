@@ -62,7 +62,24 @@ export interface VideoBrief {
   allowStock?: boolean;
   allowGenerate?: boolean;
   sfx?: boolean;
+  /** Voix off dans la langue de la vidéo (désactivée par défaut). */
+  voice?: boolean;
   direction?: string;
+}
+
+/** La voix off d'une vidéo : une ligne par scène, calée sur elle. */
+export interface VideoVoice {
+  enabled: boolean;
+  language: string;
+  persona: string;
+  provider: 'glm' | 'gemini';
+  model: string;
+  voice: string;
+  style?: string;
+  lines: { sceneKey: string; text: string; url: string; durationSec: number; offset: number }[];
+  source: 'llm' | 'heuristic';
+  /** La voix n'a pas pu être produite (langue, service) : la vidéo reste sans. */
+  unavailable?: string;
 }
 
 export interface VideoSceneInstance {
@@ -135,6 +152,7 @@ export interface MotionVideo {
   type?: VideoType;
   media?: VideoMediaAsset[];
   sfx?: { enabled: boolean; sounds: Partial<Record<SfxKind, SfxSound>> };
+  voice?: VideoVoice;
   brief: VideoBrief;
   scope: VideoScope;
   storyboard: VideoStoryboard;
@@ -201,7 +219,7 @@ export function priceExport(pricing: VideoPricing, video: MotionVideo, scope: Vi
 }
 
 /** Étapes réelles d'une création, reçues en direct (flux SSE). */
-export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'storyboard' | 'animation' | 'critique' | 'code' | 'direction' | 'shots';
+export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'voice' | 'storyboard' | 'animation' | 'critique' | 'code' | 'direction' | 'shots';
 
 export interface VideoProgressMediaItem {
   kind: VideoMediaKind;
@@ -252,6 +270,14 @@ export interface VideoProgressData {
   round?: number;
   reviewed?: number;
   authored?: { shots: number; coded: number };
+  /** Médias générés : plans demandés au directeur photo, essais en échec, repli des visuels. */
+  planned?: number;
+  failedAttempts?: number;
+  fromVisuals?: number;
+  /** Voix off : lignes dites, langue, ou la raison de son absence. */
+  language?: string;
+  persona?: string;
+  unavailable?: string;
 }
 
 export type VideoStreamEvent =

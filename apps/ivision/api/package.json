@@ -1,0 +1,45 @@
+{
+  "name": "ivision-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "iVision — service de visuels et de vidéos motion design (Express + TypeScript). Exécute le moteur créatif partagé avec IDEM (apps/ivision/core) ; identité, modèles et crédits via l'API IDEM.",
+  "main": "dist/apps/ivision/api/src/index.js",
+  "scripts": {
+    "dev": "nodemon",
+    "build": "tsc -p tsconfig.json && npm run build:video-engine",
+    "build:video-engine": "ts-node --transpile-only scripts/build-video-engine.ts",
+    "start": "node dist/apps/ivision/api/src/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "check": "ts-node --transpile-only scripts/check-api.ts",
+    "dev:offline": "ts-node --transpile-only scripts/dev-offline.ts"
+  },
+  "author": "arolleaguekeng",
+  "license": "MIT",
+  "dependencies": {
+    "@infisical/sdk": "^5.0.2",
+    "axios": "^1.7.9",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "minio": "^8.0.2",
+    "mongoose": "^8.9.3",
+    "multer": "^2.0.2",
+    "sharp": "^0.35.5",
+    "winston": "^3.17.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/hpp": "^0.2.7",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.13.11",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}

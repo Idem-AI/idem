@@ -1,0 +1,6 @@
+{
+  "watch": ["src", "../core/src", ".env", ".env.secret"],
+  "ext": "ts,json,env",
+  "ignore": ["dist"],
+  "exec": "ts-node --transpile-only src/index.ts"
+}

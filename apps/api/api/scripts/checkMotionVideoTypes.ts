@@ -14,7 +14,7 @@
  *
  *   npx ts-node --transpile-only api/scripts/checkMotionVideoTypes.ts            # les 8 types
  *   npx ts-node --transpile-only api/scripts/checkMotionVideoTypes.ts --only=3d  # un seul (id partiel)
- *   npx ts-node --transpile-only api/scripts/checkMotionVideoTypes.ts --veo      # + un clip généré par Gemini Veo (payant)
+ *   npx ts-node --transpile-only api/scripts/checkMotionVideoTypes.ts --generate # + une vidéo aux médias générés par les modèles GLM d'IDEM, avec voix off (payant)
  *
  * Sorties : `tmp/motion-video-examples/` (MP4, planches, index.html à ouvrir).
  */
@@ -24,12 +24,15 @@ import axios from 'axios';
 import { spawnSync } from 'child_process';
 import { loadSecrets } from '../config/secrets';
 import { MotionVideo } from '../models/motionVideo.model';
-import { MotionVideoService, drainRenderQueue } from '../services/Communication/video/motionVideo.service';
-import { closeRenderBrowser, probe } from '../services/Communication/video/video.renderer';
-import { videoCost } from '../services/Communication/video/video.pricing';
-import { sfxLibrary } from '../services/Communication/video/video.sfx';
+import { IdemVideoStore } from '../services/Communication/video/idemVideoStore';
+import { configureCore } from '../../../ivision/core/src/runtime/host';
+import { MotionVideoService, drainRenderQueue } from '../../../ivision/core/src/video/motionVideo.service';
+import { closeRenderBrowser, probe } from '../../../ivision/core/src/video/video.renderer';
+import { videoCost } from '../../../ivision/core/src/video/video.pricing';
+import { sfxLibrary } from '../../../ivision/core/src/video/video.sfx';
 import { BRANDS, brandById } from './fixtures/motion-video/brands';
-import { EXAMPLES, ExampleCase, makeBottleGlb, starsLottie, VEO_EXAMPLE } from './fixtures/motion-video/examples';
+import { EXAMPLES, ExampleCase, makeBottleGlb, starsLottie, GENERATED_EXAMPLE } from './fixtures/motion-video/examples';
+import { idemAnalyzeImage, idemGenerateImage, idemGenerateVideo, idemSynthesizeSpeech } from '../services/ivision/host';
 import { simulateModel } from './fixtures/motion-video/cases';
 import { makePhotos } from './fixtures/motion-video/media';
 
@@ -146,7 +149,8 @@ interface Result {
 async function main() {
   await loadSecrets().catch(() => undefined);
   const only = process.argv.find((a) => a.startsWith('--only='))?.split('=')[1];
-  const cases = [...EXAMPLES, ...(process.argv.includes('--veo') ? [VEO_EXAMPLE] : [])].filter((c) => !only || c.id.includes(only));
+  const generate = process.argv.includes('--generate');
+  const cases = [...EXAMPLES, ...(generate ? [GENERATED_EXAMPLE] : [])].filter((c) => !only || c.id.includes(only));
 
   console.log('\nSonothèque (Freesound CC0 via Openverse)…');
   const lib = await sfxLibrary();
@@ -158,9 +162,10 @@ async function main() {
 
   const fake = new FakeCommunication();
   let current: ExampleCase = cases[0];
-  const service = new MotionVideoService(fake as any, () => (system, user) => simulateModel({ ...current, behaviour: 'clean' } as any)(system, user));
-  (service as any).storage = fakeStorage;
-  (service as any).mediaStorage = () => fakeStorage;
+  const service = new MotionVideoService(new IdemVideoStore(fake as any), () => (system, user) => simulateModel({ ...current, behaviour: 'clean' } as any)(system, user));
+  // `--generate` : les vrais modèles d'IDEM (GLM-Image, CogVideoX-3, GLM-TTS ou son repli, vision) ;
+  // sinon aucun port de génération, les médias viennent des imports et de Pexels.
+  configureCore(generate ? { storage: fakeStorage, generateImage: idemGenerateImage, generateVideo: idemGenerateVideo, synthesizeSpeech: idemSynthesizeSpeech, analyzeImage: idemAnalyzeImage } : { storage: fakeStorage });
 
   const results: Result[] = [];
   for (const c of cases) {

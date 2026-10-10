@@ -9,7 +9,16 @@ import { environment } from '../../../environments/environment';
  * par le cookie `session` posé par l'API Idem sur le domaine partagé — il n'y
  * a donc rien d'autre à transmettre.
  */
-export type RedirectTarget = 'simulation' | 'appgen';
+export type RedirectTarget = 'simulation' | 'appgen' | 'ivision';
+
+/**
+ * L'adresse d'iVision. Lue avec un repli : un `environment.ts` généré avant l'arrivée d'iVision
+ * (fichier local, non suivi) n'a pas encore la clé — `node mynode.js` l'ajoute.
+ */
+export function ivisionUrl(): string {
+  const services = environment.services as typeof environment.services & { ivision?: { url: string } };
+  return services.ivision?.url || (environment.environment === 'dev' ? 'http://localhost:4204' : 'https://ivision.idem.africa');
+}
 
 /** Base autorisée pour chaque application acceptant un retour après login. */
 export function appBaseUrl(target: RedirectTarget): string {
@@ -18,6 +27,8 @@ export function appBaseUrl(target: RedirectTarget): string {
       return environment.services.simulation.url;
     case 'appgen':
       return environment.services.webgen.url;
+    case 'ivision':
+      return ivisionUrl();
   }
 }
 

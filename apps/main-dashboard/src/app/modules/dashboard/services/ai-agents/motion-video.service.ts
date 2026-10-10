@@ -113,7 +113,11 @@ export class MotionVideoService {
       musicTrackId?: string;
       scope?: Partial<VideoScope>;
       sfx?: boolean;
+      /** Voix off : coupée, ou ajoutée (écrite et dite dans la langue de la vidéo). */
+      voice?: boolean;
       direction?: string;
+      /** Clé de scène → nouvelle photo (URL importée). */
+      images?: Record<string, string>;
     },
   ): Observable<MotionVideo> {
     return this.http.patch<MotionVideo>(`${this.apiUrl}/${projectId}/videos/${videoId}`, patch);

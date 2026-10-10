@@ -51,7 +51,8 @@
     "check:video:variety": "ts-node --transpile-only api/scripts/checkVideoVariety.ts",
     "check:creativity": "ts-node --transpile-only api/scripts/checkCreativity.ts",
     "check:video:layouts": "ts-node --transpile-only api/scripts/checkVideoLayouts.ts",
-    "check:video:novelty": "ts-node --transpile-only api/scripts/checkVideoNovelty.ts"
+    "check:video:novelty": "ts-node --transpile-only api/scripts/checkVideoNovelty.ts",
+    "check:ivision": "ts-node --transpile-only api/scripts/checkIvisionGateway.ts"
   },
   "author": "arolleaguekeng",
   "license": "MIT",

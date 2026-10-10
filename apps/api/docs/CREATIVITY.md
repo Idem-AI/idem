@@ -119,7 +119,7 @@ L'ancien codeur de scènes (`video.coder.ts#codeScenes`) reste le repli du film 
    - les graphiques et le dessin : `ChartJs`, `useViz` (visx + d3), `DataArc`, `GrowArea`, `AfricaMap`, `Sketch`, `Brush`, `useNoise`, `FlowField`, `Flat3D` ; les chiffres par `numbersIn` ;
    - les variables de la charte et les règles du moteur.
 
-   Le kit est exposé par `video-engine/src/kit-api.ts` ; les addons qu'un plan importe sont chargés au montage (`addonsOfSceneCode`).
+   Le kit est exposé par `apps/ivision/core/engine/src/kit-api.ts` ; les addons qu'un plan importe sont chargés au montage (`addonsOfSceneCode`).
 2. **Lint** sur l'arbre syntaxique (acorn). Sont refusés :
    - les imports autres que `@idem/kit` et `react`, et les noms que le kit n'exporte pas ;
    - les globaux libres (`window`, `document`, `fetch`, `Date`…) ;

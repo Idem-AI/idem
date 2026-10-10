@@ -14,11 +14,11 @@ import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
 import sharp from 'sharp';
-import { buildVideoTheme } from '../services/Communication/video/video.theme';
-import { buildStoryboard } from '../services/Communication/video/video.storyboard';
-import { composeVideoHtml, inlineAssets } from '../services/Communication/video/video.composer';
-import { renderVideo, closeRenderBrowser } from '../services/Communication/video/video.renderer';
-import { DIRECTION_IDS, DIRECTIONS, lintMotion } from '../services/Communication/video/video.direction';
+import { buildVideoTheme } from '../../../ivision/core/src/video/video.theme';
+import { buildStoryboard } from '../../../ivision/core/src/video/video.storyboard';
+import { composeVideoHtml, inlineAssets } from '../../../ivision/core/src/video/video.composer';
+import { renderVideo, closeRenderBrowser } from '../../../ivision/core/src/video/video.renderer';
+import { DIRECTION_IDS, DIRECTIONS, lintMotion } from '../../../ivision/core/src/video/video.direction';
 import { brandById } from './fixtures/motion-video/brands';
 import { makePhotos } from './fixtures/motion-video/media';
 

@@ -17,7 +17,7 @@ discovery.relabel "idem" {
 
   rule {
     source_labels = ["__meta_docker_container_name"]
-    regex         = "/(idem-api|ideploy-api|appgen-server)(-staging)?"
+    regex         = "/(idem-api|ideploy-api|appgen-server|ivision-api)(-staging)?"
     action        = "keep"
   }
   rule {
@@ -27,7 +27,7 @@ discovery.relabel "idem" {
   }
   rule {
     source_labels = ["__meta_docker_container_name"]
-    regex         = "/(idem-api|ideploy-api)(-staging)?"
+    regex         = "/(idem-api|ideploy-api|ivision-api)(-staging)?"
     target_label  = "service"
   }
   rule {

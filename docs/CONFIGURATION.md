@@ -11,6 +11,7 @@ Configuration comes from environment variables. **Secrets** (keys, tokens, passw
 | `apps/api/.env.production.example` | API, production | Configuration only: no secret, ever |
 | `apps/ideploy-api/.env.example` | iDeploy API | Configuration, then a SECRETS block (empty in production) |
 | `apps/appgen/apps/we-dev-next/.env.example` | AppGen server | Configuration, then a SECRETS block (empty in production) |
+| `apps/ivision/api/.env.example` → `.env` + `.env.secret` | iVision API | `.env`: configuration and Infisical settings. `.env.secret` (same folder, local only): the secrets, loaded after `.env` like the API's |
 | `apps/*/.env.example`, `apps/*/.env.development.example` (front ends) | Build of each front end | Public values only (see below) |
 
 Rules:
@@ -36,7 +37,7 @@ A self-hosted Infisical serves the secrets of the API, the AppGen server and the
 
 ### Projects and naming
 
-One Infisical **project per back end**: `api`, `appgen`, `ideploy-api`. Secrets sit at the root path (`/`) of an environment: `prod` in production, `dev` on the local instance. A secret is named after its variable (`MONGODB_PASSWORD`, `APP_KEY`…); the project provides the isolation, so there is no prefix.
+One Infisical **project per back end**: `api`, `appgen`, `ideploy-api`, `ivision-api`. Secrets sit at the root path (`/`) of an environment: `prod` in production, `dev` on the local instance. A secret is named after its variable (`MONGODB_PASSWORD`, `APP_KEY`…); the project provides the isolation, so there is no prefix.
 
 Two applications that use the same value each hold their own copy in their project. Access can be revoked, and a value rotated, per application.
 
@@ -49,8 +50,9 @@ Each back end loads **every variable of its Infisical project** at startup. Its 
 | API | `apps/api/api/config/secrets.manifest.ts` |
 | AppGen server | `apps/appgen/apps/we-dev-next/src/config/secrets.manifest.ts` |
 | iDeploy API | `apps/ideploy-api/api/config/secrets.manifest.ts` |
+| iVision API | `apps/ivision/api/src/config/secrets.manifest.ts` |
 
-A manifest lists `required` secrets (the app refuses to start without them) and `optional` ones (a warning is logged when they are missing). It does not filter: a variable of the project that the manifest does not declare is loaded too, so moving a value from the `.env` to Infisical needs no code change. The startup log lists the names loaded (never the values). The loader, `secret-loader.ts`, is the same file in the three back ends; CI checks that the three copies stay identical.
+A manifest lists `required` secrets (the app refuses to start without them) and `optional` ones (a warning is logged when they are missing). It does not filter: a variable of the project that the manifest does not declare is loaded too, so moving a value from the `.env` to Infisical needs no code change. The startup log lists the names loaded (never the values). The loader, `secret-loader.ts`, is the same file in every back end; CI checks that the copies stay identical.
 
 ### Enabling it
 
@@ -75,8 +77,9 @@ One per back end, with the **Viewer** role on its own project only, and the serv
 | API | `api-runtime` | `api` |
 | AppGen server | `appgen-runtime` | `appgen` |
 | iDeploy API | `ideploy-api-runtime` | `ideploy-api` |
+| iVision API | `ivision-api-runtime` | `ivision-api` |
 
-A fourth identity, `secrets-cli`, has the **Developer** role on the three projects and is only used by the command below. Vertex AI uses its own Google Cloud service account (`GCP_SA_CLIENT_EMAIL`, `GCP_SA_PRIVATE_KEY`, both in the `api` project). The self-hosted auth server is configured in `infra/supabase-auth/.env` (see its README); the API shares its JWT secret (`SUPABASE_JWT_SECRET`) and signs its own session cookie with `SESSION_SECRET`.
+Another identity, `secrets-cli`, has the **Developer** role on every project and is only used by the command below. Vertex AI uses its own Google Cloud service account (`GCP_SA_CLIENT_EMAIL`, `GCP_SA_PRIVATE_KEY`, both in the `api` project). The self-hosted auth server is configured in `infra/supabase-auth/.env` (see its README); the API shares its JWT secret (`SUPABASE_JWT_SECRET`) and signs its own session cookie with `SESSION_SECRET`.
 
 ### Managing secrets
 
@@ -85,7 +88,7 @@ Run from the repository root (Node 22.18+) with the `secrets-cli` identity:
 ```bash
 export INFISICAL_SITE_URL=https://secrets.idem.africa
 export INFISICAL_ADMIN_CLIENT_ID=… INFISICAL_ADMIN_CLIENT_SECRET=…
-export INFISICAL_PROJECT_ID_API=… INFISICAL_PROJECT_ID_APPGEN=… INFISICAL_PROJECT_ID_IDEPLOY_API=…
+export INFISICAL_PROJECT_ID_API=… INFISICAL_PROJECT_ID_APPGEN=… INFISICAL_PROJECT_ID_IDEPLOY_API=… INFISICAL_PROJECT_ID_IVISION_API=…
 
 npm run secrets -- plan                                  # what exists, what is missing — no write
 npm run secrets -- push <app> --from <file.env>          # create/update the manifest's secrets found in the file
@@ -93,6 +96,8 @@ npm run secrets -- push <app> --from <file.env> --only A,B  # push these variabl
 cat value | npm run secrets -- rotate <app> <VARIABLE>   # new value from stdin (Infisical keeps the history)
 npm run secrets -- copy <from-app> <to-app> <VARIABLE>…  # duplicate a shared value
 ```
+
+`IVISION_SERVICE_KEY` is shared by `api` and `ivision-api`: create it once, then `npm run secrets -- copy api ivision-api IVISION_SERVICE_KEY`.
 
 No command ever prints a secret value. `--environment <slug>` targets another environment (`dev` for the local instance), `--dry-run` simulates, `--yes` skips confirmation. The Infisical web interface works too, including importing a `.env` file into an environment.
 

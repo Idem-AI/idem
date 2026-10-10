@@ -632,6 +632,8 @@
           "title": "Mes vidéos",
           "subtitle": "Des vidéos de promotion animées, à vos couleurs, avec musique libre de droits. Prêtes pour WhatsApp, Instagram, TikTok et YouTube.",
           "new": "Nouvelle vidéo",
+          "ivision": "Ouvrir dans iVision",
+          "ivisionHint": "La même création en conversation, avec la charte de ce projet.",
           "formatsCount": "{{count}} format(s)",
           "empty": {
             "title": "Racontez votre marque en vidéo",
@@ -799,10 +801,10 @@
             },
             "add": "Ajouter",
             "remove": "Retirer",
-            "stock": "Chercher des photos et vidéos sur Pexels si besoin",
-            "stockHint": "Banque gratuite : l’auteur est crédité dans la vidéo.",
-            "generate": "Générer une vidéo si rien ne convient",
-            "generateHint": "Par Gemini Veo, un seul clip par vidéo, en dernier recours."
+            "stock": "Chercher sur Pexels si la génération échoue",
+            "stockHint": "Seulement après trois essais de génération ; l’auteur est crédité.",
+            "generate": "Générer les photos et vidéos qui manquent",
+            "generateHint": "Chaque scène reçoit une image ou un clip créé pour son texte, à votre charte."
           },
           "sfx": {
             "label": "Effets sonores",
@@ -848,6 +850,10 @@
             "summary": "Votre vidéo",
             "mediaCount": "{{count}} fichier(s) joint(s)",
             "priceHint": "Le premier export MP4 est inclus. Les retouches de texte sont gratuites."
+          },
+          "voice": {
+            "label": "Voix off",
+            "hint": "Une voix dit le message, scène par scène, dans votre langue. Les scènes se calent sur elle."
           }
         },
         "detail": {
@@ -864,6 +870,8 @@
             "roles": {
               "writer": "textes",
               "strategist": "structure",
+              "mediaDirector": "images et vidéos",
+              "narrator": "voix off",
               "soundDesigner": "musique",
               "artDirector": "mises en page",
               "animator": "transitions et mouvement",
@@ -889,8 +897,10 @@
         },
         "texts": {
           "title": "Les textes",
-          "hint": "Modifiez librement, c’est gratuit. L’aperçu se met à jour.",
-          "save": "Mettre à jour l’aperçu"
+          "hint": "Cliquez dans un texte : la vidéo se place à l’instant où il s’affiche et change pendant que vous écrivez. Gratuit.",
+          "save": "Mettre à jour l’aperçu",
+          "replacePhoto": "Remplacer la photo de la scène",
+          "saving": "Enregistrement des retouches…"
         },
         "music": {
           "title": "La musique",
@@ -1060,13 +1070,14 @@
             "critique": "La relecture finale",
             "code": "L'écriture des scènes (Ultra)",
             "direction": "Le film imaginé par le directeur IA",
-            "shots": "Chaque plan créé par l'IA, revu et corrigé"
+            "shots": "Chaque plan créé par l'IA, revu et corrigé",
+            "voice": "La voix off"
           },
           "details": {
             "plan": "{{count}} scènes pour {{seconds}} s",
             "copyLlm": "{{lines}} lignes écrites",
             "copyHeuristic": "{{lines}} lignes tirées de votre message",
-            "media": "{{own}} à vous · Pexels : {{photos}} photo(s), {{videos}} vidéo(s) · {{generated}} générée(s) — « {{query}} »",
+            "media": "{{own}} à vous · {{generated}} générée(s) · Pexels : {{photos}} photo(s), {{videos}} vidéo(s)",
             "mediaNone": "Aucune image nécessaire",
             "music": "« {{title}} » — {{artist}} · {{bpm}} BPM",
             "musicNone": "Sans musique",
@@ -1088,7 +1099,10 @@
             "shots_review": "Plan {{current}}/{{total}} : revue visuelle · {{done}} terminé(s)",
             "shots_revise": "Plan {{current}}/{{total}} : correction · {{done}} terminé(s)",
             "shots_done": "{{done}} plan(s) sur {{total}} terminé(s)",
-            "shots": "{{coded}} plan(s) sur {{total}} créés par l'IA · {{reviewed}} revu(s) par le directeur artistique"
+            "shots": "{{coded}} plan(s) sur {{total}} créés par l'IA · {{reviewed}} revu(s) par le directeur artistique",
+            "voice": "{{count}} ligne(s) dite(s) en {{language}}, scènes calées sur la voix",
+            "voiceUnavailable": "Voix indisponible pour cette langue : vidéo sans voix",
+            "mediaGenerating": "Génération : {{done}} / {{total}} plan(s)"
           }
         },
         "directions": {
@@ -1188,6 +1202,22 @@
           "drift": "dérive",
           "rise": "montée",
           "tilt": "bascule"
+        },
+        "voice": {
+          "title": "Voix off",
+          "toggle": "Activer la voix off",
+          "hint": "Une ligne par scène, dans la langue de la vidéo. L’activer sur une vidéo existante écrit et enregistre la voix.",
+          "lines": "{{count}} ligne(s) · voix {{persona}}",
+          "unavailable": "La voix off n’a pas pu être produite pour cette langue.",
+          "personas": {
+            "warm": "chaleureuse",
+            "bright": "enjouée",
+            "smooth": "élégante",
+            "confident": "assurée",
+            "friendly": "amicale",
+            "deep": "profonde",
+            "energetic": "énergique"
+          }
         }
       }
     }

@@ -272,9 +272,9 @@ export const EXAMPLES: ExampleCase[] = [
   },
 ];
 
-/** Cas facultatif : aucun clip importé ni Pexels → génération par Gemini Veo. */
-export const VEO_EXAMPLE: ExampleCase = {
-  id: '9-footage-veo-bissap',
+/** Cas facultatif (`--generate`) : rien d'importé, Pexels coupé → photos et clips générés (GLM-Image, CogVideoX-3), voix off. */
+export const GENERATED_EXAMPLE: ExampleCase = {
+  id: '9-footage-generated-bissap',
   type: 'footage',
   brandId: 'bissap',
   scope: { durationSec: 15, formats: ['story'], quality: 'standard' },
@@ -288,6 +288,8 @@ export const VEO_EXAMPLE: ExampleCase = {
     allowStock: false,
     allowGenerate: true,
     sfx: true,
+    // Voix off en français : dite par le repli (GLM-TTS ne parle que chinois et anglais).
+    voice: true,
   },
   answers: {
     visual: 'fresh red hibiscus juice poured into a glass bottle on a wooden table, morning light',

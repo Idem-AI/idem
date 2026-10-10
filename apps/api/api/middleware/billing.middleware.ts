@@ -408,6 +408,68 @@ export function requireCredits(
   };
 }
 
+/** Le corps d'un refus 402 : coût, solde, manque et offres qui débloqueraient l'action. */
+export async function paymentRequiredBody(engine: BillingEngine, action: string, cost: number, balance: number) {
+  return {
+    error: 'payment_required',
+    message:
+      engine === 'business'
+        ? 'Vos crédits iBusiness ne suffisent pas pour ce livrable.'
+        : 'Vos crédits iCode ne suffisent pas pour cette action.',
+    engine,
+    action,
+    cost,
+    balance,
+    missing: cost - balance,
+    suggestions: await suggestionsFor(engine, cost - balance),
+  };
+}
+
+export type ServiceChargeResult =
+  | { status: 'charged'; cost: number; balance: number; ledgerEntryId?: string }
+  /** Rien n'est débité : facturation coupée, observation (`log`) ou action incluse. */
+  | { status: 'free'; reason: 'off' | 'shadow' | 'included' | 'degraded' }
+  | { status: 'refused'; body: Awaited<ReturnType<typeof paymentRequiredBody>> };
+
+/**
+ * Le débit de `requireCredits`, pour un SERVICE de l'écosystème qui facture au nom d'un
+ * utilisateur (iVision, par la passerelle `/internal/ivision`). Mêmes règles, même
+ * portefeuille : mode d'application, action incluse inscrite au relevé, observation en mode
+ * `log`, refus avec offres. Une panne de la facturation en mode `enforce` lève
+ * `billing_unavailable` : un service ne doit pas en faire une génération gratuite.
+ */
+export async function chargeForService(
+  userId: string,
+  engine: BillingEngine,
+  resolved: { action: string; cost: number; note?: string },
+  context: { projectId?: string; element?: string; feature?: string } = {}
+): Promise<ServiceChargeResult> {
+  let mode: Awaited<ReturnType<typeof billingSettingsService.getEnforcement>> | undefined;
+  try {
+    mode = await billingSettingsService.getEnforcement();
+    if (mode === 'off') return { status: 'free', reason: 'off' };
+    const cost = Math.max(0, Math.round(resolved.cost));
+    const ledger = { action: resolved.action, projectId: context.projectId, feature: context.feature ?? engine, element: context.element, ...(resolved.note ? { note: resolved.note } : {}) };
+    if (cost === 0) {
+      if (mode === 'enforce') await creditLedgerService.recordIncluded(userId, engine, resolved.action, ledger);
+      return { status: 'free', reason: 'included' };
+    }
+    if (mode === 'log') {
+      const entitlements = await entitlementsService.resolve(userId);
+      logger.info('billing.enforcement_shadow', { event: 'billing.enforcement_shadow', engine, action: resolved.action, cost, balance: entitlements.engines[engine].credits, wouldBlock: entitlements.engines[engine].credits < cost, feature: ledger.feature });
+      return { status: 'free', reason: 'shadow' };
+    }
+    const result = await creditLedgerService.debit(userId, engine, cost, ledger);
+    if (!result.allowed) return { status: 'refused', body: await paymentRequiredBody(engine, resolved.action, cost, result.balance) };
+    await entitlementsService.invalidate(userId);
+    return { status: 'charged', cost, balance: result.balance, ledgerEntryId: result.ledgerEntryId };
+  } catch (error: any) {
+    logger.error(`billing.enforcement_failed: ${error.message}`, { event: 'billing.enforcement_failed', engine, action: resolved.action, feature: context.feature, stack: error.stack });
+    if (mode === 'enforce' || mode === undefined) throw new Error('billing_unavailable');
+    return { status: 'free', reason: 'degraded' };
+  }
+}
+
 /**
  * Contrepasse explicitement les crédits réservés pour cette requête.
  *

@@ -8,6 +8,7 @@
  *   apps/api/api/config/secrets.manifest.ts
  *   apps/appgen/apps/we-dev-next/src/config/secrets.manifest.ts
  *   apps/ideploy-api/api/config/secrets.manifest.ts
+ *   apps/ivision/api/src/config/secrets.manifest.ts
  *
  * Chaque application a son propre projet Infisical (isolation native, pas de
  * préfixe de nom nécessaire) et un seul environnement utilisé pour l'instant :
@@ -36,10 +37,11 @@
  * Config (variables d'environnement) :
  *   INFISICAL_SITE_URL              URL de l'instance self-hosted.
  *   INFISICAL_ADMIN_CLIENT_ID       Identité machine avec accès en écriture
- *   INFISICAL_ADMIN_CLIENT_SECRET   aux 3 projets ci-dessous (Universal Auth).
+ *   INFISICAL_ADMIN_CLIENT_SECRET   aux projets ci-dessous (Universal Auth).
  *   INFISICAL_PROJECT_ID_API
  *   INFISICAL_PROJECT_ID_APPGEN
  *   INFISICAL_PROJECT_ID_IDEPLOY_API
+ *   INFISICAL_PROJECT_ID_IVISION_API
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -52,11 +54,13 @@ const MANIFEST_PATHS = {
   api: 'apps/api/api/config/secrets.manifest.ts',
   appgen: 'apps/appgen/apps/we-dev-next/src/config/secrets.manifest.ts',
   'ideploy-api': 'apps/ideploy-api/api/config/secrets.manifest.ts',
+  'ivision-api': 'apps/ivision/api/src/config/secrets.manifest.ts',
 };
 const PROJECT_ID_ENV = {
   api: 'INFISICAL_PROJECT_ID_API',
   appgen: 'INFISICAL_PROJECT_ID_APPGEN',
   'ideploy-api': 'INFISICAL_PROJECT_ID_IDEPLOY_API',
+  'ivision-api': 'INFISICAL_PROJECT_ID_IVISION_API',
 };
 
 // ── Arguments ────────────────────────────────────────────────────────────────

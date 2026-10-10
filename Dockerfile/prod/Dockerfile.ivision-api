@@ -1,0 +1,60 @@
+# iVision API — Express + le moteur créatif partagé (apps/ivision/core).
+# Rendu vidéo et visuels : Chromium (Puppeteer) et ffmpeg, comme l'API IDEM.
+ARG BUILD_ENV=production
+
+FROM node:20-alpine AS builder
+
+RUN apk update && apk upgrade && apk add --no-cache dumb-init && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+COPY ./packages/shared-models ./packages/shared-models
+COPY ./packages/shared-styles ./packages/shared-styles
+COPY ./apps/ivision/core ./apps/ivision/core
+COPY ./apps/ivision/api ./apps/ivision/api
+
+# Une seule installation pour le moteur ET l'API, dans apps/ivision/node_modules : c'est le
+# dossier parent commun d'où Node résout les modules des deux (sources et dist/).
+WORKDIR /app/apps/ivision
+RUN node -e "\
+  const c = require('./core/package.json'), a = require('./api/package.json');\
+  require('fs').writeFileSync('package.json', JSON.stringify({ name: 'ivision-runtime', private: true,\
+    dependencies: { ...c.dependencies, ...a.dependencies, '@idem/shared-styles': 'file:../../packages/shared-styles' },\
+    devDependencies: { ...a.devDependencies } }, null, 2));" \
+  && PUPPETEER_SKIP_DOWNLOAD=true npm install --legacy-peer-deps && npm cache clean --force
+
+# Compilation (dist/apps/ivision/{api,core}) puis paquets du moteur vidéo (public/video-engine).
+WORKDIR /app/apps/ivision/api
+RUN npm run build
+
+# Les dépendances de développement ne partent pas en production.
+WORKDIR /app/apps/ivision
+RUN npm prune --omit=dev --legacy-peer-deps
+
+FROM node:20-alpine AS production
+ARG BUILD_ENV
+
+RUN apk update && apk upgrade && \
+    apk add --no-cache dumb-init chromium nss freetype harfbuzz ca-certificates ttf-freefont ffmpeg && \
+    rm -rf /var/cache/apk/*
+
+RUN addgroup -g 1001 -S nodejs && adduser -S ivision -u 1001
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV NODE_ENV=${BUILD_ENV:-production}
+ENV PORT=3006
+
+WORKDIR /app/apps/ivision/api
+COPY --from=builder --chown=ivision:nodejs /app/packages /app/packages
+COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/node_modules /app/apps/ivision/node_modules
+COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/api/package.json ./package.json
+COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/api/dist ./dist
+COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/api/public ./public
+
+RUN mkdir -p /app/apps/ivision/api/logs && chown -R ivision:nodejs /app/apps/ivision/api/logs
+USER ivision
+
+EXPOSE 3006
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/apps/ivision/api/src/index.js"]

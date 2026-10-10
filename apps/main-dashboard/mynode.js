@@ -47,6 +47,10 @@ export const environment = {
     simulation: {
       url: '${process.env.SERVICES_SIMULATION_URL || (isProduction ? 'https://simulator.idem.africa' : 'http://localhost:4203')}',
     },
+    // iVision : visuels et vidéos en conversation (même compte, mêmes crédits).
+    ivision: {
+      url: '${process.env.SERVICES_IVISION_URL || (isProduction ? 'https://ivision.idem.africa' : 'http://localhost:4204')}',
+    },
     webgen: {
       url: '${process.env.SERVICES_WEBGEN_URL || process.env.WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'http://localhost:3003')}',
     },

@@ -9,6 +9,8 @@ on:
     branches: [ main ]
     paths:
       - 'apps/main-dashboard/**'
+      # L'éditeur de vidéo partagé avec iVision.
+      - 'packages/shared-video-editor/**'
       - 'Dockerfile.main-dashboard'
       - 'Dockerfile.main-dashboard.staging'
       - 'packages/shared-models/**'

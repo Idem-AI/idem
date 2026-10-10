@@ -27,6 +27,9 @@ export const SECRET_MANIFEST = {
     // Fournisseurs de modèles.
     'GEMINI_API_KEY',
     'GLM_API_KEY',
+    // Voix off des vidéos : GLM-TTS est servi par open.bigmodel.cn (clé distincte de Z.ai ;
+    // à défaut, GLM_API_KEY est essayée). Les langues qu'il ne parle pas passent par Gemini TTS.
+    'GLM_TTS_API_KEY',
     'DEEPSEEK_API_KEY',
     'OPENAI_API_KEY',
     // Intégrations.
@@ -38,6 +41,8 @@ export const SECRET_MANIFEST = {
     'PAWAPAY_API_TOKEN',
     // Secrets de signature et d'échange entre services.
     'IDEPLOY_SHARED_SECRET',
+    // Clé de la passerelle interne d'iVision (`/internal/ivision`), partagée avec ivision-api.
+    'IVISION_SERVICE_KEY',
     'JWT_SECRET',
     'GITHUB_STATE_SECRET',
     'METRICS_TOKEN',

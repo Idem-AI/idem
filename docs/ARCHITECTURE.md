@@ -1,6 +1,6 @@
 # Architecture
 
-IDEM is a monorepo of six web front ends and three Node.js back ends. One central API owns identity, projects, AI generation and billing; the other back ends delegate authentication to it.
+IDEM is a monorepo of seven web front ends and four Node.js back ends. One central API owns identity, projects, AI generation and billing; the other back ends delegate authentication to it.
 
 ```mermaid
 flowchart LR
@@ -11,12 +11,14 @@ flowchart LR
         AppGenClient["AppGen client"]
         IDeployWeb["iDeploy web"]
         Chart["Chart editor"]
+        IVisionWeb["iVision web"]
     end
 
     subgraph Backends
         API["API<br/>apps/api"]
         AppGenServer["AppGen server<br/>we-dev-next"]
         IDeployAPI["iDeploy API<br/>apps/ideploy-api"]
+        IVisionAPI["iVision API<br/>apps/ivision/api"]
     end
 
     subgraph Data
@@ -42,6 +44,9 @@ flowchart LR
     IDeployWeb --> IDeployAPI
     AppGenServer -- "session check, billing" --> API
     IDeployAPI -- "session check" --> API
+    IVisionWeb --> IVisionAPI
+    IVisionAPI -- "session check, models, credits, project brands" --> API
+    IVisionAPI --> Mongo & MinIO
     API --> Mongo & Redis & MinIO
     API -- "billing sync" --> PG
     IDeployAPI --> PG & Redis
@@ -50,7 +55,7 @@ flowchart LR
     API -- "token check, account import" --> Auth
     API --> LLM & PawaPay
     AppGenServer --> LLM
-    API & AppGenServer & IDeployAPI -. "secrets at boot" .-> SM
+    API & AppGenServer & IDeployAPI & IVisionAPI -. "secrets at boot" .-> SM
 ```
 
 ## Applications
@@ -66,6 +71,8 @@ flowchart LR
 | API | `apps/api` | Express, TypeScript, Mongoose | 3001 | Identity, projects, AI generation, PDFs, billing and payments |
 | AppGen server | `apps/appgen/apps/we-dev-next` | Express 5, Vercel AI SDK | 3000 | LLM chat for AppGen, Netlify deployment |
 | iDeploy API | `apps/ideploy-api` | Express, TypeScript, raw SQL, BullMQ | 3002 | Servers, applications, databases, deployments over SSH |
+| iVision web | `apps/ivision/web` | Angular 20, Tailwind 4, ngx-translate | 4204 | Landing and chat studio for visuals and motion-design videos |
+| iVision API | `apps/ivision/api` | Express, TypeScript, MongoDB driver | 3006 | Brands (site scan), conversations, model references, videos and visuals |
 
 Shared code lives in `packages/` (models, auth client, design system, loader, guided tours, "trusted by" band): see [Packages](PACKAGES.md).
 
@@ -73,9 +80,9 @@ Shared code lives in `packages/` (models, auth client, design system, loader, gu
 
 | Store | Used by | Holds |
 | --- | --- | --- |
-| MongoDB | API | Users, projects and every generated deliverable, revisions, billing ledger, payments, AI usage |
+| MongoDB | API, iVision API | Users, projects and every generated deliverable, revisions, billing ledger, payments, AI usage. iVision: `ivision_*` collections (brands, conversations, references, videos, visuals) |
 | Redis | API, iDeploy API | API: cache, rate limits, one-time SSO tokens, AppGen hand-offs. iDeploy: BullMQ job queues |
-| MinIO (S3) | API | Logos, fonts, PDFs, images; served through `MINIO_PUBLIC_URL` |
+| MinIO (S3) | API, iVision API | Logos, fonts, PDFs, images; served through `MINIO_PUBLIC_URL`. iVision writes under `ivision/` |
 | PostgreSQL | iDeploy API, API | iDeploy's schema (inherited from Coolify). The API writes paid plans to `billing_sync_jobs` there |
 | PostgreSQL (auth) | Supabase Auth | Sign-in accounts only (e-mail/password, Google, LinkedIn), in `infra/supabase-auth`. Session state is owned by the API |
 
@@ -89,6 +96,10 @@ There is exactly one sign-in screen: the main dashboard.
 4. When the session expires, the API renews it from the refresh token, so no app has to send the user back to the login page.
 
 Apps that need a login redirect to `{dashboard}/login?redirect=<app>&returnUrl=…`; the dashboard only follows a `returnUrl` that belongs to a known IDEM app.
+
+## Shared creative engine (iVision)
+
+Motion-design videos, composed visuals, website scanning and model reproduction live in **one engine**, `apps/ivision/core`, run by two hosts: the IDEM API (Communication module, projects) and the iVision API (chat studio, brands). Each host wires the same ports (`configureCore`: logger, storage, vision, image generation, agent runtime, credit refund) — IDEM with its own providers, iVision through the IDEM internal gateway (`/internal/ivision/*`, key `IVISION_SERVICE_KEY`). A change to the engine therefore ships to both. The live video editor is shared too: `@idem/shared-video-editor`, used by the dashboard and iVision web. Details: [`apps/ivision/README.md`](../apps/ivision/README.md).
 
 ## AI generation
 

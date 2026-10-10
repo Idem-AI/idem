@@ -1,0 +1,6 @@
+/dist
+/node_modules
+/logs
+.env
+# Paquets du moteur vidéo, reconstruits par `npm run build:video-engine` (ou à la demande en dev).
+/public/video-engine

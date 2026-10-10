@@ -10,13 +10,13 @@
  * (`-- gridCards,circleStage`).
  */
 import puppeteer from 'puppeteer';
-import { buildVideoTheme } from '../services/Communication/video/video.theme';
-import { buildStoryboard } from '../services/Communication/video/video.storyboard';
-import { composeVideoHtml, inlineAssets } from '../services/Communication/video/video.composer';
-import { assignIcons } from '../services/Communication/video/video.capabilities';
-import { SCENES } from '../services/Communication/video/video.scenes';
-import { LAYOUT_CATALOGUE, layoutFits } from '../services/Communication/video/video.layouts';
-import { DIRECTION_IDS } from '../services/Communication/video/video.direction';
+import { buildVideoTheme } from '../../../ivision/core/src/video/video.theme';
+import { buildStoryboard } from '../../../ivision/core/src/video/video.storyboard';
+import { composeVideoHtml, inlineAssets } from '../../../ivision/core/src/video/video.composer';
+import { assignIcons } from '../../../ivision/core/src/video/video.capabilities';
+import { SCENES } from '../../../ivision/core/src/video/video.scenes';
+import { LAYOUT_CATALOGUE, layoutFits } from '../../../ivision/core/src/video/video.layouts';
+import { DIRECTION_IDS } from '../../../ivision/core/src/video/video.direction';
 import { brandById } from './fixtures/motion-video/brands';
 const WORDS = 'Ouverture de notre deuxième boutique à Cocody samedi avec des prix justes livrés chez vous partout en ville depuis Lomé et Abidjan'.split(' ');
 const fill = (max: number, key: string) => {

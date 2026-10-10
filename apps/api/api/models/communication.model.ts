@@ -139,18 +139,9 @@ export type ContentChannel =
 
 export type ContentStatus = 'idea' | 'approved' | 'scheduled' | 'published';
 
-/**
- * Communication purpose of a visual. Drives the TONE and the message of the
- * composition (atmospheric for awareness, factual for an announcement, the
- * offer as a headline for a promotion) — never the presence of a button: a
- * generated visual never carries a CTA, whatever the intent.
- */
-export type VisualIntent =
-  | 'awareness'
-  | 'celebration'
-  | 'promotion'
-  | 'recruitment'
-  | 'announcement';
+// Les types des visuels (intention, format, image et son analyse) : moteur partagé (apps/ivision/core).
+import type { FlyerFormat, FlyerImageAnalysis, FlyerImageAttribution, FlyerImageSource, VisualIntent } from '../../../ivision/core/src/visual/visual.model';
+export type { FlyerFormat, FlyerImageAnalysis, FlyerImageAttribution, FlyerImageSource, VisualIntent };
 
 export interface ContentIdea {
   id: string;
@@ -309,34 +300,6 @@ export interface MomentSuggestion {
   why?: string;
   /** Emoji/icon hint for the UI. */
   emoji?: string;
-}
-
-export type FlyerFormat = 'square' | 'story' | 'banner' | 'post' | 'a4';
-
-export type FlyerImageSource = 'stock' | 'generated';
-
-/**
- * Quick vision scan of the chosen image. Used to make the marketing copy
- * and layout coherent with the picture (no brand / tone / content mismatch).
- */
-export interface FlyerImageAnalysis {
-  subject: string;
-  mood: string;
-  /** Dominant hex colors picked from the image, primary first. */
-  dominantColors: string[];
-  /** 'dark' | 'light' | 'mixed' — decides text-on-image contrast. */
-  luminance: 'dark' | 'light' | 'mixed';
-  /** Composition hint: where is the subject / where is there empty space. */
-  composition?: string;
-  /** Any text detected inside the image (avoid overlaying near it). */
-  detectedText?: string;
-}
-
-export interface FlyerImageAttribution {
-  /** Photographer or AI model. */
-  author?: string;
-  sourceUrl?: string;
-  provider: 'pexels' | 'unsplash' | 'gemini' | 'glm' | 'openai' | 'other';
 }
 
 /** D'où vient un visuel — pilote son classement dans la bibliothèque. */

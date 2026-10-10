@@ -1,0 +1,14 @@
+/* iVision — le design system d'IDEM, tel quel (@idem/shared-styles). Rien n'est redéfini ici :
+ * seulement Tailwind, les jetons partagés, et la variante sombre pilotée par la classe `.dark`. */
+@import 'tailwindcss';
+@import '@idem/shared-styles/styles.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-primary);
+    min-height: 100dvh;
+  }
+}

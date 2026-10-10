@@ -97,6 +97,7 @@ import contactRoutes from './routes/contactRoutes';
 import logoImportRoutes from './routes/logo-import.routes';
 import ideployRoutes from './routes/ideploy.routes';
 import appgenRoutes from './routes/appgen.routes';
+import ivisionRoutes from './routes/ivision.routes';
 import ogRoutes from './routes/og.routes';
 import { communicationRoutes } from './routes/communication.routes';
 import { financeRoutes } from './routes/finance.routes';
@@ -151,6 +152,12 @@ app.use(
   })
 );
 app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_LIMIT || '10mb' }));
+
+// Passerelle d'iVision (service de visuels et de vidéos) : modèles, crédits et chartes d'IDEM,
+// pour le même moteur créatif (apps/ivision/core). Authentifiée par une clé de service dédiée
+// (`x-ivision-key`), elle passe AVANT la limite par IP : tous les utilisateurs d'iVision
+// arrivent de la même adresse, celle du serveur iVision (les quotas par utilisateur restent).
+app.use('/internal/ivision', ivisionRoutes);
 
 // Burst protection + global IP rate limit (in addition to per-route limits).
 app.use(burstProtection({ maxBurst: 30, burstWindowMs: 1000 }));

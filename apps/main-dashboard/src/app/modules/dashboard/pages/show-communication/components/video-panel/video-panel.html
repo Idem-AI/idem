@@ -37,12 +37,19 @@
               {{ 'dashboard.showCommunication.video.list.subtitle' | translate }}
             </p>
           </div>
-          @if (videos().length) {
-            <button type="button" class="inner-button" (click)="create()">
-              <i class="pi pi-plus" aria-hidden="true"></i>
-              {{ 'dashboard.showCommunication.video.list.new' | translate }}
-            </button>
-          }
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- iVision : le même moteur, en conversation, avec la charte de ce projet. -->
+            <a class="outer-button" [href]="ivisionLink()" target="_blank" rel="noopener" [attr.title]="'dashboard.showCommunication.video.list.ivisionHint' | translate">
+              <i class="pi pi-external-link" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.video.list.ivision' | translate }}
+            </a>
+            @if (videos().length) {
+              <button type="button" class="inner-button" (click)="create()">
+                <i class="pi pi-plus" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.video.list.new' | translate }}
+              </button>
+            }
+          </div>
         </div>
 
         @if (videos().length === 0) {

@@ -4187,6 +4187,8 @@
           "title": "My videos",
           "subtitle": "Animated promo videos in your brand colours, with royalty-free music. Ready for WhatsApp, Instagram, TikTok and YouTube.",
           "new": "New video",
+          "ivision": "Open in iVision",
+          "ivisionHint": "The same creation as a conversation, with this project’s brand book.",
           "formatsCount": "{{count}} format(s)",
           "empty": {
             "title": "Tell your brand’s story on video",
@@ -4354,10 +4356,10 @@
             },
             "add": "Add",
             "remove": "Remove",
-            "stock": "Search Pexels for photos and clips if needed",
-            "stockHint": "Free library: the author is credited.",
-            "generate": "Generate a clip if nothing fits",
-            "generateHint": "With Gemini Veo, one clip per video, as a last resort."
+            "stock": "Search Pexels if generation fails",
+            "stockHint": "Only after three generation attempts; the author is credited.",
+            "generate": "Generate the missing photos and clips",
+            "generateHint": "Each scene gets an image or a clip made for its text, true to your brand."
           },
           "sfx": {
             "label": "Sound effects",
@@ -4403,6 +4405,10 @@
             "summary": "Your video",
             "mediaCount": "{{count}} attached file(s)",
             "priceHint": "The first MP4 export is included. Text edits are free."
+          },
+          "voice": {
+            "label": "Voice-over",
+            "hint": "A voice tells the message, scene by scene, in your language. The scenes follow it."
           }
         },
         "detail": {
@@ -4419,6 +4425,8 @@
             "roles": {
               "writer": "copy",
               "strategist": "structure",
+              "mediaDirector": "images and clips",
+              "narrator": "voice-over",
               "soundDesigner": "music",
               "artDirector": "layouts",
               "animator": "transitions and motion",
@@ -4444,8 +4452,10 @@
         },
         "texts": {
           "title": "On-screen text",
-          "hint": "Edit freely, it’s free. The preview updates.",
-          "save": "Update preview"
+          "hint": "Click a text: the video jumps to the moment it shows and changes as you type. Free.",
+          "save": "Update preview",
+          "replacePhoto": "Replace the scene photo",
+          "saving": "Saving your edits…"
         },
         "music": {
           "title": "Music",
@@ -4615,13 +4625,14 @@
             "critique": "Final review",
             "code": "Writing the scenes (Ultra)",
             "direction": "The film imagined by the AI director",
-            "shots": "Every shot created by the AI, reviewed and corrected"
+            "shots": "Every shot created by the AI, reviewed and corrected",
+            "voice": "Voice-over"
           },
           "details": {
             "plan": "{{count}} scenes for {{seconds}} s",
             "copyLlm": "{{lines}} lines written",
             "copyHeuristic": "{{lines}} lines taken from your message",
-            "media": "{{own}} yours · Pexels: {{photos}} photo(s), {{videos}} clip(s) · {{generated}} generated — “{{query}}”",
+            "media": "{{own}} yours · {{generated}} generated · Pexels: {{photos}} photo(s), {{videos}} clip(s)",
             "mediaNone": "No images needed",
             "music": "“{{title}}” — {{artist}} · {{bpm}} BPM",
             "musicNone": "No music",
@@ -4643,7 +4654,10 @@
             "shots_review": "Shot {{current}}/{{total}}: visual review · {{done}} done",
             "shots_revise": "Shot {{current}}/{{total}}: correcting · {{done}} done",
             "shots_done": "{{done}} of {{total}} shots done",
-            "shots": "{{coded}} of {{total}} shots created by the AI · {{reviewed}} reviewed by the art director"
+            "shots": "{{coded}} of {{total}} shots created by the AI · {{reviewed}} reviewed by the art director",
+            "voice": "{{count}} line(s) spoken in {{language}}, scenes synced to the voice",
+            "voiceUnavailable": "Voice unavailable for this language: video without voice",
+            "mediaGenerating": "Generating: {{done}} / {{total}} shot(s)"
           }
         },
         "directions": {
@@ -4743,6 +4757,22 @@
           "drift": "drift",
           "rise": "rise",
           "tilt": "tilt"
+        },
+        "voice": {
+          "title": "Voice-over",
+          "toggle": "Turn on the voice-over",
+          "hint": "One line per scene, in the video language. Turning it on for an existing video writes and records the voice.",
+          "lines": "{{count}} line(s) · {{persona}} voice",
+          "unavailable": "The voice-over could not be produced for this language.",
+          "personas": {
+            "warm": "warm",
+            "bright": "bright",
+            "smooth": "smooth",
+            "confident": "confident",
+            "friendly": "friendly",
+            "deep": "deep",
+            "energetic": "energetic"
+          }
         }
       }
     },
