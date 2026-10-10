@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { EditorTranslatePipe } from '../../i18n/editor-translate.pipe';
 import { EditableSection } from '../../models/editor.types';
 
 /**
@@ -9,12 +9,12 @@ import { EditableSection } from '../../models/editor.types';
  */
 @Component({
   selector: 'app-layers-panel',
-  imports: [TranslateModule],
+  imports: [EditorTranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <nav class="p-3" [attr.aria-label]="'dashboard.documentEditor.layers.title' | translate">
+    <nav class="p-3" [attr.aria-label]="'layers.title' | idemEditorT">
       <p class="px-2 pb-2 text-[0.7rem] font-semibold uppercase text-text-tertiary">
-        {{ 'dashboard.documentEditor.layers.pages' | translate }} ({{ sections().length }})
+        {{ 'layers.pages' | idemEditorT }} ({{ sections().length }})
       </p>
       <ul class="space-y-1">
         @for (section of sections(); track section.id; let i = $index) {

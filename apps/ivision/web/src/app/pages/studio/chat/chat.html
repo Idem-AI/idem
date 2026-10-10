@@ -144,15 +144,18 @@
 
             @if (m.result; as r) {
               @if (r.kind === 'video' && session()?.brandId) {
-                <iv-video-result [brandId]="session()!.brandId!" [videoId]="r.videoId" [video]="videos()[r.videoId]" />
+                @defer (on viewport) {
+                  <iv-video-result [brandId]="session()!.brandId!" [videoId]="r.videoId" [video]="videos()[r.videoId]" />
+                } @placeholder {
+                  <div class="skeleton mt-3 h-72 w-40 rounded-xl"></div>
+                }
               } @else if (r.kind === 'visual') {
                 @if (visuals()[r.visualId]; as v) {
-                  <figure class="mt-3 flex flex-col gap-2">
-                    <img [src]="v.imageUrl" [alt]="v.prompt" class="max-h-[28rem] w-auto max-w-full rounded-xl border border-[var(--glass-border-subtle)]" loading="lazy" />
-                    <figcaption class="flex flex-wrap gap-2">
-                      <a class="outer-button button-sm" [href]="v.imageUrl" target="_blank" rel="noopener" download><i class="pi pi-download" aria-hidden="true"></i> {{ 'chat.result.download' | translate }}</a>
-                    </figcaption>
-                  </figure>
+                  @defer (on viewport) {
+                    <iv-visual-result [visual]="v" [fonts]="fonts()" />
+                  } @placeholder {
+                    <div class="skeleton mt-3 h-64 w-64 rounded-xl"></div>
+                  }
                 } @else {
                   <div class="skeleton mt-3 h-64 w-64 rounded-xl"></div>
                 }

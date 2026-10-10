@@ -110,6 +110,8 @@ export interface Reference {
 export interface Visual {
   id: string;
   brandId: string;
+  /** La conversation qui l'a produit (retour de l'éditeur). */
+  sessionId?: string;
   prompt: string;
   format: string;
   imageUrl: string;

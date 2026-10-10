@@ -8,7 +8,10 @@ import crypto from 'crypto';
 import type { CreativityLevel } from '../../../core/src/creativity/levels';
 import { coreHost } from '../../../core/src/runtime/host';
 import type { ReferenceImage } from '../../../core/src/reference/reference.analyzer';
-import { composeVisual } from '../../../core/src/visual/visual.composer';
+import { composeVisual, knownLogoUrls } from '../../../core/src/visual/visual.composer';
+import { flyerRenderService, FORMAT_DIMENSIONS } from '../../../core/src/visual/flyer.render';
+import { sanitizeSectionHtml, stripActiveContent } from '../../../core/src/render/sanitize-html';
+import { isPosterDocument, renderPosterHtml } from '../../../core/src/visual/poster/poster.render';
 import { classifyImage } from '../../../core/src/visual/poster/poster.images';
 import { visualContextFromBrand } from '../../../core/src/visual/visual.context';
 import type { FlyerFormat } from '../../../core/src/visual/visual.model';
@@ -124,6 +127,35 @@ export async function listVisuals(userId: string, brandId?: string): Promise<Ivi
 export async function deleteVisual(userId: string, id: string): Promise<void> {
   const res = await visuals().deleteOne({ _id: id, userId });
   if (!res.deletedCount) throw new HttpError(404, 'visual_not_found', 'Visuel introuvable.');
+}
+
+/**
+ * Enregistre le HTML retouché dans l'éditeur partagé (`@idem/shared-document-editor`) et
+ * re-rend l'image : le PNG téléchargé et la vignette restent ceux du visuel tel qu'il est.
+ * Même rendu qu'IDEM (`flyerRenderService`), logo reconnu et remis à l'échelle si besoin.
+ */
+export async function updateVisualHtml(userId: string, brand: IvisionBrand, id: string, html: string): Promise<IvisionVisual> {
+  const visual = await getVisual(userId, id);
+  const cleaned = stripActiveContent(sanitizeSectionHtml(html));
+  if (!/<[a-z][\s\S]*>/i.test(cleaned) || !cleaned.replace(/<[^>]*>/g, '').trim() && !/<img\b/i.test(cleaned)) throw new HttpError(400, 'empty_html', 'Le visuel ne peut pas être vide.');
+  const context = visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit });
+  const dims = FORMAT_DIMENSIONS[visual.format] || FORMAT_DIMENSIONS.square;
+  // Un visuel du compositeur est un document complet (styles et polices embarqués) : il est
+  // photographié tel quel. Un fragment de l'ancien format passe par le rendu Tailwind d'IDEM.
+  const png = isPosterDocument(cleaned)
+    ? await renderPosterHtml(cleaned, dims.width, dims.height)
+    : await flyerRenderService.renderFlyerToPng(
+        cleaned,
+        visual.format,
+        { primaryFont: context.branding.primaryFont, secondaryFont: context.branding.secondaryFont, url: context.branding.fontUrl },
+        knownLogoUrls(context)
+      );
+  // Un nouveau nom à chaque version : aucun cache (navigateur, CDN) ne garde l'ancienne image.
+  const uploaded = await storage.uploadFile(png, `${id}-${Date.now().toString(36)}.png`, `users/${userId}/brands/${visual.brandId}/visuals`, 'image/png');
+  const updatedAt = new Date().toISOString();
+  await visuals().updateOne({ _id: id, userId }, { $set: { html: cleaned, imageUrl: uploaded.downloadURL, updatedAt } });
+  logger.info('visual.edited', { event: 'visual.edited', visualId: id, brandId: visual.brandId, bytes: cleaned.length });
+  return { ...visual, html: cleaned, imageUrl: uploaded.downloadURL, updatedAt };
 }
 
 export function visualView(v: IvisionVisual) {

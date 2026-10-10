@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { EditorTranslatePipe } from '../../i18n/editor-translate.pipe';
 import { SaveState } from '../../models/editor.types';
 import { ZoomControlComponent } from '../zoom-control/zoom-control';
 
@@ -11,7 +11,7 @@ import { ZoomControlComponent } from '../zoom-control/zoom-control';
  */
 @Component({
   selector: 'app-editor-toolbar',
-  imports: [TranslateModule, ZoomControlComponent],
+  imports: [EditorTranslatePipe, ZoomControlComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -22,7 +22,7 @@ import { ZoomControlComponent } from '../zoom-control/zoom-control';
         type="button"
         class="editor-icon-btn"
         (click)="exit.emit()"
-        [attr.aria-label]="'dashboard.documentEditor.toolbar.back' | translate"
+        [attr.aria-label]="'toolbar.back' | idemEditorT"
       >
         <i class="pi pi-arrow-left" aria-hidden="true"></i>
       </button>
@@ -33,8 +33,8 @@ import { ZoomControlComponent } from '../zoom-control/zoom-control';
         [class.editor-icon-btn-active]="layersOpen()"
         aria-controls="editor-layers"
         [attr.aria-expanded]="layersOpen()"
-        [attr.aria-label]="'dashboard.documentEditor.toolbar.pages' | translate"
-        [title]="'dashboard.documentEditor.toolbar.pages' | translate"
+        [attr.aria-label]="'toolbar.pages' | idemEditorT"
+        [title]="'toolbar.pages' | idemEditorT"
         (click)="toggleLayers.emit()"
       >
         <i class="pi pi-clone" aria-hidden="true"></i>
@@ -43,7 +43,7 @@ import { ZoomControlComponent } from '../zoom-control/zoom-control';
       <div class="min-w-0 flex-1 px-1">
         <h1 class="text-sm font-semibold text-text-primary truncate">{{ title() }}</h1>
         <p class="hidden sm:block text-xs text-text-tertiary truncate">
-          {{ 'dashboard.documentEditor.toolbar.subtitle' | translate }}
+          {{ 'toolbar.subtitle' | idemEditorT }}
         </p>
       </div>
 
@@ -54,8 +54,8 @@ import { ZoomControlComponent } from '../zoom-control/zoom-control';
           class="editor-icon-btn"
           [disabled]="!canUndo()"
           (click)="undo.emit()"
-          [attr.aria-label]="'dashboard.documentEditor.toolbar.undo' | translate"
-          [title]="('dashboard.documentEditor.toolbar.undo' | translate) + ' (Ctrl+Z)'"
+          [attr.aria-label]="'toolbar.undo' | idemEditorT"
+          [title]="('toolbar.undo' | idemEditorT) + ' (Ctrl+Z)'"
         >
           <i class="pi pi-undo" aria-hidden="true"></i>
         </button>
@@ -64,8 +64,8 @@ import { ZoomControlComponent } from '../zoom-control/zoom-control';
           class="editor-icon-btn"
           [disabled]="!canRedo()"
           (click)="redo.emit()"
-          [attr.aria-label]="'dashboard.documentEditor.toolbar.redo' | translate"
-          [title]="('dashboard.documentEditor.toolbar.redo' | translate) + ' (Ctrl+Y)'"
+          [attr.aria-label]="'toolbar.redo' | idemEditorT"
+          [title]="('toolbar.redo' | idemEditorT) + ' (Ctrl+Y)'"
         >
           <i class="pi pi-undo -scale-x-100" aria-hidden="true"></i>
         </button>
@@ -87,25 +87,25 @@ import { ZoomControlComponent } from '../zoom-control/zoom-control';
 
       <!-- État de sauvegarde : texte sur grand écran, pastille sinon -->
       <span class="hidden md:inline text-xs min-w-24 text-right" [class]="saveClass()" aria-live="polite">
-        {{ saveLabel() | translate }}
+        {{ saveLabel() | idemEditorT }}
       </span>
       <span
         class="md:hidden inline-block w-2 h-2 rounded-full mx-1"
         [class]="saveDotClass()"
-        [title]="saveLabel() | translate"
+        [title]="saveLabel() | idemEditorT"
       >
-        <span class="sr-only">{{ saveLabel() | translate }}</span>
+        <span class="sr-only">{{ saveLabel() | idemEditorT }}</span>
       </span>
 
       <button
         type="button"
         class="inner-button !py-2 !px-3 sm:!px-4 !text-xs !normal-case"
         [disabled]="saveState() === 'saving'"
-        [attr.aria-label]="'dashboard.documentEditor.toolbar.save' | translate"
+        [attr.aria-label]="'toolbar.save' | idemEditorT"
         (click)="save.emit()"
       >
         <i class="pi pi-save" aria-hidden="true"></i>
-        <span class="hidden sm:inline">{{ 'dashboard.documentEditor.toolbar.save' | translate }}</span>
+        <span class="hidden sm:inline">{{ 'toolbar.save' | idemEditorT }}</span>
       </button>
     </div>
   `,
@@ -163,15 +163,15 @@ export class EditorToolbarComponent {
   protected readonly saveLabel = computed(() => {
     switch (this.saveState()) {
       case 'saving':
-        return 'dashboard.documentEditor.toolbar.saving';
+        return 'toolbar.saving';
       case 'saved':
-        return 'dashboard.documentEditor.toolbar.saved';
+        return 'toolbar.saved';
       case 'error':
-        return 'dashboard.documentEditor.toolbar.saveError';
+        return 'toolbar.saveError';
       case 'dirty':
-        return 'dashboard.documentEditor.toolbar.unsaved';
+        return 'toolbar.unsaved';
       default:
-        return 'dashboard.documentEditor.toolbar.upToDate';
+        return 'toolbar.upToDate';
     }
   });
 

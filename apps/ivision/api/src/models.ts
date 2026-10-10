@@ -140,6 +140,8 @@ export interface IvisionVisual {
   audit?: { score: number; blocking: boolean };
   paidCredits: number;
   createdAt: string;
+  /** Dernière retouche dans l'éditeur (HTML et image re-rendue). */
+  updatedAt?: string;
 }
 
 /** Une vidéo d'iVision : la vidéo du moteur, rangée sous sa marque. */

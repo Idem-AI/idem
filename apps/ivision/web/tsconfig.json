@@ -22,6 +22,8 @@
       "@idem/shared-loader/*": ["../../../packages/shared-loader/src/*"],
       "@idem/shared-video-editor": ["../../../packages/shared-video-editor/src"],
       "@idem/shared-video-editor/*": ["../../../packages/shared-video-editor/src/*"],
+      "@idem/shared-document-editor": ["../../../packages/shared-document-editor/src"],
+      "@idem/shared-document-editor/*": ["../../../packages/shared-document-editor/src/*"],
       "@idem/shared-styles": ["../../../packages/shared-styles"]
     }
   },

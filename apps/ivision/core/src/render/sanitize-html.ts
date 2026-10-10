@@ -33,3 +33,17 @@ export function sanitizeSectionHtml(html: unknown): string {
 
   return out.trim();
 }
+
+/**
+ * Retire d'un visuel retouché ce qui exécuterait du code au rendu (le HTML enregistré depuis
+ * l'éditeur repasse dans notre navigateur de rendu) : `<script>`, `<iframe>`, `<object>`,
+ * gestionnaires `on…=` et liens `javascript:`. Les styles, polices et images restent.
+ */
+export function stripActiveContent(html: string): string {
+  return (html || '')
+    .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '')
+    .replace(/<script\b[^>]*\/?>/gi, '')
+    .replace(/<(iframe|object|embed)\b[\s\S]*?(<\/\1\s*>|\/>)/gi, '')
+    .replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/(href|src|action)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1=$2#$2');
+}

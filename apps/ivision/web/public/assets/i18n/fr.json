@@ -185,6 +185,9 @@
       "edit": "Retoucher et exporter",
       "fromReference": "Reproduit d’un modèle en {{shots}} plans.",
       "download": "Télécharger",
+      "fullscreen": "Plein écran",
+      "close": "Fermer",
+      "downloadFailed": "Le téléchargement a échoué. Réessayez.",
       "video": "Votre vidéo est prête. Retouchez les textes et les images, puis exportez.",
       "videoFromReference": "Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez.",
       "visual": "Voici votre visuel.",
@@ -349,5 +352,8 @@
     "delete": "Supprimer",
     "confirmDelete": "Confirmer la suppression",
     "empty": "Aucune marque pour l’instant : lisez votre site pour commencer."
+  },
+  "visualEdit": {
+    "title": "Modifier le visuel"
   }
 }

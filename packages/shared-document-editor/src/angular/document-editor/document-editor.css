@@ -9,7 +9,12 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--color-surface-1);
+  /*
+   * Transparent : le centre montre le fond de page et son motif (\`body::before\`,
+   * @idem/shared-styles), comme toutes les autres pages. Barre d'outils et panneaux
+   * gardent leur surface.
+   */
+  background: transparent;
 }
 
 /*
@@ -256,4 +261,29 @@
   .editor-side-right {
     transition: none !important;
   }
+}
+
+/* Chargement impossible : le message et le retour, centrés. */
+.editor-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 2.5rem 2rem;
+  text-align: center;
+}
+.editor-error-icon {
+  font-size: 2.25rem;
+  color: var(--color-text-tertiary);
+}
+.editor-error-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.editor-error-text {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
 }

@@ -289,7 +289,7 @@ export interface DocumentTypeAdapter {
    * entre ce qu'on édite et ce qui sera produit.
    */
   readonly fitRoot?: boolean;
-  /** Préfixe des clés i18n (ex: 'dashboard.documentEditor'). */
+  /** Clé i18n du titre du document chez l'hôte (traduite par l'hôte, passée en `heading`). */
   readonly i18nTitleKey: string;
   /**
    * Charge le document éditable du projet (sections + polices + titre).
@@ -303,8 +303,11 @@ export interface DocumentTypeAdapter {
     sections: EditableSection[],
     documentId?: string | null,
   ): Observable<unknown>;
-  /** Édition IA d'une section : renvoie le nouveau HTML. */
-  aiEdit(
+  /**
+   * Édition IA d'une section : renvoie le nouveau HTML. Facultative : absente, l'éditeur
+   * n'affiche pas le panneau IA (les visuels d'iVision ne sont jamais réécrits par l'IA).
+   */
+  aiEdit?(
     projectId: string,
     sectionId: string,
     instruction: string,

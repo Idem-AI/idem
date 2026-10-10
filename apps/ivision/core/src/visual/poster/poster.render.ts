@@ -170,3 +170,19 @@ export async function renderPoster(spec: PosterSpec, body: string, fonts: { disp
     return { png, html: posterDocument(spec, html, fonts), measure: { ...raw, score: Math.max(0, score), blocking } };
   });
 }
+
+/**
+ * Photographie un visuel déjà composé (document « poster » complet, tel qu'il est stocké et
+ * retouché dans l'éditeur) : aucune mise en forme rejouée, aucun CDN — la page porte ses styles
+ * et ses polices. Sert à re-rendre l'image après une retouche.
+ */
+export async function renderPosterHtml(html: string, width: number, height: number): Promise<Buffer> {
+  return flyerRenderService.withPage(width, height, async (page) => {
+    await page.setContent(html, { waitUntil: 'load', timeout: 30000 });
+    await page.evaluate('document.fonts ? document.fonts.ready.then(() => true) : true').catch(() => undefined);
+    return (await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width, height } })) as Buffer;
+  });
+}
+
+/** Un document complet (doctype ou `<html>`), et non un fragment Tailwind de l'ancien format. */
+export const isPosterDocument = (html: string): boolean => /^\s*(<!doctype html|<html[\s>])/i.test(html);

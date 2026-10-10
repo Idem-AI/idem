@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { EditorTranslatePipe } from '../../i18n/editor-translate.pipe';
 import { EditorAttribute, EditorSelection } from '../../models/editor.types';
 
 /**
@@ -10,14 +10,14 @@ import { EditorAttribute, EditorSelection } from '../../models/editor.types';
  */
 @Component({
   selector: 'app-attributes-panel',
-  imports: [TranslateModule],
+  imports: [EditorTranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <details class="attr-root" open>
       <summary class="attr-summary">
         <span class="inspector-title-inline">
           <i class="pi pi-code" aria-hidden="true"></i>
-          {{ 'dashboard.documentEditor.attrs.heading' | translate }}
+          {{ 'attrs.heading' | idemEditorT }}
         </span>
         <span class="attr-count">{{ rows().length }}</span>
       </summary>
@@ -31,7 +31,7 @@ import { EditorAttribute, EditorSelection } from '../../models/editor.types';
                 type="button"
                 class="attr-remove"
                 (click)="removeAttr.emit(row.name)"
-                [attr.aria-label]="('dashboard.documentEditor.attrs.remove' | translate) + ' ' + row.name"
+                [attr.aria-label]="('attrs.remove' | idemEditorT) + ' ' + row.name"
               >
                 <i class="pi pi-times" aria-hidden="true"></i>
               </button>
@@ -64,20 +64,20 @@ import { EditorAttribute, EditorSelection } from '../../models/editor.types';
           class="attr-input"
           [value]="newName()"
           (input)="newName.set($any($event.target).value)"
-          [placeholder]="'dashboard.documentEditor.attrs.name' | translate"
-          [attr.aria-label]="'dashboard.documentEditor.attrs.name' | translate"
+          [placeholder]="'attrs.name' | idemEditorT"
+          [attr.aria-label]="'attrs.name' | idemEditorT"
         />
         <input
           type="text"
           class="attr-input"
           [value]="newValue()"
           (input)="newValue.set($any($event.target).value)"
-          [placeholder]="'dashboard.documentEditor.attrs.value' | translate"
-          [attr.aria-label]="'dashboard.documentEditor.attrs.value' | translate"
+          [placeholder]="'attrs.value' | idemEditorT"
+          [attr.aria-label]="'attrs.value' | idemEditorT"
         />
         <button type="button" class="outer-button !py-2 !px-3 !text-xs" [disabled]="!newName().trim()" (click)="add()">
           <i class="pi pi-plus" aria-hidden="true"></i>
-          {{ 'dashboard.documentEditor.attrs.add' | translate }}
+          {{ 'attrs.add' | idemEditorT }}
         </button>
       </div>
     </details>

@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { PitchDeckService } from '../../../services/ai-agents/pitch-deck.service';
 import { findDeliverableDocument } from '../../../models/deliverable-document.model';
-import { PageFormat } from '../models/editor.types';
+import { PageFormat } from '@idem/shared-document-editor/angular';
 import { HtmlSectionsBucket, HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
 
 /** Adaptateur du Pitch Deck (slides 16:9 paysage). */

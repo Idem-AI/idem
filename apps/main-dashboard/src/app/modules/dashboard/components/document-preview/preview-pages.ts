@@ -2,7 +2,7 @@ import {
   SectionCompletionItem,
   SectionCompletionStatus,
 } from '../../models/generation-completeness';
-import { EditableSection } from '../../pages/document-editor/models/editor.types';
+import { EditableSection } from '@idem/shared-document-editor/angular';
 
 /** Nature d'une page de l'aperçu. */
 export type PreviewPageKind = 'content' | 'missing' | 'error';

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { EditorTranslatePipe } from '../../i18n/editor-translate.pipe';
 import { ChartConfigLite, ChartDatasetLite } from '../../models/editor.types';
 
 const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
@@ -12,22 +12,22 @@ const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
  */
 @Component({
   selector: 'app-chart-editor-panel',
-  imports: [TranslateModule],
+  imports: [EditorTranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-5">
       <!-- Type + légende -->
       <div class="grid grid-cols-2 gap-3">
         <label class="ce-field">
-          <span class="ce-label">{{ 'dashboard.documentEditor.chart.type' | translate }}</span>
+          <span class="ce-label">{{ 'chart.type' | idemEditorT }}</span>
           <select class="ce-input" [value]="model().type" (change)="setType($any($event.target).value)">
             @for (t of types; track t) {
-              <option [value]="t">{{ 'dashboard.documentEditor.chart.types.' + t | translate }}</option>
+              <option [value]="t">{{ 'chart.types.' + t | idemEditorT }}</option>
             }
           </select>
         </label>
         <label class="ce-field justify-end">
-          <span class="ce-label">{{ 'dashboard.documentEditor.chart.legend' | translate }}</span>
+          <span class="ce-label">{{ 'chart.legend' | idemEditorT }}</span>
           <label class="inline-flex items-center gap-2 h-9 cursor-pointer">
             <input
               type="checkbox"
@@ -35,13 +35,13 @@ const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
               [checked]="model().legend !== false"
               (change)="setLegend($any($event.target).checked)"
             />
-            <span class="text-sm text-text-secondary">{{ 'dashboard.documentEditor.chart.showLegend' | translate }}</span>
+            <span class="text-sm text-text-secondary">{{ 'chart.showLegend' | idemEditorT }}</span>
           </label>
         </label>
       </div>
 
       <label class="ce-field">
-        <span class="ce-label">{{ 'dashboard.documentEditor.chart.title' | translate }}</span>
+        <span class="ce-label">{{ 'chart.title' | idemEditorT }}</span>
         <input
           type="text"
           class="ce-input"
@@ -53,7 +53,7 @@ const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
       <!-- Libellés (axes / secteurs) -->
       <div class="ce-field">
         <span class="ce-label flex items-center justify-between">
-          {{ 'dashboard.documentEditor.chart.labels' | translate }}
+          {{ 'chart.labels' | idemEditorT }}
           <button type="button" class="ce-add" (click)="addLabel()">
             <i class="pi pi-plus" aria-hidden="true"></i>
           </button>
@@ -67,7 +67,7 @@ const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
                   class="ce-color"
                   [value]="sliceColor($index)"
                   (input)="setSliceColor($index, $any($event.target).value)"
-                  [attr.aria-label]="'dashboard.documentEditor.chart.sliceColor' | translate"
+                  [attr.aria-label]="'chart.sliceColor' | idemEditorT"
                 />
               }
               <input
@@ -80,7 +80,7 @@ const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
                 type="button"
                 class="ce-remove"
                 (click)="removeLabel($index)"
-                [attr.aria-label]="'dashboard.documentEditor.chart.removeLabel' | translate"
+                [attr.aria-label]="'chart.removeLabel' | idemEditorT"
               >
                 <i class="pi pi-times" aria-hidden="true"></i>
               </button>
@@ -94,7 +94,7 @@ const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
       <!-- Séries -->
       <div class="ce-field">
         <span class="ce-label flex items-center justify-between">
-          {{ 'dashboard.documentEditor.chart.datasets' | translate }}
+          {{ 'chart.datasets' | idemEditorT }}
           <button type="button" class="ce-add" (click)="addDataset()">
             <i class="pi pi-plus" aria-hidden="true"></i>
           </button>
@@ -110,7 +110,7 @@ const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
                     class="ce-color"
                     [value]="datasetColor($index)"
                     (input)="setDatasetColor($index, $any($event.target).value)"
-                    [attr.aria-label]="'dashboard.documentEditor.chart.seriesColor' | translate"
+                    [attr.aria-label]="'chart.seriesColor' | idemEditorT"
                   />
                 }
                 <input
@@ -118,14 +118,14 @@ const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
                   class="ce-input flex-1"
                   [value]="ds.label || ''"
                   (input)="setDatasetLabel($index, $any($event.target).value)"
-                  [placeholder]="'dashboard.documentEditor.chart.seriesName' | translate"
+                  [placeholder]="'chart.seriesName' | idemEditorT"
                 />
                 @if (model().datasets.length > 1) {
                   <button
                     type="button"
                     class="ce-remove"
                     (click)="removeDataset($index)"
-                    [attr.aria-label]="'dashboard.documentEditor.chart.removeSeries' | translate"
+                    [attr.aria-label]="'chart.removeSeries' | idemEditorT"
                   >
                     <i class="pi pi-times" aria-hidden="true"></i>
                   </button>
@@ -134,7 +134,7 @@ const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
               <div class="grid grid-cols-2 gap-2">
                 @for (label of model().labels; track $index) {
                   <label class="flex flex-col gap-1">
-                    <span class="text-[0.65rem] text-text-tertiary truncate">{{ label || ('dashboard.documentEditor.chart.value' | translate) }}</span>
+                    <span class="text-[0.65rem] text-text-tertiary truncate">{{ label || ('chart.value' | idemEditorT) }}</span>
                     <input
                       type="number"
                       class="ce-input !h-8 !text-xs"

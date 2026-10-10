@@ -13,6 +13,8 @@ import { Illustration } from '../../../shared/components/illustration';
 import { BrandChoice } from './brand-choice';
 import { ProgressList, StageState } from './progress-list';
 import { VideoResult } from './video-result';
+import { VisualResult } from './visual-result';
+import { brandFonts } from '../visual-edit/visual-adapter';
 
 type TurnBody = Parameters<ApiService['turn']>[1];
 
@@ -28,7 +30,7 @@ const DURATIONS = [6, 15, 30, 60];
  */
 @Component({
   selector: 'iv-chat',
-  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativitySelect, Illustration, BrandChoice, ProgressList, VideoResult],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativitySelect, Illustration, BrandChoice, ProgressList, VideoResult, VisualResult],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chat.html',
 })
@@ -87,6 +89,8 @@ export class ChatPage {
   /** La marque de la conversation, ou celle choisie pour la prochaine. */
   protected readonly preferredBrandId = signal<string | null>(this.readPreferred());
   /** La marque de la conversation ; pour une nouvelle, la dernière utilisée, sinon la plus récente. */
+  /** Les polices de la marque, pour l'aperçu éditable des visuels. */
+  protected readonly fonts = computed(() => brandFonts(this.brand()));
   protected readonly brand = computed<Brand | null>(() => {
     const id = this.session()?.brandId ?? this.preferredBrandId();
     const brands = this.state.brands();

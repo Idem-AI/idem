@@ -1,6 +1,6 @@
 <div class="editor-shell">
   <app-editor-toolbar
-    [title]="title() || (titleKey | translate)"
+    [title]="title() || heading()"
     [canUndo]="history.canUndo()"
     [canRedo]="history.canRedo()"
     [saveState]="saveState()"
@@ -15,21 +15,19 @@
     (fitWidth)="canvas()?.fitToWidth()"
     (zoomTo)="canvas()?.zoomTo($event)"
     (toggleLayers)="layersOpen.set(!layersOpen())"
-    (exit)="exit()"
+    (exit)="leave()"
   />
 
   @if (loadError()) {
     <div class="editor-fallback">
-      <app-error-state
-        class="w-full"
-        scene="document"
-        [title]="'dashboard.documentEditor.error.' + loadError() + '.title' | translate"
-        [message]="'dashboard.documentEditor.error.' + loadError() + '.subtitle' | translate"
-      >
-        <button type="button" class="inner-button" (click)="exit()">
-          {{ 'dashboard.documentEditor.error.back' | translate }}
+      <div class="editor-error glass-card" role="alert">
+        <i class="pi pi-file-excel editor-error-icon" aria-hidden="true"></i>
+        <h2 class="editor-error-title">{{ 'error.' + loadError() + '.title' | idemEditorT }}</h2>
+        <p class="editor-error-text">{{ 'error.' + loadError() + '.subtitle' | idemEditorT }}</p>
+        <button type="button" class="inner-button" (click)="leave()">
+          {{ 'error.back' | idemEditorT }}
         </button>
-      </app-error-state>
+      </div>
     </div>
   } @else {
     <div
@@ -49,7 +47,7 @@
         type="button"
         class="editor-backdrop"
         tabindex="-1"
-        [attr.aria-label]="'dashboard.documentEditor.layers.close' | translate"
+        [attr.aria-label]="'layers.close' | idemEditorT"
         (click)="layersOpen.set(false)"
       ></button>
 
@@ -57,12 +55,12 @@
       <main class="editor-main">
         <app-editor-canvas
           [pageFormat]="pageFormat()"
-          [multiPage]="multiPage"
-          [fitRoot]="fitRoot"
+          [multiPage]="multiPage()"
+          [fitRoot]="fitRoot()"
           [fonts]="fonts()"
           [dark]="dark()"
           [captureZoomKeys]="true"
-          [label]="'dashboard.documentEditor.canvasLabel' | translate"
+          [label]="'canvasLabel' | idemEditorT"
           (ready)="onCanvasReady()"
           (selectionChange)="onSelectionChange($event)"
           (textChange)="onTextChange($event)"
@@ -75,7 +73,7 @@
           <div class="editor-loading">
             <idem-loader />
             <p class="text-sm text-text-tertiary">
-              {{ 'dashboard.documentEditor.loading' | translate }}
+              {{ 'loading' | idemEditorT }}
             </p>
           </div>
         }
@@ -84,7 +82,7 @@
       <!-- Panneau droit : inspecteur (panneau bas sur petit écran) -->
       <aside
         class="editor-side editor-side-right"
-        [attr.aria-label]="'dashboard.documentEditor.inspector' | translate"
+        [attr.aria-label]="'inspector' | idemEditorT"
       >
         @if (selection(); as sel) {
           <div class="inspector-scroll">
@@ -97,7 +95,7 @@
               <button
                 type="button"
                 class="inspector-close"
-                [attr.aria-label]="'dashboard.documentEditor.inspectorClose' | translate"
+                [attr.aria-label]="'inspectorClose' | idemEditorT"
                 (click)="closeInspector()"
               >
                 <i class="pi pi-times" aria-hidden="true"></i>
@@ -108,7 +106,7 @@
               <section class="inspector-section">
                 <h2 class="inspector-title">
                   <i class="pi pi-chart-bar" aria-hidden="true"></i>
-                  {{ 'dashboard.documentEditor.chart.heading' | translate }}
+                  {{ 'chart.heading' | idemEditorT }}
                 </h2>
                 <app-chart-editor-panel [chart]="sel.chart" (chartChange)="onChartChange($event)" />
               </section>
@@ -116,7 +114,7 @@
               <section class="inspector-section">
                 <h2 class="inspector-title">
                   <i class="pi pi-sliders-h" aria-hidden="true"></i>
-                  {{ 'dashboard.documentEditor.props.heading' | translate }}
+                  {{ 'props.heading' | idemEditorT }}
                 </h2>
                 <app-property-panel
                   [selection]="sel"
@@ -136,22 +134,24 @@
               />
             </section>
 
-            <section class="inspector-section">
-              <app-ai-edit-panel
-                [sectionName]="selectedSectionName()"
-                [loading]="aiLoading()"
-                (submitInstruction)="onAiSubmit($event)"
-              />
-            </section>
+            @if (aiEnabled()) {
+              <section class="inspector-section">
+                <app-ai-edit-panel
+                  [sectionName]="selectedSectionName()"
+                  [loading]="aiLoading()"
+                  (submitInstruction)="onAiSubmit($event)"
+                />
+              </section>
+            }
           </div>
         } @else {
           <div class="inspector-empty">
             <i class="pi pi-hand-pointer text-3xl text-text-tertiary" aria-hidden="true"></i>
             <p class="text-sm font-medium text-text-secondary">
-              {{ 'dashboard.documentEditor.emptySelection.title' | translate }}
+              {{ 'emptySelection.title' | idemEditorT }}
             </p>
             <p class="text-xs text-text-tertiary leading-relaxed">
-              {{ 'dashboard.documentEditor.emptySelection.subtitle' | translate }}
+              {{ 'emptySelection.subtitle' | idemEditorT }}
             </p>
           </div>
         }

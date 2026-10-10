@@ -114,7 +114,7 @@
           @if (renders().length) {
             <ul class="mt-4 flex flex-col gap-2">
               @for (r of renders(); track r.format) {
-                <li><a class="outer-button button-sm inline-flex" [href]="r.url" target="_blank" rel="noopener" download><i class="pi pi-download" aria-hidden="true"></i> {{ 'formats.' + r.format | translate }} (MP4)</a></li>
+                <li><button type="button" class="outer-button button-sm inline-flex" (click)="downloadMp4(r.format)" [disabled]="downloading() === r.format"><i class="pi pi-download" aria-hidden="true"></i> {{ 'formats.' + r.format | translate }} (MP4)</button></li>
               }
             </ul>
           }

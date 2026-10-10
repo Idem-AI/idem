@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { EditorTranslatePipe } from '../../i18n/editor-translate.pipe';
 import { EditorSelection, ElementStyle } from '../../models/editor.types';
 
 /**
@@ -10,7 +10,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
  */
 @Component({
   selector: 'app-property-panel',
-  imports: [TranslateModule],
+  imports: [EditorTranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-5">
@@ -18,7 +18,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
       <div class="grid grid-cols-2 gap-3">
         <label class="prop-field">
           <span class="prop-label">{{
-            'dashboard.documentEditor.props.textColor' | translate
+            'props.textColor' | idemEditorT
           }}</span>
           <input
             type="color"
@@ -28,7 +28,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
           />
         </label>
         <label class="prop-field">
-          <span class="prop-label">{{ 'dashboard.documentEditor.props.bgColor' | translate }}</span>
+          <span class="prop-label">{{ 'props.bgColor' | idemEditorT }}</span>
           <div class="flex items-center gap-2">
             <input
               type="color"
@@ -40,7 +40,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
               type="button"
               class="prop-mini-btn"
               (click)="emitStyle('backgroundColor', 'transparent')"
-              [title]="'dashboard.documentEditor.props.clearBg' | translate"
+              [title]="'props.clearBg' | idemEditorT"
             >
               <i class="pi pi-times" aria-hidden="true"></i>
             </button>
@@ -52,7 +52,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
       <div class="grid grid-cols-2 gap-3">
         <label class="prop-field">
           <span class="prop-label">{{
-            'dashboard.documentEditor.props.fontSize' | translate
+            'props.fontSize' | idemEditorT
           }}</span>
           <input
             type="number"
@@ -65,7 +65,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
         </label>
         <label class="prop-field">
           <span class="prop-label">{{
-            'dashboard.documentEditor.props.fontWeight' | translate
+            'props.fontWeight' | idemEditorT
           }}</span>
           <select
             class="prop-input"
@@ -84,11 +84,11 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
 
       <!-- Alignement -->
       <div class="prop-field">
-        <span class="prop-label">{{ 'dashboard.documentEditor.props.align' | translate }}</span>
+        <span class="prop-label">{{ 'props.align' | idemEditorT }}</span>
         <div
           class="flex gap-1"
           role="group"
-          [attr.aria-label]="'dashboard.documentEditor.props.align' | translate"
+          [attr.aria-label]="'props.align' | idemEditorT"
         >
           @for (a of aligns; track a.value) {
             <button
@@ -107,7 +107,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
       <!-- Opacité -->
       <label class="prop-field">
         <span class="prop-label">
-          {{ 'dashboard.documentEditor.props.opacity' | translate }}
+          {{ 'props.opacity' | idemEditorT }}
           <span class="text-text-tertiary tabular-nums">{{ opacityPercent() }}%</span>
         </span>
         <input
@@ -125,7 +125,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
       <div class="prop-field">
         <div class="flex items-center justify-between gap-3">
           <span class="prop-label">{{
-            'dashboard.documentEditor.props.position' | translate
+            'props.position' | idemEditorT
           }}</span>
           <button
             type="button"
@@ -138,16 +138,16 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
             <i class="pi pi-arrows-alt" aria-hidden="true"></i>
             {{
               (isFreePosition()
-                ? 'dashboard.documentEditor.props.flowPosition'
-                : 'dashboard.documentEditor.props.freePosition'
-              ) | translate
+                ? 'props.flowPosition'
+                : 'props.freePosition'
+              ) | idemEditorT
             }}
           </button>
         </div>
         @if (isFreePosition()) {
           <div class="grid grid-cols-2 gap-3">
             <label class="prop-field">
-              <span class="prop-label">{{ 'dashboard.documentEditor.props.x' | translate }}</span>
+              <span class="prop-label">{{ 'props.x' | idemEditorT }}</span>
               <input
                 type="number"
                 class="prop-input"
@@ -156,7 +156,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
               />
             </label>
             <label class="prop-field">
-              <span class="prop-label">{{ 'dashboard.documentEditor.props.y' | translate }}</span>
+              <span class="prop-label">{{ 'props.y' | idemEditorT }}</span>
               <input
                 type="number"
                 class="prop-input"
@@ -165,16 +165,16 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
               />
             </label>
           </div>
-          <p class="prop-help">{{ 'dashboard.documentEditor.props.dragHint' | translate }}</p>
+          <p class="prop-help">{{ 'props.dragHint' | idemEditorT }}</p>
         }
       </div>
 
       <!-- Dimensions, rayon et bordure : les mêmes réglages pour tous les livrables. -->
       <div class="prop-field">
-        <span class="prop-label">{{ 'dashboard.documentEditor.props.size' | translate }}</span>
+        <span class="prop-label">{{ 'props.size' | idemEditorT }}</span>
         <div class="grid grid-cols-2 gap-3">
           <label class="prop-field">
-            <span class="prop-label">{{ 'dashboard.documentEditor.props.width' | translate }}</span>
+            <span class="prop-label">{{ 'props.width' | idemEditorT }}</span>
             <input
               type="number"
               min="1"
@@ -185,7 +185,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
           </label>
           <label class="prop-field">
             <span class="prop-label">{{
-              'dashboard.documentEditor.props.height' | translate
+              'props.height' | idemEditorT
             }}</span>
             <input
               type="number"
@@ -199,7 +199,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
         <div class="grid grid-cols-2 gap-3">
           <label class="prop-field">
             <span class="prop-label">{{
-              'dashboard.documentEditor.props.radius' | translate
+              'props.radius' | idemEditorT
             }}</span>
             <input
               type="number"
@@ -211,7 +211,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
           </label>
           <label class="prop-field">
             <span class="prop-label">{{
-              'dashboard.documentEditor.props.border' | translate
+              'props.border' | idemEditorT
             }}</span>
             <div class="flex items-center gap-2">
               <input
@@ -226,7 +226,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
                 class="prop-color prop-color-mini"
                 [value]="form().borderColor || '#000000'"
                 (input)="emitStyle('borderColor', $any($event.target).value)"
-                [attr.aria-label]="'dashboard.documentEditor.props.borderColor' | translate"
+                [attr.aria-label]="'props.borderColor' | idemEditorT"
               />
             </div>
           </label>
@@ -237,7 +237,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
 
       <!-- Calques : ordre visuel indépendant de l'ordre sémantique du HTML. -->
       <div class="prop-field">
-        <span class="prop-label">{{ 'dashboard.documentEditor.props.layers' | translate }}</span>
+        <span class="prop-label">{{ 'props.layers' | idemEditorT }}</span>
         <div class="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -245,7 +245,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
             (click)="setLayer('front')"
           >
             <i class="pi pi-angle-double-up" aria-hidden="true"></i>
-            {{ 'dashboard.documentEditor.props.bringToFront' | translate }}
+            {{ 'props.bringToFront' | idemEditorT }}
           </button>
           <button
             type="button"
@@ -253,7 +253,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
             (click)="setLayer('back')"
           >
             <i class="pi pi-angle-double-down" aria-hidden="true"></i>
-            {{ 'dashboard.documentEditor.props.sendToBack' | translate }}
+            {{ 'props.sendToBack' | idemEditorT }}
           </button>
           <button
             type="button"
@@ -261,7 +261,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
             (click)="setLayer('forward')"
           >
             <i class="pi pi-angle-up" aria-hidden="true"></i>
-            {{ 'dashboard.documentEditor.props.bringForward' | translate }}
+            {{ 'props.bringForward' | idemEditorT }}
           </button>
           <button
             type="button"
@@ -269,11 +269,11 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
             (click)="setLayer('backward')"
           >
             <i class="pi pi-angle-down" aria-hidden="true"></i>
-            {{ 'dashboard.documentEditor.props.sendBackward' | translate }}
+            {{ 'props.sendBackward' | idemEditorT }}
           </button>
         </div>
         <label class="prop-field">
-          <span class="prop-label">{{ 'dashboard.documentEditor.props.layer' | translate }}</span>
+          <span class="prop-label">{{ 'props.layer' | idemEditorT }}</span>
           <input
             type="number"
             class="prop-input"
@@ -285,7 +285,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
 
       <!-- Ordre du contenu dans le flux, conservé pour les documents texte. -->
       <div class="prop-field">
-        <span class="prop-label">{{ 'dashboard.documentEditor.props.arrange' | translate }}</span>
+        <span class="prop-label">{{ 'props.arrange' | idemEditorT }}</span>
         <div class="flex gap-2">
           <button
             type="button"
@@ -294,7 +294,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
             (click)="reorder.emit('up')"
           >
             <i class="pi pi-arrow-up" aria-hidden="true"></i>
-            {{ 'dashboard.documentEditor.props.moveUp' | translate }}
+            {{ 'props.moveUp' | idemEditorT }}
           </button>
           <button
             type="button"
@@ -303,7 +303,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
             (click)="reorder.emit('down')"
           >
             <i class="pi pi-arrow-down" aria-hidden="true"></i>
-            {{ 'dashboard.documentEditor.props.moveDown' | translate }}
+            {{ 'props.moveDown' | idemEditorT }}
           </button>
         </div>
         <button
@@ -312,7 +312,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
           (click)="remove.emit()"
         >
           <i class="pi pi-trash" aria-hidden="true"></i>
-          {{ 'dashboard.documentEditor.props.delete' | translate }}
+          {{ 'props.delete' | idemEditorT }}
         </button>
       </div>
     </div>

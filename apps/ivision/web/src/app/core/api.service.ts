@@ -121,8 +121,37 @@ export class ApiService {
   visuals(brandId?: string) {
     return this.http.get<{ visuals: Visual[] }>(`${this.base}/visuals`, { params: brandId ? { brandId } : {} });
   }
+  /**
+   * Télécharge un fichier (visuel, MP4) en pièce jointe et l'enregistre : il n'est jamais ouvert
+   * dans un nouvel onglet. Le nom vient de l'API (`Content-Disposition`).
+   */
+  saveFile(path: string, fallbackName: string): Observable<void> {
+    return new Observable<void>((sub) => {
+      const req = this.http.get(`${this.base}${path}`, { responseType: 'blob', observe: 'response' }).subscribe({
+        next: (res) => {
+          const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') || '')?.[1] || fallbackName;
+          const url = URL.createObjectURL(res.body as Blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          sub.next();
+          sub.complete();
+        },
+        error: (e) => sub.error(e),
+      });
+      return () => req.unsubscribe();
+    });
+  }
   visual(id: string) {
     return this.http.get<Visual & { html: string }>(`${this.base}/visuals/${id}`);
+  }
+  /** HTML retouché dans l'éditeur : l'API l'enregistre et re-rend l'image. */
+  saveVisualHtml(id: string, html: string) {
+    return this.http.put<Visual & { html: string }>(`${this.base}/visuals/${id}/html`, { html });
   }
 
   /**

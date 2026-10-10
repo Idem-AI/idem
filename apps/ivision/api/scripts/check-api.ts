@@ -186,6 +186,21 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     check(`visuel composé et rendu (${visual?.layout}, score ${visual?.score})`, !!visual?.imageUrl && visual.score >= 60, events.find((e) => e.type === 'error')?.message);
     check('débit d’un visuel au prix d’IDEM (2 crédits au cran Low)', charges[charges.length - 1]?.action === 'flyer' && charges[charges.length - 1]?.cost === 2);
 
+    // L'éditeur partagé enregistre le HTML retouché : nettoyé, image re-rendue, aucun débit.
+    {
+      const before = (await json('GET', `/v1/visuals/${visual.id}`)).body;
+      const chargesBefore = charges.length;
+      const retouched = before.html.replace(/>([^<>]{3,})</, '>Retouché à la main<') + '<script>alert(1)</script>';
+      const saved = await json('PUT', `/v1/visuals/${visual.id}/html`, { html: retouched });
+      check(
+        'éditeur : HTML retouché enregistré, script retiré, image re-rendue, gratuit',
+        saved.status === 200 && saved.body.html.includes('Retouché à la main') && !saved.body.html.includes('<script') && saved.body.imageUrl !== before.imageUrl && charges.length === chargesBefore,
+        JSON.stringify({ status: saved.status, url: saved.body?.imageUrl })
+      );
+      const empty = await json('PUT', `/v1/visuals/${visual.id}/html`, { html: '<script></script>' });
+      check('éditeur : un visuel vidé est refusé', empty.status === 400);
+    }
+
     section('6. Crédits insuffisants, import IDEM');
     const poorSession = (await json('POST', '/v1/sessions', { mode: 'image' }, 'session=poor')).body;
     const imported = await json('POST', '/v1/brands/import-idem', { projectId: 'p1' }, 'session=poor');

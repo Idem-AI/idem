@@ -25,7 +25,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ProjectService } from '../../../../services/project.service';
 import { expectedBrandingSections, StoredBranding } from '../../../../models/branding-charter';
 import { BRANDING_PAGE_FORMATS } from '../../../document-editor/adapters/branding-editor.adapter';
-import { RenderContext } from '../../../document-editor/models/editor.types';
+import { RenderContext } from '@idem/shared-document-editor/angular';
 import { buildTimeline, GenerationPhase, phaseOfPage } from './generation-chapters';
 import { GenerationStageIllustrationComponent } from './generation-stage-illustration';
 import { LivePagePreviewComponent } from './live-page-preview';

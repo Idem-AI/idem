@@ -10,8 +10,8 @@ import {
   signal,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { buildIframeDocument } from '../../../document-editor/runtime/editor-iframe';
-import { PageFormat, RenderContext } from '../../../document-editor/models/editor.types';
+import { buildIframeDocument } from '@idem/shared-document-editor/angular';
+import { PageFormat, RenderContext } from '@idem/shared-document-editor/angular';
 
 /** Marge du document de l'iframe autour de la page (cf. `.idem-doc`). */
 const DOC_PADDING_PX = 20;

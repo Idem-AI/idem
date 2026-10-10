@@ -185,6 +185,9 @@
       "edit": "Edit and export",
       "fromReference": "Reproduced from a model in {{shots}} shots.",
       "download": "Download",
+      "fullscreen": "Full screen",
+      "close": "Close",
+      "downloadFailed": "The download failed. Try again.",
       "video": "Your video is ready. Edit texts and images, then export.",
       "videoFromReference": "Your video is ready: the model’s animations, with your brand. Edit texts and images, then export.",
       "visual": "Here is your visual.",
@@ -349,5 +352,8 @@
     "delete": "Delete",
     "confirmDelete": "Confirm deletion",
     "empty": "No brand yet: read your website to start."
+  },
+  "visualEdit": {
+    "title": "Edit the visual"
   }
 }

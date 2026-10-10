@@ -166,8 +166,8 @@ interface ViewBox {
         overflow: auto;
         overscroll-behavior: contain;
         touch-action: pan-x pan-y;
-        background: radial-gradient(circle at center, var(--glass-bg-subtle) 1px, transparent 1px);
-        background-size: 22px 22px;
+        /* Aucune trame : le motif de la page (body::before) se voit autour du document. */
+        background: none;
         padding: 24px;
       }
       /* Posé dans une page : le canvas a la hauteur du document, la page

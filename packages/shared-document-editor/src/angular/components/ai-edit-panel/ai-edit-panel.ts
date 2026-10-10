@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { EditorTranslatePipe } from '../../i18n/editor-translate.pipe';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
@@ -10,7 +10,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
  */
 @Component({
   selector: 'app-ai-edit-panel',
-  imports: [ReactiveFormsModule, TranslateModule, IdemLoaderComponent],
+  imports: [ReactiveFormsModule, EditorTranslatePipe, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-3 space-y-3">
@@ -22,19 +22,19 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
         </span>
         <div class="min-w-0">
           <p class="text-sm font-semibold text-text-primary leading-tight">
-            {{ 'dashboard.documentEditor.ai.title' | translate }}
+            {{ 'ai.title' | idemEditorT }}
           </p>
           <p class="text-xs text-text-tertiary truncate">{{ sectionName() }}</p>
         </div>
       </div>
 
-      <label class="sr-only" for="ai-instruction">{{ 'dashboard.documentEditor.ai.title' | translate }}</label>
+      <label class="sr-only" for="ai-instruction">{{ 'ai.title' | idemEditorT }}</label>
       <textarea
         id="ai-instruction"
         rows="3"
         class="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--color-surface-1)] text-text-primary text-sm p-2.5 resize-none focus-visible:outline-none focus-visible:border-[var(--color-primary)]"
         [formControl]="instruction"
-        [placeholder]="'dashboard.documentEditor.ai.placeholder' | translate"
+        [placeholder]="'ai.placeholder' | idemEditorT"
         [attr.disabled]="loading() ? true : null"
         (keydown.control.enter)="onSubmit()"
         (keydown.meta.enter)="onSubmit()"
@@ -48,16 +48,16 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
       >
         @if (loading()) {
           <idem-loader size="xs" />
-          {{ 'dashboard.documentEditor.ai.working' | translate }}
+          {{ 'ai.working' | idemEditorT }}
         } @else {
           <i class="pi pi-sparkles" aria-hidden="true"></i>
-          {{ 'dashboard.documentEditor.ai.apply' | translate }}
+          {{ 'ai.apply' | idemEditorT }}
         }
       </button>
 
       <p class="text-[0.7rem] text-text-tertiary leading-snug">
         <i class="pi pi-info-circle mr-1" aria-hidden="true"></i>
-        {{ 'dashboard.documentEditor.ai.hint' | translate }}
+        {{ 'ai.hint' | idemEditorT }}
       </p>
     </div>
   `,

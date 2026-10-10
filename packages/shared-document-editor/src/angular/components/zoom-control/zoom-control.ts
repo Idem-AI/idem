@@ -8,7 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { EditorTranslatePipe } from '../../i18n/editor-translate.pipe';
 
 /** Paliers proposés dans le menu du zoom. */
 const MENU_PRESETS: readonly number[] = [0.5, 0.75, 1, 1.5, 2];
@@ -21,7 +21,7 @@ const MENU_PRESETS: readonly number[] = [0.5, 0.75, 1, 1.5, 2];
  */
 @Component({
   selector: 'app-zoom-control',
-  imports: [TranslateModule],
+  imports: [EditorTranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'zoom-control',
@@ -33,8 +33,8 @@ const MENU_PRESETS: readonly number[] = [0.5, 0.75, 1, 1.5, 2];
       type="button"
       class="zc-btn"
       (click)="zoomOut.emit()"
-      [attr.aria-label]="'dashboard.documentEditor.toolbar.zoomOut' | translate"
-      [title]="('dashboard.documentEditor.toolbar.zoomOut' | translate) + ' (Ctrl −)'"
+      [attr.aria-label]="'toolbar.zoomOut' | idemEditorT"
+      [title]="('toolbar.zoomOut' | idemEditorT) + ' (Ctrl −)'"
     >
       <i class="pi pi-minus" aria-hidden="true"></i>
     </button>
@@ -43,7 +43,7 @@ const MENU_PRESETS: readonly number[] = [0.5, 0.75, 1, 1.5, 2];
       class="zc-value"
       aria-haspopup="menu"
       [attr.aria-expanded]="menuOpen()"
-      [attr.aria-label]="'dashboard.documentEditor.zoom.menu' | translate: { value: percent() }"
+      [attr.aria-label]="'zoom.menu' | idemEditorT: { value: percent() }"
       (click)="menuOpen.set(!menuOpen())"
     >
       <span class="tabular-nums">{{ percent() }}%</span>
@@ -53,8 +53,8 @@ const MENU_PRESETS: readonly number[] = [0.5, 0.75, 1, 1.5, 2];
       type="button"
       class="zc-btn"
       (click)="zoomIn.emit()"
-      [attr.aria-label]="'dashboard.documentEditor.toolbar.zoomIn' | translate"
-      [title]="('dashboard.documentEditor.toolbar.zoomIn' | translate) + ' (Ctrl +)'"
+      [attr.aria-label]="'toolbar.zoomIn' | idemEditorT"
+      [title]="('toolbar.zoomIn' | idemEditorT) + ' (Ctrl +)'"
     >
       <i class="pi pi-plus" aria-hidden="true"></i>
     </button>
@@ -63,7 +63,7 @@ const MENU_PRESETS: readonly number[] = [0.5, 0.75, 1, 1.5, 2];
       <div class="zc-menu" [class.zc-menu-up]="menuPlacement() === 'top'" role="menu">
         <button type="button" role="menuitemradio" class="zc-item" [attr.aria-checked]="fitting()" (click)="choose(null)">
           <i class="pi pi-arrows-h" aria-hidden="true"></i>
-          <span class="flex-1">{{ 'dashboard.documentEditor.zoom.fitWidth' | translate }}</span>
+          <span class="flex-1">{{ 'zoom.fitWidth' | idemEditorT }}</span>
           <kbd class="zc-kbd">Ctrl 0</kbd>
         </button>
         <div class="zc-sep" role="separator"></div>

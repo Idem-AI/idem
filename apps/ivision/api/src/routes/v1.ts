@@ -14,7 +14,8 @@ import { videoOptions } from '../../../core/src/video/video.options';
 import { resolvePublicSound } from '../../../core/src/video/video.sfx';
 import { SiteScanError } from '../../../core/src/site/site-scanner';
 import { FLYER_FORMATS } from '../../../core/src/visual/visual.model';
-import { storage } from '../config/storage';
+import axios from 'axios';
+import { publicUrl, storage } from '../config/storage';
 import logger from '../config/logger';
 import { authenticate, AuthedRequest } from '../middleware/auth';
 import { asyncRoute, HttpError } from '../middleware/error';
@@ -425,6 +426,52 @@ v1.post(
 v1.get(
   '/visuals',
   asyncRoute<AuthedRequest>(async (req, res) => res.json({ visuals: (await visuals.listVisuals(uid(req), typeof req.query.brandId === 'string' ? req.query.brandId : undefined)).map(visuals.visualView) }))
+);
+
+/**
+ * Envoie un fichier du stockage en PIÈCE JOINTE : le navigateur l'enregistre au lieu de
+ * l'ouvrir (un lien `download` vers une autre origine, MinIO, est ignoré par les navigateurs).
+ * Seuls les fichiers de notre stockage passent (pas de relais vers une URL quelconque).
+ */
+async function sendAttachment(res: Response, url: string, fileName: string, contentType: string): Promise<void> {
+  if (!url.startsWith(publicUrl(''))) throw new HttpError(404, 'file_not_found', 'Fichier introuvable.');
+  const upstream = await axios.get(url, { responseType: 'stream', timeout: 60_000 });
+  res.setHeader('Content-Type', contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName.replace(/[^\w.-]+/g, '-')}"`);
+  res.setHeader('Cache-Control', 'private, max-age=300');
+  if (upstream.headers['content-length']) res.setHeader('Content-Length', String(upstream.headers['content-length']));
+  upstream.data.pipe(res);
+}
+
+v1.get(
+  '/visuals/:id/file',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const v = await visuals.getVisual(uid(req), req.params.id);
+    const ext = /\.png($|\?)/i.test(v.imageUrl) ? 'png' : 'jpg';
+    await sendAttachment(res, v.imageUrl, `ivision-${v.format}-${String(v._id).slice(-6)}.${ext}`, ext === 'png' ? 'image/png' : 'image/jpeg');
+  })
+);
+
+v1.get(
+  '/brands/:brandId/videos/:videoId/file',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const video = await motionVideos.getVideo(uid(req), req.params.brandId, req.params.videoId);
+    const render = video?.renders.find((r) => r.status === 'done' && r.url && (!req.query.format || r.format === req.query.format));
+    if (!render?.url) throw new HttpError(404, 'video_not_found', 'Vidéo introuvable.');
+    await sendAttachment(res, render.url, `ivision-${render.format}-${req.params.videoId.slice(-6)}.mp4`, 'video/mp4');
+  })
+);
+
+/** Enregistre le HTML retouché dans l'éditeur (gratuit) ; l'image est re-rendue. */
+v1.put(
+  '/visuals/:id/html',
+  validate({ body: z.object({ html: z.string().min(1).max(1_800_000) }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const v = await visuals.getVisual(uid(req), req.params.id);
+    const brand = await brands.getBrand(uid(req), v.brandId);
+    const updated = await visuals.updateVisualHtml(uid(req), brand, v._id, req.body.html);
+    res.json({ ...visuals.visualView(updated), html: updated.html });
+  })
 );
 
 v1.get(
