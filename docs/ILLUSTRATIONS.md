@@ -27,7 +27,7 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | Jeune pousse | projet qu'on aide à grandir | SASU, bailleur |
 | Croix d'Agadez (tanaghilt) sur son cordon tressé | « je te donne les quatre coins du monde » : de quoi choisir sa route | création de projet — source : [Club des Voyages, « Les croix touarègues »](https://www.club-des-voyages.com/niger/les-croix-touaregues-12196.html) |
 | Tambour parleur (tama) | parole portée loin, conversation | pitch deck, mode chat, communication, aide |
-| Kora (harpe-luth des griots), chevalet en couleur | raconter une histoire en musique | vidéos de promotion (état vide) — source : [Kora (instrument), Wikipédia](https://fr.wikipedia.org/wiki/Kora_(instrument)) |
+| Kora (harpe-luth des griots), chevalet en couleur | raconter une histoire en musique | vidéos de promotion (état vide) ; image de partage d'iVision (`og/illustrations/ivision.svg`) — source : [Kora (instrument), Wikipédia](https://fr.wikipedia.org/wiki/Kora_(instrument)) |
 | Métier à tisser (bande étroite) | construire fil à fil, le code | développement, dépôt de code, document qui se tisse |
 | Pirogue à la proue dressée | départ, mise en ligne, équipage | publication, déploiements, SAS, équipe interne |
 | Grenier dogon (vide / fermé / plein) | réserve, serveur, récolte | serveur, cloud géré, projet absent, projet IDEM |

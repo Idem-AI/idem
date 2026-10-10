@@ -10,6 +10,10 @@ peuvent servir seuls ; le référencement doit dire les deux à la fois.
 | 2. Tester la rentabilité | IDEM Simulator | simulator.idem.africa | /simulator |
 | 3. Bâtir l'application | iCode | appgen.idem.africa | /idev |
 | 4. Mettre en ligne | iDeploy | ideploy.idem.africa | /ideploy |
+| 5. Faire connaître le business | iVision | ivision.idem.africa | sa propre racine (pas de page sur le landing) |
+
+iVision crée les visuels et les vidéos qui font connaître le business ; il se
+présente sur son propre domaine (`landingPath: null` dans `ecosystem.ts`).
 
 `apps/chart` est hors périmètre.
 
@@ -33,8 +37,8 @@ stables :
 ```
 Organization  https://idem.africa/#organization
 WebSite       https://idem.africa/#website
-SoftwareApplication "IDEM"  https://idem.africa/#platform   hasPart → les 4 services
-ItemList (le parcours)      https://idem.africa/#workflow   étapes 1 → 4
+SoftwareApplication "IDEM"  https://idem.africa/#platform   hasPart → les 5 services
+ItemList (le parcours)      https://idem.africa/#workflow   étapes 1 → 5
 SoftwareApplication  https://<service>/#app      isPartOf → #platform, publisher → #organization
 WebSite              https://<service>/#website  isPartOf → https://idem.africa/#website
 WebPage              <url>#webpage               about → le service ou #platform
@@ -60,7 +64,7 @@ Ajouter une page : une entrée dans `LANDING_PAGES` (`landing.ts`), un `case`
 dans `page-seo.ts` avec ses traductions, `data.seo` sur la route, puis
 `npm run seo:sync` (plans du site).
 
-## Les applications (console, simulateur, iCode, iDeploy)
+## Les applications (console, simulateur, iCode, iDeploy, iVision)
 
 Elles sont rendues dans le navigateur ; les robots des réseaux sociaux ne
 lisent que le HTML servi. Leur `<head>` contient donc un bloc **généré**,

@@ -6,7 +6,8 @@
  *   node packages/shared-seo/scripts/sync.mjs          réécrit les fichiers
  *   node packages/shared-seo/scripts/sync.mjs --check  échoue si l'un d'eux a dérivé
  *
- * Pour chaque application servie sur son propre domaine, il écrit :
+ * Pour chaque application servie sur son propre domaine (console, simulateur,
+ * iCode, iDeploy, iVision), il écrit :
  *   - le bloc SEO de `index.html`, entre `<!-- idem-seo:start … -->` et `<!-- idem-seo:end -->` ;
  *   - `robots.txt` et `sitemap.xml` dans son dossier public ;
  * et, pour le landing, `robots.txt` et les plans du site par langue.
@@ -74,6 +75,14 @@ const APPS = [
     locale: 'fr',
     index: 'apps/ideploy-web/src/index.html',
     public: 'apps/ideploy-web/public',
+    publicPaths: [],
+  },
+  {
+    // La page publique d'iVision est sa racine ; l'atelier (/studio) demande un compte.
+    service: 'ivision',
+    locale: 'fr',
+    index: 'apps/ivision/web/src/index.html',
+    public: 'apps/ivision/web/public',
     publicPaths: [],
   },
 ];

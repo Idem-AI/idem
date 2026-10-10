@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="24 0 80 134" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- iVision — faire connaître le business en visuels et en vidéos : la kora du
+       griot, qui raconte en musique (le même objet que l'atelier vidéo d'iVision
+       et les vidéos du module Communication). Deux rangs de cordes dessinés à
+       5 + 5 (la vraie en a 21 : au trait, elles se fondraient). Le chevalet est le
+       seul détail en couleur : là où la voix devient son. -->
+  <path d="M51 68 V4.5 Q52.5 2 54 4.5 V68" stroke-width="1.8"/>
+  <path d="M36.5 71.5 V50.5 Q37.5 48.5 38.5 50.5 V71.5 M66.5 71.5 V50.5 Q67.5 48.5 68.5 50.5 V71.5" stroke-width="1.4"/>
+  <circle cx="52.5" cy="100" r="32.5" stroke-width="2"/>
+  <circle cx="52.5" cy="100" r="29.25" stroke-width="1.6" stroke-dasharray="0 2.9"/>
+  <path d="M50.75 12 H47.5 M50.75 21 H47.5 M50.75 30 H47.5 M50.75 39 H47.5 M50.75 48 H47.5 M54.25 16.5 H57.5 M54.25 25.5 H57.5 M54.25 34.5 H57.5 M54.25 43.5 H57.5 M54.25 52.5 H57.5" stroke-width="1.1"/>
+  <path d="M50.75 12 L40 76 L52.5 130 M50.75 21 L40 80.5 L52.5 130 M50.75 30 L40 85 L52.5 130 M50.75 39 L40 89.5 L52.5 130 M50.75 48 L40 94 L52.5 130" stroke-width=".7"/>
+  <path d="M54.25 16.5 L65 78 L52.5 130 M54.25 25.5 L65 82.5 L52.5 130 M54.25 34.5 L65 87 L52.5 130 M54.25 43.5 L65 91.5 L52.5 130 M54.25 52.5 L65 96 L52.5 130" stroke-width=".7"/>
+  <circle cx="52.5" cy="130" r="1.6" stroke-width="1.2"/>
+  <path d="M75 27 q4 4.5 0 9 M79.5 24 q7 7.5 0 15 M84 21 q10 10.5 0 21" stroke-width="1.2" opacity=".5"/>
+  <g style="color: var(--color-primary-500)">
+    <rect x="40" y="72.5" width="25" height="28" rx=".8" stroke-width="1.8" style="fill: var(--idem-bg-darker)"/>
+    <path d="M40 76 h2.5 M40 80.5 h2.5 M40 85 h2.5 M40 89.5 h2.5 M40 94 h2.5 M65 78 h-2.5 M65 82.5 h-2.5 M65 87 h-2.5 M65 91.5 h-2.5 M65 96 h-2.5" stroke-width="1.1"/>
+  </g>
+</svg>

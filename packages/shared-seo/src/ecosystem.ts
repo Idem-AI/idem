@@ -59,15 +59,15 @@ export const PROMISE: Localized = {
 export const PROMISE_LONG: Localized = {
   fr:
     "IDEM vous aide à créer et lancer un business rentable : business plan et prévisions financières, " +
-    'test de viabilité avant d’investir, marque, papiers, application et mise en ligne. ' +
+    'test de viabilité avant d’investir, marque, papiers, application, mise en ligne, puis visuels et vidéos pour vous faire connaître. ' +
     'Chaque service marche seul ; ensemble, ils mènent de l’idée aux premiers clients.',
   en:
     'IDEM helps you build and launch a profitable business: business plan and financial forecasts, ' +
-    'a viability test before you invest, brand, legal papers, app and go-live. ' +
+    'a viability test before you invest, brand, legal papers, app, go-live, then visuals and videos to get known. ' +
     'Each service works on its own; together they take you from idea to first customers.',
 };
 
-export type ServiceId = 'business' | 'simulator' | 'icode' | 'ideploy';
+export type ServiceId = 'business' | 'simulator' | 'icode' | 'ideploy' | 'ivision';
 
 export interface EcosystemService {
   id: ServiceId;
@@ -75,12 +75,15 @@ export interface EcosystemService {
   name: string;
   /** Racine publique de l'application. */
   url: string;
-  /** Page de présentation sur le landing (chemin sans langue), `''` = accueil. */
-  landingPath: string;
+  /**
+   * Page de présentation sur le landing (chemin sans langue), `''` = accueil ; `null` : le
+   * service se présente sur son propre domaine (iVision a sa page publique à sa racine).
+   */
+  landingPath: string | null;
   /** Rang dans le parcours IDEM (1 = première étape). */
   step: number;
-  /** Catégorie schema.org. */
-  category: 'BusinessApplication' | 'DeveloperApplication';
+  /** Catégorie schema.org (valeurs reconnues par Google pour `applicationCategory`). */
+  category: 'BusinessApplication' | 'DeveloperApplication' | 'DesignApplication';
   /** Ce que fait le service, en trois ou quatre mots : l'étape du parcours. */
   role: Localized;
   /** Titre de page (`<title>`), sans le suffixe de marque. */
@@ -93,7 +96,8 @@ export interface EcosystemService {
 
 /**
  * Les services, dans l'ordre du parcours : on construit le business, on le
- * teste, on bâtit son application, on la met en ligne.
+ * teste, on bâtit son application, on la met en ligne, puis on le fait
+ * connaître (visuels et vidéos) pour trouver ses premiers clients.
  */
 export const SERVICES: Record<ServiceId, EcosystemService> = {
   business: {
@@ -229,6 +233,41 @@ export const SERVICES: Record<ServiceId, EcosystemService> = {
         'Your own server or managed cloud',
         'Live logs and metrics',
         'Sovereign hosting in Africa',
+      ],
+    },
+  },
+  ivision: {
+    id: 'ivision',
+    name: 'iVision',
+    url: 'https://ivision.idem.africa',
+    landingPath: null,
+    step: 5,
+    category: 'DesignApplication',
+    role: { fr: 'Faire connaître le business', en: 'Get the business known' },
+    title: {
+      fr: 'iVision — Vos visuels et vidéos, à votre marque',
+      en: 'iVision — Your visuals and videos, on brand',
+    },
+    description: {
+      fr: 'Dites ce que vous voulez annoncer : iVision crée vos visuels et vidéos motion design à vos couleurs, pour chaque réseau. Montrez un modèle, il le reproduit.',
+      en: 'Say what you want to announce: iVision makes your visuals and motion design videos in your colours, sized for every network. Show it a model and it copies it.',
+    },
+    features: {
+      fr: [
+        'Vidéos motion design de 6 à 60 secondes',
+        'Visuels : affiches, publications, stories, bannières',
+        'Charte graphique lue depuis votre site',
+        'Reproduction d’une vidéo ou d’une affiche modèle',
+        'Montage de vos prises de parole, avec sous-titres',
+        'Retouche en direct des textes et des images',
+      ],
+      en: [
+        'Motion design videos from 6 to 60 seconds',
+        'Visuals: posters, posts, stories, banners',
+        'Brand identity read from your website',
+        'Copies a model video or poster',
+        'Editing of your talking videos, with subtitles',
+        'Live editing of texts and images',
       ],
     },
   },
