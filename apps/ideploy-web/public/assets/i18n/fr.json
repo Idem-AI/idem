@@ -541,7 +541,41 @@
       "ciRotate": "Générer un nouveau jeton (l’ancien cesse de fonctionner)",
       "registryTitle": "Registres privés",
       "registryHint": "Le jeton doit avoir un accès en lecture à l’image. Il est chiffré et ne sert qu’à récupérer l’image.",
-      "noRegistry": "Aucun accès à un registre — une image publique n’en demande pas."
+      "noRegistry": "Aucun accès à un registre — une image publique n’en demande pas.",
+      "dns": {
+        "title": "Faire pointer votre domaine vers cette application",
+        "check": "Vérifier maintenant",
+        "intro": "Votre application tourne sur le serveur dont l'adresse IP est :",
+        "introManaged": "Votre application tourne sur un serveur IDEM. Utilisez cette adresse IP :",
+        "copyIp": "Copier l'adresse IP",
+        "copyName": "Copier le nom",
+        "copyValue": "Copier la valeur",
+        "createAt": "Chez votre fournisseur de domaine, dans le DNS de {{zone}}, créez cet enregistrement :",
+        "type": "Type",
+        "name": "Nom",
+        "value": "Valeur",
+        "ttlAuto": "Auto (ou 300)",
+        "status": {
+          "ok": "DNS prêt",
+          "missing": "En attente du DNS",
+          "wrong_ip": "Mauvaise adresse",
+          "proxied": "Derrière Cloudflare",
+          "ipv6_conflict": "Enregistrement IPv6 à supprimer",
+          "automatic": "Automatique"
+        },
+        "explain": {
+          "missing": "Aucun enregistrement trouvé pour l'instant. Une fois créé, il peut mettre de quelques minutes à quelques heures à se propager ; cette page revérifie toute seule.",
+          "wrong_ip": "Le domaine pointe vers {{found}}, pas vers {{ip}}. Corrigez la valeur de l'enregistrement A (et supprimez tout autre enregistrement A pour ce nom).",
+          "proxied": "Le domaine passe par le proxy de Cloudflare ({{found}}). Dans Cloudflare, passez cet enregistrement en « DNS only » (nuage gris) pour que le certificat puisse être émis.",
+          "ipv6_conflict": "L'enregistrement A est correct, mais un enregistrement AAAA (IPv6) existe aussi ({{aaaa}}). Let's Encrypt l'utilise en priorité et le certificat échoue : supprimez l'enregistrement AAAA.",
+          "automatic": ""
+        },
+        "httpsValid": "HTTPS actif, certificat {{issuer}}",
+        "expires": "renouvelé automatiquement, expire le",
+        "httpsAfterDns": "HTTPS : le certificat est demandé automatiquement dès que le DNS pointe ici.",
+        "httpsPending": "HTTPS : certificat en cours d'émission — redéployez l'application si le domaine a été enregistré sans redéploiement.",
+        "polling": "Revérifié toutes les 30 secondes tant que le domaine est en cours de configuration."
+      }
     }
   },
   "projects": {

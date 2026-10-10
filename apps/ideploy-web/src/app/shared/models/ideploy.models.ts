@@ -179,6 +179,25 @@ export interface RegistryCredential {
 }
 
 /** Where one of an application's domains points, checked when it changes. */
+export type DnsStatus = 'automatic' | 'ok' | 'missing' | 'wrong_ip' | 'proxied' | 'ipv6_conflict';
+
+/** One domain of the DNS guide: the record to create and the state of public DNS. */
+export interface DomainDnsCheck {
+  domain: string;
+  host: string;
+  record: { type: 'A'; name: string; value: string; zone: string } | null;
+  status: DnsStatus;
+  found: { a: string[]; aaaa: string[]; cname: string | null };
+  https: { status: 'valid' | 'invalid' | 'unreachable' | 'not_checked'; issuer?: string; expiresAt?: string; error?: string };
+}
+
+export interface DomainDnsGuide {
+  serverIp: string;
+  serverName: string;
+  managed: boolean;
+  domains: DomainDnsCheck[];
+}
+
 export interface DomainCheck {
   domain: string;
   host: string;

@@ -541,7 +541,41 @@
       "ciRotate": "Generate a new token (the old one stops working)",
       "registryTitle": "Private registries",
       "registryHint": "The token needs read access to the image. It is stored encrypted and only used to pull.",
-      "noRegistry": "No registry login yet — public images need none."
+      "noRegistry": "No registry login yet — public images need none.",
+      "dns": {
+        "title": "Point your domain to this application",
+        "check": "Check now",
+        "intro": "Your application runs on the server with this IP address:",
+        "introManaged": "Your application runs on an IDEM server. Use this IP address:",
+        "copyIp": "Copy the IP address",
+        "copyName": "Copy the name",
+        "copyValue": "Copy the value",
+        "createAt": "At your domain provider, in the DNS of {{zone}}, create this record:",
+        "type": "Type",
+        "name": "Name",
+        "value": "Value",
+        "ttlAuto": "Auto (or 300)",
+        "status": {
+          "ok": "DNS ready",
+          "missing": "Waiting for DNS",
+          "wrong_ip": "Wrong address",
+          "proxied": "Behind Cloudflare",
+          "ipv6_conflict": "IPv6 record to remove",
+          "automatic": "Automatic"
+        },
+        "explain": {
+          "missing": "No record found yet. Once created, it can take from a few minutes to a few hours to propagate; this page checks again on its own.",
+          "wrong_ip": "The domain points to {{found}}, not to {{ip}}. Change the value of the A record (and delete any other A record for this name).",
+          "proxied": "The domain goes through Cloudflare's proxy ({{found}}). In Cloudflare, switch this record to \"DNS only\" (grey cloud) so the certificate can be issued.",
+          "ipv6_conflict": "The A record is right, but an AAAA (IPv6) record also exists ({{aaaa}}). Let's Encrypt uses it first and the certificate fails: delete the AAAA record.",
+          "automatic": ""
+        },
+        "httpsValid": "HTTPS active, certificate from {{issuer}}",
+        "expires": "renews automatically, expires",
+        "httpsAfterDns": "HTTPS: the certificate is requested automatically once the DNS points here.",
+        "httpsPending": "HTTPS: certificate being issued — redeploy the application if it was saved without redeploying.",
+        "polling": "Checked again every 30 seconds while the domain is being set up."
+      }
     }
   },
   "projects": {

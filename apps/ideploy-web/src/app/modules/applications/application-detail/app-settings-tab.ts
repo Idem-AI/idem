@@ -4,7 +4,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ApiService } from '../../../shared/services/api.service';
-import { Application, DomainCheck, RegistryCredential, Tag } from '../../../shared/models/ideploy.models';
+import { DomainDnsGuideComponent } from './domain-dns-guide';
+import { Application, RegistryCredential, Tag } from '../../../shared/models/ideploy.models';
 
 /** The Eloquent morph class this Node API expects for an application. */
 const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
@@ -19,7 +20,7 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
  */
 @Component({
   selector: 'app-settings-tab',
-  imports: [ReactiveFormsModule, TranslateModule, IdemLoaderComponent],
+  imports: [ReactiveFormsModule, TranslateModule, IdemLoaderComponent, DomainDnsGuideComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
@@ -89,18 +90,8 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
               <label class="mb-1 block text-sm" for="cfg-fqdn">{{ 'applications.detail.fqdn' | translate }}</label>
               <input type="text" id="cfg-fqdn" class="font-mono text-sm" placeholder="https://app.mondomaine.com" formControlName="fqdn" />
               <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.fqdnHint' | translate }}</p>
-              <!-- Where each new domain points, right after saving it. -->
-              @for (check of domainCheck(); track check.host) {
-                <p class="mt-1 text-xs" role="status" [style.color]="check.pointsHere ? 'var(--color-success)' : 'var(--color-warning)'">
-                  @if (check.pointsHere) {
-                    <i class="pi pi-check mr-1 text-xs" aria-hidden="true"></i>{{ 'applications.detail.dnsOk' | translate: { host: check.host } }}
-                  } @else if (check.addresses.length) {
-                    <i class="pi pi-exclamation-triangle mr-1 text-xs" aria-hidden="true"></i>{{ 'applications.detail.dnsElsewhere' | translate: { host: check.host, addresses: check.addresses.join(', ') } }}
-                  } @else {
-                    <i class="pi pi-exclamation-triangle mr-1 text-xs" aria-hidden="true"></i>{{ 'applications.detail.dnsMissing' | translate: { host: check.host } }}
-                  }
-                </p>
-              }
+              <!-- The record to create for each domain (with the server's IP), and its state. -->
+              <app-domain-dns-guide [appUuid]="app().uuid" [domains]="fqdnValue()" />
             </div>
           </div>
           @if (saveError(); as message) {
@@ -265,7 +256,8 @@ export class AppSettingsTabComponent implements OnInit {
   /** Set when the domain changed: it only reaches the proxy with a deployment. */
   protected readonly redeployRequired = signal(false);
   protected readonly redeploying = signal(false);
-  protected readonly domainCheck = signal<DomainCheck[]>([]);
+  /** The domain field as typed: the DNS guide checks it before it is saved. */
+  protected readonly fqdnValue = signal('');
   protected readonly appTags = signal<Tag[]>([]);
   private readonly allTags = signal<Tag[]>([]);
   protected readonly availableTags = computed(() => {
@@ -316,6 +308,8 @@ export class AppSettingsTabComponent implements OnInit {
       ports_exposes: a.ports_exposes ?? '',
       fqdn: a.fqdn ?? '',
     });
+    this.fqdnValue.set(a.fqdn ?? '');
+    this.configForm.controls.fqdn.valueChanges.subscribe((v) => this.fqdnValue.set(v));
     this.reloadTags();
     this.loadRegistries();
   }
@@ -329,7 +323,6 @@ export class AppSettingsTabComponent implements OnInit {
         this.saving.set(false);
         this.saved.set(true);
         this.configForm.markAsPristine();
-        this.domainCheck.set(a.domainCheck ?? []);
         if (a.redeployRequired) this.redeployRequired.set(true);
         this.updated.emit(a);
       },
