@@ -106,3 +106,13 @@ describe('starting a service', () => {
     expect(op.output).toContain('env file .env not found');
   });
 });
+
+describe('editing the compose file', () => {
+  it('stores it and lists the containers it now declares', async () => {
+    const { teamId, service } = await aService();
+    await serviceService.updateCompose(teamId, service.uuid, 'services:\n  web:\n    image: nginx\n  worker:\n    image: acme/worker\n');
+    const { rows } = await testPool().query('SELECT name FROM service_applications WHERE service_id = $1 ORDER BY name', [service.id]);
+    expect(rows.map((r) => r.name)).toEqual(['web', 'worker']);
+    expect(await serviceService.updateCompose(teamId, '00000000-0000-0000-0000-000000000000', 'services: {}')).toBeNull();
+  });
+});

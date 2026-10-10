@@ -22,12 +22,14 @@ export interface DeploymentJobData {
    * that pipeline execution.
    */
   pipelineExecutionId?: number;
+  /** Lowest severity of the built image's scan that stops the deployment (pipeline only). */
+  trivyFailOn?: string;
 }
 
 export async function createDeployment(
   application: { id: number; uuid: string },
   teamId: number,
-  opts: { commit?: string; forceRebuild?: boolean; isWebhook?: boolean; rollback?: boolean; pipelineExecutionId?: number } = {}
+  opts: { commit?: string; forceRebuild?: boolean; isWebhook?: boolean; rollback?: boolean; pipelineExecutionId?: number; trivyFailOn?: string } = {}
 ): Promise<{ deploymentUuid: string }> {
   const deploymentUuid = randomUUID();
   await pool.query(
@@ -52,6 +54,7 @@ export async function createDeployment(
     commit: opts.commit ?? 'HEAD',
     forceRebuild: opts.forceRebuild ?? false,
     ...(opts.pipelineExecutionId ? { pipelineExecutionId: opts.pipelineExecutionId } : {}),
+    ...(opts.trivyFailOn ? { trivyFailOn: opts.trivyFailOn } : {}),
   };
   // One attempt: a failed build replayed twice more flipped the status back to
   // "in progress" and tripled the wait for an answer that would not change.
@@ -162,6 +165,26 @@ export async function rollbackTo(
   );
 
   return { deploymentUuid: created.deploymentUuid, commit };
+}
+
+/**
+ * Waits for a deployment to end and returns its final status. A pipeline's
+ * deploy stage used to report success as soon as the deployment was queued,
+ * whatever happened to it afterwards.
+ */
+export async function waitForDeployment(
+  deploymentUuid: string,
+  { timeoutMs = 30 * 60_000, pollMs = 3000 }: { timeoutMs?: number; pollMs?: number } = {}
+): Promise<'finished' | 'failed' | 'timeout'> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const { rows } = await pool.query('SELECT status FROM application_deployment_queues WHERE deployment_uuid = $1', [deploymentUuid]);
+    const status = rows[0]?.status as string | undefined;
+    if (status === 'finished') return 'finished';
+    if (status === 'failed' || status === 'cancelled-by-user' || !rows[0]) return 'failed';
+    if (Date.now() >= deadline) return 'timeout';
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
 }
 
 export async function setDeploymentStatus(deploymentUuid: string, status: string): Promise<void> {

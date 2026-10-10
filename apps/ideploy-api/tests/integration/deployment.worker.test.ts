@@ -222,11 +222,13 @@ describe('an application that runs a registry image', () => {
     const { rows } = await testPool().query('SELECT status FROM applications WHERE id = $1', [app.id]);
     expect(rows[0].status).toBe('running');
   });
+});
+
 describe('the image scan of a pipeline deployment', () => {
-  async function runFromPipeline(teamId: number, app: { id: number; uuid: string }, executionId: number) {
-    const { deploymentUuid } = await createDeployment(app, teamId, { commit: 'HEAD', pipelineExecutionId: executionId });
+  async function runFromPipeline(teamId: number, app: { id: number; uuid: string }, executionId: number, trivyFailOn = 'CRITICAL') {
+    const { deploymentUuid } = await createDeployment(app, teamId, { commit: 'HEAD', pipelineExecutionId: executionId, trivyFailOn });
     const outcome = processDeployment({
-      data: { deploymentUuid, applicationId: app.id, applicationUuid: app.uuid, teamId, commit: 'HEAD', forceRebuild: false, pipelineExecutionId: executionId },
+      data: { deploymentUuid, applicationId: app.id, applicationUuid: app.uuid, teamId, commit: 'HEAD', forceRebuild: false, pipelineExecutionId: executionId, trivyFailOn },
     } as Job<DeploymentJobData>);
     return { deploymentUuid, outcome };
   }

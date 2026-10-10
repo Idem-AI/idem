@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
-import { PipelineConfig, PipelineExecution } from '../../../shared/models/ideploy.models';
+import { PipelineConfig, PipelineExecution, PipelineGates } from '../../../shared/models/ideploy.models';
 import {
   isPipelineActive,
   pipelineStageMarkIcon,
@@ -118,6 +118,35 @@ const POLL_INTERVAL_MS = 4_000;
           <p class="mb-5 text-xs" style="color:var(--color-text-tertiary);">
             <i class="pi pi-check mr-1"></i>{{ 'pipeline.autoSaveHint' | translate }}
           </p>
+
+          <div class="mb-5 space-y-3 border-t pt-4" style="border-color:var(--color-surface-2);">
+            <p class="text-sm font-medium">{{ 'pipeline.gates.title' | translate }}</p>
+            <p class="text-xs" style="color:var(--color-text-tertiary);">{{ 'pipeline.gates.hint' | translate }}</p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div>
+                <label class="mb-1 block text-sm" for="gate-trivy">{{ 'pipeline.gates.trivy' | translate }}</label>
+                <select id="gate-trivy" [value]="c.gates.trivy_fail_on" (change)="setGate(c, 'trivy_fail_on', $any($event.target).value)">
+                  <option value="NONE">{{ 'pipeline.gates.never' | translate }}</option>
+                  <option value="CRITICAL">{{ 'pipeline.gates.critical' | translate }}</option>
+                  <option value="HIGH">{{ 'pipeline.gates.high' | translate }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="mb-1 block text-sm" for="gate-quality">{{ 'pipeline.gates.quality' | translate }}</label>
+                <select id="gate-quality" [value]="c.gates.quality_gate" (change)="setGate(c, 'quality_gate', $any($event.target).value)">
+                  <option value="report">{{ 'pipeline.gates.reportOnly' | translate }}</option>
+                  <option value="enforce">{{ 'pipeline.gates.stopOnFail' | translate }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="mb-1 block text-sm" for="gate-secrets">{{ 'pipeline.gates.secrets' | translate }}</label>
+                <select id="gate-secrets" [value]="c.gates.secrets" (change)="setGate(c, 'secrets', $any($event.target).value)">
+                  <option value="block">{{ 'pipeline.gates.stopOnFound' | translate }}</option>
+                  <option value="report">{{ 'pipeline.gates.reportOnly' | translate }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
           <form class="space-y-3 border-t pt-4" style="border-color:var(--color-surface-2);" [formGroup]="triggerForm" (ngSubmit)="saveTrigger(c)">
             <div>
@@ -353,6 +382,10 @@ export class ApplicationPipelineComponent implements OnInit, OnDestroy {
     this.persist(c, { stages });
   }
 
+  protected setGate<K extends keyof PipelineGates>(c: PipelineConfig, key: K, value: PipelineGates[K]): void {
+    this.persist(c, { gates: { ...c.gates, [key]: value } });
+  }
+
   protected saveTrigger(c: PipelineConfig): void {
     const raw = this.triggerForm.getRawValue();
     this.persist(c, {
@@ -366,7 +399,7 @@ export class ApplicationPipelineComponent implements OnInit, OnDestroy {
 
   private persist(
     current: PipelineConfig,
-    patch: Partial<Pick<PipelineConfig, 'enabled' | 'stages' | 'trigger_mode' | 'trigger_branches'>>
+    patch: Partial<Pick<PipelineConfig, 'enabled' | 'stages' | 'trigger_mode' | 'trigger_branches' | 'gates'>>
   ): void {
     this.saving.set(true);
     this.error.set(null);
