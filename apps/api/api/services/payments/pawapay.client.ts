@@ -337,7 +337,9 @@ export class PawapayClient {
     if (country) params.set('country', country);
 
     return this.call<ActiveConfResponse>('active_conf', (client) =>
-      client.get<ActiveConfResponse>(`/active-conf?${params.toString()}`)
+      // Lecture pure, appelée pour afficher le catalogue : on n'attend pas
+      // 15 s une réponse dont l'écran peut se passer (repli connu).
+      client.get<ActiveConfResponse>(`/active-conf?${params.toString()}`, { timeout: 4_000 })
     );
   }
 
