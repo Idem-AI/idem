@@ -9,9 +9,11 @@
 import 'dotenv/config';
 import { loadSecretsFromManager } from './config/secret-loader.js';
 import { SECRET_MANIFEST } from './config/secrets.manifest.js';
+import { assertProductionConfig } from './config/required-config.js';
 
 try {
   await loadSecretsFromManager(SECRET_MANIFEST);
+  assertProductionConfig();
   await import('./server.js');
 } catch (error) {
   console.error('AppGen server bootstrap failed:', (error as Error).message);
