@@ -1,124 +1,14 @@
-<div class="min-h-dvh">
-  <header class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5">
-    <a routerLink="/" [attr.aria-label]="'landing.home' | translate"><iv-brand-mark /></a>
-    <nav class="flex items-center gap-2" [attr.aria-label]="'landing.nav' | translate">
-      <a class="button-ghost button-sm hidden sm:inline-flex" href="#how">{{ 'landing.howLink' | translate }}</a>
-      <button type="button" class="button-ghost button-sm" (click)="toggleLanguage()" [attr.aria-label]="'common.switchLanguage' | translate">
-        {{ language.current() === 'fr' ? 'EN' : 'FR' }}
-      </button>
-      <a class="inner-button button-sm" routerLink="/studio/video">
-        {{ (signedIn() ? 'landing.openStudio' : 'landing.signIn') | translate }}
-      </a>
-    </nav>
-  </header>
-
+<div class="min-h-dvh overflow-x-clip">
+  <iv-landing-header />
   <main>
-    <!-- Ce que fait iVision, en une phrase, et les deux portes d'entrée. -->
-    <section class="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-8 lg:grid-cols-[1.1fr_1fr]">
-      <div>
-        <p class="tag mb-5">{{ 'landing.kicker' | translate }}</p>
-        <h1 class="text-4xl font-semibold leading-tight tracking-tight text-[var(--color-heading)] sm:text-5xl">{{ 'landing.title' | translate }}</h1>
-        <p class="mt-5 max-w-xl text-lg text-[var(--color-text-secondary)]">{{ 'landing.subtitle' | translate }}</p>
-        <div class="mt-8 flex flex-wrap gap-3">
-          <a class="inner-button" routerLink="/studio/video"><i class="pi pi-video" aria-hidden="true"></i> {{ 'landing.ctaVideo' | translate }}</a>
-          <a class="outer-button" routerLink="/studio/image"><i class="pi pi-image" aria-hidden="true"></i> {{ 'landing.ctaImage' | translate }}</a>
-        </div>
-        <p class="mt-4 text-sm text-[var(--color-text-tertiary)]">{{ 'landing.account' | translate }}</p>
-      </div>
-
-      <!-- Une conversation telle qu'elle se passe : la demande, la question du modèle, le résultat. -->
-      <div class="glass-card p-5" role="img" [attr.aria-label]="'landing.demo.label' | translate">
-        <div class="flex flex-col gap-3 text-sm">
-          <p class="ml-auto max-w-[80%] rounded-2xl rounded-br-md bg-[var(--color-primary-500)] px-4 py-2.5 text-[var(--color-on-primary)]">{{ 'landing.demo.user' | translate }}</p>
-          <div class="max-w-[85%] rounded-2xl rounded-bl-md border border-[var(--glass-border-subtle)] px-4 py-3">
-            <p>{{ 'landing.demo.ask' | translate }}</p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <span class="tag"><i class="pi pi-upload" aria-hidden="true"></i> {{ 'landing.demo.addModel' | translate }}</span>
-              <span class="tag">{{ 'landing.demo.noModel' | translate }}</span>
-            </div>
-          </div>
-          <p class="ml-auto max-w-[80%] rounded-2xl rounded-br-md bg-[var(--color-primary-500)] px-4 py-2.5 text-[var(--color-on-primary)]"><i class="pi pi-paperclip" aria-hidden="true"></i> {{ 'landing.demo.model' | translate }}</p>
-          <div class="max-w-[85%] rounded-2xl rounded-bl-md border border-[var(--glass-border-subtle)] px-4 py-3">
-            <p>{{ 'landing.demo.done' | translate }}</p>
-            <!-- Les quatre plans, tels qu'ils sortent : une accroche, l'offre, la date, la signature. -->
-            <ol class="mt-3 grid grid-cols-4 gap-1.5" [attr.aria-label]="'landing.demo.shots' | translate">
-              <li class="flex aspect-[9/16] flex-col justify-end rounded-lg bg-[var(--color-primary-500)] p-2 text-[var(--color-on-primary)]">
-                <span class="text-[9px] uppercase tracking-wide opacity-80">{{ 'landing.demo.frames.kicker' | translate }}</span>
-                <span class="text-sm font-bold leading-tight">{{ 'landing.demo.frames.hook' | translate }}</span>
-              </li>
-              <li class="flex aspect-[9/16] flex-col items-center justify-center rounded-lg border border-[var(--glass-border-subtle)] p-2">
-                <span class="text-2xl font-black leading-none text-[var(--color-primary-500)]">−30 %</span>
-                <span class="mt-1 text-[10px] text-[var(--color-text-secondary)]">{{ 'landing.demo.frames.offer' | translate }}</span>
-              </li>
-              <li class="flex aspect-[9/16] flex-col justify-center rounded-lg bg-[var(--color-secondary-500)] p-2 text-[var(--color-on-primary)]">
-                <span class="text-[10px] opacity-80">{{ 'landing.demo.frames.when' | translate }}</span>
-                <span class="text-sm font-semibold leading-tight">{{ 'landing.demo.frames.date' | translate }}</span>
-              </li>
-              <li class="flex aspect-[9/16] flex-col items-center justify-center gap-1 rounded-lg border border-[var(--glass-border-subtle)] p-2">
-                <span class="h-5 w-5 rounded-full bg-[var(--color-primary-500)]" aria-hidden="true"></span>
-                <span class="text-[10px] font-semibold">{{ 'landing.demo.frames.brand' | translate }}</span>
-              </li>
-            </ol>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Trois gestes. -->
-    <section id="how" class="mx-auto max-w-6xl scroll-mt-8 px-5 py-16">
-      <h2 class="text-2xl font-semibold tracking-tight text-[var(--color-heading)] sm:text-3xl">{{ 'landing.how.title' | translate }}</h2>
-      <div class="mt-10 grid gap-6 md:grid-cols-3">
-        @for (step of steps; track step.key; let i = $index) {
-          <article class="glass-card p-6">
-            <iv-illustration class="mb-5 h-28 w-28 text-[var(--color-text-secondary)]" [kind]="step.kind" />
-            <p class="text-xs font-semibold text-[var(--color-primary-500)]">{{ i + 1 }}</p>
-            <h3 class="mt-1 text-lg font-semibold">{{ 'landing.how.' + step.key + '.title' | translate }}</h3>
-            <p class="mt-2 text-[var(--color-text-secondary)]">{{ 'landing.how.' + step.key + '.text' | translate }}</p>
-          </article>
-        }
-      </div>
-    </section>
-
-    <!-- Images ou vidéos : deux ateliers, jamais mélangés. -->
-    <section class="mx-auto max-w-6xl px-5 py-16">
-      <h2 class="text-2xl font-semibold tracking-tight text-[var(--color-heading)] sm:text-3xl">{{ 'landing.modes.title' | translate }}</h2>
-      <p class="mt-3 max-w-2xl text-[var(--color-text-secondary)]">{{ 'landing.modes.text' | translate }}</p>
-      <div class="mt-10 grid gap-6 md:grid-cols-2">
-        <a class="glass-card flex gap-5 p-6" routerLink="/studio/image">
-          <iv-illustration class="h-24 w-24 shrink-0 text-[var(--color-text-secondary)]" kind="kente" />
-          <div>
-            <h3 class="text-lg font-semibold">{{ 'landing.modes.image.title' | translate }}</h3>
-            <p class="mt-2 text-[var(--color-text-secondary)]">{{ 'landing.modes.image.text' | translate }}</p>
-          </div>
-        </a>
-        <a class="glass-card flex gap-5 p-6" routerLink="/studio/video">
-          <iv-illustration class="h-24 w-24 shrink-0 text-[var(--color-text-secondary)]" kind="kora" />
-          <div>
-            <h3 class="text-lg font-semibold">{{ 'landing.modes.video.title' | translate }}</h3>
-            <p class="mt-2 text-[var(--color-text-secondary)]">{{ 'landing.modes.video.text' | translate }}</p>
-          </div>
-        </a>
-      </div>
-    </section>
-
-    <!-- Le même compte, les mêmes crédits. -->
-    <section class="mx-auto max-w-6xl px-5 py-16">
-      <div class="glass-card flex flex-col items-start gap-6 p-8 sm:flex-row sm:items-center">
-        <iv-illustration class="h-24 w-24 shrink-0 text-[var(--color-text-secondary)]" kind="cauris" />
-        <div class="flex-1">
-          <h2 class="text-xl font-semibold">{{ 'landing.credits.title' | translate }}</h2>
-          <p class="mt-2 text-[var(--color-text-secondary)]">{{ 'landing.credits.text' | translate }}</p>
-        </div>
-        <a class="inner-button" routerLink="/studio/video">{{ 'landing.credits.cta' | translate }}</a>
-      </div>
-    </section>
+    <iv-landing-hero />
+    <iv-landing-imprint />
+    <iv-landing-stencil />
+    <iv-landing-live-edit />
+    <iv-landing-workshops />
+    <iv-landing-creativity />
+    <iv-landing-montage />
+    <iv-landing-closing />
   </main>
-
-  <footer class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 border-t border-[var(--glass-border-subtle)] px-5 py-8 text-sm text-[var(--color-text-tertiary)]">
-    <span>© {{ year }} IDEM — {{ 'landing.footer' | translate }}</span>
-    <span class="flex gap-4">
-      <a [href]="landingUrl" class="hover:text-[var(--color-text-primary)]">idem.africa</a>
-      <a [href]="dashboardUrl" class="hover:text-[var(--color-text-primary)]">{{ 'landing.dashboard' | translate }}</a>
-    </span>
-  </footer>
+  <iv-landing-footer />
 </div>

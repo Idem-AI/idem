@@ -16,68 +16,277 @@
   },
   "landing": {
     "home": "Accueil iVision",
-    "nav": "Navigation",
-    "howLink": "Comment ça marche",
-    "openStudio": "Ouvrir l’atelier",
-    "signIn": "Se connecter",
-    "kicker": "Un service IDEM",
-    "title": "Vos visuels et vos vidéos, à votre marque.",
-    "subtitle": "Dites ce que vous voulez annoncer. iVision lit votre site, reprend vos couleurs et vos polices, et crée le visuel ou la vidéo motion design. Montrez une vidéo modèle : il en reproduit les animations, avec vos textes et vos images.",
+    "footer": "Créer et lancer un business rentable",
+    "dashboard": "Tableau de bord",
     "ctaVideo": "Créer une vidéo",
     "ctaImage": "Créer un visuel",
-    "account": "Avec votre compte IDEM et vos crédits IDEM : rien de plus à créer.",
+    "hero": {
+      "title": "Dites-le. Voyez-le.",
+      "say": "Dites-le.",
+      "see": "Voyez-le.",
+      "lead": "Une phrase suffit. iVision crée la vidéo motion design ou le visuel, à vos couleurs, au format de chaque réseau."
+    },
     "demo": {
-      "label": "Exemple de conversation avec iVision",
-      "user": "Une vidéo pour nos soldes de fin d’année, -30 % sur tout",
-      "ask": "Avez-vous une vidéo modèle à reproduire ? J’en reprends les animations et le rythme, avec votre marque.",
-      "addModel": "Ajouter un modèle",
-      "noModel": "Sans modèle",
-      "model": "modele-promo.mp4",
-      "done": "Votre vidéo est prête : les quatre plans du modèle, avec vos textes, vos photos et vos couleurs.",
-      "shots": "Les plans de la vidéo",
-      "frames": {
-        "kicker": "Fin d’année",
-        "hook": "Tout doit partir",
-        "offer": "sur toute la boutique",
-        "when": "Jusqu’au",
-        "date": "31 décembre",
-        "brand": "Kora Café"
+      "kicker": "Fin d’année",
+      "hook": "Tout doit partir",
+      "offer": "−30 %",
+      "offerEdited": "−40 %",
+      "offerText": "sur toute la boutique",
+      "when": "Jusqu’au",
+      "date": "31 décembre",
+      "brand": "Maison Nyanga",
+      "place": "Akwa, Douala",
+      "monogram": "N"
+    },
+    "imprint": {
+      "title": [
+        {
+          "t": "Votre site devient"
+        },
+        {
+          "em": "votre charte",
+          "end": "."
+        }
+      ],
+      "text": "Collez le lien de votre site. iVision en lit les couleurs, les polices, le logo et le ton, et s’en sert aussitôt pour chaque création.",
+      "noSite": "Pas de site ? Écrivez « en bleu et or » dans votre demande, ça suffit.",
+      "sheet": "Ce qu’iVision a lu sur nyanga.cm",
+      "url": "nyanga.cm",
+      "colors": "Couleurs",
+      "fonts": "Polices",
+      "logo": "Logo",
+      "tone": "Ton",
+      "toneWords": "Chaleureux · élégant · direct",
+      "display": "Titres",
+      "body": "Texte",
+      "others": "D’autres palettes vous attendent dans « Marques »."
+    },
+    "stencil": {
+      "title": [
+        {
+          "t": "Montrez un modèle,"
+        },
+        {
+          "t": "il le ",
+          "em": "reproduit",
+          "end": "."
+        }
+      ],
+      "text": "Une vidéo ou une affiche vous plaît ? Ajoutez-la. iVision en reprend le découpage, les mouvements et la composition, avec vos textes, vos images et votre musique.",
+      "model": "Le modèle que vous montrez",
+      "yours": "Votre vidéo",
+      "plan": "Plan {{n}}",
+      "moves": {
+        "hook": "Entre par la gauche",
+        "offer": "Grossit",
+        "date": "Monte",
+        "brand": "Apparaît"
       }
     },
-    "how": {
-      "title": "Trois gestes, pas un de plus",
-      "site": {
-        "title": "Votre site devient votre charte",
-        "text": "Collez le lien de votre site : iVision en lit les couleurs, les polices, le logo et le ton, puis vous propose trois palettes et trois typographies. Vous choisissez, il s’en souvient."
-      },
-      "model": {
-        "title": "Montrez un modèle, il le reproduit",
-        "text": "Une vidéo ou une affiche qui vous plaît ? Ajoutez-la : iVision en reprend le découpage, les mouvements et la composition — avec vos textes, vos images, votre musique."
-      },
-      "edit": {
-        "title": "Retouchez en direct",
-        "text": "Cliquez sur un texte : la vidéo se place à l’instant où il s’affiche, et change pendant que vous écrivez. Remplacez une photo d’un clic."
-      }
+    "liveEdit": {
+      "title": [
+        {
+          "t": "Cliquez."
+        },
+        {
+          "t": "Écrivez."
+        },
+        {
+          "em": "C’est changé."
+        }
+      ],
+      "text": "Cliquez sur un texte : la vidéo se place à l’instant où il s’affiche et change pendant que vous écrivez. Une photo ne vous plaît pas ? Remplacez-la d’un clic.",
+      "field": "Texte du plan 2",
+      "screen": "Exemple de retouche d’une vidéo dans l’éditeur d’iVision",
+      "timeline": "Les plans de la vidéo",
+      "saved": "Enregistré"
     },
-    "modes": {
-      "title": "Des visuels, des vidéos — chacun son atelier",
-      "text": "On ne mélange pas : une conversation crée des visuels, une autre des vidéos. Chacune garde ses réglages et son historique.",
+    "workshops": {
+      "title": [
+        {
+          "t": "Deux ateliers,"
+        },
+        {
+          "em": "jamais mélangés",
+          "end": "."
+        }
+      ],
+      "text": "Une conversation crée des visuels, une autre des vidéos. Chacune garde ses réglages et son historique.",
       "image": {
-        "title": "Visuels",
-        "text": "Affiches, publications, stories, bannières : composés au millimètre, contrôlés à l’œil avant d’être livrés."
+        "name": "Visuels",
+        "text": "Affiches, publications, stories, bannières : composés au millimètre et vérifiés à l’œil avant de vous être livrés."
       },
       "video": {
-        "title": "Vidéos motion design",
-        "text": "De 6 à 60 secondes, en story, carré, portrait ou paysage, avec musique libre de droits et effets sonores."
+        "name": "Vidéos",
+        "text": "De 6 à 60 secondes, avec musique libre de droits et effets sonores. Ou votre propre prise de parole, montée pour vous.",
+        "duration": "6 à 60 secondes"
       }
     },
-    "credits": {
-      "title": "Le même compte, les mêmes crédits",
-      "text": "iVision utilise votre compte IDEM : mêmes crédits, mêmes prix que dans votre tableau de bord. Importez la charte d’un projet IDEM en un clic.",
-      "cta": "Commencer"
+    "creativity": {
+      "title": [
+        {
+          "t": "Montez"
+        },
+        {
+          "t": "d’un ",
+          "em": "cran",
+          "end": "."
+        }
+      ],
+      "text": "Choisissez combien l’IA décide. En bas, des règles sûres. En haut, une composition d’auteur. Le prix suit le cran.",
+      "ladder": "Cran de créativité",
+      "default": "Par défaut",
+      "price": "Prix",
+      "poster": "Le même visuel au cran {{level}}",
+      "levels": {
+        "low": {
+          "name": "Low",
+          "mult": "×1",
+          "text": "Des règles sûres : une mise en page classique, sans surprise."
+        },
+        "medium": {
+          "name": "Medium",
+          "mult": "×1",
+          "text": "Le bon équilibre : iVision choisit ce qu’il faut mettre en avant."
+        },
+        "high": {
+          "name": "High",
+          "mult": "×1,25",
+          "text": "Un directeur artistique regarde le visuel et décide de la composition."
+        },
+        "max": {
+          "name": "Max",
+          "mult": "×1,5",
+          "text": "L’IA compose toute la page et ose les très grands formats."
+        },
+        "ultra": {
+          "name": "Ultra",
+          "mult": "×2",
+          "text": "Une création d’auteur, écrite par l’IA puis critiquée à l’œil jusqu’à être juste."
+        }
+      }
     },
-    "footer": "Créer et lancer un business rentable",
-    "dashboard": "Tableau de bord"
+    "montage": {
+      "title": [
+        {
+          "t": "Filmez-vous,"
+        },
+        {
+          "t": "iVision ",
+          "em": "monte",
+          "end": "."
+        }
+      ],
+      "text": "Importez une vidéo où vous parlez. iVision coupe les blancs et les hésitations, ajoute les sous-titres et fait apparaître ce que vous dites. Prête à publier.",
+      "screen": "Exemple de montage d’une prise de parole",
+      "tracks": {
+        "take": "Votre prise",
+        "subtitles": "Sous-titres",
+        "screen": "À l’écran"
+      },
+      "removed": "2,4 s de blancs retirées",
+      "cut": "Coupé",
+      "transcript": [
+        {
+          "t": "Bonjour,",
+          "cut": false
+        },
+        {
+          "t": "euh…",
+          "cut": true
+        },
+        {
+          "t": "je suis Awa, de Maison Nyanga.",
+          "cut": false
+        },
+        {
+          "t": "Alors…",
+          "cut": true
+        },
+        {
+          "t": "Jusqu’au 31 décembre, toute la boutique est à −30 %.",
+          "cut": false
+        },
+        {
+          "t": "Euh,",
+          "cut": true
+        },
+        {
+          "t": "passez nous voir à Akwa !",
+          "cut": false
+        }
+      ],
+      "overlays": {
+        "title": "Titre animé",
+        "offer": "−30 %",
+        "logo": "Logo"
+      }
+    },
+    "closing": {
+      "title": [
+        {
+          "t": "Votre compte IDEM"
+        },
+        {
+          "em": "suffit",
+          "end": "."
+        }
+      ],
+      "text": "Mêmes crédits, mêmes prix que dans votre tableau de bord. Importez la charte d’un projet IDEM en un clic."
+    },
+    "request": {
+      "label": "Votre demande à iVision",
+      "parts": [
+        {
+          "t": "« Une "
+        },
+        {
+          "k": "vidéo"
+        },
+        {
+          "t": " pour nos soldes de fin d’année : "
+        },
+        {
+          "k": "−30 %"
+        },
+        {
+          "t": " sur toute la boutique, jusqu’au "
+        },
+        {
+          "k": "31 décembre"
+        },
+        {
+          "t": ". »"
+        }
+      ],
+      "site": "nyanga.cm",
+      "creativity": "Créativité · Medium"
+    },
+    "mockups": {
+      "label": "La même vidéo jouée sur un ordinateur, en story et en publication",
+      "pause": "Mettre la vidéo en pause",
+      "play": "Lire la vidéo",
+      "handle": "maisonnyanga",
+      "reply": "Envoyer un message",
+      "caption": "Soldes de fin d’année : −30 % sur toute la boutique.",
+      "url": "nyanga.cm"
+    },
+    "header": {
+      "label": "Navigation principale",
+      "service": "Un service IDEM",
+      "links": {
+        "how": "Comment ça marche",
+        "workshops": "Ateliers",
+        "creativity": "Créativité",
+        "montage": "Montage"
+      },
+      "language": "Langue",
+      "signIn": "Se connecter",
+      "start": "Créer une vidéo",
+      "openStudio": "Ouvrir l’atelier",
+      "menuOpen": "Ouvrir le menu",
+      "menuClose": "Fermer le menu"
+    }
   },
   "studio": {
     "sidebar": "Atelier",
