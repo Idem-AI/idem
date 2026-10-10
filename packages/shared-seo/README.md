@@ -12,6 +12,6 @@ import { buildPageGraph, ogImageUrl, SERVICES } from '@idem/shared-seo';
 ```
 
 - Landing : importé au runtime (`SeoService`).
-- Console, simulateur, iCode, iDeploy : leur `<head>`, `robots.txt` et
+- Console, simulateur, iCode, iDeploy, iVision : leur `<head>`, `robots.txt` et
   `sitemap.xml` sont générés par `npm run seo:sync` (racine du dépôt) ;
   `npm run seo:check` échoue s'ils ont dérivé.

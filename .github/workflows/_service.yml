@@ -23,7 +23,7 @@ on:
         required: true
         type: string
       service:
-        description: Service name in /root/application/docker-compose.prod.yml
+        description: Service name(s) in /root/application/docker-compose.prod.yml, space-separated (all run this image)
         required: true
         type: string
       build-env:
@@ -118,7 +118,7 @@ jobs:
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
   deploy:
-    name: Deploy ${{ inputs.service }}
+    name: Deploy ${{ inputs.image }}
     needs: build
     if: inputs.deploy && github.ref_name == 'main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -133,11 +133,12 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 10m
+          # Workers get up to 10 minutes to finish their jobs before they are replaced.
+          command_timeout: 20m
           script: |
             set -e
             IMAGE="ghcr.io/idem-ai/${{ inputs.image }}:${{ needs.build.outputs.tag }}"
-            SERVICE="${{ inputs.service }}"
+            SERVICES="${{ inputs.service }}"
             cd /root/application
             COMPOSE="docker compose -f docker-compose.prod.yml"
 
@@ -145,16 +146,19 @@ jobs:
             exec 200>/tmp/idem-deploy.lock
             flock -x -w 120 200 || { echo "ERROR: another deployment holds /tmp/idem-deploy.lock; re-run this job."; exit 1; }
 
-            if ! $COMPOSE config --services | grep -qx "$SERVICE"; then
-              echo "ERROR: no service '$SERVICE' in docker-compose.prod.yml; add it before deploying."
-              exit 1
-            fi
+            for SERVICE in $SERVICES; do
+              if ! $COMPOSE config --services | grep -qx "$SERVICE"; then
+                echo "ERROR: no service '$SERVICE' in docker-compose.prod.yml; add it before deploying."
+                exit 1
+              fi
+            done
             # The image line of this service only, whatever tag it had.
             sed -i "s|image: ghcr.io/idem-ai/${{ inputs.image }}:.*|image: $IMAGE|" docker-compose.prod.yml
 
-            echo "Deploying $IMAGE as $SERVICE"
-            $COMPOSE pull "$SERVICE"
-            $COMPOSE up -d --no-deps "$SERVICE"
+            echo "Deploying $IMAGE as $SERVICES"
+            $COMPOSE pull $SERVICES
+            # Workers stop gracefully (stop_grace_period): running jobs finish first.
+            $COMPOSE up -d --no-deps $SERVICES
             docker image prune -f >/dev/null
             sleep 5
-            $COMPOSE ps "$SERVICE"
+            $COMPOSE ps $SERVICES

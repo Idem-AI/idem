@@ -130,8 +130,8 @@ export function workflowNode(locale: SeoLocale): JsonLdNode {
     name: PROMISE[locale],
     description:
       locale === 'fr'
-        ? 'Le parcours IDEM, de l’idée au business rentable et en ligne.'
-        : 'The IDEM journey, from idea to a profitable business online.',
+        ? 'Le parcours IDEM, de l’idée au business rentable, en ligne et connu de ses clients.'
+        : 'The IDEM journey, from idea to a profitable business, online and known to its customers.',
     itemListOrder: 'https://schema.org/ItemListOrderAscending',
     numberOfItems: WORKFLOW.length,
     itemListElement: WORKFLOW.map((s) => ({

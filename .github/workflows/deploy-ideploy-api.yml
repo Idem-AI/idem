@@ -33,7 +33,8 @@ jobs:
     with:
       image: ideploy-api
       dockerfile: Dockerfile/prod/Dockerfile.ideploy-api
-      service: ideploy-api
+      # The API and every worker container run this image.
+      service: ideploy-api ideploy-worker-1 ideploy-worker-2 ideploy-worker-3
       build-env: false
       deploy: true
       free-disk: false
