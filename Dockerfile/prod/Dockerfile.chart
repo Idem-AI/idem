@@ -13,6 +13,7 @@ WORKDIR /app
 COPY ./apps/chart ./
 # `file:../../packages/shared-loader` se résout vers /packages depuis /app.
 COPY ./packages/shared-loader /packages/shared-loader
+COPY ./packages/shared-styles /packages/shared-styles
 
 # Corriger tailwind.config.js pour enlever l'import de @idem/shared-styles
 RUN sed -i "1,/^$/d" tailwind.config.js && \

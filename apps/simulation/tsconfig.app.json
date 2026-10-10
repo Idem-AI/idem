@@ -12,8 +12,11 @@
     "src/**/*.d.ts",
     "../../packages/shared-tour/src/**/*.ts",
     // Seuls le point d'entrée neutre et le rendu Angular : les rendus React et
-    // Svelte du même paquet ne concernent pas cette application.
-    "../../packages/shared-loader/src/index.ts",
-    "../../packages/shared-loader/src/angular/**/*.ts"
+    // Svelte du même paquet ne concernent pas cette application. Par le lien
+    // `src/app/shared/shared-loader`, pas par `packages/` : avec
+    // `preserveSymlinks`, son `@angular/core` est alors celui de l'app (22),
+    // et non celui de la racine, absent de l'image Docker.
+    "src/app/shared/shared-loader/src/index.ts",
+    "src/app/shared/shared-loader/src/angular/**/*.ts"
   ]
 }

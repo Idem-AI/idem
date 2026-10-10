@@ -12,6 +12,7 @@
     "apps/ideploy-api",
     "apps/ideploy-web",
     "apps/simulation",
+    "apps/ivision/web",
     "packages/shared-models",
     "packages/shared-auth-client",
     "packages/shared-styles",
