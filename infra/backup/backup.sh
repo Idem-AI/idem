@@ -28,16 +28,29 @@ WORK="$(mktemp -d /tmp/idem-backup.XXXXXX)"
 trap 'rm -rf "$WORK"' EXIT
 FAILED=0
 
-# One JSON line, printed by a short-lived container named idem-backup so that
-# it reaches Loki like any service log.
+# One JSON line per step, printed here and kept for publish_logs.
+LINES="$WORK/lines.jsonl"
 log() {
   local level="$1" event="$2" target="$3" extra="${4:-}"
   local line
   line=$(printf '{"timestamp":"%s","level":"%s","service":"backup","environment":"production","event":"%s","target":"%s"%s}' \
     "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" "$level" "$event" "$target" "$extra")
   echo "$line"
+  echo "$line" >>"$LINES"
+}
+
+# The lines reach Loki like any service log: printed by a container named
+# idem-backup, which Alloy collects. It stays up 30 s so that Alloy, which
+# looks for new containers every 10 s, sees it; it runs detached and removes
+# itself. Each line keeps its own timestamp.
+publish_logs() {
+  [ -s "$LINES" ] || return 0
+  # Outside WORK, which is deleted on exit while the container still reads it.
+  local published=/tmp/idem-backup-lines.jsonl
+  cp "$LINES" "$published"
   docker rm -f idem-backup >/dev/null 2>&1
-  docker run --rm --name idem-backup alpine:3.20 echo "$line" >/dev/null 2>&1 || true
+  docker run -d --rm --name idem-backup -v "$published":/lines.jsonl:ro alpine:3.20 \
+    sh -c 'cat /lines.jsonl; sleep 30' >/dev/null 2>&1 || true
 }
 
 s3() {
@@ -86,4 +99,5 @@ s3 s3 ls "s3://$S3_BUCKET/" --recursive 2>/dev/null | awk '{print $4}' | while r
 done
 
 if [ "$FAILED" -eq 0 ]; then log info backup.completed all; else log error backup.completed_with_errors all; fi
+publish_logs
 exit "$FAILED"
