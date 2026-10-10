@@ -5,7 +5,10 @@
  *            direction artistique en sont tirés (`core/src/site`), puis TROIS palettes et TROIS
  *            appariements typographiques sont proposés ; il choisit, la marque est prête ;
  *   idem     un projet IDEM de l'utilisateur : sa charte, telle quelle (la même forme) ;
- *   manual   un nom, des couleurs, des polices saisis à la main.
+ *   manual   un nom, des couleurs, des polices saisis à la main ;
+ *   file     une charte déposée (PDF, page de charte, logo) : couleurs, polices, logo lus ;
+ *   auto     la marque PROVISOIRE d'une création sans charte : jamais exigée, jamais listée.
+ *            L'utilisateur peut à tout moment ajouter son site, sa charte ou ses couleurs.
  *
  * Tout ce qui vient d'un site (logo, photos) est recopié dans notre stockage par un
  * téléchargement sûr : les rendus ne dépendent jamais d'un site tiers.
@@ -14,7 +17,9 @@ import crypto from 'crypto';
 import sharp from 'sharp';
 import { BrandKit, BrandVoice, isHex6, normalizeHex, PALETTE_ROLES } from '../../../core/src/brand/brand-kit';
 import { safeFetch } from '../../../core/src/render/safe-fetch';
-import { brandKitFromScan, scanWebsite, SiteScanResult, SiteScanStep } from '../../../core/src/site/site-scanner';
+import { brandKitFromScan, scanWebsite, SiteScanResult, SiteScanStep, standaloneSvg } from '../../../core/src/site/site-scanner';
+import { readCharterFile } from '../../../core/src/site/charter-file';
+import { paletteFromNamed } from '../../../core/src/brand/color-words';
 import { collection } from '../config/db';
 import logger from '../config/logger';
 import { storage } from '../config/storage';
@@ -26,8 +31,85 @@ const brands = () => collection<IvisionBrand>('brands');
 const now = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${Date.now().toString(36)}${crypto.randomBytes(4).toString('hex')}`;
 
+/** Les marques de l'utilisateur (les marques provisoires des créations sans charte n'y sont pas). */
 export async function listBrands(userId: string): Promise<IvisionBrand[]> {
-  return brands().find({ userId }).sort({ updatedAt: -1 }).limit(100).toArray();
+  return brands().find({ userId, source: { $ne: 'auto' } } as never).sort({ updatedAt: -1 }).limit(100).toArray();
+}
+
+/** La marque provisoire d'une création sans charte : couleurs neutres, ou celles que la demande nomme. */
+export async function createAutoBrand(userId: string, colors?: Record<string, string> | null): Promise<IvisionBrand> {
+  const palette = Object.fromEntries(PALETTE_ROLES.map((role) => [role, normalizeHex(colors?.[role])]).filter(([, v]) => v && isHex6(v)));
+  const brand: IvisionBrand = {
+    _id: newId('brand'),
+    userId,
+    name: '',
+    source: 'auto',
+    status: 'ready',
+    kit: { colors: { colors: palette }, typography: { primary: { family: 'Archivo' }, secondary: { family: 'Inter' } }, logo: null, artDirection: null },
+    voice: { brandName: '', language: 'fr' },
+    photos: [],
+    createdAt: now(),
+    updatedAt: now(),
+  };
+  await brands().insertOne(brand);
+  return brand;
+}
+
+/** Les couleurs nommées dans une demande, posées sur une marque provisoire (jamais sur une vraie charte). */
+export async function applyNamedColors(userId: string, brand: IvisionBrand, named: string[]): Promise<IvisionBrand> {
+  const palette = paletteFromNamed(named);
+  if (brand.source !== 'auto' || !palette) return brand;
+  return updateBrand(userId, brand._id, { colors: palette });
+}
+
+/**
+ * Une charte DÉPOSÉE (PDF, page de charte en image, logo) : couleurs écrites ou vues, polices
+ * nommées, logo détouré. La marque est prête aussitôt (rien à valider) ; les trois propositions
+ * de palette et de typographie restent consultables dans la page « Marques ».
+ */
+export async function brandFromFile(userId: string, file: { buffer: Buffer; mimetype: string; originalname: string }): Promise<{ brand: IvisionBrand; found: { kind: string; colors: number; fonts: string[]; logo: boolean } }> {
+  const read = await readCharterFile({
+    buffer: file.buffer,
+    mimeType: file.mimetype,
+    name: file.originalname,
+    vision: (base64, mimeType, instruction) => idem.ai.vision({ base64, mimeType, instruction, options: { maxOutputTokens: 600, temperature: 0.1, purpose: 'site' } }),
+  });
+  const id = newId('brand');
+  const folder = `users/${userId}/brands`;
+  let logo: BrandKit['logo'] = null;
+  if (read.logo) {
+    const svg = read.logo.mimeType === 'image/svg+xml' ? read.logo.buffer.toString('utf8') : undefined;
+    const url = (await storage.uploadFile(read.logo.buffer, `${id}-logo.${svg ? 'svg' : 'png'}`, folder, read.logo.mimeType)).downloadURL;
+    logo = { ...(svg ? { svg: standaloneSvg(svg) } : {}), assetUrls: { primary: url, withText: { lightBackground: url } } } as BrandKit['logo'];
+  }
+  // Une photo déposée par erreur reste une photo de la marque (elle servira aux créations).
+  const photos: string[] = [];
+  if (read.kind === 'photo' && !/pdf/.test(file.mimetype)) {
+    const jpeg = await sharp(file.buffer).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 86 }).toBuffer();
+    photos.push((await storage.uploadFile(jpeg, `${id}-photo.jpg`, folder, 'image/jpeg')).downloadURL);
+  }
+  const typo = read.typographies[0];
+  const brand: IvisionBrand = {
+    _id: id,
+    userId,
+    name: read.brandName || '',
+    source: 'file',
+    status: 'ready',
+    kit: {
+      colors: { colors: { ...read.palette } },
+      typography: { primary: { family: typo.display, cssUrl: typo.displayCss }, secondary: { family: typo.body, cssUrl: typo.bodyCss } },
+      logo,
+      artDirection: null,
+    },
+    voice: { brandName: read.brandName || '', language: 'fr' },
+    photos,
+    proposals: { palettes: read.palettes, typographies: read.typographies, chosen: { palette: 'site', typography: 'site' }, pages: [], warnings: read.warnings },
+    createdAt: now(),
+    updatedAt: now(),
+  };
+  await brands().insertOne(brand);
+  logger.info('brand.from_file', { event: 'brand.from_file', brandId: id, kind: read.kind, colors: read.found.colors, fonts: read.found.fonts, logo: !!logo });
+  return { brand, found: { kind: read.kind, colors: read.found.colors, fonts: read.found.fonts, logo: !!logo } };
 }
 
 export async function getBrand(userId: string, brandId: string): Promise<IvisionBrand> {
@@ -54,8 +136,9 @@ async function hostImage(userId: string, url: string, name: string): Promise<str
 }
 
 /**
- * Scanne un site et crée la marque en BROUILLON : la palette et la typographie du site sont
- * présélectionnées, l'utilisateur confirme ou choisit une autre proposition (`chooseProposals`).
+ * Scanne un site et crée la marque, PRÊTE aussitôt : la palette et la typographie du site
+ * s'appliquent ; les deux autres propositions restent là pour changer d'avis (`chooseProposals`,
+ * page « Marques »). Rien n'est demandé avant de créer.
  */
 export async function scanBrand(userId: string, rawUrl: string, onProgress: (step: SiteScanStep | 'copy', data?: Record<string, unknown>) => void): Promise<IvisionBrand> {
   const scan: SiteScanResult = await scanWebsite({
@@ -86,7 +169,7 @@ export async function scanBrand(userId: string, rawUrl: string, onProgress: (ste
     name: scan.brandName,
     source: 'site',
     siteUrl: scan.finalUrl,
-    status: 'draft',
+    status: 'ready',
     kit: brandKitFromScan(scan, { palette, typography }, hostedLogo),
     voice: { ...scan.voice, brandName: scan.brandName, language: scan.voice.language || scan.language },
     photos: [...new Set([...photos.filter((u): u is string => !!u), ...(existing?.photos || [])])].slice(0, 40),

@@ -11,8 +11,8 @@ import {
   EditorDocumentType,
   LoadedDocument,
   PageFormat,
-} from '../models/editor.types';
-import { sanitizeSectionHtml } from '../utils/sanitize-section';
+} from '@idem/shared-document-editor/angular';
+import { sanitizeSectionHtml } from '@idem/shared-document-editor/angular';
 
 /** Document HTML lu sur le projet : ses sections, et son nom quand il en a un. */
 export interface HtmlSectionsBucket {

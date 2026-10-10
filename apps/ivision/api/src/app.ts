@@ -31,9 +31,10 @@ export function createApp(): Express {
         return callback(new Error('Not allowed by CORS'));
       },
       credentials: true,
-      methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Accept', 'Accept-Language', 'X-Requested-With', 'Cache-Control'],
-      exposedHeaders: ['X-Request-Id', 'X-Accel-Buffering'],
+      // Content-Disposition : le nom du fichier téléchargé, lu par `saveFile` côté web.
+      exposedHeaders: ['X-Request-Id', 'X-Accel-Buffering', 'Content-Disposition'],
       maxAge: 600,
     })
   );

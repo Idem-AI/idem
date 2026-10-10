@@ -196,6 +196,151 @@ class MemoryStore implements VideoStore {
   const visualText = composed.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
   check(`visuel rendu et mesuré (${composed.png.length} octets, score ${composed.audit.score}/100)`, composed.png.length > 10000 && composed.audit.score >= 70 && /café qui r(é|&eacute;)veille/i.test(visualText), visualText.slice(0, 160));
 
+  section('Moteur d’affiches — gabarits dessinés par le code, rendu mesuré');
+  {
+    const sharp = (await import('sharp')).default;
+    const { POSTER_TEMPLATES } = await import('../src/visual/poster/poster.templates');
+    const { renderPoster, posterFonts } = await import('../src/visual/poster/poster.render');
+    const { specFor, schemesOf } = await import('../src/visual/poster/poster.spec');
+    const { posterImage, analyzeLogo } = await import('../src/visual/poster/poster.images');
+    // Une photo et un logo synthétiques (aucun réseau).
+    const photoFile = path.join(OUT, 'photo.jpg');
+    await sharp({ create: { width: 1200, height: 900, channels: 3, background: '#c9a27a' } })
+      .composite([{ input: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900"><circle cx="760" cy="380" r="220" fill="#3b2a20"/><rect x="0" y="700" width="1200" height="200" fill="#5d7a4a"/></svg>'), top: 0, left: 0 }])
+      .jpeg()
+      .toFile(photoFile);
+    const logoFile = path.join(OUT, 'logo.png');
+    await sharp(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200"><rect x="40" y="40" width="120" height="120" rx="24" fill="#d6246e"/><text x="190" y="130" font-family="Arial" font-weight="700" font-size="72" fill="#1d1d1f">Kofi</text></svg>')).png().toFile(logoFile);
+    const photo = await posterImage(`file://${photoFile}`, 'brand');
+    const logo = await analyzeLogo(`file://${logoFile}`);
+    check('photo synthétique lue (point d’intérêt, proportions)', !!photo && photo.aspect > 1.2 && photo.focal.x > 0.4, JSON.stringify(photo?.focal));
+    check('logo analysé (encre sombre, marges rognées)', logo.ink === 'dark' || logo.ink === 'color', `${logo.ink} ${logo.aspect.toFixed(2)}`);
+    const fonts = posterFonts({ primaryFont: 'Poppins', secondaryFont: 'Inter' });
+    const palette = { primary: '#d6246e', secondary: '#2b2d42', accent: '#ffb703', background: '#ffffff', text: '#1d1d1f' };
+    const copies: Record<string, any> = {
+      event: { kicker: 'Kofi Live', headline: 'La tech au féminin prend le micro', sub: 'Scène ouverte, témoignages et rencontres.', facts: [{ kind: 'date', text: 'Samedi 12 oct.' }, { kind: 'time', text: '18h00' }, { kind: 'place', text: 'Plateau, Abidjan' }], emphasis: 3 },
+      promo: { headline: 'Sur toutes nos formations', facts: [{ kind: 'date', text: 'Jusqu’au 31 octobre' }], offer: '−30 %' },
+      quote: { headline: 'Elles racontent Kofi', facts: [], quote: { text: 'Kofi m’a donné le courage de lancer ma startup.', author: 'Awa K.' } },
+    };
+    const failed: string[] = [];
+    let rendered = 0;
+    for (const format of ['square', 'story', 'banner'] as const) {
+      for (const t of POSTER_TEMPLATES) {
+        const copy = t.id === 'offer' ? copies.promo : t.id === 'quote' ? copies.quote : copies.event;
+        const input = { format, copy, palette, image: t.needsImage || t.id === 'event' ? photo! : undefined, extraImages: [photo!, photo!], allowDark: false, logo, brandName: 'Kofi', language: 'fr' };
+        const schemes = schemesOf(input as any);
+        if (schemes.some((x) => x.id === 'ink')) failed.push(`${format}/${t.id} fond sombre sans demande`);
+        const spec = specFor(input as any, { template: t.id, scheme: t.schemes.find((id) => schemes.some((x) => x.id === id)) || 'paper', mirror: false, treatment: 'natural' }, schemes);
+        if (!spec || (t.needs && !t.needs(spec))) continue;
+        const res = await renderPoster(spec, t.render(spec), fonts);
+        rendered++;
+        if (res.measure.blocking || res.measure.score < 85) failed.push(`${format}/${t.id} ${res.measure.score} ${JSON.stringify({ o: res.measure.overflow, x: res.measure.overlaps, out: res.measure.outside, c: res.measure.lowContrast })}`);
+        fs.writeFileSync(path.join(OUT, `poster-${format}-${t.id}.png`), res.png);
+      }
+    }
+    check(`${rendered} affiches rendues sur fond clair, sans débordement ni chevauchement (score ≥ 85)`, rendered >= 27 && !failed.length, failed.join(' · '));
+  }
+
+  section('Méthodes des crans Max et Ultra — conception par l’IA, sous contrôle');
+  {
+    const sharp = (await import('sharp')).default;
+    const { renderPoster, posterFonts } = await import('../src/visual/poster/poster.render');
+    const { specFor, schemesOf } = await import('../src/visual/poster/poster.spec');
+    const { posterImage, analyzeLogo } = await import('../src/visual/poster/poster.images');
+    const { colorTokens } = await import('../src/visual/poster/poster.canvas');
+    const { parseLayout, buildLayout } = await import('../src/visual/poster/poster.layout');
+    const { buildAuthored, extractHtml } = await import('../src/visual/poster/poster.author');
+    const { parseCritique } = await import('../src/visual/poster/poster.critic');
+    const { designLoop } = await import('../src/visual/poster/poster.loop');
+    const photo = await posterImage(`file://${path.join(OUT, 'photo.jpg')}`, 'brand');
+    const logoFile = path.join(OUT, 'logo2.png');
+    // Un logo bicolore : texte noir, marque rose (comme « #DEV_Girls »).
+    await sharp(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="160"><text x="10" y="120" font-family="Arial" font-weight="700" font-size="110" fill="#111111">Ko</text><text x="170" y="120" font-family="Arial" font-weight="700" font-size="110" fill="#d6246e">fi</text></svg>')).png().toFile(logoFile);
+    const logo = await analyzeLogo(`file://${logoFile}`);
+    const fonts = posterFonts({ primaryFont: 'Poppins', secondaryFont: 'Inter' });
+    const palette = { primary: '#d6246e', secondary: '#2b2d42', accent: '#39ff14', background: '#ffffff', text: '#1d1d1f' };
+    const copy = { kicker: 'Atelier pratique', headline: 'Créez votre première œuvre avec l’IA', facts: [{ kind: 'date' as const, text: 'Samedi 18 octobre' }, { kind: 'place' as const, text: 'Plateau, Abidjan' }] };
+    const input = { format: 'square' as const, copy, palette, image: photo!, extraImages: [], allowDark: false, logo, brandName: 'Kofi', language: 'fr' };
+    const schemes = schemesOf(input as any);
+    const carrier = specFor(input as any, { template: 'free', scheme: 'paper', mirror: false, treatment: 'natural' }, schemes)!;
+    const tokens = colorTokens(carrier, schemes);
+    check('jetons de la charte (le vert fluo marqué comme tel)', tokens.some((t) => t.id === 'accent' && t.neon) && !tokens.some((t) => t.id === 'deep'), tokens.map((t) => `${t.id}${t.neon ? '*' : ''}`).join(' '));
+    const brief: any = { spec: carrier, tokens, images: [photo!], context, request: 'Atelier pratique samedi', intent: 'event' };
+
+    // Max : une mise en page écrite comme le ferait le designer, construite et mesurée.
+    const design = parseLayout(JSON.stringify({ concept: 'photo en haut, bande de marque en bas', background: 'paper', elements: [
+      { type: 'photo', photo: 1, x: 0, y: 0, w: 100, h: 56 },
+      { type: 'shape', color: 'primary', x: 0, y: 56, w: 100, h: 44 },
+      { type: 'text', x: 7, y: 60, w: 86, h: 22, items: ['kicker', 'headline', 'facts'], valign: 'top', headline: 'large' },
+      { type: 'logo', x: 7, y: 87, size: 7 },
+    ] }))!;
+    const built = buildLayout(design, brief);
+    const layoutRender = await renderPoster(carrier, built.body, fonts);
+    fs.writeFileSync(path.join(OUT, 'max-layout.png'), layoutRender.png);
+    check('Max : la mise en page de l’IA construite et mesurée sans défaut', !!design && !built.issues.length && !layoutRender.measure.blocking, `${built.issues.join(' · ')} ${JSON.stringify(layoutRender.measure)}`.slice(0, 300));
+    const neon = buildLayout({ ...design, elements: [...design.elements, { type: 'shape', color: 'accent', x: 0, y: 0, w: 50, h: 30 }] }, brief);
+    check('Max : un grand aplat fluo est renvoyé au designer', neon.issues.some((i) => /neon/.test(i)));
+    const noHead = buildLayout({ ...design, elements: design.elements.filter((e) => e.type !== 'text') }, brief);
+    check('Max : titre et logo exigés', noHead.issues.some((i) => /headline is missing/.test(i)));
+
+    // Ultra : le HTML d'auteur, vérifié et nettoyé.
+    const good = `<div class="x-band" style="position:absolute;left:0;top:560px;width:1080px;height:520px;background:var(--primary)"></div>
+<div class="ph" style="position:absolute;left:0;top:0;width:1080px;height:560px"><img src="{{PHOTO_1}}" style="object-position:60% 40%"></div>
+<div data-stack="head" style="position:absolute;left:76px;top:600px;width:928px;height:300px;display:flex;flex-direction:column;justify-content:flex-start;gap:16px">
+<div class="fit kicker" data-min="24" data-max="34" style="color:var(--white)">Atelier pratique</div>
+<div class="fit headline" data-min="50" data-max="130" style="color:#FFFFFF;font-family:Comic Sans MS">Créez votre première œuvre avec l’IA</div>
+<div class="fit facts" data-min="26" data-max="36" style="color:var(--white)"><span class="fact">Samedi 18 octobre</span><span class="sep" style="background:var(--white)"></span><span class="fact">Plateau, Abidjan</span></div></div>
+<div class="logo" style="position:absolute;left:76px;top:930px;background:#ffffff;padding:14px;border-radius:8px"><img src="{{LOGO}}" style="height:62px;width:auto;display:block"></div>`;
+    const okBuild = buildAuthored({ html: good }, brief, copy as any);
+    const authorRender = await renderPoster(carrier, okBuild.body, fonts);
+    fs.writeFileSync(path.join(OUT, 'ultra-author.png'), authorRender.png);
+    check('Ultra : un HTML d’auteur conforme est rendu et mesuré sans défaut', !okBuild.issues.length && !authorRender.measure.blocking && !/Comic/.test(okBuild.body), `${okBuild.issues.join(' · ')} ${JSON.stringify(authorRender.measure)}`.slice(0, 300));
+    const bad = buildAuthored({ html: good.replace('Atelier pratique', 'Inscrivez-vous vite').replace('{{LOGO}}', '').replace('</div>\n<div class="ph"', '</div><script>alert(1)</script>\n<div class="ph"') }, brief, copy as any);
+    check('Ultra : texte inventé, script et logo absent renvoyés au designer', bad.issues.some((i) => /not an approved word/.test(i)) && bad.issues.some((i) => /forbidden/.test(i)) && bad.issues.some((i) => /logo/.test(i)) && !/<script/.test(bad.body), bad.issues.join(' · ').slice(0, 300));
+    const snapped = buildAuthored({ html: good.replace('var(--primary)', '#d4256c').replace('color:var(--white)">Atelier', 'color:var(--accent)">Atelier') }, brief, copy as any);
+    check('Ultra : couleur en dur ramenée au jeton, fluo retiré du texte', /#d6246e/i.test(snapped.body) && !/#d4256c/i.test(snapped.body) && !/color:var\(--accent\)/.test(snapped.body) && !snapped.issues.length, snapped.issues.join(' · '));
+    const twice = buildAuthored({ html: good.replace('</div></div>', '</div></div><div data-stack="b" style="position:absolute;left:600px;top:40px;width:300px;height:60px"><div class="fit kicker">Atelier</div></div>') }, brief, copy as any);
+    check('Ultra : un mot répété dans un badge est refusé', twice.issues.some((i) => /repeated/.test(i)), twice.issues.join(' · '));
+    check('Ultra : le HTML extrait sans le raisonnement qui l’entoure', extractHtml(`Looking at the fixes, here it is: ${good} done.`) === good.trim());
+
+    // Le logo sur sa propre couleur : sa partie rose disparaît, la mesure le voit.
+    const lost = await renderPoster(carrier, buildAuthored({ html: good.replace('top:930px;background:#ffffff;padding:14px;border-radius:8px', 'top:930px') }, brief, copy as any).body, fonts);
+    check('logo illisible sur sa propre couleur détecté (pixels)', (lost.measure.lowContrast || []).some((c) => c.name === 'logo' && c.blocking), JSON.stringify(lost.measure.lowContrast));
+
+    // La critique : note par critères, le plus faible pesant double.
+    const crit = parseCritique('{"hierarchy":8,"legibility":8,"balance":7,"brand":8,"finish":8,"originality":4,"fixes":["move the logo","enlarge the headline"]}');
+    check('critique : note par critères (un défaut grave tire la note), verdict « à revoir »', !!crit && crit.score < 7.2 && crit.verdict === 'revise' && crit.fixes.length === 2, JSON.stringify(crit));
+
+    // La boucle : un premier jet refusé, la correction reçoit les défauts et aboutit.
+    const seen: string[][] = [];
+    const loop = await designLoop<{ html: string }>({
+      key: 'check', rounds: 3, deadline: Date.now() + 60_000,
+      write: async (round, previous) => {
+        if (previous) seen.push(previous.issues);
+        return { html: round === 0 ? good.replace('{{LOGO}}', '') : good };
+      },
+      build: (d) => buildAuthored(d, brief, copy as any),
+      render: (body) => renderPoster(carrier, body, fonts),
+      review: async () => ({ verdict: 'ok', score: 8.5, fixes: [] }),
+    });
+    check('boucle de conception : défaut renvoyé, version corrigée retenue', !!loop.best && loop.best.round === 1 && seen[0]?.some((i) => /logo/.test(i)), loop.log.join(' | '));
+  }
+
+  section('Moteur d’affiches — les mots');
+  {
+    const { extractFacts, languageMatches, validHeadline, polish, heuristicCopy } = await import('../src/visual/poster/poster.copy');
+    const brief = { message: 'Promo de rentrée', details: 'Promo de rentrée : -20 % sur toutes nos formations jusqu au 31 octobre', brandName: 'Kofi', language: 'fr' };
+    const read = extractFacts(brief.details);
+    check('faits lus dans la demande (offre, date)', read.offer === '−20 %' && read.facts.some((f) => f.kind === 'date' && /31 octobre/.test(f.text)), JSON.stringify(read));
+    check('titre anglais refusé pour une marque francophone', !languageMatches('Kofi helped me land my first job', 'fr') && languageMatches('On se retrouve samedi', 'fr'));
+    check('format inventé refusé (« soirée » absente de la demande)', !validHeadline('Une soirée pour coder', { ...brief, details: 'Rencontre samedi' }));
+    check('chiffre absent de la demande refusé', !validHeadline('-50 % sur tout', brief));
+    const p = polish({ headline: 'Créez avec l IA', facts: [{ kind: 'date', text: '31 octobre' }], offer: '-20%' }, 'fr', brief.details);
+    check('typographie : élision, offre normalisée, date de fin', p.headline === 'Créez avec l’IA' && p.offer === '−20 %' && p.facts[0].text === 'Jusqu’au 31 octobre', JSON.stringify(p));
+    const h = heuristicCopy({ message: 'Atelier', details: 'Atelier pratique : créez votre première œuvre avec l IA, samedi 18 octobre', brandName: 'Kofi', language: 'fr' }, 'event');
+    check('repli sans modèle : préambule en sur-titre, la suite en titre', h.kicker === 'Atelier pratique' && /^Créez votre première œuvre/.test(h.headline) && !h.sub, JSON.stringify(h));
+  }
+
   console.log(`\n${passes} vérifications réussies, ${failures} en échec · fichiers : ${OUT}`);
   process.exit(failures ? 1 : 0);
 })().catch((error) => {

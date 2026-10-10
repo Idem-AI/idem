@@ -26,7 +26,7 @@ export interface PosterBrief {
 
 const fold = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const clip = (text: string | undefined, max: number) => {
-  const t = (text || '').replace(/\s+/g, ' ').trim().replace(/^["'«»“”]+|["'«»“”]+$/g, '');
+  const t = (text || '').replace(/\s+/g, ' ').trim().replace(/^["'«»“”\s]+|["'«»“”\s]+$/g, '');
   if (t.length <= max) return t;
   return t.slice(0, max).replace(/\s+\S*$/, '').replace(/[,;:\-–—]$/, '').trim();
 };
@@ -97,13 +97,13 @@ export function dedupeFacts(facts: PosterFact[], headline: string): PosterFact[]
 
 /** Les mots de la CONSIGNE, jamais du message affiché. */
 const META = /\b(visuel|visuels|affiche|story|stories|publication|post|flyer|banni[eè]re|poster|design|graphisme|professionn?el|propose[rz]?|autre chose|refai[st]|template|image|mise en page|layout|instagram|facebook)\b/i;
-const ENGLISH = /\b(the|and|for|with|your|our|join|official|launch|now|is|are|we|you|community|discover|get|new)\b/gi;
+const ENGLISH = /\b(the|and|for|with|your|our|join|official|launch|now|is|are|we|you|community|discover|get|new|my|me|it|this|that|to|of|in|from|at|by|be|will|all|more|first|helped|help|land|job|women|training|opportunit(?:y|ies)|today|here)\b/gi;
 const FRENCH = /\b(le|la|les|des|du|un|une|et|pour|avec|nous|vous|notre|votre|est|sont|au|aux|en)\b/gi;
 
 export function languageMatches(text: string, language: string): boolean {
   const en = (text.match(ENGLISH) || []).length;
   const fr = (text.match(FRENCH) || []).length;
-  if (language.startsWith('fr')) return en < 2 || fr >= en;
+  if (language.startsWith('fr')) return en < 2 || fr > en;
   if (language.startsWith('en')) return fr < 2 || en >= fr;
   return true;
 }
@@ -137,6 +137,39 @@ export function validHeadline(headline: string, brief: PosterBrief): boolean {
   return digits(headline).every((d) => digits(`${brief.message} ${brief.details || ''}`).includes(d));
 }
 
+/** Des mots qui ne méritent pas la couleur de mise en avant. */
+const WEAK = /^(nos|notre|vos|votre|mon|ma|mes|ton|ta|tes|son|sa|ses|leur|leurs|le|la|les|un|une|des|du|de|et|ou|sur|avec|pour|en|au|aux|à|a|l|d|our|your|my|the|a|an|and|of|for|with|on|to)$/i;
+
+/** Normalise une offre : « -20% » → « −20 % ». */
+export const normalizeOffer = (o: string) => o.replace(/^\s*[-–−]\s?/, '−').replace(/\s?%/, ' %');
+
+/**
+ * La typographie d'affiche : apostrophes typographiques, élisions rétablies en français
+ * (« l IA » → « l’IA », « m a » → « m’a ») et « jusqu'au » rendu à une date de fin.
+ */
+export function polish(copy: PosterCopy, language: string, source: string): PosterCopy {
+  const fr = language.startsWith('fr');
+  const fix = (t?: string) => {
+    if (!t) return t;
+    let v = t.replace(/'/g, '’');
+    if (fr) v = v.replace(/\b([lLjJmMtTsSdDnNcC]|[qQ]u|[jJ]usqu|[lL]orsqu|[pP]uisqu) (?=[aeiouyhéèêàâîôûAEIOUYHÉÈÊÀÂÎÔÛ])/g, '$1’');
+    return v;
+  };
+  const out: PosterCopy = { ...copy, headline: fix(copy.headline)!, kicker: fix(copy.kicker), sub: fix(copy.sub) };
+  if (!out.kicker) delete out.kicker;
+  if (!out.sub) delete out.sub;
+  if (copy.quote) out.quote = { ...copy.quote, text: fix(copy.quote.text)! };
+  if (copy.offer) out.offer = normalizeOffer(copy.offer);
+  const until = fr ? /jusqu['’ ]?\s?(?:au|à)\s/i : /\b(?:until|till|through)\s/i;
+  out.facts = copy.facts.map((f) => {
+    let text = fix(f.text)!;
+    // « 31 octobre » d'une promo « jusqu'au 31 octobre » : c'est une date de fin, on le dit.
+    if (f.kind === 'date' && new RegExp(until.source + '(?:le\\s)?' + f.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(source)) text = fr ? `Jusqu’au ${text}` : `Until ${text}`;
+    return { ...f, text };
+  });
+  return out;
+}
+
 // ─── Repli sans modèle ──────────────────────────────────────────────────────
 
 const LEAD = /^\s*(?:(?:je\s+(?:veux|voudrais)|j['’]aimerais|fais(?:-moi)?|cr[ée]e(?:-moi)?)\s+)?(?:une?|des|la|le|mon|ma)\s+(?:petite?s?\s+)?(?:affiches?|visuels?|publications?|posts?|stor(?:y|ies)|banni[eè]res?|flyers?|images?)\s*(?:pour|sur|qui|afin\s+d[e'])?\s*(?:annoncer|pr[ée]senter|promouvoir|f[eê]ter|c[ée]l[ée]brer)?\s*/i;
@@ -144,20 +177,34 @@ const LEAD = /^\s*(?:(?:je\s+(?:veux|voudrais)|j['’]aimerais|fais(?:-moi)?|cr[
 /** Les mots du visuel sans modèle : le message raccourci, les faits du brief. */
 export function heuristicCopy(brief: PosterBrief, intent: PosterIntent): PosterCopy {
   const { facts, offer } = extractFacts(`${brief.message} ${brief.details || ''}`);
-  let message = brief.message.replace(LEAD, '').replace(/^(?:de|du|d['’]|des|pour)\s+/i, '').trim();
+  // Un titre trop court (« Promo ») : la description porte le message.
+  const base = wordsOf(brief.message).length < 4 && wordsOf(brief.details || '').length >= 4 ? brief.details! : brief.message;
+  let message = base.replace(LEAD, '').replace(/^(?:de|du|d['’]|des|pour)\s+/i, '').trim();
   message = message.charAt(0).toUpperCase() + message.slice(1);
-  const first = message.split(/(?<=[.!?:])\s/)[0];
+  let [first, ...others] = message.split(/(?<=[.!?:])\s/);
+  let kicker: string | undefined;
+  let restText = others.join(' ');
+  // « Atelier pratique : créez… » — le court préambule devient le sur-titre, la suite le titre.
+  if (/:$/.test(first) && wordsOf(first).length <= 3 && others.length) {
+    kicker = first.replace(/\s*:$/, '');
+    const [head, ...tail] = others.join(' ').split(/,\s/);
+    first = head.charAt(0).toUpperCase() + head.slice(1);
+    restText = tail.join(', ');
+  }
+  first = first.replace(/\s*[:;,]$/, '');
   let headline = clip(first, 44);
-  if (!validHeadline(headline, brief)) headline = intent === 'event' ? (brief.language.startsWith('fr') ? 'On se retrouve' : 'See you there') : brief.brandName;
-  const rest = clip(message.slice(first.length), 110);
-  return {
-    kicker: intent === 'event' ? brief.brandName : undefined,
+  if (!validHeadline(headline, brief)) headline = intent === 'event' ? (brief.language.startsWith('fr') ? 'On se retrouve' : 'See you there') : brief.brandName || clip(brief.message, 44);
+  const rest = clip(restText.replace(/^[\s,.;:!?]+/, ''), 110);
+  const copy = {
+    kicker: kicker || (intent === 'event' && brief.brandName ? brief.brandName : undefined),
     headline,
     // (faits dédoublonnés plus bas)
-    sub: rest && rest !== headline ? rest : clip(brief.valueProposition, 100) || undefined,
+    sub: rest && rest !== headline && languageMatches(rest, brief.language) ? rest : brief.valueProposition && languageMatches(brief.valueProposition, brief.language) ? clip(brief.valueProposition, 100) : undefined,
     facts: dedupeFacts(facts.filter((f) => !offer || f.kind !== 'price'), headline),
     ...(offer ? { offer } : {}),
-  };
+  } as PosterCopy;
+  if (copy.sub && copy.facts.some((f) => fold(copy.sub!).includes(fold(f.text)))) delete copy.sub;
+  return polish(copy, brief.language, `${brief.message} ${brief.details || ''}`);
 }
 
 // ─── Le rédacteur ───────────────────────────────────────────────────────────
@@ -214,23 +261,32 @@ export function copyTask(brief: PosterBrief, intent: PosterIntent, feedback?: st
       const headline = clip(l.headline || l.titre || l.title, 60);
       if (!validHeadline(headline, brief)) return undefined;
       const copy: PosterCopy = { headline, facts: [] };
-      if (!none(l.kicker) && wordsOf(l.kicker).length <= 4 && !META.test(l.kicker) && languageMatches(l.kicker, brief.language)) copy.kicker = clip(l.kicker, 30);
+      if (!none(l.kicker) && wordsOf(l.kicker).length <= 4 && !META.test(l.kicker) && languageMatches(l.kicker, brief.language) && !(brief.language.startsWith('fr') && (l.kicker.replace(brief.brandName, '').match(ENGLISH) || []).length)) copy.kicker = clip(l.kicker, 30);
       if (!none(l.sub) && wordsOf(l.sub).length <= 18 && !META.test(l.sub) && !inventsFormat(l.sub, source) && !STOP_END.test(l.sub) && languageMatches(l.sub, brief.language) && digits(l.sub).every((d) => digits(source).includes(d))) copy.sub = clip(l.sub, 120);
       const facts: PosterFact[] = [];
       for (const kind of ['date', 'time', 'place', 'price'] as const) {
         const v = l[kind];
-        if (!none(v) && groundedIn(source, v) && factLooksRight(kind, v)) facts.push({ kind, text: clip(v, 40) });
+        // « Au Djeuga Palace » → « Djeuga Palace » : un lieu d'affiche se pose sans préposition.
+        const value = kind === 'place' && v ? v.replace(/^(?:au|aux|à|a|chez|at|in)\s+/i, '').replace(/^./, (c) => c.toUpperCase()) : v;
+        if (!none(value) && groundedIn(source, value) && factLooksRight(kind, value)) facts.push({ kind, text: clip(value, 40) });
       }
       // Ce que la lecture du brief a trouvé et que le modèle a oublié revient.
       for (const f of read.facts) if (!facts.some((x) => x.kind === f.kind)) facts.push(f);
       copy.facts = dedupeFacts(facts, headline).slice(0, 4);
+      // Un sous-titre qui répète une date ou un lieu déjà posé dans les faits : le fait suffit.
+      if (copy.sub && copy.facts.some((f) => fold(copy.sub!).includes(fold(f.text)))) delete copy.sub;
       const offer = !none(l.offer) && groundedIn(source, l.offer) ? clip(l.offer, 12) : read.offer;
-      if (offer) copy.offer = offer;
+      if (offer) {
+        copy.offer = offer;
+        // « −20 % » déjà dit par l'offre : pas une seconde fois en prix.
+        const od = digits(offer).join();
+        copy.facts = copy.facts.filter((f) => f.kind !== 'price' || digits(f.text).join() !== od);
+      }
       if (intent === 'quote' && !none(l.quote) && wordsOf(l.quote).length <= 24) copy.quote = { text: clip(l.quote, 160), ...(!none(l.author) ? { author: clip(l.author, 50) } : {}) };
       const w = fold(l.emphasis || '').replace(/[^a-z0-9%'-]/g, '');
       const at = w ? wordsOf(headline).findIndex((x) => fold(x).replace(/[^a-z0-9%'-]/g, '') === w) : -1;
-      if (at >= 0) copy.emphasis = at;
-      return copy;
+      if (at >= 0 && !WEAK.test(wordsOf(headline)[at])) copy.emphasis = at;
+      return polish(copy, brief.language, source);
     },
     fallback: () => heuristicCopy(brief, intent),
   };

@@ -1,0 +1,21 @@
+{
+  "name": "@idem/shared-document-editor",
+  "version": "1.0.0",
+  "description": "L'éditeur WYSIWYG d'IDEM et d'iVision (documents, visuels) et son aperçu éditable : survoler cadre un élément, cliquer ouvre « Modifier » sur cet élément",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./angular": "./src/angular/index.ts"
+  },
+  "files": ["src", "README.md"],
+  "keywords": ["idem", "ivision", "editor", "wysiwyg", "shared"],
+  "author": "Idem Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "@angular/core": ">=20",
+    "@angular/platform-browser": ">=20",
+    "@ngx-translate/core": ">=17"
+  }
+}

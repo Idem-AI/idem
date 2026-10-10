@@ -249,19 +249,6 @@
         "createVideo": "Générer la vidéo · {{price}} crédits",
         "visualInstead": "Créer plutôt un visuel"
       },
-      "preview": {
-        "loading": "Chargement du visuel…",
-        "failed": "Ce visuel ne peut pas être affiché.",
-        "canvasLabel": "Aperçu du visuel",
-        "menuLabel": "Que faire de cet élément",
-        "edit": "Modifier",
-        "hint": "Passez la souris sur le visuel, puis cliquez sur ce que vous voulez changer.",
-        "kinds": {
-          "text": "Ce texte",
-          "image": "Cette image",
-          "block": "Ce bloc"
-        }
-      },
       "studio": {
         "empty": {
           "title": "Qu'avez-vous à annoncer ?",

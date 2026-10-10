@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommunicationService } from '../../../../services/ai-agents/communication.service';
-import { FontHints } from '../../../document-editor/models/editor.types';
+import { FontHints } from '@idem/shared-document-editor/angular';
 import {
   CommunicationPlan,
   ContentChannel,

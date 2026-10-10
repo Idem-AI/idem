@@ -1,0 +1,236 @@
+<div class="flex h-dvh flex-col">
+  <!-- La barre : revenir à la conversation, l'état, télécharger. -->
+  <header class="flex items-center gap-3 border-b border-[var(--glass-border-subtle)] px-4 py-3">
+    <a class="button-ghost button-sm" [routerLink]="backLink()"><i class="pi pi-arrow-left" aria-hidden="true"></i> <span class="hidden sm:inline">{{ 'montageEditor.back' | translate }}</span></a>
+    <h1 class="min-w-0 flex-1 truncate text-base font-semibold">{{ montage()?.title || ('montageEditor.title' | translate) }}</h1>
+    <span class="hidden text-xs text-[var(--color-text-tertiary)] sm:inline" role="status">
+      @if (saving()) { <idem-loader size="xs" /> {{ 'edit.saving' | translate }} } @else if (saveFailed()) { {{ 'montage.saveFailed' | translate }} } @else if (saved()) { <i class="pi pi-check text-xs" aria-hidden="true"></i> {{ 'montageEditor.saved' | translate }} }
+    </span>
+    <button type="button" data-tour="iv-editor-download" class="inner-button button-sm" [disabled]="!ready() || exporting() || rendering() || downloading()" (click)="getVideo()">
+      @if (exporting() || rendering() || downloading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-download" aria-hidden="true"></i> }
+      {{ (rendering() ? 'montage.chat.rendering' : 'montage.download') | translate: { percent: renderPercent() } }}
+    </button>
+  </header>
+  @if (needCredits()) {
+    <p class="px-4 py-2 text-sm" role="alert">{{ 'chat.payment.short' | translate }} <a class="text-[var(--color-primary-500)] underline" [href]="accountUrl">{{ 'chat.payment.cta' | translate }}</a></p>
+  }
+
+  @if (loadFailed()) {
+    <div class="flex flex-1 flex-col items-center justify-center text-center">
+      <iv-illustration class="h-28 w-28 text-[var(--color-text-secondary)]" kind="cracked" />
+      <p class="mt-4">{{ 'montage.loadError' | translate }}</p>
+    </div>
+  } @else if (!montage()) {
+    <idem-loader block [label]="'common.loading' | translate" />
+  } @else if (montage(); as m) {
+    <div class="custom-scrollbar min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden">
+      <!-- La vidéo et sa frise. -->
+      <section class="flex flex-col items-center gap-4 px-4 py-5 lg:min-h-0 lg:overflow-y-auto" [attr.aria-label]="'montage.previewTitle' | translate">
+        <div data-tour="iv-editor-preview" class="relative w-full shrink-0 overflow-hidden rounded-xl bg-[var(--glass-bg-light)]" [style.aspect-ratio]="ratio()" [style.max-width]="previewWidth()">
+          @if (m.status === 'processing') {
+            <idem-loader overlay [label]="'montage.recutting' | translate" />
+          }
+          @if (html(); as h) {
+            <iframe #frame class="absolute inset-0 h-full w-full border-0" [srcdoc]="h" sandbox="allow-scripts" [title]="'montage.previewTitle' | translate"></iframe>
+          } @else {
+            <idem-loader block [label]="'edit.preparingPreview' | translate" />
+          }
+        </div>
+
+        <!-- La frise : début, éléments, fin ; un clic y amène. -->
+        <div data-tour="iv-editor-timeline" class="w-full max-w-[760px]">
+          <div #bar class="relative h-14 cursor-pointer rounded-lg bg-[var(--glass-bg-light)]" (click)="seekAtBar($event, bar)" role="slider" tabindex="0" [attr.aria-label]="'montageEditor.timeline' | translate" [attr.aria-valuenow]="time()" aria-valuemin="0" [attr.aria-valuemax]="total()">
+            @if (m.intro) {
+              <span class="absolute inset-y-1 left-1 rounded-md bg-[var(--color-primary-500)] opacity-30" [style.width]="percent(m.intro.durationSec)" aria-hidden="true"></span>
+            }
+            @if (m.outro) {
+              <span class="absolute inset-y-1 right-1 rounded-md bg-[var(--color-primary-500)] opacity-30" [style.width]="percent(m.outro.durationSec)" aria-hidden="true"></span>
+            }
+            @for (k of markers(); track k.id) {
+              <button type="button" class="absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[var(--color-surface-1)] text-[11px]"
+                [class]="selected() === k.id ? 'bg-[var(--color-primary-500)] text-[var(--color-on-primary)]' : 'bg-[var(--color-surface-1)] text-[var(--color-text-secondary)] shadow-glass'"
+                [style.left]="k.left" [style.top]="k.top" (click)="$event.stopPropagation(); pick(k.id)" [attr.aria-label]="('montage.types.' + k.type | translate) + ' · ' + clock(k.at)">
+                <i [class]="'pi ' + typeIcon[k.type]" aria-hidden="true"></i>
+              </button>
+            }
+            <span class="pointer-events-none absolute inset-y-0 w-0.5 bg-[var(--color-text-primary)]" [style.left]="percent(time())" aria-hidden="true"></span>
+          </div>
+          <div class="mt-1 flex justify-between text-xs text-[var(--color-text-tertiary)]">
+            <span>{{ clock(time()) }}</span><span>{{ clock(total()) }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Les réglages, en quatre onglets. -->
+      <aside class="flex flex-col border-t lg:min-h-0 border-[var(--glass-border-subtle)] lg:border-l lg:border-t-0" [attr.aria-label]="'montageEditor.settings' | translate">
+        <div data-tour="iv-editor-tabs" class="grid grid-cols-4 gap-1 border-b border-[var(--glass-border-subtle)] p-2" role="tablist">
+          @for (t of tabs; track t) {
+            <button type="button" role="tab" class="flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-xs font-medium" [attr.aria-selected]="tab() === t"
+              [class]="tab() === t ? 'bg-[var(--color-primary-500)] text-[var(--color-on-primary)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--glass-bg-light)]'" (click)="tab.set(t)">
+              <i [class]="'pi ' + (t === 'screen' ? 'pi-th-large' : t === 'captions' ? 'pi-align-center' : t === 'ends' ? 'pi-play' : 'pi-volume-up')" aria-hidden="true"></i>
+              {{ 'montageEditor.tabs.' + t | translate }}
+            </button>
+          }
+        </div>
+
+        <div class="custom-scrollbar p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto" role="tabpanel">
+          @switch (tab()) {
+            @case ('screen') {
+              <p class="mb-3 text-xs text-[var(--color-text-tertiary)]">{{ 'montageEditor.screenHint' | translate }}</p>
+              <ul class="flex flex-col gap-3">
+                @for (e of draft(); track e.id) {
+                  @if (e.type !== 'zoom') {
+                    <li [id]="'el-' + e.id" class="rounded-xl border p-3 transition-smooth" [class]="selected() === e.id ? 'border-[var(--color-primary-500)]' : 'border-[var(--glass-border-subtle)]'" [class.opacity-50]="e.off" (focusin)="selected.set(e.id)">
+                      <div class="flex items-center gap-2">
+                        <i [class]="'pi text-[var(--color-primary-500)] ' + typeIcon[e.type]" aria-hidden="true"></i>
+                        <button type="button" class="min-w-0 flex-1 truncate text-left text-sm font-medium" (click)="pick(e.id)">
+                          {{ (e.clip ? 'montage.types.clip' : 'montage.types.' + e.type) | translate }} <span class="font-normal text-[var(--color-text-tertiary)]">· {{ clock(elementTime(e)) }}</span>
+                        </button>
+                        <button type="button" class="button-icon !p-1.5" (click)="toggle(e.id)" [attr.aria-label]="(e.off ? 'montageEditor.show' : 'montageEditor.hide') | translate" [attr.aria-pressed]="!e.off"><i [class]="'pi text-xs ' + (e.off ? 'pi-eye-slash' : 'pi-eye')" aria-hidden="true"></i></button>
+                        <button type="button" class="button-icon !p-1.5" (click)="remove(e.id)" [attr.aria-label]="'montage.remove' | translate"><i class="pi pi-trash text-xs" aria-hidden="true"></i></button>
+                      </div>
+                      @switch (e.type) {
+                        @case ('stat') {
+                          <div class="mt-2 grid grid-cols-2 gap-2">
+                            <input type="text" maxlength="40" [value]="e.value ?? ''" (input)="edit(e.id, 'value', $any($event.target).value)" [attr.aria-label]="'montage.fields.value' | translate" />
+                            <input type="text" maxlength="60" [value]="e.label ?? ''" (input)="edit(e.id, 'label', $any($event.target).value)" [placeholder]="'montage.fields.label' | translate" [attr.aria-label]="'montage.fields.label' | translate" />
+                          </div>
+                        }
+                        @case ('lowerThird') {
+                          <div class="mt-2 grid grid-cols-2 gap-2">
+                            <input type="text" maxlength="40" [value]="e.value ?? ''" (input)="edit(e.id, 'value', $any($event.target).value)" [placeholder]="'montage.fields.name' | translate" [attr.aria-label]="'montage.fields.name' | translate" />
+                            <input type="text" maxlength="60" [value]="e.label ?? ''" (input)="edit(e.id, 'label', $any($event.target).value)" [placeholder]="'montage.fields.role' | translate" [attr.aria-label]="'montage.fields.role' | translate" />
+                          </div>
+                        }
+                        @case ('list') {
+                          <textarea class="mt-2" rows="3" [value]="itemsText(e)" (input)="editItems(e.id, $any($event.target).value)" [attr.aria-label]="'montage.fields.items' | translate"></textarea>
+                        }
+                        @case ('icon') {
+                          <input class="mt-2" type="text" maxlength="40" [value]="e.label ?? ''" (input)="edit(e.id, 'label', $any($event.target).value)" [placeholder]="'montage.fields.label' | translate" [attr.aria-label]="'montage.fields.label' | translate" />
+                        }
+                        @case ('broll') {
+                          @if (e.image || clipPoster(e)) {
+                            <img [src]="e.image || clipPoster(e)" alt="" class="mt-2 h-24 w-auto rounded-lg object-cover" loading="lazy" />
+                          }
+                        }
+                        @default {
+                          <input class="mt-2" type="text" maxlength="80" [value]="e.text ?? ''" (input)="edit(e.id, 'text', $any($event.target).value)" [attr.aria-label]="'montage.fields.text' | translate" />
+                          @if (e.type === 'cta') {
+                            <input class="mt-2" type="text" maxlength="60" [value]="e.value ?? ''" (input)="edit(e.id, 'value', $any($event.target).value)" [placeholder]="'montage.fields.contact' | translate" [attr.aria-label]="'montage.fields.contact' | translate" />
+                          }
+                        }
+                      }
+                    </li>
+                  }
+                } @empty {
+                  <li class="text-sm text-[var(--color-text-secondary)]">{{ 'montage.noElements' | translate }}</li>
+                }
+              </ul>
+            }
+
+            @case ('captions') {
+              <div class="grid grid-cols-2 gap-2" role="radiogroup" [attr.aria-label]="'montage.captions' | translate">
+                @for (c of captionStyles; track c) {
+                  <button type="button" role="radio" class="flex flex-col items-center gap-2 rounded-xl border-2 p-3 text-xs" [attr.aria-checked]="m.captions.style === c"
+                    [class]="m.captions.style === c ? 'border-[var(--color-primary-500)]' : 'border-[var(--glass-border-subtle)]'" (click)="setCaptions(c)" [disabled]="!ready()">
+                    <span class="flex h-10 w-full items-center justify-center rounded-lg bg-[var(--glass-bg-light)]" aria-hidden="true">
+                      @switch (c) {
+                        @case ('pop') { <span class="text-sm font-black uppercase">Bon<span class="rounded bg-[var(--color-primary-500)] px-1 text-[var(--color-on-primary)]">jour</span></span> }
+                        @case ('karaoke') { <span class="text-sm font-bold">Bonjour <span class="text-[var(--color-primary-500)]">à</span> <span class="opacity-50">tous</span></span> }
+                        @case ('minimal') { <span class="text-xs">Bonjour à tous</span> }
+                        @default { <i class="pi pi-ban" aria-hidden="true"></i> }
+                      }
+                    </span>
+                    {{ 'montage.captionStyles.' + c | translate }}
+                  </button>
+                }
+              </div>
+              <h2 class="mt-6 text-sm font-semibold">{{ 'montage.transcript' | translate }}</h2>
+              <p class="mt-1 text-xs text-[var(--color-text-tertiary)]">{{ 'montageEditor.transcriptHint' | translate }}</p>
+              <p class="mt-3 text-sm leading-7">
+                @for (w of m.words; track $index; let i = $index) {
+                  @if (timed()[i]) {
+                    <button type="button" class="rounded px-0.5"
+                      [class]="i === activeWord() ? 'bg-[var(--color-primary-500)] text-[var(--color-on-primary)]' : i === wordAt() ? 'bg-[var(--glass-bg-light)]' : ''"
+                      [class.underline]="(w.p ?? 1) < 0.5" [class.decoration-dotted]="(w.p ?? 1) < 0.5" (click)="selectWord(i)">{{ w.text }}</button>{{ ' ' }}
+                  } @else {
+                    <s class="text-[var(--color-text-tertiary)]" [title]="'montage.cutWord' | translate">{{ w.text }}</s>{{ ' ' }}
+                  }
+                }
+              </p>
+              @if (wordAt() !== null) {
+                <form class="sticky bottom-0 mt-3 flex items-end gap-2 bg-[var(--color-surface-1)] py-2" (submit)="$event.preventDefault(); saveWord()">
+                  <label class="!flex min-w-0 flex-1 flex-col gap-1 text-sm !mb-0">
+                    <span>{{ 'montage.fixWord' | translate }}</span>
+                    <input type="text" maxlength="40" [value]="wordDraft()" (input)="wordDraft.set($any($event.target).value)" />
+                  </label>
+                  <button type="submit" class="inner-button button-sm">{{ 'common.save' | translate }}</button>
+                  <button type="button" class="button-ghost button-sm" (click)="wordAt.set(null)">{{ 'common.cancel' | translate }}</button>
+                </form>
+              }
+            }
+
+            @case ('ends') {
+              <section class="flex flex-col gap-3">
+                <label class="!flex items-center justify-between gap-3 !mb-0">
+                  <span>
+                    <span class="block font-medium">{{ 'montage.intro' | translate }}</span>
+                    <span class="block text-xs text-[var(--color-text-tertiary)]">{{ 'montageEditor.introHint' | translate }}</span>
+                  </span>
+                  <input type="checkbox" [checked]="intro().on" (change)="setIntro({ on: $any($event.target).checked })" [disabled]="!ready()" />
+                </label>
+                @if (intro().on) {
+                  <input type="text" maxlength="60" [value]="intro().title" (input)="setIntro({ title: $any($event.target).value })" [placeholder]="'montage.introTitle' | translate" [attr.aria-label]="'montage.introTitle' | translate" />
+                  <input type="text" maxlength="30" [value]="intro().kicker" (input)="setIntro({ kicker: $any($event.target).value })" [placeholder]="'montage.introKicker' | translate" [attr.aria-label]="'montage.introKicker' | translate" />
+                }
+              </section>
+              <hr class="my-5 border-[var(--glass-border-subtle)]" />
+              <section class="flex flex-col gap-3">
+                <label class="!flex items-center justify-between gap-3 !mb-0">
+                  <span>
+                    <span class="block font-medium">{{ 'montage.outro' | translate }}</span>
+                    <span class="block text-xs text-[var(--color-text-tertiary)]">{{ 'montageEditor.outroHint' | translate }}</span>
+                  </span>
+                  <input type="checkbox" [checked]="outro().on" (change)="setOutro({ on: $any($event.target).checked })" [disabled]="!ready()" />
+                </label>
+                @if (outro().on) {
+                  <input type="text" maxlength="60" [value]="outro().text" (input)="setOutro({ text: $any($event.target).value })" [placeholder]="'montage.outroText' | translate" [attr.aria-label]="'montage.outroText' | translate" />
+                  <input type="text" maxlength="60" [value]="outro().detail" (input)="setOutro({ detail: $any($event.target).value })" [placeholder]="'montage.outroDetail' | translate" [attr.aria-label]="'montage.outroDetail' | translate" />
+                }
+              </section>
+            }
+
+            @case ('sound') {
+              <section class="flex flex-col gap-4">
+                <label class="!flex items-center justify-between gap-3 !mb-0">
+                  <span>
+                    <span class="block font-medium">{{ 'montage.music' | translate }}</span>
+                    @if (m.musicEnabled && m.music) { <span class="block text-xs text-[var(--color-text-tertiary)]">{{ m.music.attribution || m.music.title + ' — ' + m.music.artist }}</span> }
+                  </span>
+                  <input type="checkbox" [checked]="m.musicEnabled" (change)="setMusic($any($event.target).checked)" [disabled]="!ready()" />
+                </label>
+                <label class="!flex items-center justify-between gap-3 !mb-0">
+                  <span>
+                    <span class="block font-medium">{{ 'montage.chat.removeSilences' | translate }}</span>
+                    @if (m.cuts.removedSec > 0) { <span class="block text-xs text-[var(--color-text-tertiary)]">{{ 'montage.removed' | translate: { sec: m.cuts.removedSec } }}</span> }
+                  </span>
+                  <input type="checkbox" [checked]="m.cuts.mode !== 'none'" (change)="setSilences($any($event.target).checked)" [disabled]="!ready()" />
+                </label>
+              </section>
+              <h2 class="mt-6 text-sm font-semibold">{{ 'montage.format' | translate }}</h2>
+              <div class="mt-2 grid grid-cols-4 gap-2" role="radiogroup" [attr.aria-label]="'montage.format' | translate">
+                @for (f of formats; track f) {
+                  <button type="button" role="radio" class="flex flex-col items-center gap-2 rounded-xl border-2 p-2 text-xs" [attr.aria-checked]="m.format === f"
+                    [class]="m.format === f ? 'border-[var(--color-primary-500)] text-[var(--color-primary-500)]' : 'border-[var(--glass-border-subtle)]'" (click)="setFormat(f)" [disabled]="!ready()">
+                    <span class="flex h-10 items-center" aria-hidden="true"><span class="block rounded-sm border-2 border-current" [style.aspect-ratio]="f === 'story' ? '9/16' : f === 'square' ? '1/1' : f === 'portrait' ? '4/5' : '16/9'" [style.height.px]="f === 'landscape' ? 22 : 36"></span></span>
+                    {{ 'formats.' + f | translate }}
+                  </button>
+                }
+              </div>
+            }
+          }
+        </div>
+      </aside>
+    </div>
+  }
+</div>

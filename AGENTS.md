@@ -150,6 +150,7 @@ Choisir l'élément par le **sens**, jamais par le décor :
 | Recherche, tri | Van de vannage |
 | Identité, logo, marque | Tampon adinkra en calebasse et son empreinte |
 | Reproduire un modèle (même motif, autres couleurs) | Pochoir d'adire eleko posé sur l'étoffe, le motif réimprimé |
+| Monter une prise de parole (couper, puis habiller) | Étoffe de raphia kuba : une zone découpée, une pièce appliquée cousue |
 | Droit, équilibre | Balance akan à peser l'or |
 | Document écrit | Feuillet manuscrit et calame |
 | Retour en arrière, page introuvable | Sankofa (poids akan en forme d'oiseau qui se retourne) |

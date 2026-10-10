@@ -7,7 +7,7 @@ export interface StageState {
   state: 'running' | 'done';
 }
 
-/** Les étapes RÉELLES d'une création vidéo, cochées au fur et à mesure (flux du serveur). */
+/** Les étapes RÉELLES d’une création (vidéo ou visuel), cochées au fur et à mesure (flux du serveur). */
 @Component({
   selector: 'iv-progress-list',
   imports: [TranslateModule, IdemLoaderComponent],

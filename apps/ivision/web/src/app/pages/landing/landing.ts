@@ -1,39 +1,41 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
-import { environment } from '../../../environments/environment';
-import { AuthService } from '../../core/auth.service';
-import { LanguageService } from '../../core/language.service';
-import { BrandMark } from '../../shared/components/brand-mark';
-import { Illustration, IllustrationKind } from '../../shared/components/illustration';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { LandingClosing } from './components/closing';
+import { LandingCreativity } from './components/creativity';
+import { LandingHero } from './components/hero';
+import { LandingImprint } from './components/imprint';
+import { LandingFooter } from './components/landing-footer';
+import { LandingHeader } from './components/landing-header';
+import { LandingLiveEdit } from './components/live-edit';
+import { LandingMontage } from './components/montage';
+import { LandingStencil } from './components/stencil';
+import { LandingWorkshops } from './components/workshops';
 
-/** La page publique d'iVision : ce que fait le service, en trois gestes, et l'entrée dans l'atelier. */
+/**
+ * La page publique d'iVision. Chaque section est un composant de `components/` :
+ *   hero        « Dites-le. Voyez-le. » et une vidéo qui change de format dans un viseur
+ *   imprint     votre site devient votre charte (tampon adinkra)
+ *   stencil     montrez un modèle, il le reproduit (pochoir d'adire)
+ *   live-edit   cliquez, écrivez, c'est changé (feuillet et calame)
+ *   workshops   visuels et vidéos, deux ateliers (kente, kora)
+ *   creativity  le cran de créativité (échelle dogon)
+ *   montage     filmez-vous, iVision monte (raphia kuba)
+ *   closing     le compte IDEM suffit (calebasse de cauris)
+ */
 @Component({
   selector: 'iv-landing',
-  imports: [RouterLink, TranslateModule, BrandMark, Illustration],
+  imports: [
+    LandingHeader,
+    LandingHero,
+    LandingImprint,
+    LandingStencil,
+    LandingLiveEdit,
+    LandingWorkshops,
+    LandingCreativity,
+    LandingMontage,
+    LandingClosing,
+    LandingFooter,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './landing.html',
 })
-export class Landing {
-  private readonly auth = inject(AuthService);
-  protected readonly language = inject(LanguageService);
-  protected readonly signedIn = signal(false);
-  protected readonly dashboardUrl = environment.services.dashboard.url;
-  protected readonly landingUrl = environment.services.landing.url;
-  protected readonly year = new Date().getFullYear();
-
-  protected readonly steps: { kind: IllustrationKind; key: string }[] = [
-    { kind: 'stamp', key: 'site' },
-    { kind: 'stencil', key: 'model' },
-    { kind: 'calame', key: 'edit' },
-  ];
-
-  constructor() {
-    // La page reste publique : on regarde seulement si une session IDEM existe déjà.
-    void this.auth.ensureLoaded().then((user) => this.signedIn.set(!!user));
-  }
-
-  protected toggleLanguage(): void {
-    this.language.set(this.language.current() === 'fr' ? 'en' : 'fr');
-  }
-}
+export class Landing {}

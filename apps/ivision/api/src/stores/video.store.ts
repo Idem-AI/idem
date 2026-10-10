@@ -22,8 +22,11 @@ export class IvisionVideoStore implements VideoStore {
   async loadBrand(userId: string, brandId: string): Promise<VideoBrandContext | null> {
     const brand = await brands().findOne({ _id: brandId, userId });
     if (!brand) return null;
+    const logo = brand.kit.logo as { svg?: string; assetUrls?: { primary?: string } } | null | undefined;
     return {
       brandName: brand.name,
+      // Création sans charte (ou charte sans nom ni logo) : rien à signer.
+      anonymous: !brand.name.trim() && !logo?.svg && !logo?.assetUrls?.primary,
       branding: brand.kit,
       voice: { ...brand.voice, brandName: brand.name },
       visuals: brand.photos.map((url) => ({ backgroundImageUrl: url, createdAt: brand.updatedAt })),

@@ -12,7 +12,7 @@
  *  - aucun bouton, aucune pastille, aucun décor qui ne porte pas d'information.
  */
 import { contrastRatio } from '../../design/color';
-import { isDarkColor, mix } from './poster.schemes';
+import { isDarkColor, mix, mutedOn } from './poster.schemes';
 import type { PosterSpec, PosterTemplate } from './poster.types';
 
 interface Box {
@@ -40,10 +40,12 @@ const fit = (cls: string, min: number, max: number, style: string, html: string)
   return `<div class="fit ${cls}" data-min="${r(min)}" data-max="${r(max)}"${DROP[kind] ? ` data-drop="${DROP[kind]}"` : ''} style="font-size:${r(max)}px;${style}">${html}</div>`;
 };
 
-function kicker(spec: PosterSpec, color: string, scale = 1): string {
+function kicker(spec: PosterSpec, color: string, scale = 1, bg = spec.scheme.bg): string {
   if (!spec.copy.kicker) return '';
   const u = spec.u;
-  return fit('kicker', 2.1 * u, 3.1 * u * scale, `color:${color}`, esc(spec.copy.kicker));
+  // Petit texte : 4,5:1 sur son fond, sinon l'encre du fond (la couleur de marque ne passe pas).
+  const ink = /^#[0-9a-f]{6}$/i.test(color) && contrastRatio(color, bg) < 4.5 ? (contrastRatio(spec.scheme.ink, bg) >= 4.5 ? spec.scheme.ink : contrastRatio('#ffffff', bg) > contrastRatio('#111111', bg) ? '#ffffff' : '#111111') : color;
+  return fit('kicker', 2.1 * u, 3.1 * u * scale, `color:${ink}`, esc(spec.copy.kicker));
 }
 
 /** Le titre ; le mot en valeur prend l'accent (s'il se lit sur ce fond). */
@@ -66,10 +68,13 @@ function sub(spec: PosterSpec, color: string, max = 3.9): string {
 }
 
 /** Les faits (date, heure, lieu, prix) : une ligne d'affiche séparée par des filets. */
-function facts(spec: PosterSpec, color: string, rule: string, opts: { column?: boolean; max?: number } = {}): string {
-  const list = spec.copy.facts.filter((f) => f.text);
+function facts(spec: PosterSpec, color: string, rule: string, opts: { column?: boolean; max?: number; offer?: boolean } = {}): string {
+  // L'offre (−20 %) ouvre la ligne des faits quand le gabarit ne l'affiche pas en grand.
+  const offerDigits = (spec.copy.offer || '').match(/\d+/)?.[0] || '';
+  const offerItem = opts.offer !== false && spec.copy.offer && !spec.copy.headline.includes(offerDigits) ? [{ kind: 'offer', text: spec.copy.offer }] : [];
+  const list = [...offerItem, ...spec.copy.facts.filter((f) => f.text)];
   if (!list.length) return '';
-  const items = list.map((f, i) => `${i && !opts.column ? `<span class="sep" style="background:${rule}"></span>` : ''}<span class="fact fact-${f.kind}">${esc(f.text)}</span>`).join('');
+  const items = list.map((f, i) => `${i && !opts.column ? `<span class="sep" style="background:${rule}"></span>` : ''}<span class="fact fact-${f.kind}"${f.kind === 'offer' ? ' style="font-weight:900"' : ''}>${esc(f.text)}</span>`).join('');
   return fit(`facts${opts.column ? ' facts-col' : ''}`, 2.4 * spec.u, (opts.max ?? 3.3) * spec.u, `color:${color}`, items);
 }
 
@@ -101,6 +106,8 @@ function logo(spec: PosterSpec, box: { x: number; y: number; h: number; anchor?:
   const h = box.h;
   const maxW = 34 * spec.u;
   if (!spec.logo.url) {
+    // Création sans charte (ni logo ni nom) : pas de signature.
+    if (!spec.brandName.trim()) return '';
     const size = r(h * 0.62);
     const pos = box.anchor === 'right' ? `right:${r(spec.width - box.x)}px` : box.anchor === 'center' ? `left:0;right:0;text-align:center` : `left:${r(box.x)}px`;
     return `<div class="wordmark" data-role="logo" style="${pos};top:${r(box.y + (h - size) / 2)}px;font-size:${size}px;color:${ink}">${esc(spec.brandName)}</div>`;
@@ -338,7 +345,13 @@ const offer: PosterTemplate = {
     const top = portrait ? (hasPhoto ? safe.top + d + 3 * u : H * 0.24) : landscape ? safe.top : hasPhoto ? safe.top + d - 2 * u : H * 0.18;
     const w = landscape && hasPhoto ? W * 0.6 - safe.left - 4 * u : innerW;
     const big = fit('offer', 12 * u, (portrait ? 34 : 30) * u, `color:${scheme.accent};font-weight:900;line-height:0.88;letter-spacing:-0.03em;white-space:nowrap`, esc(spec.copy.offer || ''));
-    const parts = [big, headline(spec, scheme.ink, null, { max: 8.5 * u, min: 4.6 * u }), sub(spec, scheme.muted, 3.4), facts(spec, scheme.ink, scheme.rule)];
+    // Le chiffre est déjà en grand : « −20 % sur toutes les formations » devient « Sur toutes les formations »
+    // — seulement si la phrase reste juste sans lui (sinon le titre est gardé tel quel).
+    const n = (spec.copy.offer || '').match(/\d+/)?.[0];
+    const stripped = n ? spec.copy.headline.replace(new RegExp(`^\\s*(?:profitez\\s+de\\s+|jusqu['’]à\\s+|get\\s+|save\\s+)?[-−–]?\\s?${n}\\s?%\\s*`, 'i'), '') : spec.copy.headline;
+    const clean = stripped !== spec.copy.headline && /^(sur|on|off|de\s|des\s|du\s)/i.test(stripped) && stripped.split(/\s+/).length >= 2;
+    const hSpec = clean ? { ...spec, copy: { ...spec.copy, headline: stripped.charAt(0).toUpperCase() + stripped.slice(1), emphasis: undefined } } : spec;
+    const parts = [big, headline(hSpec, scheme.ink, null, { max: 8.5 * u, min: 4.6 * u }), sub(spec, scheme.muted, 3.4), facts(spec, scheme.ink, scheme.rule, { offer: false })];
     return root(spec, scheme.bg, photoHtml + stack({ x: safe.left, y: top, w, h: H - top - safe.bottom - lh - 4 * u }, parts, { justify: 'center', gap: 2 * u }) + logo(spec, { x: safe.left, y: H - safe.bottom - lh, h: lh }, scheme.bg, scheme.ink));
   },
 };
@@ -361,7 +374,7 @@ const quote: PosterTemplate = {
     const d = r(18 * u);
     const portraitImg = spec.image ? photo(spec, { x: safe.left, y: H - safe.bottom - lh - 6 * u - d, w: d, h: d }, { radius: d / 2 }) : '';
     const authorX = spec.image ? safe.left + d + 3.5 * u : safe.left;
-    const author = q.author ? `<div class="stack" style="left:${r(authorX)}px;top:${r(H - safe.bottom - lh - 6 * u - d)}px;width:${r(innerW - (authorX - safe.left))}px;height:${r(d)}px;justify-content:center">${fit('sub', 2.6 * u, 3.6 * u, `color:${scheme.ink};font-weight:700`, esc(q.author))}</div>` : '';
+    const author = q.author ? stack({ x: authorX, y: H - safe.bottom - lh - 6 * u - d, w: innerW - (authorX - safe.left), h: d }, [fit('author', 2.6 * u, 3.6 * u, `color:${scheme.ink};font-weight:700`, esc(q.author))], { justify: 'center', gap: 0, name: 'author' }) : '';
     const textTop = safe.top + 16 * u;
     const textBottom = H - safe.bottom - lh - 9 * u - (spec.image || q.author ? d : 0);
     return root(spec, scheme.bg, marks + stack({ x: safe.left, y: textTop, w: innerW, h: textBottom - textTop }, [fit('quote', 4.4 * u, 9 * u, `color:${scheme.ink}`, esc(q.text))], { justify: 'center', gap: 2 * u }) + portraitImg + author + logo(spec, { x: W - safe.right, y: H - safe.bottom - lh, h: lh, anchor: 'right' }, scheme.bg, scheme.ink));
@@ -405,7 +418,7 @@ const card: PosterTemplate = {
     const cardBg = scheme.id === 'tint' ? '#ffffff' : scheme.panel;
     const cardInk = scheme.id === 'tint' ? palette.text : scheme.panelInk;
     const cardAccent = [palette.primary, palette.accent, palette.secondary].find((c) => c && contrastRatio(c, cardBg) >= 3) || cardInk;
-    const muted = mix(cardInk, cardBg, 0.3);
+    const muted = mutedOn(cardInk, cardBg);
     const landscape = spec.orientation === 'landscape';
     const cardBox: Box = landscape
       ? { x: safe.left, y: safe.top, w: W - safe.left - safe.right - 30 * u, h: H - safe.top - safe.bottom }
@@ -414,7 +427,7 @@ const card: PosterTemplate = {
     const radius = 2.2 * u;
     const photoBox: Box = landscape ? { x: cardBox.x, y: cardBox.y, w: cardBox.w * 0.48, h: cardBox.h } : { x: cardBox.x, y: cardBox.y, w: cardBox.w, h: cardBox.h * (spec.orientation === 'portrait' ? 0.55 : 0.5) };
     const textBox: Box = landscape ? { x: photoBox.x + photoBox.w + pad, y: cardBox.y + pad, w: cardBox.w - photoBox.w - pad * 2, h: cardBox.h - pad * 2 } : { x: cardBox.x + pad, y: photoBox.y + photoBox.h + pad * 0.9, w: cardBox.w - pad * 2, h: cardBox.h - photoBox.h - pad * 1.9 };
-    const parts = [kicker(spec, cardAccent === cardInk ? muted : cardAccent), headline({ ...spec, scheme: { ...scheme, ink: cardInk } }, cardInk, emphasisOn({ ...spec, scheme: { ...scheme, ink: cardInk } }, cardBg, cardAccent), { max: 9.5 * u }), sub(spec, muted, 3.2), facts(spec, cardInk, mix(cardInk, cardBg, 0.75))];
+    const parts = [kicker(spec, cardAccent === cardInk ? muted : cardAccent, 1, cardBg), headline({ ...spec, scheme: { ...scheme, ink: cardInk } }, cardInk, emphasisOn({ ...spec, scheme: { ...scheme, ink: cardInk } }, cardBg, cardAccent), { max: 9.5 * u }), sub(spec, muted, 3.2), facts(spec, cardInk, mix(cardInk, cardBg, 0.75))];
     const logoBox = landscape ? { x: W - safe.right, y: safe.top, h: lh, anchor: 'right' as const } : { x: safe.left, y: safe.top, h: lh };
     return root(
       spec,
@@ -474,3 +487,7 @@ const mosaic: PosterTemplate = {
 
 export const POSTER_TEMPLATES: PosterTemplate[] = [split, fullbleed, editorial, typographic, eventDate, offer, quote, band, card, mosaic];
 export const TEMPLATE_BY_ID = new Map(POSTER_TEMPLATES.map((t) => [t.id, t]));
+
+/** Les briques, pour les compositions écrites par l'IA (crans Max et Ultra) : mêmes règles d'ajustage et de mesure. */
+export const posterBricks = { stack, fit, kicker, headline, sub, facts, logo, logoReadsOn, photo, block, root, emphasisOn, accentRule, logoH, esc };
+export type PosterBox = Box;

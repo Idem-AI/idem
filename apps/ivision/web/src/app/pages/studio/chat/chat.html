@@ -1,5 +1,5 @@
 <div class="flex h-full flex-col">
-  <!-- En-tête : le mode, la marque de la conversation. -->
+  <!-- En-tête : le titre de la conversation (la marque est proposée près du compositeur). -->
   <header class="flex items-center gap-3 border-b border-[var(--glass-border-subtle)] px-4 py-3">
     <button type="button" class="button-icon !p-2 lg:!hidden" (click)="openDrawer()" [attr.aria-label]="'studio.history' | translate">
       <i class="pi pi-bars" aria-hidden="true"></i>
@@ -8,37 +8,6 @@
       {{ session()?.title || ((mode() === 'video' ? 'chat.newVideo' : 'chat.newImage') | translate) }}
     </h1>
 
-    <div class="relative">
-      <button type="button" class="outer-button button-sm flex items-center gap-2" (click)="brandMenu.set(!brandMenu())" [attr.aria-expanded]="brandMenu()" aria-haspopup="listbox">
-        @if (brand(); as b) {
-          <span class="flex overflow-hidden rounded" aria-hidden="true">
-            @for (c of [b.palette.primary, b.palette.secondary, b.palette.accent]; track $index) {
-              <span class="h-3 w-3" [style.background]="c"></span>
-            }
-          </span>
-          <span class="max-w-36 truncate">{{ b.name }}</span>
-        } @else {
-          <i class="pi pi-palette" aria-hidden="true"></i> {{ 'chat.brand.none' | translate }}
-        }
-        <i class="pi pi-angle-down text-xs" aria-hidden="true"></i>
-      </button>
-      @if (brandMenu()) {
-        <div class="modal-panel absolute right-0 z-20 mt-2 w-72 p-2" role="listbox" [attr.aria-label]="'chat.brand.pick' | translate">
-          @for (b of readyBrands(); track b.id) {
-            <button type="button" role="option" [attr.aria-selected]="b.id === brand()?.id" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--glass-bg-light)]" (click)="pickBrand(b)">
-              <span class="h-4 w-4 rounded" [style.background]="b.palette.primary" aria-hidden="true"></span>
-              <span class="flex-1 truncate">{{ b.name }}</span>
-              @if (b.id === brand()?.id) { <i class="pi pi-check text-xs" aria-hidden="true"></i> }
-            </button>
-          } @empty {
-            <p class="px-3 py-2 text-sm text-[var(--color-text-tertiary)]">{{ 'chat.brand.empty' | translate }}</p>
-          }
-          <a routerLink="/studio/brands" class="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--color-primary-500)] hover:bg-[var(--glass-bg-light)]">
-            <i class="pi pi-plus" aria-hidden="true"></i> {{ 'chat.brand.add' | translate }}
-          </a>
-        </div>
-      }
-    </div>
   </header>
 
   <!-- Le fil. -->
@@ -47,19 +16,46 @@
       @if (loading()) {
         <idem-loader block [label]="'common.loading' | translate" />
       } @else if (!messages().length && !streaming()) {
-        <!-- Rien encore : ce que l'atelier sait faire, et trois idées pour commencer. -->
-        <section class="flex flex-col items-center py-10 text-center">
-          <iv-illustration class="h-32 w-32 text-[var(--color-text-secondary)]" [kind]="mode() === 'video' ? 'kora' : 'kente'" />
-          <h2 class="mt-6 text-xl font-semibold">{{ (mode() === 'video' ? 'chat.empty.videoTitle' : 'chat.empty.imageTitle') | translate }}</h2>
-          <p class="mt-2 max-w-md text-[var(--color-text-secondary)]">{{ (mode() === 'video' ? 'chat.empty.videoText' : 'chat.empty.imageText') | translate }}</p>
-          <div class="mt-6 flex flex-wrap justify-center gap-2">
-            @for (i of [1, 2, 3]; track i) {
-              <button type="button" class="tag" (click)="useIdea(i)">
-                {{ 'chat.empty.ideas.' + mode() + i | translate }}
+        @if (mode() === 'video') {
+          <!-- Rien encore : un seul choix à faire, deux grandes tuiles illustrées. -->
+          <section class="flex flex-col items-center py-8 text-center" [attr.aria-label]="'chat.empty.choose' | translate">
+            <h2 class="text-xl font-semibold">{{ 'chat.empty.choose' | translate }}</h2>
+            <div data-tour="iv-video-choices" class="mt-6 grid w-full max-w-xl gap-3 sm:grid-cols-2 sm:gap-4">
+              <button type="button" class="glass-card shadow-glass-hover transition-smooth group flex h-full items-center gap-4 !border-2 !border-transparent p-4 text-left hover:-translate-y-0.5 hover:!border-[var(--color-primary-500)] focus-visible:!border-[var(--color-primary-500)] sm:flex-col sm:gap-3 sm:p-6 sm:text-center" (click)="focusComposer()">
+                <iv-illustration class="h-16 w-16 flex-none text-[var(--color-text-secondary)] transition-smooth group-hover:text-[var(--color-text-primary)] sm:h-24 sm:w-24" kind="kora" />
+                <span class="flex min-w-0 flex-col gap-1 sm:items-center sm:gap-3">
+                <span class="text-base font-semibold">{{ 'chat.empty.describeTitle' | translate }}</span>
+                <span class="text-sm text-[var(--color-text-secondary)]">{{ 'chat.empty.describeText' | translate }}</span>
+                <span class="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary-500)]">{{ 'chat.empty.describeCta' | translate }} <i class="pi pi-arrow-right text-xs transition-smooth group-hover:translate-x-0.5" aria-hidden="true"></i></span>
+                </span>
               </button>
-            }
-          </div>
-        </section>
+              <button type="button" class="glass-card shadow-glass-hover transition-smooth group flex h-full items-center gap-4 !border-2 !border-transparent p-4 text-left hover:-translate-y-0.5 hover:!border-[var(--color-primary-500)] focus-visible:!border-[var(--color-primary-500)] sm:flex-col sm:gap-3 sm:p-6 sm:text-center" (click)="chooseVideos()" [disabled]="uploading()">
+                <iv-illustration class="h-16 w-16 flex-none text-[var(--color-text-secondary)] transition-smooth group-hover:text-[var(--color-text-primary)] sm:h-24 sm:w-24" kind="kuba" />
+                <span class="flex min-w-0 flex-col gap-1 sm:items-center sm:gap-3">
+                <span class="text-base font-semibold">{{ 'chat.empty.editTitle' | translate }}</span>
+                <span class="text-sm text-[var(--color-text-secondary)]">{{ 'chat.empty.editText' | translate }}</span>
+                <span class="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary-500)]">
+                  @if (uploading()) { <idem-loader size="xs" /> {{ videoPercent() }} % } @else { {{ 'chat.empty.editCta' | translate }} <i class="pi pi-arrow-right text-xs transition-smooth group-hover:translate-x-0.5" aria-hidden="true"></i> }
+                </span>
+                </span>
+              </button>
+            </div>
+          </section>
+        } @else {
+          <!-- Rien encore : ce que l'atelier sait faire, et trois idées pour commencer. -->
+          <section class="flex flex-col items-center py-10 text-center">
+            <iv-illustration class="h-32 w-32 text-[var(--color-text-secondary)]" kind="kente" />
+            <h2 class="mt-6 text-xl font-semibold">{{ 'chat.empty.imageTitle' | translate }}</h2>
+            <p class="mt-2 max-w-md text-[var(--color-text-secondary)]">{{ 'chat.empty.imageText' | translate }}</p>
+            <div class="mt-6 flex flex-wrap justify-center gap-2">
+              @for (i of [1, 2, 3]; track i) {
+                <button type="button" class="tag" (click)="useIdea(i)">
+                  {{ 'chat.empty.ideas.' + mode() + i | translate }}
+                </button>
+              }
+            </div>
+          </section>
+        }
       }
 
       @for (m of messages(); track m.id) {
@@ -68,7 +64,18 @@
             @if (m.text) {
               <p class="whitespace-pre-wrap rounded-2xl rounded-br-md bg-[var(--color-primary-500)] px-4 py-2.5 text-[var(--color-on-primary)]">{{ m.text }}</p>
             }
-            @for (a of m.attachments ?? []; track a.id) {
+            @if (videoAttachments(m).length) {
+              <div class="flex flex-wrap justify-end gap-2">
+                @for (a of videoAttachments(m); track a.id) {
+                  @if (a.posterUrl) {
+                    <img [src]="a.posterUrl" [alt]="a.name || ''" class="h-20 w-16 rounded-lg object-cover" />
+                  } @else {
+                    <span class="tag"><i class="pi pi-video" aria-hidden="true"></i> {{ a.name }}</span>
+                  }
+                }
+              </div>
+            }
+            @for (a of otherAttachments(m); track a.id) {
               <span class="tag"><i [class]="a.kind === 'reference' ? 'pi pi-clone' : 'pi pi-paperclip'" aria-hidden="true"></i> {{ a.kind === 'reference' ? ('chat.attach.model' | translate) : (a.name || ('chat.attach.media' | translate)) }}</span>
             }
           </div>
@@ -143,16 +150,21 @@
             }
 
             @if (m.result; as r) {
-              @if (r.kind === 'video' && session()?.brandId) {
-                <iv-video-result [brandId]="session()!.brandId!" [videoId]="r.videoId" [video]="videos()[r.videoId]" />
+              @if (r.kind === 'video' && session()?.brandId && latestFor(m)) {
+                @defer (on viewport) {
+                  <iv-video-result [attr.data-tour]="m.id === lastResultId() ? 'iv-result' : null" [brandId]="session()!.brandId!" [videoId]="r.videoId" [video]="motionVideos()[r.videoId]" />
+                } @placeholder {
+                  <div class="skeleton mt-3 h-72 w-40 rounded-xl"></div>
+                }
+              } @else if (r.kind === 'montage' && latestFor(m)) {
+                <iv-montage-result [attr.data-tour]="m.id === lastResultId() ? 'iv-result' : null" [montageId]="r.montageId" [initial]="montages()[r.montageId] ?? null" [version]="montageVersions()[r.montageId] ?? 0" [latest]="m.id === messages().at(-1)?.id" (say)="say($event)" />
               } @else if (r.kind === 'visual') {
                 @if (visuals()[r.visualId]; as v) {
-                  <figure class="mt-3 flex flex-col gap-2">
-                    <img [src]="v.imageUrl" [alt]="v.prompt" class="max-h-[28rem] w-auto max-w-full rounded-xl border border-[var(--glass-border-subtle)]" loading="lazy" />
-                    <figcaption class="flex flex-wrap gap-2">
-                      <a class="outer-button button-sm" [href]="v.imageUrl" target="_blank" rel="noopener" download><i class="pi pi-download" aria-hidden="true"></i> {{ 'chat.result.download' | translate }}</a>
-                    </figcaption>
-                  </figure>
+                  @defer (on viewport) {
+                    <iv-visual-result [visual]="v" [fonts]="fonts()" />
+                  } @placeholder {
+                    <div class="skeleton mt-3 h-64 w-64 rounded-xl"></div>
+                  }
                 } @else {
                   <div class="skeleton mt-3 h-64 w-64 rounded-xl"></div>
                 }
@@ -192,6 +204,26 @@
   <!-- Le compositeur. -->
   <div class="border-t border-[var(--glass-border-subtle)] px-4 py-3">
     <div class="mx-auto max-w-3xl">
+      @if (videos().length || (uploading() && mode() === 'video' && videoPercent() > 0)) {
+        <div class="mb-2 flex flex-wrap items-end gap-2" [attr.aria-label]="'chat.attach.videos' | translate">
+          @for (v of videos(); track v.url; let i = $index) {
+            <div class="relative">
+              @if (v.posterUrl) {
+                <img [src]="v.posterUrl" alt="" class="h-16 w-12 rounded-lg object-cover" />
+              } @else {
+                <span class="flex h-16 w-12 items-center justify-center rounded-lg bg-[var(--glass-bg-light)]"><i class="pi pi-video" aria-hidden="true"></i></span>
+              }
+              <button type="button" class="button-icon absolute -right-1.5 -top-1.5 !p-0.5" (click)="removeVideo(i)" [attr.aria-label]="'common.remove' | translate"><i class="pi pi-times text-[10px]" aria-hidden="true"></i></button>
+            </div>
+          }
+          @if (uploading() && videoPercent() > 0 && videoPercent() < 100) {
+            <span class="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)]"><idem-loader size="xs" /> {{ videoPercent() }} %</span>
+          }
+          @if (videos().length) {
+            <span class="text-xs text-[var(--color-text-secondary)]">{{ (montaging() ? 'chat.attach.willEdit' : 'chat.attach.willUse') | translate }}</span>
+          }
+        </div>
+      }
       @if (reference() || media().length) {
         <div class="mb-2 flex flex-wrap gap-2">
           @if (reference(); as r) {
@@ -210,7 +242,11 @@
         </div>
       }
 
-      <div class="glass-card !rounded-2xl p-2">
+      <input #videoInput type="file" class="sr-only" multiple accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/3gpp,.mp4,.mov,.webm,.m4v,.3gp,.mkv" (change)="onVideoFiles($event)" [attr.aria-label]="'chat.empty.editTitle' | translate" />
+      <!-- La marque, proposée sans insister (jamais exigée). -->
+      <iv-brand-hint data-tour="iv-brand-hint" class="mb-2 block" [brand]="brand()" (chosen)="onHintBrand($event)" />
+
+      <div data-tour="iv-composer" class="glass-card !rounded-2xl p-2">
         <label for="iv-composer" class="sr-only">{{ 'chat.composer.label' | translate }}</label>
         <textarea
           #composer
@@ -218,7 +254,7 @@
           rows="2"
           class="!border-0 !bg-transparent !shadow-none w-full resize-none"
           maxlength="2000"
-          [placeholder]="(mode() === 'video' ? 'chat.composer.placeholderVideo' : 'chat.composer.placeholderImage') | translate"
+          [placeholder]="(montaging() ? 'chat.composer.placeholderMontage' : revisingMontage() ? 'chat.composer.placeholderRevise' : mode() === 'video' ? 'chat.composer.placeholderVideo' : 'chat.composer.placeholderImage') | translate"
           [value]="text()"
           (input)="text.set($any($event.target).value)"
           (keydown)="onKeydown($event)"
@@ -231,13 +267,28 @@
             <span class="sr-only">{{ (mode() === 'video' ? 'chat.attach.videoModel' : 'chat.attach.imageModel') | translate }}</span>
             <input #referenceInput type="file" class="sr-only" [accept]="mode() === 'video' ? 'video/mp4,video/quicktime,video/webm' : 'image/jpeg,image/png,image/webp'" (change)="onReferenceFile($event, false)" [disabled]="uploading()" />
           </label>
-          <label class="button-icon !p-2" [class.cursor-pointer]="!!brand()" [class.opacity-50]="!brand()" [attr.title]="(brand() ? (mode() === 'video' ? 'chat.attach.myMedia' : 'chat.attach.myPhoto') : 'chat.attach.needBrand') | translate">
+          <label class="button-icon !p-2 cursor-pointer" [attr.title]="(mode() === 'video' ? 'chat.attach.myMedia' : 'chat.attach.myPhoto') | translate">
             <i class="pi pi-paperclip" aria-hidden="true"></i>
             <span class="sr-only">{{ (mode() === 'video' ? 'chat.attach.myMedia' : 'chat.attach.myPhoto') | translate }}</span>
-            <input type="file" class="sr-only" [multiple]="mode() === 'video'" [accept]="mode() === 'video' ? 'image/*,video/mp4,video/quicktime,video/webm,.glb,.json,.lottie,.riv' : 'image/jpeg,image/png,image/webp'" (change)="onMediaFiles($event)" [disabled]="!brand() || uploading()" />
+            <input type="file" class="sr-only" [multiple]="mode() === 'video'" [accept]="mode() === 'video' ? 'image/*,video/mp4,video/quicktime,video/webm,.glb,.json,.lottie,.riv' : 'image/jpeg,image/png,image/webp'" (change)="onMediaFiles($event)" [disabled]="uploading()" />
           </label>
 
-          @if (mode() === 'video') {
+          @if (montaging()) {
+            <label class="sr-only" for="iv-mformat">{{ 'chat.options.format' | translate }}</label>
+            <select id="iv-mformat" class="!w-auto !py-1.5 !text-sm" (change)="videoFormat.set($any($event.target).value)">
+              @for (f of formats(); track f) { <option [value]="f" [selected]="f === videoFormat()">{{ 'formats.' + f | translate }}</option> }
+            </select>
+            <label class="!flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] !mb-0">
+              <input type="checkbox" [checked]="removeSilences()" (change)="removeSilences.set($any($event.target).checked)" />
+              {{ 'chat.options.removeSilences' | translate }}
+            </label>
+            <label class="!flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] !mb-0">
+              <input type="checkbox" [checked]="montageMusic()" (change)="montageMusic.set($any($event.target).checked)" />
+              {{ 'chat.options.music' | translate }}
+            </label>
+          } @else if (revisingMontage()) {
+            <span class="text-xs text-[var(--color-text-tertiary)]">{{ 'chat.composer.reviseHint' | translate }}</span>
+          } @else if (mode() === 'video') {
             <label class="sr-only" for="iv-duration">{{ 'chat.options.duration' | translate }}</label>
             <select id="iv-duration" class="!w-auto !py-1.5 !text-sm" (change)="durationSec.set(+$any($event.target).value)">
               @for (d of durations; track d) { <option [value]="d" [selected]="d === durationSec()">{{ d }} s</option> }
@@ -262,7 +313,7 @@
           }
 
           <span class="ml-auto flex items-center gap-2">
-            <iv-creativity-select [(value)]="creativity" />
+            <iv-creativity-select data-tour="iv-creativity" [(value)]="creativity" />
             @if (price() !== null) {
               <span class="text-xs tabular-nums text-[var(--color-text-tertiary)]">{{ 'chat.options.price' | translate: { cost: price() } }}</span>
             }

@@ -1,5 +1,5 @@
 import { inject } from '@angular/core';
-import { DocumentTypeAdapter, EditorDocumentType } from '../models/editor.types';
+import { DocumentTypeAdapter, EditorDocumentType } from '@idem/shared-document-editor/angular';
 import { BrandingEditorAdapter } from './branding-editor.adapter';
 import { BusinessCardEditorAdapter } from './business-card-editor.adapter';
 import { BusinessPlanEditorAdapter } from './business-plan-editor.adapter';

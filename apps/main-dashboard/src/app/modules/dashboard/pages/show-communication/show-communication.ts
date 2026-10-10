@@ -23,7 +23,7 @@ import {
   StrategyInputKey,
 } from '../../models/communication.model';
 import { BrandingValidationService } from '../../services/branding-validation.service';
-import { FontHints } from '../document-editor/models/editor.types';
+import { FontHints } from '@idem/shared-document-editor/angular';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { ProjectService } from '../../services/project.service';
 import { toChannels } from './communication-ui';

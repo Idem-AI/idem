@@ -287,7 +287,11 @@ async function openPage(browser: Browser, url: string, timeoutMs: number): Promi
   });
   // Les sites qui révèlent leur contenu au défilement : on descend, puis on remonte.
   // Code passé en texte : une fonction transpilée emporterait des aides TypeScript absentes de la page.
-  await page.evaluate(`new Promise((done) => { let y = 0; const step = () => { if (y++ >= 3) { window.scrollTo(0, 0); return done(true); } window.scrollBy(0, window.innerHeight); setTimeout(step, 250); }; step(); })`);
+  // Une redirection côté client pendant le défilement détruit le contexte : on attend la nouvelle page.
+  await page.evaluate(`new Promise((done) => { let y = 0; const step = () => { if (y++ >= 3) { window.scrollTo(0, 0); return done(true); } window.scrollBy(0, window.innerHeight); setTimeout(step, 250); }; step(); })`).catch(async (error: Error) => {
+    if (!/context was destroyed|detached/i.test(error.message)) throw error;
+    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: timeoutMs }).catch(() => undefined);
+  });
   await new Promise((r) => setTimeout(r, 300));
   return page;
 }
@@ -396,7 +400,9 @@ export async function scanWebsite(options: SiteScanOptions): Promise<SiteScanRes
   const timeout = options.timeoutMs ?? 25_000;
   const progress = options.onProgress || (() => undefined);
   const warnings: string[] = [];
-  const browser = await puppeteer.launch({ headless: true, args: RENDER_BROWSER_ARGS });
+  // Sans cela, Chrome « monte » en https les redirections vers http (idem.africa → http://…/en/) et,
+  // sous interception, abandonne la navigation au bout de 3 s : net::ERR_BLOCKED_BY_CLIENT.
+  const browser = await puppeteer.launch({ headless: true, args: [...RENDER_BROWSER_ARGS, '--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable'] });
   try {
     progress('open', { url });
     let home: Page;

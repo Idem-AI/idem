@@ -1,6 +1,19 @@
 # iVision API — Express + le moteur créatif partagé (apps/ivision/core).
 # Rendu vidéo et visuels : Chromium (Puppeteer) et ffmpeg, comme l'API IDEM.
 ARG BUILD_ENV=production
+# Montage des prises de parole : Whisper en local (whisper.cpp) et son modèle, embarqués.
+ARG WHISPER_VERSION=v1.9.1
+ARG WHISPER_MODEL_FILE=ggml-large-v3-turbo-q5_0.bin
+
+FROM alpine:3.20 AS whisper
+ARG WHISPER_VERSION
+ARG WHISPER_MODEL_FILE
+RUN apk add --no-cache build-base cmake git curl
+RUN git clone --depth 1 --branch ${WHISPER_VERSION} https://github.com/ggml-org/whisper.cpp /src \
+  && cmake -S /src -B /src/build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DGGML_NATIVE=OFF \
+  && cmake --build /src/build --config Release -j --target whisper-cli \
+  && install -m 0755 /src/build/bin/whisper-cli /usr/local/bin/whisper-cli
+RUN mkdir -p /models && curl -fsSL -o /models/${WHISPER_MODEL_FILE} https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${WHISPER_MODEL_FILE}
 
 FROM node:20-alpine AS builder
 
@@ -33,9 +46,10 @@ RUN npm prune --omit=dev --legacy-peer-deps
 
 FROM node:20-alpine AS production
 ARG BUILD_ENV
+ARG WHISPER_MODEL_FILE
 
 RUN apk update && apk upgrade && \
-    apk add --no-cache dumb-init chromium nss freetype harfbuzz ca-certificates ttf-freefont ffmpeg && \
+    apk add --no-cache dumb-init chromium nss freetype harfbuzz ca-certificates ttf-freefont ffmpeg libstdc++ libgomp && \
     rm -rf /var/cache/apk/*
 
 RUN addgroup -g 1001 -S nodejs && adduser -S ivision -u 1001
@@ -44,6 +58,11 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV NODE_ENV=${BUILD_ENV:-production}
 ENV PORT=3006
+
+COPY --from=whisper /usr/local/bin/whisper-cli /usr/local/bin/whisper-cli
+COPY --from=whisper /models /opt/whisper
+ENV WHISPER_BIN=/usr/local/bin/whisper-cli
+ENV WHISPER_MODEL=/opt/whisper/${WHISPER_MODEL_FILE}
 
 WORKDIR /app/apps/ivision/api
 COPY --from=builder --chown=ivision:nodejs /app/packages /app/packages

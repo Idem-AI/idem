@@ -21,7 +21,7 @@ export async function connectDatabase(): Promise<void> {
 }
 
 /** Une collection d'iVision (documents typés à la lecture, schéma libre). */
-export function collection<T extends object>(name: 'brands' | 'sessions' | 'videos' | 'visuals' | 'references' | 'scans') {
+export function collection<T extends object>(name: 'brands' | 'sessions' | 'videos' | 'visuals' | 'references' | 'scans' | 'montages') {
   return mongoose.connection.collection<T & { _id: string }>(`ivision_${name}`);
 }
 

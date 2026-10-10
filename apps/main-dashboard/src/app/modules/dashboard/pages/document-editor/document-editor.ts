@@ -1,457 +1,84 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  OnDestroy,
-  OnInit,
-  Renderer2,
-  signal,
-  viewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
-import { CookieService } from '../../../../shared/services/cookie.service';
-import { TokenService } from '../../../../shared/services/token.service';
-import { injectEditorAdapter } from './adapters/inject-editor-adapter';
-import { DocumentModelService } from './services/document-model.service';
-import { EditorHistoryService } from './services/editor-history.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
-  ChartConfigLite,
   DocumentTypeAdapter,
   EDITOR_TARGET_PARAMS,
   EditorDocumentType,
-  EditorSelection,
-  ElementStyle,
-  FontHints,
-  PageFormat,
-  SaveState,
-} from './models/editor.types';
-import { EditorToolbarComponent } from './components/editor-toolbar/editor-toolbar';
-import { LayersPanelComponent } from './components/layers-panel/layers-panel';
-import { PropertyPanelComponent } from './components/property-panel/property-panel';
-import { ChartEditorPanelComponent } from './components/chart-editor-panel/chart-editor-panel';
-import { AttributesPanelComponent } from './components/attributes-panel/attributes-panel';
-import { AiEditPanelComponent } from './components/ai-edit-panel/ai-edit-panel';
-import {
-  EditorCanvasComponent,
-  ReorderEvent,
-  StyleChangeEvent,
-  TextChangeEvent,
-} from './components/editor-canvas/editor-canvas';
-import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+  IdemDocumentEditorComponent,
+} from '@idem/shared-document-editor/angular';
+import { CookieService } from '../../../../shared/services/cookie.service';
+import { TokenService } from '../../../../shared/services/token.service';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
-
-const AUTOSAVE_DEBOUNCE = 1500;
-
-/** En dessous : pages en tiroir, inspecteur en panneau bas (cf. document-editor.css). */
-const COMPACT_QUERY = '(max-width: 1023px)';
-/** À partir de là, le panneau des pages est ouvert d'office. */
-const WIDE_QUERY = '(min-width: 1280px)';
+import { injectEditorAdapter } from './adapters/inject-editor-adapter';
 
 /**
- * Shell de l'éditeur WYSIWYG. Orchestre le modèle (source de vérité), l'historique
- * (Ctrl+Z / Ctrl+Y), le canvas iframe et les panneaux. Applique les mutations,
- * déclenche la sauvegarde automatique (debounce) et l'édition IA par section.
+ * La page « éditeur » d'IDEM : l'éditeur partagé (`@idem/shared-document-editor`, le même
+ * qu'iVision) sur un document du projet courant.
  *
- * Le moteur est générique : le type de document est fourni par un
- * `DocumentTypeAdapter` (ici Business Plan). Modèle et historique sont fournis au
- * niveau du composant → état neuf à chaque ouverture.
- *
- * Lien profond : `?section=<id>&path=<chemin>` présélectionne l'élément cliqué
- * dans l'aperçu et l'amène au centre de la vue ; `?section=<id>` seul ouvre sur
- * cette page, sans sélection.
+ * Ce qui reste propre à IDEM vit ici : l'adaptateur résolu depuis la route
+ * (`data.documentType`), le projet lu dans le cookie, l'attente de l'authentification, le lien
+ * profond (`?section=<id>&path=<chemin>`, `?documentId=`) et le retour vers la page du document.
  */
 @Component({
   selector: 'app-document-editor',
-  imports: [
-    ErrorStateComponent,
-    TranslateModule,
-    EditorToolbarComponent,
-    LayersPanelComponent,
-    PropertyPanelComponent,
-    ChartEditorPanelComponent,
-    AttributesPanelComponent,
-    AiEditPanelComponent,
-    EditorCanvasComponent,
-    IdemLoaderComponent,
-  ],
-  providers: [DocumentModelService, EditorHistoryService],
-  templateUrl: './document-editor.html',
-  styleUrl: './document-editor.css',
+  imports: [IdemDocumentEditorComponent, ErrorStateComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
+  template: `
+    @if (noProject()) {
+      <app-error-state
+        scene="document"
+        [title]="'dashboard.documentEditor.noProject.title' | translate"
+        [message]="'dashboard.documentEditor.noProject.subtitle' | translate"
+      >
+        <button type="button" class="inner-button" (click)="back()">
+          {{ 'dashboard.documentEditor.noProject.back' | translate }}
+        </button>
+      </app-error-state>
+    } @else if (ready()) {
+      <idem-document-editor
+        [adapter]="adapter"
+        [contextId]="projectId!"
+        [documentId]="documentId"
+        [target]="target"
+        [heading]="heading()"
+        (exit)="back()"
+      />
+    }
+  `,
 })
-export class DocumentEditorComponent implements OnInit, OnDestroy {
+export class DocumentEditorComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly cookieService = inject(CookieService);
   private readonly tokenService = inject(TokenService);
-  private readonly renderer = inject(Renderer2);
+  private readonly translate = inject(TranslateService);
 
-  protected readonly model = inject(DocumentModelService);
-  protected readonly history = inject(EditorHistoryService);
-
-  /** Adaptateur du document en cours, résolu depuis la route (data.documentType). */
-  private readonly adapter: DocumentTypeAdapter = injectEditorAdapter(
+  /** Adaptateur du document, résolu depuis la route (data.documentType). */
+  protected readonly adapter: DocumentTypeAdapter = injectEditorAdapter(
     this.route.snapshot.data['documentType'] as EditorDocumentType | undefined,
   );
+  protected readonly projectId = this.cookieService.get('projectId');
+  protected readonly documentId = this.route.snapshot.queryParamMap.get(EDITOR_TARGET_PARAMS.document);
+  protected readonly target = (() => {
+    const query = this.route.snapshot.queryParamMap;
+    const sectionId = query.get(EDITOR_TARGET_PARAMS.section);
+    return sectionId ? { sectionId, path: query.get(EDITOR_TARGET_PARAMS.path) } : null;
+  })();
 
-  protected readonly canvas = viewChild(EditorCanvasComponent);
-  private readonly aiPanel = viewChild(AiEditPanelComponent);
-
-  protected readonly loading = signal(true);
-  protected readonly loadError = signal<string | null>(null);
-  protected readonly title = signal('');
-  protected readonly fonts = signal<FontHints>({});
-  protected readonly dark = signal(false);
-  protected readonly layersOpen = signal(this.matches(WIDE_QUERY));
-  protected readonly selection = signal<EditorSelection | null>(null);
-  protected readonly saveState = signal<SaveState>('idle');
-  protected readonly aiLoading = signal(false);
-
-  /**
-   * Format déclaré par l'adaptateur, remplacé au chargement quand le document
-   * ne le connaît qu'à l'exécution (un visuel est carré, story ou bannière
-   * selon le flyer ouvert).
-   */
-  protected readonly pageFormat = signal<PageFormat>(this.adapter.pageFormat);
-  protected readonly multiPage = this.adapter.multiPage;
-  protected readonly fitRoot = this.adapter.fitRoot ?? false;
-  protected readonly titleKey = this.adapter.i18nTitleKey;
-
-  protected readonly activeSectionId = computed(() => this.selection()?.sectionId ?? null);
-  protected readonly selectedSectionName = computed(() => {
-    const id = this.selection()?.sectionId;
-    return this.model.sections().find((s) => s.id === id)?.name ?? '';
-  });
-
-  private projectId: string | null = null;
-  /** Document ouvert quand le projet en garde plusieurs (business plans, pitch decks). */
-  private documentId: string | null = null;
-  /** Élément ou page à montrer au premier rendu (lien profond depuis l'aperçu). */
-  private pendingTarget: { sectionId: string; path: string | null } | null = null;
-  private saveTimer: ReturnType<typeof setTimeout> | null = null;
-  private savedResetTimer: ReturnType<typeof setTimeout> | null = null;
-  private unlistenKeys?: () => void;
-  private unlistenBeforeUnload?: () => void;
+  protected readonly noProject = signal(!this.projectId);
+  protected readonly ready = signal(false);
+  protected readonly heading = computed(() => this.translate.instant(this.adapter.i18nTitleKey));
 
   async ngOnInit(): Promise<void> {
-    this.dark.set(document.documentElement.classList.contains('dark'));
-    this.unlistenKeys = this.renderer.listen('document', 'keydown', (e: KeyboardEvent) =>
-      this.onKeydown(e),
-    );
-    this.unlistenBeforeUnload = this.renderer.listen(
-      'window',
-      'beforeunload',
-      (e: BeforeUnloadEvent) => {
-        if (this.saveState() === 'dirty' || this.saveState() === 'saving') {
-          e.preventDefault();
-          e.returnValue = '';
-        }
-      },
-    );
-
-    const query = this.route.snapshot.queryParamMap;
-    this.documentId = query.get(EDITOR_TARGET_PARAMS.document);
-    const targetSection = query.get(EDITOR_TARGET_PARAMS.section);
-    if (targetSection) {
-      this.pendingTarget = { sectionId: targetSection, path: query.get(EDITOR_TARGET_PARAMS.path) };
-    }
-
-    this.projectId = this.cookieService.get('projectId');
-    if (!this.projectId) {
-      this.loading.set(false);
-      this.loadError.set('noProject');
-      return;
-    }
-
-    await this.tokenService.waitForAuthReady();
-    this.adapter.load(this.projectId, this.documentId).subscribe({
-      next: (doc) => {
-        this.title.set(doc.title);
-        this.fonts.set(doc.fonts);
-        if (doc.pageFormat) this.pageFormat.set(doc.pageFormat);
-        this.model.setSections(doc.sections);
-        this.history.reset();
-        this.loading.set(false);
-        // Le canvas est présent dès le premier rendu ; on lance le rendu initial.
-        setTimeout(() => this.canvas()?.render(doc.sections), 0);
-      },
-      error: (err) => {
-        console.error('Error loading document for editor:', err);
-        this.loading.set(false);
-        this.loadError.set('load');
-      },
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.unlistenKeys?.();
-    this.unlistenBeforeUnload?.();
-    if (this.saveTimer) clearTimeout(this.saveTimer);
-    if (this.savedResetTimer) clearTimeout(this.savedResetTimer);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Sélection                                                           */
-  /* ------------------------------------------------------------------ */
-
-  protected onSelectionChange(selection: EditorSelection | null): void {
-    this.selection.set(selection);
-  }
-
-  protected onSelectSectionFromLayers(sectionId: string): void {
-    this.canvas()?.selectPath(sectionId, '');
-    if (this.matches(COMPACT_QUERY)) this.layersOpen.set(false);
-  }
-
-  /** Désélectionne (et referme le panneau bas sur petit écran). */
-  protected closeInspector(): void {
-    this.canvas()?.clearSelection();
-    this.selection.set(null);
-  }
-
-  /** Premier rendu prêt : applique le lien profond, une seule fois. */
-  protected onCanvasReady(): void {
-    const target = this.pendingTarget;
-    if (!target) return;
-    this.pendingTarget = null;
-    if (!this.model.sections().some((s) => s.id === target.sectionId)) return;
-    if (target.path !== null) this.canvas()?.selectPath(target.sectionId, target.path, false);
-    else this.canvas()?.scrollToSection(target.sectionId, false);
-  }
-
-  private matches(query: string): boolean {
-    return typeof window !== 'undefined' && !!window.matchMedia?.(query).matches;
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Mutations de contenu (patch en direct, pas de re-render)            */
-  /* ------------------------------------------------------------------ */
-
-  protected onStyleChange(style: ElementStyle): void {
-    const sel = this.selection();
-    if (!sel) return;
-    this.record(`style-${sel.sectionId}-${sel.path}`);
-    this.model.setStyle(sel.sectionId, sel.path, style);
-    this.canvas()?.applyStyle(sel.sectionId, sel.path, style);
-    this.markDirty();
-  }
-
-  protected onChartChange(config: ChartConfigLite): void {
-    const sel = this.selection();
-    if (!sel) return;
-    this.record(`chart-${sel.sectionId}-${sel.path}`);
-    this.model.setChart(sel.sectionId, sel.path, config);
-    this.canvas()?.applyChart(sel.sectionId, sel.path, config);
-    this.markDirty();
-  }
-
-  protected onTextChange(event: TextChangeEvent): void {
-    this.record(`text-${event.sectionId}-${event.path}`);
-    this.model.setText(event.sectionId, event.path, event.html);
-    this.markDirty();
-  }
-
-  /**
-   * Le déplacement libre est déjà visible dans l'iframe. On persiste seulement
-   * son état final ici, sans reconstruire le canevas sous le pointeur.
-   */
-  protected onCanvasStyleChange(event: StyleChangeEvent): void {
-    this.record(`style-${event.sectionId}-${event.path}`);
-    this.model.setStyle(event.sectionId, event.path, event.style);
-    this.markDirty();
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Mutations structurelles (re-render du canvas)                       */
-  /* ------------------------------------------------------------------ */
-
-  protected onReorderRequest(event: ReorderEvent): void {
-    // Le déplacement DOM a déjà eu lieu dans l'iframe (live, façon Figma) ; on
-    // aligne seulement le modèle, sans re-render. Le runtime re-sélectionne
-    // l'élément et renvoie sa nouvelle sélection.
-    this.record();
-    this.model.reorder(event.sectionId, event.parentPath, event.fromIndex, event.toIndex);
-    this.markDirty();
-  }
-
-  protected onReorderButton(direction: 'up' | 'down'): void {
-    const sel = this.selection();
-    if (!sel) return;
-    const parentPath = sel.path.includes('.') ? sel.path.split('.').slice(0, -1).join('.') : '';
-    const toIndex = direction === 'up' ? sel.index - 1 : sel.index + 1;
-    if (toIndex < 0 || toIndex > sel.siblingCount - 1) return;
-    this.record();
-    this.canvas()?.moveNode(sel.sectionId, sel.path, toIndex); // déplacement live + re-sélection
-    this.model.reorder(sel.sectionId, parentPath, sel.index, toIndex);
-    this.markDirty();
-  }
-
-  protected onRemove(): void {
-    const sel = this.selection();
-    if (!sel) return;
-    this.record();
-    this.canvas()?.removeNodeLive(sel.sectionId, sel.path); // suppression live + deselect
-    this.model.removeNode(sel.sectionId, sel.path);
-    this.selection.set(null);
-    this.markDirty();
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Attributs génériques (tout paramètre présent dans le code)          */
-  /* ------------------------------------------------------------------ */
-
-  protected onAttrChange(change: { name: string; value: string }): void {
-    const sel = this.selection();
-    if (!sel) return;
-    this.record(`attr-${sel.sectionId}-${sel.path}-${change.name}`);
-    this.model.setAttribute(sel.sectionId, sel.path, change.name, change.value);
-    this.canvas()?.applyAttr(sel.sectionId, sel.path, change.name, change.value);
-    this.markDirty();
-  }
-
-  protected onAttrAdd(change: { name: string; value: string }): void {
-    const sel = this.selection();
-    if (!sel || !change.name) return;
-    this.record();
-    this.model.setAttribute(sel.sectionId, sel.path, change.name, change.value);
-    this.canvas()?.applyAttr(sel.sectionId, sel.path, change.name, change.value);
-    this.markDirty();
-  }
-
-  protected onAttrRemove(name: string): void {
-    const sel = this.selection();
-    if (!sel) return;
-    this.record();
-    this.model.removeAttribute(sel.sectionId, sel.path, name);
-    this.canvas()?.applyAttr(sel.sectionId, sel.path, name, null);
-    this.markDirty();
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Édition IA                                                          */
-  /* ------------------------------------------------------------------ */
-
-  protected onAiSubmit(instruction: string): void {
-    const sel = this.selection();
-    if (!sel || !this.projectId) return;
-    this.aiLoading.set(true);
-    this.adapter.aiEdit(this.projectId, sel.sectionId, instruction, this.documentId).subscribe({
-      next: (res) => {
-        this.aiLoading.set(false);
-        if (!res.html) return;
-        this.record();
-        this.model.replaceSectionHtml(sel.sectionId, res.html);
-        this.rerender();
-        this.selection.set(null);
-        this.aiPanel()?.reset();
-        // L'édition IA est déjà persistée côté serveur ; on aligne l'état local.
-        this.saveState.set('saved');
-        this.scheduleSavedReset();
-      },
-      error: (err) => {
-        console.error('AI edit failed:', err);
-        this.aiLoading.set(false);
-        this.saveState.set('error');
-      },
-    });
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Historique                                                          */
-  /* ------------------------------------------------------------------ */
-
-  protected undo(): void {
-    const snapshot = this.history.undo(this.model.snapshot());
-    if (!snapshot) return;
-    this.model.setSections(snapshot);
-    this.rerender();
-    this.selection.set(null);
-    this.markDirty();
-  }
-
-  protected redo(): void {
-    const snapshot = this.history.redo(this.model.snapshot());
-    if (!snapshot) return;
-    this.model.setSections(snapshot);
-    this.rerender();
-    this.selection.set(null);
-    this.markDirty();
-  }
-
-  /** Enregistre l'état AVANT mutation dans la pile d'annulation. */
-  private record(coalesceKey?: string): void {
-    this.history.record(this.model.snapshot(), coalesceKey);
-  }
-
-  private rerender(): void {
-    this.canvas()?.render(this.model.sections(), true);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Sauvegarde                                                          */
-  /* ------------------------------------------------------------------ */
-
-  private markDirty(): void {
-    this.saveState.set('dirty');
-    if (this.saveTimer) clearTimeout(this.saveTimer);
-    this.saveTimer = setTimeout(() => this.doSave(), AUTOSAVE_DEBOUNCE);
-  }
-
-  protected saveNow(): void {
-    if (this.saveTimer) clearTimeout(this.saveTimer);
-    this.doSave();
-  }
-
-  private doSave(): void {
     if (!this.projectId) return;
-    if (this.saveState() === 'saving') return;
-    this.saveState.set('saving');
-    this.adapter.save(this.projectId, this.model.snapshot(), this.documentId).subscribe({
-      next: () => {
-        this.saveState.set('saved');
-        this.scheduleSavedReset();
-      },
-      error: (err) => {
-        console.error('Save failed:', err);
-        this.saveState.set('error');
-      },
-    });
+    await this.tokenService.waitForAuthReady();
+    this.ready.set(true);
   }
 
-  private scheduleSavedReset(): void {
-    if (this.savedResetTimer) clearTimeout(this.savedResetTimer);
-    this.savedResetTimer = setTimeout(() => {
-      if (this.saveState() === 'saved') this.saveState.set('idle');
-    }, 2500);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Clavier + sortie                                                    */
-  /* ------------------------------------------------------------------ */
-
-  private onKeydown(e: KeyboardEvent): void {
-    const mod = e.ctrlKey || e.metaKey;
-    if (!mod) return;
-    const key = e.key.toLowerCase();
-    if (key === 'z' && !e.shiftKey) {
-      e.preventDefault();
-      this.undo();
-    } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
-      e.preventDefault();
-      this.redo();
-    } else if (key === 's') {
-      e.preventDefault();
-      this.saveNow();
-    }
-  }
-
-  protected exit(): void {
-    if (this.saveState() === 'dirty') this.saveNow();
-    // Un document parmi plusieurs revient à SA page, pas à la liste.
-    this.router.navigate(
-      this.documentId ? [this.adapter.backRoute, this.documentId] : [this.adapter.backRoute],
-    );
+  /** Un document parmi plusieurs revient à SA page, pas à la liste. */
+  protected back(): void {
+    this.router.navigate(this.documentId ? [this.adapter.backRoute, this.documentId] : [this.adapter.backRoute]);
   }
 }

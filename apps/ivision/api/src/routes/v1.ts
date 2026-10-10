@@ -13,8 +13,15 @@ import { MOTION_STYLES, MUSIC_MOODS, MotionStyle, MusicMood, VideoFormat } from 
 import { videoOptions } from '../../../core/src/video/video.options';
 import { resolvePublicSound } from '../../../core/src/video/video.sfx';
 import { SiteScanError } from '../../../core/src/site/site-scanner';
+import { CAPTION_STYLES, CUT_MODES, MONTAGE_LIMITS } from '../../../core/src/montage/montage.model';
+import { MontageInputError } from '../../../core/src/montage/montage.service';
+import fs from 'fs';
+import os from 'os';
 import { FLYER_FORMATS } from '../../../core/src/visual/visual.model';
-import { storage } from '../config/storage';
+import axios from 'axios';
+import { publicUrl, storage, uploadLocalFile } from '../config/storage';
+import { spawnSync } from 'child_process';
+import { colorsNamed } from '../../../core/src/brand/color-words';
 import logger from '../config/logger';
 import { authenticate, AuthedRequest } from '../middleware/auth';
 import { asyncRoute, HttpError } from '../middleware/error';
@@ -24,6 +31,7 @@ import * as brands from '../services/brands.service';
 import * as chat from '../services/chat.service';
 import { idem } from '../services/idem.client';
 import * as refs from '../services/references.service';
+import { montages, montageView, refundMontage } from '../services/montages.service';
 import { motionVideos } from '../services/videos.service';
 import * as visuals from '../services/visuals.service';
 import { openSse } from '../utils/sse';
@@ -33,9 +41,24 @@ export const v1 = Router();
 const uid = (req: AuthedRequest) => req.user!.uid;
 const lang = (req: AuthedRequest) => (String(req.headers['accept-language'] || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr');
 
+/** Les refus du montage, dits à l'utilisateur. */
+const MONTAGE_MESSAGES: Record<string, string> = {
+  unreadable_video: 'Cette vidéo ne peut pas être lue. Essayez un MP4 ou un MOV.',
+  no_audio: 'Aucune de ces vidéos n’a de son : ajoutez celle où vous parlez.',
+  too_short: 'La vidéo est trop courte (3 secondes au moins).',
+  too_long: `Les vidéos sont trop longues (${MONTAGE_LIMITS.maxDurationSec / 60} minutes au plus en tout).`,
+  too_many: `${MONTAGE_LIMITS.maxFiles} vidéos au plus.`,
+  no_video: 'Ajoutez au moins une vidéo.',
+  empty_message: 'Écrivez ce qu’il faut changer.',
+  still_processing: 'Le montage est encore en préparation.',
+  already_rendering: 'Un export est déjà en cours.',
+  not_ready: 'Le montage n’est pas encore prêt.',
+};
+
 /** Les erreurs du moteur, traduites en réponses HTTP lisibles. */
 function engineError(error: unknown): never {
   if (error instanceof MediaInputError) throw new HttpError(400, 'invalid_media', error.message);
+  if (error instanceof MontageInputError) throw new HttpError(['still_processing', 'already_rendering'].includes(error.message) ? 409 : 400, error.message, MONTAGE_MESSAGES[error.message] || error.message);
   if (error instanceof VideoInputError) throw new HttpError(error.message === 'project_not_found' ? 404 : error.message === 'already_rendering' ? 409 : 400, error.message);
   throw error;
 }
@@ -102,6 +125,35 @@ v1.post(
   '/brands',
   validate({ body: z.object({ name: z.string().min(1).max(80), colors: palette, display: z.string().max(60).optional(), body: z.string().max(60).optional(), tone: z.string().max(200).optional(), businessType: z.string().max(120).optional(), language: z.string().max(5).optional() }) }),
   asyncRoute<AuthedRequest>(async (req, res) => res.status(201).json(brands.brandView(await brands.createManualBrand(uid(req), req.body))))
+);
+
+/** Des couleurs choisies sans charte (la « préférence » de l'utilisateur) : une marque provisoire. */
+v1.post(
+  '/brands/auto',
+  validate({ body: z.object({ colors: palette }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => res.status(201).json(brands.brandView(await brands.createAutoBrand(uid(req), req.body.colors || null))))
+);
+
+const charterUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => cb(null, /^(application\/pdf|image\/(jpeg|png|webp|svg\+xml|gif))$/.test(file.mimetype) || /\.(pdf|png|jpe?g|webp|svg)$/i.test(file.originalname)),
+});
+
+/** Une charte déposée (PDF, page de charte, logo) : couleurs, polices et logo lus ; la marque est prête. */
+v1.post(
+  '/brands/from-file',
+  charterUpload.single('file'),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    if (!req.file) throw new HttpError(400, 'file_required', 'Ajoutez votre charte (PDF) ou votre logo (image).');
+    try {
+      const { brand, found } = await brands.brandFromFile(uid(req), req.file);
+      res.status(201).json({ ...brands.brandView(brand), found });
+    } catch (error) {
+      logger.warn('brand.from_file_failed', { event: 'brand.from_file_failed', error });
+      throw new HttpError(400, 'charter_unreadable', 'Je n’ai pas pu lire ce fichier. Essayez un PDF ou une image (PNG, JPG, SVG).');
+    }
+  })
 );
 
 v1.post(
@@ -207,6 +259,8 @@ const turnBody = z.object({
   referenceId: z.string().max(80).optional(),
   noReference: z.boolean().optional(),
   media: z.array(mediaAsset).max(16).optional(),
+  /** Vidéos déposées (`/montages/uploads`) : avec de la parole, la conversation les monte. */
+  videos: z.array(z.object({ url: z.string().url().max(2000), name: z.string().max(80).optional(), posterUrl: z.string().max(2000).optional() })).max(10).optional(),
   photoUrl: z.string().url().max(2000).optional(),
   resume: z.boolean().optional(),
   options: z
@@ -218,6 +272,7 @@ const turnBody = z.object({
       type: z.string().max(24).optional(),
       musicMood: z.string().max(16).optional(),
       sfx: z.boolean().optional(),
+      cuts: z.enum(['tight', 'natural', 'none']).optional(),
       voice: z.boolean().optional(),
       format: z.enum(FLYER_FORMATS as unknown as [string, ...string[]]).optional(),
       withPhoto: z.boolean().optional(),
@@ -420,11 +475,324 @@ v1.post(
   })
 );
 
+// ─── Montages (une prise de parole → une vidéo prête à publier) ─────────────
+
+const montageUpload = multer({
+  storage: multer.diskStorage({ destination: os.tmpdir(), filename: (_req, file, cb) => cb(null, `ivision-montage-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}${(file.originalname.match(/\.[a-z0-9]{2,5}$/i) || ['.mp4'])[0].toLowerCase()}`) }),
+  limits: { fileSize: MONTAGE_LIMITS.maxBytes, files: MONTAGE_LIMITS.maxFiles },
+  fileFilter: (_req, file, cb) => cb(null, /^video\/(mp4|quicktime|webm|x-m4v|3gpp|x-matroska)$/.test(file.mimetype) || /\.(mp4|mov|webm|m4v|3gp|mkv)$/i.test(file.originalname)),
+});
+
+v1.get('/montages/status', (_req, res) => {
+  res.json({ available: montages.available(), limits: MONTAGE_LIMITS });
+});
+
+/** Le prix pour une durée (lue par le navigateur) : affiché avant de lancer. */
+v1.post(
+  '/montages/quote',
+  validate({ body: z.object({ durationSec: z.number().min(0).max(3600), creativity: z.string().optional() }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const level = (CREATIVITY_LEVELS as readonly string[]).includes(String(req.body.creativity)) ? req.body.creativity : 'medium';
+    res.json(montages.quote(req.body.durationSec, level));
+  })
+);
+
+v1.get(
+  '/montages',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const list = await montages.list(uid(req), typeof req.query.brandId === 'string' ? req.query.brandId : undefined);
+    res.json({ montages: list.map((x) => montageView(x.brandId, x.montage)) });
+  })
+);
+
+/**
+ * Dépôt des vidéos d'un montage (une ou plusieurs) : chacune est sondée, déposée, et reçoit une
+ * affiche pour le fil. Rien n'est débité ici : le prix vient à la création, sur la durée totale.
+ */
+v1.post(
+  '/montages/uploads',
+  montageUpload.array('files', MONTAGE_LIMITS.maxFiles),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const files = (req.files as Express.Multer.File[] | undefined) || [];
+    if (!files.length) throw new HttpError(400, 'files_required', 'Ajoutez au moins une vidéo.');
+    try {
+      const folder = `users/${uid(req)}/montage-uploads`;
+      const out = [];
+      for (const file of files) {
+        let info;
+        try {
+          info = await montages.inspect(file.path);
+        } catch (error) {
+          engineError(error);
+        }
+        const key = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+        const ext = (file.originalname.match(/\.[a-z0-9]{2,5}$/i) || ['.mp4'])[0].toLowerCase();
+        const stored = await uploadLocalFile(file.path, `${key}${ext}`, folder, file.mimetype || 'video/mp4');
+        const posterFile = `${file.path}.jpg`;
+        spawnSync(process.env.FFMPEG_PATH || 'ffmpeg', ['-y', '-v', 'error', '-ss', String(Math.min(1, info.durationSec / 3)), '-i', file.path, '-frames:v', '1', '-vf', 'scale=480:-2', '-q:v', '4', posterFile]);
+        const poster = fs.existsSync(posterFile) ? await storage.uploadFile(fs.readFileSync(posterFile), `${key}.jpg`, folder, 'image/jpeg') : null;
+        fs.rmSync(posterFile, { force: true });
+        out.push({ url: stored.downloadURL, posterUrl: poster?.downloadURL, name: file.originalname.slice(0, 80), durationSec: Math.round(info.durationSec * 100) / 100, width: info.width, height: info.height, hasAudio: info.hasAudio });
+      }
+      res.status(201).json({ uploads: out });
+    } finally {
+      for (const file of files) fs.rmSync(file.path, { force: true });
+    }
+  })
+);
+
+const montageInput = z.object({ url: z.string().url().max(2000), name: z.string().max(80).optional(), posterUrl: z.string().max(2000).optional() });
+
+/**
+ * Création : les vidéos déposées sont relues ICI (durée, son : jamais crues sur parole), le prix
+ * débité sur la durée totale, puis le montage tourne en tâche de fond. Sans marque, une marque
+ * provisoire est créée (avec les couleurs que la demande nomme, s'il y en a).
+ */
+v1.post(
+  '/montages',
+  validate({
+    body: z.object({
+      inputs: z.array(montageInput).min(1).max(MONTAGE_LIMITS.maxFiles),
+      prompt: z.string().max(1200).optional(),
+      brandId: z.string().max(80).optional(),
+      format: z.enum(['story', 'square', 'portrait', 'landscape']).optional(),
+      creativity: z.string().max(16).optional(),
+      cuts: z.enum(CUT_MODES as unknown as [string, ...string[]]).optional(),
+      music: z.boolean().optional(),
+    }),
+  }),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    if (!montages.available()) throw new HttpError(503, 'transcription_unavailable', 'Le montage est momentanément indisponible.');
+    const body = req.body as { inputs: { url: string; name?: string; posterUrl?: string }[]; prompt?: string; brandId?: string; format?: string; creativity?: string; cuts?: string; music?: boolean };
+    // Seules les vidéos que CET utilisateur a déposées.
+    const mine = publicUrl(`ivision/users/${uid(req)}/montage-uploads/`);
+    if (!body.inputs.every((i) => i.url.startsWith(mine))) throw new HttpError(400, 'invalid_input', 'Vidéo inconnue : déposez-la de nouveau.');
+    let probed;
+    try {
+      probed = await Promise.all(body.inputs.map((i) => montages.inspect(i.url)));
+      montages.checkInputs(probed);
+    } catch (error) {
+      engineError(error);
+    }
+    const total = probed.reduce((sum, p) => sum + p.durationSec, 0);
+    const level = (CREATIVITY_LEVELS as readonly string[]).includes(String(body.creativity)) ? body.creativity : 'medium';
+    const prompt = String(body.prompt || '');
+    const brand = body.brandId ? await brands.getBrand(uid(req), body.brandId) : await brands.applyNamedColors(uid(req), await brands.createAutoBrand(uid(req)), colorsNamed(prompt));
+    const q = montages.quote(total, level as never);
+    let paid;
+    try {
+      paid = await charge(uid(req), q, `montage:${brand._id}`);
+    } catch (error) {
+      if (error instanceof PaymentRequired) {
+        res.status(402).json(error.body);
+        return;
+      }
+      throw error;
+    }
+    try {
+      const montage = await montages.create(
+        uid(req),
+        brand._id,
+        {
+          inputs: body.inputs.map((i, k) => ({ url: i.url, name: i.name, posterUrl: i.posterUrl, durationSec: Math.round(probed[k].durationSec * 100) / 100, width: probed[k].width, height: probed[k].height })),
+          prompt,
+          format: (body.format || 'story') as never,
+          creativity: level as never,
+          cuts: (body.cuts || 'tight') as never,
+          music: body.music !== false,
+        },
+        paid.charged ? paid.cost : 0,
+        (failed) => refundMontage(uid(req), failed)
+      );
+      res.status(202).json(montageView(brand._id, montage));
+    } catch (error) {
+      await refund(uid(req), paid, 'Montage iVision refusé — crédits restitués');
+      engineError(error);
+    }
+  })
+);
+
+/** Un retour écrit dans la conversation du montage (gratuit) : la réponse arrive dans le fil. */
+v1.post(
+  '/montages/:id/messages',
+  validate({ body: z.object({ text: z.string().min(1).max(600) }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const found = await montageOr404(req);
+    try {
+      const updated = await montages.revise(uid(req), req.params.id, req.body.text);
+      if (!updated) throw new HttpError(404, 'montage_not_found', 'Montage introuvable.');
+      res.json(montageView(found.brandId, (await montages.get(uid(req), req.params.id))!.montage));
+    } catch (error) {
+      engineError(error);
+    }
+  })
+);
+
+async function montageOr404(req: AuthedRequest) {
+  const found = await montages.get(uid(req), req.params.id);
+  if (!found) throw new HttpError(404, 'montage_not_found', 'Montage introuvable.');
+  return found;
+}
+
+v1.get(
+  '/montages/:id',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const found = await montageOr404(req);
+    res.json(montageView(found.brandId, found.montage));
+  })
+);
+
+/** Retouches gratuites : sous-titres, mots corrigés, éléments, carton final, musique, coupes, format. */
+v1.patch(
+  '/montages/:id',
+  validate({
+    body: z.object({
+      title: z.string().max(80).optional(),
+      captions: z.enum(CAPTION_STYLES as unknown as [string, ...string[]]).optional(),
+      words: z.record(z.string(), z.string().max(60)).optional(),
+      elements: z.array(z.record(z.string(), z.unknown())).max(80).optional(),
+      intro: z.object({ title: z.string().max(80).optional(), kicker: z.string().max(40).optional() }).nullable().optional(),
+      outro: z.object({ text: z.string().max(80).optional(), detail: z.string().max(80).optional() }).nullable().optional(),
+      music: z.boolean().optional(),
+      cuts: z.enum(CUT_MODES as unknown as [string, ...string[]]).optional(),
+      format: z.enum(['story', 'square', 'portrait', 'landscape']).optional(),
+      brandId: z.string().max(80).optional(),
+    }),
+  }),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const found = await montageOr404(req);
+    try {
+      // Une charte ajoutée après coup : le montage la prend.
+      let brandId = found.brandId;
+      if (req.body.brandId && req.body.brandId !== found.brandId) {
+        brandId = (await brands.getBrand(uid(req), req.body.brandId))._id;
+        await montages.setBrand(uid(req), req.params.id, brandId);
+      }
+      const { brandId: _b, ...patch } = req.body;
+      const updated = Object.keys(patch).length ? await montages.update(uid(req), req.params.id, patch) : (await montages.get(uid(req), req.params.id))?.montage;
+      if (!updated) throw new HttpError(404, 'montage_not_found', 'Montage introuvable.');
+      res.json(montageView(brandId, updated));
+    } catch (error) {
+      engineError(error);
+    }
+  })
+);
+
+v1.get(
+  '/montages/:id/preview',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const html = await montages.previewHtml(uid(req), req.params.id);
+    if (!html) throw new HttpError(404, 'montage_not_ready', 'Le montage n’est pas encore prêt.');
+    res.json({ html });
+  })
+);
+
+v1.post(
+  '/montages/:id/export-quote',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const found = await montageOr404(req);
+    res.json(montages.quoteExport(found.montage));
+  })
+);
+
+/** Export MP4 : le premier est inclus, les suivants coûtent 10 % du montage. */
+v1.post(
+  '/montages/:id/export',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const found = await montageOr404(req);
+    const { cost } = montages.quoteExport(found.montage);
+    let paid;
+    if (cost > 0) {
+      try {
+        paid = await charge(uid(req), { action: 'motion_video_rerender', cost }, found.montage.id);
+      } catch (error) {
+        if (error instanceof PaymentRequired) {
+          res.status(402).json(error.body);
+          return;
+        }
+        throw error;
+      }
+    }
+    try {
+      const started = await montages.startExport(uid(req), req.params.id, paid?.charged ? { cost: paid.cost, action: paid.action } : undefined);
+      if (!started) throw new HttpError(404, 'montage_not_found', 'Montage introuvable.');
+      res.status(202).json(montageView(found.brandId, started));
+    } catch (error) {
+      await refund(uid(req), paid, 'Export du montage refusé — crédits restitués');
+      engineError(error);
+    }
+  })
+);
+
+v1.get(
+  '/montages/:id/file',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const found = await montageOr404(req);
+    const render = found.montage.renders.find((r) => r.status === 'done' && r.url);
+    if (!render?.url) throw new HttpError(404, 'montage_not_rendered', 'Exportez d’abord le montage.');
+    await sendAttachment(res, render.url, `ivision-montage-${req.params.id.slice(-6)}.mp4`, 'video/mp4');
+  })
+);
+
+v1.delete(
+  '/montages/:id',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const removed = await montages.remove(uid(req), req.params.id);
+    res.status(removed ? 204 : 404).end();
+  })
+);
+
 // ─── Visuels ────────────────────────────────────────────────────────────────
 
 v1.get(
   '/visuals',
   asyncRoute<AuthedRequest>(async (req, res) => res.json({ visuals: (await visuals.listVisuals(uid(req), typeof req.query.brandId === 'string' ? req.query.brandId : undefined)).map(visuals.visualView) }))
+);
+
+/**
+ * Envoie un fichier du stockage en PIÈCE JOINTE : le navigateur l'enregistre au lieu de
+ * l'ouvrir (un lien `download` vers une autre origine, MinIO, est ignoré par les navigateurs).
+ * Seuls les fichiers de notre stockage passent (pas de relais vers une URL quelconque).
+ */
+async function sendAttachment(res: Response, url: string, fileName: string, contentType: string): Promise<void> {
+  if (!url.startsWith(publicUrl(''))) throw new HttpError(404, 'file_not_found', 'Fichier introuvable.');
+  const upstream = await axios.get(url, { responseType: 'stream', timeout: 60_000 });
+  res.setHeader('Content-Type', contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName.replace(/[^\w.-]+/g, '-')}"`);
+  res.setHeader('Cache-Control', 'private, max-age=300');
+  if (upstream.headers['content-length']) res.setHeader('Content-Length', String(upstream.headers['content-length']));
+  upstream.data.pipe(res);
+}
+
+v1.get(
+  '/visuals/:id/file',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const v = await visuals.getVisual(uid(req), req.params.id);
+    const ext = /\.png($|\?)/i.test(v.imageUrl) ? 'png' : 'jpg';
+    await sendAttachment(res, v.imageUrl, `ivision-${v.format}-${String(v._id).slice(-6)}.${ext}`, ext === 'png' ? 'image/png' : 'image/jpeg');
+  })
+);
+
+v1.get(
+  '/brands/:brandId/videos/:videoId/file',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const video = await motionVideos.getVideo(uid(req), req.params.brandId, req.params.videoId);
+    const render = video?.renders.find((r) => r.status === 'done' && r.url && (!req.query.format || r.format === req.query.format));
+    if (!render?.url) throw new HttpError(404, 'video_not_found', 'Vidéo introuvable.');
+    await sendAttachment(res, render.url, `ivision-${render.format}-${req.params.videoId.slice(-6)}.mp4`, 'video/mp4');
+  })
+);
+
+/** Enregistre le HTML retouché dans l'éditeur (gratuit) ; l'image est re-rendue. */
+v1.put(
+  '/visuals/:id/html',
+  validate({ body: z.object({ html: z.string().min(1).max(1_800_000) }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const v = await visuals.getVisual(uid(req), req.params.id);
+    const brand = await brands.getBrand(uid(req), v.brandId);
+    const updated = await visuals.updateVisualHtml(uid(req), brand, v._id, req.body.html);
+    res.json({ ...visuals.visualView(updated), html: updated.html });
+  })
 );
 
 v1.get(

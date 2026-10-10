@@ -3,6 +3,8 @@
 @import '@idem/shared-styles/styles.css';
 
 @import 'tailwindcss';
+/* L'éditeur partagé (IDEM, iVision) : ses gabarits utilisent Tailwind. */
+@source '../../../packages/shared-document-editor/src';
 
 @theme {
   --color-secondary: var(--color-accent-500);

@@ -15,6 +15,7 @@ import os from 'os';
 import path from 'path';
 import { spawnSync } from 'child_process';
 import dotenv from 'dotenv';
+import sharp from 'sharp';
 import { startFakeIdem } from './fake-idem';
 
 let passes = 0;
@@ -70,6 +71,37 @@ function syntheticVideo(file: string) {
   if (r.status !== 0) throw new Error(`ffmpeg: ${r.stderr}`);
 }
 
+/** Un PDF minimal (une page, une ligne de texte) : de quoi vérifier la lecture d'une charte. */
+function minimalPdf(text: string): Buffer {
+  const esc = text.replace(/[()\\]/g, (c) => `\\${c}`);
+  const stream = `BT /F1 12 Tf 40 760 Td (${esc}) Tj ET`;
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ];
+  let out = '%PDF-1.4\n';
+  const offsets: number[] = [];
+  objects.forEach((body, i) => {
+    offsets.push(out.length);
+    out += `${i + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const xref = out.length;
+  out += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.from(out, 'latin1');
+}
+
+/** Une prise de parole de synthèse (voix macOS sur une mire), avec pauses et faux départ. */
+function speechSample(file: string): boolean {
+  if (process.platform !== 'darwin') return false;
+  const aiff = file.replace(/\.mp4$/, '.aiff');
+  const said = spawnSync('say', ['-v', 'Thomas', '-o', aiff, "Bonjour, je m'appelle Awa Diop, fondatrice de Saveurs d'Abidjan. [[slnc 1500]] Aujourd'hui je vais... [[slnc 700]] Aujourd'hui je vais vous présenter notre nouveau jus de bissap. [[slnc 1200]] Il est cent pour cent naturel. [[slnc 1400]] Seulement 1000 francs la bouteille ! [[slnc 1000]] Commandez dès maintenant sur WhatsApp."]);
+  if (said.status !== 0) return false;
+  return spawnSync(process.env.FFMPEG_PATH || 'ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=1280x720:rate=30', '-i', aiff, '-shortest', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', file]).status === 0;
+}
+
 /** Un tour de conversation en flux : tous les événements, dans l'ordre. */
 async function turn(api: string, cookie: string, sessionId: string, body: object): Promise<any[]> {
   const res = await fetch(`${api}/v1/sessions/${sessionId}/turn`, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: cookie }, body: JSON.stringify(body) });
@@ -114,26 +146,26 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     const me = await json('GET', '/v1/me');
     check(`session IDEM reconnue (${me.body?.user?.uid}, ${me.body?.credits} crédits)`, me.status === 200 && me.body.user.uid === 'check-user' && me.body.credits === 500);
 
-    section('2. Conversation vidéo : marque, site, palette, modèle');
+    section('2. Conversation vidéo : la marque n’est jamais exigée');
     const session = (await json('POST', '/v1/sessions', { mode: 'video' })).body;
-    check('conversation créée en mode vidéo', session?.mode === 'video');
-    let events = await turn(api, good, session.id, { text: 'Une vidéo pour fêter nos 500 clients' });
+    check('conversation créée en mode vidéo, avec une marque provisoire', session?.mode === 'video' && !!session.brandId);
+    check('la marque provisoire n’encombre pas « Marques »', !(await json('GET', '/v1/brands')).body.brands.some((b: any) => b.id === session.brandId));
+    let events = await turn(api, good, session.id, { text: 'Une vidéo en bleu et or pour fêter nos 500 clients' });
     let asked = events.find((e) => e.type === 'message' && e.message.role === 'assistant')?.message;
-    check('sans marque : l’assistant la demande', asked?.ask?.kind === 'brand', asked?.text);
+    check('sans charte, aucune question de marque : on passe au modèle', asked?.ask?.kind === 'reference', asked?.text);
+    const colored = events.find((e) => e.type === 'brand')?.brand;
+    check('« en bleu et or » : les couleurs dites colorent la création', colored?.source === 'auto' && colored.palette.primary === '#1f5fbf' && colored.palette.accent === '#c9a227', JSON.stringify(colored?.palette));
 
     events = await turn(api, good, session.id, { text: `Mon site : ${site.url} — une vidéo pour fêter nos 500 clients chaque mois` });
     const brand = events.find((e) => e.type === 'brand')?.brand;
-    asked = events.filter((e) => e.type === 'message' && e.message.role === 'assistant').pop()?.message;
-    check(`site scanné : ${brand?.name}, primaire ${brand?.palette?.primary}`, brand?.name === 'Kora Café' && brand?.palette?.primary === '#b4532a');
-    check('trois palettes et trois typographies proposées', brand?.proposals?.palettes?.length === 3 && brand?.proposals?.typographies?.length === 3);
-    check('l’assistant demande de choisir (la demande attend)', asked?.ask?.kind === 'brand-choice' && (await json('GET', `/v1/sessions/${session.id}`)).body.pending?.text?.includes('500 clients'));
+    const said = events.filter((e) => e.type === 'message' && e.message.role === 'assistant').map((e) => e.message);
+    asked = said[said.length - 1];
+    check(`site lu : ${brand?.name}, primaire ${brand?.palette?.primary}, prêt aussitôt`, brand?.name === 'Kora Café' && brand?.palette?.primary === '#b4532a' && brand.status === 'ready');
+    check('trois palettes et trois typographies gardées pour changer d’avis', brand?.proposals?.palettes?.length === 3 && brand?.proposals?.typographies?.length === 3);
+    check('l’assistant dit qu’il applique le site, sans rien demander, puis continue', said.some((m) => /^chat\.brand\.applied/.test(m.i18n?.key || '')) && asked?.ask?.kind === 'reference' && (await json('GET', `/v1/sessions/${session.id}`)).body.pending?.text?.includes('500 clients'));
 
     const chosen = await json('POST', `/v1/brands/${brand.id}/choose`, { palette: 'contrast' });
-    check('palette « contraste » choisie, marque prête', chosen.body?.status === 'ready' && chosen.body.palette.primary === brand.proposals.palettes.find((p: any) => p.id === 'contrast').colors.primary);
-
-    events = await turn(api, good, session.id, { resume: true });
-    asked = events.find((e) => e.type === 'message')?.message;
-    check('reprise : l’assistant demande une vidéo modèle', asked?.ask?.kind === 'reference' && asked.ask.mode === 'video');
+    check('changer d’avis plus tard : palette « contraste »', chosen.body?.status === 'ready' && chosen.body.palette.primary === brand.proposals.palettes.find((p: any) => p.id === 'contrast').colors.primary);
 
     section('3. Vidéo modèle analysée puis reproduite');
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ivision-api-check-'));
@@ -174,6 +206,20 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     const options = await json('GET', '/v1/videos/options');
     check('options vidéo partagées avec IDEM (cases et longueurs)', options.status === 200 && Object.keys(options.body.scenes || {}).length > 5);
 
+    section('4 bis. Retoucher la vidéo en écrivant, dans la conversation');
+    {
+      const before = charges.length;
+      let rev = await turn(api, good, session.id, { text: 'Change le titre en « Le café du matin »' });
+      const done = rev.find((e) => e.type === 'result');
+      const title = done?.video?.storyboard?.scenes?.find((sc: any) => sc.slots?.title === 'Le café du matin');
+      check('« change le titre » : la MÊME vidéo est retouchée (gratuit), la réponse dans le fil', done?.message?.result?.videoId === video.id && !!title && charges.length === before, done?.message?.text);
+      rev = await turn(api, good, session.id, { text: 'Sans musique stp' });
+      const muted = rev.find((e) => e.type === 'result')?.video;
+      check('« sans musique » : la musique est coupée sur cette vidéo', muted?.id === video.id && muted.brief.musicMood === 'none' && !muted.music);
+      rev = await turn(api, good, session.id, { text: 'Une vidéo pour la fête des mères' });
+      check('« une vidéo pour la fête des mères » : une nouvelle demande, pas une retouche', rev.some((e) => e.message?.ask?.kind === 'reference') && !rev.some((e) => e.type === 'result'));
+    }
+
     section('5. Conversation images (sans mélange)');
     const imageSession = (await json('POST', '/v1/sessions', { mode: 'image', brandId: brand.id })).body;
     events = await turn(api, good, imageSession.id, { text: 'Soldes de rentrée : -20 % sur tous nos cafés' });
@@ -186,6 +232,21 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     check(`visuel composé et rendu (${visual?.layout}, score ${visual?.score})`, !!visual?.imageUrl && visual.score >= 60, events.find((e) => e.type === 'error')?.message);
     check('débit d’un visuel au prix d’IDEM (2 crédits au cran Low)', charges[charges.length - 1]?.action === 'flyer' && charges[charges.length - 1]?.cost === 2);
 
+    // L'éditeur partagé enregistre le HTML retouché : nettoyé, image re-rendue, aucun débit.
+    {
+      const before = (await json('GET', `/v1/visuals/${visual.id}`)).body;
+      const chargesBefore = charges.length;
+      const retouched = before.html.replace(/>([^<>]{3,})</, '>Retouché à la main<') + '<script>alert(1)</script>';
+      const saved = await json('PUT', `/v1/visuals/${visual.id}/html`, { html: retouched });
+      check(
+        'éditeur : HTML retouché enregistré, script retiré, image re-rendue, gratuit',
+        saved.status === 200 && saved.body.html.includes('Retouché à la main') && !saved.body.html.includes('<script') && saved.body.imageUrl !== before.imageUrl && charges.length === chargesBefore,
+        JSON.stringify({ status: saved.status, url: saved.body?.imageUrl })
+      );
+      const empty = await json('PUT', `/v1/visuals/${visual.id}/html`, { html: '<script></script>' });
+      check('éditeur : un visuel vidé est refusé', empty.status === 400);
+    }
+
     section('6. Crédits insuffisants, import IDEM');
     const poorSession = (await json('POST', '/v1/sessions', { mode: 'image' }, 'session=poor')).body;
     const imported = await json('POST', '/v1/brands/import-idem', { projectId: 'p1' }, 'session=poor');
@@ -197,6 +258,94 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     check('refus avant débit : rien à restituer', refunds.every((r) => r.userId !== 'poor-user'));
     check('aucune création n’a échoué (aucune restitution)', refunds.length === 0);
     check('la marque d’un autre utilisateur reste privée', (await json('GET', `/v1/brands/${brand.id}`, undefined, 'session=poor')).status === 404);
+
+    section('7. Montage d’une prise de parole, en conversation');
+    const talk = path.join(tmp, 'prise.mp4');
+    const silent = path.join(tmp, 'plan.mp4');
+    const status = await json('GET', '/v1/montages/status');
+    if (!status.body?.available || !speechSample(talk)) {
+      console.log('  — ignoré : Whisper local ou voix de synthèse absents sur ce poste');
+    } else {
+      // Un plan sans parole (une mire muette de 4 s) : il doit devenir un plan de coupe.
+      spawnSync(process.env.FFMPEG_PATH || 'ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'testsrc=size=640x360:rate=30:d=4', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', silent]);
+      const form = new FormData();
+      form.append('files', new Blob([fs.readFileSync(talk)], { type: 'video/mp4' }), 'prise.mp4');
+      form.append('files', new Blob([fs.readFileSync(silent)], { type: 'video/mp4' }), 'boutique.mp4');
+      // Une connexion gardée ouverte pendant la synthèse de la voix a pu être fermée par le serveur : un second essai.
+      const up = await fetch(`${api}/v1/montages/uploads`, { method: 'POST', headers: { Cookie: good }, body: form }).catch(() => fetch(`${api}/v1/montages/uploads`, { method: 'POST', headers: { Cookie: good, Connection: 'close' }, body: form }));
+      const uploads = (await up.json()).uploads || [];
+      check('deux vidéos déposées, sondées, avec leur affiche', up.status === 201 && uploads.length === 2 && uploads.every((u: any) => u.durationSec > 0 && u.posterUrl) && uploads[0].hasAudio && !uploads[1].hasAudio, JSON.stringify(uploads.map((u: any) => [u.durationSec, u.hasAudio])));
+      const seconds = uploads.reduce((sum: number, u: any) => sum + u.durationSec, 0);
+      const quoteRes = await json('POST', '/v1/montages/quote', { durationSec: seconds, creativity: 'medium' });
+      const forged = await json('POST', '/v1/montages', { inputs: [{ url: 'http://localhost:9000/idem-storage/ivision/users/someone-else/montage-uploads/x.mp4' }] });
+      check('une vidéo qui n’est pas à soi est refusée', forged.status === 400);
+      const chargesBefore = charges.length;
+      // L'atelier vidéo est UN : la même conversation monte une vidéo où l'on parle.
+      const vs = (await json('POST', '/v1/sessions', { mode: 'video' })).body;
+      let ev = await turn(api, good, vs.id, { text: 'Finir par notre WhatsApp 07 08 09 10', videos: uploads.map((u: any) => ({ url: u.url, name: u.name, posterUrl: u.posterUrl })), options: { creativity: 'medium', formats: ['story'] } });
+      const started = ev.find((e) => e.type === 'result');
+      const montageId = started?.message?.result?.montageId;
+      check('conversation vidéo : une vidéo qui parle est MONTÉE (pas de question de modèle)', started?.message?.result?.kind === 'montage' && !ev.some((e) => e.message?.ask), JSON.stringify(ev.map((e) => e.type)));
+      check('débit au prix annoncé (durée totale)', charges.length === chargesBefore + 1 && charges[charges.length - 1].cost === quoteRes.body.cost, JSON.stringify(charges[charges.length - 1]));
+      const until = async (id: string, done: (m: any) => boolean, ms = 6 * 60_000) => {
+        const end = Date.now() + ms;
+        for (;;) {
+          const m = (await json('GET', `/v1/montages/${id}`)).body;
+          if (done(m) || Date.now() > end) return m;
+          await new Promise((r) => setTimeout(r, 1500));
+        }
+      };
+      let m = await until(montageId, (x) => x?.status !== 'processing');
+      check('montage prêt : transcrit, coupé, recadré, relié à sa conversation', m?.status === 'ready' && m.words.length > 20 && m.edit?.width === 1080 && m.edit.durationSec < m.source.durationSec - 4 && m.sessionId === vs.id, `${m?.status} ${m?.error || ''} · ${m?.words?.length} mots · ${m?.source?.durationSec}s → ${m?.edit?.durationSec}s`);
+      check('la vidéo muette est devenue un plan de coupe, montré à l’écran', m.clips?.length === 1 && m.inputs?.[1]?.speech === false && m.elements.some((e: any) => e.clip === 'c1'), `${m.clips?.length} plan(s) · ${m.elements.map((e: any) => e.clip || e.type).join(',')}`);
+      check('le monteur IA a choisi (nom, chiffre), un mot inventé est refusé', m.plannedBy === 'llm' && m.elements.some((e: any) => e.type === 'lowerThird') && !m.elements.some((e: any) => e.text === 'GRATUIT'), m.elements.map((e: any) => e.type).join(','));
+      const preview = await json('GET', `/v1/montages/${m.id}/preview`);
+      check('aperçu : la page du montage, avec le plan de coupe', preview.status === 200 && preview.body.html.includes('__MONTAGE__') && preview.body.html.includes(m.clips[0].url));
+
+      // Un retour écrit dans la MÊME conversation : il retouche le montage.
+      ev = await turn(api, good, vs.id, { text: 'Sans musique, et en carré stp' });
+      const revisedMsg = ev.find((e) => e.type === 'result')?.message;
+      m = await until(m.id, (x) => x?.status === 'ready');
+      check('retour écrit dans la conversation : musique coupée, carré remonté (gratuit)', revisedMsg?.result?.montageId === m.id && m.musicEnabled === false && m.format === 'square' && m.edit.height === 1080 && charges.length === chargesBefore + 1, `${revisedMsg?.text} · ${m.format} ${m.edit?.width}×${m.edit?.height}`);
+      // La fusion : une intro animée (motion design) avant la prise de parole.
+      ev = await turn(api, good, vs.id, { text: 'Ajoute une intro animée' });
+      m = (await json('GET', `/v1/montages/${m.id}`)).body;
+      const withIntro = await json('GET', `/v1/montages/${m.id}/preview`);
+      check('« ajoute une intro animée » : le montage s’ouvre en motion design', !!m.intro?.title && withIntro.body.html.includes('"intro":{"title"'), JSON.stringify(m.intro));
+      // Une nouvelle vidéo demandée en clair n'est pas un retour sur le montage.
+      ev = await turn(api, good, vs.id, { text: 'Fais une nouvelle vidéo pour nos soldes de rentrée' });
+      check('« fais une nouvelle vidéo » : motion design (question du modèle), pas une retouche', ev.some((e) => e.message?.ask?.kind === 'reference') && !ev.some((e) => e.type === 'result'));
+      // Une vidéo SANS parole, seule : elle sert de matière au motion design.
+      const ms = (await json('POST', '/v1/sessions', { mode: 'video' })).body;
+      ev = await turn(api, good, ms.id, { text: 'Une vidéo pour présenter la boutique', videos: [{ url: uploads[1].url, name: 'boutique.mp4' }] });
+      check('une vidéo muette seule : matière du motion design, pas un montage', !ev.some((e) => e.message?.result?.kind === 'montage') && ev.some((e) => e.message?.ask?.kind === 'reference') && !!(await json('GET', `/v1/sessions/${ms.id}`)).body, JSON.stringify(ev.map((e) => e.type + (e.message?.ask?.kind ? `:${e.message.ask.kind}` : ''))));
+
+      // La charte, ajoutée après coup : un logo (PNG détouré), puis une charte PDF.
+      const logo = await sharp({ create: { width: 400, height: 160, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+        .composite([{ input: Buffer.from('<svg width="400" height="160"><rect x="20" y="30" width="360" height="100" rx="20" fill="#b4532a"/></svg>'), top: 0, left: 0 }])
+        .png()
+        .toBuffer();
+      const lf = new FormData();
+      lf.append('file', new Blob([logo], { type: 'image/png' }), 'logo.png');
+      const fromLogo = await fetch(`${api}/v1/brands/from-file`, { method: 'POST', headers: { Cookie: good }, body: lf });
+      const logoBrand = await fromLogo.json();
+      check('un logo déposé : reconnu comme logo, sa couleur devient la primaire', fromLogo.status === 201 && logoBrand.found?.logo === true && logoBrand.palette?.primary?.toLowerCase().startsWith('#b'), JSON.stringify({ s: fromLogo.status, found: logoBrand.found, p: logoBrand.palette?.primary }));
+      const moved = await json('PATCH', `/v1/montages/${m.id}`, { brandId: logoBrand.id });
+      check('le montage prend la charte ajoutée après coup', moved.status === 200 && moved.body.brandId === logoBrand.id);
+      const pf = new FormData();
+      pf.append('file', new Blob([minimalPdf('Charte Saveurs - Couleur principale #1F6F4A - Accent #F2A93B - Titres : Montserrat - Texte : Lato')], { type: 'application/pdf' }), 'charte.pdf');
+      const fromPdf = await fetch(`${api}/v1/brands/from-file`, { method: 'POST', headers: { Cookie: good }, body: pf });
+      const pdfBrand = await fromPdf.json();
+      check('une charte PDF : couleurs et polices ÉCRITES lues', fromPdf.status === 201 && pdfBrand.palette?.primary === '#1f6f4a' && pdfBrand.fonts?.display === 'Montserrat', JSON.stringify({ s: fromPdf.status, p: pdfBrand.palette, f: pdfBrand.fonts, found: pdfBrand.found }));
+
+      const exported = await json('POST', `/v1/montages/${m.id}/export`);
+      check('export lancé, premier export inclus (aucun débit)', exported.status === 202 && charges.length === chargesBefore + 1);
+      m = await until(m.id, (x) => !x?.renders?.some((r: any) => r.status === 'rendering'), 8 * 60_000);
+      const file = await fetch(`${api}/v1/montages/${m.id}/file`, { headers: { Cookie: good } });
+      check('MP4 rendu (avec le plan de coupe) et téléchargeable', m.renders[0]?.status === 'done' && file.status === 200 && /attachment/.test(file.headers.get('content-disposition') || ''), `${m.renders[0]?.status} ${m.renders[0]?.error || ''} · ${m.renders[0]?.sizeBytes} octets`);
+      check('le montage d’un autre utilisateur reste privé', (await json('GET', `/v1/montages/${m.id}`, undefined, 'session=poor')).status === 404);
+      check('aucun montage n’a été remboursé (tout a abouti)', refunds.length === 0);
+    }
     fs.rmSync(tmp, { recursive: true, force: true });
   } finally {
     await mongoose.connection.db!.dropDatabase().catch(() => undefined);

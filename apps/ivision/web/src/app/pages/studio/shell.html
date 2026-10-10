@@ -14,24 +14,22 @@
       <button type="button" class="button-icon lg:!hidden" [attr.aria-label]="'common.close' | translate" (click)="state.drawerOpen.set(false)"><i class="pi pi-times" aria-hidden="true"></i></button>
     </div>
 
-    <!-- Deux ateliers, jamais mélangés. -->
-    <div class="px-4" role="tablist" [attr.aria-label]="'studio.modes' | translate">
+    <!-- Deux ateliers : vidéos (motion design et montage) et visuels. -->
+    <div class="px-4" role="tablist" data-tour="iv-tabs" [attr.aria-label]="'studio.modes' | translate">
       <div class="grid grid-cols-2 gap-1 rounded-xl border border-[var(--glass-border-subtle)] p-1">
-        <a role="tab" routerLink="/studio/video" [attr.aria-selected]="mode() === 'video'" class="flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium"
-          [class]="mode() === 'video' ? 'bg-[var(--color-primary-500)] text-[var(--color-on-primary)]' : 'text-[var(--color-text-secondary)]'">
-          <i class="pi pi-video" aria-hidden="true"></i>{{ 'studio.video' | translate }}
-        </a>
-        <a role="tab" routerLink="/studio/image" [attr.aria-selected]="mode() === 'image'" class="flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium"
-          [class]="mode() === 'image' ? 'bg-[var(--color-primary-500)] text-[var(--color-on-primary)]' : 'text-[var(--color-text-secondary)]'">
-          <i class="pi pi-image" aria-hidden="true"></i>{{ 'studio.image' | translate }}
-        </a>
+        @for (tab of tabs; track tab.mode) {
+          <a role="tab" [routerLink]="'/studio/' + tab.mode" [attr.aria-selected]="mode() === tab.mode" class="flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-medium"
+            [class]="mode() === tab.mode ? 'bg-[var(--color-primary-500)] text-[var(--color-on-primary)]' : 'text-[var(--color-text-secondary)]'">
+            <i [class]="'pi ' + tab.icon" aria-hidden="true"></i>{{ tab.label | translate }}
+          </a>
+        }
       </div>
       <a class="outer-button button-sm mt-3 flex w-full items-center justify-center gap-2" [routerLink]="['/studio', mode()]" [queryParams]="{ new: 1 }">
         <i class="pi pi-plus" aria-hidden="true"></i> {{ (mode() === 'video' ? 'studio.newVideo' : 'studio.newImage') | translate }}
       </a>
     </div>
 
-    <nav class="custom-scrollbar mt-4 flex-1 overflow-y-auto px-2" [attr.aria-label]="'studio.history' | translate">
+    <nav data-tour="iv-history" class="custom-scrollbar mt-4 flex-1 overflow-y-auto px-2" [attr.aria-label]="'studio.history' | translate">
       <p class="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-[var(--color-text-tertiary)]">{{ 'studio.history' | translate }}</p>
       @if (state.sessionsLoading() && !state.sessions().length) {
         <idem-loader size="sm" block />
@@ -52,7 +50,10 @@
       <a routerLink="/studio/brands" routerLinkActive="bg-[var(--glass-bg-light)]" class="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--color-text-secondary)] hover:bg-[var(--glass-bg-light)]">
         <i class="pi pi-palette" aria-hidden="true"></i> {{ 'studio.brands' | translate }}
       </a>
-      <a [href]="accountUrl" class="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--color-text-secondary)] hover:bg-[var(--glass-bg-light)]">
+      <button type="button" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[var(--color-text-secondary)] hover:bg-[var(--glass-bg-light)]" (click)="replayGuide()">
+        <i class="pi pi-question-circle" aria-hidden="true"></i> {{ 'tour.replay' | translate }}
+      </button>
+      <a data-tour="iv-credits" [href]="accountUrl" class="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--color-text-secondary)] hover:bg-[var(--glass-bg-light)]">
         <i class="pi pi-wallet" aria-hidden="true"></i>
         @if (state.credits() !== null) {
           {{ 'studio.credits' | translate: { count: state.credits() } }}

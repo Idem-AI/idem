@@ -249,19 +249,6 @@
         "createVideo": "Generate the video · {{price}} credits",
         "visualInstead": "Make a visual instead"
       },
-      "preview": {
-        "loading": "Loading the visual…",
-        "failed": "This visual cannot be displayed.",
-        "canvasLabel": "Visual preview",
-        "menuLabel": "What to do with this element",
-        "edit": "Edit",
-        "hint": "Hover the visual, then click whatever you want to change.",
-        "kinds": {
-          "text": "This text",
-          "image": "This image",
-          "block": "This block"
-        }
-      },
       "studio": {
         "empty": {
           "title": "What do you have to announce?",

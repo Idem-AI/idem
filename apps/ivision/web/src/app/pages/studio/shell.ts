@@ -10,6 +10,7 @@ import { LanguageService } from '../../core/language.service';
 import { ChatMode } from '../../core/models';
 import { StudioState } from '../../core/studio.state';
 import { ThemeService } from '../../core/theme.service';
+import { TourService } from '../../core/tour.service';
 import { BrandMark } from '../../shared/components/brand-mark';
 
 /**
@@ -28,7 +29,13 @@ export class StudioShell {
   protected readonly state = inject(StudioState);
   protected readonly theme = inject(ThemeService);
   protected readonly language = inject(LanguageService);
+  private readonly tours = inject(TourService);
   protected readonly accountUrl = `${environment.services.dashboard.url}/account`;
+  /** Les deux ateliers : vidéos (motion design ET montage) et visuels. */
+  protected readonly tabs: { mode: ChatMode; icon: string; label: string }[] = [
+    { mode: 'video', icon: 'pi-video', label: 'studio.video' },
+    { mode: 'image', icon: 'pi-image', label: 'studio.image' },
+  ];
 
   protected readonly url = toSignal(
     this.router.events.pipe(
@@ -45,16 +52,24 @@ export class StudioShell {
     this.state.refreshCredits();
     this.state.refreshBrands();
     let last: ChatMode | null = null;
-    // Les conversations listées suivent le mode : on ne mélange pas images et vidéos.
+    // L'historique suit l'atelier : on ne mélange pas images et vidéos.
+    const refresh = (mode: ChatMode) => this.state.refreshSessions(mode);
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe(() => {
       if (this.mode() !== last) {
         last = this.mode();
-        this.state.refreshSessions(last);
+        refresh(last);
       }
       this.state.drawerOpen.set(false);
     });
     last = this.mode();
-    this.state.refreshSessions(last);
+    refresh(last);
+  }
+
+  /** « Revoir le guide » : depuis l'atelier vidéo, là où il commence. */
+  protected replayGuide(): void {
+    this.state.drawerOpen.set(false);
+    if (this.url().startsWith('/studio/video') && !this.activeSession()) this.tours.start('studio');
+    else void this.router.navigate(['/studio/video'], { queryParams: { new: Date.now() } }).then(() => this.tours.start('studio'));
   }
 
   protected toggleTheme(): void {

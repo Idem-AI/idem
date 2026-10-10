@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { BusinessPlanService } from '../../../services/ai-agents/business-plan.service';
 import { findDeliverableDocument } from '../../../models/deliverable-document.model';
-import { PageFormat } from '../models/editor.types';
+import { PageFormat } from '@idem/shared-document-editor/angular';
 import { HtmlSectionsBucket, HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
 
 /** Adaptateur du Business Plan (A4 portrait). */

@@ -17,7 +17,7 @@ import {
   FlyerFormat,
   StudioMessage,
 } from '../../../../models/communication.model';
-import { FontHints } from '../../../document-editor/models/editor.types';
+import { FontHints } from '@idem/shared-document-editor/angular';
 import { VisualComposing } from '../visual-composing/visual-composing';
 import { VisualBuilder } from '../visual-builder/visual-builder';
 import { VisualDialog } from '../visual-dialog/visual-dialog';

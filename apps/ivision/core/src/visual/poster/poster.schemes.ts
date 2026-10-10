@@ -56,6 +56,15 @@ export function accentOn(bg: string, candidates: (string | undefined)[], fallbac
   return fallback;
 }
 
+/** Une encre secondaire (sous-titre) : adoucie vers le fond, mais jamais sous 4,5:1. */
+export function mutedOn(ink: string, bg: string): string {
+  for (const t of [0.32, 0.24, 0.16, 0.08]) {
+    const c = mix(ink, bg, t);
+    if (contrastRatio(c, bg) >= 4.5) return c;
+  }
+  return ink;
+}
+
 export function buildSchemes(p: SchemePalette, opts: { allowDark?: boolean } = {}): PosterScheme[] {
   const primary = valid(p.primary) ? p.primary : '#1447e6';
   const secondary = valid(p.secondary) ? p.secondary : undefined;
@@ -74,7 +83,7 @@ export function buildSchemes(p: SchemePalette, opts: { allowDark?: boolean } = {
       label,
       bg,
       ink,
-      muted: mix(ink, bg, 0.32),
+      muted: mutedOn(ink, bg),
       accent: acc,
       panel: pnl,
       panelInk: inkOn(pnl, [text, paper]),

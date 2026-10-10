@@ -6,7 +6,8 @@
   "main": "src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "check": "ts-node --transpile-only scripts/check-core.ts"
+    "check": "ts-node --transpile-only scripts/check-core.ts",
+    "check:montage": "ts-node --transpile-only scripts/check-montage.ts"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -67,7 +68,8 @@
     "@visx/geo": "^4.0.0",
     "@visx/grid": "^4.0.0",
     "@visx/axis": "^4.0.0",
-    "mongoose": "^8.9.3"
+    "mongoose": "^8.9.3",
+    "pdfjs-dist": "^4.8.69"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",

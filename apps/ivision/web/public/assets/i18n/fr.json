@@ -6,7 +6,9 @@
     "remove": "Retirer",
     "logout": "Se déconnecter",
     "switchLanguage": "Changer de langue",
-    "switchTheme": "Changer de thème"
+    "switchTheme": "Changer de thème",
+    "save": "Enregistrer",
+    "cancel": "Annuler"
   },
   "errors": {
     "generic": "Une erreur est survenue. Réessayez dans un instant.",
@@ -14,68 +16,277 @@
   },
   "landing": {
     "home": "Accueil iVision",
-    "nav": "Navigation",
-    "howLink": "Comment ça marche",
-    "openStudio": "Ouvrir l’atelier",
-    "signIn": "Se connecter",
-    "kicker": "Un service IDEM",
-    "title": "Vos visuels et vos vidéos, à votre marque.",
-    "subtitle": "Dites ce que vous voulez annoncer. iVision lit votre site, reprend vos couleurs et vos polices, et crée le visuel ou la vidéo motion design. Montrez une vidéo modèle : il en reproduit les animations, avec vos textes et vos images.",
+    "footer": "Créer et lancer un business rentable",
+    "dashboard": "Tableau de bord",
     "ctaVideo": "Créer une vidéo",
     "ctaImage": "Créer un visuel",
-    "account": "Avec votre compte IDEM et vos crédits IDEM : rien de plus à créer.",
+    "hero": {
+      "title": "Dites-le. Voyez-le.",
+      "say": "Dites-le.",
+      "see": "Voyez-le.",
+      "lead": "Une phrase suffit. iVision crée la vidéo motion design ou le visuel, à vos couleurs, au format de chaque réseau."
+    },
     "demo": {
-      "label": "Exemple de conversation avec iVision",
-      "user": "Une vidéo pour nos soldes de fin d’année, -30 % sur tout",
-      "ask": "Avez-vous une vidéo modèle à reproduire ? J’en reprends les animations et le rythme, avec votre marque.",
-      "addModel": "Ajouter un modèle",
-      "noModel": "Sans modèle",
-      "model": "modele-promo.mp4",
-      "done": "Votre vidéo est prête : les quatre plans du modèle, avec vos textes, vos photos et vos couleurs.",
-      "shots": "Les plans de la vidéo",
-      "frames": {
-        "kicker": "Fin d’année",
-        "hook": "Tout doit partir",
-        "offer": "sur toute la boutique",
-        "when": "Jusqu’au",
-        "date": "31 décembre",
-        "brand": "Kora Café"
+      "kicker": "Fin d’année",
+      "hook": "Tout doit partir",
+      "offer": "−30 %",
+      "offerEdited": "−40 %",
+      "offerText": "sur toute la boutique",
+      "when": "Jusqu’au",
+      "date": "31 décembre",
+      "brand": "Maison Nyanga",
+      "place": "Akwa, Douala",
+      "monogram": "N"
+    },
+    "imprint": {
+      "title": [
+        {
+          "t": "Votre site devient"
+        },
+        {
+          "em": "votre charte",
+          "end": "."
+        }
+      ],
+      "text": "Collez le lien de votre site. iVision en lit les couleurs, les polices, le logo et le ton, et s’en sert aussitôt pour chaque création.",
+      "noSite": "Pas de site ? Écrivez « en bleu et or » dans votre demande, ça suffit.",
+      "sheet": "Ce qu’iVision a lu sur nyanga.cm",
+      "url": "nyanga.cm",
+      "colors": "Couleurs",
+      "fonts": "Polices",
+      "logo": "Logo",
+      "tone": "Ton",
+      "toneWords": "Chaleureux · élégant · direct",
+      "display": "Titres",
+      "body": "Texte",
+      "others": "D’autres palettes vous attendent dans « Marques »."
+    },
+    "stencil": {
+      "title": [
+        {
+          "t": "Montrez un modèle,"
+        },
+        {
+          "t": "il le ",
+          "em": "reproduit",
+          "end": "."
+        }
+      ],
+      "text": "Une vidéo ou une affiche vous plaît ? Ajoutez-la. iVision en reprend le découpage, les mouvements et la composition, avec vos textes, vos images et votre musique.",
+      "model": "Le modèle que vous montrez",
+      "yours": "Votre vidéo",
+      "plan": "Plan {{n}}",
+      "moves": {
+        "hook": "Entre par la gauche",
+        "offer": "Grossit",
+        "date": "Monte",
+        "brand": "Apparaît"
       }
     },
-    "how": {
-      "title": "Trois gestes, pas un de plus",
-      "site": {
-        "title": "Votre site devient votre charte",
-        "text": "Collez le lien de votre site : iVision en lit les couleurs, les polices, le logo et le ton, puis vous propose trois palettes et trois typographies. Vous choisissez, il s’en souvient."
-      },
-      "model": {
-        "title": "Montrez un modèle, il le reproduit",
-        "text": "Une vidéo ou une affiche qui vous plaît ? Ajoutez-la : iVision en reprend le découpage, les mouvements et la composition — avec vos textes, vos images, votre musique."
-      },
-      "edit": {
-        "title": "Retouchez en direct",
-        "text": "Cliquez sur un texte : la vidéo se place à l’instant où il s’affiche, et change pendant que vous écrivez. Remplacez une photo d’un clic."
-      }
+    "liveEdit": {
+      "title": [
+        {
+          "t": "Cliquez."
+        },
+        {
+          "t": "Écrivez."
+        },
+        {
+          "em": "C’est changé."
+        }
+      ],
+      "text": "Cliquez sur un texte : la vidéo se place à l’instant où il s’affiche et change pendant que vous écrivez. Une photo ne vous plaît pas ? Remplacez-la d’un clic.",
+      "field": "Texte du plan 2",
+      "screen": "Exemple de retouche d’une vidéo dans l’éditeur d’iVision",
+      "timeline": "Les plans de la vidéo",
+      "saved": "Enregistré"
     },
-    "modes": {
-      "title": "Des visuels, des vidéos — chacun son atelier",
-      "text": "On ne mélange pas : une conversation crée des visuels, une autre des vidéos. Chacune garde ses réglages et son historique.",
+    "workshops": {
+      "title": [
+        {
+          "t": "Deux ateliers,"
+        },
+        {
+          "em": "jamais mélangés",
+          "end": "."
+        }
+      ],
+      "text": "Une conversation crée des visuels, une autre des vidéos. Chacune garde ses réglages et son historique.",
       "image": {
-        "title": "Visuels",
-        "text": "Affiches, publications, stories, bannières : composés au millimètre, contrôlés à l’œil avant d’être livrés."
+        "name": "Visuels",
+        "text": "Affiches, publications, stories, bannières : composés au millimètre et vérifiés à l’œil avant de vous être livrés."
       },
       "video": {
-        "title": "Vidéos motion design",
-        "text": "De 6 à 60 secondes, en story, carré, portrait ou paysage, avec musique libre de droits et effets sonores."
+        "name": "Vidéos",
+        "text": "De 6 à 60 secondes, avec musique libre de droits et effets sonores. Ou votre propre prise de parole, montée pour vous.",
+        "duration": "6 à 60 secondes"
       }
     },
-    "credits": {
-      "title": "Le même compte, les mêmes crédits",
-      "text": "iVision utilise votre compte IDEM : mêmes crédits, mêmes prix que dans votre tableau de bord. Importez la charte d’un projet IDEM en un clic.",
-      "cta": "Commencer"
+    "creativity": {
+      "title": [
+        {
+          "t": "Montez"
+        },
+        {
+          "t": "d’un ",
+          "em": "cran",
+          "end": "."
+        }
+      ],
+      "text": "Choisissez combien l’IA décide. En bas, des règles sûres. En haut, une composition d’auteur. Le prix suit le cran.",
+      "ladder": "Cran de créativité",
+      "default": "Par défaut",
+      "price": "Prix",
+      "poster": "Le même visuel au cran {{level}}",
+      "levels": {
+        "low": {
+          "name": "Low",
+          "mult": "×1",
+          "text": "Des règles sûres : une mise en page classique, sans surprise."
+        },
+        "medium": {
+          "name": "Medium",
+          "mult": "×1",
+          "text": "Le bon équilibre : iVision choisit ce qu’il faut mettre en avant."
+        },
+        "high": {
+          "name": "High",
+          "mult": "×1,25",
+          "text": "Un directeur artistique regarde le visuel et décide de la composition."
+        },
+        "max": {
+          "name": "Max",
+          "mult": "×1,5",
+          "text": "L’IA compose toute la page et ose les très grands formats."
+        },
+        "ultra": {
+          "name": "Ultra",
+          "mult": "×2",
+          "text": "Une création d’auteur, écrite par l’IA puis critiquée à l’œil jusqu’à être juste."
+        }
+      }
     },
-    "footer": "Créer et lancer un business rentable",
-    "dashboard": "Tableau de bord"
+    "montage": {
+      "title": [
+        {
+          "t": "Filmez-vous,"
+        },
+        {
+          "t": "iVision ",
+          "em": "monte",
+          "end": "."
+        }
+      ],
+      "text": "Importez une vidéo où vous parlez. iVision coupe les blancs et les hésitations, ajoute les sous-titres et fait apparaître ce que vous dites. Prête à publier.",
+      "screen": "Exemple de montage d’une prise de parole",
+      "tracks": {
+        "take": "Votre prise",
+        "subtitles": "Sous-titres",
+        "screen": "À l’écran"
+      },
+      "removed": "2,4 s de blancs retirées",
+      "cut": "Coupé",
+      "transcript": [
+        {
+          "t": "Bonjour,",
+          "cut": false
+        },
+        {
+          "t": "euh…",
+          "cut": true
+        },
+        {
+          "t": "je suis Awa, de Maison Nyanga.",
+          "cut": false
+        },
+        {
+          "t": "Alors…",
+          "cut": true
+        },
+        {
+          "t": "Jusqu’au 31 décembre, toute la boutique est à −30 %.",
+          "cut": false
+        },
+        {
+          "t": "Euh,",
+          "cut": true
+        },
+        {
+          "t": "passez nous voir à Akwa !",
+          "cut": false
+        }
+      ],
+      "overlays": {
+        "title": "Titre animé",
+        "offer": "−30 %",
+        "logo": "Logo"
+      }
+    },
+    "closing": {
+      "title": [
+        {
+          "t": "Votre compte IDEM"
+        },
+        {
+          "em": "suffit",
+          "end": "."
+        }
+      ],
+      "text": "Mêmes crédits, mêmes prix que dans votre tableau de bord. Importez la charte d’un projet IDEM en un clic."
+    },
+    "request": {
+      "label": "Votre demande à iVision",
+      "parts": [
+        {
+          "t": "« Une "
+        },
+        {
+          "k": "vidéo"
+        },
+        {
+          "t": " pour nos soldes de fin d’année : "
+        },
+        {
+          "k": "−30 %"
+        },
+        {
+          "t": " sur toute la boutique, jusqu’au "
+        },
+        {
+          "k": "31 décembre"
+        },
+        {
+          "t": ". »"
+        }
+      ],
+      "site": "nyanga.cm",
+      "creativity": "Créativité · Medium"
+    },
+    "mockups": {
+      "label": "La même vidéo jouée sur un ordinateur, en story et en publication",
+      "pause": "Mettre la vidéo en pause",
+      "play": "Lire la vidéo",
+      "handle": "maisonnyanga",
+      "reply": "Envoyer un message",
+      "caption": "Soldes de fin d’année : −30 % sur toute la boutique.",
+      "url": "nyanga.cm"
+    },
+    "header": {
+      "label": "Navigation principale",
+      "service": "Un service IDEM",
+      "links": {
+        "how": "Comment ça marche",
+        "workshops": "Ateliers",
+        "creativity": "Créativité",
+        "montage": "Montage"
+      },
+      "language": "Langue",
+      "signIn": "Se connecter",
+      "start": "Créer une vidéo",
+      "openStudio": "Ouvrir l’atelier",
+      "menuOpen": "Ouvrir le menu",
+      "menuClose": "Fermer le menu"
+    }
   },
   "studio": {
     "sidebar": "Atelier",
@@ -89,7 +300,11 @@
     "brands": "Marques",
     "credits": "{{count}} crédits",
     "account": "Mon compte",
-    "tabs": "Sections de l’atelier"
+    "tabs": "Sections de l’atelier",
+    "montage": "Montage",
+    "newMontage": "Nouveau montage",
+    "noMontages": "Aucun montage pour l’instant.",
+    "montageHistory": "Mes montages"
   },
   "creativity": {
     "label": "Créativité",
@@ -133,11 +348,13 @@
       "none": "Choisir une marque",
       "pick": "Choisir une marque",
       "empty": "Aucune marque prête.",
-      "add": "Ajouter une marque"
+      "add": "Ajouter une marque",
+      "applied": "J’ai lu votre site : j’utilise ses couleurs, ses polices, son logo et ses photos. Vous pouvez changer la palette dans « Marques ».",
+      "appliedNoLogo": "J’ai lu votre site : j’utilise ses couleurs, ses polices et ses photos. Vous pouvez changer la palette dans « Marques »."
     },
     "empty": {
       "videoTitle": "Quelle vidéo voulez-vous ?",
-      "videoText": "Décrivez l’annonce, le produit ou l’événement. Collez le lien de votre site pour que la vidéo soit à votre marque.",
+      "videoText": "Décrivez-la et je la crée en animation. Ou ajoutez la vidéo où vous parlez : je la monte, avec sous-titres et animations.",
       "imageTitle": "Quel visuel voulez-vous ?",
       "imageText": "Décrivez l’offre, l’annonce ou le message. Collez le lien de votre site pour que le visuel soit à votre marque.",
       "ideas": {
@@ -147,7 +364,15 @@
         "image1": "Une affiche pour nos soldes : -20 % sur tout",
         "image2": "Une publication pour notre nouveau menu",
         "image3": "Une story pour annoncer notre événement samedi"
-      }
+      },
+      "describeTitle": "Décrire ma vidéo",
+      "describeText": "Je la crée en animation",
+      "editTitle": "Monter ma vidéo filmée",
+      "editText": "Je la coupe, la sous-titre et l’anime",
+      "both": "Vous pouvez faire les deux : ajoutez votre vidéo et demandez une intro animée, votre logo, un appel à l’action…",
+      "choose": "Comment faire votre vidéo ?",
+      "describeCta": "Écrire",
+      "editCta": "Ajouter ma vidéo"
     },
     "attach": {
       "model": "Modèle",
@@ -156,7 +381,10 @@
       "imageModel": "Ajouter une image modèle",
       "myMedia": "Ajouter mes photos ou clips",
       "myPhoto": "Ajouter ma photo",
-      "needBrand": "Choisissez d’abord une marque"
+      "needBrand": "Choisissez d’abord une marque",
+      "videos": "Vos vidéos",
+      "willEdit": "Je vais monter cette vidéo (écrire une consigne est facultatif).",
+      "willUse": "Sans parole : je m’en sers comme images de la vidéo animée."
     },
     "ask": {
       "brand": "Pour que le résultat respecte votre marque : collez le lien de votre site, importez un projet IDEM, ou choisissez une marque.",
@@ -182,13 +410,19 @@
     "result": {
       "previewTitle": "Aperçu de la vidéo",
       "watch": "Regarder",
-      "edit": "Retoucher et exporter",
+      "edit": "Modifier",
       "fromReference": "Reproduit d’un modèle en {{shots}} plans.",
       "download": "Télécharger",
+      "fullscreen": "Plein écran",
+      "close": "Fermer",
+      "downloadFailed": "Le téléchargement a échoué. Réessayez.",
       "video": "Votre vidéo est prête. Retouchez les textes et les images, puis exportez.",
+      "videoNoVoice": "Votre vidéo est prête. Retouchez les textes et les images, puis exportez. La voix off n’a pas pu être générée : réessayez-la depuis la retouche.",
       "videoFromReference": "Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez.",
+      "videoFromReferenceNoVoice": "Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez. La voix off n’a pas pu être générée : réessayez-la depuis la retouche.",
       "visual": "Voici votre visuel.",
-      "visualFromReference": "Voici votre visuel, composé comme le modèle, à votre marque."
+      "visualFromReference": "Voici votre visuel, composé comme le modèle, à votre marque.",
+      "montage": "Je monte votre vidéo : je coupe les blancs, j’ajoute les sous-titres et j’anime ce que vous dites. Vous pouvez quitter la page, je continue."
     },
     "payment": {
       "cta": "Recharger mes crédits",
@@ -210,14 +444,20 @@
         "critique": "Relecture",
         "code": "Plans sur mesure",
         "direction": "Direction du film",
-        "shots": "Plans du film"
+        "shots": "Plans du film",
+        "concept": "Concepts créatifs",
+        "design": "Conception du visuel",
+        "photo": "Choix de la photo"
       }
     },
     "composer": {
       "label": "Votre demande",
       "placeholderVideo": "Décrivez votre vidéo, ou collez le lien de votre site…",
       "placeholderImage": "Décrivez votre visuel, ou collez le lien de votre site…",
-      "send": "Envoyer"
+      "send": "Envoyer",
+      "placeholderMontage": "Facultatif — ex. : dynamique, une intro animée, le prix en grand, finir par mon WhatsApp…",
+      "placeholderRevise": "Que faut-il changer ? Ex. : sans musique, ajoute une intro, sous-titres plus sobres…",
+      "reviseHint": "Pour une autre vidéo : décrivez-la (« une vidéo pour… ») ou ajoutez une vidéo filmée."
     },
     "options": {
       "duration": "Durée",
@@ -225,7 +465,9 @@
       "photo": "Avec photo",
       "voice": "Voix off",
       "voiceHint": "Une voix dit le message, scène par scène, dans votre langue.",
-      "price": "{{cost}} crédits"
+      "price": "{{cost}} crédits",
+      "removeSilences": "Retirer les blancs",
+      "music": "Musique"
     },
     "choice": {
       "palettes": "Palette",
@@ -273,6 +515,11 @@
       },
       "visual": {
         "start": "Je compose votre visuel…"
+      },
+      "videos": "Je prépare vos vidéos…",
+      "montage": {
+        "start": "Je lance le montage…",
+        "revise": "Je fais les changements…"
       }
     },
     "error": {
@@ -290,6 +537,19 @@
       },
       "generation": "La création a échoué. Vos crédits ont été restitués ; vous pouvez relancer.",
       "payment": "Vos crédits ne suffisent pas pour cette création. Rechargez votre compte IDEM, puis relancez."
+    },
+    "montage": {
+      "unreadable_video": "Je n’ai pas pu lire ces vidéos. Essayez un MP4 ou un MOV.",
+      "no_audio": "Aucune de ces vidéos n’a de son : ajoutez celle où vous parlez.",
+      "too_short": "Les vidéos sont trop courtes (3 secondes au moins).",
+      "too_long": "Les vidéos sont trop longues (5 minutes au plus en tout).",
+      "too_many": "10 vidéos au plus.",
+      "stillProcessing": "Le montage est encore en préparation : redemandez dans un instant.",
+      "reviseFailed": "Je n’ai pas pu faire ce changement."
+    },
+    "video": {
+      "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « change le titre en … », « plus sobre », « sans musique » ou « ajoute une voix off ».",
+      "revised": "C’est fait. Regardez la nouvelle version."
     }
   },
   "edit": {
@@ -306,6 +566,7 @@
     "voice": "Voix off",
     "voiceLines": "{{count}} ligne(s), scènes calées sur la voix",
     "voiceUnavailable": "Voix off indisponible pour cette langue.",
+    "voiceFailed": "La voix off n’a pas pu être générée (service momentanément indisponible). Cochez à nouveau pour réessayer.",
     "export": "Exporter en MP4",
     "firstExport": "Le premier export est inclus dans le prix de la vidéo.",
     "nextExport": "Un nouvel export coûte une fraction du prix de la vidéo.",
@@ -349,5 +610,287 @@
     "delete": "Supprimer",
     "confirmDelete": "Confirmer la suppression",
     "empty": "Aucune marque pour l’instant : lisez votre site pour commencer."
+  },
+  "visualEdit": {
+    "title": "Modifier le visuel"
+  },
+  "montage": {
+    "title": "Montez votre prise de parole",
+    "subtitle": "Importez une vidéo où vous parlez : iVision coupe les blancs, ajoute les sous-titres et fait apparaître ce que vous dites. Prête à publier.",
+    "unavailable": "Le montage est momentanément indisponible. Réessayez un peu plus tard.",
+    "needBrand": "Créez d’abord une marque : ses couleurs, sa police et son logo habillent le montage.",
+    "pickFile": "Choisir la vidéo",
+    "changeFile": "Changer de vidéo",
+    "fileHint": "MP4, MOV ou WebM, avec le son. {{minutes}} minutes au plus.",
+    "brand": "Marque",
+    "prompt": "Ce que vous voulez (facultatif)",
+    "promptPlaceholder": "Ex. : style dynamique, terminer par « Commandez sur WhatsApp au 07 00 00 00 », montrer le produit quand j’en parle.",
+    "format": "Format",
+    "cuts": "Coupes",
+    "cutModes": {
+      "tight": "Rythmées (blancs et faux départs retirés)",
+      "natural": "Naturelles (longs blancs retirés)",
+      "none": "Aucune (vidéo intacte)"
+    },
+    "music": "Musique douce sous la voix",
+    "price": "{{cost}} crédits",
+    "start": "Monter ma vidéo",
+    "uploading": "Envoi de la vidéo… {{percent}} %",
+    "mine": "Mes montages",
+    "errors": {
+      "tooBig": "Fichier trop lourd (600 Mo au plus).",
+      "tooShort": "Vidéo trop courte (3 secondes au moins).",
+      "tooLong": "Vidéo trop longue ({{minutes}} minutes au plus).",
+      "upload": "L’envoi a échoué. Réessayez."
+    },
+    "preparing": "Votre montage se prépare",
+    "canLeave": "Vous pouvez quitter cette page : le montage continue.",
+    "stages": {
+      "transcribe": "J’écoute ce que vous dites",
+      "cut": "Je coupe les blancs et les hésitations",
+      "plan": "Je choisis ce qui apparaît à l’écran",
+      "media": "Je prépare les images et la musique",
+      "prepare": "Je prépare vos vidéos"
+    },
+    "recutting": "Nouvelles coupes en cours…",
+    "previewTitle": "Aperçu du montage",
+    "loadError": "Ce montage n’a pas pu être chargé.",
+    "failed": "Le montage n’a pas abouti.",
+    "failedNoSpeech": "Aucune parole n’a été entendue dans cette vidéo.",
+    "refunded": "Vos {{cost}} crédits ont été restitués.",
+    "retry": "Essayer avec une autre vidéo",
+    "saveFailed": "La retouche n’a pas été enregistrée.",
+    "transcript": "Ce que vous dites",
+    "transcriptHint": "Cliquez un mot pour y aller et corriger une faute. Les mots barrés ont été coupés.",
+    "removed": "{{sec}} s de blancs retirées",
+    "cutWord": "Coupé au montage",
+    "fixWord": "Corriger le mot",
+    "elements": "Ce qui apparaît",
+    "byRules": "Habillage simple",
+    "noElements": "Rien d’autre que les sous-titres.",
+    "show": "Afficher",
+    "remove": "Retirer",
+    "saveElements": "Enregistrer l’habillage",
+    "types": {
+      "keyword": "Mot-clé",
+      "stat": "Chiffre",
+      "icon": "Pictogramme",
+      "list": "Liste",
+      "callout": "Encadré",
+      "broll": "Image",
+      "lowerThird": "Nom et rôle",
+      "cta": "Appel à l’action",
+      "zoom": "Zoom",
+      "clip": "Votre vidéo"
+    },
+    "fields": {
+      "text": "Texte",
+      "value": "Chiffre",
+      "label": "Légende",
+      "name": "Nom",
+      "role": "Rôle",
+      "items": "Un point par ligne",
+      "contact": "Contact (site, numéro)"
+    },
+    "settings": "Réglages",
+    "captions": "Sous-titres",
+    "captionStyles": {
+      "pop": "Percutants, mot par mot",
+      "karaoke": "Ligne qui s’allume",
+      "minimal": "Sobres",
+      "none": "Sans sous-titres"
+    },
+    "outro": "Carton de fin",
+    "outroText": "Phrase de fin",
+    "outroDetail": "Contact (facultatif)",
+    "outroRemove": "Sans carton",
+    "firstExport": "Le premier export est inclus.",
+    "nextExport": "Un nouvel export après retouche.",
+    "saveFirst": "Enregistrez l’habillage avant d’exporter.",
+    "renderFailed": "L’export a échoué ; vos crédits ont été restitués. Réessayez.",
+    "download": "Télécharger la vidéo",
+    "cutModesShort": {
+      "tight": "Rythmées",
+      "natural": "Naturelles",
+      "none": "Aucune"
+    },
+    "suggestions": {
+      "noMusic": "Sans musique",
+      "soberCaptions": "Sous-titres plus sobres",
+      "moreDynamic": "Plus dynamique",
+      "square": "En carré",
+      "addIntro": "Ajoute une intro animée"
+    },
+    "chat": {
+      "newTitle": "Nouveau montage",
+      "welcomeTitle": "Ajoutez la vidéo où vous parlez",
+      "welcomeText": "Je coupe les blancs, j’ajoute les sous-titres et je fais apparaître à l’écran ce que vous dites. Vous pouvez en ajouter plusieurs : je les mets bout à bout.",
+      "addVideos": "Ajouter mes vidéos",
+      "addHint": "Glissez-les ici ou cliquez · {{files}} vidéos, {{minutes}} minutes en tout au plus",
+      "yourVideos": "Vos vidéos",
+      "addMore": "Ajouter",
+      "silent": "Sans parole : je m’en servirai pour illustrer",
+      "askWhat": "Quel montage voulez-vous ? Écrivez-le ci-dessous si vous voulez (ce n’est pas obligatoire), puis lancez.",
+      "settings": "Réglages",
+      "removeSilences": "Retirer les blancs et les hésitations",
+      "promptHint": "Facultatif — ex. : dynamique, montrer le prix en grand, finir par mon WhatsApp 07 00 00 00",
+      "reviseHint": "Que faut-il changer ? Ex. : sans musique, sous-titres plus sobres, ajoute le prix en grand…",
+      "composerLabel": "Votre message",
+      "working": "Je fais les changements…",
+      "adjust": "Ajuster les détails",
+      "rendering": "Préparation du fichier… {{percent}} %",
+      "ideas": "Idées de changements",
+      "preparing": "Je prépare votre montage. Vous pouvez quitter cette page, il continue.",
+      "ready": "Votre montage est prêt : {{duration}}, sous-titres et {{count}} élément(s) à l’écran. Dites-moi ce qu’il faut changer, ou téléchargez-le.",
+      "noSpeech": "Je n’ai entendu personne parler dans ces vidéos. Ajoutez une vidéo où vous parlez.",
+      "failed": "Le montage n’a pas abouti. Vos {{cost}} crédits vous sont rendus.",
+      "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « sans musique », « sous-titres plus sobres », « en carré » ou « ajoute le prix en grand ».",
+      "sayHint": "Écrivez ci-dessous ce qu’il faut changer, ou cliquez sur « Modifier »."
+    },
+    "intro": "Intro animée",
+    "introTitle": "Titre de l’intro",
+    "introKicker": "Sur-titre (facultatif)",
+    "introAdd": "Ajouter l’intro",
+    "introRemove": "Sans intro"
+  },
+  "brandHint": {
+    "prompt": "Facultatif · vos couleurs :",
+    "site": "Mon site",
+    "file": "Ma charte ou mon logo",
+    "colors": "Mes couleurs",
+    "saved": "Mes marques",
+    "myColors": "Mes couleurs",
+    "myCharter": "Ma charte",
+    "using": "Avec {{name}}",
+    "change": "changer",
+    "hide": "Masquer",
+    "siteLabel": "Adresse de votre site",
+    "read": "Lire",
+    "reading": "Je visite votre site…",
+    "siteDone": "Votre site est lu : ses couleurs, ses polices et son logo seront utilisés.",
+    "siteFailed": "Je n’ai pas pu lire ce site. Vérifiez l’adresse, ou continuez sans.",
+    "fileDone": "Trouvé : {{what}}. Je les utilise.",
+    "fileFailed": "Je n’ai pas pu lire ce fichier. Essayez un PDF ou une image (PNG, JPG, SVG).",
+    "found": {
+      "colors": "vos couleurs",
+      "fonts": "vos polices ({{fonts}})",
+      "logo": "votre logo"
+    },
+    "roles": {
+      "primary": "Principale",
+      "secondary": "Secondaire",
+      "accent": "Accent"
+    },
+    "apply": "Utiliser ces couleurs",
+    "colorsDone": "Vos couleurs seront utilisées.",
+    "chosen": "{{name}} sera utilisée.",
+    "promptShort": "Facultatif :",
+    "siteShort": "Site",
+    "fileShort": "Charte",
+    "colorsShort": "Couleurs"
+  },
+  "montageEditor": {
+    "back": "Retour à la conversation",
+    "title": "Modifier le montage",
+    "saved": "Enregistré",
+    "timeline": "Frise de la vidéo",
+    "settings": "Réglages du montage",
+    "tabs": {
+      "screen": "À l’écran",
+      "captions": "Sous-titres",
+      "ends": "Début et fin",
+      "sound": "Son et format"
+    },
+    "screenHint": "Ce qui apparaît pendant que vous parlez. Touchez un élément pour y aller ; vos changements s’enregistrent seuls.",
+    "show": "Afficher",
+    "hide": "Masquer",
+    "transcriptHint": "Touchez un mot pour y aller ou corriger une faute.",
+    "introHint": "Un titre animé à vos couleurs, avant que vous parliez.",
+    "outroHint": "Le dernier écran : votre marque, votre contact."
+  },
+  "tour": {
+    "replay": "Revoir le guide",
+    "common": {
+      "next": "Suivant",
+      "back": "Retour",
+      "skip": "Passer",
+      "finish": "C’est parti",
+      "stepOf": "Étape {current} sur {total}",
+      "dialogLabel": "Guide d’iVision"
+    },
+    "studio": {
+      "welcome": {
+        "title": "Bienvenue dans iVision",
+        "body": "Ici, vous créez des vidéos et des images pour faire connaître votre activité. Vous écrivez ce que vous voulez, iVision le fabrique."
+      },
+      "tabs": {
+        "title": "Vidéo ou image ?",
+        "body": "Choisissez ici ce que vous voulez créer : une vidéo, ou une image à publier."
+      },
+      "choices": {
+        "title": "Deux façons de faire une vidéo",
+        "body": "Décrivez-la, et je la crée en animation. Ou ajoutez la vidéo où vous parlez, et je la monte pour vous."
+      },
+      "composer": {
+        "title": "Écrivez comme vous parlez",
+        "body": "Par exemple : « une vidéo pour nos soldes de la rentrée ». Puis appuyez sur la flèche."
+      },
+      "brand": {
+        "title": "Vos couleurs, si vous voulez",
+        "body": "Ajoutez votre site, votre logo ou vos couleurs. Ce n’est pas obligatoire : sans eux, je choisis des couleurs qui vont bien."
+      },
+      "creativity": {
+        "title": "Plus ou moins d’audace",
+        "body": "Choisissez le niveau de créativité. Le prix en crédits s’affiche juste à côté, avant de lancer."
+      },
+      "history": {
+        "title": "Tout ce que vous avez créé",
+        "body": "Vos créations restent ici. Cliquez sur l’une d’elles pour la revoir ou la changer."
+      },
+      "credits": {
+        "title": "Vos crédits",
+        "body": "Chaque création utilise des crédits. Vous les voyez ici, et vous pouvez en ajouter."
+      },
+      "done": {
+        "title": "À vous de jouer !",
+        "body": "Écrivez votre première demande. Vous pourrez revoir ce guide quand vous voulez, avec « Revoir le guide »."
+      }
+    },
+    "result": {
+      "ready": {
+        "title": "Votre vidéo est prête",
+        "body": "Appuyez sur lecture pour la regarder."
+      },
+      "say": {
+        "title": "Quelque chose à changer ?",
+        "body": "Écrivez-le simplement : « sans musique », « change le titre », « ajoute une intro ». Je m’en occupe."
+      },
+      "edit": {
+        "title": "Ou changez-la vous-même",
+        "body": "Le bouton « Modifier » ouvre une page pour tout régler en cliquant."
+      },
+      "download": {
+        "title": "Téléchargez-la",
+        "body": "Quand elle vous plaît, téléchargez-la pour la publier sur vos réseaux."
+      }
+    },
+    "editor": {
+      "preview": {
+        "title": "Votre vidéo",
+        "body": "Elle se met à jour à chaque changement. Appuyez sur lecture pour la revoir."
+      },
+      "timeline": {
+        "title": "Le fil de la vidéo",
+        "body": "Chaque rond est un élément qui apparaît à l’écran. Touchez-en un pour y aller."
+      },
+      "tabs": {
+        "title": "Tout se règle ici",
+        "body": "Ce qui apparaît, les sous-titres, le début et la fin, la musique et le format."
+      },
+      "save": {
+        "title": "Rien à enregistrer",
+        "body": "Vos changements s’enregistrent tout seuls. Quand c’est prêt, téléchargez la vidéo."
+      }
+    }
   }
 }

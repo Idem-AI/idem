@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { BrandingService } from '../../../services/ai-agents/branding.service';
-import { PageFormat } from '../models/editor.types';
+import { PageFormat } from '@idem/shared-document-editor/angular';
 import { HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
 
 /**

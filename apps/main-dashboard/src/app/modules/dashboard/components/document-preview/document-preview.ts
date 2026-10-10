@@ -27,8 +27,8 @@ import { injectEditorAdapter } from '../../pages/document-editor/adapters/inject
 import {
   DocumentActionEvent,
   EditorCanvasComponent,
-} from '../../pages/document-editor/components/editor-canvas/editor-canvas';
-import { ZoomControlComponent } from '../../pages/document-editor/components/zoom-control/zoom-control';
+} from '@idem/shared-document-editor/angular';
+import { ZoomControlComponent } from '@idem/shared-document-editor/angular';
 import {
   DocumentTypeAdapter,
   EDITOR_TARGET_PARAMS,
@@ -37,8 +37,8 @@ import {
   EditorSelection,
   FontHints,
   PageFormat,
-} from '../../pages/document-editor/models/editor.types';
-import { PREVIEW_PAGE_GAP_PX } from '../../pages/document-editor/runtime/editor-iframe';
+} from '@idem/shared-document-editor/angular';
+import { PREVIEW_PAGE_GAP_PX } from '@idem/shared-document-editor/angular';
 import { buildPlaceholderHtml, composePages, PreviewPage } from './preview-pages';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';

@@ -279,7 +279,9 @@ export class MotionVideoService {
     const brand = await this.communication.loadBrand(userId, projectId);
     if (!brand) throw new VideoInputError('project_not_found');
     const branding: any = brand.branding || {};
-    const brandName = brand.brandName || 'Marque';
+    // Une marque ANONYME (création sans charte) : pas de nom inventé, pas de signature à la fin.
+    const anonymous = !!brand.anonymous;
+    const brandName = brand.brandName || (anonymous ? '' : 'Marque');
     const theme = buildVideoTheme(branding, brandName);
     // Le contexte de la marque est réutilisé tel quel : on ne relance JAMAIS une extraction pour une vidéo.
     const ctx: CopyContext = {
@@ -290,7 +292,7 @@ export class MotionVideoService {
       keywords: brand.voice.keywords,
       language: brand.voice.language || 'fr',
     };
-    return { theme, ctx, branding, visuals: brand.visuals || [], otherVideos: brand.videos || [] };
+    return { theme, ctx, branding, visuals: brand.visuals || [], otherVideos: brand.videos || [], anonymous };
   }
 
   // ── « Améliorer ma demande » ─────────────────────────────────────────────
@@ -661,7 +663,7 @@ export class MotionVideoService {
     const scope = normalizeScope(input.scope);
     const brief = normalizeBrief(input.brief, input.language);
     const objectiveGiven = VIDEO_OBJECTIVES.includes(input.brief?.objective as VideoObjective);
-    const { theme, ctx, branding, visuals, otherVideos } = await this.brandContext(userId, projectId);
+    const { theme, ctx, branding, visuals, otherVideos, anonymous } = await this.brandContext(userId, projectId);
     ctx.language = brief.language || ctx.language;
     // La DA de la charte, traduite en paramètres de motion (directions, casse, rythme, couleur, décor).
     const art = motionFromArtDirection(branding?.artDirection);
@@ -728,7 +730,7 @@ export class MotionVideoService {
     // Cran Ultra : le FILM D'AUTEUR — l'IA invente et crée tout (video.author.ts). Si le directeur
     // échoue deux fois, la création continue par le pipeline des menus (repli complet, au même cran).
     if (creativity === 'ultra') {
-      const authored = await this.createAuthoredVideo({ userId, projectId, input, scope, brief, theme, ctx, branding, visuals, otherVideos, art, videoId, seed, direction, orientation, facts, paidCredits, requested, emit, creative: brief0, startedAt }).catch((error: any) => {
+      const authored = await this.createAuthoredVideo({ userId, projectId, input, scope, brief, theme, ctx, branding, visuals, otherVideos, art, videoId, seed, direction, orientation, facts, paidCredits, requested, emit, creative: brief0, startedAt, anonymous }).catch((error: any) => {
         logger.warn('video.authored_failed', { projectId, error: error?.message });
         return null;
       });
@@ -793,6 +795,8 @@ export class MotionVideoService {
     }
     // Règle « call-to-action » appliquée dès le plan : un objectif qui vend, invite ou ouvre a son appel.
     let sceneIds = plan.scenes;
+    // Sans marque, pas de scène « logo » : il n'y a ni logo ni nom à signer.
+    if (anonymous && sceneIds.length > 2) sceneIds = sceneIds.filter((id) => id !== 'logo');
     if (!refPlan && ['promotion', 'event', 'opening', 'product', 'recruitment'].includes(plan.objective) && scope.durationSec >= 15 && !sceneIds.some((id) => id === 'cta' || id === 'offer' || id === 'event')) {
       sceneIds = ensureScenes(sceneIds, ['cta'], scope.durationSec);
     }
@@ -1456,6 +1460,7 @@ export class MotionVideoService {
     /** Le brief du moteur créatif : mémoire du projet, ADN, accent, univers des motifs. */
     creative: CreativeBrief;
     startedAt: number;
+    anonymous?: boolean;
   }): Promise<MotionVideo | null> {
     const { userId, projectId, scope, brief, theme, ctx, branding, otherVideos, art, videoId, seed, direction, emit, creative } = o;
     const agentRuns: AgentRun[] = [];
@@ -1523,6 +1528,13 @@ export class MotionVideoService {
     if (!film) {
       emit('direction', 'done', { fallback: true });
       return null;
+    }
+    // Sans marque, le plan de signature (logo) disparaît ; les autres s'allongent d'autant.
+    if (o.anonymous && film.shots.length > 2 && film.shots.some((sh) => sh.kind === 'logo')) {
+      const kept = film.shots.filter((sh) => sh.kind !== 'logo');
+      const total = film.shots.reduce((sum, sh) => sum + sh.duration, 0);
+      const keptTotal = kept.reduce((sum, sh) => sum + sh.duration, 0) || 1;
+      film = { ...film, shots: kept.map((sh) => ({ ...sh, duration: Math.round(((sh.duration * total) / keptTotal) * 100) / 100 })) };
     }
     emit('direction', 'done', { title: film.title, concept: film.concept, shots: film.shots.map((sh) => ({ kind: sh.kind, duration: sh.duration, visual: sh.visual.slice(0, 140) })) });
 

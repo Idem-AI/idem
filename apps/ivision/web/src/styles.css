@@ -1,6 +1,8 @@
 /* iVision — le design system d'IDEM, tel quel (@idem/shared-styles). Rien n'est redéfini ici :
  * seulement Tailwind, les jetons partagés, et la variante sombre pilotée par la classe `.dark`. */
 @import 'tailwindcss';
+/* L'éditeur partagé (IDEM, iVision) : ses gabarits utilisent Tailwind. */
+@source '../../../../packages/shared-document-editor/src';
 @import '@idem/shared-styles/styles.css';
 
 @custom-variant dark (&:where(.dark, .dark *));

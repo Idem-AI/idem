@@ -47,6 +47,8 @@ export class VideoEditPage {
   protected readonly failed = signal(false);
   protected readonly previewFormat = signal('story');
   protected readonly saving = signal<string | null>(null);
+  /** Format en cours de téléchargement (le fichier est enregistré, jamais ouvert). */
+  protected readonly downloading = signal<string | null>(null);
   protected readonly saved = signal(false);
   protected readonly exportFormats = signal<string[]>([]);
   protected readonly exportQuality = signal('hd');
@@ -145,11 +147,27 @@ export class VideoEditPage {
     this.save('music', { musicMood: mood }, true);
   }
 
-  protected setSfx(enabled: boolean): void {
+  protected downloadMp4(format: string): void {
+    this.downloading.set(format);
+    this.api.saveFile(`/brands/${this.brandId()}/videos/${this.videoId()}/file?format=${format}`, `ivision-${format}.mp4`).subscribe({
+      next: () => this.downloading.set(null),
+      error: () => {
+        this.downloading.set(null);
+        this.failed.set(true);
+      },
+    });
+  }
+
+    protected setSfx(enabled: boolean): void {
     this.save('sfx', { sfx: enabled }, true);
   }
 
   /** Voix off : la couper la garde ; l'ajouter l'écrit et l'enregistre (le minutage se recale). */
+  /** La langue refusée par la voix (définitif) ; le reste est une panne passagère, qu'on retente. */
+  protected languageRefused(reason: string): boolean {
+    return /voice_language_unsupported|no_speech_model/.test(reason);
+  }
+
   protected setVoice(enabled: boolean): void {
     this.save('voice', { voice: enabled }, true);
   }

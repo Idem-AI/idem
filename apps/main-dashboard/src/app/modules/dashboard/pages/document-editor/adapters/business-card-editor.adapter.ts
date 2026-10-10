@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { PageFormat } from '../models/editor.types';
+import { PageFormat } from '@idem/shared-document-editor/angular';
 import { HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
 
 /**

@@ -6,7 +6,9 @@
     "remove": "Remove",
     "logout": "Sign out",
     "switchLanguage": "Change language",
-    "switchTheme": "Change theme"
+    "switchTheme": "Change theme",
+    "save": "Save",
+    "cancel": "Cancel"
   },
   "errors": {
     "generic": "Something went wrong. Please try again in a moment.",
@@ -14,68 +16,279 @@
   },
   "landing": {
     "home": "iVision home",
-    "nav": "Navigation",
-    "howLink": "How it works",
-    "openStudio": "Open the studio",
-    "signIn": "Sign in",
-    "kicker": "An IDEM service",
-    "title": "Your visuals and videos, on brand.",
-    "subtitle": "Say what you want to announce. iVision reads your website, picks up your colours and fonts, and creates the visual or the motion-design video. Show a model video: it reproduces its animations with your texts and images.",
+    "footer": "Build and launch a profitable business",
+    "dashboard": "Dashboard",
     "ctaVideo": "Create a video",
     "ctaImage": "Create a visual",
-    "account": "With your IDEM account and IDEM credits: nothing else to set up.",
+    "hero": {
+      "title": "Say it. See it.",
+      "say": "Say it.",
+      "see": "See it.",
+      "lead": "One sentence is enough. iVision makes the motion design video or the visual, in your colours, in the format each network needs."
+    },
     "demo": {
-      "label": "Sample conversation with iVision",
-      "user": "A video for our year-end sale, 30% off everything",
-      "ask": "Do you have a model video to reproduce? I’ll reuse its animations and rhythm, with your brand.",
-      "addModel": "Add a model",
-      "noModel": "No model",
-      "model": "promo-model.mp4",
-      "done": "Your video is ready: the model’s four shots, with your texts, photos and colours.",
-      "shots": "The video’s shots",
-      "frames": {
-        "kicker": "Year end",
-        "hook": "Everything must go",
-        "offer": "on the whole shop",
-        "when": "Until",
-        "date": "December 31",
-        "brand": "Kora Café"
+      "kicker": "Year end",
+      "hook": "Everything must go",
+      "offer": "−30%",
+      "offerEdited": "−40%",
+      "offerText": "on the whole shop",
+      "when": "Until",
+      "date": "December 31",
+      "brand": "Maison Nyanga",
+      "place": "Akwa, Douala",
+      "monogram": "N"
+    },
+    "imprint": {
+      "title": [
+        {
+          "t": "Your website becomes"
+        },
+        {
+          "t": "your ",
+          "em": "brand book",
+          "end": "."
+        }
+      ],
+      "text": "Paste your website’s link. iVision reads its colours, fonts, logo and tone, and uses them right away in everything it makes.",
+      "noSite": "No website? Write “in blue and gold” in your request, that’s enough.",
+      "sheet": "What iVision read on nyanga.cm",
+      "url": "nyanga.cm",
+      "colors": "Colours",
+      "fonts": "Fonts",
+      "logo": "Logo",
+      "tone": "Tone",
+      "toneWords": "Warm · elegant · direct",
+      "display": "Headings",
+      "body": "Body",
+      "others": "More palettes are waiting in “Brands”."
+    },
+    "stencil": {
+      "title": [
+        {
+          "t": "Show a model,"
+        },
+        {
+          "t": "it ",
+          "em": "copies it",
+          "end": "."
+        }
+      ],
+      "text": "Like a video or a poster? Add it. iVision picks up its cuts, its movements and its layout, with your texts, your images and your music.",
+      "model": "The model you show",
+      "yours": "Your video",
+      "plan": "Shot {{n}}",
+      "moves": {
+        "hook": "Slides in from the left",
+        "offer": "Zooms in",
+        "date": "Rises",
+        "brand": "Fades in"
       }
     },
-    "how": {
-      "title": "Three steps, no more",
-      "site": {
-        "title": "Your website becomes your brand book",
-        "text": "Paste your website link: iVision reads its colours, fonts, logo and tone, then offers three palettes and three typography pairings. You choose, it remembers."
-      },
-      "model": {
-        "title": "Show a model, it reproduces it",
-        "text": "A video or poster you like? Add it: iVision reuses its cuts, motion and layout — with your texts, your images, your music."
-      },
-      "edit": {
-        "title": "Edit live",
-        "text": "Click a text: the video jumps to the moment it shows, and changes as you type. Replace a photo in one click."
-      }
+    "liveEdit": {
+      "title": [
+        {
+          "t": "Click."
+        },
+        {
+          "t": "Type."
+        },
+        {
+          "em": "It’s changed."
+        }
+      ],
+      "text": "Click a text: the video jumps to the moment it appears and changes while you type. Don’t like a photo? Replace it in one click.",
+      "field": "Shot 2 text",
+      "screen": "Example of a video being edited in iVision’s editor",
+      "timeline": "The video’s shots",
+      "saved": "Saved"
     },
-    "modes": {
-      "title": "Visuals and videos — each its own studio",
-      "text": "No mixing: one conversation makes visuals, another makes videos. Each keeps its settings and history.",
+    "workshops": {
+      "title": [
+        {
+          "t": "Two studios,"
+        },
+        {
+          "em": "never mixed",
+          "end": "."
+        }
+      ],
+      "text": "One conversation makes visuals, another makes videos. Each keeps its own settings and history.",
       "image": {
-        "title": "Visuals",
-        "text": "Posters, posts, stories, banners: laid out precisely and checked before delivery."
+        "name": "Visuals",
+        "text": "Posters, posts, stories, banners: laid out to the millimetre and checked by eye before they reach you."
       },
       "video": {
-        "title": "Motion-design videos",
-        "text": "From 6 to 60 seconds, story, square, portrait or landscape, with royalty-free music and sound effects."
+        "name": "Videos",
+        "text": "From 6 to 60 seconds, with royalty-free music and sound effects. Or your own talking video, edited for you.",
+        "duration": "6 to 60 seconds"
       }
     },
-    "credits": {
-      "title": "Same account, same credits",
-      "text": "iVision uses your IDEM account: same credits, same prices as your dashboard. Import an IDEM project’s brand book in one click.",
-      "cta": "Get started"
+    "creativity": {
+      "title": [
+        {
+          "t": "Turn it up"
+        },
+        {
+          "t": "a ",
+          "em": "notch",
+          "end": "."
+        }
+      ],
+      "text": "Choose how much the AI decides. At the bottom, safe rules. At the top, an author’s composition. The price follows the notch.",
+      "ladder": "Creativity notch",
+      "default": "Default",
+      "price": "Price",
+      "poster": "The same visual at {{level}}",
+      "levels": {
+        "low": {
+          "name": "Low",
+          "mult": "×1",
+          "text": "Safe rules: a classic layout, no surprises."
+        },
+        "medium": {
+          "name": "Medium",
+          "mult": "×1",
+          "text": "The right balance: iVision chooses what to put forward."
+        },
+        "high": {
+          "name": "High",
+          "mult": "×1.25",
+          "text": "An art director looks at the visual and decides the layout."
+        },
+        "max": {
+          "name": "Max",
+          "mult": "×1.5",
+          "text": "The AI lays out the whole page and dares very large type."
+        },
+        "ultra": {
+          "name": "Ultra",
+          "mult": "×2",
+          "text": "An author’s piece, written by the AI, then critiqued by eye until it is right."
+        }
+      }
     },
-    "footer": "Create and launch a profitable business",
-    "dashboard": "Dashboard"
+    "montage": {
+      "title": [
+        {
+          "t": "Film yourself,"
+        },
+        {
+          "t": "iVision ",
+          "em": "edits",
+          "end": "."
+        }
+      ],
+      "text": "Import a video of yourself talking. iVision cuts the silences and hesitations, adds subtitles and shows on screen what you say. Ready to post.",
+      "screen": "Example of a talking video being edited",
+      "tracks": {
+        "take": "Your take",
+        "subtitles": "Subtitles",
+        "screen": "On screen"
+      },
+      "removed": "2.4 s of silence removed",
+      "cut": "Cut",
+      "transcript": [
+        {
+          "t": "Hello,",
+          "cut": false
+        },
+        {
+          "t": "um…",
+          "cut": true
+        },
+        {
+          "t": "I’m Awa, from Maison Nyanga.",
+          "cut": false
+        },
+        {
+          "t": "So…",
+          "cut": true
+        },
+        {
+          "t": "Until December 31, the whole shop is 30% off.",
+          "cut": false
+        },
+        {
+          "t": "Uh,",
+          "cut": true
+        },
+        {
+          "t": "come and see us in Akwa!",
+          "cut": false
+        }
+      ],
+      "overlays": {
+        "title": "Animated title",
+        "offer": "−30%",
+        "logo": "Logo"
+      }
+    },
+    "closing": {
+      "title": [
+        {
+          "t": "Your IDEM account"
+        },
+        {
+          "t": "is ",
+          "em": "all you need",
+          "end": "."
+        }
+      ],
+      "text": "Same credits, same prices as in your dashboard. Import the brand book of an IDEM project in one click."
+    },
+    "request": {
+      "label": "Your request to iVision",
+      "parts": [
+        {
+          "t": "“A "
+        },
+        {
+          "k": "video"
+        },
+        {
+          "t": " for our year-end sale: "
+        },
+        {
+          "k": "30% off"
+        },
+        {
+          "t": " the whole shop, until "
+        },
+        {
+          "k": "December 31"
+        },
+        {
+          "t": ".”"
+        }
+      ],
+      "site": "nyanga.cm",
+      "creativity": "Creativity · Medium"
+    },
+    "mockups": {
+      "label": "The same video playing on a computer, as a story and as a post",
+      "pause": "Pause the video",
+      "play": "Play the video",
+      "handle": "maisonnyanga",
+      "reply": "Send a message",
+      "caption": "Year-end sale: 30% off the whole shop.",
+      "url": "nyanga.cm"
+    },
+    "header": {
+      "label": "Main navigation",
+      "service": "An IDEM service",
+      "links": {
+        "how": "How it works",
+        "workshops": "Studios",
+        "creativity": "Creativity",
+        "montage": "Editing"
+      },
+      "language": "Language",
+      "signIn": "Sign in",
+      "start": "Create a video",
+      "openStudio": "Open the studio",
+      "menuOpen": "Open the menu",
+      "menuClose": "Close the menu"
+    }
   },
   "studio": {
     "sidebar": "Studio",
@@ -89,7 +302,11 @@
     "brands": "Brands",
     "credits": "{{count}} credits",
     "account": "My account",
-    "tabs": "Studio sections"
+    "tabs": "Studio sections",
+    "montage": "Edit",
+    "newMontage": "New edit",
+    "noMontages": "No edits yet.",
+    "montageHistory": "My edits"
   },
   "creativity": {
     "label": "Creativity",
@@ -133,11 +350,13 @@
       "none": "Choose a brand",
       "pick": "Choose a brand",
       "empty": "No brand ready.",
-      "add": "Add a brand"
+      "add": "Add a brand",
+      "applied": "I read your website: I’m using its colours, fonts, logo and photos. You can change the palette in “Brands”.",
+      "appliedNoLogo": "I read your website: I’m using its colours, fonts and photos. You can change the palette in “Brands”."
     },
     "empty": {
       "videoTitle": "What video do you want?",
-      "videoText": "Describe the announcement, product or event. Paste your website link so the video matches your brand.",
+      "videoText": "Describe it and I create it as an animation. Or add the video where you talk: I edit it, with captions and animations.",
       "imageTitle": "What visual do you want?",
       "imageText": "Describe the offer, announcement or message. Paste your website link so the visual matches your brand.",
       "ideas": {
@@ -147,7 +366,15 @@
         "image1": "A poster for our sale: 20% off everything",
         "image2": "A post for our new menu",
         "image3": "A story announcing our Saturday event"
-      }
+      },
+      "describeTitle": "Describe my video",
+      "describeText": "I create it as an animation",
+      "editTitle": "Edit my filmed video",
+      "editText": "I cut, caption and animate it",
+      "both": "You can do both: add your video and ask for an animated intro, your logo, a call to action…",
+      "choose": "How do you want to make your video?",
+      "describeCta": "Write",
+      "editCta": "Add my video"
     },
     "attach": {
       "model": "Model",
@@ -156,7 +383,10 @@
       "imageModel": "Add a model image",
       "myMedia": "Add my photos or clips",
       "myPhoto": "Add my photo",
-      "needBrand": "Choose a brand first"
+      "needBrand": "Choose a brand first",
+      "videos": "Your videos",
+      "willEdit": "I’ll edit this video (writing instructions is optional).",
+      "willUse": "No speech: I’ll use it as footage for the animated video."
     },
     "ask": {
       "brand": "So the result matches your brand: paste your website link, import an IDEM project, or choose a brand.",
@@ -182,13 +412,19 @@
     "result": {
       "previewTitle": "Video preview",
       "watch": "Watch",
-      "edit": "Edit and export",
+      "edit": "Edit",
       "fromReference": "Reproduced from a model in {{shots}} shots.",
       "download": "Download",
+      "fullscreen": "Full screen",
+      "close": "Close",
+      "downloadFailed": "The download failed. Try again.",
       "video": "Your video is ready. Edit texts and images, then export.",
+      "videoNoVoice": "Your video is ready. Edit the texts and images, then export. The voice-over could not be generated: try again from the editor.",
       "videoFromReference": "Your video is ready: the model’s animations, with your brand. Edit texts and images, then export.",
+      "videoFromReferenceNoVoice": "Your video is ready: the template's animations, with your brand. Edit the texts and images, then export. The voice-over could not be generated: try again from the editor.",
       "visual": "Here is your visual.",
-      "visualFromReference": "Here is your visual, laid out like the model, on brand."
+      "visualFromReference": "Here is your visual, laid out like the model, on brand.",
+      "montage": "I’m editing your video: cutting silences, adding captions and animating what you say. You can leave the page, I keep going."
     },
     "payment": {
       "cta": "Top up my credits",
@@ -210,14 +446,20 @@
         "critique": "Review",
         "code": "Custom shots",
         "direction": "Film direction",
-        "shots": "Film shots"
+        "shots": "Film shots",
+        "concept": "Creative concepts",
+        "design": "Visual design",
+        "photo": "Photo selection"
       }
     },
     "composer": {
       "label": "Your request",
       "placeholderVideo": "Describe your video, or paste your website link…",
       "placeholderImage": "Describe your visual, or paste your website link…",
-      "send": "Send"
+      "send": "Send",
+      "placeholderMontage": "Optional — e.g. dynamic, an animated intro, show the price big, end with my WhatsApp…",
+      "placeholderRevise": "What should change? E.g. no music, add an intro, simpler captions…",
+      "reviseHint": "For another video: describe it (“a video for…”) or add a filmed video."
     },
     "options": {
       "duration": "Duration",
@@ -225,7 +467,9 @@
       "photo": "With photo",
       "voice": "Voice-over",
       "voiceHint": "A voice tells the message, scene by scene, in your language.",
-      "price": "{{cost}} credits"
+      "price": "{{cost}} credits",
+      "removeSilences": "Remove silences",
+      "music": "Music"
     },
     "choice": {
       "palettes": "Palette",
@@ -273,6 +517,11 @@
       },
       "visual": {
         "start": "Composing your visual…"
+      },
+      "videos": "Preparing your videos…",
+      "montage": {
+        "start": "Starting the edit…",
+        "revise": "Making the changes…"
       }
     },
     "error": {
@@ -290,6 +539,19 @@
       },
       "generation": "The creation failed. Your credits were refunded; you can try again.",
       "payment": "Not enough credits for this creation. Top up your IDEM account, then try again."
+    },
+    "montage": {
+      "unreadable_video": "I could not read these videos. Try an MP4 or MOV.",
+      "no_audio": "None of these videos has sound: add the one where you talk.",
+      "too_short": "The videos are too short (3 seconds min).",
+      "too_long": "The videos are too long (5 minutes in total max).",
+      "too_many": "10 videos max.",
+      "stillProcessing": "The edit is still being prepared: ask again in a moment.",
+      "reviseFailed": "I could not make this change."
+    },
+    "video": {
+      "notUnderstood": "I didn’t understand what to change. Try “change the title to …”, “more sober”, “no music” or “add a voice-over”.",
+      "revised": "Done. Have a look at the new version."
     }
   },
   "edit": {
@@ -306,6 +568,7 @@
     "voice": "Voice-over",
     "voiceLines": "{{count}} line(s), scenes synced to the voice",
     "voiceUnavailable": "Voice-over unavailable for this language.",
+    "voiceFailed": "The voice-over could not be generated (service temporarily unavailable). Tick it again to retry.",
     "export": "Export as MP4",
     "firstExport": "The first export is included in the video price.",
     "nextExport": "A new export costs a fraction of the video price.",
@@ -349,5 +612,287 @@
     "delete": "Delete",
     "confirmDelete": "Confirm deletion",
     "empty": "No brand yet: read your website to start."
+  },
+  "visualEdit": {
+    "title": "Edit the visual"
+  },
+  "montage": {
+    "title": "Edit your talking video",
+    "subtitle": "Upload a video of you talking: iVision cuts the silences, adds captions and brings up what you say on screen. Ready to post.",
+    "unavailable": "Video editing is temporarily unavailable. Please try again later.",
+    "needBrand": "Create a brand first: its colours, font and logo dress the edit.",
+    "pickFile": "Choose the video",
+    "changeFile": "Change video",
+    "fileHint": "MP4, MOV or WebM, with sound. {{minutes}} minutes max.",
+    "brand": "Brand",
+    "prompt": "What you want (optional)",
+    "promptPlaceholder": "E.g. dynamic style, end with “Order on WhatsApp”, show the product when I talk about it.",
+    "format": "Format",
+    "cuts": "Cuts",
+    "cutModes": {
+      "tight": "Snappy (silences and false starts removed)",
+      "natural": "Natural (long silences removed)",
+      "none": "None (video untouched)"
+    },
+    "music": "Soft music under the voice",
+    "price": "{{cost}} credits",
+    "start": "Edit my video",
+    "uploading": "Uploading… {{percent}}%",
+    "mine": "My edits",
+    "errors": {
+      "tooBig": "File too large (600 MB max).",
+      "tooShort": "Video too short (3 seconds min).",
+      "tooLong": "Video too long ({{minutes}} minutes max).",
+      "upload": "Upload failed. Please try again."
+    },
+    "preparing": "Your edit is being prepared",
+    "canLeave": "You can leave this page: the edit keeps going.",
+    "stages": {
+      "transcribe": "Listening to what you say",
+      "cut": "Cutting silences and hesitations",
+      "plan": "Choosing what appears on screen",
+      "media": "Preparing images and music",
+      "prepare": "Preparing your videos"
+    },
+    "recutting": "Applying new cuts…",
+    "previewTitle": "Edit preview",
+    "loadError": "This edit could not be loaded.",
+    "failed": "The edit did not complete.",
+    "failedNoSpeech": "No speech was heard in this video.",
+    "refunded": "Your {{cost}} credits were refunded.",
+    "retry": "Try another video",
+    "saveFailed": "The change was not saved.",
+    "transcript": "What you say",
+    "transcriptHint": "Click a word to jump to it and fix a typo. Struck-through words were cut.",
+    "removed": "{{sec}} s of silence removed",
+    "cutWord": "Cut in the edit",
+    "fixWord": "Fix the word",
+    "elements": "What appears",
+    "byRules": "Simple dressing",
+    "noElements": "Nothing but captions.",
+    "show": "Show",
+    "remove": "Remove",
+    "saveElements": "Save the dressing",
+    "types": {
+      "keyword": "Keyword",
+      "stat": "Number",
+      "icon": "Pictogram",
+      "list": "List",
+      "callout": "Callout",
+      "broll": "Image",
+      "lowerThird": "Name and role",
+      "cta": "Call to action",
+      "zoom": "Zoom",
+      "clip": "Your video"
+    },
+    "fields": {
+      "text": "Text",
+      "value": "Number",
+      "label": "Caption",
+      "name": "Name",
+      "role": "Role",
+      "items": "One point per line",
+      "contact": "Contact (website, number)"
+    },
+    "settings": "Settings",
+    "captions": "Captions",
+    "captionStyles": {
+      "pop": "Punchy, word by word",
+      "karaoke": "Line that lights up",
+      "minimal": "Sober",
+      "none": "No captions"
+    },
+    "outro": "End card",
+    "outroText": "Closing line",
+    "outroDetail": "Contact (optional)",
+    "outroRemove": "No end card",
+    "firstExport": "The first export is included.",
+    "nextExport": "A new export after changes.",
+    "saveFirst": "Save the dressing before exporting.",
+    "renderFailed": "The export failed; your credits were refunded. Please try again.",
+    "download": "Download the video",
+    "cutModesShort": {
+      "tight": "Snappy",
+      "natural": "Natural",
+      "none": "None"
+    },
+    "suggestions": {
+      "noMusic": "No music",
+      "soberCaptions": "Simpler captions",
+      "moreDynamic": "More dynamic",
+      "square": "Square format",
+      "addIntro": "Add an animated intro"
+    },
+    "chat": {
+      "newTitle": "New edit",
+      "welcomeTitle": "Add the video where you talk",
+      "welcomeText": "I cut the silences, add captions and bring up on screen what you say. You can add several: I put them end to end.",
+      "addVideos": "Add my videos",
+      "addHint": "Drop them here or click · {{files}} videos, {{minutes}} minutes in total max",
+      "yourVideos": "Your videos",
+      "addMore": "Add",
+      "silent": "No speech: I’ll use it as illustration",
+      "askWhat": "What kind of edit do you want? Write it below if you like (it’s optional), then start.",
+      "settings": "Settings",
+      "removeSilences": "Remove silences and hesitations",
+      "promptHint": "Optional — e.g. dynamic, show the price big, end with my WhatsApp number",
+      "reviseHint": "What should change? E.g. no music, simpler captions, show the price big…",
+      "composerLabel": "Your message",
+      "working": "Making the changes…",
+      "adjust": "Fine-tune",
+      "rendering": "Preparing the file… {{percent}}%",
+      "ideas": "Change ideas",
+      "preparing": "I’m preparing your edit. You can leave this page, it keeps going.",
+      "ready": "Your edit is ready: {{duration}}, captions and {{count}} item(s) on screen. Tell me what to change, or download it.",
+      "noSpeech": "I didn’t hear anyone speaking in these videos. Add a video where you talk.",
+      "failed": "The edit did not complete. Your {{cost}} credits were refunded.",
+      "notUnderstood": "I didn’t understand what to change. Try “no music”, “simpler captions”, “square format” or “show the price big”.",
+      "sayHint": "Write below what to change, or click “Edit”."
+    },
+    "intro": "Animated intro",
+    "introTitle": "Intro title",
+    "introKicker": "Kicker (optional)",
+    "introAdd": "Add the intro",
+    "introRemove": "No intro"
+  },
+  "brandHint": {
+    "prompt": "Optional · your colours:",
+    "site": "My website",
+    "file": "My brand guide or logo",
+    "colors": "My colours",
+    "saved": "My brands",
+    "myColors": "My colours",
+    "myCharter": "My brand",
+    "using": "Using {{name}}",
+    "change": "change",
+    "hide": "Hide",
+    "siteLabel": "Your website address",
+    "read": "Read",
+    "reading": "Visiting your website…",
+    "siteDone": "Your website is read: its colours, fonts and logo will be used.",
+    "siteFailed": "I could not read this website. Check the address, or carry on without it.",
+    "fileDone": "Found: {{what}}. I’m using them.",
+    "fileFailed": "I could not read this file. Try a PDF or an image (PNG, JPG, SVG).",
+    "found": {
+      "colors": "your colours",
+      "fonts": "your fonts ({{fonts}})",
+      "logo": "your logo"
+    },
+    "roles": {
+      "primary": "Main",
+      "secondary": "Secondary",
+      "accent": "Accent"
+    },
+    "apply": "Use these colours",
+    "colorsDone": "Your colours will be used.",
+    "chosen": "{{name}} will be used.",
+    "promptShort": "Optional:",
+    "siteShort": "Site",
+    "fileShort": "Brand guide",
+    "colorsShort": "Colours"
+  },
+  "montageEditor": {
+    "back": "Back to the conversation",
+    "title": "Edit the video",
+    "saved": "Saved",
+    "timeline": "Video timeline",
+    "settings": "Edit settings",
+    "tabs": {
+      "screen": "On screen",
+      "captions": "Captions",
+      "ends": "Start & end",
+      "sound": "Sound & format"
+    },
+    "screenHint": "What appears while you talk. Tap an item to jump to it; your changes save automatically.",
+    "show": "Show",
+    "hide": "Hide",
+    "transcriptHint": "Tap a word to jump to it or fix a typo.",
+    "introHint": "An animated title in your colours, before you talk.",
+    "outroHint": "The last screen: your brand, your contact."
+  },
+  "tour": {
+    "replay": "See the guide again",
+    "common": {
+      "next": "Next",
+      "back": "Back",
+      "skip": "Skip",
+      "finish": "Let’s go",
+      "stepOf": "Step {current} of {total}",
+      "dialogLabel": "iVision guide"
+    },
+    "studio": {
+      "welcome": {
+        "title": "Welcome to iVision",
+        "body": "Here you create videos and images to promote your business. You write what you want, iVision makes it."
+      },
+      "tabs": {
+        "title": "Video or image?",
+        "body": "Choose here what you want to create: a video, or an image to post."
+      },
+      "choices": {
+        "title": "Two ways to make a video",
+        "body": "Describe it and I create it as an animation. Or add the video where you talk, and I edit it for you."
+      },
+      "composer": {
+        "title": "Write the way you talk",
+        "body": "For example: “a video for our back-to-school sale”. Then press the arrow."
+      },
+      "brand": {
+        "title": "Your colours, if you like",
+        "body": "Add your website, logo or colours. It’s optional: without them, I pick colours that work."
+      },
+      "creativity": {
+        "title": "More or less daring",
+        "body": "Choose the level of creativity. The price in credits shows right next to it, before you start."
+      },
+      "history": {
+        "title": "Everything you created",
+        "body": "Your creations stay here. Click one to see it again or change it."
+      },
+      "credits": {
+        "title": "Your credits",
+        "body": "Each creation uses credits. You see them here, and you can add more."
+      },
+      "done": {
+        "title": "Your turn!",
+        "body": "Write your first request. You can see this guide again anytime with “See the guide again”."
+      }
+    },
+    "result": {
+      "ready": {
+        "title": "Your video is ready",
+        "body": "Press play to watch it."
+      },
+      "say": {
+        "title": "Something to change?",
+        "body": "Just write it: “no music”, “change the title”, “add an intro”. I’ll take care of it."
+      },
+      "edit": {
+        "title": "Or change it yourself",
+        "body": "The “Edit” button opens a page to adjust everything by clicking."
+      },
+      "download": {
+        "title": "Download it",
+        "body": "When you like it, download it to post on your social networks."
+      }
+    },
+    "editor": {
+      "preview": {
+        "title": "Your video",
+        "body": "It updates with every change. Press play to watch it again."
+      },
+      "timeline": {
+        "title": "The video timeline",
+        "body": "Each dot is an item that appears on screen. Tap one to jump to it."
+      },
+      "tabs": {
+        "title": "Everything is set here",
+        "body": "What appears, captions, start and end, music and format."
+      },
+      "save": {
+        "title": "Nothing to save",
+        "body": "Your changes save on their own. When it’s ready, download the video."
+      }
+    }
   }
 }

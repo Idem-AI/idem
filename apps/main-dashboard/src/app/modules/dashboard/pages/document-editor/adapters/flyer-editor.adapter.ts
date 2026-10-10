@@ -10,8 +10,8 @@ import {
   EditableSection,
   LoadedDocument,
   PageFormat,
-} from '../models/editor.types';
-import { sanitizeSectionHtml } from '../utils/sanitize-section';
+} from '@idem/shared-document-editor/angular';
+import { sanitizeSectionHtml } from '@idem/shared-document-editor/angular';
 
 /**
  * Dimensions de canevas par format, en pixels — la table de

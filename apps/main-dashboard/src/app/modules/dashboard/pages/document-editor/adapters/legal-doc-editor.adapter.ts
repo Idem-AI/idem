@@ -7,8 +7,8 @@ import {
   EditableSection,
   LoadedDocument,
   PageFormat,
-} from '../models/editor.types';
-import { sanitizeSectionHtml } from '../utils/sanitize-section';
+} from '@idem/shared-document-editor/angular';
+import { sanitizeSectionHtml } from '@idem/shared-document-editor/angular';
 
 /**
  * Adaptateur d'un document juridique (statuts, CGU, NDA…), A4 portrait.

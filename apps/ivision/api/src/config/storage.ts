@@ -42,3 +42,11 @@ export const storage: CoreStorage = {
     return { fileName, filePath: path, downloadURL };
   },
 };
+
+/** Un gros fichier local (vidéo importée), envoyé sans passer par la mémoire. */
+export async function uploadLocalFile(file: string, fileName: string, folder: string, contentType: string): Promise<StoredFile> {
+  const path = `${folder.startsWith('ivision/') ? folder : `ivision/${folder}`}/${fileName}`.replace(/\/{2,}/g, '/');
+  await minio().fPutObject(bucket(), path, file, { 'Content-Type': contentType });
+  logger.info('storage.uploaded', { event: 'storage.uploaded', path, contentType, streamed: true });
+  return { fileName, filePath: path, downloadURL: publicUrl(path) };
+}
