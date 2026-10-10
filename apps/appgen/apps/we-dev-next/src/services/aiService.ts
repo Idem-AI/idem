@@ -19,6 +19,40 @@ function findModelConfig(modelKey: string) {
   return allModelConfigs.find((item) => item.modelKey === modelKey);
 }
 
+
+/**
+ * GLM models that always reason: they refuse `thinking: disabled` and are
+ * asked for the lowest effort instead. Filled at run time from the API's own
+ * answer (code 1210), so a new model of that kind needs no change here.
+ */
+const ALWAYS_THINKING = new Set<string>(
+  (process.env.GLM_ALWAYS_THINKING_MODELS || 'glm-5.3-flash').split(',').map((m) => m.trim()).filter(Boolean)
+);
+
+/**
+ * Raisonnement GLM, injecté dans le corps (champ hors norme OpenAI, que le
+ * provider du SDK ne recopie pas depuis `providerOptions`).
+ *
+ * Coupé quand le modèle le permet : il se décompte du budget de sortie, et sur
+ * une génération longue il le mangerait avant le code. Sinon, au plus bas.
+ */
+function withThinking(init: RequestInit | undefined, model: string): RequestInit | undefined {
+  if (typeof init?.body !== 'string') return init;
+  try {
+    const body = JSON.parse(init.body);
+    if (ALWAYS_THINKING.has(model)) {
+      delete body.thinking;
+      body.reasoning_effort = 'low';
+    } else {
+      body.thinking = { type: 'disabled' };
+    }
+    return { ...init, body: JSON.stringify(body) };
+  } catch {
+    // Corps non-JSON : rien à injecter, on relaie tel quel.
+    return init;
+  }
+}
+
 export function getOpenAIModel(baseURL: string, apiKey: string, model: string): LanguageModel {
   const provider = findModelConfig(model)?.provider;
 
@@ -76,25 +110,29 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
       apiKey,
       baseURL,
       fetch: async (input, init) => {
-        // Désactiver le raisonnement interne (champ hors-norme OpenAI).
-        if (typeof init?.body === 'string') {
-          try {
-            const body = JSON.parse(init.body);
-            body.thinking = { type: 'disabled' };
-            init = { ...init, body: JSON.stringify(body) };
-          } catch {
-            // Corps non-JSON : rien à injecter, on relaie tel quel.
-          }
-        }
         // Remplacer le signal par un timeout plus long si aucun n'est fourni.
+        let timer: ReturnType<typeof setTimeout> | undefined;
         if (!init?.signal) {
           const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), GLM_CONNECT_TIMEOUT_MS);
-          const response = await fetch(input, { ...init, signal: controller.signal });
-          clearTimeout(timer);
-          return response;
+          timer = setTimeout(() => controller.abort(), GLM_CONNECT_TIMEOUT_MS);
+          init = { ...init, signal: controller.signal };
         }
-        return fetch(input, init);
+        try {
+          const first = await fetch(input, withThinking(init, model));
+          // Les modèles qui réfléchissent toujours (glm-5.3-flash…) refusent
+          // `thinking: disabled` (code 1210) : on réessaie une fois au niveau
+          // le plus bas, et on s'en souvient pour ce modèle.
+          if (first.status === 400 && !ALWAYS_THINKING.has(model)) {
+            const text = await first.clone().text();
+            if (/"code"\s*:\s*"1210"|cannot be disabled/.test(text)) {
+              ALWAYS_THINKING.add(model);
+              return await fetch(input, withThinking(init, model));
+            }
+          }
+          return first;
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
       },
     });
     return glm(model) as LanguageModel;
