@@ -35,6 +35,11 @@ describe('analyseCompose', () => {
     expect(a.warnings.map((w) => w.code).sort()).toEqual(['BUILD_CONTEXT', 'ENV_FILE_OTHER']);
   });
 
+  it('warns about fixed container names and ports opened on the server', () => {
+    const a = analyseCompose('services:\n  app:\n    image: x\n    container_name: my_app\n    ports:\n      - "8080:8080"\n');
+    expect(a.warnings.map((w) => w.code).sort()).toEqual(['CONTAINER_NAME', 'HOST_PORTS']);
+  });
+
   it('does not throw on invalid YAML', () => {
     expect(analyseCompose('services: [').warnings[0].code).toBe('INVALID_YAML');
   });

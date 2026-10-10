@@ -486,7 +486,7 @@ async function deploy(
   // touched: a critical finding stops here with the previous version serving.
   if (data.pipelineExecutionId && composeImage) {
     await streamStep(deploymentUuid, 'Scanning the image (Trivy)', async () => {
-      await scanBuiltImage(server, key, composeImage as string, data.pipelineExecutionId as number, log);
+      await scanBuiltImage(server, key, composeImage as string, data.pipelineExecutionId as number, log, data.trivyFailOn);
     });
   }
 
@@ -744,7 +744,8 @@ async function scanBuiltImage(
   key: Parameters<typeof executeRemoteCommand>[1],
   image: string,
   executionId: number,
-  log: (line: string) => Promise<void>
+  log: (line: string) => Promise<void>,
+  failOn?: string
 ): Promise<void> {
   const r = await executeRemoteCommand(
     server,
@@ -762,7 +763,8 @@ async function scanBuiltImage(
   const { counts, findings } = summariseTrivy(r.stdout);
   const line = `Image vulnerabilities — critical ${counts.CRITICAL}, high ${counts.HIGH}, medium ${counts.MEDIUM}, low ${counts.LOW}`;
   await log(line);
-  const threshold = trivyFailThreshold();
+  // The application's policy; the platform default only when none was passed.
+  const threshold = (failOn as Parameters<typeof trivyFails>[1]) ?? trivyFailThreshold();
   const fails = trivyFails(counts, threshold);
   await pipelineService.recordScanResult(executionId, 'trivy-image', {
     status: fails ? 'failed' : 'success',
@@ -772,7 +774,7 @@ async function scanBuiltImage(
     medium_count: counts.MEDIUM,
     low_count: counts.LOW,
     vulnerabilities_detail: findings,
-    summary: line,
+    summary: fails ? line : `${line}${threshold === 'NONE' ? ' (report only)' : ''}`,
   });
   if (fails) throw new Error(`The built image has vulnerabilities at or above ${threshold}; nothing was deployed.`);
 }

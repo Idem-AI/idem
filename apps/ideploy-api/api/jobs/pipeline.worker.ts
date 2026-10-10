@@ -11,7 +11,9 @@ import { registerWorker } from '../queue/worker';
 import { realtime } from '../services/realtime.service';
 import { executeRemoteCommand, shellQuote } from '../ssh/ssh';
 import { assertSafeGitBranch, assertSafeGitUrl } from '../validation/git-input';
-import { SonarClient, sonarConfig, summariseTrivy, trivyFailThreshold, trivyFails } from '../services/pipeline-scanners.service';
+import { SonarClient, sonarConfig, summariseTrivy, trivyFails } from '../services/pipeline-scanners.service';
+import { PipelineGates } from '../services/pipeline-gates';
+import { JAVA_BINARIES, JavaBuildPlan, parseProbe, planJavaBuild, probeCommand } from '../services/java-build';
 import * as appService from '../services/application.service';
 import * as serverService from '../services/server.service';
 import * as pipelineService from '../services/pipeline.service';
@@ -39,6 +41,8 @@ export async function processPipeline(job: Job<PipelineJobData>): Promise<void> 
   const key = server ? await serverService.getExecutionKey(server) : null;
   if (!server || !key) throw new Error('Server or key not found');
 
+  // What the scans may stop is the application's choice.
+  const { gates } = await pipelineService.getOrCreateConfig(teamId, applicationUuid);
   const workdir = pipelineWorkdirFor(executionUuid);
   // Which stage's job row is currently 'running', so a failure that never
   // reaches that stage's own setJobStatus call (an SSH exception, not just a
@@ -79,15 +83,24 @@ export async function processPipeline(job: Job<PipelineJobData>): Promise<void> 
         if (r.exitCode !== 0) throw new Error(`git clone failed: ${explainGitFailure(r.stderr, Boolean(credential))}`);
         commit = /COMMIT=([0-9a-f]{40})/.exec(r.stdout)?.[1] ?? null;
       } else if (stage === 'trivy') {
-        await runTrivy(server, key, workdir, executionId, log);
+        await runTrivy(server, key, workdir, executionId, log, gates);
       } else if (stage === 'sonarqube') {
-        await runSonar(server, key, workdir, app, executionUuid, executionId, log);
+        await runSonar(server, key, workdir, app, executionUuid, executionId, log, gates);
       } else if (stage === 'deploy') {
         // The commit the pipeline checked, not the branch name — the worker
         // only accepts a commit id, and a branch would move under it.
-        await deploymentService.createDeployment(app, teamId, { commit: commit ?? 'HEAD', pipelineExecutionId: executionId });
-        await pipelineService.setJobStatus(executionId, stage, 'success', 'Deployment queued');
-        await log('Deployment queued');
+        const { deploymentUuid } = await deploymentService.createDeployment(app, teamId, {
+          commit: commit ?? 'HEAD',
+          pipelineExecutionId: executionId,
+          trivyFailOn: gates.trivy_fail_on,
+        });
+        await log(`Deployment ${deploymentUuid} queued — waiting for it to finish…`);
+        // The stage is the deployment's outcome, not only its being queued.
+        const outcome = await deploymentService.waitForDeployment(deploymentUuid, { timeoutMs: deployWaitMs(), pollMs: Number(process.env.PIPELINE_DEPLOY_POLL_MS) || 3000 });
+        const detail = `Deployment ${deploymentUuid}: ${outcome === 'finished' ? 'finished' : outcome === 'failed' ? 'failed' : 'still running after the wait limit'}`;
+        await pipelineService.setJobStatus(executionId, stage, outcome === 'finished' ? 'success' : 'failed', detail);
+        await log(detail);
+        if (outcome !== 'finished') throw new Error(`The deployment did not finish: ${outcome}. See deployment ${deploymentUuid}.`);
       } else {
         await pipelineService.setJobStatus(executionId, stage, 'skipped', `Unknown stage: ${stage}`);
       }
@@ -120,13 +133,14 @@ export function registerPipelineWorker(): void {
 type Server = Parameters<typeof executeRemoteCommand>[0];
 type Key = Parameters<typeof executeRemoteCommand>[1];
 
-const TRIVY_FAIL_ON = trivyFailThreshold();
+/** How long the deploy stage waits for its deployment. */
+const deployWaitMs = () => Number(process.env.PIPELINE_DEPLOY_WAIT_MS) || 30 * 60_000;
 
 /**
  * Trivy on the checked-out code: dependency vulnerabilities and committed
  * secrets, as JSON, summarised into counts by severity and the worst findings.
  */
-async function runTrivy(server: Server, key: Key, workdir: string, executionId: number, log: (l: string) => Promise<void>): Promise<void> {
+async function runTrivy(server: Server, key: Key, workdir: string, executionId: number, log: (l: string) => Promise<void>, gates: PipelineGates): Promise<void> {
   const r = await executeRemoteCommand(
     server,
     key,
@@ -148,7 +162,11 @@ async function runTrivy(server: Server, key: Key, workdir: string, executionId: 
   for (const f of summary.findings.slice(0, 10)) {
     await log(`  ${f.severity.padEnd(8)} ${f.id} ${f.package} ${f.installed}${f.fixed ? ` → ${f.fixed}` : ''}`);
   }
-  const fails = trivyFails(counts, TRIVY_FAIL_ON) || summary.secrets.length > 0;
+  const vulnerabilitiesFail = trivyFails(counts, gates.trivy_fail_on);
+  const secretsFail = summary.secrets.length > 0 && gates.secrets === 'block';
+  const fails = vulnerabilitiesFail || secretsFail;
+  const reported = !fails && (counts.CRITICAL + counts.HIGH > 0 || summary.secrets.length > 0);
+  if (reported) await log('These findings are reported only — this application\'s policy does not stop the pipeline on them.');
   await pipelineService.recordScanResult(executionId, 'trivy', {
     status: fails ? 'failed' : 'success',
     vulnerabilities: counts.CRITICAL + counts.HIGH + counts.MEDIUM + counts.LOW + counts.UNKNOWN,
@@ -158,14 +176,12 @@ async function runTrivy(server: Server, key: Key, workdir: string, executionId: 
     low_count: counts.LOW,
     vulnerabilities_detail: summary.findings,
     secrets_found: summary.secrets,
-    summary: line,
+    summary: reported ? `${line} (report only)` : line,
   });
-  await pipelineService.setJobStatus(executionId, 'trivy', fails ? 'failed' : 'success', line);
+  await pipelineService.setJobStatus(executionId, 'trivy', fails ? 'failed' : 'success', reported ? `${line} (report only)` : line);
   if (fails) {
     throw new Error(
-      summary.secrets.length > 0
-        ? 'Trivy found secrets committed in the code.'
-        : `Trivy found vulnerabilities at or above ${TRIVY_FAIL_ON}.`
+      secretsFail ? 'Trivy found secrets committed in the code.' : `Trivy found vulnerabilities at or above ${gates.trivy_fail_on}.`
     );
   }
 }
@@ -182,7 +198,8 @@ async function runSonar(
   app: { uuid: string; name: string },
   executionUuid: string,
   executionId: number,
-  log: (l: string) => Promise<void>
+  log: (l: string) => Promise<void>,
+  gates: PipelineGates
 ): Promise<void> {
   const config = sonarConfig();
   if (!config) {
@@ -201,16 +218,19 @@ async function runSonar(
   await sonar.ensureProject(projectKey, app.name);
   const token = await sonar.analysisToken(projectKey, tokenName);
   try {
+    const java = await buildJava(server, key, workdir, log);
     await log(`Analysing ${projectKey} on ${config.url}…`);
+    const exclusions = ['**/node_modules/**', '**/vendor/**', '**/dist/**', '**/build/**', '**/target/**'];
+    // Java the analyser cannot see compiled is left out rather than failing the whole analysis.
+    if (java.hasJava && !java.compiled) exclusions.push('**/*.java');
     const r = await executeRemoteCommand(
       server,
       key,
       `docker run --rm -e SONAR_HOST_URL=${shellQuote(config.url)} -e SONAR_TOKEN=${shellQuote(token)} ` +
         `-v ${shellQuote(workdir)}:/usr/src sonarsource/sonar-scanner-cli ` +
         `-Dsonar.projectKey=${shellQuote(projectKey)} -Dsonar.sources=. ` +
-        // Java needs compiled classes; without a build, analyse the sources only.
-        `-Dsonar.java.binaries=. ` +
-        `-Dsonar.exclusions=${shellQuote('**/node_modules/**,**/vendor/**,**/dist/**,**/build/**,**/target/**')} ` +
+        (java.compiled ? `-Dsonar.java.binaries=${shellQuote(JAVA_BINARIES)} ` : '') +
+        `-Dsonar.exclusions=${shellQuote(exclusions.join(','))} ` +
         `-Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300`,
       { onData: (c) => log(c), redact: [token], noRetry: true }
     );
@@ -223,7 +243,9 @@ async function runSonar(
     // The scanner exits non-zero when the gate fails; when it failed before
     // reaching the server, there is no gate to read.
     const analysed = result.qualityGate !== 'NONE';
-    const passed = analysed && result.qualityGate !== 'ERROR';
+    const gatePassed = analysed && result.qualityGate !== 'ERROR';
+    // A failed gate only stops the pipeline when the application asked for it.
+    const passed = gatePassed || (analysed && gates.quality_gate === 'report');
     await pipelineService.recordScanResult(executionId, 'sonarqube', {
       status: passed ? 'success' : 'failed',
       quality_gate_status: analysed ? result.qualityGate : null,
@@ -235,12 +257,55 @@ async function runSonar(
       duplications: m.duplicated_lines_density ?? null,
       sonar_project_key: projectKey,
       sonar_dashboard_url: result.dashboardUrl,
-      summary: line,
+      summary: analysed && !gatePassed && passed ? `${line} (report only)` : line,
     });
-    await pipelineService.setJobStatus(executionId, 'sonarqube', passed ? 'success' : 'failed', line);
+    const shown = analysed && !gatePassed && passed ? `${line} (report only)` : line;
+    await pipelineService.setJobStatus(executionId, 'sonarqube', passed ? 'success' : 'failed', shown);
     if (!analysed) throw new Error(`The SonarQube analysis failed: ${(r.stderr || r.stdout).slice(-300)}`);
     if (!passed) throw new Error('The SonarQube quality gate failed.');
   } finally {
     await sonar.revokeToken(tokenName);
   }
+}
+
+/**
+ * Compiles the Java project, if there is one, so SonarQube can analyse it.
+ * A project that cannot be compiled here is analysed without its Java files
+ * (and says so) instead of failing the pipeline.
+ */
+async function buildJava(
+  server: Server,
+  key: Key,
+  workdir: string,
+  log: (l: string) => Promise<void>
+): Promise<{ hasJava: boolean; compiled: boolean }> {
+  const found = await executeRemoteCommand(server, key, probeCommand(workdir, shellQuote), { noRetry: true });
+  const probe = parseProbe(found.stdout);
+  if (!probe.hasJava) return { hasJava: false, compiled: false };
+
+  const first = probe.buildFiles.filter((f) => /(^|\/)(pom\.xml|build\.gradle(\.kts)?)$/.test(f)).sort((a, b) => a.split('/').length - b.split('/').length)[0];
+  let buildText = '';
+  if (first) {
+    const read = await executeRemoteCommand(server, key, `head -c 20000 ${shellQuote(`${workdir}/${first}`)}`, { noRetry: true });
+    buildText = read.stdout;
+  }
+  const plan: JavaBuildPlan | null = planJavaBuild({ ...probe, buildText });
+  if (!plan) {
+    await log('Java sources found but no Maven or Gradle build file: Java files are left out of the analysis.');
+    return { hasJava: true, compiled: false };
+  }
+  await log(`Compiling the Java project with ${plan.tool} (JDK ${plan.jdk}) for the analysis…`);
+  const dir = plan.dir === '.' ? workdir : `${workdir}/${plan.dir}`;
+  const r = await executeRemoteCommand(
+    server,
+    key,
+    `timeout 900 docker run --rm -v ${shellQuote(workdir)}:${shellQuote(workdir)} -v ideploy-m2-cache:/root/.m2 -v ideploy-gradle-cache:/root/.gradle ` +
+      `-w ${shellQuote(dir)} ${plan.image} ${plan.command}`,
+    { noRetry: true, onData: (c) => log(c) }
+  );
+  if (r.exitCode !== 0) {
+    await log(`The Java project could not be compiled (${(r.stderr || r.stdout).slice(-300).trim()}): Java files are left out of the analysis.`);
+    return { hasJava: true, compiled: false };
+  }
+  return { hasJava: true, compiled: true };
 }

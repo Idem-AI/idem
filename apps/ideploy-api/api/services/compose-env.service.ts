@@ -24,7 +24,7 @@ export interface ComposeAnalysis {
   envFiles: string[];
   /** Service names, in the order written. */
   services: string[];
-  warnings: { code: 'ENV_FILE_OTHER' | 'BUILD_CONTEXT' | 'INVALID_YAML'; message: string }[];
+  warnings: { code: 'ENV_FILE_OTHER' | 'BUILD_CONTEXT' | 'INVALID_YAML' | 'CONTAINER_NAME' | 'HOST_PORTS'; message: string }[];
 }
 
 const VARIABLE = /\$\{([A-Za-z_][A-Za-z0-9_]*)(?:(:?[-?+])([^}]*))?\}/g;
@@ -71,6 +71,18 @@ export function analyseCompose(text: string): ComposeAnalysis {
     for (const entry of list) {
       const path = typeof entry === 'string' ? entry : String((entry as { path?: string })?.path ?? '');
       if (path) envFiles.push(path);
+    }
+    if (service?.container_name) {
+      warnings.push({
+        code: 'CONTAINER_NAME',
+        message: `${name}: "container_name: ${String(service.container_name)}" is a fixed name — a second copy of this stack, or a leftover container with that name, stops it from starting. Remove it unless another program needs that exact name.`,
+      });
+    }
+    if (Array.isArray(service?.ports) && service.ports.length > 0) {
+      warnings.push({
+        code: 'HOST_PORTS',
+        message: `${name}: "ports" opens the container directly on the server (${(service.ports as unknown[]).map(String).join(', ')}), around the firewall, and fails when another stack already uses that port.`,
+      });
     }
     if (service?.build) {
       warnings.push({

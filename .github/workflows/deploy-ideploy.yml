@@ -46,7 +46,7 @@ jobs:
             
             # Acquire lock to serialize deployment on the server (avoid parallel conflicts)
             exec 200>/tmp/idem-deploy.lock
-            flock -x -w 600 200
+            flock -x -w 600 200 || { echo "ERROR: another deployment still holds /tmp/idem-deploy.lock after 10 minutes; nothing was deployed. Re-run this workflow."; exit 1; }
             
             # Variables
             REPO_DIR="/root/idem"

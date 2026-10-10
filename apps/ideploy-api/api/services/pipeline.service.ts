@@ -9,6 +9,8 @@ import pool from '../config/db.config';
 import * as appService from './application.service';
 import { getQueue, QUEUE_NAMES } from '../queue/queues';
 
+import { PipelineGates, parseGates, resolveGates } from './pipeline-gates';
+
 const DEFAULT_STAGES = ['language_detection', 'sonarqube', 'trivy', 'deploy'];
 
 export interface PipelineConfig {
@@ -18,6 +20,8 @@ export interface PipelineConfig {
   stages: string[];
   trigger_mode: string;
   trigger_branches: string[];
+  /** What the scans may stop; see pipeline-gates.ts. */
+  gates: PipelineGates;
 }
 
 /** The only two the UI actually offers a control for — see `mapConfig`'s note on why a third, unselectable value can still show up here. */
@@ -41,6 +45,7 @@ function mapConfig(r: Record<string, unknown>): PipelineConfig {
     // data migration.
     trigger_mode: KNOWN_TRIGGER_MODES.has(triggerMode) ? triggerMode : 'manual',
     trigger_branches: (r.trigger_branches as string[]) ?? [],
+    gates: resolveGates(r.config),
   };
 }
 
@@ -67,7 +72,7 @@ export async function getOrCreateConfig(teamId: number, appUuid: string): Promis
 export async function updateConfig(
   teamId: number,
   appUuid: string,
-  dto: Partial<{ enabled: boolean; stages: string[]; trigger_mode: string; trigger_branches: string[] }>
+  dto: Partial<{ enabled: boolean; stages: string[]; trigger_mode: string; trigger_branches: string[]; gates: Partial<PipelineGates> }>
 ): Promise<PipelineConfig> {
   const config = await getOrCreateConfig(teamId, appUuid);
   const sets: string[] = [];
@@ -87,6 +92,12 @@ export async function updateConfig(
   if (dto.trigger_branches) {
     params.push(JSON.stringify(dto.trigger_branches));
     sets.push(`trigger_branches = $${params.length}`);
+  }
+  if (dto.gates) {
+    // Validated, then merged over what the application already chose.
+    const next = { ...config.gates, ...parseGates(dto.gates) };
+    params.push(JSON.stringify({ gates: next }));
+    sets.push(`config = $${params.length}::json`);
   }
   if (sets.length === 0) return config;
   params.push(config.id);
