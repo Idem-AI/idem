@@ -32,8 +32,9 @@ import { frameSpec } from '../video/video.composer';
 import { buildVideoTheme } from '../video/video.theme';
 import { composeMontageHtml } from './montage.composer';
 import { cutVideo, editedDuration, keepRanges, retimeWords } from './montage.cuts';
-import { CAPTION_STYLES, CUT_MODES, CaptionStyle, CutMode, ELEMENT_TYPES, MONTAGE_LIMITS, MontageElement, MontageStage, MontageVideo } from './montage.model';
-import { planMontage } from './montage.planner';
+import { assembleInputs } from './montage.assemble';
+import { CAPTION_STYLES, CUT_MODES, CaptionStyle, CutMode, ELEMENT_TYPES, MONTAGE_LIMITS, MontageClip, MontageElement, MontageInput, MontageMessage, MontageStage, MontageVideo } from './montage.model';
+import { planMontage, PlannerInput, revisePlan } from './montage.planner';
 import { TimedWord } from './montage.timeline';
 import { transcribe, transcriptionAvailable } from './montage.transcribe';
 
@@ -49,6 +50,8 @@ export interface MontageStore {
   remove(userId: string, id: string): Promise<boolean>;
   /** Les montages restés « en cours » (processus arrêté) : marqués en échec au démarrage. */
   interrupted(): Promise<{ userId: string; brandId: string; montage: MontageVideo }[]>;
+  /** Change la marque d'un montage (charte ajoutée après coup). */
+  moveBrand(userId: string, id: string, brandId: string): Promise<boolean>;
 }
 
 // ─── Prix ───────────────────────────────────────────────────────────────────
@@ -97,15 +100,19 @@ async function downloadTo(url: string, file: string): Promise<void> {
 }
 
 export interface CreateMontageInput {
-  /** Fichier local (déposé par l'hôte) : le service le lit puis le supprime. */
-  file: string;
-  name?: string;
+  /** Les vidéos importées (déjà déposées dans le stockage), dans l'ordre. */
+  inputs: MontageInput[];
   prompt: string;
   format: VideoFormat;
   creativity: CreativityLevel;
   cuts: CutMode;
   music: boolean;
 }
+
+const msgId = () => `msg_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+const message = (role: MontageMessage['role'], text: string, extra: Partial<MontageMessage> = {}): MontageMessage => ({ id: msgId(), role, text, createdAt: now(), ...extra });
+const push = (m: MontageVideo, ...messages: MontageMessage[]): MontageVideo => ({ ...m, messages: [...(m.messages || []), ...messages].slice(-200) });
+const seconds = (n: number) => (n >= 60 ? `${Math.floor(n / 60)} min ${String(Math.round(n % 60)).padStart(2, '0')} s` : `${Math.round(n)} s`);
 
 export class MontageService {
   constructor(
@@ -121,7 +128,7 @@ export class MontageService {
     return transcriptionAvailable();
   }
 
-  /** Sonde un fichier importé : durée, taille, son (refus clairs avant tout débit). */
+  /** Sonde un fichier importé (local ou URL du stockage) : durée, cadre, son. */
   async inspect(file: string): Promise<{ durationSec: number; width: number; height: number; hasAudio: boolean }> {
     let info;
     try {
@@ -129,11 +136,19 @@ export class MontageService {
     } catch {
       throw new MontageInputError('unreadable_video');
     }
-    if (!info.width || !info.height) throw new MontageInputError('unreadable_video');
-    if (!info.hasAudio) throw new MontageInputError('no_audio');
-    if (info.duration < MONTAGE_LIMITS.minDurationSec) throw new MontageInputError('too_short');
-    if (info.duration > MONTAGE_LIMITS.maxDurationSec + 1) throw new MontageInputError('too_long');
+    if (!info.width || !info.height || !info.duration) throw new MontageInputError('unreadable_video');
     return { durationSec: info.duration, width: info.width, height: info.height, hasAudio: info.hasAudio };
+  }
+
+  /** Les bornes d'un ensemble de vidéos (avant tout débit) : au moins une avec du son, durée totale. */
+  checkInputs(inputs: { durationSec: number; hasAudio: boolean }[]): number {
+    if (!inputs.length) throw new MontageInputError('no_video');
+    if (inputs.length > MONTAGE_LIMITS.maxFiles) throw new MontageInputError('too_many');
+    if (!inputs.some((i) => i.hasAudio)) throw new MontageInputError('no_audio');
+    const total = inputs.reduce((sum, i) => sum + i.durationSec, 0);
+    if (total < MONTAGE_LIMITS.minDurationSec) throw new MontageInputError('too_short');
+    if (total > MONTAGE_LIMITS.maxDurationSec + 1) throw new MontageInputError('too_long');
+    return total;
   }
 
   quote(durationSec: number, level: CreativityLevel) {
@@ -143,23 +158,21 @@ export class MontageService {
   // ── Création ──────────────────────────────────────────────────────────────
 
   async create(userId: string, brandId: string, input: CreateMontageInput, paid: number, onFailed?: (m: MontageVideo) => Promise<void>): Promise<MontageVideo> {
-    const info = await this.inspect(input.file);
-    const storage = requirePort('storage');
     const id = newId();
-    const folder = `users/${userId}/brands/${brandId}/montages/${id}`;
-    const ext = (path.extname(input.name || '') || '.mp4').toLowerCase().replace(/[^.a-z0-9]/g, '').slice(0, 6) || '.mp4';
-    const up = await storage.uploadFile(fs.readFileSync(input.file), `source${ext}`, folder, ext === '.webm' ? 'video/webm' : ext === '.mov' ? 'video/quicktime' : 'video/mp4');
+    const first = input.inputs[0];
+    const prompt = input.prompt.trim().slice(0, 1200);
     const montage: MontageVideo = {
       id,
-      title: (input.name || 'Montage').replace(/\.[a-z0-9]+$/i, '').slice(0, 60),
+      title: prompt ? prompt.replace(/\s+/g, ' ').slice(0, 60) : (first?.name || 'Montage').replace(/\.[a-z0-9]+$/i, '').slice(0, 60),
       status: 'processing',
-      stage: 'transcribe',
-      progress: 0,
-      prompt: input.prompt.slice(0, 1200),
+      stage: 'prepare',
+      prompt,
       format: VIDEO_FORMATS.includes(input.format) ? input.format : 'story',
       quality: 'hd',
       creativity: normalizeCreativity(input.creativity),
-      source: { url: up.downloadURL, durationSec: Math.round(info.durationSec * 1000) / 1000, width: info.width, height: info.height, name: input.name?.slice(0, 80) },
+      // La prise définitive est connue après l'assemblage ; d'ici là, la première vidéo.
+      source: { url: first.url, durationSec: first.durationSec, width: first.width, height: first.height, name: first.name },
+      inputs: input.inputs,
       words: [],
       cuts: { mode: CUT_MODES.includes(input.cuts) ? input.cuts : 'tight', ranges: [], removedSec: 0 },
       captions: { style: 'pop' },
@@ -168,80 +181,143 @@ export class MontageService {
       paidCredits: paid,
       exportCount: 0,
       renders: [],
+      messages: [
+        message('user', prompt, { kind: 'request', inputs: input.inputs.map((i) => ({ url: i.url, name: i.name, posterUrl: i.posterUrl, durationSec: i.durationSec })) }),
+        message('assistant', 'Je prépare votre montage. Vous pouvez quitter cette page, il continue.', { kind: 'progress', i18n: { key: 'montage.chat.preparing' } }),
+      ],
       createdAt: now(),
       updatedAt: now(),
     };
     await this.store.save(userId, brandId, montage);
-    // Le fichier local sert au traitement : il est gardé jusqu'à la fin, puis supprimé.
-    void enqueue(() => this.process(userId, brandId, id, input.file))
-      .catch(async (error: any) => {
-        logger.error('montage.failed', { event: 'montage.failed', montageId: id, error: error?.message, alert: 'critical' });
-        const failed = await this.store.mutate(userId, id, (m) => ({ ...m, status: 'failed', error: String(error?.message || 'failed').slice(0, 160), updatedAt: now() }));
-        if (failed && onFailed) await onFailed(failed).catch(() => undefined);
-      })
-      .finally(() => fs.rmSync(input.file, { force: true }));
+    void enqueue(() => this.process(userId, brandId, id)).catch(async (error: any) => {
+      const code = String(error?.message || 'failed').slice(0, 160);
+      logger.error('montage.failed', { event: 'montage.failed', montageId: id, error: code, alert: code === 'no_speech' ? undefined : 'critical' });
+      const failed = await this.store.mutate(userId, id, (m) =>
+        push(
+          { ...m, status: 'failed', error: code, updatedAt: now() },
+          message('assistant', code === 'no_speech' ? 'Je n’ai entendu personne parler dans ces vidéos. Ajoutez une vidéo où vous parlez.' : 'Le montage n’a pas abouti. Vos crédits vous sont rendus.', {
+            kind: 'error',
+            i18n: { key: code === 'no_speech' ? 'montage.chat.noSpeech' : 'montage.chat.failed', params: { cost: m.paidCredits } },
+          })
+        )
+      );
+      if (failed && onFailed) await onFailed(failed).catch(() => undefined);
+    });
     return montage;
+  }
+
+  /** Les entrées du monteur, communes à la création et aux retours. */
+  private async plannerInput(userId: string, brandId: string, m: MontageVideo): Promise<PlannerInput> {
+    const brand = await this.brands.loadBrand(userId, brandId);
+    const theme = buildVideoTheme((brand?.branding as any) || {}, brand?.brandName || '');
+    return {
+      words: m.words,
+      timed: this.timedWords(m),
+      durationSec: m.edit!.durationSec,
+      prompt: m.prompt,
+      brandName: theme.brandName,
+      sheet: theme.brandName || brand?.voice.businessType ? brandSheet({ brandName: theme.brandName || '(no brand name)', businessType: brand?.voice.businessType, tone: brand?.voice.tone, palette: theme.palette, fonts: theme.fonts, art: (brand?.branding as any)?.artDirection }) : '',
+      contacts: this.contactsOf(brand),
+      language: m.language || 'fr',
+      format: m.format,
+      creativity: m.creativity,
+      clips: (m.clips || []).map((c) => ({ id: c.id, durationSec: c.durationSec, name: c.name })),
+    };
   }
 
   private async setStage(userId: string, id: string, stage: MontageStage, progress?: number): Promise<void> {
     await this.store.mutate(userId, id, (m) => ({ ...m, stage, progress, updatedAt: now() }));
   }
 
-  /** La chaîne complète : transcription, coupes, plan, images, musique. */
-  private async process(userId: string, brandId: string, id: string, file: string): Promise<void> {
+  /** La chaîne complète : assemblage, transcription, coupes, plan, images, musique. */
+  private async process(userId: string, brandId: string, id: string): Promise<void> {
     const started = Date.now();
     const current = await this.store.get(userId, id);
     if (!current) return;
-    const brand = await this.brands.loadBrand(userId, brandId);
-    // 1. Transcription.
-    let lastWrite = 0;
-    const { words, language } = await transcribe(file, {
-      onProgress: (r) => {
-        if (Date.now() - lastWrite < 1500) return;
-        lastWrite = Date.now();
-        void this.setStage(userId, id, 'transcribe', r);
-      },
-    });
-    if (!words.length) throw new Error('no_speech');
-    await this.store.mutate(userId, id, (m) => ({ ...m, words, language: language || brand?.voice.language || 'fr', stage: 'cut', progress: undefined, updatedAt: now() }));
-    // 2. Coupes.
-    await this.recut(userId, id, file);
-    // 3. Plan du monteur.
-    await this.setStage(userId, id, 'plan');
-    const m1 = (await this.store.get(userId, id))!.montage;
-    const theme = buildVideoTheme((brand?.branding as any) || {}, brand?.brandName || 'Marque');
-    const timed = this.timedWords(m1);
-    const plan = await planMontage(
-      {
-        words: m1.words,
-        timed,
-        durationSec: m1.edit!.durationSec,
-        prompt: m1.prompt,
-        brandName: theme.brandName,
-        sheet: brandSheet({ brandName: theme.brandName, businessType: brand?.voice.businessType, tone: brand?.voice.tone, palette: theme.palette, fonts: theme.fonts, art: (brand?.branding as any)?.artDirection }),
-        contacts: this.contactsOf(brand),
-        language: m1.language || 'fr',
-        format: m1.format,
-        creativity: m1.creativity,
-      },
-      this.writerFor(userId, m1.creativity)
-    );
-    await this.store.mutate(userId, id, (m) => ({
-      ...m,
-      title: plan.title || m.title,
-      captions: { style: plan.captions },
-      elements: plan.elements,
-      outro: plan.outro,
-      plannedBy: plan.source,
-      stage: 'media',
-      updatedAt: now(),
-    }));
-    // 4. Images d'illustration.
-    const elements = await this.sourceImages(userId, brandId, id, plan.elements, m1.creativity, m1.format);
-    // 5. Musique (sous la voix).
-    const music = m1.musicEnabled ? await this.pickMusic(brand, m1.edit!.durationSec + (plan.outro?.durationSec || 0)) : undefined;
-    await this.store.mutate(userId, id, (m) => ({ ...m, elements, ...(music ? { music } : {}), status: 'ready', stage: 'ready', progress: undefined, updatedAt: now() }));
-    logger.info('montage.ready', { event: 'montage.ready', montageId: id, words: words.length, elements: elements.length, plannedBy: plan.source, removedSec: m1.cuts.removedSec, ms: Date.now() - started });
+    const storage = requirePort('storage');
+    const folder = `users/${userId}/brands/${brandId}/montages/${id}`;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-montage-in-'));
+    try {
+      // 0. Les vidéos importées : celles qui parlent bout à bout, les autres en plans de coupe.
+      const inputs = current.montage.inputs || [{ url: current.montage.source.url, durationSec: current.montage.source.durationSec, width: current.montage.source.width, height: current.montage.source.height }];
+      const files: string[] = [];
+      for (const [i, input] of inputs.entries()) {
+        const file = path.join(dir, `in-${i}${(path.extname(new URL(input.url).pathname) || '.mp4').slice(0, 6)}`);
+        await downloadTo(input.url, file);
+        files.push(file);
+      }
+      const assembled = await assembleInputs(files, dir);
+      if (!assembled.source) throw new Error('no_speech');
+      const sourceUrl =
+        files.length === 1 || assembled.source.file === files[assembled.speech.indexOf(true)]
+          ? inputs[assembled.speech.indexOf(true)].url
+          : (await storage.uploadFile(fs.readFileSync(assembled.source.file), 'source.mp4', folder, 'video/mp4')).downloadURL;
+      const clips: MontageClip[] = [];
+      for (const c of assembled.clips) {
+        const key = `c${clips.length + 1}`;
+        const [video, poster] = await Promise.all([
+          storage.uploadFile(fs.readFileSync(c.file), `clip-${key}.webm`, folder, 'video/webm'),
+          storage.uploadFile(fs.readFileSync(c.poster), `clip-${key}.jpg`, folder, 'image/jpeg'),
+        ]);
+        clips.push({ id: key, url: video.downloadURL, posterUrl: poster.downloadURL, durationSec: Math.round(c.durationSec * 100) / 100, name: inputs[c.index].name?.slice(0, 60) });
+      }
+      const src = assembled.source;
+      await this.store.mutate(userId, id, (m) => ({
+        ...m,
+        source: { url: sourceUrl, durationSec: Math.round(src.durationSec * 1000) / 1000, width: src.width, height: src.height, name: m.source.name },
+        inputs: inputs.map((x, i) => ({ ...x, speech: assembled.speech[i] })),
+        clips,
+        stage: 'transcribe',
+        progress: 0,
+        updatedAt: now(),
+      }));
+
+      const brand = await this.brands.loadBrand(userId, brandId);
+      // 1. Transcription.
+      let lastWrite = 0;
+      const { words, language } = await transcribe(src.file, {
+        onProgress: (r) => {
+          if (Date.now() - lastWrite < 1500) return;
+          lastWrite = Date.now();
+          void this.setStage(userId, id, 'transcribe', r);
+        },
+      });
+      if (!words.length) throw new Error('no_speech');
+      await this.store.mutate(userId, id, (m) => ({ ...m, words, language: language || brand?.voice.language || 'fr', stage: 'cut', progress: undefined, updatedAt: now() }));
+      // 2. Coupes.
+      await this.recut(userId, id, src.file);
+      // 3. Plan du monteur.
+      await this.setStage(userId, id, 'plan');
+      const m1 = (await this.store.get(userId, id))!.montage;
+      const plan = await planMontage(await this.plannerInput(userId, brandId, m1), this.writerFor(userId, m1.creativity));
+      await this.store.mutate(userId, id, (m) => ({
+        ...m,
+        title: m.prompt ? m.title : plan.title || m.title,
+        captions: { style: plan.captions },
+        elements: plan.elements,
+        outro: plan.outro,
+        plannedBy: plan.source,
+        stage: 'media',
+        updatedAt: now(),
+      }));
+      // 4. Images d'illustration (les plans de coupe fournis n'en ont pas besoin).
+      const elements = await this.sourceImages(userId, brandId, id, plan.elements, m1.creativity, m1.format);
+      // 5. Musique (sous la voix).
+      const music = m1.musicEnabled ? await this.pickMusic(brand, m1.edit!.durationSec + (plan.outro?.durationSec || 0)) : undefined;
+      const shown = elements.filter((e) => e.type !== 'zoom').length;
+      await this.store.mutate(userId, id, (m) =>
+        push(
+          { ...m, elements, ...(music ? { music } : {}), status: 'ready', stage: 'ready', progress: undefined, updatedAt: now() },
+          message('assistant', `Votre montage est prêt : ${seconds(m.edit!.durationSec)}${m.cuts.removedSec >= 1 ? `, ${seconds(m.cuts.removedSec)} de blancs retirés` : ''}, sous-titres et ${shown} élément(s) à l’écran. Dites-moi ce qu’il faut changer, ou téléchargez-le.`, {
+            kind: 'result',
+            i18n: { key: 'montage.chat.ready', params: { duration: seconds(m.edit!.durationSec), removed: m.cuts.removedSec >= 1 ? seconds(m.cuts.removedSec) : '', count: shown } },
+          })
+        )
+      );
+      logger.info('montage.ready', { event: 'montage.ready', montageId: id, inputs: inputs.length, clips: clips.length, words: words.length, elements: elements.length, plannedBy: plan.source, removedSec: m1.cuts.removedSec, ms: Date.now() - started });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   }
 
   /** Coupes + vidéo montée (recadrée au format) : à la création, ou quand les coupes ou le format changent. */
@@ -303,7 +379,7 @@ export class MontageService {
     const generate = !!coreHost().generateImage;
     const genFirst = level === 'high' || level === 'max' || level === 'ultra';
     for (const el of elements) {
-      if (el.type !== 'broll' || el.image) {
+      if (el.type !== 'broll' || el.image || el.clip) {
         out.push(el);
         continue;
       }
@@ -372,7 +448,7 @@ export class MontageService {
     if (!found?.montage.edit) return null;
     const { montage } = found;
     const brand = await this.brands.loadBrand(userId, found.brandId);
-    const theme = buildVideoTheme((brand?.branding as any) || {}, brand?.brandName || 'Marque');
+    const theme = buildVideoTheme((brand?.branding as any) || {}, brand?.brandName || '');
     const { html } = await composeMontageHtml({ montage, timed: this.timedWords(montage), theme, mode: 'preview', videoUrl: montage.edit!.url, musicUrl: montage.musicEnabled ? montage.music?.url : undefined });
     return html;
   }
@@ -430,6 +506,57 @@ export class MontageService {
     return updated;
   }
 
+  /**
+   * Un RETOUR écrit dans la conversation (« sans musique », « plus de zooms », « en carré ») :
+   * les réglages dits en clair sont appliqués par le code, le reste par le monteur qui reprend
+   * son montage. Gratuit, comme toute retouche. La réponse arrive dans le fil.
+   */
+  async revise(userId: string, id: string, text: string): Promise<MontageVideo | null> {
+    const found = await this.store.get(userId, id);
+    if (!found) return null;
+    if (found.montage.status === 'processing') throw new MontageInputError('still_processing');
+    const feedback = text.replace(/\s+/g, ' ').trim().slice(0, 600);
+    if (!feedback) throw new MontageInputError('empty_message');
+    await this.store.mutate(userId, id, (m) => push(m, message('user', feedback, { kind: 'request' })));
+    const m = found.montage;
+    const revision = await revisePlan(await this.plannerInput(userId, found.brandId, m), { elements: m.elements, outro: m.outro, captions: m.captions.style }, feedback, this.writerFor(userId, m.creativity));
+    const { settings } = revision;
+    const changes: string[] = [];
+    if (settings.music === false) changes.push('musique retirée');
+    if (settings.music === true) changes.push('musique ajoutée');
+    if (settings.captions) changes.push(settings.captions === 'none' ? 'sous-titres retirés' : 'sous-titres changés');
+    if (settings.format) changes.push('format changé');
+    if (settings.cuts) changes.push(settings.cuts === 'none' ? 'vidéo remise intacte' : 'coupes refaites');
+    if (settings.outro === false) changes.push('carton de fin retiré');
+    if (revision.elements) changes.push('habillage revu');
+    if (!changes.length) {
+      // Rien de compris : on le dit, sans rien casser.
+      return this.store.mutate(userId, id, (x) =>
+        push(x, message('assistant', 'Je n’ai pas compris ce qu’il faut changer. Dites par exemple « sans musique », « sous-titres plus sobres », « en carré » ou « ajoute le prix en grand ».', { kind: 'revision', i18n: { key: 'montage.chat.notUnderstood' } }))
+      );
+    }
+    // Les éléments du monteur, puis les réglages (qui relancent les coupes au besoin).
+    if (revision.elements) {
+      await this.store.mutate(userId, id, (x) => ({ ...x, elements: revision.elements!, outro: settings.outro === false ? undefined : revision.outro ?? x.outro, plannedBy: 'llm', updatedAt: now() }));
+      const withImages = await this.sourceImages(userId, found.brandId, id, revision.elements, m.creativity, (settings.format as VideoFormat) || m.format);
+      await this.store.mutate(userId, id, (x) => ({ ...x, elements: withImages }));
+    }
+    await this.update(userId, id, {
+      ...(settings.captions ? { captions: settings.captions } : {}),
+      ...(typeof settings.music === 'boolean' ? { music: settings.music } : {}),
+      ...(settings.cuts ? { cuts: settings.cuts } : {}),
+      ...(settings.format ? { format: settings.format } : {}),
+      ...(settings.outro === false ? { outro: null } : {}),
+    });
+    const reply = revision.reply || `C’est fait : ${changes.join(', ')}.`;
+    return this.store.mutate(userId, id, (x) => push(x, message('assistant', reply, { kind: 'revision' })));
+  }
+
+  /** Une charte ajoutée après coup : le montage la prend (l'aperçu et l'export suivent). */
+  async setBrand(userId: string, id: string, brandId: string): Promise<boolean> {
+    return this.store.moveBrand(userId, id, brandId);
+  }
+
   /** Les éléments retouchés : mêmes bornes que ceux du monteur, textes libres (c'est l'utilisateur qui écrit). */
   private cleanElements(raw: unknown[], m: MontageVideo): MontageElement[] {
     const n = m.words.length;
@@ -455,6 +582,7 @@ export class MontageService {
           icon: clip(x.icon, 24),
           // Une image ne vient que du monteur (déposée chez nous) : jamais d'une URL envoyée par le client.
           image: prev?.image,
+          clip: prev?.clip,
           credit: prev?.credit,
           query: prev?.query,
           mode: x.mode === 'full' ? 'full' : x.mode === 'card' ? 'card' : prev?.mode,
@@ -493,7 +621,7 @@ export class MontageService {
     if (!found?.montage.edit) return;
     const m = found.montage;
     const brand = await this.brands.loadBrand(userId, brandId);
-    const theme = buildVideoTheme((brand?.branding as any) || {}, brand?.brandName || 'Marque');
+    const theme = buildVideoTheme((brand?.branding as any) || {}, brand?.brandName || '');
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-montage-render-'));
     let output: Awaited<ReturnType<typeof renderVideo>> | null = null;
     try {

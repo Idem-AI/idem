@@ -31,6 +31,8 @@ export interface PlannerInput {
   language: string;
   format: string;
   creativity: CreativityLevel;
+  /** Les plans de coupe fournis (vidéos sans parole) : à montrer avant toute image trouvée. */
+  clips?: { id: string; durationSec: number; name?: string }[];
 }
 
 export interface MontagePlan {
@@ -75,7 +77,7 @@ export function buildPlannerPrompt(input: PlannerInput): { system: string; user:
     `- icon {from,to,icon,label?}: a pictogram for the idea being said. icon ∈ ${ICON_CONCEPT_IDS.join(', ')}.`,
     '- list {from,to,text?,items}: when the person enumerates 2–4 things; items ≤ 5 words each, in the order said; to = the last item word.',
     '- callout {from,to,text}: a short card (≤ 7 words) that sums up a key idea in the person’s own words.',
-    '- broll {from,to,query,prompt,mode}: an illustration image while the person speaks of a concrete thing (product, place, activity). query = 2–4 English stock-photo keywords; prompt = one English sentence describing a photo (African context when people appear); mode "card" (image card, the speaker stays visible) or "full" (cutaway, max 4 s).',
+    '- broll {from,to,query,prompt,mode} or {from,to,clip,mode}: an illustration while the person speaks of a concrete thing (product, place, activity). With CLIPS provided, use them first ("clip":"c1", each clip once). Otherwise query = 2–4 English stock-photo keywords; prompt = one English sentence describing a photo (African context when people appear). mode "card" (the speaker stays visible) or "full" (cutaway, max 4 s).',
     '- lowerThird {from,to,value,label}: when the person introduces themself: value = their name exactly as said, label = role ≤ 5 words.',
     '- cta {from,to,text,value?}: when the person asks the viewer to act (call, visit, order, follow). text ≤ 5 words; value = contact detail ONLY if said or written in the request/contacts.',
     '- zoom {from}: a punch-in on the speaker on an emphasised word (max one every 8 s).',
@@ -92,6 +94,7 @@ export function buildPlannerPrompt(input: PlannerInput): { system: string; user:
     input.sheet,
     input.contacts.length ? `CONTACTS: ${input.contacts.join(' · ')}` : '',
     `FORMAT: ${input.format} · DURATION: ${input.durationSec.toFixed(1)} s · LANGUAGE: ${input.language}`,
+    input.clips?.length ? `CLIPS (silent footage provided by the client): ${input.clips.map((c) => `${c.id} (${c.durationSec.toFixed(1)} s${c.name ? `, “${c.name.slice(0, 40)}”` : ''})`).join(' · ')}` : '',
     `REQUEST: ${input.prompt.trim() || '(none — make it engaging and professional)'}`,
     'TRANSCRIPT:',
     transcriptBlock(input),
@@ -160,6 +163,8 @@ export function validateElement(raw: any, input: PlannerInput): MontageElement |
       return text ? { ...base, text } : null;
     }
     case 'broll': {
+      const clipId = typeof raw.clip === 'string' ? raw.clip.trim() : '';
+      if (clipId && input.clips?.some((c) => c.id === clipId)) return { ...base, clip: clipId, mode: raw.mode === 'full' ? 'full' : 'card' };
       const query = clip(raw.query, 60);
       const prompt = clip(raw.prompt, 300);
       if (!query && !prompt) return null;
@@ -182,6 +187,41 @@ export function validateElement(raw: any, input: PlannerInput): MontageElement |
       return { ...base, to: from };
   }
   return null;
+}
+
+/**
+ * Les plans de coupe FOURNIS sont toujours montrés : ceux que le monteur a oubliés sont posés par
+ * le code, chacun sur une phrase où la zone est libre (en carte d'abord, en plein écran sinon).
+ */
+export function ensureClips(elements: MontageElement[], input: PlannerInput): MontageElement[] {
+  const clips = input.clips || [];
+  const missing = clips.filter((c) => !elements.some((e) => e.clip === c.id));
+  if (!missing.length) return elements;
+  let out = [...elements];
+  const list = sentences(input.words, input.timed);
+  const candidates = list.length > 1 ? [...list.slice(1), list[0]] : list;
+  for (const c of missing) {
+    let placed = false;
+    for (const s of candidates) {
+      for (const mode of ['card', 'full'] as const) {
+        const el: MontageElement = { id: newId('broll'), type: 'broll', from: s.from, to: Math.min(s.to, s.from + 8), clip: c.id, mode };
+        const kept = new Set(elementWindows([...out, el], input.timed, input.durationSec).map((w) => w.id));
+        if (kept.has(el.id) && out.every((e) => kept.has(e.id))) {
+          out = [...out, el].sort((a, b) => a.from - b.from);
+          placed = true;
+          break;
+        }
+      }
+      if (placed) break;
+    }
+    // Aucune place libre : le plan de coupe passe avant l'élément le moins utile de sa phrase.
+    if (!placed && candidates[0]) {
+      const s = candidates[0];
+      const el: MontageElement = { id: newId('broll'), type: 'broll', from: s.from, to: Math.min(s.to, s.from + 8), clip: c.id, mode: 'full' };
+      out = [...out.filter((e) => !(e.type !== 'zoom' && e.from >= s.from && e.from <= s.to && ['icon', 'callout', 'keyword'].includes(e.type))), el].sort((a, b) => a.from - b.from);
+    }
+  }
+  return out;
 }
 
 /**
@@ -211,6 +251,7 @@ function outroOf(raw: any, input: PlannerInput): MontageOutro | undefined {
   if (raw === null) return undefined;
   const heard = fold(`${input.words.map((w) => w.text).join(' ')} ${input.prompt} ${input.contacts.join(' ')}`).replace(/\s+/g, '');
   const text = wordsMax(clip(raw?.text, 60), 6) || input.brandName;
+  if (!text) return undefined;
   const detail = clip(raw?.detail, 60);
   const known = detail && heard.includes(fold(detail).replace(/\s+/g, ''));
   return { text, ...(known ? { detail } : {}), durationSec: OUTRO_SEC };
@@ -249,10 +290,22 @@ export function rulesPlan(input: PlannerInput): MontagePlan {
       elements.push({ id: newId('zoom'), type: 'zoom', from: s.from, to: s.from });
     }
   }
-  const title = list[0]?.text.split(' ').slice(0, 6).join(' ').replace(/[.,!?…]+$/, '') || input.brandName;
+  // Les plans de coupe fournis : un par phrase, à partir de la deuxième, régulièrement répartis.
+  const clips = input.clips || [];
+  if (clips.length && list.length > 1) {
+    const step = Math.max(1, Math.floor((list.length - 1) / clips.length));
+    clips.forEach((c, k) => {
+      const s = list[Math.min(list.length - 1, 1 + k * step)];
+      elements.push({ id: newId('broll'), type: 'broll', from: s.from, to: Math.min(s.to, s.from + 8), clip: c.id, mode: k % 2 ? 'full' : 'card' });
+    });
+  }
+  const title = list[0]?.text.split(' ').slice(0, 6).join(' ').replace(/[.,!?…]+$/, '') || input.brandName || 'Montage';
   // Ce qui passe d'abord : un prix, puis un chiffre avec unité, puis un chiffre, puis un picto.
-  const rank = (e: MontageElement) => (e.type !== 'stat' ? 0 : /(f|fcfa|cfa|francs?|€|euros?|\$|dollars?)$/i.test(e.value || '') ? 3 : /\D\s*$/.test(e.value || '') ? 2 : 1);
-  return { title, captions: 'pop', elements: finalize(elements, input, rank), outro: { text: input.brandName, ...(input.contacts[0] ? { detail: input.contacts[0] } : {}), durationSec: OUTRO_SEC }, source: 'rules' };
+  const rank = (e: MontageElement) => (e.clip ? 4 : e.type !== 'stat' ? 0 : /(f|fcfa|cfa|francs?|€|euros?|\$|dollars?)$/i.test(e.value || '') ? 3 : /\D\s*$/.test(e.value || '') ? 2 : 1);
+  // Le carton de fin : la marque et son contact. Sans nom ni contact (création sans charte), pas de carton.
+  const outroText = input.brandName || input.contacts[0];
+  const outro = outroText ? { text: outroText, ...(input.brandName && input.contacts[0] ? { detail: input.contacts[0] } : {}), durationSec: OUTRO_SEC } : undefined;
+  return { title, captions: 'pop', elements: ensureClips(finalize(elements, input, rank), input), outro, source: 'rules' };
 }
 
 /** Le plan du monteur : modèle au-delà du cran Low, règles sinon (ou si le modèle échoue). */
@@ -264,7 +317,7 @@ export async function planMontage(input: PlannerInput, writer: CopyWriter | unde
       const json = extractJson(await writer(system, user));
       if (!json || !Array.isArray(json.elements)) throw new Error('plan_unreadable');
       const proposed = json.elements.length;
-      const elements = finalize(json.elements.map((e: any) => validateElement(e, input)).filter((e: MontageElement | null): e is MontageElement => !!e), input);
+      const elements = ensureClips(finalize(json.elements.map((e: any) => validateElement(e, input)).filter((e: MontageElement | null): e is MontageElement => !!e), input), input);
       logger.info('montage.planned', { event: 'montage.planned', proposed, kept: elements.length, attempt });
       if (!elements.length && proposed) throw new Error('plan_all_rejected');
       return {
@@ -279,4 +332,98 @@ export async function planMontage(input: PlannerInput, writer: CopyWriter | unde
     }
   }
   return rulesPlan(input);
+}
+
+// ─── La révision : un retour écrit dans la conversation ─────────────────────
+
+export interface RevisionSettings {
+  music?: boolean;
+  cuts?: 'tight' | 'natural' | 'none';
+  format?: 'story' | 'square' | 'portrait' | 'landscape';
+  captions?: CaptionStyle;
+  outro?: false;
+}
+
+export interface MontageRevision {
+  elements?: MontageElement[];
+  outro?: MontageOutro;
+  settings: RevisionSettings;
+  reply?: string;
+  source: 'llm' | 'rules';
+}
+
+/**
+ * Les réglages qu'un retour demande en clair (« sans musique », « en carré », « sous-titres
+ * sobres », « garde les blancs ») : lus par le code, sans modèle, à tous les crans.
+ */
+export function settingsFromText(text: string): RevisionSettings {
+  const t = fold(text);
+  const out: RevisionSettings = {};
+  if (/(sans|enleve|retire|coupe|supprime|pas de)\s+(la\s+|de\s+)?musique|no music|without music|remove (the )?music/.test(t)) out.music = false;
+  else if (/(ajoute|mets|avec|remets)\s+(une\s+|de la\s+|la\s+)?musique|add music|with music/.test(t)) out.music = true;
+  if (/\bcarre\b|square|1\s*[:/x]\s*1/.test(t)) out.format = 'square';
+  else if (/paysage|horizonta|landscape|16\s*[:/x]\s*9|youtube/.test(t)) out.format = 'landscape';
+  else if (/\bstory\b|stories|vertical|9\s*[:/x]\s*16|tiktok|reels?\b|statut/.test(t)) out.format = 'story';
+  else if (/4\s*[:/x]\s*5|portrait/.test(t)) out.format = 'portrait';
+  if (/sans sous-?titres?|pas de sous-?titres?|no captions|enleve les sous-?titres/.test(t)) out.captions = 'none';
+  else if (/sous-?titres? (plus )?(sobres?|discrets?|simples?|calmes?)|captions? (more )?(sober|subtle|simple)/.test(t)) out.captions = 'minimal';
+  else if (/karaoke/.test(t)) out.captions = 'karaoke';
+  else if (/sous-?titres? (plus )?(dynamiques?|percutants?|gros|grands?)|bigger captions|punchy captions/.test(t)) out.captions = 'pop';
+  if (/(garde|laisse|ne coupe pas|sans couper|pas de coupe)\w*\s*(les\s+)?(blancs|silences|pauses)?|keep the (silences|pauses)|no cuts/.test(t) && /(blanc|silence|pause|coupe|cut)/.test(t)) out.cuts = 'none';
+  else if (/coupe (plus|davantage)|plus (rythme|dynamique|nerveux)|enleve (tous )?les blancs|tighter|faster pace/.test(t)) out.cuts = 'tight';
+  else if (/(plus )?naturel|moins coupe|less cuts/.test(t)) out.cuts = 'natural';
+  if (/(sans|enleve|retire|supprime|pas de)\s+(le\s+)?carton|no end card|remove the (end card|outro)/.test(t)) out.outro = false;
+  return out;
+}
+
+/** Vrai quand le retour ne demande que des réglages (le modèle n'a rien à redessiner). */
+export function onlySettings(text: string, settings: RevisionSettings): boolean {
+  const rest = fold(text).replace(/\b(et|and|aussi|also|stp|svp|merci|please|thanks?|la|le|les|des|de|du|un|une|en|avec|sans|mets|met|fais|passe)\b/g, ' ');
+  return Object.keys(settings).length > 0 && rest.replace(/[^a-z]/g, '').length < 60;
+}
+
+/** Le monteur reprend SON montage selon le retour du client (même menu, mêmes garde-fous). */
+export async function revisePlan(
+  input: PlannerInput,
+  current: { elements: MontageElement[]; outro?: MontageOutro; captions: CaptionStyle },
+  feedback: string,
+  writer: CopyWriter | undefined
+): Promise<MontageRevision> {
+  const settings = settingsFromText(feedback);
+  if (!writer || input.creativity === 'low' || onlySettings(feedback, settings)) return { settings, source: 'rules' };
+  const base = buildPlannerPrompt(input);
+  const describe = current.elements
+    .filter((e) => !e.off)
+    .map((e) => ({ type: e.type, from: e.from, to: e.to, ...(e.text ? { text: e.text } : {}), ...(e.value ? { value: e.value } : {}), ...(e.label ? { label: e.label } : {}), ...(e.items ? { items: e.items } : {}), ...(e.icon ? { icon: e.icon } : {}), ...(e.clip ? { clip: e.clip } : {}), ...(e.query ? { query: e.query } : {}), ...(e.mode ? { mode: e.mode } : {}) }));
+  const system = `${base.system}
+REVISION: you already edited this video. The client now gives feedback. Apply it — and only it: keep what they did not question.
+Answer with the FULL new edit in the same JSON, plus:
+- "settings": only what the client asked among {"music":true|false,"cuts":"tight|natural|none","format":"story|square|portrait|landscape"} (or {}),
+- "reply": ONE short friendly sentence in the client's language saying what you changed (no jargon).`;
+  const user = `${base.user}
+CURRENT EDIT: ${JSON.stringify({ captions: current.captions, elements: describe, outro: current.outro ? { text: current.outro.text, detail: current.outro.detail } : null })}
+CLIENT FEEDBACK: ${feedback.slice(0, 600)}`;
+  try {
+    const json = extractJson(await writer(system, user));
+    if (!json || !Array.isArray(json.elements)) throw new Error('revision_unreadable');
+    const elements = ensureClips(finalize(json.elements.map((e: any) => validateElement(e, input)).filter((e: MontageElement | null): e is MontageElement => !!e), input), input);
+    const s = json.settings && typeof json.settings === 'object' ? json.settings : {};
+    return {
+      elements,
+      outro: json.outro === null ? undefined : outroOf(json.outro, input),
+      settings: {
+        ...settings,
+        ...(typeof s.music === 'boolean' ? { music: s.music } : {}),
+        ...(['tight', 'natural', 'none'].includes(s.cuts) ? { cuts: s.cuts } : {}),
+        ...(['story', 'square', 'portrait', 'landscape'].includes(s.format) ? { format: s.format } : {}),
+        ...(CAPTION_STYLES.includes(json.captions) && json.captions !== current.captions ? { captions: json.captions } : {}),
+        ...(json.outro === null ? { outro: false as const } : {}),
+      },
+      reply: clip(json.reply, 300) || undefined,
+      source: 'llm',
+    };
+  } catch (error: any) {
+    logger.warn('montage.revision_failed', { event: 'montage.revision_failed', error: error?.message });
+    return { settings, source: 'rules' };
+  }
 }

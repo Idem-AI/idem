@@ -9,6 +9,7 @@ import { ApiService } from '../../../core/api.service';
 import { Brand, ChatEvent, ChatMessage, ChatMode, ChatOptions, ChatSession, Creativity, MediaAsset, MotionVideo, Reference, Visual } from '../../../core/models';
 import { StudioState } from '../../../core/studio.state';
 import { CreativitySelect } from '../../../shared/components/creativity-select';
+import { BrandHint } from '../../../shared/components/brand-hint';
 import { Illustration } from '../../../shared/components/illustration';
 import { BrandChoice } from './brand-choice';
 import { ProgressList, StageState } from './progress-list';
@@ -24,13 +25,14 @@ const IMAGE_FORMATS = ['square', 'story', 'post', 'banner', 'a4'];
 const DURATIONS = [6, 15, 30, 60];
 
 /**
- * LA CONVERSATION. Un mode par conversation (images OU vidéos). L'assistant demande ce qui
- * manque — une marque, un modèle — et l'utilisateur répond d'un geste (une marque, un fichier,
- * « sans modèle »), sans réécrire sa demande : le serveur la garde et la rejoue.
+ * LA CONVERSATION. Un mode par conversation (images OU vidéos). La marque n'est jamais exigée :
+ * une ligne discrète propose le site, la charte ou des couleurs (`iv-brand-hint`), et sans
+ * réponse la création se fait aux couleurs neutres. L'assistant ne demande que le modèle, et
+ * l'utilisateur répond d'un geste, sans réécrire sa demande : le serveur la garde et la rejoue.
  */
 @Component({
   selector: 'iv-chat',
-  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativitySelect, Illustration, BrandChoice, ProgressList, VideoResult, VisualResult],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativitySelect, Illustration, BrandChoice, BrandHint, ProgressList, VideoResult, VisualResult],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chat.html',
 })
@@ -91,10 +93,16 @@ export class ChatPage {
   /** La marque de la conversation ; pour une nouvelle, la dernière utilisée, sinon la plus récente. */
   /** Les polices de la marque, pour l'aperçu éditable des visuels. */
   protected readonly fonts = computed(() => brandFonts(this.brand()));
+  /** La marque de la conversation, chargée à part quand c'est une marque provisoire (non listée). */
+  protected readonly sessionBrand = signal<Brand | null>(null);
+  /** Une marque choisie avant que la conversation n'existe (elle naît avec). */
+  protected readonly pendingBrand = signal<Brand | null>(null);
   protected readonly brand = computed<Brand | null>(() => {
-    const id = this.session()?.brandId ?? this.preferredBrandId();
-    const brands = this.state.brands();
-    return brands.find((b) => b.id === id) ?? (this.session()?.brandId ? null : (brands.find((b) => b.status === 'ready') ?? null));
+    if (this.session()) return this.sessionBrand();
+    if (this.pendingBrand()) return this.pendingBrand();
+    // Nouvelle conversation : la dernière charte utilisée, s'il y en a une (jamais imposée).
+    const id = this.preferredBrandId();
+    return this.state.brands().find((b) => b.id === id && b.source !== 'auto') ?? null;
   });
   protected readonly readyBrands = computed(() => this.state.brands().filter((b) => b.status === 'ready'));
   protected readonly canSend = computed(() => !this.streaming() && !this.uploading() && this.text().trim().length >= 2);
@@ -128,6 +136,16 @@ export class ChatPage {
       const level = this.creativity();
       const scope = { durationSec: this.durationSec(), formats: [this.videoFormat()], quality: 'hd' };
       untracked(() => this.api.quote(mode, level, mode === 'video' ? scope : undefined).subscribe({ next: (q) => this.price.set(q.cost), error: () => this.price.set(null) }));
+    });
+    // La marque de la conversation : dans la liste, sinon chargée (marque provisoire).
+    effect(() => {
+      const id = this.session()?.brandId;
+      const listed = this.state.brands().find((b) => b.id === id);
+      untracked(() => {
+        if (!id) return this.sessionBrand.set(null);
+        if (listed) return this.sessionBrand.set(listed);
+        if (this.sessionBrand()?.id !== id) this.api.brand(id).subscribe({ next: (b) => this.sessionBrand.set(b), error: () => this.sessionBrand.set(null) });
+      });
     });
     // Le fil descend avec la conversation.
     effect(() => {
@@ -163,6 +181,7 @@ export class ChatPage {
     if (!id) {
       this.session.set(null);
       this.messages.set([]);
+      this.pendingBrand.set(null);
       return;
     }
     this.loading.set(true);
@@ -289,8 +308,11 @@ export class ChatPage {
         this.stages.update((list) => [...list, { stage: event.stage, state: event.state }]);
         break;
       case 'brand':
-        this.state.upsertBrand(event.brand);
-        this.remember(event.brand.id);
+        if (event.brand.source !== 'auto') {
+          this.state.upsertBrand(event.brand);
+          this.remember(event.brand.id);
+        }
+        this.sessionBrand.set(event.brand);
         this.session.update((s) => (s ? { ...s, brandId: event.brand.id } : s));
         break;
       case 'result':
@@ -326,9 +348,20 @@ export class ChatPage {
     this.preferredBrandId.set(brandId);
   }
 
+  /** Une marque trouvée par la ligne discrète (site, charte, couleurs, marque enregistrée). */
+  protected onHintBrand(brand: Brand): void {
+    if (brand.source !== 'auto') this.remember(brand.id);
+    if (!this.session()) {
+      this.pendingBrand.set(brand);
+      return;
+    }
+    this.sessionBrand.set(brand);
+    this.pickBrand(brand);
+  }
+
   protected pickBrand(brand: Brand): void {
     this.brandMenu.set(false);
-    this.remember(brand.id);
+    if (brand.source !== 'auto') this.remember(brand.id);
     const session = this.session();
     if (!session) return;
     this.api.setSessionBrand(session.id, brand.id).subscribe({
@@ -437,10 +470,29 @@ export class ChatPage {
   protected onMediaFiles(event: Event): void {
     const files = Array.from((event.target as HTMLInputElement).files ?? []);
     (event.target as HTMLInputElement).value = '';
+    if (!files.length) return;
+    // Sans marque encore : une marque provisoire range les médias (et la conversation la prendra).
     const brand = this.brand();
-    if (!files.length || !brand) return;
+    if (!brand) {
+      this.uploading.set(true);
+      this.api.autoBrand().subscribe({
+        next: (auto) => {
+          this.pendingBrand.set(auto);
+          this.uploadMediaFiles(auto.id, files);
+        },
+        error: () => {
+          this.uploading.set(false);
+          this.error.set('errors.upload');
+        },
+      });
+      return;
+    }
+    this.uploadMediaFiles(brand.id, files);
+  }
+
+  private uploadMediaFiles(brandId: string, files: File[]): void {
     this.uploading.set(true);
-    this.api.uploadMedia(brand.id, this.mode() === 'image' ? files.slice(0, 1) : files.slice(0, 8)).subscribe({
+    this.api.uploadMedia(brandId, this.mode() === 'image' ? files.slice(0, 1) : files.slice(0, 8)).subscribe({
       next: ({ assets }) => {
         this.uploading.set(false);
         this.media.update((list) => (this.mode() === 'image' ? assets.slice(0, 1) : [...list, ...assets].slice(0, 12)));

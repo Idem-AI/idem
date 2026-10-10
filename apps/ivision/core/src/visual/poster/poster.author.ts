@@ -109,7 +109,9 @@ function contract(b: DesignBrief): string[] {
     '- facts: <div class="fit facts" …><span class="fact">…</span><span class="sep" style="background:var(--token)"></span><span class="fact">…</span></div>',
     '- a text box over a photo gets data-over-photo="1" and must sit on a calm area or a backing you draw (solid shape or rgba(0,0,0,…) gradient).',
     'PHOTOS: <div class="ph" style="position:absolute;left;top;width;height;border-radius:…;clip-path:…"><img src="{{PHOTO_1}}" style="object-position:X% Y%"></div> — {{PHOTO_1}}, {{PHOTO_2}}… are the photos provided. Add data-bg="1" on a photo that is a background behind text.',
-    `LOGO: exactly once — <div class="logo" style="position:absolute;left:…;top:…"><img src="{{LOGO}}" style="height:Hpx;width:auto;display:block"></div> with H between ${lh[0]} and ${lh[1]}, on a calm area where its ink reads.`,
+    b.spec.logo.url
+      ? `LOGO: exactly once — <div class="logo" style="position:absolute;left:…;top:…"><img src="{{LOGO}}" style="height:Hpx;width:auto;display:block"></div> with H between ${lh[0]} and ${lh[1]}, on a calm area where its ink reads.`
+      : 'LOGO: none — this brand has no logo file: no logo, no {{LOGO}}, no brand signature.',
     `COLOURS: only var(--${b.tokens.map((t) => t.id).join('), var(--')}), plus rgba(0,0,0,a) and rgba(255,255,255,a) for scrims and shadows. Gradients of these are fine. FONTS: only var(--fd) (display) and var(--fb) (text).`,
     'GRAPHICS: shapes (divs, clip-path, inline <svg> filled with the colour vars) are welcome when they serve the concept — bands, frames, oversized geometric forms, cut-outs, patterns drawn from the brand. Forbidden: <script>, external URLs, @import, icons, emojis, buttons, fake UI, any text that is not an approved word (no <text> in SVG).',
   ];
@@ -236,6 +238,8 @@ export function buildAuthored(design: AuthoredDesign, b: DesignBrief, copy: Post
 
   // Les ressources réelles, posées par le code.
   html = html.replace(/\{\{PHOTO_(\d+)\}\}/g, (_m, n) => b.images[+n - 1]?.url || '');
+  // Sans logo : une balise {{LOGO}} glissée par le designer disparaît (jamais une image cassée).
+  if (!spec.logo.url) html = html.replace(/<div[^>]*class="logo"[^>]*>\s*<img[^>]*\{\{LOGO\}\}[^>]*>\s*<\/div>/gi, '').replace(/<img[^>]*\{\{LOGO\}\}[^>]*>/gi, '');
   if (spec.logo.url) {
     const t = spec.logo.trim;
     const view = t ? `object-view-box:inset(${(t.top * 100).toFixed(2)}% ${(t.right * 100).toFixed(2)}% ${(t.bottom * 100).toFixed(2)}% ${(t.left * 100).toFixed(2)}%);object-fit:contain;` : 'object-fit:contain;';

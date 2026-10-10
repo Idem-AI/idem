@@ -139,7 +139,9 @@
       "none": "Choisir une marque",
       "pick": "Choisir une marque",
       "empty": "Aucune marque prête.",
-      "add": "Ajouter une marque"
+      "add": "Ajouter une marque",
+      "applied": "J’ai lu votre site : j’utilise ses couleurs, ses polices, son logo et ses photos. Vous pouvez changer la palette dans « Marques ».",
+      "appliedNoLogo": "J’ai lu votre site : j’utilise ses couleurs, ses polices et ses photos. Vous pouvez changer la palette dans « Marques »."
     },
     "empty": {
       "videoTitle": "Quelle vidéo voulez-vous ?",
@@ -403,7 +405,8 @@
       "transcribe": "J’écoute ce que vous dites",
       "cut": "Je coupe les blancs et les hésitations",
       "plan": "Je choisis ce qui apparaît à l’écran",
-      "media": "Je prépare les images et la musique"
+      "media": "Je prépare les images et la musique",
+      "prepare": "Je prépare vos vidéos"
     },
     "recutting": "Nouvelles coupes en cours…",
     "previewTitle": "Aperçu du montage",
@@ -433,7 +436,8 @@
       "broll": "Image",
       "lowerThird": "Nom et rôle",
       "cta": "Appel à l’action",
-      "zoom": "Zoom"
+      "zoom": "Zoom",
+      "clip": "Votre vidéo"
     },
     "fields": {
       "text": "Texte",
@@ -460,6 +464,78 @@
     "nextExport": "Un nouvel export après retouche.",
     "saveFirst": "Enregistrez l’habillage avant d’exporter.",
     "renderFailed": "L’export a échoué ; vos crédits ont été restitués. Réessayez.",
-    "download": "Télécharger le MP4"
+    "download": "Télécharger la vidéo",
+    "cutModesShort": {
+      "tight": "Rythmées",
+      "natural": "Naturelles",
+      "none": "Aucune"
+    },
+    "suggestions": {
+      "noMusic": "Sans musique",
+      "soberCaptions": "Sous-titres plus sobres",
+      "moreDynamic": "Plus dynamique",
+      "square": "En carré"
+    },
+    "chat": {
+      "newTitle": "Nouveau montage",
+      "welcomeTitle": "Ajoutez la vidéo où vous parlez",
+      "welcomeText": "Je coupe les blancs, j’ajoute les sous-titres et je fais apparaître à l’écran ce que vous dites. Vous pouvez en ajouter plusieurs : je les mets bout à bout.",
+      "addVideos": "Ajouter mes vidéos",
+      "addHint": "Glissez-les ici ou cliquez · {{files}} vidéos, {{minutes}} minutes en tout au plus",
+      "yourVideos": "Vos vidéos",
+      "addMore": "Ajouter",
+      "silent": "Sans parole : je m’en servirai pour illustrer",
+      "askWhat": "Quel montage voulez-vous ? Écrivez-le ci-dessous si vous voulez (ce n’est pas obligatoire), puis lancez.",
+      "settings": "Réglages",
+      "removeSilences": "Retirer les blancs et les hésitations",
+      "promptHint": "Facultatif — ex. : dynamique, montrer le prix en grand, finir par mon WhatsApp 07 00 00 00",
+      "reviseHint": "Que faut-il changer ? Ex. : sans musique, sous-titres plus sobres, ajoute le prix en grand…",
+      "composerLabel": "Votre message",
+      "working": "Je fais les changements…",
+      "adjust": "Ajuster les détails",
+      "rendering": "Préparation du fichier… {{percent}} %",
+      "ideas": "Idées de changements",
+      "preparing": "Je prépare votre montage. Vous pouvez quitter cette page, il continue.",
+      "ready": "Votre montage est prêt : {{duration}}, sous-titres et {{count}} élément(s) à l’écran. Dites-moi ce qu’il faut changer, ou téléchargez-le.",
+      "noSpeech": "Je n’ai entendu personne parler dans ces vidéos. Ajoutez une vidéo où vous parlez.",
+      "failed": "Le montage n’a pas abouti. Vos {{cost}} crédits vous sont rendus.",
+      "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « sans musique », « sous-titres plus sobres », « en carré » ou « ajoute le prix en grand »."
+    }
+  },
+  "brandHint": {
+    "prompt": "Facultatif · vos couleurs :",
+    "site": "Mon site",
+    "file": "Ma charte ou mon logo",
+    "colors": "Mes couleurs",
+    "saved": "Mes marques",
+    "myColors": "Mes couleurs",
+    "myCharter": "Ma charte",
+    "using": "Avec {{name}}",
+    "change": "changer",
+    "hide": "Masquer",
+    "siteLabel": "Adresse de votre site",
+    "read": "Lire",
+    "reading": "Je visite votre site…",
+    "siteDone": "Votre site est lu : ses couleurs, ses polices et son logo seront utilisés.",
+    "siteFailed": "Je n’ai pas pu lire ce site. Vérifiez l’adresse, ou continuez sans.",
+    "fileDone": "Trouvé : {{what}}. Je les utilise.",
+    "fileFailed": "Je n’ai pas pu lire ce fichier. Essayez un PDF ou une image (PNG, JPG, SVG).",
+    "found": {
+      "colors": "vos couleurs",
+      "fonts": "vos polices ({{fonts}})",
+      "logo": "votre logo"
+    },
+    "roles": {
+      "primary": "Principale",
+      "secondary": "Secondaire",
+      "accent": "Accent"
+    },
+    "apply": "Utiliser ces couleurs",
+    "colorsDone": "Vos couleurs seront utilisées.",
+    "chosen": "{{name}} sera utilisée.",
+    "promptShort": "Facultatif :",
+    "siteShort": "Site",
+    "fileShort": "Charte",
+    "colorsShort": "Couleurs"
   }
 }

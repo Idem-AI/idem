@@ -106,6 +106,8 @@ function logo(spec: PosterSpec, box: { x: number; y: number; h: number; anchor?:
   const h = box.h;
   const maxW = 34 * spec.u;
   if (!spec.logo.url) {
+    // Création sans charte (ni logo ni nom) : pas de signature.
+    if (!spec.brandName.trim()) return '';
     const size = r(h * 0.62);
     const pos = box.anchor === 'right' ? `right:${r(spec.width - box.x)}px` : box.anchor === 'center' ? `left:0;right:0;text-align:center` : `left:${r(box.x)}px`;
     return `<div class="wordmark" data-role="logo" style="${pos};top:${r(box.y + (h - size) / 2)}px;font-size:${size}px;color:${ink}">${esc(spec.brandName)}</div>`;

@@ -48,6 +48,11 @@ export class IvisionMontageStore implements MontageStore {
     return res.deletedCount === 1;
   }
 
+  async moveBrand(userId: string, id: string, brandId: string): Promise<boolean> {
+    const res = await montages().updateOne({ _id: id, userId }, { $set: { brandId, updatedAt: new Date().toISOString() } });
+    return res.matchedCount === 1;
+  }
+
   async interrupted(): Promise<{ userId: string; brandId: string; montage: MontageVideo }[]> {
     const docs = await montages()
       .find({ $or: [{ 'montage.status': 'processing' }, { 'montage.renders.status': 'rendering' }] })

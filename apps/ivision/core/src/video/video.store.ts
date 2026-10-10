@@ -13,6 +13,8 @@ import type { MotionVideo, VideoObjective, VideoType } from './video.model';
 
 export interface VideoBrandContext {
   brandName: string;
+  /** Création sans charte : aucun nom ni logo à montrer (pas de scène de signature). */
+  anonymous?: boolean;
   /** La charte (IDEM) ou la marque scannée (iVision). */
   branding: BrandKit | null;
   /** Ton, promesse, secteur, langue (jamais réextraits pour une vidéo). */

@@ -1,13 +1,15 @@
 /**
  * LA CONVERSATION d'iVision.
  *
- * Une conversation a un mode fixe — IMAGES ou VIDÉOS, on ne mélange pas — et une marque. Un
- * tour suit toujours le même chemin, et l'assistant DEMANDE plutôt que de deviner :
+ * Une conversation a un mode fixe — IMAGES ou VIDÉOS, on ne mélange pas — et une marque. La
+ * marque n'est JAMAIS exigée : sans charte, la conversation a une marque provisoire (couleurs
+ * neutres, ou celles que la demande nomme : « en bleu et or »). L'interface propose, sans
+ * insister, d'ajouter son site, sa charte ou ses couleurs. Un tour suit toujours le même chemin :
  *
- *   1. un lien de site dans le message → le site est scanné, trois palettes et trois
- *      typographies sont proposées ; la demande attend le choix ;
- *   2. pas de marque → l'assistant propose : coller son site, importer un projet IDEM, ou
- *      choisir une marque existante ;
+ *   1. un lien de site dans le message → le site est lu (couleurs, polices, logo, photos), la
+ *      marque s'applique aussitôt et la demande continue (les autres palettes restent dans
+ *      « Marques » pour changer d'avis) ;
+ *   2. pas de marque (conversation ancienne) → une marque provisoire, et on continue ;
  *   3. pas de modèle cité → « Avez-vous une vidéo (une image) modèle ? » — à chaque demande ;
  *      « non » est une réponse, pas un oubli ;
  *   4. la génération : débit des crédits (prix d'IDEM), moteur partagé, progression réelle en
@@ -29,7 +31,8 @@ import logger from '../config/logger';
 import { HttpError } from '../middleware/error';
 import type { ChatAsk, ChatAttachment, ChatMessage, ChatMode, ChatOptions, ChatSession, IvisionBrand, IvisionReference } from '../models';
 import { charge, Charge, PaymentRequired, quote, refund } from './billing';
-import { brandView, getBrand, scanBrand } from './brands.service';
+import { applyNamedColors, brandView, createAutoBrand, getBrand, scanBrand } from './brands.service';
+import { colorsNamed } from '../../../core/src/brand/color-words';
 import { blueprintOf, getReference, referenceView } from './references.service';
 import { createVideo, scopeOf } from './videos.service';
 import { createVisual, getVisual, visualView } from './visuals.service';
@@ -62,7 +65,9 @@ export interface TurnInput {
 // ─── Conversations ──────────────────────────────────────────────────────────
 
 export async function createSession(userId: string, mode: ChatMode, brandId?: string): Promise<ChatSession> {
+  // Sans marque choisie : une marque provisoire (jamais exigée, remplaçable à tout moment).
   if (brandId) await getBrand(userId, brandId);
+  else brandId = (await createAutoBrand(userId))._id;
   const session: ChatSession = { _id: newId('chat'), userId, mode, ...(brandId ? { brandId } : {}), title: mode === 'video' ? 'Nouvelle vidéo' : 'Nouveau visuel', messages: [], createdAt: now(), updatedAt: now() };
   await sessions().insertOne(session);
   return session;
@@ -254,7 +259,7 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     } catch (error) {
       const known = error instanceof SiteScanError;
       logger.warn('chat.scan_failed', { event: 'chat.scan_failed', error });
-      const msg = message('assistant', known ? (error as Error).message : 'Je n’ai pas pu lire ce site. Vérifiez le lien, ou choisissez une marque autrement.', { status: 'error', i18n: { key: known ? `chat.error.scan.${(error as SiteScanError).code}` : 'chat.error.scan.failed' } });
+      const msg = message('assistant', known ? (error as Error).message : 'Je n’ai pas pu lire ce site. Vérifiez le lien, ou continuez sans : votre demande suffit.', { status: 'error', i18n: { key: known ? `chat.error.scan.${(error as SiteScanError).code}` : 'chat.error.scan.failed' } });
       await push(session._id, msg);
       emit({ type: 'message', message: msg });
       return;
@@ -262,19 +267,28 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     emit({ type: 'brand', brand: brandView(brand) });
     await sessions().updateOne({ _id: session._id }, { $set: { brandId: brand._id } });
     session.brandId = brand._id;
-    await ask(session, { kind: 'brand-choice', brandId: brand._id }, rest.length >= 3 ? keep(rest) : undefined, emit);
-    return;
+    // La marque s'applique aussitôt : on le dit, et la demande continue (rien à valider).
+    const read = message('assistant', `J’ai lu votre site : j’utilise ses couleurs, ses polices${brand.kit.logo ? ', son logo' : ''} et ses photos. Vous pouvez changer la palette dans « Marques ».`, {
+      i18n: { key: brand.kit.logo ? 'chat.brand.applied' : 'chat.brand.appliedNoLogo', params: { name: brand.name } },
+      brandId: brand._id,
+    });
+    await push(session._id, read);
+    emit({ type: 'message', message: read });
   }
 
-  // 2. Pas de marque : l'utilisateur choisit d'où elle vient.
+  // 2. Pas de marque (conversation d'avant) : une marque provisoire, et on continue.
   if (!brand) {
-    await ask(session, { kind: 'brand' }, text.length >= 3 ? keep(text) : undefined, emit);
-    return;
+    brand = await createAutoBrand(userId);
+    await sessions().updateOne({ _id: session._id }, { $set: { brandId: brand._id } });
+    session.brandId = brand._id;
   }
-  // Une marque scannée attend la validation de sa palette et de sa typographie.
-  if (brand.status === 'draft') {
-    await ask(session, { kind: 'brand-choice', brandId: brand._id }, text.length >= 3 ? keep(text) : pending, emit);
-    return;
+  // Sans charte, les couleurs que la demande nomme (« en bleu et or ») deviennent celles de la création.
+  if (brand.source === 'auto') {
+    const named = colorsNamed(url ? rest : text);
+    if (named.length) {
+      brand = await applyNamedColors(userId, brand, named);
+      emit({ type: 'brand', brand: brandView(brand) });
+    }
   }
 
   // Un retour sur le visuel précédent (« pas pro, autre chose ») : la même demande, autrement.

@@ -139,7 +139,9 @@
       "none": "Choose a brand",
       "pick": "Choose a brand",
       "empty": "No brand ready.",
-      "add": "Add a brand"
+      "add": "Add a brand",
+      "applied": "I read your website: I’m using its colours, fonts, logo and photos. You can change the palette in “Brands”.",
+      "appliedNoLogo": "I read your website: I’m using its colours, fonts and photos. You can change the palette in “Brands”."
     },
     "empty": {
       "videoTitle": "What video do you want?",
@@ -403,7 +405,8 @@
       "transcribe": "Listening to what you say",
       "cut": "Cutting silences and hesitations",
       "plan": "Choosing what appears on screen",
-      "media": "Preparing images and music"
+      "media": "Preparing images and music",
+      "prepare": "Preparing your videos"
     },
     "recutting": "Applying new cuts…",
     "previewTitle": "Edit preview",
@@ -433,7 +436,8 @@
       "broll": "Image",
       "lowerThird": "Name and role",
       "cta": "Call to action",
-      "zoom": "Zoom"
+      "zoom": "Zoom",
+      "clip": "Your video"
     },
     "fields": {
       "text": "Text",
@@ -460,6 +464,78 @@
     "nextExport": "A new export after changes.",
     "saveFirst": "Save the dressing before exporting.",
     "renderFailed": "The export failed; your credits were refunded. Please try again.",
-    "download": "Download the MP4"
+    "download": "Download the video",
+    "cutModesShort": {
+      "tight": "Snappy",
+      "natural": "Natural",
+      "none": "None"
+    },
+    "suggestions": {
+      "noMusic": "No music",
+      "soberCaptions": "Simpler captions",
+      "moreDynamic": "More dynamic",
+      "square": "Square format"
+    },
+    "chat": {
+      "newTitle": "New edit",
+      "welcomeTitle": "Add the video where you talk",
+      "welcomeText": "I cut the silences, add captions and bring up on screen what you say. You can add several: I put them end to end.",
+      "addVideos": "Add my videos",
+      "addHint": "Drop them here or click · {{files}} videos, {{minutes}} minutes in total max",
+      "yourVideos": "Your videos",
+      "addMore": "Add",
+      "silent": "No speech: I’ll use it as illustration",
+      "askWhat": "What kind of edit do you want? Write it below if you like (it’s optional), then start.",
+      "settings": "Settings",
+      "removeSilences": "Remove silences and hesitations",
+      "promptHint": "Optional — e.g. dynamic, show the price big, end with my WhatsApp number",
+      "reviseHint": "What should change? E.g. no music, simpler captions, show the price big…",
+      "composerLabel": "Your message",
+      "working": "Making the changes…",
+      "adjust": "Fine-tune",
+      "rendering": "Preparing the file… {{percent}}%",
+      "ideas": "Change ideas",
+      "preparing": "I’m preparing your edit. You can leave this page, it keeps going.",
+      "ready": "Your edit is ready: {{duration}}, captions and {{count}} item(s) on screen. Tell me what to change, or download it.",
+      "noSpeech": "I didn’t hear anyone speaking in these videos. Add a video where you talk.",
+      "failed": "The edit did not complete. Your {{cost}} credits were refunded.",
+      "notUnderstood": "I didn’t understand what to change. Try “no music”, “simpler captions”, “square format” or “show the price big”."
+    }
+  },
+  "brandHint": {
+    "prompt": "Optional · your colours:",
+    "site": "My website",
+    "file": "My brand guide or logo",
+    "colors": "My colours",
+    "saved": "My brands",
+    "myColors": "My colours",
+    "myCharter": "My brand",
+    "using": "Using {{name}}",
+    "change": "change",
+    "hide": "Hide",
+    "siteLabel": "Your website address",
+    "read": "Read",
+    "reading": "Visiting your website…",
+    "siteDone": "Your website is read: its colours, fonts and logo will be used.",
+    "siteFailed": "I could not read this website. Check the address, or carry on without it.",
+    "fileDone": "Found: {{what}}. I’m using them.",
+    "fileFailed": "I could not read this file. Try a PDF or an image (PNG, JPG, SVG).",
+    "found": {
+      "colors": "your colours",
+      "fonts": "your fonts ({{fonts}})",
+      "logo": "your logo"
+    },
+    "roles": {
+      "primary": "Main",
+      "secondary": "Secondary",
+      "accent": "Accent"
+    },
+    "apply": "Use these colours",
+    "colorsDone": "Your colours will be used.",
+    "chosen": "{{name}} will be used.",
+    "promptShort": "Optional:",
+    "siteShort": "Site",
+    "fileShort": "Brand guide",
+    "colorsShort": "Colours"
   }
 }

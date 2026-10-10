@@ -193,10 +193,10 @@ export function heuristicCopy(brief: PosterBrief, intent: PosterIntent): PosterC
   }
   first = first.replace(/\s*[:;,]$/, '');
   let headline = clip(first, 44);
-  if (!validHeadline(headline, brief)) headline = intent === 'event' ? (brief.language.startsWith('fr') ? 'On se retrouve' : 'See you there') : brief.brandName;
+  if (!validHeadline(headline, brief)) headline = intent === 'event' ? (brief.language.startsWith('fr') ? 'On se retrouve' : 'See you there') : brief.brandName || clip(brief.message, 44);
   const rest = clip(restText.replace(/^[\s,.;:!?]+/, ''), 110);
   const copy = {
-    kicker: kicker || (intent === 'event' ? brief.brandName : undefined),
+    kicker: kicker || (intent === 'event' && brief.brandName ? brief.brandName : undefined),
     headline,
     // (faits dédoublonnés plus bas)
     sub: rest && rest !== headline && languageMatches(rest, brief.language) ? rest : brief.valueProposition && languageMatches(brief.valueProposition, brief.language) ? clip(brief.valueProposition, 100) : undefined,

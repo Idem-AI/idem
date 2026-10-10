@@ -15,6 +15,7 @@ import os from 'os';
 import path from 'path';
 import { spawnSync } from 'child_process';
 import dotenv from 'dotenv';
+import sharp from 'sharp';
 import { startFakeIdem } from './fake-idem';
 
 let passes = 0;
@@ -70,6 +71,28 @@ function syntheticVideo(file: string) {
   if (r.status !== 0) throw new Error(`ffmpeg: ${r.stderr}`);
 }
 
+/** Un PDF minimal (une page, une ligne de texte) : de quoi vérifier la lecture d'une charte. */
+function minimalPdf(text: string): Buffer {
+  const esc = text.replace(/[()\\]/g, (c) => `\\${c}`);
+  const stream = `BT /F1 12 Tf 40 760 Td (${esc}) Tj ET`;
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ];
+  let out = '%PDF-1.4\n';
+  const offsets: number[] = [];
+  objects.forEach((body, i) => {
+    offsets.push(out.length);
+    out += `${i + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const xref = out.length;
+  out += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.from(out, 'latin1');
+}
+
 /** Une prise de parole de synthèse (voix macOS sur une mire), avec pauses et faux départ. */
 function speechSample(file: string): boolean {
   if (process.platform !== 'darwin') return false;
@@ -123,26 +146,26 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     const me = await json('GET', '/v1/me');
     check(`session IDEM reconnue (${me.body?.user?.uid}, ${me.body?.credits} crédits)`, me.status === 200 && me.body.user.uid === 'check-user' && me.body.credits === 500);
 
-    section('2. Conversation vidéo : marque, site, palette, modèle');
+    section('2. Conversation vidéo : la marque n’est jamais exigée');
     const session = (await json('POST', '/v1/sessions', { mode: 'video' })).body;
-    check('conversation créée en mode vidéo', session?.mode === 'video');
-    let events = await turn(api, good, session.id, { text: 'Une vidéo pour fêter nos 500 clients' });
+    check('conversation créée en mode vidéo, avec une marque provisoire', session?.mode === 'video' && !!session.brandId);
+    check('la marque provisoire n’encombre pas « Marques »', !(await json('GET', '/v1/brands')).body.brands.some((b: any) => b.id === session.brandId));
+    let events = await turn(api, good, session.id, { text: 'Une vidéo en bleu et or pour fêter nos 500 clients' });
     let asked = events.find((e) => e.type === 'message' && e.message.role === 'assistant')?.message;
-    check('sans marque : l’assistant la demande', asked?.ask?.kind === 'brand', asked?.text);
+    check('sans charte, aucune question de marque : on passe au modèle', asked?.ask?.kind === 'reference', asked?.text);
+    const colored = events.find((e) => e.type === 'brand')?.brand;
+    check('« en bleu et or » : les couleurs dites colorent la création', colored?.source === 'auto' && colored.palette.primary === '#1f5fbf' && colored.palette.accent === '#c9a227', JSON.stringify(colored?.palette));
 
     events = await turn(api, good, session.id, { text: `Mon site : ${site.url} — une vidéo pour fêter nos 500 clients chaque mois` });
     const brand = events.find((e) => e.type === 'brand')?.brand;
-    asked = events.filter((e) => e.type === 'message' && e.message.role === 'assistant').pop()?.message;
-    check(`site scanné : ${brand?.name}, primaire ${brand?.palette?.primary}`, brand?.name === 'Kora Café' && brand?.palette?.primary === '#b4532a');
-    check('trois palettes et trois typographies proposées', brand?.proposals?.palettes?.length === 3 && brand?.proposals?.typographies?.length === 3);
-    check('l’assistant demande de choisir (la demande attend)', asked?.ask?.kind === 'brand-choice' && (await json('GET', `/v1/sessions/${session.id}`)).body.pending?.text?.includes('500 clients'));
+    const said = events.filter((e) => e.type === 'message' && e.message.role === 'assistant').map((e) => e.message);
+    asked = said[said.length - 1];
+    check(`site lu : ${brand?.name}, primaire ${brand?.palette?.primary}, prêt aussitôt`, brand?.name === 'Kora Café' && brand?.palette?.primary === '#b4532a' && brand.status === 'ready');
+    check('trois palettes et trois typographies gardées pour changer d’avis', brand?.proposals?.palettes?.length === 3 && brand?.proposals?.typographies?.length === 3);
+    check('l’assistant dit qu’il applique le site, sans rien demander, puis continue', said.some((m) => /^chat\.brand\.applied/.test(m.i18n?.key || '')) && asked?.ask?.kind === 'reference' && (await json('GET', `/v1/sessions/${session.id}`)).body.pending?.text?.includes('500 clients'));
 
     const chosen = await json('POST', `/v1/brands/${brand.id}/choose`, { palette: 'contrast' });
-    check('palette « contraste » choisie, marque prête', chosen.body?.status === 'ready' && chosen.body.palette.primary === brand.proposals.palettes.find((p: any) => p.id === 'contrast').colors.primary);
-
-    events = await turn(api, good, session.id, { resume: true });
-    asked = events.find((e) => e.type === 'message')?.message;
-    check('reprise : l’assistant demande une vidéo modèle', asked?.ask?.kind === 'reference' && asked.ask.mode === 'video');
+    check('changer d’avis plus tard : palette « contraste »', chosen.body?.status === 'ready' && chosen.body.palette.primary === brand.proposals.palettes.find((p: any) => p.id === 'contrast').colors.primary);
 
     section('3. Vidéo modèle analysée puis reproduite');
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ivision-api-check-'));
@@ -222,26 +245,31 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     check('aucune création n’a échoué (aucune restitution)', refunds.length === 0);
     check('la marque d’un autre utilisateur reste privée', (await json('GET', `/v1/brands/${brand.id}`, undefined, 'session=poor')).status === 404);
 
-    section('7. Montage d’une prise de parole');
+    section('7. Montage d’une prise de parole, en conversation');
     const talk = path.join(tmp, 'prise.mp4');
+    const silent = path.join(tmp, 'plan.mp4');
     const status = await json('GET', '/v1/montages/status');
     if (!status.body?.available || !speechSample(talk)) {
       console.log('  — ignoré : Whisper local ou voix de synthèse absents sur ce poste');
     } else {
-      const seconds = Number(spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', talk]).stdout.toString()) || 0;
-      const quoteRes = await json('POST', '/v1/montages/quote', { durationSec: seconds, creativity: 'medium' });
-      check('prix d’un montage annoncé avant l’envoi', quoteRes.body?.cost > 0, `${quoteRes.body?.cost} crédits pour ${seconds.toFixed(1)} s`);
+      // Un plan sans parole (une mire muette de 4 s) : il doit devenir un plan de coupe.
+      spawnSync(process.env.FFMPEG_PATH || 'ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'testsrc=size=640x360:rate=30:d=4', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', silent]);
       const form = new FormData();
-      form.append('brandId', brand.id);
-      form.append('prompt', 'Finir par notre WhatsApp 07 08 09 10');
-      form.append('format', 'story');
-      form.append('creativity', 'medium');
-      form.append('file', new Blob([fs.readFileSync(talk)], { type: 'video/mp4' }), 'prise.mp4');
+      form.append('files', new Blob([fs.readFileSync(talk)], { type: 'video/mp4' }), 'prise.mp4');
+      form.append('files', new Blob([fs.readFileSync(silent)], { type: 'video/mp4' }), 'boutique.mp4');
+      const up = await fetch(`${api}/v1/montages/uploads`, { method: 'POST', headers: { Cookie: good }, body: form });
+      const uploads = (await up.json()).uploads || [];
+      check('deux vidéos déposées, sondées, avec leur affiche', up.status === 201 && uploads.length === 2 && uploads.every((u: any) => u.durationSec > 0 && u.posterUrl) && uploads[0].hasAudio && !uploads[1].hasAudio, JSON.stringify(uploads.map((u: any) => [u.durationSec, u.hasAudio])));
+      const seconds = uploads.reduce((sum: number, u: any) => sum + u.durationSec, 0);
+      const quoteRes = await json('POST', '/v1/montages/quote', { durationSec: seconds, creativity: 'medium' });
+      const forged = await json('POST', '/v1/montages', { inputs: [{ url: 'http://localhost:9000/idem-storage/ivision/users/someone-else/montage-uploads/x.mp4' }] });
+      check('une vidéo qui n’est pas à soi est refusée', forged.status === 400);
       const chargesBefore = charges.length;
-      const created = await fetch(`${api}/v1/montages`, { method: 'POST', headers: { Cookie: good }, body: form });
-      const montage = await created.json();
-      check('vidéo reçue : montage lancé en tâche de fond (202)', created.status === 202 && montage.status === 'processing', `${created.status} ${montage?.message || ''}`);
-      check('débit au prix annoncé (durée réelle)', charges.length === chargesBefore + 1 && charges[charges.length - 1].cost === quoteRes.body.cost, JSON.stringify(charges[charges.length - 1]));
+      // Sans marque, sans consigne obligatoire : seulement les vidéos (et une consigne facultative).
+      const created = await json('POST', '/v1/montages', { inputs: uploads.map((u: any) => ({ url: u.url, name: u.name, posterUrl: u.posterUrl })), prompt: 'Finir par notre WhatsApp 07 08 09 10' });
+      const montage = created.body;
+      check('montage lancé sans marque (202), conversation ouverte', created.status === 202 && montage.status === 'processing' && montage.messages?.[0]?.inputs?.length === 2, `${created.status} ${montage?.message || ''}`);
+      check('débit au prix annoncé (durée totale)', charges.length === chargesBefore + 1 && charges[charges.length - 1].cost === quoteRes.body.cost, JSON.stringify(charges[charges.length - 1]));
       const until = async (id: string, done: (m: any) => boolean, ms = 6 * 60_000) => {
         const end = Date.now() + ms;
         for (;;) {
@@ -252,23 +280,43 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
       };
       let m = await until(montage.id, (x) => x?.status !== 'processing');
       check('montage prêt : transcrit, coupé, recadré', m?.status === 'ready' && m.words.length > 20 && m.edit?.width === 1080 && m.edit.durationSec < m.source.durationSec - 4, `${m?.status} ${m?.error || ''} · ${m?.words?.length} mots · ${m?.source?.durationSec}s → ${m?.edit?.durationSec}s`);
-      check('le monteur IA a choisi (nom, mot-clé, chiffre)', m.plannedBy === 'llm' && m.elements.some((e: any) => e.type === 'lowerThird' && e.value === 'Awa Diop') && m.elements.some((e: any) => e.type === 'stat'), `${m.elements.map((e: any) => e.type).join(',')} · « ${m.words.slice(0, 8).map((w: any) => w.text).join(' ')} »`);
-      check('un mot-clé jamais prononcé est refusé par le code', !m.elements.some((e: any) => e.text === 'GRATUIT'));
-      check('le contact écrit dans la demande passe au carton de fin', m.outro?.detail === '07 08 09 10');
+      check('la vidéo muette est devenue un plan de coupe, montré à l’écran', m.clips?.length === 1 && m.inputs?.[1]?.speech === false && m.elements.some((e: any) => e.clip === 'c1'), `${m.clips?.length} plan(s) · ${m.elements.map((e: any) => e.clip || e.type).join(',')}`);
+      check('le résultat arrive dans la conversation', m.messages?.some((x: any) => x.kind === 'result'));
+      check('le monteur IA a choisi (nom, chiffre), un mot inventé est refusé', m.plannedBy === 'llm' && m.elements.some((e: any) => e.type === 'lowerThird') && !m.elements.some((e: any) => e.text === 'GRATUIT'), m.elements.map((e: any) => e.type).join(','));
       const preview = await json('GET', `/v1/montages/${m.id}/preview`);
-      check('aperçu : la page du montage (même page que le MP4)', preview.status === 200 && preview.body.html.includes('__MONTAGE__') && preview.body.html.includes(m.edit.url));
-      const fixAt = m.words.findIndex((w: any) => /^bissa/i.test(w.text));
-      const patched = await json('PATCH', `/v1/montages/${m.id}`, { captions: 'karaoke', words: { [String(Math.max(0, fixAt))]: 'bissap.' } });
-      check('retouche gratuite : style des sous-titres et mot corrigé', patched.body?.captions?.style === 'karaoke' && patched.body.words[Math.max(0, fixAt)].text === 'bissap.' && charges.length === chargesBefore + 1);
-      const tight = m.edit.durationSec;
-      await json('PATCH', `/v1/montages/${m.id}`, { cuts: 'natural' });
+      check('aperçu : la page du montage, avec le plan de coupe', preview.status === 200 && preview.body.html.includes('__MONTAGE__') && preview.body.html.includes(m.clips[0].url));
+
+      // Un retour écrit, comme on parle : « sans musique, et en carré ».
+      const revised = await json('POST', `/v1/montages/${m.id}/messages`, { text: 'Sans musique, et en carré stp' });
+      check('retour écrit compris : musique coupée, format carré, réponse dans le fil (gratuit)', revised.status === 200 && revised.body.musicEnabled === false && revised.body.format === 'square' && revised.body.messages.at(-1)?.role === 'assistant' && charges.length === chargesBefore + 1, `${revised.status} ${revised.body?.format} ${revised.body?.messages?.at(-1)?.text}`);
       m = await until(m.id, (x) => x?.status === 'ready');
-      check('coupes « naturelles » : la vidéo remontée est plus longue, l’habillage suit', m.edit.durationSec > tight && m.elements.some((e: any) => e.type === 'lowerThird'), `${tight}s → ${m.edit.durationSec}s`);
+      check('le carré est remonté (1080 × 1080), l’habillage suit', m.edit.width === 1080 && m.edit.height === 1080 && m.elements.some((e: any) => e.type === 'lowerThird'));
+      const unclear = await json('POST', `/v1/montages/${m.id}/messages`, { text: 'hmm' });
+      check('un retour incompris est dit, sans rien casser', unclear.status === 200 && unclear.body.messages.at(-1)?.i18n?.key === 'montage.chat.notUnderstood' || unclear.body.messages.at(-1)?.kind === 'revision');
+
+      // La charte, ajoutée après coup : un logo (PNG détouré), puis une charte PDF.
+      const logo = await sharp({ create: { width: 400, height: 160, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+        .composite([{ input: Buffer.from('<svg width="400" height="160"><rect x="20" y="30" width="360" height="100" rx="20" fill="#b4532a"/></svg>'), top: 0, left: 0 }])
+        .png()
+        .toBuffer();
+      const lf = new FormData();
+      lf.append('file', new Blob([logo], { type: 'image/png' }), 'logo.png');
+      const fromLogo = await fetch(`${api}/v1/brands/from-file`, { method: 'POST', headers: { Cookie: good }, body: lf });
+      const logoBrand = await fromLogo.json();
+      check('un logo déposé : reconnu comme logo, sa couleur devient la primaire', fromLogo.status === 201 && logoBrand.found?.logo === true && logoBrand.palette?.primary?.toLowerCase().startsWith('#b'), JSON.stringify({ s: fromLogo.status, found: logoBrand.found, p: logoBrand.palette?.primary }));
+      const moved = await json('PATCH', `/v1/montages/${m.id}`, { brandId: logoBrand.id });
+      check('le montage prend la charte ajoutée après coup', moved.status === 200 && moved.body.brandId === logoBrand.id);
+      const pf = new FormData();
+      pf.append('file', new Blob([minimalPdf('Charte Saveurs - Couleur principale #1F6F4A - Accent #F2A93B - Titres : Montserrat - Texte : Lato')], { type: 'application/pdf' }), 'charte.pdf');
+      const fromPdf = await fetch(`${api}/v1/brands/from-file`, { method: 'POST', headers: { Cookie: good }, body: pf });
+      const pdfBrand = await fromPdf.json();
+      check('une charte PDF : couleurs et polices ÉCRITES lues', fromPdf.status === 201 && pdfBrand.palette?.primary === '#1f6f4a' && pdfBrand.fonts?.display === 'Montserrat', JSON.stringify({ s: fromPdf.status, p: pdfBrand.palette, f: pdfBrand.fonts, found: pdfBrand.found }));
+
       const exported = await json('POST', `/v1/montages/${m.id}/export`);
       check('export lancé, premier export inclus (aucun débit)', exported.status === 202 && charges.length === chargesBefore + 1);
       m = await until(m.id, (x) => !x?.renders?.some((r: any) => r.status === 'rendering'), 8 * 60_000);
       const file = await fetch(`${api}/v1/montages/${m.id}/file`, { headers: { Cookie: good } });
-      check('MP4 rendu et téléchargeable en pièce jointe', m.renders[0]?.status === 'done' && file.status === 200 && /attachment/.test(file.headers.get('content-disposition') || ''), `${m.renders[0]?.status} ${m.renders[0]?.error || ''} · ${m.renders[0]?.sizeBytes} octets`);
+      check('MP4 rendu (avec le plan de coupe) et téléchargeable', m.renders[0]?.status === 'done' && file.status === 200 && /attachment/.test(file.headers.get('content-disposition') || ''), `${m.renders[0]?.status} ${m.renders[0]?.error || ''} · ${m.renders[0]?.sizeBytes} octets`);
       check('le montage d’un autre utilisateur reste privé', (await json('GET', `/v1/montages/${m.id}`, undefined, 'session=poor')).status === 404);
       check('aucun montage n’a été remboursé (tout a abouti)', refunds.length === 0);
     }

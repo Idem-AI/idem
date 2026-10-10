@@ -91,7 +91,7 @@ export function briefLines(b: DesignBrief, units: 'percent' | 'px'): string[] {
     `FONTS: display "${ctx.branding.primaryFont || 'brand display'}" for the headline, text "${ctx.branding.secondaryFont || ctx.branding.primaryFont || 'brand text'}" for the rest.`,
     b.images.length ? 'PHOTOS PROVIDED (use the best one, or none if the concept is purely typographic):' : 'NO PHOTO: a typographic / graphic composition.',
     ...b.images.map((im, i) => `- photo ${i + 1}: ${im.subject || 'brand photo'}; ratio ${im.aspect.toFixed(2)}; subject at ${Math.round(im.focal.x * 100)}% x, ${Math.round(im.focal.y * 100)}% y${im.origin === 'brand' || im.origin === 'user' ? ' (real photo of the brand)' : ''}`),
-    spec.logo.url ? `LOGO: ratio ${spec.logo.aspect.toFixed(2)} (width/height), ink ${logoInk(spec.logo)}. Exactly once, never on a busy photo area.` : `NO LOGO FILE: the brand name "${spec.brandName}" is set as a wordmark.`,
+    spec.logo.url ? `LOGO: ratio ${spec.logo.aspect.toFixed(2)} (width/height), ink ${logoInk(spec.logo)}. Exactly once, never on a busy photo area.` : spec.brandName.trim() ? `NO LOGO FILE: the brand name "${spec.brandName}" is set as a wordmark.` : 'NO LOGO and NO BRAND NAME: no signature at all ({{LOGO}} is empty).',
     'APPROVED WORDS (use them EXACTLY, add no other text — no slogan, hashtag, URL, button, date or number of your own):',
     ...approvedWords(spec.copy).map((w) => `- ${w.role}: "${w.text}"`),
     '',

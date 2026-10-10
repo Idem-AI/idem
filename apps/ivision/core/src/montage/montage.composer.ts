@@ -108,6 +108,8 @@ export async function composeMontageHtml(opts: ComposeMontageOptions): Promise<{
       itemTimes: el.type === 'list' ? itemTimes(el, words, w.tin, w.tout) : undefined,
       icon: el.icon ? iconSvg('lucide', el.icon) || undefined : undefined,
       image: el.type === 'broll' ? el.image : undefined,
+      // Un plan de coupe fourni : la vidéo (muette) et sa durée, lue en boucle au besoin.
+      ...(el.clip ? (() => { const c = (montage.clips || []).find((x) => x.id === el.clip); return c ? { video: c.url, videoDuration: c.durationSec, poster: c.posterUrl } : {}; })() : {}),
       mode: el.mode,
     };
   });

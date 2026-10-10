@@ -21,8 +21,12 @@ export interface IvisionBrand {
   _id: string;
   userId: string;
   name: string;
-  /** D'où vient la charte : un site scanné, un projet IDEM importé, une saisie. */
-  source: 'site' | 'idem' | 'manual';
+  /**
+   * D'où vient la charte : un site scanné, un projet IDEM importé, une saisie, un fichier de
+   * charte (PDF, image, logo), ou `auto` — la marque provisoire d'une création sans charte
+   * (invisible dans la liste des marques ; ses couleurs viennent de la demande).
+   */
+  source: 'site' | 'idem' | 'manual' | 'file' | 'auto';
   siteUrl?: string;
   idemProjectId?: string;
   /** `draft` : scannée, palette et typographie pas encore validées par l'utilisateur. */
@@ -71,6 +75,8 @@ export interface ChatMessage {
   result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string };
   status?: 'done' | 'error';
   error?: string;
+  /** La marque que ce message annonce (site lu, charte appliquée). */
+  brandId?: string;
 }
 
 /** Les réglages d'une demande (bandeau du compositeur). */

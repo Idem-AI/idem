@@ -25,7 +25,8 @@ export interface TypographyProposal {
 export interface Brand {
   id: string;
   name: string;
-  source: 'site' | 'idem' | 'manual';
+  /** `auto` : la marque provisoire d'une création sans charte ; `file` : une charte déposée. */
+  source: 'site' | 'idem' | 'manual' | 'file' | 'auto';
   siteUrl?: string;
   idemProjectId?: string;
   status: 'draft' | 'ready';
@@ -48,6 +49,8 @@ export interface ChatMessage {
   createdAt: string;
   attachments?: { kind: 'reference' | 'media'; id: string; url: string; name?: string; mimeType?: string }[];
   ask?: ChatAsk;
+  /** La marque que ce message annonce (site lu, charte appliquée). */
+  brandId?: string;
   result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string };
   status?: 'done' | 'error';
   error?: string;
@@ -139,6 +142,7 @@ export interface VideoRender {
   url?: string;
   posterUrl?: string;
   error?: string;
+  renderedAt?: string;
 }
 
 export interface MotionVideo {
@@ -180,7 +184,28 @@ export type ChatEvent =
 export type MontageElementType = 'keyword' | 'stat' | 'icon' | 'list' | 'callout' | 'broll' | 'lowerThird' | 'cta' | 'zoom';
 export type CaptionStyle = 'pop' | 'karaoke' | 'minimal' | 'none';
 export type CutMode = 'tight' | 'natural' | 'none';
-export type MontageStage = 'upload' | 'transcribe' | 'cut' | 'plan' | 'media' | 'ready';
+export type MontageStage = 'upload' | 'prepare' | 'transcribe' | 'cut' | 'plan' | 'media' | 'ready';
+
+/** Une vidéo déposée pour un montage (avant la création). */
+export interface MontageUpload {
+  url: string;
+  posterUrl?: string;
+  name?: string;
+  durationSec: number;
+  width: number;
+  height: number;
+  hasAudio: boolean;
+}
+
+export interface MontageMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  kind?: 'request' | 'progress' | 'result' | 'revision' | 'error';
+  inputs?: { url: string; name?: string; posterUrl?: string; durationSec: number }[];
+  i18n?: { key: string; params?: Record<string, string | number> };
+  createdAt: string;
+}
 
 export interface MontageElement {
   id: string;
@@ -195,6 +220,7 @@ export interface MontageElement {
   image?: string;
   mode?: 'full' | 'card';
   credit?: string;
+  clip?: string;
   off?: boolean;
 }
 
@@ -211,6 +237,9 @@ export interface Montage {
   creativity: Creativity;
   language?: string;
   source: { url: string; durationSec: number; width: number; height: number; name?: string };
+  inputs?: { url: string; name?: string; posterUrl?: string; durationSec: number; speech?: boolean }[];
+  clips?: { id: string; url: string; posterUrl?: string; durationSec: number; name?: string }[];
+  messages?: MontageMessage[];
   edit?: { url: string; posterUrl?: string; durationSec: number; width: number; height: number };
   words: { text: string; start: number; end: number; p?: number }[];
   cuts: { mode: CutMode; ranges: { start: number; end: number; at: number }[]; removedSec: number; dropped?: number[] };

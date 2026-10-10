@@ -60,6 +60,8 @@ export interface MontageElement {
   icon?: string;
   /** Image d'illustration : URL déposée, recherche ou description, et cadrage. */
   image?: string;
+  /** Plan de coupe : une vidéo SANS PAROLE que l'utilisateur a fournie (id dans `clips`). */
+  clip?: string;
   query?: string;
   mode?: 'full' | 'card';
   credit?: string;
@@ -73,7 +75,41 @@ export interface MontageOutro {
   durationSec: number;
 }
 
-export type MontageStage = 'upload' | 'transcribe' | 'cut' | 'plan' | 'media' | 'ready';
+export type MontageStage = 'upload' | 'prepare' | 'transcribe' | 'cut' | 'plan' | 'media' | 'ready';
+
+/** Une vidéo importée : avec de la parole, elle fait le montage ; sans, elle devient plan de coupe. */
+export interface MontageInput {
+  url: string;
+  name?: string;
+  posterUrl?: string;
+  durationSec: number;
+  width: number;
+  height: number;
+  /** Décidé à la préparation (son présent et audible). */
+  speech?: boolean;
+}
+
+/** Un plan de coupe prêt pour la page (WebM, sans son). */
+export interface MontageClip {
+  id: string;
+  url: string;
+  posterUrl?: string;
+  durationSec: number;
+  name?: string;
+}
+
+/** Un message de la conversation du montage. */
+export interface MontageMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  kind?: 'request' | 'progress' | 'result' | 'revision' | 'error';
+  /** Les vidéos jointes à la demande (aperçu dans le fil). */
+  inputs?: Pick<MontageInput, 'url' | 'name' | 'posterUrl' | 'durationSec'>[];
+  /** Le texte côté interface (traduit), quand il est générique. */
+  i18n?: { key: string; params?: Record<string, unknown> };
+  createdAt: string;
+}
 export type MontageStatus = 'processing' | 'ready' | 'failed';
 
 export interface MontageMusic {
@@ -101,6 +137,12 @@ export interface MontageVideo {
   creativity: CreativityLevel;
   language?: string;
   source: { url: string; durationSec: number; width: number; height: number; name?: string };
+  /** Les vidéos importées, dans l'ordre (celles qui parlent sont mises bout à bout). */
+  inputs?: MontageInput[];
+  /** Les plans de coupe (vidéos sans parole), que l'habillage peut montrer. */
+  clips?: MontageClip[];
+  /** La conversation : la demande, la préparation, le résultat, les retours. */
+  messages?: MontageMessage[];
   /** La vidéo montée (coupée, recadrée), lue par l'aperçu et par le rendu. */
   edit?: { url: string; posterUrl?: string; durationSec: number; width: number; height: number };
   words: MontageWord[];
@@ -123,6 +165,8 @@ export interface MontageVideo {
 /** Les limites d'un import (une prise de parole, pas un film). */
 export const MONTAGE_LIMITS = {
   maxBytes: 600 * 1024 * 1024,
+  /** Durée totale des vidéos importées. */
   maxDurationSec: 300,
   minDurationSec: 3,
+  maxFiles: 10,
 };

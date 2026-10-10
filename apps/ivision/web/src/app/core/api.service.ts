@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { readLocaleCookie } from './locale-cookie';
-import { Brand, ChatEvent, ChatMode, ChatOptions, ChatSession, MediaAsset, Montage, MotionVideo, Reference, SessionSummary, VideoOptions, Visual } from './models';
+import { Brand, ChatEvent, ChatMode, ChatOptions, ChatSession, MediaAsset, Montage, MontageUpload, MotionVideo, Reference, SessionSummary, VideoOptions, Visual } from './models';
 
 /** Le client de l'API iVision (`/v1`). Les flux (conversation, scan) passent par `fetch`. */
 @Injectable({ providedIn: 'root' })
@@ -33,6 +33,16 @@ export class ApiService {
   }
   importIdem(projectId: string) {
     return this.http.post<Brand>(`${this.base}/brands/import-idem`, { projectId });
+  }
+  /** Des couleurs choisies sans charte : une marque provisoire. */
+  autoBrand(colors?: Record<string, string>) {
+    return this.http.post<Brand>(`${this.base}/brands/auto`, { colors });
+  }
+  /** Une charte (PDF) ou un logo (image) : couleurs, polices et logo lus. */
+  brandFromFile(file: File) {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<Brand & { found: { kind: string; colors: number; fonts: string[]; logo: boolean } }>(`${this.base}/brands/from-file`, form);
   }
   deleteBrand(id: string) {
     return this.http.delete<void>(`${this.base}/brands/${id}`);
@@ -127,12 +137,18 @@ export class ApiService {
   montages(brandId?: string) {
     return this.http.get<{ montages: Montage[] }>(`${this.base}/montages`, { params: brandId ? { brandId } : {} });
   }
-  /** Envoi de la vidéo : les événements d'envoi (progression) puis la réponse. */
-  createMontage(file: File, fields: Record<string, string>): Observable<HttpEvent<Montage>> {
+  /** Dépôt des vidéos (une ou plusieurs) : les événements d'envoi (progression) puis la réponse. */
+  uploadMontageVideos(files: File[]): Observable<HttpEvent<{ uploads: MontageUpload[] }>> {
     const form = new FormData();
-    Object.entries(fields).forEach(([k, v]) => form.append(k, v));
-    form.append('file', file);
-    return this.http.post<Montage>(`${this.base}/montages`, form, { reportProgress: true, observe: 'events' });
+    files.forEach((f) => form.append('files', f));
+    return this.http.post<{ uploads: MontageUpload[] }>(`${this.base}/montages/uploads`, form, { reportProgress: true, observe: 'events' });
+  }
+  createMontage(body: { inputs: { url: string; name?: string; posterUrl?: string }[]; prompt?: string; brandId?: string; format?: string; creativity?: string; cuts?: string; music?: boolean }) {
+    return this.http.post<Montage>(`${this.base}/montages`, body);
+  }
+  /** Un retour écrit dans la conversation du montage. */
+  sendMontageMessage(id: string, text: string) {
+    return this.http.post<Montage>(`${this.base}/montages/${id}/messages`, { text });
   }
   montage(id: string) {
     return this.http.get<Montage>(`${this.base}/montages/${id}`);
