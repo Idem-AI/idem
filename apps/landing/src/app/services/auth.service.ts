@@ -39,6 +39,10 @@ export class AuthService {
    * Récupérer l'utilisateur courant depuis l'API
    */
   async fetchCurrentUser(): Promise<void> {
+    // A prerendered page has no visitor: never call the API while building.
+    // The header called this at every route, so the build depended on the
+    // live API answering, and failed when it did not ("[object Object]").
+    if (!isPlatformBrowser(this.platformId)) return;
     try {
       const user = await firstValueFrom(
         this.http.get<UserModel>(`${environment.services.api.url}/auth/profile`, {
