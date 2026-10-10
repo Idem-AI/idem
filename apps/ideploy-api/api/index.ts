@@ -72,6 +72,10 @@ async function bootstrap(): Promise<void> {
     });
     const httpServer = server;
     onShutdown('http', () => closeHttpServer(httpServer));
+    // Worker containers follow the queues (AUTOSCALE_ENABLED=true).
+    const { startAutoscaler } = await import('./autoscale/autoscaler');
+    const stopAutoscaler = startAutoscaler();
+    onShutdown('autoscaler', async () => stopAutoscaler());
   }
 
   if (runsWorkers(role)) {

@@ -99,6 +99,25 @@ On `SIGTERM` a process stops taking requests and jobs, lets the running jobs fin
 | `IDEPLOY_DB_POOL_MAX` | 10 | Postgres connections per process; at least the total worker concurrency plus a few for requests |
 | `SHUTDOWN_TIMEOUT_MS` | 600000 | how long running jobs get to finish on `SIGTERM` |
 
+**Worker autoscaling.** The API (role `api`) can start and stop worker containers as the queues fill and empty. Declare the workers in Compose with a label: `ideploy.worker=fixed` for those always on, `ideploy.worker=elastic` for those the autoscaler manages. Create the elastic ones without starting them (`docker compose up --no-start ideploy-worker-2 ideploy-worker-3`).
+
+Every `AUTOSCALE_INTERVAL_MS`, one API process (a Redis lock elects it) counts the deployment and pipeline jobs **waiting or running**. Jobs sent back to the queue because their team or server is at its limit do not count: another worker would not run them sooner. It wants `ceil(jobs / WORKER_CONCURRENCY_DEPLOYMENTS)` workers, between `AUTOSCALE_MIN` and `AUTOSCALE_MAX`.
+
+- **Up:** one elastic container started per tick, unless the host has less than `AUTOSCALE_MIN_FREE_MEMORY_MB` available.
+- **Down:** one elastic container per tick, after `AUTOSCALE_COOLDOWN_MS` without needing it. It is stopped with the graceful-shutdown period, so its running jobs finish.
+
+Each decision is logged (`autoscale.scale_up`, `autoscale.scale_down`, with the reason).
+
+| Variable (on `ideploy-api`) | Default | |
+| --- | --- | --- |
+| `AUTOSCALE_ENABLED` | `false` | `true` to turn it on |
+| `AUTOSCALE_MIN` / `AUTOSCALE_MAX` | 1 / 3 | total workers, fixed ones included |
+| `AUTOSCALE_INTERVAL_MS` | 30000 | how often it looks |
+| `AUTOSCALE_COOLDOWN_MS` | 600000 | calm needed before stopping one |
+| `AUTOSCALE_MIN_FREE_MEMORY_MB` | 768 | no start below this host memory |
+
+The deploy workflow (`deploy-ideploy-api.yml`) updates the API and every worker container. Elastic workers it starts are stopped again by the autoscaler after the cool-down.
+
 **Redis** holds every queued job. It must run with `maxmemory-policy noeviction` and persistence (`appendonly yes`): otherwise jobs are dropped under memory pressure or lost when Redis restarts. The API checks both at start-up and logs a critical line (`redis.eviction_policy`, `redis.no_persistence`) when one is missing.
 
 ## Publishing from iCode
