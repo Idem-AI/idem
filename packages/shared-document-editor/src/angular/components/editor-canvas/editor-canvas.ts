@@ -269,7 +269,9 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   /** Position de chaque page/section dans le document (échelle 1). */
   readonly sectionLayouts = this.layoutState.asReadonly();
 
-  readonly pageWidthPx = computed(() => this.cssToPx(this.pageFormat().width) + DOC_PADDING_PX);
+  /** Aperçu d'un visuel seul : le document épouse la page, sans marge (cf. SINGLE_VISUAL_PREVIEW). */
+  private readonly bareVisual = computed(() => this.mode() === 'preview' && this.fitRoot() && !this.multiPage());
+  readonly pageWidthPx = computed(() => this.cssToPx(this.pageFormat().width) + (this.bareVisual() ? 0 : DOC_PADDING_PX));
   readonly scaledWidth = computed(() => this.pageWidthPx() * this.zoomState());
   readonly scaledHeight = computed(() => this.iframeHeight() * this.zoomState());
 

@@ -142,13 +142,23 @@ export class IdemDocumentPreviewComponent {
 
   constructor() {
     // Rendu dès que le HTML et l'iframe sont là, et à chaque changement (polices comprises).
+    // Différé après l'affichage : quand le HTML est DÉJÀ là à la création (visionneuse modale,
+    // visuel fourni avec son HTML), l'effet passe avant que le canevas ait reçu ses entrées —
+    // `render()` lisait alors un `pageFormat` absent (NG0950) et l'aperçu restait vide.
     effect(() => {
       const html = this.html();
       const canvas = this.canvas();
       const section = this.section();
-      this.fonts();
+      const fonts = this.fonts();
       if (!html || !canvas) return;
-      canvas.render([{ id: section.id, name: section.name || section.id, type: section.type || 'section', html }]);
+      afterNextRender(
+        () => {
+          // Rien n'a changé entre-temps : sinon l'effet suivant rendra la bonne version.
+          if (this.html() !== html || this.fonts() !== fonts) return;
+          canvas.render([{ id: section.id, name: section.name || section.id, type: section.type || 'section', html }]);
+        },
+        { injector: this.injector },
+      );
     });
   }
 
