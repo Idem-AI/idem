@@ -1006,7 +1006,7 @@
       "deleteService": "Delete service",
       "deleting": "Deleting…",
       "deleteError": "Deleting failed.",
-      "consoleEmpty": "Nothing yet. Press Start to see what happens here.",
+      "consoleEmpty": "Nothing yet. Press Start: what happens shows up here.",
       "action": {
         "start": "Start",
         "stop": "Stop",
@@ -1022,7 +1022,19 @@
       "envSave": "Save",
       "envSaveRestart": "Save and restart",
       "envSaved": "Saved. Restart to apply.",
-      "envError": "Could not save the variables."
+      "envError": "Could not save the variables.",
+      "state": {
+        "running": "Running · {{running}}/{{total}} containers",
+        "partial": "Partly running · {{running}}/{{total}} containers",
+        "stopped": "Stopped"
+      },
+      "envEmpty": "No variables yet. Add the ones the compose file reads, or upload its .env.",
+      "composeEdit": "Edit",
+      "composeEditHint": "Applied at the next start. Host paths, privileged mode and the Docker socket are refused.",
+      "composeSaveRestart": "Save and start",
+      "cancel": "Cancel",
+      "composeShow": "Show the file ({{count}} lines)",
+      "composeError": "Could not save the compose file."
     },
     "subtitle": "The ready-made software you installed — a database, an automation tool, a CMS…",
     "emptyHint": "Pick a service from the catalog: it is installed and configured for you.",
@@ -1682,6 +1694,19 @@
       "MEDIUM": "Medium",
       "LOW": "Low",
       "UNKNOWN": "Unknown"
+    },
+    "gates": {
+      "title": "What stops the pipeline",
+      "hint": "Findings are always recorded and shown. Choose which ones also stop the deployment.",
+      "trivy": "Vulnerabilities (Trivy)",
+      "never": "Never — report only",
+      "critical": "Critical or worse",
+      "high": "High or worse",
+      "quality": "Quality gate (SonarQube)",
+      "reportOnly": "Report only",
+      "stopOnFail": "Stop if it fails",
+      "secrets": "Secrets in the code",
+      "stopOnFound": "Stop if found"
     }
   },
   "deployments": {

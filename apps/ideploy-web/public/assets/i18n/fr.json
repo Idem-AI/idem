@@ -1006,7 +1006,7 @@
       "deleteService": "Supprimer le service",
       "deleting": "Suppression…",
       "deleteError": "La suppression a échoué.",
-      "consoleEmpty": "Rien pour le moment. Appuyez sur Démarrer pour voir ce qui se passe ici.",
+      "consoleEmpty": "Rien pour le moment. Appuyez sur Démarrer : ce qui se passe s’affiche ici.",
       "action": {
         "start": "Démarrage",
         "stop": "Arrêt",
@@ -1022,7 +1022,19 @@
       "envSave": "Enregistrer",
       "envSaveRestart": "Enregistrer et redémarrer",
       "envSaved": "Enregistré. Redémarrez pour appliquer.",
-      "envError": "Impossible d'enregistrer les variables."
+      "envError": "Impossible d'enregistrer les variables.",
+      "state": {
+        "running": "En marche · {{running}}/{{total}} conteneurs",
+        "partial": "En partie en marche · {{running}}/{{total}} conteneurs",
+        "stopped": "Arrêté"
+      },
+      "envEmpty": "Aucune variable pour le moment. Ajoutez celles que lit le compose, ou importez son .env.",
+      "composeEdit": "Modifier",
+      "composeEditHint": "Appliqué au prochain démarrage. Les chemins de l’hôte, le mode privilégié et le socket Docker sont refusés.",
+      "composeSaveRestart": "Enregistrer et démarrer",
+      "cancel": "Annuler",
+      "composeShow": "Afficher le fichier ({{count}} lignes)",
+      "composeError": "Impossible d’enregistrer le fichier compose."
     },
     "subtitle": "Les logiciels prêts à l'emploi que vous avez installés — base de données, outil d'automatisation, CMS…",
     "emptyHint": "Choisissez un service dans le catalogue : il est installé et configuré pour vous.",
@@ -1682,6 +1694,19 @@
       "MEDIUM": "Moyenne",
       "LOW": "Faible",
       "UNKNOWN": "Inconnue"
+    },
+    "gates": {
+      "title": "Ce qui arrête le pipeline",
+      "hint": "Les résultats sont toujours enregistrés et affichés. Choisissez ceux qui arrêtent aussi le déploiement.",
+      "trivy": "Vulnérabilités (Trivy)",
+      "never": "Jamais — rapport seulement",
+      "critical": "Critique ou pire",
+      "high": "Élevée ou pire",
+      "quality": "Porte qualité (SonarQube)",
+      "reportOnly": "Rapport seulement",
+      "stopOnFail": "Arrêter si elle échoue",
+      "secrets": "Secrets dans le code",
+      "stopOnFound": "Arrêter si trouvés"
     }
   },
   "deployments": {
