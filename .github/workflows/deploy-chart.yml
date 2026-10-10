@@ -38,4 +38,10 @@ jobs:
       build-env: false
       deploy: false
       free-disk: false
+      build-args: |
+        MERMAID_DOMAIN=mermaid.live
+        MERMAID_ANALYTICS_URL=https://p.mermaid.live
+        MERMAID_RENDERER_URL=https://mermaid.ink
+        MERMAID_KROKI_RENDERER_URL=https://kroki.io
+        MERMAID_IS_ENABLED_MERMAID_CHART_LINKS=true
     secrets: inherit

@@ -36,6 +36,11 @@ on:
         required: false
         type: boolean
         default: true
+      build-args:
+        description: Docker build arguments, one KEY=value per line (public values only)
+        required: false
+        type: string
+        default: ''
       free-disk:
         description: Free the runner's disk first (large images)
         required: false
@@ -102,6 +107,7 @@ jobs:
         with:
           context: .
           file: ${{ inputs.dockerfile }}
+          build-args: ${{ inputs.build-args }}
           push: ${{ steps.meta.outputs.push == 'true' }}
           tags: ghcr.io/idem-ai/${{ inputs.image }}:${{ steps.meta.outputs.tag }}
           # Layers are cached per image between runs.
