@@ -145,7 +145,7 @@
     },
     "empty": {
       "videoTitle": "What video do you want?",
-      "videoText": "Describe the announcement, product or event. Paste your website link so the video matches your brand.",
+      "videoText": "Describe it and I create it as an animation. Or add the video where you talk: I edit it, with captions and animations.",
       "imageTitle": "What visual do you want?",
       "imageText": "Describe the offer, announcement or message. Paste your website link so the visual matches your brand.",
       "ideas": {
@@ -155,7 +155,15 @@
         "image1": "A poster for our sale: 20% off everything",
         "image2": "A post for our new menu",
         "image3": "A story announcing our Saturday event"
-      }
+      },
+      "describeTitle": "Describe my video",
+      "describeText": "I create it as an animation",
+      "editTitle": "Edit my filmed video",
+      "editText": "I cut, caption and animate it",
+      "both": "You can do both: add your video and ask for an animated intro, your logo, a call to action…",
+      "choose": "How do you want to make your video?",
+      "describeCta": "Write",
+      "editCta": "Add my video"
     },
     "attach": {
       "model": "Model",
@@ -164,7 +172,10 @@
       "imageModel": "Add a model image",
       "myMedia": "Add my photos or clips",
       "myPhoto": "Add my photo",
-      "needBrand": "Choose a brand first"
+      "needBrand": "Choose a brand first",
+      "videos": "Your videos",
+      "willEdit": "I’ll edit this video (writing instructions is optional).",
+      "willUse": "No speech: I’ll use it as footage for the animated video."
     },
     "ask": {
       "brand": "So the result matches your brand: paste your website link, import an IDEM project, or choose a brand.",
@@ -190,7 +201,7 @@
     "result": {
       "previewTitle": "Video preview",
       "watch": "Watch",
-      "edit": "Edit and export",
+      "edit": "Edit",
       "fromReference": "Reproduced from a model in {{shots}} shots.",
       "download": "Download",
       "fullscreen": "Full screen",
@@ -201,7 +212,8 @@
       "videoFromReference": "Your video is ready: the model’s animations, with your brand. Edit texts and images, then export.",
       "videoFromReferenceNoVoice": "Your video is ready: the template's animations, with your brand. Edit the texts and images, then export. The voice-over could not be generated: try again from the editor.",
       "visual": "Here is your visual.",
-      "visualFromReference": "Here is your visual, laid out like the model, on brand."
+      "visualFromReference": "Here is your visual, laid out like the model, on brand.",
+      "montage": "I’m editing your video: cutting silences, adding captions and animating what you say. You can leave the page, I keep going."
     },
     "payment": {
       "cta": "Top up my credits",
@@ -233,7 +245,10 @@
       "label": "Your request",
       "placeholderVideo": "Describe your video, or paste your website link…",
       "placeholderImage": "Describe your visual, or paste your website link…",
-      "send": "Send"
+      "send": "Send",
+      "placeholderMontage": "Optional — e.g. dynamic, an animated intro, show the price big, end with my WhatsApp…",
+      "placeholderRevise": "What should change? E.g. no music, add an intro, simpler captions…",
+      "reviseHint": "For another video: describe it (“a video for…”) or add a filmed video."
     },
     "options": {
       "duration": "Duration",
@@ -241,7 +256,9 @@
       "photo": "With photo",
       "voice": "Voice-over",
       "voiceHint": "A voice tells the message, scene by scene, in your language.",
-      "price": "{{cost}} credits"
+      "price": "{{cost}} credits",
+      "removeSilences": "Remove silences",
+      "music": "Music"
     },
     "choice": {
       "palettes": "Palette",
@@ -289,6 +306,11 @@
       },
       "visual": {
         "start": "Composing your visual…"
+      },
+      "videos": "Preparing your videos…",
+      "montage": {
+        "start": "Starting the edit…",
+        "revise": "Making the changes…"
       }
     },
     "error": {
@@ -306,6 +328,19 @@
       },
       "generation": "The creation failed. Your credits were refunded; you can try again.",
       "payment": "Not enough credits for this creation. Top up your IDEM account, then try again."
+    },
+    "montage": {
+      "unreadable_video": "I could not read these videos. Try an MP4 or MOV.",
+      "no_audio": "None of these videos has sound: add the one where you talk.",
+      "too_short": "The videos are too short (3 seconds min).",
+      "too_long": "The videos are too long (5 minutes in total max).",
+      "too_many": "10 videos max.",
+      "stillProcessing": "The edit is still being prepared: ask again in a moment.",
+      "reviseFailed": "I could not make this change."
+    },
+    "video": {
+      "notUnderstood": "I didn’t understand what to change. Try “change the title to …”, “more sober”, “no music” or “add a voice-over”.",
+      "revised": "Done. Have a look at the new version."
     }
   },
   "edit": {
@@ -474,7 +509,8 @@
       "noMusic": "No music",
       "soberCaptions": "Simpler captions",
       "moreDynamic": "More dynamic",
-      "square": "Square format"
+      "square": "Square format",
+      "addIntro": "Add an animated intro"
     },
     "chat": {
       "newTitle": "New edit",
@@ -499,8 +535,14 @@
       "ready": "Your edit is ready: {{duration}}, captions and {{count}} item(s) on screen. Tell me what to change, or download it.",
       "noSpeech": "I didn’t hear anyone speaking in these videos. Add a video where you talk.",
       "failed": "The edit did not complete. Your {{cost}} credits were refunded.",
-      "notUnderstood": "I didn’t understand what to change. Try “no music”, “simpler captions”, “square format” or “show the price big”."
-    }
+      "notUnderstood": "I didn’t understand what to change. Try “no music”, “simpler captions”, “square format” or “show the price big”.",
+      "sayHint": "Write below what to change, or click “Edit”."
+    },
+    "intro": "Animated intro",
+    "introTitle": "Intro title",
+    "introKicker": "Kicker (optional)",
+    "introAdd": "Add the intro",
+    "introRemove": "No intro"
   },
   "brandHint": {
     "prompt": "Optional · your colours:",
@@ -537,5 +579,24 @@
     "siteShort": "Site",
     "fileShort": "Brand guide",
     "colorsShort": "Colours"
+  },
+  "montageEditor": {
+    "back": "Back to the conversation",
+    "title": "Edit the video",
+    "saved": "Saved",
+    "timeline": "Video timeline",
+    "settings": "Edit settings",
+    "tabs": {
+      "screen": "On screen",
+      "captions": "Captions",
+      "ends": "Start & end",
+      "sound": "Sound & format"
+    },
+    "screenHint": "What appears while you talk. Tap an item to jump to it; your changes save automatically.",
+    "show": "Show",
+    "hide": "Hide",
+    "transcriptHint": "Tap a word to jump to it or fix a typo.",
+    "introHint": "An animated title in your colours, before you talk.",
+    "outroHint": "The last screen: your brand, your contact."
   }
 }

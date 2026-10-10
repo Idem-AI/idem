@@ -259,6 +259,8 @@ const turnBody = z.object({
   referenceId: z.string().max(80).optional(),
   noReference: z.boolean().optional(),
   media: z.array(mediaAsset).max(16).optional(),
+  /** Vidéos déposées (`/montages/uploads`) : avec de la parole, la conversation les monte. */
+  videos: z.array(z.object({ url: z.string().url().max(2000), name: z.string().max(80).optional(), posterUrl: z.string().max(2000).optional() })).max(10).optional(),
   photoUrl: z.string().url().max(2000).optional(),
   resume: z.boolean().optional(),
   options: z
@@ -270,6 +272,7 @@ const turnBody = z.object({
       type: z.string().max(24).optional(),
       musicMood: z.string().max(16).optional(),
       sfx: z.boolean().optional(),
+      cuts: z.enum(['tight', 'natural', 'none']).optional(),
       voice: z.boolean().optional(),
       format: z.enum(FLYER_FORMATS as unknown as [string, ...string[]]).optional(),
       withPhoto: z.boolean().optional(),
@@ -648,6 +651,7 @@ v1.patch(
       captions: z.enum(CAPTION_STYLES as unknown as [string, ...string[]]).optional(),
       words: z.record(z.string(), z.string().max(60)).optional(),
       elements: z.array(z.record(z.string(), z.unknown())).max(80).optional(),
+      intro: z.object({ title: z.string().max(80).optional(), kicker: z.string().max(40).optional() }).nullable().optional(),
       outro: z.object({ text: z.string().max(80).optional(), detail: z.string().max(80).optional() }).nullable().optional(),
       music: z.boolean().optional(),
       cuts: z.enum(CUT_MODES as unknown as [string, ...string[]]).optional(),

@@ -247,6 +247,8 @@ async function pipelineChecks(): Promise<void> {
         { id: 'lt', type: 'lowerThird', from: 3, to: 6, value: 'Awa Diop', label: "Fondatrice, Saveurs d'Abidjan" },
         { id: 'cta', type: 'cta', from: words.length - 4, to: words.length - 1, text: 'Commandez', value: 'WhatsApp' },
       ],
+      // La fusion : une intro animée (motion design) avant la prise de parole.
+      intro: { title: 'Le bissap de Saveurs', kicker: 'Nouveau', durationSec: 2.6 },
       outro: plan.outro,
       musicEnabled: false,
       paidCredits: 0,
@@ -262,6 +264,12 @@ async function pipelineChecks(): Promise<void> {
     const final = await probe(out.file);
     check('Rendu : MP4 à la durée parole + carton, avec le son', Math.abs(final.duration - page.duration) < 0.2 && final.hasAudio, `${final.duration.toFixed(2)} s (attendu ${page.duration.toFixed(2)}) · ${((Date.now() - t1) / 1000).toFixed(1)} s de rendu`);
     fs.copyFileSync(out.file, path.join(dir, 'montage.mp4'));
+    // L'intro : à 1 s, le fond est la couleur principale de la marque ; après, la vidéo filmée.
+    const pixel = (at: number) => [...spawnSync('ffmpeg', ['-v', 'error', '-ss', String(at), '-i', out.file, '-frames:v', '1', '-vf', 'crop=40:40:900:1500,scale=1:1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']).stdout];
+    const [r, g, b] = pixel(1.0);
+    check('Fusion : l’intro animée ouvre la vidéo, aux couleurs de la marque', Math.abs(r - 0x1f) < 30 && Math.abs(g - 0x6f) < 30 && Math.abs(b - 0x4a) < 30, `rgb(${r}, ${g}, ${b}) à 1 s`);
+    const [r2, g2, b2] = pixel(4.5);
+    check('Fusion : puis la vidéo filmée prend la place', !(Math.abs(r2 - 0x1f) < 30 && Math.abs(g2 - 0x6f) < 30 && Math.abs(b2 - 0x4a) < 30), `rgb(${r2}, ${g2}, ${b2}) à 4,5 s`);
     for (const at of [0.6, 3, 8, page.duration * 0.6, page.duration - 1]) {
       spawnSync('ffmpeg', ['-y', '-v', 'error', '-ss', at.toFixed(2), '-i', out.file, '-frames:v', '1', '-q:v', '3', path.join(dir, `frame-${at.toFixed(1)}.jpg`)]);
     }

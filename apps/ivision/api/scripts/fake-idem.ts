@@ -35,6 +35,12 @@ export function startFakeIdem(options: { port?: number; key?: string; origins?: 
   // Rédacteur simulé : chaque case demandée reçoit un texte court et fondé.
   app.post('/internal/ivision/ai/text', (req, res) => {
     const user = String(req.body.user || '');
+    // Retoucheur simulé (vidéo motion design) : le titre de la première scène change.
+    if (/made this short motion-design video/.test(String(req.body.system || ''))) {
+      const key = /key=(\S+) role=/.exec(user)?.[1];
+      if (/f[êe]te des m[èe]res/i.test(user)) return res.json({ text: '{"newRequest":true}' });
+      return res.json({ text: JSON.stringify({ newRequest: false, texts: key ? { [key]: { title: 'Le café du matin' } } : {}, reply: 'J’ai changé le titre.' }) });
+    }
     // Monteur simulé (montage d'une prise de parole) : des éléments ancrés sur les index de la
     // transcription, plus un mot-clé jamais prononcé que le code doit refuser.
     if (/video editor of a social-media team/.test(String(req.body.system || ''))) {

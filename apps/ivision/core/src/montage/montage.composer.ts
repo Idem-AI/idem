@@ -85,9 +85,12 @@ export interface ComposeMontageOptions {
 }
 
 export async function composeMontageHtml(opts: ComposeMontageOptions): Promise<{ html: string; width: number; height: number; fps: number; duration: number }> {
-  const { montage, timed, theme } = opts;
+  const { montage, theme } = opts;
   const spec = frameSpec(montage.format, montage.quality);
-  const speechEnd = montage.edit?.durationSec || 0;
+  // L'intro animée passe d'abord : tout le temps de la parole est décalé d'autant.
+  const introSec = montage.intro?.durationSec || 0;
+  const timed = opts.timed.map((t) => (t ? { start: t.start + introSec, end: t.end + introSec } : null));
+  const speechEnd = introSec + (montage.edit?.durationSec || 0);
   const outro = montage.outro ? { ...montage.outro, tin: speechEnd } : null;
   const duration = Math.round((speechEnd + (outro?.durationSec || 0)) * 1000) / 1000;
   const words = montage.words.map((w, i) => ({ text: w.text, t: timed[i] }));
@@ -122,13 +125,16 @@ export async function composeMontageHtml(opts: ComposeMontageOptions): Promise<{
     fps: spec.fps,
     duration,
     speechEnd,
+    /** Instant où la vidéo filmée commence (après l'intro). */
+    videoStart: introSec,
+    intro: montage.intro ? { title: montage.intro.title, kicker: montage.intro.kicker, end: introSec } : null,
     video: opts.videoUrl,
     poster: montage.edit?.posterUrl,
     music: opts.mode === 'preview' && opts.musicUrl ? { url: opts.musicUrl, startAt: montage.music?.startAt || 0 } : undefined,
     captions: { style: montage.captions.style, chunks: captionChunks(words, montage.captions.style) },
     words: words.map((w) => ({ x: w.text, s: w.t?.start ?? -1, e: w.t?.end ?? -1 })),
     // Les débuts des passages gardés : la caméra alterne deux cadrages pour masquer les coupes.
-    cuts: montage.cuts.ranges.map((r) => r.at).filter((at) => at > 0.05),
+    cuts: montage.cuts.ranges.map((r) => r.at + introSec).filter((at) => at > introSec + 0.05),
     elements,
     outro,
     brandName: theme.brandName,
@@ -148,7 +154,7 @@ export async function composeMontageHtml(opts: ComposeMontageOptions): Promise<{
     square: spec.width === spec.height,
   };
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
-  const allText = [theme.brandName, ...montage.words.map((w) => w.text), ...elements.flatMap((e) => [e.text, e.value, e.label, ...(e.items || [])]), outro?.text, outro?.detail].filter(Boolean).join(' ');
+  const allText = [theme.brandName, montage.intro?.title, montage.intro?.kicker, ...montage.words.map((w) => w.text), ...elements.flatMap((e) => [e.text, e.value, e.label, ...(e.items || [])]), outro?.text, outro?.detail].filter(Boolean).join(' ');
   const fonts = opts.mode === 'render' ? await inlineFontLinks(theme.fonts.links, allText) : theme.fonts.links;
   const html = `<!doctype html>
 <html lang="${montage.language || 'fr'}"><head><meta charset="utf-8">

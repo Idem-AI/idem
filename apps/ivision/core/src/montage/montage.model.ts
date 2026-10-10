@@ -69,6 +69,17 @@ export interface MontageElement {
   off?: boolean;
 }
 
+/**
+ * L'INTRO ANIMÉE — le motion design avant la prise de parole : un titre qui entre mot à mot sur
+ * les couleurs de la marque, le logo, puis un volet qui découvre la personne. Toute la vidéo est
+ * décalée d'autant (la voix commence après l'intro).
+ */
+export interface MontageIntro {
+  title: string;
+  kicker?: string;
+  durationSec: number;
+}
+
 export interface MontageOutro {
   text: string;
   detail?: string;
@@ -124,6 +135,8 @@ export interface MontageMusic {
 
 export interface MontageVideo {
   id: string;
+  /** La conversation vidéo d'où il vient (atelier « Vidéo » unique). */
+  sessionId?: string;
   title: string;
   status: MontageStatus;
   stage: MontageStage;
@@ -150,6 +163,7 @@ export interface MontageVideo {
   cuts: { mode: CutMode; ranges: MontageRange[]; removedSec: number; dropped?: number[] };
   captions: { style: CaptionStyle };
   elements: MontageElement[];
+  intro?: MontageIntro;
   outro?: MontageOutro;
   music?: MontageMusic;
   musicEnabled: boolean;

@@ -35,7 +35,7 @@ import { cutVideo, editedDuration, keepRanges, retimeWords } from './montage.cut
 import { assembleInputs } from './montage.assemble';
 import { CAPTION_STYLES, CUT_MODES, CaptionStyle, CutMode, ELEMENT_TYPES, MONTAGE_LIMITS, MontageClip, MontageElement, MontageInput, MontageMessage, MontageStage, MontageVideo } from './montage.model';
 import { planMontage, PlannerInput, revisePlan } from './montage.planner';
-import { TimedWord } from './montage.timeline';
+import { sentences, TimedWord } from './montage.timeline';
 import { transcribe, transcriptionAvailable } from './montage.transcribe';
 
 export class MontageInputError extends Error {}
@@ -107,6 +107,7 @@ export interface CreateMontageInput {
   creativity: CreativityLevel;
   cuts: CutMode;
   music: boolean;
+  sessionId?: string;
 }
 
 const msgId = () => `msg_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
@@ -163,6 +164,7 @@ export class MontageService {
     const prompt = input.prompt.trim().slice(0, 1200);
     const montage: MontageVideo = {
       id,
+      ...(input.sessionId ? { sessionId: input.sessionId } : {}),
       title: prompt ? prompt.replace(/\s+/g, ' ').slice(0, 60) : (first?.name || 'Montage').replace(/\.[a-z0-9]+$/i, '').slice(0, 60),
       status: 'processing',
       stage: 'prepare',
@@ -295,6 +297,7 @@ export class MontageService {
         title: m.prompt ? m.title : plan.title || m.title,
         captions: { style: plan.captions },
         elements: plan.elements,
+        intro: plan.intro,
         outro: plan.outro,
         plannedBy: plan.source,
         stage: 'media',
@@ -303,7 +306,7 @@ export class MontageService {
       // 4. Images d'illustration (les plans de coupe fournis n'en ont pas besoin).
       const elements = await this.sourceImages(userId, brandId, id, plan.elements, m1.creativity, m1.format);
       // 5. Musique (sous la voix).
-      const music = m1.musicEnabled ? await this.pickMusic(brand, m1.edit!.durationSec + (plan.outro?.durationSec || 0)) : undefined;
+      const music = m1.musicEnabled ? await this.pickMusic(brand, (plan.intro?.durationSec || 0) + m1.edit!.durationSec + (plan.outro?.durationSec || 0)) : undefined;
       const shown = elements.filter((e) => e.type !== 'zoom').length;
       await this.store.mutate(userId, id, (m) =>
         push(
@@ -458,7 +461,7 @@ export class MontageService {
   async update(
     userId: string,
     id: string,
-    patch: { captions?: string; words?: Record<string, string>; elements?: unknown[]; outro?: { text?: string; detail?: string } | null; music?: boolean; cuts?: string; format?: string; title?: string }
+    patch: { captions?: string; words?: Record<string, string>; elements?: unknown[]; intro?: { title?: string; kicker?: string } | null; outro?: { text?: string; detail?: string } | null; music?: boolean; cuts?: string; format?: string; title?: string }
   ): Promise<MontageVideo | null> {
     const found = await this.store.get(userId, id);
     if (!found) return null;
@@ -476,6 +479,11 @@ export class MontageService {
         });
       }
       if (Array.isArray(patch.elements)) next.elements = this.cleanElements(patch.elements, m);
+      if (patch.intro === null) next.intro = undefined;
+      else if (patch.intro && typeof patch.intro === 'object') {
+        const title = String(patch.intro.title || '').trim().slice(0, 60);
+        next.intro = title ? { title, kicker: String(patch.intro.kicker || '').trim().slice(0, 30) || undefined, durationSec: m.intro?.durationSec || 2.6 } : undefined;
+      }
       if (patch.outro === null) next.outro = undefined;
       else if (patch.outro && typeof patch.outro === 'object') {
         const text = String(patch.outro.text || '').trim().slice(0, 60);
@@ -519,7 +527,11 @@ export class MontageService {
     if (!feedback) throw new MontageInputError('empty_message');
     await this.store.mutate(userId, id, (m) => push(m, message('user', feedback, { kind: 'request' })));
     const m = found.montage;
-    const revision = await revisePlan(await this.plannerInput(userId, found.brandId, m), { elements: m.elements, outro: m.outro, captions: m.captions.style }, feedback, this.writerFor(userId, m.creativity));
+    const input = await this.plannerInput(userId, found.brandId, m);
+    const revision = await revisePlan(input, { elements: m.elements, intro: m.intro, outro: m.outro, captions: m.captions.style }, feedback, this.writerFor(userId, m.creativity));
+    // Le titre d'une intro ajoutée sans titre : la marque, sinon les premiers mots dits (jamais la consigne).
+    const firstWords = sentences(m.words, input.timed)[0]?.text.split(' ').slice(0, 6).join(' ').replace(/[.,!?…;:]+$/, '');
+    const introTitle = input.brandName || firstWords || m.title;
     const { settings } = revision;
     const changes: string[] = [];
     if (settings.music === false) changes.push('musique retirée');
@@ -528,6 +540,8 @@ export class MontageService {
     if (settings.format) changes.push('format changé');
     if (settings.cuts) changes.push(settings.cuts === 'none' ? 'vidéo remise intacte' : 'coupes refaites');
     if (settings.outro === false) changes.push('carton de fin retiré');
+    if (settings.intro === true) changes.push('intro animée ajoutée');
+    if (settings.intro === false) changes.push('intro retirée');
     if (revision.elements) changes.push('habillage revu');
     if (!changes.length) {
       // Rien de compris : on le dit, sans rien casser.
@@ -547,6 +561,8 @@ export class MontageService {
       ...(settings.cuts ? { cuts: settings.cuts } : {}),
       ...(settings.format ? { format: settings.format } : {}),
       ...(settings.outro === false ? { outro: null } : {}),
+      // L'intro : celle du monteur, sinon le titre du montage ; retirée sur demande.
+      ...(settings.intro === false ? { intro: null } : settings.intro === true || (revision.intro && m.intro) ? { intro: revision.intro || m.intro || { title: introTitle } } : {}),
     });
     const reply = revision.reply || `C’est fait : ${changes.join(', ')}.`;
     return this.store.mutate(userId, id, (x) => push(x, message('assistant', reply, { kind: 'revision' })));
@@ -639,7 +655,7 @@ export class MontageService {
         durationSec: duration,
         quality: m.quality,
         music: musicFile ? { file: musicFile, startAt: m.music!.startAt } : undefined,
-        voice: [{ file: voice, at: 0 }],
+        voice: [{ file: voice, at: m.intro?.durationSec || 0 }],
         posterAt: Math.min(duration - 0.1, 1.2),
         onProgress: (r) => liveProgress.set(`${id}:${m.format}`, r),
         // Ni 3D ni code d'IA dans la page : le navigateur sans WebGL logiciel capture deux fois plus vite.

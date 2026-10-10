@@ -145,7 +145,7 @@
     },
     "empty": {
       "videoTitle": "Quelle vidéo voulez-vous ?",
-      "videoText": "Décrivez l’annonce, le produit ou l’événement. Collez le lien de votre site pour que la vidéo soit à votre marque.",
+      "videoText": "Décrivez-la et je la crée en animation. Ou ajoutez la vidéo où vous parlez : je la monte, avec sous-titres et animations.",
       "imageTitle": "Quel visuel voulez-vous ?",
       "imageText": "Décrivez l’offre, l’annonce ou le message. Collez le lien de votre site pour que le visuel soit à votre marque.",
       "ideas": {
@@ -155,7 +155,15 @@
         "image1": "Une affiche pour nos soldes : -20 % sur tout",
         "image2": "Une publication pour notre nouveau menu",
         "image3": "Une story pour annoncer notre événement samedi"
-      }
+      },
+      "describeTitle": "Décrire ma vidéo",
+      "describeText": "Je la crée en animation",
+      "editTitle": "Monter ma vidéo filmée",
+      "editText": "Je la coupe, la sous-titre et l’anime",
+      "both": "Vous pouvez faire les deux : ajoutez votre vidéo et demandez une intro animée, votre logo, un appel à l’action…",
+      "choose": "Comment faire votre vidéo ?",
+      "describeCta": "Écrire",
+      "editCta": "Ajouter ma vidéo"
     },
     "attach": {
       "model": "Modèle",
@@ -164,7 +172,10 @@
       "imageModel": "Ajouter une image modèle",
       "myMedia": "Ajouter mes photos ou clips",
       "myPhoto": "Ajouter ma photo",
-      "needBrand": "Choisissez d’abord une marque"
+      "needBrand": "Choisissez d’abord une marque",
+      "videos": "Vos vidéos",
+      "willEdit": "Je vais monter cette vidéo (écrire une consigne est facultatif).",
+      "willUse": "Sans parole : je m’en sers comme images de la vidéo animée."
     },
     "ask": {
       "brand": "Pour que le résultat respecte votre marque : collez le lien de votre site, importez un projet IDEM, ou choisissez une marque.",
@@ -190,7 +201,7 @@
     "result": {
       "previewTitle": "Aperçu de la vidéo",
       "watch": "Regarder",
-      "edit": "Retoucher et exporter",
+      "edit": "Modifier",
       "fromReference": "Reproduit d’un modèle en {{shots}} plans.",
       "download": "Télécharger",
       "fullscreen": "Plein écran",
@@ -201,7 +212,8 @@
       "videoFromReference": "Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez.",
       "videoFromReferenceNoVoice": "Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez. La voix off n’a pas pu être générée : réessayez-la depuis la retouche.",
       "visual": "Voici votre visuel.",
-      "visualFromReference": "Voici votre visuel, composé comme le modèle, à votre marque."
+      "visualFromReference": "Voici votre visuel, composé comme le modèle, à votre marque.",
+      "montage": "Je monte votre vidéo : je coupe les blancs, j’ajoute les sous-titres et j’anime ce que vous dites. Vous pouvez quitter la page, je continue."
     },
     "payment": {
       "cta": "Recharger mes crédits",
@@ -233,7 +245,10 @@
       "label": "Votre demande",
       "placeholderVideo": "Décrivez votre vidéo, ou collez le lien de votre site…",
       "placeholderImage": "Décrivez votre visuel, ou collez le lien de votre site…",
-      "send": "Envoyer"
+      "send": "Envoyer",
+      "placeholderMontage": "Facultatif — ex. : dynamique, une intro animée, le prix en grand, finir par mon WhatsApp…",
+      "placeholderRevise": "Que faut-il changer ? Ex. : sans musique, ajoute une intro, sous-titres plus sobres…",
+      "reviseHint": "Pour une autre vidéo : décrivez-la (« une vidéo pour… ») ou ajoutez une vidéo filmée."
     },
     "options": {
       "duration": "Durée",
@@ -241,7 +256,9 @@
       "photo": "Avec photo",
       "voice": "Voix off",
       "voiceHint": "Une voix dit le message, scène par scène, dans votre langue.",
-      "price": "{{cost}} crédits"
+      "price": "{{cost}} crédits",
+      "removeSilences": "Retirer les blancs",
+      "music": "Musique"
     },
     "choice": {
       "palettes": "Palette",
@@ -289,6 +306,11 @@
       },
       "visual": {
         "start": "Je compose votre visuel…"
+      },
+      "videos": "Je prépare vos vidéos…",
+      "montage": {
+        "start": "Je lance le montage…",
+        "revise": "Je fais les changements…"
       }
     },
     "error": {
@@ -306,6 +328,19 @@
       },
       "generation": "La création a échoué. Vos crédits ont été restitués ; vous pouvez relancer.",
       "payment": "Vos crédits ne suffisent pas pour cette création. Rechargez votre compte IDEM, puis relancez."
+    },
+    "montage": {
+      "unreadable_video": "Je n’ai pas pu lire ces vidéos. Essayez un MP4 ou un MOV.",
+      "no_audio": "Aucune de ces vidéos n’a de son : ajoutez celle où vous parlez.",
+      "too_short": "Les vidéos sont trop courtes (3 secondes au moins).",
+      "too_long": "Les vidéos sont trop longues (5 minutes au plus en tout).",
+      "too_many": "10 vidéos au plus.",
+      "stillProcessing": "Le montage est encore en préparation : redemandez dans un instant.",
+      "reviseFailed": "Je n’ai pas pu faire ce changement."
+    },
+    "video": {
+      "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « change le titre en … », « plus sobre », « sans musique » ou « ajoute une voix off ».",
+      "revised": "C’est fait. Regardez la nouvelle version."
     }
   },
   "edit": {
@@ -474,7 +509,8 @@
       "noMusic": "Sans musique",
       "soberCaptions": "Sous-titres plus sobres",
       "moreDynamic": "Plus dynamique",
-      "square": "En carré"
+      "square": "En carré",
+      "addIntro": "Ajoute une intro animée"
     },
     "chat": {
       "newTitle": "Nouveau montage",
@@ -499,8 +535,14 @@
       "ready": "Votre montage est prêt : {{duration}}, sous-titres et {{count}} élément(s) à l’écran. Dites-moi ce qu’il faut changer, ou téléchargez-le.",
       "noSpeech": "Je n’ai entendu personne parler dans ces vidéos. Ajoutez une vidéo où vous parlez.",
       "failed": "Le montage n’a pas abouti. Vos {{cost}} crédits vous sont rendus.",
-      "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « sans musique », « sous-titres plus sobres », « en carré » ou « ajoute le prix en grand »."
-    }
+      "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « sans musique », « sous-titres plus sobres », « en carré » ou « ajoute le prix en grand ».",
+      "sayHint": "Écrivez ci-dessous ce qu’il faut changer, ou cliquez sur « Modifier »."
+    },
+    "intro": "Intro animée",
+    "introTitle": "Titre de l’intro",
+    "introKicker": "Sur-titre (facultatif)",
+    "introAdd": "Ajouter l’intro",
+    "introRemove": "Sans intro"
   },
   "brandHint": {
     "prompt": "Facultatif · vos couleurs :",
@@ -537,5 +579,24 @@
     "siteShort": "Site",
     "fileShort": "Charte",
     "colorsShort": "Couleurs"
+  },
+  "montageEditor": {
+    "back": "Retour à la conversation",
+    "title": "Modifier le montage",
+    "saved": "Enregistré",
+    "timeline": "Frise de la vidéo",
+    "settings": "Réglages du montage",
+    "tabs": {
+      "screen": "À l’écran",
+      "captions": "Sous-titres",
+      "ends": "Début et fin",
+      "sound": "Son et format"
+    },
+    "screenHint": "Ce qui apparaît pendant que vous parlez. Touchez un élément pour y aller ; vos changements s’enregistrent seuls.",
+    "show": "Afficher",
+    "hide": "Masquer",
+    "transcriptHint": "Touchez un mot pour y aller ou corriger une faute.",
+    "introHint": "Un titre animé à vos couleurs, avant que vous parliez.",
+    "outroHint": "Le dernier écran : votre marque, votre contact."
   }
 }

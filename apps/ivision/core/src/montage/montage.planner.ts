@@ -14,7 +14,7 @@ import type { CreativityLevel } from '../creativity/levels';
 import logger from '../runtime/logger';
 import type { CopyWriter } from '../video/video.copy';
 import { conceptFor, ICON_CONCEPT_IDS, ICON_CONCEPTS } from '../video/video.icons';
-import type { CaptionStyle, MontageElement, MontageElementType, MontageOutro, MontageWord } from './montage.model';
+import type { CaptionStyle, MontageElement, MontageElementType, MontageIntro, MontageOutro, MontageWord } from './montage.model';
 import { CAPTION_STYLES, ELEMENT_TYPES } from './montage.model';
 import { elementWindows, sentences, TimedWord } from './montage.timeline';
 
@@ -39,6 +39,7 @@ export interface MontagePlan {
   title: string;
   captions: CaptionStyle;
   elements: MontageElement[];
+  intro?: MontageIntro;
   outro?: MontageOutro;
   source: 'llm' | 'rules';
 }
@@ -46,6 +47,7 @@ export interface MontagePlan {
 /** Éléments (hors zooms) par minute, selon le cran. */
 const DENSITY: Record<CreativityLevel, number> = { low: 4, medium: 6, high: 8, max: 9, ultra: 10 };
 const OUTRO_SEC = 2.6;
+export const INTRO_SEC = 2.6;
 
 const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const tokens = (s: string) => (fold(s).match(/[\p{L}\p{N}]+/gu) || []);
@@ -86,9 +88,10 @@ export function buildPlannerPrompt(input: PlannerInput): { system: string; user:
     '- Never invent a fact, number, name or contact. Displayed text comes from what is said (or from the request).',
     '- Respect the request: if it asks for a style, a call to action or specific elements, do it.',
     `- captions: pick "pop" (bold, word-by-word, energetic), "karaoke" (full line, the spoken word lights up) or "minimal" (calm, sober).`,
+    `- intro: an animated opening title (motion design, 2.5 s, before the speech) — {title (≤ 6 words: the hook of the video, in the speech language), kicker? (≤ 3 words)} — when the request asks for an intro / opening / title, or when the speech starts abruptly; otherwise null.`,
     `- outro: a 2.5 s end card after the speech — {text (≤ 6 words, the call or the brand promise), detail? (contact from request/contacts only)} — or null when the video must end on the speaker.`,
     '- title: ≤ 6 words naming the video, same language as the speech.',
-    'Answer with ONE JSON object only: {"title":"…","captions":"pop|karaoke|minimal","elements":[…],"outro":{…}|null}',
+    'Answer with ONE JSON object only: {"title":"…","captions":"pop|karaoke|minimal","elements":[…],"intro":{…}|null,"outro":{…}|null}',
   ].join('\n');
   const user = [
     input.sheet,
@@ -247,6 +250,20 @@ function finalize(elements: MontageElement[], input: PlannerInput, rank: (e: Mon
   return out.filter((e) => kept.has(e.id));
 }
 
+/** L'intro : un titre court ; un chiffre qu'il porte doit avoir été dit (rien d'inventé). */
+function introOf(raw: any, input: PlannerInput): MontageIntro | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const title = wordsMax(clip(raw.title, 60), 6);
+  if (!title) return undefined;
+  const heardDigits = digits(input.words.map((w) => w.text).join(' ') + ' ' + input.prompt).split(' ');
+  if (digits(title) && !digits(title).split(' ').every((d) => heardDigits.includes(d))) return undefined;
+  const kicker = wordsMax(clip(raw.kicker, 30), 3);
+  return { title, ...(kicker ? { kicker } : {}), durationSec: INTRO_SEC };
+}
+
+/** L'intro demandée en clair (« avec une intro », « un générique d'ouverture »). */
+export const asksForIntro = (text: string) => /\b(intro|introduction|ouverture|generique|opening|title card)\b/.test(fold(text)) && !/(sans|pas d['e]|no|without)\s+(d['e]\s*)?(intro|ouverture|generique)/.test(fold(text));
+
 function outroOf(raw: any, input: PlannerInput): MontageOutro | undefined {
   if (raw === null) return undefined;
   const heard = fold(`${input.words.map((w) => w.text).join(' ')} ${input.prompt} ${input.contacts.join(' ')}`).replace(/\s+/g, '');
@@ -305,7 +322,8 @@ export function rulesPlan(input: PlannerInput): MontagePlan {
   // Le carton de fin : la marque et son contact. Sans nom ni contact (création sans charte), pas de carton.
   const outroText = input.brandName || input.contacts[0];
   const outro = outroText ? { text: outroText, ...(input.brandName && input.contacts[0] ? { detail: input.contacts[0] } : {}), durationSec: OUTRO_SEC } : undefined;
-  return { title, captions: 'pop', elements: ensureClips(finalize(elements, input, rank), input), outro, source: 'rules' };
+  const intro = asksForIntro(input.prompt) ? { title: input.brandName || title, durationSec: INTRO_SEC } : undefined;
+  return { title, captions: 'pop', elements: ensureClips(finalize(elements, input, rank), input), intro, outro, source: 'rules' };
 }
 
 /** Le plan du monteur : modèle au-delà du cran Low, règles sinon (ou si le modèle échoue). */
@@ -324,6 +342,7 @@ export async function planMontage(input: PlannerInput, writer: CopyWriter | unde
         title: wordsMax(clip(json.title, 60), 6) || rulesPlan(input).title,
         captions: CAPTION_STYLES.includes(json.captions) && json.captions !== 'none' ? json.captions : 'pop',
         elements,
+        intro: introOf(json.intro, input) || (asksForIntro(input.prompt) ? { title: wordsMax(clip(json.title, 60), 6) || input.brandName || 'Montage', durationSec: INTRO_SEC } : undefined),
         outro: outroOf(json.outro, input),
         source: 'llm',
       };
@@ -342,10 +361,13 @@ export interface RevisionSettings {
   format?: 'story' | 'square' | 'portrait' | 'landscape';
   captions?: CaptionStyle;
   outro?: false;
+  /** Ajouter (true) ou retirer (false) l'intro animée. */
+  intro?: boolean;
 }
 
 export interface MontageRevision {
   elements?: MontageElement[];
+  intro?: MontageIntro;
   outro?: MontageOutro;
   settings: RevisionSettings;
   reply?: string;
@@ -373,6 +395,8 @@ export function settingsFromText(text: string): RevisionSettings {
   else if (/coupe (plus|davantage)|plus (rythme|dynamique|nerveux)|enleve (tous )?les blancs|tighter|faster pace/.test(t)) out.cuts = 'tight';
   else if (/(plus )?naturel|moins coupe|less cuts/.test(t)) out.cuts = 'natural';
   if (/(sans|enleve|retire|supprime|pas de)\s+(le\s+)?carton|no end card|remove the (end card|outro)/.test(t)) out.outro = false;
+  if (/(sans|enleve|retire|supprime|pas d['e])\s*(l['e]\s*|d['e]\s*)?(intro|ouverture|generique)|no intro|remove the intro/.test(t)) out.intro = false;
+  else if (/(ajoute|mets|avec|fais|veux|cree|une)\s+(moi\s+)?(une\s+|un\s+)?(petite\s+)?(intro|ouverture|generique)|add an? intro|opening title/.test(t)) out.intro = true;
   return out;
 }
 
@@ -385,7 +409,7 @@ export function onlySettings(text: string, settings: RevisionSettings): boolean 
 /** Le monteur reprend SON montage selon le retour du client (même menu, mêmes garde-fous). */
 export async function revisePlan(
   input: PlannerInput,
-  current: { elements: MontageElement[]; outro?: MontageOutro; captions: CaptionStyle },
+  current: { elements: MontageElement[]; intro?: MontageIntro; outro?: MontageOutro; captions: CaptionStyle },
   feedback: string,
   writer: CopyWriter | undefined
 ): Promise<MontageRevision> {
@@ -401,7 +425,7 @@ Answer with the FULL new edit in the same JSON, plus:
 - "settings": only what the client asked among {"music":true|false,"cuts":"tight|natural|none","format":"story|square|portrait|landscape"} (or {}),
 - "reply": ONE short friendly sentence in the client's language saying what you changed (no jargon).`;
   const user = `${base.user}
-CURRENT EDIT: ${JSON.stringify({ captions: current.captions, elements: describe, outro: current.outro ? { text: current.outro.text, detail: current.outro.detail } : null })}
+CURRENT EDIT: ${JSON.stringify({ captions: current.captions, elements: describe, intro: current.intro ? { title: current.intro.title, kicker: current.intro.kicker } : null, outro: current.outro ? { text: current.outro.text, detail: current.outro.detail } : null })}
 CLIENT FEEDBACK: ${feedback.slice(0, 600)}`;
   try {
     const json = extractJson(await writer(system, user));
@@ -410,6 +434,7 @@ CLIENT FEEDBACK: ${feedback.slice(0, 600)}`;
     const s = json.settings && typeof json.settings === 'object' ? json.settings : {};
     return {
       elements,
+      intro: json.intro === null ? undefined : introOf(json.intro, input),
       outro: json.outro === null ? undefined : outroOf(json.outro, input),
       settings: {
         ...settings,
@@ -418,6 +443,8 @@ CLIENT FEEDBACK: ${feedback.slice(0, 600)}`;
         ...(['story', 'square', 'portrait', 'landscape'].includes(s.format) ? { format: s.format } : {}),
         ...(CAPTION_STYLES.includes(json.captions) && json.captions !== current.captions ? { captions: json.captions } : {}),
         ...(json.outro === null ? { outro: false as const } : {}),
+        ...(json.intro === null && current.intro && settings.intro !== true ? { intro: false } : {}),
+        ...(json.intro && !current.intro ? { intro: true } : {}),
       },
       reply: clip(json.reply, 300) || undefined,
       source: 'llm',

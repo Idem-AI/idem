@@ -76,7 +76,7 @@ export class ApiService {
   deleteSession(id: string) {
     return this.http.delete<void>(`${this.base}/sessions/${id}`);
   }
-  turn(id: string, body: { text?: string; referenceId?: string; noReference?: boolean; media?: MediaAsset[]; photoUrl?: string; options?: ChatOptions; resume?: boolean }): Observable<ChatEvent> {
+  turn(id: string, body: { text?: string; referenceId?: string; noReference?: boolean; media?: MediaAsset[]; videos?: { url: string; name?: string; posterUrl?: string }[]; photoUrl?: string; options?: ChatOptions; resume?: boolean }): Observable<ChatEvent> {
     return this.stream(`${this.base}/sessions/${id}/turn`, body);
   }
   quote(mode: ChatMode, creativity: string, scope?: unknown) {

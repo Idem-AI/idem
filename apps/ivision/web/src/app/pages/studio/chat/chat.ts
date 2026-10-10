@@ -6,13 +6,15 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { Subscription, timer } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiService } from '../../../core/api.service';
-import { Brand, ChatEvent, ChatMessage, ChatMode, ChatOptions, ChatSession, Creativity, MediaAsset, MotionVideo, Reference, Visual } from '../../../core/models';
+import { HttpEventType } from '@angular/common/http';
+import { Brand, ChatEvent, ChatMessage, ChatMode, ChatOptions, ChatSession, Creativity, MediaAsset, Montage, MontageUpload, MotionVideo, Reference, Visual } from '../../../core/models';
 import { StudioState } from '../../../core/studio.state';
 import { CreativitySelect } from '../../../shared/components/creativity-select';
 import { BrandHint } from '../../../shared/components/brand-hint';
 import { Illustration } from '../../../shared/components/illustration';
 import { BrandChoice } from './brand-choice';
 import { ProgressList, StageState } from './progress-list';
+import { MontageResult } from './montage-result';
 import { VideoResult } from './video-result';
 import { VisualResult } from './visual-result';
 import { brandFonts } from '../visual-edit/visual-adapter';
@@ -25,14 +27,16 @@ const IMAGE_FORMATS = ['square', 'story', 'post', 'banner', 'a4'];
 const DURATIONS = [6, 15, 30, 60];
 
 /**
- * LA CONVERSATION. Un mode par conversation (images OU vidéos). La marque n'est jamais exigée :
+ * LA CONVERSATION. Un mode par conversation (images OU vidéos). L'atelier VIDÉO est unique : on
+ * décrit sa vidéo (motion design), et/ou on ajoute ses vidéos — celles où l'on parle sont
+ * MONTÉES (coupes, sous-titres, animations, intro et fin animées), les autres servent de matière. La marque n'est jamais exigée :
  * une ligne discrète propose le site, la charte ou des couleurs (`iv-brand-hint`), et sans
  * réponse la création se fait aux couleurs neutres. L'assistant ne demande que le modèle, et
  * l'utilisateur répond d'un geste, sans réécrire sa demande : le serveur la garde et la rejoue.
  */
 @Component({
   selector: 'iv-chat',
-  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativitySelect, Illustration, BrandChoice, BrandHint, ProgressList, VideoResult, VisualResult],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativitySelect, Illustration, BrandChoice, BrandHint, ProgressList, VideoResult, VisualResult, MontageResult],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chat.html',
 })
@@ -54,6 +58,7 @@ export class ChatPage {
   private readonly log = viewChild<ElementRef<HTMLElement>>('log');
   private readonly composer = viewChild<ElementRef<HTMLTextAreaElement>>('composer');
   private readonly referenceInput = viewChild<ElementRef<HTMLInputElement>>('referenceInput');
+  private readonly videoInput = viewChild<ElementRef<HTMLInputElement>>('videoInput');
 
   protected readonly mode = computed<ChatMode>(() => (this.modeParam() === 'image' ? 'image' : 'video'));
   protected readonly session = signal<ChatSession | null>(null);
@@ -64,7 +69,7 @@ export class ChatPage {
   protected readonly stages = signal<StageState[]>([]);
   protected readonly error = signal<string | null>(null);
   protected readonly payment = signal<{ cost?: number; balance?: number; missing?: number } | null>(null);
-  protected readonly videos = signal<Record<string, MotionVideo>>({});
+  protected readonly motionVideos = signal<Record<string, MotionVideo>>({});
   protected readonly visuals = signal<Record<string, Visual>>({});
 
   // Composer
@@ -77,6 +82,21 @@ export class ChatPage {
   /** Voix off dans la langue de l'interface (désactivée par défaut). */
   protected readonly voice = signal(false);
   protected readonly media = signal<MediaAsset[]>([]);
+  /** Les vidéos ajoutées (déposées avec leur son) : avec de la parole, elles seront montées. */
+  protected readonly videos = signal<MontageUpload[]>([]);
+  protected readonly videoPercent = signal(0);
+  /** Une vidéo jointe parle : la demande sera un montage (réglages du montage proposés). */
+  protected readonly montaging = computed(() => this.mode() === 'video' && this.videos().some((v) => v.hasAudio));
+  protected readonly removeSilences = signal(true);
+  protected readonly montageMusic = signal(true);
+  protected readonly montages = signal<Record<string, Montage>>({});
+  /** La conversation a déjà une vidéo (montage ou motion design) : un message la retouche. */
+  protected readonly revisingMontage = computed(() => {
+    if (this.mode() !== 'video' || this.videos().length || this.media().length) return false;
+    return this.messages().some((m) => m.result && (m.result.kind === 'montage' || m.result.kind === 'video'));
+  });
+  /** Montages retouchés pendant ce tour : la carte se recharge. */
+  protected readonly montageVersions = signal<Record<string, number>>({});
   protected readonly uploading = signal(false);
   protected readonly reference = signal<Reference | null>(null);
   protected readonly recentReferences = signal<Reference[]>([]);
@@ -105,7 +125,7 @@ export class ChatPage {
     return this.state.brands().find((b) => b.id === id && b.source !== 'auto') ?? null;
   });
   protected readonly readyBrands = computed(() => this.state.brands().filter((b) => b.status === 'ready'));
-  protected readonly canSend = computed(() => !this.streaming() && !this.uploading() && this.text().trim().length >= 2);
+  protected readonly canSend = computed(() => !this.streaming() && !this.uploading() && (this.text().trim().length >= 2 || (this.mode() === 'video' && this.videos().length > 0)));
   protected readonly lastAsk = computed(() => {
     const last = this.messages().at(-1);
     return last?.role === 'assistant' && last.ask ? last : null;
@@ -177,6 +197,7 @@ export class ChatPage {
     this.stages.set([]);
     this.status.set(null);
     this.media.set([]);
+    this.videos.set([]);
     this.reference.set(null);
     if (!id) {
       this.session.set(null);
@@ -210,9 +231,9 @@ export class ChatPage {
         const id = m.result.visualId;
         this.api.visual(id).subscribe({ next: (v) => this.visuals.update((all) => ({ ...all, [id]: v })), error: () => undefined });
       }
-      if (m.result?.kind === 'video' && session.brandId && !this.videos()[m.result.videoId]) {
+      if (m.result?.kind === 'video' && session.brandId && !this.motionVideos()[m.result.videoId]) {
         const id = m.result.videoId;
-        this.api.video(session.brandId, id).subscribe({ next: (v) => this.videos.update((all) => ({ ...all, [id]: v })), error: () => undefined });
+        this.api.video(session.brandId, id).subscribe({ next: (v) => this.motionVideos.update((all) => ({ ...all, [id]: v })), error: () => undefined });
       }
     }
   }
@@ -224,6 +245,8 @@ export class ChatPage {
   }
 
   protected options(): ChatOptions {
+    // Un montage : les réglages du montage (coupes, musique) ; sinon ceux du motion design.
+    if (this.montaging()) return { creativity: this.creativity(), formats: [this.videoFormat()], quality: 'hd', cuts: this.removeSilences() ? 'tight' : 'none', ...(this.montageMusic() ? {} : { musicMood: 'none' }) };
     return this.mode() === 'video'
       ? { creativity: this.creativity(), durationSec: this.durationSec(), formats: [this.videoFormat()], quality: 'hd', voice: this.voice() }
       : { creativity: this.creativity(), format: this.imageFormat(), withPhoto: this.withPhoto() };
@@ -244,13 +267,42 @@ export class ChatPage {
       text: this.text().trim(),
       options: this.options(),
       ...(this.media().length && this.mode() === 'video' ? { media: this.media() } : {}),
+      ...(this.videos().length && this.mode() === 'video' ? { videos: this.videos().map((v) => ({ url: v.url, name: v.name, posterUrl: v.posterUrl })) } : {}),
       ...(this.mode() === 'image' && this.media()[0] ? { photoUrl: this.media()[0].url } : {}),
       ...(this.reference() && this.reference()!.status !== 'failed' ? { referenceId: this.reference()!.id } : {}),
     };
     this.text.set('');
     this.media.set([]);
+    this.videos.set([]);
     this.reference.set(null);
     this.run(body);
+  }
+
+  /** Une idée de changement proposée sous un montage : envoyée comme un message. */
+  protected say(key: string): void {
+    this.text.set(this.translate.instant(`montage.suggestions.${key}`));
+    this.send();
+  }
+
+  /** La carte d'une vidéo (montage ou motion design) n'apparaît qu'une fois : sous le dernier message qui la cite. */
+  protected latestFor(message: ChatMessage): boolean {
+    const idOf = (m: ChatMessage) => (m.result?.kind === 'montage' ? `m:${m.result.montageId}` : m.result?.kind === 'video' ? `v:${m.result.videoId}` : null);
+    const id = idOf(message);
+    if (!id) return false;
+    const last = [...this.messages()].reverse().find((m) => idOf(m) === id);
+    return last?.id === message.id;
+  }
+
+  protected videoAttachments(m: ChatMessage) {
+    return (m.attachments ?? []).filter((a) => a.mimeType === 'video' && a.kind === 'media' && a.id.startsWith('video-'));
+  }
+
+  protected otherAttachments(m: ChatMessage) {
+    return (m.attachments ?? []).filter((a) => !(a.mimeType === 'video' && a.kind === 'media' && a.id.startsWith('video-')));
+  }
+
+  protected chooseVideos(): void {
+    this.videoInput()?.nativeElement.click();
   }
 
   /** Réponse à une question de l'assistant : la demande en attente reprend. */
@@ -316,7 +368,11 @@ export class ChatPage {
         this.session.update((s) => (s ? { ...s, brandId: event.brand.id } : s));
         break;
       case 'result':
-        if (event.video) this.videos.update((all) => ({ ...all, [event.video!.id]: event.video! }));
+        if (event.montage) {
+          this.montages.update((all) => ({ ...all, [event.montage!.id]: event.montage! }));
+          this.montageVersions.update((all) => ({ ...all, [event.montage!.id]: (all[event.montage!.id] || 0) + 1 }));
+        }
+        if (event.video) this.motionVideos.update((all) => ({ ...all, [event.video!.id]: event.video! }));
         if (event.visual) this.visuals.update((all) => ({ ...all, [event.visual!.id]: event.visual! }));
         this.messages.update((list) => [...list.filter((m) => m.id !== event.message.id), event.message]);
         break;
@@ -468,8 +524,12 @@ export class ChatPage {
   }
 
   protected onMediaFiles(event: Event): void {
-    const files = Array.from((event.target as HTMLInputElement).files ?? []);
+    const all = Array.from((event.target as HTMLInputElement).files ?? []);
     (event.target as HTMLInputElement).value = '';
+    // En vidéo, les vidéos sont déposées avec leur son (elles seront peut-être montées).
+    const isVideo = (f: File) => f.type.startsWith('video/') || /\.(mp4|mov|webm|m4v|3gp|mkv)$/i.test(f.name);
+    if (this.mode() === 'video' && all.some(isVideo)) this.uploadVideos(all.filter(isVideo));
+    const files = this.mode() === 'video' ? all.filter((f) => !isVideo(f)) : all;
     if (!files.length) return;
     // Sans marque encore : une marque provisoire range les médias (et la conversation la prendra).
     const brand = this.brand();
@@ -502,6 +562,37 @@ export class ChatPage {
         this.error.set('errors.upload');
       },
     });
+  }
+
+  protected onVideoFiles(event: Event): void {
+    const files = Array.from((event.target as HTMLInputElement).files ?? []);
+    (event.target as HTMLInputElement).value = '';
+    this.uploadVideos(files);
+  }
+
+  private uploadVideos(files: File[]): void {
+    const picked = files.slice(0, Math.max(0, 10 - this.videos().length));
+    if (!picked.length) return;
+    this.uploading.set(true);
+    this.videoPercent.set(0);
+    this.api.uploadMontageVideos(picked).subscribe({
+      next: (event) => {
+        if (event.type === HttpEventType.UploadProgress && event.total) this.videoPercent.set(Math.round((event.loaded / event.total) * 100));
+        if (event.type === HttpEventType.Response && event.body) {
+          this.uploading.set(false);
+          this.videos.update((list) => [...list, ...event.body!.uploads]);
+          this.focusComposer();
+        }
+      },
+      error: () => {
+        this.uploading.set(false);
+        this.error.set('errors.upload');
+      },
+    });
+  }
+
+  protected removeVideo(i: number): void {
+    this.videos.update((list) => list.filter((_, k) => k !== i));
   }
 
   protected removeMedia(id: string): void {

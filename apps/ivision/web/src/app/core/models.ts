@@ -1,7 +1,5 @@
 /** Les objets de l'API iVision, tels que l'interface les lit. */
 export type ChatMode = 'image' | 'video';
-/** Les ateliers du studio : les deux conversations, et le montage d'une prise de parole. */
-export type StudioMode = ChatMode | 'montage';
 export type Creativity = 'low' | 'medium' | 'high' | 'max' | 'ultra';
 export type PaletteRole = 'primary' | 'secondary' | 'accent' | 'background' | 'text';
 
@@ -47,11 +45,11 @@ export interface ChatMessage {
   text: string;
   i18n?: { key: string; params?: Record<string, string | number> };
   createdAt: string;
-  attachments?: { kind: 'reference' | 'media'; id: string; url: string; name?: string; mimeType?: string }[];
+  attachments?: { kind: 'reference' | 'media'; id: string; url: string; name?: string; mimeType?: string; posterUrl?: string }[];
   ask?: ChatAsk;
   /** La marque que ce message annonce (site lu, charte appliquée). */
   brandId?: string;
-  result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string };
+  result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string } | { kind: 'montage'; montageId: string };
   status?: 'done' | 'error';
   error?: string;
 }
@@ -84,6 +82,8 @@ export interface ChatOptions {
   musicMood?: string;
   sfx?: boolean;
   voice?: boolean;
+  /** Montage d'une prise de parole : retirer les blancs ou non. */
+  cuts?: 'tight' | 'natural' | 'none';
   format?: string;
   withPhoto?: boolean;
 }
@@ -175,7 +175,7 @@ export type ChatEvent =
   | { type: 'status'; key: string; text: string; data?: Record<string, unknown> }
   | { type: 'progress'; stage: string; state: 'running' | 'done'; data?: Record<string, unknown> }
   | { type: 'brand'; brand: Brand }
-  | { type: 'result'; message: ChatMessage; video?: MotionVideo; visual?: Visual }
+  | { type: 'result'; message: ChatMessage; video?: MotionVideo; visual?: Visual; montage?: Montage }
   | { type: 'error'; error: string; message: string; payment?: { cost?: number; balance?: number; missing?: number } }
   | { type: 'done' };
 
@@ -227,6 +227,8 @@ export interface MontageElement {
 export interface Montage {
   id: string;
   brandId: string;
+  /** La conversation vidéo d'où il vient. */
+  sessionId?: string;
   title: string;
   status: 'processing' | 'ready' | 'failed';
   stage: MontageStage;
@@ -245,6 +247,7 @@ export interface Montage {
   cuts: { mode: CutMode; ranges: { start: number; end: number; at: number }[]; removedSec: number; dropped?: number[] };
   captions: { style: CaptionStyle };
   elements: MontageElement[];
+  intro?: { title: string; kicker?: string; durationSec: number };
   outro?: { text: string; detail?: string; durationSec: number };
   music?: { title: string; artist: string; attribution?: string };
   musicEnabled: boolean;

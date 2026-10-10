@@ -14,9 +14,9 @@
       <button type="button" class="button-icon lg:!hidden" [attr.aria-label]="'common.close' | translate" (click)="state.drawerOpen.set(false)"><i class="pi pi-times" aria-hidden="true"></i></button>
     </div>
 
-    <!-- Trois ateliers, jamais mélangés. -->
+    <!-- Deux ateliers : vidéos (motion design et montage) et visuels. -->
     <div class="px-4" role="tablist" [attr.aria-label]="'studio.modes' | translate">
-      <div class="grid grid-cols-3 gap-1 rounded-xl border border-[var(--glass-border-subtle)] p-1">
+      <div class="grid grid-cols-2 gap-1 rounded-xl border border-[var(--glass-border-subtle)] p-1">
         @for (tab of tabs; track tab.mode) {
           <a role="tab" [routerLink]="'/studio/' + tab.mode" [attr.aria-selected]="mode() === tab.mode" class="flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-medium"
             [class]="mode() === tab.mode ? 'bg-[var(--color-primary-500)] text-[var(--color-on-primary)]' : 'text-[var(--color-text-secondary)]'">
@@ -24,41 +24,24 @@
           </a>
         }
       </div>
-      <a class="outer-button button-sm mt-3 flex w-full items-center justify-center gap-2" [routerLink]="['/studio', mode()]" [queryParams]="mode() === 'montage' ? {} : { new: 1 }">
-        <i class="pi pi-plus" aria-hidden="true"></i> {{ (mode() === 'video' ? 'studio.newVideo' : mode() === 'image' ? 'studio.newImage' : 'studio.newMontage') | translate }}
+      <a class="outer-button button-sm mt-3 flex w-full items-center justify-center gap-2" [routerLink]="['/studio', mode()]" [queryParams]="{ new: 1 }">
+        <i class="pi pi-plus" aria-hidden="true"></i> {{ (mode() === 'video' ? 'studio.newVideo' : 'studio.newImage') | translate }}
       </a>
     </div>
 
     <nav class="custom-scrollbar mt-4 flex-1 overflow-y-auto px-2" [attr.aria-label]="'studio.history' | translate">
-      <p class="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-[var(--color-text-tertiary)]">{{ (mode() === 'montage' ? 'studio.montageHistory' : 'studio.history') | translate }}</p>
-      @if (mode() === 'montage') {
-        @if (state.montagesLoading() && !state.montages().length) {
-          <idem-loader size="sm" block />
-        }
-        @for (m of state.montages(); track m.id) {
-          <a [routerLink]="['/studio/montage', m.id]" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
-            [class]="m.id === activeSession() ? 'bg-[var(--glass-bg-light)] text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--glass-bg-light)]'">
-            <span class="min-w-0 flex-1 truncate">{{ m.title }}</span>
-            @if (m.status === 'processing') { <idem-loader size="xs" /> }
-          </a>
-        } @empty {
-          @if (!state.montagesLoading()) {
-            <p class="px-3 text-sm text-[var(--color-text-tertiary)]">{{ 'studio.noMontages' | translate }}</p>
-          }
-        }
-      } @else {
-        @if (state.sessionsLoading() && !state.sessions().length) {
-          <idem-loader size="sm" block />
-        }
-        @for (s of state.sessions(); track s.id) {
-          <a [routerLink]="['/studio', s.mode, s.id]" class="block rounded-lg px-3 py-2 text-sm"
-            [class]="s.id === activeSession() ? 'bg-[var(--glass-bg-light)] text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--glass-bg-light)]'">
-            <span class="block truncate">{{ s.title }}</span>
-          </a>
-        } @empty {
-          @if (!state.sessionsLoading()) {
-            <p class="px-3 text-sm text-[var(--color-text-tertiary)]">{{ 'studio.noHistory' | translate }}</p>
-          }
+      <p class="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-[var(--color-text-tertiary)]">{{ 'studio.history' | translate }}</p>
+      @if (state.sessionsLoading() && !state.sessions().length) {
+        <idem-loader size="sm" block />
+      }
+      @for (s of state.sessions(); track s.id) {
+        <a [routerLink]="['/studio', s.mode, s.id]" class="block rounded-lg px-3 py-2 text-sm"
+          [class]="s.id === activeSession() ? 'bg-[var(--glass-bg-light)] text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--glass-bg-light)]'">
+          <span class="block truncate">{{ s.title }}</span>
+        </a>
+      } @empty {
+        @if (!state.sessionsLoading()) {
+          <p class="px-3 text-sm text-[var(--color-text-tertiary)]">{{ 'studio.noHistory' | translate }}</p>
         }
       }
     </nav>
@@ -90,15 +73,12 @@
     </main>
 
     <!-- Téléphone : les trois entrées, en bas, à portée de pouce. -->
-    <nav class="modal-drawer fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-[var(--glass-border-subtle)] lg:hidden" [attr.aria-label]="'studio.tabs' | translate">
+    <nav class="modal-drawer fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-[var(--glass-border-subtle)] lg:hidden" [attr.aria-label]="'studio.tabs' | translate">
       <a routerLink="/studio/video" class="flex flex-col items-center gap-1 py-2.5 text-xs" [class]="mode() === 'video' && !url().startsWith('/studio/brands') ? 'text-[var(--color-primary-500)]' : 'text-[var(--color-text-secondary)]'">
         <i class="pi pi-video" aria-hidden="true"></i>{{ 'studio.video' | translate }}
       </a>
       <a routerLink="/studio/image" class="flex flex-col items-center gap-1 py-2.5 text-xs" [class]="mode() === 'image' ? 'text-[var(--color-primary-500)]' : 'text-[var(--color-text-secondary)]'">
         <i class="pi pi-image" aria-hidden="true"></i>{{ 'studio.image' | translate }}
-      </a>
-      <a routerLink="/studio/montage" class="flex flex-col items-center gap-1 py-2.5 text-xs" [class]="mode() === 'montage' ? 'text-[var(--color-primary-500)]' : 'text-[var(--color-text-secondary)]'">
-        <i class="pi pi-microphone" aria-hidden="true"></i>{{ 'studio.montage' | translate }}
       </a>
       <a routerLink="/studio/brands" class="flex flex-col items-center gap-1 py-2.5 text-xs" [class]="url().startsWith('/studio/brands') ? 'text-[var(--color-primary-500)]' : 'text-[var(--color-text-secondary)]'">
         <i class="pi pi-palette" aria-hidden="true"></i>{{ 'studio.brands' | translate }}

@@ -6,6 +6,7 @@
 import type { MontageVideo } from '../../../core/src/montage/montage.model';
 import { MontageService } from '../../../core/src/montage/montage.service';
 import logger from '../config/logger';
+import { publicUrl } from '../config/storage';
 import { IvisionMontageStore } from '../stores/montage.store';
 import { IvisionVideoStore } from '../stores/video.store';
 import { refund } from './billing';
@@ -29,3 +30,9 @@ export async function recoverMontages(): Promise<void> {
 
 /** La vue d'un montage pour l'interface (identique, avec sa marque). */
 export const montageView = (brandId: string, m: MontageVideo) => ({ ...m, brandId });
+
+/** Seules les vidéos que CET utilisateur a déposées (`/montages/uploads`). */
+export function ownsUploads(userId: string, urls: string[]): boolean {
+  const mine = publicUrl(`ivision/users/${userId}/montage-uploads/`);
+  return urls.every((u) => u.startsWith(mine));
+}

@@ -206,6 +206,20 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     const options = await json('GET', '/v1/videos/options');
     check('options vidéo partagées avec IDEM (cases et longueurs)', options.status === 200 && Object.keys(options.body.scenes || {}).length > 5);
 
+    section('4 bis. Retoucher la vidéo en écrivant, dans la conversation');
+    {
+      const before = charges.length;
+      let rev = await turn(api, good, session.id, { text: 'Change le titre en « Le café du matin »' });
+      const done = rev.find((e) => e.type === 'result');
+      const title = done?.video?.storyboard?.scenes?.find((sc: any) => sc.slots?.title === 'Le café du matin');
+      check('« change le titre » : la MÊME vidéo est retouchée (gratuit), la réponse dans le fil', done?.message?.result?.videoId === video.id && !!title && charges.length === before, done?.message?.text);
+      rev = await turn(api, good, session.id, { text: 'Sans musique stp' });
+      const muted = rev.find((e) => e.type === 'result')?.video;
+      check('« sans musique » : la musique est coupée sur cette vidéo', muted?.id === video.id && muted.brief.musicMood === 'none' && !muted.music);
+      rev = await turn(api, good, session.id, { text: 'Une vidéo pour la fête des mères' });
+      check('« une vidéo pour la fête des mères » : une nouvelle demande, pas une retouche', rev.some((e) => e.message?.ask?.kind === 'reference') && !rev.some((e) => e.type === 'result'));
+    }
+
     section('5. Conversation images (sans mélange)');
     const imageSession = (await json('POST', '/v1/sessions', { mode: 'image', brandId: brand.id })).body;
     events = await turn(api, good, imageSession.id, { text: 'Soldes de rentrée : -20 % sur tous nos cafés' });
@@ -257,7 +271,8 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
       const form = new FormData();
       form.append('files', new Blob([fs.readFileSync(talk)], { type: 'video/mp4' }), 'prise.mp4');
       form.append('files', new Blob([fs.readFileSync(silent)], { type: 'video/mp4' }), 'boutique.mp4');
-      const up = await fetch(`${api}/v1/montages/uploads`, { method: 'POST', headers: { Cookie: good }, body: form });
+      // Une connexion gardée ouverte pendant la synthèse de la voix a pu être fermée par le serveur : un second essai.
+      const up = await fetch(`${api}/v1/montages/uploads`, { method: 'POST', headers: { Cookie: good }, body: form }).catch(() => fetch(`${api}/v1/montages/uploads`, { method: 'POST', headers: { Cookie: good, Connection: 'close' }, body: form }));
       const uploads = (await up.json()).uploads || [];
       check('deux vidéos déposées, sondées, avec leur affiche', up.status === 201 && uploads.length === 2 && uploads.every((u: any) => u.durationSec > 0 && u.posterUrl) && uploads[0].hasAudio && !uploads[1].hasAudio, JSON.stringify(uploads.map((u: any) => [u.durationSec, u.hasAudio])));
       const seconds = uploads.reduce((sum: number, u: any) => sum + u.durationSec, 0);
@@ -265,10 +280,12 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
       const forged = await json('POST', '/v1/montages', { inputs: [{ url: 'http://localhost:9000/idem-storage/ivision/users/someone-else/montage-uploads/x.mp4' }] });
       check('une vidéo qui n’est pas à soi est refusée', forged.status === 400);
       const chargesBefore = charges.length;
-      // Sans marque, sans consigne obligatoire : seulement les vidéos (et une consigne facultative).
-      const created = await json('POST', '/v1/montages', { inputs: uploads.map((u: any) => ({ url: u.url, name: u.name, posterUrl: u.posterUrl })), prompt: 'Finir par notre WhatsApp 07 08 09 10' });
-      const montage = created.body;
-      check('montage lancé sans marque (202), conversation ouverte', created.status === 202 && montage.status === 'processing' && montage.messages?.[0]?.inputs?.length === 2, `${created.status} ${montage?.message || ''}`);
+      // L'atelier vidéo est UN : la même conversation monte une vidéo où l'on parle.
+      const vs = (await json('POST', '/v1/sessions', { mode: 'video' })).body;
+      let ev = await turn(api, good, vs.id, { text: 'Finir par notre WhatsApp 07 08 09 10', videos: uploads.map((u: any) => ({ url: u.url, name: u.name, posterUrl: u.posterUrl })), options: { creativity: 'medium', formats: ['story'] } });
+      const started = ev.find((e) => e.type === 'result');
+      const montageId = started?.message?.result?.montageId;
+      check('conversation vidéo : une vidéo qui parle est MONTÉE (pas de question de modèle)', started?.message?.result?.kind === 'montage' && !ev.some((e) => e.message?.ask), JSON.stringify(ev.map((e) => e.type)));
       check('débit au prix annoncé (durée totale)', charges.length === chargesBefore + 1 && charges[charges.length - 1].cost === quoteRes.body.cost, JSON.stringify(charges[charges.length - 1]));
       const until = async (id: string, done: (m: any) => boolean, ms = 6 * 60_000) => {
         const end = Date.now() + ms;
@@ -278,21 +295,30 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
           await new Promise((r) => setTimeout(r, 1500));
         }
       };
-      let m = await until(montage.id, (x) => x?.status !== 'processing');
-      check('montage prêt : transcrit, coupé, recadré', m?.status === 'ready' && m.words.length > 20 && m.edit?.width === 1080 && m.edit.durationSec < m.source.durationSec - 4, `${m?.status} ${m?.error || ''} · ${m?.words?.length} mots · ${m?.source?.durationSec}s → ${m?.edit?.durationSec}s`);
+      let m = await until(montageId, (x) => x?.status !== 'processing');
+      check('montage prêt : transcrit, coupé, recadré, relié à sa conversation', m?.status === 'ready' && m.words.length > 20 && m.edit?.width === 1080 && m.edit.durationSec < m.source.durationSec - 4 && m.sessionId === vs.id, `${m?.status} ${m?.error || ''} · ${m?.words?.length} mots · ${m?.source?.durationSec}s → ${m?.edit?.durationSec}s`);
       check('la vidéo muette est devenue un plan de coupe, montré à l’écran', m.clips?.length === 1 && m.inputs?.[1]?.speech === false && m.elements.some((e: any) => e.clip === 'c1'), `${m.clips?.length} plan(s) · ${m.elements.map((e: any) => e.clip || e.type).join(',')}`);
-      check('le résultat arrive dans la conversation', m.messages?.some((x: any) => x.kind === 'result'));
       check('le monteur IA a choisi (nom, chiffre), un mot inventé est refusé', m.plannedBy === 'llm' && m.elements.some((e: any) => e.type === 'lowerThird') && !m.elements.some((e: any) => e.text === 'GRATUIT'), m.elements.map((e: any) => e.type).join(','));
       const preview = await json('GET', `/v1/montages/${m.id}/preview`);
       check('aperçu : la page du montage, avec le plan de coupe', preview.status === 200 && preview.body.html.includes('__MONTAGE__') && preview.body.html.includes(m.clips[0].url));
 
-      // Un retour écrit, comme on parle : « sans musique, et en carré ».
-      const revised = await json('POST', `/v1/montages/${m.id}/messages`, { text: 'Sans musique, et en carré stp' });
-      check('retour écrit compris : musique coupée, format carré, réponse dans le fil (gratuit)', revised.status === 200 && revised.body.musicEnabled === false && revised.body.format === 'square' && revised.body.messages.at(-1)?.role === 'assistant' && charges.length === chargesBefore + 1, `${revised.status} ${revised.body?.format} ${revised.body?.messages?.at(-1)?.text}`);
+      // Un retour écrit dans la MÊME conversation : il retouche le montage.
+      ev = await turn(api, good, vs.id, { text: 'Sans musique, et en carré stp' });
+      const revisedMsg = ev.find((e) => e.type === 'result')?.message;
       m = await until(m.id, (x) => x?.status === 'ready');
-      check('le carré est remonté (1080 × 1080), l’habillage suit', m.edit.width === 1080 && m.edit.height === 1080 && m.elements.some((e: any) => e.type === 'lowerThird'));
-      const unclear = await json('POST', `/v1/montages/${m.id}/messages`, { text: 'hmm' });
-      check('un retour incompris est dit, sans rien casser', unclear.status === 200 && unclear.body.messages.at(-1)?.i18n?.key === 'montage.chat.notUnderstood' || unclear.body.messages.at(-1)?.kind === 'revision');
+      check('retour écrit dans la conversation : musique coupée, carré remonté (gratuit)', revisedMsg?.result?.montageId === m.id && m.musicEnabled === false && m.format === 'square' && m.edit.height === 1080 && charges.length === chargesBefore + 1, `${revisedMsg?.text} · ${m.format} ${m.edit?.width}×${m.edit?.height}`);
+      // La fusion : une intro animée (motion design) avant la prise de parole.
+      ev = await turn(api, good, vs.id, { text: 'Ajoute une intro animée' });
+      m = (await json('GET', `/v1/montages/${m.id}`)).body;
+      const withIntro = await json('GET', `/v1/montages/${m.id}/preview`);
+      check('« ajoute une intro animée » : le montage s’ouvre en motion design', !!m.intro?.title && withIntro.body.html.includes('"intro":{"title"'), JSON.stringify(m.intro));
+      // Une nouvelle vidéo demandée en clair n'est pas un retour sur le montage.
+      ev = await turn(api, good, vs.id, { text: 'Fais une nouvelle vidéo pour nos soldes de rentrée' });
+      check('« fais une nouvelle vidéo » : motion design (question du modèle), pas une retouche', ev.some((e) => e.message?.ask?.kind === 'reference') && !ev.some((e) => e.type === 'result'));
+      // Une vidéo SANS parole, seule : elle sert de matière au motion design.
+      const ms = (await json('POST', '/v1/sessions', { mode: 'video' })).body;
+      ev = await turn(api, good, ms.id, { text: 'Une vidéo pour présenter la boutique', videos: [{ url: uploads[1].url, name: 'boutique.mp4' }] });
+      check('une vidéo muette seule : matière du motion design, pas un montage', !ev.some((e) => e.message?.result?.kind === 'montage') && ev.some((e) => e.message?.ask?.kind === 'reference') && !!(await json('GET', `/v1/sessions/${ms.id}`)).body, JSON.stringify(ev.map((e) => e.type + (e.message?.ask?.kind ? `:${e.message.ask.kind}` : ''))));
 
       // La charte, ajoutée après coup : un logo (PNG détouré), puis une charte PDF.
       const logo = await sharp({ create: { width: 400, height: 160, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })

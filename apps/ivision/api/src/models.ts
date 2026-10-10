@@ -54,6 +54,7 @@ export interface ChatAttachment {
   url: string;
   name?: string;
   mimeType?: string;
+  posterUrl?: string;
 }
 
 /** Ce que l'assistant demande avant de produire : la conversation reprend sur la réponse. */
@@ -72,7 +73,7 @@ export interface ChatMessage {
   attachments?: ChatAttachment[];
   ask?: ChatAsk;
   /** Le livrable produit par ce tour. */
-  result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string };
+  result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string } | { kind: 'montage'; montageId: string };
   status?: 'done' | 'error';
   error?: string;
   /** La marque que ce message annonce (site lu, charte appliquée). */
@@ -91,6 +92,8 @@ export interface ChatOptions {
   sfx?: boolean;
   /** Voix off dans la langue de l'utilisateur (désactivée par défaut). */
   voice?: boolean;
+  /** Montage d'une prise de parole : retirer les blancs (`tight`) ou non. */
+  cuts?: 'tight' | 'natural' | 'none';
   /** Visuel. */
   format?: FlyerFormat;
   withPhoto?: boolean;
@@ -104,7 +107,7 @@ export interface ChatSession {
   title: string;
   messages: ChatMessage[];
   /** La demande en attente d'une réponse (marque, modèle) : rejouée quand la réponse arrive. */
-  pending?: { text: string; options: ChatOptions; media?: VideoMediaAsset[]; photoUrl?: string };
+  pending?: { text: string; options: ChatOptions; media?: VideoMediaAsset[]; photoUrl?: string; videos?: { url: string; name?: string; posterUrl?: string }[] };
   createdAt: string;
   updatedAt: string;
 }

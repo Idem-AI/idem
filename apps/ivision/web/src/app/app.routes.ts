@@ -18,6 +18,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/studio/visual-edit/visual-edit').then((m) => m.VisualEditPage),
   },
+  // L'éditeur d'un montage aussi (le bouton « Modifier » de la conversation y mène).
+  {
+    path: 'studio/montage/:montageId',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/studio/montage/montage-editor').then((m) => m.MontageEditor),
+  },
   {
     path: 'studio',
     canActivate: [authGuard],
@@ -25,8 +31,8 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'video' },
       { path: 'brands', loadComponent: () => import('./pages/studio/brands/brands').then((m) => m.BrandsPage) },
-      { path: 'montage', loadComponent: () => import('./pages/studio/montage/montage').then((m) => m.MontagePage) },
-      { path: 'montage/:montageId', loadComponent: () => import('./pages/studio/montage/montage').then((m) => m.MontagePage) },
+      // Le montage fait partie de l'atelier vidéo (une seule entrée).
+      { path: 'montage', redirectTo: 'video' },
       { path: 'video/:brandId/:videoId', loadComponent: () => import('./pages/studio/video-edit/video-edit').then((m) => m.VideoEditPage) },
       { matcher: chatMatcher, loadComponent: () => import('./pages/studio/chat/chat').then((m) => m.ChatPage) },
     ],
