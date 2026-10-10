@@ -24,6 +24,7 @@ router.post('/analyse', ctrl.analyse);
 router.post('/from-template', ctrl.createFromTemplate);
 
 router.get('/:uuid', ctrl.get);
+router.put('/:uuid/compose', ctrl.updateCompose);
 router.delete('/:uuid', ctrl.remove);
 router.get('/:uuid/operations/latest', ctrl.latestOperation);
 router.get('/:uuid/env', ctrl.getEnv);

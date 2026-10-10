@@ -120,6 +120,27 @@ export async function createFromTemplate(req: CustomRequest, res: Response): Pro
   }
 }
 
+/** Edits the compose file, under the same rules as at creation. */
+export async function updateCompose(req: CustomRequest, res: Response): Promise<void> {
+  const compose = req.body?.docker_compose_raw;
+  if (typeof compose !== 'string' || !compose.trim() || compose.length > 200_000) {
+    return fail(res, 'docker_compose_raw must be a non-empty string (≤ 200 KB)', 422, 'VALIDATION');
+  }
+  try {
+    assertComposeIsSafe(compose);
+  } catch (err) {
+    if (err instanceof ComposePolicyError) return fail(res, err.message, 422, 'COMPOSE_NOT_ALLOWED');
+    throw err;
+  }
+  try {
+    const updated = await service.updateCompose(req.user!.currentTeamId!, String(req.params.uuid), compose);
+    if (!updated) return fail(res, 'Service not found', 404, 'NOT_FOUND');
+    ok(res, updated);
+  } catch (err) {
+    respondWithError(res, err, 'Updating the compose file');
+  }
+}
+
 export async function remove(req: CustomRequest, res: Response): Promise<void> {
   try {
     const deleted = await service.deleteService(req.user!.currentTeamId!, String(req.params.uuid));

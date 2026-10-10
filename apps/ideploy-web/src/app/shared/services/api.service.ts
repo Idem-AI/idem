@@ -506,6 +506,9 @@ export class ApiService {
     );
   }
   /** Returns the stack plus the containers and databases its compose file declares. */
+  updateServiceCompose(uuid: string, docker_compose_raw: string): Observable<Service> {
+    return this.unwrap(this.http.put<ApiResponse<Service>>(`${this.base}/services/${uuid}/compose`, { docker_compose_raw }));
+  }
   getService(uuid: string): Observable<ServiceDetail> {
     return this.unwrap(this.http.get<ApiResponse<ServiceDetail>>(`${this.base}/services/${uuid}`));
   }
@@ -712,7 +715,7 @@ export class ApiService {
   }
   updatePipeline(
     uuid: string,
-    body: Partial<Pick<PipelineConfig, 'enabled' | 'stages' | 'trigger_mode' | 'trigger_branches'>>
+    body: Partial<Pick<PipelineConfig, 'enabled' | 'stages' | 'trigger_mode' | 'trigger_branches' | 'gates'>>
   ): Observable<PipelineConfig> {
     return this.unwrap(
       this.http.patch<ApiResponse<PipelineConfig>>(`${this.base}/applications/${uuid}/pipeline`, body)

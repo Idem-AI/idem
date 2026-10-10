@@ -3,7 +3,10 @@
  *
  *   - the deploy stage deploys the commit the pipeline cloned — it passed the
  *     branch name, which the deployment worker refuses as a commit id;
- *   - SonarQube is never reported as passed when no analysis ran.
+ *   - SonarQube is never reported as passed when no analysis ran;
+ *   - what the scans may stop is the application's policy, and a Java project
+ *     is compiled before it is analysed;
+ *   - the deploy stage is the deployment's outcome, not only its being queued.
  */
 import type { Job } from 'bullmq';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -31,6 +34,7 @@ beforeEach(async () => {
   sonar.reset();
   delete process.env.SONARQUBE_URL;
   delete process.env.SONARQUBE_ADMIN_TOKEN;
+  process.env.PIPELINE_DEPLOY_POLL_MS = '50';
   ssh = new FakeRemoteExecutor();
   ssh.on(/git clone/, { stdout: `COMMIT=${SHA}\nREADME.md\n` });
   setRemoteExecutor(ssh);
@@ -41,11 +45,29 @@ afterAll(async () => {
   await closeInfrastructure();
 });
 
-async function runPipeline(stages: string[]) {
+/** Plays the deployment worker: queued deployments end with `status`. */
+function endDeployments(status: 'finished' | 'failed'): () => void {
+  const timer = setInterval(() => {
+    void testPool().query("UPDATE application_deployment_queues SET status = $1 WHERE status = 'queued'", [status]);
+  }, 40);
+  return () => clearInterval(timer);
+}
+
+async function runPipeline(stages: string[], policy?: Record<string, string>, deployment: 'finished' | 'failed' = 'finished') {
+  const stop = endDeployments(deployment);
+  try {
+    return await runPipelineInner(stages, policy);
+  } finally {
+    stop();
+  }
+}
+
+async function runPipelineInner(stages: string[], policy?: Record<string, string>) {
   const team = await makeTeam();
   const server = await makeManagedServer();
   const project = await makeProject(team.id);
   const app = await makeApplication(project.environmentId, server.destinationId);
+  if (policy) await pipelineService.updateConfig(team.id, app.uuid, { gates: policy });
   const { executionUuid } = await pipelineService.trigger(team.id, app.uuid, { branch: 'main' });
   const { rows } = await testPool().query('SELECT id FROM pipeline_executions WHERE uuid = $1', [executionUuid]);
   const data: PipelineJobData = {
@@ -92,7 +114,7 @@ describe('the pipeline', () => {
 });
 
 describe('the scans', () => {
-  it('reads Trivy\'s JSON into counts and findings, and fails on a critical one', async () => {
+  it('reads Trivy\'s JSON into counts and findings, and fails on a critical one when the application asks for it', async () => {
     ssh.on(/aquasec\/trivy/, {
       stdout: JSON.stringify({
         Results: [{ Target: 'package-lock.json', Vulnerabilities: [{ VulnerabilityID: 'CVE-9', PkgName: 'x', InstalledVersion: '1', Severity: 'CRITICAL' }] }],
@@ -102,6 +124,7 @@ describe('the scans', () => {
     const server = await makeManagedServer();
     const project = await makeProject(team.id);
     const app = await makeApplication(project.environmentId, server.destinationId);
+    await pipelineService.updateConfig(team.id, app.uuid, { gates: { trivy_fail_on: 'CRITICAL' } });
     const { executionUuid } = await pipelineService.trigger(team.id, app.uuid, { branch: 'main' });
     const { rows } = await testPool().query('SELECT id FROM pipeline_executions WHERE uuid = $1', [executionUuid]);
     const data: PipelineJobData = {
@@ -146,5 +169,103 @@ describe('the scans', () => {
     expect(scanner.command).not.toContain('admin-token');
     expect(scanner.opts.redact).toContain('squ_analysis');
     expect(sonar.requests.some((r) => r.path === '/api/user_tokens/revoke')).toBe(true);
+  });
+});
+
+const CRITICAL_REPORT = JSON.stringify({
+  Results: [{ Target: 'package-lock.json', Vulnerabilities: [{ VulnerabilityID: 'CVE-9', PkgName: 'x', InstalledVersion: '1', Severity: 'CRITICAL' }] }],
+});
+
+describe('what the scans may stop', () => {
+  it('reports vulnerabilities without stopping the deployment by default', async () => {
+    ssh.on(/aquasec\/trivy/, { stdout: CRITICAL_REPORT });
+
+    const { executionId } = await runPipeline(['language_detection', 'trivy', 'deploy']);
+
+    const scan = await testPool().query("SELECT status, critical_count, summary FROM pipeline_scan_results WHERE pipeline_execution_id = $1 AND tool = 'trivy'", [executionId]);
+    expect(scan.rows[0]).toMatchObject({ status: 'success', critical_count: 1 });
+    expect(scan.rows[0].summary).toContain('report only');
+    const deployed = await testPool().query('SELECT count(*)::int AS n FROM application_deployment_queues');
+    expect(deployed.rows[0].n).toBe(1);
+  });
+
+  it('stops on a secret committed in the code unless told to only report it', async () => {
+    ssh.on(/aquasec\/trivy/, { stdout: JSON.stringify({ Results: [{ Target: '.env', Secrets: [{ Title: 'AWS key', Severity: 'CRITICAL', StartLine: 3 }] }] }) });
+    await expect(runPipeline(['language_detection', 'trivy', 'deploy'])).rejects.toThrow(/secrets/);
+
+    await truncateAll();
+    ssh = new FakeRemoteExecutor();
+    ssh.on(/git clone/, { stdout: `COMMIT=${SHA}\nREADME.md\n` });
+    ssh.on(/aquasec\/trivy/, { stdout: JSON.stringify({ Results: [{ Target: '.env', Secrets: [{ Title: 'AWS key', Severity: 'CRITICAL', StartLine: 3 }] }] }) });
+    setRemoteExecutor(ssh);
+    await expect(runPipeline(['language_detection', 'trivy', 'deploy'], { secrets: 'report' })).resolves.toBeDefined();
+  });
+
+  it('lets a failed quality gate through when only reporting, and stops when enforced', async () => {
+    process.env.SONARQUBE_URL = sonar.url;
+    process.env.SONARQUBE_ADMIN_TOKEN = 'admin-token';
+    sonar.on('GET', '/api/system/status', { body: { status: 'UP' } });
+    sonar.on('POST', '/api/projects/create', { body: {} });
+    sonar.on('POST', '/api/user_tokens/generate', { body: { token: 'squ_analysis' } });
+    sonar.on('POST', '/api/user_tokens/revoke', { status: 204, body: null });
+    sonar.on('GET', '/api/qualitygates/project_status', { body: { projectStatus: { status: 'ERROR' } } });
+    sonar.on('GET', '/api/measures/component', { body: { component: { measures: [{ metric: 'bugs', value: '9' }] } } });
+
+    await expect(runPipeline(['language_detection', 'sonarqube'])).resolves.toBeDefined();
+    await truncateAll();
+    ssh = new FakeRemoteExecutor();
+    ssh.on(/git clone/, { stdout: `COMMIT=${SHA}\nREADME.md\n` });
+    setRemoteExecutor(ssh);
+    await expect(runPipeline(['language_detection', 'sonarqube'], { quality_gate: 'enforce' })).rejects.toThrow(/quality gate/);
+  });
+});
+
+describe('the deploy stage', () => {
+  it('fails the pipeline when the deployment fails', async () => {
+    await expect(runPipeline(['language_detection', 'deploy'], undefined, 'failed')).rejects.toThrow(/did not finish: failed/);
+  });
+});
+
+describe('a Java project', () => {
+  function sonarUp() {
+    process.env.SONARQUBE_URL = sonar.url;
+    process.env.SONARQUBE_ADMIN_TOKEN = 'admin-token';
+    sonar.on('GET', '/api/system/status', { body: { status: 'UP' } });
+    sonar.on('POST', '/api/projects/create', { body: {} });
+    sonar.on('POST', '/api/user_tokens/generate', { body: { token: 'squ_analysis' } });
+    sonar.on('POST', '/api/user_tokens/revoke', { status: 204, body: null });
+    sonar.on('GET', '/api/qualitygates/project_status', { body: { projectStatus: { status: 'OK' } } });
+    sonar.on('GET', '/api/measures/component', { body: { component: { measures: [] } } });
+  }
+
+  it('is compiled in a JDK container, then analysed with its classes', async () => {
+    sonarUp();
+    ssh.on(/maxdepth 3/, { stdout: 'BUILD=pom.xml\nHASJAVA=1\n' });
+    ssh.on(/head -c 20000/, { stdout: '<project><properties><java.version>17</java.version></properties></project>' });
+
+    await runPipeline(['language_detection', 'sonarqube']);
+
+    const build = ssh.calls.find((c) => c.command.includes('maven:3.9-eclipse-temurin-17'))!;
+    expect(build.command).toContain('mvn -B -ntp -q -DskipTests');
+    const scanner = ssh.calls.find((c) => c.command.includes('sonar-scanner-cli'))!;
+    expect(scanner.command).toContain('sonar.java.binaries=');
+    expect(scanner.command).not.toContain('**/*.java');
+    // Compiled before it is analysed.
+    expect(ssh.calls.indexOf(build)).toBeLessThan(ssh.calls.indexOf(scanner));
+  });
+
+  it('is left out of the analysis, not the pipeline, when it cannot be compiled', async () => {
+    sonarUp();
+    ssh.on(/maxdepth 3/, { stdout: 'BUILD=pom.xml\nHASJAVA=1\n' });
+    ssh.on(/head -c 20000/, { stdout: '<project/>' });
+    ssh.on(/docker run .*maven:/, { exitCode: 1, stderr: 'COMPILATION ERROR' });
+
+    const { executionId } = await runPipeline(['language_detection', 'sonarqube']);
+
+    const scanner = ssh.calls.find((c) => c.command.includes('sonar-scanner-cli'))!;
+    expect(scanner.command).not.toContain('sonar.java.binaries');
+    expect(scanner.command).toContain('**/*.java');
+    const scan = await testPool().query("SELECT status FROM pipeline_scan_results WHERE pipeline_execution_id = $1 AND tool = 'sonarqube'", [executionId]);
+    expect(scan.rows[0].status).toBe('success');
   });
 });

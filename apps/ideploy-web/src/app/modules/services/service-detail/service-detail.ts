@@ -8,131 +8,106 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { EnvRow, EnvVarsEditorComponent } from '../../../shared/components/env-vars-editor/env-vars-editor';
 
 /**
- * Service (stack) detail — what the compose file produced, and the controls
- * that act on the whole stack.
- *
- * The compose source is shown read-only. Editing it is not offered because the
- * API has no update endpoint: a textarea that silently discarded its contents
- * would be worse than no textarea. The legacy EditCompose screen is the place
- * to change a stack until that endpoint exists.
+ * Service (stack) detail: what it runs, what happened at the last start, its
+ * variables and its compose file — in the order someone fixing a stack needs
+ * them.
  */
 @Component({
   selector: 'app-service-detail',
   imports: [RouterLink, TranslateModule, IdemLoaderComponent, EnvVarsEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a
-      routerLink="/services"
-      class="mb-4 inline-flex items-center gap-2 text-sm"
-      style="color:var(--color-text-secondary);"
-    >
-      <i class="pi pi-chevron-left text-[10px]"></i>
+    <a routerLink="/services" class="mb-4 inline-flex items-center gap-2 text-sm" style="color:var(--color-text-secondary);">
+      <i class="pi pi-chevron-left text-[10px]" aria-hidden="true"></i>
       {{ 'services.detail.backToList' | translate }}
     </a>
 
     @if (loading()) {
-      <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'services.loading' | translate }}</p>
+      <idem-loader block [label]="'services.loading' | translate" />
     } @else if (service(); as s) {
-      <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
-            {{ s.name }}
-          </h1>
-          @if (s.service_type) {
-            <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ s.service_type }}</p>
-          }
+          <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">{{ s.name }}</h1>
+          <p class="mt-1 flex items-center gap-2 text-sm" style="color:var(--color-text-secondary);">
+            <span class="inline-block h-2 w-2 rounded-full" [style.background]="stateColor(stackState())" aria-hidden="true"></span>
+            {{ 'services.detail.state.' + stackState() | translate: { running: runningCount(), total: s.applications.length } }}
+            @if (s.service_type && s.service_type !== 'custom') { <span>· {{ s.service_type }}</span> }
+          </p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button class="outer-button" (click)="lifecycle('restart')" [disabled]="busy()">
-            {{ 'services.detail.restart' | translate }}
-          </button>
-          <button class="outer-button" (click)="lifecycle('stop')" [disabled]="busy()">
+          <button type="button" class="outer-button" (click)="lifecycle('stop')" [disabled]="busy()">
+            @if (acting() === 'stop') { <idem-loader size="xs" /> }
             {{ 'services.detail.stop' | translate }}
           </button>
-          <button class="inner-button" (click)="lifecycle('start')" [disabled]="busy()">
+          <button type="button" class="outer-button" (click)="lifecycle('restart')" [disabled]="busy()">
+            @if (acting() === 'restart') { <idem-loader size="xs" /> }
+            {{ 'services.detail.restart' | translate }}
+          </button>
+          <button type="button" class="inner-button" (click)="lifecycle('start')" [disabled]="busy()">
+            @if (acting() === 'start') { <idem-loader size="xs" /> }
             {{ 'services.detail.start' | translate }}
           </button>
         </div>
-      </div>
+      </header>
 
       @if (error()) {
         <p class="mb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
       }
 
-      <!--
-        The live console: what was previously the whole complaint — a Start
-        that either fails or "succeeds" while every container quietly exits,
-        with nothing anywhere saying which, or why. Same channel/format as
-        the pipeline and server-provision consoles elsewhere in this app.
-      -->
-      <section class="glass-card overflow-hidden mb-4" aria-live="off">
-        <div class="box-header">
-          <h2 class="box-title flex items-center gap-2">
-            @if (busy()) {
-              <idem-loader size="xs" />
-            } @else {
-              <i class="pi pi-code text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
-            }
+      <!-- What happened at the last start / stop / restart, kept after a reload. -->
+      <section class="glass-card mb-4 overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-2 px-4 pt-4">
+          <h2 class="flex items-center gap-2 text-sm font-semibold">
+            @if (busy()) { <idem-loader size="xs" /> }
             {{ 'services.detail.console' | translate }}
-            @if (operation(); as op) {
-              <span class="text-xs font-normal" style="color:var(--color-text-secondary);">
-                · {{ 'services.detail.action.' + op.action | translate }} ·
-                {{ 'services.detail.status.' + op.status | translate }}
+          </h2>
+          @if (operation(); as op) {
+            @if (op.action && op.status) {
+              <span class="tag" [style.color]="opColor(op.status)">
+                {{ 'services.detail.action.' + op.action | translate }} · {{ 'services.detail.status.' + op.status | translate }}
               </span>
             }
-          </h2>
+          }
         </div>
-        <pre
-          #consoleEl
-          class="max-h-80 min-h-24 overflow-auto p-4 font-mono text-xs leading-relaxed"
-          style="background:#080b12;color:#c9d1d9;"
-        >@if (output()) {<span>{{ output() }}</span>} @else {<span style="color:#8b949e;">{{ 'services.detail.consoleEmpty' | translate }}</span>}@if (busy()) {<span class="animate-pulse">▋</span>}</pre>
+        <pre #consoleEl class="custom-scrollbar m-4 max-h-80 min-h-24 overflow-auto rounded-md p-3 font-mono text-xs leading-relaxed"
+             style="background:var(--color-bg-dark);border:1px solid var(--color-surface-2);color:var(--color-text-primary);white-space:pre-wrap;word-break:break-word;"
+        >@if (output()) {<span>{{ output() }}</span>} @else {<span style="color:var(--color-text-tertiary);">{{ 'services.detail.consoleEmpty' | translate }}</span>}</pre>
       </section>
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="mb-4 grid gap-4" [class.lg:grid-cols-2]="s.databases.length > 0">
         <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">
             {{ 'services.detail.containers' | translate }}
             <span class="ml-1 font-normal" style="color:var(--color-text-secondary);">({{ s.applications.length }})</span>
           </h2>
           @if (s.applications.length === 0) {
-            <p class="text-sm" style="color:var(--color-text-secondary);">
-              {{ 'services.detail.noContainers' | translate }}
-            </p>
+            <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'services.detail.noContainers' | translate }}</p>
           } @else {
-            <ul class="space-y-2 text-sm">
+            <ul class="divide-y text-sm" style="border-color:var(--color-surface-2);">
               @for (app of s.applications; track app.uuid) {
-                <li class="flex items-center justify-between gap-2">
-                  <span>
-                    {{ app.name }}
+                <li class="flex items-center justify-between gap-3 py-2">
+                  <span class="min-w-0 truncate">
+                    <span class="font-medium">{{ app.name }}</span>
                     @if (app.fqdn) {
-                      <a
-                        class="ml-2 text-xs hover:underline"
-                        style="color:var(--color-primary-500);"
-                        [href]="app.fqdn"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >{{ app.fqdn }}</a
-                      >
+                      <a class="ml-2 text-xs hover:underline" style="color:var(--color-primary-500);" [href]="app.fqdn" target="_blank" rel="noopener noreferrer">{{ app.fqdn }}</a>
                     }
                   </span>
-                  <span class="text-xs" style="color:var(--color-text-secondary);">{{ app.status || '—' }}</span>
+                  <span class="flex shrink-0 items-center gap-1.5 text-xs" style="color:var(--color-text-secondary);">
+                    <span class="inline-block h-2 w-2 rounded-full" [style.background]="stateColor(app.status)" aria-hidden="true"></span>
+                    {{ app.status || '—' }}
+                  </span>
                 </li>
               }
             </ul>
           }
         </section>
 
-        <section class="glass-card p-4">
-          <h2 class="mb-3 text-sm font-semibold">
-            {{ 'services.detail.databases' | translate }}
-            <span class="ml-1 font-normal" style="color:var(--color-text-secondary);">({{ s.databases.length }})</span>
-          </h2>
-          @if (s.databases.length === 0) {
-            <p class="text-sm" style="color:var(--color-text-secondary);">
-              {{ 'services.detail.noDatabases' | translate }}
-            </p>
-          } @else {
+        @if (s.databases.length > 0) {
+          <section class="glass-card p-4">
+            <h2 class="mb-3 text-sm font-semibold">
+              {{ 'services.detail.databases' | translate }}
+              <span class="ml-1 font-normal" style="color:var(--color-text-secondary);">({{ s.databases.length }})</span>
+            </h2>
             <ul class="space-y-2 text-sm">
               @for (db of s.databases; track db.uuid) {
                 <li class="flex items-center justify-between gap-2">
@@ -141,40 +116,29 @@ import { EnvRow, EnvVarsEditorComponent } from '../../../shared/components/env-v
                 </li>
               }
             </ul>
-          }
-        </section>
+          </section>
+        }
       </div>
 
-      <section class="glass-card p-4 mt-4">
-        <h2 class="mb-3 text-sm font-semibold">{{ 'services.detail.composeFile' | translate }}</h2>
-        @if (s.docker_compose_raw) {
-          <pre
-            class="max-h-96 overflow-auto rounded-md p-3 font-mono text-xs"
-            style="background:var(--color-bg-dark);border:1px solid var(--color-surface-2);"
-          >{{ s.docker_compose_raw }}</pre>
-          <p class="mt-2 text-xs" style="color:var(--color-text-secondary);">
-            {{ 'services.detail.composeReadOnly' | translate }}
-          </p>
-        } @else {
-          <p class="text-sm" style="color:var(--color-text-secondary);">
-            {{ 'services.detail.noCompose' | translate }}
-          </p>
-        }
-      </section>
-
-      <section class="glass-card p-4 mt-4">
+      <section class="glass-card mb-4 p-4">
         <h2 class="mb-1 text-sm font-semibold">{{ 'services.detail.envTitle' | translate }}</h2>
-        <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'services.detail.envHint' | translate }}</p>
+        <p class="mb-4 text-xs" style="color:var(--color-text-secondary);">{{ 'services.detail.envHint' | translate }}</p>
+        @if (envRows().length === 0 && (analysis()?.variables ?? []).length === 0) {
+          <p class="mb-3 text-sm" style="color:var(--color-text-tertiary);">{{ 'services.detail.envEmpty' | translate }}</p>
+        }
         <app-env-vars-editor [(rows)]="envRows" [expected]="analysis()?.variables ?? []" />
         @for (w of analysis()?.warnings ?? []; track w.code + w.message) {
-          <p class="mt-2 text-xs" style="color:var(--color-warning, var(--color-text-secondary));">{{ w.message }}</p>
+          <p class="mt-3 flex items-start gap-1.5 text-xs" style="color:var(--color-warning);">
+            <i class="pi pi-exclamation-triangle mt-0.5" aria-hidden="true"></i>{{ w.message }}
+          </p>
         }
-        <div class="mt-3 flex flex-wrap items-center gap-2">
-          <button class="inner-button" (click)="saveEnv(false)" [disabled]="savingEnv() || busy()">
-            {{ 'services.detail.envSave' | translate }}
-          </button>
-          <button class="outer-button" (click)="saveEnv(true)" [disabled]="savingEnv() || busy()">
+        <div class="mt-4 flex flex-wrap items-center gap-2 border-t pt-4" style="border-color:var(--color-surface-2);">
+          <button type="button" class="inner-button button-sm" (click)="saveEnv(true)" [disabled]="savingEnv() || busy()">
+            @if (savingEnv()) { <idem-loader size="xs" /> }
             {{ 'services.detail.envSaveRestart' | translate }}
+          </button>
+          <button type="button" class="outer-button button-sm" (click)="saveEnv(false)" [disabled]="savingEnv() || busy()">
+            {{ 'services.detail.envSave' | translate }}
           </button>
           @if (envSaved()) {
             <span class="text-xs" role="status" style="color:var(--color-text-secondary);">{{ 'services.detail.envSaved' | translate }}</span>
@@ -182,12 +146,47 @@ import { EnvRow, EnvVarsEditorComponent } from '../../../shared/components/env-v
         </div>
       </section>
 
-      <section class="glass-card p-4 mt-4" style="border-color:color-mix(in srgb, var(--color-danger) 35%, transparent);">
+      <section class="glass-card mb-4 p-4">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-sm font-semibold">{{ 'services.detail.composeFile' | translate }}</h2>
+          @if (!editingCompose()) {
+            <button type="button" class="outer-button button-sm" (click)="editCompose(s.docker_compose_raw ?? '')">
+              <i class="pi pi-pencil mr-1 text-xs" aria-hidden="true"></i>{{ 'services.detail.composeEdit' | translate }}
+            </button>
+          }
+        </div>
+        @if (editingCompose()) {
+          <textarea class="font-mono text-xs" rows="18" spellcheck="false" [attr.aria-label]="'services.detail.composeFile' | translate"
+                    [value]="composeDraft()" (input)="composeDraft.set($any($event.target).value)"></textarea>
+          <p class="mt-2 text-xs" style="color:var(--color-text-secondary);">{{ 'services.detail.composeEditHint' | translate }}</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button type="button" class="inner-button button-sm" (click)="saveCompose(true)" [disabled]="savingCompose() || busy() || !composeDraft().trim()">
+              @if (savingCompose()) { <idem-loader size="xs" /> }
+              {{ 'services.detail.composeSaveRestart' | translate }}
+            </button>
+            <button type="button" class="outer-button button-sm" (click)="saveCompose(false)" [disabled]="savingCompose() || !composeDraft().trim()">
+              {{ 'services.detail.envSave' | translate }}
+            </button>
+            <button type="button" class="button-ghost button-sm" (click)="editingCompose.set(false)">{{ 'services.detail.cancel' | translate }}</button>
+          </div>
+        } @else if (s.docker_compose_raw) {
+          <details>
+            <summary class="cursor-pointer text-xs" style="color:var(--color-text-secondary);">
+              {{ 'services.detail.composeShow' | translate: { count: composeLines(s.docker_compose_raw) } }}
+            </summary>
+            <pre class="custom-scrollbar mt-3 max-h-96 overflow-auto rounded-md p-3 font-mono text-xs"
+                 style="background:var(--color-bg-dark);border:1px solid var(--color-surface-2);">{{ s.docker_compose_raw }}</pre>
+          </details>
+        } @else {
+          <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'services.detail.noCompose' | translate }}</p>
+        }
+      </section>
+
+      <section class="glass-card p-4" style="border-color:color-mix(in srgb, var(--color-danger) 35%, transparent);">
         <h2 class="mb-1 text-sm font-semibold">{{ 'services.detail.dangerZone' | translate }}</h2>
-        <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
-          {{ 'services.detail.deleteHint' | translate }}
-        </p>
-        <button class="outer-button" style="color:var(--color-danger);" (click)="remove()" [disabled]="deleting()">
+        <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">{{ 'services.detail.deleteHint' | translate }}</p>
+        <button type="button" class="outer-button button-sm" style="color:var(--color-danger);" (click)="remove()" [disabled]="deleting()">
+          @if (deleting()) { <idem-loader size="xs" /> }
           {{ (deleting() ? 'services.detail.deleting' : 'services.detail.deleteService') | translate }}
         </button>
       </section>
@@ -214,6 +213,19 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
   protected readonly analysis = signal<ComposeAnalysis | null>(null);
   protected readonly savingEnv = signal(false);
   protected readonly envSaved = signal(false);
+  /** Which button started the running operation, for its loader. */
+  protected readonly acting = computed(() => (this.busy() ? (this.operation()?.action ?? this.requested()) : null));
+  private readonly requested = signal<'start' | 'stop' | 'restart' | null>(null);
+  protected readonly editingCompose = signal(false);
+  protected readonly composeDraft = signal('');
+  protected readonly savingCompose = signal(false);
+  protected readonly runningCount = computed(() => (this.service()?.applications ?? []).filter((a) => a.status === 'running').length);
+  /** running: every container up · partial · stopped. */
+  protected readonly stackState = computed(() => {
+    const total = this.service()?.applications.length ?? 0;
+    const up = this.runningCount();
+    return total > 0 && up === total ? 'running' : up > 0 ? 'partial' : 'stopped';
+  });
 
   private readonly consoleEl = viewChild<ElementRef<HTMLElement>>('consoleEl');
   private unsubscribeRealtime?: () => void;
@@ -293,7 +305,45 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
     this.error.set(message ?? this.translate.instant(fallbackKey));
   }
 
+  protected stateColor(status: string | null | undefined): string {
+    if (status === 'running') return 'var(--color-success)';
+    if (status === 'partial' || status === 'restarting' || status === 'starting') return 'var(--color-warning)';
+    return 'var(--color-text-tertiary)';
+  }
+
+  protected opColor(status: ServiceOperation['status']): string {
+    return status === 'succeeded' ? 'var(--color-success)' : status === 'failed' ? 'var(--color-danger)' : 'var(--color-text-secondary)';
+  }
+
+  protected composeLines(text: string): number {
+    return text.split('\n').length;
+  }
+
+  protected editCompose(current: string): void {
+    this.composeDraft.set(current);
+    this.editingCompose.set(true);
+  }
+
+  protected saveCompose(thenStart: boolean): void {
+    this.savingCompose.set(true);
+    this.error.set(null);
+    this.api.updateServiceCompose(this.uuid, this.composeDraft()).subscribe({
+      next: () => {
+        this.savingCompose.set(false);
+        this.editingCompose.set(false);
+        this.reload();
+        this.loadEnv();
+        if (thenStart) this.lifecycle('start');
+      },
+      error: (e) => {
+        this.report(e, 'services.detail.composeError');
+        this.savingCompose.set(false);
+      },
+    });
+  }
+
   protected lifecycle(action: 'start' | 'stop' | 'restart'): void {
+    this.requested.set(action);
     this.busy.set(true);
     this.error.set(null);
     this.api.serviceLifecycle(this.uuid, action).subscribe({
@@ -319,6 +369,7 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
         this.savingEnv.set(false);
         this.envSaved.set(true);
         if (thenRestart) this.lifecycle('start');
+        else setTimeout(() => this.envSaved.set(false), 4000);
       },
       error: (e) => {
         this.report(e, 'services.detail.envError');

@@ -158,6 +158,19 @@ async function syncSubResources(service: ServiceRow): Promise<void> {
   }
 }
 
+/** Replaces the compose file; the containers it declares are listed again. Applied at the next start. */
+export async function updateCompose(teamId: number, uuid: string, compose: string): Promise<ServiceRow | null> {
+  const service = await getService(teamId, uuid);
+  if (!service) return null;
+  const { rows } = await pool.query(
+    'UPDATE services SET docker_compose_raw = $1, updated_at = now() WHERE id = $2 RETURNING *',
+    [compose, service.id]
+  );
+  const updated = mapService(rows[0]);
+  await syncSubResources(updated);
+  return updated;
+}
+
 export async function deleteService(teamId: number, uuid: string): Promise<boolean> {
   const service = await getService(teamId, uuid);
   if (!service) return false;

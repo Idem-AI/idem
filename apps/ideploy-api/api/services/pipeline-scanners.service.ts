@@ -11,6 +11,8 @@ import axios, { AxiosInstance } from 'axios';
 
 // ── Trivy ──────────────────────────────────────────────────────────────
 
+import { defaultGates } from './pipeline-gates';
+
 export type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
 
 export interface TrivyFinding {
@@ -79,9 +81,9 @@ export function summariseTrivy(json: string, limit = 100): TrivySummary {
   return { counts, findings: findings.slice(0, limit), secrets };
 }
 
-/** Severity at or above which a Trivy scan fails (`NONE` reports only). */
+/** Platform default for the severity at or above which a Trivy scan fails (`NONE` reports only); an application's own policy wins. */
 export function trivyFailThreshold(env: NodeJS.ProcessEnv = process.env): Severity | 'NONE' {
-  return (env.PIPELINE_TRIVY_FAIL_ON || 'CRITICAL').toUpperCase() as Severity | 'NONE';
+  return defaultGates(env).trivy_fail_on;
 }
 
 /** Whether a scan fails the pipeline: any finding at or above `failOn`. */

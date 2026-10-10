@@ -357,6 +357,14 @@ export interface PipelineConfig {
   stages: string[];
   trigger_mode: string;
   trigger_branches: string[];
+  /** What the scans may stop; anything not stopped is still reported. */
+  gates: PipelineGates;
+}
+
+export interface PipelineGates {
+  trivy_fail_on: 'NONE' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  quality_gate: 'enforce' | 'report';
+  secrets: 'block' | 'report';
 }
 
 /** Every status a pipeline job or execution can be in. */
