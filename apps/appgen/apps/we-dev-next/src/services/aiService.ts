@@ -100,7 +100,41 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
     return glm(model) as LanguageModel;
   }
 
-  const availableProviders = ['gemini', 'google', 'deepseek', 'claude', 'openai', 'glm'];
+  // OPENROUTER — endpoint OpenAI-compatible, modèles ouverts (Qwen). Même
+  // contrainte que GLM : `reasoning` ne passe pas par `providerOptions`, il est
+  // injecté dans le corps. Il est coupé (il se décompte du budget de sortie).
+  // `data_collection: 'deny'` : seuls des hébergeurs qui ne conservent pas le code
+  // des utilisateurs sont éligibles ; `OPENROUTER_DATA_COLLECTION=allow` le relâche.
+  if (provider === 'openrouter') {
+    const collection = (process.env.OPENROUTER_DATA_COLLECTION ?? 'deny').toLowerCase();
+    const openrouter = createOpenAI({
+      apiKey,
+      baseURL,
+      headers: {
+        'HTTP-Referer': process.env.OPENROUTER_REFERER || 'https://idem.africa',
+        'X-Title': process.env.OPENROUTER_APP_TITLE || 'IDEM AppGen',
+      },
+      fetch: async (input, init) => {
+        if (typeof init?.body === 'string') {
+          try {
+            const body = JSON.parse(init.body);
+            body.reasoning = { enabled: false };
+            body.provider = {
+              data_collection: collection === 'allow' ? 'allow' : 'deny',
+              allow_fallbacks: true,
+            };
+            init = { ...init, body: JSON.stringify(body) };
+          } catch {
+            // Corps non-JSON : rien à injecter, on relaie tel quel.
+          }
+        }
+        return fetch(input, init);
+      },
+    });
+    return openrouter(model) as LanguageModel;
+  }
+
+  const availableProviders = ['gemini', 'google', 'deepseek', 'claude', 'openai', 'glm', 'openrouter'];
   throw new Error(
     `Provider "${provider}" not found for model: ${model}. Available providers: ${availableProviders.join(', ')}. Please check your AI_MODELS_CONFIG.`
   );

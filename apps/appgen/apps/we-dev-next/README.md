@@ -56,9 +56,20 @@ Declared in [`src/config/modelConfig.ts`](src/config/modelConfig.ts):
 | Key | Role |
 |---|---|
 | `glm-5.2` | Default: code generation and tool calls |
-| `glm-4.7` | Fallback when GLM 5.2 is saturated |
+| `glm-5.3-flash` | Fallback when GLM 5.2 is saturated |
+| `qwen/qwen3-coder-next` | OpenRouter default: code and agents, open weights (Apache-2.0) |
+| `qwen/qwen3.5-122b-a10b` | OpenRouter fallback |
 
-GLM models use `GLM_API_KEY` and `GLM_API_URL`. A model without its own key variable uses `THIRD_API_KEY` / `THIRD_API_URL` (any OpenAI-compatible provider). `GET /api/model` returns the public part of this list; keys and URLs never leave the server.
+**Switching provider without a restart.** The active provider (`glm` or `openrouter`) starts from `APPGEN_MODEL_PROVIDER` and can be changed at any time:
+
+```bash
+curl -X POST $APPGEN/api/model/switch -H "x-admin-key: $MODEL_ADMIN_KEY" \
+  -H 'content-type: application/json' -d '{"provider":"openrouter"}'
+```
+
+The active provider's models come first in the selector and in the fallback chain; the other provider stays as a last resort. A model whose key is missing is never offered. The state is per instance (call each instance, or set the env var). Without `MODEL_ADMIN_KEY` the route is closed.
+
+GLM models use `GLM_API_KEY` and `GLM_API_URL`; OpenRouter models use `OPENROUTER_API_KEY` and `OPENROUTER_BASE_URL`. A model without its own key variable uses `THIRD_API_KEY` / `THIRD_API_URL` (any OpenAI-compatible provider). `GET /api/model` returns the public part of this list; keys and URLs never leave the server.
 
 ## Security
 

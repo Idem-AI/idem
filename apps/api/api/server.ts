@@ -19,6 +19,7 @@ import { applySecurity, auditLogger, redactServerErrors } from './middleware/sec
 import { buildCorsOptions } from './config/cors.config';
 import { rateLimitByIP, burstProtection } from './middleware/rate-limit.middleware';
 import mongoDBConnection from './config/mongodb.config';
+import { startAiRuntimeSync } from './config/ai-runtime.config';
 import { storageService } from './services/storage.service';
 import { User } from './schemas/user.schema';
 import { Project } from './schemas/project.schema';
@@ -335,6 +336,9 @@ function startServer() {
     try {
       await mongoDBConnection.connect();
       console.log('MongoDB connection established successfully');
+
+      // Bascule de fournisseur IA à chaud (platform_settings/ai) : relue toutes les 15 s.
+      startAiRuntimeSync();
 
       // Initialize Mongoose models and create indexes
       console.log('Initializing MongoDB indexes...');

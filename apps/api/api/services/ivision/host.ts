@@ -42,7 +42,7 @@ export async function idemAnalyzeImage(base64: string, mimeType: string, instruc
 
 /**
  * Les modèles d'image d'IDEM, par finalité. Fond de visuel : ceux du sourcing. Plan d'une
- * vidéo : la famille GLM (GLM-Image, repli CogView-4) dès que sa clé existe — la vidéo anime
+ * vidéo : FLUX.2 si OpenRouter est le fournisseur média en vigueur, sinon la famille GLM (GLM-Image, repli CogView-4) dès que sa clé existe — la vidéo anime
  * ensuite cette image avec CogVideoX-3 ; sans clé GLM, Gemini.
  */
 export async function idemGenerateImage(prompt: string, options: ImageOptions) {
@@ -53,6 +53,10 @@ export async function idemGenerateImage(prompt: string, options: ImageOptions) {
     return media.generateImage(prompt, { model: options.model || sourcing.imageModel, fallbackModel: options.fallbackModel || sourcing.imageFallbackModel, tag: options.tag, ...(options.size ? { size: options.size } : {}) });
   }
   const videoMedia = AI_CONFIG.communication.videoMedia;
+  // La bascule à chaud (OpenRouter/FLUX.2) vaut aussi pour les plans de vidéo.
+  if (media.mediaProvider() === 'openrouter') {
+    return media.generateImage(prompt, { provider: 'openrouter', tag: options.tag, ...(options.size ? { size: options.size } : {}) });
+  }
   if (getGlmApiKey()) {
     return media.generateImage(prompt, { provider: 'glm', model: options.model || videoMedia.imageModel, fallbackModel: options.fallbackModel || videoMedia.imageFallbackModel, tag: options.tag, ...(options.size ? { size: options.size } : {}) });
   }

@@ -6,7 +6,7 @@
  * ni redémarrage. Il est relu au plus toutes les `CACHE_MS`.
  *
  * Ordre de décision :
- *   1. le document `platform_settings/mockups` → `{ provider: 'gemini' | 'glm' }` ;
+ *   1. le document `platform_settings/mockups` → `{ provider: 'gemini' | 'glm' | 'openrouter' }` ;
  *   2. `IDEM_MOCKUP_PROVIDER` (défaut de déploiement) ;
  *   3. `gemini`.
  * Un fournisseur choisi mais non configuré (clé absente) cède la place à
@@ -23,10 +23,11 @@
 import mongoose from 'mongoose';
 import logger from './logger';
 import { getGlmApiKey, isGeminiConfigured } from './ai-providers.config';
+import { getOpenRouterApiKey } from './openrouter.config';
 
-export type MockupProvider = 'gemini' | 'glm';
+export type MockupProvider = 'gemini' | 'glm' | 'openrouter';
 
-export const MOCKUP_PROVIDERS: readonly MockupProvider[] = ['gemini', 'glm'];
+export const MOCKUP_PROVIDERS: readonly MockupProvider[] = ['gemini', 'glm', 'openrouter'];
 
 const SETTINGS_COLLECTION = 'platform_settings';
 const SETTINGS_ID = 'mockups';
@@ -61,7 +62,9 @@ async function readStoredProvider(): Promise<MockupProvider | null> {
 }
 
 function isAvailable(provider: MockupProvider): boolean {
-  return provider === 'gemini' ? isGeminiConfigured() : Boolean(getGlmApiKey());
+  if (provider === 'gemini') return isGeminiConfigured();
+  if (provider === 'openrouter') return Boolean(getOpenRouterApiKey());
+  return Boolean(getGlmApiKey());
 }
 
 /**
@@ -90,8 +93,10 @@ export async function resolveMockupProvider(): Promise<MockupProvider> {
   if (wanted === 'gemini' && Date.now() < geminiPausedUntil && isAvailable('glm')) return 'glm';
   if (isAvailable(wanted)) return wanted;
 
-  const other: MockupProvider = wanted === 'gemini' ? 'glm' : 'gemini';
-  if (isAvailable(other)) {
+  const other = (['glm', 'openrouter', 'gemini'] as MockupProvider[]).find(
+    (candidate) => candidate !== wanted && isAvailable(candidate)
+  );
+  if (other) {
     logger.warn(`[MOCKUP] ${wanted} choisi mais non configuré — mises en situation par ${other}`);
     return other;
   }

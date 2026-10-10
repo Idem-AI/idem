@@ -97,24 +97,113 @@ const defaultModelConfigs: ModelConfig[] = [
     apiUrlEnv: 'GLM_API_URL',
     defaultApiUrl: 'https://api.z.ai/api/paas/v4',
   },
+  {
+    // OPENROUTER — modèles OUVERTS (poids publics, Apache-2.0), auto-hébergeables
+    // plus tard en ne changeant que OPENROUTER_BASE_URL. Mêmes identifiants
+    // exacts et licences vérifiés côté API IDEM (config/openrouter.config.ts).
+    // Température de précision : c'est du code, cf. le commentaire de GLM 5.2.
+    modelName: 'Qwen3 Coder Next',
+    modelKey: 'qwen/qwen3-coder-next',
+    useImage: false,
+    provider: 'openrouter',
+    description: 'Qwen3 Coder Next — code et agents, poids ouverts (Apache-2.0)',
+    functionCall: true,
+    temperature: 0.35,
+    topP: 0.9,
+    maxOutputTokens: 32000,
+    apiKeyEnv: 'OPENROUTER_API_KEY',
+    apiUrlEnv: 'OPENROUTER_BASE_URL',
+    defaultApiUrl: 'https://openrouter.ai/api/v1',
+  },
+  {
+    // REPLI d'OpenRouter : autre famille de poids (MoE généraliste), pas dans le sélecteur.
+    modelName: 'Qwen3.5 122B',
+    modelKey: 'qwen/qwen3.5-122b-a10b',
+    useImage: false,
+    provider: 'openrouter',
+    description: 'Qwen3.5 122B A10B — repli lorsque Qwen3 Coder Next est saturé',
+    functionCall: true,
+    temperature: 0.35,
+    topP: 0.9,
+    maxOutputTokens: 32000,
+    selectable: false,
+    apiKeyEnv: 'OPENROUTER_API_KEY',
+    apiUrlEnv: 'OPENROUTER_BASE_URL',
+    defaultApiUrl: 'https://openrouter.ai/api/v1',
+  },
 ];
-
-/** Premier de la liste : le modèle proposé par défaut à l'ouverture. */
-export function getDefaultModelKey(): string {
-  return defaultModelConfigs[0]?.modelKey;
-}
 
 /** Le catalogue complet, repli inclus — usage interne (résolution, repli). */
 export const allModelConfigs: ModelConfig[] = defaultModelConfigs;
 
+// ── Fournisseur actif, modifiable À CHAUD ───────────────────────────────────
+//
+// Départ : `APPGEN_MODEL_PROVIDER` (glm | openrouter), sinon `glm`. Ensuite :
+// `POST /api/model/switch` (cf. routes/model.ts) change le fournisseur sans
+// redémarrage. L'état vit en mémoire de l'instance : avec plusieurs instances,
+// appeler chacune, ou fixer la variable d'environnement.
+export type ModelProvider = 'glm' | 'openrouter';
+export const MODEL_PROVIDERS: readonly ModelProvider[] = ['glm', 'openrouter'];
+
+function parseProvider(value: unknown): ModelProvider | undefined {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return (MODEL_PROVIDERS as readonly string[]).includes(normalized)
+    ? (normalized as ModelProvider)
+    : undefined;
+}
+
+let activeProvider: ModelProvider | undefined;
+
+export function getActiveProvider(): ModelProvider {
+  return activeProvider ?? parseProvider(process.env.APPGEN_MODEL_PROVIDER) ?? 'glm';
+}
+
+/** `undefined` rétablit la variable d'environnement. */
+export function setActiveProvider(provider: ModelProvider | undefined): void {
+  activeProvider = provider;
+}
+
+/** Le modèle a-t-il de quoi répondre (clé présente) ? Un modèle sans clé n'est jamais proposé. */
+function hasCredentials(conf: ModelConfig): boolean {
+  return Boolean(readEnv(conf.apiKeyEnv ?? 'THIRD_API_KEY'));
+}
+
 /**
- * Ordre de repli quand un modèle est indisponible. Avec un seul modèle ouvert,
- * la chaîne se réduit à lui : la fonction reste en place pour que l'ajout d'un
- * second modèle n'ait rien d'autre à changer.
+ * Les modèles dans l'ordre d'essai : ceux du fournisseur actif d'abord, puis
+ * l'autre en dernier recours — une panne d'un fournisseur ne devient pas une
+ * panne du produit. Sans aucune clé, le catalogue entier (l'erreur nommera la
+ * variable manquante).
+ */
+function orderedConfigs(): ModelConfig[] {
+  const active = getActiveProvider();
+  const ranked = [
+    ...defaultModelConfigs.filter((item) => item.provider === active),
+    ...defaultModelConfigs.filter((item) => item.provider !== active),
+  ];
+  const usable = ranked.filter(hasCredentials);
+  return usable.length > 0 ? usable : ranked;
+}
+
+/** Le modèle proposé par défaut : le premier sélectionnable du fournisseur actif. */
+export function getDefaultModelKey(): string {
+  const first = orderedConfigs().find((item) => item.selectable !== false);
+  return (first ?? defaultModelConfigs[0])?.modelKey;
+}
+
+/**
+ * Ordre de repli quand un modèle est indisponible.
+ *
+ * Le modèle demandé par le client passe en tête SAUF s'il appartient à l'autre
+ * fournisseur : une bascule n'aurait aucun effet si l'interface, qui a mémorisé
+ * « glm-5.2 », le réimposait à chaque requête.
  */
 export function getFallbackModelKeys(preferredKey?: string): string[] {
-  const configured = defaultModelConfigs.map(({ modelKey }) => modelKey);
-  const keys = preferredKey && configured.includes(preferredKey) ? [preferredKey] : [];
+  const configured = orderedConfigs().map(({ modelKey }) => modelKey);
+  const preferred = defaultModelConfigs.find((item) => item.modelKey === preferredKey);
+  const keys =
+    preferred && preferred.provider === getActiveProvider() && configured.includes(preferred.modelKey)
+      ? [preferred.modelKey]
+      : [];
 
   for (const modelKey of configured) {
     if (!keys.includes(modelKey)) {
@@ -168,9 +257,11 @@ export function resolveModelCredentials(modelKey: string): ModelCredentials {
  * il ne doit contenir aucun identifiant.
  */
 export function getPublicModelConfig(): PublicModelConfig[] {
-  return defaultModelConfigs
-    .filter((model) => model.selectable !== false)
-    .map(({ apiKeyEnv, apiUrlEnv, defaultApiUrl, ...pub }) => pub);
+  const active = getActiveProvider();
+  const offered = orderedConfigs().filter(
+    (model) => model.selectable !== false && model.provider === active
+  );
+  // Aucun modèle sélectionnable chez le fournisseur actif : on montre le reste.
+  const list = offered.length > 0 ? offered : orderedConfigs().filter((m) => m.selectable !== false);
+  return list.map(({ apiKeyEnv, apiUrlEnv, defaultApiUrl, ...pub }) => pub);
 }
-
-export const modelConfig: PublicModelConfig[] = getPublicModelConfig();

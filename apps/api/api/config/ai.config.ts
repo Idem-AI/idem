@@ -4,6 +4,9 @@ export enum LLMProvider {
   DEEPSEEK = 'DEEPSEEK',
   // GLM-5.2 (Zhipu / Z.ai), via API OpenAI-compatible — voir ai-providers.config.ts.
   GLM = 'GLM',
+  // OpenRouter : une seule clé, tous les modèles ouverts (Qwen, DeepSeek, FLUX.2…) —
+  // voir openrouter.config.ts (liste blanche) et ai-providers.config.ts.
+  OPENROUTER = 'OPENROUTER',
 }
 
 /**

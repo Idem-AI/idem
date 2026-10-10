@@ -14,6 +14,10 @@ export const SECRET_MANIFEST = {
   optional: [
     // Fournisseur GLM (Zhipu / Z.ai) : modèles de génération de code.
     'GLM_API_KEY',
+    // OpenRouter : Qwen3 Coder Next et son repli (modèles ouverts).
+    'OPENROUTER_API_KEY',
+    // Autorise POST /api/model/switch (bascule du fournisseur à chaud). Absente = route fermée.
+    'MODEL_ADMIN_KEY',
     // Fournisseur par défaut des modèles sans `apiKeyEnv` propre.
     'THIRD_API_KEY',
     // Déploiement des applications générées sur le compte Netlify d'IDEM.

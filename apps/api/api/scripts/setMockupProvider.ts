@@ -4,6 +4,7 @@
  *   npm run mockups:provider            → affiche le fournisseur en vigueur
  *   npm run mockups:provider -- gemini  → Gemini (le logo part avec la consigne)
  *   npm run mockups:provider -- glm     → GLM (scène nue, logo composé ensuite)
+ *   npm run mockups:provider -- openrouter → FLUX.2 via OpenRouter (scène nue, logo composé ensuite)
  *
  * Le choix est écrit en base : les instances de l'API le prennent en compte
  * sous trente secondes, sans redémarrage (cf. `mockup-provider.config.ts`).

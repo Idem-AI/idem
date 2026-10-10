@@ -19,7 +19,13 @@ import {
   isGeminiConfigured,
 } from '../config/ai-providers.config';
 import { getGoogleGenAIClient } from '../config/google-genai.client';
-import { AI_CONFIG, GLM_MODELS } from '../config/ai.config';
+import { AI_CONFIG, GLM_MODELS, LLMProvider } from '../config/ai.config';
+import { MediaProviderName, activeProvider, requestedMedia } from '../config/ai-runtime.config';
+import {
+  analyzeImageWithOpenRouter,
+  generateImageWithOpenRouter,
+  isOpenRouterConfigured,
+} from './openrouter-media.service';
 import logger from '../config/logger';
 import { describeError, withRetry } from '../utils/retry';
 
@@ -40,7 +46,7 @@ export interface GenerateImageOptions {
   /** Modèle à employer quand GEMINI sert l'image. Repli : le modèle image par défaut. */
   geminiModel?: string;
   /** Fournisseur imposé, au lieu de la bascule globale (`mediaProvider`). */
-  provider?: 'glm' | 'gemini';
+  provider?: MediaProviderName;
 }
 
 export interface AnalyzeImageOptions {
@@ -63,7 +69,7 @@ export interface AnalyzeImageOptions {
  * étaient simplement absentes, sans que rien n'explique pourquoi.
  */
 export function isGlmConfigured(): boolean {
-  return Boolean(getGlmApiKey()) || isGeminiMediaAvailable();
+  return Boolean(getGlmApiKey()) || isGeminiMediaAvailable() || isOpenRouterConfigured();
 }
 
 /** Gemini sert-il l'image et la vision sur ce déploiement ? */
@@ -87,16 +93,31 @@ export function isGeminiMediaAvailable(): boolean {
  * `IDEM_MEDIA_PROVIDER` pour le cas inverse — garder l'image sur GLM alors que
  * le texte a basculé.
  */
-export function mediaProvider(): 'glm' | 'gemini' {
-  const forced = (process.env.IDEM_MEDIA_PROVIDER ?? '').toUpperCase();
-  if (forced === 'GEMINI' && isGeminiConfigured()) return 'gemini';
-  if (forced === 'GLM' && getGlmApiKey()) return 'glm';
+export function mediaProvider(): MediaProviderName {
+  const available = (name: MediaProviderName): boolean =>
+    name === 'gemini'
+      ? isGeminiConfigured()
+      : name === 'openrouter'
+        ? isOpenRouterConfigured()
+        : Boolean(getGlmApiKey());
 
-  const globalProvider = (process.env.AI_DEFAULT_PROVIDER ?? '').toUpperCase();
-  if (globalProvider === 'GEMINI' && isGeminiConfigured()) return 'gemini';
-  if (globalProvider === 'GLM' && getGlmApiKey()) return 'glm';
+  // 1. Choix d'exploitation (base, à chaud, puis IDEM_MEDIA_PROVIDER).
+  const forced = requestedMedia();
+  if (forced && available(forced)) return forced;
 
-  return getGlmApiKey() ? 'glm' : 'gemini';
+  // 2. Le fournisseur texte en vigueur (base, puis AI_DEFAULT_PROVIDER).
+  const text = activeProvider();
+  const followed: MediaProviderName | undefined =
+    text === LLMProvider.GEMINI ? 'gemini'
+    : text === LLMProvider.GLM ? 'glm'
+    : text === LLMProvider.OPENROUTER ? 'openrouter'
+    : undefined;
+  if (followed && available(followed)) return followed;
+
+  // 3. Défaut historique : GLM si sa clé existe, sinon ce qui est configuré.
+  if (available('glm')) return 'glm';
+  if (available('openrouter')) return 'openrouter';
+  return 'gemini';
 }
 
 /** Modèle image de Gemini. `flash-lite` est le plus rapide (~3,5 s mesurés). */
@@ -287,8 +308,17 @@ export async function generateImage(
   prompt: string,
   options: GenerateImageOptions = {},
 ): Promise<GeneratedImage> {
-  if ((options.provider ?? mediaProvider()) === 'gemini') {
+  const chosen = options.provider ?? mediaProvider();
+  if (chosen === 'gemini') {
     return generateImageWithGemini(prompt, options.tag, options.geminiModel);
+  }
+  if (chosen === 'openrouter') {
+    return generateImageWithOpenRouter(prompt, {
+      size: options.size,
+      model: options.model,
+      fallbackModel: options.fallbackModel,
+      tag: options.tag,
+    });
   }
 
   const apiKey = requireKey();
@@ -345,8 +375,12 @@ export async function analyzeImage(
   instruction: string,
   options: AnalyzeImageOptions = {},
 ): Promise<string> {
-  if (mediaProvider() === 'gemini') {
+  const chosen = mediaProvider();
+  if (chosen === 'gemini') {
     return analyzeImageWithGemini(base64, mimeType, instruction, options);
+  }
+  if (chosen === 'openrouter') {
+    return analyzeImageWithOpenRouter(base64, mimeType, instruction, options);
   }
 
   const apiKey = requireKey();

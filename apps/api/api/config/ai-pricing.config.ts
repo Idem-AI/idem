@@ -44,6 +44,22 @@ const PRICING: Record<string, ModelPricing> = {
   'deepseek-reasoner': { input: 0.55, output: 2.19 },
   'deepseek-chat': { input: 0.27, output: 1.1 },
 
+  // --- OpenRouter (modèles ouverts) ---
+  // Relevé sur le catalogue OpenRouter le 2026-10-11, en $/M tokens (cf. openrouter.config.ts).
+  // Préfixes volontairement larges : une variante datée hérite du tarif de sa famille.
+  'qwen/qwen3.5-9b': { input: 0.1, output: 0.15 },
+  'qwen/qwen3.5-35b-a3b': { input: 0.08, output: 0.75 },
+  'qwen/qwen3.5-27b': { input: 0.26, output: 2.6 },
+  'qwen/qwen3.5-122b-a10b': { input: 0.26, output: 2.08 },
+  'qwen/qwen3.5-397b-a17b': { input: 0.55, output: 3.5 },
+  'qwen/qwen3.6-35b-a3b': { input: 0.1, output: 0.95 },
+  'qwen/qwen3.8-27b': { input: 0.425, output: 2.55 },
+  'qwen/qwen3-vl-30b-a3b': { input: 0.15, output: 0.6 },
+  'qwen/qwen3-coder-next': { input: 0.12, output: 0.8 },
+  'qwen/qwen3-coder': { input: 0.3, output: 1.0 },
+  'deepseek/deepseek-v4-flash': { input: 0.03, output: 1.28 },
+  'deepseek/deepseek-v4-pro': { input: 0.209, output: 0.418 },
+
   // --- Z.ai / GLM ---
   // GLM (Z.ai) — tarifs relevés sur docs.z.ai, août 2026, en $/M tokens.
   'glm-5.3': { input: 1.4, output: 4.4 },

@@ -555,7 +555,7 @@ export class GeminiMockupService {
       const scene = await generateImage(prompt, {
         model: config.imageModel,
         fallbackModel: config.imageFallbackModel,
-        provider: 'glm',
+        provider: (await resolveMockupProvider()) === 'openrouter' ? 'openrouter' : 'glm',
         tag: `${mockupName}#${attempt}`,
       });
       const reading = await this.readScene(scene, needsZone, mockupName);

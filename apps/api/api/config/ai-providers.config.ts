@@ -24,6 +24,17 @@ import {
   ROLE_MODELS,
   TEXT_FALLBACK_MODELS,
 } from './ai.config';
+import {
+  OPENROUTER_BASE_URL,
+  isAllowedOpenRouterModel,
+  OPENROUTER_DEFAULT_ROLES,
+  OPENROUTER_FALLBACK_MODELS,
+  openRouterHeaders,
+  openRouterRouting,
+  resolveOpenRouterModel,
+} from './openrouter.config';
+import { activeProvider, runtimeModelFor } from './ai-runtime.config';
+import logger from './logger';
 
 export type ProviderKind = 'gemini' | 'openai-compatible';
 
@@ -144,7 +155,31 @@ export interface ProviderDefinition {
    * sinon un `content` vide sur les prompts lourds (logo, SVG…).
    */
   extraBody?: Record<string, unknown>;
+  /**
+   * Dialecte du RAISONNEMENT dans le corps de requête. Les features parlent un
+   * seul langage (`thinking: { type: 'disabled' | 'enabled' }`, celui de Z.ai) ;
+   * `translateReasoning` le traduit pour les fournisseurs qui en parlent un autre.
+   * Absent = le dialecte Z.ai tel quel.
+   */
+  reasoningDialect?: 'zai' | 'openrouter';
   capabilities: ProviderCapabilities;
+}
+
+/**
+ * Traduit l'intention de raisonnement du corps dans le dialecte du fournisseur.
+ *
+ * OpenRouter n'a pas de champ `thinking` : il unifie tous les modèles sous
+ * `reasoning: { enabled }`. Envoyer `thinking` à un modèle Qwen est au mieux
+ * ignoré — et le raisonnement continue alors de consommer le budget de sortie,
+ * la panne documentée en tête de GLM_MODELS.
+ */
+export function translateReasoning<T extends Record<string, any>>(
+  dialect: ProviderDefinition['reasoningDialect'],
+  body: T
+): T {
+  if (dialect !== 'openrouter' || !body.thinking) return body;
+  const { thinking, ...rest } = body;
+  return { ...rest, reasoning: { enabled: thinking?.type === 'enabled' } } as unknown as T;
 }
 
 /**
@@ -448,6 +483,34 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
     },
   },
 
+  // OpenRouter — une clé, des modèles OUVERTS (Qwen d'abord), pour pouvoir
+  // les auto-héberger plus tard : il suffira alors de changer `OPENROUTER_BASE_URL`
+  // vers un serveur vLLM/SGLang. Liste blanche et licences : openrouter.config.ts.
+  [LLMProvider.OPENROUTER]: {
+    kind: 'openai-compatible',
+    apiKeyEnv: 'OPENROUTER_API_KEY',
+    baseUrl: OPENROUTER_BASE_URL(),
+    defaultHeaders: openRouterHeaders(),
+    // Résolu à l'appel par `getProvider` (base > env > défaut) : ce tableau n'est
+    // que le plancher, pour que `roleOfModel` reconnaisse les modèles par défaut.
+    models: { ...OPENROUTER_DEFAULT_ROLES },
+    defaultFallbackModels: OPENROUTER_FALLBACK_MODELS,
+    concurrency: Number(process.env.IDEM_OPENROUTER_CONCURRENCY ?? 4),
+    reasoningDialect: 'openrouter',
+    // Raisonnement coupé par défaut, comme chez GLM : il se décompte du budget de
+    // sortie. Routage : hébergeurs qui ne conservent pas les requêtes.
+    extraBody: { thinking: { type: 'disabled' }, ...openRouterRouting() },
+    capabilities: {
+      tools: true,
+      // Pas de recherche fondée : la recherche web reste chez Gemini/Z.ai.
+      grounding: false,
+      streaming: true,
+      contextCache: false,
+      vision: true,
+      imageGeneration: true,
+    },
+  },
+
   [LLMProvider.CHATGPT]: {
     kind: 'openai-compatible',
     apiKeyEnv: 'OPENAI_API_KEY',
@@ -532,7 +595,27 @@ export function getProvider(provider: LLMProvider): ProviderDefinition {
     };
   }
 
+  // Modèles OpenRouter choisis À CHAUD : base (`platform_settings/ai`), puis
+  // `IDEM_OPENROUTER_<ROLE>_MODEL`, puis le défaut Qwen. Résolu à chaque lecture
+  // pour qu'un changement de modèle s'applique sans redémarrage.
+  if (provider === LLMProvider.OPENROUTER) {
+    const models = {} as Record<ModelRole, string>;
+    for (const role of Object.keys(OPENROUTER_DEFAULT_ROLES) as ModelRole[]) {
+      const hot = runtimeModelFor(role);
+      models[role] =
+        hot && isAllowedHot(hot)
+          ? hot
+          : resolveOpenRouterModel(role, (message) => logger.warn(`[OPENROUTER] ${message}`));
+    }
+    return { ...def, models };
+  }
+
   return def;
+}
+
+function isAllowedHot(model: string): boolean {
+  // import tardif évité : même module que ci-dessus.
+  return isAllowedOpenRouterModel(model);
 }
 
 /** Indique si un fournisseur supporte une capacité donnée. */
@@ -586,6 +669,21 @@ export function roleOfModel(modelName: string): ModelRole {
   return 'writing';
 }
 
+/** Le fournisseur a-t-il de quoi répondre (clé ou backend) ? */
+export function isProviderConfigured(provider: LLMProvider): boolean {
+  const def = AI_PROVIDERS[provider];
+  if (!def) return false;
+  if (def.kind === 'gemini') return isGeminiConfigured();
+  return Boolean(process.env[def.apiKeyEnv]?.trim());
+}
+
+const warned = new Set<string>();
+function warnOnce(message: string): void {
+  if (warned.has(message)) return;
+  warned.add(message);
+  logger.warn(`[AI] ${message}`);
+}
+
 /** Modèle servant un rôle chez un fournisseur, ou `undefined` s'il n'en a pas. */
 export function modelForRole(provider: LLMProvider, role: ModelRole): string | undefined {
   return getProvider(provider).models?.[role];
@@ -611,11 +709,18 @@ export function modelForRole(provider: LLMProvider, role: ModelRole): string | u
 export function resolveGlobalOverride<
   T extends Pick<FeatureAIConfig, 'provider' | 'modelName'> & { role?: ModelRole },
 >(config: T): T {
-  const overrideProvider = process.env.AI_DEFAULT_PROVIDER as LLMProvider | undefined;
+  // Base d'abord (bascule à chaud), variable d'env ensuite.
+  const overrideProvider = activeProvider();
   if (!overrideProvider || !AI_PROVIDERS[overrideProvider]) {
     return config;
   }
   if (overrideProvider === config.provider) {
+    return config;
+  }
+  // Basculer vers un fournisseur sans clé perdrait CHAQUE génération. On reste
+  // où l'on est, bruyamment : l'exploitant voit la cause, pas une cascade de 401.
+  if (!isProviderConfigured(overrideProvider)) {
+    warnOnce(`Bascule vers ${overrideProvider} ignorée : clé absente`);
     return config;
   }
 
@@ -657,7 +762,7 @@ export function resolveConcurrency(): number {
   const forced = Number(process.env.IDEM_MAX_PARALLEL_STEPS);
   if (Number.isFinite(forced) && forced >= 1) return Math.floor(forced);
 
-  const active = process.env.AI_DEFAULT_PROVIDER as LLMProvider | undefined;
+  const active = activeProvider();
   const definition =
     active && AI_PROVIDERS[active] ? AI_PROVIDERS[active] : AI_PROVIDERS[LLMProvider.GLM];
   const declared = definition.concurrency;

@@ -36,8 +36,11 @@ import {
   canSuppressThinking,
   getGlmApiKey,
   getProvider,
+  isProviderConfigured,
+  modelForRole,
   providerSupports,
   resolveGlobalOverride,
+  translateReasoning,
 } from '../config/ai-providers.config';
 import { applyAiOverride } from '../config/ai-overrides.config';
 import { describeGeminiBackend, getGoogleGenAIClient } from '../config/google-genai.client';
@@ -675,20 +678,24 @@ export class PromptService {
         ((llmOptions.extraBody as any) ?? (def.extraBody as any))?.thinking?.type === 'enabled';
 
       const doCreate = (model: string, forceNoThinking = false) =>
-        client.chat.completions.create({
-          model,
-          messages: openaiMessages,
-          ...generationParams,
-          // Défaut du provider, puis surcharge éventuelle par-feature (ex: réactiver
-          // le raisonnement GLM sur la génération de logo). La feature l'emporte.
-          ...(def.extraBody ?? {}),
-          ...(llmOptions.extraBody ?? {}),
-          ...(forceNoThinking ? { thinking: { type: 'disabled' } } : {}),
-          // Un modèle qui raisonne TOUJOURS refuse la coupure par un HTTP 400.
-          // Quelle qu'en soit la source — défaut du fournisseur, chemin par
-          // gabarit, filet de budget — elle ne part donc jamais vers lui.
-          ...(canSuppressThinking(model) ? {} : { thinking: { type: 'enabled' } }),
-        } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
+        client.chat.completions.create(
+          // Les features parlent le dialecte Z.ai (`thinking`) ; il est traduit
+          // ici pour les fournisseurs qui en parlent un autre (OpenRouter).
+          translateReasoning(def.reasoningDialect, {
+            model,
+            messages: openaiMessages,
+            ...generationParams,
+            // Défaut du provider, puis surcharge éventuelle par-feature (ex: réactiver
+            // le raisonnement GLM sur la génération de logo). La feature l'emporte.
+            ...(def.extraBody ?? {}),
+            ...(llmOptions.extraBody ?? {}),
+            ...(forceNoThinking ? { thinking: { type: 'disabled' } } : {}),
+            // Un modèle qui raisonne TOUJOURS refuse la coupure par un HTTP 400.
+            // Quelle qu'en soit la source — défaut du fournisseur, chemin par
+            // gabarit, filet de budget — elle ne part donc jamais vers lui.
+            ...(canSuppressThinking(model) ? {} : { thinking: { type: 'enabled' } }),
+          }) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+        );
 
       /** Réponse vide alors que le budget a été épuisé — signature du raisonnement qui déborde. */
       const starvedByThinking = (candidate: any): boolean =>
@@ -809,18 +816,20 @@ export class PromptService {
     let finalText = '';
     for (let turn = 0; turn <= maxToolTurns; turn++) {
       const forceFinal = turn === maxToolTurns;
-      const response = await client.chat.completions.create({
-        model: modelName,
-        messages: conversation,
-        ...generationParams,
-        ...(def.extraBody ?? {}),
-        ...(llmOptions.extraBody ?? {}),
-        // Même garde qu'au chemin principal : pas de coupure vers un modèle qui
-        // raisonne toujours (HTTP 400).
-        ...(canSuppressThinking(modelName) ? {} : { thinking: { type: 'enabled' } }),
-        tools: openaiTools,
-        tool_choice: forceFinal ? 'none' : 'auto',
-      } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
+      const response = await client.chat.completions.create(
+        translateReasoning(def.reasoningDialect, {
+          model: modelName,
+          messages: conversation,
+          ...generationParams,
+          ...(def.extraBody ?? {}),
+          ...(llmOptions.extraBody ?? {}),
+          // Même garde qu'au chemin principal : pas de coupure vers un modèle qui
+          // raisonne toujours (HTTP 400).
+          ...(canSuppressThinking(modelName) ? {} : { thinking: { type: 'enabled' } }),
+          tools: openaiTools,
+          tool_choice: forceFinal ? 'none' : 'auto',
+        }) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+      );
 
       this.assertNoErrorEnvelope(provider, response);
       const choice = response.choices?.[0]?.message;
@@ -905,17 +914,19 @@ export class PromptService {
         : {}),
     };
 
-    const stream = await client.chat.completions.create({
-      model: modelName,
-      messages: openaiMessages,
-      ...generationParams,
-      ...(def.extraBody ?? {}),
-      ...(llmOptions.extraBody ?? {}),
-      // Même garde qu'au chemin principal : pas de coupure vers un modèle qui
-      // raisonne toujours (HTTP 400).
-      ...(canSuppressThinking(modelName) ? {} : { thinking: { type: 'enabled' } }),
-      stream: true,
-    } as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming);
+    const stream = await client.chat.completions.create(
+      translateReasoning(def.reasoningDialect, {
+        model: modelName,
+        messages: openaiMessages,
+        ...generationParams,
+        ...(def.extraBody ?? {}),
+        ...(llmOptions.extraBody ?? {}),
+        // Même garde qu'au chemin principal : pas de coupure vers un modèle qui
+        // raisonne toujours (HTTP 400).
+        ...(canSuppressThinking(modelName) ? {} : { thinking: { type: 'enabled' } }),
+        stream: true,
+      }) as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
+    );
 
     let full = '';
     for await (const chunk of stream) {
@@ -1520,7 +1531,24 @@ export class PromptService {
     // Même interrupteur global que les autres points d'entrée : sans lui, une
     // bascule de fournisseur laissait la recherche fondée sur l'ancien — donc
     // sur un endpoint dont la clé n'est plus configurée.
-    const { provider, modelName: overriddenModel } = resolveRouting(request);
+    const routed = resolveRouting(request);
+    let provider = routed.provider;
+    let overriddenModel = routed.modelName;
+
+    // OpenRouter (comme OpenAI ou DeepSeek) ne fonde pas ses réponses : la
+    // recherche web reste chez un fournisseur qui la sert, avec son modèle de
+    // rédaction. Sans cela la requête partait chez Gemini avec un nom GLM.
+    if (!providerSupports(provider, 'grounding')) {
+      const alternative = [LLMProvider.GLM, LLMProvider.GEMINI].find(
+        (candidate) => isProviderConfigured(candidate) && providerSupports(candidate, 'grounding')
+      );
+      if (alternative) {
+        logger.info(`runGroundedResearch: ${provider} → ${alternative} (recherche fondée)`);
+        provider = alternative;
+        overriddenModel = modelForRole(alternative, 'writing') ?? overriddenModel;
+      }
+    }
+
     const { llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
     request = { ...request, provider, modelName: overriddenModel };
 
