@@ -105,14 +105,14 @@ const LINKS = [
       top: 0;
       z-index: var(--z-sticky);
       display: block;
-      border-bottom: 1px solid transparent;
       transition:
         background-color 0.25s ease,
-        border-color 0.25s ease;
+        box-shadow 0.25s ease;
     }
-    /* Dès qu'on défile (ou que le menu est ouvert), la barre se pose sur un fond net. */
+    /* Dès qu'on défile (ou que le menu est ouvert), la barre se pose sur un fond net. Le filet
+       du bas est une ombre : il n'ajoute rien à la hauteur (4,5 rem), dont dépend le hero. */
     :host(.is-raised) {
-      border-bottom-color: var(--glass-border-subtle);
+      box-shadow: 0 1px 0 var(--glass-border-subtle);
       background: var(--glass-bg-intense);
       -webkit-backdrop-filter: blur(var(--glass-blur-md));
       backdrop-filter: blur(var(--glass-blur-md));

@@ -12,6 +12,8 @@ import { Wrap } from './wrap';
  * publication. Sur grand écran, les deux mots forment une seule ligne au-dessus de leur colonne ;
  * sur téléphone, le titre, le texte et les boutons viennent d'abord, la démonstration ensuite.
  * Le titre lu par les lecteurs d'écran est le `h1` masqué ; les deux mots visibles sont décoratifs.
+ * Sur bureau, le hero occupe au moins toute la hauteur de l'écran sous l'en-tête (4,5 rem, voir
+ * `landing-header.ts`) et son contenu y est centré verticalement ; s'il est plus haut, il grandit.
  */
 @Component({
   selector: 'iv-landing-hero',
@@ -19,7 +21,7 @@ import { Wrap } from './wrap';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
-    <section ivWrap class="pb-20 pt-6 sm:pt-10 lg:pb-28 lg:pt-14 3xl:pt-20">
+    <section ivWrap class="pb-20 pt-6 sm:pt-10 lg:flex lg:min-h-[calc(100svh_-_4.5rem)] lg:flex-col lg:justify-center lg:py-12">
       <h1 class="sr-only">{{ 'landing.hero.title' | translate }}</h1>
       <div class="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:grid-rows-[auto_auto_1fr] lg:gap-x-24 lg:gap-y-10 3xl:gap-x-32">
         <span ivDisplay="hero" class="order-1 whitespace-nowrap text-heading lg:col-start-1 lg:row-start-1" aria-hidden="true">{{ 'landing.hero.say' | translate }}</span>
