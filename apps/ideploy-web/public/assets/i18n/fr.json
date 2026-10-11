@@ -561,20 +561,38 @@
           "wrong_ip": "Mauvaise adresse",
           "proxied": "Derrière Cloudflare",
           "ipv6_conflict": "Enregistrement IPv6 à supprimer",
-          "automatic": "Automatique"
+          "automatic": "Automatique",
+          "taken": "Déjà utilisé"
         },
         "explain": {
           "missing": "Aucun enregistrement trouvé pour l'instant. Une fois créé, il peut mettre de quelques minutes à quelques heures à se propager ; cette page revérifie toute seule.",
           "wrong_ip": "Le domaine pointe vers {{found}}, pas vers {{ip}}. Corrigez la valeur de l'enregistrement A (et supprimez tout autre enregistrement A pour ce nom).",
           "proxied": "Le domaine passe par le proxy de Cloudflare ({{found}}). Dans Cloudflare, passez cet enregistrement en « DNS only » (nuage gris) pour que le certificat puisse être émis.",
           "ipv6_conflict": "L'enregistrement A est correct, mais un enregistrement AAAA (IPv6) existe aussi ({{aaaa}}). Let's Encrypt l'utilise en priorité et le certificat échoue : supprimez l'enregistrement AAAA.",
-          "automatic": ""
+          "automatic": "",
+          "taken": "Ce domaine pointe vers le même serveur, mais une autre application l'utilise déjà. Retirez-le d'abord de celle-ci."
         },
         "httpsValid": "HTTPS actif, certificat {{issuer}}",
         "expires": "renouvelé automatiquement, expire le",
         "httpsAfterDns": "HTTPS : le certificat est demandé automatiquement dès que le DNS pointe ici.",
         "httpsPending": "HTTPS : certificat en cours d'émission — redéployez l'application si le domaine a été enregistré sans redéploiement.",
         "polling": "Revérifié toutes les 30 secondes tant que le domaine est en cours de configuration."
+      },
+      "domainsApplied": "Domaines appliqués, sans redéploiement. Ceux dont le DNS est prêt sont en ligne ; les autres le seront dès que leur DNS pointera ici.",
+      "domainOptions": {
+        "title": "Comment les domaines sont servis",
+        "forceHttps": "Forcer HTTPS",
+        "forceHttpsHint": "Les visiteurs en http:// sont renvoyés vers https://.",
+        "hsts": "HSTS",
+        "hstsHint": "Les navigateurs retiennent de n'utiliser que HTTPS, pendant un an. À activer une fois HTTPS fonctionnel sur tous les domaines.",
+        "primary": "Rediriger les autres domaines vers le premier",
+        "primaryHint": "Le premier domaine de la liste est l'adresse principale ; les autres y redirigent (mieux pour le référencement).",
+        "www": "www",
+        "wwwBoth": "Servir www et le domaine nu",
+        "wwwToBare": "Rediriger www vers le domaine nu",
+        "bareToWww": "Rediriger le domaine nu vers www",
+        "applied": "Appliqué.",
+        "redeploy": "Enregistré — appliqué au prochain déploiement."
       }
     }
   },

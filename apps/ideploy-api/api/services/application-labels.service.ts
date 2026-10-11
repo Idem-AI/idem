@@ -60,6 +60,10 @@ export interface LabelContext {
   stripPrefix: boolean;
   isStatic: boolean;
   redirect: RedirectDirection;
+  /** Strict-Transport-Security on the HTTPS routes. */
+  hsts: boolean;
+  /** Every domain after the first redirects to the first (the primary one). */
+  redirectToPrimary: boolean;
   basicAuth: BasicAuth | null;
   customLabels: string[];
   /** Set only when the firewall is enabled and has a usable bouncer key. */
@@ -120,6 +124,8 @@ export async function loadLabelContext(app: ApplicationRow): Promise<LabelContex
             COALESCE(aps.is_gzip_enabled, true)         AS gzip,
             COALESCE(aps.is_stripprefix_enabled, true)  AS strip_prefix,
             COALESCE(aps.is_static, false)              AS is_static,
+            COALESCE(aps.is_hsts_enabled, false)        AS hsts,
+            COALESCE(aps.is_redirect_to_primary_enabled, false) AS redirect_to_primary,
             a.redirect,
             a.custom_labels,
             a.is_http_basic_auth_enabled,
@@ -216,6 +222,8 @@ export async function loadLabelContext(app: ApplicationRow): Promise<LabelContex
     stripPrefix: Boolean(r.strip_prefix),
     isStatic: Boolean(r.is_static),
     redirect: toRedirect(r.redirect),
+    hsts: Boolean(r.hsts),
+    redirectToPrimary: Boolean(r.redirect_to_primary),
     basicAuth,
     customLabels: decodeCustomLabels(r.custom_labels as string | null),
   };
@@ -230,7 +238,13 @@ export async function loadLabelContext(app: ApplicationRow): Promise<LabelContex
  */
 export function buildApplicationLabels(
   app: ApplicationRow,
-  context: LabelContext
+  context: LabelContext,
+  /**
+   * Routes served from the proxy's file provider (routes-file.service.ts):
+   * no router on the container, so a domain change applies without
+   * recreating it.
+   */
+  opts: { routesFile?: boolean } = {}
 ): string[] {
   const labels = defaultLabels({
     id: app.id,
@@ -271,7 +285,11 @@ export function buildApplicationLabels(
   const wantsTraefik = !context.exactLabelsOnly || context.proxyType === 'traefik';
   const wantsCaddy = !context.exactLabelsOnly || context.proxyType === 'caddy';
 
-  if (wantsTraefik) labels.push(...traefikLabels(options));
+  if (wantsTraefik && opts.routesFile) {
+    labels.push('traefik.enable=false', 'ideploy.routes=file');
+  } else if (wantsTraefik) {
+    labels.push(...traefikLabels(options));
+  }
   if (wantsCaddy) labels.push(...caddyLabels(context.network, options));
 
   // The user's own labels win: they are appended last and de-duplicated.

@@ -24,6 +24,7 @@ import {
   Destination,
   EnvVar,
   DomainDnsGuide,
+  DomainOptions,
   ComposeAnalysis,
   ServiceOperation,
   PrivateKey,
@@ -355,6 +356,14 @@ export class ApiService {
     );
   }
   /** DNS records to create for the application's domains (or `domains` as typed), and their state. */
+  getDomainOptions(uuid: string): Observable<DomainOptions> {
+    return this.unwrap(this.http.get<ApiResponse<DomainOptions>>(`${this.base}/applications/${uuid}/domains/options`));
+  }
+  updateDomainOptions(uuid: string, body: Partial<DomainOptions>): Observable<{ options: DomainOptions; applied: boolean; redeployRequired: boolean }> {
+    return this.unwrap(
+      this.http.put<ApiResponse<{ options: DomainOptions; applied: boolean; redeployRequired: boolean }>>(`${this.base}/applications/${uuid}/domains/options`, body)
+    );
+  }
   getDomainDns(uuid: string, domains?: string): Observable<DomainDnsGuide> {
     const query = domains !== undefined ? `?domains=${encodeURIComponent(domains)}` : '';
     return this.unwrap(this.http.get<ApiResponse<DomainDnsGuide>>(`${this.base}/applications/${uuid}/domains/dns${query}`));

@@ -179,7 +179,14 @@ export interface RegistryCredential {
 }
 
 /** Where one of an application's domains points, checked when it changes. */
-export type DnsStatus = 'automatic' | 'ok' | 'missing' | 'wrong_ip' | 'proxied' | 'ipv6_conflict';
+export type DnsStatus = 'automatic' | 'ok' | 'missing' | 'wrong_ip' | 'proxied' | 'ipv6_conflict' | 'taken';
+
+export interface DomainOptions {
+  forceHttps: boolean;
+  hsts: boolean;
+  redirectToPrimary: boolean;
+  redirect: 'both' | 'www' | 'non-www';
+}
 
 /** One domain of the DNS guide: the record to create and the state of public DNS. */
 export interface DomainDnsCheck {
@@ -234,6 +241,10 @@ export interface Application {
   workspace_uuid?: string;
   /** Set by an update that changed the domain: where each one points. */
   domainCheck?: DomainCheck[];
+  /** The new domains were applied at once (routes in the proxy's file provider). */
+  domainsApplied?: boolean;
+  routed?: string[];
+  waitingForDns?: string[];
   /** Set by an update that changed the domain: it applies at the next deployment. */
   redeployRequired?: boolean;
 }
