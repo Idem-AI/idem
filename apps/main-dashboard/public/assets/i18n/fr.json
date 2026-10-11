@@ -2551,12 +2551,20 @@
       }
     },
     "additionalInfoForm": {
-      "title": "Informations complémentaires",
-      "subtitle": "Aidez-nous à créer un plan d'affaires plus précis en fournissant des détails supplémentaires",
+      "title": "Vos coordonnées et votre équipe",
+      "subtitle": "Ces informations figurent sur la page de garde et la fiche de contact du document. Un lecteur qui veut vous joindre les cherche là.",
+      "flow": {
+        "label": "Étapes de création du business plan",
+        "structure": "Structure",
+        "details": "Informations",
+        "generation": "Génération"
+      },
       "sections": {
-        "company": "Informations sur l'entreprise",
-        "team": "Membres de l'équipe",
-        "social": "Liens sociaux"
+        "company": "L'entreprise",
+        "companyHint": "L'adresse et le contact qui apparaîtront sur le document.",
+        "team": "L'équipe",
+        "teamHint": "Un financeur regarde qui porte le projet. Ajoutez les personnes qu'il doit connaître — ou passez, le document se fera sans page équipe.",
+        "social": "Liens professionnels"
       },
       "fields": {
         "email": "Email",
@@ -2566,33 +2574,54 @@
         "country": "Pays",
         "zipCode": "Code postal",
         "fullName": "Nom complet",
-        "role": "Rôle",
-        "bio": "Biographie",
-        "profilePicture": "Photo de Profil"
+        "role": "Rôle dans le projet",
+        "bio": "En deux phrases",
+        "profilePicture": "Photo"
       },
       "placeholders": {
         "email": "entreprise@exemple.com",
         "phone": "+237 6 00 00 00 00",
-        "address": "Akwa",
+        "address": "Rue Njo-Njo, Akwa",
         "city": "Douala",
         "country": "Cameroun",
         "zipCode": "BP 1234",
         "fullName": "Paul Etoga",
         "memberEmail": "paul@exemple.com",
-        "role": "CEO",
-        "bio": "Brève description de ce membre de l'équipe",
+        "role": "Directeur général",
+        "bio": "Ce que cette personne apporte au projet.",
         "linkedin": "https://linkedin.com/in/nomutilisateur",
         "github": "https://github.com/nomutilisateur",
-        "twitter": "https://twitter.com/nomutilisateur"
+        "twitter": "https://x.com/nomutilisateur"
       },
       "buttons": {
-        "addMember": "Ajouter un membre",
-        "chooseImage": "Choisir une image",
-        "continue": "Continuer"
+        "addMember": "Ajouter une personne",
+        "chooseImage": "Ajouter une photo",
+        "replaceImage": "Changer la photo",
+        "removeImage": "Retirer",
+        "continue": "Lancer la génération",
+        "skip": "Passer cette étape"
       },
-      "member": "Membre de l'équipe {{index}}",
+      "team": {
+        "emptyTitle": "Ajouter une première personne",
+        "emptySub": "Le nom et le rôle suffisent. Le reste est facultatif.",
+        "rolePrompt": "Rôle à préciser",
+        "incomplete": "À compléter",
+        "remove": "Retirer le membre {{index}}",
+        "pictureHint": "JPG ou PNG, 5 Mo maximum."
+      },
+      "member": "Membre {{index}}",
       "alt": {
         "profilePicture": "Photo de profil"
+      },
+      "errors": {
+        "required": "À renseigner",
+        "email": "Adresse email invalide",
+        "missing": "Il reste {{count}} champ(s) à renseigner. Le premier vient d'être sélectionné.",
+        "loadData": "Impossible de charger les informations du projet. Vous pouvez les saisir à nouveau.",
+        "onlyImages": "Seules les images sont acceptées pour la photo.",
+        "fileSize": "Cette image dépasse 5 Mo. Choisissez-en une plus légère.",
+        "processImage": "Cette image n'a pas pu être lue. Essayez-en une autre.",
+        "saveInfo": "L'enregistrement des informations a échoué. Réessayez."
       }
     },
     "businessPlanGeneration": {

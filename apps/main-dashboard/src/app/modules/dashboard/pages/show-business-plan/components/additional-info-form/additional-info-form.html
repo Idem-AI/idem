@@ -1,404 +1,529 @@
-<div
-  class="additional-info-form min-h-screen bg-gradient-to-br from-bg-dark via-bg-light to-bg-dark sm:p-6"
->
-  <div class="max-w-4xl mx-auto">
-    <!-- Header -->
-    <div class="text-center mb-8">
-      <h1
-        class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-4"
-      >
-        {{ 'dashboard.additionalInfoForm.title' | translate }}
-      </h1>
-      <p class="text-light-text text-lg opacity-80">
-        {{ 'dashboard.additionalInfoForm.subtitle' | translate }}
-      </p>
+<!--
+  Étape 2 du business plan, dans le même habit que l'étape 1 (le sélecteur de
+  structure) : pas de fond propre, pas de dégradé, pas de composant PrimeNG
+  rhabillé à coups de `!important`. Les champs sont les éléments natifs stylés
+  par @idem/shared-styles, le bouton principal est `.inner-button`, et la page
+  hérite de la surface du tableau de bord.
+
+  Deux blocs, dans l'ordre où on les remplit : les coordonnées de l'entreprise,
+  puis l'équipe — facultative, et repliée ligne par ligne.
+-->
+<section class="info-shell" [attr.aria-busy]="isLoading()">
+  <header class="info-head">
+    <ol
+      class="flow-steps"
+      [attr.aria-label]="'dashboard.additionalInfoForm.flow.label' | translate"
+    >
+      <li class="flow-step is-done">
+        <span class="flow-dot" aria-hidden="true"></span>
+        {{ 'dashboard.additionalInfoForm.flow.structure' | translate }}
+      </li>
+      <li class="flow-step is-current" aria-current="step">
+        <span class="flow-dot" aria-hidden="true"></span>
+        {{ 'dashboard.additionalInfoForm.flow.details' | translate }}
+      </li>
+      <li class="flow-step">
+        <span class="flow-dot" aria-hidden="true"></span>
+        {{ 'dashboard.additionalInfoForm.flow.generation' | translate }}
+      </li>
+    </ol>
+
+    <div class="head-main">
+      <h1 class="info-title">{{ 'dashboard.additionalInfoForm.title' | translate }}</h1>
+      <p class="info-lede">{{ 'dashboard.additionalInfoForm.subtitle' | translate }}</p>
     </div>
+  </header>
 
-    @if (isLoading()) {
-      <!-- Loading skeleton -->
-      <div class="glass-card p-8 mb-6">
-        <p-skeleton height="2rem" class="mb-4"></p-skeleton>
-        <p-skeleton height="1.5rem" class="mb-2"></p-skeleton>
-        <p-skeleton height="1.5rem" class="mb-2"></p-skeleton>
-        <p-skeleton height="1.5rem"></p-skeleton>
+  @if (isLoading()) {
+    <!-- Squelette calqué sur la vraie mise en page : rien ne saute à l'arrivée. -->
+    <div class="info-body" aria-hidden="true">
+      <div class="field-grid">
+        @for (row of skeletonRows; track row) {
+          <div class="skeleton-field">
+            <span class="skeleton skeleton-label"></span>
+            <span class="skeleton skeleton-input"></span>
+          </div>
+        }
       </div>
-    } @else {
-      <form [formGroup]="additionalInfoForm" (ngSubmit)="submitForm()" class="sm:space-y-8">
-        <!-- Company Information Card -->
-        <div class="sm:glass sm:p-8">
-          <h2 class="text-2xl font-semibold text-light-text mb-6 flex items-center gap-3">
-            <i class="pi pi-building text-accent"></i>
-            {{ 'dashboard.additionalInfoForm.sections.company' | translate }}
-          </h2>
+    </div>
+  } @else {
+    <form [formGroup]="additionalInfoForm" (ngSubmit)="submitForm()" novalidate>
+      <div class="info-body">
+        <!-- ── 1. Les coordonnées ─────────────────────────────────────────── -->
+        <section class="step-block" aria-labelledby="bp-info-contact">
+          <div class="step-head">
+            <span class="step-number" aria-hidden="true">1</span>
+            <h2 id="bp-info-contact" class="step-title">
+              {{ 'dashboard.additionalInfoForm.sections.company' | translate }}
+            </h2>
+          </div>
+          <p class="step-hint">
+            {{ 'dashboard.additionalInfoForm.sections.companyHint' | translate }}
+          </p>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 sm:gap-6">
-            <!-- Email -->
-            <div class="form-field">
-              <label for="email" class="form-label"
-                >{{ 'dashboard.additionalInfoForm.fields.email' | translate }} *</label
-              >
+          <div class="field-grid">
+            <div class="field">
+              <label for="bp-info-email">
+                {{ 'dashboard.additionalInfoForm.fields.email' | translate }}
+              </label>
               <input
-                pInputText
-                id="email"
+                type="email"
+                id="bp-info-email"
                 formControlName="email"
+                autocomplete="email"
+                inputmode="email"
                 [placeholder]="'dashboard.additionalInfoForm.placeholders.email' | translate"
-                class="form-input w-full"
-                [class.error]="getFieldError('email')"
+                [class.is-invalid]="getFieldError('email')"
+                [attr.aria-invalid]="getFieldError('email') ? 'true' : null"
+                [attr.aria-describedby]="getFieldError('email') ? 'bp-info-email-error' : null"
               />
               @if (getFieldError('email')) {
-                <small class="error-message">{{ getFieldError('email') }}</small>
+                <p class="field-error" id="bp-info-email-error">{{ getFieldError('email') }}</p>
               }
             </div>
 
-            <!-- Phone -->
-            <div class="form-field">
-              <label for="phone" class="form-label"
-                >{{ 'dashboard.additionalInfoForm.fields.phone' | translate }} *</label
-              >
+            <div class="field">
+              <label for="bp-info-phone">
+                {{ 'dashboard.additionalInfoForm.fields.phone' | translate }}
+              </label>
               <input
-                pInputText
-                id="phone"
+                type="tel"
+                id="bp-info-phone"
                 formControlName="phone"
+                autocomplete="tel"
+                inputmode="tel"
                 [placeholder]="'dashboard.additionalInfoForm.placeholders.phone' | translate"
-                class="form-input w-full"
-                [class.error]="getFieldError('phone')"
+                [class.is-invalid]="getFieldError('phone')"
+                [attr.aria-invalid]="getFieldError('phone') ? 'true' : null"
+                [attr.aria-describedby]="getFieldError('phone') ? 'bp-info-phone-error' : null"
               />
               @if (getFieldError('phone')) {
-                <small class="error-message">{{ getFieldError('phone') }}</small>
+                <p class="field-error" id="bp-info-phone-error">{{ getFieldError('phone') }}</p>
               }
             </div>
 
-            <!-- Address -->
-            <div class="form-field">
-              <label for="address" class="form-label"
-                >{{ 'dashboard.additionalInfoForm.fields.address' | translate }} *</label
-              >
+            <!-- L'adresse prend toute la largeur : c'est la plus longue à écrire. -->
+            <div class="field field-wide">
+              <label for="bp-info-address">
+                {{ 'dashboard.additionalInfoForm.fields.address' | translate }}
+              </label>
               <input
-                pInputText
-                id="address"
+                type="text"
+                id="bp-info-address"
                 formControlName="address"
+                autocomplete="street-address"
                 [placeholder]="'dashboard.additionalInfoForm.placeholders.address' | translate"
-                class="form-input w-full"
-                [class.error]="getFieldError('address')"
+                [class.is-invalid]="getFieldError('address')"
+                [attr.aria-invalid]="getFieldError('address') ? 'true' : null"
+                [attr.aria-describedby]="getFieldError('address') ? 'bp-info-address-error' : null"
               />
               @if (getFieldError('address')) {
-                <small class="error-message">{{ getFieldError('address') }}</small>
+                <p class="field-error" id="bp-info-address-error">{{ getFieldError('address') }}</p>
               }
             </div>
 
-            <!-- City -->
-            <div class="form-field">
-              <label for="city" class="form-label"
-                >{{ 'dashboard.additionalInfoForm.fields.city' | translate }} *</label
-              >
+            <div class="field">
+              <label for="bp-info-city">
+                {{ 'dashboard.additionalInfoForm.fields.city' | translate }}
+              </label>
               <input
-                pInputText
-                id="city"
+                type="text"
+                id="bp-info-city"
                 formControlName="city"
+                autocomplete="address-level2"
                 [placeholder]="'dashboard.additionalInfoForm.placeholders.city' | translate"
-                class="form-input w-full"
-                [class.error]="getFieldError('city')"
+                [class.is-invalid]="getFieldError('city')"
+                [attr.aria-invalid]="getFieldError('city') ? 'true' : null"
+                [attr.aria-describedby]="getFieldError('city') ? 'bp-info-city-error' : null"
               />
               @if (getFieldError('city')) {
-                <small class="error-message">{{ getFieldError('city') }}</small>
+                <p class="field-error" id="bp-info-city-error">{{ getFieldError('city') }}</p>
               }
             </div>
 
-            <!-- Country -->
-            <div class="form-field">
-              <label for="country" class="form-label"
-                >{{ 'dashboard.additionalInfoForm.fields.country' | translate }} *</label
-              >
+            <div class="field">
+              <label for="bp-info-country">
+                {{ 'dashboard.additionalInfoForm.fields.country' | translate }}
+              </label>
               <input
-                pInputText
-                id="country"
+                type="text"
+                id="bp-info-country"
                 formControlName="country"
+                autocomplete="country-name"
                 [placeholder]="'dashboard.additionalInfoForm.placeholders.country' | translate"
-                class="form-input w-full"
-                [class.error]="getFieldError('country')"
+                [class.is-invalid]="getFieldError('country')"
+                [attr.aria-invalid]="getFieldError('country') ? 'true' : null"
+                [attr.aria-describedby]="getFieldError('country') ? 'bp-info-country-error' : null"
               />
               @if (getFieldError('country')) {
-                <small class="error-message">{{ getFieldError('country') }}</small>
+                <p class="field-error" id="bp-info-country-error">{{ getFieldError('country') }}</p>
               }
             </div>
 
-            <!-- Zip Code -->
-            <div class="form-field">
-              <label for="zipCode" class="form-label"
-                >{{ 'dashboard.additionalInfoForm.fields.zipCode' | translate }} *</label
-              >
+            <!-- Facultatif : beaucoup de nos villes n'ont pas de code postal. -->
+            <div class="field">
+              <label for="bp-info-zip">
+                {{ 'dashboard.additionalInfoForm.fields.zipCode' | translate }}
+                <span class="label-note">{{ 'common.optional' | translate }}</span>
+              </label>
               <input
-                pInputText
-                id="zipCode"
+                type="text"
+                id="bp-info-zip"
                 formControlName="zipCode"
+                autocomplete="postal-code"
                 [placeholder]="'dashboard.additionalInfoForm.placeholders.zipCode' | translate"
-                class="form-input w-full"
-                [class.error]="getFieldError('zipCode')"
               />
-              @if (getFieldError('zipCode')) {
-                <small class="error-message">{{ getFieldError('zipCode') }}</small>
-              }
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- Team Members Card -->
-        <div class="glass-card p-8" formArrayName="teamMembers">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-semibold text-light-text flex items-center gap-3">
-              <i class="pi pi-users text-accent"></i>
+        <!-- ── 2. L'équipe ────────────────────────────────────────────────── -->
+        <section class="step-block" aria-labelledby="bp-info-team" formArrayName="teamMembers">
+          <div class="step-head">
+            <span class="step-number" aria-hidden="true">2</span>
+            <h2 id="bp-info-team" class="step-title">
               {{ 'dashboard.additionalInfoForm.sections.team' | translate }}
             </h2>
-            <button
-              type="button"
-              pButton
-              pRipple
-              class="p-button-outlined p-button-success"
-              icon="pi pi-plus"
-              [label]="'dashboard.additionalInfoForm.buttons.addMember' | translate"
-              (click)="addTeamMember()"
-            ></button>
+            <span class="step-note">{{ 'common.optional' | translate }}</span>
           </div>
+          <p class="step-hint">
+            {{ 'dashboard.additionalInfoForm.sections.teamHint' | translate }}
+          </p>
 
-          <div class="space-y-8">
-            @for (memberForm of teamMembersArray().controls; track $index; let i = $index) {
-              <div
-                [formGroupName]="i"
-                class="team-member-card glass-dark p-6 rounded-xl border border-glass-border"
-              >
-                <div class="flex items-center justify-between mb-4">
-                  <h3 class="text-lg font-medium text-light-text flex items-center gap-2">
-                    <i class="pi pi-user text-primary"></i>
-                    {{ 'dashboard.additionalInfoForm.member' | translate: { index: i + 1 } }}
-                  </h3>
-                  @if (teamMembersArray().length > 1) {
+          @if (members().length === 0) {
+            <!-- Rien à remplir par défaut : une seule porte d'entrée, qui dit
+                 ce qu'elle fait. -->
+            <button type="button" class="team-empty" (click)="addTeamMember()">
+              <span class="team-empty-icon" aria-hidden="true">
+                <i class="pi pi-user-plus"></i>
+              </span>
+              <span class="team-empty-text">
+                <span class="team-empty-title">
+                  {{ 'dashboard.additionalInfoForm.team.emptyTitle' | translate }}
+                </span>
+                <span class="team-empty-sub">
+                  {{ 'dashboard.additionalInfoForm.team.emptySub' | translate }}
+                </span>
+              </span>
+            </button>
+          } @else {
+            <ul class="member-list">
+              <!-- Suivi par position, et non par objet : `formGroupName` ne
+                   réagit pas à un changement de nom après son initialisation.
+                   Déplacer les vues sur un retrait brancherait les champs sur
+                   le mauvais membre ; par position, le nom d'un groupe reste
+                   égal à sa place dans le tableau. -->
+              @for (memberForm of members(); track $index; let i = $index) {
+                <li class="member" [formGroupName]="i" [class.is-open]="openMember() === i">
+                  <!-- Ligne repliée : qui c'est, ce qu'il fait, et s'il manque
+                       quelque chose. Tout le reste est derrière le dépli. -->
+                  <div class="member-row">
                     <button
                       type="button"
-                      pButton
-                      pRipple
-                      class="p-button-text p-button-danger p-button-sm"
-                      icon="pi pi-trash"
+                      class="member-toggle"
+                      [attr.aria-expanded]="openMember() === i"
+                      [attr.aria-controls]="'bp-member-panel-' + i"
+                      (click)="toggleMember(i)"
+                    >
+                      <span class="member-avatar" aria-hidden="true">
+                        @if (memberPicture(i)) {
+                          <img [src]="memberPicture(i)" alt="" />
+                        } @else {
+                          <span class="member-initials">{{ memberInitials(i) }}</span>
+                        }
+                      </span>
+                      <span class="member-ident">
+                        <span class="member-name">
+                          {{
+                            memberName(i) ||
+                              ('dashboard.additionalInfoForm.member' | translate: { index: i + 1 })
+                          }}
+                        </span>
+                        <span class="member-role">
+                          {{
+                            memberRole(i) ||
+                              ('dashboard.additionalInfoForm.team.rolePrompt' | translate)
+                          }}
+                        </span>
+                      </span>
+                      @if (isMemberIncomplete(i) && openMember() !== i) {
+                        <span class="member-flag">
+                          {{ 'dashboard.additionalInfoForm.team.incomplete' | translate }}
+                        </span>
+                      }
+                      <i class="pi pi-chevron-down member-chevron" aria-hidden="true"></i>
+                    </button>
+
+                    <!-- Toujours disponible, même pour un seul membre : on doit
+                         pouvoir défaire un ajout fait par erreur. -->
+                    <button
+                      type="button"
+                      class="member-remove"
+                      [attr.aria-label]="
+                        'dashboard.additionalInfoForm.team.remove' | translate: { index: i + 1 }
+                      "
                       (click)="removeTeamMember(i)"
-                    ></button>
-                  }
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <!-- Name -->
-                  <div class="form-field">
-                    <label [for]="'name-' + i" class="form-label"
-                      >{{ 'dashboard.additionalInfoForm.fields.fullName' | translate }} *</label
                     >
-                    <input
-                      pInputText
-                      [id]="'name-' + i"
-                      formControlName="name"
-                      [placeholder]="
-                        'dashboard.additionalInfoForm.placeholders.fullName' | translate
-                      "
-                      class="form-input w-full"
-                      [class.error]="getTeamMemberFieldError(i, 'name')"
-                    />
-                    @if (getTeamMemberFieldError(i, 'name')) {
-                      <small class="error-message">{{ getTeamMemberFieldError(i, 'name') }}</small>
-                    }
+                      <i class="pi pi-trash" aria-hidden="true"></i>
+                    </button>
                   </div>
 
-                  <!-- Role -->
-                  <div class="form-field">
-                    <label [for]="'role-' + i" class="form-label"
-                      >{{ 'dashboard.additionalInfoForm.fields.role' | translate }} *</label
-                    >
-                    <input
-                      pInputText
-                      [id]="'role-' + i"
-                      formControlName="role"
-                      [placeholder]="'dashboard.additionalInfoForm.placeholders.role' | translate"
-                      class="form-input w-full"
-                      [class.error]="getTeamMemberFieldError(i, 'role')"
-                    />
-                    @if (getTeamMemberFieldError(i, 'role')) {
-                      <small class="error-message">{{ getTeamMemberFieldError(i, 'role') }}</small>
-                    }
-                  </div>
+                  @if (openMember() === i) {
+                    <div class="member-panel" [id]="'bp-member-panel-' + i">
+                      <div class="field-grid">
+                        <div class="field">
+                          <label [for]="'member-name-' + i">
+                            {{ 'dashboard.additionalInfoForm.fields.fullName' | translate }}
+                          </label>
+                          <input
+                            type="text"
+                            [id]="'member-name-' + i"
+                            formControlName="name"
+                            autocomplete="off"
+                            [placeholder]="
+                              'dashboard.additionalInfoForm.placeholders.fullName' | translate
+                            "
+                            [class.is-invalid]="getTeamMemberFieldError(i, 'name')"
+                            [attr.aria-invalid]="getTeamMemberFieldError(i, 'name') ? 'true' : null"
+                          />
+                          @if (getTeamMemberFieldError(i, 'name')) {
+                            <p class="field-error">{{ getTeamMemberFieldError(i, 'name') }}</p>
+                          }
+                        </div>
 
-                  <!-- Email -->
-                  <div class="form-field">
-                    <label [for]="'member-email-' + i" class="form-label"
-                      >{{ 'dashboard.additionalInfoForm.fields.email' | translate }} *</label
-                    >
-                    <input
-                      pInputText
-                      [id]="'member-email-' + i"
-                      formControlName="email"
-                      [placeholder]="
-                        'dashboard.additionalInfoForm.placeholders.memberEmail' | translate
-                      "
-                      class="form-input w-full"
-                      [class.error]="getTeamMemberFieldError(i, 'email')"
-                    />
-                    @if (getTeamMemberFieldError(i, 'email')) {
-                      <small class="error-message">{{ getTeamMemberFieldError(i, 'email') }}</small>
-                    }
-                  </div>
+                        <div class="field">
+                          <label [for]="'member-role-' + i">
+                            {{ 'dashboard.additionalInfoForm.fields.role' | translate }}
+                          </label>
+                          <input
+                            type="text"
+                            [id]="'member-role-' + i"
+                            formControlName="role"
+                            autocomplete="off"
+                            [placeholder]="
+                              'dashboard.additionalInfoForm.placeholders.role' | translate
+                            "
+                            [class.is-invalid]="getTeamMemberFieldError(i, 'role')"
+                            [attr.aria-invalid]="getTeamMemberFieldError(i, 'role') ? 'true' : null"
+                          />
+                          @if (getTeamMemberFieldError(i, 'role')) {
+                            <p class="field-error">{{ getTeamMemberFieldError(i, 'role') }}</p>
+                          }
+                        </div>
 
-                  <!-- Photo Upload -->
-                  <div class="form-field">
-                    <label class="form-label">{{ 'dashboard.additionalInfoForm.fields.profilePicture' | translate }}</label>
-                    <div class="flex items-center gap-4">
-                      @if (memberForm.get('pictureUrl')?.value) {
-                        <img
-                          [src]="memberForm.get('pictureUrl')?.value"
-                          [alt]="'dashboard.additionalInfoForm.alt.profilePicture' | translate"
-                          class="w-16 h-16 rounded-full object-cover border-2 border-primary"
-                        />
-                      } @else {
-                        <div
-                          class="w-16 h-16 rounded-full bg-glass-bg border-2 border-dashed border-glass-border flex items-center justify-center"
+                        <div class="field">
+                          <label [for]="'member-email-' + i">
+                            {{ 'dashboard.additionalInfoForm.fields.email' | translate }}
+                            <span class="label-note">{{ 'common.optional' | translate }}</span>
+                          </label>
+                          <input
+                            type="email"
+                            [id]="'member-email-' + i"
+                            formControlName="email"
+                            autocomplete="off"
+                            inputmode="email"
+                            [placeholder]="
+                              'dashboard.additionalInfoForm.placeholders.memberEmail' | translate
+                            "
+                            [class.is-invalid]="getTeamMemberFieldError(i, 'email')"
+                            [attr.aria-invalid]="
+                              getTeamMemberFieldError(i, 'email') ? 'true' : null
+                            "
+                          />
+                          @if (getTeamMemberFieldError(i, 'email')) {
+                            <p class="field-error">{{ getTeamMemberFieldError(i, 'email') }}</p>
+                          }
+                        </div>
+
+                        <!-- La photo : l'avatar est le bouton. L'input fichier
+                             reste focalisable pour le clavier. -->
+                        <div class="field">
+                          <span class="field-label">
+                            {{ 'dashboard.additionalInfoForm.fields.profilePicture' | translate }}
+                            <span class="label-note">{{ 'common.optional' | translate }}</span>
+                          </span>
+                          <div class="picture-row">
+                            <label class="picture-drop" [class.has-image]="memberPicture(i)">
+                              <input
+                                type="file"
+                                class="picture-input"
+                                accept="image/*"
+                                [id]="'member-picture-' + i"
+                                (change)="onPictureSelected($event, i)"
+                              />
+                              @if (isUploadingMember(i)) {
+                                <idem-loader size="xs" />
+                              } @else if (memberPicture(i)) {
+                                <img
+                                  [src]="memberPicture(i)"
+                                  [alt]="
+                                    'dashboard.additionalInfoForm.alt.profilePicture' | translate
+                                  "
+                                />
+                              } @else {
+                                <i class="pi pi-camera" aria-hidden="true"></i>
+                              }
+                            </label>
+                            <span class="picture-actions">
+                              <label class="picture-link" [for]="'member-picture-' + i">
+                                {{
+                                  memberPicture(i)
+                                    ? ('dashboard.additionalInfoForm.buttons.replaceImage'
+                                      | translate)
+                                    : ('dashboard.additionalInfoForm.buttons.chooseImage'
+                                      | translate)
+                                }}
+                              </label>
+                              @if (memberPicture(i)) {
+                                <button
+                                  type="button"
+                                  class="picture-link is-muted"
+                                  (click)="removePicture(i)"
+                                >
+                                  {{
+                                    'dashboard.additionalInfoForm.buttons.removeImage' | translate
+                                  }}
+                                </button>
+                              }
+                              <span class="picture-hint">
+                                {{ 'dashboard.additionalInfoForm.team.pictureHint' | translate }}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="field field-wide">
+                          <label [for]="'member-bio-' + i">
+                            {{ 'dashboard.additionalInfoForm.fields.bio' | translate }}
+                            <span class="label-note">{{ 'common.optional' | translate }}</span>
+                          </label>
+                          <textarea
+                            [id]="'member-bio-' + i"
+                            formControlName="bio"
+                            rows="2"
+                            class="bio-input"
+                            [placeholder]="
+                              'dashboard.additionalInfoForm.placeholders.bio' | translate
+                            "
+                          ></textarea>
+                        </div>
+                      </div>
+
+                      <!-- Trois champs qu'on remplit rarement : ils attendent
+                           derrière un dépli plutôt que d'allonger la carte. -->
+                      <div class="social">
+                        <button
+                          type="button"
+                          class="social-toggle"
+                          [attr.aria-expanded]="isSocialOpen(i)"
+                          [attr.aria-controls]="'bp-member-social-' + i"
+                          (click)="toggleSocial(i)"
                         >
-                          <i class="pi pi-user text-2xl text-text-tertiary"></i>
-                        </div>
-                      }
-                      @if (isUploadingMember(i)) {
-                        <div class="flex items-center gap-2 text-accent">
-                          <idem-loader size="xs" />
-                          <span class="text-sm">{{ 'common.uploading' | translate }}</span>
-                        </div>
-                      } @else {
-                        <p-fileUpload
-                          mode="basic"
-                          name="memberImage"
-                          accept="image/*"
-                          maxFileSize="5000000"
-                          [chooseLabel]="
-                            'dashboard.additionalInfoForm.buttons.chooseImage' | translate
-                          "
-                          class="member-upload"
-                          (onSelect)="onFileSelect($event, i)"
-                        ></p-fileUpload>
-                      }
-                    </div>
-                  </div>
-                </div>
+                          <i
+                            class="pi"
+                            [class.pi-plus]="!isSocialOpen(i)"
+                            [class.pi-minus]="isSocialOpen(i)"
+                            aria-hidden="true"
+                          ></i>
+                          {{ 'dashboard.additionalInfoForm.sections.social' | translate }}
+                        </button>
 
-                <!-- Bio -->
-                <div class="form-field mt-6">
-                  <label [for]="'bio-' + i" class="form-label"
-                    >{{ 'dashboard.additionalInfoForm.fields.bio' | translate }} *</label
-                  >
-                  <textarea
-                    pInputTextarea
-                    [id]="'bio-' + i"
-                    formControlName="bio"
-                    [placeholder]="'dashboard.additionalInfoForm.placeholders.bio' | translate"
-                    rows="3"
-                    class="form-input w-full resize-none p-4"
-                    [class.error]="getTeamMemberFieldError(i, 'bio')"
-                  ></textarea>
-                  @if (getTeamMemberFieldError(i, 'bio')) {
-                    <small class="error-message">{{ getTeamMemberFieldError(i, 'bio') }}</small>
+                        @if (isSocialOpen(i)) {
+                          <div
+                            class="social-grid"
+                            [id]="'bp-member-social-' + i"
+                            formGroupName="socialLinks"
+                          >
+                            <div class="field">
+                              <label [for]="'member-linkedin-' + i">LinkedIn</label>
+                              <input
+                                type="url"
+                                [id]="'member-linkedin-' + i"
+                                formControlName="linkedin"
+                                [placeholder]="
+                                  'dashboard.additionalInfoForm.placeholders.linkedin' | translate
+                                "
+                              />
+                            </div>
+                            <div class="field">
+                              <label [for]="'member-github-' + i">GitHub</label>
+                              <input
+                                type="url"
+                                [id]="'member-github-' + i"
+                                formControlName="github"
+                                [placeholder]="
+                                  'dashboard.additionalInfoForm.placeholders.github' | translate
+                                "
+                              />
+                            </div>
+                            <div class="field">
+                              <label [for]="'member-twitter-' + i">X / Twitter</label>
+                              <input
+                                type="url"
+                                [id]="'member-twitter-' + i"
+                                formControlName="twitter"
+                                [placeholder]="
+                                  'dashboard.additionalInfoForm.placeholders.twitter' | translate
+                                "
+                              />
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
                   }
-                </div>
+                </li>
+              }
+            </ul>
 
-                <!-- Social Links -->
-                <div class="mt-6" formGroupName="socialLinks">
-                  <h4 class="text-md font-medium text-light-text mb-3 flex items-center gap-2">
-                    <i class="pi pi-share-alt text-secondary"></i>
-                    {{ 'dashboard.additionalInfoForm.sections.social' | translate }}
-                  </h4>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- LinkedIn -->
-                    <div class="form-field">
-                      <label [for]="'linkedin-' + i" class="form-label">LinkedIn</label>
-                      <div class="relative">
-                        <i
-                          class="pi pi-linkedin absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary"
-                        ></i>
-                        <input
-                          pInputText
-                          [id]="'linkedin-' + i"
-                          formControlName="linkedin"
-                          [placeholder]="
-                            'dashboard.additionalInfoForm.placeholders.linkedin' | translate
-                          "
-                          class="form-input w-full pl-10"
-                        />
-                      </div>
-                    </div>
+            <button type="button" class="member-add" (click)="addTeamMember()">
+              <i class="pi pi-plus text-[10px]" aria-hidden="true"></i>
+              <span>{{ 'dashboard.additionalInfoForm.buttons.addMember' | translate }}</span>
+            </button>
+          }
+        </section>
+      </div>
 
-                    <!-- GitHub -->
-                    <div class="form-field">
-                      <label [for]="'github-' + i" class="form-label">GitHub</label>
-                      <div class="relative">
-                        <i
-                          class="pi pi-github absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary"
-                        ></i>
-                        <input
-                          pInputText
-                          [id]="'github-' + i"
-                          formControlName="github"
-                          [placeholder]="
-                            'dashboard.additionalInfoForm.placeholders.github' | translate
-                          "
-                          class="form-input w-full pl-10"
-                        />
-                      </div>
-                    </div>
-
-                    <!-- Twitter -->
-                    <div class="form-field">
-                      <label [for]="'twitter-' + i" class="form-label">Twitter</label>
-                      <div class="relative">
-                        <i
-                          class="pi pi-twitter absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary"
-                        ></i>
-                        <input
-                          pInputText
-                          [id]="'twitter-' + i"
-                          formControlName="twitter"
-                          [placeholder]="
-                            'dashboard.additionalInfoForm.placeholders.twitter' | translate
-                          "
-                          class="form-input w-full pl-10"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- Error Message -->
+      <!-- ── Pied de page ─────────────────────────────────────────────────── -->
+      <footer class="info-foot">
+        <!-- Le bouton reste cliquable en permanence : c'est ce message, et le
+             curseur posé sur le champ fautif, qui disent ce qui manque. -->
+        @if (submitAttempted() && missingCount() > 0) {
+          <p class="foot-alert" role="alert">
+            <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+            {{
+              'dashboard.additionalInfoForm.errors.missing' | translate: { count: missingCount() }
+            }}
+          </p>
+        }
         @if (error()) {
-          <p-message severity="error" [text]="error()!" class="w-full"></p-message>
+          <p class="foot-alert" role="alert">
+            <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+            {{ error() }}
+          </p>
         }
 
-        <!-- Action Buttons (le parent y pose le cran de créativité de la génération qui suit) -->
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <ng-content select="[formFooter]" />
-          <button
-            type="button"
-            class="p-button-outlined p-button-secondary outer-button"
-            icon="pi pi-times"
-            (click)="cancel()"
-            [disabled]="isSubmitting()"
-          >
-            {{ 'common.cancel' | translate }}
+        <div class="foot-actions">
+          <button type="button" class="foot-skip" (click)="cancel()" [disabled]="isSubmitting()">
+            {{ 'dashboard.additionalInfoForm.buttons.skip' | translate }}
           </button>
 
-          <button type="submit" pRipple class="inner-button">
+          <!-- Le parent y pose le cran de créativité de la génération qui suit. -->
+          <span class="foot-slot">
+            <ng-content select="[formFooter]" />
+          </span>
+
+          <button type="submit" class="inner-button foot-submit" [disabled]="isSubmitting()">
             @if (isSubmitting()) {
               <idem-loader size="xs" />
-              {{ 'common.saving' | translate }}
+              <span>{{ 'common.saving' | translate }}</span>
             } @else {
-              <i class="pi pi-check mr-2"></i>
-              {{ 'dashboard.additionalInfoForm.buttons.continue' | translate }}
+              <span>{{ 'dashboard.additionalInfoForm.buttons.continue' | translate }}</span>
+              <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
             }
           </button>
         </div>
-      </form>
-    }
-  </div>
-</div>
+      </footer>
+    </form>
+  }
+</section>
