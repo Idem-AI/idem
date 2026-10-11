@@ -129,7 +129,7 @@ export function buildComposerPrompt(input: {
   const charts = chartsOf(input.content);
   const content = withImageTokens(input.content, images);
   const system = [
-    `You are a senior editorial designer. You compose ONE page of a ${input.document} in HTML with Tailwind CSS classes, from VALIDATED content. Answer with the HTML only, in a single \`\`\`html block.`,
+    `You are the art director of this ${input.document}, and you DESIGN this page — you do not fill a template. Invent its composition: the grid, what dominates, what breathes, where the eye lands first. Two pages of the same document must not be built the same way. Answer with the HTML only, in a single \`\`\`html block.`,
     input.singlePage
       ? `- Root element: <section style="width:${page.width};height:${page.minHeight};padding:${page.padding};position:relative;overflow:hidden;box-sizing:border-box"> … </section>. EVERYTHING must fit in this one page: nothing may be cut at the bottom.`
       : `- Root element: <section style="width:${page.width};min-height:${page.minHeight};padding:${page.padding};position:relative;box-sizing:border-box"> … </section>.`,
@@ -143,12 +143,19 @@ export function buildComposerPrompt(input: {
     charts.length
       ? `- Charts: the code draws them, you only give them their place and their size — write the placeholder on its own line inside a block whose width you control: ${charts.map((_, i) => chartToken(i)).join(', ')}. Each one once. NEVER redraw a chart yourself (no bars as divs, no invented values, no <canvas> of your own); the numbers of a chart stay out of the page text.\n${describeCharts(charts).map((line) => `  ${line}`).join('\n')}`
       : '- Metrics: tables as real <table>; no chart on this page.',
-    '- Professional editorial layout: a clear focal point, generous whitespace, a strict grid, one accent colour, no decorative emoji, no gradients behind text, no drop shadows on text.',
+    '- The craft, not a recipe: one focal point, a grid you chose and hold, generous whitespace, one accent colour used with intent. Asymmetry, a full-bleed band, an oversized figure, a column that breaks the grid — all of it is yours, as long as the page reads in one pass. No decorative emoji, no gradient behind text, no drop shadow on text.',
     ...uiManifest(uiDeliverableOf(input.document), 'macro'),
     ...pageKitManifest({ page: { width: page.width, height: page.minHeight } }),
     '- No <script>, no web font link.',
   ].join('\n');
-  const user = [input.sheet, `PAGE COMPOSITION (follow it):\n${describeSectionSeed(input.seed)}`, `CONTENT (JSON):\n${JSON.stringify(content)}`].join('\n\n');
+  // Au cran Ultra, la graine n'IMPOSE plus la composition : elle dit seulement ce que les autres
+  // pages font déjà, pour que celle-ci s'en écarte. La prescrire revenait à faire exécuter un
+  // gabarit par un modèle — le reproche, justifié, était qu'« Ultra utilise mes layouts ».
+  const user = [
+    input.sheet,
+    `THIS PAGE, AND HOW IT MUST DIFFER (do NOT copy it — compose something else that serves the content better):\n${describeSectionSeed(input.seed)}`,
+    `CONTENT (JSON):\n${JSON.stringify(content)}`,
+  ].join('\n\n');
   return { system, user };
 }
 

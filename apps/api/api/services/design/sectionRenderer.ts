@@ -37,7 +37,7 @@ import { contrastRatio } from './color';
 import { designFontLinks } from '../../utils/google-fonts.util';
 import { DocumentDesignSystem } from './documentDesignSystem';
 import { patternCss } from './brandMotifs';
-import { brandPatternCss } from '../../../../ivision/core/src/design/brandPatterns';
+import { backgroundPatternCss, brandPatternCss } from '../../../../ivision/core/src/design/brandPatterns';
 import { pageBreathes, PAGE_DECOR_BY_ID, rankPageDecors } from '../../../../ivision/core/src/design/pageDecor';
 import { pageGfx } from '../../../../ivision/core/src/visual/poster/kit/page';
 import { mixHex } from '../../../../ivision/core/src/visual/poster/kit/math';
@@ -2554,9 +2554,10 @@ function pageDecor(content: SectionContent, ctx: Ctx, page: PageFormat): string 
       top: area.top,
       width: area.width,
       height: area.height,
-      ...brandPatternCss(brand.url, (area.scaleMm * MM_TO_PX) | 0),
+      // L'opacité vient du barème commun (`PATTERN_OPACITY`) : un motif derrière du texte se
+      // devine, une bande qui ne porte rien peut se voir. L'appelant ne la choisit pas.
+      ...backgroundPatternCss(brand.url, (area.scaleMm * MM_TO_PX) | 0, area.strength),
       ...(brand.ground ? { 'background-color': brand.ground } : {}),
-      ...(area.opacity < 1 ? { opacity: String(area.opacity) } : {}),
       'pointer-events': 'none',
     })}></div>`;
   }

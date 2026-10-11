@@ -27,6 +27,8 @@
 import { createHash } from 'crypto';
 import { contrastRatio } from './color';
 import { brandMotifs, patternCss } from './brandMotifs';
+import { PATTERN_OPACITY } from '../../../../ivision/core/src/design/brandPatterns';
+import { mixHex } from '../../../../ivision/core/src/visual/poster/kit/math';
 import { DocumentDesignSystem } from './documentDesignSystem';
 import { esc, MM_TO_PX, readableOn, style } from './renderKit';
 import { PageFormat } from './sectionRenderer';
@@ -222,7 +224,9 @@ export function composeCover(input: CoverInput): string {
     case 0: {
       const field = ds.colors.primary;
       const fieldInk = readableOn(ds, field);
-      const motifInk = contrastRatio(ds.colors.accent, field) >= 1.6 ? ds.colors.accent : fieldInk;
+      // Le motif d'une couverture est un FOND : son encre est un ton du fond lui-même, jamais la
+      // couleur d'accent — tramée à l'accent, elle se voyait plus que le titre.
+      const motifInk = mixHex(field, fieldInk, 0.42);
       if (landscape) {
         const fieldW = Wmm * 0.36;
         const textW = Wmm - fieldW - 2 * pad - 6;
@@ -230,7 +234,7 @@ export function composeCover(input: CoverInput): string {
           abs({ left: '0', top: '0', bottom: '0', width: `${fieldW}mm` }, '', { 'background-color': field }) +
             abs({ left: '0', bottom: '0', width: `${fieldW}mm`, height: `${Hmm * 0.34}mm` }, '', {
               ...patternCss(motif, motifInk, field, 2),
-              opacity: 0.55,
+              opacity: String(PATTERN_OPACITY.present),
             }) +
             abs({ left: `${pad}mm`, top: `${pad}mm`, width: `${fieldW - 2 * pad}mm` }, logo(field, fieldW - 2 * pad, Hmm * 0.22)) +
             abs(
@@ -251,7 +255,7 @@ export function composeCover(input: CoverInput): string {
         abs({ left: '0', right: '0', top: '0', height: `${fieldH}mm` }, '', { 'background-color': field }) +
           abs({ right: '0', top: '0', width: `${Wmm * 0.38}mm`, height: `${fieldH}mm` }, '', {
             ...patternCss(motif, motifInk, field, 2),
-            opacity: 0.55,
+            opacity: String(PATTERN_OPACITY.present),
           }) +
           abs({ left: `${pad}mm`, top: `${pad}mm`, width: `${Wmm * 0.5}mm` }, logo(field, Wmm * 0.45, fieldH * 0.4)) +
           abs(
@@ -329,14 +333,14 @@ export function composeCover(input: CoverInput): string {
     default: {
       const band = ds.colors.primary;
       const bandInk = readableOn(ds, band);
-      const motifInk = contrastRatio(ds.colors.accent, band) >= 1.6 ? ds.colors.accent : bandInk;
+      const motifInk = mixHex(band, bandInk, 0.42);
       const bandH = Hmm * (landscape ? 0.34 : 0.26);
       const textW = Wmm - 2 * pad;
       return root(
         abs({ left: '0', right: '0', top: '0', height: `${bandH}mm` }, '', { 'background-color': band }) +
           abs({ left: `${Wmm * 0.55}mm`, right: '0', top: '0', height: `${bandH}mm` }, '', {
             ...patternCss(motif, motifInk, band, 2),
-            opacity: 0.5,
+            opacity: String(PATTERN_OPACITY.present),
           }) +
           abs(
             { left: `${pad}mm`, right: `${pad}mm`, top: '0', height: `${bandH}mm` },

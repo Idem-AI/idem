@@ -3,6 +3,7 @@ import { DocumentDesignPlan, planDocumentDesign, resumedDesignPlan, savedDesignO
 import { runtimeCall } from '../creativity/orchestrator';
 import { brandSheet } from '../creativity/agent-io';
 import { ultraPageComposer } from '../creativity/pageComposer';
+import { applyPreset, PRESET_BY_ID } from '../../../../ivision/core/src/design/layoutPresets';
 import crypto from 'crypto';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -385,6 +386,7 @@ export class PitchDeckService extends GenericService {
       sheet: deckSheet,
       styleId: artDirection?.styleId,
       document: 'pitch deck',
+      deliverable: 'pitch deck' as const,
       pages: deckSlides.filter((d) => !d.freeform).map((d) => ({ name: d.name, brief: composeSlideBrief(d.name, deckType.audience) ?? undefined })),
       seedArchetypes,
     })
@@ -466,11 +468,15 @@ export class PitchDeckService extends GenericService {
     let slideIndex = 0;
 
     // La graine de la slide, puis les choix du directeur artistique (High+) par-dessus.
-    const seedFor = (stepName: string) => ({
-      ...buildSectionSeed(artDirection?.styleId, designKey, stepName, usedArchetypes),
-      ...(designPlan?.family ? { family: designPlan.family } : {}),
-      ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, v]) => !!v)),
-    });
+    const seedFor = (stepName: string) =>
+      applyPreset(
+        {
+          ...buildSectionSeed(artDirection?.styleId, designKey, stepName, usedArchetypes),
+          ...(designPlan?.family ? { family: designPlan.family } : {}),
+          ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, v]) => !!v)),
+        },
+        PRESET_BY_ID.get(designPlan?.pages[stepName]?.preset || '')
+      );
 
     /** Prompt HTML de repli : écrit à la main pour les slides historiques, composé sinon. */
     const htmlPromptFor = (stepName: string): string =>

@@ -10,11 +10,17 @@
  * texte long, un tableau ou un graphique n'en ont pas, et un décor y volerait l'attention au
  * lieu de la porter. `pageBreathes()` tranche sur le CONTENU réel, pas sur une intention.
  *
+ * UN SEUL vocabulaire de motifs : celui de la CHARTE (`branding.patterns`). Une marque qui a ses
+ * motifs ne doit pas en voir d'autres apparaître dans ses documents — c'est ce qui faisait que la
+ * charte promettait une chose et que le plan en montrait une autre. Les formes du kit ne servent
+ * plus que de filet pour une marque dont les motifs ne sont pas encore déposés.
+ *
  * Qui choisit, selon le cran (comme partout ailleurs) :
  *   Low / Medium  le code, d'après le style et la graine — zéro jeton ;
  *   High / Max    le directeur artistique de la page, dans le menu que le code lui donne ;
  *   Ultra         le compositeur écrit la page et pose lui-même ses `<x-gfx>`.
  */
+import type { PatternStrength } from './brandPatterns';
 import type { GfxParams } from '../visual/poster/kit/types';
 import { hashSeed } from '../visual/poster/kit/math';
 
@@ -57,7 +63,7 @@ export interface PageDecorDef {
    * appartient visiblement à la marque, là où une forme inventée pour l'occasion ne dit rien.
    * `scale` est le côté de la tuile à l'écran, en millimètres.
    */
-  pattern?: { left: string; top: string; width: string; height: string; scaleMm: number; opacity: number };
+  pattern?: { left: string; top: string; width: string; height: string; scaleMm: number; strength: PatternStrength };
 }
 
 /** Un ton de la couleur du document : le décor ne pose jamais une couleur franche sous un texte. */
@@ -74,14 +80,15 @@ export const PAGE_DECORS: PageDecorDef[] = [
     id: 'brand-band',
     summary: "the brand's own motif as a band along the bottom edge",
     styles: { bohemian: 1.1, maximalism: 0.6, 'collage-art': 0.6, editorial: 0.5, retro: 0.5, swiss: 0.4, 'corporate-modern': 0.5 },
-    pattern: { left: '0', top: '95.5%', width: '100%', height: '4.5%', scaleMm: 6, opacity: 1 },
+    // Une bande de pied ne porte aucun texte : le motif peut s'y voir.
+    pattern: { left: '0', top: '95.5%', width: '100%', height: '4.5%', scaleMm: 6, strength: 'present' },
     layers: () => [{ params: { kind: 'weave', color: TONE, color2: TONE, variant: 'diamond', density: 5, opacity: 0.5 }, place: { left: '0', top: '95%', width: '100%', height: '5%' } }],
   },
   {
     id: 'brand-corner',
     summary: "the brand's own motif as a block in the outer top corner",
     styles: { swiss: 0.7, editorial: 0.6, 'corporate-modern': 0.7, minimalism: 0.3, brutalism: 0.5, 'vector-art': 0.5 },
-    pattern: { left: '74%', top: '0', width: '26%', height: '9%', scaleMm: 5, opacity: 1 },
+    pattern: { left: '74%', top: '0', width: '26%', height: '9%', scaleMm: 5, strength: 'present' },
     layers: () => [{ params: { kind: 'arcs', color: TONE, color2: TONE, density: 1, opacity: 0.55 }, place: { left: '74%', top: '0', width: '26%', height: '9%' } }],
   },
   {
@@ -95,6 +102,14 @@ export const PAGE_DECORS: PageDecorDef[] = [
     summary: 'quarter-circle modules in the top corner (Bauhaus geometry)',
     styles: { 'vector-art': 0.9, 'pop-art': 0.7, maximalism: 0.5, y2k: 0.5, 'corporate-modern': 0.4 },
     layers: () => [{ params: { kind: 'arcs', color: TONE, color2: TONE, density: 1, opacity: 0.55 }, place: { left: '72%', top: '0', width: '28%', height: '18%' } }],
+  },
+  {
+    id: 'brand-field',
+    summary: "the brand's own motif as a whisper over the whole page, behind the text",
+    styles: { editorial: 0.5, bohemian: 0.5, retro: 0.4, maximalism: 0.4, minimalism: 0.2, swiss: 0.3 },
+    // Derrière un texte : l'opacité la plus basse du barème, et jamais davantage.
+    pattern: { left: '0', top: '0', width: '100%', height: '100%', scaleMm: 7, strength: 'whisper' },
+    layers: () => [],
   },
   {
     id: 'tonal-contours',
@@ -141,12 +156,12 @@ export function excludedDecors(donts: string[] = []): Set<string> {
 export function rankPageDecors(input: { styleId?: string | null; donts?: string[]; docKey: string; pageName: string; hasBrandPattern?: boolean }): { id: string; weight: number }[] {
   const style = String(input.styleId || '').toLowerCase();
   const excluded = excludedDecors(input.donts);
-  return PAGE_DECORS.filter((d) => !excluded.has(d.id) && (input.hasBrandPattern || !d.pattern))
-    .map((d) => ({
-      id: d.id,
-      // Le motif de la marque passe devant une forme inventée : c'est lui qui la fait reconnaître.
-      weight: (d.styles[style] ?? 0.35) + (input.hasBrandPattern && d.pattern ? 0.5 : 0) + ((hashSeed(`${input.docKey}:${input.pageName}:${d.id}`) % 1000) / 1000) * 0.5,
-    }))
+  // La marque a ses motifs : on ne propose QU'EUX (plus « aucun décor »). Les formes du kit sont
+  // le filet des marques dont les motifs ne sont pas encore déposés, pas une seconde grammaire.
+  const pool = input.hasBrandPattern ? PAGE_DECORS.filter((d) => d.pattern || d.id === 'none') : PAGE_DECORS.filter((d) => !d.pattern);
+  return pool
+    .filter((d) => !excluded.has(d.id))
+    .map((d) => ({ id: d.id, weight: (d.styles[style] ?? 0.35) + ((hashSeed(`${input.docKey}:${input.pageName}:${d.id}`) % 1000) / 1000) * 0.5 }))
     .sort((a, b) => b.weight - a.weight);
 }
 

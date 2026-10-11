@@ -87,6 +87,7 @@ import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
 import { USAGE_GUIDELINES_SECTION_PROMPT } from './prompts/04_usage-guidelines-section.prompt';
 import { brandMotifs } from '../design/brandMotifs';
+import { applyPreset, PRESET_BY_ID } from '../../../../ivision/core/src/design/layoutPresets';
 import { brandPatternSvg, planBrandPatterns, type BrandPatternKind } from '../../../../ivision/core/src/design/brandPatterns';
 import { buildComposedCharterPages, clip, wideSeed } from './charterComposedPages';
 import { atLeast, CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
@@ -1416,6 +1417,7 @@ export class BrandingService extends GenericService {
         sheet: charterSheet,
         styleId: artDirection?.styleId,
         document: 'brand guidelines book',
+        deliverable: 'brand guidelines' as const,
         pages: directedSteps.map((step) => ({ name: step.stepName, brief: CHARTER_PAGE_BRIEFS[step.stepName] })),
         seedArchetypes,
       }).catch((error: any) => {
@@ -1431,11 +1433,11 @@ export class BrandingService extends GenericService {
         `[BRANDING] Créativité ${level} : ${designPlan ? `${Object.keys(designPlan.pages).length} page(s) dirigée(s)${designPlan.family ? `, famille ${designPlan.family}` : ''}${designPlan.freeCompose ? ', compositeur' : ''}` : 'graine'}`
       );
       /** La graine d'une page, puis les choix des agents par-dessus (famille, archétype, réglages). */
-      const directSeed = (seed: SectionSeed, stepName: string): SectionSeed => ({
+      const directSeed = (seed: SectionSeed, stepName: string): SectionSeed => applyPreset({
         ...seed,
         ...(designPlan?.family ? { family: designPlan.family } : {}),
         ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, value]) => !!value)),
-      });
+      }, PRESET_BY_ID.get(designPlan?.pages[stepName]?.preset || ''));
 
       // LES MOTIFS DE LA MARQUE, déposés avant de composer les pages : la charte montre les
       // FICHIERS que tous les autres livrables emploieront, pas un dessin refait pour l'occasion.

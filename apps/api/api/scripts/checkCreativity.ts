@@ -50,6 +50,10 @@ import { pageGfx, pageKitManifest } from '../../../ivision/core/src/visual/poste
 import { BRAND_PATTERN_KINDS, brandPatternCss, brandPatternSvg, planBrandPatterns } from '../../../ivision/core/src/design/brandPatterns';
 import { PAGE_DECOR_BY_ID, pageBreathes, rankPageDecors } from '../../../ivision/core/src/design/pageDecor';
 import { UI_COMPONENTS, expandUiMacros, renderUi, uiManifest, uiMenu, uiTokensOf } from '../../../ivision/core/src/design/uiKit';
+import { LAYOUT_PRESETS, PRESET_BY_ID, applyPreset, presetCoverage, rankPresets } from '../../../ivision/core/src/design/layoutPresets';
+import { ARCHETYPE_CATALOG } from '../services/design/designSeed';
+import { LAYOUT_FAMILIES } from '../services/design/layoutFamilies';
+import { PATTERN_OPACITY } from '../../../ivision/core/src/design/brandPatterns';
 import { DIAGRAM_GUIDE, DIAGRAM_KINDS, brandMermaidTheme, diagramKindOf, mermaidBundle, renderDiagrams } from '../../../ivision/core/src/design/diagramRender';
 import { brandInitials, composeTemplateLogos, logoMenu, markInks } from '../services/BandIdentity/logoTemplates';
 import { logoDirectionsTask, logoDraftCount, logoJuryTask } from '../services/BandIdentity/logoCreative';
@@ -323,9 +327,15 @@ export default function Scene() {
     const call: AgentCall = async ({ role, system }) =>
       role === 'documentFamily' ? 'family: b' : role === 'pageDirector' ? `layout: b${/density:/.test(system) ? '\ndensity: x\ntension: y\nimage: TOP_BAND' : ''}` : 'ok';
     const low = await planDocumentDesign({ level: 'low', call, sheet: 'BRAND', styleId: 'editorial', document: 'business plan', pages, seedArchetypes });
-    check('Low : la graine décide (aucune page dirigée, pas de famille, pas de composition libre)', Object.keys(low.pages).length === 0 && !low.family && !low.freeCompose && low.traces.every((t) => t.source === 'graph'));
+    // Le contrat a changé avec l'espace de configuration : à Low ce n'est plus « la graine seule »,
+    // c'est LE CODE qui choisit une mise en page par page — toujours sans un appel de modèle.
+    check('Low : le code choisit la mise en page de chaque page, sans un appel, sans famille d’agent ni composition libre',
+      Object.keys(low.pages).length === pages.length && pages.every((p) => !!low.pages[p.name]?.preset) && !low.family && !low.freeCompose && low.traces.every((t) => t.source === 'graph'),
+      pages.map((p) => low.pages[p.name]?.preset).join(' '));
     const medium = await planDocumentDesign({ level: 'medium', call, sheet: 'BRAND', styleId: 'editorial', document: 'business plan', pages, seedArchetypes });
-    check('Medium : la famille du document choisie par l’agent, les pages par la graine', !!medium.family && Object.keys(medium.pages).length === 0, String(medium.family));
+    check('Medium : la famille vient de l’agent, les mises en page du code (variété tirée)',
+      !!medium.family && pages.every((p) => !!medium.pages[p.name]?.preset) && new Set(pages.map((p) => medium.pages[p.name]!.preset)).size === pages.length,
+      String(medium.family));
     const high = await planDocumentDesign({ level: 'high', call, sheet: 'BRAND', styleId: 'editorial', document: 'business plan', pages, seedArchetypes });
     const arch = pages.map((p) => high.pages[p.name]?.archetype || (seedArchetypes as any)[p.name]);
     check('High : chaque page dirigée, jamais deux voisines au même archétype', Object.keys(high.pages).length === pages.length && arch.every((a, i) => i === 0 || a !== arch[i - 1]), arch.join(','));
@@ -334,7 +344,9 @@ export default function Scene() {
     const ultra = await planDocumentDesign({ level: 'ultra', call, sheet: 'BRAND', styleId: 'editorial', document: 'pitch deck', pages, seedArchetypes });
     check('Ultra : pages confiées au compositeur (gabarit en repli)', ultra.freeCompose);
     const broken = await planDocumentDesign({ level: 'max', call: async () => 'layout: hologram\nfamily: z', sheet: 'BRAND', styleId: 'editorial', document: 'business plan', pages, seedArchetypes });
-    check('réponses inventées : la graine garde la main', Object.keys(broken.pages).length === 0 && !broken.family);
+    check('réponses inventées : le choix du CODE garde la main (aucune famille, aucune mise en page inventée)',
+      !broken.family && pages.every((p) => !!PRESET_BY_ID.get(broken.pages[p.name]?.preset || '')),
+      pages.map((p) => broken.pages[p.name]?.preset).join(' '));
     // Reprise / régénération ciblée : la direction enregistrée est reprise, sans agent.
     const saved = savedDesignOf(high);
     const resumed = resumedDesignPlan(saved, 'medium');
@@ -431,6 +443,49 @@ export default function Scene() {
     check('décor : le motif de la marque passe devant une forme inventée, et disparaît du menu sans lui',
       !!PAGE_DECOR_BY_ID.get(withBrand[0].id)?.pattern && without.every((d) => !PAGE_DECOR_BY_ID.get(d.id)?.pattern),
       `${withBrand[0].id} / ${without[0].id}`);
+    // L'ESPACE DE CONFIGURATION DES MISES EN PAGE : 60 familles × 18 architectures, nommées,
+    // filtrées par livrable, et extensibles par une ligne de table.
+    const coverage = presetCoverage();
+    check(`espace des mises en page : ${Object.entries(coverage).map(([k, v]) => `${k} ${v}`).join(', ')} (≥ 100 par livrable)`,
+      Object.values(coverage).every((n) => n >= 100), JSON.stringify(coverage));
+    const famIds = new Set(LAYOUT_FAMILIES.map((f) => f.id));
+    const brokenPresets = LAYOUT_PRESETS.filter((p) => !famIds.has(p.family) || !ARCHETYPE_CATALOG[p.archetype]);
+    check(`${LAYOUT_PRESETS.length} mises en page déclarées, toutes rendables (famille et architecture réelles)`, !brokenPresets.length, brokenPresets.slice(0, 3).map((p) => p.id).join(' · '));
+    const seedBase = { family: 'revue', archetype: 'A', layoutTension: 'calm', contentDensity: 'airy' };
+    const applied = applyPreset(seedBase, PRESET_BY_ID.get('bp.grand-livre.L'));
+    check('une mise en page appliquée change la grammaire ET l’architecture de la page', applied.family === 'grand-livre' && applied.archetype === 'L' && applyPreset(seedBase, undefined).family === 'revue');
+    // La variété est tenue par le code : neuf pages d'affilée ne se répètent pas.
+    const used: string[] = [];
+    for (let i = 0; i < 9; i++) used.push(rankPresets({ deliverable: 'business plan', styleId: 'editorial', seed: 7, used })[0].id);
+    check(`neuf pages : ${new Set(used.map((u) => PRESET_BY_ID.get(u)!.family)).size} grammaires et ${new Set(used.map((u) => PRESET_BY_ID.get(u)!.archetype)).size} architectures distinctes`,
+      new Set(used).size === 9 && new Set(used.map((u) => PRESET_BY_ID.get(u)!.family)).size >= 6);
+
+    // LA DÉLÉGATION PROGRESSIVE : le code décide seul en bas, l'agent choisit dans un menu en haut.
+    const delegPages = ['Résumé', 'Marché', 'Offre', 'Modèle', 'Équipe', 'Finances'].map((name) => ({ name }));
+    const delegSeeds = Object.fromEntries(delegPages.map((p, i) => [p.name, 'ABCDEF'[i % 6]]));
+    const levels: { level: string; calls: number; families: number; distinct: number }[] = [];
+    for (const level of ['low', 'medium', 'high', 'max'] as const) {
+      let calls = 0;
+      const plan = await planDocumentDesign({
+        level, sheet: 'BRAND', styleId: 'editorial', document: 'business plan', deliverable: 'business plan', pages: delegPages, seedArchetypes: delegSeeds,
+        call: async () => { calls++; return 'layout: b\ndecor: a\ndensity: dense\ntension: calm\nimage: none'; },
+      });
+      const ids = delegPages.map((p) => plan.pages[p.name]?.preset || '');
+      levels.push({ level, calls, families: new Set(ids.map((i) => PRESET_BY_ID.get(i)?.family)).size, distinct: new Set(ids).size });
+    }
+    check(`délégation progressive : ${levels.map((l) => `${l.level} ${l.calls} appel(s)`).join(', ')}`,
+      levels[0].calls === 0 && levels[1].calls >= 1 && levels[2].calls > levels[1].calls && levels[3].calls >= levels[2].calls);
+    check(`six pages, à chaque cran : ${levels.map((l) => `${l.families} grammaires`).join(', ')} — jamais deux pages identiques`,
+      levels.every((l) => l.families >= 4 && l.distinct === 6), JSON.stringify(levels));
+
+    // LES MOTIFS : seulement ceux de la charte, et l'opacité d'un fond est tenue par le code.
+    check('motif en fond : l’opacité est bornée par le barème, jamais choisie par l’appelant',
+      PATTERN_OPACITY.whisper <= 0.08 && PATTERN_OPACITY.quiet <= 0.15 && PATTERN_OPACITY.present <= 0.25 && PATTERN_OPACITY.whisper < PATTERN_OPACITY.present);
+    const withBrandMotif = rankPageDecors({ styleId: 'editorial', docKey: 'bp', pageName: 'P', hasBrandPattern: true });
+    check('document : une marque qui a ses motifs n’en voit aucun autre',
+      withBrandMotif.every((d) => !!PAGE_DECOR_BY_ID.get(d.id)?.pattern || d.id === 'none'),
+      withBrandMotif.map((d) => d.id).join(' '));
+
     // LE KIT DE COMPOSANTS : l'agent nomme un bloc et donne ses données, le code le dessine.
     const uiT = uiTokensOf(dsUltra as never);
     const UI_DATA: Record<string, any> = {

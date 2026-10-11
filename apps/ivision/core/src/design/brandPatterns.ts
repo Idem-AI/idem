@@ -125,6 +125,27 @@ export function brandPatternCss(url: string, scalePx: number): Record<string, st
   };
 }
 
+/**
+ * UN MOTIF EN FOND — l'opacité est tenue par le code, pas par l'appelant.
+ *
+ * Un motif de marque a deux emplois, et ils n'ont pas la même force :
+ *  - SPÉCIMEN (la page « Motifs » de la charte) : il se montre, à pleine force ;
+ *  - FOND (couverture, bande de page, face de carte) : il se devine. Au-delà, il mange le texte
+ *    et la page paraît bruyante — c'est exactement ce qu'on voyait sur les couvertures, où le
+ *    motif était tramé à l'encre d'ACCENT à 55 %.
+ *
+ * `strength` dit l'intention, le code dit l'opacité : « whisper » sous un texte, « quiet » sur un
+ * aplat, « present » sur une bande qui ne porte rien.
+ */
+export type PatternStrength = 'whisper' | 'quiet' | 'present';
+
+export const PATTERN_OPACITY: Record<PatternStrength, number> = { whisper: 0.06, quiet: 0.12, present: 0.22 };
+
+/** Le motif posé en fond, à l'opacité que son emploi autorise. */
+export function backgroundPatternCss(url: string, scalePx: number, strength: PatternStrength = 'quiet'): Record<string, string> {
+  return { ...brandPatternCss(url, scalePx), opacity: String(PATTERN_OPACITY[strength]) };
+}
+
 /** Un motif de la marque, tel qu'il est déposé dans le stockage et gardé sur la marque. */
 export interface BrandPatternAsset {
   id: string;

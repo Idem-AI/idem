@@ -1,6 +1,7 @@
 import { CreativityLevel, normalizeCreativity, SavedDocumentDesign } from '../../models/creativity.model';
 import { DocumentDesignPlan, planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../creativity/documentDesign';
 import { ultraPageComposer } from '../creativity/pageComposer';
+import { applyPreset, PRESET_BY_ID } from '../../../../ivision/core/src/design/layoutPresets';
 import { runtimeCall } from '../creativity/orchestrator';
 import { brandSheet } from '../creativity/agent-io';
 import { LLMProvider, PromptConfig, PromptService, AIChatMessage } from '../prompt.service';
@@ -345,11 +346,14 @@ export class BusinessPlanService extends GenericService {
       ): IPromptStep => {
         sectionIndex += 1;
         // La graine de la page, puis les choix du directeur artistique (High+) par-dessus.
-        const seed = {
-          ...buildSectionSeed(artDirection?.styleId, designKey, stepName, usedArchetypes),
-          ...(designPlan?.family ? { family: designPlan.family } : {}),
-          ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, v]) => !!v)),
-        };
+        const seed = applyPreset(
+          {
+            ...buildSectionSeed(artDirection?.styleId, designKey, stepName, usedArchetypes),
+            ...(designPlan?.family ? { family: designPlan.family } : {}),
+            ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, v]) => !!v)),
+          },
+          PRESET_BY_ID.get(designPlan?.pages[stepName]?.preset || '')
+        );
         return {
           promptConstant: htmlPrompt,
           stepName,
@@ -893,6 +897,7 @@ export class BusinessPlanService extends GenericService {
         sheet: this.creativeSheet(project),
         styleId: artDirection?.styleId,
         document: 'business plan',
+        deliverable: 'business plan' as const,
         pages: planSections.filter((s) => !s.freeform).map((s) => ({ name: s.name, brief: composeBrief(s.key, { audience: planAudience as BusinessPlanAudience, position: 1, total: planSections.length }) ?? undefined })),
         seedArchetypes,
       });
