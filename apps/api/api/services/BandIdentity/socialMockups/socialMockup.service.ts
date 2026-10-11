@@ -13,7 +13,6 @@
  * manque, un visuel composé à la charte le remplace : la page n'est jamais vide.
  */
 
-import crypto from 'crypto';
 import sharp from 'sharp';
 import logger from '../../../config/logger';
 import { contrastRatio } from '../../design/color';
@@ -21,7 +20,8 @@ import { brandMotifs, patternCss } from '../../design/brandMotifs';
 import { DocumentDesignSystem } from '../../design/documentDesignSystem';
 import { designFontLinks } from '../../../utils/google-fonts.util';
 import { flyerRenderService } from '../../Communication/flyerRender.service';
-import { BannerBrand, BannerFormat, composeBannerHtml } from './bannerComposer';
+import { BannerBrand, composeBanner } from './bannerCompose';
+import type { BannerFormat } from './bannerGeometry';
 import {
   fillMockupTemplate,
   loadSocialMockupLibrary,
@@ -149,6 +149,11 @@ export interface RenderedSocialAsset {
 const EMPTY_IMAGE =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
 
+/** Une bannière composée (`composeBanner`), prête à poser dans un gabarit : un `<img>` à sa taille exacte. */
+function bannerImg(png: Buffer, width: number, height: number): string {
+  return `<img src="data:image/png;base64,${png.toString('base64')}" width="${width}" height="${height}" alt="" style="display:block;width:${width}px;height:${height}px">`;
+}
+
 export class SocialMockupService {
   /** Les `count` gabarits du type demandé, dans l'ordre de pertinence du public. */
   selectTemplates(kit: SocialBrandKit, kind: 'profile' | 'post', count = 2): SocialMockupTemplate[] {
@@ -177,22 +182,18 @@ export class SocialMockupService {
 
     return Promise.all(
       templates.map(async (template) => {
+        const [coverPng, mediaPng] = await Promise.all([
+          template.cover ? composeBanner(brand, template.cover.format, template.cover.width, template.cover.height) : null,
+          template.media?.format === 'thumbnail'
+            ? composeBanner(this.bannerBrand(kit, lead?.title || kit.promise), 'thumbnail', template.media.width, template.media.height)
+            : null,
+        ]);
         const values: MockupValues = {
           ...this.identity(kit),
           postText: lead?.description || kit.bio,
           title: lead?.title || kit.promise,
-          coverHtml: template.cover
-            ? composeBannerHtml(brand, template.cover.format, template.cover.width, template.cover.height)
-            : '',
-          mediaHtml:
-            template.media?.format === 'thumbnail'
-              ? composeBannerHtml(
-                  this.bannerBrand(kit, lead?.title || kit.promise),
-                  'thumbnail',
-                  template.media.width,
-                  template.media.height
-                )
-              : '',
+          coverHtml: coverPng && template.cover ? bannerImg(coverPng, template.cover.width, template.cover.height) : '',
+          mediaHtml: mediaPng && template.media ? bannerImg(mediaPng, template.media.width, template.media.height) : '',
           tiles: template.tiles ? this.tilesHtml(kit, template.tiles.count) : '',
         };
         const url = await this.renderAndUpload(template, values, upload);
@@ -269,12 +270,11 @@ export class SocialMockupService {
     const document = (inner: string) =>
       `<!doctype html><html><head><meta charset="utf-8">${designFontLinks(kit.ds.fonts)}<style>html,body{margin:0;padding:0}</style></head><body>${inner}</body></html>`;
 
-    // En série : chaque rendu ouvre un onglet Chrome, et la bannière YouTube
-    // pèse à elle seule 3,7 millions de pixels.
+    // En série : chaque composition rend et mesure plusieurs candidats dans Chrome, et la
+    // bannière YouTube pèse à elle seule 3,7 millions de pixels.
     const assets: RenderedSocialAsset[] = [];
     for (const banner of DOWNLOADABLE_BANNERS) {
-      const html = document(composeBannerHtml(brand, banner.format, banner.width, banner.height));
-      const png = await flyerRenderService.renderDocumentToPng(html, banner.width, banner.height, 1);
+      const png = await composeBanner(brand, banner.format, banner.width, banner.height);
       assets.push({ id: banner.id, label: banner.label, width: banner.width, height: banner.height, png });
     }
 
@@ -317,14 +317,7 @@ export class SocialMockupService {
   }
 
   private bannerBrand(kit: SocialBrandKit, promise: string): BannerBrand {
-    const digest = crypto.createHash('sha256').update(`banner:${kit.projectKey}`).digest();
-    return {
-      brandName: kit.brandName,
-      promise,
-      ds: kit.ds,
-      logos: kit.logos,
-      variant: digest.readUInt32BE(0) % 3,
-    };
+    return { brandName: kit.brandName, promise, ds: kit.ds, logos: kit.logos, seedKey: `banner:${kit.projectKey}` };
   }
 
   private tilesHtml(kit: SocialBrandKit, count: number): string {
@@ -347,9 +340,7 @@ export class SocialMockupService {
     const { width, height } = MEDIA_SIZE[format];
     // Le format paysage d'une publication X se compose comme une vignette vidéo.
     const composition = format === 'banner' ? 'thumbnail' : format;
-    const inner = composeBannerHtml(this.bannerBrand(kit, idea.title || kit.promise), composition, width, height);
-    const html = `<!doctype html><html><head><meta charset="utf-8">${designFontLinks(kit.ds.fonts)}<style>html,body{margin:0;padding:0}</style></head><body>${inner}</body></html>`;
-    return flyerRenderService.renderDocumentToPng(html, width, height, 1);
+    return composeBanner(this.bannerBrand(kit, idea.title || kit.promise), composition, width, height);
   }
 
   private async renderAndUpload(
