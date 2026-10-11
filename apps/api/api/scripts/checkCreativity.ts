@@ -49,6 +49,8 @@ import { LANDSCAPE_SLIDE, PORTRAIT_A4, renderStandaloneChart } from '../services
 import { pageGfx, pageKitManifest } from '../../../ivision/core/src/visual/poster/kit/page';
 import { BRAND_PATTERN_KINDS, brandPatternCss, brandPatternSvg, planBrandPatterns } from '../../../ivision/core/src/design/brandPatterns';
 import { PAGE_DECOR_BY_ID, pageBreathes, rankPageDecors } from '../../../ivision/core/src/design/pageDecor';
+import { UI_COMPONENTS, expandUiMacros, renderUi, uiManifest, uiMenu, uiTokensOf } from '../../../ivision/core/src/design/uiKit';
+import { DIAGRAM_GUIDE, DIAGRAM_KINDS, brandMermaidTheme, diagramKindOf, mermaidBundle, renderDiagrams } from '../../../ivision/core/src/design/diagramRender';
 import { brandInitials, composeTemplateLogos, logoMenu, markInks } from '../services/BandIdentity/logoTemplates';
 import { logoDirectionsTask, logoDraftCount, logoJuryTask } from '../services/BandIdentity/logoCreative';
 import { inspectSvg } from '../services/design/svgGate';
@@ -429,6 +431,82 @@ export default function Scene() {
     check('décor : le motif de la marque passe devant une forme inventée, et disparaît du menu sans lui',
       !!PAGE_DECOR_BY_ID.get(withBrand[0].id)?.pattern && without.every((d) => !PAGE_DECOR_BY_ID.get(d.id)?.pattern),
       `${withBrand[0].id} / ${without[0].id}`);
+    // LE KIT DE COMPOSANTS : l'agent nomme un bloc et donne ses données, le code le dessine.
+    const uiT = uiTokensOf(dsUltra as never);
+    const UI_DATA: Record<string, any> = {
+      'ui.comparison-matrix': { columns: ['Nous', 'Import'], criteria: ['Prix', 'Délai'], rows: [['yes', 'no'], ['48 h', '3 semaines']] },
+      'ui.process-steps': { steps: ['Collecte', 'Tri', 'Granulation'], notes: ['420 partenaires', 'Sept flux', 'Certifié'] },
+      'ui.risk-matrix': { risks: [['Approvisionnement', 'high', 'high'], ['Change', 'medium', 'high']] },
+      'ui.swot': { strengths: ['Réseau'], weaknesses: ['Capacité'], opportunities: ['Réglementation'], threats: ['Import'] },
+      'ui.funnel': { stages: [['Contactés', '240'], ['Audités', '86'], ['Signés', '12']] },
+      'ui.persona': { name: 'Awa Ndiaye, directrice achats', profile: 'Brasseur régional', needs: ['Matière certifiée'], blockers: ['Qualité irrégulière'] },
+      'ui.business-model': { streams: [['Granulés', 'Industriels', '68 %'], ['Collecte', 'Collectivités', '22 %']] },
+    };
+    const uiDrawn = UI_COMPONENTS.map((c) => ({ c, res: renderUi(c.id, UI_DATA[c.id], uiT), json: JSON.stringify(UI_DATA[c.id]) }));
+    const uiBad = uiDrawn.filter((d) => !d.res.html).map((d) => `${d.c.id}: ${d.res.error}`);
+    // Les jetons du document, et EUX SEULS : une matrice de risques n'emploie que des voiles de la
+    // couleur de marque (c'est voulu), mais aucune couleur ne doit venir d'ailleurs.
+    const tokenColors = Object.values(dsUltra.colors).filter((v): v is string => typeof v === 'string').map((v) => v.toLowerCase());
+    const ramp = Object.values(dsUltra.colors.brand || {}).concat(Object.values(dsUltra.colors.neutral || {})).map((v) => String(v).toLowerCase());
+    const foreign = uiDrawn.flatMap((d) => [...(d.res.html || '').matchAll(/#[0-9a-f]{6}/gi)].map((m) => m[0].toLowerCase()).filter((hex) => !tokenColors.includes(hex) && !ramp.includes(hex)).map((hex) => `${d.c.id}:${hex}`));
+    check(`${UI_COMPONENTS.length} composants documentaires dessinés par le code, styles en ligne, sans le défaut d'unité`,
+      !uiBad.length && uiDrawn.every((d) => /style="/.test(d.res.html!) && !/line-height:[\d.]+px/.test(d.res.html!) && !/font-weight:\d+px/.test(d.res.html!)) && uiDrawn.some((d) => d.res.html!.includes(dsUltra.colors.primary)),
+      [...uiBad, ...foreign.slice(0, 3)].join(' · '));
+    const ratios = uiDrawn.map((d) => Math.round(d.res.html!.length / d.json.length));
+    check(`économie : des données (${Math.min(...uiDrawn.map((d) => d.json.length))}–${Math.max(...uiDrawn.map((d) => d.json.length))} signes) contre du HTML dessiné (÷${Math.min(...ratios)} à ÷${Math.max(...ratios)})`, Math.min(...ratios) >= 5);
+    const refusals = [
+      renderUi('ui.comparison-matrix', { columns: ['Nous'], criteria: ['A'], rows: [['yes']] }, uiT),
+      renderUi('ui.funnel', { stages: [['Seul', '1']] }, uiT),
+      renderUi('ui.swot', { strengths: ['x'], weaknesses: [], opportunities: ['y'], threats: ['z'] }, uiT),
+      renderUi('ui.nope', {}, uiT),
+    ];
+    check('composant : une donnée qui manque revient en une phrase corrigeable, jamais en bloc à moitié rempli',
+      refusals.every((r) => r.html === null && !!r.error && /needs at least|is required|unknown component/.test(r.error)),
+      refusals.map((r) => r.error).join(' · '));
+    const uiMacro = expandUiMacros(`<section><x-ui kind="swot" data='${JSON.stringify(UI_DATA['ui.swot'])}'></x-ui></section>`, uiT);
+    const uiTooMany = expandUiMacros(Array.from({ length: 5 }, () => `<x-ui kind="funnel" data='${JSON.stringify(UI_DATA['ui.funnel'])}'></x-ui>`).join(''), uiT, { max: 3 });
+    const uiBadJson = expandUiMacros(`<x-ui kind="swot" data='{oops'></x-ui>`, uiT);
+    check('balise <x-ui> : dessinée dans la page ; trop de blocs ou JSON cassé renvoyés à l’agent',
+      !uiMacro.issues.length && uiMacro.count === 1 && !/x-ui/.test(uiMacro.html) && uiTooMany.issues.some((i) => /too many rich blocks/.test(i)) && uiBadJson.issues.some((i) => /not valid JSON/.test(i)));
+    check(`menu filtré par livrable (business plan ${uiMenu('business plan').length}, pitch deck ${uiMenu('pitch deck').length}, charte ${uiMenu('brand guidelines').length}) et manifeste court`,
+      uiMenu('business plan').length >= 6 && uiMenu('pitch deck').length >= 5 && uiManifest('business plan', 'macro').join('\n').length < 2600);
+
+    // LES SCHÉMAS : l'agent écrit une ligne de texte, Mermaid les dessine aux couleurs du document.
+    // C'est le meilleur marché du moteur : un schéma coûte ~80 signes au lieu de 10 Ko de SVG.
+    const diagPalette = {
+      primary: dsUltra.colors.primary, secondary: dsUltra.colors.secondary, accent: dsUltra.colors.accent,
+      surface: dsUltra.colors.surface, surfaceRaised: dsUltra.colors.surfaceRaised, ink: dsUltra.colors.ink,
+      inkMuted: dsUltra.colors.inkMuted, rule: dsUltra.colors.rule, brand: dsUltra.colors.brand,
+      fontFamily: `'${dsUltra.fonts.body}', system-ui, sans-serif`, fontSizePx: dsUltra.typeScale.sm,
+    };
+    const theme = brandMermaidTheme(diagPalette);
+    check('thème des schémas : aucune couleur hors charte (ni le noir ni l’ocre du thème par défaut)',
+      Object.entries(theme).filter(([k]) => /Color|Fill|Bkg|^cScale|^pie\d|lineColor/.test(k)).every(([, v]) => /^#[0-9a-f]{6}$/i.test(String(v))) &&
+      !Object.values(theme).includes('#000000') && theme.cScale0 === dsUltra.colors.primary,
+      `${Object.keys(theme).length} variables`);
+    check('schémas : seules les familles thémées passent', diagramKindOf('flowchart LR\n A-->B') === 'flowchart' && diagramKindOf('gantt\n title X') === null && DIAGRAM_KINDS.every((k) => !!DIAGRAM_GUIDE[k]));
+    if (mermaidBundle()) {
+      const drawn = await renderDiagrams(
+        [
+          { id: 'flow', source: 'flowchart LR\n  A[Collecte] --> B[Tri] --> C[Granulés]' },
+          { id: 'quadrant', source: 'quadrantChart\n  title Positionnement\n  x-axis Bas --> Haut\n  y-axis Faible --> Elevee\n  Nous: [0.3, 0.8]' },
+          { id: 'nope', source: 'gantt\n  title Interdit' },
+          { id: 'cassé', source: 'flowchart LR\n  A[[[' },
+        ],
+        diagPalette,
+        flyerRenderService.withPage.bind(flyerRenderService)
+      );
+      const byId = Object.fromEntries(drawn.map((d) => [d.id, d]));
+      check(`schémas dessinés par Mermaid aux couleurs du document (flux ${byId.flow.svg?.length ?? 0} o, quadrant ${byId.quadrant.svg?.length ?? 0} o)`,
+        !!byId.flow.svg && !!byId.quadrant.svg && byId.flow.svg!.includes(dsUltra.colors.primary) && /width:100%/.test(byId.flow.svg!) && !/<script|\son[a-z]+=/i.test(byId.flow.svg!),
+        [byId.flow.error, byId.quadrant.error].filter(Boolean).join(' · '));
+      check('schémas : famille refusée et source cassée ne cassent pas la page (repli à l’appelant)', byId.nope.svg === null && !!byId.nope.error && byId.cassé.svg === null && !!byId.cassé.error, `${byId.nope.error} · ${byId.cassé.error}`);
+      const src = 'flowchart LR\n  A[Collecte] --> B[Tri] --> C[Granulés]';
+      check(`économie : ${src.length} signes écrits par l’agent contre ${byId.flow.svg!.length} o dessinés (÷${Math.round(byId.flow.svg!.length / src.length)})`, byId.flow.svg!.length > src.length * 40);
+    } else {
+      check('schémas : paquet Mermaid absent (npm run build:mermaid) — contrôle ignoré', true);
+    }
+
     check('décor : « éviter les motifs » et « éviter les formes » écartent les décors concernés',
       !rankPageDecors({ styleId: 'bohemian', donts: ['no patterns or textures'], docKey: 'bp', pageName: 'P', hasBrandPattern: true }).some((d) => d.id === 'edge-band') &&
       !rankPageDecors({ styleId: 'editorial', donts: ['no decorative shapes'], docKey: 'bp', pageName: 'P', hasBrandPattern: true }).some((d) => d.id === 'corner-rings'));

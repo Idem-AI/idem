@@ -18,6 +18,7 @@
  */
 import logger from '../../config/logger';
 import { pageGfx, pageKitManifest } from '../../../../ivision/core/src/visual/poster/kit/page';
+import { expandUiMacros, uiManifest, uiTokensOf, type UiDeliverable } from '../../../../ivision/core/src/design/uiKit';
 import { inspectOutput } from '../agents/quality-gate';
 import { derivedPalette, DocumentDesignSystem } from '../design/documentDesignSystem';
 import { describeSectionSeed, SectionSeed } from '../design/designSeed';
@@ -103,6 +104,15 @@ function restoreCharts(raw: string, charts: ChartBlock[], draw: (block: ChartBlo
   return charts.reduce((html, block, i) => (html.includes(chartToken(i)) ? html.split(chartToken(i)).join(`<div style="width:100%">${draw(block)}</div>`) : html), raw || '');
 }
 
+/** Le livrable, tel que le registre des composants le nomme. */
+export function uiDeliverableOf(document: string): UiDeliverable {
+  const d = document.toLowerCase();
+  if (d.includes('deck') || d.includes('slide')) return 'pitch deck';
+  if (d.includes('brand') || d.includes('charte') || d.includes('guidelines')) return 'brand guidelines';
+  if (d.includes('card') || d.includes('carte')) return 'business card';
+  return 'business plan';
+}
+
 export function buildComposerPrompt(input: {
   content: SectionContent;
   ds: DocumentDesignSystem;
@@ -134,6 +144,7 @@ export function buildComposerPrompt(input: {
       ? `- Charts: the code draws them, you only give them their place and their size — write the placeholder on its own line inside a block whose width you control: ${charts.map((_, i) => chartToken(i)).join(', ')}. Each one once. NEVER redraw a chart yourself (no bars as divs, no invented values, no <canvas> of your own); the numbers of a chart stay out of the page text.\n${describeCharts(charts).map((line) => `  ${line}`).join('\n')}`
       : '- Metrics: tables as real <table>; no chart on this page.',
     '- Professional editorial layout: a clear focal point, generous whitespace, a strict grid, one accent colour, no decorative emoji, no gradients behind text, no drop shadows on text.',
+    ...uiManifest(uiDeliverableOf(input.document), 'macro'),
     ...pageKitManifest({ page: { width: page.width, height: page.minHeight } }),
     '- No <script>, no web font link.',
   ].join('\n');
@@ -265,7 +276,15 @@ export async function composePageHtml(input: {
     // Le décor du kit est dessiné APRÈS la relecture des règles : ses dégradés tonals sont des
     // mélanges des couleurs du document, et seraient pris pour des couleurs hors charte. Ce qui
     // est mesuré ensuite, et imprimé, est bien la page avec ses formes.
-    const drawn = gfx.expand(linted);
+    // Les blocs riches du kit (matrice, étapes, SWOT, entonnoir…) : l'agent les a nommés, le code
+    // les dessine. Une donnée qui manque revient à l'agent en une phrase, jamais en bloc à moitié
+    // rempli.
+    const rich = expandUiMacros(linted, uiTokensOf(input.ds as never), { max: 3 });
+    if (rich.issues.length) {
+      issues = rich.issues;
+      continue;
+    }
+    const drawn = gfx.expand(rich.html);
     if (drawn.issues.length) {
       issues = drawn.issues;
       continue;
