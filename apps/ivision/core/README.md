@@ -76,11 +76,56 @@ vision: a brand poster is never used as a photo; ranked ≥ 6/10), then stock ve
 then generated, or none. In iVision, a short feedback (« plus sobre ») replays the previous visual
 with that feedback and avoids its layout; the chat shows the real stages (`onStage`).
 
+## The graphic kit — shapes drawn by the code (`src/visual/poster/kit`)
+
+Posters used to know rectangles. The kit adds **forms the code draws from one line** — the way the video
+engine has its motifs: the AI never writes SVG, it *names* a form (`rings`, seed 3, `primary`) and the code
+draws it, in the brand's colours, always the same for the same seed. A pro poster plays as much in its forms as
+in its words; and a named form costs ~25 tokens where the SVG it replaces costs 600 to 10 000
+(`npm run check:poster` measures it: ÷7 for rings, ÷110 for contour lines).
+
+| Piece | File | What |
+| --- | --- | --- |
+| 16 forms | `shapes.ts`, `catalog.ts` | `blob` `rings` `arcs` (Bauhaus modules) `waves` `contours` (topographic / flow lines) `dots` (halftone) `stripes` `burst` `grid` `swash` (brush stroke) `scribble` (hand-drawn, roughjs) `frame` `mesh` (aurora) `weave` (West-African textile geometry) `grain` — plus `icon` (Tabler, via the video icon vocabulary) |
+| Rendering | `render.ts` | `gfxHtml` draws one form in its box; `expandGfxMacros` turns the Ultra agent's `<x-gfx …>` tags into drawings; `regenerateGfx` redraws a form from its stored parameters; `duotoneFilter` is a **true** duotone (SVG filter) |
+| Ambient motifs | `motifs.ts` | 10 tonal decors (blobs, rings, topo, dot-field, burst, waves, grid-marks, mesh, weave, none) + grain, **chosen by code, no token**: intent × the brand's art direction (`rankMotifs`) × seed; the art direction's « don'ts » exclude motifs (« no gradients » drops the glow) |
+| Overlap rules | `rules.ts` | shared by Max and Ultra: a form painted over a text is refused; a dense texture (dots, stripes, weave, burst, arcs) under a text must stay ≤ 20 % opaque |
+| 3 new compositions | `poster.templates.ts` | `geometric` (Bauhaus modules + calm type), `diagonal` (slanted panel: the photo, or brand colour with fine rings), `collage` (arch photo over a tilted panel, disc and dot field) |
+| Targeted edits | `poster.edit.ts` | every layer has a stable id (`data-el`, set at render); kit forms keep their parameters (`data-gfx`). `applyPosterEdits(html, w, h, [{id, move}, {id, gfx:{seed}}, {id, remove}])` changes ONE element — text never moves |
+
+How each level uses it (the method still grows with the level):
+
+| Level | Decor | Forms |
+| --- | --- | --- |
+| Low | the best motif for the intent (code, 0 token) | — |
+| Medium | one of the 3 best motifs; the 3 best are 3 **different** compositions | — |
+| High | the art director picks a motif from a menu of 5 (one more line in the answer) | — |
+| Max | — | `{"type":"graphic","kind":"rings","x":55,"y":-8,"w":60,"h":60,"color":"primary"}` elements in the layout JSON (≤ 4 + grain) |
+| Ultra | — | `<x-gfx kind="rings" x="560" y="-90" w="620" h="620" color="primary">` tags; a hand-written SVG over 2 500 characters is sent back |
+
+Safety, enforced in code: a decor must never cost a composition (if the measured render refuses it, the same
+composition is replayed without it); the decor is *tonal* (a tint of the background that moves away from the
+ink on flat colours, so it can only add contrast); the secondary ink keeps a 5.2:1 margin (4.5 required) for
+the same reason; a neon colour never fills a surface (colour or colour2); forms are capped in size (the heaviest,
+topographic lines, is ~11 KB) and carry no text, no script, no external resource.
+
+Libraries: **roughjs**, **perfect-freehand**, **simplex-noise** and the **Tabler** icons are used server-side
+(already declared here and by the IDEM API). **d3-shape / d3-contour are deliberately not used**: they are
+ESM-only and the production image runs Node 20 in CommonJS — the few curves needed (closed Catmull-Rom,
+marching squares) are in `math.ts` and `shapes.ts`. SVG.js needs a DOM on the server and adds nothing over
+string templates in a real browser renderer; Paper.js (boolean geometry) is installed but unused — add it only
+when a form needs cut-outs the CSS `clip-path` cannot do. Satori was rejected: no grid, no `clip-path`, no
+filters, and the fit-and-measure pipeline needs a real Chromium.
+
+Adding a form: a generator in `shapes.ts` (pure: seed, colours, box → SVG), its entry in `catalog.ts` (summary and
+variants — this is what the agents read), then run `npm run check:poster` (determinism, weight, no text,
+colours, neon, rendering, rules). Add a motif in `motifs.ts` with its intents and art-direction affinities.
+
 ## Rules
 
 - **No host code here**: no MongoDB model, no project shape, no provider SDK, no Express. Ask the host
   through a port or the `VideoStore` contract.
 - Dependencies (`package.json`) must be declared by the IDEM API too (its image installs them):
   `npm run check:video:engine --prefix apps/api` checks it.
-- Run `npm run check` here (it also renders every poster layout in 3 formats, builds and measures a Max layout and an Ultra authored HTML, and checks the copy, charter and critic rules), then the IDEM video checks (`check:video`, `check:video:creative`,
+- Run `npm run check:poster` here after any change to the poster kit (forms, motifs, compositions, variety on 6 fixed briefs, targeted edits), and `npm run check` (it also renders every poster layout in 3 formats, builds and measures a Max layout and an Ultra authored HTML, and checks the copy, charter and critic rules), then the IDEM video checks (`check:video`, `check:video:creative`,
   `check:video:novelty`, `check:flyer`) after a change.

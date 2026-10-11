@@ -12,6 +12,9 @@
  *  - aucun bouton, aucune pastille, aucun décor qui ne porte pas d'information.
  */
 import { contrastRatio } from '../../design/color';
+import { duotoneFilter, gfxContext, gfxHtml, isNeonHex } from './kit/render';
+import type { GfxParams } from './kit/types';
+import { motifHtml } from './kit/motifs';
 import { isDarkColor, mix, mutedOn } from './poster.schemes';
 import type { PosterSpec, PosterTemplate } from './poster.types';
 
@@ -43,8 +46,8 @@ const fit = (cls: string, min: number, max: number, style: string, html: string)
 function kicker(spec: PosterSpec, color: string, scale = 1, bg = spec.scheme.bg): string {
   if (!spec.copy.kicker) return '';
   const u = spec.u;
-  // Petit texte : 4,5:1 sur son fond, sinon l'encre du fond (la couleur de marque ne passe pas).
-  const ink = /^#[0-9a-f]{6}$/i.test(color) && contrastRatio(color, bg) < 4.5 ? (contrastRatio(spec.scheme.ink, bg) >= 4.5 ? spec.scheme.ink : contrastRatio('#ffffff', bg) > contrastRatio('#111111', bg) ? '#ffffff' : '#111111') : color;
+  // Petit texte : 5,2:1 sur son fond (4,5 exigés + la marge du décor tonal), sinon l'encre du fond.
+  const ink = /^#[0-9a-f]{6}$/i.test(color) && contrastRatio(color, bg) < 5.2 ? (contrastRatio(spec.scheme.ink, bg) >= 4.5 ? spec.scheme.ink : contrastRatio('#ffffff', bg) > contrastRatio('#111111', bg) ? '#ffffff' : '#111111') : color;
   return fit('kicker', 2.1 * u, 3.1 * u * scale, `color:${ink}`, esc(spec.copy.kicker));
 }
 
@@ -127,23 +130,40 @@ function logo(spec: PosterSpec, box: { x: number; y: number; h: number; anchor?:
 }
 
 /** Une photo cadrée sur son point d'intérêt, avec son traitement. */
-function photo(spec: PosterSpec, box: Box, opts: { radius?: number; image?: PosterSpec['image']; tint?: string; background?: boolean } = {}): string {
+function photo(spec: PosterSpec, box: Box, opts: { radius?: number; image?: PosterSpec['image']; tint?: string; background?: boolean; css?: string } = {}): string {
   const image = opts.image || spec.image;
   if (!image) return '';
-  const filter = spec.treatment === 'mono' || spec.treatment === 'duotone' ? 'filter:grayscale(1) contrast(1.08);' : '';
-  const overlay =
-    spec.treatment === 'duotone'
-      ? `<div style="position:absolute;inset:0;background:${opts.tint || spec.palette.primary};mix-blend-mode:multiply;opacity:0.85"></div><div style="position:absolute;inset:0;background:${mix(opts.tint || spec.palette.primary, '#ffffff', 0.55)};mix-blend-mode:screen;opacity:0.35"></div>`
-      : '';
-  return `<div class="ph" data-role="photo"${opts.background ? ' data-bg="1"' : ''} style="left:${r(box.x)}px;top:${r(box.y)}px;width:${r(box.w)}px;height:${r(box.h)}px;${opts.radius ? `border-radius:${r(opts.radius)}px;` : ''}"><img src="${esc(image.url)}" alt="" style="object-position:${r(image.focal.x * 100)}% ${r(image.focal.y * 100)}%;${filter}" />${overlay}</div>`;
+  // Bichromie : un vrai filtre (ombres et lumières prennent les deux tons de la marque). Mono : gris contrasté.
+  const duo = spec.treatment === 'duotone' ? duotoneFilter(`duo-${r(box.x)}-${r(box.y)}`, opts.tint || spec.palette.primary) : null;
+  const filter = duo ? duo.css : spec.treatment === 'mono' ? 'filter:grayscale(1) contrast(1.08);' : '';
+  return `<div class="ph" data-role="photo"${opts.background ? ' data-bg="1"' : ''} style="left:${r(box.x)}px;top:${r(box.y)}px;width:${r(box.w)}px;height:${r(box.h)}px;${opts.radius ? `border-radius:${r(opts.radius)}px;` : ''}${opts.css || ''}">${duo ? duo.defs : ''}<img src="${esc(image.url)}" alt="" style="object-position:${r(image.focal.x * 100)}% ${r(image.focal.y * 100)}%;${filter}" /></div>`;
 }
 
 const block = (box: Box, bg: string, extra = '') => `<div class="blk" style="left:${r(box.x)}px;top:${r(box.y)}px;width:${r(box.w)}px;height:${r(box.h)}px;background:${bg};${extra}"></div>`;
 
-const root = (spec: PosterSpec, bg: string, body: string) => `<div class="pv" style="width:${spec.width}px;height:${spec.height}px;background:${bg === spec.scheme.bg && spec.scheme.bgCss ? spec.scheme.bgCss : bg}">${body}</div>`;
+/** La toile : le décor tonal du kit derrière, la composition, le grain par-dessus. */
+const root = (spec: PosterSpec, bg: string, body: string) => {
+  const m = motifHtml(spec, bg);
+  return `<div class="pv" style="width:${spec.width}px;height:${spec.height}px;background:${bg === spec.scheme.bg && spec.scheme.bgCss ? spec.scheme.bgCss : bg}">${m.back}${body}${m.front}</div>`;
+};
 
 /** L'accent du titre sur un fond donné (null : pas de mot coloré, le contraste ne le permet pas). */
 const emphasisOn = (spec: PosterSpec, bg: string, preferred: string) => (contrastRatio(preferred, bg) >= 3 && preferred.toLowerCase() !== spec.scheme.ink.toLowerCase() ? preferred : null);
+
+/** Une forme du kit graphique posée dans la composition (couleurs en #hex : la charte est déjà résolue). */
+const gfx = (spec: PosterSpec, p: GfxParams, box: Box, id: string, bg = spec.scheme.bg) =>
+  gfxHtml(p, box, gfxContext({ width: spec.width, height: spec.height, u: spec.u, tokens: {}, primary: spec.palette.primary, secondary: spec.palette.secondary, bg, ink: spec.scheme.ink }), id).html;
+
+/** Les deux couleurs franches des formes : la couleur de marque et une seconde qui n'est pas un fluo. */
+function fills(spec: PosterSpec): { c1: string; c2: string } {
+  const c1 = spec.palette.primary;
+  const c2 = [spec.palette.secondary, spec.palette.accent].find((c) => c && c.toLowerCase() !== c1.toLowerCase() && !isNeonHex(c)) || mix(c1, spec.scheme.bg, 0.55);
+  return { c1, c2 };
+}
+
+/** Découpe un bloc positionné en polygone (clip-path) : la diagonale, l'arche, la forme libre. */
+const clipped = (box: Box, polygon: string, inner: string, id: string) =>
+  `<div class="blk" data-role="panel" data-el="${id}" style="left:${r(box.x)}px;top:${r(box.y)}px;width:${r(box.w)}px;height:${r(box.h)}px;clip-path:${polygon}">${inner}</div>`;
 
 const logoH = (spec: PosterSpec) => r(spec.orientation === 'landscape' ? 7.5 * spec.u : 6.2 * spec.u);
 
@@ -485,7 +505,146 @@ const mosaic: PosterTemplate = {
   },
 };
 
-export const POSTER_TEMPLATES: PosterTemplate[] = [split, fullbleed, editorial, typographic, eventDate, offer, quote, band, card, mosaic];
+/** La composition géométrique : des modules (quarts de cercle, disques) en couleurs de marque d'un côté, le texte au calme de l'autre. */
+const geometric: PosterTemplate = {
+  id: 'geometric',
+  label: 'Composition géométrique',
+  summary: 'bold Bauhaus geometry — quarter circles and discs in the brand colours — fills one zone while the type sits calm on the other; no photo needed',
+  needsImage: false,
+  intents: { launch: 1.4, event: 1.2, recruit: 1.2, product: 1, info: 1.1, promo: 0.9, quote: 0.8 },
+  schemes: ['paper', 'tint'],
+  render(spec) {
+    const { width: W, height: H, safe, u, scheme } = spec;
+    const lh = logoH(spec);
+    const innerW = W - safe.left - safe.right;
+    const { c1, c2 } = fills(spec);
+    const seed = spec.motif?.seed ?? 7;
+    const parts = [kicker(spec, scheme.accent === scheme.ink ? scheme.muted : scheme.accent), headline(spec, scheme.ink, emphasisOn(spec, scheme.bg, scheme.accent), { max: 11.5 * u }), sub(spec, scheme.muted), facts(spec, scheme.ink, scheme.rule)];
+    if (spec.orientation === 'landscape') {
+      const gw = r(W * 0.38);
+      const gx = spec.mirror ? W - gw : 0;
+      const tx = spec.mirror ? safe.left : gw + 5.5 * u;
+      const tw = W - gw - 5.5 * u - (spec.mirror ? safe.left : safe.right);
+      return root(spec, scheme.bg, gfx(spec, { kind: 'arcs', seed, color: c1, color2: c2, density: 1 }, { x: gx, y: 0, w: gw, h: H }, 'geo') + stack({ x: tx, y: safe.top, w: tw, h: H - safe.top - safe.bottom - lh - 3 * u }, parts, { justify: 'center', gap: 2 * u }) + logo(spec, { x: tx, y: H - safe.bottom - lh, h: lh }, scheme.bg, scheme.ink));
+    }
+    const cols = 4;
+    const cell = W / cols;
+    const rows = Math.max(1, Math.round((H * (spec.format === 'story' ? 0.3 : spec.orientation === 'square' ? 0.46 : 0.4)) / cell));
+    const gh = rows * cell;
+    const graphic = gfx(spec, { kind: 'arcs', seed, color: c1, color2: c2, density: 2 }, { x: 0, y: spec.mirror ? H - gh : 0, w: W, h: gh }, 'geo');
+    if (spec.mirror) {
+      const top = safe.top + lh + 3.5 * u;
+      return root(spec, scheme.bg, graphic + logo(spec, { x: safe.left, y: safe.top, h: lh }, scheme.bg, scheme.ink) + stack({ x: safe.left, y: top, w: innerW, h: H - gh - 5 * u - top }, parts, { justify: 'start', gap: 2.2 * u }));
+    }
+    return root(spec, scheme.bg, graphic + stack({ x: safe.left, y: gh + 5.5 * u, w: innerW, h: H - safe.bottom - lh - 3.5 * u - (gh + 5.5 * u) }, parts, { justify: spec.format === 'story' ? 'center' : 'start', gap: 2.2 * u }) + logo(spec, { x: safe.left, y: H - safe.bottom - lh, h: lh }, scheme.bg, scheme.ink));
+  },
+};
+
+/** L'asymétrique : un panneau en biais (photo, ou couleur de marque et courbes) coupe la toile ; le texte tient le coin opposé. */
+const diagonal: PosterTemplate = {
+  id: 'diagonal',
+  label: 'Asymétrique en diagonale',
+  summary: 'asymmetric: a slanted panel (the photo, or the brand colour with fine rings) cuts across the canvas; the type holds the opposite corner on paper',
+  needsImage: false,
+  intents: { launch: 1.5, event: 1.4, product: 1.5, promo: 1.1, recruit: 1.2, info: 0.9, quote: 0.9 },
+  schemes: ['paper', 'tint'],
+  render(spec) {
+    const { width: W, height: H, safe, u, scheme, palette } = spec;
+    const lh = logoH(spec);
+    const innerW = W - safe.left - safe.right;
+    const { c1 } = fills(spec);
+    const seed = spec.motif?.seed ?? 3;
+    const parts = [kicker(spec, scheme.accent === scheme.ink ? scheme.muted : scheme.accent), headline(spec, scheme.ink, emphasisOn(spec, scheme.bg, scheme.accent), { max: 11.5 * u }), sub(spec, scheme.muted), facts(spec, scheme.ink, scheme.rule)];
+    /** Le contenu du panneau : la photo cadrée, ou l'aplat de marque et ses anneaux fins. */
+    const fill = (box: Box) =>
+      spec.image
+        ? photo(spec, { x: 0, y: 0, w: box.w, h: box.h })
+        : block({ x: 0, y: 0, w: box.w, h: box.h }, c1) + gfx(spec, { kind: 'rings', seed, color: mix(c1, '#ffffff', 0.2), color2: mix(c1, '#ffffff', 0.12), variant: 'offset', stroke: 0.3, density: 4 }, { x: box.w * 0.25, y: -box.h * 0.2, w: Math.max(box.w, box.h) * 1.05, h: Math.max(box.w, box.h) * 1.05 }, 'diag', c1);
+    if (spec.orientation === 'landscape') {
+      const x0 = r(W * 0.46);
+      const slant = r(W * 0.07);
+      const box: Box = spec.mirror ? { x: 0, y: 0, w: W - x0, h: H } : { x: x0, y: 0, w: W - x0, h: H };
+      const poly = spec.mirror ? `polygon(0 0,calc(100% - ${slant}px) 0,100% 100%,0 100%)` : `polygon(${slant}px 0,100% 0,100% 100%,0 100%)`;
+      const tx = spec.mirror ? W - x0 + 5 * u : safe.left;
+      const tw = x0 - 5 * u - (spec.mirror ? safe.right : safe.left);
+      return root(spec, scheme.bg, clipped(box, poly, fill(box), 'panel') + stack({ x: tx, y: safe.top, w: tw, h: H - safe.top - safe.bottom - lh - 3 * u }, parts, { justify: 'center', gap: 2 * u }) + logo(spec, { x: tx, y: H - safe.bottom - lh, h: lh }, scheme.bg, scheme.ink));
+    }
+    const Hp = r(H * (spec.format === 'story' ? 0.5 : spec.orientation === 'square' ? 0.5 : 0.56));
+    const slant = r(H * 0.09);
+    // Bord bas : à gauche à Hp, à droite plus haut (ou l'inverse en miroir).
+    const yl = spec.mirror ? Hp - slant : Hp;
+    const yr = spec.mirror ? Hp : Hp - slant;
+    const box: Box = { x: 0, y: 0, w: W, h: Hp };
+    const poly = `polygon(0 0,100% 0,100% ${yr}px,0 ${yl}px)`;
+    const edge = (x: number) => yr + ((W - x) / W) * (yl - yr);
+    const lw = Math.min(34 * u, lh * spec.logo.aspect);
+    const wedgeRight = yr < yl;
+    const lx = wedgeRight ? W - safe.right : safe.left;
+    const ly = (wedgeRight ? edge(W - safe.right - lw) : edge(safe.left + lw)) + 3 * u;
+    const top = Math.max(yl, yr) + 5 * u;
+    return root(spec, scheme.bg, clipped(box, poly, fill(box), 'panel') + stack({ x: safe.left, y: top, w: innerW, h: H - safe.bottom - top - lh * 0.4 }, parts, { justify: spec.format === 'story' ? 'center' : 'start', gap: 2.2 * u }) + logo(spec, { x: lx, y: ly, h: lh, anchor: wedgeRight ? 'right' : 'left' }, scheme.bg, scheme.ink));
+  },
+};
+
+/** Le collage : une photo en arche, un panneau penché, un disque et une trame de points se superposent ; le texte reste net en dessous. */
+const collage: PosterTemplate = {
+  id: 'collage',
+  label: 'Collage',
+  summary: 'collage: an arch-shaped photo over a tilted brand panel, a disc and a dot field overlap like cut paper; the text stays clean below',
+  needsImage: true,
+  intents: { event: 1.3, recruit: 1.5, product: 1, launch: 1, promo: 0.9 },
+  schemes: ['paper', 'tint'],
+  render(spec) {
+    const { width: W, height: H, safe, u, scheme } = spec;
+    const lh = logoH(spec);
+    const { c1, c2 } = fills(spec);
+    const seed = spec.motif?.seed ?? 9;
+    const parts = [kicker(spec, scheme.accent === scheme.ink ? scheme.muted : scheme.accent), headline(spec, scheme.ink, emphasisOn(spec, scheme.bg, scheme.accent), { max: 10.5 * u }), sub(spec, scheme.muted, 3.4), facts(spec, scheme.ink, scheme.rule)];
+    const flip = (x: number, w: number) => (spec.mirror ? W - x - w : x);
+    const second = spec.extraImages[0];
+    if (spec.orientation === 'landscape') {
+      const pw = r(W * 0.26);
+      const ph = H - safe.top - safe.bottom;
+      const px = flip(r(W * 0.6), pw);
+      const tx = spec.mirror ? W * 0.44 + 3 * u : safe.left;
+      const tw = W * 0.56 - safe.left - 6 * u - (spec.mirror ? 0 : 0);
+      const disc = r(H * 0.62);
+      return root(
+        spec,
+        scheme.bg,
+        block({ x: flip(W * 0.56, W * 0.38), y: safe.top + 2 * u, w: W * 0.38, h: ph - 2 * u }, c1, 'transform:rotate(-4deg);border-radius:' + r(1.4 * u) + 'px') +
+          block({ x: flip(W * 0.84, disc), y: H - disc * 0.62, w: disc, h: disc }, c2, 'border-radius:50%') +
+          photo(spec, { x: px, y: safe.top, w: pw, h: ph }, { css: `border-radius:${r(pw / 2)}px ${r(pw / 2)}px 0 0;` }) +
+          stack({ x: tx, y: safe.top, w: Math.min(tw, W * 0.5 - safe.left), h: H - safe.top - safe.bottom - lh - 3 * u }, parts, { justify: 'center', gap: 2 * u }) +
+          logo(spec, { x: tx, y: H - safe.bottom - lh, h: lh }, scheme.bg, scheme.ink)
+      );
+    }
+    const innerW = W - safe.left - safe.right;
+    const portrait = spec.orientation === 'portrait';
+    const aw = r(W * 0.5);
+    const ah = r(H * (portrait ? 0.4 : 0.42));
+    const ay = safe.top;
+    const ax = flip(r(W * 0.25), aw);
+    const disc = r(W * 0.34);
+    const bottom = ay + ah;
+    const small = r(W * 0.25);
+    // La petite photo déborde de l'arche : le texte commence sous elle, jamais contre elle.
+    const textTop = bottom + (second ? Math.max(6.5 * u, small * 0.3 + 3 * u) : 6.5 * u);
+    return root(
+      spec,
+      scheme.bg,
+      block({ x: flip(W * 0.17, aw), y: ay + 2.2 * u, w: aw, h: ah, }, c1, 'transform:rotate(-5deg);border-radius:' + r(1.2 * u) + 'px') +
+        block({ x: flip(W * 0.62, disc), y: ay - disc * 0.18, w: disc, h: disc }, c2, 'border-radius:50%') +
+        gfx(spec, { kind: 'dots', seed, color: mix(c1, scheme.bg, 0.35), variant: 'uniform', density: 1 }, { x: flip(safe.left * 0.8, W * 0.2), y: ay + ah * 0.5, w: W * 0.2, h: W * 0.2 }, 'collage-dots') +
+        photo(spec, { x: ax, y: ay, w: aw, h: ah }, { css: `border-radius:${r(aw / 2)}px ${r(aw / 2)}px 0 0;` }) +
+        (second ? photo(spec, { x: flip(r(W * 0.64), small), y: bottom - small * 0.7, w: small, h: small }, { radius: W, image: second, css: `outline:${r(0.9 * u)}px solid ${scheme.bg};` }) : '') +
+        stack({ x: safe.left, y: textTop, w: innerW, h: H - safe.bottom - lh - 3.5 * u - textTop }, parts, { justify: 'start', gap: 2 * u }) +
+        logo(spec, { x: safe.left, y: H - safe.bottom - lh, h: lh }, scheme.bg, scheme.ink)
+    );
+  },
+};
+
+export const POSTER_TEMPLATES: PosterTemplate[] = [split, fullbleed, editorial, typographic, eventDate, offer, quote, band, card, mosaic, geometric, diagonal, collage];
 export const TEMPLATE_BY_ID = new Map(POSTER_TEMPLATES.map((t) => [t.id, t]));
 
 /** Les briques, pour les compositions écrites par l'IA (crans Max et Ultra) : mêmes règles d'ajustage et de mesure. */

@@ -32,10 +32,10 @@ export interface ImageBrief {
   searchQuery: string;
   generationPrompt: string;
   /**
-   * Ce qui ne doit PAS apparaître dans l'image. L'endpoint d'image
-   * n'expose pas de champ dédié : la consigne est concaténée au prompt, ce que
-   * les modèles de diffusion interprètent correctement. Sans elle, le rendu
-   * retombe sur les tics du corpus (filigranes, texte déformé, HDR saturé).
+   * Ce qui ne doit PAS apparaître dans l'image, EN PLUS de l'absence de texte déjà imposée par
+   * le service (`NO_TEXT_CLAUSE`) sur toute image générée. L'endpoint d'image n'expose pas de
+   * champ dédié : la consigne est concaténée au prompt, ce que les modèles de diffusion
+   * interprètent correctement.
    */
   negativePrompt?: string;
   preferGenerated?: boolean;
@@ -59,6 +59,14 @@ export interface ImageSourcingPreferences {
 
 
 const PEXELS_ENDPOINT = 'https://api.pexels.com/v1/search';
+
+/**
+ * Une image GÉNÉRÉE pour un visuel ne porte jamais de texte : le texte du visuel est posé par le
+ * compositeur (ajusté au millimètre, contrôlé) — un mot écrit par le modèle d'image est illisible,
+ * non traduit et jamais à la bonne taille. En code et non laissé à un appelant : tout appel de
+ * génération passant par ce service en bénéficie, qu'il fournisse ou non son propre `negativePrompt`.
+ */
+const NO_TEXT_CLAUSE = 'text, letters, words, numbers, captions, titles, headlines, labels, typography, watermark, signage';
 
 // ─── Shared vision instruction (kept short → fewer input tokens) ──────────
 const VISION_INSTRUCTION = `Return ONLY strict JSON, no prose, no fences:
@@ -173,10 +181,9 @@ export class ImageSourcingService {
 
     // L'image vient d'un endpoint dédié, l'analyse d'un appel de vision : deux
     // allers-retours, mais l'analyse porte sur l'image réellement produite.
-    const negative = (brief.negativePrompt || '').trim();
-    const prompt = negative
-      ? `${brief.generationPrompt}\n\nAvoid entirely: ${negative}.`
-      : brief.generationPrompt;
+    // L'absence de texte n'est jamais laissée au bon vouloir de l'appelant (NO_TEXT_CLAUSE).
+    const negative = [NO_TEXT_CLAUSE, (brief.negativePrompt || '').trim()].filter(Boolean).join(', ');
+    const prompt = `${brief.generationPrompt}\n\nAvoid entirely: ${negative}.`;
 
     const generated = await requirePort('generateImage')(prompt, {
       tag: opts.tag,

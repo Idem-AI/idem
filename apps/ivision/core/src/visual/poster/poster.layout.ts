@@ -12,6 +12,9 @@
  */
 import type { CreativeOrchestrator } from '../../creativity/orchestrator';
 import { briefLines, tokenById, type DesignBrief } from './poster.canvas';
+import { GFX_BY_KIND, kitManifest } from './kit/catalog';
+import { gfxContext, gfxHtml, paramsFrom } from './kit/render';
+import { stackingIssues, type StackedGfx, type StackedText } from './kit/rules';
 import { revisionLines, type LoopFeedback } from './poster.loop';
 import { inkOn, mix, mutedOn } from './poster.schemes';
 import { posterBricks as B, type PosterBox } from './poster.templates';
@@ -21,7 +24,7 @@ type TextItem = 'kicker' | 'headline' | 'sub' | 'facts' | 'offer' | 'quote' | 'a
 const TEXT_ITEMS: TextItem[] = ['kicker', 'headline', 'sub', 'facts', 'offer', 'quote', 'author'];
 
 export interface LayoutElement {
-  type: 'photo' | 'shape' | 'text' | 'logo';
+  type: 'photo' | 'shape' | 'text' | 'logo' | 'graphic';
   x: number;
   y: number;
   w: number;
@@ -41,6 +44,16 @@ export interface LayoutElement {
   backing?: string;
   size?: number;
   anchor?: 'left' | 'right' | 'center';
+  /** Forme du kit graphique (type « graphic ») : le code la dessine, l'IA la nomme. */
+  kind?: string;
+  seed?: number;
+  color2?: string;
+  opacity?: number;
+  variant?: string;
+  stroke?: number;
+  density?: number;
+  blend?: string;
+  concept?: string;
 }
 
 export interface LayoutDesign {
@@ -59,7 +72,7 @@ export function parseLayout(raw: string): LayoutDesign | undefined {
     const o = JSON.parse(json);
     if (!Array.isArray(o.elements) || !o.elements.length) return undefined;
     const elements: LayoutElement[] = o.elements
-      .filter((e: any) => e && ['photo', 'shape', 'text', 'logo'].includes(e.type))
+      .filter((e: any) => e && ['photo', 'shape', 'text', 'logo', 'graphic'].includes(e.type))
       .slice(0, 14)
       .map((e: any) => ({
         type: e.type,
@@ -82,6 +95,12 @@ export function parseLayout(raw: string): LayoutDesign | undefined {
         backing: typeof e.backing === 'string' ? e.backing : undefined,
         size: e.size !== undefined ? num(e.size) : undefined,
         anchor: ['left', 'right', 'center'].includes(e.anchor) ? e.anchor : undefined,
+        ...(e.type === 'graphic'
+          ? (() => {
+              const g = paramsFrom(e);
+              return { kind: g.kind, seed: g.seed, color2: g.color2, opacity: g.opacity, variant: g.variant, stroke: g.stroke, density: g.density, blend: g.blend, concept: g.concept };
+            })()
+          : {}),
       }));
     return { concept: String(o.concept || '').slice(0, 300), background: String(o.background || 'paper'), elements };
   } catch {
@@ -96,6 +115,7 @@ const SCHEMA = `{
     {"type":"photo", "photo":1, "x":0, "y":0, "w":100, "h":60, "radius":0, "treatment":"natural|duotone|mono"},
     {"type":"shape", "color":"<token>", "x":0, "y":58, "w":100, "h":42, "radius":0, "angle":0},
     {"type":"text", "x":8, "y":64, "w":84, "h":24, "items":["kicker","headline","sub","facts"], "align":"left|center|right", "valign":"top|center|bottom", "ink":"auto|<token>", "accent":"<token>", "headline":"normal|large|huge", "upper":false, "backing":"none|scrim|<token>"},
+    {"type":"graphic", "kind":"rings", "x":52, "y":-10, "w":62, "h":62, "color":"<token>", "color2":"<token>", "variant":"lines", "seed":3, "opacity":1},
     {"type":"logo", "x":8, "y":90, "size":7, "anchor":"left|right|center"}
   ]
 }`;
@@ -109,6 +129,7 @@ function layoutPrompt(b: DesignBrief, angle: string): { system: string; user: st
       'Units: x, y, w, h are PERCENT of the canvas width (x, w) and height (y, h). Logo "size" is its height in percent of the canvas short side (4 to 12). Shape "radius" in percent of its short side (50 = circle/pill).',
       'Text blocks: "items" are the approved words, in reading order, each used once (all facts go in one "facts" item). The renderer fits the type to the block: give the headline a LARGE block — it must be the dominant element. "ink":"auto" picks the legible colour of what is under the block. On a photo, use "backing":"scrim" (soft dark gradient) or a solid token, or place the text on a calm area of the photo.',
       'Every approved fact and the offer must appear. Exactly one logo. Shapes are for structure (bands, panels, frames, big geometric forms) — never decoration for its own sake.',
+      ...kitManifest('json', { icons: ['info', 'product', 'launch'].includes(b.intent) }),
       angle,
     ].join('\n'),
     user: briefLines(b, 'percent').join('\n'),
@@ -161,6 +182,11 @@ export function buildLayout(design: LayoutDesign, b: DesignBrief): { body: strin
     }
     return { photo: false, hex: bg };
   };
+  const gctx = gfxContext({ width: W, height: H, u, tokens: Object.fromEntries(b.tokens.map((t) => [t.id, t.hex])), primary: spec.palette.primary, secondary: spec.palette.secondary, bg, ink: spec.scheme.ink });
+  let graphics = 0;
+  /** Les formes du kit : leur boîte, leur rang dans la pile et ce qu'elles couvrent (pour contrôler la superposition au texte). */
+  const gfxLayers: StackedGfx[] = [];
+  const textLayers: StackedText[] = [];
   const used = new Set<TextItem>();
   const offerPlaced = !!spec.copy.offer && design.elements.some((e) => e.type === 'text' && e.items?.includes('offer'));
   let logos = 0;
@@ -187,6 +213,29 @@ export function buildLayout(design: LayoutDesign, b: DesignBrief): { body: strin
       const radius = e.radius ? (Math.min(box.w, box.h) * e.radius) / 100 : 0;
       parts.push(B.block(box, t.hex, `${radius ? `border-radius:${Math.round(radius)}px;` : ''}${e.angle ? `transform:rotate(${e.angle}deg);` : ''}`));
       painted.push({ box, kind: 'shape', hex: t.hex });
+    } else if (e.type === 'graphic') {
+      const kind = String(e.kind || '').toLowerCase();
+      if (!GFX_BY_KIND.has(kind as never)) {
+        issues.push(`unknown graphic kind "${e.kind || ''}": ${[...GFX_BY_KIND.keys()].join(', ')}`);
+        continue;
+      }
+      if (kind !== 'grain' && ++graphics > 4) {
+        issues.push('too many graphics (max 4 plus one grain): keep the strongest');
+        continue;
+      }
+      if (kind !== 'grain' && (box.w < u * 4 || box.h < u * 4)) {
+        issues.push(`the ${kind} graphic is too small to matter: make it large and structural`);
+        continue;
+      }
+      const res = gfxHtml(paramsFrom(e as unknown as Record<string, unknown>), box, gctx, `g-${kind}-${parts.length + 1}`);
+      issues.push(...res.issues);
+      if (!res.html) continue;
+      parts.push(res.html);
+      const entry = GFX_BY_KIND.get(kind as never)!;
+      const fillish = (entry.paint === 'fill' || (entry.paint === 'both' && res.params.variant !== 'outline' && res.params.variant !== 'lines')) && kind !== 'mesh' && kind !== 'dots';
+      gfxLayers.push({ box, at: parts.length, kind, opacity: res.params.opacity ?? 1 });
+      // Une grande forme pleine est un fond comme un autre : le texte posé dessus prend l'encre qui s'y lit.
+      if (fillish && (res.params.opacity ?? 1) >= 0.85 && res.params.color && box.w * box.h > W * H * 0.06) painted.push({ box, kind: 'shape', hex: res.params.color });
     } else if (e.type === 'text') {
       const items = (e.items || []).filter((i) => !used.has(i));
       const present = items.filter((i) => (i === 'kicker' ? spec.copy.kicker : i === 'sub' ? spec.copy.sub : i === 'facts' ? spec.copy.facts.length : i === 'offer' ? spec.copy.offer : i === 'quote' ? spec.copy.quote : i === 'author' ? spec.copy.quote?.author : true));
@@ -243,6 +292,7 @@ export function buildLayout(design: LayoutDesign, b: DesignBrief): { body: strin
         }
       });
       const align = e.align === 'center' ? 'center' : 'left';
+      textLayers.push({ box: tb, at: parts.length + 1, name: present.join('+') });
       parts.push(backingHtml + B.stack(tb, html, { justify: e.valign === 'center' ? 'center' : e.valign === 'bottom' ? 'end' : 'start', align, gap: 1.8 * u, name: present[0], overPhoto: ground.photo }));
     } else if (e.type === 'logo') {
       if (logos++) continue;
@@ -255,6 +305,8 @@ export function buildLayout(design: LayoutDesign, b: DesignBrief): { body: strin
       parts.push(B.logo(spec, { x, y, h, anchor }, ground.photo ? '#777777' : ground.hex, b.tokens.find((t) => t.hex.toLowerCase() === ground.hex.toLowerCase())?.ink || spec.scheme.ink));
     }
   }
+  // Une forme par-dessus un texte le masque ; une texture dense dessous le noie (règles communes à Max et Ultra).
+  issues.push(...stackingIssues(gfxLayers, textLayers));
   if (!used.has('headline')) issues.push('the headline is missing: put "headline" in a large text block');
   if (spec.copy.facts.length && !used.has('facts')) issues.push('the facts (date, place…) are missing: add a "facts" item');
   if (spec.copy.offer && !used.has('offer') && !used.has('facts')) issues.push('the offer is missing: add an "offer" item');

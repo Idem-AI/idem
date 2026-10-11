@@ -56,5 +56,7 @@ export function specFor(input: SpecInput, choice: PosterChoice, schemes = scheme
     brandName: input.brandName,
     mirror: choice.mirror,
     language: input.language,
+    // La graine voyage même sans décor : les compositions qui dessinent leurs propres formes (géométrique, diagonale) la lisent.
+    ...(choice.motif || choice.motifSeed !== undefined || choice.grain ? { motif: { id: choice.motif || 'none', seed: choice.motifSeed ?? 1, ...(choice.grain ? { grain: choice.grain } : {}) } } : {}),
   };
 }

@@ -97,6 +97,15 @@ export interface PosterSpec {
   /** Miroir de la composition (variante B). */
   mirror: boolean;
   language: string;
+  /** Le décor tonal posé derrière la composition (kit graphique) et le grain par-dessus. */
+  motif?: PosterMotif;
+}
+
+/** Un motif d'ambiance du kit (`kit/motifs.ts`), rejouable : même graine, même décor. */
+export interface PosterMotif {
+  id: string;
+  seed: number;
+  grain?: 'fine' | 'paper';
 }
 
 export interface PosterTemplate {
@@ -121,6 +130,10 @@ export interface PosterChoice {
   mirror: boolean;
   treatment: PosterTreatment;
   emphasis?: number;
+  /** Le décor d'ambiance (`none` : aucun), sa graine et son grain. */
+  motif?: string;
+  motifSeed?: number;
+  grain?: 'fine' | 'paper';
 }
 
 /** Ce que le rendu MESURE : la composition est refusée s'il reste un défaut bloquant. */

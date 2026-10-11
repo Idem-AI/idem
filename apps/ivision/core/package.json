@@ -7,7 +7,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "ts-node --transpile-only scripts/check-core.ts",
-    "check:montage": "ts-node --transpile-only scripts/check-montage.ts"
+    "check:montage": "ts-node --transpile-only scripts/check-montage.ts",
+    "check:poster": "ts-node --transpile-only scripts/check-poster-kit.ts"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -69,7 +70,11 @@
     "@visx/grid": "^4.0.0",
     "@visx/axis": "^4.0.0",
     "mongoose": "^8.9.3",
-    "pdfjs-dist": "^4.8.69"
+    "pdfjs-dist": "^4.8.69",
+    "ogl": "^1.0.11",
+    "pixi.js": "^7.4.3",
+    "pixi-filters": "^5.3.0",
+    "simple-icons": "^16.34.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",

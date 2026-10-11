@@ -18,7 +18,9 @@ import type { PosterMeasure, PosterSpec } from './poster.types';
 const BASE_CSS = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{overflow:hidden;background:#ffffff}
-.pv{position:relative;overflow:hidden;font-family:var(--fb);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.pv{position:relative;overflow:hidden;isolation:isolate;font-family:var(--fb);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.gfx{position:absolute;pointer-events:none}
+.gfx svg{display:block;width:100%;height:100%;overflow:visible}
 .stack,.blk,.ph,.logo,.wordmark,.marks{position:absolute}
 .stack{display:flex;flex-direction:column;overflow:hidden}
 .fit{max-width:100%;overflow-wrap:normal;word-break:normal;hyphens:manual}
@@ -46,6 +48,18 @@ const FIT_AND_MEASURE = `(function () {
   var u = parseFloat(root.getAttribute('data-u')) || 10;
   var safe = JSON.parse(root.getAttribute('data-safe') || '{"top":0,"right":0,"bottom":0,"left":0}');
   var W = root.clientWidth, H = root.clientHeight;
+  // Un identifiant STABLE par calque : l'éditeur et les retouches ciblées (déplacer, recolorer, redessiner
+  // une forme) retrouvent un élément sans recomposer le visuel. Les formes du kit en ont déjà un.
+  root.setAttribute('data-el', 'canvas');
+  var seen = {};
+  Array.prototype.forEach.call(root.children, function (el) {
+    if (el.hasAttribute('data-el')) { seen[el.getAttribute('data-el')] = 1; return; }
+    var role = el.getAttribute('data-role') || (el.hasAttribute('data-stack') ? 'text' : el.classList.contains('ph') ? 'photo' : el.classList.contains('logo') ? 'logo' : el.classList.contains('blk') ? 'shape' : 'layer');
+    var base = role + (el.getAttribute('data-stack') ? '-' + el.getAttribute('data-stack') : ''), id = base, n = 1;
+    while (seen[id]) { n++; id = base + '-' + n; }
+    seen[id] = 1;
+    el.setAttribute('data-el', id);
+  });
   var stacks = document.querySelectorAll('[data-stack]');
   report.dropped = [];
   for (var i = 0; i < stacks.length; i++) {
