@@ -312,3 +312,22 @@ describe('a deployment that succeeds', () => {
     }
   }, 45_000);
 });
+
+describe('the routes of a deployed application', () => {
+  it('live in the proxy file provider: the container carries no router, the routes file is written', async () => {
+    const { teamId, app } = await anApplication('exited');
+    await testPool().query("UPDATE applications SET fqdn = 'https://demo-x.1.2.3.4.sslip.io' WHERE id = $1", [app.id]);
+
+    const { outcome } = await run(teamId, app);
+    await outcome;
+
+    const composeWrite = ssh.calls.find((c) => c.command.includes('docker-compose.yml') && c.command.includes('base64 -d >'))!.command;
+    const compose = Buffer.from(/echo '([^']+)'/.exec(composeWrite)![1], 'base64').toString();
+    expect(compose).toContain('traefik.enable=false');
+    expect(compose).toContain('ideploy.routes=file');
+    expect(compose).not.toContain('traefik.http.routers');
+    expect(ssh.ranMatching(/dynamic\/routes-[0-9a-f-]+\.yml/)).toBe(true);
+    const { rows } = await testPool().query('SELECT routes_file_at FROM applications WHERE id = $1', [app.id]);
+    expect(rows[0].routes_file_at).not.toBeNull();
+  }, 60_000);
+});

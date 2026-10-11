@@ -5,6 +5,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ApiService } from '../../../shared/services/api.service';
 import { DomainDnsGuideComponent } from './domain-dns-guide';
+import { DomainOptionsComponent } from './domain-options';
 import { Application, RegistryCredential, Tag } from '../../../shared/models/ideploy.models';
 
 /** The Eloquent morph class this Node API expects for an application. */
@@ -20,7 +21,7 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
  */
 @Component({
   selector: 'app-settings-tab',
-  imports: [ReactiveFormsModule, TranslateModule, IdemLoaderComponent, DomainDnsGuideComponent],
+  imports: [ReactiveFormsModule, TranslateModule, IdemLoaderComponent, DomainDnsGuideComponent, DomainOptionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
@@ -92,6 +93,12 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
               <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.fqdnHint' | translate }}</p>
               <!-- The record to create for each domain (with the server's IP), and its state. -->
               <app-domain-dns-guide [appUuid]="app().uuid" [domains]="fqdnValue()" />
+              <app-domain-options [appUuid]="app().uuid" (redeployNeeded)="redeployRequired.set(true)" />
+              @if (domainsApplied()) {
+                <p class="mt-2 text-xs" role="status" style="color:var(--color-success);">
+                  <i class="pi pi-check mr-1 text-xs" aria-hidden="true"></i>{{ 'applications.detail.domainsApplied' | translate }}
+                </p>
+              }
             </div>
           </div>
           @if (saveError(); as message) {
@@ -258,6 +265,8 @@ export class AppSettingsTabComponent implements OnInit {
   protected readonly redeploying = signal(false);
   /** The domain field as typed: the DNS guide checks it before it is saved. */
   protected readonly fqdnValue = signal('');
+  /** The last domain change was applied at once, no deployment needed. */
+  protected readonly domainsApplied = signal(false);
   protected readonly appTags = signal<Tag[]>([]);
   private readonly allTags = signal<Tag[]>([]);
   protected readonly availableTags = computed(() => {
@@ -323,6 +332,7 @@ export class AppSettingsTabComponent implements OnInit {
         this.saving.set(false);
         this.saved.set(true);
         this.configForm.markAsPristine();
+        this.domainsApplied.set(Boolean(a.domainsApplied));
         if (a.redeployRequired) this.redeployRequired.set(true);
         this.updated.emit(a);
       },

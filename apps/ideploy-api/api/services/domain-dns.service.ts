@@ -23,7 +23,8 @@ export type DnsStatus =
   | 'missing'
   | 'wrong_ip'
   | 'proxied'
-  | 'ipv6_conflict';
+  | 'ipv6_conflict'
+  | 'taken'; // verified first by another application (a shared server answers for both)
 
 export interface DnsRecord {
   type: 'A';

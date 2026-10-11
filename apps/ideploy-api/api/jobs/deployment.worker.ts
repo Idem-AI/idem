@@ -32,6 +32,7 @@ import { choosePort, parseExposedPorts, parseListeningPorts, PortChoice } from '
 import { planBuild, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
 import { writeFirewallFile } from '../services/firewall-file.service';
+import { applyRoutes } from '../services/routes-file.service';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
 import * as serverService from '../services/server.service';
@@ -300,7 +301,10 @@ async function deploy(
   // Proxy + ownership labels. Without these the container runs but is not
   // reachable on its domain, and the platform cannot recognise it later.
   const labelContext = await loadLabelContext(app);
-  const labels = labelContext ? buildApplicationLabels(app, labelContext) : undefined;
+  // With Traefik, routes live in the proxy's file provider (routes-<uuid>.yml):
+  // domain changes then apply without a deployment.
+  const useRoutesFile = labelContext?.proxyType === 'traefik';
+  const labels = labelContext ? buildApplicationLabels(app, labelContext, { routesFile: useRoutesFile }) : undefined;
   const network = labelContext?.network;
 
   const workdir = appWorkdir(app);
@@ -548,6 +552,11 @@ async function deploy(
     // The firewall chain the labels reference must exist before the
     // container starts: a router naming a missing middleware serves nothing.
     if (compose !== null && labelContext) await writeFirewallFile(server, key, app);
+    if (compose !== null && useRoutesFile) {
+      const { routed, waiting } = await applyRoutes(server, key, app, { port });
+      if (routed.length) await log(`Routes: ${routed.join(', ')}`);
+      if (waiting.length) await log(`Waiting for DNS (not routed yet): ${waiting.join(', ')} — see Settings › domain.`);
+    }
     // Where start/stop/restart will find the live compose file.
     const recordDir = `echo ${shellQuote(composeDir)} > ${shellQuote(composeDirFile(app))}`;
     const r = await executeRemoteCommand(server, key, `${writeCompose}${recordDir}`, { noRetry: true });
@@ -691,7 +700,8 @@ async function deploy(
       // Route to the real port: new labels and PORT, saved on the application.
       await appService.setExposedPort(app.id, choice.port);
       const routed = { ...app, ports_exposes: String(choice.port) };
-      const routedLabels = labelContext ? buildApplicationLabels(routed, labelContext) : undefined;
+      const routedLabels = labelContext ? buildApplicationLabels(routed, labelContext, { routesFile: useRoutesFile }) : undefined;
+      if (useRoutesFile) await applyRoutes(server, key, routed, { port: choice.port });
       const updated = generateComposeFile(routed, image, routedLabels, network, runtimeEnv, choice.port);
       const r = await executeRemoteCommand(
         server,
