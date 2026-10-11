@@ -202,7 +202,9 @@ La direction décidée par les agents (cran, famille, réglages des pages) est e
 
 ## Identité visuelle
 
-### Le logo (`BandIdentity/logoTemplates.ts`, `logoCreative.ts`)
+### Le logo (`services/logo-engine/`, doc : [LOGO_ENGINE.md](LOGO_ENGINE.md))
+
+> **Depuis le moteur de logos, la table ci-dessous décrit l'ancien pipeline** (`BandIdentity/logoTemplates.ts`, `logoCreative.ts`), qui n'est plus que le repli (`LOGO_ENGINE=legacy`, ou moteur en échec). Le moteur garde la même échelle de crans mais change de méthode : le modèle ne dessine plus de SVG, il choisit et décrit (Logo IR) ; le code construit, mesure et corrige. Voir [LOGO_ENGINE.md](LOGO_ENGINE.md) §5.
 
 **Le logo est toujours généré au cran Ultra, au prix habituel de la session** (60 crédits, 10 par relance) : pas de jauge sur ses écrans, le contrôleur impose `ultra` quel que soit le point d'entrée (tableau de bord, chat), et ses routes facturent sans multiplicateur (`branding.routes.ts#chargeLogoSession`). L'échelle ci-dessous reste celle du service.
 
@@ -252,5 +254,6 @@ Pas de sélecteur pour le logo (toujours Ultra).
   - les agents des visuels, et les douze compositions rendues et contrôlées ;
   - les agents de la carte et ses faces, au contrôle d'impression ;
   - la direction artistique des documents par cran, la fidélité du compositeur, son rendu mesuré, sa réparation et son repli ;
-  - les logos du code (deux polices, trois types, `svgGate`, aucun `NaN`), le directeur de création et le jury.
+  - les logos du code (deux polices, trois types, `svgGate`, aucun `NaN`), le directeur de création et le jury (ancien pipeline) ;
+  - le moteur de logos : `npm run check:logo` (150 vérifications, sans réseau ni modèle).
 - `npm run check:video` déroule le pipeline complet à chaque cran, avec agents et codeur simulés. Les scènes Ultra y sont réellement lintées, compilées, rendues et retenues.

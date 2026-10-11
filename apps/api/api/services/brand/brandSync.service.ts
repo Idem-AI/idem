@@ -32,6 +32,7 @@ import { resolveSvgContent } from '../logo-import.service';
 import { invalidateVisualImage } from '../Communication/visualImageCache';
 import { generateLogoVariations } from '../logoVariationEngine.service';
 import { customFontService } from '../customFont.service';
+import { engineVariations } from '../logo-engine/idem.service';
 import { storageService } from '../storage.service';
 import {
   addStats,
@@ -274,7 +275,9 @@ export class BrandSyncService {
     const svgContent = knownSvg ?? (await resolveSvgContent(logo.svg));
     if (!svgContent?.includes('<svg')) return logo;
 
-    const generated = await generateLogoVariations(svgContent);
+    // Logo du moteur : les déclinaisons sortent de son Logo IR (même géométrie, couleurs exactes).
+    const fromEngine = logo.ir ? await engineVariations(logo, undefined).catch(() => null) : null;
+    const generated = fromEngine ?? (await generateLogoVariations(svgContent));
     const folderPath = `users/${userId}/projects/${projectId}/logos`;
     const stamp = Date.now();
     const upload = async (category: 'withText' | 'iconOnly', variant: (typeof VARIANTS)[number]) => {
@@ -386,6 +389,7 @@ export class BrandSyncService {
       ...(iconSvg ? { iconSvg } : {}),
       colors: adapted.colors,
       ...(adapted.lockup ? { lockup: adapted.lockup } : {}),
+      ...(adapted.ir ? { ir: adapted.ir, ...(previous.engine ? { engine: { ...previous.engine, ...(adapted.engineFonts ? { fonts: adapted.engineFonts } : {}) } } : {}) } : {}),
       variations: undefined,
       assetUrls: undefined,
     };

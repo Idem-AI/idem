@@ -89,6 +89,7 @@ import { brandMotifs } from '../design/brandMotifs';
 import { buildComposedCharterPages, clip, wideSeed } from './charterComposedPages';
 import { atLeast, CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
 import { composeTemplateLogos } from './logoTemplates';
+import { engineEditLogo, engineLogoConcepts, engineVariations, logoEngineEnabled, rememberIr } from '../logo-engine/idem.service';
 import { logoDirectionsTask, logoDraftCount, logoJuryTask } from './logoCreative';
 import { CreativeOrchestrator } from '../creativity/orchestrator';
 import { DocumentDesignPlan, planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../creativity/documentDesign';
@@ -2414,6 +2415,44 @@ export class BrandingService extends GenericService {
     return pool[verdict.value] ?? pool[0];
   }
 
+  /**
+   * Les propositions du MOTEUR DE LOGOS (services/logo-engine) : le modèle décide (direction,
+   * Logo IR, critique), le code construit le SVG, le mesure et le corrige. Si le moteur ne tient pas
+   * le compte (< `count`), les places restantes sont composées par le code (`templateLogos`).
+   * Lève quand le moteur ne produit rien : l'appelant reprend l'ancien pipeline.
+   */
+  private async engineLogos(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    level: CreativityLevel,
+    preferences: LogoPreferences | undefined,
+    existing: LogoModel[],
+    count: number,
+    fresh: boolean,
+    onStage?: (stage: string) => void
+  ): Promise<LogoModel[]> {
+    const description = this.extractProjectDescription(project);
+    const { logos } = await engineLogoConcepts({
+      userId,
+      projectId,
+      project,
+      brandName: this.resolveBrandName(project),
+      context: this.extractProjectContext(description),
+      description,
+      preferences,
+      level,
+      existing,
+      count,
+      fresh,
+      onStage,
+    });
+    if (logos.length >= count) return logos;
+    // Le moteur n'a pas tenu le compte : le code complète (aucun appel au modèle).
+    const topUp = await this.templateLogos(project, preferences, [...existing, ...logos], count - logos.length, fresh);
+    return [...logos, ...topUp.map((logo, i) => ({ ...logo, id: `concept${String(existing.length + logos.length + i + 1).padStart(2, '0')}` }))];
+  }
+
   /** Cran Low : les propositions composées par le code, distinctes de celles déjà présentées. */
   private async templateLogos(
     project: ProjectModel,
@@ -3119,8 +3158,22 @@ export class BrandingService extends GenericService {
       preferences
     );
 
-    // Cran Low : les propositions composées par le code, sans appel au modèle.
     const level = normalizeCreativity(creativity);
+
+    // Le moteur de logos : planificateur + agents selon le cran, SVG construit et mesuré par le code.
+    if (logoEngineEnabled()) {
+      try {
+        const engineLogos = await this.engineLogos(userId, projectId, project, level, preferences, existingLogos, logosToGenerateCount, forceRegenerate);
+        const logos = [...existingLogos, ...engineLogos];
+        await this.updateProjectWithLogosAsync(userId, projectId, logos);
+        logger.info(`Logo engine generated ${engineLogos.length} concept(s) (creativity ${level}) in ${Date.now() - totalStartTime}ms - ProjectId: ${projectId}`);
+        return { logos };
+      } catch (error: any) {
+        logger.error(`Logo engine failed for project ${projectId}, falling back to the legacy pipeline: ${error?.message}`);
+      }
+    }
+
+    // Cran Low : les propositions composées par le code, sans appel au modèle.
     if (!atLeast(level, 'medium')) {
       const composed = SvgOptimizerService.optimizeLogos(
         await this.templateLogos(project, preferences, existingLogos, logosToGenerateCount, forceRegenerate)
@@ -3515,8 +3568,38 @@ export class BrandingService extends GenericService {
         });
     };
 
-    // Cran Low : les propositions composées par le code, sans appel au modèle.
     const level = normalizeCreativity(creativity);
+
+    // Le moteur de logos : planificateur + agents selon le cran, SVG construit et mesuré par le code.
+    if (logoEngineEnabled()) {
+      try {
+        for (let offset = 0; offset < logosToGenerateCount; offset++) {
+          await streamCallback({ type: 'concept_started', conceptIndex: existingLogos.length + offset });
+        }
+        const engineLogos = await this.engineLogos(userId, projectId, project, level, preferences, existingLogos, logosToGenerateCount, forceRegenerate, (stage) => {
+          if (stage === 'critique') {
+            for (let offset = 0; offset < logosToGenerateCount; offset++) void streamCallback({ type: 'critique_started', conceptIndex: existingLogos.length + offset }).catch(() => undefined);
+          }
+        });
+        for (let offset = 0; offset < engineLogos.length; offset++) {
+          const index = existingLogos.length + offset;
+          // Déjà optimisés (SVGO) par le moteur : l'ancien optimiseur par expressions régulières ne repasse pas dessus.
+          const logo = engineLogos[offset];
+          await streamCallback({ type: 'concept_generated', conceptIndex: index, logo });
+          finalLogos.push(logo);
+          persistLogos();
+          await streamCallback({ type: 'concept_finalized', conceptIndex: index, logo });
+        }
+        await persistChain;
+        logger.info(`Logo engine concepts finalized (creativity ${level}) - ProjectId: ${projectId}, finalized: ${finalLogos.length}`);
+        BrandingService.activeLogoGenerations.delete(generationKey);
+        return finalLogos;
+      } catch (error: any) {
+        logger.error(`Logo engine failed for project ${projectId}, falling back to the legacy pipeline: ${error?.message}`);
+      }
+    }
+
+    // Cran Low : les propositions composées par le code, sans appel au modèle.
     if (!atLeast(level, 'medium')) {
       try {
         for (let offset = 0; offset < logosToGenerateCount; offset++) {
@@ -3868,7 +3951,20 @@ export class BrandingService extends GenericService {
     let withTextSet: Record<LogoVariationKind, string | undefined>;
     let iconOnlySet: Record<LogoVariationKind, string | undefined>;
 
-    if (selectedLogo.lockup) {
+    // Logo du moteur : les six déclinaisons sortent du Logo IR, par le code (même géométrie, aucun appel au modèle).
+    const engineSets =
+      selectedLogo.ir && logoEngineEnabled()
+        ? await engineVariations(selectedLogo, project.analysisResultModel?.branding).catch((error) => {
+            logger.warn(`Logo engine variations failed, falling back: ${error?.message}`);
+            return null;
+          })
+        : null;
+
+    if (engineSets) {
+      logger.info('Producing the logo variations from the Logo IR (no model call)');
+      withTextSet = { ...engineSets.withText };
+      iconOnlySet = { ...engineSets.iconOnly };
+    } else if (selectedLogo.lockup) {
       logger.info('Generating iconOnly variations, then recomposing the withText lockups');
       // Le modèle doit recevoir le SVG de l'icône, pas son URL MinIO.
       const sourceIcon = await resolveSvgContent(iconStructure.svg).catch(() => iconStructure.svg);
@@ -4400,8 +4496,31 @@ export class BrandingService extends GenericService {
       }
     };
 
+    // Logo du moteur : les déclinaisons sortent du Logo IR, par le code (même géométrie, aucun appel au modèle).
+    const engineSets =
+      selectedLogo.ir && logoEngineEnabled()
+        ? await engineVariations(selectedLogo, project.analysisResultModel?.branding).catch((error) => {
+            logger.warn(`Logo engine variations failed, falling back: ${error?.message}`);
+            return null;
+          })
+        : null;
+
     try {
-      await Promise.all(missingKinds.map((kind) => processVariant(kind)));
+      if (engineSets) {
+        for (const kind of missingKinds) {
+          if (cancelState.cancelled) {
+            await streamCallback({ type: 'variation_cancelled', variant: kind });
+            continue;
+          }
+          await streamCallback({ type: 'variation_started', variant: kind });
+          results[kind] = engineSets.withText[kind];
+          iconResults[kind] = engineSets.iconOnly[kind];
+          await streamCallback({ type: 'variation_generated', variant: kind, svg: results[kind]! });
+          await streamCallback({ type: 'variation_finalized', variant: kind, svg: results[kind]! });
+        }
+      } else {
+        await Promise.all(missingKinds.map((kind) => processVariant(kind)));
+      }
     } finally {
       BrandingService.activeLogoGenerations.delete(generationKey);
     }
@@ -5384,6 +5503,40 @@ Generated by Lexis API - Brand Identity System
       const project = await this.getProjectOptimized(userId, projectId);
       if (!project) {
         throw new Error(`Project not found with ID: ${projectId}`);
+      }
+
+      // Logo du moteur : la demande devient un patch ciblé sur le Logo IR (quelques dizaines de
+      // tokens), appliqué par le code ; les couches satisfaisantes ne bougent pas. Si le moteur ne
+      // peut pas la traiter, l'ancien chemin (le modèle réécrit le SVG) reprend.
+      if (logoEngineEnabled()) {
+        const branding = project.analysisResultModel?.branding;
+        const selected = branding?.logo;
+        const knownIr = selected?.ir && selected.svg === logoSvg ? selected.ir : undefined;
+        const engineEdit = await engineEditLogo({
+          userId,
+          projectId,
+          svg: logoSvg,
+          ir: knownIr,
+          request: modificationPrompt,
+          project,
+          preferences: branding?.logoPreferences,
+        }).catch((error) => {
+          logger.warn(`Logo engine edit failed, falling back: ${error?.message}`);
+          return null;
+        });
+        if (engineEdit) {
+          const edited = engineEdit.logo;
+          try {
+            const svgUrls = await this.storageService.uploadAllLogoSvgs(edited, userId, projectId);
+            edited.svg = svgUrls.svg;
+            if (svgUrls.iconSvg) edited.iconSvg = svgUrls.iconSvg;
+          } catch (uploadError: any) {
+            logger.error(`Failed to upload edited logo SVGs (keeping inline): ${uploadError.message}`);
+          }
+          await rememberIr(edited.svg, edited.ir);
+          logger.info(`Logo edited through the Logo IR for projectId: ${projectId} — ${engineEdit.summary}`);
+          return { logo: { ...edited, concept: engineEdit.summary } };
+        }
       }
 
       // Lockup composé : on ne soumet que l'icône. Envoyer le wordmark vectorisé

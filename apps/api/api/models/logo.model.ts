@@ -213,6 +213,29 @@ export interface LogoPreferences {
   customDescription?: string;
 }
 
+/**
+ * Ce que le moteur de logos (`services/logo-engine`) retient de la génération : de quoi mesurer la
+ * nouveauté des propositions suivantes (empreinte) et d'expliquer à l'utilisateur ce que l'IA a
+ * décidé. Absent d'un logo importé ou dessiné par l'ancien pipeline.
+ */
+export interface LogoEngineMeta {
+  /** Version du format Logo IR. */
+  version: string;
+  /** Catégorie : wordmark, lettermark, letterform, pictorial, abstract, mascot, combination, emblem, dynamic, minimal, negative-space. */
+  category: string;
+  recipe: string;
+  /** Qualité mesurée (0–100). */
+  score: number;
+  /** Distance au plus proche des autres propositions et des logos déjà montrés (1 = rien de commun). */
+  novelty: number;
+  level?: string;
+  /** Les polices de la charte au moment du rendu : de quoi reconstruire le logo (déclinaisons) sans relire la charte. */
+  fonts?: { display: { family: string; cssUrl?: string }; body?: { family: string; cssUrl?: string } };
+  fingerprint?: { type: string; layout: string; motifs: string[]; grid: number[] };
+  /** Ce que l'IA a réellement décidé, étape par étape. */
+  decisions?: { stage: string; source: 'llm' | 'code'; detail?: string }[];
+}
+
 export interface LogoModel {
   id: string;
   name: string;
@@ -232,4 +255,12 @@ export interface LogoModel {
 
   // Hosted PNG asset URLs (object storage) for generation contexts.
   assetUrls?: LogoAssetUrls;
+
+  /**
+   * Logo IR : la description structurée du logo (couches, générateurs, palette, composition).
+   * Le SVG en est le rendu déterministe ; l'IR permet de rouvrir le logo, de le corriger par
+   * patch ciblé, de le recolorer ou de changer sa police sans rien redessiner.
+   */
+  ir?: Record<string, unknown>;
+  engine?: LogoEngineMeta;
 }

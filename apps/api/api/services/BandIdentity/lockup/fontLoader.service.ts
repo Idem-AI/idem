@@ -41,7 +41,8 @@ const NEUTRAL_UA = 'idem-brand-pipeline/1.0';
 
 /** Le binaire d'une police ne change jamais pour une URL donnée : cache long. */
 const FONT_CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
-const FONT_CACHE_PREFIX = 'font-file';
+// v2 : les anciennes entrées pouvaient contenir une mauvaise graisse (la 1re de la feuille, cf. extractFontFileUrl).
+const FONT_CACHE_PREFIX = 'font-file-v2';
 
 /** Une famille indisponible le reste : on évite de retenter à chaque logo. */
 const NEGATIVE_CACHE_MS = 10 * 60 * 1000;
@@ -178,7 +179,7 @@ export class FontLoaderService {
   ): Promise<string | null> {
     const stylesheet = cssUrl ?? (await this.lookupStylesheet(family));
     if (stylesheet) {
-      const fileUrl = await this.fileUrlFromStylesheet(stylesheet);
+      const fileUrl = await this.fileUrlFromStylesheet(stylesheet, weight);
       if (fileUrl) return fileUrl;
       logger.warn(
         `No vectorisable font file (TTF/OTF) in the stylesheet for "${family}" — ` +
@@ -193,7 +194,7 @@ export class FontLoaderService {
     candidates.push(`${GOOGLE_FONTS_CSS_API}?family=${encodedFamily}`);
 
     for (const url of candidates) {
-      const fileUrl = await this.fileUrlFromStylesheet(url);
+      const fileUrl = await this.fileUrlFromStylesheet(url, weight);
       if (fileUrl) return fileUrl;
     }
 
@@ -219,14 +220,14 @@ export class FontLoaderService {
    * L'UA neutre est essentiel : servie à un navigateur moderne, la même URL
    * renvoie du WOFF2, qu'`opentype.js` ne sait pas lire.
    */
-  private async fileUrlFromStylesheet(url: string): Promise<string | null> {
+  private async fileUrlFromStylesheet(url: string, weight = 700): Promise<string | null> {
     try {
       const response = await axios.get<string>(url, {
         timeout: REQUEST_TIMEOUT_MS,
         responseType: 'text',
         headers: { 'User-Agent': NEUTRAL_UA },
       });
-      return extractFontFileUrl(String(response.data));
+      return extractFontFileUrl(String(response.data), weight);
     } catch {
       // 400/404 = cette graisse n'existe pas dans la famille : on continue.
       return null;
@@ -250,17 +251,44 @@ function normalizeWeight(weight: number): number {
 }
 
 /**
- * `src: url(https://…ttf)` → l'URL.
+ * `src: url(https://…ttf)` → l'URL du fichier de la GRAISSE demandée.
  *
  * Seuls TrueType et OpenType sont retenus : ce sont les deux formats
  * qu'`opentype.js` parse. Les guillemets sont optionnels (Google n'en met pas,
  * Fontshare et notre propre feuille en mettent), et une URL protocole-relative
  * (`//cdn…`, la forme de Fontshare) est ramenée en HTTPS.
+ *
+ * Une feuille peut décrire plusieurs graisses (Fontshare : les neuf, de 100 à
+ * 900, dans l'ordre croissant). Prendre le premier fichier revenait à servir la
+ * graisse 100 quelle que soit la demande — un logo « en gras » sortait en
+ * filet. On choisit donc le bloc `@font-face` dont `font-weight` vaut la
+ * graisse demandée, à défaut celui qui la contient (police variable), à défaut
+ * le plus proche.
  */
-function extractFontFileUrl(css: string): string | null {
-  const match = css.match(/url\(\s*['"]?((?:https:)?\/\/[^)'"]+\.(?:ttf|otf))['"]?\s*\)/i);
-  if (!match) return null;
-  return match[1].startsWith('//') ? `https:${match[1]}` : match[1];
+export function extractFontFileUrl(css: string, weight = 700): string | null {
+  const urlOf = (block: string): string | null => {
+    const match = block.match(/url\(\s*['"]?((?:https:)?\/\/[^)'"]+\.(?:ttf|otf))['"]?\s*\)/i);
+    if (!match) return null;
+    return match[1].startsWith('//') ? `https:${match[1]}` : match[1];
+  };
+
+  const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/gi)].map((m) => m[1]);
+  const candidates = faces
+    .map((block) => {
+      const range = block.match(/font-weight\s*:\s*(\d{1,4})(?:\s+(\d{1,4}))?/i);
+      const low = range ? Number(range[1]) : NaN;
+      const high = range?.[2] ? Number(range[2]) : low;
+      return { url: urlOf(block), low, high };
+    })
+    .filter((c): c is { url: string; low: number; high: number } => !!c.url);
+
+  if (!candidates.length) return urlOf(css);
+  const exact = candidates.find((c) => c.low === weight && c.high === weight) ?? candidates.find((c) => c.low <= weight && weight <= c.high);
+  if (exact) return exact.url;
+  const dated = candidates.filter((c) => Number.isFinite(c.low));
+  if (!dated.length) return candidates[0].url;
+  const distance = (c: { low: number; high: number }) => (weight < c.low ? c.low - weight : weight > c.high ? weight - c.high : 0);
+  return dated.reduce((best, c) => (distance(c) < distance(best) ? c : best)).url;
 }
 
 /**
