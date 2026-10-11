@@ -5,7 +5,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { CAPABILITIES, CapKind, CapNode, CapWhen, EXCLUDED_LIBRARIES, KitContext, resolveKit } from '../../../ivision/core/src/video/video.capabilities';
+import { CAPABILITIES, CapKind, CapNode, CapWhen, COMMERCIAL_LICENSES, EXCLUDED_LIBRARIES, KitContext, licensesOf, resolveKit } from '../../../ivision/core/src/video/video.capabilities';
 import { analyzeLogo } from '../../../ivision/core/src/video/video.logo';
 import { buildVideoTheme } from '../../../ivision/core/src/video/video.theme';
 import { brandById } from './fixtures/motion-video/brands';
@@ -74,8 +74,9 @@ function table(kind: CapKind): string {
   if (kind === 'transition' || kind === 'layout') {
     return `| Nœud | Rôle | Directions (poids) |\n|---|---|---|\n${nodes.map((n) => `| \`${n.id}\` | ${esc(n.summary)} | ${suits(n).replace(/^dir\. /, '')} |`).join('\n')}`;
   }
-  const rows = nodes.map((n) => `| \`${n.id}\` | ${esc(n.label)} | ${esc(n.summary)} | ${(n.requires || []).map((r) => `\`${r}\``).join(' ') || '—'} | ${when(n.when)} | ${suits(n)} | ${n.cost} | ${n.determinism} | ${n.impl ? `\`${n.impl}\`` : n.packages ? n.packages.map((p) => `\`${p}\``).join(' ') : '—'} |`);
-  return `| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Implémentation |\n|---|---|---|---|---|---|---|---|---|\n${rows.join('\n')}`;
+  const fallback = (n: CapNode) => (n.fallback ? esc(`${n.fallback.to ? `\`${n.fallback.to}\`` : 'omis'} — ${n.fallback.note}`) : '—');
+  const rows = nodes.map((n) => `| \`${n.id}\` | ${esc(n.label)} | ${esc(n.summary)} | ${(n.requires || []).map((r) => `\`${r}\``).join(' ') || '—'} | ${when(n.when)} | ${suits(n)} | ${n.cost} | ${n.determinism} | ${licensesOf(n.id).join(', ') || '—'} | ${fallback(n)} | ${n.impl ? `\`${n.impl}\`` : n.packages ? n.packages.map((p) => `\`${p}\``).join(' ') : '—'} |`);
+  return `| Nœud | Nom | Rôle | Exige | Condition | Convient à | Coût | Rendu | Licence | Repli | Implémentation |\n|---|---|---|---|---|---|---|---|---|---|---|\n${rows.join('\n')}`;
 }
 
 function mermaid(): string {
@@ -205,6 +206,15 @@ Score d'un nœud possible = 1 + 1,5 × affinité de direction + type + objectif 
 projet où il n'a pas servi) + écart appris par la mémoire globale (±0,4, vidéos exportées) + exploration du cran (0,8 × part
 d'exploration, pour un nœud compatible que la direction ne porte pas d'ordinaire). Tirage déterministe (graine de la vidéo)
 parmi les nœuds à moins de 0,75 du meilleur.
+
+## Licences et replis
+
+Règles du catalogue, **vérifiées** par \`npm run check:video:engine\` (\`licenseIssues\`, \`fallbackIssues\`) :
+
+- chaque bibliothèque déclare sa licence (SPDX), comparée au \`package.json\` installé ; seules les licences vérifiées pour l'usage commercial sont admises (${COMMERCIAL_LICENSES.join(', ')}) ; un nœud hérite des licences de ce qu'il exige (colonne « Licence ») ;
+- tout nœud de coût ≥ 2 déclare un repli : une variante moins chère, du même rôle et sans horloge posée, ou « omis » (la scène garde son texte). La colonne « Repli » le dit ; aucun code ne le substitue encore automatiquement en cas d'échec de rendu.
+
+${CAPABILITIES.filter((n) => n.licenseNote).map((n) => `> **\`${n.id}\`** — ${n.licenseNote}`).join('\n>\n')}
 
 ## Arêtes « exige »
 

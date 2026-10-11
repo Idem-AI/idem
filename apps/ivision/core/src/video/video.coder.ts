@@ -99,6 +99,7 @@ const MANIFEST_SECTIONS: { id: string; names: string[]; text: string }[] = [
   { id: 'bricks', names: ['DataArc', 'GrowArea', 'AfricaMap', 'VoronoiField'], text: `- Ready data bricks: <DataArc value={87} /> (gauge), <GrowArea values={[…]} /> (area that draws itself), <AfricaMap highlightIn={s.slots.title} /> (Africa; only the countries/cities NAMED in the text light up), <VoronoiField cells={24} />.` },
   { id: 'draw', names: ['Sketch', 'Brush', 'FlowField', 'useNoise'], text: `- Hand-made touch: <Sketch draw={{ shape: 'circle'|'ellipse'|'rectangle'|'line'|'arc'|'polygon'|'curve'|'path', … }} p={0..1} color="var(--hl)" roughness={1.2} seed={3} /> (rough.js, viewBox 100×100); <Brush points={[[x,y],…]} p={0..1} size={4} /> (brush stroke); <FlowField seed={5} /> (organic noise lines); const { noise2D, noise3D } = useNoise(seed) for organic motion.` },
   { id: 'flat3d', names: ['Flat3D'], text: `- Flat 3D without WebGL: <Flat3D items={[{ kind: 'box'|'cylinder'|'cone'|'hemisphere'|'ring'|'disc'|'polygon'|'sphere'|'rect'|'line', width, height, depth, diameter, color: 'var(--hl)', shade: 'var(--c-primary)', x, y, z }]} rotate={{ x: -0.4, y: lt * 0.8 }} /> (Zdog, coordinates -50..50).` },
+  { id: 'particles', names: ['Particles'], text: `- Seeded particles (no library, one element for you): <Particles mode="drift|rise|fall|burst|converge|dissolve" count={36} seed={3} area={[x0, y0, x1, y1]} origin={[x, y]} at={seconds} dur={seconds} size={[minU, maxU]} shapes={['dot','square','ring','spark']} turbulence={0..1} reach={u} opacity={0..1} /> (positions in % of the frame, brand colours only, max 120). drift / rise / fall float all along (area = emission zone). burst (from origin), converge (towards origin) and dissolve (a text block: area = its box in %, undone left to right) play once from \`at\` for \`dur\` seconds. Write it BEFORE the text so the text stays readable.` },
 ];
 const SERVE_LINE = `- Use these tools when they SERVE the idea (a number becomes a chart or a gauge, places become a map, a promise gets a hand-drawn circle, depth comes from flat 3D) — not as decoration everywhere.`;
 
@@ -245,7 +246,7 @@ export const KIT_NAMES = new Set([
   'clamp', 'mix', 'progress', 'hash', 'keyframes', 'springEase', 'ease', 'easeIn', 'back',
   'numbersIn', 'slotNumbers', 'percentIn', 'countriesIn',
   'ChartJs', 'useViz', 'DataArc', 'GrowArea', 'AfricaMap', 'VoronoiField',
-  'Sketch', 'Brush', 'useNoise', 'FlowField', 'Flat3D',
+  'Sketch', 'Brush', 'useNoise', 'FlowField', 'Flat3D', 'Particles',
 ]);
 const REACT_NAMES = new Set(['React', 'useMemo', 'Fragment']);
 const MAX_SOURCE = 16000;

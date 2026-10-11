@@ -11,6 +11,7 @@ import { CSSProperties, ReactElement, useLayoutEffect, useMemo, useRef } from 'r
 import { useEngine, useLocalTime, useScene } from '../context';
 import { addon } from '../shared';
 import { clamp, hash, mix, progress } from '../time';
+import { Particles } from './Particles';
 import { FlowField, Sketch, SketchShape } from './Sketch';
 import { VoronoiField } from './Viz';
 import { Flat3D } from './Zdog';
@@ -265,11 +266,47 @@ function Flat3DBg() {
   );
 }
 
+/** Poussière lumineuse qui flotte dans l'air de la scène (particules à graine, aucun addon). */
+function MotesBg() {
+  const s = useScene();
+  const mask = useCornerMask(100, 1.6);
+  return (
+    <div className="absolute inset-0" style={mask}>
+      <Particles mode="drift" count={38} seed={s.index * 13.7 + 3} size={[0.5, 1.7]} turbulence={0.6} life={8} opacity={0.85} />
+    </div>
+  );
+}
+
+/** Braises qui montent du bas du cadre. */
+function EmbersBg() {
+  const s = useScene();
+  const mask = useCornerMask(100, 1.4);
+  return (
+    <div className="absolute inset-0" style={mask}>
+      <Particles mode="rise" count={30} seed={s.index * 17.3 + 5} area={[4, 70, 96, 108]} size={[0.6, 1.9]} shapes={['dot', 'spark']} turbulence={0.7} life={5} reach={52} opacity={0.9} />
+    </div>
+  );
+}
+
+/** Confettis qui tombent (fête, ouverture, offre). */
+function ConfettiBg() {
+  const s = useScene();
+  const mask = useCornerMask(100, 1.2);
+  return (
+    <div className="absolute inset-0" style={mask}>
+      <Particles mode="fall" count={34} seed={s.index * 11.9 + 7} area={[2, -8, 98, 20]} size={[1.3, 3]} shapes={['square', 'dot', 'ring']} turbulence={0.8} life={5.5} reach={74} opacity={0.9} />
+    </div>
+  );
+}
+
 const BACKDROPS: Record<string, () => ReactElement> = {
   'flow-field': FlowFieldBg,
   'sketch-shapes': SketchShapesBg,
   voronoi: VoronoiBg,
   flat3d: Flat3DBg,
+  motes: MotesBg,
+  embers: EmbersBg,
+  confetti: ConfettiBg,
   'dot-grid': DotGrid,
   halftone: Halftone,
   'shape-field': ShapeField,

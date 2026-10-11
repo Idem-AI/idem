@@ -96,12 +96,31 @@ export interface CapNode {
   impl?: string;
   /** Le modèle de copie peut-il le choisir (via un vocabulaire) ? */
   llm?: boolean;
+  /**
+   * Licences (SPDX, séparées par une virgule) des paquets d'une bibliothèque. Seuls les nœuds
+   * `library` la portent ; les autres héritent de celles qu'ils exigent (`licensesOf`).
+   * `check:video:engine` la compare aux package.json installés (`licenseIssues`).
+   */
+  license?: string;
+  /** Réserve d'usage à connaître avant de s'appuyer sur la bibliothèque. */
+  licenseNote?: string;
+  /**
+   * Variante de secours d'un nœud coûteux (coût ≥ 2) : le nœud, moins cher et sans horloge posée,
+   * qui prend sa place quand celui-ci est trop lourd ou ne se rend pas ; `to: null` = l'effet est
+   * simplement omis et `note` dit ce que la scène garde. Vérifié par `fallbackIssues`.
+   */
+  fallback?: CapFallback;
+}
+
+export interface CapFallback {
+  to: string | null;
+  note: string;
 }
 
 const D = (o: Partial<Record<DirectionId, number>>) => o;
 
 /** Bibliothèques installées (apps/api/package.json) : nœuds de documentation et cibles des arêtes. */
-const LIBRARIES: CapNode[] = [
+const LIBRARY_NODES: CapNode[] = [
   { id: 'lib:react', kind: 'library', label: 'React 19 + ReactDOM', summary: 'Le moteur entier : une image = un rendu synchrone (flushSync) de <Video t={t}/>.', packages: ['react', 'react-dom'], cost: 0, determinism: 'pure', impl: 'engine/src/runtime.ts' },
   { id: 'lib:tailwind', kind: 'library', label: 'Tailwind CSS v4', summary: 'Utilitaires compilés au paquet ; palette par défaut retirée, seules les couleurs de la charte existent.', packages: ['tailwindcss', 'clsx', 'tailwind-merge'], cost: 0, determinism: 'static', impl: 'engine/src/tailwind.css' },
   { id: 'lib:motion', kind: 'library', label: 'Motion (ex-Framer Motion)', summary: 'Ressorts physiques et interpolation par images clés, fonctions pures du temps (pas animate()).', packages: ['motion'], cost: 0, determinism: 'pure', impl: 'engine/src/time.ts' },
@@ -120,6 +139,35 @@ const LIBRARIES: CapNode[] = [
   { id: 'lib:phosphor', kind: 'library', label: 'Phosphor Icons', summary: '~1 500 icônes × 6 graisses (thin, light, regular, bold, fill, duotone).', packages: ['@phosphor-icons/core'], cost: 0, determinism: 'static', impl: 'src/video/video.icons.ts' },
   { id: 'lib:heroicons', kind: 'library', label: 'Heroicons', summary: '~320 icônes pleines et denses.', packages: ['heroicons'], cost: 0, determinism: 'static', impl: 'src/video/video.icons.ts' },
 ];
+
+/**
+ * Licence de chaque bibliothèque (SPDX), relevée dans les package.json installés. Une bibliothèque
+ * dont la licence change à la mise à jour fait échouer `check:video:engine` : à relire alors.
+ */
+const LIBRARY_LICENSES: Record<string, { license: string; licenseNote?: string }> = {
+  'lib:react': { license: 'MIT' },
+  'lib:tailwind': { license: 'MIT' },
+  'lib:motion': { license: 'MIT' },
+  'lib:gsap': {
+    license: 'GreenSock-Standard',
+    licenseNote: 'Licence « no charge » de GreenSock : usage commercial et plugins (DrawSVG, MorphSVG, SplitText…) compris, mais interdit pour une solution qui concurrence l’éditeur d’animation visuel de Webflow. iVision génère des vidéos par IA ; à faire revalider si l’éditeur en direct devient un outil de création d’animations sans code (https://gsap.com/standard-license).',
+  },
+  'lib:anime': { license: 'MIT' },
+  'lib:flubber': { license: 'MIT' },
+  'lib:three': { license: 'MIT, Zlib' },
+  'lib:lottie': { license: 'MIT', licenseNote: 'jszip est publié « MIT OR GPL-3.0-or-later » : utilisé sous MIT.' },
+  'lib:rive': { license: 'MIT' },
+  'lib:chartjs': { license: 'MIT' },
+  'lib:visx': { license: 'MIT, ISC' },
+  'lib:draw': { license: 'MIT' },
+  'lib:zdog': { license: 'MIT' },
+  'lib:lucide': { license: 'ISC' },
+  'lib:tabler': { license: 'MIT' },
+  'lib:phosphor': { license: 'MIT' },
+  'lib:heroicons': { license: 'MIT' },
+};
+
+const LIBRARIES: CapNode[] = LIBRARY_NODES.map((n) => ({ ...n, ...LIBRARY_LICENSES[n.id] }));
 
 /** Bibliothèque de chaque addon (nœud `lib:*`). */
 const ADDON_LIB: Record<AddonId, string> = { three: 'three', gsap: 'gsap', anime: 'anime', flubber: 'flubber', lottie: 'lottie', rive: 'rive', chart: 'chartjs', viz: 'visx', draw: 'draw', zdog: 'zdog' };
@@ -235,6 +283,9 @@ const BACKGROUNDS: CapNode[] = [
   { id: 'bg:sketch-shapes', kind: 'background', label: 'Formes au crayon', summary: 'Cercle, carré, trait et arc de la charte tracés à la main (rough.js), l’un après l’autre.', requires: ['addon:draw'], cost: 1, determinism: 'pure', suits: { directions: D({ collage: 2, editorial: 1.5, kinetic: 1 }), arts: { handwritten: 2.5, bohemian: 1.5, 'collage-art': 1.5, clay: 1 }, sectors: { education: 1.5, book: 1, family: 1, smile: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#SketchShapesBg' },
   { id: 'bg:voronoi', kind: 'background', label: 'Mosaïque', summary: 'Cellules de Voronoï aux couleurs de la charte qui dérivent lentement (d3-delaunay).', requires: ['addon:viz'], cost: 1, determinism: 'pure', suits: { directions: D({ swiss: 1, precision: 1, drenched: 1.5, kinetic: 1 }), arts: { 'vector-art': 2, maximalism: 1, futuristic: 1, 'pop-art': 0.5 }, sectors: { chart: 1, code: 1, design: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#VoronoiBg' },
   { id: 'bg:flat3d', kind: 'background', label: 'Objets 3D plats', summary: 'Boîte, anneau et sphère en pseudo-3D (Zdog) qui tournent lentement du côté libre, sans WebGL.', requires: ['addon:zdog'], cost: 1, determinism: 'pure', suits: { directions: D({ kinetic: 1.5, collage: 1, precision: 1 }), arts: { clay: 2, y2k: 1.5, 'vector-art': 1.5, futuristic: 1 }, sectors: { delivery: 1.5, rocket: 1, store: 1, gift: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#Flat3DBg' },
+  { id: 'bg:motes', kind: 'background', label: 'Poussière lumineuse', summary: 'Quelques dizaines de grains de lumière aux couleurs de la charte flottent lentement derrière le texte (particules à graine, sans addon).', cost: 1, determinism: 'pure', suits: { directions: D({ cinematic: 2, editorial: 1, drenched: 1, precision: 0.5 }), arts: { aurora: 2, surreal: 1.5, glassmorphism: 1, futuristic: 0.5 }, sectors: { beauty: 1.5, drink: 0.5, eco: 0.5, health: 0.5 } }, impl: 'engine/src/kit/Backdrop.tsx#MotesBg' },
+  { id: 'bg:embers', kind: 'background', label: 'Braises', summary: 'Braises et étincelles qui montent du bas du cadre, aux couleurs de la charte.', cost: 1, determinism: 'pure', suits: { directions: D({ kinetic: 1.5, drenched: 1.5, brutal: 1, cinematic: 0.5 }), arts: { cyberpunk: 1.5, graffiti: 1, y2k: 0.5 }, sectors: { food: 1.5, music: 1, rocket: 1, fashion: 0.5 } }, impl: 'engine/src/kit/Backdrop.tsx#EmbersBg' },
+  { id: 'bg:confetti', kind: 'background', label: 'Confettis', summary: 'Confettis (carrés, points, anneaux) qui tombent du haut du cadre : fête, ouverture, offre.', cost: 1, determinism: 'pure', suits: { directions: D({ collage: 2, kinetic: 1.5 }), objectives: { event: 2, opening: 1.5, promotion: 1 }, arts: { 'pop-art': 1.5, y2k: 1, maximalism: 1 }, sectors: { gift: 1.5, smile: 1, family: 1, food: 0.5 } }, impl: 'engine/src/kit/Backdrop.tsx#ConfettiBg' },
   { id: 'bg:dot-grid', kind: 'background', label: 'Trame de points', summary: 'Points réguliers révélés depuis le coin libre.', cost: 0, determinism: 'pure', suits: { directions: D({ swiss: 2, precision: 1.5 }), arts: { minimalism: 1, swiss: 1.5, futuristic: 1 }, sectors: { code: 1, business: 1, chart: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#DotGrid' },
   { id: 'bg:halftone', kind: 'background', label: 'Demi-teinte', summary: 'Trame d’imprimerie qui fleurit dans un coin, dérive lente.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 1.5, collage: 2 }), arts: { retro: 2, 'pop-art': 2, 'collage-art': 1 }, sectors: { fashion: 1, music: 1, book: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#Halftone' },
   { id: 'bg:shape-field', kind: 'background', label: 'Formes de la marque', summary: 'Cercles, carrés, anneaux aux couleurs de la charte, groupés du côté libre.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 2, collage: 1.5 }), objectives: { promotion: 1, event: 1, opening: 1 }, arts: { maximalism: 1.5, y2k: 1.5, clay: 1, 'pop-art': 1 }, sectors: { family: 1, food: 0.5, smile: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#ShapeField' },
@@ -272,6 +323,7 @@ const ACCENTS: CapNode[] = [
   { id: 'accent:punch', kind: 'accent', label: 'Coup de poing', summary: 'Zoom bref et éclair de couleur à l’entrée de la scène, son d’impact.', cost: 0, determinism: 'pure', suits: { directions: D({ brutal: 2.5, kinetic: 2, collage: 1.5 }) }, impl: 'engine/src/App.tsx#AccentFlash' },
   { id: 'accent:giant', kind: 'accent', label: 'Titre géant', summary: 'Le titre de la scène occupe tout le cadre.', cost: 0, determinism: 'pure', suits: { directions: D({ swiss: 2, brutal: 1.5, drenched: 1.5, precision: 1, kinetic: 1 }) }, impl: 'engine/src/scenes.tsx#Headline' },
   { id: 'accent:hold', kind: 'accent', label: 'Temps suspendu', summary: 'La scène dure plus longtemps et ses entrées ralentissent : on laisse respirer.', cost: 0, determinism: 'pure', suits: { directions: D({ cinematic: 2.5, editorial: 2, precision: 1 }) }, impl: 'engine/src/text.tsx#Kinetic' },
+  { id: 'accent:burst', kind: 'accent', label: 'Éclat de particules', summary: 'Des particules de la charte jaillissent du bloc de texte à l’entrée de la scène, sous le texte.', cost: 1, determinism: 'pure', suits: { directions: D({ kinetic: 1.5, collage: 1.5, drenched: 1, brutal: 0.5 }) }, impl: 'engine/src/App.tsx#AccentBurst' },
   { id: 'accent:flip', kind: 'accent', label: 'Bascule de couleur', summary: 'La scène prend la couleur qui tranche avec ses voisines.', cost: 0, determinism: 'static', suits: { directions: D({ drenched: 2, swiss: 1.5, precision: 1, editorial: 0.5 }) }, impl: 'src/video/video.storyboard.ts' },
 ];
 
@@ -398,7 +450,25 @@ function directionNodes(): CapNode[] {
   return nodes;
 }
 
-export const CAPABILITIES: CapNode[] = [...LIBRARIES, ...ADDONS, ...conceptNodes(), ...RHYTHMS, ...CAMERAS, ...ENTRANCES, ...ACCENTS, ...TREATMENTS, ...LOGO, ...BACKGROUNDS, ...ANNOTATIONS, ...ICON_SETS, ...BRANDMARKS, ...EXTRA, ...directionNodes()];
+/**
+ * Les replis des nœuds coûteux (coût ≥ 2). Règle du catalogue : un effet lourd ou incompatible avec
+ * un rendu image par image a toujours une variante 2D ou une composition de secours — ou, à défaut,
+ * la scène garde son texte et l'effet est omis. Ce que dit `note` est ce que le moteur fait déjà
+ * quand l'addon manque (Showcase3d sans vue 3D, médias Rive absents).
+ */
+const FALLBACKS: Record<string, CapFallback> = {
+  'lib:three': { to: 'lib:zdog', note: 'objets en pseudo-3D plats (boîte, anneau, sphère) rendus en SVG, sans WebGL' },
+  'addon:three': { to: 'addon:zdog', note: 'paquet Zdog : même rôle, sans horloge posée ni SwiftShader' },
+  'logo:extrude': { to: 'logo:wipe', note: 'balayage oblique : accepte tout SVG, aucun WebGL' },
+  'postfx:bloom': { to: null, note: 'sans halo : la 3D reste lisible avec l’anticrénelage seul' },
+  'media:model3d': { to: null, note: 'sans vue 3D, la scène garde son titre et son sous-titre (Showcase3d)' },
+  'media:cards3d': { to: null, note: 'sans vue 3D, la scène garde son titre et son sous-titre (Showcase3d)' },
+  'lib:rive': { to: null, note: 'le fichier .riv n’a pas d’équivalent : la scène garde son texte' },
+  'addon:rive': { to: null, note: 'le fichier .riv n’a pas d’équivalent : la scène garde son texte' },
+  'media:rive': { to: null, note: 'le fichier .riv n’a pas d’équivalent : la scène garde son texte' },
+};
+
+export const CAPABILITIES: CapNode[] = [...LIBRARIES, ...ADDONS, ...conceptNodes(), ...RHYTHMS, ...CAMERAS, ...ENTRANCES, ...ACCENTS, ...TREATMENTS, ...LOGO, ...BACKGROUNDS, ...ANNOTATIONS, ...ICON_SETS, ...BRANDMARKS, ...EXTRA, ...directionNodes()].map((n) => (FALLBACKS[n.id] ? { ...n, fallback: FALLBACKS[n.id] } : n));
 export const CAP_BY_ID = new Map(CAPABILITIES.map((n) => [n.id, n]));
 
 /** Bibliothèques évaluées et écartées, avec la raison (documentées dans VIDEO_ENGINE.md). */
@@ -419,6 +489,88 @@ export const EXCLUDED_LIBRARIES: { name: string; reason: string }[] = [
   { name: 'p5.js, paper.js', reason: 'boucle de dessin propre et poids ; Zdog, rough.js, perfect-freehand et simplex-noise couvrent le dessin génératif image par image.' },
   { name: 'chartjs-chart-wordcloud, @visx/wordcloud', reason: 'placement des mots aléatoire : une image changerait d’une lecture à l’autre.' },
 ];
+
+// ─── Licences et replis : des règles du catalogue, vérifiées ────────────────
+
+/** Licences vérifiées qui autorisent l'usage commercial dans un produit fermé. */
+export const COMMERCIAL_LICENSES = ['MIT', 'ISC', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', '0BSD', 'Zlib', 'GreenSock-Standard'];
+
+/** Les alternatives SPDX d'une licence de package.json : « (MIT OR GPL-3.0-or-later) » → MIT, GPL-3.0-or-later. */
+export function licenseAlternatives(raw: string): string[] {
+  if (/^Standard 'no charge' license|gsap\.com\/standard-license/i.test(raw)) return ['GreenSock-Standard'];
+  return raw
+    .replace(/[()]/g, '')
+    .split(/\s+OR\s+/i)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+/** Les licences d'un nœud : celles de ses bibliothèques, par les arêtes « exige ». */
+export function licensesOf(id: string, seen = new Set<string>()): string[] {
+  if (seen.has(id)) return [];
+  seen.add(id);
+  const n = CAP_BY_ID.get(id);
+  if (!n) return [];
+  const own = (n.license || '').split(',').map((x) => x.trim()).filter(Boolean);
+  return [...new Set([...own, ...(n.requires || []).flatMap((r) => licensesOf(r, seen))])];
+}
+
+/**
+ * Les défauts de licence du catalogue (vide = accepté). `read` rend la licence publiée par un
+ * paquet installé (champ `license` de son package.json) : la déclaration du graphe doit la contenir,
+ * toute licence déclarée doit autoriser l'usage commercial, aucune déclaration ne doit être périmée.
+ */
+export function licenseIssues(read: (pkg: string) => string | null): string[] {
+  const issues: string[] = [];
+  for (const n of CAPABILITIES) {
+    if (n.kind !== 'library') {
+      if (n.license) issues.push(`${n.id} : seule une bibliothèque porte une licence (les autres héritent par « exige »)`);
+      continue;
+    }
+    if (!n.license) {
+      issues.push(`${n.id} : licence non déclarée`);
+      continue;
+    }
+    const declared = n.license.split(',').map((x) => x.trim()).filter(Boolean);
+    for (const d of declared) if (!COMMERCIAL_LICENSES.includes(d)) issues.push(`${n.id} : ${d} n'est pas dans la liste des licences vérifiées pour l'usage commercial`);
+    const seen = new Set<string>();
+    for (const pkg of n.packages || []) {
+      const raw = read(pkg);
+      if (raw == null) {
+        issues.push(`${n.id} : package.json de ${pkg} introuvable`);
+        continue;
+      }
+      const hit = licenseAlternatives(raw).find((a) => declared.includes(a));
+      if (hit) seen.add(hit);
+      else issues.push(`${n.id} : ${pkg} est publié sous « ${raw} », le graphe déclare « ${n.license} »`);
+    }
+    for (const d of declared) if (!seen.has(d)) issues.push(`${n.id} : la licence ${d} est déclarée mais aucun paquet ne la porte`);
+  }
+  return issues;
+}
+
+/**
+ * Les défauts de repli du catalogue (vide = accepté) : tout nœud de coût ≥ 2 a un repli ; un repli
+ * vers un nœud existe, joue le même rôle (même genre), coûte moins et n'a pas d'horloge posée.
+ */
+export function fallbackIssues(): string[] {
+  const issues: string[] = [];
+  for (const n of CAPABILITIES) {
+    if (n.cost >= 2 && !n.fallback) issues.push(`${n.id} : coût ${n.cost} sans repli`);
+    const f = n.fallback;
+    if (!f) continue;
+    if (!f.note.trim()) issues.push(`${n.id} : repli sans explication`);
+    if (!f.to) continue;
+    const to = CAP_BY_ID.get(f.to);
+    if (!to) issues.push(`${n.id} : repli vers un nœud absent ${f.to}`);
+    else {
+      if (to.kind !== n.kind) issues.push(`${n.id} (${n.kind}) → ${to.id} (${to.kind}) : un repli joue le même rôle`);
+      if (to.cost >= n.cost) issues.push(`${n.id} (coût ${n.cost}) → ${to.id} (coût ${to.cost}) : le repli doit coûter moins`);
+      if (to.determinism === 'clock-pinned') issues.push(`${n.id} → ${to.id} : un repli à horloge posée est aussi fragile que l'original`);
+    }
+  }
+  return issues;
+}
 
 // ─── Contexte et routeur ────────────────────────────────────────────────────
 
@@ -806,7 +958,7 @@ export function topNodes(kind: CapKind, ctx: KitContext, k: number): string[] {
 }
 
 /** L'effet du grand moment : celui que la direction appelle (graphe, déterministe). */
-export function pickAccentEffect(direction: DirectionId, seed: number, boosts?: Record<string, number>): 'punch' | 'giant' | 'hold' | 'flip' {
+export function pickAccentEffect(direction: DirectionId, seed: number, boosts?: Record<string, number>): 'punch' | 'giant' | 'hold' | 'flip' | 'burst' {
   const ctx: KitContext = {
     type: 'mix',
     objective: 'announce',
@@ -823,7 +975,7 @@ export function pickAccentEffect(direction: DirectionId, seed: number, boosts?: 
     boosts,
   };
   const chosen = choose('accent', ctx, [], [], 0xacc).chosen.split(':')[1];
-  return (['punch', 'giant', 'hold', 'flip'].includes(chosen) ? chosen : 'giant') as 'punch' | 'giant' | 'hold' | 'flip';
+  return (['punch', 'giant', 'hold', 'flip', 'burst'].includes(chosen) ? chosen : 'giant') as 'punch' | 'giant' | 'hold' | 'flip' | 'burst';
 }
 
 

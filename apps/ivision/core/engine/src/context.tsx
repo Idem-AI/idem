@@ -68,8 +68,8 @@ export interface SceneData {
   emphasis?: number;
   /** Cran Max : taille des titres réglée par le directeur artistique (0,85 à 1,25). */
   scale?: number;
-  /** Le grand moment de la vidéo : punch (zoom + éclair), giant (titre géant), hold (temps suspendu), flip (couleur). */
-  accent?: 'punch' | 'giant' | 'hold' | 'flip';
+  /** Le grand moment de la vidéo : punch (zoom + éclair), giant (titre géant), hold (temps suspendu), flip (couleur), burst (éclat de particules). */
+  accent?: 'punch' | 'giant' | 'hold' | 'flip' | 'burst';
   motion: SceneMotion;
 }
 

@@ -24,6 +24,7 @@ import { clamp, hash, keyframes, mix, progress, springEase } from './time';
 import { ChartJs } from './kit/Chart';
 import { numbersIn, percentIn, slotNumbers } from './kit/data';
 import { countriesIn } from './kit/africa';
+import { Particles } from './kit/Particles';
 import { Brush, FlowField, Sketch, useNoise } from './kit/Sketch';
 import { AfricaMap, DataArc, GrowArea, useViz, VoronoiField } from './kit/Viz';
 import { Flat3D } from './kit/Zdog';
@@ -95,6 +96,8 @@ export const KIT = {
   FlowField,
   // Pseudo-3D plate (Zdog)
   Flat3D,
+  // Particules à graine : poussière, braises, confettis, éclat, rassemblement, désintégration
+  Particles,
 };
 
 /** Erreurs des scènes écrites par l'IA (lues par le contrôle de rendu côté serveur). */

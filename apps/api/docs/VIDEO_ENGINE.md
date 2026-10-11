@@ -98,6 +98,21 @@ donné, dans n'importe quel ordre (rendu en onglets parallèles). Une bibliothè
 | simplex-noise | 4 | bruit continu (champs de flux, mouvements organiques) | graine du moteur (`hash`), jamais `Math.random` |
 | Zdog | 1.1 | objets 3D plats et ronds en SVG | rotation posée puis `updateRenderGraph()` |
 
+**Licences.** Chaque bibliothèque porte sa licence dans le graphe (`license`, SPDX) et `check:video:engine` la compare au
+`package.json` réellement installé : une mise à jour qui change de licence fait échouer le contrôle. Toutes autorisent
+l'usage commercial (MIT, ISC, Zlib pour `postprocessing`, MIT pour `jszip` qui est publié « MIT OR GPL-3.0-or-later »).
+La seule à relire est **GSAP** : sa licence « no charge » couvre l'usage commercial et tous les plugins (DrawSVG,
+MorphSVG, SplitText…), mais interdit une solution qui concurrence l'éditeur d'animation visuel de Webflow
+(<https://gsap.com/standard-license>). iVision génère des vidéos par IA ; si l'éditeur en direct devenait un outil de
+création d'animations sans code, il faudrait la faire revalider. Les licences des assets (polices embarquées, musique
+CC0 / PD / CC BY) sont suivies à part (`video.fonts.ts`, `video.music.ts`).
+
+**Replis.** Tout nœud de coût ≥ 2 (3D, post-traitement, Rive) déclare son repli (`fallback`) : une variante moins chère,
+du même rôle et sans horloge posée (`logo:extrude` → `logo:wipe`, `lib:three` → `lib:zdog`), ou, à défaut, l'effet est
+omis et la scène garde son texte (`media:cards3d`, `media:model3d`, `postfx:bloom`, Rive). Le contrôle vérifie la règle ;
+le moteur applique déjà l'omission quand l'addon manque, mais **aucun code ne remplace encore automatiquement un nœud par
+son repli en cas d'échec de rendu** : la déclaration est la règle du catalogue, pas encore un mécanisme.
+
 Écartées, avec la raison : voir la table « Bibliothèques écartées » de [VIDEO_CAPABILITIES.md](VIDEO_CAPABILITIES.md)
 (react-spring, animate() de motion, auto-animate, Remotion, Theatre.js, dotlottie-web, Vivus, Rough Notation, mo.js,
 lucide-react…). Les collections à copier-coller (Magic UI, React Bits, Aceternity, Motion Primitives) ne sont pas
@@ -126,13 +141,14 @@ kit** en fonctions du temps, aux couleurs de la charte.
 | Composant | Rôle | Nœuds du graphe |
 |---|---|---|
 | `LogoMotion` | anime le logo vectoriel posé en ligne : `draw`, `trace`, `morph`, `assemble`, `wipe` | `logo:*` |
-| `Backdrop` | fond de deux scènes au plus : `dot-grid`, `halftone`, `shape-field`, `stagger-grid`, `marquee`, `spotlight`, `ticks`, `flow-field`, `sketch-shapes`, `voronoi`, `flat3d` | `bg:*` |
+| `Backdrop` | fond de deux scènes au plus : `dot-grid`, `halftone`, `shape-field`, `stagger-grid`, `marquee`, `spotlight`, `ticks`, `flow-field`, `sketch-shapes`, `voronoi`, `flat3d`, `motes`, `embers`, `confetti` | `bg:*` |
 | `Em` / `EmDecor` | annotation du mot mis en valeur, une scène par vidéo : `marker`, `underline`, `circle`, `sketch-circle`, `brush` | `annotate:*` |
 | `Icon` | pictogramme SVG choisi par le serveur, couleur héritée | `icons:*` |
 | `ChartJs` | graphique Chart.js piloté par le temps (`grow` : rise, sweep, reveal), couleurs `var(--…)` résolues, valeurs exposées dans `data-chart-values` | `layout:chartRing`, `layout:barCompare` |
 | `useViz`, `DataArc`, `GrowArea`, `AfricaMap`, `VoronoiField` | visx + d3 pour l'agent codeur ; jauge, aire qui se dessine, carte de l'Afrique (seuls les pays **nommés** dans le texte s'allument), mosaïque | `layout:dataArc`, `bg:voronoi` |
 | `Sketch`, `Brush`, `useNoise`, `FlowField` | croquis rough.js, pinceau, bruit simplex, lignes de flux | `bg:flow-field`, `bg:sketch-shapes`, `annotate:sketch-circle`, `annotate:brush` |
 | `Flat3D` | objets Zdog (boîte, cylindre, cône, anneau, sphère…) | `bg:flat3d` |
+| `Particles` | particules à graine, **sans bibliothèque** : `drift` (poussière), `rise` (braises), `fall` (confettis), `burst` (éclat depuis un point), `converge` (rassemblement), `dissolve` (un bloc de texte qui se défait de gauche à droite). La pose de la particule i est une fonction pure de la graine, de i et du temps (`particles.math.ts`), au plus 120, aux couleurs de la charte ; `data-particles` expose le nombre de visibles | `bg:motes`, `bg:embers`, `bg:confetti`, `accent:burst` |
 | `numbersIn`, `percentIn`, `countriesIn` | les chiffres et les pays des TEXTES de la scène : un graphique n'en montre pas d'autres (contrôlé au rendu des plans codés) | — |
 | `cn` | classes conditionnelles sans doublon | — |
 
@@ -183,7 +199,7 @@ dans le texte l'emporte : « Qualité garantie » donne `quality`, pas `secure`)
 2. Lourd ? Créer `apps/ivision/core/engine/src/addons/<id>.ts` qui appelle `registerAddon`, ajouter `<id>` à `ADDON_IDS`
    (`video.engine.ts`) et son type à `shared.ts`.
 3. Écrire le composant dans `apps/ivision/core/engine/src/kit/` (Tailwind, jetons de surface, fonction du temps).
-4. Déclarer le nœud dans `video.capabilities.ts` : `requires`, `when`, `suits`, `cost`, `determinism`, `impl`.
+4. Déclarer le nœud dans `video.capabilities.ts` : `requires`, `when`, `suits`, `cost`, `determinism`, `impl` ; pour une bibliothèque, sa `license` (`LIBRARY_LICENSES`, relue dans le `package.json` installé) ; pour un nœud de coût ≥ 2, son `fallback` (`FALLBACKS`).
 5. Pour que les codeurs du cran Ultra s'en servent : l'exporter dans `kit-api.ts`, ajouter son nom à `KIT_NAMES` et,
    s'il dépend d'un addon, à `KIT_ADDONS` (`video.coder.ts`), puis le décrire dans `KIT_MANIFEST`.
 6. `npm run check:video:engine` (ajouter le cas au rendu du kit), puis `npm run docs:video-graph`.
@@ -192,7 +208,7 @@ dans le texte l'emporte : « Qualité garantie » donne `quality`, pas `secure`)
 
 | Commande | Ce qu'elle vérifie |
 |---|---|
-| `npm run check:video:engine` | paquets et addons, Tailwind (charte, collisions), icônes, nettoyage du logo, graphe (arêtes, implémentations, paquets installés, routeur déterministe, choix possibles, variété, qualité, retouches), rendu de chaque animation de logo, fond, annotation et bibliothèque d'icônes, des 17 mises en page × 3 formats, de plans codés qui utilisent Chart.js, visx, la carte, les croquis et Zdog (valeurs des graphiques issues des textes) : aucune erreur, même image à l'aller et au retour, animation qui progresse. Planche : `tmp/video-engine-kit/index.html`. `--online` : un vrai fichier Rive. |
+| `npm run check:video:engine` | paquets et addons, Tailwind (charte, collisions), icônes, nettoyage du logo, graphe (arêtes, implémentations, paquets installés, **licences** comparées aux `package.json`, **replis** des nœuds coûteux, **particules** pures et bornées, routeur déterministe, choix possibles, variété, qualité, retouches), rendu de chaque animation de logo, fond, annotation et bibliothèque d'icônes, des 17 mises en page × 3 formats, de plans codés qui utilisent Chart.js, visx, la carte, les croquis et Zdog (valeurs des graphiques issues des textes) : aucune erreur, même image à l'aller et au retour, animation qui progresse. Planche : `tmp/video-engine-kit/index.html`. `--online` : un vrai fichier Rive. |
 | `npm run check:video:creative` | concepts dépliés (13 × 4 durées × 6 profils de médias), modèles faibles (JSON, bavard, inventé, vide, en panne), médias de l'utilisateur garantis, variété sur 12 vidéos, budget de tokens, traduction de la charte, « Améliorer ma demande », part de vidéos du calendrier |
 | `npm run check:video:variety` | 12 vidéos rendues d'une même marque (dont 6 dans la même direction) : distances d'image et de structure, bonnes pratiques |
 | `npm run check:video:novelty` | le moteur créatif (§17) : motifs résolus en briques existantes, empreinte (déterminisme, symétrie, vidéos anciennes), exploration par cran, accent unique hors ADN, 10 vidéos par cran et 8 en direction imposée par le vrai pipeline (aucune à moins de 0,30 d'une précédente), contrôle créatif, mémoire d'expérience, univers et manifeste restreint d'Ultra, budgets |
@@ -241,7 +257,7 @@ cadre et sur la signature.
 **Statique (code et graphe)** : 13 concepts narratifs (`video.concepts.ts` : question → réponse, problème →
 solution, le produit en héros, manifeste, offre choc, la preuve d'abord, sur le terrain, teaser, invitation,
 vitrine, les raisons, célébration, signature), leur dépliage en scènes selon les médias et la durée, 4 effets de
-grand moment (coup de poing, titre géant, temps suspendu, bascule de couleur), les menus, la validation.
+grand moment (coup de poing, titre géant, temps suspendu, bascule de couleur, éclat de particules), les menus, la validation.
 
 **Choisi par le modèle, dans des menus** : concept, enchaînement, grand moment, objectif si l'utilisateur ne l'a pas
 dit (le stratège) ; mises en page, transitions, entrées de texte, caméra, animation du logo, musique (les autres

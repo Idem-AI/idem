@@ -500,6 +500,7 @@ const COMBOS: string[][] = [
   ['VoronoiField', 'Kinetic'],
   ['GrowArea', 'Sketch'],
   ['Flat3D', 'FlowField'],
+  ['Particles', 'Kinetic'],
 ];
 
 function kitAllowed(name: string, brief: CreativeBrief, photos: number): boolean {

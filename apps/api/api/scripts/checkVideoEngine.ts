@@ -6,7 +6,9 @@
  *  3. Icônes : chaque concept existe dans chaque bibliothèque, SVG normalisé.
  *  4. Logo : nettoyage d'un SVG piégé.
  *  5. Graphe : arêtes valides, implémentations présentes, routeur déterministe,
- *     choix toujours possibles, variété, contraintes (qualité, logo, médias).
+ *     choix toujours possibles, variété, contraintes (qualité, logo, médias) ;
+ *     licences comparées aux package.json installés, repli de tout nœud coûteux,
+ *     particules : pose pure de la graine et du temps.
  *  6. Rendu (Chromium) : chaque animation de logo, chaque fond, chaque
  *     annotation, chaque bibliothèque d'icônes — aucune erreur, image identique
  *     quel que soit l'ordre de lecture, planche contact.
@@ -21,7 +23,8 @@ import axios from 'axios';
 import puppeteer, { Browser } from 'puppeteer';
 import { VideoKit } from '../models/motionVideo.model';
 import { buildVideoEngine, ADDON_IDS, buildEngineCss } from '../../../ivision/core/src/video/video.engine';
-import { CAP_BY_ID, CAPABILITIES, KitContext, resolveKit, unmet, applyKitOverrides, assignIcons, capabilityCard } from '../../../ivision/core/src/video/video.capabilities';
+import { CAP_BY_ID, CAPABILITIES, KitContext, resolveKit, unmet, applyKitOverrides, assignIcons, capabilityCard, fallbackIssues, licenseIssues, licensesOf, pickAccentEffect } from '../../../ivision/core/src/video/video.capabilities';
+import { MAX_PARTICLES, PARTICLE_MODES, particlesAt } from '../../../ivision/core/engine/src/kit/particles.math';
 import { ICON_CONCEPT_IDS, ICON_CONCEPTS, iconFile, iconSvg, IconSetId } from '../../../ivision/core/src/video/video.icons';
 import { analyzeLogo, sanitizeLogoSvg } from '../../../ivision/core/src/video/video.logo';
 import { buildVideoTheme } from '../../../ivision/core/src/video/video.theme';
@@ -159,7 +162,9 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
   section('1. Paquets');
   const bundles = await buildVideoEngine();
   check(`runtime ${Math.round(bundles.runtime.length / 1024)} ko, moteur ${Math.round(bundles.engine.length / 1024)} ko`, bundles.engine.length > 50000);
-  check('le moteur n’embarque pas React (runtime partagé)', !bundles.engine.includes('__SECRET_INTERNALS') && !/react\.production/.test(bundles.engine) && bundles.engine.length < bundles.runtime.length);
+  // Embarquer React ajouterait au moteur la taille du runtime : le seuil est 1,5 × le runtime, pas le runtime lui-même
+  // (un moteur qui s'enrichit de quelques ko ne doit pas faire croire qu'il embarque React).
+  check('le moteur n’embarque pas React (runtime partagé)', !bundles.engine.includes('__SECRET_INTERNALS') && !/react\.production/.test(bundles.engine) && bundles.engine.length < bundles.runtime.length * 1.5);
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage', '--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
   try {
     for (const id of ADDON_IDS) {
@@ -210,6 +215,51 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
     const notInstalled = CAPABILITIES.flatMap((n) => n.packages || []).filter((p) => !declared(corePkg, p) || !declared(apiPkg, p));
     check('chaque paquet cité est déclaré par le moteur partagé et installé par l’API IDEM', notInstalled.length === 0, notInstalled.join(' '));
 
+    // Licences : le graphe déclare celle de chaque bibliothèque ; le package.json installé fait foi.
+    const readLicense = (pkg: string): string | null => {
+      for (let dir = CORE_ROOT; dir !== path.dirname(dir); dir = path.dirname(dir)) {
+        const file = path.join(dir, 'node_modules', pkg, 'package.json');
+        if (!fs.existsSync(file)) continue;
+        const j = JSON.parse(fs.readFileSync(file, 'utf8'));
+        return typeof j.license === 'string' ? j.license : j.license?.type || null;
+      }
+      return null;
+    };
+    const licIssues = licenseIssues(readLicense);
+    check(`licences : ${CAPABILITIES.filter((n) => n.kind === 'library').length} bibliothèques déclarées, conformes aux paquets installés et à l’usage commercial`, licIssues.length === 0, licIssues.join(' | '));
+    check('licences : un nœud hérite de celles de ses bibliothèques (morphose de logo → flubber)', licensesOf('logo:morph').join() === 'MIT', licensesOf('logo:morph').join());
+    // Replis : tout effet coûteux a une variante ou une composition de secours.
+    const fbIssues = fallbackIssues();
+    check(`replis : ${CAPABILITIES.filter((n) => n.cost >= 2).length} nœuds de coût ≥ 2, chacun avec un repli moins cher, du même rôle, sans horloge posée`, fbIssues.length === 0, fbIssues.join(' | '));
+
+    // Particules : la pose est une fonction pure de (graine, indice, temps).
+    {
+      const modes = PARTICLE_MODES.map((mode) => {
+        const spec = { mode, count: 60, seed: 11, area: (mode === 'dissolve' ? [10, 40, 70, 60] : [0, 0, 100, 100]) as [number, number, number, number], aspect: 9 / 16 };
+        const frames = [0.2, 0.9, 1.7, 3.1, 5.4].map((t) => ({ t, p: Math.min(1, t / 3) }));
+        const forward = frames.map((f) => JSON.stringify(particlesAt(spec, f.t, f.p)));
+        const backward = [...frames].reverse().map((f) => JSON.stringify(particlesAt(spec, f.t, f.p))).reverse();
+        const other = JSON.stringify(particlesAt({ ...spec, seed: 12 }, 1.7, 0.5));
+        const all = frames.flatMap((f) => particlesAt(spec, f.t, f.p));
+        return {
+          mode,
+          pure: forward.join() === backward.join(),
+          seeded: other !== forward[2],
+          finite: all.every((q) => [q.x, q.y, q.size, q.rot, q.alpha].every(Number.isFinite) && q.alpha >= 0 && q.alpha <= 1),
+          visible: all.some((q) => q.alpha > 0.2),
+          moves: JSON.stringify(particlesAt(spec, 0.2, 0.1)) !== JSON.stringify(particlesAt(spec, 3.1, 0.9)),
+        };
+      });
+      for (const key of ['pure', 'seeded', 'finite', 'visible', 'moves'] as const) {
+        const bad = modes.filter((m) => !m[key]).map((m) => m.mode);
+        check(`particules (${PARTICLE_MODES.length} modes) : ${{ pure: 'même pose quel que soit l’ordre de rendu', seeded: 'une autre graine donne d’autres particules', finite: 'valeurs finies, opacité bornée', visible: 'des particules sont visibles', moves: 'elles bougent' }[key]}`, bad.length === 0, bad.join(' '));
+      }
+      check(`particules : au plus ${MAX_PARTICLES}, même demandées par milliers`, particlesAt({ count: 5000 }, 1, 0).length === MAX_PARTICLES && particlesAt({ count: NaN as any }, 1, 0).length > 0);
+      const edge = (mode: any) => particlesAt({ mode, count: 40, seed: 3, area: [20, 20, 20, 20], aspect: 9 / 16 }, 1, mode === 'burst' ? 0 : 0);
+      check('éclat et rassemblement : rien de visible avant l’événement', edge('burst').every((q) => q.alpha < 0.01) && edge('converge').every((q) => q.alpha < 0.01));
+      check('éclat : tout s’est éteint à la fin (rien ne reste sur le texte)', particlesAt({ mode: 'burst', count: 40, seed: 3, area: [50, 50, 50, 50], aspect: 1 }, 2, 1).every((q) => q.alpha < 0.01));
+    }
+
     const ctxFor = (over: Partial<KitContext>): KitContext => ({
       type: 'promo',
       objective: 'promotion',
@@ -248,6 +298,11 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
     }
     check('96 kits : chaque choix est possible dans son contexte, fond sur 2 scènes max', impossible === 0, `${impossible} écart(s)`);
     check(`variété : ${logos.size} animations de logo, ${bgs.size} fonds sur 96 kits`, logos.size >= 5 && bgs.size >= 5, `${[...logos].join(',')} | ${[...bgs].join(',')}`);
+    const accentsKinetic = new Set(Array.from({ length: 24 }, (_, seed) => pickAccentEffect('kinetic', seed + 1)));
+    check(`grand moment : le graphe tire l’éclat de particules parmi d’autres effets en cinétique (${[...accentsKinetic].join(', ')})`, accentsKinetic.has('burst') && accentsKinetic.size >= 2);
+    const particleBgs = new Set<string>();
+    for (const dir of DIRECTION_IDS) for (let seed = 1; seed <= 30; seed++) particleBgs.add(resolveKit(ctxFor({ direction: dir, seed })).background);
+    check(`fonds : au moins un fond de particules est retenu sur 30 graines × ${DIRECTION_IDS.length} directions`, ['motes', 'embers', 'confetti'].some((b) => particleBgs.has(b)), [...particleBgs].join(','));
     const noLogo = resolveKit(ctxFor({ logo: null, hasLogoIcon: false }));
     check('sans logo vectoriel ni symbole → signature de la direction', noLogo.logo === 'classic', noLogo.logo);
     const std = resolveKit(ctxFor({ quality: 'standard', type: 'showcase3d', scenes: [...ctxFor({}).scenes, { key: 'showcase3d-6', sceneId: 'showcase3d', hasMedia: false, hasTitle: true, three: true }] }));
@@ -289,7 +344,7 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
     sheet.push({ group: 'Animations de logo', shots: logoShots });
 
     const bgShots: Shot[] = [];
-    for (const bg of ['dot-grid', 'halftone', 'shape-field', 'stagger-grid', 'marquee', 'spotlight', 'ticks', 'flow-field', 'sketch-shapes', 'voronoi', 'flat3d']) {
+    for (const bg of ['dot-grid', 'halftone', 'shape-field', 'stagger-grid', 'marquee', 'spotlight', 'ticks', 'flow-field', 'sketch-shapes', 'voronoi', 'flat3d', 'motes', 'embers', 'confetti']) {
       const { html, spec, sb } = await composeKit({
         brandId: 'bissap',
         sceneIds: ['statement', 'cta'],
@@ -301,6 +356,8 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
       const s0 = sb.scenes[0];
       // La page ne charge que la bibliothèque qu'exige le fond, et pas les autres.
       const wanted = ({ 'flow-field': 'draw', 'sketch-shapes': 'draw', voronoi: 'viz', flat3d: 'zdog' } as Record<string, string>)[bg];
+      // Les particules n'ont besoin d'aucune bibliothèque : aucun addon dans la page.
+      if (['motes', 'embers', 'confetti'].includes(bg)) check(`fond ${bg} : aucun addon chargé (particules à graine, sans bibliothèque)`, !html.includes('data-addon='));
       if (wanted) check(`fond ${bg} : addon-${wanted} chargé, aucun autre addon de dessin`, html.includes(`data-addon="${wanted}"`) && ['chart', 'viz', 'draw', 'zdog'].filter((a) => a !== wanted).every((a) => !html.includes(`data-addon="${a}"`)));
       const frames = await renderCheck(browser, html, spec, [0.4, 1.0, s0.duration - 0.3], `fond ${bg}`);
       bgShots.push({ label: bg, frames });
@@ -342,6 +399,8 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
         ['croquis rough', 'Sketch, progress', `<Sketch draw={{ shape: 'ellipse', cx: 50, cy: 62, w: 70, h: 40 }} p={progress(lt, 0.3, 1)} weight={0.6} />`, { title: 'Dessiné à la main' }],
         ['pinceau', 'Brush, progress', `<Brush points={[[10, 70], [30, 62], [55, 72], [80, 60], [92, 66]]} p={progress(lt, 0.2, 1.2)} size={6} />`, { title: 'Un coup de pinceau' }],
         ['flux de bruit', 'FlowField', `<FlowField seed={4} opacity={0.5} />`, { title: 'Un champ vivant' }],
+        ['particules : poussière', 'Particles', `<Particles mode="drift" count={40} seed={4} />`, { title: 'Un air qui brille' }],
+        ['particules : désintégration', 'Particles, progress', `<Particles mode="dissolve" area={[10, 40, 90, 60]} at={0.3} dur={1.6} count={80} seed={2} />`, { title: 'Ce qui s’efface' }],
         ['Zdog', 'Flat3D', `<div style={{ position: 'absolute', left: '20%', right: '20%', top: '32%', bottom: '6%' }}><Flat3D rotate={{ x: -0.4, y: lt * 0.9 }} items={[{ kind: 'box', width: 30, height: 30, depth: 30, color: 'var(--hl)', shade: 'var(--c-primary)' }, { kind: 'ring', diameter: 56, stroke: 3, color: 'var(--c-accent)', rotate: { x: 1.3 } }]} /></div>`, { title: 'Un objet en 3D plate' }],
       ];
       for (const [label, names, body, slots] of scenes) {
@@ -356,7 +415,7 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
           probe: async (page) => {
             const res = await page.evaluate(() => ({
               errors: (window as any).__IDEM_SCENE_ERRORS__ || {},
-              drawn: !!document.querySelector('section.scene canvas, section.scene svg path'),
+              drawn: !!document.querySelector('section.scene canvas, section.scene svg path, section.scene [data-particles]'),
               values: [...document.querySelectorAll('[data-chart-values]')].map((el) => el.getAttribute('data-chart-values')),
               map: document.querySelector('[data-map-highlight]')?.getAttribute('data-map-highlight') || null,
             }));
@@ -516,7 +575,7 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
 
     // Grand moment : l'effet que la direction donne à LA scène choisie.
     const accentShots: Shot[] = [];
-    for (const [effect, dir] of [['punch', 'brutal'], ['giant', 'swiss'], ['hold', 'cinematic'], ['flip', 'drenched']] as [string, DirectionId][]) {
+    for (const [effect, dir] of [['punch', 'brutal'], ['giant', 'swiss'], ['hold', 'cinematic'], ['flip', 'drenched'], ['burst', 'kinetic']] as [string, DirectionId][]) {
       const brand = brandById('wax');
       const theme = buildVideoTheme(brand.branding, brand.name);
       const sb = buildStoryboard({
@@ -533,7 +592,20 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
       const { html, spec } = await composeVideoHtml({ ...(await inlineAssets(sb, theme)), format: 'square', quality: 'standard', mode: 'render' });
       const s1 = sb.scenes[1];
       check(`grand moment ${effect} posé sur sa scène (${s1.surface})`, s1.accent === effect);
-      const frames = await renderCheck(browser, html, spec, [s1.start + 0.05, s1.start + 0.25, s1.start + s1.duration * 0.7], `grand moment ${effect} · ${dir}`);
+      const frames = await renderCheck(browser, html, spec, [s1.start + 0.05, s1.start + 0.25, s1.start + s1.duration * 0.7], `grand moment ${effect} · ${dir}`, {
+        probe:
+          effect === 'burst'
+            ? async (page) => {
+                // Les instants sont posés un à un côté Node (une fonction async transpilée n'existe pas dans la page).
+                const counts: number[] = [];
+                for (const t of [s1.start + 0.05, s1.start + 0.7, s1.start + s1.duration * 0.9]) {
+                  await page.evaluate((x: number) => (window as any).__IDEM_VIDEO__.seek(x), t);
+                  counts.push(await page.evaluate(() => Number(document.querySelector('section.scene[data-scene="statement"] [data-particles]')?.getAttribute('data-particles') || 0)));
+                }
+                check('éclat : les particules jaillissent puis s’éteignent', counts[1] > 10 && counts[2] === 0, counts.join(' → '));
+              }
+            : undefined,
+      });
       accentShots.push({ label: `${effect} · ${dir}`, frames });
     }
     sheet.push({ group: 'Grand moment', shots: accentShots });

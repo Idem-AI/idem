@@ -71,6 +71,7 @@ export const AUTHOR_TOOLS = [
   'a map of Africa lighting up the countries or cities named in the text',
   'hand-drawn sketches (circles, frames, arrows, underlines), brush strokes, organic flow fields, colour mosaics',
   'flat 3D objects (boxes, rings, spheres, cylinders) without heavy 3D',
+  'seeded particles (drifting dust, rising embers, confetti, a burst from a point, dust converging, a headline dissolving into dust)',
   'the brand logo, animated (drawn, assembled, wiped…), and line icons',
   'the photos of the MEDIA list (crop, mask, split, duotone, parallax)',
   'sound cues synced to the motion, and the beat of the music',

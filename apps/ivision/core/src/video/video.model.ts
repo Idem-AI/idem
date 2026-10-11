@@ -249,7 +249,7 @@ export interface VideoSceneInstance {
   /** Tempo des entrées de la scène (rythme de la vidéo) : < 1 plus vif, > 1 plus posé. */
   pace?: number;
   /** Le grand moment de la vidéo (une scène au plus) : effet choisi par la direction. */
-  accent?: 'punch' | 'giant' | 'hold' | 'flip';
+  accent?: 'punch' | 'giant' | 'hold' | 'flip' | 'burst';
   /** Plan de mouvement : ancrage, techniques d'entrée, transition (cf. video.direction.ts). */
   motion?: {
     anchor: string;

@@ -6,6 +6,7 @@ import { Component, CSSProperties, ReactNode, useLayoutEffect, useMemo } from 'r
 import { Engine, EngineCtx, SceneCtx, Timed, VideoData, makeEasings, useEngine, useScene } from './context';
 import { cue } from './cues';
 import { Backdrop } from './kit/Backdrop';
+import { Particles } from './kit/Particles';
 import { loadCustomScenes, SCENE_ERRORS } from './kit-api';
 import { layoutFor } from './layouts';
 import { SCENE_COMPONENTS } from './scenes';
@@ -130,6 +131,28 @@ function AccentFlash() {
   return o > 0 ? <div className="pointer-events-none absolute inset-0 z-[400] bg-hl" style={{ opacity: o }} aria-hidden /> : null;
 }
 
+/** Où le texte se pose (en %) selon l'ancrage de la composition : l'éclat part de là. */
+const BURST_ORIGIN: Record<string, [number, number]> = {
+  'top-left': [32, 30],
+  'center-left': [32, 50],
+  'bottom-left': [32, 70],
+  center: [50, 50],
+  'bottom-center': [50, 72],
+  'top-center': [50, 28],
+  right: [68, 50],
+};
+
+/**
+ * Grand moment « éclat » : des particules de la charte jaillissent du bloc de texte à l'entrée de
+ * la scène. Posé SOUS le texte (avant la composition) : le titre reste lisible pendant l'éclat.
+ */
+function AccentBurst() {
+  const s = useScene();
+  cue(`${s.key}:accent`, s.tin, 'shimmer', 0.7);
+  // `tin` est le temps de la vidéo ; les particules comptent en temps de scène.
+  return <Particles mode="burst" origin={BURST_ORIGIN[s.motion.anchor] || [50, 50]} count={66} seed={s.index * 7.1 + 2} at={Math.max(0, s.tin - s.start)} dur={1.5} reach={38} size={[0.9, 2.6]} />;
+}
+
 /** Scènes dont le plan plein cadre (photo, clip, 3D) ne doit pas porter de logo par-dessus. */
 const FULL_BLEED = new Set(['footage', 'gallery', 'showcase3d']);
 
@@ -221,6 +244,7 @@ export function Video({ data, t }: { data: VideoData; t: number }) {
             <SceneCtx.Provider key={s.key} value={s}>
               <section className={`scene scene-${s.sceneId}${s.layout ? ` ly-${s.layout}` : ''}`} data-scene={s.sceneId} style={{ ...surfaceVars(data, s.surface), zIndex: 10 + s.index, visibility: on ? 'visible' : 'hidden', ...(on ? sceneStyle(engine, s) : {}) }}>
                 <Backdrop />
+                {s.accent === 'burst' ? <AccentBurst /> : null}
                 {Custom ? (
                   <SceneBoundary sceneKey={s.key} fallback={Component ? <Component /> : null}>
                     <Custom />

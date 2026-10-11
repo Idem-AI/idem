@@ -82,6 +82,7 @@ function sceneTools(sc: VideoStoryboard['scenes'][number], kit: VideoStoryboard[
     if (names.includes('LogoMotion')) out.push('logo');
     if (names.some((n) => ['Sketch', 'Brush'].includes(n))) out.push('drawn');
     if (names.some((n) => ['FlowField', 'useNoise'].includes(n))) out.push('organic');
+    if (names.includes('Particles')) out.push('particles');
     if (addons.includes('chart')) out.push('chart');
     if (addons.includes('viz') && !names.includes('AfricaMap')) out.push('viz');
     if (addons.includes('zdog')) out.push('flat3d');
@@ -105,8 +106,10 @@ function sceneTools(sc: VideoStoryboard['scenes'][number], kit: VideoStoryboard[
     else if (['sketch-shapes'].includes(bg)) out.push('drawn');
     else if (bg === 'flat3d') out.push('flat3d');
     else if (bg === 'voronoi') out.push('viz');
+    else if (['motes', 'embers', 'confetti'].includes(bg)) out.push('particles');
     else if (bg && bg !== 'none') out.push('graphic');
   }
+  if (sc.accent === 'burst') out.push('particles');
   if (kit?.annotateScene === sc.key && kit.annotate && kit.annotate !== 'none') out.push('drawn');
   return out;
 }
