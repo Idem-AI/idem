@@ -1,6 +1,7 @@
 import { FileAction, StreamingMessageParser } from './messae';
 
 import { createFileWithContent } from '../WeIde/components/IDEContent/FileExplorer/utils/fileSystem';
+import { isScaffoldLocked } from '@/utils/scaffoldLock';
 import useTerminalStore from '@/stores/terminalSlice';
 import { Message } from 'ai/react';
 
@@ -29,9 +30,23 @@ class Queue {
     try {
       while (this.queue.length > 0) {
         const command = this.getNext();
-        if (command) {
-          console.log('[exec]', command);
-          await useTerminalStore.getState().getTerminal(0).executeCommand(command);
+        if (!command) continue;
+
+        console.log('[exec]', command);
+
+        // Un terminal peut manquer (atelier encore en train de monter) ou
+        // disparaître en cours de route. Avant, la promesse rejetée arrêtait la
+        // file entière et les commandes suivantes — dont `npm run dev` — ne
+        // partaient jamais, pour un aperçu qui restait vide sans explication.
+        try {
+          const terminal = useTerminalStore.getState().getTerminal(0);
+          if (!terminal) {
+            console.warn('[exec] aucun terminal, commande ignorée :', command);
+            continue;
+          }
+          await terminal.executeCommand(command);
+        } catch (error) {
+          console.warn('[exec] échec de', command, error);
         }
       }
     } finally {
@@ -87,7 +102,16 @@ export const execList = new List();
 const messageParser = new StreamingMessageParser({
   callbacks: {
     onActionStream: async (data) => {
-      createFileWithContent((data.action as FileAction).filePath, data.action.content, true);
+      const { filePath, content } = data.action as FileAction;
+
+      // Le socle préconfiguré est posé par le code et verrouillé : une
+      // réécriture par le modèle ne peut rien améliorer et peut tout casser
+      // (palette amputée, script d'amorçage oublié). On la laisse tomber.
+      if (isScaffoldLocked(filePath)) {
+        return;
+      }
+
+      createFileWithContent(filePath, content, true);
       //   workbenchStore.runAction(data, true);
     },
   },

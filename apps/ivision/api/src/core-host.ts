@@ -23,7 +23,7 @@ export function configureCoreForIvision(): void {
       const image = await idem.ai.image({ prompt, size: options.size, tag: options.tag, purpose: options.purpose, model: options.model, fallbackModel: options.fallbackModel });
       return { buffer: Buffer.from(image.base64, 'base64'), mimeType: image.mimeType, model: image.model };
     },
-    // Clips et voix off : les modèles d'IDEM (CogVideoX-3, GLM-TTS et son repli), par la passerelle.
+    // Clips et voix off : les modèles d'IDEM (Seedance, Kokoro), par la passerelle.
     generateVideo: (request) => idem.ai.video(request),
     synthesizeSpeech: async (request) => {
       const speech = await idem.ai.speech(request);

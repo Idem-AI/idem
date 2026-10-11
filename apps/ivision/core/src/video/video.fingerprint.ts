@@ -62,6 +62,7 @@ const LAYOUT_SHAPE: Record<string, string> = {
   barCompare: 'bars',
   spotlightWord: 'center',
   frameOverlap: 'offset',
+  glassPanel: 'glass',
 };
 
 const anchorSide = (anchor?: string) => (!anchor ? 'center' : /left/.test(anchor) ? 'left' : anchor === 'right' ? 'right' : 'center');
@@ -82,6 +83,12 @@ function sceneTools(sc: VideoStoryboard['scenes'][number], kit: VideoStoryboard[
     if (names.includes('LogoMotion')) out.push('logo');
     if (names.some((n) => ['Sketch', 'Brush'].includes(n))) out.push('drawn');
     if (names.some((n) => ['FlowField', 'useNoise'].includes(n))) out.push('organic');
+    if (names.includes('Particles')) out.push('particles');
+    if (names.includes('Shader')) out.push('matter');
+    if (names.includes('ImageFx')) out.push('photo');
+    if (names.includes('Network')) out.push('network');
+    if (names.includes('LiquidGlass')) out.push('glass');
+    if (names.some((n) => ['Morph', 'IconMotion'].includes(n))) out.push('morph');
     if (addons.includes('chart')) out.push('chart');
     if (addons.includes('viz') && !names.includes('AfricaMap')) out.push('viz');
     if (addons.includes('zdog')) out.push('flat3d');
@@ -105,8 +112,14 @@ function sceneTools(sc: VideoStoryboard['scenes'][number], kit: VideoStoryboard[
     else if (['sketch-shapes'].includes(bg)) out.push('drawn');
     else if (bg === 'flat3d') out.push('flat3d');
     else if (bg === 'voronoi') out.push('viz');
+    else if (['motes', 'embers', 'confetti'].includes(bg)) out.push('particles');
+    else if (['aurora', 'silk', 'plasma', 'fluid', 'mesh', 'topology', 'waves', 'blobs'].includes(bg)) out.push('matter');
+    else if (bg === 'network') out.push('network');
     else if (bg && bg !== 'none') out.push('graphic');
   }
+  if (sc.accent === 'burst') out.push('particles');
+  if (layout === 'glassPanel') out.push('glass');
+  if (sc.image && kit?.imageFx && kit.imageFx !== 'none' && sc.sceneId === 'product') out.push('photo');
   if (kit?.annotateScene === sc.key && kit.annotate && kit.annotate !== 'none') out.push('drawn');
   return out;
 }
@@ -152,6 +165,8 @@ export function fingerprintOf(sb: VideoStoryboard): CreativeFingerprint {
     ...kitTokens,
     ...(kit?.camera ? [`camera:${kit.camera}`] : []),
     ...(kit?.entrance ? [`entrance:${kit.entrance}`] : []),
+    ...(kit?.iconMotion && kit.iconMotion !== 'none' ? [`iconmotion:${kit.iconMotion}`] : []),
+    ...(kit?.imageFx && kit.imageFx !== 'none' ? [`imagefx:${kit.imageFx}`] : []),
     ...(sb.rhythm ? [`rhythm:${sb.rhythm}`] : []),
     ...(sb.concept ? [`concept:${sb.concept}`] : []),
     ...(sb.direction ? [`direction:${sb.direction}`] : []),

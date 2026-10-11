@@ -215,10 +215,10 @@ export class IdentityEditorComponent {
   protected readonly logoFollowAsked = computed(
     () => !this.logoChanged() && !!this.branding().logo?.svg && (this.colorsChanged() || this.fontsChanged()),
   );
-  /** Le nom du logo peut-il être reposé dans une autre police sans IA ? */
+  /** Le nom du logo peut-il être reposé dans une autre police sans IA ? (logo du moteur : retracé depuis son Logo IR) */
   protected readonly canRetypeset = computed(() => {
     const logo = this.branding().logo;
-    return !!(logo?.lockup?.brandName && logo.iconSvg);
+    return !!logo?.ir || !!(logo?.lockup?.brandName && logo.iconSvg);
   });
   /** Ce que « adapter » ferait concrètement ; vide ⇒ l'option n'est pas offerte. */
   protected readonly adaptScope = computed<'colors' | 'fonts' | 'both' | null>(() => {

@@ -4,7 +4,7 @@
  * Une équipe = un orchestrateur + plusieurs agents spécialisés (chercheurs,
  * rédacteur, vérificateur). Elle produit des livrables (sections de business
  * plan, hypothèses financières…) fondés EXCLUSIVEMENT sur des données réelles
- * récupérées via le grounding Google Search de Gemini. Chaque donnée chiffrée
+ * récupérées via la recherche web d'OpenRouter (plugin `web`). Chaque donnée chiffrée
  * doit porter au moins une source (URL réelle). Aucune statistique inventée.
  *
  * Tous les événements ci-dessous sont diffusés en temps réel (SSE) pour que
@@ -30,7 +30,7 @@ export type AgentStatus =
   | 'error';
 
 /**
- * Une source réelle citée, issue des `groundingMetadata` de Gemini.
+ * Une source réelle citée, issue des annotations `url_citation` de la recherche web.
  * `url` est TOUJOURS une URL renvoyée par le moteur (jamais fabriquée).
  */
 export interface ResearchSource {

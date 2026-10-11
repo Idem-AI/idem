@@ -21,8 +21,8 @@
  * XS/M/S ne sont PAS une troisième famille de modèles : ce sont les rôles
  * `mechanical`/`writing`/`reasoning` vus sous l'angle du COÛT et de l'escalade
  * (cf. `TIER_ROLE`, ai.config.ts). Ce fichier portait auparavant sa propre table
- * `MODEL_TIERS` — mêmes trois modèles réécrits à la main, plus un `provider:
- * GLM` en dur et une chaîne de repli recopiée. Trois tables à tenir alignées, et
+ * `MODEL_TIERS` — mêmes trois modèles réécrits à la main, plus un fournisseur
+ * en dur et une chaîne de repli recopiée. Trois tables à tenir alignées, et
  * rien pour signaler qu'elles avaient cessé de l'être.
  *
  * Les étages sont désormais RÉSOLUS depuis le registre des fournisseurs. Un
@@ -119,7 +119,7 @@ const TIER_MODEL_ENV: Record<ModelTier, string> = {
 /**
  * Définition d'un étage, résolue à l'APPEL.
  *
- * Paresseuse et non figée à l'import, pour la même raison que le backend Gemini:
+ * Paresseuse et non figée à l'import, pour la même raison que les clients de modèles :
  * `loadSecrets()` complète l'environnement APRÈS le chargement des modules, si
  * bien qu'une table constante lisait des variables encore vides.
  */

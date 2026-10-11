@@ -59,7 +59,7 @@ For the question "what is my revenue model?" you will see in `ai-trace.log` (sam
 http.request_start        { method: POST, path: /project/advisor/:id/messages }
 advisor.message_received  { messageLength: 32 }
 advisor.finance_intent    { isFinanceIntent: false, kind: "none" }
-ai.agentic_loop_start     { modelName: "glm-4.7", toolCount: 9 }
+ai.agentic_loop_start     { modelName: "qwen/qwen3.5-122b-a10b", toolCount: 9 }
 ai.agentic_turn           { turn: 1, decision: "tool_calls", tools: [{name:"project_get_map"}] }
 ai.tool_call_start        { tool: "project_get_map" }
 ai.tool_call_end          { tool: "project_get_map", durationMs: 42, ok: true }

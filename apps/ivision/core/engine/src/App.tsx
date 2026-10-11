@@ -3,9 +3,10 @@
  * calques de transition et le décor propre à la direction.
  */
 import { Component, CSSProperties, ReactNode, useLayoutEffect, useMemo } from 'react';
-import { Engine, EngineCtx, SceneCtx, Timed, VideoData, makeEasings, useEngine, useScene } from './context';
+import { Engine, EngineCtx, SceneCtx, Timed, VideoData, makeEasings, useEngine, useLocalTime, useScene } from './context';
 import { cue } from './cues';
 import { Backdrop } from './kit/Backdrop';
+import { Particles } from './kit/Particles';
 import { loadCustomScenes, SCENE_ERRORS } from './kit-api';
 import { layoutFor } from './layouts';
 import { SCENE_COMPONENTS } from './scenes';
@@ -130,6 +131,43 @@ function AccentFlash() {
   return o > 0 ? <div className="pointer-events-none absolute inset-0 z-[400] bg-hl" style={{ opacity: o }} aria-hidden /> : null;
 }
 
+/** Vidéos d'essai des outils : l'étiquette qui nomme l'outil montré (jamais posée par la création). */
+function DemoLabel() {
+  const s = useScene();
+  const { u, ease } = useEngine();
+  const lt = useLocalTime();
+  if (!s.demoLabel) return null;
+  const p = ease(clamp(progress(lt, 0.05, 0.4)));
+  return (
+    <div className="pointer-events-none absolute z-[900] flex flex-col items-end gap-[0.5em]" style={{ right: 3 * u, top: 3 * u, opacity: p, transform: `translateY(${(1 - p) * -1.5 * u}px)`, fontSize: u * 2.7, lineHeight: 1.25 }} aria-hidden>
+      <span style={{ alignSelf: 'flex-end', background: '#111418', color: '#ffffff', padding: '0.4em 0.9em', borderRadius: 999, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontWeight: 600, letterSpacing: '0.01em' }}>{s.demoLabel}</span>
+      {s.demoNote ? <span style={{ alignSelf: 'flex-end', textAlign: 'right', background: 'rgba(255,255,255,0.92)', color: '#111418', padding: '0.3em 0.8em', borderRadius: 999, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.78em', maxWidth: u * 70 }}>{s.demoNote}</span> : null}
+    </div>
+  );
+}
+
+/** Où le texte se pose (en %) selon l'ancrage de la composition : l'éclat part de là. */
+const BURST_ORIGIN: Record<string, [number, number]> = {
+  'top-left': [32, 30],
+  'center-left': [32, 50],
+  'bottom-left': [32, 70],
+  center: [50, 50],
+  'bottom-center': [50, 72],
+  'top-center': [50, 28],
+  right: [68, 50],
+};
+
+/**
+ * Grand moment « éclat » : des particules de la charte jaillissent du bloc de texte à l'entrée de
+ * la scène. Posé SOUS le texte (avant la composition) : le titre reste lisible pendant l'éclat.
+ */
+function AccentBurst() {
+  const s = useScene();
+  cue(`${s.key}:accent`, s.tin, 'shimmer', 0.7);
+  // `tin` est le temps de la vidéo ; les particules comptent en temps de scène.
+  return <Particles mode="burst" origin={BURST_ORIGIN[s.motion.anchor] || [50, 50]} count={66} seed={s.index * 7.1 + 2} at={Math.max(0, s.tin - s.start)} dur={1.5} reach={38} size={[0.9, 2.6]} />;
+}
+
 /** Scènes dont le plan plein cadre (photo, clip, 3D) ne doit pas porter de logo par-dessus. */
 const FULL_BLEED = new Set(['footage', 'gallery', 'showcase3d']);
 
@@ -221,6 +259,7 @@ export function Video({ data, t }: { data: VideoData; t: number }) {
             <SceneCtx.Provider key={s.key} value={s}>
               <section className={`scene scene-${s.sceneId}${s.layout ? ` ly-${s.layout}` : ''}`} data-scene={s.sceneId} style={{ ...surfaceVars(data, s.surface), zIndex: 10 + s.index, visibility: on ? 'visible' : 'hidden', ...(on ? sceneStyle(engine, s) : {}) }}>
                 <Backdrop />
+                {s.accent === 'burst' ? <AccentBurst /> : null}
                 {Custom ? (
                   <SceneBoundary sceneKey={s.key} fallback={Component ? <Component /> : null}>
                     <Custom />
@@ -229,6 +268,7 @@ export function Video({ data, t }: { data: VideoData; t: number }) {
                   <Component />
                 ) : null}
                 {s.accent === 'punch' ? <AccentFlash /> : null}
+                <DemoLabel />
               </section>
             </SceneCtx.Provider>
           );

@@ -2,6 +2,7 @@ import { stripIndents } from '../utils/stripIndent.js';
 import { ProjectModel } from '../types/project.js';
 import { forgeDesignSystem, renderDesignBrief, resolveRegister } from '../design/tokenForge.js';
 import { renderSkills, routeSkills, RouteResult } from '../skills/router.js';
+import { buildScaffold, renderScaffoldNotice } from '../scaffold/index.js';
 import { BuildTarget } from './buildTarget.js';
 
 export const WORK_DIR_NAME = 'project';
@@ -41,6 +42,8 @@ export interface AssembledPrompt {
     target: BuildTarget;
     artDirection: string;
     seed: number;
+    /** Le starter était-il déjà en place pour cette requête ? */
+    scaffolded: boolean;
   };
 }
 
@@ -57,13 +60,19 @@ export interface AssembleOptions {
   extraContext?: string;
   /** Site, web application or mobile application: picks the build contract. */
   target: BuildTarget;
+  /**
+   * Vrai quand l'espace de travail a déjà monté le starter préconfiguré. Le
+   * brief cesse alors de faire recopier la configuration et liste seulement les
+   * fichiers verrouillés et les jetons disponibles.
+   */
+  scaffolded?: boolean;
 }
 
 /**
  * Assembles the two halves of a builder request.
  *
- * The split is what makes the whole thing cheap. Gemini's implicit cache
- * discounts input tokens by 90% when a request shares a prefix with a previous
+ * The split is what makes the whole thing cheap. Provider-side prefix caching
+ * discounts input tokens when a request shares a prefix with a previous
  * one, so everything invariant goes into the `system` message, in a stable
  * order, and everything that changes per project stays in the trailing user
  * message. Concatenating the two (as this codebase used to) means the prefix is
@@ -81,6 +90,13 @@ export function assembleBuilderPrompt(options: AssembleOptions): AssembledPrompt
   const skills = routeSkills({ request, register, projectData, target });
   const designSystem = forgeDesignSystem(projectData);
 
+  // Le starter est reconstruit ici plutôt que repris du client : il est
+  // déterministe (même projet, même cible, mêmes octets), donc le serveur sait
+  // exactement quels fichiers sont déjà posés sans faire confiance à la requête.
+  const scaffold = options.scaffolded
+    ? buildScaffold({ target, projectData, language, system: designSystem })
+    : null;
+
   const system = [
     'You are a senior product designer who also writes production React. You ship interfaces that look designed, not generated.',
     '',
@@ -92,7 +108,8 @@ export function assembleBuilderPrompt(options: AssembleOptions): AssembledPrompt
   ].join('\n');
 
   const user = [
-    renderDesignBrief(designSystem),
+    renderDesignBrief(designSystem, { scaffolded: !!scaffold }),
+    scaffold ? `\n${renderScaffoldNotice(scaffold)}` : '',
     brandLockup ? `\n${brandLockup}` : '',
     projectBrief ? `\n${projectBrief}` : '',
     extraContext ? `\n${extraContext}` : '',
@@ -112,6 +129,7 @@ export function assembleBuilderPrompt(options: AssembleOptions): AssembledPrompt
       target,
       artDirection: designSystem.direction.id,
       seed: designSystem.seed,
+      scaffolded: !!scaffold,
     },
   };
 }

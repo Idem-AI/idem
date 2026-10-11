@@ -163,6 +163,16 @@ export interface ChatRequest {
    */
   product?: 'site' | 'app';
   platform?: 'web' | 'mobile';
+  /**
+   * Starter préconfiguré déjà monté dans l'espace de travail, et sa version.
+   *
+   * Le client l'envoie dès qu'il a monté le socle (`/api/scaffold`). Le serveur
+   * n'en reprend pas le contenu — il le reconstruit, c'est déterministe — mais
+   * en tire le droit de dire au modèle de ne plus écrire la configuration.
+   * Absent : ancien client ou espace de travail sans socle, le contrat complet
+   * repart alors comme avant.
+   */
+  scaffold?: { version: string };
   /** User UI language ('en' | 'fr') so the AI generates content in the right language. */
   language?: string;
   /**

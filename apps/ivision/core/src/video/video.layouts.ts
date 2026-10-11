@@ -1,7 +1,7 @@
 /**
  * LES MISES EN PAGE — le catalogue que l'agent directeur artistique consulte.
  *
- * Le moteur sait composer une scène de texte de quatorze façons (video-engine/src/
+ * Le moteur sait composer une scène de texte de dix-neuf façons (video-engine/src/
  * layouts.tsx) en plus de la composition propre à sa direction (« classic »). Ici, le
  * code dit, pour chaque archétype :
  *
@@ -33,6 +33,7 @@ export type LayoutId =
   | 'ticker'
   | 'spotlightWord'
   | 'frameOverlap'
+  | 'glassPanel'
   | 'chartRing'
   | 'barCompare'
   | 'dataArc';
@@ -51,7 +52,7 @@ export interface LayoutDef {
   needs: (sc: LayoutScene) => boolean;
   directions: Partial<Record<DirectionId, number>>;
   /** Bibliothèque du moteur qu'exige cette mise en page (chargée par le montage). */
-  addon?: 'chart' | 'viz' | 'draw' | 'zdog';
+  addon?: 'chart' | 'viz' | 'draw' | 'zdog' | 'ogl' | 'pixi' | 'flubber';
 }
 
 const words = (text?: string) => (text || '').split(/\s+/).filter(Boolean);
@@ -175,6 +176,12 @@ export const LAYOUT_CATALOGUE: Record<Exclude<LayoutId, 'classic'>, LayoutDef> =
     scenes: ['hook', 'statement', 'cta', 'product'],
     needs: (sc) => words(title(sc)).length >= 2 && words(title(sc)).length <= 12,
     directions: { editorial: 2.5, swiss: 2, precision: 2, collage: 2, brutal: 1.5, drenched: 1.5, kinetic: 1 },
+  },
+  glassPanel: {
+    summary: 'the headline inside a refractive liquid-glass panel over a living gradient, network and dust',
+    scenes: ['hook', 'statement', 'cta'],
+    needs: (sc) => words(title(sc)).length >= 2 && words(title(sc)).length <= 10,
+    directions: { cinematic: 3, drenched: 2.5, editorial: 2, precision: 2, kinetic: 1.5, collage: 1, swiss: 0.8 },
   },
 };
 export const LAYOUT_IDS = Object.keys(LAYOUT_CATALOGUE) as Exclude<LayoutId, 'classic'>[];

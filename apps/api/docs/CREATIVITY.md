@@ -103,7 +103,7 @@ Plus aucun menu. Les médias, la musique et les effets viennent des étapes exis
    - lint (dont les noms importés du kit) ;
    - compilation ;
    - rendu réel mesuré (`inspectRenderedScene` : erreurs, textes visibles et dans le cadre, mouvement, déterminisme, **chiffres des graphiques issus des textes**) ;
-   - **critique visuelle** : une planche de trois images du plan envoyée au modèle de vision (`glm-media.service.ts#analyzeImage`), qui juge lisibilité, composition, fidélité à la charte et effet « modèle tout fait ».
+   - **critique visuelle** : une planche de trois images du plan envoyée au modèle de vision (`media.service.ts#analyzeImage`), qui juge lisibilité, composition, fidélité à la charte et effet « modèle tout fait ».
 
    Défauts et critique repartent au codeur. Un plan qui échoue trois fois aux contrôles reprend la composition éprouvée de sa scène (`statement`, `cta` ou `logo`), et le résultat le dit.
 4. **Retouches** : un film d'auteur garde le minutage de son directeur (ni `retime`, ni règles du graphe) ; les plans codés lisent leurs cases, une retouche de texte s'y affiche.
@@ -116,7 +116,7 @@ L'ancien codeur de scènes (`video.coder.ts#codeScenes`) reste le repli du film 
    - les hooks de temps et de scène ;
    - la typographie ajustée (`Kinetic`, `Odometer`) ;
    - les entrées (`useEnter`), les sons (`cue`), les icônes, le logo animé ;
-   - les graphiques et le dessin : `ChartJs`, `useViz` (visx + d3), `DataArc`, `GrowArea`, `AfricaMap`, `Sketch`, `Brush`, `useNoise`, `FlowField`, `Flat3D` ; les chiffres par `numbersIn` ;
+   - les graphiques et le dessin : `ChartJs`, `useViz` (visx + d3), `DataArc`, `GrowArea`, `AfricaMap`, `Sketch`, `Brush`, `useNoise`, `FlowField`, `Flat3D`, `Particles`, `Shader`, `ImageFx`, `LiquidGlass`, `Gradient`, `Network`, `Morph`, `IconMotion`, `Bg` (voir « boîte à outils d'abord », VIDEO_ENGINE.md §18) ; les chiffres par `numbersIn` ;
    - les variables de la charte et les règles du moteur.
 
    Le kit est exposé par `apps/ivision/core/engine/src/kit-api.ts` ; les addons qu'un plan importe sont chargés au montage (`addonsOfSceneCode`).
@@ -202,7 +202,9 @@ La direction décidée par les agents (cran, famille, réglages des pages) est e
 
 ## Identité visuelle
 
-### Le logo (`BandIdentity/logoTemplates.ts`, `logoCreative.ts`)
+### Le logo (`services/logo-engine/`, doc : [LOGO_ENGINE.md](LOGO_ENGINE.md))
+
+> **Depuis le moteur de logos, la table ci-dessous décrit l'ancien pipeline** (`BandIdentity/logoTemplates.ts`, `logoCreative.ts`), qui n'est plus que le repli (`LOGO_ENGINE=legacy`, ou moteur en échec). Le moteur garde la même échelle de crans mais change de méthode : le modèle ne dessine plus de SVG, il choisit et décrit (Logo IR) ; le code construit, mesure et corrige. Voir [LOGO_ENGINE.md](LOGO_ENGINE.md) §5.
 
 **Le logo est toujours généré au cran Ultra, au prix habituel de la session** (60 crédits, 10 par relance) : pas de jauge sur ses écrans, le contrôleur impose `ultra` quel que soit le point d'entrée (tableau de bord, chat), et ses routes facturent sans multiplicateur (`branding.routes.ts#chargeLogoSession`). L'échelle ci-dessous reste celle du service.
 
@@ -252,5 +254,6 @@ Pas de sélecteur pour le logo (toujours Ultra).
   - les agents des visuels, et les douze compositions rendues et contrôlées ;
   - les agents de la carte et ses faces, au contrôle d'impression ;
   - la direction artistique des documents par cran, la fidélité du compositeur, son rendu mesuré, sa réparation et son repli ;
-  - les logos du code (deux polices, trois types, `svgGate`, aucun `NaN`), le directeur de création et le jury.
+  - les logos du code (deux polices, trois types, `svgGate`, aucun `NaN`), le directeur de création et le jury (ancien pipeline) ;
+  - le moteur de logos : `npm run check:logo` (150 vérifications, sans réseau ni modèle).
 - `npm run check:video` déroule le pipeline complet à chaque cran, avec agents et codeur simulés. Les scènes Ultra y sont réellement lintées, compilées, rendues et retenues.

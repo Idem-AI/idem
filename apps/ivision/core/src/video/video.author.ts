@@ -66,11 +66,15 @@ export interface AuthoredFilm {
 
 /** Ce que le moteur sait faire, dit au directeur (il imagine dans ce champ, sans menu). */
 export const AUTHOR_TOOLS = [
-  'kinetic typography (twenty text techniques, always fitted to the frame)',
+  'kinetic typography (twenty-four text techniques, always fitted to the frame)',
   'animated charts (bars, lines, rings, radar, treemap, sankey) and gauges — ONLY with the numbers of the FACTS',
   'a map of Africa lighting up the countries or cities named in the text',
   'hand-drawn sketches (circles, frames, arrows, underlines), brush strokes, organic flow fields, colour mosaics',
   'flat 3D objects (boxes, rings, spheres, cylinders) without heavy 3D',
+  'seeded particles (drifting dust, rising embers, confetti, a burst from a point, dust converging, a headline dissolving into dust)',
+  'living backgrounds in shaders (aurora, satin, plasma, ink in water, mesh gradient, contour lines, waves, metaballs), a sliding gradient, a network of linked points',
+  'effects on a photo (RGB split, shockwave, bulge, twist, zoom blur, pixel reveal, glitch, liquid ripple, old TV)',
+  'refractive liquid glass over the scene, shapes that morph into others, icons and brand logos as SVG that draw, assemble, pop or morph',
   'the brand logo, animated (drawn, assembled, wiped…), and line icons',
   'the photos of the MEDIA list (crop, mask, split, duotone, parallax)',
   'sound cues synced to the motion, and the beat of the music',
@@ -127,6 +131,7 @@ export function buildDirectorPrompt(input: DirectorInput): { system: string; use
     `- Few words, written in ${LANG[input.language] || 'French'}. Per shot: TITLE (≤ 60 characters) and optional SUB (≤ 80). The call to action shot adds ACTION (button, ≤ 26) and CONTACT copied from the brief.`,
     '- Figures: ONLY those of FACTS, exactly as written. Never invent a number, a price, a date, a percentage.',
     '- The LAST shot is the SIGNATURE: the brand logo, with an optional TAGLINE (≤ 48).',
+    '- TOOLBOX FIRST: describe each VISUAL with the tools above. Anything the toolbox already does (a living background, a photo effect, glass, a morph, particles, animated icons, a chart) must be NAMED with its tool — never described as a custom abstract drawing. Invent a shape only when no tool fits.',
     '- Every shot has its own composition idea; plan how each shot hands over to the next (match cut, wipe in a brand colour, zoom through a shape…).',
     '- True to the brand charter and its art direction (colours, type, mood). A clear focal point per shot, generous space, nothing generic.',
     'OUTPUT EXACTLY this format, nothing else:',

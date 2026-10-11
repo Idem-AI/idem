@@ -142,18 +142,22 @@ jobs:
             cd /root/application
             COMPOSE="docker compose -f docker-compose.prod.yml"
 
-            # Short, and only around the compose file: nothing is built here.
-            exec 200>/tmp/idem-deploy.lock
-            flock -x -w 120 200 || { echo "ERROR: another deployment holds /tmp/idem-deploy.lock; re-run this job."; exit 1; }
-
             for SERVICE in $SERVICES; do
               if ! $COMPOSE config --services | grep -qx "$SERVICE"; then
                 echo "ERROR: no service '$SERVICE' in docker-compose.prod.yml; add it before deploying."
                 exit 1
               fi
             done
+
+            # The lock covers only the edit of the shared compose file. Pulling
+            # and restarting run outside it: each deployment touches only its
+            # own services (--no-deps), and holding the lock through a worker's
+            # 10-minute graceful stop made every other deployment give up.
+            exec 200>/tmp/idem-deploy.lock
+            flock -x -w 300 200 || { echo "ERROR: the compose file stayed locked for 5 minutes; re-run this job."; exit 1; }
             # The image line of this service only, whatever tag it had.
             sed -i "s|image: ghcr.io/idem-ai/${{ inputs.image }}:.*|image: $IMAGE|" docker-compose.prod.yml
+            flock -u 200
 
             echo "Deploying $IMAGE as $SERVICES"
             $COMPOSE pull $SERVICES

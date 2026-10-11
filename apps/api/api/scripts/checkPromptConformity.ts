@@ -6,7 +6,7 @@
  * à la répartition des rôles sur laquelle repose la qualité.
  *
  * Les trois propriétés vérifiées répondent à une seule exigence produit : que le
- * rendu soit bon quel que soit le modèle — faible ou fort, GLM, Gemini ou GPT.
+ * rendu soit bon quel que soit le modèle — faible ou fort, Qwen, DeepSeek ou autre.
  *
  *   1. UN PROMPT NE DEMANDE PAS CE QUE LE CODE PRODUIT.
  *      Un brief de section sous gabarit qui décrirait du Tailwind, un canvas
@@ -23,8 +23,8 @@
  *
  *   3. UN PROMPT NE PARLE PAS DE SON FOURNISSEUR.
  *      Nommer un modèle ou une famille dans un prompt le rend faux le jour où
- *      la plateforme en change — ce qui vient d'arriver avec Gemini → GLM, et
- *      dont plusieurs garde-fous portaient encore la trace.
+ *      la plateforme en change — ce qui est arrivé plusieurs fois, et dont
+ *      plusieurs garde-fous portaient encore la trace.
  *
  * Aucun réseau, aucun modèle : ce sont des propriétés du texte.
  */

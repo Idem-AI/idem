@@ -1,5 +1,5 @@
 /**
- * LES MISES EN PAGE — quatorze archétypes de composition de motion design.
+ * LES MISES EN PAGE — dix-neuf archétypes de composition de motion design.
  *
  * Une scène de texte (accroche, affirmation, chiffre, avantages, offre, avis, appel,
  * événement, produit sans photo) n'est plus toujours « un bloc de texte à un ancrage » :
@@ -21,7 +21,11 @@ import { cue } from './cues';
 import { Timed, useEngine, useLocalTime, useScene } from './context';
 import { ChartJs } from './kit/Chart';
 import { numbersIn, percentIn } from './kit/data';
+import { Gradient } from './kit/Gradient';
 import { Icon } from './kit/Icon';
+import { LiquidGlass } from './kit/LiquidGlass';
+import { Network } from './kit/Network';
+import { Particles } from './kit/Particles';
 import { DataArc } from './kit/Viz';
 import { ANCHOR_STYLE, Composition, useCamera, useEnter, useExitAt, useFamilyKind } from './layout';
 import { ActionButton, Headline, Support, useHeadlineSound } from './scenes';
@@ -559,7 +563,7 @@ function GridCards() {
         </GridCell>
         {c.items.map((it, i) => (
           <GridCell key={i} index={i + 1} at={g * (1 + i * 0.7)} glow={glow(i)}>
-            {s.icons?.[i] ? <Icon svg={s.icons[i]} className="size-9 text-hl-text" /> : null}
+            {s.icons?.[i] ? <Icon svg={s.icons[i]} index={i} className="size-9 text-hl-text" /> : null}
             <Kinetic text={it} technique="blurWords" at={g * (1 + i * 0.7) + 0.1} role="support" fit={[5.8, 3.4, 3]} style={{ fontWeight: 600 }} />
           </GridCell>
         ))}
@@ -795,6 +799,32 @@ function FrameOverlap() {
   );
 }
 
+/** Le titre dans un verre réfractif, sur un fond vivant (dégradé, réseau, poussière) que le verre déforme. */
+function GlassPanel() {
+  const s = useScene();
+  const { data, horizontal, ease } = useEngine();
+  const lt = useLocalTime();
+  const c = contentOf(s);
+  const exitAt = useExitAt();
+  const g = data.direction.pacing.groupStagger;
+  const out = useExitFactor();
+  const p = ease(progress(lt, 0, data.direction.pacing.enter * 1.1));
+  cue(`${s.key}:glass`, s.start + 0.02, 'shimmer', 0.5);
+  return (
+    <>
+      <Gradient opacity={0.9} angle={150} />
+      <Network count={30} reach={21} seed={s.index * 3.3 + 1} opacity={0.9} />
+      <Particles mode="drift" count={22} size={[1.4, 3.2]} seed={s.index * 5.7 + 2} opacity={0.9} />
+      <LiquidGlass x={50} y={horizontal ? 50 : 46} w={horizontal ? 76 : 88} h={horizontal ? 52 : c.sub ? 38 : 32} radius={8} p={p * (1 - out)} refraction={1.1}>
+        <div style={{ width: '100%', padding: '0 5.5%', display: 'flex', flexDirection: 'column', gap: '1.6em', alignItems: 'flex-start' }}>
+          <Kinetic text={c.title || ''} technique={s.motion.headline} at={g * 0.7} role="headline" fit={horizontal ? [9, 5, 3] : [10, 5, 3]} exitAt={exitAt} sound={useHeadlineSound()} style={{ width: '100%' }} />
+          {c.sub ? <Kinetic text={c.sub} technique="blurWords" at={g * 1.8} role="support" fit={[4.6, 3.2, 2]} exitAt={exitAt} style={{ width: '100%', opacity: 0.86 }} /> : null}
+        </div>
+      </LiquidGlass>
+    </>
+  );
+}
+
 /** Les archétypes, par identifiant (le serveur n'attribue que ceux-ci). */
 export const LAYOUT_COMPONENTS: Record<string, () => ReactNode> = {
   wordStack: WordStack,
@@ -814,6 +844,7 @@ export const LAYOUT_COMPONENTS: Record<string, () => ReactNode> = {
   ticker: Ticker,
   spotlightWord: SpotlightWord,
   frameOverlap: FrameOverlap,
+  glassPanel: GlassPanel,
 };
 
 /** Scènes que les archétypes savent mettre en page (les autres gardent leur composant). */

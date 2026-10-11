@@ -55,7 +55,7 @@ plugs its **ports** with `configureCore()`.
 | --- | --- | --- |
 | logger | winston `idem-api` | winston `ivision-api` |
 | storage | MinIO, project folders | MinIO, `ivision/` prefix |
-| vision, image generation | glm-media / Gemini, `AI_CONFIG` | IDEM gateway `ai/vision`, `ai/image` (same models) |
+| vision, image generation | `media.service` (OpenRouter), `AI_CONFIG` | IDEM gateway `ai/vision`, `ai/image` (same models) |
 | agent runtime | `runtimeCall` (tiers, escalation, AI usage) | IDEM gateway `ai/agent` (same runtime) |
 | credit refund | credit ledger | IDEM gateway `billing/refund` |
 | video store | `IdemVideoStore` (projects) | `IvisionVideoStore` (brands) |

@@ -1,4 +1,3 @@
-// Test trigger: AppGen deployment pipeline (Update 2)
 interface ModelConfig {
   modelName: string;
   modelKey: string;
@@ -38,83 +37,136 @@ export interface ModelCredentials {
 }
 
 /**
- * Le catalogue exposé à l'interface.
+ * Le catalogue exposé à l'interface — modèles OUVERTS, tous servis par OpenRouter
+ * (poids publiés : auto-hébergeables plus tard en changeant seulement
+ * `OPENROUTER_BASE_URL`). Mêmes identifiants exacts et licences vérifiés côté API
+ * IDEM (`config/openrouter.config.ts`).
  *
- * Un seul modèle : les autres ne sont pas encore ouverts, et les proposer dans
- * la liste reviendrait à laisser choisir ce qui échouera ensuite. Ajouter une
- * entrée ici suffit à la faire apparaître — c'est cette liste que sert
- * `/api/model/config`, et sa première entrée qui devient le défaut.
+ * Ajouter une entrée ici suffit à la faire apparaître — c'est cette liste que sert
+ * `/api/model/config`, et sa première entrée sélectionnable qui devient le défaut.
+ * Température de précision : c'est du code — imports valides, JSX équilibré, hooks
+ * corrects, la bonne réponse est unique et une température haute y produit des
+ * bugs, pas de la créativité. La créativité attendue est VISUELLE, et elle ne
+ * vient pas de l'échantillonnage : elle vient du design system calculé
+ * (tokenForge), de la direction artistique tirée par projet et des skills routés.
  */
+const OPENROUTER_ENDPOINT = {
+  apiKeyEnv: 'OPENROUTER_API_KEY',
+  apiUrlEnv: 'OPENROUTER_BASE_URL',
+  defaultApiUrl: 'https://openrouter.ai/api/v1',
+} as const;
+
+const GENERATION = {
+  useImage: false,
+  functionCall: true,
+  temperature: 0.35,
+  topP: 0.9,
+  // Sans budget, celui du fournisseur n'est pas garanti et peut tronquer une
+  // génération longue en plein artefact.
+  maxOutputTokens: 32000,
+  provider: 'openrouter',
+  ...OPENROUTER_ENDPOINT,
+} as const;
+
 const defaultModelConfigs: ModelConfig[] = [
   {
-    modelName: 'GLM 5.2',
-    modelKey: 'glm-5.2',
-    useImage: false,
-    provider: 'glm',
-    description: 'GLM 5.2 — génération de code et appels d\'outils',
-    functionCall: true,
-    // ⚠️ RÉGIME DE PRÉCISION, PAS DE DIVERGENCE.
-    //
-    // La température était à 0.7 pour produire du React de production. Or du
-    // code relève de la précision : imports valides, JSX équilibré, hooks
-    // corrects — la bonne réponse est unique, et une température haute y produit
-    // des bugs, pas de la créativité. Le constat est déjà écrit côté API
-    // (ai.config.ts, « une température haute y produit une géométrie fausse, un
-    // JSON cassé […] elle FAIT BAISSER la qualité »).
-    //
-    // La créativité attendue ici est VISUELLE, et elle ne vient pas de
-    // l'échantillonnage : elle vient du design system calculé (tokenForge), de
-    // la direction artistique tirée par projet et des skills routés.
-    temperature: 0.35,
-    topP: 0.9,
-    // Était absent : le budget retombait sur le défaut du fournisseur, qui n'est
-    // pas garanti et peut tronquer une génération longue en plein artefact.
-    maxOutputTokens: 32000,
-    // Z.ai sert un endpoint OpenAI-compatible ; les identifiants lui sont
-    // propres et ne passent donc pas par les THIRD_API_* génériques.
-    apiKeyEnv: 'GLM_API_KEY',
-    apiUrlEnv: 'GLM_API_URL',
-    defaultApiUrl: 'https://api.z.ai/api/paas/v4',
+    ...GENERATION,
+    modelName: 'Qwen3 Coder Next',
+    modelKey: 'qwen/qwen3-coder-next',
+    description: 'Qwen3 Coder Next — code et agents, poids ouverts (Apache-2.0)',
   },
   {
-    // REPLI. La saturation est PAR MODÈLE chez Z.ai : sans second modèle, les
-    // 318 lignes de `resilientStream.ts` — détection du transitoire, bascule,
-    // message utilisateur — n'avaient nulle part où basculer, et toute panne du
-    // modèle principal devenait une panne du produit.
-    modelName: 'GLM 5.3 Flash',
-    modelKey: 'glm-5.3-flash',
-    useImage: false,
-    provider: 'glm',
-    description: 'GLM 5.3 Flash — repli lorsque GLM 5.2 est saturé',
-    functionCall: true,
-    temperature: 0.35,
-    topP: 0.9,
-    maxOutputTokens: 32000,
-    // Repli d'infrastructure, pas une option offerte à l'utilisateur : il
-    // n'apparaît pas dans le sélecteur de modèles.
+    // ALTERNATIVE À TESTER face à Qwen3 Coder Next. Il n'existe plus de « DeepSeek
+    // Coder » sur OpenRouter : le code est servi par DeepSeek V4 (MIT, poids ouverts).
+    ...GENERATION,
+    modelName: 'DeepSeek V4 Flash',
+    modelKey: 'deepseek/deepseek-v4-flash',
+    description: 'DeepSeek V4 Flash — alternative open-weight (MIT) pour le code',
+  },
+  {
+    // REPLI. La saturation est PAR MODÈLE : sans second modèle, la chaîne de
+    // `resilientStream.ts` — détection du transitoire, bascule, message
+    // utilisateur — n'aurait nulle part où basculer, et toute panne du modèle
+    // principal deviendrait une panne du produit. Repli d'infrastructure, pas une
+    // option offerte à l'utilisateur.
+    ...GENERATION,
+    modelName: 'Qwen3.5 122B',
+    modelKey: 'qwen/qwen3.5-122b-a10b',
+    description: 'Qwen3.5 122B A10B — repli lorsque le modèle principal est saturé',
     selectable: false,
-    apiKeyEnv: 'GLM_API_KEY',
-    apiUrlEnv: 'GLM_API_URL',
-    defaultApiUrl: 'https://api.z.ai/api/paas/v4',
   },
 ];
 
-/** Premier de la liste : le modèle proposé par défaut à l'ouverture. */
-export function getDefaultModelKey(): string {
-  return defaultModelConfigs[0]?.modelKey;
+// ── Modèle par défaut, modifiable À CHAUD ───────────────────────────────────
+//
+// Départ : `APPGEN_DEFAULT_MODEL` (une clé du catalogue), sinon la première entrée
+// sélectionnable. Ensuite : `POST /api/model/default` (cf. routes/model.ts) change
+// le modèle par défaut sans redémarrage. L'état vit en mémoire de l'instance : avec
+// plusieurs instances, appeler chacune, ou fixer la variable d'environnement.
+let chosenModelKey: string | undefined;
+
+function isKnown(modelKey: string | undefined): modelKey is string {
+  return Boolean(modelKey && defaultModelConfigs.some((item) => item.modelKey === modelKey));
+}
+
+export function getCatalogKeys(): string[] {
+  return defaultModelConfigs.filter((item) => item.selectable !== false).map((item) => item.modelKey);
+}
+
+/** `undefined` rétablit la variable d'environnement. Renvoie `false` si la clé est inconnue. */
+export function setDefaultModelKey(modelKey: string | undefined): boolean {
+  if (modelKey !== undefined && !isKnown(modelKey)) return false;
+  chosenModelKey = modelKey;
+  return true;
+}
+
+/** Le modèle a-t-il de quoi répondre (clé présente) ? Un modèle sans clé n'est jamais proposé. */
+function hasCredentials(conf: ModelConfig): boolean {
+  return Boolean(readEnv(conf.apiKeyEnv));
 }
 
 /** Le catalogue complet, repli inclus — usage interne (résolution, repli). */
 export const allModelConfigs: ModelConfig[] = defaultModelConfigs;
 
+/** Le modèle voulu en tête : le choix à chaud, puis la variable d'environnement. */
+function preferredKey(): string | undefined {
+  const fromEnv = readEnv('APPGEN_DEFAULT_MODEL');
+  if (isKnown(chosenModelKey)) return chosenModelKey;
+  return isKnown(fromEnv) ? fromEnv : undefined;
+}
+
 /**
- * Ordre de repli quand un modèle est indisponible. Avec un seul modèle ouvert,
- * la chaîne se réduit à lui : la fonction reste en place pour que l'ajout d'un
- * second modèle n'ait rien d'autre à changer.
+ * Les modèles dans l'ordre d'essai : le modèle choisi d'abord, puis le reste du
+ * catalogue. Sans aucune clé, le catalogue entier (l'erreur nommera la variable
+ * manquante).
  */
-export function getFallbackModelKeys(preferredKey?: string): string[] {
-  const configured = defaultModelConfigs.map(({ modelKey }) => modelKey);
-  const keys = preferredKey && configured.includes(preferredKey) ? [preferredKey] : [];
+function orderedConfigs(): ModelConfig[] {
+  const head = preferredKey();
+  const ranked = [
+    ...defaultModelConfigs.filter((item) => item.modelKey === head),
+    ...defaultModelConfigs.filter((item) => item.modelKey !== head),
+  ];
+  const usable = ranked.filter(hasCredentials);
+  return usable.length > 0 ? usable : ranked;
+}
+
+/** Le modèle proposé par défaut : le choix à chaud, sinon le premier sélectionnable. */
+export function getDefaultModelKey(): string {
+  const first = orderedConfigs().find((item) => item.selectable !== false);
+  return (first ?? defaultModelConfigs[0])?.modelKey;
+}
+
+/**
+ * Ordre de repli quand un modèle est indisponible.
+ *
+ * Le modèle demandé par le client passe en tête SAUF si un choix à chaud est en
+ * vigueur : une bascule n'aurait aucun effet si l'interface, qui a mémorisé une
+ * ancienne clé, la réimposait à chaque requête.
+ */
+export function getFallbackModelKeys(preferred?: string): string[] {
+  const configured = orderedConfigs().map(({ modelKey }) => modelKey);
+  const keys =
+    !isKnown(chosenModelKey) && isKnown(preferred) && configured.includes(preferred) ? [preferred] : [];
 
   for (const modelKey of configured) {
     if (!keys.includes(modelKey)) {
@@ -135,10 +187,8 @@ function readEnv(name?: string): string | undefined {
 /**
  * Résout les identifiants d'un modèle, à l'appel et non à l'import.
  *
- * Un modèle qui déclare son propre `apiKeyEnv` ne retombe jamais sur les
- * THIRD_API_* : envoyer la clé d'un autre fournisseur à Z.ai ne produit qu'un
- * « Authentication Failed » opaque, très loin de la vraie cause. Mieux vaut
- * échouer en nommant la variable à renseigner.
+ * Un modèle sans clé échoue en nommant la variable à renseigner, plutôt qu'avec
+ * un « Authentication Failed » opaque très loin de la vraie cause.
  */
 export function resolveModelCredentials(modelKey: string): ModelCredentials {
   const conf = defaultModelConfigs.find((item) => item.modelKey === modelKey);
@@ -147,16 +197,13 @@ export function resolveModelCredentials(modelKey: string): ModelCredentials {
     throw new Error(`Model configuration not found for model: ${modelKey}`);
   }
 
-  const apiUrl = readEnv(conf.apiUrlEnv) ?? conf.defaultApiUrl ?? readEnv('THIRD_API_URL') ?? '';
-  const apiKey = conf.apiKeyEnv
-    ? readEnv(conf.apiKeyEnv)
-    : readEnv('THIRD_API_KEY');
+  const apiUrl = readEnv(conf.apiUrlEnv) ?? conf.defaultApiUrl ?? '';
+  const apiKey = readEnv(conf.apiKeyEnv);
 
   if (!apiKey) {
-    const varName = conf.apiKeyEnv ?? 'THIRD_API_KEY';
     throw new Error(
-      `Aucune clé d'API pour le modèle « ${modelKey} » (fournisseur : ${conf.provider ?? 'third-party'}). ` +
-        `Renseignez ${varName} dans apps/we-dev-next/.env, puis redémarrez le serveur.`,
+      `Aucune clé d'API pour le modèle « ${modelKey} ». ` +
+        `Renseignez ${conf.apiKeyEnv} dans apps/we-dev-next/.env, puis redémarrez le serveur.`,
     );
   }
 
@@ -168,9 +215,7 @@ export function resolveModelCredentials(modelKey: string): ModelCredentials {
  * il ne doit contenir aucun identifiant.
  */
 export function getPublicModelConfig(): PublicModelConfig[] {
-  return defaultModelConfigs
+  return orderedConfigs()
     .filter((model) => model.selectable !== false)
     .map(({ apiKeyEnv, apiUrlEnv, defaultApiUrl, ...pub }) => pub);
 }
-
-export const modelConfig: PublicModelConfig[] = getPublicModelConfig();

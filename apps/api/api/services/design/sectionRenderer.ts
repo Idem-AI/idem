@@ -37,6 +37,10 @@ import { contrastRatio } from './color';
 import { designFontLinks } from '../../utils/google-fonts.util';
 import { DocumentDesignSystem } from './documentDesignSystem';
 import { patternCss } from './brandMotifs';
+import { backgroundPatternCss, brandPatternCss } from '../../../../ivision/core/src/design/brandPatterns';
+import { pageBreathes, PAGE_DECOR_BY_ID, rankPageDecors } from '../../../../ivision/core/src/design/pageDecor';
+import { pageGfx } from '../../../../ivision/core/src/visual/poster/kit/page';
+import { mixHex } from '../../../../ivision/core/src/visual/poster/kit/math';
 import { SectionSeed } from './designSeed';
 import logger from '../../config/logger';
 import { Block, condenseForFixedPage, SectionContent, estimateBlockWeight } from './sectionContent';
@@ -122,6 +126,26 @@ export interface RenderOptions {
    * toute sa hauteur, comme les mises en situation photo qui n'en portent pas.
    */
   footer?: boolean;
+  /**
+   * Le DÉCOR de la page (`design/pageDecor.ts`), dessiné par le kit graphique.
+   *
+   * Low / Medium : le code le choisit d'après le style et la graine (`decorKey`) ; High et au-delà :
+   * le directeur artistique de la page le nomme dans le menu du code. Il n'est posé que sur les
+   * pages qui RESPIRENT — jamais sur un tableau, un graphique ou une page de texte long.
+   */
+  decor?: string;
+  /** Clé stable du choix par le code : « <document>:<page> ». Absente, aucun décor n'est tiré. */
+  decorKey?: string;
+  /** Style de la direction artistique et ses « à éviter », pour le choix par le code. */
+  decorStyleId?: string | null;
+  decorDonts?: string[];
+  /**
+   * LE MOTIF DE LA MARQUE (`branding.patterns`), déposé en SVG répétable.
+   *
+   * Quand il existe, c'est LUI que le décor pose : une page qui porte le motif de la charte
+   * appartient visiblement à la marque. Sans lui, le décor retombe sur une forme du kit.
+   */
+  brandPattern?: { url: string; tile: number; ground?: string };
 }
 
 export interface PageFormat {
@@ -1294,7 +1318,10 @@ function renderPatternGrid(block: Extract<Block, { kind: 'patternGrid' }>, ctx: 
     .map(
       (pattern) => `<div${style(grid.cell)}>
   <div${style({
-        ...patternCss(pattern.motif, pattern.ink, pattern.ground),
+        // Le FICHIER déposé de la marque quand il existe (les autres livrables emploient le même) ;
+        // le dessin CSS reste le repli pour les chartes produites avant le dépôt.
+        ...(pattern.url ? brandPatternCss(pattern.url, pattern.tile ?? 48) : patternCss(pattern.motif, pattern.ink, pattern.ground)),
+        ...(pattern.url ? { 'background-color': pattern.ground } : {}),
         height: '34mm',
         'border-radius': `${cornerRadius(ctx)}px`,
         border: `1px solid ${ds.colors.rule}`,
@@ -1810,9 +1837,9 @@ function renderArtDirectionRules(block: Extract<Block, { kind: 'artDirectionRule
  * Références numérotées, en pied de section.
  *
  * Compactes et discrètes : ce sont des preuves, pas du contenu. Le domaine est
- * affiché quand il est CONNU — jamais l'hôte de l'URL, qui pour une recherche
- * Google est un redirecteur technique (`vertexaisearch.cloud.google.com`) que
- * personne ne reconnaît et qui ne dit rien de l'éditeur.
+ * affiché quand il est CONNU — jamais l'hôte de l'URL, qui pour certains
+ * moteurs de recherche est un redirecteur technique que personne ne reconnaît et
+ * qui ne dit rien de l'éditeur.
  */
 function renderSources(block: Extract<Block, { kind: 'sources' }>, ctx: Ctx): string {
   const { ds } = ctx;
@@ -2498,31 +2525,76 @@ function fontLinks(ds: DocumentDesignSystem): string {
  * exception. C'est la propriété qui permet de basculer une section sur le
  * gabarit sans risque de perdre une génération.
  */
-export function renderSection(
+/**
+ * Le décor de la page, dessiné par le kit graphique — uniquement si la page RESPIRE.
+ *
+ * Un document se lit : une ouverture de section, une citation ou une page à chiffre-clé ont de la
+ * place pour une forme ; une page de texte long, un tableau ou un graphique n'en ont pas, et le
+ * code refuse d'y poser quoi que ce soit, quel que soit le cran. Le ton est tiré du fond de page :
+ * le décor ne peut donc qu'ajouter du contraste, jamais en retirer.
+ */
+function pageDecor(content: SectionContent, ctx: Ctx, page: PageFormat): string {
+  const { options, ds } = ctx;
+  if (!options.decor && !options.decorKey) return '';
+  const shape = {
+    kinds: content.blocks.map((b) => b.kind),
+    textLength: content.blocks.reduce((n, b) => n + (b.kind === 'prose' ? b.paragraphs.join(' ').length : b.kind === 'quote' ? b.text.length : 0), 0) + (content.lede?.length ?? 0),
+  };
+  if (!pageBreathes(shape)) return '';
+  const brand = options.brandPattern;
+  const id = options.decor || rankPageDecors({ styleId: options.decorStyleId, donts: options.decorDonts, docKey: options.decorKey || 'doc', pageName: content.title || '', hasBrandPattern: !!brand })[0]?.id;
+  const def = id ? PAGE_DECOR_BY_ID.get(id) : undefined;
+  if (!def || def.id === 'none') return '';
+  // Le motif de la marque, posé dans la zone du décor : le fichier de la charte, répété.
+  if (brand && def.pattern) {
+    const area = def.pattern;
+    return `<div${style({
+      position: 'absolute',
+      left: area.left,
+      top: area.top,
+      width: area.width,
+      height: area.height,
+      // L'opacité vient du barème commun (`PATTERN_OPACITY`) : un motif derrière du texte se
+      // devine, une bande qui ne porte rien peut se voir. L'appelant ne la choisit pas.
+      ...backgroundPatternCss(brand.url, (area.scaleMm * MM_TO_PX) | 0, area.strength),
+      ...(brand.ground ? { 'background-color': brand.ground } : {}),
+      'pointer-events': 'none',
+    })}></div>`;
+  }
+  // Un ton du fond, pas une couleur franche : le décor passe sous le texte sans le disputer.
+  const tone = mixHex(ds.colors.surface, ds.colors.primary, 0.14);
+  const kit = pageGfx({
+    width: page.width,
+    height: page.minHeight,
+    tokens: { decor: tone, primary: ds.colors.primary, surface: ds.colors.surface },
+    surface: ds.colors.surface,
+    ink: ds.colors.ink,
+    primary: tone,
+    secondary: tone,
+  });
+  return def
+    .layers(shape)
+    .map((layer, i) => kit.draw(layer.params, layer.place, `page-decor-${i + 1}`).html)
+    .join('');
+}
+
+/**
+ * Le contexte de rendu d'une page : tout ce que les blocs lisent (design system, rôles de
+ * couleur, traitement typographique, tension, cotes). Extrait de `renderSection` pour que le
+ * compositeur du cran Ultra puisse faire dessiner UN bloc par le code (cf. `renderStandaloneChart`)
+ * avec exactement les mêmes couleurs et les mêmes règles qu'une page à gabarit.
+ */
+function baseCtx(
   content: SectionContent,
   ds: DocumentDesignSystem,
   seed: SectionSeed,
-  options: RenderOptions = {}
-): string {
-  const page = options.page ?? PORTRAIT_A4;
-  const landscape = page.orientation === 'landscape';
-  // Une page ROGNÉE ne pardonne pas le débordement : on resserre le rythme.
-  const cramped = options.multiPage === false;
-
-  // ── LE VOLUME, BORNÉ AVANT TOUT LE RESTE ─────────────────────────────────
-  //
-  // Sur une page rognée, le contenu est ramené à ce que la page porte AVANT
-  // que l'archétype ne le lise. L'ordre compte : l'archétype « L » prend le
-  // premier chiffre-clé pour en faire son héros, et `fitToPage` pèse ensuite
-  // les blocs. Condenser après eux les ferait travailler sur un contenu qui
-  // n'est pas celui qui sera rendu.
-  //
-  // Un document paginé n'est pas touché : le paginateur lui donne les pages
-  // dont il a besoin, et lui retirer des phrases serait une perte sèche.
-  content = cramped ? condenseForFixedPage(content) : content;
-
+  options: RenderOptions,
+  page: PageFormat,
+  landscape: boolean,
+  cramped: boolean
+): Ctx {
   const family = resolveFamily(seed.family);
-  const ctx: Ctx = {
+  return {
     ds: cramped ? tighten(ds) : ds,
     roles: resolveColorRoles(ds, seed.colorStrategy),
     type: capTitle(resolveTypeTreatment(cramped ? tighten(ds) : ds, seed.typographyMood), family, cramped ? tighten(ds) : ds, landscape),
@@ -2548,6 +2620,53 @@ export function renderSection(
     contentWidthPx:
       (Number.parseFloat(page.width) - 2 * Number.parseFloat(page.padding)) * MM_TO_PX,
   };
+}
+
+/**
+ * UN graphique, hors gabarit.
+ *
+ * Le compositeur du cran Ultra écrit la mise en page, pas les données : il pose un repère
+ * `{{CHART_n}}` et c'est le CODE qui dessine — même canvas Chart.js que les pages à gabarit, même
+ * repli dessiné par le serveur (donc juste même sans script), mêmes couleurs de série. Un
+ * graphique n'est jamais redessiné « en divs » par un modèle : ni les proportions ni les chiffres
+ * n'y survivaient.
+ */
+export function renderStandaloneChart(
+  block: Extract<Block, { kind: 'chart' }>,
+  ds: DocumentDesignSystem,
+  seed: SectionSeed,
+  options: RenderOptions = {}
+): string {
+  const page = options.page ?? PORTRAIT_A4;
+  const ctx = baseCtx({ title: '', blocks: [block] } as SectionContent, ds, seed, options, page, page.orientation === 'landscape', options.multiPage === false);
+  return renderChart(block, ctx);
+}
+
+export function renderSection(
+  content: SectionContent,
+  ds: DocumentDesignSystem,
+  seed: SectionSeed,
+  options: RenderOptions = {}
+): string {
+  const page = options.page ?? PORTRAIT_A4;
+  const landscape = page.orientation === 'landscape';
+  // Une page ROGNÉE ne pardonne pas le débordement : on resserre le rythme.
+  const cramped = options.multiPage === false;
+
+  // ── LE VOLUME, BORNÉ AVANT TOUT LE RESTE ─────────────────────────────────
+  //
+  // Sur une page rognée, le contenu est ramené à ce que la page porte AVANT
+  // que l'archétype ne le lise. L'ordre compte : l'archétype « L » prend le
+  // premier chiffre-clé pour en faire son héros, et `fitToPage` pèse ensuite
+  // les blocs. Condenser après eux les ferait travailler sur un contenu qui
+  // n'est pas celui qui sera rendu.
+  //
+  // Un document paginé n'est pas touché : le paginateur lui donne les pages
+  // dont il a besoin, et lui retirer des phrases serait une perte sèche.
+  content = cramped ? condenseForFixedPage(content) : content;
+
+  const ctx = baseCtx(content, ds, seed, options, page, landscape, cramped);
+  const family = ctx.family;
 
   const renderer = ARCHETYPE_RENDERERS[seed.archetype] ?? ARCHETYPE_RENDERERS[DEFAULT_ARCHETYPE];
 
@@ -2805,6 +2924,7 @@ export function renderSection(
   const runningHeadMm =
     ctx.family.folio === 'running-head' && options.footer !== false ? RUNNING_HEAD_MM : 0;
   const decorations = [
+    pageDecor(content, ctx, page),
     chrome.backdrop ?? '',
     edgeDecoration(ctx, landscape ? layout : 'portrait', Boolean(chrome.backdrop)),
     runningHeadMm ? runningHead(content, ctx) : '',

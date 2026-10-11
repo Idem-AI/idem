@@ -17,11 +17,13 @@
  * jamais pire qu'une page gabarit.
  */
 import logger from '../../config/logger';
+import { pageGfx, pageKitManifest } from '../../../../ivision/core/src/visual/poster/kit/page';
+import { expandUiMacros, uiManifest, uiTokensOf, type UiDeliverable } from '../../../../ivision/core/src/design/uiKit';
 import { inspectOutput } from '../agents/quality-gate';
 import { derivedPalette, DocumentDesignSystem } from '../design/documentDesignSystem';
 import { describeSectionSeed, SectionSeed } from '../design/designSeed';
 import { condenseForFixedPage, SectionContent } from '../design/sectionContent';
-import { PageFormat } from '../design/sectionRenderer';
+import { PageFormat, renderStandaloneChart } from '../design/sectionRenderer';
 import { enforceDesignRules, SlopLintOptions } from '../design/slopLint.service';
 import { AgentCall, AgentTrace, CreativeOrchestrator } from './orchestrator';
 import { inspectComposedPage } from './pageInspect';
@@ -86,6 +88,31 @@ function withImageTokens(content: SectionContent, images: string[]): SectionCont
 /** La réponse du compositeur, ses repères remplacés par les URLs réelles. */
 const restoreImages = (raw: string, images: string[]) => images.reduce((html, url, i) => html.split(imageToken(i)).join(url), raw || '');
 
+type ChartBlock = Extract<SectionContent['blocks'][number], { kind: 'chart' }>;
+
+/** Les graphiques du contenu : le compositeur les PLACE, il ne les dessine pas. */
+const chartsOf = (content: SectionContent): ChartBlock[] => content.blocks.filter((b): b is ChartBlock => b.kind === 'chart');
+
+const chartToken = (index: number) => `{{CHART_${index + 1}}}`;
+
+/** Une ligne par graphique : ce qu'il montre, pour que le compositeur lui donne la bonne place. */
+const describeCharts = (charts: ChartBlock[]) =>
+  charts.map((c, i) => `${chartToken(i)} — ${c.chartType}, ${c.labels.length} ${c.labels.length > 1 ? 'entries' : 'entry'} (${c.labels.slice(0, 4).join(', ')}${c.labels.length > 4 ? '…' : ''}), ${c.series.length} series${c.unit ? `, in ${c.unit}` : ''}${c.readingKey ? ` — reads: ${c.readingKey}` : ''}`);
+
+/** Chaque repère remplacé par le graphique RÉEL, dessiné par le code (canvas Chart.js + repli). */
+function restoreCharts(raw: string, charts: ChartBlock[], draw: (block: ChartBlock) => string): string {
+  return charts.reduce((html, block, i) => (html.includes(chartToken(i)) ? html.split(chartToken(i)).join(`<div style="width:100%">${draw(block)}</div>`) : html), raw || '');
+}
+
+/** Le livrable, tel que le registre des composants le nomme. */
+export function uiDeliverableOf(document: string): UiDeliverable {
+  const d = document.toLowerCase();
+  if (d.includes('deck') || d.includes('slide')) return 'pitch deck';
+  if (d.includes('brand') || d.includes('charte') || d.includes('guidelines')) return 'brand guidelines';
+  if (d.includes('card') || d.includes('carte')) return 'business card';
+  return 'business plan';
+}
+
 export function buildComposerPrompt(input: {
   content: SectionContent;
   ds: DocumentDesignSystem;
@@ -99,9 +126,10 @@ export function buildComposerPrompt(input: {
   const { ds, page } = input;
   // Les URLs (parfois des data: de plusieurs Ko) ne partent pas au modèle : des repères courts.
   const images = imagesOf(input.content);
+  const charts = chartsOf(input.content);
   const content = withImageTokens(input.content, images);
   const system = [
-    `You are a senior editorial designer. You compose ONE page of a ${input.document} in HTML with Tailwind CSS classes, from VALIDATED content. Answer with the HTML only, in a single \`\`\`html block.`,
+    `You are the art director of this ${input.document}, and you DESIGN this page — you do not fill a template. Invent its composition: the grid, what dominates, what breathes, where the eye lands first. Two pages of the same document must not be built the same way. Answer with the HTML only, in a single \`\`\`html block.`,
     input.singlePage
       ? `- Root element: <section style="width:${page.width};height:${page.minHeight};padding:${page.padding};position:relative;overflow:hidden;box-sizing:border-box"> … </section>. EVERYTHING must fit in this one page: nothing may be cut at the bottom.`
       : `- Root element: <section style="width:${page.width};min-height:${page.minHeight};padding:${page.padding};position:relative;box-sizing:border-box"> … </section>.`,
@@ -112,11 +140,22 @@ export function buildComposerPrompt(input: {
     images.length
       ? `- Images: ONLY these placeholders, each one used once, written exactly as src: <img src="{{IMG_1}}" alt="…"> with object-fit: contain — ${images.map((_, i) => imageToken(i)).join(', ')}. No other image, no CSS background image.`
       : '- No image at all.',
-    '- Charts and metrics: draw them with simple HTML/CSS (bars as divs with widths in %, values written as labels). Tables as real <table>.',
-    '- Professional editorial layout: a clear focal point, generous whitespace, a strict grid, one accent colour, no decorative emoji, no gradients behind text, no drop shadows on text.',
+    charts.length
+      ? `- Charts: the code draws them, you only give them their place and their size — write the placeholder on its own line inside a block whose width you control: ${charts.map((_, i) => chartToken(i)).join(', ')}. Each one once. NEVER redraw a chart yourself (no bars as divs, no invented values, no <canvas> of your own); the numbers of a chart stay out of the page text.\n${describeCharts(charts).map((line) => `  ${line}`).join('\n')}`
+      : '- Metrics: tables as real <table>; no chart on this page.',
+    '- The craft, not a recipe: one focal point, a grid you chose and hold, generous whitespace, one accent colour used with intent. Asymmetry, a full-bleed band, an oversized figure, a column that breaks the grid — all of it is yours, as long as the page reads in one pass. No decorative emoji, no gradient behind text, no drop shadow on text.',
+    ...uiManifest(uiDeliverableOf(input.document), 'macro'),
+    ...pageKitManifest({ page: { width: page.width, height: page.minHeight } }),
     '- No <script>, no web font link.',
   ].join('\n');
-  const user = [input.sheet, `PAGE COMPOSITION (follow it):\n${describeSectionSeed(input.seed)}`, `CONTENT (JSON):\n${JSON.stringify(content)}`].join('\n\n');
+  // Au cran Ultra, la graine n'IMPOSE plus la composition : elle dit seulement ce que les autres
+  // pages font déjà, pour que celle-ci s'en écarte. La prescrire revenait à faire exécuter un
+  // gabarit par un modèle — le reproche, justifié, était qu'« Ultra utilise mes layouts ».
+  const user = [
+    input.sheet,
+    `THIS PAGE, AND HOW IT MUST DIFFER (do NOT copy it — compose something else that serves the content better):\n${describeSectionSeed(input.seed)}`,
+    `CONTENT (JSON):\n${JSON.stringify(content)}`,
+  ].join('\n\n');
   return { system, user };
 }
 
@@ -133,10 +172,25 @@ export function extractComposedHtml(raw: string): string | undefined {
 export function fidelityIssues(html: string, content: SectionContent): string[] {
   const issues: string[] = [];
   if (/<script\b/i.test(html)) issues.push('remove every <script>');
+  // Les graphiques : chaque repère posé une fois, et aucun graphique redessiné à la main — un
+  // graphique « en divs » perd ses proportions, et un <canvas> du modèle reste vide à l'impression.
+  // Le repère est ensuite neutralisé : ce qu'il désigne (le graphique, ses étiquettes, sa clé de
+  // lecture) est dessiné par le code, et n'a donc pas à être écrit une seconde fois dans la page.
+  const charts = chartsOf(content);
+  let probe = html;
+  charts.forEach((_, i) => {
+    const count = html.split(chartToken(i)).length - 1;
+    if (count !== 1) issues.push(`place ${chartToken(i)} exactly once (found ${count}): the code draws the chart, you only give it its place`);
+    probe = probe.split(chartToken(i)).join('<div data-chart-slot="1"></div>');
+  });
+  if (charts.length && /<canvas\b/i.test(html)) issues.push('remove your <canvas>: a chart is placed with its {{CHART_n}} placeholder, never drawn by hand');
+  html = probe;
   const form = inspectOutput(html, { format: 'html', minChars: 300 });
   if (form.blocking.length) issues.push(`form: ${form.summary}`);
   const page = norm(html);
-  const texts = contentTexts(content);
+  // Les textes que le CODE dessine (ceux des graphiques) ne sont pas réclamés au compositeur.
+  const drawnByCode = new Set(strings({ blocks: charts } as unknown as SectionContent).map((s) => s.trim()));
+  const texts = contentTexts(content).filter((t) => !drawnByCode.has(t.trim()));
   const missing = texts.filter((t) => !page.includes(norm(t).slice(0, 36)));
   if (texts.length && missing.length / texts.length > 0.15) issues.push(`these texts of the content are missing — write them verbatim: ${missing.slice(0, 4).map((t) => `"${t.slice(0, 70)}"`).join(' · ')}`);
   // Aucun chiffre qui n'était pas dans le contenu (un chiffre inventé dans un plan est une faute).
@@ -185,6 +239,19 @@ export async function composePageHtml(input: {
     ((html: string) => inspectComposedPage(html, { page: input.page, singlePage: !!input.singlePage, fonts: { display: input.ds.fonts.display, body: input.ds.fonts.body }, label: input.name }));
   const base = buildComposerPrompt(input);
   const images = imagesOf(input.content);
+  const charts = chartsOf(input.content);
+  // Le kit graphique de cette page : ses couleurs sont celles du document, ses cotes celles de la
+  // page (millimètres à l'impression).
+  const ds = input.ds;
+  const gfx = pageGfx({
+    width: input.page.width,
+    height: input.page.minHeight,
+    tokens: { primary: ds.colors.primary, secondary: ds.colors.secondary, accent: ds.colors.accent, ink: ds.colors.ink, muted: ds.colors.inkMuted, surface: ds.colors.surface, raised: ds.colors.surfaceRaised, rule: ds.colors.rule },
+    surface: ds.colors.surface,
+    ink: ds.colors.ink,
+    primary: ds.colors.primary,
+    secondary: ds.colors.secondary,
+  });
   let issues: string[] = [];
   let previous: string | null = null;
   // Trois tours : la forme et la fidélité, puis la mesure du rendu, repartent au compositeur.
@@ -212,7 +279,25 @@ export async function composePageHtml(input: {
     issues = fidelityIssues(composed, input.content);
     if (issues.length) continue;
     // Les règles de design (tics de génération, couleurs hors charte, ornements) réparées sur place.
-    const html = enforceDesignRules(composed, { ...input.lint, label: input.lint?.label ?? `ultra/${input.name}` }).html || composed;
+    const linted = enforceDesignRules(composed, { ...input.lint, label: input.lint?.label ?? `ultra/${input.name}` }).html || composed;
+    // Le décor du kit est dessiné APRÈS la relecture des règles : ses dégradés tonals sont des
+    // mélanges des couleurs du document, et seraient pris pour des couleurs hors charte. Ce qui
+    // est mesuré ensuite, et imprimé, est bien la page avec ses formes.
+    // Les blocs riches du kit (matrice, étapes, SWOT, entonnoir…) : l'agent les a nommés, le code
+    // les dessine. Une donnée qui manque revient à l'agent en une phrase, jamais en bloc à moitié
+    // rempli.
+    const rich = expandUiMacros(linted, uiTokensOf(input.ds as never), { max: 3 });
+    if (rich.issues.length) {
+      issues = rich.issues;
+      continue;
+    }
+    const drawn = gfx.expand(rich.html);
+    if (drawn.issues.length) {
+      issues = drawn.issues;
+      continue;
+    }
+    // Les graphiques du contenu, dessinés par le code à la place du repère.
+    const html = restoreCharts(drawn.html, charts, (block) => renderStandaloneChart(block, input.ds, input.seed, { page: input.page, multiPage: !input.singlePage }));
     issues = await inspect(html);
     if (!issues.length) return { html, traces: orchestrator.traces };
   }

@@ -1,6 +1,4 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createDeepSeek } from '@ai-sdk/deepseek';
 import { streamText, generateObject, LanguageModel, convertToCoreMessages } from 'ai';
 import { z } from 'zod';
 import {
@@ -11,101 +9,76 @@ import {
 import { Messages, ToolInfo } from '../types/project.js';
 
 /**
- * Le catalogue COMPLET, repli compris. `modelConfig` est la liste publique
- * (filtrée) servie à l'interface : chercher dedans ferait échouer la résolution
- * du modèle de repli, qui n'y figure volontairement pas.
+ * Le catalogue COMPLET, repli compris. La liste publique (filtrée) servie à
+ * l'interface : chercher dedans ferait échouer la résolution du modèle de repli,
+ * qui n'y figure volontairement pas.
  */
 function findModelConfig(modelKey: string) {
   return allModelConfigs.find((item) => item.modelKey === modelKey);
 }
 
+/**
+ * Le modèle de langage d'un identifiant du catalogue : tous passent par
+ * OpenRouter (endpoint OpenAI-compatible, donc le même client).
+ *
+ * Le raisonnement est coupé : il se décompte du budget de sortie, et sur une
+ * génération de code longue il le mangerait avant le code lui-même. Laissé actif,
+ * l'hébergeur n'émet que des deltas de réflexion, un champ hors norme OpenAI que
+ * le SDK ne mappe pas en texte : le flux reste ouvert sans jamais rien produire,
+ * et l'interface tourne indéfiniment sans erreur.
+ *
+ * `reasoning` ne passe pas par `providerOptions` : le provider OpenAI du SDK ne
+ * recopie qu'une liste fermée de champs (max_completion_tokens, store, metadata,
+ * prediction, reasoning_effort) et jette tout le reste en silence. On l'injecte
+ * donc dans le corps via un `fetch` intermédiaire — avec le routage
+ * `data_collection: 'deny'` : seuls des hébergeurs qui ne conservent pas le code
+ * des utilisateurs sont éligibles (`OPENROUTER_DATA_COLLECTION=allow` le relâche).
+ *
+ * Le SDK `ai` fixe aussi le timeout réseau à 10 000 ms (connect timeout). Sur des
+ * prompts lourds (system > 20 kB), l'hébergeur peut mettre plus de 10 s avant
+ * d'émettre le premier token : on passe le timeout à 60 s via un AbortSignal
+ * injecté dans le fetch intercepteur (sans écraser un signal déjà fourni, ex.
+ * abandon du client).
+ */
+const CONNECT_TIMEOUT_MS = 60_000;
+
 export function getOpenAIModel(baseURL: string, apiKey: string, model: string): LanguageModel {
-  const provider = findModelConfig(model)?.provider;
-
-  if (provider === 'gemini' || provider === 'google') {
-    const gemini = createGoogleGenerativeAI({
-      apiKey,
-      baseURL,
-    });
-    return gemini(model) as LanguageModel;
-  }
-
-  if (provider === 'deepseek') {
-    const deepseek = createDeepSeek({
-      apiKey,
-      baseURL,
-    });
-    return deepseek(model) as LanguageModel;
-  }
-
-  if (provider && provider.indexOf('claude') > -1) {
-    const openai = createOpenAI({
-      apiKey,
-      baseURL,
-    });
-    return openai(model) as LanguageModel;
-  }
-
-  if (provider === 'openai') {
-    const openai = createOpenAI({
-      apiKey,
-      baseURL,
-    });
-    return openai(model) as LanguageModel;
-  }
-
-  // GLM (Z.ai) — endpoint OpenAI-compatible, donc le même client. Le
-  // raisonnement est coupé : il se décompte du budget de sortie, et sur une
-  // génération de code longue il le mangerait avant le code lui-même. Laissé
-  // actif, Z.ai n'émet que des deltas `reasoning_content`, un champ hors norme
-  // OpenAI que le SDK ne mappe pas en texte : le flux reste ouvert sans jamais
-  // rien produire, et l'interface tourne indéfiniment sans erreur.
-  //
-  // `thinking` ne passe pas par `providerOptions` : le provider OpenAI du SDK
-  // ne recopie qu'une liste fermée de champs (max_completion_tokens, store,
-  // metadata, prediction, reasoning_effort) et jette tout le reste en silence.
-  // On l'injecte donc dans le corps via un `fetch` intermédiaire.
-  if (provider === 'glm') {
-    // Le SDK `ai` fixe le timeout réseau à 10 000 ms (connect timeout). Sur des
-    // prompts lourds (system > 20 kB), Z.ai peut mettre plus de 10 s avant
-    // d'émettre le premier token : on passe le timeout à 60 s via un
-    // AbortSignal injecté dans le fetch intercepteur. Si un signal existe déjà
-    // (ex. abort client), on le garde ; sinon on en crée un propre à la requête.
-    const GLM_CONNECT_TIMEOUT_MS = 60_000;
-    const glm = createOpenAI({
-      apiKey,
-      baseURL,
-      fetch: async (input, init) => {
-        // Désactiver le raisonnement interne (champ hors-norme OpenAI).
-        if (typeof init?.body === 'string') {
-          try {
-            const body = JSON.parse(init.body);
-            body.thinking = { type: 'disabled' };
-            init = { ...init, body: JSON.stringify(body) };
-          } catch {
-            // Corps non-JSON : rien à injecter, on relaie tel quel.
-          }
+  const collection = (process.env.OPENROUTER_DATA_COLLECTION ?? 'deny').toLowerCase();
+  const openrouter = createOpenAI({
+    apiKey,
+    baseURL,
+    headers: {
+      'HTTP-Referer': process.env.OPENROUTER_REFERER || 'https://idem.africa',
+      'X-Title': process.env.OPENROUTER_APP_TITLE || 'IDEM AppGen',
+    },
+    fetch: async (input, init) => {
+      if (typeof init?.body === 'string') {
+        try {
+          const body = JSON.parse(init.body);
+          body.reasoning = { enabled: false };
+          body.provider = {
+            data_collection: collection === 'allow' ? 'allow' : 'deny',
+            allow_fallbacks: true,
+          };
+          init = { ...init, body: JSON.stringify(body) };
+        } catch {
+          // Corps non-JSON : rien à injecter, on relaie tel quel.
         }
-        // Remplacer le signal par un timeout plus long si aucun n'est fourni.
-        if (!init?.signal) {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), GLM_CONNECT_TIMEOUT_MS);
-          const response = await fetch(input, { ...init, signal: controller.signal });
+      }
+      if (!init?.signal) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), CONNECT_TIMEOUT_MS);
+        try {
+          return await fetch(input, { ...init, signal: controller.signal });
+        } finally {
           clearTimeout(timer);
-          return response;
         }
-        return fetch(input, init);
-      },
-    });
-    return glm(model) as LanguageModel;
-  }
-
-  const availableProviders = ['gemini', 'google', 'deepseek', 'claude', 'openai', 'glm'];
-  throw new Error(
-    `Provider "${provider}" not found for model: ${model}. Available providers: ${availableProviders.join(', ')}. Please check your AI_MODELS_CONFIG.`
-  );
+      }
+      return fetch(input, init);
+    },
+  });
+  return openrouter(model) as LanguageModel;
 }
-
 
 /**
  * Sélectionne les fichiers qu'une demande concerne réellement.
@@ -219,7 +192,7 @@ export function streamTextFn(messages: Messages, options?: StreamingOptions, mod
     console.log('----- LAST MESSAGE -----\n' + (lastMessage?.content ?? ''));
   }
 
-  // Ajouter les paramètres de génération depuis modelConfig
+  // Ajouter les paramètres de génération depuis le catalogue
   const generationConfig: any = {};
   if (modelConf.temperature !== undefined) {
     generationConfig.temperature = modelConf.temperature;
@@ -244,8 +217,7 @@ export function streamTextFn(messages: Messages, options?: StreamingOptions, mod
     ...options,
   };
 
-  // Every provider we target accepts a top-level `system`; the SDK maps it to
-  // Gemini's `systemInstruction` and to an OpenAI system message.
+  // The SDK maps a top-level `system` to an OpenAI system message.
   if (systemInstruction) {
     streamConfig.system = systemInstruction;
   }

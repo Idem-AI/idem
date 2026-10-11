@@ -6,9 +6,12 @@
  * l'image. La jauge confie ces décisions aux agents, cran par cran, toujours DANS l'espace que
  * le style de la direction artistique autorise :
  *
- *   low     la graine décide (comportement historique)
- *   medium  un agent choisit la famille du document parmi celles du style
- *   high    + un directeur artistique par page choisit son archétype (jamais celui de la voisine)
+ *   low     le CODE choisit, dans l'espace de configuration (`layoutPresets.ts`) : la meilleure
+ *           mise en page pour le livrable et le style, sans un jeton
+ *   medium  le code tire parmi les trois meilleures (variété), et un agent choisit la famille
+ *   high    + un directeur artistique par page choisit SA mise en page dans un menu de six
+ *             et le DÉCOR de la page dans le menu du kit graphique (le code le pose sur les seules
+ *             pages qui respirent ; en dessous de High, c'est le code qui le choisit, sans jeton)
  *   max     + il règle la densité, la tension et la place de l'image ; un critique relit le rythme
  *   ultra   + le contenu validé de chaque page part au COMPOSITEUR, qui en écrit le HTML ;
  *            fidélité, rendu mesuré et règles de design contrôlés, le gabarit en repli
@@ -17,14 +20,20 @@
 import { CreativityLevel, SavedDocumentDesign, atLeast } from '../../models/creativity.model';
 import { ARCHETYPE_CATALOG, CONTENT_DENSITY_CATALOG, LAYOUT_TENSION_CATALOG, styleSpaceOf } from '../design/designSeed';
 import { familiesForStyle } from '../design/layoutFamilies';
+import { pageDecorMenu, pageDecorSummary, rankPageDecors } from '../../../../ivision/core/src/design/pageDecor';
+import { applyPreset, PRESET_BY_ID, presetMenu, rankPresets, type LayoutDeliverable } from '../../../../ivision/core/src/design/layoutPresets';
 import { agentLines, menuLines, pickOption } from './agent-io';
 import { AgentCall, AgentTrace, CreativeOrchestrator } from './orchestrator';
 
 export interface PageDesign {
+  /** La mise en page retenue dans l'espace de configuration (`layoutPresets.ts`). */
+  preset?: string;
   archetype?: string;
   imagePosition?: string;
   contentDensity?: string;
   layoutTension?: string;
+  /** Décor du kit graphique (`design/pageDecor.ts`), posé seulement si la page respire. */
+  decor?: string;
 }
 
 export interface DocumentDesignPlan {
@@ -44,8 +53,14 @@ export interface DocumentDesignInput {
   /** Fiche de la marque (creativity/agent-io.ts#brandSheet). */
   sheet: string;
   styleId?: string | null;
+  /** Les « à éviter » de la direction artistique : ils écartent des décors du menu. */
+  donts?: string[];
+  /** Clé du livrable, pour que deux documents d'un même projet ne tirent pas le même décor. */
+  docKey?: string;
   /** « business plan », « pitch deck ». */
   document: string;
+  /** Le livrable, tel que l'espace des mises en page le nomme. */
+  deliverable?: LayoutDeliverable;
   /** Les pages, dans l'ordre, avec ce qu'elles disent (pour choisir leur mise en page). */
   pages: { name: string; brief?: string }[];
   /** L'archétype que la graine donnerait à chaque page (repli, et point de départ du menu). */
@@ -81,11 +96,49 @@ export async function planDocumentDesign(input: DocumentDesignInput): Promise<Do
   // High : un directeur artistique par page, en parallèle ; Max : il règle aussi la page.
   const tune = atLeast(input.level, 'max');
   const archetypes = space.archetypes.filter((a) => ARCHETYPE_CATALOG[a]);
+  // ── LOW ET MEDIUM : LE CODE CHOISIT, SANS UN JETON ────────────────────────
+  //
+  // L'espace de configuration (`layoutPresets.ts`) est classé par livrable, par style et par ce
+  // qui a déjà servi : deux pages voisines n'ont donc ni la même grammaire ni la même
+  // architecture. À Low on prend la première, à Medium une des trois premières (variété).
+  const deliverable: LayoutDeliverable = input.deliverable || 'business plan';
+  const codePicked: string[] = [];
+  input.pages.forEach((page, i) => {
+    const ranked = rankPresets({ deliverable, styleId: input.styleId, seed: i + 1, used: codePicked });
+    const pick = ranked[input.level === 'low' ? 0 : (i * 7 + 3) % Math.min(3, ranked.length)];
+    if (!pick) return;
+    codePicked.push(pick.id);
+    plan.pages[page.name] = { preset: pick.id, archetype: pick.archetype };
+  });
+
+  // ── LES MENUS SONT DISTRIBUÉS AVANT LES AGENTS ───────────────────────────
+  //
+  // Les pages sont dirigées EN PARALLÈLE : si chacune classait les mises en page de son côté,
+  // elles recevraient toutes le même menu et choisiraient toutes la même — c'est exactement ce
+  // qu'on observait (six pages, une seule mise en page). Les menus sont donc distribués ici,
+  // séquentiellement et sans un jeton : ce qu'une page se voit proposer, la suivante ne l'a plus
+  // en tête de liste.
+  const dealt: string[] = [];
+  const menus: { id: string; line: string }[][] = input.pages.map((_, i) => {
+    const ranked = rankPresets({ deliverable, styleId: input.styleId, seed: i + 1, used: dealt });
+    const menu = presetMenu(ranked, 6);
+    // Seules les deux premières sont réservées : le menu garde du choix, la répétition recule.
+    dealt.push(...menu.slice(0, 2).map((m) => m.id));
+    return menu;
+  });
+
+  const usedPresets: string[] = [...codePicked];
   const results = await orchestrator.all(
     input.pages.map((page, i) => {
       const neighbours = [input.pages[i - 1], input.pages[i + 1]].filter(Boolean).map((p) => input.seedArchetypes[p!.name]);
       const own = input.seedArchetypes[page.name];
       const menu = [own, ...archetypes.filter((a) => a !== own && !neighbours.includes(a))].filter(Boolean).slice(0, 5);
+      // Les mises en page de l'espace de configuration, classées pour CETTE page : la direction
+      // artistique d'abord, puis ce qui n'a pas encore servi dans le document.
+      const presets = menus[i];
+      // Le menu des décors de CETTE page : le code les classe (style, « à éviter », graine), le
+      // directeur artistique en nomme un. Il ne sera posé que si la page respire.
+      const decors = pageDecorMenu(rankPageDecors({ styleId: input.styleId, donts: input.donts, docKey: input.docKey || input.document, pageName: page.name }));
       return {
         role: 'pageDirector',
         key: `pageDirector:${i + 1}`,
@@ -97,6 +150,7 @@ export async function planDocumentDesign(input: DocumentDesignInput): Promise<Do
                 system: [
                   `You are the art director of ONE page of a ${input.document}, true to the brand charter and its art direction. Output ONLY these lines:`,
                   'layout: the letter of one option from LAYOUTS',
+                  'decor: the letter of one option from DECOR (the code draws it, and only on a page that has room for it — a dense page gets none whatever you choose)',
                   ...(tune
                     ? [
                         `density: one of ${space.contentDensities.join(' | ')}`,
@@ -105,13 +159,20 @@ export async function planDocumentDesign(input: DocumentDesignInput): Promise<Do
                       ]
                     : []),
                 ].join('\n'),
-                user: [input.sheet, `PAGE ${i + 1} of ${input.pages.length}: ${page.name}${page.brief ? ` — ${page.brief.slice(0, 220)}` : ''}`, 'LAYOUTS:', ...menuLines(menu, (id) => firstSentence(ARCHETYPE_CATALOG[id]))].join('\n'),
+                user: [input.sheet, `PAGE ${i + 1} of ${input.pages.length}: ${page.name}${page.brief ? ` — ${page.brief.slice(0, 220)}` : ''}`, 'LAYOUTS:', ...menuLines(menu, (id) => firstSentence(ARCHETYPE_CATALOG[id])), 'DECOR:', ...menuLines(decors, pageDecorSummary)].join('\n'),
               },
         parse: (raw: string): PageDesign | undefined => {
           const l = agentLines(raw);
-          const archetype = pickOption(l.layout || l.archetype || (/^\W*[a-p]\W*$/i.test(raw.trim()) ? raw.trim() : undefined), menu);
+          // Le directeur artistique nomme une MISE EN PAGE (famille + architecture), pas un
+          // archétype nu : c'est ce qui fait qu'une page de plan ne ressemble pas à la suivante.
+          const presetId = pickOption(l.layout || l.preset || (/^\W*[a-f]\W*$/i.test(raw.trim()) ? raw.trim() : undefined), presets.map((p) => p.id));
+          const preset = presetId ? PRESET_BY_ID.get(presetId) : undefined;
+          const archetype = preset?.archetype || pickOption(l.archetype, menu);
           if (!archetype) return undefined;
-          const out: PageDesign = { archetype };
+          if (presetId) usedPresets.push(presetId);
+          const out: PageDesign = { archetype, ...(presetId ? { preset: presetId } : {}) };
+          const decor = pickOption(l.decor || l.decoration, decors);
+          if (decor) out.decor = decor;
           if (tune) {
             const density = space.contentDensities.find((d) => d.toLowerCase() === (l.density || '').toLowerCase().replace(/\s+/g, '_'));
             const tension = space.layoutTensions.find((t) => t.toLowerCase() === (l.tension || '').toLowerCase().replace(/\s+/g, '_'));
@@ -128,7 +189,22 @@ export async function planDocumentDesign(input: DocumentDesignInput): Promise<Do
     4
   );
   input.pages.forEach((page, i) => {
-    if (results[i].source === 'llm') plan.pages[page.name] = results[i].value;
+    if (results[i].source === 'llm') plan.pages[page.name] = { ...plan.pages[page.name], ...results[i].value };
+  });
+
+  // Deux pages ne gardent pas la même mise en page : la seconde prend la suivante de SON menu.
+  const takenPresets = new Set<string>();
+  input.pages.forEach((page, i) => {
+    const chosen = plan.pages[page.name]?.preset;
+    if (!chosen) return;
+    if (!takenPresets.has(chosen)) {
+      takenPresets.add(chosen);
+      return;
+    }
+    const free = menus[i].find((m) => !takenPresets.has(m.id));
+    if (!free) return;
+    takenPresets.add(free.id);
+    plan.pages[page.name] = { ...plan.pages[page.name], preset: free.id, archetype: PRESET_BY_ID.get(free.id)?.archetype || plan.pages[page.name]?.archetype };
   });
 
   // Les choix des pages, revalidés pour le document : jamais deux pages voisines au même archétype.

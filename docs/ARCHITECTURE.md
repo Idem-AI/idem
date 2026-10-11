@@ -30,7 +30,7 @@ flowchart LR
 
     subgraph External
         Auth["Supabase Auth (self-hosted)"]
-        LLM["LLM providers<br/>Gemini · GLM · DeepSeek · OpenAI"]
+        LLM["OpenRouter<br/>Qwen · DeepSeek · FLUX.2 · Seedance · Kokoro"]
         PawaPay["pawaPay"]
         SM["Infisical (self-hosted)"]
         Servers["Customer servers<br/>SSH + Docker"]

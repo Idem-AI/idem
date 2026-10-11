@@ -6,7 +6,7 @@
  * manquement sans conséquence : le texte est retrouvé, la forme est jetée, et
  * AUCUN fait n'est inventé au passage.
  *
- * Les fragments ci-dessous sont ceux réellement produits par glm-5.2 sur le
+ * Les fragments ci-dessous sont ceux réellement produits par un modèle de raisonnement sur le
  * plan SPEED MOBILITY — c'est ce HTML-là qui faisait disparaître trois pages.
  */
 

@@ -56,11 +56,14 @@ export function accentOn(bg: string, candidates: (string | undefined)[], fallbac
   return fallback;
 }
 
-/** Une encre secondaire (sous-titre) : adoucie vers le fond, mais jamais sous 4,5:1. */
+/**
+ * Une encre secondaire (sous-titre) : adoucie vers le fond, mais jamais sous 5,2:1 — une marge au-dessus
+ * des 4,5:1 exigés, pour que le décor tonal du kit graphique, posé derrière, ne la fasse pas passer dessous.
+ */
 export function mutedOn(ink: string, bg: string): string {
   for (const t of [0.32, 0.24, 0.16, 0.08]) {
     const c = mix(ink, bg, t);
-    if (contrastRatio(c, bg) >= 4.5) return c;
+    if (contrastRatio(c, bg) >= 5.2) return c;
   }
   return ink;
 }

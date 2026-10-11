@@ -50,7 +50,12 @@ export type TextTechnique =
   | 'zoomWords'
   | 'skewIn'
   | 'scatter'
-  | 'outlineFill';
+  | 'outlineFill'
+  // Inspirées de React Bits : reflet, glitch, machine à sous, dégradé qui coule.
+  | 'shine'
+  | 'glitch'
+  | 'shuffle'
+  | 'gradientFlow';
 
 /** Transitions (moteur React, `video-engine/src/transitions.ts`). */
 export type MotionTransition =
@@ -189,7 +194,7 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'editorial',
     type: { displayCase: 'none', tracking: -0.02, weight: 600, lineHeight: 1.06, scale: 0.95 },
     anchors: ['bottom-left', 'top-left', 'center-left', 'right'],
-    headline: ['lineWipe', 'maskUp', 'blurWords', 'trackIn', 'rotateX', 'scatter', 'outlineFill'],
+    headline: ['lineWipe', 'maskUp', 'blurWords', 'trackIn', 'rotateX', 'scatter', 'outlineFill', 'shine'],
     support: ['blurWords', 'lineWipe', 'scatter'],
     transitions: ['dissolve', 'cut', 'wipe', 'slideOver'],
     pacing: { enter: 0.9, unitStagger: 0.08, groupStagger: 0.32, transition: 0.7 },
@@ -221,7 +226,7 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'brutal',
     type: { displayCase: 'upper', tracking: -0.03, weight: 900, lineHeight: 0.92, scale: 1.25 },
     anchors: ['center-left', 'top-left', 'bottom-left', 'center'],
-    headline: ['stackPush', 'boxReveal', 'slideAlternate', 'maskUp', 'skewIn', 'stretch', 'zoomWords'],
+    headline: ['stackPush', 'boxReveal', 'slideAlternate', 'maskUp', 'skewIn', 'stretch', 'zoomWords', 'glitch', 'shuffle'],
     support: ['boxReveal', 'maskUp', 'skewIn'],
     transitions: ['cut', 'blockStack', 'flashCut', 'push'],
     pacing: { enter: 0.42, unitStagger: 0.05, groupStagger: 0.22, transition: 0.36 },
@@ -237,7 +242,7 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'kinetic',
     type: { displayCase: 'none', tracking: -0.03, weight: 800, lineHeight: 1.0, scale: 1.12 },
     anchors: ['center', 'center-left', 'bottom-center', 'top-left'],
-    headline: ['charCascade', 'scaleBlur', 'flipChars', 'scramble', 'springUp', 'zoomWords', 'stretch', 'wave'],
+    headline: ['charCascade', 'scaleBlur', 'flipChars', 'scramble', 'springUp', 'zoomWords', 'stretch', 'wave', 'glitch', 'shuffle', 'gradientFlow'],
     support: ['blurWords', 'charCascade', 'springUp'],
     transitions: ['zoomThrough', 'whip', 'flashCut', 'iris', 'push'],
     pacing: { enter: 0.6, unitStagger: 0.025, groupStagger: 0.25, transition: 0.42 },
@@ -253,7 +258,7 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'cinematic',
     type: { displayCase: 'none', tracking: 0.01, weight: 500, lineHeight: 1.1, scale: 0.9 },
     anchors: ['bottom-center', 'center', 'bottom-left'],
-    headline: ['blurWords', 'trackIn', 'scaleBlur', 'lineWipe', 'outlineFill', 'rotateX'],
+    headline: ['blurWords', 'trackIn', 'scaleBlur', 'lineWipe', 'outlineFill', 'rotateX', 'shine', 'gradientFlow'],
     support: ['blurWords', 'lineWipe'],
     transitions: ['dissolve', 'dissolve', 'zoomThrough', 'cut'],
     pacing: { enter: 1.2, unitStagger: 0.1, groupStagger: 0.45, transition: 1.0 },
@@ -269,7 +274,7 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'collage',
     type: { displayCase: 'none', tracking: -0.01, weight: 800, lineHeight: 1.02, scale: 1.0 },
     anchors: ['center-left', 'top-left', 'bottom-left', 'right', 'center'],
-    headline: ['boxReveal', 'slideAlternate', 'typewriter', 'charCascade', 'wave', 'scatter', 'springUp'],
+    headline: ['boxReveal', 'slideAlternate', 'typewriter', 'charCascade', 'wave', 'scatter', 'springUp', 'shuffle'],
     support: ['typewriter', 'boxReveal', 'scatter'],
     transitions: ['slideOver', 'push', 'cut', 'blockStack'],
     pacing: { enter: 0.6, unitStagger: 0.07, groupStagger: 0.3, transition: 0.5 },
@@ -285,7 +290,7 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'precision',
     type: { displayCase: 'none', tracking: -0.025, weight: 600, lineHeight: 1.04, scale: 0.92 },
     anchors: ['center', 'top-center', 'bottom-left', 'center-left'],
-    headline: ['maskUp', 'trackIn', 'lineWipe', 'blurWords', 'rotateX', 'outlineFill'],
+    headline: ['maskUp', 'trackIn', 'lineWipe', 'blurWords', 'rotateX', 'outlineFill', 'glitch', 'shuffle'],
     support: ['maskUp', 'blurWords', 'rotateX'],
     transitions: ['iris', 'dissolve', 'slideOver', 'cut'],
     pacing: { enter: 0.8, unitStagger: 0.07, groupStagger: 0.35, transition: 0.65 },
@@ -301,7 +306,7 @@ export const DIRECTIONS: Record<DirectionId, DirectionDef> = {
     id: 'drenched',
     type: { displayCase: 'none', tracking: -0.03, weight: 800, lineHeight: 0.98, scale: 1.1 },
     anchors: ['bottom-left', 'center-left', 'top-left', 'center'],
-    headline: ['boxReveal', 'maskUp', 'stackPush', 'slideAlternate', 'zoomWords', 'springUp', 'outlineFill'],
+    headline: ['boxReveal', 'maskUp', 'stackPush', 'slideAlternate', 'zoomWords', 'springUp', 'outlineFill', 'shine', 'gradientFlow'],
     support: ['maskUp', 'lineWipe', 'zoomWords'],
     transitions: ['iris', 'wipe', 'cut', 'zoomThrough'],
     pacing: { enter: 0.7, unitStagger: 0.06, groupStagger: 0.3, transition: 0.55 },

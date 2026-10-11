@@ -3,16 +3,16 @@ import logger from '../config/logger';
 /**
  * Réessai avec attente exponentielle, réservé aux pannes RÉSEAU.
  *
- * Le contexte: les appels Gemini échouent parfois sur `TypeError: fetch failed`
- * — la connexion TCP/TLS vers `aiplatform.googleapis.com` ne s'établit pas dans
- * les 10 s que undici accorde par défaut. C'est une panne strictement
+ * Le contexte: les appels aux modèles échouent parfois sur `TypeError: fetch failed`
+ * — la connexion TCP/TLS ne s'établit pas dans les 10 s que undici accorde par
+ * défaut. C'est une panne strictement
  * temporelle: le même appel rejoué quelques secondes plus tard passe. Sans
  * réessai côté serveur, l'utilisateur voyait une génération échouer et devait
  * cliquer « réessayer » lui-même.
  *
  * ⚠️ Ce module ne rejoue QUE le transitoire réseau. Deux familles d'erreurs en
  * sont volontairement exclues:
- *  - 429 / 503 « high demand »: Google sature PAR MODÈLE. Rejouer le même
+ *  - 429 / 503 « high demand »: l'hébergeur sature PAR MODÈLE. Rejouer le même
  *    modèle ne sert à rien, il faut BASCULER — c'est le travail de la chaîne de
  *    repli (`fallbackModels`), pas celui-ci.
  *  - 400 / 401 / 403 / 404 et les erreurs de contenu (réponse vide, JSON
@@ -35,7 +35,7 @@ export interface RetryOptions {
   baseDelayMs?: number;
   maxDelayMs?: number;
   jitterRatio?: number;
-  /** Étiquette affichée dans les logs (ex: `GEMINI/gemini-2.5-flash`). */
+  /** Étiquette affichée dans les logs (ex: `OPENROUTER/qwen/qwen3.5-122b-a10b`). */
   label?: string;
   /** Prédicat de réessai. Par défaut: uniquement le transitoire réseau. */
   isRetryable?: (error: unknown) => boolean;
@@ -86,9 +86,9 @@ export function describeError(error: unknown): string {
 /**
  * L'erreur est-elle une panne réseau transitoire ?
  *
- * On inspecte la chaîne `cause` ET le message, parce que le SDK `@google/genai`
- * ré-emballe l'échec en `new Error(\`exception ${e} sending request\`)`: le code
- * système est alors perdu et seule la sous-chaîne « fetch failed » subsiste.
+ * On inspecte la chaîne `cause` ET le message, parce qu'un SDK peut ré-emballer
+ * l'échec dans une nouvelle erreur : le code système est alors perdu et seule la
+ * sous-chaîne « fetch failed » subsiste.
  */
 export function isTransientNetworkError(error: any): boolean {
   if (!error) return false;

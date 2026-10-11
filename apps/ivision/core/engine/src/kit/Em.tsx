@@ -13,6 +13,8 @@ import { Brush, Sketch } from './Sketch';
 function useAnnotation(): string {
   const { data } = useEngine();
   const s = useScene();
+  // Vidéos d'essai : une scène peut porter sa propre annotation.
+  if (s.annotateId) return s.annotateId;
   const kind = data.kit?.annotate || 'none';
   return kind !== 'none' && data.kit?.annotateScene === s.key ? kind : 'none';
 }

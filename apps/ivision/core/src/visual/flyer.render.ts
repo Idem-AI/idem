@@ -200,24 +200,29 @@ export function minLogoWidthFor(format: FlyerFormat): number {
 
 export class FlyerRenderService {
   private static browser: Browser | null = null;
+  /** Un lancement en cours : des appels concurrents l'attendent au lieu de lancer chacun le leur. */
+  private static launching: Promise<Browser> | null = null;
 
   private async getBrowser(): Promise<Browser> {
     if (FlyerRenderService.browser && FlyerRenderService.browser.isConnected()) {
       return FlyerRenderService.browser;
     }
+    if (FlyerRenderService.launching) return FlyerRenderService.launching;
     logger.info('FlyerRenderService: launching dedicated puppeteer instance');
-    FlyerRenderService.browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-      ],
-      timeout: 30000,
-    });
-    return FlyerRenderService.browser;
+    FlyerRenderService.launching = puppeteer
+      .launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-first-run'],
+        timeout: 30000,
+      })
+      .then((browser) => {
+        FlyerRenderService.browser = browser;
+        return browser;
+      })
+      .finally(() => {
+        FlyerRenderService.launching = null;
+      });
+    return FlyerRenderService.launching;
   }
 
   /**

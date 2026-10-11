@@ -27,9 +27,9 @@ test('detects real-looking credentials', () => {
 });
 
 test('ignores placeholders, references and local development values', () => {
-  assert.deepEqual(hits('GEMINI_API_KEY=your-gemini-api-key'), []);
+  assert.deepEqual(hits('OPENROUTER_API_KEY=your-openrouter-api-key'), []);
   assert.deepEqual(hits('INTERNAL_API_KEY=your-secure-api-key-here-change-in-production'), []);
-  assert.deepEqual(hits('const apiKey = process.env.GLM_API_KEY;'), []);
+  assert.deepEqual(hits('const apiKey = process.env.OPENROUTER_API_KEY;'), []);
   assert.deepEqual(hits("password: config.database.password,"), []);
   assert.deepEqual(hits("MONGODB_URI: 'mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongodb:27017/idem'"), []);
   assert.deepEqual(hits('DATABASE_URL=postgresql://coolify:password@localhost:5432/coolify'), []);

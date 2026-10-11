@@ -31,15 +31,6 @@ export const MOCKUP_CONFIG = {
   },
 
   /**
-   * Configuration Gemini pour la génération d'images
-   */
-  GEMINI_CONFIG: {
-    /** Chaîne de modèles, dans l'ordre d'essai (cf. `AI_CONFIG.branding.brandMockup`). */
-    models: AI_CONFIG.branding.brandMockup.geminiImageModels,
-    responseModalities: ['IMAGE'] as const,
-  },
-
-  /**
    * Timeout et retry
    */
   GENERATION_TIMEOUT_MS: 60000, // 60 secondes par mockup

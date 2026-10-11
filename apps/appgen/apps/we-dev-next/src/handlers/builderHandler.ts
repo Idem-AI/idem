@@ -25,7 +25,7 @@ const CONTEXT_TOKEN_LIMIT = 128000;
  *
  * The two are kept apart on purpose. Everything invariant (the routed skills)
  * sits in the `system` message so it forms a stable prefix eligible for
- * Gemini's implicit cache; everything project-specific (forged design system,
+ * provider-side prefix caching; everything project-specific (forged design system,
  * brief, task) stays in the trailing user message. This used to be one
  * concatenated blob inside the last user message, which meant the prefix
  * changed on every request and the cache never hit.
@@ -85,7 +85,9 @@ export async function handleBuilderMode(
    */
   qualityRepair?: string,
   /** Site, application web ou application mobile : le contrat de build en dépend. */
-  target: BuildTarget = 'web-app'
+  target: BuildTarget = 'web-app',
+  /** Version du starter déjà monté côté client, s'il y en a un. */
+  scaffoldVersion?: string
 ) {
   const startTime = Date.now();
 
@@ -152,9 +154,18 @@ export async function handleBuilderMode(
         : target === 'site'
           ? 'showcase website'
           : 'web application';
+    // Le brief écrit par l'atelier porte ce que le serveur ne sait pas : le plan
+    // dessiné sur le tableau de bord et la direction artistique de la charte.
+    // Il était jusqu'ici purement écrasé, donc ces deux décisions n'atteignaient
+    // jamais le modèle.
+    const dashboardBrief = rawRequest.trim();
+
     request = [
       `Build ${projectBrief ? `the ${product} described above` : `a complete ${product}`} for: ${displayName}`,
       projectData.description ? `\n${projectData.description}` : '',
+      dashboardBrief && dashboardBrief !== projectData.description?.trim()
+        ? `\n${dashboardBrief}`
+        : '',
       '',
       'Requirements:',
       '- Apply the design system above exactly: tokens, fonts, art direction, and its signature move.',
@@ -186,12 +197,14 @@ export async function handleBuilderMode(
     language,
     extraContext,
     target,
+    scaffolded: !!scaffoldVersion,
   });
 
   applyPrompt(messages, system, user);
 
   ChatLogger.success('PROMPT_ASSEMBLED', 'Prompt assembled', {
     target: diagnostics.target,
+    scaffolded: diagnostics.scaffolded,
     artDirection: diagnostics.artDirection,
     seed: diagnostics.seed,
     systemChars: diagnostics.systemChars,

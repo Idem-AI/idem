@@ -4,9 +4,8 @@
  *   1. narrateur (agent)  une ligne PARLÉE par scène, dans la langue de la vidéo, bornée au
  *                         temps de la scène (mots par seconde de la langue) ; chiffres et prix
  *                         copiés du brief ou retirés ; repli : les textes à l'écran ;
- *   2. synthèse           une ligne = un appel au modèle de voix de l'hôte. GLM-TTS quand il
- *                         parle la langue (chinois, anglais), sinon le repli de l'hôte (Gemini
- *                         TTS) ; le son est nettoyé (silences, passe-haut), accéléré au plus de
+ *   2. synthèse           une ligne = un appel au modèle de voix de l'hôte (Kokoro par
+ *                         OpenRouter, ou le serveur Qwen3-TTS / Chatterbox de l'exploitant) ; le son est nettoyé (silences, passe-haut), accéléré au plus de
  *                         18 % s'il déborde, normalisé à −16 LUFS, déposé dans le stockage ;
  *   3. calage             chaque scène dure AU MOINS le temps de sa ligne (+ entrée et sortie) ;
  *                         la durée achetée ne change pas : les scènes muettes rendent du temps,
@@ -31,14 +30,6 @@ const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
 // ─── Langues et voix ────────────────────────────────────────────────────────
 
-/** Les langues que GLM-TTS parle (zai-org/GLM-TTS : chinois, anglais, et leur mélange). */
-export const GLM_TTS_LANGUAGES = ['zh', 'en'];
-
-/** Le fournisseur de voix d'une langue : GLM-TTS dès qu'il la parle, sinon le repli de l'hôte. */
-export function speechProviderFor(language: string): 'glm' | 'gemini' {
-  return GLM_TTS_LANGUAGES.includes(langOf(language)) ? 'glm' : 'gemini';
-}
-
 const langOf = (language: string) => (language || 'fr').toLowerCase().slice(0, 2);
 
 const LANG_NAMES: Record<string, string> = { fr: 'French', en: 'English', pt: 'Portuguese', ar: 'Arabic', es: 'Spanish', sw: 'Swahili', zh: 'Chinese', de: 'German', it: 'Italian' };
@@ -55,28 +46,26 @@ export function spokenUnits(text: string, language: string): number {
 }
 
 /**
- * Les personnages de voix : un caractère (que l'agent choisit) traduit en voix de chaque
- * fournisseur. GLM-TTS n'a que quelques voix système (tongtong, xiaochen, chuichui…) ; Gemini
- * TTS en a trente, décrites par leur caractère dans sa documentation.
+ * Les personnages de voix : un caractère (que l'agent choisit), transmis à l'hôte comme
+ * consigne de jeu. La voix elle-même est choisie par l'hôte selon la langue : Kokoro n'a
+ * qu'une voix par langue, un serveur Qwen3-TTS / Chatterbox en offre davantage.
  */
 export interface VoicePersona {
   id: string;
   gender: 'female' | 'male';
   character: string;
-  glm: string;
-  gemini: string;
   /** Langages de mouvement auxquels ce personnage va bien (menu de l'agent). */
   fits: MotionStyle[];
 }
 
 export const VOICE_PERSONAS: VoicePersona[] = [
-  { id: 'warm', gender: 'female', character: 'warm, reassuring', glm: 'tongtong', gemini: 'Sulafat', fits: ['premium', 'corporate'] },
-  { id: 'bright', gender: 'female', character: 'bright, upbeat', glm: 'tongtong', gemini: 'Laomedeia', fits: ['energetic', 'playful'] },
-  { id: 'smooth', gender: 'female', character: 'smooth, elegant', glm: 'tongtong', gemini: 'Despina', fits: ['premium'] },
-  { id: 'confident', gender: 'male', character: 'firm, confident', glm: 'xiaochen', gemini: 'Alnilam', fits: ['corporate', 'energetic'] },
-  { id: 'friendly', gender: 'male', character: 'friendly, casual', glm: 'xiaochen', gemini: 'Achird', fits: ['playful', 'corporate'] },
-  { id: 'deep', gender: 'male', character: 'deep, cinematic', glm: 'chuichui', gemini: 'Charon', fits: ['premium'] },
-  { id: 'energetic', gender: 'male', character: 'energetic, punchy', glm: 'chuichui', gemini: 'Puck', fits: ['energetic'] },
+  { id: 'warm', gender: 'female', character: 'warm, reassuring', fits: ['premium', 'corporate'] },
+  { id: 'bright', gender: 'female', character: 'bright, upbeat', fits: ['energetic', 'playful'] },
+  { id: 'smooth', gender: 'female', character: 'smooth, elegant', fits: ['premium'] },
+  { id: 'confident', gender: 'male', character: 'firm, confident', fits: ['corporate', 'energetic'] },
+  { id: 'friendly', gender: 'male', character: 'friendly, casual', fits: ['playful', 'corporate'] },
+  { id: 'deep', gender: 'male', character: 'deep, cinematic', fits: ['premium'] },
+  { id: 'energetic', gender: 'male', character: 'energetic, punchy', fits: ['energetic'] },
 ];
 
 export const personaById = (id?: string): VoicePersona => VOICE_PERSONAS.find((p) => p.id === id) || VOICE_PERSONAS[0];
@@ -309,21 +298,18 @@ export async function synthesizeVoice(opts: {
   storage: VoiceStorage;
   folder: string;
   concurrency?: number;
-}): Promise<{ lines: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[]; provider: 'glm' | 'gemini'; model: string; voice: string }> {
+}): Promise<{ lines: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[]; provider: 'openrouter'; model: string; voice: string }> {
   const synth = coreHost().synthesizeSpeech;
   if (!synth) throw new VoiceUnavailableError('no_speech_model');
-  const provider = speechProviderFor(opts.language);
   const request = (text: string): SpeechRequest => ({
     text,
     language: langOf(opts.language),
-    provider,
-    voice: provider === 'glm' ? opts.persona.glm : opts.persona.gemini,
     style: opts.style || opts.persona.character,
     tag: 'video-voice',
   });
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-voice-'));
   const out: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[] = [];
-  let used = { provider, model: '', voice: '' };
+  let used: { provider: 'openrouter'; model: string; voice: string } = { provider: 'openrouter', model: '', voice: '' };
   let lastError: unknown;
   try {
     const queue = [...opts.lines];
@@ -344,7 +330,7 @@ export async function synthesizeVoice(opts: {
             break;
           } catch (error: any) {
             lastError = error;
-            // Une langue refusée par l'hôte (repli coupé) ne se rejoue pas.
+            // Une langue sans voix chez l'hôte ne se rejoue pas.
             if (/voice_language_unsupported|voice_unavailable/.test(String(error?.message))) {
               queue.length = 0;
               break;

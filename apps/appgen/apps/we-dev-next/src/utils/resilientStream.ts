@@ -5,9 +5,9 @@ import { getFallbackModelKeys } from '../config/modelConfig.js';
 import { ChatLogger } from './logger.js';
 
 /**
- * Repli automatique entre modèles Gemini.
+ * Repli automatique entre modèles.
  *
- * Google renvoie 503 « This model is currently experiencing high demand » dès
+ * Un hébergeur renvoie 503 « This model is currently experiencing high demand » dès
  * qu'un modèle est saturé : la requête est valide, c'est la capacité qui manque,
  * et les pools sont PAR MODÈLE. Rejouer le même modèle ne sert donc à rien — on
  * bascule sur le suivant de la chaîne (voir `getFallbackModelKeys`).
@@ -176,7 +176,7 @@ export interface ResilientStream {
 /**
  * Streams the model answer to the Express response, transparently falling back
  * to the next configured model when the requested one fails *before* emitting
- * any output (typically Gemini's 503 "high demand").
+ * any output (typically a 503 "high demand").
  *
  * Once the first byte is on the wire we can no longer switch, so a mid-stream
  * failure is forwarded to the client as a readable error part instead of the

@@ -162,7 +162,7 @@ export class CoherenceService {
 
     // Comparer deux artefacts et rendre un verdict JSON est une VÉRIFICATION,
     // pas une rédaction : c'est la définition même de l'étage XS du routeur.
-    // L'audit tournait à l'étage rédaction (glm-4.7, 0,60 $/M) alors qu'il se
+    // L'audit tournait à l'étage rédaction (modèle de rédaction) alors qu'il se
     // déclenche à chaque écriture projet et consomme ~3 500 tokens d'entrée —
     // c'est le poste de fond le plus cher de la plateforme.
     //

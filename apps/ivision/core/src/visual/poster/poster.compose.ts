@@ -37,6 +37,7 @@ import { designLoop, type LoopOutcome } from './poster.loop';
 import { buildLayout, layoutAngles, writeLayout, type LayoutDesign } from './poster.layout';
 import { buildAuthored, conceptCopy, inventConcepts, writeAuthored, type AuthoredDesign } from './poster.author';
 import { schemesOf, specFor, type SpecInput } from './poster.spec';
+import { grainFor, motifMenu, rankMotifs } from './kit/motifs';
 import { POSTER_TEMPLATES, TEMPLATE_BY_ID } from './poster.templates';
 import type { PosterChoice, PosterCopy, PosterImage, PosterIntent, PosterScheme, PosterTreatment } from './poster.types';
 
@@ -98,14 +99,22 @@ const STYLE_BOOSTS: Record<string, Partial<Record<string, number>>> = {
 
 const hash = (s: string) => parseInt(crypto.createHash('sha1').update(s).digest('hex').slice(0, 8), 16);
 
-/** Le brief d'image (banque ou génération), sans texte dans l'image. */
+/**
+ * Le brief d'image (banque ou génération), sans texte dans l'image.
+ *
+ * Le THÈME donné au modèle d'image est une poignée de MOTS-CLÉS, jamais la phrase même du titre :
+ * un modèle d'image qui sait écrire (FLUX) lit une phrase complète comme un texte À RENDRE — le
+ * titre réapparaissait, déformé, en toutes lettres sur la photo. Les mots-clés décrivent le sujet
+ * sans jamais ressembler à une accroche. L'absence de texte elle-même est imposée en code, en
+ * amont de tout appel (`image.sourcing.ts#NO_TEXT_PREFIX/SUFFIX`), avec relecture et nouvel essai.
+ */
 function imageBriefFor(copy: PosterCopy, ctx: VisualBrandContext, format: FlyerFormat, subject: string) {
   const orientation = format === 'story' || format === 'post' || format === 'a4' ? ('portrait' as const) : format === 'banner' ? ('landscape' as const) : ('square' as const);
-  const what = `${subject} — ${ctx.businessType}`.slice(0, 160);
+  const theme = subject.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 8).join(' ') || ctx.businessType;
   return {
     searchQuery: `${copy.headline} ${ctx.businessType}`.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 5).join(' ') || ctx.businessType,
-    generationPrompt: `Authentic editorial photograph for ${ctx.brandName} (${ctx.businessType}): ${what}. Natural light, real people and places, African context when people appear, shallow depth of field, generous empty space for a headline. ${ctx.artDirection?.imagePromptModifier || ''}`.slice(0, 900),
-    negativePrompt: 'text, letters, captions, watermark, logo, signage, distorted faces, extra fingers, oversaturated HDR, collage, frame, border',
+    generationPrompt: `Authentic editorial photograph for ${ctx.brandName} (${ctx.businessType}). Theme: ${theme}. Natural light, real people and places, African context when people appear, shallow depth of field, generous calm empty area on one side reserved for a graphic overlay added separately afterwards. ${ctx.artDirection?.imagePromptModifier || ''}`.slice(0, 900),
+    negativePrompt: 'distorted faces, extra fingers, oversaturated HDR, collage, frame, border',
     orientation,
   };
 }
@@ -116,6 +125,13 @@ interface Candidate extends PosterChoice {
   weight: number;
 }
 
+/** Les motifs d'ambiance classés pour cette demande (sans jeton : intention × direction artistique × graine). */
+function motifsFor(intent: PosterIntent, req: PosterRequest) {
+  const ad = req.context.artDirection;
+  const query = { intent, styleId: ad?.styleId, donts: ad?.donts, seed: hash(req.seedKey) };
+  return { ranked: rankMotifs(query), grain: grainFor(query) };
+}
+
 function candidatesFor(input: SpecInput, intent: PosterIntent, req: PosterRequest, schemes: PosterScheme[]): Candidate[] {
   const style = String(req.context.artDirection?.styleId || '').toLowerCase();
   const boosts = STYLE_BOOSTS[style] || {};
@@ -123,6 +139,7 @@ function candidatesFor(input: SpecInput, intent: PosterIntent, req: PosterReques
   const avoid = req.avoid || [];
   const darkWanted = !!req.allowDark;
   const seed = hash(req.seedKey);
+  const { ranked, grain } = motifsFor(intent, req);
   const out: Candidate[] = [];
   for (const t of POSTER_TEMPLATES) {
     if (t.needsImage && !input.image) continue;
@@ -147,7 +164,10 @@ function candidatesFor(input: SpecInput, intent: PosterIntent, req: PosterReques
       // Une photo pertinente (surtout celle de la marque) mérite d'être vue.
       if (input.image && t.needsImage) w += input.image.origin === 'brand' || input.image.origin === 'user' ? 0.9 : 0.4;
       w += ((hash(`${seed}:${t.id}:${sid}`) % 1000) / 1000) * 0.3;
-      out.push({ template: t.id, scheme: sid, mirror: hash(`${seed}:${t.id}:m`) % 3 === 0, treatment: 'natural', weight: w });
+      // Le décor : le meilleur pour l'intention à Low ; un tirage parmi les trois meilleurs au-delà (variété).
+      // Une photo plein cadre le cache, la composition géométrique porte déjà ses formes : seul le grain reste.
+      const motif = t.id === 'fullbleed' || t.id === 'geometric' ? 'none' : ranked[req.creativity === 'low' ? 0 : hash(`${seed}:${t.id}:${sid}:motif`) % Math.min(3, ranked.length)]?.id || 'none';
+      out.push({ template: t.id, scheme: sid, mirror: hash(`${seed}:${t.id}:m`) % 3 === 0, treatment: 'natural', motif, motifSeed: hash(`${seed}:${t.id}:ms`) % 100000, ...(grain ? { grain } : {}), weight: w });
     });
   }
   return out.sort((a, b) => b.weight - a.weight);
@@ -161,7 +181,7 @@ interface DirectorReview {
   fixes: string[];
 }
 
-function artDirectorTask(menu: Candidate[], copy: PosterCopy, req: PosterRequest, schemes: PosterScheme[], count: number, treatments: boolean, hasPhoto: boolean, review?: DirectorReview): AgentTask<{ picks: Candidate[]; emphasis?: number }> {
+function artDirectorTask(menu: Candidate[], copy: PosterCopy, req: PosterRequest, schemes: PosterScheme[], count: number, treatments: boolean, hasPhoto: boolean, motifs: { id: string }[], review?: DirectorReview): AgentTask<{ picks: Candidate[]; emphasis?: number; motif?: string }> {
   const describe = (c: Candidate) => `${TEMPLATE_BY_ID.get(c.template)!.summary}; colours: ${schemes.find((s) => s.id === c.scheme)!.label}`;
   const ad = req.context.artDirection;
   const words = copy.headline.split(/\s+/);
@@ -176,6 +196,7 @@ function artDirectorTask(menu: Candidate[], copy: PosterCopy, req: PosterRequest
               `You are the senior art director of ${req.context.brandName}. Pick the ${count > 1 ? `${count} most professional, on-brand and DIFFERENT compositions` : 'single most professional, on-brand composition'} for this visual from the menu. Output ONLY:`,
               count > 1 ? `choices: ${count} letters, best first` : 'choice: one letter',
               treatments ? 'treatment: natural | duotone | mono (photo treatment, natural unless the brand style calls for it)' : '',
+              motifs.length ? 'motif: one letter from the DECOR menu (the tonal graphic behind the composition; fit the brand art direction)' : '',
               'emphasis: the one word of the headline to set in the brand colour',
             ]
               .filter(Boolean)
@@ -189,6 +210,7 @@ function artDirectorTask(menu: Candidate[], copy: PosterCopy, req: PosterRequest
               hasPhoto ? 'A relevant photo of the brand itself is available: real people sell better than type alone — show it unless the message is purely typographic.' : '',
               'MENU:',
               ...menuLines(menu.map((c) => `${c.template}/${c.scheme}`), (id) => describe(menu.find((c) => `${c.template}/${c.scheme}` === id)!)),
+              ...(motifs.length ? ['DECOR:', ...motifMenu(motifs)] : []),
             ]
               .filter(Boolean)
               .join('\n'),
@@ -206,7 +228,9 @@ function artDirectorTask(menu: Candidate[], copy: PosterCopy, req: PosterRequest
       const treatment = (['duotone', 'mono'] as const).find((t) => (l.treatment || '').toLowerCase().includes(t));
       const w = (l.emphasis || '').toLowerCase().replace(/[^\p{L}\p{N}%'-]/gu, '');
       const at = w ? words.findIndex((x) => x.toLowerCase().replace(/[^\p{L}\p{N}%'-]/gu, '') === w) : -1;
-      return { picks: treatments && treatment ? picks.map((p, i) => (i === 1 ? { ...p, treatment } : p)) : picks, ...(at >= 0 ? { emphasis: at } : {}) };
+      const motifLetter = (l.motif || '').toLowerCase().match(/\b[a-h]\b/)?.[0];
+      const motif = motifLetter ? motifs[LETTERS.indexOf(motifLetter)]?.id : undefined;
+      return { picks: treatments && treatment ? picks.map((p, i) => (i === 1 ? { ...p, treatment } : p)) : picks, ...(at >= 0 ? { emphasis: at } : {}), ...(motif ? { motif } : {}) };
     },
     fallback: () => ({ picks: menu.slice(0, count) }),
   };
@@ -332,7 +356,7 @@ export async function composePoster(ports: PosterPorts, req: PosterRequest): Pro
     // Le filet : la direction artistique sur les compositions éprouvées. Si la conception libre a
     // abouti mais reste moyenne, la critique compare les deux.
     stage('layout', 'running');
-    const safety = await templatePath(orch, req, level, all, input, schemes, copy, fonts, critiqueCtx, hasBrandPhoto);
+    const safety = await templatePath(orch, req, level, all, input, schemes, copy, fonts, critiqueCtx, hasBrandPhoto, intent);
     stage('layout', 'done');
     if (final && safety) {
       const verdict = await compareRenders([final.render.png, safety.render.png], critiqueCtx);
@@ -375,6 +399,7 @@ export async function composePoster(ports: PosterPorts, req: PosterRequest): Pro
       marketingText: { headline: final.copy.headline, subheadline: final.copy.sub, body: final.copy.facts.map((f) => f.text).join(' · ') },
       creativity: level,
       method: final.method,
+      ...(final.motif && final.motif !== 'none' ? { motif: final.motif } : {}),
       ...(fellBack ? { fellBack } : {}),
       ...(final.critique ? { critique: final.critique } : {}),
       agents: orch.traces,
@@ -398,6 +423,8 @@ interface Final {
   copy: PosterCopy;
   critique: Critique | null;
   tried: PosterResult['candidates'];
+  /** Le décor d'ambiance du kit graphique (méthodes à gabarits). */
+  motif?: string;
 }
 
 /**
@@ -406,9 +433,9 @@ interface Final {
  * visuelle) et, sous la qualité agence, en choisit une autre qui corrige ce qu'elle a vu (deux
  * révisions au plus). Aussi le filet des crans Max et Ultra.
  */
-async function templatePath(orch: CreativeOrchestrator, req: PosterRequest, level: CreativityLevel, all: Candidate[], input: SpecInput, schemes: PosterScheme[], copy: PosterCopy, fonts: ReturnType<typeof posterFonts>, critiqueCtx: CritiqueContext, hasPhoto: boolean): Promise<Final | null> {
+async function templatePath(orch: CreativeOrchestrator, req: PosterRequest, level: CreativityLevel, all: Candidate[], input: SpecInput, schemes: PosterScheme[], copy: PosterCopy, fonts: ReturnType<typeof posterFonts>, critiqueCtx: CritiqueContext, hasPhoto: boolean, intent: PosterIntent): Promise<Final | null> {
   const tried: PosterResult['candidates'] = [];
-  const renderChoice = async (c: Candidate, emphasis?: number): Promise<PosterRender | null> => {
+  const renderOnce = async (c: Candidate, emphasis?: number): Promise<PosterRender | null> => {
     const spec = specFor(input, { ...c, emphasis: emphasis ?? c.emphasis }, schemes);
     const template = TEMPLATE_BY_ID.get(c.template);
     if (!spec || !template) return null;
@@ -421,6 +448,14 @@ async function templatePath(orch: CreativeOrchestrator, req: PosterRequest, leve
       return null;
     }
   };
+  /** Le décor ne doit jamais coûter une composition : si le rendu le refuse (contraste), on rejoue sans lui. */
+  const renderChoice = async (c: Candidate, emphasis?: number): Promise<PosterRender | null> => {
+    const first = await renderOnce(c, emphasis);
+    if (first || !((c.motif && c.motif !== 'none') || c.grain)) return first;
+    const bare = await renderOnce({ ...c, motif: 'none', grain: undefined }, emphasis);
+    if (bare) c.motif = 'none';
+    return bare;
+  };
   const finalOf = (c: Candidate, render: PosterRender, critique: Critique | null, method: Final['method']): Final => ({
     method,
     render,
@@ -431,12 +466,14 @@ async function templatePath(orch: CreativeOrchestrator, req: PosterRequest, leve
     copy,
     critique,
     tried,
+    motif: c.motif,
   });
 
   if (!atLeast(level, 'high')) {
     let queue = all;
     if (level === 'medium') {
-      const top = all.slice(0, 3);
+      // Trois compositions DIFFÉRENTES (et non trois palettes de la même) : la variété vient des gabarits.
+      const top = all.filter((c, i) => all.findIndex((x) => x.template === c.template) === i).slice(0, 3);
       const first = top[hash(req.seedKey + ':pick') % Math.max(1, top.length)];
       queue = first ? [first, ...all.filter((c) => c !== first)] : all;
     }
@@ -449,14 +486,17 @@ async function templatePath(orch: CreativeOrchestrator, req: PosterRequest, leve
 
   // La direction artistique, qui regarde ce qu'elle a choisi.
   const menu = all.slice(0, 9);
+  const { ranked: motifRank } = motifsFor(intent, req);
   let best: { c: Candidate; render: PosterRender; critique: Critique | null } | null = null;
   let review: DirectorReview | undefined;
   const seen = new Set<Candidate>();
   for (let round = 0; round < 3; round++) {
-    const decided = (await orch.run({ ...artDirectorTask(menu, copy, req, schemes, 1, true, hasPhoto, review), key: `posterArtDirector${round ? `:r${round}` : ''}` })).value;
+    const decided = (await orch.run({ ...artDirectorTask(menu, copy, req, schemes, 1, true, hasPhoto, motifRank.slice(0, 5), review), key: `posterArtDirector${round ? `:r${round}` : ''}` })).value;
     // Un choix déjà rendu ne se rejoue pas : le suivant du menu.
-    const pick = decided.picks.find((p) => !seen.has(p)) || menu.find((p) => !seen.has(p));
-    if (!pick) break;
+    const base = decided.picks.find((p) => !seen.has(p)) || menu.find((p) => !seen.has(p));
+    if (!base) break;
+    // Le décor choisi par la direction artistique (le gabarit plein cadre n'en montre pas, le géométrique porte les siens).
+    const pick = decided.motif && base.template !== 'fullbleed' && base.template !== 'geometric' ? { ...base, motif: decided.motif } : base;
     seen.add(pick);
     let render = await renderChoice(pick, decided.emphasis);
     let chosen = pick;

@@ -156,7 +156,7 @@ router.post(
   })
 );
 
-/** Un clip d'un plan de vidéo (CogVideoX-3) : l'URL rendue par Z.ai, qu'iVision télécharge. */
+/** Un clip d'un plan de vidéo (Seedance, OpenRouter) : l'URL rendue (`data:`), qu'iVision télécharge. */
 router.post(
   '/ai/video',
   route(async (req, res) => {
@@ -180,11 +180,11 @@ router.post(
   })
 );
 
-/** Une ligne de voix off (GLM-TTS, repli Gemini TTS) : l'audio en base64. */
+/** Une ligne de voix off (Kokoro, ou votre serveur Qwen3-TTS / Chatterbox) : l'audio en base64. */
 router.post(
   '/ai/speech',
   route(async (req, res) => {
-    const { text: line, language, provider, voice, style, tag } = req.body || {};
+    const { text: line, language, tag } = req.body || {};
     if (typeof line !== 'string' || !line.trim()) {
       res.status(400).json({ error: 'text_required' });
       return;
@@ -194,9 +194,6 @@ router.post(
         idemSynthesizeSpeech({
           text: text(line, 1000),
           language: text(language, 5) || 'fr',
-          provider: provider === 'glm' ? 'glm' : 'gemini',
-          voice: text(voice, 40),
-          style: text(style, 60) || undefined,
           tag: text(tag, 64) || 'ivision',
         })
       );

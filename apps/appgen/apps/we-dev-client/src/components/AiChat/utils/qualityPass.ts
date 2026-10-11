@@ -1,6 +1,8 @@
 import { ChatRequestOptions, CreateMessage, Message } from 'ai';
 import { TFunction } from 'i18next';
 import { parseMessage } from '@/utils/messagepParseJson';
+import { useFileStore } from '@/components/WeIde/stores/fileStore';
+import { LINT_RELEVANT_SCAFFOLD_PATHS } from '@/utils/scaffoldLock';
 
 /**
  * Post-generation quality pass.
@@ -40,7 +42,15 @@ interface LintResponse {
 
 const repairedChats = new Set<string>();
 
-/** Every file the assistant has written so far, latest version winning. */
+/**
+ * Tout ce que l'assistant a écrit, dernière version gagnante, plus les deux
+ * fichiers du socle dont le linter a besoin pour juger.
+ *
+ * `tailwind.config.js` lui dit que la palette est forgée (plusieurs règles en
+ * dépendent) et `index.html` porte le script d'amorçage. Depuis que le socle
+ * les écrit, ils ne sont plus dans les messages : sans ce rattrapage, le linter
+ * croirait à un projet sans charte et signalerait une page blanche inexistante.
+ */
 function collectGeneratedFiles(messages: Message[]): Record<string, string> {
   const files: Record<string, string> = {};
 
@@ -53,6 +63,20 @@ function collectGeneratedFiles(messages: Message[]): Record<string, string> {
   }
 
   return files;
+}
+
+/** Ajoute au lot les fichiers du socle dont les règles ont besoin. */
+function withLintContext(files: Record<string, string>): Record<string, string> {
+  const workspace = useFileStore.getState().files;
+  const complete = { ...files };
+
+  for (const path of LINT_RELEVANT_SCAFFOLD_PATHS) {
+    if (!complete[path] && typeof workspace[path] === 'string') {
+      complete[path] = workspace[path];
+    }
+  }
+
+  return complete;
 }
 
 /** The logo the generated site is supposed to show, if the project has one. */
@@ -101,11 +125,13 @@ export async function runQualityPass(
     return null;
   }
 
-  const files = collectGeneratedFiles(messages);
+  const generated = collectGeneratedFiles(messages);
 
-  if (!Object.keys(files).length) {
+  if (!Object.keys(generated).length) {
     return null;
   }
+
+  const files = withLintContext(generated);
 
   const apiBase = process.env.REACT_APP_BASE_URL || '';
 

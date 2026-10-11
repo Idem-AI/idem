@@ -7,6 +7,7 @@
  * musique sont posés par le code. C'est ce qui permet de tenir un rendu
  * professionnel avec le modèle le moins cher du marché.
  */
+import type { AddonId } from './video.engine';
 
 /** Où la vidéo sera vue. */
 export type VideoFormat = 'story' | 'square' | 'portrait' | 'landscape';
@@ -151,7 +152,7 @@ export interface VideoVoice {
   language: string;
   /** Personnage de voix (catalogue `video.voice.ts`), traduit en voix du fournisseur. */
   persona: string;
-  provider: 'glm' | 'gemini';
+  provider: 'openrouter';
   model: string;
   voice: string;
   /** Jeu demandé par l'agent narrateur. */
@@ -191,7 +192,7 @@ export interface VideoBrief {
   media?: VideoMediaAsset[];
   /** IDEM peut chercher des photos et vidéos sur Pexels (après trois échecs de génération). */
   allowStock?: boolean;
-  /** IDEM génère les photos et les clips que l'utilisateur n'a pas fournis (modèles GLM). */
+  /** IDEM génère les photos et les clips que l'utilisateur n'a pas fournis (modèles OpenRouter). */
   allowGenerate?: boolean;
   /** Effets sonores (whoosh, pop…) : activés par défaut. */
   sfx?: boolean;
@@ -215,6 +216,11 @@ export interface VideoSceneInstance {
   duration: number;
   /** Mise en page (archétype) choisie par l'agent directeur artistique (video.layouts.ts). */
   layout?: string;
+  /**
+   * Démonstration (vidéos d'essai des outils, jamais posé par la création) : une étiquette qui nomme l'outil
+   * montré, et des surcharges par scène du fond et de l'annotation que le graphe ne pose qu'une fois par vidéo.
+   */
+  demo?: { label?: string; note?: string; backdrop?: string; annotate?: string; iconSet?: string; postfx?: string[]; kit?: { camera?: string; entrance?: string; iconMotion?: string; imageFx?: string; logo?: string } };
   /** Motif de la scène (video.patterns.ts) : la façon de servir son intention, résolue en choix du moteur. */
   pattern?: string;
   /** Index, dans le titre, du mot mis en valeur par le directeur artistique. */
@@ -249,7 +255,7 @@ export interface VideoSceneInstance {
   /** Tempo des entrées de la scène (rythme de la vidéo) : < 1 plus vif, > 1 plus posé. */
   pace?: number;
   /** Le grand moment de la vidéo (une scène au plus) : effet choisi par la direction. */
-  accent?: 'punch' | 'giant' | 'hold' | 'flip';
+  accent?: 'punch' | 'giant' | 'hold' | 'flip' | 'burst';
   /** Plan de mouvement : ancrage, techniques d'entrée, transition (cf. video.direction.ts). */
   motion?: {
     anchor: string;
@@ -390,8 +396,12 @@ export interface VideoKit {
   /** Famille d'entrée des éléments (rise, spring, flip, unfold, skew, iris, drop, pop, slideLeft). */
   entrance?: string;
   spring?: { bounce: number };
+  /** Animation des pictogrammes (none, draw, stagger, pop) : IconMotion sur les SVG des bibliothèques. */
+  iconMotion?: string;
+  /** Effet sur la photo d'un produit (none, rgbSplit, shockwave, bulge, twist, zoomBlur, pixelate, glitch, wavy, crt) : PixiJS. */
+  imageFx?: string;
   postfx: string[];
-  addons: ('three' | 'gsap' | 'anime' | 'flubber' | 'lottie' | 'rive' | 'chart' | 'viz' | 'draw' | 'zdog')[];
+  addons: AddonId[];
   trace: KitDecision[];
 }
 

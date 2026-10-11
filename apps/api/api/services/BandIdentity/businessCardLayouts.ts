@@ -12,6 +12,7 @@
  *  - couleur de texte choisie au contraste réel (≥ 4,5:1) avec son fond.
  */
 import { textOn } from '../Communication/flyerLayouts';
+import { pageGfx } from '../../../../ivision/core/src/visual/poster/kit/page';
 import { contrastRatio } from '../design/color';
 
 export type CardStructure = 'brandFront' | 'mixed' | 'detailsFront';
@@ -26,7 +27,7 @@ export const CARD_STRUCTURES: Record<CardStructure, { summary: string; fronts: C
 
 export const CARD_FRONTS: Record<CardFrontId, string> = {
   logoCenter: 'the logo alone, centred on the brand colour',
-  patternField: 'brand colour with a fine diagonal pattern, logo centred',
+  patternField: 'brand colour carrying a drawn texture (woven band, stripes, contour lines, halftone, geometric modules), logo centred',
   monogram: 'a giant brand initial as watermark, name and role beside it',
   logoCornerName: 'logo in a corner, name and role set low with an accent rule',
   bandBottom: 'paper face, a brand band along the bottom edge',
@@ -40,12 +41,31 @@ export const CARD_BACKS: Record<CardBackId, string> = {
   logoOnly: 'a full brand face: the logo on the brand colour',
 };
 
-/** Paramètres bornés (cran Max) : rôle de couleur de la face de marque, alignement, filet, taille du nom. */
+/**
+ * Les textures de la face de marque — dessinées par le kit graphique, pas par un dégradé CSS.
+ *
+ * Une carte se tient à vingt centimètres des yeux : la matière s'y voit. Le tissage reprend la
+ * géométrie des étoffes d'Afrique de l'Ouest (kente, bogolan, wax), au même titre que les
+ * illustrations du produit.
+ */
+export const CARD_PATTERNS = {
+  weave: 'a woven West-African band (kente / bogolan geometry)',
+  stripes: 'fine diagonal stripes',
+  contours: 'faint topographic contour lines',
+  dots: 'a halftone dot field',
+  arcs: 'quarter-circle modules (Bauhaus geometry)',
+  grid: 'a fine technical grid',
+} as const;
+export type CardPatternId = keyof typeof CARD_PATTERNS;
+
+/** Paramètres bornés (cran Max) : rôle de couleur de la face de marque, alignement, filet, taille du nom, texture. */
 export interface CardTuning {
   surface?: 'primary' | 'secondary' | 'accent';
   align?: 'left' | 'center';
   rule?: 'none' | 'thin' | 'bold';
   nameScale?: number;
+  /** Texture de la face « patternField » (défaut : le tissage). */
+  pattern?: CardPatternId;
 }
 
 export interface CardLayoutInput {
@@ -142,8 +162,27 @@ export function renderCardFront(id: CardFrontId, input: CardLayoutInput): string
     case 'logoCenter':
       return face(input, brand, `<div style="position:absolute;inset:${SAFE}mm;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm">${logo(input, brand, short * 0.3)}<p data-field="tagline" class="font-secondary" style="margin:0;font-size:7pt;letter-spacing:0.12em;text-transform:uppercase;color:${textOn(brand, input.palette)};opacity:0.9">{{tagline}}</p></div>`);
     case 'patternField': {
-      const line = isDark(brand) ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-      return face(input, brand, `<div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg, ${line} 0 1.2mm, transparent 1.2mm 4mm)"></div><div style="position:absolute;inset:${SAFE}mm;display:flex;align-items:center;justify-content:center">${logo(input, brand, short * 0.28)}</div>`);
+      // La texture est DESSINÉE par le kit (même vocabulaire que les visuels et les documents),
+      // dans un ton de la couleur de marque : elle se voit à vingt centimètres sans jamais
+      // disputer sa place au logo.
+      const tone = isDark(brand) ? '#ffffff' : '#000000';
+      const kind = (input.tuning?.pattern && CARD_PATTERNS[input.tuning.pattern] ? input.tuning.pattern : 'weave') as CardPatternId;
+      const gfx = pageGfx({
+        width: `${input.width}mm`,
+        height: `${input.height}mm`,
+        tokens: { tone },
+        surface: brand,
+        ink: textOn(brand, input.palette),
+        primary: tone,
+        secondary: tone,
+      });
+      const band = kind === 'weave' || kind === 'stripes' || kind === 'dots';
+      const texture = gfx.draw(
+        { kind, color: 'tone', color2: 'tone', opacity: isDark(brand) ? 0.16 : 0.12, density: band ? 4 : 3, stroke: 0.25 },
+        { left: '0', top: '0', width: `${input.width}mm`, height: `${input.height}mm` },
+        'card-pattern'
+      ).html;
+      return face(input, brand, `${texture}<div style="position:absolute;inset:${SAFE}mm;display:flex;align-items:center;justify-content:center">${logo(input, brand, short * 0.28)}</div>`);
     }
     case 'monogram': {
       const initial = esc((input.brandName.trim()[0] || 'B').toUpperCase());

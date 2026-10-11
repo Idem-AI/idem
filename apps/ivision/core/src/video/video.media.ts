@@ -3,8 +3,8 @@
  *
  * Ordre de priorité, pour chaque besoin de la vidéo (cf. `video.sourcing.ts`) :
  *   1. ce que l'utilisateur a importé (photos, clips, modèles 3D, Lottie) ;
- *   2. génération par les modèles de l'hôte (famille GLM chez IDEM) : image (GLM-Image,
- *      repli CogView-4), clip (CogVideoX-3, image → vidéo) — trois essais par média ;
+ *   2. génération par les modèles de l'hôte (OpenRouter chez IDEM) : image (FLUX.2),
+ *      clip (Seedance, image → vidéo) — trois essais par média ;
  *   3. Pexels — photos ET vidéos (`PEXELS_API_KEY`), après trois échecs de génération ;
  *   4. les photos déjà utilisées dans ses visuels (dernier recours, images seulement).
  *
@@ -311,10 +311,10 @@ export async function searchPexelsVideos(
 /** Taille d'un clip généré, selon l'orientation du format (le clip est ensuite ramené à 1280 px). */
 export const clipSize = (orientation: Orientation): string => (orientation === 'landscape' ? '1280x720' : orientation === 'square' ? '1024x1024' : '720x1280');
 
-/** Taille d'une image générée (multiples de 32, acceptés par GLM-Image comme par CogView-4). */
+/** Taille d'une image générée (multiples de 32). */
 export const stillSize = (orientation: Orientation): string => (orientation === 'landscape' ? '1728x960' : orientation === 'square' ? '1280x1280' : '960x1728');
 
-/** Clip généré par le modèle vidéo de l'hôte (CogVideoX-3 chez IDEM), réencodé et déposé. */
+/** Clip généré par le modèle vidéo de l'hôte (Seedance chez IDEM), réencodé et déposé. */
 export async function generateClip(
   request: Omit<VideoClipRequest, 'size' | 'durationSec' | 'tag'> & { orientation: Orientation; durationSec?: 5 | 10 },
   storage: MediaStorage,
@@ -338,7 +338,7 @@ export async function generateClip(
   }
 }
 
-/** Image générée par le modèle d'image de l'hôte (GLM-Image chez IDEM). Rend aussi ses octets (image → vidéo). */
+/** Image générée par le modèle d'image de l'hôte (FLUX.2 chez IDEM). Rend aussi ses octets (image → vidéo). */
 export async function generateStill(
   prompt: string,
   orientation: Orientation,

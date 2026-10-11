@@ -26,11 +26,12 @@ import { CreativeOrchestrator } from '../creativity/orchestrator';
 import { DirectionId } from './video.direction';
 import { DIRECTION_PITCH } from './video.agents';
 import { SCENES } from './video.scenes';
+import type { AddonId } from './video.engine';
 
 // ─── Les bibliothèques qu'une scène écrite par l'IA fait charger ─────────────
 
 /** Brique du kit → addon du moteur qu'elle exige (chargé au montage seulement si la scène l'importe). */
-export const KIT_ADDONS: Record<string, 'chart' | 'viz' | 'draw' | 'zdog'> = {
+export const KIT_ADDONS: Record<string, AddonId> = {
   ChartJs: 'chart',
   useViz: 'viz',
   DataArc: 'viz',
@@ -42,10 +43,14 @@ export const KIT_ADDONS: Record<string, 'chart' | 'viz' | 'draw' | 'zdog'> = {
   useNoise: 'draw',
   FlowField: 'draw',
   Flat3D: 'zdog',
+  Shader: 'ogl',
+  ImageFx: 'pixi',
+  Morph: 'flubber',
+  IconMotion: 'flubber',
 };
 
 /** Les addons qu'importe le code d'une scène (`import { ChartJs, Sketch } from '@idem/kit'`). */
-export function addonsOfSceneCode(tsx: string): ('chart' | 'viz' | 'draw' | 'zdog')[] {
+export function addonsOfSceneCode(tsx: string): AddonId[] {
   const names = [...(tsx || '').matchAll(/import\s*\{([^}]*)\}\s*from\s*['"]@idem\/kit['"]/g)].flatMap((m) => m[1].split(',').map((n) => n.trim().split(/\s+as\s+/)[0]));
   return [...new Set(names.map((n) => KIT_ADDONS[n]).filter(Boolean))];
 }
@@ -65,7 +70,7 @@ const MANIFEST_CORE = [
 - The component is a PURE FUNCTION OF TIME: everything visible is computed from \`useLocalTime()\` (seconds since the scene starts). No state, no effects, no refs, no timers, no randomness (use hash(n) for pseudo-random), no Date, no fetch, no document/window.
 - Fill the whole frame (the scene element is position:absolute; inset:0). Absolutely positioned layers are welcome.`,
   `DATA
-- const s = useScene(): s.key, s.sceneId, s.slots (THE TEXTS — always read texts from s.slots, never write copy yourself), s.duration (s), s.start, s.icons (array of SVG strings or undefined), s.image (photo URL or undefined), s.motion.anchor, s.accent.
+- const s = useScene(): s.key, s.sceneId, s.slots (THE TEXTS — always read texts from s.slots, never write copy yourself), s.duration (s), s.start, s.icons (array of line-icon SVG strings or undefined: the icon of each benefit, otherwise icons matched to this scene's own texts — animate them with IconMotion), s.image (photo URL or undefined), s.motion.anchor, s.accent.
 - const { data, u, horizontal, ease, easeIn, back } = useEngine(): u = 1% of the frame's short side in px (size everything in u), horizontal = landscape frame, data.brandName, data.logo.icon / data.logo.onLight / data.logo.onDark (image URLs or undefined), data.direction.pacing.enter (entrance duration s), data.direction.pacing.groupStagger (s), data.format.
 - const lt = useLocalTime(); const p = useSceneProgress() (0→1 over the scene, for slow drifts); const beat = useBeatPulse() (1 on each music beat, decays to 0); const exitAt = useExitAt() (local time when elements must leave, or null); const out = useExitFactor() (0→1 during the exit).`,
   `COLOURS & TYPE (brand charter of THIS scene — never hard-code colours)
@@ -74,10 +79,19 @@ const MANIFEST_CORE = [
 - Safe zone: keep every text inside top var(--st), bottom var(--sb), sides var(--sx). The class "safe" is a ready absolutely-positioned box with those margins (display:flex; flex-direction:column).`,
   `TEXT (always through these — they fit the text to the available width and never overflow)
 - <Kinetic text={s.slots.title} technique="maskUp" at={0.2} role="headline" fit={[maxSizeU, minSizeU, maxLines]} exitAt={exitAt} sound="click" style={{...}} />
-  techniques: maskUp, lineWipe, blurWords, trackIn, scaleBlur, charCascade, flipChars, scramble, typewriter, springUp, wave, stretch, zoomWords, skewIn, scatter, slideAlternate, stackPush, boxReveal, outlineFill. role "support" for secondary text.
+  techniques: maskUp, lineWipe, blurWords, trackIn, scaleBlur, charCascade, flipChars, scramble, typewriter, springUp, wave, stretch, zoomWords, skewIn, scatter, slideAlternate, stackPush, boxReveal, outlineFill, shine (a light sweeps over the letters), glitch (brand-coloured channel split in bursts), shuffle (each letter a slot machine), gradientFlow (ink-to-brand gradient flowing through the text). role "support" for secondary text.
 - <Odometer text={s.slots.value} at={0.1} dur={1.2} fit={[maxU, minU, 1]} /> rolls the digits of a number.
 - Ready blocks: <Headline text at fit />, <Support text at fit? />, <ActionButton text={s.slots.action} at />, <LabelBlock text at /> (text on a --hl label), <Composition anchor="center-left" gap={3} width="62%">…</Composition> (safe-zone block at an anchor).
 - stackLines(text, maxLines) splits a headline into poster lines.`,
+  `TOOLBOX FIRST — before you draw or invent anything, ask "does the kit already do this?" and import the brick
+- living background / atmosphere → <Shader effect="aurora|silk|plasma|fluid|mesh|topology|waves|blobs" />, <Gradient />, <Network />, <Particles />, <FlowField />, <Flat3D />
+- a photo with a visual effect (glitch, ripple, RGB split, pixels, liquid) → <ImageFx src={s.image} effect=… />
+- glass / frosted lens over content → <LiquidGlass>
+- a shape turning into another, an icon into another → <Morph>, <IconMotion mode="morph" to=… />
+- an animated icon or brand logo (s.icons, s.brands) → <IconMotion svg=… mode="draw|stagger|pop|pulse|wiggle" />
+- numbers, charts, maps, gauges → Odometer, ChartJs, DataArc, GrowArea, AfricaMap · hand-made strokes → Sketch, Brush
+- text effects → <Kinetic technique=… /> (24 techniques)
+Write your own layer with plain divs only when NO brick fits. Hand-written decorative SVG paths and "abstract" blobs made of many divs are rejected by the lint: they are what makes a scene look random.`,
   `MOTION
 - useEnter(kind, at, durScale?, exitAt?) → style for non-text elements; kinds: rise, scale, pop, wipeRight, clipUp, slideLeft, fade, drop, spring, flip, unfold, skew, iris.
 - Pure helpers (import them from "@idem/kit"): progress(t, at, dur) → 0..1, mix(a, b, p), clamp(v, lo?, hi?), ease(p), easeIn(p), back(p), keyframes(t, times[], values[]), springEase(bounce)(p), hash(n) → 0..1. The direction's own curve is useEngine().ease.
@@ -88,6 +102,7 @@ const MANIFEST_RULES = `RULES (checked by code; a scene that breaks one is rejec
 - Every text of s.slots must be fully on screen and readable before the last 0.6 s of the scene; nothing outside the frame.
 - Professional motion design: 2–4 depth layers moving at different speeds, a clear focal point, generous negative space, one accent colour, eased motion (no linear), entrances 0.3–1.2 s, the main text settles early and HOLDS.
 - No CSS animations/transitions/@keyframes (time drives everything). No 3D transforms (perspective, rotateX/Y/Z, translateZ). Blur radius never negative: blur(\${Math.max(0, x)}px).
+- Decorative SVG is not hand-written: no <path d="…"> longer than 60 characters; use the bricks above (Sketch, Brush, Morph, IconMotion, Shader…).
 - No while/do loops; for-loops only over arrays or small fixed counts (≤ 60). At most ~40 elements.
 - Must work in portrait, square and landscape: size with u and %, branch on \`horizontal\` when needed.`;
 const DATA_HEADER = `DATA, CHARTS, DRAWING (all driven by time — pass progress values, never animate on your own)`;
@@ -99,6 +114,11 @@ const MANIFEST_SECTIONS: { id: string; names: string[]; text: string }[] = [
   { id: 'bricks', names: ['DataArc', 'GrowArea', 'AfricaMap', 'VoronoiField'], text: `- Ready data bricks: <DataArc value={87} /> (gauge), <GrowArea values={[…]} /> (area that draws itself), <AfricaMap highlightIn={s.slots.title} /> (Africa; only the countries/cities NAMED in the text light up), <VoronoiField cells={24} />.` },
   { id: 'draw', names: ['Sketch', 'Brush', 'FlowField', 'useNoise'], text: `- Hand-made touch: <Sketch draw={{ shape: 'circle'|'ellipse'|'rectangle'|'line'|'arc'|'polygon'|'curve'|'path', … }} p={0..1} color="var(--hl)" roughness={1.2} seed={3} /> (rough.js, viewBox 100×100); <Brush points={[[x,y],…]} p={0..1} size={4} /> (brush stroke); <FlowField seed={5} /> (organic noise lines); const { noise2D, noise3D } = useNoise(seed) for organic motion.` },
   { id: 'flat3d', names: ['Flat3D'], text: `- Flat 3D without WebGL: <Flat3D items={[{ kind: 'box'|'cylinder'|'cone'|'hemisphere'|'ring'|'disc'|'polygon'|'sphere'|'rect'|'line', width, height, depth, diameter, color: 'var(--hl)', shade: 'var(--c-primary)', x, y, z }]} rotate={{ x: -0.4, y: lt * 0.8 }} /> (Zdog, coordinates -50..50).` },
+  { id: 'matter', names: ['Shader', 'Gradient', 'Network', 'Bg'], text: `- <Bg id="halftone" /> puts one of the engine's 24 ready backgrounds in the corner the text leaves free (dot-grid, halftone, shape-field, stagger-grid, marquee, spotlight, ticks, flow-field, sketch-shapes, voronoi, flat3d, motes, embers, confetti, aurora, silk, plasma, fluid, mesh, topology, waves, blobs, network, gradient).\n- Living backgrounds (put them BEFORE the text; keep the text readable): <Shader effect="aurora|silk|plasma|fluid|mesh|topology|waves|blobs" colors={['var(--hl)','var(--c-accent)']} strength={0.6} speed={1} scale={1} seed={3} /> (OGL shader, 4 colours of the surface, strength 0–1 tints the surface; 1 = full-bleed); <Gradient states={[['var(--hl)','var(--c-primary)'],['var(--c-accent)','var(--bg)']]} angle={140} hold={1.6} fade={1.8} /> (a CSS gradient sliding between colour states); <Network count={44} reach={18} area={[0,0,100,100]} /> (points that drift and link up).` },
+  { id: 'photofx', names: ['ImageFx'], text: `- <ImageFx src={s.image} effect="rgbSplit|shockwave|bulge|twist|zoomBlur|pixelate|glitch|wavy|crt" amount={1} zoom={0.05} at={0.1} dur={1.4} /> fills its box with the photo and a PixiJS filter (pixelate reveals from \`at\` for \`dur\`; the others loop). Wrap it in a sized box; the plain photo is the fallback.` },
+  { id: 'glass', names: ['LiquidGlass'], text: `- <LiquidGlass x={50} y={44} w={74} h={26} radius={8} refraction={1} blur={2} tint={0.3} p={0..1}>…children…</LiquidGlass> — a refractive glass lens (x, y: centre in % of the frame; w, h, radius in u). It bends what is BEHIND it (a Shader, Gradient, Network, photo): put one behind. Children stay sharp on top.` },
+  { id: 'morph', names: ['Morph', 'IconMotion'], text: `- <Morph from="circle" to="heart" at={0.3} dur={1.2} fill="var(--hl)" style={{ width: 30 * u, height: 30 * u }} /> or <Morph shapes={['circle','star','heart','drop']} hold={0.8} fade={0.9} /> (shapes: circle, square, triangle, star, heart, drop, hexagon, cross, bolt, arrow, check, leaf, moon). <IconMotion svg={s.icons?.[i]} mode="draw|stagger|pop|pulse|wiggle" at={0.2} dur={1} style={{ width: 12 * u, height: 12 * u }} /> animates an icon SVG shape by shape; mode="morph" to={s.icons?.[j]} turns one icon into another. s.brands = [{ name, svg }] are the logos of brands NAMED in the texts (WhatsApp, Orange Money…): animate them the same way.` },
+  { id: 'particles', names: ['Particles'], text: `- Seeded particles (no library, one element for you): <Particles mode="drift|rise|fall|burst|converge|dissolve" count={36} seed={3} area={[x0, y0, x1, y1]} origin={[x, y]} at={seconds} dur={seconds} size={[minU, maxU]} shapes={['dot','square','ring','spark']} turbulence={0..1} reach={u} opacity={0..1} /> (positions in % of the frame, brand colours only, max 120). drift / rise / fall float all along (area = emission zone). burst (from origin), converge (towards origin) and dissolve (a text block: area = its box in %, undone left to right) play once from \`at\` for \`dur\` seconds. Write it BEFORE the text so the text stays readable.` },
 ];
 const SERVE_LINE = `- Use these tools when they SERVE the idea (a number becomes a chart or a gauge, places become a map, a promise gets a hand-drawn circle, depth comes from flat 3D) — not as decoration everywhere.`;
 
@@ -245,7 +265,7 @@ export const KIT_NAMES = new Set([
   'clamp', 'mix', 'progress', 'hash', 'keyframes', 'springEase', 'ease', 'easeIn', 'back',
   'numbersIn', 'slotNumbers', 'percentIn', 'countriesIn',
   'ChartJs', 'useViz', 'DataArc', 'GrowArea', 'AfricaMap', 'VoronoiField',
-  'Sketch', 'Brush', 'useNoise', 'FlowField', 'Flat3D',
+  'Sketch', 'Brush', 'useNoise', 'FlowField', 'Flat3D', 'Particles', 'Shader', 'ImageFx', 'LiquidGlass', 'Gradient', 'Network', 'Morph', 'IconMotion', 'Bg',
 ]);
 const REACT_NAMES = new Set(['React', 'useMemo', 'Fragment']);
 const MAX_SOURCE = 16000;
@@ -260,6 +280,8 @@ export async function lintSceneCode(tsx: string, slotKeys: string[]): Promise<st
   if (/@keyframes|\banimation\s*:|\btransition\s*:/i.test(tsx)) issues.push('CSS animations/transitions are forbidden: compute every style from time');
   if (/perspective\s*\(|rotate[XYZ]\s*\(|rotate3d|translateZ|translate3d|matrix3d/.test(tsx)) issues.push('3D transforms are forbidden');
   if (/https?:\/\//i.test(tsx)) issues.push('no URL may be written in the code (use s.image, data.logo)');
+  // La boîte à outils d'abord : un tracé SVG écrit à la main est le signe d'une forme « abstraite » inventée.
+  if ([...tsx.matchAll(/\bd\s*=\s*["'`]([^"'`]{60,})["'`]/g)].length) issues.push('a long hand-written SVG path was found: do not draw abstract shapes by guess — use <Sketch>, <Brush>, <Morph>, <IconMotion>, <Shader>, <Particles> or <Flat3D> (TOOLBOX FIRST)');
   // Les imports sont lus sur la SOURCE : esbuild retire ceux qui ne servent pas avant l'analyse.
   for (const m of tsx.matchAll(/import\s+(?:type\s+)?([\s\S]*?)\s+from\s+['"]([^'"]+)['"]/g)) {
     if (!ALLOWED_MODULES.has(m[2])) issues.push(`import from "${m[2]}" is forbidden (only @idem/kit and react)`);

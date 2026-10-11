@@ -92,6 +92,33 @@ export interface BrandIdentityModel {
     generatedAt: Date;
     items: SocialAssetFileModel[];
   };
+  /**
+   * Les MOTIFS de la marque, déposés en SVG répétables (cf. `design/brandPatterns.ts`).
+   *
+   * La page « Motifs » de la charte les montre, et tout rendu qui a besoin d'un motif emploie
+   * CEUX-LÀ — page de business plan, diapositive, carte de visite, visuel. Avant, chaque module
+   * recalculait un dégradé CSS de son côté : la charte promettait un motif que les autres
+   * livrables ne tenaient pas. `key` résume ce qui les compose, comme pour `socialAssets`.
+   */
+  patterns?: {
+    key: string;
+    generatedAt: Date;
+    items: BrandPatternFileModel[];
+  };
+}
+
+/** Un motif de marque déposé dans le stockage : une tuile SVG qui se répète. */
+export interface BrandPatternFileModel {
+  id: string;
+  label: string;
+  /** Ce à quoi il sert, en une ligne (légende de la charte). */
+  role: string;
+  kind: string;
+  ink: string;
+  ground: string;
+  /** Côté de la tuile en px : l'échelle d'affichage s'en déduit. */
+  tile: number;
+  url: string;
 }
 
 /** Un fichier de bannière ou de photo de profil, déposé dans le stockage. */

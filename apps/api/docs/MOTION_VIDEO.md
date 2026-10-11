@@ -38,8 +38,8 @@ et le remplace par le sien s'il est absent, faux ou inventé.
 | Mises en page, transitions, entrées, caméra, logo, relecture | graphe ; **agents** dès High | `video.agents.ts` |
 | Réglages par scène (taille, alignement, surface, tempo, décor) | graphe ; **agents** au cran Max, dans des bornes | `video.agents.ts` |
 | Médias que l'utilisateur n'a pas fournis : un plan par besoin, au texte de SA scène, look commun, mouvement de caméra (menu), requête de banque | **directeur photo**, à tous les crans | `video.sourcing.ts` |
-| Génération : image (GLM-Image, repli CogView-4) contrôlée par la vision, clip (CogVideoX-3, l'image animée) ; **3 essais** par média, puis Pexels, puis les photos des visuels | code + modèles GLM de l'hôte | `video.sourcing.ts`, `video.media.ts` |
-| Voix off (si l'utilisateur la demande) : une ligne parlée par scène, dans la langue de la vidéo | **narrateur**, à tous les crans ; GLM-TTS ou son repli | `video.voice.ts` |
+| Génération : image (FLUX.2) contrôlée par la vision, clip (Seedance, l'image animée) ; **3 essais** par média, puis Pexels, puis les photos des visuels | code + modèles OpenRouter de l'hôte | `video.sourcing.ts`, `video.media.ts` |
+| Voix off (si l'utilisateur la demande) : une ligne parlée par scène, dans la langue de la vidéo | **narrateur**, à tous les crans ; Kokoro ou le serveur de l'exploitant | `video.voice.ts` |
 | Musique : plusieurs banques libres, tempo, extrait le plus énergique | code + ffmpeg ; **sound designer** dès Medium | `video.music.ts`, `video.beats.ts` |
 | Storyboard : minutage au temps de lecture, coupes sur le temps, variantes / surfaces / transitions par graine | code | `video.storyboard.ts` |
 | Bonnes pratiques : lecture, tenues, accroche, appel à l'action, signature | code, après les agents | `video.rules.ts` |
@@ -131,11 +131,12 @@ palette, studio), décor (filets, grille, grain, bandes cinéma, papier, cadre),
 mouvement fluide ou image par image. La direction suit le type, la direction
 artistique de la marque, et évite les dernières vidéos du projet.
 
-**20 techniques de texte** : masque montant, cascade de lettres, resserrement
+**24 techniques de texte** : masque montant, cascade de lettres, resserrement
 de chasse, échelle + flou, machine à écrire, volet par mot, mots flous,
 lettres basculées, brouillage, révélation par bloc, empilement, glissements
 alternés, ressort montant, vague, étirement, bascule 3D, zoom par mot,
-inclinaison, dispersion, contour qui se remplit ; compteur « odomètre » pour
+inclinaison, dispersion, contour qui se remplit, reflet, glitch, machine à sous,
+dégradé qui coule ; compteur « odomètre » pour
 les chiffres. **17 transitions** : coupe, coupe éclair, glitch, fondu, zoom
 flou, traversée, filé, cube 3D, poussée, glissé, iris (raccord graphique sur le
 point focal précédent), volet, bandes, disque de marque, lames obliques,
@@ -190,7 +191,7 @@ MESURE leur écart (empreinte d'images) : deux directions trop proches font éch
 | Typographie animée (`kinetic`) | mots animés, mots qui défilent | aucun |
 | Mise en avant produit (`product`) | produit, galerie | photos importées → générées → Pexels → visuels |
 | Offre flash (`promo`) | offre (prix barré, pastille) | prix du brief |
-| Vidéo + texte (`footage`) | clips plein écran, bandeau titre | clips importés → générés (CogVideoX-3) → Pexels vidéo → l'image générée du plan |
+| Vidéo + texte (`footage`) | clips plein écran, bandeau titre | clips importés → générés (Seedance) → Pexels vidéo → l'image générée du plan |
 | Vitrine 3D (`showcase3d`) | modèle GLB en rotation, photos en cartes 3D, formes 3D, logo extrudé | modèle importé (facultatif) |
 | Animations illustrées (`illustrated`) | Lottie intégrées (confettis, coche, étincelles, onde, éclat, cœur) ou importées | Lottie importées (facultatif) |
 | Diaporama dynamique (`slideshow`) | galeries, produit | photos |
@@ -241,13 +242,13 @@ commercial).
 - Les clips sont positionnés image par image (`currentTime` + `seeked`). Les
   onglets de rendu ont l'émulation de focus activée : sinon Chromium suspend le
   décodage vidéo des onglets « en arrière-plan ».
-- Clips générés : CogVideoX-3 (voir « Médias générés »), réencodés comme les
+- Clips générés : Seedance (voir « Médias générés »), réencodés comme les
   clips importés.
 
 ## Médias générés
 
-Ce que l'utilisateur n'a pas fourni est **généré pour sa scène**, avec les modèles de la
-famille GLM (hôte IDEM : `glm-media.service.ts`, `AI_CONFIG.communication.videoMedia`) :
+Ce que l'utilisateur n'a pas fourni est **généré pour sa scène**, avec les modèles
+OpenRouter (hôte IDEM : `media.service.ts`, `AI_CONFIG.communication.videoMedia`) :
 
 1. **Besoins** (`video.sourcing.ts#planMediaNeeds`) : produit 1 photo, galerie 3, vitrine 3D 2
    (sans modèle importé), plan filmé 1 clip. Les imports remplissent d'abord les scènes, dans
@@ -256,17 +257,17 @@ famille GLM (hôte IDEM : `glm-media.service.ts`, `AI_CONFIG.communication.video
    (sujet, action, décor, cadrage), un « look » commun au film, la DA de la charte
    (`imagePromptModifier`), le mouvement de caméra d'un clip dans un menu de 8, la requête de
    banque. Repli du code si le modèle ne répond pas.
-3. **Génération** : l'image d'abord — **GLM-Image** (0,015 $), repli **CogView-4** —, contrôlée
+3. **Génération** : l'image d'abord — **FLUX.2 klein 4B** (poids ouverts) —, contrôlée
    par la vision (aucun texte imprimé, le bon sujet ; `VIDEO_MEDIA_CHECK=off` pour couper) ;
-   le clip **anime cette image** avec **CogVideoX-3** (image → vidéo, 5 s, 0,2 $, « quality »
-   dès High, « speed » sinon), muet (musique, effets et voix sont les nôtres). Trois essais par
+   le clip **anime cette image** avec **Seedance 2.0** (image → vidéo, 5 ou 10 s), muet (musique, effets et voix sont les nôtres). Trois essais par
    média, la consigne resserrée à chaque essai ; le troisième essai d'un clip part du texte seul.
 4. **Pexels** seulement après trois échecs, avec la requête du plan ; un plan filmé sans clip
    garde l'image générée pour lui ; en dernier recours, les photos des visuels de la marque.
 
-CogVideoX-3 est le seul modèle vidéo du catalogue Z.ai (Vidu en a été retiré, octobre 2026).
-Une création qui génère des clips dure une à trois minutes de plus (tâches asynchrones,
-`IDEM_VIDEO_CLIP_TIMEOUT_MS`, 6 min par défaut). Sans clé GLM, les images passent par Gemini.
+Aucun modèle vidéo d'OpenRouter n'a de poids ouverts : Seedance 2.0 est une **dérogation
+produit** (`allowClosed` dans la liste blanche). `IDEM_OPENROUTER_VIDEO_MODEL` choisit une
+variante (`-fast`, `-mini`). Une création qui génère des clips dure une à trois minutes de plus
+(tâches asynchrones, `IDEM_VIDEO_CLIP_TIMEOUT_MS`, 6 min par défaut).
 
 ## Voix off
 
@@ -278,13 +279,11 @@ désactivée par défaut, dans la **langue de la vidéo** (celle de l'interface 
   moment sans le lire mot à mot, signature avec le nom de la marque ; chiffres et prix copiés
   du brief ou retirés ; personnage de voix choisi dans un menu de 3 filtré par le langage de
   mouvement (`VOICE_PERSONAS`). Repli : les titres des scènes.
-- **Modèle de voix** : **GLM-TTS** (`glm-tts`) — il ne parle que **chinois et anglais** et
-  n'est servi que par la plateforme chinoise (`GLM_TTS_URL`, défaut
-  `https://open.bigmodel.cn/api/paas/v4/audio/speech`, clé `GLM_TTS_API_KEY`, sinon
-  `GLM_API_KEY`). Les autres langues (français…) passent par le repli **Gemini TTS**
-  (`IDEM_GEMINI_TTS_MODEL`, défaut `gemini-3.8-flash-lite-tts`, puis
-  `gemini-3.1-flash-tts-preview`) — décision utilisateur du 2026-10-09. `VIDEO_TTS_FALLBACK=off`
-  coupe le repli : la vidéo est alors créée sans voix, et le dit.
+- **Modèle de voix** : **Kokoro 82M** par OpenRouter (Apache-2.0, voix française `ff_siwis`),
+  ou VOTRE serveur OpenAI-compatible servant **Qwen3-TTS** ou **Chatterbox Multilingual**
+  (poids ouverts, absents d'OpenRouter) : `IDEM_TTS_URL`, `IDEM_TTS_MODEL`,
+  `IDEM_TTS_VOICE_FR`, `IDEM_TTS_API_KEY`. Une langue sans voix : la vidéo est créée sans
+  voix, et le dit.
 - **Traitement** : silences retirés, passe-haut, accélération de 18 % au plus si la ligne
   déborde, −16 LUFS, MP3 déposé dans le stockage (`…/videos/<id>/voice/`).
 - **Synchronisation** (`fitScenesToVoice`) : chaque scène dure au moins entrée (0,28 s) +
@@ -357,7 +356,7 @@ npm run check:video:variety    # 12 vidéos d'une même marque, écarts mesurés
 npm run check:video:novelty    # moteur créatif : motifs, empreinte, exploration, 10 vidéos par cran, mémoire
 npm run check:video:directions # même brief, 8 directions, diversité mesurée (~6 min)
 npm run check:video:types      # 8 exemples, un par type, vraies musiques, vrais effets, Pexels (~15 min)
-npm run check:video:types -- --generate  # + une vidéo aux médias générés (GLM-Image, CogVideoX-3) avec voix off (payant)
+npm run check:video:types -- --generate  # + une vidéo aux médias générés (FLUX.2, Seedance) avec voix off (payant)
 ```
 
 `check:video` §9 bis rend **la même vidéo aux cinq crans** et vérifie que l'IA

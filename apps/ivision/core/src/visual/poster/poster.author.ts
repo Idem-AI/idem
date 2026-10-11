@@ -17,6 +17,9 @@
 import { agentLines } from '../../creativity/agent-io';
 import type { CreativeOrchestrator } from '../../creativity/orchestrator';
 import { approvedWords, briefLines, type DesignBrief } from './poster.canvas';
+import { kitManifest } from './kit/catalog';
+import { expandGfxMacros, gfxContext } from './kit/render';
+import { macroLayers, stackBoxes, stackingIssues } from './kit/rules';
 import { validHeadline, type PosterBrief } from './poster.copy';
 import { revisionLines, type LoopFeedback } from './poster.loop';
 import type { PosterCopy } from './poster.types';
@@ -113,7 +116,8 @@ function contract(b: DesignBrief): string[] {
       ? `LOGO: exactly once — <div class="logo" style="position:absolute;left:…;top:…"><img src="{{LOGO}}" style="height:Hpx;width:auto;display:block"></div> with H between ${lh[0]} and ${lh[1]}, on a calm area where its ink reads.`
       : 'LOGO: none — this brand has no logo file: no logo, no {{LOGO}}, no brand signature.',
     `COLOURS: only var(--${b.tokens.map((t) => t.id).join('), var(--')}), plus rgba(0,0,0,a) and rgba(255,255,255,a) for scrims and shadows. Gradients of these are fine. FONTS: only var(--fd) (display) and var(--fb) (text).`,
-    'GRAPHICS: shapes (divs, clip-path, inline <svg> filled with the colour vars) are welcome when they serve the concept — bands, frames, oversized geometric forms, cut-outs, patterns drawn from the brand. Forbidden: <script>, external URLs, @import, icons, emojis, buttons, fake UI, any text that is not an approved word (no <text> in SVG).',
+    ...kitManifest('html', { icons: ['info', 'product', 'launch'].includes(b.intent) }),
+    'OTHER SHAPES: divs and clip-path (bands, frames, cut-outs, photo masks) are welcome. A hand-written inline <svg> only for what the kit cannot draw, under 1500 characters in total. Forbidden: <script>, external URLs, @import, emojis, buttons, fake UI, any text that is not an approved word (no <text> in SVG).',
   ];
 }
 
@@ -225,6 +229,16 @@ export function buildAuthored(design: AuthoredDesign, b: DesignBrief, copy: Post
   }
   // Les polices : celles de la charte (corrigé en silence).
   html = html.replace(/font-family\s*:\s*([^;"']+)/gi, (m, v: string) => (/var\(--f[db]\)/.test(v) ? m : `font-family:var(--fd)`));
+
+  // Le kit graphique : les balises <x-gfx> deviennent des dessins (couleurs de la charte, fluo refusé en surface).
+  // Un SVG écrit à la main qui s'allonge est renvoyé au designer : c'est le kit qui dessine, à un centième des jetons.
+  const handSvg = (html.match(/<svg\b[\s\S]*?<\/svg>/gi) || []).reduce((n, x) => n + x.length, 0);
+  if (handSvg > 2500) issues.push(`hand-written SVG is ${handSvg} characters: draw it with <x-gfx kind=…> instead (rings, blob, contours, dots, waves, swash…) and keep any SVG under 1500 characters`);
+  const gx = gfxContext({ width: spec.width, height: spec.height, u: spec.u, tokens: Object.fromEntries(b.tokens.map((t) => [t.id, t.hex])), primary: spec.palette.primary, secondary: spec.palette.secondary, bg: spec.scheme.bg, ink: spec.scheme.ink });
+  issues.push(...stackingIssues(macroLayers(html), stackBoxes(html)));
+  const kit = expandGfxMacros(html, gx);
+  html = kit.html;
+  issues.push(...kit.issues);
 
   // Structure : un titre, un logo, chaque texte dans un bloc ajustable.
   if (!/class="[^"]*\bfit\b[^"]*\bheadline\b/.test(html)) issues.push('no headline: add <div class="fit headline" data-min data-max> inside a text box');

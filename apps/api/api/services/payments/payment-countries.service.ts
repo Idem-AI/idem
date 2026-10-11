@@ -45,7 +45,12 @@ const FALLBACK_CODES = [
   'ZMB',
 ];
 
+/** Après un échec, on ne réinterroge pas pawaPay avant ce délai (repli servi). */
+const FAILURE_BACKOFF_MS = 60_000;
+
 let provisionedCache: { at: number; codes: Set<string> } | null = null;
+let lastFailureAt = 0;
+let inFlight: Promise<Set<string> | null> | null = null;
 
 class PaymentCountriesService {
   /** Pays proposables : tarifés ici et provisionnés chez pawaPay. */
@@ -88,6 +93,7 @@ class PaymentCountriesService {
   /** Vide le cache après un changement de configuration côté pawaPay. */
   invalidate(): void {
     provisionedCache = null;
+    lastFailureAt = 0;
   }
 
   /**
@@ -102,6 +108,19 @@ class PaymentCountriesService {
       return provisionedCache.codes;
     }
 
+    // Une panne récente est déjà connue : repli immédiat, sans nouvel appel.
+    if (Date.now() - lastFailureAt < FAILURE_BACKOFF_MS) {
+      return provisionedCache?.codes ?? null;
+    }
+
+    // Plusieurs écrans demandent le catalogue en même temps : un seul appel.
+    inFlight ??= this.fetchProvisioned().finally(() => {
+      inFlight = null;
+    });
+    return inFlight;
+  }
+
+  private async fetchProvisioned(): Promise<Set<string> | null> {
     try {
       const conf = await pawapayClient.getActiveConfiguration();
       const codes = new Set(
@@ -110,6 +129,7 @@ class PaymentCountriesService {
       provisionedCache = { at: Date.now(), codes };
       return codes;
     } catch (error: any) {
+      lastFailureAt = Date.now();
       logger.warn(`billing.countries_conf_failed: ${error.message}`, {
         event: 'billing.countries_conf_failed',
       });

@@ -10,7 +10,6 @@ import { metricsMiddleware } from './middleware/metrics.middleware';
 import { languageMiddleware } from './middleware/language.middleware';
 import { requestTraceMiddleware } from './middleware/request-trace.middleware';
 import { revisionContextMiddleware } from './utils/revision-context.util';
-import { describeGeminiBackend, isGeminiConfigured } from './config/google-genai.client';
 import { aiUsageContextMiddleware } from './utils/ai-usage-context.util';
 import metricsRouter from './routes/metrics.routes';
 import cors from 'cors';
@@ -19,6 +18,9 @@ import { applySecurity, auditLogger, redactServerErrors } from './middleware/sec
 import { buildCorsOptions } from './config/cors.config';
 import { rateLimitByIP, burstProtection } from './middleware/rate-limit.middleware';
 import mongoDBConnection from './config/mongodb.config';
+import { LLMProvider } from './config/ai.config';
+import { isProviderConfigured } from './config/ai-providers.config';
+import { startAiRuntimeSync } from './config/ai-runtime.config';
 import { storageService } from './services/storage.service';
 import { User } from './schemas/user.schema';
 import { Project } from './schemas/project.schema';
@@ -307,15 +309,14 @@ async function bootstrap() {
   await loadSecrets();
   checkAuthConfig();
 
-  // Backend Gemini (AI Studio) : tracé au démarrage plutôt qu'à la
+  // Fournisseur de modèles (OpenRouter) : tracé au démarrage plutôt qu'à la
   // première génération, pour qu'une configuration incomplète se voie tout de
   // suite et non au milieu d'un business plan.
-  if (isGeminiConfigured()) {
-    console.log(`Gemini backend: ${describeGeminiBackend()}`);
+  if (isProviderConfigured(LLMProvider.OPENROUTER)) {
+    console.log('AI provider: OpenRouter');
   } else {
     console.error(
-      `Gemini backend NON CONFIGURÉ — ${describeGeminiBackend()}. ` +
-        'Toute génération IA échouera. Vérifiez GEMINI_API_KEY.'
+      'OpenRouter NON CONFIGURÉ — toute génération IA échouera. Vérifiez OPENROUTER_API_KEY.'
     );
   }
 
@@ -335,6 +336,9 @@ function startServer() {
     try {
       await mongoDBConnection.connect();
       console.log('MongoDB connection established successfully');
+
+      // Bascule de fournisseur IA à chaud (platform_settings/ai) : relue toutes les 15 s.
+      startAiRuntimeSync();
 
       // Initialize Mongoose models and create indexes
       console.log('Initializing MongoDB indexes...');

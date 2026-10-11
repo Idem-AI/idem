@@ -19,6 +19,7 @@
  * Tout est fonction du temps local ; le clip lui-même est posé image par image
  * par le registre des médias (media.tsx).
  */
+import { PhotoEl } from './kit/ImageFx';
 import { CSSProperties, ReactNode } from 'react';
 import { cue } from './cues';
 import { useEngine, useLocalTime, useScene } from './context';
@@ -64,7 +65,7 @@ function Fill({ src, video, style, className }: { src?: string; video?: string; 
   return (
     <div className={`tm-fill ${className || ''}`} style={style}>
       <div className="tm-fill-inner" style={kb}>
-        {video ? <Clip src={video} className="media-el" /> : src ? <img className="media-el" src={src} alt="" /> : null}
+        {video ? <Clip src={video} className="media-el" /> : src ? <PhotoEl src={src} className="media-el" /> : null}
       </div>
     </div>
   );

@@ -37,15 +37,24 @@ import { artDirectorTask, copywriterTask, structureTask } from '../services/Comm
 import { contrastRatio } from '../services/design/color';
 import fs from 'fs';
 import path from 'path';
-import { CARD_STRUCTURES, renderCardBack, renderCardFront, CardBackId, CardFrontId } from '../services/BandIdentity/businessCardLayouts';
+import { CARD_PATTERNS, CARD_STRUCTURES, renderCardBack, renderCardFront, CardBackId, CardFrontId, CardPatternId } from '../services/BandIdentity/businessCardLayouts';
 import { cardLayoutTask, cardStructureTask, cardTuningTask } from '../services/BandIdentity/businessCardCreative';
 import { businessCardRenderService } from '../services/BandIdentity/businessCardRender.service';
 import { planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../services/creativity/documentDesign';
-import { acceptComposedPage, composePageHtml } from '../services/creativity/pageComposer';
+import { acceptComposedPage, buildComposerPrompt, composePageHtml } from '../services/creativity/pageComposer';
 import { closePageInspector, inspectComposedPage } from '../services/creativity/pageInspect';
 import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
 import { buildDocumentSeed, buildSectionSeed } from '../services/design/designSeed';
-import { LANDSCAPE_SLIDE } from '../services/design/sectionRenderer';
+import { LANDSCAPE_SLIDE, PORTRAIT_A4, renderStandaloneChart } from '../services/design/sectionRenderer';
+import { pageGfx, pageKitManifest } from '../../../ivision/core/src/visual/poster/kit/page';
+import { BRAND_PATTERN_KINDS, brandPatternCss, brandPatternSvg, planBrandPatterns } from '../../../ivision/core/src/design/brandPatterns';
+import { PAGE_DECOR_BY_ID, pageBreathes, rankPageDecors } from '../../../ivision/core/src/design/pageDecor';
+import { UI_COMPONENTS, expandUiMacros, renderUi, uiManifest, uiMenu, uiTokensOf } from '../../../ivision/core/src/design/uiKit';
+import { LAYOUT_PRESETS, PRESET_BY_ID, applyPreset, presetCoverage, rankPresets } from '../../../ivision/core/src/design/layoutPresets';
+import { ARCHETYPE_CATALOG } from '../services/design/designSeed';
+import { LAYOUT_FAMILIES } from '../services/design/layoutFamilies';
+import { PATTERN_OPACITY } from '../../../ivision/core/src/design/brandPatterns';
+import { DIAGRAM_GUIDE, DIAGRAM_KINDS, brandMermaidTheme, diagramKindOf, mermaidBundle, renderDiagrams } from '../../../ivision/core/src/design/diagramRender';
 import { brandInitials, composeTemplateLogos, logoMenu, markInks } from '../services/BandIdentity/logoTemplates';
 import { logoDirectionsTask, logoDraftCount, logoJuryTask } from '../services/BandIdentity/logoCreative';
 import { inspectSvg } from '../services/design/svgGate';
@@ -285,6 +294,9 @@ export default function Scene() {
     check('recto / verso : dans les menus de la structure', JSON.stringify(lt.parse('front: b\nback: d')) === JSON.stringify({ front: 'patternField', back: 'accentBar' }) && lt.parse('front: z\nback: z') === undefined);
     const tt = cardTuningTask('BRAND', ['primary', 'secondary']);
     check('réglages bornés : nom ramené à 1,2, surface du menu, filet compris', JSON.stringify(tt.parse('surface: b\nalign: center\nrule: bold\nname: 1.8')) === JSON.stringify({ surface: 'secondary', align: 'center', rule: 'bold', nameScale: 1.2 }));
+    // La TEXTURE de la face de marque : l'agent la nomme (une lettre), le kit la dessine.
+    check('réglages : la texture se choisit dans le menu du kit, une invention est refusée',
+      tt.parse('surface: a\ntexture: a')?.pattern === 'weave' && tt.parse('surface: a\ntexture: c')?.pattern === 'contours' && tt.parse('surface: a\ntexture: hologram')?.pattern === undefined);
     const palette = { primary: '#0F766E', secondary: '#1E293B', accent: '#F59E0B', background: '#F8FAFC', text: '#0F172A' };
     const fronts = [...new Set(Object.values(CARD_STRUCTURES).flatMap((d) => d.fronts))] as CardFrontId[];
     const backs = [...new Set(Object.values(CARD_STRUCTURES).flatMap((d) => d.backs))] as CardBackId[];
@@ -295,6 +307,14 @@ export default function Scene() {
       for (const id of backs) for (const issue of await businessCardRenderService.inspect(renderCardBack(id, input), orientation, { primaryFont: 'Archivo', secondaryFont: 'Inter' })) problems.push(`verso ${id}/${orientation}: ${issue}`);
     }
     check(`${fronts.length} rectos et ${backs.length} versos × 2 orientations : imprimables (marges, corps ≥ 7 pt, contraste)`, problems.length === 0, problems.slice(0, 6).join(' | '));
+    // Les six textures du kit, dessinées sur la face de marque : imprimables et réellement différentes.
+    const textures = Object.keys(CARD_PATTERNS) as CardPatternId[];
+    const drawn = textures.map((pattern) => renderCardFront('patternField', { width: 85, height: 55, brandName: 'Kofi Studio', palette, logos: {}, tuning: { pattern } }));
+    const textureIssues: string[] = [];
+    for (const [i, html] of drawn.entries()) for (const issue of await businessCardRenderService.inspect(html, 'landscape', { primaryFont: 'Archivo', secondaryFont: 'Inter' })) textureIssues.push(`${textures[i]}: ${issue}`);
+    check(`${textures.length} textures du kit sur la face de marque : imprimables, dessinées (SVG) et toutes distinctes`,
+      !textureIssues.length && drawn.every((h) => /<svg/.test(h)) && new Set(drawn).size === textures.length,
+      textureIssues.slice(0, 4).join(' | '));
     const bad = await businessCardRenderService.inspect('<div class="w-[85mm] h-[55mm] relative" style="background:#fff"><p style="position:absolute;left:1mm;top:1mm;font-size:6px;color:#ddd">{{fullName}}</p></div>', 'landscape');
     check('contrôle d’impression : marge, corps trop petit et contraste faible détectés', bad.some((i) => /safety margin/.test(i)) && bad.some((i) => /7 pt/.test(i)) && bad.some((i) => /contrast/.test(i)), bad.join(' | '));
   }
@@ -307,9 +327,15 @@ export default function Scene() {
     const call: AgentCall = async ({ role, system }) =>
       role === 'documentFamily' ? 'family: b' : role === 'pageDirector' ? `layout: b${/density:/.test(system) ? '\ndensity: x\ntension: y\nimage: TOP_BAND' : ''}` : 'ok';
     const low = await planDocumentDesign({ level: 'low', call, sheet: 'BRAND', styleId: 'editorial', document: 'business plan', pages, seedArchetypes });
-    check('Low : la graine décide (aucune page dirigée, pas de famille, pas de composition libre)', Object.keys(low.pages).length === 0 && !low.family && !low.freeCompose && low.traces.every((t) => t.source === 'graph'));
+    // Le contrat a changé avec l'espace de configuration : à Low ce n'est plus « la graine seule »,
+    // c'est LE CODE qui choisit une mise en page par page — toujours sans un appel de modèle.
+    check('Low : le code choisit la mise en page de chaque page, sans un appel, sans famille d’agent ni composition libre',
+      Object.keys(low.pages).length === pages.length && pages.every((p) => !!low.pages[p.name]?.preset) && !low.family && !low.freeCompose && low.traces.every((t) => t.source === 'graph'),
+      pages.map((p) => low.pages[p.name]?.preset).join(' '));
     const medium = await planDocumentDesign({ level: 'medium', call, sheet: 'BRAND', styleId: 'editorial', document: 'business plan', pages, seedArchetypes });
-    check('Medium : la famille du document choisie par l’agent, les pages par la graine', !!medium.family && Object.keys(medium.pages).length === 0, String(medium.family));
+    check('Medium : la famille vient de l’agent, les mises en page du code (variété tirée)',
+      !!medium.family && pages.every((p) => !!medium.pages[p.name]?.preset) && new Set(pages.map((p) => medium.pages[p.name]!.preset)).size === pages.length,
+      String(medium.family));
     const high = await planDocumentDesign({ level: 'high', call, sheet: 'BRAND', styleId: 'editorial', document: 'business plan', pages, seedArchetypes });
     const arch = pages.map((p) => high.pages[p.name]?.archetype || (seedArchetypes as any)[p.name]);
     check('High : chaque page dirigée, jamais deux voisines au même archétype', Object.keys(high.pages).length === pages.length && arch.every((a, i) => i === 0 || a !== arch[i - 1]), arch.join(','));
@@ -318,7 +344,9 @@ export default function Scene() {
     const ultra = await planDocumentDesign({ level: 'ultra', call, sheet: 'BRAND', styleId: 'editorial', document: 'pitch deck', pages, seedArchetypes });
     check('Ultra : pages confiées au compositeur (gabarit en repli)', ultra.freeCompose);
     const broken = await planDocumentDesign({ level: 'max', call: async () => 'layout: hologram\nfamily: z', sheet: 'BRAND', styleId: 'editorial', document: 'business plan', pages, seedArchetypes });
-    check('réponses inventées : la graine garde la main', Object.keys(broken.pages).length === 0 && !broken.family);
+    check('réponses inventées : le choix du CODE garde la main (aucune famille, aucune mise en page inventée)',
+      !broken.family && pages.every((p) => !!PRESET_BY_ID.get(broken.pages[p.name]?.preset || '')),
+      pages.map((p) => broken.pages[p.name]?.preset).join(' '));
     // Reprise / régénération ciblée : la direction enregistrée est reprise, sans agent.
     const saved = savedDesignOf(high);
     const resumed = resumedDesignPlan(saved, 'medium');
@@ -341,6 +369,202 @@ export default function Scene() {
     check('compositeur : le logo du contenu manque → refusée', !acceptComposedPage(specimenPage.replace(`<img src="${logo}" alt="Logo">`, ''), specimen as any));
     check('compositeur : une image étrangère au contenu → refusée', !acceptComposedPage(specimenPage.replace('</section>', '<img src="https://images.example.com/stock.jpg" alt=""></section>'), specimen as any));
     check('compositeur : la couleur du nuancier manque → refusée', !acceptComposedPage(specimenPage.replace(/#1F6F43/g, '#2A7A50'), specimen as any));
+
+    // La charte d'un document, pour les graphiques et le kit (mêmes couleurs qu'une page réelle).
+    const dsUltra = buildDocumentDesignSystem(
+      { colors: { colors: { primary: '#1F6F43', secondary: '#20303A', accent: '#E4A93C', background: '#FFFFFF', text: '#131A17' } }, typography: { primaryFont: 'Archivo', secondaryFont: 'Inter' } } as any,
+      { styleId: 'editorial' } as any,
+      buildDocumentSeed('editorial', 'check:kit')
+    );
+    const seedUltra = buildSectionSeed('editorial', 'check:kit', 'Projections', new Set());
+
+    // Les GRAPHIQUES : le compositeur les place, le CODE les dessine (canvas Chart.js + repli
+    // dessiné par le serveur). Un graphique redessiné à la main perd ses proportions, et ses
+    // chiffres n'ont pas à être réécrits dans la page.
+    const charted = {
+      title: 'Projections',
+      blocks: [
+        { kind: 'prose', text: "Le chiffre d'affaires suit la montée en charge de la collecte sur les trois premiers exercices." } as any,
+        { kind: 'chart', chartType: 'bar', labels: ['2026', '2027', '2028'], series: [{ name: "Chiffre d'affaires", data: [48, 126, 240] }], readingKey: "Le chiffre d'affaires triple en deux ans", unit: 'MFCFA' } as any,
+      ],
+    };
+    const chartPage = (slot: string) =>
+      '```html\n<section style="width:210mm"><h2>Projections</h2><p>Le chiffre d\'affaires suit la montée en charge de la collecte sur les trois premiers exercices.</p>' + slot + '<div style="height:10px"></div>'.repeat(10) + '</section>\n```';
+    check('compositeur : le repère du graphique posé une fois → acceptée', !!acceptComposedPage(chartPage('<div style="width:100%">{{CHART_1}}</div>'), charted as any));
+    check('compositeur : graphique oublié → refusée', !acceptComposedPage(chartPage(''), charted as any));
+    check('compositeur : graphique posé deux fois → refusée', !acceptComposedPage(chartPage('{{CHART_1}}{{CHART_1}}'), charted as any));
+    check('compositeur : un <canvas> dessiné à la main → refusée', !acceptComposedPage(chartPage('{{CHART_1}}<canvas id="c"></canvas>'), charted as any));
+    const chartPrompt = buildComposerPrompt({ content: charted as any, ds: dsUltra, seed: seedUltra, page: PORTRAIT_A4, sheet: 'BRAND', document: 'business plan' });
+    check('compositeur : le prompt décrit le graphique et interdit de le redessiner', /\{\{CHART_1\}\}/.test(chartPrompt.system) && /NEVER redraw a chart/.test(chartPrompt.system) && /bar, 3 entries/.test(chartPrompt.system));
+    const drawnChart = renderStandaloneChart(charted.blocks[1] as any, dsUltra, seedUltra, { page: PORTRAIT_A4, multiPage: true });
+    check('graphique dessiné par le code : canvas Chart.js + repli serveur, aux couleurs du document', /data-idem-chart=/.test(drawnChart) && /data-chart-fallback/.test(drawnChart) && drawnChart.includes('2028'));
+
+    // Le KIT GRAPHIQUE dans une page : l'agent NOMME la forme, le code la dessine, en millimètres.
+    const gfx = pageGfx({
+      width: PORTRAIT_A4.width,
+      height: PORTRAIT_A4.minHeight,
+      tokens: { primary: dsUltra.colors.primary, secondary: dsUltra.colors.secondary, accent: dsUltra.colors.accent, ink: dsUltra.colors.ink, surface: dsUltra.colors.surface },
+      surface: dsUltra.colors.surface,
+      ink: dsUltra.colors.ink,
+      primary: dsUltra.colors.primary,
+      secondary: dsUltra.colors.secondary,
+    });
+    const named = '<x-gfx kind="contours" x="0" y="200mm" w="210mm" h="97mm" color="primary" opacity="0.1"></x-gfx>';
+    const expanded = gfx.expand(`<section>${named}<p>Texte</p></section>`);
+    check(`kit de page : une forme nommée (${named.length} signes) dessinée en mm (${expanded.html.length} signes), sans CSS extérieur`, !expanded.issues.length && expanded.count === 1 && /position:absolute/.test(expanded.html) && /y="200mm"|top:200mm/.test(expanded.html) && /<svg/.test(expanded.html));
+    check('kit de page : forme inconnue, boîte manquante, trop de formes → renvoyées au compositeur',
+      gfx.expand('<x-gfx kind="sparkles" x="0" y="0" w="10mm" h="10mm"></x-gfx>').issues.some((i) => /unknown kind/.test(i)) &&
+      gfx.expand('<x-gfx kind="waves" x="0" y="0"></x-gfx>').issues.some((i) => /needs x, y, w and h/.test(i)) &&
+      gfx.expand(Array.from({ length: 6 }, (_, i) => `<x-gfx kind="waves" x="0" y="${i}mm" w="50mm" h="20mm"></x-gfx>`).join('')).issues.some((i) => /too many graphics/.test(i)));
+    check('kit de page : le manifeste reste court et interdit le SVG écrit à la main', pageKitManifest({ page: { width: PORTRAIT_A4.width, height: PORTRAIT_A4.minHeight } }).join('\n').length < 1400);
+
+    // LES MOTIFS DE LA MARQUE : des tuiles SVG déposées, employées partout où un motif est demandé.
+    const tiles = BRAND_PATTERN_KINDS.map((kind) => ({ kind, svg: brandPatternSvg({ kind, ink: '#1F6F43', ground: '#FFFFFF', tile: 48 }) }));
+    check(`${tiles.length} motifs de marque : tuiles SVG autonomes, légères et déterministes`,
+      tiles.every((t) => /^<svg [^>]*width="48"/.test(t.svg) && t.svg.endsWith('</svg>') && t.svg.length < 1200) &&
+      new Set(tiles.map((t) => t.svg)).size === tiles.length &&
+      tiles.every((t) => t.svg === brandPatternSvg({ kind: t.kind, ink: '#1F6F43', ground: '#FFFFFF', tile: 48 })),
+      tiles.map((t) => `${t.kind}:${t.svg.length}`).join(' '));
+    // La tuile s'emploie en fond RÉPÉTÉ, et jamais avec un guillemet double (elle finit dans style="…").
+    const css = brandPatternCss('https://cdn.example.com/p.svg', 48);
+    check('motif employé en fond répété, sans guillemet double (il refermerait l’attribut style)',
+      css['background-repeat'] === 'repeat' && css['background-size'] === '48px 48px' && !css['background-image'].includes('"'));
+    const plans = planBrandPatterns({ repertoire: ['grid', 'stripes', 'checker', 'dots'], primary: '#1F6F43', accent: '#E4A93C', surface: '#FFFFFF', subtle: '#F4F6F5' });
+    check('quatre motifs par marque : principal, secondaire, trame fine, inversé (le dernier sur fond de marque)',
+      plans.length === 4 && plans[3].ground === '#1F6F43' && plans[2].tile === 32 && plans.every((p) => p.label && p.role));
+
+    // LE DÉCOR D'UNE PAGE : seulement là où la page respire, et c'est le motif de la marque d'abord.
+    check('décor : une page dense (tableau, graphique, spécimen) n’en reçoit jamais',
+      !pageBreathes({ kinds: ['prose', 'table'], textLength: 200 }) && !pageBreathes({ kinds: ['chart'], textLength: 50 }) && !pageBreathes({ kinds: ['typeSpecimen'], textLength: 0 }));
+    check('décor : une citation ou une page courte respire, une page de texte long non',
+      pageBreathes({ kinds: ['quote'], textLength: 2000 }) && pageBreathes({ kinds: ['prose'], textLength: 400 }) && !pageBreathes({ kinds: ['prose'], textLength: 1800 }));
+    const withBrand = rankPageDecors({ styleId: 'editorial', docKey: 'bp', pageName: 'Promesse', hasBrandPattern: true });
+    const without = rankPageDecors({ styleId: 'editorial', docKey: 'bp', pageName: 'Promesse' });
+    check('décor : le motif de la marque passe devant une forme inventée, et disparaît du menu sans lui',
+      !!PAGE_DECOR_BY_ID.get(withBrand[0].id)?.pattern && without.every((d) => !PAGE_DECOR_BY_ID.get(d.id)?.pattern),
+      `${withBrand[0].id} / ${without[0].id}`);
+    // L'ESPACE DE CONFIGURATION DES MISES EN PAGE : 60 familles × 18 architectures, nommées,
+    // filtrées par livrable, et extensibles par une ligne de table.
+    const coverage = presetCoverage();
+    check(`espace des mises en page : ${Object.entries(coverage).map(([k, v]) => `${k} ${v}`).join(', ')} (≥ 100 par livrable)`,
+      Object.values(coverage).every((n) => n >= 100), JSON.stringify(coverage));
+    const famIds = new Set(LAYOUT_FAMILIES.map((f) => f.id));
+    const brokenPresets = LAYOUT_PRESETS.filter((p) => !famIds.has(p.family) || !ARCHETYPE_CATALOG[p.archetype]);
+    check(`${LAYOUT_PRESETS.length} mises en page déclarées, toutes rendables (famille et architecture réelles)`, !brokenPresets.length, brokenPresets.slice(0, 3).map((p) => p.id).join(' · '));
+    const seedBase = { family: 'revue', archetype: 'A', layoutTension: 'calm', contentDensity: 'airy' };
+    const applied = applyPreset(seedBase, PRESET_BY_ID.get('bp.grand-livre.L'));
+    check('une mise en page appliquée change la grammaire ET l’architecture de la page', applied.family === 'grand-livre' && applied.archetype === 'L' && applyPreset(seedBase, undefined).family === 'revue');
+    // La variété est tenue par le code : neuf pages d'affilée ne se répètent pas.
+    const used: string[] = [];
+    for (let i = 0; i < 9; i++) used.push(rankPresets({ deliverable: 'business plan', styleId: 'editorial', seed: 7, used })[0].id);
+    check(`neuf pages : ${new Set(used.map((u) => PRESET_BY_ID.get(u)!.family)).size} grammaires et ${new Set(used.map((u) => PRESET_BY_ID.get(u)!.archetype)).size} architectures distinctes`,
+      new Set(used).size === 9 && new Set(used.map((u) => PRESET_BY_ID.get(u)!.family)).size >= 6);
+
+    // LA DÉLÉGATION PROGRESSIVE : le code décide seul en bas, l'agent choisit dans un menu en haut.
+    const delegPages = ['Résumé', 'Marché', 'Offre', 'Modèle', 'Équipe', 'Finances'].map((name) => ({ name }));
+    const delegSeeds = Object.fromEntries(delegPages.map((p, i) => [p.name, 'ABCDEF'[i % 6]]));
+    const levels: { level: string; calls: number; families: number; distinct: number }[] = [];
+    for (const level of ['low', 'medium', 'high', 'max'] as const) {
+      let calls = 0;
+      const plan = await planDocumentDesign({
+        level, sheet: 'BRAND', styleId: 'editorial', document: 'business plan', deliverable: 'business plan', pages: delegPages, seedArchetypes: delegSeeds,
+        call: async () => { calls++; return 'layout: b\ndecor: a\ndensity: dense\ntension: calm\nimage: none'; },
+      });
+      const ids = delegPages.map((p) => plan.pages[p.name]?.preset || '');
+      levels.push({ level, calls, families: new Set(ids.map((i) => PRESET_BY_ID.get(i)?.family)).size, distinct: new Set(ids).size });
+    }
+    check(`délégation progressive : ${levels.map((l) => `${l.level} ${l.calls} appel(s)`).join(', ')}`,
+      levels[0].calls === 0 && levels[1].calls >= 1 && levels[2].calls > levels[1].calls && levels[3].calls >= levels[2].calls);
+    check(`six pages, à chaque cran : ${levels.map((l) => `${l.families} grammaires`).join(', ')} — jamais deux pages identiques`,
+      levels.every((l) => l.families >= 4 && l.distinct === 6), JSON.stringify(levels));
+
+    // LES MOTIFS : seulement ceux de la charte, et l'opacité d'un fond est tenue par le code.
+    check('motif en fond : l’opacité est bornée par le barème, jamais choisie par l’appelant',
+      PATTERN_OPACITY.whisper <= 0.08 && PATTERN_OPACITY.quiet <= 0.15 && PATTERN_OPACITY.present <= 0.25 && PATTERN_OPACITY.whisper < PATTERN_OPACITY.present);
+    const withBrandMotif = rankPageDecors({ styleId: 'editorial', docKey: 'bp', pageName: 'P', hasBrandPattern: true });
+    check('document : une marque qui a ses motifs n’en voit aucun autre',
+      withBrandMotif.every((d) => !!PAGE_DECOR_BY_ID.get(d.id)?.pattern || d.id === 'none'),
+      withBrandMotif.map((d) => d.id).join(' '));
+
+    // LE KIT DE COMPOSANTS : l'agent nomme un bloc et donne ses données, le code le dessine.
+    const uiT = uiTokensOf(dsUltra as never);
+    const UI_DATA: Record<string, any> = {
+      'ui.comparison-matrix': { columns: ['Nous', 'Import'], criteria: ['Prix', 'Délai'], rows: [['yes', 'no'], ['48 h', '3 semaines']] },
+      'ui.process-steps': { steps: ['Collecte', 'Tri', 'Granulation'], notes: ['420 partenaires', 'Sept flux', 'Certifié'] },
+      'ui.risk-matrix': { risks: [['Approvisionnement', 'high', 'high'], ['Change', 'medium', 'high']] },
+      'ui.swot': { strengths: ['Réseau'], weaknesses: ['Capacité'], opportunities: ['Réglementation'], threats: ['Import'] },
+      'ui.funnel': { stages: [['Contactés', '240'], ['Audités', '86'], ['Signés', '12']] },
+      'ui.persona': { name: 'Awa Ndiaye, directrice achats', profile: 'Brasseur régional', needs: ['Matière certifiée'], blockers: ['Qualité irrégulière'] },
+      'ui.business-model': { streams: [['Granulés', 'Industriels', '68 %'], ['Collecte', 'Collectivités', '22 %']] },
+    };
+    const uiDrawn = UI_COMPONENTS.map((c) => ({ c, res: renderUi(c.id, UI_DATA[c.id], uiT), json: JSON.stringify(UI_DATA[c.id]) }));
+    const uiBad = uiDrawn.filter((d) => !d.res.html).map((d) => `${d.c.id}: ${d.res.error}`);
+    // Les jetons du document, et EUX SEULS : une matrice de risques n'emploie que des voiles de la
+    // couleur de marque (c'est voulu), mais aucune couleur ne doit venir d'ailleurs.
+    const tokenColors = Object.values(dsUltra.colors).filter((v): v is string => typeof v === 'string').map((v) => v.toLowerCase());
+    const ramp = Object.values(dsUltra.colors.brand || {}).concat(Object.values(dsUltra.colors.neutral || {})).map((v) => String(v).toLowerCase());
+    const foreign = uiDrawn.flatMap((d) => [...(d.res.html || '').matchAll(/#[0-9a-f]{6}/gi)].map((m) => m[0].toLowerCase()).filter((hex) => !tokenColors.includes(hex) && !ramp.includes(hex)).map((hex) => `${d.c.id}:${hex}`));
+    check(`${UI_COMPONENTS.length} composants documentaires dessinés par le code, styles en ligne, sans le défaut d'unité`,
+      !uiBad.length && uiDrawn.every((d) => /style="/.test(d.res.html!) && !/line-height:[\d.]+px/.test(d.res.html!) && !/font-weight:\d+px/.test(d.res.html!)) && uiDrawn.some((d) => d.res.html!.includes(dsUltra.colors.primary)),
+      [...uiBad, ...foreign.slice(0, 3)].join(' · '));
+    const ratios = uiDrawn.map((d) => Math.round(d.res.html!.length / d.json.length));
+    check(`économie : des données (${Math.min(...uiDrawn.map((d) => d.json.length))}–${Math.max(...uiDrawn.map((d) => d.json.length))} signes) contre du HTML dessiné (÷${Math.min(...ratios)} à ÷${Math.max(...ratios)})`, Math.min(...ratios) >= 5);
+    const refusals = [
+      renderUi('ui.comparison-matrix', { columns: ['Nous'], criteria: ['A'], rows: [['yes']] }, uiT),
+      renderUi('ui.funnel', { stages: [['Seul', '1']] }, uiT),
+      renderUi('ui.swot', { strengths: ['x'], weaknesses: [], opportunities: ['y'], threats: ['z'] }, uiT),
+      renderUi('ui.nope', {}, uiT),
+    ];
+    check('composant : une donnée qui manque revient en une phrase corrigeable, jamais en bloc à moitié rempli',
+      refusals.every((r) => r.html === null && !!r.error && /needs at least|is required|unknown component/.test(r.error)),
+      refusals.map((r) => r.error).join(' · '));
+    const uiMacro = expandUiMacros(`<section><x-ui kind="swot" data='${JSON.stringify(UI_DATA['ui.swot'])}'></x-ui></section>`, uiT);
+    const uiTooMany = expandUiMacros(Array.from({ length: 5 }, () => `<x-ui kind="funnel" data='${JSON.stringify(UI_DATA['ui.funnel'])}'></x-ui>`).join(''), uiT, { max: 3 });
+    const uiBadJson = expandUiMacros(`<x-ui kind="swot" data='{oops'></x-ui>`, uiT);
+    check('balise <x-ui> : dessinée dans la page ; trop de blocs ou JSON cassé renvoyés à l’agent',
+      !uiMacro.issues.length && uiMacro.count === 1 && !/x-ui/.test(uiMacro.html) && uiTooMany.issues.some((i) => /too many rich blocks/.test(i)) && uiBadJson.issues.some((i) => /not valid JSON/.test(i)));
+    check(`menu filtré par livrable (business plan ${uiMenu('business plan').length}, pitch deck ${uiMenu('pitch deck').length}, charte ${uiMenu('brand guidelines').length}) et manifeste court`,
+      uiMenu('business plan').length >= 6 && uiMenu('pitch deck').length >= 5 && uiManifest('business plan', 'macro').join('\n').length < 2600);
+
+    // LES SCHÉMAS : l'agent écrit une ligne de texte, Mermaid les dessine aux couleurs du document.
+    // C'est le meilleur marché du moteur : un schéma coûte ~80 signes au lieu de 10 Ko de SVG.
+    const diagPalette = {
+      primary: dsUltra.colors.primary, secondary: dsUltra.colors.secondary, accent: dsUltra.colors.accent,
+      surface: dsUltra.colors.surface, surfaceRaised: dsUltra.colors.surfaceRaised, ink: dsUltra.colors.ink,
+      inkMuted: dsUltra.colors.inkMuted, rule: dsUltra.colors.rule, brand: dsUltra.colors.brand,
+      fontFamily: `'${dsUltra.fonts.body}', system-ui, sans-serif`, fontSizePx: dsUltra.typeScale.sm,
+    };
+    const theme = brandMermaidTheme(diagPalette);
+    check('thème des schémas : aucune couleur hors charte (ni le noir ni l’ocre du thème par défaut)',
+      Object.entries(theme).filter(([k]) => /Color|Fill|Bkg|^cScale|^pie\d|lineColor/.test(k)).every(([, v]) => /^#[0-9a-f]{6}$/i.test(String(v))) &&
+      !Object.values(theme).includes('#000000') && theme.cScale0 === dsUltra.colors.primary,
+      `${Object.keys(theme).length} variables`);
+    check('schémas : seules les familles thémées passent', diagramKindOf('flowchart LR\n A-->B') === 'flowchart' && diagramKindOf('gantt\n title X') === null && DIAGRAM_KINDS.every((k) => !!DIAGRAM_GUIDE[k]));
+    if (mermaidBundle()) {
+      const drawn = await renderDiagrams(
+        [
+          { id: 'flow', source: 'flowchart LR\n  A[Collecte] --> B[Tri] --> C[Granulés]' },
+          { id: 'quadrant', source: 'quadrantChart\n  title Positionnement\n  x-axis Bas --> Haut\n  y-axis Faible --> Elevee\n  Nous: [0.3, 0.8]' },
+          { id: 'nope', source: 'gantt\n  title Interdit' },
+          { id: 'cassé', source: 'flowchart LR\n  A[[[' },
+        ],
+        diagPalette,
+        flyerRenderService.withPage.bind(flyerRenderService)
+      );
+      const byId = Object.fromEntries(drawn.map((d) => [d.id, d]));
+      check(`schémas dessinés par Mermaid aux couleurs du document (flux ${byId.flow.svg?.length ?? 0} o, quadrant ${byId.quadrant.svg?.length ?? 0} o)`,
+        !!byId.flow.svg && !!byId.quadrant.svg && byId.flow.svg!.includes(dsUltra.colors.primary) && /width:100%/.test(byId.flow.svg!) && !/<script|\son[a-z]+=/i.test(byId.flow.svg!),
+        [byId.flow.error, byId.quadrant.error].filter(Boolean).join(' · '));
+      check('schémas : famille refusée et source cassée ne cassent pas la page (repli à l’appelant)', byId.nope.svg === null && !!byId.nope.error && byId.cassé.svg === null && !!byId.cassé.error, `${byId.nope.error} · ${byId.cassé.error}`);
+      const src = 'flowchart LR\n  A[Collecte] --> B[Tri] --> C[Granulés]';
+      check(`économie : ${src.length} signes écrits par l’agent contre ${byId.flow.svg!.length} o dessinés (÷${Math.round(byId.flow.svg!.length / src.length)})`, byId.flow.svg!.length > src.length * 40);
+    } else {
+      check('schémas : paquet Mermaid absent (npm run build:mermaid) — contrôle ignoré', true);
+    }
+
+    check('décor : « éviter les motifs » et « éviter les formes » écartent les décors concernés',
+      !rankPageDecors({ styleId: 'bohemian', donts: ['no patterns or textures'], docKey: 'bp', pageName: 'P', hasBrandPattern: true }).some((d) => d.id === 'edge-band') &&
+      !rankPageDecors({ styleId: 'editorial', donts: ['no decorative shapes'], docKey: 'bp', pageName: 'P', hasBrandPattern: true }).some((d) => d.id === 'corner-rings'));
   }
 
   if (run(9)) {

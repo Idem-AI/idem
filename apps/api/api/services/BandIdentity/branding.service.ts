@@ -10,6 +10,7 @@ import {
   BrandIdentityModel,
   ColorModel,
   SocialAssetFileModel,
+  BrandPatternFileModel,
   FontSourceId,
   TypographyModel,
 } from '../../models/brand-identity.model';
@@ -86,9 +87,12 @@ import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
 import { USAGE_GUIDELINES_SECTION_PROMPT } from './prompts/04_usage-guidelines-section.prompt';
 import { brandMotifs } from '../design/brandMotifs';
+import { applyPreset, PRESET_BY_ID } from '../../../../ivision/core/src/design/layoutPresets';
+import { brandPatternSvg, planBrandPatterns, type BrandPatternKind } from '../../../../ivision/core/src/design/brandPatterns';
 import { buildComposedCharterPages, clip, wideSeed } from './charterComposedPages';
 import { atLeast, CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
 import { composeTemplateLogos } from './logoTemplates';
+import { engineEditLogo, engineLogoConcepts, engineVariations, logoEngineEnabled, rememberIr } from '../logo-engine/idem.service';
 import { logoDirectionsTask, logoDraftCount, logoJuryTask } from './logoCreative';
 import { CreativeOrchestrator } from '../creativity/orchestrator';
 import { DocumentDesignPlan, planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../creativity/documentDesign';
@@ -154,7 +158,7 @@ import { projectService } from '../project.service';
 import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
 import {
-  geminiMockupService,
+  brandMockupService,
   MockupGenerationResult,
   MockupLogoVariants,
 } from '../brandMockup.service';
@@ -516,8 +520,8 @@ export class BrandingService extends GenericService {
     // n'atteignait jamais runPrompt (`fallbacks=0` dans les logs) : le
     // seul repli restant était celui codé en dur côté PromptService.
     fallbackModels: AI_CONFIG.branding.logo.fallbackModels,
-    // Sans lui, le routeur partait à l'étage de la tâche (glm-4.7, puis
-    // flashx en repli) : un SVG géométriquement faux ne se détecte pas, donc
+    // Sans lui, le routeur partait à l'étage de la tâche (le modèle de rédaction, puis
+    // l'étage mécanique en repli) : un SVG géométriquement faux ne se détecte pas, donc
     // aucune escalade ne ramenait au modèle déclaré.
     pinModel: AI_CONFIG.branding.logo.pinModel,
     llmOptions: {
@@ -1413,6 +1417,7 @@ export class BrandingService extends GenericService {
         sheet: charterSheet,
         styleId: artDirection?.styleId,
         document: 'brand guidelines book',
+        deliverable: 'brand guidelines' as const,
         pages: directedSteps.map((step) => ({ name: step.stepName, brief: CHARTER_PAGE_BRIEFS[step.stepName] })),
         seedArchetypes,
       }).catch((error: any) => {
@@ -1428,10 +1433,18 @@ export class BrandingService extends GenericService {
         `[BRANDING] Créativité ${level} : ${designPlan ? `${Object.keys(designPlan.pages).length} page(s) dirigée(s)${designPlan.family ? `, famille ${designPlan.family}` : ''}${designPlan.freeCompose ? ', compositeur' : ''}` : 'graine'}`
       );
       /** La graine d'une page, puis les choix des agents par-dessus (famille, archétype, réglages). */
-      const directSeed = (seed: SectionSeed, stepName: string): SectionSeed => ({
+      const directSeed = (seed: SectionSeed, stepName: string): SectionSeed => applyPreset({
         ...seed,
         ...(designPlan?.family ? { family: designPlan.family } : {}),
         ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, value]) => !!value)),
+      }, PRESET_BY_ID.get(designPlan?.pages[stepName]?.preset || ''));
+
+      // LES MOTIFS DE LA MARQUE, déposés avant de composer les pages : la charte montre les
+      // FICHIERS que tous les autres livrables emploieront, pas un dessin refait pour l'occasion.
+      // Un dépôt en échec ne fait pas tomber la charte : la page retombe sur le dessin CSS.
+      const brandPatterns = await this.getBrandPatterns(userId, projectId).catch((error: any) => {
+        logger.warn('[BRANDING] Dépôt des motifs en échec, la page de charte les dessine en CSS', { error: error?.message });
+        return [] as BrandPatternFileModel[];
       });
 
       // DESIGN SYSTEM de la charte : calculé une fois, partagé par ses pages.
@@ -1502,6 +1515,15 @@ export class BrandingService extends GenericService {
         // damier. Sans cela, les quatre mêmes motifs revenaient sur toutes les
         // marques — exactement le défaut que ces pages existent pour corriger.
         if (stepName === 'Graphic Patterns' && palette) {
+          // Les motifs DÉPOSÉS, s'ils existent : la page montre les fichiers de la marque.
+          if (brandPatterns.length) {
+            return [
+              {
+                kind: 'patternGrid',
+                patterns: brandPatterns.map((p) => ({ name: p.label, motif: p.kind as never, ink: p.ink, ground: p.ground, note: p.role, url: p.url, tile: p.tile })),
+              },
+            ];
+          }
           const motifs = brandMotifs(charterDesignSystem);
           const ink = palette.primary || charterDesignSystem.colors.primary;
           const accent = palette.accent || charterDesignSystem.colors.accent;
@@ -1682,7 +1704,7 @@ export class BrandingService extends GenericService {
         // ── LA COUVERTURE : DESSINÉE PAR LE CODE ─────────────────────────
         // Le modèle n'en écrit plus que les mots (secteur, promesse), une fois
         // par projet et partagés avec le business plan et le pitch deck.
-        // Composée en HTML par `glm-5.3-flash`, elle coûtait 40 000 tokens de
+        // Composée en HTML par le modèle, elle coûtait 40 000 tokens de
         // budget et la minute la plus longue de la charte.
         if (step.stepName === 'Brand Header') {
           pageIndex += 1;
@@ -2414,6 +2436,44 @@ export class BrandingService extends GenericService {
     return pool[verdict.value] ?? pool[0];
   }
 
+  /**
+   * Les propositions du MOTEUR DE LOGOS (services/logo-engine) : le modèle décide (direction,
+   * Logo IR, critique), le code construit le SVG, le mesure et le corrige. Si le moteur ne tient pas
+   * le compte (< `count`), les places restantes sont composées par le code (`templateLogos`).
+   * Lève quand le moteur ne produit rien : l'appelant reprend l'ancien pipeline.
+   */
+  private async engineLogos(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    level: CreativityLevel,
+    preferences: LogoPreferences | undefined,
+    existing: LogoModel[],
+    count: number,
+    fresh: boolean,
+    onStage?: (stage: string) => void
+  ): Promise<LogoModel[]> {
+    const description = this.extractProjectDescription(project);
+    const { logos } = await engineLogoConcepts({
+      userId,
+      projectId,
+      project,
+      brandName: this.resolveBrandName(project),
+      context: this.extractProjectContext(description),
+      description,
+      preferences,
+      level,
+      existing,
+      count,
+      fresh,
+      onStage,
+    });
+    if (logos.length >= count) return logos;
+    // Le moteur n'a pas tenu le compte : le code complète (aucun appel au modèle).
+    const topUp = await this.templateLogos(project, preferences, [...existing, ...logos], count - logos.length, fresh);
+    return [...logos, ...topUp.map((logo, i) => ({ ...logo, id: `concept${String(existing.length + logos.length + i + 1).padStart(2, '0')}` }))];
+  }
+
   /** Cran Low : les propositions composées par le code, distinctes de celles déjà présentées. */
   private async templateLogos(
     project: ProjectModel,
@@ -3119,8 +3179,22 @@ export class BrandingService extends GenericService {
       preferences
     );
 
-    // Cran Low : les propositions composées par le code, sans appel au modèle.
     const level = normalizeCreativity(creativity);
+
+    // Le moteur de logos : planificateur + agents selon le cran, SVG construit et mesuré par le code.
+    if (logoEngineEnabled()) {
+      try {
+        const engineLogos = await this.engineLogos(userId, projectId, project, level, preferences, existingLogos, logosToGenerateCount, forceRegenerate);
+        const logos = [...existingLogos, ...engineLogos];
+        await this.updateProjectWithLogosAsync(userId, projectId, logos);
+        logger.info(`Logo engine generated ${engineLogos.length} concept(s) (creativity ${level}) in ${Date.now() - totalStartTime}ms - ProjectId: ${projectId}`);
+        return { logos };
+      } catch (error: any) {
+        logger.error(`Logo engine failed for project ${projectId}, falling back to the legacy pipeline: ${error?.message}`);
+      }
+    }
+
+    // Cran Low : les propositions composées par le code, sans appel au modèle.
     if (!atLeast(level, 'medium')) {
       const composed = SvgOptimizerService.optimizeLogos(
         await this.templateLogos(project, preferences, existingLogos, logosToGenerateCount, forceRegenerate)
@@ -3515,8 +3589,38 @@ export class BrandingService extends GenericService {
         });
     };
 
-    // Cran Low : les propositions composées par le code, sans appel au modèle.
     const level = normalizeCreativity(creativity);
+
+    // Le moteur de logos : planificateur + agents selon le cran, SVG construit et mesuré par le code.
+    if (logoEngineEnabled()) {
+      try {
+        for (let offset = 0; offset < logosToGenerateCount; offset++) {
+          await streamCallback({ type: 'concept_started', conceptIndex: existingLogos.length + offset });
+        }
+        const engineLogos = await this.engineLogos(userId, projectId, project, level, preferences, existingLogos, logosToGenerateCount, forceRegenerate, (stage) => {
+          if (stage === 'critique') {
+            for (let offset = 0; offset < logosToGenerateCount; offset++) void streamCallback({ type: 'critique_started', conceptIndex: existingLogos.length + offset }).catch(() => undefined);
+          }
+        });
+        for (let offset = 0; offset < engineLogos.length; offset++) {
+          const index = existingLogos.length + offset;
+          // Déjà optimisés (SVGO) par le moteur : l'ancien optimiseur par expressions régulières ne repasse pas dessus.
+          const logo = engineLogos[offset];
+          await streamCallback({ type: 'concept_generated', conceptIndex: index, logo });
+          finalLogos.push(logo);
+          persistLogos();
+          await streamCallback({ type: 'concept_finalized', conceptIndex: index, logo });
+        }
+        await persistChain;
+        logger.info(`Logo engine concepts finalized (creativity ${level}) - ProjectId: ${projectId}, finalized: ${finalLogos.length}`);
+        BrandingService.activeLogoGenerations.delete(generationKey);
+        return finalLogos;
+      } catch (error: any) {
+        logger.error(`Logo engine failed for project ${projectId}, falling back to the legacy pipeline: ${error?.message}`);
+      }
+    }
+
+    // Cran Low : les propositions composées par le code, sans appel au modèle.
     if (!atLeast(level, 'medium')) {
       try {
         for (let offset = 0; offset < logosToGenerateCount; offset++) {
@@ -3868,7 +3972,20 @@ export class BrandingService extends GenericService {
     let withTextSet: Record<LogoVariationKind, string | undefined>;
     let iconOnlySet: Record<LogoVariationKind, string | undefined>;
 
-    if (selectedLogo.lockup) {
+    // Logo du moteur : les six déclinaisons sortent du Logo IR, par le code (même géométrie, aucun appel au modèle).
+    const engineSets =
+      selectedLogo.ir && logoEngineEnabled()
+        ? await engineVariations(selectedLogo, project.analysisResultModel?.branding).catch((error) => {
+            logger.warn(`Logo engine variations failed, falling back: ${error?.message}`);
+            return null;
+          })
+        : null;
+
+    if (engineSets) {
+      logger.info('Producing the logo variations from the Logo IR (no model call)');
+      withTextSet = { ...engineSets.withText };
+      iconOnlySet = { ...engineSets.iconOnly };
+    } else if (selectedLogo.lockup) {
       logger.info('Generating iconOnly variations, then recomposing the withText lockups');
       // Le modèle doit recevoir le SVG de l'icône, pas son URL MinIO.
       const sourceIcon = await resolveSvgContent(iconStructure.svg).catch(() => iconStructure.svg);
@@ -4400,8 +4517,31 @@ export class BrandingService extends GenericService {
       }
     };
 
+    // Logo du moteur : les déclinaisons sortent du Logo IR, par le code (même géométrie, aucun appel au modèle).
+    const engineSets =
+      selectedLogo.ir && logoEngineEnabled()
+        ? await engineVariations(selectedLogo, project.analysisResultModel?.branding).catch((error) => {
+            logger.warn(`Logo engine variations failed, falling back: ${error?.message}`);
+            return null;
+          })
+        : null;
+
     try {
-      await Promise.all(missingKinds.map((kind) => processVariant(kind)));
+      if (engineSets) {
+        for (const kind of missingKinds) {
+          if (cancelState.cancelled) {
+            await streamCallback({ type: 'variation_cancelled', variant: kind });
+            continue;
+          }
+          await streamCallback({ type: 'variation_started', variant: kind });
+          results[kind] = engineSets.withText[kind];
+          iconResults[kind] = engineSets.iconOnly[kind];
+          await streamCallback({ type: 'variation_generated', variant: kind, svg: results[kind]! });
+          await streamCallback({ type: 'variation_finalized', variant: kind, svg: results[kind]! });
+        }
+      } else {
+        await Promise.all(missingKinds.map((kind) => processVariant(kind)));
+      }
     } finally {
       BrandingService.activeLogoGenerations.delete(generationKey);
     }
@@ -4994,6 +5134,59 @@ export class BrandingService extends GenericService {
     return items;
   }
 
+  /**
+   * LES MOTIFS DE LA MARQUE, en fichiers SVG répétables.
+   *
+   * La charte a toujours eu une page « Motifs », mais ils n'existaient qu'au moment de la
+   * dessiner : chaque autre livrable recalculait le sien, et la marque n'avait donc pas UN motif.
+   * Ils sont désormais déposés comme les logos — la page de charte les montre, le business plan,
+   * la diapositive, la carte de visite et les visuels emploient les mêmes fichiers, et
+   * l'utilisateur peut les télécharger.
+   *
+   * Déposés à la première demande, gardés tant que la palette, le style et le répertoire ne
+   * changent pas (`patterns.key`).
+   */
+  async getBrandPatterns(userId: string, projectId: string): Promise<BrandPatternFileModel[]> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) throw new Error(`Project not found with ID: ${projectId}`);
+    const branding = project.analysisResultModel?.branding;
+    if (!branding?.colors) throw new Error(`No palette found for project ${projectId}`);
+
+    const artDirection = branding.artDirection ?? null;
+    const ds = buildDocumentDesignSystem(branding, artDirection, buildDocumentSeed(artDirection?.styleId, `branding:${projectId}`));
+    const plans = planBrandPatterns({
+      repertoire: brandMotifs(ds) as BrandPatternKind[],
+      primary: ds.colors.primary,
+      accent: ds.colors.accent,
+      surface: ds.colors.surface,
+      subtle: ds.colors.neutral['100'],
+    });
+    const key = crypto.createHash('sha256').update(JSON.stringify({ v: 1, plans })).digest('hex').slice(0, 24);
+    if (branding.patterns?.key === key && branding.patterns.items.length > 0) return branding.patterns.items;
+
+    logger.info(`[ASSETS] Dépôt des motifs de la marque - projectId: ${projectId}`);
+    const stamp = Date.now();
+    const items: BrandPatternFileModel[] = await Promise.all(
+      plans.map(async (plan) => {
+        const svg = brandPatternSvg({ kind: plan.kind, ink: plan.ink, ground: plan.ground, tile: plan.tile });
+        const upload = await this.storageService.uploadFile(
+          Buffer.from(svg, 'utf8'),
+          `pattern-${plan.id}-${stamp}.svg`,
+          `projects/${projectId}/BrandBook/patterns`,
+          'image/svg+xml'
+        );
+        return { id: plan.id, label: plan.label, role: plan.role, kind: plan.kind, ink: plan.ink, ground: plan.ground, tile: plan.tile, url: upload.downloadURL };
+      })
+    );
+
+    await this.projectRepository.update(
+      projectId,
+      { 'analysisResultModel.branding.patterns': { key, generatedAt: new Date(), items } } as any,
+      `users/${userId}/projects`
+    );
+    return items;
+  }
+
   /** Un fichier de bannière, servi en pièce jointe (le bucket est d'une autre origine). */
   async getSocialAssetFile(
     userId: string,
@@ -5386,6 +5579,40 @@ Generated by Lexis API - Brand Identity System
         throw new Error(`Project not found with ID: ${projectId}`);
       }
 
+      // Logo du moteur : la demande devient un patch ciblé sur le Logo IR (quelques dizaines de
+      // tokens), appliqué par le code ; les couches satisfaisantes ne bougent pas. Si le moteur ne
+      // peut pas la traiter, l'ancien chemin (le modèle réécrit le SVG) reprend.
+      if (logoEngineEnabled()) {
+        const branding = project.analysisResultModel?.branding;
+        const selected = branding?.logo;
+        const knownIr = selected?.ir && selected.svg === logoSvg ? selected.ir : undefined;
+        const engineEdit = await engineEditLogo({
+          userId,
+          projectId,
+          svg: logoSvg,
+          ir: knownIr,
+          request: modificationPrompt,
+          project,
+          preferences: branding?.logoPreferences,
+        }).catch((error) => {
+          logger.warn(`Logo engine edit failed, falling back: ${error?.message}`);
+          return null;
+        });
+        if (engineEdit) {
+          const edited = engineEdit.logo;
+          try {
+            const svgUrls = await this.storageService.uploadAllLogoSvgs(edited, userId, projectId);
+            edited.svg = svgUrls.svg;
+            if (svgUrls.iconSvg) edited.iconSvg = svgUrls.iconSvg;
+          } catch (uploadError: any) {
+            logger.error(`Failed to upload edited logo SVGs (keeping inline): ${uploadError.message}`);
+          }
+          await rememberIr(edited.svg, edited.ir);
+          logger.info(`Logo edited through the Logo IR for projectId: ${projectId} — ${engineEdit.summary}`);
+          return { logo: { ...edited, concept: engineEdit.summary } };
+        }
+      }
+
       // Lockup composé : on ne soumet que l'icône. Envoyer le wordmark vectorisé
       // coûterait des milliers de tokens et le modèle le redessinerait de travers,
       // alors qu'il suffit de recomposer après coup.
@@ -5580,7 +5807,7 @@ ${LOGO_EDIT_PROMPT}`;
         mockupCount: MOCKUP_CONFIG.MOCKUP_COUNT,
       });
 
-      return geminiMockupService.generateProjectMockups(
+      return brandMockupService.generateProjectMockups(
         logoUrl,
         brandColors,
         industry,
@@ -5606,7 +5833,7 @@ ${LOGO_EDIT_PROMPT}`;
             'skipLogo' in named ? named.skipLogo : false
           )
         ),
-        // Sert seulement à vérifier que le pays ne part pas chez Gemini.
+        // Sert seulement à vérifier que le pays ne part pas chez le modèle.
         project.additionalInfos?.country
       );
     };
@@ -5818,7 +6045,7 @@ ${description.slice(0, 3000)}`,
         status: 'idea',
       };
       // Photo de banque d'abord, modèle d'image rapide sinon : chaque visuel
-      // généré par `glm-image` coûtait de 42 à 57 s à la charte.
+      // généré coûtait de 42 à 57 s à la charte.
       const { png } = await communication.renderStandaloneVisual(
         userId,
         projectId,
@@ -5899,7 +6126,7 @@ ${description.slice(0, 3000)}`,
 
       // Générer les mockups : le service choisit les supports, photographie
       // chacun d'eux à vide, puis y imprime le vrai logo.
-      const mockups = await geminiMockupService.generateProjectMockups(
+      const mockups = await brandMockupService.generateProjectMockups(
         logoUrl,
         brandColors,
         industry,
@@ -6357,7 +6584,7 @@ ${description.slice(0, 3000)}`,
    * Infers a style hint from logo colors for typography prompt context
    */
   /**
-   * Construit le HTML A4 des mockups avec les vraies images générées par Gemini
+   * Construit le HTML A4 des mockups avec les vraies images générées
    * Design dynamique basé sur l'industrie et le contexte du projet
    */
   private buildMockupsHtmlWithRealImages(

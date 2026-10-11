@@ -3,6 +3,8 @@ import { CreativeOrchestrator, runtimeCall } from '../creativity/orchestrator';
 import { brandSheet } from '../creativity/agent-io';
 import { CARD_STRUCTURES, pickCardLayout, renderCardBack, renderCardFront } from './businessCardLayouts';
 import { cardConceptTask, cardLayoutTask, cardStructureTask, cardTuningTask } from './businessCardCreative';
+import { pageGfx } from '../../../../ivision/core/src/visual/poster/kit/page';
+import { contrastRatio } from '../design/color';
 import crypto from 'crypto';
 import logger from '../../config/logger';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -199,8 +201,27 @@ export class BusinessCardService extends GenericService {
       logger.info('[BusinessCard] generating template (ultra)', { projectId, orientation });
       const raw = await this.promptService.runPrompt(config, messages).catch(() => '');
       parsed = this.parseTemplateResponse(raw);
-      frontHtml = sanitizeSectionHtml(parsed.frontHtml ?? '');
-      backHtml = sanitizeSectionHtml(parsed.backHtml ?? '');
+      // Les textures nommées par l'IA (`<x-gfx>`) sont dessinées ICI par le code, aux cotes de la
+      // carte : l'IA ne trace jamais un motif elle-même (un SVG écrit à la main coûte des centaines
+      // de jetons et sort de la charte). `tone` est le ton clair ou sombre de la face.
+      const texture = (html: string, face: string): string => {
+        if (!/<x-gfx/i.test(html)) return html;
+        const dark = contrastRatio('#ffffff', palette.primary) > contrastRatio('#111111', palette.primary);
+        const kit = pageGfx({
+          width: `${width}mm`,
+          height: `${height}mm`,
+          tokens: { tone: dark ? '#ffffff' : '#000000', primary: palette.primary, secondary: palette.secondary, accent: palette.accent },
+          surface: palette.primary,
+          ink: dark ? '#ffffff' : '#111111',
+          primary: dark ? '#ffffff' : '#000000',
+          secondary: dark ? '#ffffff' : '#000000',
+        });
+        const out = kit.expand(html, { max: 1 });
+        if (out.issues.length) logger.warn('[BusinessCard] texture of the Ultra card sent back', { projectId, face, issues: out.issues.slice(0, 2) });
+        return out.html;
+      };
+      frontHtml = texture(sanitizeSectionHtml(parsed.frontHtml ?? ''), 'front');
+      backHtml = texture(sanitizeSectionHtml(parsed.backHtml ?? ''), 'back');
       // Chaque face est contrôlée à l'impression ; une face défaillante fait retomber la carte sur le rendu Max.
       const issues = frontHtml
         ? [

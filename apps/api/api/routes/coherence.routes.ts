@@ -42,7 +42,7 @@ coherenceRoutes.post(
   authenticate,
   // Cette route appelle le LLM avec skipQuotaCheck (audit système, pas de coût
   // pour le quota utilisateur) — sans limite dédiée, un appel répété martelé
-  // devient un vecteur d'appels Gemini gratuits illimités pour la plateforme.
+  // devient un vecteur d'appels modèle gratuits illimités pour la plateforme.
   rateLimitByEndpoint('coherence-check', { windowMs: 60_000, maxRequests: 5 }),
   runCoherenceCheckController
 );

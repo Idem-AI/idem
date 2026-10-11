@@ -11,7 +11,7 @@ Despite its name, this is not a Next.js app anymore: it is the Express port of t
 ## Run
 
 ```bash
-cp .env.example .env    # fill GLM_API_KEY at least
+cp .env.example .env    # fill OPENROUTER_API_KEY at least
 pnpm install
 pnpm dev                # tsx watch, http://localhost:3000
 ```
@@ -55,10 +55,20 @@ Declared in [`src/config/modelConfig.ts`](src/config/modelConfig.ts):
 
 | Key | Role |
 |---|---|
-| `glm-5.2` | Default: code generation and tool calls |
-| `glm-4.7` | Fallback when GLM 5.2 is saturated |
+| `qwen/qwen3-coder-next` | Default: code generation and tool calls (Apache-2.0) |
+| `deepseek/deepseek-v4-flash` | Alternative to compare (MIT) |
+| `qwen/qwen3.5-122b-a10b` | Fallback when the main model is saturated (not in the selector) |
 
-GLM models use `GLM_API_KEY` and `GLM_API_URL`. A model without its own key variable uses `THIRD_API_KEY` / `THIRD_API_URL` (any OpenAI-compatible provider). `GET /api/model` returns the public part of this list; keys and URLs never leave the server.
+Every model is served by OpenRouter (`OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`) and has open weights, so they can be self-hosted later by pointing the base URL to a vLLM/SGLang server. `GET /api/model` returns the public part of this list; keys and URLs never leave the server.
+
+**Changing the default model without a restart.** It starts from `APPGEN_DEFAULT_MODEL` and can be changed at any time:
+
+```bash
+curl -X POST $APPGEN/api/model/default -H "x-admin-key: $MODEL_ADMIN_KEY" \
+  -H 'content-type: application/json' -d '{"modelKey":"deepseek/deepseek-v4-flash"}'
+```
+
+The chosen model comes first in the selector and in the fallback chain. A model whose key is missing is never offered. The state is per instance (call each instance, or set the env var). Without `MODEL_ADMIN_KEY` the route is closed.
 
 ## Security
 
@@ -79,11 +89,11 @@ See [`.env.example`](.env.example) and [docs/CONFIGURATION.md](../../../../docs/
 | `IDEM_API_URL` | IDEM API (sessions, billing) |
 | `CORS_ALLOWED_ORIGINS` | Front-end origins, comma-separated (required in production) |
 | `MCP_ALLOWED_ORIGINS` | Browser origins allowed on `/mcp` |
-| `GLM_API_URL`, `THIRD_API_URL` | Model providers |
+| `OPENROUTER_BASE_URL`, `APPGEN_DEFAULT_MODEL` | Model provider and starting default |
 | `NETLIFY_DEPLOY_URL` | Netlify API |
 | `MINIO_PUBLIC_URL`, `ASSET_BASE_URL`, `ASSET_INLINE_ALLOWED_HOSTS` | Asset inlining |
 | `USE_SECRET_MANAGER`, `INFISICAL_SITE_URL`, `INFISICAL_ENVIRONMENT`, `INFISICAL_PROJECT_ID`, `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` | Infisical |
-| Secrets: `GLM_API_KEY`, `THIRD_API_KEY`, `NETLIFY_TOKEN`, `DEPLOY_OWNER_SECRET`, `SCREENSHOTONE_API_KEY` | Local `.env` only; Infisical in production |
+| Secrets: `OPENROUTER_API_KEY`, `MODEL_ADMIN_KEY`, `NETLIFY_TOKEN`, `DEPLOY_OWNER_SECRET`, `SCREENSHOTONE_API_KEY` | Local `.env` only; Infisical in production |
 
 Optional tuning (defaults in code): `AI_MAX_RETRIES`, `PLAN_MAX_TOOL_STEPS`, `SKILLS_CONTEXTUAL_BUDGET`, `SKILLS_MAX_CONTEXTUAL`, `DEBUG_PROMPTS`.
 

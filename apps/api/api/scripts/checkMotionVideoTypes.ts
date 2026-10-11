@@ -10,11 +10,11 @@
  *     animation Lottie importée, un clip importé.
  *
  * Le modèle de langage est simulé (réponses écrites dans les cas) : aucun
- * crédit GLM n'est consommé. Réseau nécessaire (banques, Pexels).
+ * crédit OpenRouter n'est consommé. Réseau nécessaire (banques, Pexels).
  *
  *   npx ts-node --transpile-only api/scripts/checkMotionVideoTypes.ts            # les 8 types
  *   npx ts-node --transpile-only api/scripts/checkMotionVideoTypes.ts --only=3d  # un seul (id partiel)
- *   npx ts-node --transpile-only api/scripts/checkMotionVideoTypes.ts --generate # + une vidéo aux médias générés par les modèles GLM d'IDEM, avec voix off (payant)
+ *   npx ts-node --transpile-only api/scripts/checkMotionVideoTypes.ts --generate # + une vidéo aux médias générés par les modèles OpenRouter d'IDEM, avec voix off (payant)
  *
  * Sorties : `tmp/motion-video-examples/` (MP4, planches, index.html à ouvrir).
  */
@@ -163,7 +163,7 @@ async function main() {
   const fake = new FakeCommunication();
   let current: ExampleCase = cases[0];
   const service = new MotionVideoService(new IdemVideoStore(fake as any), () => (system, user) => simulateModel({ ...current, behaviour: 'clean' } as any)(system, user));
-  // `--generate` : les vrais modèles d'IDEM (GLM-Image, CogVideoX-3, GLM-TTS ou son repli, vision) ;
+  // `--generate` : les vrais modèles d'IDEM (FLUX.2, Seedance, Kokoro, vision) ;
   // sinon aucun port de génération, les médias viennent des imports et de Pexels.
   configureCore(generate ? { storage: fakeStorage, generateImage: idemGenerateImage, generateVideo: idemGenerateVideo, synthesizeSpeech: idemSynthesizeSpeech, analyzeImage: idemAnalyzeImage } : { storage: fakeStorage });
 

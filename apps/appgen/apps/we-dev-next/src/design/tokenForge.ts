@@ -386,7 +386,21 @@ const NEUTRAL_STOPS = ['50', '100', '200', '400', '600', '800', '950'];
  * copy-paste-ready config rather than prose: an instruction can be softened by
  * the model, a config object it is told to paste verbatim cannot.
  */
-export function renderDesignBrief(system: DesignSystem): string {
+export interface RenderBriefOptions {
+  /**
+   * Vrai quand le starter préconfiguré est déjà monté dans l'espace de
+   * travail : `tailwind.config.js`, `index.html` et la feuille de base portent
+   * alors déjà ces jetons. Le brief passe donc de « recopiez ceci » à « voici
+   * les noms disponibles », ce qui retire ~700 jetons de l'entrée et, surtout,
+   * retire au modèle l'occasion de réécrire la palette de travers.
+   */
+  scaffolded?: boolean;
+}
+
+export function renderDesignBrief(
+  system: DesignSystem,
+  options: RenderBriefOptions = {}
+): string {
   const { direction, fonts, colors, contrast, typeScale } = system;
 
   // Keys such as `2xl` must be quoted: an unquoted identifier cannot start with
@@ -400,21 +414,7 @@ export function renderDesignBrief(system: DesignSystem): string {
     ...system.fontsHrefs.map((href) => `<link rel="stylesheet" href="${href}">`),
   ].join('\n');
 
-  const brandNote = system.brandDriven
-    ? `\n**This project has committed brand guidelines.** The palette and typefaces below come from them and are not negotiable. The art direction shapes layout, rhythm and personality only — it never repaints the brand.\n`
-    : '';
-
-  return `## DESIGN SYSTEM (pre-computed and contrast-verified — apply exactly, do not substitute)
-${brandNote}
-### Art direction: ${direction.name}
-- Surface: ${direction.surface} · Colour strategy: ${direction.colorStrategy}
-- Borders: ${direction.borders}
-- Shadows: ${direction.shadows}
-- Page cadence: ${direction.cadence}
-- Signature move (must be present): ${direction.signature}
-- Wrong for this direction: ${direction.avoid}
-
-### Fonts${fonts.fromBrand ? ' (from the project brand guidelines — use these exact families)' : ''}
+  const pasteBlock = `### Fonts${fonts.fromBrand ? ' (from the project brand guidelines — use these exact families)' : ''}
 Display "${fonts.display}", body "${fonts.body}", mono "${fonts.mono}".
 
 Put these in index.html <head>. One link per family on purpose: the Google Fonts endpoint rejects the whole request if any single family is unknown, which would silently drop every font.
@@ -449,7 +449,38 @@ fontSize: { ${scale} },
 borderRadius: { none: '0', sm: '${Math.max(0, Math.round(direction.radius / 2))}px', DEFAULT: '${direction.radius}px', lg: '${direction.radius * 2}px' },
 spacing: { section: '${direction.spacingBase * 8}px', block: '${direction.spacingBase * 3}px', tight: '${direction.spacingBase}px' },
 zIndex: { dropdown: '1000', sticky: '1100', backdrop: '1200', modal: '1300', toast: '1400', tooltip: '1500' },
-\`\`\`
+\`\`\``;
+
+  // Le starter porte déjà tout cela : le brief n'a plus qu'à nommer ce qui est
+  // disponible. Recopier la configuration serait payer deux fois — en entrée
+  // ici, en sortie dans la réponse — un fichier déjà posé par le code.
+  const usageBlock = `### Fonts — already linked in index.html, already set on body and headings
+Display "${fonts.display}" → \`font-display\` (headings have it by default), body "${fonts.body}" → \`font-sans\`, mono "${fonts.mono}" → \`font-mono\`.
+
+### Tokens available (already in tailwind.config.js — use these names, never a hex value)
+- Colours: \`brand-50\` … \`brand-950\`, \`neutral-50\` … \`neutral-950\`, \`accent\`, \`secondary\`, \`surface\`, \`surface-raised\`, \`ink\`, \`ink-muted\`. As \`bg-\`, \`text-\`, \`border-\`.
+- Type: \`text-xs\` … \`text-5xl\` (${scale}).
+- Rhythm: \`py-section\` (${direction.spacingBase * 8}px), \`gap-block\` / \`p-block\` (${direction.spacingBase * 3}px), \`gap-tight\` (${direction.spacingBase}px), \`max-w-measure\` (68ch).
+- Radius: \`rounded-sm\` ${Math.max(0, Math.round(direction.radius / 2))}px, \`rounded\` ${direction.radius}px, \`rounded-lg\` ${direction.radius * 2}px, \`rounded-xl\` ${direction.radius * 3}px, \`rounded-full\`.
+- Layers: \`z-dropdown\`, \`z-sticky\`, \`z-backdrop\`, \`z-modal\`, \`z-toast\`, \`z-tooltip\`.`;
+
+  const tokensBlock = options.scaffolded ? usageBlock : pasteBlock;
+
+  const brandNote = system.brandDriven
+    ? `\n**This project has committed brand guidelines.** The palette and typefaces below come from them and are not negotiable. The art direction shapes layout, rhythm and personality only — it never repaints the brand.\n`
+    : '';
+
+  return `## DESIGN SYSTEM (pre-computed and contrast-verified — apply exactly, do not substitute)
+${brandNote}
+### Art direction: ${direction.name}
+- Surface: ${direction.surface} · Colour strategy: ${direction.colorStrategy}
+- Borders: ${direction.borders}
+- Shadows: ${direction.shadows}
+- Page cadence: ${direction.cadence}
+- Signature move (must be present): ${direction.signature}
+- Wrong for this direction: ${direction.avoid}
+
+${tokensBlock}
 
 ### Contrast (already verified, keep it that way)
 - Body \`text-ink\` on \`bg-surface\`: ${contrast.bodyOnSurface.toFixed(1)}:1

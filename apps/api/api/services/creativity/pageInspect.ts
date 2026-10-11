@@ -83,6 +83,41 @@ function tailwindTag(): string {
   return tailwindScript ? `<script>${tailwindScript}</script>` : '<script src="https://cdn.tailwindcss.com"></script>';
 }
 
+/**
+ * Chart.js, comme à l'impression (`pdf.service.ts`) : une page du compositeur peut porter un
+ * graphique dessiné par le code (`renderStandaloneChart`). Sans la bibliothèque ici, on mesurerait
+ * un canvas vide — donc une page jugée sur ce qui ne sera pas imprimé. Absente, le repli dessiné
+ * par le serveur reste visible et la mesure vaut quand même.
+ */
+let chartScript: string | null | undefined;
+function chartTag(): string {
+  if (chartScript === undefined) {
+    const candidates = [path.join(process.cwd(), 'public', 'scripts', 'chart.js'), path.resolve(__dirname, '../../../public/scripts/chart.js')];
+    const found = candidates.find((file) => fs.existsSync(file));
+    chartScript = found ? fs.readFileSync(found, 'utf8').replace(/<\/script/gi, '<\\/script') : null;
+  }
+  return chartScript ? `<script>${chartScript}</script>` : '';
+}
+
+/** Dessine les graphiques posés par le code (même convention que le runtime d'impression). */
+const CHART_BOOT = `<script>
+(function () {
+  if (!window.Chart) return;
+  try { window.Chart.defaults.animation = false; window.Chart.defaults.responsive = true; window.Chart.defaults.maintainAspectRatio = false; } catch (e) {}
+  var list = [].slice.call(document.querySelectorAll('canvas[data-idem-chart]'));
+  list.forEach(function (canvas) {
+    var cfg = null;
+    try { cfg = JSON.parse(canvas.getAttribute('data-idem-chart')); } catch (e) { cfg = null; }
+    if (!cfg) return;
+    try {
+      new window.Chart(canvas, cfg);
+      var fallback = canvas.parentNode && canvas.parentNode.querySelector('[data-chart-fallback]');
+      if (fallback) fallback.style.display = 'none';
+    } catch (e) {}
+  });
+})();
+</script>`;
+
 function documentFor(html: string, opts: PageInspectOptions): string {
   const display = opts.fonts?.display || 'Archivo';
   const body = opts.fonts?.body || display;
@@ -92,12 +127,13 @@ function documentFor(html: string, opts: PageInspectOptions): string {
 <meta charset="utf-8">
 ${buildGoogleFontLinks([display, body])}
 ${tailwindTag()}
+${chartTag()}
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #ffffff; font-family: '${body}', system-ui, sans-serif; }
 </style>
 </head>
-<body>${html}</body>
+<body>${html}${CHART_BOOT}</body>
 </html>`;
 }
 

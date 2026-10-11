@@ -20,6 +20,20 @@ export interface LogoModel {
    * permet au serveur de reposer le nom dans une autre police sans IA.
    */
   lockup?: { brandName: string; fontFamily: string; wordmarkColor: string };
+
+  /**
+   * Logo IR du moteur de logos : la description structurée (couches, générateurs, palette) dont le SVG
+   * est le rendu. Opaque côté client — il suffit de le conserver et de le renvoyer tel quel.
+   */
+  ir?: Record<string, unknown>;
+  /** Ce que le moteur retient de la génération (catégorie, qualité mesurée, nouveauté, décisions de l'IA). */
+  engine?: {
+    category: string;
+    recipe: string;
+    score: number;
+    novelty: number;
+    decisions?: { stage: string; source: 'llm' | 'code'; detail?: string }[];
+  };
 }
 
 export type LogoType = 'icon' | 'name' | 'initial';

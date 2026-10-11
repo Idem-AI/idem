@@ -9,7 +9,7 @@
  *
  * On retire :
  *  - le bloc markdown "#### Sources …" jusqu'à la fin du contenu ;
- *  - les liens de redirection grounding résiduels (vertexaisearch…redirect) ;
+ *  - les liens de redirection de moteur de recherche résiduels (contenus anciens) ;
  *  - les marqueurs de citation isolés type [s12].
  */
 const OPEN_FENCE = /^```[a-zA-Z]*\s*/;

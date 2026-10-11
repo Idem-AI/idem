@@ -18,7 +18,7 @@
  */
 import { ContactShadows, Environment, Lightformer, RoundedBox } from '@react-three/drei';
 import { _roots, advance, createRoot, extend, flushSync, useThree } from '@react-three/fiber';
-import { Bloom, EffectComposer, SMAA } from '@react-three/postprocessing';
+import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, SMAA, Vignette } from '@react-three/postprocessing';
 import { ReactElement, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -213,6 +213,8 @@ function Stage({ cfg, assets, t, o }: { cfg: Record<string, any>; assets: Assets
   else rig = <ShapesRig cfg={cfg} t={t} span={span} rootY={rootY} />;
   return (
     <>
+      {/* Le flou de champ (postprocessing) traite l'alpha comme du noir : avec lui, le fond est peint de la couleur de la surface. */}
+      {postfx.includes('dof') && cfg.bg ? <color attach="background" args={[cfg.bg]} /> : null}
       <Studio accent={cfg.accent || '#ffffff'} />
       <directionalLight intensity={1.6} position={[3, 5, 4]} />
       <hemisphereLight args={['#ffffff', cfg.primary || '#888888', 0.4]} />
@@ -221,7 +223,15 @@ function Stage({ cfg, assets, t, o }: { cfg: Record<string, any>; assets: Assets
       </group>
       {postfx.length ? (
         <EffectComposer multisampling={0}>
-          {[postfx.includes('bloom') ? <Bloom key="bloom" intensity={0.35} luminanceThreshold={0.88} mipmapBlur /> : null, <SMAA key="smaa" />].filter((x): x is ReactElement => !!x)}
+          {[
+            // Mise au point sur le sujet (la caméra est à ~5,4 de lui) : le fond se défait doucement.
+            postfx.includes('dof') ? <DepthOfField key="dof" focusDistance={0.053} focalLength={0.09} bokehScale={2.4} height={540} /> : null,
+            postfx.includes('bloom') ? <Bloom key="bloom" intensity={0.35} luminanceThreshold={0.88} mipmapBlur /> : null,
+            // Franges de couleur sur les bords, qui respirent : une fonction du temps de la scène.
+            postfx.includes('chromatic') ? <ChromaticAberration key="chromatic" offset={new THREE.Vector2(0.0011 + 0.0007 * Math.sin(t * 1.4), 0.0006)} radialModulation={false} modulationOffset={0} /> : null,
+            postfx.includes('vignette') ? <Vignette key="vignette" offset={0.28} darkness={0.5} /> : null,
+            <SMAA key="smaa" />,
+          ].filter((x): x is ReactElement => !!x)}
         </EffectComposer>
       ) : null}
     </>

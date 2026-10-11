@@ -8,8 +8,8 @@
  *
  * Ordering matters as much as selection. Core skills come first and are byte
  * identical on every request, which is what makes the system message a stable
- * prefix and therefore eligible for Gemini's implicit cache (90% off cached
- * input tokens). Contextual skills follow, stable within a session.
+ * prefix and therefore eligible for provider-side prefix caching (discounted
+ * cached input tokens). Contextual skills follow, stable within a session.
  */
 
 import { ProjectModel } from '../types/project.js';

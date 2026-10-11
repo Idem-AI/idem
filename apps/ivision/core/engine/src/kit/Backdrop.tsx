@@ -11,6 +11,10 @@ import { CSSProperties, ReactElement, useLayoutEffect, useMemo, useRef } from 'r
 import { useEngine, useLocalTime, useScene } from '../context';
 import { addon } from '../shared';
 import { clamp, hash, mix, progress } from '../time';
+import { Gradient } from './Gradient';
+import { Network } from './Network';
+import { Particles } from './Particles';
+import { Shader, ShaderEffect } from './Shader';
 import { FlowField, Sketch, SketchShape } from './Sketch';
 import { VoronoiField } from './Viz';
 import { Flat3D } from './Zdog';
@@ -265,11 +269,91 @@ function Flat3DBg() {
   );
 }
 
+/** Poussière lumineuse qui flotte dans l'air de la scène (particules à graine, aucun addon). */
+function MotesBg() {
+  const s = useScene();
+  const mask = useCornerMask(100, 1.6);
+  return (
+    <div className="absolute inset-0" style={mask}>
+      <Particles mode="drift" count={38} seed={s.index * 13.7 + 3} size={[0.5, 1.7]} turbulence={0.6} life={8} opacity={0.85} />
+    </div>
+  );
+}
+
+/** Braises qui montent du bas du cadre. */
+function EmbersBg() {
+  const s = useScene();
+  const mask = useCornerMask(100, 1.4);
+  return (
+    <div className="absolute inset-0" style={mask}>
+      <Particles mode="rise" count={30} seed={s.index * 17.3 + 5} area={[4, 70, 96, 108]} size={[0.6, 1.9]} shapes={['dot', 'spark']} turbulence={0.7} life={5} reach={52} opacity={0.9} />
+    </div>
+  );
+}
+
+/** Confettis qui tombent (fête, ouverture, offre). */
+function ConfettiBg() {
+  const s = useScene();
+  const mask = useCornerMask(100, 1.2);
+  return (
+    <div className="absolute inset-0" style={mask}>
+      <Particles mode="fall" count={34} seed={s.index * 11.9 + 7} area={[2, -8, 98, 20]} size={[1.3, 3]} shapes={['square', 'dot', 'ring']} turbulence={0.8} life={5.5} reach={74} opacity={0.9} />
+    </div>
+  );
+}
+
+/** Un réseau de points reliés (Vanta « net », tsParticles), qui se découvre depuis le coin libre. */
+function NetworkBg() {
+  const s = useScene();
+  const mask = useCornerMask(100, 1.5);
+  return (
+    <div className="absolute inset-0" style={mask}>
+      <Network count={44} seed={s.index * 9.1 + 2} reach={19} opacity={0.8} />
+    </div>
+  );
+}
+
+/** Un dégradé qui passe d'un état de couleurs de la charte à l'autre (Granim), en CSS pur. */
+function GradientBg() {
+  const mask = useCornerMask(100, 1.4);
+  return (
+    <div className="absolute inset-0" style={mask}>
+      <Gradient opacity={0.55} angle={140} />
+    </div>
+  );
+}
+
+/** Un fond de matière en shader (addon ogl), qui se découvre depuis le coin libre. */
+function shaderBackdrop(effect: ShaderEffect, strength: number, extra: { speed?: number; scale?: number } = {}) {
+  return function ShaderBackdrop() {
+    const s = useScene();
+    const mask = useCornerMask(100, 1.4);
+    return (
+      <div className="absolute inset-0" style={mask}>
+        <Shader effect={effect} seed={s.index * 5.3 + 1} strength={strength} {...extra} />
+      </div>
+    );
+  };
+}
+
 const BACKDROPS: Record<string, () => ReactElement> = {
   'flow-field': FlowFieldBg,
   'sketch-shapes': SketchShapesBg,
   voronoi: VoronoiBg,
   flat3d: Flat3DBg,
+  motes: MotesBg,
+  embers: EmbersBg,
+  confetti: ConfettiBg,
+  network: NetworkBg,
+  gradient: GradientBg,
+  aurora: shaderBackdrop('aurora', 0.62),
+  silk: shaderBackdrop('silk', 0.34),
+  plasma: shaderBackdrop('plasma', 0.3),
+  fluid: shaderBackdrop('fluid', 0.42),
+  mesh: shaderBackdrop('mesh', 0.55),
+  topology: shaderBackdrop('topology', 0.75),
+  waves: shaderBackdrop('waves', 0.8),
+  blobs: shaderBackdrop('blobs', 0.95),
   'dot-grid': DotGrid,
   halftone: Halftone,
   'shape-field': ShapeField,
@@ -279,12 +363,30 @@ const BACKDROPS: Record<string, () => ReactElement> = {
   ticks: Ticks,
 };
 
-/** Le fond de la scène, si le graphe l'a posé sur elle. */
+/** Le fond de la scène, si le graphe l'a posé sur elle (ou si la scène en porte un : vidéos d'essai). */
 export function Backdrop() {
   const { data } = useEngine();
   const s = useScene();
-  const id = data.kit?.background;
+  const id = s.backdropId || data.kit?.background;
   if (!s.backdrop || !id || id === 'none') return null;
+  const B = BACKDROPS[id];
+  return B ? (
+    <div className="kit-backdrop pointer-events-none absolute inset-0" aria-hidden>
+      <B />
+    </div>
+  ) : null;
+}
+
+/** Les identifiants des fonds. */
+export const BACKDROP_IDS = Object.keys(BACKDROPS);
+
+/**
+ * <Bg id="halftone" /> — un fond de la bibliothèque du moteur, à l'usage d'une scène écrite par l'IA :
+ * dot-grid, halftone, shape-field, stagger-grid, marquee, spotlight, ticks, flow-field, sketch-shapes,
+ * voronoi, flat3d, motes, embers, confetti, aurora, silk, plasma, fluid, mesh, topology, waves, blobs,
+ * network, gradient. Il occupe le coin que le texte laisse libre ; à poser AVANT le texte.
+ */
+export function Bg({ id }: { id: string }) {
   const B = BACKDROPS[id];
   return B ? (
     <div className="kit-backdrop pointer-events-none absolute inset-0" aria-hidden>

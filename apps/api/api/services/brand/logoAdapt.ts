@@ -25,6 +25,7 @@ import logger from '../../config/logger';
 import { LogoModel } from '../../models/logo.model';
 import { hexToOklch, oklchToHex } from '../design/color';
 import { logoLockupService } from '../BandIdentity/lockup/logoLockup.service';
+import { adaptEngineLogo } from '../logo-engine/idem.service';
 import { applyColorMappingToSvg } from '../logoVariationEngine.service';
 import { extractColorsFromSvg, resolveSvgContent } from '../logo-import.service';
 import { BrandFontTokens, BrandPalette, normalizeHex } from './brandTokens';
@@ -121,7 +122,8 @@ async function readSvg(value?: string): Promise<string | null> {
 
 /** Le nom du logo peut-il être recomposé dans une autre police, sans IA ? */
 export function canRetypesetLogo(logo?: Partial<LogoModel> | null): boolean {
-  return !!(logo?.lockup?.brandName && logo.iconSvg);
+  // Un logo du moteur se retrace entièrement depuis son Logo IR ; un logo composé, depuis sa recette de nom.
+  return !!logo?.ir || !!(logo?.lockup?.brandName && logo.iconSvg);
 }
 
 export interface LogoAdaptation {
@@ -130,6 +132,9 @@ export interface LogoAdaptation {
   /** Icône seule adaptée, si le logo en a une. */
   iconSvg?: string;
   lockup?: LogoModel['lockup'];
+  /** Logo IR mis à jour (logos du moteur) : couleurs et polices reconstruites, pas approximées. */
+  ir?: LogoModel['ir'];
+  engineFonts?: NonNullable<LogoModel['engine']>['fonts'];
   colors: string[];
   recolored: boolean;
   retypeset: boolean;
@@ -147,6 +152,15 @@ export async function adaptLogo(
     fonts?: { before: BrandFontTokens; after: BrandFontTokens };
   }
 ): Promise<LogoAdaptation | null> {
+  // Logo du moteur : on le reconstruit depuis son Logo IR (couleurs exactes, lettres retracées).
+  if (logo.ir) {
+    try {
+      const rebuilt = await adaptEngineLogo(logo, options);
+      return rebuilt ? { svg: rebuilt.svg, iconSvg: rebuilt.iconSvg, colors: rebuilt.colors, recolored: rebuilt.recolored, retypeset: rebuilt.retypeset, ir: rebuilt.ir as unknown as LogoModel['ir'], engineFonts: { display: rebuilt.fonts.display, ...(rebuilt.fonts.body ? { body: rebuilt.fonts.body } : {}) } } : null;
+    } catch (error: any) {
+      logger.warn(`Logo du moteur : reconstruction impossible (${error?.message}), repli sur l'adaptation du SVG`);
+    }
+  }
   const [svgSource, iconSource] = await Promise.all([readSvg(logo.svg), readSvg(logo.iconSvg)]);
   if (!svgSource) return null;
 

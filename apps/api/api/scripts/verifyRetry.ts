@@ -19,7 +19,7 @@ function check(label: string, condition: boolean) {
   check('erreur undici réelle détectée comme transitoire', isTransientNetworkError(realNetworkError));
   check('describeError expose le code système', /code=ECONN|ECONNREFUSED/i.test(describeError(realNetworkError)));
 
-  // 2. Message ré-emballé par @google/genai (cause perdue) : reconnu quand même.
+  // 2. Message ré-emballé par un SDK (cause perdue) : reconnu quand même.
   const sdkWrapped = new Error('exception TypeError: fetch failed sending request');
   check('message ré-emballé du SDK reconnu comme transitoire', isTransientNetworkError(sdkWrapped));
 

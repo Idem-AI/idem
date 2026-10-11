@@ -22,7 +22,7 @@
  * compteurs réels du fournisseur.
  */
 
-import { FunctionDeclaration } from '@google/genai';
+import { FunctionDeclaration } from '../../types/ai-tools';
 import logger from '../../config/logger';
 import { FeatureAIConfig, LLMOptions } from '../../config/ai.config';
 import {
@@ -127,8 +127,6 @@ export interface AgentRunInput {
   /** Budget partagé par tous les agents d'un même livrable. */
   budget?: RunBudget;
   language?: string;
-  /** Nom d'un cache de contexte Gemini réutilisé entre appels d'un même run. */
-  cachedContent?: string;
   /** Fichier joint à l'appel (analyse de logo, de maquette…). */
   file?: PromptConfig['file'];
   /** Fichiers de contexte additionnels transmis au fournisseur. */
@@ -340,8 +338,8 @@ function buildPromptConfig(
       : tierConfig(tier, {
           // Fournisseur, modèle et chaîne de repli viennent de l'étage EN BLOC :
           // ils forment un triplet cohérent. Panacher le fournisseur d'une
-          // feature avec le modèle d'un étage enverrait un nom GLM à Vertex, ou
-          // l'inverse — la panne même que corrige le repli par fournisseur.
+          // feature avec le modèle d'un étage enverrait le nom d'un modèle à un fournisseur qui
+          // ne le connaît pas, ou l'inverse — la panne même que corrige le repli par fournisseur.
           // Seuls les réglages fins de la section survivent au routage.
           llmOptions: { ...agent.baseConfig?.llmOptions, ...agent.llmOptions },
           promptType: agent.promptType,
@@ -355,7 +353,6 @@ function buildPromptConfig(
     promptType: agent.promptType ?? agent.role,
     userId: input.userId,
     language: input.language,
-    cachedContent: input.cachedContent,
     file: input.file,
     contextFilePaths: input.contextFilePaths,
     skipQuotaCheck: input.skipQuotaCheck,

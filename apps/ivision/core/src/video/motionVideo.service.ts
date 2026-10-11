@@ -472,7 +472,7 @@ export class MotionVideoService {
     writer?: CopyWriter;
     concept?: string;
   }): Promise<{ voice: Omit<VideoVoice, 'lines'>; lines: { index: number; text: string; url: string; durationSec: number }[]; run?: AgentRun }> {
-    const base = { enabled: true, language: opts.language.slice(0, 5), persona: 'warm', provider: 'glm' as const, model: '', voice: '', source: 'heuristic' as const };
+    const base = { enabled: true, language: opts.language.slice(0, 5), persona: 'warm', provider: 'openrouter' as const, model: '', voice: '', source: 'heuristic' as const };
     if (!speechAvailable()) return { voice: { ...base, enabled: false, unavailable: 'no_speech_model' }, lines: [] };
     const personas = personaMenu(opts.style, opts.seed);
     const { narration, run } = await runNarrator(opts.writer, {

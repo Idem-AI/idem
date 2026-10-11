@@ -6,7 +6,7 @@
  * puis dessinée). Au rendu, rien ne « joue » tout seul.
  */
 import { useEffect, useRef } from 'react';
-import { Timed, useScene } from './context';
+import { Timed, useEngine, useScene } from './context';
 import { addon, MountedMedia } from './shared';
 
 // ─── Registres ──────────────────────────────────────────────────────────────
@@ -199,7 +199,10 @@ function useDriven(mount: (el: HTMLCanvasElement) => Promise<MountedMedia> | nul
 
 export function ThreeView({ cfg, width, height, horizontal }: { cfg: Record<string, any>; width: number; height: number; horizontal: boolean }) {
   const s = useScene();
-  const ref = useDriven((canvas) => addon('three')?.mount(canvas, cfg, { width, height, horizontal, span: s.span || 4 }) ?? null);
+  const { data } = useEngine();
+  // La couleur de la surface de la scène : le flou de champ (postprocessing) rend un fond transparent en noir ; il faut un fond peint.
+  const full = { ...cfg, bg: data.surfaces[s.surface]?.bg };
+  const ref = useDriven((canvas) => addon('three')?.mount(canvas, full, { width, height, horizontal, span: s.span || 4 }) ?? null);
   return <canvas ref={ref} className="three-canvas" width={width} height={height} />;
 }
 

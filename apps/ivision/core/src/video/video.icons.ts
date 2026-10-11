@@ -145,7 +145,7 @@ export function iconSvg(set: IconSetId, concept: string): string | null {
     let svg = fs.readFileSync(file, 'utf8').replace(/<!--[\s\S]*?-->/g, '').trim();
     svg = svg.replace(/<svg\b([^>]*)>/, (_m, attrs: string) => {
       const kept = attrs
-        .replace(/\s(width|height|class)="[^"]*"/g, '')
+        .replace(/\s(width|height|class|aria-hidden)="[^"]*"/g, '')
         .replace(/\s+/g, ' ')
         .trim();
       return `<svg ${kept} aria-hidden="true">`;

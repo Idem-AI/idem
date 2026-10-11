@@ -50,7 +50,7 @@ export interface ImageOptions {
   fallbackModel?: string;
 }
 
-/** Un clip demandé au modèle vidéo (CogVideoX-3 chez IDEM) : 5 ou 10 s, muet. */
+/** Un clip demandé au modèle vidéo (Seedance chez IDEM) : 5 ou 10 s, muet. */
 export interface VideoClipRequest {
   prompt: string;
   /** Image de départ (image → vidéo) : le clip anime ce plan, au rendu de la charte. */
@@ -69,15 +69,11 @@ export interface GeneratedClipLike {
   model: string;
 }
 
-/** Une ligne de voix off à dire : la langue décide du modèle (GLM-TTS, sinon le repli). */
+/** Une ligne de voix off à dire : la langue décide de la voix. */
 export interface SpeechRequest {
   text: string;
   /** Langue BCP 47 courte (« fr », « en », « zh »…). */
   language: string;
-  /** Fournisseur voulu par le core (`glm` quand GLM-TTS parle la langue). */
-  provider: 'glm' | 'gemini';
-  /** Voix du fournisseur (catalogue `video.voice.ts`). */
-  voice: string;
   /** Jeu demandé (« chaleureux, posé ») : suivi par les modèles qui le comprennent. */
   style?: string;
   tag: string;
@@ -87,7 +83,7 @@ export interface SynthesizedSpeech {
   buffer: Buffer;
   /** `audio/wav`, `audio/mpeg`, ou PCM brut (`audio/l16;rate=24000`). */
   mimeType: string;
-  provider: 'glm' | 'gemini';
+  provider: 'openrouter';
   model: string;
   voice: string;
 }
@@ -105,9 +101,9 @@ export interface CoreHost {
   analyzeImage?: (base64: string, mimeType: string, instruction: string, options?: VisionOptions) => Promise<string>;
   /** Génération d'une image (photo d'illustration, jamais de texte). */
   generateImage?: (prompt: string, options: ImageOptions) => Promise<GeneratedImageLike>;
-  /** Génération d'un clip vidéo (modèle vidéo de la famille GLM chez IDEM). */
+  /** Génération d'un clip vidéo (Seedance, par OpenRouter, chez IDEM). */
   generateVideo?: (request: VideoClipRequest) => Promise<GeneratedClipLike>;
-  /** Voix off : une ligne dite par le modèle de voix (GLM-TTS, repli pour les langues qu'il ne parle pas). */
+  /** Voix off : une ligne dite par le modèle de voix de l'hôte (une langue sans voix lève `voice_language_unsupported`). */
   synthesizeSpeech?: (request: SpeechRequest) => Promise<SynthesizedSpeech>;
   /** Appel d'agent créatif (runtime d'agents de l'hôte : étages, escalade, suivi d'usage). */
   agentCall?: (ctx: { userId?: string; projectId?: string; element?: string }) => AgentCall | undefined;

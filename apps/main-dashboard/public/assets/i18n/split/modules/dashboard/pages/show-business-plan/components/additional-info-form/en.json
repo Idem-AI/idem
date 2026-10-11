@@ -1,12 +1,20 @@
 {
   "dashboard": {
     "additionalInfoForm": {
-      "title": "Additional Information",
-      "subtitle": "Help us create a more accurate business plan by providing additional details",
+      "title": "Your contact details and team",
+      "subtitle": "This information appears on the cover page and contact sheet of the document. A reader who wants to reach you looks for it there.",
+      "flow": {
+        "label": "Business plan creation steps",
+        "structure": "Structure",
+        "details": "Details",
+        "generation": "Generation"
+      },
       "sections": {
-        "company": "Company Information",
-        "team": "Team Members",
-        "social": "Social Links"
+        "company": "The company",
+        "companyHint": "The address and contact that will appear on the document.",
+        "team": "The team",
+        "teamHint": "An investor looks at who is behind the project. Add the people they should know — or skip, and the document will have no team page.",
+        "social": "Professional links"
       },
       "fields": {
         "email": "Email",
@@ -14,35 +22,56 @@
         "address": "Address",
         "city": "City",
         "country": "Country",
-        "zipCode": "Zip Code",
-        "fullName": "Full Name",
-        "role": "Role",
-        "bio": "Bio",
-        "profilePicture": "Profile Picture"
+        "zipCode": "Postal code",
+        "fullName": "Full name",
+        "role": "Role in the project",
+        "bio": "In two sentences",
+        "profilePicture": "Photo"
       },
       "placeholders": {
         "email": "company@example.com",
         "phone": "+237 6 00 00 00 00",
-        "address": "Akwa",
+        "address": "Njo-Njo Street, Akwa",
         "city": "Douala",
         "country": "Cameroon",
         "zipCode": "PO Box 1234",
         "fullName": "Paul Etoga",
         "memberEmail": "paul@example.com",
-        "role": "CEO",
-        "bio": "Brief description about this team member",
+        "role": "Chief Executive Officer",
+        "bio": "What this person brings to the project.",
         "linkedin": "https://linkedin.com/in/username",
         "github": "https://github.com/username",
-        "twitter": "https://twitter.com/username"
+        "twitter": "https://x.com/username"
       },
       "buttons": {
-        "addMember": "Add Team Member",
-        "chooseImage": "Choose Image",
-        "continue": "Continue"
+        "addMember": "Add a person",
+        "chooseImage": "Add a photo",
+        "replaceImage": "Change photo",
+        "removeImage": "Remove",
+        "continue": "Start generation",
+        "skip": "Skip this step"
       },
-      "member": "Team Member {{index}}",
+      "team": {
+        "emptyTitle": "Add a first person",
+        "emptySub": "Name and role are enough. The rest is optional.",
+        "rolePrompt": "Role to be filled in",
+        "incomplete": "Incomplete",
+        "remove": "Remove member {{index}}",
+        "pictureHint": "JPG or PNG, 5 MB maximum."
+      },
+      "member": "Member {{index}}",
       "alt": {
         "profilePicture": "Profile picture"
+      },
+      "errors": {
+        "required": "Required",
+        "email": "Invalid email address",
+        "missing": "{{count}} field(s) still need filling in. The first one is now selected.",
+        "loadData": "Could not load the project information. You can enter it again.",
+        "onlyImages": "Only images are accepted for the photo.",
+        "fileSize": "This image is over 5 MB. Please choose a smaller one.",
+        "processImage": "This image could not be read. Please try another one.",
+        "saveInfo": "Saving the information failed. Please try again."
       }
     }
   }
