@@ -443,13 +443,16 @@ const MAX_REPAIR_FILES = 4;
 const MAX_REPAIR_FILE_CHARS = 12000;
 
 /**
- * Never hand the manifest or a lockfile to the repair pass.
+ * Never hand the manifest, a lockfile or a starter file to the repair pass.
  *
- * The client patches package.json deterministically before running `npm install`
- * (see the client's ensureRunnable), and letting the model rewrite it while the
- * install is in flight is a good way to break a project that was about to work.
+ * The manifest is patched deterministically by the client before `npm install`
+ * (see its ensureRunnable), and letting the model rewrite it while the install
+ * is in flight is a good way to break a project that was about to work. The
+ * configuration files are posed by the starter (`src/scaffold/`): a repair pass
+ * on them would be dropped by the workspace, so it would only burn tokens.
  */
-const NEVER_REPAIR = /(^|\/)(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock)$/;
+const NEVER_REPAIR =
+  /(^|\/)(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock|(vite|tailwind|postcss|capacitor)\.config\.(js|cjs|mjs|ts|json)|manifest\.webmanifest|sw\.js)$/;
 
 /** Worst files first: errors weigh more than warnings. */
 function selectRepairTargets(violations: Violation[]): string[] {

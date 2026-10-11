@@ -19,6 +19,7 @@ import enhancedPromptRouter from './routes/enhancedPrompt.js';
 import modelRouter from './routes/model.js';
 import handoffRouter from './routes/handoff.js';
 import qualityRouter from './routes/quality.js';
+import scaffoldRouter from './routes/scaffold.js';
 import designRouter from './routes/design.js';
 import assetsRouter from './routes/assets.js';
 import mcpRouter from './mcp/server.js';
@@ -68,6 +69,7 @@ app.get('/', (req: Request, res: Response) => {
       enhancedPrompt: '/api/enhancedPrompt',
       model: '/api/model',
       quality: '/api/quality/lint',
+      scaffold: '/api/scaffold',
       design: '/api/design/forge',
       mcp: '/mcp',
     },
@@ -95,6 +97,9 @@ app.use('/api/model', modelRouter);
 app.use('/api/handoff', requireIdemUser, handoffRouter);
 app.use('/api/quality', qualityRouter);
 app.use('/api/design', designRouter);
+// Starter préconfiguré monté dans l'espace de travail avant la génération :
+// du calcul pur, donc ouvert comme la forge de jetons et le linter.
+app.use('/api/scaffold', scaffoldRouter);
 
 // Local-development helper: reads an http:// bucket asset back as a data URI so
 // the HTTPS WebContainer preview can display it. See routes/assets.ts.
@@ -131,7 +136,7 @@ app.listen(PORT, () => {
     port: Number(PORT),
     node: process.version,
     logLevel: logger.level,
-    endpoints: ['/api/chat', '/api/deploy', '/api/enhancedPrompt', '/api/model', '/api/handoff', '/api/quality', '/api/design', '/mcp', '/health'],
+    endpoints: ['/api/chat', '/api/deploy', '/api/enhancedPrompt', '/api/model', '/api/handoff', '/api/quality', '/api/design', '/api/scaffold', '/mcp', '/health'],
   });
 });
 

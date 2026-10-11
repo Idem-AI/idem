@@ -43,6 +43,15 @@ import { useLoading } from '../../loading';
 import { ProjectModel } from '@/api/persistence/models/project.model';
 import { MultiChatPromptService } from './services/multiChatPromptService';
 import { currentPlatform, currentProduct } from '@/utils/product';
+import { fetchScaffold } from '@/api/scaffold';
+import { prewarmInstall } from '../utils/prewarmInstall';
+import {
+  clearScaffold,
+  hasScaffoldSignature,
+  isScaffoldLocked,
+  registerScaffold,
+  withoutScaffold,
+} from '@/utils/scaffoldLock';
 import useChatHistoryStore from '@/stores/chatHistoryStore';
 import useRunStatus from '@/stores/runStatusSlice';
 import { IdemLoader } from '@idem/shared-loader/react';
@@ -167,8 +176,15 @@ async function fetchDefaultModel(): Promise<string> {
   }
 }
 
+/**
+ * Les fichiers de l'espace de travail, rendus en actions pour le contexte.
+ *
+ * Les fichiers du socle en sont retirés : le serveur sait déjà ce qu'ils
+ * contiennent (il les a écrits), et les lui renvoyer à chaque message ajouterait
+ * des milliers de jetons d'entrée pour une information qu'il possède.
+ */
 function convertToBoltAction(obj: Record<string, string>): string {
-  return Object.entries(obj)
+  return Object.entries(withoutScaffold(obj))
     .filter(([filePath]) => !excludeFiles.includes(filePath))
     .map(
       ([filePath, content]) =>
@@ -422,6 +438,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           setIsFirstSend();
           setIsUpdateSend();
           resetTerminals();
+          // L'espace de travail repart vide : le socle n'y est plus. Oublier le
+          // verrou, sinon la conversation suivante interdirait au modèle
+          // d'écrire une configuration que plus rien ne fournit — et l'aperçu
+          // resterait vide. L'effet de montage le reposera.
+          clearScaffold();
+          setScaffoldReady(null);
         }
       }
     });
@@ -445,6 +467,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   // Project data state - must be declared before useChat hook
   const [projectData, setProjectData] = useState<ProjectModel | null>(null);
   const [isProjectLoaded, setIsProjectLoaded] = useState(false);
+  // Version du socle monté dans cet espace de travail, `null` sans socle.
+  // En état React (et pas seulement en module) parce que le corps de la
+  // requête est reconstruit au rendu : sans cela le premier message partirait
+  // sans le drapeau.
+  const [scaffoldReady, setScaffoldReady] = useState<string | null>(null);
   const [showStartButton, setShowStartButton] = useState(false);
   const [hasGeneration, setHasGeneration] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
@@ -515,6 +542,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // contrat de build (fichiers, mise en page, Capacitor pour le mobile).
       product: currentProduct() ?? undefined,
       platform: currentPlatform() ?? undefined,
+      // Socle déjà monté : le serveur cesse alors de faire écrire la
+      // configuration et se contente d'en rappeler les noms de jetons.
+      ...(scaffoldReady ? { scaffold: { version: scaffoldReady } } : {}),
       // User UI language so the AI answers/generates content in the right language.
       // (Distinct from otherConfig.backendLanguage, which is the target programming language.)
       language: i18n.language,
@@ -623,6 +653,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         if (message) {
           const { files: messagefiles } = parseMessage(message.content);
           for (let key in messagefiles) {
+            // Le socle est posé par le code : une réécriture est au mieux
+            // identique, au pire une palette amputée ou un script d'amorçage
+            // manquant. On la laisse tomber ici comme pendant le flux.
+            if (isScaffoldLocked(key)) {
+              console.warn(`[scaffold] réécriture ignorée : ${key}`);
+              continue;
+            }
             await updateContent(key, messagefiles[key], false, true);
           }
         }
@@ -917,6 +954,82 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
     loadProjectData();
   }, [projectId, setLoading]);
+
+  /**
+   * Montage du socle préconfiguré.
+   *
+   * Avant, chaque génération commençait par faire réécrire au modèle la même
+   * vingtaine de fichiers de configuration — manifeste npm, Vite, PostCSS,
+   * Tailwind avec la charte du projet, `index.html`, point d'entrée, service
+   * worker, cadre d'écran mobile. Des jetons de sortie, les plus chers,
+   * dépensés pour un contenu connu d'avance, et une occasion ratée sur trois
+   * d'écrire la palette au complet ou de ne pas oublier le script d'amorçage.
+   *
+   * Désormais le serveur pose ce socle (c'est du calcul pur : aucun crédit),
+   * l'atelier le monte, et le modèle n'écrit plus que le produit.
+   *
+   * Trois situations :
+   * - espace de travail vide → on monte le socle ;
+   * - projet rouvert dont le code porte la signature du socle → on rétablit
+   *   seulement le verrou, pour que les tours suivants ne réécrivent pas la
+   *   configuration ;
+   * - projet d'avant le socle → rien, l'ancien contrat de build repart.
+   *
+   * La reconnaissance se fait sur le code (signature en tête de
+   * `tailwind.config.js`) et non sur un marqueur local : le même projet rouvert
+   * depuis une autre machine garde donc son verrou.
+   */
+  useEffect(() => {
+    if (mode !== ChatMode.Builder || scaffoldReady) return;
+    // Une génération en cours écrit déjà dans l'espace de travail : monter le
+    // socle par-dessus remplacerait la carte des fichiers au complet.
+    if (isLoading) return;
+    // Un projet dans l'adresse : attendre son chargement, sinon on monterait le
+    // socle par-dessus le code déjà enregistré (ou l'inverse, selon la course).
+    if (projectId && !isProjectLoaded) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const scaffold = await fetchScaffold(projectData, {
+          product: currentProduct(),
+          platform: currentPlatform(),
+          language: i18n.language,
+        });
+        if (cancelled) return;
+
+        const workspace = useFileStore.getState().files;
+
+        if (Object.keys(workspace).length === 0) {
+          registerScaffold(scaffold.locked, scaffold.version);
+          // `setFiles` ne marque pas `isFirstSend` : le socle reste donc hors
+          // du contexte envoyé au modèle, ce qui est tout l'intérêt.
+          await setFiles(scaffold.files);
+          setScaffoldReady(scaffold.version);
+          // Le manifeste du socle est figé : l'installation peut commencer
+          // tout de suite, en parallèle de la génération.
+          void prewarmInstall(scaffold.commands.install);
+          return;
+        }
+
+        // Projet déjà généré : seul le verrou est rétabli, et seulement si son
+        // code porte bien la signature du socle.
+        if (hasScaffoldSignature(workspace)) {
+          registerScaffold(scaffold.locked, scaffold.version);
+          setScaffoldReady(scaffold.version);
+        }
+      } catch (error) {
+        // Le socle est une optimisation, jamais un préalable : sans lui, le
+        // contrat de build complet repart au modèle comme avant.
+        console.warn('[scaffold] socle non monté, contrat complet conservé', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, projectId, isProjectLoaded, projectData, scaffoldReady, isLoading, setFiles, i18n.language]);
 
   // Function to manually start generation
   const handleStartGeneration = async () => {

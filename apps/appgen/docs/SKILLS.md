@@ -6,7 +6,7 @@ How appgen produces interfaces that do not read as machine-made, and why the cha
 
 A model with no design anchor returns the average of its training data: purple gradient, Inter, three identical cards, uppercase eyebrow above every section. Before this system, appgen sent one monolithic prompt containing technical constraints and no art direction, concatenated into the **last user message** — which also meant the provider's prefix cache never hit, and the Sub-Saharan Africa directives were pasted four times per request.
 
-## Four parts
+## Five parts
 
 ```
 apps/we-dev-next/src/
@@ -15,11 +15,16 @@ apps/we-dev-next/src/
 │   ├── artDirections.ts  8 mutually distinct directions + font pairings
 │   ├── tokenForge.ts     computes the design system from branding + seed
 │   └── slopLint.ts       detects the generated-looking markers
+├── scaffold/
+│   ├── index.ts          buildScaffold(target, projectData) + the prompt notice
+│   ├── shared.ts         tailwind/postcss/vite config, base CSS, component kit
+│   ├── site.ts  webApp.ts  mobileApp.ts   one starter per build target
 ├── skills/
 │   ├── catalog/*.md      the skills themselves (markdown, editable)
 │   ├── registry.ts       loads + caches, exposes tiers 1/2/3
 │   └── router.ts         picks skills per request, no LLM call
 ├── routes/quality.ts     POST /api/quality/lint
+├── routes/scaffold.ts    POST /api/scaffold
 └── mcp/server.ts         MCP endpoint at /mcp
 ```
 
@@ -31,7 +36,7 @@ apps/we-dev-next/src/
 - a **font pairing** on a contrast axis, from a list that deliberately excludes Inter;
 - **OKLCH colour ramps** derived from the brand colour, with chroma falloff so the ends do not clip;
 - **`ink` and `ink-muted` verified against the surface** — `ensureContrast()` walks lightness until the ratio is met, so the numbers printed in the prompt are measured, not hoped for;
-- a Tailwind `theme.extend` block the model pastes verbatim.
+- a Tailwind `theme.extend` block — which the starter below now **writes into `tailwind.config.js` itself**, so the model is handed the token names rather than a config to copy.
 
 The seed is the anti-monoculture mechanism. Two projects with similar briefs get different constraints, so they cannot converge on the same page. The same project always regenerates the same system.
 
@@ -90,7 +95,8 @@ Tuning knobs: `SKILLS_MAX_CONTEXTUAL` (default 3), `SKILLS_CONTEXTUAL_BUDGET` (d
 system  ┌ core skills          identical on every request  → global cache hit
         ├ contextual skills    stable within a session     → session cache hit
         └ language directive   last, so it stays salient
-user    ┌ forged design system   every turn
+user    ┌ forged design system   every turn (token names, not a config to paste)
+        ├ starter notice         every turn, when the workspace carries the starter
         ├ brand logo directive   every turn
         ├ project brief          opening turn only
         └ the task
@@ -106,7 +112,31 @@ Provider-side prompt caching (most hosts apply it implicitly) discounts input to
 
 Set `DEBUG_PROMPTS=true` to dump the assembled prompt; it is off by default because a builder prompt is tens of kilobytes per request.
 
-### 4. Quality pass — deterministic first, model only if needed
+### 4. The starter — the files the model stopped writing
+
+Every generation used to open by rewriting the same twenty-odd files: the npm manifest, `vite.config.js`, `postcss.config.js`, `tailwind.config.js` carrying the forged palette, `index.html`, the entry point, and — depending on the target — the service worker, the PWA manifest, the app icon, the Capacitor config, the phone shell, or the PGlite/`pg` switch. Those are **output** tokens, the expensive ones, spent on content we already know byte for byte. And a model copying a palette "verbatim" drops a stop about one time in three, or forgets the `<script type="module">` and ships a blank page with no console error.
+
+`buildScaffold({ target, projectData })` writes them instead, deterministically: same project, same target, same bytes. `POST /api/scaffold` serves the map, the workspace mounts it before the first message, and the project already starts — with the brand's palette, fonts and rhythm in place — before the model has said a word.
+
+| Target | Locked files | Output no longer generated |
+|---|---|---|
+| `site` | 17 | ≈ 2 260 tokens per generation |
+| `web-app` | 24 | ≈ 3 470 tokens per generation |
+| `mobile-app` | 24 | ≈ 3 510 tokens per generation |
+
+The starter also ships a component kit (`src/ui/`: Button, Card, Badge, Field, Input, Section, EmptyState, Spinner) wired to the project's tokens, with 44px touch targets and a visible focus ring. The model assembles it instead of writing a button per project — fewer tokens, and no project where the primary button came out Tailwind blue.
+
+**Locked means locked.** `src/utils/scaffoldLock.ts` (client) drops any `file` action aimed at a starter path, during the stream and in `onFinish`, and removes those files from the context sent back to the server. The skill says not to write them; the lock makes it true. `NEVER_REPAIR` in the linter excludes them too, so the quality pass cannot spend a round trip on a file the workspace would discard.
+
+Three situations on open:
+
+- empty workspace → the starter is mounted and noted in `localStorage` for this project and product;
+- project reopened and already generated on a starter → only the lock is restored, so follow-up turns keep their hands off the config;
+- project generated before the starter existed → nothing is locked and the full build contract goes out as before. Each `webcontainer-*` skill keeps a short fallback section for exactly that case.
+
+The client sends `scaffold: { version }` with every message; the server **rebuilds** the starter rather than trusting that payload (it is deterministic, so there is nothing to trust) and switches the brief from "paste this config" to "here are the token names". Bump `SCAFFOLD_VERSION` whenever a locked file's content changes.
+
+### 5. Quality pass — deterministic first, model only if needed
 
 After generation completes, the client posts the parsed file map to `POST /api/quality/lint`. The linter is regex over text and costs nothing. It catches:
 
@@ -161,6 +191,8 @@ Origin is validated against localhost plus `MCP_ALLOWED_ORIGINS` (comma-separate
 | Static prompt | ~6 000 tk, full price, never cached | ~3 200 tk as a stable prefix, 90% off on a hit |
 | Audience directives | duplicated ×4 | ×1, in the cached prefix |
 | Design system | asked of the model, variable | computed in TS, ~450 tk injected |
+| Config files (output) | rewritten every generation, 2 300–3 500 tk | written by `scaffold/`, 0 tk |
+| Opening brief | the dashboard prompt duplicated the skills, then was discarded server-side | only the plan and the brand-book art direction, and they now reach the model |
 | Quality fix | full regeneration | targeted pass ~2 000 tk, capped at one |
 
 ## Build note

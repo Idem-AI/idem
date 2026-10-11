@@ -1,5 +1,4 @@
 import { ProjectModel } from '../types/project.js';
-import { generateDockerfilePrompt } from '../config/dockerfilePrompt.js';
 import { BuildTarget } from '../config/buildTarget.js';
 
 enum LandingPageConfig {
@@ -71,14 +70,13 @@ export class ProjectPromptService {
 
     console.log('Generated base prompt length:', prompt.length);
 
-    // Add Dockerfile prompt. Ni pour le mobile (fichiers statiques + Capacitor),
-    // ni pour l'application complète : iDeploy construit `backend/` et
-    // `frontend/` séparément, et des Dockerfile contrediraient le contrat de la
-    // skill `webcontainer-fullstack`.
-    const dockerPrompt =
-      target === 'mobile-app' || target === 'web-app' ? '' : generateDockerfilePrompt(projectData);
-    console.log('🐳 Docker prompt length:', dockerPrompt.length);
-    prompt += dockerPrompt;
+    // Plus de consignes Docker : le site reçoit son `Dockerfile`, son
+    // `nginx.conf` et son `.dockerignore` du starter, écrits par le code. Le
+    // mobile n'en a pas besoin (fichiers statiques + Capacitor) et l'application
+    // complète non plus — iDeploy construit `backend/` et `frontend/`
+    // séparément. Les faire écrire au modèle coûtait près d'un millier de jetons
+    // de sortie par génération, pour un `docker-compose.yml` inventant des
+    // services « backend » et « database » que rien ne lisait.
 
     console.log('✅ Final generated prompt length:', prompt.length);
 

@@ -19,6 +19,7 @@ Base URL: `http://localhost:3000` in development. Calls from the editor send the
 | `POST` | `/api/quality/lint` | — | Design lint of generated files |
 | `POST` | `/api/quality/security` | — | Security lint of generated files |
 | `POST` | `/api/design/forge` | — | Forge the design system for a project |
+| `POST` | `/api/scaffold` | — | Preconfigured starter for a build target |
 | `GET` | `/api/assets/inline` | — | Development: bucket image as a data URI |
 | `POST` | `/mcp` | origin check | MCP endpoint (skills, forge, linter) |
 
@@ -34,6 +35,7 @@ Generates or edits the project. The response is a **stream** (Vercel AI SDK data
   "language": "en",
   "projectId": "…",
   "projectData": { "…": "IDEM project, used for branding and the design system" },
+  "scaffold": { "version": "1" },
   "workspace": { "…": "current files, for edits" },
   "qualityRepair": false
 }
@@ -45,6 +47,7 @@ Generates or edits the project. The response is a **stream** (Vercel AI SDK data
 | `language` | `en` or `fr`; otherwise taken from `Accept-Language`, then English |
 | `model` | A key from `/api/model`; defaults to the first configured model |
 | `qualityRepair` | Set by the client when it sends the repair prompt from `/api/quality/lint` |
+| `scaffold` | Present once the editor has mounted the starter (`/api/scaffold`). The server then tells the model the configuration is already written and only names the available tokens; absent, the full build contract goes out as before |
 
 Before generating, the server calls `POST /billing/consume` on the IDEM API. A builder request with a single message is billed as `initial_generation`; everything else as an edit. On refusal the server answers with the billing payload (usually `402`) instead of a stream; the editor shows the offer to top up.
 
@@ -81,6 +84,22 @@ Both routes take `{ "files": { "path": "content", … } }`.
 - `system`: palette, type scale and art direction computed for the project (from its brand when there is one);
 - `brief`: the exact text the model will receive;
 - `catalog`: the art directions and options, so the client can offer overrides and replay the forge.
+
+## `POST /api/scaffold`
+
+`{ "projectData": { … }, "product": "site|app", "platform": "web|mobile", "language": "fr" }` → the preconfigured starter for that build target:
+
+```json
+{
+  "version": "1",
+  "target": "site",
+  "files": { "package.json": "…", "tailwind.config.js": "…", "src/ui/Button.jsx": "…" },
+  "locked": ["package.json", "tailwind.config.js", "…"],
+  "commands": { "install": "npm install", "start": "npm run dev" }
+}
+```
+
+The editor mounts `files` before the first message, so the project starts — with the brand's palette and fonts already applied — before the model writes anything. `locked` are the files written by code: the editor drops any attempt by the model to rewrite them and keeps them out of the context it sends back. Pure computation, no model call, so no credit is consumed. See [SKILLS.md](../../../docs/SKILLS.md#4-the-starter--the-files-the-model-stopped-writing).
 
 ## `GET /api/assets/inline?url=…`
 
