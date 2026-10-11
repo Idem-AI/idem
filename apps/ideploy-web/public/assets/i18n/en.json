@@ -576,7 +576,14 @@
         "expires": "renews automatically, expires",
         "httpsAfterDns": "HTTPS: the certificate is requested automatically once the DNS points here.",
         "httpsPending": "HTTPS: certificate being issued — redeploy the application if it was saved without redeploying.",
-        "polling": "Checked again every 30 seconds while the domain is being set up."
+        "polling": "Checked again every 30 seconds while the domain is being set up.",
+        "ownTitle": "Use your own domain",
+        "ownIntro": "Your application already has an automatic address, with HTTPS. To use your own domain (e.g. boutique.com):",
+        "ownStep1": "Type it in the field above, then save. Several domains can be separated by commas.",
+        "ownStep2": "At your domain provider, create this record (type · name · value):",
+        "ownManaged": "This is the address of the IDEM server your application runs on.",
+        "ownStep3": "Come back here: this page checks the DNS and shows when the domain is online with its HTTPS certificate.",
+        "autoWorks": "The automatic address {{host}} is online with HTTPS."
       },
       "domainsApplied": "Domains applied — no redeployment needed. Those whose DNS is ready are online; the others will be as soon as their DNS points here.",
       "domainOptions": {

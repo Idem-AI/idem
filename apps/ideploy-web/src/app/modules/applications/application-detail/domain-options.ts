@@ -15,27 +15,34 @@ import { DomainOptions } from '../../../shared/models/ideploy.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (options(); as o) {
-      <fieldset class="mt-3 rounded-lg p-4" style="border:1px solid var(--color-surface-2);">
+      <fieldset class="mt-4">
         <legend class="px-1 text-sm font-medium">{{ 'applications.detail.domainOptions.title' | translate }}</legend>
-        <div class="space-y-3 text-sm">
-          <label class="flex items-start gap-2">
-            <input type="checkbox" [checked]="o.forceHttps" [disabled]="saving()" (change)="save({ forceHttps: $any($event.target).checked, hsts: $any($event.target).checked ? o.hsts : false })" />
-            <span>{{ 'applications.detail.domainOptions.forceHttps' | translate }}
-              <span class="block text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.domainOptions.forceHttpsHint' | translate }}</span></span>
-          </label>
-          <label class="flex items-start gap-2">
-            <input type="checkbox" [checked]="o.hsts" [disabled]="saving() || !o.forceHttps" (change)="save({ hsts: $any($event.target).checked })" />
-            <span>{{ 'applications.detail.domainOptions.hsts' | translate }}
-              <span class="block text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.domainOptions.hstsHint' | translate }}</span></span>
-          </label>
-          <label class="flex items-start gap-2">
-            <input type="checkbox" [checked]="o.redirectToPrimary" [disabled]="saving()" (change)="save({ redirectToPrimary: $any($event.target).checked })" />
-            <span>{{ 'applications.detail.domainOptions.primary' | translate }}
-              <span class="block text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.domainOptions.primaryHint' | translate }}</span></span>
-          </label>
+        <div class="space-y-4 text-sm">
+          <!-- The design system styles label as inline-block: each row is a div, the label only names the box. -->
+          <div class="flex items-start gap-3">
+            <input type="checkbox" id="dom-https" class="mt-0.5 shrink-0" [checked]="o.forceHttps" [disabled]="saving()" (change)="save({ forceHttps: $any($event.target).checked, hsts: $any($event.target).checked ? o.hsts : false })" />
+            <div>
+              <label for="dom-https" class="!mb-0">{{ 'applications.detail.domainOptions.forceHttps' | translate }}</label>
+              <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.domainOptions.forceHttpsHint' | translate }}</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <input type="checkbox" id="dom-hsts" class="mt-0.5 shrink-0" [checked]="o.hsts" [disabled]="saving() || !o.forceHttps" (change)="save({ hsts: $any($event.target).checked })" />
+            <div>
+              <label for="dom-hsts" class="!mb-0">{{ 'applications.detail.domainOptions.hsts' | translate }}</label>
+              <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.domainOptions.hstsHint' | translate }}</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <input type="checkbox" id="dom-primary" class="mt-0.5 shrink-0" [checked]="o.redirectToPrimary" [disabled]="saving()" (change)="save({ redirectToPrimary: $any($event.target).checked })" />
+            <div>
+              <label for="dom-primary" class="!mb-0">{{ 'applications.detail.domainOptions.primary' | translate }}</label>
+              <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.domainOptions.primaryHint' | translate }}</p>
+            </div>
+          </div>
           <div>
-            <label class="mb-1 block" for="dom-redirect">{{ 'applications.detail.domainOptions.www' | translate }}</label>
-            <select id="dom-redirect" class="!w-auto" [value]="o.redirect" [disabled]="saving()" (change)="save({ redirect: $any($event.target).value })">
+            <label for="dom-redirect">{{ 'applications.detail.domainOptions.www' | translate }}</label>
+            <select id="dom-redirect" class="!w-auto block" [value]="o.redirect" [disabled]="saving()" (change)="save({ redirect: $any($event.target).value })">
               <option value="both">{{ 'applications.detail.domainOptions.wwwBoth' | translate }}</option>
               <option value="non-www">{{ 'applications.detail.domainOptions.wwwToBare' | translate }}</option>
               <option value="www">{{ 'applications.detail.domainOptions.bareToWww' | translate }}</option>
