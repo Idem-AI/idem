@@ -37,7 +37,7 @@ import { artDirectorTask, copywriterTask, structureTask } from '../services/Comm
 import { contrastRatio } from '../services/design/color';
 import fs from 'fs';
 import path from 'path';
-import { CARD_STRUCTURES, renderCardBack, renderCardFront, CardBackId, CardFrontId } from '../services/BandIdentity/businessCardLayouts';
+import { CARD_PATTERNS, CARD_STRUCTURES, renderCardBack, renderCardFront, CardBackId, CardFrontId, CardPatternId } from '../services/BandIdentity/businessCardLayouts';
 import { cardLayoutTask, cardStructureTask, cardTuningTask } from '../services/BandIdentity/businessCardCreative';
 import { businessCardRenderService } from '../services/BandIdentity/businessCardRender.service';
 import { planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../services/creativity/documentDesign';
@@ -286,6 +286,9 @@ export default function Scene() {
     check('recto / verso : dans les menus de la structure', JSON.stringify(lt.parse('front: b\nback: d')) === JSON.stringify({ front: 'patternField', back: 'accentBar' }) && lt.parse('front: z\nback: z') === undefined);
     const tt = cardTuningTask('BRAND', ['primary', 'secondary']);
     check('réglages bornés : nom ramené à 1,2, surface du menu, filet compris', JSON.stringify(tt.parse('surface: b\nalign: center\nrule: bold\nname: 1.8')) === JSON.stringify({ surface: 'secondary', align: 'center', rule: 'bold', nameScale: 1.2 }));
+    // La TEXTURE de la face de marque : l'agent la nomme (une lettre), le kit la dessine.
+    check('réglages : la texture se choisit dans le menu du kit, une invention est refusée',
+      tt.parse('surface: a\ntexture: a')?.pattern === 'weave' && tt.parse('surface: a\ntexture: c')?.pattern === 'contours' && tt.parse('surface: a\ntexture: hologram')?.pattern === undefined);
     const palette = { primary: '#0F766E', secondary: '#1E293B', accent: '#F59E0B', background: '#F8FAFC', text: '#0F172A' };
     const fronts = [...new Set(Object.values(CARD_STRUCTURES).flatMap((d) => d.fronts))] as CardFrontId[];
     const backs = [...new Set(Object.values(CARD_STRUCTURES).flatMap((d) => d.backs))] as CardBackId[];
@@ -296,6 +299,14 @@ export default function Scene() {
       for (const id of backs) for (const issue of await businessCardRenderService.inspect(renderCardBack(id, input), orientation, { primaryFont: 'Archivo', secondaryFont: 'Inter' })) problems.push(`verso ${id}/${orientation}: ${issue}`);
     }
     check(`${fronts.length} rectos et ${backs.length} versos × 2 orientations : imprimables (marges, corps ≥ 7 pt, contraste)`, problems.length === 0, problems.slice(0, 6).join(' | '));
+    // Les six textures du kit, dessinées sur la face de marque : imprimables et réellement différentes.
+    const textures = Object.keys(CARD_PATTERNS) as CardPatternId[];
+    const drawn = textures.map((pattern) => renderCardFront('patternField', { width: 85, height: 55, brandName: 'Kofi Studio', palette, logos: {}, tuning: { pattern } }));
+    const textureIssues: string[] = [];
+    for (const [i, html] of drawn.entries()) for (const issue of await businessCardRenderService.inspect(html, 'landscape', { primaryFont: 'Archivo', secondaryFont: 'Inter' })) textureIssues.push(`${textures[i]}: ${issue}`);
+    check(`${textures.length} textures du kit sur la face de marque : imprimables, dessinées (SVG) et toutes distinctes`,
+      !textureIssues.length && drawn.every((h) => /<svg/.test(h)) && new Set(drawn).size === textures.length,
+      textureIssues.slice(0, 4).join(' | '));
     const bad = await businessCardRenderService.inspect('<div class="w-[85mm] h-[55mm] relative" style="background:#fff"><p style="position:absolute;left:1mm;top:1mm;font-size:6px;color:#ddd">{{fullName}}</p></div>', 'landscape');
     check('contrôle d’impression : marge, corps trop petit et contraste faible détectés', bad.some((i) => /safety margin/.test(i)) && bad.some((i) => /7 pt/.test(i)) && bad.some((i) => /contrast/.test(i)), bad.join(' | '));
   }

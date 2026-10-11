@@ -27,7 +27,7 @@ export const CARD_STRUCTURES: Record<CardStructure, { summary: string; fronts: C
 
 export const CARD_FRONTS: Record<CardFrontId, string> = {
   logoCenter: 'the logo alone, centred on the brand colour',
-  patternField: 'brand colour with a fine diagonal pattern, logo centred',
+  patternField: 'brand colour carrying a drawn texture (woven band, stripes, contour lines, halftone, geometric modules), logo centred',
   monogram: 'a giant brand initial as watermark, name and role beside it',
   logoCornerName: 'logo in a corner, name and role set low with an accent rule',
   bandBottom: 'paper face, a brand band along the bottom edge',

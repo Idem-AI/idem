@@ -3,14 +3,15 @@
  *
  *   structure      (dès Medium)  ce que porte chaque face (marque seule, mixte, tout au recto)
  *   mise en page   (dès High)    le recto et le verso dans les menus de la structure
- *   réglages       (dès Max)     couleur de la face de marque, alignement, filet, taille du nom
+ *   réglages       (dès Max)     couleur de la face de marque, alignement, filet, taille du nom,
+ *                                 et la TEXTURE de la face de marque, choisie dans le kit graphique
  *   concept        (Ultra)       l'idée donnée à l'IA qui écrit les deux faces en HTML
  *
  * Au cran Low, le code décide de tout (aucun appel) : la carte reste dans la charte.
  */
 import type { AgentTask } from '../creativity/orchestrator';
 import { agentLines, boundedNumber, menuLines, pickOption } from '../creativity/agent-io';
-import { CARD_BACKS, CARD_FRONTS, CARD_STRUCTURES, CardBackId, CardFrontId, CardStructure, CardTuning } from './businessCardLayouts';
+import { CARD_BACKS, CARD_FRONTS, CARD_PATTERNS, CARD_STRUCTURES, CardBackId, CardFrontId, CardPatternId, CardStructure, CardTuning } from './businessCardLayouts';
 
 const STRUCTURES = Object.keys(CARD_STRUCTURES) as CardStructure[];
 
@@ -49,6 +50,8 @@ export function cardLayoutTask(sheet: string, structure: CardStructure, fallback
   };
 }
 
+const PATTERNS = Object.keys(CARD_PATTERNS) as CardPatternId[];
+
 export function cardTuningTask(sheet: string, surfaces: ('primary' | 'secondary' | 'accent')[]): AgentTask<CardTuning> {
   return {
     role: 'cardTuning',
@@ -60,8 +63,10 @@ export function cardTuningTask(sheet: string, surfaces: ('primary' | 'secondary'
         'align: left | center',
         'rule: none | thin | bold',
         'name: 0.9 to 1.2 (size of the person’s name)',
+        // La texture est DESSINÉE par le kit : l'agent la nomme, il ne l'écrit pas.
+        'texture: the letter of one option from TEXTURES (the brand face is held 20 cm from the eye: its material shows)',
       ].join('\n'),
-      user: sheet,
+      user: [sheet, 'TEXTURES:', ...menuLines(PATTERNS, (id) => CARD_PATTERNS[id as CardPatternId])].join('\n'),
     }),
     parse: (raw) => {
       const l = agentLines(raw);
@@ -74,6 +79,8 @@ export function cardTuningTask(sheet: string, surfaces: ('primary' | 'secondary'
       if (rule) out.rule = rule;
       const scale = boundedNumber(l.name || l.namescale || l.scale, 0.9, 1.2);
       if (scale != null) out.nameScale = Math.round(scale * 100) / 100;
+      const pattern = pickOption(l.texture || l.pattern || l.motif, PATTERNS);
+      if (pattern) out.pattern = pattern;
       return Object.keys(out).length ? out : undefined;
     },
     fallback: () => ({}),

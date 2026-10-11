@@ -118,6 +118,7 @@ RULES:
 - Typographic scale suited to print: name 11-14pt, job title 7-9pt, contact lines 7-8pt. Never below 6pt.
 - Contrast: WCAG AA minimum on every text over its background.
 - No placeholder photography, no stock image, no QR code, no lorem ipsum.
+- Texture and graphic devices: the CODE draws them, you only name them — <x-gfx kind="weave" x="0" y="0" w="${width}mm" h="${height}mm" color="tone" opacity="0.12"></x-gfx>, placed as the first child of a face. Kinds: weave (West-African woven geometry), stripes, contours, dots, arcs, grid, blob, rings, waves, frame, swash. Coordinates in mm, "color" is "tone" (a light or dark tone of the face, chosen by the code). At most ONE per face, behind everything. Never hand-write an <svg> for a texture or a pattern — only for a contact icon.
 </composition_rules>
 
 <editor_compatibility>
