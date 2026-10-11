@@ -23,6 +23,35 @@ const MAX_POLLS = 20;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (guide(); as g) {
+      @if (custom(g).length === 0) {
+        <!-- Only the automatic address: show how to add one's own domain. -->
+        <section class="mt-3 rounded-lg p-4" style="border:1px solid var(--color-surface-2);">
+          <p class="mb-1 text-sm font-medium">{{ 'applications.detail.dns.ownTitle' | translate }}</p>
+          <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.dns.ownIntro' | translate }}</p>
+          <ol class="list-decimal space-y-2 pl-5 text-xs" style="color:var(--color-text-secondary);">
+            <li>{{ 'applications.detail.dns.ownStep1' | translate }}</li>
+            <li>
+              {{ 'applications.detail.dns.ownStep2' | translate }}
+              <span class="mt-1 flex flex-wrap items-center gap-2 font-mono" style="color:var(--color-text-primary);">
+                A &nbsp;·&nbsp; &#64; &nbsp;·&nbsp; {{ g.serverIp }}
+                <button type="button" class="button-ghost button-sm" [attr.aria-label]="'applications.detail.dns.copyIp' | translate" (click)="copy(g.serverIp, 'ip')">
+                  <i class="pi text-xs" [class.pi-copy]="copied() !== 'ip'" [class.pi-check]="copied() === 'ip'" aria-hidden="true"></i>
+                </button>
+              </span>
+              @if (g.managed) { <span class="mt-1 block">{{ 'applications.detail.dns.ownManaged' | translate }}</span> }
+            </li>
+            <li>{{ 'applications.detail.dns.ownStep3' | translate }}</li>
+          </ol>
+          @for (d of g.domains; track d.host) {
+            @if (d.https.status === 'valid') {
+              <p class="mt-3 flex items-center gap-1.5 text-xs" style="color:var(--color-text-secondary);">
+                <i class="pi pi-lock text-xs" style="color:var(--color-success);" aria-hidden="true"></i>
+                {{ 'applications.detail.dns.autoWorks' | translate: { host: d.host } }}
+              </p>
+            }
+          }
+        </section>
+      }
       @if (custom(g).length > 0) {
         <section class="mt-3 rounded-lg p-4" style="border:1px solid var(--color-surface-2);" aria-live="polite">
           <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
