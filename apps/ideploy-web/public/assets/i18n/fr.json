@@ -576,7 +576,14 @@
         "expires": "renouvelé automatiquement, expire le",
         "httpsAfterDns": "HTTPS : le certificat est demandé automatiquement dès que le DNS pointe ici.",
         "httpsPending": "HTTPS : certificat en cours d'émission — redéployez l'application si le domaine a été enregistré sans redéploiement.",
-        "polling": "Revérifié toutes les 30 secondes tant que le domaine est en cours de configuration."
+        "polling": "Revérifié toutes les 30 secondes tant que le domaine est en cours de configuration.",
+        "ownTitle": "Utiliser votre propre domaine",
+        "ownIntro": "Votre application a déjà une adresse automatique, en HTTPS. Pour utiliser votre propre domaine (par exemple boutique.com) :",
+        "ownStep1": "Saisissez-le dans le champ ci-dessus, puis enregistrez. Plusieurs domaines peuvent être séparés par des virgules.",
+        "ownStep2": "Chez votre fournisseur de domaine, créez cet enregistrement (type · nom · valeur) :",
+        "ownManaged": "C'est l'adresse du serveur IDEM sur lequel tourne votre application.",
+        "ownStep3": "Revenez ici : cette page vérifie le DNS et indique quand le domaine est en ligne, avec son certificat HTTPS.",
+        "autoWorks": "L'adresse automatique {{host}} est en ligne en HTTPS."
       },
       "domainsApplied": "Domaines appliqués, sans redéploiement. Ceux dont le DNS est prêt sont en ligne ; les autres le seront dès que leur DNS pointera ici.",
       "domainOptions": {
