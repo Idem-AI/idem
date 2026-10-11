@@ -9,6 +9,8 @@
  *   low     la graine décide (comportement historique)
  *   medium  un agent choisit la famille du document parmi celles du style
  *   high    + un directeur artistique par page choisit son archétype (jamais celui de la voisine)
+ *             et le DÉCOR de la page dans le menu du kit graphique (le code le pose sur les seules
+ *             pages qui respirent ; en dessous de High, c'est le code qui le choisit, sans jeton)
  *   max     + il règle la densité, la tension et la place de l'image ; un critique relit le rythme
  *   ultra   + le contenu validé de chaque page part au COMPOSITEUR, qui en écrit le HTML ;
  *            fidélité, rendu mesuré et règles de design contrôlés, le gabarit en repli
@@ -17,6 +19,7 @@
 import { CreativityLevel, SavedDocumentDesign, atLeast } from '../../models/creativity.model';
 import { ARCHETYPE_CATALOG, CONTENT_DENSITY_CATALOG, LAYOUT_TENSION_CATALOG, styleSpaceOf } from '../design/designSeed';
 import { familiesForStyle } from '../design/layoutFamilies';
+import { pageDecorMenu, pageDecorSummary, rankPageDecors } from '../../../../ivision/core/src/design/pageDecor';
 import { agentLines, menuLines, pickOption } from './agent-io';
 import { AgentCall, AgentTrace, CreativeOrchestrator } from './orchestrator';
 
@@ -25,6 +28,8 @@ export interface PageDesign {
   imagePosition?: string;
   contentDensity?: string;
   layoutTension?: string;
+  /** Décor du kit graphique (`design/pageDecor.ts`), posé seulement si la page respire. */
+  decor?: string;
 }
 
 export interface DocumentDesignPlan {
@@ -44,6 +49,10 @@ export interface DocumentDesignInput {
   /** Fiche de la marque (creativity/agent-io.ts#brandSheet). */
   sheet: string;
   styleId?: string | null;
+  /** Les « à éviter » de la direction artistique : ils écartent des décors du menu. */
+  donts?: string[];
+  /** Clé du livrable, pour que deux documents d'un même projet ne tirent pas le même décor. */
+  docKey?: string;
   /** « business plan », « pitch deck ». */
   document: string;
   /** Les pages, dans l'ordre, avec ce qu'elles disent (pour choisir leur mise en page). */
@@ -86,6 +95,9 @@ export async function planDocumentDesign(input: DocumentDesignInput): Promise<Do
       const neighbours = [input.pages[i - 1], input.pages[i + 1]].filter(Boolean).map((p) => input.seedArchetypes[p!.name]);
       const own = input.seedArchetypes[page.name];
       const menu = [own, ...archetypes.filter((a) => a !== own && !neighbours.includes(a))].filter(Boolean).slice(0, 5);
+      // Le menu des décors de CETTE page : le code les classe (style, « à éviter », graine), le
+      // directeur artistique en nomme un. Il ne sera posé que si la page respire.
+      const decors = pageDecorMenu(rankPageDecors({ styleId: input.styleId, donts: input.donts, docKey: input.docKey || input.document, pageName: page.name }));
       return {
         role: 'pageDirector',
         key: `pageDirector:${i + 1}`,
@@ -97,6 +109,7 @@ export async function planDocumentDesign(input: DocumentDesignInput): Promise<Do
                 system: [
                   `You are the art director of ONE page of a ${input.document}, true to the brand charter and its art direction. Output ONLY these lines:`,
                   'layout: the letter of one option from LAYOUTS',
+                  'decor: the letter of one option from DECOR (the code draws it, and only on a page that has room for it — a dense page gets none whatever you choose)',
                   ...(tune
                     ? [
                         `density: one of ${space.contentDensities.join(' | ')}`,
@@ -105,13 +118,15 @@ export async function planDocumentDesign(input: DocumentDesignInput): Promise<Do
                       ]
                     : []),
                 ].join('\n'),
-                user: [input.sheet, `PAGE ${i + 1} of ${input.pages.length}: ${page.name}${page.brief ? ` — ${page.brief.slice(0, 220)}` : ''}`, 'LAYOUTS:', ...menuLines(menu, (id) => firstSentence(ARCHETYPE_CATALOG[id]))].join('\n'),
+                user: [input.sheet, `PAGE ${i + 1} of ${input.pages.length}: ${page.name}${page.brief ? ` — ${page.brief.slice(0, 220)}` : ''}`, 'LAYOUTS:', ...menuLines(menu, (id) => firstSentence(ARCHETYPE_CATALOG[id])), 'DECOR:', ...menuLines(decors, pageDecorSummary)].join('\n'),
               },
         parse: (raw: string): PageDesign | undefined => {
           const l = agentLines(raw);
           const archetype = pickOption(l.layout || l.archetype || (/^\W*[a-p]\W*$/i.test(raw.trim()) ? raw.trim() : undefined), menu);
           if (!archetype) return undefined;
           const out: PageDesign = { archetype };
+          const decor = pickOption(l.decor || l.decoration, decors);
+          if (decor) out.decor = decor;
           if (tune) {
             const density = space.contentDensities.find((d) => d.toLowerCase() === (l.density || '').toLowerCase().replace(/\s+/g, '_'));
             const tension = space.layoutTensions.find((t) => t.toLowerCase() === (l.tension || '').toLowerCase().replace(/\s+/g, '_'));

@@ -37,6 +37,10 @@ import { contrastRatio } from './color';
 import { designFontLinks } from '../../utils/google-fonts.util';
 import { DocumentDesignSystem } from './documentDesignSystem';
 import { patternCss } from './brandMotifs';
+import { brandPatternCss } from '../../../../ivision/core/src/design/brandPatterns';
+import { pageBreathes, PAGE_DECOR_BY_ID, rankPageDecors } from '../../../../ivision/core/src/design/pageDecor';
+import { pageGfx } from '../../../../ivision/core/src/visual/poster/kit/page';
+import { mixHex } from '../../../../ivision/core/src/visual/poster/kit/math';
 import { SectionSeed } from './designSeed';
 import logger from '../../config/logger';
 import { Block, condenseForFixedPage, SectionContent, estimateBlockWeight } from './sectionContent';
@@ -122,6 +126,26 @@ export interface RenderOptions {
    * toute sa hauteur, comme les mises en situation photo qui n'en portent pas.
    */
   footer?: boolean;
+  /**
+   * Le DÉCOR de la page (`design/pageDecor.ts`), dessiné par le kit graphique.
+   *
+   * Low / Medium : le code le choisit d'après le style et la graine (`decorKey`) ; High et au-delà :
+   * le directeur artistique de la page le nomme dans le menu du code. Il n'est posé que sur les
+   * pages qui RESPIRENT — jamais sur un tableau, un graphique ou une page de texte long.
+   */
+  decor?: string;
+  /** Clé stable du choix par le code : « <document>:<page> ». Absente, aucun décor n'est tiré. */
+  decorKey?: string;
+  /** Style de la direction artistique et ses « à éviter », pour le choix par le code. */
+  decorStyleId?: string | null;
+  decorDonts?: string[];
+  /**
+   * LE MOTIF DE LA MARQUE (`branding.patterns`), déposé en SVG répétable.
+   *
+   * Quand il existe, c'est LUI que le décor pose : une page qui porte le motif de la charte
+   * appartient visiblement à la marque. Sans lui, le décor retombe sur une forme du kit.
+   */
+  brandPattern?: { url: string; tile: number; ground?: string };
 }
 
 export interface PageFormat {
@@ -1294,7 +1318,10 @@ function renderPatternGrid(block: Extract<Block, { kind: 'patternGrid' }>, ctx: 
     .map(
       (pattern) => `<div${style(grid.cell)}>
   <div${style({
-        ...patternCss(pattern.motif, pattern.ink, pattern.ground),
+        // Le FICHIER déposé de la marque quand il existe (les autres livrables emploient le même) ;
+        // le dessin CSS reste le repli pour les chartes produites avant le dépôt.
+        ...(pattern.url ? brandPatternCss(pattern.url, pattern.tile ?? 48) : patternCss(pattern.motif, pattern.ink, pattern.ground)),
+        ...(pattern.url ? { 'background-color': pattern.ground } : {}),
         height: '34mm',
         'border-radius': `${cornerRadius(ctx)}px`,
         border: `1px solid ${ds.colors.rule}`,
@@ -2499,6 +2526,58 @@ function fontLinks(ds: DocumentDesignSystem): string {
  * gabarit sans risque de perdre une génération.
  */
 /**
+ * Le décor de la page, dessiné par le kit graphique — uniquement si la page RESPIRE.
+ *
+ * Un document se lit : une ouverture de section, une citation ou une page à chiffre-clé ont de la
+ * place pour une forme ; une page de texte long, un tableau ou un graphique n'en ont pas, et le
+ * code refuse d'y poser quoi que ce soit, quel que soit le cran. Le ton est tiré du fond de page :
+ * le décor ne peut donc qu'ajouter du contraste, jamais en retirer.
+ */
+function pageDecor(content: SectionContent, ctx: Ctx, page: PageFormat): string {
+  const { options, ds } = ctx;
+  if (!options.decor && !options.decorKey) return '';
+  const shape = {
+    kinds: content.blocks.map((b) => b.kind),
+    textLength: content.blocks.reduce((n, b) => n + (b.kind === 'prose' ? b.paragraphs.join(' ').length : b.kind === 'quote' ? b.text.length : 0), 0) + (content.lede?.length ?? 0),
+  };
+  if (!pageBreathes(shape)) return '';
+  const brand = options.brandPattern;
+  const id = options.decor || rankPageDecors({ styleId: options.decorStyleId, donts: options.decorDonts, docKey: options.decorKey || 'doc', pageName: content.title || '', hasBrandPattern: !!brand })[0]?.id;
+  const def = id ? PAGE_DECOR_BY_ID.get(id) : undefined;
+  if (!def || def.id === 'none') return '';
+  // Le motif de la marque, posé dans la zone du décor : le fichier de la charte, répété.
+  if (brand && def.pattern) {
+    const area = def.pattern;
+    return `<div${style({
+      position: 'absolute',
+      left: area.left,
+      top: area.top,
+      width: area.width,
+      height: area.height,
+      ...brandPatternCss(brand.url, (area.scaleMm * MM_TO_PX) | 0),
+      ...(brand.ground ? { 'background-color': brand.ground } : {}),
+      ...(area.opacity < 1 ? { opacity: String(area.opacity) } : {}),
+      'pointer-events': 'none',
+    })}></div>`;
+  }
+  // Un ton du fond, pas une couleur franche : le décor passe sous le texte sans le disputer.
+  const tone = mixHex(ds.colors.surface, ds.colors.primary, 0.14);
+  const kit = pageGfx({
+    width: page.width,
+    height: page.minHeight,
+    tokens: { decor: tone, primary: ds.colors.primary, surface: ds.colors.surface },
+    surface: ds.colors.surface,
+    ink: ds.colors.ink,
+    primary: tone,
+    secondary: tone,
+  });
+  return def
+    .layers(shape)
+    .map((layer, i) => kit.draw(layer.params, layer.place, `page-decor-${i + 1}`).html)
+    .join('');
+}
+
+/**
  * Le contexte de rendu d'une page : tout ce que les blocs lisent (design system, rôles de
  * couleur, traitement typographique, tension, cotes). Extrait de `renderSection` pour que le
  * compositeur du cran Ultra puisse faire dessiner UN bloc par le code (cf. `renderStandaloneChart`)
@@ -2844,6 +2923,7 @@ export function renderSection(
   const runningHeadMm =
     ctx.family.folio === 'running-head' && options.footer !== false ? RUNNING_HEAD_MM : 0;
   const decorations = [
+    pageDecor(content, ctx, page),
     chrome.backdrop ?? '',
     edgeDecoration(ctx, landscape ? layout : 'portrait', Boolean(chrome.backdrop)),
     runningHeadMm ? runningHead(content, ctx) : '',

@@ -10,6 +10,7 @@ import {
   BrandIdentityModel,
   ColorModel,
   SocialAssetFileModel,
+  BrandPatternFileModel,
   FontSourceId,
   TypographyModel,
 } from '../../models/brand-identity.model';
@@ -86,6 +87,7 @@ import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
 import { USAGE_GUIDELINES_SECTION_PROMPT } from './prompts/04_usage-guidelines-section.prompt';
 import { brandMotifs } from '../design/brandMotifs';
+import { brandPatternSvg, planBrandPatterns, type BrandPatternKind } from '../../../../ivision/core/src/design/brandPatterns';
 import { buildComposedCharterPages, clip, wideSeed } from './charterComposedPages';
 import { atLeast, CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
 import { composeTemplateLogos } from './logoTemplates';
@@ -1435,6 +1437,14 @@ export class BrandingService extends GenericService {
         ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, value]) => !!value)),
       });
 
+      // LES MOTIFS DE LA MARQUE, déposés avant de composer les pages : la charte montre les
+      // FICHIERS que tous les autres livrables emploieront, pas un dessin refait pour l'occasion.
+      // Un dépôt en échec ne fait pas tomber la charte : la page retombe sur le dessin CSS.
+      const brandPatterns = await this.getBrandPatterns(userId, projectId).catch((error: any) => {
+        logger.warn('[BRANDING] Dépôt des motifs en échec, la page de charte les dessine en CSS', { error: error?.message });
+        return [] as BrandPatternFileModel[];
+      });
+
       // DESIGN SYSTEM de la charte : calculé une fois, partagé par ses pages.
       const charterDesignSystem = buildDocumentDesignSystem(
         project.analysisResultModel?.branding,
@@ -1503,6 +1513,15 @@ export class BrandingService extends GenericService {
         // damier. Sans cela, les quatre mêmes motifs revenaient sur toutes les
         // marques — exactement le défaut que ces pages existent pour corriger.
         if (stepName === 'Graphic Patterns' && palette) {
+          // Les motifs DÉPOSÉS, s'ils existent : la page montre les fichiers de la marque.
+          if (brandPatterns.length) {
+            return [
+              {
+                kind: 'patternGrid',
+                patterns: brandPatterns.map((p) => ({ name: p.label, motif: p.kind as never, ink: p.ink, ground: p.ground, note: p.role, url: p.url, tile: p.tile })),
+              },
+            ];
+          }
           const motifs = brandMotifs(charterDesignSystem);
           const ink = palette.primary || charterDesignSystem.colors.primary;
           const accent = palette.accent || charterDesignSystem.colors.accent;
@@ -5108,6 +5127,59 @@ export class BrandingService extends GenericService {
       {
         'analysisResultModel.branding.socialAssets': { key, generatedAt: new Date(), items },
       } as any,
+      `users/${userId}/projects`
+    );
+    return items;
+  }
+
+  /**
+   * LES MOTIFS DE LA MARQUE, en fichiers SVG répétables.
+   *
+   * La charte a toujours eu une page « Motifs », mais ils n'existaient qu'au moment de la
+   * dessiner : chaque autre livrable recalculait le sien, et la marque n'avait donc pas UN motif.
+   * Ils sont désormais déposés comme les logos — la page de charte les montre, le business plan,
+   * la diapositive, la carte de visite et les visuels emploient les mêmes fichiers, et
+   * l'utilisateur peut les télécharger.
+   *
+   * Déposés à la première demande, gardés tant que la palette, le style et le répertoire ne
+   * changent pas (`patterns.key`).
+   */
+  async getBrandPatterns(userId: string, projectId: string): Promise<BrandPatternFileModel[]> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) throw new Error(`Project not found with ID: ${projectId}`);
+    const branding = project.analysisResultModel?.branding;
+    if (!branding?.colors) throw new Error(`No palette found for project ${projectId}`);
+
+    const artDirection = branding.artDirection ?? null;
+    const ds = buildDocumentDesignSystem(branding, artDirection, buildDocumentSeed(artDirection?.styleId, `branding:${projectId}`));
+    const plans = planBrandPatterns({
+      repertoire: brandMotifs(ds) as BrandPatternKind[],
+      primary: ds.colors.primary,
+      accent: ds.colors.accent,
+      surface: ds.colors.surface,
+      subtle: ds.colors.neutral['100'],
+    });
+    const key = crypto.createHash('sha256').update(JSON.stringify({ v: 1, plans })).digest('hex').slice(0, 24);
+    if (branding.patterns?.key === key && branding.patterns.items.length > 0) return branding.patterns.items;
+
+    logger.info(`[ASSETS] Dépôt des motifs de la marque - projectId: ${projectId}`);
+    const stamp = Date.now();
+    const items: BrandPatternFileModel[] = await Promise.all(
+      plans.map(async (plan) => {
+        const svg = brandPatternSvg({ kind: plan.kind, ink: plan.ink, ground: plan.ground, tile: plan.tile });
+        const upload = await this.storageService.uploadFile(
+          Buffer.from(svg, 'utf8'),
+          `pattern-${plan.id}-${stamp}.svg`,
+          `projects/${projectId}/BrandBook/patterns`,
+          'image/svg+xml'
+        );
+        return { id: plan.id, label: plan.label, role: plan.role, kind: plan.kind, ink: plan.ink, ground: plan.ground, tile: plan.tile, url: upload.downloadURL };
+      })
+    );
+
+    await this.projectRepository.update(
+      projectId,
+      { 'analysisResultModel.branding.patterns': { key, generatedAt: new Date(), items } } as any,
       `users/${userId}/projects`
     );
     return items;

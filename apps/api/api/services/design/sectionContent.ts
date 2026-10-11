@@ -128,10 +128,14 @@ export type Block =
       kind: 'patternGrid';
       patterns: {
         name: string;
-        motif: 'stripes' | 'grid' | 'dots' | 'chevron' | 'arcs' | 'checker';
+        motif: 'stripes' | 'grid' | 'dots' | 'chevron' | 'arcs' | 'checker' | 'weave';
         ink: string;
         ground: string;
         note?: string;
+        /** Le fichier SVG déposé de ce motif (`branding.patterns`) : la page montre le vrai actif. */
+        url?: string;
+        /** Côté de la tuile en px, pour l'échelle d'affichage du fichier. */
+        tile?: number;
       }[];
     }
   /** Créations pour les réseaux sociaux, composées à la charte, au format carré. */

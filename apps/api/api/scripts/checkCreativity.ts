@@ -47,6 +47,8 @@ import { buildDocumentDesignSystem } from '../services/design/documentDesignSyst
 import { buildDocumentSeed, buildSectionSeed } from '../services/design/designSeed';
 import { LANDSCAPE_SLIDE, PORTRAIT_A4, renderStandaloneChart } from '../services/design/sectionRenderer';
 import { pageGfx, pageKitManifest } from '../../../ivision/core/src/visual/poster/kit/page';
+import { BRAND_PATTERN_KINDS, brandPatternCss, brandPatternSvg, planBrandPatterns } from '../../../ivision/core/src/design/brandPatterns';
+import { PAGE_DECOR_BY_ID, pageBreathes, rankPageDecors } from '../../../ivision/core/src/design/pageDecor';
 import { brandInitials, composeTemplateLogos, logoMenu, markInks } from '../services/BandIdentity/logoTemplates';
 import { logoDirectionsTask, logoDraftCount, logoJuryTask } from '../services/BandIdentity/logoCreative';
 import { inspectSvg } from '../services/design/svgGate';
@@ -401,6 +403,35 @@ export default function Scene() {
       gfx.expand('<x-gfx kind="waves" x="0" y="0"></x-gfx>').issues.some((i) => /needs x, y, w and h/.test(i)) &&
       gfx.expand(Array.from({ length: 6 }, (_, i) => `<x-gfx kind="waves" x="0" y="${i}mm" w="50mm" h="20mm"></x-gfx>`).join('')).issues.some((i) => /too many graphics/.test(i)));
     check('kit de page : le manifeste reste court et interdit le SVG écrit à la main', pageKitManifest({ page: { width: PORTRAIT_A4.width, height: PORTRAIT_A4.minHeight } }).join('\n').length < 1400);
+
+    // LES MOTIFS DE LA MARQUE : des tuiles SVG déposées, employées partout où un motif est demandé.
+    const tiles = BRAND_PATTERN_KINDS.map((kind) => ({ kind, svg: brandPatternSvg({ kind, ink: '#1F6F43', ground: '#FFFFFF', tile: 48 }) }));
+    check(`${tiles.length} motifs de marque : tuiles SVG autonomes, légères et déterministes`,
+      tiles.every((t) => /^<svg [^>]*width="48"/.test(t.svg) && t.svg.endsWith('</svg>') && t.svg.length < 1200) &&
+      new Set(tiles.map((t) => t.svg)).size === tiles.length &&
+      tiles.every((t) => t.svg === brandPatternSvg({ kind: t.kind, ink: '#1F6F43', ground: '#FFFFFF', tile: 48 })),
+      tiles.map((t) => `${t.kind}:${t.svg.length}`).join(' '));
+    // La tuile s'emploie en fond RÉPÉTÉ, et jamais avec un guillemet double (elle finit dans style="…").
+    const css = brandPatternCss('https://cdn.example.com/p.svg', 48);
+    check('motif employé en fond répété, sans guillemet double (il refermerait l’attribut style)',
+      css['background-repeat'] === 'repeat' && css['background-size'] === '48px 48px' && !css['background-image'].includes('"'));
+    const plans = planBrandPatterns({ repertoire: ['grid', 'stripes', 'checker', 'dots'], primary: '#1F6F43', accent: '#E4A93C', surface: '#FFFFFF', subtle: '#F4F6F5' });
+    check('quatre motifs par marque : principal, secondaire, trame fine, inversé (le dernier sur fond de marque)',
+      plans.length === 4 && plans[3].ground === '#1F6F43' && plans[2].tile === 32 && plans.every((p) => p.label && p.role));
+
+    // LE DÉCOR D'UNE PAGE : seulement là où la page respire, et c'est le motif de la marque d'abord.
+    check('décor : une page dense (tableau, graphique, spécimen) n’en reçoit jamais',
+      !pageBreathes({ kinds: ['prose', 'table'], textLength: 200 }) && !pageBreathes({ kinds: ['chart'], textLength: 50 }) && !pageBreathes({ kinds: ['typeSpecimen'], textLength: 0 }));
+    check('décor : une citation ou une page courte respire, une page de texte long non',
+      pageBreathes({ kinds: ['quote'], textLength: 2000 }) && pageBreathes({ kinds: ['prose'], textLength: 400 }) && !pageBreathes({ kinds: ['prose'], textLength: 1800 }));
+    const withBrand = rankPageDecors({ styleId: 'editorial', docKey: 'bp', pageName: 'Promesse', hasBrandPattern: true });
+    const without = rankPageDecors({ styleId: 'editorial', docKey: 'bp', pageName: 'Promesse' });
+    check('décor : le motif de la marque passe devant une forme inventée, et disparaît du menu sans lui',
+      !!PAGE_DECOR_BY_ID.get(withBrand[0].id)?.pattern && without.every((d) => !PAGE_DECOR_BY_ID.get(d.id)?.pattern),
+      `${withBrand[0].id} / ${without[0].id}`);
+    check('décor : « éviter les motifs » et « éviter les formes » écartent les décors concernés',
+      !rankPageDecors({ styleId: 'bohemian', donts: ['no patterns or textures'], docKey: 'bp', pageName: 'P', hasBrandPattern: true }).some((d) => d.id === 'edge-band') &&
+      !rankPageDecors({ styleId: 'editorial', donts: ['no decorative shapes'], docKey: 'bp', pageName: 'P', hasBrandPattern: true }).some((d) => d.id === 'corner-rings'));
   }
 
   if (run(9)) {
