@@ -79,7 +79,7 @@ One per back end, with the **Viewer** role on its own project only, and the serv
 | iDeploy API | `ideploy-api-runtime` | `ideploy-api` |
 | iVision API | `ivision-api-runtime` | `ivision-api` |
 
-Another identity, `secrets-cli`, has the **Developer** role on every project and is only used by the command below. Vertex AI uses its own Google Cloud service account (`GCP_SA_CLIENT_EMAIL`, `GCP_SA_PRIVATE_KEY`, both in the `api` project). The self-hosted auth server is configured in `infra/supabase-auth/.env` (see its README); the API shares its JWT secret (`SUPABASE_JWT_SECRET`) and signs its own session cookie with `SESSION_SECRET`.
+Another identity, `secrets-cli`, has the **Developer** role on every project and is only used by the command below. The self-hosted auth server is configured in `infra/supabase-auth/.env` (see its README); the API shares its JWT secret (`SUPABASE_JWT_SECRET`) and signs its own session cookie with `SESSION_SECRET`.
 
 ### Managing secrets
 

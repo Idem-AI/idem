@@ -151,7 +151,7 @@ export interface VideoVoice {
   language: string;
   /** Personnage de voix (catalogue `video.voice.ts`), traduit en voix du fournisseur. */
   persona: string;
-  provider: 'glm' | 'gemini' | 'openrouter';
+  provider: 'openrouter';
   model: string;
   voice: string;
   /** Jeu demandé par l'agent narrateur. */
@@ -191,7 +191,7 @@ export interface VideoBrief {
   media?: VideoMediaAsset[];
   /** IDEM peut chercher des photos et vidéos sur Pexels (après trois échecs de génération). */
   allowStock?: boolean;
-  /** IDEM génère les photos et les clips que l'utilisateur n'a pas fournis (modèles GLM). */
+  /** IDEM génère les photos et les clips que l'utilisateur n'a pas fournis (modèles OpenRouter). */
   allowGenerate?: boolean;
   /** Effets sonores (whoosh, pop…) : activés par défaut. */
   sfx?: boolean;

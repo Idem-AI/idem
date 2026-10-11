@@ -313,9 +313,8 @@ export function estimateRunBudget(steps: IPromptStep[]): number {
  * point, la file d'attente côté fournisseur coûte plus cher que la vague
  * économisée.
  *
- * Mais ce point DÉPEND DU FOURNISSEUR : la valeur mesurée sur Z.ai n'a aucune
- * raison de valoir pour Gemini, dont les modèles `flash` répondent en moins
- * d'une seconde. Elle est donc déclarée à côté du modèle
+ * Mais ce point DÉPEND DU FOURNISSEUR : la valeur mesurée sur un hébergeur n'a aucune
+ * raison de valoir pour un autre. Elle est donc déclarée à côté du modèle
  * (`ai-providers.config.ts`) et résolue à l'exécution, pour suivre la bascule.
  */
 const maxParallelSteps = (): number => resolveConcurrency();
@@ -759,7 +758,6 @@ export class GenericService {
         // Tout ce que la config d'appel porte encore doit atteindre le modèle :
         // un champ oublié ici redevient un réglage mort côté service métier.
         language: language ?? effectiveConfig.language,
-        cachedContent: effectiveConfig.cachedContent,
         file: effectiveConfig.file,
         contextFilePaths: effectiveConfig.contextFilePaths,
         skipQuotaCheck: effectiveConfig.skipQuotaCheck,

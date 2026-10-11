@@ -272,7 +272,7 @@ export const EXAMPLES: ExampleCase[] = [
   },
 ];
 
-/** Cas facultatif (`--generate`) : rien d'importé, Pexels coupé → photos et clips générés (GLM-Image, CogVideoX-3), voix off. */
+/** Cas facultatif (`--generate`) : rien d'importé, Pexels coupé → photos et clips générés (FLUX.2, Seedance), voix off. */
 export const GENERATED_EXAMPLE: ExampleCase = {
   id: '9-footage-generated-bissap',
   type: 'footage',
@@ -288,7 +288,7 @@ export const GENERATED_EXAMPLE: ExampleCase = {
     allowStock: false,
     allowGenerate: true,
     sfx: true,
-    // Voix off en français : dite par le repli (GLM-TTS ne parle que chinois et anglais).
+    // Voix off en français : dite par Kokoro (voix française `ff_siwis`).
     voice: true,
   },
   answers: {

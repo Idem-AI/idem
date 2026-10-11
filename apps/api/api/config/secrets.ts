@@ -54,18 +54,17 @@ export async function loadSecrets(): Promise<void> {
  * server no longer sees a half-loaded environment. This stays as a safety net
  * for code that imports modules first and calls loadSecrets() afterwards (the
  * maintenance scripts): any of them that resolves configuration at import time
- * reads an incomplete environment. The Gemini backend memoises its resolution,
- * so a single import-time lookup froze it with a missing API key and every
- * generation failed afterwards with "GEMINI_API_KEY est absente" — while the
- * key was in fact loaded a few milliseconds later.
+ * reads an incomplete environment. A registry that memoises its resolution
+ * would freeze it with a missing API key, and every generation would fail
+ * afterwards — while the key was in fact loaded a few milliseconds later.
  *
  * Invalidating here costs one object rebuild: whatever was resolved too early
  * is simply resolved again, now that the environment is complete. Imported
  * dynamically so this module keeps no static dependency on the AI registry.
  */
 async function invalidateEnvDerivedCaches(): Promise<void> {
-  const { resetGeminiBackend } = await import('./ai-providers.config');
-  resetGeminiBackend();
+  // Le registre des fournisseurs lit `process.env` à chaque appel : rien à invalider
+  // pour l'instant. Le point d'extension reste ici pour toute future mémoïsation.
 }
 
 function expandEnvVars(): void {
@@ -115,5 +114,5 @@ function validateRequired(): void {
 }
 
 function normalize(): void {
-  // no-op: Vertex AI removed; nothing to normalize.
+  // no-op: nothing to normalize.
 }

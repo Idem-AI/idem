@@ -204,7 +204,7 @@ export interface FlyerImageAnalysis {
 export interface FlyerImageAttribution {
   author?: string;
   sourceUrl?: string;
-  provider: 'pexels' | 'unsplash' | 'gemini' | 'openai' | 'other';
+  provider: 'pexels' | 'unsplash' | 'openrouter' | 'other';
 }
 
 /** D'où vient un visuel — pilote son classement dans la bibliothèque. */

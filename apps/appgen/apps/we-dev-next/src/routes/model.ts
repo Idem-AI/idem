@@ -1,16 +1,15 @@
 import { timingSafeEqual } from 'node:crypto';
 import { Router, Request, Response } from 'express';
 import {
-  MODEL_PROVIDERS,
-  getActiveProvider,
+  getCatalogKeys,
   getDefaultModelKey,
   getPublicModelConfig,
-  setActiveProvider,
+  setDefaultModelKey,
 } from '../config/modelConfig.js';
 
 const router = Router();
 
-// Le catalogue est relu à chaque requête : il suit le fournisseur actif.
+// Le catalogue est relu à chaque requête : il suit le modèle choisi à chaud.
 router.get('/', (req: Request, res: Response) => {
   return res.json(getPublicModelConfig());
 });
@@ -20,10 +19,7 @@ router.get('/config', (req: Request, res: Response) => {
 });
 
 router.get('/default', (req: Request, res: Response) => {
-  return res.json({
-    modelKey: getDefaultModelKey(),
-    provider: getActiveProvider(),
-  });
+  return res.json({ modelKey: getDefaultModelKey() });
 });
 
 /** Comparaison à temps constant : la clé d'administration ne se devine pas à la latence. */
@@ -35,27 +31,22 @@ function isAdmin(req: Request): boolean {
 }
 
 /**
- * Bascule le fournisseur de modèles À CHAUD, sans redémarrage.
+ * Change le modèle par défaut À CHAUD, sans redémarrage.
  *
- *   curl -X POST $APPGEN/api/model/switch -H "x-admin-key: …" \
- *        -H 'content-type: application/json' -d '{"provider":"openrouter"}'
+ *   curl -X POST $APPGEN/api/model/default -H "x-admin-key: …" \
+ *        -H 'content-type: application/json' -d '{"modelKey":"deepseek/deepseek-v4-flash"}'
  *
- * `{"provider": null}` rétablit `APPGEN_MODEL_PROVIDER`. Sans `MODEL_ADMIN_KEY`
+ * `{"modelKey": null}` rétablit `APPGEN_DEFAULT_MODEL`. Sans `MODEL_ADMIN_KEY`
  * configurée, la route est fermée (404 déguisé) plutôt qu'ouverte à tous.
  */
-router.post('/switch', (req: Request, res: Response) => {
+router.post('/default', (req: Request, res: Response) => {
   if (!process.env.MODEL_ADMIN_KEY?.trim()) return res.status(404).json({ error: 'not_found' });
   if (!isAdmin(req)) return res.status(401).json({ error: 'unauthorized' });
 
-  const { provider } = req.body ?? {};
-  if (provider === null) {
-    setActiveProvider(undefined);
-  } else if ((MODEL_PROVIDERS as readonly string[]).includes(String(provider))) {
-    setActiveProvider(String(provider) as (typeof MODEL_PROVIDERS)[number]);
-  } else {
-    return res.status(400).json({ error: 'invalid_provider', allowed: MODEL_PROVIDERS });
-  }
-  return res.json({ provider: getActiveProvider(), modelKey: getDefaultModelKey() });
+  const { modelKey } = req.body ?? {};
+  const accepted = setDefaultModelKey(modelKey === null ? undefined : String(modelKey));
+  if (!accepted) return res.status(400).json({ error: 'unknown_model', allowed: getCatalogKeys() });
+  return res.json({ modelKey: getDefaultModelKey() });
 });
 
 export default router;

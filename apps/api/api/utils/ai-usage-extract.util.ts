@@ -4,8 +4,7 @@ import { estimateTokensFromText } from '../services/ai-usage.service';
 /**
  * Normalisation des métadonnées d'usage renvoyées par les fournisseurs.
  *
- * Chaque SDK expose ses compteurs différemment (Gemini `usageMetadata`, OpenAI
- * `usage`), et certaines passerelles openai-compatible les omettent purement et
+ * Les compteurs de tokens varient d'une API à l'autre (OpenAI `usage`), et certaines passerelles openai-compatible les omettent purement et
  * simplement. On ramène tout à une forme unique, avec repli sur une estimation
  * plutôt qu'un zéro : une consommation invisible est pire qu'approximative.
  */
@@ -15,30 +14,6 @@ export interface UsageSink {
   usage?: ProviderTokenUsage;
   /** Modèle effectivement utilisé (peut différer du modèle demandé après repli). */
   modelUsed?: string;
-}
-
-/**
- * Extrait l'usage d'une réponse Gemini (`@google/genai`).
- * `cachedContentTokenCount` est inclus dans `promptTokenCount` côté Google : on
- * le remonte à part pour pouvoir le facturer au tarif cache réduit.
- */
-export function extractGeminiUsage(result: any): ProviderTokenUsage | undefined {
-  const meta = result?.usageMetadata;
-  if (!meta) return undefined;
-
-  const inputTokens = Number(meta.promptTokenCount ?? 0);
-  // Les modèles "thinking" facturent aussi les tokens de raisonnement, comptés
-  // à part de `candidatesTokenCount` : sans eux le coût de sortie est sous-estimé.
-  const outputTokens =
-    Number(meta.candidatesTokenCount ?? 0) + Number(meta.thoughtsTokenCount ?? 0);
-
-  if (inputTokens === 0 && outputTokens === 0) return undefined;
-
-  return {
-    inputTokens,
-    outputTokens,
-    cachedInputTokens: Number(meta.cachedContentTokenCount ?? 0),
-  };
 }
 
 /** Extrait l'usage d'une réponse openai-compatible (`chat.completions`). */

@@ -85,13 +85,13 @@ Three modes, through `IPromptStep.contextMode`:
 
 ### 4. The model router
 
-Three tiers. A tier is a **role**, not a model: it resolves to the model of that role for the active provider (`AI_DEFAULT_PROVIDER`, GLM by default — see [AI routing](AI_ROUTING.md)), and each tier can be pinned with `IDEM_TIER_XS_MODEL`, `IDEM_TIER_M_MODEL`, `IDEM_TIER_S_MODEL`.
+Three tiers. A tier is a **role**, not a model: it resolves to the OpenRouter model of that role, which can be changed live (`npm run ai:models` — see [AI routing](AI_ROUTING.md)), and each tier can be pinned with `IDEM_TIER_XS_MODEL`, `IDEM_TIER_M_MODEL`, `IDEM_TIER_S_MODEL`.
 
-| Tier | Role | For | Default on GLM |
+| Tier | Role | For | Default model |
 |---|---|---|---|
-| **XS** | `mechanical` | summary, check, repair, classification, extraction | `glm-4.7-flashx` |
-| **M** | `writing` | writing, structuring | `glm-4.7` |
-| **S** | `reasoning` | strategy, figures, visual creation | `glm-5.2` |
+| **XS** | `mechanical` | summary, check, repair, classification, extraction | `qwen/qwen3.5-9b` |
+| **M** | `writing` | writing, structuring | `qwen/qwen3.5-122b-a10b` |
+| **S** | `reasoning` | strategy, figures, visual creation | `qwen/qwen3.5-397b-a17b` |
 
 A section is routed by declaring `tier` in `ai.config.ts`:
 

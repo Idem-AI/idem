@@ -1,7 +1,7 @@
-import { Type } from '@google/genai';
+import { Type } from '../../types/ai-tools';
 import logger from '../../config/logger';
 import { AI_CONFIG } from '../../config/ai.config';
-import { analyzeImage, isGlmConfigured } from '../glm-media.service';
+import { analyzeImage, isMediaConfigured } from '../media.service';
 import { convertSvgToPng } from '../logo-import.service';
 import { LOGO_ANALYSIS_PROMPT } from './prompts/singleGenerations/logo-analysis.prompt';
 
@@ -22,7 +22,7 @@ export interface LogoAnalysisResult {
 }
 
 /**
- * Strict JSON schema for LogoAnalysisResult to enforce valid structure from Gemini.
+ * Strict JSON schema for LogoAnalysisResult to document the expected structure.
  */
 const logoAnalysisSchema = {
   type: Type.OBJECT,
@@ -84,16 +84,16 @@ export class LogoAnalysisService {
 
 
   async analyzeLogo(svg: string): Promise<LogoAnalysisResult> {
-    if (!isGlmConfigured()) {
-      throw new Error('GLM_API_KEY is not configured. Cannot analyse a logo.');
+    if (!isMediaConfigured()) {
+      throw new Error('OPENROUTER_API_KEY is not configured. Cannot analyse a logo.');
     }
 
     logger.info(`Logo analysis: rendering SVG (${svg.length} chars) to PNG for vision model`);
     const pngBuffer = await convertSvgToPng(svg, 512, 512);
     const base64Image = pngBuffer.toString('base64');
 
-    // GLM lit l'image par le contrat OpenAI. Il n'a pas d'équivalent du
-    // `responseSchema` de Gemini : la consigne du prompt porte seule le format,
+    // Le modèle lit l'image par le contrat OpenAI. Il n'a pas de `responseSchema`
+    // contraignant : la consigne du prompt porte seule le format,
     // et la lecture en aval valide déjà ce qui revient.
     const primaryModel = AI_CONFIG.branding.logoAnalysis.modelName;
 

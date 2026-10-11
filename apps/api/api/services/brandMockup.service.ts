@@ -9,20 +9,11 @@ import {
 import { MOCKUP_CONFIG } from '../config/mockup.config';
 import { AI_CONFIG } from '../config/ai.config';
 import {
-  isGlmMockupAvailable,
-  pauseGeminiForBilling,
-  resolveMockupProvider,
-} from '../config/mockup-provider.config';
-import { buildGeminiMockupPayload } from './BandIdentity/mockupPrivacy';
-import { buildVisualBrief, VisualBrief } from './BandIdentity/visualBrief.service';
-import {
   analyzeImage,
   GeneratedImage,
   generateImage,
-  GeminiBillingError,
-  generateImageWithGeminiChain,
-  isGlmConfigured,
-} from './glm-media.service';
+  isMediaConfigured,
+} from './media.service';
 import { ArtDirectionModel } from '../models/art-direction.model';
 import {
   buildImageNegativePrompt,
@@ -142,8 +133,6 @@ export interface MockupGenerationRequest {
    * défaut du modèle, sans lien avec le reste de la charte.
    */
   artDirection?: ArtDirectionModel | null;
-  /** Fiche visuelle vérifiée, pour Gemini (cf. `visualBrief.service.ts`). */
-  visualBrief?: VisualBrief | null;
 }
 
 export interface MockupGenerationResult {
@@ -158,7 +147,7 @@ export interface MockupGenerationResult {
   priority: 'primary' | 'secondary';
 }
 
-export class GeminiMockupService {
+export class BrandMockupService {
   private readonly storageService: StorageService;
 
   constructor() {
@@ -246,13 +235,6 @@ export class GeminiMockupService {
       // une encre foncée sur un support sombre serait illisible.
       const logos = await this.loadLogoSet(logoUrl, logoVariants);
 
-      // Fiche visuelle : traduite chez GLM, vérifiée par le code, une fois pour
-      // toutes les scènes — seulement si Gemini les sert.
-      const visualBrief =
-        (await resolveMockupProvider()) === 'gemini'
-          ? await buildVisualBrief({ artDirection, brandName, description: projectDescription, country })
-          : null;
-
       // Étape 3 : les scènes sont indépendantes, elles partent ENSEMBLE. En
       // série, la charte attendait la somme des générations (six scènes, 95 s
       // mesurés) ; en parallèle, elle n'attend que la plus lente. Une scène
@@ -265,7 +247,7 @@ export class GeminiMockupService {
       const settled = await Promise.allSettled(
         selectedSupports.map((selectedSupport) =>
           this.generateMockup(
-            { logos, brandColors, brandName, selectedSupport, pdfFormat, artDirection, visualBrief },
+            { logos, brandColors, brandName, selectedSupport, pdfFormat, artDirection },
             userId,
             projectId,
             `mockup-${selectedSupport.mockupIndex}`
@@ -342,59 +324,28 @@ export class GeminiMockupService {
         userId,
       });
 
-      if (!isGlmConfigured()) {
-        logger.error(`[MOCKUP][${mockupName}] Ni Gemini ni GLM configuré - cannot generate mockup images`, {
+      if (!isMediaConfigured()) {
+        logger.error(`[MOCKUP][${mockupName}] OpenRouter non configuré - cannot generate mockup images`, {
           mockupName,
           projectId,
         });
-        throw new Error('No image provider (Gemini or GLM) is configured. Cannot generate mockup images.');
+        throw new Error('OpenRouter is not configured. Cannot generate mockup images.');
       }
 
-      // ── DEUX CHEMINS, SELON LE FOURNISSEUR CHOISI À CHAUD ──────────────
-      //
-      // · Gemini reçoit le VRAI logo en entrée et l'imprime lui-même sur le
-      //   support : ses modèles d'image (3.x) le reproduisent fidèlement, la
-      //   matière et la perspective viennent avec. Aucune composition après.
-      // · GLM ne sait pas recevoir d'image : il photographie une scène NUE,
-      //   relue par la vision (des lettres ? où imprimer ?), puis le vrai logo
-      //   est incrusté par composition.
-      //
-      // Le choix se fait en base (cf. `mockup-provider.config.ts`), modifiable
-      // à tout moment sans redéploiement.
-      const provider = await resolveMockupProvider();
-      let imageBuffer: Buffer;
-      let imageMimeType: string;
-
-      // Gemini d'abord quand il est choisi ; s'il refuse pour FACTURATION
-      // (plus de crédit, facturation coupée, quota atteint), GLM joue le rôle
-      // de repli : scène nue, relecture, incrustation du logo.
-      let geminiImage: GeneratedImage | null = null;
-      if (provider === 'gemini') {
-        try {
-          geminiImage = await this.stageGeminiMockup(request, mockupName);
-        } catch (error) {
-          if (!(error instanceof GeminiBillingError) || !isGlmMockupAvailable()) throw error;
-          pauseGeminiForBilling();
-          logger.warn(`[MOCKUP][${mockupName}] Gemini refuse (facturation) — repli sur GLM`);
-        }
-      }
-
-      if (geminiImage) {
-        imageBuffer = geminiImage.buffer;
-        imageMimeType = geminiImage.mimeType;
-      } else {
-        const { scene, reading } = await this.stageCleanScene(request, mockupName);
-        // Une page d'univers visuel ne porte PAS le logo : la scène nue EST le
-        // livrable. `printLogo` rend du PNG : la transparence du logo doit
-        // survivre à la composition, et le JPEG l'aurait aplatie.
-        imageBuffer = request.selectedSupport.skipLogo
-          ? scene.buffer
-          : await this.printLogo(scene.buffer, request.logos, reading.zone, mockupName);
-        imageMimeType = request.selectedSupport.skipLogo ? scene.mimeType : 'image/png';
-      }
+      // Le modèle d'image photographie une scène NUE, relue par la vision (des
+      // lettres ? où imprimer ?), puis le vrai logo est incrusté par composition :
+      // un modèle d'image ne reproduit pas un logo fidèlement.
+      const { scene, reading } = await this.stageCleanScene(request, mockupName);
+      // Une page d'univers visuel ne porte PAS le logo : la scène nue EST le
+      // livrable. `printLogo` rend du PNG : la transparence du logo doit
+      // survivre à la composition, et le JPEG l'aurait aplatie.
+      const imageBuffer = request.selectedSupport.skipLogo
+        ? scene.buffer
+        : await this.printLogo(scene.buffer, request.logos, reading.zone, mockupName);
+      const imageMimeType = request.selectedSupport.skipLogo ? scene.mimeType : 'image/png';
 
       console.log(
-        `[MOCKUP] ✅ Mockup ready by ${geminiImage ? 'gemini' : 'glm'} for ${request.selectedSupport.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to storage...`
+        `[MOCKUP] ✅ Mockup ready for ${request.selectedSupport.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to storage...`
       );
 
       const extension = /jpe?g/i.test(imageMimeType) ? 'jpg' : /webp/i.test(imageMimeType) ? 'webp' : 'png';
@@ -473,9 +424,8 @@ export class GeminiMockupService {
    * écrivait sur le support. Le nom sert seulement à retirer les fragments de
    * direction artistique qui le citent.
    */
-  private buildScenePrompt(request: MockupGenerationRequest, withLogo = false): string {
+  private buildScenePrompt(request: MockupGenerationRequest): string {
     return MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
-      withLogo,
       brandColors: request.brandColors,
       selectedSupport: request.selectedSupport,
       pdfFormat: request.pdfFormat,
@@ -484,46 +434,6 @@ export class GeminiMockupService {
       artDirectionNegative: buildImageNegativePrompt(request.artDirection),
       imagerySubjects: request.artDirection?.imagery?.subjects,
     });
-  }
-
-  /**
-   * Chemin Gemini : le logo part AVEC la consigne, le modèle l'imprime sur le
-   * support. L'image rendue est le livrable, sans relecture ni composition.
-   *
-   * La photographie d'univers (`skipLogo`) reste sans logo : elle illustre le
-   * traitement de l'image, pas la marque posée dessus.
-   */
-  private async stageGeminiMockup(
-    request: MockupGenerationRequest,
-    mockupName: string
-  ): Promise<GeneratedImage> {
-    const config = AI_CONFIG.branding.brandMockup;
-    // Ce qui part chez Gemini est assemblé par `mockupPrivacy` à partir des
-    // seuls catalogues : ni nom, ni description, ni direction artistique
-    // rédigée pour le projet. Le nom ne sert qu'à vérifier qu'il ne part pas.
-    const payload = await buildGeminiMockupPayload({
-      support: request.selectedSupport,
-      colors: request.brandColors,
-      styleId: request.artDirection?.styleId,
-      pdfFormat: request.pdfFormat,
-      logo: request.selectedSupport.skipLogo ? undefined : request.logos.light,
-      forbidden: [request.brandName, ...request.brandName.split(/\s+/)],
-      visualBrief: request.visualBrief,
-    });
-    logger.info(`[PRIVACY][${mockupName}] Envoi Gemini minimal`, payload.audit);
-
-    const startedAt = Date.now();
-    const image = await generateImageWithGeminiChain(payload.prompt, config.geminiImageModels, {
-      tag: mockupName,
-      aspectRatio: config.geminiAspectRatio,
-      images: payload.images,
-    });
-    logger.info(`[MOCKUP][${mockupName}] Gemini mockup ready`, {
-      model: image.model,
-      withLogo: payload.images.length > 0,
-      durationMs: Date.now() - startedAt,
-    });
-    return image;
   }
 
   /**
@@ -549,13 +459,9 @@ export class GeminiMockupService {
 
     for (let attempt = 1; attempt <= attempts; attempt++) {
       const startedAt = Date.now();
-      // Chemin GLM : scène nue, le logo est composé ensuite. Le fournisseur
-      // est IMPOSÉ — la bascule globale du média ne doit pas l'emporter sur
-      // le choix fait pour les mises en situation.
       const scene = await generateImage(prompt, {
         model: config.imageModel,
         fallbackModel: config.imageFallbackModel,
-        provider: (await resolveMockupProvider()) === 'openrouter' ? 'openrouter' : 'glm',
         tag: `${mockupName}#${attempt}`,
       });
       const reading = await this.readScene(scene, needsZone, mockupName);
@@ -986,4 +892,4 @@ export class GeminiMockupService {
   }
 }
 
-export const geminiMockupService = new GeminiMockupService();
+export const brandMockupService = new BrandMockupService();

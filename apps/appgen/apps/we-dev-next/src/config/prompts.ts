@@ -62,8 +62,8 @@ export interface AssembleOptions {
 /**
  * Assembles the two halves of a builder request.
  *
- * The split is what makes the whole thing cheap. Gemini's implicit cache
- * discounts input tokens by 90% when a request shares a prefix with a previous
+ * The split is what makes the whole thing cheap. Provider-side prefix caching
+ * discounts input tokens when a request shares a prefix with a previous
  * one, so everything invariant goes into the `system` message, in a stable
  * order, and everything that changes per project stays in the trailing user
  * message. Concatenating the two (as this codebase used to) means the prefix is

@@ -103,7 +103,7 @@ Plus aucun menu. Les médias, la musique et les effets viennent des étapes exis
    - lint (dont les noms importés du kit) ;
    - compilation ;
    - rendu réel mesuré (`inspectRenderedScene` : erreurs, textes visibles et dans le cadre, mouvement, déterminisme, **chiffres des graphiques issus des textes**) ;
-   - **critique visuelle** : une planche de trois images du plan envoyée au modèle de vision (`glm-media.service.ts#analyzeImage`), qui juge lisibilité, composition, fidélité à la charte et effet « modèle tout fait ».
+   - **critique visuelle** : une planche de trois images du plan envoyée au modèle de vision (`media.service.ts#analyzeImage`), qui juge lisibilité, composition, fidélité à la charte et effet « modèle tout fait ».
 
    Défauts et critique repartent au codeur. Un plan qui échoue trois fois aux contrôles reprend la composition éprouvée de sa scène (`statement`, `cta` ou `logo`), et le résultat le dit.
 4. **Retouches** : un film d'auteur garde le minutage de son directeur (ni `retime`, ni règles du graphe) ; les plans codés lisent leurs cases, une retouche de texte s'y affiche.

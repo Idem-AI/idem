@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { AIChatMessage, promptService } from '../services/prompt.service';
-import { GLM_MODELS, LLMProvider, TEXT_FALLBACK_MODELS } from '../config/ai.config';
+import { LLMProvider, ROLE_MODELS, TEXT_FALLBACK_MODELS } from '../config/ai.config';
 
 const MAX_MESSAGES = 30;
 const MAX_MESSAGE_LENGTH = 20_000;
@@ -44,8 +44,8 @@ class PromptController {
 
       const jsonResponse = await promptService.runPrompt(
         {
-          provider: LLMProvider.GLM,
-          modelName: GLM_MODELS.mechanical,
+          provider: LLMProvider.OPENROUTER,
+          modelName: ROLE_MODELS.mechanical,
           fallbackModels: TEXT_FALLBACK_MODELS,
           userId: req.user?.uid,
           language: req.language,
@@ -93,8 +93,8 @@ Strict rules:
         {
           // Étage mécanique : reformuler et proposer une idée sont des tâches
           // de forme. Le modèle vient du catalogue, pas d'une chaîne en dur.
-          provider: LLMProvider.GLM,
-          modelName: GLM_MODELS.mechanical,
+          provider: LLMProvider.OPENROUTER,
+          modelName: ROLE_MODELS.mechanical,
           fallbackModels: TEXT_FALLBACK_MODELS,
           userId,
           language: req.language,
@@ -137,8 +137,8 @@ Strict rules:
         {
           // Étage mécanique : reformuler et proposer une idée sont des tâches
           // de forme. Le modèle vient du catalogue, pas d'une chaîne en dur.
-          provider: LLMProvider.GLM,
-          modelName: GLM_MODELS.mechanical,
+          provider: LLMProvider.OPENROUTER,
+          modelName: ROLE_MODELS.mechanical,
           fallbackModels: TEXT_FALLBACK_MODELS,
           userId,
           language: req.language,

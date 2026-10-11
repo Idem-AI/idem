@@ -5,7 +5,7 @@
  * l'emporte toujours :
  *
  *   1. la configuration de la feature  (`ai.config.ts`)      — le défaut
- *   2. `AI_DEFAULT_PROVIDER`           — bascule globale, traduite par RÔLE
+ *   2. le choix des modèles à chaud    — `platform_settings/ai`, traduit par RÔLE
  *   3. `AI_OVERRIDES`                  — surcharge ciblée, par génération
  *
  * À quoi sert le troisième niveau : une bascule globale est rarement uniforme.
@@ -31,10 +31,9 @@
  *
  * ── EXEMPLES ────────────────────────────────────────────────────────────────
  *
- * Tout sur Gemini, sauf le logo qui reste sur GLM :
+ * Le logo sur le modèle de raisonnement, le reste inchangé :
  *
- *   AI_DEFAULT_PROVIDER=GEMINI
- *   AI_OVERRIDES='{"logo":{"provider":"GLM"}}'
+ *   AI_OVERRIDES='{"logo":{"role":"reasoning"}}'
  *
  * Une seule section sur le modèle de raisonnement, le reste inchangé :
  *
@@ -42,7 +41,7 @@
  *
  * Épingler un modèle précis pour reproduire un défaut :
  *
- *   AI_OVERRIDES='{"Market":{"provider":"GEMINI","modelName":"gemini-2.5-pro"}}'
+ *   AI_OVERRIDES='{"Market":{"modelName":"deepseek/deepseek-v4-flash"}}'
  *
  * Faire tourner tout le socle mécanique au plus bas, sans toucher aux sections :
  *
@@ -195,9 +194,9 @@ export function applyAiOverride<
     role = override.role;
     modelName = modelForRole(provider, override.role) ?? config.modelName;
   } else if (override.provider && override.provider !== config.provider) {
-    // Fournisseur changé sans modèle ni rôle précisé — le cas le plus courant :
-    // « ramène le logo sur GLM ». On traduit par le RÔLE porté par la config,
-    // sinon on enverrait un nom que le nouveau fournisseur ne connaît pas.
+    // Fournisseur changé sans modèle ni rôle précisé. On traduit par le RÔLE porté
+    // par la config, sinon on enverrait un nom que le nouveau fournisseur ne
+    // connaît pas.
     role = config.role ?? roleOfModel(config.modelName);
     modelName = modelForRole(provider, role) ?? config.modelName;
   }

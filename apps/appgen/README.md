@@ -2,7 +2,7 @@
 
 AppGen is IDEM's application generator. The user describes an app in a chat; AppGen generates a React/Vite project, runs it **in the browser** (WebContainer), lets the user edit it, and hands it off to iDeploy or deploys it to Netlify.
 
-AppGen started as a fork of the open-source We0 / bolt.new code base (MIT, see [LICENSE](LICENSE)). It has since been rebuilt around IDEM: IDEM sessions, IDEM billing, GLM models, a design system forge and a skills catalogue.
+AppGen started as a fork of the open-source We0 / bolt.new code base (MIT, see [LICENSE](LICENSE)). It has since been rebuilt around IDEM: IDEM sessions, IDEM billing, open-weight models through OpenRouter, a design system forge and a skills catalogue.
 
 | Part | Path | Stack | Port (dev) |
 |---|---|---|---|
@@ -23,7 +23,7 @@ Browser (we-dev-client, appgen.idem.africa)
    ▼
 we-dev-next ──► IDEM API  /auth/me          who is calling
             ──► IDEM API  /billing/consume  may they generate? (debits credits)
-            ──► GLM / OpenAI-compatible provider  (code generation, streamed)
+            ──► OpenRouter  (code generation, streamed)
             ──► Netlify                      (optional deploy)
 ```
 
@@ -38,7 +38,7 @@ Prerequisites: Node 24, pnpm (`npm i -g pnpm`), and the IDEM API running on port
 ```bash
 # Server
 cd apps/appgen/apps/we-dev-next
-cp .env.example .env         # fill GLM_API_KEY at least
+cp .env.example .env         # fill OPENROUTER_API_KEY at least
 pnpm install
 pnpm dev                     # http://localhost:3000
 
@@ -55,7 +55,7 @@ Sign in on the dashboard (`http://localhost:4200`) first: AppGen relies on the I
 
 ## Configuration
 
-- Server: [`apps/we-dev-next/.env.example`](apps/we-dev-next/.env.example). Secrets (`GLM_API_KEY`, `THIRD_API_KEY`, `NETLIFY_TOKEN`, `DEPLOY_OWNER_SECRET`, `SCREENSHOTONE_API_KEY`) are read from Infisical in production (project `appgen`); the list is [`src/config/secrets.manifest.ts`](apps/we-dev-next/src/config/secrets.manifest.ts).
+- Server: [`apps/we-dev-next/.env.example`](apps/we-dev-next/.env.example). Secrets (`OPENROUTER_API_KEY`, `MODEL_ADMIN_KEY`, `NETLIFY_TOKEN`, `DEPLOY_OWNER_SECRET`, `SCREENSHOTONE_API_KEY`) are read from Infisical in production (project `appgen`); the list is [`src/config/secrets.manifest.ts`](apps/we-dev-next/src/config/secrets.manifest.ts).
 - Client: [`apps/we-dev-client/.env.example`](apps/we-dev-client/.env.example). Only `REACT_APP_*` variables reach the bundle, and **the bundle is public**: never put a secret there.
 
 Details: [docs/CONFIGURATION.md](../../docs/CONFIGURATION.md).

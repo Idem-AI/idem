@@ -1,24 +1,26 @@
+import {
+  OPENROUTER_DEFAULT_ROLES,
+  OPENROUTER_FALLBACK_MODELS,
+  OPENROUTER_MEDIA,
+} from './openrouter.config';
+
+/**
+ * Le fournisseur de modèles de la plateforme : OpenRouter, et lui seul.
+ *
+ * Une enum à une valeur, gardée plutôt que supprimée : le registre
+ * (`ai-providers.config.ts`), les journaux d'usage et `AI_OVERRIDES` nomment un
+ * fournisseur, et un futur serveur auto-hébergé (vLLM/SGLang) se branche en
+ * changeant `OPENROUTER_BASE_URL`, pas en ajoutant une valeur.
+ */
 export enum LLMProvider {
-  GEMINI = 'GEMINI',
-  CHATGPT = 'CHATGPT',
-  DEEPSEEK = 'DEEPSEEK',
-  // GLM-5.2 (Zhipu / Z.ai), via API OpenAI-compatible — voir ai-providers.config.ts.
-  GLM = 'GLM',
-  // OpenRouter : une seule clé, tous les modèles ouverts (Qwen, DeepSeek, FLUX.2…) —
-  // voir openrouter.config.ts (liste blanche) et ai-providers.config.ts.
   OPENROUTER = 'OPENROUTER',
 }
 
 /**
- * Fournisseur servant la plateforme par défaut.
- *
- * Déclaré UNE fois. Aucune configuration de feature ne nomme plus de
- * fournisseur : elles déclarent un RÔLE, et le fournisseur est une décision
- * d'exploitation (`AI_DEFAULT_PROVIDER`), pas un choix par-feature. Quarante
- * configurations qui répétaient `provider: LLMProvider.GLM` rendaient la
- * bascule inatteignable autrement que par une réécriture.
+ * Fournisseur servant la plateforme. Aucune configuration de feature ne nomme de
+ * fournisseur : elles déclarent un RÔLE, traduit en modèle OpenRouter.
  */
-export const DEFAULT_PROVIDER = LLMProvider.GLM;
+export const DEFAULT_PROVIDER = LLMProvider.OPENROUTER;
 
 export interface LLMOptions {
   maxOutputTokens?: number;
@@ -28,14 +30,13 @@ export interface LLMOptions {
   /**
    * Champs de corps bruts fusionnés dans la requête du fournisseur, PAR-FEATURE.
    * Ils PRIORISENT sur le `extraBody` par-défaut du provider (ai-providers.config.ts).
-   * Usage principal: réactiver le raisonnement GLM sur une génération précise
-   * (`{ thinking: { type: 'enabled' } }`) alors qu'il est désactivé globalement.
-   * Ignoré par l'adaptateur Gemini natif.
+   * Usage principal: réactiver le raisonnement sur une génération précise
+   * (`{ thinking: { type: 'enabled' } }`, traduit en `reasoning` pour OpenRouter)
+   * alors qu'il est désactivé globalement.
    */
   extraBody?: Record<string, unknown>;
   /**
-   * Budget de raisonnement Gemini, en tokens. `0` DÉSACTIVE le « thinking »,
-   * `-1` le laisse automatique (défaut du modèle).
+   * Intention « pas de raisonnement » : `0` le DÉSACTIVE, `-1` le laisse automatique.
    *
    * À poser à 0 sur toute génération MÉCANIQUE — classification, extraction,
    * reformulation, petit JSON de brief. Deux gains, pas un :
@@ -43,18 +44,10 @@ export interface LLMOptions {
    *    qui n'en tire rien ;
    *  - la FIABILITÉ : le raisonnement est décompté de `maxOutputTokens`, donc
    *    sur un petit budget (256, 400…) il consommait tout et la réponse
-   *    revenait vide ou tronquée. Ces appels échouaient en silence, chacun
-   *    derrière son propre repli heuristique.
-   *
-   * ⚠️ Réglage propre à la famille Gemini 2.5 : les modèles 3.x pilotent leur
-   * raisonnement par `thinkingLevel` et n'acceptent pas de budget nul. Le
-   * drapeau n'est donc transmis QUE lorsque le modèle réellement appelé le
-   * supporte (cf. `PromptService._runGeminiPrompt`) — sur un autre modèle il
-   * est ignoré, jamais une cause d'erreur.
+   *    revenait vide ou tronquée.
    *
    * ⚠️ NE PAS L'ÉCRIRE À LA MAIN dans une configuration : `feature({ thinking:
-   * false })` le pose, et pose le dialecte de l'autre famille avec lui. Écrits
-   * séparément, les deux dialectes se contredisaient — cf. `AiSpec.thinking`.
+   * false })` le pose, avec `extraBody.thinking` — cf. `AiSpec.thinking`.
    */
   thinkingBudget?: number;
   /**
@@ -98,7 +91,7 @@ export interface LLMOptions {
  *
  * ── POURQUOI UN SEUL VOCABULAIRE ─────────────────────────────────────────────
  *
- * Il y en avait TROIS pour la même chose : `GLM_MODELS.mechanical`, le rôle
+ * Il y en avait TROIS pour la même chose : un nom de modèle, le rôle
  * `mechanical`, et l'étage `XS`. Trois tables à tenir alignées, deux fonctions
  * de recherche inverse (`roleOfModel`, `tierOfModel`) pour retrouver au jugé,
  * dans le nom du modèle, l'intention qu'on venait d'y perdre en l'écrivant. Un
@@ -281,114 +274,33 @@ export function resolveSectionConfig(
 }
 
 /**
- * Catalogue GLM (Zhipu / Z.ai) — la plateforme tourne entièrement dessus.
+ * Les modèles de la plateforme, tous servis par OpenRouter (liste blanche,
+ * licences et coûts : `openrouter.config.ts`, `docs/OPENROUTER_MODEL_MATRIX.md`).
  *
- * Les identifiants sont ceux de l'API Z.ai (`https://api.z.ai/api/paas/v4`).
- * Réunis ici pour qu'un changement de modèle soit une ligne, et non une
- * fouille dans quarante configurations de features.
+ * Réunis ici pour qu'un changement de modèle soit une ligne, et non une fouille
+ * dans quarante configurations de features. Les modèles de TEXTE se choisissent
+ * par rôle (`ROLE_MODELS`) ; ceux des médias portent leur nom (`MEDIA_MODELS`).
  *
- * Tarifs relevés sur docs.z.ai (août 2026), en dollars par million de tokens —
- * ils justifient l'affectation par étage :
- *
- *   glm-4.7-flashx  0,07 / 0,40   mécanique  : résumer, classer, extraire
- *   glm-4.7         0,60 / 2,20   rédaction  : le gros du volume
- *   glm-5.2         1,40 / 4,40   haut de gamme : stratégie, finance, SVG
- *   glm-4.6v        0,30 / 0,90   vision     : lecture d'image
- *   glm-ocr         0,03 / 0,03   OCR        : texte dans une image
- *   glm-image       0,015 / image génération d'image
- *   cogview-4       0,010 / image repli image
- *   cogvideox-3     0,20 / clip    vidéo : clips de 5 ou 10 s (texte ou image → vidéo)
- *   glm-tts         voix off (chinois, anglais) — servi par open.bigmodel.cn, pas par api.z.ai
+ * Pas de modèle « toujours en raisonnement » dans l'affectation par défaut : un
+ * tel modèle ne sait pas couper sa réflexion, qui se décompte du budget de
+ * sortie et vide la réponse (cf. `canSuppressThinking`).
  */
-export const GLM_MODELS = {
-  /** Tâches mécaniques : résumé, vérification, classification, extraction. */
-  mechanical: 'glm-4.7-flashx',
-  /** Rédaction : le défaut de la plateforme. */
-  writing: 'glm-4.7',
-  /**
-   * Le haut de gamme : stratégie, plan financier, concept de logo, SVG.
-   *
-   * ⚠️ NE PAS passer CE RÔLE sur `glm-5.3` ni `glm-5.3-flash` : ces modèles
-   * raisonnent TOUJOURS et refusent `thinking: disabled` par un HTTP 400
-   * (« This model always engages in thinking and cannot be disabled »). Laissés
-   * à leur raisonnement, ils mettent une minute et rendent une sortie VIDE, le
-   * budget de tokens étant intégralement consommé par la réflexion.
-   * Mesuré sur une génération de SVG : 5.3 → 59 s et 0 caractère ;
-   * 5.2 sans raisonnement → 2,5 s et un SVG complet.
-   *
-   * Ils restent employables SECTION PAR SECTION (`modelName` sur la section), là
-   * où le raisonnement est voulu et le budget large — la couverture de la charte,
-   * par exemple. Le point de passage ne leur envoie jamais la coupure du
-   * raisonnement (cf. `canSuppressThinking`).
-   */
-  reasoning: 'glm-5.2',
-  /** Compréhension d'image. */
-  vision: 'glm-4.6v',
-  /**
-   * Repli vision : le modèle GRATUIT de la même famille. Un repli identique au
-   * modèle principal ne servirait à rien, la saturation étant par modèle.
-   */
-  visionFallback: 'glm-4.6v-flash',
-  /** Extraction de texte dans une image. */
-  ocr: 'glm-ocr',
-  /** Génération d'image, et son repli. */
-  image: 'glm-image',
-  imageFallback: 'cogview-4-250304',
-  /**
-   * Génération de clip (vidéos motion design : plans que l'utilisateur n'a pas fournis). Seul
-   * modèle vidéo du catalogue Z.ai (Vidu en a été retiré) ; l'image du plan, générée d'abord
-   * par `image`, est animée (image → vidéo) pour rester fidèle à la charte.
-   */
-  video: 'cogvideox-3',
-  /**
-   * Voix off. ⚠️ GLM-TTS ne parle que le chinois et l'anglais, et n'est servi que par la
-   * plateforme chinoise (`open.bigmodel.cn`, clé distincte de celle de Z.ai) : les autres
-   * langues passent par le repli Gemini TTS (cf. `glm-media.service.ts#generateSpeech`).
-   */
-  tts: 'glm-tts',
-  /** Moteur de recherche web de Z.ai (endpoint `/web_search`). */
-  searchEngine: 'search-prime',
-} as const;
+export const MEDIA_MODELS = OPENROUTER_MEDIA;
 
 /**
- * Le modèle servant chaque rôle chez le fournisseur PAR DÉFAUT.
- *
- * Lu par l'usine `feature()` (ici) ET par le registre des fournisseurs, qui en
- * fait la table `models` de GLM : une seule affectation rôle → modèle, deux
- * lecteurs. C'est ce qui empêche `MODEL_TIERS` et `AI_PROVIDERS.GLM.models` de
- * diverger, comme ils le faisaient en se recopiant l'un l'autre à la main.
+ * Le modèle servant chaque rôle. Lu par l'usine `feature()` et par le registre
+ * des fournisseurs : une seule affectation rôle → modèle, deux lecteurs.
  */
-export const ROLE_MODELS: Record<ModelRole, string> = {
-  mechanical: GLM_MODELS.mechanical,
-  writing: GLM_MODELS.writing,
-  reasoning: GLM_MODELS.reasoning,
-  vision: GLM_MODELS.vision,
-  image: GLM_MODELS.image,
-  ocr: GLM_MODELS.ocr,
-};
+export const ROLE_MODELS: Record<ModelRole, string> = OPENROUTER_DEFAULT_ROLES;
 
 /**
  * Chaîne de repli standard pour la génération de texte.
  *
- * Ordre = qualité décroissante / disponibilité croissante. Google renvoie 503
- * « high demand » par MODÈLE : rejouer le même ne sert à rien, il faut basculer.
- *
- * ⚠️ NE PAS la recopier dans une configuration de feature. Elle est déclarée
- * comme repli du FOURNISSEUR (`AI_PROVIDERS[GLM].defaultFallbackModels`) et
- * appliquée au point de passage unique, à toute config qui n'en déclare aucune
- * (cf. `prompt.service.ts`). Vingt-huit features la répétaient : sans effet
- * quand le fournisseur est GLM, et activement nuisible après une bascule, une
- * chaîne de noms GLM n'étant qu'une cascade de 404 chez Gemini.
+ * ⚠️ NE PAS la recopier dans une configuration de feature : elle est déclarée
+ * comme repli du FOURNISSEUR et appliquée au point de passage unique, à toute
+ * config qui n'en déclare aucune (cf. `prompt.service.ts`).
  */
-export const TEXT_FALLBACK_MODELS = [
-  GLM_MODELS.writing,
-  GLM_MODELS.mechanical,
-  GLM_MODELS.reasoning,
-  // Derniers recours, gratuits et bridés : mieux vaut une réponse lente qu'une
-  // fonctionnalité indisponible.
-  'glm-4.7-flash',
-  'glm-4.5-flash',
-];
+export const TEXT_FALLBACK_MODELS = OPENROUTER_FALLBACK_MODELS;
 
 /**
  * Profils d'échantillonnage — priorité QUALITÉ, la latence est assumée.
@@ -411,13 +323,11 @@ export const TEXT_FALLBACK_MODELS = [
  * triple la latence et qu'il se décompte du budget de sortie. Le rallumer est
  * exactement ce qu'on achète en acceptant d'attendre — à condition de doubler
  * le budget de sortie en même temps, sinon la réflexion le consomme et la
- * réponse revient vide. C'est la panne documentée en tête de GLM_MODELS.
+ * réponse revient vide. C'est la panne documentée en tête de MEDIA_MODELS.
  *
- * ⚠️ `topK` n'est PAS transmis à GLM : l'API OpenAI-compatible ne l'expose pas
- * (cf. prompt.service, « Pas de topK dans l'API OpenAI »). Il n'est conservé
- * ici que pour un éventuel retour sur Gemini natif, où il est appliqué. Ne pas
- * compter dessus pour régler la diversité sur la plateforme actuelle : c'est
- * `topP` qui travaille.
+ * ⚠️ `topK` n'est PAS transmis : l'API OpenAI-compatible ne l'expose pas
+ * (cf. prompt.service, « Pas de topK dans l'API OpenAI »). Ne pas compter dessus
+ * pour régler la diversité : c'est `topP` qui travaille.
  */
 export type SamplingProfile = 'divergent' | 'composition' | 'precision';
 
@@ -479,7 +389,7 @@ const SAMPLING: Record<SamplingProfile, Pick<LLMOptions, 'temperature' | 'topP' 
   precision: { temperature: 0.25, topP: 0.85, topK: 30 },
 };
 
-/** Raisonnement GLM activé — écrase le `thinking: disabled` du fournisseur. */
+/** Raisonnement activé — écrase le `thinking: disabled` du fournisseur. */
 const THINKING_ON = { thinking: { type: 'enabled' } } as const;
 
 /**
@@ -510,9 +420,9 @@ export function reconcileThinkingBudget(options: LLMOptions): {
   //
   // `thinkingBudget: 0` et `extraBody.thinking: disabled` disent la MÊME chose,
   // chacun dans le dialecte d'un fournisseur. Les laisser vivre séparément a un
-  // défaut mesuré : une feature qui coupe le raisonnement pour Gemini
-  // (`thinkingBudget: 0`) continuait de l'activer sur un fournisseur
-  // openai-compatible si son `extraBody` disait l'inverse — et inversement.
+  // défaut mesuré : une feature qui coupe le raisonnement par
+  // `thinkingBudget: 0` continuait de l'activer si son `extraBody` disait
+  // l'inverse — et inversement.
   //
   // Depuis que les configurations passent par `feature({ thinking })`, les deux
   // dialectes sont posés ENSEMBLE et ne peuvent plus se contredire à la source.
@@ -585,7 +495,7 @@ export interface AiSpec {
   role?: ModelRole;
   /**
    * Fournisseur imposé. Échappatoire : le fournisseur est normalement une
-   * décision d'exploitation (`AI_DEFAULT_PROVIDER`), pas un choix de feature.
+   * décision d'exploitation, pas un choix de feature.
    */
   provider?: LLMProvider;
   /**
@@ -606,8 +516,8 @@ export interface AiSpec {
   /**
    * Raisonnement du modèle.
    *
-   * UN SEUL DRAPEAU, LES DEUX DIALECTES. `thinkingBudget: 0` (famille Gemini)
-   * et `extraBody.thinking` (fournisseurs openai-compatible) disent la même
+   * UN SEUL DRAPEAU, LES DEUX ÉCRITURES. `thinkingBudget: 0`
+   * et `extraBody.thinking` disent la même
    * chose ; écrits à la main, quatorze configurations disaient l'un et neuf
    * l'autre, et rien n'empêchait une même entrée de se contredire — la coupure
    * ne survivait alors pas à une bascule de fournisseur, c'est-à-dire au seul
@@ -724,8 +634,8 @@ export function feature(
  * `generic.service.ts`, et partait donc à l'étage de sa TÂCHE — `draft` → M,
  * l'étage de rédaction. C'est le bon défaut pour le volume courant ; ce ne l'est
  * pas pour les trois livrables qu'un investisseur lit. Déclarer l'étage le rend
- * explicite et PORTABLE : sur Gemini il se traduit par le rôle `reasoning`,
- * donc par `IDEM_GEMINI_REASONING_MODEL`.
+ * explicite et PORTABLE : il se traduit par le rôle `reasoning`,
+ * donc par `IDEM_OPENROUTER_REASONING_MODEL`.
  *
  * ── L'ÉPINGLAGE, ⚠️ TRANSITOIRE — à retirer section par section ─────────────
  *
@@ -757,12 +667,11 @@ export const AI_CONFIG = {
    * plus longue de chaque génération ; ces trois lignes en coûtent quelques
    * centaines et servent les trois documents.
    *
-   * `glm-5.3-flash` raisonne toujours : `tokens` est un PLAFOND qui laisse la
-   * réflexion finir (cf. `MIN_TOKENS_FOR_THINKING`), pas une consommation.
+   * Le raisonnement est actif : `tokens` est un PLAFOND qui laisse la réflexion
+   * finir (cf. `MIN_TOKENS_FOR_THINKING`), pas une consommation.
    */
   coverBrief: feature({
-    provider: LLMProvider.GLM,
-    modelName: 'glm-5.3-flash',
+    role: 'mechanical',
     sampling: 'divergent',
     thinking: true,
     tokens: 8000,
@@ -770,7 +679,6 @@ export const AI_CONFIG = {
     // chez tous les fournisseurs (cf. check:prompts), et trois champs se lisent
     // sans lui (`parseLlmJson`).
     pin: true,
-    fallbackModels: [GLM_MODELS.writing],
   }),
 
   /**
@@ -795,8 +703,8 @@ export const AI_CONFIG = {
 
   /** Replis nommés, pour les appelants qui choisissent leur modèle eux-mêmes. */
   fallback: {
-    textModel: GLM_MODELS.mechanical,
-    imageModel: GLM_MODELS.imageFallback,
+    textModel: ROLE_MODELS.mechanical,
+    imageModel: MEDIA_MODELS.imageFallback,
   },
 
   // Onboarding — étage mécanique et raisonnement COUPÉ des deux côtés : poser la
@@ -824,7 +732,7 @@ export const AI_CONFIG = {
   },
 
   // Business Plan — research-team (rédacteur) réutilise cette config ; le
-  // chercheur (grounding Google Search) reste figé Gemini.
+  // chercheur passe par la recherche web d'OpenRouter (cf. `runGroundedResearch`).
   //
   // ⚠️ PRIORITÉ QUALITÉ (choix produit). Les sections sortent du HTML + Tailwind
   // minifié sur une seule ligne, et le modèle est « thinking » : le raisonnement
@@ -1029,7 +937,7 @@ export const AI_CONFIG = {
     default: feature({ role: 'writing', promptType: 'simulation', temperature: 0.4, tokens: 8192, json: true }),
     understanding: feature({ role: 'writing', promptType: 'simulation_understanding', temperature: 0.2, tokens: 8192, json: true }),
     factors: feature({ role: 'writing', promptType: 'simulation_factors', temperature: 0.5, tokens: 32768, json: true }),
-    // glm-4.7 (writing) tronque le JSON de scénarios vers 6 500 caractères : son
+    // Un modèle de rédaction peut tronquer le JSON de scénarios vers 6 500 caractères : son
     // plafond de sortie effectif est inférieur à sa limite déclarée. Le modèle de
     // raisonnement supporte des sorties structurées plus longues et produit un
     // JSON plus discipliné, ce qui évite la troncature silencieuse.
@@ -1238,10 +1146,10 @@ export const AI_CONFIG = {
     // `AI_CONFIG.fallback` : ce module doit pouvoir changer de modèle image
     // sans embarquer le repli texte global, et l'inverse.
     imageSourcing: {
-      imageModel: GLM_MODELS.image,
-      imageFallbackModel: GLM_MODELS.imageFallback,
-      visionModel: GLM_MODELS.vision,
-      visionFallbackModel: GLM_MODELS.visionFallback,
+      imageModel: MEDIA_MODELS.image,
+      imageFallbackModel: MEDIA_MODELS.imageFallback,
+      visionModel: MEDIA_MODELS.vision,
+      visionFallbackModel: MEDIA_MODELS.visionFallback,
       /**
        * Budget du scan de vision. Le JSON d'analyse tient en ~150 tokens, mais
        * le modèle est « thinking » : à 256 tokens le raisonnement épuisait le
@@ -1253,20 +1161,16 @@ export const AI_CONFIG = {
       visionMaxOutputTokens: 1500,
     },
     /**
-     * Médias et voix des vidéos motion design (moteur partagé `apps/ivision/core`) : la famille
-     * GLM d'abord. Images des plans et clips que l'utilisateur n'a pas fournis (trois essais
+     * Médias et voix des vidéos motion design (moteur partagé `apps/ivision/core`), tous par
+     * OpenRouter. Images des plans et clips que l'utilisateur n'a pas fournis (trois essais
      * par média avant Pexels), voix off dans la langue de la vidéo.
      */
     videoMedia: {
-      imageModel: GLM_MODELS.image,
-      imageFallbackModel: GLM_MODELS.imageFallback,
-      videoModel: process.env.IDEM_VIDEO_CLIP_MODEL || GLM_MODELS.video,
-      ttsModel: GLM_MODELS.tts,
-      /** Les langues que GLM-TTS parle ; les autres passent par le repli. */
-      ttsLanguages: ['zh', 'en'],
-      /** Repli des autres langues (français…) : Gemini TTS, coupé par `VIDEO_TTS_FALLBACK=off`. */
-      ttsFallbackModel: process.env.IDEM_GEMINI_TTS_MODEL || 'gemini-3.8-flash-lite-tts',
-      /** Attente maximale d'un clip (CogVideoX-3 répond en 1 à 3 minutes). */
+      imageModel: MEDIA_MODELS.image,
+      imageFallbackModel: MEDIA_MODELS.imageFallback,
+      videoModel: process.env.IDEM_VIDEO_CLIP_MODEL || MEDIA_MODELS.video,
+      ttsModel: MEDIA_MODELS.tts,
+      /** Attente maximale d'un clip (Seedance répond en 1 à 3 minutes). */
       clipTimeoutMs: Number(process.env.IDEM_VIDEO_CLIP_TIMEOUT_MS ?? 6 * 60 * 1000),
     },
   },
@@ -1291,14 +1195,12 @@ export const AI_CONFIG = {
       // feature, sur l'étage du routeur et sur le dépinglage des sections
       // rendues par gabarit :
       //
-      //   'Color Palette': { modelName: 'glm-4.7' },                  // un modèle précis
-      //   'Color Palette': { provider: LLMProvider.GEMINI,            // un autre fournisseur
-      //                      modelName: 'gemini-3.6-flash' },
-      //   'Color Palette': { role: 'mechanical' },                    // un rôle, traduit chez
-      //                                                               // le fournisseur en service
+      //   'Color Palette': { modelName: 'qwen/qwen3.5-27b' },        // un modèle précis
+      //   'Color Palette': { role: 'mechanical' },                    // un rôle, traduit en modèle
+      //                                                               // OpenRouter en service
       //
       // Préférer `role` quand c'est possible : un nom de modèle ne survit pas à
-      // une bascule de fournisseur (`AI_DEFAULT_PROVIDER`), un rôle si. Sans
+      // un changement de modèle à chaud, un rôle si. Sans
       // redéploiement, `AI_OVERRIDES` fait la même chose par variable d'env
       // (cf. ai-overrides.config.ts).
       sections: {
@@ -1371,11 +1273,10 @@ export const AI_CONFIG = {
      * sans produire de palette inutilisable.
      *
      * RÔLE DE RÉDACTION, et non de raisonnement — conséquence directe du
-     * `thinking: false` ci-dessous. Le modèle de raisonnement de Gemini est un
-     * `pro`, et un `pro` REFUSE de ne pas raisonner : son plancher est
-     * `thinkingLevel: 'low'`, soit ~350 tokens prélevés sur les 6 000 du budget
-     * de sortie, pour une réflexion dont cette configuration a justement établi
-     * qu'elle n'apportait plus rien.
+     * `thinking: false` ci-dessous. Un grand modèle de raisonnement garde une part de
+     * réflexion prélevée sur les 6 000 tokens du budget de sortie, pour une
+     * réflexion dont cette configuration a justement établi qu'elle n'apportait
+     * plus rien.
      *
      * RAISONNEMENT COUPÉ — le code a repris la décision qu'il servait :
      * l'échappée hors de la palette moyenne vient de `buildPaletteConstraint`
@@ -1465,33 +1366,15 @@ export const AI_CONFIG = {
      * centre géométrique de l'image, souvent à côté du support.
      */
     brandMockup: {
-      // `cogview-4` d'abord : 12 s mesurés par scène, contre 42 à 57 s pour
-      // `glm-image` — qui refusait de surcroît le long prompt des mises en
-      // situation, trois secondes perdues avant chaque repli. Un support nu
-      // photographié n'en demande pas davantage ; `glm-image` reste le repli.
-      imageModel: GLM_MODELS.imageFallback,
-      imageFallbackModel: GLM_MODELS.image,
-      /**
-       * Les scènes de mise en situation sont photographiées par GEMINI, quel
-       * que soit le fournisseur du texte : `flash-image` d'abord, `pro-image`
-       * en repli de qualité, `flash-lite-image` en dernier recours (le plus
-       * disponible). Les modèles GLM ci-dessus ne servent plus que lorsque
-       * Gemini n'est pas configuré sur le déploiement.
-       *
-       * Seules les mises en situation produit passent ici : les mockups de
-       * réseaux sociaux et les bannières sont des gabarits HTML, sans IA.
-       */
-      geminiImageModels: (
-        process.env.IDEM_GEMINI_MOCKUP_MODELS ||
-        'gemini-3.1-flash-image,gemini-3-pro-image,gemini-3.1-flash-lite-image'
-      )
-        .split(',')
-        .map((model) => model.trim())
-        .filter(Boolean),
-      /** Cadre des scènes : paysage, comme les pages de mise en situation. */
-      geminiAspectRatio: '16:9',
-      visionModel: GLM_MODELS.vision,
-      visionFallbackModel: GLM_MODELS.visionFallback,
+      // Un support nu est photographié, puis le logo est composé par le code : le
+      // modèle d'image n'imprime jamais le logo lui-même.
+      //
+      // Seules les mises en situation produit passent ici : les mockups de
+      // réseaux sociaux et les bannières sont des gabarits HTML, sans IA.
+      imageModel: MEDIA_MODELS.image,
+      imageFallbackModel: MEDIA_MODELS.imageFallback,
+      visionModel: MEDIA_MODELS.vision,
+      visionFallbackModel: MEDIA_MODELS.visionFallback,
       // Le JSON de zone tient en ~60 tokens, mais le modèle est « thinking » :
       // son raisonnement se décompte du même budget et une réponse vide ferait
       // retomber la composition sur son repli, donc sur un placement à l'aveugle.
@@ -1501,13 +1384,13 @@ export const AI_CONFIG = {
     /**
      * Visuels des publications de la charte, produits par le pipeline des
      * visuels du module communication. Photo de banque d'abord, même quand le
-     * brief préfère une image générée : chaque génération `glm-image` coûtait
-     * 42 à 57 s à la charte, pour deux visuels. Sans photo, le modèle rapide.
+     * brief préfère une image générée : chaque génération coûte du temps à la
+     * charte, pour deux visuels. Sans photo, le modèle rapide.
      */
     socialPostVisual: {
       preferStock: true,
-      imageModel: GLM_MODELS.imageFallback,
-      imageFallbackModel: GLM_MODELS.image,
+      imageModel: MEDIA_MODELS.imageFallback,
+      imageFallbackModel: MEDIA_MODELS.image,
     },
   },
 };
@@ -1543,11 +1426,10 @@ export const TEMPLATE_OUTPUT_TOKENS = Number(process.env.IDEM_TEMPLATE_OUTPUT_TO
  * manuel, vaut pour toute section templatée à venir, et ne peut pas être
  * oublié en ajoutant une feature.
  *
- * ── POURQUOI LES DEUX DIALECTES ─────────────────────────────────────────────
+ * ── POURQUOI LES DEUX ÉCRITURES ─────────────────────────────────────────────
  *
- * `thinkingBudget` pour Gemini, `extraBody.thinking` pour les fournisseurs
- * openai-compatible. Une coupure qui ne parle qu'un dialecte ne survit pas à
- * une bascule de fournisseur — c'est-à-dire au seul moment où elle compte.
+ * `thinkingBudget` et `extraBody.thinking`. Une coupure qui ne parle qu'une des
+ * deux se perd dès qu'un chemin lit l'autre.
  * C'est la même règle que `feature({ thinking: false })` applique aux
  * configurations ; ici elle s'applique au CHEMIN, après leur résolution.
  */

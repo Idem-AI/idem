@@ -12,14 +12,10 @@ export const SECRET_MANIFEST = {
   app: 'appgen',
   required: [],
   optional: [
-    // Fournisseur GLM (Zhipu / Z.ai) : modèles de génération de code.
-    'GLM_API_KEY',
-    // OpenRouter : Qwen3 Coder Next et son repli (modèles ouverts).
+    // OpenRouter : Qwen3 Coder Next, DeepSeek V4 et leur repli (modèles ouverts).
     'OPENROUTER_API_KEY',
-    // Autorise POST /api/model/switch (bascule du fournisseur à chaud). Absente = route fermée.
+    // Autorise POST /api/model/default (changement du modèle par défaut à chaud). Absente = route fermée.
     'MODEL_ADMIN_KEY',
-    // Fournisseur par défaut des modèles sans `apiKeyEnv` propre.
-    'THIRD_API_KEY',
     // Déploiement des applications générées sur le compte Netlify d'IDEM.
     'NETLIFY_TOKEN',
     // Marquage des sites Netlify par propriétaire (routes/deploy.ts).

@@ -7,9 +7,9 @@
  *   directeur photo  (agent) un PLAN par besoin restant : ce qu'on voit, au texte de SA scène, à la
  *                    marque et à sa DA, un « look » commun à tout le film, le mouvement de caméra
  *                    d'un clip (menu), la requête de banque d'images ; repli : le code ;
- *   génération       les modèles de l'hôte (famille GLM chez IDEM) : l'image d'abord (GLM-Image,
- *                    repli CogView-4), contrôlée par la vision (pas de texte, le bon sujet) ; le clip
- *                    anime cette image (CogVideoX-3, image → vidéo) — un plan cohérent avec la photo
+ *   génération       les modèles de l'hôte (OpenRouter chez IDEM) : l'image d'abord (FLUX.2),
+ *                    contrôlée par la vision (pas de texte, le bon sujet) ; le clip
+ *                    anime cette image (Seedance, image → vidéo) — un plan cohérent avec la photo
  *                    et la charte. TROIS essais par média, la consigne simplifiée à chaque essai ;
  *   Pexels           seulement après trois échecs, avec la requête du plan ;
  *   visuels          dernier recours (photos) : celles déjà utilisées dans les visuels de la marque.

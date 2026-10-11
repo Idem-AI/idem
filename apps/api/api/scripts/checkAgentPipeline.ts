@@ -32,6 +32,7 @@ import {
 import { inspectOutput, qualityValidator } from '../services/agents/quality-gate';
 import { stripMarkup } from '../services/agents/text-extract';
 import { templatedLlmOptions } from '../config/ai.config';
+import { canSuppressThinking } from '../config/ai-providers.config';
 import { createRunBudget } from '../services/agents/run-budget';
 import { MODEL_TIERS, applyTier, nextTier, tierForTask, tierOfModel } from '../config/model-router';
 import {
@@ -263,7 +264,7 @@ check('une tâche de raisonnement part au tier S', tierForTask('strategy') === '
 check("l'escalade s'arrête au sommet", nextTier('S') === undefined && nextTier('XS') === 'M');
 check(
   'un modèle « pro » est reconnu comme tier S',
-  tierOfModel(MODEL_TIERS.S.modelName) === 'S' && tierOfModel('gemini-3.1-pro-preview') === 'S'
+  tierOfModel(MODEL_TIERS.S.modelName) === 'S' && tierOfModel('deepseek/deepseek-v4-pro') === 'S'
 );
 
 // L'annexe est la dernière section encore routée au tier M : elle restructure
@@ -436,11 +437,11 @@ for (const { path, config } of featuresToAudit) {
     temp <= MAX_TEMPERATURE_FOR_THINKING,
     `obtenu: ${temp}`
   );
-  // glm-5.3 raisonne TOUJOURS et refuse qu'on le désactive : il consomme le
-  // budget entier et rend une sortie vide (cf. GLM_MODELS).
+  // Un modèle « thinking » raisonne TOUJOURS et refuse qu'on le désactive : il
+  // consomme le budget entier et rend une sortie vide (cf. canSuppressThinking).
   check(
     `${path}: modèle pilotable en raisonnement`,
-    !/glm-5\.3/.test(config.modelName),
+    canSuppressThinking(config.modelName),
     config.modelName
   );
   // Chaque section doit elle aussi tenir le seuil : une section qui redéfinit

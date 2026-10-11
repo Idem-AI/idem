@@ -1,6 +1,6 @@
 /**
  * Cas de test des vidéos motion design — et les RÉPONSES DE MODÈLE écrites à la
- * main qui les accompagnent (aucun crédit GLM nécessaire).
+ * main qui les accompagnent (aucun crédit OpenRouter nécessaire).
  *
  * Plutôt qu'un texte figé (les numéros de cases dépendent de la recette), chaque
  * cas fournit un DICTIONNAIRE de réponses par case, et un « simulateur » qui
@@ -21,7 +21,7 @@ export type ModelBehaviour =
   | 'hallucinate'
   /** Réponse vide : la copie heuristique doit prendre le relais. */
   | 'empty'
-  /** Le fournisseur est en panne (pas de crédits GLM). */
+  /** Le fournisseur est en panne (pas de crédits). */
   | 'down';
 
 export interface VideoCase {
@@ -257,7 +257,7 @@ export function simulateStrategist(system: string, user: string): string {
 
 export function simulateModel(testCase: VideoCase): (system: string, user: string) => Promise<string> {
   return async (_system, user) => {
-    if (testCase.behaviour === 'down') throw new Error('GLM: insufficient balance (simulated)');
+    if (testCase.behaviour === 'down') throw new Error('OpenRouter: insufficient credits (simulated)');
     if (testCase.behaviour === 'empty') return '';
     if (/creative director AND author/.test(_system)) return simulateDirector(testCase, _system, user);
     if (/creative director of a short brand video/.test(_system)) return simulateStrategist(_system, user);
@@ -321,7 +321,7 @@ export function simulateModel(testCase: VideoCase): (system: string, user: strin
  * répondent en désordre, en JSON, inventent, se taisent ou tombent en panne.
  */
 export async function simulateAgent(behaviour: ModelBehaviour, system: string, user: string): Promise<string> {
-  if (behaviour === 'down') throw new Error('GLM: insufficient balance (simulated)');
+  if (behaviour === 'down') throw new Error('OpenRouter: insufficient credits (simulated)');
   if (behaviour === 'empty') return '';
   const options = user.split('\n').filter((l) => /^[a-p]\) /.test(l)).length;
   if (/art director/i.test(system)) {
@@ -388,7 +388,7 @@ export default function Scene() {
 `.trim();
 
 export async function simulateCoder(behaviour: ModelBehaviour): Promise<string> {
-  if (behaviour === 'down') throw new Error('GLM: insufficient balance (simulated)');
+  if (behaviour === 'down') throw new Error('OpenRouter: insufficient credits (simulated)');
   if (behaviour === 'empty') return '';
   return 'Voici la scène :\n```tsx\n' + SIMULATED_SCENE_CODE + '\n```';
 }

@@ -154,7 +154,7 @@ import { projectService } from '../project.service';
 import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
 import {
-  geminiMockupService,
+  brandMockupService,
   MockupGenerationResult,
   MockupLogoVariants,
 } from '../brandMockup.service';
@@ -516,8 +516,8 @@ export class BrandingService extends GenericService {
     // n'atteignait jamais runPrompt (`fallbacks=0` dans les logs) : le
     // seul repli restant était celui codé en dur côté PromptService.
     fallbackModels: AI_CONFIG.branding.logo.fallbackModels,
-    // Sans lui, le routeur partait à l'étage de la tâche (glm-4.7, puis
-    // flashx en repli) : un SVG géométriquement faux ne se détecte pas, donc
+    // Sans lui, le routeur partait à l'étage de la tâche (le modèle de rédaction, puis
+    // l'étage mécanique en repli) : un SVG géométriquement faux ne se détecte pas, donc
     // aucune escalade ne ramenait au modèle déclaré.
     pinModel: AI_CONFIG.branding.logo.pinModel,
     llmOptions: {
@@ -1682,7 +1682,7 @@ export class BrandingService extends GenericService {
         // ── LA COUVERTURE : DESSINÉE PAR LE CODE ─────────────────────────
         // Le modèle n'en écrit plus que les mots (secteur, promesse), une fois
         // par projet et partagés avec le business plan et le pitch deck.
-        // Composée en HTML par `glm-5.3-flash`, elle coûtait 40 000 tokens de
+        // Composée en HTML par le modèle, elle coûtait 40 000 tokens de
         // budget et la minute la plus longue de la charte.
         if (step.stepName === 'Brand Header') {
           pageIndex += 1;
@@ -5580,7 +5580,7 @@ ${LOGO_EDIT_PROMPT}`;
         mockupCount: MOCKUP_CONFIG.MOCKUP_COUNT,
       });
 
-      return geminiMockupService.generateProjectMockups(
+      return brandMockupService.generateProjectMockups(
         logoUrl,
         brandColors,
         industry,
@@ -5606,7 +5606,7 @@ ${LOGO_EDIT_PROMPT}`;
             'skipLogo' in named ? named.skipLogo : false
           )
         ),
-        // Sert seulement à vérifier que le pays ne part pas chez Gemini.
+        // Sert seulement à vérifier que le pays ne part pas chez le modèle.
         project.additionalInfos?.country
       );
     };
@@ -5818,7 +5818,7 @@ ${description.slice(0, 3000)}`,
         status: 'idea',
       };
       // Photo de banque d'abord, modèle d'image rapide sinon : chaque visuel
-      // généré par `glm-image` coûtait de 42 à 57 s à la charte.
+      // généré coûtait de 42 à 57 s à la charte.
       const { png } = await communication.renderStandaloneVisual(
         userId,
         projectId,
@@ -5899,7 +5899,7 @@ ${description.slice(0, 3000)}`,
 
       // Générer les mockups : le service choisit les supports, photographie
       // chacun d'eux à vide, puis y imprime le vrai logo.
-      const mockups = await geminiMockupService.generateProjectMockups(
+      const mockups = await brandMockupService.generateProjectMockups(
         logoUrl,
         brandColors,
         industry,
@@ -6357,7 +6357,7 @@ ${description.slice(0, 3000)}`,
    * Infers a style hint from logo colors for typography prompt context
    */
   /**
-   * Construit le HTML A4 des mockups avec les vraies images générées par Gemini
+   * Construit le HTML A4 des mockups avec les vraies images générées
    * Design dynamique basé sur l'industrie et le contexte du projet
    */
   private buildMockupsHtmlWithRealImages(

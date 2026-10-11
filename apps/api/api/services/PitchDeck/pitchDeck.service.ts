@@ -761,7 +761,7 @@ export class PitchDeckService extends GenericService {
   }
 
   /**
-   * Enrich slide HTML by resolving image placeholders (using Pexels stock search with Gemini fallback)
+   * Enrich slide HTML by resolving image placeholders (using Pexels stock search with generated-image fallback)
    */
   private async enrichSlideWithImages(
     html: string,

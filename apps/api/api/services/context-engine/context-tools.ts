@@ -1,4 +1,4 @@
-import { FunctionDeclaration, Type } from '@google/genai';
+import { FunctionDeclaration, Type } from '../../types/ai-tools';
 import logger from '../../config/logger';
 import { ProjectSectionKey } from '../../models/revision.model';
 import { versionHistoryService } from '../history/version-history.service';
@@ -11,7 +11,7 @@ import { logAIEvent, previewValue } from '../../utils/ai-trace.util';
 
 /**
  * Boîte à outils "connaissance projet" exposée aux agents IA via le function
- * calling Gemini. Design aligné sur les recommandations d'Anthropic ("writing
+ * calling. Design aligné sur les recommandations d'Anthropic ("writing
  * effective tools for agents"): peu d'outils, bien nommés (namespace project_*),
  * descriptions prescriptives, réponses token-efficientes (résumé par défaut,
  * détail à la demande), erreurs en langage naturel exploitables par le modèle.

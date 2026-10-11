@@ -59,15 +59,6 @@ function keepImageWords(fragment: string | undefined, brandName: string | undefi
   return kept.join(', ');
 }
 
-/**
- * Consigne d'impression du logo FOURNI en image (Gemini). Le modèle reçoit le
- * vrai fichier : il le reproduit, il ne l'invente pas. Le nom de la marque
- * n'est toujours pas écrit dans le prompt — le logo porte ce qu'il doit porter.
- */
-const LOGO_PRINT_INSTRUCTION =
-  'The attached image is the logo to apply. Reproduce it EXACTLY as provided (same shapes, letters, colours and proportions, nothing redrawn, restyled, cropped or respelled) exactly once, centred on the main face of the hero object, printed or embroidered into the material with the real texture, lighting and perspective of that surface. ' +
-  'Pick the version of its colours that stays legible on that surface. Apart from this logo, every surface is plain and undecorated: no other text, letters, numbers or marks anywhere in the photograph.';
-
 export const MOCKUP_GENERATION_PROMPT = {
   /**
    * Consigne de vision : la scène porte-t-elle des lettres ou une marque, et où
@@ -102,16 +93,6 @@ Answer with ONE JSON object and nothing else, no prose, no markdown fence:
     artDirectionNegative?: string;
     /** Sujets de la direction artistique : photographie d'univers seulement. */
     imagerySubjects?: string;
-    /**
-     * Le logo accompagne la requête (Gemini) : le modèle l'imprime lui-même
-     * sur le support. Sans ce drapeau, la scène reste NUE et le logo est
-     * incrusté ensuite par composition (GLM).
-     */
-    withLogo?: boolean;
-    /** Le lieu, décrit par ses qualités (fiche visuelle vérifiée). Remplace le secteur. */
-    setting?: string;
-    /** Les matières du décor (fiche visuelle vérifiée). */
-    materials?: string;
   }): string => {
     const { brandColors, selectedSupport, pdfFormat, brandName } = params;
 
@@ -122,12 +103,11 @@ Answer with ONE JSON object and nothing else, no prose, no markdown fence:
     const frame = pdfFormat === 'A4_PORTRAIT' ? 'vertical 3:4 frame' : 'wide horizontal 16:9 frame';
 
     const subjects = keepImageWords(params.imagerySubjects, brandName, 200);
-    const setting = keepImageWords(params.setting, brandName, 160);
-    const materials = keepImageWords(params.materials, brandName, 160);
+    const setting = '';
     const subject = imagery
       ? `a candid lifestyle photograph ${setting ? `in ${setting}` : `from the world of ${world}`}${subjects ? `, showing ${subjects}` : ''}`
       : (supportScene(selectedSupport.supportType) ?? 'a plain object with smooth, uniform surfaces');
-    // Style du catalogue ET fiche visuelle du projet : la place de l'un et de l'autre.
+    // Style du catalogue.
     const render = keepImageWords(params.artDirectionModifier, brandName, 560);
     const avoid = [
       keepImageWords(params.artDirectionNegative, brandName, 200),
@@ -142,7 +122,6 @@ Answer with ONE JSON object and nothing else, no prose, no markdown fence:
       `Subject: ${subject}.`,
       `Setting: ${setting || `a real place from the world of ${world}`}; one hero subject, shallow depth of field.`,
     ];
-    if (materials) lines.push(`Set materials: ${materials}.`);
     if (!imagery) {
       lines.push(
         'The hero object faces the camera. Its main face is flat, evenly lit, a single uniform colour, large in the frame and near the centre.'
@@ -150,14 +129,11 @@ Answer with ONE JSON object and nothing else, no prose, no markdown fence:
     }
     lines.push(`Colours: ${brandColors.primary}, ${brandColors.secondary} and ${brandColors.accent}, carried by the materials and the set.`);
     if (render) lines.push(`Render: ${render}.`);
-    const printsLogo = Boolean(params.withLogo) && !imagery;
     lines.push(
       '',
       imagery
         ? 'Clothes, walls and objects are plain and undecorated, with nothing written or drawn on them. Books, papers, screens and shopfronts stay out of the frame.'
-        : printsLogo
-          ? LOGO_PRINT_INSTRUCTION
-          : 'Every surface is plain and undecorated: bare material and uniform colour, with nothing written or drawn on it.',
+        : 'Every surface is plain and undecorated: bare material and uniform colour, with nothing written or drawn on it.',
       `Avoid: ${avoid}.`
     );
 

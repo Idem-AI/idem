@@ -145,5 +145,5 @@ The real case behind this module: the user asks "what is my revenue model"; the 
 - MongoDB — [Document Versioning Pattern](https://www.mongodb.com/docs/manual/data-modeling/design-patterns/data-versioning/document-versioning/) · [Building with Patterns: Document Versioning](https://www.mongodb.com/company/blog/building-with-patterns-the-document-versioning-pattern)
 - Zep — [A Temporal Knowledge Graph Architecture for Agent Memory](https://arxiv.org/html/2501.13956v1) · [Graphiti](https://neo4j.com/blog/developer/graphiti-knowledge-graph-memory/)
 - Replit — [Inside Replit's Snapshot Engine](https://blog.replit.com/inside-replits-snapshot-engine) · [App History powered by Neon branches](https://neon.com/blog/replit-app-history-powered-by-neon-branches)
-- Google — [Function calling with the Gemini API](https://ai.google.dev/gemini-api/docs/function-calling) · [js-genai SDK](https://github.com/googleapis/js-genai)
+- OpenRouter — [Tool calling](https://openrouter.ai/docs/guides/features/tool-calling)
 - IETF — [RFC 6902 (JSON Patch)](https://datatracker.ietf.org/doc/html/rfc6902) · [RFC 6901 (JSON Pointer)](https://datatracker.ietf.org/doc/html/rfc6901)

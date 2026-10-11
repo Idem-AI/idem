@@ -169,7 +169,7 @@ async function main(): Promise<void> {
 
     const used = Object.entries(OPENROUTER_DEFAULT_ROLES).filter(([, id]) => id === model.id).map(([role]) => role);
     rows.push(
-      `| \`${model.id}\` | ${model.kind} | ${model.openWeights ? `oui · ${license}` : '**non** (API fermée)'} | ${model.commercialOk ? 'oui' : '**non**'} | ${french} | ${priceLabel(model)} | ${model.selfHost} | ${used.length ? `**défaut ${used.join(', ')}**` : model.roles.join(', ') || '—'} |`
+      `| \`${model.id}\` | ${model.kind} | ${model.openWeights ? `oui · ${license}` : `**non** (API fermée${model.allowClosed ? ', dérogation' : ''})`} | ${model.commercialOk ? 'oui' : '**non**'} | ${french} | ${priceLabel(model)} | ${model.selfHost} | ${used.length ? `**défaut ${used.join(', ')}**` : model.roles.join(', ') || '—'} |`
     );
   }
 

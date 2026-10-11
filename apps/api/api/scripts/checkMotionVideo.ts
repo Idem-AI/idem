@@ -1,7 +1,7 @@
 /**
  * Contrôle des VIDÉOS MOTION DESIGN — `npm run check:video`.
  *
- * Tourne SANS crédit GLM : les réponses du modèle sont simulées à partir des
+ * Tourne SANS crédit OpenRouter : les réponses du modèle sont simulées à partir des
  * cas écrits dans `fixtures/motion-video/cases.ts` (propres, en désordre, en
  * JSON, avec un prix inventé, vides, fournisseur en panne). Les photos et les
  * musiques de test sont fabriquées sur place. Aucune base de données : le
@@ -65,7 +65,7 @@ import { detectKind, processUpload, validateLottie } from '../../../ivision/core
 import { refineCues, sfxLibrary, SFX_SPECS } from '../../../ivision/core/src/video/video.sfx';
 import { VIDEO_TYPES, SFX_KINDS } from '../models/motionVideo.model';
 import { starsLottie, makeBottleGlb } from './fixtures/motion-video/examples';
-import { fitScenesToVoice, heuristicNarration, parseNarration, personaMenu, processSpeech, speechProviderFor, VOICE_TAIL, NarratorInput } from '../../../ivision/core/src/video/video.voice';
+import { fitScenesToVoice, heuristicNarration, parseNarration, personaMenu, processSpeech, VOICE_TAIL, NarratorInput } from '../../../ivision/core/src/video/video.voice';
 import { GENERATION_ATTEMPTS, planMediaNeeds, sourceShots, heuristicMediaDirection } from '../../../ivision/core/src/video/video.sourcing';
 import { mixAudio } from '../../../ivision/core/src/video/video.renderer';
 import { coreHost } from '../../../ivision/core/src/runtime/host';
@@ -669,9 +669,6 @@ async function main() {
     const tmp = path.join(OUT, 'voice-media');
     fs.mkdirSync(tmp, { recursive: true });
 
-    // Langue → modèle de voix : GLM-TTS ne parle que chinois et anglais.
-    check('voix : anglais et chinois → GLM-TTS, français → repli', speechProviderFor('en-US') === 'glm' && speechProviderFor('zh') === 'glm' && speechProviderFor('fr') === 'gemini');
-
     // Le narrateur : chiffres inventés retirés, étiquettes ignorées, mots bornés, personnage du menu.
     const narratorInput: NarratorInput = {
       sheet: 'BRAND: Wax & Co',
@@ -696,7 +693,7 @@ async function main() {
     {
       const sb = buildStoryboard({ sceneIds: ['hook', 'statement', 'cta', 'logo'], slots: [{ title: 'Titre' }, { title: 'Une idée' }, { action: 'Venez' }, {}], durationSec: 15, style: 'premium', seed: 3, images: [] });
       const lines = sb.scenes.map((sc, i) => ({ sceneKey: sc.key, text: `ligne ${i}`, url: 'file:///dev/null', durationSec: [3.0, 4.2, 2.6, 1.2][i], offset: 0 }));
-      const fitted = fitScenesToVoice(sb, { enabled: true, language: 'fr', persona: 'warm', provider: 'gemini', model: 'test', voice: 'Sulafat', lines, source: 'llm' });
+      const fitted = fitScenesToVoice(sb, { enabled: true, language: 'fr', persona: 'warm', provider: 'openrouter', model: 'test', voice: 'ff_siwis', lines, source: 'llm' });
       const total = fitted.storyboard.scenes.reduce((n, sc) => n + sc.duration, 0);
       const fits = fitted.voice.lines.every((l) => {
         const sc = fitted.storyboard.scenes.find((x) => x.key === l.sceneKey)!;
@@ -704,7 +701,7 @@ async function main() {
       });
       check(`calage voix : ${fitted.storyboard.scenes.map((sc) => sc.duration.toFixed(2)).join(' / ')} s, chaque ligne tient, 15 s au total`, fits && Math.abs(total - 15) < 0.01 && !fitted.dropped.length);
       const short = buildStoryboard({ sceneIds: ['hook', 'statement', 'logo'], slots: [{ title: 'Titre' }, { title: 'Une idée' }, {}], durationSec: 6, style: 'premium', seed: 3, images: [] });
-      const tooLong = fitScenesToVoice(short, { enabled: true, language: 'fr', persona: 'warm', provider: 'gemini', model: 'test', voice: 'Sulafat', lines: short.scenes.map((sc) => ({ sceneKey: sc.key, text: 'x', url: '', durationSec: 2.6, offset: 0 })), source: 'llm' });
+      const tooLong = fitScenesToVoice(short, { enabled: true, language: 'fr', persona: 'warm', provider: 'openrouter', model: 'test', voice: 'ff_siwis', lines: short.scenes.map((sc) => ({ sceneKey: sc.key, text: 'x', url: '', durationSec: 2.6, offset: 0 })), source: 'llm' });
       check(`calage voix : film trop court → ligne retirée (${tooLong.dropped.join(', ')}), jamais coupée ni accélérée en douce`, tooLong.dropped.length >= 1 && Math.abs(tooLong.storyboard.scenes.reduce((n, sc) => n + sc.duration, 0) - 6) < 0.01);
     }
 
@@ -727,21 +724,21 @@ async function main() {
     configureCore({
       storage: fakeStorage,
       generateImage: async () => {
-        if (imageCalls++ === 0) throw new Error('glm-image: 429 (simulé)');
+        if (imageCalls++ === 0) throw new Error('flux.2: 429 (simulé)');
         const shade = 60 + ((imageCalls * 37) % 160);
-        return { buffer: await sharp({ create: { width: 960, height: 1728, channels: 3, background: { r: shade, g: 120, b: 200 - shade / 2 } } }).jpeg().toBuffer(), mimeType: 'image/jpeg', model: 'glm-image' };
+        return { buffer: await sharp({ create: { width: 960, height: 1728, channels: 3, background: { r: shade, g: 120, b: 200 - shade / 2 } } }).jpeg().toBuffer(), mimeType: 'image/jpeg', model: 'black-forest-labs/flux.2-klein-4b' };
       },
       generateVideo: async (request) => {
         clipRequests.push({ image: !!request.image });
-        if (clipsFail) throw new Error('cogvideox-3: FAIL (simulé)');
-        return { buffer: fs.readFileSync(clipFile), model: 'cogvideox-3' };
+        if (clipsFail) throw new Error('seedance-2.0: FAIL (simulé)');
+        return { buffer: fs.readFileSync(clipFile), model: 'bytedance/seedance-2.0' };
       },
       synthesizeSpeech: async (request) => {
         speechCalls++;
         const seconds = Math.max(0.6, request.text.split(/\s+/).length / 2.7);
         const wav = path.join(tmp, `speech-${speechCalls}.wav`);
         spawnSync(ff, ['-v', 'error', '-y', '-f', 'lavfi', '-i', `sine=frequency=210:duration=${seconds.toFixed(2)}`, '-ar', '24000', '-ac', '1', wav]);
-        return { buffer: fs.readFileSync(wav), mimeType: 'audio/wav', provider: request.provider, model: request.provider === 'glm' ? 'glm-tts' : 'gemini-3.8-flash-lite-tts', voice: request.voice };
+        return { buffer: fs.readFileSync(wav), mimeType: 'audio/wav', provider: 'openrouter' as const, model: 'hexgrad/kokoro-82m', voice: 'ff_siwis' };
       },
       analyzeImage: async () => 'text: no\nmatch: yes',
     });
@@ -806,7 +803,7 @@ async function main() {
       const sc = vsb.scenes.find((x) => x.key === l.sceneKey);
       return !!sc && sc.duration + 0.002 >= l.offset + l.durationSec + VOICE_TAIL;
     });
-    check(`voix off : ${voice?.lines.length} ligne(s) en ${voice?.language} par ${voice?.provider} (${voice?.voice}), scènes calées, ${voiceTotal.toFixed(2)} s`, !!voice?.enabled && voice.lines.length >= 3 && voice.provider === 'gemini' && voice.language === 'fr' && synced && Math.abs(voiceTotal - 15) < 0.01, JSON.stringify(voice?.lines.map((l) => [l.sceneKey, l.durationSec, l.offset])));
+    check(`voix off : ${voice?.lines.length} ligne(s) en ${voice?.language} par ${voice?.provider} (${voice?.voice}), scènes calées, ${voiceTotal.toFixed(2)} s`, !!voice?.enabled && voice.lines.length >= 3 && voice.provider === 'openrouter' && voice.language === 'fr' && synced && Math.abs(voiceTotal - 15) < 0.01, JSON.stringify(voice?.lines.map((l) => [l.sceneKey, l.durationSec, l.offset])));
     const vPreview = await voiceService.previewHtml('test-user', 'wax', vv.id);
     check('aperçu : la voix off est jouée (lignes posées sur la ligne de temps)', !!vPreview && /"voice":\[\{"url"/.test(vPreview));
     // Retouches : couper la garde, la remettre ne la redit pas ; une retouche de texte garde la synchronisation.

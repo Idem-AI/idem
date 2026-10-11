@@ -124,7 +124,7 @@ export class FinanceService {
   // IA — auto-fill et chat
   // -------------------------------------------------------------------
 
-  /** Auto-fill IA d'une section précise (le backend appelle Gemini puis persiste). */
+  /** Auto-fill IA d'une section précise (le backend appelle le modèle puis persiste). */
   autoFillSection(
     projectId: string,
     section: FinanceSectionKey,

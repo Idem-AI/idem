@@ -25,7 +25,7 @@ const CONTEXT_TOKEN_LIMIT = 128000;
  *
  * The two are kept apart on purpose. Everything invariant (the routed skills)
  * sits in the `system` message so it forms a stable prefix eligible for
- * Gemini's implicit cache; everything project-specific (forged design system,
+ * provider-side prefix caching; everything project-specific (forged design system,
  * brief, task) stays in the trailing user message. This used to be one
  * concatenated blob inside the last user message, which meant the prefix
  * changed on every request and the cache never hit.

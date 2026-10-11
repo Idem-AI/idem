@@ -23,7 +23,7 @@
  * un crédit est un chat que personne n'ouvre : poser une question, demander un
  * conseil ou faire écrire une légende est gratuit ; produire un visuel se paie.
  */
-import { FunctionDeclaration, Type } from '@google/genai';
+import { FunctionDeclaration, Type } from '../../types/ai-tools';
 import crypto from 'crypto';
 import logger from '../../config/logger';
 import { AI_CONFIG } from '../../config/ai.config';

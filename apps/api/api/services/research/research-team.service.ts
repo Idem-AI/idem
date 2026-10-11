@@ -17,7 +17,7 @@
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
-import { AI_CONFIG, GLM_MODELS, LLMProvider } from '../../config/ai.config';
+import { AI_CONFIG, LLMProvider, ROLE_MODELS } from '../../config/ai.config';
 import {
   SECTION_CONTENT_CONTRACT,
   sectionVolumeDirective,
@@ -85,8 +85,6 @@ export interface ResearchTeamContext {
   userId: string;
   /** Devise, pour ancrer les données financières (optionnel). */
   currency?: string;
-  /** Nom d'un cache de contexte partagé (renseigné en interne par le run). */
-  sharedCache?: string;
 
   // ── Ce dont le RENDU a besoin ──────────────────────────────────────────────
   // Une section issue de la recherche est une section du document : elle doit
@@ -116,11 +114,11 @@ export interface ResearchTeamContext {
 }
 
 const RESEARCH_CONFIG: PromptConfig = {
-  provider: LLMProvider.GLM,
+  provider: LLMProvider.OPENROUTER,
   // Synthétiser des résultats de recherche est une tâche mécanique : on résume
   // ce qui est là, on n'invente pas de raisonnement. Mesuré sur une section,
   // l'étage mécanique rend la même synthèse 1,5× plus vite (4,2 s contre 6,5 s).
-  modelName: GLM_MODELS.mechanical,
+  modelName: ROLE_MODELS.mechanical,
   promptType: 'research',
   // Une seule synthèse factuelle et concise par section: on borne la sortie
   // pour réduire coût et latence sans sacrifier les faits chiffrés.
@@ -162,7 +160,7 @@ const VERIFIER_CONFIG: PromptConfig = {
   // Vérifier qu'une affirmation chiffrée figure bien dans les sources est un
   // contrôle, pas une rédaction : l'étage mécanique le fait aussi bien et plus
   // vite, sur chaque section.
-  modelName: GLM_MODELS.mechanical,
+  modelName: ROLE_MODELS.mechanical,
   promptType: 'research-verifier',
   llmOptions: { temperature: 0.1, maxOutputTokens: 1024 },
 };
@@ -179,13 +177,6 @@ const VERIFIER_CONFIG: PromptConfig = {
 const SECTION_CONCURRENCY = 3;
 /** Nombre max d'axes de recherche fusionnés dans l'unique appel grounded. */
 const MAX_BRIEFS_PER_SECTION = 3;
-/**
- * Durée de vie du CACHE DE CONTEXTE du fournisseur (Gemini).
- *
- * Court par nature : il s'agit d'un cache facturé côté modèle, qui n'a de sens
- * que pendant le run qui l'a créé et ses reprises immédiates.
- */
-const CONTEXT_CACHE_TTL = 7200;
 
 /**
  * Durée de vie du CACHE DES RECHERCHES — ce que le web a réellement répondu.
@@ -245,15 +236,7 @@ export class ResearchTeamService {
       }),
     });
 
-    // Cache de contexte partagé (best-effort): le contexte projet+marque est
-    // réutilisé par tous les appels rédacteur → moins d'input tokens facturés.
-    const sharedContextText = this.buildSharedContext(ctx);
-    const cacheName = await this.promptService.createContextCache(
-      WRITER_CONFIG.modelName,
-      sharedContextText,
-      CONTEXT_CACHE_TTL
-    );
-    const runCtx: ResearchTeamContext = { ...ctx, sharedCache: cacheName ?? undefined };
+    const runCtx: ResearchTeamContext = { ...ctx };
 
     const results: ResearchedSection[] = [];
     // Sources retenues par section, dans l'ordre de citation : c'est cette
@@ -323,10 +306,7 @@ export class ResearchTeamService {
     logger.info(`ResearchTeam run ${runId} completed (${results.length} sections)`);
     return results;
     } finally {
-      // Libère le cache de contexte du run (best-effort).
-      if (cacheName) {
-        await this.promptService.deleteContextCache(cacheName);
-      }
+      // Rien à libérer : plus de cache de contexte serveur.
     }
   }
 
@@ -556,7 +536,7 @@ export class ResearchTeamService {
 
   /**
    * Un unique appel grounded pour toute la section: tous les axes sont fusionnés
-   * en une seule mission. Gemini exécute plusieurs recherches web internes, ce
+   * en une seule mission. Le plugin web exécute plusieurs recherches internes, ce
    * qui divise par 2–3 le nombre d'appels (donc latence + coût) à couverture égale.
    */
   private async runGrounded(
@@ -678,9 +658,7 @@ export class ResearchTeamService {
         '- Do NOT emit a "sources" block: the reference list is attached from the real URLs, which you do not have.'
       : 'This section is qualitative (no web research): do not invent market statistics or external figures. A "chart" block may only plot elements internal to the plan (milestones, objective breakdown), never invented market figures.';
 
-    // Le contexte projet/marque est déjà dans le cache partagé quand il est
-    // actif → on ne le renvoie pas (économie d'input tokens).
-    const sharedBlock = ctx.sharedCache ? '' : this.buildSharedContext(ctx);
+    const sharedBlock = this.buildSharedContext(ctx);
 
     const messages: AIChatMessage[] = [
       {
@@ -737,7 +715,6 @@ export class ResearchTeamService {
             ...WRITER_CONFIG.llmOptions,
             ...(section.freeform ? { jsonMode: false } : {}),
           },
-          ...(ctx.sharedCache ? { cachedContent: ctx.sharedCache } : {}),
         },
         messages,
         onDelta
@@ -1089,9 +1066,8 @@ export class ResearchTeamService {
         index: Number.parseInt(source.id.replace(/^s/i, ''), 10) || position + 1,
         title: source.title,
         url: source.url,
-        // ⚠️ Jamais l'hôte de l'URL : le grounding Google renvoie un
-        // redirecteur (`vertexaisearch.cloud.google.com`) que personne ne
-        // reconnaît et qui ne dit rien de l'éditeur.
+        // ⚠️ Jamais l'hôte de l'URL : certains moteurs renvoient un redirecteur
+        // que personne ne reconnaît et qui ne dit rien de l'éditeur.
         domain: source.domain,
         description: this.describeSource(source, group.section),
       })),

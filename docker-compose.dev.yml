@@ -215,11 +215,6 @@ services:
       REDIS_HOST: redis
       # IDEM API Configuration
       IDEM_API_URL: 'http://host.docker.internal:3001'
-      # AI Configuration
-      AI_PROVIDER: '${AI_PROVIDER:-gemini}'
-      GEMINI_API_KEY: '${GEMINI_API_KEY}'
-      OPENAI_API_KEY: '${OPENAI_API_KEY}'
-      CLAUDE_API_KEY: '${CLAUDE_API_KEY}'
       # Session Configuration
       SESSION_DOMAIN: 'localhost'
       SANCTUM_STATEFUL_DOMAINS: 'localhost:8000,localhost'

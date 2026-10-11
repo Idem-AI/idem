@@ -25,15 +25,10 @@ export const SECRET_MANIFEST = {
     // Base PostgreSQL d'iDeploy (lecture des ressources, synchronisation des plans payés).
     'IDEPLOY_DB_PASSWORD',
     // Fournisseurs de modèles.
-    'GEMINI_API_KEY',
-    'GLM_API_KEY',
     // OpenRouter : modèles ouverts (Qwen, DeepSeek, FLUX.2) derrière une seule clé.
     'OPENROUTER_API_KEY',
-    // Voix off des vidéos : GLM-TTS est servi par open.bigmodel.cn (clé distincte de Z.ai ;
-    // à défaut, GLM_API_KEY est essayée). Les langues qu'il ne parle pas passent par Gemini TTS.
-    'GLM_TTS_API_KEY',
-    'DEEPSEEK_API_KEY',
-    'OPENAI_API_KEY',
+    // Voix off auto-hébergée (Qwen3-TTS / Chatterbox derrière IDEM_TTS_URL) ; facultative.
+    'IDEM_TTS_API_KEY',
     // Intégrations.
     'GITHUB_CLIENT_SECRET',
     'PEXELS_API_KEY',

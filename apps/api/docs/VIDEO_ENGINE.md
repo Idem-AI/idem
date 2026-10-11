@@ -229,7 +229,7 @@ dans le texte l'emporte : « Qualité garantie » donne `quality`, pas `secure`)
 | éléments graphiques, geste signature | bonus des nœuds du graphe (grille → trame de points, trame → demi-teinte, surligné → surligneur…) |
 | « à éviter » | malus (pas de décor si la charte refuse l'ornement, pas de ressort si elle refuse le rebond) |
 | médium d'image | découpage privilégié (3D, illustration, photo, combiné) |
-| `imagePromptModifier` | rendu des images et clips générés (GLM-Image, CogVideoX-3), repris par le directeur photo |
+| `imagePromptModifier` | rendu des images et clips générés (FLUX.2, Seedance), repris par le directeur photo |
 
 Le logo pendant la vidéo n'est plus une pastille blanche en haut à droite : c'est un nœud du graphe
 (`brandmark:none` ou `brandmark:corner`). En coin, il est monochrome (couleur du texte de la scène visible), sans

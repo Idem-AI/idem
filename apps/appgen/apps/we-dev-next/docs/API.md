@@ -29,7 +29,7 @@ Generates or edits the project. The response is a **stream** (Vercel AI SDK data
 ```json
 {
   "messages": [{ "role": "user", "content": "A booking site for a hair salon in Douala" }],
-  "model": "glm-5.2",
+  "model": "qwen/qwen3-coder-next",
   "mode": "builder",
   "language": "en",
   "projectId": "…",
@@ -52,7 +52,7 @@ Before generating, the server calls `POST /billing/consume` on the IDEM API. A b
 
 `{ "text": "…" }` (non-empty, at most 5000 characters) → `{ "code": 0, "text": "improved prompt" }`, or `{ "code": -1 }` on failure.
 
-> Known gap: this route still calls DeepSeek (`@ai-sdk/deepseek`, which reads `DEEPSEEK_API_KEY`) instead of the configured GLM models, and that key is neither in `.env.example` nor in the secrets manifest. Without it the route always answers `code: -1`.
+It uses the current default model (`/api/model/default`), served by OpenRouter.
 
 ## `POST /api/deploy`
 

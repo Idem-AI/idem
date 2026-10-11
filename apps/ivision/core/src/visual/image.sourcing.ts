@@ -2,8 +2,8 @@
  * ImageSourcingService — optimized image pipeline.
  *
  * Optimizations vs. original:
- *  - generateAIImage + analyzeImage MERGED into one Gemini call (saves one
- *    full round-trip + re-download of the generated image).
+ *  - the generated image is analysed from its bytes already in memory (no
+ *    re-download of the generated image).
  *  - analyzeImage for stock images uses a smaller image size (medium ~1200px)
  *    instead of large2x (~4000px), cutting base64 payload by ~85%.
  *  - analyzeImage accepts raw Buffer directly (no HTTP re-fetch needed when
@@ -32,7 +32,7 @@ export interface ImageBrief {
   searchQuery: string;
   generationPrompt: string;
   /**
-   * Ce qui ne doit PAS apparaître dans l'image. L'endpoint d'image de Z.ai
+   * Ce qui ne doit PAS apparaître dans l'image. L'endpoint d'image
    * n'expose pas de champ dédié : la consigne est concaténée au prompt, ce que
    * les modèles de diffusion interprètent correctement. Sans elle, le rendu
    * retombe sur les tics du corpus (filigranes, texte déformé, HDR saturé).
@@ -109,7 +109,7 @@ export class ImageSourcingService {
       }
     }
 
-    // ── Path B: generate + analyze in ONE Gemini call ────────────────────
+    // ── Path B: generate, then analyze the produced image ─────────────────
     return this.generateAndAnalyze(brief, opts);
   }
 
@@ -160,9 +160,8 @@ export class ImageSourcingService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 2. GENERATE + ANALYZE — single Gemini multimodal call
-  //    Gemini returns [IMAGE part] + [TEXT part with JSON analysis].
-  //    One network round-trip instead of two. No re-download needed.
+  // 2. GENERATE + ANALYZE — the image endpoint, then a vision call on the
+  //    bytes already in memory. No re-download needed.
   // ─────────────────────────────────────────────────────────────────────────
 
   private async generateAndAnalyze(
@@ -172,9 +171,8 @@ export class ImageSourcingService {
     logger.info(`[ImageSourcing] Generating`, { tag: opts.tag, model: opts.imageModel || 'host default' });
     const start = Date.now();
 
-    // Z.ai sépare ce que Gemini faisait d'un bloc : l'image vient d'un
-    // endpoint dédié, l'analyse d'un appel de vision. Deux allers-retours au
-    // lieu d'un, mais l'analyse porte alors sur l'image réellement produite.
+    // L'image vient d'un endpoint dédié, l'analyse d'un appel de vision : deux
+    // allers-retours, mais l'analyse porte sur l'image réellement produite.
     const negative = (brief.negativePrompt || '').trim();
     const prompt = negative
       ? `${brief.generationPrompt}\n\nAvoid entirely: ${negative}.`
@@ -212,7 +210,7 @@ export class ImageSourcingService {
     return {
       url: upload.downloadURL,
       source: 'generated',
-      attribution: { provider: 'glm', author: generated.model },
+      attribution: { provider: 'openrouter', author: generated.model },
       analysis,
     };
   }

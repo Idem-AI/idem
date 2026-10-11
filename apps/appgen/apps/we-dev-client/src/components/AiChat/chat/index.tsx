@@ -86,15 +86,8 @@ const API_BASE = process.env.REACT_APP_BASE_URL;
 console.log(API_BASE, 'API_BASE');
 
 enum ModelTypes {
-  /** Le seul modèle ouvert aujourd'hui ; les autres restent déclarés mais non proposés. */
-  Glm53 = 'glm-5.3',
-  Gemini35Flash = 'gemini-3.5-flash',
-  Gemini3Flash = 'gemini-3-flash-preview',
-  Claude37sonnet = 'claude-3-7-sonnet-20250219',
-  Claude35sonnet = 'claude-3-5-sonnet-20240620',
-  gpt4oMini = 'gpt-4o-mini',
-  DeepseekR1 = 'DeepSeek-R1',
-  DeepseekV3 = 'deepseek-chat',
+  /** Le modèle par défaut du serveur (OpenRouter, poids ouverts). */
+  QwenCoderNext = 'qwen/qwen3-coder-next',
 }
 
 export interface IModelOption {
@@ -142,16 +135,15 @@ async function fetchModelConfig(): Promise<IModelOption[]> {
     return configs.map(convertModelConfigToOption);
   } catch (error) {
     console.error('Error fetching model config:', error);
-    // Repli hors ligne : le même modèle que le serveur, et lui seul. Proposer
-    // ici des modèles fermés reviendrait à les laisser choisir pour rien.
+    // Repli hors ligne : le même modèle que le serveur, et lui seul.
     return [
       {
-        value: ModelTypes.Glm53,
-        label: 'GLM 5.3',
+        value: ModelTypes.QwenCoderNext,
+        label: 'Qwen3 Coder Next',
         useImage: false,
         from: 'default',
         quota: 2,
-        provider: 'glm',
+        provider: 'openrouter',
         functionCall: true,
       },
     ];
@@ -168,10 +160,10 @@ async function fetchDefaultModel(): Promise<string> {
     const data = await response.json();
     // L'API répond `{ modelKey }` : lire `defaultModel` renvoyait toujours
     // `undefined`, et le défaut retombait donc en silence sur le repli.
-    return data.modelKey || ModelTypes.Glm53;
+    return data.modelKey || ModelTypes.QwenCoderNext;
   } catch (error) {
     console.error('Error fetching default model:', error);
-    return ModelTypes.Glm53;
+    return ModelTypes.QwenCoderNext;
   }
 }
 
@@ -193,9 +185,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [checkCount, setCheckCount] = useState(0);
   const [visible, setVisible] = useState(false);
   const [baseModal, setBaseModal] = useState<IModelOption>({
-    value: ModelTypes.Gemini35Flash,
-    label: 'Gemini 3.5 Flash',
-    useImage: true,
+    value: ModelTypes.QwenCoderNext,
+    label: 'Qwen3 Coder Next',
+    useImage: false,
     from: 'default',
     quota: 2,
     functionCall: true,

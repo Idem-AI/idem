@@ -133,7 +133,7 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   {
     id: 'qwen/qwen3.8-27b', kind: 'text', hfId: 'Qwen/Qwen3.8-27B', license: 'apache-2.0',
     openWeights: true, commercialOk: true, selfHost: 'moyen', roles: ['writing'],
-    pricing: { input: 0.425, output: 2.55 }, note: '1 M de contexte. Candidat rédaction.',
+    pricing: { input: 0.04, output: 2.3 }, note: '1 M de contexte. Candidat rédaction.',
   },
   // ── Texte : DeepSeek (alternative à tester) ───────────────────────────────
   {
@@ -245,8 +245,26 @@ export const OPENROUTER_DEFAULT_ROLES: Record<ModelRole, string> = {
 };
 
 /** Repli du fournisseur : modèles ouverts de la liste, d'une autre famille en dernier. */
+/** Vidéo par défaut (dérogation produit à l'open-weight, cf. `allowClosed`). */
+export const DEFAULT_VIDEO_MODEL = 'bytedance/seedance-2.0';
+
+/**
+ * Les modèles des médias, sous les noms que les configurations de features
+ * emploient. Texte : voir `OPENROUTER_DEFAULT_ROLES` (par rôle).
+ */
+export const OPENROUTER_MEDIA = {
+  image: OPENROUTER_DEFAULT_ROLES.image,
+  /** Repli image : à défaut de variable, le même modèle (la saturation est rare, le repli ouvert unique). */
+  imageFallback: process.env.IDEM_OPENROUTER_IMAGE_FALLBACK_MODEL?.trim() || OPENROUTER_DEFAULT_ROLES.image,
+  vision: OPENROUTER_DEFAULT_ROLES.vision,
+  /** Repli vision : le modèle de lecture de texte, d'une autre taille. */
+  visionFallback: OPENROUTER_DEFAULT_ROLES.ocr,
+  video: process.env.IDEM_VIDEO_CLIP_MODEL?.trim() || DEFAULT_VIDEO_MODEL,
+  tts: 'hexgrad/kokoro-82m',
+} as const;
+
 /** Voix off par défaut : le seul modèle vocal ouvert, commercial et francophone du catalogue. */
-export const SPEECH_MODEL_DEFAULT = 'hexgrad/kokoro-82m';
+export const SPEECH_MODEL_DEFAULT: string = OPENROUTER_MEDIA.tts;
 
 /** Voix Kokoro par langue (identifiants relevés au catalogue OpenRouter). */
 export const KOKORO_VOICES: Record<string, string> = {

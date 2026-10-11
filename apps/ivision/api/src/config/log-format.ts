@@ -72,7 +72,7 @@ function isErrorLike(value: unknown): value is Error {
 /**
  * Une erreur réduite à ce qui sert au diagnostic. Les erreurs HTTP d'axios et
  * de fetch gardent le statut, la méthode et l'URL de l'appel amont — c'est
- * souvent la seule piste quand un fournisseur (Gemini, pawaPay, Netlify) casse.
+ * souvent la seule piste quand un fournisseur (OpenRouter, pawaPay, Netlify) casse.
  */
 export function serializeError(err: unknown, depth = 0): Record<string, unknown> {
   if (!isErrorLike(err)) {

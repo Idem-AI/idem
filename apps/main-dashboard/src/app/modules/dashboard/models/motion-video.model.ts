@@ -72,7 +72,7 @@ export interface VideoVoice {
   enabled: boolean;
   language: string;
   persona: string;
-  provider: 'glm' | 'gemini';
+  provider: 'openrouter';
   model: string;
   voice: string;
   style?: string;

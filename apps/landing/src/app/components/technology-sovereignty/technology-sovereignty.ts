@@ -26,13 +26,13 @@ export class TechnologySovereigntyComponent {
     {
       when: $localize`:@@tech.roadmap.now.when:Today`,
       tag: $localize`:@@tech.roadmap.now.tag:In production`,
-      title: $localize`:@@tech.roadmap.now.title:Powered by Gemini, model-agnostic`,
-      description: $localize`:@@tech.roadmap.now.description:Compatible with every major LLM, so no single vendor holds the keys.`,
+      title: $localize`:@@tech.roadmap.now.title:Powered by open models, model-agnostic`,
+      description: $localize`:@@tech.roadmap.now.description:Open-weight models behind one gateway, so no single vendor holds the keys.`,
     },
     {
       when: $localize`:@@tech.roadmap.next.when:+12 months`,
       tag: $localize`:@@tech.roadmap.next.tag:AI sovereignty`,
-      title: $localize`:@@tech.roadmap.next.title:GLM-5.2 self-hosted on Huawei Ascend`,
+      title: $localize`:@@tech.roadmap.next.title:Open models self-hosted on our own hardware`,
       description: $localize`:@@tech.roadmap.next.description:A frontier model on our own hardware. Intelligence is owned, not rented.`,
     },
     {

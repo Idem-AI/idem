@@ -1,6 +1,6 @@
 # Matrice des modèles OpenRouter
 
-Générée le 2026-10-10 par `npm run openrouter:matrix` (liste blanche vérifiée le 2026-10-11). Ne pas éditer à la main : modifier `config/openrouter.config.ts`.
+Générée le 2026-10-11 par `npm run openrouter:matrix` (liste blanche vérifiée le 2026-10-11). Ne pas éditer à la main : modifier `config/openrouter.config.ts`.
 
 **Open-weight = `hugging_face_id` au catalogue + licence lue sur Hugging Face.** « Disponible sur OpenRouter » ne prouve rien.
 
@@ -16,7 +16,7 @@ Générée le 2026-10-10 par `npm run openrouter:matrix` (liste blanche vérifi�
 | `qwen/qwen3-coder` | text | oui · apache-2.0 | oui | à mesurer | 0.3 / 1 $/M | lourd | — |
 | `qwen/qwen3-coder-30b-a3b-instruct` | text | oui · apache-2.0 | oui | à mesurer | 0.07 / 0.28 $/M | léger | — |
 | `qwen/qwen3.6-35b-a3b` | text | oui · apache-2.0 | oui | à mesurer | 0.1 / 0.95 $/M | léger | mechanical, vision |
-| `qwen/qwen3.8-27b` | text | oui · apache-2.0 | oui | à mesurer | 0.425 / 2.55 $/M | moyen | writing |
+| `qwen/qwen3.8-27b` | text | oui · apache-2.0 | oui | à mesurer | 0.04 / 2.3 $/M | moyen | writing |
 | `deepseek/deepseek-v4-flash` | text | oui · mit | oui | à mesurer | 0.03 / 1.28 $/M | lourd | writing, mechanical |
 | `deepseek/deepseek-v4-pro` | text | oui · mit | oui | à mesurer | 0.209 / 0.418 $/M | lourd | reasoning |
 | `black-forest-labs/flux.2-klein-4b` | image | oui · apache-2.0 | oui | texte dans l’image : à tester | 0.0034 $/image | léger | **défaut image** |
@@ -24,10 +24,13 @@ Générée le 2026-10-10 par `npm run openrouter:matrix` (liste blanche vérifi�
 | `black-forest-labs/flux.2-flex` | image | **non** (API fermée) | oui | texte dans l’image : à tester | 0.0146 $/image | impossible | — |
 | `black-forest-labs/flux.2-max` | image | **non** (API fermée) | oui | texte dans l’image : à tester | 0.0171 $/image | impossible | — |
 | `qwen/qwen-image-3` | image | **non** (API fermée) | oui | texte dans l’image : à tester | 0.0030 $/image | impossible | — |
-| `hexgrad/kokoro-82m` | speech | oui · apache-2.0 | oui | voix ff_siwis · à écouter | 0.62 / undefined $/M | léger | — |
+| `hexgrad/kokoro-82m` | speech | oui · apache-2.0 | oui | voix ff_siwis · à écouter | 0.62 $/M caractères | léger | — |
 | `mistralai/voxtral-mini-tts-2603` | speech | oui · cc-by-nc-4.0 | **non** | à écouter | — | moyen | — |
 | `qwen/qwen-audio-3.0-tts-flash` | speech | **non** (API fermée) | oui | à écouter | — | impossible | — |
 | `microsoft/mai-voice-2.1-flash` | speech | **non** (API fermée) | oui | à écouter | — | impossible | — |
+| `bytedance/seedance-2.0` | video | **non** (API fermée, dérogation) | oui | n/a | — | impossible | — |
+| `bytedance/seedance-2.0-fast` | video | **non** (API fermée, dérogation) | oui | n/a | — | impossible | — |
+| `bytedance/seedance-2.0-mini` | video | **non** (API fermée, dérogation) | oui | n/a | — | impossible | — |
 | `alibaba/wan-2.7` | video | **non** (API fermée) | oui | n/a | — | impossible | — |
 | `alibaba/wan-3.0` | video | **non** (API fermée) | oui | n/a | — | impossible | — |
 

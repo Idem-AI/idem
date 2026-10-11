@@ -172,7 +172,7 @@ export class PawapayClient {
    * L'instance est construite à la première utilisation, jamais à l'import :
    * les secrets sont chargés dans `bootstrap()`, après l'import des modules.
    * Un client construit trop tôt partirait sans jeton (le piège déjà rencontré
-   * avec le backend Gemini, cf. `config/secrets.ts`).
+   * avec un client de modèles, cf. `config/secrets.ts`).
    */
   private getClient(): AxiosInstance {
     if (this.client) return this.client;

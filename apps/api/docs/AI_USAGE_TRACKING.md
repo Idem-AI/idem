@@ -12,7 +12,7 @@ Every AI generation on the platform is recorded, input **and** output, in the Mo
 | Element | `element` | `logo`, `typography`, `colors`, generation step name |
 | Kind | `operation` | `generate`, `regenerate`, `edit`, `variant`, `analysis`, `chat`, `appgen` |
 | Batch of proposals | `batchId`, `variantCount` | the 4 logos of one action |
-| Model | `provider`, `modelName` | `glm` / `glm-4.7` |
+| Model | `provider`, `modelName` | `OPENROUTER` / `qwen/qwen3.5-122b-a10b` |
 | Tokens | `inputTokens`, `outputTokens`, `cachedInputTokens`, `totalTokens` | measured |
 | Cost | `estimatedCostUsd` | USD estimate |
 | Reliability | `tokensEstimated`, `pricingEstimated` | see "Reliability" below |
@@ -70,16 +70,16 @@ Two flags separate what was measured from what was approximated — the admin pa
 - **`tokensEstimated`** — the provider returned no usage metadata (some OpenAI-compatible gateways omit it). Tokens are then estimated at ~4 characters per token. Approximate, but better than a zero that would hide the consumption.
 - **`pricingEstimated`** — the model is missing from `config/ai-pricing.config.ts` and the default price was applied.
 
-Reasoning tokens of "thinking" models (`thoughtsTokenCount`) are added to the output tokens: ignoring them would heavily underestimate the cost. Tokens served by the Gemini context cache are counted separately and billed at the reduced cache price.
+Reasoning tokens of "thinking" models are counted in the output tokens: ignoring them would heavily underestimate the cost. Tokens served from a provider cache, when the API reports them, are counted separately and billed at the reduced price if one is set.
 
 ## Prices
 
-`config/ai-pricing.config.ts`, in USD per million tokens. Resolution by longest prefix: `gemini-3-flash-preview-0842` inherits the `gemini-3-flash` price instead of falling back to the default.
+`config/ai-pricing.config.ts`, in USD per million tokens. The table is derived from the model whitelist (`config/openrouter.config.ts`). Resolution by longest prefix: a dated variant inherits the price of its family instead of falling back to the default.
 
 To fix a price without redeploying:
 
 ```bash
-AI_PRICING_OVERRIDES='{"gemini-3-flash":{"input":0.25,"output":2}}'
+AI_PRICING_OVERRIDES='{"qwen/qwen3.5-122b-a10b":{"input":0.25,"output":2}}'
 ```
 
 ## Retention

@@ -1810,9 +1810,9 @@ function renderArtDirectionRules(block: Extract<Block, { kind: 'artDirectionRule
  * Références numérotées, en pied de section.
  *
  * Compactes et discrètes : ce sont des preuves, pas du contenu. Le domaine est
- * affiché quand il est CONNU — jamais l'hôte de l'URL, qui pour une recherche
- * Google est un redirecteur technique (`vertexaisearch.cloud.google.com`) que
- * personne ne reconnaît et qui ne dit rien de l'éditeur.
+ * affiché quand il est CONNU — jamais l'hôte de l'URL, qui pour certains
+ * moteurs de recherche est un redirecteur technique que personne ne reconnaît et
+ * qui ne dit rien de l'éditeur.
  */
 function renderSources(block: Extract<Block, { kind: 'sources' }>, ctx: Ctx): string {
   const { ds } = ctx;

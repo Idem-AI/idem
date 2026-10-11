@@ -75,7 +75,7 @@ npm run build              # tsc
 | --- | --- |
 | [Agent architecture](docs/AGENT_ARCHITECTURE.md) | How several models work together; when an agent is justified |
 | [AI routing](docs/AI_ROUTING.md) | Choosing the provider and model per generation, without code changes |
-| [Vertex AI](docs/VERTEX_AI.md) | Gemini billed through Google Cloud |
+| [OpenRouter](docs/OPENROUTER.md) | The only model provider: whitelist, licences, live switching |
 | [AI usage tracking](docs/AI_USAGE_TRACKING.md) | Every model call recorded, per user, project and element |
 | [Tracing](docs/TRACING.md) | Following a request through the AI pipeline |
 | [Context engine](docs/CONTEXT_ENGINE.md) | Giving every agent the right project data; revision history |

@@ -97,7 +97,7 @@ function upstreamError() {
     type: 'AxiosError',
     message: 'Request failed with status code 503',
     stack: 'AxiosError: Request failed with status code 503\n    at settle (node_modules/axios/lib/core/settle.js:19:12)',
-    upstream: { status: 503, method: 'POST', url: 'https://api.z.ai/api/paas/v4/chat/completions' },
+    upstream: { status: 503, method: 'POST', url: 'https://openrouter.ai/api/v1/chat/completions' },
   };
 }
 

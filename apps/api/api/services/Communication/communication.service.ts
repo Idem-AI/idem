@@ -107,7 +107,7 @@ export type CommunicationStreamEvent =
  * Deux réglages décidés en config étaient donc perdus en chemin :
  *  - le MODÈLE propre à la feature (la composition d'un visuel tournait sur le
  *    modèle par défaut du module, pas sur celui qu'on croyait avoir choisi) ;
- *  - les `fallbackModels` : un 503 « high demand » de Gemini faisait échouer la
+ *  - les `fallbackModels` : un 503 « high demand » faisait échouer la
  *    génération sans seconde chance, alors que la chaîne de repli existait.
  *
  * Passer par cette fabrique rend l'oubli impossible : la config est la source
