@@ -74,6 +74,7 @@ router.delete('/:uuid/volumes/persistent/:id', ctrl.deletePersistentVolume);
 
 // Ops
 router.get('/:uuid/status', ctrl.containerStatus);
+router.get('/:uuid/domains/dns', ctrl.domainDns);
 router.get('/:uuid/metrics', ctrl.metrics);
 
 /**

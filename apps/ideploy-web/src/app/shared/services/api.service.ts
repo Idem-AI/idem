@@ -23,6 +23,7 @@ import {
   DeployResponse,
   Destination,
   EnvVar,
+  DomainDnsGuide,
   ComposeAnalysis,
   ServiceOperation,
   PrivateKey,
@@ -352,6 +353,11 @@ export class ApiService {
     return this.unwrap(
       this.http.post<ApiResponse<unknown>>(`${this.base}/applications/${uuid}/${action}`, {})
     );
+  }
+  /** DNS records to create for the application's domains (or `domains` as typed), and their state. */
+  getDomainDns(uuid: string, domains?: string): Observable<DomainDnsGuide> {
+    const query = domains !== undefined ? `?domains=${encodeURIComponent(domains)}` : '';
+    return this.unwrap(this.http.get<ApiResponse<DomainDnsGuide>>(`${this.base}/applications/${uuid}/domains/dns${query}`));
   }
   listEnvVars(uuid: string): Observable<EnvVar[]> {
     return this.unwrap(this.http.get<ApiResponse<EnvVar[]>>(`${this.base}/applications/${uuid}/envs`));
