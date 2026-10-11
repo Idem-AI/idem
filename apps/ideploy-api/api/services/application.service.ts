@@ -31,6 +31,7 @@ function mapApp(r: Record<string, unknown>): ApplicationRow {
     name: String(r.name),
     description: (r.description as string) ?? null,
     fqdn: (r.fqdn as string) ?? null,
+    routes_file_at: r.routes_file_at ? new Date(r.routes_file_at as string).toISOString() : null,
     git_repository: (r.git_repository as string) ?? null,
     git_branch: (r.git_branch as string) ?? null,
     build_pack: (r.build_pack as string) ?? null,
@@ -231,7 +232,7 @@ export async function createApplication(
   // clash arbitrarily and one application would start answering for the other.
   if (dto.fqdn) {
     assertDomainsValid(dto.fqdn);
-    await assertDomainsAvailable(splitDomains(dto.fqdn));
+    await assertDomainsAvailable(splitDomains(dto.fqdn), undefined, teamId);
   }
 
   const uuid = randomUUID();
@@ -337,7 +338,7 @@ export async function updateApplication(
 
   if (dto.fqdn !== undefined && dto.fqdn !== existing.fqdn) {
     assertDomainsValid(dto.fqdn ?? '');
-    await assertDomainsAvailable(splitDomains(dto.fqdn ?? ''), existing.id);
+    await assertDomainsAvailable(splitDomains(dto.fqdn ?? ''), existing.id, teamId);
   }
 
   const sets: string[] = [];
@@ -415,6 +416,9 @@ async function teardownOnServer(teamId: number, app: ApplicationRow): Promise<Se
     const workdir = appWorkdir(app);
     const { removeFirewallFile } = await import('./firewall-file.service');
     await removeFirewallFile(server, key, app.uuid);
+    // Its routes go with it: the domains stop being served from the file provider.
+    const { removeRoutesFile } = await import('./routes-file.service');
+    await removeRoutesFile(server, key, app.uuid);
     const result = await executeRemoteCommand(
       server,
       key,
@@ -475,6 +479,8 @@ export async function deleteApplication(
     await client.query('DELETE FROM scheduled_tasks WHERE application_id = $1', [id]);
     await client.query('DELETE FROM application_previews WHERE application_id = $1', [id]);
     await client.query('DELETE FROM application_settings WHERE application_id = $1', [id]);
+    // Its domains are no longer claimed.
+    await client.query('DELETE FROM domain_verifications WHERE application_id = $1', [id]);
     await client.query('DELETE FROM application_deployment_queues WHERE application_id = $1', [String(id)]);
     await client.query('DELETE FROM applications WHERE id = $1', [id]);
   });

@@ -1,4 +1,6 @@
 import { domainGuide } from '../services/domain-dns.service';
+import { applyDomainsLive, getDomainOptions, updateDomainOptions } from '../services/domain-options.service';
+import { ROUTABLE, routableHosts } from '../services/routes-file.service';
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { ok, fail, respondWithError } from '../utils/response';
@@ -106,6 +108,14 @@ export async function updateApplication(req: CustomRequest, res: Response): Prom
     // rather than discovered after a wait.
     const domainChanged = Boolean(before) && (before!.fqdn ?? '') !== (updated.fqdn ?? '');
     if (!domainChanged) return ok(res, updated);
+    // Routes in the proxy's file provider: applied now, no deployment.
+    const live = await applyDomainsLive(teamId, uuid).catch((err) => {
+      logger.warn('Domains not applied live', { uuid, error: err });
+      return { applied: false as const };
+    });
+    if (live.applied) {
+      return ok(res, { ...updated, redeployRequired: false, domainsApplied: true, routed: live.routed, waitingForDns: live.waiting });
+    }
     const server = updated.destination_id ? await getServerForDestination(Number(updated.destination_id)) : null;
     const domains = (updated.fqdn ?? '').split(',').map((d) => d.trim()).filter(Boolean);
     ok(res, {
@@ -302,10 +312,46 @@ export async function metrics(req: CustomRequest, res: Response): Promise<void> 
  * the record (with the server's IP), the state of public DNS, HTTPS.
  * `?domains=` checks domains as typed, before they are saved.
  */
+export async function domainOptions(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(res, await getDomainOptions(req.user!.currentTeamId!, String(req.params.uuid)));
+  } catch (err) {
+    respondWithError(res, err, 'Reading the domain options');
+  }
+}
+
+export async function updateDomainOptionsCtrl(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    const teamId = req.user!.currentTeamId!;
+    const uuid = String(req.params.uuid);
+    const b = req.body ?? {};
+    const patch: Record<string, unknown> = {};
+    for (const k of ['forceHttps', 'hsts', 'redirectToPrimary'] as const) if (typeof b[k] === 'boolean') patch[k] = b[k];
+    if (typeof b.redirect === 'string') patch.redirect = b.redirect;
+    const options = await updateDomainOptions(teamId, uuid, patch);
+    const live = await applyDomainsLive(teamId, uuid).catch(() => ({ applied: false as const }));
+    ok(res, { options, applied: live.applied, redeployRequired: !live.applied });
+  } catch (err) {
+    respondWithError(res, err, 'Saving the domain options');
+  }
+}
+
 export async function domainDns(req: CustomRequest, res: Response): Promise<void> {
   try {
     const typed = typeof req.query.domains === 'string' ? req.query.domains.slice(0, 2000) : undefined;
-    ok(res, await domainGuide(req.user!.currentTeamId!, String(req.params.uuid), typed));
+    const teamId = req.user!.currentTeamId!;
+    const uuid = String(req.params.uuid);
+    const guide = await domainGuide(teamId, uuid, typed);
+    // The saved domains just became reachable: route them now rather than at
+    // the next periodic check.
+    if (typed === undefined) {
+      const routable = await routableHostsFor(teamId, uuid);
+      const nowRoutable = guide.domains.filter((d) => ROUTABLE.has(d.status)).map((d) => d.host);
+      if (routable && nowRoutable.some((h) => !routable.has(h))) {
+        await applyDomainsLive(teamId, uuid).catch((err) => logger.warn('Domains not applied live', { uuid, error: err }));
+      }
+    }
+    ok(res, guide);
   } catch (err) {
     respondWithError(res, err, 'Checking the domain DNS');
   }
@@ -341,4 +387,10 @@ export async function replaceSource(req: CustomRequest, res: Response): Promise<
   } catch (err) {
     respondWithError(res, err, 'Replacing the code of the application');
   }
+}
+
+/** Hosts currently routed for the application, or null when it is not. */
+async function routableHostsFor(teamId: number, uuid: string): Promise<Set<string> | null> {
+  const app = await appService.getApplication(teamId, uuid);
+  return app?.routes_file_at ? routableHosts(app.id) : null;
 }
