@@ -309,7 +309,7 @@ export async function synthesizeVoice(opts: {
   storage: VoiceStorage;
   folder: string;
   concurrency?: number;
-}): Promise<{ lines: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[]; provider: 'glm' | 'gemini'; model: string; voice: string }> {
+}): Promise<{ lines: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[]; provider: 'glm' | 'gemini' | 'openrouter'; model: string; voice: string }> {
   const synth = coreHost().synthesizeSpeech;
   if (!synth) throw new VoiceUnavailableError('no_speech_model');
   const provider = speechProviderFor(opts.language);
@@ -323,7 +323,7 @@ export async function synthesizeVoice(opts: {
   });
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-voice-'));
   const out: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[] = [];
-  let used = { provider, model: '', voice: '' };
+  let used: { provider: 'glm' | 'gemini' | 'openrouter'; model: string; voice: string } = { provider, model: '', voice: '' };
   let lastError: unknown;
   try {
     const queue = [...opts.lines];

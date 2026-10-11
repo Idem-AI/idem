@@ -87,7 +87,7 @@ export interface SynthesizedSpeech {
   buffer: Buffer;
   /** `audio/wav`, `audio/mpeg`, ou PCM brut (`audio/l16;rate=24000`). */
   mimeType: string;
-  provider: 'glm' | 'gemini';
+  provider: 'glm' | 'gemini' | 'openrouter';
   model: string;
   voice: string;
 }

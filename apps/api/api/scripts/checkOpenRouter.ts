@@ -11,8 +11,8 @@ import {
   translateReasoning,
   modelForRole,
 } from '../config/ai-providers.config';
-import { isAllowedOpenRouterModel, resolveOpenRouterModel } from '../config/openrouter.config';
-import { aspectRatioFor } from '../services/openrouter-media.service';
+import { KOKORO_VOICES, isAllowedOpenRouterModel, resolveOpenRouterModel } from '../config/openrouter.config';
+import { aspectRatioFor, openRouterVideoModel, speechWithOpenRouter } from '../services/openrouter-media.service';
 
 process.env.OPENROUTER_API_KEY = 'test';
 process.env.AI_DEFAULT_PROVIDER = 'OPENROUTER';
@@ -53,5 +53,22 @@ assert.equal(mediaProvider(), 'openrouter');
 assert.equal(aspectRatioFor('1344x768'), '16:9');
 assert.equal(aspectRatioFor('1024x1024'), '1:1');
 
-console.log('✓ OpenRouter : bascule, liste blanche, dialecte et média');
-process.exit(0);
+// 6. Licence commerciale : un modèle ouvert NON commercial est refusé comme une API fermée.
+assert.ok(!isAllowedOpenRouterModel('mistralai/voxtral-mini-tts-2603'), 'CC-BY-NC exclu');
+assert.ok(isAllowedOpenRouterModel('hexgrad/kokoro-82m'));
+assert.ok(!isAllowedOpenRouterModel('qwen/qwen-image-3'), 'Qwen Image fermé');
+
+// 7. Voix : Kokoro parle français (ff_siwis) ; une langue sans voix lève, l'appelant bascule.
+process.env.IDEM_TTS_URL = '';
+assert.equal(KOKORO_VOICES.fr, 'ff_siwis');
+(async () => {
+  await assert.rejects(speechWithOpenRouter({ text: 'x', language: 'sw' }), /voice_language_unsupported/);
+  // 8. Vidéo : Seedance 2.0 par dérogation ; Wan (fermé, sans dérogation) reste refusé.
+  assert.equal(openRouterVideoModel(), 'bytedance/seedance-2.0');
+  process.env.IDEM_OPENROUTER_VIDEO_MODEL = 'alibaba/wan-2.7';
+  assert.equal(openRouterVideoModel(), undefined);
+  process.env.OPENROUTER_OPEN_ONLY = 'off';
+  assert.equal(openRouterVideoModel(), 'alibaba/wan-2.7');
+  console.log('✓ OpenRouter : bascule, liste blanche, dialecte et média');
+  process.exit(0);
+})();

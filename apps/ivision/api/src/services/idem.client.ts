@@ -113,7 +113,7 @@ export const idem = {
       call<{ url: string; model: string }>('post', '/ai/video', p, 420_000),
     /** Une ligne de voix off (GLM-TTS, repli Gemini TTS). Une langue refusée lève `voice_language_unsupported`. */
     speech: (p: { userId?: string; text: string; language: string; provider: 'glm' | 'gemini'; voice: string; style?: string; tag: string }) =>
-      call<{ base64: string; mimeType: string; provider: 'glm' | 'gemini'; model: string; voice: string }>('post', '/ai/speech', p, 90_000),
+      call<{ base64: string; mimeType: string; provider: 'glm' | 'gemini' | 'openrouter'; model: string; voice: string }>('post', '/ai/speech', p, 90_000),
   },
   billing: {
     /** Débite (mêmes règles que les routes d'IDEM : mode d'application, 402 si le solde manque). */

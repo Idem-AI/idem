@@ -24,7 +24,10 @@ import { MediaProviderName, activeProvider, requestedMedia } from '../config/ai-
 import {
   analyzeImageWithOpenRouter,
   generateImageWithOpenRouter,
+  generateVideoWithOpenRouter,
   isOpenRouterConfigured,
+  openRouterVideoModel,
+  speechWithOpenRouter,
 } from './openrouter-media.service';
 import logger from '../config/logger';
 import { describeError, withRetry } from '../utils/retry';
@@ -539,6 +542,28 @@ const VIDEO_POLL_MS = 6000;
  * repart une fois en base64 brut — la documentation accepte « URL ou base64 » sans préciser.
  */
 export async function generateVideo(options: GenerateVideoOptions): Promise<{ url: string; coverUrl?: string; model: string }> {
+  // Wan & co. par OpenRouter : seulement si OpenRouter est le média en vigueur ET
+  // que le modèle est autorisé (API fermées : `OPENROUTER_OPEN_ONLY=off`). Sinon
+  // CogVideoX-3, comme avant. Un échec OpenRouter ne perd pas le clip.
+  if (mediaProvider() === 'openrouter') {
+    const orModel = options.model?.includes('/') ? options.model : openRouterVideoModel();
+    if (orModel) {
+      try {
+        return await generateVideoWithOpenRouter({
+          prompt: options.prompt,
+          image: options.image,
+          size: options.size,
+          durationSec: options.durationSec,
+          model: orModel,
+          tag: options.tag,
+          timeoutMs: options.timeoutMs ?? AI_CONFIG.communication.videoMedia.clipTimeoutMs,
+        });
+      } catch (error) {
+        if (!getGlmApiKey()) throw error;
+        logger.warn(`[OPENROUTER] video failed (${describeError(error)}) — falling back to ${AI_CONFIG.communication.videoMedia.videoModel}`, { tag: options.tag });
+      }
+    }
+  }
   const apiKey = requireKey();
   const model = options.model ?? AI_CONFIG.communication.videoMedia.videoModel;
   const size = VIDEO_SIZES.includes(options.size) ? options.size : '1280x720';
@@ -607,7 +632,7 @@ export interface GenerateSpeechOptions {
 export interface GeneratedSpeech {
   buffer: Buffer;
   mimeType: string;
-  provider: 'glm' | 'gemini';
+  provider: 'glm' | 'gemini' | 'openrouter';
   model: string;
   voice: string;
 }
@@ -675,6 +700,16 @@ async function speechWithGemini(options: GenerateSpeechOptions): Promise<Generat
  * une langue que GLM ne parle pas est alors refusée (`voice_language_unsupported`).
  */
 export async function generateSpeech(options: GenerateSpeechOptions): Promise<GeneratedSpeech> {
+  // OpenRouter en vigueur : Kokoro (ou votre Qwen3-TTS / Chatterbox via IDEM_TTS_URL)
+  // d'abord. Une langue sans voix ou une panne passe à la chaîne habituelle.
+  if (mediaProvider() === 'openrouter') {
+    try {
+      const spoken = await speechWithOpenRouter({ text: options.text, language: options.language, tag: options.tag });
+      return { ...spoken, provider: 'openrouter' };
+    } catch (error) {
+      logger.warn(`[OPENROUTER] speech unavailable (${describeError(error)}) — usual chain`, { tag: options.tag });
+    }
+  }
   const glmSpeaks = AI_CONFIG.communication.videoMedia.ttsLanguages.includes(options.language.slice(0, 2).toLowerCase());
   const fallbackAllowed = process.env.VIDEO_TTS_FALLBACK !== 'off' && isGeminiConfigured();
   if (glmSpeaks && glmTtsKey()) {

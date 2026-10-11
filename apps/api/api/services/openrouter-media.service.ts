@@ -4,18 +4,19 @@
  * Image : endpoint dédié `POST /images` (FLUX.2), qui rend les octets en base64.
  * Vision : le chat multimodal OpenAI, comme chez Z.ai.
  *
- * Pas de vidéo ni de voix ici, volontairement : au catalogue OpenRouter du
- * 2026-10-11, AUCUN modèle vidéo n'a de poids ouverts (Wan 3.0 compris) et aucun
- * modèle de synthèse vocale n'est proposé (ni Qwen3-TTS ni Chatterbox). Les
- * brancher via OpenRouter irait contre l'objectif d'auto-hébergement ; ces deux
- * capacités restent donc sur leurs fournisseurs actuels (cf. docs/OPENROUTER.md).
+ * Voix : Kokoro 82M (seul modèle vocal ouvert, commercial et francophone du
+ * catalogue) ou un serveur auto-hébergé Qwen3-TTS / Chatterbox (`IDEM_TTS_URL`).
+ * Vidéo : Wan & co. existent mais sont des API FERMÉES — chemin de test, fermé
+ * par défaut (cf. docs/OPENROUTER.md).
  */
 
 import axios from 'axios';
 
 import logger from '../config/logger';
 import {
+  KOKORO_VOICES,
   OPENROUTER_BASE_URL,
+  SPEECH_MODEL_DEFAULT,
   getOpenRouterApiKey,
   isAllowedOpenRouterModel,
   openRouterHeaders,
@@ -164,5 +165,172 @@ export async function analyzeImageWithOpenRouter(
     if (!fallback || fallback === model) throw error;
     logger.warn(`[OPENROUTER] vision failed on ${model} (${error?.message}) — trying ${fallback}`);
     return attempt(fallback);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Voix off : /audio/speech — OpenRouter, ou un serveur auto-hébergé.
+// ---------------------------------------------------------------------------
+
+export interface OpenRouterSpeech {
+  buffer: Buffer;
+  mimeType: string;
+  model: string;
+  voice: string;
+}
+
+/**
+ * Où dire la ligne ?
+ *
+ * 1. `IDEM_TTS_URL` : VOTRE serveur OpenAI-compatible (`/audio/speech`) servant
+ *    Qwen3-TTS ou Chatterbox Multilingual — les deux candidats ouverts, absents
+ *    d'OpenRouter. C'est la trajectoire d'auto-hébergement ; `IDEM_TTS_MODEL` est
+ *    obligatoire, `IDEM_TTS_VOICE_<LANGUE>` (ex. `IDEM_TTS_VOICE_FR`) ou
+ *    `IDEM_TTS_VOICE` choisit la voix, `IDEM_TTS_API_KEY` est facultative.
+ * 2. OpenRouter : `IDEM_OPENROUTER_TTS_MODEL` s'il est autorisé, sinon Kokoro 82M
+ *    (Apache-2.0, voix française `ff_siwis`).
+ */
+export async function speechWithOpenRouter(options: {
+  text: string;
+  language: string;
+  tag?: string;
+}): Promise<OpenRouterSpeech> {
+  const lang = options.language.slice(0, 2).toLowerCase();
+  const selfHosted = process.env.IDEM_TTS_URL?.trim();
+
+  let base: string;
+  let model: string;
+  let voice: string | undefined;
+  let authHeaders: Record<string, string>;
+
+  if (selfHosted) {
+    base = selfHosted.replace(/\/$/, '');
+    model = process.env.IDEM_TTS_MODEL?.trim() || '';
+    if (!model) throw new Error('IDEM_TTS_MODEL is required with IDEM_TTS_URL');
+    voice = process.env[`IDEM_TTS_VOICE_${lang.toUpperCase()}`]?.trim() || process.env.IDEM_TTS_VOICE?.trim();
+    const key = process.env.IDEM_TTS_API_KEY?.trim();
+    authHeaders = key ? { Authorization: `Bearer ${key}` } : {};
+  } else {
+    base = OPENROUTER_BASE_URL();
+    const wanted = process.env.IDEM_OPENROUTER_TTS_MODEL?.trim();
+    model = wanted && isAllowedOpenRouterModel(wanted) ? wanted : SPEECH_MODEL_DEFAULT;
+    voice =
+      model === SPEECH_MODEL_DEFAULT
+        ? KOKORO_VOICES[lang]
+        : process.env.IDEM_OPENROUTER_TTS_VOICE?.trim();
+    authHeaders = headers();
+  }
+
+  // Langue sans voix : pas une panne, l'appelant passe à sa chaîne habituelle.
+  if (!voice) throw new Error('voice_language_unsupported');
+
+  const started = Date.now();
+  const response = await axios.post<ArrayBuffer>(
+    `${base}/audio/speech`,
+    { model, input: options.text.slice(0, 1000), voice, response_format: 'mp3' },
+    { headers: authHeaders, responseType: 'arraybuffer', timeout: 60_000 }
+  );
+  const buffer = Buffer.from(response.data);
+  // Une erreur peut revenir en JSON : l'audio, lui, ne commence pas par « { ».
+  if (buffer.length < 256 || buffer[0] === 0x7b) {
+    throw new Error(`${model} returned no audio: ${buffer.subarray(0, 160).toString('utf8')}`);
+  }
+  logger.info(`[OPENROUTER] speech by ${model}`, {
+    tag: options.tag,
+    durationMs: Date.now() - started,
+    bytes: buffer.length,
+    selfHosted: Boolean(selfHosted),
+  });
+  return { buffer, mimeType: 'audio/mpeg', model, voice };
+}
+
+// ---------------------------------------------------------------------------
+// Vidéo : POST /videos, tâche asynchrone.
+// ---------------------------------------------------------------------------
+
+const VIDEO_POLL_MS = 10_000;
+
+/**
+ * Aucun modèle vidéo d'OpenRouter n'a de poids ouverts. Seedance 2.0 (ByteDance)
+ * est retenu par DÉROGATION produit (`allowClosed` dans la liste blanche) : fermé,
+ * non auto-hébergeable, mais autorisé sans couper `OPENROUTER_OPEN_ONLY`.
+ * `IDEM_OPENROUTER_VIDEO_MODEL` choisit une autre variante (`-fast`, `-mini`) ou un
+ * candidat de test (Wan, avec `OPENROUTER_OPEN_ONLY=off`).
+ */
+export const DEFAULT_VIDEO_MODEL = 'bytedance/seedance-2.0';
+
+export function openRouterVideoModel(): string | undefined {
+  const model = process.env.IDEM_OPENROUTER_VIDEO_MODEL?.trim() || DEFAULT_VIDEO_MODEL;
+  return isAllowedOpenRouterModel(model) ? model : undefined;
+}
+
+export async function generateVideoWithOpenRouter(options: {
+  prompt: string;
+  image?: { base64: string; mimeType: string };
+  size: string;
+  durationSec: number;
+  model: string;
+  tag?: string;
+  timeoutMs: number;
+}): Promise<{ url: string; model: string }> {
+  const { model } = options;
+  const auth = headers();
+  const started = Date.now();
+  const resolution = Number(options.size.split('x')[1] ?? 720) >= 1000 ? '1080p' : '720p';
+
+  const submit = await axios.post<{ id?: string; polling_url?: string }>(
+    `${OPENROUTER_BASE_URL()}/videos`,
+    {
+      model,
+      prompt: options.prompt.slice(0, 1500),
+      resolution,
+      aspect_ratio: aspectRatioFor(options.size),
+      duration: options.durationSec,
+      generate_audio: false,
+      ...(options.image
+        ? {
+            frame_images: [
+              {
+                type: 'image_url',
+                image_url: { url: `data:${options.image.mimeType};base64,${options.image.base64}` },
+                frame_type: 'first_frame',
+              },
+            ],
+          }
+        : {}),
+      ...openRouterRouting(),
+    },
+    { headers: auth, timeout: 60_000 }
+  );
+  const pollingUrl = submit.data?.polling_url;
+  if (!pollingUrl) throw new Error(`${model} did not return a polling url`);
+
+  for (;;) {
+    if (Date.now() - started > options.timeoutMs) {
+      throw new Error(`${model} timed out after ${Math.round(options.timeoutMs / 1000)} s`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, VIDEO_POLL_MS));
+    const poll = await axios.get<{ status?: string; unsigned_urls?: string[]; error?: string | null }>(
+      pollingUrl,
+      { headers: auth, timeout: 30_000 }
+    );
+    if (poll.data?.status === 'failed') throw new Error(`${model} failed: ${poll.data.error ?? 'unknown'}`);
+    if (poll.data?.status !== 'completed') continue;
+
+    const contentUrl = poll.data.unsigned_urls?.[0];
+    if (!contentUrl) throw new Error(`${model} returned no video`);
+    // Le contenu exige la clé : le moteur télécharge l'URL sans en-tête, on lui
+    // donne donc la vidéo elle-même sous forme d'URL `data:` (axios sait la lire).
+    const file = await axios.get<ArrayBuffer>(contentUrl, {
+      headers: auth,
+      responseType: 'arraybuffer',
+      timeout: 120_000,
+    });
+    logger.info(`[OPENROUTER] clip generated by ${model}`, {
+      tag: options.tag,
+      durationMs: Date.now() - started,
+      bytes: file.data.byteLength,
+    });
+    return { url: `data:video/mp4;base64,${Buffer.from(file.data).toString('base64')}`, model };
   }
 }

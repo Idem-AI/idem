@@ -151,7 +151,7 @@ export interface VideoVoice {
   language: string;
   /** Personnage de voix (catalogue `video.voice.ts`), traduit en voix du fournisseur. */
   persona: string;
-  provider: 'glm' | 'gemini';
+  provider: 'glm' | 'gemini' | 'openrouter';
   model: string;
   voice: string;
   /** Jeu demandé par l'agent narrateur. */

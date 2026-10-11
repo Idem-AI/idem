@@ -116,6 +116,22 @@ const defaultModelConfigs: ModelConfig[] = [
     defaultApiUrl: 'https://openrouter.ai/api/v1',
   },
   {
+    // ALTERNATIVE À TESTER face à Qwen3 Coder Next. Il n'existe plus de « DeepSeek
+    // Coder » sur OpenRouter : le code est servi par DeepSeek V4 (MIT, poids ouverts).
+    modelName: 'DeepSeek V4 Flash',
+    modelKey: 'deepseek/deepseek-v4-flash',
+    useImage: false,
+    provider: 'openrouter',
+    description: 'DeepSeek V4 Flash — alternative open-weight (MIT) pour le code',
+    functionCall: true,
+    temperature: 0.35,
+    topP: 0.9,
+    maxOutputTokens: 32000,
+    apiKeyEnv: 'OPENROUTER_API_KEY',
+    apiUrlEnv: 'OPENROUTER_BASE_URL',
+    defaultApiUrl: 'https://openrouter.ai/api/v1',
+  },
+  {
     // REPLI d'OpenRouter : autre famille de poids (MoE généraliste), pas dans le sélecteur.
     modelName: 'Qwen3.5 122B',
     modelKey: 'qwen/qwen3.5-122b-a10b',

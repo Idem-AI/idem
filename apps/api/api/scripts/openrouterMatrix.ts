@@ -107,6 +107,7 @@ function priceLabel(model: OpenRouterModel): string {
   const p = model.pricing;
   if (!p) return '—';
   if (p.perImage !== undefined) return `${p.perImage.toFixed(4)} $/image`;
+  if (p.output === undefined) return `${p.input} $/M caractères`;
   return `${p.input} / ${p.output} $/M`;
 }
 
@@ -114,12 +115,13 @@ async function main(): Promise<void> {
   await loadSecrets();
   const probe = process.argv.includes('--probe');
 
-  const [text, image, video] = await Promise.all([
+  const [text, image, speech, video] = await Promise.all([
     catalog('/models'),
     catalog('/models?output_modalities=image'),
+    catalog('/models?output_modalities=speech'),
     catalog('/videos/models').catch(() => new Map<string, CatalogEntry>()),
   ]);
-  const live = new Map<string, CatalogEntry>([...text, ...image, ...video]);
+  const live = new Map<string, CatalogEntry>([...text, ...image, ...speech, ...video]);
 
   const problems: string[] = [];
   const rows: string[] = [];
@@ -132,12 +134,13 @@ async function main(): Promise<void> {
       continue;
     }
 
-    const liveHf = entry.hugging_face_id || undefined;
+    // Le catalogue « speech » ne publie pas hugging_face_id : on lit alors le dépôt déclaré.
+    const liveHf = entry.hugging_face_id || (model.kind === 'speech' ? model.hfId : undefined);
     if (model.openWeights && !liveHf) problems.push(`✗ ${model.id} : plus de hugging_face_id (poids retirés ?)`);
-    if (model.openWeights && liveHf && liveHf !== model.hfId) {
+    if (model.openWeights && entry.hugging_face_id && liveHf !== model.hfId) {
       problems.push(`✗ ${model.id} : dépôt HF changé (${model.hfId} → ${liveHf})`);
     }
-    if (!model.openWeights && liveHf) problems.push(`! ${model.id} : poids désormais publiés (${liveHf}) — à réexaminer`);
+    if (!model.openWeights && entry.hugging_face_id) problems.push(`! ${model.id} : poids désormais publiés (${liveHf}) — à réexaminer`);
 
     let license = model.license;
     if (model.openWeights && liveHf) {
@@ -158,6 +161,8 @@ async function main(): Promise<void> {
     if (probe && model.kind === 'text') {
       const result = await probeFrench(model);
       french = result ? `${result.score}/4 · ${(result.ms / 1000).toFixed(1)} s` : 'échec';
+    } else if (model.kind === 'speech') {
+      french = model.id === 'hexgrad/kokoro-82m' ? 'voix ff_siwis · à écouter' : 'à écouter';
     } else if (model.kind !== 'text') {
       french = model.kind === 'image' ? 'texte dans l’image : à tester' : 'n/a';
     }
