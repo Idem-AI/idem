@@ -33,9 +33,9 @@ export interface ImageBrief {
   generationPrompt: string;
   /**
    * Ce qui ne doit PAS apparaître dans l'image, EN PLUS de l'absence de texte déjà imposée par
-   * le service (`NO_TEXT_CLAUSE`) sur toute image générée. L'endpoint d'image n'expose pas de
-   * champ dédié : la consigne est concaténée au prompt, ce que les modèles de diffusion
-   * interprètent correctement.
+   * le service (`NO_TEXT_PREFIX`/`NO_TEXT_SUFFIX`, relues et retentées) sur toute image générée.
+   * L'endpoint d'image n'expose pas de champ dédié : la consigne est concaténée au prompt — un
+   * simple mot de plus pour un modèle qui n'applique pas de guidage négatif (cf. plus bas).
    */
   negativePrompt?: string;
   preferGenerated?: boolean;
@@ -65,8 +65,18 @@ const PEXELS_ENDPOINT = 'https://api.pexels.com/v1/search';
  * compositeur (ajusté au millimètre, contrôlé) — un mot écrit par le modèle d'image est illisible,
  * non traduit et jamais à la bonne taille. En code et non laissé à un appelant : tout appel de
  * génération passant par ce service en bénéficie, qu'il fournisse ou non son propre `negativePrompt`.
+ *
+ * NE PAS écrire ceci comme un prompt négatif (« avoid: text »…) : le modèle d'image de l'hôte
+ * (FLUX) n'applique PAS de guidance négative — une consigne « éviter » est pour lui un mot de plus
+ * dans le prompt, pas une exclusion. L'absence de texte se dit donc en POSITIF : en tête (FLUX lit
+ * le sujet d'abord) ET répétée en fin de prompt.
  */
-const NO_TEXT_CLAUSE = 'text, letters, words, numbers, captions, titles, headlines, labels, typography, watermark, signage';
+const NO_TEXT_PREFIX = 'A pure, textless photograph — no writing of any kind anywhere in the frame: ';
+const NO_TEXT_SUFFIX =
+  'The whole image is completely free of text: no letters, no words, no numbers, no captions, no headline, no logo, no watermark, no signage, nothing written anywhere, on any surface. Just the photograph itself.';
+
+/** Au-delà de deux essais, le temps perdu dépasse le bénéfice : on garde le moins mauvais. */
+const MAX_GENERATION_ATTEMPTS = 2;
 
 // ─── Shared vision instruction (kept short → fewer input tokens) ──────────
 const VISION_INSTRUCTION = `Return ONLY strict JSON, no prose, no fences:
@@ -179,20 +189,38 @@ export class ImageSourcingService {
     logger.info(`[ImageSourcing] Generating`, { tag: opts.tag, model: opts.imageModel || 'host default' });
     const start = Date.now();
 
-    // L'image vient d'un endpoint dédié, l'analyse d'un appel de vision : deux
-    // allers-retours, mais l'analyse porte sur l'image réellement produite.
-    // L'absence de texte n'est jamais laissée au bon vouloir de l'appelant (NO_TEXT_CLAUSE).
-    const negative = [NO_TEXT_CLAUSE, (brief.negativePrompt || '').trim()].filter(Boolean).join(', ');
-    const prompt = `${brief.generationPrompt}\n\nAvoid entirely: ${negative}.`;
+    // L'absence de texte n'est jamais laissée au bon vouloir de l'appelant NI du modèle
+    // (NO_TEXT_PREFIX/SUFFIX) — et comme le prompt seul ne suffit pas toujours à l'obtenir, la
+    // vision qui suit (déjà appelée pour l'analyse) RELIT l'image produite (`detectedText`) et
+    // un second essai est tenté si elle en voit, comme le fait déjà `brandMockup.service.ts`
+    // pour ses scènes. Les éventuelles autres consignes de l'appelant restent, elles, de simples
+    // mots dans le prompt (le modèle n'applique pas de guidage négatif) — un geste en plus, pas
+    // une garantie.
+    const extra = (brief.negativePrompt || '').trim();
+    const prompt = `${NO_TEXT_PREFIX}${brief.generationPrompt}\n\n${NO_TEXT_SUFFIX}${extra ? ` Also: no ${extra}.` : ''}`;
 
-    const generated = await requirePort('generateImage')(prompt, {
-      tag: opts.tag,
-      purpose: 'visual-background',
-      ...(opts.imageModel ? { model: opts.imageModel } : {}),
-      ...(opts.imageFallbackModel ? { fallbackModel: opts.imageFallbackModel } : {}),
-    });
-    const buffer = generated.buffer;
-    const mimeType = generated.mimeType;
+    let buffer!: Buffer;
+    let mimeType = 'image/png';
+    let model = '';
+    let analysis: FlyerImageAnalysis = this.fallbackAnalysis();
+    for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt++) {
+      const generated = await requirePort('generateImage')(prompt, {
+        tag: `${opts.tag}#${attempt}`,
+        purpose: 'visual-background',
+        ...(opts.imageModel ? { model: opts.imageModel } : {}),
+        ...(opts.imageFallbackModel ? { fallbackModel: opts.imageFallbackModel } : {}),
+      });
+      buffer = generated.buffer;
+      mimeType = generated.mimeType;
+      model = generated.model;
+      analysis = await this.analyzeImageFromBase64(buffer.toString('base64'), mimeType, brief.searchQuery);
+      if (!analysis.detectedText) break;
+      logger.warn(`[ImageSourcing] generated image carries text (${attempt}/${MAX_GENERATION_ATTEMPTS})`, {
+        tag: opts.tag,
+        detectedText: analysis.detectedText.slice(0, 120),
+        keeping: attempt >= MAX_GENERATION_ATTEMPTS,
+      });
+    }
 
     logger.info(`[ImageSourcing] Generation complete`, {
       tag: opts.tag,
@@ -202,12 +230,7 @@ export class ImageSourcingService {
 
     const fileName = `flyer-bg-${opts.tag}-${Date.now()}.png`;
     const folderPath = `users/${opts.userId}/projects/${opts.projectId}/communication/flyer-images`;
-
-    // Téléversement et analyse ne dépendent pas l'un de l'autre.
-    const [upload, analysis] = await Promise.all([
-      requirePort('storage').uploadFile(buffer, fileName, folderPath, mimeType),
-      this.analyzeImageFromBase64(buffer.toString('base64'), mimeType, brief.searchQuery),
-    ]);
+    const upload = await requirePort('storage').uploadFile(buffer, fileName, folderPath, mimeType);
 
     logger.info(`[ImageSourcing] AI-generated image sourced`, {
       tag: opts.tag,
@@ -217,7 +240,7 @@ export class ImageSourcingService {
     return {
       url: upload.downloadURL,
       source: 'generated',
-      attribution: { provider: 'openrouter', author: generated.model },
+      attribution: { provider: 'openrouter', author: model },
       analysis,
     };
   }

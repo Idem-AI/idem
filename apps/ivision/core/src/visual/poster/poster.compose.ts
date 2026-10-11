@@ -99,14 +99,22 @@ const STYLE_BOOSTS: Record<string, Partial<Record<string, number>>> = {
 
 const hash = (s: string) => parseInt(crypto.createHash('sha1').update(s).digest('hex').slice(0, 8), 16);
 
-/** Le brief d'image (banque ou génération), sans texte dans l'image. */
+/**
+ * Le brief d'image (banque ou génération), sans texte dans l'image.
+ *
+ * Le THÈME donné au modèle d'image est une poignée de MOTS-CLÉS, jamais la phrase même du titre :
+ * un modèle d'image qui sait écrire (FLUX) lit une phrase complète comme un texte À RENDRE — le
+ * titre réapparaissait, déformé, en toutes lettres sur la photo. Les mots-clés décrivent le sujet
+ * sans jamais ressembler à une accroche. L'absence de texte elle-même est imposée en code, en
+ * amont de tout appel (`image.sourcing.ts#NO_TEXT_PREFIX/SUFFIX`), avec relecture et nouvel essai.
+ */
 function imageBriefFor(copy: PosterCopy, ctx: VisualBrandContext, format: FlyerFormat, subject: string) {
   const orientation = format === 'story' || format === 'post' || format === 'a4' ? ('portrait' as const) : format === 'banner' ? ('landscape' as const) : ('square' as const);
-  const what = `${subject} — ${ctx.businessType}`.slice(0, 160);
+  const theme = subject.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 8).join(' ') || ctx.businessType;
   return {
     searchQuery: `${copy.headline} ${ctx.businessType}`.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 5).join(' ') || ctx.businessType,
-    generationPrompt: `Authentic editorial photograph for ${ctx.brandName} (${ctx.businessType}): ${what}. Natural light, real people and places, African context when people appear, shallow depth of field, generous empty space for a headline. ${ctx.artDirection?.imagePromptModifier || ''}`.slice(0, 900),
-    negativePrompt: 'text, letters, captions, watermark, logo, signage, distorted faces, extra fingers, oversaturated HDR, collage, frame, border',
+    generationPrompt: `Authentic editorial photograph for ${ctx.brandName} (${ctx.businessType}). Theme: ${theme}. Natural light, real people and places, African context when people appear, shallow depth of field, generous calm empty area on one side reserved for a graphic overlay added separately afterwards. ${ctx.artDirection?.imagePromptModifier || ''}`.slice(0, 900),
+    negativePrompt: 'distorted faces, extra fingers, oversaturated HDR, collage, frame, border',
     orientation,
   };
 }
