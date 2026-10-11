@@ -12,6 +12,7 @@
     "dev": "nodemon api/index.ts",
     "build": "tsc && npm run build:video-engine",
     "build:video-engine": "ts-node --transpile-only api/scripts/buildVideoEngine.ts",
+    "build:mermaid": "ts-node --transpile-only api/scripts/buildMermaid.ts",
     "start": "ts-node api/index.ts",
     "vercel-build": "tsc",
     "secrets:purge-history": "bash scripts/purge-env-from-history.sh",
