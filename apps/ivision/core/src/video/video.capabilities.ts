@@ -34,7 +34,7 @@ import { rng } from './video.music';
 
 // ─── Nœuds ──────────────────────────────────────────────────────────────────
 
-export type CapKind = 'library' | 'addon' | 'concept' | 'rhythm' | 'camera' | 'entrance' | 'accent' | 'treatment' | 'logo' | 'background' | 'annotate' | 'icons' | 'brandmark' | 'easing' | 'postfx' | 'media' | 'technique' | 'transition' | 'layout' | 'direction';
+export type CapKind = 'library' | 'addon' | 'concept' | 'rhythm' | 'camera' | 'entrance' | 'accent' | 'treatment' | 'logo' | 'background' | 'annotate' | 'icons' | 'brandmark' | 'easing' | 'postfx' | 'media' | 'technique' | 'transition' | 'layout' | 'direction' | 'iconmotion' | 'imagefx';
 
 /** Conditions déclaratives (lisibles dans la doc, évaluées par `meets`). */
 export interface CapWhen {
@@ -134,6 +134,9 @@ const LIBRARY_NODES: CapNode[] = [
   { id: 'lib:visx', kind: 'library', label: 'visx v4 (composants de data-visualisation) + d3 (interpolate, delaunay, geo) + world-atlas', summary: 'Composants React en SVG sans animation propre (formes, échelles, dégradés, motifs, courbes, hiérarchies, projections) ; carte du monde en topojson.', packages: ['@visx/shape', '@visx/scale', '@visx/group', '@visx/gradient', '@visx/pattern', '@visx/curve', '@visx/text', '@visx/hierarchy', '@visx/heatmap', '@visx/glyph', '@visx/marker', '@visx/geo', '@visx/grid', '@visx/axis', 'd3-interpolate', 'd3-delaunay', 'd3-geo', 'topojson-client', 'world-atlas'], addon: 'viz', cost: 1, determinism: 'pure', impl: 'engine/src/addons/viz.ts' },
   { id: 'lib:draw', kind: 'library', label: 'rough.js + perfect-freehand + simplex-noise', summary: 'Formes dessinées à la main (graine fixe), traits de pinceau à pression, bruit continu à graine du moteur.', packages: ['roughjs', 'perfect-freehand', 'simplex-noise'], addon: 'draw', cost: 1, determinism: 'pure', impl: 'engine/src/addons/draw.ts' },
   { id: 'lib:zdog', kind: 'library', label: 'Zdog', summary: 'Objets en pseudo-3D plats et ronds rendus en SVG ; rotation posée puis updateRenderGraph(), sans boucle.', packages: ['zdog'], addon: 'zdog', cost: 1, determinism: 'pure', impl: 'engine/src/addons/zdog.ts' },
+  { id: 'lib:ogl', kind: 'library', label: 'OGL (WebGL minimal)', summary: 'Shaders plein cadre : un triangle, un programme, `uTime` posé par le moteur, jamais de requestAnimationFrame ; toile créée à l’apparition de la scène, libérée à son départ.', packages: ['ogl'], addon: 'ogl', cost: 1, determinism: 'pure', impl: 'engine/src/addons/ogl.ts' },
+  { id: 'lib:pixi', kind: 'library', label: 'PixiJS 7 + pixi-filters', summary: 'Une image et une pile de filtres (RGB, onde de choc, bulbe, torsion, flou de zoom, pixels, glitch, ondulation, CRT), rendue à la demande : ticker arrêté, paramètres posés par le moteur.', packages: ['pixi.js', 'pixi-filters'], addon: 'pixi', cost: 2, determinism: 'pure', impl: 'engine/src/addons/pixi.ts' },
+  { id: 'lib:simple-icons', kind: 'library', label: 'Simple Icons', summary: '~3 400 logos de marques en SVG ; lus côté serveur quand un texte NOMME la marque (WhatsApp, Orange Money…), jamais embarqués en bloc.', packages: ['simple-icons'], cost: 0, determinism: 'static', impl: 'src/video/video.brands.ts' },
   { id: 'lib:lucide', kind: 'library', label: 'Lucide', summary: '~2 100 icônes au trait ; SVG lus côté serveur, jamais embarqués en bloc.', packages: ['lucide-static'], cost: 0, determinism: 'static', impl: 'src/video/video.icons.ts' },
   { id: 'lib:tabler', kind: 'library', label: 'Tabler Icons', summary: '~5 100 icônes au trait géométrique.', packages: ['@tabler/icons'], cost: 0, determinism: 'static', impl: 'src/video/video.icons.ts' },
   { id: 'lib:phosphor', kind: 'library', label: 'Phosphor Icons', summary: '~1 500 icônes × 6 graisses (thin, light, regular, bold, fill, duotone).', packages: ['@phosphor-icons/core'], cost: 0, determinism: 'static', impl: 'src/video/video.icons.ts' },
@@ -160,7 +163,10 @@ const LIBRARY_LICENSES: Record<string, { license: string; licenseNote?: string }
   'lib:chartjs': { license: 'MIT' },
   'lib:visx': { license: 'MIT, ISC' },
   'lib:draw': { license: 'MIT' },
+  'lib:ogl': { license: 'Unlicense', licenseNote: 'Domaine public (Unlicense) : aucune obligation.' },
+  'lib:pixi': { license: 'MIT' },
   'lib:zdog': { license: 'MIT' },
+  'lib:simple-icons': { license: 'CC0-1.0', licenseNote: 'Les fichiers sont en CC0, pas les marques : un logo sert à NOMMER la marque (moyen de paiement, canal de contact), jamais à habiller la marque du client ni à suggérer un partenariat.' },
   'lib:lucide': { license: 'ISC' },
   'lib:tabler': { license: 'MIT' },
   'lib:phosphor': { license: 'MIT' },
@@ -170,7 +176,7 @@ const LIBRARY_LICENSES: Record<string, { license: string; licenseNote?: string }
 const LIBRARIES: CapNode[] = LIBRARY_NODES.map((n) => ({ ...n, ...LIBRARY_LICENSES[n.id] }));
 
 /** Bibliothèque de chaque addon (nœud `lib:*`). */
-const ADDON_LIB: Record<AddonId, string> = { three: 'three', gsap: 'gsap', anime: 'anime', flubber: 'flubber', lottie: 'lottie', rive: 'rive', chart: 'chartjs', viz: 'visx', draw: 'draw', zdog: 'zdog' };
+const ADDON_LIB: Record<AddonId, string> = { three: 'three', gsap: 'gsap', anime: 'anime', flubber: 'flubber', lottie: 'lottie', rive: 'rive', chart: 'chartjs', viz: 'visx', draw: 'draw', zdog: 'zdog', ogl: 'ogl', pixi: 'pixi' };
 
 const ADDONS: CapNode[] = (Object.keys(ADDON_LIB) as AddonId[]).map((id) => ({
   id: `addon:${id}`,
@@ -179,8 +185,8 @@ const ADDONS: CapNode[] = (Object.keys(ADDON_LIB) as AddonId[]).map((id) => ({
   summary: `Paquet du moteur chargé seulement si un nœud retenu l'exige.`,
   addon: id,
   requires: [`lib:${ADDON_LIB[id]}`],
-  cost: id === 'three' ? 3 : id === 'rive' ? 2 : 1,
-  determinism: id === 'three' ? 'clock-pinned' : ['flubber', 'viz', 'draw', 'zdog'].includes(id) ? 'pure' : 'seek',
+  cost: id === 'three' ? 3 : id === 'rive' || id === 'pixi' ? 2 : 1,
+  determinism: id === 'three' ? 'clock-pinned' : ['flubber', 'viz', 'draw', 'zdog', 'ogl', 'pixi'].includes(id) ? 'pure' : 'seek',
   impl: `public/video-engine/addon-${id}.js`,
 }));
 
@@ -286,6 +292,16 @@ const BACKGROUNDS: CapNode[] = [
   { id: 'bg:motes', kind: 'background', label: 'Poussière lumineuse', summary: 'Quelques dizaines de grains de lumière aux couleurs de la charte flottent lentement derrière le texte (particules à graine, sans addon).', cost: 1, determinism: 'pure', suits: { directions: D({ cinematic: 2, editorial: 1, drenched: 1, precision: 0.5 }), arts: { aurora: 2, surreal: 1.5, glassmorphism: 1, futuristic: 0.5 }, sectors: { beauty: 1.5, drink: 0.5, eco: 0.5, health: 0.5 } }, impl: 'engine/src/kit/Backdrop.tsx#MotesBg' },
   { id: 'bg:embers', kind: 'background', label: 'Braises', summary: 'Braises et étincelles qui montent du bas du cadre, aux couleurs de la charte.', cost: 1, determinism: 'pure', suits: { directions: D({ kinetic: 1.5, drenched: 1.5, brutal: 1, cinematic: 0.5 }), arts: { cyberpunk: 1.5, graffiti: 1, y2k: 0.5 }, sectors: { food: 1.5, music: 1, rocket: 1, fashion: 0.5 } }, impl: 'engine/src/kit/Backdrop.tsx#EmbersBg' },
   { id: 'bg:confetti', kind: 'background', label: 'Confettis', summary: 'Confettis (carrés, points, anneaux) qui tombent du haut du cadre : fête, ouverture, offre.', cost: 1, determinism: 'pure', suits: { directions: D({ collage: 2, kinetic: 1.5 }), objectives: { event: 2, opening: 1.5, promotion: 1 }, arts: { 'pop-art': 1.5, y2k: 1, maximalism: 1 }, sectors: { gift: 1.5, smile: 1, family: 1, food: 0.5 } }, impl: 'engine/src/kit/Backdrop.tsx#ConfettiBg' },
+  { id: 'bg:aurora', kind: 'background', label: 'Aurore', summary: 'Des rideaux de lumière aux couleurs de la charte ondulent derrière le texte (shader OGL, comme les aurores de React Bits).', requires: ['addon:ogl'], cost: 1, determinism: 'pure', suits: { directions: D({ cinematic: 2, drenched: 1.5, editorial: 1, precision: 0.5 }), arts: { aurora: 3, glassmorphism: 1.5, surreal: 1.5, futuristic: 1 }, sectors: { beauty: 1, internet: 1, eco: 1, water: 1, health: 0.5 } }, impl: 'engine/src/kit/Backdrop.tsx#shaderBackdrop' },
+  { id: 'bg:silk', kind: 'background', label: 'Satin', summary: 'Des plis de satin qui glissent, un dégradé de la charte qui épouse leurs creux (shader OGL).', requires: ['addon:ogl'], cost: 1, determinism: 'pure', suits: { directions: D({ editorial: 2, cinematic: 1.5, precision: 1, swiss: 0.5 }), arts: { minimalism: 1, glassmorphism: 1 }, sectors: { fashion: 2, beauty: 1.5, gift: 0.5 } }, impl: 'engine/src/kit/Backdrop.tsx#shaderBackdrop' },
+  { id: 'bg:plasma', kind: 'background', label: 'Plasma', summary: 'Un plasma d’ondes qui se croisent, en quatre teintes de la charte (shader OGL).', requires: ['addon:ogl'], cost: 1, determinism: 'pure', suits: { directions: D({ kinetic: 2, drenched: 1.5, brutal: 0.5 }), arts: { y2k: 2, cyberpunk: 1.5, 'pop-art': 1, maximalism: 1 }, sectors: { music: 1.5, rocket: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#shaderBackdrop' },
+  { id: 'bg:fluid', kind: 'background', label: 'Encre dans l’eau', summary: 'Un fluide de couleurs qui se mêle lentement, en bruit déformé par du bruit : l’allure de WebGL Fluid Simulation, mais lisible à n’importe quel instant (le solveur d’origine est un état qui s’accumule).', requires: ['addon:ogl'], cost: 1, determinism: 'pure', suits: { directions: D({ drenched: 2, cinematic: 1.5, kinetic: 1, editorial: 0.8 }), arts: { surreal: 2, aurora: 1.5, glassmorphism: 1 }, sectors: { drink: 2, water: 1.5, beauty: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#shaderBackdrop' },
+  { id: 'bg:mesh', kind: 'background', label: 'Dégradé mouvant', summary: 'Un dégradé à quatre points qui dérivent, avec un grain fin : l’esprit de Granim.js, en shader.', requires: ['addon:ogl'], cost: 1, determinism: 'pure', suits: { directions: D({ drenched: 1.5, editorial: 1, swiss: 1, precision: 1, cinematic: 0.5 }), arts: { glassmorphism: 2, minimalism: 1, aurora: 1 }, sectors: { internet: 1.5, code: 1, business: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#shaderBackdrop' },
+  { id: 'bg:topology', kind: 'background', label: 'Courbes de niveau', summary: 'Des courbes de niveau d’un relief qui dérive, au trait fin (comme la topologie de Vanta.js, en shader).', requires: ['addon:ogl'], cost: 1, determinism: 'pure', suits: { directions: D({ precision: 2, swiss: 1.5, editorial: 0.8 }), arts: { futuristic: 1.5, minimalism: 1, 'vector-art': 1 }, sectors: { chart: 1.5, tools: 1, design: 1, eco: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#shaderBackdrop' },
+  { id: 'bg:waves', kind: 'background', label: 'Vagues en couches', summary: 'Cinq vagues superposées, de la plus lointaine à la plus proche (comme les vagues de Vanta.js, en shader).', requires: ['addon:ogl'], cost: 1, determinism: 'pure', suits: { directions: D({ cinematic: 1.5, editorial: 1, drenched: 1, precision: 1 }), arts: { aurora: 1 }, sectors: { water: 2.5, drink: 1, delivery: 0.5 } }, impl: 'engine/src/kit/Backdrop.tsx#shaderBackdrop' },
+  { id: 'bg:blobs', kind: 'background', label: 'Métaballes', summary: 'Des boules de matière qui fusionnent et se séparent, éclairées en 3D (raymarching, dans l’esprit de Shader Park).', requires: ['addon:ogl'], cost: 2, determinism: 'pure', suits: { directions: D({ drenched: 2, kinetic: 1.5, cinematic: 1 }), arts: { clay: 2, y2k: 1.5, surreal: 1.5, glassmorphism: 1 }, sectors: { smile: 1, design: 1, family: 0.5 } }, impl: 'engine/src/kit/Backdrop.tsx#shaderBackdrop' },
+  { id: 'bg:network', kind: 'background', label: 'Réseau de points', summary: 'Des points qui dérivent et se relient quand ils se rapprochent (le fond « net » de Vanta.js et les liens de tsParticles, en fonction pure du temps).', cost: 1, determinism: 'pure', suits: { directions: D({ precision: 2, swiss: 1.5, kinetic: 0.8, cinematic: 0.5 }), arts: { futuristic: 2, cyberpunk: 1.5, 'vector-art': 1 }, sectors: { internet: 2, code: 2, business: 1, community: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#NetworkBg' },
+  { id: 'bg:gradient', kind: 'background', label: 'Dégradé qui glisse', summary: 'Un dégradé qui passe d’un état de couleurs de la charte à l’autre, en CSS pur : l’esprit de Granim.js, sans WebGL.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 1.5, swiss: 1, precision: 1, drenched: 1, cinematic: 0.5 }), arts: { glassmorphism: 1.5, minimalism: 1, aurora: 1 }, sectors: { beauty: 1, internet: 1, business: 0.5 } }, impl: 'engine/src/kit/Backdrop.tsx#GradientBg' },
   { id: 'bg:dot-grid', kind: 'background', label: 'Trame de points', summary: 'Points réguliers révélés depuis le coin libre.', cost: 0, determinism: 'pure', suits: { directions: D({ swiss: 2, precision: 1.5 }), arts: { minimalism: 1, swiss: 1.5, futuristic: 1 }, sectors: { code: 1, business: 1, chart: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#DotGrid' },
   { id: 'bg:halftone', kind: 'background', label: 'Demi-teinte', summary: 'Trame d’imprimerie qui fleurit dans un coin, dérive lente.', cost: 0, determinism: 'pure', suits: { directions: D({ editorial: 1.5, collage: 2 }), arts: { retro: 2, 'pop-art': 2, 'collage-art': 1 }, sectors: { fashion: 1, music: 1, book: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#Halftone' },
   { id: 'bg:shape-field', kind: 'background', label: 'Formes de la marque', summary: 'Cercles, carrés, anneaux aux couleurs de la charte, groupés du côté libre.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 2, collage: 1.5 }), objectives: { promotion: 1, event: 1, opening: 1 }, arts: { maximalism: 1.5, y2k: 1.5, clay: 1, 'pop-art': 1 }, sectors: { family: 1, food: 0.5, smile: 1 } }, impl: 'engine/src/kit/Backdrop.tsx#ShapeField' },
@@ -313,6 +329,49 @@ const ICON_SETS: CapNode[] = [
   { id: 'icons:phosphor-fill', kind: 'icons', label: 'Phosphor Fill', summary: 'Pictogrammes pleins.', requires: ['lib:phosphor'], cost: 0, determinism: 'static', suits: { directions: D({ kinetic: 3, drenched: 1 }), arts: { 'pop-art': 1 } } },
   { id: 'icons:phosphor-duotone', kind: 'icons', label: 'Phosphor Duotone', summary: 'Deux tons, façon découpage.', requires: ['lib:phosphor'], cost: 0, determinism: 'static', suits: { directions: D({ collage: 3 }), arts: { 'collage-art': 1, clay: 1 } } },
   { id: 'icons:heroicons-solid', kind: 'icons', label: 'Heroicons Solid', summary: 'Plein et dense, lisible sur aplat.', requires: ['lib:heroicons'], cost: 0, determinism: 'static', suits: { directions: D({ drenched: 3 }) } },
+];
+
+/**
+ * L'animation des PICTOGRAMMES (IconMotion) : les icônes sont lues comme des SVG (jamais comme des
+ * composants), donc leurs formes s'animent — tracé, apparition une à une, jaillissement. Posées, elles
+ * sont exactement l'icône fixe.
+ */
+const ICON_MOTIONS: CapNode[] = [
+  { id: 'iconmotion:none', kind: 'iconmotion', label: 'Icônes fixes', summary: 'Les pictogrammes apparaissent avec leur carte, sans animation propre.', cost: 0, determinism: 'static', suits: { directions: D({ cinematic: 1.5, brutal: 1, swiss: 0.5 }) }, impl: 'engine/src/kit/Icon.tsx' },
+  { id: 'iconmotion:draw', kind: 'iconmotion', label: 'Icônes tracées', summary: 'Les contours des pictogrammes se tracent l’un après l’autre ; une icône pleine se dessine puis se remplit.', cost: 0, determinism: 'pure', suits: { directions: D({ precision: 2, editorial: 2, swiss: 1.5, cinematic: 0.5 }), arts: { minimalism: 1, handwritten: 1.5 } }, impl: 'engine/src/kit/IconMotion.tsx' },
+  { id: 'iconmotion:stagger', kind: 'iconmotion', label: 'Icônes assemblées', summary: 'Les formes d’un pictogramme apparaissent une à une, en grossissant.', cost: 0, determinism: 'pure', suits: { directions: D({ collage: 2, kinetic: 1, swiss: 1, drenched: 1 }), arts: { 'collage-art': 1.5, clay: 1 } }, impl: 'engine/src/kit/IconMotion.tsx' },
+  { id: 'iconmotion:pop', kind: 'iconmotion', label: 'Icônes jaillissantes', summary: 'Chaque pictogramme jaillit en dépassant sa taille, puis se pose.', cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 2, collage: 1.5, drenched: 1.5, brutal: 1 }), arts: { y2k: 1, 'pop-art': 1 } }, impl: 'engine/src/kit/IconMotion.tsx' },
+];
+
+/**
+ * Les EFFETS SUR LA PHOTO d'un produit (ImageFx, PixiJS) : un seul par vidéo, ou aucun. Les directions
+ * sobres gardent la photo telle quelle ; les effets francs (glitch, onde de choc…) n'existent que dans les
+ * directions qui les assument.
+ */
+const FX_WHEN: CapWhen = { media: 'images', scenes: ['product'] };
+const fx = (id: string, label: string, summary: string, directions: Partial<Record<DirectionId, number>>, arts: Record<string, number> = {}): CapNode => ({
+  id: `imagefx:${id}`,
+  kind: 'imagefx',
+  label,
+  summary,
+  requires: ['addon:pixi'],
+  when: FX_WHEN,
+  cost: 2,
+  determinism: 'pure',
+  suits: { directions, arts },
+  impl: 'engine/src/kit/ImageFx.tsx',
+});
+const IMAGE_FX: CapNode[] = [
+  { id: 'imagefx:none', kind: 'imagefx', label: 'Photo telle quelle', summary: 'La photo du produit est montrée sans effet (le choix par défaut des directions sobres).', cost: 0, determinism: 'static', suits: { directions: D({ swiss: 2, editorial: 2, precision: 2, cinematic: 1.5, drenched: 0.5 }) }, impl: 'engine/src/scenes.tsx#Media' },
+  fx('rgbSplit', 'Canaux décalés', 'Les canaux rouge et bleu de la photo se séparent, puis se rejoignent (PixiJS RGBSplit).', { kinetic: 2, brutal: 1.5, drenched: 1 }, { cyberpunk: 1.5, y2k: 1 }),
+  fx('shockwave', 'Onde de choc', 'Une onde part du centre de la photo toutes les 1,8 s (PixiJS Shockwave).', { kinetic: 1.5, collage: 1, brutal: 0.5 }),
+  fx('bulge', 'Bulbe', 'Le centre de la photo gonfle puis se creuse (PixiJS BulgePinch).', { collage: 1.5, kinetic: 1 }, { surreal: 1.5, clay: 1 }),
+  fx('twist', 'Torsion', 'La photo se tord autour de son centre (PixiJS Twist).', { collage: 1, drenched: 1, kinetic: 0.5 }, { surreal: 1.5 }),
+  fx('zoomBlur', 'Flou de travelling', 'Un flou de zoom qui respire, comme un travelling rapide (PixiJS ZoomBlur).', { cinematic: 2, drenched: 1.5, kinetic: 0.5 }),
+  fx('pixelate', 'Révélation en pixels', 'La photo se révèle : très pixelisée, puis nette (PixiJS Pixelate).', { swiss: 1.5, precision: 1.5, brutal: 1 }, { futuristic: 1.5, retro: 1 }),
+  fx('glitch', 'Glitch', 'Des tranches de la photo se décalent par à-coups (PixiJS Glitch, graine par fenêtre de temps).', { brutal: 2, kinetic: 1.5 }, { cyberpunk: 2, graffiti: 1 }),
+  fx('wavy', 'Ondulation liquide', 'La photo ondule comme vue à travers de l’eau (PixiJS Displacement).', { drenched: 2, collage: 1.5, cinematic: 0.5 }, { surreal: 1.5, aurora: 1 }),
+  fx('crt', 'Vieux téléviseur', 'Lignes, bruit et courbure d’un écran cathodique (PixiJS CRT).', { brutal: 1, collage: 1, kinetic: 0.5 }, { retro: 2, cyberpunk: 1 }),
 ];
 
 /**
@@ -417,6 +476,9 @@ const EXTRA: CapNode[] = [
   { id: 'easing:spring', kind: 'easing', label: 'Ressort physique', summary: 'Rebond réel (motion spring) au lieu d’une courbe : réservé aux directions qui rebondissent.', requires: ['lib:motion'], cost: 0, determinism: 'pure', suits: { directions: D({ kinetic: 3, collage: 3 }) } },
   { id: 'postfx:bloom', kind: 'postfx', label: 'Bloom 3D', summary: 'Halo léger sur les reflets de la scène 3D (premium seulement, coût SwiftShader).', requires: ['addon:three'], when: { scene3d: true, minQuality: 'premium' }, cost: 2, determinism: 'clock-pinned', suits: { directions: D({ cinematic: 2, precision: 1.5, drenched: 1 }) }, impl: 'engine/src/addons/three.tsx#Stage' },
   { id: 'postfx:smaa', kind: 'postfx', label: 'Anticrénelage SMAA', summary: 'Bords nets de la 3D (posé avec tout effet 3D).', requires: ['addon:three'], when: { scene3d: true, minQuality: 'hd' }, cost: 1, determinism: 'clock-pinned', impl: 'engine/src/addons/three.tsx#Stage' },
+  { id: 'postfx:chromatic', kind: 'postfx', label: 'Aberration chromatique', summary: 'Franges de couleur sur les bords de la scène 3D, qui respirent (premium seulement, coût SwiftShader).', requires: ['addon:three'], when: { scene3d: true, minQuality: 'premium' }, cost: 2, determinism: 'clock-pinned', suits: { directions: D({ kinetic: 2, brutal: 1.5, cinematic: 1, drenched: 0.5 }) }, impl: 'engine/src/addons/three.tsx#Stage' },
+  { id: 'postfx:vignette', kind: 'postfx', label: 'Vignettage', summary: 'Les bords de la scène 3D s’assombrissent : l’œil va au centre, comme dans un film.', requires: ['addon:three'], when: { scene3d: true, minQuality: 'hd' }, cost: 1, determinism: 'clock-pinned', suits: { directions: D({ cinematic: 2, editorial: 1, drenched: 0.5 }) }, impl: 'engine/src/addons/three.tsx#Stage' },
+  { id: 'postfx:dof', kind: 'postfx', label: 'Profondeur de champ', summary: 'Le sujet 3D est net, le fond se défait en flou de bokeh (premium seulement, coût SwiftShader).', requires: ['addon:three'], when: { scene3d: true, minQuality: 'premium' }, cost: 2, determinism: 'clock-pinned', suits: { directions: D({ cinematic: 2.5, editorial: 1.5, precision: 0.5 }) }, impl: 'engine/src/addons/three.tsx#Stage' },
   { id: 'media:lottie', kind: 'media', label: 'Animation Lottie', summary: 'Lottie intégrée (aux couleurs de la marque) ou importée (.json, .lottie).', requires: ['addon:lottie'], when: { scenes: ['lottie'] }, cost: 1, determinism: 'seek', impl: 'engine/src/media.tsx#LottieBox' },
   { id: 'media:rive', kind: 'media', label: 'Animation Rive', summary: 'Fichier .riv importé, joué image par image.', requires: ['addon:rive'], when: { media: 'rive' }, cost: 2, determinism: 'seek', impl: 'engine/src/media.tsx#RiveBox' },
   { id: 'media:model3d', kind: 'media', label: 'Modèle 3D importé', summary: 'GLB tourné en studio, ombre de contact (R3F + drei).', requires: ['addon:three'], when: { media: 'model3d' }, cost: 3, determinism: 'clock-pinned', impl: 'engine/src/addons/three.tsx#ModelRig' },
@@ -457,18 +519,24 @@ function directionNodes(): CapNode[] {
  * quand l'addon manque (Showcase3d sans vue 3D, médias Rive absents).
  */
 const FALLBACKS: Record<string, CapFallback> = {
+  ...Object.fromEntries(IMAGE_FX.filter((n) => n.id !== 'imagefx:none').map((n) => [n.id, { to: 'imagefx:none', note: 'la photo reste montrée telle quelle (le moteur la garde sous la toile)' } as CapFallback])),
   'lib:three': { to: 'lib:zdog', note: 'objets en pseudo-3D plats (boîte, anneau, sphère) rendus en SVG, sans WebGL' },
   'addon:three': { to: 'addon:zdog', note: 'paquet Zdog : même rôle, sans horloge posée ni SwiftShader' },
   'logo:extrude': { to: 'logo:wipe', note: 'balayage oblique : accepte tout SVG, aucun WebGL' },
   'postfx:bloom': { to: null, note: 'sans halo : la 3D reste lisible avec l’anticrénelage seul' },
+  'postfx:chromatic': { to: null, note: 'sans franges de couleur : l’image reste nette' },
+  'postfx:dof': { to: null, note: 'sans flou d’arrière-plan : tout reste net' },
   'media:model3d': { to: null, note: 'sans vue 3D, la scène garde son titre et son sous-titre (Showcase3d)' },
   'media:cards3d': { to: null, note: 'sans vue 3D, la scène garde son titre et son sous-titre (Showcase3d)' },
   'lib:rive': { to: null, note: 'le fichier .riv n’a pas d’équivalent : la scène garde son texte' },
   'addon:rive': { to: null, note: 'le fichier .riv n’a pas d’équivalent : la scène garde son texte' },
   'media:rive': { to: null, note: 'le fichier .riv n’a pas d’équivalent : la scène garde son texte' },
+  'bg:blobs': { to: 'bg:flat3d', note: 'objets plats en pseudo-3D (Zdog), sans WebGL ni raymarching' },
+  'lib:pixi': { to: null, note: 'la photo reste montrée, sans effet' },
+  'addon:pixi': { to: null, note: 'la photo reste montrée, sans effet' },
 };
 
-export const CAPABILITIES: CapNode[] = [...LIBRARIES, ...ADDONS, ...conceptNodes(), ...RHYTHMS, ...CAMERAS, ...ENTRANCES, ...ACCENTS, ...TREATMENTS, ...LOGO, ...BACKGROUNDS, ...ANNOTATIONS, ...ICON_SETS, ...BRANDMARKS, ...EXTRA, ...directionNodes()].map((n) => (FALLBACKS[n.id] ? { ...n, fallback: FALLBACKS[n.id] } : n));
+export const CAPABILITIES: CapNode[] = [...LIBRARIES, ...ADDONS, ...conceptNodes(), ...RHYTHMS, ...CAMERAS, ...ENTRANCES, ...ICON_MOTIONS, ...IMAGE_FX, ...ACCENTS, ...TREATMENTS, ...LOGO, ...BACKGROUNDS, ...ANNOTATIONS, ...ICON_SETS, ...BRANDMARKS, ...EXTRA, ...directionNodes()].map((n) => (FALLBACKS[n.id] ? { ...n, fallback: FALLBACKS[n.id] } : n));
 export const CAP_BY_ID = new Map(CAPABILITIES.map((n) => [n.id, n]));
 
 /** Bibliothèques évaluées et écartées, avec la raison (documentées dans VIDEO_ENGINE.md). */
@@ -487,13 +555,21 @@ export const EXCLUDED_LIBRARIES: { name: string; reason: string }[] = [
   { name: 'Nivo, Victory', reason: 'animations par react-spring ou minuteries (horloge interne).' },
   { name: 'ECharts, ApexCharts', reason: 'horloge d’animation propre et poids ; Chart.js (animation coupée, valeurs posées à chaque image) couvre le besoin.' },
   { name: 'p5.js, paper.js', reason: 'boucle de dessin propre et poids ; Zdog, rough.js, perfect-freehand et simplex-noise couvrent le dessin génératif image par image.' },
+  { name: 'Vanta.js', reason: 'boucle requestAnimationFrame et three embarqué (horloge propre) ; ses fonds « net », « topology » et « waves » sont réécrits en fonctions du temps : bg:network, bg:topology, bg:waves.' },
+  { name: 'Granim.js', reason: 'canevas à boucle propre ; l’effet (un dégradé qui passe d’un état de couleurs à l’autre) est <Gradient>, en CSS pur.' },
+  { name: 'tsParticles', reason: 'boucle d’animation et hasard libre (une image changerait d’une lecture à l’autre) ; remplacé par <Particles> (graine + temps) et <Network> (liens).' },
+  { name: 'WebGL Fluid Simulation (PavelDoGreat)', reason: 'solveur à ÉTAT : chaque image dépend des précédentes, donc impossible à poser à un instant t dans n’importe quel ordre ; bg:fluid en reprend l’allure par un bruit déformé par du bruit (fonction pure du temps).' },
+  { name: 'Shader Park', reason: 'langage et runtime propres, sans gain sur du GLSL direct ; les métaballes éclairées en 3D (bg:blobs) sont du raymarching écrit pour OGL.' },
+  { name: 'liquid-glass-react', reason: 'pilotée par la souris et l’horloge du navigateur ; <LiquidGlass> reprend la réfraction (filtre SVG de déplacement sur l’arrière-plan) avec des paramètres posés par le temps de la scène.' },
+  { name: 'SplitType', reason: 'le composant <Kinetic> découpe lui-même ses textes en mots et en lettres, mesurés une fois avant la première image.' },
+  { name: 'React Bits (ShinyText, GlitchText, GradientText, Shuffle…)', reason: 'composants à copier-coller pensés pour l’interaction ; leurs effets de texte sont réécrits en fonctions du temps : techniques « shine », « glitch », « gradientFlow », « shuffle ».' },
   { name: 'chartjs-chart-wordcloud, @visx/wordcloud', reason: 'placement des mots aléatoire : une image changerait d’une lecture à l’autre.' },
 ];
 
 // ─── Licences et replis : des règles du catalogue, vérifiées ────────────────
 
 /** Licences vérifiées qui autorisent l'usage commercial dans un produit fermé. */
-export const COMMERCIAL_LICENSES = ['MIT', 'ISC', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', '0BSD', 'Zlib', 'GreenSock-Standard'];
+export const COMMERCIAL_LICENSES = ['MIT', 'ISC', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', '0BSD', 'Zlib', 'Unlicense', 'CC0-1.0', 'GreenSock-Standard'];
 
 /** Les alternatives SPDX d'une licence de package.json : « (MIT OR GPL-3.0-or-later) » → MIT, GPL-3.0-or-later. */
 export function licenseAlternatives(raw: string): string[] {
@@ -755,17 +831,20 @@ export function resolveKit(ctx: KitContext): VideoKit {
   const spring = (springNode.suits?.directions?.[ctx.direction] || 0) > 0 && DIRECTIONS[ctx.direction].overshoot && (ctx.boosts?.['easing:spring'] || 0) >= 0 ? { bounce: ctx.direction === 'kinetic' ? 0.42 : 0.3 } : undefined;
   if (spring) trace.push({ kind: 'easing', chosen: 'easing:spring', score: 1, why: [`direction ${ctx.direction} à rebond`], rejected: [] });
 
-  // Effets 3D : SMAA dès la HD, bloom en premium si la direction l'appelle — et
-  // seulement s'il reste une scène 3D une fois le logo choisi (un logo tracé n'est pas en 3D).
+  // Effets 3D : SMAA dès la HD ; puis, en premium, au plus DEUX effets de style (bloom, flou de champ,
+  // franges, vignette) parmi ceux que la direction appelle, les mieux notés d'abord — quatre effets
+  // empilés alourdiraient le rendu logiciel (SwiftShader) pour un résultat chargé. Seulement s'il reste
+  // une scène 3D une fois le logo choisi (un logo tracé n'est pas en 3D).
   const postfx: string[] = [];
   const ctx3d: KitContext = { ...ctx, scenes: ctx.scenes.map((s) => ({ ...s, three: !!s.three && (s.sceneId !== 'logo' || logo.chosen === 'logo:extrude') })) };
-  for (const id of ['postfx:smaa', 'postfx:bloom']) {
-    const n = CAP_BY_ID.get(id)!;
-    const reason = unmet(n, ctx3d);
-    if (reason) continue;
-    if (id === 'postfx:bloom' && !(n.suits?.directions?.[ctx.direction] || 0)) continue;
-    postfx.push(id.slice('postfx:'.length));
-  }
+  const smaa = CAP_BY_ID.get('postfx:smaa')!;
+  if (!unmet(smaa, ctx3d)) postfx.push('smaa');
+  const styled = ['postfx:bloom', 'postfx:dof', 'postfx:chromatic', 'postfx:vignette']
+    .map((id) => CAP_BY_ID.get(id)!)
+    .filter((n) => !unmet(n, ctx3d) && (n.suits?.directions?.[ctx.direction] || 0) > 0)
+    // Le bloom (le plus ancien) garde sa place quand la direction l'appelle ; les autres suivent par affinité.
+    .sort((x, y) => (y.id === 'postfx:bloom' ? 1 : 0) - (x.id === 'postfx:bloom' ? 1 : 0) || (y.suits?.directions?.[ctx.direction] || 0) - (x.suits?.directions?.[ctx.direction] || 0) || x.id.localeCompare(y.id));
+  for (const n of styled.slice(0, 2)) postfx.push(n.id.slice('postfx:'.length));
 
   // Fond : sur deux scènes de texte au plus, jamais consécutives.
   const background = bg.chosen.slice('bg:'.length) || 'none';
@@ -806,12 +885,19 @@ export function resolveKit(ctx: KitContext): VideoKit {
   const camera = choose('camera', ctx, sectors, recentIds((v) => `camera:${v.camera}`), 0xca3);
   const springBanned = (ctx.boosts?.['easing:spring'] || 0) < 0;
   const entrance = choose('entrance', ctx, sectors, recentIds((v) => `entrance:${v.entrance}`), 0xe47, (n) => !(springBanned && n.id === 'entrance:spring'));
-  trace.push(camera, entrance);
+  // Animation des pictogrammes (toujours un choix, « fixes » compris) et effet sur la photo d'un produit
+  // (seulement s'il y a une photo et une scène produit : sinon le graphe n'en retient aucun).
+  const iconMotion = choose('iconmotion', ctx, sectors, recentIds((v) => `iconmotion:${v.iconMotion}`), 0x1c0);
+  const imageFxChoice = choose('imagefx', ctx, sectors, recentIds((v) => `imagefx:${v.imageFx}`), 0x1f0);
+  trace.push(camera, entrance, iconMotion);
+  if (imageFxChoice.chosen) trace.push(imageFxChoice);
 
   const kit: VideoKit = {
     treatments,
     camera: camera.chosen.slice('camera:'.length) || undefined,
     entrance: entrance.chosen.slice('entrance:'.length) || undefined,
+    iconMotion: iconMotion.chosen.slice('iconmotion:'.length) || undefined,
+    imageFx: imageFxChoice.chosen.slice('imagefx:'.length) || undefined,
     background: backdropScenes.length ? background : 'none',
     backdropScenes,
     annotate: annotateScene ? annotate : 'none',
@@ -830,8 +916,8 @@ export function resolveKit(ctx: KitContext): VideoKit {
 }
 
 /** Les addons qu'exigent les choix du kit (le montage y ajoute ceux des médias réels). */
-export function addonsForKit(kit: Pick<VideoKit, 'logo' | 'background' | 'postfx'> & { annotate?: string }): AddonId[] {
-  const ids = [`logo:${kit.logo}`, `bg:${kit.background}`, ...(kit.annotate ? [`annotate:${kit.annotate}`] : []), ...kit.postfx.map((p) => `postfx:${p}`)];
+export function addonsForKit(kit: Pick<VideoKit, 'logo' | 'background' | 'postfx'> & { annotate?: string; imageFx?: string }): AddonId[] {
+  const ids = [`logo:${kit.logo}`, `bg:${kit.background}`, ...(kit.annotate ? [`annotate:${kit.annotate}`] : []), ...kit.postfx.map((p) => `postfx:${p}`), ...(kit.imageFx ? [`imagefx:${kit.imageFx}`] : [])];
   const out = new Set<AddonId>();
   const walk = (id: string) => {
     const n = CAP_BY_ID.get(id);
@@ -859,7 +945,7 @@ export function iconVocabulary(text: string, max = 30): string[] {
  */
 export function capabilityCard(ctx: KitContext): string {
   const lines: string[] = [];
-  const kinds: CapKind[] = ['rhythm', 'camera', 'entrance', 'logo', 'background', 'annotate', 'icons', 'brandmark', 'treatment', 'postfx', 'media'];
+  const kinds: CapKind[] = ['rhythm', 'camera', 'entrance', 'logo', 'background', 'annotate', 'icons', 'iconmotion', 'imagefx', 'brandmark', 'treatment', 'postfx', 'media'];
   for (const kind of kinds) {
     const ok = CAPABILITIES.filter((n) => n.kind === kind && !unmet(n, ctx)).map((n) => n.id.split(':')[1]);
     if (ok.length) lines.push(`${kind}: ${ok.join(', ')}`);
@@ -906,6 +992,8 @@ export interface KitOverrides {
   /** Caméra et famille d'entrée : choisies par l'agent animateur dans le menu du graphe. */
   camera?: string;
   entrance?: string;
+  iconMotion?: string;
+  imageFx?: string;
 }
 
 /**
@@ -916,7 +1004,7 @@ export interface KitOverrides {
 export function applyKitOverrides(kit: VideoKit, overrides: KitOverrides, ctx: KitContext): { kit: VideoKit; refused: { field: string; reason: string }[] } {
   const next: VideoKit = { ...kit, trace: [...kit.trace] };
   const refused: { field: string; reason: string }[] = [];
-  const prefix: Record<keyof KitOverrides, string> = { logo: 'logo', background: 'bg', annotate: 'annotate', iconSet: 'icons', camera: 'camera', entrance: 'entrance' };
+  const prefix: Record<keyof KitOverrides, string> = { logo: 'logo', background: 'bg', annotate: 'annotate', iconSet: 'icons', camera: 'camera', entrance: 'entrance', iconMotion: 'iconmotion', imageFx: 'imagefx' };
   for (const field of Object.keys(prefix) as (keyof KitOverrides)[]) {
     const value = overrides[field];
     if (value === undefined) continue;

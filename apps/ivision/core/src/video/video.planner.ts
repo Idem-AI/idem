@@ -501,6 +501,12 @@ const COMBOS: string[][] = [
   ['GrowArea', 'Sketch'],
   ['Flat3D', 'FlowField'],
   ['Particles', 'Kinetic'],
+  ['Shader', 'Kinetic'],
+  ['ImageFx', 'Kinetic'],
+  ['LiquidGlass', 'Shader'],
+  ['Morph', 'Kinetic'],
+  ['IconMotion', 'Kinetic'],
+  ['Network', 'Odometer'],
 ];
 
 function kitAllowed(name: string, brief: CreativeBrief, photos: number): boolean {

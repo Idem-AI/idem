@@ -53,7 +53,7 @@ export function useCamera(): CSSProperties {
   const punch = s.accent === 'punch' ? 1 + 0.08 * (1 - ease(progress(t, s.tin, 0.4))) * (t >= s.tin ? 1 : 0) : 1;
   // Le sens alterne d'une scène à l'autre : la caméra ne refait pas deux fois le même geste.
   const dir = s.index % 2 ? -1 : 1;
-  switch (data.kit?.camera || data.direction.camera) {
+  switch (s.kitOver?.camera || data.kit?.camera || data.direction.camera) {
     case 'push':
       return { transform: `scale(${mix(1, 1.045, p) * punch})` };
     case 'pull':
@@ -76,7 +76,8 @@ export function useCamera(): CSSProperties {
  */
 export function useFamilyKind(fallback: EnterKind): EnterKind {
   const { data } = useEngine();
-  const f = data.kit?.entrance;
+  const s = useScene();
+  const f = s.kitOver?.entrance || data.kit?.entrance;
   return (f && (ENTER_KINDS as string[]).includes(f) ? f : fallback) as EnterKind;
 }
 

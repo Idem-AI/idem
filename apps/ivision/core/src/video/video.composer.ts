@@ -22,7 +22,8 @@ import { VideoTheme } from './video.theme';
 import { DirectionId, DIRECTIONS, isMotionDirection, planMotion } from './video.direction';
 import { AddonId, engineBundles } from './video.engine';
 import { addonsForKit } from './video.capabilities';
-import { iconSvg } from './video.icons';
+import { brandIconsIn } from './video.brands';
+import { conceptFor, iconSvg } from './video.icons';
 import { analyzeLogo } from './video.logo';
 
 export type Orientation = 'portrait' | 'square' | 'landscape';
@@ -336,13 +337,31 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
             ? { mode: 'cards', images: scene.images, ...colors }
             : { mode: 'shapes', ...colors };
       }
-      const extrude = kit ? kit.logo === 'extrude' : scene.variant === 2;
+      const extrude = kit ? kit.logo === 'extrude' || scene.demo?.kit?.logo === 'extrude' : scene.variant === 2;
       if (scene.sceneId === 'logo' && extrude && theme.logo.svgMarkup) extra.three = { mode: 'logo', svg: theme.logo.svgMarkup, ...colors };
-      if (extra.three && kit?.postfx.length) (extra.three as Record<string, unknown>).postfx = kit.postfx;
+      if (extra.three && (scene.demo?.postfx || kit?.postfx.length)) (extra.three as Record<string, unknown>).postfx = scene.demo?.postfx || kit!.postfx;
       // Kit : fond posé sur cette scène, pictogrammes de ses éléments (SVG lus côté serveur).
       if (kit?.backdropScenes.includes(scene.key)) extra.backdrop = true;
+      // Vidéos d'essai des outils : étiquette, fond et annotation propres à la scène.
+      if (scene.demo?.backdrop) Object.assign(extra, { backdrop: true, backdropId: scene.demo.backdrop });
+      if (scene.demo?.annotate) extra.annotateId = scene.demo.annotate;
+      if (scene.demo?.kit) extra.kitOver = scene.demo.kit;
+      if (scene.demo?.label) Object.assign(extra, { demoLabel: scene.demo.label, demoNote: scene.demo.note });
       const concepts = kit?.icons[scene.key];
-      if (concepts?.length) extra.icons = concepts.map((c) => iconSvg(kit!.iconSet, c) || '');
+      if (concepts?.length) extra.icons = concepts.map((c) => iconSvg((scene.demo?.iconSet as NonNullable<typeof kit>['iconSet']) || kit!.iconSet, c) || '');
+      // Une scène écrite par l'IA reçoit aussi des pictogrammes tirés de SES textes (livraison, paiement…), même
+      // sans liste d'avantages : ce sont des SVG, donc animables (`<IconMotion svg={s.icons?.[0]} />`).
+      if (scene.code?.tsx && !extra.icons && kit) {
+        const used: string[] = [];
+        for (const v of Object.values(scene.slots || {})) {
+          const c = used.length < 3 ? conceptFor(String(v || ''), used) : null;
+          if (c) used.push(c);
+        }
+        if (used.length) extra.icons = used.map((c) => iconSvg((scene.demo?.iconSet as NonNullable<typeof kit>['iconSet']) || kit.iconSet, c) || '');
+      }
+      // Les marques NOMMÉES dans les textes de la scène (WhatsApp, Orange Money…) : leur logo en SVG.
+      const brands = brandIconsIn(Object.values(scene.slots || {}).join(' '));
+      if (brands.length) extra.brands = brands.map((b) => ({ name: b.name, svg: b.svg }));
       const motion = scene.motion ? { ...fallbackPlan[i], ...scene.motion } : fallbackPlan[i];
       return {
         key: scene.key,
@@ -376,6 +395,8 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
   if (scenes.some((s: any) => s.rive)) addons.add('rive');
   // Les mises en page à graphique et les scènes écrites par l'IA apportent leurs bibliothèques.
   for (const sc of storyboard.scenes) {
+    // Un fond ou une annotation propre à la scène apporte sa bibliothèque (ogl, draw…).
+    if (sc.demo?.backdrop || sc.demo?.annotate || sc.demo?.kit) addonsForKit({ logo: sc.demo.kit?.logo || 'classic', background: sc.demo.backdrop || 'none', postfx: [], annotate: sc.demo.annotate, imageFx: sc.demo.kit?.imageFx }).forEach((id) => addons.add(id));
     const needed = sc.layout ? LAYOUT_CATALOGUE[sc.layout as Exclude<LayoutId, 'classic'>]?.addon : undefined;
     if (needed) addons.add(needed);
     if (sc.code?.tsx) addonsOfSceneCode(sc.code.tsx).forEach((id) => addons.add(id));
@@ -416,6 +437,8 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
           entrance: kit.entrance,
           brandmarkCorner: freeCorner(scenes.map((sc: any) => sc.motion?.anchor), format, storyboard.seed),
           spring: kit.spring,
+          iconMotion: kit.iconMotion,
+          imageFx: kit.imageFx,
         }
       : undefined,
     music: opts.mode === 'preview' && opts.music ? opts.music : undefined,

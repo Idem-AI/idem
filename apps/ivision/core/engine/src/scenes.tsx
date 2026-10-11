@@ -16,6 +16,8 @@ import { cue } from './cues';
 import { useEngine, useLocalTime, useScene } from './context';
 import { Composition, useEnter, useExitAt, useFamilyKind } from './layout';
 import { Icon } from './kit/Icon';
+import { IconMotion } from './kit/IconMotion';
+import { PhotoEl } from './kit/ImageFx';
 import { LogoMotion, SVG_LOGO_VARIANTS } from './kit/LogoMotion';
 import { Clip, LottieBox, RiveBox, ThreeView } from './media';
 import { Kinetic, Odometer } from './text';
@@ -79,7 +81,8 @@ function Media({ src, video, at, mode }: { src?: string; video?: string; at: num
   const s = useScene();
   const lt = useLocalTime();
   const id = data.direction.id;
-  const content = video ? <Clip src={video} className="media-el" /> : src ? <img className="media-el" src={src} alt="" /> : null;
+  // La photo d'un produit peut recevoir l'effet retenu par le graphe (PixiJS) ; la photo seule reste le repli.
+  const content = video ? <Clip src={video} className="media-el" /> : src ? <PhotoEl src={src} className="media-el" /> : null;
   if (!content) return null;
   // Lente poussée sur l'image fixe : elle vit sans distraire.
   const kb = video ? {} : { transform: `scale(${mix(1.12, 1.02, clamp((lt + s.start - s.visFrom) / Math.max(0.1, s.span)))})` };
@@ -123,7 +126,7 @@ function Hook() {
   return (
     <Composition>
       <Kicker text={s.slots.kicker} at={0} />
-      <Headline text={s.slots.title} at={s.motion.kicker ? 0.25 : 0.05} fit={horizontal ? [15, 8, 2] : big ? [24, 10, 4] : [20, 9, 3]} emph={['kinetic', 'collage', 'drenched'].includes(data.direction.id) || data.kit?.annotateScene === s.key} />
+      <Headline text={s.slots.title} at={s.motion.kicker ? 0.25 : 0.05} fit={horizontal ? [15, 8, 2] : big ? [24, 10, 4] : [20, 9, 3]} emph={['kinetic', 'collage', 'drenched'].includes(data.direction.id) || (data.kit?.annotateScene === s.key || !!s.annotateId)} />
       <Rule at={0.6} />
     </Composition>
   );
@@ -135,7 +138,7 @@ function Statement() {
   const g = data.direction.pacing.groupStagger;
   return (
     <Composition>
-      <Headline text={s.slots.title} fit={[14, 7, 4]} emph={data.kit?.annotateScene === s.key} />
+      <Headline text={s.slots.title} fit={[14, 7, 4]} emph={(data.kit?.annotateScene === s.key || !!s.annotateId)} />
       <Rule at={g + 0.3} />
       <Support text={s.slots.sub} at={g * 2} />
     </Composition>
@@ -221,7 +224,7 @@ function Benefits() {
             cue(`${s.key}:b${i}`, s.start + a, 'softwhoosh', 0.45);
             return (
               <span key={i} className="oaat-item" style={{ opacity: p * (1 - q), transform: `translateY(${(1 - p) * 3 - q * 3}vmin)`, filter: `blur(${Math.max(0, (1 - p + q) * 6)}px)` }}>
-                {s.icons?.[i] ? <Icon svg={s.icons[i]} className="mb-3 block size-12 text-hl-text" /> : null}
+                {s.icons?.[i] ? <Icon svg={s.icons[i]} index={i} className="mb-3 block size-12 text-hl-text" /> : null}
                 {it}
               </span>
             );
@@ -255,7 +258,7 @@ function Item({ text, at, index, exitAt }: { text: string; at: number; index: nu
     <li className="list-row" style={{ ...style, ...tilt }}>
       {s.icons?.[index] ? (
         // Pastille et autocollant portent déjà leur couleur : l'icône la reprend.
-        <Icon svg={s.icons[index]} className={id === 'kinetic' || id === 'collage' ? 'size-8 text-current' : id === 'swiss' || id === 'brutal' ? 'size-11 text-hl-text' : 'size-10 text-hl-text'} />
+        <Icon svg={s.icons[index]} index={index} className={id === 'kinetic' || id === 'collage' ? 'size-8 text-current' : id === 'swiss' || id === 'brutal' ? 'size-11 text-hl-text' : 'size-10 text-hl-text'} />
       ) : id === 'editorial' || id === 'precision' ? (
         <span className="list-dot" />
       ) : null}
@@ -497,6 +500,20 @@ export function ActionButton({ text, at, className = '' }: { text?: string; at: 
   );
 }
 
+/** Les logos des marques NOMMÉES dans les textes de la scène (WhatsApp, Orange Money…), tracés l'un après l'autre. */
+export function BrandRow({ at }: { at: number }) {
+  const s = useScene();
+  const { u } = useEngine();
+  if (!s.brands?.length) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2.4 * u, marginTop: 2 * u, color: 'var(--ink)', opacity: 0.92 }}>
+      {s.brands.map((b, i) => (
+        <IconMotion key={b.name} svg={b.svg} mode="draw" at={at + i * 0.18} dur={0.9} style={{ width: 5.4 * u, height: 5.4 * u }} />
+      ))}
+    </div>
+  );
+}
+
 function Cta() {
   const s = useScene();
   const { data, horizontal } = useEngine();
@@ -504,9 +521,10 @@ function Cta() {
   const g = data.direction.pacing.groupStagger;
   return (
     <Composition>
-      <Headline text={s.slots.title} fit={horizontal ? [12, 7, 2] : [15, 7, 3]} emph={['kinetic', 'collage', 'drenched'].includes(id) || data.kit?.annotateScene === s.key} />
+      <Headline text={s.slots.title} fit={horizontal ? [12, 7, 2] : [15, 7, 3]} emph={['kinetic', 'collage', 'drenched'].includes(id) || (data.kit?.annotateScene === s.key || !!s.annotateId)} />
       <ActionButton text={s.slots.action} at={g * 1.6} />
       <Support text={s.slots.contact} at={g * 2.6} fit={[4.6, 3.2, 1]} />
+      <BrandRow at={g * 3.2} />
     </Composition>
   );
 }
@@ -538,7 +556,7 @@ function Logo() {
     );
   }
   const id = data.direction.id;
-  const kitLogo = data.kit?.logo || 'classic';
+  const kitLogo = s.kitOver?.logo || data.kit?.logo || 'classic';
   // Logo vectoriel animé (graphe de capacités) : tracé, plume, morphose, assemblage, balayage.
   if (SVG_LOGO_VARIANTS.includes(kitLogo) && data.kit?.logoSvg) {
     cue(`${s.key}:logo-motion`, s.tin, kitLogo === 'assemble' ? 'pop' : kitLogo === 'morph' ? 'whoosh' : 'softwhoosh', 0.6);

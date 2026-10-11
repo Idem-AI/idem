@@ -116,7 +116,7 @@ L'ancien codeur de scènes (`video.coder.ts#codeScenes`) reste le repli du film 
    - les hooks de temps et de scène ;
    - la typographie ajustée (`Kinetic`, `Odometer`) ;
    - les entrées (`useEnter`), les sons (`cue`), les icônes, le logo animé ;
-   - les graphiques et le dessin : `ChartJs`, `useViz` (visx + d3), `DataArc`, `GrowArea`, `AfricaMap`, `Sketch`, `Brush`, `useNoise`, `FlowField`, `Flat3D`, `Particles` ; les chiffres par `numbersIn` ;
+   - les graphiques et le dessin : `ChartJs`, `useViz` (visx + d3), `DataArc`, `GrowArea`, `AfricaMap`, `Sketch`, `Brush`, `useNoise`, `FlowField`, `Flat3D`, `Particles`, `Shader`, `ImageFx`, `LiquidGlass`, `Gradient`, `Network`, `Morph`, `IconMotion`, `Bg` (voir « boîte à outils d'abord », VIDEO_ENGINE.md §18) ; les chiffres par `numbersIn` ;
    - les variables de la charte et les règles du moteur.
 
    Le kit est exposé par `apps/ivision/core/engine/src/kit-api.ts` ; les addons qu'un plan importe sont chargés au montage (`addonsOfSceneCode`).

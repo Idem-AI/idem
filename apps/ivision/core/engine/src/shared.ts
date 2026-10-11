@@ -79,6 +79,27 @@ export interface ZdogAddon {
   Zdog: any;
 }
 
+/** Une toile WebGL pilotée : le moteur lui donne les paramètres de l'instant, elle se dessine, sans horloge propre. */
+export interface GlInstance {
+  render(params: Record<string, any>): void;
+  /** Libère le contexte (Chromium n'en garde que 16 : une scène hors champ rend le sien). */
+  dispose(): void;
+}
+
+/** OGL : shaders plein cadre (fonds de matière) et filtres de texture, `uTime` posé par le moteur. */
+export interface OglAddon {
+  /** Les effets disponibles (aurora, silk, plasma, fluid, mesh, topology, waves, blobs). */
+  effects: string[];
+  create(canvas: HTMLCanvasElement, opts: { effect: string; width: number; height: number; uniforms: Record<string, any>; image?: HTMLImageElement | null }): GlInstance | null;
+}
+
+/** PixiJS 7 + pixi-filters : une image et une pile de filtres, rendue à la demande (jamais par le ticker). */
+export interface PixiAddon {
+  /** Les effets d'image disponibles (rgbSplit, shockwave, bulge, twist, zoomBlur, pixelate, glitch, wavy, crt). */
+  effects: string[];
+  create(canvas: HTMLCanvasElement, opts: { effect: string; width: number; height: number; image: HTMLImageElement; seed: number }): GlInstance | null;
+}
+
 export interface Addons {
   three?: ThreeAddon;
   gsap?: GsapAddon;
@@ -90,6 +111,8 @@ export interface Addons {
   viz?: VizAddon;
   draw?: DrawAddon;
   zdog?: ZdogAddon;
+  ogl?: OglAddon;
+  pixi?: PixiAddon;
 }
 
 const registry = (): Addons => {

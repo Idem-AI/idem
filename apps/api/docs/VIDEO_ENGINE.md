@@ -54,7 +54,7 @@ validée.
 | Paquet | Taille | Contenu | Chargé |
 |---|---|---|---|
 | `runtime.js` | ~190 ko | React 19 + ReactDOM, la seule copie de la page (`window.__IDEM_RT__`) | toujours |
-| `engine.js` | ~185 ko | scènes, techniques de texte, transitions, mises en page, kit Tailwind, CSS compilée | toujours |
+| `engine.js` | ~215 ko | scènes, techniques de texte, transitions, mises en page, kit Tailwind, CSS compilée | toujours |
 | `addon-three.js` | ~1,2 Mo | three.js + React Three Fiber v9 + drei + postprocessing | scène 3D |
 | `addon-gsap.js` | ~110 ko | GSAP + DrawSVG, MorphSVG, MotionPath, CustomEase | logo « plume » |
 | `addon-anime.js` | ~40 ko | anime.js v4 (timelines, stagger en grille, svg) | fond « vague » |
@@ -65,6 +65,8 @@ validée.
 | `addon-viz.js` | ~350 ko | visx (composants de data-visualisation) + d3 (interpolate, delaunay, geo) + carte du monde | `dataArc`, fond `voronoi`, carte de l'Afrique, plan codé |
 | `addon-draw.js` | ~35 ko | rough.js + perfect-freehand + simplex-noise | fonds `flow-field` / `sketch-shapes`, annotations `sketch-circle` / `brush`, plan codé |
 | `addon-zdog.js` | ~30 ko | Zdog (pseudo-3D plate en SVG) | fond `flat3d`, plan codé |
+| `addon-ogl.js` | ~50 ko | OGL (WebGL minimal) + les 8 shaders de matière | fonds `aurora`, `silk`, `plasma`, `fluid`, `mesh`, `topology`, `waves`, `blobs`, `<Shader>` d'un plan codé |
+| `addon-pixi.js` | ~540 ko | PixiJS 7 + pixi-filters : les 9 effets sur une photo | effet photo retenu par le graphe, `<ImageFx>` d'un plan codé |
 
 Ordre dans la page : runtime → addons → moteur. Les addons importent `react` : au paquet, ces imports sont
 redirigés vers le runtime (plugin `shared-react` de `video.engine.ts`), une seule instance de React existe.
@@ -97,6 +99,9 @@ donné, dans n'importe quel ordre (rendu en onglets parallèles). Une bibliothè
 | perfect-freehand | 1.2 | traits de pinceau à pression | fonction pure |
 | simplex-noise | 4 | bruit continu (champs de flux, mouvements organiques) | graine du moteur (`hash`), jamais `Math.random` |
 | Zdog | 1.1 | objets 3D plats et ronds en SVG | rotation posée puis `updateRenderGraph()` |
+| OGL | 1 | shaders plein cadre (8 fonds de matière) | un triangle, un programme, `uTime` posé par le moteur ; **aucune boucle** ; toile créée à l'apparition de la scène, libérée à son départ (16 contextes WebGL au plus) |
+| PixiJS + pixi-filters | 7.4 / 5.3 | 9 effets sur une photo (canaux, onde de choc, bulbe, torsion, flou de zoom, pixels, glitch, ondulation, CRT) | ticker arrêté, `app.render()` à la demande, paramètres posés par le moteur ; PixiJS 7 car son constructeur est synchrone |
+| simple-icons | 16 | logos des marques NOMMÉES dans un texte (WhatsApp, Orange Money…) | SVG lus côté serveur (`video.brands.ts`), jamais embarqués en bloc |
 
 **Licences.** Chaque bibliothèque porte sa licence dans le graphe (`license`, SPDX) et `check:video:engine` la compare au
 `package.json` réellement installé : une mise à jour qui change de licence fait échouer le contrôle. Toutes autorisent
@@ -141,13 +146,20 @@ kit** en fonctions du temps, aux couleurs de la charte.
 | Composant | Rôle | Nœuds du graphe |
 |---|---|---|
 | `LogoMotion` | anime le logo vectoriel posé en ligne : `draw`, `trace`, `morph`, `assemble`, `wipe` | `logo:*` |
-| `Backdrop` | fond de deux scènes au plus : `dot-grid`, `halftone`, `shape-field`, `stagger-grid`, `marquee`, `spotlight`, `ticks`, `flow-field`, `sketch-shapes`, `voronoi`, `flat3d`, `motes`, `embers`, `confetti` | `bg:*` |
+| `Backdrop` | fond de deux scènes au plus : `dot-grid`, `halftone`, `shape-field`, `stagger-grid`, `marquee`, `spotlight`, `ticks`, `flow-field`, `sketch-shapes`, `voronoi`, `flat3d`, `motes`, `embers`, `confetti`, `aurora`, `silk`, `plasma`, `fluid`, `mesh`, `topology`, `waves`, `blobs`, `network`, `gradient` | `bg:*` |
 | `Em` / `EmDecor` | annotation du mot mis en valeur, une scène par vidéo : `marker`, `underline`, `circle`, `sketch-circle`, `brush` | `annotate:*` |
 | `Icon` | pictogramme SVG choisi par le serveur, couleur héritée | `icons:*` |
 | `ChartJs` | graphique Chart.js piloté par le temps (`grow` : rise, sweep, reveal), couleurs `var(--…)` résolues, valeurs exposées dans `data-chart-values` | `layout:chartRing`, `layout:barCompare` |
 | `useViz`, `DataArc`, `GrowArea`, `AfricaMap`, `VoronoiField` | visx + d3 pour l'agent codeur ; jauge, aire qui se dessine, carte de l'Afrique (seuls les pays **nommés** dans le texte s'allument), mosaïque | `layout:dataArc`, `bg:voronoi` |
 | `Sketch`, `Brush`, `useNoise`, `FlowField` | croquis rough.js, pinceau, bruit simplex, lignes de flux | `bg:flow-field`, `bg:sketch-shapes`, `annotate:sketch-circle`, `annotate:brush` |
 | `Flat3D` | objets Zdog (boîte, cylindre, cône, anneau, sphère…) | `bg:flat3d` |
+| `Shader` | fond de matière en shader OGL : `aurora`, `silk`, `plasma`, `fluid`, `mesh`, `topology`, `waves`, `blobs` ; 4 couleurs de la surface, `strength` (0 → 1) teinte la surface au lieu de la remplacer | `bg:aurora` … `bg:blobs` |
+| `Gradient`, `Network` | dégradé qui passe d'un état de couleurs à l'autre (CSS pur) ; points qui dérivent et se relient (SVG pur) | `bg:gradient`, `bg:network` |
+| `LiquidGlass` | verre réfractif : filtre SVG de déplacement appliqué à l'arrière-plan (`backdrop-filter: url()`), flou et saturation DANS le filtre | mise en page `glassPanel` |
+| `ImageFx` | une photo et un effet PixiJS ; `PhotoEl` choisit entre la photo simple et l'effet retenu par le graphe | `imagefx:*` |
+| `Morph` | formes qui se transforment (13 formes prêtes, ou un tracé 100 × 100), flubber | motif Ultra `shapeMorph` |
+| `IconMotion` | pictogramme SVG animé forme par forme : `draw`, `stagger`, `pop`, `pulse`, `wiggle`, `morph` ; posé, il est EXACTEMENT l'icône fixe | `iconmotion:*`, `Icon` (via `kit.iconMotion`), logos de marques |
+| `Bg` | n'importe lequel des fonds de la bibliothèque, pour un plan codé | `bg:*` |
 | `Particles` | particules à graine, **sans bibliothèque** : `drift` (poussière), `rise` (braises), `fall` (confettis), `burst` (éclat depuis un point), `converge` (rassemblement), `dissolve` (un bloc de texte qui se défait de gauche à droite). La pose de la particule i est une fonction pure de la graine, de i et du temps (`particles.math.ts`), au plus 120, aux couleurs de la charte ; `data-particles` expose le nombre de visibles | `bg:motes`, `bg:embers`, `bg:confetti`, `accent:burst` |
 | `numbersIn`, `percentIn`, `countriesIn` | les chiffres et les pays des TEXTES de la scène : un graphique n'en montre pas d'autres (contrôlé au rendu des plans codés) | — |
 | `cn` | classes conditionnelles sans doublon | — |
@@ -217,6 +229,7 @@ dans le texte l'emporte : « Qualité garantie » donne `quality`, pas `secure`)
 | `npm run check:video:layouts` | chaque mise en page × chaque scène acceptée × 4 formats, textes au plus long : rien hors cadre, rien de trop large |
 | `npm run check:video:types` | les 8 types de vidéo avec vrais médias et vraie musique |
 | `npm run check:video:directions` | diversité des 8 directions |
+| `npm run demo:video-tools` | **vidéos de démonstration de tous les outils** (voir §18) : `-- --only=03,05`, `-- --quality=hd`, `-- --format=story` |
 
 ## 9. API
 
@@ -598,6 +611,32 @@ l'utilisateur dans la mémoire globale.
 Mesuré par `npm run check:video:novelty` (vrai pipeline, agents simulés, même marque, même brief) : écart minimal à la
 vidéo la plus proche ≥ 0,30 à chaque cran, écart moyen ≈ 0,6 entre deux vidéos ; ≈ 0,43 dans le cas le plus dur
 (8 vidéos dans la direction imposée « swiss »).
+
+## 18. La boîte à outils d'abord, et les vidéos de démonstration
+
+**Règle.** Avant de dessiner ou d'inventer quoi que ce soit, le modèle regarde si le graphe le fait déjà. Trois endroits :
+
+- le **codeur du cran Ultra** (`video.coder.ts`) reçoit en tête de son manifeste « TOOLBOX FIRST » : fond vivant → `Shader`, `Gradient`, `Network`, `Particles` ; photo avec effet → `ImageFx` ; verre → `LiquidGlass` ; forme ou icône qui devient une autre → `Morph`, `IconMotion mode="morph"` ; icône ou logo de marque animé → `IconMotion` ; chiffres → `Odometer`, `ChartJs`… ; texte → `Kinetic` (24 techniques) ;
+- le **lint** refuse un tracé SVG écrit à la main de plus de 60 caractères : c'est le signe d'une forme « abstraite » inventée à l'aveugle ;
+- le **directeur du film d'auteur** (`video.author.ts`) doit NOMMER l'outil dans chaque `VISUAL` et n'invente une forme que si aucun outil ne convient.
+
+Aux crans inférieurs, le modèle ne code pas : il choisit dans des menus filtrés par le graphe, donc il ne peut rien demander que le moteur ne sache faire.
+
+**Les vidéos d'essai** (`npm run demo:video-tools`, `api/scripts/demoVideoTools.ts`) sont rendues par le vrai moteur, une scène par outil, avec une étiquette en haut à droite qui nomme l'outil et dit à quoi il sert (`scene.demo`, jamais posé par la création). Elles sont construites à partir du graphe lui-même (fonds, transitions, annotations, mises en page, résumés des nœuds) : un outil ajouté au graphe y apparaît sans rien écrire. Sortie : `tmp/tools-demo/*.mp4` et `index.html` (lecteur + chapitres cliquables).
+
+| Film | Contenu |
+|---|---|
+| 01 typographie | les 24 techniques d'entrée du texte, le compteur à rouleaux, les 5 annotations, « kinetic » et « wordswap » |
+| 02 fonds | les 24 fonds du graphe |
+| 03 matière & verre | particules (6 modes), shaders plein cadre + verre, verre sur une photo, dégradés, réseau, morphose |
+| 04 icônes & données | icônes SVG animées (Lucide, Tabler, Phosphor, Heroicons ; tracé, assemblage, jaillissement, battement, morphose), logos de marques, 6 graphiques Chart.js, jauge, aire, carte de l'Afrique, croquis, pinceau, flux, 3D plate, mosaïque |
+| 05 photos | 9 effets PixiJS, photo cadrée, 9 mises en scène de plans, galerie |
+| 06 3D, Lottie, logo | scènes 3D et leurs effets (bloom, franges, profondeur de champ, vignettage), cartes de photos, 6 Lottie, 8 animations de logo |
+| 07 mises en page | les 18 archétypes |
+| 08 transitions | toutes les transitions du catalogue |
+| 09 caméra & grands moments | 6 caméras, 9 familles d'entrée, 5 grands moments |
+
+Limites : les photos sont des images de test dessinées en SVG ; les chiffres des graphiques sont des données d'exemple ; **Rive** (fichier `.riv`) et **le modèle 3D importé** (GLB) ne sont pas montrés, faute de fichier libre de droits dans le dépôt. Rendu : environ 5 à 6 s de calcul par seconde de vidéo en 720p (WebGL logiciel).
 
 ## Sources
 

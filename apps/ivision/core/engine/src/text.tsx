@@ -118,13 +118,13 @@ export function Kinetic(props: KineticProps) {
   // après sa dernière lettre (techniques par lettre), après lui (par mot), après le bloc.
   const emAt = (() => {
     if (emph < 0) return at;
-    if (tech === 'charCascade' || tech === 'flipChars' || tech === 'scramble' || tech === 'typewriter' || tech === 'springUp' || tech === 'wave' || tech === 'stretch') {
+    if (tech === 'charCascade' || tech === 'flipChars' || tech === 'scramble' || tech === 'typewriter' || tech === 'springUp' || tech === 'wave' || tech === 'stretch' || tech === 'shuffle') {
       const total = words.join('').length;
       const upTo = words.slice(0, emph + 1).join('').length;
       const cst = charStep(tech, st, total);
       return at + upTo * cst + (tech === 'typewriter' ? 0.2 : dur) + 0.1;
     }
-    if (tech === 'trackIn' || tech === 'scaleBlur' || tech === 'boxReveal') return at + dur * 1.2 + 0.1;
+    if (tech === 'trackIn' || tech === 'scaleBlur' || tech === 'boxReveal' || tech === 'shine' || tech === 'glitch' || tech === 'gradientFlow') return at + dur * 1.2 + 0.1;
     return at + emph * st + dur + 0.1;
   })();
 
@@ -162,6 +162,62 @@ export function Kinetic(props: KineticProps) {
             opacity: p,
             filter: `blur(${Math.max(0, (1 - p) * 0.12)}em)`,
           };
+    return (
+      <span ref={ref} data-fit={props.fit?.join(',')} className={`kt kt-${role} ${props.className || ''}`} style={{ ...baseStyle, ...block, ...exitStyle(exitP) }}>
+        {words.map((w, i) => (
+          <Fragment key={i}>
+            {i === emph ? <Em at={emAt}>{w}</Em> : <span>{w}</span>}
+            {i < words.length - 1 ? ' ' : ''}
+          </Fragment>
+        ))}
+      </span>
+    );
+  }
+
+  // ── Techniques de BLOC qui jouent après l'entrée : reflet, glitch, dégradé qui coule ──
+  // (inspirées de ShinyText, GlitchText et GradientText de React Bits, en fonctions du temps.)
+  if (tech === 'shine' || tech === 'glitch' || tech === 'gradientFlow') {
+    const p = ease(progress(lt, at, dur * 1.1));
+    const after = Math.max(0, lt - (at + dur * 1.1));
+    let block: CSSProperties;
+    if (tech === 'shine') {
+      // Un reflet de la couleur de la marque traverse le texte toutes les 2,4 s.
+      const sweep = after > 0 ? ((after % 2.4) / 2.4) * 1.5 : 1.5;
+      block = {
+        opacity: p,
+        transform: `translateY(${(1 - p) * 0.22}em)`,
+        filter: `blur(${Math.max(0, (1 - p) * 0.08)}em)`,
+        backgroundImage: 'linear-gradient(105deg, currentColor 0%, currentColor 36%, var(--hl) 50%, currentColor 64%, currentColor 100%)',
+        backgroundSize: '250% 100%',
+        backgroundPosition: `${mix(130, -30, Math.min(1, sweep / 1.5))}% 0`,
+        WebkitBackgroundClip: 'text',
+        backgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+      };
+    } else if (tech === 'glitch') {
+      // Scintillement à l'entrée, puis une brève rafale de canaux décalés toutes les 1,7 s.
+      const step = Math.floor(lt * 30);
+      const flicker = lt < at + 0.5 ? (hash(Math.floor(lt * 24) + 3) > 0.4 ? 1 : 0.12) : 1;
+      const burst = lt >= at + 0.5 && (lt - at - 0.5) % 1.7 < 0.16;
+      const a = (lt < at + 0.5 ? 0.05 : burst ? 0.045 : 0) * (0.6 + 0.8 * hash(step + 7));
+      block = {
+        opacity: lt < at ? 0 : flicker,
+        textShadow: a > 0 ? `${-a}em 0 var(--hl), ${a}em 0 var(--c-accent)` : undefined,
+        transform: burst || lt < at + 0.5 ? `translateX(${(hash(step + 11) - 0.5) * 0.04}em) skewX(${(hash(step + 13) - 0.5) * 6}deg)` : undefined,
+      };
+    } else {
+      // Un dégradé de l'encre vers la couleur de la marque qui coule le long du texte (contraste garanti : --ink et --hl-text).
+      block = {
+        opacity: p,
+        transform: `translateY(${(1 - p) * 0.22}em)`,
+        backgroundImage: 'linear-gradient(90deg, var(--ink), var(--hl-text), var(--ink))',
+        backgroundSize: '220% 100%',
+        backgroundPosition: `${(lt * 38) % 220}% 0`,
+        WebkitBackgroundClip: 'text',
+        backgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+      };
+    }
     return (
       <span ref={ref} data-fit={props.fit?.join(',')} className={`kt kt-${role} ${props.className || ''}`} style={{ ...baseStyle, ...block, ...exitStyle(exitP) }}>
         {words.map((w, i) => (
@@ -228,7 +284,7 @@ export function Kinetic(props: KineticProps) {
   }
 
   // ── Techniques par LETTRE ─────────────────────────────────────────────────
-  if (tech === 'charCascade' || tech === 'flipChars' || tech === 'scramble' || tech === 'typewriter' || tech === 'springUp' || tech === 'wave' || tech === 'stretch') {
+  if (tech === 'charCascade' || tech === 'flipChars' || tech === 'scramble' || tech === 'typewriter' || tech === 'springUp' || tech === 'wave' || tech === 'stretch' || tech === 'shuffle') {
     let ci = 0;
     const totalChars = words.join('').length;
     const typingEnd = at + totalChars * charStep('typewriter', st, totalChars);
@@ -252,6 +308,26 @@ export function Kinetic(props: KineticProps) {
                   return (
                     <span key={k} style={{ opacity: lt >= start ? 1 : 0 }}>
                       {ch}
+                    </span>
+                  );
+                }
+                if (tech === 'shuffle') {
+                  // Chaque lettre est une fente de machine à sous : trois lettres tirées au sort défilent, puis la bonne se pose.
+                  const raw = progress(lt, start, dur * 1.1);
+                  // Posée, la lettre redevient une lettre : aucun reste de la fente (le défilement ne laisse pas de trace).
+                  if (raw >= 1) return <span key={k}>{ch}</span>;
+                  const q = ease(raw);
+                  const rows = [0, 1, 2].map((r) => GLYPHS[Math.floor(hash(i * 17 + r * 5.3 + 1) * GLYPHS.length)]);
+                  return (
+                    <span key={k} className="kt-shuf" style={{ position: 'relative', display: 'inline-block', overflow: 'hidden', verticalAlign: 'bottom' }}>
+                      <span style={{ visibility: 'hidden' }}>{ch}</span>
+                      <span style={{ position: 'absolute', left: 0, top: `${-q * 300}%`, display: 'block', width: '100%', opacity: clamp(raw * 5) }}>
+                        {[...rows, ch].map((g, r) => (
+                          <span key={r} style={{ display: 'block', lineHeight: 'inherit' }}>
+                            {g}
+                          </span>
+                        ))}
+                      </span>
                     </span>
                   );
                 }

@@ -16,6 +16,7 @@ import { Video } from './App';
 import { SceneData, VideoData } from './context';
 import { timeline } from './transitions';
 import { allCues } from './cues';
+import { syncGl } from './gl';
 import { mediaReady, syncClipsExact, syncClipsPreview, syncLotties, syncThree } from './media';
 // Feuille compilée au paquet : Tailwind (thème de la charte + utilitaires) puis engine.css.
 import css from 'virtual:engine-css';
@@ -47,6 +48,7 @@ function draw(t: number) {
   flushSync(() => root.render(<Video key={version} data={data} t={current} />));
   syncLotties(current);
   syncThree(current);
+  syncGl(current);
 }
 
 const timeout = (ms: number) => new Promise((r) => setTimeout(r, ms));

@@ -303,6 +303,33 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
     const particleBgs = new Set<string>();
     for (const dir of DIRECTION_IDS) for (let seed = 1; seed <= 30; seed++) particleBgs.add(resolveKit(ctxFor({ direction: dir, seed })).background);
     check(`fonds : au moins un fond de particules est retenu sur 30 graines × ${DIRECTION_IDS.length} directions`, ['motes', 'embers', 'confetti'].some((b) => particleBgs.has(b)), [...particleBgs].join(','));
+    // Matière, réseau, dégradé, effets d'image, animation des icônes : choisis par le graphe, jamais hors contexte.
+    const matter = ['aurora', 'silk', 'plasma', 'fluid', 'mesh', 'topology', 'waves', 'blobs', 'network', 'gradient'];
+    const matterSeen = new Set<string>();
+    const iconMotions = new Set<string>();
+    const fxWithPhoto = new Set<string>();
+    let fxWithoutPhoto = 0;
+    let styled3d = 0;
+    for (const dir of DIRECTION_IDS) {
+      for (let seed = 1; seed <= 24; seed++) {
+        const k = resolveKit(ctxFor({ direction: dir, seed }));
+        if (matter.includes(k.background)) matterSeen.add(k.background);
+        if (k.iconMotion) iconMotions.add(k.iconMotion);
+        const product = { key: 'product-9', sceneId: 'product', hasMedia: true, hasTitle: true };
+        const withPhoto = resolveKit(ctxFor({ direction: dir, seed, scenes: [...ctxFor({}).scenes, product], media: { images: 2, videos: 0, models: 0, lotties: 0, rive: 0 } }));
+        if (withPhoto.imageFx && withPhoto.imageFx !== 'none') fxWithPhoto.add(withPhoto.imageFx);
+        const noPhoto = resolveKit(ctxFor({ direction: dir, seed, media: { images: 0, videos: 0, models: 0, lotties: 0, rive: 0 } }));
+        if (noPhoto.imageFx && noPhoto.imageFx !== 'none') fxWithoutPhoto++;
+        const prem3d = resolveKit(ctxFor({ direction: dir, seed, quality: 'premium', type: 'showcase3d', scenes: [...ctxFor({}).scenes, { key: 'showcase3d-6', sceneId: 'showcase3d', hasMedia: false, hasTitle: true, three: true }] }));
+        if (prem3d.postfx.filter((x) => x !== 'smaa').length > 2) styled3d++;
+      }
+    }
+    check(`matière : ${matterSeen.size} des ${matter.length} fonds de matière, de réseau ou de dégradé sont retenus par le graphe`, matterSeen.size >= 5, [...matterSeen].join(','));
+    check(`animation des pictogrammes : ${iconMotions.size} choix différents (${[...iconMotions].join(', ')})`, iconMotions.size >= 3);
+    check(`effets d’image : ${fxWithPhoto.size} effets retenus quand il y a une photo de produit`, fxWithPhoto.size >= 3, [...fxWithPhoto].join(','));
+    check('effets d’image : aucun sans photo de produit', fxWithoutPhoto === 0, `${fxWithoutPhoto} cas`);
+    check('postfx 3D : au plus deux effets de style (plus SMAA), jamais quatre empilés', styled3d === 0, `${styled3d} cas`);
+
     const noLogo = resolveKit(ctxFor({ logo: null, hasLogoIcon: false }));
     check('sans logo vectoriel ni symbole → signature de la direction', noLogo.logo === 'classic', noLogo.logo);
     const std = resolveKit(ctxFor({ quality: 'standard', type: 'showcase3d', scenes: [...ctxFor({}).scenes, { key: 'showcase3d-6', sceneId: 'showcase3d', hasMedia: false, hasTitle: true, three: true }] }));
@@ -344,7 +371,7 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
     sheet.push({ group: 'Animations de logo', shots: logoShots });
 
     const bgShots: Shot[] = [];
-    for (const bg of ['dot-grid', 'halftone', 'shape-field', 'stagger-grid', 'marquee', 'spotlight', 'ticks', 'flow-field', 'sketch-shapes', 'voronoi', 'flat3d', 'motes', 'embers', 'confetti']) {
+    for (const bg of ['dot-grid', 'halftone', 'shape-field', 'stagger-grid', 'marquee', 'spotlight', 'ticks', 'flow-field', 'sketch-shapes', 'voronoi', 'flat3d', 'motes', 'embers', 'confetti', 'aurora', 'silk', 'plasma', 'fluid', 'mesh', 'topology', 'waves', 'blobs', 'network', 'gradient']) {
       const { html, spec, sb } = await composeKit({
         brandId: 'bissap',
         sceneIds: ['statement', 'cta'],
@@ -359,10 +386,58 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
       // Les particules n'ont besoin d'aucune bibliothèque : aucun addon dans la page.
       if (['motes', 'embers', 'confetti'].includes(bg)) check(`fond ${bg} : aucun addon chargé (particules à graine, sans bibliothèque)`, !html.includes('data-addon='));
       if (wanted) check(`fond ${bg} : addon-${wanted} chargé, aucun autre addon de dessin`, html.includes(`data-addon="${wanted}"`) && ['chart', 'viz', 'draw', 'zdog'].filter((a) => a !== wanted).every((a) => !html.includes(`data-addon="${a}"`)));
-      const frames = await renderCheck(browser, html, spec, [0.4, 1.0, s0.duration - 0.3], `fond ${bg}`);
+      const shaderBg = ['aurora', 'silk', 'plasma', 'fluid', 'mesh', 'topology', 'waves', 'blobs'].includes(bg);
+      if (shaderBg) check(`fond ${bg} : addon-ogl chargé, ni pixi ni addon de dessin`, html.includes('data-addon="ogl"') && !html.includes('data-addon="pixi"') && ['chart', 'viz', 'draw', 'zdog'].every((a) => !html.includes(`data-addon="${a}"`)));
+      if (['network', 'gradient'].includes(bg)) check(`fond ${bg} : aucun addon chargé (SVG ou CSS pur)`, !html.includes('data-addon='));
+      const frames = await renderCheck(browser, html, spec, [0.4, 1.0, s0.duration - 0.3], `fond ${bg}`, {
+        mustMove: ['network', 'gradient', 'aurora', 'fluid', 'plasma', 'waves', 'blobs', 'silk', 'mesh'].includes(bg),
+        probe: shaderBg
+          ? async (page) => {
+              const st = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.gl-host')].map((c) => ({ ready: !!c.dataset.glReady, failed: !!c.dataset.glFailed, w: c.getBoundingClientRect().width })));
+              check(`fond ${bg} : la toile WebGL est prête, sans échec, étirée au cadre`, st.length >= 1 && st.every((c) => c.ready && !c.failed && c.w > 300), JSON.stringify(st));
+            }
+          : undefined,
+      });
       bgShots.push({ label: bg, frames });
     }
     sheet.push({ group: 'Fonds', shots: bgShots });
+
+    // Une toile WebGL libère son contexte quand sa scène est loin, et en retrouve un neuf quand on y revient
+    // (aperçu, retouche) : même image avant et après le détour.
+    {
+      const { html, spec, sb } = await composeKit({
+        brandId: 'bissap',
+        sceneIds: ['statement', 'statement', 'statement', 'statement'],
+        slots: [{ title: 'Premier plan' }, { title: 'Deuxième plan' }, { title: 'Troisième plan' }, { title: 'Quatrième plan' }],
+        direction: 'kinetic',
+        kit: (keys) => baseKit({ background: 'fluid', backdropScenes: [keys[0]] }),
+      });
+      const page = await browser.newPage();
+      try {
+        await page.setViewport({ width: spec.width, height: spec.height, deviceScaleFactor: 1 });
+        await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
+        await page.evaluate(() => (window as any).__IDEM_VIDEO__.ready);
+        const shot = async (t: number) => {
+          await page.evaluate((x: number) => (window as any).__IDEM_VIDEO__.seek(x), t);
+          return Buffer.from(await page.screenshot({ type: 'png' }));
+        };
+        const live = () => page.evaluate(() => document.querySelectorAll('.gl-host[data-gl-live]').length);
+        const early = sb.scenes[0].start + 1.0;
+        const a = await shot(early);
+        const liveBefore = await live();
+        await shot(sb.durationSec - 0.4);
+        const liveFar = await live();
+        const b = await shot(early);
+        const sharpLib = (await import('sharp')).default;
+        const [ra, rb] = await Promise.all([sharpLib(a).raw().toBuffer(), sharpLib(b).raw().toBuffer()]);
+        let diff = 0;
+        for (let k = 0; k < ra.length; k += 4) if (Math.abs(ra[k] - rb[k]) > 8 || Math.abs(ra[k + 1] - rb[k + 1]) > 8 || Math.abs(ra[k + 2] - rb[k + 2]) > 8) diff++;
+        check('toile WebGL : libérée quand la scène est loin, neuve quand on y revient', liveBefore === 1 && liveFar === 0, `${liveBefore} → ${liveFar}`);
+        check('toile WebGL : même image avant et après le détour', diff / (ra.length / 4) < 0.002, `${((diff / (ra.length / 4)) * 100).toFixed(3)} % de pixels`);
+      } finally {
+        await page.close();
+      }
+    }
 
     const annShots: Shot[] = [];
     for (const ann of ['marker', 'underline', 'circle', 'sketch-circle', 'brush']) {
@@ -399,6 +474,11 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
         ['croquis rough', 'Sketch, progress', `<Sketch draw={{ shape: 'ellipse', cx: 50, cy: 62, w: 70, h: 40 }} p={progress(lt, 0.3, 1)} weight={0.6} />`, { title: 'Dessiné à la main' }],
         ['pinceau', 'Brush, progress', `<Brush points={[[10, 70], [30, 62], [55, 72], [80, 60], [92, 66]]} p={progress(lt, 0.2, 1.2)} size={6} />`, { title: 'Un coup de pinceau' }],
         ['flux de bruit', 'FlowField', `<FlowField seed={4} opacity={0.5} />`, { title: 'Un champ vivant' }],
+        ...(['aurora', 'silk', 'plasma', 'fluid', 'mesh', 'topology', 'waves', 'blobs'] as const).map((e) => [`matière ${e}`, 'Shader', `<Shader effect="${e}" strength={0.8} />`, { title: 'La matière en mouvement' }] as [string, string, string, Record<string, string>]),
+        ['dégradé animé', 'Gradient', `<Gradient kind="linear" />`, { title: 'Un dégradé qui glisse' }],
+        ['réseau de points', 'Network', `<Network count={46} reach={20} />`, { title: 'Un réseau qui se tisse' }],
+        ['verre liquide', 'Shader, LiquidGlass', `<Shader effect="mesh" strength={1} /><LiquidGlass x={50} y={44} w={70} h={22}><span style={{ width: 6 * u, height: 6 * u }} /></LiquidGlass>`, { title: 'Le verre qui plie la lumière' }],
+        ['morphose de formes', 'Morph', `<div style={{ position: 'absolute', left: '25%', right: '25%', top: '14%', height: '34%' }}><Morph shapes={['circle', 'star', 'heart']} hold={0.4} fade={0.8} fill="var(--hl)" style={{ width: '100%', height: '100%' }} /></div>`, { title: 'La forme qui devient autre' }],
         ['particules : poussière', 'Particles', `<Particles mode="drift" count={40} seed={4} />`, { title: 'Un air qui brille' }],
         ['particules : désintégration', 'Particles, progress', `<Particles mode="dissolve" area={[10, 40, 90, 60]} at={0.3} dur={1.6} count={80} seed={2} />`, { title: 'Ce qui s’efface' }],
         ['Zdog', 'Flat3D', `<div style={{ position: 'absolute', left: '20%', right: '20%', top: '32%', bottom: '6%' }}><Flat3D rotate={{ x: -0.4, y: lt * 0.9 }} items={[{ kind: 'box', width: 30, height: 30, depth: 30, color: 'var(--hl)', shade: 'var(--c-primary)' }, { kind: 'ring', diameter: 56, stroke: 3, color: 'var(--c-accent)', rotate: { x: 1.3 } }]} /></div>`, { title: 'Un objet en 3D plate' }],
@@ -415,11 +495,24 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
           probe: async (page) => {
             const res = await page.evaluate(() => ({
               errors: (window as any).__IDEM_SCENE_ERRORS__ || {},
-              drawn: !!document.querySelector('section.scene canvas, section.scene svg path, section.scene [data-particles]'),
+              drawn: !!document.querySelector('section.scene canvas, section.scene svg path, section.scene svg circle, section.scene [data-particles], section.scene .liquid-glass, section.scene [style*="gradient"]'),
+              glReady: document.querySelectorAll('.gl-host[data-gl-ready]').length,
+              glFailed: document.querySelectorAll('.gl-host[data-gl-failed]').length,
               values: [...document.querySelectorAll('[data-chart-values]')].map((el) => el.getAttribute('data-chart-values')),
               map: document.querySelector('[data-map-highlight]')?.getAttribute('data-map-highlight') || null,
+              // Un graphique doit laisser de l'encre sur sa toile (un treemap vidé par une affectation de `data` passait « drawn » ; un radar, fin, couvre ~1,5 %).
+              chartInk: (() => {
+                const c = document.querySelector('section.scene [data-chart-values] canvas') as HTMLCanvasElement | null;
+                if (!c) return null;
+                const px = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+                let n = 0;
+                for (let k = 3; k < px.length; k += 4) if (px[k] > 40) n++;
+                return n / (px.length / 4);
+              })(),
             }));
             check(`${label} : la scène codée se rend sans erreur, la brique dessine`, !Object.keys(res.errors).length && res.drawn, JSON.stringify(res.errors).slice(0, 160));
+            if (/Shader|ImageFx/.test(names)) check(`${label} : la toile WebGL est prête, sans échec`, res.glReady > 0 && res.glFailed === 0, `${res.glReady} prête(s), ${res.glFailed} en échec`);
+            if (res.chartInk != null) check(`${label} : le graphique est dessiné (pas une toile vide)`, res.chartInk > 0.005, `${(res.chartInk * 100).toFixed(1)} % de la toile`);
             if (res.values.length) check(`${label} : les valeurs du graphique viennent des textes`, res.values.every((v) => (JSON.parse(v || '[]') as number[]).length > 0), res.values.join(' '));
             if (res.map) check(`${label} : les pays nommés dans le texte sont mis en valeur (et eux seuls)`, res.map === JSON.stringify(['768', '204', '384']), res.map);
           },
@@ -427,6 +520,106 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
         drawShots.push({ label, frames });
       }
       sheet.push({ group: 'Graphiques et dessin', shots: drawShots });
+    }
+
+    // Effets d'image (PixiJS), animation des icônes (graphe), logos de marques, effets 3D : par les chemins du moteur.
+    {
+      process.env.VIDEO_ALLOW_FILE_URLS = '1';
+      const fxPhotos = await makePhotos(path.join(OUT, 'photos'));
+      const fxPhoto = `file://${Object.values(fxPhotos)[0]}`;
+      const waxBrand = brandById('wax');
+      const waxTheme = buildVideoTheme(waxBrand.branding, waxBrand.name);
+      const fxShots: Shot[] = [];
+      for (const effect of ['rgbSplit', 'shockwave', 'bulge', 'twist', 'zoomBlur', 'pixelate', 'glitch', 'wavy', 'crt']) {
+        // « swiss » : la photo est dans un cadre (Media) ; « kinetic » : plein cadre (MediaTreatment).
+        for (const dir of ['swiss', 'kinetic'] as DirectionId[]) {
+          const sb = buildStoryboard({ sceneIds: ['product', 'logo'], slots: [{ name: 'Pagne Héritage', tagline: 'Tissé à la main' }, {}], durationSec: 6, style: 'premium', seed: 4, images: [fxPhoto], direction: dir });
+          sb.kit = baseKit({ imageFx: effect });
+          const { html, spec } = await composeVideoHtml({ ...(await inlineAssets(sb, waxTheme)), format: 'story', quality: 'standard', mode: 'render' });
+          check(`effet photo ${effect} · ${dir} : addon-pixi chargé`, html.includes('data-addon="pixi"'));
+          const frames = await renderCheck(browser, html, spec, [0.5, 1.3, 2.4], `effet photo ${effect} · ${dir}`, {
+            mustMove: true,
+            probe: async (page) => {
+              const st = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.gl-host[data-image-fx]')].map((c) => ({ ready: !!c.dataset.glReady, failed: !!c.dataset.glFailed })));
+              check(`effet photo ${effect} · ${dir} : la toile PixiJS est prête, sans échec`, st.length === 1 && st[0].ready && !st[0].failed, JSON.stringify(st));
+            },
+          });
+          fxShots.push({ label: `${effect} · ${dir}`, frames });
+        }
+      }
+      sheet.push({ group: 'Effets sur la photo (PixiJS)', shots: fxShots });
+
+      // Animation des pictogrammes : posée, l'icône doit être EXACTEMENT l'icône fixe.
+      const iconShots: Shot[] = [];
+      const shootAt = async (html: string, spec: { width: number; height: number }, t: number): Promise<Buffer> => {
+        const page = await browser.newPage();
+        try {
+          await page.setViewport({ width: spec.width, height: spec.height, deviceScaleFactor: 1 });
+          await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
+          await page.evaluate(() => (window as any).__IDEM_VIDEO__.ready);
+          await page.evaluate((x: number) => (window as any).__IDEM_VIDEO__.seek(x), t);
+          return Buffer.from(await page.screenshot({ type: 'png' }));
+        } finally {
+          await page.close();
+        }
+      };
+      const sharpLib = (await import('sharp')).default;
+      for (const [set, mode] of [['lucide', 'draw'], ['phosphor-fill', 'draw'], ['tabler', 'stagger'], ['heroicons-solid', 'pop'], ['phosphor-duotone', 'draw']] as [IconSetId, string][]) {
+        const make = (iconMotion: string) =>
+          composeKit({
+            brandId: 'kofi',
+            sceneIds: ['benefits', 'logo'],
+            slots: [{ title: 'Pourquoi Kofi', b1: 'Livraison en 24 h', b2: 'Paiement mobile money', b3: 'Support 7j/7' }, {}],
+            direction: 'swiss',
+            kit: (keys) => baseKit({ iconSet: set, icons: { [keys[0]]: ['delivery', 'payment', 'support'] }, iconMotion }),
+          });
+        const animated = await make(mode);
+        const fixed = await make('none');
+        const end = animated.sb.scenes[0].duration - 0.3;
+        const [a, b] = await Promise.all([shootAt(animated.html, animated.spec, end), shootAt(fixed.html, fixed.spec, end)]);
+        const [ra, rb] = await Promise.all([sharpLib(a).raw().toBuffer(), sharpLib(b).raw().toBuffer()]);
+        let diff = 0;
+        for (let k = 0; k < ra.length; k += 4) if (Math.abs(ra[k] - rb[k]) > 8 || Math.abs(ra[k + 1] - rb[k + 1]) > 8 || Math.abs(ra[k + 2] - rb[k + 2]) > 8) diff++;
+        check(`icônes ${set} · ${mode} : posées, identiques aux icônes fixes`, diff / (ra.length / 4) < 0.001, `${((diff / (ra.length / 4)) * 100).toFixed(3)} % de pixels`);
+        const frames = await renderCheck(browser, animated.html, animated.spec, [0.45, 0.9, 1.4], `icônes animées ${set} · ${mode}`, { mustMove: true });
+        iconShots.push({ label: `${set} · ${mode}`, frames });
+      }
+      sheet.push({ group: 'Pictogrammes animés (SVG)', shots: iconShots });
+
+      // Logos de marques : une marque NOMMÉE dans le texte donne son logo (Simple Icons), tracé sous l'appel.
+      {
+        const { html, spec } = await composeKit({
+          brandId: 'bissap',
+          sceneIds: ['cta', 'logo'],
+          slots: [{ title: 'Commandez votre pack', action: 'Écrivez-nous', contact: 'WhatsApp, Instagram ou Orange Money' }, {}],
+          direction: 'precision',
+          kit: () => baseKit({}),
+        });
+        const frames = await renderCheck(browser, html, spec, [0.6, 1.6, 2.6], 'logos de marques nommées', {
+          mustMove: true,
+          probe: async (page) => {
+            const n = await page.evaluate(() => document.querySelectorAll('section.scene[data-scene="cta"] svg').length);
+            check('logos de marques : WhatsApp, Instagram et Orange tracés sous l’appel', n >= 3, `${n} SVG`);
+          },
+        });
+        iconShots.push({ label: 'marques nommées', frames });
+      }
+
+      // Effets 3D supplémentaires (premium) : profondeur de champ, franges de couleur, vignettage.
+      const fx3dShots: Shot[] = [];
+      for (const fxs of [['smaa', 'dof'], ['smaa', 'bloom', 'chromatic'], ['smaa', 'vignette']]) {
+        const { html, spec, sb } = await composeKit({
+          brandId: 'kofi',
+          sceneIds: ['showcase3d', 'logo'],
+          slots: [{ title: 'Le produit en 3D', sub: 'Studio' }, {}],
+          direction: 'cinematic',
+          kit: () => baseKit({ postfx: fxs }),
+        });
+        const d0 = sb.scenes[0].duration;
+        const frames = await renderCheck(browser, html, spec, [0.8, 1.6, d0 - 0.4], `3D ${fxs.join('+')}`, { mustMove: true });
+        fx3dShots.push({ label: fxs.join(' + '), frames });
+      }
+      sheet.push({ group: 'Effets 3D (postprocessing)', shots: fx3dShots });
     }
 
     // Mises en scène des plans : chacune sur une vraie photo (et un vrai clip s'il y en a un en cache).
@@ -479,7 +672,7 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
         const frames = await renderCheck(browser, html, spec, times, label, { mustMove: true });
         vocabShots.push({ label, frames });
       };
-      for (const tech of ['springUp', 'wave', 'stretch', 'rotateX', 'zoomWords', 'skewIn', 'scatter', 'outlineFill']) {
+      for (const tech of ['springUp', 'wave', 'stretch', 'rotateX', 'zoomWords', 'skewIn', 'scatter', 'outlineFill', 'shine', 'glitch', 'shuffle', 'gradientFlow']) {
         await render(`entrée ${tech}`, 'kinetic', ['statement', 'logo'], [{ title: 'Le studio qui livre vite', sub: 'Remote, depuis Lomé' }, {}], (sb) => (sb.scenes[0].motion.headline = tech), [0.1, 0.45, 2.4]);
       }
       for (const family of ['spring', 'flip', 'unfold', 'skew', 'iris']) {
@@ -497,6 +690,7 @@ async function composeKit(opts: { brandId: string; sceneIds: string[]; slots: Re
       const brand = brandById('wax');
       const theme = buildVideoTheme(brand.branding, brand.name);
       const cases: [string, DirectionId, string, Record<string, string>][] = [
+        ['glassPanel', 'cinematic', 'statement', { title: 'Le verre qui plie la lumière', sub: 'Une réfraction en direct' }],
         ['wordStack', 'brutal', 'hook', { title: 'Le wax qui vous ressemble vraiment' }],
         ['marqueeBack', 'kinetic', 'statement', { title: 'Tissé à la main à Lomé', sub: 'Depuis 2019' }],
         ['bigNumber', 'swiss', 'stat', { value: '87 %', label: 'de clientes fidèles' }],

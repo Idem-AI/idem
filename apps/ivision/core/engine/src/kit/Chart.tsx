@@ -164,7 +164,9 @@ export function ChartJs({ type, data, options, at = 0.15, dur = 1.2, grow, stagg
   const mode: ChartGrow = grow || (RING.has(type) ? 'sweep' : WIPE.has(type) ? 'reveal' : 'rise');
   // La définition du graphique (sans le temps) : il n'est reconstruit que si elle change.
   const key = useMemo(() => JSON.stringify({ type, data, options, values }), [type, data, options, values]);
-  const targets = useMemo(() => data.datasets.map((ds) => (ds.data || []).slice()), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Les valeurs d'une série : `data` (barres, lignes, anneaux, flux…) ou `tree` (treemap).
+  const targets = useMemo(() => data.datasets.map((ds) => (ds.data || ds.tree || []).slice()), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const own = useMemo(() => data.datasets.map((ds) => Array.isArray(ds.data)), [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useLayoutEffect(() => {
     if (!lib || !box.current || !canvas.current) return;
@@ -190,6 +192,8 @@ export function ChartJs({ type, data, options, at = 0.15, dur = 1.2, grow, stagg
     const p = ease(progress(lt, at, dur));
     c.data.datasets.forEach((ds: any, i: number) => {
       const target = targets[i] || [];
+      // Une série en `tree` (treemap) n'a pas de `data` : y poser un tableau vide la viderait.
+      if (!own[i]) return;
       if (mode === 'rise') ds.data = target.map((d: any, k: number) => scaleDatum(d, ease(progress(lt, at + k * stagger, dur))));
       else ds.data = target;
     });

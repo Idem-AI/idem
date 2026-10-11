@@ -56,8 +56,17 @@ export interface SceneData {
   rive?: string;
   /** Pictogrammes SVG (déjà choisis et normalisés par le serveur), un par élément. */
   icons?: string[];
+  /** Logos des marques NOMMÉES dans les textes de la scène (Simple Icons), en SVG animable. */
+  brands?: { name: string; svg: string }[];
   /** Le fond du kit est posé sur cette scène (le graphe en retient deux au plus). */
   backdrop?: boolean;
+  /** Démonstration : le fond propre à cette scène (sinon celui du kit), l'annotation propre à la scène, l'étiquette. */
+  backdropId?: string;
+  annotateId?: string;
+  demoLabel?: string;
+  demoNote?: string;
+  /** Démonstration : choix du kit propres à cette scène (caméra, entrées, animation des icônes, effet photo, logo). */
+  kitOver?: { camera?: string; entrance?: string; iconMotion?: string; imageFx?: string; logo?: string };
   /** Tempo des entrées de la scène (rythme) : < 1 plus vif, > 1 plus posé. */
   pace?: number;
   /** Mise en scène d'un plan (clip ou photo plein cadre) : split, window, blinds, magazine, knockout, inline, duotone, broadcast, cinema. */
@@ -99,6 +108,10 @@ export interface KitData {
   brandmarkCorner?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
   /** Rebond physique (ressort) pour les directions ludiques ; absent = courbe de la direction. */
   spring?: { bounce: number };
+  /** Animation des pictogrammes (graphe) : none | draw | stagger | pop. */
+  iconMotion?: string;
+  /** Effet sur la photo d'un produit (graphe) : none | rgbSplit | shockwave | bulge | twist | zoomBlur | pixelate | glitch | wavy | crt. */
+  imageFx?: string;
 }
 
 export interface VideoData {

@@ -24,7 +24,15 @@ import { clamp, hash, keyframes, mix, progress, springEase } from './time';
 import { ChartJs } from './kit/Chart';
 import { numbersIn, percentIn, slotNumbers } from './kit/data';
 import { countriesIn } from './kit/africa';
+import { Bg } from './kit/Backdrop';
+import { Gradient } from './kit/Gradient';
+import { IconMotion } from './kit/IconMotion';
+import { ImageFx } from './kit/ImageFx';
+import { LiquidGlass } from './kit/LiquidGlass';
+import { Morph } from './kit/Morph';
+import { Network } from './kit/Network';
 import { Particles } from './kit/Particles';
+import { Shader } from './kit/Shader';
 import { Brush, FlowField, Sketch, useNoise } from './kit/Sketch';
 import { AfricaMap, DataArc, GrowArea, useViz, VoronoiField } from './kit/Viz';
 import { Flat3D } from './kit/Zdog';
@@ -98,6 +106,17 @@ export const KIT = {
   Flat3D,
   // Particules à graine : poussière, braises, confettis, éclat, rassemblement, désintégration
   Particles,
+  // Matière en shader (OGL) et effets sur une photo (PixiJS)
+  Shader,
+  ImageFx,
+  // Un fond de la bibliothèque du moteur (24), verre réfractif, dégradé animé, réseau de points
+  Bg,
+  LiquidGlass,
+  Gradient,
+  Network,
+  // Formes qui se transforment, pictogrammes SVG animés
+  Morph,
+  IconMotion,
 };
 
 /** Erreurs des scènes écrites par l'IA (lues par le contrôle de rendu côté serveur). */

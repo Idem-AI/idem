@@ -131,11 +131,12 @@ palette, studio), décor (filets, grille, grain, bandes cinéma, papier, cadre),
 mouvement fluide ou image par image. La direction suit le type, la direction
 artistique de la marque, et évite les dernières vidéos du projet.
 
-**20 techniques de texte** : masque montant, cascade de lettres, resserrement
+**24 techniques de texte** : masque montant, cascade de lettres, resserrement
 de chasse, échelle + flou, machine à écrire, volet par mot, mots flous,
 lettres basculées, brouillage, révélation par bloc, empilement, glissements
 alternés, ressort montant, vague, étirement, bascule 3D, zoom par mot,
-inclinaison, dispersion, contour qui se remplit ; compteur « odomètre » pour
+inclinaison, dispersion, contour qui se remplit, reflet, glitch, machine à sous,
+dégradé qui coule ; compteur « odomètre » pour
 les chiffres. **17 transitions** : coupe, coupe éclair, glitch, fondu, zoom
 flou, traversée, filé, cube 3D, poussée, glissé, iris (raccord graphique sur le
 point focal précédent), volet, bandes, disque de marque, lames obliques,

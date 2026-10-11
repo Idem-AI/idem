@@ -161,6 +161,14 @@ html,body{overflow:hidden;background:#0b0b0c}
 .lottie-box{width:100%;height:100%}
 .lottie-box svg{width:100%!important;height:100%!important}
 .three-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* Toiles WebGL des shaders et des filtres d'image (gl.tsx) ; sans WebGL, un halo de la couleur de la marque. */
+.gl-host{position:absolute;inset:0}
+.gl-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.shader-wrap{position:absolute;inset:0;pointer-events:none}
+.imagefx-wrap{position:absolute;inset:0;overflow:hidden}
+.imagefx-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.imagefx-wrap:has(.gl-host[data-gl-live]) .imagefx-img{visibility:hidden}
+.shader-wrap:has(.gl-host[data-gl-failed]){background:radial-gradient(ellipse 70% 55% at 30% 35%,var(--hl-soft),transparent 70%)}
 
 /* ── Transitions ── */
 .tr-layer{position:absolute;inset:0;z-index:400;will-change:transform}

@@ -33,6 +33,8 @@ const KIND_TITLES: Partial<Record<CapKind, string>> = {
   technique: 'Techniques de texte (générées depuis les directions)',
   transition: 'Transitions (catalogue global : l’agent animateur choisit dans le menu filtré par la direction et la DA)',
   layout: 'Mises en page (archétypes : l’agent directeur artistique en choisit une par scène)',
+  iconmotion: 'Animation des pictogrammes (une par vidéo : les icônes sont des SVG, leurs formes s’animent)',
+  imagefx: 'Effets sur la photo d’un produit (un par vidéo, ou aucun ; PixiJS)',
 };
 
 const when = (w?: CapWhen): string => {
