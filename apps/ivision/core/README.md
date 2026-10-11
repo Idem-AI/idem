@@ -117,6 +117,22 @@ string templates in a real browser renderer; Paper.js (boolean geometry) is inst
 when a form needs cut-outs the CSS `clip-path` cannot do. Satori was rejected: no grid, no `clip-path`, no
 filters, and the fit-and-measure pipeline needs a real Chromium.
 
+**Outside posters** (`kit/page.ts`): the same forms serve the pages of a business plan, a brand book,
+a pitch deck slide and a business card. Those are measured in **millimetres** and carry no stylesheet of
+the poster engine, so `pageGfx({width:'210mm', height:'297mm', tokens, …})` takes the box in the page's
+own units, draws in a px viewBox that scales to it, and emits a self-contained element (inline
+positioning, no `.gfx` class needed). The Ultra page composer (`apps/api/.../creativity/pageComposer.ts`)
+gets the same `<x-gfx>` vocabulary through `pageKitManifest()`, and the business card's brand face gets
+its texture from `CARD_PATTERNS` (weave, stripes, contours, dots, arcs, grid) instead of one CSS gradient.
+Documents are read before they are looked at: the manifest caps the decor at three shapes per page and
+keeps it under 15% opacity behind text.
+
+**Charts in documents** are the same bargain applied to data: the composer places a `{{CHART_n}}`
+placeholder and the CODE draws the chart (`renderStandaloneChart`, the canvas + server-drawn fallback
+that template pages already use). A model never redraws a chart — a `<canvas>` of its own stays empty in
+the PDF, and bars-as-divs lose both the proportions and the numbers. `pageInspect` now loads Chart.js, so
+the measured check sees what the PDF will print.
+
 Adding a form: a generator in `shapes.ts` (pure: seed, colours, box → SVG), its entry in `catalog.ts` (summary and
 variants — this is what the agents read), then run `npm run check:poster` (determinism, weight, no text,
 colours, neon, rendering, rules). Add a motif in `motifs.ts` with its intents and art-direction affinities.

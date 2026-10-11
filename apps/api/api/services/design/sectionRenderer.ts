@@ -2498,31 +2498,23 @@ function fontLinks(ds: DocumentDesignSystem): string {
  * exception. C'est la propriété qui permet de basculer une section sur le
  * gabarit sans risque de perdre une génération.
  */
-export function renderSection(
+/**
+ * Le contexte de rendu d'une page : tout ce que les blocs lisent (design system, rôles de
+ * couleur, traitement typographique, tension, cotes). Extrait de `renderSection` pour que le
+ * compositeur du cran Ultra puisse faire dessiner UN bloc par le code (cf. `renderStandaloneChart`)
+ * avec exactement les mêmes couleurs et les mêmes règles qu'une page à gabarit.
+ */
+function baseCtx(
   content: SectionContent,
   ds: DocumentDesignSystem,
   seed: SectionSeed,
-  options: RenderOptions = {}
-): string {
-  const page = options.page ?? PORTRAIT_A4;
-  const landscape = page.orientation === 'landscape';
-  // Une page ROGNÉE ne pardonne pas le débordement : on resserre le rythme.
-  const cramped = options.multiPage === false;
-
-  // ── LE VOLUME, BORNÉ AVANT TOUT LE RESTE ─────────────────────────────────
-  //
-  // Sur une page rognée, le contenu est ramené à ce que la page porte AVANT
-  // que l'archétype ne le lise. L'ordre compte : l'archétype « L » prend le
-  // premier chiffre-clé pour en faire son héros, et `fitToPage` pèse ensuite
-  // les blocs. Condenser après eux les ferait travailler sur un contenu qui
-  // n'est pas celui qui sera rendu.
-  //
-  // Un document paginé n'est pas touché : le paginateur lui donne les pages
-  // dont il a besoin, et lui retirer des phrases serait une perte sèche.
-  content = cramped ? condenseForFixedPage(content) : content;
-
+  options: RenderOptions,
+  page: PageFormat,
+  landscape: boolean,
+  cramped: boolean
+): Ctx {
   const family = resolveFamily(seed.family);
-  const ctx: Ctx = {
+  return {
     ds: cramped ? tighten(ds) : ds,
     roles: resolveColorRoles(ds, seed.colorStrategy),
     type: capTitle(resolveTypeTreatment(cramped ? tighten(ds) : ds, seed.typographyMood), family, cramped ? tighten(ds) : ds, landscape),
@@ -2548,6 +2540,53 @@ export function renderSection(
     contentWidthPx:
       (Number.parseFloat(page.width) - 2 * Number.parseFloat(page.padding)) * MM_TO_PX,
   };
+}
+
+/**
+ * UN graphique, hors gabarit.
+ *
+ * Le compositeur du cran Ultra écrit la mise en page, pas les données : il pose un repère
+ * `{{CHART_n}}` et c'est le CODE qui dessine — même canvas Chart.js que les pages à gabarit, même
+ * repli dessiné par le serveur (donc juste même sans script), mêmes couleurs de série. Un
+ * graphique n'est jamais redessiné « en divs » par un modèle : ni les proportions ni les chiffres
+ * n'y survivaient.
+ */
+export function renderStandaloneChart(
+  block: Extract<Block, { kind: 'chart' }>,
+  ds: DocumentDesignSystem,
+  seed: SectionSeed,
+  options: RenderOptions = {}
+): string {
+  const page = options.page ?? PORTRAIT_A4;
+  const ctx = baseCtx({ title: '', blocks: [block] } as SectionContent, ds, seed, options, page, page.orientation === 'landscape', options.multiPage === false);
+  return renderChart(block, ctx);
+}
+
+export function renderSection(
+  content: SectionContent,
+  ds: DocumentDesignSystem,
+  seed: SectionSeed,
+  options: RenderOptions = {}
+): string {
+  const page = options.page ?? PORTRAIT_A4;
+  const landscape = page.orientation === 'landscape';
+  // Une page ROGNÉE ne pardonne pas le débordement : on resserre le rythme.
+  const cramped = options.multiPage === false;
+
+  // ── LE VOLUME, BORNÉ AVANT TOUT LE RESTE ─────────────────────────────────
+  //
+  // Sur une page rognée, le contenu est ramené à ce que la page porte AVANT
+  // que l'archétype ne le lise. L'ordre compte : l'archétype « L » prend le
+  // premier chiffre-clé pour en faire son héros, et `fitToPage` pèse ensuite
+  // les blocs. Condenser après eux les ferait travailler sur un contenu qui
+  // n'est pas celui qui sera rendu.
+  //
+  // Un document paginé n'est pas touché : le paginateur lui donne les pages
+  // dont il a besoin, et lui retirer des phrases serait une perte sèche.
+  content = cramped ? condenseForFixedPage(content) : content;
+
+  const ctx = baseCtx(content, ds, seed, options, page, landscape, cramped);
+  const family = ctx.family;
 
   const renderer = ARCHETYPE_RENDERERS[seed.archetype] ?? ARCHETYPE_RENDERERS[DEFAULT_ARCHETYPE];
 

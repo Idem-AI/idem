@@ -47,6 +47,7 @@ CRITICAL — read the BRAND CONTEXT block at the end of this prompt and apply it
   Insert an <img> tag with TWO data attributes for the image sourcing pipeline:
   data-image-query="English keywords for Pexels stock search, specific to the project industry"
   data-image-prompt="Detailed English prompt for AI image generation fallback, photorealistic style, relevant to the project"
+  Both describe a PHOTOGRAPH ONLY — a scene, its light, its materials. Never ask for a word, a title, a sign, a label, a screen showing text or a product name: the slide's own text is set in HTML over the image, and a model that writes puts garbled letters in the picture.
   Also include src="https://placehold.co/800x450/[PRIMARY_HEX_WITHOUT_#]/[TEXT_HEX_WITHOUT_#]?text=..." as a fallback placeholder using brand colors.
   Apply classes: w-full h-full object-cover rounded-xl
 - Image containers: use a fixed-size div with overflow-hidden rounded-xl, and optionally a gradient overlay (bg-gradient-to-t from-[SECONDARY COLOR] to-transparent) to ensure text legibility.

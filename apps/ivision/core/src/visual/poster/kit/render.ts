@@ -57,6 +57,14 @@ export function gfxContext(i: GfxContextInput): GfxContext {
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/</g, '&lt;');
 
+/** Le placement écrit dans la page, quand ce n'est pas du pixel (mm d'une page, % d'une carte). */
+export interface GfxCssBox {
+  left: string;
+  top: string;
+  width: string;
+  height: string;
+}
+
 export interface GfxResult {
   html: string;
   issues: string[];
@@ -65,7 +73,12 @@ export interface GfxResult {
 }
 
 /** Dessine une forme dans sa boîte (px). Les défauts de demande sont renvoyés en `issues`, la forme est quand même dessinée. */
-export function gfxHtml(input: GfxParams, box: GfxBox, ctx: GfxContext, elId: string): GfxResult {
+/**
+ * Dessine une forme. `box` est en px (c'est la géométrie du dessin) ; `css`, s'il est donné, est
+ * le placement réellement écrit dans la page — utile quand la page se mesure dans une autre unité
+ * (les documents et les cartes de visite travaillent en millimètres).
+ */
+export function gfxHtml(input: GfxParams, box: GfxBox, ctx: GfxContext, elId: string, css?: GfxCssBox): GfxResult {
   const issues: string[] = [];
   const entry = GFX_BY_KIND.get(input.kind);
   if (!entry || (input.kind !== 'icon' && !SHAPES[input.kind])) return { html: '', issues: [`unknown graphic kind "${input.kind}"`], params: input };
@@ -147,9 +160,14 @@ export function gfxHtml(input: GfxParams, box: GfxBox, ctx: GfxContext, elId: st
       sw: strokeU * ctx.u,
       density,
     };
-    inner = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n1(b.w)} ${n1(b.h)}" width="${n1(b.w)}" height="${n1(b.h)}" preserveAspectRatio="none" aria-hidden="true">${SHAPES[input.kind]!(g)}</svg>`;
+    inner = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n1(b.w)} ${n1(b.h)}" preserveAspectRatio="none" aria-hidden="true" style="display:block;width:100%;height:100%;overflow:visible">${SHAPES[input.kind]!(g)}</svg>`;
   }
-  const html = `<div class="gfx" data-el="${slug(elId)}" data-kind="${input.kind}" data-gfx='${esc(JSON.stringify(params))}' style="left:${Math.round(b.x)}px;top:${Math.round(b.y)}px;width:${Math.round(b.w)}px;height:${Math.round(b.h)}px;${colorStyle}${opacity !== 1 ? `opacity:${Math.round(opacity * 100) / 100};` : ''}${blend !== 'normal' ? `mix-blend-mode:${blend};` : ''}">${inner}</div>`;
+  // Les styles de placement sont EN LIGNE, jamais seulement dans la classe `.gfx` : la même forme
+  // doit tenir dans une affiche (qui a sa feuille de style) comme dans une page de document ou une
+  // carte de visite (qui n'en ont pas). La boîte peut être donnée dans l'unité de la page (mm à
+  // l'impression) : le dessin, lui, est toujours tracé dans un viewBox en px et s'y adapte.
+  const place = css ?? { left: `${Math.round(b.x)}px`, top: `${Math.round(b.y)}px`, width: `${Math.round(b.w)}px`, height: `${Math.round(b.h)}px` };
+  const html = `<div class="gfx" data-el="${slug(elId)}" data-kind="${input.kind}" data-gfx='${esc(JSON.stringify(params))}' style="position:absolute;pointer-events:none;left:${place.left};top:${place.top};width:${place.width};height:${place.height};${colorStyle}${opacity !== 1 ? `opacity:${Math.round(opacity * 100) / 100};` : ''}${blend !== 'normal' ? `mix-blend-mode:${blend};` : ''}">${inner}</div>`;
   return { html, issues, params };
 }
 

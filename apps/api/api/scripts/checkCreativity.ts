@@ -41,11 +41,12 @@ import { CARD_STRUCTURES, renderCardBack, renderCardFront, CardBackId, CardFront
 import { cardLayoutTask, cardStructureTask, cardTuningTask } from '../services/BandIdentity/businessCardCreative';
 import { businessCardRenderService } from '../services/BandIdentity/businessCardRender.service';
 import { planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../services/creativity/documentDesign';
-import { acceptComposedPage, composePageHtml } from '../services/creativity/pageComposer';
+import { acceptComposedPage, buildComposerPrompt, composePageHtml } from '../services/creativity/pageComposer';
 import { closePageInspector, inspectComposedPage } from '../services/creativity/pageInspect';
 import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
 import { buildDocumentSeed, buildSectionSeed } from '../services/design/designSeed';
-import { LANDSCAPE_SLIDE } from '../services/design/sectionRenderer';
+import { LANDSCAPE_SLIDE, PORTRAIT_A4, renderStandaloneChart } from '../services/design/sectionRenderer';
+import { pageGfx, pageKitManifest } from '../../../ivision/core/src/visual/poster/kit/page';
 import { brandInitials, composeTemplateLogos, logoMenu, markInks } from '../services/BandIdentity/logoTemplates';
 import { logoDirectionsTask, logoDraftCount, logoJuryTask } from '../services/BandIdentity/logoCreative';
 import { inspectSvg } from '../services/design/svgGate';
@@ -341,6 +342,54 @@ export default function Scene() {
     check('compositeur : le logo du contenu manque → refusée', !acceptComposedPage(specimenPage.replace(`<img src="${logo}" alt="Logo">`, ''), specimen as any));
     check('compositeur : une image étrangère au contenu → refusée', !acceptComposedPage(specimenPage.replace('</section>', '<img src="https://images.example.com/stock.jpg" alt=""></section>'), specimen as any));
     check('compositeur : la couleur du nuancier manque → refusée', !acceptComposedPage(specimenPage.replace(/#1F6F43/g, '#2A7A50'), specimen as any));
+
+    // La charte d'un document, pour les graphiques et le kit (mêmes couleurs qu'une page réelle).
+    const dsUltra = buildDocumentDesignSystem(
+      { colors: { colors: { primary: '#1F6F43', secondary: '#20303A', accent: '#E4A93C', background: '#FFFFFF', text: '#131A17' } }, typography: { primaryFont: 'Archivo', secondaryFont: 'Inter' } } as any,
+      { styleId: 'editorial' } as any,
+      buildDocumentSeed('editorial', 'check:kit')
+    );
+    const seedUltra = buildSectionSeed('editorial', 'check:kit', 'Projections', new Set());
+
+    // Les GRAPHIQUES : le compositeur les place, le CODE les dessine (canvas Chart.js + repli
+    // dessiné par le serveur). Un graphique redessiné à la main perd ses proportions, et ses
+    // chiffres n'ont pas à être réécrits dans la page.
+    const charted = {
+      title: 'Projections',
+      blocks: [
+        { kind: 'prose', text: "Le chiffre d'affaires suit la montée en charge de la collecte sur les trois premiers exercices." } as any,
+        { kind: 'chart', chartType: 'bar', labels: ['2026', '2027', '2028'], series: [{ name: "Chiffre d'affaires", data: [48, 126, 240] }], readingKey: "Le chiffre d'affaires triple en deux ans", unit: 'MFCFA' } as any,
+      ],
+    };
+    const chartPage = (slot: string) =>
+      '```html\n<section style="width:210mm"><h2>Projections</h2><p>Le chiffre d\'affaires suit la montée en charge de la collecte sur les trois premiers exercices.</p>' + slot + '<div style="height:10px"></div>'.repeat(10) + '</section>\n```';
+    check('compositeur : le repère du graphique posé une fois → acceptée', !!acceptComposedPage(chartPage('<div style="width:100%">{{CHART_1}}</div>'), charted as any));
+    check('compositeur : graphique oublié → refusée', !acceptComposedPage(chartPage(''), charted as any));
+    check('compositeur : graphique posé deux fois → refusée', !acceptComposedPage(chartPage('{{CHART_1}}{{CHART_1}}'), charted as any));
+    check('compositeur : un <canvas> dessiné à la main → refusée', !acceptComposedPage(chartPage('{{CHART_1}}<canvas id="c"></canvas>'), charted as any));
+    const chartPrompt = buildComposerPrompt({ content: charted as any, ds: dsUltra, seed: seedUltra, page: PORTRAIT_A4, sheet: 'BRAND', document: 'business plan' });
+    check('compositeur : le prompt décrit le graphique et interdit de le redessiner', /\{\{CHART_1\}\}/.test(chartPrompt.system) && /NEVER redraw a chart/.test(chartPrompt.system) && /bar, 3 entries/.test(chartPrompt.system));
+    const drawnChart = renderStandaloneChart(charted.blocks[1] as any, dsUltra, seedUltra, { page: PORTRAIT_A4, multiPage: true });
+    check('graphique dessiné par le code : canvas Chart.js + repli serveur, aux couleurs du document', /data-idem-chart=/.test(drawnChart) && /data-chart-fallback/.test(drawnChart) && drawnChart.includes('2028'));
+
+    // Le KIT GRAPHIQUE dans une page : l'agent NOMME la forme, le code la dessine, en millimètres.
+    const gfx = pageGfx({
+      width: PORTRAIT_A4.width,
+      height: PORTRAIT_A4.minHeight,
+      tokens: { primary: dsUltra.colors.primary, secondary: dsUltra.colors.secondary, accent: dsUltra.colors.accent, ink: dsUltra.colors.ink, surface: dsUltra.colors.surface },
+      surface: dsUltra.colors.surface,
+      ink: dsUltra.colors.ink,
+      primary: dsUltra.colors.primary,
+      secondary: dsUltra.colors.secondary,
+    });
+    const named = '<x-gfx kind="contours" x="0" y="200mm" w="210mm" h="97mm" color="primary" opacity="0.1"></x-gfx>';
+    const expanded = gfx.expand(`<section>${named}<p>Texte</p></section>`);
+    check(`kit de page : une forme nommée (${named.length} signes) dessinée en mm (${expanded.html.length} signes), sans CSS extérieur`, !expanded.issues.length && expanded.count === 1 && /position:absolute/.test(expanded.html) && /y="200mm"|top:200mm/.test(expanded.html) && /<svg/.test(expanded.html));
+    check('kit de page : forme inconnue, boîte manquante, trop de formes → renvoyées au compositeur',
+      gfx.expand('<x-gfx kind="sparkles" x="0" y="0" w="10mm" h="10mm"></x-gfx>').issues.some((i) => /unknown kind/.test(i)) &&
+      gfx.expand('<x-gfx kind="waves" x="0" y="0"></x-gfx>').issues.some((i) => /needs x, y, w and h/.test(i)) &&
+      gfx.expand(Array.from({ length: 6 }, (_, i) => `<x-gfx kind="waves" x="0" y="${i}mm" w="50mm" h="20mm"></x-gfx>`).join('')).issues.some((i) => /too many graphics/.test(i)));
+    check('kit de page : le manifeste reste court et interdit le SVG écrit à la main', pageKitManifest({ page: { width: PORTRAIT_A4.width, height: PORTRAIT_A4.minHeight } }).join('\n').length < 1400);
   }
 
   if (run(9)) {
