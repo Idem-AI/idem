@@ -83,7 +83,15 @@ iVision has no sign-in screen, no model provider and no wallet:
 
 ### The conversation
 
-`api/src/services/chat.service.ts`. A turn always follows the same path, and asks rather than guesses:
+`api/src/services/chat.service.ts`. A request is read **in full** (up to 20,000 characters — a one-page script is
+never cut) and the video is made in the language the user WRITES: an explicit instruction (« Langue : français »,
+« in English ») › the language of the text › the interface language › the brand language. A written script is followed
+scene by scene, its on-screen texts word for word, and each shot gets the tool its content needs (generated filmed shot,
+the brand's own screenshots, motion design, signature) — see `apps/api/docs/MOTION_VIDEO.md` (« La demande suivie à la
+lettre »). Duration and format written in the request (« 60 secondes », « 16:9 ») set the composer before the price is
+shown; a web address written inside a long request is content, not a site to scan.
+
+A turn always follows the same path, and asks rather than guesses:
 
 1. a link to **another** website than the current brand's → the site is scanned, the brand is
    created (or refreshed, same site) as a draft, the request waits for the palette/typography choice;
@@ -140,6 +148,7 @@ work. MongoDB and MinIO are the IDEM development ones.
 
 | Command | What it proves |
 | --- | --- |
+| `npm run check:request --prefix apps/ivision/core` | the request followed to the letter: a real user script (language, scenes, timing, verbatim texts, interface texts, tools per shot, 402 breaker, director repairs), two videos created end to end (Low and Ultra) and photographed |
 | `npm run check --prefix apps/ivision/core` | the engine alone, without IDEM: site scan (palette, fonts, logo, voice), model video analysis (cuts by luminance and by colour), reproduction plan, video reproduced by the service, visual composed and audited, every poster layout rendered in 3 formats without overflow, copy rules |
 | `npm run check --prefix apps/ivision/api` | the iVision API end to end with a fake IDEM: delegated identity, brand asked, site scanned, palette chosen, model asked/analysed/reproduced, IDEM prices debited, preview with edit bridge, live text edit, image studio, model kind refused, 402 kept pending, project import, privacy |
 | `npm run check:ivision --prefix apps/api` | the IDEM gateway: closed without key, admin key refused, debits bounded, IDEM price list |

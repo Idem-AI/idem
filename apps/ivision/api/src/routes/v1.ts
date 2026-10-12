@@ -255,7 +255,7 @@ const mediaAsset = z.object({
 });
 
 const turnBody = z.object({
-  text: z.string().max(2000).optional(),
+  text: z.string().max(4000000).optional(),
   referenceId: z.string().max(80).optional(),
   noReference: z.boolean().optional(),
   media: z.array(mediaAsset).max(16).optional(),

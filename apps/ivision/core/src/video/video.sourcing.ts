@@ -108,6 +108,8 @@ export interface ShotPlan extends MediaNeed {
   move?: string;
   /** Deux à quatre mots pour la banque d'images. */
   query: string;
+  /** Durée du plan (s) : un clip de 10 s quand le plan dépasse 5,5 s (sinon 5 s, bouclé au besoin). */
+  durationSec?: number;
 }
 
 export interface MediaDirection {
@@ -128,6 +130,9 @@ export interface MediaDirectorInput {
   query: string;
   needs: MediaNeed[];
   orientation: Orientation;
+  /** Le personnage que la demande décrit (même personne d'un plan à l'autre) et ses interdits. */
+  cast?: string;
+  avoid?: string;
 }
 
 export function buildMediaDirectorPrompt(input: MediaDirectorInput): { system: string; user: string } {
@@ -142,7 +147,9 @@ export function buildMediaDirectorPrompt(input: MediaDirectorInput): { system: s
   ].join('\n');
   const user = [
     input.sheet,
-    `BRIEF: ${input.brief.replace(/\s+/g, ' ').trim().slice(0, 500)}`,
+    `BRIEF: ${input.brief.replace(/\s+/g, ' ').trim().slice(0, 1500)}`,
+    input.cast ? `PEOPLE (the client describes them — the same person in every shot): ${input.cast.slice(0, 300)}` : '',
+    input.avoid ? `NEVER SHOW: ${input.avoid}` : '',
     input.businessType ? `BUSINESS: ${input.businessType}` : '',
     input.facts.places.length ? `PLACES: ${input.facts.places.slice(0, 3).join(', ')}` : '',
     input.artModifier ? `ART DIRECTION OF IMAGES: ${input.artModifier.slice(0, 300)}` : '',
@@ -232,6 +239,25 @@ export interface SourcingReport {
   /** Essais de génération en échec (tous médias confondus). */
   failedAttempts: number;
   fromVisuals: number;
+  /**
+   * La génération a été coupée pour toute la vidéo : `payment` (le fournisseur n'a plus de
+   * crédits — 402), `unavailable` (port non branché, service en panne répétée).
+   */
+  blocked?: 'payment' | 'unavailable';
+}
+
+/** Une erreur de paiement du fournisseur (402, crédits épuisés) : inutile de réessayer, ni ce média ni les suivants. */
+export function isPaymentError(error: unknown): boolean {
+  const e = error as { status?: number; response?: { status?: number }; message?: string } | undefined;
+  return e?.status === 402 || e?.response?.status === 402 || /\b402\b|payment required|insufficient (?:credits|balance|funds)|crédits? insuffisants?|out of credits/i.test(String(e?.message || ''));
+}
+
+/** La requête de banque d'images, ancrée sur le personnage voulu (« african » si la demande l'exige). */
+export function stockQuery(query: string, cast?: string): string {
+  const q = String(query || '').trim();
+  if (!q) return q;
+  if (cast && /afric|black|noir/i.test(cast) && !/afric|black/i.test(q)) return `african ${q}`.split(/\s+/).slice(0, 5).join(' ');
+  return q;
 }
 
 export interface SourcingOptions {
@@ -247,6 +273,8 @@ export interface SourcingOptions {
   clipQuality: 'speed' | 'quality';
   /** Photos des visuels de la marque (dernier recours). */
   visualPhotos: string[];
+  /** Le personnage voulu (cohérence et requête de banque d'images). */
+  cast?: string;
   onProgress?: (done: number, total: number, last?: { kind: string; origin: string }) => void;
 }
 
@@ -300,6 +328,15 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
   const shots = opts.direction.shots;
   const canImage = opts.allowGenerate && !!coreHost().generateImage;
   const canClip = opts.allowGenerate && !!coreHost().generateVideo;
+  // Disjoncteur : un fournisseur sans crédit (402) ne se réessaie pas — ni ce média, ni les suivants.
+  const blocked = { image: false, video: false };
+  const trip = (kind: 'image' | 'video', error: unknown) => {
+    if (!isPaymentError(error)) return false;
+    if (!blocked[kind]) logger.warn('video.media.generation_blocked', { kind, reason: 'payment' });
+    blocked[kind] = true;
+    report.blocked = 'payment';
+    return true;
+  };
   let done = 0;
   const tick = (asset?: VideoMediaAsset) => opts.onProgress?.(++done, shots.length, asset ? { kind: asset.kind, origin: asset.origin } : undefined);
 
@@ -307,7 +344,7 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
   const still = async (plan: ShotPlan): Promise<(VideoMediaAsset & { jpeg: Buffer }) | null> => {
     if (!canImage) return null;
     const prompts = imagePrompts(plan, opts.direction.look, opts.artModifier);
-    for (let attempt = 0; attempt < GENERATION_ATTEMPTS; attempt++) {
+    for (let attempt = 0; attempt < GENERATION_ATTEMPTS && !blocked.image; attempt++) {
       try {
         const asset = await generateStill(prompts[attempt], opts.orientation, opts.storage, opts.folder, !!opts.artModifier, plan.query);
         if (await imageAccepted(asset.jpeg, plan)) return asset;
@@ -315,6 +352,7 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
         logger.info('video.media.image_rejected', { scene: plan.scene, attempt });
       } catch (error: any) {
         report.failedAttempts++;
+        if (trip('image', error)) break;
         logger.warn('video.media.image_failed', { scene: plan.scene, attempt, error: error?.message });
       }
     }
@@ -333,12 +371,14 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
       stills.set(plan, image);
     }
     const prompts = clipPrompts(plan, opts.direction.look);
-    for (let attempt = 0; attempt < GENERATION_ATTEMPTS; attempt++) {
+    const durationSec: 5 | 10 = (plan.durationSec || 0) > 5.5 ? 10 : 5;
+    for (let attempt = 0; attempt < GENERATION_ATTEMPTS && !blocked.video; attempt++) {
       const image = first && attempt < 2 ? { base64: first.jpeg.toString('base64'), mimeType: 'image/jpeg' } : undefined;
       try {
-        return await generateClip({ prompt: prompts[attempt], image, orientation: opts.orientation, quality: image ? opts.clipQuality : 'speed' }, opts.storage, opts.folder, plan.query);
+        return await generateClip({ prompt: prompts[attempt], image, orientation: opts.orientation, quality: image ? opts.clipQuality : 'speed', durationSec }, opts.storage, opts.folder, plan.query);
       } catch (error: any) {
         report.failedAttempts++;
+        if (trip('video', error)) break;
         logger.warn('video.media.clip_failed', { scene: plan.scene, attempt, error: error?.message });
       }
     }
@@ -361,26 +401,31 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
   };
   await Promise.all(Array.from({ length: Math.min(3, Math.max(1, shots.length)) }, worker));
 
-  // Pexels, seulement pour ce que trois essais n'ont pas produit — avec la requête de chaque plan.
+  // Pexels, seulement pour ce que trois essais n'ont pas produit — avec la requête de chaque plan,
+  // ancrée sur le personnage voulu. Un plan filmé sans vidéo libre prend une photo libre (animée
+  // par le moteur) plutôt que de rester vide.
   const used = new Set<string>();
   for (const plan of shots.filter((s) => !byNeed.has(s))) {
     if (!opts.allowStock) break;
+    const query = stockQuery(plan.query, opts.cast);
     try {
       if (plan.kind === 'video') {
-        const [found] = await searchPexelsVideos(plan.query, opts.orientation, 1, opts.storage, opts.folder, { locale: 'en-US' });
-        if (found) {
-          byNeed.set(plan, found);
-          assets.push(found);
-          report.stockVideos++;
-        }
-      } else {
-        const found = (await searchPexelsPhotos(plan.query, opts.orientation, 3, 'en-US')).find((p) => !used.has(p.url));
+        const found = (await searchPexelsVideos(query, opts.orientation, 3, opts.storage, opts.folder, { locale: 'en-US' })).find((v) => !used.has(v.url));
         if (found) {
           used.add(found.url);
           byNeed.set(plan, found);
           assets.push(found);
-          report.stockPhotos++;
+          report.stockVideos++;
+          continue;
         }
+        if (stills.has(plan)) continue;
+      }
+      const found = (await searchPexelsPhotos(query, opts.orientation, 4, 'en-US')).find((p) => !used.has(p.url));
+      if (found) {
+        used.add(found.url);
+        byNeed.set(plan, found);
+        assets.push(found);
+        report.stockPhotos++;
       }
     } catch (error: any) {
       logger.warn('video.media.stock_failed', { scene: plan.scene, error: error?.message });

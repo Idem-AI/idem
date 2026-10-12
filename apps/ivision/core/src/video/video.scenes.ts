@@ -229,9 +229,35 @@ export const SCENES: Record<string, SceneDef> = {
     max: 7,
     surfaces: ['light', 'secondary', 'primary'],
   },
+  /**
+   * L'interface du produit : une capture de la marque dans une fenêtre de navigateur qui défile, ou,
+   * sans capture, une interface dessinée par le moteur avec les textes de la demande (saisie,
+   * dossier et ses fichiers). Les cases `prompt` et `items` sont les textes DANS l'écran.
+   */
+  screen: {
+    id: 'screen',
+    slots: [
+      { key: 'title', max: 60, hint: 'line shown with the interface' },
+      { key: 'sub', max: 80, hint: 'supporting line' },
+      { key: 'prompt', max: 90, hint: 'text typed in the interface, FROM THE BRIEF' },
+      { key: 'items', max: 240, hint: 'items listed in the interface, separated by |, FROM THE BRIEF' },
+      { key: 'url', max: 60, hint: 'address shown in the browser bar, FROM THE BRIEF' },
+    ],
+    image: 'optional',
+    variants: 2,
+    nominal: 3.6,
+    min: 2.2,
+    max: 7,
+    surfaces: ['deep', 'light', 'secondary'],
+  },
   logo: {
     id: 'logo',
-    slots: [{ key: 'tagline', max: 48, hint: 'brand signature line' }],
+    slots: [
+      { key: 'tagline', max: 48, hint: 'brand signature line' },
+      { key: 'url', max: 60, hint: 'web address FROM THE BRIEF' },
+      // Le nom que le scénario de l'utilisateur écrit dans sa signature, quand la marque n'en a pas (ou un autre).
+      { key: 'name', max: 32, hint: 'brand name AS WRITTEN in the script' },
+    ],
     variants: 3,
     nominal: 2.4,
     min: 1.8,

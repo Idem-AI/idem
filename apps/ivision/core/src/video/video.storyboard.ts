@@ -260,6 +260,11 @@ export function buildStoryboard(input: StoryboardInput): VideoStoryboard {
       }
       if (!own?.images?.length) imageCursor += sceneImages.length;
     }
+    // Les autres scènes (interface, phrase, rafale…) montrent le média produit POUR elles, s'il y en a un.
+    if (own && !image && !video && !['product', 'footage', 'showcase3d', 'gallery', 'lottie', 'logo'].includes(sceneId)) {
+      if (own.video) video = own.video;
+      else if (own.image) image = own.image;
+    }
     const variant = chooseVariant(sceneId, slots, !!image, r, used, sceneId === 'logo' && !!input.logo3d);
 
     // Surface : la préférée de la scène, jamais deux fois la même d'affilée.

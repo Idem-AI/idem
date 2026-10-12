@@ -16,9 +16,11 @@
  *           boucle, la critique compare
  *
  * Partout : rendu MESURÉ (ajustage, débordement, chevauchement, marges, contraste lu sur les
- * pixels) — un défaut mesuré écarte une composition. Si la méthode d'un cran n'aboutit pas, ou
- * reste sous la qualité visée, la direction artistique sur les gabarits sert de filet (la critique
- * compare), et le résultat le dit (`method`, `fellBack`).
+ * pixels) — un défaut mesuré écarte une composition. La direction artistique sur les gabarits ne
+ * sert plus que de FILET : elle reprend la main si la méthode du cran n'a rien rendu du tout, et
+ * jamais parce que la critique a mis une note moyenne (le gabarit gagnait alors la comparaison, et
+ * le cran Ultra rendait les mises en page du cran Medium). Le résultat le dit (`method`,
+ * `fellBack`).
  */
 import crypto from 'crypto';
 import { atLeast, CreativityLevel } from '../../creativity/levels';
@@ -139,6 +141,9 @@ function candidatesFor(input: SpecInput, intent: PosterIntent, req: PosterReques
   const avoid = req.avoid || [];
   const darkWanted = !!req.allowDark;
   const seed = hash(req.seedKey);
+  // Low tient la main du code (la meilleure composition pour l'intention) ; au-delà, l'espace
+  // s'ouvre — c'est la même progression que celle des documents (`documentDesign.ts#delegationOf`).
+  const spread = req.creativity === 'low' ? 0.25 : req.creativity === 'medium' ? 0.7 : 1;
   const { ranked, grain } = motifsFor(intent, req);
   const out: Candidate[] = [];
   for (const t of POSTER_TEMPLATES) {
@@ -163,7 +168,12 @@ function candidatesFor(input: SpecInput, intent: PosterIntent, req: PosterReques
       w -= recent.filter((r) => r === t.id).length * 0.7 + (recent[recent.length - 1] === t.id ? 0.8 : 0);
       // Une photo pertinente (surtout celle de la marque) mérite d'être vue.
       if (input.image && t.needsImage) w += input.image.origin === 'brand' || input.image.origin === 'user' ? 0.9 : 0.4;
-      w += ((hash(`${seed}:${t.id}:${sid}`) % 1000) / 1000) * 0.3;
+      // LA DISPERSION MONTE AVEC LE CRAN.
+      //
+      // Elle valait 0,3 pour des affinités d'intention étalées de 0,8 à 2,6 : elle ne pouvait donc
+      // rien réordonner, et une même intention rendait toujours le même gabarit en tête, quelle que
+      // soit la marque. L'affinité continue de pencher ; elle ne décide plus seule.
+      w += ((hash(`${seed}:${t.id}:${sid}`) % 1000) / 1000) * spread;
       // Le décor : le meilleur pour l'intention à Low ; un tirage parmi les trois meilleurs au-delà (variété).
       // Une photo plein cadre le cache, la composition géométrique porte déjà ses formes : seul le grain reste.
       const motif = t.id === 'fullbleed' || t.id === 'geometric' ? 'none' : ranked[req.creativity === 'low' ? 0 : hash(`${seed}:${t.id}:${sid}:motif`) % Math.min(3, ranked.length)]?.id || 'none';
@@ -350,21 +360,21 @@ export async function composePoster(ports: PosterPorts, req: PosterRequest): Pro
     };
     const deadline = started + (level === 'ultra' ? 330_000 : 240_000);
     final = level === 'ultra' ? await authorPath(orch, dbrief, brief, critiqueCtx, fonts, deadline, hasBrandPhoto, stage) : await layoutPath(orch, dbrief, critiqueCtx, fonts, deadline, hasBrandPhoto, stage);
-    if (!final) fellBack = level === 'ultra' ? 'author→direction' : 'layout→direction';
   }
-  if (!final || (final.critique && final.critique.score < 6)) {
-    // Le filet : la direction artistique sur les compositions éprouvées. Si la conception libre a
-    // abouti mais reste moyenne, la critique compare les deux.
+  if (!final) {
+    // LE FILET, ET SEULEMENT LE FILET : la direction artistique sur les compositions éprouvées,
+    // quand la conception par l'IA n'a RIEN rendu.
+    //
+    // Il se déclenchait aussi dès que la critique mettait moins de 6/10 à un visuel d'auteur, et la
+    // comparaison désignait alors souvent le gabarit — mieux fini, parce que dessiné par le code
+    // depuis des mois. Résultat : un cran Ultra qui rendait les mêmes mises en page que le cran
+    // Medium, exactement le reproche qui lui était fait. Une note moyenne se corrige dans la
+    // boucle de conception (c'est son objet : trois à quatre tours avec la critique), pas en
+    // remplaçant le travail de l'IA par un gabarit.
     stage('layout', 'running');
-    const safety = await templatePath(orch, req, level, all, input, schemes, copy, fonts, critiqueCtx, hasBrandPhoto, intent);
+    final = await templatePath(orch, req, level, all, input, schemes, copy, fonts, critiqueCtx, hasBrandPhoto, intent);
     stage('layout', 'done');
-    if (final && safety) {
-      const verdict = await compareRenders([final.render.png, safety.render.png], critiqueCtx);
-      if (verdict?.best === 1) {
-        fellBack = `${final.method}→direction (critic)`;
-        final = safety;
-      }
-    } else final = safety || final;
+    if (final && atLeast(level, 'max')) fellBack = level === 'ultra' ? 'author→direction' : 'layout→direction';
   }
   if (!final) throw new Error('poster_render_failed');
 

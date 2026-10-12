@@ -11,6 +11,7 @@ import { VIDEO_TYPES } from '../../../core/src/video/video.model';
 import { IvisionVideoStore } from '../stores/video.store';
 import type { ChatOptions } from '../models';
 import type { ReferenceBlueprint } from '../../../core/src/reference/reference.analyzer';
+import { MAX_REQUEST_CHARS, parseRequest, requestMessage } from '../../../core/src/video/video.request';
 
 export const motionVideos = new MotionVideoService(new IvisionVideoStore());
 
@@ -26,17 +27,20 @@ export async function createVideo(
   paid: number,
   onProgress: VideoProgressListener
 ): Promise<MotionVideo> {
+  // La demande EN ENTIER (lignes gardées : le scénario, ses scènes, ses textes) — le moteur la lit.
+  const request = (input.details || input.text).replace(/\r\n?/g, '\n').trim().slice(0, MAX_REQUEST_CHARS);
   const clean = input.text.replace(/\s+/g, ' ').trim();
-  // La demande complète, quand elle dit plus que le message (ton, public, consignes).
-  const full = (input.details || '').replace(/\s+/g, ' ').trim();
+  // Le message : l'intention en une phrase (l'objectif d'un script, pas ses 400 premiers signes).
+  const message = request.length > 400 ? requestMessage(parseRequest(request), request) : clean.slice(0, 400);
+  const full = request.replace(/\s+/g, ' ').trim();
   const extra = full && full !== clean ? full : clean.slice(400);
   const type = input.options.type === 'auto' || VIDEO_TYPES.includes(input.options.type as VideoType) ? (input.options.type as VideoType | 'auto') : undefined;
   return motionVideos.createVideo(
     userId,
     brandId,
     {
-      // Le message (400 signes) porte l'idée ; la suite de la demande devient le détail.
-      brief: { message: clean.slice(0, 400), details: extra ? extra.slice(0, 800) : undefined, musicMood: (input.options.musicMood as never) || 'auto', media: input.media, sfx: input.options.sfx !== false, voice: input.options.voice === true },
+      // Le message porte l'idée ; le détail en garde un résumé (anciens appels) ; `request` est la demande entière.
+      brief: { message, details: extra ? extra.slice(0, 800) : undefined, request, musicMood: (input.options.musicMood as never) || 'auto', media: input.media, sfx: input.options.sfx !== false, voice: input.options.voice === true },
       scope: scopeOf(input.options),
       type,
       language: input.language,

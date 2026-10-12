@@ -150,6 +150,9 @@ export const MEDIA_QUERY_ENTRY: CopyPlanEntry = {
  * capacités ; la scène « avantages » reçoit alors une ligne de plus (un mot par
  * avantage), le seul choix « visuel » laissé au modèle.
  */
+/** Cases que seul un scénario de l'utilisateur remplit (jamais le rédacteur) : nom écrit dans la signature, textes d'interface. */
+const SCRIPT_ONLY_SLOTS = new Set(['logo.name', 'screen.prompt', 'screen.items', 'screen.url']);
+
 export function copyPlan(
   sceneIds: string[],
   withMediaQuery = false,
@@ -161,7 +164,7 @@ export function copyPlan(
   const entries = sceneIds.map((sceneId, i) => {
     // Consignes du concept (question, problème, preuve…) et du grand moment, préfixées aux cases.
     const conceptHints = opts.hints?.[sceneId] || {};
-    let slots = (SCENES[sceneId]?.slots ?? []).map((slot) => {
+    let slots = (SCENES[sceneId]?.slots ?? []).filter((slot) => !SCRIPT_ONLY_SLOTS.has(`${sceneId}.${slot.key}`)).map((slot) => {
       const extra = [conceptHints[slot.key], i === opts.accentIndex && (slot.key === 'title' || slot.key === 'l1') ? 'the strongest line of the video' : ''].filter(Boolean).join('; ');
       const sized = scale < 1 && slot.max > 20 ? { ...slot, max: Math.max(18, Math.round(slot.max * scale)) } : slot;
       return extra ? { ...sized, hint: `${extra}. ${sized.hint}` } : sized;
@@ -354,6 +357,8 @@ export function repairCopy(input: RepairInput): { copy: CopyResult; dropped: num
     for (const slot of entry.slots) {
       let value = given[slot.key] || '';
       if (value && FACTUAL.has(slot.key) && !isGrounded(value, briefText)) value = '';
+      // Une adresse web n'est jamais inventée : elle figure telle quelle dans la demande.
+      if (value && slot.key === 'url' && !urlInBrief(value, briefText)) value = '';
       if (value && seen.has(value.toLowerCase())) value = '';
       if (!value && (slot.required || FACTUAL_OPTIONAL_FILL.has(slot.key))) {
         value = heuristicSlot(entry.sceneId, slot.key, entry.index, brief, facts, ctx);
@@ -364,7 +369,8 @@ export function repairCopy(input: RepairInput): { copy: CopyResult; dropped: num
       if (slot.key === 'kicker') value = value.toUpperCase();
       if (value) {
         slots[slot.key] = value;
-        if (value.length > 12) seen.add(value.toLowerCase());
+        // Une adresse déjà montrée (contact de l'appel à l'action) ne revient pas sur la signature.
+        if (value.length > 12 || slot.key === 'contact' || slot.key === 'url') seen.add(value.toLowerCase());
       }
     }
     // Une pastille qui répète le prix n'apporte rien.
@@ -381,14 +387,21 @@ export function repairCopy(input: RepairInput): { copy: CopyResult; dropped: num
 
 /** Texte générique de dernier recours (jamais un fait). */
 function genericSlot(sceneId: string, key: string, ctx: CopyContext): string {
-  const L = (ctx.language || 'fr').startsWith('en') ? T.en : T.fr;
+  const L = (ctx.language || 'fr').startsWith('fr') ? T.fr : T.en;
   if (sceneId === 'benefits') return L.benefits[(Number(key.slice(1)) || 1) - 1] || '';
   if (sceneId === 'wordswap' && key !== 'lead') return L.words[(Number(key.slice(1)) || 1) - 1] || '';
   return '';
 }
 
 /** Cases facultatives qu'on remplit depuis les faits quand le modèle les a omises. */
-const FACTUAL_OPTIONAL_FILL = new Set(['oldPrice', 'badge', 'note', 'time', 'place', 'contact']);
+const FACTUAL_OPTIONAL_FILL = new Set(['oldPrice', 'badge', 'note', 'time', 'place', 'contact', 'url']);
+
+/** L'adresse web figure-t-elle dans la demande (au protocole et au « www. » près) ? */
+export function urlInBrief(value: string, briefText: string): boolean {
+  const bare = (v: string) => v.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+  const v = bare(value.trim());
+  return v.length >= 4 && bare(briefText).includes(v);
+}
 
 // ─── Copie heuristique (sans modèle) ────────────────────────────────────────
 
@@ -443,7 +456,7 @@ export function heuristicSlot(
   facts: BriefFacts,
   ctx: CopyContext
 ): string {
-  const L = (ctx.language || 'fr').startsWith('en') ? T.en : T.fr;
+  const L = (ctx.language || 'fr').startsWith('fr') ? T.fr : T.en;
   const obj = (brief.objective || 'promotion') as VideoObjective;
   const msgSentences = sentences(brief.message);
   const detailSentences = sentences(brief.details || '');
@@ -557,6 +570,8 @@ export function heuristicSlot(
       return capitalize(stripFacts(msgSentences[0] || brief.message, facts).split(/[,:;]/)[0]);
     case '_media.visual':
       return [ctx.businessType, ...(ctx.keywords || []).slice(0, 2)].filter(Boolean).join(' ');
+    case 'logo.url':
+      return facts.urls[0] || '';
     case 'logo.tagline':
       return ctx.valueProposition ? fitLength(sentences(ctx.valueProposition)[0] || '', 48) : '';
     default:

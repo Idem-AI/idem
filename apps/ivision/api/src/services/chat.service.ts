@@ -41,6 +41,8 @@ import { meanVolume } from '../../../core/src/montage/montage.assemble';
 import type { VideoFormat } from '../../../core/src/video/video.model';
 import axios from 'axios';
 import { buildVideoRevisionPrompt, parseVideoRevision, videoSettingsFromText } from '../../../core/src/video/video.revise';
+import { MAX_REQUEST_CHARS, parseRequest } from '../../../core/src/video/video.request';
+import { titleCase } from '../../../core/src/video/motionVideo.service';
 import { idem } from './idem.client';
 import { createVisual, getVisual, visualView } from './visuals.service';
 
@@ -116,8 +118,20 @@ export function sessionView(s: ChatSession) {
 
 const URL_PATTERN = /\b(https?:\/\/[^\s<>"']+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>"']*)?)/i;
 
+/**
+ * Un lien est-il une invitation à LIRE ce site (la marque) ? Oui pour un message court (« voici mon
+ * site : … ») ou qui le dit ; non pour une adresse écrite DANS une longue demande — l'adresse à
+ * afficher en fin de vidéo (« https://idem.africa ») n'est pas une marque à scanner.
+ */
+export function isSiteInvite(text: string): boolean {
+  const t = text.trim();
+  if (t.length <= 400) return true;
+  return /\b(?:mon site|notre site|ma marque|my website|our website|site web\s*:|website\s*:|voici (?:le|mon|notre) site|(?:lis|lisez|scanne[zr]?|analyse[zr]?) (?:le|mon|notre) site|read (?:my|our) (?:site|website))/i.test(t.slice(0, 400));
+}
+
 /** Le lien d'un site collé dans le message (et le reste du texte, la vraie demande). */
 function splitUrl(text: string): { url?: string; rest: string } {
+  if (!isSiteInvite(text)) return { rest: text };
   const match = text.match(URL_PATTERN);
   if (!match) return { rest: text };
   // Un courriel n'est pas un site.
@@ -229,7 +243,8 @@ async function reviseMotion(userId: string, session: ChatSession, videoId: strin
   emit({ type: 'status', key: 'chat.status.montage.revise', text: 'Je fais les changements…' });
   let revision: ReturnType<typeof parseVideoRevision> = null;
   try {
-    const { system, user } = buildVideoRevisionPrompt(video, text, language);
+    // Les textes retouchés restent dans la langue de LA VIDÉO (celle de sa demande), pas de la page.
+    const { system, user } = buildVideoRevisionPrompt(video, text, video.brief.language || language);
     revision = parseVideoRevision(await idem.ai.text({ userId, system, user, tier: 'writing', kind: 'copy' }), video);
   } catch (error) {
     logger.warn('chat.video_revision_failed', { event: 'chat.video_revision_failed', error });
@@ -350,7 +365,8 @@ export async function runTurn(userId: string, sessionId: string, input: TurnInpu
 async function turn(userId: string, session: ChatSession, input: TurnInput, emit: (e: ChatEvent) => void, language?: string): Promise<void> {
   // (`input` est complété plus bas pour une révision : la décision de modèle d'avant vaut.)
   const pending = session.pending;
-  const written = String(input.text || '').trim().slice(0, 2000);
+  // La demande EN ENTIER : un script d'une page (6 000 à 10 000 signes) n'est plus coupé à 2 000.
+  const written = String(input.text || '').trim().slice(0, MAX_REQUEST_CHARS);
   // Reprise : la demande en attente, avec les réglages et médias d'alors (complétés par ceux d'aujourd'hui).
   const text = input.resume && pending ? pending.text : written;
   const options: ChatOptions = { ...(input.resume ? pending?.options : {}), ...(input.options || {}) };
@@ -371,7 +387,9 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     if (input.photoUrl) attachments.push({ kind: 'media', id: 'photo', url: input.photoUrl, mimeType: 'image' });
     const userText = written || (input.noReference ? 'Sans modèle.' : '');
     const msg = message('user', userText, attachments.length ? { attachments } : {});
-    const title = session.messages.length === 0 ? (written ? { title: written.replace(/\s+/g, ' ').slice(0, 60) } : videos.length ? { title: 'Montage' } : {}) : {};
+    // Le titre de la conversation : celui d'un script (« Vidéo officielle de lancement d'IDEM »), sinon le début du message.
+    const named = written.length > 200 ? parseRequest(written).title : undefined;
+    const title = session.messages.length === 0 ? (written ? { title: (named ? titleCase(named) : written.replace(/\s+/g, ' ')).slice(0, 60) } : videos.length ? { title: 'Montage' } : {}) : {};
     await push(session._id, msg, title);
     emit({ type: 'message', message: msg });
   }
@@ -458,7 +476,7 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
         await reviseMontage(userId, session, last.result.montageId, written, emit);
         return;
       }
-      if (last.result.kind === 'video' && (await reviseMotion(userId, session, last.result.videoId, written, emit, brand.voice.language || language || 'fr'))) return;
+      if (last.result.kind === 'video' && (await reviseMotion(userId, session, last.result.videoId, written, emit, language || 'fr'))) return;
     }
   }
 
@@ -522,14 +540,18 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
       const video = await createVideo(
         userId,
         brand._id,
-        { text: messageOf(request), details: request, options, media, ...(blueprint ? { reference: blueprint } : {}), language: brand.voice.language || language },
+        // La langue de la vidéo est celle de la demande (lue par le moteur) ; l'interface n'est qu'un repli.
+        { text: messageOf(request), details: request, options, media, ...(blueprint ? { reference: blueprint } : {}), language },
         paid.charged ? paid.cost : videoCost(scopeOf(options)),
         (event) => emit({ type: 'progress', stage: event.stage, state: event.state, data: event.data })
       );
       // La voix off demandée mais pas obtenue (service en panne, langue refusée) : on le dit.
-      const voiceMissed = options.voice === true && !video.voice?.enabled;
+      const voiceMissed = video.brief.voice === true && !video.voice?.enabled;
       const ready = reference ? 'Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez.' : 'Votre vidéo est prête. Retouchez les textes et les images, puis exportez.';
-      const msg = message('assistant', voiceMissed ? `${ready} La voix off n’a pas pu être générée : réessayez-la depuis la retouche.` : ready, {
+      // Ce que la vidéo n'a pas pu suivre de la demande (4K, plans filmés non générés…) : dit, jamais tu.
+      const notes = (video.storyboard.fidelity?.notes || []).filter((n) => !/voix off/i.test(n) || !voiceMissed);
+      const said = [voiceMissed ? `${ready} La voix off n’a pas pu être générée : réessayez-la depuis la retouche.` : ready, ...notes].join(' ');
+      const msg = message('assistant', said, {
         result: { kind: 'video', videoId: video.id },
         status: 'done',
         i18n: { key: `${reference ? 'chat.result.videoFromReference' : 'chat.result.video'}${voiceMissed ? 'NoVoice' : ''}` },

@@ -1,0 +1,19 @@
+{
+  "builtAt": "2026-10-12T10:43:46.847Z",
+  "sizes": {
+    "runtime": 188,
+    "engine": 223,
+    "addon-three": 1185,
+    "addon-gsap": 109,
+    "addon-anime": 42,
+    "addon-flubber": 53,
+    "addon-lottie": 168,
+    "addon-rive": 2809,
+    "addon-chart": 284,
+    "addon-viz": 353,
+    "addon-draw": 33,
+    "addon-zdog": 28,
+    "addon-ogl": 51,
+    "addon-pixi": 540
+  }
+}

@@ -375,7 +375,7 @@ export class BusinessPlanService extends GenericService {
             prependBlocks,
             // Cran Ultra : le contenu validé de la page part au compositeur, le gabarit en repli.
             compose: designPlan?.freeCompose
-              ? ultraPageComposer({ ds: designSystem, seed, page: PORTRAIT_A4, singlePage: false, sheet: this.creativeSheet(project), document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name: stepName })
+              ? ultraPageComposer({ ds: designSystem, seed, page: PORTRAIT_A4, singlePage: false, sheet: this.creativeSheet(project), document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name: stepName, attempts: designPlan.composeAttempts })
               : undefined,
           },
         };
@@ -848,7 +848,7 @@ export class BusinessPlanService extends GenericService {
         designPlan: designPlan ? { family: designPlan.family, pages: designPlan.pages } : undefined,
         composePage: designPlan?.freeCompose
           ? (name, content, seed, ds) =>
-              ultraPageComposer({ ds, seed, page: PORTRAIT_A4, singlePage: false, sheet, document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name })(content)
+              ultraPageComposer({ ds, seed, page: PORTRAIT_A4, singlePage: false, sheet, document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name, attempts: designPlan.composeAttempts })(content)
           : undefined,
       },
       emit,
@@ -898,6 +898,9 @@ export class BusinessPlanService extends GenericService {
         styleId: artDirection?.styleId,
         document: 'business plan',
         deliverable: 'business plan' as const,
+        // La clé du livrable sème le classement des mises en page : deux projets ne reçoivent pas
+        // la même suite de pages (c'était la cause des plans jumeaux).
+        docKey: designKey,
         pages: planSections.filter((s) => !s.freeform).map((s) => ({ name: s.name, brief: composeBrief(s.key, { audience: planAudience as BusinessPlanAudience, position: 1, total: planSections.length }) ?? undefined })),
         seedArchetypes,
       });

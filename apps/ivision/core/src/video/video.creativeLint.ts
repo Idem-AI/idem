@@ -53,7 +53,7 @@ export interface CreativeLintReport {
 const ENERGY_TECHNIQUES = new Set(['springUp', 'zoomWords', 'scatter', 'stretch', 'stackPush', 'flipChars', 'scramble', 'charCascade', 'skewIn', 'slideAlternate']);
 const ENERGY_LAYOUTS = new Set(['wordStack', 'marqueeBack', 'ticker', 'bigNumber', 'diagonalBand', 'priceBurst', 'barCompare']);
 const FEEL_ENERGY = { hard: 1, spatial: 0.9, graphic: 0.7, soft: 0.4 } as const;
-const MEDIA = new Set(['footage', 'gallery', 'showcase3d', 'lottie', 'logo']);
+const MEDIA = new Set(['footage', 'screen', 'gallery', 'showcase3d', 'lottie', 'logo']);
 
 /** L'énergie perçue de chaque scène : la coupe qui l'ouvre, l'entrée du titre, la mise en page, l'accent. */
 export function attentionCurve(sb: VideoStoryboard): number[] {

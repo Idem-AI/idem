@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "ts-node --transpile-only scripts/check-core.ts",
     "check:montage": "ts-node --transpile-only scripts/check-montage.ts",
-    "check:poster": "ts-node --transpile-only scripts/check-poster-kit.ts"
+    "check:poster": "ts-node --transpile-only scripts/check-poster-kit.ts",
+    "check:request": "ts-node --transpile-only scripts/check-request.ts"
   },
   "dependencies": {
     "react": "^19.2.0",

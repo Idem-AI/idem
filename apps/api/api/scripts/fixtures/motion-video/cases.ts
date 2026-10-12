@@ -354,11 +354,12 @@ export async function simulateAgent(behaviour: ModelBehaviour, system: string, u
 
 /**
  * L'agent codeur du cran Ultra, simulé : un composant générique (tous les textes de la scène,
- * un calque de marque qui balaie, des points qui pulsent) — de quoi éprouver le chemin réel
- * (lint, compilation, rendu de contrôle, scène retenue) sans modèle.
+ * le clip ou la photo du plan quand il en a un, un calque de marque qui balaie, des points qui
+ * pulsent) — de quoi éprouver le chemin réel (lint, compilation, rendu de contrôle, média visible,
+ * scène retenue) sans modèle.
  */
 export const SIMULATED_SCENE_CODE = `
-import { useScene, useEngine, useLocalTime, useSceneProgress, useBeatPulse, useExitAt, Kinetic, progress, mix, cue } from '@idem/kit';
+import { useScene, useEngine, useLocalTime, useSceneProgress, useBeatPulse, useExitAt, Kinetic, SceneMedia, progress, mix, cue } from '@idem/kit';
 
 export default function Scene() {
   const s = useScene();
@@ -374,6 +375,7 @@ export default function Scene() {
   return (
     <>
       <div style={{ position: 'absolute', left: 0, top: 0, width: \`\${sweep * (horizontal ? 38 : 100)}%\`, height: horizontal ? '100%' : '26%', background: 'var(--hl)', transform: \`translateY(\${mix(0, -1.5, p)}%)\` }} />
+      {s.image || s.video ? <SceneMedia style={{ right: 'auto', bottom: 'auto', left: 0, top: 0, width: horizontal ? '38%' : '100%', height: horizontal ? '100%' : '30%', clipPath: \`inset(0 \${(1 - sweep) * 100}% 0 0)\` }} /> : null}
       <span style={{ position: 'absolute', right: '9%', top: '12%', width: 3 * u, height: 3 * u, borderRadius: 999, background: 'var(--hl-text)', opacity: 0.5 + beat * 0.4 }} />
       <div className="safe" style={{ justifyContent: 'center', paddingLeft: horizontal ? '40%' : 0 }}>
         {keys.map((k, i) => (

@@ -196,11 +196,6 @@ export class BusinessCardService extends GenericService {
         promptType: 'branding_business_card',
         language: options.language,
       };
-      const messages: AIChatMessage[] = [{ role: 'user', content: prompt }];
-
-      logger.info('[BusinessCard] generating template (ultra)', { projectId, orientation });
-      const raw = await this.promptService.runPrompt(config, messages).catch(() => '');
-      parsed = this.parseTemplateResponse(raw);
       // Les textures nommées par l'IA (`<x-gfx>`) sont dessinées ICI par le code, aux cotes de la
       // carte : l'IA ne trace jamais un motif elle-même (un SVG écrit à la main coûte des centaines
       // de jetons et sort de la charte). `tone` est le ton clair ou sombre de la face.
@@ -220,17 +215,53 @@ export class BusinessCardService extends GenericService {
         if (out.issues.length) logger.warn('[BusinessCard] texture of the Ultra card sent back', { projectId, face, issues: out.issues.slice(0, 2) });
         return out.html;
       };
-      frontHtml = texture(sanitizeSectionHtml(parsed.frontHtml ?? ''), 'front');
-      backHtml = texture(sanitizeSectionHtml(parsed.backHtml ?? ''), 'back');
-      // Chaque face est contrôlée à l'impression ; une face défaillante fait retomber la carte sur le rendu Max.
-      const issues = frontHtml
-        ? [
-            ...(await businessCardRenderService.inspect(frontHtml, orientation, typography).catch(() => ['render failed'])),
-            ...(backHtml ? await businessCardRenderService.inspect(backHtml, orientation, typography).catch(() => ['render failed']) : []),
-          ]
-        : ['no front face'];
-      if (issues.length) {
-        logger.warn('[BusinessCard] Ultra card rejected, falling back to the code composition', { projectId, issues: issues.slice(0, 4) });
+      // ── LA CARTE D'AUTEUR A DROIT À SES TOURS ──────────────────────────────
+      //
+      // Elle n'en avait AUCUN : un seul appel, et le moindre constat d'impression la faisait
+      // retomber sur la composition du code. Autrement dit, un cran Ultra qui rendait du Max dès
+      // qu'un contraste tombait à 4,2:1. Elle est désormais mesurée, les défauts BLOQUANTS lui
+      // repartent mot pour mot (trois essais), et les conseils ne lui coûtent pas sa carte.
+      const faces = async (text: string) => {
+        const p = this.parseTemplateResponse(text);
+        const front = texture(sanitizeSectionHtml(p.frontHtml ?? ''), 'front');
+        const back = texture(sanitizeSectionHtml(p.backHtml ?? ''), 'back');
+        if (!front) return { parsed: p, front, back, issues: ['no front face was returned: answer with both faces in the requested format'], advisories: [] as string[] };
+        const f = await businessCardRenderService.inspect(front, orientation, typography).catch(() => ({ issues: [] as string[], advisories: [] as string[] }));
+        const b = back ? await businessCardRenderService.inspect(back, orientation, typography).catch(() => ({ issues: [] as string[], advisories: [] as string[] })) : { issues: [], advisories: [] };
+        return { parsed: p, front, back, issues: [...f.issues, ...b.issues], advisories: [...f.advisories, ...b.advisories] };
+      };
+      let attempt = 0;
+      let kept: Awaited<ReturnType<typeof faces>> | null = null;
+      let lastIssues: string[] = [];
+      for (; attempt < 3; attempt++) {
+        logger.info('[BusinessCard] generating template (ultra)', { projectId, orientation, attempt: attempt + 1 });
+        const messages: AIChatMessage[] = [
+          { role: 'user', content: prompt },
+          ...(attempt && lastIssues.length
+            ? ([
+                {
+                  role: 'user',
+                  content: `YOUR PREVIOUS CARD WAS MEASURED AT PRINT SIZE AND REJECTED. Fix ALL of these and answer with BOTH faces again, same format:
+- ${lastIssues.join('\n- ')}`,
+                },
+              ] as AIChatMessage[])
+            : []),
+        ];
+        const raw = await this.promptService.runPrompt(config, messages).catch(() => '');
+        const round = await faces(raw);
+        if (!round.issues.length && round.front) {
+          kept = round;
+          break;
+        }
+        lastIssues = round.issues;
+      }
+      if (kept) {
+        parsed = kept.parsed;
+        frontHtml = kept.front;
+        backHtml = kept.back;
+        if (kept.advisories.length) logger.info('[BusinessCard] Ultra card kept with print advice', { projectId, advisories: kept.advisories.slice(0, 3) });
+      } else {
+        logger.warn('[BusinessCard] no printable Ultra card after 3 attempts, falling back to the code composition', { projectId, issues: lastIssues.slice(0, 4) });
         const byCode = await composeByCode();
         parsed = byCode;
         frontHtml = byCode.frontHtml;

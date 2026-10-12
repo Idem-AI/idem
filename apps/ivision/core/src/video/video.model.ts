@@ -8,6 +8,8 @@
  * professionnel avec le modèle le moins cher du marché.
  */
 import type { AddonId } from './video.engine';
+import type { RequestSpec, SpecMedium } from './video.request';
+import type { FidelityReport } from './video.script';
 
 /** Où la vidéo sera vue. */
 export type VideoFormat = 'story' | 'square' | 'portrait' | 'landscape';
@@ -200,6 +202,13 @@ export interface VideoBrief {
   voice?: boolean;
   /** Direction de motion imposée (sinon choisie par IDEM). */
   direction?: string;
+  /**
+   * La demande telle que l'utilisateur l'a écrite, EN ENTIER (bornée à 20 000 signes) : `message`
+   * et `details` n'en sont que le résumé pour les anciens appels.
+   */
+  request?: string;
+  /** Le cahier des charges lu dans la demande (video.request.ts) : langue, scénario, consignes, supports. */
+  spec?: RequestSpec;
 }
 
 /** Une scène posée sur la ligne de temps. */
@@ -256,6 +265,13 @@ export interface VideoSceneInstance {
   pace?: number;
   /** Le grand moment de la vidéo (une scène au plus) : effet choisi par la direction. */
   accent?: 'punch' | 'giant' | 'hold' | 'flip' | 'burst';
+  /**
+   * Le scénario de l'utilisateur (video.script.ts) : la scène du script que ce plan raconte et
+   * son support (plan filmé, interface, motion design, signature).
+   */
+  script?: { scene: number; medium: SpecMedium | 'photo' };
+  /** Plan d'interface : les textes montrés DANS l'écran (dossier, saisie), mot pour mot. */
+  props?: string[];
   /** Plan de mouvement : ancrage, techniques d'entrée, transition (cf. video.direction.ts). */
   motion?: {
     anchor: string;
@@ -305,6 +321,8 @@ export interface VideoStoryboard {
   agents?: { agent: string; source: 'llm' | 'graph'; tokens: { input: number; output: number }; ms?: number; kept?: number }[];
   /** Le moteur créatif (cf. video.planner.ts) : exploration, ADN, accent, empreinte, nouveauté. */
   creative?: VideoCreativeReport;
+  /** Le film comparé à la demande (video.script.ts#checkFidelity) : ce qui est suivi, ce qui ne l'est pas. */
+  fidelity?: FidelityReport;
 }
 
 /** L'empreinte créative d'une vidéo (cf. video.fingerprint.ts) : ce qu'un spectateur perçoit. */

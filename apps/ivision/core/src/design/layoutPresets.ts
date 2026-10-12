@@ -239,29 +239,88 @@ export const PRESET_BY_ID = new Map(LAYOUT_PRESETS.map((p) => [p.id, p]));
 export const presetsFor = (deliverable: LayoutDeliverable): LayoutPreset[] => LAYOUT_PRESETS.filter((p) => p.deliverables.includes(deliverable));
 
 /**
- * Les mises en page classées pour CETTE page : la direction artistique d'abord, puis la graine,
- * puis ce qui n'a pas encore servi dans le document (deux pages voisines ne se ressemblent pas).
+ * Empreinte d'une chaîne, 0 → 1. Sans `crypto` : ce module est lu par le navigateur comme par
+ * le serveur, et la graine n'a pas besoin d'être cryptographique — seulement d'être stable et
+ * bien répartie (FNV-1a).
  */
-export function rankPresets(input: { deliverable: LayoutDeliverable; styleId?: string | null; seed: number; used?: string[] }): LayoutPreset[] {
+function unit(key: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = (h + (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)) >>> 0;
+  }
+  return (h >>> 8) / 0x1000000;
+}
+
+/**
+ * LES MISES EN PAGE CLASSÉES POUR CETTE PAGE.
+ *
+ * Trois forces, et l'ordre de grandeur de chacune compte — c'est lui qui décide si l'espace de
+ * 460 mises en page est réellement parcouru ou s'il se réduit toujours aux mêmes :
+ *
+ *  - la DIRECTION ARTISTIQUE penche (± 0,6), elle n'élimine pas. Une préférence de 1,4 contre 0,2
+ *    face à un bruit de 0,5 éliminait : aucune mise en page hors du style ne pouvait être vue, et
+ *    un style sans famille déclarée (la plupart) retombait sur UNE liste fixe ;
+ *  - ce qui a déjà servi dans le document recule (varieté tenue par le code) ;
+ *  - la GRAINE DU PROJET disperse (± `spread`). Elle manquait : le bruit ne dépendait que du
+ *    numéro de page, donc trois projets de même style recevaient le même classement, puis les
+ *    mêmes menus, puis les mêmes pages. C'est la cause première des rendus jumeaux.
+ *
+ * `spread` monte avec le cran de la jauge : plus l'IA décide, plus large est l'espace qu'on lui
+ * présente.
+ */
+export function rankPresets(input: {
+  deliverable: LayoutDeliverable;
+  styleId?: string | null;
+  seed: number;
+  used?: string[];
+  /** La clé du livrable (projet + document) : deux projets ne reçoivent pas le même classement. */
+  key?: string;
+  /** Amplitude de la dispersion (1 par défaut) — le cran de la jauge l'élargit. */
+  spread?: number;
+}): LayoutPreset[] {
   const style = String(input.styleId || '').toLowerCase();
   const used = input.used || [];
+  const spread = input.spread ?? 1;
+  const key = input.key || 'doc';
   const usedFamilies = used.map((id) => PRESET_BY_ID.get(id)?.family).filter(Boolean);
   return presetsFor(input.deliverable)
-    .map((p, i) => {
-      let weight = p.styles?.length ? (p.styles.includes(style) ? 1.4 : 0.2) : 0.8;
+    .map((p) => {
+      let weight = p.styles?.length ? (p.styles.includes(style) ? 0.6 : -0.25) : 0;
       // Ce qui a déjà servi recule : la variété est tenue par le code, pas espérée du modèle.
-      weight -= used.includes(p.id) ? 2 : 0;
-      weight -= usedFamilies.filter((f) => f === p.family).length * 0.35;
-      weight -= used[used.length - 1] && PRESET_BY_ID.get(used[used.length - 1])?.archetype === p.archetype ? 0.8 : 0;
-      weight += (((input.seed + i * 2654435761) >>> 0) % 1000) / 1000 * 0.5;
+      weight -= used.includes(p.id) ? 4 : 0;
+      weight -= usedFamilies.filter((f) => f === p.family).length * 0.5;
+      weight -= used[used.length - 1] && PRESET_BY_ID.get(used[used.length - 1])?.archetype === p.archetype ? 0.9 : 0;
+      weight += unit(`${key}:${input.seed}:${p.id}`) * spread;
       return { p, weight };
     })
     .sort((a, b) => b.weight - a.weight)
     .map((x) => x.p);
 }
 
-/** Le menu de l'agent : court, une ligne par mise en page. */
-export const presetMenu = (presets: LayoutPreset[], count = 6) => presets.slice(0, count).map((p) => ({ id: p.id, line: `${p.label} — ${p.summary}` }));
+/**
+ * LE MENU DE L'AGENT — une ligne par mise en page, sa largeur monte avec le cran de la jauge.
+ *
+ * Le menu est rempli en passant d'une FAMILLE à l'autre : prendre les dix premières du classement
+ * donnait dix lignes tirées de deux familles (un style n'en a souvent que deux qui le déclarent),
+ * c'est-à-dire un menu large qui ne propose presque rien. Un tour par famille d'abord, puis les
+ * suivantes : à dix lignes, le directeur artistique voit vraiment dix architectures.
+ */
+export function presetMenu(presets: LayoutPreset[], count = 6): { id: string; line: string }[] {
+  const byFamily = new Map<string, LayoutPreset[]>();
+  for (const p of presets) byFamily.set(p.family, [...(byFamily.get(p.family) || []), p]);
+  const queues = [...byFamily.values()];
+  const out: LayoutPreset[] = [];
+  for (let round = 0; out.length < count; round++) {
+    const before = out.length;
+    for (const queue of queues) {
+      if (out.length >= count) break;
+      if (queue[round]) out.push(queue[round]);
+    }
+    if (out.length === before) break;
+  }
+  return out.slice(0, count).map((p) => ({ id: p.id, line: `${p.label} — ${p.summary}` }));
+}
 
 /** La graine d'une page, une fois le préréglage appliqué. */
 export function applyPreset<T extends { family: string; archetype: string; layoutTension: string; contentDensity: string }>(seed: T, preset: LayoutPreset | undefined): T {

@@ -72,6 +72,13 @@ const RATIOS: Record<string, string> = { story: '9 / 16', square: '1 / 1', portr
       @if (video()?.storyboard?.creative?.reference; as ref) {
         <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'chat.result.fromReference' | translate: { shots: ref.shots } }}</p>
       }
+      @if (fidelity().length) {
+        <ul class="flex max-w-[34rem] flex-col gap-1 text-xs text-[var(--color-text-tertiary)]" [attr.aria-label]="'chat.result.fidelityTitle' | translate">
+          @for (note of fidelity(); track note.key) {
+            <li class="flex items-start gap-1.5"><i class="pi pi-info-circle mt-0.5" aria-hidden="true"></i><span>{{ note.key | translate: note.params }}</span></li>
+          }
+        </ul>
+      }
     </div>
   `,
 })
@@ -95,6 +102,8 @@ export class VideoResult implements OnInit {
     const [w, h] = (this.ratio() || '9 / 16').split('/').map((n) => Number(n.trim()));
     return `min(100%, 34rem, calc(26rem * ${(w / h).toFixed(4)}))`;
   });
+  /** Ce que la vidéo n'a pas pu suivre de la demande (4K, plans filmés non générés…), dit à l'utilisateur. */
+  protected readonly fidelity = computed(() => (this.video()?.storyboard?.fidelity?.codes ?? []).map((c) => ({ key: `chat.result.${c.key}`, params: c.params ?? {} })));
   /** Le MP4 exporté du format principal, s'il reflète la dernière retouche. */
   protected readonly mp4 = computed(() => {
     const v = this.video();

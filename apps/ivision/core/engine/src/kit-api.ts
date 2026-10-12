@@ -36,6 +36,7 @@ import { Shader } from './kit/Shader';
 import { Brush, FlowField, Sketch, useNoise } from './kit/Sketch';
 import { AfricaMap, DataArc, GrowArea, useViz, VoronoiField } from './kit/Viz';
 import { Flat3D } from './kit/Zdog';
+import { BrandSplash, FileList, SceneMedia, ScreenFrame, TypedPrompt } from './kit/Screen';
 
 /** Courbes génériques (la courbe de LA direction reste `useEngine().ease`). */
 const ease = (p: number) => 1 - Math.pow(1 - clamp(p), 3);
@@ -44,6 +45,17 @@ const back = (p: number) => {
   const x = clamp(p) - 1;
   return 1 + 2.4 * x * x * x + 1.4 * x * x;
 };
+/** Les noms usuels des mêmes courbes : un codeur qui écrit `easeOut` ou `lerp` n'est plus refusé pour si peu. */
+const easeInOut = (p: number) => {
+  const x = clamp(p);
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+};
+const smoothstep = (a: number, b?: number, x?: number) => {
+  const t = b === undefined || x === undefined ? clamp(a) : clamp((x - a) / (b - a || 1));
+  return t * t * (3 - 2 * t);
+};
+const linear = (p: number) => clamp(p);
+const inverseLerp = (a: number, b: number, v: number) => clamp((v - a) / (b - a || 1));
 
 export const KIT = {
   // Temps et scène
@@ -85,6 +97,17 @@ export const KIT = {
   ease,
   easeIn,
   back,
+  easeOut: ease,
+  easeOutCubic: ease,
+  easeInCubic: easeIn,
+  easeInOut,
+  easeInOutCubic: easeInOut,
+  easeOutBack: back,
+  smoothstep,
+  linear,
+  lerp: mix,
+  inverseLerp,
+  interpolate: keyframes,
   // Données : les chiffres des textes de la scène (jamais de chiffre inventé)
   numbersIn,
   slotNumbers,
@@ -117,6 +140,12 @@ export const KIT = {
   // Formes qui se transforment, pictogrammes SVG animés
   Morph,
   IconMotion,
+  // Le média du plan et l'interface du produit (captures de la marque, saisie, fichiers)
+  SceneMedia,
+  ScreenFrame,
+  TypedPrompt,
+  FileList,
+  BrandSplash,
 };
 
 /** Erreurs des scènes écrites par l'IA (lues par le contrôle de rendu côté serveur). */

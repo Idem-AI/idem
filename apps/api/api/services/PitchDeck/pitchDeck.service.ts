@@ -387,6 +387,9 @@ export class PitchDeckService extends GenericService {
       styleId: artDirection?.styleId,
       document: 'pitch deck',
       deliverable: 'pitch deck' as const,
+      // La clé du deck sème le classement des mises en page : deux projets ne reçoivent pas la
+      // même suite de slides.
+      docKey: designKey,
       pages: deckSlides.filter((d) => !d.freeform).map((d) => ({ name: d.name, brief: composeSlideBrief(d.name, deckType.audience) ?? undefined })),
       seedArchetypes,
     })
@@ -507,7 +510,7 @@ export class PitchDeckService extends GenericService {
           seed,
           // Cran Ultra : le contenu validé de la slide part au compositeur, le gabarit en repli.
           compose: designPlan?.freeCompose
-            ? ultraPageComposer({ ds: designSystem, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: deckSheet, document: 'pitch deck', call: runtimeCall({ userId, projectId, element: 'pitch_deck' }), name: stepName })
+            ? ultraPageComposer({ ds: designSystem, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: deckSheet, document: 'pitch deck', call: runtimeCall({ userId, projectId, element: 'pitch_deck' }), name: stepName, attempts: designPlan.composeAttempts })
             : undefined,
           volume: '3 to 4',
           render: {

@@ -28,6 +28,32 @@ const IMAGE_FORMATS = ['square', 'story', 'post', 'banner', 'a4'];
 const DURATIONS = [6, 15, 30, 60];
 
 /**
+ * La durée et le format écrits dans la demande (« Durée : 60 secondes », « Format : 16:9 ») : ils
+ * règlent le compositeur, et le prix affiché suit — la demande n'est plus contredite par les
+ * réglages par défaut. Même lecture que le moteur (`core/src/video/video.request.ts#durationIn`,
+ * `#formatIn`) ; un ratio seul compte partout, un mot (« paysage ») seulement sur la ligne « Format ».
+ */
+export function settingsInRequest(text: string): { durationSec?: number; format?: string } {
+  const t = text || '';
+  const out: { durationSec?: number; format?: string } = {};
+  const sec =
+    t.match(/(?:dur[ée]e|duration|longueur|length)[^\n\d]{0,30}(\d{1,3})\s*(?:s\b|sec\b|secondes?|seconds?)/i) ||
+    t.match(/\b(\d{1,3})\s*(?:secondes|seconds)\s+(?:exactement|exactly|pile|max)/i) ||
+    t.match(/\bvid[ée]o\s+de\s+(\d{1,3})\s*(?:s\b|sec\b|secondes?)/i) ||
+    t.match(/\b(\d{1,3})[\s-]*(?:s|sec|second)[\s-]+(?:video|vid[ée]o|clip|spot)\b/i);
+  const min = sec ? null : t.match(/(?:dur[ée]e|duration|length|longueur)[^\n\d]{0,30}(\d|une|one)\s*min/i);
+  const n = sec ? Number(sec[1]) : min ? (/\d/.test(min[1]) ? Number(min[1]) : 1) * 60 : 0;
+  if (n >= 3) out.durationSec = DURATIONS.find((d) => d >= n) ?? 60;
+  const line = t.match(/(?:^|\n)[\s*_#>•-]*format[\s*_]*[:=]\s*([^\n]+)/i)?.[1] || '';
+  const probe = line || t;
+  if (/\b16\s*[:/x×]\s*9\b/.test(probe) || (line && /paysage|landscape|horizontal|youtube/i.test(line))) out.format = 'landscape';
+  else if (/\b9\s*[:/x×]\s*16\b/.test(probe) || (line && /vertical|story|stories|reels?|tiktok|shorts|statut/i.test(line))) out.format = 'story';
+  else if (/\b4\s*[:/x×]\s*5\b/.test(probe) || (line && /portrait/i.test(line))) out.format = 'portrait';
+  else if (/\b1\s*[:/x×]\s*1\b/.test(probe) || (line && /carr[ée]|square/i.test(line))) out.format = 'square';
+  return out;
+}
+
+/**
  * LA CONVERSATION. Un mode par conversation (images OU vidéos). L'atelier VIDÉO est unique : on
  * décrit sa vidéo (motion design), et/ou on ajoute ses vidéos — celles où l'on parle sont
  * MONTÉES (coupes, sous-titres, animations, intro et fin animées), les autres servent de matière. La marque n'est jamais exigée :
@@ -81,8 +107,10 @@ export class ChatPage {
   protected readonly videoFormat = signal('story');
   protected readonly imageFormat = signal('square');
   protected readonly withPhoto = signal(true);
-  /** Voix off dans la langue de l'interface (désactivée par défaut). */
+  /** Voix off dans la langue de la demande (désactivée par défaut). */
   protected readonly voice = signal(false);
+  /** La durée ou le format que la demande écrit, appliqués au compositeur (affichés sous les réglages). */
+  protected readonly readFromText = signal<{ durationSec?: number; format?: string } | null>(null);
   protected readonly media = signal<MediaAsset[]>([]);
   /** Les vidéos ajoutées (déposées avec leur son) : avec de la parole, elles seront montées. */
   protected readonly videos = signal<MontageUpload[]>([]);
@@ -152,6 +180,17 @@ export class ChatPage {
       untracked(() => {
         this.importProject(project);
         void this.router.navigate([], { queryParams: { project: null }, queryParamsHandling: 'merge', replaceUrl: true });
+      });
+    });
+    // La durée et le format écrits dans la demande règlent le compositeur (le prix affiché suit).
+    effect(() => {
+      const text = this.text();
+      const video = this.mode() === 'video';
+      untracked(() => {
+        const found = video ? settingsInRequest(text) : {};
+        if (found.durationSec && found.durationSec !== this.durationSec()) this.durationSec.set(found.durationSec);
+        if (found.format && found.format !== this.videoFormat()) this.videoFormat.set(found.format);
+        this.readFromText.set(found.durationSec || found.format ? found : null);
       });
     });
     // Le prix suit les réglages (prix d'IDEM, calculés par le serveur).
@@ -397,6 +436,9 @@ export class ChatPage {
     this.stages.set([]);
     this.state.refreshSessions(this.mode());
     this.state.refreshCredits();
+    // Le titre donné par le serveur (celui d'un script, plutôt que ses premiers signes).
+    const id = this.session()?.id;
+    if (id) this.api.session(id).subscribe({ next: (s) => this.session.update((cur) => (cur && cur.id === s.id ? { ...cur, title: s.title } : cur)), error: () => undefined });
   }
 
   // ── Marque ──

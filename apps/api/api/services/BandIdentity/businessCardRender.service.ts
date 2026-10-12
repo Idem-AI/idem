@@ -133,12 +133,23 @@ export class BusinessCardRenderService {
   }
 
   /**
-   * Contrôle MESURÉ d'une face (cran Ultra de la jauge de créativité) : la face est rendue avec
-   * des valeurs de démonstration réalistes (nom long, adresse sur deux lignes) puis mesurée.
-   * Défauts : texte hors de la carte ou dans la marge de sécurité (4 mm), corps sous 7 pt,
-   * contraste sous 4,5:1 sur un fond uni. Vide = la face est imprimable.
+   * CONTRÔLE MESURÉ d'une face (crans Max et Ultra de la jauge) : la face est rendue avec des
+   * valeurs de démonstration réalistes (nom long, adresse sur deux lignes) puis mesurée.
+   *
+   * Deux catégories, et c'est tout l'enjeu. Ce qui rend une carte INIMPRIMABLE la refuse : un
+   * texte hors de la carte ou dans la marge de sécurité de 4 mm, un corps sous 5,5 pt, un
+   * contraste sous 3:1. Ce qui ne fait que l'améliorer est un CONSEIL, renvoyé à l'IA au tour
+   * suivant sans lui coûter sa carte : la carte d'auteur tombait sur la composition du code pour
+   * un contraste à 4,2:1 au lieu de 4,5:1, autrement dit un cran Ultra qui rendait du Max.
+   *
+   * La face n'est pas réparée ici : elle est mesurée avec des valeurs de DÉMONSTRATION à la place
+   * de ses variables, et rendre ce HTML-là graverait « Adjoa Mensah-Kouassi » sur la carte.
    */
-  async inspect(faceHtml: string, orientation: BusinessCardOrientation, typography?: BusinessCardRenderOptions['typography']): Promise<string[]> {
+  async inspect(
+    faceHtml: string,
+    orientation: BusinessCardOrientation,
+    typography?: BusinessCardRenderOptions['typography']
+  ): Promise<{ issues: string[]; advisories: string[] }> {
     const size = BUSINESS_CARD_SIZE_MM[orientation];
     const sample: Record<string, string> = {
       fullName: 'Adjoa Mensah-Kouassi',
@@ -164,6 +175,7 @@ export class BusinessCardRenderService {
       await page.evaluate(() => document.fonts?.ready);
       return await page.evaluate((w: number, h: number, safe: number) => {
         const issues: string[] = [];
+        const advisories: string[] = [];
         const parse = (c: string) => (c.match(/[\d.]+/g) || []).map(Number);
         const lum = (rgb: number[]) => {
           const [r, g, b] = rgb.slice(0, 3).map((v) => {
@@ -190,16 +202,19 @@ export class BusinessCardRenderService {
           const r = el.getBoundingClientRect();
           const label = (el.textContent || '').trim().slice(0, 24);
           if (r.left < safe - 1 || r.top < safe - 1 || r.right > w - safe + 1 || r.bottom > h - safe + 1) issues.push(`text in the 4 mm safety margin or outside the card: "${label}"`);
-          if (parseFloat(st.fontSize) < 9.2) issues.push(`text smaller than 7 pt: "${label}" (${parseFloat(st.fontSize).toFixed(1)} px)`);
+          const size = parseFloat(st.fontSize);
+          if (size < 7.3) issues.push(`text far too small to print: "${label}" (${size.toFixed(1)} px) — 7 pt is the floor`);
+          else if (size < 9.2) advisories.push(`"${label}" is under 7 pt (${size.toFixed(1)} px): bring it up`);
           const bg = bgOf(el);
           if (bg && st.color !== 'rgba(0, 0, 0, 0)') {
             const a = lum(parse(st.color));
             const b = lum(bg);
             const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-            if (ratio < 4.5) issues.push(`low contrast (${ratio.toFixed(1)}:1): "${label}"`);
+            if (ratio < 3) issues.push(`unreadable in print (${ratio.toFixed(1)}:1): "${label}" — put it on another ground`);
+            else if (ratio < 4.5) advisories.push(`contrast of "${label}" is ${ratio.toFixed(1)}:1 (4.5:1 reads better in print)`);
           }
         }
-        return [...new Set(issues)].slice(0, 8);
+        return { issues: [...new Set(issues)].slice(0, 8), advisories: [...new Set(advisories)].slice(0, 5) };
       }, cssWidth, cssHeight, Math.round((4 / MM_PER_INCH) * 96));
     } finally {
       await page.close().catch(() => undefined);

@@ -65,6 +65,17 @@ export interface SlopLintOptions {
    * choix légitimes quand le style les prescrit.
    */
   styleId?: string;
+  /**
+   * UNE TEINTE DE LA COULEUR DE MARQUE EST DE LA MARQUE.
+   *
+   * Par défaut, toute valeur hexadécimale hors palette est ramenée à la couleur de charte la plus
+   * proche. C'est juste pour une couleur INVENTÉE (le bleu de confiance d'un modèle), et faux pour
+   * un lavis pâle du primaire derrière un titre ou un ton profond en pied de page : la page
+   * composée par un directeur artistique se retrouvait aplatie sur quatre aplats, d'où des pages
+   * qui se ressemblaient toutes. Avec cette option, une teinte PROCHE d'une couleur de charte est
+   * laissée telle quelle ; seules les couleurs vraiment étrangères sont ramenées.
+   */
+  allowDerivedTints?: boolean;
   /** Contexte pour les journaux. */
   label?: string;
 }
@@ -171,6 +182,13 @@ function hexToRgb(hex: string): [number, number, number] | null {
 }
 
 /** Distance euclidienne RGB : suffisante pour ramener une couleur à la charte. */
+/**
+ * Jusqu'où une couleur reste « une teinte de la charte ». La distance est euclidienne en RVB sur
+ * 0–255 : 150 laisse passer un lavis ou un ton profond de la même famille, et ramène encore un
+ * bleu posé à côté d'un vert de marque (distance > 200).
+ */
+const DERIVED_TINT_DISTANCE = 150;
+
 function colorDistance(a: string, b: string): number {
   const ra = hexToRgb(a);
   const rb = hexToRgb(b);
@@ -287,6 +305,12 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
     for (const raw of source.match(HEX_RE) || []) {
       const hex = normaliseHex(raw);
       if (NEUTRAL_HEX.has(hex) || palette.includes(hex)) continue;
+      // Même tolérance que la réparation : une teinte de la charte n'est pas une couleur hors
+      // charte, sinon chaque page composée serait signalée en erreur pour sa propre matière.
+      if (options.allowDerivedTints) {
+        const nearest = nearestPaletteColor(hex, options.palette);
+        if (nearest && colorDistance(hex, nearest) <= DERIVED_TINT_DISTANCE) continue;
+      }
       stray.add(hex);
     }
     add(
@@ -508,6 +532,9 @@ export function repairHtml(html: string, options: SlopLintOptions = {}): SlopRep
       // n'aurait aucun sens de marque.
       const nearest = nearestPaletteColor(hex, options.palette);
       if (!nearest) return raw;
+      // Une TEINTE de la charte (même famille chromatique) est gardée quand l'appelant l'autorise :
+      // c'est la matière d'une page composée, pas une couleur inventée.
+      if (options.allowDerivedTints && colorDistance(hex, nearest) <= DERIVED_TINT_DISTANCE) return raw;
       replaced += 1;
       return nearest;
     });

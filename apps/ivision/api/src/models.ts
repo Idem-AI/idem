@@ -35,6 +35,8 @@ export interface IvisionBrand {
   voice: BrandVoice;
   /** Photos de la marque (site, visuels IDEM, imports) : la matière des vidéos et des visuels. */
   photos: string[];
+  /** Descriptions des images de la marque (vision, une fois par image), par empreinte d'URL. */
+  mediaNotes?: Record<string, string>;
   /** Ce que le scan propose (les choix sont gardés pour changer d'avis plus tard). */
   proposals?: {
     palettes: PaletteProposal[];

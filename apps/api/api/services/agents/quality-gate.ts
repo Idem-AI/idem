@@ -51,7 +51,12 @@ const PLACEHOLDER_PATTERNS: { pattern: RegExp; label: string }[] = [
   { pattern: /lorem\s+ipsum/i, label: 'lorem ipsum' },
   { pattern: /\[(insert|votre|your|nom du|company name|xxx)[^\]]*\]/i, label: 'crochet à remplir' },
   { pattern: /\{\{[^}]+\}\}/, label: 'variable de gabarit {{…}}' },
-  { pattern: /\bTODO\b|\bTBD\b|\bPLACEHOLDER\b/i, label: 'marqueur TODO/TBD' },
+  // « PLACEHOLDER » seul n'est plus un marqueur : le mot apparaît légitimement dans un nom de
+  // classe, un commentaire ou une consigne reprise par le modèle (le compositeur de pages reçoit
+  // justement des repères `{{IMG_n}}` appelés « placeholders »), et il faisait refuser des pages
+  // entières par ailleurs complètes. Reste ce qui ne peut être qu'un trou : TODO, TBD, et le mot
+  // posé À LA PLACE d'un contenu.
+  { pattern: /\bTODO\b|\bTBD\b|\[placeholder\]|\bplaceholder (?:text|here|content)\b/i, label: 'marqueur TODO/TBD' },
   { pattern: /\bXXX+\b/, label: 'valeur XXX non remplacée' },
 ];
 

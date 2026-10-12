@@ -12,9 +12,23 @@ Chaque livrable se découpe en cinq couches de décision. Le cran fixe à partir
 |---|---|---|---|---|---|
 | Contenu (textes) | IA | IA | IA | IA | IA |
 | Structure (sections, scènes, slides) | code | **IA, menu** | IA, menu | IA, menu | IA |
-| Choix de composition (par unité) | code | code | **IA, menu filtré DA** | IA, menu | IA |
+| Choix de composition (par unité) | code | code | **IA, menu de 10** | IA, menu de 14 | IA |
 | Paramètres de composition | code | code | code | **IA, bornes** | IA |
-| Écriture de la composition | code | code | code | code | **IA + contrôles, repli Max** |
+| Écriture de la composition | code | code | code | **IA, 2 essais** | **IA, 4 essais + 1 de finition** |
+| Espace parcouru par le classement (`spread`) | 0,6 | 1,1 | 1,5 | 1,9 | 2,4 |
+
+### Deux règles qui décident si l'échelle existe vraiment
+
+1. **Le classement est semé par le livrable.** Le classement des mises en page ne dépendait que du
+   numéro de page : trois projets d'un même style recevaient la même suite de mises en page, puis
+   les mêmes menus, puis des documents jumeaux. La clé du livrable (`docKey`, le `designKey` de
+   l'appelant) entre dans le classement (`layoutPresets.ts#rankPresets`), et la direction
+   artistique *penche* (± 0,6) au lieu d'*éliminer* (1,4 contre 0,2 face à un bruit de 0,5 : aucune
+   mise en page hors style n'était jamais vue).
+2. **Un contrôle répare avant de refuser.** Un contrôle qui refuse une unité la renvoie au rendu du
+   cran inférieur : trop de contrôles stricts, et le cran payé le plus cher rend exactement ce que
+   rend le cran Medium. Les défauts à réponse déterministe — hauteur, contraste, corps minimal —
+   sont donc corrigés par le code ; seul l'irréparable écarte une unité.
 
 Les bonnes pratiques valent à **tous** les crans, parce qu'elles sont dans le code, pas dans le prompt :
 
@@ -140,19 +154,35 @@ L'ancien codeur de scènes (`video.coder.ts#codeScenes`) reste le repli du film 
 
 Une scène qui lève une erreur au rendu retombe sur sa composition (`SceneBoundary`).
 
-## Visuels et flyers (`Communication/flyerLayouts.ts`, `flyerCreative.ts`)
+## Visuels (`apps/ivision/core/src/visual/poster`)
 
-Douze compositions dessinées par le code (photo pleine page, bandeau, cadre, diagonale, citation…), rendues aux couleurs et aux polices de la charte. La DA retire du menu ce qu'elle exclut.
+Un seul moteur, commun à IDEM et iVision : `poster.compose.ts`. La MÉTHODE change avec le cran, et
+la dispersion du classement des gabarits monte avec lui (0,25 → 0,7 → 1) : une même intention ne
+rend plus le même gabarit pour toutes les marques.
 
 | Cran | Ce que l'IA décide |
 |---|---|
-| Low | les mots (rédacteur, sans chiffre inventé). Le code choisit la composition par la graine. |
-| Medium | + la structure (quels éléments le visuel porte). |
-| High | + la composition dans le menu, le mot mis en valeur, le brief de l'image. |
-| Max | + l'écriture du HTML dans la grille de composition calculée (pipeline historique). |
-| Ultra | + un concept, deux compositions écrites en parallèle ; la meilleure est gardée d'après le contrôle mesuré (`design/visualAudit.ts`). |
+| Low | les mots (rédacteur, sans chiffre inventé). Le code choisit le meilleur gabarit pour l'intention. |
+| Medium | + un tirage parmi les trois meilleurs gabarits, semé par la marque. |
+| High | + la direction artistique choisit, REGARDE le rendu (critique visuelle) et révise (2 tours). |
+| Max | + l'IA pose elle-même chaque élément (`poster.layout.ts`), boucle de conception de 3 tours. |
+| Ultra | + le visuel d'auteur : deux concepts, le HTML complet écrit par l'IA (`poster.author.ts`), 4 tours. |
 
-Tous les crans passent par `applyDesignLint`, `ensureLogoPresence` et `auditAndRepairVisual`.
+Le filet des gabarits ne se déclenche **que si la méthode du cran n'a rien rendu**. Il se
+déclenchait aussi dès que la critique mettait moins de 6/10, et la comparaison désignait alors
+souvent le gabarit — mieux fini parce que dessiné par le code : un cran Ultra qui rendait les mises
+en page du cran Medium. Une note moyenne se corrige dans la boucle, c'est son objet. Et la boucle
+garde le meilleur rendu mesuré au-dessus de 70/100 plutôt que de rendre la main au gabarit
+(`poster.loop.ts`).
+
+> **Retiré (2026-10-12)** : les douze compositions de l'ancien moteur (`visual/flyer.layouts.ts`) et
+> ses agents (`visual/flyer.agents.ts`, `Communication/flyerCreative.ts`). Plus rien ne les
+> appelait depuis l'arrivée de `poster.compose.ts` — seul le script de contrôle, ce qui les faisait
+> passer pour vivantes et laissait croire qu'un visuel pouvait encore retomber sur elles. Il ne
+> reste de `flyer.layouts.ts` que `textOn` (encre lisible, employée par les faces de carte) ;
+> `flyer.render.ts` reste le rendu mesuré commun.
+
+Tous les crans passent par le rendu mesuré, `enforceDesignRules` et `auditAndRepairVisual`.
 
 ## Carte de visite (`BandIdentity/businessCardLayouts.ts`, `businessCardCreative.ts`)
 
@@ -164,9 +194,14 @@ Six rectos et cinq versos composés par le code, à partir des déclinaisons du 
 | Medium | la structure (ce que porte chaque face). |
 | High | + le recto et le verso dans les menus de la structure. |
 | Max | + couleur de la face de marque, alignement, filet, taille du nom (bornés). |
-| Ultra | + un concept, puis les deux faces écrites en HTML ; repli sur la composition du code si le contrôle d'impression échoue. |
+| Ultra | + un concept, puis les deux faces écrites en HTML, **trois essais** : les défauts mesurés repartent à l'IA mot pour mot ; repli sur la composition du code seulement si aucun essai n'est imprimable. |
 
-Le contrôle d'impression (`businessCardRender.service.ts#inspect`) mesure la face rendue avec des valeurs longues : marge de sécurité de 4 mm, corps ≥ 7 pt, contraste ≥ 4,5:1.
+Le contrôle d'impression (`businessCardRender.service.ts#inspect`) mesure la face rendue avec des
+valeurs longues et sépare deux catégories. **Bloquant** : texte dans la marge de sécurité de 4 mm ou
+hors carte, corps sous 5,5 pt, contraste sous 3:1. **Conseil** : un corps ou un contraste limite
+(sous 7 pt, sous 4,5:1) — renvoyé à l'IA au tour suivant, sans lui coûter sa carte. La carte
+d'auteur n'avait auparavant aucun tour : un seul appel, et un contraste à 4,2:1 la faisait retomber
+sur la composition du code — un cran Ultra qui rendait du Max.
 
 ## Documents : business plan, pitch deck, charte graphique
 
@@ -174,26 +209,55 @@ Le moteur commun (`common/generic.service.ts`) rend chaque page par gabarit : le
 
 | Cran | Ce que l'IA décide |
 |---|---|
-| Low | le contenu. La graine décide de la mise en page (comportement historique). |
-| Medium | + la famille de mise en page du document (ouvertures, pieds, dessin des blocs) ; elle s'applique aussi au design system. |
-| High | + l'archétype de chaque page, jamais celui de sa voisine. |
-| Max | + densité, tension et place de l'image de chaque page ; un critique relit le rythme du document (trois échanges au plus). |
-| Ultra | + le **compositeur** écrit la page en HTML à partir du contenu validé. |
+| Low | le contenu. Le code choisit la meilleure mise en page de chaque page dans l'espace de configuration (`layoutPresets.ts`, 460 mises en page), sans un jeton. |
+| Medium | + la famille de mise en page du document (ouvertures, pieds, dessin des blocs) ; le code tire parmi les cinq meilleures, semé par la clé du livrable. |
+| High | + un directeur artistique par page choisit SA mise en page dans un menu de **dix**, réparti sur dix familles distinctes, et le décor de la page. |
+| Max | + densité, tension et place de l'image de chaque page ; un critique relit le rythme du document ; et le **compositeur** écrit les pages (deux essais). |
+| Ultra | + le compositeur dispose de quatre essais, d'un tour de finition, et de la latitude la plus large. |
 
 ### Le compositeur (`creativity/pageComposer.ts`)
 
 Deux agents distincts : le rédacteur écrit et fait valider le contenu (spécimens de la charte compris : nuancier, polices, logos), le compositeur n'écrit que la mise en page. Il passe par le crochet `SectionTemplate.compose`. Une page composée n'est retenue que si :
 
-1. **la forme** passe la grille qualité (`agents/quality-gate.ts`) ;
-2. **la fidélité** est tenue : les textes du contenu sont là, aucun chiffre n'est inventé, chaque couleur et chaque image du contenu est posée, aucune autre image n'est appelée ;
-3. **le rendu mesuré** au format réel (`creativity/pageInspect.ts`, Chromium) ne trouve rien : diapositive ou page de charte plus haute que sa page, texte hors page ou coupé, corps sous 7 pt, contraste insuffisant ;
-4. **les règles de design** sont réparées sur place (`enforceDesignRules`).
+1. **la forme** passe la grille qualité (`agents/quality-gate.ts`) : balisage tronqué, conteneurs
+   déséquilibrés, bavardage. Les marqueurs de gabarit (`TODO`, `{{…}}`) ne sont cherchés que dans le
+   texte VISIBLE : le mot « placeholder » dans un commentaire ou un nom de classe refusait des
+   pages entières, alors que le compositeur reçoit justement des repères `{{IMG_n}}` dans sa consigne ;
+2. **la fidélité** est tenue : les textes du contenu sont là, aucun chiffre n'est inventé, chaque
+   couleur et chaque image du contenu est posée, aucune autre image n'est appelée. Un chiffre
+   « inventé » se juge sur le texte visible, **feuilles de style, scripts et SVG retirés** (les
+   graisses 400/700 et les interlignes 0,95 d'un bloc `<style>` étaient lus comme des données du
+   projet), et seul un FAIT compte : trois chiffres ou plus, une décimale, ou une unité collée
+   (`%`, devise, multiple). Un numéro de page (« 01 ») n'en est pas un ;
+3. **le rendu mesuré** au format réel (`creativity/pageInspect.ts`, Chromium) **répare puis
+   constate** : une page trop haute est ramenée à son format par une mise à l'échelle (`zoom`,
+   jusqu'à 26 %), un texte sous le contraste reçoit l'encre de la charte qui passe sur son fond
+   mesuré, un corps sous 7 pt est remonté. Restent bloquants : un texte hors page, coupé par sa
+   boîte, illisible qu'aucune encre de la charte ne sauve, ou une page qui dépasse encore après
+   mise à l'échelle ;
+4. **les règles de design** sont réparées sur place (`enforceDesignRules`), avec
+   `allowDerivedTints` : une teinte de la couleur de marque EST de la marque, et la ramener à la
+   couleur de charte la plus proche aplatissait chaque page sur quatre aplats ;
+5. **le kit** (décors, blocs riches) ne condamne plus rien : il dessine ce qu'il sait dessiner et
+   ses remarques (un décor de trop, une variante inconnue) deviennent des conseils.
 
-Ces contrôles ne sont pas des couperets : **chaque défaut repart au compositeur**, formulé pour être corrigé (« écris ces textes tels quels », « retire ces nombres : 07, 2026 », « pose ces couleurs »), avec sa page précédente, **trois tours au plus**. Ce n'est qu'ensuite que la page est rendue par le gabarit, avec les choix des agents des crans inférieurs. (Avant : la première faute de fidélité jetait la page ; 21 pages de charte Ultra sur 22 retombaient ainsi sur le gabarit.) Couverture et tableaux financiers restent posés par le code à tous les crans.
+Deux catégories, donc, et c'est tout l'enjeu. Un défaut **bloquant** repart au compositeur, formulé
+pour être corrigé (« écris ces textes tels quels », « retire ces nombres : 35 », « pose ces
+couleurs »), avec sa page précédente. Un **conseil** ne lui coûte pas sa page. Et la page retenue
+est la **meilleure tentative**, pas la dernière.
+
+> Mesuré avant correction dans les journaux : **26 pages Ultra refusées contre 3 retenues**, pour des
+> motifs comme « 658 px au lieu de 631 », « contraste 4,0:1 » ou « le chiffre 01 n'est pas dans le
+> contenu ». Le cran Ultra rendait donc des pages de gabarit — exactement le reproche qui lui était
+> fait. Un contrôle impossible (Chromium absent) ne refuse plus la page non plus : il la livrait au
+> gabarit en silence, ce qui désactivait tout le cran Ultra sur un serveur sans Chromium.
+
+Couverture et tableaux financiers restent posés par le code à tous les crans.
 
 Deux détails :
 
 - les images du contenu (logos, parfois en `data:` de plusieurs Ko) partent au modèle sous forme de repères `{{IMG_n}}`, que le code remplace par les URL ;
+- ne partent au compositeur que les **invariants** du document (stratégie de couleur, humeur typographique, accent graphique, rythme). On lui transmettait aussi l'archétype de gabarit de SA page, en lui demandant de ne pas le copier : une consigne contradictoire ne libère rien, le modèle lisait une description de mise en page et la suivait ;
 - la mesure charge le Tailwind du rendu PDF (`public/scripts/tailwind.js`) : la page est mesurée avec le moteur qui l'imprimera, sans attendre le CDN.
 
 ### Reprise et régénération ciblée

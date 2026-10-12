@@ -8,14 +8,20 @@
  *
  *   low     le CODE choisit, dans l'espace de configuration (`layoutPresets.ts`) : la meilleure
  *           mise en page pour le livrable et le style, sans un jeton
- *   medium  le code tire parmi les trois meilleures (variété), et un agent choisit la famille
- *   high    + un directeur artistique par page choisit SA mise en page dans un menu de six
+ *   medium  le code tire parmi les cinq meilleures (variété), et un agent choisit la famille
+ *   high    + un directeur artistique par page choisit SA mise en page dans un menu de DIX
  *             et le DÉCOR de la page dans le menu du kit graphique (le code le pose sur les seules
  *             pages qui respirent ; en dessous de High, c'est le code qui le choisit, sans jeton)
- *   max     + il règle la densité, la tension et la place de l'image ; un critique relit le rythme
- *   ultra   + le contenu validé de chaque page part au COMPOSITEUR, qui en écrit le HTML ;
- *            fidélité, rendu mesuré et règles de design contrôlés, le gabarit en repli
- *            (`SectionTemplate.compose`, creativity/pageComposer.ts)
+ *   max     + il règle la densité, la tension et la place de l'image ; un critique relit le rythme ;
+ *             et le COMPOSITEUR écrit les pages (deux essais) — le gabarit dirigé reste le plancher
+ *   ultra     le compositeur écrit les pages avec quatre essais, un rendu mesuré PUIS RÉPARÉ et la
+ *             latitude la plus large (`SectionTemplate.compose`, creativity/pageComposer.ts)
+ *
+ * ── CE QUI A ÉTÉ RETIRÉ ──────────────────────────────────────────────────────
+ * Le classement des mises en page ne dépendait que du NUMÉRO de page : trois projets d'un même
+ * style recevaient le même classement, donc les mêmes menus, donc des documents jumeaux. La clé
+ * du livrable (`docKey`) entre maintenant dans le classement, et la largeur de l'espace présenté
+ * monte avec le cran (`spread`, `menuWidth`).
  */
 import { CreativityLevel, SavedDocumentDesign, atLeast } from '../../models/creativity.model';
 import { ARCHETYPE_CATALOG, CONTENT_DENSITY_CATALOG, LAYOUT_TENSION_CATALOG, styleSpaceOf } from '../design/designSeed';
@@ -42,9 +48,33 @@ export interface DocumentDesignPlan {
   family?: string;
   /** Réglages par page (High+), par nom de section. */
   pages: Record<string, PageDesign>;
-  /** Cran Ultra : les pages sont composées par le compositeur, le gabarit en repli. */
+  /** Crans Max et Ultra : les pages sont composées par le compositeur, le gabarit en repli. */
   freeCompose: boolean;
+  /** Essais accordés au compositeur (Max : 2, Ultra : 4) ; 0 en dessous. */
+  composeAttempts: number;
   traces: AgentTrace[];
+}
+
+/**
+ * CE QUE LE CRAN CONFIE AU MODÈLE, en trois nombres.
+ *
+ *   spread      la dispersion du classement des mises en page (l'espace réellement parcouru)
+ *   menuWidth   la largeur du menu présenté au directeur artistique de chaque page
+ *   attempts    les essais du compositeur de pages (0 : le gabarit dirigé rend la page)
+ */
+export function delegationOf(level: CreativityLevel): { spread: number; menuWidth: number; attempts: number } {
+  switch (level) {
+    case 'low':
+      return { spread: 0.6, menuWidth: 0, attempts: 0 };
+    case 'medium':
+      return { spread: 1.1, menuWidth: 0, attempts: 0 };
+    case 'high':
+      return { spread: 1.5, menuWidth: 10, attempts: 0 };
+    case 'max':
+      return { spread: 1.9, menuWidth: 14, attempts: 2 };
+    default:
+      return { spread: 2.4, menuWidth: 16, attempts: 4 };
+  }
 }
 
 export interface DocumentDesignInput {
@@ -55,7 +85,11 @@ export interface DocumentDesignInput {
   styleId?: string | null;
   /** Les « à éviter » de la direction artistique : ils écartent des décors du menu. */
   donts?: string[];
-  /** Clé du livrable, pour que deux documents d'un même projet ne tirent pas le même décor. */
+  /**
+   * CLÉ DU LIVRABLE (projet + document). Elle sème TOUT le classement : sans elle, deux projets
+   * du même style recevaient la même suite de mises en page et le même décor — c'est-à-dire deux
+   * documents jumeaux. Les appelants passent leur `designKey`.
+   */
   docKey?: string;
   /** « business plan », « pitch deck ». */
   document: string;
@@ -70,10 +104,30 @@ export interface DocumentDesignInput {
 /** Une ligne de catalogue, réduite à sa première phrase (les menus restent courts). */
 const firstSentence = (text: string) => text.split(/(?<=[.—])\s/)[0].slice(0, 140);
 
+/** Un index dans `[0, count)`, tiré d'une clé (FNV-1a) : stable pour un projet, autre pour le voisin. */
+function hashIndex(key: string, count: number): number {
+  if (count <= 1) return 0;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = (h + (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)) >>> 0;
+  }
+  return (h >>> 8) % count;
+}
+
 export async function planDocumentDesign(input: DocumentDesignInput): Promise<DocumentDesignPlan> {
   const orchestrator = new CreativeOrchestrator({ level: input.level, call: input.call });
-  const plan: DocumentDesignPlan = { level: input.level, pages: {}, freeCompose: atLeast(input.level, 'ultra'), traces: orchestrator.traces };
+  const delegation = delegationOf(input.level);
+  const plan: DocumentDesignPlan = {
+    level: input.level,
+    pages: {},
+    freeCompose: delegation.attempts > 0,
+    composeAttempts: delegation.attempts,
+    traces: orchestrator.traces,
+  };
   const space = styleSpaceOf(input.styleId);
+  // La clé du livrable : elle sème le classement des mises en page ET celui des décors.
+  const docKey = input.docKey || input.document;
 
   // Medium : la famille du document (sa grammaire : ouvertures, pieds, dessin des blocs).
   const families = familiesForStyle(input.styleId);
@@ -104,8 +158,11 @@ export async function planDocumentDesign(input: DocumentDesignInput): Promise<Do
   const deliverable: LayoutDeliverable = input.deliverable || 'business plan';
   const codePicked: string[] = [];
   input.pages.forEach((page, i) => {
-    const ranked = rankPresets({ deliverable, styleId: input.styleId, seed: i + 1, used: codePicked });
-    const pick = ranked[input.level === 'low' ? 0 : (i * 7 + 3) % Math.min(3, ranked.length)];
+    const ranked = rankPresets({ deliverable, styleId: input.styleId, seed: i + 1, used: codePicked, key: docKey, spread: delegation.spread });
+    // Low prend la meilleure ; au-delà, un tirage parmi les cinq meilleures — tiré sur la CLÉ du
+    // livrable, pas sur le numéro de page : c'est ce qui distingue deux projets l'un de l'autre.
+    const width = input.level === 'low' ? 1 : Math.min(5, ranked.length);
+    const pick = ranked[width <= 1 ? 0 : hashIndex(`${docKey}:pick:${page.name}`, width)];
     if (!pick) return;
     codePicked.push(pick.id);
     plan.pages[page.name] = { preset: pick.id, archetype: pick.archetype };
@@ -120,8 +177,8 @@ export async function planDocumentDesign(input: DocumentDesignInput): Promise<Do
   // en tête de liste.
   const dealt: string[] = [];
   const menus: { id: string; line: string }[][] = input.pages.map((_, i) => {
-    const ranked = rankPresets({ deliverable, styleId: input.styleId, seed: i + 1, used: dealt });
-    const menu = presetMenu(ranked, 6);
+    const ranked = rankPresets({ deliverable, styleId: input.styleId, seed: i + 1, used: dealt, key: docKey, spread: delegation.spread });
+    const menu = presetMenu(ranked, Math.max(6, delegation.menuWidth));
     // Seules les deux premières sont réservées : le menu garde du choix, la répétition recule.
     dealt.push(...menu.slice(0, 2).map((m) => m.id));
     return menu;
@@ -138,7 +195,7 @@ export async function planDocumentDesign(input: DocumentDesignInput): Promise<Do
       const presets = menus[i];
       // Le menu des décors de CETTE page : le code les classe (style, « à éviter », graine), le
       // directeur artistique en nomme un. Il ne sera posé que si la page respire.
-      const decors = pageDecorMenu(rankPageDecors({ styleId: input.styleId, donts: input.donts, docKey: input.docKey || input.document, pageName: page.name }));
+      const decors = pageDecorMenu(rankPageDecors({ styleId: input.styleId, donts: input.donts, docKey, pageName: page.name }));
       return {
         role: 'pageDirector',
         key: `pageDirector:${i + 1}`,
@@ -260,5 +317,13 @@ export const savedDesignOf = (plan: DocumentDesignPlan): SavedDocumentDesign => 
  * compositeur, lui, suit le cran de la demande.
  */
 export function resumedDesignPlan(saved: SavedDocumentDesign | undefined, level: CreativityLevel): DocumentDesignPlan {
-  return { level, ...(saved?.family ? { family: saved.family } : {}), pages: saved?.pages ?? {}, freeCompose: atLeast(level, 'ultra'), traces: [] };
+  const delegation = delegationOf(level);
+  return {
+    level,
+    ...(saved?.family ? { family: saved.family } : {}),
+    pages: saved?.pages ?? {},
+    freeCompose: delegation.attempts > 0,
+    composeAttempts: delegation.attempts,
+    traces: [],
+  };
 }

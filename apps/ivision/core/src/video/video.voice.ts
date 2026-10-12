@@ -25,6 +25,7 @@ import { agentLines, LETTERS, pickOption } from '../creativity/agent-io';
 import { BriefFacts, CopyWriter, estimateTokens, fitLength, isGrounded } from './video.copy';
 import { MotionStyle, VideoStoryboard, VideoVoice, VoiceLine } from './video.model';
 import { callAgent, AgentRun } from './video.agents';
+import { languageName } from '../text/language';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
@@ -129,7 +130,7 @@ export interface Narration {
 }
 
 export function buildNarratorPrompt(input: NarratorInput): { system: string; user: string } {
-  const lang = LANG_NAMES[langOf(input.language)] || 'French';
+  const lang = LANG_NAMES[langOf(input.language)] || languageName(input.language);
   const system = [
     `You write the VOICE-OVER of a short brand video, in ${lang}. The narrator speaks over the scenes, in sync with what is on screen.`,
     'Output ONLY these lines:',
@@ -162,8 +163,20 @@ export function buildNarratorPrompt(input: NarratorInput): { system: string; use
 }
 
 /** Une ligne parlée propre : sans balises ni indications de jeu, bornée en mots, chiffres vérifiés. */
+/**
+ * Une ligne écrite en CAPITALES (titre d'écran) se dit en casse de phrase : un moteur de voix lit
+ * « L'IDÉE NAÎT SEULE » lettre par lettre ou sur un ton de cri.
+ */
+export function speakableCase(text: string): string {
+  const letters = (text.match(/\p{L}/gu) || []).length;
+  const upper = (text.match(/\p{Lu}/gu) || []).length;
+  if (letters < 4 || upper / letters < 0.7) return text;
+  const lower = text.toLocaleLowerCase();
+  return lower.replace(/(^|[.!?…]\s+)(\p{Ll})/gu, (_, a: string, b: string) => a + b.toLocaleUpperCase());
+}
+
 export function cleanSpoken(value: string, maxWords: number, language: string, briefText: string): string {
-  let t = (value || '')
+  let t = speakableCase(value || '')
     .replace(/\[[^\]]*\]|\([^)]*\)|\*[^*]*\*/g, ' ')
     .replace(/https?:\/\/\S+|www\.\S+/gi, ' ')
     .replace(/#[\p{L}\d_]+/gu, ' ')
@@ -188,7 +201,8 @@ export function parseNarration(raw: string, input: NarratorInput): Narration | n
   const text = (raw || '').replace(/```[a-z]*\n?/gi, '');
   const lines: Record<number, string> = {};
   for (const line of text.split(/\r?\n/)) {
-    const m = line.match(/^[\s*_#>-]*(?:scene\s*)?(\d{1,2})\s*[.):=-]*\s*[:=]?\s*(.+)$/i);
+    // « 2: … », « Scène 2 : … », « **Plan 2** — … », « [2] … », « Shot 2. … ».
+    const m = line.replace(/\*\*/g, '').match(/^[\s*_#>\-[(]*(?:sc[eè]ne|scene|plan|shot|line|ligne|n°|no\.?)?\s*(\d{1,2})\s*[\])]?\s*[.):=\-–—]*\s*[:=]?\s*(.+)$/i);
     if (!m) continue;
     const i = Number(m[1]) - 1;
     const sc = input.scenes[i];
@@ -352,7 +366,7 @@ export async function synthesizeVoice(opts: {
 // ─── Calage des scènes sur la voix ──────────────────────────────────────────
 
 /** Les scènes dont on retire d'abord la voix si le film est trop court pour tout dire. */
-const SILENT_FIRST = ['wordswap', 'kinetic', 'gallery', 'statement', 'stat', 'benefits', 'quote', 'lottie', 'showcase3d', 'footage', 'product'];
+const SILENT_FIRST = ['wordswap', 'kinetic', 'gallery', 'statement', 'stat', 'benefits', 'quote', 'lottie', 'showcase3d', 'screen', 'footage', 'product'];
 
 const floorOf = (sceneId: string, total: number) => (sceneId === 'logo' ? (total >= 15 ? 2.2 : 1.5) : 1.2);
 
@@ -361,7 +375,7 @@ const floorOf = (sceneId: string, total: number) => (sceneId === 'logo' ? (total
  * gardent leurs proportions dans ce qui reste ; une ligne qui ne tient pas est retirée (les
  * scènes les moins essentielles d'abord, jamais l'ouverture ni la signature).
  */
-export function fitScenesToVoice(storyboard: VideoStoryboard, voice: VideoVoice): { storyboard: VideoStoryboard; voice: VideoVoice; dropped: string[] } {
+export function fitScenesToVoice(storyboard: VideoStoryboard, voice: VideoVoice, opts: { keepTiming?: boolean } = {}): { storyboard: VideoStoryboard; voice: VideoVoice; dropped: string[] } {
   const total = storyboard.durationSec;
   const scenes = storyboard.scenes.map((sc) => ({ ...sc }));
   const keys = new Set(scenes.map((sc) => sc.key));
@@ -370,6 +384,23 @@ export function fitScenesToVoice(storyboard: VideoStoryboard, voice: VideoVoice)
   const dropped = voice.lines.filter((l) => !keys.has(l.sceneKey)).map((l) => l.sceneKey);
   const lineOf = (key: string) => lines.find((l) => l.sceneKey === key);
   const leadOf = (i: number) => (i === 0 ? 0.15 : VOICE_LEAD);
+  // Le minutage d'un scénario de l'utilisateur ne bouge pas : une ligne qui ne tient pas dans SA
+  // scène est retirée (jamais coupée), les autres se posent dedans.
+  if (opts.keepTiming) {
+    const placed = lines
+      .map((l) => {
+        const i = scenes.findIndex((sc) => sc.key === l.sceneKey);
+        const room = scenes[i].duration - l.durationSec - VOICE_TAIL;
+        if (room < leadOf(i) - 0.05) {
+          dropped.push(l.sceneKey);
+          return null;
+        }
+        const offset = Math.max(leadOf(i), Math.min(room, leadOf(i) + Math.max(0, room - leadOf(i)) * 0.25));
+        return { ...l, offset: Math.round(offset * 1000) / 1000 };
+      })
+      .filter((l): l is VoiceLine => !!l);
+    return { storyboard: { ...storyboard, scenes }, voice: { ...voice, lines: placed }, dropped };
+  }
   const need = () => scenes.map((sc, i) => Math.max(floorOf(sc.sceneId, total), lineOf(sc.key) ? leadOf(i) + lineOf(sc.key)!.durationSec + VOICE_TAIL : 0));
 
   for (let guard = 0; guard < scenes.length && need().reduce((a, x) => a + x, 0) > total + 0.01; guard++) {

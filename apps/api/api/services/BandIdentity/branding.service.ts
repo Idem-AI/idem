@@ -1418,6 +1418,11 @@ export class BrandingService extends GenericService {
         styleId: artDirection?.styleId,
         document: 'brand guidelines book',
         deliverable: 'brand guidelines' as const,
+        // La clé de la charte sème le classement des mises en page ET celui des décors : sans
+        // elle, toutes les chartes de la plateforme recevaient la même suite de pages. C'était la
+        // cause des chartes jumelles d'un projet à l'autre.
+        docKey: `branding:${projectId}`,
+        donts: artDirection?.donts,
         pages: directedSteps.map((step) => ({ name: step.stepName, brief: CHARTER_PAGE_BRIEFS[step.stepName] })),
         seedArchetypes,
       }).catch((error: any) => {
@@ -1788,6 +1793,7 @@ export class BrandingService extends GenericService {
                   document: 'brand guidelines book',
                   call: runtimeCall({ userId, projectId, element: 'branding' }),
                   name: step.stepName,
+                  attempts: designPlan.composeAttempts,
                   lint: {
                     palette: charterBranding?.colors?.colors,
                     styleId: artDirection?.styleId,

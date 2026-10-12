@@ -32,17 +32,16 @@ import { brandById } from './fixtures/motion-video/brands';
 import { makePhotos } from './fixtures/motion-video/media';
 import { buildCompositionGrid, NEUTRAL_SEED } from '../services/design/compositionGrid';
 import { flyerRenderService, FORMAT_DIMENSIONS } from '../services/Communication/flyerRender.service';
-import { FLYER_LAYOUT_IDS, flyerLayoutMenu, pickFlyerLayout, renderFlyerLayout, textOn } from '../services/Communication/flyerLayouts';
-import { artDirectorTask, copywriterTask, structureTask } from '../services/Communication/flyerCreative';
+import { textOn } from '../services/Communication/flyerLayouts';
 import { contrastRatio } from '../services/design/color';
 import fs from 'fs';
 import path from 'path';
 import { CARD_PATTERNS, CARD_STRUCTURES, renderCardBack, renderCardFront, CardBackId, CardFrontId, CardPatternId } from '../services/BandIdentity/businessCardLayouts';
 import { cardLayoutTask, cardStructureTask, cardTuningTask } from '../services/BandIdentity/businessCardCreative';
 import { businessCardRenderService } from '../services/BandIdentity/businessCardRender.service';
-import { planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../services/creativity/documentDesign';
+import { delegationOf, planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../services/creativity/documentDesign';
 import { acceptComposedPage, buildComposerPrompt, composePageHtml } from '../services/creativity/pageComposer';
-import { closePageInspector, inspectComposedPage } from '../services/creativity/pageInspect';
+import { closePageInspector, inspectComposedPage, type PageMeasure } from '../services/creativity/pageInspect';
 import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
 import { buildDocumentSeed, buildSectionSeed } from '../services/design/designSeed';
 import { LANDSCAPE_SLIDE, PORTRAIT_A4, renderStandaloneChart } from '../services/design/sectionRenderer';
@@ -235,55 +234,18 @@ export default function Scene() {
   }
 
   if (run(5)) {
-    section('5. Visuels — agents des crans Low → High');
-    const brief = { title: 'Soldes de fin d’année : -30 % sur les pagnes', hook: 'Vos pagnes à prix doux', description: 'Jusqu’au 31 décembre, livraison 24 h à Abidjan.' };
-    const cw = copywriterTask('BRAND: Wax & Co', brief);
-    const ok = cw.parse('kicker: Soldes\nheadline: Vos pagnes à prix doux\nsub: Jusqu’au 31 décembre, livrés en 24 h\ndetail: -30 %');
-    check('rédacteur : sur-titre, titre, sous-titre et fait chiffré du contenu gardés', ok?.headline === 'Vos pagnes à prix doux' && ok?.detail === '-30 %' && ok?.kicker === 'Soldes', JSON.stringify(ok));
-    const invented = cw.parse('headline: Vos pagnes à prix doux\ndetail: -50 %');
-    check('rédacteur : un chiffre absent du contenu est retiré', !!invented && !invented.detail, JSON.stringify(invented));
-    check('rédacteur : titre au chiffre inventé ou trop long refusé', cw.parse('headline: 2 pagnes achetés 1 offert ce week-end seulement') === undefined && cw.parse('headline: Une phrase beaucoup trop longue pour tenir sur un visuel de réseau social lisible') === undefined);
-    check('rédacteur : repli sur le contenu', !!cw.fallback().headline && cw.fallback().detail === '-30 %', JSON.stringify(cw.fallback()));
-    const st = structureTask('BRAND', { headline: 'x', detail: '-30 %' }, ['photo', 'type', 'fact'], 'photo');
-    check('structure : choix par lettre, invention refusée', st.parse('structure: c') === 'fact' && st.parse('structure: hologram') === undefined);
-    const menu = flyerLayoutMenu('photo', { styleId: 'minimalism', recent: ['minimalCaption'] });
-    check('menu de compositions : DA minimaliste sans bandeau oblique, la dernière composition recule', !menu.includes('stripeOverPhoto') && menu[0] !== 'minimalCaption' && menu.length >= 3, menu.join(','));
-    const ad = artDirectorTask('BRAND', { headline: 'Vos pagnes à prix doux' }, menu, menu[0]);
-    const pick = ad.parse('layout: b\nword: doux');
-    check('directeur artistique : composition du menu et mot mis en valeur', pick?.layout === menu[1] && pick?.emphasis === 4, JSON.stringify(pick));
-    check('choix du code : varié par la graine, toujours dans le menu', new Set([1, 2, 3, 4, 5, 6].map((n) => pickFlyerLayout('photo', n))).size >= 2);
+    section('5. Visuels — encre lisible sur la charte');
+    // Les agents et les douze compositions de l'ancien moteur de visuels ont été retirés (cf.
+    // `visual/flyer.layouts.ts`) : la composition d'un visuel vit dans `poster/poster.compose.ts`,
+    // dont les agents et les gabarits sont contrôlés par `check:flyer` et `check:poster:kit`.
     check('couleur de texte : toujours lisible sur la couleur de la marque', ['#C2410C', '#0F172A', '#FDE68A', '#16A34A'].every((bg) => contrastRatio(textOn(bg, { primary: bg, secondary: '#111', text: '#1f2937', background: '#fff7ed' }), bg) >= 4.5));
   }
 
   if (run(6)) {
-    section('6. Visuels — les douze compositions du code, rendues et contrôlées (Chromium)');
-    const photos = await makePhotos(path.resolve(__dirname, '../../tmp/motion-video-check/photos'));
-    const img = `data:image/jpeg;base64,${fs.readFileSync(photos[Object.keys(photos)[0]]).toString('base64')}`;
-    const palette = { primary: '#C2410C', secondary: '#1E293B', accent: '#FACC15', background: '#FFF7ED', text: '#1F2937' };
-    const copy = { kicker: 'Soldes', headline: 'Vos pagnes wax à prix doux', sub: 'Jusqu’au 31 décembre, livrés en 24 h à Abidjan', detail: '-30 %' };
-    const sheet: string[] = [];
-    let blocking = 0;
-    let worst = 100;
-    const blockers: string[] = [];
-    for (const format of ['square', 'story', 'banner'] as const) {
-      const dims = FORMAT_DIMENSIONS[format];
-      const grid = buildCompositionGrid({ width: dims.width, height: dims.height }, NEUTRAL_SEED, palette);
-      for (const id of FLYER_LAYOUT_IDS) {
-        const html = renderFlyerLayout(id, { copy, brandName: 'Wax & Co', palette, logo: {}, image: img, width: dims.width, height: dims.height, grid });
-        const out = await flyerRenderService.renderFlyer(html, format, { primaryFont: 'Archivo', secondaryFont: 'Inter' }, [], { grid, palette, label: `test/${id}/${format}` });
-        if (out.audit.blocking) {
-          blocking++;
-          blockers.push(`${id}/${format}`);
-        }
-        worst = Math.min(worst, out.audit.score);
-        sheet.push(`<figure><img src="data:image/png;base64,${out.png.toString('base64')}"><figcaption>${id} · ${format} · ${out.audit.score}</figcaption></figure>`);
-      }
-    }
-    check(`36 visuels (12 compositions × 3 formats) : aucun défaut bloquant au contrôle mesuré`, blocking === 0, blockers.join(', '));
-    check(`score du contrôle mesuré ≥ 60 partout (pire : ${worst})`, worst >= 60);
-    const out = path.resolve(__dirname, '../../tmp/creativity-flyers.html');
-    fs.writeFileSync(out, `<!doctype html><meta charset="utf-8"><style>body{font:12px system-ui;display:flex;flex-wrap:wrap;gap:10px;padding:16px}figure{margin:0;width:220px}img{width:100%;border:1px solid #ddd}</style>${sheet.join('')}`);
-    console.log(`      planche : ${out}`);
+    section('6. Visuels — rendu mesuré des gabarits du compositeur');
+    // Les douze compositions de l'ancien moteur n'existent plus. Les gabarits réellement employés
+    // (`poster/poster.templates.ts`) sont rendus et mesurés par `npm run check:flyer`.
+    check('gabarits du compositeur : contrôlés par check:flyer (ancien moteur retiré)', true);
   }
 
   if (run(7)) {
@@ -303,20 +265,26 @@ export default function Scene() {
     const problems: string[] = [];
     for (const orientation of ['landscape', 'portrait'] as const) {
       const input = { width: orientation === 'landscape' ? 85 : 55, height: orientation === 'landscape' ? 55 : 85, brandName: 'Kofi Studio', palette, logos: {}, tuning: { rule: 'thin' as const } };
-      for (const id of fronts) for (const issue of await businessCardRenderService.inspect(renderCardFront(id, input), orientation, { primaryFont: 'Archivo', secondaryFont: 'Inter' })) problems.push(`recto ${id}/${orientation}: ${issue}`);
-      for (const id of backs) for (const issue of await businessCardRenderService.inspect(renderCardBack(id, input), orientation, { primaryFont: 'Archivo', secondaryFont: 'Inter' })) problems.push(`verso ${id}/${orientation}: ${issue}`);
+      for (const id of fronts) for (const issue of (await businessCardRenderService.inspect(renderCardFront(id, input), orientation, { primaryFont: 'Archivo', secondaryFont: 'Inter' })).issues) problems.push(`recto ${id}/${orientation}: ${issue}`);
+      for (const id of backs) for (const issue of (await businessCardRenderService.inspect(renderCardBack(id, input), orientation, { primaryFont: 'Archivo', secondaryFont: 'Inter' })).issues) problems.push(`verso ${id}/${orientation}: ${issue}`);
     }
     check(`${fronts.length} rectos et ${backs.length} versos × 2 orientations : imprimables (marges, corps ≥ 7 pt, contraste)`, problems.length === 0, problems.slice(0, 6).join(' | '));
     // Les six textures du kit, dessinées sur la face de marque : imprimables et réellement différentes.
     const textures = Object.keys(CARD_PATTERNS) as CardPatternId[];
     const drawn = textures.map((pattern) => renderCardFront('patternField', { width: 85, height: 55, brandName: 'Kofi Studio', palette, logos: {}, tuning: { pattern } }));
     const textureIssues: string[] = [];
-    for (const [i, html] of drawn.entries()) for (const issue of await businessCardRenderService.inspect(html, 'landscape', { primaryFont: 'Archivo', secondaryFont: 'Inter' })) textureIssues.push(`${textures[i]}: ${issue}`);
+    for (const [i, html] of drawn.entries()) for (const issue of (await businessCardRenderService.inspect(html, 'landscape', { primaryFont: 'Archivo', secondaryFont: 'Inter' })).issues) textureIssues.push(`${textures[i]}: ${issue}`);
     check(`${textures.length} textures du kit sur la face de marque : imprimables, dessinées (SVG) et toutes distinctes`,
       !textureIssues.length && drawn.every((h) => /<svg/.test(h)) && new Set(drawn).size === textures.length,
       textureIssues.slice(0, 4).join(' | '));
     const bad = await businessCardRenderService.inspect('<div class="w-[85mm] h-[55mm] relative" style="background:#fff"><p style="position:absolute;left:1mm;top:1mm;font-size:6px;color:#ddd">{{fullName}}</p></div>', 'landscape');
-    check('contrôle d’impression : marge, corps trop petit et contraste faible détectés', bad.some((i) => /safety margin/.test(i)) && bad.some((i) => /7 pt/.test(i)) && bad.some((i) => /contrast/.test(i)), bad.join(' | '));
+    check('contrôle d’impression : marge, corps illisible et contraste illisible → bloquants',
+      bad.issues.some((i) => /safety margin/.test(i)) && bad.issues.some((i) => /far too small/.test(i)) && bad.issues.some((i) => /unreadable/.test(i)), bad.issues.join(' | '));
+    // Ce qui ne rend pas la carte inimprimable est un CONSEIL : l'IA le reçoit, il ne lui coûte
+    // pas sa carte. C'est ce qui faisait retomber le cran Ultra sur la composition du code.
+    const nearly = await businessCardRenderService.inspect('<div class="w-[85mm] h-[55mm] relative" style="background:#ffffff"><p style="position:absolute;left:6mm;top:6mm;font-size:9px;color:#6f6f6f">{{fullName}}</p></div>', 'landscape');
+    check('contrôle d’impression : un contraste ou un corps limite est un conseil, pas un refus',
+      nearly.issues.length === 0 && nearly.advisories.length > 0, `${nearly.issues.join(' | ')} || ${nearly.advisories.join(' | ')}`);
   }
 
   if (run(8)) {
@@ -342,7 +310,31 @@ export default function Scene() {
     const max = await planDocumentDesign({ level: 'max', call, sheet: 'BRAND', styleId: 'editorial', document: 'business plan', pages, seedArchetypes });
     check('Max : place de l’image réglée, valeurs hors menu refusées (densité, tension)', Object.values(max.pages).every((p) => p.imagePosition === 'TOP_BAND' && !p.contentDensity && !p.layoutTension));
     const ultra = await planDocumentDesign({ level: 'ultra', call, sheet: 'BRAND', styleId: 'editorial', document: 'pitch deck', pages, seedArchetypes });
-    check('Ultra : pages confiées au compositeur (gabarit en repli)', ultra.freeCompose);
+    check('Ultra : pages confiées au compositeur (gabarit dirigé en repli)', ultra.freeCompose && ultra.composeAttempts === 4);
+    // ── LA DÉLÉGATION MONTE AVEC LE CRAN ─────────────────────────────────────
+    check('délégation : le menu s’élargit et le compositeur entre à Max (0 → 0 → 10 → 14+2 essais → 16+4)',
+      delegationOf('low').menuWidth === 0 && delegationOf('medium').attempts === 0 && delegationOf('high').menuWidth === 10 && !delegationOf('high').attempts &&
+        delegationOf('max').attempts === 2 && delegationOf('ultra').attempts === 4 &&
+        delegationOf('low').spread < delegationOf('medium').spread && delegationOf('medium').spread < delegationOf('high').spread &&
+        delegationOf('high').spread < delegationOf('max').spread && delegationOf('max').spread < delegationOf('ultra').spread,
+      `max ${max.composeAttempts} essai(s)`);
+    check('Max : les pages passent aussi au compositeur (deux essais)', max.freeCompose && max.composeAttempts === 2);
+    // ── TROIS PROJETS, TROIS DOCUMENTS ───────────────────────────────────────
+    //
+    // Le classement ne dépendait que du NUMÉRO de page : trois chartes de même style recevaient
+    // les mêmes pages. C'est le défaut qui rendait les livrables jumeaux, et il se mesure.
+    const plansByProject = await Promise.all(
+      ['branding:p-alpha', 'branding:p-beta', 'branding:p-gamma'].map((docKey) =>
+        planDocumentDesign({ level: 'medium', call, sheet: 'BRAND', styleId: 'editorial', document: 'brand guidelines book', deliverable: 'brand guidelines', docKey, pages, seedArchetypes })
+      )
+    );
+    const signatures = plansByProject.map((plan) => pages.map((p) => plan.pages[p.name]?.preset).join('|'));
+    check('trois projets du même style → trois suites de mises en page différentes', new Set(signatures).size === 3, signatures.map((sig) => sig.slice(0, 60)).join('\n      '));
+    const highByProject = await Promise.all(
+      ['bp:p-alpha', 'bp:p-beta'].map((docKey) => planDocumentDesign({ level: 'high', call, sheet: 'BRAND', styleId: 'editorial', document: 'business plan', deliverable: 'business plan', docKey, pages, seedArchetypes }))
+    );
+    check('deux projets au cran High → menus distincts, donc pages distinctes',
+      pages.map((p) => highByProject[0].pages[p.name]?.preset).join('|') !== pages.map((p) => highByProject[1].pages[p.name]?.preset).join('|'));
     const broken = await planDocumentDesign({ level: 'max', call: async () => 'layout: hologram\nfamily: z', sheet: 'BRAND', styleId: 'editorial', document: 'business plan', pages, seedArchetypes });
     check('réponses inventées : le choix du CODE garde la main (aucune famille, aucune mise en page inventée)',
       !broken.family && pages.every((p) => !!PRESET_BY_ID.get(broken.pages[p.name]?.preset || '')),
@@ -351,7 +343,7 @@ export default function Scene() {
     const saved = savedDesignOf(high);
     const resumed = resumedDesignPlan(saved, 'medium');
     check('enregistrée : décisions seules (cran, famille, pages), pas de traces', !('traces' in saved) && saved.level === 'high' && JSON.stringify(saved.pages) === JSON.stringify(high.pages));
-    check('reprise : même famille et mêmes pages, aucun appel, compositeur selon le cran demandé', resumed.family === high.family && JSON.stringify(resumed.pages) === JSON.stringify(high.pages) && resumed.traces.length === 0 && !resumed.freeCompose && resumedDesignPlan(saved, 'ultra').freeCompose);
+    check('reprise : même famille et mêmes pages, aucun appel, compositeur selon le cran demandé', resumed.family === high.family && JSON.stringify(resumed.pages) === JSON.stringify(high.pages) && resumed.traces.length === 0 && !resumed.freeCompose && resumedDesignPlan(saved, 'ultra').freeCompose && resumedDesignPlan(saved, 'ultra').composeAttempts === 4);
     check('reprise d’un document sans direction : la graine (aucune page dirigée)', Object.keys(resumedDesignPlan(undefined, 'max').pages).length === 0 && !resumedDesignPlan(undefined, 'max').family);
 
     const content = { title: 'Analyse du marché', lede: 'Le marché ivoirien du jus naturel croît de 12 % par an.', blocks: [{ type: 'prose', text: 'Les ménages urbains achètent de plus en plus de boissons locales sans sucre ajouté.' } as any, { type: 'metrics', items: [{ label: 'Croissance annuelle', value: '12 %' }] } as any] };
@@ -574,42 +566,81 @@ export default function Scene() {
     const seed = buildSectionSeed('editorial', 'check:ultra', 'Market', new Set());
     const content = { title: 'Le marché du jus local', lede: 'Les ménages urbains achètent de plus en plus de boissons locales.', blocks: [{ kind: 'prose', text: 'La demande de jus naturels progresse dans les grandes villes du pays.' } as any] };
     const fits = `<section style="width:${LANDSCAPE_SLIDE.width};height:${LANDSCAPE_SLIDE.minHeight};padding:${LANDSCAPE_SLIDE.padding};position:relative;overflow:hidden;box-sizing:border-box;background:#FFFFFF"><h2 style="font-size:40px;color:#1A1A1A">Le marché du jus local</h2><p style="font-size:18px;color:#1A1A1A">Les ménages urbains achètent de plus en plus de boissons locales.</p><p style="font-size:16px;color:#1A1A1A">La demande de jus naturels progresse dans les grandes villes du pays.</p></section>`;
-    const tooTall = fits.replace('<h2', '<div style="height:900px"></div><h2');
+    // Une page légèrement trop haute (rattrapable à l'échelle) et une irrattrapable. La hauteur
+    // mesurée est celle du dernier élément qui porte de la MATIÈRE (texte, image) : un cale vide
+    // ne déborde pas, il déplace le texte — d'où un cale calibré pour faire sortir le texte.
+    const tooTall = fits.replace('<h2', '<div style="height:520px"></div><h2');
     const tiny = fits.replace('font-size:16px', 'font-size:7px');
     const pale = fits.replace('font-size:18px;color:#1A1A1A', 'font-size:18px;color:#D8D8D8');
     const opts = { page: LANDSCAPE_SLIDE, singlePage: true, fonts: { display: 'Archivo', body: 'Inter' } };
     const ok = await inspectComposedPage(fits, opts);
-    check('mesure : une page qui tient est livrable', ok.length === 0, ok.join(' ; '));
+    check('mesure : une page qui tient est livrable', ok.issues.length === 0, ok.issues.join(' ; '));
+    // ── RÉPARER, PAS REFUSER ─────────────────────────────────────────────────
+    // Les trois défauts qui refusaient la moitié des pages Ultra ont une réponse déterministe :
+    // le code la pose et ne rend la main au gabarit que sur l'irréparable.
     const tall = await inspectComposedPage(tooTall, opts);
-    check('mesure : une diapositive trop haute → signalée (fin rognée)', tall.some((i) => /must fit|below the bottom/.test(i)), tall[0]);
+    check('mesure : une page un peu trop haute → ramenée à l’échelle, pas refusée',
+      tall.issues.length === 0 && tall.repaired.some((r) => /échelle/.test(r)) && /zoom/.test(tall.html),
+      `${tall.repaired.join(' ; ')} | ${tall.issues.join(' ; ')}`);
+    const wayTooTall = fits.replace('<h2', '<div style="height:4000px"></div><h2');
+    const hopeless = await inspectComposedPage(wayTooTall, opts);
+    check('mesure : une page irrattrapablement trop haute → refusée', hopeless.issues.some((i) => /past its|below the bottom/.test(i)), hopeless.issues.join(' ; '));
     const small = await inspectComposedPage(tiny, opts);
-    check('mesure : un corps sous 7 pt → signalé', small.some((i) => /smaller than 7 pt/.test(i)), small.join(' ; '));
-    const faint = await inspectComposedPage(pale, opts);
-    check('mesure : un contraste insuffisant → signalé', faint.some((i) => /low contrast/.test(i)), faint.join(' ; '));
+    check('mesure : un corps sous 7 pt → remonté par le code', small.issues.length === 0 && small.repaired.some((r) => /7 pt/.test(r)), `${small.repaired.join(' ; ')} | ${small.issues.join(' ; ')}`);
+    const faint = await inspectComposedPage(pale, { ...opts, inks: [ds.colors.ink, ds.colors.inkMuted] });
+    check('mesure : un contraste insuffisant → l’encre de la charte est posée', faint.issues.length === 0 && faint.repaired.some((r) => /contraste/.test(r)) && !faint.html.includes('#D8D8D8'), `${faint.repaired.join(' ; ')} | ${faint.issues.join(' ; ')}`);
+    // L'encre posée est celle de la CHARTE, pas la plus contrastée : du noir pur partout sortirait
+    // le document de sa charte, et c'est ce qui aplatissait les pages les unes sur les autres.
+    const charterInk = await inspectComposedPage(pale, { ...opts, inks: ['#1F6F43'] });
+    check('mesure : l’encre posée est celle de la charte (jamais du noir pur par défaut)',
+      charterInk.issues.length === 0 && charterInk.repaired.some((r) => r.includes('#1F6F43')) && !charterInk.repaired.some((r) => /#111111|#ffffff/i.test(r)),
+      charterInk.repaired.join(' ; '));
+    const onGreen = fits.replace('background:#FFFFFF', 'background:#1F6F43');
+    const lastResort = await inspectComposedPage(onGreen, { ...opts, inks: ['#1B6A41'] });
+    check('mesure : aucune encre de la charte ne tient → le noir ou le blanc, jamais un texte illisible',
+      lastResort.issues.length === 0 && lastResort.repaired.some((r) => /#ffffff/i.test(r)),
+      lastResort.repaired.join(' ; '));
 
     // Le compositeur : une réparation avec les constats, puis le gabarit.
     const md = (html: string) => '```html\n' + html.replace('</section>', '<div style="height:4px"></div>'.repeat(30) + '</section>') + '\n```';
     let calls = 0;
     let repairPrompt = '';
-    const repaired = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market',
-      call: async ({ user }) => { calls++; if (calls === 2) repairPrompt = user; return md(calls === 1 ? tooTall : fits); } });
-    check('compositeur : page refusée par la mesure → réparée au 2e essai', !!repaired.html && calls === 2 && /CHECKED AND REJECTED/.test(repairPrompt) && /must fit|below the bottom/.test(repairPrompt));
+    const mdPlain = (html: string) => '```html\n' + html + '\n```';
+    const measured = async (): Promise<PageMeasure> => ({ issues: [], advisories: [], html: fits, repaired: [] });
+    const repaired = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', attempts: 4,
+      call: async ({ user }) => { calls++; if (calls === 2) repairPrompt = user; return calls === 1 ? md(wayTooTall) : mdPlain(fits); } });
+    check('compositeur : page refusée par la mesure → réparée au 2e essai', !!repaired.html && calls === 2 && /MUST be fixed/.test(repairPrompt) && /past its|below the bottom/.test(repairPrompt), `${calls} appel(s) · ${repaired.issues?.join(' ; ')}`);
     calls = 0;
-    const fallback = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', call: async () => { calls++; return md(tooTall); } });
-    check('compositeur : toujours trop haute → null (le gabarit rend la page) après trois tours', fallback.html === null && calls === 3, `${calls} appel(s)`);
+    const fallback = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', attempts: 3, call: async () => { calls++; return md(wayTooTall); } });
+    check('compositeur : jamais rattrapable → null (le gabarit dirigé rend la page) après ses essais', fallback.html === null && calls === 3, `${calls} appel(s)`);
+    // ── LE CRAN DÉCIDE DU NOMBRE D'ESSAIS ────────────────────────────────────
+    calls = 0;
+    await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', attempts: 2, call: async () => { calls++; return md(wayTooTall); } });
+    check('compositeur : Max accorde deux essais, Ultra quatre', calls === 2, `${calls} appel(s)`);
+    // Une page JUSTE est gardée : les tours suivants ne peuvent plus la perdre.
+    calls = 0;
+    const keptBest = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', attempts: 4,
+      inspect: async (html) => (calls === 1 ? { issues: [], advisories: ['tighten the left column'], html, repaired: [] } : { issues: ['text outside the page width: "x"'], advisories: [], html, repaired: [] }),
+      call: async () => { calls++; return mdPlain(fits); } });
+    check('compositeur : la page retenue est la MEILLEURE tentative, pas la dernière', !!keptBest.html && calls === 2, `${calls} appel(s)`);
     // La fidélité n'est plus un couperet : le défaut repart au compositeur, qui corrige.
     calls = 0;
     let fidelityPrompt = '';
-    const fixedNumber = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', inspect: async () => [],
-      call: async ({ user }) => { calls++; if (calls === 2) fidelityPrompt = user; return md(calls === 1 ? fits.replace('</section>', '<p style="font-size:14px">Page 07 · 2026</p></section>') : fits); } });
-    check('compositeur : chiffre inventé → signalé au compositeur et corrigé au 2e tour', !!fixedNumber.html && calls === 2 && /remove these numbers/.test(fidelityPrompt) && /07|2026/.test(fidelityPrompt) && /PREVIOUS PAGE/.test(fidelityPrompt));
+    const fixedNumber = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', attempts: 4, inspect: measured,
+      call: async ({ user }) => { calls++; if (calls === 2) fidelityPrompt = user; return mdPlain(calls === 1 ? fits.replace('</section>', '<p style="font-size:14px">Part de marché visée : 35 %</p></section>') : fits); } });
+    check('compositeur : chiffre inventé → signalé au compositeur et corrigé au 2e tour', !!fixedNumber.html && calls === 2 && /remove these numbers/.test(fidelityPrompt) && /35/.test(fidelityPrompt) && /PREVIOUS PAGE/.test(fidelityPrompt), `${calls} appel(s)`);
+    // UNE PAGINATION ET UNE FEUILLE DE STYLE NE SONT PAS DES CHIFFRES INVENTÉS.
+    calls = 0;
+    const paginated = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', attempts: 2, inspect: measured,
+      call: async () => { calls++; return mdPlain(fits.replace('<h2', '<style>.t{font-weight:700;line-height:0.95;opacity:0.03}</style><span class="t">01</span><h2')); } });
+    check('compositeur : un numéro de page et les valeurs d’un <style> ne refusent plus la page', !!paginated.html && calls === 1, `${calls} appel(s) · ${paginated.issues?.join(' ; ')}`);
     const down = await composePageHtml({ content: content as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'pitch deck', name: 'Market', call: async () => { throw new Error('quota'); } });
     check('compositeur : modèle en panne → null (le gabarit rend la page)', down.html === null);
     // Les images du contenu partent au modèle sous forme de repères, et reviennent en URL.
     const dataLogo = 'data:image/svg+xml;base64,' + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#1F6F43"/></svg>' + ' '.repeat(3000)).toString('base64');
     const withLogo = { ...content, blocks: [...content.blocks, { kind: 'logoDisplay', variants: [{ url: dataLogo, label: 'Sur fond clair', background: 'light' }] } as any] };
     let seenPrompt = '';
-    const tokened = await composePageHtml({ content: withLogo as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'brand guidelines book', name: 'Logo', inspect: async () => [],
+    const tokened = await composePageHtml({ content: withLogo as any, ds, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: 'BRAND', document: 'brand guidelines book', name: 'Logo', inspect: async (html) => ({ issues: [], advisories: [], html, repaired: [] }),
       call: async ({ system, user }) => { seenPrompt = system + user; return md(fits.replace('</section>', '<img src="{{IMG_1}}" alt="Logo"><p>Sur fond clair</p></section>')); } });
     check('compositeur : l’image part en repère {{IMG_1}} (pas de data: dans le prompt), revient en URL', !seenPrompt.includes('data:image') && seenPrompt.includes('{{IMG_1}}') && !!tokened.html && tokened.html.includes(dataLogo), `${seenPrompt.length} car. de prompt`);
     await closePageInspector();

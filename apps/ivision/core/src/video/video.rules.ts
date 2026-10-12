@@ -69,12 +69,12 @@ const words = (slots: Record<string, string>) =>
 export function requiredHold(slots: Record<string, string>, sceneId: string, enter: number): number {
   if (sceneId === 'logo') return 0;
   const n = words(slots);
-  if (!n) return sceneId === 'footage' || sceneId === 'gallery' || sceneId === 'showcase3d' || sceneId === 'lottie' ? 1.4 : 1.2;
+  if (!n) return sceneId === 'footage' || sceneId === 'screen' || sceneId === 'gallery' || sceneId === 'showcase3d' || sceneId === 'lottie' ? 1.4 : 1.2;
   return Math.max(1.6, enter + n / 3 + 0.3);
 }
 
 /** Vérifie et répare un storyboard. Mutation en place des durées et du tempo. */
-export function applyRules(sb: VideoStoryboard, opts: { objective?: VideoObjective } = {}): RulesReport {
+export function applyRules(sb: VideoStoryboard, opts: { objective?: VideoObjective; preserve?: boolean } = {}): RulesReport {
   const report: RulesReport = { checked: RULES.map((r) => r.id), repaired: [], issues: [], warnings: [] };
   const scenes = sb.scenes;
   if (!scenes.length) return report;
@@ -98,13 +98,24 @@ export function applyRules(sb: VideoStoryboard, opts: { objective?: VideoObjecti
     report.repaired.push({ rule: 'one-accent', detail: `${accents.length} grands moments → 1` });
   }
 
+  // Un scénario écrit par l'utilisateur garde ses scènes, ses mots et son minutage : les écarts
+  // de lecture sont SIGNALÉS (le contrôle de fidélité les montre), jamais « réparés » en coupant.
+  if (opts.preserve) {
+    for (const sc of scenes) {
+      const enter = d.pacing.enter * artPace * (sc.pace || 1);
+      const lo = requiredHold(sc.slots, sc.sceneId, enter);
+      if (sc.sceneId !== 'logo' && sc.duration < lo - 0.05) report.warnings.push({ rule: 'reading-time', scene: sc.key, detail: `${sc.duration.toFixed(2)} s pour ${lo.toFixed(2)} s de lecture (minutage du scénario gardé)` });
+    }
+    return report;
+  }
+
   // reading-time, min-hold, logo-hold, hook-first-seconds : bornes par scène, puis répartition.
   const total = sb.durationSec;
   const bounds = () =>
     sb.scenes.map((sc, i) => {
       const lastOne = i === sb.scenes.length - 1;
       const enter = d.pacing.enter * artPace * (sc.pace || 1);
-      const media = ['footage', 'gallery', 'showcase3d', 'product', 'lottie'].includes(sc.sceneId);
+      const media = ['footage', 'screen', 'gallery', 'showcase3d', 'product', 'lottie'].includes(sc.sceneId);
       let lo = requiredHold(sc.slots, sc.sceneId, enter);
       let hi = media ? 9 : 7;
       if (lastOne && sc.sceneId === 'logo') {
@@ -172,7 +183,7 @@ export function applyRules(sb: VideoStoryboard, opts: { objective?: VideoObjecti
   const sumHi = b.reduce((a, x) => a + x.hi, 0);
   if (sumHi < total) {
     sb.scenes.forEach((sc, i) => {
-      if (i === n - 1 || ['footage', 'gallery', 'showcase3d', 'product', 'lottie'].includes(sc.sceneId)) b[i].hi *= 1.5;
+      if (i === n - 1 || ['footage', 'screen', 'gallery', 'showcase3d', 'product', 'lottie'].includes(sc.sceneId)) b[i].hi *= 1.5;
     });
   }
   if (sumLo > total + 0.01) {
@@ -249,7 +260,7 @@ export function applyRules(sb: VideoStoryboard, opts: { objective?: VideoObjecti
   if (first.sceneId === 'logo' || first.sceneId === 'cta') report.issues.push({ rule: 'hook-first-seconds', scene: first.key, detail: `ouverture sur ${first.sceneId}` });
   if (first.duration > 4.5 && total > 6) report.issues.push({ rule: 'hook-first-seconds', scene: first.key, detail: `${first.duration.toFixed(1)} s avant la deuxième scène` });
   scenesNow.forEach((sc, i) => {
-    const mediaScene = ['footage', 'gallery', 'showcase3d', 'product', 'lottie'].includes(sc.sceneId);
+    const mediaScene = ['footage', 'screen', 'gallery', 'showcase3d', 'product', 'lottie'].includes(sc.sceneId);
     if (i < last && words(sc.slots) > 0 && sc.duration > (mediaScene ? 9.5 : 7.5)) report.issues.push({ rule: 'min-hold', scene: sc.key, detail: `${sc.duration.toFixed(1)} s > ${mediaScene ? 9 : 7} s` });
     if (i < last && words(sc.slots) === 0 && !['gallery', 'showcase3d', 'lottie', 'kinetic'].includes(sc.sceneId)) report.issues.push({ rule: 'sound-off', scene: sc.key, detail: 'scène sans texte' });
   });
