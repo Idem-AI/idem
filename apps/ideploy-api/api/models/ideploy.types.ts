@@ -115,6 +115,8 @@ export interface ApplicationRow {
   git_branch: string | null;
   build_pack: string | null;
   ports_exposes: string | null;
+  /** Set once its routes are in the proxy's file provider: domain changes then apply live. */
+  routes_file_at?: string | null;
   ports_mappings: string | null;
   environment_id: number;
   destination_id: number | null;

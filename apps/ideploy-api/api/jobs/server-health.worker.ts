@@ -18,8 +18,32 @@ import { refreshAllLoadScores } from '../services/server-scheduling.service';
 const SWEEP_PATTERN = process.env.SERVER_HEALTH_CRON || '* * * * *';
 
 const JOB_NAME = 'server-health-sweep';
+const DOMAINS_JOB = 'domain-verification';
+const DOMAINS_PATTERN = process.env.DOMAIN_VERIFICATION_CRON || '*/5 * * * *';
 
-async function processSweep(_job: Job): Promise<void> {
+/** Domains waiting for DNS are routed as soon as it reaches their server. */
+async function processDomainSweep(): Promise<void> {
+  const { sweepDomains, applyRoutes } = await import('../services/routes-file.service');
+  const { executionTarget } = await import('../services/domain-options.service');
+  const pool = (await import('../config/db.config')).default;
+  const checked = await sweepDomains(async (applicationId) => {
+    const { rows } = await pool.query(
+      `SELECT a.uuid, p.team_id FROM applications a JOIN environments e ON e.id = a.environment_id
+         JOIN projects p ON p.id = e.project_id WHERE a.id = $1`,
+      [applicationId]
+    );
+    if (!rows[0]) return;
+    const appService = await import('../services/application.service');
+    const app = await appService.getApplication(Number(rows[0].team_id), String(rows[0].uuid));
+    if (!app) return;
+    const target = await executionTarget(Number(rows[0].team_id), app);
+    if (target) await applyRoutes(target.server, target.key, app);
+  });
+  if (checked > 0) logger.info('domains.swept', { event: 'domains.swept', applications: checked });
+}
+
+async function processSweep(job: Job): Promise<void> {
+  if (job.name === DOMAINS_JOB) return processDomainSweep();
   const outcomes = await checkAllServers();
   // Orders the managed servers whose measurements are missing or stale (placement).
   await refreshAllLoadScores().catch((err) =>
@@ -53,6 +77,7 @@ export async function registerServerHealthScheduler(): Promise<void> {
       { repeat: { pattern: SWEEP_PATTERN }, jobId: 'server-health-sweep' }
     );
     logger.info(`Server health sweep scheduled (${SWEEP_PATTERN})`);
+    await getQueue(QUEUE_NAMES.servers).add(DOMAINS_JOB, {}, { repeat: { pattern: DOMAINS_PATTERN }, jobId: DOMAINS_JOB });
   } catch (err) {
     logger.warn('Could not schedule the server health sweep', {
       message: (err as Error).message,

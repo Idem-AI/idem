@@ -561,20 +561,45 @@
           "wrong_ip": "Wrong address",
           "proxied": "Behind Cloudflare",
           "ipv6_conflict": "IPv6 record to remove",
-          "automatic": "Automatic"
+          "automatic": "Automatic",
+          "taken": "Already used"
         },
         "explain": {
           "missing": "No record found yet. Once created, it can take from a few minutes to a few hours to propagate; this page checks again on its own.",
           "wrong_ip": "The domain points to {{found}}, not to {{ip}}. Change the value of the A record (and delete any other A record for this name).",
           "proxied": "The domain goes through Cloudflare's proxy ({{found}}). In Cloudflare, switch this record to \"DNS only\" (grey cloud) so the certificate can be issued.",
           "ipv6_conflict": "The A record is right, but an AAAA (IPv6) record also exists ({{aaaa}}). Let's Encrypt uses it first and the certificate fails: delete the AAAA record.",
-          "automatic": ""
+          "automatic": "",
+          "taken": "This domain points to the same server, but another application already uses it. Remove it there first."
         },
         "httpsValid": "HTTPS active, certificate from {{issuer}}",
         "expires": "renews automatically, expires",
         "httpsAfterDns": "HTTPS: the certificate is requested automatically once the DNS points here.",
         "httpsPending": "HTTPS: certificate being issued — redeploy the application if it was saved without redeploying.",
-        "polling": "Checked again every 30 seconds while the domain is being set up."
+        "polling": "Checked again every 30 seconds while the domain is being set up.",
+        "ownTitle": "Use your own domain",
+        "ownIntro": "Your application already has an automatic address, with HTTPS. To use your own domain (e.g. boutique.com):",
+        "ownStep1": "Type it in the field above, then save. Several domains can be separated by commas.",
+        "ownStep2": "At your domain provider, create this record (type · name · value):",
+        "ownManaged": "This is the address of the IDEM server your application runs on.",
+        "ownStep3": "Come back here: this page checks the DNS and shows when the domain is online with its HTTPS certificate.",
+        "autoWorks": "The automatic address {{host}} is online with HTTPS."
+      },
+      "domainsApplied": "Domains applied — no redeployment needed. Those whose DNS is ready are online; the others will be as soon as their DNS points here.",
+      "domainOptions": {
+        "title": "How the domains are served",
+        "forceHttps": "Force HTTPS",
+        "forceHttpsHint": "Visitors on http:// are sent to https://.",
+        "hsts": "HSTS",
+        "hstsHint": "Browsers remember to use HTTPS only, for one year. Turn on once HTTPS works on every domain.",
+        "primary": "Redirect the other domains to the first one",
+        "primaryHint": "The first domain of the list is the primary address; the others redirect to it (better for SEO).",
+        "www": "www",
+        "wwwBoth": "Serve both www and the bare domain",
+        "wwwToBare": "Redirect www to the bare domain",
+        "bareToWww": "Redirect the bare domain to www",
+        "applied": "Applied.",
+        "redeploy": "Saved — applied at the next deployment."
       }
     }
   },

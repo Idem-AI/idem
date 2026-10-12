@@ -53,7 +53,15 @@ export interface DomainConflict {
  */
 export async function findConflicts(
   domains: string[],
-  excludeApplicationId?: number
+  excludeApplicationId?: number,
+  /**
+   * The team asking. Another team's claim only blocks once verified — its DNS
+   * reached its server (`domain_verifications`). Without that, anyone could
+   * declare a domain they do not own and keep its owner from using it.
+   * Within one team every claim blocks: two of its own resources sharing a
+   * domain is always a mistake.
+   */
+  requesterTeamId?: number
 ): Promise<DomainConflict[]> {
   const claims = domains
     .map((d) => ({ raw: d, claim: toClaim(d) }))
@@ -65,14 +73,25 @@ export async function findConflicts(
 
   for (const { table, kind } of FQDN_OWNERS) {
     const exclude = table === 'applications' && excludeApplicationId ? excludeApplicationId : null;
-    const { rows } = await pool.query<{ name: string; fqdn: string }>(
-      `SELECT name, fqdn FROM ${table}
-       WHERE fqdn IS NOT NULL AND fqdn <> ''
-         AND ($1::bigint IS NULL OR id <> $1)`,
+    const { rows } = await pool.query<{ name: string; fqdn: string; team_id: number | null; verified: string[] | null }>(
+      table === 'applications'
+        ? `SELECT a.name, a.fqdn, p.team_id,
+                  (SELECT array_agg(v.host) FROM domain_verifications v
+                    WHERE v.application_id = a.id AND v.status IN ('ok', 'automatic', 'ipv6_conflict')) AS verified
+             FROM applications a
+             JOIN environments e ON e.id = a.environment_id
+             JOIN projects p ON p.id = e.project_id
+            WHERE a.fqdn IS NOT NULL AND a.fqdn <> ''
+              AND ($1::bigint IS NULL OR a.id <> $1)`
+        : `SELECT name, fqdn, NULL::bigint AS team_id, NULL::text[] AS verified FROM ${table}
+            WHERE fqdn IS NOT NULL AND fqdn <> ''
+              AND ($1::bigint IS NULL OR id <> $1)`,
       [exclude]
     );
 
     for (const row of rows) {
+      const otherTeam = requesterTeamId !== undefined && row.team_id !== null && Number(row.team_id) !== requesterTeamId;
+      const verified = new Set(row.verified ?? []);
       // An `fqdn` column may hold several comma-separated domains.
       const owned = new Set(
         row.fqdn
@@ -82,6 +101,8 @@ export async function findConflicts(
       );
 
       for (const { raw, claim } of claims) {
+        // Another team's unverified claim: it routes nothing, it blocks nothing.
+        if (otherTeam && table === 'applications' && !verified.has(claim.host)) continue;
         if (owned.has(claim.key)) {
           conflicts.push({ domain: raw, usedBy: row.name, kind });
         }
@@ -99,9 +120,10 @@ export async function findConflicts(
  */
 export async function assertDomainsAvailable(
   domains: string[],
-  excludeApplicationId?: number
+  excludeApplicationId?: number,
+  requesterTeamId?: number
 ): Promise<void> {
-  const conflicts = await findConflicts(domains, excludeApplicationId);
+  const conflicts = await findConflicts(domains, excludeApplicationId, requesterTeamId);
   if (conflicts.length === 0) return;
 
   const described = conflicts
