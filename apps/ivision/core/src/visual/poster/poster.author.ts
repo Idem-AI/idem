@@ -178,12 +178,34 @@ function visibleWords(html: string): string[] {
 }
 
 /**
- * Vérifie le HTML du designer et le prépare au rendu. Bloquant (renvoyé au designer) : texte non
- * approuvé, couleur hors jetons, ressource extérieure, titre ou logo absent, texte hors bloc.
+ * Vérifie le HTML du designer et le prépare au rendu.
+ *
+ * ── CE QUI BLOQUE, ET CE QUI NE FAIT QUE CONSEILLER ─────────────────────────
+ *
+ * Trois natures de contrôle, et les confondre coûtait au cran Ultra son visuel :
+ *
+ *   le CONTRAT      ce dont le code a besoin pour construire et mesurer : un titre dans un bloc
+ *                   ajustable (`.fit`), des textes dans un `data-stack`, des repères de photo qui
+ *                   existent. Sans eux il n'y a pas de rendu du tout — donc toujours bloquant ;
+ *   la SÉCURITÉ     un script, une ressource extérieure (le rendu coupe le réseau) ;
+ *   le JUGEMENT     un mot répété, un SVG écrit à la main trop long, un fluo sur une grande
+ *                   surface, un fait secondaire oublié. Au cran Ultra (`floor`), ce sont des
+ *                   CONSEILS : le visuel de l'IA est livré, le conseil repart avec la critique.
+ *
+ * Un chiffre ou une offre qui n'est pas dans les mots approuvés reste bloquant à tous les crans :
+ * un visuel qui annonce « -40 % » quand la promotion est à -30 % est une faute, pas un écart de goût.
  */
-export function buildAuthored(design: AuthoredDesign, b: DesignBrief, copy: PosterCopy): { body: string; issues: string[] } {
+export function buildAuthored(
+  design: AuthoredDesign,
+  b: DesignBrief,
+  copy: PosterCopy,
+  opts: { floor?: boolean } = {}
+): { body: string; issues: string[]; advice: string[] } {
   const { spec } = b;
   const issues: string[] = [];
+  const advice: string[] = [];
+  /** Un constat de jugement : bloquant au contrôle complet, conseil au cran Ultra. */
+  const judge = (message: string) => (opts.floor ? advice : issues).push(message);
   let html = design.html;
 
   if (FORBIDDEN_TAGS.test(html)) issues.push('forbidden elements (script, link, a, button, iframe, media…): remove them');
@@ -195,14 +217,19 @@ export function buildAuthored(design: AuthoredDesign, b: DesignBrief, copy: Post
   // Les textes : seulement les mots approuvés.
   const allowed = new Set([...approvedWords(copy).flatMap((w) => (w.text.match(/[\p{L}\p{N}]+/gu) || []).map(fold)), ...(spec.brandName.match(/[\p{L}\p{N}]+/gu) || []).map(fold)]);
   const foreign = [...new Set(visibleWords(html).filter((w) => !allowed.has(w)))];
-  if (foreign.length) issues.push(`text that is not an approved word: ${foreign.slice(0, 8).join(', ')} — use the approved words only`);
+  // Un CHIFFRE non approuvé est une donnée inventée : bloquant partout. Un mot de trop est un
+  // écart de goût : au cran Ultra, il ne coûte plus son visuel au designer.
+  const foreignNumbers = foreign.filter((w) => /\d/.test(w));
+  if (foreignNumbers.length) issues.push(`these figures are not in the approved texts: ${foreignNumbers.slice(0, 6).join(', ')} — write no number of your own`);
+  const foreignWords = foreign.filter((w) => !/\d/.test(w));
+  if (foreignWords.length) judge(`text that is not an approved word: ${foreignWords.slice(0, 8).join(', ')} — use the approved words only`);
   // Chaque mot approuvé une fois : un mot répété dans un badge ou un décor est un défaut d'amateur.
   const budget = new Map<string, number>();
   for (const w of approvedWords(copy).flatMap((x) => (x.text.match(/[\p{L}\p{N}]+/gu) || []).map(fold))) budget.set(w, (budget.get(w) || 0) + 1);
   const counts = new Map<string, number>();
   for (const w of visibleWords(html)) counts.set(w, (counts.get(w) || 0) + 1);
   const repeated = [...counts].filter(([w, n]) => budget.has(w) && (w.length > 2 || /^\d+$/.test(w)) && n > (budget.get(w) || 0)).map(([w]) => w);
-  if (repeated.length) issues.push(`words repeated outside their approved line: ${repeated.slice(0, 6).join(', ')} — each approved text appears once`);
+  if (repeated.length) judge(`words repeated outside their approved line: ${repeated.slice(0, 6).join(', ')} — each approved text appears once`);
 
   // Les couleurs : une couleur écrite en dur est ramenée au jeton le plus proche (même transparence) —
   // la charte est tenue par le code, sans faire perdre un tour au designer.
@@ -225,7 +252,7 @@ export function buildAuthored(design: AuthoredDesign, b: DesignBrief, copy: Post
     html = html.replace(new RegExp(`(^|[;"\\s])color\\s*:\\s*var\\(--${t.id}\\)`, 'gi'), '$1color:var(--primary)');
     const asText = false;
     const big = [...html.matchAll(/style="([^"]*)"/g)].some(([, st]) => new RegExp(`background(-color)?\\s*:\\s*var\\(--${t.id}\\)`, 'i').test(st) && (+(st.match(/width\s*:\s*([\d.]+)px/)?.[1] || 0)) * (+(st.match(/height\s*:\s*([\d.]+)px/)?.[1] || 0)) > spec.width * spec.height * 0.03);
-    if (asText || big) issues.push(`var(--${t.id}) is a neon colour: only a thin line or one small accent — never a large area`);
+    if (asText || big) judge(`var(--${t.id}) is a neon colour: only a thin line or one small accent — never a large area`);
   }
   // Les polices : celles de la charte (corrigé en silence).
   html = html.replace(/font-family\s*:\s*([^;"']+)/gi, (m, v: string) => (/var\(--f[db]\)/.test(v) ? m : `font-family:var(--fd)`));
@@ -233,18 +260,27 @@ export function buildAuthored(design: AuthoredDesign, b: DesignBrief, copy: Post
   // Le kit graphique : les balises <x-gfx> deviennent des dessins (couleurs de la charte, fluo refusé en surface).
   // Un SVG écrit à la main qui s'allonge est renvoyé au designer : c'est le kit qui dessine, à un centième des jetons.
   const handSvg = (html.match(/<svg\b[\s\S]*?<\/svg>/gi) || []).reduce((n, x) => n + x.length, 0);
-  if (handSvg > 2500) issues.push(`hand-written SVG is ${handSvg} characters: draw it with <x-gfx kind=…> instead (rings, blob, contours, dots, waves, swash…) and keep any SVG under 1500 characters`);
+  if (handSvg > 2500) judge(`hand-written SVG is ${handSvg} characters: draw it with <x-gfx kind=…> instead (rings, blob, contours, dots, waves, swash…) and keep any SVG under 1500 characters`);
   const gx = gfxContext({ width: spec.width, height: spec.height, u: spec.u, tokens: Object.fromEntries(b.tokens.map((t) => [t.id, t.hex])), primary: spec.palette.primary, secondary: spec.palette.secondary, bg: spec.scheme.bg, ink: spec.scheme.ink });
-  issues.push(...stackingIssues(macroLayers(html), stackBoxes(html)));
+  for (const issue of stackingIssues(macroLayers(html), stackBoxes(html))) judge(issue);
   const kit = expandGfxMacros(html, gx);
   html = kit.html;
-  issues.push(...kit.issues);
+  // Le kit dessine ce qu'il sait dessiner et retire le reste : sa remarque ne condamne pas un
+  // visuel déjà construit (même raison que pour les pages de document).
+  for (const issue of kit.issues) judge(issue);
 
   // Structure : un titre, un logo, chaque texte dans un bloc ajustable.
   if (!/class="[^"]*\bfit\b[^"]*\bheadline\b/.test(html)) issues.push('no headline: add <div class="fit headline" data-min data-max> inside a text box');
-  if (copy.facts.length && !/class="[^"]*\bfit\b[^"]*\bfacts\b/.test(html)) issues.push('the facts are missing: add a .fit facts line');
+  if (copy.facts.length && !/class="[^"]*\bfit\b[^"]*\bfacts\b/.test(html)) judge('the facts are missing: add a .fit facts line');
   if (copy.offer && !copy.headline.includes((copy.offer.match(/\d+/) || [''])[0]) && !html.includes((copy.offer.match(/\d+/) || ['@@'])[0])) issues.push(`the offer ${copy.offer} is missing`);
-  const logoCount = (html.match(/\{\{LOGO\}\}/g) || []).length;
+  let logoCount = (html.match(/\{\{LOGO\}\}/g) || []).length;
+  if (spec.logo.url && logoCount > 1) {
+    // Réparé plutôt que refusé : on garde le premier repère, les suivants disparaissent.
+    let seen = 0;
+    html = html.replace(/\{\{LOGO\}\}/g, () => (++seen === 1 ? '{{LOGO}}' : ''));
+    logoCount = 1;
+    advice.push('the logo appeared more than once: only the first was kept');
+  }
   if (spec.logo.url && logoCount !== 1) issues.push(`the logo must appear exactly once (found ${logoCount})`);
   if ((html.match(/data-stack=/g) || []).length === 0) issues.push('no text box: wrap the texts in <div data-stack="…">');
   const photoRefs = [...html.matchAll(/\{\{PHOTO_(\d+)\}\}/g)].map((m) => +m[1]);
@@ -277,6 +313,7 @@ export function buildAuthored(design: AuthoredDesign, b: DesignBrief, copy: Post
   return {
     body: `<div class="pv" style="${vars};--primary:${p.primary};width:${spec.width}px;height:${spec.height}px;background:var(--paper)${deep ? '' : ''}">${html}</div>`,
     issues,
+    advice,
   };
 }
 

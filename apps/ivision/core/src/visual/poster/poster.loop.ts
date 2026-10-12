@@ -41,9 +41,16 @@ export interface DesignLoopOptions<D> {
   /** Note de critique à partir de laquelle on s'arrête. */
   goal?: number;
   write: (round: number, previous?: LoopFeedback<D>) => Promise<D | null>;
-  build: (design: D) => { body: string; issues: string[] };
+  /** `issues` condamne la composition ; `advice` ne fait que la conseiller au tour suivant. */
+  build: (design: D) => { body: string; issues: string[]; advice?: string[] };
   render: (body: string) => Promise<PosterRender>;
   review: (png: Buffer, design: D) => Promise<Critique | null>;
+  /**
+   * Note mesurée à partir de laquelle un rendu PORTANT ENCORE un défaut est gardé plutôt que de
+   * rendre la main à un gabarit (70 par défaut ; 50 au cran Ultra, où la composition de l'IA est
+   * le livrable).
+   */
+  salvageFrom?: number;
 }
 
 const rank = (o: LoopOutcome<unknown>) => (o.critique ? o.critique.score * 10 : 60) + o.render.measure.score / 10;
@@ -92,17 +99,18 @@ export async function designLoop<D>(o: DesignLoopOptions<D>): Promise<{ best: Lo
       // sur un gabarit — alors qu'une composition d'auteur à 80/100 vaut mieux qu'un gabarit, et
       // que c'est très exactement ce qui faisait rendre au cran Ultra les mises en page du cran
       // Medium. On garde donc le meilleur rendu mesuré, et il ne sert que si rien d'autre n'aboutit.
-      if (render.measure.score >= 70 && (!salvage || render.measure.score > salvage.render.measure.score)) {
+      if (render.measure.score >= (o.salvageFrom ?? 70) && (!salvage || render.measure.score > salvage.render.measure.score)) {
         salvage = { design, render, critique: null, round };
       }
       continue;
     }
     const critique = await o.review(render.png, design).catch(() => null);
+    const advice = built.advice || [];
     const outcome: LoopOutcome<D> = { design, render, critique, round };
     if (!best || rank(outcome) > rank(best)) best = outcome;
     log.push(`r${round}: ${critique ? `${critique.verdict} ${critique.score}/10` : 'no critic'} · measure ${render.measure.score}`);
     if (!critique || (critique.verdict === 'ok' && critique.score >= goal - 1) || critique.score >= goal) break;
-    previous = { design, issues: [], fixes: [...critique.fixes, ...measured], score: critique.score };
+    previous = { design, issues: [], fixes: [...critique.fixes, ...measured, ...advice], score: critique.score };
   }
   if (!best && salvage) log.push(`salvage: r${salvage.round} (mesure ${salvage.render.measure.score})`);
   const kept = best || salvage;

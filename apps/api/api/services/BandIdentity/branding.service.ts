@@ -1794,6 +1794,8 @@ export class BrandingService extends GenericService {
                   call: runtimeCall({ userId, projectId, element: 'branding' }),
                   name: step.stepName,
                   attempts: designPlan.composeAttempts,
+                  checks: designPlan.checks,
+                  repairOnly: designPlan.repairOnly,
                   lint: {
                     palette: charterBranding?.colors?.colors,
                     styleId: artDirection?.styleId,

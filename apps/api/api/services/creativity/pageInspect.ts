@@ -67,6 +67,14 @@ export interface PageInspectOptions {
    * réparer un texte sous le contraste : la charte décide de la couleur, la mesure décide laquelle.
    */
   inks?: string[];
+  /**
+   * LA MESURE RÉPARE SANS JAMAIS REFUSER (cran Ultra).
+   *
+   * Ce qui reste après réparation est alors un CONSEIL : la page de l'IA est livrée telle quelle,
+   * jamais remplacée par un gabarit pour un écart de mesure. C'est la règle au cran le plus haut —
+   * la page composée par l'IA est le livrable, pas une proposition soumise à un arbitrage.
+   */
+  repairOnly?: boolean;
 }
 
 /** Ce que la mesure rend : la page réparée, ce qui reste à refaire, et ce qui n'est qu'un conseil. */
@@ -355,6 +363,12 @@ export async function inspectComposedPage(html: string, opts: PageInspectOptions
     );
     if (measured.repaired.length) {
       logger.info(`[PageInspect] ${opts.label || 'page'} : réparée par le code`, { repaired: measured.repaired.slice(0, 4) });
+    }
+    // Au cran le plus haut, ce qui résiste à la réparation ne coûte plus sa page à l'IA : il est
+    // journalisé et transmis comme conseil s'il reste un tour.
+    if (opts.repairOnly && measured.issues.length) {
+      logger.info(`[PageInspect] ${opts.label || 'page'} : livrée telle quelle (mesure sans refus)`, { reste: measured.issues.slice(0, 3) });
+      return { ...measured, html: measured.html || html, issues: [], advisories: [...measured.issues, ...measured.advisories].slice(0, 6) };
     }
     return { ...measured, html: measured.html || html };
   } catch (error: any) {

@@ -232,6 +232,8 @@ export class BusinessCardService extends GenericService {
       };
       let attempt = 0;
       let kept: Awaited<ReturnType<typeof faces>> | null = null;
+      /** La moins mauvaise carte de l'IA : au cran Ultra, elle est livrée plutôt qu'un repli. */
+      let fallbackCard: Awaited<ReturnType<typeof faces>> | null = null;
       let lastIssues: string[] = [];
       for (; attempt < 3; attempt++) {
         logger.info('[BusinessCard] generating template (ultra)', { projectId, orientation, attempt: attempt + 1 });
@@ -253,15 +255,24 @@ export class BusinessCardService extends GenericService {
           kept = round;
           break;
         }
+        if (round.front && (!fallbackCard || round.issues.length < fallbackCard.issues.length)) fallbackCard = round;
         lastIssues = round.issues;
       }
-      if (kept) {
-        parsed = kept.parsed;
-        frontHtml = kept.front;
-        backHtml = kept.back;
-        if (kept.advisories.length) logger.info('[BusinessCard] Ultra card kept with print advice', { projectId, advisories: kept.advisories.slice(0, 3) });
+      // ── LA CARTE DE L'IA EST LE LIVRABLE DU CRAN ULTRA ─────────────────────
+      //
+      // Elle retombait sur la composition du code au moindre constat d'impression. Après deux
+      // essais où les défauts mesurés lui sont repartis mot pour mot, c'est sa carte qui est
+      // livrée : un cran Ultra ne rend pas la composition du cran Max. Le repli ne sert plus que
+      // si l'IA n'a rendu AUCUNE face exploitable.
+      const chosen = kept || fallbackCard;
+      if (chosen) {
+        parsed = chosen.parsed;
+        frontHtml = chosen.front;
+        backHtml = chosen.back;
+        const advice = [...chosen.advisories, ...(kept ? [] : chosen.issues)];
+        if (advice.length) logger.info('[BusinessCard] Ultra card kept with print advice', { projectId, advice: advice.slice(0, 4), corrigée: !!kept });
       } else {
-        logger.warn('[BusinessCard] no printable Ultra card after 3 attempts, falling back to the code composition', { projectId, issues: lastIssues.slice(0, 4) });
+        logger.warn('[BusinessCard] the model returned no usable face, falling back to the code composition', { projectId, issues: lastIssues.slice(0, 4) });
         const byCode = await composeByCode();
         parsed = byCode;
         frontHtml = byCode.frontHtml;

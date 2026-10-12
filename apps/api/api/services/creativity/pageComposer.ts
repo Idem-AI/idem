@@ -40,6 +40,7 @@ import { describeDocumentSeed, SectionSeed } from '../design/designSeed';
 import { condenseForFixedPage, SectionContent } from '../design/sectionContent';
 import { PageFormat, renderStandaloneChart } from '../design/sectionRenderer';
 import { enforceDesignRules, SlopLintOptions } from '../design/slopLint.service';
+import { stripActiveContent } from '../../../../ivision/core/src/render/sanitize-html';
 import { AgentCall, AgentTrace, CreativeOrchestrator } from './orchestrator';
 import { inspectComposedPage, type PageMeasure } from './pageInspect';
 
@@ -184,7 +185,14 @@ export function buildComposerPrompt(input: {
     // réel de chaque texte et pose l'encre de la charte qui passe. On dit seulement OÙ poser quoi.
     `- Text colours, so it reads: on the light ground use ${ds.colors.ink} (secondary text ${ds.colors.inkMuted}); on a primary, secondary or accent ground use ${ds.colors.onAccent}. Don't put ink on a mid-tone of the same hue. The code measures every text on its real ground and corrects the ink if needed — so commit to your composition rather than playing safe.`,
     `- Fonts: font-family '${ds.fonts.display}' for titles, '${ds.fonts.body}' for text (inline style). The scale (px): ${Object.entries(ds.typeScale).map(([k, v]) => `${k} ${v}`).join(', ')} — go bigger than the scale for a figure or a statement if the page calls for it, never below 10 px for running text.`,
-    '- Keep EVERY text of the content verbatim and in order of importance. Do not add, remove or invent any fact, number, name, reference or source. No lorem ipsum, no placeholders.',
+    // ── LES BONNES PRATIQUES SONT DEMANDÉES ICI ─────────────────────────────
+    //
+    // Au-dessus de Medium, le code ne les arbitre plus après coup : il ne garde qu'un plancher
+    // (sécurité, page vide) et répare ce qui a une réponse déterministe. Ce bloc est donc le seul
+    // endroit où elles vivent — il est écrit comme un contrat professionnel, pas comme une liste
+    // d'interdits, parce que c'est ce qu'un modèle suit le mieux.
+    '- THE CONTENT IS THE DELIVERABLE, and a client will read it. Keep EVERY text of the content verbatim and in order of importance. Do not add, remove or invent any fact, number, name, reference or source — not one figure of your own, not even a page number, a date or a percentage: an invented number in a business plan is a professional fault. No lorem ipsum, no placeholder text.',
+    '- Every text must READ: at least 4.5:1 against its own ground (3:1 for a title above 24 px), never below 10 px for running text. Nothing may be cut: everything you place has to fit inside the page, and a text set on a mid-tone of its own hue is unreadable even when the hex values look fine.',
     '- Colour swatches, type specimens and logos in the content are the deliverable: show each one, large and exact (hex written as given, font names as given).',
     images.length
       ? `- Images: ONLY these placeholders, each one used once, written exactly as src: <img src="{{IMG_1}}" alt="…"> with object-fit: contain — ${images.map((_, i) => imageToken(i)).join(', ')}. No other image, no CSS background image.`
@@ -221,38 +229,79 @@ export function extractComposedHtml(raw: string): string | undefined {
   return html || undefined;
 }
 
-/** Ce que le contrôle de chaîne rend : ce qui condamne la page, et ce qui ne fait que l'améliorer. */
+/**
+ * LES CATÉGORIES DE CONSTAT — c'est le CRAN qui décide lesquelles gardent la main.
+ *
+ *   security   ce qui ne doit jamais partir à l'impression ni au navigateur : un script, une
+ *              ressource extérieure. Jamais négociable, à aucun cran.
+ *   substance  la page n'est pas une page : rien n'a été rendu, ou le contenu a été ignoré.
+ *   figures    un CHIFFRE qui n'est pas dans le contenu. La seule faute de fidélité qui bloque à
+ *              tous les crans : un plan qui pose un chiffre absent du contenu, ou un visuel qui
+ *              annonce « -40 % » quand la promotion est à -30 %, est une faute professionnelle que
+ *              le client voit — pas un écart de goût. (Les numéros de page et les valeurs de
+ *              feuille de style n'en sont pas, cf. `factNumbers`.)
+ *   fidelity   un texte ou une image du contenu ne s'y retrouve pas.
+ *   charter    une couleur du contenu n'est pas posée.
+ *   form       la grille qualité (troncature, marqueur de gabarit, bavardage).
+ */
+export type CheckKind = 'security' | 'substance' | 'figures' | 'fidelity' | 'charter' | 'form';
+
+export interface Finding {
+  kind: CheckKind;
+  /** Formulé pour être corrigé par le compositeur, jamais seulement constaté. */
+  message: string;
+}
+
+/**
+ * CE QUE LE CRAN VÉRIFIE ENCORE.
+ *
+ *   full   le contrôle complet. Les crans Low et Medium ne font pas écrire de page à l'IA : ce
+ *          mode sert le script de contrôle et toute reprise qui voudrait le contrôle d'origine.
+ *   floor  le PLANCHER, au-dessus de Medium : la sécurité et le vide. Tout le reste est un
+ *          conseil — la page de l'IA est livrée.
+ *
+ * Pourquoi : un contrôle statique qui refuse une page la renvoie au gabarit, donc le cran payé le
+ * plus cher rend ce que rend le cran Medium. Et un contrôle de chaîne se trompe — un numéro de
+ * page pris pour un chiffre inventé, une phrase coupée par une incise prise pour une phrase
+ * absente, le mot « placeholder » dans un nom de classe pris pour un gabarit non rempli. Mesuré
+ * dans les journaux : 26 pages Ultra refusées contre 3 retenues. Au-dessus de Medium, les bonnes
+ * pratiques sont donc DEMANDÉES À L'ÉCRITURE (le prompt les porte) et non arbitrées après coup.
+ */
+export type CheckMode = 'full' | 'floor';
+
+const BLOCKS: Record<CheckMode, readonly CheckKind[]> = {
+  full: ['security', 'substance', 'figures', 'fidelity', 'charter', 'form'],
+  floor: ['security', 'substance', 'figures'],
+};
+
+/** Ce que le contrôle de chaîne rend : des constats étiquetés, dans l'ordre où ils sont trouvés. */
 export interface FidelityReport {
-  /** La page est fausse : elle repart au compositeur. */
+  findings: Finding[];
+  /** Ce qui condamne la page à ce cran. */
   blocking: string[];
-  /** La page est juste mais perfectible : le constat part au compositeur, il ne lui coûte rien. */
+  /** Ce qui ne fait que l'améliorer : transmis au compositeur, sans lui coûter sa page. */
   advisory: string[];
 }
 
 /**
  * Les défauts de forme et de FIDÉLITÉ d'une page composée. Chacun est formulé pour être corrigé
  * par le compositeur au tour suivant, jamais seulement constaté.
- *
- * Ce qui condamne une page : un texte du contenu absent, un chiffre inventé, un spécimen non
- * posé, une image étrangère, un script. Ce qui ne la condamne pas : une couleur du contenu
- * oubliée sur une page qui n'est pas un nuancier, un défaut de forme non bloquant.
  */
-export function fidelityCheck(html: string, content: SectionContent): FidelityReport {
-  const blocking: string[] = [];
-  const advisory: string[] = [];
-  if (/<script\b/i.test(html)) blocking.push('remove every <script>');
-  // Les graphiques : chaque repère posé une fois, et aucun graphique redessiné à la main — un
-  // graphique « en divs » perd ses proportions, et un <canvas> du modèle reste vide à l'impression.
-  // Le repère est ensuite neutralisé : ce qu'il désigne (le graphique, ses étiquettes, sa clé de
-  // lecture) est dessiné par le code, et n'a donc pas à être écrit une seconde fois dans la page.
+export function fidelityCheck(html: string, content: SectionContent, mode: CheckMode = 'full'): FidelityReport {
+  const findings: Finding[] = [];
+  const add = (kind: CheckKind, message: string) => findings.push({ kind, message });
+
+  if (/<script\b/i.test(html)) add('security', 'remove every <script>');
   const charts = chartsOf(content);
+  // Les repères de graphique : le code les remplace, et NETTOIE ce qui reste (un repère oublié
+  // s'imprimerait en clair). Un graphique mal posé est donc réparé, plus jamais refusé.
   let probe = html;
   charts.forEach((_, i) => {
     const count = html.split(chartToken(i)).length - 1;
-    if (count !== 1) blocking.push(`place ${chartToken(i)} exactly once (found ${count}): the code draws the chart, you only give it its place`);
+    if (count !== 1) add('form', `place ${chartToken(i)} exactly once (found ${count}): the code draws the chart, you only give it its place`);
     probe = probe.split(chartToken(i)).join('<div data-chart-slot="1"></div>');
   });
-  if (charts.length && /<canvas\b/i.test(html)) blocking.push('remove your <canvas>: a chart is placed with its {{CHART_n}} placeholder, never drawn by hand');
+  if (charts.length && /<canvas\b/i.test(html)) add('form', 'a chart is placed with its {{CHART_n}} placeholder, never drawn by hand');
   html = probe;
   // La grille qualité, en deux lectures. La FORME se juge sur le balisage (troncature, conteneurs
   // déséquilibrés) ; les MARQUEURS de gabarit se jugent sur le texte visible seulement : le mot
@@ -260,58 +309,72 @@ export function fidelityCheck(html: string, content: SectionContent): FidelityRe
   // faisait refuser des pages entières — alors que le compositeur reçoit justement des repères
   // `{{IMG_n}}` dans sa consigne.
   const form = inspectOutput(html, { format: 'html', minChars: 300, forbidPlaceholders: false });
-  if (form.blocking.length) blocking.push(`form: ${form.summary}`);
-  // La LONGUEUR se juge sur le balisage (plus haut), jamais sur le texte visible : une page de
-  // charte qui montre un nuancier porte trois mots, et elle a raison.
+  // Une page sous 300 signes de balisage n'est pas une page : c'est du vide, à tous les crans.
+  if (form.blocking.some((i) => i.code === 'too_short' || i.code === 'empty')) add('substance', 'the page is almost empty: compose the whole page around the content');
+  else if (form.blocking.length) add('form', `form: ${form.summary}`);
   const visible = visibleText(html).replace(/\s+/g, ' ').trim();
   if (visible) {
     const words = inspectOutput(visible, { format: 'text', minChars: 0 });
-    if (words.blocking.length) blocking.push(`form: ${words.summary}`);
+    if (words.blocking.length) add('form', `form: ${words.summary}`);
   }
   const page = norm(html);
   // Les textes que le CODE dessine (ceux des graphiques) ne sont pas réclamés au compositeur.
   const drawnByCode = new Set(strings({ blocks: charts } as unknown as SectionContent).map((s) => s.trim()));
   const texts = contentTexts(content).filter((t) => !drawnByCode.has(t.trim()));
-  // Ce qui était trop strict n'était pas le SEUIL mais l'APPARIEMENT : 36 signes de tête, et une
-  // phrase coupée par une incise ou une césure comptait pour absente. 24 signes suffisent à
-  // reconnaître un texte, et le contenu reste dû — un plan d'affaires ne perd pas une phrase.
   const missing = texts.filter((t) => !page.includes(norm(t).slice(0, 24)));
-  if (texts.length && missing.length / texts.length > 0.15) {
-    blocking.push(`these texts of the content are missing — write them verbatim: ${missing.slice(0, 4).map((t) => `"${t.slice(0, 70)}"`).join(' · ')}`);
+  if (texts.length && missing.length / texts.length > 0.85) {
+    // Le contenu a été ignoré : la page est vide de ce qu'elle devait porter.
+    add('substance', `the content was ignored: write the texts of the content, verbatim — starting with ${missing.slice(0, 2).map((t) => `"${t.slice(0, 70)}"`).join(' · ')}`);
+  } else if (texts.length && missing.length / texts.length > 0.15) {
+    add('fidelity', `these texts of the content are missing — write them verbatim: ${missing.slice(0, 4).map((t) => `"${t.slice(0, 70)}"`).join(' · ')}`);
   } else if (missing.length) {
-    advisory.push(`${missing.length} text(s) of the content did not make it onto the page`);
+    add('fidelity', `${missing.length} text(s) of the content did not make it onto the page`);
   }
-  // Aucun CHIFFRE inventé : dans un plan, un chiffre qui n'est pas dans le contenu est une faute.
-  // Les numéros de page et les valeurs de feuille de style n'en sont pas (cf. `factNumbers`).
   const own = strings(content).filter((s) => !URL_RE.test(s.trim())).join(' ');
   const known = new Set([...numbersOf(own), ...factNumbers(own)]);
   const invented = [...new Set(factNumbers(visibleText(html)).filter((n) => !known.has(n)))];
-  if (invented.length) blocking.push(`remove these numbers, they are not in the content (write no figure of your own): ${invented.slice(0, 8).join(', ')}`);
-  // Les spécimens : chaque couleur du contenu est posée, chaque image aussi, et aucune autre.
+  if (invented.length) add('figures', `remove these numbers, they are not in the content (write no figure of your own): ${invented.slice(0, 8).join(', ')}`);
   const lower = html.toLowerCase();
   const hexes = [...new Set(strings(content).flatMap((s) => s.match(HEX_RE) || []).map((h) => h.toLowerCase()))];
   const absent = hexes.filter((h) => !lower.includes(h) && !lower.includes(shortHex(h)));
-  // Une couleur du contenu EST le livrable sur une page de charte : son absence condamne la page.
-  // La tolérance ajoutée est sur la FORME (`#aabbcc` ou `#abc`), pas sur la présence.
-  if (absent.length) blocking.push(`show these colours of the content (written as given): ${absent.join(', ')}`);
+  if (absent.length) add('charter', `show these colours of the content (written as given): ${absent.join(', ')}`);
   const images = imagesOf(content);
   const lost = images.filter((u) => !html.includes(u));
-  if (lost.length) blocking.push(`place every image of the content (${lost.length} missing): use each placeholder once as <img src>`);
+  if (lost.length) add('fidelity', `place every image of the content (${lost.length} missing): use each placeholder once as <img src>`);
   const called = [...html.matchAll(/(?:src\s*=\s*["']|url\(\s*["']?)((?:https?:|data:)[^"')\s]+)/gi)].map((m) => m[1]);
-  if (called.some((u) => !images.includes(u))) blocking.push('use no image other than the placeholders of the content (no external URL, no CSS background image)');
-  return { blocking, advisory };
+  // Une ressource extérieure ne s'imprime pas (le rendu coupe le réseau) et fuite la page.
+  if (called.some((u) => !images.includes(u) && /^https?:/i.test(u))) add('security', 'use no image other than the placeholders of the content (no external URL)');
+  else if (called.some((u) => !images.includes(u))) add('fidelity', 'use no image other than the placeholders of the content');
+
+  const blocks = BLOCKS[mode];
+  return {
+    findings,
+    blocking: findings.filter((f) => blocks.includes(f.kind)).map((f) => f.message),
+    advisory: findings.filter((f) => !blocks.includes(f.kind)).map((f) => f.message),
+  };
 }
 
 /** `#aabbcc` → `#abc` quand les deux s'écrivent (une page peut avoir écrit la forme courte). */
 const shortHex = (hex: string) => (/^#(.)\1(.)\2(.)\3$/i.test(hex) ? `#${hex[1]}${hex[3]}${hex[5]}` : hex);
 
-/** Les seuls défauts qui condamnent la page (compatibilité : les contrôles lisent cette liste). */
+/** Les seuls défauts qui condamnent la page (contrôle complet). */
 export const fidelityIssues = (html: string, content: SectionContent): string[] => fidelityCheck(html, content).blocking;
 
 /** Le HTML d'une réponse, s'il passe forme et fidélité ; sinon undefined. */
 export function acceptComposedPage(raw: string, content: SectionContent): string | undefined {
   const html = extractComposedHtml(raw);
   return html && !fidelityCheck(html, content).blocking.length ? html : undefined;
+}
+
+/**
+ * Les repères que le code n'a pas pu remplacer : retirés, pour qu'un `{{CHART_2}}` ou un
+ * `{{IMG_3}}` oublié ne s'imprime jamais en clair. Et le `<canvas>` que le modèle aurait dessiné
+ * lui-même : retiré aussi (il reste vide à l'impression), le nôtre porte `data-idem-chart`.
+ */
+export function cleanComposedLeftovers(html: string): string {
+  return (html || '')
+    .replace(/\{\{(?:IMG|CHART)_\d+\}\}/g, '')
+    .replace(/<canvas\b(?![^>]*data-idem-chart)[^>]*>[\s\S]*?<\/canvas\s*>/gi, '');
 }
 
 export async function composePageHtml(input: {
@@ -330,8 +393,18 @@ export async function composePageHtml(input: {
   lint?: SlopLintOptions;
   /** Mesure et réparation ; par défaut, le rendu Chromium au format de la page. */
   inspect?: (html: string) => Promise<PageMeasure>;
-  /** Essais accordés (Max : 2, Ultra : 4). Un seul essai reste un essai. */
+  /** Essais accordés (Max : 2, Ultra : 3). Un seul essai reste un essai. */
   attempts?: number;
+  /**
+   * Ce que le contrôle de chaîne garde la main de faire refuser (`floor` au-dessus de Medium).
+   * Au-dessus de Medium, les bonnes pratiques sont demandées À L'ÉCRITURE, pas arbitrées après.
+   */
+  checks?: CheckMode;
+  /**
+   * La mesure RÉPARE et ne refuse plus (cran Ultra) : la page de l'IA est livrée, corrigée de ce
+   * qui a une réponse déterministe, jamais remplacée par un gabarit pour un écart de mesure.
+   */
+  repairOnly?: boolean;
 }): Promise<{ html: string | null; traces: AgentTrace[]; issues?: string[] }> {
   const orchestrator = new CreativeOrchestrator({ level: 'ultra', call: input.call });
   const ds = input.ds;
@@ -345,6 +418,7 @@ export async function composePageHtml(input: {
         label: input.name,
         // Les encres que le code a le droit de poser pour sauver un contraste : celles de la charte.
         inks: [ds.colors.ink, ds.colors.inkMuted, ds.colors.onAccent, ds.colors.surface, ds.colors.surfaceRaised],
+        repairOnly: !!input.repairOnly,
       }));
   const base = buildComposerPrompt(input);
   const images = imagesOf(input.content);
@@ -360,7 +434,8 @@ export async function composePageHtml(input: {
     primary: ds.colors.primary,
     secondary: ds.colors.secondary,
   });
-  const rounds = Math.max(1, Math.min(5, input.attempts ?? 4));
+  const rounds = Math.max(1, Math.min(5, input.attempts ?? 3));
+  const mode: CheckMode = input.checks ?? 'floor';
   /** Ce qu'il reste à corriger pour que la page soit JUSTE, et ce qui ne ferait que l'améliorer. */
   let issues: string[] = [];
   let advice: string[] = [];
@@ -405,18 +480,25 @@ export async function composePageHtml(input: {
       advice = [];
       continue;
     }
-    const composed = restoreImages(res.value, images);
+    const composed = cleanComposedLeftovers(restoreImages(res.value, images));
     previous = res.value;
-    const fidelity = fidelityCheck(composed, input.content);
+    const fidelity = fidelityCheck(composed, input.content, mode);
     if (fidelity.blocking.length) {
       issues = fidelity.blocking;
       advice = fidelity.advisory;
       continue;
     }
-    // Les règles de design (tics de génération, couleurs hors charte, ornements) réparées sur place.
-    // `allowDerivedTints` : une teinte de la couleur de marque EST de la marque — la ramener à la
-    // couleur de charte la plus proche aplatissait toutes les pages sur quatre aplats.
-    const linted = enforceDesignRules(composed, { allowDerivedTints: true, ...input.lint, label: input.lint?.label ?? `ultra/${input.name}` }).html || composed;
+    // ── LA CHARTE N'EST PLUS RÉÉCRITE AU-DESSUS DE MEDIUM ──────────────────
+    //
+    // `enforceDesignRules` réécrit la page : il ramène toute couleur hors palette à la couleur de
+    // charte la plus proche, aligne les rayons, retire les ombres, neutralise les capitales
+    // tracées après la première. Sur une page composée par un directeur artistique, c'est ce qui
+    // annulait son travail — et ce qui faisait que toutes les pages finissaient par se ressembler.
+    // Au-dessus de Medium, il ne reste que la SÉCURITÉ : ce qui exécuterait du code au rendu.
+    const linted =
+      mode === 'floor'
+        ? stripActiveContent(composed)
+        : enforceDesignRules(composed, { allowDerivedTints: true, ...input.lint, label: input.lint?.label ?? `ultra/${input.name}` }).html || composed;
     // Le décor du kit est dessiné APRÈS la relecture des règles : ses dégradés tonals sont des
     // mélanges des couleurs du document, et seraient pris pour des couleurs hors charte. Ce qui
     // est mesuré ensuite, et imprimé, est bien la page avec ses formes.
@@ -463,6 +545,10 @@ export function ultraPageComposer(input: {
   lint?: SlopLintOptions;
   /** Essais accordés par le cran de la jauge (`documentDesign.ts#delegationOf`). */
   attempts?: number;
+  /** Contrôle de chaîne gardé à ce cran (`floor` au-dessus de Medium). */
+  checks?: CheckMode;
+  /** La mesure répare sans jamais refuser (cran Ultra). */
+  repairOnly?: boolean;
 }): (content: SectionContent) => Promise<string | null> {
   return async (content) => {
     const { ds } = input;
@@ -475,8 +561,8 @@ export function ultraPageComposer(input: {
       ...input.lint,
     };
     const { html, issues } = await composePageHtml({ ...input, lint, content: input.singlePage ? condenseForFixedPage(content) : content });
-    if (html) logger.info(`[Compositeur] ${input.document} / ${input.name} : page composée par l'IA (${input.attempts ?? 4} essai(s) accordé(s))`);
-    else logger.warn(`[Compositeur] ${input.document} / ${input.name} : aucune tentative juste${issues?.length ? ` (${issues.slice(0, 3).join(' ; ')})` : ''} → gabarit dirigé`);
+    if (html) logger.info(`[Compositeur] ${input.document} / ${input.name} : page composée par l'IA (${input.attempts ?? 3} essai(s), contrôle ${input.checks ?? 'floor'}${input.repairOnly ? ', mesure sans refus' : ''})`);
+    else logger.warn(`[Compositeur] ${input.document} / ${input.name} : aucune tentative livrable${issues?.length ? ` (${issues.slice(0, 3).join(' ; ')})` : ''} → gabarit dirigé`);
     return html;
   };
 }

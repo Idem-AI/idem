@@ -375,7 +375,7 @@ export class BusinessPlanService extends GenericService {
             prependBlocks,
             // Cran Ultra : le contenu validé de la page part au compositeur, le gabarit en repli.
             compose: designPlan?.freeCompose
-              ? ultraPageComposer({ ds: designSystem, seed, page: PORTRAIT_A4, singlePage: false, sheet: this.creativeSheet(project), document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name: stepName, attempts: designPlan.composeAttempts })
+              ? ultraPageComposer({ ds: designSystem, seed, page: PORTRAIT_A4, singlePage: false, sheet: this.creativeSheet(project), document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name: stepName, attempts: designPlan.composeAttempts, checks: designPlan.checks, repairOnly: designPlan.repairOnly })
               : undefined,
           },
         };
@@ -848,7 +848,7 @@ export class BusinessPlanService extends GenericService {
         designPlan: designPlan ? { family: designPlan.family, pages: designPlan.pages } : undefined,
         composePage: designPlan?.freeCompose
           ? (name, content, seed, ds) =>
-              ultraPageComposer({ ds, seed, page: PORTRAIT_A4, singlePage: false, sheet, document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name, attempts: designPlan.composeAttempts })(content)
+              ultraPageComposer({ ds, seed, page: PORTRAIT_A4, singlePage: false, sheet, document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name, attempts: designPlan.composeAttempts, checks: designPlan.checks, repairOnly: designPlan.repairOnly })(content)
           : undefined,
       },
       emit,

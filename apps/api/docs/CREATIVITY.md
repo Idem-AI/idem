@@ -14,8 +14,11 @@ Chaque livrable se découpe en cinq couches de décision. Le cran fixe à partir
 | Structure (sections, scènes, slides) | code | **IA, menu** | IA, menu | IA, menu | IA |
 | Choix de composition (par unité) | code | code | **IA, menu de 10** | IA, menu de 14 | IA |
 | Paramètres de composition | code | code | code | **IA, bornes** | IA |
-| Écriture de la composition | code | code | code | **IA, 2 essais** | **IA, 4 essais + 1 de finition** |
+| Écriture de la composition | code | code | code | **IA, 2 essais** | **IA, 3 essais + 1 de finition** |
 | Espace parcouru par le classement (`spread`) | 0,6 | 1,1 | 1,5 | 1,9 | 2,4 |
+| Contrôle statique de la page | complet | complet | **plancher** | plancher | plancher |
+| Règles de charte réécrites sur la page | oui | oui | **non** | non | non |
+| La mesure du rendu peut refuser | — | — | oui | oui | **non, elle répare** |
 
 ### Deux règles qui décident si l'échelle existe vraiment
 
@@ -25,10 +28,28 @@ Chaque livrable se découpe en cinq couches de décision. Le cran fixe à partir
    l'appelant) entre dans le classement (`layoutPresets.ts#rankPresets`), et la direction
    artistique *penche* (± 0,6) au lieu d'*éliminer* (1,4 contre 0,2 face à un bruit de 0,5 : aucune
    mise en page hors style n'était jamais vue).
-2. **Un contrôle répare avant de refuser.** Un contrôle qui refuse une unité la renvoie au rendu du
-   cran inférieur : trop de contrôles stricts, et le cran payé le plus cher rend exactement ce que
-   rend le cran Medium. Les défauts à réponse déterministe — hauteur, contraste, corps minimal —
-   sont donc corrigés par le code ; seul l'irréparable écarte une unité.
+2. **Les contrôles DIMINUENT quand le cran monte.** Un contrôle qui refuse une unité la renvoie au
+   rendu du cran inférieur : trop de contrôles, et le cran payé le plus cher rend exactement ce que
+   rend le cran Medium. Et un contrôle de chaîne se trompe — un numéro de page pris pour un chiffre
+   inventé, une phrase coupée par une incise prise pour une phrase absente, le mot « placeholder »
+   dans un nom de classe pris pour un gabarit non rempli.
+
+   Les crans Low et Medium ne font pas écrire de composition à l'IA : le contrôle statique complet
+   y a tout son sens. **Au-dessus de Medium, il tombe au PLANCHER** : la sécurité (un script, une
+   ressource extérieure) et le vide (une page qui n'est pas une page). Les règles de charte ne
+   réécrivent plus la composition, et au cran Ultra la mesure du rendu **répare sans jamais
+   refuser**. Ce qui est détecté par ailleurs n'est pas perdu : il repart au modèle comme CONSEIL,
+   avec la critique, sans lui coûter son travail.
+
+   Les bonnes pratiques sont donc **demandées à l'écriture** — c'est le prompt qui les porte
+   (`pageComposer.ts#buildComposerPrompt`, `poster.author.ts`) — et non arbitrées après coup. Ce
+   qui a une réponse déterministe (hauteur, contraste, corps minimal, repère oublié, logo en
+   double) est corrigé par le code, en silence.
+
+   **Trois natures de contrôle, et les confondre est l'erreur** : le CONTRAT (ce dont le code a
+   besoin pour construire et mesurer — sans lui il n'y a pas de rendu du tout), la SÉCURITÉ, et le
+   JUGEMENT. Seules les deux premières gardent la main au-dessus de Medium. Un chiffre inventé reste
+   bloquant partout : « -40 % » quand la promotion est à -30 % est une faute, pas un écart de goût.
 
 Les bonnes pratiques valent à **tous** les crans, parce qu'elles sont dans le code, pas dans le prompt :
 
@@ -166,7 +187,7 @@ rend plus le même gabarit pour toutes les marques.
 | Medium | + un tirage parmi les trois meilleurs gabarits, semé par la marque. |
 | High | + la direction artistique choisit, REGARDE le rendu (critique visuelle) et révise (2 tours). |
 | Max | + l'IA pose elle-même chaque élément (`poster.layout.ts`), boucle de conception de 3 tours. |
-| Ultra | + le visuel d'auteur : deux concepts, le HTML complet écrit par l'IA (`poster.author.ts`), 4 tours. |
+| Ultra | + le visuel d'auteur : deux concepts, le HTML complet écrit par l'IA (`poster.author.ts`), 4 tours. Les contrôles de jugement (mot répété, SVG écrit à la main, fluo sur une grande surface, fait secondaire oublié, remarque du kit, chevauchement de calques) deviennent des conseils ; un rendu honnête (≥ 50/100) est gardé plutôt que de rendre la main à un gabarit. |
 
 Le filet des gabarits ne se déclenche **que si la méthode du cran n'a rien rendu**. Il se
 déclenchait aussi dès que la critique mettait moins de 6/10, et la comparaison désignait alors
@@ -194,7 +215,7 @@ Six rectos et cinq versos composés par le code, à partir des déclinaisons du 
 | Medium | la structure (ce que porte chaque face). |
 | High | + le recto et le verso dans les menus de la structure. |
 | Max | + couleur de la face de marque, alignement, filet, taille du nom (bornés). |
-| Ultra | + un concept, puis les deux faces écrites en HTML, **trois essais** : les défauts mesurés repartent à l'IA mot pour mot ; repli sur la composition du code seulement si aucun essai n'est imprimable. |
+| Ultra | + un concept, puis les deux faces écrites en HTML, **trois essais** : les défauts mesurés repartent à l'IA mot pour mot, puis **sa carte est livrée**. Le repli sur la composition du code ne sert plus que si l'IA n'a rendu aucune face exploitable. |
 
 Le contrôle d'impression (`businessCardRender.service.ts#inspect`) mesure la face rendue avec des
 valeurs longues et sépare deux catégories. **Bloquant** : texte dans la marge de sécurité de 4 mm ou
@@ -213,44 +234,49 @@ Le moteur commun (`common/generic.service.ts`) rend chaque page par gabarit : le
 | Medium | + la famille de mise en page du document (ouvertures, pieds, dessin des blocs) ; le code tire parmi les cinq meilleures, semé par la clé du livrable. |
 | High | + un directeur artistique par page choisit SA mise en page dans un menu de **dix**, réparti sur dix familles distinctes, et le décor de la page. |
 | Max | + densité, tension et place de l'image de chaque page ; un critique relit le rythme du document ; et le **compositeur** écrit les pages (deux essais). |
-| Ultra | + le compositeur dispose de quatre essais, d'un tour de finition, et de la latitude la plus large. |
+| Ultra | + le compositeur dispose de trois essais, d'un tour de finition, et sa page **est** le livrable : la mesure la répare, elle ne la refuse plus. |
 
 ### Le compositeur (`creativity/pageComposer.ts`)
 
 Deux agents distincts : le rédacteur écrit et fait valider le contenu (spécimens de la charte compris : nuancier, polices, logos), le compositeur n'écrit que la mise en page. Il passe par le crochet `SectionTemplate.compose`. Une page composée n'est retenue que si :
 
-1. **la forme** passe la grille qualité (`agents/quality-gate.ts`) : balisage tronqué, conteneurs
-   déséquilibrés, bavardage. Les marqueurs de gabarit (`TODO`, `{{…}}`) ne sont cherchés que dans le
-   texte VISIBLE : le mot « placeholder » dans un commentaire ou un nom de classe refusait des
-   pages entières, alors que le compositeur reçoit justement des repères `{{IMG_n}}` dans sa consigne ;
-2. **la fidélité** est tenue : les textes du contenu sont là, aucun chiffre n'est inventé, chaque
-   couleur et chaque image du contenu est posée, aucune autre image n'est appelée. Un chiffre
-   « inventé » se juge sur le texte visible, **feuilles de style, scripts et SVG retirés** (les
-   graisses 400/700 et les interlignes 0,95 d'un bloc `<style>` étaient lus comme des données du
-   projet), et seul un FAIT compte : trois chiffres ou plus, une décimale, ou une unité collée
-   (`%`, devise, multiple). Un numéro de page (« 01 ») n'en est pas un ;
-3. **le rendu mesuré** au format réel (`creativity/pageInspect.ts`, Chromium) **répare puis
-   constate** : une page trop haute est ramenée à son format par une mise à l'échelle (`zoom`,
-   jusqu'à 26 %), un texte sous le contraste reçoit l'encre de la charte qui passe sur son fond
-   mesuré, un corps sous 7 pt est remonté. Restent bloquants : un texte hors page, coupé par sa
-   boîte, illisible qu'aucune encre de la charte ne sauve, ou une page qui dépasse encore après
-   mise à l'échelle ;
-4. **les règles de design** sont réparées sur place (`enforceDesignRules`), avec
-   `allowDerivedTints` : une teinte de la couleur de marque EST de la marque, et la ramener à la
-   couleur de charte la plus proche aplatissait chaque page sur quatre aplats ;
-5. **le kit** (décors, blocs riches) ne condamne plus rien : il dessine ce qu'il sait dessiner et
-   ses remarques (un décor de trop, une variante inconnue) deviennent des conseils.
+Le contrôle de chaîne (`fidelityCheck`) étiquette chaque constat, et **c'est le cran qui décide
+lesquels gardent la main** :
 
-Deux catégories, donc, et c'est tout l'enjeu. Un défaut **bloquant** repart au compositeur, formulé
-pour être corrigé (« écris ces textes tels quels », « retire ces nombres : 35 », « pose ces
-couleurs »), avec sa page précédente. Un **conseil** ne lui coûte pas sa page. Et la page retenue
-est la **meilleure tentative**, pas la dernière.
+| Étiquette | Ce que c'est | Bloque à Low/Medium | Bloque au-dessus |
+|---|---|---|---|
+| `security` | un `<script>`, une ressource extérieure (le rendu coupe le réseau) | oui | **oui** |
+| `substance` | la page n'est pas une page : vide, ou le contenu ignoré | oui | **oui** |
+| `fidelity` | un texte, un chiffre ou une image du contenu absent | oui | non → conseil |
+| `charter` | une couleur du contenu non posée | oui | non → conseil |
+| `form` | grille qualité : troncature, marqueur de gabarit, bavardage | oui | non → conseil |
+
+Et ce qui a une réponse déterministe est **corrigé**, jamais constaté :
+
+- **le rendu mesuré** (`creativity/pageInspect.ts`, Chromium) ramène une page trop haute à son
+  format (`zoom`, jusqu'à 26 %), pose l'encre de la charte qui passe sur le fond mesuré, remonte un
+  corps sous 7 pt. Au cran Ultra (`repairOnly`), ce qui résiste est journalisé et **transmis comme
+  conseil** : la page est livrée telle quelle ;
+- **les repères oubliés** (`{{IMG_3}}`, `{{CHART_2}}`) et le `<canvas>` que le modèle aurait dessiné
+  lui-même sont retirés, pour qu'ils ne s'impriment jamais en clair ;
+- **les règles de charte ne réécrivent plus la page** au-dessus de Medium. `enforceDesignRules`
+  ramène toute couleur hors palette à la plus proche, aligne les rayons, retire les ombres,
+  neutralise les capitales tracées après la première : sur une page composée par un directeur
+  artistique, c'est ce qui annulait son travail, et ce qui faisait que toutes les pages finissaient
+  par se ressembler. Il ne reste que `stripActiveContent` (la sécurité).
+
+Un chiffre « inventé » se juge sur le texte visible, **feuilles de style, scripts et SVG retirés**
+(les graisses 400/700 et les interlignes 0,95 d'un bloc `<style>` étaient lus comme des données du
+projet), et seul un FAIT compte : trois chiffres ou plus, une décimale, ou une unité collée (`%`,
+devise, multiple). Un numéro de page (« 01 ») n'en est pas un.
 
 > Mesuré avant correction dans les journaux : **26 pages Ultra refusées contre 3 retenues**, pour des
 > motifs comme « 658 px au lieu de 631 », « contraste 4,0:1 » ou « le chiffre 01 n'est pas dans le
 > contenu ». Le cran Ultra rendait donc des pages de gabarit — exactement le reproche qui lui était
 > fait. Un contrôle impossible (Chromium absent) ne refuse plus la page non plus : il la livrait au
 > gabarit en silence, ce qui désactivait tout le cran Ultra sur un serveur sans Chromium.
+
+La page retenue est la **meilleure tentative**, pas la dernière.
 
 Couverture et tableaux financiers restent posés par le code à tous les crans.
 

@@ -510,7 +510,7 @@ export class PitchDeckService extends GenericService {
           seed,
           // Cran Ultra : le contenu validé de la slide part au compositeur, le gabarit en repli.
           compose: designPlan?.freeCompose
-            ? ultraPageComposer({ ds: designSystem, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: deckSheet, document: 'pitch deck', call: runtimeCall({ userId, projectId, element: 'pitch_deck' }), name: stepName, attempts: designPlan.composeAttempts })
+            ? ultraPageComposer({ ds: designSystem, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: deckSheet, document: 'pitch deck', call: runtimeCall({ userId, projectId, element: 'pitch_deck' }), name: stepName, attempts: designPlan.composeAttempts, checks: designPlan.checks, repairOnly: designPlan.repairOnly })
             : undefined,
           volume: '3 to 4',
           render: {

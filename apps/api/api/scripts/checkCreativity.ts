@@ -40,7 +40,7 @@ import { CARD_PATTERNS, CARD_STRUCTURES, renderCardBack, renderCardFront, CardBa
 import { cardLayoutTask, cardStructureTask, cardTuningTask } from '../services/BandIdentity/businessCardCreative';
 import { businessCardRenderService } from '../services/BandIdentity/businessCardRender.service';
 import { delegationOf, planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../services/creativity/documentDesign';
-import { acceptComposedPage, buildComposerPrompt, composePageHtml } from '../services/creativity/pageComposer';
+import { acceptComposedPage, buildComposerPrompt, cleanComposedLeftovers, composePageHtml, extractComposedHtml, fidelityCheck } from '../services/creativity/pageComposer';
 import { closePageInspector, inspectComposedPage, type PageMeasure } from '../services/creativity/pageInspect';
 import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
 import { buildDocumentSeed, buildSectionSeed } from '../services/design/designSeed';
@@ -180,7 +180,10 @@ export default function Scene() {
     ['constructeur', GOOD_SCENE.replace('const dots', 'const F = (() => 0).constructor; const dots'), /constructor/],
     ['accès calculé par chaîne', GOOD_SCENE.replace('const dots', 'const F = s["con" + "structor"]; const dots'), /computed/],
     ['état React', GOOD_SCENE.replace("import { useScene,", "import { useState } from 'react';\nimport { useScene,"), /useState/],
-    ['animation CSS', GOOD_SCENE.replace("background: 'var(--hl)' }}", "background: 'var(--hl)', transition: 'width 1s' }}"), /animations/],
+    // Le lint nomme la propriété fautive : « CSS transitions are forbidden (style property
+    // `transition`) » pour une transition, « animations » pour une animation. Le motif acceptait
+    // seulement « animations » et refusait donc le cas qu'il teste.
+    ['animation CSS', GOOD_SCENE.replace("background: 'var(--hl)' }}", "background: 'var(--hl)', transition: 'width 1s' }}"), /animations|transitions/],
     ['transformation 3D', GOOD_SCENE.replace('translateX(${mix(-0.8, 0.8, p)}%)', 'rotateY(${p * 20}deg)'), /3D/],
     ['texte écrit en dur', GOOD_SCENE.replace("text={s.slots.title || ''}", 'text="Le meilleur jus de bissap de Dakar"'), /copy written|never shown/],
     ['import inconnu', "import fs from 'fs';\n" + GOOD_SCENE, /import from "fs"/],
@@ -310,11 +313,16 @@ export default function Scene() {
     const max = await planDocumentDesign({ level: 'max', call, sheet: 'BRAND', styleId: 'editorial', document: 'business plan', pages, seedArchetypes });
     check('Max : place de l’image réglée, valeurs hors menu refusées (densité, tension)', Object.values(max.pages).every((p) => p.imagePosition === 'TOP_BAND' && !p.contentDensity && !p.layoutTension));
     const ultra = await planDocumentDesign({ level: 'ultra', call, sheet: 'BRAND', styleId: 'editorial', document: 'pitch deck', pages, seedArchetypes });
-    check('Ultra : pages confiées au compositeur (gabarit dirigé en repli)', ultra.freeCompose && ultra.composeAttempts === 4);
+    check('Ultra : pages confiées au compositeur (gabarit dirigé en repli)', ultra.freeCompose && ultra.composeAttempts === 3);
+    // ── LES CONTRÔLES DIMINUENT QUAND LE CRAN MONTE ──────────────────────────
+    check('contrôles : complets à Low/Medium, PLANCHER au-dessus, mesure sans refus à Ultra',
+      delegationOf('low').checks === 'full' && delegationOf('medium').checks === 'full' &&
+        delegationOf('high').checks === 'floor' && delegationOf('max').checks === 'floor' && delegationOf('ultra').checks === 'floor' &&
+        !delegationOf('max').repairOnly && delegationOf('ultra').repairOnly);
     // ── LA DÉLÉGATION MONTE AVEC LE CRAN ─────────────────────────────────────
-    check('délégation : le menu s’élargit et le compositeur entre à Max (0 → 0 → 10 → 14+2 essais → 16+4)',
+    check('délégation : le menu s’élargit et le compositeur entre à Max (0 → 0 → 10 → 14+2 essais → 16+3)',
       delegationOf('low').menuWidth === 0 && delegationOf('medium').attempts === 0 && delegationOf('high').menuWidth === 10 && !delegationOf('high').attempts &&
-        delegationOf('max').attempts === 2 && delegationOf('ultra').attempts === 4 &&
+        delegationOf('max').attempts === 2 && delegationOf('ultra').attempts === 3 &&
         delegationOf('low').spread < delegationOf('medium').spread && delegationOf('medium').spread < delegationOf('high').spread &&
         delegationOf('high').spread < delegationOf('max').spread && delegationOf('max').spread < delegationOf('ultra').spread,
       `max ${max.composeAttempts} essai(s)`);
@@ -343,12 +351,39 @@ export default function Scene() {
     const saved = savedDesignOf(high);
     const resumed = resumedDesignPlan(saved, 'medium');
     check('enregistrée : décisions seules (cran, famille, pages), pas de traces', !('traces' in saved) && saved.level === 'high' && JSON.stringify(saved.pages) === JSON.stringify(high.pages));
-    check('reprise : même famille et mêmes pages, aucun appel, compositeur selon le cran demandé', resumed.family === high.family && JSON.stringify(resumed.pages) === JSON.stringify(high.pages) && resumed.traces.length === 0 && !resumed.freeCompose && resumedDesignPlan(saved, 'ultra').freeCompose && resumedDesignPlan(saved, 'ultra').composeAttempts === 4);
+    check('reprise : même famille et mêmes pages, aucun appel, compositeur selon le cran demandé', resumed.family === high.family && JSON.stringify(resumed.pages) === JSON.stringify(high.pages) && resumed.traces.length === 0 && !resumed.freeCompose && resumedDesignPlan(saved, 'ultra').freeCompose && resumedDesignPlan(saved, 'ultra').composeAttempts === 3);
     check('reprise d’un document sans direction : la graine (aucune page dirigée)', Object.keys(resumedDesignPlan(undefined, 'max').pages).length === 0 && !resumedDesignPlan(undefined, 'max').family);
 
     const content = { title: 'Analyse du marché', lede: 'Le marché ivoirien du jus naturel croît de 12 % par an.', blocks: [{ type: 'prose', text: 'Les ménages urbains achètent de plus en plus de boissons locales sans sucre ajouté.' } as any, { type: 'metrics', items: [{ label: 'Croissance annuelle', value: '12 %' }] } as any] };
     const good = '```html\n<section style="width:210mm"><h2>Analyse du marché</h2><p>Le marché ivoirien du jus naturel croît de 12 % par an.</p><p>Les ménages urbains achètent de plus en plus de boissons locales sans sucre ajouté.</p><div>Croissance annuelle <b>12 %</b></div>' + '<div style="height:10px"></div>'.repeat(10) + '</section>\n```';
     check('compositeur : une page fidèle au contenu est acceptée', !!acceptComposedPage(good, content as any));
+    // ── AU-DESSUS DE MEDIUM, SEULS LA SÉCURITÉ ET LE VIDE CONDAMNENT UNE PAGE ─
+    //
+    // C'est le cœur du cran : un contrôle de chaîne qui refuse la page la renvoie au gabarit, donc
+    // le cran le plus cher rendrait le cran Medium. Les écarts de fidélité et de charte restent
+    // DÉTECTÉS (ils repartent en conseil au compositeur), ils ne coûtent plus sa page à l'IA.
+    const strayNumber = good.replace('</section>', '<p>Part de marché visée : 35 %</p></section>');
+    const strayHtml = extractComposedHtml(strayNumber)!;
+    const full = fidelityCheck(strayHtml, content as any, 'full');
+    const floor = fidelityCheck(strayHtml, content as any, 'floor');
+    // Un CHIFFRE inventé est la seule faute de fidélité qui bloque à tous les crans : un plan qui
+    // pose un chiffre absent du contenu est une faute que le client voit.
+    check('contrôle de chaîne : un chiffre inventé bloque à TOUS les crans',
+      full.blocking.some((i) => /remove these numbers/.test(i)) && floor.blocking.some((i) => /remove these numbers/.test(i)),
+      `complet ${full.blocking.length} · plancher ${floor.blocking.length}`);
+    // Un texte coupé par une incise, en revanche, ne coûte plus sa page au compositeur.
+    const incised = extractComposedHtml(good.replace('Les ménages urbains achètent de plus en plus de boissons locales sans sucre ajouté.', 'Les ménages urbains — dit-on — achètent de plus en plus de boissons locales.'))!;
+    check('contrôle de chaîne : une phrase remaniée bloque au complet, conseille au plancher',
+      fidelityCheck(incised, content as any, 'full').blocking.length > 0 && !fidelityCheck(incised, content as any, 'floor').blocking.length,
+      fidelityCheck(incised, content as any, 'floor').advisory.join(' | '));
+    const scripted = extractComposedHtml(good.replace('</section>', '<script>alert(1)</script></section>'))!;
+    check('contrôle de chaîne : la sécurité bloque à TOUS les crans', fidelityCheck(scripted, content as any, 'floor').blocking.some((i) => /script/.test(i)));
+    const emptyPage = '<section style="width:210mm"><h2>Analyse du marché</h2></section>';
+    check('contrôle de chaîne : une page vide bloque à tous les crans (standard « aucune page vide »)',
+      fidelityCheck(emptyPage, content as any, 'floor').blocking.some((i) => /almost empty|content was ignored/.test(i)),
+      fidelityCheck(emptyPage, content as any, 'floor').blocking.join(' | '));
+    const leftover = extractComposedHtml(good.replace('</section>', '<p>{{IMG_7}} {{CHART_3}}</p></section>'))!;
+    check('repères oubliés : nettoyés par le code, jamais imprimés en clair', !/\{\{(IMG|CHART)_\d+\}\}/.test(cleanComposedLeftovers(leftover)));
     check('compositeur : un texte du contenu manquant → refusée', !acceptComposedPage(good.replace('Les ménages urbains achètent de plus en plus de boissons locales sans sucre ajouté.', ''), content as any));
     check('compositeur : un chiffre inventé → refusée', !acceptComposedPage(good.replace('</section>', '<p>Part de marché visée : 35 %</p></section>'), content as any));
     check('compositeur : un script → refusée', !acceptComposedPage(good.replace('</section>', '<script>alert(1)</script></section>'), content as any));

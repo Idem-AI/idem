@@ -591,8 +591,12 @@ async function authorPath(orch: CreativeOrchestrator, b: DesignBrief, brief: Pos
         key: `author:${i + 1}`,
         rounds: 4,
         deadline,
+        // Le visuel d'auteur EST le livrable du cran Ultra : les contrôles de jugement deviennent
+        // des conseils (`floor`), et un rendu honnête est gardé plutôt que de rendre la main à un
+        // gabarit (`salvageFrom`).
+        salvageFrom: 50,
         write: (round, previous) => writeAuthored(orch, cb, concept, `posterAuthor:${i + 1}`, round, previous),
-        build: (design) => buildAuthored(design, cb, copy),
+        build: (design) => buildAuthored(design, cb, copy, { floor: true }),
         render: (body) => renderPoster(cb.spec, body, fonts),
         review: (png) => reviewPoster(png, { ...critiqueCtx, copy, intent: `${concept.title}: ${concept.idea} ${concept.layout}` }),
       });

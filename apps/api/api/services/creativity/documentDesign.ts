@@ -14,8 +14,16 @@
  *             pages qui respirent ; en dessous de High, c'est le code qui le choisit, sans jeton)
  *   max     + il règle la densité, la tension et la place de l'image ; un critique relit le rythme ;
  *             et le COMPOSITEUR écrit les pages (deux essais) — le gabarit dirigé reste le plancher
- *   ultra     le compositeur écrit les pages avec quatre essais, un rendu mesuré PUIS RÉPARÉ et la
- *             latitude la plus large (`SectionTemplate.compose`, creativity/pageComposer.ts)
+ *   ultra     le compositeur écrit les pages (trois essais) et sa page EST le livrable : la mesure
+ *             la répare, elle ne la refuse plus (`SectionTemplate.compose`, creativity/pageComposer.ts)
+ *
+ * ── LES CONTRÔLES DIMINUENT QUAND LE CRAN MONTE ──────────────────────────────
+ * Un contrôle statique qui refuse une page la renvoie au gabarit : assez de contrôles, et le cran
+ * payé le plus cher rend ce que rend le cran Medium. Et un contrôle de chaîne se trompe (un numéro
+ * de page pris pour un chiffre inventé, une incise pour une phrase absente). Au-dessus de Medium,
+ * le contrôle tombe donc au PLANCHER (sécurité, page vide), les règles de charte ne réécrivent
+ * plus la page, et au cran Ultra la mesure répare sans jamais refuser. Les bonnes pratiques sont
+ * demandées à l'écriture — c'est le prompt du compositeur qui les porte.
  *
  * ── CE QUI A ÉTÉ RETIRÉ ──────────────────────────────────────────────────────
  * Le classement des mises en page ne dépendait que du NUMÉRO de page : trois projets d'un même
@@ -50,8 +58,12 @@ export interface DocumentDesignPlan {
   pages: Record<string, PageDesign>;
   /** Crans Max et Ultra : les pages sont composées par le compositeur, le gabarit en repli. */
   freeCompose: boolean;
-  /** Essais accordés au compositeur (Max : 2, Ultra : 4) ; 0 en dessous. */
+  /** Essais accordés au compositeur (Max : 2, Ultra : 3) ; 0 en dessous. */
   composeAttempts: number;
+  /** Contrôle de chaîne gardé à ce cran : `full` à Low/Medium, le PLANCHER au-dessus. */
+  checks: 'full' | 'floor';
+  /** Cran Ultra : la mesure du rendu répare la page sans jamais la refuser. */
+  repairOnly: boolean;
   traces: AgentTrace[];
 }
 
@@ -62,18 +74,26 @@ export interface DocumentDesignPlan {
  *   menuWidth   la largeur du menu présenté au directeur artistique de chaque page
  *   attempts    les essais du compositeur de pages (0 : le gabarit dirigé rend la page)
  */
-export function delegationOf(level: CreativityLevel): { spread: number; menuWidth: number; attempts: number } {
+export function delegationOf(level: CreativityLevel): {
+  spread: number;
+  menuWidth: number;
+  attempts: number;
+  /** Ce que le contrôle de chaîne garde la main de faire refuser (`pageComposer.ts#CheckMode`). */
+  checks: 'full' | 'floor';
+  /** La mesure du rendu répare sans jamais refuser. */
+  repairOnly: boolean;
+} {
   switch (level) {
     case 'low':
-      return { spread: 0.6, menuWidth: 0, attempts: 0 };
+      return { spread: 0.6, menuWidth: 0, attempts: 0, checks: 'full', repairOnly: false };
     case 'medium':
-      return { spread: 1.1, menuWidth: 0, attempts: 0 };
+      return { spread: 1.1, menuWidth: 0, attempts: 0, checks: 'full', repairOnly: false };
     case 'high':
-      return { spread: 1.5, menuWidth: 10, attempts: 0 };
+      return { spread: 1.5, menuWidth: 10, attempts: 0, checks: 'floor', repairOnly: false };
     case 'max':
-      return { spread: 1.9, menuWidth: 14, attempts: 2 };
+      return { spread: 1.9, menuWidth: 14, attempts: 2, checks: 'floor', repairOnly: false };
     default:
-      return { spread: 2.4, menuWidth: 16, attempts: 4 };
+      return { spread: 2.4, menuWidth: 16, attempts: 3, checks: 'floor', repairOnly: true };
   }
 }
 
@@ -123,6 +143,8 @@ export async function planDocumentDesign(input: DocumentDesignInput): Promise<Do
     pages: {},
     freeCompose: delegation.attempts > 0,
     composeAttempts: delegation.attempts,
+    checks: delegation.checks,
+    repairOnly: delegation.repairOnly,
     traces: orchestrator.traces,
   };
   const space = styleSpaceOf(input.styleId);
@@ -324,6 +346,8 @@ export function resumedDesignPlan(saved: SavedDocumentDesign | undefined, level:
     pages: saved?.pages ?? {},
     freeCompose: delegation.attempts > 0,
     composeAttempts: delegation.attempts,
+    checks: delegation.checks,
+    repairOnly: delegation.repairOnly,
     traces: [],
   };
 }
