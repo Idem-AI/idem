@@ -103,7 +103,11 @@ export async function handleBuilderMode(
   });
 
   const historyMessages: Messages = JSON.parse(JSON.stringify(messages));
-  const { files, allContent } = processFiles(messages);
+  // Nettoie systématiquement les <boltArtifact> des tours passés (remplacés par
+  // l'accusé compact côté messageParser), pas seulement une fois le seuil de
+  // CONTEXT_TOKEN_LIMIT franchi : sans cela, chaque tour renvoyait au modèle
+  // tout le code déjà écrit aux tours précédents.
+  const { files, allContent } = processFiles(messages, true);
   const filesPath = Object.keys(files);
 
   await attachScreenshotIfRequested(messages);
@@ -179,8 +183,9 @@ export async function handleBuilderMode(
     // Existing project too large to send whole: summarise it and send the diff.
     ChatLogger.warn('TOKEN_LIMIT', 'Context over limit, summarising the project');
 
-    const { files: fullFiles } = processFiles(messages, true);
-    const trimmedFiles = await handleTokenLimit(messages, fullFiles, filesPath);
+    // Déjà nettoyé plus haut (inconditionnellement) : pas besoin de rappeler
+    // processFiles ici, `files` porte déjà le contenu courant de chaque fichier.
+    const trimmedFiles = await handleTokenLimit(messages, files, filesPath);
 
     extraContext = buildExistingProjectContext(
       filesPath,

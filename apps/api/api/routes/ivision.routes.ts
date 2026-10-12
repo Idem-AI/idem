@@ -156,11 +156,11 @@ router.post(
   })
 );
 
-/** Un clip d'un plan de vidéo (Seedance, OpenRouter) : l'URL rendue (`data:`), qu'iVision télécharge. */
+/** Un clip d'un plan de vidéo (Veo / Seedance, OpenRouter) : l'URL rendue (`data:`), qu'iVision télécharge. */
 router.post(
   '/ai/video',
   route(async (req, res) => {
-    const { prompt, image, size, durationSec, quality, tag } = req.body || {};
+    const { prompt, image, size, durationSec, quality, tag, model } = req.body || {};
     if (typeof prompt !== 'string' || !prompt.trim()) {
       res.status(400).json({ error: 'prompt_required' });
       return;
@@ -174,6 +174,7 @@ router.post(
         durationSec: durationSec === 10 ? 10 : 5,
         quality: quality === 'quality' ? 'quality' : 'speed',
         tag: text(tag, 64) || 'ivision',
+        ...(typeof model === 'string' ? { model: text(model, 80) } : {}),
       })
     );
     res.json(clip);

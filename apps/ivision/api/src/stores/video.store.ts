@@ -16,8 +16,8 @@ import { idem } from '../services/idem.client';
 const brands = () => collection<IvisionBrand>('brands');
 const videos = () => collection<IvisionVideoDoc>('videos');
 
-/** La clé d'une image dans `mediaNotes` (un chemin d'URL ne peut pas servir de clé MongoDB). */
-const noteKey = (url: string) => crypto.createHash('sha1').update(url).digest('hex').slice(0, 16);
+/** La clé d'une image dans `mediaNotes`/`photoClassification` (un chemin d'URL ne peut pas servir de clé MongoDB). */
+export const noteKey = (url: string) => crypto.createHash('sha1').update(url).digest('hex').slice(0, 16);
 
 /** Le JSON d'une vidéo, sans les références partagées (le moteur modifie ses copies). */
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -50,7 +50,11 @@ export class IvisionVideoStore implements VideoStore {
   }
 
   async listVideos(userId: string, brandId: string): Promise<MotionVideo[]> {
-    const docs = await videos().find({ userId, brandId }).sort({ updatedAt: -1 }).limit(200).toArray();
+    // Le moteur ne pondère jamais plus que les ~10 dernières vidéos / 2
+    // dernières séquences pour construire son contexte : ramener 200 documents
+    // complets par tour pour n'en exploiter qu'une poignée était une lecture
+    // DB disproportionnée (pas de coût LLM, mais un coût réseau/DB inutile).
+    const docs = await videos().find({ userId, brandId }).sort({ updatedAt: -1 }).limit(20).toArray();
     return docs.map((d) => d.video);
   }
 

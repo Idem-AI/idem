@@ -37,6 +37,13 @@ export interface IvisionBrand {
   photos: string[];
   /** Descriptions des images de la marque (vision, une fois par image), par empreinte d'URL. */
   mediaNotes?: Record<string, string>;
+  /**
+   * Classification (`classifyImage`, core) des photos de marque, par empreinte d'URL (même
+   * hachage que `mediaNotes`). Calculée une fois et persistée ici : sans cela, `createVisual`
+   * rappelait l'IA de vision sur chaque photo à CHAQUE visuel créé, pour un résultat qui ne
+   * change jamais pour une même photo.
+   */
+  photoClassification?: Record<string, { kind: string; luminance: number }>;
   /** Ce que le scan propose (les choix sont gardés pour changer d'avis plus tard). */
   proposals?: {
     palettes: PaletteProposal[];

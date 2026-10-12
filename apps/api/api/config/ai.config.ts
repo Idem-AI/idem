@@ -655,7 +655,10 @@ const COMPOSED_DOCUMENT = { role: 'reasoning', tier: 'S', pin: true } as const;
 
 export const AI_CONFIG = {
   /** Défaut global : rédaction, sans réglage particulier. */
-  default: feature({ role: 'writing' }),
+  // Généreux pour la plus grosse section documentée (cf. section-digest.service.ts),
+  // mais borné : sans ce plafond, une retouche de section (rewriteHtml,
+  // aiEditDocument) partait sur le maximum par défaut du fournisseur.
+  default: feature({ role: 'writing', tokens: 16000 }),
 
   /**
    * Les MOTS des couvertures (charte, business plan, pitch deck).
@@ -696,9 +699,9 @@ export const AI_CONFIG = {
    *    et rendu en bac à sable — c'est là que se joue la qualité, pas dans le prompt.
    */
   creative: {
-    agents: feature({ role: 'mechanical', promptType: 'creative_agents', temperature: 0.85, tokens: 400, thinking: false }),
-    critic: feature({ role: 'mechanical', promptType: 'creative_critic', temperature: 0.3, tokens: 400, thinking: false }),
-    coder: feature({ role: 'writing', promptType: 'creative_coder', temperature: 0.7, tokens: 6000, thinking: false }),
+    agents: feature({ modelName: 'google/gemini-3.8-flash', role: 'mechanical', promptType: 'creative_agents', temperature: 0.85, tokens: 400, thinking: false }),
+    critic: feature({ modelName: 'google/gemini-3.8-flash', role: 'mechanical', promptType: 'creative_critic', temperature: 0.3, tokens: 400, thinking: false }),
+    coder: feature({ modelName: 'google/gemini-3.8-flash', role: 'writing', promptType: 'creative_coder', temperature: 0.7, tokens: 6000, thinking: false }),
   },
 
   /** Replis nommés, pour les appelants qui choisissent leur modèle eux-mêmes. */
@@ -741,6 +744,7 @@ export const AI_CONFIG = {
   // temps : une section tronquée casse le parseur HTML et la section est perdue.
   businessPlan: feature({
     ...COMPOSED_DOCUMENT,
+    modelName: 'google/gemini-3.8-flash',
     // Raisonnement activé : une section de plan est un arbitrage (quel angle,
     // quelles hypothèses, quelles preuves), pas une reformulation. Le budget
     // double en conséquence — la réflexion s'y décompte.
@@ -812,6 +816,7 @@ export const AI_CONFIG = {
   // le raisonnement.
   pitchDeck: feature({
     ...COMPOSED_DOCUMENT,
+    modelName: 'google/gemini-3.8-flash',
     // Onze slides qui doivent se distinguer les unes des autres : c'est le
     // livrable où la convergence vers une même mise en page se voit le plus.
     sampling: 'composition',
@@ -1011,6 +1016,7 @@ export const AI_CONFIG = {
     // heuristique — donc des photos hors sujet. Modèle sans raisonnement,
     // budget confortable : l'appel redevient fiable ET moins cher.
     imageBrief: feature({
+      modelName: 'google/gemini-3.8-flash',
       role: 'mechanical',
       promptType: 'communication_image_brief',
       temperature: 0.7,
@@ -1025,6 +1031,7 @@ export const AI_CONFIG = {
     // (choix d'archétype, calage typographique, contrastes) pèse ici plus lourd
     // que le HTML lui-même.
     flyer: feature({
+      modelName: 'google/gemini-3.8-flash',
       role: 'reasoning',
       promptType: 'communication_flyer',
       // 0.8 est le plafond raisonnable : au-delà, la créativité gagnée se paie
@@ -1036,6 +1043,19 @@ export const AI_CONFIG = {
       topP: 0.97,
       topK: 64,
       tokens: 48000,
+    }),
+    // RETOUCHE d'un visuel déjà composé (aiEditFlyer) : contrairement à `flyer`
+    // ci-dessus, il n'y a pas de direction artistique à choisir — le texte/la
+    // couleur/la mise en page existent déjà, seule l'instruction change. Étage
+    // de rédaction, budget de sortie bien plus bas (même pattern que
+    // videoWriting/videoReasoning plus bas dans ce fichier).
+    flyerEdit: feature({
+      modelName: 'google/gemini-3.8-flash',
+      role: 'writing',
+      promptType: 'communication_flyer_edit',
+      temperature: 0.6,
+      topP: 0.95,
+      tokens: 16000,
     }),
     momentSuggestions: feature({
       role: 'writing',
@@ -1083,6 +1103,7 @@ export const AI_CONFIG = {
     // modèle le moins cher. Pas de mode JSON : le format ligne à ligne coûte
     // moins de tokens et une ligne ratée ne perd que cette ligne.
     video: feature({
+      modelName: 'google/gemini-3.8-flash',
       role: 'mechanical',
       promptType: 'communication_video_copy',
       temperature: 0.7,
@@ -1095,6 +1116,7 @@ export const AI_CONFIG = {
     // mécaniques, petites, parallèles : le modèle le moins cher suffit, sans
     // raisonnement ; un peu plus de température que la copie pour varier les choix.
     videoAgents: feature({
+      modelName: 'google/gemini-3.8-flash',
       role: 'mechanical',
       promptType: 'communication_video_agents',
       temperature: 0.85,
@@ -1106,6 +1128,7 @@ export const AI_CONFIG = {
     // agents passent à l'étage de rédaction ; Max et Ultra (film d'auteur) : à l'étage de
     // raisonnement, sans réflexion (elle viderait le budget), budget de sortie plus large.
     videoWriting: feature({
+      modelName: 'google/gemini-3.8-flash',
       role: 'writing',
       promptType: 'communication_video_copy',
       temperature: 0.8,
@@ -1113,6 +1136,7 @@ export const AI_CONFIG = {
       thinking: false,
     }),
     videoReasoning: feature({
+      modelName: 'google/gemini-3.8-flash',
       role: 'reasoning',
       promptType: 'communication_video_copy',
       temperature: 0.85,
@@ -1168,7 +1192,7 @@ export const AI_CONFIG = {
     videoMedia: {
       imageModel: MEDIA_MODELS.image,
       imageFallbackModel: MEDIA_MODELS.imageFallback,
-      videoModel: process.env.IDEM_VIDEO_CLIP_MODEL || MEDIA_MODELS.video,
+      videoModel: process.env.IDEM_VIDEO_CLIP_MODEL || 'google/veo-3.1-fast',
       ttsModel: MEDIA_MODELS.tts,
       /** Attente maximale d'un clip (Seedance répond en 1 à 3 minutes). */
       clipTimeoutMs: Number(process.env.IDEM_VIDEO_CLIP_TIMEOUT_MS ?? 6 * 60 * 1000),
@@ -1178,6 +1202,7 @@ export const AI_CONFIG = {
   branding: {
     brandIdentity: feature({
       ...COMPOSED_DOCUMENT,
+      modelName: 'google/gemini-3.8-flash',
       // Le défaut le plus visible de la charte était sa monotonie : douze pages
       // composées sur la même grille. Une température de 0.35 en était la cause
       // directe — à ce niveau, le modèle reproduit la mise en page la plus
@@ -1238,6 +1263,7 @@ export const AI_CONFIG = {
     }),
 
     logo: feature({
+      modelName: 'google/gemini-3.8-flash',
       role: 'reasoning',
       // ⚠️ NE PAS RÉDUIRE. Les tokens de raisonnement sont décomptés du budget.
       // Un SVG de logo complet (types name/initial = paths de letterforms) pèse
@@ -1284,6 +1310,7 @@ export const AI_CONFIG = {
      * choisit). Le tirage est déterministe et ne dépend d'aucun modèle.
      */
     colors: feature({
+      modelName: 'google/gemini-3.8-flash',
       role: 'writing',
       temperature: 0.6,
       topP: 0.95,
@@ -1310,6 +1337,7 @@ export const AI_CONFIG = {
      * délibération.
      */
     typography: feature({
+      modelName: 'google/gemini-3.8-flash',
       role: 'writing',
       temperature: 0.6,
       topP: 0.95,
@@ -1334,6 +1362,7 @@ export const AI_CONFIG = {
      * consignes qui restent exécutables parce que le catalogue les borne.
      */
     artDirection: feature({
+      modelName: 'google/gemini-3.8-flash',
       role: 'reasoning',
       sampling: 'divergent',
       thinking: true,
@@ -1353,6 +1382,7 @@ export const AI_CONFIG = {
     // Tailwind pèsent déjà 2–4k tokens ; sous un budget trop court la réponse est
     // tronquée en plein milieu du HTML et devient illisible côté parseur.
     businessCard: feature({
+      modelName: 'google/gemini-3.8-flash',
       role: 'reasoning',
       sampling: 'composition',
       thinking: true,
@@ -1371,8 +1401,8 @@ export const AI_CONFIG = {
       //
       // Seules les mises en situation produit passent ici : les mockups de
       // réseaux sociaux et les bannières sont des gabarits HTML, sans IA.
-      imageModel: MEDIA_MODELS.image,
-      imageFallbackModel: MEDIA_MODELS.imageFallback,
+      imageModel: 'google/gemini-3.1-flash-image',
+      imageFallbackModel: MEDIA_MODELS.image,
       visionModel: MEDIA_MODELS.vision,
       visionFallbackModel: MEDIA_MODELS.visionFallback,
       // Le JSON de zone tient en ~60 tokens, mais le modèle est « thinking » :

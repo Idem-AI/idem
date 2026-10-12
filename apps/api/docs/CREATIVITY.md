@@ -247,7 +247,8 @@ lesquels gardent la main** :
 |---|---|---|---|
 | `security` | un `<script>`, une ressource extérieure (le rendu coupe le réseau) | oui | **oui** |
 | `substance` | la page n'est pas une page : vide, ou le contenu ignoré | oui | **oui** |
-| `fidelity` | un texte, un chiffre ou une image du contenu absent | oui | non → conseil |
+| `figures` | un CHIFFRE qui n'est pas dans le contenu | oui | **oui** |
+| `fidelity` | un texte ou une image du contenu absent | oui | non → conseil |
 | `charter` | une couleur du contenu non posée | oui | non → conseil |
 | `form` | grille qualité : troncature, marqueur de gabarit, bavardage | oui | non → conseil |
 

@@ -60,6 +60,8 @@ export interface VideoClipRequest {
   durationSec: 5 | 10;
   quality: 'speed' | 'quality';
   tag: string;
+  /** Modèle vidéo imposé (ex. 'google/veo-3.1-fast'). */
+  model?: string;
 }
 
 export interface GeneratedClipLike {

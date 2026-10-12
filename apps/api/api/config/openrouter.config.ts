@@ -170,10 +170,9 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
     pricing: { perImage: 0.0171 }, note: 'API fermée, plafond de qualité de la gamme.',
   },
   {
-    id: 'qwen/qwen-image-3', kind: 'image', license: 'propriétaire',
-    openWeights: false, commercialOk: true, selfHost: 'impossible', roles: [],
-    pricing: { perImage: 0.003 },
-    note: 'Qwen Image sur OpenRouter = API fermée : alternative À TESTER, pas auto-hébergeable (poids ouverts Qwen-Image hors OpenRouter).',
+    id: 'google/gemini-3.1-flash-image', kind: 'image', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: ['image'],
+    note: 'Gemini 3.1 Flash Image via OpenRouter pour les mockups de marque.',
   },
   // ── Voix off ───────────────────────────────────────────────────────────────
   // Le catalogue « speech » ne renseigne PAS hugging_face_id : la preuve des poids
@@ -201,9 +200,20 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   },
   // ── Vidéo : AUCUN modèle ouvert sur OpenRouter ; Seedance 2.0 par dérogation ──
   {
+    id: 'google/gemini-3.8-flash', kind: 'text', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible',
+    roles: ['writing', 'reasoning', 'mechanical', 'vision'],
+    note: 'Gemini 3.8 Flash via OpenRouter (motion video, flyers, branding, BP, carte de visite, pitch deck).',
+  },
+  {
+    id: 'google/veo-3.1-fast', kind: 'video', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    note: 'Google Veo 3.1 Fast via OpenRouter pour la génération vidéo / personnages.',
+  },
+  {
     id: 'bytedance/seedance-2.0', kind: 'video', license: 'propriétaire',
     openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
-    note: 'VIDÉO PAR DÉFAUT (décision produit, dérogation à l’open-weight). 4–15 s, 480p–4K, image → vidéo (première/dernière image). Facturé au token vidéo.',
+    note: 'VIDÉO (Seedance 2.0). 4–15 s, 480p–4K, image → vidéo (première/dernière image). Facturé au token vidéo.',
   },
   {
     id: 'bytedance/seedance-2.0-fast', kind: 'video', license: 'propriétaire',
@@ -246,7 +256,7 @@ export const OPENROUTER_DEFAULT_ROLES: Record<ModelRole, string> = {
 
 /** Repli du fournisseur : modèles ouverts de la liste, d'une autre famille en dernier. */
 /** Vidéo par défaut (dérogation produit à l'open-weight, cf. `allowClosed`). */
-export const DEFAULT_VIDEO_MODEL = 'bytedance/seedance-2.0';
+export const DEFAULT_VIDEO_MODEL = 'google/veo-3.1-fast';
 
 /**
  * Les modèles des médias, sous les noms que les configurations de features

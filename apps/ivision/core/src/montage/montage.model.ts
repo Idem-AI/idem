@@ -60,8 +60,10 @@ export interface MontageElement {
   icon?: string;
   /** Image d'illustration : URL déposée, recherche ou description, et cadrage. */
   image?: string;
-  /** Plan de coupe : une vidéo SANS PAROLE que l'utilisateur a fournie (id dans `clips`). */
+  /** Plan de coupe : une vidéo SANS PAROLE que l'utilisateur a fournie (id dans `clips`) ou générée. */
   clip?: string;
+  video?: string;
+  poster?: string;
   query?: string;
   mode?: 'full' | 'card';
   credit?: string;

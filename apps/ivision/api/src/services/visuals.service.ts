@@ -20,9 +20,11 @@ import logger from '../config/logger';
 import { storage } from '../config/storage';
 import { HttpError } from '../middleware/error';
 import type { IvisionBrand, IvisionVisual } from '../models';
+import { noteKey } from '../stores/video.store';
 import { idem } from './idem.client';
 
 const visuals = () => collection<IvisionVisual>('visuals');
+const brands = () => collection<IvisionBrand>('brands');
 
 /** La demande, découpée comme un contenu : une accroche courte, le reste en description. */
 function contentOf(prompt: string) {
@@ -57,9 +59,31 @@ export async function createVisual(
   const context = visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit });
   const recent = await visuals().find({ userId, brandId: brand._id }, { projection: { layout: 1 } }).sort({ createdAt: -1 }).limit(6).toArray();
   // Les propres visuels de la marque (affiches trouvées sur son site) disent si elle assume les
-  // fonds sombres ; sinon, surfaces claires.
-  const kinds = await Promise.all(brand.photos.slice(0, 12).map((url) => classifyImage(url).catch(() => null)));
-  const posters = kinds.filter((k): k is NonNullable<typeof k> => !!k && k.kind === 'poster');
+  // fonds sombres ; sinon, surfaces claires. Classé une fois par photo et persisté sur la marque
+  // (`photoClassification`) : sans cela, chaque visuel créé rappelait l'IA de vision sur les
+  // mêmes photos pour un résultat qui ne change jamais.
+  const candidates = brand.photos.slice(0, 12);
+  const known = brand.photoClassification ?? {};
+  const toClassify = candidates.filter((url) => !known[noteKey(url)]);
+  const freshlyClassified =
+    toClassify.length > 0
+      ? await Promise.all(toClassify.map((url) => classifyImage(url).catch(() => null)))
+      : [];
+  const newEntries: Record<string, { kind: string; luminance: number }> = {};
+  toClassify.forEach((url, i) => {
+    const result = freshlyClassified[i];
+    if (result) newEntries[noteKey(url)] = { kind: result.kind, luminance: result.luminance };
+  });
+  if (Object.keys(newEntries).length > 0) {
+    const set = Object.fromEntries(
+      Object.entries(newEntries).map(([key, value]) => [`photoClassification.${key}`, value])
+    );
+    await brands().updateOne({ _id: brand._id, userId }, { $set: set });
+  }
+  const allClassified = { ...known, ...newEntries };
+  const posters = candidates
+    .map((url) => allClassified[noteKey(url)])
+    .filter((k): k is NonNullable<typeof k> => !!k && k.kind === 'poster');
   const darkBrand = posters.length > 0 && posters.reduce((sum, p) => sum + p.luminance, 0) / posters.length < 0.24;
   const started = Date.now();
   const composed = await composeVisual(

@@ -510,8 +510,27 @@ export class PromptService {
       ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
     };
 
+    // Registre des résultats d'outils poussés dans `conversation`, pour les
+    // élaguer une fois périmés : sans cela, chaque résultat (déjà borné à 30k
+    // caractères) restait intact pour TOUS les tours suivants de la boucle, et
+    // s'accumulait sur plusieurs dizaines de milliers de tokens.
+    const toolMessageLog: { index: number; turn: number; toolName: string }[] = [];
+
     let finalText = '';
     for (let turn = 0; turn <= maxToolTurns; turn++) {
+      // Ne garder en entier que le résultat du tour courant et du précédent :
+      // le modèle vient de s'en servir. Les tours plus anciens sont compactés
+      // en une courte note (l'outil reste rappelable si le résultat est encore
+      // nécessaire).
+      for (const entry of toolMessageLog) {
+        if (entry.turn < turn - 1) {
+          const msg = conversation[entry.index] as { role: string; content?: string };
+          if (msg?.role === 'tool' && typeof msg.content === 'string' && !msg.content.startsWith('[tool result pruned')) {
+            const chars = msg.content.length;
+            msg.content = `[tool result pruned — ${entry.toolName}, ${chars} chars elided; call it again if still needed]`;
+          }
+        }
+      }
       const forceFinal = turn === maxToolTurns;
       const response = await client.chat.completions.create(
         translateReasoning({
@@ -568,11 +587,12 @@ export class PromptService {
         } catch (error: any) {
           output = { error: error.message || String(error) };
         }
-        conversation.push({
+        const toolIndex = conversation.push({
           role: 'tool',
           tool_call_id: call.id,
           content: JSON.stringify(output ?? null),
-        });
+        }) - 1;
+        toolMessageLog.push({ index: toolIndex, turn, toolName });
       }
     }
 

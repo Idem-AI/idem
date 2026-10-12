@@ -22,7 +22,7 @@ import { coreHost, requirePort } from '../runtime/host';
 import logger from '../runtime/logger';
 import { tierFor } from '../video/motionVideo.service';
 import type { CopyWriter } from '../video/video.copy';
-import { generateStill, searchPexelsPhotos } from '../video/video.media';
+import { generateClip, generateStill, searchPexelsPhotos } from '../video/video.media';
 import { VIDEO_FORMATS, VideoFormat } from '../video/video.model';
 import type { VideoStore } from '../video/video.store';
 import { attributionLine, fetchTrack, pickTrack, resolveMood, searchMusic } from '../video/video.music';
@@ -380,18 +380,38 @@ export class MontageService {
     const folder = `users/${userId}/brands/${brandId}/montages/${id}/images`;
     const out: MontageElement[] = [];
     const generate = !!coreHost().generateImage;
+    const canVideo = !!coreHost().generateVideo;
     const genFirst = level === 'high' || level === 'max' || level === 'ultra';
+    const CHARACTER_TERMS = /\b(personnage|personnages|character|characters|person|personne|personnes|acteur|acteurs|actrice|actrices|homme|femme|enfant|speaker|presenter|portrait|visage)\b/i;
     for (const el of elements) {
-      if (el.type !== 'broll' || el.image || el.clip) {
+      if (el.type !== 'broll' || el.image || el.video || el.clip) {
         out.push(el);
         continue;
       }
       const orientation = el.mode === 'full' ? (format === 'landscape' ? 'landscape' : format === 'square' ? 'square' : 'portrait') : 'landscape';
+      const promptText = el.text || el.query || '';
+      const isCharacter = CHARACTER_TERMS.test(promptText);
+
+      const tryVideo = async () => {
+        if (!canVideo) return null;
+        try {
+          const clip = await generateClip(
+            { prompt: promptText, orientation, durationSec: 5, quality: 'speed', model: 'google/veo-3.1-fast' },
+            storage,
+            folder
+          );
+          return { video: clip.url, poster: clip.posterUrl, credit: 'Généré (google/veo-3.1-fast)' };
+        } catch (error: any) {
+          logger.warn('montage.broll_video_failed', { montageId: id, error: error?.message });
+          return null;
+        }
+      };
+
       const tryGenerate = async () => {
         if (!generate) return null;
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
-            const still = await generateStill(el.text || el.query || '', orientation, storage, folder);
+            const still = await generateStill(promptText, orientation, storage, folder);
             return { image: still.url, credit: still.credit };
           } catch (error: any) {
             logger.warn('montage.broll_generate_failed', { montageId: id, attempt, error: error?.message });
@@ -408,8 +428,15 @@ export class MontageService {
           return null;
         }
       };
-      const found = genFirst ? (await tryGenerate()) || (await tryStock()) : (await tryStock()) || (await tryGenerate());
-      // Sans image, l'illustration n'a rien à montrer : elle est retirée.
+
+      // Si le plan illustre un personnage et qu'on a le modèle vidéo, Veo 3.1 Fast est prioritaire
+      const found = isCharacter && canVideo
+        ? (await tryVideo()) || (await tryGenerate()) || (await tryStock())
+        : genFirst
+          ? (await tryGenerate()) || (await tryStock())
+          : (await tryStock()) || (await tryGenerate());
+
+      // Sans média, l'illustration n'a rien à montrer : elle est retirée.
       if (found) out.push({ ...el, ...found });
     }
     return out;

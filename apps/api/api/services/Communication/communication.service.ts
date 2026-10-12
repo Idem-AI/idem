@@ -2543,7 +2543,9 @@ export class CommunicationService extends GenericService {
       { userId, projectId, feature: 'communication', element: flyerId, operation: 'edit' },
       () =>
         this.promptService.runPrompt(
-          promptConfigFor(AI_CONFIG.communication.flyer, userId, {
+          // Retouche, pas composition : config dédiée, moins chère (cf.
+          // AI_CONFIG.communication.flyerEdit).
+          promptConfigFor(AI_CONFIG.communication.flyerEdit, userId, {
             language,
           }),
           [{ role: 'user', content: prompt }]

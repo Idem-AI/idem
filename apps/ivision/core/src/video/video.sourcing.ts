@@ -375,7 +375,7 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
     for (let attempt = 0; attempt < GENERATION_ATTEMPTS && !blocked.video; attempt++) {
       const image = first && attempt < 2 ? { base64: first.jpeg.toString('base64'), mimeType: 'image/jpeg' } : undefined;
       try {
-        return await generateClip({ prompt: prompts[attempt], image, orientation: opts.orientation, quality: image ? opts.clipQuality : 'speed', durationSec }, opts.storage, opts.folder, plan.query);
+        return await generateClip({ prompt: prompts[attempt], image, orientation: opts.orientation, quality: image ? opts.clipQuality : 'speed', durationSec, model: 'google/veo-3.1-fast' }, opts.storage, opts.folder, plan.query);
       } catch (error: any) {
         report.failedAttempts++;
         if (trip('video', error)) break;
