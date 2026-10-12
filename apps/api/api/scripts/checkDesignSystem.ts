@@ -3,38 +3,37 @@
  *
  * Même rôle que `checkAgentPipeline` : le projet n'a pas de harnais de tests, et
  * ce socle est PUR (aucun réseau, aucun modèle, aucune base) mais ses
- * régressions seraient silencieuses. Une graine qui sortirait de l'espace de son
- * style, ou un linter qui se mettrait à signaler du HTML conforme, ne casse rien
- * : ça dégrade seulement tous les livrables, sans erreur.
+ * régressions seraient silencieuses. Un style ajouté au catalogue sans son
+ * pendant dans le moteur graphique, ou une marque sombre qui ferait passer un
+ * business plan en noir, ne casse rien : ça dégrade seulement les livrables,
+ * sans erreur.
  *
- *   npx ts-node api/scripts/checkDesignSystem.ts
+ * Les rendus eux-mêmes (pages, visuels, cartes) sont contrôlés par le moteur :
+ * `npm run check:graphic-engine` à la racine du dépôt.
+ *
+ *   npx ts-node --transpile-only api/scripts/checkDesignSystem.ts
  */
 
+import {
+  brandFromIdem,
+  buildTokens,
+  contrastRatio,
+  DEFAULT_STYLE_ID,
+  logosFromIdem,
+  resolveStyle as engineStyle,
+  STYLE_DATA,
+} from '@idem/graphic-engine';
 import {
   ART_DIRECTION_STYLES,
   ART_DIRECTION_STYLE_IDS,
   buildStyleCatalogBrief,
-  buildStyleSheet,
   resolveStyle,
-} from '../services/design/artDirection.catalog';
-import { buildDesignSeed, describeSeed } from '../services/design/designSeed';
-import { lintHtml, repairHtml } from '../services/design/slopLint.service';
+  SELECTABLE_ART_DIRECTION_STYLE_IDS,
+} from '../services/brand/artDirection.catalog';
 import { ArtDirectionModel } from '../models/art-direction.model';
-import {
-  buildArtDirectionBlock,
-  buildImageNegativePrompt,
-  buildImageStyleModifier,
-} from '../utils/art-direction.util';
-import { buildLogoBlock, collectLogoUrls } from '../utils/brand-context.util';
-import {
-  brandFontLinks,
-  brandFontsHref,
-  buildGoogleFontLinks,
-} from '../utils/google-fonts.util';
-import {
-  EDITORIAL_RESTRAINT_BLOCK,
-  RESTRAINT_SELF_REVIEW_BLOCK,
-} from '../services/design/editorialRestraint.prompt';
+import { buildImageNegativePrompt, buildImageStyleModifier } from '../utils/art-direction.util';
+import { resolveLogoDeclensions } from '../utils/brand-context.util';
+import { brandFontLinks, brandFontsHref, buildGoogleFontLinks } from '../utils/google-fonts.util';
 import { LogoModel } from '../models/logo.model';
 
 let failures = 0;
@@ -50,69 +49,65 @@ function check(label: string, condition: boolean, detail?: string): void {
 
 console.log(`\nCatalogue: ${ART_DIRECTION_STYLE_IDS.length} styles`);
 
-// 1. Chaque style doit être complet et tirer une graine DANS son propre espace.
-//    C'est l'invariant qui empêche un « Design Suisse » de sortir en néon.
-console.log('\n[1] Cohérence des styles et des graines');
+// 1. Le catalogue (que le directeur artistique choisit) et la table du moteur (que les pages lisent)
+//    parlent des MÊMES styles. Un style présent d'un seul côté retomberait en silence sur l'éditorial.
+console.log('\n[1] Catalogue et moteur graphique');
+const engineIds = Object.keys(STYLE_DATA);
+check(
+  'chaque style du catalogue est connu du moteur, et réciproquement',
+  ART_DIRECTION_STYLE_IDS.every((id) => engineIds.includes(id)) && engineIds.every((id) => (ART_DIRECTION_STYLE_IDS as string[]).includes(id)),
+  `catalogue seul : ${ART_DIRECTION_STYLE_IDS.filter((id) => !engineIds.includes(id)).join(', ') || '—'} · moteur seul : ${engineIds.filter((id) => !(ART_DIRECTION_STYLE_IDS as string[]).includes(id)).join(', ') || '—'}`
+);
 for (const id of ART_DIRECTION_STYLE_IDS) {
   const style = ART_DIRECTION_STYLES[id];
-  const seed = buildDesignSeed(id, `check:${id}`);
-  const inSpace =
-    style.seedSpace.archetypes.includes(seed.archetype) &&
-    style.seedSpace.colorStrategies.includes(seed.colorStrategy) &&
-    style.seedSpace.typographyMoods.includes(seed.typographyMood) &&
-    style.seedSpace.layoutTensions.includes(seed.layoutTension) &&
-    style.seedSpace.contentDensities.includes(seed.contentDensity) &&
-    style.seedSpace.graphicAccents.includes(seed.graphicAccent);
-  check(`${id}: graine dans l'espace du style`, inSpace, JSON.stringify(seed));
-  // Le vocabulaire de composants est ce qui remplace l'invention de décoration :
-  // s'il manque une primitive, le modèle en rebricole une par bloc.
-  const recipe = style.tailwindRecipe || '';
+  const data = STYLE_DATA[id];
+  if (!data) continue;
   check(
-    `${id}: vocabulaire de composants complet`,
-    ['page:', 'sectionTitle:', 'body:', 'rule:', 'kpi:', 'caption:'].every((k) => recipe.includes(k)),
-    recipe.slice(0, 60)
+    `${id}: même rayon, même ratio, même fond des deux côtés`,
+    data.radius === style.radius && data.typeRatio === style.typeRatio && data.surface === style.surface,
+    `catalogue ${style.radius}px · ${style.typeRatio} · ${style.surface} ; moteur ${data.radius}px · ${data.typeRatio} · ${data.surface}`
   );
+  // Un style à fond sombre imposé n'est jamais proposé : la plateforme est à surface claire.
+  check(`${id}: proposable si et seulement si son fond n'est pas imposé sombre`, data.selectable === (style.surface !== 'dark'));
   check(
-    `${id}: la fiche de style expose le vocabulaire`,
-    buildStyleSheet(id).includes('Component vocabulary')
+    `${id}: fiche complète`,
+    !!(style.name && style.essence && style.fitsBrands && style.imagePromptModifier && style.imageNegativePrompt && style.bans.length && style.typeRatio >= 1.25)
   );
+  // Les appariements du moteur servent de typographie à une marque qui n'en a pas encore : une police de la
+  // liste anti-générique y annulerait tout le reste.
   check(
-    `${id}: appariements typographiques proposés`,
-    (style.typePairings || []).length >= 2
+    `${id}: aucun appariement du moteur ne repose sur une police bannie`,
+    data.pairings.length >= 2 && !/\b(Inter|Roboto|Open Sans|Lato|Montserrat|Poppins|Space Grotesk|Arial|Helvetica)\b/.test(data.pairings.join(' ')),
+    data.pairings.join(' · ')
   );
-  // Une police de la liste anti-générique dans le catalogue annulerait tout le
-  // reste : c'est le levier le plus rapide pour qu'une marque cesse d'être
-  // reconnaissable comme une sortie de machine.
-  check(
-    `${id}: aucun appariement ne repose sur une police bannie`,
-    !/\b(Inter|Roboto|Open Sans|Lato|Montserrat|Poppins|Space Grotesk|Arial|Helvetica)\b/.test(
-      (style.typePairings || []).join(' ')
-    ),
-    (style.typePairings || []).join(' · ')
-  );
-  check(
-    `${id}: fiche de style complète`,
-    !!(style.name && style.imagePromptModifier && style.bans.length && style.typeRatio >= 1.25) &&
-      buildStyleSheet(id).includes(style.name)
-  );
-  // Une graine développée en consignes : transmettre « archetype: D » ne
-  // contraint rien, le modèle ignore ce que D recouvre.
-  check(`${id}: graine lisible par un modèle`, describeSeed(seed).includes('—'));
 }
 
-console.log('\n[2] Déterminisme et variabilité');
-const seedA1 = buildDesignSeed('swiss', 'projet-A');
-const seedA2 = buildDesignSeed('swiss', 'projet-A');
-const seedB = buildDesignSeed('swiss', 'projet-B');
-check('même clé → même graine (un document régénéré garde sa mise en page)',
-  JSON.stringify(seedA1) === JSON.stringify(seedA2));
-check('clé différente → graine différente (deux projets ne se ressemblent pas)',
-  JSON.stringify(seedA1) !== JSON.stringify(seedB));
-check('style inconnu → repli éditorial, jamais une exception',
-  resolveStyle('inexistant').id === 'editorial');
-check('catalogue condensé non vide', buildStyleCatalogBrief().split('\n').length === 20);
+console.log('\n[2] Résolution et sélection');
+check('style inconnu → repli éditorial dans le catalogue, jamais une exception', resolveStyle('inexistant').id === 'editorial');
+check('style inconnu → repli éditorial dans le moteur', engineStyle('inexistant').id === DEFAULT_STYLE_ID && DEFAULT_STYLE_ID === 'editorial');
+const brief = buildStyleCatalogBrief();
+check(
+  'le catalogue condensé propose les styles à fond clair, et eux seuls',
+  brief.split('\n').length === SELECTABLE_ART_DIRECTION_STYLE_IDS.length &&
+    ART_DIRECTION_STYLE_IDS.filter((id) => ART_DIRECTION_STYLES[id].surface === 'dark').every((id) => !brief.includes(`- ${id} —`)),
+  `${brief.split('\n').length} lignes`
+);
 
-console.log('\n[3] Bloc de direction artistique');
+// 3. La politique de surface claire est garantie en CODE, pas demandée au modèle : une marque dont la
+//    palette est sombre garde des documents clairs, sauf demande explicite (`allowDark`).
+console.log('\n[3] Surface claire');
+const darkPalette = { primary: '#1447e6', secondary: '#000060', accent: '#22d3ee', background: '#0b0b0b', text: '#f1f1f1' };
+const darkened: string[] = [];
+for (const id of ART_DIRECTION_STYLE_IDS) {
+  const { brand, direction } = brandFromIdem({ name: 'Acme', branding: { colors: { colors: darkPalette }, artDirection: { styleId: id } } });
+  const tokens = buildTokens({ brand, direction, format: 'a4-portrait' });
+  if (tokens.color.dark || contrastRatio(tokens.color.ink, tokens.color.ground) < 4.5) darkened.push(`${id} (${tokens.color.ground} / ${tokens.color.ink})`);
+}
+check('palette sombre, 20 styles : fond clair et encre lisible (≥ 4,5:1) sans demande explicite', darkened.length === 0, darkened.join(' · '));
+const asked = buildTokens({ brand: { name: 'Acme', palette: darkPalette }, direction: { styleId: 'cyberpunk' }, format: 'a4-portrait', allowDark: true });
+check('demande explicite : le fond sombre de la marque est honoré, toujours lisible', asked.color.dark && contrastRatio(asked.color.ink, asked.color.ground) >= 4.5, `${asked.color.ground} / ${asked.color.ink}`);
+
+console.log("\n[4] Direction artistique des images");
 const direction: ArtDirectionModel = {
   styleId: 'swiss',
   styleName: 'Design Suisse',
@@ -122,29 +117,18 @@ const direction: ArtDirectionModel = {
   layout: { grid: '12 colonnes', density: 'balanced', whitespace: '40%', signatureMove: 'filet de 4px' },
   color: { distribution: '70/20/10', application: 'aplats', contrast: 'franc' },
   typography: { scaleContrast: '1.25', caseAndTracking: 'bas de casse', treatment: 'aucun' },
-  imagery: {
-    medium: 'photography',
-    subjects: 'entrepôts et gestes du métier',
-    treatment: 'noir et blanc',
-    lighting: 'diffuse',
-    framing: 'frontal',
-  },
+  imagery: { medium: 'photography', subjects: 'entrepôts et gestes du métier', treatment: 'noir et blanc', lighting: 'diffuse', framing: 'frontal' },
   graphicDevices: ['filets épais'],
   dos: ['aligner tout à gauche'],
   donts: ['aucun arrondi'],
   imagePromptModifier: 'swiss international style photography',
 };
-const block = buildArtDirectionBlock(direction, { medium: 'poster' });
-check('bloc produit une fiche de style', block.includes('<style_sheet>'));
-check('bloc porte le geste signature', block.includes('filet de 4px'));
-check('bloc porte le rayon de bordure du style', block.includes('Border radius'));
-check('modificateur d\'image non vide', buildImageStyleModifier(direction).length > 20);
+const modifier = buildImageStyleModifier(direction);
+check("modificateur d'image : le rendu du style, la lumière et le traitement de la marque", modifier.includes('swiss international') && modifier.includes('diffuse') && modifier.includes('noir et blanc'), modifier);
 check('prompt négatif non vide', buildImageNegativePrompt(direction).length > 20);
-// Sans direction, mieux vaut aucun bloc qu'un bloc de « non spécifié », qui
-// apprend au modèle que la consigne est facultative.
-check('aucune direction → aucun bloc', buildArtDirectionBlock(null) === '');
+check('aucune direction → aucun modificateur', buildImageStyleModifier(null) === '');
 
-console.log('\n[4] Bloc logo');
+console.log('\n[5] Déclinaisons du logo');
 const logo = {
   id: 'l1',
   name: 'Acme',
@@ -161,16 +145,22 @@ const logo = {
     },
   },
 } as LogoModel;
-const logoBlock = buildLogoBlock(logo, { placement: 'sur la couverture' });
-check('déclinaisons résolues', collectLogoUrls(logo).length >= 4);
-check('le bloc porte une OBLIGATION, pas seulement des URLs', logoBlock.includes('MUST appear'));
-check('le bloc explique le choix encre/fond', logoBlock.includes('LIGHT background'));
-check('déclinaison manquante → repli sur le primaire, jamais un trou',
-  logoBlock.includes('logo-primary.png'));
-check('sans logo → consigne typographique explicite',
-  buildLogoBlock(null).includes('NO logo asset'));
+const declensions = resolveLogoDeclensions(logo);
+check('déclinaisons résolues', !!declensions && new Set(Object.values(declensions)).size >= 4);
+check('déclinaison manquante → repli sur le primaire, jamais un trou', declensions?.iconMono === 'https://cdn.example/logo-primary.png');
+check('sans logo → aucune déclinaison (le moteur compose la signature en lettres)', resolveLogoDeclensions(null) === null);
+check(
+  'un SVG brut devient une image affichable, jamais du balisage collé dans la page',
+  resolveLogoDeclensions({ ...logo, assetUrls: undefined, svg: '<svg xmlns="http://www.w3.org/2000/svg"/>' } as LogoModel)?.primary.startsWith('data:image/svg+xml;base64,') === true
+);
+const logos = logosFromIdem(declensions);
+check(
+  'le moteur reçoit la bonne encre pour chaque fond (clair → encre sombre, sombre → encre claire)',
+  logos?.onLight === 'https://cdn.example/logo-wt-light.png' && logos?.onDark === 'https://cdn.example/logo-wt-dark.png' && logos?.icon === 'https://cdn.example/logo-icon.png'
+);
+check('pas de logo → le moteur n’en reçoit aucun (jamais un faux)', logosFromIdem(null) === undefined && brandFromIdem({ name: 'Acme' }).brand.logos === undefined);
 
-console.log('\n[5] Chargement des polices de marque');
+console.log('\n[6] Chargement des polices de marque');
 // LE bug qui faisait que toutes les générations sortaient dans une police
 // système : `typography.url` est un slug, pas une feuille de style, et les
 // quatre moteurs de rendu l'injectaient tel quel dans un <link>.
@@ -193,131 +183,15 @@ check('sans typographie, un repli non générique est servi', !brandFontsHref({}
 
 // Vilevile est fabriquée par IDEM : Google ne la connaît pas. La demander doit
 // produire la police embarquée, jamais un lien qui ne chargerait rien.
-const brand = buildGoogleFontLinks(['Vilevile']);
-check('la police de marque est embarquée, pas demandée à Google', !brand.includes('fonts.googleapis.com'));
-check('la police de marque arrive bien dans le document', brand.includes("font-family: 'Vilevile'"));
-check("l'approche de la police est publiée aux gabarits", brand.includes('--idem-font-tracking'));
+const vilevile = buildGoogleFontLinks(['Vilevile']);
+check('la police de marque est embarquée, pas demandée à Google', !vilevile.includes('fonts.googleapis.com'));
+check('la police de marque arrive bien dans le document', vilevile.includes("font-family: 'Vilevile'"));
+check("l'approche de la police est publiée aux gabarits", vilevile.includes('--idem-font-tracking'));
 
 // Les dessins de PrimeIcons sont dans Vilevile : un document rendu côté serveur
 // doit pouvoir poser un `<i class="pi pi-check">` sans rien charger de plus.
-check('les icônes voyagent avec la police', brand.includes('.pi-check:before'));
-check('les icônes pointent sur la police de marque', /\.pi \{[^}]*Vilevile/.test(brand));
+check('les icônes voyagent avec la police', vilevile.includes('.pi-check:before'));
+check('les icônes pointent sur la police de marque', /\.pi \{[^}]*Vilevile/.test(vilevile));
 
-console.log('\n[6] Retenue éditoriale');
-check('le bloc impose le test de soustraction', EDITORIAL_RESTRAINT_BLOCK.includes('SUBTRACTION TEST'));
-check('le bloc interdit le remplissage au quota', EDITORIAL_RESTRAINT_BLOCK.includes('never a quota'));
-check('la relecture demande de SUPPRIMER', RESTRAINT_SELF_REVIEW_BLOCK.includes('DELETE'));
-
-console.log('\n[7] Linter anti-générique');
-const palette = {
-  primary: '#1447e6',
-  secondary: '#000060',
-  accent: '#22d3ee',
-  background: '#ffffff',
-  text: '#1f2937',
-};
-const options = {
-  palette,
-  fonts: ['Archivo', 'Lora'],
-  expectedLogoUrls: ['https://cdn.example/logo-primary.png'],
-};
-const slop = [
-  `<div class="rounded-2xl shadow-lg bg-gradient-to-r from-purple-500 to-indigo-600 font-['Inter']">`,
-  `<h1 class="bg-clip-text text-transparent" style="color:#8b5cf6">Elevate your business</h1>`,
-  `<img src="https://cdn.example/photo.png"><p class="text-gray-400">Lorem ipsum dolor</p>`,
-  `<a href="#">Get started</a></div>`,
-].join('');
-const report = lintHtml(slop, options);
-const rules = new Set(report.violations.map((v) => v.rule));
-for (const rule of [
-  'purple-gradient',
-  'gradient-text',
-  'default-font',
-  'off-palette-color',
-  'light-gray-body',
-  'placeholder-content',
-  'img-without-alt',
-  'dead-link',
-  'logo-missing',
-]) {
-  check(`détecte ${rule}`, rules.has(rule));
-}
-check('produit une consigne de correction réinjectable', !!report.repairPrompt);
-
-// La décoration accumulée est le défaut que l'utilisateur voyait en premier :
-// le prompt la décourage, le linter doit la MESURER.
-const cluttered =
-  `<div class="absolute rounded-full blur-3xl bg-[#1447e6]/30"></div>` +
-  Array.from({ length: 6 }, (_, i) => `<i class="pi pi-check text-[#1447e6]"></i><p>Point ${i}</p>`).join('') +
-  `<span class="rounded-full bg-[#22d3ee] px-2">Innovant</span>` +
-  `<img src="https://cdn.example/logo-primary.png" alt="l" />`;
-const clutterRules = new Set(lintHtml(cluttered, options).violations.map((v) => v.rule));
-check('détecte les icônes en surnombre', clutterRules.has('icon-overload'));
-check('détecte la forme décorative de remplissage', clutterRules.has('decorative-shape'));
-check('détecte la pastille sans donnée', clutterRules.has('empty-badge'));
-// Le faux positif reste le pire défaut : une pastille qui PORTE une donnée est
-// un élément légitime, pas de la décoration.
-check(
-  'une pastille chiffrée n\'est pas signalée',
-  !lintHtml(
-    `<span class="rounded-full bg-[#22d3ee] px-2">+18%</span><img src="https://cdn.example/logo-primary.png" alt="l" />`,
-    options
-  ).violations.some((v) => v.rule === 'empty-badge')
-);
-
-const repaired = repairHtml(slop, options);
-check('répare la couleur hors charte', !/#8b5cf6/.test(repaired.html));
-check('répare la police écrite en dur', !/Inter/.test(repaired.html));
-check('répare l\'image sans alt', /<img[^>]*alt=/.test(repaired.html));
-check('répare le titre en dégradé', !/bg-clip-text/.test(repaired.html));
-
-// Le pire défaut d'un linter est le faux positif : il apprend à ignorer ses
-// propres alertes. Un HTML conforme doit sortir absolument propre.
-const clean =
-  `<div class="relative w-[1080px] h-[1080px] bg-[#ffffff]">` +
-  `<h1 class="font-primary text-[#1447e6]">Livraison en 24h à Douala</h1>` +
-  `<img src="https://cdn.example/logo-primary.png" alt="logo Acme" class="w-[140px] h-auto" /></div>`;
-const cleanReport = lintHtml(clean, options);
-check(
-  'aucun faux positif sur un HTML conforme',
-  cleanReport.violations.length === 0,
-  cleanReport.violations.map((v) => v.rule).join(', ')
-);
-
-// Les teintes de la photo sont légitimes sur un visuel (duotone, voile) : les
-// ramener à la charte détruirait les stratégies IMAGE_EXTRACTED / SPLIT_COMPLEMENTARY.
-const duotone = `<div style="background:#c47a3f"><img src="https://cdn.example/logo-primary.png" alt="l" style="filter:sepia(1)" /></div>`;
-check(
-  'les couleurs tolérées ne sont pas signalées',
-  !lintHtml(duotone, { ...options, extraAllowedColors: ['#c47a3f'] }).violations.some(
-    (v) => v.rule === 'off-palette-color'
-  )
-);
-check(
-  'et ne sont pas réécrites',
-  repairHtml(duotone, { ...options, extraAllowedColors: ['#c47a3f'] }).html.includes('#c47a3f')
-);
-check(
-  'mais restent signalées sans tolérance déclarée',
-  lintHtml(duotone, options).violations.some((v) => v.rule === 'off-palette-color')
-);
-
-// Un style qui REVENDIQUE un marqueur ne doit pas être puni pour l'appliquer.
-const glass = `<div class="backdrop-blur bg-white/20 rounded-3xl"></div>`;
-check(
-  'exemption de style: le glassmorphisme est permis au style glassmorphism',
-  !lintHtml(glass, { ...options, styleId: 'glassmorphism' }).violations.some(
-    (v) => v.rule === 'glassmorphism'
-  )
-);
-check(
-  'et reste signalé ailleurs',
-  lintHtml(glass, { ...options, styleId: 'swiss' }).violations.some((v) => v.rule === 'glassmorphism')
-);
-
-console.log(
-  failures === 0
-    ? '\n✅ Socle de direction artistique conforme\n'
-    : `\n❌ ${failures} vérification(s) en échec\n`
-);
+console.log(failures === 0 ? '\n✅ Socle de direction artistique conforme\n' : `\n❌ ${failures} vérification(s) en échec\n`);
 process.exit(failures === 0 ? 0 : 1);

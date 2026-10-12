@@ -11,7 +11,7 @@
  * nommé, avec sa grammaire, on obtient un parti pris exécutable et vérifiable.
  */
 
-import { buildStyleCatalogBrief } from '../../../design/artDirection.catalog';
+import { buildStyleCatalogBrief } from '../../../brand/artDirection.catalog';
 
 export interface ArtDirectionPromptInput {
   projectName: string;

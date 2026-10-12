@@ -58,12 +58,6 @@ export interface SectionPromptSpec {
    * convaincant » ne mérite pas d'être écrite.
    */
   lenses?: Partial<Record<BusinessPlanAudience, string>>;
-  /**
-   * Volume de pages A4 visé quand la section produit son HTML elle-même
-   * (repli `IDEM_SECTION_TEMPLATE=off`). Sous gabarit, c'est le `volume` du
-   * catalogue qui pilote.
-   */
-  fallbackPages?: string;
 }
 
 /** Ce que la composition sait du document au moment de produire la consigne. */

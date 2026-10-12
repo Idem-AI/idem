@@ -19,22 +19,9 @@
  */
 
 import { DeliverableSection } from '../research/research.types';
-import { AGENT_COVER_PROMPT } from './prompts/agent-cover.prompt';
-import { composeBrief, readerBlock } from './prompts/section-prompt.registry';
+import { composeBrief } from './prompts/section-prompt.registry';
 import { BusinessPlanSectionDefinition } from './structure/section-catalog';
 import type { BusinessPlanAudience } from './structure/audience.types';
-
-/**
- * Prompts de composition des sections en génération LIBRE.
- *
- * Seule la couverture est dans ce cas : sa mise en page EST le livrable. Les
- * autres sections passent par le gabarit et reçoivent leur consigne de contenu.
- * Leur donner en plus un prompt de composition les ferait produire du HTML là
- * où `parseLlmJson` attend du JSON, et la section serait abandonnée.
- */
-const FREEFORM_PROMPTS: Record<string, string> = {
-  'Cover Page': AGENT_COVER_PROMPT,
-};
 
 /** Ce dont la composition a besoin, au-delà des sections elles-mêmes. */
 export interface BusinessPlanSpecContext {
@@ -61,18 +48,10 @@ export function buildBusinessPlanSpec(
   const projectSummary = ctx.projectDescription.slice(0, 400);
 
   return sections.map((section, index) => {
-    // Une section en composition libre garde son prompt d'origine : elle
-    // compose vraiment sa page. On lui ajoute la lentille du destinataire —
-    // une couverture de dossier bancaire ne ressemble pas à une couverture de
-    // dossier d'amorçage, et c'est la première page que l'on voit.
+    // La couverture est composée par le moteur graphique (le service y attache `compose`) : elle n'a
+    // ni recherche, ni rédaction.
     if (section.freeform) {
-      const prompt = FREEFORM_PROMPTS[section.name];
-      return {
-        name: section.name,
-        instructions: prompt ? `${readerBlock(ctx.audience)}\n\n${prompt}` : '',
-        needsResearch: false,
-        freeform: true,
-      };
+      return { name: section.name, instructions: '', needsResearch: false, freeform: true };
     }
 
     const instructions =

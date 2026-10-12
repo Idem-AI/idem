@@ -1,18 +1,16 @@
 /**
  * Les VISUELS d'iVision : le compositeur du moteur partagé (`core/src/visual`), le même
- * qu'IDEM — composition par le code ou par l'IA selon le cran, rendu mesuré, contrôle de
- * composition — sur la marque de l'utilisateur. Une image modèle en impose la structure et la
+ * qu'IDEM — les mots et la photo, puis la page composée, mesurée et réparée par le moteur de
+ * génération graphique (@idem/graphic-engine) — sur la marque de l'utilisateur. Une image modèle en impose la structure et la
  * composition ; une photo de l'utilisateur remplace la photo de banque.
  */
 import crypto from 'crypto';
 import type { CreativityLevel } from '../../../core/src/creativity/levels';
 import { coreHost } from '../../../core/src/runtime/host';
 import type { ReferenceImage } from '../../../core/src/reference/reference.analyzer';
-import { composeVisual, knownLogoUrls } from '../../../core/src/visual/visual.composer';
-import { flyerRenderService, FORMAT_DIMENSIONS } from '../../../core/src/visual/flyer.render';
+import { composeVisual, renderVisualHtml } from '../../../core/src/visual/visual.composer';
 import { sanitizeSectionHtml, stripActiveContent } from '../../../core/src/render/sanitize-html';
-import { isPosterDocument, renderPosterHtml } from '../../../core/src/visual/poster/poster.render';
-import { classifyImage } from '../../../core/src/visual/poster/poster.images';
+import { classifyImage } from '../../../core/src/visual/visual.images';
 import { visualContextFromBrand } from '../../../core/src/visual/visual.context';
 import type { FlyerFormat } from '../../../core/src/visual/visual.model';
 import { collection } from '../config/db';
@@ -124,8 +122,7 @@ export async function createVisual(
     format: input.format,
     imageUrl: uploaded.downloadURL,
     html: composed.html,
-    layout: (composed.parsed as { layout?: string }).layout,
-    scheme: (composed.parsed as { scheme?: string }).scheme,
+    layout: composed.parsed.layout,
     creativity: input.creativity,
     ...(input.reference ? { referenceId: input.reference.id } : {}),
     audit: { score: composed.audit.score, blocking: composed.audit.blocking },
@@ -159,24 +156,16 @@ export async function deleteVisual(userId: string, id: string): Promise<void> {
 /**
  * Enregistre le HTML retouché dans l'éditeur partagé (`@idem/shared-document-editor`) et
  * re-rend l'image : le PNG téléchargé et la vignette restent ceux du visuel tel qu'il est.
- * Même rendu qu'IDEM (`flyerRenderService`), logo reconnu et remis à l'échelle si besoin.
+ * Même rendu qu'IDEM (`renderVisualHtml`).
  */
 export async function updateVisualHtml(userId: string, brand: IvisionBrand, id: string, html: string): Promise<IvisionVisual> {
   const visual = await getVisual(userId, id);
   const cleaned = stripActiveContent(sanitizeSectionHtml(html));
   if (!/<[a-z][\s\S]*>/i.test(cleaned) || !cleaned.replace(/<[^>]*>/g, '').trim() && !/<img\b/i.test(cleaned)) throw new HttpError(400, 'empty_html', 'Le visuel ne peut pas être vide.');
   const context = visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit });
-  const dims = FORMAT_DIMENSIONS[visual.format] || FORMAT_DIMENSIONS.square;
-  // Un visuel du compositeur est un document complet (styles et polices embarqués) : il est
-  // photographié tel quel. Un fragment de l'ancien format passe par le rendu Tailwind d'IDEM.
-  const png = isPosterDocument(cleaned)
-    ? await renderPosterHtml(cleaned, dims.width, dims.height)
-    : await flyerRenderService.renderFlyerToPng(
-        cleaned,
-        visual.format,
-        { primaryFont: context.branding.primaryFont, secondaryFont: context.branding.secondaryFont, url: context.branding.fontUrl },
-        knownLogoUrls(context)
-      );
+  // Une page du moteur graphique porte ses styles et ses polices : photographiée telle quelle. Les
+  // visuels plus anciens restent lisibles (document complet, ou fragment écrit en classes Tailwind).
+  const png = await renderVisualHtml(cleaned, visual.format, { primaryFont: context.branding.primaryFont, secondaryFont: context.branding.secondaryFont, url: context.branding.fontUrl });
   // Un nouveau nom à chaque version : aucun cache (navigateur, CDN) ne garde l'ancienne image.
   const uploaded = await storage.uploadFile(png, `${id}-${Date.now().toString(36)}.png`, `users/${userId}/brands/${visual.brandId}/visuals`, 'image/png');
   const updatedAt = new Date().toISOString();

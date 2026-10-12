@@ -663,9 +663,10 @@ export const AI_CONFIG = {
   /**
    * Les MOTS des couvertures (charte, business plan, pitch deck).
    *
-   * La couverture n'est plus composée par le modèle : le code la dessine
-   * (`design/coverComposer.ts`) et le modèle n'écrit que le sur-titre et la
-   * promesse, en JSON, une fois par projet (cf. `coverBrief.service.ts`).
+   * La couverture n'est plus composée par le modèle : le moteur graphique la
+   * dessine (@idem/graphic-engine, motifs de couverture) et le modèle n'écrit
+   * que le sur-titre et la promesse, en JSON, une fois par projet (cf.
+   * `common/coverBrief.service.ts`).
    * Composer la page en HTML coûtait 18 000 à 40 000 tokens et la minute la
    * plus longue de chaque génération ; ces trois lignes en coûtent quelques
    * centaines et servent les trois documents.

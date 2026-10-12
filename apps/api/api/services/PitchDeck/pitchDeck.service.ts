@@ -1,9 +1,5 @@
-import { CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
-import { DocumentDesignPlan, planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../creativity/documentDesign';
-import { runtimeCall } from '../creativity/orchestrator';
-import { brandSheet } from '../creativity/agent-io';
-import { ultraPageComposer } from '../creativity/pageComposer';
-import { applyPreset, PRESET_BY_ID } from '../../../../ivision/core/src/design/layoutPresets';
+import { normalizeCreativity, CreativityLevel } from '../../models/creativity.model';
+import { coverContent, WRITING_RULES } from '@idem/graphic-engine';
 import crypto from 'crypto';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -21,28 +17,9 @@ import { SectionModel } from '../../models/section.model';
 import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
 
-import { PITCH_DECK_SHARED_RULES } from './prompts/_shared.prompt';
 import { composeSlideBrief } from './prompts/slide-briefs.prompt';
-import { composeSlideHtmlPrompt } from './prompts/slide-fallback.prompt';
-import { SLIDE_COVER_PROMPT } from './prompts/slide-cover.prompt';
-import { SLIDE_PROBLEM_PROMPT } from './prompts/slide-problem.prompt';
-import { SLIDE_SOLUTION_PROMPT } from './prompts/slide-solution.prompt';
-import { SLIDE_MARKET_PROMPT } from './prompts/slide-market.prompt';
-import { SLIDE_PRODUCT_PROMPT } from './prompts/slide-product.prompt';
-import { SLIDE_BUSINESS_MODEL_PROMPT } from './prompts/slide-business-model.prompt';
-import { SLIDE_TRACTION_PROMPT } from './prompts/slide-traction.prompt';
-import { SLIDE_COMPETITION_PROMPT } from './prompts/slide-competition.prompt';
-import { SLIDE_TEAM_PROMPT } from './prompts/slide-team.prompt';
-import { SLIDE_FINANCIALS_PROMPT } from './prompts/slide-financials.prompt';
-import { SLIDE_ASK_PROMPT } from './prompts/slide-ask.prompt';
-import { imageSourcingService } from '../Communication/imageSourcing.service';
-import {
-  buildLogoBlock,
-  collectLogoUrls,
-  resolveLogoDeclensions,
-} from '../../utils/brand-context.util';
-import { composeCover, coverDateLabel, coverVariant } from '../design/coverComposer';
-import { CoverBriefService } from '../design/coverBrief.service';
+import { CoverBriefService } from '../common/coverBrief.service';
+import { coverDateLabel, openGraphicDocument, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
 import type { PitchDeckAudience } from './deck-types';
 
 /** Mention de destinataire sur la couverture du deck. */
@@ -53,26 +30,6 @@ const DECK_AUDIENCE_LABEL: Record<PitchDeckAudience, string> = {
   partner: 'Présentation partenaires',
   jury: 'Présentation au jury',
 };
-import { buildArtDirectionBlock } from '../../utils/art-direction.util';
-import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../design/antiSlop.prompt';
-import {
-  EDITORIAL_RESTRAINT_BLOCK,
-  RESTRAINT_SELF_REVIEW_BLOCK,
-} from '../design/editorialRestraint.prompt';
-import { enforceDesignRules } from '../design/slopLint.service';
-import {
-  buildDocumentSeed,
-  buildSectionSeed,
-  describeDocumentSeed,
-  describeSectionSeed,
-} from '../design/designSeed';
-import {
-  buildDocumentDesignSystem,
-  derivedPalette,
-  describeDesignSystem,
-} from '../design/documentDesignSystem';
-import { LANDSCAPE_SLIDE } from '../design/sectionRenderer';
-import { ensureProjectArtDirection } from '../design/artDirection.provider';
 import { deliverableDocumentStore } from '../common/deliverable-document.store';
 import {
   countCompletedSections,
@@ -86,25 +43,6 @@ import {
   PITCH_DECK_TYPES,
   resolvePitchDeckSlides,
 } from './deck-types';
-
-/**
- * Prompts de composition écrits à la main pour les onze slides historiques. Ils
- * servent à la couverture (génération libre) et au repli quand le gabarit est
- * coupé ; les autres slides composent leur repli depuis leur brief.
- */
-const LEGACY_SLIDE_PROMPTS: Record<string, string> = {
-  Cover: SLIDE_COVER_PROMPT,
-  Problem: SLIDE_PROBLEM_PROMPT,
-  Solution: SLIDE_SOLUTION_PROMPT,
-  Market: SLIDE_MARKET_PROMPT,
-  Product: SLIDE_PRODUCT_PROMPT,
-  'Business Model': SLIDE_BUSINESS_MODEL_PROMPT,
-  Traction: SLIDE_TRACTION_PROMPT,
-  Competition: SLIDE_COMPETITION_PROMPT,
-  Team: SLIDE_TEAM_PROMPT,
-  Financials: SLIDE_FINANCIALS_PROMPT,
-  Ask: SLIDE_ASK_PROMPT,
-};
 
 /** Un deck tel que la page d'affichage le lit : le document, son type et ses slides attendues. */
 export interface PitchDeckView extends PitchDeckDocument {
@@ -260,7 +198,7 @@ export class PitchDeckService extends GenericService {
     forceRegenerate = false,
     targetSections: string[] = [],
     documentId?: string,
-    /** La jauge de créativité (cf. creativity/documentDesign.ts) ; Medium par défaut. */
+    /** La jauge de créativité (profils du moteur graphique, @idem/graphic-engine) ; Medium par défaut. */
     creativity?: CreativityLevel
   ): Promise<PitchDeckDocument | null> {
     logger.info(
@@ -325,244 +263,83 @@ export class PitchDeckService extends GenericService {
     }
 
     const brandName = project.name || 'Startup';
-    const logo = project.analysisResultModel?.branding?.logo;
-    const colorsObj = project.analysisResultModel?.branding?.colors?.colors || {
-      primary: '#1447e6',
-      secondary: '#000060',
-      accent: '#22d3ee',
-      background: '#ffffff',
-      text: '#1f2937',
-    };
-    const typoModel = project.analysisResultModel?.branding?.typography;
-    const primaryFont = typoModel?.primaryFont || 'Inter, sans-serif';
-    const secondaryFont = typoModel?.secondaryFont || primaryFont;
 
-    // Le bloc logo est désormais construit par l'utilitaire partagé avec le
-    // business plan et le site : mêmes déclinaisons, mêmes règles de choix selon
-    // le fond, et surtout la CONSIGNE de le poser sur la diapositive — la table
-    // d'URLs seule ne suffisait pas à le faire apparaître.
-    // Provisionnée si la charte n'a pas encore été générée : le deck peut être
-    // le premier livrable produit, et il doit alors faire naître le parti pris
-    // visuel plutôt que de s'en passer.
-    const artDirection = await ensureProjectArtDirection(
-      this.promptService,
-      userId,
-      projectId,
-      project
-    );
-    // INVARIANTS du deck : couleur, typographie, rythme, accent graphique.
-    // L'archétype de composition est tiré PAR SLIDE (cf. `buildSectionSeed`) :
-    // onze slides qui partagent leur archétype sont onze fois la même slide.
-    // La clé est propre au deck : deux decks du projet ne se ressemblent pas
-    // slide pour slide.
+    // La direction artistique est provisionnée si la charte n'a pas encore été générée : le deck peut
+    // être le premier livrable produit, et ses slides ont besoin d'un style.
+    const graphicProject = await withProjectArtDirection(this.promptService, userId, projectId, project);
+
+    // LE DOCUMENT GRAPHIQUE du deck (@idem/graphic-engine) : la charte, le plan des slides — chacune reçoit
+    // d'avance une composition distincte de ses voisines —, la jauge de créativité. La clé est propre au
+    // deck : deux decks du projet ne se ressemblent pas slide pour slide.
     const designKey = documentDesignKey('pitchdeck', projectId, deck.id);
-    const deckSeed = buildDocumentSeed(artDirection?.styleId, designKey);
-
-    // LA JAUGE DE CRÉATIVITÉ : famille du deck (Medium+), archétype et réglages de chaque slide
-    // (High+, Max+), slides composées par le modèle avec le gabarit en repli (Ultra).
-    const level = normalizeCreativity(creativity);
-    const seedArchetypes: Record<string, string> = {};
-    {
-      const probe = new Set<string>();
-      for (const def of deckSlides) if (!def.freeform) seedArchetypes[def.name] = buildSectionSeed(artDirection?.styleId, designKey, def.name, probe).archetype;
-    }
-    const brandingForSheet = project.analysisResultModel?.branding as any;
-    // La fiche de la marque, la même pour tous les agents créatifs du deck.
-    const deckSheet = brandSheet({
-      brandName: project.name || 'Brand',
-      businessType: project.type,
-      palette: brandingForSheet?.colors?.colors || {},
-      fonts: { display: brandingForSheet?.typography?.primaryFont || 'Archivo', body: brandingForSheet?.typography?.secondaryFont || 'Inter' },
-      art: artDirection,
+    const level: CreativityLevel = normalizeCreativity(creativity);
+    const total = deckSlides.length;
+    const graphic = await openGraphicDocument({
+      project: graphicProject,
+      documentType: 'pitch-deck',
+      format: 'slide-16x9',
+      seed: designKey,
+      creativity: level,
+      sections: deckSlides.map((definition) => ({ id: pageId(definition.name), role: definition.freeform ? ('cover' as const) : undefined })),
+      documentLabel: 'Pitch deck',
+      userId,
     });
-    // Des slides gardées (reprise, régénération ciblée) : la direction enregistrée est reprise,
-    // pour que la slide refaite ressemble à ses voisines. Sinon, les agents décident et la
-    // direction est enregistrée avec le deck.
-    const keepsSlides =
-      !forceRegenerate && currentSections.some((section) => slideOrder.includes(section.name) && !targetSections.includes(section.name));
-    const designPlan: DocumentDesignPlan | null = keepsSlides ? resumedDesignPlan(deck.design, level) : await planDocumentDesign({
-      level,
-      call: runtimeCall({ userId, projectId, element: 'pitch_deck' }),
-      sheet: deckSheet,
-      styleId: artDirection?.styleId,
-      document: 'pitch deck',
-      deliverable: 'pitch deck' as const,
-      // La clé du deck sème le classement des mises en page : deux projets ne reçoivent pas la
-      // même suite de slides.
-      docKey: designKey,
-      pages: deckSlides.filter((d) => !d.freeform).map((d) => ({ name: d.name, brief: composeSlideBrief(d.name, deckType.audience) ?? undefined })),
-      seedArchetypes,
-    })
-      .then(async (plan) => {
-        await deliverableDocumentStore
-          .update(userId, projectId, 'pitchDeck', deck.id, (current) => ({ ...current, design: savedDesignOf(plan) }), { touch: false })
-          .catch((error: any) => logger.warn('[DECK] Direction des slides non enregistrée', { error: error?.message }));
-        return plan;
-      })
-      .catch((error: any) => {
-        logger.warn('[DECK] Direction artistique des slides en échec, la graine décide', { error: error?.message });
-        return null;
-      });
-    if (designPlan?.family) deckSeed.family = designPlan.family;
+    // Le cran retenu, enregistré avec le deck.
+    await deliverableDocumentStore
+      .update(userId, projectId, 'pitchDeck', deck.id, (current) => ({ ...current, design: { level, pages: {} } }), { touch: false })
+      .catch((error: any) => logger.warn('[DECK] Cran de créativité non enregistré', { error: error?.message }));
+    logger.info(`[DECK] Créativité ${level} : ${total} slide(s) composées par le moteur graphique`);
 
-    // Flat, explicit brand context — LLM uses bg-[#hex], text-[#hex] directly
-    const brandContext = [
-      `Brand Name: ${brandName}`,
-      `PRIMARY COLOR: ${colorsObj.primary}`,
-      `SECONDARY COLOR: ${colorsObj.secondary}`,
-      `ACCENT COLOR: ${colorsObj.accent}`,
-      `BACKGROUND COLOR: ${colorsObj.background}`,
-      `TEXT COLOR: ${colorsObj.text}`,
-      `PRIMARY FONT: ${primaryFont}`,
-      `SECONDARY FONT: ${secondaryFont}`,
-      `Language: fr`,
-      '',
-      buildLogoBlock(logo, {
-        placement:
-          'on the cover slide (large, as the signature) and in the SAME corner of every other slide (small, h-8 to h-10, always in the same place)',
-        size: 'cover: 25 to 40% of the width; running slides: h-8 to h-10 tall',
-      }),
-      buildArtDirectionBlock(artDirection, { medium: 'slide' }),
-      artDirection
-        ? `<composition_invariants>\n${describeDocumentSeed(deckSeed)}\n</composition_invariants>`
-        : '',
-      ANTI_SLOP_BLOCK,
-      EDITORIAL_RESTRAINT_BLOCK,
-      RESTRAINT_SELF_REVIEW_BLOCK,
-    ]
-      .filter(Boolean)
-      .join('\n');
+    // PRÉFIXE STABLE — identique à toutes les slides, émis UNE fois en tête : le projet, les faits de
+    // marque et les règles d'écriture. La composition est celle du moteur.
+    const stablePrefix = [projectDescription, `BRAND FACTS:\nBrand: ${brandName}`, WRITING_RULES].join('\n\n');
 
-    const knownLogoUrls = collectLogoUrls(logo);
-
-    // PRÉFIXE STABLE — identique à toutes les slides, émis UNE fois en tête. Il
-    // portait auparavant la fin de chaque `promptConstant`, derrière la partie
-    // variable : le contexte de marque ET les 1 888 tokens de règles partagées
-    // étaient repayés à chaque slide, sans qu'aucun début de prompt se répète.
-    const stablePrefix = [
-      projectDescription,
-      `BRAND CONTEXT:\n${brandContext}`,
-      // Les règles communes aux slides vivaient AU MILIEU de chacun des prompts
-      // (1 888 tokens par slide) : ni mutualisables, ni cacheables.
-      PITCH_DECK_SHARED_RULES,
-    ].join('\n\n');
-
-    // Préfixe du MODE GABARIT : sans les règles de composition, que le rendu
-    // applique désormais. Cf. le commentaire équivalent du business plan.
-    const templatedPrefix = [
-      projectDescription,
-      `BRAND FACTS:\nBrand: ${brandName}`,
-      CONTENT_RULES_BLOCK,
-    ].join('\n\n');
-
-    // DESIGN SYSTEM du deck : calculé une fois, partagé par toutes les slides.
-    const designSystem = buildDocumentDesignSystem(
-      project.analysisResultModel?.branding,
-      artDirection,
-      deckSeed
-    );
-    logger.info(`[DECK] Design system: ${describeDesignSystem(designSystem)}`);
-
-    const renderOptions = { logoUrl: knownLogoUrls[0], brandName: project.name };
-
-    // Un archétype de composition par slide, tiré sans répétition dans l'espace
-    // autorisé par le style. Les invariants restent dans le préfixe ci-dessus.
-    const usedArchetypes = new Set<string>();
-    let slideIndex = 0;
-
-    // La graine de la slide, puis les choix du directeur artistique (High+) par-dessus.
-    const seedFor = (stepName: string) =>
-      applyPreset(
-        {
-          ...buildSectionSeed(artDirection?.styleId, designKey, stepName, usedArchetypes),
-          ...(designPlan?.family ? { family: designPlan.family } : {}),
-          ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, v]) => !!v)),
-        },
-        PRESET_BY_ID.get(designPlan?.pages[stepName]?.preset || '')
-      );
-
-    /** Prompt HTML de repli : écrit à la main pour les slides historiques, composé sinon. */
-    const htmlPromptFor = (stepName: string): string =>
-      LEGACY_SLIDE_PROMPTS[stepName] ?? composeSlideHtmlPrompt(stepName, deckType.audience);
-
-    /**
-     * Slide RENDU PAR GABARIT.
-     *
-     * ⚠️ Le deck est en `multiPage: false` : un slide = EXACTEMENT une page, et
-     * ce qui dépasse est ROGNÉ, pas paginé. Le volume est donc bas (3 à 5 blocs)
-     * et le rendu resserre son échelle — un débordement ici n'est pas
-     * rattrapable en aval, contrairement au business plan.
-     */
-    const slide = (stepName: string): IPromptStep => {
-      slideIndex += 1;
-      const fallbackPrompt = htmlPromptFor(stepName);
-      const seed = seedFor(stepName);
-      return {
-        stepName,
-        // Prompt d'origine : le repli quand le gabarit est coupé.
-        promptConstant: fallbackPrompt,
-        stablePrefix: templatedPrefix,
-        template: {
-          // Sous gabarit, le brief ne porte QUE le contenu, lu par le
-          // destinataire du deck : la mise en page est au rendu.
-          contentBrief: composeSlideBrief(stepName, deckType.audience) ?? fallbackPrompt,
-          designSystem,
-          seed,
-          // Cran Ultra : le contenu validé de la slide part au compositeur, le gabarit en repli.
-          compose: designPlan?.freeCompose
-            ? ultraPageComposer({ ds: designSystem, seed, page: LANDSCAPE_SLIDE, singlePage: true, sheet: deckSheet, document: 'pitch deck', call: runtimeCall({ userId, projectId, element: 'pitch_deck' }), name: stepName, attempts: designPlan.composeAttempts, checks: designPlan.checks, repairOnly: designPlan.repairOnly })
-            : undefined,
-          volume: '3 to 4',
-          render: {
-            ...renderOptions,
-            index: slideIndex,
-            page: LANDSCAPE_SLIDE,
-            multiPage: false,
+    const steps: IPromptStep[] = deckSlides.map((definition, index) => {
+      const position = { index: index + 1, total };
+      // La couverture est dessinée par le moteur : le modèle n'en écrit que les mots, une fois par
+      // projet, partagés avec la charte et le business plan.
+      if (definition.freeform) {
+        return {
+          stepName: definition.name,
+          promptConstant: '',
+          execute: async () => {
+            const brief = await new CoverBriefService(this.promptService).resolve(userId, projectId, project);
+            return renderGraphicPage(
+              graphic,
+              coverContent({
+                id: pageId(definition.name),
+                brandName,
+                documentLabel: 'Pitch deck',
+                kicker: brief.kicker,
+                promise: brief.promise,
+                detail: DECK_AUDIENCE_LABEL[deckType.audience],
+                dateLabel: coverDateLabel(),
+              }),
+              position
+            );
           },
+        };
+      }
+      // Le brief ne porte QUE le contenu, lu par le destinataire du deck. Une slide est une toile fixe :
+      // le volume est bas (3 à 4 blocs), et le moteur mesure, resserre et répare avant de rendre.
+      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, three to four blocks.`;
+      return {
+        stepName: definition.name,
+        promptConstant: brief,
+        stablePrefix,
+        template: {
+          deliverable: 'pitch-deck',
+          sectionId: pageId(definition.name),
+          volume: '3 to 4',
+          contentBrief: brief,
+          render: (content) => renderGraphicPage(graphic, content, position),
         },
       };
-    };
+    });
 
-    /**
-     * La couverture, dessinée par le code : le modèle n'en écrit que les mots,
-     * une fois par projet, partagés avec la charte et le business plan.
-     * Composée en HTML par l'étage de raisonnement, elle coûtait 22 000 tokens
-     * de budget et la plus longue attente du deck.
-     */
-    const coverDeclensions = resolveLogoDeclensions(project.analysisResultModel?.branding?.logo);
-    const coverSlide = (stepName: string): IPromptStep => {
-      slideIndex += 1;
-      return {
-        stepName,
-        promptConstant: '',
-        execute: async () =>
-          composeCover({
-            brief: await new CoverBriefService(this.promptService).resolve(userId, projectId, project),
-            brandName: project.name,
-            ds: designSystem,
-            page: LANDSCAPE_SLIDE,
-            logos: {
-              lightGround: coverDeclensions?.withTextLight,
-              darkGround: coverDeclensions?.withTextDark,
-            },
-            documentLabel: 'Pitch deck',
-            detail: DECK_AUDIENCE_LABEL[deckType.audience],
-            dateLabel: coverDateLabel(),
-            variant: coverVariant(projectId),
-          }),
-      };
-    };
-
-    const steps: IPromptStep[] = deckSlides.map((definition) =>
-      definition.freeform ? coverSlide(definition.name) : slide(definition.name)
-    );
-
-    // Chaque slide reçoit son propre budget de tokens et sa température
-    // (voir AI_CONFIG.pitchDeck.sections) ; la config de la feature sert de
-    // base pour celles qui n'en redéfinissent pas. Les dépendances entre slides
-    // viennent du catalogue (`deck-types.ts`), filtrées sur les slides du type —
-    // notamment `Ask` ← `Financials`, pour que le montant demandé découle des
-    // projections affichées deux slides plus tôt.
+    // Chaque slide reçoit son propre budget de tokens et sa température (AI_CONFIG.pitchDeck.sections).
+    // Les dépendances entre slides viennent du catalogue (`deck-types.ts`) — notamment `Ask` ←
+    // `Financials`, pour que le montant demandé découle des projections affichées plus tôt.
     const slideQuality = {
       format: 'html' as const,
       minChars: 300,
@@ -581,36 +358,7 @@ export class PitchDeckService extends GenericService {
       provider: AI_CONFIG.pitchDeck.provider,
       modelName: AI_CONFIG.pitchDeck.modelName,
       llmOptions: AI_CONFIG.pitchDeck.llmOptions,
-      // Était omis : la chaîne de repli n'atteignait jamais runPrompt.
       fallbackModels: AI_CONFIG.pitchDeck.fallbackModels,
-    };
-
-    /**
-     * Images sourcées puis passe déterministe anti-générique : couleurs hors
-     * charte, polices écrites en dur, titres en dégradé et images sans alt sont
-     * corrigés sans appel au modèle. Le reste (logo absent, mise en page
-     * générique) est journalisé — sur onze diapositives, il en reste toujours
-     * une qui déroge à la consigne du prompt.
-     */
-    const polishSlide = async (name: string, data: string): Promise<string> => {
-      let html = data;
-      if (typeof html === 'string' && (html.includes('<img') || html.includes('data-image'))) {
-        html = await this.enrichSlideWithImages(html, userId, projectId, name, knownLogoUrls);
-      }
-      if (typeof html === 'string' && html) {
-        html = enforceDesignRules(html, {
-          palette: colorsObj,
-          // Les teintes des rampes DÉRIVENT de la charte : sans cette
-          // déclaration, le linter prendrait le design system calculé pour
-          // une palette inventée.
-          extraAllowedColors: derivedPalette(designSystem),
-          fonts: [primaryFont, secondaryFont].filter(Boolean),
-          expectedLogoUrls: knownLogoUrls,
-          styleId: artDirection?.styleId,
-          label: `deck/${name}`,
-        }).html;
-      }
-      return html;
     };
 
     // Load existing sections if not forcing regeneration.
@@ -652,12 +400,10 @@ export class PitchDeckService extends GenericService {
             return;
           }
 
-          const enrichedData = await polishSlide(result.name, result.data);
-
           const section: SectionModel = {
             name: result.name,
             type: result.type,
-            data: enrichedData,
+            data: result.data,
             summary: result.summary,
           };
 
@@ -675,10 +421,7 @@ export class PitchDeckService extends GenericService {
           if (!(await persist())) {
             throw new Error(`Failed to update pitch deck ${deck.id} after step: ${result.name}`);
           }
-          await streamCallback({
-            ...result,
-            data: enrichedData,
-          });
+          await streamCallback(result);
         },
         promptConfig,
         'pitch_deck',
@@ -687,6 +430,9 @@ export class PitchDeckService extends GenericService {
         existingSections
       );
 
+      // Les empreintes des slides rejoignent la mémoire de la marque : le prochain document ne les répète pas.
+      await graphic.remember();
+
       // The stored PDF no longer matches the regenerated sections
       await cacheService.delete(pdfCacheKey(userId, projectId, deck.id), { prefix: 'pdf' });
 
@@ -694,16 +440,8 @@ export class PitchDeckService extends GenericService {
     }
 
     const stepResults = await this.processSteps(configuredSteps, project, promptConfig);
-    sectionResults = await Promise.all(
-      // Même passe que dans la branche streamée : les deux chemins produisent le
-      // même document, ils doivent subir les mêmes contrôles.
-      stepResults.map(async (r) => ({
-        name: r.name,
-        type: r.type,
-        data: await polishSlide(r.name, r.data),
-        summary: r.summary,
-      }))
-    );
+    await graphic.remember();
+    sectionResults = stepResults.map((r) => ({ name: r.name, type: r.type, data: r.data, summary: r.summary }));
 
     const updated = await persist();
     if (updated) {
@@ -767,98 +505,5 @@ export class PitchDeckService extends GenericService {
       );
       throw err;
     }
-  }
-
-  /**
-   * Enrich slide HTML by resolving image placeholders (using Pexels stock search with generated-image fallback)
-   */
-  private async enrichSlideWithImages(
-    html: string,
-    userId: string,
-    projectId: string,
-    slideName: string,
-    /** URLs réelles des déclinaisons du logo : elles ne doivent jamais être remplacées. */
-    knownLogoUrls: string[] = []
-  ): Promise<string> {
-    if (!html || typeof html !== 'string') return html;
-
-    const imgTagRegex = /<img\b([^>]*?)>/gi;
-    const matches = [...html.matchAll(imgTagRegex)];
-
-    if (matches.length === 0) return html;
-
-    let enrichedHtml = html;
-
-    for (const match of matches) {
-      const fullTag = match[0];
-      const attrsStr = match[1];
-
-      // Explicitly protect logos and data URIs from being replaced by stock photos
-      // Le logo ne doit JAMAIS être remplacé par une photo de banque d'images.
-      // Le test portait sur la présence du mot « logo » dans les attributs, ce
-      // qui dépendait du bon vouloir du modèle ; on compare aussi aux URLs
-      // réelles des déclinaisons, qui, elles, ne mentent pas.
-      const isLogo =
-        /alt=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
-        /class=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
-        /src=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
-        knownLogoUrls.some((url: string) => attrsStr.includes(url.split('?')[0]));
-
-      const hasExplicitQuery = /data-image-query=["']/i.test(attrsStr);
-      const hasExplicitPrompt = /data-image-prompt=["']/i.test(attrsStr);
-      const isPlaceholder =
-        /src=["'][^"']*placehold\.co[^"']*["']/i.test(attrsStr) ||
-        /src=["'][^"']*placeholder[^"']*["']/i.test(attrsStr);
-
-      if (isLogo || (!hasExplicitQuery && !hasExplicitPrompt && !isPlaceholder)) {
-        continue;
-      }
-
-      if (/src=["']data:image\//i.test(attrsStr) && !hasExplicitQuery && !hasExplicitPrompt) {
-        continue;
-      }
-
-      const queryMatch = attrsStr.match(/data-image-query=["']([^"']+)["']/i);
-      const promptMatch = attrsStr.match(/data-image-prompt=["']([^"']+)["']/i);
-
-      const searchQuery = queryMatch
-        ? queryMatch[1]
-        : `${slideName} startup visual`;
-
-      const generationPrompt = promptMatch
-        ? promptMatch[1]
-        : `High resolution professional visual depicting ${searchQuery} for pitch deck slide ${slideName}`;
-
-      try {
-        const sourced = await imageSourcingService.sourceImage(
-          {
-            searchQuery,
-            generationPrompt,
-            orientation: 'landscape',
-          },
-          {
-            userId,
-            projectId,
-            tag: `pitchdeck-${slideName.toLowerCase().replace(/\s+/g, '-')}`,
-          }
-        );
-
-        if (sourced && sourced.url) {
-          let newTag = fullTag;
-          if (/src=["'][^"']*["']/i.test(newTag)) {
-            newTag = newTag.replace(/src=["'][^"']*["']/i, `src="${sourced.url}"`);
-          } else {
-            newTag = newTag.replace(/<img/i, `<img src="${sourced.url}"`);
-          }
-          enrichedHtml = enrichedHtml.replace(fullTag, newTag);
-        }
-      } catch (err: any) {
-        logger.warn(
-          `Failed to source image for pitch deck slide ${slideName}: ${err.message}`
-        );
-      }
-    }
-
-    return enrichedHtml;
   }
 }

@@ -23,7 +23,7 @@
 
 import logger from '../../config/logger';
 import { LogoModel } from '../../models/logo.model';
-import { hexToOklch, oklchToHex } from '../design/color';
+import { hexToOklch, oklchToHex } from './color';
 import { logoLockupService } from '../BandIdentity/lockup/logoLockup.service';
 import { adaptEngineLogo } from '../logo-engine/idem.service';
 import { applyColorMappingToSvg } from '../logoVariationEngine.service';

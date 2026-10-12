@@ -44,7 +44,7 @@ import { extractFacts, fitLength, isGrounded, parseCopy, copyPlan, writeCopy, bu
 import { planScenes, RECIPES } from '../../../ivision/core/src/video/video.recipes';
 import { allocateDurations, buildStoryboard, snapToBeats, retime } from '../../../ivision/core/src/video/video.storyboard';
 import { buildVideoTheme } from '../../../ivision/core/src/video/video.theme';
-import { contrastRatio } from '../services/design/color';
+import { contrastRatio } from '../services/brand/color';
 import { analyzeTrack, pickExcerptStart } from '../../../ivision/core/src/video/video.beats';
 import { licenseFromUrl, pickTrack, registerLocalTracks, searchMusic, MUSIC_PROVIDERS, openverseProvider, ccmixterProvider } from '../../../ivision/core/src/video/video.music';
 import { composeVideoHtml, inlineAssets, frameSpec } from '../../../ivision/core/src/video/video.composer';

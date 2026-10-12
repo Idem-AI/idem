@@ -13,7 +13,6 @@ export const OPENING_SECTION_PROMPTS: SectionPromptSpec[] = [
   {
     key: 'executive-summary',
     name: 'Executive Summary',
-    fallbackPages: '2',
     objective:
       'Give a reader who will read nothing else everything they need to decide.',
     mustCover: `1. What the company does, for whom, and the result it produces. One sentence.
@@ -44,7 +43,6 @@ for the three or four arguments that carry the decision.`,
   {
     key: 'one-page-summary',
     name: 'One-Page Summary',
-    fallbackPages: '1',
     objective: "Fit the company's identity and its request on a single page.",
     mustCover: `1. General information: legal name, legal form, registration number, date of
    creation, registered address, sector of activity.

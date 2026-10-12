@@ -22,7 +22,7 @@
  * ouvre un dossier par cette dernière ligne. Elle est ici la première.
  */
 
-import { Block } from '../design/sectionContent';
+import type { BlockDraft as Block } from '@idem/graphic-engine';
 import {
   FinanceComputed,
   FinanceModel,

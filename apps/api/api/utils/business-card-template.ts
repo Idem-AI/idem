@@ -51,3 +51,40 @@ export const EMPTY_FIELD_CLEANUP = `
   }
 })();
 `;
+
+/**
+ * Script exécuté dans le document de rendu, APRÈS le chargement des polices : la face a été composée et
+ * mesurée avec ses marqueurs (`{{email}}`), une valeur réelle peut être plus longue (un nom composé, une
+ * adresse sur deux lignes). Si la carte déborde, les textes des champs cèdent de la taille, ensemble et par
+ * pas, jamais sous le plancher d'impression (8,5 px CSS ≈ 6,4 pt) ; un mot encore trop long (une adresse
+ * électronique) se coupe plutôt que de sortir de la carte. Même logique dans l'aperçu du tableau de bord.
+ */
+export const FIELD_FIT = `
+(function () {
+  var card = document.querySelector('.ge-page') || document.body.firstElementChild;
+  if (!card) return;
+  var FLOOR = 8.5;
+  var fields = Array.prototype.slice.call(card.querySelectorAll('[data-field]'));
+  if (!fields.length) return;
+  function overflowing() {
+    var box = card.getBoundingClientRect();
+    if (card.scrollHeight > card.clientHeight + 1 || card.scrollWidth > card.clientWidth + 1) return true;
+    for (var i = 0; i < fields.length; i++) {
+      var r = fields[i].getBoundingClientRect();
+      if (r.right > box.right + 0.5 || r.bottom > box.bottom + 0.5 || r.left < box.left - 0.5) return true;
+      if (fields[i].scrollWidth > fields[i].clientWidth + 1) return true;
+    }
+    return false;
+  }
+  var base = fields.map(function (el) { return parseFloat(getComputedStyle(el).fontSize) || FLOOR; });
+  for (var step = 1; step <= 14 && overflowing(); step++) {
+    var factor = Math.pow(0.95, step), moved = false;
+    for (var j = 0; j < fields.length; j++) {
+      var next = Math.max(Math.min(base[j], FLOOR), base[j] * factor);
+      if (next < parseFloat(getComputedStyle(fields[j]).fontSize) - 0.01) { fields[j].style.fontSize = next.toFixed(2) + 'px'; moved = true; }
+    }
+    if (!moved) break;
+  }
+  if (overflowing()) for (var k = 0; k < fields.length; k++) fields[k].style.overflowWrap = 'anywhere';
+})();
+`;

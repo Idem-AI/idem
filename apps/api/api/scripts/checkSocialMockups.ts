@@ -24,8 +24,8 @@ import os from 'os';
 import path from 'path';
 import puppeteer from 'puppeteer';
 import sharp from 'sharp';
-import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
-import { buildDocumentSeed } from '../services/design/designSeed';
+import { brandFromIdem, closeBrowser } from '@idem/graphic-engine';
+import { PdfService } from '../services/pdf.service';
 import {
   fillMockupTemplate,
   loadSocialMockupLibrary,
@@ -37,7 +37,6 @@ import {
   SocialBrandKit,
   socialMockupService,
 } from '../services/BandIdentity/socialMockups/socialMockup.service';
-import { flyerRenderService } from '../services/Communication/flyerRender.service';
 
 let failures = 0;
 const check = (label: string, ok: boolean, detail = '') => {
@@ -146,15 +145,16 @@ async function main() {
   const out = path.join(os.tmpdir(), 'idem-social-mockups-check');
   fs.mkdirSync(out, { recursive: true });
 
-  const seed = buildDocumentSeed('swiss', 'check:mockups');
-  const ds = buildDocumentDesignSystem(
-    {
+  // La marque telle que le moteur graphique la lit (couleurs, polices, logos), direction « suisse ».
+  const { brand, direction } = brandFromIdem({
+    name: 'Maison Kora',
+    branding: {
       colors: { colors: { primary: '#1A2A4F', secondary: '#F4F6FA', accent: '#C79100', background: '#F8F9FB', text: '#0B1220' } },
       typography: { primaryFont: 'Syne', secondaryFont: 'Figtree' },
-    } as never,
-    { styleId: 'swiss' } as never,
-    seed
-  );
+      artDirection: { styleId: 'swiss' },
+    },
+    logos: { primary: LOGO_DARK_INK, withTextLight: LOGO_DARK_INK, withTextDark: LOGO_LIGHT_INK },
+  });
 
   for (const audience of ['b2b', 'b2c'] as const) {
     const kit: SocialBrandKit = {
@@ -170,7 +170,8 @@ async function main() {
       ],
       audience,
       videoLed: audience === 'b2c',
-      ds,
+      brand,
+      direction,
       logos: { lightGround: LOGO_DARK_INK, darkGround: LOGO_LIGHT_INK },
     };
     const upload = async (image: Buffer, name: string) => {
@@ -199,12 +200,17 @@ async function main() {
   }
   console.log(`\n  Images : ${out}`);
 
-  await (flyerRenderService as any).constructor.browser?.close?.();
+  // Le service passe par l'hôte IDEM du moteur : les rendus ont pris le Chromium PARTAGÉ du service PDF,
+  // que `closeBrowser` du moteur ne ferme jamais (il appartient à l'hôte) — on ferme les deux.
+  await closeBrowser();
+  await PdfService.closeBrowser().catch(() => undefined);
   console.log(failures === 0 ? '\n✓ Bibliothèque de mockups conforme\n' : `\n✗ ${failures} contrôle(s) en échec\n`);
   process.exit(failures === 0 ? 0 : 1);
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
   console.error(error);
+  await closeBrowser().catch(() => undefined);
+  await PdfService.closeBrowser().catch(() => undefined);
   process.exit(1);
 });

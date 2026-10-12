@@ -12,7 +12,6 @@ export const OPERATIONS_SECTION_PROMPTS: SectionPromptSpec[] = [
   {
     key: 'operations-plan',
     name: 'Operational Plan',
-    fallbackPages: '2',
     objective: 'Describe the means actually mobilised to produce and to sell.',
     mustCover: `1. Commercial means: sales force, points of sale, distribution, tools.
 2. Production means: premises, equipment, capacity, suppliers, lead times.
@@ -37,7 +36,6 @@ capacity, one "assumption" block for the capacity hypothesis.`,
   {
     key: 'resources-assets',
     name: 'Resources & Assets',
-    fallbackPages: '1',
     objective: 'Inventory what the business already has.',
     mustCover: `1. Patents, trademarks, designs: filed or granted, with their number.
 2. Assets held outside the operating business that could be mobilised.
@@ -60,7 +58,6 @@ what is already held.`,
   {
     key: 'goal-planning',
     name: 'Goal Planning',
-    fallbackPages: '2',
     objective: 'Turn the plan into dated commitments.',
     mustCover: `1. Strategic objectives, each one measurable and dated.
 2. The milestones that mark them, with their deliverable.
@@ -80,7 +77,6 @@ their mitigation.`,
   {
     key: 'kpi-metrics',
     name: 'Key Metrics & KPIs',
-    fallbackPages: '1',
     objective: 'Say how anyone will know whether it is working.',
     mustCover: `1. The three to five metrics that actually steer this business.
 2. For each: current value, target, horizon, and how it is measured.
@@ -97,7 +93,6 @@ the revision thresholds.`,
   {
     key: 'risk-analysis',
     name: 'Risk Analysis & Mitigation',
-    fallbackPages: '1-2',
     objective: 'Name what could stop the plan, and what absorbs the shock.',
     mustCover: `1. The risks that would actually stop the plan: market, operational,
    financial, regulatory, human. Not a generic list.

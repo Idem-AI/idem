@@ -12,6 +12,7 @@ Code shared between applications lives in `packages/`. Applications consume the 
 | [`@idem/shared-tour`](../packages/shared-tour/README.md) | Dashboard, simulator, iDeploy web | Framework-agnostic guided tours (`startTour`, `isTourActive`) |
 | [`@idem/shared-trusted-by`](../packages/shared-trusted-by/README.md) | Landing, simulator, AppGen, iDeploy web | The "They trust us" partner band: one partner list, one stylesheet, an Angular and a React renderer |
 | [`@idem/shared-auth-client`](../packages/shared-auth-client/README.md) | Chart editor | Legacy teams and project-permissions client (see its README) |
+| [`@idem/graphic-engine`](../packages/graphic-engine/README.md) | API, iVision API, iVision core | The graphic generation engine: business plan pages, brand-book pages, pitch-deck slides, business-card faces, social visuals and charts — composed by the code from structured content and the brand, rendered as deterministic HTML, measured and repaired in Chromium. Consumers compile its sources through a `paths` alias; production images copy its compiled `dist/` into `node_modules/@idem/graphic-engine` |
 
 ## Rules
 
@@ -20,3 +21,4 @@ Code shared between applications lives in `packages/`. Applications consume the 
 - **Prices** are defined once, in `packages/shared-models/src/pricing/pricing.config.json`; the API reads it at runtime and the admin panel can override prices in the database (see [Billing](../apps/api/docs/BILLING.md)).
 - A change in a package rebuilds its consumers in the pre-push hook.
 - The creative engine shared by the IDEM API and iVision (`apps/ivision/core`) is not an npm package: both back ends import its sources by relative path, so a change reaches both at their next build. See [`apps/ivision/README.md`](../apps/ivision/README.md).
+- **Pages are drawn by `@idem/graphic-engine`, never by a model.** A new visual deliverable opens a document of the engine and writes its content as blocks; it does not prompt a model for HTML. Run `npm run check:graphic-engine` after changing the engine.

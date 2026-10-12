@@ -2,48 +2,32 @@
  * Test de collision — `npm run check:uniqueness`.
  *
  * L'unicité d'un projet est une exigence produit : deux marques ne doivent pas
- * se ressembler, y compris quand elles appartiennent au même secteur. Elle était
- * jusqu'ici ESPÉRÉE — obtenue d'une température élevée et d'une consigne de
- * composition transmise en prose, donc soumise à ce que le modèle voulait bien
- * en faire.
+ * se ressembler, y compris quand elles appartiennent au même secteur. Elle est
+ * TIRÉE par le code — la région chromatique et le registre typographique de la
+ * charte, puis la composition des pages par le moteur graphique
+ * (@idem/graphic-engine), semée par la clé du livrable — ce qui la rend
+ * vérifiable sans appeler un seul modèle. Le résultat est donc le MÊME sur un
+ * gros et sur un petit modèle : un écart signalerait qu'une dimension est
+ * encore laissée au modèle.
  *
- * Elle est désormais TIRÉE par le code (graine de composition, région
- * chromatique, registre typographique), ce qui la rend vérifiable sans appeler
- * un seul modèle. C'est tout l'intérêt : ce script mesure la propriété
- * elle-même, pas une sortie de modèle, donc son résultat est le MÊME sur un gros
- * et sur un petit modèle. Un écart signalerait qu'une dimension est encore
- * laissée au modèle.
- *
- * Aucun réseau, aucune base, aucune clé d'API : il tourne partout, en une
- * seconde, et peut donc être exécuté en intégration continue.
+ * Les pages sont composées SANS rendu (`validate: false`) : c'est la décision
+ * de composition qui est mesurée ici, pas sa mesure dans Chromium (contrôlée
+ * par `npm run check:graphic-engine`). Aucun réseau, aucune base, aucune clé
+ * d'API : il tourne partout, en quelques secondes, et peut donc être exécuté en
+ * intégration continue.
  *
  *   npx ts-node --transpile-only api/scripts/checkUniqueness.ts
  */
 
-import {
-  ART_DIRECTION_STYLE_IDS,
-  ART_DIRECTION_STYLES,
-} from '../services/design/artDirection.catalog';
-import { ARCHETYPE_LANDSCAPE } from '../services/design/sectionRenderer';
-import {
-  FAMILY_DIMENSIONS,
-  familiesForStyle,
-  familyDistance,
-  LAYOUT_FAMILIES,
-  pickFamily,
-} from '../services/design/layoutFamilies';
-import {
-  buildDocumentSeed,
-  buildPaletteConstraint,
-  buildSectionSeed,
-  buildTypographyConstraint,
-} from '../services/design/designSeed';
+import { createDocument, CreativityLevel, DocumentType, FormatId, SectionContent, STYLE_DATA } from '@idem/graphic-engine';
+import { buildPaletteConstraint, buildTypographyConstraint } from '../../../ivision/core/src/brand/brand-constraints';
+import { documentDesignKey, LEGACY_DOCUMENT_ID } from '../services/common/deliverable-documents';
 
 let failures = 0;
 
 function check(label: string, condition: boolean, detail = ''): void {
   if (condition) {
-    console.log(`  ✓ ${label}`);
+    console.log(`  ✓ ${label}${detail ? ` — ${detail}` : ''}`);
   } else {
     failures += 1;
     console.error(`  ✗ ${label}${detail ? ` — ${detail}` : ''}`);
@@ -57,390 +41,147 @@ const PROJECTS = [
   ...Array.from({ length: 10 }, (_, i) => ({ id: `health-${i}`, sector: 'healthtech' })),
 ];
 
-/** Sections d'un business plan — la structure qui doit varier page à page. */
-const SECTIONS = [
-  'Cover Page',
-  'Company Summary',
-  'Opportunity',
-  'Target Audience',
-  'Products & Services',
-  'Marketing & Sales',
-  'Financial Plan',
-  'Goal Planning',
-  'Appendix',
+const para = (n: number): string[] =>
+  Array.from({ length: n }, (_, i) => `Point ${i + 1} : la société sert les commerçants de Douala avec un service de paiement mobile rapide, fiable et peu coûteux, adossé aux opérateurs existants.`);
+
+/** Les pages d'un business plan, chacune avec sa matière : c'est la structure qui doit varier page à page. */
+const PLAN: SectionContent[] = [
+  { id: 'company-summary', title: 'Résumé de la société', lede: 'Un service de paiement pour les commerçants.', blocks: [{ id: 'p', kind: 'prose', paragraphs: para(3) }, { id: 'm', kind: 'metrics', items: [{ value: '1 200', label: 'Commerçants' }, { value: '+35 %', label: 'Croissance' }, { value: '18 mois', label: 'Rentabilité' }] }] },
+  { id: 'opportunity', title: 'L’opportunité', blocks: [{ id: 'p', kind: 'prose', paragraphs: para(2) }, { id: 'c', kind: 'cards', items: [{ title: 'Commerçants', body: 'Des frais trop élevés.' }, { title: 'Clients', body: 'Pas de reçu.' }, { title: 'Banques', body: 'Peu de données.' }] }] },
+  { id: 'target-audience', title: 'Clients cibles', blocks: [{ id: 'pe', kind: 'persona', name: 'Awa', role: 'Commerçante', traits: ['Pressée', 'Mobile'], needs: ['Encaisser vite'] }, { id: 'p', kind: 'prose', paragraphs: para(2) }] },
+  { id: 'products-services', title: 'Produits et services', blocks: [{ id: 'c', kind: 'cards', items: [{ title: 'Encaissement', body: 'QR et USSD.' }, { title: 'Reçus', body: 'Par SMS.' }, { title: 'Tableau de bord', body: 'Ventes du jour.' }, { title: 'Avances', body: 'Sur le chiffre.' }] }] },
+  { id: 'marketing-sales', title: 'Marketing et ventes', blocks: [{ id: 'f', kind: 'funnel', stages: [{ label: 'Visites', value: '10 000' }, { label: 'Inscrits', value: '2 000' }, { label: 'Actifs', value: '1 200' }] }, { id: 'p', kind: 'prose', paragraphs: para(1) }] },
+  { id: 'financial-plan', title: 'Plan financier', blocks: [{ id: 't', kind: 'table', headers: ['Poste', '2026', '2027'], rows: [['Revenus', '120 M', '310 M'], ['Charges', '90 M', '180 M'], ['Résultat', '30 M', '130 M']] }, { id: 'ch', kind: 'chart', chartType: 'bar', labels: ['2026', '2027', '2028'], series: [{ name: 'Revenus', data: [120, 310, 520] }], readingKey: 'Les revenus quadruplent en trois ans.' }] },
+  { id: 'goal-planning', title: 'Objectifs', blocks: [{ id: 'tl', kind: 'timeline', steps: [{ date: 'T1', title: 'Lancement', body: 'Douala.' }, { date: 'T3', title: 'Yaoundé', body: 'Deuxième ville.' }, { date: 'T6', title: 'Avances', body: 'Crédit marchand.' }] }] },
+  { id: 'risks', title: 'Risques', blocks: [{ id: 'r', kind: 'riskMatrix', risks: [{ label: 'Régulation', likelihood: 'medium', impact: 'high' }, { label: 'Concurrence', likelihood: 'high', impact: 'medium' }] }] },
+  { id: 'appendix', title: 'Annexes', blocks: [{ id: 'p', kind: 'prose', paragraphs: para(2) }] },
 ];
 
-console.log("\nTest de collision — unicité par projet\n");
+const SLIDE: SectionContent = { id: 'market', title: 'Un marché de 2,3 milliards de FCFA', blocks: [{ id: 'm', kind: 'metrics', items: [{ value: '2,3 Md', label: 'Marché adressable' }, { value: '+18 %', label: 'Croissance annuelle' }] }, { id: 'p', kind: 'prose', paragraphs: para(1) }] };
 
-// ─────────────────────────────────────────────────────────────────────────────
-console.log('Graine de document');
-{
-  // Toutes les directions artistiques sont représentées, pour ne pas mesurer
-  // l'unicité sur le seul style le plus large.
-  const seeds = PROJECTS.map((project, index) => {
-    const styleId = ART_DIRECTION_STYLE_IDS[index % ART_DIRECTION_STYLE_IDS.length];
-    return JSON.stringify(buildDocumentSeed(styleId, `businessplan:${project.id}`));
+/** La même marque pour tous : même style, même palette — le pire cas, où seule la graine peut séparer. */
+const SAME_BRAND = { name: 'Marque', palette: { primary: '#1447e6', secondary: '#000060', accent: '#22d3ee', background: '#ffffff', text: '#111111' } };
+
+interface Composed {
+  /** L'empreinte de chaque page (motif, paramètres, couleur, tension, accent, silhouette). */
+  prints: string[];
+  /** Le DesignSpec du document, sans la graine : ce qui serait rendu. */
+  spec: string;
+}
+
+async function compose(o: { seed: string; styleId?: string; level?: CreativityLevel; documentType?: DocumentType; format?: FormatId; sections?: SectionContent[] }): Promise<Composed> {
+  const sections = o.sections ?? PLAN;
+  const doc = await createDocument({
+    documentType: o.documentType ?? 'business-plan',
+    format: o.format ?? 'a4-portrait',
+    brand: SAME_BRAND,
+    direction: { styleId: o.styleId ?? 'swiss' },
+    creativity: o.level ?? 'medium',
+    seed: o.seed,
+    sections: sections.map((s) => ({ id: s.id })),
+    validate: false,
   });
-
-  const distinct = new Set(seeds).size;
-  check(
-    'aucune collision de graine entre projets',
-    distinct === seeds.length,
-    `${seeds.length - distinct} collision(s) sur ${seeds.length} projets`
-  );
-
-  // Reproductibilité : c'est ce qui distingue « unique » de « aléatoire ». Un
-  // document régénéré doit retrouver sa composition.
-  const again = buildDocumentSeed(ART_DIRECTION_STYLE_IDS[0], 'businessplan:fintech-0');
-  const first = buildDocumentSeed(ART_DIRECTION_STYLE_IDS[0], 'businessplan:fintech-0');
-  check('la graine est déterministe (même clé ⇒ même graine)',
-    JSON.stringify(again) === JSON.stringify(first));
-
-  // Deux livrables d'un même projet ne partagent PAS leur graine : ils se
-  // ressemblent par la charte, pas par la composition.
-  const plan = buildDocumentSeed(ART_DIRECTION_STYLE_IDS[0], 'businessplan:fintech-0');
-  const deck = buildDocumentSeed(ART_DIRECTION_STYLE_IDS[0], 'pitchdeck:fintech-0');
-  check('deux livrables d\'un même projet ont des graines distinctes',
-    JSON.stringify(plan) !== JSON.stringify(deck));
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-console.log('\nGraine de section');
-{
-  // Dans un même document, les archétypes ne doivent pas se répéter tant que
-  // l'espace du style n'est pas épuisé.
-  let worstRepeat = 0;
-  let worstStyle = '';
-
-  for (const styleId of ART_DIRECTION_STYLE_IDS) {
-    const used = new Set<string>();
-    const archetypes = SECTIONS.map(
-      (name) => buildSectionSeed(styleId, 'businessplan:fintech-0', name, used).archetype
-    );
-    const available = ART_DIRECTION_STYLES[styleId].seedSpace?.archetypes?.length ?? 12;
-    const expectedDistinct = Math.min(available, SECTIONS.length);
-    const distinct = new Set(archetypes).size;
-    const repeats = expectedDistinct - distinct;
-    if (repeats > worstRepeat) {
-      worstRepeat = repeats;
-      worstStyle = styleId;
-    }
+  const prints: string[] = [];
+  for (const [index, section] of sections.entries()) {
+    prints.push((await doc.composeSection(section, { index: index + 1, total: sections.length })).result.provenance.fingerprint);
   }
-  check(
-    'aucune répétition d\'archétype tant que le style offre des alternatives',
-    worstRepeat === 0,
-    `${worstRepeat} répétition(s) évitable(s) sur "${worstStyle}"`
-  );
-
-  // Les INVARIANTS, eux, doivent être identiques d'une page à l'autre : c'est
-  // ce qui fait un document plutôt qu'une pile de pages.
-  const used = new Set<string>();
-  const seeds = SECTIONS.map((name) =>
-    buildSectionSeed('editorial', 'businessplan:fintech-0', name, used)
-  );
-  const invariants = seeds.map((seed) =>
-    JSON.stringify({
-      colorStrategy: seed.colorStrategy,
-      typographyMood: seed.typographyMood,
-      spacingMultiplier: seed.spacingMultiplier,
-      graphicAccent: seed.graphicAccent,
-      family: seed.family,
-    })
-  );
-  check('les invariants sont partagés par toutes les pages du document',
-    new Set(invariants).size === 1);
-
-  // …et les VARIANTES doivent, elles, varier.
-  const variants = seeds.map((seed) => `${seed.archetype}|${seed.layoutTension}`);
-  check('la composition varie d\'une page à l\'autre',
-    new Set(variants).size >= Math.min(SECTIONS.length, 6),
-    `${new Set(variants).size} compositions distinctes sur ${SECTIONS.length} pages`);
+  const { seed: _seed, ...spec } = doc.designSpec();
+  return { prints, spec: JSON.stringify(spec) };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-console.log('\nRégion chromatique');
-{
-  const constraints = PROJECTS.map((p) => buildPaletteConstraint(p.id));
-  const distinct = new Set(constraints.map((c) => JSON.stringify(c))).size;
+const patternOf = (print: string): string => print.split('|')[0];
 
-  // 648 régions pour 30 projets : quelques collisions sont statistiquement
-  // normales (paradoxe des anniversaires). Ce qui compte est qu'elles restent
-  // rares — et surtout qu'elles ne suivent PAS le secteur.
-  check(
-    'les régions chromatiques sont majoritairement distinctes',
-    distinct >= PROJECTS.length - 2,
-    `${distinct} régions distinctes sur ${PROJECTS.length} projets`
-  );
+(async () => {
+  console.log('\nTest de collision — unicité par projet\n');
 
-  // Le test qui compte vraiment : deux projets du MÊME secteur ne doivent pas
-  // converger. C'est le défaut que la contrainte existe pour corriger.
-  const fintech = PROJECTS.filter((p) => p.sector === 'fintech').map((p) =>
-    buildPaletteConstraint(p.id)
-  );
-  const fintechHues = new Set(fintech.map((c) => c.baseHue));
-  check(
-    'deux marques du même secteur ne partagent pas la même teinte de base',
-    fintechHues.size >= 6,
-    `${fintechHues.size} teintes distinctes sur ${fintech.length} projets fintech`
-  );
+  // ───────────────────────────────────────────────────────────────────────────
+  console.log('Composition d’un business plan (même style, même palette pour tous)');
+  {
+    const documents = await Promise.all(PROJECTS.map((p) => compose({ seed: documentDesignKey('businessplan', p.id, LEGACY_DOCUMENT_ID) })));
+    const signatures = documents.map((d) => d.prints.join('#'));
+    const distinct = new Set(signatures).size;
+    check('aucune collision de document entre les trente projets', distinct === PROJECTS.length, `${distinct} documents distincts sur ${PROJECTS.length}`);
 
-  check('la région est déterministe',
-    JSON.stringify(buildPaletteConstraint('fintech-0')) ===
-      JSON.stringify(buildPaletteConstraint('fintech-0')));
-}
+    // Le test qui compte vraiment : deux projets du MÊME secteur ne doivent pas converger, page par page.
+    const fintech = documents.slice(0, 10);
+    const worstPage = PLAN.map((s, k) => ({ id: s.id, distinct: new Set(fintech.map((d) => d.prints[k])).size })).sort((a, b) => a.distinct - b.distinct)[0];
+    check('dix projets du même secteur : chaque page varie d’un projet à l’autre', worstPage.distinct >= 6, `page la moins variée : ${worstPage.id}, ${worstPage.distinct} compositions sur 10`);
 
-// ─────────────────────────────────────────────────────────────────────────────
-console.log('\nRegistre typographique');
-{
-  const registers = PROJECTS.map((p) => buildTypographyConstraint(p.id));
-  const distinct = new Set(registers).size;
-  check(
-    'les registres typographiques se répartissent',
-    distinct >= 5,
-    `${distinct} registres distincts sur ${PROJECTS.length} projets`
-  );
-}
+    // Dans un même document, la structure varie d'une page à l'autre ; un long document peut revenir à une
+    // composition calme, jamais sur deux pages voisines (même exigence que le moteur : ≥ 4 sur 6 pages).
+    const perDocument = documents.map((d) => new Set(d.prints.map(patternOf)).size);
+    const poorest = Math.min(...perDocument);
+    check(`chaque document varie ses compositions page à page (${PLAN.length} pages)`, poorest >= 6, `au pire ${poorest} motifs distincts sur ${PLAN.length} pages`);
+    const adjacent = documents.filter((d) => d.prints.some((x, k) => k > 0 && patternOf(x) === patternOf(d.prints[k - 1]))).length;
+    check('deux pages voisines n’ont jamais la même composition', adjacent === 0, `${adjacent} document(s) en défaut`);
+    const repeated = documents.map((d) => Math.max(...[...new Set(d.prints.map(patternOf))].map((p) => d.prints.filter((x) => patternOf(x) === p).length)));
+    check('aucun motif ne revient plus de trois fois dans un même document', Math.max(...repeated) <= 3, `au pire ${Math.max(...repeated)} fois`);
 
-// ─────────────────────────────────────────────────────────────────────────────
-console.log('\nEspace de tirage');
-{
-  let total = 0;
-  let smallest = Number.POSITIVE_INFINITY;
-  let smallestStyle = '';
-
-  for (const styleId of ART_DIRECTION_STYLE_IDS) {
-    const space = ART_DIRECTION_STYLES[styleId].seedSpace;
-    if (!space) continue;
-    // ── CE QUI EST COMPTÉ EST CE QUI EST RENDU ───────────────────────────
-    //
-    // Le décompte incluait `imagePosition` (facteur 10) et `readingDirection`
-    // (facteur 6). Aucune des deux n'était lue par le rendu : elles étaient
-    // tirées, transmises au prompt, puis oubliées. Le « million de
-    // combinaisons » était donc soixante fois trop optimiste, et c'est
-    // précisément pourquoi ce contrôle passait au vert pendant que les chartes
-    // sortaient identiques.
-    //
-    // `readingDirection` reste comptée, mais pour ce qu'elle FAIT : elle
-    // reflète les deux dispositions latérales, soit un facteur deux — pas six.
-    // `imagePosition` n'est plus comptée du tout, faute de lecteur.
-    const combos =
-      (space.archetypes?.length ?? 1) *
-      (space.colorStrategies?.length ?? 1) *
-      (space.typographyMoods?.length ?? 1) *
-      (space.layoutTensions?.length ?? 1) *
-      (space.contentDensities?.length ?? 1) *
-      (space.graphicAccents?.length ?? 1) *
-      5 * // spacingMultiplier
-      2 * // readingDirection — le reflet des dispositions latérales
-      // Les familles de mise en page ouvertes au style. Chacune a ses lecteurs
-      // nommés (`familyChrome.ts`, `familyBlocks.ts`) : c'est une dimension
-      // RENDUE, et `check:render` vérifie que deux familles ne rendent jamais la
-      // même page.
-      familiesForStyle(styleId).length;
-    total += combos;
-    if (combos < smallest) {
-      smallest = combos;
-      smallestStyle = styleId;
-    }
+    // Reproductibilité : c'est ce qui distingue « unique » de « aléatoire ». Un document régénéré retrouve sa
+    // composition, et deux documents d'un même projet (plan bancaire, plan investisseur) ont chacun la leur.
+    const first = await compose({ seed: documentDesignKey('businessplan', 'fintech-0', LEGACY_DOCUMENT_ID) });
+    const again = await compose({ seed: documentDesignKey('businessplan', 'fintech-0', LEGACY_DOCUMENT_ID) });
+    check('même clé ⇒ même composition (un document régénéré garde sa mise en page)', first.spec === again.spec);
+    const other = await compose({ seed: documentDesignKey('businessplan', 'fintech-0', 'bp-investor') });
+    check('deux documents d’un même projet ont des compositions distinctes', first.prints.join('#') !== other.prints.join('#'));
   }
 
-  console.log(`     espace total : ${total.toLocaleString('fr-FR')} combinaisons`);
-  console.log(`     style le plus contraint : ${smallestStyle} (${smallest.toLocaleString('fr-FR')})`);
-
-  // Le seuil protège contre une réduction d'espace passée inaperçue : retirer
-  // des archétypes d'un `seedSpace` réduit l'unicité sans qu'aucun test ne le
-  // signale autrement.
-  // Seuils divisés par trente, comme le décompte : ils portaient sur un espace
-  // soixante fois surévalué. Les abaisser n'affaiblit pas le contrôle — c'est
-  // le contraire, ils mesurent enfin quelque chose.
-  check('le style le plus contraint garde un espace suffisant', smallest >= 1_500);
-  check('l\'espace total reste au-dessus de cent mille', total >= 100_000);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-console.log('\nStructures réellement rendues');
-{
-  /*
-   * ── LE CONTRÔLE QUI MANQUAIT ────────────────────────────────────────────
-   *
-   * Tout ce qui précède mesure l'espace de TIRAGE. Rien ne mesurait ce que ce
-   * tirage produit à l'écran. Les deux avaient divergé sans bruit : douze
-   * archétypes se ramenaient à DEUX structures de page, et un style n'en tire
-   * que quatre ou cinq. Deux styles — « minimalism » et « retro » — n'avaient
-   * ainsi accès qu'à des archétypes de la même structure : toutes les pages de
-   * leurs chartes sortaient identiques, et aucun contrôle ne pouvait le dire.
-   *
-   * Celui-ci le dit. Il ne regarde pas le catalogue : il regarde la table que
-   * le rendu consulte réellement.
-   */
-  // Relevé à cinq : une charte compte désormais une vingtaine de pages, et
-  // trois structures y font six pages identiques. Chaque style tire dans sept à
-  // neuf archétypes — le seuil est donc atteignable sans contorsion, et il
-  // empêche qu'un élargissement futur n'ajoute que des en-têtes.
-  const MIN_STRUCTURES = 5;
-  let worst = Number.POSITIVE_INFINITY;
-  let worstStyle = '';
-  const offenders: string[] = [];
-
-  for (const styleId of ART_DIRECTION_STYLE_IDS) {
-    const pool = ART_DIRECTION_STYLES[styleId].seedSpace?.archetypes;
-    if (!pool || pool.length === 0) continue;
-    const structures = new Set(pool.map((a) => ARCHETYPE_LANDSCAPE[a]));
-    if (structures.size < worst) {
-      worst = structures.size;
-      worstStyle = styleId;
-    }
-    if (structures.size < MIN_STRUCTURES) {
-      offenders.push(`${styleId} (${structures.size} : ${[...structures].join(', ')})`);
-    }
-  }
-
-  const rendered = new Set(Object.values(ARCHETYPE_LANDSCAPE));
-  console.log(`     ${rendered.size} structures de page distinctes : ${[...rendered].sort().join(', ')}`);
-  console.log(`     style le plus pauvre : ${worstStyle} (${worst} structures)`);
-
-  check(
-    'le rendu propose au moins quatre structures de page',
-    rendered.size >= 4,
-    `${rendered.size} structures`
-  );
-  check(
-    `chaque style atteint ${MIN_STRUCTURES} structures distinctes`,
-    offenders.length === 0,
-    offenders.join(' · ')
-  );
-  check(
-    'chaque structure est atteignable par au moins un style',
-    [...rendered].every((layout) =>
-      ART_DIRECTION_STYLE_IDS.some((styleId) =>
-        (ART_DIRECTION_STYLES[styleId].seedSpace?.archetypes ?? []).some(
-          (a) => ARCHETYPE_LANDSCAPE[a] === layout
-        )
-      )
-    )
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-console.log('\nFamilles de mise en page');
-{
-  /*
-   * ── POURQUOI CE CONTRÔLE ─────────────────────────────────────────────────
-   *
-   * Constaté par l'utilisateur le 13 septembre 2026 : « peu importe le projet,
-   * c'est toujours les mêmes styles, exactement les mêmes dispositions ». Les
-   * contrôles précédents passaient au vert pendant ce temps-là : ils comptaient
-   * des réglages, pas des dessins. Ici, chaque valeur vérifiée désigne une
-   * fonction de rendu distincte.
-   */
-  const count = LAYOUT_FAMILIES.length;
-  console.log(`     ${count} familles`);
-  check('le catalogue compte au moins cinquante-cinq familles', count >= 55, `${count} familles`);
-  check(
-    'les identifiants de famille sont uniques',
-    new Set(LAYOUT_FAMILIES.map((entry) => entry.id)).size === count
-  );
-
-  // L'ÉCART : une famille qui ressemble à une autre n'ajoute pas de variété,
-  // elle ajoute un doublon.
-  let closest = { distance: Number.POSITIVE_INFINITY, pair: '' };
-  let total = 0;
-  let pairs = 0;
-  for (let i = 0; i < count; i++) {
-    for (let j = i + 1; j < count; j++) {
-      const distance = familyDistance(LAYOUT_FAMILIES[i], LAYOUT_FAMILIES[j]);
-      total += distance;
-      pairs += 1;
-      if (distance < closest.distance) {
-        closest = { distance, pair: `${LAYOUT_FAMILIES[i].id} ~ ${LAYOUT_FAMILIES[j].id}` };
+  // ───────────────────────────────────────────────────────────────────────────
+  console.log('\nEspace de composition par style (20 projets par style)');
+  {
+    // La variété reste À L'INTÉRIEUR du style : le plus contraint doit encore séparer les projets. Low compose
+    // avec les compositions éprouvées (exploration minimale), Medium tire parmi les trois meilleures.
+    const floors: Record<'low' | 'medium', { page: number; slide: number }> = { low: { page: 5, slide: 12 }, medium: { page: 12, slide: 15 } };
+    for (const level of ['low', 'medium'] as const) {
+      let page = { size: Infinity, styleId: '' };
+      let slide = { size: Infinity, styleId: '' };
+      for (const styleId of Object.keys(STYLE_DATA)) {
+        const pages = new Set<string>();
+        const slides = new Set<string>();
+        for (let i = 0; i < 20; i++) {
+          pages.add((await compose({ seed: `businessplan:space-${i}`, styleId, level, sections: [PLAN[0]] })).prints[0]);
+          slides.add((await compose({ seed: `pitchdeck:space-${i}`, styleId, level, documentType: 'pitch-deck', format: 'slide-16x9', sections: [SLIDE] })).prints[0]);
+        }
+        if (pages.size < page.size) page = { size: pages.size, styleId };
+        if (slides.size < slide.size) slide = { size: slides.size, styleId };
       }
+      check(`${level} : une page de business plan garde au moins ${floors[level].page} compositions sur 20 projets, dans chaque style`, page.size >= floors[level].page, `au pire ${page.size} (${page.styleId})`);
+      check(`${level} : une diapositive garde au moins ${floors[level].slide} compositions sur 20 projets, dans chaque style`, slide.size >= floors[level].slide, `au pire ${slide.size} (${slide.styleId})`);
     }
   }
-  const dimensions = FAMILY_DIMENSIONS.length + 1;
-  console.log(
-    `     écart minimal : ${closest.distance} dimensions sur ${dimensions} (${closest.pair}), moyenne ${(total / pairs).toFixed(1)}`
-  );
-  check(
-    'deux familles diffèrent toujours sur au moins neuf dimensions visibles',
-    closest.distance >= 9,
-    `${closest.distance} seulement entre ${closest.pair}`
-  );
 
-  // LA COUVERTURE : un utilisateur fidèle à un style doit rencontrer beaucoup de
-  // familles, pas trois.
-  const pools = ART_DIRECTION_STYLE_IDS.map((styleId) => ({ styleId, size: familiesForStyle(styleId).length }));
-  const poorest = pools.reduce((a, b) => (b.size < a.size ? b : a));
-  console.log(`     style le moins pourvu : ${poorest.styleId} (${poorest.size} familles)`);
-  check('chaque style ouvre au moins treize familles', poorest.size >= 13, `${poorest.styleId} : ${poorest.size}`);
-  const narrow = LAYOUT_FAMILIES.filter((entry) => entry.fits.length < 4);
-  check(
-    'chaque famille convient à au moins quatre styles',
-    narrow.length === 0,
-    narrow.map((entry) => entry.id).join(', ')
-  );
+  // ───────────────────────────────────────────────────────────────────────────
+  console.log('\nRégion chromatique');
+  {
+    const constraints = PROJECTS.map((p) => buildPaletteConstraint(p.id));
+    const distinct = new Set(constraints.map((c) => JSON.stringify(c))).size;
 
-  // CHAQUE DESSIN SERT : une valeur déclarée dans le vocabulaire mais portée par
-  // une seule famille (ou aucune) est un dessin qu'on ne rencontre presque
-  // jamais — ou du code mort.
-  const vocabulary: Record<string, string[]> = {
-    headers: ['archetype', 'hanging-number', 'bleed-band', 'centered-rule', 'underscored', 'opener', 'split-lede', 'boxed', 'margin-kicker', 'numbered-rule', 'lede-led', 'double-rule', 'ribbon'],
-    folio: ['rule-split', 'centered', 'index-right', 'heavy-bar', 'mark-only', 'tinted-strip', 'running-head', 'corner-number'],
-    body: ['full', 'offset', 'indexed', 'narrow', 'paired'],
-    metrics: ['ruled-row', 'ledger', 'hero-list', 'tiles', 'divided', 'band', 'label-first', 'stacked-rows', 'inline-sentence', 'stamped', 'staircase'],
-    table: ['banded', 'booktabs', 'gridded', 'accent-head', 'first-column', 'row-cards', 'inverted-head', 'airy', 'striped-columns', 'transposed', 'framed'],
-    cards: ['panels', 'numbered', 'outlined', 'edge-stack', 'ruled-columns', 'inverted-lead', 'definitions', 'tagged', 'stacked-bands', 'staggered', 'monogram', 'corner-number'],
-    timeline: ['rail', 'steps', 'date-column', 'boxes', 'leaders', 'big-dates', 'spine', 'numbered-circles', 'chevrons'],
-    quote: ['panel', 'display', 'centered', 'inverted', 'hanging', 'caps', 'split', 'brackets', 'highlight'],
-    assumption: ['ruled', 'boxed', 'margin', 'inline', 'edge', 'tab', 'footnote'],
-    prose: ['plain', 'drop-cap', 'lead-in', 'columns', 'indented', 'essay', 'large-lead', 'rule-separated'],
-    chart: ['keyline', 'headline', 'boxed', 'bare', 'side-note', 'figure-caption'],
-    label: ['caps', 'small-caps', 'italic', 'bold', 'underlined'],
-    numbering: ['padded', 'roman', 'section', 'dotted', 'bracketed', 'plain'],
-    rules: ['hairline', 'heavy', 'double', 'dotted', 'none'],
-    figures: ['accent', 'ink'],
-    corners: ['style', 'square'],
-    titleScale: ['mood', 'moderate', 'discreet'],
-    swatches: ['0', '1', '2'],
-    lede: ['muted', 'large', 'italic', 'ruled', 'caps'],
-    figureFace: ['display', 'light', 'italic', 'medium'],
-    chartInk: ['palette', 'monochrome', 'focus', 'outline'],
-    rhythm: ['standard', 'airy', 'tight'],
-    edge: ['none', 'top-bar', 'side-bar', 'frame'],
-  };
-  const rare: string[] = [];
-  for (const [dimension, values] of Object.entries(vocabulary)) {
-    for (const value of values) {
-      const users = LAYOUT_FAMILIES.filter((entry) =>
-        ([] as unknown[]).concat((entry as unknown as Record<string, unknown>)[dimension]).map(String).includes(value)
-      ).length;
-      if (users < 2) rare.push(`${dimension}=${value} (${users})`);
-    }
+    // 648 régions pour 30 projets : quelques collisions sont statistiquement
+    // normales (paradoxe des anniversaires). Ce qui compte est qu'elles restent
+    // rares — et surtout qu'elles ne suivent PAS le secteur.
+    check('les régions chromatiques sont majoritairement distinctes', distinct >= PROJECTS.length - 2, `${distinct} régions distinctes sur ${PROJECTS.length} projets`);
+
+    // Deux projets du MÊME secteur ne doivent pas converger : c'est le défaut que la contrainte corrige.
+    const fintechHues = new Set(PROJECTS.filter((p) => p.sector === 'fintech').map((p) => buildPaletteConstraint(p.id).baseHue));
+    check('deux marques du même secteur ne partagent pas la même teinte de base', fintechHues.size >= 6, `${fintechHues.size} teintes distinctes sur 10 projets fintech`);
+
+    check('la région est déterministe', JSON.stringify(buildPaletteConstraint('fintech-0')) === JSON.stringify(buildPaletteConstraint('fintech-0')));
   }
-  check('chaque dessin du vocabulaire est porté par au moins deux familles', rare.length === 0, rare.join(' · '));
 
-  // LE TIRAGE : quarante projets du même style ne retombent pas sur trois
-  // familles, et un même document retrouve la sienne.
-  const styleId = 'editorial';
-  const drawn = new Set(Array.from({ length: 40 }, (_, i) => pickFamily(styleId, `businessplan:projet-${i}`).id));
-  const pool = familiesForStyle(styleId).length;
-  check(
-    'quarante projets du même style se répartissent sur la plupart de ses familles',
-    drawn.size >= Math.min(pool, 14),
-    `${drawn.size} familles tirées sur ${pool}`
-  );
-  check(
-    'la famille d\'un document est déterministe',
-    pickFamily(styleId, 'businessplan:x').id === pickFamily(styleId, 'businessplan:x').id
-  );
-  check(
-    'la graine de document porte sa famille',
-    buildDocumentSeed(styleId, 'businessplan:projet-0').family === pickFamily(styleId, 'businessplan:projet-0').id
-  );
-}
+  // ───────────────────────────────────────────────────────────────────────────
+  console.log('\nRegistre typographique');
+  {
+    const distinct = new Set(PROJECTS.map((p) => buildTypographyConstraint(p.id))).size;
+    check('les registres typographiques se répartissent', distinct >= 5, `${distinct} registres distincts sur ${PROJECTS.length} projets`);
+  }
 
-console.log('');
-if (failures > 0) {
-  console.error(`Unicité: ${failures} vérification(s) en échec.\n`);
+  console.log('');
+  if (failures) {
+    console.error(`Unicité: ${failures} vérification(s) en échec.\n`);
+    process.exit(1);
+  }
+  console.log('Unicité: toutes les vérifications passent.\n');
+})().catch((error) => {
+  console.error(error);
   process.exit(1);
-}
-console.log('Unicité: toutes les vérifications passent.\n');
+});

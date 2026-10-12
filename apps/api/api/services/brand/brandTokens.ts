@@ -18,14 +18,13 @@
  * et la nouvelle valeur (cf. `brandRewrite.ts`).
  *
  * Tout ici est déterministe et sans réseau : les dérivées viennent de
- * `buildDocumentDesignSystem`, exactement celui qui a produit les pages.
+ * `buildTokens` du moteur graphique (@idem/graphic-engine), exactement celui qui a produit les pages.
  */
 
 import crypto from 'crypto';
 
 import { BrandIdentityModel } from '../../models/brand-identity.model';
-import { buildDocumentSeed } from '../design/designSeed';
-import { buildDocumentDesignSystem } from '../design/documentDesignSystem';
+import { brandFromIdem, buildTokens } from '@idem/graphic-engine';
 
 // Lecteurs de la marque : une seule implémentation, dans le moteur partagé (apps/ivision/core).
 import { BrandFontTokens, BrandPalette, isHex6, LOGO_SLOTS, logoSlotValue, normalizeHex, PALETTE_ROLES, readFonts, readPalette, resolveLogoSlot } from '../../../../ivision/core/src/brand/brand-kit';
@@ -54,25 +53,35 @@ export interface BrandTokens {
  * grille, le rayon et le rythme, jamais la couleur) : une graine neutre suffit
  * donc à reproduire exactement les teintes posées sur les pages.
  */
+/**
+ * Les couleurs DÉRIVÉES que le moteur graphique pose dans les documents (encres lisibles, surfaces,
+ * filets, rampes) : quand la charte change, ce sont elles qu'il faut traduire dans les livrables déjà
+ * produits. Calculées exactement comme le moteur les calcule (`buildTokens`).
+ */
 function documentColorTokens(branding: Partial<BrandIdentityModel>): Array<[string, string]> {
-  const ds = buildDocumentDesignSystem(
-    branding as Parameters<typeof buildDocumentDesignSystem>[0],
-    null,
-    buildDocumentSeed(null, 'brand-tokens')
-  );
-  const c = ds.colors;
+  const { brand, direction } = brandFromIdem({ name: 'brand', branding: branding as never });
+  const c = buildTokens({ brand: { ...brand, logos: undefined, patterns: undefined }, direction, format: 'a4-portrait' }).color;
   const tokens: Array<[string, string]> = [
     ['doc.primary', c.primary],
     ['doc.secondary', c.secondary],
     ['doc.accent', c.accent],
-    ['doc.surface', c.surface],
+    ['doc.ground', c.ground],
     ['doc.ink', c.ink],
-    ['doc.inkMuted', c.inkMuted],
+    ['doc.muted', c.muted],
+    ['doc.faint', c.faint],
+    ['doc.onBrand', c.onBrand],
     ['doc.onAccent', c.onAccent],
-    ['doc.surfaceRaised', c.surfaceRaised],
+    ['doc.raised', c.raised],
+    ['doc.sunken', c.sunken],
     ['doc.rule', c.rule],
+    ['doc.ruleStrong', c.ruleStrong],
+    ['doc.brandSoft', c.brandSoft],
+    ['doc.accentSoft', c.accentSoft],
+    ['doc.deep', c.deep],
+    ['doc.onDeep', c.onDeep],
   ];
-  for (const [stop, hex] of Object.entries(c.brand)) tokens.push([`doc.brand.${stop}`, hex]);
+  for (const [stop, hex] of Object.entries(c.brandRamp)) tokens.push([`doc.brand.${stop}`, hex]);
+  for (const [stop, hex] of Object.entries(c.accentRamp)) tokens.push([`doc.accent.${stop}`, hex]);
   for (const [stop, hex] of Object.entries(c.neutral)) tokens.push([`doc.neutral.${stop}`, hex]);
   return tokens
     .map(([name, hex]) => [name, normalizeHex(hex)] as [string, string])

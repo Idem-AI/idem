@@ -146,7 +146,9 @@ export class CardPreviewComponent {
     return `${templateHtml}
 <script>
 (function () {
-  var root = document.body.firstElementChild;
+  // Une face composée par le moteur graphique est précédée de ses polices (<link>) : la carte est la
+  // racine \`.ge-page\`, pas le premier élément du document.
+  var root = document.querySelector('.ge-page') || document.body.firstElementChild;
   if (!root) return;
   var wrapper = document.createElement('div');
   wrapper.innerHTML = root.outerHTML;
@@ -167,7 +169,8 @@ export class CardPreviewComponent {
     holder.innerHTML = html;
     var next = holder.firstElementChild;
     if (!next) return;
-    document.body.replaceChild(next, document.body.firstElementChild);
+    root.parentNode.replaceChild(next, root);
+    root = next;
     var nodes = document.querySelectorAll('[data-field]');
     for (var i = nodes.length - 1; i >= 0; i--) {
       var el = nodes[i];
@@ -175,12 +178,45 @@ export class CardPreviewComponent {
       var hasMedia = el.querySelector('img[src], svg') !== null;
       if (!hasText && !hasMedia) el.remove();
     }
+    fit();
   }
+
+  // La face a été mesurée avec ses marqueurs : une valeur réelle plus longue (nom composé, adresse) peut
+  // faire déborder la carte. Les champs cèdent alors de la taille, ensemble et par pas, jamais sous le
+  // plancher d'impression (8,5 px ≈ 6,4 pt) ; un mot encore trop long se coupe (même logique qu'à l'export).
+  function fit() {
+    var FLOOR = 8.5;
+    var fields = Array.prototype.slice.call(root.querySelectorAll('[data-field]'));
+    if (!fields.length) return;
+    function overflowing() {
+      var box = root.getBoundingClientRect();
+      if (root.scrollHeight > root.clientHeight + 1 || root.scrollWidth > root.clientWidth + 1) return true;
+      for (var i = 0; i < fields.length; i++) {
+        var r = fields[i].getBoundingClientRect();
+        if (r.right > box.right + 0.5 || r.bottom > box.bottom + 0.5 || r.left < box.left - 0.5) return true;
+        if (fields[i].scrollWidth > fields[i].clientWidth + 1) return true;
+      }
+      return false;
+    }
+    var base = fields.map(function (el) { return parseFloat(getComputedStyle(el).fontSize) || FLOOR; });
+    for (var step = 1; step <= 14 && overflowing(); step++) {
+      var factor = Math.pow(0.95, step), moved = false;
+      for (var j = 0; j < fields.length; j++) {
+        var size = Math.max(Math.min(base[j], FLOOR), base[j] * factor);
+        if (size < parseFloat(getComputedStyle(fields[j]).fontSize) - 0.01) { fields[j].style.fontSize = size.toFixed(2) + 'px'; moved = true; }
+      }
+      if (!moved) break;
+    }
+    if (overflowing()) for (var k = 0; k < fields.length; k++) fields[k].style.overflowWrap = 'anywhere';
+  }
+  var last = {};
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { render(last); });
 
   window.addEventListener('message', function (event) {
     var data = event.data;
     if (!data || data.source !== 'idem-card-host' || data.type !== 'values') return;
-    render(data.values || {});
+    last = data.values || {};
+    render(last);
   });
 
   // Rendu immédiat : évite que les marqueurs bruts apparaissent le temps que

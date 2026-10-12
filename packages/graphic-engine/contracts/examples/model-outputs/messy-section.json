@@ -1,0 +1,83 @@
+{
+  "title": "  Notre marché   en croissance ",
+  "kicker": "Marché",
+  "html": "<div>…</div>",
+  "blocks": [
+    {
+      "kind": "kpi",
+      "items": [
+        {
+          "value": "2,3 Md",
+          "label": "Marché",
+          "extra": 1
+        },
+        {
+          "value": "",
+          "label": "vide"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Poste",
+        "2026",
+        "2027"
+      ],
+      "rows": [
+        [
+          "CA",
+          "48",
+          "72",
+          "999"
+        ],
+        [
+          "Charges",
+          "39"
+        ]
+      ]
+    },
+    {
+      "kind": "chart",
+      "chartType": "camembert",
+      "labels": [
+        "A",
+        "B",
+        "C"
+      ],
+      "series": [
+        {
+          "name": "Part",
+          "data": [
+            "40",
+            "35,5"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "cards",
+      "items": [
+        {
+          "title": "Sans corps"
+        },
+        {
+          "body": "Sans titre mais avec un corps"
+        }
+      ]
+    },
+    {
+      "kind": "prose",
+      "paragraphs": []
+    },
+    {
+      "kind": "swatches",
+      "items": [
+        {
+          "hex": "#123456",
+          "name": "Inventée"
+        }
+      ]
+    }
+  ]
+}

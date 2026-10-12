@@ -15,11 +15,7 @@
  */
 
 import logger from '../../config/logger';
-import { buildDocumentSeed } from '../design/designSeed';
-import {
-  buildDocumentDesignSystem,
-  DocumentDesignSystem,
-} from '../design/documentDesignSystem';
+import { ReportTheme as DocumentDesignSystem, reportThemeOf } from './finance-theme';
 import { PdfService } from '../pdf.service';
 import { SectionModel } from '../../models/section.model';
 import { financeService } from './finance.service';
@@ -164,16 +160,11 @@ export class FinancePdfService {
   // -----------------------------------------------------------------
 
   /**
-   * Design system du projet, calculé une fois par rapport.
-   *
-   * La graine est dérivée du projet : deux rapports du même projet sont
-   * identiques, deux projets différents ne le sont pas.
+   * Le thème du rapport : la charte du projet, lue par le moteur graphique
+   * (mêmes encres, mêmes polices que les autres livrables du projet).
    */
   private designSystemOf(project: ProjectModel): DocumentDesignSystem {
-    const branding = project.analysisResultModel?.branding;
-    const artDirection = branding?.artDirection;
-    const seed = buildDocumentSeed(artDirection?.styleId, `finance:${project.id ?? 'projet'}`);
-    return buildDocumentDesignSystem(branding, artDirection, seed);
+    return reportThemeOf(project.name || 'Projet', project.analysisResultModel?.branding as never);
   }
 
   /**

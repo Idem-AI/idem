@@ -10,7 +10,7 @@ import { PromptService } from '../prompt.service';
 /**
  * Les mots d'une couverture — et rien d'autre.
  *
- * La page est dessinée par le code (`coverComposer.ts`) ; le modèle n'écrit
+ * La page est dessinée par le moteur graphique (@idem/graphic-engine, `coverContent`) ; le modèle n'écrit
  * que ce qu'aucun gabarit ne peut deviner : dans quel secteur la marque
  * travaille, et ce qu'elle promet. Le titre est le nom du projet, la date et
  * le type de document viennent du code : ce ne sont pas des choses à inventer.

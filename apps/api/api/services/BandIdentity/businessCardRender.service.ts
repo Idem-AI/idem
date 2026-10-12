@@ -19,7 +19,7 @@ import {
   BusinessCardOrientation,
   BUSINESS_CARD_SIZE_MM,
 } from '../../models/businessCard.model';
-import { EMPTY_FIELD_CLEANUP } from '../../utils/business-card-template';
+import { EMPTY_FIELD_CLEANUP, FIELD_FIT } from '../../utils/business-card-template';
 import { brandFontLinks } from '../../utils/google-fonts.util';
 import { installRenderNetworkGuard } from '../../utils/render-network-guard';
 
@@ -102,6 +102,9 @@ export class BusinessCardRenderService {
         );
       });
 
+      // Une valeur réelle plus longue que son marqueur : les champs cèdent de la taille si la carte déborde.
+      await page.evaluate(FIELD_FIT).catch(() => undefined);
+
       // Puppeteer renvoie un Uint8Array : on repasse par Buffer, seul type que
       // `res.send()` sérialise en binaire (un Uint8Array partirait en JSON).
       const raw =
@@ -133,110 +136,24 @@ export class BusinessCardRenderService {
   }
 
   /**
-   * CONTRÔLE MESURÉ d'une face (crans Max et Ultra de la jauge) : la face est rendue avec des
-   * valeurs de démonstration réalistes (nom long, adresse sur deux lignes) puis mesurée.
+   * Document hors-écran isolé : la face, ses polices, et le nettoyage des lignes vides.
    *
-   * Deux catégories, et c'est tout l'enjeu. Ce qui rend une carte INIMPRIMABLE la refuse : un
-   * texte hors de la carte ou dans la marge de sécurité de 4 mm, un corps sous 5,5 pt, un
-   * contraste sous 3:1. Ce qui ne fait que l'améliorer est un CONSEIL, renvoyé à l'IA au tour
-   * suivant sans lui coûter sa carte : la carte d'auteur tombait sur la composition du code pour
-   * un contraste à 4,2:1 au lieu de 4,5:1, autrement dit un cran Ultra qui rendait du Max.
-   *
-   * La face n'est pas réparée ici : elle est mesurée avec des valeurs de DÉMONSTRATION à la place
-   * de ses variables, et rendre ce HTML-là graverait « Adjoa Mensah-Kouassi » sur la carte.
+   * Une face composée par le moteur graphique (`.ge-page`) porte ses styles en ligne et ses polices
+   * dans son propre `<head>` : elle est imprimée telle quelle, à ses cotes. Les gabarits plus anciens,
+   * écrits en classes Tailwind, gardent le chargement de Tailwind et le cadrage forcé à la carte.
    */
-  async inspect(
-    faceHtml: string,
-    orientation: BusinessCardOrientation,
-    typography?: BusinessCardRenderOptions['typography']
-  ): Promise<{ issues: string[]; advisories: string[] }> {
-    const size = BUSINESS_CARD_SIZE_MM[orientation];
-    const sample: Record<string, string> = {
-      fullName: 'Adjoa Mensah-Kouassi',
-      jobTitle: 'Directrice commerciale',
-      email: 'adjoa.mensah@exemple-entreprise.com',
-      phone: '+225 27 22 49 00 00',
-      mobile: '+225 07 08 09 10 11',
-      website: 'www.exemple-entreprise.com',
-      address: 'Rue des Jardins, Cocody, Abidjan',
-      linkedin: 'linkedin.com/in/adjoa-mensah',
-      companyName: 'Exemple',
-      tagline: 'Le goût du travail bien fait',
-    };
-    const html = this.buildDocument(faceHtml.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_m, k: string) => sample[k] ?? ''), size, typography);
-    const browser = await this.getBrowser();
-    const page = await browser.newPage();
-    await installRenderNetworkGuard(page);
-    try {
-      const cssWidth = Math.round((size.width / MM_PER_INCH) * 96);
-      const cssHeight = Math.round((size.height / MM_PER_INCH) * 96);
-      await page.setViewport({ width: cssWidth, height: cssHeight, deviceScaleFactor: 1 });
-      await page.setContent(html, { waitUntil: 'load', timeout: 30000 });
-      await page.evaluate(() => document.fonts?.ready);
-      return await page.evaluate((w: number, h: number, safe: number) => {
-        const issues: string[] = [];
-        const advisories: string[] = [];
-        const parse = (c: string) => (c.match(/[\d.]+/g) || []).map(Number);
-        const lum = (rgb: number[]) => {
-          const [r, g, b] = rgb.slice(0, 3).map((v) => {
-            const x = v / 255;
-            return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
-          });
-          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        };
-        const bgOf = (el: Element | null): number[] | null => {
-          for (let n = el; n; n = n.parentElement) {
-            const st = getComputedStyle(n);
-            if (st.backgroundImage && st.backgroundImage !== 'none') return null;
-            const c = parse(st.backgroundColor);
-            if (c.length >= 3 && (c[3] === undefined || c[3] > 0.9)) return c;
-          }
-          return [255, 255, 255];
-        };
-        for (const el of Array.from(document.body.querySelectorAll<HTMLElement>('*'))) {
-          const own = Array.from(el.childNodes).some((n) => n.nodeType === 3 && (n.textContent || '').trim().length > 0);
-          // Le texte décoratif (filigrane, monogramme rogné) est déclaré comme tel.
-          if (!own || el.closest('[aria-hidden="true"]')) continue;
-          const st = getComputedStyle(el);
-          if (st.visibility === 'hidden' || st.display === 'none' || Number(st.opacity) < 0.05) continue;
-          const r = el.getBoundingClientRect();
-          const label = (el.textContent || '').trim().slice(0, 24);
-          if (r.left < safe - 1 || r.top < safe - 1 || r.right > w - safe + 1 || r.bottom > h - safe + 1) issues.push(`text in the 4 mm safety margin or outside the card: "${label}"`);
-          const size = parseFloat(st.fontSize);
-          if (size < 7.3) issues.push(`text far too small to print: "${label}" (${size.toFixed(1)} px) — 7 pt is the floor`);
-          else if (size < 9.2) advisories.push(`"${label}" is under 7 pt (${size.toFixed(1)} px): bring it up`);
-          const bg = bgOf(el);
-          if (bg && st.color !== 'rgba(0, 0, 0, 0)') {
-            const a = lum(parse(st.color));
-            const b = lum(bg);
-            const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-            if (ratio < 3) issues.push(`unreadable in print (${ratio.toFixed(1)}:1): "${label}" — put it on another ground`);
-            else if (ratio < 4.5) advisories.push(`contrast of "${label}" is ${ratio.toFixed(1)}:1 (4.5:1 reads better in print)`);
-          }
-        }
-        return { issues: [...new Set(issues)].slice(0, 8), advisories: [...new Set(advisories)].slice(0, 5) };
-      }, cssWidth, cssHeight, Math.round((4 / MM_PER_INCH) * 96));
-    } finally {
-      await page.close().catch(() => undefined);
-    }
-  }
-
-  /** Document hors-écran isolé (Tailwind + polices de marque + nettoyage). */
   private buildDocument(
     innerHtml: string,
     size: { width: number; height: number },
     typography?: { url?: string; primaryFont?: string; secondaryFont?: string }
   ): string {
-    const fontLinks = brandFontLinks(typography);
+    const engineFace = /class="ge-page"/.test(innerHtml);
+    const fontLinks = engineFace ? '' : brandFontLinks(typography);
     const primary = typography?.primaryFont || 'Archivo';
     const secondary = typography?.secondaryFont || primary;
-
-    return `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-${fontLinks}
-<script src="https://cdn.tailwindcss.com"></script>
+    const legacy = engineFace
+      ? ''
+      : `<script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
     theme: { extend: { fontFamily: {
@@ -245,18 +162,28 @@ ${fontLinks}
       sans: ['${secondary}', 'system-ui', 'sans-serif']
     } } }
   };
-</script>
-<style>
-  @page { size: ${size.width}mm ${size.height}mm; margin: 0; }
-  *, *::before, *::after { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #ffffff; font-family: '${secondary}', system-ui, sans-serif; }
-  /* La face occupe exactement la carte, quelles que soient les classes de l'IA. */
+</script>`;
+    const frame = engineFace
+      ? ''
+      : `  /* La face occupe exactement la carte, quelles que soient ses classes. */
   body > *:first-child {
     width: ${size.width}mm !important;
     height: ${size.height}mm !important;
     overflow: hidden !important;
   }
-  img { max-width: 100%; }
+  img { max-width: 100%; }`;
+
+    return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+${fontLinks}
+${legacy}
+<style>
+  @page { size: ${size.width}mm ${size.height}mm; margin: 0; }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #ffffff; font-family: '${secondary}', system-ui, sans-serif; }
+${frame}
 </style>
 </head>
 <body>

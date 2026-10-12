@@ -13,7 +13,6 @@ export const IMPACT_SECTION_PROMPTS: SectionPromptSpec[] = [
   {
     key: 'theory-of-change',
     name: 'Theory of Change',
-    fallbackPages: '1-2',
     objective: 'Connect the means committed to the change pursued, without a leap.',
     mustCover: `1. The problem and its root causes, not its symptoms.
 2. Inputs: what is invested.
@@ -33,7 +32,6 @@ block for the root-cause analysis.`,
   {
     key: 'impact',
     name: 'Social & Economic Impact',
-    fallbackPages: '1',
     objective: 'Quantify what the project produces beyond its own result.',
     mustCover: `1. Direct jobs created, by year and by qualification level.
 2. Indirect effects on the local economy: suppliers, subcontractors, taxes.
@@ -57,7 +55,6 @@ block for the local economic effect.`,
   {
     key: 'monitoring-evaluation',
     name: 'Monitoring & Evaluation',
-    fallbackPages: '1',
     objective: 'Say how the result will be established, by whom, and when.',
     mustCover: `1. The indicators tracked, aligned on the outcomes claimed.
 2. For each: baseline, target, frequency, source of data, who collects it.
@@ -76,7 +73,6 @@ frequency, source, owner), one "timeline" for the reporting calendar, one
   {
     key: 'sustainability',
     name: 'Sustainability Plan',
-    fallbackPages: '1',
     objective: 'Show that the activity continues when the funding stops.',
     mustCover: `1. The revenue mix today and the dependence it creates on any one funder.
 2. The target mix at horizon, and how the shift is achieved.

@@ -3,7 +3,7 @@
  *
  * Fixe, et non généré : un dossier remis à une banque doit être identique d'une
  * exécution à l'autre. Seules les données changent. La composition emprunte le
- * design system du projet (`DocumentDesignSystem`) — donc la charte réelle —
+ * thème du projet (`ReportTheme`, lu par le moteur graphique) — donc la charte réelle —
  * mais la GRAMMAIRE est ici, et elle est délibérément sobre.
  *
  * ── CE QUE « SOBRE » VEUT DIRE, CONCRÈTEMENT ────────────────────────────────
@@ -42,8 +42,9 @@
  * sort sinon de la bande et donne des barres qui s'écrasent sur le texte.
  */
 
-import { DocumentDesignSystem } from '../design/documentDesignSystem';
-import { contrastRatio, hexToOklch } from '../design/color';
+import { contrastRatio } from '@idem/graphic-engine';
+import { hexToOklch } from '../../../../ivision/core/src/design/color';
+import type { ReportTheme as DocumentDesignSystem } from './finance-theme';
 
 // ---------------------------------------------------------------------------
 // Jetons de composition

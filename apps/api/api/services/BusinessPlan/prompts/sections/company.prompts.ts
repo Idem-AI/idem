@@ -13,7 +13,6 @@ export const COMPANY_SECTION_PROMPTS: SectionPromptSpec[] = [
   {
     key: 'company-summary',
     name: 'Company Summary',
-    fallbackPages: '2',
     objective:
       'Say who this company is, and why it exists, in terms a stranger can repeat.',
     mustCover: `1. Mission: what the company does, for whom, concretely. One sentence.
@@ -41,7 +40,6 @@ worth stating (founded, headcount, markets).`,
   {
     key: 'mission-vision',
     name: 'Mission & Vision',
-    fallbackPages: '1-2',
     objective: 'State why the organisation exists, and where it is going.',
     mustCover: `1. The mission: who is served, what changes for them, by what means.
 2. The vision, with a horizon and something measurable in it.
@@ -61,7 +59,6 @@ values (one card per value, stating what it forbids as much as what it asks).`,
   {
     key: 'promoter-profile',
     name: 'Promoter Profile',
-    fallbackPages: '1-2',
     objective: 'Establish the credibility of the person carrying the project.',
     mustCover: `1. Identity, background and qualifications of the promoter.
 2. Professional and entrepreneurial experience that bears on THIS activity.
@@ -85,7 +82,6 @@ experience and amount contributed.`,
   {
     key: 'management-team',
     name: 'Management & Team',
-    fallbackPages: '1-2',
     objective: 'Show that the right people are already in place.',
     mustCover: `1. The organisation chart: who reports to whom, and which posts are vacant.
 2. Key people: role held, and the experience that qualifies them for it.
@@ -112,7 +108,6 @@ governance.`,
   {
     key: 'legal-regulatory',
     name: 'Legal & Regulatory Framework',
-    fallbackPages: '1-2',
     objective: 'Show that the activity can legally be carried out, here, now.',
     mustCover: `1. Legal form chosen and why, with its consequences on liability and tax.
 2. Ownership and capital structure.

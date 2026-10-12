@@ -13,7 +13,6 @@ export const STRATEGY_SECTION_PROMPTS: SectionPromptSpec[] = [
   {
     key: 'strategy-milestones',
     name: 'Strategy & Key Milestones',
-    fallbackPages: '2',
     objective: 'Set the position aimed at, and the stages that lead to it.',
     mustCover: `1. Targeted market share and the specific customers aimed at first.
 2. The positioning of the company: how it will stand apart from competitors,
@@ -37,7 +36,6 @@ condition that justifies moving to the next, and the spending it unlocks.`,
   {
     key: 'marketing-sales',
     name: 'Marketing & Sales',
-    fallbackPages: '2',
     objective: 'Explain how a stranger becomes a customer.',
     mustCover: `1. Positioning and the message that carries it.
 2. Acquisition channels, with the cost expected on each.
@@ -65,7 +63,6 @@ positioning, one "assumption" block for the acquisition cost hypothesis.`,
   {
     key: 'go-to-market',
     name: 'Go-to-Market Strategy',
-    fallbackPages: '1-2',
     objective: 'The first customer, then the next hundred.',
     mustCover: `1. The beachhead segment, and why that one first.
 2. How the first customers will actually be reached: named channels, not
@@ -84,7 +81,6 @@ their cost and expected yield, one "metrics" row for the first-phase targets.`,
   {
     key: 'traction',
     name: 'Traction & Proof Points',
-    fallbackPages: '1',
     objective: 'Prove that something already works.',
     mustCover: `1. What exists today: users, customers, revenue, pilots, letters of intent.
 2. The growth curve, with the period and the base it is measured on.
@@ -107,7 +103,6 @@ traction figures, one "timeline" for the milestones already reached, one
   {
     key: 'partnerships',
     name: 'Partnerships & Ecosystem',
-    fallbackPages: '1',
     objective: 'Show that the project does not rest on itself alone.',
     mustCover: `1. Partners already committed, and what each one actually provides.
 2. Partners targeted, with the state of the discussion.

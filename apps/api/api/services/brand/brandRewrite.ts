@@ -19,16 +19,21 @@
  *     `font-family`, dans les classes Tailwind `font-['Nom_Police']` et dans
  *     les paramètres `family=` des feuilles Google Fonts ;
  *   · les liens de polices d'un document HTML, reconstruits d'un bloc ;
- *   · les logos : URLs, SVG en ligne et leurs `data:` URI.
+ *   · les logos : URLs, SVG en ligne et leurs `data:` URI ;
+ *   · les couleurs DÉRIVÉES que le moteur graphique calcule pour une page
+ *     (filet d'une carte, chiffre adouci, sur-titre éclairci) : reconnues par
+ *     leur recette — un mélange exact de deux jetons, une variante de clarté
+ *     d'un jeton — et refaites avec les jetons de la nouvelle marque.
  *
  * Puis une garantie : un texte lisible AVANT la traduction le reste APRÈS
  * (`repairContrast`). Une nouvelle couleur claire posée sous une encre blanche
  * ne produit pas une page illisible — l'encre est reprise, jamais la couleur.
  */
 
+import { chartPalette, mixHex } from '@idem/graphic-engine';
 import { BrandIdentityModel } from '../../models/brand-identity.model';
 import { brandFontLinks, normalizeFontFamily } from '../../utils/google-fonts.util';
-import { contrastRatio, ensureContrast } from '../design/color';
+import { contrastRatio, ensureContrast, hexToOklch, oklchToHex } from './color';
 import {
   BrandTokens,
   computeBrandTokens,
@@ -221,13 +226,160 @@ function hexToChannels(hex: string): [number, number, number] {
   return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
 }
 
-function rewriteColors(input: string, colors: Map<string, string>, stats: RewriteStats): string {
+// ─── Couleurs dérivées ──────────────────────────────────────────────────────
+//
+// Le moteur graphique ne pose pas que des jetons : pour une page précise, il calcule des teintes — le
+// filet d'une carte (le fond mêlé à 45 % d'encre), un chiffre calme, un sur-titre éclairci, une encre
+// rendue lisible sur un aplat. Elles dépendent du parti pris de la page : aucune table ne peut les
+// énumérer. Elles se reconnaissent en revanche à leur RECETTE, et se refont avec les nouveaux jetons :
+//
+//   · un mélange de deux jetons de l'ancienne marque, exact au point près (`mixHex` du moteur, la même
+//     arithmétique) → le même mélange des deux jetons de la nouvelle ;
+//   · une variante de clarté d'un jeton coloré (même teinte, même chroma, clarté décalée — ce que fait
+//     `ensureContrast`) → le même décalage appliqué au nouveau jeton ; `repairContrast` garantit ensuite
+//     qu'aucun texte n'y perd en lisibilité.
+//
+// Une couleur qu'aucune recette n'explique n'est pas une couleur de la marque : elle reste telle quelle.
+
+interface Anchor {
+  from: string;
+  to: string;
+  rgb: [number, number, number];
+}
+
+interface Derivation {
+  anchors: Anchor[];
+  /** Les couleurs de la nouvelle marque : jamais retraduites. */
+  after: Set<string>;
+  memo: Map<string, string | null>;
+}
+
+const derivations = new WeakMap<BrandRewriteMap, Derivation>();
+
+function derivationOf(map: BrandRewriteMap): Derivation {
+  const known = derivations.get(map);
+  if (known) return known;
+  const next = new Map(map.after.colors.map(([name, hex]) => [name, normalizeHex(hex)]));
+  const anchors: Anchor[] = [];
+  const seen = new Set<string>();
+  // Dans l'ORDRE DE PRIORITÉ des jetons : quand deux rôles portent la même valeur, le premier décide.
+  for (const [name, raw] of map.before.colors) {
+    const from = normalizeHex(raw);
+    const to = next.get(name);
+    if (!from || !to || seen.has(from)) continue;
+    seen.add(from);
+    anchors.push({ from, to: map.colors.get(from) ?? from, rgb: hexToChannels(from) });
+  }
+  for (const generic of GENERIC_COLORS) {
+    if (!seen.has(generic)) anchors.push({ from: generic, to: generic, rgb: hexToChannels(generic) });
+  }
+  const derivation = { anchors, after: new Set(next.values()), memo: new Map<string, string | null>() };
+  derivations.set(map, derivation);
+  return derivation;
+}
+
+/** La nouvelle valeur d'une couleur dérivée de l'ancienne marque, ou `undefined` si elle n'en dérive pas. */
+export function derivedColor(map: BrandRewriteMap, hex: string): string | undefined {
+  if (GENERIC_COLORS.has(hex) || map.colors.size === 0) return undefined;
+  const derivation = derivationOf(map);
+  if (derivation.after.has(hex)) return undefined;
+  if (derivation.memo.has(hex)) return derivation.memo.get(hex) ?? undefined;
+
+  const target = hexToChannels(hex);
+  const { anchors } = derivation;
+  let best: { error: number; rank: number; a: Anchor; b: Anchor; t: number } | null = null;
+  for (let i = 0; i < anchors.length; i++) {
+    for (let j = i + 1; j < anchors.length; j++) {
+      const a = anchors[i];
+      const b = anchors[j];
+      const d = [b.rgb[0] - a.rgb[0], b.rgb[1] - a.rgb[1], b.rgb[2] - a.rgb[2]];
+      const length = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+      if (!length) continue;
+      const t = ((target[0] - a.rgb[0]) * d[0] + (target[1] - a.rgb[1]) * d[1] + (target[2] - a.rgb[2]) * d[2]) / length;
+      if (t <= 0.01 || t >= 0.99) continue;
+      const mixed = hexToChannels(mixHex(a.from, b.from, t));
+      const error = Math.max(...mixed.map((value, k) => Math.abs(value - target[k])));
+      if (error > 1) continue;
+      // Le mélange le plus exact ; à égalité, celui des jetons les plus prioritaires.
+      if (!best || error < best.error || (error === best.error && j < best.rank)) best = { error, rank: j, a, b, t };
+    }
+  }
+
+  let result: string | null = null;
+  if (best) {
+    result = mixHex(best.a.to, best.b.to, best.t).toLowerCase();
+  } else {
+    const color = hexToOklch(hex);
+    if (color && color.c >= 0.02) {
+      const hueGap = (h1: number, h2: number) => Math.abs(((h1 - h2 + 540) % 360) - 180);
+      const anchor = anchors
+        .map((candidate) => ({ candidate, o: hexToOklch(candidate.from) }))
+        .filter(({ o }) => o && o.c >= 0.02 && hueGap(o.h, color.h) <= 2.5 && Math.abs(o.c - color.c) <= 0.015)
+        .sort((x, y) => hueGap(x.o!.h, color.h) - hueGap(y.o!.h, color.h))[0];
+      const to = anchor ? hexToOklch(anchor.candidate.to) : null;
+      if (anchor && to) {
+        result = oklchToHex({
+          l: Math.min(1, Math.max(0, to.l + (color.l - anchor.o!.l))),
+          c: Math.max(0, to.c + (color.c - anchor.o!.c)),
+          h: to.h,
+        }).toLowerCase();
+      }
+    }
+  }
+  if (result === hex) result = null;
+  derivation.memo.set(hex, result);
+  return result ?? undefined;
+}
+
+// ─── Graphiques ─────────────────────────────────────────────────────────────
+//
+// Les séries d'un graphique ne sont pas toutes des couleurs de la marque : après la marque viennent des
+// teintes de référence, choisies LOIN d'elle (séparation daltonisme et vision normale, calculée). Les
+// traduire une à une garderait des teintes choisies contre l'ancienne marque — une marque devenue violette
+// côtoierait la série violette d'hier. La figure déclare donc sa palette (`data-ge-palette`), et la
+// traduction la RECALCULE pour la nouvelle marque, avec la même fonction que le moteur.
+
+const CHART_FIGURE = /<figure\b[^>]*\bdata-ge-palette="[^"]*"[^>]*>[\s\S]*?<\/figure>/g;
+
+function chartOverrides(figure: string, lookup: (hex: string) => string | undefined, map: BrandRewriteMap): Map<string, string> {
+  const open = figure.slice(0, figure.indexOf('>') + 1);
+  const palette = (open.match(/\bdata-ge-palette="([^"]*)"/)?.[1] ?? '').split(',').map((hex) => normalizeHex(hex)).filter(Boolean);
+  const surface = normalizeHex(open.match(/\bdata-ge-surface="([^"]*)"/)?.[1] ?? '') || '#ffffff';
+  const mode = open.match(/\bdata-ge-palette-mode="([^"]*)"/)?.[1] ?? 'adjacent';
+  const after = new Map(map.after.colors);
+  const brand = { primary: after.get('doc.primary') ?? '', accent: after.get('doc.accent') ?? '', secondary: after.get('doc.secondary') ?? '' };
+  if (!palette.length || !brand.primary) return new Map();
+  const next = chartPalette(brand, palette.length, lookup(surface) ?? surface, mode as Parameters<typeof chartPalette>[3]).colors;
+  return new Map(palette.map((hex, index) => [hex, normalizeHex(next[index] ?? '') || hex] as [string, string]).filter(([from, to]) => from !== to));
+}
+
+function rewriteColors(input: string, map: BrandRewriteMap, stats: RewriteStats): string {
+  const colors = map.colors;
   if (colors.size === 0) return input;
+  const base = (hex: string): string | undefined => colors.get(hex) ?? derivedColor(map, hex);
+  if (!input.includes('data-ge-palette=')) return recolor(input, base, colors, stats);
+  // Chaque graphique est traduit avec SA palette recalculée ; le reste du texte, par la table.
+  let output = '';
+  let cursor = 0;
+  for (const match of input.matchAll(CHART_FIGURE)) {
+    const at = match.index ?? 0;
+    output += recolor(input.slice(cursor, at), base, colors, stats);
+    const series = chartOverrides(match[0], base, map);
+    output += recolor(match[0], (hex) => series.get(hex) ?? base(hex), colors, stats);
+    cursor = at + match[0].length;
+  }
+  output += recolor(input.slice(cursor), base, colors, stats);
+  return output === input ? input : output;
+}
+
+function recolor(input: string, lookup: (hex: string) => string | undefined, colors: Map<string, string>, stats: RewriteStats): string {
+  if (!input) return input;
 
   let output = input.replace(HEX_PATTERN, (match, prefix: string, digits: string) => {
     const expanded = expandShortHex(digits);
+    // Une couleur courte (#abc) est une couleur écrite à la main, jamais un calcul du moteur.
     const base = `#${expanded.slice(0, 6).toLowerCase()}`;
-    const next = colors.get(base);
+    const next = digits.length <= 4 ? colors.get(base) : lookup(base);
     if (!next) return match;
     stats.colors++;
     // L'opacité d'origine est conservée (`#rrggbbaa`, `#rgba`).
@@ -241,7 +393,7 @@ function rewriteColors(input: string, colors: Map<string, string>, stats: Rewrit
     const channels = [r, g, b].map(Number);
     if (channels.some((value) => value > 255)) return match;
     const hex = `#${channels.map((value) => value.toString(16).padStart(2, '0')).join('')}`;
-    const next = colors.get(hex);
+    const next = lookup(hex);
     if (!next) return match;
     stats.colors++;
     const [nr, ng, nb] = hexToChannels(next);
@@ -503,17 +655,18 @@ export function repairContrast(before: string, after: string, stats: RewriteStat
 
 /**
  * Recalcule les mentions « contraste N:1 » des nuanciers (`data-contrast-of`).
- * Même règle que `renderSwatches` : encre blanche si elle passe 4,5:1, noire
- * sinon, et le ratio obtenu.
+ * Même règle que le nuancier du moteur graphique : encre blanche si elle passe
+ * 4,5:1, noire sinon, et le ratio obtenu — écrit avec le séparateur décimal de
+ * la page (« 7,2:1 » en français).
  */
 function refreshContrastLabels(input: string): string {
   if (!input.includes('data-contrast-of')) return input;
   return input.replace(
     /(<[a-z]+\b[^>]*\bdata-contrast-of="(#[0-9a-fA-F]{6})"[^>]*>)([^<]*?)(\d+(?:[.,]\d+)?)(:1)/g,
-    (match, open: string, hex: string, before: string, _ratio: string, tail: string) => {
+    (match, open: string, hex: string, before: string, previous: string, tail: string) => {
       const ink = contrastRatio('#ffffff', hex) >= 4.5 ? '#ffffff' : '#000000';
-      const ratio = Math.round(contrastRatio(ink, hex) * 10) / 10;
-      return `${open}${before}${ratio}${tail}`;
+      const ratio = String(Math.round(contrastRatio(ink, hex) * 10) / 10);
+      return `${open}${before}${previous.includes(',') || /contraste\s*$/i.test(before) ? ratio.replace('.', ',') : ratio}${tail}`;
     }
   );
 }
@@ -523,7 +676,7 @@ function refreshContrastLabels(input: string): string {
 /** Traduit une chaîne. Rend la chaîne d'origine (même référence) si rien ne change. */
 export function rewriteBrandString(input: string, map: BrandRewriteMap, stats: RewriteStats = emptyStats()): string {
   if (!input) return input;
-  const recolored = rewriteColors(input, map.colors, stats);
+  const recolored = rewriteColors(input, map, stats);
   const readable =
     recolored === input ? recolored : refreshContrastLabels(repairContrast(input, recolored, stats));
   const linked = rewriteFontLinks(readable, map, stats);

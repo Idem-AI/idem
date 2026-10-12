@@ -1,7 +1,8 @@
 /**
  * Contrôle QUALITÉ du business plan imprimé — `npm run check:bpquality`.
  *
- * Reproduit, avec le vrai gabarit et le vrai Chrome, les défauts relevés le
+ * Reproduit, avec les vraies pages (composées et mesurées par le moteur
+ * graphique, @idem/graphic-engine) et le vrai Chrome, les défauts relevés le
  * 13 septembre 2026 sur des plans livrés :
  *
  *  1. PAGE VIDE — le pied de section (logo, titre courant) seul sur sa page,
@@ -32,12 +33,10 @@ import { resolve } from 'path';
 
 import puppeteer, { Browser } from 'puppeteer';
 
+import { brandFromIdem, closeBrowser, createDocument, SectionContent, sectionHtml } from '@idem/graphic-engine';
+
 import { SectionModel } from '../models/section.model';
 import { BUSINESS_PLAN_PAGINATION } from '../services/BusinessPlan/businessPlanPdf.options';
-import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
-import { buildDocumentSeed, buildSectionSeed } from '../services/design/designSeed';
-import { SectionContent } from '../services/design/sectionContent';
-import { renderSection } from '../services/design/sectionRenderer';
 import { PdfService } from '../services/pdf.service';
 import { FLOW_PAGINATION_RUNTIME, FlowPaginationReport } from '../services/pdf/flow-pagination.runtime';
 import {
@@ -133,22 +132,24 @@ const POOL = [
 
 const LEDE = "La torréfaction locale capte pour la première fois la valeur qui partait à l'export.";
 
-function prose(title: string, kicker: string, offset: number, sentences: number): SectionContent {
+function prose(id: string, title: string, kicker: string, offset: number, sentences: number): SectionContent {
   const picked = Array.from({ length: sentences }, (_, index) => POOL[(offset + index) % POOL.length]);
   const paragraphs: string[] = [];
   for (let index = 0; index < picked.length; index += 3) {
     paragraphs.push(picked.slice(index, index + 3).join(' '));
   }
-  return { kicker, title, lede: LEDE, blocks: [{ kind: 'prose', paragraphs }] };
+  return { id, kicker, title, lede: LEDE, blocks: [{ id: 'prose', kind: 'prose', paragraphs }] };
 }
 
 /** Section chiffrée : les blocs insécables (tableau, cartes, graphique) du plan. */
 const FINANCE: SectionContent = {
+  id: 'financial-plan',
   kicker: 'Finances',
   title: 'Un besoin de financement couvert à quatorze mois',
   lede: 'Le plan de trésorerie reste positif sous les hypothèses de volume retenues.',
   blocks: [
     {
+      id: 'metrics',
       kind: 'metrics',
       items: [
         { value: '48,5 M FCFA', label: 'besoin de financement', note: '2027' },
@@ -157,10 +158,12 @@ const FINANCE: SectionContent = {
       ],
     },
     {
+      id: 'prose',
       kind: 'prose',
       paragraphs: [POOL[20] + ' ' + POOL[21] + ' ' + POOL[22], POOL[23] + ' ' + POOL[24]],
     },
     {
+      id: 'table',
       kind: 'table',
       headers: ['Poste', '2027', '2028', '2029'],
       rows: [
@@ -172,6 +175,7 @@ const FINANCE: SectionContent = {
       caption: 'Montants en FCFA, exercices du 1er janvier au 31 décembre.',
     },
     {
+      id: 'cards',
       kind: 'cards',
       items: [
         { title: 'Torréfacteuse', body: 'Capacité de 15 kg par fournée, amortie sur cinq ans.' },
@@ -180,6 +184,7 @@ const FINANCE: SectionContent = {
       ],
     },
     {
+      id: 'chart',
       kind: 'chart',
       chartType: 'bar',
       labels: ['2027', '2028', '2029'],
@@ -188,6 +193,7 @@ const FINANCE: SectionContent = {
       readingKey: "Le chiffre d'affaires double en trois exercices.",
     },
     {
+      id: 'assumption',
       kind: 'assumption',
       statement: 'Une conversion de 12 % des clients des cafés urbains vers le paquet à emporter.',
       basis: 'Pilote de trois mois à Bonapriso.',
@@ -195,31 +201,35 @@ const FINANCE: SectionContent = {
   ],
 };
 
-const designSystem = buildDocumentDesignSystem(
-  CHARTER,
-  { styleId: STYLE } as never,
-  buildDocumentSeed(STYLE, DOC_KEY)
-);
-
 interface Planned {
   name: string;
   content: SectionContent;
 }
 
-/** Rend les sections dans l'ordre, graines tirées comme le service les tire. */
-function renderAll(sections: Planned[]): SectionModel[] {
-  const used = new Set<string>();
-  return sections.map(
-    (section, index) =>
-      ({
-        name: section.name,
-        data: renderSection(section.content, designSystem, buildSectionSeed(STYLE, DOC_KEY, section.name, used), {
-          logoUrl: LOGO,
-          brandName: BRAND,
-          index: index + 1,
-        }),
-      }) as unknown as SectionModel
-  );
+/**
+ * Rend les sections dans l'ordre, par le moteur graphique, exactement comme le service du business plan :
+ * un document A4 portrait semé par sa clé, chaque page composée puis MESURÉE dans Chromium, et stockée en
+ * fragment autonome (polices puis racine) — la forme que le PDF imprime.
+ */
+async function renderAll(sections: Planned[], validate = true): Promise<SectionModel[]> {
+  const { brand, direction } = brandFromIdem({ name: BRAND, branding: { ...CHARTER, artDirection: { styleId: STYLE } }, logos: { primary: LOGO, withTextLight: LOGO } });
+  const doc = await createDocument({
+    documentType: 'business-plan',
+    format: 'a4-portrait',
+    brand,
+    direction,
+    seed: DOC_KEY,
+    sections: sections.map((section) => ({ id: section.content.id })),
+    documentLabel: 'Business plan',
+    locale: 'fr',
+    validate,
+  });
+  const out: SectionModel[] = [];
+  for (const [index, section] of sections.entries()) {
+    const composed = await doc.composeSection(section.content, { index: index + 1, total: sections.length });
+    out.push({ name: section.name, data: sectionHtml(composed) } as unknown as SectionModel);
+  }
+  return out;
 }
 
 /** Phrases d'un contenu, réduites à leurs lettres. */
@@ -264,13 +274,15 @@ async function shapes(
   build: (sentences: number) => SectionContent,
   volumes: number[]
 ): Promise<Shape[]> {
-  const sections = volumes.map((sentences) => {
-    const rendered = renderAll([
-      ...prefix.map((prior) => ({ name: prior, content: build(1) })),
-      { name, content: build(sentences) },
-    ]);
-    return { ...rendered[rendered.length - 1], name: `cand-${sentences}` } as SectionModel;
-  });
+  const sections: SectionModel[] = [];
+  for (const sentences of volumes) {
+    // La recherche compose sans mesure Chromium (le paginateur mesure, lui) : soixante volumes en quelques secondes.
+    const rendered = await renderAll(
+      [...prefix.map((prior) => ({ name: prior, content: { ...build(1), id: `prior-${prior.length}` } })), { name, content: build(sentences) }],
+      false
+    );
+    sections.push({ ...rendered[rendered.length - 1], name: `cand-${sentences}` } as SectionModel);
+  }
 
   const generator = new PdfService() as unknown as {
     generateOptimizedHtmlFromSections(options: object): string;
@@ -285,7 +297,10 @@ async function shapes(
 
   const page = await browser.newPage();
   try {
-    await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
+    // Comme l'impression (`PdfService.generatePdf`) : le document, puis les polices de la marque — mesurées,
+    // pas leurs remplaçantes —, avec le même filet de trois secondes.
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.evaluate(() => Promise.race([document.fonts.ready, new Promise((done) => setTimeout(done, 3000))]));
     await page.addScriptTag({ content: FLOW_PAGINATION_RUNTIME });
     await page.evaluate((cfg) => (window as any).__idemFlow.prepare(cfg), {
       tailwindTimeout: 50,
@@ -425,9 +440,9 @@ async function checkFixture(): Promise<void> {
   let orphan: Shape | undefined;
   let tail: Shape | undefined;
   try {
-    const summary = await shapes(browser, [], 'Company Summary', (n) => prose("Une torréfaction de spécialité à Douala", 'Projet', 0, n), volumes);
+    const summary = await shapes(browser, [], 'Company Summary', (n) => prose('company-summary', 'Une torréfaction de spécialité à Douala', 'Projet', 0, n), volumes);
     orphan = summary.find((shape) => shape.pages >= 2 && shape.folioOnly);
-    const market = await shapes(browser, ['Company Summary'], 'Market Analysis', (n) => prose('Le café de spécialité arrive au Cameroun', 'Marché', 13, n), volumes);
+    const market = await shapes(browser, ['Company Summary'], 'Market Analysis', (n) => prose('market-analysis', 'Le café de spécialité arrive au Cameroun', 'Marché', 13, n), volumes);
     tail = market.find((shape) => shape.pages >= 2 && !shape.folioOnly && shape.lastFill < 0.3);
   } finally {
     await browser.close();
@@ -447,12 +462,12 @@ async function checkFixture(): Promise<void> {
   console.log(`  (pied orphelin à ${orphan.sentences} phrases, fin creuse à ${tail.sentences} phrases à ${Math.round(tail.lastFill * 100)} %)`);
 
   const plan: Planned[] = [
-    { name: 'Company Summary', content: prose('Une torréfaction de spécialité à Douala', 'Projet', 0, orphan.sentences) },
-    { name: 'Market Analysis', content: prose('Le café de spécialité arrive au Cameroun', 'Marché', 13, tail.sentences) },
+    { name: 'Company Summary', content: prose('company-summary', 'Une torréfaction de spécialité à Douala', 'Projet', 0, orphan.sentences) },
+    { name: 'Market Analysis', content: prose('market-analysis', 'Le café de spécialité arrive au Cameroun', 'Marché', 13, tail.sentences) },
     { name: 'Financial Plan', content: FINANCE },
-    { name: 'Ressources', content: prose('Ce que le projet mobilise déjà', 'Ressources', 27, 5) },
+    { name: 'Ressources', content: prose('resources', 'Ce que le projet mobilise déjà', 'Ressources', 27, 5) },
   ];
-  const sections = renderAll(plan);
+  const sections = await renderAll(plan);
 
   await PdfService.initialize();
   try {
@@ -506,6 +521,7 @@ async function checkFixture(): Promise<void> {
     );
   } finally {
     await PdfService.closeBrowser();
+    await closeBrowser();
   }
 }
 

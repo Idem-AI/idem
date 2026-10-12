@@ -17,6 +17,8 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY ./packages/shared-models ./packages/shared-models
 COPY ./packages/shared-auth-client ./packages/shared-auth-client
 COPY ./packages/shared-styles ./packages/shared-styles
+# Le moteur de génération graphique (business plan, charte, pitch deck, cartes, visuels, graphiques).
+COPY ./packages/graphic-engine ./packages/graphic-engine
 
 # Build shared-models first
 WORKDIR /app/packages/shared-models
@@ -51,6 +53,13 @@ RUN mkdir -p node_modules/@idem && \
 
 # Build application
 RUN npm run build
+
+# @idem/graphic-engine est un paquet « à la volée » : ses sources TypeScript sont compilées AVEC l'API
+# (dist/packages/graphic-engine/src). Node le résout ensuite par son nom : la copie compilée remplace
+# le lien du workspace, et ses dépendances se trouvent dans /app/node_modules.
+RUN rm -rf /app/node_modules/@idem/graphic-engine && mkdir -p /app/node_modules/@idem/graphic-engine \
+    && cp -r dist/packages/graphic-engine/src/. /app/node_modules/@idem/graphic-engine/ \
+    && node -e "require('fs').writeFileSync('/app/node_modules/@idem/graphic-engine/package.json', JSON.stringify({ name: '@idem/graphic-engine', version: '1.0.0', main: 'index.js' }))"
 
 # Production stage
 FROM node:20-alpine AS production

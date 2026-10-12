@@ -31,9 +31,9 @@ import {
   hexToOklch,
   oklchToHex,
   Oklch,
-} from '../design/color';
-import { isLightSurface, LIGHT_SURFACE_MIN_LUMINANCE } from '../design/lightSurface';
-import { areRolesDistinct, deriveAccent, deriveSecondary } from '../design/paletteRoles';
+} from './color';
+import { isLightSurface, LIGHT_SURFACE_MIN_LUMINANCE } from './lightSurface';
+import { areRolesDistinct, deriveAccent, deriveSecondary } from './paletteRoles';
 import { BrandPalette, normalizeHex, PaletteRole, PALETTE_ROLES } from './brandTokens';
 
 export interface HarmonizeRequest {

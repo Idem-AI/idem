@@ -13,7 +13,6 @@ export const FINANCE_SECTION_PROMPTS: SectionPromptSpec[] = [
   {
     key: 'financial-plan',
     name: 'Financial Plan',
-    fallbackPages: '2-3',
     objective: 'Project soberly. A model that cannot be reconstructed is not read.',
     mustCover: `THE TABLES ARE ALREADY THERE. When the finance module is filled, this section
 opens with blocks the SERVER built from the real model: headline figures, the
@@ -71,7 +70,6 @@ table, a project cost table or a funding table: the server already placed them.`
   {
     key: 'funding-request',
     name: 'Funding Request & Use of Funds',
-    fallbackPages: '1',
     objective: 'Ask for an amount, and say exactly what it buys.',
     mustCover: `1. THE AMOUNT requested, stated in the first sentence, in the currency of
    the finance module.
@@ -106,7 +104,6 @@ made, one "table" for the use of funds by line with its milestone, one
   {
     key: 'guarantees',
     name: 'Guarantees & Collateral',
-    fallbackPages: '1',
     objective: 'Say what secures the loan.',
     mustCover: `1. Guarantees offered: nature, holder, valuation, and how it was valued.
 2. Personal contribution and the share of total need it covers.
@@ -126,7 +123,6 @@ is discovered at the appraisal and ends the file.`,
   {
     key: 'exit-strategy',
     name: 'Exit Strategy & Investor Returns',
-    fallbackPages: '1',
     objective: 'Say how the investor gets their money back.',
     mustCover: `1. The realistic exit routes for a company of this kind in this market:
    trade sale, secondary, buy-back, dividends, listing.

@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["scripts/mcp/run.mjs", "chrome-devtools"]
+    },
+    "a11y": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["scripts/mcp/run.mjs", "a11y"]
+    },
+    "iconify": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@osmansiddiquer/iconify-mcp@1.0.1"]
+    }
+  }
+}

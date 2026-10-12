@@ -1,0 +1,140 @@
+{
+  "version": "1.0",
+  "documentType": "pitch-deck",
+  "format": "slide-16x9",
+  "creativity": "medium",
+  "direction": {
+    "styleId": "swiss"
+  },
+  "tokensHash": "a1b2c3d4e5f6",
+  "seed": "pitch-deck:project-42",
+  "engine": {
+    "version": "1.0.0",
+    "components": "1.0.0"
+  },
+  "sections": [
+    {
+      "ref": "market",
+      "pattern": {
+        "id": "slide.side",
+        "params": {
+          "ratio": 5,
+          "mirror": false,
+          "headerAlign": "center",
+          "body": "flow"
+        }
+      },
+      "density": "balanced",
+      "strategy": "monochrome-accent",
+      "mood": "neutral",
+      "tension": "calm",
+      "accent": "underline",
+      "root": {
+        "t": "stack",
+        "grow": true,
+        "gap": "lg",
+        "children": [
+          {
+            "t": "grid",
+            "cols": [
+              5,
+              7
+            ],
+            "gap": "xl",
+            "align": "stretch",
+            "grow": true,
+            "children": [
+              {
+                "t": "stack",
+                "gap": "sm",
+                "role": "header",
+                "children": [
+                  {
+                    "t": "text",
+                    "role": "kicker",
+                    "ref": "kicker"
+                  },
+                  {
+                    "t": "text",
+                    "role": "title",
+                    "ref": "title",
+                    "size": "2xl"
+                  },
+                  {
+                    "t": "rule",
+                    "weight": "thick",
+                    "ink": "emphasis",
+                    "length": "short"
+                  },
+                  {
+                    "t": "text",
+                    "role": "lede",
+                    "ref": "lede"
+                  }
+                ]
+              },
+              {
+                "t": "stack",
+                "gap": "md",
+                "justify": "center",
+                "role": "body",
+                "children": [
+                  {
+                    "t": "block",
+                    "ref": "b1",
+                    "variant": {
+                      "style": "ruled"
+                    }
+                  },
+                  {
+                    "t": "block",
+                    "ref": "b2"
+                  }
+                ]
+              }
+            ],
+            "style": "background:red"
+          },
+          {
+            "t": "row",
+            "gap": "md",
+            "align": "center",
+            "role": "folio",
+            "children": [
+              {
+                "t": "logo",
+                "height": "sm"
+              },
+              {
+                "t": "rule",
+                "vertical": true
+              },
+              {
+                "t": "text",
+                "role": "folio",
+                "text": "Marché"
+              }
+            ]
+          }
+        ]
+      },
+      "decor": [
+        {
+          "at": {
+            "x": 76,
+            "y": -4,
+            "w": 24,
+            "h": 34
+          },
+          "node": {
+            "t": "shape",
+            "shape": "rings",
+            "seed": 7,
+            "tone": "soft",
+            "size": "fill"
+          }
+        }
+      ]
+    }
+  ]
+}

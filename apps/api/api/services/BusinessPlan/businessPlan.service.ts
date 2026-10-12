@@ -1,10 +1,6 @@
-import { CreativityLevel, normalizeCreativity, SavedDocumentDesign } from '../../models/creativity.model';
-import { DocumentDesignPlan, planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../creativity/documentDesign';
-import { ultraPageComposer } from '../creativity/pageComposer';
-import { applyPreset, PRESET_BY_ID } from '../../../../ivision/core/src/design/layoutPresets';
-import { runtimeCall } from '../creativity/orchestrator';
-import { brandSheet } from '../creativity/agent-io';
-import { LLMProvider, PromptConfig, PromptService, AIChatMessage } from '../prompt.service';
+import { CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
+import { coverContent, GraphicDocument, WRITING_RULES } from '@idem/graphic-engine';
+import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
 
 import { ProjectModel } from '../../models/project.model';
@@ -26,19 +22,9 @@ import { PdfService, isUnderfilledSection } from '../pdf.service';
 import { cacheService, CacheOptions } from '../cache.service';
 import { getRequestLanguage, SupportedLanguage } from '../../utils/request-language';
 import crypto from 'crypto';
-import { AGENT_COVER_PROMPT } from './prompts/agent-cover.prompt';
-import { AGENT_COMPANY_SUMMARY_PROMPT } from './prompts/agent-company-summary.prompt';
-import { AGENT_OPPORTUNITY_PROMPT } from './prompts/agent-opportunity.prompt';
-import { AGENT_TARGET_AUDIENCE_PROMPT } from './prompts/agent-target-audience.prompt';
-import { AGENT_PRODUCTS_SERVICES_PROMPT } from './prompts/agent-products-services.prompt';
-import { AGENT_MARKETING_SALES_PROMPT } from './prompts/agent-marketing-sales.prompt';
-import { AGENT_FINANCIAL_PLAN_PROMPT } from './prompts/agent-financial-plan.prompt';
 import { buildFinanceBlocks, buildFinanceNarrative } from '../Finance/finance-blocks';
-import { Block } from '../design/sectionContent';
-import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt';
-import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { BP_SECTION_EXAMPLE } from './prompts/section-example.prompt';
-import { composeBrief, composeHtmlPrompt } from './prompts/section-prompt.registry';
+import { composeBrief } from './prompts/section-prompt.registry';
 import { buildBusinessPlanSpec } from './businessPlanSpec';
 import { BusinessPlanStructure } from '../../models/businessPlanStructure.model';
 import {
@@ -53,14 +39,8 @@ import {
 import { BUSINESS_PLAN_PAGINATION } from './businessPlanPdf.options';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
-import {
-  buildLogoBlock,
-  collectLogoUrls,
-  resolveLogoDeclensions,
-} from '../../utils/brand-context.util';
-import { composeCover, coverDateLabel, coverVariant } from '../design/coverComposer';
-import { CoverBriefService } from '../design/coverBrief.service';
-import { PORTRAIT_A4 } from '../design/sectionRenderer';
+import { CoverBriefService } from '../common/coverBrief.service';
+import { coverDateLabel, openGraphicDocument, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
 import type { BusinessPlanAudience } from './structure/audience.types';
 
 /** Mention de destinataire sur la couverture du plan. */
@@ -70,24 +50,6 @@ const BUSINESS_PLAN_AUDIENCE_LABEL: Partial<Record<BusinessPlanAudience, string>
   grant: 'Dossier de subvention',
   internal: 'Document interne',
 };
-import { buildArtDirectionBlock } from '../../utils/art-direction.util';
-import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../design/antiSlop.prompt';
-import {
-  EDITORIAL_RESTRAINT_BLOCK,
-  RESTRAINT_SELF_REVIEW_BLOCK,
-} from '../design/editorialRestraint.prompt';
-import { enforceDesignRules } from '../design/slopLint.service';
-import {
-  buildDocumentSeed,
-  buildSectionSeed,
-  describeDocumentSeed,
-} from '../design/designSeed';
-import {
-  buildDocumentDesignSystem,
-  derivedPalette,
-  describeDesignSystem,
-} from '../design/documentDesignSystem';
-import { ensureProjectArtDirection } from '../design/artDirection.provider';
 import { researchTeamService } from '../research/research-team.service';
 import { ResearchEmit, ResearchedSection } from '../research/research.types';
 import { deliverableDocumentStore } from '../common/deliverable-document.store';
@@ -113,16 +75,6 @@ export const businessPlanSectionNames = (
   sections: readonly BusinessPlanSectionDefinition[]
 ): string[] => [...sections.map((s) => s.name), BP_RESOURCES_SECTION_NAME];
 
-/**
- * Prompts de composition d'ORIGINE, par section.
- *
- * Ils ne servent plus qu'au repli : quand `IDEM_SECTION_TEMPLATE=off`, la
- * section doit de nouveau produire sa page en HTML, et c'est ce prompt-là qui
- * sait le faire. Les sections apportées par les structures (banque,
- * investisseur, subvention) n'en ont pas — elles retombent sur leur brief de
- * contenu, ce qui est le comportement voulu : mieux vaut une page composée par
- * le gabarit qu'une page composée d'après un prompt écrit pour une autre.
- */
 /** Rang d'une section dans un ordre donné ; les inconnues vont en fin. */
 const orderIndexIn = (order: readonly string[], name: string): number => {
   const i = order.indexOf(name);
@@ -132,18 +84,6 @@ const orderIndexIn = (order: readonly string[], name: string): number => {
 /** PDF d'UN plan : un projet en garde plusieurs, chacun avec son rendu. */
 const businessPlanPdfCacheKey = (userId: string, projectId: string, documentId: string): string =>
   cacheService.generateAIKey('business-plan-pdf', userId, projectId, documentId);
-
-const LEGACY_SECTION_PROMPTS: Record<string, string> = {
-  'Cover Page': AGENT_COVER_PROMPT,
-  'Company Summary': AGENT_COMPANY_SUMMARY_PROMPT,
-  Opportunity: AGENT_OPPORTUNITY_PROMPT,
-  'Target Audience': AGENT_TARGET_AUDIENCE_PROMPT,
-  'Products & Services': AGENT_PRODUCTS_SERVICES_PROMPT,
-  'Marketing & Sales': AGENT_MARKETING_SALES_PROMPT,
-  'Financial Plan': AGENT_FINANCIAL_PLAN_PROMPT,
-  'Goal Planning': AGENT_GOAL_PLANNING_PROMPT,
-  Appendix: AGENT_APPENDIX_PROMPT,
-};
 
 export class BusinessPlanService extends GenericService {
   private pdfService: PdfService;
@@ -161,7 +101,7 @@ export class BusinessPlanService extends GenericService {
     forceRegenerate = false,
     targetSections: string[] = [],
     documentId?: string,
-    /** La jauge de créativité (cf. creativity/documentDesign.ts) ; Medium par défaut. */
+    /** La jauge de créativité (profils du moteur graphique, @idem/graphic-engine) ; Medium par défaut. */
     creativity?: CreativityLevel
   ): Promise<BusinessPlanDocument | null> {
     logger.info(
@@ -236,232 +176,91 @@ export class BusinessPlanService extends GenericService {
 
     logger.info(`Business plan cache miss, generating new content for projectId: ${projectId}`);
 
-    // Extract branding information
-    // Use the user's request language instead of a hard-coded 'fr' so the plan is
-    // generated in the language selected in the UI (falls back to 'en').
+    // La langue de la requête (celle de l'interface), et non un « fr » codé en dur.
     const language = getRequestLanguage() === 'fr' ? 'French' : 'English';
 
-    // Create brand context for all agents
-    const brandContext = await this.buildBrandContext(userId, projectId, project, language, designKey);
-    const lintContext = this.buildLintContext(project);
+    // La direction artistique est provisionnée si la charte n'a pas encore été générée : le business
+    // plan peut être le premier livrable produit, et ses pages ont besoin d'un style.
+    const graphicProject = await withProjectArtDirection(this.promptService, userId, projectId, project);
 
-    // Le contexte financier vient d'un point unique : ce texte servait, dans
-    // trois copies légèrement divergentes, à faire recopier des chiffres au
-    // modèle. Les tableaux sont maintenant POSÉS par le service ; ce résumé ne
-    // sert plus qu'à ce que les autres sections ne contredisent pas le module.
+    // Le contexte financier vient d'un point unique. Les tableaux sont POSÉS par le service ; ce résumé
+    // ne sert qu'à ce que les autres sections ne contredisent pas le module Finance.
     const financeContext = buildFinanceNarrative(
       project.analysisResultModel?.finance,
       project.additionalInfos?.country
     );
 
     try {
-      // Les dépendances entre sections ne sont PLUS déclarées ici : elles vivent
-      // dans le catalogue (`requires`) et sont assemblées par
-      // `buildBusinessPlanGraph` (services/agents/deliverable-graph.ts), filtrées
-      // sur les sections réellement retenues, validées (cycles, noms inconnus) et
-      // documentées avec leur coût en latence.
-      // PRÉFIXE STABLE — identique aux neuf sections, émis UNE fois en tête de
-      // chaque appel. Il portait auparavant la FIN de chaque `promptConstant`,
-      // derrière la partie variable : ~3 400 tokens repayés neuf fois, et aucun
-      // début de prompt jamais répété — donc aucun cache de préfixe possible.
-      const stablePrefix = [
-        projectDescription,
-        `BRAND CONTEXT:\n${brandContext}`,
-        BP_SECTION_EXAMPLE,
-      ].join('\n\n');
-
-      // PRÉFIXE DU MODE GABARIT — plus court, et c'est le point.
+      // Les dépendances entre sections vivent dans le catalogue (`requires`) et sont assemblées par
+      // `buildBusinessPlanGraph` (services/agents/deliverable-graph.ts).
       //
-      // Le préfixe complet porte ~3 000 tokens de règles de COMPOSITION (fiche
-      // de style, invariants de mise en page, anti-générique, retenue
-      // éditoriale). Pour une section rendue par gabarit, elles sont inertes :
-      // le code compose. Les laisser coûterait des tokens, mais surtout de
-      // l'attention — un petit modèle honore une dizaine de contraintes, et
-      // celles qui comptent ici sont celles qui portent sur le TEXTE.
-      //
-      // Les deux préfixes restent stables chacun de leur côté : le cache de
-      // préfixe s'accroche donc aux deux familles, et la plus grosse (8
-      // sections) est désormais la plus courte.
-      const templatedPrefix = [
-        projectDescription,
-        `BRAND FACTS:\nBrand: ${project.name ?? ''}\nLanguage: ${language}`,
-        CONTENT_RULES_BLOCK,
-        BP_SECTION_EXAMPLE,
-      ].join('\n\n');
+      // PRÉFIXE STABLE — identique à toutes les sections, émis UNE fois en tête de chaque appel : c'est
+      // la seule disposition qui rende un cache de préfixe possible. Il ne porte que ce qui sert à
+      // ÉCRIRE : la composition est celle du moteur graphique, et une consigne inerte n'est pas neutre —
+      // elle prend la place de celles qui comptent.
+      const stablePrefix = this.writerPrefix(projectDescription, project, language);
 
-      // Chaque section reçoit sa PROPRE graine de composition, tirée sans
-      // répétition dans l'espace autorisé par le style. C'est ce qui empêche
-      // neuf pages de partager le même archétype sans pour autant les rendre
-      // étrangères les unes aux autres : les invariants (couleur, typographie,
-      // rythme) restent dans le préfixe stable ci-dessus.
-      const artDirection = project.analysisResultModel?.branding?.artDirection;
-      const documentSeed = buildDocumentSeed(artDirection?.styleId, designKey);
-
-      // LA JAUGE DE CRÉATIVITÉ : la famille du document, l'archétype et les réglages de chaque
-      // page passent aux agents selon le cran ; au cran Ultra, les pages sont composées par le
-      // modèle (gabarit en repli). Les archétypes de la graine sont calculés d'abord : ils sont
-      // le repli de chaque page et le point de départ des menus.
+      // LE DOCUMENT GRAPHIQUE (@idem/graphic-engine) : la charte du projet, le plan des pages — chacune
+      // reçoit d'avance une composition distincte de ses voisines —, la jauge de créativité. La clé du
+      // plan sème les tirages : deux plans du même projet ne sortent pas page pour page identiques.
       const level = normalizeCreativity(creativity);
-      // Des pages gardées (reprise, régénération ciblée) : la direction enregistrée est reprise.
-      const keepsPages =
-        !forceRegenerate && currentSections.some((section) => planSections.some((p) => p.name === section.name) && !targetSections.includes(section.name));
-      const designPlan = await this.planPagesDesign(userId, projectId, project, planSections, planAudience, designKey, level, plan.id, keepsPages, plan.design);
-      if (designPlan?.family) documentSeed.family = designPlan.family;
-      logger.info(`[BP] Créativité ${level} : ${designPlan ? `${Object.keys(designPlan.pages).length} page(s) dirigée(s)${designPlan.family ? `, famille ${designPlan.family}` : ''}${designPlan.freeCompose ? ', composition libre' : ''}` : 'graine'}`);
+      const total = planSections.length;
+      const graphic = await this.openPlanDocument(graphicProject, planSections, designKey, level, userId);
+      await this.saveDesignLevel(userId, projectId, plan.id, level);
+      logger.info(`[BP] Créativité ${level} : ${total} page(s) composées par le moteur graphique`);
 
-      // DESIGN SYSTEM CALCULÉ pour ce document : rampes, encres contrastées,
-      // échelle typographique, rayon, rythme. Une fois par livrable — les neuf
-      // pages le partagent, ce qui est très exactement ce qui en fait un
-      // document.
-      const designSystem = buildDocumentDesignSystem(
-        project.analysisResultModel?.branding,
-        artDirection,
-        documentSeed
-      );
-      logger.info(`[BP] Design system: ${describeDesignSystem(designSystem)}`);
-
-      const logoUrls = collectLogoUrls(project.analysisResultModel?.branding?.logo);
-      const renderOptions = { logoUrl: logoUrls[0], brandName: project.name };
-
-      const usedArchetypes = new Set<string>();
-      let sectionIndex = 0;
-
-      /**
-       * Une section RENDUE PAR GABARIT : le modèle produit du contenu, le code
-       * produit la page. Sa graine lui donne son archétype de mise en page,
-       * distinct de celui de ses voisines.
-       *
-       * @param contentBrief Consigne de CONTENU composée pour ce document
-       *   (destinataire, rang, voisines). C'est elle qui part sous gabarit.
-       * @param htmlPrompt Prompt COMPLET, avec les règles de composition. Il
-       *   n'est utilisé qu'en repli `IDEM_SECTION_TEMPLATE=off`, quand la
-       *   section doit de nouveau produire sa page en HTML.
-       */
-      const templated = (
-        contentBrief: string,
-        htmlPrompt: string,
-        stepName: string,
-        volume: string,
-        prependBlocks?: Block[]
-      ): IPromptStep => {
-        sectionIndex += 1;
-        // La graine de la page, puis les choix du directeur artistique (High+) par-dessus.
-        const seed = applyPreset(
-          {
-            ...buildSectionSeed(artDirection?.styleId, designKey, stepName, usedArchetypes),
-            ...(designPlan?.family ? { family: designPlan.family } : {}),
-            ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, v]) => !!v)),
-          },
-          PRESET_BY_ID.get(designPlan?.pages[stepName]?.preset || '')
-        );
-        return {
-          promptConstant: htmlPrompt,
-          stepName,
-          stablePrefix: templatedPrefix,
-          template: {
-            // Sous gabarit, seule la consigne de CONTENU part. Le prompt HTML
-            // consacre les trois quarts de son volume à une composition que le
-            // rendu produit désormais : une consigne inerte n'est pas neutre,
-            // elle prend la place de celles qui comptent.
-            contentBrief,
-            designSystem,
-            seed,
-            volume,
-            render: { ...renderOptions, index: sectionIndex },
-            // Les tableaux financiers viennent du module Finance, pas du
-            // modèle : un chiffre recopié dans un contexte de plusieurs
-            // milliers de mots est un chiffre altéré, et c'est le défaut qu'un
-            // lecteur de plan repère en premier.
-            prependBlocks,
-            // Cran Ultra : le contenu validé de la page part au compositeur, le gabarit en repli.
-            compose: designPlan?.freeCompose
-              ? ultraPageComposer({ ds: designSystem, seed, page: PORTRAIT_A4, singlePage: false, sheet: this.creativeSheet(project), document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name: stepName, attempts: designPlan.composeAttempts, checks: designPlan.checks, repairOnly: designPlan.repairOnly })
-              : undefined,
-          },
-        };
-      };
-
-      // Les étapes viennent de la STRUCTURE, pas d'une liste écrite ici : le
-      // plan peut porter neuf sections ou dix-sept, dans l'ordre qu'une banque
-      // impose. Le prompt d'origine (`agent-*`) sert de repli quand le gabarit
-      // est coupé ; les sections introduites avec les structures n'en ont pas,
-      // et retombent alors sur leur brief de contenu — ce qui est exactement ce
-      // que le repli doit faire.
+      // Les étapes viennent de la STRUCTURE : le plan peut porter neuf sections ou dix-sept, dans
+      // l'ordre qu'une banque impose.
       const steps: IPromptStep[] = planSections.map((section, index) => {
-        // Contexte de composition de CETTE section dans CE document : son
-        // destinataire, son rang, ses voisines. Sans lui, chaque section
-        // recommence par présenter l'entreprise et le plan se répète.
-        const promptCtx = {
-          audience: planAudience,
-          position: index + 1,
-          total: planSections.length,
-          previous: planSections[index - 1]?.name,
-          next: planSections[index + 1]?.name,
-          financeContext: section.financeContext ? financeContext : undefined,
-        };
-
-        // La couverture est dessinée par le code : le modèle n'en écrit que
-        // les mots, une fois par projet, partagés avec la charte et le deck.
-        // Composée en HTML par l'étage de raisonnement, elle coûtait 18 000
-        // tokens de budget et la plus longue attente du plan.
+        const position = { index: index + 1, total };
+        // La couverture est dessinée par le moteur : le modèle n'en écrit que les mots, une fois par
+        // projet, partagés avec la charte et le deck.
         if (section.freeform) {
-          sectionIndex += 1;
-          const declensions = resolveLogoDeclensions(project.analysisResultModel?.branding?.logo);
           return {
             stepName: section.name,
             promptConstant: '',
-            execute: async () =>
-              composeCover({
-                brief: await new CoverBriefService(this.promptService).resolve(userId, projectId, project),
-                brandName: project.name,
-                ds: designSystem,
-                page: PORTRAIT_A4,
-                logos: {
-                  lightGround: declensions?.withTextLight,
-                  darkGround: declensions?.withTextDark,
-                },
-                documentLabel: 'Business plan',
-                detail: BUSINESS_PLAN_AUDIENCE_LABEL[planAudience as BusinessPlanAudience],
-                dateLabel: coverDateLabel(),
-                variant: coverVariant(projectId),
-              }),
+            execute: () => this.renderCover(graphic, section, userId, projectId, project, planAudience, position),
           };
         }
-
-        // Le prompt HTML de repli : celui écrit à la main quand la section en a
-        // un (les neuf historiques, éprouvés page par page), sinon celui
-        // composé — qui porte les mêmes règles de page et de marque.
-        const htmlPrompt =
-          LEGACY_SECTION_PROMPTS[section.name] ??
-          composeHtmlPrompt(section.key, promptCtx) ??
-          '';
-
-        return templated(
-          composeBrief(section.key, promptCtx) ?? '',
-          section.financeContext ? `${htmlPrompt}${financeContext}` : htmlPrompt,
-          section.name,
-          section.volume,
-          section.financeBlocks
-            ? buildFinanceBlocks(
-                project.analysisResultModel?.finance,
-                project.additionalInfos?.country
-              )
-            : undefined
-        );
+        // Contexte de CETTE section dans CE document : son destinataire, son rang, ses voisines. Sans
+        // lui, chaque section recommence par présenter l'entreprise et le plan se répète.
+        const brief =
+          composeBrief(section.key, {
+            audience: planAudience,
+            position: index + 1,
+            total,
+            previous: planSections[index - 1]?.name,
+            next: planSections[index + 1]?.name,
+            financeContext: section.financeContext ? financeContext : undefined,
+          }) ?? '';
+        return {
+          promptConstant: brief,
+          stepName: section.name,
+          stablePrefix,
+          template: {
+            deliverable: 'business-plan',
+            sectionId: pageId(section.name),
+            volume: section.volume,
+            contentBrief: brief,
+            // Les tableaux financiers viennent du module Finance, pas du modèle : un chiffre recopié
+            // dans un contexte de plusieurs milliers de mots est un chiffre altéré.
+            prependBlocks: section.financeBlocks
+              ? buildFinanceBlocks(project.analysisResultModel?.finance, project.additionalInfos?.country)
+              : undefined,
+            render: (content) => renderGraphicPage(graphic, content, position),
+          },
+        };
       });
 
-      // Chaque section produit une page HTML : la grille déterministe attrape
-      // troncatures, balises déséquilibrées et gabarits non remplis avant que la
-      // section n'atteigne le PDF. La devise vient du module Finance quand il
-      // existe — c'est la dérive la plus fréquente sur un projet en XAF.
+      // La grille déterministe attrape troncatures, balises déséquilibrées et gabarits non remplis
+      // avant que la section n'atteigne le PDF. La devise vient du module Finance quand il existe.
       const sectionQuality = {
         format: 'html' as const,
         minChars: 400,
         currency: project.analysisResultModel?.finance?.meta?.currency,
       };
 
-      // Le graphe pose les dépendances, `withGraph` y ajoute les réglages IA de
-      // chaque section (budget de tokens, température, étage de modèle).
+      // Le graphe pose les dépendances, `withGraph` y ajoute les réglages IA de chaque section.
       const configuredSteps = withGraph(
         AI_CONFIG.businessPlan,
         steps,
@@ -515,28 +314,9 @@ export class BusinessPlanService extends GenericService {
               return;
             }
 
-            // Passe déterministe anti-générique : couleurs hors charte, polices
-            // écrites en dur, titres en dégradé et images sans alt sont corrigés
-            // sans appel au modèle. Le reste est journalisé — sur neuf sections,
-            // il en reste toujours une qui déroge à la consigne du prompt.
-            let sectionHtml = result.data;
-            if (typeof sectionHtml === 'string' && sectionHtml) {
-              const options = {
-                palette: lintContext.palette,
-                // Les teintes des rampes DÉRIVENT de la charte : sans cette
-                // déclaration, le linter prendrait le design system calculé pour
-                // une palette inventée et « corrigerait » ses propres nuances.
-                extraAllowedColors: derivedPalette(designSystem),
-                fonts: lintContext.fonts,
-                expectedLogoUrls: result.name === 'Cover Page' ? lintContext.logoUrls : [],
-                styleId: lintContext.styleId,
-                label: `business-plan/${result.name}`,
-              };
-              // Réparation déterministe PUIS constat de ce qui résiste. Le verdict
-              // du linter était auparavant calculé puis jeté : les 20 règles de
-              // charte étaient détectées, journalisées, et jamais appliquées.
-              sectionHtml = enforceDesignRules(sectionHtml, options).html;
-            }
+            // La page vient du moteur graphique : palette, polices, contrastes et logo y sont garantis
+            // par construction — il n'y a plus de HTML de modèle à redresser.
+            const sectionHtml = result.data;
 
             // Convert result to section model
             const section: SectionModel = {
@@ -598,6 +378,9 @@ export class BusinessPlanService extends GenericService {
           existingSections
         );
 
+        // Les empreintes des pages rejoignent la mémoire de la marque : le prochain document ne les répète pas.
+        await graphic.remember();
+
         // The stored PDF no longer matches the regenerated sections
         await cacheService.delete(businessPlanPdfCacheKey(userId, projectId, plan.id), { prefix: 'pdf' });
 
@@ -605,6 +388,7 @@ export class BusinessPlanService extends GenericService {
       } else {
         // Fallback to non-streaming processing
         const stepResults = await this.processSteps(configuredSteps, project, promptConfig);
+        await graphic.remember();
         sectionResults = stepResults.map((result) => ({
           name: result.name,
           type: result.type,
@@ -679,7 +463,7 @@ export class BusinessPlanService extends GenericService {
       JSON.stringify(project.additionalInfos);
 
     const language = getRequestLanguage() === 'fr' ? 'French' : 'English';
-    const brandContext = await this.buildBrandContext(userId, projectId, project, language, designKey);
+    const brandContext = this.brandFacts(project, language);
 
     const financeContext = this.buildFinanceContext(project);
     const currency = project.analysisResultModel?.finance?.meta?.currency;
@@ -733,27 +517,22 @@ export class BusinessPlanService extends GenericService {
       financeContext,
       country,
     });
-    // La couverture est dessinée par le code, comme dans le chemin standard :
-    // même page, mêmes mots, quel que soit le mode de génération.
-    const coverDeclensions = resolveLogoDeclensions(project.analysisResultModel?.branding?.logo);
-    const coverDesignSystem = buildDocumentDesignSystem(
-      project.analysisResultModel?.branding,
-      project.analysisResultModel?.branding?.artDirection ?? null,
-      buildDocumentSeed(project.analysisResultModel?.branding?.artDirection?.styleId, designKey)
-    );
+    // LE DOCUMENT GRAPHIQUE : le même que dans le chemin standard — même charte, même plan, même graine.
+    // Les sections issues de la recherche sont des sections du document, pas des pages à part.
+    const level = normalizeCreativity(creativity);
+    const graphicProject = await withProjectArtDirection(this.promptService, userId, projectId, project);
+    const graphic = await this.openPlanDocument(graphicProject, planSections, designKey, level, userId, true);
+    await this.saveDesignLevel(userId, projectId, plan.id, level);
+    const total = orderedNames.length;
+
+    // La couverture est dessinée par le moteur, comme dans le chemin standard : même page, mêmes mots.
     for (const section of fullSpec) {
       if (!section.freeform) continue;
-      section.compose = async () =>
-        composeCover({
-          brief: await new CoverBriefService(this.promptService).resolve(userId, projectId, project),
-          brandName: project.name,
-          ds: coverDesignSystem,
-          page: PORTRAIT_A4,
-          logos: { lightGround: coverDeclensions?.withTextLight, darkGround: coverDeclensions?.withTextDark },
-          documentLabel: 'Business plan',
-          detail: BUSINESS_PLAN_AUDIENCE_LABEL[planAudience as BusinessPlanAudience],
-          dateLabel: coverDateLabel(),
-          variant: coverVariant(projectId),
+      const definition = planSections.find((p) => p.name === section.name);
+      section.compose = () =>
+        this.renderCover(graphic, definition ?? { name: section.name }, userId, projectId, project, planAudience, {
+          index: orderIndexIn(orderedNames, section.name) + 1,
+          total,
         });
     }
 
@@ -811,49 +590,31 @@ export class BusinessPlanService extends GenericService {
       await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
     };
 
-    // Le moteur de recherche reçoit la CHARTE du projet : ses sections sont des
-    // sections du document, pas des pages à part. Sans ces champs elles
-    // retomberaient sur un design system par défaut et le plan aurait deux
-    // identités visuelles — ce qu'il avait.
-    const researchArtDirection = project.analysisResultModel?.branding?.artDirection;
-    const level = normalizeCreativity(creativity);
-    const designPlan = await this.planPagesDesign(userId, projectId, project, planSections, planAudience, designKey, level, plan.id, existingSections.length > 0, plan.design);
-    const sheet = this.creativeSheet(project);
     await researchTeamService.runResearchTeam(
       sectionsToGenerate,
       {
         projectContext: projectDescription,
-        // Identité stable pour le cache des recherches : une régénération du
-        // même projet doit RÉUTILISER les faits déjà collectés.
+        // Identité stable pour le cache des recherches : une régénération du même projet doit
+        // RÉUTILISER les faits déjà collectés.
         projectId,
-        // Bibliographie rassemblée en fin de document plutôt qu'en pied de
-        // chaque section — construite par le code, sans appel de modèle.
+        // Bibliographie rassemblée en fin de document, construite par le code sans appel de modèle.
         resourcesSectionName: BP_RESOURCES_SECTION_NAME,
         brandContext,
         language,
         userId,
         currency,
-        charter: project.analysisResultModel?.branding,
-        artDirection: researchArtDirection,
-        // Propre au plan : deux plans du projet ne tirent pas les mêmes
-        // archétypes page pour page.
-        documentKey: designKey,
-        // Partagé par tout le run : deux sections voisines ne peuvent pas tirer
-        // le même archétype.
-        usedArchetypes: new Set<string>(),
-        logoUrl: collectLogoUrls(project.analysisResultModel?.branding?.logo)[0],
-        brandName: project.name,
-        // La jauge de créativité : famille et réglages des pages par les agents ; au cran Ultra,
-        // chaque page composée par le compositeur à partir du contenu validé (gabarit en repli).
-        designPlan: designPlan ? { family: designPlan.family, pages: designPlan.pages } : undefined,
-        composePage: designPlan?.freeCompose
-          ? (name, content, seed, ds) =>
-              ultraPageComposer({ ds, seed, page: PORTRAIT_A4, singlePage: false, sheet, document: 'business plan', call: runtimeCall({ userId, projectId, element: 'business_plan' }), name, attempts: designPlan.composeAttempts, checks: designPlan.checks, repairOnly: designPlan.repairOnly })(content)
-          : undefined,
+        // Chaque page est composée DANS le document du plan, à son rang.
+        renderPage: (name, section, _index) =>
+          renderGraphicPage(
+            graphic,
+            { ...section, id: name === BP_RESOURCES_SECTION_NAME ? 'resources' : pageId(name) },
+            { index: orderIndex(name) + 1, total }
+          ),
       },
       emit,
       persistSection
     );
+    await graphic.remember();
 
     // Le PDF stocké ne correspond plus aux sections régénérées.
     await cacheService.delete(businessPlanPdfCacheKey(userId, projectId, plan.id), { prefix: 'pdf' });
@@ -862,154 +623,77 @@ export class BusinessPlanService extends GenericService {
   }
 
 
-  /**
-   * LA JAUGE DE CRÉATIVITÉ du business plan (creativity/documentDesign.ts) : famille du
-   * document (Medium+), archétype et réglages de chaque page (High+, Max+), composition libre
-   * des pages (Ultra). Les archétypes de la graine sont calculés d'abord : ils sont le repli de
-   * chaque page et le point de départ des menus. Un échec laisse la graine décider.
-   */
-  private async planPagesDesign(
-    userId: string,
-    projectId: string,
+  /** Le document graphique du plan : une page par section de la structure (et la bibliographie). */
+  private openPlanDocument(
     project: ProjectModel,
     planSections: ReadonlyArray<BusinessPlanSectionDefinition>,
-    planAudience: BusinessPlanAudience | string | undefined,
     designKey: string,
     level: CreativityLevel,
-    documentId: string,
-    /** Des pages du plan sont gardées : leur direction, enregistrée, est reprise telle quelle. */
-    keepsPages: boolean,
-    saved?: SavedDocumentDesign
-  ): Promise<DocumentDesignPlan | null> {
-    if (keepsPages) {
-      logger.info(`[BP] Reprise : direction ${saved ? `enregistrée (${saved.level})` : 'de la graine'} conservée pour les pages refaites`);
-      return resumedDesignPlan(saved, level);
-    }
-    const branding = project.analysisResultModel?.branding as any;
-    const artDirection = branding?.artDirection;
-    const seedArchetypes: Record<string, string> = {};
-    const probe = new Set<string>();
-    for (const section of planSections) if (!section.freeform) seedArchetypes[section.name] = buildSectionSeed(artDirection?.styleId, designKey, section.name, probe).archetype;
-    try {
-      const plan = await planDocumentDesign({
-        level,
-        call: runtimeCall({ userId, projectId, element: 'business_plan' }),
-        sheet: this.creativeSheet(project),
-        styleId: artDirection?.styleId,
-        document: 'business plan',
-        deliverable: 'business plan' as const,
-        // La clé du livrable sème le classement des mises en page : deux projets ne reçoivent pas
-        // la même suite de pages (c'était la cause des plans jumeaux).
-        docKey: designKey,
-        pages: planSections.filter((s) => !s.freeform).map((s) => ({ name: s.name, brief: composeBrief(s.key, { audience: planAudience as BusinessPlanAudience, position: 1, total: planSections.length }) ?? undefined })),
-        seedArchetypes,
-      });
-      logger.info(`[BP] Créativité ${level} : ${Object.keys(plan.pages).length} page(s) dirigée(s)${plan.family ? `, famille ${plan.family}` : ''}${plan.freeCompose ? ', compositeur' : ''}`);
-      // Enregistrée avec le plan : une reprise ou une régénération ciblée la reprendra.
-      await deliverableDocumentStore
-        .update(userId, projectId, 'businessPlan', documentId, (current) => ({ ...current, design: savedDesignOf(plan) }), { touch: false })
-        .catch((error: any) => logger.warn('[BP] Direction des pages non enregistrée', { error: error?.message }));
-      return plan;
-    } catch (error: any) {
-      logger.warn('[BP] Direction artistique des pages en échec, la graine décide', { error: error?.message });
-      return null;
-    }
-  }
-
-  /** La fiche de la marque, la même pour tous les agents créatifs du plan. */
-  private creativeSheet(project: ProjectModel): string {
-    const branding = project.analysisResultModel?.branding as any;
-    return brandSheet({
-      brandName: project.name || 'Brand',
-      businessType: project.type,
-      palette: branding?.colors?.colors || {},
-      fonts: { display: branding?.typography?.primaryFont || 'Archivo', body: branding?.typography?.secondaryFont || 'Inter' },
-      art: branding?.artDirection,
+    userId: string,
+    withResources = false
+  ): Promise<GraphicDocument> {
+    return openGraphicDocument({
+      project,
+      documentType: 'business-plan',
+      format: 'a4-portrait',
+      seed: designKey,
+      creativity: level,
+      sections: [
+        ...planSections.map((section) => ({ id: pageId(section.name), role: section.freeform ? ('cover' as const) : undefined })),
+        ...(withResources ? [{ id: 'resources', role: 'appendix' as const }] : []),
+      ],
+      documentLabel: 'Business plan',
+      userId,
     });
   }
 
-  /**
-   * Contexte de marque transmis à CHAQUE agent du plan.
-   *
-   * Il portait auparavant une ligne « Logo URL: … » et rien d'autre : la donnée
-   * était là, la CONSIGNE de l'afficher manquait, et aucun agent ne posait le
-   * logo. Il porte désormais les déclinaisons prêtes à l'emploi, l'obligation de
-   * les utiliser, et la direction artistique de la marque — sans quoi chaque
-   * section réinventait sa propre mise en page.
-   */
-  private async buildBrandContext(
-    userId: string,
-    projectId: string,
-    project: ProjectModel,
-    language: string,
-    /** Clé de graine du document (`documentDesignKey`). */
-    designKey: string
-  ): Promise<string> {
-    const branding = project.analysisResultModel?.branding;
-    const brandName = project.name || 'Startup';
-    const brandColors = branding?.colors || { primary: '#007bff', secondary: '#6c757d' };
-    const typography = branding?.typography || { primary: 'Arial, sans-serif' };
-
-    // Provisionnée si la charte n'a pas encore été générée : le business plan
-    // peut être le premier livrable produit, et il doit alors faire naître le
-    // parti pris visuel plutôt que de s'en passer.
-    const artDirection = await ensureProjectArtDirection(
-      this.promptService,
-      userId,
-      projectId,
-      project
-    );
-    // INVARIANTS du document seulement : stratégie de couleur, humeur
-    // typographique, rythme spatial, accent graphique. L'archétype de mise en
-    // page, la tension et la densité sont tirés PAR SECTION (cf.
-    // `buildSectionSeed`) — une graine unique pour neuf pages ne laissait que
-    // deux issues : neuf pages identiques, ou un document incohérent.
-    const documentSeed = buildDocumentSeed(artDirection?.styleId, designKey);
-
-    return [
-      `Brand: ${brandName}`,
-      `Brand Colors: ${JSON.stringify(brandColors)}`,
-      `Typography: ${JSON.stringify(typography)}`,
-      `Language: ${language}`,
-      buildLogoBlock(branding?.logo, {
-        placement:
-          'on the cover page (large, as the signature) and in the header or footer of every section page (small, discreet, always in the same place)',
-        size: 'cover: 40 to 70mm wide; running pages: 12 to 18mm tall',
-      }),
-      buildArtDirectionBlock(artDirection, { medium: 'document' }),
-      artDirection
-        ? `<composition_invariants>\n${describeDocumentSeed(documentSeed)}\n</composition_invariants>`
-        : '',
-      ANTI_SLOP_BLOCK,
-      EDITORIAL_RESTRAINT_BLOCK,
-      RESTRAINT_SELF_REVIEW_BLOCK,
-    ]
-      .filter(Boolean)
-      .join('\n\n');
+  /** Le cran de la jauge, enregistré avec le plan : la mise à jour du plan financier le reprend. */
+  private async saveDesignLevel(userId: string, projectId: string, documentId: string, level: CreativityLevel): Promise<void> {
+    await deliverableDocumentStore
+      .update(userId, projectId, 'businessPlan', documentId, (current) => ({ ...current, design: { level, pages: {} } }), { touch: false })
+      .catch((error: any) => logger.warn('[BP] Cran de créativité non enregistré', { error: error?.message }));
   }
 
   /**
-   * Réglages du contrôle anti-générique pour ce projet.
-   *
-   * Le logo n'est attendu que sur la couverture : l'exiger sur les neuf
-   * sections produirait une alerte à chaque page, et un linter qui crie tout le
-   * temps est un linter qu'on n'écoute plus.
+   * La couverture : des mots écrits une fois par projet (partagés avec la charte et le deck), une page
+   * composée par le moteur. Composée en HTML par un modèle, elle coûtait autrefois 18 000 jetons.
    */
-  private buildLintContext(project: ProjectModel): {
-    palette: any;
-    fonts: string[];
-    logoUrls: string[];
-    styleId?: string;
-  } {
-    const branding = project.analysisResultModel?.branding;
-    return {
-      palette: branding?.colors?.colors,
-      fonts: [branding?.typography?.primaryFont, branding?.typography?.secondaryFont].filter(
-        (f): f is string => !!f
-      ),
-      logoUrls: collectLogoUrls(branding?.logo),
-      styleId: branding?.artDirection?.styleId,
-    };
+  private async renderCover(
+    graphic: GraphicDocument,
+    section: Pick<BusinessPlanSectionDefinition, 'name'>,
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    audience: BusinessPlanAudience | string | undefined,
+    position: { index: number; total: number }
+  ): Promise<string> {
+    const brief = await new CoverBriefService(this.promptService).resolve(userId, projectId, project);
+    return renderGraphicPage(
+      graphic,
+      coverContent({
+        id: pageId(section.name),
+        brandName: project.name || 'Marque',
+        documentLabel: 'Business plan',
+        kicker: brief.kicker,
+        promise: brief.promise,
+        detail: BUSINESS_PLAN_AUDIENCE_LABEL[audience as BusinessPlanAudience],
+        dateLabel: coverDateLabel(),
+      }),
+      position
+    );
+  }
+
+  /**
+   * Le PRÉFIXE des rédacteurs : le projet, les faits de marque, les règles d'écriture et l'exemple
+   * canonique — ce qui sert à ÉCRIRE, rien de plus. La composition est celle du moteur graphique.
+   */
+  private writerPrefix(projectDescription: string, project: ProjectModel, language: string): string {
+    return [projectDescription, `BRAND FACTS:\n${this.brandFacts(project, language)}`, WRITING_RULES, BP_SECTION_EXAMPLE].join('\n\n');
+  }
+
+  /** Les faits de marque transmis aux rédacteurs. */
+  private brandFacts(project: ProjectModel, language: string): string {
+    return `Brand: ${project.name || 'Startup'}\nLanguage: ${language}`;
   }
 
   /** Contexte financier réel (module Finance) pour les agents — point unique. */
@@ -1559,34 +1243,51 @@ export class BusinessPlanService extends GenericService {
       skipQuotaCheck: true,
     };
 
+    // La direction artistique et le préfixe des rédacteurs : les mêmes pour tous les plans du projet.
+    const graphicProject = await withProjectArtDirection(this.promptService, userId, projectId, project);
+    const stablePrefix = this.writerPrefix(projectDescription, project, language);
+
     // Un plan après l'autre : en parallèle, chaque enregistrement du module
     // Finance déclencherait autant d'appels simultanés que de plans.
     for (const plan of plans) {
-      const brandContext = await this.buildBrandContext(
-        userId,
-        projectId,
-        project,
-        language,
-        documentDesignKey('businessplan', projectId, plan.id)
-      );
-
       // La section est recomposée avec le destinataire du plan : un plan bancaire
       // et un plan d'amorçage ne rouvrent pas la même page financière.
       const { sections: syncSections, audience: syncAudience } = resolveStructure(plan.structure);
       const syncIndex = syncSections.findIndex((section) => section.name === 'Financial Plan');
-      const syncPrompt =
-        composeHtmlPrompt('financial-plan', {
+      const definition = syncIndex === -1 ? undefined : syncSections[syncIndex];
+      const brief =
+        composeBrief(definition?.key ?? 'financial-plan', {
           audience: syncAudience,
           position: syncIndex === -1 ? 1 : syncIndex + 1,
           total: syncSections.length || 1,
           previous: syncIndex > 0 ? syncSections[syncIndex - 1]?.name : undefined,
           next: syncIndex === -1 ? undefined : syncSections[syncIndex + 1]?.name,
-        }) ?? AGENT_FINANCIAL_PLAN_PROMPT;
+          financeContext,
+        }) ?? '';
 
+      // La page est composée DANS le document du plan (même graine, même cran) : elle remplace la
+      // précédente sans détonner parmi ses voisines.
+      const graphic = await this.openPlanDocument(
+        graphicProject,
+        syncSections,
+        documentDesignKey('businessplan', projectId, plan.id),
+        normalizeCreativity(plan.design?.level),
+        userId
+      );
+      const position = { index: syncIndex === -1 ? 1 : syncIndex + 1, total: syncSections.length || 1 };
       const step: IPromptStep = {
-        promptConstant: `${projectDescription}\n${syncPrompt}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
+        promptConstant: brief,
         stepName: 'Financial Plan',
         hasDependencies: false,
+        stablePrefix,
+        template: {
+          deliverable: 'business-plan',
+          sectionId: pageId('Financial Plan'),
+          volume: definition?.volume ?? '6 to 8',
+          contentBrief: brief,
+          prependBlocks: buildFinanceBlocks(project.analysisResultModel?.finance, project.additionalInfos?.country),
+          render: (content) => renderGraphicPage(graphic, content, position),
+        },
       };
 
       try {

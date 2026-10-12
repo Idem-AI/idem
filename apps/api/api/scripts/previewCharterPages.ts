@@ -4,21 +4,24 @@
  * Rend, avec une marque et une direction artistique de test : les quatre pages
  * de direction artistique, la page du logo expliqué, et les deux pages sociales
  * (mockups rendus par le vrai service, visuel de secours). Chaque page est
- * photographiée au format de la charte et écrite dans le dossier temporaire.
+ * composée et MESURÉE par le moteur graphique (@idem/graphic-engine), comme dans
+ * la charte, puis photographiée et écrite dans le dossier temporaire.
  *
  *   npx ts-node --transpile-only api/scripts/previewCharterPages.ts
+ *
+ *   PREVIEW_PAGES="Art Direction,Social Profiles"  seulement ces pages ;
+ *   PREVIEW_SEEDS=4                                 chaque page sous 4 graines (4 compositions) ;
+ *   PREVIEW_FORMAT=page-a4                          toile A4 (défaut : 16:9).
  */
 
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import puppeteer from 'puppeteer';
+import { brandFromIdem, closeBrowser, createDocument, FormatId, SectionContent, systemSection } from '@idem/graphic-engine';
 import { ArtDirectionModel } from '../models/art-direction.model';
-import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
-import { buildDocumentSeed, buildSectionSeed } from '../services/design/designSeed';
-import { LANDSCAPE_SLIDE, renderSection } from '../services/design/sectionRenderer';
-import { buildComposedCharterPages, wideSeed } from '../services/BandIdentity/charterComposedPages';
+import { buildComposedCharterPages } from '../services/BandIdentity/charterComposedPages';
 import { SocialBrandKit } from '../services/BandIdentity/socialMockups/socialMockup.service';
+import { PdfService } from '../services/pdf.service';
 
 const svg = (markup: string) => `data:image/svg+xml;base64,${Buffer.from(markup).toString('base64')}`;
 const LOGO_DARK_INK = svg('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 100"><rect x="10" y="10" width="44" height="60" fill="#1A2A4F"/><rect x="34" y="52" width="20" height="36" fill="#1A2A4F"/><text x="76" y="68" font-family="sans-serif" font-size="52" font-weight="700" fill="#1A2A4F">Light</text></svg>');
@@ -73,16 +76,15 @@ async function main() {
   const out = path.join(os.tmpdir(), 'idem-charter-preview');
   fs.mkdirSync(out, { recursive: true });
 
-  const docSeed = buildDocumentSeed('swiss', 'preview:charter');
-  const ds = buildDocumentDesignSystem(
-    {
+  const { brand, direction } = brandFromIdem({
+    name: 'Light',
+    branding: {
       colors: { colors: { primary: '#1A2A4F', secondary: '#F4F6FA', accent: '#C79100', background: '#F8F9FB', text: '#0B1220' } },
       typography: { primaryFont: 'Syne', secondaryFont: 'Figtree' },
-    } as never,
-    AD,
-    docSeed
-  );
-  const render = { logoUrl: LOGO_DARK_INK, brandName: 'Light', page: LANDSCAPE_SLIDE, multiPage: false };
+      artDirection: { styleId: AD.styleId, keywords: AD.keywords },
+    },
+    logos: { primary: LOGO_DARK_INK, withTextLight: LOGO_DARK_INK, withTextDark: LOGO_LIGHT_INK, iconDark: ICON_LIGHT },
+  });
 
   const kit: SocialBrandKit = {
     projectKey: 'preview',
@@ -97,87 +99,92 @@ async function main() {
     ],
     audience: 'mixed',
     videoLed: false,
-    ds,
+    brand,
+    direction,
     logos: { lightGround: LOGO_DARK_INK, darkGround: LOGO_LIGHT_INK, iconDarkGround: ICON_LIGHT },
   };
 
   const pages = buildComposedCharterPages({
     project: { name: 'Light', description: "Il n'est jamais trop tard pour briller." } as never,
     artDirection: AD,
-    designSystem: ds,
-    render,
     logos: { lightGround: LOGO_DARK_INK, darkGround: LOGO_LIGHT_INK },
     imageryUrl: async () => null,
     socialKit: async () => kit,
     renderPostVisual: async () => null,
-    uploadMockup: async (image, name, contentType) => `data:${contentType};base64,${image.toString('base64')}`,
+    uploadMockup: async (image, _name, contentType) => `data:${contentType};base64,${image.toString('base64')}`,
   });
 
-  const used = new Set<string>();
-  const html: Record<string, string> = {};
-  let index = 1;
-  // `PREVIEW_ARCHETYPES=B,G,O` rend chaque page sous chacune de ces structures :
-  // la graine n'en tire qu'une par page, et un débordement propre à une autre
-  // structure passerait inaperçu. `PREVIEW_PAGES` restreint aux pages nommées.
-  const list = (value?: string) => (value ?? '').split(',').map((entry) => entry.trim()).filter(Boolean);
-  const archetypes = list(process.env.PREVIEW_ARCHETYPES);
-  const only = list(process.env.PREVIEW_PAGES);
-  for (const name of Object.keys(pages)) {
-    if (only.length > 0 && !only.includes(name)) continue;
-    const seed = wideSeed(buildSectionSeed('swiss', 'preview:charter', name, used), 'swiss');
-    if (archetypes.length === 0) {
-      html[name] = (await pages[name](seed, index++)) ?? '';
-      continue;
-    }
-    for (const archetype of archetypes) {
-      html[`${name} ${archetype}`] = (await pages[name]({ ...seed, archetype }, index++)) ?? '';
-    }
-  }
-  html['Logo Principal'] = renderSection(
-    {
-      title: 'Le logo',
-      lede: 'Un symbole en escalier et le nom composé en capitales douces.',
-      blocks: [
-        {
-          kind: 'logoStory',
-          url: LOGO_DARK_INK,
-          label: 'Logo Light',
-          background: 'light',
-          points: [
-            { label: 'Le symbole', text: "Un rectangle qui s'élève en marches : la progression, une étape après l'autre." },
-            { label: 'La construction', text: 'Trois blocs orthogonaux alignés sur une grille, sans courbe ni diagonale.' },
-            { label: 'Le nom', text: 'Composé en Syne, graisse moyenne, bas de casse, approche resserrée.' },
-            { label: 'Les couleurs', text: 'Le bleu nuit porte le symbole et le nom, sur fond clair.' },
-          ],
-        },
-      ],
-    },
-    ds,
-    wideSeed(buildSectionSeed('swiss', 'preview:charter', 'Logo Principal', used), 'swiss'),
-    { ...render, index: index++ }
-  );
+  // La page du logo expliqué : en charte, ses points viennent du rédacteur ; ici, écrits à la main.
+  const logoPage: Record<string, () => Promise<SectionContent | null>> = {
+    'Logo Principal': async () =>
+      systemSection({
+        id: 'logo-principal',
+        title: 'Le logo',
+        lede: 'Un symbole en escalier et le nom composé en capitales douces.',
+        blocks: [
+          {
+            kind: 'logoStory',
+            url: LOGO_DARK_INK,
+            label: 'Logo Light',
+            background: 'light',
+            points: [
+              { label: 'Le symbole', text: "Un rectangle qui s'élève en marches : la progression, une étape après l'autre." },
+              { label: 'La construction', text: 'Trois blocs orthogonaux alignés sur une grille, sans courbe ni diagonale.' },
+              { label: 'Le nom', text: 'Composé en Syne, graisse moyenne, bas de casse, approche resserrée.' },
+              { label: 'Les couleurs', text: 'Le bleu nuit porte le symbole et le nom, sur fond clair.' },
+            ],
+          },
+        ],
+      }),
+  };
+  const all = { ...pages, ...logoPage };
 
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1123, height: 632, deviceScaleFactor: 1.5 });
-  for (const [name, body] of Object.entries(html)) {
-    await page.setContent(`<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">${body}</body></html>`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    // Les polices distantes peuvent traîner : on les attend, sans bloquer l'aperçu.
-    await page.evaluate(() => Promise.race([document.fonts.ready, new Promise((resolve) => setTimeout(resolve, 6000))]));
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    const overflow = await page.evaluate(() => {
-      const root = document.body.querySelector('div[style*="overflow:hidden"]') as HTMLElement | null;
-      return root ? root.scrollHeight - root.clientHeight : -1;
-    });
-    const file = path.join(out, `${name.replace(/[^A-Za-z0-9]+/g, '-')}.png`) as `${string}.png`;
-    await page.screenshot({ path: file, clip: { x: 0, y: 0, width: 1123, height: 632 } });
-    console.log(`${name} → ${file}  (débordement ${overflow} px)`);
+  const list = (value?: string) => (value ?? '').split(',').map((entry) => entry.trim()).filter(Boolean);
+  const only = list(process.env.PREVIEW_PAGES);
+  const names = Object.keys(all).filter((name) => !only.length || only.includes(name));
+  const seeds = Math.max(1, Number(process.env.PREVIEW_SEEDS) || 1);
+  const format = (process.env.PREVIEW_FORMAT as FormatId | undefined) ?? 'slide-16x9';
+
+  const contents: Array<{ name: string; content: SectionContent }> = [];
+  for (const name of names) {
+    const content = await all[name]();
+    // Comme le service de la charte : chaque page prend l'identifiant de son étape (le plan lui réserve
+    // sa composition, son rang et son folio).
+    if (content) contents.push({ name, content: { ...content, id: name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') } });
+    else console.log(`${name} → omise (rien de vrai à y montrer)`);
   }
-  await browser.close();
+
+  for (let seed = 1; seed <= seeds; seed++) {
+    // Un document de charte, comme le service l'ouvre : même plan et même mémoire de diversité pour ses pages.
+    const doc = await createDocument({
+      documentType: 'brand-charter',
+      format,
+      brand,
+      direction,
+      seed: `preview:charter:${seed}`,
+      sections: contents.map(({ content }) => ({ id: content.id, role: content.role })),
+      documentLabel: 'Charte graphique',
+      locale: 'fr',
+      png: true,
+    });
+    for (const [index, { name, content }] of contents.entries()) {
+      const composed = await doc.composeSection(content, { index: index + 2, total: contents.length + 1 });
+      const file = path.join(out, `${name.replace(/[^A-Za-z0-9]+/g, '-')}${seeds > 1 ? `-${seed}` : ''}.png`);
+      if (composed.png) fs.writeFileSync(file, composed.png);
+      const issues = composed.result.issues.map((issue) => `${issue.severity === 'blocking' ? '✗' : '·'} ${issue.code}${process.env.PREVIEW_VERBOSE ? ` (${issue.message})` : ''}`).join(' ');
+      console.log(`${name} [${composed.spec.pattern.id}] → ${file}${issues ? `  (${issues})` : ''}`);
+    }
+  }
+  // Les pages sociales passent par l'hôte IDEM du moteur : elles ont pris le Chromium PARTAGÉ du service
+  // PDF, que `closeBrowser` du moteur ne ferme jamais — on ferme les deux.
+  await closeBrowser();
+  await PdfService.closeBrowser().catch(() => undefined);
   process.exit(0);
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
   console.error(error);
+  await closeBrowser().catch(() => undefined);
+  await PdfService.closeBrowser().catch(() => undefined);
   process.exit(1);
 });
