@@ -173,6 +173,33 @@ Degradation is graceful by design: a section the kit does not have is dropped, a
 
 Anti-monoculture still holds: each section's **default variant** comes from the art direction drawn for the project, so two projects do not get the same page even from the same brief, and the model never has to think about it. The kit is mounted but **not locked** — "make the hero full-bleed" must still be possible.
 
+#### Showcase sites run on Next.js
+
+The `site` target is **Next.js 15, App Router, static export**. The reason is search engines: title, description and sharing tags have to be in the HTML that is served, not added by JavaScript afterwards. File-based routing gives real pages as a bonus — a site whose every menu entry merely scrolls reads as a template.
+
+Static export keeps everything downstream unchanged: `next build` writes `out/`, `scripts/to-dist.mjs` renames it to `dist/`, and that is exactly where the publish path already looks. No server to run, no deployment change.
+
+The plan therefore describes **pages**, each with its own sections, title and description:
+
+```json
+{ "pages": [ { "path": "/", "title": "…", "description": "…", "sections": [ … ] },
+             { "path": "/methode", "title": "…", "sections": [ … ] } ] }
+```
+
+The composer writes `src/app/page.jsx` and `src/app/<slug>/page.jsx`, each carrying its own `export const metadata`. A plan with a bare `sections` array still describes the home page alone, so older plans keep working. The kit's `Nav` and `Footer` route internal links through `next/link` and leave anchors as anchors, so a site can mix both.
+
+The kit now holds fourteen sections — Nav, Hero, Logos, Features, Split, Steps, Stats, Testimonials, Pricing, Team, Faq, Contact, Cta, Footer — because three sections is a placeholder, not a site. `Split` in particular gives a page length without making it repetitive: alternating text-and-visual blocks say more than one more card grid.
+
+#### Search settings are their own step
+
+`src/seo.js` is written by the starter with what the code already knows: name, description, language, brand colour. What it cannot know is the customers' vocabulary. So after the site exists — and only then, when there is copy to draw from — the workspace asks for that one file: title, description, the six to ten phrases people actually type, and the business card for local search. One follow-up, out of band, once per conversation.
+
+#### The chat says what is happening, not how
+
+The conversation used to show file paths and npm commands. That is a tool's trace, not an account of work: someone waiting for their site does not need to know there is a `src/content/hero.js`, nor what `npx shadcn add` means. `utils/stepLabels.ts` turns every action into a sentence — « J'écris l'accroche », « J'ajoute le composant marquee (Magic UI) », « Je démarre l'aperçu » — and the npm block is gone. The path stays on hover and on click: nothing is hidden, the vocabulary changed.
+
+The context artifacts (`hello-js`, `existing-code`) are not rendered at all. They are machinery, and showing « Existing project code » on a project that holds nothing but the starter was telling the user something untrue.
+
 #### The library catalog — the agent chooses, the code installs
 
 `scaffold/libraries.ts` is a menu: Motion, shadcn/ui, Magic UI, Aceternity, Embla, Recharts, React Hook Form + Zod, Tabler Icons, Cobe. Each entry says what it brings and when to take it. The model **names** ids in the plan; the code turns them into commands. Choosing from a menu is within reach of a small model; writing an integration is not.

@@ -23,7 +23,7 @@ import { DesignSystem, forgeDesignSystem } from '../design/tokenForge.js';
 import { ProjectModel } from '../types/project.js';
 import { renderLibraryMenu } from './libraries.js';
 import { buildMobileScaffold } from './mobileApp.js';
-import { buildSiteScaffold } from './site.js';
+import { buildSiteNextScaffold } from './siteNext.js';
 import { buildWebAppScaffold } from './webApp.js';
 
 /**
@@ -31,7 +31,7 @@ import { buildWebAppScaffold } from './webApp.js';
  * change : le client s'en sert pour savoir qu'un espace de travail ouvert
  * tourne sur un socle périmé.
  */
-export const SCAFFOLD_VERSION = '2';
+export const SCAFFOLD_VERSION = '3';
 
 export interface Scaffold {
   version: string;
@@ -59,7 +59,7 @@ export function buildScaffold(options: ScaffoldOptions): Scaffold {
 
   const { files, locked } =
     target === 'site'
-      ? buildSiteScaffold(system, projectData, language)
+      ? buildSiteNextScaffold(system, projectData, language)
       : target === 'mobile-app'
         ? buildMobileScaffold(system, projectData, language)
         : buildWebAppScaffold(system, projectData, language);
@@ -112,7 +112,7 @@ export function renderUnmountedScaffold(scaffold: Scaffold): string {
     // Le kit de sections n'est pas dans les fichiers verrouillés : sans socle, il
     // n'existe donc pas. Laisser le contrat du plan actif ici produirait un plan
     // qui désigne des sections absentes — c'est-à-dire une page vide.
-    'The section kit is **not** part of this list, so it does not exist in this workspace: do **not** write `idem.plan.json` or `src/content/…`. Write the page yourself in JSX, as the fallback section of the build contract describes.',
+    'The section kit is **not** part of this list, so it does not exist in this workspace: do **not** write `idem.plan.json` or `src/content/…`. Write the product files yourself in JSX, on top of the files above and nothing else.',
     '',
     files,
   ].join('\n');

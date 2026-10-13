@@ -53,6 +53,27 @@ export function buildSectionKit(defaults: SectionDefaults): Record<string, strin
   return {
     'src/sections/Nav.jsx': `import { cn } from '../lib/cn.js';
 import BrandMark from '../brand.jsx';
+import Link from './Link.jsx';
+
+/**
+ * Un lien interne (« /methode ») passe par le routeur, une ancre (« #tarifs »)
+ * reste une ancre. Le kit ne connaît donc qu'une seule façon d'écrire un lien,
+ * que le site ait une page ou dix.
+ */
+function NavLink({ href = '#', className, children }) {
+  if (href.startsWith('/')) {
+    return (
+      <Link href={href} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  );
+}
 
 /**
  * Barre de navigation. \`logo\` est un nœud (image de marque ou mot-logo),
@@ -71,14 +92,14 @@ export default function Nav({ logo, links = [], cta, className }) {
 
         <nav aria-label="Navigation principale" className="hidden items-center gap-block md:flex">
           {links.map((link) => (
-            <a key={link.href} href={link.href} className="inline-flex min-h-[44px] items-center text-ink-muted transition-colors hover:text-ink">
+            <NavLink key={link.href} href={link.href} className="inline-flex min-h-[44px] items-center text-ink-muted transition-colors hover:text-ink">
               {link.label}
-            </a>
+            </NavLink>
           ))}
           {cta && (
-            <a href={cta.href} className="inline-flex min-h-[44px] items-center rounded bg-brand-600 px-5 font-medium text-white transition-colors hover:bg-brand-700">
+            <NavLink href={cta.href} className="inline-flex min-h-[44px] items-center rounded bg-brand-600 px-5 font-medium text-white transition-colors hover:bg-brand-700">
               {cta.label}
-            </a>
+            </NavLink>
           )}
         </nav>
 
@@ -89,14 +110,14 @@ export default function Nav({ logo, links = [], cta, className }) {
             </summary>
             <nav aria-label="Navigation principale" className="absolute right-0 top-12 w-56 rounded-lg border border-neutral-200 bg-surface-raised p-tight shadow-lg">
               {links.map((link) => (
-                <a key={link.href} href={link.href} className="flex min-h-[44px] items-center rounded px-3 text-ink hover:bg-surface">
+                <NavLink key={link.href} href={link.href} className="flex min-h-[44px] items-center rounded px-3 text-ink hover:bg-surface">
                   {link.label}
-                </a>
+                </NavLink>
               ))}
               {cta && (
-                <a href={cta.href} className="mt-tight block min-h-[44px] rounded bg-brand-600 px-3 py-2 text-center font-medium text-white">
+                <NavLink href={cta.href} className="mt-tight block min-h-[44px] rounded bg-brand-600 px-3 py-2 text-center font-medium text-white">
                   {cta.label}
-                </a>
+                </NavLink>
               )}
             </nav>
           </details>
@@ -464,6 +485,22 @@ export default function Cta({ title, description, primaryCta, secondaryCta, clas
 `,
     'src/sections/Footer.jsx': `import { cn } from '../lib/cn.js';
 import BrandMark from '../brand.jsx';
+import Link from './Link.jsx';
+
+function FooterLink({ href = '#', className, children }) {
+  if (href.startsWith('/')) {
+    return (
+      <Link href={href} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  );
+}
 
 /**
  * Pied de page. \`columns\` : { title, links[{label, href}] }.
@@ -488,9 +525,9 @@ export default function Footer({ logo, tagline, columns = [], legal, className }
                 <ul className="mt-tight space-y-1">
                   {column.links?.map((link) => (
                     <li key={link.href}>
-                      <a href={link.href} className="inline-flex min-h-[40px] items-center text-ink transition-colors hover:text-brand-700">
+                      <FooterLink href={link.href} className="inline-flex min-h-[40px] items-center text-ink transition-colors hover:text-brand-700">
                         {link.label}
-                      </a>
+                      </FooterLink>
                     </li>
                   ))}
                 </ul>
@@ -505,14 +542,182 @@ export default function Footer({ logo, tagline, columns = [], legal, className }
   );
 }
 `,
-    'src/sections/index.js': `export { default as Cta } from './Cta.jsx';
+    'src/sections/Split.jsx': `import { cn } from '../lib/cn.js';
+
+/**
+ * Bloc texte + visuel, côte à côte. \`reversed\` met le visuel à gauche.
+ *
+ * C'est la section qui donne de la longueur à un site sans le rendre bavard :
+ * trois Split qui alternent racontent un produit bien mieux qu'une grille de
+ * cartes de plus.
+ */
+export default function Split({ eyebrow, title, description, bullets = [], cta, visual, reversed = false, className }) {
+  return (
+    <section className={cn('px-6 py-section', className)}>
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-section md:grid-cols-2">
+        <div className={cn(reversed && 'md:order-2')}>
+          {eyebrow && <p className="mb-tight text-sm font-medium uppercase tracking-wide text-brand-700">{eyebrow}</p>}
+          <h2 className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>
+          {description && <p className="mt-block max-w-measure text-ink-muted">{description}</p>}
+          {bullets.length > 0 && (
+            <ul className="mt-block space-y-2">
+              {bullets.map((bullet) => (
+                <li key={bullet} className="flex gap-tight text-ink">
+                  <span aria-hidden="true" className="text-brand-600">—</span>
+                  {bullet}
+                </li>
+              ))}
+            </ul>
+          )}
+          {cta && (
+            <a href={cta.href} className="mt-block inline-flex min-h-[44px] items-center rounded bg-brand-600 px-5 font-medium text-white transition-colors hover:bg-brand-700">
+              {cta.label}
+            </a>
+          )}
+        </div>
+        <div className={cn('overflow-hidden rounded-lg', reversed && 'md:order-1')}>
+          {visual || <div aria-hidden="true" className="aspect-[4/3] w-full rounded-lg bg-brand-50" />}
+        </div>
+      </div>
+    </section>
+  );
+}
+`,
+    'src/sections/Stats.jsx': `import { cn } from '../lib/cn.js';
+
+/** Chiffres clés. \`items\` : { value, label }. Trois ou quatre, pas davantage. */
+export default function Stats({ title, items = [], className }) {
+  return (
+    <section aria-labelledby={title ? 'stats-title' : undefined} className={cn('border-y border-neutral-200 px-6 py-section', className)}>
+      <div className="mx-auto w-full max-w-6xl">
+        {title && <h2 id="stats-title" className="mb-block font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
+        <dl className="grid gap-block sm:grid-cols-2 md:grid-cols-4">
+          {items.map((item) => (
+            <div key={item.label}>
+              <dt className="sr-only">{item.label}</dt>
+              <dd>
+                <span className="block font-display text-4xl text-brand-700">{item.value}</span>
+                <span className="mt-tight block text-ink-muted">{item.label}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  );
+}
+`,
+    'src/sections/Logos.jsx': `import { cn } from '../lib/cn.js';
+
+/**
+ * Bandeau de confiance. \`items\` : { name, src? } — un nom suffit, le logo est
+ * un bonus. Sans image, le nom s'affiche en toutes lettres : mieux qu'un carré
+ * gris, et honnête.
+ */
+export default function Logos({ title, items = [], className }) {
+  return (
+    <section aria-labelledby={title ? 'logos-title' : undefined} className={cn('px-6 py-block', className)}>
+      <div className="mx-auto w-full max-w-6xl">
+        {title && <h2 id="logos-title" className="mb-block text-center text-sm uppercase tracking-wide text-ink-muted">{title}</h2>}
+        <ul className="flex flex-wrap items-center justify-center gap-block">
+          {items.map((item) => (
+            <li key={item.name} className="text-ink-muted">
+              {item.src ? (
+                <img src={item.src} alt={item.name} className="h-8 w-auto opacity-70" />
+              ) : (
+                <span className="font-display text-lg">{item.name}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+`,
+    'src/sections/Team.jsx': `import { cn } from '../lib/cn.js';
+
+/** L'équipe. \`items\` : { name, role, bio?, photo? }. */
+export default function Team({ title, intro, items = [], className }) {
+  return (
+    <section aria-labelledby={title ? 'team-title' : undefined} className={cn('px-6 py-section', className)}>
+      <div className="mx-auto w-full max-w-6xl">
+        {(title || intro) && (
+          <div className="mb-section max-w-measure">
+            {title && <h2 id="team-title" className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
+            {intro && <p className="mt-tight text-lg text-ink-muted">{intro}</p>}
+          </div>
+        )}
+        <ul className="grid gap-block sm:grid-cols-2 md:grid-cols-3">
+          {items.map((item) => (
+            <li key={item.name}>
+              {item.photo ? (
+                <img src={item.photo} alt={item.name} className="aspect-[4/5] w-full rounded-lg object-cover" />
+              ) : (
+                <div aria-hidden="true" className="aspect-[4/5] w-full rounded-lg bg-brand-50" />
+              )}
+              <h3 className="mt-tight font-display text-xl">{item.name}</h3>
+              {item.role && <p className="text-sm text-brand-700">{item.role}</p>}
+              {item.bio && <p className="mt-tight text-ink-muted">{item.bio}</p>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+`,
+    'src/sections/Contact.jsx': `import { cn } from '../lib/cn.js';
+
+/**
+ * Prendre contact. \`channels\` : { label, value, href } — téléphone, WhatsApp,
+ * courriel, adresse.
+ *
+ * Pas de formulaire par défaut : un site statique n'a pas de serveur pour le
+ * recevoir, et un formulaire qui ne part nulle part est pire que pas de
+ * formulaire. Les canaux, eux, fonctionnent depuis un téléphone.
+ */
+export default function Contact({ title, description, channels = [], hours, className }) {
+  return (
+    <section aria-labelledby="contact-title" className={cn('px-6 py-section', className)}>
+      <div className="mx-auto grid w-full max-w-6xl gap-section md:grid-cols-[1fr_1fr]">
+        <div>
+          <h2 id="contact-title" className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>
+          {description && <p className="mt-block max-w-measure text-ink-muted">{description}</p>}
+          {hours && <p className="mt-block text-ink-muted">{hours}</p>}
+        </div>
+        <ul className="divide-y divide-neutral-200">
+          {channels.map((channel) => (
+            <li key={channel.label} className="py-block">
+              <p className="text-sm uppercase tracking-wide text-ink-muted">{channel.label}</p>
+              {channel.href ? (
+                <a href={channel.href} className="mt-tight inline-flex min-h-[44px] items-center font-display text-xl text-ink transition-colors hover:text-brand-700">
+                  {channel.value}
+                </a>
+              ) : (
+                <p className="mt-tight font-display text-xl">{channel.value}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+`,
+    'src/sections/index.js': `export { default as Contact } from './Contact.jsx';
+export { default as Cta } from './Cta.jsx';
 export { default as Faq } from './Faq.jsx';
 export { default as Features } from './Features.jsx';
 export { default as Footer } from './Footer.jsx';
 export { default as Hero } from './Hero.jsx';
+export { default as Logos } from './Logos.jsx';
 export { default as Nav } from './Nav.jsx';
 export { default as Pricing } from './Pricing.jsx';
+export { default as Split } from './Split.jsx';
+export { default as Stats } from './Stats.jsx';
 export { default as Steps } from './Steps.jsx';
+export { default as Team } from './Team.jsx';
 export { default as Testimonials } from './Testimonials.jsx';
 `,
   };

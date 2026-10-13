@@ -479,10 +479,7 @@ export const UI_KIT_PATHS = Object.keys(buildUiKit());
  * le mot-logo. Le texte que le modèle propose sert de repli, jamais de
  * remplacement.
  */
-export function buildBrandMark(
-  projectData: ProjectModel | undefined,
-  system: DesignSystem
-): string {
+export function buildBrandMark(projectData: ProjectModel | undefined): string {
   const name = projectTitle(projectData).replace(/`/g, '');
   const logo = projectData?.analysisResultModel?.branding?.logo as
     | { assetUrls?: Record<string, any>; variations?: Record<string, any>; svg?: string }

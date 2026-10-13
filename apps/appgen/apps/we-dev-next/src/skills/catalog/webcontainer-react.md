@@ -1,103 +1,136 @@
 ---
 name: webcontainer-react
-description: Technical contract for the WebContainer site target - a preconfigured Vite + React 18 + Tailwind starter with a section kit is already mounted; the model writes a page plan and one content file per section, and the code composes the page.
+description: Technical contract for the showcase site target - a preconfigured Next.js 15 (App Router, static export) starter with a section kit is already mounted; the model writes a page plan and one content file per section, and the code composes the pages.
 tier: core
 priority: 90
 targets: [site]
 ---
 
-# Build target
+# Build target: a showcase site
 
-Browser WebContainer running Node. Vite + React 18 + TailwindCSS v3. No native binaries.
+Browser WebContainer running Node. **Next.js 15, App Router, static export**, React 19, TailwindCSS v3.
+
+Next rather than a single-page bundle for one reason: **search engines**. Title, description and sharing tags must be in the HTML that is served, not added by JavaScript afterwards. File-based routing gives real pages as a bonus — a site is not always one page that scrolls.
 
 **The starter is already mounted in `/home/project` and it already runs.** Never scaffold, never write a configuration file, never touch `package.json`.
 
-## How a page is built here
+## How a site is built here
 
-You do **not** write the layout. The starter carries a section kit — responsive, accessible, already wearing this project's palette, fonts and rhythm. Your job is the two things a layout cannot decide for itself: **what goes on the page, and what it says.**
+You do **not** write the layout. The starter carries a section kit — responsive, accessible, already wearing this project's palette, fonts and rhythm. You write the two things a layout cannot decide: **what the site contains, and what it says.**
 
-So you write exactly two kinds of file:
-
-1. **`idem.plan.json`** — the page, in order.
+1. **`idem.plan.json`** — the pages, in order, each with its sections.
 2. **`src/content/<name>.js`** — one module per section, exporting a plain object.
 
-`src/App.jsx` is then composed by the code from your plan. Its imports cannot be wrong, nothing can be left half-written, and a weak moment on your side costs one section, never the whole page.
+The pages (`src/app/page.jsx`, `src/app/<slug>/page.jsx`) are then composed by the code. Their imports cannot be wrong, and a weak moment on your side costs one section, never the site.
 
 ```
 <boltAction type="file" filePath="idem.plan.json">
 {
   "libraries": ["motion"],
-  "registryComponents": { "magic-ui": ["marquee"] },
-  "sections": [
-    { "component": "Nav", "content": "nav" },
-    { "component": "Hero", "content": "hero" },
-    { "component": "Features", "content": "features" },
-    { "component": "Steps", "content": "steps" },
-    { "component": "Testimonials", "content": "testimonials" },
-    { "component": "Pricing", "content": "pricing" },
-    { "component": "Faq", "content": "faq" },
-    { "component": "Cta", "content": "cta" },
-    { "component": "Footer", "content": "footer" }
+  "pages": [
+    {
+      "path": "/",
+      "title": "Paniers de légumes livrés à Douala",
+      "description": "Commandez le soir, recevez avant midi. Paiement Orange Money ou MTN MoMo.",
+      "sections": [
+        { "component": "Nav", "content": "nav" },
+        { "component": "Hero", "content": "hero" },
+        { "component": "Logos", "content": "logos" },
+        { "component": "Features", "content": "features" },
+        { "component": "Split", "content": "split-fraicheur" },
+        { "component": "Stats", "content": "stats" },
+        { "component": "Testimonials", "content": "testimonials" },
+        { "component": "Pricing", "content": "pricing" },
+        { "component": "Faq", "content": "faq" },
+        { "component": "Cta", "content": "cta" },
+        { "component": "Footer", "content": "footer" }
+      ]
+    },
+    {
+      "path": "/methode",
+      "title": "Notre méthode",
+      "description": "Des maraîchers de Nkoldongo à votre porte, en trois étapes.",
+      "sections": [
+        { "component": "Nav", "content": "nav" },
+        { "component": "Steps", "content": "steps" },
+        { "component": "Team", "content": "team" },
+        { "component": "Contact", "content": "contact" },
+        { "component": "Footer", "content": "footer" }
+      ]
+    }
   ]
 }
 </boltAction>
 ```
 
-**The plan is never an answer on its own.** A reply that contains only the plan — or that prints it as text instead of writing it as a file — produces an empty page: the plan names content modules that do not exist yet, and every section without content is dropped. In the same artifact, write `idem.plan.json` **and one `src/content/<name>.js` for every section you listed**. Nothing else is expected of you, and nothing less works.
+**The plan is never an answer on its own.** A reply that contains only the plan — or that prints it as text instead of writing it as a file — produces an empty site: the plan names content modules that do not exist yet, and every section without content is dropped. In the same artifact, write `idem.plan.json` **and one `src/content/<name>.js` per section listed**. Nothing less works.
 
-A section may carry a `"variant"`, but only one the kit has: `Hero` takes `split`, `centered` or `editorial`; `Features` takes `bento`, `rows` or `cards`; `Pricing` takes `cards` or `table`. Any other value is ignored, and leaving `variant` out is the better default — the starter already picked the one that fits this project's art direction.
+### Make it a real site, not a slide
 
-A section may also carry a `"visual"` (a component installed from a registry):
-`{ "component": "Hero", "content": "hero", "visual": { "component": "Globe", "import": "@/components/ui/globe.jsx", "named": true } }`
+- **The home page carries 7 to 11 sections.** Three sections is a placeholder, not a site.
+- **Two to four pages** when the product has something to say: a method, an offer, a team, a contact page, a story. A one-page site is a choice, not a default — pick it when the product genuinely has one thing to say.
+- **Vary the navigation.** Links to real pages (`/methode`) and anchors inside a page (`#tarifs`) both work, and the kit handles each. A site where every menu entry merely scrolls reads as a template.
+- `Nav` and `Footer` go on **every** page; everything else depends on what that page is for.
 
-Pick the sections this product actually needs, in the order that sells it. A page with no pricing does not get a Pricing section.
+## The section kit
 
-## The section kit and what each one expects
-
-Each content module is `export default { … }`. Plain data: strings, numbers, arrays — that is what travels best and what the kit expects. A value that is genuinely visual (a styled wordmark for `logo`, an icon) may hold a small JSX element; the starter reads `.js` files in `src/` as JSX, so it will not break the build. Everything else stays data.
+Each content module is `export default { … }`. Plain data: strings, numbers, arrays. A genuinely visual value (a styled wordmark, an icon) may hold a small JSX element; the starter reads `.js` files in `src/` as JSX. Everything else stays data.
 
 | Section | Content object |
 |---|---|
 | `Nav` | `logo` (text), `links: [{ label, href }]`, `cta: { label, href }` |
 | `Hero` | `eyebrow`, `title`, `description`, `primaryCta: { label, href }`, `secondaryCta` |
+| `Logos` | `title`, `items: [{ name, src? }]` — trust band |
 | `Features` | `title`, `intro`, `items: [{ title, description }]` |
+| `Split` | `eyebrow`, `title`, `description`, `bullets: []`, `cta`, `reversed` — alternate them |
 | `Steps` | `title`, `items: [{ title, description }]` |
+| `Stats` | `title`, `items: [{ value, label }]` |
 | `Testimonials` | `title`, `items: [{ quote, name, role }]` |
-| `Pricing` | `title`, `intro`, `plans: [{ name, price, period, description, features: [], cta: { label, href }, featured }]` |
+| `Pricing` | `title`, `intro`, `plans: [{ name, price, period, description, features: [], cta, featured }]` |
+| `Team` | `title`, `intro`, `items: [{ name, role, bio?, photo? }]` |
 | `Faq` | `title`, `items: [{ question, answer }]` |
+| `Contact` | `title`, `description`, `hours`, `channels: [{ label, value, href }]` |
 | `Cta` | `title`, `description`, `primaryCta`, `secondaryCta` |
 | `Footer` | `logo`, `tagline`, `columns: [{ title, links: [{ label, href }] }]`, `legal` |
+
+A section may carry a `"variant"` the kit knows: `Hero` → `split`, `centered`, `editorial`; `Features` → `bento`, `rows`, `cards`; `Pricing` → `cards`, `table`. Leaving it out is better — the starter already picked the one that fits this project's art direction.
+
+A section may also carry a `"visual"` (a component installed from a registry):
+`{ "component": "Hero", "content": "hero", "visual": { "component": "Globe", "import": "@/components/ui/globe.jsx", "named": true } }`
 
 ```js
 // src/content/hero.js
 export default {
   eyebrow: 'Douala, livraison avant midi',
   title: 'Le marché de Douala, livré chez vous avant midi',
-  description: 'Commandez le soir auprès des maraîchers de Nkoldongo. Vous recevez le lendemain matin.',
-  primaryCta: { label: 'Commander', href: '#tarifs' },
+  description: 'Commandez le soir auprès des maraîchers de Nkoldongo. Vous recevez le lendemain matin, payé par Orange Money ou MTN MoMo.',
+  primaryCta: { label: 'Commander', href: '/commander' },
 };
 ```
 
-Write the copy as this product would say it: concrete nouns, real places, real prices. Never "Lorem ipsum", never "Feature One", never an invented statistic.
+Write the copy as this product would say it: real places, real prices, real hours. Four to six items where the kit takes a list — two is thin. Never "Lorem ipsum", never "Feature One", never an invented statistic or award.
+
+**Do not write `src/seo.js`.** Search settings are a separate step, asked for after the site exists, when the copy is there to draw keywords from.
 
 ## When the kit is not enough
 
-A product that needs something the kit has no shape for — a map, a booking calendar, a configurator — gets its own component under `src/components/`, and you compose it yourself in `src/App.jsx` instead of writing a plan. That is the escape hatch, not the default: use it for the one section that needs it, and keep the plan for the rest.
+A product needing something the kit has no shape for — a map, a booking calendar, a configurator — gets its own component under `src/components/` and its own page under `src/app/`, written by you. That is the escape hatch, not the default.
 
-Everything from the component kit is available there: `import { Badge, Button, Card, EmptyState, Field, Input, Section, Spinner } from './ui/index.js';`
+The component kit is available there: `import { Badge, Button, Card, EmptyState, Field, Input, Section, Spinner } from '@/ui/index.js';`
 
 ## Already written — do not emit these files
 
 ```
-package.json  vite.config.js  postcss.config.js  tailwind.config.js  index.html
-components.json  jsconfig.json  Dockerfile  nginx.conf  .dockerignore
-src/main.jsx  src/styles/index.css  src/lib/cn.js  src/lib/utils.js
-src/ui/*.jsx         the component kit
-src/sections/*.jsx   the section kit
-idem.libraries.json  the library catalog
+package.json  next.config.mjs  postcss.config.mjs  tailwind.config.js  jsconfig.json
+components.json  scripts/to-dist.mjs  Dockerfile  nginx.conf  .dockerignore
+src/app/layout.jsx     the shared frame and the site-wide meta tags
+src/app/globals.css    the project's palette, fonts and rhythm
+src/brand.jsx          the project's logo — already placed in Nav and Footer
+src/lib/cn.js  src/lib/utils.js  src/ui/*.jsx  src/sections/*.jsx
+idem.libraries.json    the library catalog
 ```
 
-A `file` action on any of them is dropped by the workspace. Installed and importable: `react`, `react-dom`, `lucide-react` (icons), `clsx`, `tailwind-merge`. Anything else is **chosen in the plan**, never installed by hand.
+A `file` action on any of them is dropped by the workspace. Installed: `next`, `react`, `react-dom`, `lucide-react`, `clsx`, `tailwind-merge`. Anything else is **chosen in the plan**, never installed by hand.
 
 Only these font classes exist: `font-display`, `font-sans`, `font-mono`. A class named after a typeface does not exist, and inside `@apply` it stops the build.
 
@@ -110,19 +143,12 @@ Start the response **immediately** with the artifact. No preamble.
   <boltAction type="file" filePath="idem.plan.json">…</boltAction>
   <boltAction type="file" filePath="src/content/nav.js">…</boltAction>
   <boltAction type="file" filePath="src/content/hero.js">…</boltAction>
-  <boltAction type="file" filePath="src/content/features.js">…</boltAction>
-  <boltAction type="file" filePath="src/content/steps.js">…</boltAction>
-  <boltAction type="file" filePath="src/content/pricing.js">…</boltAction>
-  <boltAction type="file" filePath="src/content/faq.js">…</boltAction>
-  <boltAction type="file" filePath="src/content/cta.js">…</boltAction>
-  <boltAction type="file" filePath="src/content/footer.js">…</boltAction>
+  … one per section of every page …
   <boltAction type="shell">npm install</boltAction>
   <boltAction type="start">npm run dev</boltAction>
 </boltArtifact>
 ```
 
-One `src/content/…` action per section of the plan, in the same order. The plan above lists nine sections, so nine content actions follow it.
-
 ## Fallback — only when the task does not say the starter is in place
 
-Then the workspace is empty and the whole build contract is yours: `package.json` (`"type": "module"`, scripts `dev`/`build`/`preview`, deps `react`, `react-dom`, devDeps `vite`, `@vitejs/plugin-react`, `tailwindcss`, `postcss`, `autoprefixer`), `vite.config.js`, `postcss.config.js`, `tailwind.config.js` (`content: ['./index.html', './src/**/*.{js,jsx}']` plus the design system's `theme.extend`), `index.html` (**both** `<div id="root">` and `<script type="module" src="/src/main.jsx">` — a missing script tag is a blank page with no console error), `src/styles/index.css`, `src/main.jsx`, then the page in JSX. Set fonts with plain `font-family` in `@layer base`, never `@apply font-<FamilyName>`.
+Then the workspace is empty and the whole build contract is yours: a Vite + React 18 + Tailwind v3 project (`package.json` with `"type": "module"` and scripts `dev`/`build`/`preview`, `vite.config.js`, `postcss.config.js`, `tailwind.config.js` with the design system's `theme.extend`, `index.html` carrying **both** `<div id="root">` and `<script type="module" src="/src/main.jsx">`, `src/styles/index.css`, `src/main.jsx`), then the page in JSX. Set fonts with plain `font-family` in `@layer base`, never `@apply font-<FamilyName>`.

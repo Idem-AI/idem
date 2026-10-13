@@ -1,11 +1,11 @@
 import { openFile } from '../../../../WeIde/emit';
 import React, { useMemo, useState, useEffect } from 'react';
+import { describeCommand, describeFile } from '@/utils/stepLabels';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useFileStore } from '../../../../WeIde/stores/fileStore';
 import classNames from 'classnames';
 
-import useTerminalStore from '@/stores/terminalSlice';
 
 import { CodeBlock, isThinkContent, processStreamParts, processThinkContent } from '../MessageItem';
 import { parseFileFromContext } from '../../../utils/index';
@@ -38,7 +38,6 @@ const extractStreamingFileContent = (filePath: string, content: string): string 
 };
 
 // 添加新的类型定义
-type CommandStatus = 'idle' | 'running' | 'completed';
 
 interface ArtifactViewProps {
   isUser: boolean;
@@ -60,9 +59,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
     Map<string, { status: Task['status']; order: number }>
   >(new Map());
   // 添加命令状态管理
-  const [commandStatus, setCommandStatus] = useState<Record<string, CommandStatus>>({});
 
-  const { getTerminal } = useTerminalStore();
 
   // 处理 pre/post artifact 内容，应用 think 标签处理
   const preArtifactContent = useMemo(() => {
@@ -149,46 +146,6 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
     }));
   }, [filePaths, fileStates]);
 
-  const npmCommands = useMemo(() => {
-    const commands = [];
-    // 使用正则表达式匹配 shell 命令
-    const shellCommandRegex = /<boltAction\s+type="shell"\s*>([\s\S]*?)<\/boltAction>/g;
-    // start情况下
-    const startCommandRegex = /<boltAction\s+type="start"\s*>([\s\S]*?)<\/boltAction>/g;
-    const matches = Array.from(content.matchAll(shellCommandRegex));
-    const matchesByStart = Array.from(content.matchAll(startCommandRegex));
-
-    matches.forEach((match) => {
-      const command = match[1].trim();
-      if (command.startsWith('npm install')) {
-        commands.push({
-          type: 'install',
-          command: command,
-        });
-      } else {
-        commands.push({
-          type: 'other',
-          command: command.replace(/\n/g, ''),
-        });
-      }
-    });
-    matchesByStart.forEach((match) => {
-      const command = match[1].trim();
-      if (command.startsWith('npm run')) {
-        commands.push({
-          type: 'dev',
-          command: command,
-        });
-      } else {
-        commands.push({
-          type: 'other',
-          command: command.replace(/\n/g, ''),
-        });
-      }
-    });
-
-    return commands;
-  }, [content]);
 
   // 修改恢复单个文件的处理函数
   const handleRestoreFile = (filePath: string): void => {
@@ -443,162 +400,6 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
           </div>
         </div>
 
-        {/* NPM 命令区域 */}
-        {isExpanded && npmCommands.length > 0 && (
-          <div className="border-t border-[var(--glass-border)]/50">
-            {npmCommands.map((cmd, index) => (
-              <div
-                key={cmd.type}
-                className={classNames(
-                  'bg-gray-50 dark:bg-surface-2 px-3 py-2 font-mono text-sm flex items-center gap-1.5 justify-between group/npm',
-                  index !== npmCommands.length - 1 &&
-                    'border-b border-[var(--glass-border)]/50'
-                )}
-              >
-                <div className="flex items-center justify-between w-full">
-                  {cmd.type === 'install' ? (
-                    <div
-                      className="cursor-pointer"
-                      onClick={async () => {
-                        if (
-                          commandStatus[cmd.command] === 'running' ||
-                          commandStatus[cmd.command] === 'completed'
-                        ) {
-                          return;
-                        }
-                        try {
-                          setCommandStatus((prev) => ({
-                            ...prev,
-                            [cmd.command]: 'running',
-                          }));
-                          await getTerminal(0).executeCommand('npm install');
-                          setCommandStatus((prev) => ({
-                            ...prev,
-                            [cmd.command]: 'completed',
-                          }));
-                        } catch (error) {
-                          setCommandStatus((prev) => ({
-                            ...prev,
-                            [cmd.command]: 'idle',
-                          }));
-                        }
-                      }}
-                    >
-                      <div className="flex w-full gap-1.5">
-                        <>
-                          <span className="text-green-600 dark:text-[#7ee787]">npm</span>
-                          <span className="text-text-tertiary">install</span>
-                        </>
-                        <button
-                          className={classNames(
-                            'text-xs px-1.5 py-0.5 rounded transition-all flex items-center gap-1 flex-shrink-0 ml-24',
-                            {
-                              'invisible group-hover/npm:visible bg-gray-100 hover:bg-gray-200 dark:bg-surface-3 dark:hover:bg-surface-3 text-text-secondary':
-                                !commandStatus[cmd.command],
-                              'bg-surface-3 text-text-tertiary cursor-not-allowed':
-                                commandStatus[cmd.command] === 'completed',
-                              'bg-blue-100 dark:bg-blue-600 text-blue-700 dark:text-white cursor-wait':
-                                commandStatus[cmd.command] === 'running',
-                            }
-                          )}
-                          disabled={
-                            commandStatus[cmd.command] === 'running' ||
-                            commandStatus[cmd.command] === 'completed'
-                          }
-                        >
-                          {commandStatus[cmd.command] === 'running' ? (
-                            <div className="flex items-center gap-1">
-                              <IdemLoader size="xs" />
-                              <span>Installing...</span>
-                            </div>
-                          ) : commandStatus[cmd.command] === 'completed' ? (
-                            <div className="flex items-center gap-1">
-                              <span className="text-green-500 dark:text-green-400">✓</span>
-                              <span>Installed</span>
-                            </div>
-                          ) : (
-                            'install'
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  ) : cmd.type === 'dev' ? (
-                    <div
-                      className="cursor-pointer"
-                      onClick={async () => {
-                        if (
-                          commandStatus[cmd.command] === 'running' ||
-                          commandStatus[cmd.command] === 'completed'
-                        ) {
-                          return;
-                        }
-                        try {
-                          setCommandStatus((prev) => ({
-                            ...prev,
-                            [cmd.command]: 'running',
-                          }));
-                          await getTerminal(0).executeCommand('npm run dev');
-                          setCommandStatus((prev) => ({
-                            ...prev,
-                            [cmd.command]: 'completed',
-                          }));
-                        } catch (error) {
-                          setCommandStatus((prev) => ({
-                            ...prev,
-                            [cmd.command]: 'idle',
-                          }));
-                        }
-                      }}
-                    >
-                      <div className="flex w-full gap-1.5">
-                        <>
-                          <span className="text-green-600 dark:text-[#7ee787]">npm</span>
-                          <span className="text-text-tertiary">run</span>
-                          <span className="text-[#79c0ff]">dev</span>
-                        </>
-                        <button
-                          className={classNames(
-                            'text-xs px-1.5 py-0.5 rounded transition-all flex items-center gap-1 flex-shrink-0 ml-24',
-                            {
-                              'invisible group-hover/npm:visible bg-gray-100 hover:bg-gray-200 dark:bg-surface-3 dark:hover:bg-surface-3 text-text-secondary':
-                                !commandStatus[cmd.command],
-                              'bg-surface-3 text-text-tertiary cursor-not-allowed':
-                                commandStatus[cmd.command] === 'completed',
-                              'bg-blue-100 dark:bg-blue-600 text-blue-700 dark:text-white cursor-wait':
-                                commandStatus[cmd.command] === 'running',
-                            }
-                          )}
-                          disabled={
-                            commandStatus[cmd.command] === 'running' ||
-                            commandStatus[cmd.command] === 'completed'
-                          }
-                        >
-                          {commandStatus[cmd.command] === 'running' ? (
-                            <div className="flex items-center gap-1">
-                              <IdemLoader size="xs" />
-                              <span>Starting...</span>
-                            </div>
-                          ) : commandStatus[cmd.command] === 'completed' ? (
-                            <div className="flex items-center gap-1">
-                              <span className="text-green-500 dark:text-green-400">✓</span>
-                              <span>Started</span>
-                            </div>
-                          ) : (
-                            'start'
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <span className="text-green-600 dark:text-[#7ee787]">{cmd.command}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* 显示 boltArtifact 结尾后的文本内容 */}

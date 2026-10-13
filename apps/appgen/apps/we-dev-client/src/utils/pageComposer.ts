@@ -22,14 +22,19 @@
 
 /** Sections fournies par le socle (voir `scaffold/sections.ts`). */
 const KIT = new Set([
+  'Contact',
   'Cta',
   'Faq',
   'Features',
   'Footer',
   'Hero',
+  'Logos',
   'Nav',
   'Pricing',
+  'Split',
+  'Stats',
   'Steps',
+  'Team',
   'Testimonials',
 ]);
 
@@ -63,8 +68,21 @@ export interface PlanSection {
   visual?: PlanVisual;
 }
 
-export interface PagePlan {
+export interface PlanPage {
+  /** Adresse de la page : `/` pour l'accueil, `/methode` ensuite. */
+  path: string;
+  /** Titre de l'onglet et des moteurs de recherche. */
+  title?: string;
+  /** Description de CETTE page, pour les résultats de recherche. */
+  description?: string;
   sections: PlanSection[];
+}
+
+export interface PagePlan {
+  /** Un site a des pages. Une page unique reste un cas particulier. */
+  pages?: PlanPage[];
+  /** Forme courte, conservée : un plan sans `pages` décrit l'accueil. */
+  sections?: PlanSection[];
   libraries?: string[];
   registryComponents?: Record<string, string[]>;
 }
@@ -95,12 +113,25 @@ const parseJson = <T>(raw: string): T | null => {
   }
 };
 
+/** Chemin du fichier de page Next pour une adresse du plan. */
+function pageFileOf(path: string): string | null {
+  const clean = (path || '/').trim().replace(/^\/+|\/+$/g, '');
+  if (!clean) return 'src/app/page.jsx';
+  // Un seul niveau, en minuscules : une adresse est une promesse publique, pas
+  // un endroit où accepter ce qui passe.
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(clean)) return null;
+  return `src/app/${clean}/page.jsx`;
+}
+
+/** Profondeur de l'import relatif depuis `src/app/<...>/page.jsx` vers `src/`. */
+const upTo = (file: string): string => '../'.repeat(file.split('/').length - 2);
+
 /**
- * Compose `src/App.jsx` à partir du plan et des contenus présents.
+ * Compose les pages du site à partir du plan et des contenus présents.
  *
  * Tout ce qui ne se vérifie pas est écarté plutôt que recopié : une section
- * inconnue, un contenu absent, un import qui ne ressemble pas à un chemin. Le
- * pire résultat acceptable est une page plus courte, jamais une page morte.
+ * inconnue, un contenu absent, une adresse douteuse. Le pire résultat
+ * acceptable est un site plus court, jamais un site mort.
  */
 export function composePage(
   files: Record<string, string>,
@@ -110,16 +141,56 @@ export function composePage(
   if (typeof raw !== 'string') return null;
 
   const plan = parseJson<PagePlan>(raw);
-  if (!plan || !Array.isArray(plan.sections) || plan.sections.length === 0) {
-    return { writes: {}, commands: [], issues: [`${planPath} illisible ou sans sections`] };
+  if (!plan) {
+    return { writes: {}, commands: [], issues: [`${planPath} illisible`] };
+  }
+
+  // Forme courte : un plan sans `pages` décrit l'accueil.
+  const pages: PlanPage[] =
+    Array.isArray(plan.pages) && plan.pages.length
+      ? plan.pages
+      : Array.isArray(plan.sections) && plan.sections.length
+        ? [{ path: '/', sections: plan.sections }]
+        : [];
+
+  if (!pages.length) {
+    return { writes: {}, commands: [], issues: [`${planPath} ne décrit aucune page`] };
   }
 
   const issues: string[] = [];
+  const writes: Record<string, string> = {};
+
+  for (const page of pages) {
+    const file = pageFileOf(page?.path ?? '/');
+
+    if (!file) {
+      issues.push(`adresse « ${page?.path} » refusée, page ignorée`);
+      continue;
+    }
+
+    const composed = composeOne(files, page, upTo(file), issues);
+    if (composed) writes[file] = composed;
+  }
+
+  if (!Object.keys(writes).length) {
+    return { writes: {}, commands: [], issues: [...issues, 'aucune page exploitable dans le plan'] };
+  }
+
+  return { writes, commands: resolveCommands(files, plan, issues), issues };
+}
+
+/** Le code d'une page : ses imports, ses sections, ses métadonnées. */
+function composeOne(
+  files: Record<string, string>,
+  page: PlanPage,
+  up: string,
+  issues: string[]
+): string | null {
   const imports: string[] = [];
   const body: string[] = [];
   const kitUsed = new Set<string>();
 
-  plan.sections.forEach((section, index) => {
+  (page.sections ?? []).forEach((section, index) => {
     const name = section?.component;
 
     if (!name || !KIT.has(name)) {
@@ -127,27 +198,26 @@ export function composePage(
       return;
     }
 
-    kitUsed.add(name);
     const props: string[] = [];
 
     if (section.content) {
       if (!CONTENT_NAME.test(section.content)) {
         issues.push(`nom de contenu invalide pour ${name}, section ignorée`);
         return;
-      } else {
-        const contentPath = `src/content/${section.content}.js`;
-        if (files[contentPath] === undefined) {
-          // Une section annoncée dont le contenu manque s'afficherait vide —
-          // un titre absent et une liste vide. On la retire : une page plus
-          // courte se lit, une section creuse se remarque.
-          issues.push(`${contentPath} absent → section ${name} retirée de la page`);
-          return;
-        } else {
-          const binding = `${section.content.replace(/-([a-z])/g, (_, c) => c.toUpperCase())}Content`;
-          imports.push(`import ${binding} from './content/${section.content}.js';`);
-          props.push(`{...${binding}}`);
-        }
       }
+
+      const contentPath = `src/content/${section.content}.js`;
+      if (files[contentPath] === undefined) {
+        // Une section annoncée dont le contenu manque s'afficherait vide — un
+        // titre absent et une liste vide. On la retire : une page plus courte
+        // se lit, une section creuse se remarque.
+        issues.push(`${contentPath} absent → section ${name} retirée de la page`);
+        return;
+      }
+
+      const binding = `${section.content.replace(/-([a-z])/g, (_, c) => c.toUpperCase())}Content`;
+      imports.push(`import ${binding} from '${up}content/${section.content}.js';`);
+      props.push(`{...${binding}}`);
     }
 
     if (section.variant) {
@@ -177,16 +247,24 @@ export function composePage(
       }
     }
 
+    kitUsed.add(name);
     body.push(`      <${name}${props.length ? ` ${props.join(' ')}` : ''} />`);
   });
 
-  if (!body.length) {
-    return { writes: {}, commands: [], issues: [...issues, 'aucune section exploitable dans le plan'] };
-  }
+  if (!body.length) return null;
 
-  const kitImport = `import { ${Array.from(kitUsed).sort().join(', ')} } from './sections/index.js';`;
+  const kitImport = `import { ${Array.from(kitUsed).sort().join(', ')} } from '${up}sections/index.js';`;
 
-  const app = `/**
+  // Les métadonnées de la page partent dans le HTML servi : c'est ce que lit un
+  // moteur de recherche, et la raison d'être de Next ici.
+  const metadata =
+    page.title || page.description
+      ? `\nexport const metadata = {${page.title ? `\n  title: ${JSON.stringify(page.title)},` : ''}${
+          page.description ? `\n  description: ${JSON.stringify(page.description)},` : ''
+        }\n};\n`
+      : '';
+
+  return `/**
  * Page assemblée par IDEM d'après \`idem.plan.json\`.
  *
  * Les sections viennent du kit, le contenu de \`src/content/\`. Pour changer la
@@ -194,8 +272,8 @@ export function composePage(
  * réécrits, et ce fichier recomposé.
  */
 ${[kitImport, ...imports].join('\n')}
-
-export default function App() {
+${metadata}
+export default function Page() {
   return (
     <>
 ${body.join('\n')}
@@ -203,8 +281,6 @@ ${body.join('\n')}
   );
 }
 `;
-
-  return { writes: { 'src/App.jsx': app }, commands: resolveCommands(files, plan, issues), issues };
 }
 
 /**

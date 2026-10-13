@@ -137,6 +137,7 @@ export const LINT_RELEVANT_SCAFFOLD_PATHS = [
  * montrer, et le bouton doit proposer de générer.
  */
 export function isStarterOnly(files: Record<string, string>): boolean {
-  const app = files['src/App.jsx'] ?? files['frontend/src/App.jsx'];
+  const app =
+    files['src/app/page.jsx'] ?? files['src/App.jsx'] ?? files['frontend/src/App.jsx'];
   return typeof app === 'string' && app.includes('idem:placeholder');
 }

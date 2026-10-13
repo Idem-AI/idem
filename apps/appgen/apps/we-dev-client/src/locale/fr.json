@@ -777,6 +777,7 @@
     "regenerateConfirm": "Oui, supprimer",
     "regenerateCancel": "Annuler",
     "regenerating": "Suppression…",
+    "configuringSeo": "Je configure le référencement du site.",
     "completingContent": "Je complète le contenu de {{count}} section(s).",
     "regenerateFailed": "La suppression a échoué : rien n'a été modifié. Réessayez dans un instant."
   },

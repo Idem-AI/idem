@@ -49,9 +49,11 @@ import { fetchScaffold } from '@/api/scaffold';
 import { prewarmInstall, resetPrewarm } from '../utils/prewarmInstall';
 import {
   buildContentRequest,
+  buildSeoRequest,
   extractFilesFromText,
   extractPlanFromText,
   missingContentModules,
+  seoNeedsFilling,
 } from '@/utils/planRecovery';
 import {
   clearScaffold,
@@ -378,11 +380,21 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         // modules manquants — une seule fois, et seulement ceux-là.
         const missing = missingContentModules(useFileStore.getState().files);
 
+        const files = useFileStore.getState().files;
+
         if (missing.length && !contentRetryRef.current) {
           contentRetryRef.current = true;
           append(
             { role: 'user', content: t('chatWorkspace.completingContent', { count: missing.length }) },
             { body: { followUp: buildContentRequest(missing) } }
+          );
+        } else if (!seoRetryRef.current && seoNeedsFilling(files)) {
+          // Le référencement vient APRÈS : les mots-clés et les descriptions se
+          // tirent du contenu réellement écrit, pas d'un site imaginé.
+          seoRetryRef.current = true;
+          append(
+            { role: 'user', content: t('chatWorkspace.configuringSeo') },
+            { body: { followUp: buildSeoRequest(files) } }
           );
         } else {
           runQualityPass(chatUuid, messages, append, t, projectData);
@@ -473,6 +485,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           clearScaffold();
           setScaffoldReady(null);
           contentRetryRef.current = false;
+          seoRetryRef.current = false;
         }
       }
     });
@@ -513,6 +526,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   // Une seule relance de contenu par conversation : si le modèle n'y arrive pas
   // au deuxième tour, un troisième ne fera que brûler des jetons.
   const contentRetryRef = useRef(false);
+  // Le référencement ne se demande qu'une fois par conversation lui aussi.
+  const seoRetryRef = useRef(false);
   const [showStartButton, setShowStartButton] = useState(false);
   const [hasGeneration, setHasGeneration] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);

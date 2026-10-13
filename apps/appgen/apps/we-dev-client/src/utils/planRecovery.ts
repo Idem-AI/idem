@@ -171,3 +171,54 @@ export function extractFilesFromText(text: string): Record<string, string> {
 
   return files;
 }
+
+/**
+ * Le référencement est-il encore à faire ?
+ *
+ * `src/seo.js` est posé par le socle avec ce que le code sait déjà — le nom, la
+ * description du projet. Ce qu'il ne peut pas deviner, c'est le vocabulaire des
+ * clients : les mots qu'ils tapent, la promesse en une phrase, la fiche
+ * d'établissement. Tant que ces champs sont vides, l'étape reste à faire.
+ */
+export function seoNeedsFilling(files: Record<string, string>): boolean {
+  const seo = files['src/seo.js'];
+  if (typeof seo !== 'string') return false;
+
+  const hasKeywords = /keywords:\s*\[\s*['"]/.test(seo);
+  return !hasKeywords;
+}
+
+/**
+ * La demande de référencement, envoyée hors conversation.
+ *
+ * Un seul fichier à écrire, des champs nommés, et la liste réelle des pages du
+ * site pour que les descriptions collent à ce qui existe.
+ */
+export function buildSeoRequest(files: Record<string, string>): string {
+  const pages: string[] = [];
+
+  try {
+    const plan = JSON.parse(files['idem.plan.json'] ?? '{}') as {
+      pages?: Array<{ path?: string; title?: string }>;
+    };
+    for (const page of plan.pages ?? []) {
+      if (page?.path) pages.push(`${page.path}${page.title ? ` (${page.title})` : ''}`);
+    }
+  } catch {
+    // Plan illisible : on demande le référencement du site, sans détail de page.
+  }
+
+  return `Le site est généré. Il reste le référencement : réécrivez UNIQUEMENT \`src/seo.js\`, en gardant exactement la même forme (\`const seo = { … }; export default seo;\`).
+
+Remplissez :
+- \`title\` : le titre de la page d'accueil, moins de 60 caractères, avec ce que vend ce produit et où.
+- \`description\` : 150 à 160 caractères, une phrase qui donne envie de cliquer dans une liste de résultats.
+- \`keywords\` : 6 à 10 expressions que les clients tapent réellement, dans leur langue, avec la ville quand c'est un commerce local.
+- \`business\` : type d'établissement, ville, pays, téléphone et courriel s'ils existent dans le contenu déjà écrit. Sinon, laissez les chaînes vides.
+
+Gardez \`name\`, \`titleTemplate\`, \`language\`, \`themeColor\` et \`url\` tels quels.${
+    pages.length ? `\n\nLes pages du site : ${pages.join(', ')}.` : ''
+  }
+
+N'inventez ni chiffre ni récompense. Répondez par un <boltArtifact> contenant la seule action de fichier \`src/seo.js\`.`;
+}
