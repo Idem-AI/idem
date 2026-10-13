@@ -14,7 +14,8 @@ import type { SectionContent, SectionRole } from './contracts/content-model';
 import type { DesignSpec, SectionSpec } from './contracts/design-spec';
 import type { RenderResult } from './contracts/render-result';
 import { validateSectionContent } from './contracts/validate';
-import { analyzeSection } from './composition-engine/analyze';
+import { analyzeSection, textLoad } from './composition-engine/analyze';
+import { applyAssets, GENERATION_CAP, planAssets, resolveAssets } from './asset-planner';
 import { buildCandidate, Candidate, choose, createComposeContext, generateCandidates, lookInputFor, menu, rank, specOf } from './composition-engine/compose';
 import { DiversityMemory, fingerprintOf, serialize } from './composition-engine/diversity';
 import { DocumentPlan, planDocument, slotFor } from './composition-engine/plan';
@@ -96,6 +97,8 @@ export class GraphicDocument {
   private readonly memory: DiversityMemory;
   private readonly specs = new Map<string, SectionSpec>();
   private readonly generationId: string;
+  /** Images déjà générées pour ce document : la génération est plafonnée par document (`GENERATION_CAP`). */
+  private generatedAssets = 0;
 
   private constructor(readonly options: DocumentOptions, recent: string[]) {
     this.tokens = buildTokens({ brand: options.brand, direction: options.direction, format: options.format, allowDark: options.allowDark, size: options.size });
@@ -171,8 +174,10 @@ export class GraphicDocument {
     if (!checked.ok || !checked.value) throw new ContentError(checked.issues);
     const level = this.policy.level;
     const recorder = new TraceRecorder({ generationId: this.generationId, documentType: this.options.documentType, format: this.options.format, level, sectionId: content.id });
-    const analysis0 = analyzeSection(checked.value);
-    const section = planContent(checked.value, analysis0);
+    // ── 0. Les médias : ce que la page doit montrer, trouvé AVANT de composer ───────────────
+    const { section: withAssets, assets } = await this.prepareAssets(checked.value, recorder);
+    const analysis0 = analyzeSection(withAssets);
+    const section = planContent(withAssets, analysis0);
     const analysis = { ...analysis0, role: section.role };
     const slot = slotFor(this.plan, section.id, o.index);
     const meta: SectionMeta = { brandName: this.options.brand.name, documentLabel: this.options.documentLabel, index: slot.index, total: o.total ?? (this.plan.order.length || undefined), footer: this.options.footer ?? this.plan.footer };
@@ -306,8 +311,12 @@ export class GraphicDocument {
     if (!final.candidate && final.measurement) fingerprint.silhouette = final.measurement.silhouette;
     this.memory.add(fingerprint, slot.index);
     this.specs.set(section.id, final.spec);
+    // La charge de texte contre le budget de la page : un CONSEIL (le moteur ne retire jamais un mot) que
+    // l'hôte renvoie au rédacteur — changer de représentation ou diviser, plutôt que réduire le corps.
+    const load = textLoad(analysis, section.intent?.textBudget);
+    if (load.over > 1.25) final.issues = [...final.issues, { code: 'text_heavy', severity: 'advisory', message: `Page trop textuelle pour son rôle : ${load.detail}.`, fix: 'montrer plutôt qu’écrire (points illustrés, schéma, image) ou diviser la page' }];
     const usage = recorder.usage();
-    const trace = recorder.finish({ pattern: final.spec.pattern.id, quality: Math.round(final.score) });
+    const trace = recorder.finish({ pattern: final.spec.pattern.id, quality: Math.round(final.score), ...(assets.length ? { assets } : {}) });
     engineHost().onTrace?.(trace);
     if (final.issues.some((i) => i.severity === 'blocking')) log().warn('graphic.section_blocking', { event: 'graphic.section_blocking', section: section.id, pattern: final.spec.pattern.id, issues: final.issues.map((i) => i.code) });
     const m = final.measurement;
@@ -325,6 +334,34 @@ export class GraphicDocument {
       usage: { agentCalls: usage.agentCalls, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, ms: usage.ms },
     };
     return { spec: final.spec, result, png: final.png, trace };
+  }
+
+  /**
+   * Planifie, résout et pose les médias de la section (`asset-planner`). Une section sans intention, ou dont
+   * les médias sont déjà là (contenu rejoué), passe telle quelle. Un média introuvable applique son repli.
+   */
+  private async prepareAssets(content: SectionContent, recorder: TraceRecorder): Promise<{ section: SectionContent; assets: string[] }> {
+    const requirements = planAssets(content, this.tokens.format);
+    if (!requirements.length) return { section: content, assets: [] };
+    const t0 = Date.now();
+    const host = engineHost();
+    const resolution = await resolveAssets(
+      requirements,
+      host.assetProviders ?? {},
+      { level: this.policy.level, documentType: this.options.documentType, locale: this.options.locale, userId: this.options.user?.userId, projectId: this.options.user?.projectId, brandName: this.options.brand.name, styleId: this.options.direction?.styleId, keywords: this.options.direction?.keywords },
+      { generationLeft: Math.max(0, GENERATION_CAP[this.policy.level] - this.generatedAssets) }
+    );
+    this.generatedAssets += resolution.generated;
+    const applied = applyAssets(content, resolution, requirements);
+    recorder.task({ task: 'asset.resolve', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: resolution.missing.length ? 'skipped' : 'accepted' });
+    for (const note of applied.notes) recorder.repair({ code: 'asset_fallback', detail: note.slice(0, 240), by: 'code' });
+    const rechecked = validateSectionContent(applied.section);
+    if (!rechecked.ok || !rechecked.value) {
+      // Un média mal formé ne coûte jamais la page : on la compose sans lui.
+      log().warn('graphic.assets_refused', { event: 'graphic.assets_refused', section: content.id, issues: rechecked.issues.map((i) => i.code) });
+      return { section: content, assets: resolution.log };
+    }
+    return { section: rechecked.value, assets: resolution.log };
   }
 
   /** Le DesignSpec du document (les sections composées jusqu'ici, dans l'ordre du plan). */

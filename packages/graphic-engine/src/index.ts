@@ -48,6 +48,12 @@ export type { ContentContractOptions } from './agents/content-contract';
 export { describeSectionPlan, normalizeSectionPlan, sectionPlanContract } from './agents/content-plan';
 export type { SectionPlan } from './agents/content-plan';
 
+// ── L'intention des pages et le planificateur de médias ────────────────────────────────────────
+export { applyAssets, GENERATION_CAP, iconFor, nativeProvider, planAssets, resolveAssets } from './asset-planner';
+export type { AssetContext, AssetProvider, AssetProviders, AssetResolution } from './asset-planner';
+export { sectionTextLoad, TEXT_BUDGETS, textLoad } from './composition-engine/analyze';
+export type { TextBudgetKind } from './composition-engine/analyze';
+
 // ── Les profils de la jauge et les politiques d'appel ──────────────────────────────────────────
 export { POLICIES, policyFor } from './composition-engine/profiles';
 export type { CreativityPolicy } from './composition-engine/profiles';

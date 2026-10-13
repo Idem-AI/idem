@@ -32,6 +32,8 @@ export interface SectionFromModelOptions {
   fallbackTitle?: string;
   /** Les types de blocs admis venant du modèle (défaut : ceux qu'un modèle peut produire). */
   allow?: NormalizeOptions['allow'];
+  /** L'intention de la page posée par le code (stratégie, budget) et les stratégies que le modèle peut lui substituer. */
+  intent?: NormalizeOptions['intent'];
 }
 
 export interface SectionFromModelResult {
@@ -63,7 +65,7 @@ export function sectionFromModel(raw: unknown, o: SectionFromModelOptions): Sect
       salvaged = Boolean(input);
     } else input = parseJsonObject(raw);
   }
-  const model = input ? normalizeSection(input, { id: o.id, role: o.role, allow: o.allow ?? 'model' }) : { section: null, notes: [] as Issue[] };
+  const model = input ? normalizeSection(input, { id: o.id, role: o.role, allow: o.allow ?? 'model', intent: o.intent }) : { section: null, notes: [] as Issue[] };
   if (!model.section) return { section: null, notes: model.notes, salvaged };
   const blocks = [...systemBlocks(o.prepend ?? [], 'sys'), ...model.section.blocks, ...systemBlocks(o.append ?? [], 'ref')];
   const composed = o.compose ? o.compose(blocks) : blocks;

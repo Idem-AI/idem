@@ -43,7 +43,7 @@ const ELASTIC_MIN = 0.45;
  * spécimen, maquette — prend la place qu'on lui donne : la page le contient dès que le reste et son
  * minimum y tiennent, et il la remplit alors.
  */
-function weightFit(a: ContentAnalysis, bodyShare: number, format?: FormatDef): number {
+export function weightFit(a: ContentAnalysis, bodyShare: number, format?: FormatDef): number {
   const cap = capacity(bodyShare, format);
   const need = a.elasticWeight ? Math.max(a.weight - a.elasticWeight * (1 - ELASTIC_MIN), Math.min(a.weight, cap)) : a.weight;
   const ratio = need / cap;
@@ -56,7 +56,7 @@ function weightFit(a: ContentAnalysis, bodyShare: number, format?: FormatDef): n
 
 const wideHeavy = (a: ContentAnalysis): boolean => a.blocks.some((b) => b.wide && b.weight > 0.3);
 
-function withFooter(ctx: PatternContext, main: N): N {
+export function withFooter(ctx: PatternContext, main: N): N {
   const mode = ctx.meta.footer ?? 'full';
   if (mode === 'none') return n.stack([main], { grow: true });
   const foot = mode === 'logo' ? n.row([n.logo({ height: 'sm' })], { role: 'folio' }) : footer(ctx, { index: true });
@@ -69,6 +69,7 @@ const def = (d: Omit<PatternDef, 'family'>): PatternDef => registerPattern({ fam
 
 def({
   id: 'slide.side',
+  strategies: ['editorial'],
   summary: 'En-tête dans une colonne latérale (4 ou 5 douzièmes), corps à côté ; miroir possible.',
   tags: ['structured', 'calm', 'editorial', 'swiss'],
   params: { ratio: [4, 5], mirror: [false, true], headerAlign: ['start', 'center', 'end'], body: ['flow', 'grid2'] },
@@ -91,6 +92,7 @@ def({
 
 def({
   id: 'slide.stacked',
+  strategies: ['editorial', 'data-visualization'],
   summary: 'En-tête pleine largeur, corps dessous sur la grille (une colonne, deux, ou en rangée).',
   tags: ['structured', 'calm', 'corporate'],
   params: { body: ['flow', 'grid2', 'row'], rule: ['none', 'full'], titleSize: ['2xl', '3xl'] },
@@ -108,6 +110,7 @@ def({
 
 def({
   id: 'slide.banner',
+  strategies: ['editorial'],
   summary: 'En-tête dans un bandeau à fond perdu en haut de page, corps dessous.',
   tags: ['bold', 'corporate', 'structured'],
   params: { band: ['brand', 'ink', 'brand-soft'], body: ['flow', 'grid2'] },
@@ -126,6 +129,7 @@ def({
 
 def({
   id: 'slide.centered',
+  strategies: ['editorial'],
   summary: 'En-tête centré sur une mesure resserrée, corps centré dessous.',
   tags: ['calm', 'minimal', 'elegant'],
   params: { width: [8, 10], body: ['flow', 'row'] },
@@ -148,6 +152,7 @@ def({
 
 def({
   id: 'slide.rail',
+  strategies: ['editorial'],
   summary: 'Rail vertical à fond perdu portant le titre tourné, corps à droite.',
   tags: ['bold', 'editorial', 'structured'],
   params: { rail: ['brand', 'ink', 'brand-soft'], body: ['flow', 'grid2'] },
@@ -166,6 +171,7 @@ def({
 
 def({
   id: 'slide.split',
+  strategies: ['editorial', 'data-visualization'],
   summary: 'En-tête compact, corps en deux colonnes égales équilibrées (filet vertical possible).',
   tags: ['structured', 'editorial', 'dense'],
   params: { divider: [false, true] },
@@ -198,6 +204,7 @@ def({
 
 def({
   id: 'slide.base',
+  strategies: ['editorial'],
   summary: 'Corps en haut, en-tête ancré en BAS de page : la silhouette inversée.',
   tags: ['bold', 'editorial', 'unexpected'],
   params: { rule: [true, false], body: ['flow', 'grid2', 'row'] },
@@ -215,6 +222,7 @@ def({
 
 def({
   id: 'slide.inset',
+  strategies: ['editorial'],
   summary: 'Tout est posé dans un cadre (aplat ou filet) : la page dans la page.',
   tags: ['calm', 'elegant', 'framed'],
   params: { surface: ['raised', 'none'], body: ['flow', 'grid2'] },
@@ -235,6 +243,7 @@ def({
 
 def({
   id: 'slide.hero-figure',
+  strategies: ['data-visualization'],
   summary: 'Le chiffre-clé, le graphique ou la citation porte la page ; l’en-tête et le reste à côté.',
   tags: ['bold', 'data', 'impact'],
   params: { side: ['left', 'right'] },
@@ -256,6 +265,7 @@ def({
 
 def({
   id: 'slide.panel',
+  strategies: ['editorial'],
   summary: 'L’en-tête sur un panneau de couleur à fond perdu (gauche), le corps à droite.',
   tags: ['bold', 'corporate', 'colorful'],
   params: { panel: ['brand', 'brand-soft', 'ink'], ratio: [4, 5] },
@@ -274,6 +284,7 @@ def({
 
 def({
   id: 'slide.magazine',
+  strategies: ['editorial'],
   summary: 'Grand titre sur huit douzièmes, chapô dans la colonne de droite, corps dessous.',
   tags: ['editorial', 'elegant', 'bold'],
   params: { titleCols: [7, 8], body: ['flow', 'grid2', 'row'] },
@@ -295,6 +306,7 @@ def({
 
 def({
   id: 'slide.statement',
+  strategies: ['editorial'],
   summary: 'Une page qui respire : un titre de déclaration, son chapô, un seul bloc.',
   tags: ['bold', 'minimal', 'impact'],
   params: { align: ['start', 'center'] },
@@ -309,6 +321,7 @@ def({
 
 def({
   id: 'slide.corner',
+  strategies: ['editorial'],
   summary: 'En-tête dans le quart haut-gauche, corps pleine largeur dessous, beaucoup d’air à droite.',
   tags: ['calm', 'swiss', 'minimal'],
   params: { body: ['flow', 'grid2', 'row'], headerCols: [6, 7] },
@@ -326,12 +339,13 @@ def({
 
 def({
   id: 'slide.triptych',
+  strategies: ['illustration', 'data-visualization'],
   summary: 'En-tête en haut, la matière en trois colonnes égales (cartes, étapes, chiffres).',
   tags: ['structured', 'corporate', 'data'],
   params: { rule: [true, false] },
   fit: (a, f) => {
     const narrow = a.blocks.filter((b) => !b.wide);
-    const tri = a.blocks.length === 1 && (a.blocks[0].kind === 'cards' || a.blocks[0].kind === 'steps' || a.blocks[0].kind === 'metrics');
+    const tri = a.blocks.length === 1 && (a.blocks[0].kind === 'cards' || a.blocks[0].kind === 'steps' || a.blocks[0].kind === 'metrics' || a.blocks[0].kind === 'points');
     return tri || narrow.length === 3 ? weightFit(a, 0.7, f) : 0.1;
   },
   regions: () => [
@@ -345,7 +359,7 @@ def({
     const content =
       blocks.length === 3
         ? body(ctx, blocks, 'cols3')
-        : n.stack(blocks.map((b) => n.block(b.id, { variant: { ...ctx.variant(b), ...(b.kind === 'cards' ? { cols: 3 } : {}) } })), { gap: 'md' });
+        : n.stack(blocks.map((b) => n.block(b.id, { variant: { ...ctx.variant(b), ...(b.kind === 'cards' ? { cols: 3 } : {}), ...(b.kind === 'points' ? { style: 'column' } : {}) } })), { gap: 'md' });
     const parts = [header(ctx, { size: '2xl', rule: ctx.params.rule ? 'full' : undefined }), n.stack([content], { grow: true, justify: 'center' })];
     return { root: withFooter(ctx, n.stack(parts, { gap: 'lg', grow: true })), decor: decor(ctx, { free: 'br' }) };
   },

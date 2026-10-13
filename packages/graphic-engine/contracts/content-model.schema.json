@@ -4,7 +4,10 @@
   "properties": {
     "version": {
       "type": "string",
-      "const": "1.0"
+      "enum": [
+        "1.0",
+        "1.1"
+      ]
     },
     "documentType": {
       "type": "string",
@@ -915,6 +918,83 @@
                     "id",
                     "kind",
                     "cells"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "$ref": "#/$defs/__schema0"
+                    },
+                    "origin": {
+                      "$ref": "#/$defs/__schema1"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "points"
+                    },
+                    "items": {
+                      "minItems": 2,
+                      "maxItems": 6,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 80
+                          },
+                          "detail": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "value": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 32
+                          },
+                          "visual": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 60
+                          },
+                          "icon": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9-]{1,64}$"
+                          },
+                          "media": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "$ref": "#/$defs/__schema2"
+                              },
+                              "alt": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "alt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "items"
                   ],
                   "additionalProperties": false
                 },
@@ -1986,6 +2066,90 @@
                 }
               ]
             }
+          },
+          "intent": {
+            "type": "object",
+            "properties": {
+              "keyMessage": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "visualStrategy": {
+                "type": "string",
+                "enum": [
+                  "illustration",
+                  "full-bleed",
+                  "product-capture",
+                  "diagram",
+                  "data-visualization",
+                  "collage",
+                  "editorial",
+                  "free-composition"
+                ]
+              },
+              "textBudget": {
+                "type": "object",
+                "properties": {
+                  "headlineWords": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 40
+                  },
+                  "bodyWords": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 400
+                  },
+                  "maxBullets": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 12
+                  }
+                },
+                "required": [
+                  "headlineWords",
+                  "bodyWords",
+                  "maxBullets"
+                ],
+                "additionalProperties": false
+              },
+              "evidenceRefs": {
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              "image": {
+                "type": "object",
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 240
+                  },
+                  "framing": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "mood": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "subject"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "visualStrategy"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -2036,5 +2200,5 @@
     }
   },
   "title": "IDEM — ContentModel",
-  "$comment": "Version 1.0 — généré depuis src/contracts (zod). Ne pas modifier à la main."
+  "$comment": "Version 1.1 — généré depuis src/contracts (zod). Ne pas modifier à la main."
 }

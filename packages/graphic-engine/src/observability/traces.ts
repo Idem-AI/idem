@@ -10,7 +10,7 @@ import type { CreativityLevel, DocumentType, FormatId } from '../contracts/commo
 import type { Repair } from '../contracts/render-result';
 import { COMPONENT_LIBRARY_VERSION, ENGINE_VERSION } from '../version';
 
-export type TaskName = 'compose' | 'creative.pick' | 'creative.tune' | 'creative.author' | 'creative.critic' | 'repair.targeted' | 'content.plan' | 'compile' | 'measure';
+export type TaskName = 'compose' | 'creative.pick' | 'creative.tune' | 'creative.author' | 'creative.critic' | 'repair.targeted' | 'content.plan' | 'compile' | 'measure' | 'asset.resolve';
 
 export interface TaskTrace {
   task: TaskName;
@@ -40,6 +40,8 @@ export interface GenerationTrace {
   components: string;
   /** Note de qualité mesurée (0-100). */
   quality?: number;
+  /** Les médias de la page : `assetId ← source (fournisseur)`, ou `assetId ✗` quand aucun n'a été trouvé. */
+  assets?: string[];
 }
 
 /** ≈ 4 signes par jeton : l'estimation des runtimes de l'hôte, gardée pour comparer. */

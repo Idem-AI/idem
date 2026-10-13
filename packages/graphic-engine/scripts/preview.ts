@@ -13,7 +13,7 @@ import type { SectionContent } from '../src/contracts/content-model';
 import { createDocument } from '../src/engine';
 import { closeBrowser, pageDocument, screenshot } from '../src/quality-engine/browser';
 import { FORMATS } from '../src/design-system/formats';
-import { BRANDS, CARD_BACK, CARD_FRONT, CARD_VALUES, CHARTER, coverSection, FINANCE_BP, flyer, MARKET, PROBLEM, SUMMARY_BP, SWOT_BP, TEAM, TRACTION, ASK } from './fixtures';
+import { BRANDS, capture, CARD_BACK, CARD_FRONT, CARD_VALUES, CHARTER, coverSection, FINANCE_BP, flyer, MARKET, MODEL_HUB, photo, PROBLEM, PROBLEM_VISUAL, PRODUCT_CAPTURE, SUMMARY_BP, SWOT_BP, TEAM, TRACTION, ASK, VISION_BLEED } from './fixtures';
 
 // Outil de développement : sharp est installé par l'API (planches contact seulement, jamais dans le moteur).
 import sharp from 'sharp';
@@ -36,6 +36,7 @@ interface Job {
 const JOBS: Job[] = [
   { name: 'deck-kora', documentType: 'pitch-deck', format: 'slide-16x9', brand: 'kora', label: 'Pitch deck', sections: [coverSection('Kora', 'Pitch deck', 'Torréfaction artisanale', 'Le goût du Cameroun, torréfié chaque semaine à Douala'), PROBLEM, MARKET, TRACTION, TEAM, ASK] },
   { name: 'deck-kofi', documentType: 'pitch-deck', format: 'slide-16x9', brand: 'kofi', label: 'Pitch deck', sections: [coverSection('Kofi', 'Pitch deck', 'Formation numérique', 'Former 10 000 femmes au numérique d’ici 2028'), PROBLEM, MARKET, TRACTION, TEAM, ASK] },
+  { name: 'deck-visual-kora', documentType: 'pitch-deck', format: 'slide-16x9', brand: 'kora', label: 'Pitch deck', sections: [coverSection('Kora', 'Pitch deck', 'Torréfaction artisanale', 'Le goût du Cameroun, torréfié chaque semaine à Douala'), VISION_BLEED(photo('#1a2a4f', '#c9a227', '#0b1426')), PROBLEM_VISUAL, MODEL_HUB, PRODUCT_CAPTURE(capture('#1A2A4F', '#E5EAF7')), MARKET, TRACTION, ASK] },
   { name: 'bp-baobab', documentType: 'business-plan', format: 'a4-portrait', brand: 'baobab', label: 'Business plan', sections: [coverSection('Baobab Agro', 'Business plan', 'Agriculture durable', 'Transformer le manioc de l’Est en farine certifiée'), SUMMARY_BP, FINANCE_BP, SWOT_BP] },
   { name: 'charter-kora', documentType: 'brand-charter', format: 'slide-16x9', brand: 'kora', label: 'Charte graphique', sections: [coverSection('Kora', 'Charte graphique', 'Torréfaction artisanale', 'Le goût du Cameroun, torréfié chaque semaine à Douala'), ...CHARTER(BRANDS.kora)] },
   { name: 'card-kora', documentType: 'business-card', format: 'card-landscape', brand: 'kora', label: 'Carte', sections: [CARD_FRONT, CARD_BACK], bindings: 'markers' },

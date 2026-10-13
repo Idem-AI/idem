@@ -8,7 +8,8 @@
  *  · le modèle de vision — la critique visuelle des crans High+ ;
  *  · le journal winston, et les traces de génération (coûts, décisions, réparations) en JSON ;
  *  · la mémoire de diversité entre documents (Redis) — deux livrables d'une marque ne se ressemblent pas ;
- *  · le Chromium partagé du service PDF, et la garde réseau des rendus.
+ *  · le Chromium partagé du service PDF, et la garde réseau des rendus ;
+ *  · les fournisseurs de médias (génération, banque d'images) du planificateur de médias.
  *
  * Importer ce module suffit (effet de bord idempotent). Tout est paresseux : rien ne se connecte avant
  * la première page.
@@ -19,6 +20,7 @@ import { cacheService } from '../cache.service';
 import { runtimeCall } from '../creativity/orchestrator';
 import { idemAnalyzeImage } from '../ivision/host';
 import { isRenderUrlAllowed } from '../../utils/render-network-guard';
+import { IDEM_ASSET_PROVIDERS } from './asset-providers';
 
 let configured = false;
 
@@ -42,6 +44,8 @@ function traceSummary(trace: GenerationTrace): Record<string, unknown> {
     inputTokens: llm.reduce((s, t) => s + t.inputTokens, 0),
     outputTokens: llm.reduce((s, t) => s + t.outputTokens, 0),
     repairs: trace.repairs.map((r) => r.code),
+    // La provenance des médias de la page (`assetId ← source (fournisseur)`).
+    ...(trace.assets?.length ? { assets: trace.assets } : {}),
     attempts: trace.attempts,
     ms: trace.ms,
   };
@@ -65,6 +69,7 @@ export function configureGraphicEngineForIdem(): void {
       const previous = (await cacheService.get<string[]>(fingerprintKey(scope), { prefix: 'graphic' })) ?? [];
       await cacheService.set(fingerprintKey(scope), [...previous, ...fingerprints].slice(-40), { prefix: 'graphic', ttl: FINGERPRINT_TTL });
     },
+    assetProviders: IDEM_ASSET_PROVIDERS,
     browser: {
       // Le Chromium du service PDF : un seul navigateur de rendu par processus.
       shared: async () => (await import('../pdf.service')).PdfService.sharedBrowser(),

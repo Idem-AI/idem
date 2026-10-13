@@ -1,5 +1,5 @@
 import { normalizeCreativity, CreativityLevel } from '../../models/creativity.model';
-import { coverContent, WRITING_RULES } from '@idem/graphic-engine';
+import { coverContent, sectionHtml, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
 import crypto from 'crypto';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -17,9 +17,10 @@ import { SectionModel } from '../../models/section.model';
 import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
 
-import { composeSlideBrief } from './prompts/slide-briefs.prompt';
+import { composeSlideBrief, SLIDE_VISUAL_PLANS } from './prompts/slide-briefs.prompt';
+import { condenseSlide } from './slide-condense';
 import { CoverBriefService } from '../common/coverBrief.service';
-import { coverDateLabel, openGraphicDocument, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
+import { composeGraphicPage, coverDateLabel, openGraphicDocument, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
 import type { PitchDeckAudience } from './deck-types';
 
 /** Mention de destinataire sur la couverture du deck. */
@@ -273,6 +274,8 @@ export class PitchDeckService extends GenericService {
     // deck : deux decks du projet ne se ressemblent pas slide pour slide.
     const designKey = documentDesignKey('pitchdeck', projectId, deck.id);
     const level: CreativityLevel = normalizeCreativity(creativity);
+    // High, Max, Ultra : le rédacteur choisit la stratégie visuelle de ses slides et la correction ciblée s'applique.
+    const creativeLevel = level === 'high' || level === 'max' || level === 'ultra';
     const total = deckSlides.length;
     const graphic = await openGraphicDocument({
       project: graphicProject,
@@ -322,7 +325,14 @@ export class PitchDeckService extends GenericService {
       }
       // Le brief ne porte QUE le contenu, lu par le destinataire du deck. Une slide est une toile fixe :
       // le volume est bas (3 à 4 blocs), et le moteur mesure, resserre et répare avant de rendre.
-      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, three to four blocks.`;
+      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, two to four blocks.`;
+      // L'INTENTION de la slide : comment elle démontre son message et ce qu'elle peut porter de texte. Aux
+      // crans Low et Medium, le code décide de la stratégie ; à partir de High, le rédacteur peut en proposer
+      // une autre de la liste — il décide quoi montrer, le moteur le construit, le vérifie et le répare.
+      const plan = SLIDE_VISUAL_PLANS[definition.name];
+      const intent = plan
+        ? { visualStrategy: plan.strategy, textBudget: TEXT_BUDGETS[plan.budget], ...(creativeLevel ? { allowStrategies: [plan.strategy, ...plan.alternatives] } : {}) }
+        : undefined;
       return {
         stepName: definition.name,
         promptConstant: brief,
@@ -330,9 +340,18 @@ export class PitchDeckService extends GenericService {
         template: {
           deliverable: 'pitch-deck',
           sectionId: pageId(definition.name),
-          volume: '3 to 4',
+          volume: '2 to 4',
           contentBrief: brief,
-          render: (content) => renderGraphicPage(graphic, content, position),
+          ...(intent ? { intent } : {}),
+          render: async (content) => {
+            const out = await composeGraphicPage(graphic, content, position);
+            // Trop de texte pour son rôle (High+) : la slide repart UNE fois chez le rédacteur, avec le constat.
+            if (creativeLevel && intent && out.result.issues.some((issue) => issue.code === 'text_heavy')) {
+              const condensed = await condenseSlide(content, { userId, projectId, slideName: definition.name, intent });
+              if (condensed) return renderGraphicPage(graphic, condensed, position);
+            }
+            return sectionHtml(out);
+          },
         },
       };
     });

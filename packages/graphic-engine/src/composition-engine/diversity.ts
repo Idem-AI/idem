@@ -97,7 +97,13 @@ export class DiversityMemory {
     this.recent = recent.map(parse).filter((f): f is Fingerprint => Boolean(f)).slice(-40);
   }
 
+  /** Une page recomposée (correction, rejeu) REMPLACE son empreinte : jamais de page fantôme dans le document. */
   add(f: Fingerprint, index?: number): void {
+    const at = index === undefined ? -1 : this.positions.indexOf(index);
+    if (at >= 0) {
+      this.document[at] = f;
+      return;
+    }
     this.document.push(f);
     this.positions.push(index);
   }

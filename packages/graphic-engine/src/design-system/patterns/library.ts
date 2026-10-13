@@ -3,6 +3,7 @@
  * Ajouter un motif = un `registerPattern` dans l'un de ces fichiers (ou un nouveau, importé ici).
  */
 import './slides';
+import './slides-visual';
 import './documents';
 import './covers';
 import './cards';

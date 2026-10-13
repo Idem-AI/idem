@@ -33,7 +33,12 @@ import { closeBrowser } from '../src/quality-engine/browser';
 import { fitAndMeasure } from '../src/quality-engine/measure';
 import { FORMATS } from '../src/design-system/formats';
 import type { GenerationTrace } from '../src/observability/traces';
-import { ASK, BRANDS, CARD_BACK, CARD_FRONT, CHARTER, coverSection, FINANCE_BP, flyer, MARKET, PROBLEM, SUMMARY_BP, SWOT_BP, TEAM, TRACTION } from './fixtures';
+import { ASK, BRANDS, capture, CARD_BACK, CARD_FRONT, CHARTER, coverSection, FINANCE_BP, flyer, MARKET, MODEL_HUB, photo, PROBLEM, PROBLEM_VISUAL, PRODUCT_CAPTURE, SUMMARY_BP, SWOT_BP, TEAM, TRACTION, VISION_BLEED } from './fixtures';
+import { applyAssets, GENERATION_CAP, iconFor, planAssets, resolveAssets } from '../src/asset-planner';
+import type { AssetProviders } from '../src/asset-planner';
+import { sectionTextLoad, TEXT_BUDGETS } from '../src/composition-engine/analyze';
+import { sectionFromModel } from '../src/adapters/sections';
+import { contentContract } from '../src/agents/content-contract';
 
 const fast = process.argv.includes('--fast');
 let failures = 0;
@@ -168,7 +173,7 @@ async function main(): Promise<void> {
   // jamais retenu quand une photo est fournie — il l'ignorerait.
   const photoUrl = 'data:image/png;base64,iVBORw0KGgo=';
   const familyContents: Record<string, SectionContent[]> = {
-    slide: [MARKET, PROBLEM, TRACTION, TEAM, ASK, coverSection('Kora', 'Pitch deck', 'Torréfaction', 'Le goût du Cameroun')],
+    slide: [MARKET, PROBLEM, TRACTION, TEAM, ASK, coverSection('Kora', 'Pitch deck', 'Torréfaction', 'Le goût du Cameroun'), PROBLEM_VISUAL, MODEL_HUB, VISION_BLEED(photoUrl), PRODUCT_CAPTURE(photoUrl)],
     document: [SUMMARY_BP, FINANCE_BP, SWOT_BP, coverSection('Kora', 'Business plan', 'Torréfaction', 'Le goût du Cameroun')],
     card: [CARD_FRONT, CARD_BACK],
     visual: [flyer(true, { a: '#123', b: '#456', c: '#789' }), flyer(false, { a: '#123', b: '#456', c: '#789' })],
@@ -202,6 +207,8 @@ async function main(): Promise<void> {
   }
   ok(`motifs valides : ${patternsOk}/${allPatterns().length}`, patternsOk === allPatterns().length, broken.slice(0, 20).join(' | '));
   ok('au moins 60 motifs inscrits (diapositives, documents, couvertures, cartes, visuels)', allPatterns().length >= 60);
+  const strategies = new Set(allPatterns().flatMap((p) => p.strategies ?? []));
+  ok('chaque stratégie visuelle d’une diapositive a au moins un motif qui la sert', ['illustration', 'full-bleed', 'product-capture', 'diagram', 'data-visualization', 'editorial'].every((x) => strategies.has(x as never)), [...strategies].join(', '));
 
   // ── §7 Composition et diversité ──────────────────────────────────────────────────────────
   section('§7 Composition et diversité (sans rendu)');
@@ -285,6 +292,80 @@ async function main(): Promise<void> {
   ok('l’index d’un agent reste court (≤ 1 200 signes)', reg.index({ deliverable: 'pitch-deck' }, 1200).length <= 1200);
   ok('la documentation détaillée se charge à la demande', reg.docs('ui.chart').includes('Variantes'));
 
+
+  // ── §12 Pitch deck : intention de page, points illustrés, médias, budget de texte ──────────
+  section('§12 Pitch deck : montrer plutôt qu’écrire (intention, points, médias, texte)');
+  {
+    // Le rédacteur : bloc « points » et clé « visual » lus ; la stratégie du modèle n'est admise que si la jauge la laisse choisir.
+    const raw = JSON.stringify({ title: 'Trois freins', blocks: [{ kind: 'points', items: [{ label: 'Coût', detail: 'Trop cher', visual: 'money' }, { title: 'Délai', body: 'Trois semaines' }] }], visual: { strategy: 'diagram', keyMessage: 'Trois freins bloquent l’achat.', image: { subject: 'a shopkeeper counting coins' } } });
+    const locked = sectionFromModel(raw, { id: 's', intent: { visualStrategy: 'illustration', textBudget: TEXT_BUDGETS.points } }).section;
+    const free = sectionFromModel(raw, { id: 's', intent: { visualStrategy: 'illustration', textBudget: TEXT_BUDGETS.points, allowStrategies: ['illustration', 'diagram', 'full-bleed'] } }).section;
+    ok('points : libellé, détail et image voulue lus (title/body acceptés en alias)', locked?.blocks[0]?.kind === 'points' && locked.blocks[0].items[1].label === 'Délai' && locked.blocks[0].items[0].visual === 'money');
+    ok('Low/Medium : la stratégie du code est gardée, celle du modèle refusée', locked?.intent?.visualStrategy === 'illustration');
+    ok('High+ : la stratégie proposée par le modèle est admise', free?.intent?.visualStrategy === 'diagram' && free.intent.keyMessage === 'Trois freins bloquent l’achat.' && free.intent.image?.subject === 'a shopkeeper counting coins');
+    ok('le budget de texte posé par le code survit à la seconde normalisation', locked?.intent?.textBudget?.bodyWords === TEXT_BUDGETS.points.bodyWords);
+    ok('le contrat du deck propose les points en premier et demande la clé « visual »', contentContract({ deliverable: 'pitch-deck', visual: { strategies: ['illustration', 'diagram'] } }).includes('"visual"') && contentContract({ deliverable: 'pitch-deck' }).indexOf('"kind":"points"') < contentContract({ deliverable: 'pitch-deck' }).indexOf('"kind":"cards"'));
+
+    // Le budget de texte : la page de cartes de paragraphes déborde, la même idée en points illustrés tient.
+    const heavy = sectionTextLoad({ ...PROBLEM, intent: { visualStrategy: 'illustration' } }, { headlineWords: 12, bodyWords: 40, maxBullets: 4 });
+    const light = sectionTextLoad(PROBLEM_VISUAL);
+    ok('charge de texte : cartes de paragraphes au-dessus du budget, points illustrés dessous', heavy.over > 1 && light.over <= 1, `${heavy.detail} | ${light.detail}`);
+
+    // Le plan des médias : jamais de capture générée ; les points reçoivent une icône locale.
+    const capReq = planAssets({ ...PRODUCT_CAPTURE(photo('#111', '#222', '#333')), blocks: PRODUCT_CAPTURE('/x.png').blocks.filter((b) => b.kind !== 'figure') }, FORMATS['slide-16x9']);
+    const shot = capReq.find((r) => r.role === 'product-capture');
+    ok('capture produit : sources utilisateur, projet, capture — jamais générée ni prise en banque', Boolean(shot) && !shot!.sources.includes('generated') && !shot!.sources.includes('stock'));
+    ok('icônes locales trouvées par le mot (ship, coffee, farmer, delivery)', ['ship', 'coffee', 'farmer', 'delivery'].every((w) => Boolean(iconFor(w))), ['ship', 'coffee', 'farmer', 'delivery'].map((w) => `${w}→${iconFor(w)}`).join(' '));
+
+    // La résolution : l'ordre des sources, la génération réservée à High+ et plafonnée, le repli dit.
+    const calls: string[] = [];
+    const stub = (source: string, url?: string) => ({ resolve: async () => { calls.push(source); return url ? { url, alt: source, provenance: { provider: source } } : null; } });
+    const providers: AssetProviders = { user: stub('user'), project: stub('project'), generated: stub('generated', photo('#123', '#456', '#789')), stock: stub('stock', photo('#abc', '#def', '#123')) };
+    const bleed = { ...VISION_BLEED('/x.png'), blocks: [] as SectionContent['blocks'] };
+    const bleedReqs = planAssets(bleed, FORMATS['slide-16x9']);
+    const medium = await resolveAssets(bleedReqs, providers, { level: 'medium', documentType: 'pitch-deck' }, { generationLeft: GENERATION_CAP.medium });
+    ok('Medium : utilisateur, projet, puis banque — aucune génération', calls.join(',') === 'user,project,stock' && medium.resolved[0]?.source === 'stock' && medium.generated === 0, calls.join(','));
+    calls.length = 0;
+    const high = await resolveAssets(bleedReqs, providers, { level: 'high', documentType: 'pitch-deck' }, { generationLeft: GENERATION_CAP.high });
+    ok('High : la génération passe avant la banque, et se compte', high.resolved[0]?.source === 'generated' && high.generated === 1);
+    calls.length = 0;
+    const capped = await resolveAssets(bleedReqs, providers, { level: 'high', documentType: 'pitch-deck' }, { generationLeft: 0 });
+    ok('plafond de génération atteint : la banque prend le relais', capped.resolved[0]?.source === 'stock' && !calls.includes('generated'));
+    const none = await resolveAssets(bleedReqs, {}, { level: 'high', documentType: 'pitch-deck' }, { generationLeft: 3 });
+    const fallen = applyAssets(bleed, none, bleedReqs);
+    ok('pleine image sans image : la page redevient éditoriale, et le repli est dit', fallen.section.intent?.visualStrategy === 'editorial' && fallen.notes.length === 1);
+    const placed = applyAssets(bleed, high, bleedReqs);
+    ok('le média trouvé devient une figure posée par le code (origine système)', placed.section.blocks.some((b) => b.kind === 'figure' && b.origin === 'system'));
+
+    // La composition : l'intention fait choisir un motif qui la sert (12 projets, sans rendu).
+    const serves = async (content: SectionContent, wanted: string): Promise<number> => {
+      let hits = 0;
+      for (let i = 0; i < 12; i++) {
+        const doc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, direction: { styleId: 'swiss' }, creativity: 'medium', seed: `intent-${wanted}-${i}`, sections: [{ id: 'cover', role: 'cover' }, { id: content.id }], validate: false });
+        const out = await doc.composeSection(content, { index: 2, total: 6 });
+        if (allPatterns().find((p) => p.id === out.spec.pattern.id)?.strategies?.includes(wanted as never)) hits += 1;
+      }
+      return hits;
+    };
+    const ill = await serves(PROBLEM_VISUAL, 'illustration');
+    const hub = await serves(MODEL_HUB, 'diagram');
+    const fb = await serves(VISION_BLEED(photo('#1a2a4f', '#c9a227', '#0b1426')), 'full-bleed');
+    const cap = await serves(PRODUCT_CAPTURE(capture('#1A2A4F', '#E5EAF7')), 'product-capture');
+    ok('l’intention oriente la composition (≥ 10/12 projets par stratégie)', ill >= 10 && hub >= 10 && fb >= 10 && cap >= 10, `illustration ${ill}, schéma ${hub}, pleine image ${fb}, capture ${cap}`);
+
+    // De bout en bout : un fournisseur « utilisateur » branché sur l'hôte, la photo posée, la trace qui le dit.
+    configureGraphicEngine({ assetProviders: { user: { resolve: async () => ({ url: photo('#1a2a4f', '#c9a227', '#0b1426'), alt: 'Photo fournie', provenance: { provider: 'upload' } }) } } });
+    const doc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, creativity: 'medium', seed: 'assets-e2e', validate: false });
+    const out = await doc.composeSection(bleed, { index: 2, total: 6 });
+    configureGraphicEngine({ assetProviders: undefined });
+    ok('moteur : la photo de l’utilisateur est posée et tracée (provenance)', out.spec.pattern.id === 'slide.full-bleed' && (out.trace.assets ?? []).some((a) => a.includes('← user (upload)')), `${out.spec.pattern.id} ${(out.trace.assets ?? []).join(' ')}`);
+    const iconsDoc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, creativity: 'low', seed: 'icons', validate: false });
+    const iconsOut = await iconsDoc.composeSection(PROBLEM_VISUAL, { index: 2, total: 6 });
+    ok('moteur : chaque point reçoit son icône locale, sans réseau ni appel', (iconsOut.result.html.match(/data-ge-icon=/g) ?? []).length === 3 && iconsOut.result.usage.agentCalls === 0);
+    const heavyOut = await iconsDoc.composeSection({ ...TEAM, intent: { visualStrategy: 'illustration', textBudget: TEXT_BUDGETS.statement } }, { index: 3, total: 6 });
+    ok('moteur : une page au-dessus de son budget porte le conseil « text_heavy » (jamais bloquant)', heavyOut.result.issues.some((i) => i.code === 'text_heavy' && i.severity === 'advisory'));
+  }
+
   // ── §11 Rendus mesurés dans Chromium ─────────────────────────────────────────────────────
   if (fast) {
     console.log('\n§11 Rendus Chromium — ignorés (--fast)');
@@ -301,6 +382,7 @@ async function main(): Promise<void> {
     const jobs = [
       { name: 'deck Kora', documentType: 'pitch-deck' as const, format: 'slide-16x9' as const, brand: BRANDS.kora, sections: deckSections },
       { name: 'deck Kofi', documentType: 'pitch-deck' as const, format: 'slide-16x9' as const, brand: BRANDS.kofi, sections: deckSections },
+      { name: 'deck visuel', documentType: 'pitch-deck' as const, format: 'slide-16x9' as const, brand: BRANDS.kora, sections: [coverSection('Kora', 'Pitch deck', 'Torréfaction', 'Promesse'), VISION_BLEED(photo('#1a2a4f', '#c9a227', '#0b1426')), PROBLEM_VISUAL, MODEL_HUB, PRODUCT_CAPTURE(capture('#1A2A4F', '#E5EAF7')), MARKET] },
       { name: 'business plan', documentType: 'business-plan' as const, format: 'a4-portrait' as const, brand: BRANDS.baobab, sections: [coverSection('Baobab Agro', 'Business plan', 'Agriculture', 'Promesse'), SUMMARY_BP, FINANCE_BP, SWOT_BP] },
       { name: 'charte', documentType: 'brand-charter' as const, format: 'slide-16x9' as const, brand: BRANDS.kora, sections: [coverSection('Kora', 'Charte graphique', 'Torréfaction', 'Promesse'), ...CHARTER(BRANDS.kora)] },
       { name: 'carte', documentType: 'business-card' as const, format: 'card-landscape' as const, brand: BRANDS.kora, sections: [CARD_FRONT, CARD_BACK], bindings: 'markers' as const },

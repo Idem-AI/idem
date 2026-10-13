@@ -19,8 +19,9 @@ ne peut apparaître, aucun chiffre n'est recopié par un modèle.
 ## Le flux
 
 ```
-contenu (ContentModel : sections de blocs typés)
+contenu (ContentModel : sections de blocs typés, intention de page facultative)
   → validation et normalisation (un petit modèle se trompe : on répare la forme, jamais le fond)
+  → médias (si la page a une intention) : plan, sources dans l'ordre, pose, repli tracé
   → plan du document (chaque page reçoit d'avance une composition distincte de ses voisines)
   → candidats (motifs × paramètres) → classement (adéquation, style, diversité, mémoire)
   → choix : le code (Low, Medium) ou un agent dans un menu (High, Max), ou un arbre d'auteur (Ultra)
@@ -131,11 +132,11 @@ Versionnés (`src/version.ts`), validés par zod, publiés en JSON Schema dans `
 
 ## Composer : motifs, plan, diversité
 
-- **65 motifs** de composition (`design-system/patterns/`) : 14 diapositives et 7 couvertures, 10 pages
+- **69 motifs** de composition (`design-system/patterns/`) : 18 diapositives (dont 4 visuelles) et 7 couvertures, 10 pages
   de document et 7 couvertures, 6 rectos et 4 versos de carte, 12 visuels, 5 couvertures et avatars de
   réseau. Un motif est une recette à paramètres, pas un gabarit figé : il déclare les régions qu'il occupe,
   d'où une silhouette calculée AVANT le rendu.
-- **33 composants** (`design-system/components/`), un par type de bloc, avec leurs variantes.
+- **34 composants** (`design-system/components/`), un par type de bloc, avec leurs variantes.
 - **Le plan** (`composition-engine/plan.ts`), semé par la clé du document : l'humeur typographique, la
   densité et le pied restent constants ; chaque page reçoit une préférence de motifs décalée de ses
   voisines (les sections peuvent être composées en parallèle).
@@ -145,6 +146,33 @@ Versionnés (`src/version.ts`), validés par zod, publiés en JSON Schema dans `
   VOISINE tant qu'un autre convient.
 - **L'empreinte** d'une page (motif, paramètres, stratégie, tension, accent, silhouette) nourrit la
   mémoire de diversité ; l'hôte la garde 30 jours par projet.
+
+## L'intention des pages et les médias (pitch deck)
+
+Une diapositive part de l'idée à faire comprendre, pas du gabarit à remplir. Une section peut porter une
+**intention** (`SlideIntent`, `contracts/slide-intent.ts`) : sa stratégie visuelle (`illustration`,
+`full-bleed`, `product-capture`, `diagram`, `data-visualization`, `collage`, `editorial`,
+`free-composition`), le message à retenir, l'image qu'elle appelle et son **budget de texte**
+(`TEXT_BUDGETS` : `statement`, `points`, `demonstration`, `data`).
+
+- **Le bloc `points`** : des points MONTRÉS (libellé court, une ligne, un chiffre, ce que leur image
+  représente) au lieu de paragraphes. Le code y pose l'icône locale ou le média trouvé, jamais le modèle.
+- **Quatre motifs visuels** (`patterns/slides-visual.ts`) : `slide.full-bleed` (image en grand, message
+  sur un panneau clair), `slide.illustrated` (les points illustrés portent la page), `slide.hub` (le message
+  au centre, les points rayonnent), `slide.capture` (la vraie capture, encadrée et annotée). Chaque motif
+  déclare les stratégies qu'il sert (`strategies`) et la matière qu'il exige (`needs` : le plan ne les
+  réserve jamais). L'intention pèse 2,4 dans le classement ; au cran Medium, le tirage se fait entre motifs
+  qui la servent.
+- **Le planificateur de médias** (`asset-planner/`) : `planAssets` déduit les besoins (`AssetRequirement`) ;
+  `resolveAssets` essaie les sources dans l'ordre utilisateur → projet → capture → génération → banque →
+  natif, chez les fournisseurs branchés par l'hôte (`assetProviders`) ; `applyAssets` pose les figures et
+  les icônes, ou applique le repli (une page « pleine image » sans image redevient éditoriale). Une capture
+  de produit n'est jamais générée ni prise en banque ; la génération n'existe qu'à High+ et se plafonne par
+  document (`GENERATION_CAP`). La provenance de chaque média est dans la trace (`assets`).
+- **La charge de texte** est mesurée contre le budget : au-delà de 1,25×, un conseil `text_heavy` (jamais
+  bloquant — le moteur ne retire pas un mot). L'API IDEM renvoie alors la slide une fois au rédacteur (High+).
+
+Les contenus SANS intention (anciens decks, business plan, charte) se composent exactement comme avant.
 
 ## La jauge de créativité
 

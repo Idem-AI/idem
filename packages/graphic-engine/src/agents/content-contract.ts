@@ -30,12 +30,13 @@ const BLOCK_DOCS: Partial<Record<BlockKind, string>> = {
   persona: '{"kind":"persona","name":"…","role":"…","traits":["…"],"needs":["…"],"quote":"…"}',
   riskMatrix: '{"kind":"riskMatrix","risks":[{"label":"…","likelihood":"low|medium|high","impact":"low|medium|high","mitigation":"…"}]}',
   businessModel: '{"kind":"businessModel","cells":[{"key":"partners|activities|resources|value|relations|channels|segments|costs|revenues","items":["…"]}]}',
+  points: '{"kind":"points","items":[{"label":"3 to 6 words","detail":"one short line (optional)","value":"92 % (optional)","visual":"one or two concrete English nouns it shows: truck, coffee beans"}]}\n    2 to 6 points SHOWN with a picture each, not paragraphs. Prefer it to "cards" on a slide.',
 };
 
 /** Les blocs proposés aux rédacteurs, par livrable (les autres restent possibles côté code). */
 export const BLOCKS_BY_DELIVERABLE: Record<string, BlockKind[]> = {
   'business-plan': ['prose', 'metrics', 'table', 'cards', 'chart', 'timeline', 'quote', 'assumption', 'comparison', 'steps', 'swot', 'funnel', 'persona', 'riskMatrix', 'businessModel'],
-  'pitch-deck': ['prose', 'metrics', 'table', 'cards', 'chart', 'timeline', 'quote', 'comparison', 'steps', 'funnel', 'persona', 'businessModel'],
+  'pitch-deck': ['points', 'metrics', 'chart', 'table', 'cards', 'prose', 'timeline', 'quote', 'comparison', 'steps', 'funnel', 'persona', 'businessModel'],
   'brand-charter': ['prose', 'cards', 'quote', 'steps', 'table'],
   report: ['prose', 'metrics', 'table', 'cards', 'chart', 'timeline', 'quote', 'assumption'],
 };
@@ -45,6 +46,11 @@ export interface ContentContractOptions {
   deliverable?: keyof typeof BLOCKS_BY_DELIVERABLE;
   /** Types de blocs imposés (sinon ceux du livrable). */
   kinds?: BlockKind[];
+  /**
+   * La page a une INTENTION visuelle (diapositives) : la sortie porte une clé `visual` — le message à
+   * retenir, l'image que la page appelle, et la stratégie parmi `strategies` quand la jauge laisse choisir.
+   */
+  visual?: { strategies: readonly string[] };
 }
 
 /** Le contrat de sortie, en anglais (c'est un prompt ; la langue du contenu est fixée ailleurs). */
@@ -55,7 +61,7 @@ You do NOT write HTML, CSS or Tailwind. The page is composed by the graphic engi
 grid, spacing, logo placement and contrast are already decided and guaranteed. Markup would be discarded.
 
 Return ONE JSON object, and nothing else:
-{"kicker":"2 to 4 words naming the section's angle (optional)","title":"the section title","lede":"ONE sentence stating the finding (optional)","blocks":[ … ]}
+{"kicker":"2 to 4 words naming the section's angle (optional)","title":"the section title","lede":"ONE sentence stating the finding (optional)","blocks":[ … ]${options.visual ? `,"visual":{"keyMessage":"what the audience must remember, one sentence",${options.visual.strategies.length > 1 ? `"strategy":"${options.visual.strategies.join('|')}",` : ''}"image":{"subject":"the photo or illustration this slide calls for: who or what, doing what (no text in it) — omit if none"}}` : ''}}
 
 Block types — pick what the SUBSTANCE calls for, never a fixed recipe:
 ${kinds

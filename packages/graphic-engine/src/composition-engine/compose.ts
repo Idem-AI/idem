@@ -132,8 +132,14 @@ export function rank(candidates: Candidate[], ctx: ComposeContext): Candidate[] 
     const adjacent = ctx.memory.neighbors(ctx.slot.index).includes(c.pattern.id) ? -2.4 : 0;
     const wear = -0.85 * ctx.memory.uses(c.pattern.id);
     const noise = ctx.policy.noise * rng.float(-1, 1);
-    c.score = 2 * c.fit + 0.8 * affinity + 1.4 * (1 - near) + 0.5 * (1 - recent) + slot + avoided + adjacent + wear + noise;
-    c.reasons = [`adéquation ${c.fit.toFixed(2)}`, `style ${affinity.toFixed(2)}`, `ressemblance ${near.toFixed(2)}`, ...(slot ? ['réservé'] : []), ...(avoided ? ['réservé par une voisine'] : []), ...(adjacent ? ['déjà sur la page voisine'] : [])];
+    // L'intention de la page (montrer par l'image, le schéma, la capture…) pèse plus que la réservation du
+    // plan et l'affinité de style : c'est ce que la page doit FAIRE. Autant que l'interdit de la page voisine
+    // (deux pages d'illustration se suivent sur deux motifs qui l'illustrent), jamais une exclusion — un
+    // motif sans la matière voulue (pas d'image) est déjà écarté par son adéquation.
+    const strategy = ctx.analysis.intent?.visualStrategy;
+    const serves = strategy && strategy !== 'free-composition' && c.pattern.strategies?.includes(strategy) ? 2.4 : 0;
+    c.score = 2 * c.fit + 0.8 * affinity + 1.4 * (1 - near) + 0.5 * (1 - recent) + slot + avoided + adjacent + wear + noise + serves;
+    c.reasons = [`adéquation ${c.fit.toFixed(2)}`, `style ${affinity.toFixed(2)}`, `ressemblance ${near.toFixed(2)}`, ...(serves ? [`sert la stratégie ${strategy}`] : []), ...(slot ? ['réservé'] : []), ...(avoided ? ['réservé par une voisine'] : []), ...(adjacent ? ['déjà sur la page voisine'] : [])];
   }
   return candidates.sort((a, b) => b.score - a.score);
 }
@@ -145,7 +151,12 @@ export function rank(candidates: Candidate[], ctx: ComposeContext): Candidate[] 
  */
 export function choose(ranked: Candidate[], ctx: ComposeContext): Candidate {
   if (ctx.policy.noise === 0 || ranked.length === 1) return ranked[0];
-  const top = menu(ranked, 3);
+  // Quand le premier sert l'intention de la page, le tirage se fait entre motifs qui la servent : la variété
+  // reste (deux motifs d'illustration), mais le hasard ne rend jamais une page de texte à la place d'une image.
+  const strategy = ctx.analysis.intent?.visualStrategy;
+  const serving = (c: Candidate) => Boolean(strategy && c.pattern.strategies?.includes(strategy));
+  const pool = serving(ranked[0]) ? ranked.filter(serving) : ranked;
+  const top = menu(pool, 3);
   const rng = new Rng(`${ctx.plan.seed}:choose:${ctx.section.id}`);
   return rng.weighted(top.map((c, i) => ({ value: c, weight: Math.exp(c.score - top[0].score) * (i === 0 ? 1.4 : 1) })));
 }

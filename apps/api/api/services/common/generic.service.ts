@@ -32,6 +32,7 @@ import {
   describeSectionPlan,
   normalizeSectionPlan,
   sectionFromModel,
+  type SectionFromModelOptions,
   SectionContent,
   sectionPlanContract,
   volumeDirective,
@@ -65,6 +66,12 @@ export interface SectionTemplate {
   heading?: { title: string; kicker?: string };
   /** Recompose les blocs (spécimens compris) avant le rendu : le logo et son explication dans UN objet. */
   composeBlocks?: (blocks: Block[]) => Block[];
+  /**
+   * L'INTENTION de la page (diapositives) : sa stratégie visuelle et son budget de texte, décidés par le
+   * code, et les stratégies que le rédacteur peut leur substituer (la jauge en décide). Présente, le contrat
+   * de sortie demande la clé `visual` (message à retenir, image voulue) et le moteur planifie les médias.
+   */
+  intent?: SectionFromModelOptions['intent'];
   /** La page : le moteur compose, mesure et répare la section, puis rend son fragment HTML autonome. */
   render: (section: SectionContent) => Promise<string>;
 }
@@ -604,7 +611,12 @@ export class GenericService {
             // donc le comblement — disparaît.
             planDirective,
             volumeDirective(step.template.volume),
-            contentContract({ deliverable: step.template.deliverable }),
+            contentContract({
+              deliverable: step.template.deliverable,
+              ...(step.template.intent
+                ? { visual: { strategies: step.template.intent.allowStrategies ?? [step.template.intent.visualStrategy] } }
+                : {}),
+            }),
           ]
             .filter(Boolean)
             .join('\n\n')
@@ -669,7 +681,7 @@ export class GenericService {
         // n'existe plus. Le balisage, lui, est garanti par le rendu.
         validate: step.template
           ? (text: string) =>
-              sectionFromModel(parseLlmJson(text) ?? text, { id: step.template!.sectionId, fallbackTitle: step.stepName }).section
+              sectionFromModel(parseLlmJson(text) ?? text, { id: step.template!.sectionId, fallbackTitle: step.stepName, intent: step.template!.intent }).section
                 ? { ok: true }
                 : { ok: false, reason: 'contenu de section illisible ou vide' }
           : step.quality
@@ -710,6 +722,7 @@ export class GenericService {
         heading: step.template.heading,
         compose: step.template.composeBlocks,
         fallbackTitle: step.stepName,
+        intent: step.template.intent,
       });
       if (read.section) {
         if (read.salvaged) {

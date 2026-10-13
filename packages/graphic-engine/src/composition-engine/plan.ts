@@ -99,8 +99,11 @@ export function planDocument(input: PlanInput): DocumentPlan {
   const sections = input.sections ?? [];
   const order = sections.map((s) => s.id);
   // Une suite de motifs propre au projet : l'affinité du style penche, le tirage du projet départage.
+  // Les motifs qui exigent une matière (image, points) sont écartés AVANT le tirage : le plan ne voit pas le
+  // contenu, et la suite tirée pour un projet ne dépend pas de leur présence dans la bibliothèque.
   const pool = (role?: SectionRole) =>
     patternsFor(family, role)
+      .filter((p) => !p.needs?.length)
       .map((p) => ({ id: p.id, score: styleAffinity(p.tags, style.id) + rng.float(0, 0.9) }))
       .sort((a, b) => b.score - a.score)
       .map((p) => p.id);

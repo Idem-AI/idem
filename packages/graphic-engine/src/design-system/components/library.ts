@@ -8,3 +8,4 @@ import './cards';
 import './chart';
 import './specimens';
 import './social';
+import './points';

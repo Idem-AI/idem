@@ -235,6 +235,9 @@ export const RUNTIME_SCRIPT = `(function () {
     var blocks = p.querySelectorAll('[data-ge-block], [data-ge-role="header"]');
     var rects = [];
     for (var b = 0; b < blocks.length; b++) { if (!isDecor(blocks[b])) { rects.push({ el: blocks[b], r: blocks[b].getBoundingClientRect() }); } }
+    // Un corps sans bloc (points posés champ par champ, capture encadrée) occupe aussi la page : il compte.
+    var bodies = p.querySelectorAll('[data-ge-role="body"]');
+    for (var q = 0; q < bodies.length; q++) { if (!isDecor(bodies[q]) && !bodies[q].querySelector('[data-ge-block]')) { rects.push({ el: bodies[q], r: bodies[q].getBoundingClientRect() }); } }
     var overlaps = 0;
     for (var x = 0; x < rects.length; x++) for (var y = x + 1; y < rects.length; y++) {
       var A = rects[x], B = rects[y];

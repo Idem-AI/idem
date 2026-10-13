@@ -37,6 +37,11 @@ export interface EngineHost {
   recentFingerprints?: (scope: FingerprintScope) => Promise<string[]>;
   rememberFingerprints?: (scope: FingerprintScope, fingerprints: string[]) => Promise<void>;
   browser?: BrowserOptions;
+  /**
+   * Les fournisseurs de MÉDIAS, par source (utilisateur, projet, capture, génération, banque) : le moteur
+   * les essaie dans l'ordre fixe et pose ce qu'ils trouvent. Sans eux, seules les icônes locales (natives).
+   */
+  assetProviders?: import('./asset-planner').AssetProviders;
 }
 
 const silent: EngineLogger = { info: () => undefined, warn: () => undefined, error: () => undefined };

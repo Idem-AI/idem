@@ -7,6 +7,7 @@
  * calcule ainsi AVANT le rendu, et la diversité se mesure sans dessiner tous les candidats.
  */
 import type { SectionContent, SectionRole } from '../../contracts/content-model';
+import type { VisualStrategy } from '../../contracts/slide-intent';
 import type { DecorItem, NodeT, SurfaceToken } from '../../contracts/design-spec';
 import type { Params, ParamValue } from '../../contracts/common';
 import type { BlockInfo, ContentAnalysis } from '../../composition-engine/analyze';
@@ -50,6 +51,16 @@ export interface PatternDef {
   summary: string;
   /** Affinités de style (`calm`, `bold`, `editorial`, `structured`, `playful`…), lues par le classement. */
   tags: string[];
+  /**
+   * Les stratégies visuelles que ce motif SAIT servir (`SlideIntent.visualStrategy`) : le classement favorise
+   * fortement un motif qui sert la stratégie demandée — sans jamais exclure les autres.
+   */
+  strategies?: VisualStrategy[];
+  /**
+   * La matière sans laquelle le motif n'a pas de sens (une image, des points). Le PLAN du document, qui ne
+   * voit pas le contenu, ne les réserve jamais : ils viennent par l'intention de la page et leur adéquation.
+   */
+  needs?: Array<'figure' | 'points'>;
   /** Rôles de section admis (absent : tous sauf couverture et face de carte). */
   roles?: SectionRole[];
   params: Record<string, ParamValue[]>;

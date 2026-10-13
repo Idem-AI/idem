@@ -4,11 +4,11 @@
  * de composition change `COMPONENT_LIBRARY_VERSION` ; modifier la forme d'un contrat change sa
  * version — et les clés de cache qui en dépendent s'invalident d'elles-mêmes.
  */
-export const ENGINE_VERSION = '1.0.0';
-export const COMPONENT_LIBRARY_VERSION = '1.0.0';
+export const ENGINE_VERSION = '1.1.0';
+export const COMPONENT_LIBRARY_VERSION = '1.1.0';
 
 export const CONTRACT_VERSIONS = {
-  contentModel: '1.0',
+  contentModel: '1.1',
   designSpec: '1.0',
   renderResult: '1.0',
 } as const;
