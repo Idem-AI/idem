@@ -25,99 +25,48 @@ import { QualityExpectation, qualityValidator } from '../agents/quality-gate';
 import { verifySection } from '../agents/section-verifier.service';
 import { DeliverableGraph, graphDepth, validateGraph } from '../agents/deliverable-graph';
 import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
-import { DocumentDesignSystem } from '../design/documentDesignSystem';
-import { SectionSeed } from '../design/designSeed';
-import { Block, normalizeSectionContent, SectionContent } from '../design/sectionContent';
-import { htmlToSectionContent, looksLikeHtmlPage } from '../design/htmlToSectionContent';
 import {
-  SECTION_PLAN_CONTRACT,
+  Block,
+  BlockDraft,
+  contentContract,
   describeSectionPlan,
   normalizeSectionPlan,
-} from '../design/sectionPlan';
-import { RenderOptions, renderSection } from '../design/sectionRenderer';
-import {
-  SECTION_CONTENT_CONTRACT,
-  sectionVolumeDirective,
-} from '../design/sectionContent.prompt';
+  sectionFromModel,
+  SectionContent,
+  sectionPlanContract,
+  volumeDirective,
+} from '@idem/graphic-engine';
 import { parseLlmJson } from '../../utils/llm-json.util';
 
 /**
- * Récupère le texte d'une section renvoyée EN HTML au lieu du contenu structuré.
- *
- * Un modèle qui retombe dans son ancien format a fait le travail de fond — les
- * faits, les chiffres, les citations sont là — et s'est seulement trompé de
- * contenant. Jeter la section pour cela revient à faire payer au lecteur une
- * erreur de forme. On garde le fond, le gabarit refait la forme.
- */
-function salvageHtmlSection(content: string, stepName: string) {
-  if (!looksLikeHtmlPage(content)) return null;
-  const recovered = htmlToSectionContent(content, stepName);
-  if (!recovered) return null;
-  logger.warn(
-    `Section '${stepName}' : sortie en HTML au lieu du contenu structuré. ` +
-      `RÉCUPÉRÉE (${recovered.blocks.length} bloc(s)) et recomposée par le gabarit.`
-  );
-  return normalizeSectionContent(recovered);
-}
-
-/**
- * Tout ce dont le rendu d'une section a besoin. Porté par l'étape parce que la
- * graine est PROPRE À LA PAGE (l'archétype varie d'une page à l'autre) alors que
- * le design system est commun au document.
+ * Une section rendue par le MOTEUR GRAPHIQUE (@idem/graphic-engine) : le modèle écrit le contenu
+ * structuré, le moteur produit la page. Porté par l'étape : la composition est propre à la page, la
+ * charte et le plan sont communs au document (le service les tient dans son `GraphicDocument`).
  */
 export interface SectionTemplate {
-  designSystem: DocumentDesignSystem;
-  seed: SectionSeed;
+  /** Le livrable : il fixe les types de blocs proposés au rédacteur et à son plan. */
+  deliverable: 'business-plan' | 'pitch-deck' | 'brand-charter' | 'report';
+  /** Identifiant stable de la page dans le document (il sème sa composition). */
+  sectionId: string;
   /** Volume visé, en blocs. Ex : '6 to 8'. */
   volume: string;
-  render?: RenderOptions;
-  /**
-   * Prompt à employer À LA PLACE de `promptConstant` en mode gabarit.
-   *
-   * Les deux coexistent volontairement sur l'étape : `promptConstant` garde le
-   * prompt d'origine, qui décrit une composition HTML, et reste le REPLI quand
-   * `IDEM_SECTION_TEMPLATE=off`. Écraser `promptConstant` par le brief aurait
-   * rendu l'interrupteur dangereux — la section aurait alors reçu un contrat
-   * JSON sans rendu pour le consommer, donc du JSON brut affiché comme page.
-   */
+  /** Consigne de CONTENU de la section (destinataire, rang, voisines). Sans elle, `promptConstant`. */
   contentBrief?: string;
   /**
-   * Blocs posés par le SERVICE, à partir des données réelles du projet, avant
-   * ceux que le modèle produit.
-   *
-   * C'est ainsi qu'une page de nuancier reçoit les vraies valeurs hexadécimales
-   * de la charte, une page de typographie les vraies familles, une page de logo
-   * les vraies URLs. Ces valeurs ne passent JAMAIS par le modèle : lui demander
-   * de recopier six chiffres hexadécimaux, c'est accepter qu'une charte affiche
-   * une couleur qui n'est pas celle de la marque.
-   *
-   * Le modèle garde ce qu'il sait faire : écrire les règles d'usage autour.
+   * Blocs posés par le SERVICE, à partir des données réelles du projet, avant ceux du modèle : la page de
+   * nuancier reçoit les vraies valeurs hexadécimales, la page financière les vrais tableaux. Ces valeurs ne
+   * passent JAMAIS par le modèle.
    */
-  prependBlocks?: Block[];
+  prependBlocks?: BlockDraft[];
   /**
-   * Titre IMPOSÉ par le livrable, à la place de celui du modèle.
-   *
-   * Une charte se consulte par sa nomenclature : « Déclinaison sur fond
-   * sombre », pas « Le logo sur ses fonds ». Laissé au modèle, le titre
-   * changeait de registre d'une page à l'autre, et le sur-titre qu'il
-   * produisait disait mieux la page que le titre lui-même.
+   * Titre IMPOSÉ par le livrable, à la place de celui du modèle — et son sur-titre avec lui : une charte
+   * se consulte par sa nomenclature (« Déclinaison sur fond sombre »).
    */
   heading?: { title: string; kicker?: string };
-  /**
-   * Recompose les blocs (spécimens compris) avant le rendu.
-   *
-   * Sert aux pages dont la forme réunit une donnée du projet et un texte du
-   * modèle dans UN même objet graphique — le logo et son explication, posés
-   * côte à côte, et non l'un sous l'autre au gré de la grille.
-   */
+  /** Recompose les blocs (spécimens compris) avant le rendu : le logo et son explication dans UN objet. */
   composeBlocks?: (blocks: Block[]) => Block[];
-  /**
-   * Cran Ultra de la jauge de créativité : le contenu VALIDÉ (spécimens et titre imposé
-   * compris) est confié au compositeur de page (`creativity/pageComposer.ts`), qui en écrit
-   * la mise en page en HTML. `null` — page refusée par la fidélité, le rendu mesuré ou les
-   * règles de design — et la page est rendue par le gabarit, comme aux autres crans.
-   */
-  compose?: (content: SectionContent) => Promise<string | null>;
+  /** La page : le moteur compose, mesure et répare la section, puis rend son fragment HTML autonome. */
+  render: (section: SectionContent) => Promise<string>;
 }
 
 /**
@@ -158,16 +107,9 @@ export interface IPromptStep {
   /** Voir `StepContextMode`. Défaut : `digest` si l'étape a des dépendances. */
   contextMode?: StepContextMode;
   /**
-   * Rendu par GABARIT : le modèle produit un `SectionContent` (contenu
-   * structuré) et le serveur produit le HTML.
-   *
-   * Absent ⇒ comportement historique, le modèle écrit le HTML lui-même. La
-   * bascule se fait donc section par section, ce qui permet de la valider page
-   * par page au lieu de tout basculer d'un coup.
-   *
-   * Quand il est présent, l'étape reçoit le contrat de sortie JSON à la place
-   * des consignes de composition, et sa sortie traverse
-   * `normalizeSectionContent` puis `renderSection`.
+   * Page rendue par le MOTEUR GRAPHIQUE : le modèle produit un contenu structuré (contrat de
+   * @idem/graphic-engine), le moteur produit la page. Absent : l'étape produit un texte que le
+   * service consomme lui-même (diagrammes, documents juridiques…).
    */
   template?: SectionTemplate;
   /**
@@ -234,11 +176,7 @@ export function withSectionConfigs(
   return steps.map((step) => ({
     ...step,
     aiConfig: step.aiConfig ?? applyTier(resolveSectionConfig(feature, step.stepName)),
-    // Le préfixe COURT (sans les règles de composition) n'a de sens que sous
-    // gabarit : coupé, la section retombe sur le prompt HTML d'origine et a de
-    // nouveau besoin de ces règles.
-    stablePrefix: (TEMPLATES_ENABLED ? step.stablePrefix : undefined) ?? stablePrefix,
-    template: TEMPLATES_ENABLED ? step.template : undefined,
+    stablePrefix: step.stablePrefix ?? stablePrefix,
   }));
 }
 
@@ -320,16 +258,7 @@ export function estimateRunBudget(steps: IPromptStep[]): number {
 const maxParallelSteps = (): number => resolveConcurrency();
 
 /**
- * Interrupteur global du rendu par gabarit.
- *
- * `IDEM_SECTION_TEMPLATE=off` fait retomber TOUTES les sections sur la
- * génération HTML libre, sans redéploiement. Sert à comparer les deux rendus
- * côte à côte sur un même projet — c'est la mesure qui décide, pas l'opinion.
- */
-const TEMPLATES_ENABLED = (process.env.IDEM_SECTION_TEMPLATE ?? '').toLowerCase() !== 'off';
-
-/**
- * Étape de PLAN avant l'écriture (cf. `sectionPlan.ts`).
+ * Étape de PLAN avant l'écriture (cf. `sectionPlanContract` de @idem/graphic-engine).
  *
  * `IDEM_SECTION_PLAN=off` la coupe : la section est alors écrite d'un seul
  * appel, comme avant. Sert à mesurer ce que le découpage apporte réellement,
@@ -584,13 +513,13 @@ export class GenericService {
           {
             role: 'section-planner',
             task: 'extract',
-            systemPrompt: SECTION_PLAN_CONTRACT,
+            systemPrompt: sectionPlanContract(step.template.deliverable),
             promptType: 'section-plan',
             // Une charpente tient en quelques centaines de tokens. Un budget
             // large n'y ajouterait que de la prose.
             llmOptions: { maxOutputTokens: 1200, temperature: 0.3, jsonMode: true },
             validate: (text: string) =>
-              normalizeSectionPlan(parseLlmJson(text))
+              normalizeSectionPlan(parseLlmJson(text), step.template?.deliverable)
                 ? { ok: true }
                 : { ok: false, reason: 'plan illisible ou trop court' },
           },
@@ -610,7 +539,7 @@ export class GenericService {
           }
         );
 
-        const plan = normalizeSectionPlan(parseLlmJson(planned.text));
+        const plan = normalizeSectionPlan(parseLlmJson(planned.text), step.template.deliverable);
         if (plan) {
           planDirective = describeSectionPlan(plan);
           logger.info(
@@ -674,8 +603,8 @@ export class GenericService {
             // ouverte en remplissage : c'est là que l'invention de structure —
             // donc le comblement — disparaît.
             planDirective,
-            sectionVolumeDirective(step.template.volume),
-            SECTION_CONTENT_CONTRACT,
+            volumeDirective(step.template.volume),
+            contentContract({ deliverable: step.template.deliverable }),
           ]
             .filter(Boolean)
             .join('\n\n')
@@ -739,12 +668,10 @@ export class GenericService {
         // contrôle porte donc sur sa lisibilité, pas sur du balisage qui
         // n'existe plus. Le balisage, lui, est garanti par le rendu.
         validate: step.template
-          ? (text: string) => {
-              const parsed = normalizeSectionContent(parseLlmJson(text));
-              return parsed
+          ? (text: string) =>
+              sectionFromModel(parseLlmJson(text) ?? text, { id: step.template!.sectionId, fallbackTitle: step.stepName }).section
                 ? { ok: true }
-                : { ok: false, reason: 'contenu de section illisible ou vide' };
-            }
+                : { ok: false, reason: 'contenu de section illisible ou vide' }
           : step.quality
             ? qualityValidator(step.quality)
             : undefined,
@@ -769,79 +696,41 @@ export class GenericService {
 
     let content = result.text;
 
-    // RENDU. Le modèle a produit du contenu ; la page est fabriquée ici, avec la
-    // palette, la grille, la typographie, les contrastes et le logo du document.
-    // Rien de tout cela ne dépend plus de ce que le modèle a bien voulu suivre.
+    // RENDU. Le modèle a produit du contenu ; la page est fabriquée par le moteur graphique, avec la
+    // palette, la grille, la typographie, les contrastes et le logo du document. Rien de tout cela ne
+    // dépend plus de ce que le modèle a bien voulu suivre.
     if (step.template) {
-      // La récupération HTML est le jumeau de celle de l'équipe de recherche
-      // (cf. `ResearchTeamService.salvage`). Les deux chemins de rendu doivent
-      // tenir la même règle : une sortie mal formatée coûte sa mise en page,
-      // jamais son contenu.
-      const parsed =
-        normalizeSectionContent(parseLlmJson(content)) ??
-        salvageHtmlSection(content, step.stepName);
-      if (parsed) {
-        // Les blocs SPÉCIMENS viennent du projet, pas du modèle : ils sont
-        // posés en tête, avant ce que le modèle a écrit autour d'eux.
-        const withSpecimens = step.template.prependBlocks?.length
-          ? { ...parsed, blocks: [...step.template.prependBlocks, ...parsed.blocks] }
-          : parsed;
-        const composed = step.template.composeBlocks
-          ? { ...withSpecimens, blocks: step.template.composeBlocks(withSpecimens.blocks) }
-          : withSpecimens;
-        // La nomenclature du livrable l'emporte sur le titre du modèle, et
-        // son sur-titre avec lui : sans sur-titre imposé, la page n'en porte pas.
-        const headed = step.template.heading
-          ? { ...composed, title: step.template.heading.title, kicker: step.template.heading.kicker }
-          : composed;
-
-        const composedHtml = step.template.compose
-          ? await step.template.compose(headed).catch((error: any) => {
-              logger.warn(`Section '${step.stepName}' : compositeur en échec (${error?.message}) → gabarit`);
-              return null;
-            })
-          : null;
-        if (composedHtml) {
-          content = composedHtml;
-          logger.info(`Section '${step.stepName}' composée par le compositeur (cran Ultra, ${content.length} car.)`);
-        } else {
-          content = renderSection(
-            headed,
-            step.template.designSystem,
-            step.template.seed,
-            step.template.render ?? {}
-          );
-          logger.info(
-            `Section '${step.stepName}' rendue par gabarit ` +
-              `(archétype ${step.template.seed.archetype}, ${parsed.blocks.length} blocs, ${content.length} car.)`
-          );
+      // Une sortie mal formatée coûte sa mise en page, jamais son contenu : un JSON abîmé est réparé, une
+      // page HTML rendue par erreur voit son texte récupéré, et le moteur refait la forme.
+      const read = sectionFromModel(parseLlmJson(content) ?? content, {
+        id: step.template.sectionId,
+        // Les blocs SPÉCIMENS viennent du projet, pas du modèle : posés en tête, avant ce qu'il a écrit.
+        prepend: step.template.prependBlocks,
+        // La nomenclature du livrable l'emporte sur le titre du modèle, et son sur-titre avec lui.
+        heading: step.template.heading,
+        compose: step.template.composeBlocks,
+        fallbackTitle: step.stepName,
+      });
+      if (read.section) {
+        if (read.salvaged) {
+          logger.warn(`Section '${step.stepName}' : sortie en HTML au lieu du contenu structuré — texte RÉCUPÉRÉ, page recomposée par le moteur.`);
         }
+        content = await step.template.render(read.section);
+        logger.info(`Section '${step.stepName}' composée par le moteur graphique (${read.section.blocks.length} blocs, ${content.length} car.)`);
       } else {
         // ── LA SORTIE BRUTE NE DEVIENT JAMAIS UNE PAGE ────────────────────
         //
-        // Ce bloc conservait auparavant `content` tel quel, « plutôt que rien ».
-        // C'était une erreur de jugement, et elle s'est vue : des pages de
-        // business plan livrées en JSON brut, accolades et noms de champs
-        // compris, dans un document destiné à des investisseurs.
-        //
-        // « Plutôt que rien » supposait qu'une page dégradée valait mieux qu'une
-        // page absente. C'est faux quand la dégradation est du code source : une
-        // section manquante est une lacune, une page de JSON est un défaut de
-        // fabrication visible par le lecteur, et il juge tout le document
-        // dessus.
-        //
-        // On lève donc. L'appelant enregistre la section dans `failedSteps`,
-        // émet `section_failed` et poursuit : le livrable est incomplet et le
-        // dit, au lieu d'être abîmé sans le dire.
+        // Une page de JSON brut (accolades et noms de champs compris) dans un document destiné à des
+        // investisseurs est un défaut de fabrication que le lecteur voit, et il juge tout le document
+        // dessus. On lève donc : l'appelant enregistre la section dans `failedSteps`, émet
+        // `section_failed` et poursuit — le livrable est incomplet et le dit.
         const head = content.slice(0, 160).replace(/\s+/g, ' ');
         logger.error(
           `Section '${step.stepName}' : sortie vide de tout contenu exploitable, même ` +
             `après réparation de troncature et récupération du texte. ` +
             `Début de la sortie : ${head}`
         );
-        throw new Error(
-          `contenu structuré illisible (ni JSON valide, ni tronqué récupérable)`
-        );
+        throw new Error(`contenu structuré illisible (ni JSON valide, ni tronqué récupérable)`);
       }
     }
 

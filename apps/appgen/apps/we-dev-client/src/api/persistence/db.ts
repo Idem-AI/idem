@@ -256,6 +256,31 @@ export async function syncProjectCode(
   }
 }
 
+/**
+ * Supprime ce qui a été généré pour le produit ouvert (code + conversation), afin
+ * de le régénérer depuis zéro. Le projet, sa charte et l'adresse publiée restent.
+ *
+ * Contrairement aux sauvegardes, un échec ici doit remonter : si la suppression
+ * n'a pas eu lieu, remettre l'atelier à zéro ferait réapparaître l'ancien code à
+ * la prochaine ouverture, sans que l'utilisateur comprenne pourquoi.
+ */
+export async function deleteProjectGeneration(
+  projectId: string
+): Promise<{ codeFiles: number; chat: boolean; marker: boolean }> {
+  await checkAuth();
+
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}/generation${productQuery()}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
 // Chat session — the conversation is kept in the database so the user can
 // reopen it from any machine.
 export interface ProjectChatSession {

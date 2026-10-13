@@ -2,7 +2,8 @@ import { ChatRequestOptions, CreateMessage, Message } from 'ai';
 import { TFunction } from 'i18next';
 import { parseMessage } from '@/utils/messagepParseJson';
 import { useFileStore } from '@/components/WeIde/stores/fileStore';
-import { LINT_RELEVANT_SCAFFOLD_PATHS } from '@/utils/scaffoldLock';
+import { LINT_RELEVANT_SCAFFOLD_PATHS, lockedScaffoldPaths } from '@/utils/scaffoldLock';
+import { internalMessage } from '@/utils/stepLabels';
 
 /**
  * Post-generation quality pass.
@@ -141,7 +142,13 @@ export async function runQualityPass(
     const response = await fetch(`${apiBase}/api/quality/lint`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ files, expectedLogo: expectedLogoOf(projectData) }),
+      body: JSON.stringify({
+        files,
+        expectedLogo: expectedLogoOf(projectData),
+        // Le socle est jugé mais jamais réparé : c'est le code qui l'écrit, et
+        // une réécriture par le modèle ne peut que l'abîmer.
+        locked: lockedScaffoldPaths(),
+      }),
     });
 
     if (!response.ok) {
@@ -176,7 +183,7 @@ export async function runQualityPass(
   const visible = t?.('chat.quality_pass', { count }) ?? `Applying ${count} design fixes.`;
 
   await append(
-    { role: 'user', content: visible },
+    { role: 'user', content: internalMessage(visible) },
     { body: { qualityRepair: report.repairPrompt } }
   );
 

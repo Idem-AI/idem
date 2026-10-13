@@ -14,11 +14,10 @@ import {
 import { sanitizeSectionHtml } from '@idem/shared-document-editor/angular';
 
 /**
- * Dimensions de canevas par format, en pixels — la table de
- * `flyerRender.service.ts` côté API. C'est le contrat que le prompt de
- * composition impose au conteneur racine du visuel : l'éditeur doit afficher
- * exactement la même page, sinon on éditerait à une échelle qui n'est pas celle
- * du PNG produit.
+ * Dimensions de canevas par format, en pixels — les toiles `flyer-*` du moteur
+ * graphique (@idem/graphic-engine, `FORMATS`), qui compose le visuel à ces
+ * cotes exactes : l'éditeur doit afficher exactement la même page, sinon on
+ * éditerait à une échelle qui n'est pas celle du PNG produit.
  */
 const FLYER_DIMENSIONS: Record<FlyerFormat, PageFormat> = {
   square: { width: '1080px', height: '1080px' },

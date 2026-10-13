@@ -39,68 +39,45 @@ import {
   LOGO_REVISION_PROMPT,
 } from './prompts/singleGenerations/logo-revision.prompt';
 
-import { BRAND_HEADER_SECTION_PROMPT } from './prompts/00_brand-header-section.prompt';
-import { ART_DIRECTION_SECTION_PROMPT } from './prompts/03b_art-direction-section.prompt';
 import { buildArtDirectionPrompt } from './prompts/singleGenerations/art-direction.prompt';
 import { ArtDirectionModel, ArtDirectionStyleId } from '../../models/art-direction.model';
 import {
   ART_DIRECTION_STYLES,
   ART_DIRECTION_STYLE_IDS,
   resolveStyle,
-} from '../design/artDirection.catalog';
-import { ANTI_SLOP_BLOCK, SELF_REVIEW_BLOCK } from '../design/antiSlop.prompt';
+} from '../brand/artDirection.catalog';
 import {
-  EDITORIAL_RESTRAINT_BLOCK,
-  RESTRAINT_SELF_REVIEW_BLOCK,
-} from '../design/editorialRestraint.prompt';
-import {
-  buildDocumentSeed,
   buildPaletteConstraint,
-  buildSectionSeed,
   buildTypographyConstraint,
-  describeDocumentSeed,
   describePaletteConstraint,
-  describeSectionSeed,
-  SectionSeed,
-} from '../design/designSeed';
+} from '../../../../ivision/core/src/brand/brand-constraints';
 import {
-  buildDocumentDesignSystem,
-  derivedPalette,
-  describeDesignSystem,
-} from '../design/documentDesignSystem';
-import { Block } from '../design/sectionContent';
+  Block as GraphicBlock,
+  BlockDraft,
+  buildTokens,
+  coverContent,
+  ENGINE_VERSION,
+  styleMotifs,
+  WRITING_RULES,
+} from '@idem/graphic-engine';
 import {
   CHARTER_PAGE_BRIEFS,
   CHARTER_PAGE_HEADINGS,
   CHARTER_PAGE_VOLUMES,
 } from './prompts/page-briefs.prompt';
-import { enforceDesignRules } from '../design/slopLint.service';
-import { inspectSvg } from '../design/svgGate';
+import { inspectSvg } from '../brand/svgGate';
 import { logAIEvent } from '../../utils/ai-trace.util';
-import { buildArtDirectionBlock } from '../../utils/art-direction.util';
-import {
-  LOGO_SYSTEM_SECTION_PROMPT,
-  LOGO_VARIATION_PAGE_PROMPT,
-  LOGO_BEST_PRACTICES_PAGE_PROMPT,
-} from './prompts/01_logo-system-section.prompt';
-import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section.prompt';
-import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
-import { USAGE_GUIDELINES_SECTION_PROMPT } from './prompts/04_usage-guidelines-section.prompt';
-import { brandMotifs } from '../design/brandMotifs';
-import { applyPreset, PRESET_BY_ID } from '../../../../ivision/core/src/design/layoutPresets';
 import { brandPatternSvg, planBrandPatterns, type BrandPatternKind } from '../../../../ivision/core/src/design/brandPatterns';
-import { buildComposedCharterPages, clip, wideSeed } from './charterComposedPages';
+import { buildComposedCharterPages, clip } from './charterComposedPages';
+import { coverDateLabel, openGraphicDocument, pageCanvasOf as charterCanvasOf, pageId, projectBrand, renderGraphicPage } from '../graphic/graphic.service';
 import { atLeast, CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
 import { composeTemplateLogos } from './logoTemplates';
 import { engineEditLogo, engineLogoConcepts, engineVariations, logoEngineEnabled, rememberIr } from '../logo-engine/idem.service';
 import { logoDirectionsTask, logoDraftCount, logoJuryTask } from './logoCreative';
 import { CreativeOrchestrator } from '../creativity/orchestrator';
-import { DocumentDesignPlan, planDocumentDesign, resumedDesignPlan, savedDesignOf } from '../creativity/documentDesign';
-import { ultraPageComposer } from '../creativity/pageComposer';
 import { runtimeCall } from '../creativity/orchestrator';
 import { brandSheet } from '../creativity/agent-io';
-import { composeCover, coverDateLabel, coverVariant } from '../design/coverComposer';
-import { CoverBriefService } from '../design/coverBrief.service';
+import { CoverBriefService } from '../common/coverBrief.service';
 import {
   PostVisualRenderer,
   SocialBrandKit,
@@ -109,7 +86,6 @@ import {
 } from './socialMockups/socialMockup.service';
 import { CommunicationService } from '../Communication/communication.service';
 import { ContentIdea } from '../../models/communication.model';
-import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.prompt';
 import {
   CHARTER_NAMED_MOCKUPS,
   isRetiredCharterPage,
@@ -132,8 +108,8 @@ import {
   pickWordmarkColor,
 } from './lockup/logoLockup.service';
 import { COLORS_GENERATION_PROMPT } from './prompts/singleGenerations/colors-generation.prompt';
-import { enforceLightSurfaceOnPalettes } from '../design/lightSurface';
-import { ensureDistinctRolesOnPalettes } from '../design/paletteRoles';
+import { enforceLightSurfaceOnPalettes } from '../brand/lightSurface';
+import { ensureDistinctRolesOnPalettes } from '../brand/paletteRoles';
 import { TYPOGRAPHY_GENERATION_PROMPT } from './prompts/singleGenerations/typography-generation.prompt';
 import { fontCatalogService } from '../font-catalog.service';
 import {
@@ -564,29 +540,6 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Adapte un prompt de section (écrit par défaut en slide 16:9 = 297×167mm) au
-   * format de page RÉELLEMENT choisi par l'utilisateur, en remplaçant les tokens
-   * de dimensions. No-op quand le format cible est déjà 297×167.
-   */
-  private applyPageFormatToPrompt(
-    prompt: string,
-    format: { width: string; height: string; orientation: string }
-  ): string {
-    if (format.width === '297mm' && format.height === '167mm') {
-      return prompt;
-    }
-    return prompt
-      .split('w-[297mm] h-[167mm]')
-      .join(`w-[${format.width}] h-[${format.height}]`)
-      .split('h-[167mm]')
-      .join(`h-[${format.height}]`)
-      .split('w-[297mm]')
-      .join(`w-[${format.width}]`)
-      .split('Landscape 16:9')
-      .join(`${format.orientation} ${format.width}×${format.height}`);
-  }
-
-  /**
    * Récupération optimisée du projet avec cache intelligent
    */
   private async getProjectOptimized(
@@ -974,7 +927,7 @@ export class BrandingService extends GenericService {
     pdfFormat: string = 'SLIDE_16_9',
     forceRegenerate = false,
     targetSections: string[] = [],
-    /** Cran de la jauge de créativité (creativity/documentDesign.ts) ; absent, Medium. */
+    /** Cran de la jauge de créativité (profils du moteur graphique, @idem/graphic-engine) ; absent, Medium. */
     creativity?: CreativityLevel
   ): Promise<ProjectModel | null> {
     logger.info(
@@ -1005,52 +958,21 @@ export class BrandingService extends GenericService {
     // tous les autres modules (visuels, business plan, deck, mockups, site) :
     // c'est le point unique où le parti pris visuel du projet est arbitré.
     const artDirection = await this.ensureArtDirection(userId, projectId, project);
-    const artDirectionBlock = buildArtDirectionBlock(artDirection, { medium: 'document' });
-
-    // Graine de composition DÉTERMINISTE, dérivée du projet : deux projets
-    // n'obtiennent pas la même charte, mais une charte régénérée garde sa mise
-    // en page. Le tirage est borné par le style retenu (cf. designSeed.ts), donc
-    // il ne peut pas contredire la direction artistique.
-    const brandSeed = buildDocumentSeed(artDirection?.styleId, `branding:${projectId}`);
-    // LA JAUGE DE CRÉATIVITÉ : famille de la charte (Medium+), archétype et réglages des pages
-    // rédigées (High+, Max+), pages composées par le compositeur, gabarit en repli (Ultra).
+    // LA JAUGE DE CRÉATIVITÉ : le moteur graphique explore, choisit et compose selon le cran.
     const level = normalizeCreativity(creativity);
-    const designDirectives = [
-      artDirectionBlock,
-      `<composition_invariants>\n${describeDocumentSeed(brandSeed)}\n</composition_invariants>`,
-      ANTI_SLOP_BLOCK,
-      // Deux pathologies distinctes : l'anti-slop retire les tics du corpus,
-      // la retenue éditoriale retire ce qui ne sert à rien. Une page peut être
-      // parfaitement originale et rester illisible parce qu'elle est saturée
-      // d'ornements et de phrases creuses.
-      EDITORIAL_RESTRAINT_BLOCK,
-      SELF_REVIEW_BLOCK,
-      RESTRAINT_SELF_REVIEW_BLOCK,
-    ]
-      .filter(Boolean)
-      .join('\n\n');
 
     // Generate cache key based on project content
     const branding = project.analysisResultModel?.branding;
-    // Description BRUTE du projet, avant l'empilement des directives de charte.
-    // La génération d'images la reprend telle quelle : les consignes HTML,
-    // la graine de composition et les interdits anti-slop ne la concernent pas.
+    // Description BRUTE du projet : la génération d'images la reprend telle quelle.
     const baseProjectDescription = this.extractProjectDescription(project);
-    const projectDescription =
-      baseProjectDescription +
-      '\n\nHere is the project branding colors: ' +
-      JSON.stringify(branding?.colors || {}) +
-      '\n\nHere is the project branding typography: ' +
-      JSON.stringify(branding?.typography || {}) +
-      // Token-lean: send the hosted logo URLs (use them as <img src>), never the
-      // raw SVG markup — an SVG runs thousands of tokens and this is appended to
-      // every brand-book step.
-      '\n\nHere is the project branding logo (hosted asset URLs — use as <img src>): ' +
-      JSON.stringify(summarizeLogoForPrompt(branding?.logo)) +
-      // La direction artistique et les interdits anti-génériques accompagnent
-      // CHAQUE page : une charte dont seule la couverture respecte le parti pris
-      // n'est pas une charte.
-      (designDirectives ? `\n\n${designDirectives}` : '');
+    // Le PRÉFIXE des rédacteurs de la charte : ce qui sert à ÉCRIRE — le projet, la marque, sa direction,
+    // les règles d'écriture. Les couleurs, les polices, le logo et la mise en page sont posés par le
+    // moteur graphique, jamais confiés au modèle.
+    const projectDescription = [
+      baseProjectDescription,
+      `BRAND FACTS:\nBrand: ${project.name ?? ''}${artDirection?.styleName ? `\nArt direction: ${artDirection.styleName}${artDirection.tagline ? ` — ${artDirection.tagline}` : ''}` : ''}`,
+      WRITING_RULES,
+    ].join('\n\n');
 
     const contentHash = crypto
       .createHash('sha256')
@@ -1062,7 +984,7 @@ export class BrandingService extends GenericService {
           // Sans la graine et le style, une régénération après changement de
           // direction artistique resservait la charte précédente depuis le cache.
           artDirection: artDirection?.styleId,
-          brandSeed,
+          pdfFormat,
           creativity: level,
           projectDescription,
         })
@@ -1160,117 +1082,36 @@ export class BrandingService extends GenericService {
       const iconUrl = toImgSrc(assetUrls?.icon || logo?.iconSvg);
       const hasLogomark = Boolean(iconLightUrl || iconDarkUrl || iconMonoUrl || iconUrl);
 
-      // Define branding steps
+      // LES PAGES DE LA CHARTE, dans l'ordre où on la feuillette : la charte MONTRE d'abord (signe,
+      // déclinaisons, couleurs, polices, direction artistique, puis les supports réels), et RÈGLE ensuite.
+      // Aucune n'est mise en page par un modèle : le moteur graphique (@idem/graphic-engine) les compose,
+      // et le modèle n'écrit que le texte des pages rédigées.
+      const page = (stepName: string): IPromptStep => ({ promptConstant: '', stepName, hasDependencies: false });
       const steps: IPromptStep[] = [
-        {
-          // La couverture réclame désormais le logo : sans une URL nommée pour
-          // CETTE page, le modèle ne le pose pas — la table d'URLs du contexte
-          // se lit comme de la documentation, pas comme une consigne.
-          promptConstant:
-            BRAND_HEADER_SECTION_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the brand logo image: "${lightLogoUrl}" (dark ink, for a light zone) or "${darkLogoUrl}" (light ink, for a dark zone). Pick the one that contrasts with the zone you place it on.\n\n`,
-          stepName: 'Brand Header',
-          hasDependencies: false,
-        },
-        {
-          promptConstant:
-            LOGO_SYSTEM_SECTION_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the primary logo image: "${logoUrl}"\n\n`,
-          stepName: 'Logo Principal',
-          hasDependencies: false,
-        },
-        // L'icône seule. Présente uniquement quand la marque en a une : un
-        // logotype purement typographique n'a pas de logomark, et une page qui
-        // en montrerait un recadré serait une page fausse.
-        ...(hasLogomark
-          ? [
-              {
-                promptConstant:
-                  LOGO_SYSTEM_SECTION_PROMPT +
-                  `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the icon-only mark: "${iconLightUrl || iconUrl}"\n\n`,
-                stepName: 'Logomark',
-                hasDependencies: false,
-              },
-            ]
-          : []),
-        {
-          promptConstant:
-            LOGO_VARIATION_PAGE_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${lightLogoUrl}"\n\n` +
-            '\nVariation type: Light Background\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n',
-          stepName: 'Logo Variation Fond Clair',
-          hasDependencies: false,
-        },
-        {
-          promptConstant:
-            LOGO_VARIATION_PAGE_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${darkLogoUrl}"\n\n` +
-            "\nVariation type: Dark Background\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n",
-          stepName: 'Logo Variation Fond Sombre',
-          hasDependencies: false,
-        },
-        {
-          promptConstant:
-            LOGO_VARIATION_PAGE_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${monochromeLogoUrl}"\n\n` +
-            '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n',
-          stepName: 'Logo Variation Monochrome',
-          hasDependencies: false,
-        },
-        {
-          promptConstant: COLOR_PALETTE_SECTION_PROMPT,
-          stepName: 'Color Palette',
-          hasDependencies: false,
-        },
-        {
-          promptConstant: TYPOGRAPHY_SECTION_PROMPT,
-          stepName: 'Typography',
-          hasDependencies: false,
-        },
-        // L'échelle, sur sa propre page. Elle tenait dans un coin de la page de
-        // typographie, en petit, sous le spécimen — donc elle ne DÉMONTRAIT
-        // rien, alors que montrer le rapport entre un titre et une légende est
-        // la seule chose qu'une page de hiérarchie ait à faire.
-        {
-          promptConstant: TYPOGRAPHY_SECTION_PROMPT,
-          stepName: 'Typeface Hierarchy',
-          hasDependencies: false,
-        },
-        // ── LA DIRECTION ARTISTIQUE, SUR QUATRE PAGES ──────────────────────
-        //
-        // Placée après les ATOMES (logo, couleur, typographie) parce que son
-        // objet est la grammaire qui les assemble, et avant les mockups, qui en
-        // sont la première application.
-        //
-        // Elle tenait sur UNE page rédigée librement : un nom de style, six
-        // mots-clés, quatre vignettes. Trop peu pour guider un designer — et
-        // son balisage non refermé a fait sortir la page une seconde fois en
-        // fin de charte, par-dessus la signature. Ses quatre pages sont
-        // désormais COMPOSÉES à partir de la direction décidée pour le projet
-        // (cf. `charterComposedPages.ts`) : le code leur pose `execute` plus
-        // bas, avec leur graine.
-        { promptConstant: '', stepName: 'Direction Artistique', hasDependencies: false },
-        { promptConstant: '', stepName: 'Art Direction Grammar', hasDependencies: false },
-        { promptConstant: '', stepName: 'Art Direction Imagery', hasDependencies: false },
-        { promptConstant: '', stepName: 'Art Direction Principles', hasDependencies: false },
-        // Les motifs sont le prolongement direct de la direction artistique :
-        // ce sont eux qu'on décline ensuite sur un packaging, un fond de
-        // diapositive ou une bannière quand la page a besoin de matière sans
-        // avoir de photo. Ils sont DESSINÉS par le rendu, en CSS, depuis la
-        // palette — donc reproductibles par le designer qui reprend le book.
-        {
-          promptConstant: ART_DIRECTION_SECTION_PROMPT,
-          stepName: 'Graphic Patterns',
-          hasDependencies: false,
-        },
+        page('Brand Header'),
+        page('Logo Principal'),
+        // L'icône seule a sa page quand la marque en a une : un logotype purement typographique n'a pas de
+        // logomark, et une page qui en montrerait un recadré serait une page fausse.
+        ...(hasLogomark ? [page('Logomark')] : []),
+        page('Logo Variation Fond Clair'),
+        page('Logo Variation Fond Sombre'),
+        page('Logo Variation Monochrome'),
+        page('Color Palette'),
+        page('Typography'),
+        // L'échelle, sur sa propre page : montrer le rapport entre un titre et une légende est la seule
+        // chose qu'une page de hiérarchie ait à faire.
+        page('Typeface Hierarchy'),
+        // La direction artistique, sur quatre pages composées à partir de la direction décidée pour le
+        // projet (cf. `charterComposedPages.ts`), puis ses motifs.
+        page('Direction Artistique'),
+        page('Art Direction Grammar'),
+        page('Art Direction Imagery'),
+        page('Art Direction Principles'),
+        page('Graphic Patterns'),
       ];
 
-      // Mises en situation. Ces pages ne sont pas RÉDIGÉES : elles portent une
-      // photographie du support, produite par le modèle d'image puis marquée du
-      // vrai logo. Les faire passer par le LLM revenait à payer une page HTML
-      // complète par mockup pour la jeter aussitôt — et, quand l'image
-      // manquait, à publier cette page de secours à la place du mockup. Elles
-      // sont donc fabriquées (`execute`), et absentes quand l'image manque.
+      // Mises en situation. Ces pages ne sont pas RÉDIGÉES : elles portent une photographie du support,
+      // produite par le modèle d'image puis marquée du vrai logo, et sont absentes quand l'image manque.
       const mockupCount = MOCKUP_CONFIG.MOCKUP_COUNT;
       const mockupPages = this.createMockupPageBuilder({
         project,
@@ -1281,195 +1122,91 @@ export class BrandingService extends GenericService {
         artDirection,
       });
       for (let i = 1; i <= mockupCount; i++) {
-        steps.push({
-          promptConstant: '',
-          stepName: `Brand Mockup ${i}`,
-          hasDependencies: false,
-          execute: () => mockupPages.page(i),
-        });
+        steps.push({ ...page(`Brand Mockup ${i}`), execute: () => mockupPages.page(i) });
       }
 
-      // Les supports IMPOSÉS (aujourd'hui, l'univers visuel seul). Ils suivent
-      // les mises en situation choisies par l'analyseur, à des indices connus —
-      // c'est ce qui permet de nommer leur page sans avoir à reconnaître un
-      // support dans la liste rendue.
+      // Les supports IMPOSÉS (aujourd'hui, l'univers visuel seul). Ils suivent les mises en situation
+      // choisies par l'analyseur, à des indices connus.
       CHARTER_NAMED_MOCKUPS.forEach((named, offset) => {
-        // L'univers visuel n'a plus de page à lui : sa photographie illustre la
-        // page « Traitement de l'image » de la direction artistique. Il reste
-        // produit avec les autres supports, à son indice.
+        // L'univers visuel n'a plus de page à lui : sa photographie illustre la page « Traitement de
+        // l'image » de la direction artistique.
         if ('skipLogo' in named && named.skipLogo) return;
         const index = mockupCount + offset + 1;
-        steps.push({
-          promptConstant: '',
-          stepName: named.stepName,
-          hasDependencies: false,
-          execute: () => mockupPages.page(index),
-        });
+        steps.push({ ...page(named.stepName), execute: () => mockupPages.page(index) });
       });
 
-      // ── LES PAGES SOCIALES ────────────────────────────────────────────────
-      //
-      // La marque DANS l'interface de ses réseaux : sa page ou son profil, avec
-      // une bannière composée pour elle, puis deux publications dont le visuel
-      // sort du pipeline des visuels du module communication. Les interfaces
-      // sont des gabarits HTML versionnés (cf. `socialMockups/`), remplis par le
-      // code — aucune n'est dessinée par un modèle. Composées, ces pages
-      // reçoivent leur `execute` avec leur graine, plus bas.
-      steps.push({ promptConstant: '', stepName: 'Social Media Creatives', hasDependencies: false });
-      steps.push({ promptConstant: '', stepName: 'Social Media Page Banners', hasDependencies: false });
+      // LES PAGES SOCIALES : la marque DANS l'interface de ses réseaux. Les interfaces sont des gabarits
+      // HTML versionnés (cf. `socialMockups/`), remplis par le code ; les bannières et les visuels de
+      // secours sont composés par le moteur graphique.
+      steps.push(page('Social Media Creatives'));
+      steps.push(page('Social Media Page Banners'));
 
-      // ── LES DEUX PAGES D'USAGE, EN FIN DE CHARTE ──────────────────────────
-      //
-      // Les règles d'emploi étaient posées à côté de chaque spécimen : la
-      // déclinaison sur fond sombre commentée sous la déclinaison, la règle de
-      // répartition sous le nuancier, l'échelle typographique sous les polices.
-      // Le document y perdait deux fois. Les pages qui devaient MONTRER étaient
-      // à moitié couvertes de texte ; et les règles, éparpillées sur huit
-      // pages, n'étaient consultables nulle part — un designer qui cherche la
-      // taille minimale du logo ne sait pas sur laquelle des quatre pages de
-      // logo elle se trouve.
-      //
-      // Elles sont donc regroupées ici, après les mises en situation : la
-      // charte MONTRE d'abord (signe, déclinaisons, couleurs, polices, puis les
-      // supports réels), et RÈGLE ensuite. C'est l'ordre dans lequel on la
-      // feuillette, et celui dans lequel on y revient.
-      steps.push({
-        promptConstant:
-          LOGO_BEST_PRACTICES_PAGE_PROMPT +
-          `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo image in visual examples: "${logoUrl}"\n\n`,
-        stepName: 'Logo Bonnes Pratiques',
-        hasDependencies: false,
-      });
-      steps.push({
-        promptConstant: USAGE_GUIDELINES_SECTION_PROMPT,
-        stepName: 'Usage Couleurs & Typographie',
-        hasDependencies: false,
+      // LES DEUX PAGES D'USAGE, EN FIN DE CHARTE : les règles d'emploi regroupées, consultables d'un coup
+      // d'œil, après ce que la charte montre.
+      steps.push(page('Logo Bonnes Pratiques'));
+      steps.push(page('Usage Couleurs & Typographie'));
+
+      // LES MOTIFS DE LA MARQUE, déposés avant de composer les pages : la charte montre les FICHIERS que
+      // tous les autres livrables emploieront. Un dépôt en échec ne fait pas tomber la charte : la page
+      // retombe sur le dessin CSS des motifs du style.
+      const brandPatterns = await this.getBrandPatterns(userId, projectId).catch((error: any) => {
+        logger.warn('[BRANDING] Dépôt des motifs en échec, la page de charte les dessine en CSS', { error: error?.message });
+        return [] as BrandPatternFileModel[];
       });
 
-      // Adapter les prompts au FORMAT DE PAGE CHOISI (les prompts sont écrits en
-      // 16:9 par défaut). No-op si le format choisi est déjà SLIDE_16_9.
-      const chosenFormat =
-        PAGE_FORMATS[pdfFormat as keyof typeof PAGE_FORMATS] || PAGE_FORMATS.SLIDE_16_9;
-      for (const step of steps) {
-        step.promptConstant = this.applyPageFormatToPrompt(step.promptConstant, chosenFormat);
+      // LE DOCUMENT GRAPHIQUE de la charte : la charte du projet (motifs déposés compris), son format
+      // (diapositive 16:9 ou page A4), le plan des pages — chacune reçoit d'avance une composition
+      // distincte de ses voisines —, la jauge de créativité. La clé du projet sème les tirages : deux
+      // projets n'obtiennent pas la même charte, une charte régénérée garde sa mise en page.
+      const charterCanvas = charterCanvasOf(pdfFormat);
+      const graphicProject: ProjectModel =
+        artDirection && branding && !branding.artDirection?.styleId
+          ? ({ ...project, analysisResultModel: { ...project.analysisResultModel, branding: { ...branding, artDirection } } } as ProjectModel)
+          : project;
+      const graphic = await openGraphicDocument({
+        project: graphicProject,
+        documentType: 'brand-charter',
+        format: charterCanvas.format,
+        size: charterCanvas.size,
+        seed: `branding:${projectId}`,
+        creativity: level,
+        // Les photographies de mise en situation ne sont pas composées : elles ne réservent rien au plan.
+        sections: steps
+          .filter((step) => !step.execute)
+          .map((step) => ({ id: pageId(step.stepName), role: step.stepName === 'Brand Header' ? ('cover' as const) : undefined })),
+        documentLabel: 'Charte graphique',
+        userId,
+      });
+      // Le cran retenu, enregistré avec l'identité (écrit avec la première page de la charte).
+      if (project.analysisResultModel?.branding) {
+        project.analysisResultModel.branding.charterDesign = { level, pages: {} };
       }
+      logger.info(`[BRANDING] Créativité ${level} : charte composée par le moteur graphique (${charterCanvas.format})`);
 
-      // Un archétype de composition PAR PAGE, tiré sans répétition dans l'espace
-      // du style. Douze pages qui partagent leur archétype sont douze fois la
-      // même page — or c'est précisément le reproche fait à la charte avant que
-      // la graine n'existe. Les invariants (couleur, typographie, rythme,
-      // accent) restent, eux, dans le préfixe stable.
-      //
-      // Les pages FABRIQUÉES (mockups, `execute`) sont exclues : elles ne
-      // passent pas par le modèle, leur donner une graine n'aurait aucun effet.
       /**
-       * Pages de la charte RENDUES PAR GABARIT.
-       *
-       * Les pages laissées libres sont celles dont la composition EST le
-       * livrable : la couverture, les pages qui PRÉSENTENT un logo en grand, et
-       * la page de direction artistique — qui doit démontrer le style en le
-       * construisant, ce qu'aucun gabarit ne peut faire à sa place.
+       * Pages de la charte RÉDIGÉES (le modèle écrit la règle d'usage, le code pose le spécimen) : leur
+       * matière est exacte, et le modèle n'y écrit qu'un texte court.
        */
       const TEMPLATED_PAGES = new Set([
         'Color Palette',
         'Typography',
         'Logo Bonnes Pratiques',
         'Usage Couleurs & Typographie',
-        // Les pages dont le spécimen est FABRIQUÉ par le code : échelle
-        // typographique, motifs, créations et bannières sociales. Aucune n'a
-        // de raison de passer par une composition libre — leur matière est
-        // exacte, et le modèle n'y écrit qu'une légende.
         'Logomark',
         'Typeface Hierarchy',
         'Graphic Patterns',
-        // Les quatre pages de présentation du logo REJOIGNENT le gabarit. Cf.
-        // `specimensFor` : laissées libres, elles produisaient des références
-        // administratives inventées et, sur la page monochrome, un débordement.
         'Logo Principal',
         'Logo Variation Fond Clair',
         'Logo Variation Fond Sombre',
         'Logo Variation Monochrome',
       ]);
 
-      // La direction artistique des pages rédigées, selon le cran (creativity/documentDesign.ts).
-      // Les archétypes de la graine sont calculés d'abord : repli de chaque page, point de départ
-      // des menus. La famille choisie s'applique à toute la charte, design system compris.
-      const charterBranding = project.analysisResultModel?.branding;
-      const charterSheet = brandSheet({
-        brandName: project.name || 'Brand',
-        businessType: project.type,
-        palette: (charterBranding?.colors?.colors as Record<string, string | undefined>) || {},
-        fonts: { display: charterBranding?.typography?.primaryFont || 'Archivo', body: charterBranding?.typography?.secondaryFont || 'Inter' },
-        art: artDirection,
-      });
-      const directedSteps = steps.filter((step) => TEMPLATED_PAGES.has(step.stepName));
-      const seedProbe = new Set<string>();
-      const seedArchetypes = Object.fromEntries(
-        directedSteps.map((step) => [step.stepName, buildSectionSeed(artDirection?.styleId, `branding:${projectId}`, step.stepName, seedProbe).archetype])
-      );
-      // Des pages gardées (reprise, régénération ciblée) : la direction enregistrée est reprise,
-      // pour que la page refaite ressemble à ses voisines.
-      const keepsPages =
-        !forceRegenerate && currentSections.some((section) => steps.some((step) => step.stepName === section.name) && !targetSections.includes(section.name));
-      const designPlan: DocumentDesignPlan | null = keepsPages ? resumedDesignPlan(charterBranding?.charterDesign, level) : await planDocumentDesign({
-        level,
-        call: runtimeCall({ userId, projectId, element: 'branding' }),
-        sheet: charterSheet,
-        styleId: artDirection?.styleId,
-        document: 'brand guidelines book',
-        deliverable: 'brand guidelines' as const,
-        pages: directedSteps.map((step) => ({ name: step.stepName, brief: CHARTER_PAGE_BRIEFS[step.stepName] })),
-        seedArchetypes,
-      }).catch((error: any) => {
-        logger.warn('[BRANDING] Direction artistique des pages en échec, la graine décide', { error: error?.message });
-        return null;
-      });
-      if (designPlan?.family) brandSeed.family = designPlan.family;
-      // Enregistrée avec l'identité (écrite avec la première page de la charte).
-      if (designPlan && !keepsPages && project.analysisResultModel?.branding) {
-        project.analysisResultModel.branding.charterDesign = savedDesignOf(designPlan);
-      }
-      logger.info(
-        `[BRANDING] Créativité ${level} : ${designPlan ? `${Object.keys(designPlan.pages).length} page(s) dirigée(s)${designPlan.family ? `, famille ${designPlan.family}` : ''}${designPlan.freeCompose ? ', compositeur' : ''}` : 'graine'}`
-      );
-      /** La graine d'une page, puis les choix des agents par-dessus (famille, archétype, réglages). */
-      const directSeed = (seed: SectionSeed, stepName: string): SectionSeed => applyPreset({
-        ...seed,
-        ...(designPlan?.family ? { family: designPlan.family } : {}),
-        ...Object.fromEntries(Object.entries(designPlan?.pages[stepName] || {}).filter(([, value]) => !!value)),
-      }, PRESET_BY_ID.get(designPlan?.pages[stepName]?.preset || ''));
-
-      // LES MOTIFS DE LA MARQUE, déposés avant de composer les pages : la charte montre les
-      // FICHIERS que tous les autres livrables emploieront, pas un dessin refait pour l'occasion.
-      // Un dépôt en échec ne fait pas tomber la charte : la page retombe sur le dessin CSS.
-      const brandPatterns = await this.getBrandPatterns(userId, projectId).catch((error: any) => {
-        logger.warn('[BRANDING] Dépôt des motifs en échec, la page de charte les dessine en CSS', { error: error?.message });
-        return [] as BrandPatternFileModel[];
-      });
-
-      // DESIGN SYSTEM de la charte : calculé une fois, partagé par ses pages.
-      const charterDesignSystem = buildDocumentDesignSystem(
-        project.analysisResultModel?.branding,
-        artDirection,
-        brandSeed
-      );
-      logger.info(`[BRANDING] Design system: ${describeDesignSystem(charterDesignSystem)}`);
-
-      // Format réel de la charte : c'est lui qui décide portrait ou paysage.
-      const charterPage = {
-        width: chosenFormat.width,
-        minHeight: chosenFormat.height,
-        padding: chosenFormat.orientation === 'landscape' ? '14mm' : '12mm',
-        orientation: chosenFormat.orientation,
-      };
-
       /**
-       * Blocs SPÉCIMENS de la charte, posés par le code à partir des données du
-       * projet. Ce sont exactement les pages où un modèle se trompe le plus :
-       * recopier six chiffres hexadécimaux, nommer une police, choisir le fond
-       * qui contraste. Aucune de ces trois choses n'a besoin de lui.
+       * Blocs SPÉCIMENS de la charte, posés par le code à partir des données du projet. Ce sont exactement
+       * les pages où un modèle se trompe le plus : recopier six chiffres hexadécimaux, nommer une police,
+       * choisir le fond qui contraste. Aucune de ces trois choses n'a besoin de lui.
        */
-      const specimensFor = (stepName: string): Block[] | undefined => {
+      const specimensFor = (stepName: string): BlockDraft[] | undefined => {
         const palette = project.analysisResultModel?.branding?.colors?.colors;
         const typography = project.analysisResultModel?.branding?.typography;
 
@@ -1484,15 +1221,11 @@ export class BrandingService extends GenericService {
           return items.length ? [{ kind: 'swatches', items }] : undefined;
         }
 
-        // ── L'ÉCHELLE, COMPOSÉE À SES TAILLES RÉELLES ──────────────────
-        //
-        // Les degrés sont ceux du DESIGN SYSTEM du document : la page ne peut
-        // donc pas annoncer une hiérarchie que les autres pages ne tiennent
-        // pas. C'est précisément l'erreur qu'un modèle commet ici — il invente
-        // « H1 48 px / H2 32 px » sans avoir jamais vu la page.
+        // L'échelle, composée à ses tailles RÉELLES : les degrés sont ceux du document, la page ne peut
+        // donc pas annoncer une hiérarchie que les autres pages ne tiennent pas.
         if (stepName === 'Typeface Hierarchy' && typography) {
-          const display = typography.primaryFont || charterDesignSystem.fonts.display;
-          const body = typography.secondaryFont || charterDesignSystem.fonts.body;
+          const display = typography.primaryFont || graphic.tokens.font.display;
+          const body = typography.secondaryFont || graphic.tokens.font.body;
           const brand = project.name || 'La marque';
           return [
             {
@@ -1508,14 +1241,9 @@ export class BrandingService extends GenericService {
           ];
         }
 
-        // ── LES MOTIFS ────────────────────────────────────────────────────
-        //
-        // Le répertoire est tiré du STYLE de direction artistique : un book
-        // suisse sort en filets et en grille, un book rétro en chevrons et en
-        // damier. Sans cela, les quatre mêmes motifs revenaient sur toutes les
-        // marques — exactement le défaut que ces pages existent pour corriger.
+        // Les MOTIFS : les fichiers déposés s'ils existent, sinon le répertoire du STYLE (un book suisse sort
+        // en filets et en grille, un book rétro en chevrons et en damier), dessiné aux encres de la charte.
         if (stepName === 'Graphic Patterns' && palette) {
-          // Les motifs DÉPOSÉS, s'ils existent : la page montre les fichiers de la marque.
           if (brandPatterns.length) {
             return [
               {
@@ -1524,17 +1252,17 @@ export class BrandingService extends GenericService {
               },
             ];
           }
-          const motifs = brandMotifs(charterDesignSystem);
-          const ink = palette.primary || charterDesignSystem.colors.primary;
-          const accent = palette.accent || charterDesignSystem.colors.accent;
-          const ground = charterDesignSystem.colors.surface;
+          const motifs = styleMotifs(artDirection?.styleId);
+          const ink = palette.primary || graphic.tokens.color.primary;
+          const accent = palette.accent || graphic.tokens.color.accent;
+          const ground = graphic.tokens.color.ground;
           return [
             {
               kind: 'patternGrid',
               patterns: [
                 { name: 'Motif principal', motif: motifs[0], ink, ground, note: 'Aplats et fonds de page' },
                 { name: 'Motif secondaire', motif: motifs[1], ink: accent, ground, note: 'Zones de rappel' },
-                { name: 'Trame fine', motif: motifs[2], ink, ground: charterDesignSystem.colors.neutral['100'], note: 'Fonds discrets' },
+                { name: 'Trame fine', motif: motifs[2], ink, ground: graphic.tokens.color.neutral['100'] ?? ground, note: 'Fonds discrets' },
                 { name: 'Motif inversé', motif: motifs[3], ink: ground, ground: ink, note: 'Sur fond de marque' },
               ],
             },
@@ -1543,40 +1271,14 @@ export class BrandingService extends GenericService {
 
         if (stepName === 'Typography' && typography) {
           const specimens = [
-            {
-              family: typography.primaryFont,
-              role: 'Titres',
-              sample: project.name || 'Titre de section',
-            },
-            {
-              family: typography.secondaryFont,
-              role: 'Texte courant',
-              sample: 'La typographie porte la voix de la marque avant les mots.',
-            },
-          ].filter((specimen) => Boolean(specimen.family));
-          return specimens.length
-            ? [
-                {
-                  kind: 'typeSpecimen',
-                  specimens: specimens as { family: string; role: string; sample: string }[],
-                },
-              ]
-            : undefined;
+            { family: typography.primaryFont, role: 'Titres', sample: project.name || 'Titre de section' },
+            { family: typography.secondaryFont, role: 'Texte courant', sample: 'La typographie porte la voix de la marque avant les mots.' },
+          ].filter((specimen): specimen is { family: string; role: string; sample: string } => Boolean(specimen.family));
+          return specimens.length ? [{ kind: 'typeSpecimen', specimens }] : undefined;
         }
 
-        // ── LES PAGES QUI PRÉSENTENT UN LOGO ────────────────────────────
-        //
-        // Elles étaient laissées libres, au motif que leur composition ÉTAIT le
-        // livrable. Le rendu observé a démenti ce raisonnement : ces pages sont
-        // sorties couvertes de références inventées (« RÉF. ID-01 », « STATUT :
-        // VALIDÉ », « DIFFUSION CONTRÔLÉE »), de valeurs CMJN et de rapports de
-        // contraste que personne n'a calculés, de croix décoratives dans les
-        // angles — et l'une d'elles a débordé, son texte coupé en bas de page.
-        //
-        // Or présenter un logo sur son fond est précisément ce que le gabarit
-        // sait faire, et faire mieux : le fond est tiré du design system, donc
-        // le contraste est vrai ; la boîte a une hauteur, donc rien ne déborde ;
-        // et le modèle n'écrit plus que la règle d'usage, ce qu'il sait faire.
+        // Les pages qui PRÉSENTENT un logo : le fond est celui de la charte, le contraste est vrai, et le
+        // modèle n'écrit que la règle d'usage — jamais de référence inventée (« RÉF. ID-01 »).
         const singleVariant: Record<string, { url?: string; label: string; background: 'light' | 'dark' | 'neutral' }> = {
           'Logo Variation Fond Clair': { url: lightLogoUrl, label: 'Sur fond clair', background: 'light' },
           'Logo Variation Fond Sombre': { url: darkLogoUrl, label: 'Sur fond sombre', background: 'dark' },
@@ -1587,15 +1289,13 @@ export class BrandingService extends GenericService {
           return [{ kind: 'logoDisplay', variants: [{ url: single.url, label: single.label, background: single.background }] }];
         }
 
-        // L'icône seule, sur ses trois fonds : c'est une page de comparaison,
-        // pas de présentation — une favicon et une étiquette cousue n'ont pas
-        // le même fond, et c'est ce que le lecteur vient vérifier.
+        // L'icône seule, sur ses trois fonds : une favicon et une étiquette cousue n'ont pas le même fond.
         if (stepName === 'Logomark') {
           const marks = [
             { url: iconLightUrl || iconUrl, label: 'Sur fond clair', background: 'light' as const },
             { url: iconDarkUrl || iconUrl, label: 'Sur fond sombre', background: 'dark' as const },
             { url: iconMonoUrl || iconUrl, label: 'Monochrome', background: 'neutral' as const },
-          ].filter((mark) => Boolean(mark.url)) as { url: string; label: string; background: 'light' | 'dark' | 'neutral' }[];
+          ].filter((mark) => Boolean(mark.url));
           return marks.length ? [{ kind: 'logoDisplay', variants: marks }] : undefined;
         }
 
@@ -1611,14 +1311,10 @@ export class BrandingService extends GenericService {
         return undefined;
       };
 
-
       // ── LA PAGE DU LOGO L'EXPLIQUE ─────────────────────────────────────
       //
-      // Le logo était posé sous deux légendes de six mots (« Zone », « Format »),
-      // sans un mot de ce qu'il représente. Le modèle reçoit maintenant les
-      // FAITS du logo — son concept, son type, la composition du nom, le rôle
-      // de ses couleurs — et l'explique en trois ou quatre points, posés à côté
-      // du dessin qu'ils décrivent.
+      // Le modèle reçoit les FAITS du logo — son concept, son type, la composition du nom, le rôle de ses
+      // couleurs — et l'explique en trois ou quatre points, posés à côté du dessin qu'ils décrivent.
       const logoPalette = project.analysisResultModel?.branding?.colors?.colors;
       const colorRole = (hex: string): string => {
         const value = (hex || '').toLowerCase();
@@ -1640,8 +1336,7 @@ export class BrandingService extends GenericService {
           ? {
               fontFamily: logo.lockup.fontFamily,
               fontWeight: logo.lockup.fontWeight,
-              arrangement:
-                logo.lockup.arrangement === 'stacked' ? 'nom sous le symbole' : 'nom à droite du symbole',
+              arrangement: logo.lockup.arrangement === 'stacked' ? 'nom sous le symbole' : 'nom à droite du symbole',
             }
           : logo?.fonts?.length
             ? { fontFamily: logo.fonts[0] }
@@ -1649,37 +1344,31 @@ export class BrandingService extends GenericService {
         colors: [...new Set((logo?.colors ?? []).map(colorRole))],
         artDirection: artDirection?.styleName,
       };
-      const composeLogoStory = (blocks: Block[]): Block[] => {
-        const cards = blocks.find(
-          (block): block is Extract<Block, { kind: 'cards' }> => block.kind === 'cards'
-        );
+      /** Le logo et son explication dans UN objet graphique, côte à côte. */
+      const composeLogoStory = (blocks: GraphicBlock[]): GraphicBlock[] => {
+        if (!logoUrl) return blocks;
+        const cards = blocks.find((block): block is Extract<GraphicBlock, { kind: 'cards' }> => block.kind === 'cards');
         const points = cards
-          ? cards.items.map((item) => ({ label: item.title, text: item.body }))
+          ? cards.items.map((item) => ({ label: item.title.slice(0, 60), text: item.body.slice(0, 400) }))
           : logo?.concept
             ? [{ label: 'Le concept', text: clip(logo.concept, 150) }]
             : [];
+        if (!points.length) return blocks;
         return [
-          {
-            kind: 'logoStory',
-            url: logoUrl,
-            label: `Logo ${project.name ?? ''}`.trim(),
-            background: 'light',
-            points,
-          },
+          ...blocks.filter((block) => block !== cards),
+          { id: 'logo-story', kind: 'logoStory', origin: 'system', url: logoUrl, label: `Logo ${project.name ?? ''}`.trim(), background: 'light', points: points.slice(0, 5) },
         ];
       };
 
-      // ── LES PAGES COMPOSÉES ─────────────────────────────────────────────
+      // ── LES PAGES COMPOSÉES PAR LE CODE (direction artistique, réseaux) ───
       let socialKitPromise: Promise<SocialBrandKit> | null = null;
       const composedPages = buildComposedCharterPages({
         project,
         artDirection,
-        designSystem: charterDesignSystem,
-        render: { logoUrl, brandName: project.name, page: charterPage, multiPage: false },
         logos: { lightGround: lightLogoUrl, darkGround: darkLogoUrl },
         imageryUrl: () => mockupPages.imageryUrl(),
         socialKit: () =>
-          (socialKitPromise ??= this.buildSocialBrandKit(userId, projectId, project, charterDesignSystem, {
+          (socialKitPromise ??= this.buildSocialBrandKit(userId, projectId, graphicProject, {
             lightGround: lightLogoUrl || undefined,
             darkGround: darkLogoUrl || undefined,
             iconLightGround: iconLightUrl || undefined,
@@ -1697,132 +1386,68 @@ export class BrandingService extends GenericService {
           ).downloadURL,
       });
 
-      const usedArchetypes = new Set<string>();
-      let pageIndex = 0;
       const coverBrief = new CoverBriefService(this.promptService);
-      for (const step of steps) {
-        // ── LA COUVERTURE : DESSINÉE PAR LE CODE ─────────────────────────
-        // Le modèle n'en écrit plus que les mots (secteur, promesse), une fois
-        // par projet et partagés avec le business plan et le pitch deck.
-        // Composée en HTML par le modèle, elle coûtait 40 000 tokens de
-        // budget et la minute la plus longue de la charte.
+      const totalPages = steps.length;
+      steps.forEach((step, position) => {
+        const at = { index: position + 1, total: totalPages };
+        // LA COUVERTURE : composée par le moteur. Le modèle n'en écrit que les mots (secteur, promesse),
+        // une fois par projet et partagés avec le business plan et le pitch deck.
         if (step.stepName === 'Brand Header') {
-          pageIndex += 1;
-          step.execute = async () =>
-            composeCover({
-              brief: await coverBrief.resolve(userId, projectId, project),
-              brandName: project.name,
-              ds: charterDesignSystem,
-              page: charterPage,
-              logos: { lightGround: lightLogoUrl || undefined, darkGround: darkLogoUrl || undefined },
-              documentLabel: 'Charte graphique',
-              detail: 'Version 1.0',
-              dateLabel: coverDateLabel(),
-              variant: coverVariant(projectId),
-            });
-          continue;
+          step.execute = async () => {
+            const brief = await coverBrief.resolve(userId, projectId, project);
+            return renderGraphicPage(
+              graphic,
+              coverContent({
+                id: pageId(step.stepName),
+                brandName: project.name || 'Marque',
+                documentLabel: 'Charte graphique',
+                kicker: brief.kicker,
+                promise: brief.promise,
+                detail: 'Version 1.0',
+                dateLabel: coverDateLabel(),
+              }),
+              at
+            );
+          };
+          return;
         }
         const compose = composedPages[step.stepName];
         if (compose) {
-          pageIndex += 1;
-          const index = pageIndex;
-          // Pages de démonstration : leurs blocs ont besoin de la pleine largeur.
-          const composedSeed = wideSeed(
-            directSeed(buildSectionSeed(artDirection?.styleId, `branding:${projectId}`, step.stepName, usedArchetypes), step.stepName),
-            artDirection?.styleId
-          );
-          step.execute = () => compose(composedSeed, index);
-          continue;
-        }
-        if (step.execute) continue;
-        pageIndex += 1;
-        const baseSeed = buildSectionSeed(
-          artDirection?.styleId,
-          `branding:${projectId}`,
-          step.stepName,
-          usedArchetypes
-        );
-        // Le logo et son explication se lisent côte à côte : pas dans une
-        // colonne des 7/12.
-        const pageSeed = directSeed(baseSeed, step.stepName);
-        const seed =
-          step.stepName === 'Logo Principal' ? wideSeed(pageSeed, artDirection?.styleId) : pageSeed;
-
-        if (TEMPLATED_PAGES.has(step.stepName)) {
-          step.template = {
-            // Le prompt d'origine décrit une mise en page que le rendu produit
-            // désormais : sous gabarit, c'est le brief de CONTENU qui part.
-            // `promptConstant` reste intact — il est le repli quand le gabarit
-            // est coupé, où la page doit de nouveau produire du HTML.
-            contentBrief:
-              step.stepName === 'Logo Principal'
-                ? `${CHARTER_PAGE_BRIEFS[step.stepName]}\n\n<logo_facts>\n${JSON.stringify(logoFacts, null, 2)}\n</logo_facts>`
-                : CHARTER_PAGE_BRIEFS[step.stepName],
-            // La nomenclature de la charte : le titre de la page ne dépend plus
-            // du modèle (cf. `CHARTER_PAGE_HEADINGS`).
-            heading: CHARTER_PAGE_HEADINGS[step.stepName],
-            designSystem: charterDesignSystem,
-            seed,
-            // Une page de charte est ROGNÉE (une section = une page) : elle
-            // porte l'équivalent de 0,55 page A4, dont 0,15 déjà pris par le
-            // spécimen injecté — au-delà, le rendu écarte le surplus et le
-            // travail est payé pour rien.
-            //
-            // Le volume est désormais PROPRE À LA PAGE (cf.
-            // `CHARTER_PAGE_VOLUMES`) : une page qui montre n'a qu'un bloc à
-            // écrire, parce que sa matière est le spécimen et non le texte.
-            // Le chiffre unique d'avant est précisément ce qui remplissait les
-            // pages de démonstration de commentaires que personne ne lit.
-            volume: CHARTER_PAGE_VOLUMES[step.stepName] ?? '1',
-            prependBlocks: specimensFor(step.stepName),
-            composeBlocks: step.stepName === 'Logo Principal' ? composeLogoStory : undefined,
-            // Cran Ultra : le contenu validé de la page (spécimens compris) part au compositeur ;
-            // fidélité, rendu mesuré et règles de la charte contrôlés, le gabarit en repli.
-            compose: designPlan?.freeCompose
-              ? ultraPageComposer({
-                  ds: charterDesignSystem,
-                  seed,
-                  page: charterPage,
-                  singlePage: true,
-                  sheet: charterSheet,
-                  document: 'brand guidelines book',
-                  call: runtimeCall({ userId, projectId, element: 'branding' }),
-                  name: step.stepName,
-                  lint: {
-                    palette: charterBranding?.colors?.colors,
-                    styleId: artDirection?.styleId,
-                    label: `charte/ultra/${step.stepName}`,
-                  },
-                })
-              : undefined,
-            render: {
-              logoUrl,
-              brandName: project.name,
-              index: pageIndex,
-              page: charterPage,
-              // La charte est en `multiPage: false` : une page = une section, et
-              // ce qui dépasse est rogné.
-              multiPage: false,
-            },
+          step.execute = async () => {
+            const section = await compose();
+            return section ? renderGraphicPage(graphic, { ...section, id: pageId(step.stepName) }, at) : null;
           };
-          continue;
+          return;
         }
-
-        step.promptConstant += `\n\n<composition_for_this_page>\n${describeSectionSeed(seed)}\n</composition_for_this_page>`;
-      }
+        // Les photographies de mise en situation sont déjà fabriquées.
+        if (step.execute) return;
+        // Une page RÉDIGÉE : la nomenclature de la charte pour titre, le spécimen posé par le code, le
+        // texte du modèle autour — un volume propre à la page (une page qui montre n'a qu'un bloc à écrire).
+        const brief =
+          step.stepName === 'Logo Principal'
+            ? `${CHARTER_PAGE_BRIEFS[step.stepName]}\n\n<logo_facts>\n${JSON.stringify(logoFacts, null, 2)}\n</logo_facts>`
+            : CHARTER_PAGE_BRIEFS[step.stepName] ?? `Write the "${step.stepName}" page of the brand guidelines: one short usage rule.`;
+        step.promptConstant = brief;
+        step.template = {
+          deliverable: 'brand-charter',
+          sectionId: pageId(step.stepName),
+          volume: CHARTER_PAGE_VOLUMES[step.stepName] ?? '1',
+          contentBrief: brief,
+          heading: CHARTER_PAGE_HEADINGS[step.stepName],
+          prependBlocks: specimensFor(step.stepName),
+          composeBlocks: step.stepName === 'Logo Principal' ? composeLogoStory : undefined,
+          render: (content) => renderGraphicPage(graphic, content, at),
+        };
+        if (!TEMPLATED_PAGES.has(step.stepName)) {
+          logger.warn(`[BRANDING] Page « ${step.stepName} » sans spécimen déclaré : rédigée et composée par le moteur`);
+        }
+      });
 
       logger.info(`[BRANDING] Generated ${mockupCount} mockup steps dynamically`, {
         projectId,
         mockupCount,
         totalSteps: steps.length,
       });
-
-      // Optionnel : footer
-      // steps.push({
-      //   promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
-      //   stepName: 'Brand Footer',
-      //   hasDependencies: false,
-      // });
 
       // Load existing sections if not forcing regeneration.
       // Sections listed in targetSections are dropped so they get regenerated,
@@ -1876,62 +1501,14 @@ export class BrandingService extends GenericService {
               return;
             }
 
-            // Préparer la section finale
-            let finalSection: SectionModel;
-
-            // Les pages de mise en situation portent une photographie, pas de
-            // la prose : leur HTML est fabriqué ici (cf. `createMockupPageBuilder`)
-            // et n'a rien à faire passer au linter anti-générique.
-            if (result.name.startsWith('Brand Mockup')) {
-              finalSection = {
-                name: result.name,
-                type: result.type,
-                data: result.data,
-                summary: result.summary,
-              };
-            } else {
-              // Passe déterministe anti-générique sur le HTML produit.
-              //
-              // Le prompt demande déjà de ne pas sortir de la charte ; sur une
-              // douzaine de pages, il en reste toujours. Les fautes MÉCANIQUES
-              // (couleur hors palette, police écrite en dur, titre en dégradé,
-              // image sans alt) ont une bonne réponse unique : on les corrige
-              // ici sans dépenser un token. Ce qui relève du goût est seulement
-              // journalisé — le linter ne recompose jamais une page.
-              const rawHtml = typeof result.data === 'string' ? result.data : '';
-              let cleanedHtml = rawHtml;
-              if (rawHtml) {
-                const lintOptions = {
-                  palette: branding?.colors?.colors,
-                  fonts: [
-                    branding?.typography?.primaryFont,
-                    branding?.typography?.secondaryFont,
-                  ].filter((f): f is string => !!f),
-                  // Le contrôle de présence du logo ne vaut QUE pour les pages
-                  // censées en porter un. L'appliquer à la page palette ou à la
-                  // page typographie produirait une alerte à chaque génération,
-                  // et un linter qui crie tout le temps est un linter qu'on
-                  // n'écoute plus.
-                  expectedLogoUrls: /^(Brand Header|Logo )/.test(result.name)
-                    ? [logoUrl, lightLogoUrl, darkLogoUrl, monochromeLogoUrl].filter(Boolean)
-                    : [],
-                  styleId: artDirection?.styleId,
-                  // Les teintes des rampes DÉRIVENT de la charte : sans cette
-                  // déclaration, le linter prendrait le design system calculé
-                  // pour une palette inventée.
-                  extraAllowedColors: derivedPalette(charterDesignSystem),
-                  label: `charte/${result.name}`,
-                };
-                cleanedHtml = enforceDesignRules(rawHtml, lintOptions).html;
-              }
-
-              finalSection = {
-                name: result.name,
-                type: result.type,
-                data: cleanedHtml || result.data,
-                summary: result.summary,
-              };
-            }
+            // La page vient du moteur graphique (ou d'une photographie de mise en situation) : palette,
+            // polices, contrastes et logo y sont garantis par construction — rien à redresser.
+            const finalSection: SectionModel = {
+              name: result.name,
+              type: result.type,
+              data: result.data,
+              summary: result.summary,
+            };
 
             // Add or replace in sections array to avoid duplicates
             const existingIndex = sections.findIndex((s) => s.name === finalSection.name);
@@ -2032,6 +1609,9 @@ export class BrandingService extends GenericService {
           undefined, // finalizationCallback
           existingSections
         );
+
+        // Les empreintes des pages rejoignent la mémoire de la marque : le prochain document ne les répète pas.
+        await graphic.remember();
 
         // The stored PDF no longer matches the regenerated sections
         const pdfCacheKey = cacheService.generateAIKey('branding-pdf', userId, projectId);
@@ -5073,21 +4653,20 @@ export class BrandingService extends GenericService {
     if (!branding?.logo) throw new Error(`No logo found for project ${projectId}`);
 
     const artDirection = branding.artDirection ?? null;
-    const ds = buildDocumentDesignSystem(
-      branding,
-      artDirection,
-      buildDocumentSeed(artDirection?.styleId, `branding:${projectId}`)
-    );
+    const { brand, direction } = projectBrand(project);
+    const tokens = buildTokens({ brand, direction, format: 'avatar-square' });
     const logos = charterLogoSources(branding.logo);
     // Tout ce qui décide du rendu : la promesse dérive du nom et de la
-    // description, comme la clé de cache des textes sociaux.
+    // description, comme la clé de cache des textes sociaux. Le moteur graphique
+    // (sa version) en fait partie : des bannières composées autrement se rendent à nouveau.
     const key = crypto
       .createHash('sha256')
       .update(
         JSON.stringify({
-          v: 1,
-          colors: ds.colors,
-          fonts: ds.fonts,
+          v: 2,
+          engine: ENGINE_VERSION,
+          colors: { primary: tokens.color.primary, accent: tokens.color.accent, ground: tokens.color.ground, ink: tokens.color.ink },
+          fonts: { display: tokens.font.display, body: tokens.font.body },
           logos,
           style: artDirection?.styleId,
           name: project.name,
@@ -5102,7 +4681,7 @@ export class BrandingService extends GenericService {
     }
 
     logger.info(`[ASSETS] Rendu des bannières sociales - projectId: ${projectId}`);
-    const kit = await this.buildSocialBrandKit(userId, projectId, project, ds, logos);
+    const kit = await this.buildSocialBrandKit(userId, projectId, project, logos);
     const rendered = await socialMockupService.renderStandaloneAssets(kit);
     const stamp = Date.now();
     const items = await Promise.all(
@@ -5153,13 +4732,15 @@ export class BrandingService extends GenericService {
     if (!branding?.colors) throw new Error(`No palette found for project ${projectId}`);
 
     const artDirection = branding.artDirection ?? null;
-    const ds = buildDocumentDesignSystem(branding, artDirection, buildDocumentSeed(artDirection?.styleId, `branding:${projectId}`));
+    // Les encres de la charte (celles de toutes ses pages) et le répertoire de motifs du style.
+    const { brand, direction } = projectBrand(project);
+    const tokens = buildTokens({ brand: { ...brand, patterns: undefined }, direction, format: 'a4-portrait' });
     const plans = planBrandPatterns({
-      repertoire: brandMotifs(ds) as BrandPatternKind[],
-      primary: ds.colors.primary,
-      accent: ds.colors.accent,
-      surface: ds.colors.surface,
-      subtle: ds.colors.neutral['100'],
+      repertoire: styleMotifs(artDirection?.styleId) as BrandPatternKind[],
+      primary: tokens.color.primary,
+      accent: tokens.color.accent,
+      surface: tokens.color.ground,
+      subtle: tokens.color.neutral['100'] ?? tokens.color.ground,
     });
     const key = crypto.createHash('sha256').update(JSON.stringify({ v: 1, plans })).digest('hex').slice(0, 24);
     if (branding.patterns?.key === key && branding.patterns.items.length > 0) return branding.patterns.items;
@@ -5907,9 +5488,10 @@ ${LOGO_EDIT_PROMPT}`;
     userId: string,
     projectId: string,
     project: ProjectModel,
-    ds: SocialBrandKit['ds'],
     logos: SocialBrandKit['logos']
   ): Promise<SocialBrandKit> {
+    // La marque telle que le moteur graphique la lit : les bannières et l'avatar sont composés par lui.
+    const { brand, direction } = projectBrand(project);
     const description = this.extractProjectDescription(project);
     const { industry } = this.extractProjectContext(description);
     const brandName = project.name?.trim() || 'Marque';
@@ -5952,7 +5534,8 @@ ${LOGO_EDIT_PROMPT}`;
       videoLed:
         ['Education', 'Sports & Fitness', 'Travel & Hospitality'].includes(industry) ||
         /vid[ée]o|youtube|podcast|m[ée]dia/i.test(description),
-      ds,
+      brand,
+      direction,
       logos,
     };
   }

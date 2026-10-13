@@ -48,6 +48,48 @@ export function onServerReady(cb: (port: number, url: string) => void): () => vo
   };
 }
 
+/**
+ * Repart d'un conteneur neuf : arrête tous les processus, vide le disque virtuel
+ * et oublie les serveurs ouverts. Le prochain `getWebContainerInstance()` en
+ * démarre un autre et y monte le contenu du magasin de fichiers.
+ *
+ * C'est la seule façon fiable de « régénérer depuis zéro ». Le conteneur ne
+ * désigne pas ses processus (`npm run dev` survit à la destruction du terminal,
+ * qui ne libère que l'interface), le montage n'écrit jamais de suppression, et
+ * la relecture du disque rapatrie dans le magasin tout fichier qui n'y est plus :
+ * l'ancien site renaîtrait. Une base PGlite laissée dans `backend/.pglite`
+ * garderait aussi l'ancien schéma, puisque les tables se créent en
+ * `IF NOT EXISTS`.
+ *
+ * Coût : les dépendances sont à réinstaller. L'installation est lancée dès le
+ * montage du socle, en parallèle de la génération, donc elle ne se rajoute pas
+ * au temps d'attente.
+ */
+export async function resetWebContainer(): Promise<void> {
+  // Un démarrage en cours doit finir, sinon on referme un conteneur à moitié né.
+  if (bootPromise) {
+    try {
+      await bootPromise;
+    } catch {
+      // Le démarrage a échoué : il n'y a rien à arrêter.
+    }
+  }
+
+  if (webcontainerInstance) {
+    try {
+      webcontainerInstance.teardown();
+    } catch (error) {
+      console.warn('[reset] teardown du conteneur en échec', error);
+    }
+  }
+
+  webcontainerInstance = null;
+  bootPromise = null;
+  lastServerReady = null;
+  openServers.clear();
+  notifyServers();
+}
+
 export async function getWebContainerInstance(): Promise<WebContainer | null> {
   if (webcontainerInstance) return webcontainerInstance;
   if (bootPromise) return bootPromise;

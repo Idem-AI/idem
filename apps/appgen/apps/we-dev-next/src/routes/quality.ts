@@ -14,20 +14,25 @@ const router = Router();
  * when there is something to repair.
  */
 router.post('/lint', (req: Request, res: Response) => {
-  const { files, expectedLogo } = req.body as {
+  const { files, expectedLogo, locked } = req.body as {
     files?: Record<string, string>;
     expectedLogo?: string | string[];
+    /** Fichiers du socle : jugés, jamais renvoyés au modèle pour réparation. */
+    locked?: string[];
   };
 
   if (!files || typeof files !== 'object' || Array.isArray(files)) {
     return res.status(400).json({ error: 'Expected a `files` object mapping paths to contents.' });
   }
 
+  const lockedPaths = Array.isArray(locked) ? locked.filter((p) => typeof p === 'string') : [];
+
   const report = lintGeneratedFiles(files, {
     expectedLogo:
       typeof expectedLogo === 'string' || Array.isArray(expectedLogo) ? expectedLogo : undefined,
+    locked: lockedPaths,
   });
-  const repairPrompt = buildRepairPrompt(report, files);
+  const repairPrompt = buildRepairPrompt(report, files, lockedPaths);
 
   ChatLogger.setContext('QualityRoute');
   ChatLogger.info('LINT', 'Linted generated project', {

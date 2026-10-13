@@ -2,6 +2,49 @@
 
 Module Communication, écran « Mes vidéos ». Code : moteur partagé avec iVision, `apps/ivision/core/src/video/` (moteur React : `apps/ivision/core/engine/src/`) ; IDEM le branche par `api/services/ivision/host.ts` et `Communication/video/idemVideoStore.ts`.
 
+## La demande suivie à la lettre
+
+Avant toute décision créative, la demande est lue **en entier** (`video.request.ts`, 20 000 signes au plus — un script
+d'une page n'est plus coupé à 400 + 800 signes) et devient un cahier des charges, gardé avec la vidéo
+(`brief.request`, `brief.spec`) :
+
+| Ce qui est lu | Comment | Effet |
+|---|---|---|
+| **Langue** | consigne explicite (« Langue : français », « vidéo en anglais », « voice-over in French ») › langue du texte (mots outils, alphabet ; `text/language.ts`) › langue de l'interface › langue de la marque | textes, titre, voix off et retouches dans la langue de la DEMANDE, jamais celle de la page |
+| **Scénario** | titres de scène (« ### SCÈNE 1 — L'IDÉE (00:00–00:08) », « Scene 1: … », « Plan 2 : … ») ou lignes minutées (« 0-5s : … ») | le film suit ces scènes, dans cet ordre, à ce minutage (ramené à la durée achetée) |
+| **Textes à l'écran** | blocs « Texte : », « Texte à l'écran : », « Afficher : », citations en gras | montrés **mot pour mot** (jamais réécrits ni coupés : un texte long se partage entre titre et sous-titre à la fin d'une phrase) |
+| **Textes dans l'image** | citations au fil d'une description (« un dossier intitulé « MON BUSINESS » », « il saisit : « … » »), listes en capitales | écrits DANS l'interface (dossier et fichiers, saisie tapée lettre à lettre), jamais en titre |
+| **Périmètre** | durée, format (16:9…), 4K, images par seconde | le compositeur d'iVision règle durée et format sur la demande (le prix affiché suit) ; ce qui ne peut être tenu (4K, 24 i/s) est dit |
+| **Consignes** | « Ne pas… », « Pas de… », sections de direction et de contraintes, couleurs `#hex`, musique décrite, personnage récurrent | données à chaque agent (directeur, codeurs, critique) ; interdits traduits pour les générateurs (« no robots, no holograms ») ; musique décrite → ambiance |
+| **Supports** | ce que chaque scène montre : des personnes et des gestes (plan filmé), l'interface du produit, du motion design, la signature | l'**outil** de chaque plan (voir ci-dessous) |
+
+**Un outil par support** (`SpecMedium`, `motionVideo.service.ts#produceShotMedia`) :
+
+| Support | Outil | Repli |
+|---|---|---|
+| plan filmé (`footage`) | clip généré (Seedance ; l'image FLUX.2 animée), même personnage et même lumière d'un plan à l'autre, interdits de la demande | vidéo libre (Pexels, requête ancrée sur le personnage : « african … »), puis image animée, puis photo de la marque ; sans rien, du motion design (et le rapport le dit) |
+| photo | image générée | photo libre, photo de la marque |
+| interface (`screen`) | la **capture de la marque** qui correspond (site lu par iVision, décrite une fois par la vision : `video.brandmedia.ts`) dans une fenêtre de navigateur qui se charge | l'interface dessinée avec les mots de la demande (dossier et fichiers, saisie) ou l'écran d'accueil à la marque — jamais un faux tableau de bord |
+| motion design | le moteur (typographie, formes, lignes, mises en page ; au cran Ultra, le code du codeur) | — |
+| signature | l'animation du logo, la phrase et l'adresse web de la demande | — |
+
+Sans scénario, une demande qui DÉCRIT une personne en action (« un jeune entrepreneur qui travaille sur son
+ordinateur ») ou un plan filmé (« plan cinématographique ») reçoit au moins un plan filmé (`describesFilmedAction`,
+sauf type imposé) ; le directeur photo lit la demande entière, le personnage et les interdits.
+
+Un fournisseur sans crédit (402) **coupe la génération pour toute la vidéo** dès le premier refus (avant : trois essais
+par média et par plan) et la vidéo le dit. Aux crans Low à Max, le code découpe le scénario (`video.script.ts#planScriptShots`) :
+ni stratège ni rédacteur, les règles de lecture **signalent** sans couper (`applyRules({ preserve })`), la voix off se
+pose sans déplacer les coupes (`fitScenesToVoice({ keepTiming })`), les fonds demandés (« écran noir ») et les plans
+filmés grands (cinéma, écran partagé) l'emportent. Au cran Ultra, le directeur découpe lui-même, sous les mêmes règles
+(voir plus bas).
+
+**Le rapport de fidélité** (`storyboard.fidelity`, `video.script.ts#checkFidelity`) compare le film à la demande :
+scènes présentes, textes montrés mot pour mot / manquants / ajoutés, écart de minutage, plans filmés générés ou
+remplacés, langue des textes, voix off. Ses écarts sont dits dans la conversation et sous la vidéo (clés
+`chat.result.fidelity.*`). Contrôle : `npm run check:request --prefix apps/ivision/core` (le vrai script d'un
+utilisateur, 66 vérifications, deux vidéos créées et photographiées).
+
 ## Qui décide : la jauge de créativité
 
 Avant la génération, l'utilisateur choisit un cran de créativité : **Low · Medium · High · Max · Ultra**
@@ -65,9 +108,10 @@ Plus aucun menu : l'IA invente le film et écrit le code de chaque plan
 
 | Étape | Qui | Fichier |
 |---|---|---|
-| Photos (4 au plus) : importées, sinon générées (l'offre, les gens, le lieu, un détail), puis Pexels, puis visuels du projet | **directeur photo** + code | `motionVideo.service.ts#acquireMedia`, `video.sourcing.ts` |
-| Le film : concept, « bible » (signature de mouvement, couleurs, typographie) et chaque plan (durée, textes, ce qu'on voit, comment ça bouge, photo, passage au plan suivant, motif ou exploration), à partir de l'univers créatif | **directeur**, modèle de raisonnement, deux tentatives | `video.author.ts#buildDirectorPrompt`, `video.planner.ts#creativeUniverse` |
-| Validation : chaque plan assez long pour être lu (`video.rules.ts#requiredHold`) et 8 s au plus, somme exacte, longueurs, aucun chiffre absent du brief, contact copié du brief, signature à la fin | code | `video.author.ts#parseFilm` |
+| Les images PROPRES à la marque (captures du site et du produit, photos, imports), décrites une fois par la vision | code + modèle de vision | `video.brandmedia.ts` |
+| Le film : concept, « bible », personnage et lumière des plans filmés, et chaque plan (durée, **outil** : plan filmé / photo / interface / motion / signature, description du plan filmé pour le générateur, capture à montrer, textes, ce qu'on voit, comment ça bouge, passage au plan suivant, motif). Avec un **scénario**, le directeur le DÉCOUPE : mêmes scènes, même minutage, textes mot pour mot | **directeur**, modèle de raisonnement, deux tentatives | `video.author.ts#buildDirectorPrompt`, `#scriptBlock` |
+| Validation : temps de lecture, somme exacte, aucun chiffre absent du brief, plafond de plans filmés ; avec un scénario, chaque texte remis mot pour mot à sa place et dans l'ordre (un texte à peine retouché reprend sa forme exacte, un texte inventé est retiré), une scène oubliée rajoutée telle qu'écrite, chaque scène à son minutage | code | `video.author.ts#parseFilm`, `#finishScriptFilm` |
+| Les médias de chaque plan, APRÈS le film : clips générés, photos, captures désignées | code + modèles de l'hôte | `motionVideo.service.ts#produceShotMedia` |
 | Musique, effets sonores et voix off (sur les plans du directeur), pendant l'écriture des plans | **sound designer**, **narrateur** + code | `video.music.ts`, `video.sfx.ts`, `video.voice.ts` |
 | Chaque plan : un composant React écrit avec les briques du kit de son motif (manifeste restreint) | **codeur**, un par plan, trois en parallèle | `video.author.ts#authorShots`, `video.coder.ts#scopedKitManifest` |
 | Contrôle de chaque plan : lint, compilation, rendu mesuré, **critique visuelle** | code + modèle de vision | `video.coder.ts#inspectRenderedScene` |
@@ -75,8 +119,11 @@ Plus aucun menu : l'IA invente le film et écrit le code de chaque plan
 
 La boucle de qualité d'un plan fait **trois tours au plus**. Les défauts mesurés et la critique
 visuelle repartent au codeur avec son code précédent. La critique est un conseil : le dernier code
-qui a passé les contrôles mesurés est gardé. Un plan qui n'en passe aucun en trois tours reprend
-la composition éprouvée de sa scène (`statement`, `cta` ou `logo`), et la vidéo l'affiche :
+qui a passé les contrôles mesurés est gardé. Les maladresses mécaniques (une transition CSS laissée
+dans un style, `easeOut` pour `ease`) sont réparées sans tour de plus, et un commentaire contenant
+« Transition: » ne fait plus refuser un plan (cas vécu : 6 plans sur 10 repliés). Un plan qui
+n'en passe aucun en trois tours reprend la composition éprouvée de SON support (plan filmé,
+interface, phrase avec une mise en page du catalogue, signature), et la vidéo l'affiche :
 « Film d'auteur · 7 plans sur 8 créés par l'IA ». Si le directeur échoue deux fois, la vidéo
 passe par le pipeline des menus, au même cran.
 
@@ -93,9 +140,11 @@ création est nettement plus longue qu'aux autres crans.
 **Limites actuelles du film d'auteur :**
 
 - le type de vidéo choisi (produit, offre flash, révélation de logo…) n'est pas transmis au
-  directeur : il invente le film à partir du brief ;
-- le directeur ne compose qu'avec des photos : clips, modèles 3D et animations Lottie importés
+  directeur : il compose à partir de la demande ;
+- les clips importés vont aux plans filmés, dans l'ordre ; modèles 3D et animations Lottie importés
   restent attachés à la vidéo mais n'y sont pas montrés ;
+- la cohérence du personnage d'un plan filmé à l'autre repose sur une même description (le
+  générateur vidéo ne reçoit pas de portrait de référence) ;
 - une retouche garde le minutage du directeur : un texte rallongé n'allonge pas son plan (les plans
   codés ajustent la taille du texte au cadre).
 

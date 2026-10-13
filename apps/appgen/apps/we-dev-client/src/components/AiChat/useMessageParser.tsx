@@ -1,7 +1,7 @@
 import { FileAction, StreamingMessageParser } from './messae';
 
 import { createFileWithContent } from '../WeIde/components/IDEContent/FileExplorer/utils/fileSystem';
-import { isScaffoldLocked } from '@/utils/scaffoldLock';
+import { isScaffoldLocked, looksDegenerate } from '@/utils/scaffoldLock';
 import useTerminalStore from '@/stores/terminalSlice';
 import { Message } from 'ai/react';
 
@@ -108,6 +108,12 @@ const messageParser = new StreamingMessageParser({
       // réécriture par le modèle ne peut rien améliorer et peut tout casser
       // (palette amputée, script d'amorçage oublié). On la laisse tomber.
       if (isScaffoldLocked(filePath)) {
+        return;
+      }
+
+      // Le modèle se répète parfois jusqu'à produire un fichier illisible. On
+      // ne remplace pas du travail valable par une boucle.
+      if (looksDegenerate(content)) {
         return;
       }
 

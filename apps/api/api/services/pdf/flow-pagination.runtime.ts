@@ -578,7 +578,9 @@ export const FLOW_PAGINATION_RUNTIME = `
    * cannot be fragmented (atomic, or nothing meaningful would fit).
    */
   function splitItem(item, avail, depth) {
-    if (depth > 6) { return null; }
+    // Les pages du moteur graphique imbriquent davantage (rangée, grille, bloc, mesure, paragraphes) : la
+    // profondeur admise couvre cette imbrication sans ouvrir de récursion sans fin.
+    if (depth > 10) { return null; }
     if (item.kind === 'text') { return null; }    // already line-fragmented
     if (item.els.length !== 1) { return null; }   // a grid/flex row is never cut
     var el = item.els[0];
@@ -601,7 +603,10 @@ export const FLOW_PAGINATION_RUNTIME = `
       body = item._bodyEl || null;
       deco = item._decorations || null;
     }
-    if (!kids || kids.length < 2) { return null; }
+    // Un SEUL enfant : l'enveloppe est transparente, la coupe se fait dans l'enfant (comme pour <tbody>).
+    // Sans cela, une marge, une grille ou une mesure enveloppant un long texte le rendaient insécable : il
+    // partait entier à la page suivante, et y était réduit pour tenir.
+    if (!kids || !kids.length) { return null; }
     var ins = insetsOf(el);
     var budget = avail - ins.top - ins.bottom - extraTop;
     if (budget < 24 * MM) { return null; }

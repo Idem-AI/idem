@@ -59,10 +59,10 @@ export async function idemGenerateImage(prompt: string, options: ImageOptions) {
   });
 }
 
-/** Un clip d'un plan de vidéo : Seedance 2.0 (OpenRouter). Partagé avec la passerelle d'iVision. */
+/** Un clip d'un plan de vidéo : Veo 3.1 Fast / Seedance 2.0 (OpenRouter). Partagé avec la passerelle d'iVision. */
 export async function idemGenerateVideo(request: VideoClipRequest): Promise<{ url: string; model: string }> {
   const media = await import('../media.service');
-  const { url, model } = await media.generateVideo({ prompt: request.prompt, image: request.image, size: request.size, durationSec: request.durationSec, quality: request.quality, tag: request.tag });
+  const { url, model } = await media.generateVideo({ prompt: request.prompt, image: request.image, size: request.size, durationSec: request.durationSec, quality: request.quality, tag: request.tag, model: request.model });
   return { url, model };
 }
 

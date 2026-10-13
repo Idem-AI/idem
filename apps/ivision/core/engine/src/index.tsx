@@ -100,6 +100,80 @@ async function checkLogos() {
   data.logo = { onLight, onDark, icon };
 }
 
+// ─── Aperçu : tous les sons chargés AVANT la lecture ────────────────────────
+
+/**
+ * Musique, effets sonores et voix off téléchargés dès l'ouverture de l'aperçu (en même temps que
+ * les polices et les images) : la lecture n'est proposée qu'une fois CHAQUE son entièrement en
+ * mémoire — jamais une voix qui arrive en retard ou un effet muet au premier passage.
+ */
+function preloadAudio() {
+  const music = data.music?.url ? new Audio() : null;
+  const pools: Record<string, { list: HTMLAudioElement[]; i: number; gain: number }> = {};
+  if (data.sfx?.enabled) {
+    for (const [kind, snd] of Object.entries(data.sfx.sounds)) pools[kind] = { list: [0, 1, 2].map(() => new Audio()), i: 0, gain: snd.gain };
+  }
+  const voices = (data.voice || []).map((line) => ({ ...line, el: new Audio() }));
+  const jobs: { el: HTMLAudioElement; url: string }[] = [
+    ...(music ? [{ el: music, url: data.music!.url }] : []),
+    ...Object.entries(pools).flatMap(([kind, pool]) => pool.list.map((el) => ({ el, url: data.sfx!.sounds[kind].url }))),
+    ...voices.map((v) => ({ el: v.el, url: v.url })),
+  ];
+  const urls = [...new Set(jobs.map((j) => j.url))];
+  const loaded = new Set<string>();
+  const listeners: ((loaded: number, total: number) => void)[] = [];
+  const report = () => listeners.forEach((fn) => fn(loaded.size, urls.length));
+  /** Un son est prêt quand il est tamponné jusqu'au bout (ou en échec : il ne bloque pas la lecture). */
+  const full = (el: HTMLAudioElement) => {
+    if (el.readyState < 4 || !Number.isFinite(el.duration) || !el.duration) return false;
+    for (let i = 0; i < el.buffered.length; i++) if (el.buffered.start(i) <= 0.05 && el.buffered.end(i) >= el.duration - 0.15) return true;
+    return false;
+  };
+  const pending = new Map<string, number>();
+  for (const j of jobs) pending.set(j.url, (pending.get(j.url) || 0) + 1);
+  const loadOne = (job: { el: HTMLAudioElement; url: string }) =>
+    new Promise<void>((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        clearInterval(poll);
+        // Une adresse est chargée quand tous ses lecteurs le sont (les effets en ont trois).
+        const left = (pending.get(job.url) || 1) - 1;
+        pending.set(job.url, left);
+        if (!left) {
+          loaded.add(job.url);
+          report();
+        }
+        resolve();
+      };
+      const check = () => (full(job.el) || job.el.error) && done();
+      job.el.preload = 'auto';
+      job.el.addEventListener('canplaythrough', check);
+      job.el.addEventListener('progress', check);
+      job.el.addEventListener('error', done, { once: true });
+      // Un serveur qui ne dit pas la taille, un son interminable : borné à 40 s, la lecture n'attend pas plus.
+      const poll = setInterval(check, 250);
+      setTimeout(done, 40000);
+      job.el.src = job.url;
+      job.el.load();
+    });
+  const all = Promise.all(jobs.map(loadOne)).then(() => true);
+  return {
+    music,
+    pools,
+    voices,
+    total: urls.length,
+    ready: all,
+    progress: () => ({ loaded: loaded.size, total: urls.length }),
+    onProgress: (fn: (loaded: number, total: number) => void) => listeners.push(fn),
+  };
+}
+
+type PreloadedAudio = ReturnType<typeof preloadAudio>;
+
+const sounds: PreloadedAudio | null = data.mode === 'preview' ? preloadAudio() : null;
+
 const ready = (async () => {
   await Promise.all([loadFonts(), checkLogos()]);
   draw(0); // premier rendu : ajustement des textes (mesuré une fois) et montage des médias
@@ -107,7 +181,7 @@ const ready = (async () => {
   await Promise.race([mediaReady(), timeout(25000)]);
   draw(0);
   await (syncClipsExact(0) || Promise.resolve());
-  if (data.mode === 'preview') setupEditBridge(setupPreview());
+  if (data.mode === 'preview' && sounds) setupEditBridge(setupPreview(sounds), sounds);
   return true;
 })();
 
@@ -123,7 +197,7 @@ window.__IDEM_VIDEO__ = {
 
 // ─── Aperçu : lecture en temps réel, musique et effets synchronisés ─────────
 
-function setupPreview() {
+function setupPreview(sounds: PreloadedAudio) {
   document.body.classList.add('preview');
   const stage = document.getElementById('host')!;
   const wrap = document.createElement('div');
@@ -140,17 +214,11 @@ function setupPreview() {
   resize();
   window.addEventListener('resize', resize);
 
-  const audio = data.music?.url ? new Audio(data.music.url) : null;
-  if (audio) audio.preload = 'auto';
-  const pools: Record<string, { list: HTMLAudioElement[]; i: number; gain: number }> = {};
-  if (data.sfx?.enabled) {
-    for (const [kind, snd] of Object.entries(data.sfx.sounds)) {
-      pools[kind] = { list: [0, 1, 2].map(() => Object.assign(new Audio(snd.url), { preload: 'auto' })), i: 0, gain: snd.gain };
-    }
-  }
+  const audio = sounds.music;
+  const pools = sounds.pools;
   const cueList = (allCues() as { t: number; kind: string; gain: number }[]).filter((c) => pools[c.kind]);
   // La voix off : une piste par ligne, jouée à son instant ; la musique baisse pendant qu'elle parle.
-  const voices = (data.voice || []).map((line) => ({ ...line, el: Object.assign(new Audio(line.url), { preload: 'auto' }) }));
+  const voices = sounds.voices;
   const speaking = (t: number) => voices.some((v) => t >= v.at - 0.2 && t <= v.at + v.durationSec + 0.3);
   const syncVoices = (t: number, play: boolean) => {
     for (const v of voices) {
@@ -178,6 +246,27 @@ function setupPreview() {
   big.setAttribute('aria-label', 'Lecture');
   big.innerHTML = '<span>▶</span>';
   wrap.appendChild(big);
+  // Tant que les sons se chargent : un anneau de progression à la place du bouton, lecture impossible.
+  let playable = sounds.total === 0;
+  const showProgress = (loaded: number, total: number) => {
+    if (playable) return;
+    const pct = total ? Math.round((loaded / total) * 100) : 100;
+    big.innerHTML = `<span class="pv-load" style="--p:${pct}"><b>${pct}%</b></span>`;
+  };
+  if (!playable) {
+    big.disabled = true;
+    btn.disabled = true;
+    big.setAttribute('aria-busy', 'true');
+    showProgress(sounds.progress().loaded, sounds.total);
+    sounds.onProgress(showProgress);
+    void sounds.ready.then(() => {
+      playable = true;
+      big.disabled = false;
+      btn.disabled = false;
+      big.removeAttribute('aria-busy');
+      big.innerHTML = '<span>▶</span>';
+    });
+  }
 
   let playing = false;
   let startedAt = 0;
@@ -195,6 +284,7 @@ function setupPreview() {
     audio.volume = Math.max(0, Math.min(1, Math.min(t / 0.5, (data.duration - t) / 1.2))) * (speaking(t) ? 0.22 : 0.5);
   };
   const play = () => {
+    if (!playable) return;
     if (offset >= data.duration - 0.05) offset = 0;
     playing = true;
     startedAt = performance.now();
@@ -310,9 +400,10 @@ function applyEdit(key: string, patch: EditPatch): boolean {
  *   { type: 'ivision:edit', key, slots?, image?, images?, focus? }  retouche + pose sur la scène
  *   { type: 'ivision:focus', key }                                  pose la vidéo sur la scène
  *   { type: 'ivision:seek', t } · { type: 'ivision:play' } · { type: 'ivision:pause' }
- * Messages envoyés : `ivision:ready` (durée, scènes et leurs instants), `ivision:time`.
+ * Messages envoyés : `ivision:ready` (durée, scènes et leurs instants), `ivision:loading`
+ * (sons chargés / total), `ivision:playable` (tous les sons en mémoire), `ivision:time`.
  */
-function setupEditBridge(controls: PreviewControls) {
+function setupEditBridge(controls: PreviewControls, sounds: PreloadedAudio) {
   if (window.parent === window) return;
   const post = (message: Record<string, unknown>) => window.parent.postMessage(message, '*');
   post({
@@ -320,6 +411,10 @@ function setupEditBridge(controls: PreviewControls) {
     duration: data.duration,
     scenes: timed().map((s) => ({ key: s.key, sceneId: s.sceneId, start: s.start, end: s.end, moment: momentOf(s.key) })),
   });
+  // Le chargement des sons, puis « jouable » : le parent ne propose la lecture qu'à ce moment-là.
+  post({ type: 'ivision:loading', ...sounds.progress() });
+  sounds.onProgress((loaded, total) => post({ type: 'ivision:loading', loaded, total }));
+  void sounds.ready.then(() => post({ type: 'ivision:playable' }));
   window.addEventListener('message', (event) => {
     // Seul le parent direct pilote l'aperçu (l'éditeur qui l'a ouvert).
     if (event.source !== window.parent) return;

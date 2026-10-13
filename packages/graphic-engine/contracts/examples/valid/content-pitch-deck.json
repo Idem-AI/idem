@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "documentType": "pitch-deck",
+  "locale": "fr",
+  "title": "Kora — pitch deck",
+  "sections": [
+    {
+      "id": "cover",
+      "role": "cover",
+      "title": "Kora",
+      "blocks": [
+        { "id": "c", "kind": "cover", "origin": "system", "brandName": "Kora", "kicker": "Torréfaction artisanale", "promise": "Le goût du Cameroun, torréfié chaque semaine à Douala", "documentLabel": "Pitch deck", "detail": "Version 1.0", "dateLabel": "Octobre 2026" }
+      ]
+    },
+    {
+      "id": "market",
+      "role": "data",
+      "kicker": "Marché",
+      "title": "Un marché de 2,3 milliards de FCFA qui croît de 18 % par an",
+      "lede": "La demande en café de spécialité double à Douala et Yaoundé.",
+      "blocks": [
+        { "id": "b1", "kind": "metrics", "items": [{ "value": "2,3 Md FCFA", "label": "Marché adressable", "note": "2026" }, { "value": "+18 %", "label": "Croissance annuelle" }] },
+        { "id": "b2", "kind": "chart", "chartType": "bar", "title": "Ventes mensuelles", "labels": ["Jan", "Fév", "Mar"], "series": [{ "name": "Tasses", "data": [1200, 1450, 1380] }], "readingKey": "Les ventes progressent chaque mois." }
+      ]
+    }
+  ]
+}

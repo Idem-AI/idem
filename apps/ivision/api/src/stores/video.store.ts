@@ -6,6 +6,7 @@
  * payées, à la charte, mises en scène avant toute banque d'images. Les modèles passent par la
  * passerelle d'IDEM (mêmes configurations, mêmes étages que dans IDEM).
  */
+import crypto from 'crypto';
 import type { MotionVideo } from '../../../core/src/video/video.model';
 import type { VideoBrandContext, VideoStore, VideoTier } from '../../../core/src/video/video.store';
 import { collection } from '../config/db';
@@ -14,6 +15,9 @@ import { idem } from '../services/idem.client';
 
 const brands = () => collection<IvisionBrand>('brands');
 const videos = () => collection<IvisionVideoDoc>('videos');
+
+/** La clé d'une image dans `mediaNotes`/`photoClassification` (un chemin d'URL ne peut pas servir de clé MongoDB). */
+export const noteKey = (url: string) => crypto.createHash('sha1').update(url).digest('hex').slice(0, 16);
 
 /** Le JSON d'une vidéo, sans les références partagées (le moteur modifie ses copies). */
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -31,11 +35,26 @@ export class IvisionVideoStore implements VideoStore {
       voice: { ...brand.voice, brandName: brand.name },
       visuals: brand.photos.map((url) => ({ backgroundImageUrl: url, createdAt: brand.updatedAt })),
       videos: await this.listVideos(userId, brandId),
+      // Les images propres à la marque : la capture de son site (lue au scan), puis ses photos et
+      // captures — décrites une fois, gardées sur la marque.
+      media: [
+        ...(brand.proposals?.screenshot ? [{ url: brand.proposals.screenshot, kind: 'screen' as const }] : []),
+        ...brand.photos.map((url) => ({ url })),
+      ].map((m) => ({ ...m, ...(brand.mediaNotes?.[noteKey(m.url)] ? { note: brand.mediaNotes[noteKey(m.url)] } : {}) })),
     };
   }
 
+  async saveMediaNotes(userId: string, brandId: string, notes: Record<string, string>): Promise<void> {
+    const set = Object.fromEntries(Object.entries(notes).map(([url, note]) => [`mediaNotes.${noteKey(url)}`, note.slice(0, 200)]));
+    if (Object.keys(set).length) await brands().updateOne({ _id: brandId, userId }, { $set: set });
+  }
+
   async listVideos(userId: string, brandId: string): Promise<MotionVideo[]> {
-    const docs = await videos().find({ userId, brandId }).sort({ updatedAt: -1 }).limit(200).toArray();
+    // Le moteur ne pondère jamais plus que les ~10 dernières vidéos / 2
+    // dernières séquences pour construire son contexte : ramener 200 documents
+    // complets par tour pour n'en exploiter qu'une poignée était une lecture
+    // DB disproportionnée (pas de coût LLM, mais un coût réseau/DB inutile).
+    const docs = await videos().find({ userId, brandId }).sort({ updatedAt: -1 }).limit(20).toArray();
     return docs.map((d) => d.video);
   }
 

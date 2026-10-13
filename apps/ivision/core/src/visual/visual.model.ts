@@ -100,3 +100,26 @@ export interface VisualMeta {
   creativity?: string;
   agents?: unknown[];
 }
+
+export type VisualSeverity = 'error' | 'warning' | 'info';
+
+export interface VisualFinding {
+  rule: string;
+  severity: VisualSeverity;
+  /** Constat, en français, destiné aux journaux et à l'explication produit. */
+  message: string;
+  count: number;
+  /** Vrai quand le code a corrigé le défaut plutôt que de le signaler. */
+  repaired: boolean;
+}
+
+/** Ce que la mesure du visuel rendu a constaté (moteur graphique), et ce que le code a réparé. */
+export interface VisualAuditReport {
+  findings: VisualFinding[];
+  /** Réparations effectivement appliquées. */
+  repaired: string[];
+  /** 0–100. 100 = aucun défaut mesuré. */
+  score: number;
+  /** Vrai s'il subsiste un défaut que la réparation n'a pas levé (texte hors de la toile, chevauchement). */
+  blocking: boolean;
+}

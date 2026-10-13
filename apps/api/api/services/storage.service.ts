@@ -992,6 +992,60 @@ export class StorageService {
   }
 
   /**
+   * Removes everything stored as generated code for one product of a project:
+   * the manifest, every file object, and the legacy ZIP archives that live in
+   * the same folder.
+   *
+   * The legacy archives matter. `getProjectCode` falls back to them when the
+   * incremental store is empty, so deleting only the manifest would bring the
+   * old code straight back on the next load.
+   *
+   * The site's folder (`.../projects/<id>/code/`) and the application's
+   * (`.../projects/<id>/app/code/`) are siblings, not nested: the trailing slash
+   * on the prefix keeps one from ever matching the other.
+   */
+  async deleteProjectCode(projectId: string, userId?: string): Promise<number> {
+    const prefix = `${this.codeFolderPath(projectId, userId)}/`;
+
+    const names: string[] = [];
+    await new Promise<void>((resolve, reject) => {
+      const stream = this.client.listObjects(this.bucketName, prefix, true);
+      stream.on('data', (object) => {
+        if (object.name) names.push(object.name);
+      });
+      stream.on('error', reject);
+      stream.on('end', () => resolve());
+    });
+
+    // `removeObjects` batches by itself and resolves with the objects the server
+    // refused to delete (empty when all went through). A partial failure must
+    // not pass silently: whatever survives is read back on the next open and
+    // would bring part of the old project back into the "fresh" one.
+    const failures = names.length
+      ? await this.client.removeObjects(this.bucketName, names)
+      : [];
+
+    if (failures.length > 0) {
+      logger.error(`Some project code objects could not be deleted`, {
+        projectId,
+        userId,
+        failed: failures.length,
+        sample: failures.slice(0, 3),
+      });
+      throw new Error(`Failed to delete ${failures.length} stored code file(s)`);
+    }
+
+    logger.info(`Project code deleted from MinIO Storage`, {
+      projectId,
+      userId,
+      prefix,
+      deleted: names.length,
+    });
+
+    return names.length;
+  }
+
+  /**
    * Generate a unique project ID for storage purposes
    * @returns A unique project ID
    */

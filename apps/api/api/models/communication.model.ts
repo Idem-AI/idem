@@ -343,13 +343,27 @@ export interface Flyer {
   intent?: VisualIntent;
   /** The exact logo declension URL the AI placed inside the visual. */
   logoUsed?: string;
-  /** Composition du code retenue (crans Low → High de la jauge de créativité, cf. flyerLayouts.ts). */
+  /** La composition retenue par le moteur graphique (@idem/graphic-engine). */
   layout?: string;
+  /** Les mots du visuel, case par case : une retouche les reprend et le moteur recompose la page. */
+  copy?: {
+    kicker?: string;
+    headline: string;
+    sub?: string;
+    facts: Array<{ kind: 'date' | 'time' | 'place' | 'price' | 'contact' | 'other'; text: string }>;
+    offer?: string;
+    quote?: { text: string; author?: string };
+    emphasis?: number;
+  };
+  /** La photo posée (adresse, point d'intérêt) : une retouche la garde sans la rechercher. */
+  photo?: { url: string; focal?: { x: number; y: number }; subject?: string };
+  /** La graine de la composition : une retouche de texte garde la même mise en page. */
+  seed?: string;
   /** Cran de la jauge de créativité choisi pour ce visuel. */
   creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
   /** Ce que chaque agent a décidé (source modèle ou code, tokens). */
   agents?: { agent: string; source: 'llm' | 'graph'; tokens: { input: number; output: number }; ms: number; reason?: string }[];
-  /** Single-line Tailwind HTML used internally to render the PNG. */
+  /** La page du visuel (fragment autonome du moteur graphique : polices puis page) ; l'éditeur la retouche. */
   html: string;
   /** Public URL of the rendered flyer PNG (served from MinIO). */
   imageUrl?: string;

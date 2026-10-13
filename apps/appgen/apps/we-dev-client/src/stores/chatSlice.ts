@@ -26,6 +26,25 @@ interface OtherConfig {
 }
 
 interface ChatState {
+  /**
+   * Une génération est en cours dans la conversation.
+   *
+   * L'aperçu en a besoin : tant que rien n'est généré, il propose « Générer
+   * maintenant » — mais pendant la génération, ce bouton n'a plus de sens et
+   * doit laisser la place à l'état d'avancement.
+   */
+  isGenerating: boolean;
+  setIsGenerating: (isGenerating: boolean) => void;
+  /**
+   * Ce projet n'a encore jamais été généré.
+   *
+   * C'est la même vérité que le bouton de la conversation : elle vient du
+   * projet (aucune génération enregistrée, aucune conversation stockée), pas
+   * d'une devinette sur les fichiers présents. Un repère tiré du contenu de
+   * `src/App.jsx` ratait tous les projets créés avant qu'il existe.
+   */
+  canGenerate: boolean;
+  setCanGenerate: (canGenerate: boolean) => void;
   isDeepThinking: boolean;
   setIsDeepThinking: (isDeepThinking: boolean) => void;
   modelOptions: IModelOption[];
@@ -40,6 +59,10 @@ interface ChatState {
   setOtherConfig: (config: OtherConfig | ((prev: OtherConfig) => OtherConfig)) => void;
 }
 const useChatStore = create<ChatState>((set) => ({
+  isGenerating: false,
+  setIsGenerating: (isGenerating: boolean) => set({ isGenerating }),
+  canGenerate: false,
+  setCanGenerate: (canGenerate: boolean) => set({ canGenerate }),
   isDeepThinking: false,
 
   setIsDeepThinking: (isDeepThinking: boolean) => set({ isDeepThinking }),

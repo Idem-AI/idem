@@ -4,14 +4,18 @@
  * Le rédacteur doit renvoyer du contenu structuré ; il lui arrive de renvoyer
  * la page HTML d'avant le gabarit. Ce contrôle fige la propriété qui rend ce
  * manquement sans conséquence : le texte est retrouvé, la forme est jetée, et
- * AUCUN fait n'est inventé au passage.
+ * AUCUN fait n'est inventé au passage. La récupération vit dans le moteur
+ * graphique (`salvageHtmlSection` de @idem/graphic-engine) ; les services y
+ * passent par `sectionFromModel`, contrôlé ici aussi.
  *
  * Les fragments ci-dessous sont ceux réellement produits par un modèle de raisonnement sur le
  * plan SPEED MOBILITY — c'est ce HTML-là qui faisait disparaître trois pages.
  */
 
-import { htmlToSectionContent, looksLikeHtmlPage } from '../services/design/htmlToSectionContent';
-import { normalizeSectionContent } from '../services/design/sectionContent';
+import { looksLikeHtmlPage, salvageHtmlSection, sectionFromModel, validateSectionContent } from '@idem/graphic-engine';
+
+/** La récupération telle que les services la font : le texte retrouvé, la forme jetée. */
+const htmlToSectionContent = (html: string, fallbackTitle: string) => salvageHtmlSection(html, fallbackTitle, { id: 'target-audience' });
 
 let failures = 0;
 function check(label: string, condition: boolean, detail = ''): void {
@@ -79,6 +83,7 @@ if (recovered) {
   check('la liste devient de la prose', kinds.includes('prose'), kinds.join(', '));
 
   const cards = recovered.blocks.find((b) => b.kind === 'cards');
+  const table = recovered.blocks.find((b) => b.kind === 'table');
   check(
     'chaque carte porte son titre ET son corps',
     cards?.kind === 'cards' &&
@@ -87,7 +92,6 @@ if (recovered) {
     cards?.kind === 'cards' ? JSON.stringify(cards.items) : '—'
   );
 
-  const table = recovered.blocks.find((b) => b.kind === 'table');
   check(
     'le tableau garde ses en-têtes et ses lignes',
     table?.kind === 'table' &&
@@ -104,10 +108,7 @@ if (recovered) {
   const flat = JSON.stringify(recovered);
   check('les marqueurs de citation survivent', flat.includes('[s0]') && flat.includes('[s1]'));
   check('aucun résidu de balise ni de classe Tailwind', !/[<>]|text-slate|rounded-xl/.test(flat));
-  check(
-    'le contenu récupéré passe la normalisation du gabarit',
-    normalizeSectionContent(recovered) !== null
-  );
+  check('le contenu récupéré passe la validation du moteur', validateSectionContent(recovered).ok, JSON.stringify(validateSectionContent(recovered).issues).slice(0, 300));
 }
 
 console.log('\nCe qui ne doit RIEN produire');
@@ -136,6 +137,32 @@ console.log("\nLa garde : ce qui a le droit d'être récupéré");
   );
   check('un JSON valide est écarté', !looksLikeHtmlPage('{"title":"T","blocks":[]}'));
   check('une prose de préambule est écartée', !looksLikeHtmlPage('Voici la section demandée :'));
+}
+
+console.log('\nLe chemin des services : `sectionFromModel`');
+{
+  // Ce que reçoivent le business plan, le deck et la charte : la sortie brute du rédacteur. Une page HTML
+  // y est récupérée, les blocs posés par le code (tableau financier, références) y sont ajoutés, et le titre
+  // imposé par le plan de section remplace celui du modèle.
+  const financeRow = { kind: 'table' as const, headers: ['Poste', '2026'], rows: [['Revenus', '120 000 000 XAF']] };
+  const fromHtml = sectionFromModel(SAMPLE, { id: 'target-audience', fallbackTitle: 'Target Audience', prepend: [financeRow] });
+  check('une page HTML du rédacteur est récupérée, et signalée comme telle', fromHtml.salvaged && fromHtml.section !== null);
+  const blocks = fromHtml.section?.blocks ?? [];
+  check(
+    'le bloc posé par le code passe en tête, marqué « système », avec son chiffre exact',
+    blocks[0]?.kind === 'table' && blocks[0].origin === 'system' && JSON.stringify(blocks[0]).includes('120 000 000 XAF'),
+    blocks[0] ? `${blocks[0].kind} / ${blocks[0].origin ?? '—'}` : '—'
+  );
+  check('les identifiants des blocs du code ne croisent jamais ceux du modèle', new Set(blocks.map((b) => b.id)).size === blocks.length && blocks[0]?.id.startsWith('sys-') === true, blocks.map((b) => b.id).join(', '));
+
+  const headed = sectionFromModel(SAMPLE, { id: 'target-audience', heading: { title: 'Clientèles cibles' } });
+  check('le titre du plan de section remplace celui du modèle', headed.section?.title === 'Clientèles cibles' && headed.section?.kicker === undefined, headed.section?.title ?? '—');
+
+  const fromJson = sectionFromModel('```json\n{"title":"Le marché","lede":"Il croît de 18 % par an.","blocks":[{"kind":"prose","paragraphs":["La demande double à Douala."]}]}\n```', { id: 'market' });
+  check('une réponse JSON sous clôture de code est lue directement (pas récupérée)', !fromJson.salvaged && fromJson.section?.title === 'Le marché' && fromJson.section.blocks.length === 1);
+
+  const empty = sectionFromModel('Voici la section demandée :', { id: 'market' });
+  check('une prose de préambule ne produit aucune section (le service relance le rédacteur)', empty.section === null && !empty.salvaged);
 }
 
 console.log('');

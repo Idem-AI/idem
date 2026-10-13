@@ -18,16 +18,7 @@ import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
 import { AI_CONFIG, LLMProvider, ROLE_MODELS } from '../../config/ai.config';
-import {
-  SECTION_CONTENT_CONTRACT,
-  sectionVolumeDirective,
-} from '../design/sectionContent.prompt';
-import { normalizeSectionContent, Block, SectionContent } from '../design/sectionContent';
-import { htmlToSectionContent, looksLikeHtmlPage } from '../design/htmlToSectionContent';
-import { renderSection } from '../design/sectionRenderer';
-import { buildDocumentSeed, buildSectionSeed, SectionSeed } from '../design/designSeed';
-import { BrandCharter, buildDocumentDesignSystem, DocumentDesignSystem } from '../design/documentDesignSystem';
-import { ArtDirectionModel } from '../../models/art-direction.model';
+import { contentContract, sectionFromModel, SectionContent, systemSection, volumeDirective } from '@idem/graphic-engine';
 import { parseLlmJson } from '../../utils/llm-json.util';
 import { cacheService } from '../cache.service';
 import {
@@ -86,31 +77,13 @@ export interface ResearchTeamContext {
   /** Devise, pour ancrer les données financières (optionnel). */
   currency?: string;
 
-  // ── Ce dont le RENDU a besoin ──────────────────────────────────────────────
-  // Une section issue de la recherche est une section du document : elle doit
-  // partager sa charte, sa direction artistique et sa graine. Sans ces champs,
-  // elle retomberait sur des valeurs par défaut et le document aurait deux
-  // identités visuelles.
-  /** Charte du projet (palette, typographie). */
-  charter?: BrandCharter;
-  /** Direction artistique retenue pour le projet. */
-  artDirection?: ArtDirectionModel | null;
-  /** Clé du livrable, pour la graine — ex. `businessplan:<projectId>`. */
-  documentKey?: string;
-  /** Archétypes déjà attribués : partagé par le run pour éviter les répétitions. */
-  usedArchetypes?: Set<string>;
-  logoUrl?: string;
-  brandName?: string;
   /**
-   * La jauge de créativité (creativity/documentDesign.ts) : famille du document et réglages
-   * de chaque page décidés par les agents, appliqués par-dessus la graine.
+   * La PAGE : le moteur graphique (@idem/graphic-engine) compose la section DANS le document du
+   * livrable — même charte, même plan, même mémoire de diversité que ses autres pages, sinon le
+   * document aurait deux identités visuelles. Absent (recherche de marché du module Finance), la
+   * section rend son texte.
    */
-  designPlan?: { family?: string; pages: Record<string, Partial<SectionSeed>> };
-  /**
-   * Cran Ultra : la page est composée en HTML par le compositeur (creativity/pageComposer.ts)
-   * à partir du contenu validé ; `null` = refusée, le gabarit la rend.
-   */
-  composePage?: (sectionName: string, content: SectionContent, seed: SectionSeed, ds: DocumentDesignSystem) => Promise<string | null>;
+  renderPage?: (sectionName: string, section: SectionContent, index: number) => Promise<string>;
 }
 
 const RESEARCH_CONFIG: PromptConfig = {
@@ -282,10 +255,11 @@ export class ResearchTeamService {
     // Elle est ajoutée en dernier pour disposer des sources de TOUTES les
     // sections, y compris celles traitées dans la dernière vague.
     if (ctx.resourcesSectionName && sourcesBySection.length > 0) {
-      const resources = this.buildResourcesSection(
+      const resources = await this.buildResourcesSection(
         ctx.resourcesSectionName,
         sourcesBySection,
-        runCtx
+        runCtx,
+        sections.length + 1
       );
       results.push(resources);
       if (persistSection) {
@@ -370,18 +344,7 @@ export class ResearchTeamService {
         );
       }
 
-      // Une section LIBRE est déjà une page : elle ne passe pas par le gabarit,
-      // qui la recomposerait en page de contenu et lui ferait perdre ce qui la
-      // définit — une composition pleine page à hauteur fixe.
-      const finalizedHtml = section.freeform
-        ? finalData
-        : await this.finalizeResearchedSection(
-            finalData,
-            sources,
-            ctx,
-            section.name,
-            sectionIndex + 1
-          );
+      const finalizedHtml = await this.finalizeResearchedSection(finalData, ctx, section.name, sectionIndex + 1);
       const result: ResearchedSection = {
         name: section.name,
         data: finalizedHtml,
@@ -615,9 +578,7 @@ export class ResearchTeamService {
     sectionName: string,
     briefs: string[]
   ): string {
-    // `documentKey` vaut « businessplan:<projectId> » : il porte l'identité du
-    // projet quand `projectId` n'est pas fourni explicitement.
-    const identity = ctx.projectId ?? ctx.documentKey ?? ctx.projectContext.slice(0, 200);
+    const identity = ctx.projectId ?? ctx.projectContext.slice(0, 200);
     const normalized = briefs
       .map((brief) => brief.replace(/\s+/g, ' ').trim().toLowerCase())
       .join('||');
@@ -678,11 +639,7 @@ export class ResearchTeamService {
             ? `\n--- SYNTHÈSE DE RECHERCHE (faits réels collectés — SEULE source de chiffres autorisée) ---\n${researchDigest}\n` +
               `\n--- SOURCES DISPONIBLES (utilise ces ids pour les citations [sN]) ---\n${sourceList}\n`
             : '') +
-          // Une section LIBRE ne reçoit ni le contrat de contenu structuré, ni
-          // la directive de volume : ses propres instructions décrivent déjà ce
-          // qu'elle doit produire, et y ajouter un second format contradictoire
-          // est la façon la plus sûre de n'obtenir ni l'un ni l'autre.
-          (section.freeform ? '' : `\n${sectionVolumeDirective('7 to 9')}\n\n${SECTION_CONTENT_CONTRACT}`),
+          `\n${volumeDirective('7 to 9')}\n\n${contentContract({ deliverable: 'business-plan' })}`,
       },
     ];
 
@@ -711,10 +668,7 @@ export class ResearchTeamService {
           // mode JSON garantirait l'inverse de ce qu'on lui demande. Le budget
           // reste large pour la même raison qu'ailleurs — une page composée qui
           // se coupe en plein milieu ne se rattrape pas.
-          llmOptions: {
-            ...WRITER_CONFIG.llmOptions,
-            ...(section.freeform ? { jsonMode: false } : {}),
-          },
+          llmOptions: WRITER_CONFIG.llmOptions,
         },
         messages,
         onDelta
@@ -726,9 +680,7 @@ export class ResearchTeamService {
     // mode JSON s'applique de bout en bout. C'est la réparation la moins
     // destructrice : elle conserve les citations, les tableaux et les séries de
     // graphique que la récupération HTML, elle, ne saurait pas reconstituer.
-    const finalContent = section.freeform
-      ? content
-      : await this.ensureStructured(content, section, ctx, agentId, runId, emit);
+    const finalContent = await this.ensureStructured(content, section, ctx, agentId, runId, emit);
 
     await this.emitAgent(emit, runId, 'writer', agentId, section.name, {
       kind: 'section_drafted',
@@ -755,7 +707,7 @@ export class ResearchTeamService {
     runId: string,
     emit: ResearchEmit
   ): Promise<string> {
-    if (normalizeSectionContent(parseLlmJson(content))) return content;
+    if (sectionFromModel(parseLlmJson(content), { id: 'section', fallbackTitle: section.name }).section) return content;
 
     logger.warn(
       `ResearchTeam « ${section.name} » : première sortie non structurée — reprise en mode JSON.`
@@ -787,12 +739,12 @@ export class ResearchTeamService {
               role: 'user',
               content:
                 `SECTION ALREADY WRITTEN (to convert, not to rewrite):\n${content}\n\n` +
-                `${SECTION_CONTENT_CONTRACT}`,
+                contentContract({ deliverable: 'business-plan' }),
             },
           ]
         )
       );
-      if (normalizeSectionContent(parseLlmJson(repaired))) {
+      if (sectionFromModel(parseLlmJson(repaired), { id: 'section', fallbackTitle: section.name }).section) {
         logger.info(`ResearchTeam « ${section.name} » : reprise réussie, section structurée.`);
         return repaired;
       }
@@ -1027,72 +979,39 @@ export class ResearchTeamService {
    *  2. ajoute un bloc « Sources » déterministe (généré côté serveur à partir de
    *     `sources`, donc TOUJOURS présent dans le document et jamais halluciné).
    */
-  /**
-   * Page de bibliographie du livrable — rendue par le GABARIT, sans IA.
-   *
-   * ── POURQUOI UNE PAGE, ET NON NEUF PIEDS DE SECTION ────────────────────────
-   *
-   * Une liste de sources en fin de chaque section n'est consultable ni par
-   * celui qui veut vérifier — il ne sait pas dans quelle section chercher — ni
-   * par celui qui ne veut pas vérifier, qui la subit à chaque page. Rassemblées,
-   * elles deviennent ce qu'elles auraient dû être : une bibliographie.
-   *
-   * ── POURQUOI GROUPÉES PAR SECTION ──────────────────────────────────────────
-   *
-   * Les exposants posés dans le texte (¹ ² ³) numérotent les sources DE LEUR
-   * SECTION. Une liste unique renumérotée globalement rendrait donc faux chaque
-   * appel de note déjà écrit, et il faudrait réécrire le HTML rendu pour les
-   * remettre d'accord — une réécriture fragile, sur une sortie déjà validée.
-   * Grouper par section préserve la correspondance sans toucher à rien.
-   *
-   * ── LA DESCRIPTION ─────────────────────────────────────────────────────────
-   *
-   * Elle vient de l'extrait renvoyé par le moteur, pas d'un modèle : c'est ce
-   * que la source dit réellement. Faute d'extrait, on indique ce à quoi elle a
-   * servi — vrai, utile, et gratuit. On n'invente jamais de résumé.
-   */
-  private buildResourcesSection(
+  private async buildResourcesSection(
     sectionName: string,
     grouped: Array<{ section: string; sources: ResearchSource[] }>,
-    ctx: ResearchTeamContext
-  ): ResearchedSection {
+    ctx: ResearchTeamContext,
+    index: number
+  ): Promise<ResearchedSection> {
     const total = grouped.reduce((sum, group) => sum + group.sources.length, 0);
-
-    const blocks: Block[] = grouped.map((group) => ({
-      kind: 'sources' as const,
-      label: group.section,
-      items: group.sources.map((source, position) => ({
-        // Le numéro CITÉ dans la section, pour que l'exposant se retrouve.
-        index: Number.parseInt(source.id.replace(/^s/i, ''), 10) || position + 1,
-        title: source.title,
-        url: source.url,
-        // ⚠️ Jamais l'hôte de l'URL : certains moteurs renvoient un redirecteur
-        // que personne ne reconnaît et qui ne dit rien de l'éditeur.
-        domain: source.domain,
-        description: this.describeSource(source, group.section),
-      })),
-    }));
-
     const french = (ctx.language ?? 'French').toLowerCase().startsWith('fr');
-    const content: SectionContent = {
+    const section = systemSection({
+      id: 'resources',
+      role: 'appendix',
       kicker: french ? 'Références' : 'References',
       title: sectionName,
       lede: french
         ? `${total} source${total > 1 ? 's' : ''} consultée${total > 1 ? 's' : ''} et vérifiée${total > 1 ? 's' : ''}. Les numéros renvoient aux appels de note de chaque section.`
         : `${total} source${total > 1 ? 's' : ''} consulted and verified. Numbers match the note markers in each section.`,
-      blocks,
-    };
-
-    const artDirection = ctx.artDirection ?? null;
-    const documentKey = ctx.documentKey ?? 'research';
-    const documentSeed = this.withPlanFamily(buildDocumentSeed(artDirection?.styleId, documentKey), ctx);
-    const designSystem = buildDocumentDesignSystem(ctx.charter, artDirection, documentSeed);
-    const seed = this.withPlanFamily(buildSectionSeed(artDirection?.styleId, documentKey, sectionName, ctx.usedArchetypes), ctx);
-
-    const html = renderSection(content, designSystem, seed, {
-      logoUrl: ctx.logoUrl,
-      brandName: ctx.brandName,
+      blocks: grouped.map((group) => ({
+        kind: 'sources',
+        label: group.section,
+        items: group.sources.map((source, position) => ({
+          // Le numéro CITÉ dans la section, pour que l'exposant se retrouve.
+          index: Number.parseInt(source.id.replace(/^s/i, ''), 10) || position + 1,
+          title: source.title,
+          url: source.url,
+          // ⚠️ Jamais l'hôte de l'URL : certains moteurs renvoient un redirecteur
+          // que personne ne reconnaît et qui ne dit rien de l'éditeur.
+          ...(source.domain ? { domain: source.domain } : {}),
+          ...(this.describeSource(source, group.section) ? { description: this.describeSource(source, group.section) } : {}),
+        })),
+      })),
     });
+    if (!section) throw new Error(`page « ${sectionName} » : aucune référence exploitable`);
+    const data = ctx.renderPage ? await ctx.renderPage(sectionName, section, index) : this.sectionText(section);
 
     logger.info(
       `ResearchTeam : page « ${sectionName} » construite (${total} source(s), ${grouped.length} section(s), aucun appel de modèle).`
@@ -1100,7 +1019,7 @@ export class ResearchTeamService {
 
     return {
       name: sectionName,
-      data: html,
+      data,
       summary: `${sectionName} — ${total} source(s)`,
       sources: grouped.flatMap((group) => group.sources),
     };
@@ -1116,141 +1035,42 @@ export class ResearchTeamService {
   }
 
   /**
-   * Dernier filet : récupérer le TEXTE d'une sortie qui n'est pas du JSON.
+   * Rend la section AU FORMAT DU DOCUMENT : le rédacteur produit du CONTENU structuré, comme partout
+   * ailleurs, et le moteur graphique fabrique la page — même grille, même palette, même typographie que
+   * les autres sections ; seuls s'y ajoutent les appels de note. Une sortie mal formatée ne coûte pas la
+   * section : un JSON abîmé est réparé, une page HTML rendue par erreur voit son texte récupéré. La page
+   * n'est abandonnée que s'il n'y a rien à écrire dessus — jamais publiée en JSON brut.
    *
-   * Le rédacteur renvoie parfois la page HTML qu'il composait avant l'ère du
-   * gabarit. La consigne qui l'y poussait a été retirée et le mode JSON est
-   * désormais transmis au fournisseur, mais aucune correction en amont ne rend
-   * l'obéissance certaine — et le prix d'un manquement est une page « la
-   * génération a échoué » au milieu d'un document destiné à un banquier.
-   *
-   * On récupère donc le fond et on jette la forme. Le texte est réel, il a été
-   * payé, et le gabarit lui rend la mise en page du document. Rien n'est
-   * inventé au passage : ce qui n'est pas dans la sortie n'apparaît pas.
+   * Les sources ne sont plus en pied de section : elles sont rassemblées sur la page « Ressources » en
+   * fin de document (`buildResourcesSection`), numérotées comme dans le texte.
    */
-  private salvage(content: string, sectionName: string): SectionContent | null {
-    if (!looksLikeHtmlPage(content)) return null;
-
-    const recovered = htmlToSectionContent(content, sectionName);
-    if (!recovered) return null;
-
-    logger.warn(
-      `ResearchTeam « ${sectionName} » : le rédacteur a renvoyé du HTML au lieu du ` +
-        `contenu structuré. Section RÉCUPÉRÉE (${recovered.blocks.length} bloc(s)) et ` +
-        `recomposée par le gabarit, plutôt que perdue.`
-    );
-    return normalizeSectionContent(recovered);
-  }
-
-  /**
-   * Rend la section AU FORMAT DU DOCUMENT.
-   *
-   * Une section issue de la recherche n'est pas une page à part : c'est une
-   * section du business plan, qui doit avoir la même grille, la même palette et
-   * la même typographie que les huit autres. Le seul écart admis est la
-   * présence d'appels de note et d'une liste de références.
-   *
-   * Le rédacteur produit donc du CONTENU structuré, comme partout ailleurs, et
-   * le gabarit fabrique la page. Auparavant il rendait son propre HTML, ce qui
-   * donnait un document à deux mises en page — et des pages qu'aucun contrôle
-   * ne couvrait, réduites à l'échelle par le paginateur quand un bloc dépassait.
-   *
-   * Une sortie mal formatée ne coûte plus la section : `salvage` en récupère le
-   * texte. La page n'est abandonnée que s'il n'y a rien à écrire dessus.
-   */
-  private renderResearchedSection(
-    content: string,
-    sources: ResearchSource[],
-    ctx: ResearchTeamContext,
-    sectionName: string,
-    index: number
-  ): string {
-    const prepared = this.prepareResearchedPage(content, ctx, sectionName);
-    return renderSection(prepared.page, prepared.designSystem, prepared.seed, { logoUrl: ctx.logoUrl, brandName: ctx.brandName, index });
-  }
-
-  /** La page d'une section de recherche, prête à rendre : contenu, système de design, graine. */
-  private prepareResearchedPage(
-    content: string,
-    ctx: ResearchTeamContext,
-    sectionName: string
-  ): { page: SectionContent; designSystem: DocumentDesignSystem; seed: SectionSeed } {
-    const parsed = normalizeSectionContent(parseLlmJson(content)) ?? this.salvage(content, sectionName);
-
-    if (!parsed) {
-      // ── LA SORTIE BRUTE NE DEVIENT JAMAIS UNE PAGE ──────────────────────
-      //
-      // Ce repli renvoyait `content` tel quel. Les sections issues de la
-      // recherche sont les plus longues du livrable — beaucoup de contexte,
-      // beaucoup de citations — donc les premières à dépasser le budget de
-      // sortie : ce sont elles qu'on retrouvait imprimées en JSON brut au
-      // milieu d'un business plan.
-      //
-      // On ne lève plus qu'ICI, quand la récupération elle-même n'a trouvé
-      // AUCUN texte : il n'y a alors rien à mettre sur la page, et l'annoncer
-      // vaut mieux que publier un cadre vide. Tout le reste — du HTML, du
-      // JSON tronqué, un préambule en prose — est désormais rattrapé.
+  private async finalizeResearchedSection(content: string, ctx: ResearchTeamContext, sectionName: string, index: number): Promise<string> {
+    const read = sectionFromModel(parseLlmJson(content) ?? content, { id: 'section', fallbackTitle: sectionName });
+    if (!read.section) {
       const head = content.slice(0, 160).replace(/\s+/g, ' ');
-      logger.error(
-        `ResearchTeam « ${sectionName} » : sortie vide de tout contenu exploitable, ` +
-          `même après récupération. Début : ${head}`
-      );
-      throw new Error(
-        `section de recherche « ${sectionName} » : contenu structuré illisible`
-      );
+      logger.error(`ResearchTeam « ${sectionName} » : sortie vide de tout contenu exploitable, même après récupération. Début : ${head}`);
+      throw new Error(`section de recherche « ${sectionName} » : contenu structuré illisible`);
     }
-
-    // ── LES SOURCES NE SONT PLUS EN PIED DE SECTION ──────────────────────
-    //
-    // Chaque section se terminait par sa propre liste. Sur un livrable de neuf
-    // sections, cela fait neuf bibliographies dispersées, dont aucune n'est
-    // consultable : le lecteur qui veut vérifier une affirmation ne sait pas où
-    // chercher, et le lecteur qui ne veut rien vérifier les subit à chaque
-    // page.
-    //
-    // Elles sont désormais rassemblées sur une page « Ressources » en fin de
-    // document, groupées par section et numérotées comme dans le texte — voir
-    // `buildResourcesSection`. Les exposants déjà posés restent donc justes,
-    // sans qu'aucun HTML rendu n'ait à être réécrit.
-    const blocks = [...parsed.blocks];
-
-    const artDirection = ctx.artDirection ?? null;
-    const documentKey = ctx.documentKey ?? 'research';
-    const documentSeed = this.withPlanFamily(buildDocumentSeed(artDirection?.styleId, documentKey), ctx);
-    const designSystem = buildDocumentDesignSystem(ctx.charter, artDirection, documentSeed);
-    const seed = this.withPlanPage(
-      buildSectionSeed(artDirection?.styleId, documentKey, sectionName, ctx.usedArchetypes ?? new Set()),
-      ctx,
-      sectionName
-    );
-    return { page: { ...parsed, blocks }, designSystem, seed };
-  }
-
-  /**
-   * Rend une page de recherche : le gabarit, ou — au cran Ultra de la jauge de créativité —
-   * la composition HTML du compositeur à partir du MÊME contenu validé (gabarit en repli).
-   */
-  private async finalizeResearchedSection(content: string, sources: ResearchSource[], ctx: ResearchTeamContext, sectionName: string, index: number): Promise<string> {
-    if (!ctx.composePage) return this.renderResearchedSection(content, sources, ctx, sectionName, index);
-    const prepared = this.prepareResearchedPage(content, ctx, sectionName);
-    const composed = await ctx.composePage(sectionName, prepared.page, prepared.seed, prepared.designSystem).catch(() => null);
-    if (composed) {
-      logger.info(`ResearchTeam « ${sectionName} » : page composée par le compositeur (cran Ultra)`);
-      return composed;
+    if (read.salvaged) {
+      logger.warn(`ResearchTeam « ${sectionName} » : le rédacteur a renvoyé du HTML au lieu du contenu structuré. Section RÉCUPÉRÉE (${read.section.blocks.length} bloc(s)) et recomposée par le moteur.`);
     }
-    return renderSection(prepared.page, prepared.designSystem, prepared.seed, { logoUrl: ctx.logoUrl, brandName: ctx.brandName, index });
+    return ctx.renderPage ? ctx.renderPage(sectionName, read.section, index) : this.sectionText(read.section);
   }
 
-  /** Famille de mise en page choisie par l'agent (jauge de créativité), sinon celle de la graine. */
-  private withPlanFamily<T extends { family: string }>(seed: T, ctx: ResearchTeamContext): T {
-    return ctx.designPlan?.family ? { ...seed, family: ctx.designPlan.family } : seed;
-  }
-
-  /** Réglages de la page décidés par l'agent (archétype, densité, tension, image), par-dessus la graine. */
-  private withPlanPage(seed: SectionSeed, ctx: ResearchTeamContext, sectionName: string): SectionSeed {
-    const page = ctx.designPlan?.pages[sectionName];
-    const defined = page ? Object.fromEntries(Object.entries(page).filter(([, v]) => v != null && v !== '')) : {};
-    return this.withPlanFamily({ ...seed, ...defined }, ctx);
+  /** Le texte d'une section, sans mise en page (recherche de marché consommée par un autre agent). */
+  private sectionText(section: SectionContent): string {
+    const parts: string[] = [section.title, section.lede ?? ''];
+    for (const block of section.blocks) {
+      const record = block as unknown as Record<string, unknown>;
+      const walk = (value: unknown): void => {
+        if (typeof value === 'string') parts.push(value);
+        else if (typeof value === 'number') parts.push(String(value));
+        else if (Array.isArray(value)) value.forEach(walk);
+        else if (value && typeof value === 'object') Object.entries(value).forEach(([key, v]) => key !== 'id' && key !== 'kind' && key !== 'origin' && walk(v));
+      };
+      walk(record);
+    }
+    return parts.filter(Boolean).join('\n');
   }
 
   private escapeHtml(text: string): string {

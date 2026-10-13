@@ -13,9 +13,9 @@
  */
 import logger from '../../config/logger';
 import type { LogoLockupSpec, LogoModel, LogoType } from '../../models/logo.model';
-import { resolveStyle } from '../design/artDirection.catalog';
-import { contrastRatio } from '../design/color';
-import { inspectSvg } from '../design/svgGate';
+import { resolveStyle } from '../brand/artDirection.catalog';
+import { contrastRatio } from '../brand/color';
+import { inspectSvg } from '../brand/svgGate';
 import { fontLoader } from './lockup/fontLoader.service';
 import { logoLockupService } from './lockup/logoLockup.service';
 import { round } from './lockup/svgGeometry.util';

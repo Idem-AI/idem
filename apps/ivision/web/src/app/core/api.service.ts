@@ -123,6 +123,14 @@ export class ApiService {
   exportQuote(brandId: string, videoId: string, scope: unknown) {
     return this.http.post<{ cost: number }>(`${this.base}/brands/${brandId}/videos/${videoId}/export-quote`, { scope });
   }
+  /** Le menu « Télécharger » : chaque format, prêt ou non, et son prix (0 = inclus). */
+  videoDownloads(brandId: string, videoId: string) {
+    return this.http.get<{ formats: { format: string; ready: boolean; busy: boolean; cost: number }[] }>(`${this.base}/brands/${brandId}/videos/${videoId}/downloads`);
+  }
+  /** Demande un format : prêt, ou rendu lancé/attendu (rappeler jusqu'à `ready`). */
+  requestVideoDownload(brandId: string, videoId: string, format: string) {
+    return this.http.post<{ ready: boolean; format: string; progress?: number }>(`${this.base}/brands/${brandId}/videos/${videoId}/downloads`, { format });
+  }
   exportVideo(brandId: string, videoId: string, scope: unknown) {
     return this.http.post<MotionVideo>(`${this.base}/brands/${brandId}/videos/${videoId}/export`, { scope });
   }

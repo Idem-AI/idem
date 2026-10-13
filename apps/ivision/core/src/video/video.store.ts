@@ -23,6 +23,12 @@ export interface VideoBrandContext {
   visuals: { backgroundImageUrl?: string; createdAt?: string }[];
   /** Les vidéos de la marque (mémoire du projet : variété, nouveauté). */
   videos: MotionVideo[];
+  /**
+   * Les images PROPRES à la marque — captures de son site et de son produit, photos importées —
+   * que les agents montrent quand la demande parle de l'interface ou du produit (avant : jamais
+   * proposées, seulement un dernier recours). `note` : leur description, si l'hôte la garde.
+   */
+  media?: { url: string; kind?: 'screen' | 'photo'; note?: string }[];
 }
 
 /** Ce qu'un contenu du calendrier éditorial apporte au brief (IDEM). */
@@ -45,6 +51,8 @@ export interface VideoStore {
   /** Calendrier éditorial (IDEM) : le brief d'un contenu planifié. */
   briefFromContent?(userId: string, projectId: string, contentId: string): Promise<ContentBrief | null>;
   linkVideoToContent?(userId: string, projectId: string, contentId: string, videoId: string): Promise<void>;
+  /** Garde les descriptions des images de la marque (une seule lecture par la vision, par image). */
+  saveMediaNotes?(userId: string, projectId: string, notes: Record<string, string>): Promise<void>;
   /** Les modèles de l'hôte : copie et agents, à l'étage que la jauge de créativité choisit. */
   runVideoTieredPrompt?(userId: string, system: string, user: string, tier: VideoTier, kind?: 'copy' | 'agents'): Promise<string>;
   runVideoCopyPrompt?(userId: string, system: string, user: string): Promise<string>;

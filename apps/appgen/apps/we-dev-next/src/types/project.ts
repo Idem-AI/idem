@@ -173,6 +173,13 @@ export interface ChatRequest {
    * repart alors comme avant.
    */
   scaffold?: { version: string };
+  /**
+   * Relance ciblée envoyée hors conversation, comme `qualityRepair` : la
+   * conversation n'affiche qu'une ligne lisible pendant que le modèle reçoit la
+   * demande précise. Sert aujourd'hui aux modules de contenu qu'un plan annonce
+   * sans les écrire.
+   */
+  followUp?: string;
   /** User UI language ('en' | 'fr') so the AI generates content in the right language. */
   language?: string;
   /**

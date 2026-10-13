@@ -12,7 +12,6 @@ export const CLOSING_SECTION_PROMPTS: SectionPromptSpec[] = [
   {
     key: 'appendix',
     name: 'Appendix',
-    fallbackPages: '1-2',
     objective: 'Carry the supporting material a reader will want to check.',
     mustCover: `1. The sources of the figures used in the plan, named and dated.
 2. The detailed tables the body of the plan summarised.

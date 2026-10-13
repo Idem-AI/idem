@@ -18,6 +18,7 @@
  */
 
 import { DesignSystem } from '../design/tokenForge.js';
+import { resolveHeaderLogo } from '../design/charter.js';
 import { ProjectModel } from '../types/project.js';
 
 /** Dépendances posées dans tous les starters : le modèle n'a pas à les demander. */
@@ -76,13 +77,80 @@ export function buildPackageJson(options: {
 const sortKeys = (record: Record<string, string>): Record<string, string> =>
   Object.fromEntries(Object.entries(record).sort(([a], [b]) => a.localeCompare(b)));
 
-export const VITE_CONFIG = `import { defineConfig } from 'vite';
+export const VITE_CONFIG = `import { fileURLToPath, URL } from 'node:url';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // '@' pointe sur src/ : c'est la convention que shadcn/ui, Magic UI et
+  // Aceternity écrivent dans leurs composants. Sans cet alias, un composant
+  // installé par le CLI ne résout pas ses propres imports.
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
+  // Les fichiers .js de src/ sont lus comme du JSX.
+  //
+  // Un modèle met tôt ou tard une balise dans un fichier de données — un logo
+  // stylé dans src/content/footer.js, par exemple. Sans cette ligne, Vite
+  // s'arrête sur « content contains invalid JS syntax » et toute la page
+  // disparaît derrière un écran d'erreur, pour un détail de présentation.
+  // Le JSX valide reste du JS valide : rien d'autre ne change.
+  esbuild: {
+    loader: 'jsx',
+    include: new RegExp('src/.*[.][jt]sx?$'),
+    // Vite exclut les .js de cette transformation par défaut : sans ce
+    // tableau vide, l'option ci-dessus ne s'applique à rien.
+    exclude: [],
+  },
+  optimizeDeps: { esbuildOptions: { loader: { '.js': 'jsx' } } },
   server: { host: true, port: 5173 },
 });
+`;
+
+/** Même alias pour les outils qui lisent la configuration du projet (CLI shadcn). */
+export const JSCONFIG = `{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
+  }
+}
+`;
+
+/**
+ * `components.json` : ce qui rend le projet installable par le CLI shadcn, et
+ * par les registres qui s'appuient dessus (Magic UI, Aceternity).
+ *
+ * \`cssVariables: false\` avec \`baseColor: neutral\` est délibéré. Les composants
+ * arrivent alors habillés d'utilitaires \`neutral-*\` — or notre rampe neutre est
+ * déjà teintée par la couleur de marque du projet. Un composant installé est
+ * donc à la charte sans qu'aucune variable n'ait à être redéfinie, et sans
+ * collision avec nos propres jetons.
+ */
+export const componentsJson = (cssPath: string): string => `{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": false,
+  "tsx": false,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "${cssPath}",
+    "baseColor": "neutral",
+    "cssVariables": false,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@/components",
+    "ui": "@/components/ui",
+    "utils": "@/lib/utils",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  },
+  "registries": {
+    "@magicui": "https://magicui.design/r/{name}.json",
+    "@aceternity": "https://ui.aceternity.com/registry/{name}.json"
+  }
+}
 `;
 
 export const POSTCSS_CONFIG = `export default {
@@ -142,6 +210,10 @@ ${ramp(colors.neutral, '        ')}
         'surface-raised': '${colors.surfaceRaised}',
         ink: '${colors.ink}',
         'ink-muted': '${colors.inkMuted}',
+        // Le texte posé sur la marque et sur l'accent : blanc ou encre, celui
+        // qui se lit. Une primaire claire rendait le blanc illisible.
+        'on-brand': '${colors.onBrand}',
+        'on-accent': '${colors.onAccent}',
       },
       fontFamily: {
         display: ['${fonts.display}', ${serifStack}],
@@ -226,6 +298,14 @@ export const fontLinks = (system: DesignSystem): string =>
     ...system.fontsHrefs.map((href) => `    <link rel="stylesheet" href="${href}" />`),
   ].join('\n');
 
+/**
+ * Les composants installés par le CLI importent \`cn\` depuis \`@/lib/utils\`.
+ * Le socle écrit donc le même utilitaire aux deux emplacements : le nôtre
+ * (\`lib/cn.js\`, explicite) et celui qu'attend l'écosystème.
+ */
+export const CN_UTILS = `export { cn } from './cn.js';
+`;
+
 export const CN_HELPER = `import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -246,9 +326,9 @@ export function buildUiKit(): Record<string, string> {
     'src/ui/Button.jsx': `import { cn } from '../lib/cn.js';
 
 const VARIANTS = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700',
+  primary: 'bg-brand-600 text-on-brand hover:bg-brand-700',
   secondary: 'bg-surface-raised text-ink border border-neutral-200 hover:border-neutral-400',
-  accent: 'bg-accent text-ink hover:opacity-90',
+  accent: 'bg-accent text-on-accent hover:opacity-90',
   ghost: 'text-ink hover:bg-surface-raised',
 };
 
@@ -391,3 +471,58 @@ export { default as Spinner } from './Spinner.jsx';
 
 /** Les chemins de la trousse, verrouillés comme le reste de la configuration. */
 export const UI_KIT_PATHS = Object.keys(buildUiKit());
+
+/**
+ * Le logo tel qu'il sera servi par le site.
+ *
+ * `path` : fichier déposé dans le projet (`public/brand/logo.svg`), servi à la
+ * racine du site. `dataUri` : image matricielle embarquée. `remote` : l'adresse
+ * d'origine, quand rien n'a pu être récupéré.
+ */
+export interface BrandLogoSource {
+  path?: string;
+  dataUri?: string;
+  remote?: string;
+  inlineSvg?: string;
+}
+
+/**
+ * La marque, posée par le code.
+ *
+ * Le logo est une donnée du projet : le serveur l'a sous la main, et le faire
+ * transiter par le modèle est le plus sûr moyen de le perdre. Il est lu avec
+ * les mêmes emplacements et les mêmes replis que la charte (cf. `charter.ts`),
+ * puis rendu depuis le fichier déposé dans le projet quand c'est possible.
+ */
+export function buildBrandMark(projectData: ProjectModel | undefined, source?: BrandLogoSource): string {
+  const name = projectTitle(projectData).replace(/`/g, '');
+  const logo = projectData?.analysisResultModel?.branding?.logo as unknown;
+  const declared = resolveHeaderLogo(logo);
+
+  const src = source ?? (declared ? (declared.startsWith('<') ? { inlineSvg: declared } : { remote: declared }) : {});
+  const wordmark = `<span className="font-display text-xl tracking-tight">${name}</span>`;
+
+  let constant = '';
+  let mark = '';
+
+  if (src.path || src.dataUri || src.remote) {
+    constant = `const LOGO_SRC = ${JSON.stringify(src.path ?? src.dataUri ?? src.remote)};\n\n`;
+    mark = `<img src={LOGO_SRC} alt=${JSON.stringify(name)} className="h-9 w-auto" />`;
+  } else if (src.inlineSvg && src.inlineSvg.length <= 20000) {
+    constant = `const LOGO_SVG = ${JSON.stringify(src.inlineSvg)};\n\n`;
+    mark = `<span className="inline-block h-9 [&>svg]:h-full [&>svg]:w-auto" role="img" aria-label=${JSON.stringify(name)} dangerouslySetInnerHTML={{ __html: LOGO_SVG }} />`;
+  }
+
+  return `/**
+ * Marque du projet — posée par IDEM depuis la charte.
+ *
+ * Utilisée par la navigation et le pied de page. Le texte passé en \`fallback\`
+ * ne sert que si ce projet n'a pas de logo.
+ */
+${constant}export const BRAND_NAME = ${JSON.stringify(name)};
+
+export default function BrandMark({ fallback }) {
+  ${mark ? `return ${mark};` : `return fallback ? <span className="font-display text-xl tracking-tight">{fallback}</span> : ${wordmark};`}
+}
+`;
+}

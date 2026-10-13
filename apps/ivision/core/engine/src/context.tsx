@@ -56,6 +56,8 @@ export interface SceneData {
   rive?: string;
   /** Pictogrammes SVG (déjà choisis et normalisés par le serveur), un par élément. */
   icons?: string[];
+  /** Plan d'interface : les textes montrés DANS l'écran (dossier, saisie), venus de la demande. */
+  props?: string[];
   /** Logos des marques NOMMÉES dans les textes de la scène (Simple Icons), en SVG animable. */
   brands?: { name: string; svg: string }[];
   /** Le fond du kit est posé sur cette scène (le graphe en retient deux au plus). */

@@ -26,6 +26,18 @@ export interface AdvisorReplyResult {
 
 const MAX_HISTORY_MESSAGES = 40;
 
+/**
+ * Filtre gratuit, en code, avant d'appeler `parseChatIntent` (2 lectures Mongo
+ * + un appel LLM). Sans lui, cet appel se déclenchait sur 100% des messages,
+ * y compris ceux qui ne parlent jamais de finance.
+ */
+const FINANCE_KEYWORDS_RE =
+  /\b(budget|revenus?|d[ée]penses?|prix|co[uû]ts?|marges?|b[ée]n[ée]fices?|chiffre d'affaires|tr[ée]sorerie|salaires?|financement|investisse(?:ment|ur)s?|rentabilit[ée]|fcfa|xof|xaf|€|\$|charges? (?:sociales|fixes|variables)|pr[ée]visionnel|cash[- ]?flow|revenue|expenses?|cost|pricing|funding|profit)\b/i;
+
+function mightConcernFinance(message: string): boolean {
+  return FINANCE_KEYWORDS_RE.test(message);
+}
+
 export class AdvisorService {
   private readonly projectRepository: IRepository<ProjectModel>;
 
@@ -117,19 +129,21 @@ export class AdvisorService {
     // Détection d'intention Finance — avant l'appel LLM générique.
     // ----------------------------------------------------------------
     let financeIntent: FinanceChatIntent | null = null;
-    try {
-      financeIntent = await financeAIService.parseChatIntent(userId, projectId, trimmed);
-      logger.debug(
-        `AdvisorService.sendMessage finance intent: kind=${financeIntent?.kind} isFin=${financeIntent?.isFinanceIntent}`
-      );
-      logAIEvent('advisor.finance_intent', {
-        projectId,
-        isFinanceIntent: financeIntent?.isFinanceIntent,
-        kind: financeIntent?.kind,
-      });
-    } catch (err: any) {
-      logger.warn(`AdvisorService.sendMessage parseChatIntent failed: ${err?.message}`);
-      financeIntent = null;
+    if (mightConcernFinance(trimmed)) {
+      try {
+        financeIntent = await financeAIService.parseChatIntent(userId, projectId, trimmed);
+        logger.debug(
+          `AdvisorService.sendMessage finance intent: kind=${financeIntent?.kind} isFin=${financeIntent?.isFinanceIntent}`
+        );
+        logAIEvent('advisor.finance_intent', {
+          projectId,
+          isFinanceIntent: financeIntent?.isFinanceIntent,
+          kind: financeIntent?.kind,
+        });
+      } catch (err: any) {
+        logger.warn(`AdvisorService.sendMessage parseChatIntent failed: ${err?.message}`);
+        financeIntent = null;
+      }
     }
 
     // a) Les intentions de LECTURE finance ne court-circuitent PLUS la boucle

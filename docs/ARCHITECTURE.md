@@ -101,6 +101,10 @@ Apps that need a login redirect to `{dashboard}/login?redirect=<app>&returnUrl=�
 
 Motion-design videos, composed visuals, website scanning and model reproduction live in **one engine**, `apps/ivision/core`, run by two hosts: the IDEM API (Communication module, projects) and the iVision API (chat studio, brands). Each host wires the same ports (`configureCore`: logger, storage, vision, image generation, agent runtime, credit refund) — IDEM with its own providers, iVision through the IDEM internal gateway (`/internal/ivision/*`, key `IVISION_SERVICE_KEY`). A change to the engine therefore ships to both. The live video editor is shared too: `@idem/shared-video-editor`, used by the dashboard and iVision web. Details: [`apps/ivision/README.md`](../apps/ivision/README.md).
 
+## Graphic engine
+
+Every graphic deliverable — business plan pages, brand-book pages, pitch-deck slides, business-card faces, social visuals, charts — is composed by one package, [`@idem/graphic-engine`](../packages/graphic-engine/README.md), imported by the IDEM API, the iVision API and the iVision core (never called over HTTP). The model writes the content as typed blocks and takes the decisions the creativity level gives it; the engine plans the document, ranks composition patterns, compiles deterministic HTML and measures and repairs it in Chromium. The IDEM API wires it once (`apps/api/api/services/graphic/engine.host.ts`: agent runtime, vision, logs and `graphic.trace` events, Redis diversity memory, the PDF service's shared Chromium) and opens documents through `services/graphic/graphic.service.ts`.
+
 ## AI generation
 
 The API calls the models, never the browser. Model choice, token budgets and fallback chains live in `apps/api/api/config/ai.config.ts`; routing rules are described in [AI routing](../apps/api/docs/AI_ROUTING.md) and the multi-agent design in [Agent architecture](../apps/api/docs/AGENT_ARCHITECTURE.md). Every model call is recorded in MongoDB (`ai_usage_events`).

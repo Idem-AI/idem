@@ -5,9 +5,11 @@
  * sont déterministes, elles se vérifient donc sans rien démarrer.
  *
  * Le test central est le plus exigeant qu'on puisse écrire : de VRAIES pages,
- * rendues par le moteur de production avec l'ancienne marque, puis traduites.
- * Après traduction, aucune couleur propre à l'ancienne marque ne doit rester,
- * et aucun texte ne doit être devenu moins lisible.
+ * rendues par le moteur graphique (@idem/graphic-engine) avec l'ancienne
+ * marque, puis traduites. Après traduction, aucune couleur de l'ancienne marque
+ * ne doit rester — jetons, couleurs dérivées et palettes de graphiques compris :
+ * la page traduite ne porte que ce qu'une page NEUVE de la nouvelle marque
+ * porterait — et aucun texte ne doit être devenu moins lisible.
  *
  *   npx ts-node --transpile-only api/scripts/checkBrandSync.ts
  */
@@ -27,13 +29,11 @@ import { computeBrandTokens, normalizeHex } from '../services/brand/brandTokens'
 import { harmonizePalette, paletteFromLogoColors, transportColor } from '../services/brand/paletteHarmony';
 import { hashContent } from '../services/brand/siteBrandSync';
 import { adaptLogo, buildLogoColorMapping } from '../services/brand/logoAdapt';
-import { contrastRatio, hexToOklch } from '../services/design/color';
-import { buildDocumentSeed, buildSectionSeed } from '../services/design/designSeed';
-import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
-import { isLightSurface } from '../services/design/lightSurface';
-import { areRolesDistinct } from '../services/design/paletteRoles';
-import { SectionContent } from '../services/design/sectionContent';
-import { IMPLEMENTED_ARCHETYPES, LANDSCAPE_SLIDE, renderSection } from '../services/design/sectionRenderer';
+import { contrastRatio, hexToOklch } from '../services/brand/color';
+import { isLightSurface } from '../services/brand/lightSurface';
+import { areRolesDistinct } from '../services/brand/paletteRoles';
+import { brandFromIdem, chartPalette, createDocument, DocumentType, FormatId, mixHex, sectionHtml, systemSection } from '@idem/graphic-engine';
+import { resolveLogoDeclensions } from '../utils/brand-context.util';
 
 let failures = 0;
 
@@ -191,6 +191,20 @@ console.log('\n2. Traduction : toutes les écritures d’une couleur');
     check(label, output === expected, `${input} → ${output}`);
   }
 
+  // Les couleurs DÉRIVÉES par le moteur (un filet = le fond mêlé d'encre, une teinte adoucie) : refaites
+  // avec les jetons de la nouvelle marque, par la même arithmétique.
+  const tint = mixHex('#1F4E5F', '#FAF7F2', 0.3);
+  const expectedTint = mixHex(newPrimary, '#FAF7F2', 0.3);
+  check('une teinte mêlée de la marque devient le même mélange de la nouvelle', rewriteBrandString(`border:1px solid ${tint}`, map) === `border:1px solid ${expectedTint}`, `${tint} → ${rewriteBrandString(tint, map)} (attendu ${expectedTint})`);
+  check('une couleur sans rapport avec la marque reste telle quelle', rewriteBrandString('color:#00ff00', map) === 'color:#00ff00');
+  // Un graphique : sa palette est RECALCULÉE pour la nouvelle marque (séparation validée), pas traduite teinte à teinte.
+  const oldSeries = chartPalette({ primary: '#1F4E5F', accent: '#C6553D', secondary: '#4A5A60' }, 3, '#FAF7F2').colors;
+  const figure = `<figure data-ge-chart="bar" data-ge-palette="${oldSeries.join(',')}" data-ge-palette-mode="adjacent" data-ge-surface="#faf7f2">${oldSeries.map((c) => `<path fill="${c}"/>`).join('')}</figure>`;
+  const recoloredChart = rewriteBrandString(figure, map);
+  const afterTokens = new Map(map.after.colors);
+  const newSeries = chartPalette({ primary: afterTokens.get('doc.primary')!, accent: afterTokens.get('doc.accent')!, secondary: afterTokens.get('doc.secondary')! }, 3, '#faf7f2').colors;
+  check('graphique : la palette des séries est recalculée pour la nouvelle marque', newSeries.every((c) => recoloredChart.includes(`fill="${c.toLowerCase()}"`)) && recoloredChart.includes(`data-ge-palette="${newSeries.map((c) => c.toLowerCase()).join(',')}"`), recoloredChart.slice(0, 160));
+
   check('une ancre qui ressemble à un hex n’est pas touchée', rewriteBrandString('href="#faq"', map) === 'href="#faq"');
   check('blanc et noir purs ne sont pas traduits', rewriteBrandString('color:#ffffff;background:#000', map) === 'color:#ffffff;background:#000');
   check('rien à traduire ⇒ même référence', (() => { const s = '<p>bonjour</p>'; return rewriteBrandString(s, map) === s; })());
@@ -254,9 +268,11 @@ console.log('\n4. Traduction : logos');
 
 // ─── 5. Pages réelles ──────────────────────────────────────────────────────
 
-console.log('\n5. Pages réelles rendues par le moteur de production');
+console.log('\n5. Pages réelles rendues par le moteur graphique');
 
-const CONTENT: SectionContent = {
+const CONTENT = systemSection({
+  id: 'palette',
+  role: 'specimen',
   kicker: 'Couleurs',
   title: 'La palette de la marque',
   lede: 'Cinq valeurs, chacune avec un rôle.',
@@ -287,7 +303,20 @@ const CONTENT: SectionContent = {
       ],
     },
   ],
-} as SectionContent;
+});
+
+/** Une page de business plan ou de deck : chiffres-clés et graphique (palette de séries dérivée de la marque). */
+const MARKET = systemSection({
+  id: 'market',
+  kicker: 'Marché',
+  title: 'Un marché qui double en trois ans',
+  lede: 'Les ventes de café de spécialité progressent à Douala.',
+  blocks: [
+    { kind: 'metrics', items: [{ value: '2,3 Md FCFA', label: 'Marché adressable', note: '2026' }, { value: '+18 %', label: 'Croissance annuelle' }] },
+    { kind: 'chart', chartType: 'groupedBar', title: 'Ventes (tasses)', labels: ['T1', 'T2', 'T3', 'T4'], series: [{ name: 'Douala', data: [1200, 1450, 1720, 2240] }, { name: 'Yaoundé', data: [800, 940, 1100, 1390] }], readingKey: 'Les deux villes progressent au même rythme.' },
+    { kind: 'prose', paragraphs: ['La demande est portée par une classe moyenne urbaine qui consomme hors du foyer.'] },
+  ],
+});
 
 /** Palettes cibles volontairement difficiles : clair, vif, sombre, gris. */
 const TARGETS: Record<string, string> = {
@@ -297,61 +326,117 @@ const TARGETS: Record<string, string> = {
   anthracite: '#2B2B2B',
 };
 
-const OLD_DS = buildDocumentDesignSystem(BEFORE as any, null, buildDocumentSeed('editorial', 'check'));
+/** Les toiles où une palette s'affiche : page de charte (16:9 et A4) et page de business plan. */
+const CANVASES: Array<{ format: FormatId; documentType: DocumentType }> = [
+  { format: 'slide-16x9', documentType: 'brand-charter' },
+  { format: 'page-a4', documentType: 'brand-charter' },
+  { format: 'a4-portrait', documentType: 'business-plan' },
+];
+/** Plusieurs graines par toile : les compositions (et donc les couleurs dérivées posées) varient. */
+const SEEDS = 4;
+
 const HEX_IN = /#[0-9a-fA-F]{6}\b/g;
 
 function hexesOf(html: string): Set<string> {
   return new Set((html.match(HEX_IN) ?? []).map((hex) => hex.toLowerCase()));
 }
 
+/** Écart perceptif OKLab ×100 : sous 2, deux couleurs sont indiscernables (un arrondi d'un point). */
+function deltaE(a: string, b: string): number {
+  const [x, y] = [hexToOklch(a), hexToOklch(b)];
+  if (!x || !y) return 100;
+  const lab = (o: NonNullable<typeof x>) => [o.l, o.c * Math.cos((o.h * Math.PI) / 180), o.c * Math.sin((o.h * Math.PI) / 180)];
+  const [p, q] = [lab(x), lab(y)];
+  return 100 * Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+}
+
+/** Les pages de chiffres : business plan et deck. */
+const DATA_CANVASES: Array<{ format: FormatId; documentType: DocumentType }> = [
+  { format: 'a4-portrait', documentType: 'business-plan' },
+  { format: 'slide-16x9', documentType: 'pitch-deck' },
+];
+
+/** Une page rendue par le moteur avec la marque donnée (sans Chromium : la couleur est décidée au compilage). */
+async function renderPage(branding: Partial<BrandIdentityModel>, content: NonNullable<typeof CONTENT>, canvas: (typeof CANVASES)[number], seed: number): Promise<string> {
+  const { brand, direction } = brandFromIdem({ name: 'Café des Hauts', branding: branding as never, logos: resolveLogoDeclensions(branding.logo as never) });
+  const doc = await createDocument({
+    documentType: canvas.documentType,
+    format: canvas.format,
+    brand,
+    direction: { ...direction, styleId: 'editorial' },
+    seed: `check:${canvas.format}:${seed}`,
+    sections: [{ id: content.id, role: content.role }],
+    locale: 'fr',
+    validate: false,
+  });
+  return sectionHtml(await doc.composeSection(content, { index: 2, total: 8 }));
+}
+
 const previews: string[] = [];
 
-for (const [label, primary] of Object.entries(TARGETS)) {
-  const harmonized = harmonizePalette({ current: BEFORE.colors!.colors, changes: { primary } }).palette;
-  const after = afterWith(harmonized);
-  const map = buildBrandRewriteMap(BEFORE, after);
-  const newTokens = new Set(computeBrandTokens(after).colors.map(([, hex]) => hex));
-  // Les couleurs PROPRES à l'ancienne marque : absentes de la nouvelle.
-  const stale = [...map.colors.keys()].filter((hex) => !newTokens.has(hex));
+async function checkRealPages(): Promise<void> {
+  check('les contenus des pages de test sont valides', CONTENT !== null && MARKET !== null);
+  if (!CONTENT || !MARKET) return;
+  const oldPages: Array<{ content: NonNullable<typeof CONTENT>; canvas: (typeof CANVASES)[number]; seed: number; html: string }> = [];
+  for (const canvas of CANVASES) for (let seed = 0; seed < SEEDS; seed++) oldPages.push({ content: CONTENT, canvas, seed, html: await renderPage(BEFORE, CONTENT, canvas, seed) });
+  for (const canvas of DATA_CANVASES) for (let seed = 0; seed < SEEDS; seed++) oldPages.push({ content: MARKET, canvas, seed, html: await renderPage(BEFORE, MARKET, canvas, seed) });
 
-  let pages = 0;
-  let leaks = 0;
-  let unreadable = 0;
-  let staleLabels = 0;
-  for (const archetype of IMPLEMENTED_ARCHETYPES) {
-    for (const landscape of [false, true]) {
-      const seed = { ...buildSectionSeed('editorial', 'check', `Couleurs ${archetype}`, new Set()), archetype };
-      const html = renderSection(CONTENT, OLD_DS, seed, {
-        logoUrl: `${STORAGE}/old-dark.png`,
-        brandName: 'Café des Hauts',
-        ...(landscape ? { page: LANDSCAPE_SLIDE, multiPage: false } : {}),
-      });
+  for (const [label, primary] of Object.entries(TARGETS)) {
+    const harmonized = harmonizePalette({ current: BEFORE.colors!.colors, changes: { primary } }).palette;
+    const after = afterWith(harmonized);
+    const map = buildBrandRewriteMap(BEFORE, after);
+    const newTokens = new Set(computeBrandTokens(after).colors.map(([, hex]) => hex));
+    // Les couleurs PROPRES à l'ancienne marque : absentes de la nouvelle.
+    const stale = [...map.colors.keys()].filter((hex) => !newTokens.has(hex));
+
+    let leaks = 0;
+    let unreadable = 0;
+    let staleLabels = 0;
+    let oldFonts = 0;
+    let residues = 0;
+    const residueSamples = new Set<string>();
+    for (const page of oldPages) {
       const stats = emptyStats();
-      const out = rewriteBrandString(html, map, stats);
-      pages++;
+      const out = rewriteBrandString(page.html, map, stats);
 
       const remaining = [...hexesOf(out)].filter((hex) => stale.includes(hex));
-      if (remaining.length) leaks++;
-      if (out.includes('old-dark.png')) leaks++;
+      if (remaining.length || out.includes('/old')) leaks++;
+      if (/Fraunces/.test(out)) oldFonts++;
 
       // Aucun texte moins lisible qu'avant (plafond 4,5:1).
       const probe = emptyStats();
-      if (repairContrast(html, out, probe) !== out) unreadable++;
+      if (repairContrast(page.html, out, probe) !== out) unreadable++;
 
-      // Chaque « contraste N:1 » annonce le ratio de SA nouvelle teinte.
-      for (const [, hex, ratio] of out.matchAll(/data-contrast-of="(#[0-9a-fA-F]{6})"[^>]*>[^<]*?(\d+(?:\.\d+)?):1/g)) {
+      // Chaque « contraste N:1 » annonce le ratio de SA nouvelle teinte, écrit comme le moteur l'écrit.
+      for (const [, hex, ratio] of out.matchAll(/data-contrast-of="(#[0-9a-fA-F]{6})"[^>]*>[^<]*?(\d+(?:[.,]\d+)?):1/g)) {
         const ink = contrastRatio('#ffffff', hex) >= 4.5 ? '#ffffff' : '#000000';
-        if (Math.abs(Number(ratio) - Math.round(contrastRatio(ink, hex) * 10) / 10) > 0.05) staleLabels++;
+        const expected = String(Math.round(contrastRatio(ink, hex) * 10) / 10).replace('.', ',');
+        if (ratio !== expected) staleLabels++;
       }
 
-      if (archetype === IMPLEMENTED_ARCHETYPES[0] && !landscape) {
-        previews.push(`<section><h2>${label} — avant</h2>${html}<h2>${label} — après</h2>${out}</section>`);
+      // Le test le plus strict : aucune couleur de l'ancienne page ne survit si une page NEUVE de la nouvelle
+      // marque (même toile, même graine) ne la porterait pas — rampes, aplats, encres et graphiques compris.
+      // Un écart d'arrondi (ΔE < 2, invisible) n'est pas un résidu.
+      const fresh = [...hexesOf(await renderPage(after, page.content, page.canvas, page.seed))];
+      const foreign = [...hexesOf(out)].filter(
+        (hex) => hexesOf(page.html).has(hex) && !newTokens.has(hex) && !hexesOf(JSON.stringify(after.colors)).has(hex) && !fresh.some((other) => deltaE(other, hex) < 2)
+      );
+      if (foreign.length) {
+        residues++;
+        foreign.slice(0, 3).forEach((hex) => residueSamples.add(`${page.content.id}/${page.canvas.format}#${page.seed}:${hex}`));
+      }
+
+      if (page.canvas.format === 'slide-16x9' && page.seed === 0) {
+        previews.push(`<section><h2>${label} — avant</h2>${page.html}<h2>${label} — après</h2>${out}</section>`);
       }
     }
+    const pages = oldPages.length;
+    check(`${label} : aucune couleur ni logo de l’ancienne marque sur ${pages} pages`, leaks === 0, `${leaks} page(s) avec résidu`);
+    check(`${label} : aucune police de l’ancienne marque`, oldFonts === 0, `${oldFonts} page(s)`);
+    check(`${label} : aucun texte devenu moins lisible`, unreadable === 0, `${unreadable} page(s)`);
+    check(`${label} : les ratios de contraste affichés sont recalculés`, staleLabels === 0, `${staleLabels} mention(s) périmée(s)`);
+    check(`${label} : aucune couleur dérivée de l’ancienne marque ne survit`, residues === 0, `${residues} page(s) — ${[...residueSamples].slice(0, 6).join(' ')}`);
   }
-  check(`${label} : aucune couleur ni logo de l’ancienne marque sur ${pages} pages`, leaks === 0, `${leaks} page(s) avec résidu`);
-  check(`${label} : aucun texte devenu moins lisible`, unreadable === 0, `${unreadable} page(s)`);
-  check(`${label} : les ratios de contraste affichés sont recalculés`, staleLabels === 0, `${staleLabels} mention(s) périmée(s)`);
 }
 
 // ─── 6. Données profondes ──────────────────────────────────────────────────
@@ -414,7 +499,7 @@ console.log('\n7. Empreinte du manifeste iCode');
 // Valeurs calculées par `hashContent` du CLIENT (we-dev-client/src/utils/codeSync.ts).
 check('cyrb53 identique au client', hashContent('export default {}') === '1jri2lv0s08' && hashContent('body{color:#1f4e5f}') === '133xxb428vq');
 
-void checkLogoAdaptation().then(() => {
+void checkRealPages().then(checkLogoAdaptation).then(() => {
   const out = resolve(__dirname, '../../logs/brand-sync-preview.html');
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, `<!doctype html><meta charset="utf-8"><title>Propagation d'identité</title><body style="margin:0">${previews.join('')}</body>`);

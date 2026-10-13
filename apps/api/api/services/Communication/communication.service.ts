@@ -60,31 +60,22 @@ import { AGENT_OCCASIONS_PROMPT } from './prompts/agent-occasions.prompt';
 import { AGENT_PLAN_BRIEF_PROMPT } from './prompts/agent-plan-brief.prompt';
 import { AGENT_PLAN_CONTENT_PROMPT } from './prompts/agent-plan-content.prompt';
 import { ensureVideoShare } from './video/video.calendar';
-// La composition des visuels : le moteur partagé iVision (apps/ivision/core).
+// La composition des visuels : le moteur partagé iVision (apps/ivision/core), qui en confie la page au
+// moteur de génération graphique (@idem/graphic-engine).
+import { sectionHtml } from '@idem/graphic-engine';
+import '../graphic/engine.host';
 import {
-  applyDesignLint as coreApplyDesignLint,
   ComposedVisual,
   composeVisual,
-  enforceBrandTypography as coreEnforceBrandTypography,
-  ensureLogoPresence as coreEnsureLogoPresence,
   inferVisualIntent as coreInferVisualIntent,
-  stripCtaButtons as coreStripCtaButtons,
+  renderVisual,
+  renderVisualHtml,
   VisualPorts,
 } from '../../../../ivision/core/src/visual/visual.composer';
+import { parseVisualEdit, visualEditPrompt, WrittenCopy } from '../../../../ivision/core/src/visual/visual.copy';
 import { visualBrandingFromKit } from '../../../../ivision/core/src/visual/visual.context';
-import { buildFlyerEditPrompt } from './prompts/agent-flyer-edit.prompt';
 import { ImageSourcingPreferences } from './imageSourcing.service';
-import {
-  flyerRenderService,
-  minLogoWidthFor,
-  defaultGridFor,
-  LogoDeclensionSet,
-  FORMAT_DIMENSIONS,
-} from './flyerRender.service';
-import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
-import { buildArtDirectionBlock } from '../../utils/art-direction.util';
-import { describeGridInvariants } from '../design/compositionGrid';
-import { ensureProjectArtDirection } from '../design/artDirection.provider';
+import { ensureProjectArtDirection } from '../brand/artDirection.provider';
 import { sanitizeSectionHtml } from '../../utils/sanitize-section-html';
 import { markRevisionAsAI } from '../../utils/revision-context.util';
 import { withAiUsage } from '../../utils/ai-usage-context.util';
@@ -1509,7 +1500,10 @@ export class CommunicationService extends GenericService {
       format,
       intent,
       logoUsed: (parsed as Partial<Flyer>).logoUsed,
-      layout: (parsed as Partial<Flyer>).layout,
+      layout: parsed.layout,
+      copy: parsed.copy,
+      ...(parsed.photo ? { photo: parsed.photo } : {}),
+      seed: parsed.seed,
       creativity: (parsed as Partial<Flyer>).creativity,
       agents: (parsed as Partial<Flyer>).agents,
       concept: parsed.concept || '',
@@ -1692,7 +1686,10 @@ export class CommunicationService extends GenericService {
       format,
       intent,
       logoUsed: (parsed as Partial<Flyer>).logoUsed,
-      layout: (parsed as Partial<Flyer>).layout,
+      layout: parsed.layout,
+      copy: parsed.copy,
+      ...(parsed.photo ? { photo: parsed.photo } : {}),
+      seed: parsed.seed,
       creativity: (parsed as Partial<Flyer>).creativity,
       agents: (parsed as Partial<Flyer>).agents,
       concept: parsed.concept || '',
@@ -2392,43 +2389,13 @@ export class CommunicationService extends GenericService {
     const branding = (project.analysisResultModel as any)?.branding;
     const typography = branding?.typography;
 
-    // Le logo réellement placé par le modèle, plus la table des déclinaisons :
-    // le rendu doit pouvoir RECONNAÎTRE le logo (mise à l'échelle) et le
-    // REMPLACER par la bonne polarité si le contraste mesuré est insuffisant.
-    const logoSummary = summarizeLogoForPrompt(branding?.logo);
-    const logos: LogoDeclensionSet = {
-      used: typeof flyer.logoUsed === 'string' ? flyer.logoUsed : undefined,
-      primary: logoSummary?.urls.primary,
-      icon: logoSummary?.urls.icon,
-      withText: logoSummary?.urls.withText,
-      iconOnly: logoSummary?.urls.iconOnly,
-    };
-
-    // Pas de graine ici — elle n'est pas persistée : le contrôle mesure alors
-    // sur la grille neutre du format (mêmes marges, mêmes colonnes). En
-    // pratique le balisage stocké a déjà été contrôlé à la composition, et
-    // cette passe ne rattrape que les retouches faites depuis dans l'éditeur.
-    const buffer = await flyerRenderService.renderFlyerToPng(
-      flyer.html,
-      flyer.format,
-      typography,
-      logos,
-      {
-        // `colors.colors` et non `colors` : la charte est imbriquée d'un cran
-        // de plus qu'il n'y paraît. Le rapport financier a longtemps lu
-        // `colors.primary`, n'a donc jamais rien trouvé, et tous les projets
-        // sortaient avec la palette par défaut d'IDEM sans que personne ne le
-        // voie (cf. checkSectionRenderer, contrôle 6).
-        palette: {
-          primary: branding?.colors?.colors?.primary,
-          secondary: branding?.colors?.colors?.secondary,
-          accent: branding?.colors?.colors?.accent,
-          background: branding?.colors?.colors?.background,
-          text: branding?.colors?.colors?.text,
-        },
-        label: `visuel/${flyer.format}`,
-      }
-    );
+    // Le visuel tel qu'il est enregistré (après une éventuelle retouche dans l'éditeur) : une page du
+    // moteur graphique est photographiée telle quelle, à ses cotes ; un visuel plus ancien reste lisible.
+    const buffer = await renderVisualHtml(flyer.html, flyer.format, {
+      primaryFont: typography?.primaryFont,
+      secondaryFont: typography?.secondaryFont,
+      url: typography?.url,
+    });
     await cacheService.set(cacheKey, buffer.toString('base64'), { prefix: 'flyer', ttl: 86400 });
 
     return buffer;
@@ -2489,7 +2456,11 @@ export class CommunicationService extends GenericService {
     return updated;
   }
 
-  /** Retouche IA d'un visuel : renvoie le visuel modifié, déjà persisté. */
+  /**
+   * Retouche IA d'un visuel : l'instruction est appliquée à ses MOTS (le modèle n'écrit jamais de HTML),
+   * puis le moteur graphique recompose la page — même graine quand la mise en page doit rester, une
+   * autre quand l'utilisateur en demande une nouvelle. Renvoie le visuel modifié, déjà persisté.
+   */
   async aiEditFlyer(
     userId: string,
     projectId: string,
@@ -2499,85 +2470,73 @@ export class CommunicationService extends GenericService {
   ): Promise<Flyer | null> {
     const communication = await this.getCommunication(userId, projectId);
     const flyer = this.visualsOf(communication).find((visual) => visual.id === flyerId);
-    if (!flyer?.html) {
-      logger.warn(`[Communication] Flyer ${flyerId} not found (or without HTML) on aiEditFlyer`);
+    if (!flyer) {
+      logger.warn(`[Communication] Flyer ${flyerId} not found on aiEditFlyer`);
       return null;
     }
 
     const context = communication?.context ?? (await this.extractContext(userId, projectId));
-    const dims = FORMAT_DIMENSIONS[flyer.format] || FORMAT_DIMENSIONS.square;
-    // Le SVG brut du logo alourdit la charge utile et invite le modèle à le
-    // recopier dans le HTML : seules les URLs de déclinaisons lui servent.
-    const { logoSvg, logoUrls, ...brandForPrompt } = context.branding;
-
-    const prompt = buildFlyerEditPrompt({
-      instruction,
-      currentHtml: flyer.html,
-      format: flyer.format,
-      width: dims.width,
-      height: dims.height,
-      minLogoWidth: minLogoWidthFor(flyer.format),
-      brandName: context.brandName,
-      brandJson: JSON.stringify(brandForPrompt),
-      logoUrlsJson: JSON.stringify(logoUrls ?? {}),
-      intent: flyer.intent,
-      imageContext: flyer.imageAnalysis
-        ? `${flyer.imageAnalysis.subject} (${flyer.imageAnalysis.mood}, ${flyer.imageAnalysis.luminance})`
-        : undefined,
-      artDirectionBlock: buildArtDirectionBlock(context.artDirection, { medium: 'poster' }),
-      // Grille neutre du format : la graine du visuel n'est pas persistée, mais
-      // la marge, les colonnes et l'échelle typographique ne dépendent que du
-      // format — c'est tout ce dont une retouche a besoin pour tomber juste.
-      gridBlock: describeGridInvariants(
-        defaultGridFor(flyer.format, {
-          primary: context.branding.primary,
-          secondary: context.branding.secondary,
-          accent: context.branding.accent,
-          background: context.branding.background,
-          text: context.branding.text,
-        })
-      ),
-    });
+    const lang = language || context.language || 'fr';
+    // Les mots du visuel : ceux enregistrés par le moteur, sinon (visuel plus ancien) ceux de son texte.
+    const previous: WrittenCopy = flyer.copy ?? {
+      headline: flyer.marketingText?.headline || flyer.brief || context.brandName,
+      ...(flyer.marketingText?.subheadline ? { sub: flyer.marketingText.subheadline } : {}),
+      facts: [],
+    };
+    const photo = flyer.photo ?? (flyer.backgroundImageUrl ? { url: flyer.backgroundImageUrl } : undefined);
 
     const raw = await withAiUsage(
       { userId, projectId, feature: 'communication', element: flyerId, operation: 'edit' },
       () =>
         this.promptService.runPrompt(
-          promptConfigFor(AI_CONFIG.communication.flyer, userId, {
-            language,
-          }),
-          [{ role: 'user', content: prompt }]
+          // Retouche, pas composition : config dédiée, moins chère (cf. AI_CONFIG.communication.flyerEdit).
+          promptConfigFor(AI_CONFIG.communication.flyerEdit, userId, { language }),
+          [{ role: 'user', content: visualEditPrompt({ instruction, copy: previous, brandName: context.brandName, language: lang, hasPhoto: !!photo }) }]
         )
     );
-
-    // La sortie est du HTML brut (pas de JSON) : un visuel entier transporté
-    // dans une chaîne JSON se perd tout entier sur une seule guillemet mal
-    // échappée, et l'édition n'a rien d'autre à renvoyer que le HTML.
-    const edited = sanitizeSectionHtml(
-      this.applyDesignLint(
-        this.ensureLogoPresence(
-          this.enforceBrandTypography(
-            this.stripCtaButtons(this.promptService.getCleanAIText(raw)),
-            context
-          ),
-          context,
-          flyer.format
-        ),
-        context,
-        `visuel-edite/${flyer.format}`,
-        flyer.imageAnalysis?.dominantColors || []
-      )
-    );
-    if (!edited || !edited.startsWith('<')) {
-      logger.warn(`[Communication] AI edit returned no usable HTML for flyer ${flyerId}`);
+    const edit = parseVisualEdit(this.promptService.getCleanAIText(raw), previous, { instruction, language: lang, brandName: context.brandName });
+    if (!edit) {
+      logger.warn(`[Communication] AI edit returned no usable words for flyer ${flyerId}`);
       return null;
     }
 
+    const keptPhoto = edit.photo === 'remove' ? undefined : photo;
+    const seed = edit.layout === 'change' || !flyer.seed ? `${flyer.seed ?? flyer.id}:edit:${Date.now().toString(36)}` : flyer.seed;
+    const out = await renderVisual(context, flyer.format, edit.copy, keptPhoto, {
+      level: flyer.creativity ?? 'medium',
+      seed,
+      userId,
+      projectId,
+      imageColors: flyer.imageAnalysis?.dominantColors,
+    });
+    const html = sectionHtml(out);
+
     markRevisionAsAI(`Édition IA – visuel ${flyerId}: ${instruction}`.slice(0, 280));
-    const updated = await this.updateFlyerHtml(userId, projectId, flyerId, edited);
-    if (updated) {
-      logger.info(`[Communication] Flyer ${flyerId} AI-edited`, { projectId, instruction });
+    const patched = await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      visuals: (existing.visuals || existing.flyers || []).map((visual) =>
+        visual.id === flyerId
+          ? {
+              ...visual,
+              html,
+              copy: edit.copy,
+              seed,
+              layout: out.spec.pattern.id,
+              photo: keptPhoto,
+              ...(keptPhoto ? {} : { backgroundImageUrl: undefined }),
+              marketingText: { headline: edit.copy.headline, subheadline: edit.copy.sub, body: edit.copy.facts.map((f) => f.text).join(' · ') },
+              updatedAt: new Date(),
+            }
+          : visual
+      ),
+    }));
+    const updated = this.visualsOf(patched).find((visual) => visual.id === flyerId) ?? null;
+    if (!updated) return null;
+    await this.invalidateFlyerImage(projectId, flyerId);
+    if (out.png) {
+      await cacheService.set(this.flyerImageCacheKey(projectId, flyerId), out.png.toString('base64'), { prefix: 'flyer', ttl: 86400 });
     }
+    logger.info(`[Communication] Flyer ${flyerId} AI-edited`, { projectId, instruction, layout: edit.layout, photo: edit.photo });
     return updated;
   }
 
@@ -2962,24 +2921,5 @@ export class CommunicationService extends GenericService {
     };
   }
 
-  /** Typographie du visuel ramenée dans la charte : règle du moteur partagé. */
-  private enforceBrandTypography(html: string, context: CommunicationContext): string {
-    return coreEnforceBrandTypography(html, context);
-  }
-
-  /** Un logo RÉEL dans le visuel : règle du moteur partagé. */
-  private ensureLogoPresence(html: string, context: CommunicationContext, format: FlyerFormat): string {
-    return coreEnsureLogoPresence(html, context, format);
-  }
-
-  /** Passe déterministe anti-générique : règle du moteur partagé. */
-  private applyDesignLint(html: string, context: CommunicationContext, label: string, imageColors: string[] = []): string {
-    return coreApplyDesignLint(html, context, label, imageColors);
-  }
-
-  /** Aucun bouton d'appel à l'action sur un visuel : règle du moteur partagé. */
-  private stripCtaButtons(html: string): string {
-    return coreStripCtaButtons(html);
-  }
 
 }

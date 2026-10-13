@@ -23,26 +23,39 @@ WORKDIR /app
 
 COPY ./packages/shared-models ./packages/shared-models
 COPY ./packages/shared-styles ./packages/shared-styles
+COPY ./packages/graphic-engine ./packages/graphic-engine
 COPY ./apps/ivision/core ./apps/ivision/core
 COPY ./apps/ivision/api ./apps/ivision/api
 
 # Une seule installation pour le moteur ET l'API, dans apps/ivision/node_modules : c'est le
 # dossier parent commun d'où Node résout les modules des deux (sources et dist/).
 WORKDIR /app/apps/ivision
+# Le moteur graphique (@idem/graphic-engine) est compilé avec l'API (voir plus bas) : seules ses
+# dépendances sont installées ici.
 RUN node -e "\
-  const c = require('./core/package.json'), a = require('./api/package.json');\
+  const c = require('./core/package.json'), a = require('./api/package.json'), g = require('../../packages/graphic-engine/package.json');\
+  const own = (deps) => Object.fromEntries(Object.entries(deps || {}).filter(([name]) => !name.startsWith('@idem/')));\
   require('fs').writeFileSync('package.json', JSON.stringify({ name: 'ivision-runtime', private: true,\
-    dependencies: { ...c.dependencies, ...a.dependencies, '@idem/shared-styles': 'file:../../packages/shared-styles' },\
+    dependencies: { ...g.dependencies, ...own(c.dependencies), ...a.dependencies, '@idem/shared-styles': 'file:../../packages/shared-styles' },\
     devDependencies: { ...a.devDependencies } }, null, 2));" \
   && PUPPETEER_SKIP_DOWNLOAD=true npm install --legacy-peer-deps && npm cache clean --force
 
-# Compilation (dist/apps/ivision/{api,core}) puis paquets du moteur vidéo (public/video-engine).
+# Compilation (dist/apps/ivision/{api,core} et dist/packages/graphic-engine) puis paquets du moteur
+# vidéo (public/video-engine). Les sources du moteur graphique vivent dans /app/packages : le lien
+# /app/node_modules leur donne les dépendances installées ci-dessus, le temps de la compilation.
+RUN ln -s /app/apps/ivision/node_modules /app/node_modules
 WORKDIR /app/apps/ivision/api
 RUN npm run build
 
 # Les dépendances de développement ne partent pas en production.
 WORKDIR /app/apps/ivision
 RUN npm prune --omit=dev --legacy-peer-deps
+
+# @idem/graphic-engine, compilé avec l'API (dist/packages/graphic-engine/src), posé sous son nom APRÈS
+# l'élagage (npm le tiendrait sinon pour un paquet étranger) : le cœur iVision l'importe par ce nom.
+RUN mkdir -p node_modules/@idem/graphic-engine \
+    && cp -r api/dist/packages/graphic-engine/src/. node_modules/@idem/graphic-engine/ \
+    && node -e "require('fs').writeFileSync('node_modules/@idem/graphic-engine/package.json', JSON.stringify({ name: '@idem/graphic-engine', version: '1.0.0', main: 'index.js' }))"
 
 FROM node:20-alpine AS production
 ARG BUILD_ENV

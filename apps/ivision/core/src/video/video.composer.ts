@@ -371,6 +371,7 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
         duration: scene.duration,
         surface: scene.surface,
         slots: scene.slots,
+        ...(scene.props?.length ? { props: scene.props } : {}),
         image: scene.image,
         images: scene.images,
         video: scene.video,

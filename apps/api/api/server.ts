@@ -50,6 +50,7 @@ import { billingService } from './services/billing.service';
 import { billingSettingsService } from './services/billing/billing-settings.service';
 import { startBillingScheduler } from './services/billing/billing-scheduler';
 import { billingRoutes } from './routes/billing.routes';
+import { appgenMediaRoutes } from './routes/appgenMedia.routes';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -210,6 +211,8 @@ app.use('/prompt', promptRoutes);
 app.use('/quota', quotaRoutes);
 // Facturation : catalogue, droits, paiement Mobile Money, callbacks pawaPay.
 app.use('/billing', billingRoutes);
+// Médias des sites générés par iCode : images (Gemini), clips (Veo), photos et vidéos Pexels.
+app.use('/appgen/media', appgenMediaRoutes);
 app.use('/archetypes', archetypeRoutes);
 app.use('/github', githubRoutes);
 app.use('/cache', cacheRoutes);

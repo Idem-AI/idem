@@ -290,6 +290,11 @@ export interface LintReport {
 
 export interface LintOptions {
   /**
+   * Fichiers posés par le socle. Analysés — certaines règles en ont besoin —
+   * mais jamais renvoyés au modèle pour réparation.
+   */
+  locked?: string[];
+  /**
    * The project's logo renditions: hosted URLs, inline SVG, or both. The check
    * passes as soon as the generated code references *any* of them — the model
    * may pick the rendition that suits the markup, it just may not drop the logo.
@@ -427,7 +432,7 @@ export function lintGeneratedFiles(
     }
   }
 
-  const targets = selectRepairTargets(violations);
+  const targets = selectRepairTargets(violations, options.locked);
 
   return {
     violations,
@@ -454,12 +459,21 @@ const MAX_REPAIR_FILE_CHARS = 12000;
 const NEVER_REPAIR =
   /(^|\/)(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock|(vite|tailwind|postcss|capacitor)\.config\.(js|cjs|mjs|ts|json)|manifest\.webmanifest|sw\.js)$/;
 
-/** Worst files first: errors weigh more than warnings. */
-function selectRepairTargets(violations: Violation[]): string[] {
+/**
+ * Worst files first: errors weigh more than warnings.
+ *
+ * `locked` holds the files written by the starter. They are sent to the linter
+ * because some rules need them to judge (the forged palette lives in
+ * `tailwind.config.js`), but handing one back for repair is how a project gets
+ * destroyed: the model rewrote a 2 KB stylesheet into 400 KB of repeated
+ * `.text-[inherit]` rules, and the workspace had no reason to refuse it.
+ */
+function selectRepairTargets(violations: Violation[], locked: string[] = []): string[] {
   const weightByFile = new Map<string, number>();
+  const untouchable = new Set(locked);
 
   for (const violation of violations) {
-    if (NEVER_REPAIR.test(violation.file)) {
+    if (NEVER_REPAIR.test(violation.file) || untouchable.has(violation.file)) {
       continue;
     }
 
@@ -482,13 +496,18 @@ function selectRepairTargets(violations: Violation[]): string[] {
  */
 export function buildRepairPrompt(
   report: LintReport,
-  files: Record<string, string>
+  files: Record<string, string>,
+  locked: string[] = []
 ): string | null {
   if (!report.violations.length) {
     return null;
   }
 
-  const targets = selectRepairTargets(report.violations);
+  const targets = selectRepairTargets(report.violations, locked);
+
+  if (!targets.length) {
+    return null;
+  }
 
   const checklist = report.violations
     .filter((violation) => targets.includes(violation.file))

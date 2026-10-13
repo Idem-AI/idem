@@ -255,7 +255,7 @@ const mediaAsset = z.object({
 });
 
 const turnBody = z.object({
-  text: z.string().max(2000).optional(),
+  text: z.string().max(4000000).optional(),
   referenceId: z.string().max(80).optional(),
   noReference: z.boolean().optional(),
   media: z.array(mediaAsset).max(16).optional(),
@@ -470,6 +470,69 @@ v1.post(
       res.status(202).json(started);
     } catch (error) {
       await refund(uid(req), paid, 'Export vidéo iVision refusé — crédits restitués');
+      engineError(error);
+    }
+  })
+);
+
+/** Le menu « Télécharger » : chaque format, prêt ou non, et son prix (0 = inclus). */
+v1.get(
+  '/brands/:brandId/videos/:videoId/downloads',
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const video = await videoOr404(req);
+    res.json({ formats: motionVideos.downloadOptions(video) });
+  })
+);
+
+/**
+ * Télécharger UN format : prêt → 200 `{ ready: true }` (le fichier se lit sur `/file`) ; sinon le
+ * rendu de ce format seul est lancé (ou attendu) → 202 `{ ready: false, progress }`. Le client
+ * rappelle cette route jusqu'à `ready` : elle ne facture qu'une fois (au lancement ou à la
+ * réclamation d'un rendu fait d'avance), au prix affiché par `/downloads`.
+ */
+v1.post(
+  '/brands/:brandId/videos/:videoId/downloads',
+  validate({ body: z.object({ format: z.enum(['story', 'square', 'portrait', 'landscape']) }) }),
+  asyncRoute<AuthedRequest>(async (req, res: Response) => {
+    const video = await videoOr404(req);
+    const format = req.body.format as VideoFormat;
+    const plan = motionVideos.downloadPlan(video, format);
+    if (plan.state === 'ready') {
+      res.json({ ready: true, format });
+      return;
+    }
+    if (plan.state === 'busy') {
+      res.status(202).json({ ready: false, format, progress: plan.progress });
+      return;
+    }
+    const action = video.exportCount === 0 ? 'motion_video' : 'motion_video_rerender';
+    let paid;
+    try {
+      paid = await charge(uid(req), { action, cost: plan.cost }, video.id);
+    } catch (error) {
+      if (error instanceof PaymentRequired) {
+        res.status(402).json(error.body);
+        return;
+      }
+      throw error;
+    }
+    try {
+      if (plan.state === 'claim') {
+        // Déjà réclamé par une autre demande (double clic, autre onglet) : rien n'est dû deux fois.
+        if (!(await motionVideos.claimRender(uid(req), req.params.brandId, video.id, format))) await refund(uid(req), paid, 'Téléchargement déjà réglé — crédits restitués');
+        res.json({ ready: true, format });
+        return;
+      }
+      const started = await motionVideos.startExport(uid(req), req.params.brandId, video.id, plan.scope, paid.charged ? { cost: paid.cost, action } : undefined, { only: [format] });
+      if (!started) throw new HttpError(404, 'video_not_found', 'Vidéo introuvable.');
+      res.status(202).json({ ready: false, format, progress: 0 });
+    } catch (error) {
+      await refund(uid(req), paid, 'Téléchargement vidéo iVision refusé — crédits restitués');
+      // Un rendu lancé entre-temps (autre onglet) : on l'attend au lieu d'échouer.
+      if (error instanceof VideoInputError && error.message === 'already_rendering') {
+        res.status(202).json({ ready: false, format, progress: 0 });
+        return;
+      }
       engineError(error);
     }
   })
@@ -777,7 +840,9 @@ v1.get(
   '/brands/:brandId/videos/:videoId/file',
   asyncRoute<AuthedRequest>(async (req, res) => {
     const video = await motionVideos.getVideo(uid(req), req.params.brandId, req.params.videoId);
-    const render = video?.renders.find((r) => r.status === 'done' && r.url && (!req.query.format || r.format === req.query.format));
+    // Un rendu fait d'avance n'est pas encore un export : il se réclame d'abord (POST …/downloads).
+    const files = (video?.renders || []).filter((r) => r.status === 'done' && r.url && !r.prerender && (!req.query.format || r.format === req.query.format));
+    const render = files.find((r) => !r.stale) || files[0];
     if (!render?.url) throw new HttpError(404, 'video_not_found', 'Vidéo introuvable.');
     await sendAttachment(res, render.url, `ivision-${render.format}-${req.params.videoId.slice(-6)}.mp4`, 'video/mp4');
   })

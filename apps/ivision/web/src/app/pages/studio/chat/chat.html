@@ -253,7 +253,7 @@
           id="iv-composer"
           rows="2"
           class="!border-0 !bg-transparent !shadow-none w-full resize-none"
-          maxlength="2000"
+          maxlength="4000000"
           [placeholder]="(montaging() ? 'chat.composer.placeholderMontage' : revisingMontage() ? 'chat.composer.placeholderRevise' : mode() === 'video' ? 'chat.composer.placeholderVideo' : 'chat.composer.placeholderImage') | translate"
           [value]="text()"
           (input)="text.set($any($event.target).value)"
@@ -301,6 +301,9 @@
               <input type="checkbox" [checked]="voice()" (change)="voice.set($any($event.target).checked)" />
               {{ 'chat.options.voice' | translate }}
             </label>
+            @if (readFromText()) {
+              <span class="text-xs text-[var(--color-text-tertiary)]" aria-live="polite">{{ 'chat.options.readFromText' | translate }}</span>
+            }
           } @else {
             <label class="sr-only" for="iv-iformat">{{ 'chat.options.format' | translate }}</label>
             <select id="iv-iformat" class="!w-auto !py-1.5 !text-sm" (change)="imageFormat.set($any($event.target).value)">

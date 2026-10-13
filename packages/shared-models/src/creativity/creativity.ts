@@ -9,13 +9,20 @@
  *   low     mises en page éprouvées, adaptées à la charte et à sa direction artistique ;
  *           l'IA écrit les textes
  *   medium  + l'IA choisit la structure (sections, scènes, slides) dans des menus
- *   high    + l'IA choisit chaque composition dans un menu filtré par la DA
- *   max     + l'IA règle les paramètres de composition, dans des bornes
- *   ultra   l'IA écrit les compositions elles-mêmes (HTML, React, SVG) ; une unité qui
- *           échoue aux contrôles retombe sur son rendu « max »
+ *   high    + l'IA choisit chaque composition dans un menu, plus large à chaque cran
+ *   max     + l'IA règle les paramètres de composition, dans des bornes, ET écrit les
+ *           compositions elles-mêmes (deux essais ; la composition dirigée reste le plancher)
+ *   ultra   l'IA écrit les compositions (HTML, React, SVG) avec quatre essais, un rendu mesuré
+ *           PUIS RÉPARÉ par le code, et la latitude la plus large
  *
  * Les bonnes pratiques (lisibilité, contraste, zones de sécurité, charte) s'appliquent à
  * TOUS les crans : elles sont dans le code, pas dans le prompt.
+ *
+ * ── RÉPARER, PAS REFUSER ─────────────────────────────────────────────────────
+ * Un contrôle qui refuse une unité la renvoie à son rendu du cran inférieur : trop de contrôles
+ * stricts, et le cran payé le plus cher rend exactement ce que rend le cran Medium. Les défauts
+ * qui ont une réponse déterministe (hauteur, contraste, corps minimal) sont donc CORRIGÉS par le
+ * code ; seul l'irréparable écarte une unité.
  *
  * Ce module ne lit rien et ne dépend de rien : c'est ce qui garantit que le prix affiché
  * par le dashboard est celui que l'API débite.

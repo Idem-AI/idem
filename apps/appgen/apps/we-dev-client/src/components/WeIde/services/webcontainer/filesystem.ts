@@ -22,6 +22,16 @@ type FileTreeContent = FileContent | DirectoryContent;
 
 const fileHashMap = new Map<string, string>();
 
+/**
+ * Oublie les empreintes des fichiers montés. À appeler quand le conteneur est
+ * remplacé : sans cela, un fichier au contenu identique à l'ancien (la quasi
+ * totalité du socle) serait jugé « inchangé » et ne serait jamais écrit dans le
+ * nouveau conteneur.
+ */
+export function resetFileHashes(): void {
+  fileHashMap.clear();
+}
+
 async function calculateMD5(content: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(content);

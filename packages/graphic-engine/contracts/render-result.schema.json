@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "documentType": {
+      "type": "string",
+      "enum": [
+        "business-plan",
+        "pitch-deck",
+        "brand-charter",
+        "business-card",
+        "flyer",
+        "chart",
+        "report"
+      ]
+    },
+    "format": {
+      "type": "string",
+      "enum": [
+        "a4-portrait",
+        "slide-16x9",
+        "page-a4",
+        "page-a4-landscape",
+        "card-landscape",
+        "card-portrait",
+        "flyer-square",
+        "flyer-story",
+        "flyer-banner",
+        "flyer-post",
+        "flyer-a4",
+        "cover-facebook",
+        "cover-linkedin",
+        "cover-x",
+        "cover-youtube",
+        "avatar-square",
+        "chart-free"
+      ]
+    },
+    "sectionId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,95}$"
+    },
+    "html": {
+      "type": "string"
+    },
+    "head": {
+      "type": "string"
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string"
+        },
+        "components": {
+          "type": "string"
+        },
+        "specHash": {
+          "type": "string"
+        },
+        "tokensHash": {
+          "type": "string"
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "engine",
+        "components",
+        "specHash",
+        "tokensHash",
+        "pattern",
+        "fingerprint"
+      ],
+      "additionalProperties": false
+    },
+    "measured": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "fill": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1.5
+        },
+        "overflowPx": {
+          "type": "number"
+        },
+        "minContrast": {
+          "type": "number"
+        },
+        "silhouette": {
+          "type": "string",
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "repairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 48
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "by": {
+            "type": "string",
+            "enum": [
+              "code",
+              "agent"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "detail",
+          "by"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocking",
+              "advisory"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 400
+          },
+          "fix": {
+            "type": "string",
+            "maxLength": 240
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "usage": {
+      "type": "object",
+      "properties": {
+        "agentCalls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "agentCalls",
+        "inputTokens",
+        "outputTokens",
+        "ms"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "documentType",
+    "format",
+    "html",
+    "provenance",
+    "repairs",
+    "issues",
+    "usage"
+  ],
+  "additionalProperties": false,
+  "title": "IDEM — RenderResult",
+  "$comment": "Version 1.0 — généré depuis src/contracts (zod). Ne pas modifier à la main."
+}

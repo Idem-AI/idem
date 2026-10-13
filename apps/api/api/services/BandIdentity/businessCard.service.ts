@@ -1,13 +1,7 @@
-import { atLeast, CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
-import { CreativeOrchestrator, runtimeCall } from '../creativity/orchestrator';
-import { brandSheet } from '../creativity/agent-io';
-import { CARD_STRUCTURES, pickCardLayout, renderCardBack, renderCardFront } from './businessCardLayouts';
-import { cardConceptTask, cardLayoutTask, cardStructureTask, cardTuningTask } from './businessCardCreative';
-import { pageGfx } from '../../../../ivision/core/src/visual/poster/kit/page';
-import { contrastRatio } from '../design/color';
+import { CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
+import { cardFaces, sectionHtml } from '@idem/graphic-engine';
 import crypto from 'crypto';
 import logger from '../../config/logger';
-import { AI_CONFIG } from '../../config/ai.config';
 import { ProjectModel } from '../../models/project.model';
 import { SectionModel } from '../../models/section.model';
 import {
@@ -22,35 +16,28 @@ import {
   BusinessCardField,
 } from '../../models/businessCard.model';
 import { GenericService } from '../common/generic.service';
-import { AIChatMessage, PromptConfig, PromptService } from '../prompt.service';
-import { parseLlmJson } from '../../utils/llm-json.util';
-import { sanitizeSectionHtml } from '../../utils/sanitize-section-html';
+import { PromptService } from '../prompt.service';
 import { interpolateBusinessCard } from '../../utils/business-card-template';
 import { SupportedLanguage } from '../../utils/request-language';
-import { buildBusinessCardPrompt } from './prompts/business-card-generation.prompt';
-import { buildArtDirectionBlock } from '../../utils/art-direction.util';
 import { businessCardRenderService } from './businessCardRender.service';
+import { composeGraphicPage, openGraphicDocument } from '../graphic/graphic.service';
 
-/** Réponse attendue du modèle. */
-interface GeneratedTemplate {
-  name?: string;
-  concept?: string;
-  frontHtml?: string;
-  backHtml?: string;
-  fields?: string[];
-}
+/** Le nom d'un gabarit, d'après la composition de son recto. */
+const CARD_NAMES: Record<string, string> = {
+  classic: 'Classique',
+  centered: 'Centrée',
+  split: 'Panneau de marque',
+  rail: 'Rail',
+  minimal: 'Minimale',
+  band: 'Bandeau',
+};
 
 export interface GenerateTemplateOptions {
   orientation?: BusinessCardOrientation;
-  /** Direction artistique libre saisie par l'utilisateur. */
+  /** Direction artistique libre saisie par l'utilisateur (lue par les agents du moteur, crans High+). */
   styleBrief?: string;
   language?: SupportedLanguage;
-  /**
-   * La jauge de créativité. Low → Max : le CODE compose recto et verso
-   * (businessCardLayouts.ts), les agents décident selon le cran. Ultra : l'IA écrit les deux
-   * faces en HTML, chaque face est contrôlée à l'impression, et retombe sur le rendu Max si
-   * elle échoue.
-   */
+  /** La jauge de créativité : le moteur graphique explore, choisit et compose selon le cran. */
   creativity?: CreativityLevel;
 }
 
@@ -117,132 +104,45 @@ export class BusinessCardService extends GenericService {
     }
 
     const level = normalizeCreativity(options.creativity);
-    const palette = {
-      primary: branding?.colors?.colors?.primary || '#111827',
-      secondary: branding?.colors?.colors?.secondary || '#374151',
-      accent: branding?.colors?.colors?.accent || '#2563EB',
-      background: branding?.colors?.colors?.background || '#FFFFFF',
-      text: branding?.colors?.colors?.text || '#111827',
-    };
-    const typography = {
-      primaryFont: branding?.typography?.primaryFont || 'Archivo',
-      secondaryFont: branding?.typography?.secondaryFont || 'IBM Plex Sans',
-    };
-    const logos = this.collectLogoUrls(branding);
-    const width = orientation === 'landscape' ? 85 : 55;
-    const height = orientation === 'landscape' ? 55 : 85;
-    const sheet = brandSheet({
-      brandName: project.name || 'Brand',
-      businessType: project.type || project.scope,
-      palette,
-      fonts: { display: typography.primaryFont, body: typography.secondaryFont },
-      art: branding?.artDirection,
+    // LE GABARIT, composé par le moteur graphique (@idem/graphic-engine) : recto et verso tirés dans son
+    // répertoire de cartes, aux cotes d'impression (85 × 55 mm), mesurés et réparés — jamais de texte dans
+    // la marge de sécurité. Il est PARTAGÉ entre les porteurs : chaque champ sort en `{{champ}}` dans un
+    // élément `data-field` (l'aperçu et l'impression interpolent, puis retirent les lignes vides).
+    const keywords = (options.styleBrief ?? '')
+      .split(/[,\n;]+/)
+      .map((k) => k.trim().slice(0, 48))
+      .filter(Boolean)
+      .slice(0, 6);
+    const graphic = await openGraphicDocument({
+      project,
+      documentType: 'business-card',
+      format: orientation === 'landscape' ? 'card-landscape' : 'card-portrait',
+      // Une régénération propose une autre carte : la graine change à chaque demande.
+      seed: `card:${projectId}:${crypto.randomUUID()}`,
+      creativity: level,
+      sections: [
+        { id: 'front', role: 'card-face' },
+        { id: 'back', role: 'card-face' },
+      ],
+      documentLabel: 'Carte de visite',
+      bindings: 'markers',
+      keywords,
+      userId,
     });
-    const orchestrator = new CreativeOrchestrator({ level, call: runtimeCall({ userId, projectId, element: 'business_card' }) });
-
-    // Le CODE compose (crans Low → Max) : structure, recto/verso, réglages bornés selon le cran.
-    const composeByCode = async () => {
-      const seed = crypto.randomInt(1, 2 ** 31 - 1);
-      const structure = (await orchestrator.run(cardStructureTask(sheet, pickCardLayout(seed).structure))).value;
-      const base = pickCardLayout(seed, structure);
-      const chosen = (await orchestrator.run(cardLayoutTask(sheet, structure, { front: base.front, back: base.back }))).value;
-      const surfaces = (['primary', 'secondary', 'accent'] as const).filter((k) => /^#[0-9a-f]{6}$/i.test(palette[k]));
-      const tuning = (await orchestrator.run(cardTuningTask(sheet, [...surfaces]))).value;
-      const input = {
-        width,
-        height,
-        brandName: project.name || 'Brand',
-        palette,
-        logos: { onLight: logos.withTextLight, onDark: logos.withTextDark, iconLight: logos.iconLight, iconDark: logos.iconDark },
-        tuning,
-      };
-      return {
-        name: `${CARD_STRUCTURES[structure].summary.split(',')[0]}`,
-        concept: `${structure} · ${chosen.front} / ${chosen.back}`,
-        frontHtml: renderCardFront(chosen.front, input),
-        backHtml: renderCardBack(chosen.back, input),
-        layout: `${chosen.front}/${chosen.back}`,
-      };
+    const faces = cardFaces({ binding: 'markers' });
+    const front = await composeGraphicPage(graphic, faces.front, { index: 1, total: 2 });
+    const back = await composeGraphicPage(graphic, faces.back, { index: 2, total: 2 });
+    await graphic.remember();
+    const frontHtml = sectionHtml(front);
+    const backHtml = sectionHtml(back);
+    const frontPattern = front.spec.pattern.id;
+    const backPattern = back.spec.pattern.id;
+    logger.info('[BusinessCard] template composed', { projectId, orientation, creativity: level, front: frontPattern, back: backPattern });
+    const parsed = {
+      name: CARD_NAMES[frontPattern.replace(/^card\.front-/, '')] ?? 'Carte de visite',
+      concept: `${frontPattern} / ${backPattern}`,
+      layout: `${frontPattern}/${backPattern}`,
     };
-
-    let parsed: GeneratedTemplate & { layout?: string } = {};
-    let frontHtml = '';
-    let backHtml = '';
-    if (atLeast(level, 'ultra')) {
-      // Cran Ultra : l'idée d'abord (agent concept), puis l'IA écrit les deux faces.
-      const concept = (await orchestrator.run(cardConceptTask(sheet))).value;
-      const prompt = buildBusinessCardPrompt({
-        projectName: project.name || 'Brand',
-        projectDescription: project.longDescription || project.description || '',
-        industry: project.type || project.scope || 'general',
-        orientation,
-        width,
-        height,
-        colors: palette,
-        typography,
-        logos,
-        styleBrief: [options.styleBrief?.trim(), concept ? `Creative direction: ${concept}` : ''].filter(Boolean).join('\n') || undefined,
-        // La carte est tenue à côté du logo : c'est le support où un écart avec
-        // la direction artistique de la marque se voit le plus.
-        artDirectionBlock: buildArtDirectionBlock(branding?.artDirection, { medium: 'poster' }),
-      });
-
-      const config: PromptConfig = {
-        provider: AI_CONFIG.branding.businessCard.provider,
-        modelName: AI_CONFIG.branding.businessCard.modelName,
-        fallbackModels: AI_CONFIG.branding.businessCard.fallbackModels,
-        llmOptions: { ...AI_CONFIG.branding.businessCard.llmOptions },
-        userId,
-        promptType: 'branding_business_card',
-        language: options.language,
-      };
-      const messages: AIChatMessage[] = [{ role: 'user', content: prompt }];
-
-      logger.info('[BusinessCard] generating template (ultra)', { projectId, orientation });
-      const raw = await this.promptService.runPrompt(config, messages).catch(() => '');
-      parsed = this.parseTemplateResponse(raw);
-      // Les textures nommées par l'IA (`<x-gfx>`) sont dessinées ICI par le code, aux cotes de la
-      // carte : l'IA ne trace jamais un motif elle-même (un SVG écrit à la main coûte des centaines
-      // de jetons et sort de la charte). `tone` est le ton clair ou sombre de la face.
-      const texture = (html: string, face: string): string => {
-        if (!/<x-gfx/i.test(html)) return html;
-        const dark = contrastRatio('#ffffff', palette.primary) > contrastRatio('#111111', palette.primary);
-        const kit = pageGfx({
-          width: `${width}mm`,
-          height: `${height}mm`,
-          tokens: { tone: dark ? '#ffffff' : '#000000', primary: palette.primary, secondary: palette.secondary, accent: palette.accent },
-          surface: palette.primary,
-          ink: dark ? '#ffffff' : '#111111',
-          primary: dark ? '#ffffff' : '#000000',
-          secondary: dark ? '#ffffff' : '#000000',
-        });
-        const out = kit.expand(html, { max: 1 });
-        if (out.issues.length) logger.warn('[BusinessCard] texture of the Ultra card sent back', { projectId, face, issues: out.issues.slice(0, 2) });
-        return out.html;
-      };
-      frontHtml = texture(sanitizeSectionHtml(parsed.frontHtml ?? ''), 'front');
-      backHtml = texture(sanitizeSectionHtml(parsed.backHtml ?? ''), 'back');
-      // Chaque face est contrôlée à l'impression ; une face défaillante fait retomber la carte sur le rendu Max.
-      const issues = frontHtml
-        ? [
-            ...(await businessCardRenderService.inspect(frontHtml, orientation, typography).catch(() => ['render failed'])),
-            ...(backHtml ? await businessCardRenderService.inspect(backHtml, orientation, typography).catch(() => ['render failed']) : []),
-          ]
-        : ['no front face'];
-      if (issues.length) {
-        logger.warn('[BusinessCard] Ultra card rejected, falling back to the code composition', { projectId, issues: issues.slice(0, 4) });
-        const byCode = await composeByCode();
-        parsed = byCode;
-        frontHtml = byCode.frontHtml;
-        backHtml = byCode.backHtml;
-      }
-    } else {
-      const byCode = await composeByCode();
-      parsed = byCode;
-      frontHtml = byCode.frontHtml;
-      backHtml = byCode.backHtml;
-    }
-    if (!frontHtml) throw new Error('TEMPLATE_GENERATION_FAILED');
 
     const sections: SectionModel[] = [
       {
@@ -267,12 +167,12 @@ export class BusinessCardService extends GenericService {
       ...existing,
       template: {
         id: `card-tpl-${crypto.randomUUID()}`,
-        name: parsed?.name?.trim() || 'Business card',
-        concept: parsed?.concept?.trim() || '',
+        name: parsed.name,
+        concept: parsed.concept,
         orientation,
         creativity: level,
         layout: parsed.layout,
-        fields: this.normalizeFields(parsed?.fields, `${frontHtml}${backHtml}`),
+        fields: this.normalizeFields(`${frontHtml}${backHtml}`),
         createdAt: existing.template?.createdAt ?? new Date(),
         updatedAt: new Date(),
       },
@@ -285,75 +185,15 @@ export class BusinessCardService extends GenericService {
     }));
   }
 
-  /**
-   * Lit la réponse du modèle.
-   *
-   * Le format demandé est délimité par des marqueurs `===NAME===` plutôt que
-   * du JSON : deux faces de HTML Tailwind dans des chaînes JSON, ce sont des
-   * centaines de guillemets à échapper, et un seul raté rendait TOUTE la
-   * réponse inparsable (`parseLlmJson: all parse attempts failed`). Les
-   * marqueurs n'ont pas ce problème. Le repli JSON reste là pour les modèles
-   * qui ignorent la consigne.
-   */
-  private parseTemplateResponse(raw: string): GeneratedTemplate {
-    const text = (raw ?? '').trim();
-
-    const block = (marker: string, next: string | null): string | undefined => {
-      const pattern = next
-        ? new RegExp(`={2,}\\s*${marker}\\s*={2,}([\\s\\S]*?)={2,}\\s*${next}\\s*={2,}`, 'i')
-        : new RegExp(`={2,}\\s*${marker}\\s*={2,}([\\s\\S]*)$`, 'i');
-      const match = text.match(pattern);
-      return match ? match[1].trim() : undefined;
-    };
-
-    const frontHtml = block('FRONT', 'BACK');
-    if (frontHtml) {
-      return {
-        name: block('NAME', 'CONCEPT'),
-        concept: block('CONCEPT', 'FRONT'),
-        frontHtml,
-        backHtml: block('BACK', null),
-      };
-    }
-
-    const json = parseLlmJson<GeneratedTemplate>(text);
-    if (json?.frontHtml) return json;
-
-    logger.warn('[BusinessCard] neither the delimited format nor JSON could be read');
-    return {};
-  }
-
-  /**
-   * Champs réellement exploitables : ceux annoncés par le modèle, recoupés avec
-   * les marqueurs présents dans le HTML (le modèle se trompe parfois dans sa
-   * liste, le HTML fait foi).
-   */
-  private normalizeFields(declared: string[] | undefined, html: string): BusinessCardField[] {
+  /** Champs réellement exploitables : les marqueurs présents dans le gabarit (le HTML fait foi). */
+  private normalizeFields(html: string): BusinessCardField[] {
     const inHtml = new Set<string>();
     const matcher = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
     let match: RegExpExecArray | null;
     while ((match = matcher.exec(html)) !== null) inHtml.add(match[1]);
 
-    const fields = BUSINESS_CARD_FIELDS.filter(
-      (field) => inHtml.has(field) || declared?.includes(field)
-    );
+    const fields = BUSINESS_CARD_FIELDS.filter((field) => inHtml.has(field));
     return fields.length > 0 ? [...fields] : ['fullName'];
-  }
-
-  /** Extrait les URLs PNG des déclinaisons du logo (chaînes vides si absentes). */
-  private collectLogoUrls(branding: any) {
-    const urls = branding?.logo?.assetUrls;
-    const primary = urls?.primary || '';
-    const pick = (value?: string) => (value && String(value).trim()) || primary;
-    return {
-      primary,
-      withTextLight: pick(urls?.withText?.lightBackground),
-      withTextDark: pick(urls?.withText?.darkBackground),
-      withTextMono: pick(urls?.withText?.monochrome),
-      iconLight: pick(urls?.iconOnly?.lightBackground || urls?.icon),
-      iconDark: pick(urls?.iconOnly?.darkBackground || urls?.icon),
-      iconMono: pick(urls?.iconOnly?.monochrome || urls?.icon),
-    };
   }
 
   // ---------------------------------------------------------------------------

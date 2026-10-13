@@ -2,6 +2,9 @@ import { ChatRequestOptions, CreateMessage, Message } from "ai";
 import { execList } from "../useMessageParser";
 import { TFunction } from "i18next";
 import { ensureProjectIsRunnable } from "./ensureRunnable";
+import { stabilizeWorkspace } from "./stabilize";
+import { ensurePreviewRunning } from "./ensurePreview";
+import { internalMessage } from "@/utils/stepLabels";
 
 
 /**
@@ -14,10 +17,12 @@ export const checkFinish = (text: string, append?: (message: Message | CreateMes
   const closeCount = (text.match(/<\/boltArtifact>/g) || []).length;
 
   if (openCount !== closeCount) {
-    append({
-      content: t('chat.regenerate_incomplete'),
-      role: 'user',
-    })
+    // La consigne de reprise part hors conversation ; l'utilisateur lit une
+    // ligne d'état qui dit ce qui se passe.
+    append(
+      { content: internalMessage(t('chat.resumingIncomplete')), role: 'user' },
+      { body: { followUp: t('chat.regenerate_incomplete') } }
+    );
   }
   // Both opening and closing tags must exist and be equal in number
   return openCount === closeCount;
@@ -66,6 +71,17 @@ export const checkExecList = (messages: Message[]) => {
       console.warn("[checkExecList] could not verify the project manifest:", error);
     }
 
+    // Composition de la page et réparations déterministes AVANT le démarrage :
+    // c'est ce qui fait qu'un oubli du modèle — un import mort, un paquet
+    // absent, une icône inventée — ne se solde plus par un aperçu vide.
+    // Les installations qui en sortent passent devant le démarrage.
+    try {
+      const { commands } = await stabilizeWorkspace();
+      list.push(...commands.filter((command) => !list.includes(command)));
+    } catch (error) {
+      console.warn("[checkExecList] stabilisation impossible :", error);
+    }
+
     if (!list.some(isInstall)) {
       list.push(INSTALL_COMMAND);
     }
@@ -76,5 +92,9 @@ export const checkExecList = (messages: Message[]) => {
 
     console.log("[checkExecList] commands", list);
     execList.run(list);
+
+    // Puis on vérifie que ça a bien donné un aperçu, et pas seulement que les
+    // commandes sont parties.
+    void ensurePreviewRunning(list.find(isStart) ?? START_COMMAND);
   }, 1000);
 };

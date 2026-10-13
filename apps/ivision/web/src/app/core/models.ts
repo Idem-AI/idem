@@ -143,6 +143,10 @@ export interface VideoRender {
   posterUrl?: string;
   error?: string;
   renderedAt?: string;
+  /** Rendu fait d'avance, pas encore réclamé (se télécharge par « Télécharger »). */
+  prerender?: boolean;
+  /** Le fichier ne reflète plus la vidéo (retouchée depuis). */
+  stale?: boolean;
 }
 
 export interface MotionVideo {
@@ -150,7 +154,14 @@ export interface MotionVideo {
   title: string;
   status: 'draft' | 'rendering' | 'ready' | 'failed';
   scope: { durationSec: number; formats: string[]; quality: string };
-  storyboard: { scenes: VideoScene[]; style: string; direction?: string; creative?: { reference?: { shots: number; summary: string } } };
+  storyboard: {
+    scenes: VideoScene[];
+    style: string;
+    direction?: string;
+    creative?: { reference?: { shots: number; summary: string } };
+    /** La vidéo comparée à la demande : ce qui a été suivi, ce qui ne l'a pas été (clés d'interface). */
+    fidelity?: { mode: 'script' | 'brief'; language: string; codes: { key: string; params?: Record<string, string | number> }[] };
+  };
   brief: { message: string; musicMood: string; sfx?: boolean; voice?: boolean; language?: string };
   music?: { title: string; artist: string };
   sfx?: { enabled: boolean };

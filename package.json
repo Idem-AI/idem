@@ -17,6 +17,7 @@
     "packages/shared-auth-client",
     "packages/shared-styles",
     "packages/shared-loader",
+    "packages/graphic-engine",
     "packages/shared-seo",
     "packages/shared-trusted-by"
   ],
@@ -35,6 +36,9 @@
     "build:ivision-web": "npm run build --prefix apps/ivision/web",
     "typecheck:ivision": "tsc --noEmit -p apps/ivision/core/tsconfig.json && tsc --noEmit -p apps/ivision/api/tsconfig.json && npm run typecheck --prefix apps/ivision/web",
     "check:ivision": "npm run check --prefix apps/ivision/core && npm run check --prefix apps/ivision/api",
+    "typecheck:graphic-engine": "npm run typecheck --workspace=@idem/graphic-engine",
+    "check:graphic-engine": "npm run check --workspace=@idem/graphic-engine",
+    "bench:graphic-engine": "npm run bench --workspace=@idem/graphic-engine",
     "obs:up": "docker compose -f infra/observability/docker-compose.yml up -d",
     "obs:down": "docker compose -f infra/observability/docker-compose.yml down",
     "obs:demo": "node infra/observability/scripts/emit-test-logs.mjs --critical",

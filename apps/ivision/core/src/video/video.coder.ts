@@ -70,7 +70,7 @@ const MANIFEST_CORE = [
 - The component is a PURE FUNCTION OF TIME: everything visible is computed from \`useLocalTime()\` (seconds since the scene starts). No state, no effects, no refs, no timers, no randomness (use hash(n) for pseudo-random), no Date, no fetch, no document/window.
 - Fill the whole frame (the scene element is position:absolute; inset:0). Absolutely positioned layers are welcome.`,
   `DATA
-- const s = useScene(): s.key, s.sceneId, s.slots (THE TEXTS — always read texts from s.slots, never write copy yourself), s.duration (s), s.start, s.icons (array of line-icon SVG strings or undefined: the icon of each benefit, otherwise icons matched to this scene's own texts — animate them with IconMotion), s.image (photo URL or undefined), s.motion.anchor, s.accent.
+- const s = useScene(): s.key, s.sceneId, s.slots (THE TEXTS — always read texts from s.slots, never write copy yourself), s.duration (s), s.start, s.icons (array of line-icon SVG strings or undefined: the icon of each benefit, otherwise icons matched to this scene's own texts — animate them with IconMotion), s.image (photo or screenshot URL, or undefined), s.video (filmed clip URL, or undefined), s.props (texts shown INSIDE an interface: a typed request, a folder and its files — or undefined), s.motion.anchor, s.accent.
 - const { data, u, horizontal, ease, easeIn, back } = useEngine(): u = 1% of the frame's short side in px (size everything in u), horizontal = landscape frame, data.brandName, data.logo.icon / data.logo.onLight / data.logo.onDark (image URLs or undefined), data.direction.pacing.enter (entrance duration s), data.direction.pacing.groupStagger (s), data.format.
 - const lt = useLocalTime(); const p = useSceneProgress() (0→1 over the scene, for slow drifts); const beat = useBeatPulse() (1 on each music beat, decays to 0); const exitAt = useExitAt() (local time when elements must leave, or null); const out = useExitFactor() (0→1 during the exit).`,
   `COLOURS & TYPE (brand charter of THIS scene — never hard-code colours)
@@ -90,6 +90,8 @@ const MANIFEST_CORE = [
 - a shape turning into another, an icon into another → <Morph>, <IconMotion mode="morph" to=… />
 - an animated icon or brand logo (s.icons, s.brands) → <IconMotion svg=… mode="draw|stagger|pop|pulse|wiggle" />
 - numbers, charts, maps, gauges → Odometer, ChartJs, DataArc, GrowArea, AfricaMap · hand-made strokes → Sketch, Brush
+- the shot's filmed clip or photo (s.video / s.image) → <SceneMedia /> fills its box (position it; the engine plays the clip frame by frame — never write <video> yourself)
+- the brand's product interface (s.image is a SCREENSHOT) → <ScreenFrame src={s.image} url={s.slots.url} style={{ position: 'absolute', left, top, width, height }} /> (a browser window that loads, then slowly pushes in); texts inside an interface → <TypedPrompt text=… /> and <FileList items={[…]} title=… /> as ScreenFrame children (when there is no screenshot)
 - text effects → <Kinetic technique=… /> (24 techniques)
 Write your own layer with plain divs only when NO brick fits. Hand-written decorative SVG paths and "abstract" blobs made of many divs are rejected by the lint: they are what makes a scene look random.`,
   `MOTION
@@ -100,6 +102,7 @@ Write your own layer with plain divs only when NO brick fits. Hand-written decor
 ];
 const MANIFEST_RULES = `RULES (checked by code; a scene that breaks one is rejected)
 - Every text of s.slots must be fully on screen and readable before the last 0.6 s of the scene; nothing outside the frame.
+- When the shot has a clip or a photo (s.video / s.image), it MUST be visible (a large part of the frame): it is what the client asked to see.
 - Professional motion design: 2–4 depth layers moving at different speeds, a clear focal point, generous negative space, one accent colour, eased motion (no linear), entrances 0.3–1.2 s, the main text settles early and HOLDS.
 - No CSS animations/transitions/@keyframes (time drives everything). No 3D transforms (perspective, rotateX/Y/Z, translateZ). Blur radius never negative: blur(\${Math.max(0, x)}px).
 - Decorative SVG is not hand-written: no <path d="…"> longer than 60 characters; use the bricks above (Sketch, Brush, Morph, IconMotion, Shader…).
@@ -266,20 +269,64 @@ export const KIT_NAMES = new Set([
   'numbersIn', 'slotNumbers', 'percentIn', 'countriesIn',
   'ChartJs', 'useViz', 'DataArc', 'GrowArea', 'AfricaMap', 'VoronoiField',
   'Sketch', 'Brush', 'useNoise', 'FlowField', 'Flat3D', 'Particles', 'Shader', 'ImageFx', 'LiquidGlass', 'Gradient', 'Network', 'Morph', 'IconMotion', 'Bg',
+  'SceneMedia', 'ScreenFrame', 'TypedPrompt', 'FileList', 'BrandSplash',
+  // Noms usuels des mêmes courbes (alias du kit) : un plan n'est plus refusé pour `easeOut`.
+  'easeOut', 'easeOutCubic', 'easeInCubic', 'easeInOut', 'easeInOutCubic', 'easeOutBack', 'smoothstep', 'linear', 'lerp', 'inverseLerp', 'interpolate',
 ]);
 const REACT_NAMES = new Set(['React', 'useMemo', 'Fragment']);
 const MAX_SOURCE = 16000;
 
 type AcornNode = { type: string; start: number; end: number; [k: string]: any };
 
+/** Le code sans ses commentaires (les chaînes restent). */
+export function stripComments(code: string): string {
+  return String(code || '')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1');
+}
+
+/**
+ * Réparations MÉCANIQUES d'un plan, avant tout contrôle : ce qui n'est qu'une maladresse d'écriture
+ * (une propriété `transition: '…'` laissée dans un style, `useTime` pour `useLocalTime`) se corrige
+ * sans repartir au modèle. Le sens du plan n'est jamais touché ; le reste passe au lint.
+ */
+export function autoFixSceneCode(tsx: string): { code: string; fixes: string[] } {
+  let code = String(tsx || '');
+  const fixes: string[] = [];
+  // Une transition ou animation CSS en chaîne dans un objet de style : retirée (le temps anime tout).
+  const css = /(^|[,{\s])(?:transition|animation)(?:[A-Z]\w*)?\s*:\s*(['"`])(?:(?!\2)[^\n])*\2\s*,?/g;
+  if (css.test(code)) {
+    code = code.replace(css, '$1');
+    fixes.push('css-transition-removed');
+  }
+  // Les noms d'à côté : le bon nom du kit.
+  const ALIASES: Record<string, string> = { useTime: 'useLocalTime', useProgress: 'useSceneProgress', useExit: 'useExitFactor', Typewriter: 'TypedPrompt' };
+  code = code.replace(/import\s*\{([^}]*)\}\s*from\s*(['"])@idem\/kit\2/g, (all, names: string, q: string) => {
+    const fixed = names
+      .split(',')
+      .map((n) => n.trim())
+      .filter(Boolean)
+      .map((n) => {
+        const [name, alias] = n.split(/\s+as\s+/);
+        if (ALIASES[name] && !alias) {
+          fixes.push(`alias:${name}`);
+          return `${ALIASES[name]} as ${name}`;
+        }
+        return n;
+      });
+    return `import { ${fixed.join(', ')} } from ${q}@idem/kit${q}`;
+  });
+  return { code, fixes };
+}
+
 /** Les défauts du code (vide = accepté). Le code est d'abord ramené en JavaScript par esbuild. */
 export async function lintSceneCode(tsx: string, slotKeys: string[]): Promise<string[]> {
   const issues: string[] = [];
   if (tsx.length > MAX_SOURCE) issues.push(`the component is too long (${tsx.length} characters, max ${MAX_SOURCE})`);
   if (!/export\s+default\b/.test(tsx)) issues.push('missing `export default function Scene()`');
-  if (/@keyframes|\banimation\s*:|\btransition\s*:/i.test(tsx)) issues.push('CSS animations/transitions are forbidden: compute every style from time');
-  if (/perspective\s*\(|rotate[XYZ]\s*\(|rotate3d|translateZ|translate3d|matrix3d/.test(tsx)) issues.push('3D transforms are forbidden');
-  if (/https?:\/\//i.test(tsx)) issues.push('no URL may be written in the code (use s.image, data.logo)');
+  // (La CSS animée et la 3D se lisent plus bas, sans les commentaires : un commentaire « Transition: … »
+  // faisait refuser des plans entiers, trois tours de correction n'y changeaient rien.)
+  if (/https?:\/\//i.test(stripComments(tsx))) issues.push('no URL may be written in the code (use s.image, data.logo)');
   // La boîte à outils d'abord : un tracé SVG écrit à la main est le signe d'une forme « abstraite » inventée.
   if ([...tsx.matchAll(/\bd\s*=\s*["'`]([^"'`]{60,})["'`]/g)].length) issues.push('a long hand-written SVG path was found: do not draw abstract shapes by guess — use <Sketch>, <Brush>, <Morph>, <IconMotion>, <Shader>, <Particles> or <Flat3D> (TOOLBOX FIRST)');
   // Les imports sont lus sur la SOURCE : esbuild retire ceux qui ne servent pas avant l'analyse.
@@ -309,6 +356,9 @@ export async function lintSceneCode(tsx: string, slotKeys: string[]): Promise<st
     issues.push(`syntax error: ${first ? `${first.text} (line ${first.location?.line})` : error?.message || 'invalid TSX'}`);
     return issues;
   }
+
+  // Le JavaScript compilé n'a plus de commentaires : la 3D se cherche dans le code réel.
+  if (/perspective\s*\(|rotate[XYZ]\s*\(|rotate3d|translateZ|translate3d|matrix3d/.test(js)) issues.push('3D transforms are forbidden');
 
   const acorn = require('acorn');
   const walk = require('acorn-walk');
@@ -394,7 +444,19 @@ export async function lintSceneCode(tsx: string, slotKeys: string[]): Promise<st
         if (!node.computed && node.object.type === 'MemberExpression' && !node.object.computed && node.object.property.name === 'slots') usedSlots.add(node.property.name);
         break;
       }
+      case 'Property': {
+        // Une propriété de style animée par le navigateur (transition, animation…) avec une vraie valeur.
+        const key = node.key?.type === 'Identifier' ? node.key.name : node.key?.type === 'Literal' ? String(node.key.value) : '';
+        const v = node.value;
+        const value = v?.type === 'Literal' ? String(v.value ?? '') : v?.type === 'TemplateLiteral' ? 'template' : v ? 'expression' : '';
+        if (/^(?:transition|animation)(?:[A-Z]\w*)?$|^-webkit-(?:transition|animation)/.test(key) && value && !/^(?:none|0s?|)$/i.test(value.trim())) problems.add(`CSS ${key.startsWith('anim') ? 'animations' : 'transitions'} are forbidden (style property \`${key}\`): compute every style from time`);
+        break;
+      }
+      case 'TemplateElement':
+        if (/@keyframes|\banimation\s*:|\btransition\s*:/i.test(node.value?.cooked || '')) problems.add('CSS animations/transitions are forbidden (in a CSS string): compute every style from time');
+        break;
       case 'Literal':
+        if (typeof node.value === 'string' && /@keyframes|\banimation\s*:\s*\S|\btransition\s*:\s*(?!none)\S/i.test(node.value)) problems.add('CSS animations/transitions are forbidden (in a CSS string): compute every style from time');
         if (typeof node.value === 'string' && node.value.split(/\s+/).length >= 4 && /[a-zà-ÿ]{3,}\s+[a-zà-ÿ]{3,}/i.test(node.value) && !/var\(--|calc\(|translate|scale|\d+%/.test(node.value)) problems.add(`copy written in the code ("${node.value.slice(0, 40)}…"): read texts from s.slots`);
         break;
     }
@@ -438,6 +500,8 @@ export interface CheckTarget {
   start: number;
   duration: number;
   texts: string[];
+  /** Le plan porte un clip ou une photo : ils doivent se voir (au milieu du plan). */
+  media?: boolean;
 }
 
 /**
@@ -466,6 +530,32 @@ export async function inspectRenderedScene(page: Page, target: CheckTarget, size
   const forward: Buffer[] = [];
   for (const t of times) forward.push(await shoot(t));
   if (capture) capture.frames = forward.slice();
+
+  // Le média du plan (clip filmé, photo, capture du produit) se voit au milieu du plan.
+  if (target.media) {
+    await page.evaluate((x: number) => (window as any).__IDEM_VIDEO__.seek(x), times[1]);
+    const share = await page.evaluate(
+      (key: string, w: number, h: number) => {
+        const section = document.querySelector(`[data-custom-scene="${key}"]`)?.closest('section');
+        if (!section) return 0;
+        let best = 0;
+        for (const el of Array.from(section.querySelectorAll<HTMLElement>('img, video, canvas'))) {
+          const visible = (el as any).checkVisibility ? (el as any).checkVisibility({ opacityProperty: true, visibilityProperty: true }) : true;
+          if (!visible) continue;
+          const r = el.getBoundingClientRect();
+          const wv = Math.max(0, Math.min(w, r.right) - Math.max(0, r.left));
+          const hv = Math.max(0, Math.min(h, r.bottom) - Math.max(0, r.top));
+          best = Math.max(best, (wv * hv) / (w * h));
+        }
+        return best;
+      },
+      target.key,
+      size.width,
+      size.height
+    );
+    if (share < 0.12) issues.push(`the shot's clip or photo is not visible (${Math.round(share * 100)} % of the frame at mid-shot): show it large with <SceneMedia /> (clip or photo) or <ScreenFrame src={s.image} /> (product screenshot)`);
+    await page.evaluate((x: number) => (window as any).__IDEM_VIDEO__.seek(x), times[times.length - 1]);
+  }
 
   // État posé (dernier instant) : erreurs, scène affichée, textes présents et dans le cadre.
   const probe = await page.evaluate(

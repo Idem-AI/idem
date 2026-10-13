@@ -992,6 +992,58 @@ class ProjectService {
   }
 
   /**
+   * Wipes what was generated for one product of a project, so it can be
+   * generated again from zero: the code, the conversation, and — for the site —
+   * the old "a generation exists" marker the workspace reads on open.
+   *
+   * What is deliberately kept: the project itself (brand, plan, configuration),
+   * and the deployment record. The published address belongs to the user; a
+   * regenerated product redeploys to the same place instead of getting a new URL.
+   * The other product is untouched: site and application have separate folders
+   * and separate documents.
+   */
+  async deleteProjectGeneration(
+    userId: string,
+    projectId: string,
+    product: ProjectProduct = 'site'
+  ): Promise<{ codeFiles: number; chat: boolean; marker: boolean }> {
+    if (!userId || !projectId) {
+      throw new Error('User ID and Project ID are required.');
+    }
+
+    // The project must exist for this user: every path below is already scoped
+    // by `userId`, but a typo'd id should be a clear 404 rather than a silent no-op.
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) {
+      throw Object.assign(new Error('Project not found'), { status: 404 });
+    }
+
+    const codeFiles = await storageService.deleteProjectCode(
+      productStorageId(projectId, product),
+      userId
+    );
+
+    const chat = await this.projectRepository.delete(
+      productDocId(projectId, 'chat', product),
+      `users/${userId}/appChats`
+    );
+
+    // Only the site ever used this marker; the application reads its own chat.
+    const marker =
+      product === 'site'
+        ? await this.projectRepository.delete(`${projectId}_generation`, `users/${userId}/generations`)
+        : false;
+
+    logger.info(`Generation deleted for project ${projectId} (${product}) and user ${userId}`, {
+      codeFiles,
+      chat,
+      marker,
+    });
+
+    return { codeFiles, chat, marker };
+  }
+
+  /**
    * Check if project branding is complete
    * Returns an object with completion status and missing elements
    */

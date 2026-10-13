@@ -8,22 +8,11 @@
  * section au catalogue sans prompt retomberait sur une consigne générique,
  * exactement le défaut que ce module supprime.
  *
- * Deux sorties, parce qu'il y a deux modes de rendu :
- *
- *   composeBrief()       mode GABARIT (défaut) — le modèle produit du contenu
- *                        structuré, le serveur produit la page.
- *   composeHtmlPrompt()  repli `IDEM_SECTION_TEMPLATE=off` — la section produit
- *                        sa page elle-même, et récupère alors les règles de
- *                        composition partagées.
- *
- * Les neuf `agent-*.prompt.ts` d'origine restent utilisés tels quels par les
- * sections historiques en mode repli : ils ont été écrits et éprouvés page par
- * page, et les remplacer par une composition générique serait une régression.
- * Les vingt-huit autres sections n'en ont jamais eu : elles reçoivent le prompt
- * HTML composé ci-dessous, qui porte les mêmes règles de page et de marque.
+ * Une sortie : `composeBrief()`, la consigne de CONTENU de la section. Le modèle
+ * produit du contenu structuré ; la page est composée par le moteur graphique
+ * (@idem/graphic-engine), qui ne demande jamais de mise en page à un modèle.
  */
 
-import type { BusinessPlanAudience } from '../structure/audience.types';
 import { audienceLens } from './audience-lens.prompt';
 import {
   BP_FRAME,
@@ -31,7 +20,6 @@ import {
   SectionPromptContext,
   SectionPromptSpec,
 } from './section-prompt.types';
-import { BP_BRAND_RULES, BP_HTML_RULES, bpPageFormat } from './_shared.prompt';
 import { OPENING_SECTION_PROMPTS } from './sections/opening.prompts';
 import { COMPANY_SECTION_PROMPTS } from './sections/company.prompts';
 import { MARKET_SECTION_PROMPTS } from './sections/market.prompts';
@@ -79,7 +67,7 @@ export const NEUTRAL_CONTEXT: SectionPromptContext = {
   total: 1,
 };
 
-/** Consigne de CONTENU d'une section, pour le mode gabarit. */
+/** Consigne de CONTENU d'une section. */
 export function composeBrief(
   key: string,
   ctx: SectionPromptContext = NEUTRAL_CONTEXT
@@ -87,41 +75,6 @@ export function composeBrief(
   const spec = BY_KEY.get(key);
   if (!spec) return undefined;
   return composeSectionBrief(spec, ctx, audienceLens(ctx.audience));
-}
-
-/**
- * Prompt COMPLET d'une section qui produit sa page elle-même.
- *
- * Il reprend la consigne de contenu et lui ajoute ce que le gabarit prenait en
- * charge : format de page, règles de marque, contraintes techniques. C'est la
- * seule sortie de ce module qui a le droit de décrire une composition, et
- * `check:prompts` le sait.
- */
-export function composeHtmlPrompt(
-  key: string,
-  ctx: SectionPromptContext = NEUTRAL_CONTEXT
-): string | undefined {
-  const spec = BY_KEY.get(key);
-  if (!spec) return undefined;
-
-  return [
-    composeSectionBrief(spec, ctx, audienceLens(ctx.audience)),
-    bpPageFormat(spec.fallbackPages ?? '1-2'),
-    BP_BRAND_RULES,
-    BP_HTML_RULES,
-    '<project_context>',
-  ].join('\n\n');
-}
-
-/**
- * Lentille du destinataire, exposée seule.
- *
- * La couverture est composée librement par un prompt écrit à la main : elle
- * n'a pas de spécification ici, mais elle a un lecteur, et une couverture de
- * dossier bancaire ne ressemble pas à une couverture de deck d'amorçage.
- */
-export function readerBlock(audience: BusinessPlanAudience): string {
-  return `<reader>\n${audienceLens(audience)}\n</reader>`;
 }
 
 export { BP_FRAME };

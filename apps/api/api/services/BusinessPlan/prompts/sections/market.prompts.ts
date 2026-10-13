@@ -13,7 +13,6 @@ export const MARKET_SECTION_PROMPTS: SectionPromptSpec[] = [
   {
     key: 'problem',
     name: 'Problem Statement',
-    fallbackPages: '1-2',
     objective: 'Make the problem impossible to argue with.',
     mustCover: `1. The problem stated as a fact about the world, not about the product.
 2. Who suffers it, how often, and what it costs them, in money or in time.
@@ -38,7 +37,6 @@ workarounds on cost and effectiveness.`,
   {
     key: 'opportunity',
     name: 'Opportunity',
-    fallbackPages: '2-3',
     objective: 'Show a market that is moving, and why now.',
     mustCover: `1. The problem, stated as a fact about the market, with who suffers it.
 2. Market context: the trends that are actually documented for this sector.
@@ -65,7 +63,6 @@ blocks, one "assumption" block for the sizing derivation.`,
   {
     key: 'market-analysis',
     name: 'Market Analysis',
-    fallbackPages: '2-3',
     objective: 'Describe the market as it is, not as the project wishes it were.',
     mustCover: `1. WHICH market: local, regional, national, international. Be specific.
 2. How it is evolving: overall volume, turnover, and the direction of travel
@@ -94,7 +91,6 @@ or two "prose" blocks, one "assumption" block for any derived figure.`,
   {
     key: 'target-audience',
     name: 'Target Audience',
-    fallbackPages: '1-2',
     objective: 'Describe real people, not segments.',
     mustCover: `1. Two or three personas: name, age, role, what they are trying to do, what
    blocks them today, what the product changes for them.
@@ -120,7 +116,6 @@ sizing, one "timeline" for the journey, one "prose" block for the triggers.`,
   {
     key: 'competition',
     name: 'Competitive Analysis',
-    fallbackPages: '1-2',
     objective: 'Place the project among the ones that already exist.',
     mustCover: `1. Direct competitors: who they are, their size, their offer, their price.
 2. Indirect competitors and substitutes, including "doing nothing".

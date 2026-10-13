@@ -65,6 +65,14 @@ const NO_CHANGE: EnsureResult = { patched: false, addedScripts: [], addedDepende
  * nothing was missing. Kept separate from the store so it can be reasoned about
  * and tested on its own.
  */
+/**
+ * Un projet Next n'a ni Vite ni `vite.config.js`, et ses scripts sont déjà
+ * complets. Y ajouter le nécessaire d'un projet Vite installerait un outil qui
+ * ne sert à rien et écraserait le script `dev`.
+ */
+const isNextProject = (manifest: Record<string, any>): boolean =>
+  !!manifest?.dependencies?.next || !!manifest?.devDependencies?.next;
+
 export function patchManifest(source: string): (EnsureResult & { content: string }) | null {
   let manifest: Record<string, any>;
 
@@ -76,6 +84,10 @@ export function patchManifest(source: string): (EnsureResult & { content: string
   }
 
   if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    return null;
+  }
+
+  if (isNextProject(manifest)) {
     return null;
   }
 

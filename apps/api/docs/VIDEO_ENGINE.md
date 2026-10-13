@@ -485,8 +485,9 @@ déroulé, les validations du directeur et la boucle de qualité sont décrits d
 (« Le film d'auteur ») et [MOTION_VIDEO.md](MOTION_VIDEO.md). Cette section dit ce que le moteur fait d'un plan
 écrit par l'IA.
 
-**Où vit le code.** Chaque plan reste une scène du storyboard (`statement`, `cta` ou `logo`), avec ses cases de
-texte, sa durée, sa surface et sa photo décidées par le directeur. Son composant est remplacé par le code du codeur,
+**Où vit le code.** Chaque plan reste une scène du storyboard (`footage` pour un plan filmé ou une photo, `screen`
+pour l'interface du produit, `statement`, `kinetic`, `cta` ou `logo`), avec ses cases de texte, sa durée, sa surface,
+son clip ou sa capture, et son rattachement au scénario (`scene.script`). Son composant est remplacé par le code du codeur,
 rangé dans `scene.code.tsx` (`agent: 'shotCoder'`). Montage, aperçu, retouches et export s'en servent tels quels. Le
 plan lit ses cases au rendu : une retouche de texte s'y affiche.
 
@@ -509,9 +510,16 @@ motif reconnu, le manifeste complet. Le lint, lui, accepte toujours tout le kit.
 | chiffres et pays des textes | `numbersIn`, `slotNumbers`, `percentIn`, `countriesIn` |
 | graphiques et data-viz | `ChartJs`, `useViz`, `DataArc`, `GrowArea`, `AfricaMap`, `VoronoiField` |
 | dessin et 3D plate | `Sketch`, `Brush`, `useNoise`, `FlowField`, `Flat3D` |
+| média du plan, interface du produit | `SceneMedia` (le clip ou la photo du plan, posé image par image), `ScreenFrame` (capture dans une fenêtre de navigateur qui se charge), `TypedPrompt`, `FileList`, `BrandSplash` (`engine/src/kit/Screen.tsx`) |
+| noms usuels des courbes | `easeOut`, `easeOutCubic`, `easeInCubic`, `easeInOut`, `easeInOutCubic`, `easeOutBack`, `smoothstep`, `linear`, `lerp`, `inverseLerp`, `interpolate` |
 
-Le lint refuse un nom que le kit n'exporte pas et le nomme au codeur. Cas vécu : `ease` et `back`, que les codeurs
-importaient spontanément, manquaient au kit et faisaient refuser des plans ; ils y sont désormais.
+Le lint refuse un nom que le kit n'exporte pas et le nomme au codeur. Cas vécus : `ease` et `back`, puis `easeOut`,
+que les codeurs importaient spontanément, manquaient au kit et faisaient refuser des plans ; ils y sont désormais.
+La CSS animée se lit dans l'arbre syntaxique (une propriété `transition`/`animation` avec une valeur, une chaîne CSS
+avec `@keyframes`) et non plus dans le texte du code : un commentaire « Transition: … » faisait refuser des plans entiers.
+Avant le lint, `autoFixSceneCode` répare ce qui n'est qu'une maladresse (une transition CSS laissée dans un style, un
+nom voisin du kit). Un plan qui porte un clip ou une capture doit les montrer : le contrôle mesuré refuse un plan où
+ils occupent moins de 12 % du cadre au milieu du plan.
 
 **Addons à la demande.** `addonsOfSceneCode` lit les imports du plan et charge les addons correspondants
 (`KIT_ADDONS` : `ChartJs` → chart ; `useViz`, `DataArc`, `GrowArea`, `AfricaMap`, `VoronoiField` → viz ; `Sketch`,
@@ -637,6 +645,27 @@ Aux crans inférieurs, le modèle ne code pas : il choisit dans des menus filtr�
 | 09 caméra & grands moments | 6 caméras, 9 familles d'entrée, 5 grands moments |
 
 Limites : les photos sont des images de test dessinées en SVG ; les chiffres des graphiques sont des données d'exemple ; **Rive** (fichier `.riv`) et **le modèle 3D importé** (GLB) ne sont pas montrés, faute de fichier libre de droits dans le dépôt. Rendu : environ 5 à 6 s de calcul par seconde de vidéo en 720p (WebGL logiciel).
+
+## 19. La demande suivie à la lettre
+
+La demande de l'utilisateur est lue en entier et devient un cahier des charges (`video.request.ts`, `RequestSpec`),
+gardé avec la vidéo : langue (`text/language.ts` : consigne explicite › langue du texte › interface › marque),
+scénario (scènes, minutage, textes à l'écran mot pour mot, textes DANS l'image, voix off écrite), périmètre (durée,
+format, 4K et images par seconde non tenus), consignes (interdits, couleurs, musique, personnage), et le **support** de
+chaque scène — donc l'outil qui la produit (plan filmé → générateur vidéo ; interface → capture de la marque ;
+motion → moteur ; signature → logo). Le code lit tout ce qui se lit sans modèle ; un agent **lecteur** (dès Medium,
+hors Ultra) complète les supports, la description anglaise des plans filmés, le personnage et la lumière, sans pouvoir
+réécrire un texte ni ajouter une scène.
+
+Avec un scénario, le film n'est plus inventé mais découpé : par le code aux crans Low à Max
+(`video.script.ts#planScriptShots` — un plan par support, un plan par mot pour une rafale de mots courts, un texte
+seul posé sur son plan filmé, les plans de motion sans texte supprimés), par le directeur au cran Ultra
+(`video.author.ts`, sous les mêmes règles). Les images de la marque sont décrites une fois par la vision
+(`video.brandmedia.ts`, descriptions gardées par l'hôte : `VideoStore.saveMediaNotes`) et choisies par sens
+(`pickScreens` ; une interface que la demande décrit avec ses mots se dessine avec eux). La nouvelle scène `screen`
+(`engine/src/scenes.tsx#Screen`) montre une capture dans une fenêtre de navigateur, une saisie tapée lettre à lettre,
+un dossier et ses fichiers, ou l'écran d'accueil à la marque. `storyboard.fidelity` (`checkFidelity`) dit ce qui a
+été suivi et ce qui ne l'a pas été. Contrôle : `npm run check:request --prefix apps/ivision/core`.
 
 ## Sources
 

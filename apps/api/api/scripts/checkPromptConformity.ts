@@ -9,17 +9,16 @@
  * rendu soit bon quel que soit le modèle — faible ou fort, Qwen, DeepSeek ou autre.
  *
  *   1. UN PROMPT NE DEMANDE PAS CE QUE LE CODE PRODUIT.
- *      Un brief de section sous gabarit qui décrirait du Tailwind, un canvas
+ *      Toutes les pages sont composées par le moteur graphique
+ *      (@idem/graphic-engine) : un brief qui décrirait du Tailwind, un canvas
  *      Chart.js ou une valeur hexadécimale décrirait un travail que le modèle ne
  *      fera pas. Sur un petit modèle, une consigne inerte n'est pas neutre :
- *      elle occupe la place d'une consigne utile. C'est la même faute que la
- *      consigne « soyez concis » retirée du point de passage unique.
+ *      elle occupe la place d'une consigne utile.
  *
- *   2. UN PROMPT NE RÉPÈTE PAS CE QUE LE LINTER RÉPARE.
- *      Douze règles de charte sont désormais corrigées en code
- *      (`repairHtml` + `repairHtmlExtended`). Les redemander au modèle, c'est
- *      lui reprendre un travail qu'il fait moins bien, et diluer les règles qui
- *      n'ont, elles, aucun équivalent déterministe.
+ *   2. UN PROMPT NE RÉPÈTE PAS CE QUE LE MOTEUR GARANTIT.
+ *      Couleurs, polices, rayons, contrastes, logo, texte alternatif : le moteur
+ *      les pose lui-même. Les redemander au modèle, c'est diluer les règles qui
+ *      n'ont, elles, aucun équivalent déterministe — celles du TEXTE.
  *
  *   3. UN PROMPT NE PARLE PAS DE SON FOURNISSEUR.
  *      Nommer un modèle ou une famille dans un prompt le rend faux le jour où
@@ -29,6 +28,15 @@
  * Aucun réseau, aucun modèle : ce sont des propriétés du texte.
  */
 
+import {
+  BLOCKS_BY_DELIVERABLE,
+  componentFor,
+  contentContract,
+  normalizeSectionPlan,
+  sectionPlanContract,
+  volumeDirective,
+  WRITING_RULES,
+} from '@idem/graphic-engine';
 import { BP_SECTION_BRIEFS } from '../services/BusinessPlan/prompts/section-briefs.prompt';
 import {
   DECK_READER_FRAMES,
@@ -45,18 +53,15 @@ import {
 } from '../services/BandIdentity/prompts/mockup-generation.prompt';
 import { INDUSTRY_MOCKUP_CATEGORIES, MOCKUP_CONFIG, supportScene } from '../config/mockup.config';
 import { mockupAnalyzerService } from '../services/BandIdentity/mockupAnalyzer.service';
-import { SECTION_CONTENT_CONTRACT } from '../services/design/sectionContent.prompt';
-import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../services/design/antiSlop.prompt';
-import {
-  PLANNABLE_BLOCKS,
-  SECTION_PLAN_CONTRACT,
-  normalizeSectionPlan,
-} from '../services/design/sectionPlan';
 import { AI_CONFIG, FeatureAIConfig } from '../config/ai.config';
 import { buildBusinessPlanSpec } from '../services/BusinessPlan/businessPlanSpec';
 import { BUSINESS_PLAN_SECTION_CATALOG } from '../services/BusinessPlan/structure/section-catalog';
 import { SECTION_PROMPT_SPECS } from '../services/BusinessPlan/prompts/section-prompt.registry';
 import { BUSINESS_PLAN_TEMPLATES } from '../services/BusinessPlan/structure/templates';
+
+/** Les trois livrables rédigés par sections, et leur contrat de sortie. */
+const DELIVERABLES = ['business-plan', 'pitch-deck', 'brand-charter'] as const;
+const CONTRACTS = DELIVERABLES.map((deliverable) => [deliverable, contentContract({ deliverable })] as const);
 
 let failures = 0;
 
@@ -81,13 +86,13 @@ const COMPOSITION_MARKERS: { pattern: RegExp; what: string }[] = [
   { pattern: /\braw HTML\b|\bminified line\b/i, what: 'consigne de balisage' },
 ];
 
-/** Règles que le code RÉPARE : les redemander revient à les lui reprendre. */
+/** Ce que le moteur GARANTIT : le redemander revient à le reprendre au code. */
 const REPAIRED_RULES: { pattern: RegExp; what: string }[] = [
-  { pattern: /purple|indigo|fuchsia/i, what: 'dégradé violet (réparé par le code)' },
-  { pattern: /\bInter\b|\bRoboto\b|\bPoppins\b|\bMontserrat\b/, what: 'police par défaut (réparée)' },
-  { pattern: /bg-clip-text|gradient headline/i, what: 'titre en dégradé (réparé)' },
-  { pattern: /\balt\b.{0,20}attribute|attribut alt/i, what: 'attribut alt (posé par le code)' },
-  { pattern: /rounded-2xl|shadow-lg/i, what: 'rayon/ombre (normalisés par le code)' },
+  { pattern: /purple|indigo|fuchsia/i, what: 'dégradé violet (le moteur ne pose que la charte)' },
+  { pattern: /\bInter\b|\bRoboto\b|\bPoppins\b|\bMontserrat\b/, what: 'police (posée par le moteur)' },
+  { pattern: /bg-clip-text|gradient headline/i, what: 'titre en dégradé (jamais produit)' },
+  { pattern: /\balt\b.{0,20}attribute|attribut alt/i, what: 'attribut alt (posé par le moteur)' },
+  { pattern: /rounded-2xl|shadow-lg|\bWCAG\b|ensure (?:enough |sufficient |a )?(?:readable )?contrast/i, what: 'rayon, ombre, contraste (garantis par le moteur)' },
 ];
 
 /** Un prompt ne nomme jamais son fournisseur : la plateforme en change. */
@@ -146,46 +151,50 @@ console.log('1. Les briefs de gabarit ne décrivent aucune composition');
 
   // Le contrat de sortie est le SEUL endroit qui parle de format, et il doit
   // dire explicitement que le modèle n'écrit pas de balisage.
-  check(
-    'le contrat de sortie interdit explicitement le balisage',
-    /do NOT write HTML/i.test(SECTION_CONTENT_CONTRACT)
-  );
+  for (const [deliverable, contract] of CONTRACTS) {
+    check(`${deliverable} : le contrat de sortie interdit explicitement le balisage`, /do NOT write HTML/i.test(contract));
+  }
 
   // Un brief doit nommer les blocs disponibles, sinon le modèle invente une
   // structure que la normalisation écartera.
+  const blockName = new RegExp(`"(${BLOCKS_BY_DELIVERABLE['business-plan'].join('|')})"`);
   const withoutBlocks = Object.entries({ ...BP_SECTION_BRIEFS, ...SLIDE_BRIEFS })
-    .filter(([, text]) => !/"(prose|cards|table|metrics|chart|timeline|assumption|quote)"/.test(text))
+    .filter(([, text]) => !blockName.test(text))
     .map(([name]) => name);
   check('chaque brief nomme les blocs attendus', withoutBlocks.length === 0,
     withoutBlocks.join(', '));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-console.log('\n2. Les prompts ne répètent pas ce que le code répare');
+console.log('\n2. Les prompts ne répètent pas ce que le moteur garantit');
 {
-  // Le bloc anti-générique a été allégé de ses règles mécaniques (M3) : elles
-  // sont désormais détectées ET corrigées par `repairHtmlExtended`.
-  const repeated = scan('anti-slop', ANTI_SLOP_BLOCK, REPAIRED_RULES);
-  check('le bloc anti-générique ne redemande pas les règles réparées',
-    repeated.length === 0, repeated.join(', '));
+  const guaranteed = scan('writing-rules', WRITING_RULES, REPAIRED_RULES);
+  check('les règles d\'écriture ne redemandent rien de ce que le moteur pose',
+    guaranteed.length === 0, guaranteed.join(', '));
 
   // Les règles d'écriture ne portent QUE sur le texte : rien de visuel.
-  const visual = scan('content-rules', CONTENT_RULES_BLOCK, COMPOSITION_MARKERS);
+  const visual = scan('writing-rules', WRITING_RULES, COMPOSITION_MARKERS);
   check('les règles d\'écriture ne portent que sur le texte',
     visual.length === 0, visual.join(', '));
 
   // Un budget de contraintes tenable. Un petit modèle en honore une dizaine ;
   // au-delà, il en ignore silencieusement — et l'on ne sait pas lesquelles.
   const countRules = (text: string) => (text.match(/^\s*[-·]\s/gm) || []).length;
-  const antiSlopRules = countRules(ANTI_SLOP_BLOCK);
-  check(`le bloc anti-générique tient sous 20 règles (${antiSlopRules})`,
-    antiSlopRules <= 20, `${antiSlopRules} règles`);
+  const writingRules = countRules(WRITING_RULES);
+  check(`les règles d'écriture tiennent sous 12 interdits (${writingRules})`, writingRules <= 12, `${writingRules} règles`);
+  for (const [deliverable, contract] of CONTRACTS) {
+    check(`${deliverable} : le contrat de sortie tient sous 10 règles`, countRules(contract) <= 10, `${countRules(contract)} règles`);
+  }
 
   const heavyBriefs = Object.entries({ ...BP_SECTION_BRIEFS, ...SLIDE_BRIEFS, ...CHARTER_PAGE_BRIEFS })
     .map(([name, text]) => ({ name, rules: countRules(text) + (text.match(/^\s*\d+\.\s/gm) || []).length }))
     .filter((entry) => entry.rules > 16);
   check('aucun brief ne dépasse 16 exigences', heavyBriefs.length === 0,
     heavyBriefs.map((b) => `${b.name}: ${b.rules}`).join(', '));
+
+  // UNE consigne de volume, exprimée en blocs : deux nombres contradictoires se départagent par un entre-deux.
+  const volume = volumeDirective('3 to 4');
+  check('la consigne de volume est en blocs, et autorise à s\'arrêter quand la matière manque', /3 to 4 blocks/.test(volume) && /STOP/.test(volume));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -195,9 +204,10 @@ console.log('\n3. Portabilité entre fournisseurs');
     ...Object.entries(BP_SECTION_BRIEFS).map(([k, v]) => [`bp/${k}`, v] as [string, string]),
     ...Object.entries(SLIDE_BRIEFS).map(([k, v]) => [`deck/${k}`, v] as [string, string]),
     ...Object.entries(CHARTER_PAGE_BRIEFS).map(([k, v]) => [`charte/${k}`, v] as [string, string]),
-    ['contrat de sortie', SECTION_CONTENT_CONTRACT],
-    ['anti-générique', ANTI_SLOP_BLOCK],
-    ['règles d\'écriture', CONTENT_RULES_BLOCK],
+    ...CONTRACTS.map(([deliverable, contract]) => [`contrat de sortie (${deliverable})`, contract] as [string, string]),
+    ...DELIVERABLES.map((deliverable) => [`contrat de plan (${deliverable})`, sectionPlanContract(deliverable)] as [string, string]),
+    ['règles d\'écriture', WRITING_RULES],
+    ['consigne de volume', volumeDirective('2')],
   ];
 
   const naming = allPrompts
@@ -236,58 +246,40 @@ console.log('\n3. Portabilité entre fournisseurs');
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('\n4. L\'étape de plan (décomposition)');
 {
-  // Le contrat de plan doit interdire explicitement d'écrire la section :
-  // sans cela un modèle « aide » en produisant déjà du contenu, et le
-  // découpage perd son objet.
-  check('le contrat de plan interdit d\'écrire la section',
-    /do NOT write the section/i.test(SECTION_PLAN_CONTRACT));
-
-  check('le contrat de plan est court (< 400 tokens)',
-    Math.round(SECTION_PLAN_CONTRACT.length / 4) < 400,
-    `${Math.round(SECTION_PLAN_CONTRACT.length / 4)} tokens`);
+  for (const deliverable of DELIVERABLES) {
+    const contract = sectionPlanContract(deliverable);
+    // Le contrat de plan doit interdire explicitement d'écrire la section :
+    // sans cela un modèle « aide » en produisant déjà du contenu, et le
+    // découpage perd son objet.
+    check(`${deliverable} : le contrat de plan interdit d'écrire la section`, /do NOT write the section/i.test(contract));
+    check(`${deliverable} : le contrat de plan est court (< 400 tokens)`, Math.round(contract.length / 4) < 400, `${Math.round(contract.length / 4)} tokens`);
+    // Le plan doit nommer les blocs disponibles, sinon le modèle en invente.
+    const plannable = BLOCKS_BY_DELIVERABLE[deliverable];
+    check(`${deliverable} : le contrat de plan énumère les blocs autorisés`, plannable.every((block) => contract.includes(block)));
+    // Les types de blocs prescriptibles doivent être ceux que le moteur sait dessiner — un plan qui
+    // prescrit un bloc sans composant fait écrire dans le vide.
+    const orphan = plannable.filter((block) => !componentFor(block));
+    check(`${deliverable} : tout bloc prescriptible a son composant dans le moteur`, orphan.length === 0, orphan.join(', '));
+    // Et le contrat de sortie montre la forme de chacun : un bloc prescrit sans exemple est un bloc mal rempli.
+    const contractText = contentContract({ deliverable });
+    const undocumented = plannable.filter((block) => !contractText.includes(`"kind":"${block}"`));
+    check(`${deliverable} : le contrat de sortie montre la forme de chaque bloc prescriptible`, undocumented.length === 0, undocumented.join(', '));
+  }
 
   // Un plan trop court n'est pas une charpente ; trop long, il redevient la
   // section. Les bornes sont vérifiées par la normalisation.
   check('un plan trop court est refusé',
-    normalizeSectionPlan({ angle: 'a', points: ['un'], blocks: ['prose'] }) === null);
+    normalizeSectionPlan({ angle: 'a', points: ['un'], blocks: ['prose'] }, 'business-plan') === null);
   check('un plan sans bloc valide est refusé',
-    normalizeSectionPlan({ angle: 'a', points: ['un', 'deux', 'trois'], blocks: ['inconnu'] }) === null);
+    normalizeSectionPlan({ angle: 'a', points: ['un', 'deux', 'trois'], blocks: ['inconnu'] }, 'business-plan') === null);
+  check('un bloc hors du livrable est écarté (pas de graphique dans une charte)',
+    normalizeSectionPlan({ angle: 'a', points: ['un', 'deux', 'trois'], blocks: ['chart'] }, 'brand-charter') === null);
   check('un plan valide est accepté',
     normalizeSectionPlan({
       angle: 'Le marché double',
       points: ['taille', 'croissance', 'segment'],
       blocks: ['metrics', 'chart', 'prose'],
-    }) !== null);
-
-  // Les types de blocs prescriptibles doivent être ceux que le rendu sait
-  // produire — un plan qui prescrit un bloc inexistant fait écrire dans le vide.
-  const renderable = new Set([
-    'prose', 'cards', 'table', 'metrics', 'chart', 'quote', 'timeline', 'assumption',
-  ]);
-  check('tout bloc prescriptible est rendu par le gabarit',
-    PLANNABLE_BLOCKS.every((block) => renderable.has(block)),
-    PLANNABLE_BLOCKS.filter((b) => !renderable.has(b)).join(', '));
-
-  // Le plan doit nommer les blocs disponibles, sinon le modèle en invente.
-  check('le contrat de plan énumère les blocs autorisés',
-    PLANNABLE_BLOCKS.every((block) => SECTION_PLAN_CONTRACT.includes(block)));
-}
-
-console.log('\n5. Le repli reste cohérent quand le gabarit est coupé');
-{
-  // `IDEM_SECTION_TEMPLATE=off` doit rendre une section à son prompt HTML
-  // d'origine. Un brief posé sur `promptConstant` produirait alors du JSON brut
-  // affiché comme une page — l'échec le plus visible possible.
-  const briefNames = new Set([
-    ...Object.keys(BP_SECTION_BRIEFS),
-    ...Object.keys(SLIDE_BRIEFS),
-    ...Object.keys(CHARTER_PAGE_BRIEFS),
-  ]);
-  check(
-    'les briefs vivent dans `template.contentBrief`, jamais dans `promptConstant`',
-    briefNames.size > 0,
-    'vérifié par construction : `templated()` reçoit le prompt de repli en argument'
-  );
+    }, 'business-plan') !== null);
 }
 
 // ── DEUX ORDRES CONTRADICTOIRES ─────────────────────────────────────────────
@@ -380,8 +372,8 @@ console.log('\n  Consignes contradictoires');
 // section était abandonnée : sur un plan livré, « Opportunity » et « Target
 // Audience » manquaient — les deux plus longues, donc les plus chères.
 //
-// La règle : sous gabarit, une section ne reçoit AUCUN marqueur de composition.
-// Seule la couverture (`freeform`) y échappe, parce qu'elle compose vraiment.
+// La règle : une section ne reçoit AUCUN marqueur de composition. La couverture
+// (`freeform`) n'en reçoit pas davantage : elle est composée par le moteur, sans modèle.
 console.log('\n  Équipe de recherche : consignes de section');
 
 {
@@ -403,9 +395,8 @@ console.log('\n  Équipe de recherche : consignes de section');
 
   for (const section of spec) {
     if (section.freeform) {
-      // La couverture compose sa page : ses règles HTML sont à leur place.
-      check(`« ${section.name} » (libre) garde son prompt de composition`,
-        COMPOSITION_MARKERS.some(({ pattern }) => pattern.test(section.instructions)));
+      // La couverture est composée par le moteur : aucun modèle ne l'écrit, aucune consigne ne part.
+      check(`« ${section.name} » (couverture) : composée par le moteur, sans prompt de page`, section.instructions === '' && !section.needsResearch);
       continue;
     }
     const found = COMPOSITION_MARKERS.filter(({ pattern }) => pattern.test(section.instructions));
@@ -416,9 +407,8 @@ console.log('\n  Équipe de recherche : consignes de section');
     );
   }
 
-  // Un brief manquant ferait retomber la section sur son prompt HTML sans que
-  // rien ne le signale : c'est exactement le repli que le contrôle ci-dessus
-  // attraperait, mais autant nommer la cause.
+  // Un brief manquant laisserait la section partir avec une consigne vide, sans
+  // que rien ne le signale.
   const templatedNames = spec.filter((s) => !s.freeform).map((s) => s.name);
   const missing = templatedNames.filter((name) => !BP_SECTION_BRIEFS[name]);
   check(
@@ -473,14 +463,13 @@ console.log('\n  Équipe de recherche : consignes de section');
   }
 }
 
-// ── LA CHARTE : CE QUI EST RENDU PAR LE CODE ────────────────────────────────
+// ── LA CHARTE : CE QUE LE CODE POSE, CE QUE LE MODÈLE ÉCRIT ─────────────────
 //
-// Quinze pages passent désormais par le gabarit. Les quatre pages de
-// logo l'ont rejoint après un livrable réel où, laissées libres, elles ont
-// produit des références administratives inventées et un débordement de texte ;
-// la page « Usage Couleurs & Typographie » est née du même constat, en
-// rassemblant les règles que les pages spécimen ne portent plus.
-console.log('\n  Charte : couverture du gabarit');
+// Les pages dont le code pose le spécimen (nuancier, polices, logo, motifs) :
+// le modèle n'y écrit que la règle d'usage. Les quatre pages de logo l'ont
+// rejoint après un livrable réel où, laissées libres, elles avaient produit des
+// références administratives inventées et un débordement de texte.
+console.log('\n  Charte : pages rédigées');
 
 {
   const templated = [
@@ -488,27 +477,29 @@ console.log('\n  Charte : couverture du gabarit');
     'Usage Couleurs & Typographie',
     'Logo Principal', 'Logo Variation Fond Clair',
     'Logo Variation Fond Sombre', 'Logo Variation Monochrome',
-    // Pages dont le spécimen est fabriqué par le code.
     'Logomark', 'Typeface Hierarchy', 'Graphic Patterns',
   ];
-  // Toute page sous gabarit porte un titre de la nomenclature : sans lui, le
-  // titre retombe sur celui du modèle, et la charte change de registre.
+  // Toute page porte un titre de la nomenclature : sans lui, le titre retombe
+  // sur celui du modèle, et la charte change de registre.
   for (const page of templated) {
     check(`« ${page} » a un titre de nomenclature`, Boolean(CHARTER_PAGE_HEADINGS[page]?.title));
   }
   for (const page of templated) {
     check(`« ${page} » dispose d'un brief de contenu`, Boolean(CHARTER_PAGE_BRIEFS[page]));
   }
-  // Le garde-fou anti-décorum, posé une fois pour tous les livrables.
+  // Le garde-fou anti-décorum, posé une fois pour tous les rédacteurs. Ce sont
+  // des fautes de TEXTE : le moteur ne dessine aucun ornement, mais un rédacteur
+  // peut encore écrire une référence ou un chiffre.
   for (const [label, pattern] of [
     ['références inventées', /reference codes/i],
     ['chiffres non calculés', /NUMBERS NOBODY COMPUTED/],
-    ['ornement en guise de précision', /ORNAMENT POSING AS PRECISION/],
     ['grandiloquence', /INFLATED NAMING/],
-    ['densité : une idée par page', /A page carries ONE idea/],
+    ['remplissage', /survive a change of company name/],
   ] as Array<[string, RegExp]>) {
-    check(`anti-générique : ${label}`, pattern.test(ANTI_SLOP_BLOCK));
+    check(`règles d'écriture : ${label}`, pattern.test(WRITING_RULES));
   }
+  // Une idée par page : le volume est un plafond, et la matière qui manque arrête la rédaction.
+  check('contrat de sortie : le volume est un plafond autant qu\'une cible', CONTRACTS.every(([, contract]) => /a ceiling as much as a target/.test(contract)));
 }
 
 console.log('');

@@ -422,7 +422,32 @@
       "videoFromReferenceNoVoice": "Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez. La voix off n’a pas pu être générée : réessayez-la depuis la retouche.",
       "visual": "Voici votre visuel.",
       "visualFromReference": "Voici votre visuel, composé comme le modèle, à votre marque.",
-      "montage": "Je monte votre vidéo : je coupe les blancs, j’ajoute les sous-titres et j’anime ce que vous dites. Vous pouvez quitter la page, je continue."
+      "montage": "Je monte votre vidéo : je coupe les blancs, j’ajoute les sous-titres et j’anime ce que vous dites. Vous pouvez quitter la page, je continue.",
+      "fidelityTitle": "Ce que la vidéo n’a pas pu suivre",
+      "fidelity": {
+        "4k": "La 4K n’est pas disponible : la vidéo est rendue en 1080p, la meilleure qualité proposée.",
+        "fps": "{{fps}} images par seconde n’est pas disponible : la vidéo est rendue à 30 images par seconde.",
+        "duration": "Votre scénario dure {{asked}} s et la vidéo {{made}} s (durée choisie) : chaque scène a gardé sa part du temps.",
+        "textsMissing": "{{count}} texte(s) de votre demande n’ont pas pu être placés : vérifiez-les dans la retouche.",
+        "textsAdded": "{{count}} texte(s) ont été ajoutés à votre scénario : vérifiez-les dans la retouche.",
+        "language": "Certains textes ne sont pas dans la langue de votre demande : vérifiez-les avant l’export.",
+        "voice": "La voix off n’a pas pu être générée dans la langue de la vidéo.",
+        "scenes": "{{count}} scène(s) de votre scénario manquent : vérifiez le découpage dans la retouche.",
+        "footageBlocked": {
+          "payment": "Le service de génération vidéo n’a plus de crédits : les plans filmés ont été remplacés. Relancez la création quand il sera rechargé.",
+          "unavailable": "Le service de génération vidéo est indisponible : les plans filmés ont été remplacés. Relancez la création quand il sera revenu."
+        },
+        "footageStock": "{{count}} plan(s) filmé(s) remplacé(s) par des vidéos libres de droits.",
+        "footageStills": "{{count}} plan(s) filmé(s) montré(s) en images animées.",
+        "footageMissing": "{{count}} plan(s) filmé(s) composé(s) en motion design, faute de vidéo."
+      },
+      "preparing": "Chargement des sons et de la voix off… {{percent}} %",
+      "watchVideo": "Voir la vidéo",
+      "downloadFormat": "Choisissez le format",
+      "downloadReady": "Prêt",
+      "downloadIncluded": "Inclus",
+      "downloadPrice": "{{cost}} crédits",
+      "downloadPreparing": "Préparation du MP4… {{percent}} %"
     },
     "payment": {
       "cta": "Recharger mes crédits",
@@ -464,10 +489,11 @@
       "format": "Format",
       "photo": "Avec photo",
       "voice": "Voix off",
-      "voiceHint": "Une voix dit le message, scène par scène, dans votre langue.",
+      "voiceHint": "Une voix dit le message, scène par scène, dans la langue de votre demande.",
       "price": "{{cost}} crédits",
       "removeSilences": "Retirer les blancs",
-      "music": "Musique"
+      "music": "Musique",
+      "readFromText": "Durée et format lus dans votre demande."
     },
     "choice": {
       "palettes": "Palette",

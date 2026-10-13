@@ -8,9 +8,10 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "ts-node --transpile-only scripts/check-core.ts",
     "check:montage": "ts-node --transpile-only scripts/check-montage.ts",
-    "check:poster": "ts-node --transpile-only scripts/check-poster-kit.ts"
+    "check:request": "ts-node --transpile-only scripts/check-request.ts"
   },
   "dependencies": {
+    "@idem/graphic-engine": "file:../../../packages/graphic-engine",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwindcss": "^4.1.17",

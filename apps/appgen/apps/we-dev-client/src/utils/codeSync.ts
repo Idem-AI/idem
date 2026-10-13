@@ -60,13 +60,49 @@ export function diffAgainstManifest(
 }
 
 /**
+ * Bookkeeping that lets the workspace delete a generation without an upload in
+ * flight writing the old code back afterwards.
+ *
+ * A push reads the stored manifest, diffs, then writes: three steps over the
+ * network. If the user deletes the generation in between, the write lands after
+ * the deletion and part of the old project is back in the bucket — to be read on
+ * the next open and merged into the "fresh" one.
+ */
+let syncEpoch = 0;
+const inFlightSyncs = new Set<Promise<unknown>>();
+
+/** Abandons every push that has not written yet (they notice before writing). */
+export const cancelPendingCodeSync = (): void => {
+  syncEpoch += 1;
+};
+
+/** Resolves once the pushes already writing have settled, whatever their outcome. */
+export async function waitForCodeSync(): Promise<void> {
+  await Promise.allSettled(Array.from(inFlightSyncs));
+}
+
+/**
  * Pushes the workspace to object storage, uploading only the files that differ
  * from the stored manifest and removing the ones deleted since the last sync.
  * Returns null when there was nothing to do.
  */
-export async function pushProjectCode(
+export function pushProjectCode(
   projectId: string,
   files: Record<string, string>
+): Promise<{ written: number; deleted: number; total: number } | null> {
+  const run = pushProjectCodeNow(projectId, files, syncEpoch);
+
+  inFlightSyncs.add(run);
+  const forget = () => inFlightSyncs.delete(run);
+  run.then(forget, forget);
+
+  return run;
+}
+
+async function pushProjectCodeNow(
+  projectId: string,
+  files: Record<string, string>,
+  epoch: number
 ): Promise<{ written: number; deleted: number; total: number } | null> {
   if (!projectId || !files || Object.keys(files).length === 0) return null;
 
@@ -76,6 +112,12 @@ export async function pushProjectCode(
   const hasChanges = Object.keys(diff.upserts).length > 0 || diff.deletions.length > 0;
   if (!hasChanges) {
     console.log('Code sync skipped: workspace already matches the stored version');
+    return null;
+  }
+
+  // The generation was deleted while this push was reading the manifest.
+  if (epoch !== syncEpoch) {
+    console.log('Code sync abandoned: the generation was deleted meanwhile');
     return null;
   }
 

@@ -62,7 +62,7 @@ export class VideoEditPage {
   protected readonly moods = MOODS;
   protected readonly ratio = computed(() => RATIOS[this.previewFormat()] ?? 9 / 16);
   protected readonly scenes = computed(() => this.video()?.storyboard.scenes ?? []);
-  protected readonly renders = computed(() => (this.video()?.renders ?? []).filter((r) => r.status === 'done' && r.url));
+  protected readonly renders = computed(() => (this.video()?.renders ?? []).filter((r) => r.status === 'done' && r.url && !r.prerender));
   protected readonly rendering = computed(() => this.video()?.status === 'rendering');
 
   private poll: Subscription | null = null;

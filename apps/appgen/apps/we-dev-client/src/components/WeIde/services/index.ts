@@ -16,6 +16,8 @@ export const getContainerInstance = webContainer.getWebContainerInstance;
 export const onServerReady = webContainer.onServerReady;
 export const onServersChange = webContainer.onServersChange;
 export const getLastServerUrl = webContainer.getLastServerUrl;
+export const resetWebContainer = webContainer.resetWebContainer;
+export const resetFileHashes = webContainer.resetFileHashes;
 
 // Export types and constants
 export type { CommandResult } from './webcontainer/types';

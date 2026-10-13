@@ -1,0 +1,53 @@
+{
+  "name": "@idem/graphic-engine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Le moteur de génération graphique d'IDEM AFRICA : un contrat de contenu, un contrat de design (DesignSpec), un registre de capacités, un moteur de composition qui explore et mesure la diversité, un compilateur HTML/CSS déterministe et un moteur de qualité. Importé par l'API IDEM, l'API iVision et le cœur iVision pour le business plan, la charte graphique, le pitch deck, les cartes de visite, les flyers et les graphiques.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": [
+    "dist",
+    "src",
+    "contracts",
+    "docs",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "check": "ts-node --transpile-only scripts/check.ts",
+    "check:fast": "ts-node --transpile-only scripts/check.ts --fast",
+    "preview": "ts-node --transpile-only scripts/preview.ts",
+    "schemas": "ts-node --transpile-only scripts/generate-schemas.ts",
+    "mcp:sync": "ts-node --transpile-only scripts/mcp-sync.ts",
+    "mcp:check": "ts-node --transpile-only scripts/mcp-sync.ts --check",
+    "bench": "ts-node --transpile-only scripts/benchmark.ts"
+  },
+  "keywords": [
+    "idem",
+    "graphic",
+    "layout",
+    "design-spec",
+    "composition",
+    "html",
+    "pdf"
+  ],
+  "author": "Idem Team",
+  "license": "MIT",
+  "dependencies": {
+    "@tabler/icons": "^3.48.0",
+    "lucide-static": "^1.52.0",
+    "puppeteer": "^24.17.0",
+    "zod": "^3.25.76"
+  },
+  "optionalDependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}

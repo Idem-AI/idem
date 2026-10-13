@@ -20,7 +20,7 @@ export type RhythmId = 'steady' | 'crescendo' | 'staccato' | 'breathe' | 'drop';
 
 export const RHYTHM_IDS: RhythmId[] = ['steady', 'crescendo', 'staccato', 'breathe', 'drop'];
 
-const MEDIA_SCENES = new Set(['footage', 'gallery', 'product', 'showcase3d', 'lottie']);
+const MEDIA_SCENES = new Set(['footage', 'screen', 'gallery', 'product', 'showcase3d', 'lottie']);
 
 export interface RhythmPlan {
   /** Poids de durée par scène (multiplie le temps voulu). */

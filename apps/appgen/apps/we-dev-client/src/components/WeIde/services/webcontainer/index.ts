@@ -1,4 +1,10 @@
-export { getWebContainerInstance, onServerReady, onServersChange, getLastServerUrl } from './instance';
+export {
+  getWebContainerInstance,
+  onServerReady,
+  onServersChange,
+  getLastServerUrl,
+  resetWebContainer,
+} from './instance';
 export { startDevServer } from './server';
 export { useTerminalState } from './state';
-export { syncFileSystem, updateFileSystemNow } from './filesystem';
+export { syncFileSystem, updateFileSystemNow, resetFileHashes } from './filesystem';

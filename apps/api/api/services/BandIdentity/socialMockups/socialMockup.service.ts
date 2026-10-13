@@ -14,22 +14,51 @@
  */
 
 import sharp from 'sharp';
-import logger from '../../../config/logger';
-import { contrastRatio } from '../../design/color';
-import { brandMotifs, patternCss } from '../../design/brandMotifs';
-import { DocumentDesignSystem } from '../../design/documentDesignSystem';
-import { designFontLinks } from '../../../utils/google-fonts.util';
-import { flyerRenderService } from '../../Communication/flyerRender.service';
-import { BannerBrand, composeBanner } from './bannerCompose';
-import type { BannerFormat } from './bannerGeometry';
 import {
+  BrandInput,
+  buildTokens,
+  contrastRatio,
+  DesignTokens,
+  DirectionInput,
+  FormatId,
+  motifCss,
+  readableInk,
+  renderSingle,
+  screenshot,
+  styleMotifs,
+  visualContent,
+} from '@idem/graphic-engine';
+import '../../graphic/engine.host';
+import logger from '../../../config/logger';
+import {
+  CoverFormat,
   fillMockupTemplate,
   loadSocialMockupLibrary,
+  MediaFormat,
   MockupValues,
   readMockupTemplate,
   SocialMockupNetwork,
   SocialMockupTemplate,
 } from './library';
+
+/** Une bannière : une couverture de profil, une vignette vidéo, ou un visuel générique de secours. */
+export type BannerFormat = CoverFormat | MediaFormat;
+
+/**
+ * Le format du moteur graphique de chaque bannière. Les couvertures ont leur zone sûre (l'avatar qui mord
+ * le bas gauche, le recadrage mobile) ; elles sont rendues à leur taille canonique, et le gabarit du profil
+ * les met à l'échelle.
+ */
+const ENGINE_FORMAT: Record<BannerFormat, { format: FormatId; canonical?: boolean }> = {
+  'facebook-cover': { format: 'cover-facebook', canonical: true },
+  'linkedin-cover': { format: 'cover-linkedin', canonical: true },
+  'x-header': { format: 'cover-x', canonical: true },
+  'youtube-banner': { format: 'cover-youtube', canonical: true },
+  thumbnail: { format: 'flyer-banner' },
+  banner: { format: 'flyer-banner' },
+  post: { format: 'flyer-post' },
+  square: { format: 'flyer-square' },
+};
 
 export interface SocialPostIdea {
   title: string;
@@ -52,8 +81,16 @@ export interface SocialBrandKit {
   audience: 'b2b' | 'b2c' | 'mixed';
   /** La vidéo porte-t-elle l'activité (formation, média, sport, tourisme) ? */
   videoLed: boolean;
-  ds: DocumentDesignSystem;
-  logos: BannerBrand['logos'];
+  /** La marque telle que le moteur graphique la lit (couleurs, polices, logos, motifs) et sa direction artistique. */
+  brand: BrandInput;
+  direction: DirectionInput;
+  logos: {
+    /** Logo complet à encre foncée, pour fond clair. */
+    lightGround?: string;
+    darkGround?: string;
+    iconLightGround?: string;
+    iconDarkGround?: string;
+  };
 }
 
 export interface ShowcaseMockup {
@@ -118,7 +155,7 @@ const MEDIA_SIZE: Record<PostVisualFormat, { width: number; height: number }> = 
  *
  * Dans la charte, une bannière n'existe que posée dans le mockup du profil ;
  * l'utilisateur, lui, doit pouvoir la téléverser telle quelle. Les mêmes
- * compositions (`composeBannerHtml`) sont donc rendues seules, pixel pour pixel.
+ * compositions sont donc rendues seules, pixel pour pixel.
  */
 export const DOWNLOADABLE_BANNERS: readonly {
   id: string;
@@ -149,7 +186,7 @@ export interface RenderedSocialAsset {
 const EMPTY_IMAGE =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
 
-/** Une bannière composée (`composeBanner`), prête à poser dans un gabarit : un `<img>` à sa taille exacte. */
+/** Une bannière composée par le moteur, prête à poser dans un gabarit : un `<img>` à sa taille exacte. */
 function bannerImg(png: Buffer, width: number, height: number): string {
   return `<img src="data:image/png;base64,${png.toString('base64')}" width="${width}" height="${height}" alt="" style="display:block;width:${width}px;height:${height}px">`;
 }
@@ -177,15 +214,14 @@ export class SocialMockupService {
   /** Les deux profils de la page « Bannières réseaux sociaux ». */
   async renderProfileMockups(kit: SocialBrandKit, upload: MockupUploader): Promise<ShowcaseMockup[]> {
     const templates = this.selectTemplates(kit, 'profile');
-    const brand = this.bannerBrand(kit, kit.promise);
     const lead = kit.posts[0];
 
     return Promise.all(
       templates.map(async (template) => {
         const [coverPng, mediaPng] = await Promise.all([
-          template.cover ? composeBanner(brand, template.cover.format, template.cover.width, template.cover.height) : null,
+          template.cover ? this.banner(kit, template.cover.format, template.cover.width, template.cover.height, kit.promise) : null,
           template.media?.format === 'thumbnail'
-            ? composeBanner(this.bannerBrand(kit, lead?.title || kit.promise), 'thumbnail', template.media.width, template.media.height)
+            ? this.banner(kit, 'thumbnail', template.media.width, template.media.height, lead?.title || kit.promise)
             : null,
         ]);
         const values: MockupValues = {
@@ -266,42 +302,41 @@ export class SocialMockupService {
    * sociaux » : ce que l'utilisateur télécharge est ce que la charte montre.
    */
   async renderStandaloneAssets(kit: SocialBrandKit): Promise<RenderedSocialAsset[]> {
-    const brand = this.bannerBrand(kit, kit.promise);
-    const document = (inner: string) =>
-      `<!doctype html><html><head><meta charset="utf-8">${designFontLinks(kit.ds.fonts)}<style>html,body{margin:0;padding:0}</style></head><body>${inner}</body></html>`;
-
-    // En série : chaque composition rend et mesure plusieurs candidats dans Chrome, et la
-    // bannière YouTube pèse à elle seule 3,7 millions de pixels.
+    // En série : chaque bannière est composée, rendue et mesurée dans Chrome, et la bannière YouTube pèse
+    // à elle seule 3,7 millions de pixels.
     const assets: RenderedSocialAsset[] = [];
     for (const banner of DOWNLOADABLE_BANNERS) {
-      const png = await composeBanner(brand, banner.format, banner.width, banner.height);
+      const png = await this.banner(kit, banner.format, banner.width, banner.height, kit.promise);
       assets.push({ id: banner.id, label: banner.label, width: banner.width, height: banner.height, png });
     }
 
-    const { avatarSrc, avatarGround } = this.identity(kit);
-    const { width, height } = PROFILE_PICTURE;
-    const mark =
-      avatarSrc && avatarSrc !== EMPTY_IMAGE
-        ? `<img src="${avatarSrc.replace(/"/g, '&quot;')}" alt="" style="max-width:${Math.round(width * 0.62)}px;max-height:${Math.round(height * 0.62)}px;object-fit:contain;display:block">`
-        : '';
-    const avatarHtml = document(
-      `<div style="width:${width}px;height:${height}px;display:flex;align-items:center;justify-content:center;background-color:${avatarGround}">${mark}</div>`
-    );
-    assets.push({
-      ...PROFILE_PICTURE,
-      png: await flyerRenderService.renderDocumentToPng(avatarHtml, width, height, 1),
+    // La photo de profil : le symbole de la marque, composé par le moteur (format carré, recadré en cercle).
+    const avatar = await renderSingle({
+      documentType: 'brand-charter',
+      format: 'avatar-square',
+      brand: kit.brand,
+      direction: kit.direction,
+      seed: `avatar:${kit.projectKey}`,
+      png: true,
+      content: { id: 'avatar', role: 'visual', title: kit.brandName.slice(0, 160) || 'Marque', blocks: [] },
     });
+    if (avatar.png) assets.push({ ...PROFILE_PICTURE, png: avatar.png });
 
     return assets;
   }
 
   // ───────────────────────────────────────────────────────────────────────────
 
+  /** Les jetons de la marque (couleurs garanties lisibles, polices) : ceux de toutes ses pages. */
+  private tokens(kit: SocialBrandKit): DesignTokens {
+    return buildTokens({ brand: kit.brand, direction: kit.direction, format: 'avatar-square' });
+  }
+
   private identity(kit: SocialBrandKit): MockupValues {
-    const { ds } = kit;
-    // L'avatar prend la primaire quand elle porte une encre claire, le fond de
-    // la charte sinon — et la déclinaison du logo qui contraste avec ce fond.
-    const darkGround = contrastRatio('#ffffff', ds.colors.primary) >= 3;
+    const tokens = this.tokens(kit);
+    // L'avatar prend la primaire quand elle porte une encre claire, le fond de la charte sinon — et la
+    // déclinaison du logo qui contraste avec ce fond.
+    const darkGround = contrastRatio('#ffffff', tokens.color.primary) >= 3;
     const avatarSrc = darkGround
       ? kit.logos.iconDarkGround || kit.logos.darkGround
       : kit.logos.iconLightGround || kit.logos.lightGround;
@@ -311,24 +346,42 @@ export class SocialMockupService {
       category: kit.category,
       bio: kit.bio,
       avatarSrc: avatarSrc || EMPTY_IMAGE,
-      avatarGround: darkGround ? ds.colors.primary : ds.colors.surface,
-      fontLinks: designFontLinks(ds.fonts),
+      avatarGround: darkGround ? tokens.color.primary : tokens.color.ground,
+      fontLinks: tokens.font.headHtml,
     };
   }
 
-  private bannerBrand(kit: SocialBrandKit, promise: string): BannerBrand {
-    return { brandName: kit.brandName, promise, ds: kit.ds, logos: kit.logos, seedKey: `banner:${kit.projectKey}` };
+  /**
+   * Une bannière composée par le moteur graphique : contenu (la promesse), charte, zone sûre du format ;
+   * plusieurs compositions explorées, la page mesurée et réparée dans Chrome. Les couvertures sont rendues
+   * à leur taille canonique (le gabarit les met à l'échelle), les autres à la taille demandée.
+   */
+  private async banner(kit: SocialBrandKit, format: BannerFormat, width: number, height: number, headline: string): Promise<Buffer> {
+    const target = ENGINE_FORMAT[format];
+    const content = visualContent({ id: 'banner', copy: { headline: (headline || kit.brandName).trim().slice(0, 180) || kit.brandName } });
+    if (!content) throw new Error(`bannière ${format} : rien à composer`);
+    const out = await renderSingle({
+      documentType: 'brand-charter',
+      format: target.format,
+      brand: kit.brand,
+      direction: kit.direction,
+      seed: `banner:${kit.projectKey}:${format}`,
+      png: true,
+      content,
+      ...(target.canonical ? {} : { size: { width, height } }),
+    });
+    if (!out.png) throw new Error(`bannière ${format} : rendu indisponible`);
+    return out.png;
   }
 
   private tilesHtml(kit: SocialBrandKit, count: number): string {
-    const { ds } = kit;
-    const motifs = brandMotifs(ds);
-    const grounds = [ds.colors.primary, ds.colors.surface, ds.colors.accent];
+    const tokens = this.tokens(kit);
+    const motifs = styleMotifs(kit.direction.styleId);
+    const grounds = [tokens.color.primary, tokens.color.ground, tokens.color.accent];
     return Array.from({ length: count }, (_, index) => {
       const ground = grounds[index % grounds.length];
-      const ink = contrastRatio('#ffffff', ground) >= 3 ? '#ffffff' : ds.colors.ink;
-      const css = patternCss(motifs[index % motifs.length], ink, ground, 2);
-      const body = Object.entries(css)
+      const ink = readableInk(contrastRatio('#ffffff', ground) >= 3 ? '#ffffff' : tokens.color.ink, ground, 3);
+      const body = Object.entries(motifCss(motifs[index % motifs.length], ink, ground, 2))
         .map(([property, value]) => `${property}:${value}`)
         .join(';');
       return `<div style="width:100%;height:100%;${body}"></div>`;
@@ -338,9 +391,7 @@ export class SocialMockupService {
   /** Visuel composé à la charte, quand le pipeline des visuels n'a rien rendu. */
   private async fallbackVisual(kit: SocialBrandKit, idea: SocialPostIdea, format: PostVisualFormat): Promise<Buffer> {
     const { width, height } = MEDIA_SIZE[format];
-    // Le format paysage d'une publication X se compose comme une vignette vidéo.
-    const composition = format === 'banner' ? 'thumbnail' : format;
-    return composeBanner(this.bannerBrand(kit, idea.title || kit.promise), composition, width, height);
+    return this.banner(kit, format, width, height, idea.title || kit.promise);
   }
 
   private async renderAndUpload(
@@ -349,7 +400,8 @@ export class SocialMockupService {
     upload: MockupUploader
   ): Promise<string> {
     const html = fillMockupTemplate(readMockupTemplate(template), values, template.id);
-    const png = await flyerRenderService.renderDocumentToPng(html, template.width, template.height, 2);
+    // Le gabarit est un document complet (ses polices, ses styles) : photographié tel quel.
+    const png = await screenshot(html, { width: template.width, height: template.height, scale: 2 }, { fullPage: false });
     // JPEG : un mockup est plein cadre, sans transparence, et pèse quatre fois moins.
     const jpeg = await sharp(png).jpeg({ quality: 88, mozjpeg: true }).toBuffer();
     return upload(jpeg, template.id, 'image/jpeg');

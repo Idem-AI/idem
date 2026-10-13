@@ -112,7 +112,9 @@
       "designPlaceholder": "Saisissez votre prompt ici, nous vous aiderons à générer un design..."
     },
     "regenerate_incomplete": "Veuillez vérifier quels fichiers ont été générés la dernière fois, reconstruire et poursuivre les fichiers de code incomplets de la dernière fois, sans qu'il soit nécessaire de régénérer les fichiers de code déjà terminés",
-    "quality_pass": "Revue de design : application de {{count}} corrections à l'interface générée."
+    "quality_pass": "Revue de design : application de {{count}} corrections à l'interface générée.",
+    "technicalHidden": "Le modèle a répondu sans modifier le site. Reformulez la demande, ou relancez la génération.",
+    "resumingIncomplete": "La réponse s'est arrêtée en cours de route : je reprends là où elle s'est arrêtée."
   },
   "settings": {
     "title": "Paramètres",
@@ -757,7 +759,8 @@
     "remove": "Supprimer",
     "restored": "Version restaurée",
     "restoreFailed": "La restauration a échoué",
-    "beforeRestore": "Avant restauration"
+    "beforeRestore": "Avant restauration",
+    "beforeDelete": "Avant suppression"
   },
   "chatWorkspace": {
     "readyToGenerate": "Prêt à générer votre application",
@@ -768,7 +771,17 @@
     "complete": "Génération terminée",
     "completeBody": "Votre application est générée et prête à être publiée.",
     "loadFailed": "Chargement du projet impossible",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "regenerate": "Supprimer et régénérer",
+    "regenerateNow": "Régénérer maintenant",
+    "regenerateTitle": "Supprimer cette génération ?",
+    "regenerateBody": "Le code et la conversation sont supprimés, puis vous repartez de zéro. La charte, la configuration du projet et l'adresse publiée sont conservées : la configuration technique revient toute seule, l'IA ne génère que le reste. Un point de restauration est enregistré avant la suppression.",
+    "regenerateConfirm": "Oui, supprimer",
+    "regenerateCancel": "Annuler",
+    "regenerating": "Suppression…",
+    "configuringSeo": "Je configure le référencement du site.",
+    "completingContent": "Je complète le contenu de {{count}} section(s).",
+    "regenerateFailed": "La suppression a échoué : rien n'a été modifié. Réessayez dans un instant."
   },
   "checks": {
     "title": "Contrôles du projet",

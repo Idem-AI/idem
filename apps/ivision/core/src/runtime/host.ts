@@ -14,6 +14,8 @@
  */
 import type { AgentCall } from '../creativity/orchestrator';
 import { CoreLogger, setCoreLogger } from './logger';
+import { configureGraphicEngine } from '@idem/graphic-engine';
+import { isRenderUrlAllowed } from '../render/network-guard';
 
 export interface StoredFile {
   fileName?: string;
@@ -60,6 +62,8 @@ export interface VideoClipRequest {
   durationSec: 5 | 10;
   quality: 'speed' | 'quality';
   tag: string;
+  /** Modèle vidéo imposé (ex. 'google/veo-3.1-fast'). */
+  model?: string;
 }
 
 export interface GeneratedClipLike {
@@ -116,11 +120,22 @@ const host: CoreHost = {
   sfxUrl: (name) => `${host.apiBaseUrl()}/project/communication/sfx/${name}`,
 };
 
-/** Branche un hôte (au démarrage du processus, avant toute création). */
+/**
+ * Branche un hôte (au démarrage du processus, avant toute création). Le moteur graphique
+ * (@idem/graphic-engine), qui compose les visuels du cœur, reçoit les MÊMES ports : l'appel d'agent,
+ * le modèle de vision, le journal et la garde réseau des rendus — IDEM et iVision le branchent donc
+ * à l'identique, sans le configurer deux fois.
+ */
 export function configureCore(next: Partial<CoreHost> & { logger?: CoreLogger }): void {
   const { logger, ...ports } = next;
   if (logger) setCoreLogger(logger);
   Object.assign(host, Object.fromEntries(Object.entries(ports).filter(([, v]) => v !== undefined)));
+  configureGraphicEngine({
+    ...(host.agentCall ? { agentCall: host.agentCall } : {}),
+    ...(host.analyzeImage ? { analyzeImage: (base64, mimeType, instruction, options) => host.analyzeImage!(base64, mimeType, instruction, { maxOutputTokens: options?.maxOutputTokens }) } : {}),
+    ...(logger ? { logger: { info: (m, meta) => logger.info(m, meta), warn: (m, meta) => logger.warn(m, meta), error: (m, meta) => logger.error(m, meta) } } : {}),
+    browser: { allow: (url) => isRenderUrlAllowed(url) },
+  });
 }
 
 export function coreHost(): CoreHost {

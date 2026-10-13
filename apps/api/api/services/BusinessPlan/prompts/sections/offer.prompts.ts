@@ -13,7 +13,6 @@ export const OFFER_SECTION_PROMPTS: SectionPromptSpec[] = [
   {
     key: 'solution',
     name: 'Solution',
-    fallbackPages: '1-2',
     objective: 'Explain the mechanism, not the promise.',
     mustCover: `1. What the solution does, in the order the user experiences it.
 2. The mechanism that makes it work: the part a competitor cannot copy by
@@ -38,7 +37,6 @@ through the solution, one "table" for the before/after comparison, one
   {
     key: 'products-services',
     name: 'Products & Services',
-    fallbackPages: '1-2',
     objective: 'Make the offer concrete enough to be bought.',
     mustCover: `1. The actual offerings, described by what they do for the customer.
 2. The features that genuinely differ from the alternatives.
@@ -64,7 +62,6 @@ main one set to emphasis), one "table" for the competitive comparison, one
   {
     key: 'value-proposition',
     name: 'Unique Value Proposition',
-    fallbackPages: '1',
     objective: 'One sentence a customer would repeat to a colleague.',
     mustCover: `1. The single-sentence proposition: for whom, what result, unlike what.
 2. Why THIS customer cares more than any other about that result.
@@ -80,7 +77,6 @@ supporting claims, one "table" positioning against the nearest alternatives.`,
   {
     key: 'unfair-advantage',
     name: 'Unfair Advantage',
-    fallbackPages: '1',
     objective: 'Name what cannot be copied or bought.',
     mustCover: `1. The advantage, named precisely: it is not "our team" or "our passion".
 2. Why a funded competitor could not reproduce it within two years.
@@ -102,7 +98,6 @@ it, one "assumption" block where the advantage is expected rather than held.`,
   {
     key: 'business-model',
     name: 'Business Model',
-    fallbackPages: '1-2',
     objective: 'Show how money comes in, and what it costs to bring it in.',
     mustCover: `1. Revenue streams: what is sold, to whom, how often.
 2. The pricing model and what justifies the level.

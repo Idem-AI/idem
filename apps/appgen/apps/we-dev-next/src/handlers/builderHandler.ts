@@ -15,6 +15,7 @@ import { screenshotOne } from '../utils/screenshotone.js';
 import { ProjectPromptService } from '../services/projectPromptService.js';
 import { ChatLogger } from '../utils/logger.js';
 import { streamResponse } from '../utils/streamResponse.js';
+import { createSiteBuildStream, shouldOrchestrateSite } from '../orchestrator/siteBuilder.js';
 
 /** Past this, the existing project is summarised rather than sent whole. */
 const CONTEXT_TOKEN_LIMIT = 128000;
@@ -87,7 +88,9 @@ export async function handleBuilderMode(
   /** Site, application web ou application mobile : le contrat de build en dépend. */
   target: BuildTarget = 'web-app',
   /** Version du starter déjà monté côté client, s'il y en a un. */
-  scaffoldVersion?: string
+  scaffoldVersion?: string,
+  /** Session de l'utilisateur, relayée à l'API IDEM pour les médias des sites. */
+  credentials?: Record<string, string>
 ) {
   const startTime = Date.now();
 
@@ -103,7 +106,11 @@ export async function handleBuilderMode(
   });
 
   const historyMessages: Messages = JSON.parse(JSON.stringify(messages));
-  const { files, allContent } = processFiles(messages);
+  // Nettoie systématiquement les <boltArtifact> des tours passés (remplacés par
+  // l'accusé compact côté messageParser), pas seulement une fois le seuil de
+  // CONTEXT_TOKEN_LIMIT franchi : sans cela, chaque tour renvoyait au modèle
+  // tout le code déjà écrit aux tours précédents.
+  const { files, allContent } = processFiles(messages, true);
   const filesPath = Object.keys(files);
 
   await attachScreenshotIfRequested(messages);
@@ -121,6 +128,28 @@ export async function handleBuilderMode(
   // instruction from the user, and overwriting it with the initial framing
   // throws that instruction away.
   const isFirstTurn = !messages.some((message) => message.role === 'assistant');
+
+  // Premier tour d'un site vitrine, starter monté : le site est rédigé section
+  // par section par l'orchestrateur, et non plus d'un seul jet. Les tours
+  // suivants (« change le titre », « ajoute une page ») restent au modèle, qui
+  // modifie alors des contenus déjà en place.
+  if (
+    shouldOrchestrateSite({ target, scaffoldVersion, isFirstTurn, projectData, outOfBand: qualityRepair })
+  ) {
+    ChatLogger.info('SITE_ORCHESTRATOR', 'Site rédigé section par section', {
+      project: projectData?.name,
+      language,
+    });
+    ChatLogger.stepEnd('handleBuilderMode', Date.now() - startTime);
+    return createSiteBuildStream({
+      projectData: projectData!,
+      language: language === 'en' ? 'en' : 'fr',
+      request: rawRequest,
+      model,
+      userId,
+      credentials,
+    });
+  }
 
   let projectBrief: string | undefined;
   let extraContext: string | undefined;
@@ -179,8 +208,9 @@ export async function handleBuilderMode(
     // Existing project too large to send whole: summarise it and send the diff.
     ChatLogger.warn('TOKEN_LIMIT', 'Context over limit, summarising the project');
 
-    const { files: fullFiles } = processFiles(messages, true);
-    const trimmedFiles = await handleTokenLimit(messages, fullFiles, filesPath);
+    // Déjà nettoyé plus haut (inconditionnellement) : pas besoin de rappeler
+    // processFiles ici, `files` porte déjà le contenu courant de chaque fichier.
+    const trimmedFiles = await handleTokenLimit(messages, files, filesPath);
 
     extraContext = buildExistingProjectContext(
       filesPath,
@@ -198,6 +228,7 @@ export async function handleBuilderMode(
     extraContext,
     target,
     scaffolded: !!scaffoldVersion,
+    firstTurn: isFirstTurn && !qualityRepair?.trim(),
   });
 
   applyPrompt(messages, system, user);

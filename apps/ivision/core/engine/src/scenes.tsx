@@ -23,6 +23,7 @@ import { Clip, LottieBox, RiveBox, ThreeView } from './media';
 import { Kinetic, Odometer } from './text';
 import { MediaTreatment, treatmentFor } from './treatments';
 import { clamp, mix, progress } from './time';
+import { BrandSplash, FileList, ScreenFrame, TypedPrompt } from './kit/Screen';
 
 // ─── Briques communes ───────────────────────────────────────────────────────
 
@@ -136,6 +137,21 @@ function Statement() {
   const s = useScene();
   const { data } = useEngine();
   const g = data.direction.pacing.groupStagger;
+  // Une phrase qui porte une photo ou un clip les MONTRE, dans la même bibliothèque de mises en
+  // scène que les plans filmés (avant : l'image était attachée à la scène sans jamais être dessinée).
+  if (s.video || s.image) {
+    return (
+      <MediaTreatment
+        kind={treatmentFor(s.treatment, data.direction.id, s.index)}
+        src={s.image}
+        video={s.video}
+        title={s.slots.title}
+        sub={s.slots.sub}
+        renderTitle={(fit, at, technique) => <Headline text={s.slots.title} at={at} fit={fit} technique={technique} />}
+        renderSub={(at, muted = true) => <Support text={s.slots.sub} at={at} fit={[4.6, 3.2, 2]} muted={muted} />}
+      />
+    );
+  }
   return (
     <Composition>
       <Headline text={s.slots.title} fit={[14, 7, 4]} emph={(data.kit?.annotateScene === s.key || !!s.annotateId)} />
@@ -529,9 +545,32 @@ function Cta() {
   );
 }
 
+/** Sous le logo : la phrase de signature, puis l'adresse web (toutes deux de la demande). */
+function SignLines({ at = 0.9 }: { at?: number }) {
+  const s = useScene();
+  const tag = useEnter('rise', at, 0.9, null);
+  const web = useEnter('rise', at + 0.35, 0.9, null);
+  return (
+    <>
+      {s.slots.tagline ? (
+        <span className="tagline" style={tag}>
+          {s.slots.tagline}
+        </span>
+      ) : null}
+      {s.slots.url ? (
+        <span className="tagline sign-url" style={web}>
+          {s.slots.url.replace(/^https?:\/\//i, '').replace(/\/+$/, '')}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
 function Logo() {
   const s = useScene();
   const { data, ease, back, horizontal, u } = useEngine();
+  // Le nom que le scénario écrit dans sa signature (marque sans nom, ou un autre nom), sinon celui de la charte.
+  const brandName = s.slots.name || data.brandName;
   const lt = useLocalTime();
   const sf = data.surfaces[s.surface] || data.surfaces.light;
   const src = sf.dark ? data.logo.onDark || data.logo.onLight : data.logo.onLight || data.logo.onDark;
@@ -539,18 +578,13 @@ function Logo() {
   // Une montée avant la signature, partout (plus discrète dans les directions élégantes).
   if (s.start > 3) cue(`${s.key}:riser`, Math.max(0, s.start - 1.5), 'riser', ['editorial', 'precision', 'cinematic'].includes(data.direction.id) ? 0.35 : 0.6);
   cue(`${s.key}:shimmer`, s.tin + 0.05, 'shimmer');
-  const tagStyle = useEnter('rise', 0.9, 0.9, null);
   if (s.three) {
     return (
       <>
         <ThreeView cfg={s.three} width={data.width} height={data.height} horizontal={horizontal} />
         <Composition anchor="bottom-center" gap={2}>
-          <Kinetic text={data.brandName} technique="trackIn" at={0.9} role="headline" fit={[9, 5, 1]} />
-          {s.slots.tagline ? (
-            <span className="tagline" style={tagStyle}>
-              {s.slots.tagline}
-            </span>
-          ) : null}
+          <Kinetic text={brandName} technique="trackIn" at={0.9} role="headline" fit={[9, 5, 1]} />
+          <SignLines />
         </Composition>
       </>
     );
@@ -564,12 +598,8 @@ function Logo() {
     return (
       <Composition anchor={anchor} gap={4}>
         <LogoMotion variant={kitLogo} at={0.05} height={u * (data.kit.logoIsIcon ? 26 : horizontal ? 24 : 22)} align={anchor === 'center' ? 'center' : 'left'} />
-        {data.kit.logoIsIcon ? <Kinetic text={data.brandName} technique="maskUp" at={1.3} role="headline" fit={[11, 6, 1]} /> : null}
-        {s.slots.tagline ? (
-          <span className="tagline" style={tagStyle}>
-            {s.slots.tagline}
-          </span>
-        ) : null}
+        {data.kit.logoIsIcon ? <Kinetic text={brandName} technique="maskUp" at={1.3} role="headline" fit={[11, 6, 1]} /> : null}
+        <SignLines />
       </Composition>
     );
   }
@@ -583,33 +613,25 @@ function Logo() {
           <img className="logo-icon" src={data.logo.icon} alt="" style={{ transform: `translateX(${(1 - np) * 40}%) scale(${mix(0.3, 1, ip)})`, opacity: clamp(ip * 2), position: 'relative', zIndex: 1 }} />
           <div className="overflow-hidden">
             <div style={{ transform: `translateX(${(1 - np) * -105}%)` }}>
-              <Kinetic text={data.brandName} technique="trackIn" at={0.55} role="headline" fit={[12, 6, 1]} />
+              <Kinetic text={brandName} technique="trackIn" at={0.55} role="headline" fit={[12, 6, 1]} />
             </div>
           </div>
         </div>
-        {s.slots.tagline ? (
-          <span className="tagline" style={tagStyle}>
-            {s.slots.tagline}
-          </span>
-        ) : null}
+        <SignLines />
       </Composition>
     );
   }
   const p = ease(progress(lt, 0, data.direction.pacing.enter * 1.4));
   const logoImg = (style: CSSProperties = {}) =>
-    src ? <img className="logo-img" src={src} alt="" style={style} /> : <Kinetic text={data.brandName} technique="trackIn" at={0} role="headline" fit={[14, 7, 2]} />;
-  const tagline = s.slots.tagline ? (
-    <span className="tagline" style={tagStyle}>
-      {s.slots.tagline}
-    </span>
-  ) : null;
+    src ? <img className="logo-img" src={src} alt="" style={style} /> : <Kinetic text={brandName} technique="trackIn" at={0} role="headline" fit={[14, 7, 2]} />;
+  const tagline = <SignLines />;
 
   // Brutaliste et trempé : le nom de la marque devient l'image, en très grand.
   if (id === 'brutal' || id === 'drenched') {
     return (
       <Composition anchor={id === 'brutal' ? 'center-left' : 'bottom-left'} gap={3}>
         {data.logo.icon ? <img className="logo-icon" src={data.logo.icon} alt="" style={useEnter('scale', 0, 0.8, null)} /> : null}
-        <Kinetic text={data.brandName} technique={id === 'brutal' ? 'stackPush' : 'maskUp'} at={0.15} role="headline" fit={[26, 10, 2]} sound="impact" />
+        <Kinetic text={brandName} technique={id === 'brutal' ? 'stackPush' : 'maskUp'} at={0.15} role="headline" fit={[26, 10, 2]} sound="impact" />
         {tagline}
       </Composition>
     );
@@ -688,6 +710,59 @@ function Footage() {
       renderTitle={(fit, at, technique) => <Headline text={s.slots.title} at={at} fit={fit} technique={technique} />}
       renderSub={(at, muted = true) => <Support text={s.slots.sub} at={at} fit={[4.6, 3.2, 2]} muted={muted} />}
     />
+  );
+}
+
+/** La marque en tête d'une interface dessinée (au-dessus de la saisie) : son logo, sinon son nom. */
+function ScreenBrand() {
+  const { data, u, ease } = useEngine();
+  const lt = useLocalTime();
+  const src = data.logo.onLight || data.logo.icon;
+  const p = ease(progress(lt, 0.1, 0.6));
+  const style: CSSProperties = { opacity: p, transform: `translateY(${(1 - p) * u * 1.5}px)` };
+  return src ? <img src={src} alt="" style={{ ...style, height: u * 5.5, maxWidth: '40%', objectFit: 'contain' }} /> : <span style={{ ...style, fontFamily: 'var(--f-display)', fontWeight: 800, fontSize: u * 4.4, color: 'var(--c-text)' }}>{data.brandName}</span>;
+}
+
+/**
+ * L'interface du produit : la capture de la marque dans une fenêtre de navigateur qui se charge
+ * puis avance lentement ; sans capture, l'interface dessinée avec les textes DE LA DEMANDE (une
+ * saisie qui se tape, un dossier et ses fichiers) ou l'écran d'accueil à la marque. Le titre, s'il
+ * y en a un, se pose à côté (paysage) ou dessous (portrait, carré).
+ */
+function Screen() {
+  const s = useScene();
+  const { data, horizontal } = useEngine();
+  const g = data.direction.pacing.groupStagger;
+  const items = (s.slots.items || '').split('|').map((x) => x.trim()).filter(Boolean);
+  const props = (s.props || []).filter(Boolean);
+  // Les textes dans l'écran : ceux des cases, sinon ceux que la demande montre DANS l'image.
+  const prompt = s.slots.prompt || (props.length === 1 && props[0].split(/\s+/).length > 2 ? props[0] : undefined);
+  const list = items.length ? items : props.length > 2 ? props.slice(1) : [];
+  const folder = items.length ? undefined : props.length > 2 ? props[0] : undefined;
+  const title = s.slots.title;
+  const box: CSSProperties = horizontal
+    ? title
+      ? { left: '40%', right: 'var(--sx)', top: 'calc(var(--st) * 0.9)', bottom: 'calc(var(--sb) * 0.9)' }
+      : { left: '9%', right: '9%', top: 'calc(var(--st) * 0.8)', bottom: 'calc(var(--sb) * 0.8)' }
+    : { left: 'var(--sx)', right: 'var(--sx)', top: 'var(--st)', height: title ? '50%' : '64%' };
+  if (prompt) cue(`${s.key}:type`, s.start + 0.35, 'tick', 0.35);
+  return (
+    <>
+      <ScreenFrame src={s.image} video={s.video} url={s.slots.url} at={0} style={box}>
+        <div className="scr-center">
+          {prompt ? <ScreenBrand /> : null}
+          {prompt ? <TypedPrompt text={prompt} at={0.35} /> : null}
+          {list.length ? <FileList items={list.slice(0, 9)} title={folder} at={prompt ? 0.35 + prompt.length / 20 + 0.2 : 0.3} /> : null}
+          {!prompt && !list.length ? <BrandSplash /> : null}
+        </div>
+      </ScreenFrame>
+      {title ? (
+        <Composition anchor={horizontal ? 'center-left' : 'bottom-left'} width={horizontal ? '34%' : '100%'} gap={2.4}>
+          <Headline text={title} at={g * 1.2} fit={horizontal ? [8.5, 4.6, 4] : [10, 5.4, 3]} />
+          <Support text={s.slots.sub} at={g * 2.2} fit={[4.4, 3, 3]} />
+        </Composition>
+      ) : null}
+    </>
   );
 }
 
@@ -783,6 +858,7 @@ export const SCENE_COMPONENTS: Record<string, () => ReactNode> = {
   cta: Cta,
   logo: Logo,
   footage: Footage,
+  screen: Screen,
   kinetic: KineticScene,
   lottie: LottieScene,
   showcase3d: Showcase3d,

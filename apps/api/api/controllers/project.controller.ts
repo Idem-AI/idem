@@ -473,6 +473,47 @@ class ProjectController {
     }
   }
 
+  /**
+   * Deletes what was generated for one product (code + conversation), so the
+   * workspace can generate it again from zero. The project and the published
+   * address are kept.
+   */
+  async deleteProjectGeneration(
+    req: CustomRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+    try {
+      if (!userId) {
+        res.status(401).json({ message: 'User not authenticated' });
+        return;
+      }
+      if (!projectId) {
+        res.status(400).json({ message: 'Project ID is required' });
+        return;
+      }
+
+      const result = await projectService.deleteProjectGeneration(
+        userId,
+        projectId as string,
+        parseProjectProduct(req.query.product)
+      );
+      res.status(200).json(result);
+    } catch (error: any) {
+      if (error?.status === 404) {
+        res.status(404).json({ message: 'Project not found' });
+        return;
+      }
+      logger.error(
+        `Error in deleteProjectGeneration controller for projectId ${projectId}, userId ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      next(error);
+    }
+  }
+
   async getAppDeployment(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
     const userId = req.user?.uid;
     const { projectId } = req.params;

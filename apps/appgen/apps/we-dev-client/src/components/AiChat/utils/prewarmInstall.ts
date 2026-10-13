@@ -16,6 +16,11 @@ import { queue } from '../useMessageParser';
 
 let started = false;
 
+/** Après un retour à zéro, le nouveau conteneur est vide : il faut réinstaller. */
+export const resetPrewarm = (): void => {
+  started = false;
+};
+
 /** Un terminal apparaît quelques instants après le montage de l'atelier. */
 const TERMINAL_POLL_MS = 500;
 const TERMINAL_POLL_ATTEMPTS = 40;
@@ -27,6 +32,8 @@ export async function prewarmInstall(command = 'npm install'): Promise<void> {
   for (let attempt = 0; attempt < TERMINAL_POLL_ATTEMPTS; attempt += 1) {
     if (useTerminalStore.getState().getTerminal(0)) {
       console.log(`[scaffold] installation anticipée : ${command}`);
+      // La file est sérielle : l'installation de fin de génération attendra
+      // celle-ci, et retombera sur le cache npm en quelques secondes.
       queue.push(command);
       return;
     }

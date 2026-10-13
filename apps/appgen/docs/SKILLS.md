@@ -132,9 +132,171 @@ Three situations on open:
 
 - empty workspace → the starter is mounted and noted in `localStorage` for this project and product;
 - project reopened and already generated on a starter → only the lock is restored, so follow-up turns keep their hands off the config;
-- project generated before the starter existed → nothing is locked and the full build contract goes out as before. Each `webcontainer-*` skill keeps a short fallback section for exactly that case.
+- project generated before the starter existed → nothing is locked; follow-up turns edit the files already in the workspace.
+
+**Nothing is sent before the starter is settled.** Seven paths post a message to the model (typing, the dashboard's automatic launch, « Fix », resume…). They all go through one wrapped `append` that waits on a gate in `scaffoldLock.ts`, which opens once mounting is settled — mounted, unnecessary or failed — and, as a last resort, after 8 s so a mute server cannot block generation. The wrapper also announces the starter version *in the call itself*: the chat body is re-read at render time, and the first send follows the mount by microseconds. Before the gate, the dashboard's automatic launch beat the `/api/scaffold` round trip, the mount was cancelled, and the model wrote its own `index.css` — with invented utilities such as `font-figtree`, which stop PostCSS.
+
+**When mounting genuinely fails** (the 8 s fallback), the skills would be describing files that do not exist. On a first turn without the starter flag the server rebuilds the starter (it is deterministic) and puts the files in the prompt under « STARTER NOT MOUNTED », to be emitted verbatim. That is the old cost — about 4 000 tokens of input and the matching output — but only on that degraded path, and the project comes out whole.
 
 The client sends `scaffold: { version }` with every message; the server **rebuilds** the starter rather than trusting that payload (it is deterministic, so there is nothing to trust) and switches the brief from "paste this config" to "here are the token names". Bump `SCAFFOLD_VERSION` whenever a locked file's content changes.
+
+#### Deleting a generation, to regenerate it from zero
+
+The workspace header offers « Delete and regenerate » once a generation is finished — and also when it is stuck « in progress », which used to be a dead end. It asks for confirmation, then `DELETE /projects/:id/generation?product=site|app` wipes the **code, the conversation and (site only) the old generation marker**. The project, its brand and plan, and the **deployment record** are kept: a regenerated product redeploys to the same published address. The other product is never touched — site and application have separate folders and documents.
+
+After the wipe the starter is unlocked and the mount effect runs again, so the configuration, the brand tokens and the component kit come back on their own and the model only writes the product — the same path as a first generation. The button then reads « Regenerate now ».
+
+Four details that are easy to get wrong, each covered:
+
+- **Legacy ZIPs.** `getProjectCode` falls back to the old ZIP archives when the incremental store is empty, so deleting only the manifest would bring the old site straight back. The whole `…/code/` prefix goes (its trailing `/` keeps it from matching a neighbour like `code-backup/`, and the site's folder and the application's `…/app/code/` are siblings, not nested). A partial failure is reported by MinIO and **raised**, never swallowed.
+- **A fresh container.** Mounting only ever writes; the WebContainer does not expose its processes (`npm run dev` outlives the terminal, which only frees the xterm UI); and the disk read-back would pull any file missing from the store back into it. The reset therefore calls `teardown()` and boots a new container, which also drops the PGlite database that would otherwise keep the old schema (`CREATE TABLE IF NOT EXISTS`). Dependencies reinstall, in parallel with generation (see the pre-warm above).
+- **Uploads in flight.** A push reads the manifest, diffs, then writes. `cancelPendingCodeSync()` makes unwritten pushes abandon themselves and `waitForCodeSync()` waits for the ones writing, *before* the server delete — otherwise one could land afterwards and put part of the old project back.
+- **Server first.** If the delete fails nothing changes locally; emptying the workspace first would bring the old code back on the next open for no visible reason. A restore point (« Before deletion ») is saved beforehand, as the user's safety net for what is irreversible server-side.
+
+#### The page plan — small tasks instead of one large one
+
+Writing a landing page in one pass means holding layout, responsive behaviour, imports, exports and copy at the same time. A small model fails at one of the five, and the failure is total: one forgotten import and the preview is dead.
+
+So the work is cut into pieces a small model actually completes:
+
+1. **`idem.plan.json`** — which sections, in what order, which libraries. A dozen lines.
+2. **`src/content/<name>.js`** — one plain data object per section. No JSX, no imports.
+3. **`src/App.jsx`** — composed by `utils/pageComposer.ts`, in code.
+
+The step where mistakes used to kill the preview — imports, order, composition — is no longer anyone's job. It is deterministic. And the model's output drops from ~300 tokens of JSX per section to ~20 of data.
+
+Degradation is graceful by design: a section the kit does not have is dropped, a section whose content file is missing is dropped (an empty section is more visible than a shorter page), an unsafe import path is ignored. The worst case is a shorter page, never a dead one. The escape hatch remains: a product that needs a map or a configurator gets a hand-written component and composes `App.jsx` itself.
+
+#### The section kit — layout belongs to the code
+
+`scaffold/sections.ts` ships Nav, Hero, Features, Steps, Testimonials, Pricing, Faq, Cta and Footer, written once in the project's own tokens: responsive, 44px targets, one `<h1>` per page, `aria-labelledby` per section, reading measure capped. Headings are `clamp()`-sized rather than scale steps — an editorial direction reaches 90px, which is five lines of hero in half a column.
+
+Anti-monoculture still holds: each section's **default variant** comes from the art direction drawn for the project, so two projects do not get the same page even from the same brief, and the model never has to think about it. The kit is mounted but **not locked** — "make the hero full-bleed" must still be possible.
+
+#### Showcase sites: multi-page Vite, pre-rendered at build
+
+The `site` target was briefly Next.js, for the search metadata. It had to come back: in a WebContainer the `AsyncLocalStorage` context is lost across React's scheduler, so `next dev` falls over on an internal invariant (`workUnitAsyncStorage`, then `workStore`) whatever the version. A preview that does not display is worth no search ranking at all.
+
+So: **one HTML document per page, built by Vite**, and search visibility handled by code at build time.
+
+- `idem.page.html` is the template. The composer cuts one document per page from it, filling the title and description that page declared in the plan. The fonts, the brand colour and the sharing tags are already in it.
+- `scripts/prerender.mjs` runs after `vite build`. It loads each page module through Vite's SSR loader, renders it with `renderToString`, and writes the markup into its document. A crawler therefore reads the copy without running a line of JavaScript; the browser picks the same markup back up with `hydrateRoot`.
+- The same script writes `sitemap.xml`, `robots.txt`, the canonical link and the JSON-LD business card, all from `src/seo.js`. None of it is ever asked of a model.
+- `vite.config.js` discovers its HTML entries by reading the directory, so adding a page is adding a folder — no configuration to keep in step.
+
+A page that cannot render outside a browser keeps its document untouched and still works client-side: search visibility is never worth failing a build over.
+
+Verified end to end on a two-page site: `<title>` and description per page, canonical on the real domain, the full copy present in the served HTML, structured data carrying the business details, and a sitemap of absolute URLs.
+
+#### Search settings are their own step
+
+`src/seo.js` is written by the starter with what the code already knows: name, description, language, brand colour. What it cannot know is the customers' vocabulary. So after the site exists — and only then, when there is copy to draw from — the workspace asks for that one file: title, description, the six to ten phrases people actually type, and the business card for local search. One follow-up, out of band, once per conversation.
+
+#### Nothing technical reaches the chat
+
+`utils/stepLabels.ts` also carries `sanitizeChatProse`, applied to every assistant message before it is rendered — inside an artifact and outside one. It strips fenced code blocks, stray `boltArtifact` tags, and standalone JSON objects. The model regularly drops code outside its file actions; that code is recovered and written to the project by `planRecovery.ts`, so showing it as well informs nobody and buries the sentence that matters.
+
+Search settings are the clearest case: the model answers with a JSON object, often in Next's own shape (`openGraph`, `twitter`, `alternates`) rather than the one asked for. `readSeoAnswer` accepts both, keeps title, description, keywords and the business card, and `applySeoAnswer` writes them into `src/seo.js` **by code**. The file's shape is read by `layout.jsx`: one misplaced brace from the model would take the whole site down, so the model brings the words and the code brings the syntax.
+
+#### The quality pass cannot touch what the code owns
+
+The design linter sends the whole file map, because some rules need it to judge — the forged palette lives in `tailwind.config.js`. But a file written by the starter must never come back as a repair target: the model once rewrote a 2 KB stylesheet into 400 KB of `.text-[inherit]` repeated hundreds of times, and the workspace had no reason to refuse it. The lint request now carries the locked list, `selectRepairTargets` skips it, and a report whose only offenders are locked produces no repair request at all.
+
+Two more guards came out of that failure:
+
+- **Degenerate output is refused**, on both write paths. A file over 150 KB, or over 120 lines with fewer than a quarter of them distinct, is dropped rather than allowed to replace working code. A legitimate file is never both enormous and mostly repetition.
+- **The lock is registered on every reopen**, with or without the starter's signature. Refreshing the files still requires that signature — overwriting the `package.json` of a project built before the starter would break it — but *forbidding* the model to rewrite them does not.
+
+And `src/seo.js` is the one starter file the generation rewrites, so `layout.jsx` spreads it over defaults carrying the real project name, description and brand colour. A broken search file costs its own values, not every page of the site.
+
+#### The preview is checked, not assumed
+
+`ensurePreview.ts` watches for a result rather than an intention. The exec queue skips any command already run at the same position, so a turn that holds only prose relaunches nothing, and a multi-turn generation can install a dependency after the server started. The watchdog polls for a server URL and, if none appears within 30 s while nothing is installing, runs install and start once. It gives Next up to three minutes before giving up and pointing at the terminal.
+
+#### One queue, or a corrupted install
+
+Every command now goes through the single serial queue, the run button included. It used to call the terminal directly: a click while the starter's pre-warm install was running started a second `npm install` on the same `node_modules`, and npm stopped on `EIO: failed to link packages`, leaving a half-installed tree. The next command then failed with `command not found: next`, and nothing in the chain could tell why.
+
+The watchdog also reads the terminal output. On `EIO`, `ENOTEMPTY` or a missing binary it does not simply re-run the install — npm believes that work is done — it removes `node_modules` and the lockfile first, then installs and starts, once per workspace.
+
+#### The chat says what is happening, not how
+
+The conversation used to show file paths and npm commands. That is a tool's trace, not an account of work: someone waiting for their site does not need to know there is a `src/content/hero.js`, nor what `npx shadcn add` means. `utils/stepLabels.ts` turns every action into a sentence — « J'écris l'accroche », « J'ajoute le composant marquee (Magic UI) », « Je démarre l'aperçu » — and the npm block is gone. The path stays on hover and on click: nothing is hidden, the vocabulary changed.
+
+The context artifacts (`hello-js`, `existing-code`) are not rendered at all. They are machinery, and showing « Existing project code » on a project that holds nothing but the starter was telling the user something untrue.
+
+#### The library catalog — the agent chooses, the code installs
+
+`scaffold/libraries.ts` is a menu: Motion, shadcn/ui, Magic UI, Aceternity, Embla, Recharts, React Hook Form + Zod, Tabler Icons, Cobe. Each entry says what it brings and when to take it. The model **names** ids in the plan; the code turns them into commands. Choosing from a menu is within reach of a small model; writing an integration is not.
+
+The starter is shadcn-compatible out of the box: `components.json` (with the `@magicui` and `@aceternity` registries), `jsconfig.json` and the `@` to `src/` alias in Vite, plus `cn` at `@/lib/utils` where the ecosystem expects it. `cssVariables: false` with `baseColor: neutral` is deliberate — installed components dress themselves in `neutral-*`, and our neutral ramp is already tinted with the project brand colour, so a component lands on-brand with no variable mapping and no token collision. Verified end to end: `npx shadcn@latest add @magicui/globe` writes `src/components/ui/globe.jsx`, installs `cobe`, and the project builds.
+
+#### The compile gate — what the model gets wrong, fixed by code
+
+`utils/compileGate.ts` runs between the end of generation and the preview, with no model call. It repairs the failures that kill a preview outright:
+
+| Failure | What the gate does |
+|---|---|
+| imports a file it never wrote | creates it, rendering nothing, and reports it |
+| same file under another extension (`App.jsx` vs `App.tsx`) | rewrites the import rather than stubbing over the real file |
+| imports a package that is not installed | installs it when it is in the catalog |
+| imports a package that does not exist | local shim: a Proxy that answers any name with a neutral component |
+| imports an icon Lucide does not have | routes `lucide-react` through a guard that falls back instead of returning `undefined` |
+| `@apply font-figtree` | drops the token from the `@apply` list |
+| default import of a file with no default export | appends one |
+| scaffold placeholder left over next to the real file | deletes the placeholder |
+
+Shims and the icon guard expose **one default export only**, and imports are rewritten to a default import plus destructuring: Rollup resolves named exports statically at build time, so a Proxy with named imports compiles in dev and fails the build — the kind of difference only a real build reveals.
+
+Verified on a deliberately broken generation carrying every failure at once: it builds (1991 modules, exit 0).
+
+#### The site orchestrator — a showcase site, section by section
+
+`src/orchestrator/` takes the **first turn of a showcase site** once the starter is mounted (`shouldOrchestrateSite`; `SITE_ORCHESTRATOR=off` falls back to the single-call path). One large call used to plan, write and index the whole site; a mid-size model then copied its own prompt back, stopped after three sections, or printed the plan in the chat. Now:
+
+| Step | Who | File |
+|---|---|---|
+| Facts: offers and prices (finance), team, phone/WhatsApp/e-mail/address, story, audience, business-plan summaries | code | `siteFacts.ts` |
+| Site language: the language of the request and the project, not of the IDEM interface | code | `detectSiteLanguage` |
+| Plan: pages from the facts (offers → Offres, team or story → À propos, channels → Contact; two justified pages → multi-page, otherwise one page with anchors), section order seeded per project, every button's destination | code | `sitePlan.ts` |
+| One section = one short JSON call, three in parallel, checked against a narrow shape | model, checked by code | `sectionSpecs.ts` |
+| Fact guard: any number, spelled-out duration, weekday, place or (in French) English word absent from the facts rejects the answer; the model retries with the list; on the last try the offending sentences are removed instead of losing the section | code | `factGuard.ts` |
+| Nav, footer, team, contact, prices, `src/seo.js` (keywords, `LocalBusiness`), `idem.plan.json` with `origin: "idem-site"` | code | `siteBuilder.ts` |
+| Brand pattern from the charter (light ground only) as the visual of hero and feature stories | code | `public/brand/pattern.svg`, `BrandPattern.jsx` |
+
+Links are never asked of the model: it writes a label knowing where the button leads, the code sets the href. A model that fails twice is dropped for the rest of the build; if no model answers the first section, the route returns a real 503 and no file is touched. `SITE_WRITER_MODEL` (a catalogue key) hands the writing to another model than the code model.
+
+The result streams as an ordinary `idem-site` artifact; the client composes the pages (`pageComposer.ts`: anchors as `id`, content inside `<main>`, `lang` from the plan), and skips the content retry, the SEO retry and the design review for these sites. Measured on a real project (laundry in Douala, 3 offers, 2 people, 4 channels): 18/18 sections, 4 pages, about 45 s, ~20k input and ~4k output tokens; a lean project gives one page of 8 sections in ~21 s.
+
+#### Site architect — the AI designs the site, the code checks it
+
+The plan used to be decided by code (`sitePlan.ts`): always Home, Offers, About, Contact and the same home skeleton, so every site had the same structure. The **architect agent** (`orchestrator/siteArchitect.ts`) now designs the whole site from the project's facts and the full toolbox (14 section types and their variants, tones, showcase, gallery, band, navigation `bar|centered|split`, footer `columns|statement`): 4 to 7 pages named in the client's words (a restaurant got *Le menu, Événements, Nous trouver*; a laundry *Nos services, L'atelier*), 6 to 10 sections on the home page, 3 to 7 on inner pages, a brief per section that the writer follows.
+
+The code only repairs: a section needing absent facts (prices, team, contact) is dropped; pages that would need unknown facts (areas served, opening hours, client references) are forbidden in the prompt; repeated sections are capped (FAQ on two pages at most; pricing, band, statement and contact once per site, on the page that fits them best); every page opens with Hero/Header and ends with a CTA or the contact; links are wired by `wireSite`. `normalizeLayout` checks variants and neighbours without a model call. If the architect fails, the old code plan and the layout director remain the fallback. The chat shows the pages as soon as they are decided.
+
+#### Layout and media agents — no two sites alike
+
+Every site used to take each section's default variant: same hero, same grid, same FAQ, colour aside. Two agents now decide, each choosing from menus the code controls:
+
+- **Layout director** (`orchestrator/layoutDirector.ts`). For each section it picks a variant from `KIT_VARIANTS` filtered by the charter's style family (structured: swiss, editorial…; expressive: clay, pop-art, glassmorphism…; soft: handwritten, bohemian…), a light background tone (`plain`, `tinted`, `raised`), may insert a `Statement`, `Showcase` or `Gallery`, and may reorder the home story. Code fixes anything off-menu: no two identical shapes or tinted backgrounds in a row, inserts never before the opening or after the closing call to action. Without an answer, a seeded draw per project.
+- **Media director** (`orchestrator/media/mediaDirector.ts`). For each visual slot that the chosen layout opens (hero, split, showcase, gallery), it picks `photo` (Pexels or Gemini), `illustration` (flat, drawn as SVG by the text model), `illustration-3d` (Gemini), `video` (Veo, hero or showcase only, one per site), `pattern` or `none`. Caps by code: one video, `SITE_MEDIA_MAX_GENERATED` paid generations, galleries in stock photos, required slots never empty. A second agent writes each Gemini/Veo prompt from the subject, the charter palette and where text will sit.
+- **Pipeline** (`media/mediaPipeline.ts`). Video: Veo → Pexels clip → photo. Photo: Pexels ↔ Gemini. Illustration: SVG → Gemini → Pexels. 3D: Gemini → Pexels → SVG. A 402 (credits), a timeout or a failure is just the next step; the charter pattern is the last resort. Each long step shows as a `note` line in the chat.
+
+Generation and stock search go through the IDEM API (`POST /appgen/media/image|video|stock`, user session relayed), which uploads to storage at a durable public URL and charges the iCode scale (`site_image`, `site_video`, refunded on failure). Pexels results whose description shares no word with the query are dropped rather than shown off-topic.
+
+The kit (`scaffold/sections.ts`) grew accordingly: 5 heroes (incl. full-bleed media under a light veil, stacked), 5 feature layouts, 3 splits, 3 steps (incl. timeline), 3 FAQs, 3 CTAs, 2 contacts, plus `Showcase`, `Statement`, `Gallery` and `Media` (image, drawing, video, pattern as data). The orchestrator rewrites the kit on every site so the chosen variants always exist.
+
+#### Libraries the kit really uses
+
+The catalog (Motion, shadcn/ui, Magic UI, Aceternity…) used to be offered to the model only; orchestrated sites never imported any of it, so `package.json` stayed at React + clsx. The kit now uses them itself, copied into the project the shadcn way (`src/components/idem/`, never overwritten by the shadcn CLI) and dressed in charter tokens:
+
+| Library | Where | Behaviour kept |
+|---|---|---|
+| Motion | `reveal.jsx`, wrapped by the composer around every section after the opening | only sections below the fold on load animate; prerendered HTML and no-JS stay fully visible; reduced motion respected |
+| shadcn/ui (Radix accordion) | FAQ `split` and `stacked` | keyboard and ARIA from Radix; answers stay in the HTML when closed (`forceMount`), for search engines |
+| Magic UI | `marquee.jsx` (`Band` section), `border-beam.jsx` (featured offer), `patterns.jsx` (dot or grid texture behind a hero without media) | marquee and beam stop under reduced motion |
+
+`src/sections/fx.js` sets the intensity from the charter's style family (`lively` for expressive styles, `calm` otherwise) and the hero texture. `motion` and `@radix-ui/react-accordion` are in the starter's `package.json` (`SITE_KIT_DEPENDENCIES`, scaffold v6) and installed by name by the orchestrator for older workspaces. Aceternity is not used by the kit: its components default to dark surfaces.
 
 ### 5. Quality pass — deterministic first, model only if needed
 

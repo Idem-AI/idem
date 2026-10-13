@@ -11,7 +11,7 @@
  *   tracés        nombres finis, budget de tracés et d'octets
  *   conversion    le rasteriseur sait le rendre, le résultat n'est pas vide, le fond reste transparent
  */
-import { inspectSvg } from '../../design/svgGate';
+import { inspectSvg } from '../../brand/svgGate';
 import type { Rasterizer } from '../raster/rasterizer';
 import { defaultRasterizer } from '../raster/rasterizer';
 import { inkCoverage } from '../raster/measure';

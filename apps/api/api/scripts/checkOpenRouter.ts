@@ -84,8 +84,8 @@ for (const model of OPENROUTER_MODELS.filter((m) => m.openWeights)) {
   assert.equal(KOKORO_VOICES.fr, 'ff_siwis');
   await assert.rejects(generateSpeech({ text: 'x', language: 'sw' }), /voice_language_unsupported/);
 
-  // 9. Vidéo : Seedance 2.0 par dérogation ; Wan (fermé, sans dérogation) reste refusé.
-  assert.equal(openRouterVideoModel(), 'bytedance/seedance-2.0');
+  // 9. Vidéo : Veo 3.1 Fast par défaut ; Wan (fermé, sans dérogation) reste refusé.
+  assert.equal(openRouterVideoModel(), 'google/veo-3.1-fast');
   process.env.IDEM_OPENROUTER_VIDEO_MODEL = 'alibaba/wan-2.7';
   assert.equal(openRouterVideoModel(), undefined);
   process.env.OPENROUTER_OPEN_ONLY = 'off';
