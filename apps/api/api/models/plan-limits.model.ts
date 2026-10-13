@@ -222,4 +222,13 @@ export const APPGEN_CREDIT_COSTS = {
   message: 1,
   build: 2,
   premium: 3,
+  /**
+   * Médias d'un site vitrine, générés à la demande des agents (`/appgen/media`).
+   * Une photo Pexels ou une illustration dessinée en SVG ne coûtent rien ; seule
+   * la génération (Gemini, Veo) se paie, et elle est restituée si elle échoue.
+   * Valeurs provisoires, à confirmer au regard du coût réel (un clip Veo coûte
+   * bien plus qu'une image).
+   */
+  site_image: 1,
+  site_video: 5,
 } as const;

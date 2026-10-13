@@ -218,3 +218,25 @@ export function renderFacts(facts: SiteFacts, language: string): string {
 
   return lines.filter(Boolean).join('\n');
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Langue du site                                                             */
+/* -------------------------------------------------------------------------- */
+
+const FRENCH_MARKERS = /(?<![\p{L}])(le|la|les|des|du|est|et|à|pour|avec|une|vous|nous|sur|dans|qui|votre|notre)(?![\p{L}])/giu;
+const ENGLISH_MARKERS = /(?<![\p{L}])(the|and|is|for|with|you|our|your|to|of|in|that|we|are)(?![\p{L}])/giu;
+
+/**
+ * La langue du site : celle dans laquelle le projet est décrit et la demande
+ * écrite, pas celle de l'interface d'IDEM. Une blanchisserie de Douala décrite
+ * en français a un site en français, même si son auteur a réglé l'atelier en
+ * anglais — c'est la règle déjà tenue par les vidéos. Sans signal net, la
+ * langue de l'interface décide.
+ */
+export function detectSiteLanguage(text: string, fallback: string): 'fr' | 'en' {
+  const fr = text.match(FRENCH_MARKERS)?.length ?? 0;
+  const en = text.match(ENGLISH_MARKERS)?.length ?? 0;
+  if (fr >= 3 && fr > en * 1.5) return 'fr';
+  if (en >= 3 && en > fr * 1.5) return 'en';
+  return fallback === 'en' ? 'en' : 'fr';
+}

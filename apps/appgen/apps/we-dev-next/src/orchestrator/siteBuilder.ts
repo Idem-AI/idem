@@ -30,7 +30,7 @@ import { reportUsage } from '../utils/tokens.js';
 import { ChatLogger } from '../utils/logger.js';
 import { fetchBrandAsset } from '../utils/brandAsset.js';
 import { isTransientModelError, ResilientStream, shouldTryNextModel } from '../utils/resilientStream.js';
-import { readSiteFacts, renderFacts, SiteFacts } from './siteFacts.js';
+import { detectSiteLanguage, readSiteFacts, renderFacts, SiteFacts } from './siteFacts.js';
 import {
   buildSitePlan,
   describeDestination,
@@ -722,7 +722,13 @@ export function createSiteBuildStream(input: SiteBuildInput): ResilientStream {
   return {
     async pipeDataStreamToResponse(res: Response): Promise<void> {
       const startedAt = Date.now();
-      const { projectData, language, request, model, userId } = input;
+      const { projectData, request, model, userId } = input;
+      const language = detectSiteLanguage(
+        [request, projectData.description, (projectData as { longDescription?: string }).longDescription]
+          .filter(Boolean)
+          .join('\n'),
+        input.language
+      );
 
       const abort = new AbortController();
       res.on('close', () => {
@@ -750,7 +756,15 @@ export function createSiteBuildStream(input: SiteBuildInput): ResilientStream {
         pattern: !!pattern,
       });
 
-      const caller = new ModelCaller(model, userId, abort.signal);
+      // La rédaction peut être confiée à un autre modèle du catalogue que celui
+      // du code (`SITE_WRITER_MODEL`) : un modèle de code écrit un français
+      // correct, pas toujours soigné. Sans la variable, le modèle choisi.
+      const writer = process.env.SITE_WRITER_MODEL?.trim();
+      const caller = new ModelCaller(
+        writer && getFallbackModelKeys(writer).includes(writer) ? writer : model,
+        userId,
+        abort.signal
+      );
       const systemText = systemPrompt(language);
       // Seules sources autorisées pour un nombre, un délai, un jour ou un lieu :
       // les faits du projet et la demande de l'utilisateur.
@@ -921,7 +935,7 @@ export function createSiteBuildStream(input: SiteBuildInput): ResilientStream {
 
       stream.file(
         'idem.plan.json',
-        `${JSON.stringify({ origin: SITE_ORIGIN, mode: plan.mode, pages: pagesOut }, null, 2)}\n`
+        `${JSON.stringify({ origin: SITE_ORIGIN, mode: plan.mode, language, pages: pagesOut }, null, 2)}\n`
       );
 
       stream.command('shell', 'npm install');

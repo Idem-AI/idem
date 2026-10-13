@@ -83,6 +83,8 @@ export interface PlanPage {
 export interface PagePlan {
   /** `idem-site` : plan écrit par l'orchestrateur du serveur, pas par un modèle. */
   origin?: string;
+  /** Langue du site (`fr`, `en`) : celle du contenu, qui peut différer de l'interface. */
+  language?: string;
   /** Un site a des pages. Une page unique reste un cas particulier. */
   pages?: PlanPage[];
   /** Forme courte, conservée : un plan sans `pages` décrit l'accueil. */
@@ -239,7 +241,13 @@ hydrateRoot(document.getElementById('root'), <Page />);
 
     // Le document : titre et description de CETTE page dans le HTML servi.
     if (typeof template === 'string') {
-      writes[target.html] = template
+      const lang = typeof plan.language === 'string' && /^[a-z]{2}$/.test(plan.language) ? plan.language : null;
+      const localized = lang
+        ? template
+            .replace(/<html lang="[^"]*"/, `<html lang="${lang}"`)
+            .replace(/(<meta property="og:locale" content=")[^"]*"/, `$1${lang}"`)
+        : template;
+      writes[target.html] = localized
         .replace(/\{\{title\}\}/g, escapeHtml(page.title ?? ''))
         .replace(/\{\{description\}\}/g, escapeHtml(page.description ?? ''))
         .replace('{{entry}}', `/${target.entry}`);

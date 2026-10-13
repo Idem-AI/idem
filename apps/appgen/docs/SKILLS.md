@@ -250,6 +250,24 @@ Shims and the icon guard expose **one default export only**, and imports are rew
 
 Verified on a deliberately broken generation carrying every failure at once: it builds (1991 modules, exit 0).
 
+#### The site orchestrator — a showcase site, section by section
+
+`src/orchestrator/` takes the **first turn of a showcase site** once the starter is mounted (`shouldOrchestrateSite`; `SITE_ORCHESTRATOR=off` falls back to the single-call path). One large call used to plan, write and index the whole site; a mid-size model then copied its own prompt back, stopped after three sections, or printed the plan in the chat. Now:
+
+| Step | Who | File |
+|---|---|---|
+| Facts: offers and prices (finance), team, phone/WhatsApp/e-mail/address, story, audience, business-plan summaries | code | `siteFacts.ts` |
+| Site language: the language of the request and the project, not of the IDEM interface | code | `detectSiteLanguage` |
+| Plan: pages from the facts (offers → Offres, team or story → À propos, channels → Contact; two justified pages → multi-page, otherwise one page with anchors), section order seeded per project, every button's destination | code | `sitePlan.ts` |
+| One section = one short JSON call, three in parallel, checked against a narrow shape | model, checked by code | `sectionSpecs.ts` |
+| Fact guard: any number, spelled-out duration, weekday, place or (in French) English word absent from the facts rejects the answer; the model retries with the list; on the last try the offending sentences are removed instead of losing the section | code | `factGuard.ts` |
+| Nav, footer, team, contact, prices, `src/seo.js` (keywords, `LocalBusiness`), `idem.plan.json` with `origin: "idem-site"` | code | `siteBuilder.ts` |
+| Brand pattern from the charter (light ground only) as the visual of hero and feature stories | code | `public/brand/pattern.svg`, `BrandPattern.jsx` |
+
+Links are never asked of the model: it writes a label knowing where the button leads, the code sets the href. A model that fails twice is dropped for the rest of the build; if no model answers the first section, the route returns a real 503 and no file is touched. `SITE_WRITER_MODEL` (a catalogue key) hands the writing to another model than the code model.
+
+The result streams as an ordinary `idem-site` artifact; the client composes the pages (`pageComposer.ts`: anchors as `id`, content inside `<main>`, `lang` from the plan), and skips the content retry, the SEO retry and the design review for these sites. Measured on a real project (laundry in Douala, 3 offers, 2 people, 4 channels): 18/18 sections, 4 pages, about 45 s, ~20k input and ~4k output tokens; a lean project gives one page of 8 sections in ~21 s.
+
 ### 5. Quality pass — deterministic first, model only if needed
 
 After generation completes, the client posts the parsed file map to `POST /api/quality/lint`. The linter is regex over text and costs nothing. It catches:
