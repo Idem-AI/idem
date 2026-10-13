@@ -88,7 +88,9 @@ export async function handleBuilderMode(
   /** Site, application web ou application mobile : le contrat de build en dépend. */
   target: BuildTarget = 'web-app',
   /** Version du starter déjà monté côté client, s'il y en a un. */
-  scaffoldVersion?: string
+  scaffoldVersion?: string,
+  /** Session de l'utilisateur, relayée à l'API IDEM pour les médias des sites. */
+  credentials?: Record<string, string>
 ) {
   const startTime = Date.now();
 
@@ -145,6 +147,7 @@ export async function handleBuilderMode(
       request: rawRequest,
       model,
       userId,
+      credentials,
     });
   }
 

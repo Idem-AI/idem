@@ -172,7 +172,8 @@ router.post('/', async (req: Request, res: Response) => {
         // remplace la demande, sans passer par l'historique affiché.
         qualityRepair || followUp,
         resolveBuildTarget(product, platform, projectData),
-        scaffold?.version
+        scaffold?.version,
+        forwardedCredentials(req)
       );
     }
 

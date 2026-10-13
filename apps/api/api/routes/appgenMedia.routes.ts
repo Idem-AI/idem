@@ -82,6 +82,30 @@ async function refund(userId: string, charged: Charge, action: string): Promise<
   }
 }
 
+/**
+ * Les résultats qui parlent vraiment de la requête, les plus proches d'abord.
+ *
+ * Le premier résultat de Pexels n'est pas toujours le bon, et pour une scène
+ * rare (un plat ivoirien, un atelier de Douala) il peut être sans rapport : une
+ * cuisse de poulet « asiatique » pour un restaurant d'Abidjan. Un résultat dont
+ * la description ne reprend aucun mot de la requête est écarté ; sans résultat,
+ * le générateur passe à son repli suivant plutôt que de montrer un hors-sujet.
+ */
+function relevant<T>(items: T[], describe: (item: T) => string, query: string): T[] {
+  const words = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word.length > 2);
+  return items
+    .map((item, rank) => {
+      const text = describe(item).toLowerCase();
+      return { item, rank, score: words.filter((word) => text.includes(word)).length };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.rank - b.rank)
+    .map((entry) => entry.item);
+}
+
 /** Une image générée pour une section de site. */
 router.post('/image', authenticate, async (req: CustomRequest, res: Response) => {
   const userId = req.user!.uid;
@@ -141,7 +165,8 @@ router.post('/video', authenticate, async (req: CustomRequest, res: Response) =>
         generateVideo({
           prompt,
           size: portrait ? '720x1280' : '1280x720',
-          durationSec: 5,
+          // Veo refuse 5 s (« Supported durations: 4, 6, 8s ») : 6 s pour lui.
+          durationSec: /veo/i.test(VIDEO_MODEL()) ? 6 : 5,
           quality: 'speed',
           tag: `site-${safeSegment(req.body?.tag)}`,
           model: VIDEO_MODEL(),
@@ -182,15 +207,18 @@ router.post('/stock', authenticate, async (req: CustomRequest, res: Response) =>
   const kind = req.body?.kind === 'video' ? 'video' : 'photo';
   const orientation = ['landscape', 'portrait', 'square'].includes(req.body?.orientation) ? req.body.orientation : 'landscape';
   const count = Math.min(5, Math.max(1, Number(req.body?.count) || 1));
+  // Pexels cherche aussi dans d'autres langues : une requête en français trouve des photos.
+  const locale = /^[a-z]{2}-[A-Z]{2}$/.test(String(req.body?.locale ?? '')) ? req.body.locale : undefined;
 
   try {
     if (kind === 'photo') {
       const { data } = await axios.get('https://api.pexels.com/v1/search', {
         headers: { Authorization: apiKey },
-        params: { query, per_page: Math.max(count, 5), orientation },
+        params: { query, per_page: Math.max(count * 3, 10), orientation, ...(locale ? { locale } : {}) },
         timeout: 8000,
       });
-      const items = (data?.photos ?? []).slice(0, count).map((photo: any) => ({
+      const ranked = relevant(data?.photos ?? [], (photo: any) => String(photo.alt ?? ''), query);
+      const items = ranked.slice(0, count).map((photo: any) => ({
         url: photo.src?.large2x || photo.src?.large || photo.src?.original,
         width: photo.width,
         height: photo.height,
@@ -208,10 +236,11 @@ router.post('/stock', authenticate, async (req: CustomRequest, res: Response) =>
 
     const { data } = await axios.get('https://api.pexels.com/videos/search', {
       headers: { Authorization: apiKey },
-      params: { query, per_page: 5, orientation, size: 'medium' },
+      params: { query, per_page: 5, orientation, size: 'medium', ...(locale ? { locale } : {}) },
       timeout: 8000,
     });
-    const items = (data?.videos ?? [])
+    // Une vidéo n'a pas de description : son adresse (« …/video/femme-qui-cuisine-… ») en tient lieu.
+    const items = relevant(data?.videos ?? [], (video: any) => String(video.url ?? '').replace(/[-/]/g, ' '), query)
       .map((video: any) => {
         // Le fichier HD le plus léger qui couvre 1280 px : assez net en fond, pas 40 Mo.
         const files = (video.video_files ?? [])

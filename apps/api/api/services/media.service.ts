@@ -246,7 +246,8 @@ export interface GenerateVideoOptions {
   image?: { base64: string; mimeType: string };
   /** « 1280x720 », « 720x1280 », « 1024x1024 »… */
   size: string;
-  durationSec: 5 | 10;
+  /** Veo n'accepte que 4, 6 ou 8 s ; Seedance, 5 ou 10. */
+  durationSec: 4 | 5 | 6 | 8 | 10;
   quality?: 'speed' | 'quality';
   tag?: string;
   model?: string;

@@ -1,4 +1,4 @@
-export type ActionType = 'file' | 'shell';
+export type ActionType = 'file' | 'shell' | 'start' | 'note';
 
 export interface BaseAction {
   content: string;
@@ -17,7 +17,17 @@ export interface StartAction extends BaseAction {
   type: 'start';
 }
 
-export type BoltAction = FileAction | ShellAction | StartAction;
+/**
+ * Une ligne d'état du serveur (« Je génère la vidéo d'ouverture »). Elle ne
+ * touche aucun fichier et ne lance rien : la vue des étapes l'affiche, c'est
+ * tout. Sert pendant les longues attentes (génération d'une vidéo), où aucun
+ * fichier ne vient dire que le travail avance.
+ */
+export interface NoteAction extends BaseAction {
+  type: 'note';
+}
+
+export type BoltAction = FileAction | ShellAction | StartAction | NoteAction;
 
 export type BoltActionData = BoltAction | BaseAction;
 
@@ -154,7 +164,7 @@ export class StreamingMessageParser {
               // 根据 action 类型调用不同的回调
               if (state.currentAction.type === 'file') {
                 allActionData[state.currentAction.filePath] = actionData;
-              } else if (state.currentAction.type === 'shell' || 'start') {
+              } else if (state.currentAction.type === 'shell' || state.currentAction.type === 'start') {
                 // shell 类型只在关闭时处理
                 this.options.callbacks?.onActionClose?.(actionData);
               }
@@ -286,12 +296,14 @@ export class StreamingMessageParser {
         console.debug('File path not specified');
       }
       (actionAttributes as FileAction).filePath = filePath || '';
-    } else if (!['shell', 'start'].includes(actionType)) {
+    } else if (!['shell', 'start', 'note'].includes(actionType)) {
       console.warn(`Unknown action type '${actionType}'`);
-      return { type: 'file', content: '', filePath: '' } as FileAction;
+      // Une note sans effet plutôt qu'un fichier sans chemin : l'ancien repli
+      // écrivait un fichier vide à la racine du projet.
+      return { type: 'note', content: '' } as NoteAction;
     }
 
-    return actionAttributes as FileAction | ShellAction;
+    return actionAttributes as FileAction | ShellAction | StartAction | NoteAction;
   }
 
   private extractAttribute(tag: string, attributeName: string): string | undefined {

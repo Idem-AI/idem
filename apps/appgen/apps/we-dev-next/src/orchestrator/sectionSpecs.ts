@@ -17,7 +17,18 @@
  * (`scaffold/sections.ts`). Les modifier l'une sans l'autre casse le rendu.
  */
 
-export type SpecName = 'Hero' | 'Header' | 'Features' | 'Split' | 'Steps' | 'Pricing' | 'Faq' | 'Cta';
+export type SpecName =
+  | 'Hero'
+  | 'Header'
+  | 'Features'
+  | 'Split'
+  | 'Steps'
+  | 'Pricing'
+  | 'Faq'
+  | 'Cta'
+  | 'Showcase'
+  | 'Statement'
+  | 'Gallery';
 
 export interface SectionSpec {
   /** Ce que la section fait sur la page, dit au modèle. */
@@ -96,6 +107,31 @@ Une entrée par offre fournie, dans le même ordre. Les prix sont posés par le 
   "items": [ { "question": "une vraie question de client", "answer": "1 à 3 phrases" } ]
 }
 "items" contient 4 à 7 questions.`,
+    ctas: [],
+  },
+  Showcase: {
+    purpose: "Une vitrine : un grand visuel et la phrase qui dit ce qu'il montre.",
+    shape: `{
+  "eyebrow": "1 à 3 mots",
+  "title": "5 à 10 mots, ce que montre le visuel",
+  "description": "1 à 2 phrases"
+}`,
+    ctas: [],
+  },
+  Statement: {
+    purpose: 'Une phrase forte, affichée en grand : la conviction du projet, tirée de son histoire.',
+    shape: `{
+  "statement": "une seule phrase de 8 à 22 mots, sans guillemets",
+  "signature": "qui la porte : le nom du projet, ou « Fondatrice, <nom du projet> » si les faits nomment la personne"
+}`,
+    ctas: [],
+  },
+  Gallery: {
+    purpose: "Une galerie d'images : ce que fait le projet, montré plutôt que dit.",
+    shape: `{
+  "title": "3 à 7 mots",
+  "intro": "une phrase"
+}`,
     ctas: [],
   },
   Cta: {
@@ -275,6 +311,22 @@ export function validateSection(
       const title = cleanText(data.title, 120);
       if (!title || !items) return null;
       return { title, items };
+    }
+    case 'Showcase': {
+      const title = cleanText(data.title, 120);
+      if (!title) return null;
+      return { eyebrow: cleanText(data.eyebrow, 40), title, description: cleanText(data.description, 320) };
+    }
+    case 'Statement': {
+      const statement = cleanText(data.statement, 200);
+      const words = statement.split(' ').length;
+      if (!statement || words < 6 || words > 30) return null;
+      return { statement, signature: cleanText(data.signature, 80) };
+    }
+    case 'Gallery': {
+      const title = cleanText(data.title, 100);
+      if (!title) return null;
+      return { title, intro: cleanText(data.intro, 240) };
     }
     case 'Cta': {
       const title = cleanText(data.title, 140);

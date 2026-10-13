@@ -268,6 +268,18 @@ Links are never asked of the model: it writes a label knowing where the button l
 
 The result streams as an ordinary `idem-site` artifact; the client composes the pages (`pageComposer.ts`: anchors as `id`, content inside `<main>`, `lang` from the plan), and skips the content retry, the SEO retry and the design review for these sites. Measured on a real project (laundry in Douala, 3 offers, 2 people, 4 channels): 18/18 sections, 4 pages, about 45 s, ~20k input and ~4k output tokens; a lean project gives one page of 8 sections in ~21 s.
 
+#### Layout and media agents — no two sites alike
+
+Every site used to take each section's default variant: same hero, same grid, same FAQ, colour aside. Two agents now decide, each choosing from menus the code controls:
+
+- **Layout director** (`orchestrator/layoutDirector.ts`). For each section it picks a variant from `KIT_VARIANTS` filtered by the charter's style family (structured: swiss, editorial…; expressive: clay, pop-art, glassmorphism…; soft: handwritten, bohemian…), a light background tone (`plain`, `tinted`, `raised`), may insert a `Statement`, `Showcase` or `Gallery`, and may reorder the home story. Code fixes anything off-menu: no two identical shapes or tinted backgrounds in a row, inserts never before the opening or after the closing call to action. Without an answer, a seeded draw per project.
+- **Media director** (`orchestrator/media/mediaDirector.ts`). For each visual slot that the chosen layout opens (hero, split, showcase, gallery), it picks `photo` (Pexels or Gemini), `illustration` (flat, drawn as SVG by the text model), `illustration-3d` (Gemini), `video` (Veo, hero or showcase only, one per site), `pattern` or `none`. Caps by code: one video, `SITE_MEDIA_MAX_GENERATED` paid generations, galleries in stock photos, required slots never empty. A second agent writes each Gemini/Veo prompt from the subject, the charter palette and where text will sit.
+- **Pipeline** (`media/mediaPipeline.ts`). Video: Veo → Pexels clip → photo. Photo: Pexels ↔ Gemini. Illustration: SVG → Gemini → Pexels. 3D: Gemini → Pexels → SVG. A 402 (credits), a timeout or a failure is just the next step; the charter pattern is the last resort. Each long step shows as a `note` line in the chat.
+
+Generation and stock search go through the IDEM API (`POST /appgen/media/image|video|stock`, user session relayed), which uploads to storage at a durable public URL and charges the iCode scale (`site_image`, `site_video`, refunded on failure). Pexels results whose description shares no word with the query are dropped rather than shown off-topic.
+
+The kit (`scaffold/sections.ts`) grew accordingly: 5 heroes (incl. full-bleed media under a light veil, stacked), 5 feature layouts, 3 splits, 3 steps (incl. timeline), 3 FAQs, 3 CTAs, 2 contacts, plus `Showcase`, `Statement`, `Gallery` and `Media` (image, drawing, video, pattern as data). The orchestrator rewrites the kit on every site so the chosen variants always exist.
+
 ### 5. Quality pass — deterministic first, model only if needed
 
 After generation completes, the client posts the parsed file map to `POST /api/quality/lint`. The linter is regex over text and costs nothing. It catches:

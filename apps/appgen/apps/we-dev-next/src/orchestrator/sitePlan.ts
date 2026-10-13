@@ -32,6 +32,9 @@ export type KitComponent =
   | 'Faq'
   | 'Contact'
   | 'Cta'
+  | 'Showcase'
+  | 'Statement'
+  | 'Gallery'
   | 'Footer';
 
 export interface PlannedSection {
@@ -54,6 +57,10 @@ export interface PlannedSection {
   essential?: boolean;
   /** Affichée sans titre : l'en-tête de la page juste au-dessus dit déjà de quoi elle parle. */
   untitled?: boolean;
+  /** Fond de la section, choisi par l'agent de mise en page (toujours clair). */
+  tone?: 'plain' | 'tinted' | 'raised';
+  /** Ajoutée par l'agent de mise en page (vitrine, phrase forte, galerie). */
+  inserted?: boolean;
 }
 
 export type PageKey = 'home' | 'offers' | 'about' | 'contact';

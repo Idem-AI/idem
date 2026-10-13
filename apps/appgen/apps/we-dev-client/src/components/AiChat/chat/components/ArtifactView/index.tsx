@@ -57,6 +57,10 @@ function stepsOf(content: string): Step[] {
     } else if (type === 'shell' || type === 'start') {
       const command = match[2].trim();
       if (command) steps.push({ key: `command:${steps.length}`, label: describeCommand(command) });
+    } else if (type === 'note') {
+      // Une ligne d'état écrite par le serveur, déjà en français courant.
+      const note = match[2].replace(/<[^>]*>/g, '').trim().slice(0, 140);
+      if (note) steps.push({ key: `note:${steps.length}`, label: note });
     }
   }
 

@@ -56,6 +56,9 @@ const ROLE_LABELS: Record<string, string> = {
   story: "l'histoire",
   values: 'les engagements',
   cta: "l'appel à l'action",
+  statement: 'la phrase forte',
+  showcase: 'la vitrine',
+  gallery: 'la galerie',
 };
 
 function orchestratedContentLabel(name: string): string | null {
@@ -79,6 +82,9 @@ export function describeFile(path: string): string {
   if (clean === 'src/seo.js') return 'Je règle le référencement';
   if (clean === 'public/brand/pattern.svg') return 'Je reprends le motif de la charte';
   if (clean === 'src/sections/BrandPattern.jsx') return 'Je prépare les visuels au motif de la charte';
+  // Le kit de sections arrive d'un bloc : une seule étape, pas vingt.
+  if (/^src\/sections\/[\w-]+\.jsx?$/.test(clean)) return 'Je prépare les sections du site';
+  if (/^public\/media\/[\w-]+\.svg$/.test(clean)) return 'Je dessine une illustration';
   if (clean.endsWith('globals.css') || clean.endsWith('styles/index.css')) {
     return "J'applique la charte graphique";
   }
