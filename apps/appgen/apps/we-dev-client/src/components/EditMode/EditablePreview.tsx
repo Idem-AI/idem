@@ -56,6 +56,7 @@ import {
 import { buildInjectPlan, buildRemovePlan, type InstrumentationPlan } from './instrumentation';
 import { isMobileApp } from '@/utils/product';
 import useChatStore from '@/stores/chatSlice';
+import { queue } from '../AiChat/useMessageParser';
 import { PHONES, PhoneMockup, phoneOuterSize, type PhoneDevice } from './PhoneMockup';
 import { SizeSelector, viewportStyle, WINDOW_SIZES, type WindowSize } from './ResponsiveViewport';
 
@@ -172,10 +173,15 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
         return;
       }
 
-      await terminal.executeCommand('npm install');
-      // `npm run dev` ne rend pas la main : on ne l'attend pas, c'est
-      // `onServerReady` qui signalera que l'aperçu peut s'afficher.
-      void terminal.executeCommand('npm run dev');
+      // Par la file sérielle, et non par le terminal directement.
+      //
+      // L'installation des dépendances part déjà toute seule au montage du
+      // socle. Un clic pendant ce temps lançait un second `npm install` en
+      // parallèle du premier : les deux écrivent dans `node_modules`, et npm
+      // s'arrête sur « EIO: failed to link packages » en laissant une
+      // installation à moitié faite — donc un `next` introuvable ensuite.
+      queue.push('npm install');
+      queue.push('npm run dev');
     } catch (error) {
       console.error('[preview] démarrage impossible', error);
       toast.error(t('preview.runFailed'));

@@ -1,6 +1,6 @@
 ---
 name: webcontainer-react
-description: Technical contract for the showcase site target - a preconfigured Next.js 15 (App Router, static export) starter with a section kit is already mounted; the model writes a page plan and one content file per section, and the code composes the pages.
+description: Technical contract for the showcase site target - a preconfigured multi-page Vite starter with a section kit is already mounted; the model writes a page plan and one content file per section, and the code composes the pages, their documents and their search metadata.
 tier: core
 priority: 90
 targets: [site]
@@ -8,9 +8,9 @@ targets: [site]
 
 # Build target: a showcase site
 
-Browser WebContainer running Node. **Next.js 15, App Router, static export**, React 19, TailwindCSS v3.
+Browser WebContainer running Node. **Vite, multi-page**, React 18, TailwindCSS v3.
 
-Next rather than a single-page bundle for one reason: **search engines**. Title, description and sharing tags must be in the HTML that is served, not added by JavaScript afterwards. File-based routing gives real pages as a bonus — a site is not always one page that scrolls.
+One HTML document per page, not one bundle for the whole site. Each page carries its own title, description and sharing tags in the document that is served, and the build pre-renders every page to static HTML before writing `dist/` — so a search engine reads the copy without running a line of JavaScript. The sitemap, the robots file and the structured data are written by the build too. None of it is your concern: name the pages in the plan and they get all of it.
 
 **The starter is already mounted in `/home/project` and it already runs.** Never scaffold, never write a configuration file, never touch `package.json`.
 
@@ -121,16 +121,17 @@ The component kit is available there: `import { Badge, Button, Card, EmptyState,
 ## Already written — do not emit these files
 
 ```
-package.json  next.config.mjs  postcss.config.mjs  tailwind.config.js  jsconfig.json
-components.json  scripts/to-dist.mjs  Dockerfile  nginx.conf  .dockerignore
-src/app/layout.jsx     the shared frame and the site-wide meta tags
-src/app/globals.css    the project's palette, fonts and rhythm
-src/brand.jsx          the project's logo — already placed in Nav and Footer
+package.json  vite.config.js  postcss.config.js  tailwind.config.js  jsconfig.json
+components.json  scripts/prerender.mjs  Dockerfile  nginx.conf  .dockerignore
+index.html  idem.page.html   the home document, and the template every page is cut from
+src/styles/index.css         the project's palette, fonts and rhythm
+src/brand.jsx                the project's logo — already placed in Nav and Footer
+src/entries/*.jsx            one mount per page, written by the code
 src/lib/cn.js  src/lib/utils.js  src/ui/*.jsx  src/sections/*.jsx
-idem.libraries.json    the library catalog
+idem.libraries.json          the library catalog
 ```
 
-A `file` action on any of them is dropped by the workspace. Installed: `next`, `react`, `react-dom`, `lucide-react`, `clsx`, `tailwind-merge`. Anything else is **chosen in the plan**, never installed by hand.
+A `file` action on any of them is dropped by the workspace. Installed: `react`, `react-dom`, `lucide-react`, `clsx`, `tailwind-merge`. Anything else is **chosen in the plan**, never installed by hand.
 
 Only these font classes exist: `font-display`, `font-sans`, `font-mono`. A class named after a typeface does not exist, and inside `@apply` it stops the build.
 

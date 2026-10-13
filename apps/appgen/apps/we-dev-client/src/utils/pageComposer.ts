@@ -113,18 +113,39 @@ const parseJson = <T>(raw: string): T | null => {
   }
 };
 
-/** Chemin du fichier de page Next pour une adresse du plan. */
-function pageFileOf(path: string): string | null {
+/**
+ * Les trois fichiers d'une page.
+ *
+ * Un site multi-pages Vite : un composant, un point d'entrée qui le monte, et
+ * un document HTML qui porte les balises de référencement. Les trois sont
+ * écrits par le code — c'est ce qui garantit que les imports, les chemins et
+ * les balises concordent.
+ */
+function pageFilesOf(path: string): { name: string; page: string; entry: string; html: string } | null {
   const clean = (path || '/').trim().replace(/^\/+|\/+$/g, '');
-  if (!clean) return 'src/app/page.jsx';
+
+  if (!clean) {
+    return { name: 'home', page: 'src/pages/home.jsx', entry: 'src/entries/home.jsx', html: 'index.html' };
+  }
+
   // Un seul niveau, en minuscules : une adresse est une promesse publique, pas
   // un endroit où accepter ce qui passe.
   if (!/^[a-z0-9][a-z0-9-]*$/.test(clean)) return null;
-  return `src/app/${clean}/page.jsx`;
+
+  return {
+    name: clean,
+    page: `src/pages/${clean}.jsx`,
+    entry: `src/entries/${clean}.jsx`,
+    html: `${clean}/index.html`,
+  };
 }
 
-/** Profondeur de l'import relatif depuis `src/app/<...>/page.jsx` vers `src/`. */
-const upTo = (file: string): string => '../'.repeat(file.split('/').length - 2);
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 
 /**
  * Compose les pages du site à partir du plan et des contenus présents.
@@ -160,16 +181,42 @@ export function composePage(
   const issues: string[] = [];
   const writes: Record<string, string> = {};
 
-  for (const page of pages) {
-    const file = pageFileOf(page?.path ?? '/');
+  const template = files['idem.page.html'];
+  const manifest: Array<{ path: string; module: string; html: string }> = [];
 
-    if (!file) {
+  for (const page of pages) {
+    const target = pageFilesOf(page?.path ?? '/');
+
+    if (!target) {
       issues.push(`adresse « ${page?.path} » refusée, page ignorée`);
       continue;
     }
 
-    const composed = composeOne(files, page, upTo(file), issues);
-    if (composed) writes[file] = composed;
+    const composed = composeOne(files, page, '../', issues);
+    if (!composed) continue;
+
+    writes[target.page] = composed;
+    writes[target.entry] = `import { hydrateRoot } from 'react-dom/client';
+import Page from '../pages/${target.name}.jsx';
+import '../styles/index.css';
+
+hydrateRoot(document.getElementById('root'), <Page />);
+`;
+
+    // Le document : titre et description de CETTE page dans le HTML servi.
+    if (typeof template === 'string') {
+      writes[target.html] = template
+        .replace(/\{\{title\}\}/g, escapeHtml(page.title ?? ''))
+        .replace(/\{\{description\}\}/g, escapeHtml(page.description ?? ''))
+        .replace('{{entry}}', `/${target.entry}`);
+    }
+
+    manifest.push({ path: target.html === 'index.html' ? '/' : `/${target.name}/`, module: target.page, html: target.html });
+  }
+
+  // Le pré-rendu a besoin de savoir quelle page rendre dans quel document.
+  if (manifest.length) {
+    writes['idem.pages.json'] = `${JSON.stringify({ pages: manifest }, null, 2)}\n`;
   }
 
   if (!Object.keys(writes).length) {

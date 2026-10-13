@@ -109,3 +109,30 @@ export function describeCommand(command: string): string {
 
   return 'Je prépare le projet';
 }
+
+/**
+ * Le texte d'un message, débarrassé de ce qui n'est pas de la conversation.
+ *
+ * Le modèle glisse régulièrement du code hors des actions de fichier : un bloc
+ * JSON de référencement, un module de contenu, un extrait « pour information ».
+ * Ce code est récupéré ailleurs et écrit dans le projet ; l'afficher en plus
+ * dans la conversation ne renseigne personne et noie ce qui compte.
+ *
+ * On retire donc les blocs de code et les objets JSON isolés. Ce qui reste —
+ * les phrases — s'affiche normalement.
+ */
+export function sanitizeChatProse(text: string): string {
+  if (!text) return '';
+
+  let clean = text
+    // Blocs de code, avec ou sans langage.
+    .replace(/```[\s\S]*?```/g, '')
+    // Balises d'artefact mal fermées, qui laissent du XML à l'écran.
+    .replace(/<\/?bolt(Artifact|Action)[^>]*>/g, '');
+
+  // Un objet JSON posé seul sur plusieurs lignes : c'est une donnée, pas une
+  // phrase. On ne touche pas aux accolades en milieu de texte.
+  clean = clean.replace(/(^|\n)\s*\{[\s\S]*?\n\s*\}\s*(?=\n|$)/g, '$1');
+
+  return clean.replace(/\n{3,}/g, '\n\n').trim();
+}

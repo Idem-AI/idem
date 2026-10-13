@@ -23,7 +23,7 @@ import { DesignSystem, forgeDesignSystem } from '../design/tokenForge.js';
 import { ProjectModel } from '../types/project.js';
 import { renderLibraryMenu } from './libraries.js';
 import { buildMobileScaffold } from './mobileApp.js';
-import { buildSiteNextScaffold } from './siteNext.js';
+import { buildSiteViteScaffold } from './siteVite.js';
 import { buildWebAppScaffold } from './webApp.js';
 
 /**
@@ -31,7 +31,7 @@ import { buildWebAppScaffold } from './webApp.js';
  * change : le client s'en sert pour savoir qu'un espace de travail ouvert
  * tourne sur un socle périmé.
  */
-export const SCAFFOLD_VERSION = '3';
+export const SCAFFOLD_VERSION = '4';
 
 export interface Scaffold {
   version: string;
@@ -59,7 +59,7 @@ export function buildScaffold(options: ScaffoldOptions): Scaffold {
 
   const { files, locked } =
     target === 'site'
-      ? buildSiteNextScaffold(system, projectData, language)
+      ? buildSiteViteScaffold(system, projectData, language)
       : target === 'mobile-app'
         ? buildMobileScaffold(system, projectData, language)
         : buildWebAppScaffold(system, projectData, language);

@@ -173,26 +173,51 @@ Degradation is graceful by design: a section the kit does not have is dropped, a
 
 Anti-monoculture still holds: each section's **default variant** comes from the art direction drawn for the project, so two projects do not get the same page even from the same brief, and the model never has to think about it. The kit is mounted but **not locked** — "make the hero full-bleed" must still be possible.
 
-#### Showcase sites run on Next.js
+#### Showcase sites: multi-page Vite, pre-rendered at build
 
-The `site` target is **Next.js 15, App Router, static export**. The reason is search engines: title, description and sharing tags have to be in the HTML that is served, not added by JavaScript afterwards. File-based routing gives real pages as a bonus — a site whose every menu entry merely scrolls reads as a template.
+The `site` target was briefly Next.js, for the search metadata. It had to come back: in a WebContainer the `AsyncLocalStorage` context is lost across React's scheduler, so `next dev` falls over on an internal invariant (`workUnitAsyncStorage`, then `workStore`) whatever the version. A preview that does not display is worth no search ranking at all.
 
-Static export keeps everything downstream unchanged: `next build` writes `out/`, `scripts/to-dist.mjs` renames it to `dist/`, and that is exactly where the publish path already looks. No server to run, no deployment change.
+So: **one HTML document per page, built by Vite**, and search visibility handled by code at build time.
 
-The plan therefore describes **pages**, each with its own sections, title and description:
+- `idem.page.html` is the template. The composer cuts one document per page from it, filling the title and description that page declared in the plan. The fonts, the brand colour and the sharing tags are already in it.
+- `scripts/prerender.mjs` runs after `vite build`. It loads each page module through Vite's SSR loader, renders it with `renderToString`, and writes the markup into its document. A crawler therefore reads the copy without running a line of JavaScript; the browser picks the same markup back up with `hydrateRoot`.
+- The same script writes `sitemap.xml`, `robots.txt`, the canonical link and the JSON-LD business card, all from `src/seo.js`. None of it is ever asked of a model.
+- `vite.config.js` discovers its HTML entries by reading the directory, so adding a page is adding a folder — no configuration to keep in step.
 
-```json
-{ "pages": [ { "path": "/", "title": "…", "description": "…", "sections": [ … ] },
-             { "path": "/methode", "title": "…", "sections": [ … ] } ] }
-```
+A page that cannot render outside a browser keeps its document untouched and still works client-side: search visibility is never worth failing a build over.
 
-The composer writes `src/app/page.jsx` and `src/app/<slug>/page.jsx`, each carrying its own `export const metadata`. A plan with a bare `sections` array still describes the home page alone, so older plans keep working. The kit's `Nav` and `Footer` route internal links through `next/link` and leave anchors as anchors, so a site can mix both.
-
-The kit now holds fourteen sections — Nav, Hero, Logos, Features, Split, Steps, Stats, Testimonials, Pricing, Team, Faq, Contact, Cta, Footer — because three sections is a placeholder, not a site. `Split` in particular gives a page length without making it repetitive: alternating text-and-visual blocks say more than one more card grid.
+Verified end to end on a two-page site: `<title>` and description per page, canonical on the real domain, the full copy present in the served HTML, structured data carrying the business details, and a sitemap of absolute URLs.
 
 #### Search settings are their own step
 
 `src/seo.js` is written by the starter with what the code already knows: name, description, language, brand colour. What it cannot know is the customers' vocabulary. So after the site exists — and only then, when there is copy to draw from — the workspace asks for that one file: title, description, the six to ten phrases people actually type, and the business card for local search. One follow-up, out of band, once per conversation.
+
+#### Nothing technical reaches the chat
+
+`utils/stepLabels.ts` also carries `sanitizeChatProse`, applied to every assistant message before it is rendered — inside an artifact and outside one. It strips fenced code blocks, stray `boltArtifact` tags, and standalone JSON objects. The model regularly drops code outside its file actions; that code is recovered and written to the project by `planRecovery.ts`, so showing it as well informs nobody and buries the sentence that matters.
+
+Search settings are the clearest case: the model answers with a JSON object, often in Next's own shape (`openGraph`, `twitter`, `alternates`) rather than the one asked for. `readSeoAnswer` accepts both, keeps title, description, keywords and the business card, and `applySeoAnswer` writes them into `src/seo.js` **by code**. The file's shape is read by `layout.jsx`: one misplaced brace from the model would take the whole site down, so the model brings the words and the code brings the syntax.
+
+#### The quality pass cannot touch what the code owns
+
+The design linter sends the whole file map, because some rules need it to judge — the forged palette lives in `tailwind.config.js`. But a file written by the starter must never come back as a repair target: the model once rewrote a 2 KB stylesheet into 400 KB of `.text-[inherit]` repeated hundreds of times, and the workspace had no reason to refuse it. The lint request now carries the locked list, `selectRepairTargets` skips it, and a report whose only offenders are locked produces no repair request at all.
+
+Two more guards came out of that failure:
+
+- **Degenerate output is refused**, on both write paths. A file over 150 KB, or over 120 lines with fewer than a quarter of them distinct, is dropped rather than allowed to replace working code. A legitimate file is never both enormous and mostly repetition.
+- **The lock is registered on every reopen**, with or without the starter's signature. Refreshing the files still requires that signature — overwriting the `package.json` of a project built before the starter would break it — but *forbidding* the model to rewrite them does not.
+
+And `src/seo.js` is the one starter file the generation rewrites, so `layout.jsx` spreads it over defaults carrying the real project name, description and brand colour. A broken search file costs its own values, not every page of the site.
+
+#### The preview is checked, not assumed
+
+`ensurePreview.ts` watches for a result rather than an intention. The exec queue skips any command already run at the same position, so a turn that holds only prose relaunches nothing, and a multi-turn generation can install a dependency after the server started. The watchdog polls for a server URL and, if none appears within 30 s while nothing is installing, runs install and start once. It gives Next up to three minutes before giving up and pointing at the terminal.
+
+#### One queue, or a corrupted install
+
+Every command now goes through the single serial queue, the run button included. It used to call the terminal directly: a click while the starter's pre-warm install was running started a second `npm install` on the same `node_modules`, and npm stopped on `EIO: failed to link packages`, leaving a half-installed tree. The next command then failed with `command not found: next`, and nothing in the chain could tell why.
+
+The watchdog also reads the terminal output. On `EIO`, `ENOTEMPTY` or a missing binary it does not simply re-run the install — npm believes that work is done — it removes `node_modules` and the lockfile first, then installs and starts, once per workspace.
 
 #### The chat says what is happening, not how
 

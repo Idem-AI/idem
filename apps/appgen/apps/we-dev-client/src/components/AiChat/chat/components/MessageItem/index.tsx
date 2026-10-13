@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import { sanitizeChatProse } from "@/utils/stepLabels";
 import { ArtifactView } from "../ArtifactView";
 import { ImageGrid } from "../ImageGrid";
 import { Message } from "ai";
@@ -784,8 +785,11 @@ const MessageItemView: React.FC<MessageItemProps> = ({
                     }}
                   >
                     {(() => {
-                      const filterMessages = filterContent(message)
-                      return processStreamParts(filterMessages.parts);
+                      const filterMessages = filterContent(message);
+                      // Le code éventuellement glissé hors des actions de
+                      // fichier est récupéré ailleurs et écrit dans le projet :
+                      // l'afficher ici ne renseigne personne et noie la phrase.
+                      return sanitizeChatProse(processStreamParts(filterMessages.parts));
                     })()}
                   </ReactMarkdown>
                 </div>

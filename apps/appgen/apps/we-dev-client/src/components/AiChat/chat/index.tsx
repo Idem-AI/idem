@@ -47,12 +47,16 @@ import { MultiChatPromptService } from './services/multiChatPromptService';
 import { currentPlatform, currentProduct } from '@/utils/product';
 import { fetchScaffold } from '@/api/scaffold';
 import { prewarmInstall, resetPrewarm } from '../utils/prewarmInstall';
+import { resetInstallRepair } from '../utils/ensurePreview';
 import {
+  applySeoAnswer,
   buildContentRequest,
   buildSeoRequest,
   extractFilesFromText,
   extractPlanFromText,
+  extractSeoFromText,
   missingContentModules,
+  readSeoAnswer,
   seoNeedsFilling,
 } from '@/utils/planRecovery';
 import {
@@ -60,6 +64,7 @@ import {
   hasScaffoldSignature,
   isScaffoldLocked,
   isStarterOnly,
+  looksDegenerate,
   mountedScaffoldVersion,
   registerScaffold,
   settleScaffold,
@@ -718,6 +723,27 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             }
           }
 
+          // Le référencement arrive en données : c'est le code qui écrit
+          // `src/seo.js`, dont la forme est lue par la mise en page. Une
+          // accolade de travers suffirait à faire tomber le site entier.
+          const seoFile = messagefiles['idem.seo.json'];
+          let seoAnswer = null;
+          try {
+            seoAnswer = seoFile ? readSeoAnswer(JSON.parse(seoFile)) : null;
+          } catch {
+            seoAnswer = null;
+          }
+          seoAnswer = seoAnswer ?? extractSeoFromText(message.content);
+
+          if (seoAnswer) {
+            delete messagefiles['idem.seo.json'];
+            const current = useFileStore.getState().files['src/seo.js'];
+            if (typeof current === 'string') {
+              messagefiles['src/seo.js'] = applySeoAnswer(current, seoAnswer);
+              console.log('[seo] référencement appliqué');
+            }
+          }
+
           // Idem pour un plan répondu sans bloc de code du tout.
           if (!messagefiles['idem.plan.json']) {
             const recovered = extractPlanFromText(message.content);
@@ -733,6 +759,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             // manquant. On la laisse tomber ici comme pendant le flux.
             if (isScaffoldLocked(key)) {
               console.warn(`[scaffold] réécriture ignorée : ${key}`);
+              continue;
+            }
+            if (looksDegenerate(messagefiles[key])) {
+              console.warn(`[boucle] ${key} ignoré : contenu répétitif ou démesuré`);
               continue;
             }
             await updateContent(key, messagefiles[key], false, true);
@@ -1155,9 +1185,15 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           return;
         }
 
-        // Projet rouvert. Les fichiers verrouillés sont du code pur, sans rien
-        // de l'utilisateur : on les REPOSE à la version courante au lieu de se
-        // contenter de rétablir le verrou.
+        // Projet rouvert. Le verrou s'applique toujours : ces chemins sont
+        // écrits par le code, et une réécriture par le modèle ne peut que les
+        // abîmer — on l'a vu avec une feuille de style transformée en boucle.
+        registerScaffold(scaffold.locked, scaffold.version);
+        setScaffoldReady(scaffold.version);
+
+        // La remise à jour, elle, demande une preuve que ce code vient bien du
+        // socle : écraser le `package.json` d'un projet d'avant le socle le
+        // casserait.
         //
         // Sans cela, un projet gardait indéfiniment le socle enregistré lors de
         // sa première ouverture : ancienne charte, anciennes polices, ancienne
@@ -1177,14 +1213,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             if (workspace[path] === undefined) refresh[path] = content;
           }
 
-          registerScaffold(scaffold.locked, scaffold.version);
-
           if (Object.keys(refresh).length) {
             console.log(`[scaffold] ${Object.keys(refresh).length} fichier(s) du socle remis à jour`);
             await setFiles({ ...workspace, ...refresh });
           }
-
-          setScaffoldReady(scaffold.version);
         }
       } catch (error) {
         // Le socle est une optimisation, jamais un préalable : sans lui, le
@@ -1685,6 +1717,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       resetFileHashes();
       execList.clear();
       resetPrewarm();
+      resetInstallRepair();
 
       // 5. Espace de travail et conversation à zéro.
       const previousChatUuid = chatUuid;

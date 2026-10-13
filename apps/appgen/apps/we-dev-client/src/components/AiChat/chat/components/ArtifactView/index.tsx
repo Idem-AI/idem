@@ -1,6 +1,6 @@
 import { openFile } from '../../../../WeIde/emit';
 import React, { useMemo, useState, useEffect } from 'react';
-import { describeCommand, describeFile } from '@/utils/stepLabels';
+import { describeCommand, describeFile, sanitizeChatProse } from '@/utils/stepLabels';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useFileStore } from '../../../../WeIde/stores/fileStore';
@@ -301,7 +301,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
               },
             }}
           >
-            {preArtifactContent}
+            {sanitizeChatProse(preArtifactContent)}
           </ReactMarkdown>
         </div>
       )}
@@ -416,7 +416,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
               },
             }}
           >
-            {postArtifactContent}
+            {sanitizeChatProse(postArtifactContent)}
           </ReactMarkdown>
         </div>
       )}

@@ -208,17 +208,117 @@ export function buildSeoRequest(files: Record<string, string>): string {
     // Plan illisible : on demande le référencement du site, sans détail de page.
   }
 
-  return `Le site est généré. Il reste le référencement : réécrivez UNIQUEMENT \`src/seo.js\`, en gardant exactement la même forme (\`const seo = { … }; export default seo;\`).
+  return `Le site est généré. Il reste le référencement. Écrivez UN SEUL fichier, \`idem.seo.json\`, avec exactement ces clés :
 
-Remplissez :
-- \`title\` : le titre de la page d'accueil, moins de 60 caractères, avec ce que vend ce produit et où.
-- \`description\` : 150 à 160 caractères, une phrase qui donne envie de cliquer dans une liste de résultats.
-- \`keywords\` : 6 à 10 expressions que les clients tapent réellement, dans leur langue, avec la ville quand c'est un commerce local.
-- \`business\` : type d'établissement, ville, pays, téléphone et courriel s'ils existent dans le contenu déjà écrit. Sinon, laissez les chaînes vides.
+{
+  "title": "titre de la page d'accueil, moins de 60 caractères, ce que vend ce produit et où",
+  "description": "150 à 160 caractères, la phrase qui donne envie de cliquer dans une liste de résultats",
+  "keywords": ["6 à 10 expressions que vos clients tapent réellement, avec la ville si c'est local"],
+  "business": { "type": "", "city": "", "country": "", "phone": "", "email": "" }
+}
 
-Gardez \`name\`, \`titleTemplate\`, \`language\`, \`themeColor\` et \`url\` tels quels.${
+\`business\` se remplit à partir du contenu déjà écrit sur le site ; laissez les chaînes vides si l'information n'y est pas. N'inventez ni chiffre, ni récompense, ni compte social.${
     pages.length ? `\n\nLes pages du site : ${pages.join(', ')}.` : ''
   }
 
-N'inventez ni chiffre ni récompense. Répondez par un <boltArtifact> contenant la seule action de fichier \`src/seo.js\`.`;
+Répondez par un <boltArtifact> contenant la seule action de fichier \`idem.seo.json\`. Aucun autre fichier, aucun commentaire.`;
+}
+
+/** Le référencement tel que le modèle le fournit : des données, pas du code. */
+export interface SeoAnswer {
+  title?: string;
+  description?: string;
+  keywords?: string[];
+  business?: { type?: string; city?: string; country?: string; phone?: string; email?: string };
+}
+
+/**
+ * Reconnaît une réponse de référencement dans un objet JSON.
+ *
+ * Le modèle répond souvent en dehors de toute action de fichier, et parfois
+ * avec la forme de Next (`openGraph`, `twitter`, `alternates`) plutôt que celle
+ * demandée. On accepte les deux : ce qui compte est le titre, la description et
+ * les mots-clés, le reste est déjà posé par le socle.
+ */
+export function readSeoAnswer(value: unknown): SeoAnswer | null {
+  if (!value || typeof value !== 'object') return null;
+
+  const raw = value as Record<string, any>;
+  const og = (raw.openGraph ?? {}) as Record<string, any>;
+
+  const title = typeof raw.title === 'string' ? raw.title : og.title;
+  const description = typeof raw.description === 'string' ? raw.description : og.description;
+  const keywords = Array.isArray(raw.keywords)
+    ? raw.keywords.filter((item: unknown): item is string => typeof item === 'string')
+    : [];
+
+  if (typeof title !== 'string' && typeof description !== 'string' && !keywords.length) {
+    return null;
+  }
+
+  return {
+    title: typeof title === 'string' ? title.trim() : undefined,
+    description: typeof description === 'string' ? description.trim() : undefined,
+    keywords: keywords.map((item) => item.trim()).filter(Boolean),
+    business: typeof raw.business === 'object' && raw.business ? raw.business : undefined,
+  };
+}
+
+/** Cherche la réponse de référencement dans un message, bloc de code ou non. */
+export function extractSeoFromText(text: string): SeoAnswer | null {
+  if (!text || !text.includes('{')) return null;
+
+  const candidates: string[] = [];
+  for (const match of Array.from(text.matchAll(/```(?:json)?\s*([\s\S]*?)```/g))) {
+    candidates.push(match[1]);
+  }
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start !== -1 && end > start) candidates.push(text.slice(start, end + 1));
+
+  for (const candidate of candidates) {
+    try {
+      const answer = readSeoAnswer(JSON.parse(candidate.trim()));
+      if (answer) return answer;
+    } catch {
+      // Candidat non valide : au suivant.
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Réécrit `src/seo.js` avec les valeurs fournies.
+ *
+ * Le fichier reste écrit par le code : sa forme est lue par `layout.jsx`, et une
+ * accolade mal placée du modèle suffirait à faire tomber le site entier. Le
+ * modèle apporte les mots, pas la syntaxe.
+ */
+export function applySeoAnswer(current: string, answer: SeoAnswer): string {
+  const quote = (value: string) => JSON.stringify(value);
+
+  const replaceField = (source: string, key: string, rendered: string): string => {
+    const pattern = new RegExp(`(\\n  ${key}:\\s*)(?:'(?:[^'\\\\]|\\\\.)*'|"(?:[^"\\\\]|\\\\.)*"|\\[[^\\]]*\\]|\\{[^}]*\\})`);
+    return pattern.test(source) ? source.replace(pattern, `$1${rendered}`) : source;
+  };
+
+  let next = current;
+
+  if (answer.title) next = replaceField(next, 'title', quote(answer.title));
+  if (answer.description) next = replaceField(next, 'description', quote(answer.description));
+
+  if (answer.keywords?.length) {
+    const list = `[${answer.keywords.map(quote).join(', ')}]`;
+    next = replaceField(next, 'keywords', list);
+  }
+
+  if (answer.business) {
+    const business = ['type', 'city', 'country', 'phone', 'email']
+      .map((field) => `${field}: ${quote(String((answer.business as any)?.[field] ?? '').trim())}`)
+      .join(', ');
+    next = replaceField(next, 'business', `{ ${business} }`);
+  }
+
+  return next;
 }

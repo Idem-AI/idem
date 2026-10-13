@@ -32,6 +32,8 @@ export async function prewarmInstall(command = 'npm install'): Promise<void> {
   for (let attempt = 0; attempt < TERMINAL_POLL_ATTEMPTS; attempt += 1) {
     if (useTerminalStore.getState().getTerminal(0)) {
       console.log(`[scaffold] installation anticipée : ${command}`);
+      // La file est sérielle : l'installation de fin de génération attendra
+      // celle-ci, et retombera sur le cache npm en quelques secondes.
       queue.push(command);
       return;
     }

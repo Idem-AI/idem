@@ -3,6 +3,7 @@ import { execList } from "../useMessageParser";
 import { TFunction } from "i18next";
 import { ensureProjectIsRunnable } from "./ensureRunnable";
 import { stabilizeWorkspace } from "./stabilize";
+import { ensurePreviewRunning } from "./ensurePreview";
 
 
 /**
@@ -88,5 +89,9 @@ export const checkExecList = (messages: Message[]) => {
 
     console.log("[checkExecList] commands", list);
     execList.run(list);
+
+    // Puis on vérifie que ça a bien donné un aperçu, et pas seulement que les
+    // commandes sont parties.
+    void ensurePreviewRunning(list.find(isStart) ?? START_COMMAND);
   }, 1000);
 };

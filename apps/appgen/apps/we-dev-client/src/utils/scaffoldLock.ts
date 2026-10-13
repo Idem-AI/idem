@@ -86,6 +86,9 @@ export function waitForScaffold(): Promise<void> {
   });
 }
 
+/** Les chemins verrouillés, pour les signaler aux outils qui jugent le code. */
+export const lockedScaffoldPaths = (): string[] => Array.from(lockedPaths);
+
 export const isScaffoldLocked = (path: string): boolean =>
   lockedPaths.has(path.replace(/^\.?\//, ''));
 
@@ -140,4 +143,35 @@ export function isStarterOnly(files: Record<string, string>): boolean {
   const app =
     files['src/app/page.jsx'] ?? files['src/App.jsx'] ?? files['frontend/src/App.jsx'];
   return typeof app === 'string' && app.includes('idem:placeholder');
+}
+
+/**
+ * Un fichier parti en boucle.
+ *
+ * Un modèle qui se répète produit des fichiers entiers de lignes identiques —
+ * on a vu une feuille de style de 2 Ko réécrite en 400 Ko de `.text-[inherit]`
+ * recopié des centaines de fois. C'est illisible, c'est inutilisable, et ça
+ * remplace du travail valable sans que rien ne s'y oppose.
+ *
+ * On refuse donc l'écriture plutôt que d'accepter n'importe quoi. Le test est
+ * volontairement grossier : un fichier légitime n'est jamais à la fois énorme
+ * et composé en majorité de lignes qui se répètent.
+ */
+const MAX_GENERATED_CHARS = 150_000;
+const LOOP_MIN_LINES = 120;
+const LOOP_UNIQUE_RATIO = 0.25;
+
+export function looksDegenerate(content: string): boolean {
+  if (typeof content !== 'string') return false;
+  if (content.length > MAX_GENERATED_CHARS) return true;
+
+  const lines = content
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < LOOP_MIN_LINES) return false;
+
+  const unique = new Set(lines).size;
+  return unique / lines.length < LOOP_UNIQUE_RATIO;
 }
