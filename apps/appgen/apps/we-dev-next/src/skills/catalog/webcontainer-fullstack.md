@@ -26,11 +26,12 @@ frontend/vite.config.js     port 5173, proxy /api → http://localhost:3001
 frontend/postcss.config.js  frontend/tailwind.config.js  (the project's palette and fonts)
 frontend/index.html         fonts linked, #root + the module script
 frontend/src/main.jsx       frontend/src/styles/index.css  frontend/src/lib/cn.js
+frontend/src/lib/utils.js   frontend/components.json  frontend/jsconfig.json (CLI shadcn, alias @/)
 frontend/src/api.js         api(path, options) — the only way to reach the backend
 frontend/src/ui/*.jsx       the component kit below
 ```
 
-A `file` action on any of them is dropped by the workspace. Need another package? `<boltAction type="shell">cd backend && npm install name</boltAction>` (or `cd frontend && …`).
+A `file` action on any of them is dropped by the workspace. Need another package? `<boltAction type="shell">cd backend && npm install name</boltAction>` (or `cd frontend && …`). For an interface library, pick one from the menu in the task instead of inventing a package: the code installs it.
 
 ## The rules that do not bend
 

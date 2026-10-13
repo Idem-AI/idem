@@ -2,6 +2,7 @@ import { ChatRequestOptions, CreateMessage, Message } from "ai";
 import { execList } from "../useMessageParser";
 import { TFunction } from "i18next";
 import { ensureProjectIsRunnable } from "./ensureRunnable";
+import { stabilizeWorkspace } from "./stabilize";
 
 
 /**
@@ -64,6 +65,17 @@ export const checkExecList = (messages: Message[]) => {
       await ensureProjectIsRunnable();
     } catch (error) {
       console.warn("[checkExecList] could not verify the project manifest:", error);
+    }
+
+    // Composition de la page et réparations déterministes AVANT le démarrage :
+    // c'est ce qui fait qu'un oubli du modèle — un import mort, un paquet
+    // absent, une icône inventée — ne se solde plus par un aperçu vide.
+    // Les installations qui en sortent passent devant le démarrage.
+    try {
+      const { commands } = await stabilizeWorkspace();
+      list.push(...commands.filter((command) => !list.includes(command)));
+    } catch (error) {
+      console.warn("[checkExecList] stabilisation impossible :", error);
     }
 
     if (!list.some(isInstall)) {

@@ -13,14 +13,15 @@ import Tips from './components/Tips';
 import { parseMessage } from '../../../utils/messagepParseJson';
 import useUserStore from '../../../stores/userSlice';
 import { useLimitModalStore } from '../../UserModal';
-import { updateFileSystemNow } from '../../WeIde/services';
+import { resetFileHashes, resetWebContainer, updateFileSystemNow } from '../../WeIde/services';
 import { parseMessages } from '../useMessageParser';
 import { createMpIcon } from '@/utils/createWtrite';
 import { useTranslation } from 'react-i18next';
 import useChatModeStore from '../../../stores/chatModeSlice';
 import useTerminalStore from '@/stores/terminalSlice';
 import { checkExecList, checkFinish } from '../utils/checkFinish';
-import { runQualityPass } from '../utils/qualityPass';
+import { execList } from '../useMessageParser';
+import { resetQualityPass, runQualityPass } from '../utils/qualityPass';
 import useVersionHistory from '@/stores/versionHistory';
 import CodeLoadError from '@/components/CodeLoadError';
 import { useUrlData } from '@/hooks/useUrlData';
@@ -31,9 +32,10 @@ import {
   getProjectCode,
   getProjectChatSession,
   saveProjectChatSession,
+  deleteProjectGeneration,
 } from '@/api/persistence/db';
 import { createProjectMetadata } from '@/utils/zipUtils';
-import { pushProjectCode } from '@/utils/codeSync';
+import { cancelPendingCodeSync, pushProjectCode, waitForCodeSync } from '@/utils/codeSync';
 import { compactMessagesForStorage, deriveSessionTitle } from '@/utils/chatPersistence';
 import { MCPTool } from '@/types/mcp';
 import useMCPTools from '@/hooks/useMCPTools';
@@ -44,12 +46,22 @@ import { ProjectModel } from '@/api/persistence/models/project.model';
 import { MultiChatPromptService } from './services/multiChatPromptService';
 import { currentPlatform, currentProduct } from '@/utils/product';
 import { fetchScaffold } from '@/api/scaffold';
-import { prewarmInstall } from '../utils/prewarmInstall';
+import { prewarmInstall, resetPrewarm } from '../utils/prewarmInstall';
+import {
+  buildContentRequest,
+  extractFilesFromText,
+  extractPlanFromText,
+  missingContentModules,
+} from '@/utils/planRecovery';
 import {
   clearScaffold,
   hasScaffoldSignature,
   isScaffoldLocked,
+  isStarterOnly,
+  mountedScaffoldVersion,
   registerScaffold,
+  settleScaffold,
+  waitForScaffold,
   withoutScaffold,
 } from '@/utils/scaffoldLock';
 import useChatHistoryStore from '@/stores/chatHistoryStore';
@@ -90,6 +102,9 @@ export const excludeFiles = [
   '/miniprogram/components/weicon/icondata.js',
   '/miniprogram/components/weicon/index.css',
 ];
+
+/** Artefacts injectés pour le modèle, jamais montrés dans la conversation. */
+const CONTEXT_ARTIFACTS = /<boltArtifact id="(hello-js|existing-code)"/;
 
 const API_BASE = process.env.REACT_APP_BASE_URL;
 console.log(API_BASE, 'API_BASE');
@@ -358,7 +373,20 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // Only worth linting a finished artifact: a truncated one trips rules that
       // the continuation would have fixed on its own.
       if (isComplete) {
-        runQualityPass(chatUuid, messages, append, t, projectData);
+        // Avant la passe qualité : un plan sans ses contenus donne une page
+        // vide, et il n'y a rien à juger sur une page vide. On redemande les
+        // modules manquants — une seule fois, et seulement ceux-là.
+        const missing = missingContentModules(useFileStore.getState().files);
+
+        if (missing.length && !contentRetryRef.current) {
+          contentRetryRef.current = true;
+          append(
+            { role: 'user', content: t('chatWorkspace.completingContent', { count: missing.length }) },
+            { body: { followUp: buildContentRequest(missing) } }
+          );
+        } else {
+          runQualityPass(chatUuid, messages, append, t, projectData);
+        }
       }
     }
   }, [checkCount]);
@@ -444,6 +472,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           // resterait vide. L'effet de montage le reposera.
           clearScaffold();
           setScaffoldReady(null);
+          contentRetryRef.current = false;
         }
       }
     });
@@ -472,6 +501,18 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   // requête est reconstruit au rendu : sans cela le premier message partirait
   // sans le drapeau.
   const [scaffoldReady, setScaffoldReady] = useState<string | null>(null);
+  // Incrémenté à chaque retour à zéro : relance le montage du socle même quand
+  // `scaffoldReady` valait déjà `null` (projet d'avant le socle), cas où aucune
+  // autre dépendance de l'effet ne change.
+  const [scaffoldEpoch, setScaffoldEpoch] = useState(0);
+  // Suppression de la génération : confirmation en deux temps, puis en cours.
+  const [confirmingRegenerate, setConfirmingRegenerate] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  // Vrai après une suppression : le bouton de lancement dit « Régénérer ».
+  const [wasReset, setWasReset] = useState(false);
+  // Une seule relance de contenu par conversation : si le modèle n'y arrive pas
+  // au deuxième tour, un troisième ne fera que brûler des jetons.
+  const contentRetryRef = useRef(false);
   const [showStartButton, setShowStartButton] = useState(false);
   const [hasGeneration, setHasGeneration] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
@@ -521,7 +562,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     handleInputChange,
     isLoading,
     setMessages,
-    append,
+    append: appendRaw,
     setInput,
     stop,
     reload,
@@ -652,6 +693,25 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
         if (message) {
           const { files: messagefiles } = parseMessage(message.content);
+
+          // Du code répondu en prose — un bloc annoncé par son chemin — plutôt
+          // qu'en actions de fichier. Le tour serait entièrement perdu.
+          for (const [path, content] of Object.entries(extractFilesFromText(message.content))) {
+            if (messagefiles[path] === undefined) {
+              console.warn(`[rattrapage] ${path} répondu en texte, enregistré comme fichier`);
+              messagefiles[path] = content;
+            }
+          }
+
+          // Idem pour un plan répondu sans bloc de code du tout.
+          if (!messagefiles['idem.plan.json']) {
+            const recovered = extractPlanFromText(message.content);
+            if (recovered) {
+              console.warn('[plan] plan répondu en texte, enregistré comme fichier');
+              messagefiles['idem.plan.json'] = recovered;
+            }
+          }
+
           for (let key in messagefiles) {
             // Le socle est posé par le code : une réécriture est au mieux
             // identique, au pire une palette amputée ou un script d'amorçage
@@ -767,6 +827,55 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
     },
   });
+
+  // Lu par l'effet de montage du socle sans le faire dépendre de `isLoading` :
+  // une dépendance l'annulerait au moment même où la génération démarre.
+  const isLoadingRef = useRef(false);
+  isLoadingRef.current = isLoading;
+
+  // Partagé avec l'aperçu, qui doit cesser de proposer « Générer maintenant »
+  // dès que la génération a commencé.
+  const setIsGenerating = useChatStore((state) => state.setIsGenerating);
+  useEffect(() => {
+    setIsGenerating(isLoading);
+  }, [isLoading, setIsGenerating]);
+
+  // Et la même chose pour « ce projet attend sa première génération » : c'est
+  // ce qui décide du bouton au centre de l'aperçu. Une seule vérité pour les
+  // deux endroits, sinon ils finissent par se contredire.
+  const setCanGenerate = useChatStore((state) => state.setCanGenerate);
+  useEffect(() => {
+    setCanGenerate(showStartButton);
+  }, [showStartButton, setCanGenerate]);
+
+  /**
+   * Le seul `append` de l'atelier : saisie, lancement automatique, « Corriger »,
+   * reprise… tous passent ici.
+   *
+   * En mode Build il attend d'abord que le socle soit réglé (voir
+   * `waitForScaffold`), puis annonce sa version DANS l'appel. Passer par le
+   * corps de `useChat` ne suffit pas : il est relu au rendu, et le premier envoi
+   * suit le montage de quelques microsecondes — il partirait sans le drapeau, le
+   * serveur ferait écrire la configuration au modèle, et le verrou la jetterait
+   * avec ses dépendances.
+   */
+  const append = useCallback(
+    async (...args: Parameters<typeof appendRaw>) => {
+      const [message, options] = args;
+
+      if (mode === ChatMode.Builder) {
+        await waitForScaffold();
+      }
+
+      const version = mountedScaffoldVersion();
+
+      return appendRaw(
+        message,
+        version ? { ...options, body: { ...options?.body, scaffold: { version } } } : options
+      );
+    },
+    [appendRaw, mode]
+  );
 
   // Inject the conversation restored from the server. Runs once `chatUuid` has
   // switched to the stored sessionId, otherwise useChat would write the
@@ -905,8 +1014,19 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
               // Créer un message initial avec le code existant si on est en mode Builder.
               // Inutile quand une conversation a été restaurée : elle porte déjà
               // son historique et le contexte fichiers est réinjecté séparément.
-              if (mode === ChatMode.Builder && messages.length === 0 && !hasRestoredSessionRef.current) {
-                const boltAction = convertToBoltAction(existingCode);
+              // Rien à envoyer si ce code n'est que le socle : le serveur l'a
+              // écrit lui-même, et le lui renvoyer coûterait des milliers de
+              // jetons pour ce qu'il sait déjà.
+              const boltAction = isStarterOnly(existingCode)
+                ? ''
+                : convertToBoltAction(existingCode);
+
+              if (
+                mode === ChatMode.Builder &&
+                messages.length === 0 &&
+                !hasRestoredSessionRef.current &&
+                boltAction.trim()
+              ) {
                 setMessages([
                   {
                     id: '1',
@@ -980,10 +1100,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
    * depuis une autre machine garde donc son verrou.
    */
   useEffect(() => {
-    if (mode !== ChatMode.Builder || scaffoldReady) return;
-    // Une génération en cours écrit déjà dans l'espace de travail : monter le
-    // socle par-dessus remplacerait la carte des fichiers au complet.
-    if (isLoading) return;
+    if (mode !== ChatMode.Builder) return;
+    if (scaffoldReady) {
+      settleScaffold();
+      return;
+    }
     // Un projet dans l'adresse : attendre son chargement, sinon on monterait le
     // socle par-dessus le code déjà enregistré (ou l'inverse, selon la course).
     if (projectId && !isProjectLoaded) return;
@@ -1001,6 +1122,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
         const workspace = useFileStore.getState().files;
 
+        // Une génération déjà en cours écrit dans l'espace de travail : monter le
+        // socle par-dessus remplacerait la carte des fichiers au complet. La
+        // porte l'interdit en temps normal ; ceci ne vaut que pour le délai
+        // de secours.
+        if (isLoadingRef.current) return;
+
         if (Object.keys(workspace).length === 0) {
           registerScaffold(scaffold.locked, scaffold.version);
           // `setFiles` ne marque pas `isFirstSend` : le socle reste donc hors
@@ -1013,23 +1140,62 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           return;
         }
 
-        // Projet déjà généré : seul le verrou est rétabli, et seulement si son
-        // code porte bien la signature du socle.
+        // Projet rouvert. Les fichiers verrouillés sont du code pur, sans rien
+        // de l'utilisateur : on les REPOSE à la version courante au lieu de se
+        // contenter de rétablir le verrou.
+        //
+        // Sans cela, un projet gardait indéfiniment le socle enregistré lors de
+        // sa première ouverture : ancienne charte, anciennes polices, ancienne
+        // configuration Vite, et kit de sections absent s'il n'existait pas
+        // encore. La page affichait le bon texte dans la mauvaise identité.
         if (hasScaffoldSignature(workspace)) {
+          const refresh: Record<string, string> = {};
+
+          for (const path of scaffold.locked) {
+            if (workspace[path] !== scaffold.files[path]) refresh[path] = scaffold.files[path];
+          }
+
+          // Les fichiers non verrouillés — kit de sections, trousse de
+          // composants — appartiennent au projet dès qu'il existe : on ne les
+          // écrase pas, on complète seulement ce qui manque.
+          for (const [path, content] of Object.entries(scaffold.files)) {
+            if (workspace[path] === undefined) refresh[path] = content;
+          }
+
           registerScaffold(scaffold.locked, scaffold.version);
+
+          if (Object.keys(refresh).length) {
+            console.log(`[scaffold] ${Object.keys(refresh).length} fichier(s) du socle remis à jour`);
+            await setFiles({ ...workspace, ...refresh });
+          }
+
           setScaffoldReady(scaffold.version);
         }
       } catch (error) {
         // Le socle est une optimisation, jamais un préalable : sans lui, le
         // contrat de build complet repart au modèle comme avant.
         console.warn('[scaffold] socle non monté, contrat complet conservé', error);
+      } finally {
+        // Réglé, quelle qu'en soit l'issue : les envois en attente peuvent partir.
+        // Un montage annulé (le projet vient de changer) sera repris par le
+        // passage suivant, qui rouvrira la porte lui-même.
+        if (!cancelled) settleScaffold();
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [mode, projectId, isProjectLoaded, projectData, scaffoldReady, isLoading, setFiles, i18n.language]);
+  }, [
+    mode,
+    projectId,
+    isProjectLoaded,
+    projectData,
+    scaffoldReady,
+    scaffoldEpoch,
+    setFiles,
+    i18n.language,
+  ]);
 
   // Function to manually start generation
   const handleStartGeneration = async () => {
@@ -1196,6 +1362,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     if (e.role === 'system') return false;
     // Hide the first user message (generation trigger) from UI
     if (firstUserMessageId && e.id === firstUserMessageId) return false;
+    // Les artefacts de contexte — l'état des fichiers envoyé au modèle, le code
+    // déjà enregistré — sont des rouages. Les afficher montrait « Existing
+    // project code » à l'ouverture d'un projet qui ne contient encore que le
+    // socle : une information que l'utilisateur n'a pas demandée et qui lui
+    // laisse croire qu'il a du code à lui.
+    if (CONTEXT_ARTIFACTS.test(e.content ?? '')) return false;
     return true;
   });
   // modify upload handler
@@ -1453,9 +1625,108 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const retryLoadProjectRef = useRef(retryLoadProject);
   retryLoadProjectRef.current = retryLoadProject;
   const stableRetryLoadProject = useCallback(() => retryLoadProjectRef.current(), []);
+  /**
+   * Supprime ce qui a été généré pour ce produit et remet l'atelier à zéro, prêt
+   * à régénérer.
+   *
+   * Ce qui part : le code (bucket), la conversation, le marqueur de génération.
+   * Ce qui reste : le projet, sa charte, son plan, et l'adresse publiée — une
+   * régénération se redéploie au même endroit. L'autre produit (site / app) n'est
+   * pas touché : chacun a ses propres dossiers et documents.
+   *
+   * L'ordre compte, et le serveur passe avant le local : si la suppression
+   * échoue, rien ne change à l'écran. Vider l'atelier d'abord ferait revenir
+   * l'ancien code à la prochaine ouverture, sans que l'on comprenne pourquoi.
+   */
+  const handleDeleteGeneration = async () => {
+    if (!projectId || regenerating || isLoading) return;
+
+    setRegenerating(true);
+
+    try {
+      // 1. Point de restauration : la suppression est irréversible côté serveur,
+      //    celui-ci est le filet de l'utilisateur. Son échec ne doit rien bloquer.
+      try {
+        const current = useFileStore.getState().files;
+        if (Object.keys(current).length > 0) {
+          await useVersionHistory.getState().capture(t('versions.beforeDelete'), current);
+        }
+      } catch (error) {
+        console.warn('[regenerate] point de restauration non enregistré', error);
+      }
+
+      // 2. Plus aucun envoi de code ne doit partir : un envoi en vol réécrirait
+      //    l'ancien code dans le bucket après la suppression.
+      cancelPendingCodeSync();
+      await waitForCodeSync();
+
+      // 3. Le serveur d'abord. S'il échoue, on s'arrête ici, atelier intact.
+      await deleteProjectGeneration(projectId);
+
+      // 4. Conteneur neuf : processus arrêtés, disque vidé, serveurs oubliés.
+      //    Sans cela `npm run dev` survit, le montage n'efface rien, et la
+      //    relecture du disque rapatrie l'ancien site dans le magasin.
+      await resetWebContainer();
+      resetFileHashes();
+      execList.clear();
+      resetPrewarm();
+
+      // 5. Espace de travail et conversation à zéro.
+      const previousChatUuid = chatUuid;
+      refUuidMessages.current = [];
+      pendingSessionRef.current = null;
+      hasRestoredSessionRef.current = false;
+      resetQualityPass(previousChatUuid);
+      setChatUuid(uuidv4());
+      setMessages([]);
+      setMessagesa([]);
+      clearImages();
+      setEmptyFiles();
+      await setFiles({});
+      setOldFiles({});
+      clearErrors();
+      setIsFirstSend();
+      setIsUpdateSend();
+      useRunStatus.getState().reset();
+      resetTerminals();
+
+      // 6. Le socle est retiré ; l'effet de montage le reposera (configuration,
+      //    charte, trousse de composants) et lancera l'installation, puis le
+      //    modèle n'aura plus que le produit à écrire.
+      clearScaffold();
+      setScaffoldReady(null);
+      setScaffoldEpoch((epoch) => epoch + 1);
+
+      setHasGeneration(false);
+      setIsGenerationComplete(false);
+      setShowStartButton(true);
+      setWasReset(true);
+    } catch (error) {
+      console.error('[regenerate] suppression impossible', error);
+      toast.error(t('chatWorkspace.regenerateFailed'));
+    } finally {
+      setRegenerating(false);
+      setConfirmingRegenerate(false);
+    }
+  };
+
+  const handleDeleteGenerationRef = useRef(handleDeleteGeneration);
+  handleDeleteGenerationRef.current = handleDeleteGeneration;
+  const stableDeleteGeneration = useCallback(() => handleDeleteGenerationRef.current(), []);
+
   const handleStartGenerationRef = useRef(handleStartGeneration);
   handleStartGenerationRef.current = handleStartGeneration;
   const stableHandleStartGeneration = useCallback(() => handleStartGenerationRef.current(), []);
+
+  // L'aperçu propose « Générer maintenant » tant que l'espace de travail ne
+  // porte que le socle : c'est la conversation qui sait le faire.
+  useEffect(() => {
+    return eventEmitter.on('chat:startGeneration', () => {
+      if (isLoading) return;
+      stableHandleStartGeneration();
+    });
+  }, [isLoading]);
+
 
   const showJsx = useMemo(() => {
     // Show error state if project failed to load
@@ -1503,6 +1774,56 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       );
     }
 
+    // Suppression de la génération, proposée là où l'on peut en avoir besoin :
+    // une fois terminée, et aussi quand elle reste bloquée « en cours » (sans
+    // cette sortie, une génération échouée n'offrait aucun moyen de repartir).
+    const regenerateControl = projectId ? (
+      <div className="mt-1">
+        {confirmingRegenerate ? (
+          <div
+            role="group"
+            aria-labelledby="regenerate-title"
+            className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 text-left"
+          >
+            <h4 id="regenerate-title" className="text-sm font-semibold text-text-primary mb-1">
+              {t('chatWorkspace.regenerateTitle')}
+            </h4>
+            <p className="text-sm text-text-tertiary mb-3">{t('chatWorkspace.regenerateBody')}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={stableDeleteGeneration}
+                disabled={regenerating || isLoading}
+                className="min-h-[40px] rounded-lg bg-red-600 px-4 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              >
+                {regenerating
+                  ? t('chatWorkspace.regenerating')
+                  : t('chatWorkspace.regenerateConfirm')}
+              </button>
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setConfirmingRegenerate(false)}
+                disabled={regenerating}
+                className="min-h-[40px] rounded-lg border border-primary/20 px-4 text-sm font-medium text-text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+              >
+                {t('chatWorkspace.regenerateCancel')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmingRegenerate(true)}
+            disabled={isLoading}
+            className="min-h-[40px] text-sm text-text-tertiary underline underline-offset-4 transition-colors hover:text-text-primary disabled:opacity-50"
+          >
+            {t('chatWorkspace.regenerate')}
+          </button>
+        )}
+      </div>
+    ) : null;
+
     // `min-h-0` : un élément flex a `min-height: auto` par défaut, donc il
     // refuse de descendre sous la hauteur de son contenu — `overflow-y-auto`
     // ne déclenche alors jamais, le bloc pousse le conteneur et la
@@ -1547,7 +1868,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                         d="M13 10V3L4 14h7v7l9-11h-7z"
                       />
                     </svg>
-                    {t('chatWorkspace.generateNow')}
+                    {wasReset ? t('chatWorkspace.regenerateNow') : t('chatWorkspace.generateNow')}
                   </button>
                 </div>
               ) : hasGeneration && !isGenerationComplete ? (
@@ -1560,9 +1881,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                       {t('chatWorkspace.inProgress')}
                     </h3>
                   </div>
-                  <p className="text-sm text-text-tertiary">
+                  <p className="text-sm text-text-tertiary mb-2">
                     {t('chatWorkspace.inProgressBody')}
                   </p>
+                  {!isLoading && regenerateControl}
                 </div>
               ) : isGenerationComplete ? (
                 <div className="text-center">
@@ -1586,9 +1908,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                       {t('chatWorkspace.complete')}
                     </h3>
                   </div>
-                  <p className="text-sm mb-4 text-text-tertiary">
+                  <p className="text-sm mb-2 text-text-tertiary">
                     {t('chatWorkspace.completeBody')}
                   </p>
+                  {regenerateControl}
                 </div>
               ) : null}
             </div>
@@ -1658,6 +1981,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     projectLoadError,
     stableRetryLoadProject,
     stableHandleStartGeneration,
+    stableDeleteGeneration,
+    confirmingRegenerate,
+    regenerating,
+    wasReset,
+    projectId,
     t,
   ]);
 

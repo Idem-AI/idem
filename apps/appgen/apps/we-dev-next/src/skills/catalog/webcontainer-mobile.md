@@ -26,14 +26,15 @@ public/manifest.webmanifest       standalone, portrait, brand theme colour
 public/icon.svg                  app icon in the brand colour
 public/sw.js                     service worker (registered in production only)
 src/main.jsx                     src/styles/index.css (+ .pt-safe / .pb-safe)
-src/lib/cn.js                    cn(...classes)
+src/lib/cn.js  src/lib/utils.js  cn(...classes)
+components.json  jsconfig.json   projet installable par le CLI shadcn (alias @/ → src/)
 src/components/layout/AppShell.jsx   screen frame: scrolling area + bottom tab bar, reads TABS
 src/components/layout/TopBar.jsx     <TopBar title back action /> — sticky, safe area, back arrow
 src/hooks/useStoredState.js          useStoredState(key, initial) — persists to localStorage
 src/ui/*.jsx                     the component kit below
 ```
 
-A `file` action on any of them is dropped by the workspace. Installed: `react`, `react-dom`, `react-router-dom`, `lucide-react`, `clsx`, `tailwind-merge`. Anything else: `<boltAction type="shell">npm install name</boltAction>`.
+A `file` action on any of them is dropped by the workspace. Installed: `react`, `react-dom`, `react-router-dom`, `lucide-react`, `clsx`, `tailwind-merge`. Anything else: `<boltAction type="shell">npm install name</boltAction>`. For an interface library, pick one from the menu in the task instead of inventing a package: the code installs it.
 
 ## What you write
 

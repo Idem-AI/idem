@@ -757,7 +757,8 @@
     "remove": "Delete",
     "restored": "Version restored",
     "restoreFailed": "Restore failed",
-    "beforeRestore": "Before restore"
+    "beforeRestore": "Before restore",
+    "beforeDelete": "Before deletion"
   },
   "chatWorkspace": {
     "readyToGenerate": "Ready to generate your application",
@@ -768,7 +769,16 @@
     "complete": "Generation complete",
     "completeBody": "Your application is generated and ready to publish.",
     "loadFailed": "Could not load the project",
-    "retry": "Try again"
+    "retry": "Try again",
+    "regenerate": "Delete and regenerate",
+    "regenerateNow": "Regenerate now",
+    "regenerateTitle": "Delete this generation?",
+    "regenerateBody": "The code and the conversation are deleted, and you start again from zero. The brand, the project configuration and the published address are kept: the technical setup comes back on its own, and the AI only generates the rest. A restore point is saved before the deletion.",
+    "regenerateConfirm": "Yes, delete",
+    "regenerateCancel": "Cancel",
+    "regenerating": "Deleting…",
+    "completingContent": "Filling in the content of {{count}} section(s).",
+    "regenerateFailed": "The deletion failed: nothing was changed. Try again in a moment."
   },
   "checks": {
     "title": "Project checks",

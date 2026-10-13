@@ -7,9 +7,15 @@
 
 import { DesignSystem } from '../design/tokenForge.js';
 import { ProjectModel } from '../types/project.js';
+import { renderLibraryManifest } from './libraries.js';
+import { buildSectionKit, sectionDefaults } from './sections.js';
 import {
+  CN_UTILS,
+  buildBrandMark,
+  JSCONFIG,
   POSTCSS_CONFIG,
   VITE_CONFIG,
+  componentsJson,
   buildBaseCss,
   buildPackageJson,
   buildTailwindConfig,
@@ -66,14 +72,16 @@ ${fontLinks(system)}
 }
 
 const MAIN = `import { createRoot } from 'react-dom/client';
-import App from './App.jsx';
+// Sans extension : le produit peut être écrit en .jsx comme en .tsx.
+import App from './App';
 import './styles/index.css';
 
 createRoot(document.getElementById('root')).render(<App />);
 `;
 
 /** Écran d'attente : l'aperçu démarre avant la première génération. */
-const APP_PLACEHOLDER = `import { Section } from './ui/index.js';
+const APP_PLACEHOLDER = `/* idem:placeholder — remplacé par la première génération */
+import { Section } from './ui/index.js';
 
 export default function App() {
   return (
@@ -159,15 +167,27 @@ export function buildSiteScaffold(
     'index.html': buildIndexHtml(system, projectData, language),
     'src/styles/index.css': buildBaseCss(system),
     'src/main.jsx': MAIN,
+    'src/brand.jsx': buildBrandMark(projectData, system),
     'src/lib/cn.js': CN_HELPER,
+    'src/lib/utils.js': CN_UTILS,
+    'components.json': componentsJson('src/styles/index.css'),
+    'idem.libraries.json': renderLibraryManifest('site'),
+    'jsconfig.json': JSCONFIG,
     Dockerfile: DOCKERFILE,
     'nginx.conf': NGINX_CONF,
     '.dockerignore': DOCKERIGNORE,
     ...buildUiKit(),
   };
 
+  // Le kit de sections n'est PAS verrouillé, à la différence de la
+  // configuration. Le modèle doit l'assembler par propriétés — c'est ce qui
+  // tient la qualité quand le modèle est faible — mais l'utilisateur doit
+  // pouvoir demander « un hero pleine largeur » et obtenir une vraie
+  // réécriture, pas un refus.
+  const sections = buildSectionKit(sectionDefaults(system.direction));
+
   return {
-    files: { ...locked, 'src/App.jsx': APP_PLACEHOLDER },
+    files: { ...locked, ...sections, 'src/App.jsx': APP_PLACEHOLDER },
     locked: Object.keys(locked),
   };
 }

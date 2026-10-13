@@ -132,9 +132,71 @@ Three situations on open:
 
 - empty workspace → the starter is mounted and noted in `localStorage` for this project and product;
 - project reopened and already generated on a starter → only the lock is restored, so follow-up turns keep their hands off the config;
-- project generated before the starter existed → nothing is locked and the full build contract goes out as before. Each `webcontainer-*` skill keeps a short fallback section for exactly that case.
+- project generated before the starter existed → nothing is locked; follow-up turns edit the files already in the workspace.
+
+**Nothing is sent before the starter is settled.** Seven paths post a message to the model (typing, the dashboard's automatic launch, « Fix », resume…). They all go through one wrapped `append` that waits on a gate in `scaffoldLock.ts`, which opens once mounting is settled — mounted, unnecessary or failed — and, as a last resort, after 8 s so a mute server cannot block generation. The wrapper also announces the starter version *in the call itself*: the chat body is re-read at render time, and the first send follows the mount by microseconds. Before the gate, the dashboard's automatic launch beat the `/api/scaffold` round trip, the mount was cancelled, and the model wrote its own `index.css` — with invented utilities such as `font-figtree`, which stop PostCSS.
+
+**When mounting genuinely fails** (the 8 s fallback), the skills would be describing files that do not exist. On a first turn without the starter flag the server rebuilds the starter (it is deterministic) and puts the files in the prompt under « STARTER NOT MOUNTED », to be emitted verbatim. That is the old cost — about 4 000 tokens of input and the matching output — but only on that degraded path, and the project comes out whole.
 
 The client sends `scaffold: { version }` with every message; the server **rebuilds** the starter rather than trusting that payload (it is deterministic, so there is nothing to trust) and switches the brief from "paste this config" to "here are the token names". Bump `SCAFFOLD_VERSION` whenever a locked file's content changes.
+
+#### Deleting a generation, to regenerate it from zero
+
+The workspace header offers « Delete and regenerate » once a generation is finished — and also when it is stuck « in progress », which used to be a dead end. It asks for confirmation, then `DELETE /projects/:id/generation?product=site|app` wipes the **code, the conversation and (site only) the old generation marker**. The project, its brand and plan, and the **deployment record** are kept: a regenerated product redeploys to the same published address. The other product is never touched — site and application have separate folders and documents.
+
+After the wipe the starter is unlocked and the mount effect runs again, so the configuration, the brand tokens and the component kit come back on their own and the model only writes the product — the same path as a first generation. The button then reads « Regenerate now ».
+
+Four details that are easy to get wrong, each covered:
+
+- **Legacy ZIPs.** `getProjectCode` falls back to the old ZIP archives when the incremental store is empty, so deleting only the manifest would bring the old site straight back. The whole `…/code/` prefix goes (its trailing `/` keeps it from matching a neighbour like `code-backup/`, and the site's folder and the application's `…/app/code/` are siblings, not nested). A partial failure is reported by MinIO and **raised**, never swallowed.
+- **A fresh container.** Mounting only ever writes; the WebContainer does not expose its processes (`npm run dev` outlives the terminal, which only frees the xterm UI); and the disk read-back would pull any file missing from the store back into it. The reset therefore calls `teardown()` and boots a new container, which also drops the PGlite database that would otherwise keep the old schema (`CREATE TABLE IF NOT EXISTS`). Dependencies reinstall, in parallel with generation (see the pre-warm above).
+- **Uploads in flight.** A push reads the manifest, diffs, then writes. `cancelPendingCodeSync()` makes unwritten pushes abandon themselves and `waitForCodeSync()` waits for the ones writing, *before* the server delete — otherwise one could land afterwards and put part of the old project back.
+- **Server first.** If the delete fails nothing changes locally; emptying the workspace first would bring the old code back on the next open for no visible reason. A restore point (« Before deletion ») is saved beforehand, as the user's safety net for what is irreversible server-side.
+
+#### The page plan — small tasks instead of one large one
+
+Writing a landing page in one pass means holding layout, responsive behaviour, imports, exports and copy at the same time. A small model fails at one of the five, and the failure is total: one forgotten import and the preview is dead.
+
+So the work is cut into pieces a small model actually completes:
+
+1. **`idem.plan.json`** — which sections, in what order, which libraries. A dozen lines.
+2. **`src/content/<name>.js`** — one plain data object per section. No JSX, no imports.
+3. **`src/App.jsx`** — composed by `utils/pageComposer.ts`, in code.
+
+The step where mistakes used to kill the preview — imports, order, composition — is no longer anyone's job. It is deterministic. And the model's output drops from ~300 tokens of JSX per section to ~20 of data.
+
+Degradation is graceful by design: a section the kit does not have is dropped, a section whose content file is missing is dropped (an empty section is more visible than a shorter page), an unsafe import path is ignored. The worst case is a shorter page, never a dead one. The escape hatch remains: a product that needs a map or a configurator gets a hand-written component and composes `App.jsx` itself.
+
+#### The section kit — layout belongs to the code
+
+`scaffold/sections.ts` ships Nav, Hero, Features, Steps, Testimonials, Pricing, Faq, Cta and Footer, written once in the project's own tokens: responsive, 44px targets, one `<h1>` per page, `aria-labelledby` per section, reading measure capped. Headings are `clamp()`-sized rather than scale steps — an editorial direction reaches 90px, which is five lines of hero in half a column.
+
+Anti-monoculture still holds: each section's **default variant** comes from the art direction drawn for the project, so two projects do not get the same page even from the same brief, and the model never has to think about it. The kit is mounted but **not locked** — "make the hero full-bleed" must still be possible.
+
+#### The library catalog — the agent chooses, the code installs
+
+`scaffold/libraries.ts` is a menu: Motion, shadcn/ui, Magic UI, Aceternity, Embla, Recharts, React Hook Form + Zod, Tabler Icons, Cobe. Each entry says what it brings and when to take it. The model **names** ids in the plan; the code turns them into commands. Choosing from a menu is within reach of a small model; writing an integration is not.
+
+The starter is shadcn-compatible out of the box: `components.json` (with the `@magicui` and `@aceternity` registries), `jsconfig.json` and the `@` to `src/` alias in Vite, plus `cn` at `@/lib/utils` where the ecosystem expects it. `cssVariables: false` with `baseColor: neutral` is deliberate — installed components dress themselves in `neutral-*`, and our neutral ramp is already tinted with the project brand colour, so a component lands on-brand with no variable mapping and no token collision. Verified end to end: `npx shadcn@latest add @magicui/globe` writes `src/components/ui/globe.jsx`, installs `cobe`, and the project builds.
+
+#### The compile gate — what the model gets wrong, fixed by code
+
+`utils/compileGate.ts` runs between the end of generation and the preview, with no model call. It repairs the failures that kill a preview outright:
+
+| Failure | What the gate does |
+|---|---|
+| imports a file it never wrote | creates it, rendering nothing, and reports it |
+| same file under another extension (`App.jsx` vs `App.tsx`) | rewrites the import rather than stubbing over the real file |
+| imports a package that is not installed | installs it when it is in the catalog |
+| imports a package that does not exist | local shim: a Proxy that answers any name with a neutral component |
+| imports an icon Lucide does not have | routes `lucide-react` through a guard that falls back instead of returning `undefined` |
+| `@apply font-figtree` | drops the token from the `@apply` list |
+| default import of a file with no default export | appends one |
+| scaffold placeholder left over next to the real file | deletes the placeholder |
+
+Shims and the icon guard expose **one default export only**, and imports are rewritten to a default import plus destructuring: Rollup resolves named exports statically at build time, so a Proxy with named imports compiles in dev and fails the build — the kind of difference only a real build reveals.
+
+Verified on a deliberately broken generation carrying every failure at once: it builds (1991 modules, exit 0).
 
 ### 5. Quality pass — deterministic first, model only if needed
 

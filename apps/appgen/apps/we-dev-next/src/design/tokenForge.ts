@@ -488,5 +488,8 @@ ${tokensBlock}
 Use \`text-ink\` for body copy and \`text-ink-muted\` only for genuinely secondary text. Never a lighter grey than \`ink-muted\`, and never \`text-gray-400/500\` — those are not in this palette.
 
 ### Type rules
-Scale ratio ${direction.typeRatio}. Hero display: \`clamp(${typeScale['3xl']}, 6vw, ${Math.min(6, parseFloat(typeScale['5xl']) * 1.4).toFixed(2)}rem)\`, tracking no tighter than -0.04em. Body measure capped at 68ch. \`text-wrap: balance\` on h1-h3.`;
+Scale ratio ${direction.typeRatio}. Hero display: \`clamp(${typeScale['3xl']}, 6vw, ${Math.min(6, parseFloat(typeScale['5xl']) * 1.4).toFixed(2)}rem)\`, tracking no tighter than -0.04em. Body measure capped at 68ch. \`text-wrap: balance\` on h1-h3.
+
+### Font classes — only these three exist
+\`font-display\`, \`font-sans\`, \`font-mono\`. A class named after a family (\`font-${fonts.body.toLowerCase().replace(/\s+/g, '-')}\`, \`font-${fonts.display.toLowerCase().replace(/\s+/g, '-')}\`) does not exist: used in a className it silently does nothing, and inside \`@apply\` it stops the whole build with "The \`font-…\` class does not exist".`;
 }

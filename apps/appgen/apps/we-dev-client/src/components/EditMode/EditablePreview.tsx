@@ -55,6 +55,7 @@ import {
 } from './astEdit';
 import { buildInjectPlan, buildRemovePlan, type InstrumentationPlan } from './instrumentation';
 import { isMobileApp } from '@/utils/product';
+import useChatStore from '@/stores/chatSlice';
 import { PHONES, PhoneMockup, phoneOuterSize, type PhoneDevice } from './PhoneMockup';
 import { SizeSelector, viewportStyle, WINDOW_SIZES, type WindowSize } from './ResponsiveViewport';
 
@@ -235,6 +236,25 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   const runPhase = useRunStatus((state) => state.phase);
   // Rien à montrer encore, mais ça démarre : on dit quoi plutôt que « rien ».
   const waiting = !url && (runPhase === 'installing' || runPhase === 'starting');
+
+  const generating = useChatStore((state) => state.isGenerating);
+  const awaitingFirstGeneration = useChatStore((state) => state.canGenerate);
+
+  /**
+   * Tant que le projet n'a pas été généré, « Exécuter » n'a rien à lancer : il
+   * démarrerait la page d'attente du socle. Le bouton propose donc de générer.
+   *
+   * L'état vient du projet lui-même — aucune génération enregistrée — et non
+   * d'une devinette sur les fichiers présents : un repère tiré du contenu de
+   * `src/App.jsx` ratait tous les projets ouverts avant qu'il existe.
+   *
+   * Indépendant de `running` et de `waiting` à dessein : les dépendances
+   * s'installent dès l'ouverture, en parallèle de la génération. S'y fier
+   * mettait l'aperçu en « démarrage » à la seconde où l'utilisateur arrivait,
+   * et le bouton proposait de redémarrer une application qui n'existe pas.
+   */
+  const offerGeneration = awaitingFirstGeneration && !generating;
+  const startGeneration = useCallback(() => eventEmitter.emit('chat:startGeneration'), []);
   const waitingKey =
     runPhase === 'installing'
       ? 'preview.waiting.install'
@@ -665,13 +685,19 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
 
           <button
             type="button"
-            onClick={runProject}
-            disabled={running}
+            onClick={offerGeneration ? startGeneration : runProject}
+            disabled={running && !offerGeneration}
             className="h-7 px-2 flex items-center gap-1.5 rounded-md text-xs text-text-tertiary hover:text-text-primary hover:bg-surface-3 disabled:opacity-50 transition-colors"
-            title={t('preview.runHint')}
+            title={offerGeneration ? t('chatWorkspace.startHint') : t('preview.runHint')}
           >
             <Play size={13} />
-            {running ? t('preview.running') : url ? t('preview.restart') : t('preview.run')}
+            {offerGeneration
+              ? t('chatWorkspace.generateNow')
+              : running
+                ? t('preview.running')
+                : url
+                  ? t('preview.restart')
+                  : t('preview.run')}
           </button>
 
           <div className="flex-1 min-w-0 h-7 px-3 flex items-center rounded-md bg-surface-2 border border-[var(--glass-border)]">
@@ -784,20 +810,30 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                   <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-8 text-neutral-500">
                     <EmptyPreviewIllustration size={88} className="text-neutral-300!" />
                     <p className="text-[15px] font-semibold text-neutral-900">
-                      {t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
+                      {offerGeneration
+                        ? t('chatWorkspace.readyToGenerate')
+                        : generating
+                          ? t('chatWorkspace.inProgress')
+                          : t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
                     </p>
                     <p className="text-[13px] leading-relaxed text-neutral-500 text-pretty">
-                      {t(waiting ? waitingKey : 'preview.noserverHint')}
+                      {offerGeneration
+                        ? t('chatWorkspace.startHint')
+                        : generating
+                          ? t('chatWorkspace.inProgressBody')
+                          : t(waiting ? waitingKey : 'preview.noserverHint')}
                     </p>
                     <Button
-                      variant={waiting ? 'secondary' : 'primary'}
+                      variant={!offerGeneration && waiting ? 'secondary' : 'primary'}
                       size="sm"
-                      onClick={runProject}
-                      loading={running}
+                      onClick={offerGeneration ? startGeneration : runProject}
+                      loading={(running || generating) && !offerGeneration}
                       icon={<Play className="w-4 h-4" />}
                       className="mt-2"
                     >
-                      {t(waiting ? 'preview.restart' : 'preview.run')}
+                      {offerGeneration
+                        ? t('chatWorkspace.generateNow')
+                        : t(waiting ? 'preview.restart' : 'preview.run')}
                     </Button>
                   </div>
                 )}
@@ -820,20 +856,30 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
             <div className="flex-1 h-full flex flex-col items-center justify-center gap-3 text-center px-6">
               <EmptyPreviewIllustration size={96} />
               <p className="text-sm font-medium text-text-secondary">
-                {t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
+                {offerGeneration
+                  ? t('chatWorkspace.readyToGenerate')
+                  : generating
+                    ? t('chatWorkspace.inProgress')
+                    : t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
               </p>
               <p className="text-xs text-text-tertiary max-w-xs text-pretty">
-                {t(waiting ? waitingKey : 'preview.noserverHint')}
+                {offerGeneration
+                  ? t('chatWorkspace.startHint')
+                  : generating
+                    ? t('chatWorkspace.inProgressBody')
+                    : t(waiting ? waitingKey : 'preview.noserverHint')}
               </p>
               <Button
-                variant={waiting ? 'secondary' : 'primary'}
+                variant={!offerGeneration && waiting ? 'secondary' : 'primary'}
                 size="sm"
-                onClick={runProject}
-                loading={running}
+                onClick={offerGeneration ? startGeneration : runProject}
+                loading={(running || generating) && !offerGeneration}
                 icon={<Play className="w-4 h-4" />}
                 className="mt-1"
               >
-                {t(waiting ? 'preview.restart' : 'preview.run')}
+                {offerGeneration
+                  ? t('chatWorkspace.generateNow')
+                  : t(waiting ? 'preview.restart' : 'preview.run')}
               </Button>
             </div>
           )}

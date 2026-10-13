@@ -2,7 +2,7 @@ import { stripIndents } from '../utils/stripIndent.js';
 import { ProjectModel } from '../types/project.js';
 import { forgeDesignSystem, renderDesignBrief, resolveRegister } from '../design/tokenForge.js';
 import { renderSkills, routeSkills, RouteResult } from '../skills/router.js';
-import { buildScaffold, renderScaffoldNotice } from '../scaffold/index.js';
+import { buildScaffold, renderScaffoldNotice, renderUnmountedScaffold } from '../scaffold/index.js';
 import { BuildTarget } from './buildTarget.js';
 
 export const WORK_DIR_NAME = 'project';
@@ -66,6 +66,11 @@ export interface AssembleOptions {
    * fichiers verrouillés et les jetons disponibles.
    */
   scaffolded?: boolean;
+  /**
+   * Ouverture d'un projet neuf. Sans socle monté, c'est le seul cas où le
+   * serveur doit fournir lui-même les fichiers de configuration.
+   */
+  firstTurn?: boolean;
 }
 
 /**
@@ -97,6 +102,14 @@ export function assembleBuilderPrompt(options: AssembleOptions): AssembledPrompt
     ? buildScaffold({ target, projectData, language, system: designSystem })
     : null;
 
+  // Premier tour sans socle : l'atelier n'a pas pu le monter. Les skills disent
+  // « déjà écrit », donc il faut tendre les fichiers au modèle plutôt que de
+  // lui laisser croire qu'ils existent.
+  const unmounted =
+    !scaffold && options.firstTurn
+      ? buildScaffold({ target, projectData, language, system: designSystem })
+      : null;
+
   const system = [
     'You are a senior product designer who also writes production React. You ship interfaces that look designed, not generated.',
     '',
@@ -110,6 +123,7 @@ export function assembleBuilderPrompt(options: AssembleOptions): AssembledPrompt
   const user = [
     renderDesignBrief(designSystem, { scaffolded: !!scaffold }),
     scaffold ? `\n${renderScaffoldNotice(scaffold)}` : '',
+    unmounted ? `\n${renderUnmountedScaffold(unmounted)}` : '',
     brandLockup ? `\n${brandLockup}` : '',
     projectBrief ? `\n${projectBrief}` : '',
     extraContext ? `\n${extraContext}` : '',

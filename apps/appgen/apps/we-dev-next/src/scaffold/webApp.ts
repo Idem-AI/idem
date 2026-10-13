@@ -12,7 +12,10 @@
 import { DesignSystem } from '../design/tokenForge.js';
 import { ProjectModel } from '../types/project.js';
 import {
+  CN_UTILS,
+  JSCONFIG,
   POSTCSS_CONFIG,
+  componentsJson,
   buildBaseCss,
   buildPackageJson,
   buildTailwindConfig,
@@ -170,11 +173,26 @@ export function requireUser(req, res, next) {
 }
 `;
 
-const FRONTEND_VITE = `import { defineConfig } from 'vite';
+const FRONTEND_VITE = `import { fileURLToPath, URL } from 'node:url';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // '@' → src/ : convention des composants shadcn/ui et des registres.
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
+  // Les .js de src/ sont lus comme du JSX : une balise dans un fichier de
+  // données ne doit pas faire tomber l'application entière.
+  esbuild: {
+    loader: 'jsx',
+    include: new RegExp('src/.*[.][jt]sx?$'),
+    // Vite exclut les .js de cette transformation par défaut : sans ce
+    // tableau vide, l'option ci-dessus ne s'applique à rien.
+    exclude: [],
+  },
+  optimizeDeps: { esbuildOptions: { loader: { '.js': 'jsx' } } },
   server: {
     host: true,
     port: 5173,
@@ -209,13 +227,15 @@ export async function api(path, options = {}) {
 `;
 
 const MAIN = `import { createRoot } from 'react-dom/client';
-import App from './App.jsx';
+// Sans extension : le produit peut être écrit en .jsx comme en .tsx.
+import App from './App';
 import './styles/index.css';
 
 createRoot(document.getElementById('root')).render(<App />);
 `;
 
-const APP_PLACEHOLDER = `import { Section } from './ui/index.js';
+const APP_PLACEHOLDER = `/* idem:placeholder — remplacé par la première génération */
+import { Section } from './ui/index.js';
 
 export default function App() {
   return (
@@ -300,6 +320,9 @@ export function buildWebAppScaffold(
     'frontend/src/main.jsx': MAIN,
     'frontend/src/api.js': API_CLIENT,
     'frontend/src/lib/cn.js': CN_HELPER,
+    'frontend/src/lib/utils.js': CN_UTILS,
+    'frontend/components.json': componentsJson('src/styles/index.css'),
+    'frontend/jsconfig.json': JSCONFIG,
     ...underFrontend(buildUiKit()),
   };
 

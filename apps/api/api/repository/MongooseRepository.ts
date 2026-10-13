@@ -373,10 +373,28 @@ export class MongooseRepository<
     logger.info(`MongooseRepository.delete called for ${collectionPath}, id: ${id}`);
 
     try {
-      const Model = this.getModel(collectionPath);
+      // Extract the target collection name (last segment for nested paths)
+      const parts = collectionPath.split('/');
+      const collectionName = parts[parts.length - 1];
       const nestedFilter = this.buildNestedFilter(collectionPath);
 
-      const result = await Model.deleteOne({ _id: id, ...nestedFilter });
+      // Same lookup as `findById`, on the native collection. A Mongoose model
+      // casts `_id` to an ObjectId and throws on the string ids that `create`
+      // writes through the native driver (`<projectId>_chat`, IDEM uids…), so
+      // those documents could be read and written but never deleted.
+      // ObjectId first, then the raw string.
+      const collection = mongoose.connection.collection(collectionName);
+
+      let queryId: any = id;
+      if (typeof id === 'string' && mongoose.Types.ObjectId.isValid(id)) {
+        queryId = new mongoose.Types.ObjectId(id);
+      }
+
+      let result = await collection.deleteOne({ _id: queryId, ...nestedFilter } as any);
+
+      if (result.deletedCount === 0 && queryId !== id) {
+        result = await collection.deleteOne({ _id: id, ...nestedFilter } as any);
+      }
 
       if (result.deletedCount === 0) {
         logger.warn(`Document not found in ${collectionPath} with id: ${id}`);

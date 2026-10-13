@@ -11,7 +11,10 @@
 import { DesignSystem } from '../design/tokenForge.js';
 import { ProjectModel } from '../types/project.js';
 import {
+  CN_UTILS,
+  JSCONFIG,
   POSTCSS_CONFIG,
+  componentsJson,
   buildBaseCss,
   buildPackageJson,
   buildTailwindConfig,
@@ -22,7 +25,8 @@ import {
   projectTitle,
 } from './shared.js';
 
-const VITE_CONFIG_MOBILE = `import { defineConfig } from 'vite';
+const VITE_CONFIG_MOBILE = `import { fileURLToPath, URL } from 'node:url';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // base: './' est obligatoire : Capacitor charge l'application depuis des
@@ -30,6 +34,18 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: './',
   plugins: [react()],
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
+  // Les .js de src/ sont lus comme du JSX (voir le socle du site).
+  esbuild: {
+    loader: 'jsx',
+    include: new RegExp('src/.*[.][jt]sx?$'),
+    // Vite exclut les .js de cette transformation par défaut : sans ce
+    // tableau vide, l'option ci-dessus ne s'applique à rien.
+    exclude: [],
+  },
+  optimizeDeps: { esbuildOptions: { loader: { '.js': 'jsx' } } },
   server: { host: true, port: 5173 },
 });
 `;
@@ -62,7 +78,8 @@ self.addEventListener('fetch', (event) => {
 `;
 
 const MAIN = `import { createRoot } from 'react-dom/client';
-import App from './App.jsx';
+// Sans extension : le produit peut être écrit en .jsx comme en .tsx.
+import App from './App';
 import './styles/index.css';
 
 createRoot(document.getElementById('root')).render(<App />);
@@ -174,7 +191,8 @@ export const TABS = [
 ];
 `;
 
-const APP_PLACEHOLDER = `import { HashRouter, Route, Routes } from 'react-router-dom';
+const APP_PLACEHOLDER = `/* idem:placeholder — remplacé par la première génération */
+import { HashRouter, Route, Routes } from 'react-router-dom';
 import AppShell from './components/layout/AppShell.jsx';
 
 function Home() {
@@ -317,6 +335,9 @@ export function buildMobileScaffold(
     'src/styles/index.css': buildBaseCss(system, SAFE_AREA_CSS),
     'src/main.jsx': MAIN,
     'src/lib/cn.js': CN_HELPER,
+    'src/lib/utils.js': CN_UTILS,
+    'components.json': componentsJson('src/styles/index.css'),
+    'jsconfig.json': JSCONFIG,
     'src/components/layout/AppShell.jsx': APP_SHELL,
     'src/components/layout/TopBar.jsx': TOP_BAR,
     'src/hooks/useStoredState.js': USE_STORED_STATE,

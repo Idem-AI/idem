@@ -203,6 +203,7 @@ export async function handleBuilderMode(
     extraContext,
     target,
     scaffolded: !!scaffoldVersion,
+    firstTurn: isFirstTurn && !qualityRepair?.trim(),
   });
 
   applyPrompt(messages, system, user);

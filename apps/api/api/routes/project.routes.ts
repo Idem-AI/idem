@@ -320,6 +320,42 @@ projectRoutes.get('/:projectId/generation', authenticate, projectController.getP
  */
 projectRoutes.post('/:projectId/generation', authenticate, projectController.saveProjectGeneration);
 
+/**
+ * @openapi
+ * /projects/{projectId}/generation:
+ *   delete:
+ *     tags:
+ *       - Project Generation
+ *     summary: Delete what was generated for a product, to generate it again from zero
+ *     description: |
+ *       Removes the generated code (object storage), the iCode conversation and, for the
+ *       site, the "a generation exists" marker. The project itself, its brand and its
+ *       plan are kept, and so is the deployment record: a regenerated product redeploys
+ *       to the same published address. The other product is untouched.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: product
+ *         schema:
+ *           type: string
+ *           enum: [site, app]
+ *         description: Which product to wipe. Defaults to the site.
+ *     responses:
+ *       '200':
+ *         description: Generation deleted. Reports how many code files were removed.
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Project not found.
+ */
+projectRoutes.delete('/:projectId/generation', authenticate, projectController.deleteProjectGeneration);
+
 // Incremental code storage + chat session (iCode/AppGen workspace persistence)
 
 /**

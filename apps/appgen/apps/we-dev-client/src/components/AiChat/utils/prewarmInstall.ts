@@ -16,6 +16,11 @@ import { queue } from '../useMessageParser';
 
 let started = false;
 
+/** Après un retour à zéro, le nouveau conteneur est vide : il faut réinstaller. */
+export const resetPrewarm = (): void => {
+  started = false;
+};
+
 /** Un terminal apparaît quelques instants après le montage de l'atelier. */
 const TERMINAL_POLL_MS = 500;
 const TERMINAL_POLL_ATTEMPTS = 40;

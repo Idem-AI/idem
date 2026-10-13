@@ -76,13 +76,80 @@ export function buildPackageJson(options: {
 const sortKeys = (record: Record<string, string>): Record<string, string> =>
   Object.fromEntries(Object.entries(record).sort(([a], [b]) => a.localeCompare(b)));
 
-export const VITE_CONFIG = `import { defineConfig } from 'vite';
+export const VITE_CONFIG = `import { fileURLToPath, URL } from 'node:url';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // '@' pointe sur src/ : c'est la convention que shadcn/ui, Magic UI et
+  // Aceternity écrivent dans leurs composants. Sans cet alias, un composant
+  // installé par le CLI ne résout pas ses propres imports.
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
+  // Les fichiers .js de src/ sont lus comme du JSX.
+  //
+  // Un modèle met tôt ou tard une balise dans un fichier de données — un logo
+  // stylé dans src/content/footer.js, par exemple. Sans cette ligne, Vite
+  // s'arrête sur « content contains invalid JS syntax » et toute la page
+  // disparaît derrière un écran d'erreur, pour un détail de présentation.
+  // Le JSX valide reste du JS valide : rien d'autre ne change.
+  esbuild: {
+    loader: 'jsx',
+    include: new RegExp('src/.*[.][jt]sx?$'),
+    // Vite exclut les .js de cette transformation par défaut : sans ce
+    // tableau vide, l'option ci-dessus ne s'applique à rien.
+    exclude: [],
+  },
+  optimizeDeps: { esbuildOptions: { loader: { '.js': 'jsx' } } },
   server: { host: true, port: 5173 },
 });
+`;
+
+/** Même alias pour les outils qui lisent la configuration du projet (CLI shadcn). */
+export const JSCONFIG = `{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
+  }
+}
+`;
+
+/**
+ * `components.json` : ce qui rend le projet installable par le CLI shadcn, et
+ * par les registres qui s'appuient dessus (Magic UI, Aceternity).
+ *
+ * \`cssVariables: false\` avec \`baseColor: neutral\` est délibéré. Les composants
+ * arrivent alors habillés d'utilitaires \`neutral-*\` — or notre rampe neutre est
+ * déjà teintée par la couleur de marque du projet. Un composant installé est
+ * donc à la charte sans qu'aucune variable n'ait à être redéfinie, et sans
+ * collision avec nos propres jetons.
+ */
+export const componentsJson = (cssPath: string): string => `{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": false,
+  "tsx": false,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "${cssPath}",
+    "baseColor": "neutral",
+    "cssVariables": false,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@/components",
+    "ui": "@/components/ui",
+    "utils": "@/lib/utils",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  },
+  "registries": {
+    "@magicui": "https://magicui.design/r/{name}.json",
+    "@aceternity": "https://ui.aceternity.com/registry/{name}.json"
+  }
+}
 `;
 
 export const POSTCSS_CONFIG = `export default {
@@ -225,6 +292,14 @@ export const fontLinks = (system: DesignSystem): string =>
     '    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />',
     ...system.fontsHrefs.map((href) => `    <link rel="stylesheet" href="${href}" />`),
   ].join('\n');
+
+/**
+ * Les composants installés par le CLI importent \`cn\` depuis \`@/lib/utils\`.
+ * Le socle écrit donc le même utilitaire aux deux emplacements : le nôtre
+ * (\`lib/cn.js\`, explicite) et celui qu'attend l'écosystème.
+ */
+export const CN_UTILS = `export { cn } from './cn.js';
+`;
 
 export const CN_HELPER = `import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -391,3 +466,72 @@ export { default as Spinner } from './Spinner.jsx';
 
 /** Les chemins de la trousse, verrouillés comme le reste de la configuration. */
 export const UI_KIT_PATHS = Object.keys(buildUiKit());
+
+/**
+ * La marque, posée par le code.
+ *
+ * Le logo est une donnée du projet : le serveur l'a sous la main, et le faire
+ * transiter par le modèle est le plus sûr moyen de le perdre. Avec le plan de
+ * page, le modèle écrit `logo: "LIGHT"` — une chaîne — et la vraie marque
+ * disparaît de la page sans que personne ne s'en aperçoive.
+ *
+ * Le composant rend, dans l'ordre : l'image hébergée, le SVG de la marque, puis
+ * le mot-logo. Le texte que le modèle propose sert de repli, jamais de
+ * remplacement.
+ */
+export function buildBrandMark(
+  projectData: ProjectModel | undefined,
+  system: DesignSystem
+): string {
+  const name = projectTitle(projectData).replace(/`/g, '');
+  const logo = projectData?.analysisResultModel?.branding?.logo as
+    | { assetUrls?: Record<string, any>; variations?: Record<string, any>; svg?: string }
+    | undefined;
+
+  const pick = (...candidates: unknown[]): string | undefined => {
+    const usable = candidates
+      .map((candidate) => (typeof candidate === 'string' ? candidate.trim() : ''))
+      .filter(Boolean);
+    // Une URL coûte quelques octets, un SVG en ligne quelques milliers : on
+    // préfère la première quand les deux existent.
+    return usable.find((candidate) => !candidate.startsWith('<')) ?? usable[0];
+  };
+
+  const asset = pick(
+    logo?.assetUrls?.withText?.lightBackground,
+    logo?.assetUrls?.primary,
+    logo?.variations?.withText?.lightBackground,
+    logo?.variations?.lightBackground,
+    logo?.svg
+  );
+
+  const wordmark = `<span className="font-display text-xl tracking-tight">${name}</span>`;
+
+  // Un SVG en ligne trop lourd alourdirait chaque écran pour rien.
+  const inlineTooBig = asset?.startsWith('<') && asset.length > 20000;
+
+  const mark = !asset || inlineTooBig
+    ? wordmark
+    : asset.startsWith('<')
+      ? `<span className="inline-block h-9 [&>svg]:h-full [&>svg]:w-auto" aria-label="${name}" dangerouslySetInnerHTML={{ __html: LOGO_SVG }} />`
+      : `<img src={LOGO_URL} alt="${name}" className="h-9 w-auto" />`;
+
+  const constant = !asset || inlineTooBig
+    ? ''
+    : asset.startsWith('<')
+      ? `const LOGO_SVG = ${JSON.stringify(asset)};\n\n`
+      : `const LOGO_URL = ${JSON.stringify(asset)};\n\n`;
+
+  return `/**
+ * Marque du projet — posée par IDEM.
+ *
+ * Utilisée par la navigation et le pied de page. Le texte passé en \`fallback\`
+ * ne sert que si ce projet n'a pas de logo.
+ */
+${constant}export const BRAND_NAME = ${JSON.stringify(name)};
+
+export default function BrandMark({ fallback }) {
+  ${asset && !inlineTooBig ? `return ${mark};` : `return fallback ? <span className="font-display text-xl tracking-tight">{fallback}</span> : ${wordmark};`}
+}
+`;
+}
