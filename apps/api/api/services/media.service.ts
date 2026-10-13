@@ -116,6 +116,15 @@ export interface AnalyzeImageOptions {
   temperature?: number;
 }
 
+function extractApiErrorMessage(error: any): string {
+  const apiMessage = error?.response?.data?.error?.message;
+  if (apiMessage) {
+    const status = error.response?.status ? `HTTP ${error.response.status}: ` : '';
+    return `${status}${apiMessage}`;
+  }
+  return error?.message || String(error);
+}
+
 /**
  * Génère une image et rend ses octets. Bascule sur le modèle de repli si le
  * principal échoue : la saturation est par MODÈLE, rejouer le même ne mènerait à rien.
@@ -133,18 +142,23 @@ export async function generateImage(
 
   const attempt = async (candidate: string): Promise<GeneratedImage> => {
     const started = Date.now();
-    const response = await axios.post<{ data?: { b64_json?: string; media_type?: string }[] }>(
-      `${OPENROUTER_BASE_URL()}/images`,
-      {
-        model: candidate,
-        prompt,
-        n: 1,
-        aspect_ratio: aspectRatioFor(options.size),
-        output_format: 'png',
-        ...openRouterRouting(),
-      },
-      { headers: headers(), timeout: IMAGE_TIMEOUT_MS }
-    );
+    let response;
+    try {
+      response = await axios.post<{ data?: { b64_json?: string; media_type?: string }[] }>(
+        `${OPENROUTER_BASE_URL()}/images`,
+        {
+          model: candidate,
+          prompt,
+          n: 1,
+          aspect_ratio: aspectRatioFor(options.size),
+          output_format: 'png',
+          ...openRouterRouting(),
+        },
+        { headers: headers(), timeout: IMAGE_TIMEOUT_MS }
+      );
+    } catch (err: any) {
+      throw new Error(extractApiErrorMessage(err));
+    }
 
     const entry = response.data?.data?.[0];
     if (!entry?.b64_json) throw new Error(`${candidate} n'a renvoyé aucune image`);
@@ -185,26 +199,31 @@ export async function analyzeImage(
   const fallback = requestedFallback ?? getProvider(LLMProvider.OPENROUTER).models?.ocr;
 
   const attempt = async (candidate: string): Promise<string> => {
-    const response = await axios.post<{ choices?: { message?: { content?: string } }[] }>(
-      `${OPENROUTER_BASE_URL()}/chat/completions`,
-      {
-        model: candidate,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } },
-              { type: 'text', text: instruction },
-            ],
-          },
-        ],
-        max_tokens: options.maxOutputTokens ?? 1500,
-        temperature: options.temperature ?? 0.1,
-        reasoning: { enabled: false },
-        ...openRouterRouting(),
-      },
-      { headers: headers(), timeout: VISION_TIMEOUT_MS }
-    );
+    let response;
+    try {
+      response = await axios.post<{ choices?: { message?: { content?: string } }[] }>(
+        `${OPENROUTER_BASE_URL()}/chat/completions`,
+        {
+          model: candidate,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } },
+                { type: 'text', text: instruction },
+              ],
+            },
+          ],
+          max_tokens: options.maxOutputTokens ?? 1500,
+          temperature: options.temperature ?? 0.1,
+          reasoning: { enabled: false },
+          ...openRouterRouting(),
+        },
+        { headers: headers(), timeout: VISION_TIMEOUT_MS }
+      );
+    } catch (err: any) {
+      throw new Error(extractApiErrorMessage(err));
+    }
     return response.data?.choices?.[0]?.message?.content?.trim() ?? '';
   };
 
