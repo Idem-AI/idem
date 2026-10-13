@@ -466,6 +466,20 @@ export interface VideoRender {
   fps?: number;
   error?: string;
   renderedAt?: Date | string;
+  /** Qualité du rendu (la signature en dépend). */
+  quality?: VideoQuality;
+  /**
+   * Signature de ce qui a été rendu (scènes, sons, voix, format, qualité) : le MP4 n'est à jour
+   * que si elle est celle de la vidéo telle qu'elle est (`isRenderFresh`). Absente : anciens rendus.
+   */
+  key?: string;
+  /**
+   * Rendu fait D'AVANCE, pendant que l'utilisateur regarde l'aperçu : pas encore un export (ni
+   * compté, ni facturé). Il le devient au premier téléchargement (`claimRender`).
+   */
+  prerender?: boolean;
+  /** Lecture seule (vue) : le fichier ne reflète plus la vidéo (retouchée depuis). */
+  stale?: boolean;
 }
 
 export type MotionVideoStatus = 'draft' | 'rendering' | 'ready' | 'failed';

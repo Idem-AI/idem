@@ -231,7 +231,8 @@ export async function renderVideo(input: RenderInput): Promise<RenderOutput> {
   const total = Math.round(input.durationSec * input.fps);
   const concurrency = Math.max(
     1,
-    Math.min(input.concurrency ?? (Number(process.env.VIDEO_RENDER_CONCURRENCY) || Math.min(3, Math.max(1, os.cpus().length - 1))), 6, Math.ceil(total / 30))
+    // Un onglet par tronçon de 30 images au moins ; par défaut les trois quarts des cœurs (6 au plus).
+    Math.min(input.concurrency ?? (Number(process.env.VIDEO_RENDER_CONCURRENCY) || Math.min(6, Math.max(1, Math.floor(os.cpus().length * 0.75)))), 8, Math.ceil(total / 30))
   );
   activeRenders++;
   const browser = await getBrowser(input.webgl !== false);

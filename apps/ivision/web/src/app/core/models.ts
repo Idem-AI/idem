@@ -143,6 +143,10 @@ export interface VideoRender {
   posterUrl?: string;
   error?: string;
   renderedAt?: string;
+  /** Rendu fait d'avance, pas encore réclamé (se télécharge par « Télécharger »). */
+  prerender?: boolean;
+  /** Le fichier ne reflète plus la vidéo (retouchée depuis). */
+  stale?: boolean;
 }
 
 export interface MotionVideo {

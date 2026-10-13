@@ -442,7 +442,14 @@
         "footageStock": "{{count}} filmed shot(s) replaced by royalty-free videos.",
         "footageStills": "{{count}} filmed shot(s) shown as animated images.",
         "footageMissing": "{{count}} filmed shot(s) composed in motion design, as no footage could be made."
-      }
+      },
+      "preparing": "Loading sounds and voice-over… {{percent}}%",
+      "watchVideo": "Watch the video",
+      "downloadFormat": "Choose the format",
+      "downloadReady": "Ready",
+      "downloadIncluded": "Included",
+      "downloadPrice": "{{cost}} credits",
+      "downloadPreparing": "Preparing the MP4… {{percent}}%"
     },
     "payment": {
       "cta": "Top up my credits",

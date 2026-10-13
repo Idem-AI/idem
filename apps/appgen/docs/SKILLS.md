@@ -268,6 +268,12 @@ Links are never asked of the model: it writes a label knowing where the button l
 
 The result streams as an ordinary `idem-site` artifact; the client composes the pages (`pageComposer.ts`: anchors as `id`, content inside `<main>`, `lang` from the plan), and skips the content retry, the SEO retry and the design review for these sites. Measured on a real project (laundry in Douala, 3 offers, 2 people, 4 channels): 18/18 sections, 4 pages, about 45 s, ~20k input and ~4k output tokens; a lean project gives one page of 8 sections in ~21 s.
 
+#### Site architect — the AI designs the site, the code checks it
+
+The plan used to be decided by code (`sitePlan.ts`): always Home, Offers, About, Contact and the same home skeleton, so every site had the same structure. The **architect agent** (`orchestrator/siteArchitect.ts`) now designs the whole site from the project's facts and the full toolbox (14 section types and their variants, tones, showcase, gallery, band, navigation `bar|centered|split`, footer `columns|statement`): 4 to 7 pages named in the client's words (a restaurant got *Le menu, Événements, Nous trouver*; a laundry *Nos services, L'atelier*), 6 to 10 sections on the home page, 3 to 7 on inner pages, a brief per section that the writer follows.
+
+The code only repairs: a section needing absent facts (prices, team, contact) is dropped; pages that would need unknown facts (areas served, opening hours, client references) are forbidden in the prompt; repeated sections are capped (FAQ on two pages at most; pricing, band, statement and contact once per site, on the page that fits them best); every page opens with Hero/Header and ends with a CTA or the contact; links are wired by `wireSite`. `normalizeLayout` checks variants and neighbours without a model call. If the architect fails, the old code plan and the layout director remain the fallback. The chat shows the pages as soon as they are decided.
+
 #### Layout and media agents — no two sites alike
 
 Every site used to take each section's default variant: same hero, same grid, same FAQ, colour aside. Two agents now decide, each choosing from menus the code controls:
@@ -279,6 +285,18 @@ Every site used to take each section's default variant: same hero, same grid, sa
 Generation and stock search go through the IDEM API (`POST /appgen/media/image|video|stock`, user session relayed), which uploads to storage at a durable public URL and charges the iCode scale (`site_image`, `site_video`, refunded on failure). Pexels results whose description shares no word with the query are dropped rather than shown off-topic.
 
 The kit (`scaffold/sections.ts`) grew accordingly: 5 heroes (incl. full-bleed media under a light veil, stacked), 5 feature layouts, 3 splits, 3 steps (incl. timeline), 3 FAQs, 3 CTAs, 2 contacts, plus `Showcase`, `Statement`, `Gallery` and `Media` (image, drawing, video, pattern as data). The orchestrator rewrites the kit on every site so the chosen variants always exist.
+
+#### Libraries the kit really uses
+
+The catalog (Motion, shadcn/ui, Magic UI, Aceternity…) used to be offered to the model only; orchestrated sites never imported any of it, so `package.json` stayed at React + clsx. The kit now uses them itself, copied into the project the shadcn way (`src/components/idem/`, never overwritten by the shadcn CLI) and dressed in charter tokens:
+
+| Library | Where | Behaviour kept |
+|---|---|---|
+| Motion | `reveal.jsx`, wrapped by the composer around every section after the opening | only sections below the fold on load animate; prerendered HTML and no-JS stay fully visible; reduced motion respected |
+| shadcn/ui (Radix accordion) | FAQ `split` and `stacked` | keyboard and ARIA from Radix; answers stay in the HTML when closed (`forceMount`), for search engines |
+| Magic UI | `marquee.jsx` (`Band` section), `border-beam.jsx` (featured offer), `patterns.jsx` (dot or grid texture behind a hero without media) | marquee and beam stop under reduced motion |
+
+`src/sections/fx.js` sets the intensity from the charter's style family (`lively` for expressive styles, `calm` otherwise) and the hero texture. `motion` and `@radix-ui/react-accordion` are in the starter's `package.json` (`SITE_KIT_DEPENDENCIES`, scaffold v6) and installed by name by the orchestrator for older workspaces. Aceternity is not used by the kit: its components default to dark surfaces.
 
 ### 5. Quality pass — deterministic first, model only if needed
 

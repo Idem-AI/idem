@@ -29,6 +29,8 @@ import {
   VIDEO_OBJECTIVES,
   VideoBrief,
   VideoFormat,
+  VIDEO_FORMATS,
+  VideoQuality,
   VideoMusic,
   VideoObjective,
   VideoRender,
@@ -71,6 +73,7 @@ import { analyzeTrack, pickExcerptStart } from './video.beats';
 import { fetchTrack, pickTrack, resolveMood, searchMusic, MUSIC_PROVIDERS } from './video.music';
 import { cleanupRender, renderVideo, withRenderPage } from './video.renderer';
 import { codeScenes } from './video.coder';
+import { canRecode, recodeScene, unreadSlots } from './video.recode';
 import { AuthoredFilm, authorShots, buildDirectorPrompt, DirectorInput, parseFilm } from './video.author';
 import { AgentCall, CreativeOrchestrator } from '../creativity/orchestrator';
 import { exportCost, normalizeScope, videoCost } from './video.pricing';
@@ -88,6 +91,20 @@ import { checkFidelity, planScriptShots, ScriptShot } from './video.script';
 import { BrandMediaItem, brandMediaLine, describeBrandMedia, pickScreens } from './video.brandmedia';
 import { ShotPlan, stockQuery } from './video.sourcing';
 import { LAYOUT_SCENES } from './video.layouts';
+
+/** Ce qu'une retouche a vraiment fait (dit tel quel par la conversation). */
+export interface RevisionReport {
+  /** Scènes dont le code a été réécrit. */
+  recoded: string[];
+  /** Scènes revenues à leur composition éprouvée (leur code n'aurait pas montré les nouveaux textes). */
+  fallback: string[];
+  /** Scènes dont la ligne de voix off a été redite. */
+  voiced: string[];
+  /** Ce qui n'a pas pu être fait. */
+  failed: { key: string; what: 'visual' | 'voice' }[];
+}
+
+export const emptyRevisionReport = (): RevisionReport => ({ recoded: [], fallback: [], voiced: [], failed: [] });
 
 export class VideoInputError extends Error {}
 
@@ -717,6 +734,8 @@ export class MotionVideoService {
     concept?: string;
     /** La voix off écrite par l'utilisateur (index de scène → ligne) : dite mot pour mot, sans agent. */
     scripted?: Record<number, string>;
+    /** Seules ces scènes sont dites (retouche) ; le narrateur lit quand même tout le film. */
+    only?: number[];
   }): Promise<{ voice: Omit<VideoVoice, 'lines'>; lines: { index: number; text: string; url: string; durationSec: number }[]; run?: AgentRun }> {
     const base = { enabled: true, language: opts.language.slice(0, 5), persona: 'warm', provider: 'openrouter' as const, model: '', voice: '', source: 'heuristic' as const };
     if (!speechAvailable()) return { voice: { ...base, enabled: false, unavailable: 'no_speech_model' }, lines: [] };
@@ -734,10 +753,19 @@ export class MotionVideoService {
           personas,
           concept: opts.concept,
         });
+    if (opts.only) narration.lines = Object.fromEntries(Object.entries(narration.lines).filter(([i]) => opts.only!.includes(Number(i))));
     const persona = personaById(narration.persona);
+    // Le temps d'une ligne : sa scène et les plans muets qui la suivent (une ligne du scénario
+    // couvre toute sa scène, même découpée en plusieurs plans).
+    const voiced = new Set(Object.keys(narration.lines).map(Number));
+    const span = (i: number) => {
+      let d = opts.scenes[i].duration;
+      for (let j = i + 1; j < opts.scenes.length && !voiced.has(j); j++) d += opts.scenes[j].duration;
+      return d;
+    };
     try {
       const said = await synthesizeVoice({
-        lines: Object.entries(narration.lines).map(([i, text]) => ({ index: Number(i), text, maxSec: speakable(opts.scenes[Number(i)].duration, Number(i) === 0) * 1.25 })),
+        lines: Object.entries(narration.lines).map(([i, text]) => ({ index: Number(i), text, maxSec: speakable(opts.scripted ? span(Number(i)) : opts.scenes[Number(i)].duration, Number(i) === 0) * 1.25 })),
         language: opts.language,
         persona,
         style: narration.style,
@@ -2210,7 +2238,13 @@ export class MotionVideoService {
        * scène en montre déjà une — la mise en page, elle, ne change pas.
        */
       images?: Record<string, string>;
-    }
+      /** Voix off d'une scène (clé → ligne dite telle quelle). */
+      voiceLines?: Record<string, string>;
+      /** Changement visuel d'une scène (clé → demande) : appliqué à son code (video.recode.ts). */
+      visual?: Record<string, string>;
+    },
+    /** Ce qui a vraiment été fait (rempli par la retouche) : la conversation le dit sans l'enjoliver. */
+    report?: RevisionReport
   ): Promise<MotionVideo | null> {
     const all = await this.communication.listVideos(userId, projectId);
     const current = all.find((v) => v.id === videoId);
@@ -2379,10 +2413,94 @@ export class MotionVideoService {
       }
       brief = { ...brief, voice: true };
     } else if (patch.voice === false) brief = { ...brief, voice: false };
+
+    // La voix suit les textes : une ligne demandée est dite telle quelle ; une scène dont les textes
+    // ont changé (ou qui vient d'en recevoir) est redite par le narrateur — sauf si la voix off est
+    // celle que l'utilisateur a écrite dans son scénario (elle ne bouge que s'il le demande).
+    if (voice?.enabled && patch.voice !== true) {
+      const indexOf = (key: string) => storyboard.scenes.findIndex((sc) => sc.key === key);
+      const verbatim: Record<number, string> = {};
+      for (const [key, text] of Object.entries(patch.voiceLines || {})) if (indexOf(key) >= 0) verbatim[indexOf(key)] = text;
+      const userVoice = (brief.spec?.scenes || []).some((sc) => sc.voice.length);
+      const renarrate = userVoice ? [] : Object.keys(patch.slots || {}).map(indexOf).filter((i) => i >= 0 && !(i in verbatim));
+      if (Object.keys(verbatim).length || renarrate.length) {
+        const { theme, ctx, branding } = await this.brandContext(userId, projectId);
+        const common = {
+          userId,
+          projectId,
+          videoId,
+          language: voice.language || brief.spec?.voiceLanguage || brief.language || 'fr',
+          brandName: theme.brandName,
+          sheet: brandSheet({ ctx, palette: theme.palette, fonts: theme.fonts, art: branding?.artDirection }),
+          brief: brief.request || `${brief.message}\n${brief.details || ''}`,
+          facts: extractFacts(brief.request || `${brief.message}\n${brief.details || ''}`),
+          style: storyboard.style,
+          seed: storyboard.seed,
+          scenes: storyboard.scenes.map((sc) => ({ sceneId: sc.sceneId, duration: sc.duration, texts: sceneTexts(sc.slots) })),
+          concept: storyboard.authored?.concept,
+        };
+        const said = await Promise.all([
+          Object.keys(verbatim).length ? this.narrate({ ...common, scripted: verbatim }) : null,
+          renarrate.length ? this.narrate({ ...common, only: renarrate, writer: this.writerFor(userId, tierFor(normalizeCreativity(current.creativity), 'copy')) }) : null,
+        ]);
+        const fresh = said.flatMap((res) => (res?.voice.enabled ? res.lines : [])).map((l) => ({ sceneKey: storyboard.scenes[l.index]?.key || '', text: l.text, url: l.url, durationSec: l.durationSec, offset: 0 })).filter((l) => l.sceneKey);
+        const wanted = new Set([...Object.keys(verbatim).map(Number), ...renarrate].map((i) => storyboard.scenes[i].key));
+        const replaced = new Set(fresh.map((l) => l.sceneKey));
+        voice = { ...voice, lines: [...voice.lines.filter((l) => !replaced.has(l.sceneKey)), ...fresh] };
+        report?.voiced.push(...replaced);
+        // Une ligne DEMANDÉE qui n'a pas pu être dite est signalée ; une ligne redite en échec garde l'ancienne.
+        for (const key of Object.keys(patch.voiceLines || {})) if (wanted.has(key) && !replaced.has(key)) report?.failed.push({ key, what: 'voice' });
+      }
+    }
+
     if (voice?.enabled && voice.lines.length) {
       const fitted = fitScenesToVoice(storyboard, voice, { keepTiming: scripted });
       storyboard = fitted.storyboard;
       voice = fitted.voice;
+    }
+
+    // Le rendu est du CODE (plans écrits par l'IA) : une retouche s'applique à ce code. Un texte que
+    // le code lit déjà s'affiche tel quel ; un texte qu'il ignore (scène qui était vide) ou une demande
+    // visuelle passe par le codeur, contrôlé comme à la création. Refusé : la scène garde son code,
+    // ou revient à sa composition éprouvée si l'ancien code ne montrerait pas ses nouveaux textes.
+    {
+      const changed = new Set(Object.keys(patch.slots || {}));
+      const jobs: { key: string; instruction?: string; missing: string[] }[] = [];
+      for (const sc of storyboard.scenes) {
+        const instruction = patch.visual?.[sc.key];
+        const missing = sc.code?.tsx && changed.has(sc.key) ? await unreadSlots(sc.code.tsx, sc.sceneId, sc.slots) : [];
+        if (instruction && !canRecode(storyboard, sc.key)) report?.failed.push({ key: sc.key, what: 'visual' });
+        else if (instruction || missing.length) jobs.push({ key: sc.key, instruction, missing });
+      }
+      if (jobs.length) {
+        storyboard = { ...storyboard, scenes: storyboard.scenes.map((sc) => ({ ...sc })) };
+        const { theme, ctx, branding } = await this.brandContext(userId, projectId);
+        const orchestrator = new CreativeOrchestrator({ level: 'ultra', call: this.coderCallFor(userId, projectId) });
+        const base = storyboard;
+        for (const job of jobs) {
+          const res = await recodeScene({
+            storyboard: base,
+            key: job.key,
+            instruction: job.instruction,
+            sheet: brandSheet({ ctx, palette: theme.palette, fonts: theme.fonts, art: branding?.artDirection }),
+            direction: (isMotionDirection(storyboard.direction) ? storyboard.direction : 'editorial') as DirectionId,
+            formats: scope.formats,
+            compose: async (sb) => composeVideoHtml({ ...(await inlineAssets(sb, theme, 'render')), format: scope.formats[0], quality: 'standard', mode: 'render' }),
+            withPage: withRenderPage,
+            orchestrator,
+          }).catch((error: any) => ({ ok: false, tsx: undefined, issues: [String(error?.message || error)] }));
+          const sc = storyboard.scenes.find((x) => x.key === job.key)!;
+          if (res.ok && res.tsx) {
+            sc.code = { tsx: res.tsx, agent: 'sceneEditor' };
+            report?.recoded.push(job.key);
+          } else if (job.missing.length) {
+            delete sc.code;
+            report?.fallback.push(job.key);
+            if (job.instruction) report?.failed.push({ key: job.key, what: 'visual' });
+          } else report?.failed.push({ key: job.key, what: 'visual' });
+          if (!res.ok) logger.info('video.recode_rejected', { videoId, key: job.key, issues: res.issues.slice(0, 5) });
+        }
+      }
     }
 
     // L'empreinte suit la retouche (autre direction, autres mises en page, autre kit) : la mémoire du
@@ -2467,31 +2585,114 @@ export class MotionVideoService {
     projectId: string,
     videoId: string,
     scopeInput: unknown,
-    charge?: RenderCharge
+    charge?: RenderCharge,
+    opts: {
+      /** Seuls ces formats sont rendus ; les MP4 des autres formats sont gardés tels quels. */
+      only?: VideoFormat[];
+      /** Rendu d'avance (ni compté ni facturé) : cf. `prerender`. */
+      prerender?: boolean;
+    } = {}
   ): Promise<MotionVideo | null> {
     const current = (await this.communication.listVideos(userId, projectId)).find((v) => v.id === videoId);
     if (!current) return null;
-    if (current.status === 'rendering' && isJobActive(videoId)) throw new VideoInputError('already_rendering');
+    if (isJobActive(videoId)) throw new VideoInputError('already_rendering');
     const { scope } = this.quoteExport(current, scopeInput);
-    const renders: VideoRender[] = scope.formats.map((format) => ({ format, status: 'queued', progress: 0 }));
+    const only = opts.only?.filter((f) => scope.formats.includes(f));
+    const targets = only?.length ? only : scope.formats;
+    const queued: VideoRender[] = targets.map((format) => ({ format, status: 'queued', progress: 0 }));
+    // Un export partiel garde les fichiers des autres formats ; un export complet repart de zéro.
+    const renders = (keep: VideoRender[]) => (only?.length ? [...keep.filter((r) => !targets.includes(r.format) && scope.formats.includes(r.format)), ...queued] : queued);
     const updated = await this.communication.mutateVideo(userId, projectId, videoId, (v) => ({
       ...v,
       scope,
       status: 'rendering',
-      renders,
-      paidCredits: Math.max(v.paidCredits, videoCost(scope)),
+      renders: renders(v.renders),
+      paidCredits: opts.prerender ? v.paidCredits : Math.max(v.paidCredits, videoCost(scope)),
       updatedAt: new Date().toISOString(),
     }));
     if (!updated) return null;
-    renderQueue.push({ userId, projectId, videoId, charge, paidBefore: current.paidCredits, service: this });
+    const job: RenderJob = { userId, projectId, videoId, charge, paidBefore: current.paidCredits, service: this, formats: targets, ...(opts.prerender ? { prerender: true } : {}) };
+    // Un export demandé passe devant les rendus d'avance en attente.
+    if (opts.prerender) renderQueue.push(job);
+    else {
+      const firstPrerender = renderQueue.findIndex((j) => j.prerender);
+      renderQueue.splice(firstPrerender < 0 ? renderQueue.length : firstPrerender, 0, job);
+    }
     pumpQueue();
     return withLiveProgress(updated);
   }
 
-  async markExportFailed(job: Pick<RenderJob, 'userId' | 'projectId' | 'videoId' | 'paidBefore'>): Promise<void> {
+  /**
+   * Rend D'AVANCE le format principal, dès que la vidéo (ou sa retouche) est prête : quand
+   * l'utilisateur clique sur « Télécharger », le MP4 est déjà là. Ni compté ni facturé ici : il
+   * devient un export au premier téléchargement (`claimRender`), au prix d'un export.
+   * Sans effet si le MP4 du format est à jour ou si un rendu de la vidéo est déjà en cours.
+   */
+  async prerender(userId: string, projectId: string, videoId: string): Promise<void> {
+    if (process.env.VIDEO_PRERENDER === '0' || isJobActive(videoId)) return;
+    const video = (await this.communication.listVideos(userId, projectId)).find((v) => v.id === videoId);
+    const format = video?.scope.formats[0];
+    if (!video || !format || video.renders.some((r) => r.format === format && isRenderFresh(video, r))) return;
+    await this.startExport(userId, projectId, videoId, video.scope, undefined, { only: [format], prerender: true }).catch((error) => {
+      if (!(error instanceof VideoInputError)) logger.warn('video.prerender_failed', { videoId, error: error?.message });
+    });
+  }
+
+  /**
+   * Ce que coûte et ce que demande le téléchargement d'un format :
+   *   ready     le MP4 à jour est déjà un export : il se télécharge ;
+   *   claim     un rendu d'avance à jour attend : il devient un export (prix d'un export) ;
+   *   busy      un rendu de cette vidéo tourne : on attend (progression du format) ;
+   *   start     le format est à rendre : export de CE format seul (prix d'un export du périmètre élargi).
+   */
+  downloadPlan(video: MotionVideo, format: VideoFormat):
+    | { state: 'ready' }
+    | { state: 'claim'; cost: number }
+    | { state: 'busy'; progress: number }
+    | { state: 'start'; cost: number; scope: VideoScope } {
+    const live = withLiveProgress(video);
+    const render = live.renders.find((r) => r.format === format && isRenderFresh(video, r));
+    if (render && !render.prerender) return { state: 'ready' };
+    if (render?.prerender) return { state: 'claim', cost: exportCost({ paidCredits: video.paidCredits, exportCount: video.exportCount, scope: video.scope, creativity: video.creativity }) };
+    if (isJobActive(video.id)) {
+      const r = live.renders.find((x) => x.format === format && (x.status === 'rendering' || x.status === 'queued'));
+      return { state: 'busy', progress: r?.progress || 0 };
+    }
+    const scope = { ...video.scope, formats: [...new Set([...video.scope.formats, format])] };
+    return { state: 'start', ...this.quoteExport(video, scope) };
+  }
+
+  /** Les quatre formats, prêts ou non, et leur prix de téléchargement (affichés dans le menu). */
+  downloadOptions(video: MotionVideo): { format: VideoFormat; ready: boolean; cost: number; busy: boolean }[] {
+    return VIDEO_FORMATS.map((format) => {
+      const plan = this.downloadPlan(video, format);
+      return { format, ready: plan.state === 'ready', busy: plan.state === 'busy', cost: plan.state === 'claim' || plan.state === 'start' ? plan.cost : 0 };
+    });
+  }
+
+  /** Le rendu d'avance devient l'export de l'utilisateur (compté ; payé par l'appelant). */
+  async claimRender(userId: string, projectId: string, videoId: string, format: VideoFormat): Promise<boolean> {
+    let claimed = false;
+    await this.communication.mutateVideo(userId, projectId, videoId, (v) => {
+      const target = v.renders.find((r) => r.format === format && r.prerender && isRenderFresh(v, r));
+      if (!target) return v;
+      claimed = true;
+      return {
+        ...v,
+        exportCount: v.exportCount + 1,
+        dirty: false,
+        renders: v.renders.map((r) => (r === target ? { ...r, prerender: undefined } : r)),
+        updatedAt: new Date().toISOString(),
+      };
+    });
+    return claimed;
+  }
+
+  async markExportFailed(job: Pick<RenderJob, 'userId' | 'projectId' | 'videoId' | 'paidBefore' | 'prerender'>): Promise<void> {
     await this.communication.mutateVideo(job.userId, job.projectId, job.videoId, (v) => ({
       ...v,
-      status: 'failed',
+      // Un rendu d'avance raté ne met pas la vidéo en échec : l'export se fera à la demande.
+      status: job.prerender ? (v.renders.some((r) => r.status === 'done') ? 'ready' : 'draft') : 'failed',
       paidCredits: job.paidBefore,
       renders: v.renders.map((r) => (r.status === 'done' ? r : { ...r, status: 'failed', error: 'render_failed' })),
     }));
@@ -2517,19 +2718,24 @@ export class MotionVideoService {
     // La voix off : chaque ligne téléchargée une fois, mixée à son instant dans chaque format.
     const voiceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-voice-render-'));
     const voiceFiles: { file: string; at: number }[] = [];
-    for (const [i, line] of voiceTimeline(video.storyboard, video.voice).entries()) {
-      try {
-        const file = path.join(voiceDir, `line-${i}.mp3`);
-        await downloadTo(line.url, file);
-        voiceFiles.push({ file, at: line.at });
-      } catch (error: any) {
-        logger.warn('video.voice_download_failed', { videoId, line: i, error: error.message });
-      }
-    }
+    await Promise.all(
+      voiceTimeline(video.storyboard, video.voice).map(async (line, i) => {
+        try {
+          const file = path.join(voiceDir, `line-${i}.mp3`);
+          await downloadTo(line.url, file);
+          voiceFiles.push({ file, at: line.at });
+        } catch (error: any) {
+          logger.warn('video.voice_download_failed', { videoId, line: i, error: error.message });
+        }
+      })
+    );
 
     const results: VideoRender[] = [];
     let failed = false;
-    for (const format of video.scope.formats) {
+    const formats = job.formats?.length ? job.formats : video.scope.formats;
+    // Les formats se rendent EN MÊME TEMPS, chacun avec sa part des onglets de rendu.
+    const share = Math.max(1, Math.floor(renderConcurrency() / formats.length));
+    await Promise.all(formats.map(async (format) => {
       liveProgress.set(`${videoId}:${format}`, 0);
       try {
         const { html, spec } = await composeVideoHtml({ ...assets, format, quality: video.scope.quality, mode: 'render' });
@@ -2548,6 +2754,7 @@ export class MotionVideoService {
           onProgress: (r) => liveProgress.set(`${videoId}:${format}`, r),
           // Code écrit par l'IA (cran Ultra) dans la page : garde réseau strict.
           strict: video.storyboard.scenes.some((sc) => !!sc.code?.tsx),
+          concurrency: share,
         });
         const folder = `users/${userId}/projects/${projectId}/videos/${videoId}`;
         const stamp = Date.now().toString(36);
@@ -2567,6 +2774,10 @@ export class MotionVideoService {
           height: out.height,
           fps: out.fps,
           renderedAt: new Date().toISOString(),
+          quality: video.scope.quality,
+          // La vidéo telle qu'elle était au début du rendu : retouchée entre-temps, le fichier est périmé.
+          key: renderSignature(video, format),
+          ...(job.prerender ? { prerender: true } : {}),
         });
       } catch (error: any) {
         failed = true;
@@ -2580,11 +2791,16 @@ export class MotionVideoService {
         ...v,
         renders: v.renders.map((r) => results.find((x) => x.format === r.format) || r),
       }));
-    }
+    }));
 
     fs.rmSync(voiceDir, { recursive: true, force: true });
 
     const allFailed = results.every((r) => r.status === 'failed');
+    if (job.prerender) {
+      // Un rendu d'avance ne compte pas comme un export : seul l'état de la vidéo change.
+      await this.communication.mutateVideo(userId, projectId, videoId, (v) => ({ ...v, status: v.renders.some((r) => r.status === 'done') ? 'ready' : v.status === 'rendering' ? 'draft' : v.status }));
+      return;
+    }
     // L'utilisateur a exporté : le signal le plus fiable pour la mémoire globale du moteur créatif.
     if (!allFailed && !video.exportCount) {
       const fp = video.storyboard.creative?.fingerprint || fingerprintOf(video.storyboard);
@@ -2605,6 +2821,37 @@ export class MotionVideoService {
       logger.warn('video.partial_render', { videoId });
     }
   }
+}
+
+// ─── Fraîcheur d'un rendu ───────────────────────────────────────────────────
+
+/**
+ * La signature de ce qu'un MP4 montre et fait entendre : scènes (textes, médias, code des plans),
+ * kit, minutage, musique, effets, voix, format et qualité. Les rapports (créatif, agents, contrôles)
+ * n'en font pas partie : les recalculer ne périme pas un fichier.
+ */
+export function renderSignature(video: MotionVideo, format: VideoFormat, quality: VideoQuality = video.scope.quality): string {
+  const { creative: _c, agents: _a, qa: _q, fidelity: _f, ...visible } = video.storyboard as VideoStoryboard & Record<string, unknown>;
+  const payload = JSON.stringify({
+    format,
+    quality,
+    storyboard: visible,
+    music: video.music ? [video.music.id, video.music.url, video.music.startAt] : null,
+    sfx: video.sfx?.enabled ? [video.sfx.intensity || '', Object.values(video.sfx.sounds || {}).map((x) => x?.id)] : null,
+    voice: video.voice?.enabled ? video.voice.lines.map((l) => [l.sceneKey, l.url, l.offset]) : null,
+  });
+  return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 20);
+}
+
+/** Le MP4 d'un format reflète-t-il la vidéo telle qu'elle est ? (anciens rendus : le drapeau `dirty`). */
+export function isRenderFresh(video: MotionVideo, render: VideoRender): boolean {
+  if (render.status !== 'done' || !render.url) return false;
+  return render.key ? render.key === renderSignature(video, render.format, render.quality || video.scope.quality) && (render.quality || video.scope.quality) === video.scope.quality : !video.dirty;
+}
+
+/** Onglets de rendu d'un export (partagés entre ses formats). */
+function renderConcurrency(): number {
+  return Math.max(1, Number(process.env.VIDEO_RENDER_CONCURRENCY) || Math.min(6, Math.max(1, Math.floor(os.cpus().length * 0.75))));
 }
 
 // ─── Téléchargement d'un fichier du stockage (voix off) ─────────────────────
@@ -2642,6 +2889,10 @@ export interface RenderJob {
   /** Montant payé avant cet export : restauré si le rendu échoue (et que les crédits sont rendus). */
   paidBefore: number;
   service: MotionVideoService;
+  /** Les formats à rendre (défaut : tout le périmètre). */
+  formats?: VideoFormat[];
+  /** Rendu d'avance : ni compté, ni facturé, ni remboursé. */
+  prerender?: boolean;
 }
 
 const renderQueue: RenderJob[] = [];
@@ -2670,6 +2921,8 @@ function pumpQueue(): void {
       .finally(() => {
         runningJobs--;
         runningVideos.delete(job.videoId);
+        // Retouchée pendant son rendu d'avance : le format principal est rendu à nouveau (sans effet s'il est à jour).
+        if (job.prerender) void job.service.prerender(job.userId, job.projectId, job.videoId).catch(() => undefined);
         pumpQueue();
       });
   }
@@ -2682,6 +2935,7 @@ export async function drainRenderQueue(): Promise<void> {
 
 /** Progression en mémoire fusionnée dans la vidéo lue en base. */
 function withLiveProgress(video: MotionVideo): MotionVideo {
+  video = { ...video, renders: video.renders.map((r) => (r.status === 'done' && r.url && !isRenderFresh(video, r) ? { ...r, stale: true } : r)) };
   if (video.status !== 'rendering') return video;
   // Rendu interrompu (redémarrage du serveur) : on le montre en échec pour
   // que l'utilisateur puisse relancer, au lieu d'une barre figée.

@@ -59,13 +59,39 @@ const ROLE_LABELS: Record<string, string> = {
   statement: 'la phrase forte',
   showcase: 'la vitrine',
   gallery: 'la galerie',
+  band: 'le bandeau défilant',
 };
 
+const SECTION_ROLES: Record<string, string> = {
+  hero: "l'accroche",
+  header: "l'en-tête",
+  features: 'les points forts',
+  split: 'un argument développé',
+  steps: 'les étapes',
+  pricing: 'les tarifs',
+  team: "l'équipe",
+  faq: 'les questions fréquentes',
+  contact: 'les moyens de contact',
+  showcase: 'la vitrine',
+  statement: 'la phrase forte',
+  gallery: 'la galerie',
+  band: 'le bandeau défilant',
+  cta: "l'appel à l'action",
+};
+
+/**
+ * Les pages sont conçues par l'architecte (« menu », « nos-services »…) : le
+ * contenu s'appelle `<page>-<section>[-n]`, et se lit « les tarifs de la page
+ * « menu » ».
+ */
 function orchestratedContentLabel(name: string): string | null {
-  const match = name.match(/^(home|offers|about|contact)-(.+)$/);
+  const legacy = name.match(/^(home|offers|about|contact)-(.+)$/);
+  if (legacy && ROLE_LABELS[legacy[2]]) return `${ROLE_LABELS[legacy[2]]} ${PAGE_NAMES[legacy[1]]}`;
+
+  const match = name.match(/^([a-z0-9-]+?)-(hero|header|features|split|steps|pricing|team|faq|contact|showcase|statement|gallery|band|cta)(?:-(?:\d+|end))?$/);
   if (!match) return null;
-  const role = ROLE_LABELS[match[2]];
-  return role ? `${role} ${PAGE_NAMES[match[1]]}` : null;
+  const page = match[1] === 'home' ? "de l'accueil" : `de la page « ${match[1].replace(/-/g, ' ')} »`;
+  return `${SECTION_ROLES[match[2]]} ${page}`;
 }
 
 const readableSlug = (slug: string): string =>
@@ -83,7 +109,7 @@ export function describeFile(path: string): string {
   if (clean === 'public/brand/pattern.svg') return 'Je reprends le motif de la charte';
   if (clean === 'src/sections/BrandPattern.jsx') return 'Je prépare les visuels au motif de la charte';
   // Le kit de sections arrive d'un bloc : une seule étape, pas vingt.
-  if (/^src\/sections\/[\w-]+\.jsx?$/.test(clean)) return 'Je prépare les sections du site';
+  if (/^src\/(sections|components\/idem)\/[\w-]+\.jsx?$/.test(clean)) return 'Je prépare les sections du site';
   if (/^public\/media\/[\w-]+\.svg$/.test(clean)) return 'Je dessine une illustration';
   if (clean.endsWith('globals.css') || clean.endsWith('styles/index.css')) {
     return "J'applique la charte graphique";

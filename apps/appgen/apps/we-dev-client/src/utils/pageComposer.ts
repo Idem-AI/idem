@@ -22,6 +22,7 @@
 
 /** Sections fournies par le socle (voir `scaffold/sections.ts`). */
 const KIT = new Set([
+  'Band',
   'Contact',
   'Cta',
   'Faq',
@@ -284,6 +285,10 @@ function composeOne(
   const after: string[] = [];
   const kitUsed = new Set<string>();
   const bindings = new Set<string>();
+  // Apparition au défilement (Motion) autour de chaque section de contenu,
+  // quand le kit la fournit. L'ouverture n'en a pas : elle est déjà à l'écran.
+  const reveal = files['src/components/idem/reveal.jsx'] !== undefined;
+  let opened = false;
 
   (page.sections ?? []).forEach((section, index) => {
     const name = section?.component;
@@ -356,12 +361,15 @@ function composeOne(
     // La navigation avant le contenu, le pied de page après : tout le reste
     // dans <main>, le repère que cherchent les lecteurs d'écran.
     if (FRAME.has(name)) (body.length ? after : before).push(`      ${element}`);
+    else if (reveal && opened) body.push(`        <Reveal>${element}</Reveal>`);
     else body.push(`        ${element}`);
+    if (!FRAME.has(name)) opened = true;
   });
 
   if (!body.length) return null;
 
   const kitImport = `import { ${Array.from(kitUsed).sort().join(', ')} } from '${up}sections/index.js';`;
+  if (body.some((line) => line.includes('<Reveal>'))) imports.unshift(`import Reveal from '${up}components/idem/reveal.jsx';`);
 
   // Le titre et la description de la page ne vivent pas ici : ils sont écrits
   // dans son document HTML (voir `composePage`), là où les lit un moteur.

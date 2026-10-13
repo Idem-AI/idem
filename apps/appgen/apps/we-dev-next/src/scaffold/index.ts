@@ -32,7 +32,7 @@ import { buildWebAppScaffold } from './webApp.js';
  * change : le client s'en sert pour savoir qu'un espace de travail ouvert
  * tourne sur un socle périmé.
  */
-export const SCAFFOLD_VERSION = '5';
+export const SCAFFOLD_VERSION = '6';
 
 export interface Scaffold {
   version: string;

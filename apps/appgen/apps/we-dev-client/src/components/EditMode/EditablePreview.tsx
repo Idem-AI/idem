@@ -42,6 +42,7 @@ import {
 } from './idemProtocol';
 import { EditToolbar } from './EditToolbar';
 import Button from '@/components/ui/Button';
+import { IdemLoader } from '@idem/shared-loader/react';
 import { EmptyPreviewIllustration } from '@/components/ui/Illustrations';
 import { DrawAnnotation, type Annotation } from './DrawAnnotation';
 import {
@@ -260,6 +261,13 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
    * et le bouton proposait de redémarrer une application qui n'existe pas.
    */
   const offerGeneration = awaitingFirstGeneration && !generating;
+  /**
+   * Le projet démarre : clic sur « Exécuter », ou installation et lancement
+   * automatiques en fin de génération. Les deux boutons le montrent (ils
+   * tournent) et refusent un second clic, qui lancerait une seconde
+   * installation en parallèle de la première.
+   */
+  const starting = !offerGeneration && (running || waiting);
   const startGeneration = useCallback(() => eventEmitter.emit('chat:startGeneration'), []);
   const waitingKey =
     runPhase === 'installing'
@@ -692,14 +700,15 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
           <button
             type="button"
             onClick={offerGeneration ? startGeneration : runProject}
-            disabled={running && !offerGeneration}
-            className="h-7 px-2 flex items-center gap-1.5 rounded-md text-xs text-text-tertiary hover:text-text-primary hover:bg-surface-3 disabled:opacity-50 transition-colors"
+            disabled={starting || (generating && !offerGeneration)}
+            aria-busy={starting}
+            className="h-7 px-2 flex items-center gap-1.5 rounded-md text-xs text-text-tertiary hover:text-text-primary hover:bg-surface-3 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             title={offerGeneration ? t('chatWorkspace.startHint') : t('preview.runHint')}
           >
-            <Play size={13} />
+            {starting ? <IdemLoader size="xs" /> : <Play size={13} />}
             {offerGeneration
               ? t('chatWorkspace.generateNow')
-              : running
+              : starting
                 ? t('preview.running')
                 : url
                   ? t('preview.restart')
@@ -833,13 +842,13 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                       variant={!offerGeneration && waiting ? 'secondary' : 'primary'}
                       size="sm"
                       onClick={offerGeneration ? startGeneration : runProject}
-                      loading={(running || generating) && !offerGeneration}
+                      loading={starting || (generating && !offerGeneration)}
                       icon={<Play className="w-4 h-4" />}
                       className="mt-2"
                     >
                       {offerGeneration
                         ? t('chatWorkspace.generateNow')
-                        : t(waiting ? 'preview.restart' : 'preview.run')}
+                        : t(starting ? 'preview.running' : 'preview.run')}
                     </Button>
                   </div>
                 )}
@@ -879,13 +888,13 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                 variant={!offerGeneration && waiting ? 'secondary' : 'primary'}
                 size="sm"
                 onClick={offerGeneration ? startGeneration : runProject}
-                loading={(running || generating) && !offerGeneration}
+                loading={starting || (generating && !offerGeneration)}
                 icon={<Play className="w-4 h-4" />}
                 className="mt-1"
               >
                 {offerGeneration
                   ? t('chatWorkspace.generateNow')
-                  : t(waiting ? 'preview.restart' : 'preview.run')}
+                  : t(starting ? 'preview.running' : 'preview.run')}
               </Button>
             </div>
           )}

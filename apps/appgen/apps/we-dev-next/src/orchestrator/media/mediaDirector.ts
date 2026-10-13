@@ -66,7 +66,7 @@ export function mediaSlots(plan: SitePlan): MediaSlot[] {
   for (const page of plan.pages) {
     for (const section of page.sections) {
       const base = { id: section.content, page, section, count: 1, overlay: false };
-      if (section.component === 'Hero' && section.spec === 'Hero') {
+      if (section.component === 'Hero' && (section.spec === 'Hero' || section.spec === 'Header')) {
         const variant = section.variant ?? 'split';
         slots.push({
           ...base,

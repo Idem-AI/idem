@@ -440,7 +440,14 @@
         "footageStock": "{{count}} plan(s) filmé(s) remplacé(s) par des vidéos libres de droits.",
         "footageStills": "{{count}} plan(s) filmé(s) montré(s) en images animées.",
         "footageMissing": "{{count}} plan(s) filmé(s) composé(s) en motion design, faute de vidéo."
-      }
+      },
+      "preparing": "Chargement des sons et de la voix off… {{percent}} %",
+      "watchVideo": "Voir la vidéo",
+      "downloadFormat": "Choisissez le format",
+      "downloadReady": "Prêt",
+      "downloadIncluded": "Inclus",
+      "downloadPrice": "{{cost}} crédits",
+      "downloadPreparing": "Préparation du MP4… {{percent}} %"
     },
     "payment": {
       "cta": "Recharger mes crédits",

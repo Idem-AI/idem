@@ -10,6 +10,8 @@
  *   3. calage             chaque scène dure AU MOINS le temps de sa ligne (+ entrée et sortie) ;
  *                         la durée achetée ne change pas : les scènes muettes rendent du temps,
  *                         et une ligne qui ne tient vraiment pas est retirée (jamais coupée).
+ *                         Minutage fixe (scénario, film d'auteur) : une ligne déborde sur les
+ *                         plans muets qui la suivent au lieu d'être retirée.
  *
  * La voix ne dépend que de la clé de sa scène : une retouche (texte, direction, musique) garde
  * la synchronisation, re-calée par `fitScenesToVoice` après chaque recalcul du minutage.
@@ -384,21 +386,26 @@ export function fitScenesToVoice(storyboard: VideoStoryboard, voice: VideoVoice,
   const dropped = voice.lines.filter((l) => !keys.has(l.sceneKey)).map((l) => l.sceneKey);
   const lineOf = (key: string) => lines.find((l) => l.sceneKey === key);
   const leadOf = (i: number) => (i === 0 ? 0.15 : VOICE_LEAD);
-  // Le minutage d'un scénario de l'utilisateur ne bouge pas : une ligne qui ne tient pas dans SA
-  // scène est retirée (jamais coupée), les autres se posent dedans.
+  // Le minutage d'un scénario (ou d'un film d'auteur) ne bouge pas. Une ligne part au début de SA
+  // scène et peut continuer sur les plans suivants qui n'ont pas de ligne (une scène du scénario
+  // découpée en plusieurs plans garde sa voix entière) ; la suivante attend qu'elle ait fini. Une
+  // ligne n'est retirée que si elle déborderait de la FIN du film (jamais coupée en plein mot).
   if (opts.keepTiming) {
-    const placed = lines
-      .map((l) => {
-        const i = scenes.findIndex((sc) => sc.key === l.sceneKey);
-        const room = scenes[i].duration - l.durationSec - VOICE_TAIL;
-        if (room < leadOf(i) - 0.05) {
-          dropped.push(l.sceneKey);
-          return null;
-        }
-        const offset = Math.max(leadOf(i), Math.min(room, leadOf(i) + Math.max(0, room - leadOf(i)) * 0.25));
-        return { ...l, offset: Math.round(offset * 1000) / 1000 };
-      })
-      .filter((l): l is VoiceLine => !!l);
+    const order = lines
+      .map((l) => ({ l, i: scenes.findIndex((sc) => sc.key === l.sceneKey) }))
+      .filter((x) => x.i >= 0)
+      .sort((a, b) => a.i - b.i);
+    const placed: VoiceLine[] = [];
+    let free = 0;
+    for (const { l, i } of order) {
+      const at = Math.max(scenes[i].start + leadOf(i), free + 0.12);
+      if (at + l.durationSec > total + 0.05) {
+        dropped.push(l.sceneKey);
+        continue;
+      }
+      free = at + l.durationSec;
+      placed.push({ ...l, offset: Math.round((at - scenes[i].start) * 1000) / 1000 });
+    }
     return { storyboard: { ...storyboard, scenes }, voice: { ...voice, lines: placed }, dropped };
   }
   const need = () => scenes.map((sc, i) => Math.max(floorOf(sc.sceneId, total), lineOf(sc.key) ? leadOf(i) + lineOf(sc.key)!.durationSec + VOICE_TAIL : 0));

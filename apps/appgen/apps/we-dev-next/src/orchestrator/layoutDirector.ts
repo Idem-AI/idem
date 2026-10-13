@@ -103,7 +103,7 @@ export function menuFor(component: string, family: StyleFamily): string[] {
 }
 
 /** Sections que l'agent peut ajouter, et où. */
-const INSERTABLE = ['Statement', 'Showcase', 'Gallery'] as const;
+const INSERTABLE = ['Statement', 'Showcase', 'Gallery', 'Band'] as const;
 type Insertable = (typeof INSERTABLE)[number];
 const MAX_INSERTS_PER_PAGE = 2;
 
@@ -168,14 +168,14 @@ Donne à chaque section une disposition (dans SA liste, rien d'autre) et un fond
 
 Une page réussie a un rythme : un moment ample (ouverture, vitrine, phrase forte), des moments denses (listes, grilles), des respirations. Deux sections voisines n'ont ni la même forme ni le même fond teinté. Choisis selon le métier et la clientèle, pas au hasard : un restaurant ou un artisan se montrent (galerie, vitrine, ouverture plein cadre), un cabinet ou un service s'expliquent (listes numérotées, frise, phrase forte).
 
-Tu peux ajouter jusqu'à deux sections par page, parmi : "Statement" (une phrase forte en grand), "Showcase" (un grand visuel commenté), "Gallery" (trois images, seulement si le projet a quelque chose de concret à montrer : lieux, produits, plats, réalisations). Indique après quelle section.
+Tu peux ajouter jusqu'à deux sections par page, parmi : "Statement" (une phrase forte en grand), "Showcase" (un grand visuel commenté), "Gallery" (trois images, seulement si le projet a quelque chose de concret à montrer : lieux, produits, plats, réalisations), "Band" (un bandeau qui fait défiler les offres ou les points forts en grand, pour un style vivant). Indique après quelle section.
 
 Sur l'accueil, tu peux réordonner ces sections de récit : ${STORY.filter((name) => plan.pages[0].sections.some((section) => section.content === name)).join(', ')}.
 
 # Forme exacte de la réponse
 {
   "sections": { "<content>": { "variant": "<une disposition de sa liste>", "tone": "plain|tinted|raised" } },
-  "inserts": [ { "after": "<content>", "component": "Statement|Showcase|Gallery" } ],
+  "inserts": [ { "after": "<content>", "component": "Statement|Showcase|Gallery|Band" } ],
   "homeOrder": ["<content des sections de récit, dans le nouvel ordre>"]
 }`;
 }
@@ -223,6 +223,7 @@ function applyLayout(
       if (firstStory && pick() < 0.55) fallback.push({ after: firstStory.content, component: 'Statement' });
       const lastStory = [...page.sections].reverse().find((section) => STORY.includes(section.content));
       if (lastStory && family !== 'structured' && pick() < 0.6) fallback.push({ after: lastStory.content, component: 'Showcase' });
+      if (family === 'expressive' && pick() < 0.5) fallback.push({ after: page.sections[0].content, component: 'Band' });
     }
 
     let added = 0;
@@ -232,6 +233,7 @@ function applyLayout(
       const component = insert.component as Insertable;
       if (component === 'Statement' && statementUsed) continue;
       if (component === 'Gallery' && galleryUsed) continue;
+      if (component === 'Band' && (page.key !== 'home' || family === 'structured')) continue;
 
       const index = page.sections.findIndex((section) => section.content === insert.after);
       // Jamais avant l'ouverture ni après la relance finale, jamais deux insertions collées.
@@ -244,7 +246,8 @@ function applyLayout(
       page.sections.splice(index + 1, 0, {
         content,
         component,
-        spec: component,
+        // Le bandeau est rempli par le code (offres, points forts) : pas de rédaction.
+        spec: component === 'Band' ? undefined : component,
         angle: angles[component](facts),
         anchor: component === 'Gallery' ? 'images' : undefined,
         inserted: true,
@@ -263,8 +266,8 @@ function applyLayout(
       const asked = answer?.sections?.[section.content];
 
       if (menu.length) {
-        // Les en-têtes de page intérieure restent centrés : c'est leur rôle.
-        if (section.spec === 'Header') {
+        // Un en-tête de page intérieure sans choix reste centré : c'est sa forme la plus sûre.
+        if (section.spec === 'Header' && !(asked?.variant && menu.includes(asked.variant))) {
           section.variant = 'centered';
         } else {
           let variant = asked?.variant && menu.includes(asked.variant) ? asked.variant : undefined;
@@ -308,6 +311,21 @@ function applyLayout(
 }
 
 /**
+ * Vérifie une mise en page déjà choisie (par l'architecte) : dispositions dans
+ * les menus, voisinages, fonds. Aucune insertion, aucun appel au modèle.
+ */
+export function normalizeLayout(plan: SitePlan, system: DesignSystem, seed: number): StyleFamily {
+  const family = styleFamily(system);
+  const sections: LayoutAnswer['sections'] = {};
+  for (const page of plan.pages) {
+    for (const section of page.sections) sections[section.content] = { variant: section.variant, tone: section.tone };
+  }
+  const none = () => '';
+  applyLayout(plan, { sections, inserts: [] }, family, system, seed, { Statement: none, Showcase: none, Gallery: none, Band: none }, {} as SiteFacts);
+  return family;
+}
+
+/**
  * Décide la mise en page du site. Ne lève jamais : sans réponse valable de
  * l'agent, le tirage au sort prend le relais.
  */
@@ -326,6 +344,7 @@ export async function directLayout(options: {
     Statement: (f) => `Une phrase forte qui dit la conviction de ${f.name}, tirée de son histoire et de ce qu'il apporte à sa clientèle.`,
     Showcase: (f) => `Mettre en scène, en un grand visuel, le moment le plus parlant de l'expérience ${f.name}.`,
     Gallery: (f) => `Montrer en images ce que fait ${f.name} : les lieux, les produits ou les réalisations.`,
+    Band: (f) => `Faire défiler les offres ou les points forts de ${f.name}.`,
   };
 
   let answer: LayoutAnswer | null = null;

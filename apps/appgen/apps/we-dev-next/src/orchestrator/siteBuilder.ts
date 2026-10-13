@@ -41,8 +41,9 @@ import {
 import { cleanText, SECTION_SPECS, validateSection } from './sectionSpecs.js';
 import { ModelCaller, SHAPE_REMINDER, Verdict } from './modelCaller.js';
 import { createFactGuard, FactCheck, stripSentences } from './factGuard.js';
-import { directLayout } from './layoutDirector.js';
-import { buildSectionKit } from '../scaffold/sections.js';
+import { directLayout, normalizeLayout, styleFamily } from './layoutDirector.js';
+import { architectSite } from './siteArchitect.js';
+import { buildSectionKit, SITE_KIT_DEPENDENCIES } from '../scaffold/sections.js';
 import { createApiMediaClient, MediaClient } from './media/mediaClient.js';
 import { directMedia, mediaSlots } from './media/mediaDirector.js';
 import { createLimiter, MediaAsset, produceMedia } from './media/mediaPipeline.js';
@@ -51,7 +52,7 @@ import { createLimiter, MediaAsset, produceMedia } from './media/mediaPipeline.j
 export const SITE_ORIGIN = 'idem-site';
 
 /** Sections rédigées en même temps : assez pour aller vite, pas assez pour saturer un fournisseur. */
-const CONCURRENCY = 3;
+const CONCURRENCY = 4;
 /** Un signe de vie régulier : certains relais coupent un flux muet. */
 const KEEPALIVE_MS = 12_000;
 
@@ -150,7 +151,8 @@ function sectionPrompt(
   page: PlannedPage,
   section: PlannedSection,
   siblings: PlannedSection[],
-  language: string
+  language: string,
+  pages: PlannedPage[] = []
 ): string {
   const spec = SECTION_SPECS[section.spec!];
   const parts = [`# Le projet\n${factsText}`];
@@ -173,7 +175,7 @@ function sectionPrompt(
 
   const buttons = Object.entries(section.links ?? {})
     .filter(([, href]) => !!href)
-    .map(([slot, href]) => `- "${slot}" mène à ${describeDestination(href!, facts, language)}.`);
+    .map(([slot, href]) => `- "${slot}" mène à ${describeDestination(href!, facts, language, pages)}.`);
   if (buttons.length) {
     parts.push(`# Boutons (le libellé doit annoncer exactement cette destination)\n${buttons.join('\n')}`);
   }
@@ -574,20 +576,14 @@ export function createSiteBuildStream(input: SiteBuildInput): ResilientStream {
       const factsText = renderFacts(facts, language);
       const pattern = await resolveBrandPattern(projectData).catch(() => null);
 
-      const plan = buildSitePlan(facts, {
+      const seed = seedOf(projectData.id || projectData.name || 'idem');
+      // Le plan est conçu plus bas par l'architecte ; celui-ci, décidé par le
+      // code, ne sert que si l'agent échoue.
+      let plan: SitePlan = buildSitePlan(facts, {
         language,
         hasPattern: !!pattern,
         heroVariant: sectionDefaults(system.direction).hero,
-        seed: seedOf(projectData.id || projectData.name || 'idem'),
-      });
-
-      ChatLogger.info('SITE_PLAN', 'Plan du site décidé par le code', {
-        mode: plan.mode,
-        pages: plan.pages.map((page) => `${page.path} (${page.sections.length})`),
-        offers: facts.offers.length,
-        team: facts.team.length,
-        channels: facts.channels.length,
-        pattern: !!pattern,
+        seed,
       });
 
       // La rédaction peut être confiée à un autre modèle du catalogue que celui
@@ -617,7 +613,7 @@ export function createSiteBuildStream(input: SiteBuildInput): ResilientStream {
         const outcome = await caller.json(
           `${page.key}/${section.content}`,
           systemText,
-          sectionPrompt(facts, factsText, request, page, section, page.sections, language),
+          sectionPrompt(facts, factsText, request, page, section, page.sections, language, plan.pages),
           sectionJudge(section, facts, check, language),
           section.spec === 'Faq' ? 1800 : 1400
         );
@@ -636,39 +632,72 @@ export function createSiteBuildStream(input: SiteBuildInput): ResilientStream {
         return { section, page, data, providerDown: outcome.providerDown && !outcome.value };
       };
 
-      // L'accroche d'abord, avant d'écrire quoi que ce soit : si aucun modèle
-      // ne répond, on peut encore renvoyer une vraie erreur (rien n'est parti,
-      // aucun fichier n'est touché). La mise en page se décide en même temps.
-      const home = plan.pages[0];
-      const heroSection = home.sections[0];
-      const seed = seedOf(projectData.id || projectData.name || 'idem');
-      const [heroResult, layout] = await Promise.all([
-        writeOne(home, heroSection),
-        directLayout({ plan, facts, system, caller, seed, language }),
-      ]);
-
-      if (abort.signal.aborted) return;
-
-      if (heroResult.providerDown) {
-        const message =
-          language === 'fr'
-            ? "Le fournisseur IA est momentanément saturé. Aucun fichier n'a été modifié : relancez la génération dans quelques instants."
-            : 'The AI provider is temporarily overloaded. No file was changed: please start the generation again in a moment.';
-        ChatLogger.error('SITE_BUILD', 'Aucun modèle disponible pour la première section');
-        if (!res.headersSent) res.status(503).send(message);
-        return;
-      }
-
+      // La conversation s'ouvre tout de suite : la conception prend une
+      // vingtaine de secondes, et l'utilisateur doit voir que ça travaille.
       const stream = new SiteStream(res);
       stream.open(model);
 
       const fr = language === 'fr';
       stream.text(
         fr
-          ? `Je rédige le site de ${facts.name}, section par section, avec les couleurs, les polices et le logo de sa charte.\n\n`
-          : `I'm writing the ${facts.name} website section by section, with its brand colours, fonts and logo.\n\n`
+          ? `Je conçois le site de ${facts.name} : ses pages, puis chaque section, avec les couleurs, les polices et le logo de sa charte.\n\n`
+          : `I'm designing the ${facts.name} website: its pages, then each section, with its brand colours, fonts and logo.\n\n`
       );
       stream.text(`<boltArtifact id="idem-site" title="${facts.name.replace(/["<>]/g, '')}">\n`);
+      stream.note(fr ? 'Je conçois les pages du site et leur composition' : 'Designing the site pages and their layout');
+
+      // L'architecte conçoit le site ; sans réponse exploitable, le plan de repli.
+      const architected = await architectSite({
+        facts,
+        system,
+        family: styleFamily(system),
+        caller,
+        language,
+        request,
+      });
+      if (abort.signal.aborted) return;
+      if (architected) plan = architected.plan;
+      const navStyle = architected?.navStyle ?? 'bar';
+      const footerStyle = architected?.footerStyle ?? 'columns';
+
+      ChatLogger.info('SITE_PLAN', architected ? 'Plan conçu par l’architecte' : 'Plan de repli décidé par le code', {
+        pages: plan.pages.map((page) => `${page.path} (${page.sections.length})`),
+        offers: facts.offers.length,
+        team: facts.team.length,
+        channels: facts.channels.length,
+        pattern: !!pattern,
+      });
+      stream.note(
+        fr
+          ? `Le site aura ${plan.pages.length} pages : ${plan.pages.map((page) => page.label).join(', ')}`
+          : `The site will have ${plan.pages.length} pages: ${plan.pages.map((page) => page.label).join(', ')}`
+      );
+
+      // L'accroche d'abord : si aucun modèle ne répond, on s'arrête là. Les
+      // dispositions de l'architecte sont vérifiées en même temps ; sans lui,
+      // l'agent de mise en page les choisit.
+      const home = plan.pages[0];
+      const heroSection = home.sections[0];
+      const [heroResult, layout] = await Promise.all([
+        writeOne(home, heroSection),
+        architected
+          ? Promise.resolve({ family: normalizeLayout(plan, system, seed), fromAgent: true })
+          : directLayout({ plan, facts, system, caller, seed, language }),
+      ]);
+
+      if (abort.signal.aborted) return;
+
+      if (heroResult.providerDown) {
+        ChatLogger.error('SITE_BUILD', 'Aucun modèle disponible pour la première section');
+        stream.text('</boltArtifact>\n');
+        stream.close(
+          { promptTokens: caller.promptTokens, completionTokens: caller.completionTokens },
+          fr
+            ? "Le fournisseur IA est momentanément saturé. Aucun fichier du site n'a été écrit : relancez la génération dans quelques instants."
+            : 'The AI provider is temporarily overloaded. No site file was written: please start the generation again in a moment.'
+        );
+        return;
+      }
 
       // Le kit de sections, réécrit à chaque site : les dispositions choisies
       // doivent exister dans l'espace de travail, même ouvert avant elles.
@@ -676,6 +705,15 @@ export function createSiteBuildStream(input: SiteBuildInput): ResilientStream {
         stream.file(path, content);
       }
       if (pattern) stream.file('public/brand/pattern.svg', `${pattern.svg}\n`);
+
+      // L'intensité des effets suit le style de la charte : apparitions
+      // marquées et faisceau pour un style expressif, discrètes sinon.
+      const fx = layout.family === 'expressive' ? 'lively' : 'calm';
+      const texture = layout.family === 'structured' ? 'grid' : 'dots';
+      stream.file(
+        'src/sections/fx.js',
+        `// Intensité des effets, réglée d'après le style de la charte (${layout.family}).\nexport const FX = '${fx}';\nexport const TEXTURE = '${texture}';\n`
+      );
 
       // Les visuels : l'agent décide, le pipeline produit pendant que les
       // sections s'écrivent. Une section qui en attend un n'est émise qu'avec lui.
@@ -772,12 +810,34 @@ export function createSiteBuildStream(input: SiteBuildInput): ResilientStream {
 
       if (abort.signal.aborted) return;
 
+      // Le bandeau défilant : rempli par le code, avec ce qui est déjà écrit
+      // (les offres, sinon les points forts, sinon les étapes).
+      for (const page of plan.pages) {
+        for (const section of page.sections.filter((item) => item.component === 'Band')) {
+          const titlesOf = (content: string) =>
+            ((written.get(content)?.items as Array<{ title?: string }> | undefined) ?? [])
+              .map((item) => item.title)
+              .filter((title): title is string => !!title);
+          const candidates = [
+            facts.offers.map((offer) => offer.name),
+            titlesOf('home-features'),
+            titlesOf('home-steps'),
+          ];
+          const items = candidates.find((list) => list.length >= 3);
+          if (!items) continue;
+          const data = { items: items.slice(0, 8), ...(section.tone && section.tone !== 'plain' ? { tone: section.tone } : {}) };
+          written.set(section.content, data);
+          stream.file(`src/content/${section.content}.js`, contentModule(contentLabel(page, section, language), data));
+        }
+      }
+
       // Navigation et pied de page : par le code, d'après les pages réellement
       // écrites. Un lien vers une page abandonnée serait un lien mort.
       const hero: Record<string, unknown> = written.get('home-hero') ?? {};
       stream.file(
         'src/content/nav.js',
         contentModule(fr ? 'Navigation' : 'Navigation', {
+          variant: navStyle,
           links: plan.nav.links,
           ...(plan.nav.cta ? { cta: plan.nav.cta } : {}),
         })
@@ -794,6 +854,8 @@ export function createSiteBuildStream(input: SiteBuildInput): ResilientStream {
       stream.file(
         'src/content/footer.js',
         contentModule(fr ? 'Pied de page' : 'Footer', {
+          variant: footerStyle,
+          name: facts.name,
           tagline: firstSentence(String(hero.description || facts.description || ''), 180),
           columns: [
             { title: plan.mode === 'multi' ? 'Pages' : fr ? 'Sur cette page' : 'On this page', links: plan.footerLinks },
@@ -848,10 +910,23 @@ export function createSiteBuildStream(input: SiteBuildInput): ResilientStream {
 
       stream.file(
         'idem.plan.json',
-        `${JSON.stringify({ origin: SITE_ORIGIN, mode: plan.mode, language, pages: pagesOut }, null, 2)}\n`
+        `${JSON.stringify(
+          {
+            origin: SITE_ORIGIN,
+            mode: plan.mode,
+            language,
+            // Ce que le kit utilise réellement, pour qui reprendra le site.
+            uses: ['motion', 'shadcn/ui (accordion, Radix)', 'magic-ui (marquee, border-beam, patterns)'],
+            pages: pagesOut,
+          },
+          null,
+          2
+        )}\n`
       );
 
-      stream.command('shell', 'npm install');
+      // Nommées explicitement : un espace de travail ouvert avant que le kit ne
+      // s'en serve a un package.json qui ne les connaît pas.
+      stream.command('shell', `npm install ${Object.keys(SITE_KIT_DEPENDENCIES).join(' ')}`);
       stream.command('start', 'npm run dev');
       stream.text('</boltArtifact>\n');
 

@@ -46,6 +46,12 @@ const WEEKDAYS = new RegExp(
 const PLACE_FR = /(?:^|[\s(])(?:[àÀ]|[aA]ux?|[eE]n|[dD]ans|[vV]ers|[dD]epuis|[sS]ur|[dD]e|[dD]u|[dD]es)\s+([A-ZÀ-Ý][\p{L}'’-]+(?:\s+[A-ZÀ-Ý][\p{L}'’-]+)*)/gu;
 const PLACE_EN = /(?:^|[\s(])(?:[iI]n|[aA]t|[aA]cross|[fF]rom|[nN]ear|[aA]round|[tT]hroughout)\s+([A-Z][\p{L}'’-]+(?:\s+[A-Z][\p{L}'’-]+)*)/gu;
 
+/**
+ * Un mot à majuscule précédé d'un mot en minuscule ou d'une virgule : en
+ * français, c'est un nom propre (le début de phrase est exclu).
+ */
+const PROPER_NOUN_FR = /(?<=[\p{Ll},;]\s)([A-ZÀ-Ý][\p{L}'’-]{3,})/gu;
+
 /** Noms propres d'usage courant, qui ne sont pas des lieux. */
 const NOT_PLACES = new Set([
   'afrique',
@@ -131,6 +137,15 @@ export function createFactGuard(allowed: string, language: string): FactCheck {
 
       if (fr) {
         for (const word of text.match(ENGLISH_WORDS) ?? []) problems.add(word);
+
+        // Un nom propre en milieu de phrase (« Bonamoussadi, Melong, Akwa ») :
+        // un lieu, un client, un partenaire que les faits ne citent pas.
+        for (const match of Array.from(original.matchAll(PROPER_NOUN_FR))) {
+          const name = match[1];
+          const lower = name.toLowerCase();
+          if (NOT_PLACES.has(lower) || reference.includes(lower)) continue;
+          problems.add(name);
+        }
       }
     }
 

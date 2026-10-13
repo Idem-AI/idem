@@ -21,7 +21,7 @@
 import crypto from 'crypto';
 import type { ReferenceImage } from '../../../core/src/reference/reference.analyzer';
 import type { VideoMediaAsset } from '../../../core/src/video/video.model';
-import { VideoInputError } from '../../../core/src/video/motionVideo.service';
+import { emptyRevisionReport, VideoInputError } from '../../../core/src/video/motionVideo.service';
 import { normalizeCreativity } from '../../../core/src/creativity/levels';
 import { FLYER_FORMATS, FlyerFormat } from '../../../core/src/visual/visual.model';
 import { videoCost } from '../../../core/src/video/video.pricing';
@@ -257,10 +257,25 @@ async function reviseMotion(userId: string, session: ChatSession, videoId: strin
     emit({ type: 'message', message: msg });
     return true;
   }
-  const updated = await motionVideos.updateVideo(userId, session.brandId!, videoId, patch);
-  const msg = message('assistant', revision?.reply || 'C’est fait. Regardez la nouvelle version.', { result: { kind: 'video', videoId }, status: 'done', ...(revision?.reply ? {} : { i18n: { key: 'chat.video.revised' } }) });
+  const report = emptyRevisionReport();
+  const updated = await motionVideos.updateVideo(userId, session.brandId!, videoId, patch, report);
+  // La réponse dit ce qui a VRAIMENT changé : ce que le code n'a pas pu appliquer est avoué.
+  const en = (video.brief.language || language).startsWith('en');
+  const sceneNo = (key: string) => (updated?.storyboard.scenes.findIndex((sc) => sc.key === key) ?? -1) + 1;
+  const list = (keys: string[]) => [...new Set(keys.map(sceneNo).filter((n) => n > 0))].sort((a, b) => a - b).join(', ');
+  const notes: string[] = [];
+  const visualFailed = report.failed.filter((f) => f.what === 'visual').map((f) => f.key);
+  const voiceFailed = report.failed.filter((f) => f.what === 'voice').map((f) => f.key);
+  if (visualFailed.length) notes.push(en ? `I could not change the look of scene ${list(visualFailed)}: it is unchanged.` : `Je n’ai pas pu modifier l’apparence de la scène ${list(visualFailed)} : elle est restée telle quelle.`);
+  if (report.fallback.length) notes.push(en ? `Scene ${list(report.fallback)} now uses its standard layout so that its new texts show.` : `La scène ${list(report.fallback)} reprend sa mise en page standard pour afficher ses nouveaux textes.`);
+  if (voiceFailed.length) notes.push(en ? `The voice-over of scene ${list(voiceFailed)} could not be recorded.` : `La voix off de la scène ${list(voiceFailed)} n’a pas pu être enregistrée.`);
+  if (revision?.rejected && !patch.slots) notes.push(en ? 'I could not place the texts you asked for: tell me which scene and which text.' : 'Je n’ai pas pu placer les textes demandés : dites-moi quelle scène et quel texte.');
+  const reply = revision?.reply && !(revision.rejected && !patch.slots && !notes.length) ? revision.reply : null;
+  const said = [reply || (en ? 'Done. Watch the new version.' : 'C’est fait. Regardez la nouvelle version.'), ...notes].join(' ');
+  const msg = message('assistant', said, { result: { kind: 'video', videoId }, status: 'done', ...(reply || notes.length ? {} : { i18n: { key: 'chat.video.revised' } }) });
   await push(session._id, msg);
   emit({ type: 'result', message: msg, video: updated });
+  void motionVideos.prerender(userId, session.brandId!, videoId);
   return true;
 }
 
@@ -558,6 +573,8 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
       });
       await push(session._id, msg, {}, ['pending']);
       emit({ type: 'result', message: msg, video });
+      // Le MP4 du format principal se rend pendant que l'utilisateur regarde l'aperçu : « Télécharger » sera immédiat.
+      void motionVideos.prerender(userId, brand._id, video.id);
     } else {
       paid = await charge(userId, quote.visual(level), session._id);
       emit({ type: 'status', key: 'chat.status.visual.start', text: 'Je compose votre visuel…', data: { cost: paid.cost } });

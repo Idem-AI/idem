@@ -20,7 +20,7 @@
 import { DesignSystem } from '../design/tokenForge.js';
 import { ProjectModel } from '../types/project.js';
 import { renderLibraryManifest } from './libraries.js';
-import { buildSectionKit, sectionDefaults } from './sections.js';
+import { buildSectionKit, sectionDefaults, SITE_KIT_DEPENDENCIES } from './sections.js';
 import {
   CN_HELPER,
   CN_UTILS,
@@ -430,6 +430,8 @@ export function buildSiteViteScaffold(
         build: 'vite build && node scripts/prerender.mjs',
         preview: 'vite preview',
       },
+      // Motion et l'accordéon de shadcn/ui : le kit de sections s'en sert.
+      dependencies: SITE_KIT_DEPENDENCIES,
     }),
     'vite.config.js': VITE_CONFIG,
     'postcss.config.js': POSTCSS_CONFIG,

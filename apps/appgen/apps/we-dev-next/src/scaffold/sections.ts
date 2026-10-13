@@ -97,7 +97,20 @@ export const KIT_VARIANTS = {
   Showcase: ['wide', 'overlap'],
   Statement: ['centered', 'rule'],
   Gallery: ['mosaic', 'row'],
+  Band: ['marquee'],
+  Nav: ['bar', 'centered', 'split'],
+  Footer: ['columns', 'statement'],
 } as const;
+
+/**
+ * Les dépendances que le kit utilise vraiment : Motion (apparitions, faisceau)
+ * et l'accordéon Radix de shadcn/ui. Posées dans le package.json du socle, et
+ * installées par l'orchestrateur pour un espace de travail plus ancien.
+ */
+export const SITE_KIT_DEPENDENCIES: Record<string, string> = {
+  motion: '^12.0.0',
+  '@radix-ui/react-accordion': '^1.2.0',
+};
 
 export type KitSection = keyof typeof KIT_VARIANTS;
 
@@ -148,46 +161,91 @@ function NavLink({ href = '#', className, children }) {
  * Le menu du téléphone est un <details> : aucun état, aucune dépendance, et il
  * se ferme au clavier comme à la souris.
  */
-export default function Nav({ logo, links = [], cta, className }) {
-  return (
-    <header className={cn('sticky top-0 z-sticky border-b border-neutral-200 bg-surface/95 backdrop-blur', className)}>
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-tight px-6 py-tight">
-        <a href="/" className="flex min-h-[44px] items-center gap-2 font-display text-lg">
-          <BrandMark fallback={logo} />
-        </a>
-
-        <nav aria-label="Navigation principale" className="hidden items-center gap-block md:flex">
-          {links.map((link) => (
-            <NavLink key={link.href} href={link.href} className="inline-flex min-h-[44px] items-center text-ink-muted transition-colors hover:text-ink">
-              {link.label}
-            </NavLink>
-          ))}
-          {cta && (
-            <NavLink href={cta.href} className="inline-flex min-h-[44px] items-center rounded bg-brand-600 px-5 font-medium text-on-brand transition-colors hover:bg-brand-700">
-              {cta.label}
-            </NavLink>
-          )}
-        </nav>
-
-        {links.length > 0 && (
-          <details className="group relative md:hidden">
-            <summary className="grid h-11 w-11 cursor-pointer place-items-center rounded list-none" aria-label="Ouvrir le menu">
-              <span aria-hidden="true" className="relative block h-0.5 w-6 bg-ink before:absolute before:-top-2 before:block before:h-0.5 before:w-6 before:bg-ink after:absolute after:top-2 after:block after:h-0.5 after:w-6 after:bg-ink" />
-            </summary>
-            <nav aria-label="Navigation principale" className="absolute right-0 top-12 w-56 rounded-lg border border-neutral-200 bg-surface-raised p-tight shadow-lg">
-              {links.map((link) => (
-                <NavLink key={link.href} href={link.href} className="flex min-h-[44px] items-center rounded px-3 text-ink hover:bg-surface">
-                  {link.label}
-                </NavLink>
-              ))}
-              {cta && (
-                <NavLink href={cta.href} className="mt-tight block min-h-[44px] rounded bg-brand-600 px-3 py-2 text-center font-medium text-on-brand">
-                  {cta.label}
-                </NavLink>
-              )}
-            </nav>
-          </details>
+export default function Nav({ logo, links = [], cta, variant = 'bar', className }) {
+  const brand = (
+    <a href="/" className="flex min-h-[44px] items-center gap-2 font-display text-lg">
+      <BrandMark fallback={logo} />
+    </a>
+  );
+  const linkClass = 'inline-flex min-h-[44px] items-center whitespace-nowrap text-ink-muted transition-colors hover:text-ink';
+  const desktopLinks = (list) =>
+    list.map((link) => (
+      <NavLink key={link.href} href={link.href} className={linkClass}>
+        {link.label}
+      </NavLink>
+    ));
+  const ctaNode = cta && (
+    <NavLink href={cta.href} className="inline-flex min-h-[44px] items-center rounded bg-brand-600 px-5 font-medium text-on-brand transition-colors hover:bg-brand-700">
+      {cta.label}
+    </NavLink>
+  );
+  const mobile = links.length > 0 && (
+    <details className="group relative md:hidden">
+      <summary className="grid h-11 w-11 cursor-pointer place-items-center rounded list-none" aria-label="Ouvrir le menu">
+        <span aria-hidden="true" className="relative block h-0.5 w-6 bg-ink before:absolute before:-top-2 before:block before:h-0.5 before:w-6 before:bg-ink after:absolute after:top-2 after:block after:h-0.5 after:w-6 after:bg-ink" />
+      </summary>
+      <nav aria-label="Navigation principale" className="absolute right-0 top-12 z-sticky w-56 rounded-lg border border-neutral-200 bg-surface-raised p-tight shadow-lg">
+        {links.map((link) => (
+          <NavLink key={link.href} href={link.href} className="flex min-h-[44px] items-center rounded px-3 text-ink hover:bg-surface">
+            {link.label}
+          </NavLink>
+        ))}
+        {cta && (
+          <NavLink href={cta.href} className="mt-tight block min-h-[44px] rounded bg-brand-600 px-3 py-2 text-center font-medium text-on-brand">
+            {cta.label}
+          </NavLink>
         )}
+      </nav>
+    </details>
+  );
+  const shell = cn('sticky top-0 z-sticky border-b border-neutral-200 bg-surface/95 backdrop-blur', className);
+
+  // Logo au centre, liens dessous : une maison, un restaurant, une marque.
+  if (variant === 'centered') {
+    return (
+      <header className={shell}>
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-tight px-6 py-tight md:flex-col md:justify-center">
+          {brand}
+          <nav aria-label="Navigation principale" className="hidden items-center gap-block md:flex">
+            {desktopLinks(links)}
+            {ctaNode}
+          </nav>
+          {mobile}
+        </div>
+      </header>
+    );
+  }
+
+  // Liens à gauche, logo au centre, action à droite. Au-delà de trois liens,
+  // le logo ne tient plus au centre : la barre classique reprend la main.
+  // Le logo ramène à l'accueil : pas besoin d'un lien « Accueil » de plus.
+  const innerLinks = links.filter((link) => link.href !== '/');
+  if (variant === 'split' && innerLinks.length <= 3) {
+    return (
+      <header className={shell}>
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-tight px-6 py-tight">
+          <nav aria-label="Navigation principale" className="hidden items-center gap-block md:flex">
+            {desktopLinks(innerLinks)}
+          </nav>
+          <div className="col-start-1 md:col-start-2">{brand}</div>
+          <div className="flex items-center justify-end gap-tight">
+            <span className="hidden md:inline-flex">{ctaNode}</span>
+            {mobile}
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  return (
+    <header className={shell}>
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-tight px-6 py-tight">
+        {brand}
+        <nav aria-label="Navigation principale" className="hidden items-center gap-block md:flex">
+          {desktopLinks(links)}
+          {ctaNode}
+        </nav>
+        {mobile}
       </div>
     </header>
   );
@@ -195,6 +253,8 @@ export default function Nav({ logo, links = [], cta, className }) {
 `,
     'src/sections/Hero.jsx': `import { cn } from '../lib/cn.js';
 import Media from './Media.jsx';
+import { DotPattern, GridPattern } from '../components/idem/patterns.jsx';
+import { TEXTURE } from './fx.js';
 import { toneClass } from './tone.js';
 
 /**
@@ -247,7 +307,15 @@ export default function Hero({
 
   const hasMedia = Boolean(visual || media);
   const visualNode = visual || <Media media={media} ratio="4/3" priority />;
-  const section = cn('px-6 py-section', toneClass(tone), className);
+  // Sans visuel, une trame Magic UI très légère, estompée vers le texte :
+  // une texture plutôt qu'un aplat.
+  const texture =
+    !hasMedia && TEXTURE !== 'none' ? (
+      <div aria-hidden="true" className="absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_at_top_right,black,transparent_70%)]">
+        {TEXTURE === 'dots' ? <DotPattern /> : <GridPattern />}
+      </div>
+    ) : null;
+  const section = cn('relative isolate overflow-hidden px-6 py-section', toneClass(tone), className);
 
   if (variant === 'fullbleed' && media) {
     return (
@@ -271,7 +339,8 @@ export default function Hero({
 
   if (variant === 'stacked' || variant === 'fullbleed') {
     return (
-      <section id="top" className={cn('px-6 pt-section', !hasMedia && 'pb-section', toneClass(tone), className)}>
+      <section id="top" className={cn('relative isolate overflow-hidden px-6 pt-section', !hasMedia && 'pb-section', toneClass(tone), className)}>
+        {texture}
         <div className="mx-auto w-full max-w-6xl">
           {eyebrowNode}
           <h1 className="max-w-5xl font-display text-[clamp(2.5rem,6.5vw,5.75rem)] leading-[1.02] tracking-tight">{title}</h1>
@@ -292,6 +361,7 @@ export default function Hero({
   if (variant === 'centered') {
     return (
       <section id="top" className={section}>
+        {texture}
         <div className="mx-auto flex w-full max-w-3xl flex-col items-center text-center">
           {eyebrowNode}
           {titleNode}
@@ -310,6 +380,7 @@ export default function Hero({
   if (variant === 'editorial') {
     return (
       <section id="top" className={section}>
+        {texture}
         <div className="mx-auto grid w-full max-w-6xl gap-block md:grid-cols-[1.4fr_1fr] md:items-end">
           <div>
             {eyebrowNode}
@@ -335,6 +406,7 @@ export default function Hero({
   if (!hasMedia) {
     return (
       <section id="top" className={section}>
+        {texture}
         <div className="mx-auto w-full max-w-4xl">
           {eyebrowNode}
           {titleNode}
@@ -696,6 +768,8 @@ export default function Testimonials({ id, title, items = [], tone, className })
 }
 `,
     'src/sections/Pricing.jsx': `import { cn } from '../lib/cn.js';
+import BorderBeam from '../components/idem/border-beam.jsx';
+import { FX } from './fx.js';
 import { toneClass } from './tone.js';
 
 /**
@@ -732,11 +806,12 @@ export default function Pricing({ id, title, intro, plans = [], variant = '${def
             <li
               key={plan.name}
               className={cn(
-                'rounded-lg border bg-surface-raised p-block',
+                'relative rounded-lg border bg-surface-raised p-block',
                 plan.featured ? 'border-brand-600' : 'border-neutral-200',
                 variant === 'table' && 'md:grid md:grid-cols-[1fr_2fr_auto] md:items-center md:gap-block',
               )}
             >
+              {plan.featured && FX === 'lively' && <BorderBeam />}
               <div>
                 <h3 className="font-display text-xl">{plan.name}</h3>
                 <p className="mt-tight">
@@ -780,6 +855,7 @@ export default function Pricing({ id, title, intro, plans = [], variant = '${def
 }
 `,
     'src/sections/Faq.jsx': `import { cn } from '../lib/cn.js';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/idem/accordion.jsx';
 import { toneClass } from './tone.js';
 
 /**
@@ -794,18 +870,17 @@ export default function Faq({ id, title, items = [], tone, variant = 'split', cl
     <h2 id={headingId} className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>
   );
 
+  // Accordéon shadcn/ui (Radix) : clavier et ARIA complets, réponses gardées
+  // dans le HTML pour le référencement.
   const foldable = (
-    <div className="divide-y divide-neutral-200">
-      {items.map((item) => (
-        <details key={item.question} className="group border-t border-neutral-200 py-block first:border-t-0">
-          <summary className="flex min-h-[44px] cursor-pointer items-center justify-between gap-tight font-medium">
-            {item.question}
-            <span aria-hidden="true" className="text-brand-600 transition-transform group-open:rotate-45">+</span>
-          </summary>
-          <p className="mt-tight max-w-measure text-ink-muted">{item.answer}</p>
-        </details>
+    <Accordion type="single" collapsible className="border-t border-neutral-200">
+      {items.map((item, index) => (
+        <AccordionItem key={item.question} value={'q' + index}>
+          <AccordionTrigger>{item.question}</AccordionTrigger>
+          <AccordionContent>{item.answer}</AccordionContent>
+        </AccordionItem>
       ))}
-    </div>
+    </Accordion>
   );
 
   if (variant === 'grid') {
@@ -953,7 +1028,33 @@ function FooterLink({ href = '#', className, children }) {
  * Pied de page. \`columns\` : { title, links[{label, href}] }.
  * \`logo\` est un nœud, \`legal\` une ligne de mentions.
  */
-export default function Footer({ logo, tagline, columns = [], legal, className }) {
+export default function Footer({ logo, name, tagline, columns = [], legal, variant = 'columns', className }) {
+  // Le nom en très grand, les liens en dessous : une signature de fin de page.
+  if (variant === 'statement' && name) {
+    return (
+      <footer className={cn('border-t border-neutral-200 px-6 pb-block pt-section', className)}>
+        <div className="mx-auto w-full max-w-6xl">
+          {tagline && <p className="max-w-measure text-lg text-ink-muted">{tagline}</p>}
+          <p aria-hidden="true" className="mt-block break-words font-display text-[clamp(3rem,11vw,9rem)] leading-[0.9] tracking-tight text-brand-600">
+            {name}
+          </p>
+          <div className="mt-section flex flex-wrap gap-x-section gap-y-block border-t border-neutral-200 pt-block">
+            {columns.map((column) => (
+              <nav key={column.title} aria-label={column.title} className="flex flex-wrap items-center gap-x-block gap-y-tight">
+                {column.links?.map((link) => (
+                  <FooterLink key={link.href} href={link.href} className="inline-flex min-h-[40px] items-center text-ink transition-colors hover:text-brand-700">
+                    {link.label}
+                  </FooterLink>
+                ))}
+              </nav>
+            ))}
+          </div>
+          {legal && <p className="mt-block text-sm text-ink-muted">{legal}</p>}
+        </div>
+      </footer>
+    );
+  }
+
   return (
     <footer className={cn('border-t border-neutral-200 px-6 py-section', className)}>
       <div className="mx-auto w-full max-w-6xl">
@@ -1380,7 +1481,219 @@ export function toneClass(tone) {
   return '';
 }
 `,
+    'src/components/idem/reveal.jsx': `import { useEffect, useRef, useState } from 'react';
+import { motion, useInView, useReducedMotion } from 'motion/react';
+import { FX } from '../../sections/fx.js';
+
+/**
+ * Apparition au défilement (Motion).
+ *
+ * Rien de ce qui est déjà à l'écran ne disparaît : au chargement, seules les
+ * sections plus bas que la fenêtre s'apprêtent à apparaître. Le HTML servi
+ * (pré-rendu) les montre telles quelles, et sans JavaScript tout reste lisible.
+ * Un visiteur qui a demandé moins d'animations n'en voit aucune.
+ */
+export default function Reveal({ children, className, delay = 0 }) {
+  const ref = useRef(null);
+  const reduce = useReducedMotion();
+  const inView = useInView(ref, { once: true, margin: '0px 0px -12% 0px' });
+  const [armed, setArmed] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || reduce || FX === 'none') return;
+    if (element.getBoundingClientRect().top > window.innerHeight * 0.92) setArmed(true);
+  }, [reduce]);
+
+  const distance = FX === 'lively' ? 36 : 18;
+
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      initial={false}
+      animate={armed && !inView ? 'hidden' : 'shown'}
+      variants={{
+        hidden: { opacity: 0, y: distance, transition: { duration: 0 } },
+        shown: { opacity: 1, y: 0, transition: { duration: FX === 'lively' ? 0.7 : 0.5, ease: [0.22, 1, 0.36, 1], delay } },
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+`,
+    'src/components/idem/accordion.jsx': `import * as AccordionPrimitive from '@radix-ui/react-accordion';
+import { cn } from '../../lib/cn.js';
+
+/**
+ * Accordéon — d'après shadcn/ui (MIT), sur Radix, aux jetons de la charte.
+ *
+ * Différence voulue avec l'original : les réponses restent dans le HTML même
+ * fermées (\`forceMount\` + masquage), pour que le pré-rendu les livre aux
+ * moteurs de recherche. Clavier, focus et ARIA viennent de Radix.
+ */
+export const Accordion = AccordionPrimitive.Root;
+
+export function AccordionItem({ className, ...props }) {
+  return <AccordionPrimitive.Item className={cn('border-b border-neutral-200', className)} {...props} />;
+}
+
+export function AccordionTrigger({ className, children, ...props }) {
+  return (
+    <AccordionPrimitive.Header className="flex">
+      <AccordionPrimitive.Trigger
+        className={cn(
+          'group flex min-h-[44px] flex-1 items-center justify-between gap-tight py-block text-left font-medium transition-colors hover:text-brand-700',
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <span aria-hidden="true" className="text-xl leading-none text-brand-600 transition-transform duration-200 group-data-[state=open]:rotate-45">
+          +
+        </span>
+      </AccordionPrimitive.Trigger>
+    </AccordionPrimitive.Header>
+  );
+}
+
+export function AccordionContent({ className, children, ...props }) {
+  return (
+    <AccordionPrimitive.Content forceMount className="overflow-hidden data-[state=closed]:hidden" {...props}>
+      <div className={cn('max-w-measure pb-block text-ink-muted', className)}>{children}</div>
+    </AccordionPrimitive.Content>
+  );
+}
+`,
+    'src/components/idem/marquee.jsx': `import { cn } from '../../lib/cn.js';
+
+const KEYFRAMES =
+  '@keyframes idem-marquee{from{transform:translateX(0)}to{transform:translateX(calc(-100% - var(--gap)))}}' +
+  '.idem-marquee{animation:idem-marquee var(--duration) linear infinite}' +
+  '.idem-marquee-reverse{animation-direction:reverse}' +
+  '@media (prefers-reduced-motion: reduce){.idem-marquee{animation:none}}';
+
+/**
+ * Bandeau défilant — d'après Magic UI (MIT). Le contenu est répété pour
+ * boucler sans trou ; seules les répétitions sont masquées aux lecteurs
+ * d'écran. Immobile si le visiteur a demandé moins d'animations.
+ */
+export default function Marquee({ children, reverse = false, pauseOnHover = true, repeat = 4, duration = '40s', className }) {
+  return (
+    <div className={cn('group flex overflow-hidden [--gap:2rem] [gap:var(--gap)]', className)} style={{ '--duration': duration }}>
+      <style>{KEYFRAMES}</style>
+      {Array.from({ length: repeat }).map((_, index) => (
+        <div
+          key={index}
+          aria-hidden={index > 0 ? 'true' : undefined}
+          className={cn(
+            'idem-marquee flex shrink-0 items-center justify-around [gap:var(--gap)]',
+            reverse && 'idem-marquee-reverse',
+            pauseOnHover && 'group-hover:[animation-play-state:paused]'
+          )}
+        >
+          {children}
+        </div>
+      ))}
+    </div>
+  );
+}
+`,
+    'src/components/idem/border-beam.jsx': `import { motion } from 'motion/react';
+
+/**
+ * Faisceau lumineux qui parcourt le bord d'une carte — d'après Magic UI (MIT).
+ * Le parent doit être \`relative\` et arrondi ; aux couleurs de la marque.
+ */
+export default function BorderBeam({ size = 90, duration = 7 }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 rounded-[inherit] border-2 border-transparent [mask-clip:padding-box,border-box] [mask-composite:intersect] [mask-image:linear-gradient(transparent,transparent),linear-gradient(#000,#000)]"
+    >
+      <motion.div
+        className="absolute aspect-square bg-gradient-to-l from-brand-600 via-brand-400 to-transparent motion-reduce:hidden"
+        style={{ width: size, offsetPath: 'rect(0 auto auto 0 round ' + size + 'px)' }}
+        initial={{ offsetDistance: '0%' }}
+        animate={{ offsetDistance: ['0%', '100%'] }}
+        transition={{ repeat: Infinity, ease: 'linear', duration }}
+      />
+    </div>
+  );
+}
+`,
+    'src/components/idem/patterns.jsx': `import { useId } from 'react';
+import { cn } from '../../lib/cn.js';
+
+/**
+ * Trames de fond — d'après Magic UI (MIT) : points ou grille, en SVG, à la
+ * couleur de la marque et très légères. Pour un hero sans visuel : une texture
+ * plutôt qu'un aplat vide.
+ */
+export function DotPattern({ spacing = 22, radius = 1.4, className }) {
+  const id = useId();
+  return (
+    <svg aria-hidden="true" className={cn('pointer-events-none absolute inset-0 h-full w-full fill-brand-600/20', className)}>
+      <defs>
+        <pattern id={id} width={spacing} height={spacing} patternUnits="userSpaceOnUse">
+          <circle cx={spacing / 2} cy={spacing / 2} r={radius} />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" strokeWidth={0} fill={'url(#' + id + ')'} />
+    </svg>
+  );
+}
+
+export function GridPattern({ size = 44, className }) {
+  const id = useId();
+  return (
+    <svg aria-hidden="true" className={cn('pointer-events-none absolute inset-0 h-full w-full stroke-brand-600/15', className)}>
+      <defs>
+        <pattern id={id} width={size} height={size} patternUnits="userSpaceOnUse">
+          <path d={'M.5 ' + size + 'V.5H' + size} fill="none" />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" strokeWidth={0} fill={'url(#' + id + ')'} />
+    </svg>
+  );
+}
+`,
+    'src/sections/Band.jsx': `import { cn } from '../lib/cn.js';
+import Marquee from '../components/idem/marquee.jsx';
+import { toneClass } from './tone.js';
+
+/**
+ * Bandeau défilant (Magic UI) : les offres ou les points forts, en grand,
+ * séparés par un signe à la couleur de la marque.
+ */
+export default function Band({ id, items = [], tone, className }) {
+  if (items.length < 3) return null;
+  return (
+    <section id={id} className={cn('border-y border-neutral-200 py-block', toneClass(tone), className)}>
+      <Marquee duration={Math.max(24, items.length * 7) + 's'}>
+        {items.map((item) => (
+          <span key={item} className="flex items-center gap-[var(--gap)] whitespace-nowrap font-display text-2xl text-ink md:text-3xl">
+            {item}
+            <span aria-hidden="true" className="text-brand-600">✦</span>
+          </span>
+        ))}
+      </Marquee>
+    </section>
+  );
+}
+`,
+    'src/sections/fx.js': `/**
+ * Intensité des effets du site, réglée d'après le style de la charte :
+ * \`calm\` (apparitions discrètes), \`lively\` (apparitions marquées, faisceau
+ * sur l'offre mise en avant), \`none\` (aucune animation). TEXTURE : la trame
+ * d'un hero sans visuel (\`grid\`, \`dots\` ou \`none\`).
+ */
+export const FX = 'calm';
+export const TEXTURE = 'grid';
+`,
     'src/sections/index.js': `export { default as Contact } from './Contact.jsx';
+export { default as Band } from './Band.jsx';
 export { default as Cta } from './Cta.jsx';
 export { default as Faq } from './Faq.jsx';
 export { default as Features } from './Features.jsx';

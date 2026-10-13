@@ -35,6 +35,7 @@ export type KitComponent =
   | 'Showcase'
   | 'Statement'
   | 'Gallery'
+  | 'Band'
   | 'Footer';
 
 export interface PlannedSection {
@@ -63,7 +64,8 @@ export interface PlannedSection {
   inserted?: boolean;
 }
 
-export type PageKey = 'home' | 'offers' | 'about' | 'contact';
+/** `home`, ou l'adresse d'une page intérieure (`menu`, `nos-services`…). */
+export type PageKey = string;
 
 export interface PlannedPage {
   key: PageKey;
@@ -420,9 +422,19 @@ export function buildSitePlan(facts: SiteFacts, options: PlanOptions): SitePlan 
  * La destination d'un bouton, dite au modèle pour que le libellé y corresponde
  * (« Réserver » mène au contact, « Voir les tarifs » aux offres).
  */
-export function describeDestination(href: string, facts: SiteFacts, language: string): string {
+export function describeDestination(href: string, facts: SiteFacts, language: string, pages: PlannedPage[] = []): string {
   const w = wordsFor(language);
   const channels = facts.channels.map((channel) => channel.label.toLowerCase()).join(', ');
+  const page = pages.find((candidate) => candidate.path === href || (candidate.path === '/' && href.startsWith('/#')));
+  if (page) {
+    if (page.sections.some((section) => section.component === 'Contact') && (href === page.path || href === '/#contact')) {
+      return `la page « ${page.label} », pour prendre contact (${channels})`;
+    }
+    if (page.sections.some((section) => section.component === 'Pricing') && (href === page.path || href === '/#tarifs')) {
+      return `la page « ${page.label} », avec les offres et leurs prix`;
+    }
+    return page.path === '/' ? "la page d'accueil" : `la page « ${page.label} »`;
+  }
 
   if (href === w.paths.contact || href === '#contact') return `la prise de contact (${channels})`;
   if (href === w.paths.offers || href === '#tarifs') return 'les offres et leurs prix';
