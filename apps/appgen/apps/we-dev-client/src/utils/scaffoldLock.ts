@@ -140,8 +140,14 @@ export const LINT_RELEVANT_SCAFFOLD_PATHS = [
  * montrer, et le bouton doit proposer de générer.
  */
 export function isStarterOnly(files: Record<string, string>): boolean {
+  // `src/pages/home.jsx` : la page d'accueil du site vitrine (Vite, une page
+  // HTML par page). Sans elle, un site encore vierge passait pour un projet
+  // déjà généré, et le bouton « Générer maintenant » ne s'affichait pas.
   const app =
-    files['src/app/page.jsx'] ?? files['src/App.jsx'] ?? files['frontend/src/App.jsx'];
+    files['src/pages/home.jsx'] ??
+    files['src/app/page.jsx'] ??
+    files['src/App.jsx'] ??
+    files['frontend/src/App.jsx'];
   return typeof app === 'string' && app.includes('idem:placeholder');
 }
 

@@ -3,6 +3,7 @@ import { TFunction } from 'i18next';
 import { parseMessage } from '@/utils/messagepParseJson';
 import { useFileStore } from '@/components/WeIde/stores/fileStore';
 import { LINT_RELEVANT_SCAFFOLD_PATHS, lockedScaffoldPaths } from '@/utils/scaffoldLock';
+import { internalMessage } from '@/utils/stepLabels';
 
 /**
  * Post-generation quality pass.
@@ -182,7 +183,7 @@ export async function runQualityPass(
   const visible = t?.('chat.quality_pass', { count }) ?? `Applying ${count} design fixes.`;
 
   await append(
-    { role: 'user', content: visible },
+    { role: 'user', content: internalMessage(visible) },
     { body: { qualityRepair: report.repairPrompt } }
   );
 

@@ -1,6 +1,13 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { sanitizeChatProse } from "@/utils/stepLabels";
+import {
+  conversationalProse,
+  internalText,
+  isInternalMessage,
+  sanitizeChatProse,
+} from "@/utils/stepLabels";
+import useChatModeStore from "@/stores/chatModeSlice";
+import { ChatMode } from "@/types/chat";
 import { ArtifactView } from "../ArtifactView";
 import { ImageGrid } from "../ImageGrid";
 import { Message } from "ai";
@@ -559,7 +566,20 @@ const MessageItemView: React.FC<MessageItemProps> = ({
     }
   }, [message.parts]);
 
+  const { mode } = useChatModeStore();
+
   const initial = isUser ? getInitial(user?.username) : "AI";
+
+  // Message envoyé par l'atelier lui-même (relance, revue, reprise) : une ligne
+  // d'état, pas une bulle au nom de l'utilisateur, qui ne l'a pas écrit.
+  if (isUser && isInternalMessage(message.content)) {
+    return (
+      <div className="flex items-center justify-center gap-2 px-2 py-1 text-xs text-text-tertiary">
+        <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-400" />
+        <span>{internalText(message.content)}</span>
+      </div>
+    );
+  }
   const avatarColor = isUser
     ? "bg-purple-500 dark:bg-purple-600"
     : "bg-gray-100 dark:bg-[rgba(45,45,45)]";
@@ -789,7 +809,17 @@ const MessageItemView: React.FC<MessageItemProps> = ({
                       // Le code éventuellement glissé hors des actions de
                       // fichier est récupéré ailleurs et écrit dans le projet :
                       // l'afficher ici ne renseigne personne et noie la phrase.
-                      return sanitizeChatProse(processStreamParts(filterMessages.parts));
+                      const prose = sanitizeChatProse(processStreamParts(filterMessages.parts));
+                      // En mode Plan, une réponse longue et structurée est la
+                      // réponse attendue. En mode Build, la conversation raconte
+                      // le travail : une réponse qui n'est pas une phrase (le
+                      // modèle qui recopie ses consignes, un récapitulatif
+                      // technique) cède la place à une explication courte.
+                      if (isUser || mode !== ChatMode.Builder) return prose;
+                      const conversational = conversationalProse(prose);
+                      if (conversational) return conversational;
+                      const streaming = isLoading && isEndMessage;
+                      return prose && !streaming ? t("chat.technicalHidden") : "";
                     })()}
                   </ReactMarkdown>
                 </div>

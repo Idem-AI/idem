@@ -27,6 +27,7 @@ import {
   JSCONFIG,
   POSTCSS_CONFIG,
   buildBaseCss,
+  BrandLogoSource,
   buildBrandMark,
   buildPackageJson,
   buildTailwindConfig,
@@ -404,7 +405,8 @@ dist
 export function buildSiteViteScaffold(
   system: DesignSystem,
   projectData: ProjectModel | undefined,
-  language: string
+  language: string,
+  brand?: { source?: BrandLogoSource; file?: { path: string; content: string } }
 ): { files: Record<string, string>; locked: string[] } {
   const template = buildPageTemplate(system, projectData, language);
   const name = projectTitle(projectData);
@@ -441,9 +443,10 @@ export function buildSiteViteScaffold(
     'idem.libraries.json': renderLibraryManifest('site'),
     // Le gabarit sert au compositeur : une page du plan donne un document.
     'idem.page.html': template.replace('{{fonts}}', fontLinks(system)),
-    'index.html': home,
     'src/styles/index.css': buildBaseCss(system),
-    'src/brand.jsx': buildBrandMark(projectData),
+    'src/brand.jsx': buildBrandMark(projectData, brand?.source),
+    // Le logo de la charte, déposé dans le projet par le serveur.
+    ...(brand?.file ? { [brand.file.path]: brand.file.content } : {}),
     'src/lib/cn.js': CN_HELPER,
     'src/lib/utils.js': CN_UTILS,
     'src/sections/Link.jsx': LINK_ADAPTER,
@@ -461,6 +464,10 @@ export function buildSiteViteScaffold(
     files: {
       ...locked,
       ...sections,
+      // Le document de l'accueil n'est pas verrouillé : le compositeur le
+      // réécrit avec le titre et la description de la page. Verrouillé, le
+      // rafraîchissement du socle à la réouverture le remettait au gabarit nu.
+      'index.html': home,
       'src/seo.js': buildSeoConfig(projectData, system, language),
       'src/pages/home.jsx': PLACEHOLDER_PAGE,
     },

@@ -4,6 +4,7 @@ import { TFunction } from "i18next";
 import { ensureProjectIsRunnable } from "./ensureRunnable";
 import { stabilizeWorkspace } from "./stabilize";
 import { ensurePreviewRunning } from "./ensurePreview";
+import { internalMessage } from "@/utils/stepLabels";
 
 
 /**
@@ -16,10 +17,12 @@ export const checkFinish = (text: string, append?: (message: Message | CreateMes
   const closeCount = (text.match(/<\/boltArtifact>/g) || []).length;
 
   if (openCount !== closeCount) {
-    append({
-      content: t('chat.regenerate_incomplete'),
-      role: 'user',
-    })
+    // La consigne de reprise part hors conversation ; l'utilisateur lit une
+    // ligne d'état qui dit ce qui se passe.
+    append(
+      { content: internalMessage(t('chat.resumingIncomplete')), role: 'user' },
+      { body: { followUp: t('chat.regenerate_incomplete') } }
+    );
   }
   // Both opening and closing tags must exist and be equal in number
   return openCount === closeCount;

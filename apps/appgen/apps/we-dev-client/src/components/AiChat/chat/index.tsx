@@ -59,6 +59,8 @@ import {
   readSeoAnswer,
   seoNeedsFilling,
 } from '@/utils/planRecovery';
+import { isOrchestratedSite } from '@/utils/pageComposer';
+import { internalMessage } from '@/utils/stepLabels';
 import {
   clearScaffold,
   hasScaffoldSignature,
@@ -387,10 +389,19 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
         const files = useFileStore.getState().files;
 
-        if (missing.length && !contentRetryRef.current) {
+        if (isOrchestratedSite(files)) {
+          // Site rédigé section par section par le serveur : contenus vérifiés,
+          // référencement écrit, pages assemblées par le code. Ni relance ni
+          // revue de design à faire — la revue renvoyait le modèle réécrire des
+          // fichiers qui n'avaient rien à corriger, et c'est là qu'il se
+          // mettait à recopier ses consignes.
+        } else if (missing.length && !contentRetryRef.current) {
           contentRetryRef.current = true;
           append(
-            { role: 'user', content: t('chatWorkspace.completingContent', { count: missing.length }) },
+            {
+              role: 'user',
+              content: internalMessage(t('chatWorkspace.completingContent', { count: missing.length })),
+            },
             { body: { followUp: buildContentRequest(missing) } }
           );
         } else if (!seoRetryRef.current && seoNeedsFilling(files)) {
@@ -398,7 +409,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           // tirent du contenu réellement écrit, pas d'un site imaginé.
           seoRetryRef.current = true;
           append(
-            { role: 'user', content: t('chatWorkspace.configuringSeo') },
+            { role: 'user', content: internalMessage(t('chatWorkspace.configuringSeo')) },
             { body: { followUp: buildSeoRequest(files) } }
           );
         } else {

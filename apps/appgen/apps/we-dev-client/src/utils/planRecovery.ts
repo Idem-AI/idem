@@ -74,7 +74,8 @@ export function missingContentModules(files: Record<string, string>): MissingCon
   const raw = files['idem.plan.json'];
   if (typeof raw !== 'string') return [];
 
-  let plan: { sections?: Array<{ component?: string; content?: string }> };
+  type Section = { component?: string; content?: string };
+  let plan: { sections?: Section[]; pages?: Array<{ sections?: Section[] }> };
   try {
     plan = JSON.parse(raw);
   } catch {
@@ -84,7 +85,14 @@ export function missingContentModules(files: Record<string, string>): MissingCon
   const missing: MissingContent[] = [];
   const seen = new Set<string>();
 
-  for (const section of plan.sections ?? []) {
+  // Un plan multi-pages range ses sections par page : sans les lire, ses
+  // contenus manquants passaient inaperçus et les sections disparaissaient.
+  const sections = [
+    ...(plan.sections ?? []),
+    ...(plan.pages ?? []).flatMap((page) => page?.sections ?? []),
+  ];
+
+  for (const section of sections) {
     const name = section?.content;
     const component = section?.component;
     if (!name || !component || seen.has(name)) continue;

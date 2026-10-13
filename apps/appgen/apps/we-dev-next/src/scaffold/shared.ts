@@ -18,6 +18,7 @@
  */
 
 import { DesignSystem } from '../design/tokenForge.js';
+import { resolveHeaderLogo } from '../design/charter.js';
 import { ProjectModel } from '../types/project.js';
 
 /** Dépendances posées dans tous les starters : le modèle n'a pas à les demander. */
@@ -209,6 +210,10 @@ ${ramp(colors.neutral, '        ')}
         'surface-raised': '${colors.surfaceRaised}',
         ink: '${colors.ink}',
         'ink-muted': '${colors.inkMuted}',
+        // Le texte posé sur la marque et sur l'accent : blanc ou encre, celui
+        // qui se lit. Une primaire claire rendait le blanc illisible.
+        'on-brand': '${colors.onBrand}',
+        'on-accent': '${colors.onAccent}',
       },
       fontFamily: {
         display: ['${fonts.display}', ${serifStack}],
@@ -321,9 +326,9 @@ export function buildUiKit(): Record<string, string> {
     'src/ui/Button.jsx': `import { cn } from '../lib/cn.js';
 
 const VARIANTS = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700',
+  primary: 'bg-brand-600 text-on-brand hover:bg-brand-700',
   secondary: 'bg-surface-raised text-ink border border-neutral-200 hover:border-neutral-400',
-  accent: 'bg-accent text-ink hover:opacity-90',
+  accent: 'bg-accent text-on-accent hover:opacity-90',
   ghost: 'text-ink hover:bg-surface-raised',
 };
 
@@ -468,59 +473,48 @@ export { default as Spinner } from './Spinner.jsx';
 export const UI_KIT_PATHS = Object.keys(buildUiKit());
 
 /**
+ * Le logo tel qu'il sera servi par le site.
+ *
+ * `path` : fichier déposé dans le projet (`public/brand/logo.svg`), servi à la
+ * racine du site. `dataUri` : image matricielle embarquée. `remote` : l'adresse
+ * d'origine, quand rien n'a pu être récupéré.
+ */
+export interface BrandLogoSource {
+  path?: string;
+  dataUri?: string;
+  remote?: string;
+  inlineSvg?: string;
+}
+
+/**
  * La marque, posée par le code.
  *
  * Le logo est une donnée du projet : le serveur l'a sous la main, et le faire
- * transiter par le modèle est le plus sûr moyen de le perdre. Avec le plan de
- * page, le modèle écrit `logo: "LIGHT"` — une chaîne — et la vraie marque
- * disparaît de la page sans que personne ne s'en aperçoive.
- *
- * Le composant rend, dans l'ordre : l'image hébergée, le SVG de la marque, puis
- * le mot-logo. Le texte que le modèle propose sert de repli, jamais de
- * remplacement.
+ * transiter par le modèle est le plus sûr moyen de le perdre. Il est lu avec
+ * les mêmes emplacements et les mêmes replis que la charte (cf. `charter.ts`),
+ * puis rendu depuis le fichier déposé dans le projet quand c'est possible.
  */
-export function buildBrandMark(projectData: ProjectModel | undefined): string {
+export function buildBrandMark(projectData: ProjectModel | undefined, source?: BrandLogoSource): string {
   const name = projectTitle(projectData).replace(/`/g, '');
-  const logo = projectData?.analysisResultModel?.branding?.logo as
-    | { assetUrls?: Record<string, any>; variations?: Record<string, any>; svg?: string }
-    | undefined;
+  const logo = projectData?.analysisResultModel?.branding?.logo as unknown;
+  const declared = resolveHeaderLogo(logo);
 
-  const pick = (...candidates: unknown[]): string | undefined => {
-    const usable = candidates
-      .map((candidate) => (typeof candidate === 'string' ? candidate.trim() : ''))
-      .filter(Boolean);
-    // Une URL coûte quelques octets, un SVG en ligne quelques milliers : on
-    // préfère la première quand les deux existent.
-    return usable.find((candidate) => !candidate.startsWith('<')) ?? usable[0];
-  };
-
-  const asset = pick(
-    logo?.assetUrls?.withText?.lightBackground,
-    logo?.assetUrls?.primary,
-    logo?.variations?.withText?.lightBackground,
-    logo?.variations?.lightBackground,
-    logo?.svg
-  );
-
+  const src = source ?? (declared ? (declared.startsWith('<') ? { inlineSvg: declared } : { remote: declared }) : {});
   const wordmark = `<span className="font-display text-xl tracking-tight">${name}</span>`;
 
-  // Un SVG en ligne trop lourd alourdirait chaque écran pour rien.
-  const inlineTooBig = asset?.startsWith('<') && asset.length > 20000;
+  let constant = '';
+  let mark = '';
 
-  const mark = !asset || inlineTooBig
-    ? wordmark
-    : asset.startsWith('<')
-      ? `<span className="inline-block h-9 [&>svg]:h-full [&>svg]:w-auto" aria-label="${name}" dangerouslySetInnerHTML={{ __html: LOGO_SVG }} />`
-      : `<img src={LOGO_URL} alt="${name}" className="h-9 w-auto" />`;
-
-  const constant = !asset || inlineTooBig
-    ? ''
-    : asset.startsWith('<')
-      ? `const LOGO_SVG = ${JSON.stringify(asset)};\n\n`
-      : `const LOGO_URL = ${JSON.stringify(asset)};\n\n`;
+  if (src.path || src.dataUri || src.remote) {
+    constant = `const LOGO_SRC = ${JSON.stringify(src.path ?? src.dataUri ?? src.remote)};\n\n`;
+    mark = `<img src={LOGO_SRC} alt=${JSON.stringify(name)} className="h-9 w-auto" />`;
+  } else if (src.inlineSvg && src.inlineSvg.length <= 20000) {
+    constant = `const LOGO_SVG = ${JSON.stringify(src.inlineSvg)};\n\n`;
+    mark = `<span className="inline-block h-9 [&>svg]:h-full [&>svg]:w-auto" role="img" aria-label=${JSON.stringify(name)} dangerouslySetInnerHTML={{ __html: LOGO_SVG }} />`;
+  }
 
   return `/**
- * Marque du projet — posée par IDEM.
+ * Marque du projet — posée par IDEM depuis la charte.
  *
  * Utilisée par la navigation et le pied de page. Le texte passé en \`fallback\`
  * ne sert que si ce projet n'a pas de logo.
@@ -528,7 +522,7 @@ export function buildBrandMark(projectData: ProjectModel | undefined): string {
 ${constant}export const BRAND_NAME = ${JSON.stringify(name)};
 
 export default function BrandMark({ fallback }) {
-  ${asset && !inlineTooBig ? `return ${mark};` : `return fallback ? <span className="font-display text-xl tracking-tight">{fallback}</span> : ${wordmark};`}
+  ${mark ? `return ${mark};` : `return fallback ? <span className="font-display text-xl tracking-tight">{fallback}</span> : ${wordmark};`}
 }
 `;
 }

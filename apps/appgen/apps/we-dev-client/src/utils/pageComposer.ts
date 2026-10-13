@@ -66,6 +66,8 @@ export interface PlanSection {
   content?: string;
   variant?: string;
   visual?: PlanVisual;
+  /** `id` de la section : la cible d'un lien « #tarifs » de la navigation. */
+  anchor?: string;
 }
 
 export interface PlanPage {
@@ -79,6 +81,8 @@ export interface PlanPage {
 }
 
 export interface PagePlan {
+  /** `idem-site` : plan écrit par l'orchestrateur du serveur, pas par un modèle. */
+  origin?: string;
   /** Un site a des pages. Une page unique reste un cas particulier. */
   pages?: PlanPage[];
   /** Forme courte, conservée : un plan sans `pages` décrit l'accueil. */
@@ -104,6 +108,36 @@ export interface ComposeResult {
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 /** Un nom de module de contenu, jamais un chemin : pas d'échappement possible. */
 const CONTENT_NAME = /^[a-z0-9][a-z0-9-]*$/i;
+/** Une ancre : minuscules, chiffres et tirets, comme dans une adresse. */
+const ANCHOR = /^[a-z][a-z0-9-]*$/;
+
+/**
+ * Le nom de variable d'un module de contenu : `home-split-a` → `homeSplitAContent`.
+ *
+ * L'ancienne conversion ne remontait que les lettres : `home-split-1` donnait
+ * `homeSplit-1Content`, un identifiant invalide, et la page entière ne
+ * compilait plus.
+ */
+function contentBinding(name: string): string {
+  const camel = name
+    .split('-')
+    .filter(Boolean)
+    .map((part, index) => (index === 0 ? part : part[0].toUpperCase() + part.slice(1)))
+    .join('');
+  return `${/^[0-9]/.test(camel) ? '_' : ''}${camel}Content`;
+}
+
+/** Les sections qui encadrent la page : hors du `<main>`. */
+const FRAME = new Set(['Nav', 'Footer']);
+
+/** Les clés d'un plan écrit par l'orchestrateur du serveur. */
+export const ORCHESTRATED_ORIGIN = 'idem-site';
+
+/** Le plan du site a-t-il été écrit par l'orchestrateur (et non par un modèle) ? */
+export function isOrchestratedSite(files: Record<string, string>): boolean {
+  const plan = parseJson<PagePlan>(files['idem.plan.json'] ?? '');
+  return plan?.origin === ORCHESTRATED_ORIGIN;
+}
 
 const parseJson = <T>(raw: string): T | null => {
   try {
@@ -234,8 +268,11 @@ function composeOne(
   issues: string[]
 ): string | null {
   const imports: string[] = [];
+  const before: string[] = [];
   const body: string[] = [];
+  const after: string[] = [];
   const kitUsed = new Set<string>();
+  const bindings = new Set<string>();
 
   (page.sections ?? []).forEach((section, index) => {
     const name = section?.component;
@@ -262,9 +299,18 @@ function composeOne(
         return;
       }
 
-      const binding = `${section.content.replace(/-([a-z])/g, (_, c) => c.toUpperCase())}Content`;
-      imports.push(`import ${binding} from '${up}content/${section.content}.js';`);
+      const binding = contentBinding(section.content);
+      // Un même contenu cité deux fois sur la page : un seul import.
+      if (!bindings.has(binding)) {
+        bindings.add(binding);
+        imports.push(`import ${binding} from '${up}content/${section.content}.js';`);
+      }
       props.push(`{...${binding}}`);
+    }
+
+    if (section.anchor) {
+      if (ANCHOR.test(section.anchor)) props.push(`id="${section.anchor}"`);
+      else issues.push(`ancre « ${section.anchor} » refusée pour ${name}`);
     }
 
     if (section.variant) {
@@ -295,22 +341,19 @@ function composeOne(
     }
 
     kitUsed.add(name);
-    body.push(`      <${name}${props.length ? ` ${props.join(' ')}` : ''} />`);
+    const element = `<${name}${props.length ? ` ${props.join(' ')}` : ''} />`;
+    // La navigation avant le contenu, le pied de page après : tout le reste
+    // dans <main>, le repère que cherchent les lecteurs d'écran.
+    if (FRAME.has(name)) (body.length ? after : before).push(`      ${element}`);
+    else body.push(`        ${element}`);
   });
 
   if (!body.length) return null;
 
   const kitImport = `import { ${Array.from(kitUsed).sort().join(', ')} } from '${up}sections/index.js';`;
 
-  // Les métadonnées de la page partent dans le HTML servi : c'est ce que lit un
-  // moteur de recherche, et la raison d'être de Next ici.
-  const metadata =
-    page.title || page.description
-      ? `\nexport const metadata = {${page.title ? `\n  title: ${JSON.stringify(page.title)},` : ''}${
-          page.description ? `\n  description: ${JSON.stringify(page.description)},` : ''
-        }\n};\n`
-      : '';
-
+  // Le titre et la description de la page ne vivent pas ici : ils sont écrits
+  // dans son document HTML (voir `composePage`), là où les lit un moteur.
   return `/**
  * Page assemblée par IDEM d'après \`idem.plan.json\`.
  *
@@ -319,11 +362,11 @@ function composeOne(
  * réécrits, et ce fichier recomposé.
  */
 ${[kitImport, ...imports].join('\n')}
-${metadata}
+
 export default function Page() {
   return (
     <>
-${body.join('\n')}
+${[...before, '      <main>', ...body, '      </main>', ...after].join('\n')}
     </>
   );
 }

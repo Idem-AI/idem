@@ -28,6 +28,43 @@ const CONTENT_LABELS: Record<string, string> = {
   footer: 'le pied de page',
 };
 
+/**
+ * Contenus d'un site rédigé par l'orchestrateur : `<page>-<rôle>`.
+ * `home-hero` → « l'accroche de l'accueil », `offers-pricing` → « les tarifs
+ * de la page Offres ».
+ */
+const PAGE_NAMES: Record<string, string> = {
+  home: "de l'accueil",
+  offers: 'de la page Offres',
+  about: 'de la page À propos',
+  contact: 'de la page Contact',
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  hero: "l'accroche",
+  header: "l'en-tête",
+  features: 'les points forts',
+  'split-a': "l'offre en détail",
+  'split-b': 'le public visé',
+  split: 'le déroulé',
+  steps: 'les étapes',
+  pricing: 'les tarifs',
+  team: "l'équipe",
+  faq: 'les questions fréquentes',
+  contact: 'le contact',
+  channels: 'les moyens de contact',
+  story: "l'histoire",
+  values: 'les engagements',
+  cta: "l'appel à l'action",
+};
+
+function orchestratedContentLabel(name: string): string | null {
+  const match = name.match(/^(home|offers|about|contact)-(.+)$/);
+  if (!match) return null;
+  const role = ROLE_LABELS[match[2]];
+  return role ? `${role} ${PAGE_NAMES[match[1]]}` : null;
+}
+
 const readableSlug = (slug: string): string =>
   slug.replace(/[-_]/g, ' ').replace(/\.(jsx?|tsx?|css|json)$/, '').trim();
 
@@ -40,6 +77,8 @@ export function describeFile(path: string): string {
 
   if (clean === 'idem.plan.json') return 'Je choisis les pages et les sections du site';
   if (clean === 'src/seo.js') return 'Je règle le référencement';
+  if (clean === 'public/brand/pattern.svg') return 'Je reprends le motif de la charte';
+  if (clean === 'src/sections/BrandPattern.jsx') return 'Je prépare les visuels au motif de la charte';
   if (clean.endsWith('globals.css') || clean.endsWith('styles/index.css')) {
     return "J'applique la charte graphique";
   }
@@ -47,7 +86,7 @@ export function describeFile(path: string): string {
   const content = clean.match(/^src\/content\/(.+)\.jsx?$/);
   if (content) {
     const name = content[1];
-    const known = CONTENT_LABELS[name];
+    const known = CONTENT_LABELS[name] ?? orchestratedContentLabel(name);
     return `J'écris ${known ?? `le contenu « ${readableSlug(name)} »`}`;
   }
 
@@ -63,7 +102,11 @@ export function describeFile(path: string): string {
   const component = clean.match(/^src\/(?:components|ui)\/(?:.*\/)?(\w+)\.jsx?$/);
   if (component) return `Je prépare le composant ${readableSlug(component[1])}`;
 
-  const screen = clean.match(/^src\/(?:screens|pages)\/(\w+)\.jsx?$/);
+  // Site vitrine : une page par fichier dans `src/pages/`.
+  const sitePage = clean.match(/^src\/pages\/([\w-]+)\.jsx?$/);
+  if (sitePage) return `J'assemble ${pageLabel(sitePage[1] === 'home' ? '' : sitePage[1])}`;
+
+  const screen = clean.match(/^src\/screens\/(\w+)\.jsx?$/);
   if (screen) return `Je construis l'écran ${readableSlug(screen[1])}`;
 
   if (/^backend\/src\/routes\//.test(clean)) return "J'ouvre une route de l'API";
@@ -135,4 +178,50 @@ export function sanitizeChatProse(text: string): string {
   clean = clean.replace(/(^|\n)\s*\{[\s\S]*?\n\s*\}\s*(?=\n|$)/g, '$1');
 
   return clean.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Messages de l'atelier                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Marque invisible d'un message envoyé par l'atelier lui-même : relance des
+ * contenus manquants, référencement, revue de design, reprise d'une réponse
+ * coupée. Ces messages partent comme des messages « utilisateur » (c'est ainsi
+ * que le modèle les reçoit), mais l'utilisateur ne les a pas écrits : la
+ * conversation les montre comme une ligne d'état, pas comme une bulle à son nom.
+ */
+export const INTERNAL_MARK = '\u2063';
+
+export const internalMessage = (text: string): string => `${INTERNAL_MARK}${text}`;
+
+export const isInternalMessage = (content: unknown): boolean =>
+  typeof content === 'string' && content.startsWith(INTERNAL_MARK);
+
+export const internalText = (content: string): string => content.replace(INTERNAL_MARK, '').trim();
+
+/**
+ * La prose du modèle, si elle se lit comme une phrase adressée à quelqu'un.
+ *
+ * En mode Build, la conversation raconte ce qui se passe : la liste des étapes
+ * le fait déjà. Ce que le modèle écrit autour n'est montré que si c'est une
+ * vraie phrase. Un texte à titres, à tableaux, à balises, ou un pavé — le
+ * modèle qui recopie ses consignes (« Signature move », tableaux de jetons),
+ * le récapitulatif technique de fin de réponse — n'est pas une phrase : il
+ * n'est pas affiché.
+ */
+export function conversationalProse(text: string): string {
+  const clean = sanitizeChatProse(text);
+  if (!clean) return '';
+
+  const documentLike =
+    /^\s{0,3}#{1,6}\s/m.test(clean) || // titres markdown
+    /^\s*\|.*\|\s*$/m.test(clean) || // tableaux
+    /<\/?[a-zA-Z][\w-]*(\s[^>]*)?>/.test(clean) || // balises
+    /`[^`]*[/.][^`]*`/.test(clean) || // chemins et noms de fichiers en code
+    /\b(src|public|node_modules)\/[\w./-]+/.test(clean) || // chemins nus
+    clean.length > 600 ||
+    clean.split(/\n\s*[-*]\s/).length > 6; // listes à rallonge
+
+  return documentLike ? '' : clean;
 }

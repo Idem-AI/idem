@@ -22,6 +22,7 @@ import { BuildTarget } from '../config/buildTarget.js';
 import { DesignSystem, forgeDesignSystem } from '../design/tokenForge.js';
 import { ProjectModel } from '../types/project.js';
 import { renderLibraryMenu } from './libraries.js';
+import type { BrandLogoSource } from './shared.js';
 import { buildMobileScaffold } from './mobileApp.js';
 import { buildSiteViteScaffold } from './siteVite.js';
 import { buildWebAppScaffold } from './webApp.js';
@@ -31,7 +32,7 @@ import { buildWebAppScaffold } from './webApp.js';
  * change : le client s'en sert pour savoir qu'un espace de travail ouvert
  * tourne sur un socle périmé.
  */
-export const SCAFFOLD_VERSION = '4';
+export const SCAFFOLD_VERSION = '5';
 
 export interface Scaffold {
   version: string;
@@ -50,6 +51,11 @@ export interface ScaffoldOptions {
   language?: string;
   /** Charte déjà forgée (évite de la recalculer dans la chaîne de génération). */
   system?: DesignSystem;
+  /**
+   * Logo résolu par la route (fichier déposé ou image embarquée). Sans lui, la
+   * marque pointe l'adresse d'origine — ce qui suffit pour le contrat de build.
+   */
+  brand?: { source?: BrandLogoSource; file?: { path: string; content: string } };
 }
 
 export function buildScaffold(options: ScaffoldOptions): Scaffold {
@@ -59,7 +65,7 @@ export function buildScaffold(options: ScaffoldOptions): Scaffold {
 
   const { files, locked } =
     target === 'site'
-      ? buildSiteViteScaffold(system, projectData, language)
+      ? buildSiteViteScaffold(system, projectData, language, options.brand)
       : target === 'mobile-app'
         ? buildMobileScaffold(system, projectData, language)
         : buildWebAppScaffold(system, projectData, language);

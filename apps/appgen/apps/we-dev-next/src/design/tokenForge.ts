@@ -16,6 +16,15 @@
 
 import { ProjectModel } from '../types/project.js';
 import {
+  buildAnchoredRamp,
+  CharterStyle,
+  isLightSurface,
+  readableOn,
+  readFonts,
+  readPalette,
+  resolveCharterStyle,
+} from './charter.js';
+import {
   buildNeutralRamp,
   buildRamp,
   contrastRatio,
@@ -51,7 +60,13 @@ export interface DesignSystem {
     surfaceRaised: string;
     ink: string;
     inkMuted: string;
+    /** Encre lisible posée SUR la couleur de marque (boutons, bandeaux). */
+    onBrand: string;
+    /** Encre lisible posée sur l'accent. */
+    onAccent: string;
   };
+  /** Style de direction artistique de la charte, quand le projet en a une. */
+  charterStyleId?: string;
   contrast: {
     bodyOnSurface: number;
     mutedOnSurface: number;
@@ -145,18 +160,19 @@ interface ResolvedFonts extends FontPairing {
 }
 
 function resolveFonts(projectData: ProjectModel | undefined, random: () => number): ResolvedFonts {
-  const typography = projectData?.analysisResultModel?.branding?.typography;
+  const charter = readFonts(projectData?.analysisResultModel?.branding);
   const seeded = pick(FONT_PAIRINGS, random);
 
-  if (!typography?.primaryFont) {
+  if (!charter.display) {
     return { ...seeded, fromBrand: false };
   }
 
   // The brand's typography wins outright. The art direction governs composition
   // and rhythm, never the typefaces a project has already committed to.
+  // Lu comme brand-kit le lit : `primary.family` avant `primaryFont`.
   return {
-    display: typography.primaryFont,
-    body: typography.secondaryFont || typography.primaryFont,
+    display: charter.display,
+    body: charter.body || charter.display,
     displayWeights: '400;600;700',
     bodyWeights: '400;500;600;700',
     fromBrand: true,
@@ -281,11 +297,22 @@ export function forgeDesignSystem(
   const forcedDirection = overrides?.directionId
     ? ART_DIRECTIONS.find((candidate) => candidate.id === overrides.directionId)
     : undefined;
-  const direction = forcedDirection ?? pick(usable.length ? usable : ART_DIRECTIONS, random);
+
+  // La direction artistique de la CHARTE passe avant le tirage au sort : c'est
+  // elle que la charte, le business plan et le deck appliquent déjà. Le site
+  // tirait la sienne dans un catalogue à part, et ne ressemblait donc à aucun
+  // des autres livrables du même projet.
+  const branding = projectData?.analysisResultModel?.branding as any;
+  const charterStyle = resolveCharterStyle(branding?.artDirection?.styleId);
+  const seeded = pick(usable.length ? usable : ART_DIRECTIONS, random);
+  const direction =
+    forcedDirection ??
+    (charterStyle ? directionFromCharter(charterStyle, branding?.artDirection, seeded) : seeded);
 
   const forcedPairing = overrides?.fontPairingDisplay
     ? FONT_PAIRINGS.find((pairing) => pairing.display === overrides.fontPairingDisplay)
     : undefined;
+  const charterFonts = readFonts(branding);
   const fonts = forcedPairing
     ? { ...forcedPairing, fromBrand: false }
     : resolveFonts(projectData, random);
@@ -295,7 +322,12 @@ export function forgeDesignSystem(
   const brandColor = overriddenBrand ?? resolveBrandColor(projectData, random);
   const brandOklch = hexToOklch(brandColor) ?? { l: 0.55, c: 0.16, h: 250 };
 
-  const brand = buildRamp(brandColor);
+  // Rampe ancrée quand la couleur vient de la charte : `brand-600` — le cran
+  // des boutons — est alors EXACTEMENT la primaire. L'ancienne rampe, calculée
+  // à luminosité fixe, n'en gardait que la teinte.
+  const charterPalette = readPalette(branding);
+  const anchored = !overriddenBrand && charterPalette.primary === normalizeHexSafe(brandColor);
+  const brand = anchored ? buildAnchoredRamp(brandColor) : buildRamp(brandColor);
   const neutral = buildNeutralRamp(brandOklch.h, direction.surface === 'dark' ? 0.014 : 0.008);
   const accent = overriddenBrand
     ? rotateHue(brandColor, random() > 0.5 ? 150 : -140)
@@ -308,7 +340,15 @@ export function forgeDesignSystem(
   // Brand background wins. Only when the project has none does the direction
   // get to choose the surface: `drenched` puts the brand hue on the surface
   // itself, everything else sits on the tinted neutral ramp.
+  // Le fond de la charte quand il est clair. Un fond sombre n'est retenu que si
+  // la charte le porte expressément ET qu'il reste lisible ; la politique IDEM
+  // veut des sites clairs, et une direction tirée au sort ne peut plus imposer
+  // le noir à une marque qui ne l'a pas choisi.
+  const charterSurface =
+    brandBackground && isLightSurface(brandBackground) ? brandBackground : null;
+
   const surface =
+    charterSurface ??
     brandBackground ??
     (drenched
       ? oklchToHex({ l: isDark ? 0.24 : 0.93, c: brandOklch.c * 0.55, h: brandOklch.h })
@@ -340,20 +380,105 @@ export function forgeDesignSystem(
     4.5
   );
 
+  // Le texte posé sur la marque se choisit, il ne se suppose pas : une primaire
+  // claire (jaune, ocre, vert d'eau) rendait le libellé blanc des boutons
+  // illisible. Même règle pour l'accent.
+  const onBrand = readableOn(brand['600'] ?? brandColor, ink);
+  const onAccent = readableOn(accent, ink);
+
   return {
     seed,
     register,
     direction,
     brandDriven: Boolean(brandColors || fonts.fromBrand),
-    fonts: { ...fonts, mono: MONO_FAMILY },
-    colors: { brand, neutral, accent, secondary, surface, surfaceRaised, ink, inkMuted },
+    fonts: { ...fonts, mono: MONO_FAMILY, fromBrand: fonts.fromBrand },
+    colors: { brand, neutral, accent, secondary, surface, surfaceRaised, ink, inkMuted, onBrand, onAccent },
+    charterStyleId: charterStyle?.id,
     contrast: {
       bodyOnSurface: contrastRatio(ink, surface),
       mutedOnSurface: contrastRatio(inkMuted, surface),
       inkOnAccent: contrastRatio(ensureContrast(ink, accent, 4.5), accent),
     },
     typeScale: buildTypeScale(direction.typeRatio),
-    fontsHrefs: googleFontsHrefs(fonts),
+    fontsHrefs: charterFontHrefs(fonts, charterFonts),
+  };
+}
+
+/**
+ * Les feuilles de police à charger.
+ *
+ * La charte stocke la feuille RÉELLE de chaque famille (`cssUrl`) : Google,
+ * Fontshare, Fontsource, ou police importée servie depuis notre bucket. Elle
+ * passe avant tout. Une famille sans feuille déclarée retombe sur Google par
+ * son nom — ce qui reste le cas des projets plus anciens.
+ */
+function charterFontHrefs(fonts: FontPairing & { fromBrand?: boolean }, charter: ReturnType<typeof readFonts>): string[] {
+  const hrefs: string[] = [];
+  const add = (href?: string) => {
+    if (href && !hrefs.includes(href)) hrefs.push(href);
+  };
+
+  const sameFamily = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+  // Une seule feuille historique pour les deux familles (`typography.url`).
+  add(charter.sheetUrl);
+
+  if (charter.displayCss && sameFamily(charter.display, fonts.display)) add(charter.displayCss);
+  if (charter.bodyCss && sameFamily(charter.body, fonts.body)) add(charter.bodyCss);
+
+  // Ce que la charte ne couvre pas passe par Google, par le nom de la famille.
+  const covered = (family: string) =>
+    (charter.displayCss && sameFamily(charter.display, family)) ||
+    (charter.bodyCss && sameFamily(charter.body, family)) ||
+    Boolean(charter.sheetUrl && (sameFamily(charter.display, family) || sameFamily(charter.body, family)));
+
+  for (const href of googleFontsHrefs({
+    ...fonts,
+    display: covered(fonts.display) ? '' : fonts.display,
+    body: covered(fonts.body) ? '' : fonts.body,
+  })) {
+    add(href);
+  }
+
+  return hrefs;
+}
+
+const normalizeHexSafe = (value: string): string => {
+  const hex = String(value ?? '').trim().toLowerCase().replace(/^#/, '');
+  return /^[0-9a-f]{6}$/.test(hex) ? `#${hex}` : '';
+};
+
+/**
+ * Une direction artistique tirée de la CHARTE (son `styleId`), dans la forme
+ * attendue par le reste de la forge.
+ *
+ * Les grandeurs structurelles — rayon, raison de l'échelle, densité — sont
+ * celles du moteur graphique pour ce style. Les textes (signature, cadence,
+ * interdits) viennent de la direction écrite dans la charte quand elle existe.
+ * Le fond, lui, reste clair : c'est la politique des livrables IDEM.
+ */
+function directionFromCharter(
+  style: CharterStyle,
+  written: any,
+  fallback: ArtDirection
+): ArtDirection {
+  const spacing = style.density === 'airy' ? 12 : style.density === 'dense' ? 8 : 10;
+  const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : '');
+  const list = (value: unknown) =>
+    Array.isArray(value) ? value.filter((item) => typeof item === 'string' && item.trim()).join(' · ') : '';
+
+  return {
+    ...fallback,
+    id: `charter-${style.id}`,
+    name: text(written?.styleName) || style.name,
+    registers: ['marketing', 'product'],
+    surface: 'light',
+    radius: style.radius,
+    spacingBase: spacing,
+    typeRatio: style.typeRatio,
+    cadence: text(written?.layout?.grid) || fallback.cadence,
+    signature: text(written?.layout?.signatureMove) || fallback.signature,
+    avoid: list(written?.donts) || fallback.avoid,
   };
 }
 

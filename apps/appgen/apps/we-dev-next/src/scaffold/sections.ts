@@ -19,6 +19,36 @@
 
 import { ArtDirection } from '../design/artDirections.js';
 
+/**
+ * Variantes par style de charte (styles du moteur graphique).
+ *
+ * Éditorial et suisse : grille, filets, lecture en lignes. Minimalisme et
+ * surréalisme : peu d'éléments, beaucoup d'air, centré. Les styles plus
+ * démonstratifs (pop, Y2K, maximalisme) prennent la grille bento.
+ */
+const CHARTER_SECTION_DEFAULTS: Record<string, SectionDefaults> = {
+  editorial: { hero: 'editorial', features: 'rows', pricing: 'table' },
+  swiss: { hero: 'split', features: 'rows', pricing: 'table' },
+  minimalism: { hero: 'centered', features: 'rows', pricing: 'table' },
+  surreal: { hero: 'centered', features: 'rows', pricing: 'cards' },
+  victorian: { hero: 'editorial', features: 'rows', pricing: 'table' },
+  'collage-art': { hero: 'editorial', features: 'bento', pricing: 'cards' },
+  handwritten: { hero: 'editorial', features: 'cards', pricing: 'cards' },
+  bohemian: { hero: 'centered', features: 'cards', pricing: 'cards' },
+  retro: { hero: 'split', features: 'cards', pricing: 'cards' },
+  'vector-art': { hero: 'split', features: 'bento', pricing: 'cards' },
+  clay: { hero: 'centered', features: 'bento', pricing: 'cards' },
+  glassmorphism: { hero: 'split', features: 'bento', pricing: 'cards' },
+  maximalism: { hero: 'split', features: 'bento', pricing: 'cards' },
+  'pop-art': { hero: 'centered', features: 'bento', pricing: 'cards' },
+  y2k: { hero: 'centered', features: 'bento', pricing: 'cards' },
+  futuristic: { hero: 'split', features: 'bento', pricing: 'table' },
+  cyberpunk: { hero: 'split', features: 'bento', pricing: 'table' },
+  aurora: { hero: 'centered', features: 'bento', pricing: 'cards' },
+  graffiti: { hero: 'centered', features: 'bento', pricing: 'cards' },
+  'pixel-art': { hero: 'split', features: 'cards', pricing: 'table' },
+};
+
 /** Variante par défaut de chaque section, décidée par la direction artistique. */
 export interface SectionDefaults {
   hero: 'split' | 'centered' | 'editorial';
@@ -27,6 +57,16 @@ export interface SectionDefaults {
 }
 
 export function sectionDefaults(direction: ArtDirection): SectionDefaults {
+  // Direction tirée de la charte (`charter-<style>`) : les variantes suivent le
+  // style que la charte, le business plan et le deck appliquent déjà.
+  if (direction.id.startsWith('charter-')) {
+    return CHARTER_SECTION_DEFAULTS[direction.id.slice('charter-'.length)] ?? {
+      hero: 'split',
+      features: 'bento',
+      pricing: 'cards',
+    };
+  }
+
   switch (direction.id) {
     case 'editorial-serif':
       return { hero: 'editorial', features: 'rows', pricing: 'table' };
@@ -86,7 +126,7 @@ export default function Nav({ logo, links = [], cta, className }) {
   return (
     <header className={cn('sticky top-0 z-sticky border-b border-neutral-200 bg-surface/95 backdrop-blur', className)}>
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-tight px-6 py-tight">
-        <a href="#top" className="flex min-h-[44px] items-center gap-2 font-display text-lg">
+        <a href="/" className="flex min-h-[44px] items-center gap-2 font-display text-lg">
           <BrandMark fallback={logo} />
         </a>
 
@@ -97,7 +137,7 @@ export default function Nav({ logo, links = [], cta, className }) {
             </NavLink>
           ))}
           {cta && (
-            <NavLink href={cta.href} className="inline-flex min-h-[44px] items-center rounded bg-brand-600 px-5 font-medium text-white transition-colors hover:bg-brand-700">
+            <NavLink href={cta.href} className="inline-flex min-h-[44px] items-center rounded bg-brand-600 px-5 font-medium text-on-brand transition-colors hover:bg-brand-700">
               {cta.label}
             </NavLink>
           )}
@@ -115,7 +155,7 @@ export default function Nav({ logo, links = [], cta, className }) {
                 </NavLink>
               ))}
               {cta && (
-                <NavLink href={cta.href} className="mt-tight block min-h-[44px] rounded bg-brand-600 px-3 py-2 text-center font-medium text-white">
+                <NavLink href={cta.href} className="mt-tight block min-h-[44px] rounded bg-brand-600 px-3 py-2 text-center font-medium text-on-brand">
                   {cta.label}
                 </NavLink>
               )}
@@ -149,7 +189,7 @@ export default function Hero({
   const actions = (
     <div className="flex flex-wrap items-center gap-tight">
       {primaryCta && (
-        <a href={primaryCta.href} className="inline-flex min-h-[52px] items-center rounded bg-brand-600 px-7 text-lg font-medium text-white transition-colors hover:bg-brand-700">
+        <a href={primaryCta.href} className="inline-flex min-h-[52px] items-center rounded bg-brand-600 px-7 text-lg font-medium text-on-brand transition-colors hover:bg-brand-700">
           {primaryCta.label}
         </a>
       )}
@@ -161,22 +201,29 @@ export default function Hero({
     </div>
   );
 
-  const heading = (
+  const headline = (
     <>
       {eyebrow && <p className="mb-tight text-sm font-medium uppercase tracking-wide text-brand-700">{eyebrow}</p>}
       {/* clamp plutôt qu'un cran de l'échelle : certaines directions montent à
           90 px, ce qui donne un titre de cinq lignes dans une demi-colonne. */}
       <h1 className="font-display text-[clamp(2.25rem,4.5vw,4rem)] leading-[1.08] tracking-tight">{title}</h1>
-      {description && <p className="mt-block max-w-measure text-lg text-ink-muted">{description}</p>}
     </>
   );
+  const lead = description && <p className="mt-block max-w-measure text-lg text-ink-muted">{description}</p>;
+  const heading = (
+    <>
+      {headline}
+      {lead}
+    </>
+  );
+  const hasActions = Boolean(primaryCta || secondaryCta);
 
   if (variant === 'centered') {
     return (
       <section id="top" className={cn('px-6 py-section', className)}>
         <div className="mx-auto flex w-full max-w-3xl flex-col items-center text-center">
           {heading}
-          <div className="mt-block">{actions}</div>
+          {hasActions && <div className="mt-block">{actions}</div>}
           {visual && <div className="mt-section w-full">{visual}</div>}
         </div>
       </section>
@@ -184,15 +231,22 @@ export default function Hero({
   }
 
   if (variant === 'editorial') {
+    // Sans visuel, la colonne filetée porte le chapeau et les actions : la
+    // mise en page de presse tient, et aucune colonne ne reste vide.
     return (
       <section id="top" className={cn('px-6 py-section', className)}>
         <div className="mx-auto grid w-full max-w-6xl gap-block md:grid-cols-[1.4fr_1fr] md:items-end">
           <div>
-            {heading}
-            <div className="mt-block">{actions}</div>
+            {visual ? heading : headline}
+            {visual && hasActions && <div className="mt-block">{actions}</div>}
           </div>
           <div className="border-t border-neutral-200 pt-block md:border-l md:border-t-0 md:pl-block md:pt-0">
-            {visual}
+            {visual || (
+              <>
+                {description && <p className="max-w-measure text-lg text-ink-muted">{description}</p>}
+                {hasActions && <div className="mt-block">{actions}</div>}
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -207,7 +261,7 @@ export default function Hero({
       <section id="top" className={cn('px-6 py-section', className)}>
         <div className="mx-auto w-full max-w-4xl">
           {heading}
-          <div className="mt-block">{actions}</div>
+          {hasActions && <div className="mt-block">{actions}</div>}
         </div>
       </section>
     );
@@ -218,7 +272,7 @@ export default function Hero({
       <div className="mx-auto grid w-full max-w-6xl items-center gap-section md:grid-cols-2">
         <div>
           {heading}
-          <div className="mt-block">{actions}</div>
+          {hasActions && <div className="mt-block">{actions}</div>}
         </div>
         <div className="overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised">{visual}</div>
       </div>
@@ -235,17 +289,18 @@ export default function Hero({
  * La variante bento casse volontairement la grille régulière : trois cartes de
  * même largeur sont la signature d'une page générée.
  */
-export default function Features({ title, intro, items = [], variant = '${defaults.features}', className }) {
+export default function Features({ id, title, intro, items = [], variant = '${defaults.features}', className }) {
+  const headingId = (id || 'features') + '-title';
   const header = (title || intro) && (
     <div className="mb-section max-w-measure">
-      {title && <h2 id="features-title" className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
+      {title && <h2 id={headingId} className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
       {intro && <p className="mt-tight text-lg text-ink-muted">{intro}</p>}
     </div>
   );
 
   if (variant === 'rows') {
     return (
-      <section aria-labelledby={title ? 'features-title' : undefined} className={cn('px-6 py-section', className)}>
+      <section id={id} aria-labelledby={title ? headingId : undefined} className={cn('px-6 py-section', className)}>
         <div className="mx-auto w-full max-w-6xl">
           {header}
           <dl className="divide-y divide-neutral-200">
@@ -287,7 +342,7 @@ export default function Features({ title, intro, items = [], variant = '${defaul
   };
 
   return (
-    <section aria-labelledby={title ? 'features-title' : undefined} className={cn('px-6 py-section', className)}>
+    <section id={id} aria-labelledby={title ? headingId : undefined} className={cn('px-6 py-section', className)}>
       <div className="mx-auto w-full max-w-6xl">
         {header}
         <ul className={cn('grid gap-block', bento ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-3')}>
@@ -313,12 +368,13 @@ export default function Features({ title, intro, items = [], variant = '${defaul
     'src/sections/Steps.jsx': `import { cn } from '../lib/cn.js';
 
 /** Déroulé en étapes. \`items\` : { title, description }. */
-export default function Steps({ title, items = [], className }) {
+export default function Steps({ id, title, items = [], className }) {
+  const headingId = (id || 'steps') + '-title';
   return (
-    <section aria-labelledby={title ? 'steps-title' : undefined} className={cn('px-6 py-section', className)}>
+    <section id={id} aria-labelledby={title ? headingId : undefined} className={cn('px-6 py-section', className)}>
       <div className="mx-auto w-full max-w-6xl">
-        {title && <h2 id="steps-title" className="mb-section font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
-        <ol className="grid gap-block md:grid-cols-3">
+        {title && <h2 id={headingId} className="mb-section font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
+        <ol className={cn('grid gap-block', items.length === 4 ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3')}>
           {items.map((item, index) => (
             <li key={item.title} className="border-t-2 border-brand-600 pt-block">
               <span className="font-mono text-sm text-brand-700">{String(index + 1).padStart(2, '0')}</span>
@@ -335,12 +391,13 @@ export default function Steps({ title, items = [], className }) {
     'src/sections/Testimonials.jsx': `import { cn } from '../lib/cn.js';
 
 /** Paroles de clients. \`items\` : { quote, name, role, avatar? }. */
-export default function Testimonials({ title, items = [], className }) {
+export default function Testimonials({ id, title, items = [], className }) {
+  const headingId = (id || 'testimonials') + '-title';
   return (
-    <section aria-labelledby={title ? 'testimonials-title' : undefined} className={cn('bg-surface-raised px-6 py-section', className)}>
+    <section id={id} aria-labelledby={title ? headingId : undefined} className={cn('bg-surface-raised px-6 py-section', className)}>
       <div className="mx-auto w-full max-w-6xl">
-        {title && <h2 id="testimonials-title" className="mb-section font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
-        <ul className="grid gap-block md:grid-cols-2">
+        {title && <h2 id={headingId} className="mb-section font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
+        <ul className={cn('grid gap-block', items.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2')}>
           {items.map((item) => (
             <li key={item.name} className="flex flex-col gap-block rounded-lg border border-neutral-200 bg-surface p-block">
               <blockquote className="max-w-measure text-lg">“{item.quote}”</blockquote>
@@ -365,18 +422,32 @@ export default function Testimonials({ title, items = [], className }) {
  * Tarifs. \`plans\` : { name, price, period, description, features[], cta, featured }.
  * Variantes : \`cards\`, \`table\` (comparaison en lignes).
  */
-export default function Pricing({ title, intro, plans = [], variant = '${defaults.pricing}', className }) {
+export default function Pricing({ id, title, intro, plans = [], variant = '${defaults.pricing}', className }) {
+  const headingId = (id || 'pricing') + '-title';
   return (
-    <section aria-labelledby={title ? 'pricing-title' : undefined} className={cn('px-6 py-section', className)}>
+    <section id={id} aria-labelledby={title ? headingId : undefined} className={cn('px-6 py-section', className)}>
       <div className="mx-auto w-full max-w-6xl">
         {(title || intro) && (
           <div className="mb-section max-w-measure">
-            {title && <h2 id="pricing-title" className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
+            {title && <h2 id={headingId} className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
             {intro && <p className="mt-tight text-lg text-ink-muted">{intro}</p>}
           </div>
         )}
 
-        <ul className={cn('grid gap-block', variant === 'table' ? 'md:grid-cols-1' : 'md:grid-cols-3')}>
+        <ul
+          className={cn(
+            'grid gap-block',
+            variant === 'table'
+              ? 'md:grid-cols-1'
+              : plans.length === 1
+                ? 'md:max-w-xl'
+                : plans.length === 2
+                  ? 'md:grid-cols-2'
+                  : plans.length === 4
+                    ? 'md:grid-cols-2 lg:grid-cols-4'
+                    : 'md:grid-cols-3',
+          )}
+        >
           {plans.map((plan) => (
             <li
               key={plan.name}
@@ -412,7 +483,7 @@ export default function Pricing({ title, intro, plans = [], variant = '${default
                   className={cn(
                     'mt-block inline-flex min-h-[44px] items-center justify-center rounded px-5 font-medium transition-colors',
                     plan.featured
-                      ? 'bg-brand-600 text-white hover:bg-brand-700'
+                      ? 'bg-brand-600 text-on-brand hover:bg-brand-700'
                       : 'border border-neutral-200 text-ink hover:border-neutral-400',
                     variant === 'table' && 'md:mt-0',
                   )}
@@ -431,14 +502,15 @@ export default function Pricing({ title, intro, plans = [], variant = '${default
     'src/sections/Faq.jsx': `import { cn } from '../lib/cn.js';
 
 /** Questions fréquentes. \`items\` : { question, answer }. Ouverture native. */
-export default function Faq({ title, items = [], className }) {
+export default function Faq({ id, title, items = [], className }) {
+  const headingId = (id || 'faq') + '-title';
   return (
-    <section aria-labelledby={title ? 'faq-title' : undefined} className={cn('px-6 py-section', className)}>
+    <section id={id} aria-labelledby={title ? headingId : undefined} className={cn('px-6 py-section', className)}>
       {/* Deux colonnes plutôt qu'un bloc centré : toutes les autres sections
           commencent au même bord gauche, et une seule section centrée au milieu
           de la page se lit comme un accident de mise en page. */}
       <div className="mx-auto grid w-full max-w-6xl gap-block md:grid-cols-[1fr_2fr]">
-        {title && <h2 id="faq-title" className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
+        {title && <h2 id={headingId} className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
         <div className="divide-y divide-neutral-200">
           {items.map((item) => (
             <details key={item.question} className="group border-t border-neutral-200 py-block first:border-t-0">
@@ -458,22 +530,23 @@ export default function Faq({ title, items = [], className }) {
     'src/sections/Cta.jsx': `import { cn } from '../lib/cn.js';
 
 /** Bande de conversion, en fin de page. */
-export default function Cta({ title, description, primaryCta, secondaryCta, className }) {
+export default function Cta({ id, title, description, primaryCta, secondaryCta, className }) {
+  const headingId = (id || 'cta') + '-title';
   return (
-    <section aria-labelledby="cta-title" className={cn('px-6 py-section', className)}>
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-block rounded-lg bg-brand-600 p-section text-white md:flex-row md:items-center md:justify-between">
+    <section id={id} aria-labelledby={headingId} className={cn('px-6 py-section', className)}>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-block rounded-lg bg-brand-600 p-section text-on-brand md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 id="cta-title" className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>
-          {description && <p className="mt-tight max-w-measure text-white/90">{description}</p>}
+          <h2 id={headingId} className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>
+          {description && <p className="mt-tight max-w-measure opacity-90">{description}</p>}
         </div>
         <div className="flex flex-wrap gap-tight">
           {primaryCta && (
-            <a href={primaryCta.href} className="inline-flex min-h-[52px] items-center rounded bg-white px-7 text-lg font-medium text-brand-700 transition-opacity hover:opacity-90">
+            <a href={primaryCta.href} className="inline-flex min-h-[52px] items-center rounded bg-on-brand px-7 text-lg font-medium text-brand-600 transition-opacity hover:opacity-90">
               {primaryCta.label}
             </a>
           )}
           {secondaryCta && (
-            <a href={secondaryCta.href} className="inline-flex min-h-[52px] items-center rounded border border-white/40 px-7 text-lg font-medium text-white transition-colors hover:border-white">
+            <a href={secondaryCta.href} className="inline-flex min-h-[52px] items-center rounded border border-current px-7 text-lg font-medium text-on-brand transition-opacity hover:opacity-80">
               {secondaryCta.label}
             </a>
           )}
@@ -545,20 +618,62 @@ export default function Footer({ logo, tagline, columns = [], legal, className }
     'src/sections/Split.jsx': `import { cn } from '../lib/cn.js';
 
 /**
- * Bloc texte + visuel, côte à côte. \`reversed\` met le visuel à gauche.
+ * Un argument développé : texte + visuel, côte à côte. \`reversed\` inverse
+ * les colonnes.
  *
  * C'est la section qui donne de la longueur à un site sans le rendre bavard :
- * trois Split qui alternent racontent un produit bien mieux qu'une grille de
- * cartes de plus.
+ * deux ou trois Split qui alternent racontent un produit bien mieux qu'une
+ * grille de cartes de plus.
+ *
+ * Sans visuel, les points clés prennent la seconde colonne, numérotés et
+ * filetés. Un rectangle teinté à la place d'une image se lisait comme une
+ * image qui n'a pas chargé.
  */
-export default function Split({ eyebrow, title, description, bullets = [], cta, visual, reversed = false, className }) {
+export default function Split({ id, eyebrow, title, description, bullets = [], cta, visual, reversed = false, className }) {
+  const headingId = (id || 'split') + '-title';
+
+  const text = (
+    <>
+      {eyebrow && <p className="mb-tight text-sm font-medium uppercase tracking-wide text-brand-700">{eyebrow}</p>}
+      <h2 id={headingId} className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>
+      {description && <p className="mt-block max-w-measure text-ink-muted">{description}</p>}
+    </>
+  );
+
+  const action = cta && (
+    <a href={cta.href} className="mt-block inline-flex min-h-[44px] items-center rounded bg-brand-600 px-5 font-medium text-on-brand transition-colors hover:bg-brand-700">
+      {cta.label}
+    </a>
+  );
+
+  if (!visual) {
+    return (
+      <section id={id} aria-labelledby={headingId} className={cn('px-6 py-section', className)}>
+        <div className="mx-auto grid w-full max-w-6xl gap-section md:grid-cols-2">
+          <div className={cn(reversed && 'md:order-2')}>
+            {text}
+            {action}
+          </div>
+          {bullets.length > 0 && (
+            <ol className={cn('self-start divide-y divide-neutral-200 border-y border-neutral-200', reversed && 'md:order-1')}>
+              {bullets.map((bullet, index) => (
+                <li key={bullet} className="flex gap-block py-block">
+                  <span className="font-mono text-sm text-brand-700">{String(index + 1).padStart(2, '0')}</span>
+                  <span className="text-ink">{bullet}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className={cn('px-6 py-section', className)}>
+    <section id={id} aria-labelledby={headingId} className={cn('px-6 py-section', className)}>
       <div className="mx-auto grid w-full max-w-6xl items-center gap-section md:grid-cols-2">
         <div className={cn(reversed && 'md:order-2')}>
-          {eyebrow && <p className="mb-tight text-sm font-medium uppercase tracking-wide text-brand-700">{eyebrow}</p>}
-          <h2 className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>
-          {description && <p className="mt-block max-w-measure text-ink-muted">{description}</p>}
+          {text}
           {bullets.length > 0 && (
             <ul className="mt-block space-y-2">
               {bullets.map((bullet) => (
@@ -569,15 +684,9 @@ export default function Split({ eyebrow, title, description, bullets = [], cta, 
               ))}
             </ul>
           )}
-          {cta && (
-            <a href={cta.href} className="mt-block inline-flex min-h-[44px] items-center rounded bg-brand-600 px-5 font-medium text-white transition-colors hover:bg-brand-700">
-              {cta.label}
-            </a>
-          )}
+          {action}
         </div>
-        <div className={cn('overflow-hidden rounded-lg', reversed && 'md:order-1')}>
-          {visual || <div aria-hidden="true" className="aspect-[4/3] w-full rounded-lg bg-brand-50" />}
-        </div>
+        <div className={cn('overflow-hidden rounded-lg', reversed && 'md:order-1')}>{visual}</div>
       </div>
     </section>
   );
@@ -586,11 +695,12 @@ export default function Split({ eyebrow, title, description, bullets = [], cta, 
     'src/sections/Stats.jsx': `import { cn } from '../lib/cn.js';
 
 /** Chiffres clés. \`items\` : { value, label }. Trois ou quatre, pas davantage. */
-export default function Stats({ title, items = [], className }) {
+export default function Stats({ id, title, items = [], className }) {
+  const headingId = (id || 'stats') + '-title';
   return (
-    <section aria-labelledby={title ? 'stats-title' : undefined} className={cn('border-y border-neutral-200 px-6 py-section', className)}>
+    <section id={id} aria-labelledby={title ? headingId : undefined} className={cn('border-y border-neutral-200 px-6 py-section', className)}>
       <div className="mx-auto w-full max-w-6xl">
-        {title && <h2 id="stats-title" className="mb-block font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
+        {title && <h2 id={headingId} className="mb-block font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
         <dl className="grid gap-block sm:grid-cols-2 md:grid-cols-4">
           {items.map((item) => (
             <div key={item.label}>
@@ -614,11 +724,12 @@ export default function Stats({ title, items = [], className }) {
  * un bonus. Sans image, le nom s'affiche en toutes lettres : mieux qu'un carré
  * gris, et honnête.
  */
-export default function Logos({ title, items = [], className }) {
+export default function Logos({ id, title, items = [], className }) {
+  const headingId = (id || 'logos') + '-title';
   return (
-    <section aria-labelledby={title ? 'logos-title' : undefined} className={cn('px-6 py-block', className)}>
+    <section id={id} aria-labelledby={title ? headingId : undefined} className={cn('px-6 py-block', className)}>
       <div className="mx-auto w-full max-w-6xl">
-        {title && <h2 id="logos-title" className="mb-block text-center text-sm uppercase tracking-wide text-ink-muted">{title}</h2>}
+        {title && <h2 id={headingId} className="mb-block text-center text-sm uppercase tracking-wide text-ink-muted">{title}</h2>}
         <ul className="flex flex-wrap items-center justify-center gap-block">
           {items.map((item) => (
             <li key={item.name} className="text-ink-muted">
@@ -637,24 +748,49 @@ export default function Logos({ title, items = [], className }) {
 `,
     'src/sections/Team.jsx': `import { cn } from '../lib/cn.js';
 
+/** Deux initiales, pour une personne sans photo. */
+function initialsOf(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
 /** L'équipe. \`items\` : { name, role, bio?, photo? }. */
-export default function Team({ title, intro, items = [], className }) {
+export default function Team({ id, title, intro, items = [], className }) {
+  const headingId = (id || 'team') + '-title';
   return (
-    <section aria-labelledby={title ? 'team-title' : undefined} className={cn('px-6 py-section', className)}>
+    <section id={id} aria-labelledby={title ? headingId : undefined} className={cn('px-6 py-section', className)}>
       <div className="mx-auto w-full max-w-6xl">
         {(title || intro) && (
           <div className="mb-section max-w-measure">
-            {title && <h2 id="team-title" className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
+            {title && <h2 id={headingId} className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>}
             {intro && <p className="mt-tight text-lg text-ink-muted">{intro}</p>}
           </div>
         )}
-        <ul className="grid gap-block sm:grid-cols-2 md:grid-cols-3">
+        <ul
+          className={cn(
+            'grid gap-block',
+            items.length === 2
+              ? 'sm:grid-cols-2'
+              : items.length === 4
+                ? 'sm:grid-cols-2 lg:grid-cols-4'
+                : 'sm:grid-cols-2 md:grid-cols-3',
+          )}
+        >
           {items.map((item) => (
             <li key={item.name}>
+              {/* Sans photo, les initiales : un grand rectangle teinté par
+                  personne se lisait comme des images qui n'ont pas chargé. */}
               {item.photo ? (
                 <img src={item.photo} alt={item.name} className="aspect-[4/5] w-full rounded-lg object-cover" />
               ) : (
-                <div aria-hidden="true" className="aspect-[4/5] w-full rounded-lg bg-brand-50" />
+                <div aria-hidden="true" className="grid h-20 w-20 place-items-center rounded-full bg-brand-50 font-display text-2xl text-brand-700">
+                  {initialsOf(item.name)}
+                </div>
               )}
               <h3 className="mt-tight font-display text-xl">{item.name}</h3>
               {item.role && <p className="text-sm text-brand-700">{item.role}</p>}
@@ -677,12 +813,13 @@ export default function Team({ title, intro, items = [], className }) {
  * recevoir, et un formulaire qui ne part nulle part est pire que pas de
  * formulaire. Les canaux, eux, fonctionnent depuis un téléphone.
  */
-export default function Contact({ title, description, channels = [], hours, className }) {
+export default function Contact({ id, title, description, channels = [], hours, className }) {
+  const headingId = (id || 'contact') + '-title';
   return (
-    <section aria-labelledby="contact-title" className={cn('px-6 py-section', className)}>
+    <section id={id} aria-labelledby={headingId} className={cn('px-6 py-section', className)}>
       <div className="mx-auto grid w-full max-w-6xl gap-section md:grid-cols-[1fr_1fr]">
         <div>
-          <h2 id="contact-title" className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>
+          <h2 id={headingId} className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight">{title}</h2>
           {description && <p className="mt-block max-w-measure text-ink-muted">{description}</p>}
           {hours && <p className="mt-block text-ink-muted">{hours}</p>}
         </div>
