@@ -29,7 +29,7 @@ export const API_REFERENCE = `# Motion Canvas ${MOTION_CANVAS_VERSION} — what 
 \`\`\`tsx
 import { Rect, Txt, View2D } from '@motion-canvas/2d';
 import { all, createRef, easeOutCubic, waitFor } from '@motion-canvas/core';
-import { SceneContext, safeArea, readableOn } from '@idem/motion';
+import { SceneContext, safeArea, readableOn, sceneTime, waitUntilTime } from '@idem/motion';
 
 export default function* (view: View2D, ctx: SceneContext) {
   // build nodes with view.add(<…/>), then animate with yield*
@@ -79,7 +79,7 @@ view.add(<>…</>) adds nodes; box().remove() removes one; view.fill(color) sets
 - tween(seconds, (t) => { … }) runs a function every frame (t: 0→1); map(a, b, t) interpolates.
 - Signals: const n = createSignal(0); <Txt text={() => Math.round(n()).toString()} />; yield* n(1250, 1.2).
 - createComputed(() => …) derives a value from signals.
-- sceneTime() = seconds since the scene started; waitUntilTime(t) waits until that time (sync with ctx.voice.at).
+- sceneTime() = seconds since the scene started; waitUntilTime(t) waits until that time (sync with ctx.voice.at). BOTH come from @idem/motion, NOT from @motion-canvas/core.
 
 ## Transitions between scenes (call FIRST in the scene, before anything else is awaited)
 yield* slideTransition(Direction.Left, 0.6);  // Direction.Left | Right | Top | Bottom

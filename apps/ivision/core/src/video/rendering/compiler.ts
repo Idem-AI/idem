@@ -90,11 +90,47 @@ function formatEsbuildError(error: unknown): string {
     .slice(0, 600);
 }
 
+/**
+ * Symboles que l'IA place parfois dans `@motion-canvas/core` alors qu'ils vivent dans `@idem/motion`.
+ * Plutôt que de planter au build, on les déplace silencieusement dans le bon module.
+ */
+const IDEM_ONLY_SYMBOLS = new Set(['waitUntilTime', 'sceneTime', 'beatTime']);
+
+function fixMisplacedImports(code: string): string {
+  const misplaced: string[] = [];
+  code = code.replace(
+    /import\s*\{([^}]+)\}\s*from\s*['"]@motion-canvas\/core['"]/g,
+    (_match, names: string) => {
+      const items = names.split(',').map((s) => s.trim()).filter(Boolean);
+      const keep = items.filter((n) => !IDEM_ONLY_SYMBOLS.has(n));
+      const move = items.filter((n) => IDEM_ONLY_SYMBOLS.has(n));
+      misplaced.push(...move);
+      if (move.length === 0) return _match;              // rien à déplacer
+      if (keep.length === 0) return '';                   // import devenu vide → supprimer
+      return `import { ${keep.join(', ')} } from '@motion-canvas/core'`;
+    },
+  );
+  if (misplaced.length === 0) return code;
+  const idemRe = /import\s*\{([^}]+)\}\s*from\s*['"]@idem\/motion['"]/;
+  const idemMatch = code.match(idemRe);
+  if (idemMatch) {
+    code = code.replace(idemRe, (_m, names: string) => {
+      const items = names.split(',').map((s) => s.trim()).filter(Boolean);
+      for (const s of misplaced) if (!items.includes(s)) items.push(s);
+      return `import { ${items.join(', ')} } from '@idem/motion'`;
+    });
+  } else {
+    code = `import { ${misplaced.join(', ')} } from '@idem/motion';\n${code}`;
+  }
+  return code;
+}
+
 export interface BundleScene {
   key: string;
   /** Absent : la scène n'a pas compilé (son erreur est dans les données du film). */
   code?: string;
 }
+
 
 /** Le paquet d'un film : `mode` choisit le pilote (rendu serveur ou lecteur d'aperçu). */
 export async function buildFilmBundle(scenes: BundleScene[], mode: 'render' | 'preview'): Promise<string> {
@@ -112,7 +148,7 @@ export async function buildFilmBundle(scenes: BundleScene[], mode: 'render' | 'p
     name: 'idem-film-scenes',
     setup(b) {
       b.onResolve({ filter: /^scene:/ }, (args) => ({ path: args.path.slice('scene:'.length), namespace: 'scene' }));
-      b.onLoad({ filter: /.*/, namespace: 'scene' }, (args) => ({ contents: sources.get(args.path) || '', loader: 'tsx', resolveDir: MOTION_ROOT }));
+      b.onLoad({ filter: /.*/, namespace: 'scene' }, (args) => ({ contents: fixMisplacedImports(sources.get(args.path) || ''), loader: 'tsx', resolveDir: MOTION_ROOT }));
       b.onResolve({ filter: /^@idem\/motion$/ }, () => ({ path: path.join(MOTION_ROOT, 'kit/index.ts') }));
       b.onResolve({ filter: /.*/ }, (args) => {
         if (args.namespace !== 'scene' || ALLOWED_IMPORT.test(args.path)) return undefined;
