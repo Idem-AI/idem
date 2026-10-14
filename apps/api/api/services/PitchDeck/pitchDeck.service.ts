@@ -333,7 +333,7 @@ export class PitchDeckService extends GenericService {
       }
       // Le brief ne porte QUE le contenu, lu par le destinataire du deck. Une slide est une toile fixe :
       // le volume est bas (3 à 4 blocs), et le moteur mesure, resserre et répare avant de rendre.
-      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, two to four blocks.`;
+      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, one to three blocks.`;
       // L'INTENTION de la slide : comment elle démontre son message et ce qu'elle peut porter de texte. Aux
       // crans Low et Medium, le code décide de la stratégie ; à partir de High, le rédacteur peut en proposer
       // une autre de la liste — il décide quoi montrer, le moteur le construit, le vérifie et le répare.
@@ -348,13 +348,15 @@ export class PitchDeckService extends GenericService {
         template: {
           deliverable: 'pitch-deck',
           sectionId: pageId(definition.name),
-          volume: '2 to 4',
+          // Une slide porte une idée : un à trois blocs, jamais plus.
+          volume: '1 to 3',
           contentBrief: brief,
           ...(intent ? { intent } : {}),
           render: async (content) => {
             const out = journal.page(await composeGraphicPage(graphic, content, position));
-            // Trop de texte pour son rôle (High+) : la slide repart UNE fois chez le rédacteur, avec le constat.
-            if (creativeLevel && intent && out.result.issues.some((issue) => issue.code === 'text_heavy')) {
+            // Trop de texte pour son rôle (à tous les crans) : la slide repart UNE fois chez le rédacteur, avec le
+            // constat chiffré — `condenseSlide` mesure lui-même le dépassement (au-delà de 1,1× le budget).
+            if (intent) {
               const condensed = await condenseSlide(content, { userId, projectId, slideName: definition.name, intent });
               if (condensed) {
                 journal.note(`${definition.name} : slide trop textuelle réécrite plus légère par le rédacteur`);

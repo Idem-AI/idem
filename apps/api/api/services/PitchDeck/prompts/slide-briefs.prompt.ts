@@ -47,15 +47,15 @@ the team's ability to deliver and exactly what the prize or the grant will pay f
 };
 
 /** Ce qu'est un slide, quel que soit son sujet et son lecteur. */
-const SLIDE_RULES = `A slide carries ONE idea. Two to four blocks, never more: a slide is read in
-twenty seconds, from a distance, by someone who did not ask for it. SHOW, do not write:
-a point that can be pictured is a "points" item with a short label, not a paragraph.
+const SLIDE_RULES = `A slide carries ONE idea, read in ten seconds from the back of a room. One to three
+blocks, never more. SHOW, do not write: anything that can be pictured is a "points" item with a 3-6 word
+label and at most one short line of detail — never a paragraph.
 
-- The title states the CONCLUSION, not the topic. "Le marché double d'ici 2028",
+- The title states the CONCLUSION, not the topic, in 10 words or fewer. "Le marché double d'ici 2028",
   never "Analyse du marché".
-- The lede is one sentence, 20 words maximum, that a reader could quote.
-- Every figure carries a unit and a period. A figure with no source is noise.
-- No sentence that would survive a change of company name.`;
+- No lede unless it adds a fact the title and blocks do not already carry; then 15 words maximum.
+- A "prose" block is a last resort: two short sentences at most.
+- Every figure carries a unit and a period. Cut any word the speaker can say aloud instead.`;
 
 export interface SlideBriefParts {
   objective: string;

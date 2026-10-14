@@ -1,5 +1,6 @@
 /**
- * La CORRECTION CIBLÉE d'une slide trop textuelle (crans High et au-delà).
+ * La CORRECTION CIBLÉE d'une slide trop textuelle — à TOUS les crans : c'est de l'écriture (le contenu est
+ * confié à l'IA à chaque cran), pas de la composition. Un appel de plus, seulement pour une slide qui déborde.
  *
  * Le moteur graphique mesure la charge de texte d'une slide contre son budget et la signale (`text_heavy`) ;
  * il ne retire jamais un mot lui-même. Réduire le corps jusqu'à l'illisible n'est pas une réponse : la slide
@@ -13,7 +14,7 @@ import { parseLlmJson } from '../../utils/llm-json.util';
 import { runAgentPrompt } from '../agents/agent-runtime';
 
 /** Au-delà de ce dépassement du budget, la slide est renvoyée au rédacteur. */
-export const CONDENSE_THRESHOLD = 1.25;
+export const CONDENSE_THRESHOLD = 1.1;
 
 export async function condenseSlide(
   section: SectionContent,

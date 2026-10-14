@@ -31,6 +31,11 @@ export interface WrittenCopy {
   quote?: { text: string; author?: string };
   /** Index du mot du titre mis en valeur. */
   emphasis?: number;
+  /**
+   * La PHOTO que le visuel appelle, décrite par le rédacteur (anglais, ce que lisent les modèles d'image) :
+   * la scène concrète (`idea`) et 2 à 4 mots pour la banque d'images (`query`). Jamais de texte dans l'image.
+   */
+  photo?: { idea: string; query: string };
 }
 
 export interface CopyBrief {
@@ -261,6 +266,8 @@ export function copyTask(brief: CopyBrief, intent: CopyIntent, feedback?: string
         'offer: a discount/figure copied from the request (e.g. −20 %), or none',
         intent === 'quote' ? 'quote: the quoted sentence (max 20 words)\nauthor: who said it, or none' : '',
         'emphasis: the single most important word of the headline, copied exactly',
+        'photo: IN ENGLISH, the photograph this visual needs, 8 to 20 words — who or what, doing what, where (concrete and local to the brand\'s market; no text, no logo in it)',
+        'photoquery: IN ENGLISH, 2 to 4 concrete words to find that photo in a stock bank (e.g. "woman tailor workshop")',
         'Never invent a date, a time, a place, a price, a number, a name, a format (evening, online, workshop…) that is not in the request.',
         'If the request is thin, make the headline strong from the brand promise and the occasion (e.g. what the brand stands for, said with energy) — still without inventing facts.',
         'The headline must not repeat the date; the date goes on its own line.',
@@ -282,6 +289,9 @@ export function copyTask(brief: CopyBrief, intent: CopyIntent, feedback?: string
       const headline = clip(l.headline || l.titre || l.title, 60);
       if (!validHeadline(headline, brief)) return undefined;
       const copy: WrittenCopy = { headline, facts: [] };
+      const idea = clip(l.photo || '', 200);
+      const query = clip(l.photoquery || l.photo_query || '', 60);
+      if (!none(idea) && wordsOf(idea).length >= 4) copy.photo = { idea, query: !none(query) && wordsOf(query).length <= 6 ? query : wordsOf(idea).slice(0, 4).join(' ') };
       if (!none(l.kicker) && wordsOf(l.kicker).length <= 4 && !META.test(l.kicker) && languageMatches(l.kicker, brief.language) && !(brief.language.startsWith('fr') && (l.kicker.replace(brief.brandName, '').match(ENGLISH) || []).length)) copy.kicker = clip(l.kicker, 30);
       if (!none(l.sub) && wordsOf(l.sub).length <= 18 && !META.test(l.sub) && !inventsFormat(l.sub, source) && !STOP_END.test(l.sub) && languageMatches(l.sub, brief.language) && digits(l.sub).every((d) => digits(source).includes(d))) copy.sub = clip(l.sub, 120);
       const facts: CopyFact[] = [];

@@ -68,6 +68,7 @@ export interface ComposedVisual {
     photo?: VisualPhotoRef;
     /** La graine de la composition : une retouche de texte garde la même mise en page. */
     seed: string;
+    imageUnavailable?: 'payment' | 'rejected';
   };
   sourced: SourcedImage | null;
   intent: VisualIntent;
@@ -163,11 +164,13 @@ export async function composeVisual(
 
   // 2. La photo.
   stage('photo', 'running');
-  const subject = `${copy.headline}. ${message}`.slice(0, 260);
-  const { photo, sourced } =
+  // Le sujet jugé par la vision : la scène voulue par le rédacteur, puis le message.
+  const subject = `${copy.photo ? `${copy.photo.idea}. ` : ''}${copy.headline}. ${message}`.slice(0, 300);
+  const highUp = level === 'high' || level === 'max' || level === 'ultra';
+  const { photo, sourced, unavailable } =
     skipImage && !creative.image?.url
-      ? { photo: undefined, sourced: null }
-      : await choosePhoto({ userId, projectId, tag, context, format, copy, subject, sourcing, userPhoto: creative.image?.url, brandPhotos: creative.brandPhotos });
+      ? { photo: undefined, sourced: null, unavailable: undefined }
+      : await choosePhoto({ userId, projectId, tag, context, format, copy, subject, sourcing, userPhoto: creative.image?.url, brandPhotos: creative.brandPhotos, preferGenerated: highUp });
   stage('photo', 'done');
 
   // 3. La page, composée par le moteur graphique. Un retour (« autre chose ») change la graine : le
@@ -194,6 +197,8 @@ export async function composeVisual(
     format,
     pattern: out.spec.pattern.id,
     image: photo ? sourced?.source ?? 'brand' : 'none',
+    ...(unavailable ? { imageUnavailable: unavailable } : {}),
+    photoIdea: copy.photo?.idea,
     score: audit.score,
     blocking: audit.blocking,
     agentCalls: out.result.usage.agentCalls + orch.traces.filter((t) => t.source === 'llm').length,
@@ -211,6 +216,8 @@ export async function composeVisual(
       marketingText: { headline: copy.headline, subheadline: copy.sub, body: copy.facts.map((f) => f.text).join(' · ') },
       creativity: level,
       agents: orch.traces,
+      // Pourquoi le visuel n'a pas d'image, quand il n'en a pas : fournisseur sans crédit, ou images hors sujet.
+      ...(unavailable ? { imageUnavailable: unavailable } : {}),
     },
     sourced,
     intent: inferVisualIntent(content),
@@ -323,10 +330,11 @@ function engineCopy(copy: WrittenCopy): VisualCopy {
  */
 function imageBriefFor(copy: WrittenCopy, context: VisualBrandContext, format: FlyerFormat, subject: string) {
   const orientation = format === 'story' || format === 'post' || format === 'a4' ? ('portrait' as const) : format === 'banner' ? ('landscape' as const) : ('square' as const);
-  const theme = subject.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 8).join(' ') || context.businessType;
+  // La scène décrite par le rédacteur (concrète, en anglais) ; à défaut, les mots du message.
+  const theme = copy.photo?.idea || subject.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 8).join(' ') || context.businessType;
   return {
-    searchQuery: `${copy.headline} ${context.businessType}`.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 5).join(' ') || context.businessType,
-    generationPrompt: `Authentic editorial photograph for ${context.brandName} (${context.businessType}). Theme: ${theme}. Natural light, real people and places, African context when people appear, shallow depth of field, generous calm empty area on one side reserved for a graphic overlay added separately afterwards. ${context.artDirection?.imagePromptModifier || ''}`.slice(0, 900),
+    searchQuery: copy.photo?.query || `${copy.headline} ${context.businessType}`.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 5).join(' ') || context.businessType,
+    generationPrompt: `Authentic editorial photograph for ${context.brandName} (${context.businessType}). Scene: ${theme}. Natural light, real people and places, African context when people appear, shallow depth of field, generous calm empty area on one side reserved for a graphic overlay added separately afterwards. ${context.artDirection?.imagePromptModifier || ''}`.slice(0, 900),
     negativePrompt: 'distorted faces, extra fingers, oversaturated HDR, collage, frame, border',
     orientation,
   };
@@ -347,7 +355,9 @@ async function choosePhoto(req: {
   sourcing?: ImageSourcingPreferences;
   userPhoto?: string;
   brandPhotos?: string[];
-}): Promise<{ photo?: VisualPhotoRef; sourced: SourcedImage | null }> {
+  /** La génération passe avant la banque (crans High et au-delà). */
+  preferGenerated?: boolean;
+}): Promise<{ photo?: VisualPhotoRef; sourced: SourcedImage | null; unavailable?: 'payment' | 'rejected' }> {
   const ctx = req.context;
   let image: VisualPhoto | undefined;
   let sourced: SourcedImage | null = null;
@@ -365,23 +375,35 @@ async function choosePhoto(req: {
       logger.info('visual.brand_photos', { event: 'visual.brand_photos', candidates: photos.length, best: ranked[0]?.score });
     }
   }
+  let unavailable: 'payment' | 'rejected' | undefined;
   if (!image) {
-    // Banque ou génération, VÉRIFIÉE : une photo hors sujet est pire que pas de photo.
-    for (const preferGenerated of [false, true]) {
+    // Banque ou génération, VÉRIFIÉE : une photo hors sujet est pire que pas de photo. Aux crans High et
+    // au-delà (payés plus cher), l'image faite POUR la scène passe avant la banque, dont les clichés sont
+    // souvent rejetés. Une image générée d'après la scène est admise un cran plus bas (4/10) : elle a été
+    // faite pour elle, la vision ne lui reproche souvent qu'un « style banque ».
+    const order = req.preferGenerated ? [true, false] : [false, true];
+    for (const preferGenerated of order) {
       try {
         const found = await imageSourcingService.sourceImage(
           { ...imageBriefFor(req.copy, ctx, req.format, req.subject), preferGenerated },
           { userId: req.userId, projectId: req.projectId, tag: req.tag, ...req.sourcing, ...(preferGenerated ? { preferStock: false } : {}) }
         );
         const [check] = await rankByRelevance([found.url], req.subject, { name: ctx.brandName, business: ctx.businessType });
-        if (check.score >= 5) {
+        if (check.score >= (found.source === 'generated' ? 4 : 5)) {
           image = (await describePhoto(found.url, found.source === 'generated' ? 'generated' : 'stock')) || undefined;
           if (image) image.subject = found.analysis?.subject || undefined;
           sourced = found;
           break;
         }
+        unavailable = 'rejected';
         logger.info('visual.image_rejected', { event: 'visual.image_rejected', source: found.source, score: check.score, reason: check.reason });
-      } catch (error) {
+      } catch (error: any) {
+        // Fournisseur d'images sans crédit (402) : inutile d'insister — et le visuel le DIT.
+        if (/\b402\b|insufficient credits/i.test(String(error?.message || ''))) {
+          unavailable = 'payment';
+          logger.error('visual.generation_blocked', { event: 'visual.generation_blocked', reason: 'payment', error: error?.message });
+          if (preferGenerated) continue;
+        }
         logger.warn('visual.sourcing_failed', { event: 'visual.sourcing_failed', error });
       }
     }
@@ -389,7 +411,7 @@ async function choosePhoto(req: {
   if (image && !sourced) {
     sourced = { url: image.url, source: 'upload', attribution: { provider: 'other', author: ctx.brandName }, analysis: { subject: image.subject || '', mood: '', dominantColors: [], luminance: 'mixed' } };
   }
-  return { photo: image ? { url: image.url, focal: image.focal, ...(image.subject ? { subject: image.subject } : {}) } : undefined, sourced };
+  return { photo: image ? { url: image.url, focal: image.focal, ...(image.subject ? { subject: image.subject } : {}) } : undefined, sourced, ...(image ? {} : unavailable ? { unavailable } : {}) };
 }
 
 /** Le rapport d'un visuel : ce que la mesure a constaté et ce que le code a réparé. */

@@ -321,6 +321,8 @@ async function main(): Promise<void> {
     // Le budget de texte : la page de cartes de paragraphes déborde, la même idée en points illustrés tient.
     const heavy = sectionTextLoad({ ...PROBLEM, intent: { visualStrategy: 'illustration' } }, { headlineWords: 12, bodyWords: 40, maxBullets: 4 });
     const light = sectionTextLoad(PROBLEM_VISUAL);
+    const wordyTable = sectionTextLoad({ id: 't', title: 'Concurrence', intent: { visualStrategy: 'editorial' }, blocks: [{ id: 'b1', kind: 'table', headers: ['Acteur', 'Force', 'Faiblesse'], rows: [['Nescafé', 'Distribution dans toutes les boutiques du pays', 'Café soluble importé sans origine locale'], ['Vracs du marché', 'Prix très bas pour les ménages modestes', 'Aucune traçabilité ni régularité de goût'], ['Torréfacteurs artisanaux', 'Goût local apprécié des connaisseurs', 'Pas de marque ni de livraison en bureau']] }] }, TEXT_BUDGETS.statement);
+    ok('charge de texte : les phrases d’un tableau comptent (les chiffres non)', wordyTable.over > 1, wordyTable.detail);
     ok('charge de texte : cartes de paragraphes au-dessus du budget, points illustrés dessous', heavy.over > 1 && light.over <= 1, `${heavy.detail} | ${light.detail}`);
 
     // Le plan des médias : jamais de capture générée ; les points reçoivent une icône locale.

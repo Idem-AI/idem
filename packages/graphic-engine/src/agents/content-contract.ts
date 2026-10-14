@@ -56,6 +56,16 @@ export interface ContentContractOptions {
 /** Le contrat de sortie, en anglais (c'est un prompt ; la langue du contenu est fixée ailleurs). */
 export function contentContract(options: ContentContractOptions = {}): string {
   const kinds = options.kinds ?? BLOCKS_BY_DELIVERABLE[options.deliverable ?? 'business-plan'];
+  // Une diapositive : la prose et les cartes y sont des derniers recours, bornés (le reste se MONTRE).
+  const docs: Partial<Record<BlockKind, string>> =
+    options.deliverable === 'pitch-deck'
+      ? {
+          ...BLOCK_DOCS,
+          prose: '{"kind":"prose","paragraphs":["…"]}\n    Last resort on a slide: ONE paragraph of two short sentences at most.',
+          cards: '{"kind":"cards","items":[{"title":"…","body":"one short line"}]}\n    Only when "points" cannot carry it: 2 to 4 items, each body ONE short line.',
+          table: '{"kind":"table","headers":["…"],"rows":[["…"]]}\n    Figures and short labels only — no sentences in cells. 5 rows at most.',
+        }
+      : BLOCK_DOCS;
   return `<output_contract>
 You do NOT write HTML, CSS or Tailwind. The page is composed by the graphic engine: colours, typefaces,
 grid, spacing, logo placement and contrast are already decided and guaranteed. Markup would be discarded.
@@ -65,7 +75,7 @@ Return ONE JSON object, and nothing else:
 
 Block types — pick what the SUBSTANCE calls for, never a fixed recipe:
 ${kinds
-  .map((k) => BLOCK_DOCS[k])
+  .map((k) => docs[k])
   .filter(Boolean)
   .join('\n')}
 

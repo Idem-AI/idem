@@ -82,6 +82,24 @@ function bodyWords(block: Block): { words: number; bullets: number } {
       return { words: countWords(block.statement) + countWords(block.basis), bullets: 0 };
     case 'persona':
       return { words: countWords([...(block.traits ?? []), ...(block.needs ?? []), block.quote ?? ''].join(' ')), bullets: (block.traits?.length ?? 0) + (block.needs?.length ?? 0) };
+    // Les données se PARCOURENT, mais leurs mots se lisent aussi : une cellule de phrase pèse sur une slide.
+    // Les chiffres ne comptent pas (`countWords` ne retient que les mots).
+    case 'table':
+      return { words: countWords(block.rows.flat().join(' ')) + countWords(block.caption), bullets: 0 };
+    case 'comparison':
+      return { words: block.rows.reduce((s, r) => s + countWords(r.label) + countWords(r.values.join(' ')), 0), bullets: block.rows.length };
+    case 'metrics':
+      return { words: block.items.reduce((s, i) => s + countWords(i.label) + countWords(i.note), 0), bullets: 0 };
+    case 'funnel':
+      return { words: block.stages.reduce((s, i) => s + countWords(i.label) + countWords(i.note), 0), bullets: 0 };
+    case 'swot':
+      return { words: countWords([...block.strengths, ...block.weaknesses, ...block.opportunities, ...block.threats].join(' ')), bullets: block.strengths.length + block.weaknesses.length + block.opportunities.length + block.threats.length };
+    case 'riskMatrix':
+      return { words: block.risks.reduce((s, r) => s + countWords(r.label) + countWords(r.mitigation), 0), bullets: block.risks.length };
+    case 'businessModel':
+      return { words: countWords(block.cells.flatMap((c) => c.items).join(' ')), bullets: 0 };
+    case 'chart':
+      return { words: countWords(block.readingKey), bullets: 0 };
     default:
       return { words: 0, bullets: 0 };
   }
@@ -94,10 +112,10 @@ function bodyWords(block: Block): { words: number; bullets: number } {
  * jusqu'à l'illisible.
  */
 export const TEXT_BUDGETS = {
-  statement: { headlineWords: 12, bodyWords: 30, maxBullets: 0 },
-  points: { headlineWords: 12, bodyWords: 60, maxBullets: 4 },
-  demonstration: { headlineWords: 12, bodyWords: 70, maxBullets: 5 },
-  data: { headlineWords: 14, bodyWords: 90, maxBullets: 6 },
+  statement: { headlineWords: 10, bodyWords: 20, maxBullets: 0 },
+  points: { headlineWords: 10, bodyWords: 40, maxBullets: 4 },
+  demonstration: { headlineWords: 10, bodyWords: 50, maxBullets: 5 },
+  data: { headlineWords: 12, bodyWords: 60, maxBullets: 6 },
 } as const satisfies Record<string, TextBudget>;
 export type TextBudgetKind = keyof typeof TEXT_BUDGETS;
 
