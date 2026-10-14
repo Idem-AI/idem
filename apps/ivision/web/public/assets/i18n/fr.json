@@ -133,7 +133,7 @@
           "end": "."
         }
       ],
-      "text": "Choisissez combien l’IA décide. En bas, des règles sûres. En haut, une composition d’auteur. Le prix suit le cran.",
+      "text": "Choisissez la puissance du modèle qui crée. En bas, un modèle léger et rapide. En haut, le plus puissant. Le prix suit le cran.",
       "ladder": "Cran de créativité",
       "default": "Par défaut",
       "price": "Prix",
@@ -142,27 +142,22 @@
         "low": {
           "name": "Low",
           "mult": "×1",
-          "text": "Des règles sûres : une mise en page classique, sans surprise."
+          "text": "Un modèle léger compose votre visuel : rapide, au prix de base."
         },
         "medium": {
           "name": "Medium",
           "mult": "×1",
-          "text": "Le bon équilibre : iVision choisit ce qu’il faut mettre en avant."
+          "text": "Un modèle intermédiaire : le bon équilibre, conseillé."
         },
         "high": {
           "name": "High",
           "mult": "×1,25",
-          "text": "Un directeur artistique regarde le visuel et décide de la composition."
-        },
-        "max": {
-          "name": "Max",
-          "mult": "×1,5",
-          "text": "L’IA compose toute la page et ose les très grands formats."
+          "text": "Un modèle avancé : des compositions plus fines et plus audacieuses."
         },
         "ultra": {
           "name": "Ultra",
           "mult": "×2",
-          "text": "Une création d’auteur, écrite par l’IA puis critiquée à l’œil jusqu’à être juste."
+          "text": "Le modèle le plus puissant, pour une vraie création d’auteur."
         }
       }
     },
@@ -308,20 +303,18 @@
   },
   "creativity": {
     "label": "Créativité",
-    "hint": "Plus le cran est haut, plus l’IA décide (et plus le prix monte).",
+    "hint": "Plus le cran est haut, plus le modèle qui conçoit le visuel est puissant (et plus le prix monte).",
     "levels": {
-      "low": "Low ×1",
-      "medium": "Medium ×1",
-      "high": "High ×1,25",
-      "max": "Max ×1,5",
-      "ultra": "Ultra ×2"
+      "low": "Low ×1 · modèle léger",
+      "medium": "Medium ×1 · modèle intermédiaire",
+      "high": "High ×1,25 · modèle avancé",
+      "ultra": "Ultra ×2 · le plus puissant"
     },
     "videoHint": "Plus le cran est haut, plus le modèle qui conçoit et écrit la vidéo est puissant (et plus le prix monte).",
     "videoLevels": {
       "low": "Low ×1 · modèle léger",
       "medium": "Medium ×1 · modèle intermédiaire",
       "high": "High ×1,25 · modèle avancé",
-      "max": "Max ×1,5 · grand modèle",
       "ultra": "Ultra ×2 · le plus puissant"
     }
   },

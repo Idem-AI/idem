@@ -22,19 +22,9 @@ import { SupportedLanguage } from '../../utils/request-language';
 import { businessCardRenderService } from './businessCardRender.service';
 import { composeGraphicPage, openGraphicDocument } from '../graphic/graphic.service';
 
-/** Le nom d'un gabarit, d'après la composition de son recto. */
-const CARD_NAMES: Record<string, string> = {
-  classic: 'Classique',
-  centered: 'Centrée',
-  split: 'Panneau de marque',
-  rail: 'Rail',
-  minimal: 'Minimale',
-  band: 'Bandeau',
-};
-
 export interface GenerateTemplateOptions {
   orientation?: BusinessCardOrientation;
-  /** Direction artistique libre saisie par l'utilisateur (lue par les agents du moteur, crans High+). */
+  /** Direction artistique libre saisie par l'utilisateur (lue par le directeur et l'auteur du moteur). */
   styleBrief?: string;
   language?: SupportedLanguage;
   /** La jauge de créativité : le moteur graphique explore, choisit et compose selon le cran. */
@@ -104,10 +94,10 @@ export class BusinessCardService extends GenericService {
     }
 
     const level = normalizeCreativity(options.creativity);
-    // LE GABARIT, composé par le moteur graphique (@idem/graphic-engine) : recto et verso tirés dans son
-    // répertoire de cartes, aux cotes d'impression (85 × 55 mm), mesurés et réparés — jamais de texte dans
-    // la marge de sécurité. Il est PARTAGÉ entre les porteurs : chaque champ sort en `{{champ}}` dans un
-    // élément `data-field` (l'aperçu et l'impression interpolent, puis retirent les lignes vides).
+    // LE GABARIT, écrit par l'auteur du moteur graphique (@idem/graphic-engine) en HTML Tailwind : recto et
+    // verso d'une même bible, aux cotes d'impression (85 × 55 mm, zone de sécurité donnée à l'auteur). Il est
+    // PARTAGÉ entre les porteurs : chaque champ sort en `{{champ}}` dans un élément `data-field` (l'aperçu et
+    // l'impression interpolent, puis retirent les lignes vides).
     const keywords = (options.styleBrief ?? '')
       .split(/[,\n;]+/)
       .map((k) => k.trim().slice(0, 48))
@@ -135,13 +125,12 @@ export class BusinessCardService extends GenericService {
     await graphic.remember();
     const frontHtml = sectionHtml(front);
     const backHtml = sectionHtml(back);
-    const frontPattern = front.spec.pattern.id;
-    const backPattern = back.spec.pattern.id;
-    logger.info('[BusinessCard] template composed', { projectId, orientation, creativity: level, front: frontPattern, back: backPattern });
+    logger.info('[BusinessCard] template composed', { projectId, orientation, creativity: level, bible: Boolean(graphic.bible) });
+    const idea = (graphic.bible ?? '').split('\n').map((l) => l.replace(/^[-•*\s]+/, '').trim()).find(Boolean);
     const parsed = {
-      name: CARD_NAMES[frontPattern.replace(/^card\.front-/, '')] ?? 'Carte de visite',
-      concept: `${frontPattern} / ${backPattern}`,
-      layout: `${frontPattern}/${backPattern}`,
+      name: 'Carte de visite',
+      concept: idea ? idea.slice(0, 200) : 'Carte écrite par l’IA',
+      layout: 'authored',
     };
 
     const sections: SectionModel[] = [

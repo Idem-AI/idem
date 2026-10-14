@@ -100,7 +100,7 @@ router.post(
       return;
     }
     const call = runtimeCall({ userId: userIdOf(req) || undefined, projectId: text(projectId, 128) || undefined, element: text(element, 64) || 'ivision' });
-    const out = await asUser(req, 'communication', () => call({ role: text(role, 64) || 'agent', profile, system: text(system, 80_000), user: text(user, 80_000), ...(['low', 'medium', 'high', 'max', 'ultra'].includes(level) ? { level } : {}) }));
+    const out = await asUser(req, 'communication', () => call({ role: text(role, 64) || 'agent', profile, system: text(system, 80_000), user: text(user, 80_000), ...(['low', 'medium', 'high', 'ultra'].includes(level) ? { level } : level === 'max' ? { level: 'high' } : {}) }));
     res.json({ text: out });
   })
 );

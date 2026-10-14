@@ -1,42 +1,37 @@
 /**
  * LE FLUX D'UNE GÉNÉRATION — l'orchestrateur du moteur.
  *
- *   contenu → validation → structure sémantique → candidats → choix (code ou agent selon le cran)
- *   → DesignSpec → compilation → mesure → réparation (code, puis agent ciblé) → critique (High+)
- *   → RenderResult versionné + trace de coûts
+ *   contenu → médias → matière à plat (clés) → bible du document (directeur, une fois) → page écrite en HTML
+ *   Tailwind (auteur) → assainie, remplie, compilée → « s'affiche-t-elle ? » → RenderResult + trace
  *
- * Un `GraphicDocument` porte ce qui est commun aux sections d'un livrable : les jetons, le plan, la
- * mémoire de diversité, le budget. Ses sections peuvent être composées EN PARALLÈLE (le plan a déjà
- * réservé à chacune ses motifs) ; leur rendu est déterministe pour un même plan et un même contenu.
+ * Aucun gabarit, aucune note esthétique, aucune critique, aucune réécriture automatique : le rendu est celui que
+ * l'auteur a écrit. La seule correction est TECHNIQUE et bornée — une page qui ne s'affiche pas (réponse
+ * inutilisable, rien de visible, rendu impossible) : corriger › réécrire autrement (modèle du cran au-dessus) ›
+ * version minimale ; une tentative à la fois, jamais deux fois la même approche, dans un budget par document.
+ * Ce qui résiste lève `GraphicRenderError` : l'hôte le dit, rien n'est remplacé en silence.
+ *
+ * La jauge de créativité choisit le MODÈLE (`level` transmis à l'hôte, qui résout le rôle sur son échelle) :
+ * mêmes étapes et même contexte à tous les crans.
  */
 import type { CreativityLevel, DocumentType, FormatId, Issue } from './contracts/common';
 import type { SectionContent, SectionRole } from './contracts/content-model';
 import type { DesignSpec, SectionSpec } from './contracts/design-spec';
+import { isAuthoredSpec } from './contracts/design-spec';
 import type { RenderResult } from './contracts/render-result';
 import { validateSectionContent } from './contracts/validate';
-import { analyzeSection, textLoad } from './composition-engine/analyze';
 import { applyAssets, GENERATION_CAP, planAssets, resolveAssets } from './asset-planner';
-import { buildCandidate, Candidate, choose, createComposeContext, generateCandidates, lookInputFor, menu, rank, specOf } from './composition-engine/compose';
-import { DiversityMemory, fingerprintOf, serialize } from './composition-engine/diversity';
-import { DocumentPlan, planDocument, slotFor } from './composition-engine/plan';
-import { CreativityPolicy, policyFor } from './composition-engine/profiles';
-import { resolveLook } from './design-system/look';
 import { BrandInput, buildTokens, DesignTokens, DirectionInput } from './design-system/tokens';
+import { FORMATS } from './design-system/formats';
 import { stableHash } from './foundation/hash';
-import { compileSection } from './html-css-compiler/compile';
-import { createContext, SectionMeta } from './html-css-compiler/context';
-import { authorPrompt, authorRevisePrompt, ReferenceComposition, describeSection, parseAuthored, parsePick, parsePickTune, pickPrompt, pickTunePrompt } from './agents/creative-planner';
-import { Critique, CRITIC_INSTRUCTION, parseCritique, visionCall } from './agents/critic';
-import { planContent } from './agents/content-planner';
-import { COMPACT_VARIANTS, parseRepair, repairPrompt } from './agents/targeted-repair';
 import { AgentCall, engineHost, FingerprintScope, log } from './host';
-import { budgetFor, TASK_POLICIES, TokenBudget, atLeast } from './orchestrator/policies';
-import { runTask } from './orchestrator/run-task';
 import { GenerationTrace, TraceRecorder } from './observability/traces';
-import { fitAndMeasure, Measurement } from './quality-engine/measure';
-import { decide, issuesOf, measuredScore } from './quality-engine/repair';
-import { COMPONENT_LIBRARY_VERSION, ENGINE_VERSION } from './version';
-import { walk } from './contracts/validate';
+import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
+import { authorSystem, authorUser, directorPrompt, DocumentContext, parseBible, ReferenceComposition, RepairStrategy, repairUser, reviseUser } from './author/prompts';
+import { callModel, levelUp } from './author/model';
+import { buildContentMap, ContentMap } from './runtime/content-map';
+import { expandPage, extractHtml, sanitizeHtml, withSize } from './runtime/expand';
+import { compileTailwind } from './runtime/tailwind';
+import { checkRender } from './runtime/check';
 
 export interface DocumentOptions {
   documentType: DocumentType;
@@ -46,27 +41,27 @@ export interface DocumentOptions {
   direction?: DirectionInput;
   allowDark?: boolean;
   creativity?: CreativityLevel;
-  /** La clé du livrable : elle sème tous les tirages (même projet, même suite ; autre projet, autre suite). */
+  /** La clé du livrable (journaux, mémoire des bibles). */
   seed: string;
   documentLabel?: string;
-  /** Les sections attendues, dans l'ordre : le plan leur réserve des compositions distinctes. */
+  /** Les pages attendues, dans l'ordre : le directeur écrit la bible pour elles. */
   sections?: Array<{ id: string; role?: SectionRole }>;
   bindings?: 'values' | 'markers';
   imageColors?: string[];
-  /** Mesurer et réparer dans Chromium (défaut : oui). */
+  /** Contrôler l'affichage dans Chromium (défaut : oui). */
   validate?: boolean;
-  /** Photographier la page (visuels, cartes, critique). */
+  /** Photographier la page (visuels, cartes). */
   png?: boolean;
-  /** Portée de la mémoire de diversité entre documents (marque, projet). */
+  /** Portée de la mémoire des bibles entre documents (marque, projet). */
   memoryScope?: FingerprintScope;
   user?: { userId?: string; projectId?: string };
   size?: { width: number; height: number };
+  /** Ancien réglage du pied de page : la page est désormais écrite par l'auteur (ignoré). */
   footer?: 'full' | 'logo' | 'none';
-  /**
-   * Une composition MODÈLE (image de référence de l'utilisateur, analysée) : l'auteur la REPRODUIT avec la
-   * marque, ses mots et sa photo — à tous les crans (reproduire un modèle demande un auteur, pas un menu).
-   */
+  /** Une composition MODÈLE (image de référence de l'utilisateur, analysée) : l'auteur la reproduit. */
   reference?: ReferenceComposition;
+  /** Ce que l'hôte sait du projet (activité, public), donné au directeur et à l'auteur. */
+  brief?: string;
 }
 
 export interface SectionOutput {
@@ -82,323 +77,249 @@ export class ContentError extends Error {
   }
 }
 
-interface Attempt {
-  spec: SectionSpec;
-  candidate?: Candidate;
+/** Une page qui n'a pas pu s'afficher, même après la correction bornée — une erreur TECHNIQUE, dite. */
+export class GraphicRenderError extends Error {
+  constructor(
+    readonly sectionId: string,
+    readonly reason: string,
+    readonly attempts: string[] = []
+  ) {
+    super(`La page « ${sectionId} » ne s'affiche pas : ${reason}`);
+  }
+}
+
+/** Les bornes de la correction technique, par document. */
+export function repairLimits(): { attempts: number; tokenBudget: number; maxMs: number } {
+  const n = (v: string | undefined, d: number) => (v !== undefined && v !== '' && Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : d);
+  return { attempts: Math.min(3, n(process.env.GRAPHIC_REPAIR_ATTEMPTS, 3)), tokenBudget: n(process.env.GRAPHIC_REPAIR_TOKEN_BUDGET, 60000), maxMs: n(process.env.GRAPHIC_REPAIR_MAX_MS, 240000) };
+}
+
+const REPAIR_PLAN: RepairStrategy[] = ['fix', 'rewrite', 'minimal'];
+const AUTHOR_TIMEOUT = 150_000;
+const DIRECTOR_TIMEOUT = 60_000;
+
+interface Rendered {
+  template: string;
   html: string;
-  scale: number;
-  measurement?: Measurement;
+  head: string;
   png?: Buffer;
-  score: number;
+  width?: number;
+  height?: number;
   issues: Issue[];
-  critique?: number;
 }
 
 export class GraphicDocument {
   readonly tokens: DesignTokens;
-  readonly plan: DocumentPlan;
-  readonly policy: CreativityPolicy;
-  readonly budget: TokenBudget;
-  private readonly memory: DiversityMemory;
+  /** Le cran de la jauge : il choisit le modèle de chaque rôle (l'hôte résout l'échelle). */
+  readonly policy: { level: CreativityLevel };
   private readonly specs = new Map<string, SectionSpec>();
   private readonly generationId: string;
-  /** Images déjà générées pour ce document : la génération est plafonnée par document (`GENERATION_CAP`). */
   private generatedAssets = 0;
+  private biblePromise: Promise<string | undefined> | null = null;
+  private bibleText: string | undefined;
+  /** Le budget de correction de tout le document (jetons, durée). */
+  private repairSpent = { tokens: 0, started: 0 };
 
-  private constructor(readonly options: DocumentOptions, recent: string[]) {
+  private constructor(
+    readonly options: DocumentOptions,
+    private readonly previousBibles: string[]
+  ) {
     this.tokens = buildTokens({ brand: options.brand, direction: options.direction, format: options.format, allowDark: options.allowDark, size: options.size });
-    this.plan = planDocument({ documentType: options.documentType, format: options.format, seed: options.seed, creativity: options.creativity, styleId: options.direction?.styleId, density: options.direction?.density, sections: options.sections, hasImage: Boolean(options.imageColors?.length) });
-    this.policy = policyFor(options.creativity);
-    // Un modèle à reproduire demande un auteur, donc son budget, même aux crans où le code compose.
-    const authorLevel = options.reference && !atLeast(this.policy.level, 'high') ? 'high' : this.policy.level;
-    this.budget = new TokenBudget(budgetFor(options.documentType, authorLevel, options.sections?.length ?? 1));
-    this.memory = new DiversityMemory(recent);
+    this.policy = { level: options.creativity === ('max' as CreativityLevel) ? 'high' : options.creativity ?? 'medium' };
     this.generationId = `${options.documentType}:${stableHash([options.seed, Date.now()], 10)}`;
   }
 
   static async create(options: DocumentOptions): Promise<GraphicDocument> {
     const host = engineHost();
     const recent = options.memoryScope && host.recentFingerprints ? await host.recentFingerprints(options.memoryScope).catch(() => []) : [];
-    return new GraphicDocument(options, recent);
+    return new GraphicDocument(options, recent.filter((r) => r.startsWith('bible:')).map((r) => r.slice(6)));
   }
 
-  /** Le bloc `<head>` de l'assembleur (polices de la marque). */
+  /** Les polices de la marque (le `<style>` Tailwind de chaque page est dans son `result.head`). */
   get head(): string {
     return this.tokens.font.headHtml;
+  }
+
+  /** La bible du document, une fois écrite. */
+  get bible(): string | undefined {
+    return this.bibleText;
+  }
+
+  private get format() {
+    return withSize(FORMATS[this.options.format], this.options.size);
+  }
+
+  private context(): DocumentContext {
+    return {
+      documentType: this.options.documentType,
+      documentLabel: this.options.documentLabel,
+      locale: this.options.locale ?? 'fr',
+      tokens: this.tokens,
+      format: this.format,
+      direction: this.options.direction,
+      allowDark: this.options.allowDark === true,
+      brief: this.options.brief,
+      bindings: this.options.bindings ?? 'values',
+    };
   }
 
   private agent(): AgentCall | undefined {
     return engineHost().agentCall?.({ ...this.options.user, element: `graphic:${this.options.documentType}` });
   }
 
-  private compile(spec: SectionSpec, section: SectionContent, meta: SectionMeta, scale: number, fingerprint: string): { html: string; issues: Issue[] } {
-    const look = resolveLook(this.tokens, { strategy: spec.strategy, mood: spec.mood, tension: spec.tension, accent: spec.accent, density: spec.density, allowInverted: this.tokens.format.kind === 'fixed' && this.tokens.format.family !== 'card', imageColors: this.options.imageColors });
-    const ctx = createContext({ tokens: this.tokens, look, section, documentType: this.options.documentType, locale: this.options.locale ?? 'fr', bindings: this.options.bindings ?? 'values', meta });
-    const { html } = compileSection(spec, ctx, { fitScale: scale, fingerprint, specHash: stableHash(spec, 12) });
-    return { html, issues: ctx.issues };
+  /** La bible : écrite une fois par document de plusieurs pages, partagée par les pages composées en parallèle. */
+  private ensureBible(recorder: TraceRecorder): Promise<string | undefined> {
+    if ((this.options.sections?.length ?? 0) < 2) return Promise.resolve(undefined);
+    if (!this.biblePromise) {
+      const call = this.agent();
+      this.biblePromise = (async () => {
+        if (!call) return undefined;
+        const { system, user } = directorPrompt(this.context(), this.options.sections ?? [], this.previousBibles);
+        const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.director', profile: 'agents', level: this.policy.level, system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parseBible(raw) !== null });
+        // Sans bible, chaque page reste écrite : la bible sert la cohérence, elle n'est pas une condition.
+        this.bibleText = run.ok ? parseBible(run.raw) ?? undefined : undefined;
+        return this.bibleText;
+      })();
+    }
+    return this.biblePromise;
   }
 
   /**
-   * Compiler, puis ajuster et mesurer dans Chromium (titres au pixel, texte dans son aplat, diapositive trop
-   * vide agrandie), puis corriger par le code (échelle bornée) ; la meilleure tentative est gardée.
+   * Compose une page. `replay` : la page déjà écrite, rejouée avec un contenu retouché (aucun modèle) ;
+   * `revise` : une retouche ÉCRITE (« le titre plus grand ») — l'auteur réécrit la page avec la consigne.
    */
-  private async renderAttempt(spec: SectionSpec, section: SectionContent, meta: SectionMeta, fingerprint: string, recorder: TraceRecorder, light: boolean, shoot: boolean): Promise<Attempt> {
-    const fixed = this.tokens.format.kind === 'fixed';
-    const validate = this.options.validate !== false;
-    const grow = fixed && this.tokens.format.family === 'slide';
-    let scale = 1;
-    let best: Attempt | null = null;
-    for (let round = 0; round < 5; round++) {
-      const compiled = this.compile(spec, section, meta, scale, fingerprint);
-      if (!validate) return { spec, html: compiled.html, scale, score: 100, issues: compiled.issues };
-      const t0 = Date.now();
-      const run = await fitAndMeasure(compiled.html, this.head, this.tokens.format, { fixed, grow: grow && scale === 1, minPx: Math.max(7, this.tokens.format.minSize * 0.9), floor: 0.74, inks: { dark: this.tokens.color.ink, light: this.tokens.color.onDeep } }, { lang: this.options.locale, shoot });
-      const measurement: Measurement = run.measurement;
-      recorder.task({ task: 'measure', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'accepted' });
-      if (measurement.fitted.shrunk) recorder.repair({ code: 'fit_text', detail: `textes ajustés (${measurement.fitted.shrunk} pas) — échelle finale ${Math.round(measurement.fitted.textScale * 100)} %`, by: 'code' });
-      if (measurement.fitted.grown) recorder.repair({ code: 'fit_grow', detail: `page trop vide : textes agrandis de ${measurement.fitted.grown} %`, by: 'code' });
-      if (measurement.fitted.recolored) recorder.repair({ code: 'fix_contrast', detail: `${measurement.fitted.recolored} texte(s) ramené(s) au contraste de lecture (encre de la charte)`, by: 'code' });
-      const score = measuredScore(measurement, scale, fixed);
-      const attempt: Attempt = { spec, html: run.html, scale, measurement, png: run.png, score, issues: [...compiled.issues, ...issuesOf(measurement, fixed, scale, this.policy.judgementBlocks, light)] };
-      if (!best || attempt.score > best.score) best = attempt;
-      // Un décor d'encre posé sur un texte s'efface — lui seul : le contenu passe avant l'ornement.
-      if (measurement.decorOverText.length && spec.decor?.length) {
-        const drop = new Set(measurement.decorOverText);
-        recorder.repair({ code: 'drop_decor', detail: `${drop.size} décor(s) posé(s) sur un texte : retiré(s)`, by: 'code' });
-        spec = { ...spec, decor: spec.decor.filter((_, i) => !drop.has(i)) };
-        continue;
-      }
-      const action = decide(measurement, scale, fixed);
-      if (action.kind !== 'zoom') return best;
-      recorder.repair({ code: 'fit_scale', detail: `mise à l'échelle ${Math.round(scale * 100)} % → ${Math.round(action.scale * 100)} % (débordement ${measurement.overflowPx} px)`, by: 'code' });
-      scale = action.scale;
-    }
-    return best as Attempt;
-  }
-
-  async composeSection(content: SectionContent, o: { index?: number; total?: number; replay?: SectionSpec } = {}): Promise<SectionOutput> {
+  async composeSection(content: SectionContent, o: { index?: number; total?: number; replay?: SectionSpec; revise?: { spec?: SectionSpec; instruction: string } } = {}): Promise<SectionOutput> {
     const checked = validateSectionContent(content);
     if (!checked.ok || !checked.value) throw new ContentError(checked.issues);
     const level = this.policy.level;
     const recorder = new TraceRecorder({ generationId: this.generationId, documentType: this.options.documentType, format: this.options.format, level, sectionId: content.id });
-    // ── 0. Les médias : ce que la page doit montrer, trouvé AVANT de composer ───────────────
-    const { section: withAssets, assets } = await this.prepareAssets(checked.value, recorder);
-    const analysis0 = analyzeSection(withAssets);
-    const section = planContent(withAssets, analysis0);
-    const analysis = { ...analysis0, role: section.role };
-    const slot = slotFor(this.plan, section.id, o.index);
-    const meta: SectionMeta = { brandName: this.options.brand.name, documentLabel: this.options.documentLabel, index: slot.index, total: o.total ?? (this.plan.order.length || undefined), footer: this.options.footer ?? this.plan.footer };
-    const ctx = createComposeContext({ section, analysis, plan: this.plan, slot, tokens: this.tokens, meta, memory: this.memory, policy: this.policy, imageColors: this.options.imageColors });
-    const fixed = this.tokens.format.kind === 'fixed';
-    // Une page rejouée (retouche) n'est plus jugée : c'est la composition que l'utilisateur a choisi de garder.
-    const critic = !o.replay && atLeast(level, 'high') && fixed && Boolean(engineHost().analyzeImage) && this.budget.allows(TASK_POLICIES.critic.maxTokens);
-    const shoot = Boolean(this.options.png) || critic;
-    const call = this.agent();
-    const brandName = this.options.brand.name;
-    const summary = describeSection(section, analysis);
-    const previous = this.memory.snapshot().map((f) => f.split('|')[0]);
+    const { section, assets } = await this.prepareAssets(checked.value, recorder);
+    const map = buildContentMap(section, this.options.bindings ?? 'values');
+    const index = o.index ?? 1;
+    const total = o.total ?? (this.options.sections?.length || 1);
 
-    // ── 1. Le choix de la composition ─────────────────────────────────────────────────────
-    let ranked: Candidate[] = [];
-    let chosen: Candidate | null = null;
-    let authored: SectionSpec | null = null;
-    /** L'arbre d'auteur et son prompt : la révision sur critique repart de là. */
-    let authorTree: { root: SectionSpec['root']; decor: NonNullable<SectionSpec['decor']> } | null = null;
-    let authorBase: { system: string; user: string } | null = null;
-    if (o.replay) {
-      authored = o.replay;
-      recorder.task({ task: 'compose', source: 'code', inputTokens: 0, outputTokens: 0, ms: 0, outcome: 'accepted', reason: 'nothing-to-decide' });
-    } else {
-      ranked = rank(generateCandidates(ctx), ctx);
-      const fallback = choose(ranked, ctx);
-      const options = menu(ranked, this.policy.menu);
-      recorder.task({ task: 'compose', source: 'code', inputTokens: 0, outputTokens: 0, ms: 0, outcome: 'accepted' });
-      chosen = fallback;
-      if (this.policy.agents.tune) {
-        const tuned = await runTask({ policy: TASK_POLICIES.pickTune, level, call, budget: this.budget, recorder, prompt: () => pickTunePrompt(this.plan, brandName, this.tokens.format, summary, options, previous, this.options.direction?.grammar), parse: (raw) => parsePickTune(raw, options, this.plan), fallback: () => null });
-        if (tuned.value) {
-          const base = options[tuned.value.index];
-          const lookInput = { ...lookInputFor(ctx), ...(tuned.value.tension ? { tension: tuned.value.tension } : {}), ...(tuned.value.accent ? { accent: tuned.value.accent } : {}) };
-          chosen = buildCandidate(ctx, base.pattern, tuned.value.params, lookInput);
-        }
-      } else if (this.policy.agents.pick) {
-        const picked = await runTask({ policy: TASK_POLICIES.pick, level, call, budget: this.budget, recorder, prompt: () => pickPrompt(this.plan, brandName, this.tokens.format, summary, options, previous, this.options.direction?.grammar), parse: (raw) => parsePick(raw, options.length), fallback: () => -1 });
-        if (picked.value >= 0) chosen = options[picked.value];
-      }
-      const reference = this.options.reference;
-      if (this.policy.agents.author || reference) {
-        // Les compositions éprouvées sont montrées comme RÉFÉRENCES : l'auteur peut s'en inspirer ou s'en écarter.
-        // Un modèle de l'utilisateur, lui, est à REPRODUIRE (positions comprises).
-        authorBase = authorPrompt(this.plan, brandName, this.tokens.format, section, analysis, previous, menu(ranked, 4), reference, this.options.direction?.grammar);
-        const base = authorBase;
-        const authorLevel = reference && !atLeast(level, 'high') ? 'high' : level;
-        let result = await runTask({ policy: TASK_POLICIES.author, level: authorLevel, call, budget: this.budget, recorder, prompt: () => base, parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
-        // Une réponse inutilisable n'abandonne pas la composition libre : l'auteur a UNE seconde chance.
-        if (!result.value) result = await runTask({ policy: TASK_POLICIES.authorRetry, level: authorLevel, call, budget: this.budget, recorder, prompt: () => ({ system: base.system, user: `${base.user}\n\nYOUR PREVIOUS ANSWER COULD NOT BE USED: return ONE JSON object {"root": <node>, "decor": [ … ]} using only the nodes and refs listed.` }), parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
-        if (result.value) {
-          const look = chosen ? chosen.lookInput : lookInputFor(ctx);
-          authored = { ref: section.id, pattern: { id: 'authored', params: {} }, density: look.density, strategy: look.strategy, mood: look.mood, tension: look.tension, accent: look.accent, root: result.value.root, ...(result.value.decor.length ? { decor: result.value.decor } : {}) };
-          authorTree = { root: result.value.root, decor: result.value.decor };
-          for (const r of result.value.repaired) recorder.repair({ code: 'author_tree', detail: r, by: 'code' });
-        }
-      }
+    let rendered: Rendered | null = null;
+    let bible: string | undefined;
+    // 1. Une page rejouée : son code, le nouveau contenu, aucun modèle.
+    if (o.replay && isAuthoredSpec(o.replay) && !o.revise) {
+      const r = await this.render(o.replay.html, map, section.id, recorder);
+      if (r.ok) rendered = r.page;
+      else recorder.repair({ code: 'replay_failed', detail: `la page gardée ne s'affiche plus (${r.error.slice(0, 160)}) : réécrite`, by: 'code' });
+      bible = o.replay.bible;
+    }
+    if (!rendered) {
+      const call = this.agent();
+      if (!call) throw new GraphicRenderError(section.id, 'aucun modèle n’est branché (port agentCall absent)');
+      bible = bible ?? (await this.ensureBible(recorder));
+      const ctx = this.context();
+      const system = authorSystem(ctx);
+      const base = authorUser(ctx, { section, listing: map.listing, index, total, bible, reference: this.options.reference });
+      const revising = o.revise?.instruction && o.revise.spec && isAuthoredSpec(o.revise.spec) ? o.revise : undefined;
+      const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;
+      rendered = await this.author(section.id, map, recorder, { system, base, user, level, task: revising ? 'revise' : 'author' });
     }
 
-    // ── 2. Rendu mesuré, avec repli sur les compositions suivantes ────────────────────────
-    const queue: Array<{ spec: SectionSpec; candidate?: Candidate }> = [];
-    if (authored) queue.push({ spec: authored });
-    if (chosen) queue.push({ spec: specOf(chosen, section.id), candidate: chosen });
-    for (const c of menu(ranked, 4)) if (!chosen || c.pattern.id !== chosen.pattern.id) queue.push({ spec: specOf(c, section.id), candidate: c });
-
-    let best: Attempt | null = null;
-    const isBlocking = (a: Attempt) => a.issues.some((i) => i.severity === 'blocking');
-    for (const item of queue.slice(0, 4)) {
-      recorder.attempts += 1;
-      const fp = item.candidate ? serialize(item.candidate.fingerprint) : `authored|||||`;
-      let attempt = await this.renderAttempt(item.spec, section, meta, fp, recorder, analysis.light, shoot);
-      attempt.candidate = item.candidate;
-      // Avant de changer de composition : les décors cèdent la place au contenu (accent et tension retirés).
-      const c = item.candidate;
-      if (isBlocking(attempt) && c && (c.lookInput.accent !== 'none' || c.lookInput.tension !== 'calm')) {
-        const simple = buildCandidate(ctx, c.pattern, c.params, { ...c.lookInput, accent: 'none', tension: 'calm' });
-        const retry = await this.renderAttempt(specOf(simple, section.id), section, meta, serialize(simple.fingerprint), recorder, analysis.light, shoot);
-        retry.candidate = simple;
-        recorder.repair({ code: 'simplify_chrome', detail: `${c.pattern.id} : accent « ${c.lookInput.accent} » et tension « ${c.lookInput.tension} » retirés`, by: 'code' });
-        if (retry.score >= attempt.score) attempt = retry;
-      }
-      if (!best || attempt.score > best.score) best = attempt;
-      if (!isBlocking(attempt)) break;
-      recorder.repair({ code: 'next_candidate', detail: `${item.spec.pattern.id} : ${attempt.issues.filter((i) => i.severity === 'blocking').map((i) => i.code).join(', ')}`, by: 'code' });
-    }
-    let final = best as Attempt;
-    // Un arbre d'auteur BLOQUANT (débordement, texte illisible) repart chez son auteur avec le constat, avant tout
-    // repli : la composition libre est corrigée, pas remplacée en silence par un gabarit.
-    if (authored && authorBase && final.spec.pattern.id !== 'authored') {
-      const base = authorBase;
-      const authoredAttempt = await this.renderAttempt(authored, section, meta, 'authored|||||', recorder, analysis.light, shoot);
-      const problems = authoredAttempt.issues.filter((i) => i.severity === 'blocking').map((i) => `${i.code}: ${i.message}`).slice(0, 5).join('; ');
-      const fixed = await runTask({ policy: TASK_POLICIES.authorRetry, level: this.options.reference && !atLeast(level, 'high') ? 'high' : level, call, budget: this.budget, recorder, prompt: () => ({ system: base.system, user: `${base.user}\n\nYOUR PREVIOUS DESIGN:\n${JSON.stringify({ root: authored!.root, decor: authored!.decor ?? [] }).slice(0, 6000)}\nIT WAS REJECTED WHEN RENDERED: ${problems}. Keep its idea, fix these problems (less text per zone, more room, nothing outside the canvas). Same JSON format.` }), parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
-      if (fixed.value) {
-        const spec: SectionSpec = { ...authored, root: fixed.value.root, ...(fixed.value.decor.length ? { decor: fixed.value.decor } : { decor: undefined }) };
-        const retry = await this.renderAttempt(spec, section, meta, 'authored|||||', recorder, analysis.light, shoot);
-        if (!retry.issues.some((i) => i.severity === 'blocking')) {
-          recorder.repair({ code: 'author_fixed', detail: `arbre d'auteur corrigé par son auteur (${problems.slice(0, 160)})`, by: 'agent' });
-          final = retry;
-          authored = spec;
-          authorTree = { root: fixed.value.root, decor: fixed.value.decor };
-        }
-      }
-    }
-    // Le repli est DIT : l'arbre d'auteur n'a pas pu être rendu sans défaut bloquant, une composition éprouvée le remplace.
-    if (!o.replay && authored && final.spec.pattern.id !== 'authored') recorder.repair({ code: 'author_fallback', detail: `arbre d'auteur bloquant : repli sur ${final.spec.pattern.id}`, by: 'code' });
-
-    // ── 3. Réparation ciblée (High+) quand le code n'a pas su ─────────────────────────────
-    const blocking = final.issues.filter((i) => i.severity === 'blocking');
-    if (blocking.length && this.policy.agents.repair && final.candidate) {
-      const alternatives = menu(ranked, 4).filter((c) => c.pattern.id !== final.candidate?.pattern.id);
-      const blockIds = section.blocks.map((b) => b.id);
-      const choice = await runTask({ policy: TASK_POLICIES.repair, level, call, budget: this.budget, recorder, prompt: () => repairPrompt(blocking, alternatives, blockIds), parse: (raw) => parseRepair(raw, alternatives.length, blockIds), fallback: () => undefined });
-      if (choice.value) {
-        let spec = final.spec;
-        if (choice.value.kind === 'switch') spec = specOf(alternatives[choice.value.index], section.id);
-        if (choice.value.kind === 'dense') spec = { ...spec, density: 'dense' };
-        if (choice.value.kind === 'drop-decor') spec = { ...spec, decor: [] };
-        if (choice.value.kind === 'compact') {
-          const target = choice.value.blockId;
-          const root = JSON.parse(JSON.stringify(spec.root));
-          walk(root, (node) => {
-            if (node.t === 'block' && node.ref === target) {
-              const kind = section.blocks.find((b) => b.id === target)?.kind ?? '';
-              node.variant = { ...(node.variant ?? {}), ...(COMPACT_VARIANTS[kind] ?? {}) };
-            }
-          });
-          spec = { ...spec, root };
-        }
-        const retry = await this.renderAttempt(spec, section, meta, serialize(final.candidate.fingerprint), recorder, analysis.light, shoot);
-        if (retry.score > final.score) {
-          final = { ...retry, candidate: final.candidate };
-          recorder.repair({ code: 'targeted_repair', detail: `réparation ciblée : ${choice.value.kind}`, by: 'agent' });
-        }
-      }
-    }
-
-    // ── 4. Critique visuelle (High+) : départager des rendus que le moteur a tous su produire ──
-    const analyze = engineHost().analyzeImage;
-    if (critic && analyze && final.png && !final.issues.some((i) => i.severity === 'blocking')) {
-      const review = async (png: Buffer): Promise<Critique | undefined> => {
-        const r = await runTask({ policy: TASK_POLICIES.critic, level, call: visionCall(analyze, png), budget: this.budget, recorder, prompt: () => ({ system: CRITIC_INSTRUCTION, user: 'image' }), parse: (raw) => parseCritique(raw), fallback: () => undefined });
-        return r.value;
-      };
-      const judge = async (png: Buffer): Promise<number | undefined> => (await review(png))?.score;
-      const first = await review(final.png);
-      final.critique = first?.score;
-      // Un arbre d'auteur jugé faible est RÉVISÉ par son auteur, sur les notes du critique (Max, Ultra) —
-      // jamais remplacé en silence par un gabarit.
-      let notes = first;
-      if (authored && final.spec.pattern.id === 'authored' && authorTree && authorBase) {
-        for (let round = 0; round < this.policy.authorRevisions && notes && notes.score < 3.6; round++) {
-          const tree: { root: SectionSpec['root']; decor: NonNullable<SectionSpec['decor']> } = authorTree;
-          const base = authorBase;
-          const scored = notes;
-          const revised: { value: ReturnType<typeof parseAuthored> } = await runTask({ policy: TASK_POLICIES.authorRevise, level, call, budget: this.budget, recorder, prompt: (): { system: string; user: string } => authorRevisePrompt(base, tree, scored.scores, scored.weakest), parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
-          if (!revised.value) break;
-          const spec: SectionSpec = { ...final.spec, root: revised.value.root, ...(revised.value.decor.length ? { decor: revised.value.decor } : { decor: undefined }) };
-          const attempt = await this.renderAttempt(spec, section, meta, 'authored|||||', recorder, analysis.light, true);
-          if (attempt.issues.some((i) => i.severity === 'blocking') || !attempt.png) break;
-          const again = await review(attempt.png);
-          attempt.critique = again?.score;
-          if ((again?.score ?? 0) > (final.critique ?? 0)) {
-            recorder.repair({ code: 'author_revised', detail: `révision ${round + 1} sur « ${scored.weakest} » : ${final.critique} → ${again?.score}`, by: 'agent' });
-            final = attempt;
-            authorTree = { root: revised.value.root, decor: revised.value.decor };
-            notes = again;
-          } else break;
-        }
-      }
-      const extra = level === 'high' ? 1 : 2;
-      if (final.critique !== undefined && final.critique < 3.6 && !authored) {
-        for (const alt of menu(ranked, 1 + extra).filter((c) => c.pattern.id !== final.candidate?.pattern.id).slice(0, extra)) {
-          const attempt = await this.renderAttempt(specOf(alt, section.id), section, meta, serialize(alt.fingerprint), recorder, analysis.light, true);
-          if (attempt.issues.some((i) => i.severity === 'blocking') || !attempt.png) continue;
-          attempt.candidate = alt;
-          attempt.critique = await judge(attempt.png);
-          if ((attempt.critique ?? 0) > (final.critique ?? 0)) {
-            recorder.repair({ code: 'critic_choice', detail: `la critique préfère ${alt.pattern.id} (${attempt.critique} contre ${final.critique})`, by: 'agent' });
-            final = attempt;
-          }
-        }
-      }
-    }
-
-    // ── 5. Résultat ────────────────────────────────────────────────────────────────────────
-    const fingerprint = final.candidate ? final.candidate.fingerprint : fingerprintOf('authored', {}, { strategy: final.spec.strategy, tension: final.spec.tension, accent: final.spec.accent }, []);
-    // Un arbre d'auteur n'a pas de régions déclarées : sa silhouette est celle MESURÉE sur la page rendue.
-    if (!final.candidate && final.measurement) fingerprint.silhouette = final.measurement.silhouette;
-    this.memory.add(fingerprint, slot.index);
-    this.specs.set(section.id, final.spec);
-    // La charge de texte contre le budget de la page : un CONSEIL (le moteur ne retire jamais un mot) que
-    // l'hôte renvoie au rédacteur — changer de représentation ou diviser, plutôt que réduire le corps.
-    const load = textLoad(analysis, section.intent?.textBudget);
-    if (load.over > 1.25) final.issues = [...final.issues, { code: 'text_heavy', severity: 'advisory', message: `Page trop textuelle pour son rôle : ${load.detail}.`, fix: 'montrer plutôt qu’écrire (points illustrés, schéma, image) ou diviser la page' }];
+    const spec: SectionSpec = { version: 2, ref: section.id, pattern: { id: 'authored' }, html: rendered.template, ...(bible ? { bible } : {}), level };
+    this.specs.set(section.id, spec);
     const usage = recorder.usage();
-    const trace = recorder.finish({ pattern: final.spec.pattern.id, quality: Math.round(final.score), ...(assets.length ? { assets } : {}) });
+    const trace = recorder.finish({ pattern: 'authored', ...(assets.length ? { assets } : {}) });
     engineHost().onTrace?.(trace);
-    if (final.issues.some((i) => i.severity === 'blocking')) log().warn('graphic.section_blocking', { event: 'graphic.section_blocking', section: section.id, pattern: final.spec.pattern.id, issues: final.issues.map((i) => i.code) });
-    const m = final.measurement;
     const result: RenderResult = {
       version: '1.0',
       documentType: this.options.documentType,
       format: this.options.format,
       sectionId: section.id,
-      html: final.html,
-      ...(this.head ? { head: this.head } : {}),
-      provenance: { engine: ENGINE_VERSION, components: COMPONENT_LIBRARY_VERSION, specHash: stableHash(final.spec, 12), tokensHash: this.tokens.hash, pattern: final.spec.pattern.id, fingerprint: serialize(fingerprint) },
-      ...(m ? { measured: { width: Math.round(m.width), height: Math.round(m.height), fill: Math.round(m.fill * 100) / 100, overflowPx: m.overflowPx, minContrast: m.minContrast, silhouette: m.silhouette } } : {}),
+      html: rendered.html,
+      head: rendered.head,
+      provenance: { engine: ENGINE_VERSION, components: COMPONENT_LIBRARY_VERSION, specHash: stableHash(spec.html, 12), tokensHash: this.tokens.hash, pattern: 'authored', fingerprint: `authored|${level}` },
+      ...(rendered.width ? { measured: { width: rendered.width, height: rendered.height ?? 0 } } : {}),
       repairs: recorder.repairs,
-      issues: final.issues,
+      issues: rendered.issues,
       usage: { agentCalls: usage.agentCalls, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, ms: usage.ms },
     };
-    return { spec: final.spec, result, png: final.png, trace };
+    return { spec, result, png: rendered.png, trace };
+  }
+
+  /**
+   * L'auteur écrit la page ; si elle ne s'affiche pas, la correction bornée : une tentative à la fois, une
+   * approche différente à chaque fois, le modèle du cran au-dessus dès la réécriture.
+   */
+  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; task: 'author' | 'revise' }): Promise<Rendered> {
+    const call = this.agent() as AgentCall;
+    const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
+    const first = await callModel({ call, recorder, task: p.task, role: 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: p.user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
+    let code = first.ok ? extractHtml(first.raw) : '';
+    let error = first.ok ? '' : `the answer contained no HTML (${first.failure})`;
+    if (code) {
+      const r = await this.render(code, map, sectionId, recorder);
+      if (r.ok) return r.page;
+      error = r.error;
+      code = r.template;
+    }
+    const limits = repairLimits();
+    const history: string[] = [error];
+    if (!this.repairSpent.started) this.repairSpent.started = Date.now();
+    for (let i = 0; i < Math.min(limits.attempts, REPAIR_PLAN.length); i++) {
+      const strategy = REPAIR_PLAN[i];
+      if (this.repairSpent.tokens >= limits.tokenBudget) {
+        history.push('budget de correction du document épuisé');
+        break;
+      }
+      if (Date.now() - this.repairSpent.started > limits.maxMs) {
+        history.push('temps de correction du document épuisé');
+        break;
+      }
+      const level = strategy === 'fix' ? p.level : levelUp(p.level);
+      const user = repairUser(p.base, strategy, { code: strategy === 'fix' ? code : undefined, error, history: history.slice(-3) });
+      const run = await callModel({ call, recorder, task: 'repair', role: 'graphic.author', profile: 'coder', level, system: p.system, user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
+      this.repairSpent.tokens += run.tokens;
+      if (!run.ok) {
+        error = `the answer contained no HTML (${run.failure})`;
+        history.push(`${strategy}: ${error}`);
+        continue;
+      }
+      const r = await this.render(extractHtml(run.raw), map, sectionId, recorder);
+      if (r.ok) {
+        recorder.repair({ code: `render_${strategy}`, detail: `page corrigée (${strategy}, cran ${level}) après : ${history[history.length - 1].slice(0, 160)}`, by: 'agent' });
+        return r.page;
+      }
+      error = r.error;
+      code = r.template;
+      history.push(`${strategy}: ${error}`);
+    }
+    log().warn('graphic.page_failed', { event: 'graphic.page_failed', documentType: this.options.documentType, section: sectionId, attempts: history });
+    throw new GraphicRenderError(sectionId, history[history.length - 1] ?? error, history);
+  }
+
+  /** Assainir, remplir, compiler, puis demander à Chromium si la page s'affiche. Rien n'est jugé d'autre. */
+  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string }> {
+    const t0 = Date.now();
+    const clean = sanitizeHtml(raw);
+    if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
+    const issues: Issue[] = [];
+    if (clean.nativeCss) issues.push({ code: 'native_css_removed', severity: 'advisory', message: `${clean.nativeCss} style(s) CSS natif(s) retiré(s) : la page est en Tailwind.` });
+    const page = expandPage(clean.html, map, this.tokens, this.format, { sectionId, locale: this.options.locale ?? 'fr', engine: ENGINE_VERSION });
+    if (page.unknown.length) issues.push({ code: 'unknown_keys', severity: 'advisory', message: `Clés inconnues ignorées : ${page.unknown.slice(0, 8).join(', ')}` });
+    if (page.orphans.length) issues.push({ code: 'unknown_blocks', severity: 'advisory', message: `Primitives sans bloc : ${page.orphans.slice(0, 6).join(', ')}` });
+    const unused = [...map.entries.keys()].filter((k) => !page.used.has(k));
+    const unusedBlocks = [...map.primitives.keys()].filter((id) => !page.used.has(`#${id}`));
+    if (unused.length || unusedBlocks.length) issues.push({ code: 'content_not_shown', severity: 'advisory', message: `Contenu non placé par l'auteur : ${[...unusedBlocks.map((b) => `#${b}`), ...unused].slice(0, 12).join(', ')}` });
+    let css: string;
+    try {
+      css = await compileTailwind(page.html, this.tokens);
+    } catch (error) {
+      return { ok: false, error: `Tailwind could not compile the classes: ${String((error as Error)?.message ?? error).slice(0, 200)}`, template: clean.html };
+    }
+    const head = `${this.head ? `${this.head}\n` : ''}<style data-ge-tailwind>${css}</style>`;
+    if (this.options.validate === false) {
+      recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'skipped' });
+      return { ok: true, page: { template: clean.html, html: page.html, head, issues } };
+    }
+    const check = await checkRender(page.html, head, this.format, { lang: this.options.locale, shoot: Boolean(this.options.png) });
+    recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: check.ok ? 'accepted' : 'refused' });
+    if (check.infra) log().warn('graphic.render_unchecked', { event: 'graphic.render_unchecked', section: sectionId, reason: check.error });
+    if (!check.ok) return { ok: false, error: check.error ?? 'the page did not display', template: clean.html };
+    return { ok: true, page: { template: clean.html, html: page.html, head, png: check.png, width: check.width, height: check.height, issues } };
   }
 
   /**
@@ -429,37 +350,36 @@ export class GraphicDocument {
     return { section: rechecked.value, assets: resolution.log };
   }
 
-  /** Le DesignSpec du document (les sections composées jusqu'ici, dans l'ordre du plan). */
+  /** Le DesignSpec du document : les pages écrites jusqu'ici, dans l'ordre annoncé. */
   designSpec(): DesignSpec {
-    const order = this.plan.order.length ? this.plan.order : [...this.specs.keys()];
-    const sections = [...order.filter((id) => this.specs.has(id)), ...[...this.specs.keys()].filter((id) => !order.includes(id))].map((id) => this.specs.get(id) as SectionSpec);
+    const order = (this.options.sections ?? []).map((s) => s.id);
+    const ids = [...order.filter((id) => this.specs.has(id)), ...[...this.specs.keys()].filter((id) => !order.includes(id))];
     return {
-      version: '1.0',
+      version: 2,
       documentType: this.options.documentType,
       format: this.options.format,
       creativity: this.policy.level,
-      direction: { styleId: this.plan.styleId, ...(this.options.direction?.keywords?.length ? { keywords: this.options.direction.keywords.slice(0, 10) } : {}) },
+      ...(this.bibleText ? { bible: this.bibleText } : {}),
       tokensHash: this.tokens.hash,
       seed: this.options.seed.slice(0, 120),
       engine: { version: ENGINE_VERSION, components: COMPONENT_LIBRARY_VERSION },
-      sections,
+      sections: ids.map((id) => this.specs.get(id) as SectionSpec),
     };
   }
 
-  /** Les empreintes de ce document, confiées à la mémoire de l'hôte (diversité entre documents). */
+  /** La bible de ce document, confiée à la mémoire de l'hôte : le prochain document de la marque fera autrement. */
   async remember(): Promise<void> {
     const host = engineHost();
-    if (this.options.memoryScope && host.rememberFingerprints) await host.rememberFingerprints(this.options.memoryScope, this.memory.snapshot()).catch(() => undefined);
+    if (this.options.memoryScope && host.rememberFingerprints && this.bibleText) await host.rememberFingerprints(this.options.memoryScope, [`bible:${this.bibleText.split('\n').slice(0, 3).join(' ').slice(0, 300)}`]).catch(() => undefined);
   }
 }
 
 export const createDocument = (options: DocumentOptions): Promise<GraphicDocument> => GraphicDocument.create(options);
 
 /** Une toile d'une seule section (une face de carte, un visuel, une couverture de réseau). */
-export async function renderSingle(options: DocumentOptions & { content: SectionContent; replay?: SectionSpec }): Promise<SectionOutput> {
+export async function renderSingle(options: DocumentOptions & { content: SectionContent; replay?: SectionSpec; revise?: { spec?: SectionSpec; instruction: string } }): Promise<SectionOutput> {
   const doc = await createDocument({ ...options, sections: [{ id: options.content.id, role: options.content.role }] });
-  // `replay` : une page RETOUCHÉE — son arbre est rejoué tel quel (mesure et réparations du code comprises).
-  const out = await doc.composeSection(options.content, { index: 1, total: 1, ...(options.replay ? { replay: options.replay } : {}) });
+  const out = await doc.composeSection(options.content, { index: 1, total: 1, ...(options.replay ? { replay: options.replay } : {}), ...(options.revise ? { revise: options.revise } : {}) });
   await doc.remember();
   return out;
 }

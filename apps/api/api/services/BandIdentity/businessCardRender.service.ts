@@ -138,8 +138,8 @@ export class BusinessCardRenderService {
   /**
    * Document hors-écran isolé : la face, ses polices, et le nettoyage des lignes vides.
    *
-   * Une face composée par le moteur graphique (`.ge-page`) porte ses styles en ligne et ses polices
-   * dans son propre `<head>` : elle est imprimée telle quelle, à ses cotes. Les gabarits plus anciens,
+   * Une face écrite par le moteur graphique (`.ge-page`) porte sa feuille Tailwind compilée et ses polices
+   * avant sa racine : elle est imprimée telle quelle, à ses cotes. Les gabarits plus anciens,
    * écrits en classes Tailwind, gardent le chargement de Tailwind et le cadrage forcé à la carte.
    */
   private buildDocument(
@@ -147,7 +147,7 @@ export class BusinessCardRenderService {
     size: { width: number; height: number },
     typography?: { url?: string; primaryFont?: string; secondaryFont?: string }
   ): string {
-    const engineFace = /class="ge-page"/.test(innerHtml);
+    const engineFace = /class="ge-page[\s"]/.test(innerHtml);
     const fontLinks = engineFace ? '' : brandFontLinks(typography);
     const primary = typography?.primaryFont || 'Archivo';
     const secondary = typography?.secondaryFont || primary;

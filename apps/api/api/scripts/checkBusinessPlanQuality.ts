@@ -34,6 +34,10 @@ import { resolve } from 'path';
 import puppeteer, { Browser } from 'puppeteer';
 
 import { brandFromIdem, closeBrowser, createDocument, SectionContent, sectionHtml } from '@idem/graphic-engine';
+import { useFakeGraphicAuthor } from './fakeGraphicAuthor';
+
+// Les pages sont écrites par un auteur SIMULÉ (aucun modèle) : ce contrôle porte sur ce qui suit l'écriture.
+useFakeGraphicAuthor();
 
 import { SectionModel } from '../models/section.model';
 import { BUSINESS_PLAN_PAGINATION } from '../services/BusinessPlan/businessPlanPdf.options';

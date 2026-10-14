@@ -32,7 +32,7 @@ import {
   VisualCopy,
 } from '@idem/graphic-engine';
 import logger from '../runtime/logger';
-import { CreativityLevel } from '../creativity/levels';
+import { CreativityLevel, normalizeCreativity } from '../creativity/levels';
 import { AgentCall, CreativeOrchestrator } from '../creativity/orchestrator';
 import type { ReferenceImage } from '../reference/reference.analyzer';
 import { imageSourcingService, ImageSourcingPreferences, SourcedImage } from './image.sourcing';
@@ -135,7 +135,7 @@ export async function composeVisual(
   } = {}
 ): Promise<ComposedVisual> {
   const started = Date.now();
-  const level = creative.creativity || 'medium';
+  const level = normalizeCreativity(creative.creativity);
   const stage = (name: string, state: 'running' | 'done') => {
     try {
       creative.onStage?.(name, state);
@@ -170,15 +170,15 @@ export async function composeVisual(
   stage('photo', 'running');
   // Le sujet jugé par la vision : la scène voulue par le rédacteur, puis le message.
   const subject = `${copy.photo ? `${copy.photo.idea}. ` : ''}${copy.headline}. ${message}`.slice(0, 300);
-  const highUp = level === 'high' || level === 'max' || level === 'ultra';
+  const highUp = level === 'high' || level === 'ultra';
   const { photo, sourced, unavailable } =
     skipImage && !creative.image?.url
       ? { photo: undefined, sourced: null, unavailable: undefined }
       : await choosePhoto({ userId, projectId, tag, context, format, copy, subject, sourcing, userPhoto: creative.image?.url, brandPhotos: creative.brandPhotos, preferGenerated: highUp });
   stage('photo', 'done');
 
-  // 3. La page, composée par le moteur graphique. Un retour (« autre chose ») change la graine : le
-  // moteur explore alors une autre composition, sa mémoire écartant celles déjà montrées à la marque.
+  // 3. La page, écrite par l'auteur du moteur graphique (HTML Tailwind). Un retour (« autre chose ») est un
+  // nouveau tirage du modèle ; la mémoire des bibles de la marque l'écarte de ce qui a déjà été fait.
   stage('design', 'running');
   const seed = creative.feedback || creative.avoid?.length ? `${seedKey}:retake:${Date.now().toString(36)}` : seedKey;
   // Le MODÈLE de l'utilisateur : sa composition (description et zones) est donnée à l'auteur, qui la reproduit
@@ -242,7 +242,7 @@ export async function renderVisual(
   format: FlyerFormat,
   copy: WrittenCopy,
   photo: VisualPhotoRef | undefined,
-  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[]; reference?: ReferenceComposition; replay?: SectionSpec }
+  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[]; reference?: ReferenceComposition; replay?: SectionSpec; revise?: { spec: SectionSpec; instruction: string } }
 ): Promise<SectionOutput> {
   const { brand, direction } = engineBrand(context);
   const content = visualContent({
@@ -267,12 +267,8 @@ export async function renderVisual(
     memoryScope: o.projectId ? { documentType: 'flyer', key: o.projectId } : undefined,
     ...(o.reference ? { reference: o.reference } : {}),
     ...(o.replay ? { replay: o.replay } : {}),
+    ...(o.revise ? { revise: o.revise } : {}),
   });
-}
-
-/** Le contenu du moteur d'un visuel (ses mots et sa photo) : la retouche le rapproche de l'arbre gardé. */
-export function visualSection(copy: WrittenCopy, photo: VisualPhotoRef | undefined) {
-  return visualContent({ id: 'visual', copy: engineCopy(copy), image: photo ? { url: photo.url, alt: photo.subject || copy.headline, ...(photo.focal ? { focal: photo.focal } : {}) } : null });
 }
 
 /** Une photo pour un visuel déjà composé (retouche « change la photo ») : mêmes sources et mêmes contrôles. */
@@ -289,7 +285,7 @@ export async function findPhoto(req: { userId: string; projectId: string; tag: s
  */
 export async function renderVisualHtml(html: string, format: FlyerFormat, fonts: { primaryFont?: string; secondaryFont?: string; url?: string } = {}): Promise<Buffer> {
   const size = VISUAL_SIZE[format] ?? VISUAL_SIZE.square;
-  if (/class="ge-page"/.test(html)) return screenshot(pageDocument(html), size);
+  if (/class="ge-page[\s"]/.test(html)) return screenshot(pageDocument(html), size);
   if (/^\s*(<!doctype|<html[\s>])/i.test(html)) return screenshot(html, size);
   const families = [fonts.primaryFont, fonts.secondaryFont].filter((f): f is string => Boolean(f && f.trim()));
   const links = [
@@ -435,13 +431,13 @@ async function choosePhoto(req: {
   return { photo: image ? { url: image.url, focal: image.focal, ...(image.subject ? { subject: image.subject } : {}) } : undefined, sourced, ...(image ? {} : unavailable ? { unavailable } : {}) };
 }
 
-/** Le rapport d'un visuel : ce que la mesure a constaté et ce que le code a réparé. */
+/** Le rapport d'un visuel : les constats techniques (aucune note esthétique) et les corrections d'affichage. */
 function auditOf(out: SectionOutput): VisualAuditReport {
   const r = out.result;
   return {
     findings: r.issues.map((issue) => ({ rule: issue.code, severity: issue.severity === 'blocking' ? 'error' : 'warning', message: issue.message, count: 1, repaired: false })),
     repaired: r.repairs.map((repair) => repair.code),
-    score: Math.max(0, Math.min(100, Math.round(out.trace.quality ?? 100))),
+    score: 100,
     blocking: r.issues.some((issue) => issue.severity === 'blocking'),
   };
 }

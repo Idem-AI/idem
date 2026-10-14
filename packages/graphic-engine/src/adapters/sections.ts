@@ -14,7 +14,7 @@ import { CARD_FIELDS } from '../contracts/content-model';
 import { normalizeSection, NormalizeOptions } from '../contracts/normalize';
 import { looksLikeHtmlPage, salvageHtmlSection } from '../contracts/salvage';
 import type { SectionOutput } from '../engine';
-import { parseJsonObject } from '../orchestrator/run-task';
+import { parseJsonObject } from '../foundation/json';
 
 export interface SectionFromModelOptions {
   /** Identifiant stable de la section (il sème sa composition). */

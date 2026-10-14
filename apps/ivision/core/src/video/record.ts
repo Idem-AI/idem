@@ -6,6 +6,7 @@
  */
 import type { GenerationRecord } from '@idem/graphic-engine';
 import type { MotionVideo } from './contracts/model';
+import { normalizeCreativity } from '../creativity/levels';
 
 export function recordFromVideo(video: Pick<MotionVideo, 'film' | 'creativity' | 'brief'>, ms = 0, assets: string[] = []): GenerationRecord {
   const film = video.film;
@@ -21,7 +22,7 @@ export function recordFromVideo(video: Pick<MotionVideo, 'film' | 'creativity' |
   return {
     v: 1,
     deliverable: 'video',
-    level: video.creativity || 'medium',
+    level: normalizeCreativity(video.creativity),
     createdAt: new Date().toISOString(),
     decisions: [
       ...(intent ? [{ task: 'video.intent', source: intent.source === 'agent' ? ('llm' as const) : ('code' as const), role: 'video.intent-classifier', tokens: { input: 0, output: 0 }, ms: 0, outcome: `${intent.objective} · ${intent.productionModes.join('+')} · ${intent.motionDirection.join('+')} (${intent.source})` }] : []),

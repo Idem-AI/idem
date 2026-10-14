@@ -1,6 +1,6 @@
 /** Les objets de l'API iVision, tels que l'interface les lit. */
 export type ChatMode = 'image' | 'video';
-export type Creativity = 'low' | 'medium' | 'high' | 'max' | 'ultra';
+export type Creativity = 'low' | 'medium' | 'high' | 'ultra';
 export type PaletteRole = 'primary' | 'secondary' | 'accent' | 'background' | 'text';
 
 export interface PaletteProposal {

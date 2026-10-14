@@ -1,19 +1,19 @@
 /**
  * `npm run check:creativity` — la jauge de créativité et son orchestrateur.
  *
- *  1. Prix : Low = Medium = barème, High ×1,25, Max ×1,5, Ultra ×2 ; un cran inconnu vaut Medium.
+ *  1. Prix : Low = Medium = barème, High ×1,25, Ultra ×2 ; un cran inconnu vaut Medium, un ancien « max » vaut High.
  *  2. Orchestrateur : réponses parfaites, lettres, JSON, inventées, vides, en panne, budget
  *     épuisé, tâches au-dessus du cran, meilleur de N départagé par le code.
  *  (La vidéo a son propre contrôle : `npm run check:video`, moteur Motion Canvas.)
- *  5. Visuels — le moteur graphique (@idem/graphic-engine) suit la jauge : aucun appel à Low et
- *     Medium, le directeur artistique à High, le réglage à Max, l'arbre d'auteur à Ultra ; chaque
- *     visuel rendu et mesuré dans Chromium, sans constat bloquant.
- *  6. Visuels — modèle en panne ou réponse illisible : la composition du code, jamais une erreur.
+ *  5. Visuels — le moteur graphique (@idem/graphic-engine) fait le MÊME travail à tous les crans (l'auteur
+ *     écrit la page en Tailwind) et transmet le cran, qui choisit le modèle ; textes exacts, page affichée.
+ *  6. Visuels — page qui ne s'affiche pas : correction bornée (corriger › réécrire au cran au-dessus ›
+ *     minimale), puis une erreur DITE ; jamais un gabarit de repli.
  *  7. Carte de visite — gabarit partagé : marqueurs, plancher d'impression, et de VRAIES valeurs
  *     (nom composé, longue adresse) qui tiennent dans la carte une fois interpolées.
- *  8. Documents — business plan et deck : la jauge décide qui compose ; Low est déterministe.
- *  9. Documents, cran Ultra — arbre d'auteur retenu et mesuré ; arbre illisible ou modèle en panne :
- *     la composition du code.
+ *  8. Documents — business plan et deck : une bible par document, une page par appel ; une retouche de
+ *     texte rejoue la page sans modèle.
+ *  9. Tailwind seul — CSS natif et scripts retirés, feuille compilée avec le thème de la marque.
  *  10. Identité visuelle : logos composés par le code (Low), directeur de création, jury.
  */
 import { CREATIVITY_LEVELS, CREATIVITY_MULTIPLIER, creativityCost, normalizeCreativity, atLeast } from '../models/creativity.model';
@@ -22,7 +22,7 @@ import { createRunBudget } from '../services/agents/run-budget';
 import { pickOption, agentLines } from '../services/creativity/agent-io';
 import { BUSINESS_CREDIT_COSTS } from '../models/billing.model';
 import puppeteer from 'puppeteer';
-import { AgentCall as EngineAgentCall, brandFromIdem, cardFaces, closeBrowser, configureGraphicEngine, createDocument, CreativityLevel, renderSingle, SectionContent, SectionOutput, visualContent } from '@idem/graphic-engine';
+import { AgentCall as EngineAgentCall, brandFromIdem, cardFaces, closeBrowser, configureGraphicEngine, createDocument, CreativityLevel, GraphicRenderError, renderSingle, SectionContent, SectionOutput, visualContent } from '@idem/graphic-engine';
 import { EMPTY_FIELD_CLEANUP, FIELD_FIT, interpolateBusinessCard } from '../utils/business-card-template';
 import { contrastRatio } from '../services/brand/color';
 import { brandInitials, composeTemplateLogos, logoMenu, markInks } from '../services/BandIdentity/logoTemplates';
@@ -46,10 +46,11 @@ const run = (n: number) => !only.length || only.includes(n);
   section('1. Prix et crans');
   const bp = BUSINESS_CREDIT_COSTS.business_plan;
   const costs = CREATIVITY_LEVELS.map((l) => creativityCost(bp, l));
-  check(`business plan (${bp}) : ${costs.join(' / ')} crédits`, costs.join(',') === [70, 70, 88, 105, 140].join(','));
-  check('vidéo 120 : 120 / 120 / 150 / 180 / 240', CREATIVITY_LEVELS.map((l) => creativityCost(120, l)).join(',') === '120,120,150,180,240');
-  check('multiplicateurs ×1 · ×1 · ×1,25 · ×1,5 · ×2', Object.values(CREATIVITY_MULTIPLIER).join(',') === '1,1,1.25,1.5,2');
-  check('cran inconnu, vide ou mal écrit → Medium ; « ULTRA » compris', normalizeCreativity('extreme') === 'medium' && normalizeCreativity(undefined) === 'medium' && normalizeCreativity(' ULTRA ') === 'ultra');
+  check('quatre crans : low, medium, high, ultra', CREATIVITY_LEVELS.join(',') === 'low,medium,high,ultra');
+  check(`business plan (${bp}) : ${costs.join(' / ')} crédits`, costs.join(',') === [70, 70, 88, 140].join(','));
+  check('vidéo 120 : 120 / 120 / 150 / 240', CREATIVITY_LEVELS.map((l) => creativityCost(120, l)).join(',') === '120,120,150,240');
+  check('multiplicateurs ×1 · ×1 · ×1,25 · ×2', Object.values(CREATIVITY_MULTIPLIER).join(',') === '1,1,1.25,2');
+  check('cran inconnu, vide ou mal écrit → Medium ; « ULTRA » compris ; ancien « max » → High', normalizeCreativity('extreme') === 'medium' && normalizeCreativity(undefined) === 'medium' && normalizeCreativity(' ULTRA ') === 'ultra' && normalizeCreativity('max') === 'high');
   check('atLeast : high ≥ medium, low < high', atLeast('high', 'medium') && !atLeast('low', 'high'));
   check('un livrable gratuit le reste à tous les crans', CREATIVITY_LEVELS.every((l) => creativityCost(0, l) === 0));
 
@@ -95,25 +96,38 @@ const run = (n: number) => !only.length || only.includes(n);
   const r7 = await broke.run({ role: 'x', minLevel: 'low', prompt: () => ({ system: 's', user: 'u' }), parse: (r) => r, fallback: () => 'fallback' });
   check('budget épuisé → repli', r7.value === 'fallback' && broke.traces[0].reason === 'budget');
   let n = 0;
-  const best = new CreativeOrchestrator({ level: 'max', call: async () => ['layout: c', 'layout: a', 'layout: b'][n++ % 3] });
+  const best = new CreativeOrchestrator({ level: 'high', call: async () => ['layout: c', 'layout: a', 'layout: b'][n++ % 3] });
   const r8 = await best.run<string>({ role: 'artDirector', minLevel: 'high', prompt: () => ({ system: 's', user: 'u' }), parse: (raw: string) => pickOption(agentLines(raw).layout, menu), fallback: () => 'classic', samples: 3, score: (v) => menu.indexOf(v as any) });
-  check('meilleur de 3 départagé par le code (Max)', r8.value === 'wordStack' && best.traces[0].samples === 3, `${r8.value}`);
+  check('meilleur de 3 départagé par le code (High)', r8.value === 'wordStack' && best.traces[0].samples === 3, `${r8.value}`);
   const many = new CreativeOrchestrator({ level: 'high', call: async ({ user }) => `layout: ${user}` });
   const all = await many.all(['a', 'b', 'c', 'a'].map((l, i) => ({ role: 'ad', key: `ad:${i}`, minLevel: 'high' as const, prompt: () => ({ system: 's', user: l }), parse: (raw: string) => pickOption(agentLines(raw).layout, menu) as string | undefined, fallback: () => 'classic' as string })), 2);
   check('tâches parallèles : l’ordre des résultats suit celui des tâches', all.map((r) => r.value).join(',') === 'wordStack,bigNumber,classic,wordStack');
 
   // ── LE MOTEUR GRAPHIQUE, BRANCHÉ SUR UN MODÈLE SIMULÉ ──────────────────────────────────────
-  // Le directeur artistique choisit la 2e composition (et la règle à Max) ; le compositeur d'Ultra rend
-  // un arbre minimal ; chaque appel est noté. Aucune vision : la critique n'entre pas dans ces contrôles.
-  const engineCalls: string[] = [];
-  let agentMode: 'ok' | 'garbage' | 'down' = 'ok';
-  const engineAgent = (): EngineAgentCall => async ({ role, system }) => {
-    engineCalls.push(role);
+  // Le directeur rend une bible, l'auteur une page Tailwind qui place les clés du contenu ; chaque appel est noté
+  // avec son cran. Modes : `ok`, `blank` (rien de visible), `garbage` (pas de HTML), `down` (panne).
+  const engineCalls: Array<{ role: string; level?: CreativityLevel; repair: boolean }> = [];
+  let agentMode: 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' = 'ok';
+  const PAGE = (user: string) => {
+    const keys = [...user.matchAll(/^\{\{([\w.]+)\}\} = /gm)].map((m) => m[1]);
+    const fields = keys.filter((k) => !k.includes('.') && !['kicker', 'title', 'lede'].includes(k));
+    const prims = [...user.matchAll(/<idem-(chart|table) data-block="([^"]+)">/g)].map((m) => `<idem-${m[1]} data-block="${m[2]}" class="w-full text-[13px]"></idem-${m[1]}>`);
+    const flow = /A4 page that GROWS/.test(user);
+    if (/business card/.test(user)) {
+      const line = (k: string) => `<p data-field="${k}" class="break-words text-[8.5px] leading-[1.2]">{{${k}}}</p>`;
+      return `\`\`\`html\n<div class="relative flex h-full w-full flex-col justify-between bg-ground p-[12px]"><idem-logo class="h-[14px]"></idem-logo><div>${['fullName', 'jobTitle'].filter((k) => fields.includes(k)).map((k) => `<p data-field="${k}" class="break-words font-display text-[10px] font-bold leading-[1.2]">{{${k}}}</p>`).join('')}${fields.filter((k) => ['email', 'phone', 'address'].includes(k)).map(line).join('')}</div></div>\n\`\`\``;
+    }
+    const body = `<p class="text-[12px] uppercase tracking-[0.2em] text-brand-primary">{{kicker}}</p><h2 class="font-display text-[34px] font-bold leading-[1.05] text-ink">{{title}}</h2>${keys.filter((k) => k.includes('.') || fields.includes(k)).map((k) => (fields.includes(k) ? `<p data-field="${k}" class="text-[9px]">{{${k}}}</p>` : `<p class="text-[14px] text-muted">{{${k}}}</p>`)).join('')}${prims.join('')}<idem-logo class="h-[24px]"></idem-logo>`;
+    return flow ? `\`\`\`html\n${body}\n\`\`\`` : `\`\`\`html\n<div class="relative flex h-full w-full flex-col justify-center gap-[10px] bg-ground p-[6%]"><div class="absolute right-0 top-0 h-[30%] w-[30%] rounded-bl-full bg-brand-soft"></div>${body}</div>\n\`\`\``;
+  };
+  const engineAgent = (): EngineAgentCall => async ({ role, user, level }) => {
+    const repair = /DID NOT DISPLAY|did not display/.test(user);
+    engineCalls.push({ role, level, repair });
     if (agentMode === 'down') throw new Error('quota');
+    if (role === 'graphic.director') return 'BIBLE:\n- Big display titles in brand-primary, generous margins, a soft quarter circle in a corner on every page.';
     if (agentMode === 'garbage') return 'je ne sais pas';
-    if (role === 'graphic.artDirector') return system.includes('"params"') ? '{"choice": 2, "params": {}, "tension": "calm", "accent": "none"}' : '{"choice": 2, "why": "variété"}';
-    if (role === 'graphic.director') return JSON.stringify({ root: { t: 'stack', grow: true, gap: 'lg', justify: 'center', children: [{ t: 'block', ref: 'copy' }] } });
-    return '';
+    if (agentMode === 'blank' || (agentMode === 'blank-once' && !repair)) return '```html\n<div class="hidden">{{title}}</div>\n```';
+    return PAGE(user);
   };
   const VERDA = brandFromIdem({
     name: 'Verda Jus',
@@ -122,40 +136,47 @@ const run = (n: number) => !only.length || only.includes(n);
   const blockingOf = (out: SectionOutput) => out.result.issues.filter((i) => i.severity === 'blocking').map((i) => i.code);
   const llmTasks = (out: SectionOutput): string[] => out.trace.tasks.filter((t) => t.source === 'llm').map((t) => t.task);
   const engineSections = [5, 6, 7, 8, 9].some(run);
-  if (engineSections) configureGraphicEngine({ agentCall: engineAgent, analyzeImage: undefined, onTrace: undefined, recentFingerprints: undefined, rememberFingerprints: undefined });
+  if (engineSections) configureGraphicEngine({ agentCall: engineAgent, onTrace: undefined, recentFingerprints: undefined, rememberFingerprints: undefined });
 
   const FLYER = visualContent({ id: 'flyer', copy: { kicker: 'Nouveau', headline: 'Le jus de bissap pressé chaque matin à Dakar', subhead: 'Livré en 24 h dans tout Dakar.' } }) as SectionContent;
   const flyerAt = (level: CreativityLevel, seed = 'check') =>
     renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: VERDA.brand, direction: VERDA.direction, creativity: level, seed: `${seed}:${level}`, content: FLYER });
 
   if (run(5)) {
-    section('5. Visuels — la jauge pilote le moteur graphique (Chromium)');
-    const expected: Record<CreativityLevel, string[]> = { low: [], medium: [], high: ['creative.pick'], max: ['creative.tune'], ultra: ['creative.tune', 'creative.author'] };
+    section('5. Visuels — même travail à tous les crans, le cran choisit le modèle (Chromium)');
     for (const level of CREATIVITY_LEVELS) {
       agentMode = 'ok';
+      engineCalls.length = 0;
       const out = await flyerAt(level);
-      const tasks = llmTasks(out);
-      const asked = expected[level];
       check(
-        `${level} : ${asked.length ? `appels ${asked.join(' + ')}` : 'aucun appel de modèle'} ; visuel mesuré, sans constat bloquant (${out.spec.pattern.id})`,
-        asked.every((t) => tasks.includes(t)) && (asked.length > 0 || tasks.length === 0) && blockingOf(out).length === 0 && Boolean(out.result.measured),
-        `appels ${tasks.join(',') || '—'} · bloquants ${blockingOf(out).join(',') || '—'}`
+        `${level} : un appel de l’auteur, au cran ${level} ; page écrite, affichée, texte exact`,
+        llmTasks(out).join(',') === 'author' && engineCalls.every((c) => c.level === level && c.role === 'graphic.author') && out.spec.pattern.id === 'authored' && blockingOf(out).length === 0 && Boolean(out.result.measured) && out.result.html.includes('Le jus de bissap pressé chaque matin à Dakar'),
+        `appels ${engineCalls.map((c) => `${c.role}@${c.level}`).join(',')}`
       );
-      if (level === 'ultra') check('ultra : l’arbre du compositeur est retenu (motif « authored »)', out.spec.pattern.id === 'authored', out.spec.pattern.id);
     }
-    const again = await flyerAt('low');
-    check('low : même visuel pour la même graine (déterministe)', again.result.provenance.specHash === (await flyerAt('low')).result.provenance.specHash);
   }
 
   if (run(6)) {
-    section('6. Visuels — modèle en panne ou réponse illisible : la composition du code');
-    for (const mode of ['garbage', 'down'] as const) {
+    section('6. Visuels — une page qui ne s’affiche pas : correction bornée, puis erreur dite');
+    agentMode = 'blank-once';
+    engineCalls.length = 0;
+    const fixed = await flyerAt('medium', 'blank-once');
+    check('rien de visible : l’auteur corrige (même cran), la page s’affiche', fixed.result.repairs.some((r) => r.code === 'render_fix') && engineCalls.length === 2 && engineCalls[1].level === 'medium', engineCalls.map((c) => `${c.repair ? 'repair' : 'author'}@${c.level}`).join(','));
+    for (const mode of ['blank', 'garbage', 'down'] as const) {
       agentMode = mode;
-      for (const level of ['high', 'ultra'] as const) {
-        const out = await flyerAt(level, `panne-${mode}`);
-        const refused = out.trace.tasks.filter((t) => t.task.startsWith('creative.') && t.outcome !== 'accepted');
-        check(`${level}, modèle ${mode === 'down' ? 'en panne' : 'illisible'} : visuel livré par le code, sans erreur`, Boolean(out.result.html) && blockingOf(out).length === 0 && refused.length > 0 && out.spec.pattern.id !== 'authored', `${out.spec.pattern.id} · ${refused.map((t) => `${t.task}:${t.outcome}`).join(',')}`);
+      engineCalls.length = 0;
+      let error: unknown = null;
+      try {
+        await flyerAt('medium', `panne-${mode}`);
+      } catch (e) {
+        error = e;
       }
+      const levels = engineCalls.map((c) => c.level);
+      check(
+        `${mode === 'down' ? 'modèle en panne' : mode === 'garbage' ? 'réponse sans HTML' : 'page toujours vide'} : 1 + 3 tentatives au plus, réécriture au cran au-dessus, puis GraphicRenderError`,
+        error instanceof GraphicRenderError && engineCalls.length <= 4 && levels[0] === 'medium' && levels.slice(2).every((l) => l === 'high'),
+        `${engineCalls.length} appel(s) : ${levels.join(',')} · ${(error as Error)?.message?.slice(0, 90)}`
+      );
     }
     agentMode = 'ok';
   }
@@ -183,13 +204,13 @@ const run = (n: number) => !only.length || only.includes(n);
             const label = `${orientation}, projet ${project}, ${face.id === 'front' ? 'recto' : 'verso'} (${out.spec.pattern.id})`;
             const html = `${out.result.head ?? ''}${out.result.html}`;
             const markers = [...html.matchAll(/data-field="(\w+)"[^>]*>\{\{(\w+)\}\}/g)];
-            check(`${label} : gabarit à marqueurs, mesuré, sans constat bloquant`, (face.id === 'back' || markers.some((m) => m[1] === 'fullName')) && markers.every((m) => m[1] === m[2]) && blockingOf(out).length === 0, blockingOf(out).join(',') || `${markers.length} marqueur(s)`);
+            check(`${label} : gabarit à marqueurs, affiché, sans constat bloquant`, (face.id === 'back' || markers.some((m) => m[1] === 'fullName')) && markers.every((m) => m[1] === m[2]) && blockingOf(out).length === 0, blockingOf(out).join(',') || `${markers.length} marqueur(s)`);
             // Les VRAIES valeurs, plus longues que leurs marqueurs : la carte imprimée doit les tenir.
             const page = await browser.newPage();
             await page.setViewport({ width: orientation === 'landscape' ? 322 : 208, height: orientation === 'landscape' ? 208 : 322 });
             for (const [variant, values] of [['valeurs longues', LONG], ['sans fonction', { ...LONG, jobTitle: '' }]] as const) {
-              await page.setContent(`<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">${interpolateBusinessCard(html, values)}<script>${EMPTY_FIELD_CLEANUP}</script></body></html>`, { waitUntil: 'load' });
-              await page.evaluate(() => document.fonts.ready);
+              await page.setContent(`<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">${interpolateBusinessCard(html, values)}<script>${EMPTY_FIELD_CLEANUP}</script></body></html>`, { waitUntil: 'load', timeout: 15000 }).catch(() => undefined);
+              await Promise.race([page.evaluate(() => document.fonts.ready), new Promise((r) => setTimeout(r, 5000))]);
               await page.evaluate(FIELD_FIT);
               const m = await page.evaluate(() => {
                 const card = document.querySelector('.ge-page') as HTMLElement;
@@ -219,49 +240,50 @@ const run = (n: number) => !only.length || only.includes(n);
   }
 
   if (run(8)) {
-    section('8. Documents (business plan, pitch deck) — la jauge décide qui compose');
+    section('8. Documents (business plan, pitch deck) — une bible, une page par appel, rejeu sans modèle');
     const PAGES: SectionContent[] = [
       { id: 'company-summary', title: 'Une jus de fruits locaux, pressés chaque matin', lede: 'Verda Jus livre les bureaux de Dakar.', blocks: [{ id: 'p', kind: 'prose', paragraphs: ['Verda Jus presse des fruits achetés aux maraîchers de Sangalkam.', 'Les bureaux du Plateau reçoivent leur commande avant 9 h.'] }, { id: 'm', kind: 'metrics', items: [{ value: '1 200', label: 'Bouteilles par jour' }, { value: '38', label: 'Bureaux clients' }] }] },
       { id: 'market', title: 'Un marché urbain qui consomme hors du foyer', blocks: [{ id: 'c', kind: 'chart', chartType: 'bar', labels: ['2024', '2025', '2026'], series: [{ name: 'Bouteilles (milliers)', data: [120, 210, 340] }], readingKey: 'Les volumes ont presque triplé en deux ans.' }, { id: 'p', kind: 'prose', paragraphs: ['La demande vient des bureaux et des salles de sport du Plateau.'] }] },
-      { id: 'team', title: 'Une équipe de quatre personnes', blocks: [{ id: 'k', kind: 'cards', items: [{ title: 'Awa', body: 'Production et qualité.' }, { title: 'Moussa', body: 'Livraisons.' }, { title: 'Fatou', body: 'Ventes aux bureaux.' }] }] },
+      { id: 'finance', title: 'Trois ans de chiffres', blocks: [{ id: 't', kind: 'table', headers: ['Poste', '2025', '2026'], rows: [['Ventes', '42 000 000', '68 500 000'], ['Marge', '35 %', '38 %']] }] },
     ];
-    const suite = async (documentType: 'business-plan' | 'pitch-deck', level: CreativityLevel, seed = 'check') => {
-      const doc = await createDocument({ documentType, format: documentType === 'business-plan' ? 'a4-portrait' : 'slide-16x9', brand: VERDA.brand, direction: VERDA.direction, creativity: level, seed: `${seed}:${documentType}`, sections: PAGES.map((p) => ({ id: p.id })), validate: false });
-      const outs: SectionOutput[] = [];
-      for (const [i, page] of PAGES.entries()) outs.push(await doc.composeSection(page, { index: i + 1, total: PAGES.length }));
-      return outs;
-    };
     for (const documentType of ['business-plan', 'pitch-deck'] as const) {
+      for (const level of ['low', 'ultra'] as const) {
+        engineCalls.length = 0;
+        const doc = await createDocument({ documentType, format: documentType === 'business-plan' ? 'a4-portrait' : 'slide-16x9', brand: VERDA.brand, direction: VERDA.direction, creativity: level, seed: `check:${documentType}`, sections: PAGES.map((p) => ({ id: p.id })) });
+        const outs = await Promise.all(PAGES.map((page, i) => doc.composeSection(page, { index: i + 1, total: PAGES.length })));
+        const roles = engineCalls.map((c) => c.role);
+        check(
+          `${documentType}, ${level} : une bible (directeur) puis un appel d’auteur par page, au cran ${level}`,
+          roles.filter((r) => r === 'graphic.director').length === 1 && roles.filter((r) => r === 'graphic.author').length === PAGES.length && engineCalls.every((c) => c.level === level) && outs.every((o) => o.spec.bible && blockingOf(o).length === 0),
+          roles.join(',')
+        );
+        const html = outs.map((o) => o.result.html).join('');
+        check(`${documentType}, ${level} : chiffres exacts (tableau, graphique dessinés par le code)`, html.includes('68 500 000') && html.includes('data-ge-chart="bar"') && html.includes('<table'));
+      }
       engineCalls.length = 0;
-      const low = await suite(documentType, 'low');
-      const lowAgain = await suite(documentType, 'low');
-      check(`${documentType}, low : le code compose chaque page, sans un appel ; même graine ⇒ mêmes pages`, engineCalls.length === 0 && low.map((o) => o.result.provenance.specHash).join() === lowAgain.map((o) => o.result.provenance.specHash).join(), low.map((o) => o.spec.pattern.id).join(' '));
-      const medium = await suite(documentType, 'medium');
-      check(`${documentType}, medium : aucun appel ; trois pages, au moins deux compositions`, engineCalls.length === 0 && new Set(medium.map((o) => o.spec.pattern.id)).size >= 2, medium.map((o) => o.spec.pattern.id).join(' '));
-      const high = await suite(documentType, 'high');
-      check(`${documentType}, high : le directeur artistique choisit chaque page`, high.every((o) => llmTasks(o).includes('creative.pick')), high.map((o) => llmTasks(o).join('+') || '—').join(' | '));
+      const doc = await createDocument({ documentType, format: documentType === 'business-plan' ? 'a4-portrait' : 'slide-16x9', brand: VERDA.brand, direction: VERDA.direction, creativity: 'medium', seed: 'check:replay', sections: [{ id: 'market' }] });
+      const first = await doc.composeSection(PAGES[1]);
+      const calls = engineCalls.length;
+      const again = await doc.composeSection({ ...PAGES[1], title: 'Un marché qui a triplé en deux ans' }, { replay: first.spec });
+      check(`${documentType} : une retouche de texte rejoue la page sans modèle`, engineCalls.length === calls && again.result.html.includes('Un marché qui a triplé en deux ans') && again.spec.html === first.spec.html);
     }
   }
 
   if (run(9)) {
-    section('9. Documents, cran Ultra — arbre d’auteur mesuré, repli du code (Chromium)');
-    const SLIDE: SectionContent = { id: 'market', kicker: 'Marché', title: 'Les bureaux du Plateau boivent local', blocks: [{ id: 'copy', kind: 'prose', paragraphs: ['Trente-huit bureaux reçoivent déjà leur commande avant 9 h.'] }, { id: 'm', kind: 'metrics', items: [{ value: '38', label: 'Bureaux clients' }, { value: '+70 %', label: 'Croissance annuelle' }] }] };
-    const slideAt = async (seed: string) => {
-      const doc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: VERDA.brand, direction: VERDA.direction, creativity: 'ultra', seed, sections: [{ id: SLIDE.id }] });
-      return doc.composeSection(SLIDE, { index: 2, total: 8 });
-    };
-    agentMode = 'ok';
-    const authored = await slideAt('ultra-ok');
-    check('ultra : l’arbre d’auteur est retenu, mesuré dans Chromium, sans constat bloquant', authored.spec.pattern.id === 'authored' && Boolean(authored.result.measured) && blockingOf(authored).length === 0, `${authored.spec.pattern.id} · ${blockingOf(authored).join(',') || 'aucun bloquant'}`);
-    const kept = JSON.stringify(authored.spec.root);
-    check('ultra : l’arbre porte tous les blocs du contenu (un bloc oublié est rajouté par le code)', kept.includes('"ref":"copy"') && kept.includes('"ref":"m"'));
-    agentMode = 'garbage';
-    const garbage = await slideAt('ultra-garbage');
-    check('ultra, arbre illisible : la composition du code, mesurée', garbage.spec.pattern.id !== 'authored' && blockingOf(garbage).length === 0 && garbage.trace.tasks.some((t) => t.task === 'creative.author' && t.outcome !== 'accepted'), garbage.spec.pattern.id);
-    agentMode = 'down';
-    const down = await slideAt('ultra-down');
-    check('ultra, modèle en panne : la composition du code, sans erreur', down.spec.pattern.id !== 'authored' && Boolean(down.result.html) && blockingOf(down).length === 0, down.spec.pattern.id);
-    agentMode = 'ok';
+    section('9. Tailwind seul — CSS natif et scripts retirés, thème de la marque compilé');
+    const dirty: EngineAgentCall = async ({ role }) =>
+      role === 'graphic.director'
+        ? 'BIBLE:\n- x'
+        : '```html\n<div class="relative h-full w-full bg-brand-primary p-[40px]" style="color:red" onclick="alert(1)"><style>h2{color:red}</style><script>alert(1)</script><h2 class="font-display text-[48px] text-on-brand">{{title}}</h2><img src="https://evil.example/x.png" class="w-[40px]"></div>\n```';
+    configureGraphicEngine({ agentCall: () => dirty });
+    const out = await flyerAt('medium', 'dirty');
+    const html = out.result.html;
+    const head = out.result.head ?? '';
+    check('aucun style natif, script, gestionnaire ou adresse étrangère ne survit', !/style="color|<script|onclick|evil\.example|<style/.test(html), out.result.issues.map((i) => i.code).join(','));
+    check('le CSS natif retiré est signalé (conseil, jamais bloquant)', out.result.issues.some((i) => i.code === 'native_css_removed' && i.severity === 'advisory'));
+    check('la feuille Tailwind compilée porte le thème de la marque, portée par .ge-page', /<style data-ge-tailwind>/.test(head) && head.toLowerCase().includes('--color-brand-primary: #1f6f43') && head.includes('.ge-page {'));
+    check('les classes de l’auteur sont compilées (valeurs arbitraires comprises)', head.includes('.bg-brand-primary') && head.includes('text-\\[48px\\]') && !/\b\d*\.?\d+rem\b/.test(head.replace(/@media[^{]*/g, '')));
+    configureGraphicEngine({ agentCall: engineAgent });
   }
 
   if (engineSections) {
@@ -297,7 +319,7 @@ const run = (n: number) => !only.length || only.includes(n);
     const jury = logoJuryTask('BRAND', drafts, 0);
     check('jury : « best: b » → 2e brouillon', jury.parse('best: b') === 1);
     check('jury : réponse inventée → refusée (repli : 1er brouillon)', jury.parse('hologram') === undefined && jury.fallback() === 0);
-    check('brouillons par proposition : Medium/High 1, Max 2, Ultra 3', logoDraftCount('medium') === 1 && logoDraftCount('high') === 1 && logoDraftCount('max') === 2 && logoDraftCount('ultra') === 3);
+    check('brouillons par proposition : Medium/High 1, Ultra 3', logoDraftCount('medium') === 1 && logoDraftCount('high') === 1 && logoDraftCount('ultra') === 3);
   }
 
   console.log(failures ? `\n✗ ${failures} vérification(s) en échec.` : '\n✓ Jauge de créativité : prix, orchestrateur et cran Ultra conformes.');

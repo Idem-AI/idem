@@ -6,9 +6,9 @@
  *               l'hôte le connaît, les jetons, la durée, l'issue ;
  *   médias      la provenance de chaque média (`assetId ← source (fournisseur)` ou `assetId ✗`) ;
  *   réparations ce que le code ou un agent a corrigé ;
- *   replis      ce qui n'a pas pu se faire comme prévu, DIT (arbre d'auteur remplacé, stratégie déclassée…) ;
- *   constats    séparés : `blocking` (la page ou le film est faux) et `advisory` (perfectible : jugement
- *               artistique, texte trop chargé) — le jugement n'est jamais bloquant au-dessus de Medium.
+ *   replis      ce qui n'a pas pu se faire comme prévu, DIT (média introuvable, page gardée réécrite…) ;
+ *   constats    séparés : `blocking` (la page ou le film ne s'affiche pas) et `advisory` (CSS natif retiré,
+ *               contenu non placé) — aucun jugement esthétique.
  */
 import type { CreativityLevel } from '../contracts/common';
 import type { GenerationTrace } from './traces';
@@ -39,12 +39,10 @@ export interface GenerationRecord {
   issues: { blocking: string[]; advisory: string[] };
   tokens: { input: number; output: number };
   ms: number;
-  /** Note de qualité moyenne mesurée (0-100), quand le moteur en donne. */
-  quality?: number;
 }
 
 /** Les codes de réparation qui sont des REPLIS (le plan n'a pas tenu) plutôt que des retouches. */
-const FALLBACK_REPAIRS = new Set(['author_fallback', 'asset_fallback', 'next_candidate']);
+const FALLBACK_REPAIRS = new Set(['asset_fallback', 'replay_failed']);
 
 /**
  * L'enregistrement d'un document à partir des traces de ses pages (`GenerationTrace`), et des constats de
@@ -71,7 +69,6 @@ export function recordFromTraces(o: {
     }))
   );
   const repairs = o.traces.flatMap((t) => t.repairs.map((r) => ({ ...r, ...(t.sectionId ? { scope: t.sectionId } : {}) })));
-  const qualities = o.traces.map((t) => t.quality).filter((q): q is number => typeof q === 'number');
   const issue = (sev: 'blocking' | 'advisory') => (o.issues ?? []).filter((i) => i.severity === sev).map((i) => `${i.scope}: ${i.code}${i.message ? ` — ${i.message.slice(0, 160)}` : ''}`);
   return {
     v: 1,
@@ -85,7 +82,6 @@ export function recordFromTraces(o: {
     issues: { blocking: issue('blocking'), advisory: issue('advisory') },
     tokens: decisions.reduce((s, d) => ({ input: s.input + d.tokens.input, output: s.output + d.tokens.output }), { input: 0, output: 0 }),
     ms: o.traces.reduce((s, t) => s + t.ms, 0),
-    ...(qualities.length ? { quality: Math.round(qualities.reduce((a, b) => a + b, 0) / qualities.length) } : {}),
   };
 }
 
@@ -106,7 +102,6 @@ export function recordSummary(r: GenerationRecord): Record<string, unknown> {
     fallbacks: r.fallbacks.length,
     blocking: r.issues.blocking.length,
     advisory: r.issues.advisory.length,
-    quality: r.quality,
     ms: r.ms,
   };
 }

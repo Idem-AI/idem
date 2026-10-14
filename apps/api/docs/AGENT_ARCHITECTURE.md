@@ -121,10 +121,13 @@ It is an **estimate** (≈ 4 characters per token) that acts as a circuit breake
 
 ### 7. Creative roles (`config/creative-roles.ts`)
 
-The graphic and video engines call LOGICAL roles, never a model: `graphic.content`, `graphic.director`,
-`graphic.asset-planner`, `video.intent-classifier`, `video.director`, `video.shot-coder`, `visual.critic`,
-`generation.repair`. Each role declares what it needs (code, vision, structured output, long context) and
-an output-token cap per creativity level. The model is resolved by configuration only:
+The graphic and video engines call LOGICAL roles, never a model: `graphic.content`, `graphic.director`
+(the document's bible), `graphic.author` (each page, in Tailwind HTML), `graphic.asset-planner`,
+`video.intent-classifier`, `video.concept`, `video.planner`, `video.author`, `video.reviser`. Each role
+declares what it needs (code, vision, structured output, long context) and an output-token cap per
+creativity level. Since October 2026 the creativity level (Low, Medium, High, Ultra — Max was removed)
+picks the MODEL of the roles that carry a ladder (`MODEL_LADDERS`: "design" and "code"); there is no
+critic or aesthetic repair role any more. The model is resolved by configuration only:
 
 - `IDEM_ROLE_<ROLE>_MODEL` pins an OpenRouter model for a role (checked against the allow-list);
 - `IDEM_ROLE_<ROLE>_ENDPOINT=selfhosted` sends the role to our own machines — the `SELFHOSTED` provider,

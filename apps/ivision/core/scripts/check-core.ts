@@ -10,8 +10,8 @@
  *     bonnes durées ; la vision simulée les décrit ; le résumé donné au directeur en tire les plans.
  *  3. Reproduction : une vidéo créée par le service du core (moteur Motion Canvas, planificateur et
  *     auteur simulés) avec ce modèle garde son nombre de plans et leurs proportions.
- *  4. Visuel : un flyer composé par le moteur graphique (cran Low), mesuré, photographié ; les mots
- *     (rédaction et retouche contrôlées) et la photo (point d'intérêt).
+ *  4. Visuel : un flyer écrit par l'auteur du moteur graphique (simulé, cran Low), affiché, photographié ;
+ *     les mots (rédaction et retouche contrôlées) et la photo (point d'intérêt transmis à l'auteur).
  */
 process.env.VIDEO_MUSIC_OPENVERSE = 'off';
 process.env.VIDEO_MUSIC_CCMIXTER = 'off';
@@ -32,6 +32,7 @@ import { closeFilmBrowser } from '../src/video/rendering/runner';
 import type { VideoStore } from '../src/video/contracts/store';
 import type { MotionVideo } from '../src/video/contracts/model';
 import { composeVisual } from '../src/visual/visual.composer';
+import { configureGraphicEngine } from '@idem/graphic-engine';
 import { contrastRatio } from '../src/design/color';
 
 let failures = 0;
@@ -184,7 +185,18 @@ class MemoryStore implements VideoStore {
   check('chaque scène s’exécute (Motion Canvas)', scenes.every((s) => s.status === 'ready'), JSON.stringify(scenes.map((s) => s.error)));
 
   // ── 4 ──
-  section('4. Visuel composé par le moteur graphique (cran Low), sans IDEM');
+  section('4. Visuel écrit par l’auteur du moteur graphique (simulé, cran Low), sans IDEM');
+  // L'auteur simulé : il place chaque clé reçue ; une photo est recadrée sur le point d'intérêt donné.
+  const authorPrompts: string[] = [];
+  configureGraphicEngine({
+    agentCall: () => async ({ user }) => {
+      authorPrompts.push(user);
+      const keys = [...user.matchAll(/^\{\{([\w.]+)\}\} = /gm)].map((m) => m[1]);
+      const crop = user.match(/object-\[(\d+%_\d+%)\]/)?.[1];
+      const body = keys.map((k) => (/\.url$/.test(k) ? `<img src="{{${k}}}" alt="" class="absolute inset-0 h-full w-full object-cover${crop ? ` object-[${crop}]` : ''}">` : `<p class="relative text-[40px] font-bold text-ink">{{${k}}}</p>`)).join('');
+      return `\`\`\`html\n<div class="relative flex h-full w-full flex-col justify-end gap-[16px] bg-ground p-[64px]">${body}<idem-logo class="relative h-[48px]"></idem-logo></div>\n\`\`\``;
+    },
+  });
   const context = {
     brandName: 'Kora Café',
     businessType: 'torréfacteur',
@@ -196,7 +208,7 @@ class MemoryStore implements VideoStore {
   const composed = await composeVisual({ runPrompt: async () => '' }, 'u', 'brand-1', { id: 'c1', title: 'Le café qui réveille Abidjan', description: 'Torréfié chaque lundi, livré en 24 h.' }, context, 'square', 'check', 'check:1', undefined, true, { creativity: 'low' });
   fs.writeFileSync(path.join(OUT, 'visual.png'), composed.png);
   const visualText = composed.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-  check(`visuel rendu et mesuré (${composed.png.length} octets, score ${composed.audit.score}/100)`, composed.png.length > 10000 && composed.audit.score >= 70 && /café qui r(é|&eacute;)veille/i.test(visualText), visualText.slice(0, 160));
+  check(`visuel écrit, affiché et photographié (${composed.png.length} octets, page ${composed.parsed.layout})`, composed.png.length > 10000 && !composed.audit.blocking && /café qui r(é|&eacute;)veille/i.test(visualText) && composed.parsed.layout === 'authored', visualText.slice(0, 160));
 
   section('Photos d’un visuel');
   {
@@ -214,7 +226,7 @@ class MemoryStore implements VideoStore {
     const photoUrl = `data:image/jpeg;base64,${fs.readFileSync(photoFile).toString('base64')}`;
     const withPhoto = await composeVisual({ runPrompt: async () => '' }, 'u', 'brand-1', { id: 'c2', title: 'Le café qui réveille Abidjan', description: 'Torréfié chaque lundi, livré en 24 h.' }, context, 'story', 'check', 'check:2', undefined, false, { creativity: 'low', image: { url: photoUrl } });
     fs.writeFileSync(path.join(OUT, 'visual-photo.png'), withPhoto.png);
-    check(`story avec la photo de l’utilisateur, cadrée sur son sujet (${withPhoto.parsed.layout}, score ${withPhoto.audit.score}/100)`, !!withPhoto.parsed.photo && /object-position/.test(withPhoto.html) && !withPhoto.audit.blocking);
+    check(`story avec la photo de l’utilisateur : son point d’intérêt est donné à l’auteur (${withPhoto.parsed.layout})`, !!withPhoto.parsed.photo && /its subject is at \d+% × \d+%/.test(authorPrompts[authorPrompts.length - 1] ?? '') && /object-\[\d+%_\d+%\]/.test(withPhoto.html) && !withPhoto.audit.blocking);
   }
 
   section('Les mots d’un visuel');

@@ -137,7 +137,6 @@ export function configureCore(next: Partial<CoreHost> & { logger?: CoreLogger })
   Object.assign(host, Object.fromEntries(Object.entries(ports).filter(([, v]) => v !== undefined)));
   configureGraphicEngine({
     ...(host.agentCall ? { agentCall: host.agentCall } : {}),
-    ...(host.analyzeImage ? { analyzeImage: (base64, mimeType, instruction, options) => host.analyzeImage!(base64, mimeType, instruction, { maxOutputTokens: options?.maxOutputTokens }) } : {}),
     ...(logger ? { logger: { info: (m, meta) => logger.info(m, meta), warn: (m, meta) => logger.warn(m, meta), error: (m, meta) => logger.error(m, meta) } } : {}),
     ...(host.assetRegistry ? { assetRegistry: host.assetRegistry } : {}),
     browser: { allow: (url) => isRenderUrlAllowed(url) },

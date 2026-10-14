@@ -924,7 +924,7 @@ export class MotionVideoService {
     if (!current.film) throw new VideoInputError('legacy_video');
     const patch = rawPatch as VideoPatch;
     const ctx = await this.brandContext(userId, projectId);
-    const level = current.creativity || 'medium';
+    const level = normalizeCreativity(current.creativity);
     let video: MotionVideo = { ...current, film: { ...current.film, scenes: current.film.scenes.map((s) => ({ ...s })) }, media: [...(current.media || [])] };
     let film = video.film!;
     const sceneOf = (key: string) => film.scenes.find((s) => s.key === key);
@@ -1052,7 +1052,7 @@ export class MotionVideoService {
     const report = emptyRevisionReport();
     if (!video?.film) return { video, report, newRequest: false, patch: {}, rejected: 0 };
     const { system, user } = buildVideoRevisionPrompt(video, text, video.brief.language || language);
-    const run = await callFilmModel(this.callContext(userId, projectId, video.creativity || 'medium'), 'video.reviser', system, user);
+    const run = await callFilmModel(this.callContext(userId, projectId, normalizeCreativity(video.creativity)), 'video.reviser', system, user);
     const revision = run.raw ? parseVideoRevision(run.raw, video) : null;
     if (revision?.newRequest) return { video, report, newRequest: true, patch: {}, rejected: 0 };
     const patch: VideoRevisionPatch = { ...videoSettingsFromText(text), ...(revision?.patch || {}) };
@@ -1085,7 +1085,7 @@ export class MotionVideoService {
 
   quoteExport(video: MotionVideo, scopeInput?: unknown): { cost: number; scope: VideoScope } {
     const scope = scopeInput ? { ...normalizeScope(scopeInput), durationSec: video.scope.durationSec } : video.scope;
-    return { cost: exportCost({ paidCredits: video.paidCredits, exportCount: video.exportCount, scope, creativity: video.creativity }), scope };
+    return { cost: exportCost({ paidCredits: video.paidCredits, exportCount: video.exportCount, scope, creativity: normalizeCreativity(video.creativity) }), scope };
   }
 
   async getVideo(userId: string, projectId: string, videoId: string): Promise<MotionVideo | null> {
@@ -1149,7 +1149,7 @@ export class MotionVideoService {
     const live = withLiveProgress(video);
     const render = live.renders.find((r) => r.format === format && isRenderFresh(video, r));
     if (render && !render.prerender) return { state: 'ready' };
-    if (render?.prerender) return { state: 'claim', cost: exportCost({ paidCredits: video.paidCredits, exportCount: video.exportCount, scope: video.scope, creativity: video.creativity }) };
+    if (render?.prerender) return { state: 'claim', cost: exportCost({ paidCredits: video.paidCredits, exportCount: video.exportCount, scope: video.scope, creativity: normalizeCreativity(video.creativity) }) };
     if (isJobActive(video.id)) {
       const r = live.renders.find((x) => x.format === format && (x.status === 'rendering' || x.status === 'queued'));
       return { state: 'busy', progress: r?.progress || 0 };

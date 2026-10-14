@@ -42,7 +42,7 @@ RUN npm install --legacy-peer-deps --force && npm cache clean --force
 
 # Install missing dependencies manually at root level
 WORKDIR /app
-RUN npm install fs-extra @modelcontextprotocol/sdk --legacy-peer-deps --save
+RUN npm install fs-extra --legacy-peer-deps --save
 
 # Return to API directory
 WORKDIR /app/apps/api

@@ -62,7 +62,7 @@ export type VideoModelTier = 'mechanical' | 'writing' | 'reasoning';
 /** L'étage du modèle selon le cran : la rédaction dès Medium, les décisions dès High. */
 export function tierFor(level: CreativityLevel, role: 'copy' | 'strategist' | 'agents'): VideoModelTier {
   if (level === 'low') return 'mechanical';
-  if (role === 'strategist') return atLeast(level, 'max') ? 'reasoning' : 'writing';
+  if (role === 'strategist') return atLeast(level, 'high') ? 'reasoning' : 'writing';
   if (role === 'agents') return atLeast(level, 'high') ? 'writing' : 'mechanical';
   return 'writing';
 }

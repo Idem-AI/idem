@@ -26,7 +26,8 @@
     "mongoose": "^8.9.3",
     "pdfjs-dist": "^4.8.69",
     "@motion-canvas/core": "3.17.2",
-    "@motion-canvas/2d": "3.17.2"
+    "@motion-canvas/2d": "3.17.2",
+    "tailwindcss": "4.1.17"
   },
   "devDependencies": {
     "typescript": "^5.8.2"

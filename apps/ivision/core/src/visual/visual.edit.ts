@@ -2,21 +2,20 @@
  * LA RETOUCHE D'UN VISUEL — « change le prix en 4 500 F », « agrandis le titre », « enlève le sous-titre »,
  * « mets le logo en bas », « ajoute notre numéro ».
  *
- * Le visuel retouché est LE MÊME visuel : le modèle lit ses mots et l'arbre de sa page (chaque nœud numéroté),
- * et ne renvoie que les CHANGEMENTS — les mots modifiés et des opérations ciblées sur l'arbre. Le code les
- * applique, rapproche l'arbre des nouveaux mots (un champ ajouté se pose à côté de ses voisins, le logo reste),
- * puis le moteur graphique REJOUE la page : même composition, mêmes positions, mesurée et réparée. Le modèle
- * n'écrit jamais de HTML, ni de couleur hors de la charte.
- *
- * Une autre mise en page n'est faite que si l'utilisateur la demande (« une autre version », « change la
- * composition ») — ou si la page retouchée ne tient plus, ce qui est dit.
+ * Le visuel retouché est LE MÊME visuel. Le modèle de rédaction lit ses mots et la consigne, et rend : les mots
+ * après la retouche, ce qu'il faut faire de la photo, et — si la consigne touche à la FORME — cette consigne de
+ * mise en forme, en clair. Puis :
+ *  · seuls les mots ou la photo changent : la page gardée (le code Tailwind de l'auteur) est REJOUÉE avec eux,
+ *    sans modèle ;
+ *  · la forme change : l'auteur du moteur graphique reçoit son code et la consigne, et réécrit la page ;
+ *  · une autre mise en page est demandée (ou la page gardée date de l'ancien moteur) : la page est réécrite.
  *
  * Le même code pour IDEM (module Communication) et iVision (conversation).
  */
-import { applySpecOps, sectionHtml, SectionOutput, SectionSpec, settleTree, specOutline, SpecOp } from '@idem/graphic-engine';
+import { isAuthoredSpec, sectionHtml, SectionOutput, SectionSpec } from '@idem/graphic-engine';
 import logger from '../runtime/logger';
 import type { CreativityLevel } from '../creativity/levels';
-import { findPhoto, renderVisual, VisualPhotoRef, visualSection } from './visual.composer';
+import { findPhoto, renderVisual, VisualPhotoRef } from './visual.composer';
 import { parseVisualEdit, WrittenCopy } from './visual.copy';
 import { describePhoto } from './visual.images';
 import type { FlyerFormat, VisualBrandContext } from './visual.model';
@@ -34,7 +33,7 @@ export interface VisualEditInput {
   level: CreativityLevel;
   copy: WrittenCopy;
   photo?: VisualPhotoRef;
-  /** L'arbre de la page gardé avec le visuel ; absent (visuel ancien) : la page est recomposée. */
+  /** La page gardée avec le visuel (code de l'auteur) ; absente ou de l'ancien moteur : la page est réécrite. */
   spec?: SectionSpec;
   seed: string;
   userId: string;
@@ -62,37 +61,21 @@ export interface VisualEditResult {
   rejected: string[];
 }
 
-const TOKENS = 'ink: ink|muted|faint|heading|kicker|emphasis|brand|accent|on-brand|on-accent|inverse · surface: ground|raised|sunken|brand|brand-soft|accent|accent-soft|ink|inverse · space: none|2xs|xs|sm|md|lg|xl|2xl|3xl · text size: xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl';
-
-export function visualRetouchPrompt(i: Pick<VisualEditInput, 'instruction' | 'language' | 'context' | 'copy' | 'photo' | 'spec'>): { system: string; user: string } {
+export function visualRetouchPrompt(i: Pick<VisualEditInput, 'instruction' | 'language' | 'context' | 'copy' | 'photo'>): { system: string; user: string } {
   const lang = i.language.startsWith('fr') ? 'French' : i.language.startsWith('en') ? 'English' : i.language;
-  const b = i.context.branding;
   return {
     system: [
       `You RETOUCH one existing social-media visual of the brand "${i.context.brandName}". The user wants THIS visual changed, not a new one: change ONLY what is asked, everything else stays exactly as it is.`,
-      'You get its WORDS (JSON) and its PAGE TREE (JSON; every node carries an id in "#"). A text node shows which word it displays with "ref": "title" is the headline; "b1.headline", "b1.kicker", "b1.subhead", "b1.offer", "b1.facts.0.text"… are the fields of the words block (b1); the figure block (b2) is the photo; a "block" node draws a whole block.',
-      'Answer with ONE JSON object:',
+      'You get its WORDS (JSON). Answer with ONE JSON object:',
       '{"newRequest": true ONLY if the message asks for a different visual about another subject (not a change of this one),',
       ' "words": {"kicker": string|null, "headline": string, "sub": string|null, "facts": [{"kind": "date|time|place|price|contact|other", "text": string}], "offer": string|null, "quote": {"text": string, "author": string|null}|null} — ALL the words after the change (unchanged ones copied as they are),',
-      ' "ops": [ tree operations, [] when only words change ],',
+      ' "design": "the change of FORM asked (size, position, colour, emphasis, logo place, background…), in English, precise — or null when only words or the photo change",',
       ' "photo": "keep|remove|replace", "photoIdea": "english description of the new photo scene, only when replace",',
       ' "layout": "keep" — "change" only if the user asks for another layout, composition or version,',
       ` "reply": "one short sentence in ${lang} telling what you changed"}`,
-      'TREE OPERATIONS:',
-      '- {"op":"set","id":"n4","props":{…}} — text: size, weight (100-900), caps none|upper|lower, align start|center|end, ink, emphasis underline|outline|null, tracking tight|normal|wide|wider, maxLines; containers: surface, pad, gap, radius none|sm|md|lg|pill, align, justify; logo: height sm|md|lg|xl, variant auto|light|dark|mono|icon; image: overlay none|scrim-bottom|scrim-top|scrim-full|tint-brand, radius, fit; pattern/shape: opacity; a node inside a "layer" moves or resizes with "at": {"x","y","w","h"} in % of the canvas.',
-      '- {"op":"remove","id":"n7"}',
-      '- {"op":"move","id":"n3","before":"n1"} (or "after") — reorder inside a container',
-      '- {"op":"add","parent":"n2","index":0,"node":{…}} — a logo {"t":"logo","height":"md"}, a rule {"t":"rule"}, a field of the words {"t":"text","role":"small","ref":"b1.facts.1.text"}, a brand motif {"t":"pattern","index":0,"opacity":0.2}; inside a layer give "at" too.',
-      `TOKENS: ${TOKENS}`,
-      'RULES: never write words in the tree (texts are refs to the words); colours are the brand\'s tokens only — "in red" becomes the closest brand colour (say so in the reply when the brand has none); a fact (price, phone, date, address) only if the user gives it; a new field of the words is placed with an "add" next to the related text, unless the words block is drawn whole by a "block" node. The brand logo always stays on the visual.',
+      "RULES: a fact (price, phone, date, address) only if the user gives it; colours are the brand's own — \"in red\" becomes the closest brand colour (say so in the reply when the brand has none). The brand logo always stays on the visual.",
     ].join('\n'),
-    user: [
-      `BRAND COLOURS: primary ${b.primary}, secondary ${b.secondary}${b.accent ? `, accent ${b.accent}` : ''}.`,
-      `WORDS: ${JSON.stringify(i.copy)}`,
-      `PHOTO: ${i.photo ? `yes (${(i.photo.subject || '').slice(0, 120)})` : 'none'}`,
-      i.spec ? `PAGE TREE: ${specOutline(i.spec).slice(0, 14_000)}` : 'PAGE TREE: unavailable (words only)',
-      `USER: ${i.instruction.slice(0, 800)}`,
-    ].join('\n'),
+    user: [`WORDS: ${JSON.stringify(i.copy)}`, `PHOTO: ${i.photo ? `yes (${(i.photo.subject || '').slice(0, 120)})` : 'none'}`, `USER: ${i.instruction.slice(0, 800)}`].join('\n'),
   };
 }
 
@@ -133,38 +116,25 @@ export async function editVisual(ports: VisualEditPorts, i: VisualEditInput): Pr
   else if (json.photo === 'remove') photo = undefined;
   else if (json.photo === 'replace') {
     const idea = typeof json.photoIdea === 'string' && json.photoIdea.trim() ? json.photoIdea.trim().slice(0, 240) : copy.headline;
-    const found = await findPhoto({ userId: i.userId, projectId: i.projectId, tag: i.tag, context: i.context, format: i.format, copy: { ...copy, photo: { idea, query: idea.split(/\s+/).slice(0, 4).join(' ') } }, subject: `${idea}. ${copy.headline}`, preferGenerated: i.level === 'high' || i.level === 'max' || i.level === 'ultra' }).catch(() => ({ photo: undefined }));
+    const found = await findPhoto({ userId: i.userId, projectId: i.projectId, tag: i.tag, context: i.context, format: i.format, copy: { ...copy, photo: { idea, query: idea.split(/\s+/).slice(0, 4).join(' ') } }, subject: `${idea}. ${copy.headline}`, preferGenerated: i.level === 'high' || i.level === 'ultra' }).catch(() => ({ photo: undefined }));
     photo = found.photo ?? photo;
   }
   const reply = typeof json.reply === 'string' ? json.reply.trim().slice(0, 400) : '';
-  const render = (o: { seed: string; replay?: SectionSpec }) => renderVisual(i.context, i.format, copy, photo, { level: i.level, seed: o.seed, userId: i.userId, projectId: i.projectId, allowDark: i.allowDark, imageColors: i.imageColors, ...(o.replay ? { replay: o.replay } : {}) });
-  const blocking = (out: SectionOutput) => out.result.issues.some((x) => x.severity === 'blocking');
+  const design = typeof json.design === 'string' && json.design.trim() && json.design.trim().toLowerCase() !== 'null' ? json.design.trim().slice(0, 800) : '';
+  const render = (o: { seed: string; replay?: SectionSpec; revise?: { spec: SectionSpec; instruction: string } }) =>
+    renderVisual(i.context, i.format, copy, photo, { level: i.level, seed: o.seed, userId: i.userId, projectId: i.projectId, allowDark: i.allowDark, imageColors: i.imageColors, ...(o.replay ? { replay: o.replay } : {}), ...(o.revise ? { revise: o.revise } : {}) });
   const done = (outcome: VisualEditResult['outcome'], out: SectionOutput, seed: string, extra: Partial<VisualEditResult> = {}): VisualEditResult => ({ ...base, outcome, out, html: sectionHtml(out), png: out.png, copy, photo, seed, spec: out.spec, reply, ...extra });
 
-  // Une autre mise en page, demandée (ou impossible à rejouer : visuel d'avant la retouche ciblée).
-  if (json.layout === 'change' || !i.spec) {
+  // Une autre mise en page, demandée — ou une page de l'ancien moteur, qui ne se rejoue plus : réécrite.
+  if (json.layout === 'change' || !isAuthoredSpec(i.spec)) {
     const seed = `${i.seed}:edit:${Date.now().toString(36)}`;
-    return done('recomposed', await render({ seed }), seed);
+    return done('recomposed', await render({ seed }), seed, design ? { applied: [design] } : {});
   }
-
-  // La MÊME page : l'arbre retouché, rapproché des nouveaux mots, rejoué.
-  const ops = (Array.isArray(json.ops) ? json.ops : []).filter((o): o is SpecOp => !!o && typeof o === 'object' && typeof (o as SpecOp).op === 'string');
-  const patched = applySpecOps(i.spec, ops);
-  const section = visualSection(copy, photo);
-  if (!section) return base;
-  const settled = settleTree(patched.root, patched.decor, section, { requireLogo: true });
-  const replay: SectionSpec = { ...i.spec, root: settled.root, ...(settled.decor.length ? { decor: settled.decor } : { decor: undefined }) };
-  let out = await render({ seed: i.seed, replay });
-  if (!blocking(out)) return done('edited', out, i.seed, { applied: patched.applied, rejected: patched.rejected });
-
-  // La page retouchée ne tient plus (texte trop long pour sa place…) : les mots seuls sur l'arbre d'avant, sinon
-  // une nouvelle composition — et la réponse le dit.
-  if (patched.applied.length) {
-    const words = settleTree(i.spec.root, i.spec.decor ?? [], section, { requireLogo: true });
-    out = await render({ seed: i.seed, replay: { ...i.spec, root: words.root, ...(words.decor.length ? { decor: words.decor } : { decor: undefined }) } });
-    if (!blocking(out)) return done('edited', out, i.seed, { applied: [], rejected: [...patched.applied, ...patched.rejected] });
+  // La forme change : l'auteur réécrit SA page avec la consigne.
+  if (design) {
+    logger.info('visual.retouch_design', { event: 'visual.retouch_design', design: design.slice(0, 160) });
+    return done('edited', await render({ seed: i.seed, revise: { spec: i.spec, instruction: design } }), i.seed, { applied: [design] });
   }
-  const seed = `${i.seed}:edit:${Date.now().toString(36)}`;
-  logger.info('visual.retouch_recomposed', { event: 'visual.retouch_recomposed', issues: out.result.issues.filter((x) => x.severity === 'blocking').map((x) => x.code) });
-  return done('recomposed', await render({ seed }), seed, { applied: patched.applied, rejected: patched.rejected });
+  // Les mots ou la photo seulement : la même page, rejouée sans modèle.
+  return done('edited', await render({ seed: i.seed, replay: i.spec }), i.seed);
 }

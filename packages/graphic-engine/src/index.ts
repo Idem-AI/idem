@@ -6,11 +6,13 @@
  * pages du business plan, de la charte graphique, du pitch deck, les faces des cartes de visite, les
  * visuels (flyers, publications, bannières) et les graphiques.
  *
- *   contenu (ContentModel) → plan → composition (motifs, diversité, jauge) → DesignSpec
- *   → compilateur HTML/CSS déterministe → mesure et réparation dans Chromium → RenderResult + trace
+ *   contenu (ContentModel) → médias → bible du document (directeur) → page écrite en HTML Tailwind (auteur)
+ *   → assainie, remplie par le code (textes exacts, graphiques, tableaux), compilée → « s'affiche-t-elle ? »
+ *   → RenderResult + trace
  *
- * L'hôte branche ses ports une fois (`configureGraphicEngine`) : appel d'agent, vision, journaux, traces,
- * mémoire de diversité, navigateur partagé. Sans port, le moteur fonctionne entièrement — le code décide.
+ * Aucun gabarit, aucune note esthétique : l'IA conçoit, le code garantit l'exactitude et l'affichage. La jauge de
+ * créativité choisit le MODÈLE. L'hôte branche ses ports une fois (`configureGraphicEngine`) : appel d'agent,
+ * journaux, traces, mémoire, navigateur partagé, médias.
  */
 
 // ── Contrats (ContentModel, DesignSpec, RenderResult), validation, normalisation, récupération ──
@@ -24,23 +26,23 @@ export { configureGraphicEngine, engineHost } from './host';
 export type { AgentCall, AgentProfile, EngineHost, EngineLogger, FingerprintScope } from './host';
 
 // ── Les documents ────────────────────────────────────────────────────────────────────────────
-export { ContentError, createDocument, GraphicDocument, renderSingle } from './engine';
+export { ContentError, createDocument, GraphicDocument, GraphicRenderError, renderSingle, repairLimits } from './engine';
 export type { DocumentOptions, SectionOutput } from './engine';
-export type { ReferenceComposition } from './agents/creative-planner';
-export { applySpecOps, ensureLogo, settleTree, specOutline } from './agents/spec-edit';
-export type { SpecOp } from './agents/spec-edit';
+export type { ReferenceComposition } from './author/prompts';
+
+// ── Le runtime (Tailwind, primitives) : pour les hôtes qui rendent eux-mêmes un fragment ─────────
+export { compileTailwind, themeColors } from './runtime/tailwind';
+export { chartHtml } from './runtime/primitives';
 
 // ── Couleur (outils de la charte : contraste, encre lisible, mélange) ───────────────────────────
 export { bestContrast, contrastRatio, ensureContrast, isDeep, mixHex, readableInk, relativeLuminance } from './foundation/color';
 
-// ── Le design system ─────────────────────────────────────────────────────────────────────────
+// ── Le design system : formats, jetons de la marque, palettes de graphiques, motifs ─────────────
 export { contentBox, FORMATS, formatOf, isPrint } from './design-system/formats';
 export type { FormatDef, FormatFamily, FormatKind } from './design-system/formats';
 export { buildTokens, DEFAULT_STYLE_ID, resolveStyle } from './design-system/tokens';
 export type { BrandInput, BrandLogos, BrandPattern, DesignTokens, DirectionInput } from './design-system/tokens';
 export { STYLE_DATA } from './design-system/tokens/styles.data';
-export { allComponents, componentById, componentFor } from './design-system/components/registry';
-export { allPatterns } from './design-system/patterns/registry';
 export { chartPalette, validatePalette } from './design-system/charts/palette';
 export { motifCss, styleMotifs } from './design-system/kit/motifs';
 export type { MotifName } from './design-system/kit/motifs';
@@ -51,27 +53,16 @@ export type { ContentContractOptions } from './agents/content-contract';
 export { describeSectionPlan, normalizeSectionPlan, sectionPlanContract } from './agents/content-plan';
 export type { SectionPlan } from './agents/content-plan';
 
-// ── L'intention des pages et le planificateur de médias ────────────────────────────────────────
+// ── L'intention des pages, le régime de texte et le planificateur de médias ──────────────────────
 export { applyAssets, GENERATION_CAP, iconFor, matchAsset, nativeProvider, planAssets, resolveAssets, subjectWords } from './asset-planner';
 export type { AssetContext, AssetProvider, AssetProviders, AssetRegistry, AssetResolution } from './asset-planner';
-export { sectionTextLoad, TEXT_BUDGETS, textLoad } from './composition-engine/analyze';
-export { slideDiet } from './agents/slide-diet';
-export type { TextBudgetKind } from './composition-engine/analyze';
+export { sectionTextLoad, TEXT_BUDGETS, textLoad } from './content/analyze';
+export { slideDiet } from './content/slide-diet';
+export type { TextBudgetKind } from './content/analyze';
 
-// ── Les profils de la jauge et les politiques d'appel ──────────────────────────────────────────
-export { POLICIES, policyFor } from './composition-engine/profiles';
-export type { CreativityPolicy } from './composition-engine/profiles';
-export { budgetFor, TASK_POLICIES } from './orchestrator/policies';
-
-// ── Le registre de capacités ───────────────────────────────────────────────────────────────────
-export { capabilities, CapabilityRegistry } from './capability-registry';
-export type { Capability, CapabilityKind, Tier } from './capability-registry';
-
-// ── Qualité et navigateur ──────────────────────────────────────────────────────────────────────
-export { closeBrowser, configureBrowser, pageDocument, screenshot } from './quality-engine/browser';
-export type { BrowserOptions } from './quality-engine/browser';
-export { measureHtml } from './quality-engine/measure';
-export type { Measurement } from './quality-engine/measure';
+// ── Navigateur ─────────────────────────────────────────────────────────────────────────────────
+export { closeBrowser, configureBrowser, pageDocument, screenshot } from './runtime/browser';
+export type { BrowserOptions } from './runtime/browser';
 
 // ── Observabilité ──────────────────────────────────────────────────────────────────────────────
 export { summarize } from './observability/traces';
@@ -84,9 +75,3 @@ export { brandFromIdem, logosFromIdem, patternsFromIdem } from './adapters/idem'
 export type { IdemBrandingLike, IdemLogoSetLike, IdemPaletteLike } from './adapters/idem';
 export { cardFaces, coverContent, sectionFromModel, sectionHtml, systemBlocks, systemSection, visualContent } from './adapters/sections';
 export type { SectionFromModelOptions, SectionFromModelResult, VisualCopy } from './adapters/sections';
-
-// Les bibliothèques de composants et de motifs s'inscrivent elles-mêmes dans leurs registres. Importées ici
-// pour qu'une application qui compile le paquet avec elle les compile aussi (les registres les chargent
-// paresseusement : ces imports ne changent rien à l'ordre d'évaluation).
-import './design-system/components/library';
-import './design-system/patterns/library';

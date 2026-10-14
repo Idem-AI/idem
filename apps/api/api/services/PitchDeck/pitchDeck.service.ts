@@ -1,5 +1,5 @@
 import { normalizeCreativity, CreativityLevel } from '../../models/creativity.model';
-import { coverContent, sectionHtml, sectionTextLoad, slideDiet, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
+import { coverContent, sectionHtml, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
 import crypto from 'crypto';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -18,7 +18,6 @@ import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
 
 import { composeSlideBrief, SLIDE_VISUAL_PLANS } from './prompts/slide-briefs.prompt';
-import { condenseSlide } from './slide-condense';
 import { CoverBriefService } from '../common/coverBrief.service';
 import { composeGraphicPage, coverDateLabel, GenerationJournal, openGraphicDocument, pageId, withProjectArtDirection } from '../graphic/graphic.service';
 import type { PitchDeckAudience } from './deck-types';
@@ -278,13 +277,10 @@ export class PitchDeckService extends GenericService {
     // être le premier livrable produit, et ses slides ont besoin d'un style.
     const graphicProject = await withProjectArtDirection(this.promptService, userId, projectId, project);
 
-    // LE DOCUMENT GRAPHIQUE du deck (@idem/graphic-engine) : la charte, le plan des slides — chacune reçoit
-    // d'avance une composition distincte de ses voisines —, la jauge de créativité. La clé est propre au
-    // deck : deux decks du projet ne se ressemblent pas slide pour slide.
+    // LE DOCUMENT GRAPHIQUE du deck (@idem/graphic-engine) : la charte, la liste des slides (le directeur en
+    // écrit la bible), la jauge de créativité — qui choisit les modèles.
     const designKey = documentDesignKey('pitchdeck', projectId, deck.id);
     const level: CreativityLevel = normalizeCreativity(creativity);
-    // High, Max, Ultra : le rédacteur choisit la stratégie visuelle de ses slides et la correction ciblée s'applique.
-    const creativeLevel = level === 'high' || level === 'max' || level === 'ultra';
     // Le journal de la génération : chaque slide y verse sa trace ; l'enregistrement est gardé avec le deck.
     const journal = new GenerationJournal('pitch-deck', level);
     const total = deckSlides.length;
@@ -341,14 +337,13 @@ export class PitchDeckService extends GenericService {
         };
       }
       // Le brief ne porte QUE le contenu, lu par le destinataire du deck. Une slide est une toile fixe :
-      // le volume est bas (3 à 4 blocs), et le moteur mesure, resserre et répare avant de rendre.
+      // le volume est bas (1 à 3 blocs) ; l'auteur du moteur graphique la compose librement.
       const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, one to three blocks.`;
-      // L'INTENTION de la slide : comment elle démontre son message et ce qu'elle peut porter de texte. Aux
-      // crans Low et Medium, le code décide de la stratégie ; à partir de High, le rédacteur peut en proposer
-      // une autre de la liste — il décide quoi montrer, le moteur le construit, le vérifie et le répare.
+      // L'INTENTION de la slide : comment elle démontre son message et ce qu'elle peut porter de texte — une
+      // indication pour le rédacteur et l'auteur (à tous les crans), jamais un contrôle.
       const plan = SLIDE_VISUAL_PLANS[definition.name];
       const intent = plan
-        ? { visualStrategy: plan.strategy, textBudget: TEXT_BUDGETS[plan.budget], ...(creativeLevel ? { allowStrategies: [plan.strategy, ...plan.alternatives] } : {}) }
+        ? { visualStrategy: plan.strategy, textBudget: TEXT_BUDGETS[plan.budget], allowStrategies: [plan.strategy, ...plan.alternatives] }
         : undefined;
       return {
         stepName: definition.name,
@@ -361,25 +356,7 @@ export class PitchDeckService extends GenericService {
           volume: '1 to 3',
           contentBrief: brief,
           ...(intent ? { intent } : {}),
-          render: async (content) => {
-            let slide = content;
-            const budget = intent?.textBudget;
-            // 1. Trop de texte (à tous les crans) : la slide repart UNE fois chez le rédacteur, avec le constat.
-            if (intent && budget && sectionTextLoad(slide, budget).over > 1) {
-              const condensed = await condenseSlide(slide, { userId, projectId, slideName: definition.name, intent });
-              if (condensed) {
-                journal.note(`${definition.name} : slide trop textuelle réécrite plus légère par le rédacteur`);
-                slide = condensed;
-              }
-            }
-            // 2. La GARANTIE du code : ce qui déborde encore passe dans les notes de l'orateur (rien n'est perdu).
-            if (budget) {
-              const diet = slideDiet(slide, budget);
-              if (diet.moved.length) {
-                journal.note(`${definition.name} : ${diet.moved.length} passage(s) déplacé(s) vers les notes de l'orateur`);
-                slide = diet.section;
-              }
-            }
+          render: async (slide) => {
             const html = sectionHtml(journal.page(await composeGraphicPage(graphic, slide, position)));
             return slide.notes ? `${html}\n${speakerNotesHtml(slide.notes)}` : html;
           },

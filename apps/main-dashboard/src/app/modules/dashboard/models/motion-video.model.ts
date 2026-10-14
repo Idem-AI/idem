@@ -165,7 +165,7 @@ export interface MotionVideo {
   dirty?: boolean;
   createdAt: string;
   updatedAt: string;
-  creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
+  creativity?: 'low' | 'medium' | 'high' | 'ultra';
 }
 
 /** Ce qu'une retouche peut demander (gratuite). */

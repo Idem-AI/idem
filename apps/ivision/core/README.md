@@ -49,17 +49,15 @@ Every visual (IDEM Communication, brand book, iVision) goes through `composeVisu
 2. **the photo** (`visual.images.ts`): the user's photo first (its subject located for the crop), then
    the brand's photos (classified by vision: a brand poster is never used as a photo), then stock
    verified by vision, then generated — or none;
-3. **the page**: composed, measured and repaired by the graphic engine
+3. **the page**: written in Tailwind HTML by the graphic engine's author
    (`packages/graphic-engine`, imported as `@idem/graphic-engine`) — `renderSingle` on a `flyer-*`
    canvas, with the brand read by `engineBrand` (colours, fonts, logo declensions, art direction).
 
-The creativity level is the engine's: Low composes with proven layouts (no model call), Medium draws
-among the three best, High lets the art director pick (and the visual critic look at the render), Max
-also tunes the bounded parameters, Ultra composes a new tree from the allowed primitives — always
-validated, measured and repaired by the code (see the engine's README). What the AI can never break,
-at any level: the words (validated above), the charter (colour tokens and brand fonts only — the engine
-writes every style), the resources (only the photos and logo provided), and the measured render (text
-in its box, safe zone, contrast read on the rendered page and repaired toward the charter's ink).
+The creativity level picks the MODEL that writes the page (Low a light model … Ultra the most powerful);
+the work is the same at every level and there is no aesthetic check or critic. What the AI can never
+break, at any level: the words (validated above, placed by the code through `{{keys}}`), the charter
+(brand colours and fonts as Tailwind theme), the resources (only the photos and logo provided), and the
+display (a page that does not display is fixed within strict bounds, otherwise the error is reported).
 
 A written edit of a visual (`parseVisualEdit`, `visualEditPrompt`) changes WORDS only: the model
 answers in JSON (headline, facts, keep or remove the photo, keep or change the layout); the page is

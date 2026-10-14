@@ -50,7 +50,7 @@ export interface AgentTask<T> {
   prompt: () => { system: string; user: string } | null;
   parse: (raw: string) => T | undefined;
   fallback: () => T;
-  /** Tirages parallèles à partir de `bestOfFrom` (défaut : max), départagés par `score` (plus bas = meilleur). */
+  /** Tirages parallèles à partir de `bestOfFrom` (défaut : high), départagés par `score` (plus bas = meilleur). */
   samples?: number;
   bestOfFrom?: CreativityLevel;
   score?: (value: T) => number;
@@ -117,7 +117,7 @@ export class CreativeOrchestrator {
 
     this.opts.onEvent?.({ agent, state: 'running' });
     const profile = task.profile || 'agents';
-    const n = task.score && task.samples && task.samples > 1 && this.enabled(task.bestOfFrom || 'max') ? Math.min(4, task.samples) : 1;
+    const n = task.score && task.samples && task.samples > 1 && this.enabled(task.bestOfFrom || 'high') ? Math.min(4, task.samples) : 1;
     const timeout = this.opts.timeoutMs?.[profile] ?? DEFAULT_TIMEOUT[profile];
     const one = async (): Promise<string> => {
       try {

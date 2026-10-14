@@ -71,30 +71,30 @@ draws among them with a seed:
 | The deliverable's key (`documentDesignKey`) | Charter, business plan, deck | Pages of one document share their typography and differ in layout; two projects differ; a regeneration keeps its layout |
 | A new seed per request | Business card regeneration, social visuals | Two proposals of the same brand do not look alike |
 
-Within a document, the plan reserves a distinct composition for each page, two neighbouring pages never
-share one, and the layouts of the project's recent documents are avoided (30 days). Above Medium, an art
-director picks from a menu of compositions, tunes their bounded parameters (Max) or writes a new tree from
-the allowed primitives (Ultra) — always validated, measured and repaired by the code.
+Since October 2026 the pages are written freely by the graphic engine's author (Tailwind HTML, no
+composition menu) following a per-document bible; the art direction (style, keywords, composition grammar)
+is given to the director and the author as context. The bibles already written for a brand (30 days) are
+given to the director so that the next document does something else. The code only guarantees exactness
+(texts, figures, charts, tables, brand colours and fonts) and that the page displays.
 
-### 3. Writing rules — and a measured render
+### 3. Writing rules — and a render that must display
 
-The model never writes HTML, CSS or a colour. It returns BLOCKS (prose, key figures, table, chart,
+The content writer never writes HTML, CSS or a colour. It returns BLOCKS (prose, key figures, table, chart,
 timeline…) against the engine's output contract (`contentContract`), with one volume instruction
 (`volumeDirective`) and the shared writing rules (`WRITING_RULES`): banned vocabulary ("seamless",
 "révolutionnaire"…), filler, sentences that would survive a change of company name, and three kinds of
 forgery seen in delivered documents — invented reference codes and statuses, numbers nobody computed
-(colour breakdowns, contrast ratios), inflated naming. Everything visual is the code's job, so no
-prompt repeats it (`npm run check:prompts` makes sure of it).
+(colour breakdowns, contrast ratios), inflated naming. The page is then WRITTEN by the graphic engine's
+author, in Tailwind classes only (never native CSS), with the brand colours and fonts as its theme; it
+places the writer's texts through keys, so it cannot alter them (`npm run check:prompts` keeps the
+writer's prompts free of layout instructions).
 
-Then the render is measured in Chromium and repaired by the code: titles fitted to the pixel, a text
-too pale on its real background pulled toward the charter's ink, a decor lying on a text removed, the
-page brought back to its format, or the next composition. A charter colour cannot be "off-palette": the
-compiler writes every style from the brand's tokens.
+Then Chromium checks one thing: that the page displays. Nothing is measured or repaired for taste.
 
 ## The logo
 
-The engine places the logo itself and picks the declension from the luminance of the zone it sits on
-(ink for a light ground, light ink for a dark one, a flat behind it when the area is busy). It needs
+The author places the logo with `<idem-logo variant="…">` and picks the declension for its ground
+(`onLight`, `onDark`, `mono`, `icon`); the code inserts the real image. It needs
 every declension as a valid image address: `utils/brand-context.util.ts#resolveLogoDeclensions` resolves
 them (hosted PNGs first, then SVGs; a missing declension falls back to the primary logo — never a hole,
 never raw SVG pasted in a page). A brand without a logo gets a typographic signature in its display
@@ -132,7 +132,7 @@ cd apps/api
 npm run check:design      # catalogue ↔ engine, light surface, image prompts, logo declensions, brand fonts
 npm run check:uniqueness  # palette regions, type registers, and composition variety across projects and pages
 npm run check:prompts     # no prompt asks for what the code produces, nor names a provider
-npm run check:graphic     # the graphic engine itself, rendered and measured in Chromium
+npm run check:graphic     # the graphic engine itself (simulated author, displayed in Chromium)
 ```
 
 ## Adding a style

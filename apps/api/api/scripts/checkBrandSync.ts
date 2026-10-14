@@ -34,6 +34,10 @@ import { isLightSurface } from '../services/brand/lightSurface';
 import { areRolesDistinct } from '../services/brand/paletteRoles';
 import { brandFromIdem, chartPalette, createDocument, DocumentType, FormatId, mixHex, sectionHtml, systemSection } from '@idem/graphic-engine';
 import { resolveLogoDeclensions } from '../utils/brand-context.util';
+import { useFakeGraphicAuthor } from './fakeGraphicAuthor';
+
+// Les pages sont écrites par un auteur SIMULÉ (aucun modèle) : ce contrôle porte sur ce qui suit l'écriture.
+useFakeGraphicAuthor();
 
 let failures = 0;
 

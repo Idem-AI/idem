@@ -67,8 +67,7 @@ contexte. Plus le cran monte, plus les modèles qui le font sont puissants (éch
 | --- | --- | --- |
 | Low | `qwen/qwen3.5-9b` | `qwen/qwen3-coder-30b-a3b-instruct` |
 | Medium (défaut) | `qwen/qwen3.5-27b` | `qwen/qwen3-coder-next` |
-| High | `qwen/qwen3.5-122b-a10b` | `deepseek/deepseek-v4-flash` |
-| Max | `qwen/qwen3.5-397b-a17b` | `qwen/qwen3-coder` (480B) |
+| High | `qwen/qwen3.5-397b-a17b` | `qwen/qwen3-coder` (480B) |
 | Ultra | `deepseek/deepseek-v4-pro` | `deepseek/deepseek-v4-pro` |
 
 Un barreau se remplace sans code : `IDEM_LADDER_DESIGN_<CRAN>` / `IDEM_LADDER_CODE_<CRAN>` (modèle de la liste
@@ -101,7 +100,7 @@ Inchangés. Référence : 15 s, un format, HD = **2 × la charte graphique**
 - durée : 6 s ×0,5 · 15 s ×1 · 30 s ×1,75 · 60 s ×3 ;
 - chaque format en plus : +35 % ;
 - qualité : légère (720p) ×0,8 · HD ×1 · très fluide (1080p 60 i/s) ×1,3 ;
-- cran : Low et Medium ×1 · High ×1,25 · Max ×1,5 · Ultra ×2.
+- cran : Low et Medium ×1 · High ×1,25 · Ultra ×2 (le cran Max n'existe plus ; une vidéo gardée en « max » est lue comme High).
 
 Premier export inclus ; ensuite 10 % du périmètre, plus la différence si le périmètre grandit. Un export
 ou une création en échec restitue ses crédits (`model_unavailable` compris). Les retouches sont gratuites,

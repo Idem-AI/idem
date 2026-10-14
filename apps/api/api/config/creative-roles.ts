@@ -1,8 +1,8 @@
 /**
  * LES RÔLES CRÉATIFS — une orchestration qui ne dépend d'aucun fournisseur.
  *
- * Les moteurs (graphique, vidéo) appellent des RÔLES logiques, jamais un modèle : le directeur graphique,
- * le codeur de plans, le critique visuel… Chaque rôle déclare ce dont il a BESOIN (code, vision, sortie
+ * Les moteurs (graphique, vidéo) appellent des RÔLES logiques, jamais un modèle : le directeur d'un document,
+ * l'auteur des pages, l'auteur des scènes… Chaque rôle déclare ce dont il a BESOIN (code, vision, sortie
  * structurée, long contexte) et ses plafonds de jetons par cran ; le modèle effectif se résout ICI, par la
  * configuration du service — jamais dans un prompt :
  *
@@ -39,11 +39,12 @@ export interface CreativeRole {
 }
 
 /**
- * LES ÉCHELLES DE MODÈLES — pour la vidéo, la créativité EST la puissance du modèle (décision du
- * 2026-10-14) : Low le plus léger, Ultra le plus capable. Toutes à poids ouverts (liste blanche).
+ * LES ÉCHELLES DE MODÈLES — la créativité EST la puissance du modèle (décision du 2026-10-14, vidéo puis
+ * livrables graphiques) : Low le plus léger, Ultra le plus capable. Quatre crans (Max retiré). Toutes à poids
+ * ouverts (liste blanche).
  *
- *   design  concevoir : concept, storyboard, retouche écrite
- *   code    écrire le code Motion Canvas des scènes (et le corriger)
+ *   design  concevoir : concept et storyboard vidéo, retouche écrite, direction d'un document
+ *   code    écrire du code : scènes Motion Canvas, pages HTML/Tailwind (et les corriger)
  *
  * `IDEM_LADDER_<ÉCHELLE>_<CRAN>` (ex. `IDEM_LADDER_CODE_HIGH`) remplace un barreau, s'il est autorisé.
  */
@@ -53,21 +54,20 @@ export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>>
   design: {
     low: 'qwen/qwen3.5-9b',
     medium: 'qwen/qwen3.5-27b',
-    high: 'qwen/qwen3.5-122b-a10b',
-    max: 'qwen/qwen3.5-397b-a17b',
+    high: 'qwen/qwen3.5-397b-a17b',
     ultra: 'deepseek/deepseek-v4-pro',
   },
   code: {
     low: 'qwen/qwen3-coder-30b-a3b-instruct',
     medium: 'qwen/qwen3-coder-next',
-    high: 'deepseek/deepseek-v4-flash',
-    max: 'qwen/qwen3-coder',
+    high: 'qwen/qwen3-coder',
     ultra: 'deepseek/deepseek-v4-pro',
   },
 };
 
 /** Le modèle d'une échelle à un cran (variable d'environnement autorisée, sinon le barreau par défaut). */
-export function ladderModel(ladder: ModelLadder, level: CreativityLevel): string {
+export function ladderModel(ladder: ModelLadder, requested: CreativityLevel): string {
+  const level: CreativityLevel = MODEL_LADDERS[ladder][requested] ? requested : 'high';
   const custom = process.env[`IDEM_LADDER_${ladder.toUpperCase()}_${level.toUpperCase()}`]?.trim();
   if (custom) {
     if (isAllowedOpenRouterModel(custom)) return custom;
@@ -76,34 +76,31 @@ export function ladderModel(ladder: ModelLadder, level: CreativityLevel): string
   return MODEL_LADDERS[ladder][level];
 }
 
-const UP_TO = (high: number, max: number, ultra: number, medium = 0, low = 0): Record<CreativityLevel, number> => ({ low, medium, high, max, ultra });
+const UP_TO = (high: number, ultra: number, medium = 0, low = 0): Record<CreativityLevel, number> => ({ low, medium, high, ultra });
+const ALL = (n: number): Record<CreativityLevel, number> => ({ low: n, medium: n, high: n, ultra: n });
 
 /** Le registre : les rôles logiques du plan directeur, et les noms historiques qui y mènent. */
 export const CREATIVE_ROLES: Record<string, CreativeRole> = {
-  'graphic.content': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(3000, 3500, 4000, 3000, 3000), mission: 'rédiger le contenu structuré des livrables' },
-  'graphic.director': { profile: 'coder', needs: ['json', 'code'], maxOutputTokens: UP_TO(5000, 6500, 8000), mission: 'concevoir l’arbre de composition d’une page ou d’une diapositive' },
-  'graphic.artDirector': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 400, 400), mission: 'choisir et régler la composition de repli' },
-  'graphic.pattern-designer': { profile: 'coder', needs: ['code'], maxOutputTokens: UP_TO(2500, 3000, 3500, 2500, 2500), mission: 'dessiner la tuile de motif propre à la marque (SVG)' },
-  'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(600, 800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },
-  'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 300, 300, 300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
-  // Le film Motion Canvas : tous les crans travaillent ; le cran donne des MOYENS (plafonds), jamais des contraintes.
+  'graphic.content': { profile: 'agents', needs: ['json'], maxOutputTokens: ALL(3500), mission: 'rédiger le contenu structuré des livrables' },
+  // Les livrables graphiques (flyers, business plan, charte, carte de visite, pitch deck) : mêmes étapes à tous les
+  // crans ; le cran choisit le MODÈLE. Le directeur écrit la bible du document, l'auteur écrit chaque page en Tailwind.
+  'graphic.director': { profile: 'agents', ladder: 'design', needs: ['long-context'], maxOutputTokens: ALL(2500), mission: 'concevoir la direction d’un document : la bible visuelle et l’idée de chaque page' },
+  'graphic.author': { profile: 'coder', ladder: 'code', needs: ['code', 'long-context'], maxOutputTokens: ALL(12000), mission: 'écrire (et corriger) le HTML Tailwind de chaque page' },
+  'graphic.pattern-designer': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(3000), mission: 'dessiner la tuile de motif propre à la marque (SVG)' },
+  'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },
+  'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 300, 300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
   // Le film Motion Canvas : mêmes étapes à tous les crans ; le cran choisit le MODÈLE (échelles ci-dessus).
-  'video.concept': { profile: 'coder', ladder: 'design', needs: ['long-context'], maxOutputTokens: UP_TO(2500, 2500, 2500, 2500, 2500), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène' },
-  'video.planner': { profile: 'agents', ladder: 'design', needs: ['long-context'], maxOutputTokens: UP_TO(5000, 5000, 5000, 5000, 5000), mission: 'écrire le storyboard : durées, intentions, idées, textes, médias, voix' },
-  'video.author': { profile: 'coder', ladder: 'code', needs: ['code', 'long-context'], maxOutputTokens: UP_TO(8000, 8000, 8000, 8000, 8000), mission: 'écrire (et corriger) le code Motion Canvas de chaque scène' },
-  'video.reviser': { profile: 'agents', ladder: 'design', needs: [], maxOutputTokens: UP_TO(800, 800, 800, 800, 800), mission: 'lire une retouche écrite par le client' },
-  'visual.critic': { profile: 'critic', needs: ['vision', 'json'], maxOutputTokens: UP_TO(300, 400, 500), mission: 'évaluer un rendu réel et formuler des corrections ciblées' },
-  'generation.repair': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(400, 500, 600), mission: 'corriger un défaut technique précis' },
+  'video.concept': { profile: 'coder', ladder: 'design', needs: ['long-context'], maxOutputTokens: ALL(2500), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène' },
+  'video.planner': { profile: 'agents', ladder: 'design', needs: ['long-context'], maxOutputTokens: ALL(5000), mission: 'écrire le storyboard : durées, intentions, idées, textes, médias, voix' },
+  'video.author': { profile: 'coder', ladder: 'code', needs: ['code', 'long-context'], maxOutputTokens: ALL(8000), mission: 'écrire (et corriger) le code Motion Canvas de chaque scène' },
+  'video.reviser': { profile: 'agents', ladder: 'design', needs: [], maxOutputTokens: ALL(800), mission: 'lire une retouche écrite par le client' },
 };
 
 /** Les noms historiques des appelants (moteur graphique, cœur vidéo) → leur rôle logique. */
 export const ROLE_ALIASES: Record<string, string> = {
-  'graphic.composer': 'graphic.director',
-  'graphic.critic': 'visual.critic',
-  'graphic.repairer': 'generation.repair',
+  'graphic.composer': 'graphic.author',
   director: 'video.concept',
   author: 'video.author',
-  critic: 'visual.critic',
 };
 
 export const roleOf = (name: string): string => {
@@ -117,7 +114,9 @@ const envKey = (role: string) => role.toUpperCase().replace(/[.-]/g, '_');
  * La configuration d'appel d'un rôle : le profil par défaut, son modèle ou son point d'accès surchargés par
  * l'environnement, son plafond de sortie au cran donné. Un rôle inconnu garde le profil demandé.
  */
-export function roleConfig(name: string, profile: CreativeProfile, level?: CreativityLevel): FeatureAIConfig {
+export function roleConfig(name: string, profile: CreativeProfile, requested?: CreativityLevel): FeatureAIConfig {
+  // Un cran « max » gardé avec une ancienne génération vaut « high » (le cran Max n'existe plus).
+  const level = requested === ('max' as CreativityLevel) ? 'high' : requested;
   const role = roleOf(name);
   const def = CREATIVE_ROLES[role];
   const base: FeatureAIConfig = AI_CONFIG.creative[def?.profile ?? profile];

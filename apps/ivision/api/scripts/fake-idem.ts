@@ -82,7 +82,7 @@ export function startFakeIdem(options: { port?: number; key?: string; origins?: 
     res.json({ ok: true });
   });
   app.get('/internal/ivision/billing/balance', (req, res) => res.json({ credits: req.query.userId === 'poor-user' ? 0 : balance, plan: 'business-free' }));
-  app.get('/internal/ivision/billing/prices', (_req, res) => res.json({ motion_video: 120, revision: 1, flyer: 2, ai_visual: 5, creativity: { low: 1, medium: 1, high: 1.25, max: 1.5, ultra: 2 } }));
+  app.get('/internal/ivision/billing/prices', (_req, res) => res.json({ motion_video: 120, revision: 1, flyer: 2, ai_visual: 5, creativity: { low: 1, medium: 1, high: 1.25, ultra: 2 } }));
   app.get('/internal/ivision/projects', (_req, res) => res.json({ projects: [{ id: 'p1', name: 'Kora Café', hasBrand: true, primary: '#b4532a' }] }));
   app.get('/internal/ivision/projects/p1/brand', (_req, res) =>
     res.json({ name: 'Kora Café', branding: { colors: { colors: { primary: '#b4532a', secondary: '#f2c14e', accent: '#00b1ad', background: '#fbf7f2', text: '#3b2a22' } }, typography: { primaryFont: 'Playfair Display', secondaryFont: 'Inter' }, logo: null }, voice: { tone: 'chaleureux', language: 'fr' }, photos: [] })

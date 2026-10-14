@@ -304,7 +304,7 @@ export interface MotionVideo {
   /** Vrai quand les textes ont été retouchés depuis le dernier export. */
   dirty?: boolean;
   /** Cran de la jauge de créativité choisi à la création (prix et décisions confiées à l'IA). */
-  creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
+  creativity?: 'low' | 'medium' | 'high' | 'ultra';
   /** L'enregistrement de la génération (décisions, médias, réparations, replis, constats) — format commun aux documents. */
   record?: import('@idem/graphic-engine').GenerationRecord;
   createdAt: Date | string;

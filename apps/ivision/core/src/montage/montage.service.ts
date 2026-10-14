@@ -381,7 +381,7 @@ export class MontageService {
     const out: MontageElement[] = [];
     const generate = !!coreHost().generateImage;
     const canVideo = !!coreHost().generateVideo;
-    const genFirst = level === 'high' || level === 'max' || level === 'ultra';
+    const genFirst = level === 'high' || level === 'ultra';
     const CHARACTER_TERMS = /\b(personnage|personnages|character|characters|person|personne|personnes|acteur|acteurs|actrice|actrices|homme|femme|enfant|speaker|presenter|portrait|visage)\b/i;
     for (const el of elements) {
       if (el.type !== 'broll' || el.image || el.video || el.clip) {

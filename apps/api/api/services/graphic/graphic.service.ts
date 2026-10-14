@@ -1,9 +1,9 @@
 /**
  * Les livrables graphiques d'IDEM passent tous par ICI pour atteindre le moteur (@idem/graphic-engine) :
  * la marque du projet lue une fois (couleurs, polices, déclinaisons du logo, motifs, direction
- * artistique), le document ouvert avec sa graine et sa jauge, chaque page composée et mesurée, puis
- * rendue en fragment autonome (polices puis racine) — la forme que stockent les sections, que l'éditeur
- * affiche et que le service PDF imprime.
+ * artistique), le document ouvert avec sa jauge (qui choisit les modèles), chaque page écrite par l'IA en
+ * HTML Tailwind et contrôlée à l'affichage, puis rendue en fragment autonome (polices et feuille Tailwind,
+ * puis racine) — la forme que stockent les sections, que l'éditeur affiche et que le service PDF imprime.
  */
 import './engine.host';
 import {
@@ -52,14 +52,14 @@ export async function withProjectArtDirection(promptService: PromptService, user
 }
 
 export interface OpenGraphicDocumentOptions {
-  project: Pick<ProjectModel, 'id' | 'name' | 'analysisResultModel'>;
+  project: Pick<ProjectModel, 'id' | 'name' | 'analysisResultModel'> & { description?: string };
   documentType: DocumentType;
   format: FormatId;
-  /** La clé du livrable (`documentDesignKey`) : elle sème les compositions — deux plans, deux suites. */
+  /** La clé du livrable (`documentDesignKey`) : journaux et mémoire des bibles du document. */
   seed: string;
   /** Le cran de la jauge de créativité (Medium par défaut). */
   creativity?: unknown;
-  /** Les pages attendues, dans l'ordre : le plan leur réserve des compositions distinctes. */
+  /** Les pages attendues, dans l'ordre : le directeur écrit la bible du document pour elles. */
   sections?: Array<{ id: string; role?: SectionRole }>;
   documentLabel?: string;
   userId?: string;
@@ -71,11 +71,13 @@ export interface OpenGraphicDocumentOptions {
   allowDark?: boolean;
   /** Toile imposée (px), quand le format de page n'est pas l'un des formats du moteur (Letter). */
   size?: { width: number; height: number };
-  /** Mots de direction saisis par l'utilisateur, ajoutés à ceux de la direction artistique (agents High+). */
+  /** Mots de direction saisis par l'utilisateur, ajoutés à ceux de la direction artistique. */
   keywords?: string[];
+  /** Ce que fait le projet, en clair, pour le directeur et l'auteur (défaut : la description du projet). */
+  brief?: string;
 }
 
-/** Un document graphique : la charte, le plan et la mémoire de diversité communs à ses pages. */
+/** Un document graphique : la charte, la jauge et la bible communes à ses pages. */
 export function openGraphicDocument(o: OpenGraphicDocumentOptions): Promise<GraphicDocument> {
   const { brand, direction } = projectBrand(o.project);
   const keywords = [...(o.keywords ?? []), ...(direction.keywords ?? [])].slice(0, 10);
@@ -97,6 +99,7 @@ export function openGraphicDocument(o: OpenGraphicDocumentOptions): Promise<Grap
     png: o.png,
     allowDark: o.allowDark,
     size: o.size,
+    ...((o.brief ?? o.project.description)?.trim() ? { brief: (o.brief ?? o.project.description ?? '').trim().slice(0, 1200) } : {}),
   });
 }
 
@@ -120,7 +123,10 @@ export function pageCanvasOf(pdfFormat?: string | null): { format: FormatId; siz
   }
 }
 
-/** Une page composée, mesurée et réparée par le moteur ; ses constats bloquants restants sont journalisés. */
+/**
+ * Une page écrite par l'auteur du moteur et contrôlée à l'affichage. Une page qui ne s'affiche toujours pas
+ * après la correction bornée lève `GraphicRenderError` : l'appelant la traite comme une section en échec.
+ */
 export async function composeGraphicPage(doc: GraphicDocument, section: SectionContent, position: { index?: number; total?: number } = {}): Promise<SectionOutput> {
   const out = await doc.composeSection(section, position);
   const blocking = out.result.issues.filter((issue) => issue.severity === 'blocking');

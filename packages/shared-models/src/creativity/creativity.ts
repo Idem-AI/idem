@@ -2,36 +2,29 @@
  * LA JAUGE DE CRÉATIVITÉ — partagée par l'API et le dashboard.
  *
  * Avant chaque génération (vidéo, visuel, carte de visite, pitch deck, business plan,
- * identité visuelle), l'utilisateur règle la part de décisions confiée à l'IA. Plus le cran
- * monte, plus de décisions passent du code (gabarits, graphe, graine déterministe) aux
- * agents — et plus la génération consomme de crédits :
+ * identité visuelle), l'utilisateur choisit un cran. Le cran choisit la PUISSANCE DU MODÈLE qui
+ * crée : à tous les crans, l'IA conçoit et écrit le livrable librement, avec le même contexte ;
+ * plus le cran monte, plus le modèle qui le fait est puissant (échelles de
+ * `apps/api/api/config/creative-roles.ts`) — et plus la génération consomme de crédits :
  *
- *   low     mises en page éprouvées, adaptées à la charte et à sa direction artistique ;
- *           l'IA écrit les textes
- *   medium  + l'IA choisit la structure (sections, scènes, slides) dans des menus
- *   high    + l'IA choisit chaque composition dans un menu, plus large à chaque cran
- *   max     + l'IA règle les paramètres de composition, dans des bornes, ET écrit les
- *           compositions elles-mêmes (deux essais ; la composition dirigée reste le plancher)
- *   ultra   l'IA écrit les compositions (HTML, React, SVG) avec quatre essais, un rendu mesuré
- *           PUIS RÉPARÉ par le code, et la latitude la plus large
+ *   low     modèle léger
+ *   medium  modèle intermédiaire (défaut)
+ *   high    modèle puissant
+ *   ultra   le modèle le plus puissant
  *
- * Les bonnes pratiques (lisibilité, contraste, zones de sécurité, charte) s'appliquent à
- * TOUS les crans : elles sont dans le code, pas dans le prompt.
+ * Aucune critique esthétique ni réécriture automatique, à aucun cran : seul un rendu qui ne
+ * s'affiche pas (erreur technique) est corrigé, dans des bornes strictes.
  *
- * ── RÉPARER, PAS REFUSER ─────────────────────────────────────────────────────
- * Un contrôle qui refuse une unité la renvoie à son rendu du cran inférieur : trop de contrôles
- * stricts, et le cran payé le plus cher rend exactement ce que rend le cran Medium. Les défauts
- * qui ont une réponse déterministe (hauteur, contraste, corps minimal) sont donc CORRIGÉS par le
- * code ; seul l'irréparable écarte une unité.
+ * Un ancien cran « max » (données d'avant octobre 2026) vaut « high ».
  *
  * Ce module ne lit rien et ne dépend de rien : c'est ce qui garantit que le prix affiché
  * par le dashboard est celui que l'API débite.
  */
 
-export type CreativityLevel = 'low' | 'medium' | 'high' | 'max' | 'ultra';
+export type CreativityLevel = 'low' | 'medium' | 'high' | 'ultra';
 
 /** Du plus encadré au plus libre. */
-export const CREATIVITY_LEVELS: readonly CreativityLevel[] = ['low', 'medium', 'high', 'max', 'ultra'];
+export const CREATIVITY_LEVELS: readonly CreativityLevel[] = ['low', 'medium', 'high', 'ultra'];
 
 /** Le cran proposé quand l'utilisateur n'a rien choisi. */
 export const DEFAULT_CREATIVITY: CreativityLevel = 'medium';
@@ -44,13 +37,12 @@ export const CREATIVITY_MULTIPLIER: Readonly<Record<CreativityLevel, number>> = 
   low: 1,
   medium: 1,
   high: 1.25,
-  max: 1.5,
   ultra: 2,
 };
 
-/** Rang du cran (0 = low … 4 = ultra). */
+/** Rang du cran (0 = low … 3 = ultra). */
 export function creativityRank(level: CreativityLevel): number {
-  return CREATIVITY_LEVELS.indexOf(level);
+  return CREATIVITY_LEVELS.indexOf(normalizeCreativity(level));
 }
 
 /** Le cran est-il au moins `min` ? (« l'IA décide de cette couche à partir de High ») */
@@ -61,11 +53,12 @@ export function atLeast(level: CreativityLevel, min: CreativityLevel): boolean {
 /** Valeur reçue d'un client (corps, requête) : un cran inconnu ou absent vaut le cran par défaut. */
 export function normalizeCreativity(raw: unknown): CreativityLevel {
   const value = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+  if (value === 'max') return 'high';
   return (CREATIVITY_LEVELS as readonly string[]).includes(value) ? (value as CreativityLevel) : DEFAULT_CREATIVITY;
 }
 
 /** Coût d'un livrable à ce cran (crédits entiers, arrondis au-dessus). */
 export function creativityCost(baseCost: number, level: CreativityLevel): number {
   if (!Number.isFinite(baseCost) || baseCost <= 0) return 0;
-  return Math.ceil(baseCost * CREATIVITY_MULTIPLIER[level] - 1e-9);
+  return Math.ceil(baseCost * CREATIVITY_MULTIPLIER[normalizeCreativity(level)] - 1e-9);
 }

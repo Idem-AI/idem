@@ -20,7 +20,7 @@ import type { Block, SectionContent } from '../contracts/content-model';
 import { ASSET_SOURCE_ORDER, AssetRecord, AssetRequirement, AssetRole, AssetSource, ResolvedAsset, VisualStrategy } from '../contracts/slide-intent';
 import { searchIcons } from '../capability-registry/local/icons';
 import type { FormatDef } from '../design-system/formats';
-import { atLeast } from '../orchestrator/policies';
+import { creativityAtLeast as atLeast } from '../foundation/creativity';
 
 export interface AssetContext {
   level: CreativityLevel;
@@ -93,7 +93,7 @@ export function matchAsset(req: AssetRequirement, records: AssetRecord[], used: 
 }
 
 /** Combien d'images un document peut FAIRE GÉNÉRER, par cran : la génération coûte, elle se paie à High+. */
-export const GENERATION_CAP: Record<CreativityLevel, number> = { low: 0, medium: 0, high: 3, max: 5, ultra: 8 };
+export const GENERATION_CAP: Record<CreativityLevel, number> = { low: 0, medium: 0, high: 3, ultra: 8 };
 
 const IMAGE_SOURCES: AssetSource[] = ['user', 'project', 'generated', 'stock'];
 

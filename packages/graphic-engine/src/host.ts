@@ -2,11 +2,11 @@
  * Les PORTS DE L'HÔTE : ce que le moteur demande à l'application qui l'utilise.
  *
  * Le moteur ne connaît ni fournisseur de modèle, ni base de données, ni facturation. L'API IDEM et l'API
- * iVision le branchent chacune à leur runtime d'agents (étages, escalade, suivi d'usage, crédits) — la
- * signature de `AgentCall` est la même que celle de leur runtime. Sans port branché, le moteur fonctionne
- * entièrement : le code décide, aux crans où un agent aurait décidé.
+ * iVision le branchent chacune à leur runtime d'agents (rôles, échelles de modèles par cran, suivi d'usage,
+ * crédits) — la signature de `AgentCall` est la même que celle de leur runtime. Sans appel d'agent, aucune page
+ * ne s'écrit : `GraphicRenderError` le dit.
  */
-import { BrowserOptions, configureBrowser } from './quality-engine/browser';
+import { BrowserOptions, configureBrowser } from './runtime/browser';
 
 export type AgentProfile = 'agents' | 'critic' | 'coder';
 
@@ -28,12 +28,10 @@ export interface FingerprintScope {
 export interface EngineHost {
   /** L'appel d'agent du runtime de l'hôte, pour un utilisateur et un projet. */
   agentCall?: (ctx: { userId?: string; projectId?: string; element?: string }) => AgentCall | undefined;
-  /** Modèle de vision : image (base64) + consigne → texte (critique visuelle des crans High+). */
-  analyzeImage?: (base64: string, mimeType: string, instruction: string, options?: { maxOutputTokens?: number; purpose?: string }) => Promise<string>;
   logger?: EngineLogger;
   /** Chaque génération rend sa trace (coûts, décisions, réparations) : à l'hôte de la garder. */
   onTrace?: (trace: import('./observability/traces').GenerationTrace) => void;
-  /** Mémoire de diversité entre documents : lire et écrire les empreintes récentes d'une portée. */
+  /** Mémoire entre documents d'une portée (les bibles déjà écrites pour la marque) : lire et écrire. */
   recentFingerprints?: (scope: FingerprintScope) => Promise<string[]>;
   rememberFingerprints?: (scope: FingerprintScope, fingerprints: string[]) => Promise<void>;
   browser?: BrowserOptions;

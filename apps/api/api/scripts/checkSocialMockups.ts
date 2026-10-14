@@ -25,6 +25,7 @@ import path from 'path';
 import puppeteer from 'puppeteer';
 import sharp from 'sharp';
 import { brandFromIdem, closeBrowser } from '@idem/graphic-engine';
+import { useFakeGraphicAuthor } from './fakeGraphicAuthor';
 import { PdfService } from '../services/pdf.service';
 import {
   fillMockupTemplate,
@@ -37,6 +38,9 @@ import {
   SocialBrandKit,
   socialMockupService,
 } from '../services/BandIdentity/socialMockups/socialMockup.service';
+
+// Les bannières et l'avatar sont écrits par un auteur SIMULÉ (aucun modèle) : ce contrôle porte sur les mockups.
+useFakeGraphicAuthor();
 
 let failures = 0;
 const check = (label: string, ok: boolean, detail = '') => {

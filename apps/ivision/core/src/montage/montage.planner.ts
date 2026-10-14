@@ -45,7 +45,7 @@ export interface MontagePlan {
 }
 
 /** Éléments (hors zooms) par minute, selon le cran. */
-const DENSITY: Record<CreativityLevel, number> = { low: 4, medium: 6, high: 8, max: 9, ultra: 10 };
+const DENSITY: Record<CreativityLevel, number> = { low: 4, medium: 6, high: 8, ultra: 10 };
 const OUTRO_SEC = 2.6;
 export const INTRO_SEC = 2.6;
 

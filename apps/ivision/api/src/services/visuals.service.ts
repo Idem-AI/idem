@@ -226,7 +226,7 @@ export async function retouchVisual(
     layout: result.spec?.pattern.id,
     creativity: previous.creativity,
     ...(previous.referenceId ? { referenceId: previous.referenceId } : {}),
-    audit: { score: Math.round(result.out?.trace.quality ?? 100), blocking: !!result.out?.result.issues.some((x) => x.severity === 'blocking') },
+    audit: { score: 100, blocking: !!result.out?.result.issues.some((x) => x.severity === 'blocking') },
     paidCredits: 0,
     copy: result.copy,
     ...(result.photo ? { photo: result.photo } : {}),

@@ -51,38 +51,32 @@
     "confirm": "Confirm",
     "creativity": {
       "title": "Creativity",
-      "help": "The higher you go, the more decisions the AI makes — and the more credits the generation uses.",
+      "help": "The higher you go, the more powerful the AI model that designs your deliverable — and the more credits the generation uses.",
       "cost": "{{cost}} credits",
       "levels": {
         "low": {
           "label": "Low",
-          "hint": "Proven",
-          "description": "Proven layouts, adapted to your brand guidelines and their art direction. The AI writes the copy.",
-          "line": "Proven layouts adapted to your brand. The AI writes the copy."
+          "hint": "Light",
+          "description": "A light model designs and writes your deliverable: fast and economical.",
+          "line": "Light model: fast and economical."
         },
         "medium": {
           "label": "Medium",
-          "hint": "Guided",
-          "description": "The AI also picks the structure (sections, scenes, slides) among validated options. The safest at the usual price.",
-          "line": "The AI also picks the structure and the sequence."
+          "hint": "Balanced",
+          "description": "An intermediate model: the right balance between quality and price. The recommended choice.",
+          "line": "Intermediate model: the right balance."
         },
         "high": {
           "label": "High",
-          "hint": "Inspired",
-          "description": "The AI composes each part — layouts, transitions, sequencing — among options filtered by your art direction.",
-          "line": "The AI composes each part: layouts, transitions."
-        },
-        "max": {
-          "label": "Max",
-          "hint": "Bold",
-          "description": "The AI also tunes the details — emphasis, colours, rhythm, density — within bounds that keep everything legible.",
-          "line": "The AI also tunes the details: emphasis, colours, rhythm."
+          "hint": "Advanced",
+          "description": "An advanced model: sharper ideas, more crafted layouts.",
+          "line": "Advanced model: sharper ideas, more crafted pages."
         },
         "ultra": {
           "label": "Ultra",
-          "hint": "Free",
-          "description": "The AI invents and creates everything: the composition, every part, the animations. Your brand guidelines and best practices stay guaranteed: each part is checked, critiqued and corrected before delivery.",
-          "line": "The AI invents and creates everything, checked and corrected before delivery."
+          "hint": "Most powerful",
+          "description": "The most powerful model designs and writes your deliverable. Your brand and your figures stay exact at every level.",
+          "line": "The most powerful model."
         }
       },
       "withCost": "{{label}} · {{cost}} credits",
@@ -97,9 +91,6 @@
           },
           "high": {
             "line": "Advanced models: sharper ideas, safer code."
-          },
-          "max": {
-            "line": "Large models: more ambitious films."
           },
           "ultra": {
             "line": "The most powerful models."

@@ -134,7 +134,7 @@
           "end": "."
         }
       ],
-      "text": "Choose how much the AI decides. At the bottom, safe rules. At the top, an author’s composition. The price follows the notch.",
+      "text": "Choose how powerful the model that creates is. At the bottom, a light, fast model. At the top, the most powerful one. The price follows the level.",
       "ladder": "Creativity notch",
       "default": "Default",
       "price": "Price",
@@ -143,27 +143,22 @@
         "low": {
           "name": "Low",
           "mult": "×1",
-          "text": "Safe rules: a classic layout, no surprises."
+          "text": "A light model composes your visual: fast, at the base price."
         },
         "medium": {
           "name": "Medium",
           "mult": "×1",
-          "text": "The right balance: iVision chooses what to put forward."
+          "text": "An intermediate model: the right balance, recommended."
         },
         "high": {
           "name": "High",
           "mult": "×1.25",
-          "text": "An art director looks at the visual and decides the layout."
-        },
-        "max": {
-          "name": "Max",
-          "mult": "×1.5",
-          "text": "The AI lays out the whole page and dares very large type."
+          "text": "An advanced model: sharper, bolder compositions."
         },
         "ultra": {
           "name": "Ultra",
           "mult": "×2",
-          "text": "An author’s piece, written by the AI, then critiqued by eye until it is right."
+          "text": "The most powerful model, for a true authored creation."
         }
       }
     },
@@ -310,20 +305,18 @@
   },
   "creativity": {
     "label": "Creativity",
-    "hint": "The higher the level, the more the AI decides (and the higher the price).",
+    "hint": "The higher the level, the more powerful the model that designs the visual (and the higher the price).",
     "levels": {
-      "low": "Low ×1",
-      "medium": "Medium ×1",
-      "high": "High ×1.25",
-      "max": "Max ×1.5",
-      "ultra": "Ultra ×2"
+      "low": "Low ×1 · light model",
+      "medium": "Medium ×1 · intermediate model",
+      "high": "High ×1.25 · advanced model",
+      "ultra": "Ultra ×2 · the most powerful"
     },
     "videoHint": "The higher the level, the more powerful the model that designs and writes the video (and the higher the price).",
     "videoLevels": {
       "low": "Low ×1 · light model",
       "medium": "Medium ×1 · mid-size model",
       "high": "High ×1.25 · advanced model",
-      "max": "Max ×1.5 · large model",
       "ultra": "Ultra ×2 · most powerful"
     }
   },

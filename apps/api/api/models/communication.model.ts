@@ -363,7 +363,7 @@ export interface Flyer {
   /** L'arbre de la page (moteur graphique) : une retouche le modifie et REJOUE la même page. */
   spec?: SectionSpec;
   /** Cran de la jauge de créativité choisi pour ce visuel. */
-  creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
+  creativity?: 'low' | 'medium' | 'high' | 'ultra';
   /** Ce que chaque agent a décidé (source modèle ou code, tokens). */
   agents?: { agent: string; source: 'llm' | 'graph'; tokens: { input: number; output: number }; ms: number; reason?: string }[];
   /** La page du visuel (fragment autonome du moteur graphique : polices puis page) ; l'éditeur la retouche. */
