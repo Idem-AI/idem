@@ -94,6 +94,24 @@ Chromium).
   grand, logo en bas ») — l'auteur reçoit son code et la consigne.
 - Une page de l'ancien moteur (arbre v1, `isAuthoredSpec(spec) === false`) ne se rejoue pas : elle est réécrite.
 
+## Retoucher, remettre en page, exporter — sans réécrire
+
+- `doc.page(id)` rend le **contenu final** d'une page (textes, chiffres, médias déjà posés) et son **code** : l'hôte les
+  garde avec la section (`SectionModel.composition` chez IDEM).
+- **Retouche de mots** : `applyTextEdits(content, { "<clé>": "nouveau texte" })` (mêmes clés que celles de l'auteur ;
+  les blocs posés par le code restent intouchables), puis `composeSection(content, { replay })` — aucun auteur.
+- **Retouche de forme** : `composeSection(content, { revise: { spec, instruction } })`.
+- **Nouvelle mise en page** : `composeSection(content)` dans un nouveau document, avec `layoutNote` (« plus aérée ») —
+  aucun texte réécrit, aucun média recherché.
+- **Page modifiée ailleurs** (éditeur, réécriture du HTML) : `restyleFragment(html, tokens)` recompile sa feuille
+  Tailwind (nouvelles classes comprises) ; `withoutCompiledStyle(html)` retire la feuille avant de la donner à lire
+  à un modèle.
+- **Export PowerPoint** (`exportPptx(slides, { mode })`, PptxGenJS) : le HTML reste la source. `fidelity` (défaut) :
+  une image haute résolution par slide, rendu identique ; `editable` : les visuels forment l'image de fond rendue sans
+  textes, chaque bloc de texte devient une zone PowerPoint native (police, corps, graisse, couleur, alignement, mots
+  en gras conservés) ; un texte pivoté ou dans un graphique reste dans l'image. Les notes de l'orateur suivent.
+  L'export ne modifie jamais le HTML et ne redemande rien à l'IA.
+
 ## Économiser les jetons sans brider l'IA
 
 - **Ce qui dure est écrit une fois** : le langage visuel de la marque (≈ 520 jetons d'entrée, une fois par charte ;
@@ -190,7 +208,7 @@ Les constats non bloquants restent dans `result.issues` comme conseils, sans rie
 ## Contrôles
 
 ```
-npm run check --prefix packages/graphic-engine        # 60 vérifications, auteur simulé, Chromium
+npm run check --prefix packages/graphic-engine        # 66 vérifications, auteur simulé, Chromium
 npm run check:fast --prefix packages/graphic-engine   # sans Chromium
 npm run schemas --prefix packages/graphic-engine      # régénère contracts/*.schema.json
 ```

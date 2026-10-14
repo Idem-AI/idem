@@ -1,5 +1,5 @@
 import { normalizeCreativity, CreativityLevel } from '../../models/creativity.model';
-import { coverContent, sectionHtml, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
+import { coverContent, exportPptx, PptxMode, sectionHtml, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
 import crypto from 'crypto';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -19,17 +19,8 @@ import { cacheService } from '../cache.service';
 
 import { composeSlideBrief, SLIDE_VISUAL_PLANS } from './prompts/slide-briefs.prompt';
 import { CoverBriefService } from '../common/coverBrief.service';
-import { composeGraphicPage, coverDateLabel, GenerationJournal, openGraphicDocument, pageId, withProjectArtDirection } from '../graphic/graphic.service';
+import { composeGraphicPage, coverDateLabel, GenerationJournal, openGraphicDocument, pageComposition, pageId, speakerNotesHtml, withProjectArtDirection } from '../graphic/graphic.service';
 import type { PitchDeckAudience } from './deck-types';
-
-/**
- * Les NOTES DE L'ORATEUR d'une slide, gardées dans son fragment sans jamais s'afficher ni s'imprimer : un
- * `<template>` n'est pas rendu par le navigateur. L'éditeur et l'export PowerPoint les relisent.
- */
-function speakerNotesHtml(notes: string): string {
-  const esc = notes.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return `<template data-speaker-notes>${esc}</template>`;
-}
 
 /** Mention de destinataire sur la couverture du deck. */
 const DECK_AUDIENCE_LABEL: Record<PitchDeckAudience, string> = {
@@ -428,11 +419,13 @@ export class PitchDeckService extends GenericService {
             return;
           }
 
+          const composition = pageComposition(graphic, result.name);
           const section: SectionModel = {
             name: result.name,
             type: result.type,
             data: result.data,
             summary: result.summary,
+            ...(composition ? { composition } : {}),
           };
 
           // Add or replace in sections array to avoid duplicates
@@ -479,6 +472,28 @@ export class PitchDeckService extends GenericService {
       await cacheService.delete(pdfCacheKey(userId, projectId, deck.id), { prefix: 'pdf' });
     }
     return updated;
+  }
+
+  /**
+   * L'EXPORT POWERPOINT d'un deck : le HTML des slides reste la source ; le `.pptx` est produit à la demande, en mode
+   * `fidelity` (une image haute résolution par slide, rendu identique à l'aperçu) ou `editable` (textes en zones
+   * PowerPoint natives sur le fond des visuels). Les notes de l'orateur suivent. `null` : aucun deck.
+   */
+  async generatePitchDeckPptx(userId: string, projectId: string, documentId: string | undefined, mode: PptxMode): Promise<{ buffer: Buffer; name: string } | null> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const deck = project ? findDocument(project.analysisResultModel, 'pitchDeck', documentId) : null;
+    if (!project || !deck?.sections?.length) return null;
+    const order = getPitchDeckType(deck.type).slides as readonly string[];
+    const rank = (name: string) => (order.indexOf(name) >= 0 ? order.indexOf(name) : order.length);
+    const slides = [...deck.sections]
+      .filter((s) => typeof s.data === 'string' && s.data.trim())
+      .sort((a, b) => rank(a.name) - rank(b.name))
+      .map((s) => ({ html: s.data as string }));
+    const startedAt = Date.now();
+    const report = await exportPptx(slides, { mode, title: `${project.name || 'Pitch deck'} — Pitch deck`, company: project.name || undefined, author: 'IDEM' });
+    logger.info('pitchdeck.pptx', { event: 'pitchdeck.pptx', projectId, documentId: deck.id, mode, slides: report.slides, textBoxes: report.textBoxes, notes: report.notes, ms: Date.now() - startedAt });
+    const slug = (project.name || 'pitch-deck').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'pitch-deck';
+    return { buffer: report.buffer, name: `${slug}-pitch-deck${mode === 'editable' ? '-modifiable' : ''}.pptx` };
   }
 
   /**

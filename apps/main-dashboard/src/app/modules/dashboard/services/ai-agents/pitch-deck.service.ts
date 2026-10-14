@@ -137,4 +137,18 @@ export class PitchDeckService {
         }),
       );
   }
+
+  /**
+   * Le deck en PowerPoint, produit à la demande depuis son HTML : `fidelity` (une image par slide, rendu identique à
+   * l'aperçu) ou `editable` (textes modifiables dans PowerPoint).
+   */
+  downloadPitchDeckPptx(projectId: string, documentId: string | null | undefined, mode: 'fidelity' | 'editable'): Observable<Blob> {
+    const query = documentIdQuery(documentId);
+    return this.http.get(`${this.apiUrl}/pptx/${projectId}${query}${query ? '&' : '?'}mode=${mode}`, { responseType: 'blob' });
+  }
+
+  /** Nouvelle mise en page du deck depuis son contenu gardé (aucun texte réécrit). */
+  relayoutPitchDeck(projectId: string, documentId: string | null | undefined, body: { creativity?: string; note?: string }): Observable<{ relaid: string[]; kept: string[]; failed: string[] }> {
+    return this.http.post<{ relaid: string[]; kept: string[]; failed: string[] }>(`${this.apiUrl}/${projectId}/relayout${documentIdQuery(documentId)}`, body);
+  }
 }

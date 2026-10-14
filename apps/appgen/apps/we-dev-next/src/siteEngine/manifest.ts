@@ -175,85 +175,60 @@ function prompt(facts: SiteFacts, factsText: string, request: string, language: 
 ${factsText}
 ${brief && brief !== facts.description ? `\n# La demande\n${brief.slice(0, 1500)}\n` : ''}
 # Ta tâche
-Tu conçois l'architecture COMPLÈTE et HAUT DE GAMME du site vitrine de ce projet : ses pages et, pour chaque page, ses sections dans l'ordre.
+Tu es l'architecte du site de ce projet. À partir des informations ci-dessus (secteur, offres, équipe, cible, localisation, description) et de la demande, analyse les besoins réels du projet pour concevoir son architecture sur mesure : la liste des pages à créer et, pour chacune, ses sections dans l'ordre.
 
-## 1. STRUCTURE MULTI-PAGES OBLIGATOIRE (par défaut)
-Sauf si la demande de l'utilisateur exige explicitement un site "one-page" ou une "page unique", conçois TOUJOURS un site multi-pages riche et immersif de 3 à 5 pages distinctes :
-- Page 1 : **Accueil** (slug: "", label: "${fr ? 'Accueil' : 'Home'}") avec 4 à 6 sections riches (Hero d'impact avec proposition de valeur, Présentation / Mission, Services phares ou Offres vedettes, Pourquoi nous choisir / Atouts majeurs, Démarche / Processus, Appel à l'action final).
-- Page 2 : **À propos** (slug: "a-propos", label: "${fr ? 'À propos' : 'About'}") avec 3 à 5 sections (Histoire & Genèse du projet, Vision & Valeurs fondatrices, Notre savoir-faire & Équipe / Passion, Engagements qualité & démarche responsable).
-- Page 3 : **Services / Offres** (slug: "services" ou "offres", label: "${fr ? 'Nos Services' : 'Services'}") avec 3 à 5 sections (Catalogue détaillé des prestations ou produits, Méthodologie pas à pas, Modalités / Garanties pratiques, FAQ spécifique aux services).
-- Page 4 : **Contact & Accès** (slug: "contact", label: "Contact") avec 2 à 4 sections (Canaux d'échange directs et coordonnées réelles, Horaires / Disponibilités & Modalités d'accès, FAQ pratique avant de contacter).
-- *(Optionnel selon le projet)* : Réalisations / Portfolio (slug: "realisations"), ou Tarifs (slug: "tarifs").
+## 1. DÉCISION DYNAMIQUE DE L'ARBORESCENCE DES PAGES
+- **Analyse le projet** : n'applique aucun schéma préconçu ou rigide. C'est le contenu réel du projet, son secteur et sa clientèle qui déterminent quelles pages doivent être présentes.
+- **Définis la liste des pages pertinentes** :
+  * Évalue ce que le projet a à dire et à montrer : crée des pages dédiées dès que le contenu le justifie pour offrir une expérience complète et professionnelle (par exemple selon le domaine : services/prestations, carte/menu, catalogue/produits, histoire/à propos, réalisations/galerie, équipe, tarifs, FAQ, contact & accès...).
+  * Si la consistance du projet ou la demande justifie une approche plus compacte ou une page unique avec ancres, adapte la structure en conséquence.
+  * Chaque page créée doit avoir un objectif clair et contenir des sections substantielles (au moins 2 à 5 sections par page).
+- La première page est obligatoirement l'accueil (slug: "").
 
-## 2. RICHESSE ET VARIÉTÉ DES SECTIONS
-- Chaque section a un "brief" précis de 2 à 4 phrases : ce qu'elle montre, ce qu'elle dit avec force, et la disposition scénarisée (grille de cartes, colonnes asymétriques, frise d'étapes ordonnée, citation d'impact, visuel pleine largeur, liste de bénéfices avec icônes...).
-- Varie les dispositions d'une section à l'autre pour créer un rythme éditorial dynamique. Pas de section fade ou générique.
-- La première section de l'accueil présente le projet de façon saisissante et mène à l'action principale.
-- Les prix, l'équipe, la localisation et les coordonnées viennent des faits du projet.
-- "visual" : "photo" (scène réelle), "illustration" (dessin), "video" (au plus une sur tout le site) ou "none".
-- "components" : composants optionnels dont le site a besoin, parmi : ${OPTIONAL_MODULES.join(', ')}.
+## 2. SCÉNARISATION ET RICHESSE DES SECTIONS
+- Pour chaque page que tu as décidé de créer, ordonne ses sections selon une progression narrative captivante.
+- Chaque section possède :
+  * Un identifiant "id" (kebab-case).
+  * Un "brief" précis de 2 à 4 phrases décrivant son contenu exact, ce qu'elle valorise, et sa disposition (grille de cartes, colonnes asymétriques, étapes pas à pas, citations fortes, liste de bénéfices...).
+  * Un type visuel "visual" : "photo", "illustration", "video" (au plus une sur le site) ou "none".
+  * Si le site est sur une seule page, renseigne "navLabel" sur les sections principales pour le menu d'ancres.
+- La première section de l'accueil présente le projet avec force et oriente vers l'action principale.
+- Les données factuelles (coordonnées, canaux de contact, offres réelles, localisation) s'appuient sur les faits du projet.
 - Tous les textes de structure (label, purpose, seoTitle, seoDescription, briefs) sont rédigés ${fr ? 'en français' : 'in English'}.
 
 # Forme exacte de la réponse
-Renvoie UNIQUEMENT cet objet JSON structuré avec TOUTES ses pages :
+Renvoie UNIQUEMENT un objet JSON valide avec la liste des pages que tu as choisies pour ce projet :
 {
   "pages": [
     {
       "slug": "",
       "label": "${fr ? 'Accueil' : 'Home'}",
-      "purpose": "${fr ? "Présenter l'activité, séduire les visiteurs et exposer la proposition de valeur" : 'Introduce the business, engage visitors and present the core value proposition'}",
-      "seoTitle": "${fr ? 'titre captivant pour les moteurs de recherche, 45 à 60 caractères' : 'engaging SEO title, 45 to 60 characters'}",
-      "seoDescription": "${fr ? 'description engageante de 140 à 160 caractères' : 'engaging meta description, 140 to 160 characters'}",
+      "purpose": "${fr ? "Présenter l'activité et susciter l'intérêt immédiat" : 'Introduce the business and capture immediate interest'}",
+      "seoTitle": "${fr ? 'titre SEO engageant (45 à 60 caractères)' : 'engaging SEO title (45 to 60 chars)'}",
+      "seoDescription": "${fr ? 'description engageante (140 à 160 caractères)' : 'engaging meta description (140 to 160 chars)'}",
       "sections": [
         { "id": "hero", "brief": "…", "visual": "photo" },
         { "id": "presentation", "brief": "…", "visual": "none" },
-        { "id": "apercu-services", "brief": "…", "visual": "illustration" },
-        { "id": "pourquoi-nous-choisir", "brief": "…", "visual": "none" },
-        { "id": "demarche", "brief": "…", "visual": "none" },
-        { "id": "appel-action", "brief": "…", "visual": "none" }
+        { "id": "points-cles", "brief": "…", "visual": "illustration" }
       ]
     },
     {
-      "slug": "a-propos",
-      "label": "${fr ? 'À propos' : 'About'}",
-      "purpose": "${fr ? 'Partager notre histoire, nos valeurs et les visages derrière le projet' : 'Share our story, core values, and the people behind the project'}",
-      "seoTitle": "${fr ? 'Histoire et engagements' : 'Our Story and Values'}",
+      "slug": "slug-kebab-selon-le-projet",
+      "label": "${fr ? 'Nom de la page' : 'Page Name'}",
+      "purpose": "${fr ? 'Rôle et valeur apportée par cette page dédiée' : 'Purpose of this dedicated page'}",
+      "seoTitle": "…",
       "seoDescription": "…",
       "sections": [
-        { "id": "histoire-vision", "brief": "…", "visual": "photo" },
-        { "id": "nos-valeurs", "brief": "…", "visual": "none" },
-        { "id": "notre-expertise", "brief": "…", "visual": "illustration" }
-      ]
-    },
-    {
-      "slug": "services",
-      "label": "${fr ? 'Nos Services' : 'Services'}",
-      "purpose": "${fr ? 'Présenter en détail chaque offre et le déroulement de nos prestations' : 'Detail every offering and describe our work process'}",
-      "seoTitle": "${fr ? 'Nos Prestations et Solutions' : 'Our Services and Solutions'}",
-      "seoDescription": "…",
-      "sections": [
-        { "id": "catalogue-prestations", "brief": "…", "visual": "photo" },
-        { "id": "processus-collaboration", "brief": "…", "visual": "none" },
-        { "id": "faq-services", "brief": "…", "visual": "none" }
-      ]
-    },
-    {
-      "slug": "contact",
-      "label": "Contact",
-      "purpose": "${fr ? 'Fournir tous les moyens de nous joindre, nos horaires et plan d\'accès' : 'Provide direct contact channels, hours, and location'}",
-      "seoTitle": "${fr ? 'Contact et Accès' : 'Contact and Access'}",
-      "seoDescription": "…",
-      "sections": [
-        { "id": "coordonnees-directes", "brief": "…", "visual": "illustration" },
-        { "id": "horaires-et-acces", "brief": "…", "visual": "none" }
+        { "id": "section-1", "brief": "…", "visual": "photo" },
+        { "id": "section-2", "brief": "…", "visual": "none" }
       ]
     }
   ],
-  "header": "${fr ? "En-tête soigné avec la marque, la navigation fluide entre toutes les pages et le bouton d'action principal." : 'Refined header with brand mark, seamless navigation across all pages and primary action button.'}",
-  "footer": "${fr ? "Pied de page complet avec la marque, la liste des pages, les coordonnées directes et les mentions légales." : 'Comprehensive footer with brand mark, page links, direct contact details and legal notices.'}",
-  "components": ["card", "badge", "accordion"],
+  "header": "${fr ? "Description de l'en-tête (marque, navigation vers les pages, action principale)" : 'Header description (brand, navigation to pages, primary CTA)'}",
+  "footer": "${fr ? "Description du pied de page (liens des pages, coordonnées réelles, mentions)" : 'Footer description (page links, real contact details, notices)'}",
+  "components": ["card", "badge"],
   "dependencies": [],
-  "keywords": ["6 à 10 expressions que les clients tapent réellement"],
+  "keywords": ["expressions clés pertinentes"],
   "businessType": "un type parmi : ${BUSINESS_TYPES.join(', ')}"
 }
 `;

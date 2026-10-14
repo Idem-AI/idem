@@ -21,6 +21,7 @@ import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import { firstThenRevision, requireCredits, withCreativity } from '../middleware/billing.middleware';
+import { relayoutController } from '../controllers/relayout.controller';
 import multer from 'multer';
 
 export const businessPlanRoutes = Router();
@@ -772,4 +773,21 @@ businessPlanRoutes.post(
   authenticate,
   upload.any(), // Support multiple files with any field names
   setAdditionalInfoController
+);
+
+/**
+ * @openapi
+ * /businessPlans/{projectId}/relayout:
+ *   post:
+ *     tags: [Business Plans]
+ *     summary: New layout of the document from its kept content (no text rewritten). Body { creativity?, note? }, `documentId` query.
+ *     security: [{ bearerAuth: [] }]
+ */
+businessPlanRoutes.post(
+  `/${resourceName}/:projectId/relayout`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  requireCredits('business', 'business_plan_relayout', { resolve: withCreativity('business', 'business_plan_relayout') }),
+  relayoutController('businessPlan')
 );

@@ -29,6 +29,9 @@ import { closeBrowser } from '../src/runtime/browser';
 import { configureGraphicEngine } from '../src/host';
 import { cardFaces } from '../src/adapters/sections';
 import { createDocument, GraphicRenderError, renderSingle } from '../src/engine';
+import { applyTextEdits } from '../src/runtime/content-map';
+import { exportPptx } from '../src/export/pptx';
+import { sectionHtml } from '../src/adapters/sections';
 import { BRANDS, CARD_FRONT, FINANCE_BP, MARKET } from './fixtures';
 
 const fast = process.argv.includes('--fast');
@@ -151,6 +154,10 @@ async function main(): Promise<void> {
     ok('tableau : chaque cellule exacte, colonnes chiffrées à droite, style de l’auteur sur la balise', table.rows.flat().every((c) => t.includes(c.replace(/&/g, '&amp;'))) && t.includes('text-right') && t.includes('[&amp;_th]:bg-brand-primary'));
   }
 
+  section('§7 bis Retouche de mots par clé');
+  const edited = applyTextEdits(FINANCE_BP, { title: 'Un résultat positif dès 2026', 'b3.paragraphs.0': '', 'b1.rows.0.1': '99' });
+  ok('titre et paragraphe retouchés par leur clé ; le tableau posé par le code reste intouchable', edited.section.title === 'Un résultat positif dès 2026' && edited.applied.includes('b3.paragraphs.0') && edited.refused.includes('b1.rows.0.1') && JSON.stringify(edited.section.blocks.find((b) => b.id === 'b1')) === JSON.stringify(FINANCE_BP.blocks.find((b) => b.id === 'b1')));
+
   if (fast) return;
 
   // ── §8 Le flux complet ───────────────────────────────────────────────────────────────────
@@ -188,6 +195,23 @@ async function main(): Promise<void> {
   ok('une charte changée appelle un nouveau langage', calls.filter((c) => c.role === 'graphic.director').length === 1 && memory.size === 2);
   configureGraphicEngine({ brandMemory: undefined });
   ok('consigne professionnelle : aucune décoration gratuite, système identique d’une page à l’autre', calls.length > 0 && /Never random circles, blobs, glows, gradients/.test(authorSystemOf(calls)) );
+
+  ok('le document garde le contenu et le code de chaque page (remise en page sans réécriture)', Boolean(deck.page('market')?.content.blocks.length && deck.page('market')?.spec.html));
+  const before2 = calls.length;
+  const relaid = await (await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, seed: 'r', sections: [{ id: 'market' }], layoutNote: 'plus aérée' })).composeSection(deck.page('market')!.content);
+  ok('nouvelle mise en page : l’auteur repart du contenu gardé et reçoit le souhait du client', relaid.result.html.includes('2,3 Md FCFA') && calls.slice(before2).some((c) => c.role === 'graphic.author' && c.user.includes('THE CLIENT ASKS FOR THIS LAYOUT: plus aérée')));
+
+  section('§8 bis Export PowerPoint (le HTML reste la source)');
+  const deckSlides = [{ html: sectionHtml(m) }, { html: `${sectionHtml(f)}\n<template data-speaker-notes>La marge atteint 60 %.</template>` }];
+  const fidelity = await exportPptx(deckSlides, { mode: 'fidelity', title: 'Kora' });
+  const editable = await exportPptx(deckSlides, { mode: 'editable', title: 'Kora' });
+  const zip = (b: Buffer) => b.subarray(0, 2).toString() === 'PK';
+  ok('fidèle : un fichier PowerPoint, une image par slide, aucun texte natif', zip(fidelity.buffer) && fidelity.slides === 2 && fidelity.textBoxes === 0);
+  ok('modifiable : les textes deviennent des zones natives (titres, cellules du tableau)', zip(editable.buffer) && editable.textBoxes >= 10);
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const JSZip = require('jszip');
+  const notesXml = async (b: Buffer) => (await (await JSZip.loadAsync(b)).file('ppt/notesSlides/notesSlide2.xml')?.async('string')) ?? '';
+  ok('les notes de l’orateur passent dans le fichier (deux modes)', (await notesXml(editable.buffer)).includes('La marge atteint 60') && (await notesXml(fidelity.buffer)).includes('La marge atteint 60'));
 
   const card = await renderSingle({ documentType: 'business-card', format: 'card-landscape', brand: BRANDS.kofi, seed: 'card', bindings: 'markers', content: cardFaces({ binding: 'markers' }).front });
   ok('carte : gabarit à marqueurs (data-field)', /data-field="fullName"[^>]*>\{\{fullName\}\}|<span data-field="fullName">\{\{fullName\}\}/.test(card.result.html));

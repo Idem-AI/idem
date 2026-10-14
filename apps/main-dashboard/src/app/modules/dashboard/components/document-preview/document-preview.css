@@ -417,7 +417,8 @@
 }
 
 .dp-pages,
-.dp-regen {
+.dp-regen,
+.dp-download-wrap {
   position: relative;
   display: flex;
   align-items: center;
@@ -554,10 +555,32 @@
   flex-shrink: 0;
 }
 
-.dp-menu-regen {
+.dp-menu-regen,
+.dp-menu-download {
   left: auto;
   right: 0;
   width: min(19rem, calc(100vw - 2rem));
+}
+
+/* La nouvelle mise en page : un élément de menu qui porte son champ de souhait et son bouton. */
+.dp-relayout {
+  align-items: flex-start;
+  cursor: default;
+}
+.dp-relayout .dp-menu-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.dp-relayout-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
 .dp-menu-item {

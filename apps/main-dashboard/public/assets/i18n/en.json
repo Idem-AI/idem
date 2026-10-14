@@ -4878,7 +4878,13 @@
         "idle": "Download",
         "working": "Preparing…",
         "done": "Downloaded",
-        "error": "Failed, retry"
+        "error": "Failed, retry",
+        "pdf": "PDF",
+        "pdfDesc": "The document as previewed, ready to print or send.",
+        "pptxFidelity": "PowerPoint (exact)",
+        "pptxFidelityDesc": "Each slide exactly as previewed (one image per slide).",
+        "pptxEditable": "PowerPoint (editable)",
+        "pptxEditableDesc": "Texts become editable in PowerPoint; visuals stay as images."
       },
       "status": {
         "complete": "Generation complete",
@@ -4924,6 +4930,21 @@
         "later": "Later",
         "messageOne": "1 page is missing from this document.",
         "messageMany": "{{count}} pages are missing from this document."
+      },
+      "relayout": {
+        "title": "New layout",
+        "desc": "The AI recomposes each page from the existing content: no text is rewritten.",
+        "noteLabel": "Your wish for the layout (optional)",
+        "notePlaceholder": "E.g. more airy, more sober…",
+        "run": "Apply a new layout",
+        "state": {
+          "working": "New layout in progress…",
+          "done": "New layout applied.",
+          "partial": "Layout applied; some pages could not be redone (edited by hand or too old).",
+          "nothing": "This document has no kept content: regenerate it to be able to relayout it.",
+          "credits": "Not enough credits for the new layout.",
+          "error": "The new layout failed. Your credits were refunded."
+        }
       }
     },
     "deliverableList": {

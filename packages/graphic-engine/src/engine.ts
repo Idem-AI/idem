@@ -65,6 +65,8 @@ export interface DocumentOptions {
   reference?: ReferenceComposition;
   /** Ce que l'hôte sait du projet (activité, public), donné au directeur et à l'auteur. */
   brief?: string;
+  /** Le souhait du client pour la mise en page (« plus aérée », « plus sobre ») : une nouvelle mise en page le suit. */
+  layoutNote?: string;
 }
 
 export interface SectionOutput {
@@ -116,6 +118,8 @@ export class GraphicDocument {
   /** Le cran de la jauge : il choisit le modèle de chaque rôle (l'hôte résout l'échelle). */
   readonly policy: { level: CreativityLevel };
   private readonly specs = new Map<string, SectionSpec>();
+  /** Le contenu final de chaque page (médias posés) : gardé par l'hôte, il permet de refaire la mise en page sans réécrire. */
+  private readonly contents = new Map<string, SectionContent>();
   private readonly generationId: string;
   private generatedAssets = 0;
   private languagePromise: Promise<string | undefined> | null = null;
@@ -169,6 +173,7 @@ export class GraphicDocument {
       direction: this.options.direction,
       allowDark: this.options.allowDark === true,
       brief: this.options.brief,
+      layoutNote: this.options.layoutNote,
       bindings: this.options.bindings ?? 'values',
     };
   }
@@ -284,6 +289,7 @@ export class GraphicDocument {
 
     const spec: SectionSpec = { version: 2, ref: section.id, pattern: { id: 'authored' }, html: rendered.template, ...(bible ? { bible } : {}), level };
     this.specs.set(section.id, spec);
+    this.contents.set(section.id, section);
     const usage = recorder.usage();
     const trace = recorder.finish({ pattern: 'authored', ...(assets.length ? { assets } : {}) });
     engineHost().onTrace?.(trace);
@@ -411,6 +417,16 @@ export class GraphicDocument {
       return { section: content, assets: resolution.log };
     }
     return { section: rechecked.value, assets: resolution.log };
+  }
+
+  /**
+   * Ce qu'il faut garder d'une page pour la refaire sans modèle de rédaction : son contenu (textes, chiffres, médias
+   * déjà posés) et son code. Une nouvelle mise en page repart du contenu ; une retouche de mots rejoue le code.
+   */
+  page(sectionId: string): { content: SectionContent; spec: SectionSpec } | undefined {
+    const content = this.contents.get(sectionId);
+    const spec = this.specs.get(sectionId);
+    return content && spec ? { content, spec } : undefined;
   }
 
   /** Le DesignSpec du document : les pages écrites jusqu'ici, dans l'ordre annoncé. */

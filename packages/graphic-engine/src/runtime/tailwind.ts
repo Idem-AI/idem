@@ -111,3 +111,24 @@ export async function compileTailwind(html: string, tokens: DesignTokens): Promi
   const scoped = built.replace(/:root,\s*:host\s*\{/g, '.ge-page {').replace(/^\/\*![^*]*\*\/\s*/, '');
   return `${BASE}\n${remToPx(scoped)}`;
 }
+
+const STYLE_BLOCK = /<style data-ge-tailwind>[\s\S]*?<\/style>/g;
+
+/** Le fragment sans sa feuille compilée (ce qu'on donne à lire à un modèle : la feuille est recompilée ensuite). */
+export const withoutCompiledStyle = (fragment: string): string => fragment.replace(STYLE_BLOCK, '');
+
+/** Une page du moteur, reconnue à sa feuille Tailwind compilée. */
+export const isTailwindFragment = (fragment: string): boolean => /<style data-ge-tailwind>/.test(fragment);
+
+/**
+ * Recompile la feuille d'un fragment du moteur modifié AILLEURS (éditeur, retouche par un modèle) : les classes
+ * ajoutées depuis le rendu s'affichent, au thème de la marque. Un fragment sans feuille du moteur est rendu tel quel.
+ */
+export async function restyleFragment(fragment: string, tokens: DesignTokens, o: { force?: boolean } = {}): Promise<string> {
+  if (!o.force && !isTailwindFragment(fragment)) return fragment;
+  const body = fragment.replace(STYLE_BLOCK, '');
+  const css = await compileTailwind(body, tokens);
+  const style = `<style data-ge-tailwind>${css}</style>`;
+  const at = body.search(/<div\s[^>]*class="ge-page[\s"]/);
+  return at >= 0 ? `${body.slice(0, at)}${style}\n${body.slice(at)}` : `${style}\n${body}`;
+}

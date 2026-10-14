@@ -31,8 +31,9 @@ export type { DocumentOptions, SectionOutput } from './engine';
 export type { ReferenceComposition } from './author/prompts';
 
 // ── Le runtime (Tailwind, primitives) : pour les hôtes qui rendent eux-mêmes un fragment ─────────
-export { compileTailwind, themeColors } from './runtime/tailwind';
+export { compileTailwind, isTailwindFragment, restyleFragment, themeColors, withoutCompiledStyle } from './runtime/tailwind';
 export { chartHtml } from './runtime/primitives';
+export { applyTextEdits, buildContentMap } from './runtime/content-map';
 
 // ── Couleur (outils de la charte : contraste, encre lisible, mélange) ───────────────────────────
 export { bestContrast, contrastRatio, ensureContrast, isDeep, mixHex, readableInk, relativeLuminance } from './foundation/color';
@@ -59,6 +60,10 @@ export type { AssetContext, AssetProvider, AssetProviders, AssetRegistry, AssetR
 export { sectionTextLoad, TEXT_BUDGETS, textLoad } from './content/analyze';
 export { slideDiet } from './content/slide-diet';
 export type { TextBudgetKind } from './content/analyze';
+
+// ── Export PowerPoint (le HTML reste la source) ──────────────────────────────────────────────────
+export { exportPptx } from './export/pptx';
+export type { PptxMode, PptxOptions, PptxReport, PptxSlideInput } from './export/pptx';
 
 // ── Navigateur ─────────────────────────────────────────────────────────────────────────────────
 export { closeBrowser, configureBrowser, pageDocument, screenshot } from './runtime/browser';

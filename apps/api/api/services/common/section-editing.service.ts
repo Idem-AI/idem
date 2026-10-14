@@ -16,6 +16,8 @@ import {
   EDIT_FORMAT_RULES,
 } from './section-edit.prompt';
 import { findDocument, isDeliverableKind, withDocument } from './deliverable-documents';
+import { editComposedSection, restyleSection } from '../graphic/page-editing.service';
+import { isTailwindFragment, withoutCompiledStyle } from '@idem/graphic-engine';
 
 /**
  * Clé du document dans `analysisResultModel` (business plan, pitch deck, charte).
@@ -86,10 +88,16 @@ export class SectionEditingService {
       return null;
     }
     const analysis = (project.analysisResultModel ?? {}) as Record<string, any>;
-    const cleaned = sections.map((s) => ({
-      ...s,
-      data: typeof s.data === 'string' ? sanitizeSectionHtml(s.data) : s.data,
-    }));
+    // Une page modifiée à la main ne correspond plus au contenu gardé par le moteur : il est oublié (la page
+    // garde la main de l'utilisateur ; une nouvelle mise en page ne pourra plus la refaire sans la réécrire).
+    const previous = (isDeliverableKind(key) ? findDocument(analysis, key, documentId)?.sections : (analysis[key] as { sections?: SectionModel[] } | undefined)?.sections) ?? [];
+    const cleaned = sections.map((s) => {
+      const data = typeof s.data === 'string' ? sanitizeSectionHtml(s.data) : s.data;
+      const before = previous.find((p) => (s.id && p.id === s.id) || p.name === s.name);
+      const touched = !before || before.data !== s.data;
+      const { composition, ...rest } = s;
+      return { ...rest, data, ...(composition && !touched ? { composition } : before?.composition && !touched ? { composition: before.composition } : {}) };
+    });
 
     if (isDeliverableKind(key)) {
       const document = findDocument(analysis, key, documentId);
@@ -150,20 +158,38 @@ export class SectionEditingService {
     }
     const target = sections[index];
 
-    const newHtml = await this.rewriteHtml({
-      userId,
-      project,
-      projectId,
-      formatKey: key,
-      element: sectionId,
-      sectionName: target.name,
-      currentHtml: typeof target.data === 'string' ? target.data : JSON.stringify(target.data),
-      instruction,
-      language,
-    });
-    if (!newHtml) return null;
+    // Une page du moteur dont le contenu est gardé : les mots sont retouchés par clé et la page REJOUÉE, la forme
+    // passe par l'auteur — jamais tout le HTML réécrit par un modèle.
+    let updatedSection: SectionModel | null = null;
+    if ((key === 'businessPlan' || key === 'pitchDeck') && target.composition) {
+      const edited = await editComposedSection({ userId, projectId, project, kind: key, section: target, instruction, language }).catch((error: any) => {
+        logger.warn(`Engine retouch failed for ${key}/${sectionId}, falling back to HTML rewrite: ${error?.message}`);
+        return null;
+      });
+      if (edited) updatedSection = edited.section;
+    }
 
-    const updatedSection: SectionModel = { ...target, data: newHtml, updatedAt: new Date() };
+    if (!updatedSection) {
+      const rewritten = await this.rewriteHtml({
+        userId,
+        project,
+        projectId,
+        formatKey: key,
+        element: sectionId,
+        sectionName: target.name,
+        // Sans la feuille Tailwind compilée (des milliers de signes que le modèle n'a pas à lire) : recompilée au retour.
+        currentHtml: typeof target.data === 'string' ? withoutCompiledStyle(target.data) : JSON.stringify(target.data),
+        instruction,
+        language,
+      });
+      if (!rewritten) return null;
+      const engineStyled = typeof target.data === 'string' && isTailwindFragment(target.data);
+      // La page réécrite garde le thème de la marque : sa feuille Tailwind est recompilée (nouvelles classes comprises),
+      // et le contenu gardé, devenu faux, est oublié.
+      const newHtml = engineStyled && (key === 'businessPlan' || key === 'pitchDeck') ? await restyleSection(key, project, rewritten, { force: true }).catch(() => rewritten) : rewritten;
+      const { composition: _stale, ...rest } = target;
+      updatedSection = { ...rest, data: newHtml, updatedAt: new Date() };
+    }
     const updatedSections = [...sections];
     updatedSections[index] = updatedSection;
 

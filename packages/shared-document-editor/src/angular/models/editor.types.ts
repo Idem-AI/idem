@@ -324,4 +324,16 @@ export interface DocumentTypeAdapter {
   readonly pdfFileName?: string;
   /** PDF final du document, produit par l'API (téléchargé à la demande). */
   downloadPdf?(projectId: string, documentId?: string | null): Observable<Blob>;
+  /** Nom du fichier PowerPoint proposé au téléchargement. */
+  readonly pptxFileName?: string;
+  /**
+   * PowerPoint produit à la demande depuis le HTML (qui reste la source) : `fidelity` (une image par slide, rendu
+   * identique) ou `editable` (textes modifiables). Facultatif : seul le pitch deck le propose.
+   */
+  downloadPptx?(projectId: string, documentId: string | null | undefined, mode: 'fidelity' | 'editable'): Observable<Blob>;
+  /**
+   * NOUVELLE MISE EN PAGE du document à partir de son contenu gardé (aucun texte réécrit), au cran donné, avec un
+   * souhait facultatif (« plus aérée »). Facultative : business plan et pitch deck.
+   */
+  relayout?(projectId: string, documentId: string | null | undefined, body: { creativity?: string; note?: string }): Observable<{ relaid: string[]; kept: string[]; failed: string[] }>;
 }

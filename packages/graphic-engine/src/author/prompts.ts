@@ -35,6 +35,8 @@ export interface DocumentContext {
   allowDark: boolean;
   /** Ce que l'hôte sait du projet (activité, public), en clair. */
   brief?: string;
+  /** Le souhait du client pour la mise en page. */
+  layoutNote?: string;
   bindings: 'values' | 'markers';
 }
 
@@ -174,6 +176,7 @@ export function planPrompt(ctx: DocumentContext, pages: PlannedPage[], language:
     `BRAND:\n${brandSheet(ctx)}`,
     language ? `BRAND VISUAL LANGUAGE:\n${language}` : directionLines(ctx),
     ctx.brief ? `ABOUT THE BUSINESS: ${ctx.brief.slice(0, 600)}` : '',
+    ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 600)}` : '',
     `PAGES:\n${pages.map((p, i) => `${i + 1}. ${p.id}${p.role ? ` (${p.role})` : ''}${p.purpose ? ` — ${p.purpose.slice(0, 140)}` : ''}`).join('\n').slice(0, 3000)}`,
     previous.length ? `DOCUMENTS ALREADY MADE FOR THIS BRAND (do not repeat their idea):\n${previous.slice(0, 3).join('\n')}` : '',
   ]
@@ -292,6 +295,7 @@ export function authorUser(ctx: DocumentContext, p: PageBrief): string {
     plan && (plan.idea || plan.page)
       ? `DOCUMENT PLAN:${plan.idea ? `\nidea: ${plan.idea}` : ''}${plan.previous ? `\nprevious page: ${plan.previous}` : ''}${plan.page ? `\nTHIS PAGE: ${plan.page}` : ''}${plan.next ? `\nnext page: ${plan.next}` : ''}`
       : '',
+    ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 600)}` : '',
     intent ? `INTENT: ${[intent.keyMessage ? `the reader must understand: ${intent.keyMessage}` : '', intent.visualStrategy ? `visual strategy: ${intent.visualStrategy}` : ''].filter(Boolean).join('; ')}` : '',
     referenceLines(p.reference),
     p.tools,

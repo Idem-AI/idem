@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  generatePitchDeckPptxController,
   getPitchDeckController,
   deletePitchDeckController,
   generatePitchDeckStreamingController,
@@ -16,6 +17,7 @@ import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import { firstThenRevision, requireCredits, withCreativity } from '../middleware/billing.middleware';
+import { relayoutController } from '../controllers/relayout.controller';
 
 export const pitchDeckRoutes = Router();
 const resourceName = 'pitchDecks';
@@ -219,9 +221,35 @@ pitchDeckRoutes.post(
  *       - Pitch Deck
  *     summary: Download a pitch deck as 16:9 PDF (`documentId` query, primary deck by default)
  */
+/**
+ * @openapi
+ * /pitchDecks/pptx/{projectId}:
+ *   get:
+ *     tags: [Pitch Deck]
+ *     summary: Download a pitch deck as PowerPoint (`mode=fidelity|editable`, `documentId` query)
+ */
+pitchDeckRoutes.get(`/${resourceName}/pptx/:projectId`, authenticate, pdfTimeout, generatePitchDeckPptxController);
+
 pitchDeckRoutes.get(
   `/${resourceName}/pdf/:projectId`,
   authenticate,
   pdfTimeout,
   generatePitchDeckPdfController
+);
+
+/**
+ * @openapi
+ * /pitchDecks/{projectId}/relayout:
+ *   post:
+ *     tags: [Pitch Deck]
+ *     summary: New layout of the document from its kept content (no text rewritten). Body { creativity?, note? }, `documentId` query.
+ *     security: [{ bearerAuth: [] }]
+ */
+pitchDeckRoutes.post(
+  `/${resourceName}/:projectId/relayout`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  requireCredits('business', 'pitch_deck_relayout', { resolve: withCreativity('business', 'pitch_deck_relayout') }),
+  relayoutController('pitchDeck')
 );

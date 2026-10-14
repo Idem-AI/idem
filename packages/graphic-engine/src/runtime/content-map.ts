@@ -101,3 +101,49 @@ export function buildContentMap(section: SectionContent, bindings: 'values' | 'm
   }
   return { entries, primitives, markers, listing: lines.join('\n').trim() };
 }
+
+/**
+ * Applique des retouches de MOTS par clé (`title`, `b2.paragraphs.0`, `b1.items.1.label`) : la même adresse que celle
+ * que voit l'auteur. Une valeur vide retire le texte (un élément de liste disparaît). Les blocs posés par le code
+ * (`origin: 'system'` : tableaux financiers, spécimens) ne se retouchent jamais ainsi. Rend la section et les clés
+ * réellement appliquées.
+ */
+export function applyTextEdits(section: SectionContent, edits: Record<string, string | null | undefined>): { section: SectionContent; applied: string[]; refused: string[] } {
+  const next = JSON.parse(JSON.stringify(section)) as SectionContent & Record<string, unknown>;
+  const applied: string[] = [];
+  const refused: string[] = [];
+  const removals: Array<{ parent: unknown[]; index: number }> = [];
+  for (const [key, raw] of Object.entries(edits)) {
+    const value = typeof raw === 'string' ? raw.trim() : '';
+    const parts = key.split('.');
+    if (parts.length === 1 && ['kicker', 'title', 'lede'].includes(parts[0])) {
+      if (value) next[parts[0]] = value.slice(0, parts[0] === 'title' ? 160 : parts[0] === 'kicker' ? 80 : 320);
+      else if (parts[0] !== 'title') delete next[parts[0]];
+      else {
+        refused.push(key);
+        continue;
+      }
+      applied.push(key);
+      continue;
+    }
+    const block = next.blocks.find((b) => b.id === parts[0]) as (Record<string, unknown> & { origin?: string }) | undefined;
+    if (!block || block.origin === 'system' || parts.length < 2) {
+      refused.push(key);
+      continue;
+    }
+    let parent: unknown = block;
+    for (let i = 1; i < parts.length - 1 && parent && typeof parent === 'object'; i++) parent = (parent as Record<string, unknown>)[parts[i]];
+    const leaf = parts[parts.length - 1];
+    if (!parent || typeof parent !== 'object' || !(leaf in (parent as object)) || typeof (parent as Record<string, unknown>)[leaf] === 'object') {
+      refused.push(key);
+      continue;
+    }
+    if (value) (parent as Record<string, unknown>)[leaf] = value;
+    else if (Array.isArray(parent)) removals.push({ parent, index: Number(leaf) });
+    else delete (parent as Record<string, unknown>)[leaf];
+    applied.push(key);
+  }
+  // Les éléments de liste retirés, du dernier au premier (les index restent justes).
+  for (const r of removals.sort((a, b) => b.index - a.index)) r.parent.splice(r.index, 1);
+  return { section: next, applied, refused };
+}

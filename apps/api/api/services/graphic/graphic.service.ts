@@ -28,6 +28,7 @@ import logger from '../../config/logger';
 import { normalizeCreativity } from '../../models/creativity.model';
 import { roleConfig } from '../../config/creative-roles';
 import type { ProjectModel } from '../../models/project.model';
+import type { SectionComposition } from '../../models/section.model';
 import { resolveLogoDeclensions } from '../../utils/brand-context.util';
 import { getRequestLanguage } from '../../utils/request-language';
 import { ensureProjectArtDirection } from '../brand/artDirection.provider';
@@ -75,6 +76,8 @@ export interface OpenGraphicDocumentOptions {
   keywords?: string[];
   /** Ce que fait le projet, en clair, pour le directeur et l'auteur (défaut : la description du projet). */
   brief?: string;
+  /** Le souhait du client pour la mise en page (nouvelle mise en page). */
+  layoutNote?: string;
 }
 
 /** Un document graphique : la charte, la jauge et la bible communes à ses pages. */
@@ -99,6 +102,7 @@ export function openGraphicDocument(o: OpenGraphicDocumentOptions): Promise<Grap
     png: o.png,
     allowDark: o.allowDark,
     size: o.size,
+    ...(o.layoutNote?.trim() ? { layoutNote: o.layoutNote.trim() } : {}),
     ...((o.brief ?? o.project.description)?.trim() ? { brief: (o.brief ?? o.project.description ?? '').trim().slice(0, 1200) } : {}),
   });
 }
@@ -139,6 +143,18 @@ export async function composeGraphicPage(doc: GraphicDocument, section: SectionC
 /** Une page rendue en fragment autonome (polices puis racine), tel que les livrables le stockent. */
 export async function renderGraphicPage(doc: GraphicDocument, section: SectionContent, position: { index?: number; total?: number } = {}): Promise<string> {
   return sectionHtml(await composeGraphicPage(doc, section, position));
+}
+
+/** Ce que la section garde de sa page (contenu et code), pour la remettre en page ou la retoucher sans réécrire. */
+export function pageComposition(doc: GraphicDocument, sectionName: string, sectionId = pageId(sectionName)): SectionComposition | undefined {
+  const page = doc.page(sectionId);
+  return page ? { engine: 'graphic-engine', content: page.content, spec: page.spec, level: doc.policy.level } : undefined;
+}
+
+/** Les notes de l'orateur d'une slide, posées après la page (jamais affichées, reprises par l'export). */
+export function speakerNotesHtml(notes: string): string {
+  const esc = notes.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<template data-speaker-notes>${esc}</template>`;
 }
 
 /** Un identifiant de page stable, tiré de son nom (« Company Summary » → `company-summary`). */

@@ -100,6 +100,22 @@ Le rédacteur reçoit le **contrat de contenu** du moteur (`contentContract`, `W
 
 Le pitch deck ne réécrit plus une slide « trop textuelle » et ne déplace plus de texte vers les notes : le budget de texte de chaque slide est donné au rédacteur comme une indication. La grille de contrôle des sections (`verifySection`) ne passe plus sur les pages du moteur.
 
+### Retouche, nouvelle mise en page et export PowerPoint
+
+Chaque page du business plan et du pitch deck garde son contenu et son code (`SectionModel.composition`).
+
+- **Retouche par instruction** (éditeur, « Modifier avec l'IA ») : le modèle d'écriture lit les textes de la page par
+  clé et rend seulement ceux qui changent, et/ou une consigne de forme ; les mots sont posés par le code et la page
+  REJOUÉE (aucun auteur), la forme passe par l'auteur avec son code. Une demande de contenu nouveau, ou une page sans
+  contenu gardé (ancienne, ou modifiée à la main), retombe sur la réécriture du HTML — sans la feuille compilée, qui
+  est recompilée au retour.
+- **Nouvelle mise en page** (menu « Régénérer » de l'aperçu, avec un souhait facultatif : « plus aérée ») : chaque
+  page est réécrite par l'auteur depuis son contenu, au cran choisi ; aucun texte réécrit. Business plan 25 crédits,
+  pitch deck 12, × le cran ; contrepassé si rien n'a pu être refait.
+- **Export PowerPoint** du deck (bouton de téléchargement de l'aperçu) : le HTML reste la source. « PowerPoint
+  fidèle » : une image haute résolution par slide ; « PowerPoint modifiable » : textes en zones natives sur le fond
+  des visuels. Notes de l'orateur comprises.
+
 ### Reprise et régénération ciblée
 
 Le cran est enregistré avec le document (`design.level` sur le business plan et le pitch deck, `branding.charterDesign.level` pour la charte) : une page refaite rouvre le document au même cran.
@@ -153,4 +169,5 @@ Pas de sélecteur pour le logo (toujours Ultra).
 - `npm run check:creativity` : les prix et la normalisation, l'orchestrateur ; le moteur graphique au service de la jauge (même travail à tous les crans, cran transmis au modèle, correction bornée puis erreur dite, rejeu sans modèle, Tailwind seul) ; la carte de visite (marqueurs, valeurs longues) ; les logos du code et les agents du logo.
 - `npm run check:logo` : le moteur de logos (150 vérifications, sans réseau ni modèle).
 - `npm run check:graphic` : le moteur graphique lui-même (contrats, matière à plat, assainissement, Tailwind compilé, les neuf graphiques, flux complet avec un auteur simulé dans Chromium).
+- `npm run check:relayout` : contenu gardé, nouvelle mise en page, retouche de mots rejouée sans auteur, retouche de forme, recompilation Tailwind.
 - `check:brand`, `check:bpquality`, `check:mockups` rendent de vraies pages avec un auteur SIMULÉ (`api/scripts/fakeGraphicAuthor.ts`) : ils contrôlent ce qui suit l'écriture (traduction de marque, pagination, mockups), jamais l'esthétique.

@@ -35,7 +35,13 @@
         "idle": "Télécharger",
         "working": "Préparation…",
         "done": "Téléchargé",
-        "error": "Échec, réessayer"
+        "error": "Échec, réessayer",
+        "pdf": "PDF",
+        "pdfDesc": "Le document tel que l’aperçu, prêt à imprimer ou envoyer.",
+        "pptxFidelity": "PowerPoint fidèle",
+        "pptxFidelityDesc": "Chaque slide exactement comme l’aperçu (une image par slide).",
+        "pptxEditable": "PowerPoint modifiable",
+        "pptxEditableDesc": "Les textes deviennent modifiables dans PowerPoint ; les visuels restent en image."
       },
       "status": {
         "complete": "Génération complète",
@@ -81,6 +87,21 @@
         "later": "Plus tard",
         "messageOne": "Il manque 1 page à ce document.",
         "messageMany": "Il manque {{count}} pages à ce document."
+      },
+      "relayout": {
+        "title": "Nouvelle mise en page",
+        "desc": "L’IA recompose chaque page à partir du contenu existant : aucun texte n’est réécrit.",
+        "noteLabel": "Votre souhait pour la mise en page (facultatif)",
+        "notePlaceholder": "Ex. : plus aérée, plus sobre…",
+        "run": "Remettre en page",
+        "state": {
+          "working": "Nouvelle mise en page en cours…",
+          "done": "Nouvelle mise en page appliquée.",
+          "partial": "Mise en page appliquée ; certaines pages n’ont pas pu être refaites (modifiées à la main ou trop anciennes).",
+          "nothing": "Ce document n’a pas de contenu gardé : régénérez-le pour pouvoir le remettre en page.",
+          "credits": "Crédits insuffisants pour la nouvelle mise en page.",
+          "error": "La nouvelle mise en page a échoué. Vos crédits ont été restitués."
+        }
       }
     }
   }

@@ -40,7 +40,7 @@ import { BUSINESS_PLAN_PAGINATION } from './businessPlanPdf.options';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 import { CoverBriefService } from '../common/coverBrief.service';
-import { coverDateLabel, openGraphicDocument, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
+import { coverDateLabel, openGraphicDocument, pageComposition, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
 import type { BusinessPlanAudience } from './structure/audience.types';
 
 /** Mention de destinataire sur la couverture du plan. */
@@ -319,11 +319,13 @@ export class BusinessPlanService extends GenericService {
             const sectionHtml = result.data;
 
             // Convert result to section model
+            const composition = pageComposition(graphic, result.name);
             const section: SectionModel = {
               name: result.name,
               type: result.type,
               data: sectionHtml,
               summary: result.summary,
+              ...(composition ? { composition } : {}),
             };
 
             // Add or replace in sections array to avoid duplicates
@@ -389,12 +391,10 @@ export class BusinessPlanService extends GenericService {
         // Fallback to non-streaming processing
         const stepResults = await this.processSteps(configuredSteps, project, promptConfig);
         await graphic.remember();
-        sectionResults = stepResults.map((result) => ({
-          name: result.name,
-          type: result.type,
-          data: result.data,
-          summary: result.summary,
-        }));
+        sectionResults = stepResults.map((result) => {
+          const composition = pageComposition(graphic, result.name);
+          return { name: result.name, type: result.type, data: result.data, summary: result.summary, ...(composition ? { composition } : {}) };
+        });
 
         const updatedPlan = await deliverableDocumentStore.update(
           userId,
@@ -570,6 +570,10 @@ export class BusinessPlanService extends GenericService {
               uncitedClaims: rs.verdict.uncitedClaims,
             }
           : undefined,
+        ...(() => {
+          const composition = pageComposition(graphic, rs.name, rs.name === BP_RESOURCES_SECTION_NAME ? 'resources' : pageId(rs.name));
+          return composition ? { composition } : {};
+        })(),
         updatedAt: new Date(),
       };
 
@@ -1310,6 +1314,7 @@ export class BusinessPlanService extends GenericService {
                     ...section,
                     data: content,
                     summary: `Financial Plan for Project ${project.id} (Updated from Finance module)`,
+                    ...(pageComposition(graphic, 'Financial Plan') ? { composition: pageComposition(graphic, 'Financial Plan') } : { composition: undefined }),
                     updatedAt: new Date(),
                   }
                 : section

@@ -1,5 +1,16 @@
 # Migrations du moteur graphique
 
+## 2.2 — retouche et remise en page sans réécriture, export PowerPoint (15 octobre 2026)
+
+- Le document garde le contenu et le code de chaque page (`page(id)`) ; IDEM les enregistre dans
+  `SectionModel.composition` (business plan, pitch deck).
+- La retouche par instruction d'une page (`POST …/sections/:id/ai-edit`) passe par le moteur : mots par clé et page
+  rejouée, forme par l'auteur ; l'ancienne réécriture du HTML ne sert plus qu'aux pages sans contenu gardé — sans
+  la feuille compilée envoyée au modèle, et feuille recompilée au retour (les classes ajoutées s'affichaient mal).
+- Nouvelle mise en page : `POST /businessPlans/:projectId/relayout`, `POST /pitchDecks/:projectId/relayout`
+  (`{ creativity, note }`) — 25 et 12 crédits × le cran.
+- Export PowerPoint du deck : `GET /pitchDecks/pptx/:projectId?mode=fidelity|editable` (PptxGenJS 4.0.1).
+
 ## 2.1 — langage de marque, plan de document, rendu professionnel (14 octobre 2026)
 
 - Le directeur écrit le **langage visuel de la marque** une fois par charte (port `brandMemory` : Redis chez IDEM,

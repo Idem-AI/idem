@@ -35,6 +35,7 @@
   "dependencies": {
     "@tabler/icons": "^3.48.0",
     "lucide-static": "^1.52.0",
+    "pptxgenjs": "4.0.1",
     "puppeteer": "^24.17.0",
     "tailwindcss": "4.1.17",
     "zod": "^3.25.76"

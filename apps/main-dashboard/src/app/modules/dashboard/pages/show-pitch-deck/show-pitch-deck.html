@@ -119,6 +119,7 @@
         [outline]="completeness().items"
         sectionLabelPrefix="dashboard.showPitchDeck.slides."
         [busy]="isGenerating()"
+        [creativity]="creativity()"
         (regenerateSection)="regenerateSection($event)"
         (resumeGeneration)="startGeneration(false)"
         (regenerateAll)="startGeneration(true)"
