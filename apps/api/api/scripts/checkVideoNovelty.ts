@@ -10,7 +10,7 @@
  *     accent unique hors de l'ADN (25 % du film au plus), menus de 3 à 5 motifs.
  *  4. Le vrai pipeline (service, agents simulés) : 10 vidéos d'une même marque et d'un même brief à
  *     chaque cran, puis 8 dans une direction IMPOSÉE — aucune n'est « trop proche » (< 0,30) d'une
- *     vidéo précédente ; au cran High l'agent choisit dans les motifs, au cran Max la direction.
+ *     vidéo précédente ; aux crans High et Max, le film d'auteur cède la place aux menus s'il est trop proche.
  *  5. Contrôle créatif : une copie conforme d'une vidéo récente est détectée et écartée au-delà du seuil.
  *  6. Mémoire d'expérience : la qualité apprise bouge dans ses bornes, l'export fait monter un nœud.
  *  7. Cran Ultra : univers créatif compact, motifs et explorations lus dans le film, manifeste du kit
@@ -217,9 +217,12 @@ function withLayouts(sb: VideoStoryboard): VideoStoryboard {
     if (level === 'high') {
       const v = videos[0];
       const picked = v.storyboard.scenes.filter((sc) => sc.pattern && PATTERN_BY_ID.get(sc.pattern)?.role === 'scene').length;
-      check(`[high] le directeur artistique choisit dans les motifs (${picked} scène(s) à motif)`, (v.storyboard.agents || []).some((a) => a.agent === 'artDirector' && a.source === 'llm') && picked >= 2);
+      // High : le film d'auteur ; un film trop proche d'une vidéo récente cède la place aux menus, et le dit.
+      const authored = videos.filter((x) => x.storyboard.authored).length;
+      const fellBack = videos.filter((x) => /trop proche/.test(x.storyboard.authorFallback || '')).length;
+      check(`[high] film d'auteur (${authored}/10), repli dit quand il est trop proche d'une vidéo récente (${fellBack}) — ${picked} scène(s) à motif`, !!v.storyboard.authored && authored + fellBack === videos.length);
     }
-    if (level === 'max') check('[max] la direction créative est choisie par l’IA parmi trois', videos.every((v) => v.storyboard.creative?.strategy?.source === 'llm' && v.storyboard.creative.strategy.id === 'b'), videos.map((v) => v.storyboard.creative?.strategy?.id).join(''));
+    if (level === 'max') check('[max] film d’auteur, ou repli dit quand il est trop proche d’une vidéo récente', videos.every((v) => !!v.storyboard.authored || /trop proche/.test(v.storyboard.authorFallback || '')), videos.map((v) => (v.storyboard.authored ? 'A' : 'm')).join(''));
   }
   {
     const videos = await series('medium', 8, 'swiss');

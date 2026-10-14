@@ -11,7 +11,8 @@ import {
   VideoFormat,
 } from '../models/motionVideo.model';
 import { CommunicationService } from '../services/Communication/communication.service';
-import { MotionVideoService, VideoInputError } from '../../../ivision/core/src/video/motionVideo.service';
+import { CreateVideoInput, MotionVideoService, VideoInputError } from '../../../ivision/core/src/video/motionVideo.service';
+import { MOTION_LANGUAGES, PRODUCTION_MODES, VIDEO_GOALS, VideoGoal } from '../../../ivision/core/src/video/video.intent';
 import { normalizeScope, videoCost } from '../../../ivision/core/src/video/video.pricing';
 import { videoOptions } from '../../../ivision/core/src/video/video.options';
 import { MediaInputError } from '../../../ivision/core/src/video/video.media';
@@ -72,6 +73,45 @@ export const enhanceVideoRequestController = async (req: CustomRequest, res: Res
 /** Type demandé : un des types, ou « auto » (le modèle choisit). */
 const videoTypeOf = (raw: unknown): VideoType | 'auto' | undefined => (raw === 'auto' ? 'auto' : VIDEO_TYPES.includes(raw as VideoType) ? (raw as VideoType) : undefined);
 
+/** L'interprétation revue par l'utilisateur : seules les valeurs admises passent (le reste est ignoré). */
+function intentOf(raw: unknown): CreateVideoInput['intent'] {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const o = raw as Record<string, unknown>;
+  const list = <T extends string>(value: unknown, allowed: readonly T[]): T[] | undefined => {
+    const out = (Array.isArray(value) ? value : []).filter((v): v is T => allowed.includes(v as T)).slice(0, 3);
+    return out.length ? out : undefined;
+  };
+  const yna = (v: unknown): 'yes' | 'no' | undefined => (v === 'yes' || v === 'no' ? v : undefined);
+  const intent = {
+    objective: VIDEO_GOALS.includes(o.objective as VideoGoal) ? (o.objective as VideoGoal) : undefined,
+    productionModes: list(o.productionModes, PRODUCTION_MODES),
+    motionDirection: list(o.motionDirection, MOTION_LANGUAGES),
+    subtitles: yna(o.subtitles),
+    voiceover: yna(o.voiceover),
+    music: yna(o.music),
+  };
+  return Object.values(intent).some((v) => v !== undefined) ? intent : undefined;
+}
+
+const clarificationOf = (raw: unknown): CreateVideoInput['clarification'] => {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
+  return o && typeof o.id === 'string' && typeof o.option === 'string' ? { id: o.id.slice(0, 40), option: o.option.slice(0, 40) } : undefined;
+};
+
+/**
+ * POST /project/communication/:projectId/videos/interpret — l'interprétation d'une demande AVANT la création
+ * (gratuite) : objectif, matière, langage de motion, et la question à poser si une décision manque.
+ */
+export const interpretVideoController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const id = ids(req, res);
+  if (!id) return;
+  try {
+    res.json(await motionVideoService.interpretVideo(id.userId, id.projectId, { brief: req.body?.brief ?? {}, type: videoTypeOf(req.body?.type), language: getRequestLanguage(), creativity: normalizeCreativity(req.body?.creativity) }));
+  } catch (error) {
+    fail(res, error, 'interpretVideoController');
+  }
+};
+
 /** GET /project/communication/:projectId/videos/options — la même description qu'iVision (moteur partagé). */
 export const videoOptionsController = async (_req: CustomRequest, res: Response): Promise<void> => {
   res.json(videoOptions());
@@ -98,7 +138,7 @@ export const createVideoController = async (req: CustomRequest, res: Response): 
     const video = await motionVideoService.createVideo(
       id.userId,
       id.projectId,
-      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage(), creativity: normalizeCreativity(req.body?.creativity) },
+      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage(), creativity: normalizeCreativity(req.body?.creativity), intent: intentOf(req.body?.intent), clarification: clarificationOf(req.body?.clarification) },
       paid
     );
     res.status(201).json(video);
@@ -317,7 +357,7 @@ export const createVideoStreamController = async (req: CustomRequest, res: Respo
     const video = await motionVideoService.createVideo(
       id.userId,
       id.projectId,
-      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage(), creativity: normalizeCreativity(req.body?.creativity) },
+      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage(), creativity: normalizeCreativity(req.body?.creativity), intent: intentOf(req.body?.intent), clarification: clarificationOf(req.body?.clarification) },
       paid,
       (event) => send({ type: 'progress', ...event })
     );

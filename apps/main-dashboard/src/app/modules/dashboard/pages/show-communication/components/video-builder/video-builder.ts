@@ -14,7 +14,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { CreativityLevel, creativityCost, DEFAULT_CREATIVITY } from '@idem/shared-models';
 import { CreativityPickerComponent } from '../../../../../../shared/components/creativity-picker/creativity-picker';
-import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
+import { MOTION_LANGUAGES, MotionLanguage, MotionVideoService, PRODUCTION_MODES, ProductionMode, VIDEO_GOALS, VideoGoal, VideoInterpretation, VideoIntentOverride } from '../../../../services/ai-agents/motion-video.service';
 import { VideoComposing, VideoProgressState } from '../video-composing/video-composing';
 import {
   MotionVideo,
@@ -121,6 +121,22 @@ export class VideoBuilder {
   protected readonly allowGenerate = signal(true);
   protected readonly showMore = signal(false);
 
+  // ── L'interprétation (video.intent.ts) : lue par le serveur en passant à l'étape 2, corrigeable. ──
+  protected readonly goals = VIDEO_GOALS;
+  protected readonly productionModes = PRODUCTION_MODES.filter((m) => m !== 'hybrid');
+  protected readonly motionLanguages = MOTION_LANGUAGES;
+  protected readonly interpretation = signal<VideoInterpretation | null>(null);
+  protected readonly interpreting = signal(false);
+  protected readonly correcting = signal(false);
+  /** Les corrections de l'utilisateur (objectif, matière, mouvement) : elles l'emportent sur la lecture. */
+  protected readonly override = signal<VideoIntentOverride>({});
+  /** La réponse à la question de clarification, si le serveur en a posé une. */
+  protected readonly answer = signal<string | null>(null);
+  protected readonly shownGoal = computed<VideoGoal | undefined>(() => this.override().objective ?? this.interpretation()?.intent.objective);
+  protected readonly shownMode = computed<ProductionMode | undefined>(() => (this.override().productionModes ?? this.interpretation()?.intent.productionModes)?.find((m) => m !== 'hybrid'));
+  protected readonly shownMotion = computed<MotionLanguage | undefined>(() => (this.override().motionDirection ?? this.interpretation()?.intent.motionDirection)?.[0]);
+  protected readonly corrected = computed(() => Object.keys(this.override()).length > 0);
+
   protected readonly busy = signal(false);
   /** Étapes réelles reçues du serveur pendant la création. */
   protected readonly progress = signal<VideoProgressState>({});
@@ -216,7 +232,44 @@ export class VideoBuilder {
   }
 
   protected next(): void {
-    if (this.canNext()) this.step.set(2);
+    if (!this.canNext()) return;
+    this.step.set(2);
+    this.interpret();
+  }
+
+  /** La demande relue par le serveur (gratuit) : trois étiquettes, une phrase, et la question si une décision manque. */
+  private interpret(): void {
+    const text = this.request().trim();
+    this.interpreting.set(true);
+    this.override.set({});
+    this.answer.set(null);
+    this.correcting.set(false);
+    this.videos
+      .interpret(this.projectId(), { brief: { message: text.slice(0, 400), details: text.length > 400 ? text.slice(0, 800) : undefined, media: this.media() }, type: this.type(), creativity: this.creativity() })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          this.interpretation.set(result);
+          this.interpreting.set(false);
+        },
+        // Sans interprétation, la création reste possible : le serveur relira la demande.
+        error: () => {
+          this.interpretation.set(null);
+          this.interpreting.set(false);
+        },
+      });
+  }
+
+  protected setGoal(value: string): void {
+    this.override.update((o) => ({ ...o, objective: value as VideoGoal }));
+  }
+
+  protected setMode(value: string): void {
+    this.override.update((o) => ({ ...o, productionModes: [value as ProductionMode] }));
+  }
+
+  protected setMotion(value: string): void {
+    this.override.update((o) => ({ ...o, motionDirection: [value as MotionLanguage] }));
   }
 
   protected back(): void {
@@ -260,6 +313,8 @@ export class VideoBuilder {
         scope: this.scope(),
         type: this.type(),
         creativity: this.creativity(),
+        ...(this.corrected() ? { intent: this.override() } : {}),
+        ...(this.answer() && this.interpretation()?.clarification ? { clarification: { id: this.interpretation()!.clarification!.id, option: this.answer()! } } : {}),
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

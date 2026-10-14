@@ -14,7 +14,11 @@ import {
   DocumentOptions,
   DocumentType,
   FormatId,
+  GenerationRecord,
+  GenerationTrace,
   GraphicDocument,
+  recordFromTraces,
+  recordSummary,
   SectionContent,
   sectionHtml,
   SectionOutput,
@@ -22,6 +26,7 @@ import {
 } from '@idem/graphic-engine';
 import logger from '../../config/logger';
 import { normalizeCreativity } from '../../models/creativity.model';
+import { roleConfig } from '../../config/creative-roles';
 import type { ProjectModel } from '../../models/project.model';
 import { resolveLogoDeclensions } from '../../utils/brand-context.util';
 import { getRequestLanguage } from '../../utils/request-language';
@@ -148,4 +153,35 @@ export function coverDateLabel(date: Date = new Date()): string {
   const locale = getRequestLanguage() === 'fr' ? 'fr-FR' : 'en-US';
   const label = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(date);
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/**
+ * Le JOURNAL d'une génération de document : chaque page y verse sa trace et ses constats ; à la fin, un
+ * enregistrement unique (décisions, modèles résolus, médias, réparations, replis, constats bloquants et
+ * conseils) est rendu pour être gardé avec le livrable, et résumé dans les journaux (`generation.record`).
+ */
+export class GenerationJournal {
+  private readonly traces: GenerationTrace[] = [];
+  private readonly issues: Array<{ scope: string; code: string; severity: 'blocking' | 'advisory'; message?: string }> = [];
+  private readonly notes: string[] = [];
+
+  constructor(private readonly deliverable: string, private readonly level: GraphicDocument['policy']['level']) {}
+
+  /** Une page composée : sa trace et ses constats. */
+  page(out: SectionOutput): SectionOutput {
+    this.traces.push(out.trace);
+    for (const issue of out.result.issues) this.issues.push({ scope: out.result.sectionId ?? out.trace.sectionId ?? '?', code: issue.code, severity: issue.severity, message: issue.message });
+    return out;
+  }
+
+  /** Ce qui n'a pas suivi le plan, dit (une slide réécrite plus légère, un repli). */
+  note(text: string): void {
+    this.notes.push(text.slice(0, 240));
+  }
+
+  finish(): GenerationRecord {
+    const record = recordFromTraces({ deliverable: this.deliverable, level: this.level, traces: this.traces, issues: this.issues, fallbacks: this.notes, modelOf: (role) => roleConfig(role, 'agents').modelName });
+    logger.info('generation.record', recordSummary(record));
+    return record;
+  }
 }

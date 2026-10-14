@@ -209,6 +209,8 @@ export interface VideoBrief {
   request?: string;
   /** Le cahier des charges lu dans la demande (video.request.ts) : langue, scénario, consignes, supports. */
   spec?: RequestSpec;
+  /** L'intention lue (video.intent.ts) : objectif, mode de production, langage de motion — et d'où vient chaque décision. */
+  intent?: import('./video.intent').VideoIntentSpec;
 }
 
 /** Une scène posée sur la ligne de temps. */
@@ -317,6 +319,10 @@ export interface VideoStoryboard {
    * composition éprouvée de leur scène.
    */
   authored?: { title: string; concept: string; bible: string; shots: number; coded: number; fallback: string[]; reviewed: number; rounds: Record<string, number> };
+  /** Le plan de médias résolu : la provenance de chaque média (registre, import, génération, banque). */
+  assetPlan?: string[];
+  /** High+ : le film d'auteur n'a pas abouti et le pipeline des menus a pris le relais — pourquoi (repli DIT). */
+  authorFallback?: string;
   /** Ce que chaque agent a décidé (cf. video.agents.ts) : source, tokens, décisions retenues. */
   agents?: { agent: string; source: 'llm' | 'graph'; tokens: { input: number; output: number }; ms?: number; kept?: number }[];
   /** Le moteur créatif (cf. video.planner.ts) : exploration, ADN, accent, empreinte, nouveauté. */
@@ -510,6 +516,8 @@ export interface MotionVideo {
   copyTokens?: { input: number; output: number; source: 'llm' | 'heuristic' };
   /** Cran de la jauge de créativité choisi à la création (prix et décisions confiées à l'IA). */
   creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
+  /** L'enregistrement de la génération (décisions, médias, réparations, replis, constats) — format commun aux documents. */
+  record?: import('@idem/graphic-engine').GenerationRecord;
   createdAt: Date | string;
   updatedAt: Date | string;
 }

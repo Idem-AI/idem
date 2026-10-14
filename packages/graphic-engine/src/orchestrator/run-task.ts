@@ -39,7 +39,7 @@ export async function runTask<T>(run: TaskRun<T>): Promise<{ value: T; source: '
   let raw = '';
   try {
     raw = await Promise.race([
-      run.call({ role: run.policy.role, profile: run.policy.profile, system: prompt.system, user: prompt.user, validate: (r) => run.parse(r) !== undefined }),
+      run.call({ role: run.policy.role, profile: run.policy.profile, system: prompt.system, user: prompt.user, validate: (r) => run.parse(r) !== undefined, level: run.level }),
       new Promise<string>((_, reject) => setTimeout(() => reject(new Error('timeout')), run.policy.timeoutMs)),
     ]);
   } catch (error) {

@@ -24,7 +24,7 @@ contenu (ContentModel : sections de blocs typés, intention de page facultative)
   → médias (si la page a une intention) : plan, sources dans l'ordre, pose, repli tracé
   → plan du document (chaque page reçoit d'avance une composition distincte de ses voisines)
   → candidats (motifs × paramètres) → classement (adéquation, style, diversité, mémoire)
-  → choix : le code (Low, Medium) ou un agent dans un menu (High, Max), ou un arbre d'auteur (Ultra)
+  → choix : le code (Low, Medium), ou l'arbre d'un auteur (High+), le repli choisi par un agent dans un menu
   → DesignSpec (versionné) → compilateur HTML/CSS déterministe
   → ajustement et mesure dans Chromium → réparations par le code, puis réparation ciblée (High+)
   → critique visuelle (High+, si la vision est branchée)
@@ -174,6 +174,20 @@ Une diapositive part de l'idée à faire comprendre, pas du gabarit à remplir. 
 
 Les contenus SANS intention (anciens decks, business plan, charte) se composent exactement comme avant.
 
+**Le registre des ressources du projet** (`AssetRegistry`, port `assetRegistry` de l'hôte ; implémentation
+partagée `apps/ivision/core/src/media/asset-registry.ts`) est commun aux documents et aux vidéos : une image
+générée pour le deck, un clip d'une vidéo, la capture du site lue au scan ou une photo importée sont repris
+(`matchAsset` : rôle compatible, source admise, sens partagé avec le sujet voulu) AVANT toute génération —
+à tous les crans, puisqu'ils sont déjà payés — et ce qui est généré ou trouvé y est inscrit.
+
+## L'enregistrement d'une génération
+
+`recordFromTraces` (`observability/record.ts`) réunit, au même format que la vidéo (`video.record.ts`) :
+les décisions (code ou modèle, rôle, modèle résolu par l'hôte, jetons, durée, issue), la provenance des
+médias, les réparations, les replis (arbre d'auteur remplacé, stratégie déclassée, slide réécrite) et les
+constats séparés — `blocking` (la page est fausse) et `advisory` (perfectible). L'API IDEM le garde avec le
+deck (`design.record`) et en écrit un résumé `generation.record` dans ses journaux.
+
 ## La jauge de créativité
 
 `composition-engine/profiles.ts` traduit les cinq crans vendus par IDEM en politique :
@@ -182,9 +196,15 @@ Les contenus SANS intention (anciens decks, business plan, charte) se composent 
 |---|---|---|---|---|
 | low | guidé | le code, compositions éprouvées, aucun appel | — | bloquants |
 | medium | équilibré | le code, tirage parmi les trois meilleurs motifs distincts | — | bloquants |
-| high | créatif | le directeur artistique choisit ; critique visuelle ; réparation ciblée | 6 | conseils |
-| max | créatif + | + il règle les paramètres bornés, dans le même appel | 6 | conseils |
-| ultra | libre | + le compositeur écrit un ARBRE inédit avec les primitives autorisées | 8 | conseils |
+| high | créatif | l'AUTEUR écrit un arbre inédit (compositions éprouvées en références) ; le repli est choisi dans un menu ; critique visuelle ; réparation ciblée | 6 | conseils |
+| max | créatif + | + repli réglé ; la critique renvoie ses notes à l'auteur (1 révision) | 6 | conseils |
+| ultra | libre | + exploration la plus large, 2 révisions | 8 | conseils |
+
+Le vocabulaire de l'auteur : piles, rangées, grilles, boîtes, **calques superposés** (racine admise sur une
+page fixe), textes par référence (y compris point par point : `b1.items.0.label`, à condition de poser
+tous les libellés), blocs, **images des figures du contenu** (jamais une adresse écrite par le modèle),
+**icônes des points**, filets, formes du kit. Un arbre jugé faible est révisé par son auteur ; le repli sur
+une composition éprouvée est tracé (`author_fallback`).
 
 La validation reste **stricte** à tous les crans : contenu perdu, chiffre inventé, texte hors page,
 référence inexistante, CSS libre — jamais. Chaque tâche d'agent a sa politique (`orchestrator/policies.ts` :
@@ -236,7 +256,7 @@ reçoit par `onTrace` ; IDEM l'écrit dans son journal JSON (`graphic.trace`), q
 
 | Script | Rôle |
 |---|---|
-| `npm run check` | Les contrôles du moteur : contrats, normalisation, jetons et contrastes, palettes des graphiques, compilateur (déterminisme, sécurité, fidélité, contrat du PDF), motifs, composition et diversité, profils, agents simulés, registre, puis un corpus rendu et mesuré dans Chromium (decks, business plan, charte, carte, visuel). |
+| `npm run check` | Les contrôles du moteur (104) : contrats, normalisation, jetons et contrastes, palettes des graphiques, compilateur (déterminisme, sécurité, fidélité, contrat du PDF), motifs, composition et diversité, profils, agents simulés, registre, puis un corpus rendu et mesuré dans Chromium (decks, business plan, charte, carte, visuel). |
 | `npm run check:fast` | Les mêmes, sans Chromium. |
 | `npm run bench` | Le banc d'essai A/C (ancien moteur contre celui-ci, par cran) → `docs/BENCHMARK.md`. |
 | `npm run preview` | Fait passer des livrables complets par tout le moteur et assemble des planches contact dans `scratch/graphic-engine-preview/`, pour REGARDER les rendus (`-- --level high`, `-- --only deck,bp`). |

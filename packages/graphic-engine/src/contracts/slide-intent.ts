@@ -54,7 +54,7 @@ export type SlideIntent = z.infer<typeof SlideIntent>;
 
 // ── Les médias ──────────────────────────────────────────────────────────────────────────────
 
-export const AssetRole = z.enum(['photo', 'illustration', 'product-capture', 'icon', 'logo', 'chart', 'texture']);
+export const AssetRole = z.enum(['photo', 'illustration', 'product-capture', 'clip', 'icon', 'logo', 'chart', 'texture']);
 export type AssetRole = z.infer<typeof AssetRole>;
 
 /** D'où vient un média — dans l'ordre où on les essaie. */
@@ -102,3 +102,26 @@ export const ResolvedAsset = z.strictObject({
   }),
 });
 export type ResolvedAsset = z.infer<typeof ResolvedAsset>;
+
+/**
+ * Une ressource du REGISTRE du projet : une image ou un clip déjà obtenu (fourni, capturé, généré, trouvé en
+ * banque) par n'importe quel livrable — deck, visuel, vidéo. Le registre est commun aux documents et aux
+ * vidéos : un média payé une fois se réutilise au lieu d'être régénéré.
+ */
+export const AssetRecord = z.strictObject({
+  id: z.string().min(1).max(120),
+  url: Url,
+  kind: z.enum(['image', 'video']),
+  role: AssetRole,
+  source: AssetSource,
+  /** Ce qu'il montre, en une ligne (anglais ou langue du projet) : c'est sur elle que se fait l'appariement. */
+  subject: text(240),
+  tags: z.array(text(40)).max(12).optional(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+  /** Le livrable qui l'a obtenu. */
+  origin: z.enum(['deck', 'document', 'visual', 'video', 'upload', 'capture', 'other']),
+  provenance: ResolvedAsset.shape.provenance,
+  createdAt: z.string().max(40).optional(),
+});
+export type AssetRecord = z.infer<typeof AssetRecord>;

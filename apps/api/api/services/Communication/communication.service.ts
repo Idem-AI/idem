@@ -50,6 +50,7 @@ import {
 import { GenericService } from '../common/generic.service';
 import { AIChatMessage, PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG, FeatureAIConfig } from '../../config/ai.config';
+import { hasRoleRouting, roleConfig } from '../../config/creative-roles';
 import { AGENT_COMMUNICATION_STRATEGY_PROMPT } from './prompts/agent-communication-strategy.prompt';
 import { AGENT_CONTEXT_EXTRACTION_PROMPT } from './prompts/agent-context-extraction.prompt';
 import { AGENT_EDITORIAL_CALENDAR_PROMPT } from './prompts/agent-editorial-calendar.prompt';
@@ -315,9 +316,12 @@ export class CommunicationService extends GenericService {
    * panne passagère (quota, réseau) ou une réponse vide est retentée une fois : un agent qui
    * tombe en repli ramène le film au choix du code, et les crans finissent par se ressembler.
    */
-  async runVideoTieredPrompt(userId: string, system: string, user: string, tier: 'mechanical' | 'writing' | 'reasoning', kind: 'copy' | 'agents' = 'copy'): Promise<string> {
-    const base =
-      tier === 'reasoning' ? AI_CONFIG.communication.videoReasoning : tier === 'writing' ? AI_CONFIG.communication.videoWriting : kind === 'agents' ? AI_CONFIG.communication.videoAgents : AI_CONFIG.communication.video;
+  async runVideoTieredPrompt(userId: string, system: string, user: string, tier: 'mechanical' | 'writing' | 'reasoning', kind: 'copy' | 'agents' = 'copy', role?: string): Promise<string> {
+    // Un rôle logique configuré (modèle ou point d'accès dédiés, `config/creative-roles.ts`) l'emporte sur l'étage.
+    const routed = role && hasRoleRouting(role) ? roleConfig(role, 'coder') : null;
+    const base = routed
+      ? routed
+      : tier === 'reasoning' ? AI_CONFIG.communication.videoReasoning : tier === 'writing' ? AI_CONFIG.communication.videoWriting : kind === 'agents' ? AI_CONFIG.communication.videoAgents : AI_CONFIG.communication.video;
     const config = kind === 'agents' && tier !== 'mechanical' ? { ...base, promptType: 'communication_video_agents', llmOptions: { ...base.llmOptions, maxOutputTokens: Math.min(base.llmOptions?.maxOutputTokens ?? 1200, 1200) } } : base;
     const messages = [
       { role: 'system' as const, content: system },

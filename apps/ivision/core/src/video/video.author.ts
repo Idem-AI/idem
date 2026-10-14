@@ -1,8 +1,10 @@
 /**
- * LE FILM D'AUTEUR — le cran Ultra de la vidéo : l'IA conçoit et crée tout le film.
+ * LE FILM D'AUTEUR — les crans High, Max et Ultra de la vidéo : l'IA conçoit et crée tout le film.
  *
- * En dessous d'Ultra, l'IA choisit dans des menus (concepts, mises en page, transitions) que le
- * graphe a filtrés. Ici, plus aucun menu :
+ * Aux crans Low et Medium, le code compose avec des menus (concepts, mises en page, transitions) que le
+ * graphe a filtrés. Ici, plus aucun menu ; le cran règle les MOYENS, pas la liberté (`AUTHOR_MEANS`) :
+ * High = directeur à l'étage de rédaction, un tour de contrôle par plan, pas de critique visuelle ;
+ * Max = directeur à l'étage de raisonnement, deux tours, critique visuelle ; Ultra = trois tours.
  *
  *   1. le DIRECTEUR (étage raisonnement) conçoit le film plan par plan — durée, textes, OUTIL du
  *      plan (plan filmé par le générateur vidéo, photo, interface du produit, motion design,
@@ -776,7 +778,8 @@ export async function authorShots(input: AuthorShotsInput): Promise<AuthorShotsR
       const res: { value: string | null } = await input.orchestrator.run<string | null>({
         role: 'shotCoder',
         key: `shotCoder:${i + 1}${round ? `:r${round}` : ''}`,
-        minLevel: 'ultra',
+        // Le film d'auteur existe dès High : ses codeurs travaillent à ce cran (le nombre de tours le borne).
+        minLevel: 'high',
         profile: 'coder',
         prompt: () => ({ system: shotPrompt.system, user }),
         parse: (raw) => extractCode(raw) ?? undefined,
@@ -840,3 +843,35 @@ export async function authorShots(input: AuthorShotsInput): Promise<AuthorShotsR
   await Promise.all(Array.from({ length: Math.min(3, storyboard.scenes.length) }, worker));
   return result;
 }
+
+/**
+ * Le RÔLE VISUEL de chaque plan (le contrat `AssetRequirement` du moteur graphique) : ce que le plan doit
+ * montrer et d'où ce média peut venir. Une interface ne vient que du produit (import, projet, capture) —
+ * jamais générée ; le motion design et la signature n'appellent aucun média.
+ */
+export function filmAssetPlan(film: Pick<AuthoredFilm, 'shots'>): import('@idem/graphic-engine').AssetRequirement[] {
+  return film.shots.flatMap((shot, i) => {
+    const medium = shot.medium || 'motion';
+    if (medium === 'motion' || medium === 'logo') return [];
+    const role = medium === 'footage' ? 'clip' : medium === 'screen' ? 'product-capture' : 'photo';
+    const subject = (shot.footage || shot.query || shot.visual || shot.slots.title || 'brand shot').slice(0, 240);
+    return [{
+      assetId: `shot-${i + 1}`,
+      role,
+      purpose: (shot.slots.title || shot.visual || subject).slice(0, 240),
+      subject,
+      aspectRatio: 16 / 9,
+      safeArea: 'none',
+      sources: role === 'product-capture' ? ['user', 'project', 'capture'] : ['user', 'project', 'generated', 'stock'],
+      fallback: role === 'product-capture' ? 'downgrade' : 'skip',
+      target: {},
+    } as import('@idem/graphic-engine').AssetRequirement];
+  });
+}
+
+/** Les moyens du film d'auteur par cran : étage du directeur, tours par plan, critique visuelle. */
+export const AUTHOR_MEANS: Record<'high' | 'max' | 'ultra', { director: 'writing' | 'reasoning'; rounds: number; critic: boolean }> = {
+  high: { director: 'writing', rounds: 1, critic: false },
+  max: { director: 'reasoning', rounds: 2, critic: true },
+  ultra: { director: 'reasoning', rounds: 3, critic: true },
+};

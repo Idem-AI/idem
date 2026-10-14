@@ -70,7 +70,9 @@ export interface ChatAttachment {
 export type ChatAsk =
   | { kind: 'brand' }
   | { kind: 'brand-choice'; brandId: string }
-  | { kind: 'reference'; mode: ChatMode };
+  | { kind: 'reference'; mode: ChatMode }
+  /** Une décision qui change le pipeline manque (video.intent.ts) : la question, et ses choix adaptés au média. */
+  | { kind: 'video-intent'; clarificationId: string; question: string; options: { id: string; label: string; description: string }[] };
 
 export interface ChatMessage {
   id: string;

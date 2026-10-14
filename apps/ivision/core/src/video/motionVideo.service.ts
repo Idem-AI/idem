@@ -53,7 +53,8 @@ import { applyRules } from './video.rules';
 import { motionFromArtDirection } from './video.artdirection';
 import { enhanceRequest } from './video.enhance';
 import { MediaStorage, Orientation, processUpload } from './video.media';
-import { planMediaNeeds, runMediaDirector, SceneMedia, sceneMediaOf, sourceShots } from './video.sourcing';
+import { planMediaNeeds, runMediaDirector, SceneMedia, sceneMediaOf, SourcingOptions, sourceShots } from './video.sourcing';
+import { applyClarification, ClassifyInput, clarifyVideoIntent, classifyVideoIntent, describeVideoIntent, IntentAsset, legacyOf, refineVideoIntent, VideoClarification, VideoIntentSpec } from './video.intent';
 import { fitScenesToVoice, Narration, personaById, personaMenu, runNarrator, sceneTexts, speakable, speechAvailable, synthesizeVoice, voiceTimeline } from './video.voice';
 import { ensureSfxLibrary, pickSounds, previewGain, publicSoundName, SFX_DENSITY, SFX_GAIN_DB, sfxLibrary, soundFile, SfxLibrary } from './video.sfx';
 import { coreHost, requirePort } from '../runtime/host';
@@ -74,7 +75,9 @@ import { fetchTrack, pickTrack, resolveMood, searchMusic, MUSIC_PROVIDERS } from
 import { cleanupRender, renderVideo, withRenderPage } from './video.renderer';
 import { codeScenes } from './video.coder';
 import { canRecode, recodeScene, unreadSlots } from './video.recode';
-import { AuthoredFilm, authorShots, buildDirectorPrompt, DirectorInput, parseFilm } from './video.author';
+import { recordFromVideo } from './video.record';
+import { recordSummary } from '@idem/graphic-engine';
+import { AUTHOR_MEANS, AuthoredFilm, authorShots, buildDirectorPrompt, DirectorInput, filmAssetPlan, parseFilm } from './video.author';
 import { AgentCall, CreativeOrchestrator } from '../creativity/orchestrator';
 import { exportCost, normalizeScope, videoCost } from './video.pricing';
 import { SCENES } from './video.scenes';
@@ -131,6 +134,12 @@ export interface CreateVideoInput {
    * les textes et les médias de l'utilisateur.
    */
   reference?: ReferenceBlueprint & { id?: string };
+  /**
+   * L'interprétation CORRIGÉE par l'utilisateur (objectif, mode, langage de motion…), ou la réponse à la
+   * question de clarification : elle l'emporte sur la lecture du code (décision explicite).
+   */
+  intent?: Partial<Pick<VideoIntentSpec, 'objective' | 'productionModes' | 'motionDirection' | 'subtitles' | 'voiceover' | 'music'>>;
+  clarification?: { id: string; option: string };
 }
 
 /**
@@ -165,6 +174,10 @@ export interface MediaReport {
   blocked?: 'payment' | 'unavailable';
   /** Captures et photos de la marque montrées. */
   fromBrand?: number;
+  /** Médias repris du registre du projet. */
+  fromRegistry?: number;
+  /** Le plan de médias résolu (provenance de chaque média : `scène ← source (fournisseur)`). */
+  assets?: string[];
 }
 
 /** Facturation à restituer si le rendu échoue après la réponse HTTP. */
@@ -369,9 +382,11 @@ export class MotionVideoService {
     private readonly communication: VideoStore,
     /** Remplaçable pour les tests (réponses écrites à la main, aucun appel réseau). */
     // L'étage du modèle suit la jauge de créativité (`tierFor`) : plus l'IA décide, plus le modèle est fort.
-    private readonly writerFor: (userId: string, tier?: VideoModelTier) => CopyWriter | undefined = (userId, tier = 'mechanical') => (system, user) =>
+    // `role` : le rôle logique de l'appel (`video.director`…) — l'hôte peut l'aiguiller vers un modèle ou un
+    // point d'accès configuré pour ce rôle (config/creative-roles.ts chez IDEM) ; sinon l'étage décide.
+    private readonly writerFor: (userId: string, tier?: VideoModelTier, role?: string) => CopyWriter | undefined = (userId, tier = 'mechanical', role) => (system, user) =>
       typeof communication.runVideoTieredPrompt === 'function'
-        ? communication.runVideoTieredPrompt(userId, system, user, tier, 'copy')
+        ? communication.runVideoTieredPrompt(userId, system, user, tier, 'copy', role)
         : typeof communication.runVideoCopyPrompt === 'function'
           ? communication.runVideoCopyPrompt(userId, system, user)
           : Promise.reject(new Error('no_copy_model')),
@@ -392,6 +407,54 @@ export class MotionVideoService {
   ) {}
 
   // ── Contexte de marque (sans appel de modèle) ────────────────────────────
+
+  /** Les médias d'une création, vus par le classificateur d'intention. */
+  private intentAssets(media: VideoMediaAsset[], brandMedia: { url: string; kind?: 'screen' | 'photo'; note?: string }[]): IntentAsset[] {
+    return [
+      ...media.map((m) => ({ id: m.id, kind: m.kind, ...(m.width ? { width: m.width } : {}), ...(m.height ? { height: m.height } : {}), ...(m.durationSec ? { durationSec: m.durationSec } : {}), ...(m.name ? { note: m.name } : {}) })),
+      ...brandMedia.filter((m) => m.kind === 'screen').map((m, i) => ({ id: `brand-screen-${i + 1}`, kind: 'screen' as const, ...(m.note ? { note: m.note } : {}) })),
+    ];
+  }
+
+  /** L'intention d'une création : code, puis agent si peu sûre (dès Medium), puis corrections de l'utilisateur. */
+  private async readIntent(userId: string, input: CreateVideoInput, brief: VideoBrief, spec: RequestSpec, brandMedia: { url: string; kind?: 'screen' | 'photo'; note?: string }[], creativity: CreativityLevel): Promise<VideoIntentSpec> {
+    const classify: ClassifyInput = { request: brief.request || `${brief.message}\n${brief.details || ''}`, spec, assets: this.intentAssets(brief.media || [], brandMedia), requestedType: VIDEO_TYPES.includes(input.type as VideoType) ? (input.type as VideoType) : 'auto', brandHasScreens: brandMedia.some((m) => m.kind === 'screen'), language: spec.language };
+    let intent = classifyVideoIntent(classify);
+    if (atLeast(creativity, 'medium')) intent = await refineVideoIntent(intent, classify.request, this.writerFor(userId, 'mechanical', 'video.intent-classifier'));
+    if (input.clarification) {
+      const question = clarifyVideoIntent(intent, classify);
+      if (question && question.id === input.clarification.id) intent = applyClarification(intent, question, input.clarification.option);
+    }
+    if (input.intent) {
+      const patch = Object.fromEntries(Object.entries(input.intent).filter(([, v]) => v !== undefined));
+      intent = { ...intent, ...patch, source: 'user', decided: { objective: input.intent.objective ? 'explicit' : intent.decided.objective, productionModes: input.intent.productionModes ? 'explicit' : intent.decided.productionModes, motionDirection: input.intent.motionDirection ? 'explicit' : intent.decided.motionDirection } };
+      // L'interprétation revue : sa traduction suit (type, objectif, direction).
+      intent.legacy = legacyOf(intent, classify);
+    }
+    return intent;
+  }
+
+  /**
+   * L'INTERPRÉTATION d'une demande, avant toute création (gratuite, sans crédits) : l'intention lue, ses
+   * étiquettes et sa phrase pour l'interface, et la question à poser si — et seulement si — une décision qui
+   * change le pipeline manque.
+   */
+  async interpretVideo(userId: string, projectId: string, input: Pick<CreateVideoInput, 'brief' | 'type' | 'language' | 'creativity'>): Promise<{ intent: VideoIntentSpec; interpretation: { tags: string[]; summary: string }; clarification: VideoClarification | null }> {
+    const brief = normalizeBrief(input.brief, input.language);
+    const { brandMedia } = await this.brandContext(userId, projectId);
+    const read = await readRequest(brief.request || brief.message, { fallbackLanguages: [input.language], skipReader: true });
+    const intent = await this.readIntent(userId, { ...input, scope: undefined } as CreateVideoInput, brief, { ...read.spec, language: brief.language || read.spec.language }, brandMedia, normalizeCreativity(input.creativity));
+    const classify: ClassifyInput = { request: brief.request || brief.message, spec: read.spec, assets: this.intentAssets(brief.media || [], brandMedia), brandHasScreens: brandMedia.some((m) => m.kind === 'screen'), language: intent.language };
+    return { intent, interpretation: describeVideoIntent(intent), clarification: clarifyVideoIntent(intent, classify) };
+  }
+
+  /** Le registre des ressources du projet pour le sourcing (vide sans hôte qui le porte). */
+  private async registryFor(userId: string, projectId: string): Promise<{ registry?: SourcingOptions['registry'] }> {
+    const registry = coreHost().assetRegistry;
+    if (!registry) return {};
+    const records = await registry.list({ userId, projectId }).catch(() => []);
+    return { registry: { records, remember: (fresh) => registry.remember({ userId, projectId }, fresh) } };
+  }
 
   private async brandContext(userId: string, projectId: string) {
     const brand = await this.communication.loadBrand(userId, projectId);
@@ -583,6 +646,7 @@ export class MotionVideoService {
       clipQuality: opts.clipQuality,
       visualPhotos,
       ...(brief.spec?.cast ? { cast: brief.spec.cast } : {}),
+      ...(await this.registryFor(opts.userId, opts.projectId)),
       onProgress: (done, total, last) => opts.onProgress?.({ done, total, ...(last ? { last } : {}) }),
     });
     Object.assign(report, sourced.report);
@@ -668,6 +732,7 @@ export class MotionVideoService {
         clipQuality: o.clipQuality,
         visualPhotos: [],
         cast: o.cast,
+        ...(await this.registryFor(o.userId, o.projectId)),
         onProgress: (done, total, last) => o.onProgress?.({ done, total, ...(last ? { last } : {}) }),
       });
       Object.assign(report, { ...sourced.report, fromBrand: report.fromBrand, planned: report.planned });
@@ -939,7 +1004,7 @@ export class MotionVideoService {
     if (input.contentId) input = await this.inputFromContent(userId, projectId, input);
     const scope = normalizeScope(input.scope);
     const brief = normalizeBrief(input.brief, input.language);
-    const objectiveGiven = VIDEO_OBJECTIVES.includes(input.brief?.objective as VideoObjective);
+    let objectiveGiven = VIDEO_OBJECTIVES.includes(input.brief?.objective as VideoObjective);
     const { theme, ctx, branding, visuals, otherVideos, anonymous, brandMedia } = await this.brandContext(userId, projectId);
     // La DA de la charte, traduite en paramètres de motion (directions, casse, rythme, couleur, décor).
     const art = motionFromArtDirection(branding?.artDirection);
@@ -970,6 +1035,18 @@ export class MotionVideoService {
     if (spec.voiceOver === 'none') brief.voice = false;
     else if (spec.voiceOver === 'wanted') brief.voice = true;
     const readerRun: AgentRun | undefined = read.source === 'reader' || read.tokens.input ? { agent: 'reader', source: read.source === 'reader' ? 'llm' : 'graph', tokens: read.tokens, ms: read.ms, kept: read.source === 'reader' ? 1 : 0 } : undefined;
+    // L'INTENTION (video.intent.ts) : objectif, mode de production, langage de motion — lus par le code dans
+    // la demande, le scénario et les médias, affinés par un agent si la lecture est peu sûre (High+), corrigés
+    // par l'utilisateur s'il a revu l'interprétation. Elle choisit ce que l'utilisateur n'a pas imposé.
+    const intent = await this.readIntent(userId, input, brief, spec, brandMedia, creativity);
+    brief.intent = intent;
+    if (!objectiveGiven && intent.decided.objective !== 'auto') {
+      brief.objective = intent.legacy.objective;
+      objectiveGiven = true;
+    }
+    if (!isMotionDirection(brief.direction) && intent.legacy.direction) brief.direction = intent.legacy.direction;
+    if (intent.voiceover === 'yes' && input.brief?.voice === undefined) brief.voice = true;
+    logger.info('video.intent', { projectId, objective: intent.objective, modes: intent.productionModes, motion: intent.motionDirection, decided: intent.decided, confidence: intent.confidence, pipeline: intent.pipeline, type: intent.legacy.type, source: intent.source });
     // Le scénario de l'utilisateur est suivi tel quel (sauf une vidéo modèle, qui impose ses plans).
     const script = spec.mode === 'script' && spec.scenes.length >= 2 && !input.reference ? spec : undefined;
     const facts = extractFacts(brief.request || `${brief.message}\n${brief.details || ''}`);
@@ -987,7 +1064,11 @@ export class MotionVideoService {
     };
 
     // Type demandé (calendrier, choix explicite), ou « auto » / « mix » : le modèle compose.
-    const requested = VIDEO_TYPES.includes(input.type as VideoType) ? (input.type as VideoType) : null;
+    // Un type imposé l'emporte ; sinon celui que l'intention traduit — seulement si elle a réellement décidé
+    // la matière ou le mouvement (médias, consigne, scénario). Une lecture qui n'a rien appris n'impose rien :
+    // le planificateur créatif choisit, comme avant.
+    const intentDecided = intent.decided.productionModes !== 'auto' || intent.decided.motionDirection === 'explicit';
+    const requested = VIDEO_TYPES.includes(input.type as VideoType) ? (input.type as VideoType) : intentDecided && intent.legacy.type !== 'auto' && intent.confidence >= 0.4 ? intent.legacy.type : null;
     emit('plan', 'running', { type: requested || 'auto' });
 
     // La direction de motion d'abord : celle de la DA de la charte, différente des
@@ -1026,14 +1107,19 @@ export class MotionVideoService {
       seed,
     });
 
-    // Cran Ultra : le FILM D'AUTEUR — l'IA invente et crée tout (video.author.ts). Si le directeur
-    // échoue deux fois, la création continue par le pipeline des menus (repli complet, au même cran).
-    if (creativity === 'ultra') {
-      const authored = await this.createAuthoredVideo({ userId, projectId, input, scope, brief, theme, ctx, branding, visuals, otherVideos, art, videoId, seed, direction, orientation, facts, paidCredits, requested, emit, creative: brief0, startedAt, anonymous, spec, brandMedia }).catch((error: any) => {
-        logger.warn('video.authored_failed', { projectId, error: error?.message });
+    // Crans High, Max, Ultra : le FILM D'AUTEUR — l'IA invente et crée tout (video.author.ts), avec les
+    // moyens du cran (`AUTHOR_MEANS`). Si le directeur échoue deux fois, la création continue par le pipeline
+    // des menus, au même cran — et ce repli est DIT : gardé avec la vidéo, journalisé, montré en progression.
+    let authorFallback: string | undefined;
+    if (creativity === 'high' || creativity === 'max' || creativity === 'ultra') {
+      const authored = await this.createAuthoredVideo({ userId, projectId, input, scope, brief, theme, ctx, branding, visuals, otherVideos, art, videoId, seed, direction, orientation, facts, paidCredits, requested, emit, creative: brief0, startedAt, anonymous, spec, brandMedia, level: creativity }).catch((error: any) => {
+        logger.warn('video.authored_failed', { projectId, creativity, error: error?.message });
+        authorFallback = `film d'auteur impossible (${String(error?.message || 'erreur').slice(0, 120)}) : pipeline des menus`;
         return null;
       });
       if (authored) return authored;
+      authorFallback ??= "le directeur n'a pas livré de film utilisable : pipeline des menus";
+      emit('direction', 'done', { fallback: true });
     }
 
     // La direction créative : le modèle CHOISIT dans des menus que le graphe a filtrés
@@ -1733,6 +1819,8 @@ export class MotionVideoService {
       keepFootageLarge(storyboard);
     }
     // Le film comparé à la demande : scènes, textes mot pour mot, minutage, plans filmés, langue.
+    // Le plan de médias du livrable : la provenance de chaque média, gardée avec le film.
+    if (media.report.assets?.length) storyboard.assetPlan = media.report.assets;
     storyboard.fidelity = checkFidelity(spec, storyboard, {
       brandName: theme.brandName,
       total: scope.durationSec,
@@ -1776,6 +1864,11 @@ export class MotionVideoService {
       kit: { logo: kit.logo, background: kit.background, annotate: kit.annotate, iconSet: kit.iconSet, addons: kit.addons },
       novelty: { verdict: novelty.verdict, nearest: novelty.nearest },
     });
+    // Le repli du film d'auteur (High+) est gardé avec la vidéo, avant son enregistrement.
+    if (authorFallback) video.storyboard.authorFallback = authorFallback;
+    // L'enregistrement de la génération (format commun aux documents) : gardé avec la vidéo, résumé au journal.
+    video.record = recordFromVideo(video, Date.now() - startedAt);
+    logger.info('generation.record', recordSummary(video.record));
     await this.communication.saveVideo(userId, projectId, video);
     if (input.contentId) await this.communication.linkVideoToContent?.(userId, projectId, input.contentId, videoId).catch(() => undefined);
     // La mémoire globale : ce que chaque motif a donné (retenu, réparé), sans attendre l'écriture.
@@ -1851,6 +1944,8 @@ export class MotionVideoService {
     spec: RequestSpec;
     /** Les images propres à la marque (captures du site et du produit, photos). */
     brandMedia: { url: string; kind?: 'screen' | 'photo'; note?: string }[];
+    /** Le cran (High, Max, Ultra) : il règle les moyens du film, jamais sa liberté. */
+    level: 'high' | 'max' | 'ultra';
   }): Promise<MotionVideo | null> {
     const { userId, projectId, scope, brief, theme, ctx, branding, otherVideos, art, videoId, seed, direction, emit, creative, spec } = o;
     const agentRuns: AgentRun[] = [];
@@ -1894,7 +1989,8 @@ export class MotionVideoService {
       ...(constraints ? { constraints } : {}),
       maxFootage: clipCap(brief),
     };
-    const director = this.writerFor(userId, 'reasoning');
+    const means = AUTHOR_MEANS[o.level];
+    const director = this.writerFor(userId, means.director, 'video.director');
     let film: AuthoredFilm | undefined;
     for (let attempt = 0; attempt < 2 && !film && director; attempt++) {
       const prompt = buildDirectorPrompt(directorInput);
@@ -1918,6 +2014,9 @@ export class MotionVideoService {
       film = { ...film, shots: kept.map((sh) => ({ ...sh, duration: Math.round(((sh.duration * total) / keptTotal) * 100) / 100 })) };
     }
     if (film.repairs?.length) logger.info('video.authored.repairs', { projectId, repairs: film.repairs });
+    // Le plan de médias du film : le rôle visuel de chaque plan et les sources admises (une interface
+    // ne vient que du produit). La résolution, plan par plan, est gardée ensuite dans `assetPlan`.
+    logger.info('video.authored.asset_plan', { projectId, assets: filmAssetPlan(film).map((r) => `${r.assetId}:${r.role}<${r.sources.join('|')}>`) });
     emit('direction', 'done', { title: film.title, concept: film.concept, repairs: film.repairs?.length || 0, shots: film.shots.map((sh) => ({ kind: sh.kind, medium: sh.medium, scene: sh.scene, duration: sh.duration, visual: sh.visual.slice(0, 140) })) });
 
     // 3. Les médias de chaque plan, pendant que la musique, les effets et la voix se préparent :
@@ -2062,7 +2161,7 @@ export class MotionVideoService {
 
     // 5. Chaque plan écrit par un codeur IA, rendu, contrôlé, critiqué, corrigé.
     emit('shots', 'running', { total: storyboard.scenes.length, done: 0, coded: 0 });
-    const orchestrator = new CreativeOrchestrator({ level: 'ultra', call: this.coderCallFor(userId, projectId) });
+    const orchestrator = new CreativeOrchestrator({ level: o.level, call: this.coderCallFor(userId, projectId) });
     let done = 0;
     let codedSoFar = 0;
     const result = await authorShots({
@@ -2074,8 +2173,8 @@ export class MotionVideoService {
       compose: async (sb) => composeVideoHtml({ ...(await inlineAssets(sb, theme, 'render')), format: scope.formats[0], quality: 'standard', mode: 'render' }),
       withPage: withRenderPage,
       orchestrator,
-      critic: this.visionCritic,
-      rounds: 3,
+      critic: means.critic ? this.visionCritic : undefined,
+      rounds: means.rounds,
       // Les consignes de l'utilisateur, pour chaque codeur et pour la critique visuelle.
       ...(constraints ? { constraints } : {}),
       // Vidéo modèle : chaque codeur reçoit son plan à reproduire, la critique compare au modèle.
@@ -2123,7 +2222,7 @@ export class MotionVideoService {
     const authoredAccent = accentAt > 0 ? { index: accentAt, key: storyboard.scenes[accentAt].key, pattern: storyboard.scenes[accentAt].pattern!, family: PATTERN_BY_ID.get(storyboard.scenes[accentAt].pattern!)!.family, kind: 'scene' as const } : undefined;
     storyboard.creative = {
       v: 1,
-      level: 'ultra',
+      level: o.level,
       exploration: { budget: creative.budget, experimental: result.explored.length, scenes: film.shots.length - 1 },
       dna: { direction, families: dna },
       strategy: { id: creative.strategy.id, label: creative.strategy.label, source: 'graph' },
@@ -2131,10 +2230,15 @@ export class MotionVideoService {
     };
     const lint = creativeLint(storyboard, { direction, memory: creative.memory, transitions: [], repair: false });
     const { index: _nearest, ...novelty } = lint.novelty;
+    // High et Max garantissent l'écart avec les vidéos récentes de la marque (Ultra le signale seulement) : un
+    // film d'auteur trop proche laisse la place au pipeline des menus, qui le garantit — repli DIT.
+    if (o.level !== 'ultra' && novelty.verdict === 'too-close') throw new Error(`film d'auteur trop proche d'une vidéo récente (écart ${novelty.nearest})`);
     storyboard.creative = { ...storyboard.creative, fingerprint: lint.fingerprint, novelty: { ...novelty, target: creative.noveltyTarget, compared: creative.memory.fingerprints.length }, lint: { issues: lint.issues, repaired: [] } };
     storyboard.creative.intent = { ...creativeIntent({ concept: film.concept, strategy: creative.strategy, direction, narrative: lint.fingerprint.narrative, accent: authoredAccent }), concept: film.concept };
     const sfx = await sfxP;
     // Le film comparé à la demande : scènes, textes mot pour mot, minutage, plans filmés, langue.
+    // Le plan de médias du livrable : la provenance de chaque média, gardée avec le film.
+    if (media.report.assets?.length) storyboard.assetPlan = media.report.assets;
     storyboard.fidelity = checkFidelity(spec, storyboard, {
       brandName: theme.brandName,
       total: scope.durationSec,
@@ -2159,7 +2263,7 @@ export class MotionVideoService {
       renders: [],
       status: 'draft',
       paidCredits: o.paidCredits,
-      creativity: 'ultra',
+      creativity: o.level,
       exportCount: 0,
       copyTokens: {
         input: agentRuns.reduce((n, r) => n + r.tokens.input, 0),
@@ -2175,11 +2279,14 @@ export class MotionVideoService {
       authored: { shots: storyboard.authored.shots, coded: storyboard.authored.coded },
       fidelity: { notes: storyboard.fidelity.notes, codes: storyboard.fidelity.codes },
     });
+    // L'enregistrement de la génération (format commun aux documents) : gardé avec la vidéo, résumé au journal.
+    video.record = recordFromVideo(video, Date.now() - o.startedAt);
+    logger.info('generation.record', recordSummary(video.record));
     await this.communication.saveVideo(userId, projectId, video);
     if (o.input.contentId) await this.communication.linkVideoToContent?.(userId, projectId, o.input.contentId, videoId).catch(() => undefined);
     // La mémoire globale : chaque plan, son motif (ou son exploration), ses tours, son repli, sa critique.
     void this.experience.record({
-      level: 'ultra',
+      level: o.level,
       direction,
       patterns: storyboard.scenes
         .map((sc, i) => {
@@ -2199,7 +2306,7 @@ export class MotionVideoService {
       projectId,
       videoId,
       type,
-      creativity: 'ultra',
+      creativity: o.level,
       creative: { strategy: creative.strategy.label, explored: result.explored.length, accent: authoredAccent?.pattern, novelty: novelty.nearest, verdict: novelty.verdict, lint: lint.issues.length },
       patterns: storyboard.scenes.map((sc) => sc.pattern || '-').join(','),
       authored: { title: film.title, concept: film.concept, shots: storyboard.authored.shots, coded: result.coded, fallback: result.fallback, reviewed: result.reviewed, rounds: result.rounds, repairs: film.repairs?.length || 0 },
@@ -2475,7 +2582,7 @@ export class MotionVideoService {
       if (jobs.length) {
         storyboard = { ...storyboard, scenes: storyboard.scenes.map((sc) => ({ ...sc })) };
         const { theme, ctx, branding } = await this.brandContext(userId, projectId);
-        const orchestrator = new CreativeOrchestrator({ level: 'ultra', call: this.coderCallFor(userId, projectId) });
+        const orchestrator = new CreativeOrchestrator({ level: current.creativity === 'high' || current.creativity === 'max' ? current.creativity : 'ultra', call: this.coderCallFor(userId, projectId) });
         const base = storyboard;
         for (const job of jobs) {
           const res = await recodeScene({

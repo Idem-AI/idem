@@ -13,6 +13,20 @@ import { env } from './config/env';
 import logger from './config/logger';
 import { storage } from './config/storage';
 import { idem } from './services/idem.client';
+import type { AssetRecord } from '@idem/graphic-engine';
+import { createAssetRegistry } from '../../core/src/media/asset-registry';
+import { IvisionVideoStore } from './stores/video.store';
+
+/** Le registre des ressources d'une marque : ses inscriptions (MongoDB), sa capture de site et ses photos. */
+const assetRegistry = createAssetRegistry({
+  store: {
+    get: async (brandId) => (await collection<{ _id: string; records: AssetRecord[] }>('asset_registry').findOne({ _id: brandId }))?.records ?? [],
+    set: async (brandId, records) => {
+      await collection<{ _id: string; records: AssetRecord[]; updatedAt: Date }>('asset_registry').updateOne({ _id: brandId }, { $set: { records, updatedAt: new Date() } }, { upsert: true });
+    },
+  },
+  loadBrand: (userId, brandId) => new IvisionVideoStore().loadBrand(userId, brandId),
+});
 
 interface AiCacheDoc {
   _id: string;
@@ -82,12 +96,14 @@ export function configureCoreForIvision(): void {
     },
     // Le runtime d'IDEM ne voit pas la fonction de validation (elle ne voyage pas) : elle est
     // appliquée ici, et une réponse illisible est redemandée une fois — comme l'escalade d'IDEM.
-    agentCall: (ctx) => async ({ role, profile, system, user, validate }) => {
-      const ask = () => idem.ai.agent({ ...ctx, role, profile, system, user });
+    agentCall: (ctx) => async ({ role, profile, system, user, validate, level }) => {
+      // Le cran voyage avec l'appel : IDEM y lit les plafonds du rôle (config/creative-roles.ts).
+      const ask = () => idem.ai.agent({ ...ctx, role, profile, system, user, ...(level ? { level } : {}) });
       const first = await ask();
       if (!validate || validate(first)) return first;
       return ask();
     },
+    assetRegistry,
     refundCredits: async (userId, cost, meta) => {
       await idem.billing.refund({ userId, cost, action: meta.action, note: meta.note });
     },

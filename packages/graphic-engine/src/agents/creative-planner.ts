@@ -3,8 +3,8 @@
  *
  *  · High  — CHOISIR une composition dans un menu de candidats distincts (réponse : un numéro) ;
  *  · Max   — la choisir ET régler ses paramètres, sa tension et son accent, en un seul appel ;
- *  · Ultra — CONCEVOIR l'arbre de la page à partir des primitives autorisées (aucun gabarit à suivre :
- *            on lui dit seulement ce que les autres pages font déjà, pour qu'il fasse autre chose).
+ *  · High+ — CONCEVOIR l'arbre de la page à partir des primitives autorisées (aucun gabarit à suivre : les
+ *            compositions éprouvées ne sont que des références ; Max et Ultra révisent l'arbre sur la critique).
  *
  * Le modèle ne reçoit jamais le texte complet ni la documentation des composants : un résumé du contenu
  * (types de blocs, volumes) et un MENU court. Il ne peut pas écrire de mots (les textes sont des
@@ -108,25 +108,56 @@ const GRAMMAR = `NODES (JSON objects, "t" is the type):
 - row {children[], gap?, align?, justify?, wrap?} — side by side
 - grid {cols: <n> or [fr, fr…], children[], gap?, spans?: [n…], align?}
 - box {children[], surface?, pad?, radius?, border?: {weight: hair|thin|thick, sides?: ["t","r","b","l"], ink?}}
-- text {role: kicker|title|display|lede|body|caption|label|number, ref: "title"|"kicker"|"lede"|"<blockId>.<field>", size?: xs…6xl, align?, ink?, emphasis?: underline|outline, rotate?: up}
+- layer {items: [{"at": {"x","y","w","h"} in % of the layer, "z"?: 0..20, "node": <node>}]} — free overlap: a photo with a panel over it, an annotation over a capture
+- text {role: kicker|title|display|lede|body|caption|label|number|figure|subtitle|small, ref: "title"|"kicker"|"lede"|"<blockId>.<field>", size?: xs…6xl, align?, ink?, emphasis?: underline|outline, rotate?: up}
+  a "points" block may be placed point by point: "<blockId>.items.<i>.label", ".detail", ".value" (then place EVERY label)
 - block {ref: "<blockId>", variant?: {…}} — draws a content block with its component
+- image {ref: "<figureBlockId>", fit?: cover|contain, overlay?: none|scrim-bottom|scrim-top|scrim-full|tint-brand, radius?, grow?} — places that photo/capture
+- icon {name: "<icon of a point>", size?: sm|md|lg, ink?}
 - rule {weight?: hair|thin|thick, ink?, length?: full|short|xshort, vertical?}
 - spacer {size?: xs…3xl} or {flex: true}
 - logo {height?: sm|md|lg|xl}
 - shape {shape: rings|quarter-circles|half-discs|stripes|grid-lines|dots-field|chevrons|arcs|blob|waves|steps|triangles|cross-marks|checker|contours|burst|slant, tone?: brand|accent|soft|ink, size?: fill|sm|md|lg, opacity?: 0..1}
 TOKENS: space none|2xs|xs|sm|md|lg|xl|2xl|3xl · surface ground|raised|sunken|brand|brand-soft|accent|accent-soft|ink · ink ink|muted|faint|heading|kicker|emphasis|brand|accent`;
 
-export function authorPrompt(plan: DocumentPlan, brand: string, format: FormatDef, section: SectionContent, a: ContentAnalysis, previous: string[]): { system: string; user: string } {
+/** L'intention de la page et les compositions éprouvées, montrées comme RÉFÉRENCES (jamais comme menu imposé). */
+function intentLines(section: SectionContent, references: Candidate[]): string {
+  const intent = section.intent;
+  const lines: string[] = [];
+  if (intent) lines.push(`INTENT: show it as "${intent.visualStrategy}"${intent.keyMessage ? ` — the audience must remember: ${intent.keyMessage.slice(0, 160)}` : ''}${intent.textBudget ? ` (text budget ${intent.textBudget.bodyWords} words: keep the words large and few)` : ''}`);
+  if (references.length) lines.push(`PROVEN COMPOSITIONS (optional inspiration, NOT a menu — do better or different):\n${references.slice(0, 4).map((c) => `- ${c.pattern.summary}`).join('\n')}`);
+  return lines.join('\n');
+}
+
+export function authorPrompt(plan: DocumentPlan, brand: string, format: FormatDef, section: SectionContent, a: ContentAnalysis, previous: string[], references: Candidate[] = []): { system: string; user: string } {
   const blocks = a.blocks.map((b) => {
     const variants = componentsFor(b.kind)[0]?.variants ?? {};
     const v = Object.entries(variants)
       .map(([k, vs]) => `${k}∈{${vs.join('|')}}`)
       .join('; ');
-    return `- ${b.id}: ${b.kind}, weight ${b.weight.toFixed(2)}${b.wide ? ', needs full width' : ''}${v ? ` — variants ${v}` : ''}`;
+    const block = section.blocks.find((x) => x.id === b.id);
+    const extra =
+      block?.kind === 'points'
+        ? ` — ${block.items.length} points${block.items.some((i) => i.icon) ? `, icons: ${block.items.map((i) => i.icon ?? '-').join(', ')}` : ''}${block.items.some((i) => i.value) ? ', with figures' : ''}`
+        : block?.kind === 'figure'
+          ? ` — a picture: place it with an "image" node (ref "${b.id}"), large`
+          : '';
+    return `- ${b.id}: ${b.kind}, weight ${b.weight.toFixed(2)}${b.wide ? ', needs full width' : ''}${extra}${v ? ` — variants ${v}` : ''}`;
   });
   return {
-    system: `${header(plan, brand, format)} DESIGN this page yourself: invent a composition (not a common template) that gives the content a clear hierarchy and a strong, professional silhouette.\n${GRAMMAR}\nRULES: place EVERY block exactly once with a "block" node; never write words (texts are refs only); no colours or CSS (tokens only); at most 9 levels and 60 nodes; ${format.kind === 'flow' ? 'the root MUST be a stack whose children are rows (the page is paginated)' : 'the root fills the page; mark the region that should absorb space with "grow": true'}. Decorations (optional) go in "decor": [{"at": {"x","y","w","h"} in % of the page, "node": shape|box}] and never sit under text with opacity above 0.15.\nAnswer with JSON only: {"root": <node>, "decor": [ … ]}.`,
-    user: `CONTENT: ${describeSection(section, a)}\nTEXT REFS: title${section.kicker ? ', kicker' : ''}${section.lede ? ', lede' : ''}\nBLOCKS:\n${blocks.join('\n')}\nOTHER PAGES ALREADY USE: ${previous.slice(-5).join(' | ') || 'nothing yet'} — make this one different.`,
+    system: `${header(plan, brand, format)} DESIGN this page yourself: invent a composition (not a common template) that makes its message understood at a glance — show rather than write — with a clear hierarchy and a strong, professional silhouette.\n${GRAMMAR}\nRULES: place EVERY block exactly once (a "block" node, an "image" node for a picture, or point by point); never write words (texts are refs only); no colours or CSS (tokens only); at most 9 levels and 60 nodes; ${format.kind === 'flow' ? 'the root MUST be a stack whose children are rows (the page is paginated)' : 'the root fills the page; mark the region that should absorb space with "grow": true'}. Decorations (optional) go in "decor": [{"at": {"x","y","w","h"} in % of the page, "node": shape|box}] and never sit under text with opacity above 0.15.\nAnswer with JSON only: {"root": <node>, "decor": [ … ]}.`,
+    user: `CONTENT: ${describeSection(section, a)}\nTEXT REFS: title${section.kicker ? ', kicker' : ''}${section.lede ? ', lede' : ''}\nBLOCKS:\n${blocks.join('\n')}\n${intentLines(section, references)}\nOTHER PAGES ALREADY USE: ${previous.slice(-5).join(' | ') || 'nothing yet'} — make this one different.`,
+  };
+}
+
+/**
+ * La RÉVISION d'un arbre d'auteur par la critique visuelle (Max, Ultra) : l'auteur reçoit son arbre et les
+ * notes du critique — il corrige SA composition ; on ne lui impose jamais un gabarit à la place.
+ */
+export function authorRevisePrompt(base: { system: string; user: string }, tree: { root: NodeT; decor: DecorItem[] }, scores: Record<string, number>, weakest: string): { system: string; user: string } {
+  return {
+    system: base.system,
+    user: `${base.user}\n\nYOUR PREVIOUS DESIGN:\n${JSON.stringify({ root: tree.root, decor: tree.decor }).slice(0, 6000)}\nA SENIOR DESIGNER RATED THE RENDERED PAGE (1-5): ${Object.entries(scores).map(([k, v]) => `${k} ${v}`).join(', ')}. Weakest: ${weakest}. Revise YOUR design to fix ${weakest} first, keep what works. Same JSON format.`,
   };
 }
 
@@ -140,6 +171,28 @@ export function parseAuthored(raw: string, section: SectionContent, format: Form
   if (!o || !o.root || typeof o.root !== 'object') return undefined;
   const repaired: string[] = [];
   const ids = new Set(section.blocks.map((b) => b.id));
+  const figures = new Set(section.blocks.filter((b) => b.kind === 'figure').map((b) => b.id));
+  const icons = new Set(section.blocks.flatMap((b) => (b.kind === 'points' ? b.items.map((i) => i.icon).filter((x): x is string => Boolean(x)) : [])));
+  // Un bloc posé CHAMP PAR CHAMP n'est admis que s'il est entier : chaque libellé d'un « points ».
+  const fieldRefs = new Map<string, Set<string>>();
+  const collect = (node: unknown): void => {
+    if (!node || typeof node !== 'object') return;
+    const nd = node as Record<string, unknown>;
+    if (nd.t === 'text' && typeof nd.ref === 'string' && nd.ref.includes('.')) {
+      const [id, ...rest] = nd.ref.split('.');
+      if (!fieldRefs.has(id)) fieldRefs.set(id, new Set());
+      fieldRefs.get(id)!.add(rest.join('.'));
+    }
+    for (const child of Array.isArray(nd.children) ? nd.children : []) collect(child);
+    for (const item of Array.isArray(nd.items) ? nd.items : []) collect((item as { node?: unknown })?.node);
+  };
+  collect(o.root);
+  const wholeByFields = new Set<string>();
+  for (const [id, refs] of fieldRefs) {
+    const block = section.blocks.find((b) => b.id === id);
+    if (block?.kind === 'points' && block.items.every((_, i) => refs.has(`items.${i}.label`))) wholeByFields.add(id);
+    else if (block) repaired.push(`bloc ${id} posé en partie champ par champ : reposé en entier`);
+  }
   const seen = new Set<string>();
   const clean = (node: unknown): NodeT | null => {
     if (!node || typeof node !== 'object') return null;
@@ -150,27 +203,56 @@ export function parseAuthored(raw: string, section: SectionContent, format: Form
         repaired.push('texte libre retiré');
       }
       if (typeof nd.ref !== 'string' || !textRefResolves(nd.ref, section)) return null;
+      const [id] = nd.ref.split('.');
+      if (nd.ref.includes('.') && !wholeByFields.has(id) && ids.has(id)) return null;
       delete nd.bind;
     }
     if (nd.t === 'block') {
-      if (typeof nd.ref !== 'string' || !ids.has(nd.ref) || seen.has(nd.ref)) {
+      if (typeof nd.ref !== 'string' || !ids.has(nd.ref) || seen.has(nd.ref) || wholeByFields.has(nd.ref)) {
         repaired.push(`bloc ${String(nd.ref)} écarté (inconnu ou en double)`);
         return null;
       }
       seen.add(nd.ref);
       delete nd.component;
     }
+    if (nd.t === 'image') {
+      // Une image ne vient que d'une figure du contenu : jamais une adresse écrite par le modèle.
+      delete nd.url;
+      if (typeof nd.ref !== 'string' || !figures.has(nd.ref) || seen.has(nd.ref)) {
+        repaired.push(`image ${String(nd.ref)} écartée (pas une figure du contenu, ou en double)`);
+        return null;
+      }
+      seen.add(nd.ref);
+    }
+    if (nd.t === 'icon' && (typeof nd.name !== 'string' || !icons.has(nd.name))) {
+      repaired.push(`icône ${String(nd.name)} écartée (pas celle d'un point)`);
+      return null;
+    }
     if (Array.isArray(nd.children)) nd.children = (nd.children as unknown[]).map(clean).filter(Boolean);
-    if (nd.t === 'layer') return null;
+    if (nd.t === 'layer') {
+      const items = (Array.isArray(nd.items) ? nd.items : [])
+        .map((it) => {
+          const item = it as { at?: DecorItem['at']; z?: number; node?: unknown };
+          const child = clean(item?.node);
+          return item?.at && child ? { at: item.at, ...(typeof item.z === 'number' ? { z: item.z } : {}), node: child } : null;
+        })
+        .filter(Boolean)
+        .slice(0, 24);
+      if (!items.length) return null;
+      nd.items = items;
+    }
     return nd as NodeT;
   };
   let root = clean(o.root);
   if (!root) return undefined;
   if (format.kind === 'flow' && root.t !== 'stack') root = { t: 'stack', gap: 'lg', children: [root] };
-  if (!('children' in root)) root = { t: 'stack', gap: 'md', grow: true, children: [root] };
-  const missing = section.blocks.filter((b) => !seen.has(b.id));
-  if (missing.length && 'children' in root) {
-    root.children.push(...missing.map((b) => ({ t: 'block' as const, ref: b.id })));
+  // Une page fixe peut avoir un CALQUE pour racine (superpositions libres) ; sinon un conteneur.
+  if (!('children' in root) && root.t !== 'layer') root = { t: 'stack', gap: 'md', grow: true, children: [root] };
+  const missing = section.blocks.filter((b) => !seen.has(b.id) && !wholeByFields.has(b.id));
+  if (missing.length) {
+    const added = missing.map((b) => ({ t: 'block' as const, ref: b.id }));
+    if (root.t === 'layer') root = { t: 'stack', gap: 'md', grow: true, children: [{ ...root }, ...added] } as NodeT;
+    else if ('children' in root) root.children.push(...added);
     repaired.push(`${missing.length} bloc(s) oublié(s) ajouté(s) en fin de page`);
   }
   const checked = validateNode(root);

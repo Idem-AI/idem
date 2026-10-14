@@ -14,6 +14,11 @@ import {
  */
 export enum LLMProvider {
   OPENROUTER = 'OPENROUTER',
+  /**
+   * Modèles servis par NOS machines (vLLM, SGLang, TGI : API compatible OpenAI) — `IDEM_SELFHOSTED_BASE_URL`.
+   * Aucune feature ne le nomme : un RÔLE créatif y est aiguillé par configuration (`creative-roles.ts`).
+   */
+  SELFHOSTED = 'SELFHOSTED',
 }
 
 /**

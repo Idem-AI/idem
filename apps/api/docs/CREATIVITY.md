@@ -20,10 +20,11 @@ Chaque livrable se découpe en cinq couches de décision. Le cran fixe à partir
 | Règles de charte réécrites sur la page | oui | oui | **non** | non | non |
 | La mesure du rendu peut refuser | — | — | oui | oui | **non, elle répare** |
 
-Ce tableau est celui de la vidéo. Les livrables graphiques (business plan, pitch deck, charte, cartes
-de visite, visuels) suivent la même échelle avec les profils du moteur graphique : menu de six à High
-et Max, arbre d'auteur à Ultra, aucun CSS libre à aucun cran, et une mesure qui répare (voir
-« Visuels, cartes de visite et documents » plus bas).
+Ce tableau est celui des crans Low et Medium de la vidéo. Depuis le plan directeur d'octobre 2026, la
+même philosophie vaut pour les deux moteurs : **à partir de High, l'IA a le contrôle de la conception**
+(arbre de composition libre pour les documents, film d'auteur pour la vidéo) ; Max et Ultra lui donnent
+plus de moyens (révisions sur la critique visuelle, tours de correction), jamais plus de liberté. Aucun
+CSS libre à aucun cran, et une mesure qui répare (voir « Visuels, cartes de visite et documents » plus bas).
 
 ### Deux règles qui décident si l'échelle existe vraiment
 
@@ -119,9 +120,12 @@ S'y ajoute la **fiche de marque** (`brandSheet`) : couleurs, polices, DA, à fai
 |---|---|---|
 | Low | les textes (rédacteur). Concept, scènes, motifs (donc mises en page), transitions et musique viennent du graphe et du moteur créatif : créativité algorithmique, 5 % d'exploration. | flashx |
 | Medium | + le stratège (concept, scènes, grand moment, rythme), **même quand le type de vidéo est imposé** (choix explicite, calendrier : il choisit DANS ce type), et le sound designer (piste, intensité des effets). | rédaction |
-| High | + un directeur artistique par scène (il choisit le **motif** parmi 3 à 5 classés par le moteur créatif, résolu en mise en page parmi 17 et en entrée de titre), l'animateur (transitions coupe par coupe parmi 17, entrées, caméra, logo) et le critique. 25 % d'exploration. | rédaction |
-| Max | + la **direction créative** parmi trois (signature, contraste, exploration : ADN et famille de l'accent), choisie par le stratège ; des paramètres bornés par scène : taille des titres de 0,85 à 1,25, alignement, surface parmi celles de la stratégie de couleur de la DA, tempo, décor. Accroche et grand moment sont tirés trois fois et départagés par le score créatif ; le critique corrige aussi taille et tempo. 40 % d'exploration. | stratège au raisonnement |
-| Ultra | **le film d'auteur** : l'IA invente et crée tout le film (ci-dessous). | raisonnement |
+| High | **le film d'auteur** (ci-dessous) avec des moyens comptés : directeur à l'étage de rédaction, un tour de contrôle par plan, pas de critique visuelle. Repli DIT sur le pipeline des menus (directeur artistique, animateur, critique) si le directeur échoue. | rédaction |
+| Max | le film d'auteur : directeur au raisonnement, **deux tours** par plan, **critique visuelle** du rendu réel. | raisonnement |
+| Ultra | le film d'auteur complet : trois tours par plan (quatre pour un plan d'exploration), critique visuelle. | raisonnement |
+
+Les moyens par cran sont dans `video.author.ts#AUTHOR_MEANS`. Un film d'auteur abandonné est gardé dans
+`storyboard.authorFallback` et dans l'enregistrement de la génération (`video.record`).
 
 **Un seul moteur créatif pour les cinq crans** ([VIDEO_ENGINE.md §17](VIDEO_ENGINE.md#17-le-moteur-créatif)). Medium, High, Max et Ultra ne sont pas quatre architectures : ce sont quatre niveaux de délégation sur la même recherche dans l'espace des motifs (intention → capacité → motif → outil → primitive). Le planificateur, sans aucun token, choisit un motif par scène au score créatif (pertinence, qualité apprise, nouveauté pour la marque, fidélité, faisabilité), garde un ADN de mouvement et pose un accent sur une scène. Le cran fixe la part d'exploration (Low 5 % → Ultra 70 %) et qui décide : le planificateur en Low et Medium ; l'agent parmi ses 3 à 5 meilleurs motifs dès High ; la direction créative parmi trois au cran Max ; le directeur, dans l'univers créatif, au cran Ultra. Chaque vidéo a son empreinte : aucune n'est rendue à moins de 0,30 de la vidéo la plus proche de la marque (le contrôle créatif la répare).
 
@@ -194,9 +198,14 @@ exploré et ce qui est permis** (profils du moteur, `composition-engine/profiles
 |---|---|---|
 | Low | le code | les mots seulement ; le meilleur motif pour ce contenu, sans un appel, déterministe |
 | Medium | le code | les mots ; un tirage parmi les trois meilleurs motifs distincts, semé par la clé du livrable |
-| High | le directeur artistique | + une composition dans un menu de six ; la critique visuelle regarde le rendu et peut en préférer une autre |
-| Max | le directeur artistique | + les paramètres bornés de la composition (tension, accent, réglages du motif), dans le même appel |
-| Ultra | le compositeur | + un ARBRE inédit, construit avec les primitives autorisées (blocs du contenu, textes, grilles, formes du kit) : validé, réparé, mesuré |
+| High | l'auteur (`graphic.director`) | un ARBRE inédit (calques superposés, images du contenu, icônes et points placés un à un, grilles, formes du kit) ; les compositions éprouvées ne sont que des **références**. Le directeur artistique choisit le repli dans un menu de six |
+| Max | l'auteur | + le repli réglé (paramètres, tension, accent) ; la critique visuelle renvoie ses notes à l'auteur, **une révision** |
+| Ultra | l'auteur | + l'exploration la plus large, **deux révisions** sur la critique |
+
+Un arbre jugé faible est révisé par SON auteur — jamais remplacé en silence par un gabarit. Le repli sur
+une composition éprouvée n'arrive que si l'arbre est invalide ou bloquant, et la trace le dit
+(`author_fallback`). Budgets par page : High 10 000, Max 18 000, Ultra 28 000 jetons
+(`orchestrator/policies.ts#budgetFor`).
 
 **Strict à tous les crans** (ce qui rendrait une page fausse) : aucun contenu perdu (un bloc oublié par
 l'arbre d'auteur est rajouté, un doublon ou un bloc inconnu écarté), aucun texte libre (l'arbre ne

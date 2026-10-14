@@ -51,7 +51,7 @@ function simulatedAgent(): void {
           ? '{"choice": 2, "params": {}, "tension": "calm", "accent": "none", "why": "La silhouette change de la page précédente et le chiffre-clé garde la place."}'
           : '{"choice": 2, "why": "La silhouette change de la page précédente et le chiffre-clé garde la place."}';
       }
-      if (role === 'graphic.composer') {
+      if (role === 'graphic.director') {
         const ids = [...user.matchAll(/^- ([\w-]+):/gm)].map((m) => m[1]);
         const blocks = ids.map((id) => ({ t: 'block', ref: id }));
         const body = blocks.length > 1 ? { t: 'grid', cols: [5, 7], gap: 'xl', grow: true, children: [blocks[0], { t: 'stack', gap: 'lg', children: blocks.slice(1) }] } : { t: 'stack', grow: true, justify: 'center', children: blocks };

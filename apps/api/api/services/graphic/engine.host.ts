@@ -9,7 +9,8 @@
  *  · le journal winston, et les traces de génération (coûts, décisions, réparations) en JSON ;
  *  · la mémoire de diversité entre documents (Redis) — deux livrables d'une marque ne se ressemblent pas ;
  *  · le Chromium partagé du service PDF, et la garde réseau des rendus ;
- *  · les fournisseurs de médias (génération, banque d'images) du planificateur de médias.
+ *  · les fournisseurs de médias (génération, banque d'images) du planificateur de médias, et le registre
+ *    des ressources du projet, commun aux documents et aux vidéos.
  *
  * Importer ce module suffit (effet de bord idempotent). Tout est paresseux : rien ne se connecte avant
  * la première page.
@@ -21,6 +22,7 @@ import { runtimeCall } from '../creativity/orchestrator';
 import { idemAnalyzeImage } from '../ivision/host';
 import { isRenderUrlAllowed } from '../../utils/render-network-guard';
 import { IDEM_ASSET_PROVIDERS } from './asset-providers';
+import { idemAssetRegistry } from './asset-registry';
 
 let configured = false;
 
@@ -70,6 +72,8 @@ export function configureGraphicEngineForIdem(): void {
       await cacheService.set(fingerprintKey(scope), [...previous, ...fingerprints].slice(-40), { prefix: 'graphic', ttl: FINGERPRINT_TTL });
     },
     assetProviders: IDEM_ASSET_PROVIDERS,
+    // Le registre du projet : une image déjà obtenue (deck, visuel, vidéo) est reprise avant d'être regénérée.
+    assetRegistry: idemAssetRegistry,
     browser: {
       // Le Chromium du service PDF : un seul navigateur de rendu par processus.
       shared: async () => (await import('../pdf.service')).PdfService.sharedBrowser(),

@@ -119,6 +119,24 @@ Each deliverable opens a `RunBudget` (derived from the declared output budgets, 
 
 It is an **estimate** (≈ 4 characters per token) that acts as a circuit breaker. Billing stays with `aiUsageService`, fed by the provider's real counters.
 
+### 7. Creative roles (`config/creative-roles.ts`)
+
+The graphic and video engines call LOGICAL roles, never a model: `graphic.content`, `graphic.director`,
+`graphic.asset-planner`, `video.intent-classifier`, `video.director`, `video.shot-coder`, `visual.critic`,
+`generation.repair`. Each role declares what it needs (code, vision, structured output, long context) and
+an output-token cap per creativity level. The model is resolved by configuration only:
+
+- `IDEM_ROLE_<ROLE>_MODEL` pins an OpenRouter model for a role (checked against the allow-list);
+- `IDEM_ROLE_<ROLE>_ENDPOINT=selfhosted` sends the role to our own machines — the `SELFHOSTED` provider,
+  any OpenAI-compatible server (vLLM, SGLang, TGI): `IDEM_SELFHOSTED_BASE_URL`, `IDEM_SELFHOSTED_API_KEY`,
+  `IDEM_SELFHOSTED_MODEL` or `IDEM_SELFHOSTED_<ROLE>_MODEL`, capabilities declared with
+  `IDEM_SELFHOSTED_VISION=1` / `IDEM_SELFHOSTED_TOOLS=1`. A role that needs vision is never routed to an
+  endpoint that does not declare it.
+
+`<ROLE>` is upper-cased with `.` and `-` turned into `_` (`video.shot-coder` → `VIDEO_SHOT_CODER`). The
+creativity level travels with every call (also through the iVision gateway), so the role's cap applies.
+Prompts never name a provider or a model (`npm run check:roles`).
+
 ## Adding a generation
 
 ```ts

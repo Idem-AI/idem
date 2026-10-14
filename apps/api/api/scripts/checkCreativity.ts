@@ -229,7 +229,7 @@ export default function Scene() {
     if (agentMode === 'down') throw new Error('quota');
     if (agentMode === 'garbage') return 'je ne sais pas';
     if (role === 'graphic.artDirector') return system.includes('"params"') ? '{"choice": 2, "params": {}, "tension": "calm", "accent": "none"}' : '{"choice": 2, "why": "variété"}';
-    if (role === 'graphic.composer') return JSON.stringify({ root: { t: 'stack', grow: true, gap: 'lg', justify: 'center', children: [{ t: 'block', ref: 'copy' }] } });
+    if (role === 'graphic.director') return JSON.stringify({ root: { t: 'stack', grow: true, gap: 'lg', justify: 'center', children: [{ t: 'block', ref: 'copy' }] } });
     return '';
   };
   const VERDA = brandFromIdem({

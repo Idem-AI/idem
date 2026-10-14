@@ -17,7 +17,7 @@
  */
 import type { CreativityLevel, DocumentType } from '../contracts/common';
 import type { Block, SectionContent } from '../contracts/content-model';
-import { ASSET_SOURCE_ORDER, AssetRequirement, AssetSource, ResolvedAsset, VisualStrategy } from '../contracts/slide-intent';
+import { ASSET_SOURCE_ORDER, AssetRecord, AssetRequirement, AssetRole, AssetSource, ResolvedAsset, VisualStrategy } from '../contracts/slide-intent';
 import { searchIcons } from '../capability-registry/local/icons';
 import type { FormatDef } from '../design-system/formats';
 import { atLeast } from '../orchestrator/policies';
@@ -40,6 +40,57 @@ export interface AssetProvider {
 }
 
 export type AssetProviders = Partial<Record<AssetSource, AssetProvider>>;
+
+/**
+ * Le REGISTRE des ressources d'un projet (porté par l'hôte) : ce qui a déjà été obtenu, par tous les
+ * livrables. Le moteur y cherche avant de générer, et y inscrit ce qu'il a fait générer ou trouver.
+ */
+export interface AssetRegistry {
+  list(ctx: Pick<AssetContext, 'userId' | 'projectId'>): Promise<AssetRecord[]>;
+  remember(ctx: Pick<AssetContext, 'userId' | 'projectId'>, records: AssetRecord[]): Promise<void>;
+}
+
+// ── L'appariement d'un besoin et d'une ressource ────────────────────────────────────────────
+
+const STOP = new Set(['the', 'a', 'an', 'of', 'and', 'or', 'in', 'on', 'with', 'for', 'to', 'at', 'by', 'from', 'its', 'their', 'this', 'that', 'le', 'la', 'les', 'un', 'une', 'des', 'de', 'du', 'et', 'ou', 'en', 'sur', 'avec', 'pour', 'dans', 'au', 'aux', 'photo', 'image', 'picture', 'shot', 'photograph', 'screenshot', 'illustration']);
+
+/** Les mots qui portent le sens d'une description (minuscules, sans accents, sans mots vides). */
+export function subjectWords(text: string): string[] {
+  return [...new Set(text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOP.has(w)).map((w) => w.replace(/(ies)$/, 'y').replace(/s$/, '')))];
+}
+
+/** Les rôles d'une ressource qui peuvent servir un besoin. */
+const COMPATIBLE: Partial<Record<AssetRole, AssetRole[]>> = {
+  photo: ['photo', 'illustration'],
+  illustration: ['illustration', 'photo'],
+  'product-capture': ['product-capture'],
+  clip: ['clip'],
+};
+
+/**
+ * La ressource du registre qui sert ce besoin, ou `null`. Le rôle doit convenir (une capture ne vaut que
+ * pour une capture), la source doit être admise par le besoin, et la description doit partager assez de
+ * sens avec le sujet voulu : au moins deux mots porteurs (un seul pour un sujet de deux mots).
+ */
+export function matchAsset(req: AssetRequirement, records: AssetRecord[], used: ReadonlySet<string> = new Set()): AssetRecord | null {
+  const roles = COMPATIBLE[req.role];
+  if (!roles) return null;
+  const wanted = subjectWords(`${req.subject} ${req.purpose}`);
+  if (!wanted.length) return null;
+  let best: { record: AssetRecord; score: number } | null = null;
+  for (const record of records) {
+    if (used.has(record.url) || !roles.includes(record.role) || !req.sources.includes(record.source)) continue;
+    const have = new Set(subjectWords(`${record.subject} ${(record.tags ?? []).join(' ')}`));
+    const shared = wanted.filter((w) => have.has(w)).length;
+    const needed = Math.min(2, subjectWords(req.subject).length || 1);
+    if (shared < needed) continue;
+    // Le sens partagé d'abord ; à égalité, le format le plus proche de celui de la page.
+    const ratio = record.width && record.height ? Math.abs(Math.log((record.width / record.height) / req.aspectRatio)) : 0.5;
+    const score = shared / wanted.length - ratio * 0.15 + (record.role === req.role ? 0.05 : 0);
+    if (!best || score > best.score) best = { record, score };
+  }
+  return best ? best.record : null;
+}
 
 /** Combien d'images un document peut FAIRE GÉNÉRER, par cran : la génération coûte, elle se paie à High+. */
 export const GENERATION_CAP: Record<CreativityLevel, number> = { low: 0, medium: 0, high: 3, max: 5, ultra: 8 };
@@ -156,13 +207,37 @@ export interface AssetResolution {
  * Essaie chaque besoin chez les fournisseurs de ses sources, dans l'ordre fixe. Un fournisseur qui échoue
  * (réseau, quota) passe la main au suivant ; il ne fait jamais échouer la page.
  */
-export async function resolveAssets(requirements: AssetRequirement[], providers: AssetProviders, ctx: AssetContext, o: { generationLeft: number }): Promise<AssetResolution> {
-  const all: AssetProviders = { native: nativeProvider, ...providers };
+export async function resolveAssets(requirements: AssetRequirement[], providers: AssetProviders, ctx: AssetContext, o: { generationLeft: number; registry?: AssetRegistry }): Promise<AssetResolution> {
+  // Le registre du projet sert les sources « utilisateur », « projet » et « capture » quand l'hôte ne les a
+  // pas branchées autrement : une ressource déjà obtenue passe AVANT toute génération.
+  const records = o.registry && requirements.some((r) => r.role !== 'icon') ? await o.registry.list(ctx).catch(() => [] as AssetRecord[]) : [];
+  const used = new Set<string>();
+  const fromRegistry = (source: AssetSource): AssetProvider => ({
+    async resolve(req) {
+      const hit = matchAsset({ ...req, sources: [source] }, records, used);
+      if (!hit) return null;
+      used.add(hit.url);
+      return { url: hit.url, alt: hit.subject.slice(0, 200), provenance: { ...hit.provenance, provider: `registre (${hit.provenance.provider})`.slice(0, 60) } };
+    },
+  });
+  const registryProviders: AssetProviders = records.length ? { user: fromRegistry('user'), project: fromRegistry('project'), capture: fromRegistry('capture') } : {};
+  const all: AssetProviders = { native: nativeProvider, ...registryProviders, ...providers };
   const out: AssetResolution = { resolved: [], missing: [], log: [], generated: 0 };
+  const fresh: AssetRecord[] = [];
   for (const req of requirements) {
     let hit: ResolvedAsset | null = null;
     const sources = ASSET_SOURCE_ORDER.filter((s) => req.sources.includes(s));
     for (const source of sources) {
+      // Le projet a déjà une image qui convient (générée ou trouvée par un autre livrable) : on la reprend —
+      // à tous les crans, puisqu'elle est déjà payée.
+      if ((source === 'generated' || source === 'stock') && records.length) {
+        const again = matchAsset({ ...req, sources: [source] }, records, used);
+        if (again) {
+          used.add(again.url);
+          hit = { assetId: req.assetId, source, url: again.url, alt: again.subject.slice(0, 200), provenance: { ...again.provenance, provider: `registre (${again.provenance.provider})`.slice(0, 60) } };
+          break;
+        }
+      }
       if (source === 'generated' && (!atLeast(ctx.level, 'high') || out.generated >= o.generationLeft)) continue;
       const provider = all[source];
       if (!provider) continue;
@@ -171,6 +246,8 @@ export async function resolveAssets(requirements: AssetRequirement[], providers:
         if (found && (found.url || found.icon)) {
           hit = { assetId: req.assetId, source, ...found };
           if (source === 'generated') out.generated += 1;
+          // Ce qui vient d'être généré ou trouvé rejoint le registre : le livrable suivant le reprendra.
+          if ((source === 'generated' || source === 'stock') && found.url) fresh.push({ id: `${ctx.documentType}:${req.assetId}`.slice(0, 120), url: found.url, kind: 'image', role: req.role, source, subject: req.subject, origin: ctx.documentType === 'pitch-deck' ? 'deck' : 'document', provenance: found.provenance, createdAt: new Date().toISOString() });
           break;
         }
       } catch {
@@ -185,6 +262,7 @@ export async function resolveAssets(requirements: AssetRequirement[], providers:
       out.log.push(`${req.assetId} ✗`);
     }
   }
+  if (fresh.length && o.registry) await o.registry.remember(ctx, fresh).catch(() => undefined);
   return out;
 }
 

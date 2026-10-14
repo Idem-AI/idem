@@ -25,8 +25,8 @@ import { BrandInput, buildTokens, DesignTokens, DirectionInput } from './design-
 import { stableHash } from './foundation/hash';
 import { compileSection } from './html-css-compiler/compile';
 import { createContext, SectionMeta } from './html-css-compiler/context';
-import { authorPrompt, describeSection, parseAuthored, parsePick, parsePickTune, pickPrompt, pickTunePrompt } from './agents/creative-planner';
-import { CRITIC_INSTRUCTION, parseCritique, visionCall } from './agents/critic';
+import { authorPrompt, authorRevisePrompt, describeSection, parseAuthored, parsePick, parsePickTune, pickPrompt, pickTunePrompt } from './agents/creative-planner';
+import { Critique, CRITIC_INSTRUCTION, parseCritique, visionCall } from './agents/critic';
 import { planContent } from './agents/content-planner';
 import { COMPACT_VARIANTS, parseRepair, repairPrompt } from './agents/targeted-repair';
 import { AgentCall, engineHost, FingerprintScope, log } from './host';
@@ -194,6 +194,9 @@ export class GraphicDocument {
     let ranked: Candidate[] = [];
     let chosen: Candidate | null = null;
     let authored: SectionSpec | null = null;
+    /** L'arbre d'auteur et son prompt : la révision sur critique repart de là. */
+    let authorTree: { root: SectionSpec['root']; decor: NonNullable<SectionSpec['decor']> } | null = null;
+    let authorBase: { system: string; user: string } | null = null;
     if (o.replay) {
       authored = o.replay;
       recorder.task({ task: 'compose', source: 'code', inputTokens: 0, outputTokens: 0, ms: 0, outcome: 'accepted', reason: 'nothing-to-decide' });
@@ -215,10 +218,14 @@ export class GraphicDocument {
         if (picked.value >= 0) chosen = options[picked.value];
       }
       if (this.policy.agents.author) {
-        const result = await runTask({ policy: TASK_POLICIES.author, level, call, budget: this.budget, recorder, prompt: () => authorPrompt(this.plan, brandName, this.tokens.format, section, analysis, previous), parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
+        // Les compositions éprouvées sont montrées comme RÉFÉRENCES : l'auteur peut s'en inspirer ou s'en écarter.
+        authorBase = authorPrompt(this.plan, brandName, this.tokens.format, section, analysis, previous, menu(ranked, 4));
+        const base = authorBase;
+        const result = await runTask({ policy: TASK_POLICIES.author, level, call, budget: this.budget, recorder, prompt: () => base, parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
         if (result.value) {
           const look = chosen ? chosen.lookInput : lookInputFor(ctx);
           authored = { ref: section.id, pattern: { id: 'authored', params: {} }, density: look.density, strategy: look.strategy, mood: look.mood, tension: look.tension, accent: look.accent, root: result.value.root, ...(result.value.decor.length ? { decor: result.value.decor } : {}) };
+          authorTree = { root: result.value.root, decor: result.value.decor };
           for (const r of result.value.repaired) recorder.repair({ code: 'author_tree', detail: r, by: 'code' });
         }
       }
@@ -251,6 +258,8 @@ export class GraphicDocument {
       recorder.repair({ code: 'next_candidate', detail: `${item.spec.pattern.id} : ${attempt.issues.filter((i) => i.severity === 'blocking').map((i) => i.code).join(', ')}`, by: 'code' });
     }
     let final = best as Attempt;
+    // Le repli est DIT : l'arbre d'auteur n'a pas pu être rendu sans défaut bloquant, une composition éprouvée le remplace.
+    if (authored && final.spec.pattern.id !== 'authored') recorder.repair({ code: 'author_fallback', detail: `arbre d'auteur bloquant : repli sur ${final.spec.pattern.id}`, by: 'code' });
 
     // ── 3. Réparation ciblée (High+) quand le code n'a pas su ─────────────────────────────
     const blocking = final.issues.filter((i) => i.severity === 'blocking');
@@ -285,11 +294,36 @@ export class GraphicDocument {
     // ── 4. Critique visuelle (High+) : départager des rendus que le moteur a tous su produire ──
     const analyze = engineHost().analyzeImage;
     if (critic && analyze && final.png && !final.issues.some((i) => i.severity === 'blocking')) {
-      const judge = async (png: Buffer): Promise<number | undefined> => {
-        const r = await runTask({ policy: TASK_POLICIES.critic, level, call: visionCall(analyze, png), budget: this.budget, recorder, prompt: () => ({ system: CRITIC_INSTRUCTION, user: 'image' }), parse: (raw) => parseCritique(raw)?.score, fallback: () => undefined });
+      const review = async (png: Buffer): Promise<Critique | undefined> => {
+        const r = await runTask({ policy: TASK_POLICIES.critic, level, call: visionCall(analyze, png), budget: this.budget, recorder, prompt: () => ({ system: CRITIC_INSTRUCTION, user: 'image' }), parse: (raw) => parseCritique(raw), fallback: () => undefined });
         return r.value;
       };
-      final.critique = await judge(final.png);
+      const judge = async (png: Buffer): Promise<number | undefined> => (await review(png))?.score;
+      const first = await review(final.png);
+      final.critique = first?.score;
+      // Un arbre d'auteur jugé faible est RÉVISÉ par son auteur, sur les notes du critique (Max, Ultra) —
+      // jamais remplacé en silence par un gabarit.
+      let notes = first;
+      if (authored && final.spec.pattern.id === 'authored' && authorTree && authorBase) {
+        for (let round = 0; round < this.policy.authorRevisions && notes && notes.score < 3.6; round++) {
+          const tree: { root: SectionSpec['root']; decor: NonNullable<SectionSpec['decor']> } = authorTree;
+          const base = authorBase;
+          const scored = notes;
+          const revised: { value: ReturnType<typeof parseAuthored> } = await runTask({ policy: TASK_POLICIES.authorRevise, level, call, budget: this.budget, recorder, prompt: (): { system: string; user: string } => authorRevisePrompt(base, tree, scored.scores, scored.weakest), parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
+          if (!revised.value) break;
+          const spec: SectionSpec = { ...final.spec, root: revised.value.root, ...(revised.value.decor.length ? { decor: revised.value.decor } : { decor: undefined }) };
+          const attempt = await this.renderAttempt(spec, section, meta, 'authored|||||', recorder, analysis.light, true);
+          if (attempt.issues.some((i) => i.severity === 'blocking') || !attempt.png) break;
+          const again = await review(attempt.png);
+          attempt.critique = again?.score;
+          if ((again?.score ?? 0) > (final.critique ?? 0)) {
+            recorder.repair({ code: 'author_revised', detail: `révision ${round + 1} sur « ${scored.weakest} » : ${final.critique} → ${again?.score}`, by: 'agent' });
+            final = attempt;
+            authorTree = { root: revised.value.root, decor: revised.value.decor };
+            notes = again;
+          } else break;
+        }
+      }
       const extra = level === 'high' ? 1 : 2;
       if (final.critique !== undefined && final.critique < 3.6 && !authored) {
         for (const alt of menu(ranked, 1 + extra).filter((c) => c.pattern.id !== final.candidate?.pattern.id).slice(0, extra)) {
@@ -349,7 +383,7 @@ export class GraphicDocument {
       requirements,
       host.assetProviders ?? {},
       { level: this.policy.level, documentType: this.options.documentType, locale: this.options.locale, userId: this.options.user?.userId, projectId: this.options.user?.projectId, brandName: this.options.brand.name, styleId: this.options.direction?.styleId, keywords: this.options.direction?.keywords },
-      { generationLeft: Math.max(0, GENERATION_CAP[this.policy.level] - this.generatedAssets) }
+      { generationLeft: Math.max(0, GENERATION_CAP[this.policy.level] - this.generatedAssets), registry: host.assetRegistry }
     );
     this.generatedAssets += resolution.generated;
     const applied = applyAssets(content, resolution, requirements);

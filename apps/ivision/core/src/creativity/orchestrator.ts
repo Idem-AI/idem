@@ -38,7 +38,7 @@ export type AgentProfile = 'agents' | 'critic' | 'coder';
 export type AgentSource = 'llm' | 'graph';
 
 /** Un appel de modèle. `validate` permet au runtime d'escalader d'un étage si la réponse est illisible. */
-export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean }) => Promise<string>;
+export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean; level?: CreativityLevel }) => Promise<string>;
 
 export interface AgentTask<T> {
   /** Rôle lisible (« artDirector », « animator »…). */
@@ -122,7 +122,7 @@ export class CreativeOrchestrator {
     const one = async (): Promise<string> => {
       try {
         return await Promise.race([
-          this.opts.call!({ role: task.role, profile, system: prompt.system, user: prompt.user, validate: (raw) => task.parse(raw) !== undefined }),
+          this.opts.call!({ role: task.role, profile, system: prompt.system, user: prompt.user, validate: (raw) => task.parse(raw) !== undefined, level: this.opts.level }),
           new Promise<string>((_, reject) => setTimeout(() => reject(new Error('agent_timeout')), timeout)),
         ]);
       } catch {

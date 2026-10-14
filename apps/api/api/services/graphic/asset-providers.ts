@@ -8,8 +8,10 @@
  *    qu'aux crans High et au-delà, dans un plafond par document ;
  *  · `stock`     — la banque Pexels du même service, sans génération en repli (le moteur ordonne).
  *
- * Les sources `user`, `project` et `capture` ne sont pas encore branchées : une page qui exige une capture
- * du produit retombe alors sur ses points illustrés (le repli est tracé) — jamais une fausse interface.
+ * Les sources `user`, `project` et `capture` sont servies par le REGISTRE des ressources du projet
+ * (`asset-registry.ts`, commun aux documents et aux vidéos) : imports, captures du site, médias des visuels et
+ * des vidéos. Sans capture, une page qui en exige une retombe sur ses points illustrés (le repli est tracé) —
+ * jamais une fausse interface.
  */
 import type { AssetContext, AssetProvider, AssetProviders, AssetRequirement } from '@idem/graphic-engine';
 import logger from '../../config/logger';

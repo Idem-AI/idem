@@ -450,3 +450,65 @@
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+
+/* ── L'interprétation de la demande ── */
+.vdb-intent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1rem;
+  border: 1.5px solid var(--glass-border);
+  border-radius: 0.8rem;
+  background: var(--glass-bg-subtle);
+}
+.vdb-intent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.vdb-intent-kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+.vdb-intent-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vdb-intent-tag {
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border-strong);
+  color: var(--color-text-primary);
+}
+.vdb-intent-tag-soft {
+  font-weight: 400;
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--color-text-secondary);
+}
+.vdb-intent-edit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+}
+.vdb-intent-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+}
+.vdb-intent-question {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  border: 0;
+}

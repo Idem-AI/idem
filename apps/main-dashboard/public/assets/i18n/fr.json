@@ -2405,12 +2405,18 @@
         "a4Portrait": {
           "title": "A4 portrait",
           "description": "Un document à imprimer, à relier ou à joindre à un e-mail.",
-          "uses": ["Impression et envoi par e-mail", "Lecture page par page, comme un livret"]
+          "uses": [
+            "Impression et envoi par e-mail",
+            "Lecture page par page, comme un livret"
+          ]
         },
         "landscape": {
           "title": "Paysage 16:9",
           "description": "Une présentation qui se lit à l'écran et se projette en réunion.",
-          "uses": ["Projection et partage d'écran", "Lecture confortable sur ordinateur"]
+          "uses": [
+            "Projection et partage d'écran",
+            "Lecture confortable sur ordinateur"
+          ]
         },
         "startGeneration": "Générer ma charte",
         "changeLater": "Vous pourrez régénérer la charte dans l'autre format plus tard."
@@ -4321,6 +4327,48 @@
           "voice": {
             "label": "Voix off",
             "hint": "Une voix dit le message, scène par scène, dans votre langue. Les scènes se calent sur elle."
+          },
+          "intent": {
+            "title": "Interprétation de la demande",
+            "proposal": "Proposition de l'IA",
+            "correct": "Corriger",
+            "done": "Valider",
+            "loading": "Je lis ta demande…",
+            "objective": "Objectif",
+            "mode": "Matière",
+            "motion": "Mouvement",
+            "goals": {
+              "conversion": "Conversion",
+              "product-demo": "Démo produit",
+              "website-tour": "Visite du site",
+              "explainer": "Explication",
+              "brand-film": "Film de marque",
+              "event": "Événement",
+              "story": "Histoire client",
+              "announcement": "Annonce",
+              "repurpose": "Formats courts"
+            },
+            "modes": {
+              "app-presentation": "Captures réelles",
+              "footage-edit": "Vidéos filmées",
+              "pure-motion": "Motion design",
+              "hybrid": "Hybride",
+              "product-showcase": "Photos produit",
+              "data-story": "Données"
+            },
+            "motions": {
+              "kinetic-type": "Typographie animée",
+              "editorial": "Éditorial",
+              "geometric": "Géométrique",
+              "illustration-2d": "Illustration",
+              "spatial-3d": "3D",
+              "interface": "Motion UI",
+              "cinematic": "Cinématographique",
+              "data-led": "Data motion",
+              "collage": "Collage",
+              "minimal-broadcast": "Minimal"
+            },
+            "fieldsHint": "Ajoute ces informations à ta demande (étape 1), puis reviens ici."
           }
         },
         "detail": {

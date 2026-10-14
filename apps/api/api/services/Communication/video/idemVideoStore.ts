@@ -20,7 +20,7 @@ export interface CommunicationVideoSource {
   removeVideo(userId: string, projectId: string, videoId: string): Promise<boolean>;
   findPlanItem?(userId: string, projectId: string, contentId: string): Promise<ContentIdea | null>;
   linkVideoToContent?(userId: string, projectId: string, contentId: string, videoId: string): Promise<void>;
-  runVideoTieredPrompt?(userId: string, system: string, user: string, tier: VideoTier, kind?: 'copy' | 'agents'): Promise<string>;
+  runVideoTieredPrompt?(userId: string, system: string, user: string, tier: VideoTier, kind?: 'copy' | 'agents', role?: string): Promise<string>;
   runVideoCopyPrompt?(userId: string, system: string, user: string): Promise<string>;
   runVideoAgentPrompt?(userId: string, system: string, user: string): Promise<string>;
 }

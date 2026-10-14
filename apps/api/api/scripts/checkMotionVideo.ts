@@ -519,12 +519,18 @@ async function main() {
     const allText = sb.scenes.flatMap((sc) => Object.values(sc.slots)).join(' | ');
     // L'ouverture dépend du concept (accroche, offre, chiffre, clip…) ; jamais l'appel à l'action ni la signature.
     check(`${c.id} [${c.behaviour}] : ${sb.scenes.length} scènes, ${total.toFixed(2)} s, concept ${sb.concept}, copie ${video.copyTokens?.source}`, Math.abs(total - c.scope.durationSec) < 0.01 && !['cta', 'logo'].includes(sb.scenes[0].sceneId) && sb.scenes[sb.scenes.length - 1].sceneId === 'logo');
-    // Cran Ultra : le film d'auteur — le directeur l'a inventé, chaque plan écrit par l'IA et revu.
+    // L'enregistrement de la génération (format commun aux documents) : décisions, médias, constats séparés.
+    const rec = video.record;
+    check(`${c.id} : enregistrement de génération (${rec?.decisions.length ?? 0} décision(s), ${rec?.assets.length ?? 0} média(s), ${rec?.issues.blocking.length ?? 0} bloquant(s), ${rec?.issues.advisory.length ?? 0} conseil(s))`, !!rec && rec.deliverable === 'video' && rec.decisions.length > 0 && rec.issues.blocking.length === (sb.qa?.issues.length ?? 0));
+    // Crans High, Max, Ultra : le film d'auteur — le directeur l'a inventé, chaque plan écrit par l'IA ; la
+    // critique visuelle et les tours de correction viennent avec les moyens du cran (Max, Ultra).
     if (sb.authored) {
       const agents = sb.agents || [];
-      check(`${c.id} [ultra] : film d'auteur « ${sb.authored.title} » — ${sb.authored.coded}/${sb.authored.shots} plans créés par l'IA, ${sb.authored.reviewed} revu(s), tours ${JSON.stringify(sb.authored.rounds)}`, sb.authored.coded === sb.authored.shots && sb.scenes.every((sc) => !!sc.code?.tsx) && agents.some((a) => a.agent === 'director' && a.source === 'llm') && agents.some((a) => a.agent.startsWith('shotCoder') && a.source === 'llm') && sb.authored.reviewed >= 2 && Object.values(sb.authored.rounds).some((r) => r >= 2));
-      check(`${c.id} [ultra] : aucune mise en page ni transition du catalogue (coupes franches, chaque plan fait les siennes)`, sb.scenes.every((sc) => !sc.layout && sc.motion?.transition === 'cut') && sb.kit?.background === 'none' && sb.kit?.annotate === 'none');
-      check(`${c.id} [ultra] : durées du directeur, temps de lecture tenus`, sb.scenes.every((sc) => sc.duration >= 1.6));
+      const lvl = video.creativity || 'ultra';
+      const reviewedOk = lvl === 'high' ? sb.authored.reviewed === 0 && Object.values(sb.authored.rounds).every((r) => r <= 2) : sb.authored.reviewed >= 2 && Object.values(sb.authored.rounds).some((r) => r >= 2);
+      check(`${c.id} [${lvl}] : film d'auteur « ${sb.authored.title} » — ${sb.authored.coded}/${sb.authored.shots} plans créés par l'IA, ${sb.authored.reviewed} revu(s), tours ${JSON.stringify(sb.authored.rounds)}`, sb.authored.coded === sb.authored.shots && sb.scenes.every((sc) => !!sc.code?.tsx) && agents.some((a) => a.agent === 'director' && a.source === 'llm') && agents.some((a) => a.agent.startsWith('shotCoder') && a.source === 'llm') && reviewedOk);
+      check(`${c.id} [${lvl}] : aucune mise en page ni transition du catalogue (coupes franches, chaque plan fait les siennes)`, sb.scenes.every((sc) => !sc.layout && sc.motion?.transition === 'cut') && sb.kit?.background === 'none' && sb.kit?.annotate === 'none');
+      check(`${c.id} [${lvl}] : durées du directeur, temps de lecture tenus`, sb.scenes.every((sc) => sc.duration >= 1.6));
       if (c.photos?.length) check(`${c.id} : les photos du commerce sont utilisées par le directeur`, sb.scenes.some((sc) => sc.image));
       check(`${c.id} : musique ${video.music?.title}`, !!video.music && !!video.music.beat);
       continue;
@@ -588,12 +594,12 @@ async function main() {
       if (level === 'low') check(`[low] l'IA écrit les textes, le code décide du reste — ${roles.join(', ')}`, has('writer') && !has('strategist') && !has('artDirector'));
       // Le sound designer ne tourne que si la recherche de musique propose plusieurs pistes (réseau).
       if (level === 'medium') check(`[medium] + la structure (stratège) — ${roles.join(', ')}`, has('writer') && has('strategist') && !has('artDirector') && !has('animator'));
-      if (level === 'high') check(`[high] + mises en page, transitions, relecture — ${roles.join(', ')}`, has('strategist') && has('artDirector') && has('animator') && has('critic'));
-      if (level === 'max') check(`[max] + réglages bornés appliqués (taille, tempo) — ${sb.scenes.filter((sc) => sc.scale).length} scène(s) réglée(s)`, has('artDirector') && sb.scenes.some((sc) => sc.scale && sc.scale !== 1));
+      if (level === 'high') check(`[high] le film d'auteur : directeur + ${sb.authored?.coded}/${sb.authored?.shots} plans écrits par l'IA, un tour, sans critique visuelle — ${roles.join(', ')}`, has('director') && has('shotCoder') && !!sb.authored && sb.authored.reviewed === 0 && !has('artDirector'));
+      if (level === 'max') check(`[max] + critique visuelle et tours de correction — ${sb.authored?.reviewed} plan(s) revu(s)`, has('director') && has('shotCoder') && !!sb.authored && sb.authored.reviewed >= 1);
       if (level === 'ultra') check(`[ultra] le film entier : directeur + ${sb.authored?.coded}/${sb.authored?.shots} plans écrits par l'IA`, has('director') && has('shotCoder') && !!sb.authored && sb.authored.coded === sb.authored.shots && !has('artDirector'));
     }
     const count = (l: string) => llmRoles[l].length;
-    check(`la part décidée par l'IA croît à chaque cran (rôles : ${['low', 'medium', 'high'].map((l) => `${l} ${count(l)}`).join(' → ')} → max réglé → ultra auteur)`, count('low') < count('medium') && count('medium') < count('high'));
+    check(`la part décidée par l'IA croît à chaque cran (rôles : low ${count('low')} → medium ${count('medium')} → high auteur → max critique → ultra trois tours)`, count('low') < count('medium') && llmRoles.high.includes('director') && llmRoles.max.includes('director') && !llmRoles.medium.includes('director'));
   }
 
   // Vidéo d'un contenu du calendrier : aucun message dans la demande (la route le laisse passer),

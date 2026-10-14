@@ -113,6 +113,17 @@ const ALL_CAPABILITIES: ProviderCapabilities = {
   imageGeneration: true,
 };
 
+/** L'adresse de nos machines (API compatible OpenAI), ou `undefined`. */
+export function selfHostedBaseUrl(): string | undefined {
+  return process.env.IDEM_SELFHOSTED_BASE_URL?.trim().replace(/\/+$/, '') || undefined;
+}
+
+/** Les modèles servis par nos machines, par rôle : `IDEM_SELFHOSTED_<ROLE>_MODEL`, sinon `IDEM_SELFHOSTED_MODEL`. */
+export function selfHostedModels(): Record<ModelRole, string> {
+  const fallback = process.env.IDEM_SELFHOSTED_MODEL?.trim() || '';
+  return Object.fromEntries((Object.keys(OPENROUTER_DEFAULT_ROLES) as ModelRole[]).map((role) => [role, process.env[`IDEM_SELFHOSTED_${role.toUpperCase()}_MODEL`]?.trim() || fallback])) as Record<ModelRole, string>;
+}
+
 /** Le registre. */
 export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
   [LLMProvider.OPENROUTER]: {
@@ -130,6 +141,17 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
     extraBody: { thinking: { type: 'disabled' }, ...openRouterRouting() },
     capabilities: { ...ALL_CAPABILITIES },
   },
+  [LLMProvider.SELFHOSTED]: {
+    kind: 'openai-compatible',
+    apiKeyEnv: 'IDEM_SELFHOSTED_API_KEY',
+    baseUrl: selfHostedBaseUrl(),
+    models: selfHostedModels(),
+    defaultFallbackModels: [],
+    concurrency: Number(process.env.IDEM_SELFHOSTED_CONCURRENCY ?? 4),
+    extraBody: {},
+    // Ce que nos machines savent faire se DÉCLARE : on n'aiguille pas la vision vers un modèle qui n'en a pas.
+    capabilities: { tools: process.env.IDEM_SELFHOSTED_TOOLS === '1', grounding: false, streaming: true, vision: process.env.IDEM_SELFHOSTED_VISION === '1', imageGeneration: false },
+  },
 };
 
 /** Retourne la définition du fournisseur (throw si inconnu), modèles résolus à chaud. */
@@ -138,6 +160,8 @@ export function getProvider(provider: LLMProvider): ProviderDefinition {
   if (!def) {
     throw new Error(`Fournisseur IA inconnu dans le registre: ${provider}`);
   }
+  // Nos machines : l'adresse et les modèles se lisent à l'appel (aucune liste blanche OpenRouter ici).
+  if (provider === LLMProvider.SELFHOSTED) return { ...def, baseUrl: selfHostedBaseUrl(), models: selfHostedModels() };
 
   // Modèle d'un rôle : base (`platform_settings/ai`, changement à chaud), puis
   // `IDEM_OPENROUTER_<ROLE>_MODEL`, puis le défaut. Une valeur refusée par la
@@ -163,6 +187,7 @@ export function providerSupports(
 
 /** Le fournisseur a-t-il de quoi répondre (clé présente) ? */
 export function isProviderConfigured(provider: LLMProvider): boolean {
+  if (provider === LLMProvider.SELFHOSTED) return Boolean(selfHostedBaseUrl() && process.env.IDEM_SELFHOSTED_API_KEY);
   return AI_PROVIDERS[provider] ? Boolean(getOpenRouterApiKey()) : false;
 }
 

@@ -263,6 +263,7 @@ const turnBody = z.object({
   videos: z.array(z.object({ url: z.string().url().max(2000), name: z.string().max(80).optional(), posterUrl: z.string().max(2000).optional() })).max(10).optional(),
   photoUrl: z.string().url().max(2000).optional(),
   resume: z.boolean().optional(),
+  treatment: z.object({ id: z.string().max(40), option: z.string().max(40) }).optional(),
   options: z
     .object({
       creativity: z.enum(CREATIVITY_LEVELS as unknown as [string, ...string[]]).optional(),

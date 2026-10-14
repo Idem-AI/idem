@@ -20,7 +20,7 @@ import { cacheService } from '../cache.service';
 import { composeSlideBrief, SLIDE_VISUAL_PLANS } from './prompts/slide-briefs.prompt';
 import { condenseSlide } from './slide-condense';
 import { CoverBriefService } from '../common/coverBrief.service';
-import { composeGraphicPage, coverDateLabel, openGraphicDocument, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
+import { composeGraphicPage, coverDateLabel, GenerationJournal, openGraphicDocument, pageId, withProjectArtDirection } from '../graphic/graphic.service';
 import type { PitchDeckAudience } from './deck-types';
 
 /** Mention de destinataire sur la couverture du deck. */
@@ -276,6 +276,8 @@ export class PitchDeckService extends GenericService {
     const level: CreativityLevel = normalizeCreativity(creativity);
     // High, Max, Ultra : le rédacteur choisit la stratégie visuelle de ses slides et la correction ciblée s'applique.
     const creativeLevel = level === 'high' || level === 'max' || level === 'ultra';
+    // Le journal de la génération : chaque slide y verse sa trace ; l'enregistrement est gardé avec le deck.
+    const journal = new GenerationJournal('pitch-deck', level);
     const total = deckSlides.length;
     const graphic = await openGraphicDocument({
       project: graphicProject,
@@ -297,6 +299,13 @@ export class PitchDeckService extends GenericService {
     // marque et les règles d'écriture. La composition est celle du moteur.
     const stablePrefix = [projectDescription, `BRAND FACTS:\nBrand: ${brandName}`, WRITING_RULES].join('\n\n');
 
+    const renderPage = async (content: Parameters<typeof composeGraphicPage>[1], position: { index: number; total: number }) => sectionHtml(journal.page(await composeGraphicPage(graphic, content, position)));
+    /** L'enregistrement de la génération, gardé avec le deck (décisions, médias, réparations, replis, constats). */
+    const keepRecord = () =>
+      deliverableDocumentStore
+        .update(userId, projectId, 'pitchDeck', deck.id, (current) => ({ ...current, design: { ...(current.design ?? { level, pages: {} }), record: journal.finish() } }), { touch: false })
+        .catch((error: any) => logger.warn('[DECK] Enregistrement de génération non gardé', { error: error?.message }));
+
     const steps: IPromptStep[] = deckSlides.map((definition, index) => {
       const position = { index: index + 1, total };
       // La couverture est dessinée par le moteur : le modèle n'en écrit que les mots, une fois par
@@ -307,8 +316,7 @@ export class PitchDeckService extends GenericService {
           promptConstant: '',
           execute: async () => {
             const brief = await new CoverBriefService(this.promptService).resolve(userId, projectId, project);
-            return renderGraphicPage(
-              graphic,
+            return renderPage(
               coverContent({
                 id: pageId(definition.name),
                 brandName,
@@ -344,11 +352,14 @@ export class PitchDeckService extends GenericService {
           contentBrief: brief,
           ...(intent ? { intent } : {}),
           render: async (content) => {
-            const out = await composeGraphicPage(graphic, content, position);
+            const out = journal.page(await composeGraphicPage(graphic, content, position));
             // Trop de texte pour son rôle (High+) : la slide repart UNE fois chez le rédacteur, avec le constat.
             if (creativeLevel && intent && out.result.issues.some((issue) => issue.code === 'text_heavy')) {
               const condensed = await condenseSlide(content, { userId, projectId, slideName: definition.name, intent });
-              if (condensed) return renderGraphicPage(graphic, condensed, position);
+              if (condensed) {
+                journal.note(`${definition.name} : slide trop textuelle réécrite plus légère par le rédacteur`);
+                return sectionHtml(journal.page(await composeGraphicPage(graphic, condensed, position)));
+              }
             }
             return sectionHtml(out);
           },
@@ -451,6 +462,7 @@ export class PitchDeckService extends GenericService {
 
       // Les empreintes des slides rejoignent la mémoire de la marque : le prochain document ne les répète pas.
       await graphic.remember();
+      await keepRecord();
 
       // The stored PDF no longer matches the regenerated sections
       await cacheService.delete(pdfCacheKey(userId, projectId, deck.id), { prefix: 'pdf' });
@@ -460,6 +472,7 @@ export class PitchDeckService extends GenericService {
 
     const stepResults = await this.processSteps(configuredSteps, project, promptConfig);
     await graphic.remember();
+    await keepRecord();
     sectionResults = stepResults.map((r) => ({ name: r.name, type: r.type, data: r.data, summary: r.summary }));
 
     const updated = await persist();

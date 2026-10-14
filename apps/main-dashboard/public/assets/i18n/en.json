@@ -2402,12 +2402,18 @@
         "a4Portrait": {
           "title": "A4 portrait",
           "description": "A document to print, bind or attach to an email.",
-          "uses": ["Printing and sending by email", "Page-by-page reading, like a booklet"]
+          "uses": [
+            "Printing and sending by email",
+            "Page-by-page reading, like a booklet"
+          ]
         },
         "landscape": {
           "title": "Landscape 16:9",
           "description": "A presentation read on screen and projected in meetings.",
-          "uses": ["Projection and screen sharing", "Comfortable reading on a computer"]
+          "uses": [
+            "Projection and screen sharing",
+            "Comfortable reading on a computer"
+          ]
         },
         "startGeneration": "Generate my guidelines",
         "changeLater": "You can regenerate the guidelines in the other format later."
@@ -4318,6 +4324,48 @@
           "voice": {
             "label": "Voice-over",
             "hint": "A voice tells the message, scene by scene, in your language. The scenes follow it."
+          },
+          "intent": {
+            "title": "How I read your request",
+            "proposal": "AI proposal",
+            "correct": "Adjust",
+            "done": "Done",
+            "loading": "Reading your request…",
+            "objective": "Goal",
+            "mode": "Material",
+            "motion": "Motion",
+            "goals": {
+              "conversion": "Conversion",
+              "product-demo": "Product demo",
+              "website-tour": "Website tour",
+              "explainer": "Explainer",
+              "brand-film": "Brand film",
+              "event": "Event",
+              "story": "Customer story",
+              "announcement": "Announcement",
+              "repurpose": "Short formats"
+            },
+            "modes": {
+              "app-presentation": "Real captures",
+              "footage-edit": "Filmed footage",
+              "pure-motion": "Motion design",
+              "hybrid": "Hybrid",
+              "product-showcase": "Product photos",
+              "data-story": "Data"
+            },
+            "motions": {
+              "kinetic-type": "Kinetic type",
+              "editorial": "Editorial",
+              "geometric": "Geometric",
+              "illustration-2d": "Illustration",
+              "spatial-3d": "3D",
+              "interface": "Motion UI",
+              "cinematic": "Cinematic",
+              "data-led": "Data motion",
+              "collage": "Collage",
+              "minimal-broadcast": "Minimal"
+            },
+            "fieldsHint": "Add these details to your request (step 1), then come back."
           }
         },
         "detail": {

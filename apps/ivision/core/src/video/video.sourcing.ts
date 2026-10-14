@@ -21,6 +21,7 @@ import { VideoMediaAsset } from './video.model';
 import { generateClip, generateStill, MediaStorage, Orientation, searchPexelsPhotos, searchPexelsVideos } from './video.media';
 import { AgentRun, callAgent } from './video.agents';
 import { LETTERS, pickOption } from '../creativity/agent-io';
+import { matchAsset, type AssetRecord, type AssetRequirement } from '@idem/graphic-engine';
 
 /** Trois essais de génération par média avant de chercher sur Pexels (demande produit). */
 export const GENERATION_ATTEMPTS = 3;
@@ -239,6 +240,10 @@ export interface SourcingReport {
   /** Essais de génération en échec (tous médias confondus). */
   failedAttempts: number;
   fromVisuals: number;
+  /** Médias repris du registre du projet (déjà obtenus par un autre livrable). */
+  fromRegistry?: number;
+  /** Le plan de médias résolu, plan par plan : `scène.rang ← source (fournisseur)` ou `scène.rang ✗`. */
+  assets?: string[];
   /**
    * La génération a été coupée pour toute la vidéo : `payment` (le fournisseur n'a plus de
    * crédits — 402), `unavailable` (port non branché, service en panne répétée).
@@ -275,6 +280,11 @@ export interface SourcingOptions {
   visualPhotos: string[];
   /** Le personnage voulu (cohérence et requête de banque d'images). */
   cast?: string;
+  /**
+   * Le REGISTRE des ressources du projet (commun aux documents et aux vidéos) : un média déjà obtenu qui
+   * convient au plan est repris avant toute génération ; ce qui est produit y est inscrit.
+   */
+  registry?: { records: AssetRecord[]; remember: (records: AssetRecord[]) => Promise<void> };
   onProgress?: (done: number, total: number, last?: { kind: string; origin: string }) => void;
 }
 
@@ -385,7 +395,33 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
     return null;
   };
 
-  const queue = [...shots];
+  // Le registre d'abord : un média du projet qui montre ce que le plan demande (photo du deck, clip d'une
+  // autre vidéo, photo importée) est repris tel quel — ni génération, ni banque.
+  const registryUsed = new Set<string>();
+  const ratio = opts.orientation === 'landscape' ? 16 / 9 : opts.orientation === 'square' ? 1 : 9 / 16;
+  const requirementOf = (plan: ShotPlan): AssetRequirement => ({
+    assetId: `scene-${plan.scene}-${plan.slot}`,
+    role: plan.kind === 'video' ? 'clip' : 'photo',
+    purpose: (plan.texts.join(' ') || plan.query).slice(0, 240) || plan.query,
+    subject: `${plan.query}. ${plan.shot}`.slice(0, 240),
+    aspectRatio: ratio,
+    safeArea: 'none',
+    sources: ['user', 'project', 'generated', 'stock'],
+    fallback: 'skip',
+    target: {},
+  });
+  for (const plan of shots) {
+    const hit = opts.registry?.records.length ? matchAsset(requirementOf(plan), opts.registry.records, registryUsed) : null;
+    if (!hit) continue;
+    registryUsed.add(hit.url);
+    const asset: VideoMediaAsset = { id: `registry-${plan.scene}-${plan.slot}`, kind: hit.kind, url: hit.url, origin: hit.source === 'user' ? 'upload' : hit.source === 'stock' ? 'pexels' : hit.source === 'generated' ? 'generated' : 'library', name: hit.subject.slice(0, 80), ...(hit.width ? { width: hit.width } : {}), ...(hit.height ? { height: hit.height } : {}), ...(hit.provenance.attribution ? { credit: hit.provenance.attribution } : {}) };
+    byNeed.set(plan, asset);
+    assets.push(asset);
+    report.fromRegistry = (report.fromRegistry ?? 0) + 1;
+    tick(asset);
+  }
+
+  const queue = shots.filter((plan) => !byNeed.has(plan));
   const worker = async () => {
     for (let plan = queue.shift(); plan; plan = queue.shift()) {
       const asset = plan.kind === 'video' ? await clip(plan) : await still(plan);
@@ -449,6 +485,23 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
     byNeed.set(plan, asset);
     assets.push(asset);
     report.fromVisuals++;
+  }
+  report.assets = shots.map((plan) => {
+    const a = byNeed.get(plan);
+    const id = `scene-${plan.scene}.${plan.slot}:${plan.kind === 'video' ? 'clip' : 'photo'}`;
+    if (!a) return `${id} ✗`;
+    const source = a.id.startsWith('registry-') ? 'registre' : a.origin === 'pexels' ? 'stock' : a.origin === 'visual' ? 'project' : a.origin;
+    return `${id} ← ${source} (${a.credit || a.origin})`.slice(0, 160);
+  });
+  // Ce qui vient d'être généré ou trouvé rejoint le registre du projet (le deck ou la vidéo suivante le reprendra).
+  if (opts.registry) {
+    const fresh: AssetRecord[] = [];
+    for (const [plan, asset] of byNeed) {
+      if (asset.origin !== 'generated' && asset.origin !== 'pexels') continue;
+      if (asset.id.startsWith('registry-')) continue;
+      fresh.push({ id: `video:${asset.id}`.slice(0, 120), url: asset.url, kind: asset.kind === 'video' ? 'video' : 'image', role: asset.kind === 'video' ? 'clip' : 'photo', source: asset.origin === 'pexels' ? 'stock' : 'generated', subject: `${plan.query}. ${plan.shot}`.slice(0, 240), ...(asset.width ? { width: asset.width } : {}), ...(asset.height ? { height: asset.height } : {}), origin: 'video', provenance: { provider: asset.origin === 'pexels' ? 'pexels' : 'openrouter', ...(asset.credit ? { attribution: asset.credit.slice(0, 160) } : {}), ...(asset.sourceUrl ? { sourceUrl: asset.sourceUrl } : {}) }, createdAt: new Date().toISOString() });
+    }
+    if (fresh.length) await opts.registry.remember(fresh).catch((error: any) => logger.warn('video.media.registry_failed', { error: error?.message }));
   }
   return { byNeed, assets, report };
 }

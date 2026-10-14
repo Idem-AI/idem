@@ -36,6 +36,7 @@ import { colorsNamed } from '../../../core/src/brand/color-words';
 import { blueprintOf, getReference, referenceView } from './references.service';
 import { createVideo, motionVideos, scopeOf } from './videos.service';
 import { montages, ownsUploads, refundMontage } from './montages.service';
+import { clarifyVideoIntent, classifyVideoIntent, IntentAsset } from '../../../core/src/video/video.intent';
 import { MontageInputError } from '../../../core/src/montage/montage.service';
 import { meanVolume } from '../../../core/src/montage/montage.assemble';
 import type { VideoFormat } from '../../../core/src/video/video.model';
@@ -71,6 +72,8 @@ export interface TurnInput {
   options?: ChatOptions;
   /** Rejoue la demande en attente (après un choix de palette, un modèle ajouté…). */
   resume?: boolean;
+  /** La réponse à une question de clarification (`video-intent`) : quoi faire des vidéos déposées. */
+  treatment?: { id: string; option: string };
 }
 
 // ─── Conversations ──────────────────────────────────────────────────────────
@@ -193,7 +196,7 @@ async function push(sessionId: string, msg: ChatMessage, set: Partial<ChatSessio
   );
 }
 
-const ASK_TEXT: Record<ChatAsk['kind'], (mode: ChatMode) => { key: string; text: string }> = {
+const ASK_TEXT: Record<Exclude<ChatAsk['kind'], 'video-intent'>, (mode: ChatMode) => { key: string; text: string }> = {
   brand: () => ({ key: 'chat.ask.brand', text: 'Pour que le résultat respecte votre marque : collez le lien de votre site, importez un projet IDEM, ou choisissez une marque.' }),
   'brand-choice': () => ({ key: 'chat.ask.brandChoice', text: 'J’ai lu votre site. Choisissez la palette et la typographie qui vous ressemblent — je les applique à tout ce que je crée.' }),
   reference: (mode) =>
@@ -203,8 +206,9 @@ const ASK_TEXT: Record<ChatAsk['kind'], (mode: ChatMode) => { key: string; text:
 };
 
 async function ask(session: ChatSession, a: ChatAsk, pending: ChatSession['pending'], emit: (e: ChatEvent) => void): Promise<void> {
-  const { key, text } = ASK_TEXT[a.kind](session.mode);
-  const msg = message('assistant', text, { ask: a, i18n: { key } });
+  const { key, text } = a.kind === 'video-intent' ? { key: 'chat.ask.videoIntent', text: a.question } : ASK_TEXT[a.kind](session.mode);
+  // La question de clarification est rédigée dans la langue de la demande : affichée telle quelle.
+  const msg = message('assistant', text, { ask: a, ...(a.kind === 'video-intent' ? {} : { i18n: { key } }) });
   await push(session._id, msg, pending ? { pending } : {});
   emit({ type: 'message', message: msg });
 }
@@ -464,9 +468,31 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
   //    intro et fin en motion design) ; sans parole, elles servent de matière au motion design. ──
   if (session.mode === 'video' && videos.length) {
     if (!ownsUploads(userId, videos.map((v) => v.url))) throw new HttpError(400, 'invalid_input', 'Vidéo inconnue : ajoutez-la de nouveau.');
-    const speaking = await Promise.all(videos.map((v) => meanVolume(v.url).then((db) => db !== null && db > -50).catch(() => false)));
+    // Des vidéos déposées SANS consigne : le média ne dit pas ce qu'il faut en faire. Une seule question,
+    // avant tout débit, avec des choix adaptés (video.intent.ts) — jamais quand la demande le dit déjà.
+    const said = (url ? rest : text).trim();
+    if (!input.treatment) {
+      const assets: IntentAsset[] = videos.map((v, i) => ({ id: `video-${i + 1}`, kind: 'video' as const, ...(v.name ? { note: v.name } : {}) }));
+      const lang = language || 'fr';
+      const intent = classifyVideoIntent({ request: said, assets, language: lang });
+      const question = clarifyVideoIntent(intent, { request: said, assets, language: lang });
+      if (question && question.id === 'video-treatment') {
+        await ask(session, { kind: 'video-intent', clarificationId: question.id, question: question.question, options: question.options.map((o) => ({ id: o.id, label: o.label, description: o.description })) }, { text: said, options, ...(media.length ? { media } : {}), videos }, emit);
+        return;
+      }
+    }
+    const treatment = input.treatment?.id === 'video-treatment' ? input.treatment.option : undefined;
+    // Le choix fait : montage, sous-titres, clips courts → la vidéo est retravaillée ; voix off ou habillage
+    // animé → elle devient la matière du motion design.
+    if (treatment === 'edit' || treatment === 'subtitles' || treatment === 'clips') {
+      const hint = treatment === 'subtitles' ? 'Ajoute des sous-titres.' : treatment === 'clips' ? 'Découpe en clips courts pour les réseaux.' : 'Améliore le montage.';
+      await startMontage(userId, session, brand, videos, `${said} ${hint}`.trim(), options, emit);
+      return;
+    }
+    if (treatment === 'voiceover') options.voice = true;
+    const speaking = treatment ? [false] : await Promise.all(videos.map((v) => meanVolume(v.url).then((db) => db !== null && db > -50).catch(() => false)));
     if (speaking.some(Boolean)) {
-      await startMontage(userId, session, brand, videos, url ? rest : text, options, emit);
+      await startMontage(userId, session, brand, videos, said, options, emit);
       return;
     }
     // Aucune parole : les vidéos deviennent des plans du motion design.

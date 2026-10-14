@@ -49,8 +49,8 @@ export { describeSectionPlan, normalizeSectionPlan, sectionPlanContract } from '
 export type { SectionPlan } from './agents/content-plan';
 
 // ── L'intention des pages et le planificateur de médias ────────────────────────────────────────
-export { applyAssets, GENERATION_CAP, iconFor, nativeProvider, planAssets, resolveAssets } from './asset-planner';
-export type { AssetContext, AssetProvider, AssetProviders, AssetResolution } from './asset-planner';
+export { applyAssets, GENERATION_CAP, iconFor, matchAsset, nativeProvider, planAssets, resolveAssets, subjectWords } from './asset-planner';
+export type { AssetContext, AssetProvider, AssetProviders, AssetRegistry, AssetResolution } from './asset-planner';
 export { sectionTextLoad, TEXT_BUDGETS, textLoad } from './composition-engine/analyze';
 export type { TextBudgetKind } from './composition-engine/analyze';
 
@@ -71,6 +71,8 @@ export type { Measurement } from './quality-engine/measure';
 
 // ── Observabilité ──────────────────────────────────────────────────────────────────────────────
 export { summarize } from './observability/traces';
+export { recordFromTraces, recordSummary } from './observability/record';
+export type { GenerationDecision, GenerationRecord } from './observability/record';
 export type { GenerationTrace, TaskName, TaskTrace } from './observability/traces';
 
 // ── Adaptateurs ────────────────────────────────────────────────────────────────────────────────

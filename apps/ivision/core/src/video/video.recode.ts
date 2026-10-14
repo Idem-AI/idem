@@ -97,7 +97,8 @@ export async function recodeScene(input: RecodeInput): Promise<RecodeResult> {
     input.orchestrator.run<string | null>({
       role: 'sceneCoder',
       key: `sceneEditor:${i + 1}${attempt ? ':repair' : ''}`,
-      minLevel: 'ultra',
+      // Les plans d'un film d'auteur se retouchent au cran où il a été fait (High et au-delà).
+      minLevel: 'high',
       profile: 'coder',
       prompt: () => ({ system: base.system, user }),
       parse: (raw) => extractCode(raw) ?? undefined,

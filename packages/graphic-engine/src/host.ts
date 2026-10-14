@@ -10,8 +10,8 @@ import { BrowserOptions, configureBrowser } from './quality-engine/browser';
 
 export type AgentProfile = 'agents' | 'critic' | 'coder';
 
-/** Un appel de modèle. `validate` permet au runtime d'escalader d'un étage si la réponse est illisible. */
-export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean }) => Promise<string>;
+/** Un appel de modèle. `validate` permet au runtime d'escalader d'un étage si la réponse est illisible ; `level` règle les plafonds du rôle. */
+export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean; level?: import('./contracts/common').CreativityLevel }) => Promise<string>;
 
 export interface EngineLogger {
   info: (message: string, meta?: Record<string, unknown>) => void;
@@ -42,6 +42,8 @@ export interface EngineHost {
    * les essaie dans l'ordre fixe et pose ce qu'ils trouvent. Sans eux, seules les icônes locales (natives).
    */
   assetProviders?: import('./asset-planner').AssetProviders;
+  /** Le registre des ressources du projet, commun aux documents et aux vidéos (réutiliser avant de générer). */
+  assetRegistry?: import('./asset-planner').AssetRegistry;
 }
 
 const silent: EngineLogger = { info: () => undefined, warn: () => undefined, error: () => undefined };

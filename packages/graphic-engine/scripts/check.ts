@@ -34,8 +34,10 @@ import { fitAndMeasure } from '../src/quality-engine/measure';
 import { FORMATS } from '../src/design-system/formats';
 import type { GenerationTrace } from '../src/observability/traces';
 import { ASK, BRANDS, capture, CARD_BACK, CARD_FRONT, CHARTER, coverSection, FINANCE_BP, flyer, MARKET, MODEL_HUB, photo, PROBLEM, PROBLEM_VISUAL, PRODUCT_CAPTURE, SUMMARY_BP, SWOT_BP, TEAM, TRACTION, VISION_BLEED } from './fixtures';
-import { applyAssets, GENERATION_CAP, iconFor, planAssets, resolveAssets } from '../src/asset-planner';
-import type { AssetProviders } from '../src/asset-planner';
+import { applyAssets, GENERATION_CAP, iconFor, matchAsset, planAssets, resolveAssets } from '../src/asset-planner';
+import type { AssetProviders, AssetRegistry } from '../src/asset-planner';
+import type { AssetRecord } from '../src/contracts/slide-intent';
+import { recordFromTraces } from '../src/observability/record';
 import { sectionTextLoad, TEXT_BUDGETS } from '../src/composition-engine/analyze';
 import { sectionFromModel } from '../src/adapters/sections';
 import { contentContract } from '../src/agents/content-contract';
@@ -242,7 +244,7 @@ async function main(): Promise<void> {
   const order = ['low', 'medium', 'high', 'max', 'ultra'] as const;
   ok('l’exploration croît avec le cran (combinaisons, menu, dispersion)', order.every((l, i) => i === 0 || (POLICIES[l].paramSamples >= POLICIES[order[i - 1]].paramSamples && POLICIES[l].menu >= POLICIES[order[i - 1]].menu && POLICIES[l].noise >= POLICIES[order[i - 1]].noise)));
   ok('aucun appel de modèle à Low et Medium', !POLICIES.low.agents.pick && !POLICIES.medium.agents.pick);
-  ok('High choisit, Max règle, Ultra compose', POLICIES.high.agents.pick && !POLICIES.high.agents.tune && POLICIES.max.agents.tune && POLICIES.ultra.agents.author);
+  ok('High+ : l’auteur compose (repli choisi à High, réglé à Max) ; révisions sur critique à Max et Ultra', order.every((l) => POLICIES[l].agents.author === (l === 'high' || l === 'max' || l === 'ultra')) && POLICIES.high.agents.pick && !POLICIES.high.agents.tune && POLICIES.max.agents.tune && POLICIES.high.authorRevisions === 0 && POLICIES.max.authorRevisions >= 1 && POLICIES.ultra.authorRevisions > POLICIES.max.authorRevisions);
   ok('le jugement ne bloque qu’à Low et Medium ; la validation reste stricte partout', POLICIES.low.judgementBlocks && POLICIES.medium.judgementBlocks && !POLICIES.high.judgementBlocks && order.every((l) => POLICIES[l].validationPolicy === 'strict' && POLICIES[l].allowCustomCss === false));
 
   // ── §9 Agents simulés ────────────────────────────────────────────────────────────────────
@@ -253,6 +255,16 @@ async function main(): Promise<void> {
   const authoredText = JSON.stringify(authored?.root ?? {});
   ok('arbre d’auteur : texte libre retiré, doublon et bloc inconnu écartés, bloc oublié ajouté', Boolean(authored) && !authoredText.includes('INVENTÉ') && (authoredText.match(/"ref":"b1"/g) ?? []).length === 1 && authoredText.includes('"ref":"b2"') && !authoredText.includes('"zz"'));
   ok('arbre d’auteur : un décor ne dépasse pas 0,15 d’opacité', (authored?.decor[0]?.node as { opacity?: number } | undefined)?.opacity === 0.15);
+  const capSection = PRODUCT_CAPTURE('/shot.png');
+  const withIcons = { ...PROBLEM_VISUAL, blocks: [{ ...PROBLEM_VISUAL.blocks[0], items: (PROBLEM_VISUAL.blocks[0] as { items: Array<Record<string, unknown>> }).items.map((it, i) => ({ ...it, icon: ['ship', 'coffee', 'plant'][i] })) }] } as SectionContent;
+  const layered = parseAuthored(JSON.stringify({ root: { t: 'layer', items: [{ at: { x: 0, y: 0, w: 100, h: 100 }, node: { t: 'image', ref: 'shot', url: 'https://evil.example/x.png' } }, { at: { x: 5, y: 10, w: 40, h: 60 }, z: 2, node: { t: 'box', surface: 'ground', children: [{ t: 'text', role: 'title', ref: 'title' }, { t: 'block', ref: 'b1' }] } }] } }), capSection, FORMATS['slide-16x9']);
+  const layeredText = JSON.stringify(layered?.root ?? {});
+  ok('auteur : calque superposé, image d’une figure du contenu (adresse écrite par le modèle retirée)', Boolean(layered) && layeredText.includes('"t":"layer"') && layeredText.includes('"ref":"shot"') && !layeredText.includes('evil.example'));
+  const byField = parseAuthored(JSON.stringify({ root: { t: 'grid', cols: 3, children: [0, 1, 2].map((i) => ({ t: 'stack', children: [{ t: 'icon', name: ['ship', 'coffee', 'plant'][i] }, { t: 'text', role: 'subtitle', ref: `b1.items.${i}.label` }, { t: 'text', role: 'small', ref: `b1.items.${i}.detail` }] })).concat([{ t: 'stack', children: [{ t: 'icon', name: 'rocket' }] }]) } }), withIcons, FORMATS['slide-16x9']);
+  const byFieldText = JSON.stringify(byField?.root ?? {});
+  ok('auteur : points posés un à un avec leurs icônes, sans doublon ; icône étrangère retirée', Boolean(byField) && !byFieldText.includes('"t":"block"') && !byFieldText.includes('rocket') && (byFieldText.match(/"t":"icon"/g) ?? []).length === 3);
+  const partial = parseAuthored(JSON.stringify({ root: { t: 'stack', children: [{ t: 'text', role: 'subtitle', ref: 'b1.items.0.label' }] } }), withIcons, FORMATS['slide-16x9']);
+  ok('auteur : un bloc posé à moitié champ par champ est reposé en entier', Boolean(partial) && JSON.stringify(partial?.root).includes('"t":"block","ref":"b1"') && !JSON.stringify(partial?.root).includes('items.0.label'));
   const critique = parseCritique('{"hierarchy":4,"alignment":5,"legibility":2,"brand":4,"balance":4,"fit":4}');
   ok('critique : six critères, le plus faible compte double', critique?.weakest === 'legibility' && critique.score === Math.round(((4 + 5 + 2 + 4 + 4 + 4 + 2) / 7) * 100) / 100);
   ok('réparation ciblée : action du menu lue, action inventée refusée', parseRepair('{"action":"compact:b1"}', 2, ['b1'])?.kind === 'compact' && parseRepair('{"action":"rewrite everything"}', 2, ['b1']) === undefined);
@@ -262,7 +274,7 @@ async function main(): Promise<void> {
     onTrace: (t) => traces.push(t),
     agentCall: () => async ({ role, system }) => {
       if (role === 'graphic.artDirector') return system.includes('"params"') ? '{"choice": 2, "params": {}, "tension": "calm", "accent": "none"}' : '{"choice": 2, "why": "variété"}';
-      if (role === 'graphic.composer') return JSON.stringify({ root: { t: 'stack', grow: true, gap: 'lg', children: [{ t: 'text', role: 'kicker', ref: 'kicker' }, { t: 'text', role: 'display', ref: 'title', size: '3xl' }, { t: 'grid', cols: [5, 7], gap: 'xl', grow: true, children: [{ t: 'block', ref: 'b1' }, { t: 'block', ref: 'b2' }] }] } });
+      if (role === 'graphic.director') return JSON.stringify({ root: { t: 'stack', grow: true, gap: 'lg', children: [{ t: 'text', role: 'kicker', ref: 'kicker' }, { t: 'text', role: 'display', ref: 'title', size: '3xl' }, { t: 'grid', cols: [5, 7], gap: 'xl', grow: true, children: [{ t: 'block', ref: 'b1' }, { t: 'block', ref: 'b2' }] }] } });
       return '';
     },
   });
@@ -271,9 +283,9 @@ async function main(): Promise<void> {
     return doc.composeSection(MARKET, { index: 2, total: 6 });
   };
   const high = await run('high');
-  ok('High : le directeur artistique a choisi (trace « llm »)', high.trace.tasks.some((t) => t.task === 'creative.pick' && t.source === 'llm'));
+  ok('High : l’auteur compose (motif « authored »), le choix du directeur sert de repli', high.spec.pattern.id === 'authored' && high.trace.tasks.some((t) => t.task === 'creative.pick' && t.source === 'llm') && high.trace.tasks.some((t) => t.task === 'creative.author' && t.source === 'llm'));
   const max = await run('max');
-  ok('Max : choix et réglage en UN appel', max.trace.tasks.filter((t) => t.source === 'llm').length === 1 && max.trace.tasks.some((t) => t.task === 'creative.tune'));
+  ok('Max : repli choisi et réglé en UN appel, puis l’arbre d’auteur', max.trace.tasks.filter((t) => t.source === 'llm').length === 2 && max.trace.tasks.some((t) => t.task === 'creative.tune') && max.spec.pattern.id === 'authored');
   const ultra = await run('ultra');
   ok('Ultra : l’arbre d’auteur est retenu (motif « authored »)', ultra.spec.pattern.id === 'authored' && ultra.trace.tasks.some((t) => t.task === 'creative.author' && t.source === 'llm'));
   configureGraphicEngine({ agentCall: () => async () => 'je ne sais pas' });
@@ -337,6 +349,18 @@ async function main(): Promise<void> {
     const placed = applyAssets(bleed, high, bleedReqs);
     ok('le média trouvé devient une figure posée par le code (origine système)', placed.section.blocks.some((b) => b.kind === 'figure' && b.origin === 'system'));
 
+    // Le registre du projet : une image déjà obtenue par un autre livrable est reprise avant toute génération.
+    const record = (o: Partial<AssetRecord>): AssetRecord => ({ id: 'r', url: '/r.png', kind: 'image', role: 'photo', source: 'generated', subject: 'coffee plantation at sunrise in Cameroon', origin: 'video', provenance: { provider: 'openrouter' }, ...o });
+    const coffeeReq = { ...bleedReqs[0], subject: 'a coffee plantation at dawn, Cameroon', purpose: 'local coffee' };
+    ok('registre : sujet proche apparié, sujet étranger refusé, capture réservée aux captures', matchAsset(coffeeReq, [record({ url: '/a.png', subject: 'busy office in Lagos' }), record({ url: '/b.png' })])?.url === '/b.png' && matchAsset(coffeeReq, [record({ subject: 'a red sports car' })]) === null && matchAsset({ ...coffeeReq, role: 'product-capture', sources: ['capture'] }, [record({ role: 'photo', source: 'capture' })]) === null);
+    const remembered: AssetRecord[] = [];
+    const registry: AssetRegistry = { list: async () => [record({ url: '/reuse.png' })], remember: async (_c, r) => void remembered.push(...r) };
+    calls.length = 0;
+    const reused = await resolveAssets([coffeeReq], providers, { level: 'medium', documentType: 'pitch-deck' }, { generationLeft: 0, registry });
+    ok('registre : image déjà générée reprise même à Medium, sans appeler la génération ni la banque', reused.resolved[0]?.url === '/reuse.png' && !calls.includes('generated') && !calls.includes('stock') && reused.log[0].includes('registre'));
+    await resolveAssets(bleedReqs, providers, { level: 'high', documentType: 'pitch-deck' }, { generationLeft: 3, registry: { list: async () => [], remember: async (_c, r) => void remembered.push(...r) } });
+    ok('registre : ce qui vient d’être généré y est inscrit avec sa provenance', remembered.some((r) => r.source === 'generated' && r.origin === 'deck' && r.provenance.provider === 'generated'));
+
     // La composition : l'intention fait choisir un motif qui la sert (12 projets, sans rendu).
     const serves = async (content: SectionContent, wanted: string): Promise<number> => {
       let hits = 0;
@@ -364,6 +388,11 @@ async function main(): Promise<void> {
     ok('moteur : chaque point reçoit son icône locale, sans réseau ni appel', (iconsOut.result.html.match(/data-ge-icon=/g) ?? []).length === 3 && iconsOut.result.usage.agentCalls === 0);
     const heavyOut = await iconsDoc.composeSection({ ...TEAM, intent: { visualStrategy: 'illustration', textBudget: TEXT_BUDGETS.statement } }, { index: 3, total: 6 });
     ok('moteur : une page au-dessus de son budget porte le conseil « text_heavy » (jamais bloquant)', heavyOut.result.issues.some((i) => i.code === 'text_heavy' && i.severity === 'advisory'));
+
+    // L'enregistrement d'une génération : décisions (code / modèle, rôle, modèle résolu), médias, replis, constats séparés.
+    const outs = [out, iconsOut, heavyOut];
+    const rec = recordFromTraces({ deliverable: 'pitch-deck', level: 'medium', traces: [...outs.map((o) => o.trace), { ...out.trace, sectionId: 'authored-page', tasks: [...out.trace.tasks, { task: 'creative.author' as const, source: 'llm' as const, role: 'graphic.director', inputTokens: 900, outputTokens: 400, ms: 12, outcome: 'accepted' as const }], repairs: [{ code: 'author_fallback', detail: 'arbre bloquant : repli sur slide.stacked', by: 'code' as const }] }], issues: outs.flatMap((o) => o.result.issues.map((i) => ({ scope: o.result.sectionId ?? '?', code: i.code, severity: i.severity }))), modelOf: (role) => (role === 'graphic.director' ? 'test/model' : undefined) });
+    ok('enregistrement : décisions du code et du modèle (avec le modèle résolu), médias tracés, repli dit, conseil séparé des bloquants', rec.decisions.some((d) => d.source === 'code') && rec.decisions.some((d) => d.source === 'llm' && d.model === 'test/model') && rec.assets.some((a) => a.includes('← user')) && rec.fallbacks.some((f) => f.includes('repli sur slide.stacked')) && rec.issues.advisory.some((i) => i.includes('text_heavy')) && rec.issues.blocking.length === 0);
   }
 
   // ── §11 Rendus mesurés dans Chromium ─────────────────────────────────────────────────────
@@ -415,6 +444,31 @@ async function main(): Promise<void> {
     const crowded = { ...plain.spec, decor: [{ at: { x: 0, y: 0, w: 70, h: 45 }, z: 0, node: { t: 'shape' as const, shape: 'rings' as const, tone: 'brand' as const, opacity: 0.85, size: 'fill' as const } }, { at: { x: 0, y: 0, w: 100, h: 0.9 }, z: 0, node: { t: 'box' as const, surface: 'brand' as const, children: [] } }] };
     const cleaned = await deck.composeSection(PROBLEM, { index: 2, total: 6, replay: crowded as never });
     ok('décor d’encre sur un texte : retiré seul (le filet reste)', (cleaned.spec.decor ?? []).length === 1 && cleaned.spec.decor?.[0].node.t === 'box' && cleaned.trace.repairs.some((r) => r.code === 'drop_decor'));
+    // L'auteur révise sur la critique (Max) : une note faible renvoie l'arbre à SON auteur, jamais à un gabarit.
+    const shot = capture('#1A2A4F', '#E5EAF7');
+    const capSlide = PRODUCT_CAPTURE(shot);
+    const treeA = { root: { t: 'stack', grow: true, gap: 'lg', children: [{ t: 'text', role: 'title', ref: 'title' }, { t: 'block', ref: 'b1' }, { t: 'image', ref: 'shot', grow: true }] } };
+    const treeB = { root: { t: 'layer', items: [{ at: { x: 38, y: 4, w: 62, h: 92 }, node: { t: 'image', ref: 'shot', fit: 'cover', radius: 'lg' } }, { at: { x: 0, y: 8, w: 34, h: 84 }, z: 2, node: { t: 'stack', gap: 'lg', justify: 'center', children: [{ t: 'text', role: 'kicker', ref: 'kicker' }, { t: 'text', role: 'title', ref: 'title', size: '2xl' }, { t: 'block', ref: 'b1', variant: { style: 'list' } }] } }] } };
+    let critiques = 0;
+    let revisions = 0;
+    configureGraphicEngine({
+      agentCall: () => async ({ role, user }) => {
+        if (role === 'graphic.artDirector') return '{"choice": 1, "params": {}, "tension": "calm", "accent": "none"}';
+        if (role === 'graphic.director') {
+          if (user.includes('YOUR PREVIOUS DESIGN')) revisions += 1;
+          return JSON.stringify(user.includes('YOUR PREVIOUS DESIGN') ? treeB : treeA);
+        }
+        return '';
+      },
+      analyzeImage: async () => {
+        critiques += 1;
+        return critiques === 1 ? '{"hierarchy":3,"alignment":3,"legibility":4,"brand":3,"balance":2,"fit":3}' : '{"hierarchy":4,"alignment":4,"legibility":4,"brand":4,"balance":4,"fit":4}';
+      },
+    });
+    const maxDoc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, creativity: 'max', seed: 'author-revise', sections: [{ id: capSlide.id }] });
+    const revised = await maxDoc.composeSection(capSlide, { index: 2, total: 6 });
+    configureGraphicEngine({ agentCall: undefined, analyzeImage: undefined });
+    ok('Max : l’arbre d’auteur jugé faible est révisé par son auteur (calque superposé), le meilleur gardé', revisions === 1 && revised.spec.pattern.id === 'authored' && revised.spec.root.t === 'layer' && revised.trace.repairs.some((r) => r.code === 'author_revised') && !revised.result.issues.some((i) => i.severity === 'blocking'), `${revisions} révision(s), ${revised.trace.repairs.map((r) => r.code).join(',')}`);
     await closeBrowser();
   }
 

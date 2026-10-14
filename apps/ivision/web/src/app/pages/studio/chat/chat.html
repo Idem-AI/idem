@@ -146,6 +146,18 @@
                     <p class="text-xs text-[var(--color-text-tertiary)]">{{ (mode() === 'video' ? 'chat.ask.modelHintVideo' : 'chat.ask.modelHintImage') | translate }}</p>
                   </div>
                 }
+                @case ('video-intent') {
+                  <ul class="mt-3 flex flex-col gap-2" role="list">
+                    @for (o of $any(m.ask).options; track o.id) {
+                      <li>
+                        <button type="button" class="outer-button w-full text-left flex flex-col items-start gap-0.5 py-2" (click)="resume({ treatment: { id: $any(m.ask).clarificationId, option: o.id } })">
+                          <span class="text-sm font-medium">{{ o.label }}</span>
+                          <span class="text-xs text-[var(--color-text-tertiary)]">{{ o.description }}</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
               }
             }
 

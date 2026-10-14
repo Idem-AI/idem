@@ -59,7 +59,7 @@ export class MotionVideoService {
    * choisit le type (ou en combine plusieurs) d'après la demande ; `contentId` :
    * vidéo d'un contenu du calendrier (brief et type viennent du contenu).
    */
-  createStream(projectId: string, input: { brief: Partial<VideoBrief>; scope: VideoScope; type: VideoType | 'auto'; contentId?: string; creativity?: CreativityLevel }): Observable<VideoStreamEvent> {
+  createStream(projectId: string, input: { brief: Partial<VideoBrief>; scope: VideoScope; type: VideoType | 'auto'; contentId?: string; creativity?: CreativityLevel; intent?: VideoIntentOverride; clarification?: { id: string; option: string } }): Observable<VideoStreamEvent> {
     return from(this.tokenService.getTokenAsync()).pipe(
       switchMap(
         (token: string | null) =>
@@ -150,6 +150,11 @@ export class MotionVideoService {
   }
 
   /** « Améliorer ma demande » : réécriture précise, faits conservés (gratuit). */
+  /** L'interprétation d'une demande avant création (gratuite) : objectif, matière, mouvement, et la question éventuelle. */
+  interpret(projectId: string, input: { brief: Partial<VideoBrief>; type: VideoType | 'auto'; creativity?: CreativityLevel }): Observable<VideoInterpretation> {
+    return this.http.post<VideoInterpretation>(`${this.apiUrl}/${projectId}/videos/interpret`, input);
+  }
+
   enhanceRequest(projectId: string, text: string, media: VideoMediaAsset[]): Observable<{ prompt: string; source: 'llm' | 'template' }> {
     return this.http.post<{ prompt: string; source: 'llm' | 'template' }>(`${this.apiUrl}/${projectId}/videos/enhance`, {
       text,
@@ -170,4 +175,31 @@ function safeJson(text: string): any {
   } catch {
     return null;
   }
+}
+
+export const VIDEO_GOALS = ['conversion', 'product-demo', 'website-tour', 'explainer', 'brand-film', 'event', 'story', 'announcement', 'repurpose'] as const;
+export const PRODUCTION_MODES = ['app-presentation', 'footage-edit', 'pure-motion', 'hybrid', 'product-showcase', 'data-story'] as const;
+export const MOTION_LANGUAGES = ['kinetic-type', 'editorial', 'geometric', 'illustration-2d', 'spatial-3d', 'interface', 'cinematic', 'data-led', 'collage', 'minimal-broadcast'] as const;
+export type VideoGoal = (typeof VIDEO_GOALS)[number];
+export type ProductionMode = (typeof PRODUCTION_MODES)[number];
+export type MotionLanguage = (typeof MOTION_LANGUAGES)[number];
+
+/** L'intention lue par le serveur (video.intent.ts) : seuls les champs que l'interface affiche ou corrige. */
+export interface VideoIntent {
+  objective: VideoGoal;
+  productionModes: ProductionMode[];
+  motionDirection: MotionLanguage[];
+  voiceover: 'yes' | 'no' | 'ask';
+  subtitles: 'yes' | 'no' | 'ask';
+  confidence: number;
+  pipeline: 'motion' | 'montage';
+}
+
+/** Ce que l'utilisateur corrige dans l'interprétation. */
+export type VideoIntentOverride = Partial<Pick<VideoIntent, 'objective' | 'productionModes' | 'motionDirection'>>;
+
+export interface VideoInterpretation {
+  intent: VideoIntent;
+  interpretation: { tags: string[]; summary: string };
+  clarification: { id: string; question: string; options: { id: string; label: string; description: string }[]; fields?: string[] } | null;
 }

@@ -45,6 +45,34 @@ remplacés, langue des textes, voix off. Ses écarts sont dits dans la conversat
 `chat.result.fidelity.*`). Contrôle : `npm run check:request --prefix apps/ivision/core` (le vrai script d'un
 utilisateur, 66 vérifications, deux vidéos créées et photographiées).
 
+## L'intention : objectif, matière, mouvement (`video.intent.ts`)
+
+Avant toute décision créative, la demande, le scénario et les médias sont lus en **trois dimensions**
+qui ne se mélangent plus (l'ancienne liste de types les confondait) :
+
+| Dimension | Question | Valeurs |
+|---|---|---|
+| Objectif | pourquoi la vidéo existe | conversion, démo produit, visite du site, explication, film de marque, événement, histoire client, annonce, formats courts |
+| Mode de production | quelle matière on travaille | présentation d'app ou de site (captures réelles), vidéos filmées, motion design pur, hybride, photos produit, données |
+| Langage de motion | comment ça bouge | typographie cinétique, éditorial, géométrique, illustration 2D, 3D, interface, cinématographique, data, collage, minimal |
+
+**Hiérarchie** : consigne explicite > scénario > médias importés > contexte du projet > choix automatique ;
+chaque dimension dit d'où vient sa décision (`decided`). La lecture est faite par le code (zéro jeton) ;
+un agent `video.intent-classifier` affine une lecture peu sûre (< 0,55) dans les seules valeurs admises.
+L'intention se TRADUIT dans le contrat existant (`legacy` : type, objectif, direction) — seulement si elle a
+réellement décidé la matière ou le mouvement : une lecture qui n'a rien appris n'impose rien.
+
+**Clarification** (`clarifyVideoIntent`) : une seule question, et seulement quand la réponse change le
+pipeline — une vidéo déposée sans consigne (« Que souhaites-tu faire avec cette vidéo ? », choix adaptés :
+un enregistrement d'écran propose une démo produit, un film tourné du motion design), un événement sans
+date ni lieu, une démo produit sans aucune capture. Jamais la langue, la durée, le format ni la musique.
+
+**Interprétation affichée** : `POST /project/communication/:projectId/videos/interpret` (gratuit) rend
+l'intention, trois étiquettes et une phrase, et la question éventuelle ; l'écran de création IDEM les
+montre à l'étape 2 (« Corriger » ouvre objectif, matière, mouvement) ; iVision pose la question dans le
+fil avant tout débit. La création reçoit `intent` (corrections) et `clarification` (réponse).
+Contrôle : `npm run check:video:intent` (18 demandes représentatives, justesse ≥ 90 %).
+
 ## Qui décide : la jauge de créativité
 
 Avant la génération, l'utilisateur choisit un cran de créativité : **Low · Medium · High · Max · Ultra**
@@ -56,9 +84,9 @@ confiée à l'IA, l'étage du modèle et le prix. Détail de l'échelle et des p
 |---|---|---|---|
 | Low | les textes | des menus | 5 % |
 | Medium | + concept, scènes, grand moment, rythme (stratège, même quand le type est imposé) ; musique (sound designer) | des menus | 15 % |
-| High | + motif (donc mise en page) de chaque scène, transitions, entrées, caméra, logo, relecture | des menus | 25 % |
-| Max | + direction créative parmi trois ; réglages bornés par scène (taille, alignement, surface, tempo, décor) | des menus | 40 % |
-| Ultra | **tout le film**, plan par plan, code compris, dans l'univers créatif | le film d'auteur | 70 % |
+| High | **tout le film**, plan par plan, code compris — un tour par plan, sans critique visuelle | le film d'auteur (repli dit : les menus) | 25 % |
+| Max | idem, deux tours par plan et critique visuelle du rendu | le film d'auteur | 40 % |
+| Ultra | idem, trois tours par plan | le film d'auteur | 70 % |
 
 À tous les crans, le **moteur créatif** ([VIDEO_ENGINE.md §17](VIDEO_ENGINE.md#17-le-moteur-créatif)) cherche dans
 l'espace des motifs une combinaison pertinente, fidèle à la charte et nouvelle pour la marque : un motif par scène, un
@@ -101,7 +129,7 @@ heuristique tirée du brief prend le relais et le graphe fait les choix : la vid
 Budget de la copie seule (cran Low) : 300 à 700 tokens d'entrée et 70 à 420 de sortie selon la
 durée. Budget de chaque agent : [VIDEO_ENGINE.md §14](VIDEO_ENGINE.md#14-léquipe-dagents-videoagentsts).
 
-### Ultra : le film d'auteur
+### High, Max, Ultra : le film d'auteur
 
 Plus aucun menu : l'IA invente le film et écrit le code de chaque plan
 (`video.author.ts`, branché par `motionVideo.service.ts#createAuthoredVideo`).

@@ -227,6 +227,72 @@
         {{ 'dashboard.showCommunication.video.builder.config.help' | translate }}
       </p>
 
+      <!-- L'interprétation de la demande : ce que l'IA a compris, corrigeable avant de générer. -->
+      <section class="vdb-intent" aria-labelledby="vdb-intent-title" aria-live="polite">
+        <div class="vdb-intent-head">
+          <h3 id="vdb-intent-title" class="vdb-label">{{ 'dashboard.showCommunication.video.builder.intent.title' | translate }}</h3>
+          @if (interpretation() && !interpreting()) {
+            <button type="button" class="vdb-link" [attr.aria-expanded]="correcting()" (click)="correcting.set(!correcting())">
+              {{ (correcting() ? 'dashboard.showCommunication.video.builder.intent.done' : 'dashboard.showCommunication.video.builder.intent.correct') | translate }}
+            </button>
+          }
+        </div>
+        @if (interpreting()) {
+          <p class="vdb-group-hint"><idem-loader size="xs" /> {{ 'dashboard.showCommunication.video.builder.intent.loading' | translate }}</p>
+        } @else if (interpretation(); as it) {
+          <p class="vdb-intent-kicker">{{ 'dashboard.showCommunication.video.builder.intent.proposal' | translate }}</p>
+          <ul class="vdb-intent-tags" role="list">
+            @if (shownGoal(); as g) { <li class="vdb-intent-tag">{{ 'dashboard.showCommunication.video.builder.intent.goals.' + g | translate }}</li> }
+            @if (shownMode(); as m) { <li class="vdb-intent-tag">{{ 'dashboard.showCommunication.video.builder.intent.modes.' + m | translate }}</li> }
+            @if (shownMotion(); as mo) { <li class="vdb-intent-tag">{{ 'dashboard.showCommunication.video.builder.intent.motions.' + mo | translate }}</li> }
+            @for (tag of it.interpretation.tags.slice(3); track tag) { <li class="vdb-intent-tag vdb-intent-tag-soft">{{ tag }}</li> }
+          </ul>
+          @if (!corrected()) { <p class="vdb-group-hint">{{ it.interpretation.summary }}</p> }
+
+          @if (correcting()) {
+            <div class="vdb-intent-edit">
+              <label class="vdb-intent-field">
+                <span>{{ 'dashboard.showCommunication.video.builder.intent.objective' | translate }}</span>
+                <select class="input" [value]="shownGoal()" (change)="setGoal($any($event.target).value)">
+                  @for (g of goals; track g) { <option [value]="g">{{ 'dashboard.showCommunication.video.builder.intent.goals.' + g | translate }}</option> }
+                </select>
+              </label>
+              <label class="vdb-intent-field">
+                <span>{{ 'dashboard.showCommunication.video.builder.intent.mode' | translate }}</span>
+                <select class="input" [value]="shownMode()" (change)="setMode($any($event.target).value)">
+                  @for (m of productionModes; track m) { <option [value]="m">{{ 'dashboard.showCommunication.video.builder.intent.modes.' + m | translate }}</option> }
+                </select>
+              </label>
+              <label class="vdb-intent-field">
+                <span>{{ 'dashboard.showCommunication.video.builder.intent.motion' | translate }}</span>
+                <select class="input" [value]="shownMotion()" (change)="setMotion($any($event.target).value)">
+                  @for (mo of motionLanguages; track mo) { <option [value]="mo">{{ 'dashboard.showCommunication.video.builder.intent.motions.' + mo | translate }}</option> }
+                </select>
+              </label>
+            </div>
+          }
+
+          <!-- Une seule question, seulement quand la réponse change le résultat. -->
+          @if (it.clarification; as q) {
+            <fieldset class="vdb-intent-question">
+              <legend class="vdb-label">{{ q.question }}</legend>
+              @if (q.options.length) {
+                <div class="vdb-chips">
+                  @for (o of q.options; track o.id) {
+                    <button type="button" class="vdb-chip" [class.vb-active]="answer() === o.id" [attr.aria-pressed]="answer() === o.id" (click)="answer.set(o.id)">
+                      <span class="vdb-chip-main">{{ o.label }}</span>
+                      <span class="vdb-chip-hint">{{ o.description }}</span>
+                    </button>
+                  }
+                </div>
+              } @else {
+                <p class="vdb-group-hint">{{ 'dashboard.showCommunication.video.builder.intent.fieldsHint' | translate }}</p>
+              }
+            </fieldset>
+          }
+        }
+      </section>
+
       <div class="vdb-config">
         <div class="vdb-config-main">
           <!-- Où ? -->

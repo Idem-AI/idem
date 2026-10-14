@@ -37,7 +37,12 @@ export interface Brand {
   updatedAt: string;
 }
 
-export type ChatAsk = { kind: 'brand' } | { kind: 'brand-choice'; brandId: string } | { kind: 'reference'; mode: ChatMode };
+export type ChatAsk =
+  | { kind: 'brand' }
+  | { kind: 'brand-choice'; brandId: string }
+  | { kind: 'reference'; mode: ChatMode }
+  /** Une décision qui change le résultat manque : la question et ses choix, rédigés par le serveur. */
+  | { kind: 'video-intent'; clarificationId: string; question: string; options: { id: string; label: string; description: string }[] };
 
 export interface ChatMessage {
   id: string;

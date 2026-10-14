@@ -46,6 +46,7 @@ import {
   uploadVideoPhotosController,
   uploadVideoMediaController,
   createVideoStreamController,
+  interpretVideoController,
   sfxFileController,
   videoMusicController,
   videoOptionsController,
@@ -781,6 +782,16 @@ communicationRoutes.post(
   }),
   createVideoController
 );
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos/interpret:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Interpret a video request before creating it (free) — objective, material, motion language, and the one question to ask when a decision that changes the pipeline is missing.
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.post(`/${resource}/:projectId/videos/interpret`, authenticate, interpretVideoController);
 
 /**
  * @openapi

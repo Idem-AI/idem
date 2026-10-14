@@ -10,7 +10,7 @@ import type { CreativityLevel, DocumentType, FormatId } from '../contracts/commo
 import type { Repair } from '../contracts/render-result';
 import { COMPONENT_LIBRARY_VERSION, ENGINE_VERSION } from '../version';
 
-export type TaskName = 'compose' | 'creative.pick' | 'creative.tune' | 'creative.author' | 'creative.critic' | 'repair.targeted' | 'content.plan' | 'compile' | 'measure' | 'asset.resolve';
+export type TaskName = 'compose' | 'creative.pick' | 'creative.tune' | 'creative.author' | 'creative.revise' | 'creative.critic' | 'repair.targeted' | 'content.plan' | 'compile' | 'measure' | 'asset.resolve';
 
 export interface TaskTrace {
   task: TaskName;

@@ -54,7 +54,8 @@ export interface VideoStore {
   /** Garde les descriptions des images de la marque (une seule lecture par la vision, par image). */
   saveMediaNotes?(userId: string, projectId: string, notes: Record<string, string>): Promise<void>;
   /** Les modèles de l'hôte : copie et agents, à l'étage que la jauge de créativité choisit. */
-  runVideoTieredPrompt?(userId: string, system: string, user: string, tier: VideoTier, kind?: 'copy' | 'agents'): Promise<string>;
+  /** `role` : le rôle logique de l'appel (`video.director`, `video.intent-classifier`), que l'hôte peut aiguiller. */
+  runVideoTieredPrompt?(userId: string, system: string, user: string, tier: VideoTier, kind?: 'copy' | 'agents', role?: string): Promise<string>;
   runVideoCopyPrompt?(userId: string, system: string, user: string): Promise<string>;
   runVideoAgentPrompt?(userId: string, system: string, user: string): Promise<string>;
 }

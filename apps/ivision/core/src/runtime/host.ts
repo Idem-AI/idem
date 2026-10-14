@@ -113,6 +113,11 @@ export interface CoreHost {
   agentCall?: (ctx: { userId?: string; projectId?: string; element?: string }) => AgentCall | undefined;
   /** Restitue des crédits (export en échec après la réponse HTTP). */
   refundCredits?: (userId: string, cost: number, meta: { action: string; note: string }) => Promise<void>;
+  /**
+   * Le registre des ressources du projet (`media/asset-registry.ts`), commun aux documents et aux vidéos :
+   * transmis au moteur graphique, consulté par le sourcing vidéo avant toute génération.
+   */
+  assetRegistry?: import('@idem/graphic-engine').AssetRegistry;
 }
 
 const host: CoreHost = {
@@ -134,6 +139,7 @@ export function configureCore(next: Partial<CoreHost> & { logger?: CoreLogger })
     ...(host.agentCall ? { agentCall: host.agentCall } : {}),
     ...(host.analyzeImage ? { analyzeImage: (base64, mimeType, instruction, options) => host.analyzeImage!(base64, mimeType, instruction, { maxOutputTokens: options?.maxOutputTokens }) } : {}),
     ...(logger ? { logger: { info: (m, meta) => logger.info(m, meta), warn: (m, meta) => logger.warn(m, meta), error: (m, meta) => logger.error(m, meta) } } : {}),
+    ...(host.assetRegistry ? { assetRegistry: host.assetRegistry } : {}),
     browser: { allow: (url) => isRenderUrlAllowed(url) },
   });
 }

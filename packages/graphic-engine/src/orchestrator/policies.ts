@@ -7,7 +7,7 @@
  *   Données déjà structurées        réutiliser (le ContentModel tel quel, aucun appel)
  *   Composant local disponible      réutiliser le composant (registre, niveau local d'abord)
  *   Règle de composition connue     exécuter le code (moteur de composition)
- *   Décision créative nécessaire    appeler le modèle — choisir (High), régler (Max), composer (Ultra)
+ *   Décision créative nécessaire    appeler le modèle — composer (High+), régler le repli (Max), réviser sur critique (Max, Ultra)
  *   Documentation inconnue          charger la documentation ciblée (registre, à la demande)
  *   Défaut technique détecté        corriger par le code (mise à l'échelle, composition suivante)
  *   Problème visuel complexe        appeler un modèle seulement si nécessaire (critique, réparation ciblée)
@@ -30,12 +30,13 @@ export interface TaskPolicy {
   vision?: boolean;
 }
 
-export const TASK_POLICIES: Record<'pick' | 'pickTune' | 'author' | 'critic' | 'repair', TaskPolicy> = {
+export const TASK_POLICIES: Record<'pick' | 'pickTune' | 'author' | 'authorRevise' | 'critic' | 'repair', TaskPolicy> = {
   pick: { task: 'creative.pick', minLevel: 'high', profile: 'agents', role: 'graphic.artDirector', maxTokens: 1200, timeoutMs: 25_000 },
   pickTune: { task: 'creative.tune', minLevel: 'max', profile: 'agents', role: 'graphic.artDirector', maxTokens: 1600, timeoutMs: 30_000 },
-  author: { task: 'creative.author', minLevel: 'ultra', profile: 'coder', role: 'graphic.composer', maxTokens: 7000, timeoutMs: 120_000 },
-  critic: { task: 'creative.critic', minLevel: 'high', profile: 'critic', role: 'graphic.critic', maxTokens: 1400, timeoutMs: 40_000, vision: true },
-  repair: { task: 'repair.targeted', minLevel: 'high', profile: 'agents', role: 'graphic.repairer', maxTokens: 1400, timeoutMs: 25_000 },
+  author: { task: 'creative.author', minLevel: 'high', profile: 'coder', role: 'graphic.director', maxTokens: 7000, timeoutMs: 120_000 },
+  authorRevise: { task: 'creative.revise', minLevel: 'max', profile: 'coder', role: 'graphic.director', maxTokens: 9000, timeoutMs: 120_000 },
+  critic: { task: 'creative.critic', minLevel: 'high', profile: 'critic', role: 'visual.critic', maxTokens: 1400, timeoutMs: 40_000, vision: true },
+  repair: { task: 'repair.targeted', minLevel: 'high', profile: 'agents', role: 'generation.repair', maxTokens: 1400, timeoutMs: 25_000 },
 };
 
 const ORDER: CreativityLevel[] = ['low', 'medium', 'high', 'max', 'ultra'];
@@ -46,7 +47,8 @@ export const atLeast = (level: CreativityLevel, min: CreativityLevel): boolean =
  * plafond global. Atteint, il ne fait rien d'aveugle : la décision revient au code (et la trace le dit).
  */
 export function budgetFor(documentType: DocumentType, level: CreativityLevel, sections = 1): number {
-  const perSection: Record<CreativityLevel, number> = { low: 0, medium: 0, high: 2600, max: 4200, ultra: 14000 };
+  // L'auteur compose dès High (≈ 6 000 jetons par page) ; Max et Ultra paient leurs révisions sur critique.
+  const perSection: Record<CreativityLevel, number> = { low: 0, medium: 0, high: 10000, max: 18000, ultra: 28000 };
   const weight = documentType === 'business-plan' || documentType === 'report' ? 0.8 : 1;
   return Math.round(perSection[level] * Math.max(1, sections) * weight);
 }

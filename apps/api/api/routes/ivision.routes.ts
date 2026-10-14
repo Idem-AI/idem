@@ -93,13 +93,13 @@ router.post(
 router.post(
   '/ai/agent',
   route(async (req, res) => {
-    const { projectId, element, role, profile, system, user } = req.body || {};
+    const { projectId, element, role, profile, system, user, level } = req.body || {};
     if (!(['agents', 'coder', 'critic'] satisfies AgentProfile[] as string[]).includes(profile)) {
       res.status(400).json({ error: 'invalid_profile' });
       return;
     }
     const call = runtimeCall({ userId: userIdOf(req) || undefined, projectId: text(projectId, 128) || undefined, element: text(element, 64) || 'ivision' });
-    const out = await asUser(req, 'communication', () => call({ role: text(role, 64) || 'agent', profile, system: text(system, 80_000), user: text(user, 80_000) }));
+    const out = await asUser(req, 'communication', () => call({ role: text(role, 64) || 'agent', profile, system: text(system, 80_000), user: text(user, 80_000), ...(['low', 'medium', 'high', 'max', 'ultra'].includes(level) ? { level } : {}) }));
     res.json({ text: out });
   })
 );
