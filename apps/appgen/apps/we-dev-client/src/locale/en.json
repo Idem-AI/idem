@@ -779,8 +779,6 @@
     "regenerateConfirm": "Yes, delete",
     "regenerateCancel": "Cancel",
     "regenerating": "Deleting…",
-    "configuringSeo": "Setting up the site’s search visibility.",
-    "completingContent": "Filling in the content of {{count}} section(s).",
     "regenerateFailed": "The deletion failed: nothing was changed. Try again in a moment."
   },
   "checks": {

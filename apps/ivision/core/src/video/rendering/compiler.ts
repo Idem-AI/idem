@@ -91,37 +91,78 @@ function formatEsbuildError(error: unknown): string {
 }
 
 /**
- * Symboles que l'IA place parfois dans `@motion-canvas/core` alors qu'ils vivent dans `@idem/motion`.
- * Plutôt que de planter au build, on les déplace silencieusement dans le bon module.
+ * L'IA confond parfois les modules d'import : un symbole `@idem/motion` atterrit dans
+ * `@motion-canvas/core`, ou l'inverse (`fadeTransition` dans `@idem/motion`).
+ * Plutôt que de planter au build, on déplace silencieusement chaque symbole dans son vrai module.
+ *
+ * La source de vérité est `IDEM_MOTION_EXPORTS` : tout ce qui est dedans vient de `@idem/motion`,
+ * tout ce qui n'y est pas et se trouve dans un import `@idem/motion` est renvoyé vers `@motion-canvas/core`.
  */
-const IDEM_ONLY_SYMBOLS = new Set(['waitUntilTime', 'sceneTime', 'beatTime']);
+const IDEM_MOTION_EXPORTS = new Set([
+  // types
+  'SceneContext', 'SceneMedia', 'BrandTokens', 'BrandColors', 'SfxKind', 'FilmFormat',
+  // helpers (voir kit/helpers.ts)
+  'safeArea', 'grid', 'circlePoints', 'fitMedia', 'measureText', 'fitFontSize',
+  'words', 'readableOn', 'contrast', 'mix', 'alpha', 'beatTime', 'sceneTime',
+  'waitUntilTime', 'random', 'lerp', 'clamp',
+  // types géométrie
+  'Box',
+]);
 
 function fixMisplacedImports(code: string): string {
-  const misplaced: string[] = [];
+  const toIdem: string[] = [];   // symboles à envoyer vers @idem/motion
+  const toCore: string[] = [];   // symboles à envoyer vers @motion-canvas/core
+
+  // 1. Dans les imports `@motion-canvas/core`, trouver ceux qui appartiennent à @idem/motion.
   code = code.replace(
     /import\s*\{([^}]+)\}\s*from\s*['"]@motion-canvas\/core['"]/g,
     (_match, names: string) => {
       const items = names.split(',').map((s) => s.trim()).filter(Boolean);
-      const keep = items.filter((n) => !IDEM_ONLY_SYMBOLS.has(n));
-      const move = items.filter((n) => IDEM_ONLY_SYMBOLS.has(n));
-      misplaced.push(...move);
-      if (move.length === 0) return _match;              // rien à déplacer
-      if (keep.length === 0) return '';                   // import devenu vide → supprimer
+      const keep = items.filter((n) => !IDEM_MOTION_EXPORTS.has(n));
+      const move = items.filter((n) => IDEM_MOTION_EXPORTS.has(n));
+      toIdem.push(...move);
+      if (move.length === 0) return _match;
+      if (keep.length === 0) return '';
       return `import { ${keep.join(', ')} } from '@motion-canvas/core'`;
     },
   );
-  if (misplaced.length === 0) return code;
-  const idemRe = /import\s*\{([^}]+)\}\s*from\s*['"]@idem\/motion['"]/;
-  const idemMatch = code.match(idemRe);
-  if (idemMatch) {
-    code = code.replace(idemRe, (_m, names: string) => {
+
+  // 2. Dans les imports `@idem/motion`, trouver ceux qui n'y existent pas (→ @motion-canvas/core).
+  code = code.replace(
+    /import\s*\{([^}]+)\}\s*from\s*['"]@idem\/motion['"]/g,
+    (_match, names: string) => {
       const items = names.split(',').map((s) => s.trim()).filter(Boolean);
-      for (const s of misplaced) if (!items.includes(s)) items.push(s);
-      return `import { ${items.join(', ')} } from '@idem/motion'`;
-    });
-  } else {
-    code = `import { ${misplaced.join(', ')} } from '@idem/motion';\n${code}`;
+      const keep = items.filter((n) => IDEM_MOTION_EXPORTS.has(n));
+      const move = items.filter((n) => !IDEM_MOTION_EXPORTS.has(n));
+      toCore.push(...move);
+      // Ajouter aussi les symboles collectés à l'étape 1.
+      for (const s of toIdem) if (!keep.includes(s)) keep.push(s);
+      toIdem.length = 0; // consommés
+      if (move.length === 0 && toIdem.length === 0) return _match;
+      if (keep.length === 0) return '';
+      return `import { ${keep.join(', ')} } from '@idem/motion'`;
+    },
+  );
+
+  // 3. S'il reste des symboles pour @idem/motion sans import existant, en créer un.
+  if (toIdem.length > 0) {
+    code = `import { ${toIdem.join(', ')} } from '@idem/motion';\n${code}`;
   }
+
+  // 4. Injecter les symboles renvoyés vers @motion-canvas/core.
+  if (toCore.length > 0) {
+    const coreRe = /import\s*\{([^}]+)\}\s*from\s*['"]@motion-canvas\/core['"]/;
+    if (coreRe.test(code)) {
+      code = code.replace(coreRe, (_m, names: string) => {
+        const items = names.split(',').map((s) => s.trim()).filter(Boolean);
+        for (const s of toCore) if (!items.includes(s)) items.push(s);
+        return `import { ${items.join(', ')} } from '@motion-canvas/core'`;
+      });
+    } else {
+      code = `import { ${toCore.join(', ')} } from '@motion-canvas/core';\n${code}`;
+    }
+  }
+
   return code;
 }
 
@@ -130,7 +171,6 @@ export interface BundleScene {
   /** Absent : la scène n'a pas compilé (son erreur est dans les données du film). */
   code?: string;
 }
-
 
 /** Le paquet d'un film : `mode` choisit le pilote (rendu serveur ou lecteur d'aperçu). */
 export async function buildFilmBundle(scenes: BundleScene[], mode: 'render' | 'preview'): Promise<string> {

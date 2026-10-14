@@ -144,6 +144,7 @@ export function isStarterOnly(files: Record<string, string>): boolean {
   // HTML par page). Sans elle, un site encore vierge passait pour un projet
   // déjà généré, et le bouton « Générer maintenant » ne s'affichait pas.
   const app =
+    files['src/pages/home.tsx'] ??
     files['src/pages/home.jsx'] ??
     files['src/app/page.jsx'] ??
     files['src/App.jsx'] ??

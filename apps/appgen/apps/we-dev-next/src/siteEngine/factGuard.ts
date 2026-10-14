@@ -54,6 +54,8 @@ const PROPER_NOUN_FR = /(?<=[\p{Ll},;]\s)([A-ZÀ-Ý][\p{L}'’-]{3,})/gu;
 
 /** Noms propres d'usage courant, qui ne sont pas des lieux. */
 const NOT_PLACES = new Set([
+  // Débuts de phrase courants dans un site : jamais des lieux.
+  'votre', 'notre', 'vos', 'nos', 'vous', 'nous', 'chaque', 'chez', 'avec', 'pour', 'plus', 'tout', 'tous', 'toute', 'besoin', 'contactez', 'découvrez', 'demandez', 'appelez', 'écrivez',
   'afrique',
   'africa',
   'internet',

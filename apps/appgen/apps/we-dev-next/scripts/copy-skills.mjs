@@ -24,3 +24,14 @@ cpSync(source, target, { recursive: true });
 
 const count = readdirSync(target).filter((name) => name.endsWith('.md')).length;
 console.log(`[copy-skills] copied ${count} skills to dist/skills/catalog`);
+
+// Le template des sites vitrines : un vrai projet (TSX, configuration,
+// compilateur du design system) que tsc ne doit ni compiler ni oublier.
+const templateSource = join(root, 'src', 'siteEngine', 'template');
+const templateTarget = join(root, 'dist', 'siteEngine', 'template');
+if (!existsSync(templateSource)) {
+  console.error(`[copy-skills] missing site template at ${templateSource}`);
+  process.exit(1);
+}
+cpSync(templateSource, templateTarget, { recursive: true });
+console.log('[copy-skills] copied the site template to dist/siteEngine/template');
