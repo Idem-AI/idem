@@ -1,3 +1,4 @@
+import { CreativityLevel } from '@idem/shared-models';
 import { SectionModel } from './section.model';
 
 export interface PitchDeckModel {
@@ -15,6 +16,8 @@ export interface PitchDeckModel {
   createdAt?: string;
   updatedAt?: string;
   pdfBlob?: Blob;
+  /** Le cran de créativité retenu à la dernière génération (renvoyé par l'API). */
+  design?: { level?: CreativityLevel };
 }
 
 /** Lecteur d'un deck — il décide des slides et du ton de chacune. */

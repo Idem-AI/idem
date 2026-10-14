@@ -123,6 +123,16 @@
         (resumeGeneration)="startGeneration(false)"
         (regenerateAll)="startGeneration(true)"
       >
+        <!-- Le cran de créativité des régénérations (tout le deck, une slide, la reprise). -->
+        <app-creativity-picker
+          previewActions
+          [value]="creativity()"
+          (valueChange)="setCreativity($event)"
+          [baseCost]="creativityBaseCost()"
+          [disabled]="isGenerating()"
+          placement="top"
+          align="end"
+        />
         <button
           previewLeading
           type="button"
@@ -176,7 +186,7 @@
           {{ 'dashboard.showPitchDeck.draft.subtitle' | translate: { count: expectedSlides().length } }}
         </p>
         <div class="flex flex-wrap items-center justify-center gap-2.5">
-          <app-creativity-picker [(value)]="creativity" [baseCost]="creativityBaseCost()" />
+          <app-creativity-picker [value]="creativity()" (valueChange)="setCreativity($event)" [baseCost]="creativityBaseCost()" />
           <button type="button" class="inner-button" (click)="startGeneration()">
             {{ 'dashboard.showPitchDeck.actions.generate' | translate }}
             @if (creativityBaseCost() | creativityCost: creativity(); as cost) {

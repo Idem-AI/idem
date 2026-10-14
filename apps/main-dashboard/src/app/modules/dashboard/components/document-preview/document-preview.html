@@ -241,6 +241,8 @@
       <span class="dp-sep" aria-hidden="true"></span>
 
       @if (tracksGeneration()) {
+        <!-- Réglage fourni par la page pour ses régénérations (ex. le cran de créativité). -->
+        <ng-content select="[previewActions]" />
         <div #regenControl class="dp-regen">
           <button
             type="button"
