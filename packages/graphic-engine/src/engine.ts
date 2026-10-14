@@ -1,7 +1,8 @@
 /**
  * LE FLUX D'UNE GÉNÉRATION — l'orchestrateur du moteur.
  *
- *   contenu → médias → matière à plat (clés) → bible du document (directeur, une fois) → page écrite en HTML
+ *   contenu → médias → matière à plat (clés) → langage visuel de la MARQUE (une fois par marque, gardé) → plan du
+ *   DOCUMENT (une ligne par page) → page écrite en HTML
  *   Tailwind (auteur) → assainie, remplie, compilée → « s'affiche-t-elle ? » → RenderResult + trace
  *
  * Aucun gabarit, aucune note esthétique, aucune critique, aucune réécriture automatique : le rendu est celui que
@@ -14,7 +15,7 @@
  * mêmes étapes et même contexte à tous les crans.
  */
 import type { CreativityLevel, DocumentType, FormatId, Issue } from './contracts/common';
-import type { SectionContent, SectionRole } from './contracts/content-model';
+import type { SectionContent } from './contracts/content-model';
 import type { DesignSpec, SectionSpec } from './contracts/design-spec';
 import { isAuthoredSpec } from './contracts/design-spec';
 import type { RenderResult } from './contracts/render-result';
@@ -26,7 +27,7 @@ import { stableHash } from './foundation/hash';
 import { AgentCall, engineHost, FingerprintScope, log } from './host';
 import { GenerationTrace, TraceRecorder } from './observability/traces';
 import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
-import { authorSystem, authorUser, directorPrompt, DocumentContext, parseBible, ReferenceComposition, RepairStrategy, repairUser, reviseUser } from './author/prompts';
+import { authorSystem, authorUser, DocumentContext, DocumentPlan, languagePrompt, parseLanguage, parsePlan, planPrompt, PlannedPage, ReferenceComposition, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
 import { callModel, levelUp } from './author/model';
 import { buildContentMap, ContentMap } from './runtime/content-map';
 import { expandPage, extractHtml, sanitizeHtml, withSize } from './runtime/expand';
@@ -41,18 +42,20 @@ export interface DocumentOptions {
   direction?: DirectionInput;
   allowDark?: boolean;
   creativity?: CreativityLevel;
-  /** La clé du livrable (journaux, mémoire des bibles). */
+  /** La clé du livrable (journaux). */
   seed: string;
   documentLabel?: string;
-  /** Les pages attendues, dans l'ordre : le directeur écrit la bible pour elles. */
-  sections?: Array<{ id: string; role?: SectionRole }>;
+  /** Les pages attendues, dans l'ordre (`purpose` : ce que la page doit faire) : le directeur écrit le plan pour elles. */
+  sections?: PlannedPage[];
+  /** Le langage visuel de la marque, s'il est déjà connu de l'hôte (sinon lu ou écrit par `brandMemory`). */
+  brandLanguage?: string;
   bindings?: 'values' | 'markers';
   imageColors?: string[];
   /** Contrôler l'affichage dans Chromium (défaut : oui). */
   validate?: boolean;
   /** Photographier la page (visuels, cartes). */
   png?: boolean;
-  /** Portée de la mémoire des bibles entre documents (marque, projet). */
+  /** Portée de la mémoire entre documents (marque, projet) : langage visuel de la marque, idées déjà employées. */
   memoryScope?: FingerprintScope;
   user?: { userId?: string; projectId?: string };
   size?: { width: number; height: number };
@@ -115,14 +118,16 @@ export class GraphicDocument {
   private readonly specs = new Map<string, SectionSpec>();
   private readonly generationId: string;
   private generatedAssets = 0;
-  private biblePromise: Promise<string | undefined> | null = null;
-  private bibleText: string | undefined;
+  private languagePromise: Promise<string | undefined> | null = null;
+  private languageText: string | undefined;
+  private planPromise: Promise<DocumentPlan | undefined> | null = null;
+  private planValue: DocumentPlan | undefined;
   /** Le budget de correction de tout le document (jetons, durée). */
   private repairSpent = { tokens: 0, started: 0 };
 
   private constructor(
     readonly options: DocumentOptions,
-    private readonly previousBibles: string[]
+    private readonly previousIdeas: string[]
   ) {
     this.tokens = buildTokens({ brand: options.brand, direction: options.direction, format: options.format, allowDark: options.allowDark, size: options.size });
     this.policy = { level: options.creativity === ('max' as CreativityLevel) ? 'high' : options.creativity ?? 'medium' };
@@ -132,7 +137,7 @@ export class GraphicDocument {
   static async create(options: DocumentOptions): Promise<GraphicDocument> {
     const host = engineHost();
     const recent = options.memoryScope && host.recentFingerprints ? await host.recentFingerprints(options.memoryScope).catch(() => []) : [];
-    return new GraphicDocument(options, recent.filter((r) => r.startsWith('bible:')).map((r) => r.slice(6)));
+    return new GraphicDocument(options, recent.filter((r) => r.startsWith('idea:') || r.startsWith('bible:')).map((r) => r.replace(/^(idea|bible):/, '')));
   }
 
   /** Les polices de la marque (le `<style>` Tailwind de chaque page est dans son `result.head`). */
@@ -140,9 +145,14 @@ export class GraphicDocument {
     return this.tokens.font.headHtml;
   }
 
-  /** La bible du document, une fois écrite. */
+  /** L'idée du document (son plan), sinon le langage de la marque : ce qui a guidé ses pages. */
   get bible(): string | undefined {
-    return this.bibleText;
+    return this.planValue?.idea || this.languageText;
+  }
+
+  /** Le plan du document, une fois écrit. */
+  get plan(): DocumentPlan | undefined {
+    return this.planValue;
   }
 
   private get format() {
@@ -167,21 +177,68 @@ export class GraphicDocument {
     return engineHost().agentCall?.({ ...this.options.user, element: `graphic:${this.options.documentType}` });
   }
 
-  /** La bible : écrite une fois par document de plusieurs pages, partagée par les pages composées en parallèle. */
-  private ensureBible(recorder: TraceRecorder): Promise<string | undefined> {
-    if ((this.options.sections?.length ?? 0) < 2) return Promise.resolve(undefined);
-    if (!this.biblePromise) {
-      const call = this.agent();
-      this.biblePromise = (async () => {
-        if (!call) return undefined;
-        const { system, user } = directorPrompt(this.context(), this.options.sections ?? [], this.previousBibles);
-        const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.director', profile: 'agents', level: this.policy.level, system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parseBible(raw) !== null });
-        // Sans bible, chaque page reste écrite : la bible sert la cohérence, elle n'est pas une condition.
-        this.bibleText = run.ok ? parseBible(run.raw) ?? undefined : undefined;
-        return this.bibleText;
+  /** La clé du langage de la marque : la portée (projet) et l'identité de la charte (une nouvelle charte, un nouveau langage). */
+  private languageKey(): string | undefined {
+    const scope = this.options.memoryScope?.key;
+    if (!scope) return undefined;
+    const b = this.options.brand;
+    const d = this.options.direction;
+    return `${scope}:${stableHash([b.name, b.palette, b.fonts?.display, b.fonts?.body, d?.styleId, d?.grammar], 12)}`;
+  }
+
+  /**
+   * Le LANGAGE VISUEL de la marque : donné par l'hôte, sinon relu dans sa mémoire, sinon écrit UNE fois par le
+   * directeur et gardé — tous les livrables de la marque le reprennent (cohérence, et un appel par marque au lieu
+   * d'un par document). Sans mémoire, une page seule s'en passe (la direction brute de la charte suffit).
+   */
+  private ensureLanguage(recorder: TraceRecorder): Promise<string | undefined> {
+    if (!this.languagePromise) {
+      this.languagePromise = (async () => {
+        if (this.options.brandLanguage?.trim()) return (this.languageText = this.options.brandLanguage.trim().slice(0, 1400));
+        const host = engineHost();
+        const key = this.languageKey();
+        if (key && host.brandMemory) {
+          const known = await host.brandMemory.read(key).catch(() => undefined);
+          if (known?.trim()) return (this.languageText = known.trim().slice(0, 1400));
+        }
+        const multi = (this.options.sections?.length ?? 0) >= 2;
+        const call = this.agent();
+        if (!call || (!multi && !(key && host.brandMemory))) return undefined;
+        const { system, user } = languagePrompt(this.context());
+        const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.director', profile: 'agents', level: this.policy.level, system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parseLanguage(raw) !== null });
+        // Sans langage, chaque page reste écrite : il sert la cohérence, il n'est pas une condition.
+        this.languageText = run.ok ? parseLanguage(run.raw) ?? undefined : undefined;
+        if (this.languageText && key && host.brandMemory) await host.brandMemory.write(key, this.languageText).catch(() => undefined);
+        return this.languageText;
       })();
     }
-    return this.biblePromise;
+    return this.languagePromise;
+  }
+
+  /** Le PLAN du document (une idée, une ligne par page) : une fois par document de plusieurs pages, partagé par ses pages. */
+  private ensurePlan(recorder: TraceRecorder, language: string | undefined): Promise<DocumentPlan | undefined> {
+    const pages = this.options.sections ?? [];
+    if (pages.length < 2) return Promise.resolve(undefined);
+    if (!this.planPromise) {
+      const call = this.agent();
+      this.planPromise = (async () => {
+        if (!call) return undefined;
+        const { system, user } = planPrompt(this.context(), pages, language, this.previousIdeas);
+        const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.director', profile: 'agents', level: this.policy.level, system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parsePlan(raw, pages.length) !== null });
+        this.planValue = run.ok ? parsePlan(run.raw, pages.length) ?? undefined : undefined;
+        return this.planValue;
+      })();
+    }
+    return this.planPromise;
+  }
+
+  /** Ce que le plan dit de CETTE page et de ses voisines. */
+  private planFor(sectionId: string, index: number): { idea?: string; page?: string; previous?: string; next?: string } | undefined {
+    const plan = this.planValue;
+    if (!plan) return undefined;
+    const ids = (this.options.sections ?? []).map((s) => s.id);
+    const at = ids.indexOf(sectionId) >= 0 ? ids.indexOf(sectionId) : index - 1;
+    return { idea: plan.idea || undefined, page: plan.pages[at] || undefined, previous: plan.pages[at - 1] || undefined, next: plan.pages[at + 1] || undefined };
   }
 
   /**
@@ -199,6 +256,7 @@ export class GraphicDocument {
     const total = o.total ?? (this.options.sections?.length || 1);
 
     let rendered: Rendered | null = null;
+    /** Ce qui a guidé la page (gardé avec elle) : le langage de la marque et la ligne du plan. */
     let bible: string | undefined;
     // 1. Une page rejouée : son code, le nouveau contenu, aucun modèle.
     if (o.replay && isAuthoredSpec(o.replay) && !o.revise) {
@@ -210,10 +268,15 @@ export class GraphicDocument {
     if (!rendered) {
       const call = this.agent();
       if (!call) throw new GraphicRenderError(section.id, 'aucun modèle n’est branché (port agentCall absent)');
-      bible = bible ?? (await this.ensureBible(recorder));
+      const language = (await this.ensureLanguage(recorder)) ?? (bible || undefined);
+      await this.ensurePlan(recorder, language);
+      const plan = this.planFor(section.id, index);
+      bible = [language, plan?.idea && `idea: ${plan.idea}`, plan?.page && `this page: ${plan.page}`].filter(Boolean).join('\n') || undefined;
       const ctx = this.context();
       const system = authorSystem(ctx);
-      const base = authorUser(ctx, { section, listing: map.listing, index, total, bible, reference: this.options.reference });
+      const blocks = [...map.primitives.values()];
+      const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
+      const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference });
       const revising = o.revise?.instruction && o.revise.spec && isAuthoredSpec(o.revise.spec) ? o.revise : undefined;
       const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;
       rendered = await this.author(section.id, map, recorder, { system, base, user, level, task: revising ? 'revise' : 'author' });
@@ -359,7 +422,7 @@ export class GraphicDocument {
       documentType: this.options.documentType,
       format: this.options.format,
       creativity: this.policy.level,
-      ...(this.bibleText ? { bible: this.bibleText } : {}),
+      ...(this.bible ? { bible: this.bible.slice(0, 2400) } : {}),
       tokensHash: this.tokens.hash,
       seed: this.options.seed.slice(0, 120),
       engine: { version: ENGINE_VERSION, components: COMPONENT_LIBRARY_VERSION },
@@ -367,10 +430,10 @@ export class GraphicDocument {
     };
   }
 
-  /** La bible de ce document, confiée à la mémoire de l'hôte : le prochain document de la marque fera autrement. */
+  /** L'idée de ce document, confiée à la mémoire de l'hôte : le prochain document de la marque fera autrement. */
   async remember(): Promise<void> {
     const host = engineHost();
-    if (this.options.memoryScope && host.rememberFingerprints && this.bibleText) await host.rememberFingerprints(this.options.memoryScope, [`bible:${this.bibleText.split('\n').slice(0, 3).join(' ').slice(0, 300)}`]).catch(() => undefined);
+    if (this.options.memoryScope && host.rememberFingerprints && this.planValue?.idea) await host.rememberFingerprints(this.options.memoryScope, [`idea:${this.planValue.idea.slice(0, 300)}`]).catch(() => undefined);
   }
 }
 

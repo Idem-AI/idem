@@ -6,7 +6,8 @@
  * quelques branchements, posés ici une fois pour toutes :
  *  · l'appel d'agent — le runtime d'agents d'IDEM : le rôle et le cran choisissent le modèle (échelles) ;
  *  · le journal winston, et les traces de génération (coûts, décisions, corrections) en JSON ;
- *  · la mémoire entre documents (Redis) — les bibles déjà écrites pour une marque, pour faire autrement ;
+ *  · la mémoire entre documents (Redis) — les idées déjà employées pour une marque, pour faire autrement — et le
+ *    langage visuel de la marque, écrit une fois par charte et relu par tous ses livrables ;
  *  · le Chromium partagé du service PDF, et la garde réseau des rendus ;
  *  · les fournisseurs de médias (génération, banque d'images) du planificateur de médias, et le registre
  *    des ressources du projet, commun aux documents et aux vidéos.
@@ -65,6 +66,14 @@ export function configureGraphicEngineForIdem(): void {
     rememberFingerprints: async (scope, fingerprints) => {
       const previous = (await cacheService.get<string[]>(fingerprintKey(scope), { prefix: 'graphic' })) ?? [];
       await cacheService.set(fingerprintKey(scope), [...previous, ...fingerprints].slice(-40), { prefix: 'graphic', ttl: FINGERPRINT_TTL });
+    },
+    // Le langage visuel de la marque (écrit une fois par charte, relu par tous ses livrables) : 180 jours ; la clé
+    // change avec la charte, une nouvelle charte écrit donc un nouveau langage.
+    brandMemory: {
+      read: async (key) => (await cacheService.get<string>(`brand-language:${key}`, { prefix: 'graphic' })) ?? undefined,
+      write: async (key, value) => {
+        await cacheService.set(`brand-language:${key}`, value, { prefix: 'graphic', ttl: 180 * 24 * 3600 });
+      },
     },
     assetProviders: IDEM_ASSET_PROVIDERS,
     // Le registre du projet : une image déjà obtenue (deck, visuel, vidéo) est reprise avant d'être regénérée.

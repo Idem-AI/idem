@@ -345,7 +345,8 @@ export function authorSystemPrompt(ctx: AuthoringContext): string {
 
 # Contenu
 - ${fr ? 'Tout le texte visible est en français.' : 'All visible text is in English.'} Écris pour la clientèle de ce projet, avec ses mots : chaque phrase est propre à ce projet.
-- N'invente aucun chiffre, prix, délai, horaire, jour, quartier, nom de client, avis, récompense, partenaire ni garantie. Pas de témoignage ni de citation de client : le projet n'en fournit pas. Les prix, l'équipe, les coordonnées et les liens viennent de \`site\` (@/site/data) : importe-les, ne les recopie pas.
+- Richesse et substance : Écris des sections généreuses, détaillées et vivantes. Développe les descriptions de valeur, structure avec des grilles de cartes (@/components/ui/card), des puces descriptives avec icônes Lucide pertinentes, des titres soignés et des micro-animations fluides. Ne produis jamais de section squelettique de seulement 2 ou 3 lignes.
+- N'invente aucun prix, délai, horaire, jour, quartier, nom de client, avis, récompense, partenaire ni garantie non vérifiés. Les prix, l'équipe, les coordonnées et les liens viennent de \`site\` (@/site/data) : importe-les, ne les recopie pas.
 - Le site n'a ni formulaire, ni compte, ni paiement en ligne : l'action passe par site.primaryAction ou site.contact.channels.
 - Pas d'emoji, pas de tiret cadratin, pas de superlatif creux. Pas de texte de remplissage (lorem ipsum).
 - Accessibilité : une hiérarchie de titres juste, des liens et boutons au libellé explicite, aria-label sur un bouton icône, alt sur les visuels.
@@ -416,10 +417,10 @@ export function headerPrompt(ctx: AuthoringContext, request: string): string {
 Signature exacte : \`export default function SiteHeader({ current }: { current: string })\` — \`current\` est l'adresse de la page affichée ("/", "/…/") ; marque le lien actif avec aria-current="page".
 Ce qu'il montre : ${ctx.manifest.header || 'la marque, le menu et l\'action principale.'}
 - La marque : \`import BrandMark from '@/site/brand'\` → <BrandMark />, dans un lien vers "/". BrandMark affiche déjà le logo, ou le nom du projet s'il n'a pas de logo : n'écris pas site.name à côté.
-- Le menu : site.navigation (${ctx.manifest.pages.length > 1 ? 'les pages du site' : 'les ancres de la page'}).
-- L'action principale : site.primaryAction, si elle existe, avec <Button asChild><a href=…>…</a></Button>.
-- Sur mobile, le menu passe dans un <Sheet> (@/components/ui/sheet) ouvert par un bouton icône (Menu de lucide-react).
-- L'en-tête peut rester visible au défilement (sticky top-0 z-40 avec un fond du thème).
+- Le menu : itère sur \`site.navigation\` pour afficher chaque lien (\`<a href={item.href}>\`). Applique une mise en valeur active quand \`current === item.href\` ou \`current === item.href + '/'\` et \`aria-current={current === item.href ? 'page' : undefined}\`.
+- Sur mobile, affiche impérativement tous les liens de \`site.navigation\` dans un <Sheet> (@/components/ui/sheet) ouvert par un bouton icône (Menu de lucide-react).
+- L'action principale : site.primaryAction, si elle existe, avec <Button asChild><a href={site.primaryAction.href}>{site.primaryAction.label}</a></Button>.
+- L'en-tête reste visible au défilement (sticky top-0 z-40 avec un fond du thème et bordure subtile border-b).
 
 Réponds avec le fichier complet, et rien d'autre.`;
 }
@@ -496,7 +497,7 @@ export async function authorComponent(options: {
       flagged = [];
       return { value: code };
     },
-    4200,
+    8000,
     0.6
   );
 

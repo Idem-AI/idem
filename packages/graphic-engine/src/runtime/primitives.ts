@@ -52,7 +52,8 @@ function legend(names: string[], colors: string[], x: number, y: number, width: 
   return `<g fill="currentColor">${items.join('')}</g>`;
 }
 
-function cartesian(c: Chart, colors: string[], W: number, H: number): string {
+function cartesian(c: Chart, colors: string[], W: number, H: number, focus = -1): string {
+  const dim = (i: number) => (focus >= 0 && i !== focus ? ' fill-opacity="0.32"' : '');
   const horizontal = c.chartType === 'horizontalBar';
   const stacked = c.chartType === 'stacked';
   const n = c.labels.length;
@@ -88,7 +89,7 @@ function cartesian(c: Chart, colors: string[], W: number, H: number): string {
       const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${r1(x)},${r1(y)}`).join(' ');
       if (c.chartType === 'area') out.push(`<path d="${d} L${r1(pts[pts.length - 1][0])},${r1(top + ph - zero)} L${r1(pts[0][0])},${r1(top + ph - zero)} Z" fill="${colors[si]}" fill-opacity="${c.series.length > 1 ? 0.22 : 0.3}"/>`);
       out.push(`<path d="${d}" fill="none" stroke="${colors[si]}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`);
-      if (pts.length <= 14) for (const [x, y] of pts) out.push(`<circle cx="${r1(x)}" cy="${r1(y)}" r="4" fill="${colors[si]}"/>`);
+      if (pts.length <= 14) pts.forEach(([x, y], i) => out.push(`<circle cx="${r1(x)}" cy="${r1(y)}" r="${i === focus ? 6.5 : 4}" fill="${colors[si]}"${dim(i)}/>`));
     });
   } else {
     const groups = stacked || c.series.length === 1 ? 1 : c.series.length;
@@ -102,8 +103,8 @@ function cartesian(c: Chart, colors: string[], W: number, H: number): string {
         const from = stacked ? scale(acc) : Math.min(scale(v), zero);
         if (stacked) acc += Math.max(0, v);
         const offset = band * i + (band - inner) / 2 + (stacked ? 0 : bw * si);
-        if (horizontal) out.push(`<rect x="${r1(left + from)}" y="${r1(top + offset)}" width="${r1(Math.max(0.5, len))}" height="${r1(Math.max(1, (stacked ? inner : bw) - 2))}" rx="2" fill="${colors[si]}"/>`);
-        else out.push(`<rect x="${r1(left + offset)}" y="${r1(top + ph - from - len)}" width="${r1(Math.max(1, (stacked ? inner : bw) - 2))}" height="${r1(Math.max(0.5, len))}" rx="2" fill="${colors[si]}"/>`);
+        if (horizontal) out.push(`<rect x="${r1(left + from)}" y="${r1(top + offset)}" width="${r1(Math.max(0.5, len))}" height="${r1(Math.max(1, (stacked ? inner : bw) - 2))}" rx="2" fill="${colors[si]}"${dim(i)}/>`);
+        else out.push(`<rect x="${r1(left + offset)}" y="${r1(top + ph - from - len)}" width="${r1(Math.max(1, (stacked ? inner : bw) - 2))}" height="${r1(Math.max(0.5, len))}" rx="2" fill="${colors[si]}"${dim(i)}/>`);
       });
       if (c.series.length === 1 && n <= 12) {
         const v = c.series[0].data[i] ?? 0;
@@ -123,7 +124,7 @@ function cartesian(c: Chart, colors: string[], W: number, H: number): string {
   return out.join('');
 }
 
-function radial(c: Chart, colors: string[], W: number, H: number): string {
+function radial(c: Chart, colors: string[], W: number, H: number, hi = -1): string {
   const s = c.series[0];
   const total = s.data.reduce((a, b) => a + Math.max(0, b), 0) || 1;
   const R = Math.min(H - 24, W * 0.5) / 2;
@@ -139,7 +140,7 @@ function radial(c: Chart, colors: string[], W: number, H: number): string {
     const large = sweep > Math.PI ? 1 : 0;
     const p = (ang: number, r: number) => `${r1(cx + r * Math.cos(ang))},${r1(cy + r * Math.sin(ang))}`;
     const d = hole ? `M${p(a, R)} A${R},${R} 0 ${large} 1 ${p(b, R)} L${p(b, hole)} A${r1(hole)},${r1(hole)} 0 ${large} 0 ${p(a, hole)} Z` : `M${cx},${cy} L${p(a, R)} A${R},${R} 0 ${large} 1 ${p(b, R)} Z`;
-    out.push(`<path d="${d}" fill="${colors[i]}" stroke="var(--color-ground, #fff)" stroke-width="2"/>`);
+    out.push(`<path d="${d}" fill="${colors[i]}"${hi >= 0 && i !== hi ? ' fill-opacity="0.32"' : ''} stroke="var(--color-ground, #fff)" stroke-width="2"/>`);
     a += sweep;
   });
   // Légende : chaque part, sa valeur et son pourcentage.
@@ -175,9 +176,27 @@ function radar(c: Chart, colors: string[], W: number, H: number): string {
   return out.join('');
 }
 
-/** Un graphique : une figure SVG qui prend la place que l'auteur lui donne (`class`, `data-aspect="16/9"`). */
-export function chartHtml(c: Chart, tokens: DesignTokens, o: { className?: string; aspect?: string; surface?: string; locale?: string }): string {
+/** Les représentations qu'une donnée admet : l'auteur choisit, le code refuse ce qui la trahirait. */
+function representable(c: Chart, wanted: string | undefined): Chart['chartType'] {
+  const all: Chart['chartType'][] = ['bar', 'groupedBar', 'stacked', 'horizontalBar', 'line', 'area', 'pie', 'doughnut', 'radar'];
+  const t = all.find((x) => x.toLowerCase() === (wanted ?? '').trim().toLowerCase());
+  if (!t) return c.chartType;
+  const positive = c.series.every((s) => s.data.every((v) => v >= 0));
+  if ((t === 'pie' || t === 'doughnut') && (c.series.length !== 1 || !positive)) return c.chartType;
+  if (t === 'radar' && c.labels.length < 3) return c.chartType;
+  if (t === 'stacked' && !positive) return c.chartType;
+  return t;
+}
+
+/**
+ * Un graphique : une figure SVG qui prend la place que l'auteur lui donne (`class`, `data-aspect="16/9"`). L'auteur
+ * peut choisir une autre représentation des MÊMES données (`data-type`) et mettre une catégorie en avant
+ * (`data-highlight`) ; les valeurs, elles, ne passent jamais par lui.
+ */
+export function chartHtml(block: Chart, tokens: DesignTokens, o: { className?: string; aspect?: string; surface?: string; locale?: string; type?: string; highlight?: string }): string {
   numLocale = o.locale === 'en' ? 'en-US' : o.locale && /^[a-z]{2}/.test(o.locale) ? o.locale : 'fr-FR';
+  const c: Chart = { ...block, chartType: representable(block, o.type) };
+  const hi = o.highlight ? c.labels.findIndex((l) => l.trim().toLowerCase() === o.highlight!.trim().toLowerCase()) : -1;
   const pie = c.chartType === 'pie' || c.chartType === 'doughnut';
   const count = pie ? c.series[0].data.length : c.series.length;
   const mode: PairMode = pie ? 'cycle' : 'adjacent';
@@ -186,7 +205,7 @@ export function chartHtml(c: Chart, tokens: DesignTokens, o: { className?: strin
   const [aw, ah] = (o.aspect ?? '').split('/').map(Number);
   const W = 640;
   const H = aw > 0 && ah > 0 ? Math.round(Math.min(1200, Math.max(200, (W * ah) / aw))) : pie ? 300 : c.chartType === 'radar' ? 420 : 360;
-  const body = pie ? radial(c, palette.colors, W, H) : c.chartType === 'radar' ? radar(c, palette.colors, W, H) : cartesian(c, palette.colors, W, H);
+  const body = pie ? radial(c, palette.colors, W, H, hi) : c.chartType === 'radar' ? radar(c, palette.colors, W, H) : cartesian(c, palette.colors, W, H, hi);
   return `<figure data-ge-chart="${esc(c.chartType)}" data-ge-block="${esc(c.id)}" data-ge-palette="${palette.colors.join(',')}" data-ge-palette-mode="${mode}" data-ge-surface="${surface}"${cls(o.className)}><svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(c.title ?? c.readingKey)}" class="block overflow-visible">${body}</svg></figure>`;
 }
 

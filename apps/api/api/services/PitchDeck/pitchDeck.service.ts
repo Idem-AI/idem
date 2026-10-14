@@ -290,7 +290,8 @@ export class PitchDeckService extends GenericService {
       format: 'slide-16x9',
       seed: designKey,
       creativity: level,
-      sections: deckSlides.map((definition) => ({ id: pageId(definition.name), role: definition.freeform ? ('cover' as const) : undefined })),
+      // Ce que chaque slide doit faire (sa stratégie visuelle) : le directeur en tire le plan du deck.
+      sections: deckSlides.map((definition) => ({ id: pageId(definition.name), role: definition.freeform ? ('cover' as const) : undefined, purpose: [definition.name, SLIDE_VISUAL_PLANS[definition.name]?.strategy].filter(Boolean).join(' — ') })),
       documentLabel: 'Pitch deck',
       userId,
     });

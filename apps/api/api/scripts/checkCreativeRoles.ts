@@ -9,7 +9,7 @@ import { CREATIVE_ROLES, hasRoleRouting, MODEL_LADDERS, roleConfig, roleOf } fro
 import { AI_CONFIG, LLMProvider } from '../config/ai.config';
 import { getProvider } from '../config/ai-providers.config';
 import { OPENROUTER_DEFAULT_ROLES } from '../config/openrouter.config';
-import { authorSystem, authorUser, directorPrompt } from '../../../../packages/graphic-engine/src/author/prompts';
+import { authorSystem, authorUser, languagePrompt, planPrompt, toolLines } from '../../../../packages/graphic-engine/src/author/prompts';
 import { FORMATS } from '../../../../packages/graphic-engine/src/design-system/formats';
 import { buildTokens } from '../../../../packages/graphic-engine/src/design-system/tokens';
 import { buildContentMap } from '../../../../packages/graphic-engine/src/runtime/content-map';
@@ -54,8 +54,9 @@ reset();
 const section = { id: 's', title: 'Titre', blocks: [{ id: 'b1', kind: 'prose' as const, paragraphs: ['Un paragraphe.'] }] };
 const tokens = buildTokens({ brand: { name: 'Marque' }, format: 'slide-16x9' });
 const ctx = { documentType: 'pitch-deck' as const, locale: 'fr', tokens, format: FORMATS['slide-16x9'], allowDark: false, bindings: 'values' as const };
-const director = directorPrompt(ctx, [{ id: 's' }, { id: 't' }], []);
-const prompt = authorSystem(ctx) + authorUser(ctx, { section, listing: buildContentMap(section).listing }) + director.system + director.user;
+const plan = planPrompt(ctx, [{ id: 's' }, { id: 't' }], undefined, []);
+const language = languagePrompt(ctx);
+const prompt = authorSystem(ctx) + authorUser(ctx, { section, listing: buildContentMap(section).listing, tools: toolLines(ctx, { charts: [], tables: [], icons: false }) }) + plan.system + plan.user + language.system + language.user;
 ok('les prompts des moteurs ne nomment ni fournisseur ni modèle', !/gemini|openai|gpt-?\d|qwen|claude|llama|openrouter/i.test(prompt));
 
 // Les échelles de modèles (vidéo et livrables graphiques) : le cran choisit le modèle.

@@ -145,7 +145,7 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
       return '';
     }
     used.add(`#${id}`);
-    if (block.kind === 'chart') return chartHtml(block, tokens, { className, aspect: attrOf(attrs, 'data-aspect'), locale: frame.locale });
+    if (block.kind === 'chart') return chartHtml(block, tokens, { className, aspect: attrOf(attrs, 'data-aspect'), locale: frame.locale, type: attrOf(attrs, 'data-type'), highlight: attrOf(attrs, 'data-highlight') });
     if (block.kind === 'table') return tableHtml(block, { className });
     return '';
   });

@@ -118,6 +118,8 @@ export interface CoreHost {
    * transmis au moteur graphique, consulté par le sourcing vidéo avant toute génération.
    */
   assetRegistry?: import('@idem/graphic-engine').AssetRegistry;
+  /** La mémoire de la marque du moteur graphique (son langage visuel, écrit une fois et relu par tous ses visuels). */
+  brandMemory?: import('@idem/graphic-engine').EngineHost['brandMemory'];
 }
 
 const host: CoreHost = {
@@ -139,6 +141,7 @@ export function configureCore(next: Partial<CoreHost> & { logger?: CoreLogger })
     ...(host.agentCall ? { agentCall: host.agentCall } : {}),
     ...(logger ? { logger: { info: (m, meta) => logger.info(m, meta), warn: (m, meta) => logger.warn(m, meta), error: (m, meta) => logger.error(m, meta) } } : {}),
     ...(host.assetRegistry ? { assetRegistry: host.assetRegistry } : {}),
+    ...(host.brandMemory ? { brandMemory: host.brandMemory } : {}),
     browser: { allow: (url) => isRenderUrlAllowed(url) },
   });
 }

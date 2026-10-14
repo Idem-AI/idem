@@ -25,8 +25,10 @@ contenu (ContentModel : sections de blocs typés, écrit par le rédacteur de l'
   → médias (si la page a une intention) : plan, sources dans l'ordre, pose, repli tracé
   → matière à plat : chaque texte reçoit une clé ({{title}}, {{b2.items.0.value}}) ; graphiques et tableaux
     deviennent des primitives du code
-  → bible du document (directeur, rôle graphic.director, une fois par document de plusieurs pages)
-  → page écrite en HTML Tailwind (auteur, rôle graphic.author, une fois par page)
+  → langage visuel de la MARQUE (directeur, une fois par charte, gardé par l'hôte : port brandMemory)
+  → plan du DOCUMENT (directeur, documents de plusieurs pages) : une idée, une ligne par page
+  → page écrite en HTML Tailwind (auteur, rôle graphic.author, une fois par page) avec SA ligne du plan
+    et celles de ses voisines, et la documentation des seuls outils dont elle a besoin
   → assainie (scripts, cadres, adresses étrangères, CSS natif retirés) → remplie par le code
     (textes exacts, primitives dessinées, racine .ge-page aux cotes du support)
   → Tailwind compilé côté serveur avec le thème de la marque → « s'affiche-t-elle ? » (Chromium)
@@ -48,8 +50,9 @@ configureGraphicEngine({
   agentCall: (ctx) => runtimeCall(ctx),            // l'appel d'agent de l'hôte : rôle + cran → modèle
   logger,                                           // info / warn / error
   onTrace: (trace) => logger.info('graphic.trace', summary(trace)),
-  recentFingerprints: async (scope) => …,           // mémoire entre documents (les bibles déjà écrites)
+  recentFingerprints: async (scope) => …,           // idées déjà employées pour la marque
   rememberFingerprints: async (scope, entries) => …,
+  brandMemory: { read: async (key) => …, write: async (key, text) => … },  // langage visuel de la marque
   browser: { shared: () => sharedChromium(), allow: (url) => isRenderUrlAllowed(url) },
   assetProviders, assetRegistry,                    // médias (génération, banque) et registre du projet
 });
@@ -91,6 +94,26 @@ Chromium).
   grand, logo en bas ») — l'auteur reçoit son code et la consigne.
 - Une page de l'ancien moteur (arbre v1, `isAuthoredSpec(spec) === false`) ne se rejoue pas : elle est réécrite.
 
+## Économiser les jetons sans brider l'IA
+
+- **Ce qui dure est écrit une fois** : le langage visuel de la marque (≈ 520 jetons d'entrée, une fois par charte ;
+  la clé change avec la charte), relu par tous ses livrables — decks, plans, flyers, cartes, pages de charte.
+- **Le plan du document** tient en une ligne par page ; chaque page ne reçoit que sa ligne et celles de ses voisines.
+- **La consigne système de l'auteur est la même pour toutes les pages** d'un support (le fournisseur peut la garder
+  en cache) ; la fiche de la marque est compacte ; la documentation des outils est donnée à la demande (graphique,
+  tableau, icône, motif seulement si la page en a).
+- **Les données ne passent jamais par le modèle** : textes par clés, graphiques et tableaux dessinés par le code ;
+  une retouche de texte rejoue la page sans appel.
+- Mesure : `npm run prompt-size` (au 14/10/2026 : ≈ 690 + 770 jetons par page, contre ≈ 900 + 880 avant).
+
+## Un rendu professionnel
+
+La consigne de l'auteur pose le niveau d'un studio : la hiérarchie fait le travail (taille, graisse, espace,
+alignement sur une grille) ; la décoration n'est permise que lorsqu'elle porte la marque (logo, motif, signes de
+son langage) — jamais de cercles, taches, halos, dégradés, ombres, émojis, ornements ou textes penchés gratuits ;
+peu de corps, les polices de la marque, la couleur avec intention. C'est une consigne d'écriture : aucun contrôle
+esthétique ne la vérifie.
+
 ## Ce que l'auteur reçoit (contexte compact, identique à tous les crans)
 
 `src/author/prompts.ts` :
@@ -114,7 +137,7 @@ non-verbal (formes, filets, icônes, numérotation).
 
 | Balise | Ce que dessine le code |
 |---|---|
-| `<idem-chart data-block="b3" data-aspect="16/9" class="…">` | le graphique exact (bar, groupedBar, stacked, horizontalBar, line, area, pie, doughnut, radar), palette de la marque déclarée (`data-ge-palette`, recalculée par la traduction de marque) ; les libellés prennent la couleur du texte |
+| `<idem-chart data-block="b3" data-aspect="16/9" class="…">` | le graphique exact (bar, groupedBar, stacked, horizontalBar, line, area, pie, doughnut, radar), palette de la marque déclarée (`data-ge-palette`, recalculée par la traduction de marque) ; les libellés prennent la couleur du texte. L'auteur choisit la représentation (`data-type`, refusée si elle trahit les données : camembert à plusieurs séries…) et met une catégorie en avant (`data-highlight`) |
 | `<idem-table data-block="b4" class="… [&_th]:bg-brand-primary">` | le tableau, cellule pour cellule, colonnes chiffrées à droite ; l'auteur le stylise depuis la balise |
 | `<idem-logo variant="primary\|onLight\|onDark\|mono\|icon" class="h-[40px]">` | le logo (ou le nom en wordmark si la marque n'en a pas) |
 | `<idem-icon name="truck" class="size-[40px] text-brand-primary">` | une icône vectorielle locale (Tabler, Lucide) |
@@ -167,7 +190,7 @@ Les constats non bloquants restent dans `result.issues` comme conseils, sans rie
 ## Contrôles
 
 ```
-npm run check --prefix packages/graphic-engine        # 53 vérifications, auteur simulé, Chromium
+npm run check --prefix packages/graphic-engine        # 60 vérifications, auteur simulé, Chromium
 npm run check:fast --prefix packages/graphic-engine   # sans Chromium
 npm run schemas --prefix packages/graphic-engine      # régénère contracts/*.schema.json
 ```

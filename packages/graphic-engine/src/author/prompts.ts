@@ -1,16 +1,23 @@
 /**
- * CE QUE LIT L'IA — le directeur (une bible par document) et l'auteur (une page en HTML Tailwind).
+ * CE QUE LIT L'IA — trois écrivains, du plus durable au plus local :
  *
- * Aucun gabarit, aucun catalogue de mises en page, aucune règle esthétique : le modèle invente. Le contexte est
- * COMPACT et le même à tous les crans (la jauge choisit le modèle, pas les moyens) : la marque, le support et ses
- * cotes, la matière avec ses clés, les primitives, une référence Tailwind et UN exemple de syntaxe. C'est ce qui
- * permet à un petit modèle de rendre une page juste.
+ *   le LANGAGE VISUEL de la marque   écrit UNE fois par marque (directeur), gardé et repris par tous ses
+ *                                    livrables : c'est l'identité appliquée, pas un document ;
+ *   le PLAN du document              une idée et une ligne par page (directeur, documents de plusieurs pages) ;
+ *   la PAGE                          le HTML Tailwind (auteur), une page par appel.
+ *
+ * Aucun gabarit, aucun catalogue de mises en page : le modèle invente. Le contexte est COMPACT et le même à tous
+ * les crans (la jauge choisit le modèle) : la consigne SYSTÈME ne change pas d'une page à l'autre (le fournisseur
+ * peut la garder en cache), le reste — la fiche de la marque, son langage, le plan, les outils dont CETTE page a
+ * besoin, la matière avec ses clés — part dans le message.
+ *
+ * Le niveau attendu est celui d'un document professionnel : la hiérarchie fait le travail, la décoration n'est
+ * permise que lorsqu'elle porte la marque. C'est une consigne d'écriture, jamais un contrôle.
  */
 import type { DocumentType } from '../contracts/common';
 import type { SectionContent, SectionRole } from '../contracts/content-model';
 import type { FormatDef } from '../design-system/formats';
 import type { DesignTokens, DirectionInput } from '../design-system/tokens';
-import { themeColors } from '../runtime/tailwind';
 
 export interface ReferenceComposition {
   description: string;
@@ -33,7 +40,7 @@ export interface DocumentContext {
 
 const DELIVERABLE: Record<DocumentType, string> = {
   'pitch-deck': 'a slide of an investor pitch deck — one idea per slide, read in seconds on a screen',
-  'business-plan': 'a page of a printed business plan — read closely by bankers and investors: clear hierarchy, well-set tables and charts',
+  'business-plan': 'a page of a printed business plan — read closely by bankers and investors',
   'brand-charter': "a page of the brand's identity guidelines (brand book) — it shows the brand system itself, exactly",
   'business-card': 'one face of a printed business card (85 × 55 mm)',
   flyer: 'a flyer / social-media visual — one message, understood at a glance',
@@ -61,142 +68,197 @@ export function deliverableLine(ctx: DocumentContext): string {
 
 export function canvasLine(f: FormatDef): string {
   const size = `${Math.round(f.width)}×${Math.round(f.height)} px${f.mm ? ` (${f.mm.width}×${f.mm.height} mm)` : ''}`;
-  if (f.kind === 'flow') return `${size} A4 page that GROWS downward when the content is long (printed; a page break may fall between top-level blocks). Body text around ${f.base}px, never below ${f.minSize}px.`;
+  if (f.kind === 'flow') return `${size} A4 page that GROWS downward when the content is long (printed; a page break may fall between top-level blocks). Body ${f.base}px, never below ${f.minSize}px.`;
   const safe = f.safe;
   const even = safe.top === safe.left && safe.left === safe.right && safe.right === safe.bottom;
-  const zone = even ? `keep texts and logo at least ${safe.top}px from every edge` : `keep texts and logo inside the safe area: ${safe.top}px from the top, ${safe.bottom}px from the bottom, ${safe.left}px from the left, ${safe.right}px from the right (the platform covers the rest)`;
-  return `${size}, FIXED: nothing scrolls, everything that matters must be inside. ${f.family === 'card' ? 'Printed card: ' : ''}${zone}; backgrounds and decoration may bleed to the edges. Smallest text ${f.minSize}px; body around ${f.base}px.`;
+  const zone = even ? `texts and logo ≥ ${safe.top}px from every edge` : `texts and logo inside the safe area: ${safe.top}px from the top, ${safe.bottom}px from the bottom, ${safe.left}px from the left, ${safe.right}px from the right (the platform covers the rest)`;
+  return `${size}, FIXED: nothing scrolls. ${f.family === 'card' ? 'Printed card; ' : ''}${zone}; grounds may bleed to the edges. Smallest text ${f.minSize}px; body ${f.base}px.`;
 }
 
+/** La fiche de la marque, compacte : ce que l'auteur emploie (le reste des nuances existe sous les mêmes noms). */
 export function brandSheet(ctx: DocumentContext): string {
   const t = ctx.tokens;
-  const colors = Object.entries(themeColors(t))
-    .filter(([k]) => !/^(brand|accent)-\d/.test(k))
-    .map(([k, v]) => `${k} ${v}`)
-    .join(', ');
-  const ramps = Object.keys(t.color.brandRamp).length ? `; shades brand-50…brand-950 and accent-50…accent-950 also exist` : '';
+  const c = t.color;
+  const core: Array<[string, string]> = [
+    ['brand-primary', c.primary],
+    ['brand-secondary', c.secondary],
+    ['brand-accent', c.accent],
+    ['brand-soft', c.brandSoft],
+    ['ground', c.ground],
+    ['sunken', c.sunken],
+    ['ink', c.ink],
+    ['muted', c.muted],
+    ['rule', c.rule],
+    ['on-brand', c.onBrand],
+    ['deep', c.deep],
+    ['on-deep', c.onDeep],
+  ];
   const logos = Object.entries(t.brand.logos)
     .filter(([k, v]) => typeof v === 'string' && v && k !== 'aspect')
     .map(([k]) => k);
-  const d = ctx.direction;
   return [
     `NAME: ${t.brand.name}`,
-    `COLOURS (Tailwind names → hex): ${colors}${ramps}`,
-    `FONTS: font-display = ${t.font.display} (titles), font-body = ${t.font.body} (text)`,
-    logos.length ? `LOGO: <idem-logo variant="…"> with ${logos.join(', ')}${t.brand.logos.onDark ? ' (onDark is made for dark grounds)' : ''}` : 'LOGO: none — <idem-logo> prints the brand name as a wordmark',
-    t.brand.patterns.length ? `BRAND PATTERN: ${t.brand.patterns.length} tile(s) — <idem-pattern index="0" class="absolute inset-0 opacity-[0.12]">` : '',
-    d?.styleId ? `ART DIRECTION: ${t.style.name}${d.keywords?.length ? ` — ${d.keywords.join(', ')}` : ''}` : d?.keywords?.length ? `KEYWORDS: ${d.keywords.join(', ')}` : '',
-    d?.grammar ? `BRAND COMPOSITION GRAMMAR (from its guidelines):\n${d.grammar.slice(0, 1600)}` : '',
-    ctx.allowDark ? 'Dark grounds are allowed.' : 'Light grounds by default (dark only for small bands, panels or accents).',
+    `COLOURS: ${core.map(([k, v]) => `${k} ${v}`).join(', ')} (also accent-soft, on-accent, faint, raised, and shades brand-50…950 / accent-50…950)`,
+    `FONTS: font-display = ${t.font.display}, font-body = ${t.font.body}`,
+    logos.length ? `LOGO variants: ${logos.join(', ')}` : 'LOGO: none (a wordmark of the name is printed instead)',
+    t.brand.patterns.length ? `BRAND PATTERN: ${t.brand.patterns.length} tile(s)` : '',
+    ctx.allowDark ? 'Dark grounds allowed.' : 'Light grounds (dark only for bands or panels).',
   ]
     .filter(Boolean)
     .join('\n');
 }
 
-// ── Le directeur ───────────────────────────────────────────────────────────────────────────
+/** La direction artistique de la charte, brute (pour écrire le langage visuel, ou à défaut de langage). */
+function directionLines(ctx: DocumentContext): string {
+  const d = ctx.direction;
+  return [
+    d?.styleId ? `ART DIRECTION: ${ctx.tokens.style.name}${d.keywords?.length ? ` — ${d.keywords.join(', ')}` : ''}` : d?.keywords?.length ? `KEYWORDS: ${d.keywords.join(', ')}` : '',
+    d?.grammar ? `COMPOSITION GRAMMAR (from the brand guidelines):\n${d.grammar.slice(0, 1400)}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
 
-export function directorPrompt(ctx: DocumentContext, pages: Array<{ id: string; role?: SectionRole }>, previous: string[]): { system: string; user: string } {
+const PROFESSIONAL = [
+  'PROFESSIONAL STANDARD — a business document, designed by a senior studio:',
+  '- Hierarchy does the work: size, weight, spacing and alignment on a clear grid. Generous, consistent margins.',
+  '- Decoration only when it carries the brand (its logo, its pattern, the graphic devices of its visual language). Never random circles, blobs, glows, gradients, drop shadows, emojis, ornaments, tilted text or filler shapes.',
+  '- Few type sizes, the brand fonts only. Colour with intent: mostly ground and ink, brand colours for emphasis and structure.',
+  '- Data is shown plainly: charts and tables large enough to read, one highlighted message at most.',
+].join('\n');
+
+// ── Le langage visuel de la marque (une fois par marque) ─────────────────────────────────────
+
+export function languagePrompt(ctx: DocumentContext): { system: string; user: string } {
   const system = [
-    `You are the art director of ${deliverableLine(ctx)}, for an African business.`,
-    'Before the pages are designed one by one, write the visual BIBLE they will all follow: the pages must feel like ONE family and be unmistakably this brand. You are free — no template, no imposed layout; avoid generic corporate clichés.',
+    'You are the art director of an African brand. Write its VISUAL LANGUAGE: the short, concrete rules every one of its documents and visuals will apply (pitch decks, business plans, flyers, business cards, guidelines). It must be unmistakably this brand, professional and sober — no decoration for its own sake.',
     'Answer in English with exactly:',
-    'BIBLE:',
-    '- 6 to 10 short lines: the idea; how the colours are used (by their names); typography (display/body, scale, case, weight); grid and spacing; graphic language (shapes, lines, images, icons, texture); recurring elements (folio, logo place, page header); how pages vary while staying one family.',
+    'LANGUAGE:',
+    '- 5 to 8 short lines: colour roles (by their names); typography (display/body, case, weight, scale contrast); grid and margins; the ONE or two graphic devices that are the brand signature (from its guidelines when given); imagery; how the logo is placed.',
+  ].join('\n');
+  const user = [`BRAND:\n${brandSheet(ctx)}`, directionLines(ctx), ctx.brief ? `ABOUT THE BUSINESS: ${ctx.brief.slice(0, 800)}` : ''].filter(Boolean).join('\n\n');
+  return { system, user };
+}
+
+export function parseLanguage(raw: string): string | null {
+  const text = (raw || '').replace(/```[a-z]*\n?|```/g, '').trim();
+  const at = text.search(/LANGUAGE\s*:/i);
+  const body = (at >= 0 ? text.slice(at).replace(/^LANGUAGE\s*:\s*/i, '') : text).trim();
+  return body.length >= 40 ? body.slice(0, 1400) : null;
+}
+
+// ── Le plan du document (documents de plusieurs pages) ─────────────────────────────────────
+
+export interface PlannedPage {
+  id: string;
+  role?: SectionRole;
+  /** Ce que la page doit faire (fourni par l'hôte quand il le sait). */
+  purpose?: string;
+}
+
+export interface DocumentPlan {
+  idea: string;
+  /** Une ligne par page, dans l'ordre. */
+  pages: string[];
+}
+
+export function planPrompt(ctx: DocumentContext, pages: PlannedPage[], language: string | undefined, previous: string[]): { system: string; user: string } {
+  const system = [
+    `You are the art director of ${deliverableLine(ctx)}, for an African business. Plan the document before its pages are designed one by one: the pages must read as ONE professional family, each page shaped by what it has to show.`,
+    'Answer in English with exactly:',
+    'IDEA: one sentence — the document’s visual idea within the brand language',
+    `PAGE n: one line per page (${pages.length} pages) — what dominates it (a chart, a key figure, a photo, pure type, a table, a diagram…) and how it is organised`,
   ].join('\n');
   const user = [
-    `DELIVERABLE: ${deliverableLine(ctx)}`,
     `CANVAS: ${canvasLine(ctx.format)}`,
     `BRAND:\n${brandSheet(ctx)}`,
-    ctx.brief ? `ABOUT THE BUSINESS: ${ctx.brief.slice(0, 1200)}` : '',
-    pages.length ? `PAGES (${pages.length}): ${pages.map((p, i) => `${i + 1}. ${p.id}${p.role ? ` (${p.role})` : ''}`).join('; ').slice(0, 1600)}` : '',
-    previous.length ? `BIBLES ALREADY USED FOR THIS BRAND (do something different):\n${previous.slice(0, 4).join('\n')}` : '',
+    language ? `BRAND VISUAL LANGUAGE:\n${language}` : directionLines(ctx),
+    ctx.brief ? `ABOUT THE BUSINESS: ${ctx.brief.slice(0, 600)}` : '',
+    `PAGES:\n${pages.map((p, i) => `${i + 1}. ${p.id}${p.role ? ` (${p.role})` : ''}${p.purpose ? ` — ${p.purpose.slice(0, 140)}` : ''}`).join('\n').slice(0, 3000)}`,
+    previous.length ? `DOCUMENTS ALREADY MADE FOR THIS BRAND (do not repeat their idea):\n${previous.slice(0, 3).join('\n')}` : '',
   ]
     .filter(Boolean)
     .join('\n\n');
   return { system, user };
 }
 
-export function parseBible(raw: string): string | null {
-  const text = (raw || '').replace(/```[a-z]*\n?|```/g, '').trim();
-  const at = text.search(/BIBLE\s*:/i);
-  const body = (at >= 0 ? text.slice(at).replace(/^BIBLE\s*:\s*/i, '') : text).trim();
-  return body.length >= 40 ? body.slice(0, 2400) : null;
+export function parsePlan(raw: string, count: number): DocumentPlan | null {
+  const text = (raw || '').replace(/```[a-z]*\n?|```/g, '');
+  const idea = text.match(/^[\s*#>-]*IDEA\s*:\s*(.+)$/im)?.[1]?.trim() ?? '';
+  const pages: string[] = Array.from({ length: count }, () => '');
+  for (const m of text.matchAll(/^[\s*#>-]*PAGE\s*(\d{1,3})\s*[:.)—–-]\s*(.+)$/gim)) {
+    const n = Number(m[1]) - 1;
+    if (n >= 0 && n < count) pages[n] = m[2].trim().slice(0, 240);
+  }
+  if (!idea && !pages.some(Boolean)) return null;
+  return { idea: idea.slice(0, 300), pages };
 }
 
 // ── L'auteur ───────────────────────────────────────────────────────────────────────────────
 
-const TAILWIND_SHEET = (ctx: DocumentContext) =>
-  [
-    'TAILWIND v4 — the ONLY way to style. Write classes; never <style>, never style="", never scripts.',
-    '- Brand colours by name: bg-brand-primary, text-ink, text-muted, bg-brand-soft, border-rule, text-on-brand… (list in BRAND). Opacity: bg-brand-primary/15. Another colour: bg-[#hex], sparingly.',
-    '- Fonts: font-display, font-body. Weights font-light…font-black, uppercase, italic, tracking-[0.2em], leading-[1.05].',
-    `- Exact sizes (the canvas is fixed in pixels): text-[44px], w-[420px], h-[38%], top-[12%], p-[48px], gap-[24px], size-[180px].${ctx.format.kind === 'flow' ? ' Prefer relative widths (w-full, w-1/2, grid) for the A4 flow.' : ''}`,
-    '- Layout: flex, flex-col, items-end, justify-between, grid grid-cols-12 col-span-7, absolute inset-0, -right-[60px], z-10, overflow-hidden.',
-    '- Graphic language: rounded-[28px], rounded-full, border-[3px], bg-linear-to-br from-brand-primary to-brand-accent, rotate-[-6deg], shadow-xl, mix-blend-multiply, opacity-20, blur-[60px]. Inline <svg> drawings are welcome (viewBox, fill="currentColor" with text-* classes, or brand hex).',
-    '- Photos: <img src="{{key}}" alt="" class="w-full h-full object-cover object-[50%_30%]">.',
-    '- Style children from a parent: [&_li]:mb-[8px], [&_th]:bg-brand-primary [&_th]:text-on-brand, [&_tr:nth-child(even)]:bg-sunken.',
-    '- NOT available: responsive or state prefixes (md:, lg:, hover:, dark:), external images, fonts or links.',
-  ].join('\n');
+const TAILWIND_SHEET = [
+  'TAILWIND v4 — the ONLY way to style. Classes only; never <style>, never style="", never scripts.',
+  '- Colours by their brand names: bg-brand-primary, text-ink, text-muted, bg-brand-soft, border-rule, text-on-brand; opacity bg-brand-primary/15.',
+  '- Fonts font-display / font-body; font-medium…font-black, uppercase, tracking-[0.12em], leading-[1.1].',
+  '- Exact sizes in px or %: text-[44px], w-[420px], h-[38%], p-[48px], gap-[24px].',
+  '- Layout: flex, grid grid-cols-12 col-span-7, items-end, justify-between, absolute inset-0, z-10, overflow-hidden; border-t-[2px], rounded-[12px].',
+  '- Photos: <img src="{{key}}" alt="" class="h-full w-full object-cover">.',
+  '- Style children from a parent: [&_li]:mb-[8px], [&_th]:bg-brand-primary.',
+  '- Not available: md:/lg:/hover:/dark: prefixes, external images, fonts or links.',
+  '- Compact HTML: no wrapper or class that changes nothing.',
+].join('\n');
 
-const PRIMITIVES = (ctx: DocumentContext) =>
-  [
-    'PRIMITIVES (drawn by code — you place and size them with classes):',
-    '- <idem-chart data-block="ID" data-aspect="16/9" class="w-full h-[320px] text-ink"></idem-chart> the exact chart of block ID (its labels take the text colour).',
-    '- <idem-table data-block="ID" class="w-full text-[13px] [&_th]:bg-brand-primary [&_th]:text-on-brand"></idem-table> the exact table of block ID (style it from the tag).',
-    '- <idem-logo variant="primary" class="h-[40px]"></idem-logo> the brand logo.',
-    '- <idem-icon name="truck" class="size-[40px] text-brand-primary"></idem-icon> a line icon (a name in English, or {{…icon}} keys from the content).',
-    ctx.tokens.brand.patterns.length ? '- <idem-pattern index="0" class="absolute inset-0 opacity-[0.1]"></idem-pattern> the brand pattern tile.' : '',
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-const CONTENT_RULES = (ctx: DocumentContext) =>
-  [
-    'CONTENT — every visible word comes from the CONTENT list: write {{key}} where its text goes. Never retype, translate, shorten or invent a text. Show every key (exact data blocks complete, in order); decide hierarchy, grouping and emphasis freely.',
-    'You may add only non-verbal elements: shapes, lines, images from the keys, icons, and numbering such as 01, 02.',
-    ctx.bindings === 'markers' ? 'This card is a TEMPLATE shared by several people: put each field key in its own element (one line each) — lines without a value are removed when printing.' : '',
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-const FIXED_EXAMPLE = `<div class="relative w-full h-full overflow-hidden bg-ground">
-  <div class="absolute -right-[120px] -top-[140px] size-[460px] rounded-full bg-brand-soft"></div>
-  <div class="relative z-10 grid h-full grid-cols-12 gap-[32px] p-[56px]">
-    <div class="col-span-5 flex flex-col justify-end">
-      <p class="text-[13px] uppercase tracking-[0.2em] text-brand-primary">{{kicker}}</p>
-      <h2 class="mt-[14px] font-display text-[54px] font-bold leading-[1.02] text-ink">{{title}}</h2>
-      <p class="mt-[18px] text-[18px] leading-[1.5] text-muted">{{lede}}</p>
-    </div>
-    <div class="col-span-7 flex items-center"><idem-chart data-block="b2" data-aspect="16/10" class="w-full text-ink"></idem-chart></div>
+const FIXED_EXAMPLE = `<div class="grid h-full w-full grid-cols-12 gap-[32px] bg-ground p-[64px]">
+  <div class="col-span-5 flex flex-col justify-end border-l-[4px] border-brand-primary pl-[24px]">
+    <p class="text-[13px] font-semibold uppercase tracking-[0.14em] text-brand-primary">{{kicker}}</p>
+    <h2 class="mt-[12px] font-display text-[52px] font-bold leading-[1.04] text-ink">{{title}}</h2>
+    <p class="mt-[16px] text-[18px] leading-[1.5] text-muted">{{lede}}</p>
   </div>
+  <div class="col-span-7 flex items-center"><idem-chart data-block="b2" class="w-full text-ink"></idem-chart></div>
 </div>`;
 
-const FLOW_EXAMPLE = `<header class="flex items-end justify-between border-b-[3px] border-brand-primary pb-[14px]">
-  <h2 class="font-display text-[30px] font-bold leading-[1.1] text-ink">{{title}}</h2>
-  <p class="text-[11px] uppercase tracking-[0.18em] text-muted">{{kicker}}</p>
+const FLOW_EXAMPLE = `<header class="border-b-[2px] border-brand-primary pb-[12px]">
+  <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-primary">{{kicker}}</p>
+  <h2 class="mt-[6px] font-display text-[30px] font-bold leading-[1.1] text-ink">{{title}}</h2>
 </header>
-<p class="mt-[18px] max-w-[80%] text-[15px] leading-[1.55] text-ink">{{lede}}</p>
-<section class="mt-[22px] grid grid-cols-3 gap-[14px]">
-  <div class="rounded-[10px] bg-brand-soft p-[16px]"><p class="font-display text-[28px] font-bold text-brand-primary">{{b1.items.0.value}}</p><p class="mt-[4px] text-[12px] text-muted">{{b1.items.0.label}}</p></div>
-</section>
-<section class="mt-[24px]"><idem-table data-block="b2" class="text-[12px] [&_th]:bg-brand-primary [&_th]:text-on-brand"></idem-table></section>`;
+<p class="mt-[16px] max-w-[85%] text-[15px] leading-[1.6] text-ink">{{lede}}</p>
+<section class="mt-[22px] grid grid-cols-3 gap-[16px]">
+  <div class="border-t-[2px] border-rule pt-[10px]"><p class="font-display text-[28px] font-bold text-brand-primary">{{b1.items.0.value}}</p><p class="text-[12px] text-muted">{{b1.items.0.label}}</p></div>
+</section>`;
 
+/** La consigne de l'auteur : la même pour toutes les pages d'un même support (le fournisseur la garde en cache). */
 export function authorSystem(ctx: DocumentContext): string {
   const flow = ctx.format.kind === 'flow';
   return [
-    `You design ${deliverableLine(ctx)}, for an African business, by writing its HTML with Tailwind classes. You are a senior designer and you are free: invent the composition, the hierarchy, the graphic language. No template exists; do not make a generic page.`,
+    `You design ${deliverableLine(ctx)} by writing its HTML with Tailwind classes. Invent the composition from the content; no template exists.`,
     flow
-      ? 'OUTPUT: one ```html block with the page fragment only. It is placed inside an A4 page box (210 mm wide, 12 mm padding, ground colour, body font) that grows downward. Write the page as a SEQUENCE of top-level blocks (header, then each part) — do not wrap everything in one element; the printer splits long pages between top-level blocks (add data-keep-together to a block that must never be split). Use absolute positioning only for decoration.'
-      : 'OUTPUT: one ```html block with the page fragment only. It is placed inside the page box, which is exactly the canvas (no padding). Your top element fills it: class="relative w-full h-full overflow-hidden …".',
+      ? 'OUTPUT: one ```html block, the page fragment only. It goes inside an A4 page box (210 mm wide, 12 mm padding, ground colour, body font) that grows downward. Write a SEQUENCE of top-level blocks (header, then each part) — the printer splits pages between them (data-keep-together on a block that must stay whole). No absolute positioning except for the brand pattern.'
+      : 'OUTPUT: one ```html block, the page fragment only. It goes inside the page box, which is exactly the canvas (no padding). Your top element fills it (class="h-full w-full …").',
     '',
-    TAILWIND_SHEET(ctx),
+    PROFESSIONAL,
     '',
-    PRIMITIVES(ctx),
+    TAILWIND_SHEET,
     '',
-    CONTENT_RULES(ctx),
+    'CONTENT — every visible word comes from the CONTENT list: write {{key}} where its text goes. Never retype, translate, shorten or invent a text. Show every key (exact data blocks complete, in order). You may add only non-verbal elements (rules, the brand devices, icons, numbering 01, 02).',
+    ctx.bindings === 'markers' ? 'This card is a TEMPLATE shared by several people: each field key in its own element, one line each — lines without a value are removed when printing.' : '',
     '',
-    `SYNTAX EXAMPLE (only to show the syntax — invent your own composition):\n\`\`\`html\n${flow ? FLOW_EXAMPLE : FIXED_EXAMPLE}\n\`\`\``,
-  ].join('\n');
+    `SYNTAX EXAMPLE (syntax only — compose your own page):\n\`\`\`html\n${flow ? FLOW_EXAMPLE : FIXED_EXAMPLE}\n\`\`\``,
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+/** Les outils dont CETTE page a besoin, et eux seuls (documentation à la demande). */
+export function toolLines(ctx: DocumentContext, o: { charts: string[]; tables: string[]; icons: boolean }): string {
+  const lines = ['TOOLS (drawn by code — you place and size them):', '- <idem-logo variant="primary" class="h-[36px]"></idem-logo> the brand logo (variant from BRAND).'];
+  if (o.charts.length)
+    lines.push(
+      `- <idem-chart data-block="${o.charts[0]}" class="w-full text-ink"></idem-chart> the exact chart of a block, drawn from its data. Optional: data-aspect="16/9"; data-type="bar|horizontalBar|line|area|groupedBar|stacked|pie|doughnut|radar" to choose another representation; data-highlight="<label>" to bring one category forward.`
+    );
+  if (o.tables.length) lines.push(`- <idem-table data-block="${o.tables[0]}" class="w-full text-[13px] [&_th]:bg-brand-primary [&_th]:text-on-brand"></idem-table> the exact table of a block, styled from the tag.`);
+  if (o.icons) lines.push('- <idem-icon name="{{…icon}}" class="size-[32px] text-brand-primary"></idem-icon> a line icon (an English noun or an icon key).');
+  if (ctx.tokens.brand.patterns.length) lines.push('- <idem-pattern index="0" class="absolute inset-0 opacity-[0.08]"></idem-pattern> the brand pattern, only where the brand language uses it.');
+  return lines.join('\n');
 }
 
 function referenceLines(ref?: ReferenceComposition): string {
@@ -208,23 +270,31 @@ function referenceLines(ref?: ReferenceComposition): string {
 export interface PageBrief {
   section: SectionContent;
   listing: string;
+  tools: string;
   index?: number;
   total?: number;
-  bible?: string;
+  /** Le langage visuel de la marque. */
+  language?: string;
+  /** L'idée du document et la ligne de CETTE page, avec celles de ses voisines. */
+  plan?: { idea?: string; page?: string; previous?: string; next?: string };
   reference?: ReferenceComposition;
 }
 
 export function authorUser(ctx: DocumentContext, p: PageBrief): string {
   const s = p.section;
   const intent = s.intent;
+  const plan = p.plan;
   return [
-    `PAGE: ${p.index && p.total && p.total > 1 ? `${p.index} of ${p.total}` : 'single page'}${s.role && ROLE_HINT[s.role] ? ` — ${ROLE_HINT[s.role]}` : ''}`,
+    `PAGE: ${p.index && p.total && p.total > 1 ? `${p.index} of ${p.total}` : 'single page'}${s.role && ROLE_HINT[s.role] ? ` — ${ROLE_HINT[s.role]}` : ''} · texts in ${ctx.locale}`,
     `CANVAS: ${canvasLine(ctx.format)}`,
-    `LANGUAGE OF THE TEXTS: ${ctx.locale}`,
-    p.bible ? `BIBLE OF THE DOCUMENT (follow it):\n${p.bible}` : '',
     `BRAND:\n${brandSheet(ctx)}`,
+    p.language ? `BRAND VISUAL LANGUAGE (apply it):\n${p.language}` : directionLines(ctx),
+    plan && (plan.idea || plan.page)
+      ? `DOCUMENT PLAN:${plan.idea ? `\nidea: ${plan.idea}` : ''}${plan.previous ? `\nprevious page: ${plan.previous}` : ''}${plan.page ? `\nTHIS PAGE: ${plan.page}` : ''}${plan.next ? `\nnext page: ${plan.next}` : ''}`
+      : '',
     intent ? `INTENT: ${[intent.keyMessage ? `the reader must understand: ${intent.keyMessage}` : '', intent.visualStrategy ? `visual strategy: ${intent.visualStrategy}` : ''].filter(Boolean).join('; ')}` : '',
     referenceLines(p.reference),
+    p.tools,
     `CONTENT (keys → texts):\n${p.listing}`,
   ]
     .filter(Boolean)
@@ -243,6 +313,6 @@ export function repairUser(base: string, strategy: RepairStrategy, o: { code?: s
   const past = o.history.length ? `\nPREVIOUS FAILURES:\n${o.history.map((h) => `- ${h}`).join('\n')}` : '';
   if (strategy === 'fix')
     return `${base}\n\nYOUR PAGE DID NOT DISPLAY.\nERROR: ${o.error}${o.code ? `\nYOUR CODE:\n\`\`\`html\n${o.code.slice(0, 14000)}\n\`\`\`` : ''}\nFix the cause and return the whole corrected page. Same output format.`;
-  if (strategy === 'rewrite') return `${base}\n\nEarlier versions of this page did not display.${past}\nWrite the page again from scratch, with a different and simpler construction (fewer layers, no tricks). Same output format.`;
-  return `${base}\n\nEarlier versions of this page did not display.${past}\nWrite the SIMPLEST page that displays: the brand ground, the title, then every content key in order in a column, primitives full width. Same output format.`;
+  if (strategy === 'rewrite') return `${base}\n\nEarlier versions of this page did not display.${past}\nWrite the page again from scratch, with a different and simpler construction (fewer layers). Same output format.`;
+  return `${base}\n\nEarlier versions of this page did not display.${past}\nWrite the SIMPLEST page that displays: the brand ground, the title, then every content key in order in a column, tools full width. Same output format.`;
 }

@@ -170,42 +170,93 @@ export function readManifest(raw: unknown): { manifest: SiteManifest | null; pro
 
 function prompt(facts: SiteFacts, factsText: string, request: string, language: string): string {
   const brief = request.trim();
+  const fr = language === 'fr';
   return `# Le projet
 ${factsText}
 ${brief && brief !== facts.description ? `\n# La demande\n${brief.slice(0, 1500)}\n` : ''}
 # Ta tâche
-Tu conçois l'architecture du site vitrine de ce projet : ses pages et, pour chaque page, ses sections dans l'ordre.
-- Choisis les pages et les sections que CE projet justifie, pour SA clientèle, avec ses faits. Une page unique avec des ancres est un bon choix pour un projet simple ; plusieurs pages quand le contenu le demande (7 au plus).
-- Chaque section a un "brief" de une à trois phrases : ce qu'elle montre, ce qu'elle dit, et la disposition que tu imagines (asymétrie, colonnes, liste, grande citation, image pleine largeur…). Varie les dispositions d'une section à l'autre. Pas de section générique qui pourrait servir à n'importe quelle entreprise.
-- La première section de l'accueil présente le projet et mène à l'action principale.
-- Le site n'a ni formulaire, ni compte client, ni paiement en ligne : on contacte le projet par les seuls moyens listés dans les faits. Les prix, l'équipe et les coordonnées viennent des faits ; si un fait manque, ne prévois pas de section qui en aurait besoin.
-- Pas de section de témoignages, d'avis clients, de chiffres clés, de logos de clients ou de partenaires, de récompenses : le projet n'en fournit aucun, ils seraient inventés.
-- "visual" : "photo" (scène réelle), "illustration" (dessin), "video" (au plus une sur tout le site, pour un geste ou une machine en mouvement) ou "none".
-- "components" : les composants optionnels dont le site a besoin, parmi : ${OPTIONAL_MODULES.join(', ')}. Les boutons, titres, textes, cartes, badges, conteneurs et visuels sont toujours disponibles.
-- Les textes que tu écris ici (label, seoTitle, seoDescription, navLabel) sont ${language === 'fr' ? 'en français' : 'in English'}.
+Tu conçois l'architecture COMPLÈTE et HAUT DE GAMME du site vitrine de ce projet : ses pages et, pour chaque page, ses sections dans l'ordre.
+
+## 1. STRUCTURE MULTI-PAGES OBLIGATOIRE (par défaut)
+Sauf si la demande de l'utilisateur exige explicitement un site "one-page" ou une "page unique", conçois TOUJOURS un site multi-pages riche et immersif de 3 à 5 pages distinctes :
+- Page 1 : **Accueil** (slug: "", label: "${fr ? 'Accueil' : 'Home'}") avec 4 à 6 sections riches (Hero d'impact avec proposition de valeur, Présentation / Mission, Services phares ou Offres vedettes, Pourquoi nous choisir / Atouts majeurs, Démarche / Processus, Appel à l'action final).
+- Page 2 : **À propos** (slug: "a-propos", label: "${fr ? 'À propos' : 'About'}") avec 3 à 5 sections (Histoire & Genèse du projet, Vision & Valeurs fondatrices, Notre savoir-faire & Équipe / Passion, Engagements qualité & démarche responsable).
+- Page 3 : **Services / Offres** (slug: "services" ou "offres", label: "${fr ? 'Nos Services' : 'Services'}") avec 3 à 5 sections (Catalogue détaillé des prestations ou produits, Méthodologie pas à pas, Modalités / Garanties pratiques, FAQ spécifique aux services).
+- Page 4 : **Contact & Accès** (slug: "contact", label: "Contact") avec 2 à 4 sections (Canaux d'échange directs et coordonnées réelles, Horaires / Disponibilités & Modalités d'accès, FAQ pratique avant de contacter).
+- *(Optionnel selon le projet)* : Réalisations / Portfolio (slug: "realisations"), ou Tarifs (slug: "tarifs").
+
+## 2. RICHESSE ET VARIÉTÉ DES SECTIONS
+- Chaque section a un "brief" précis de 2 à 4 phrases : ce qu'elle montre, ce qu'elle dit avec force, et la disposition scénarisée (grille de cartes, colonnes asymétriques, frise d'étapes ordonnée, citation d'impact, visuel pleine largeur, liste de bénéfices avec icônes...).
+- Varie les dispositions d'une section à l'autre pour créer un rythme éditorial dynamique. Pas de section fade ou générique.
+- La première section de l'accueil présente le projet de façon saisissante et mène à l'action principale.
+- Les prix, l'équipe, la localisation et les coordonnées viennent des faits du projet.
+- "visual" : "photo" (scène réelle), "illustration" (dessin), "video" (au plus une sur tout le site) ou "none".
+- "components" : composants optionnels dont le site a besoin, parmi : ${OPTIONAL_MODULES.join(', ')}.
+- Tous les textes de structure (label, purpose, seoTitle, seoDescription, briefs) sont rédigés ${fr ? 'en français' : 'in English'}.
 
 # Forme exacte de la réponse
-Renvoie UNIQUEMENT cet objet JSON :
+Renvoie UNIQUEMENT cet objet JSON structuré avec TOUTES ses pages :
 {
   "pages": [
     {
-      "slug": "segment d'adresse en kebab-case (ignoré pour la première page, qui est l'accueil)",
-      "label": "nom de la page dans le menu",
-      "purpose": "à quoi sert la page, une phrase",
-      "seoTitle": "titre pour les moteurs de recherche, 45 à 60 caractères",
-      "seoDescription": "140 à 160 caractères",
+      "slug": "",
+      "label": "${fr ? 'Accueil' : 'Home'}",
+      "purpose": "${fr ? "Présenter l'activité, séduire les visiteurs et exposer la proposition de valeur" : 'Introduce the business, engage visitors and present the core value proposition'}",
+      "seoTitle": "${fr ? 'titre captivant pour les moteurs de recherche, 45 à 60 caractères' : 'engaging SEO title, 45 to 60 characters'}",
+      "seoDescription": "${fr ? 'description engageante de 140 à 160 caractères' : 'engaging meta description, 140 to 160 characters'}",
       "sections": [
-        { "id": "identifiant-kebab", "brief": "…", "visual": "photo | illustration | video | none", "navLabel": "libellé court dans le menu (seulement pour un site d'une page)" }
+        { "id": "hero", "brief": "…", "visual": "photo" },
+        { "id": "presentation", "brief": "…", "visual": "none" },
+        { "id": "apercu-services", "brief": "…", "visual": "illustration" },
+        { "id": "pourquoi-nous-choisir", "brief": "…", "visual": "none" },
+        { "id": "demarche", "brief": "…", "visual": "none" },
+        { "id": "appel-action", "brief": "…", "visual": "none" }
+      ]
+    },
+    {
+      "slug": "a-propos",
+      "label": "${fr ? 'À propos' : 'About'}",
+      "purpose": "${fr ? 'Partager notre histoire, nos valeurs et les visages derrière le projet' : 'Share our story, core values, and the people behind the project'}",
+      "seoTitle": "${fr ? 'Histoire et engagements' : 'Our Story and Values'}",
+      "seoDescription": "…",
+      "sections": [
+        { "id": "histoire-vision", "brief": "…", "visual": "photo" },
+        { "id": "nos-valeurs", "brief": "…", "visual": "none" },
+        { "id": "notre-expertise", "brief": "…", "visual": "illustration" }
+      ]
+    },
+    {
+      "slug": "services",
+      "label": "${fr ? 'Nos Services' : 'Services'}",
+      "purpose": "${fr ? 'Présenter en détail chaque offre et le déroulement de nos prestations' : 'Detail every offering and describe our work process'}",
+      "seoTitle": "${fr ? 'Nos Prestations et Solutions' : 'Our Services and Solutions'}",
+      "seoDescription": "…",
+      "sections": [
+        { "id": "catalogue-prestations", "brief": "…", "visual": "photo" },
+        { "id": "processus-collaboration", "brief": "…", "visual": "none" },
+        { "id": "faq-services", "brief": "…", "visual": "none" }
+      ]
+    },
+    {
+      "slug": "contact",
+      "label": "Contact",
+      "purpose": "${fr ? 'Fournir tous les moyens de nous joindre, nos horaires et plan d\'accès' : 'Provide direct contact channels, hours, and location'}",
+      "seoTitle": "${fr ? 'Contact et Accès' : 'Contact and Access'}",
+      "seoDescription": "…",
+      "sections": [
+        { "id": "coordonnees-directes", "brief": "…", "visual": "illustration" },
+        { "id": "horaires-et-acces", "brief": "…", "visual": "none" }
       ]
     }
   ],
-  "header": "ce que montre l'en-tête et comment il se comporte, une phrase",
-  "footer": "ce que montre le pied de page, une phrase",
-  "components": [],
+  "header": "${fr ? "En-tête soigné avec la marque, la navigation fluide entre toutes les pages et le bouton d'action principal." : 'Refined header with brand mark, seamless navigation across all pages and primary action button.'}",
+  "footer": "${fr ? "Pied de page complet avec la marque, la liste des pages, les coordonnées directes et les mentions légales." : 'Comprehensive footer with brand mark, page links, direct contact details and legal notices.'}",
+  "components": ["card", "badge", "accordion"],
   "dependencies": [],
   "keywords": ["6 à 10 expressions que les clients tapent réellement"],
   "businessType": "un type parmi : ${BUSINESS_TYPES.join(', ')}"
-}`;
+}
+`;
 }
 
 /** Le manifeste du site, ou `null` si aucun modèle n'a donné de réponse bien formée. */
@@ -229,7 +280,7 @@ export async function designManifest(options: {
         problem: `Votre réponse n'a pas la forme demandée : ${problems.slice(0, 4).join(' ; ') || 'objet JSON illisible'}. Renvoyez UNIQUEMENT l'objet JSON complet.`,
       };
     },
-    3000
+    7000
   );
 
   if (outcome.value) {

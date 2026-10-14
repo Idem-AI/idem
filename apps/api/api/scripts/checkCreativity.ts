@@ -118,13 +118,13 @@ const run = (n: number) => !only.length || only.includes(n);
       return `\`\`\`html\n<div class="relative flex h-full w-full flex-col justify-between bg-ground p-[12px]"><idem-logo class="h-[14px]"></idem-logo><div>${['fullName', 'jobTitle'].filter((k) => fields.includes(k)).map((k) => `<p data-field="${k}" class="break-words font-display text-[10px] font-bold leading-[1.2]">{{${k}}}</p>`).join('')}${fields.filter((k) => ['email', 'phone', 'address'].includes(k)).map(line).join('')}</div></div>\n\`\`\``;
     }
     const body = `<p class="text-[12px] uppercase tracking-[0.2em] text-brand-primary">{{kicker}}</p><h2 class="font-display text-[34px] font-bold leading-[1.05] text-ink">{{title}}</h2>${keys.filter((k) => k.includes('.') || fields.includes(k)).map((k) => (fields.includes(k) ? `<p data-field="${k}" class="text-[9px]">{{${k}}}</p>` : `<p class="text-[14px] text-muted">{{${k}}}</p>`)).join('')}${prims.join('')}<idem-logo class="h-[24px]"></idem-logo>`;
-    return flow ? `\`\`\`html\n${body}\n\`\`\`` : `\`\`\`html\n<div class="relative flex h-full w-full flex-col justify-center gap-[10px] bg-ground p-[6%]"><div class="absolute right-0 top-0 h-[30%] w-[30%] rounded-bl-full bg-brand-soft"></div>${body}</div>\n\`\`\``;
+    return flow ? `\`\`\`html\n${body}\n\`\`\`` : `\`\`\`html\n<div class="relative flex h-full w-full flex-col justify-center gap-[10px] bg-ground p-[6%]">${body}</div>\n\`\`\``;
   };
   const engineAgent = (): EngineAgentCall => async ({ role, user, level }) => {
     const repair = /DID NOT DISPLAY|did not display/.test(user);
     engineCalls.push({ role, level, repair });
     if (agentMode === 'down') throw new Error('quota');
-    if (role === 'graphic.director') return 'BIBLE:\n- Big display titles in brand-primary, generous margins, a soft quarter circle in a corner on every page.';
+    if (role === 'graphic.director') return /PAGES:/.test(user) ? `IDEA: Big display figures on a calm grid.\n${[...user.matchAll(/^(\d+)\. /gm)].map((m) => `PAGE ${m[1]}: one dominant element, text in a narrow column`).join('\n')}` : 'LANGUAGE:\n- brand-primary for structure, ink for text, generous margins, a 4px brand-primary rule under every title.';
     if (agentMode === 'garbage') return 'je ne sais pas';
     if (agentMode === 'blank' || (agentMode === 'blank-once' && !repair)) return '```html\n<div class="hidden">{{title}}</div>\n```';
     return PAGE(user);
@@ -253,8 +253,8 @@ const run = (n: number) => !only.length || only.includes(n);
         const outs = await Promise.all(PAGES.map((page, i) => doc.composeSection(page, { index: i + 1, total: PAGES.length })));
         const roles = engineCalls.map((c) => c.role);
         check(
-          `${documentType}, ${level} : une bible (directeur) puis un appel d’auteur par page, au cran ${level}`,
-          roles.filter((r) => r === 'graphic.director').length === 1 && roles.filter((r) => r === 'graphic.author').length === PAGES.length && engineCalls.every((c) => c.level === level) && outs.every((o) => o.spec.bible && blockingOf(o).length === 0),
+          `${documentType}, ${level} : le langage de la marque et le plan (directeur), puis un appel d’auteur par page, au cran ${level}`,
+          roles.filter((r) => r === 'graphic.director').length === 2 && roles.filter((r) => r === 'graphic.author').length === PAGES.length && engineCalls.every((c) => c.level === level) && outs.every((o) => o.spec.bible && blockingOf(o).length === 0),
           roles.join(',')
         );
         const html = outs.map((o) => o.result.html).join('');

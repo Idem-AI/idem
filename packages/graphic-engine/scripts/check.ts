@@ -46,7 +46,7 @@ const readJson = (rel: string) => JSON.parse(fs.readFileSync(path.join(EX, rel),
 // ── L'auteur simulé : il place chaque clé reçue, et sait rendre une page vide ou une réponse sans HTML ─────
 type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down';
 let mode: Mode = 'ok';
-const calls: Array<{ role: string; level?: CreativityLevel; repair: boolean; user: string }> = [];
+const calls: Array<{ role: string; level?: CreativityLevel; repair: boolean; user: string; system?: string }> = [];
 const fakePage = (user: string): string => {
   const keys = [...user.matchAll(/^\{\{([\w.]+)\}\} = /gm)].map((m) => m[1]).filter((k) => !['kicker', 'title', 'lede'].includes(k));
   const prims = [...user.matchAll(/<idem-(chart|table) data-block="([^"]+)">/g)].map((m) => `<idem-${m[1]} data-block="${m[2]}" class="w-full text-[12px]"></idem-${m[1]}>`);
@@ -54,17 +54,19 @@ const fakePage = (user: string): string => {
   return /A4 page that GROWS/.test(user) ? `\`\`\`html\n${body}\n\`\`\`` : `\`\`\`html\n<div class="relative flex h-full w-full flex-col gap-[8px] bg-ground p-[5%]">${body}</div>\n\`\`\``;
 };
 configureGraphicEngine({
-  agentCall: () => async ({ role, user, level }) => {
+  agentCall: () => async ({ role, user, level, system }) => {
     const repair = /DID NOT DISPLAY|did not display/.test(user);
-    calls.push({ role, level, repair, user });
+    calls.push({ role, level, repair, user, system });
     if (mode === 'down') throw new Error('quota');
-    if (role === 'graphic.director') return 'BIBLE:\n- Big display titles in brand-primary, generous margins, one soft circle per page.';
+    if (role === 'graphic.director') return /PAGES:/.test(user) ? `IDEA: Large figures, one brand-primary rule per page.\n${[...user.matchAll(/^(\d+)\. /gm)].map((m) => `PAGE ${m[1]}: the key figure dominates, text in a narrow column`).join('\n')}` : 'LANGUAGE:\n- brand-primary for structure, ink for text, generous margins, a 4px brand-primary rule as signature.';
     if (/CHANGE REQUESTED BY THE CLIENT/.test(user)) return '```html\n<div class="relative h-full w-full bg-brand-primary p-[40px]"><h2 class="text-[60px] text-on-brand">{{title}}</h2></div>\n```';
     if (mode === 'garbage') return 'je ne sais pas';
     if (mode === 'blank' || (mode === 'blank-once' && !repair)) return '```html\n<div class="hidden">{{title}}</div>\n```';
     return fakePage(user);
   },
 });
+
+const authorSystemOf = (list: typeof calls) => list.map((c) => c.system ?? '').join('\n');
 
 async function main(): Promise<void> {
   // ── §1 Contrats ──────────────────────────────────────────────────────────────────────────
@@ -138,6 +140,11 @@ async function main(): Promise<void> {
     const svg = chartHtml({ id: 'c', kind: 'chart', chartType, labels: ['A', 'B', 'C', 'D'], series: multi ? [{ name: 'S1', data: [12, 30, 22, 41] }, { name: 'S2', data: [8, 14, 19, 25] }] : [{ name: 'S', data: [40, 30, 20, 10] }], readingKey: 'x', unit: '%' }, kora, { className: 'w-full' });
     ok(`${chartType} : SVG dessiné, palette déclarée (recoloration de marque)`, svg.includes('<svg') && /data-ge-palette="#[0-9a-f]{6}/i.test(svg) && !/NaN|undefined/.test(svg));
   }
+  const base = { id: 'c', kind: 'chart' as const, chartType: 'bar' as const, labels: ['2024', '2025', '2026'], series: [{ name: 'CA', data: [10, 20, 35] }], readingKey: 'x' };
+  ok('l’auteur choisit une autre représentation des mêmes données (data-type)', chartHtml(base, kora, { type: 'line' }).includes('data-ge-chart="line"') && chartHtml(base, kora, { type: 'doughnut' }).includes('data-ge-chart="doughnut"'));
+  ok('une représentation qui trahirait les données est refusée (deux séries en camembert)', chartHtml({ ...base, series: [...base.series, { name: 'B', data: [1, 2, 3] }] }, kora, { type: 'pie' }).includes('data-ge-chart="bar"'));
+  const hi = chartHtml(base, kora, { highlight: '2026' });
+  ok('une catégorie mise en avant (data-highlight), les autres en retrait', (hi.match(/fill-opacity="0.32"/g) ?? []).length === 2);
   const table = FINANCE_BP.blocks.find((b) => b.kind === 'table');
   if (table && table.kind === 'table') {
     const t = tableHtml(table, { className: '[&_th]:bg-brand-primary' });
@@ -151,8 +158,10 @@ async function main(): Promise<void> {
   calls.length = 0;
   const deck = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, direction: { styleId: 'swiss' }, creativity: 'low', seed: 'check', sections: [{ id: 'market' }, { id: 'finance' }], png: true });
   const [m, f] = await Promise.all([deck.composeSection(MARKET, { index: 1, total: 2 }), deck.composeSection({ ...FINANCE_BP, id: 'finance' }, { index: 2, total: 2 })]);
-  ok('une bible pour le document (pages en parallèle), un appel d’auteur par page, au cran choisi', calls.filter((c) => c.role === 'graphic.director').length === 1 && calls.filter((c) => c.role === 'graphic.author').length === 2 && calls.every((c) => c.level === 'low'));
-  ok('l’auteur reçoit la bible, le support et la matière', calls.filter((c) => c.role === 'graphic.author').every((c) => c.user.includes('BIBLE OF THE DOCUMENT') && c.user.includes('CANVAS:') && c.user.includes('{{title}}')));
+  ok('sans mémoire : le langage de la marque et le plan (deux appels du directeur, pages en parallèle), un appel d’auteur par page, au cran choisi', calls.filter((c) => c.role === 'graphic.director').length === 2 && calls.filter((c) => c.role === 'graphic.author').length === 2 && calls.every((c) => c.level === 'low'));
+  const authorCalls = calls.filter((c) => c.role === 'graphic.author');
+  ok('l’auteur reçoit le langage de la marque, SA ligne du plan et celle de sa voisine, le support et la matière', authorCalls.every((c) => c.user.includes('BRAND VISUAL LANGUAGE') && c.user.includes('THIS PAGE:') && /(previous|next) page:/.test(c.user) && c.user.includes('CANVAS:') && c.user.includes('{{title}}')));
+  ok('outils à la demande : une page sans tableau ne reçoit pas la documentation du tableau', authorCalls.some((c) => c.user.includes('<idem-chart data-block="b2"') && !c.user.includes('<idem-table')) && authorCalls.some((c) => c.user.includes('<idem-table data-block="b1"')));
   ok('pages affichées, photographiées, textes exacts, aucun constat bloquant', Boolean(m.png && f.png) && m.result.html.includes('2,3 Md FCFA') && [m, f].every((o) => !o.result.issues.some((i) => i.severity === 'blocking')));
   ok('le fragment porte sa feuille Tailwind avant la racine', /<style data-ge-tailwind>/.test(m.result.head ?? '') && m.result.html.startsWith('<div class="ge-page'));
   const before = calls.length;
@@ -162,6 +171,23 @@ async function main(): Promise<void> {
   ok('retouche écrite : l’auteur reçoit son code et la consigne', calls[calls.length - 1].user.includes('CURRENT PAGE CODE') && revised.spec.html.includes('text-[60px]'));
   const old = await deck.composeSection(MARKET, { replay: { ref: 'market', pattern: { id: 'slide.split' }, root: {} } as never });
   ok('une page de l’ancien moteur ne se rejoue pas : elle est réécrite', old.spec.version === 2 && calls[calls.length - 1].role === 'graphic.author');
+
+  // La mémoire de la marque : le langage est écrit une fois, puis relu par les autres livrables.
+  const memory = new Map<string, string>();
+  configureGraphicEngine({ brandMemory: { read: async (k) => memory.get(k), write: async (k, v) => void memory.set(k, v) } });
+  calls.length = 0;
+  const scope = { documentType: 'pitch-deck', key: 'project-kora' };
+  const d1 = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, direction: { styleId: 'swiss' }, seed: 'm1', sections: [{ id: 'market' }, { id: 'finance' }], memoryScope: scope });
+  await d1.composeSection(MARKET, { index: 1, total: 2 });
+  const firstDirector = calls.filter((c) => c.role === 'graphic.director').length;
+  calls.length = 0;
+  await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kora, direction: { styleId: 'swiss' }, seed: 'm2', memoryScope: { documentType: 'flyer', key: 'project-kora' }, content: { id: 'v', role: 'visual', title: 'Promo', blocks: [] } });
+  ok('langage écrit une fois et gardé ; un flyer de la même marque le relit (aucun appel du directeur) et l’applique', firstDirector === 2 && memory.size === 1 && calls.length === 1 && calls[0].role === 'graphic.author' && calls[0].user.includes('BRAND VISUAL LANGUAGE'));
+  calls.length = 0;
+  await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: { ...BRANDS.kora, palette: { ...BRANDS.kora.palette, primary: '#7A1F3D' } }, direction: { styleId: 'swiss' }, seed: 'm3', memoryScope: { documentType: 'flyer', key: 'project-kora' }, content: { id: 'v', role: 'visual', title: 'Promo', blocks: [] } });
+  ok('une charte changée appelle un nouveau langage', calls.filter((c) => c.role === 'graphic.director').length === 1 && memory.size === 2);
+  configureGraphicEngine({ brandMemory: undefined });
+  ok('consigne professionnelle : aucune décoration gratuite, système identique d’une page à l’autre', calls.length > 0 && /Never random circles, blobs, glows, gradients/.test(authorSystemOf(calls)) );
 
   const card = await renderSingle({ documentType: 'business-card', format: 'card-landscape', brand: BRANDS.kofi, seed: 'card', bindings: 'markers', content: cardFaces({ binding: 'markers' }).front });
   ok('carte : gabarit à marqueurs (data-field)', /data-field="fullName"[^>]*>\{\{fullName\}\}|<span data-field="fullName">\{\{fullName\}\}/.test(card.result.html));

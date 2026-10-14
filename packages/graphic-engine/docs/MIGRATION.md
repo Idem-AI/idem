@@ -1,5 +1,16 @@
 # Migrations du moteur graphique
 
+## 2.1 — langage de marque, plan de document, rendu professionnel (14 octobre 2026)
+
+- Le directeur écrit le **langage visuel de la marque** une fois par charte (port `brandMemory` : Redis chez IDEM,
+  Mongo `brand_memory` chez iVision) ; tous les livrables le relisent, flyers et cartes compris.
+- Pour un document de plusieurs pages, il écrit un **plan** (une idée, une ligne par page, à partir de ce que chaque
+  page doit faire : `sections[].purpose`) au lieu d'une bible ; chaque page reçoit sa ligne et celles de ses voisines.
+- Consigne **professionnelle** (aucune décoration gratuite), consigne système stable, outils documentés à la demande,
+  HTML compact ; graphiques : `data-type` et `data-highlight`.
+- Entrée par page ≈ −18 % (`npm run prompt-size`), plus le cache de la consigne système et un appel de directeur
+  par marque au lieu d'un par document pour les pages seules.
+
 ## 2.0 — l'IA écrit les pages en Tailwind (14 octobre 2026)
 
 Même philosophie que le moteur vidéo Motion Canvas : **l'IA conçoit librement, le code garantit

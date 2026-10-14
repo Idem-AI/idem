@@ -19,7 +19,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "ts-node --transpile-only scripts/check.ts",
     "check:fast": "ts-node --transpile-only scripts/check.ts --fast",
-    "schemas": "ts-node --transpile-only scripts/generate-schemas.ts"
+    "schemas": "ts-node --transpile-only scripts/generate-schemas.ts",
+    "prompt-size": "ts-node --transpile-only scripts/prompt-size.ts"
   },
   "keywords": [
     "idem",

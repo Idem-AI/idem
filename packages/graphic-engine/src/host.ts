@@ -34,6 +34,11 @@ export interface EngineHost {
   /** Mémoire entre documents d'une portée (les bibles déjà écrites pour la marque) : lire et écrire. */
   recentFingerprints?: (scope: FingerprintScope) => Promise<string[]>;
   rememberFingerprints?: (scope: FingerprintScope, fingerprints: string[]) => Promise<void>;
+  /**
+   * La mémoire de la MARQUE (clé → texte) : le langage visuel écrit une fois pour une charte, relu par tous ses
+   * livrables. La clé change avec la charte.
+   */
+  brandMemory?: { read: (key: string) => Promise<string | undefined>; write: (key: string, value: string) => Promise<void> };
   browser?: BrowserOptions;
   /**
    * Les fournisseurs de MÉDIAS, par source (utilisateur, projet, capture, génération, banque) : le moteur

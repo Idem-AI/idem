@@ -60,7 +60,7 @@ export interface OpenGraphicDocumentOptions {
   /** Le cran de la jauge de créativité (Medium par défaut). */
   creativity?: unknown;
   /** Les pages attendues, dans l'ordre : le directeur écrit la bible du document pour elles. */
-  sections?: Array<{ id: string; role?: SectionRole }>;
+  sections?: Array<{ id: string; role?: SectionRole; purpose?: string }>;
   documentLabel?: string;
   userId?: string;
   bindings?: DocumentOptions['bindings'];

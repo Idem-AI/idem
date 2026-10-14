@@ -17,7 +17,7 @@ import { readJsonObject } from './json.js';
 /** Essais par tâche, tous modèles confondus. */
 const MAX_ATTEMPTS = 3;
 /** Au-delà, l'appel est abandonné et le modèle suivant prend la main. */
-const CALL_TIMEOUT_MS = 45_000;
+const CALL_TIMEOUT_MS = 90_000;
 
 export interface CallOutcome<T> {
   value: T | null;

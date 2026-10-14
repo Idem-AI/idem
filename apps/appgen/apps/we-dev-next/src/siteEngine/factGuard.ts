@@ -15,8 +15,8 @@
  * retirer.
  */
 
-/** Petits nombres d'usage courant (« en 2 temps ») : pas des affirmations. */
-const SMALL_NUMBERS = new Set(['0', '1', '2', '3']);
+/** Nombres d'usage courant dans les structures et puces (« en 4 étapes », « 100% ») : pas des affirmations trompeuses. */
+const SMALL_NUMBERS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '12', '24', '48', '100']);
 
 const SPELLED_FR = 'deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|quinze|vingt|trente|quarante|cinquante|soixante|cent';
 const SPELLED_EN = 'two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty|hundred';

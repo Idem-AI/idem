@@ -104,6 +104,13 @@ export function configureCoreForIvision(): void {
       return ask();
     },
     assetRegistry,
+    // Le langage visuel de chaque marque, écrit une fois par le moteur graphique et relu par tous ses visuels.
+    brandMemory: {
+      read: async (key) => (await collection<{ _id: string; value: string }>('brand_memory').findOne({ _id: key }))?.value,
+      write: async (key, value) => {
+        await collection<{ _id: string; value: string; updatedAt: Date }>('brand_memory').updateOne({ _id: key }, { $set: { value, updatedAt: new Date() } }, { upsert: true });
+      },
+    },
     refundCredits: async (userId, cost, meta) => {
       await idem.billing.refund({ userId, cost, action: meta.action, note: meta.note });
     },

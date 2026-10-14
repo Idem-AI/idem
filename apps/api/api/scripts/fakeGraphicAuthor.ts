@@ -12,10 +12,15 @@ export function fakePage(user: string): string {
   const header = `<header class="border-b-[3px] border-brand-primary pb-[12px]"><p class="text-[11px] uppercase tracking-[0.2em] text-brand-primary">{{kicker}}</p><h2 class="font-display text-[30px] font-bold leading-[1.1] text-ink">{{title}}</h2></header><p class="mt-[14px] text-[16px] text-muted">{{lede}}</p>`;
   const footer = `<footer data-keep-together class="mt-[24px] flex items-center justify-between border-t border-rule pt-[8px]"><idem-logo class="h-[16px]"></idem-logo><span class="text-[10px] text-muted">{{title}}</span></footer>`;
   if (/A4 page that GROWS/.test(user)) return `\`\`\`html\n${header}\n${texts.map((t) => `<div>${t}</div>`).join('\n')}\n${prims.join('\n')}\n${footer}\n\`\`\``;
-  return `\`\`\`html\n<div class="relative flex h-full w-full flex-col gap-[8px] overflow-hidden bg-ground p-[5%]"><div class="absolute right-0 top-0 h-[25%] w-[25%] rounded-bl-full bg-brand-soft"></div><div class="relative">${header}${texts.join('')}${prims.join('')}</div><idem-logo class="mt-auto h-[28px]"></idem-logo></div>\n\`\`\``;
+  return `\`\`\`html\n<div class="relative flex h-full w-full flex-col gap-[8px] overflow-hidden bg-ground p-[5%]"><div class="relative">${header}${texts.join('')}${prims.join('')}</div><idem-logo class="mt-auto h-[28px]"></idem-logo></div>\n\`\`\``;
 }
 
-export const fakeAuthorCall: AgentCall = async ({ role, user }) => (role === 'graphic.director' ? 'BIBLE:\n- A brand-primary rule under every title, soft quarter circle in the corner, generous margins.' : fakePage(user));
+export const fakeAuthorCall: AgentCall = async ({ role, user }) =>
+  role === 'graphic.director'
+    ? /PAGES:/.test(user)
+      ? `IDEA: Calm editorial grid, figures first.\n${[...user.matchAll(/^(\d+)\. /gm)].map((m) => `PAGE ${m[1]}: title band, then the content in reading order`).join('\n')}`
+      : 'LANGUAGE:\n- A brand-primary rule under every title, ink text on the ground, generous margins, logo bottom-left.'
+    : fakePage(user);
 
 /** Branche l'auteur simulé sur le moteur graphique (à appeler avant toute page). */
 export function useFakeGraphicAuthor(): void {
