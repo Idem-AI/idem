@@ -11,7 +11,7 @@
  *  4. phase = décalage qui aligne le mieux une grille régulière sur les attaques.
  */
 import { spawn } from 'child_process';
-import { VideoBeatGrid } from './video.model';
+import { VideoBeatGrid } from '../contracts/model';
 
 const SAMPLE_RATE = 11025;
 const HOP = 256; // ≈ 23 ms

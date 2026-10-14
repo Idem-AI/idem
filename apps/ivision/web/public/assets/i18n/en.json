@@ -429,30 +429,14 @@
       "visualFromReference": "Here is your visual, laid out like the model, on brand.",
       "montage": "I’m editing your video: cutting silences, adding captions and animating what you say. You can leave the page, I keep going.",
       "fidelityTitle": "What the video could not follow",
-      "fidelity": {
-        "4k": "4K is not available: the video is rendered in 1080p, the best quality on offer.",
-        "fps": "{{fps}} frames per second is not available: the video is rendered at 30 frames per second.",
-        "duration": "Your script lasts {{asked}} s and the video {{made}} s (chosen duration): each scene kept its share of the time.",
-        "textsMissing": "{{count}} text(s) from your request could not be placed: check them in the editor.",
-        "textsAdded": "{{count}} text(s) were added to your script: check them in the editor.",
-        "language": "Some texts are not in the language of your request: check them before exporting.",
-        "voice": "The voice-over could not be generated in the language of the video.",
-        "scenes": "{{count}} scene(s) of your script are missing: check the cut in the editor.",
-        "footageBlocked": {
-          "payment": "The video generation service has no credits left: filmed shots were replaced. Run the creation again once it is topped up.",
-          "unavailable": "The video generation service is unavailable: filmed shots were replaced. Run the creation again once it is back."
-        },
-        "footageStock": "{{count}} filmed shot(s) replaced by royalty-free videos.",
-        "footageStills": "{{count}} filmed shot(s) shown as animated images.",
-        "footageMissing": "{{count}} filmed shot(s) composed in motion design, as no footage could be made."
-      },
       "preparing": "Loading sounds and voice-over… {{percent}}%",
       "watchVideo": "Watch the video",
       "downloadFormat": "Choose the format",
       "downloadReady": "Ready",
       "downloadIncluded": "Included",
       "downloadPrice": "{{cost}} credits",
-      "downloadPreparing": "Preparing the MP4… {{percent}}%"
+      "downloadPreparing": "Preparing the MP4… {{percent}}%",
+      "broken": "{{count}} scene(s) do not run: open “Edit” and press “Fix” before downloading."
     },
     "payment": {
       "cta": "Top up my credits",
@@ -463,21 +447,15 @@
       "label": "Creation steps",
       "stages": {
         "plan": "Video plan",
-        "copy": "Texts",
-        "layout": "Layouts",
         "media": "Images and clips",
         "music": "Music",
-        "sfx": "Sound effects",
         "voice": "Voice-over",
-        "storyboard": "Edit",
-        "animation": "Animations",
-        "critique": "Review",
-        "code": "Custom shots",
-        "direction": "Film direction",
-        "shots": "Film shots",
-        "concept": "Creative concepts",
+        "storyboard": "Storyboard",
+        "code": "Writing the scenes",
+        "concept": "Film concept",
         "design": "Visual design",
-        "photo": "Photo selection"
+        "photo": "Photo selection",
+        "check": "Checking the scenes"
       }
     },
     "composer": {
@@ -615,7 +593,10 @@
     "exportCta": "Export",
     "included": "Included",
     "price": "{{cost}} credits",
-    "rendering": "Rendering — {{percent}}%"
+    "rendering": "Rendering — {{percent}}%",
+    "legacyTitle": "Video from the previous engine",
+    "legacyBody": "This video was made before the new engine: it can be downloaded from the conversation, but no longer edited. Ask for a new video to change it.",
+    "broken": "{{count}} scene(s) do not run: press “Fix” in the scene before exporting."
   },
   "brands": {
     "title": "Brands",

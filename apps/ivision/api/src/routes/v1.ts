@@ -7,11 +7,11 @@ import multer from 'multer';
 import sharp from 'sharp';
 import { z } from 'zod';
 import { CREATIVITY_LEVELS } from '../../../core/src/creativity/levels';
-import { VideoInputError } from '../../../core/src/video/motionVideo.service';
-import { MediaInputError } from '../../../core/src/video/video.media';
-import { MOTION_STYLES, MUSIC_MOODS, MotionStyle, MusicMood, VideoFormat } from '../../../core/src/video/video.model';
-import { videoOptions } from '../../../core/src/video/video.options';
-import { resolvePublicSound } from '../../../core/src/video/video.sfx';
+import { sanitizeVideoPatch, VideoInputError } from '../../../core/src/video/motionVideo.service';
+import { MediaInputError } from '../../../core/src/video/assets/media';
+import { MUSIC_MOODS, MotionStyle, MusicMood, VideoFormat } from '../../../core/src/video/contracts/model';
+import { videoOptions } from '../../../core/src/video/options';
+import { resolvePublicSound } from '../../../core/src/video/audio/sfx';
 import { SiteScanError } from '../../../core/src/site/site-scanner';
 import { CAPTION_STYLES, CUT_MODES, MONTAGE_LIMITS } from '../../../core/src/montage/montage.model';
 import { MontageInputError } from '../../../core/src/montage/montage.service';
@@ -56,10 +56,22 @@ const MONTAGE_MESSAGES: Record<string, string> = {
 };
 
 /** Les erreurs du moteur, traduites en réponses HTTP lisibles. */
+/** Les refus du moteur vidéo, dits en clair. */
+const VIDEO_MESSAGES: Record<string, string> = {
+  scene_errors: 'Une scène ne s’exécute pas : corrigez-la (bouton « Corriger ») avant d’exporter.',
+  legacy_video: 'Cette vidéo a été faite avec l’ancien moteur : elle se télécharge, mais ne se retouche plus. Créez-en une nouvelle.',
+  model_unavailable: 'Le modèle qui conçoit les vidéos est indisponible pour le moment. Vos crédits n’ont pas été débités.',
+  storyboard_failed: 'Je n’ai pas réussi à concevoir le film. Reformulez la demande ou réessayez.',
+  author_failed: 'Aucune scène n’a pu être écrite. Réessayez dans un instant.',
+};
+
 function engineError(error: unknown): never {
   if (error instanceof MediaInputError) throw new HttpError(400, 'invalid_media', error.message);
   if (error instanceof MontageInputError) throw new HttpError(['still_processing', 'already_rendering'].includes(error.message) ? 409 : 400, error.message, MONTAGE_MESSAGES[error.message] || error.message);
-  if (error instanceof VideoInputError) throw new HttpError(error.message === 'project_not_found' ? 404 : error.message === 'already_rendering' ? 409 : 400, error.message);
+  if (error instanceof VideoInputError) {
+    const status = error.message === 'project_not_found' ? 404 : ['already_rendering', 'scene_errors', 'legacy_video'].includes(error.message) ? 409 : error.message === 'model_unavailable' ? 503 : 400;
+    throw new HttpError(status, error.message, VIDEO_MESSAGES[error.message] || error.message);
+  }
   throw error;
 }
 
@@ -384,26 +396,15 @@ v1.get(
   asyncRoute<AuthedRequest>(async (req, res) => res.json(await videoOr404(req)))
 );
 
-/** Retouches gratuites : textes par scène, style, musique, effets, voix off, direction, kit. */
+/**
+ * Retouches gratuites : textes et photos (données), musique, effets, voix, sous-titres, et nouvelles
+ * versions du code d'une scène (`visual` : une demande en clair, `fix` : correction d'une erreur, `regenerate`).
+ */
 v1.patch(
   '/brands/:brandId/videos/:videoId',
   asyncRoute<AuthedRequest>(async (req, res) => {
-    const body = req.body || {};
-    const kit: Record<string, string> = {};
-    for (const k of ['logo', 'background', 'annotate', 'iconSet']) if (typeof body.kit?.[k] === 'string' && body.kit[k].length < 40) kit[k] = body.kit[k];
     try {
-      const video = await motionVideos.updateVideo(uid(req), req.params.brandId, req.params.videoId, {
-        slots: body.slots && typeof body.slots === 'object' ? body.slots : undefined,
-        style: MOTION_STYLES.includes(body.style) ? (body.style as MotionStyle) : undefined,
-        musicMood: MUSIC_MOODS.includes(body.musicMood) ? (body.musicMood as MusicMood) : undefined,
-        musicTrackId: typeof body.musicTrackId === 'string' ? body.musicTrackId : undefined,
-        scope: body.scope,
-        sfx: typeof body.sfx === 'boolean' ? body.sfx : undefined,
-        voice: typeof body.voice === 'boolean' ? body.voice : undefined,
-        direction: typeof body.direction === 'string' ? body.direction : undefined,
-        kit: Object.keys(kit).length ? kit : undefined,
-        images: body.images && typeof body.images === 'object' ? body.images : undefined,
-      });
+      const video = await motionVideos.updateVideo(uid(req), req.params.brandId, req.params.videoId, sanitizeVideoPatch(req.body));
       if (!video) throw new HttpError(404, 'video_not_found', 'Vidéo introuvable.');
       res.json(video);
     } catch (error) {
@@ -435,7 +436,7 @@ v1.get(
   asyncRoute<AuthedRequest>(async (req, res) => {
     const video = await videoOr404(req);
     const m = MUSIC_MOODS.includes(req.query.mood as MusicMood) ? (req.query.mood as MusicMood) : video.brief.musicMood;
-    res.json(await motionVideos.musicOptions(m, video.storyboard.style, video.brief.objective, video.scope.durationSec));
+    res.json(await motionVideos.musicOptions(m, (video.brief.style && video.brief.style !== 'auto' ? video.brief.style : 'energetic') as MotionStyle, video.brief.objective, video.scope.durationSec));
   })
 );
 

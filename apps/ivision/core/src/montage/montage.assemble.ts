@@ -9,8 +9,8 @@
  */
 import { spawn } from 'child_process';
 import path from 'path';
-import { probe } from '../video/video.renderer';
-import { transcodeClip } from '../video/video.media';
+import { probe } from './montage.renderer';
+import { transcodeClip } from '../video/assets/media';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 /** En dessous, le son est un silence (ou un bruit de fond) : pas de parole à monter. */

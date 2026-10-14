@@ -1,36 +1,23 @@
 /**
- * RETOUCHER UNE VIDÉO EN ÉCRIVANT — « change le titre de la scène 2 », « remplis les scènes vides »,
- * « plus sobre », « sans musique », « ajoute une voix off », « le logo plus grand dans la scène 4 ».
+ * RETOUCHER UNE VIDÉO EN ÉCRIVANT — « le titre de la scène 2 en … », « la scène 3 plus dynamique »,
+ * « sans musique », « ajoute une voix off ».
  *
- * Le modèle lit chaque scène telle qu'elle est (clé, rôle, durée, média, ses CASES de texte — y
- * compris vides, avec leur longueur —, sa ligne de voix off, si son rendu est du code écrit par
- * l'IA), le style, la musique, et le retour du client ; il rend SEULEMENT ce qui change. Le code ne
- * lui fait pas confiance : une scène inconnue, une case qui n'existe pas dans la scène, un style
- * hors liste sont écartés. Une demande VISUELLE sur une scène est appliquée à son code
- * (video.recode.ts). Il peut aussi dire que le message est une NOUVELLE demande : la conversation
- * crée alors une autre vidéo.
+ * Le modèle lit chaque scène telle qu'elle est (clé, intention, textes, ligne de voix, état) et le
+ * retour du client ; il rend SEULEMENT ce qui change. Un changement de TEXTE change une donnée ; un
+ * changement VISUEL (mise en page, mouvement, couleur, rythme) est une consigne passée à l'auteur
+ * de la scène, qui réécrit son code. Le code ne fait pas confiance au modèle : une scène ou une clé
+ * de texte inconnue est écartée. Le message peut aussi être une NOUVELLE demande.
  */
-import { SCENES } from './video.scenes';
-import { MOTION_STYLES, MotionStyle, MotionVideo, MUSIC_MOODS, MusicMood } from './video.model';
+import { MotionVideo, MUSIC_MOODS, MusicMood } from './contracts/model';
+import type { VideoPatch } from './motionVideo.service';
 
-export interface VideoRevisionPatch {
-  slots?: Record<string, Record<string, string>>;
-  style?: MotionStyle;
-  musicMood?: MusicMood;
-  sfx?: boolean;
-  voice?: boolean;
-  /** Ligne de voix off d'une scène (clé → ce que dit la voix), dite telle quelle. */
-  voiceLines?: Record<string, string>;
-  /** Changement visuel d'une scène (clé → la demande du client), appliqué à son code. */
-  visual?: Record<string, string>;
-}
+export type VideoRevisionPatch = Pick<VideoPatch, 'texts' | 'musicMood' | 'sfx' | 'voice' | 'voiceLines' | 'visual' | 'captions'>;
 
 export interface VideoRevision {
-  /** Le message demande une autre vidéo (pas un changement de celle-ci). */
   newRequest: boolean;
   patch: VideoRevisionPatch;
   reply?: string;
-  /** Textes proposés par le modèle mais écartés (scène ou case inconnue) : la réponse ne doit pas les annoncer. */
+  /** Changements proposés mais écartés (scène ou clé inconnue). */
   rejected?: number;
 }
 
@@ -47,103 +34,86 @@ export function videoSettingsFromText(text: string): VideoRevisionPatch {
   if (/(sans|enleve|retire|coupe|supprime|pas d')\s*(les\s+)?(effets|bruitages|sons)|no (sound )?effects/.test(t)) out.sfx = false;
   if (/(sans|enleve|retire|coupe|supprime|pas de)\s+(la\s+)?voix|no voice/.test(t)) out.voice = false;
   else if (/(ajoute|mets|avec)\s+(une\s+)?voix|add (a )?voice/.test(t)) out.voice = true;
-  if (/plus (sobre|elegant|premium|luxe|chic)|more (elegant|premium)/.test(t)) out.style = 'premium';
-  else if (/plus (dynamique|energique|punchy|rapide)|more (dynamic|energetic)/.test(t)) out.style = 'energetic';
-  else if (/plus (fun|ludique|joyeux|amusant)|more (fun|playful)/.test(t)) out.style = 'playful';
-  else if (/plus (serieux|pro|professionnel|corporate)|more (serious|professional)/.test(t)) out.style = 'corporate';
+  if (/(sans|enleve|retire|pas de)\s+(les\s+)?sous[- ]?titres|no subtitles/.test(t)) out.captions = false;
+  else if (/(ajoute|mets|avec)\s+(des\s+)?sous[- ]?titres|add subtitles/.test(t)) out.captions = true;
   return out;
 }
 
-/** Longueur permise d'une case : un texte du scénario de l'utilisateur peut dépasser la case standard. */
-export const slotLimit = (max: number, scripted: boolean) => (scripted ? Math.max(max, 160) : max);
-
 export function buildVideoRevisionPrompt(video: MotionVideo, feedback: string, language: string): { system: string; user: string } {
-  const lines = new Map((video.voice?.enabled ? video.voice.lines : []).map((l) => [l.sceneKey, l.text]));
+  const film = video.film!;
   const system = [
-    'You are the video editor who made this short motion-design video. The client now asks for changes, in their own words.',
-    'Apply the request — and only it: keep everything they did not question. Texts stay in the video language, natural, within the max length of their field.',
-    'You may change:',
-    '- the texts of a scene: ONLY the fields listed for that scene (an empty field "" can be filled — e.g. when the client asks to fill empty scenes, write every empty field of those scenes, from what the brief and the other scenes say; never invent prices, dates or numbers);',
-    '- the voice-over line of a scene ("voiceLines"), when VOICE is on or the client asks for one;',
-    '- how a scene LOOKS or MOVES ("visual": the precise change, in a sentence) — layout, sizes, animation, what is drawn;',
-    '- the style ("energetic" | "premium" | "playful" | "corporate"), the music mood ("auto" | "upbeat" | "calm" | "epic" | "corporate" | "afro" | "none"), sound effects (true/false), voice-over (true/false).',
-    'If the message is NOT a change of this video but a request for ANOTHER video, answer {"newRequest":true}.',
-    'Answer with ONE JSON object only: {"newRequest":false,"texts":{"<scene key>":{"<field>":"<new text>"}},"voiceLines":{"<scene key>":"<spoken line>"}?,"visual":{"<scene key>":"<change>"}?,"style":…?,"music":…?,"sfx":…?,"voice":…?,"reply":"one short friendly sentence in the client’s language saying exactly what you changed"}',
+    'You edit an existing short motion-design video for a client. Read the scenes and the client message, then write ONLY what changes.',
+    'Answer with lines, nothing else:',
+    'NEW: yes — only if the client asks for a different, new video (not a change of this one)',
+    'TEXT s2.headline: <new exact text>   (only existing keys of that scene)',
+    'VOICE s3: <new spoken line>',
+    'VISUAL s2: <what to change in how scene s2 looks or moves, as a clear instruction for the animator>',
+    'VISUAL all: <instruction for every scene>',
+    `MUSIC: one of ${MUSIC_MOODS.join(', ')}`,
+    'SFX: on | off',
+    'VOICEOVER: on | off',
+    'SUBTITLES: on | off',
+    `REPLY: one short sentence to the client, in ${language}, saying what you changed`,
+    'Texts and voice lines are written in the language of the video. Never invent prices, numbers or claims.',
   ].join('\n');
   const user = [
-    `LANGUAGE: ${language}`,
-    `STYLE: ${video.storyboard.style} · MUSIC: ${video.brief.musicMood} · SFX: ${video.sfx?.enabled ? 'on' : 'off'} · VOICE: ${video.voice?.enabled ? 'on' : 'off'}`,
-    `BRIEF: ${(video.brief.request || `${video.brief.message} ${video.brief.details || ''}`).replace(/\s+/g, ' ').trim().slice(0, 900)}`,
-    'SCENES (in order):',
-    ...video.storyboard.scenes.map((sc, i) => {
-      const defs = SCENES[sc.sceneId as keyof typeof SCENES]?.slots || [];
-      const fields = defs.map((d) => `${d.key}(max ${slotLimit(d.max, !!sc.script)})=${JSON.stringify(sc.slots?.[d.key] || '')}`).join(' ');
-      const media = sc.video ? 'clip' : sc.image ? 'photo' : 'none';
-      const voice = lines.get(sc.key);
-      return `${i + 1}. key=${sc.key} role=${sc.sceneId} ${sc.duration.toFixed(1)}s media=${media}${sc.code?.tsx ? ' coded' : ''} fields: ${fields || '(no text field)'}${voice ? ` voice=${JSON.stringify(voice)}` : ''}`;
-    }),
-    `CLIENT REQUEST: ${feedback.slice(0, 800)}`,
+    `VIDEO: ${film.title} — ${film.concept}`,
+    ...film.scenes.map((s, i) => `${s.key} (scene ${i + 1}, ${s.duration.toFixed(1)} s${s.status === 'error' ? ', currently broken' : ''}): ${s.purpose} | visual: ${s.visual.slice(0, 200)} | texts: ${Object.entries(s.texts).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(' ') || 'none'}${s.voiceText ? ` | voice: ${JSON.stringify(s.voiceText)}` : ''}`),
+    `MUSIC: ${video.brief.musicMood} · SFX: ${video.sfx?.enabled ? 'on' : 'off'} · VOICEOVER: ${video.voice?.enabled ? 'on' : 'off'} · SUBTITLES: ${film.captions ? 'on' : 'off'}`,
+    `CLIENT: ${feedback.slice(0, 2000)}`,
   ].join('\n');
   return { system, user };
 }
 
-function extractJson(raw: string): any {
-  const s = raw.replace(/```(?:json)?/gi, '');
-  const a = s.indexOf('{');
-  const b = s.lastIndexOf('}');
-  if (a < 0 || b <= a) return null;
-  try {
-    return JSON.parse(s.slice(a, b + 1));
-  } catch {
-    return null;
-  }
-}
-
-/** La réponse du modèle, validée contre la vidéo (scènes, cases, longueurs, listes). */
 export function parseVideoRevision(raw: string, video: MotionVideo): VideoRevision | null {
-  const json = extractJson(raw);
-  if (!json || typeof json !== 'object') return null;
-  if (json.newRequest === true) return { newRequest: true, patch: {} };
+  const film = video.film;
+  if (!film || !raw.trim()) return null;
+  const keys = new Map(film.scenes.map((s) => [s.key, s] as const));
+  // « scène 2 » ou « 2 » valent « s2 ».
+  const sceneKey = (v: string) => {
+    const m = v.trim().toLowerCase().match(/^(?:s|sc[eè]ne\s*)?(\d{1,2})$/);
+    return m ? `s${m[1]}` : v.trim().toLowerCase();
+  };
   const patch: VideoRevisionPatch = {};
+  let reply: string | undefined;
+  let newRequest = false;
   let rejected = 0;
-  const texts = json.texts && typeof json.texts === 'object' ? json.texts : {};
-  for (const [key, fields] of Object.entries(texts)) {
-    // Une scène désignée par son numéro (« 3 ») plutôt que par sa clé est retrouvée.
-    const scene = video.storyboard.scenes.find((sc) => sc.key === key) || (/^\d{1,2}$/.test(key) ? video.storyboard.scenes[Number(key) - 1] : undefined);
-    if (!scene || !fields || typeof fields !== 'object') {
-      rejected++;
-      continue;
-    }
-    const defs = SCENES[scene.sceneId as keyof typeof SCENES]?.slots || [];
-    for (const [field, value] of Object.entries(fields as Record<string, unknown>)) {
-      const def = defs.find((d) => d.key === field);
-      if (!def || typeof value !== 'string') {
+  for (const line of raw.replace(/```[a-z]*\n?/gi, '').split(/\r?\n/)) {
+    const m = line.match(/^[\s*_>-]*([A-Za-z]+)\s*([^:]*?)\s*:\s*(.+)$/);
+    if (!m) continue;
+    const field = m[1].toUpperCase();
+    const target = m[2].trim();
+    const value = m[3].trim().replace(/^["“«]\s*|\s*["”»]$/g, '');
+    if (field === 'NEW') newRequest = /^(yes|oui|true)/i.test(value);
+    else if (field === 'REPLY') reply = value.slice(0, 300);
+    else if (field === 'TEXT') {
+      const [scene, key] = target.split('.');
+      const sc = keys.get(sceneKey(scene || ''));
+      if (!sc || !key || !(key in sc.texts)) {
         rejected++;
         continue;
       }
-      const text = value.replace(/\s+/g, ' ').trim().slice(0, slotLimit(def.max, !!scene.script));
-      if (!text || text === scene.slots?.[field]) continue;
-      (patch.slots ??= {})[scene.key] = { ...(patch.slots[scene.key] || {}), [field]: text };
-    }
+      patch.texts = { ...(patch.texts || {}), [sc.key]: { ...(patch.texts?.[sc.key] || {}), [key]: value.slice(0, 220) } };
+    } else if (field === 'VOICE') {
+      const sc = keys.get(sceneKey(target));
+      if (!sc) {
+        rejected++;
+        continue;
+      }
+      patch.voiceLines = { ...(patch.voiceLines || {}), [sc.key]: value.slice(0, 400) };
+    } else if (field === 'VISUAL') {
+      const key = /^all|tout/i.test(target) ? 'all' : sceneKey(target);
+      if (key !== 'all' && !keys.has(key)) {
+        rejected++;
+        continue;
+      }
+      patch.visual = { ...(patch.visual || {}), [key]: value.slice(0, 800) };
+    } else if (field === 'MUSIC') {
+      const mood = value.toLowerCase() as MusicMood;
+      if (MUSIC_MOODS.includes(mood)) patch.musicMood = mood;
+    } else if (field === 'SFX') patch.sfx = /^(on|oui|yes)/i.test(value);
+    else if (field === 'VOICEOVER') patch.voice = /^(on|oui|yes)/i.test(value);
+    else if (field === 'SUBTITLES') patch.captions = /^(on|oui|yes)/i.test(value);
   }
-  if (MOTION_STYLES.includes(json.style) && json.style !== video.storyboard.style) patch.style = json.style;
-  if (MUSIC_MOODS.includes(json.music) && json.music !== video.brief.musicMood) patch.musicMood = json.music;
-  if (typeof json.sfx === 'boolean') patch.sfx = json.sfx;
-  if (typeof json.voice === 'boolean' && json.voice !== !!video.voice?.enabled) patch.voice = json.voice;
-  const keyed = (raw: unknown, max: number): Record<string, string> | undefined => {
-    if (!raw || typeof raw !== 'object') return undefined;
-    const out: Record<string, string> = {};
-    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-      if (typeof value !== 'string' || !video.storyboard.scenes.some((sc) => sc.key === key)) continue;
-      const text = value.replace(/\s+/g, ' ').trim().slice(0, max);
-      if (text) out[key] = text;
-    }
-    return Object.keys(out).length ? out : undefined;
-  };
-  const voiceLines = keyed(json.voiceLines, 400);
-  if (voiceLines) patch.voiceLines = voiceLines;
-  const visual = keyed(json.visual, 600);
-  if (visual) patch.visual = visual;
-  const reply = typeof json.reply === 'string' ? json.reply.replace(/\s+/g, ' ').trim().slice(0, 300) : undefined;
-  return { newRequest: false, patch, ...(reply ? { reply } : {}), ...(rejected ? { rejected } : {}) };
+  return { newRequest, patch, ...(reply ? { reply } : {}), ...(rejected ? { rejected } : {}) };
 }

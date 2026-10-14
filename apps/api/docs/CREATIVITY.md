@@ -1,6 +1,6 @@
 # La jauge de créativité
 
-Avant chaque génération, l'utilisateur règle la part de décisions confiée à l'IA. Le réglage vaut pour six livrables : vidéo motion, visuels et flyers, carte de visite, pitch deck, business plan et identité visuelle.
+Avant chaque génération, l'utilisateur règle la part de décisions (ou, pour la vidéo, les moyens) confiée à l'IA. Le réglage vaut pour six livrables : vidéo motion, visuels et flyers, carte de visite, pitch deck, business plan et identité visuelle.
 
 Les cinq crans reprennent ceux de l'effort d'un modèle : **Low · Medium · High · Max · Ultra**.
 
@@ -20,11 +20,11 @@ Chaque livrable se découpe en cinq couches de décision. Le cran fixe à partir
 | Règles de charte réécrites sur la page | oui | oui | **non** | non | non |
 | La mesure du rendu peut refuser | — | — | oui | oui | **non, elle répare** |
 
-Ce tableau est celui des crans Low et Medium de la vidéo. Depuis le plan directeur d'octobre 2026, la
-même philosophie vaut pour les deux moteurs : **à partir de High, l'IA a le contrôle de la conception**
-(arbre de composition libre pour les documents, film d'auteur pour la vidéo) ; Max et Ultra lui donnent
-plus de moyens (révisions sur la critique visuelle, tours de correction), jamais plus de liberté. Aucun
-CSS libre à aucun cran, et une mesure qui répare (voir « Visuels, cartes de visite et documents » plus bas).
+Ce tableau est celui des documents. Depuis le plan directeur d'octobre 2026, **à partir de High, l'IA a
+le contrôle de la conception** des documents (arbre de composition libre) ; Max et Ultra lui donnent plus
+de moyens (révisions sur la critique visuelle), jamais plus de liberté. Aucun CSS libre à aucun cran, et
+une mesure qui répare (voir « Visuels, cartes de visite et documents » plus bas). La vidéo suit une autre
+règle depuis le 14 octobre 2026 : l'IA conçoit et écrit TOUTES les scènes, à tous les crans (ci-dessous).
 
 ### Deux règles qui décident si l'échelle existe vraiment
 
@@ -116,73 +116,21 @@ S'y ajoute la **fiche de marque** (`brandSheet`) : couleurs, polices, DA, à fai
 
 ## Vidéo motion
 
-| Cran | Ce que l'IA décide | Étage du modèle |
-|---|---|---|
-| Low | les textes (rédacteur). Concept, scènes, motifs (donc mises en page), transitions et musique viennent du graphe et du moteur créatif : créativité algorithmique, 5 % d'exploration. | flashx |
-| Medium | + le stratège (concept, scènes, grand moment, rythme), **même quand le type de vidéo est imposé** (choix explicite, calendrier : il choisit DANS ce type), et le sound designer (piste, intensité des effets). | rédaction |
-| High | **le film d'auteur** (ci-dessous) avec des moyens comptés : directeur à l'étage de rédaction, un tour de contrôle par plan, pas de critique visuelle. Repli DIT sur le pipeline des menus (directeur artistique, animateur, critique) si le directeur échoue. | rédaction |
-| Max | le film d'auteur : directeur au raisonnement, **deux tours** par plan, **critique visuelle** du rendu réel. | raisonnement |
-| Ultra | le film d'auteur complet : trois tours par plan (quatre pour un plan d'exploration), critique visuelle. | raisonnement |
+Depuis le 14 octobre 2026 (moteur Motion Canvas, [VIDEO_ENGINE.md](VIDEO_ENGINE.md)), **à tous les
+crans, l'IA invente le film et écrit le code de chaque scène** : il n'y a plus de menus, de motifs ni de
+mises en page à choisir. Les crans donnent des **moyens** :
 
-Les moyens par cran sont dans `video.author.ts#AUTHOR_MEANS`. Un film d'auteur abandonné est gardé dans
-`storyboard.authorFallback` et dans l'enregistrement de la génération (`video.record`).
+| Cran | Concept | Storyboard | Auteur des scènes |
+|---|---|---|---|
+| Low | inventé par le planificateur dans son appel | `video.planner` | `video.author`, 1 exemple technique |
+| Medium | directeur (`video.concept`) | `video.planner` | 2 exemples |
+| High | directeur | `video.planner` | 2 exemples + fonctions réutilisables des vidéos de la marque |
+| Max | directeur | `video.planner` | 3 exemples + fonctions réutilisables |
+| Ultra | directeur : trois idées comparées, la plus forte développée | `video.planner` | 3 exemples + fonctions réutilisables |
 
-**Un seul moteur créatif pour les cinq crans** ([VIDEO_ENGINE.md §17](VIDEO_ENGINE.md#17-le-moteur-créatif)). Medium, High, Max et Ultra ne sont pas quatre architectures : ce sont quatre niveaux de délégation sur la même recherche dans l'espace des motifs (intention → capacité → motif → outil → primitive). Le planificateur, sans aucun token, choisit un motif par scène au score créatif (pertinence, qualité apprise, nouveauté pour la marque, fidélité, faisabilité), garde un ADN de mouvement et pose un accent sur une scène. Le cran fixe la part d'exploration (Low 5 % → Ultra 70 %) et qui décide : le planificateur en Low et Medium ; l'agent parmi ses 3 à 5 meilleurs motifs dès High ; la direction créative parmi trois au cran Max ; le directeur, dans l'univers créatif, au cran Ultra. Chaque vidéo a son empreinte : aucune n'est rendue à moins de 0,30 de la vidéo la plus proche de la marque (le contrôle créatif la répare).
-
-Les appels vidéo sont retentés une fois sur panne passagère ou réponse vide (`communication.service.ts#runVideoTieredPrompt`) : un agent en repli ramenait la vidéo aux choix du code, et les crans finissaient par se ressembler. Le résultat dit ce que l'IA a décidé : le détail d'une vidéo affiche « décidé par l'IA : textes, structure, mises en page… », ou, en Ultra, « Film d'auteur · 7 plans sur 7 créés par l'IA ».
-
-### Le film d'auteur (`video.author.ts`)
-
-Plus aucun menu. Les médias, la musique et les effets viennent des étapes existantes du service.
-
-1. **Le directeur** (étage raisonnement) invente le film : un concept, une « bible » (signature de mouvement, usage des couleurs, typographie) et chaque plan. Pour chaque plan, il écrit la durée, les textes, ce qu'on voit et comment ça bouge, les outils, le média, le passage au plan suivant et son **motif** (`PATTERN:`), ou une exploration (`PATTERN: explore A+B`). Il connaît les outils du moteur, et reçoit l'**univers créatif** (≈ 260 tokens) : motifs par famille, ceux que la marque vient d'utiliser, les sous-explorés, des combinaisons compatibles, l'ADN, l'accent et le budget d'exploration (70 %). Le code ne fait que **valider** :
-   - durées au temps de lecture du moteur (`video.rules.ts#requiredHold`) et somme exacte ;
-   - longueurs ;
-   - aucun chiffre absent du brief (`isGrounded`), contact copié du brief ;
-   - une signature à la fin.
-
-   Un film trop dense perd d'abord ses plans de texte du milieu ; l'ouverture et la signature restent toujours, l'appel à l'action ne part qu'en dernier recours. Deux échecs du directeur : la création reprend le pipeline des menus.
-2. **Un codeur par plan** (trois en parallèle) écrit le composant React du plan. Il ne reçoit que le cœur du manifeste du kit et les briques du motif de son plan (`scopedKitManifest` : ≈ 1 170 tokens au lieu de 1 710 pour un plan typographique, à chaque tour), avec la consigne du motif ; sans motif reconnu, tout le kit (`KIT_MANIFEST`). Son entrée et sa sortie font la transition imaginée par le directeur ; le moteur coupe franc entre les plans. Un plan qui explore passe une validation renforcée : un tour de plus et la critique visuelle relit aussi le dernier tour.
-3. **La boucle de qualité**, trois tours au plus :
-   - lint (dont les noms importés du kit) ;
-   - compilation ;
-   - rendu réel mesuré (`inspectRenderedScene` : erreurs, textes visibles et dans le cadre, mouvement, déterminisme, **chiffres des graphiques issus des textes**) ;
-   - **critique visuelle** : une planche de trois images du plan envoyée au modèle de vision (`media.service.ts#analyzeImage`), qui juge lisibilité, composition, fidélité à la charte et effet « modèle tout fait ».
-
-   Défauts et critique repartent au codeur. Un plan qui échoue trois fois aux contrôles reprend la composition éprouvée de sa scène (`statement`, `cta` ou `logo`), et le résultat le dit.
-4. **Retouches** : un film d'auteur garde le minutage de son directeur (ni `retime`, ni règles du graphe) ; les plans codés lisent leurs cases, une retouche de texte s'y affiche.
-
-L'ancien codeur de scènes (`video.coder.ts#codeScenes`) reste le repli du film d'auteur quand le directeur échoue.
-
-### Le code écrit par l'IA (`video.coder.ts`)
-
-1. **Prompt** : la fiche de marque et le **manifeste du kit** (`KIT_MANIFEST`), c'est-à-dire tout ce que l'agent peut importer de `@idem/kit` :
-   - les hooks de temps et de scène ;
-   - la typographie ajustée (`Kinetic`, `Odometer`) ;
-   - les entrées (`useEnter`), les sons (`cue`), les icônes, le logo animé ;
-   - les graphiques et le dessin : `ChartJs`, `useViz` (visx + d3), `DataArc`, `GrowArea`, `AfricaMap`, `Sketch`, `Brush`, `useNoise`, `FlowField`, `Flat3D`, `Particles`, `Shader`, `ImageFx`, `LiquidGlass`, `Gradient`, `Network`, `Morph`, `IconMotion`, `Bg` (voir « boîte à outils d'abord », VIDEO_ENGINE.md §18) ; les chiffres par `numbersIn` ;
-   - les variables de la charte et les règles du moteur.
-
-   Le kit est exposé par `apps/ivision/core/engine/src/kit-api.ts` ; les addons qu'un plan importe sont chargés au montage (`addonsOfSceneCode`).
-2. **Lint** sur l'arbre syntaxique (acorn). Sont refusés :
-   - les imports autres que `@idem/kit` et `react`, et les noms que le kit n'exporte pas ;
-   - les globaux libres (`window`, `document`, `fetch`, `Date`…) ;
-   - `Math.random`, `constructor`, `__proto__` et les accès calculés par chaîne ;
-   - l'état et les effets React ;
-   - les boucles `while` et les `for` non bornés ;
-   - la CSS animée et la 3D CSS ;
-   - les URL, les textes écrits en dur, les cases jamais affichées.
-3. **Compilation** esbuild, de TSX vers CommonJS. Le moteur l'évalue avec `require` limité au kit et à React.
-4. **Rendu de contrôle** sur la page réelle, avec le garde réseau strict.
-
-**Sécurité.** Le lint garantit un code pur. La frontière de sécurité, elle, n'en dépend pas :
-
-- la page de rendu ne donne accès à aucune API Node ;
-- le garde réseau strict ne laisse passer que les données embarquées et le stockage ;
-- une **CSP** limite le réseau aux origines déjà présentes dans les données de la page ;
-- l'aperçu du tableau de bord tourne dans une iframe `sandbox="allow-scripts"`, d'origine opaque.
-
-Une scène qui lève une erreur au rendu retombe sur sa composition (`SceneBoundary`).
+Les plafonds de sortie de chaque rôle par cran sont dans `config/creative-roles.ts`. **Aucune critique
+esthétique ni réécriture automatique** : le code rendu par le modèle est montré tel quel ; une erreur
+technique est attribuée à sa scène et corrigée seulement si l'utilisateur le demande. Prix inchangés.
 
 ## Visuels, cartes de visite et documents : le moteur graphique (`packages/graphic-engine`)
 
@@ -300,7 +248,7 @@ Palettes et paires typographiques restent des propositions de l'IA parmi lesquel
 
 Où il se trouve :
 
-- vidéo (pied du créateur, détail d'un contenu) ;
+- vidéo (pied du créateur, détail d'un contenu) — le cran y donne des moyens au directeur et à l'auteur ;
 - visuel (détail d'un contenu) ;
 - carte de visite (génération et régénération) ;
 - business plan (rangée de boutons du formulaire, état vide) ;
@@ -311,16 +259,12 @@ Pas de sélecteur pour le logo (toujours Ultra).
 
 ## Contrôles
 
-- `npm run check:video` §9 bis rend **la même vidéo aux cinq crans** et vérifie que l'IA décide davantage à chaque cran (Low : textes ; Medium : + structure ; High : + mises en page, transitions, relecture ; Max : réglages appliqués ; Ultra : directeur + tous les plans écrits par l'IA, critique visuelle comprise).
-- `npm run check:video:layouts` : chaque mise en page × chaque scène acceptée × quatre formats, textes au plus long.
-- `npm run check:video:novelty` : le moteur créatif (motifs, empreinte, exploration par cran, accent, menus des agents, direction créative au cran Max, contrôle créatif, mémoire d'expérience, univers et manifeste restreint d'Ultra) ; 10 vidéos par cran par le vrai pipeline, aucune à moins de 0,30 d'une précédente.
+- `npm run check:video` : le moteur Motion Canvas de bout en bout (création, retouches, export, avec modèles simulés) ; voir [VIDEO_ENGINE.md §11](VIDEO_ENGINE.md#11-contrôles).
 - `npm run check:creativity` couvre :
-  - les prix et la normalisation, l'orchestrateur et le lint du code Ultra ;
-  - le rendu en Chromium d'une scène écrite comme par l'agent, et de scènes qui échouent, sortent du cadre ou ne bougent pas ; la CSP ;
+  - les prix et la normalisation, l'orchestrateur ;
   - le moteur graphique au service de la jauge : un visuel rendu et mesuré à chaque cran (aucun appel à Low et Medium, le choix à High, le réglage à Max, l'arbre d'auteur à Ultra), le modèle en panne ou illisible ;
   - la carte de visite : gabarit à marqueurs, plancher d'impression, et de vraies valeurs longues qui tiennent dans la carte une fois interpolées ;
   - les documents (business plan, deck) : qui compose à chaque cran, Low déterministe, l'arbre d'auteur d'Ultra mesuré et son repli ;
   - les logos du code (deux polices, trois types, `svgGate`, aucun `NaN`), le directeur de création et le jury (ancien pipeline) ;
   - le moteur de logos : `npm run check:logo` (150 vérifications, sans réseau ni modèle).
 - `npm run check:graphic` (ou `npm run check:graphic-engine` à la racine) : le moteur graphique lui-même — contrats, jetons et contrastes, palettes des graphiques, compilateur, motifs, diversité, profils de la jauge, agents simulés, registre de capacités, et un corpus rendu et mesuré dans Chromium (decks, business plan, charte, carte, visuel).
-- `npm run check:video` déroule le pipeline complet à chaque cran, avec agents et codeur simulés. Les scènes Ultra y sont réellement lintées, compilées, rendues et retenues.

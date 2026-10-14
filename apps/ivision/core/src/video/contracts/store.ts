@@ -8,8 +8,8 @@
  *
  * Le service ne sait rien de MongoDB ni de la forme des projets : il ne voit que ce contrat.
  */
-import type { BrandKit, BrandVoice } from '../brand/brand-kit';
-import type { MotionVideo, VideoObjective, VideoType } from './video.model';
+import type { BrandKit, BrandVoice } from '../../brand/brand-kit';
+import type { MotionVideo, VideoObjective, VideoType } from './model';
 
 export interface VideoBrandContext {
   brandName: string;

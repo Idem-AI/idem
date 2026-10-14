@@ -10,7 +10,7 @@ import type { BrandKit, BrandVoice } from '../../core/src/brand/brand-kit';
 import type { PaletteProposal } from '../../core/src/site/palette';
 import type { TypographyProposal } from '../../core/src/site/typography';
 import type { ReferenceBlueprint, ReferenceImage, ReferenceShot } from '../../core/src/reference/reference.analyzer';
-import type { MotionVideo, VideoMediaAsset } from '../../core/src/video/video.model';
+import type { MotionVideo, VideoMediaAsset } from '../../core/src/video/contracts/model';
 import type { MontageVideo } from '../../core/src/montage/montage.model';
 import type { CreativityLevel } from '../../core/src/creativity/levels';
 import type { FlyerFormat } from '../../core/src/visual/visual.model';
@@ -74,7 +74,7 @@ export type ChatAsk =
   | { kind: 'brand' }
   | { kind: 'brand-choice'; brandId: string }
   | { kind: 'reference'; mode: ChatMode }
-  /** Une décision qui change le pipeline manque (video.intent.ts) : la question, et ses choix adaptés au média. */
+  /** Une décision qui change le pipeline manque (request/intent.ts) : la question, et ses choix adaptés au média. */
   | { kind: 'video-intent'; clarificationId: string; question: string; options: { id: string; label: string; description: string }[] };
 
 export interface ChatMessage {

@@ -12,7 +12,7 @@
  * et y inscrivent ce qu'ils produisent. Le contrat (`AssetRecord`) est celui de @idem/graphic-engine.
  */
 import type { AssetRecord, AssetRegistry } from '@idem/graphic-engine';
-import type { VideoBrandContext } from '../video/video.store';
+import type { VideoBrandContext } from '../video/contracts/store';
 
 /** Le stockage clé → ressources de l'hôte (Redis chez IDEM, MongoDB chez iVision). */
 export interface AssetRecordStore {

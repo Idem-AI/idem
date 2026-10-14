@@ -8,7 +8,7 @@
  */
 import type { MotionVideo } from '../../../models/motionVideo.model';
 import type { ContentIdea } from '../../../models/communication.model';
-import type { ContentBrief, VideoBrandContext, VideoStore, VideoTier } from '../../../../../ivision/core/src/video/video.store';
+import type { ContentBrief, VideoBrandContext, VideoStore, VideoTier } from '../../../../../ivision/core/src/video/contracts/store';
 import { objectiveForContent } from './video.calendar';
 
 /** Ce que l'adaptateur lit du module Communication (le service réel, ou son double dans les contrôles). */

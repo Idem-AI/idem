@@ -25,8 +25,8 @@ import fs from 'fs';
 import https from 'https';
 import os from 'os';
 import path from 'path';
-import logger from '../runtime/logger';
-import { MotionStyle, MusicLicense, MusicMood, MusicTrack, VideoObjective } from './video.model';
+import logger from '../../runtime/logger';
+import { MotionStyle, MusicLicense, MusicMood, MusicTrack, VideoObjective } from '../contracts/model';
 
 export type ConcreteMood = Exclude<MusicMood, 'auto' | 'none'>;
 

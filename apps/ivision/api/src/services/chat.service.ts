@@ -20,11 +20,11 @@
  */
 import crypto from 'crypto';
 import type { ReferenceImage } from '../../../core/src/reference/reference.analyzer';
-import type { VideoMediaAsset } from '../../../core/src/video/video.model';
+import type { VideoMediaAsset } from '../../../core/src/video/contracts/model';
 import { emptyRevisionReport, VideoInputError } from '../../../core/src/video/motionVideo.service';
 import { normalizeCreativity } from '../../../core/src/creativity/levels';
 import { FLYER_FORMATS, FlyerFormat } from '../../../core/src/visual/visual.model';
-import { videoCost } from '../../../core/src/video/video.pricing';
+import { videoCost } from '../../../core/src/video/pricing';
 import { SiteScanError } from '../../../core/src/site/site-scanner';
 import { collection } from '../config/db';
 import logger from '../config/logger';
@@ -36,13 +36,13 @@ import { colorsNamed } from '../../../core/src/brand/color-words';
 import { blueprintOf, getReference, referenceView } from './references.service';
 import { createVideo, motionVideos, scopeOf } from './videos.service';
 import { montages, ownsUploads, refundMontage } from './montages.service';
-import { clarifyVideoIntent, classifyVideoIntent, IntentAsset } from '../../../core/src/video/video.intent';
+import { clarifyVideoIntent, classifyVideoIntent, IntentAsset } from '../../../core/src/video/request/intent';
 import { MontageInputError } from '../../../core/src/montage/montage.service';
 import { meanVolume } from '../../../core/src/montage/montage.assemble';
-import type { VideoFormat } from '../../../core/src/video/video.model';
+import type { VideoFormat } from '../../../core/src/video/contracts/model';
 import axios from 'axios';
-import { buildVideoRevisionPrompt, parseVideoRevision, videoSettingsFromText } from '../../../core/src/video/video.revise';
-import { MAX_REQUEST_CHARS, parseRequest } from '../../../core/src/video/video.request';
+import { buildVideoRevisionPrompt, parseVideoRevision, videoSettingsFromText } from '../../../core/src/video/revise';
+import { MAX_REQUEST_CHARS, parseRequest } from '../../../core/src/video/request/request';
 import { titleCase } from '../../../core/src/video/motionVideo.service';
 import { idem } from './idem.client';
 import { createVisual, getVisual, retouchVisual, visualView } from './visuals.service';
@@ -246,7 +246,8 @@ const NEW_VIDEO = /\b(nouvelle|autre|deuxi[eè]me|seconde)\s+vid[ée]o|\b(fais|c
 
 /**
  * Un retour écrit sur une vidéo MOTION DESIGN : le modèle dit ce qui change (textes des scènes,
- * style, musique, effets, voix), le code le valide et la vidéo est retouchée (gratuit). Faux si le
+ * voix, musique, effets — ou une demande VISUELLE, passée à l'auteur de la scène qui réécrit son
+ * code), le code le valide et la vidéo est retouchée (gratuit). Faux si le
  * message est en fait une nouvelle demande : la conversation crée alors une autre vidéo.
  */
 async function reviseMotion(userId: string, session: ChatSession, videoId: string, text: string, emit: (e: ChatEvent) => void, language: string): Promise<boolean> {
@@ -264,7 +265,7 @@ async function reviseMotion(userId: string, session: ChatSession, videoId: strin
   if (revision?.newRequest) return false;
   const patch = { ...videoSettingsFromText(text), ...(revision?.patch || {}) };
   if (!Object.keys(patch).length) {
-    const msg = message('assistant', 'Je n’ai pas compris ce qu’il faut changer. Dites par exemple « change le titre en … », « plus sobre », « sans musique » ou « ajoute une voix off ».', { i18n: { key: 'chat.video.notUnderstood' } });
+    const msg = message('assistant', 'Je n’ai pas compris ce qu’il faut changer. Dites par exemple « change le titre en … », « la scène 2 plus dynamique », « sans musique » ou « ajoute une voix off ».', { i18n: { key: 'chat.video.notUnderstood' } });
     await push(session._id, msg);
     emit({ type: 'message', message: msg });
     return true;
@@ -273,16 +274,17 @@ async function reviseMotion(userId: string, session: ChatSession, videoId: strin
   const updated = await motionVideos.updateVideo(userId, session.brandId!, videoId, patch, report);
   // La réponse dit ce qui a VRAIMENT changé : ce que le code n'a pas pu appliquer est avoué.
   const en = (video.brief.language || language).startsWith('en');
-  const sceneNo = (key: string) => (updated?.storyboard.scenes.findIndex((sc) => sc.key === key) ?? -1) + 1;
+  const sceneNo = (key: string) => (updated?.film?.scenes.findIndex((sc) => sc.key === key) ?? -1) + 1;
   const list = (keys: string[]) => [...new Set(keys.map(sceneNo).filter((n) => n > 0))].sort((a, b) => a - b).join(', ');
   const notes: string[] = [];
   const visualFailed = report.failed.filter((f) => f.what === 'visual').map((f) => f.key);
   const voiceFailed = report.failed.filter((f) => f.what === 'voice').map((f) => f.key);
   if (visualFailed.length) notes.push(en ? `I could not change the look of scene ${list(visualFailed)}: it is unchanged.` : `Je n’ai pas pu modifier l’apparence de la scène ${list(visualFailed)} : elle est restée telle quelle.`);
-  if (report.fallback.length) notes.push(en ? `Scene ${list(report.fallback)} now uses its standard layout so that its new texts show.` : `La scène ${list(report.fallback)} reprend sa mise en page standard pour afficher ses nouveaux textes.`);
+  const broken = (updated?.film?.scenes || []).filter((sc) => sc.status === 'error').map((sc) => sc.key);
+  if (broken.length) notes.push(en ? `Scene ${list(broken)} does not run: open the editor and press “Fix”.` : `La scène ${list(broken)} ne s’exécute pas : ouvrez l’éditeur et appuyez sur « Corriger ».`);
   if (voiceFailed.length) notes.push(en ? `The voice-over of scene ${list(voiceFailed)} could not be recorded.` : `La voix off de la scène ${list(voiceFailed)} n’a pas pu être enregistrée.`);
-  if (revision?.rejected && !patch.slots) notes.push(en ? 'I could not place the texts you asked for: tell me which scene and which text.' : 'Je n’ai pas pu placer les textes demandés : dites-moi quelle scène et quel texte.');
-  const reply = revision?.reply && !(revision.rejected && !patch.slots && !notes.length) ? revision.reply : null;
+  if (revision?.rejected && !patch.texts) notes.push(en ? 'I could not place the texts you asked for: tell me which scene and which text.' : 'Je n’ai pas pu placer les textes demandés : dites-moi quelle scène et quel texte.');
+  const reply = revision?.reply && !(revision.rejected && !patch.texts && !notes.length) ? revision.reply : null;
   const said = [reply || (en ? 'Done. Watch the new version.' : 'C’est fait. Regardez la nouvelle version.'), ...notes].join(' ');
   const msg = message('assistant', said, { result: { kind: 'video', videoId }, status: 'done', ...(reply || notes.length ? {} : { i18n: { key: 'chat.video.revised' } }) });
   await push(session._id, msg);
@@ -512,7 +514,7 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
   if (session.mode === 'video' && videos.length) {
     if (!ownsUploads(userId, videos.map((v) => v.url))) throw new HttpError(400, 'invalid_input', 'Vidéo inconnue : ajoutez-la de nouveau.');
     // Des vidéos déposées SANS consigne : le média ne dit pas ce qu'il faut en faire. Une seule question,
-    // avant tout débit, avec des choix adaptés (video.intent.ts) — jamais quand la demande le dit déjà.
+    // avant tout débit, avec des choix adaptés (request/intent.ts) — jamais quand la demande le dit déjà.
     const said = (url ? rest : text).trim();
     if (!input.treatment) {
       const assets: IntentAsset[] = videos.map((v, i) => ({ id: `video-${i + 1}`, kind: 'video' as const, ...(v.name ? { note: v.name } : {}) }));
@@ -640,7 +642,7 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
       const voiceMissed = video.brief.voice === true && !video.voice?.enabled;
       const ready = reference ? 'Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez.' : 'Votre vidéo est prête. Retouchez les textes et les images, puis exportez.';
       // Ce que la vidéo n'a pas pu suivre de la demande (4K, plans filmés non générés…) : dit, jamais tu.
-      const notes = (video.storyboard.fidelity?.notes || []).filter((n) => !/voix off/i.test(n) || !voiceMissed);
+      const notes = (video.film?.fidelity?.notes || []).filter((n) => !/voix off|voice/i.test(n) || !voiceMissed);
       const said = [voiceMissed ? `${ready} La voix off n’a pas pu être générée : réessayez-la depuis la retouche.` : ready, ...notes].join(' ');
       const msg = message('assistant', said, {
         result: { kind: 'video', videoId: video.id },

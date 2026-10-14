@@ -34,7 +34,7 @@
     "dev:ivision-offline": "npm run dev:offline --prefix apps/ivision/api",
     "dev:ivision-web": "npm run start --prefix apps/ivision/web",
     "build:ivision-web": "npm run build --prefix apps/ivision/web",
-    "typecheck:ivision": "tsc --noEmit -p apps/ivision/core/tsconfig.json && tsc --noEmit -p apps/ivision/api/tsconfig.json && npm run typecheck --prefix apps/ivision/web",
+    "typecheck:ivision": "npm run typecheck --prefix apps/ivision/core && tsc --noEmit -p apps/ivision/api/tsconfig.json && npm run typecheck --prefix apps/ivision/web",
     "check:ivision": "npm run check --prefix apps/ivision/core && npm run check --prefix apps/ivision/api",
     "typecheck:graphic-engine": "npm run typecheck --workspace=@idem/graphic-engine",
     "check:graphic-engine": "npm run check --workspace=@idem/graphic-engine",

@@ -1,7 +1,7 @@
 /**
  * MÉDIAS DES VIDÉOS — importés, générés, ou trouvés sur Pexels.
  *
- * Ordre de priorité, pour chaque besoin de la vidéo (cf. `video.sourcing.ts`) :
+ * Ordre de priorité, pour chaque besoin de la vidéo (cf. `assets/sourcing.ts`) :
  *   1. ce que l'utilisateur a importé (photos, clips, modèles 3D, Lottie) ;
  *   2. génération par les modèles de l'hôte (OpenRouter chez IDEM) : image (FLUX.2),
  *      clip (Seedance, image → vidéo) — trois essais par média ;
@@ -19,9 +19,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import sharp from 'sharp';
-import logger from '../runtime/logger';
-import { VideoMediaAsset, VideoMediaKind } from './video.model';
-import { requirePort, VideoClipRequest } from '../runtime/host';
+import logger from '../../runtime/logger';
+import { VideoMediaAsset, VideoMediaKind } from '../contracts/model';
+import { requirePort, VideoClipRequest } from '../../runtime/host';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 const FFPROBE = process.env.FFPROBE_PATH || 'ffprobe';

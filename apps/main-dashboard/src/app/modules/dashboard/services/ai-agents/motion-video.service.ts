@@ -6,13 +6,14 @@ import { SseClient } from 'ngx-sse-client';
 import { TokenService } from '../../../../shared/services/token.service';
 import { environment } from '../../../../../environments/environment';
 import {
-  MotionStyle,
   MotionVideo,
   MusicMood,
   MusicTrack,
   VideoBrief,
   VideoFormat,
   VideoOptions,
+  VideoPatch,
+  VideoRevisionResult,
   VideoScope,
   VideoMediaAsset,
   VideoType,
@@ -103,24 +104,17 @@ export class MotionVideoService {
     );
   }
 
-  update(
-    projectId: string,
-    videoId: string,
-    patch: {
-      slots?: Record<string, Record<string, string>>;
-      style?: MotionStyle;
-      musicMood?: MusicMood;
-      musicTrackId?: string;
-      scope?: Partial<VideoScope>;
-      sfx?: boolean;
-      /** Voix off : coupée, ou ajoutée (écrite et dite dans la langue de la vidéo). */
-      voice?: boolean;
-      direction?: string;
-      /** Clé de scène → nouvelle photo (URL importée). */
-      images?: Record<string, string>;
-    },
-  ): Observable<MotionVideo> {
+  /**
+   * Retouche gratuite : textes et photos (données, le code des scènes ne change pas), musique,
+   * effets, voix, sous-titres — ou une nouvelle version du code d'une scène (`visual`, `fix`, `regenerate`).
+   */
+  update(projectId: string, videoId: string, patch: VideoPatch): Observable<MotionVideo> {
     return this.http.patch<MotionVideo>(`${this.apiUrl}/${projectId}/videos/${videoId}`, patch);
+  }
+
+  /** Une retouche écrite en clair (« la scène 2 plus lente », « sans musique ») : l'IA dit ce qui change. */
+  revise(projectId: string, videoId: string, text: string): Observable<VideoRevisionResult> {
+    return this.http.post<VideoRevisionResult>(`${this.apiUrl}/${projectId}/videos/${videoId}/revise`, { text });
   }
 
   /** HTML autonome du lecteur : le même moteur que le MP4. */
@@ -142,7 +136,7 @@ export class MotionVideoService {
     return this.http.delete<void>(`${this.apiUrl}/${projectId}/videos/${videoId}`);
   }
 
-  /** Photos, clips vidéo, modèles 3D (GLB) et animations Lottie (JSON). */
+  /** Photos et clips vidéo. */
   uploadMedia(projectId: string, files: File[]): Observable<{ assets: VideoMediaAsset[] }> {
     const form = new FormData();
     files.slice(0, 8).forEach((file) => form.append('files', file));
@@ -184,7 +178,7 @@ export type VideoGoal = (typeof VIDEO_GOALS)[number];
 export type ProductionMode = (typeof PRODUCTION_MODES)[number];
 export type MotionLanguage = (typeof MOTION_LANGUAGES)[number];
 
-/** L'intention lue par le serveur (video.intent.ts) : seuls les champs que l'interface affiche ou corrige. */
+/** L'intention lue par le serveur (request/intent.ts) : seuls les champs que l'interface affiche ou corrige. */
 export interface VideoIntent {
   objective: VideoGoal;
   productionModes: ProductionMode[];

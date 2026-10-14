@@ -10,11 +10,11 @@ export { setCoreLogger } from './runtime/logger';
 
 export type { BrandKit, BrandVoice, BrandPalette } from './brand/brand-kit';
 
-export { MotionVideoService, VideoInputError, type CreateVideoInput, type VideoProgressEvent } from './video/motionVideo.service';
-export type { VideoStore, VideoBrandContext } from './video/video.store';
-export { normalizeScope, videoCost, exportCost, setVideoPricingBase } from './video/video.pricing';
-export { videoOptions } from './video/video.options';
-export { buildVideoEngine } from './video/video.engine';
+export { MotionVideoService, VideoInputError, type CreateVideoInput, type VideoProgressEvent, type VideoPatch } from './video/motionVideo.service';
+export type { VideoStore, VideoBrandContext } from './video/contracts/store';
+export { normalizeScope, videoCost, exportCost, setVideoPricingBase } from './video/pricing';
+export { videoOptions } from './video/options';
+export { closeFilmBrowser } from './video/rendering/runner';
 
 export { composeVisual, type VisualPorts } from './visual/visual.composer';
 export { visualBrandingFromKit, visualContextFromBrand } from './visual/visual.context';
@@ -23,6 +23,6 @@ export type { VisualBrandContext, VisualContent, FlyerFormat } from './visual/vi
 export { scanWebsite, brandKitFromScan, normalizeSiteUrl, SiteScanError, type SiteScanResult } from './site/site-scanner';
 
 export { analyzeReferenceVideo, analyzeReferenceImage, type ReferenceBlueprint, type ReferenceImage } from './reference/reference.analyzer';
-export { planFromBlueprint, blueprintForDirector } from './reference/reference.plan';
+export { blueprintForDirector } from './reference/reference.plan';
 
 export { safeFetch, SafeFetchError } from './render/safe-fetch';

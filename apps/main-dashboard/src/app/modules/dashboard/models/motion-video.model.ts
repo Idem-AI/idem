@@ -1,21 +1,14 @@
 /**
  * Vidéos de promotion en motion design — miroir des types de l'API
- * (`apps/api/api/models/motionVideo.model.ts`).
+ * (`apps/ivision/core/src/video/contracts/model.ts`, moteur Motion Canvas).
  */
 
 export type VideoFormat = 'story' | 'square' | 'portrait' | 'landscape';
 export type VideoDuration = 6 | 15 | 30 | 60;
 export type VideoQuality = 'standard' | 'hd' | 'premium';
-export type VideoObjective =
-  | 'promotion'
-  | 'product'
-  | 'announce'
-  | 'event'
-  | 'opening'
-  | 'testimonial'
-  | 'recruitment';
+export type VideoObjective = 'promotion' | 'product' | 'announce' | 'event' | 'opening' | 'testimonial' | 'recruitment';
 export type VideoType = 'kinetic' | 'product' | 'promo' | 'footage' | 'showcase3d' | 'illustrated' | 'slideshow' | 'logo' | 'mix';
-export type VideoMediaKind = 'image' | 'video' | 'model3d' | 'lottie' | 'rive';
+export type VideoMediaKind = 'image' | 'video';
 
 export interface VideoMediaAsset {
   id: string;
@@ -24,6 +17,8 @@ export interface VideoMediaAsset {
   origin: 'upload' | 'pexels' | 'generated' | 'library' | 'visual';
   name?: string;
   durationSec?: number;
+  width?: number;
+  height?: number;
   posterUrl?: string;
   credit?: string;
   sourceUrl?: string;
@@ -50,7 +45,6 @@ export interface VideoScope {
 }
 
 export interface VideoBrief {
-  /** Absent : déduit de la demande par le modèle. */
   objective?: VideoObjective;
   message: string;
   details?: string;
@@ -64,7 +58,8 @@ export interface VideoBrief {
   sfx?: boolean;
   /** Voix off dans la langue de la vidéo (désactivée par défaut). */
   voice?: boolean;
-  direction?: string;
+  /** La demande telle que l'utilisateur l'a écrite. */
+  request?: string;
 }
 
 /** La voix off d'une vidéo : une ligne par scène, calée sur elle. */
@@ -75,44 +70,43 @@ export interface VideoVoice {
   provider: 'openrouter';
   model: string;
   voice: string;
-  style?: string;
   lines: { sceneKey: string; text: string; url: string; durationSec: number; offset: number }[];
   source: 'llm' | 'heuristic';
-  /** La voix n'a pas pu être produite (langue, service) : la vidéo reste sans. */
   unavailable?: string;
 }
 
-export interface VideoSceneInstance {
+/** Une scène du film : son intention, ses textes (données), ses médias, et le code écrit par l'IA. */
+export interface FilmScene {
   key: string;
-  sceneId: string;
-  variant: number;
   start: number;
   duration: number;
-  surface: 'light' | 'primary' | 'secondary' | 'accent';
-  transitionIn?: string;
-  slots: Record<string, string>;
-  image?: string;
-  images?: string[];
+  purpose: string;
+  visual: string;
+  motion: string;
+  transition?: string;
+  texts: Record<string, string>;
+  media: string[];
+  voiceText?: string;
+  code?: string;
+  author?: { tokens: { input: number; output: number }; ms: number; at: string; attempts: number; instruction?: string };
+  status: 'planned' | 'ready' | 'error';
+  error?: { stage: 'author' | 'compile' | 'runtime'; message: string };
+  thumbnail?: string;
 }
 
-export interface VideoStoryboard {
-  version: 1;
-  seed: number;
-  style: MotionStyle;
-  direction?: string;
-  /** Concept narratif retenu (question → réponse, le produit en héros…). */
-  concept?: string;
+export interface VideoFilm {
+  version: 2;
+  engine: 'motion-canvas';
+  title: string;
+  concept: string;
+  bible: string;
   durationSec: number;
-  scenes: VideoSceneInstance[];
-  /** Cran Ultra : le film d'auteur (le directeur IA l'a inventé, `coded` plans écrits par l'IA). */
-  authored?: { title: string; concept: string; bible: string; shots: number; coded: number; fallback: string[]; reviewed: number };
-  /** Ce que chaque agent a décidé : `llm` = décision de l'IA retenue, `graph` = décision du code. */
-  agents?: { agent: string; source: 'llm' | 'graph' }[];
-  /** Le moteur créatif : écart à la vidéo la plus proche de la marque, touche inattendue. */
-  creative?: {
-    accent?: { index: number; pattern: string; family: string };
-    novelty?: { nearest: number | null; verdict: 'too-close' | 'acceptable' | 'distinct' | 'first' };
-  };
+  language: string;
+  scenes: FilmScene[];
+  captions: boolean;
+  agents: { agent: string; source: 'llm' | 'none'; tokens: { input: number; output: number }; ms: number; failure?: string }[];
+  fidelity?: { notes: string[] };
+  checkedAt?: string;
 }
 
 export interface MusicTrack {
@@ -143,7 +137,9 @@ export interface VideoRender {
   width?: number;
   height?: number;
   fps?: number;
+  /** `scene_error` : une scène a échoué pendant le rendu (le fichier n'est pas livré). */
   error?: string;
+  stale?: boolean;
 }
 
 export interface MotionVideo {
@@ -155,7 +151,10 @@ export interface MotionVideo {
   voice?: VideoVoice;
   brief: VideoBrief;
   scope: VideoScope;
-  storyboard: VideoStoryboard;
+  /** Le film (moteur Motion Canvas). Absent : vidéo de l'ancien moteur (`legacy`). */
+  film?: VideoFilm;
+  /** Vidéo de l'ancien moteur : ses MP4 se téléchargent, elle ne se retouche plus. */
+  legacy?: boolean;
   music?: VideoMusic;
   renders: VideoRender[];
   status: 'draft' | 'rendering' | 'ready' | 'failed';
@@ -164,8 +163,33 @@ export interface MotionVideo {
   dirty?: boolean;
   createdAt: string;
   updatedAt: string;
-  /** Cran de créativité de la création. */
   creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
+}
+
+/** Ce qu'une retouche peut demander (gratuite). */
+export interface VideoPatch {
+  texts?: Record<string, Record<string, string>>;
+  images?: Record<string, string>;
+  musicMood?: MusicMood;
+  musicTrackId?: string;
+  sfx?: boolean;
+  voice?: boolean;
+  captions?: boolean;
+  voiceLines?: Record<string, string>;
+  /** Clé de scène → consigne : l'IA réécrit le code de la scène. */
+  visual?: Record<string, string>;
+  /** Scènes en erreur à corriger (nouvel appel à l'IA, à la demande). */
+  fix?: string[];
+  /** Scènes à réécrire de zéro depuis leur fiche. */
+  regenerate?: string[];
+  scope?: Partial<VideoScope>;
+}
+
+export interface VideoRevisionResult {
+  video: MotionVideo | null;
+  report: { recoded: string[]; voiced: string[]; failed: { key: string; what: 'visual' | 'voice'; reason?: string }[] };
+  reply?: string;
+  newRequest: boolean;
 }
 
 /** Barème renvoyé par l'API : le prix se calcule en direct, sans aller-retour. */
@@ -181,26 +205,16 @@ export interface VideoPricing {
   qualities: VideoQuality[];
 }
 
-export interface SceneSlotSpec {
-  key: string;
-  max: number;
-  required: boolean;
-}
-
 export interface VideoOptions {
+  engine: { name: string; version: string };
   pricing: VideoPricing;
   objectives: VideoObjective[];
   moods: MusicMood[];
-  styles: (MotionStyle | 'auto')[];
-  /** Directions de motion : systèmes visuels complets (composition, techniques, transitions, couleur). */
-  directions: string[];
-  /** Cases de chaque scène, avec leur longueur maximale. */
-  scenes: Record<string, SceneSlotSpec[]>;
-  /** Types de motion proposés à la création. */
-  types: { id: VideoType; icon: string; style: MotionStyle; needs: { images?: number; videos?: number }; durations?: VideoDuration[] }[];
+  /** Familles proposées à la création : de simples indications pour le directeur. */
+  types: { id: VideoType; icon: string }[];
 }
 
-/** Même formule que `video.pricing.ts` côté API (l'API reste l'autorité). */
+/** Même formule que `pricing.ts` côté API (l'API reste l'autorité). */
 export function priceVideo(pricing: VideoPricing, scope: VideoScope): number {
   const formats = Math.max(1, scope.formats.length);
   return Math.ceil(
@@ -219,65 +233,42 @@ export function priceExport(pricing: VideoPricing, video: MotionVideo, scope: Vi
 }
 
 /** Étapes réelles d'une création, reçues en direct (flux SSE). */
-export type VideoProgressStage = 'plan' | 'copy' | 'layout' | 'media' | 'music' | 'sfx' | 'voice' | 'storyboard' | 'animation' | 'critique' | 'code' | 'direction' | 'shots';
-
-export interface VideoProgressMediaItem {
-  kind: VideoMediaKind;
-  origin: string;
-  url?: string;
-  credit?: string;
-  name?: string;
-}
+export type VideoProgressStage = 'plan' | 'concept' | 'storyboard' | 'media' | 'music' | 'sfx' | 'voice' | 'code' | 'check';
 
 export interface VideoProgressData {
-  type?: VideoType;
-  /** Concept narratif retenu (étape « plan »). */
-  concept?: string;
-  scenes?: (string | { sceneId: string; duration: number; surface?: string })[];
-  durationSec?: number;
+  /** plan */
+  language?: string;
+  scripted?: boolean;
+  media?: number;
+  /** concept */
   title?: string;
-  lines?: number;
-  source?: 'llm' | 'heuristic';
-  query?: string;
+  concept?: string;
+  failed?: string;
+  /** storyboard */
+  scenes?: number | { duration: number; purpose: string }[];
+  /** media */
+  planned?: number;
+  done?: number;
+  total?: number;
+  generatedImages?: number;
+  generatedVideos?: number;
   stockPhotos?: number;
   stockVideos?: number;
-  generatedVideos?: number;
-  generatedImages?: number;
-  items?: VideoProgressMediaItem[];
+  missing?: number;
+  blocked?: 'payment' | 'unavailable';
+  /** music */
   artist?: string;
-  provider?: string;
   bpm?: number;
   none?: boolean;
-  sounds?: { kind: SfxKind; title: string }[];
-  /** Agents : mises en page retenues, transitions, caméra, corrections du critique. */
-  layouts?: string[];
-  transitions?: string[];
-  camera?: string;
-  fixes?: number;
-  /** La piste a été choisie par l'agent sound designer. */
-  pickedBy?: 'agent' | 'graph';
-  /** Cran Ultra : scènes écrites par l'IA et retenues après contrôle. */
-  coded?: number;
-  tried?: number;
-  /** Film d'auteur (Ultra) : le directeur a imaginé le film (étape « direction »). */
-  shots?: { kind: string; duration: number; visual: string }[];
-  fallback?: boolean;
-  /** Film d'auteur : avancée des plans (étape « shots »). */
-  total?: number;
-  done?: number;
-  current?: number;
-  step?: 'writing' | 'review' | 'revise' | 'done';
-  round?: number;
-  reviewed?: number;
-  authored?: { shots: number; coded: number };
-  /** Médias générés : plans demandés au directeur photo, essais en échec, repli des visuels. */
-  planned?: number;
-  failedAttempts?: number;
-  fromVisuals?: number;
-  /** Voix off : lignes dites, langue, ou la raison de son absence. */
-  language?: string;
-  persona?: string;
+  /** voice */
+  lines?: number;
   unavailable?: string;
+  /** code */
+  scene?: string;
+  ok?: boolean;
+  ready?: number;
+  /** check */
+  errors?: string[] | { key: string; stage?: string; message?: string }[];
 }
 
 export type VideoStreamEvent =

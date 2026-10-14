@@ -140,18 +140,14 @@ summary.vd-card-title {
   color: var(--color-text-primary);
 }
 
-.vd-style {
-  border-radius: 999px;
-  border: 1.5px solid var(--glass-border);
-  padding: 0.35rem 0.85rem;
-  font-size: 0.82rem;
-  font-weight: 600;
+/* Ce que la vidéo n'a pas pu suivre de la demande : dit, jamais caché. */
+.vd-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
   color: var(--color-text-secondary);
-}
-
-.vd-style-active {
-  border-color: var(--color-primary-500);
-  color: var(--color-text-primary);
 }
 
 .vd-file {
@@ -192,7 +188,7 @@ summary.vd-card-title {
   color: var(--color-danger);
 }
 
-/* Ce que l'IA a décidé dans cette vidéo. */
+/* Le concept du film, inventé par l'IA. */
 .vd-ai {
   display: flex;
   flex-wrap: wrap;

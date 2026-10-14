@@ -10,9 +10,10 @@ import { BrandKit, readFonts, readPalette, resolveLogoSlot } from '../brand/bran
 import { contrastRatio, ensureContrast, hexToOklch, hexToRgb, oklchToHex, relativeLuminance, rgbToHex } from '../design/color';
 import { enforceLightSurface } from '../design/lightSurface';
 import { buildGoogleFontLinks } from '../design/google-fonts';
-import { VideoSceneInstance } from './video.model';
 
-export type SurfaceName = VideoSceneInstance['surface'];
+
+/** Les surfaces d'un habillage de montage : claire, primaire, secondaire, accent, teinte claire ou profonde de la primaire. */
+export type SurfaceName = 'light' | 'primary' | 'secondary' | 'accent' | 'tint' | 'deep';
 
 export interface SurfaceTokens {
   /** Fond de la scène. */

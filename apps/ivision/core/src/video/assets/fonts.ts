@@ -12,7 +12,7 @@
  * pointées du yoruba, comme ẹ et ọ). Une feuille illisible ou trop lourde garde son `<link>`.
  */
 import axios from 'axios';
-import logger from '../runtime/logger';
+import logger from '../../runtime/logger';
 
 /** Un navigateur récent reçoit du woff2 (le plus léger). */
 const MODERN_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36';

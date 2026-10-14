@@ -19,11 +19,12 @@
  * (`refineVideoIntent`), dans les seules valeurs admises. La CLARIFICATION (`clarifyVideoIntent`) ne pose une
  * question que si sa réponse change le pipeline — jamais la langue, la durée, le format ou la musique.
  */
-import type { CopyWriter } from './video.copy';
-import { extractFacts } from './video.copy';
-import type { DirectionId } from './video.direction';
-import type { VideoFormat, VideoObjective, VideoType } from './video.model';
-import type { RequestSpec } from './video.request';
+import type { CopyWriter } from './facts';
+import { extractFacts } from './facts';
+/** Ancienne direction de motion (vidéos d'avant Motion Canvas) : un simple nom. */
+type DirectionId = string;
+import type { VideoFormat, VideoObjective, VideoType } from '../contracts/model';
+import type { RequestSpec } from './request';
 
 export const VIDEO_GOALS = ['conversion', 'product-demo', 'website-tour', 'explainer', 'brand-film', 'event', 'story', 'announcement', 'repurpose'] as const;
 export type VideoGoal = (typeof VIDEO_GOALS)[number];

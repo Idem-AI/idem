@@ -40,8 +40,7 @@ RUN node -e "\
     devDependencies: { ...a.devDependencies } }, null, 2));" \
   && PUPPETEER_SKIP_DOWNLOAD=true npm install --legacy-peer-deps && npm cache clean --force
 
-# Compilation (dist/apps/ivision/{api,core} et dist/packages/graphic-engine) puis paquets du moteur
-# vidéo (public/video-engine). Les sources du moteur graphique vivent dans /app/packages : le lien
+# Compilation (dist/apps/ivision/{api,core} et dist/packages/graphic-engine). Les sources du moteur graphique vivent dans /app/packages : le lien
 # /app/node_modules leur donne les dépendances installées ci-dessus, le temps de la compilation.
 RUN ln -s /app/apps/ivision/node_modules /app/node_modules
 WORKDIR /app/apps/ivision/api
@@ -82,7 +81,8 @@ COPY --from=builder --chown=ivision:nodejs /app/packages /app/packages
 COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/node_modules /app/apps/ivision/node_modules
 COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/api/package.json ./package.json
 COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/api/dist ./dist
-COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/api/public ./public
+# Les sources du runtime vidéo (kit, harnais, lecteur, exemples) : esbuild les compile avec chaque film.
+COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/core/motion ./dist/apps/ivision/core/motion
 
 RUN mkdir -p /app/apps/ivision/api/logs && chown -R ivision:nodejs /app/apps/ivision/api/logs
 USER ivision

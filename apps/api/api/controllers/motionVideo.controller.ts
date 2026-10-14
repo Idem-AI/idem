@@ -3,20 +3,14 @@ import { Response } from 'express';
 import sharp from 'sharp';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
-import {
-  MOTION_STYLES,
-  MUSIC_MOODS,
-  MotionStyle,
-  MusicMood,
-  VideoFormat,
-} from '../models/motionVideo.model';
+import { MotionStyle, MUSIC_MOODS, MusicMood, VideoFormat } from '../models/motionVideo.model';
 import { CommunicationService } from '../services/Communication/communication.service';
-import { CreateVideoInput, MotionVideoService, VideoInputError } from '../../../ivision/core/src/video/motionVideo.service';
-import { MOTION_LANGUAGES, PRODUCTION_MODES, VIDEO_GOALS, VideoGoal } from '../../../ivision/core/src/video/video.intent';
-import { normalizeScope, videoCost } from '../../../ivision/core/src/video/video.pricing';
-import { videoOptions } from '../../../ivision/core/src/video/video.options';
-import { MediaInputError } from '../../../ivision/core/src/video/video.media';
-import { resolvePublicSound } from '../../../ivision/core/src/video/video.sfx';
+import { CreateVideoInput, MotionVideoService, sanitizeVideoPatch, VideoInputError } from '../../../ivision/core/src/video/motionVideo.service';
+import { MOTION_LANGUAGES, MotionLanguage, PRODUCTION_MODES, ProductionMode, VIDEO_GOALS, VideoGoal } from '../../../ivision/core/src/video/request/intent';
+import { normalizeScope, videoCost } from '../../../ivision/core/src/video/pricing';
+import { videoOptions } from '../../../ivision/core/src/video/options';
+import { MediaInputError } from '../../../ivision/core/src/video/assets/media';
+import { resolvePublicSound } from '../../../ivision/core/src/video/audio/sfx';
 import { VIDEO_TYPES, VideoType } from '../models/motionVideo.model';
 import { PromptService } from '../services/prompt.service';
 import '../services/ivision/host';
@@ -50,7 +44,7 @@ function fail(res: Response, error: any, label: string): void {
     return;
   }
   if (error instanceof VideoInputError) {
-    const status = error.message === 'project_not_found' ? 404 : error.message === 'already_rendering' ? 409 : 400;
+    const status = error.message === 'project_not_found' ? 404 : error.message === 'already_rendering' || error.message === 'scene_errors' || error.message === 'legacy_video' ? 409 : error.message === 'model_unavailable' ? 503 : 400;
     res.status(status).json({ error: error.message, message: error.message });
     return;
   }
@@ -84,8 +78,8 @@ function intentOf(raw: unknown): CreateVideoInput['intent'] {
   const yna = (v: unknown): 'yes' | 'no' | undefined => (v === 'yes' || v === 'no' ? v : undefined);
   const intent = {
     objective: VIDEO_GOALS.includes(o.objective as VideoGoal) ? (o.objective as VideoGoal) : undefined,
-    productionModes: list(o.productionModes, PRODUCTION_MODES),
-    motionDirection: list(o.motionDirection, MOTION_LANGUAGES),
+    productionModes: list<ProductionMode>(o.productionModes, PRODUCTION_MODES),
+    motionDirection: list<MotionLanguage>(o.motionDirection, MOTION_LANGUAGES),
     subtitles: yna(o.subtitles),
     voiceover: yna(o.voiceover),
     music: yna(o.music),
@@ -163,31 +157,15 @@ export const getVideoController = async (req: CustomRequest, res: Response): Pro
   }
 };
 
-/** Seuls les champs du kit, en texte court (la validation réelle est celle du graphe). */
-function pickKit(raw: Record<string, unknown>) {
-  const out: Record<string, string> = {};
-  for (const k of ['logo', 'background', 'annotate', 'iconSet']) if (typeof raw[k] === 'string' && (raw[k] as string).length < 40) out[k] = raw[k] as string;
-  return out;
-}
-
-/** PATCH /project/communication/:projectId/videos/:videoId — retouches gratuites. */
+/**
+ * PATCH /project/communication/:projectId/videos/:videoId — retouches gratuites : textes et photos (données),
+ * musique, effets, voix, sous-titres, et nouvelles versions du code d'une scène (`visual`, `fix`, `regenerate`).
+ */
 export const updateVideoController = async (req: CustomRequest, res: Response): Promise<void> => {
   const id = ids(req, res);
   if (!id) return;
-  const body = req.body || {};
   try {
-    const video = await motionVideoService.updateVideo(id.userId, id.projectId, req.params.videoId as string, {
-      slots: body.slots && typeof body.slots === 'object' ? body.slots : undefined,
-      style: MOTION_STYLES.includes(body.style) ? (body.style as MotionStyle) : undefined,
-      musicMood: MUSIC_MOODS.includes(body.musicMood) ? (body.musicMood as MusicMood) : undefined,
-      musicTrackId: typeof body.musicTrackId === 'string' ? body.musicTrackId : undefined,
-      scope: body.scope,
-      sfx: typeof body.sfx === 'boolean' ? body.sfx : undefined,
-      voice: typeof body.voice === 'boolean' ? body.voice : undefined,
-      direction: typeof body.direction === 'string' ? body.direction : undefined,
-      kit: body.kit && typeof body.kit === 'object' ? pickKit(body.kit) : undefined,
-      images: body.images && typeof body.images === 'object' ? body.images : undefined,
-    });
+    const video = await motionVideoService.updateVideo(id.userId, id.projectId, req.params.videoId as string, sanitizeVideoPatch(req.body));
     if (!video) {
       res.status(404).json({ message: 'Video not found' });
       return;
@@ -195,6 +173,27 @@ export const updateVideoController = async (req: CustomRequest, res: Response): 
     res.json(video);
   } catch (error) {
     fail(res, error, 'updateVideoController');
+  }
+};
+
+/** POST /project/communication/:projectId/videos/:videoId/revise — une retouche écrite en clair (gratuite). */
+export const reviseVideoController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const id = ids(req, res);
+  if (!id) return;
+  const text = String(req.body?.text || '').trim().slice(0, 2000);
+  if (text.length < 2) {
+    res.status(400).json({ error: 'message_required', message: 'message_required' });
+    return;
+  }
+  try {
+    const result = await motionVideoService.reviseFromText(id.userId, id.projectId, req.params.videoId as string, text, getRequestLanguage() || 'fr');
+    if (!result.video) {
+      res.status(404).json({ message: 'Video not found' });
+      return;
+    }
+    res.json(result);
+  } catch (error) {
+    fail(res, error, 'reviseVideoController');
   }
 };
 
@@ -230,7 +229,8 @@ export const videoMusicController = async (req: CustomRequest, res: Response): P
       return;
     }
     const mood = MUSIC_MOODS.includes(req.query.mood as MusicMood) ? (req.query.mood as MusicMood) : video.brief.musicMood;
-    res.json(await motionVideoService.musicOptions(mood, video.storyboard.style, video.brief.objective, video.scope.durationSec));
+    const style = (video.brief.style && video.brief.style !== 'auto' ? video.brief.style : 'energetic') as MotionStyle;
+    res.json(await motionVideoService.musicOptions(mood, style, video.brief.objective, video.scope.durationSec));
   } catch (error) {
     fail(res, error, 'videoMusicController');
   }
@@ -294,7 +294,7 @@ export const uploadVideoPhotosController = async (req: CustomRequest, res: Respo
 
 /**
  * POST /project/communication/:projectId/videos/media (multipart, champ `files`)
- * Photos, clips vidéo, modèles 3D (GLB) et animations Lottie (JSON).
+ * Photos et clips vidéo (le moteur Motion Canvas ne lit ni 3D, ni Lottie, ni Rive).
  */
 export const uploadVideoMediaController = async (req: CustomRequest, res: Response): Promise<void> => {
   const id = ids(req, res);

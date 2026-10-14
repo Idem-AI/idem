@@ -11,7 +11,7 @@
  * phrase ; tirets cadratins, émojis et mots creux sont nettoyés ; sans réponse
  * exploitable, une amélioration par gabarit prend le relais.
  */
-import { CopyContext, CopyWriter, estimateTokens } from './video.copy';
+import { CopyContext, CopyWriter, estimateTokens } from './facts';
 
 export interface EnhanceInput {
   text: string;

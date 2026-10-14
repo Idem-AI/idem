@@ -2,7 +2,7 @@
 
 `apps/api/api/services/logo-engine/` — un moteur TypeScript autonome (Node seul, ni React ni navigateur) qui génère les 11 catégories de logos et livre un vrai SVG vectoriel, vérifié.
 
-Il reprend les principes du moteur vidéo (voir [VIDEO_ENGINE.md](VIDEO_ENGINE.md)) : **une représentation intermédiaire structurée, des outils spécialisés, un rendu déterministe, une boucle de contrôle qualité, un modèle qui décide mais ne construit pas**.
+Il repose sur ces principes : **une représentation intermédiaire structurée, des outils spécialisés, un rendu déterministe, une boucle de contrôle qualité, un modèle qui décide mais ne construit pas**.
 
 Avant : le modèle dessinait le SVG (≈ 3 400 tokens de consigne + 3 500 de SVG par brouillon, trois brouillons au cran Ultra, plus critique et révision). Maintenant : le modèle choisit et décrit (quelques centaines de tokens) ; le code construit le SVG, le mesure et le corrige.
 

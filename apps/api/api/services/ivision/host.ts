@@ -15,7 +15,7 @@ import logger from '../../config/logger';
 import { BUSINESS_CREDIT_COSTS } from '../../models/billing.model';
 import { configureCore, ImageOptions, SpeechRequest, SynthesizedSpeech, VideoClipRequest, VisionOptions } from '../../../../ivision/core/src/runtime/host';
 import { AI_CONFIG } from '../../config/ai.config';
-import { setVideoPricingBase } from '../../../../ivision/core/src/video/video.pricing';
+import { setVideoPricingBase } from '../../../../ivision/core/src/video/pricing';
 import { apiBaseUrl } from '../Communication/visualUrl';
 import { runtimeCall } from '../creativity/orchestrator';
 import { idemAssetRegistry } from '../graphic/asset-registry';

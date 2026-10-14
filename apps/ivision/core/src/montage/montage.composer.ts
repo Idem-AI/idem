@@ -10,10 +10,10 @@
  *   rendu   vidéo muette, positionnée à chaque image ; le son est mixé par ffmpeg.
  */
 import { contrastRatio } from '../design/color';
-import { frameSpec } from '../video/video.composer';
-import { inlineFontLinks } from '../video/video.fonts';
-import { iconSvg } from '../video/video.icons';
-import type { VideoTheme } from '../video/video.theme';
+import { frameSpec } from '../video/rendering/formats';
+import { inlineFontLinks } from '../video/assets/fonts';
+import { iconSvg } from './montage.icons';
+import type { VideoTheme } from './montage.theme';
 import type { MontageElement, MontageVideo } from './montage.model';
 import { MONTAGE_PAGE_SCRIPT, MONTAGE_PAGE_STYLE } from './montage.page';
 import { elementWindows, TimedWord } from './montage.timeline';

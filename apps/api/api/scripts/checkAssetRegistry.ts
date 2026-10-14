@@ -10,8 +10,7 @@ import type { AssetRecord } from '@idem/graphic-engine';
 import { planAssets, resolveAssets, FORMATS } from '@idem/graphic-engine';
 import { createAssetRegistry, MAX_RECORDS, recordsFromBrand } from '../../../ivision/core/src/media/asset-registry';
 import { configureCore } from '../../../ivision/core/src/runtime/host';
-import { sourceShots, ShotPlan } from '../../../ivision/core/src/video/video.sourcing';
-import { filmAssetPlan } from '../../../ivision/core/src/video/video.author';
+import { sourceShots, ShotPlan } from '../../../ivision/core/src/video/assets/sourcing';
 
 let failures = 0;
 let passed = 0;
@@ -64,10 +63,6 @@ async function main(): Promise<void> {
   ok('vidéo : la photo générée rejoint le registre (origine vidéo, provenance)', fromVideo.length === 1 && fromVideo[0].origin === 'video' && fromVideo[0].source === 'generated');
   const deckAgain = await resolveAssets(planAssets({ ...deckSection, intent: { visualStrategy: 'full-bleed', image: { subject: 'a barista pouring an espresso in a cafe' } } }, FORMATS['slide-16x9']), {}, { level: 'medium', documentType: 'pitch-deck', ...ctx }, { generationLeft: 0, registry: { list: async () => fromVideo, remember: async () => undefined } });
   ok('deck (Medium) : reprend la photo générée par la vidéo, sans rien payer', deckAgain.resolved[0]?.url === fromVideo[0].url);
-
-  // 5. Le film d'auteur : une interface ne vient que du produit.
-  const plans = filmAssetPlan({ shots: [{ kind: 'footage', duration: 3, slots: {}, visual: 'x', medium: 'footage', footage: 'a woman opening the app' }, { kind: 'screen', duration: 3, slots: { title: 'Le tableau' }, visual: 'x', medium: 'screen' }, { kind: 'kinetic', duration: 2, slots: {}, visual: 'x' }] as any });
-  ok('film d’auteur : clip, capture (jamais générée), et aucun média pour le motion design', plans.length === 2 && plans[0].role === 'clip' && plans[1].role === 'product-capture' && !plans[1].sources.includes('generated'));
 
   console.log(`\n${failures ? '✗' : '✓'} Registre : ${passed} vérification(s) réussie(s), ${failures} en échec.`);
   process.exit(failures ? 1 : 0);

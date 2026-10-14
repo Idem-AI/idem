@@ -15,9 +15,9 @@
  *                transition, caméra, média, rôle dans le récit) : le résultat se branche tel quel
  *                sur le moteur — motifs, techniques, transitions du graphe de capacités.
  *
- * Le plan de reproduction (`ReferenceBlueprint`) sert aux deux pipelines : les menus (Low → Max :
- * scènes, durées, mises en page, entrées, coupes imposées) et le film d'auteur (Ultra : chaque
- * plan est décrit au directeur et au codeur, la critique visuelle compare au modèle).
+ * Le plan de reproduction (`ReferenceBlueprint`) est décrit au directeur et au planificateur du film
+ * (`reference.plan.ts#blueprintForDirector`) : même nombre de plans, même minutage, même mouvement —
+ * le code de chaque scène reste écrit librement par l'auteur.
  */
 import { spawn } from 'child_process';
 import fs from 'fs';
@@ -25,7 +25,10 @@ import os from 'os';
 import path from 'path';
 import sharp from 'sharp';
 import logger from '../runtime/logger';
-import type { DirectionId, MotionTransition, TextTechnique } from '../video/video.direction';
+/** Les noms (texte libre) d'une direction, d'une transition et d'une entrée de texte, tels que la vision les lit. */
+type DirectionId = string;
+type MotionTransition = string;
+type TextTechnique = string;
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 const FFPROBE = process.env.FFPROBE_PATH || 'ffprobe';

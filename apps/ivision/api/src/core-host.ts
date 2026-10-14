@@ -7,7 +7,7 @@
  */
 import crypto from 'crypto';
 import { configureCore } from '../../core/src/runtime/host';
-import { setVideoPricingBase } from '../../core/src/video/video.pricing';
+import { setVideoPricingBase } from '../../core/src/video/pricing';
 import { collection } from './config/db';
 import { env } from './config/env';
 import logger from './config/logger';

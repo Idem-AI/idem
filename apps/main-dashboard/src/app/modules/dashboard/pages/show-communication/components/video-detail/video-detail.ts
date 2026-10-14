@@ -15,15 +15,16 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { IdemVideoEditorComponent } from '@idem/shared-video-editor/angular';
+import { editorScenes, SceneAction } from '@idem/shared-video-editor';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
 import {
-  MotionStyle,
   MotionVideo,
   MusicMood,
   MusicTrack,
   priceExport,
   VideoFormat,
   VideoOptions,
+  VideoPatch,
   VideoQuality,
   VideoScope,
 } from '../../../../models/motion-video.model';
@@ -39,13 +40,16 @@ const MOODS: MusicMood[] = ['auto', 'upbeat', 'afro', 'calm', 'epic', 'corporate
 
 type Edits = Record<string, Record<string, string>>;
 
-/** Le minutage d'une vidéo : s'il bouge après une retouche (temps de lecture), l'aperçu est recomposé. */
-const timing = (v: MotionVideo | null) => (v?.storyboard.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}`).join('|');
+/** Ce que l'aperçu montre : minutage et code des scènes. S'il change, l'aperçu est recomposé. */
+const shape = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}:${s.code?.length ?? 0}:${s.author?.at ?? ''}`).join('|');
+
+type SavingKind = 'texts' | 'photo' | 'music' | 'sfx' | 'voice' | 'captions' | 'revise';
 
 /**
- * Une vidéo : l'éditeur partagé avec iVision (`@idem/shared-video-editor` : l'aperçu — le même
- * moteur que le MP4 — et les textes, vus en direct à l'instant où ils s'affichent), les retouches
- * gratuites (musique, style, effets) et l'export.
+ * Une vidéo : l'éditeur partagé avec iVision (`@idem/shared-video-editor` : l'aperçu Motion Canvas
+ * — le même paquet que le MP4 —, les textes de chaque scène vus en direct, et les demandes de
+ * réécriture d'une scène par l'IA), la retouche écrite pour tout le film, la musique, les effets,
+ * la voix et l'export. Une vidéo de l'ancien moteur reste téléchargeable, en lecture seule.
  */
 @Component({
   selector: 'app-video-detail',
@@ -72,8 +76,6 @@ export class VideoDetail {
   protected readonly moods = MOODS;
   protected readonly allFormats: VideoFormat[] = ['story', 'square', 'portrait', 'landscape'];
   protected readonly qualities: VideoQuality[] = ['standard', 'hd', 'premium'];
-  protected readonly styleChoices: MotionStyle[] = ['energetic', 'premium', 'playful', 'corporate'];
-  protected readonly directionChoices = computed(() => (this.options().directions ?? []).filter((d) => d !== 'auto'));
 
   protected readonly video = signal<MotionVideo | null>(null);
   protected readonly loading = signal(true);
@@ -81,7 +83,12 @@ export class VideoDetail {
   protected readonly previewHtml = signal<string | null>(null);
   protected readonly editorLang = signal<'fr' | 'en'>('fr');
   protected readonly previewLoading = signal(false);
-  protected readonly saving = signal<'texts' | 'photo' | 'music' | 'style' | 'sfx' | 'voice' | null>(null);
+  protected readonly saving = signal<SavingKind | null>(null);
+  /** Les scènes que l'IA réécrit (correction, consigne, nouvelle version). */
+  protected readonly rewriting = signal<string[]>([]);
+  /** La retouche écrite pour tout le film, et la réponse de l'IA. */
+  protected readonly instruction = signal('');
+  protected readonly reply = signal<string | null>(null);
   protected readonly tracks = signal<MusicTrack[] | null>(null);
   protected readonly tracksLoading = signal(false);
   protected readonly exportFormats = signal<VideoFormat[]>([]);
@@ -91,22 +98,10 @@ export class VideoDetail {
   protected readonly copied = signal(false);
 
   protected readonly ratio = computed(() => RATIOS[this.previewFormat()]);
-  protected readonly scenes = computed(() => this.video()?.storyboard.scenes ?? []);
-  /**
-   * Ce que l'IA a décidé dans cette vidéo (agents dont la décision a été retenue), dans l'ordre de
-   * l'échelle de créativité : textes, structure, musique, mises en page, transitions, relecture.
-   */
-  protected readonly aiDecisions = computed(() => {
-    const order = ['writer', 'strategist', 'mediaDirector', 'narrator', 'soundDesigner', 'artDirector', 'animator', 'critic'];
-    const kept = new Set((this.video()?.storyboard.agents ?? []).filter((a) => a.source === 'llm').map((a) => a.agent.replace(/:.*$/, '')));
-    return order.filter((a) => kept.has(a));
-  });
-  /** Le moteur créatif : en quoi la vidéo est nouvelle pour la marque, et sa touche inattendue. */
-  protected readonly novelty = computed(() => {
-    const c = this.video()?.storyboard.creative;
-    if (!c?.novelty) return null;
-    return { verdict: c.novelty.verdict, percent: Math.round((c.novelty.nearest ?? 0) * 100), family: c.accent?.family };
-  });
+  protected readonly scenes = computed(() => editorScenes(this.video()));
+  protected readonly broken = computed(() => this.scenes().filter((sc) => sc.status === 'error'));
+  protected readonly legacy = computed(() => !!this.video()?.legacy);
+  protected readonly notes = computed(() => this.video()?.film?.fidelity?.notes ?? []);
   protected readonly rendering = computed(() => this.video()?.status === 'rendering');
   protected readonly sfxSounds = computed(() => Object.values(this.video()?.sfx?.sounds ?? {}).filter((s) => !!s));
   protected readonly mediaCredits = computed(() => (this.video()?.media ?? []).filter((m) => !!m.credit));
@@ -151,7 +146,7 @@ export class VideoDetail {
           this.apply(video);
           this.previewFormat.set(video.scope.formats[0]);
           this.loading.set(false);
-          this.loadPreview();
+          if (!video.legacy) this.loadPreview();
         },
         error: () => {
           this.loading.set(false);
@@ -204,7 +199,65 @@ export class VideoDetail {
       this.queuedTexts = { ...(this.queuedTexts || {}), ...edits };
       return;
     }
-    this.patch('texts', { slots: edits });
+    this.patch('texts', { texts: edits });
+  }
+
+  /**
+   * Une demande sur une scène : la réécrire selon une consigne, en faire une nouvelle version, ou
+   * corriger son code. L'IA réécrit SEULEMENT cette scène ; l'aperçu est recomposé ensuite.
+   */
+  protected sceneAction(action: SceneAction): void {
+    const v = this.video();
+    if (!v || this.rewriting().includes(action.key)) return;
+    const body: VideoPatch = action.kind === 'revise' ? { visual: { [action.key]: action.instruction } } : action.kind === 'fix' ? { fix: [action.key] } : { regenerate: [action.key] };
+    this.rewriting.update((keys) => [...keys, action.key]);
+    this.videos
+      .update(this.projectId(), v.id, body)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (video) => {
+          this.rewriting.update((keys) => keys.filter((k) => k !== action.key));
+          const moved = shape(video) !== shape(this.video());
+          this.apply(video);
+          if (moved) this.loadPreview();
+        },
+        error: () => {
+          this.rewriting.update((keys) => keys.filter((k) => k !== action.key));
+          this.failed.emit('dashboard.showCommunication.video.errors.update');
+        },
+      });
+  }
+
+  /** La retouche écrite pour tout le film (« plus lent », « sans musique », « le titre de la scène 2… »). */
+  protected sendInstruction(): void {
+    const v = this.video();
+    const text = this.instruction().trim();
+    if (!v || text.length < 3 || this.saving()) return;
+    this.saving.set('revise');
+    this.reply.set(null);
+    this.videos
+      .revise(this.projectId(), v.id, text)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          this.saving.set(null);
+          if (result.newRequest) {
+            this.reply.set(this.translate.instant('dashboard.showCommunication.video.revise.newRequest'));
+            return;
+          }
+          this.instruction.set('');
+          this.reply.set(result.reply || this.translate.instant(result.video ? 'dashboard.showCommunication.video.revise.done' : 'dashboard.showCommunication.video.revise.notUnderstood'));
+          if (result.video) {
+            const moved = shape(result.video) !== shape(this.video());
+            this.apply(result.video);
+            if (moved || result.report.voiced.length) this.loadPreview();
+          }
+        },
+        error: () => {
+          this.saving.set(null);
+          this.failed.emit('dashboard.showCommunication.video.errors.update');
+        },
+      });
   }
 
   protected pickPhoto(key: string, input: HTMLInputElement): void {
@@ -282,13 +335,9 @@ export class VideoDetail {
     this.patch('voice', { voice: enabled });
   }
 
-  /** Autre direction : composition, techniques, transitions et couleur changent. Gratuit. */
-  protected changeDirection(direction: string): void {
-    this.patch('style', { direction });
-  }
-
-  protected changeStyle(style: MotionStyle): void {
-    this.patch('style', { style });
+  /** Sous-titres de la voix off : posés au-dessus des scènes, sans toucher à leur code. */
+  protected toggleCaptions(enabled: boolean): void {
+    this.patch('captions', { captions: enabled });
   }
 
   protected copyCredit(): void {
@@ -300,7 +349,7 @@ export class VideoDetail {
     });
   }
 
-  private patch(kind: 'texts' | 'photo' | 'music' | 'style' | 'sfx' | 'voice', body: Parameters<MotionVideoService['update']>[2]): void {
+  private patch(kind: SavingKind, body: VideoPatch): void {
     const v = this.video();
     if (!v || this.saving()) return;
     this.saving.set(kind);
@@ -310,10 +359,10 @@ export class VideoDetail {
       .subscribe({
         next: (video) => {
           this.saving.set(null);
-          const moved = timing(video) !== timing(v);
+          const moved = shape(video) !== shape(v);
           this.apply(video);
           // Un texte ou une photo est déjà à l'écran (pont d'édition) : on ne recompose l'aperçu
-          // que si le minutage a changé ; la musique, le style et les effets, toujours.
+          // que si le film a changé ; la musique, les effets et la voix, toujours.
           if ((kind !== 'texts' && kind !== 'photo') || moved) this.loadPreview();
           const queued = this.queuedTexts;
           this.queuedTexts = null;
@@ -340,7 +389,7 @@ export class VideoDetail {
   protected startExport(): void {
     const v = this.video();
     const scope = this.exportScope();
-    if (!v || !scope || this.exporting() || this.rendering()) return;
+    if (!v || !scope || this.exporting() || this.rendering() || this.broken().length) return;
     this.exporting.set(true);
     this.videos
       .export(this.projectId(), v.id, { formats: scope.formats, quality: scope.quality })
@@ -356,7 +405,7 @@ export class VideoDetail {
             this.needsCredits.emit({ cost: err.error?.cost ?? this.exportPrice(), balance: err.error?.balance ?? 0 });
             return;
           }
-          this.failed.emit('dashboard.showCommunication.video.errors.export');
+          this.failed.emit(err?.error?.error === 'scene_errors' ? 'dashboard.showCommunication.video.errors.sceneErrors' : 'dashboard.showCommunication.video.errors.export');
         },
       });
   }

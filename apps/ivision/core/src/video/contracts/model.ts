@@ -1,15 +1,12 @@
 /**
- * Vidéos de promotion en motion design — le modèle persistant.
+ * Vidéos motion design — le modèle persistant.
  *
- * Une vidéo n'est PAS un fichier généré par un modèle : c'est un STORYBOARD
- * (quelques kilo-octets) que le moteur de scènes rejoue image par image. Le LLM
- * n'écrit que les textes des cases ; l'animation, la charte, le rythme et la
- * musique sont posés par le code. C'est ce qui permet de tenir un rendu
- * professionnel avec le modèle le moins cher du marché.
+ * Une vidéo est un FILM : un concept, une bible visuelle et des scènes. Chaque scène porte son
+ * intention, ses textes exacts, ses médias et le CODE Motion Canvas écrit par l'IA, gardé tel
+ * quel. Les textes et les médias sont des données lues par ce code : les retoucher ne touche pas
+ * au code. Le MP4 est rendu sur nos serveurs (Motion Canvas dans Chromium, puis ffmpeg).
  */
-import type { AddonId } from './video.engine';
-import type { RequestSpec, SpecMedium } from './video.request';
-import type { FidelityReport } from './video.script';
+import type { RequestSpec } from '../request/request';
 
 /** Où la vidéo sera vue. */
 export type VideoFormat = 'story' | 'square' | 'portrait' | 'landscape';
@@ -33,7 +30,7 @@ export const VIDEO_QUALITIES: VideoQuality[] = ['standard', 'hd', 'premium'];
 
 /**
  * LE PÉRIMÈTRE choisi par l'utilisateur. Il fixe le prix : plus long, plus de
- * formats ou plus fluide coûte plus cher (cf. `video.pricing.ts`).
+ * formats ou plus fluide coûte plus cher (cf. `pricing.ts`).
  */
 export interface VideoScope {
   durationSec: VideoDuration;
@@ -152,7 +149,7 @@ export interface VideoVoice {
   enabled: boolean;
   /** Langue de la voix : celle de la vidéo (langue de l'utilisateur à la création). */
   language: string;
-  /** Personnage de voix (catalogue `video.voice.ts`), traduit en voix du fournisseur. */
+  /** Personnage de voix (catalogue `audio/voice.ts`), traduit en voix du fournisseur. */
   persona: string;
   provider: 'openrouter';
   model: string;
@@ -200,233 +197,22 @@ export interface VideoBrief {
   sfx?: boolean;
   /** Voix off, dans la langue de la vidéo : choisie par l'utilisateur, désactivée par défaut. */
   voice?: boolean;
-  /** Direction de motion imposée (sinon choisie par IDEM). */
-  direction?: string;
   /**
    * La demande telle que l'utilisateur l'a écrite, EN ENTIER (bornée à 20 000 signes) : `message`
    * et `details` n'en sont que le résumé pour les anciens appels.
    */
   request?: string;
-  /** Le cahier des charges lu dans la demande (video.request.ts) : langue, scénario, consignes, supports. */
+  /** Le cahier des charges lu dans la demande (request/request.ts) : langue, scénario, consignes, supports. */
   spec?: RequestSpec;
-  /** L'intention lue (video.intent.ts) : objectif, mode de production, langage de motion — et d'où vient chaque décision. */
-  intent?: import('./video.intent').VideoIntentSpec;
+  /** L'intention lue (request/intent.ts) : objectif, mode de production, langage de motion — et d'où vient chaque décision. */
+  intent?: import('../request/intent').VideoIntentSpec;
 }
-
-/** Une scène posée sur la ligne de temps. */
-export interface VideoSceneInstance {
-  /** Identifiant stable dans la vidéo (sert de clé de retouche). */
-  key: string;
-  /** Scène du catalogue (`hook`, `product`, `offer`…). */
-  sceneId: string;
-  /** Variante de mise en page tirée par la graine. */
-  variant: number;
-  /** Début, en secondes. */
-  start: number;
-  /** Durée, en secondes. */
-  duration: number;
-  /** Mise en page (archétype) choisie par l'agent directeur artistique (video.layouts.ts). */
-  layout?: string;
-  /**
-   * Démonstration (vidéos d'essai des outils, jamais posé par la création) : une étiquette qui nomme l'outil
-   * montré, et des surcharges par scène du fond et de l'annotation que le graphe ne pose qu'une fois par vidéo.
-   */
-  demo?: { label?: string; note?: string; backdrop?: string; annotate?: string; iconSet?: string; postfx?: string[]; kit?: { camera?: string; entrance?: string; iconMotion?: string; imageFx?: string; logo?: string } };
-  /** Motif de la scène (video.patterns.ts) : la façon de servir son intention, résolue en choix du moteur. */
-  pattern?: string;
-  /** Index, dans le titre, du mot mis en valeur par le directeur artistique. */
-  emphasis?: number;
-  /** Cran Max : taille des titres réglée par le directeur artistique (0,85 à 1,25). */
-  scale?: number;
-  /**
-   * Cran Ultra : le composant React de la scène, écrit par l'agent codeur et validé (lint,
-   * compilation, rendu). Absent : la scène garde sa composition « Max ».
-   */
-  code?: { tsx: string; agent?: string };
-  /** Surface de la scène : claire, primaire, secondaire, accent, teinte claire ou profonde de la primaire. */
-  surface: 'light' | 'primary' | 'secondary' | 'accent' | 'tint' | 'deep';
-  /** Transition qui OUVRE la scène (aucune pour la première). */
-  transitionIn?: VideoTransition;
-  /** Textes des cases, déjà bornés et réparés. */
-  slots: Record<string, string>;
-  /** Image de la scène, quand elle en porte une. */
-  image?: string;
-  /** Images supplémentaires (galerie, cartes 3D). */
-  images?: string[];
-  /** Clip vidéo de la scène (URL WebM). */
-  video?: string;
-  /** Modèle 3D (GLB). */
-  model?: string;
-  /** Animation Lottie : URL d'un fichier importé, ou `builtin:<nom>`. */
-  lottie?: string;
-  /** Animation Rive importée (.riv). */
-  rive?: string;
-  /** Mise en scène du plan (recopiée du kit au montage). */
-  treatment?: string;
-  /** Tempo des entrées de la scène (rythme de la vidéo) : < 1 plus vif, > 1 plus posé. */
-  pace?: number;
-  /** Le grand moment de la vidéo (une scène au plus) : effet choisi par la direction. */
-  accent?: 'punch' | 'giant' | 'hold' | 'flip' | 'burst';
-  /**
-   * Le scénario de l'utilisateur (video.script.ts) : la scène du script que ce plan raconte et
-   * son support (plan filmé, interface, motion design, signature).
-   */
-  script?: { scene: number; medium: SpecMedium | 'photo' };
-  /** Plan d'interface : les textes montrés DANS l'écran (dossier, saisie), mot pour mot. */
-  props?: string[];
-  /** Plan de mouvement : ancrage, techniques d'entrée, transition (cf. video.direction.ts). */
-  motion?: {
-    anchor: string;
-    headline: string;
-    support: string;
-    align: 'left' | 'center';
-    transition?: string;
-    kicker: boolean;
-  };
-}
-
-export type VideoTransition = 'wipe' | 'circle' | 'push' | 'zoom' | 'split' | 'flash' | 'fade';
 
 export interface VideoBeatGrid {
   bpm: number;
   /** Position du premier temps fort, en secondes depuis le début de l'extrait. */
   offset: number;
   confidence: number;
-}
-
-export interface VideoStoryboard {
-  version: 1;
-  seed: number;
-  style: MotionStyle;
-  /** Direction de motion (système visuel complet), cf. video.direction.ts. */
-  direction?: string;
-  durationSec: number;
-  scenes: VideoSceneInstance[];
-  beat?: VideoBeatGrid;
-  /** Kit retenu par le graphe de capacités (cf. video.capabilities.ts). */
-  kit?: VideoKit;
-  /** Réglages imposés par la direction artistique de la charte (cf. video.artdirection.ts). */
-  art?: VideoArtOverrides;
-  /** Concept narratif (cf. video.concepts.ts) : sert aussi à varier les vidéos d'un projet. */
-  concept?: string;
-  /** Rythme (cf. video.rhythm.ts) : steady, crescendo, staccato, breathe, drop. */
-  rhythm?: string;
-  /** Contrôle des bonnes pratiques (video.rules.ts) : réparations faites, écarts restants. */
-  qa?: { repaired: number; issues: { rule: string; scene?: string; detail: string }[]; warnings?: { rule: string; scene?: string; detail: string }[] };
-  /**
-   * Cran Ultra : le film d'auteur (cf. video.author.ts). Le directeur IA l'a inventé ; `coded`
-   * plans sur `shots` ont été écrits par l'IA et validés, les autres (`fallback`) ont repris la
-   * composition éprouvée de leur scène.
-   */
-  authored?: { title: string; concept: string; bible: string; shots: number; coded: number; fallback: string[]; reviewed: number; rounds: Record<string, number> };
-  /** Le plan de médias résolu : la provenance de chaque média (registre, import, génération, banque). */
-  assetPlan?: string[];
-  /** High+ : le film d'auteur n'a pas abouti et le pipeline des menus a pris le relais — pourquoi (repli DIT). */
-  authorFallback?: string;
-  /** Ce que chaque agent a décidé (cf. video.agents.ts) : source, tokens, décisions retenues. */
-  agents?: { agent: string; source: 'llm' | 'graph'; tokens: { input: number; output: number }; ms?: number; kept?: number }[];
-  /** Le moteur créatif (cf. video.planner.ts) : exploration, ADN, accent, empreinte, nouveauté. */
-  creative?: VideoCreativeReport;
-  /** Le film comparé à la demande (video.script.ts#checkFidelity) : ce qui est suivi, ce qui ne l'est pas. */
-  fidelity?: FidelityReport;
-}
-
-/** L'empreinte créative d'une vidéo (cf. video.fingerprint.ts) : ce qu'un spectateur perçoit. */
-export interface VideoCreativeFingerprint {
-  v: 1;
-  direction?: string;
-  concept?: string;
-  rhythm?: string;
-  narrative: string[];
-  patterns: string[];
-  families: string[];
-  layouts: string[];
-  motion: string[];
-  transitions: string[];
-  composition: string[];
-  camera?: string;
-  entrance?: string;
-  kit: string[];
-  surfaces: string[];
-  tools: string[];
-  tempo: 'low' | 'medium' | 'high';
-  density: 'low' | 'medium' | 'high';
-  contrast: 'low' | 'medium' | 'high';
-  accent?: string;
-  nodes: string[];
-}
-
-/** Ce que le moteur créatif a décidé pour une vidéo, et en quoi elle est nouvelle. */
-export interface VideoCreativeReport {
-  v: 1;
-  level: string;
-  /** Part d'exploration du cran, et ce qui a été réellement exploré (scènes expérimentales / scènes). */
-  exploration: { budget: number; experimental: number; scenes: number };
-  /** L'ADN de mouvement : le style global que la vidéo garde partout. */
-  dna: { direction?: string; rhythm?: string; families: string[] };
-  /** La direction créative retenue parmi trois (au cran Max, choisie par l'IA). */
-  strategy?: { id: string; label: string; source: 'llm' | 'graph' };
-  /** L'accent créatif : la touche inattendue, sur une scène (20 à 30 % du film au plus). */
-  accent?: { index: number; key?: string; pattern: string; family: string; kind: 'scene' | 'overlay' };
-  intent?: { concept?: string; narrativeShape: string; visualStrategy: string; motionStrategy: string; surprise?: string };
-  fingerprint?: VideoCreativeFingerprint;
-  /** Écart à la vidéo la plus proche du projet (0 = même film, 1 = rien en commun). */
-  novelty?: { nearest: number | null; mean: number | null; verdict: 'too-close' | 'acceptable' | 'distinct' | 'first'; target: number; compared: number };
-  /** Contrôle créatif (video.creativeLint.ts) : écarts restants et réparations faites. */
-  lint?: { issues: string[]; repaired: string[] };
-  /** La vidéo modèle reproduite (plans du modèle, scènes de la vidéo). */
-  reference?: { id?: string; summary: string; shots: number; scenes: number };
-}
-
-/** La DA de la charte traduite en réglages du moteur. */
-export interface VideoArtOverrides {
-  displayCase?: 'none' | 'upper';
-  decor?: 'grain' | 'rules' | 'grid' | 'paper';
-  /** Multiplicateur des durées d'entrée (> 1 = plus posé). */
-  pace?: number;
-  color?: 'restrained' | 'committed' | 'drenched';
-}
-
-/** Une décision du routeur de capacités : le nœud retenu, pourquoi, et les nœuds écartés. */
-export interface KitDecision {
-  kind: string;
-  chosen: string;
-  score: number;
-  why: string[];
-  rejected: { id: string; reason: string }[];
-}
-
-/** Les choix du kit pour une vidéo (graphe de capacités) : stables à la retouche et au réexport. */
-export interface VideoKit {
-  /** Fond du kit (none, dot-grid, halftone, shape-field, stagger-grid, marquee, spotlight, ticks). */
-  background: string;
-  /** Scènes qui portent le fond (deux au plus). */
-  backdropScenes: string[];
-  /** Annotation du mot mis en valeur (none, marker, underline, circle). */
-  annotate: string;
-  annotateScene?: string;
-  /** Animation du logo (classic, draw, trace, morph, assemble, wipe, split, extrude). */
-  logo: string;
-  /** Bibliothèque d'icônes (lucide, tabler, phosphor-*, heroicons-solid). */
-  iconSet: 'lucide' | 'tabler' | 'phosphor-thin' | 'phosphor-light' | 'phosphor-bold' | 'phosphor-fill' | 'phosphor-duotone' | 'heroicons-solid';
-  /** Concepts d'icônes par scène (clé de scène → un concept par élément). */
-  icons: Record<string, string[]>;
-  /** Logo pendant la vidéo : none (signature finale seulement) ou corner (discret, sans conteneur). */
-  brandmark?: string;
-  /** Mise en scène de chaque plan (clé de scène → split, window, blinds, magazine, knockout, inline, duotone, broadcast, cinema). */
-  treatments?: Record<string, string>;
-  /** Caméra de la vidéo (still, push, pull, drift, rise, tilt). */
-  camera?: string;
-  /** Famille d'entrée des éléments (rise, spring, flip, unfold, skew, iris, drop, pop, slideLeft). */
-  entrance?: string;
-  spring?: { bounce: number };
-  /** Animation des pictogrammes (none, draw, stagger, pop) : IconMotion sur les SVG des bibliothèques. */
-  iconMotion?: string;
-  /** Effet sur la photo d'un produit (none, rgbSplit, shockwave, bulge, twist, zoomBlur, pixelate, glitch, wavy, crt) : PixiJS. */
-  imageFx?: string;
-  postfx: string[];
-  addons: AddonId[];
-  trace: KitDecision[];
 }
 
 export type MusicLicense = 'cc0' | 'pdm' | 'cc-by' | 'cc-by-sa' | 'platform';
@@ -502,7 +288,12 @@ export interface MotionVideo {
   voice?: VideoVoice;
   brief: VideoBrief;
   scope: VideoScope;
-  storyboard: VideoStoryboard;
+  /** Le film (moteur Motion Canvas). Absent : vidéo de l'ancien moteur, gardée en lecture seule. */
+  film?: VideoFilm;
+  /** Ancien moteur (avant octobre 2026) : son storyboard, conservé tel quel, jamais rejoué. */
+  storyboard?: unknown;
+  /** Lecture seule (vue) : vidéo de l'ancien moteur — ses MP4 se téléchargent, elle ne se retouche plus. */
+  legacy?: boolean;
   music?: VideoMusic;
   renders: VideoRender[];
   status: MotionVideoStatus;
@@ -512,12 +303,91 @@ export interface MotionVideo {
   exportCount: number;
   /** Vrai quand les textes ont été retouchés depuis le dernier export. */
   dirty?: boolean;
-  /** Mesure : tokens consommés par la rédaction (entrée + sortie estimées). */
-  copyTokens?: { input: number; output: number; source: 'llm' | 'heuristic' };
   /** Cran de la jauge de créativité choisi à la création (prix et décisions confiées à l'IA). */
   creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
   /** L'enregistrement de la génération (décisions, médias, réparations, replis, constats) — format commun aux documents. */
   record?: import('@idem/graphic-engine').GenerationRecord;
   createdAt: Date | string;
   updatedAt: Date | string;
+}
+
+// ─── Le film ─────────────────────────────────────────────────────────────────
+
+export type FilmSceneStatus = 'planned' | 'ready' | 'error';
+
+/** Un média que le planificateur demande pour une scène (produit par la génération ou la banque d'images). */
+export interface FilmMediaNeed {
+  kind: 'image' | 'video';
+  /** Ce qu'on voit (anglais : les modèles d'image et de vidéo le comprennent le mieux). */
+  shot: string;
+  /** Deux à quatre mots pour une banque d'images. */
+  query: string;
+}
+
+export interface FilmScene {
+  /** Identifiant stable (« s1 »…) : clé des retouches, des lignes de voix et des erreurs. */
+  key: string;
+  /** Début et durée, en secondes. */
+  start: number;
+  duration: number;
+  /** L'intention narrative de la scène (planificateur). */
+  purpose: string;
+  /** L'idée visuelle et l'idée de mouvement (directeur, planificateur) : du texte libre, jamais un gabarit. */
+  visual: string;
+  motion: string;
+  /** Comment la scène entre (texte libre). */
+  transition?: string;
+  /** Les textes EXACTS à l'écran, par clé (headline, sub…). Lus par le code, jamais écrits en dur. */
+  texts: Record<string, string>;
+  /** Les médias de la scène (identifiants de `MotionVideo.media`). */
+  media: string[];
+  /** Les médias demandés et pas encore produits. */
+  needs?: FilmMediaNeed[];
+  /** La ligne de voix off de la scène (écrite même sans voix : l'activer plus tard ne coûte pas d'agent). */
+  voiceText?: string;
+  /** Le code Motion Canvas (TSX) écrit par l'IA. Jamais réécrit par le code d'IDEM. */
+  code?: string;
+  /** Qui l'a écrit, et à quelle demande. */
+  author?: { tokens: { input: number; output: number }; ms: number; at: string; attempts: number; instruction?: string };
+  status: FilmSceneStatus;
+  /** L'erreur TECHNIQUE qui empêche la scène de s'exécuter (jamais un jugement esthétique). */
+  error?: { stage: 'author' | 'compile' | 'runtime'; message: string };
+  /** Vignette de la scène (image rendue au dernier contrôle). */
+  thumbnail?: string;
+}
+
+export interface FilmAgentTrace {
+  agent: string;
+  source: 'llm' | 'none';
+  tokens: { input: number; output: number };
+  ms: number;
+  /** Pourquoi le modèle n'a rien rendu d'utilisable (réponse vide, illisible, panne). */
+  failure?: string;
+}
+
+export interface VideoFilm {
+  version: 2;
+  engine: 'motion-canvas';
+  title: string;
+  /** Le concept du film, en une ou deux phrases. */
+  concept: string;
+  /** La bible visuelle : couleurs, typographie, formes, personnalité du mouvement (texte libre du directeur). */
+  bible: string;
+  durationSec: number;
+  seed: number;
+  /** Langue des textes et de la voix. */
+  language: string;
+  scenes: FilmScene[];
+  /** Sous-titres de la voix off, posés par le harnais. */
+  captions: boolean;
+  /** Effets sonores posés par le code des scènes (dernier contrôle). */
+  cues?: { kind: SfxKind; t: number; scene: string }[];
+  /** Les appels de modèles : agent, tokens, durée. */
+  agents: FilmAgentTrace[];
+  /** Ce que la demande imposait et que le film ne suit pas (dit, jamais caché). */
+  fidelity?: { notes: string[] };
+  /** Dernier contrôle technique (compilation + exécution de chaque scène). */
+  checkedAt?: string;
+  /** La vidéo modèle dont le film s'inspire. */
+  reference?: { id?: string; summary: string };
 }

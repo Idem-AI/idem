@@ -365,30 +365,6 @@
             </button>
             @if (showMore()) {
               <div class="vdb-more-body">
-                <label class="vdb-label" for="vdb-direction">
-                  {{ 'dashboard.showCommunication.video.builder.scope.direction' | translate }}
-                </label>
-                <select
-                  id="vdb-direction"
-                  [ngModel]="direction()"
-                  (ngModelChange)="direction.set($event)"
-                  name="vdbDirection"
-                >
-                  @for (d of directions(); track d) {
-                    <option [value]="d">
-                      {{
-                        'dashboard.showCommunication.video.directions.' + d + '.label' | translate
-                      }}
-                    </option>
-                  }
-                </select>
-                <p class="vdb-group-hint">
-                  {{
-                    'dashboard.showCommunication.video.directions.' + direction() + '.hint'
-                      | translate
-                  }}
-                </p>
-
                 <label class="vdb-switch">
                   <input
                     type="checkbox"

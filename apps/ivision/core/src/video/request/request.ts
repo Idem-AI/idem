@@ -20,10 +20,10 @@
  * Ses réponses sont validées : il ne peut ni réécrire un texte de l'utilisateur, ni ajouter une
  * scène ; sans lui, les règles du code suffisent.
  */
-import { agentLines } from '../creativity/agent-io';
-import { explicitLanguage, resolveLanguage } from '../text/language';
-import type { CopyWriter } from './video.copy';
-import type { MusicMood, VideoFormat } from './video.model';
+import { agentLines } from '../../creativity/agent-io';
+import { explicitLanguage, resolveLanguage } from '../../text/language';
+import type { CopyWriter } from './facts';
+import type { MusicMood, VideoFormat } from '../contracts/model';
 
 /** Longueur maximale d'une demande lue (une page de script fait 6 000 à 10 000 signes). */
 export const MAX_REQUEST_CHARS = 20000;

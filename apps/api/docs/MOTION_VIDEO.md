@@ -1,458 +1,144 @@
 # Vidéos de promotion en motion design
 
-Module Communication, écran « Mes vidéos ». Code : moteur partagé avec iVision, `apps/ivision/core/src/video/` (moteur React : `apps/ivision/core/engine/src/`) ; IDEM le branche par `api/services/ivision/host.ts` et `Communication/video/idemVideoStore.ts`.
+Module Communication (écran « Mes vidéos ») et iVision (atelier Vidéo). Code : moteur partagé
+`apps/ivision/core/src/video/` (navigateur : `apps/ivision/core/motion/`) ; IDEM le branche par
+`api/services/ivision/host.ts` et `Communication/video/idemVideoStore.ts`.
+
+Depuis le 14 octobre 2026, chaque vidéo est **conçue par l'IA et écrite en code Motion Canvas**, scène
+par scène, sans mise en page imposée. Le fonctionnement du moteur : [VIDEO_ENGINE.md](VIDEO_ENGINE.md).
+
+## Ce que voit l'utilisateur
+
+1. **Décrire** : il écrit ce qu'il veut (un message ou un scénario complet), joint ses photos et ses
+   clips, peut « Améliorer ma demande ».
+2. **Configurer** : formats, durée, qualité, musique, voix off, effets sonores, jauge de créativité.
+   L'interprétation de la demande (objectif, matière, mouvement) est montrée et corrigeable ; une
+   question est posée seulement si une décision qui change la vidéo manque.
+3. **Suivre la fabrication**, en direct : la demande comprise, le concept, le storyboard, les médias,
+   la musique, la voix, puis **chaque scène écrite** (la frise s'allume scène par scène), puis le
+   contrôle.
+4. **Retoucher** (gratuit) : les textes de chaque scène (vus pendant la frappe), une photo, la musique,
+   les effets, la voix et ses sous-titres ; **« Changer cette scène »** (une consigne en clair : l'IA
+   réécrit seulement cette scène), **« Nouvelle version »**, et **« Retoucher en écrivant »** pour tout
+   le film (« la scène 2 plus lente », « sans musique »).
+5. **Exporter** le MP4 (le premier export est inclus).
+
+Une scène dont le code ne s'exécute pas est **signalée** (message de l'erreur, sur la scène et dans la
+frise) et **Corriger** la fait réécrire par l'IA ; l'export attend qu'elle s'exécute. Rien n'est
+remplacé en silence par une composition toute faite.
 
 ## La demande suivie à la lettre
 
-Avant toute décision créative, la demande est lue **en entier** (`video.request.ts`, 20 000 signes au plus — un script
-d'une page n'est plus coupé à 400 + 800 signes) et devient un cahier des charges, gardé avec la vidéo
+La demande est lue **en entier** (`request/request.ts`, 20 000 signes) et gardée avec la vidéo
 (`brief.request`, `brief.spec`) :
 
-| Ce qui est lu | Comment | Effet |
-|---|---|---|
-| **Langue** | consigne explicite (« Langue : français », « vidéo en anglais », « voice-over in French ») › langue du texte (mots outils, alphabet ; `text/language.ts`) › langue de l'interface › langue de la marque | textes, titre, voix off et retouches dans la langue de la DEMANDE, jamais celle de la page |
-| **Scénario** | titres de scène (« ### SCÈNE 1 — L'IDÉE (00:00–00:08) », « Scene 1: … », « Plan 2 : … ») ou lignes minutées (« 0-5s : … ») | le film suit ces scènes, dans cet ordre, à ce minutage (ramené à la durée achetée) |
-| **Textes à l'écran** | blocs « Texte : », « Texte à l'écran : », « Afficher : », citations en gras | montrés **mot pour mot** (jamais réécrits ni coupés : un texte long se partage entre titre et sous-titre à la fin d'une phrase) |
-| **Textes dans l'image** | citations au fil d'une description (« un dossier intitulé « MON BUSINESS » », « il saisit : « … » »), listes en capitales | écrits DANS l'interface (dossier et fichiers, saisie tapée lettre à lettre), jamais en titre |
-| **Périmètre** | durée, format (16:9…), 4K, images par seconde | le compositeur d'iVision règle durée et format sur la demande (le prix affiché suit) ; ce qui ne peut être tenu (4K, 24 i/s) est dit |
-| **Consignes** | « Ne pas… », « Pas de… », sections de direction et de contraintes, couleurs `#hex`, musique décrite, personnage récurrent | données à chaque agent (directeur, codeurs, critique) ; interdits traduits pour les générateurs (« no robots, no holograms ») ; musique décrite → ambiance |
-| **Supports** | ce que chaque scène montre : des personnes et des gestes (plan filmé), l'interface du produit, du motion design, la signature | l'**outil** de chaque plan (voir ci-dessous) |
+| Ce qui est lu | Effet |
+| --- | --- |
+| **Langue** (consigne explicite › langue du texte › interface › marque) | textes, titre, voix et retouches dans la langue de la DEMANDE |
+| **Scénario** (titres de scène, lignes minutées) | le film garde ces scènes, cet ordre et ce minutage (ramené à la durée achetée) |
+| **Textes à l'écran** | repris **mot pour mot** dans les textes des scènes (le planificateur ne les écrit pas) |
+| **Textes dans l'image** (dossier, saisie…) | gardés comme textes d'interface de la scène (`prop1`…) |
+| **Voix écrite** | dite telle quelle |
+| **Périmètre** (durée, format, 4K, i/s) | ce qui ne peut être tenu est **dit** dans la vidéo |
+| **Consignes** (interdits, couleurs, musique, personnage, lumière) | données au directeur et au planificateur ; interdits traduits pour les générateurs d'images |
 
-**Un outil par support** (`SpecMedium`, `motionVideo.service.ts#produceShotMedia`) :
+Garde-fou de fond : un prix, une date, un numéro ou une adresse **absents de la demande** ne
+s'affichent pas — et la vidéo le dit (`film.fidelity.notes`).
 
-| Support | Outil | Repli |
-|---|---|---|
-| plan filmé (`footage`) | clip généré (Seedance ; l'image FLUX.2 animée), même personnage et même lumière d'un plan à l'autre, interdits de la demande | vidéo libre (Pexels, requête ancrée sur le personnage : « african … »), puis image animée, puis photo de la marque ; sans rien, du motion design (et le rapport le dit) |
-| photo | image générée | photo libre, photo de la marque |
-| interface (`screen`) | la **capture de la marque** qui correspond (site lu par iVision, décrite une fois par la vision : `video.brandmedia.ts`) dans une fenêtre de navigateur qui se charge | l'interface dessinée avec les mots de la demande (dossier et fichiers, saisie) ou l'écran d'accueil à la marque — jamais un faux tableau de bord |
-| motion design | le moteur (typographie, formes, lignes, mises en page ; au cran Ultra, le code du codeur) | — |
-| signature | l'animation du logo, la phrase et l'adresse web de la demande | — |
+## Les médias
 
-Sans scénario, une demande qui DÉCRIT une personne en action (« un jeune entrepreneur qui travaille sur son
-ordinateur ») ou un plan filmé (« plan cinématographique ») reçoit au moins un plan filmé (`describesFilmedAction`,
-sauf type imposé) ; le directeur photo lit la demande entière, le personnage et les interdits.
-
-Un fournisseur sans crédit (402) **coupe la génération pour toute la vidéo** dès le premier refus (avant : trois essais
-par média et par plan) et la vidéo le dit. Aux crans Low à Max, le code découpe le scénario (`video.script.ts#planScriptShots`) :
-ni stratège ni rédacteur, les règles de lecture **signalent** sans couper (`applyRules({ preserve })`), la voix off se
-pose sans déplacer les coupes (`fitScenesToVoice({ keepTiming })`), les fonds demandés (« écran noir ») et les plans
-filmés grands (cinéma, écran partagé) l'emportent. Au cran Ultra, le directeur découpe lui-même, sous les mêmes règles
-(voir plus bas).
-
-**Le rapport de fidélité** (`storyboard.fidelity`, `video.script.ts#checkFidelity`) compare le film à la demande :
-scènes présentes, textes montrés mot pour mot / manquants / ajoutés, écart de minutage, plans filmés générés ou
-remplacés, langue des textes, voix off. Ses écarts sont dits dans la conversation et sous la vidéo (clés
-`chat.result.fidelity.*`). Contrôle : `npm run check:request --prefix apps/ivision/core` (le vrai script d'un
-utilisateur, 66 vérifications, deux vidéos créées et photographiées).
-
-## L'intention : objectif, matière, mouvement (`video.intent.ts`)
-
-Avant toute décision créative, la demande, le scénario et les médias sont lus en **trois dimensions**
-qui ne se mélangent plus (l'ancienne liste de types les confondait) :
-
-| Dimension | Question | Valeurs |
-|---|---|---|
-| Objectif | pourquoi la vidéo existe | conversion, démo produit, visite du site, explication, film de marque, événement, histoire client, annonce, formats courts |
-| Mode de production | quelle matière on travaille | présentation d'app ou de site (captures réelles), vidéos filmées, motion design pur, hybride, photos produit, données |
-| Langage de motion | comment ça bouge | typographie cinétique, éditorial, géométrique, illustration 2D, 3D, interface, cinématographique, data, collage, minimal |
-
-**Hiérarchie** : consigne explicite > scénario > médias importés > contexte du projet > choix automatique ;
-chaque dimension dit d'où vient sa décision (`decided`). La lecture est faite par le code (zéro jeton) ;
-un agent `video.intent-classifier` affine une lecture peu sûre (< 0,55) dans les seules valeurs admises.
-L'intention se TRADUIT dans le contrat existant (`legacy` : type, objectif, direction) — seulement si elle a
-réellement décidé la matière ou le mouvement : une lecture qui n'a rien appris n'impose rien.
-
-**Clarification** (`clarifyVideoIntent`) : une seule question, et seulement quand la réponse change le
-pipeline — une vidéo déposée sans consigne (« Que souhaites-tu faire avec cette vidéo ? », choix adaptés :
-un enregistrement d'écran propose une démo produit, un film tourné du motion design), un événement sans
-date ni lieu, une démo produit sans aucune capture. Jamais la langue, la durée, le format ni la musique.
-
-**Interprétation affichée** : `POST /project/communication/:projectId/videos/interpret` (gratuit) rend
-l'intention, trois étiquettes et une phrase, et la question éventuelle ; l'écran de création IDEM les
-montre à l'étape 2 (« Corriger » ouvre objectif, matière, mouvement) ; iVision pose la question dans le
-fil avant tout débit. La création reçoit `intent` (corrections) et `clarification` (réponse).
-Contrôle : `npm run check:video:intent` (18 demandes représentatives, justesse ≥ 90 %).
+1. **Les imports de l'utilisateur** (photos, clips ; le moteur ne lit ni 3D, ni Lottie, ni Rive).
+2. **Les images de la marque** (captures du site lu par iVision, photos), décrites une fois par la
+   vision et proposées au storyboard (`m1`, `m2`…).
+3. **Ce que le storyboard demande** (`new image: …`, `new clip: …`) : image **FLUX.2 klein 4B**
+   contrôlée par la vision (aucun texte imprimé, le bon sujet) ; le clip **anime cette image**
+   (Seedance 2.0, dérogation produit `allowClosed`). Trois essais par média, puis **Pexels**, puis les
+   photos des visuels de la marque. Plafonds : `VIDEO_GEN_MAX_IMAGES` (6), `VIDEO_GEN_MAX_CLIPS` (4).
+   Un fournisseur sans crédit (402) coupe la génération pour toute la vidéo dès le premier refus.
 
 ## Qui décide : la jauge de créativité
 
-Avant la génération, l'utilisateur choisit un cran de créativité : **Low · Medium · High · Max · Ultra**
-(Medium par défaut, sélecteur posé à côté du bouton de génération). Le cran fixe la part du film
-confiée à l'IA, l'étage du modèle et le prix. Détail de l'échelle et des prix :
-[CREATIVITY.md](CREATIVITY.md).
+Les cinq crans donnent des **moyens**, jamais des contraintes ni des gabarits :
 
-| Cran | Ce que l'IA décide | Pipeline | Exploration |
-|---|---|---|---|
-| Low | les textes | des menus | 5 % |
-| Medium | + concept, scènes, grand moment, rythme (stratège, même quand le type est imposé) ; musique (sound designer) | des menus | 15 % |
-| High | **tout le film**, plan par plan, code compris — un tour par plan, sans critique visuelle | le film d'auteur (repli dit : les menus) | 25 % |
-| Max | idem, deux tours par plan et critique visuelle du rendu | le film d'auteur | 40 % |
-| Ultra | idem, trois tours par plan | le film d'auteur | 70 % |
+| Cran | Concept | Storyboard | Auteur des scènes |
+| --- | --- | --- | --- |
+| Low | — (le planificateur l'invente dans son appel) | un appel | un appel par scène, 1 exemple |
+| Medium (défaut) | directeur | un appel | 2 exemples |
+| High | directeur | un appel | 2 exemples + fonctions réutilisables de la marque |
+| Max | directeur | un appel | 3 exemples + fonctions réutilisables |
+| Ultra | directeur, trois idées comparées | un appel | 3 exemples + fonctions réutilisables |
 
-À tous les crans, le **moteur créatif** ([VIDEO_ENGINE.md §17](VIDEO_ENGINE.md#17-le-moteur-créatif)) cherche dans
-l'espace des motifs une combinaison pertinente, fidèle à la charte et nouvelle pour la marque : un motif par scène, un
-ADN de mouvement, un accent créatif (une seule scène qui casse l'ADN exprès). Il ne coûte aucun token : ce que les
-agents reçoivent, ce sont ses 3 à 5 meilleures options. Chaque vidéo a une **empreinte créative** ; le contrôle créatif
-garantit qu'aucune n'est rendue à moins de 0,30 de la vidéo la plus proche de la marque, et le détail de la vidéo
-affiche cet écart et la touche inattendue.
-
-### Low à Max : le pipeline des menus
-
-Le code construit le film. Les agents IA choisissent dans des menus courts que le graphe de
-capacités et la direction artistique (DA) de la charte ont filtrés. Le code valide chaque choix
-et le remplace par le sien s'il est absent, faux ou inventé.
-
-| Étape | Qui | Fichier |
-|---|---|---|
-| Recette : objectif + durée + faits du brief → suite de scènes | code (Low) ; **stratège** dès Medium | `video.recipes.ts`, `video.storyline.ts` |
-| Copie : cases numérotées, une ligne par case | **rédacteur**, à tous les crans | `video.copy.ts` |
-| Garde-fous : coupe au mot, anti-invention (prix, dates, numéros), copie de repli | code | `video.copy.ts` |
-| Mises en page, transitions, entrées, caméra, logo, relecture | graphe ; **agents** dès High | `video.agents.ts` |
-| Réglages par scène (taille, alignement, surface, tempo, décor) | graphe ; **agents** au cran Max, dans des bornes | `video.agents.ts` |
-| Médias que l'utilisateur n'a pas fournis : un plan par besoin, au texte de SA scène, look commun, mouvement de caméra (menu), requête de banque | **directeur photo**, à tous les crans | `video.sourcing.ts` |
-| Génération : image (FLUX.2) contrôlée par la vision, clip (Seedance, l'image animée) ; **3 essais** par média, puis Pexels, puis les photos des visuels | code + modèles OpenRouter de l'hôte | `video.sourcing.ts`, `video.media.ts` |
-| Voix off (si l'utilisateur la demande) : une ligne parlée par scène, dans la langue de la vidéo | **narrateur**, à tous les crans ; Kokoro ou le serveur de l'exploitant | `video.voice.ts` |
-| Musique : plusieurs banques libres, tempo, extrait le plus énergique | code + ffmpeg ; **sound designer** dès Medium | `video.music.ts`, `video.beats.ts` |
-| Storyboard : minutage au temps de lecture, coupes sur le temps, variantes / surfaces / transitions par graine | code | `video.storyboard.ts` |
-| Bonnes pratiques : lecture, tenues, accroche, appel à l'action, signature | code, après les agents | `video.rules.ts` |
-| Calage sur la voix : chaque scène dure au moins le temps de sa ligne, durée achetée inchangée | code, en dernier sur le minutage | `video.voice.ts#fitScenesToVoice` |
-| Charte : palette par surface (contraste AA), polices, logo, surface claire | code | `video.theme.ts` |
-| Direction de motion (8 systèmes) + plan par scène + contrôle anti-réflexe | code | `video.direction.ts` |
-| Scènes, techniques de texte, transitions : composants React pilotés par le temps | code écrit à la main | `apps/ivision/core/engine/src/*.tsx` |
-| Rendu : Puppeteer image par image → ffmpeg (H.264 + AAC) | nos serveurs | `video.renderer.ts` |
-
-L'étage du modèle monte avec le cran (`motionVideo.service.ts#tierFor`) : modèle mécanique au
-cran Low, modèle de rédaction dès Medium, modèle de raisonnement pour le stratège au cran Max.
-Chaque appel est retenté une fois sur panne passagère ou réponse vide
-(`communication.service.ts#runVideoTieredPrompt`). Si le modèle reste indisponible, une copie
-heuristique tirée du brief prend le relais et le graphe fait les choix : la vidéo sort toujours.
-
-Budget de la copie seule (cran Low) : 300 à 700 tokens d'entrée et 70 à 420 de sortie selon la
-durée. Budget de chaque agent : [VIDEO_ENGINE.md §14](VIDEO_ENGINE.md#14-léquipe-dagents-videoagentsts).
-
-### High, Max, Ultra : le film d'auteur
-
-Plus aucun menu : l'IA invente le film et écrit le code de chaque plan
-(`video.author.ts`, branché par `motionVideo.service.ts#createAuthoredVideo`).
-
-| Étape | Qui | Fichier |
-|---|---|---|
-| Les images PROPRES à la marque (captures du site et du produit, photos, imports), décrites une fois par la vision | code + modèle de vision | `video.brandmedia.ts` |
-| Le film : concept, « bible », personnage et lumière des plans filmés, et chaque plan (durée, **outil** : plan filmé / photo / interface / motion / signature, description du plan filmé pour le générateur, capture à montrer, textes, ce qu'on voit, comment ça bouge, passage au plan suivant, motif). Avec un **scénario**, le directeur le DÉCOUPE : mêmes scènes, même minutage, textes mot pour mot | **directeur**, modèle de raisonnement, deux tentatives | `video.author.ts#buildDirectorPrompt`, `#scriptBlock` |
-| Validation : temps de lecture, somme exacte, aucun chiffre absent du brief, plafond de plans filmés ; avec un scénario, chaque texte remis mot pour mot à sa place et dans l'ordre (un texte à peine retouché reprend sa forme exacte, un texte inventé est retiré), une scène oubliée rajoutée telle qu'écrite, chaque scène à son minutage | code | `video.author.ts#parseFilm`, `#finishScriptFilm` |
-| Les médias de chaque plan, APRÈS le film : clips générés, photos, captures désignées | code + modèles de l'hôte | `motionVideo.service.ts#produceShotMedia` |
-| Musique, effets sonores et voix off (sur les plans du directeur), pendant l'écriture des plans | **sound designer**, **narrateur** + code | `video.music.ts`, `video.sfx.ts`, `video.voice.ts` |
-| Chaque plan : un composant React écrit avec les briques du kit de son motif (manifeste restreint) | **codeur**, un par plan, trois en parallèle | `video.author.ts#authorShots`, `video.coder.ts#scopedKitManifest` |
-| Contrôle de chaque plan : lint, compilation, rendu mesuré, **critique visuelle** | code + modèle de vision | `video.coder.ts#inspectRenderedScene` |
-| Rendu | nos serveurs | `video.renderer.ts` |
-
-La boucle de qualité d'un plan fait **trois tours au plus**. Les défauts mesurés et la critique
-visuelle repartent au codeur avec son code précédent. La critique est un conseil : le dernier code
-qui a passé les contrôles mesurés est gardé. Les maladresses mécaniques (une transition CSS laissée
-dans un style, `easeOut` pour `ease`) sont réparées sans tour de plus, et un commentaire contenant
-« Transition: » ne fait plus refuser un plan (cas vécu : 6 plans sur 10 repliés). Un plan qui
-n'en passe aucun en trois tours reprend la composition éprouvée de SON support (plan filmé,
-interface, phrase avec une mise en page du catalogue, signature), et la vidéo l'affiche :
-« Film d'auteur · 7 plans sur 8 créés par l'IA ». Si le directeur échoue deux fois, la vidéo
-passe par le pipeline des menus, au même cran.
-
-Un film trop dense pour sa durée perd d'abord ses plans de texte du milieu ; l'ouverture et la
-signature restent toujours, l'appel à l'action ne part qu'en dernier recours. Entre deux plans, le moteur coupe franc : chaque plan fait lui-même l'entrée et
-la sortie imaginées par le directeur.
-
-Coût d'une vidéo Ultra : un appel du directeur (deux au plus, univers créatif ≈ 260 tokens compris),
-puis par plan jusqu'à trois appels du codeur (quatre pour un plan qui explore) et deux critiques
-visuelles ; chaque appel du codeur ne porte que les briques de son motif (≈ 540 tokens de moins
-qu'avec tout le kit pour un plan typographique). Les rendus de contrôle passent un plan à la fois : la
-création est nettement plus longue qu'aux autres crans.
-
-**Limites actuelles du film d'auteur :**
-
-- le type de vidéo choisi (produit, offre flash, révélation de logo…) n'est pas transmis au
-  directeur : il compose à partir de la demande ;
-- les clips importés vont aux plans filmés, dans l'ordre ; modèles 3D et animations Lottie importés
-  restent attachés à la vidéo mais n'y sont pas montrés ;
-- la cohérence du personnage d'un plan filmé à l'autre repose sur une même description (le
-  générateur vidéo ne reçoit pas de portrait de référence) ;
-- une retouche garde le minutage du directeur : un texte rallongé n'allonge pas son plan (les plans
-  codés ajustent la taille du texte au cadre).
-
-### L'aperçu
-
-L'aperçu du dashboard est le **même moteur** que le rendu, joué en temps réel
-dans une iframe isolée (`sandbox="allow-scripts"`) : ce qu'on voit est ce qui
-sera livré. Pendant la création, le flux SSE montre les étapes du cran : plan,
-copie, médias (plans produits sur plans demandés, en direct), mise en page,
-musique, effets sonores, voix off, mouvement, relecture ; en Ultra : médias,
-direction du film, musique, voix off, puis chaque plan (écrit, revu, corrigé,
-retenu). L'aperçu joue la voix off et baisse la musique pendant qu'elle parle.
-
-## Moteur React et directions de motion
-
-Le rendu est un moteur React + Tailwind (`apps/ivision/core/engine`, empaqueté par
-esbuild dans `public/video-engine/` : runtime React partagé, moteur, et un addon
-par bibliothèque lourde) : chaque scène est un composant, chaque style est une
-**fonction du temps** (`seek(t)` rend l'image t de façon déterministe,
-`flushSync`). `npm run build` construit les paquets ; en développement ils sont
-reconstruits dès qu'une source change.
-
-**Environnement complet (bibliothèques installées, kit, graphe de capacités qui
-dit à l'IA ce qu'elle peut utiliser selon le projet, direction créative bornée,
-charte et DA traduites en mouvement, calendrier) : [VIDEO_ENGINE.md](VIDEO_ENGINE.md)
-et [VIDEO_CAPABILITIES.md](VIDEO_CAPABILITIES.md).**
-
-Huit **directions** (éditoriale, grille suisse, bloc brut, cinétique, cinéma,
-collage, précision, monochrome) fixent chacune : typographie (casse, chasse,
-graisse), grille d'ancrage, vocabulaire de 6 à 8 entrées de texte, transitions,
-rythme (durées, décalages), stratégie de couleur (retenue, engagée, trempée,
-palette, studio), décor (filets, grille, grain, bandes cinéma, papier, cadre),
-mouvement fluide ou image par image. La direction suit le type, la direction
-artistique de la marque, et évite les dernières vidéos du projet.
-
-**24 techniques de texte** : masque montant, cascade de lettres, resserrement
-de chasse, échelle + flou, machine à écrire, volet par mot, mots flous,
-lettres basculées, brouillage, révélation par bloc, empilement, glissements
-alternés, ressort montant, vague, étirement, bascule 3D, zoom par mot,
-inclinaison, dispersion, contour qui se remplit, reflet, glitch, machine à sous,
-dégradé qui coule ; compteur « odomètre » pour
-les chiffres. **17 transitions** : coupe, coupe éclair, glitch, fondu, zoom
-flou, traversée, filé, cube 3D, poussée, glissé, iris (raccord graphique sur le
-point focal précédent), volet, bandes, disque de marque, lames obliques,
-panneaux, vague.
-
-**18 mises en page** pour les scènes de texte : la composition de la direction
-et 17 archétypes (pile de mots, mot géant défilant, chiffre géant, bandeau
-diagonal, cercle de la marque, deux blocs, cartes superposées, grille de cartes,
-liste cochée, grande citation, prix en étoile, bandeaux défilants, mot sous le
-projecteur, cadre décalé, et trois mises en page de données : anneau Chart.js
-qui se remplit jusqu'au pourcentage, ancien et nouveau prix en barres Chart.js,
-jauge visx). Détail : [VIDEO_ENGINE.md §15](VIDEO_ENGINE.md#15-mises-en-page-et-transitions).
-
-**Graphiques et dessin** : le moteur embarque Chart.js (et ses extensions
-treemap, sankey, matrice, étiquettes, repères), visx et d3 (jauges, aires,
-mosaïques, carte de l'Afrique dont les pays nommés dans le texte s'allument),
-rough.js et perfect-freehand (croquis, pinceau), simplex-noise (champs de flux)
-et Zdog (3D plate). Chaque bibliothèque est un addon chargé seulement si la
-vidéo s'en sert. Un graphique ne montre que des chiffres écrits dans les textes
-de sa scène : c'est contrôlé au rendu. Détail : [VIDEO_ENGINE.md §3 et §5](VIDEO_ENGINE.md#3-bibliothèques-installées).
-
-### Règles appliquées en code (sources)
-
-- Une seule chose bouge quand l'attention compte ; le texte en mouvement ne se
-  lit pas : l'entrée livre, le temps fixe dit — [PromoHyper, « movement is cheap,
-  timing is the craft »](https://promohyper.com/blog/motion-graphics-video-maker).
-- Entrées très amorties (décélération), sorties en accélération, sortie ≈ 2/3
-  de l'entrée ; décalage 70 ms = ordre de lecture, 300 ms = événements
-  distincts — même source ; [Material Design, easing et durées](https://m3.material.io/styles/motion/easing-and-duration/tokens-specs).
-- Pas de mouvement linéaire, rebond réservé aux tons ludiques ; décalage et
-  chevauchement — [SVGator, bases du motion design](https://www.svgator.com/blog/motion-design-basics-guide/).
-- Coupe, fondu, coupe sur l'action, raccord, zoom infini, morph — [School of
-  Motion, six transitions essentielles](https://schoolofmotion.com/blog/six-essential-motion-design-transitions-tutorial).
-- Grille et ferrage à gauche (style suisse) — [Envato, Swiss Style](https://elements.envato.com/learn/swiss-style-graphic-design).
-- Temps de lecture : 1,5–2 s par message court, tenir après l'accroche —
-  [Opus, lisibilité des sous-titres](https://www.opus.pro/blog/video-captions-for-maximum-readability).
-
-### Anti-slop (repris des skills d'iCode, `apps/appgen/.../skills/catalog/anti-slop.md`)
-
-Interdits, appliqués par le moteur et `lintMotion` : petit libellé en capitales
-espacées sur chaque scène (au plus un, sur l'accroche), numérotation 01/02/03
-décorative, filets latéraux colorés, même entrée partout ou alternance A·B·A·B,
-tout centré, même transition partout, décor par défaut, mots de remplissage
-(« révolutionnaire », « élever »…) et tirets cadratins dans la copie.
-`npm run check:video:directions` rend le même brief dans les 8 directions et
-MESURE leur écart (empreinte d'images) : deux directions trop proches font échouer.
-
-## Types de motion (choisis par l'utilisateur)
-
-| Type | Scènes caractéristiques | Médias |
-|---|---|---|
-| Typographie animée (`kinetic`) | mots animés, mots qui défilent | aucun |
-| Mise en avant produit (`product`) | produit, galerie | photos importées → générées → Pexels → visuels |
-| Offre flash (`promo`) | offre (prix barré, pastille) | prix du brief |
-| Vidéo + texte (`footage`) | clips plein écran, bandeau titre | clips importés → générés (Seedance) → Pexels vidéo → l'image générée du plan |
-| Vitrine 3D (`showcase3d`) | modèle GLB en rotation, photos en cartes 3D, formes 3D, logo extrudé | modèle importé (facultatif) |
-| Animations illustrées (`illustrated`) | Lottie intégrées (confettis, coche, étincelles, onde, éclat, cœur) ou importées | Lottie importées (facultatif) |
-| Diaporama dynamique (`slideshow`) | galeries, produit | photos |
-| Révélation de logo (`logo`) | mots animés + logo (3D si le SVG est disponible) | logo de la charte |
-
-Recettes : `video.types.ts`. Les médias importés passent par `POST …/videos/media`
-(photo 12 Mo, clip 80 Mo réencodé en WebM VP9 720p 15 s, GLB 20 Mo, Lottie JSON 3 Mo).
-
-Au cran Ultra, le type ne guide pas encore le film : le directeur invente à
-partir du brief et ne compose qu'avec des photos ; la vidéo garde le type
-demandé (`mix` sinon). Voir « Limites actuelles du film d'auteur ».
-
-## Effets sonores
-
-Les moments sonores sont posés par le moteur d'animation, à l'image près :
-whoosh (transitions), pop (prix, pastilles, éléments qui apparaissent), clic
-(titres), tic (compteurs), impact (tampon, flash), scintillement (logo,
-confettis), montée (avant la signature). `video.sfx.ts` :
-
-- sonothèque construite à partir de **Freesound (CC0) via Openverse** (sans clé),
-  de Freesound directement (`FREESOUND_API_KEY`, tri par note) et d'un catalogue
-  maison (`VIDEO_SFX_CATALOG`) ; synthèse ffmpeg en repli (`VIDEO_SFX_OFFLINE=1`) ;
-- chaque son est nettoyé : silences retirés, durée utile, fondus, crête −3 dBFS ;
-- mixage : niveaux par type (`SFX_GAIN_DB` : whoosh −2 dB, impact −1, pop −3,
-  clic −8, tic −10…), densité selon le style (un style élégant ne cliquette
-  pas), musique à −7 dB et compressée sous chaque effet (seuil 0,03, ratio 6),
-  limiteur, −14 LUFS. Mesuré par `check:video` §10 bis : un whoosh passe
-  **11 dB** au-dessus de la musique (2 dB avant le 2026-10-09 : les effets
-  étaient inaudibles) ;
-- cache disque `VIDEO_SFX_DIR` ; `npm run check:video:types` le construit.
-
-Autres banques professionnelles examinées : Mixkit, Pixabay Sound Effects,
-Zapsplat, Sonniss (lots GDC) — sans API publique ou avec crédit obligatoire,
-utilisables via le catalogue maison ; BBC Sound Effects écartée (usage non
-commercial).
-
-## Rendu 3D, clips et Lottie
-
-- 3D : addon three.js + React Three Fiber + drei + postprocessing, embarqué
-  seulement si la vidéo contient une scène 3D ; WebGL logiciel (SwiftShader) :
-  pas de GPU requis, mais une scène 3D est plus lente (~90 ms par image en 720p).
-- Lottie (addon lottie-web light, sans expressions) seulement si la vidéo en
-  contient une ; `.lottie` est décompressé côté serveur. Rive (`.riv`) importable.
-- GSAP, anime.js, flubber, Chart.js, visx, outils de dessin, Zdog : addons
-  chargés seulement si le kit, une mise en page ou un plan écrit par l'IA les
-  exige (`addonsOfSceneCode` lit les imports du plan) ; techniques et
-  transitions restent écrites en fonctions du temps dans le moteur.
-- Les clips sont positionnés image par image (`currentTime` + `seeked`). Les
-  onglets de rendu ont l'émulation de focus activée : sinon Chromium suspend le
-  décodage vidéo des onglets « en arrière-plan ».
-- Clips générés : Seedance (voir « Médias générés »), réencodés comme les
-  clips importés.
-
-## Médias générés
-
-Ce que l'utilisateur n'a pas fourni est **généré pour sa scène**, avec les modèles
-OpenRouter (hôte IDEM : `media.service.ts`, `AI_CONFIG.communication.videoMedia`) :
-
-1. **Besoins** (`video.sourcing.ts#planMediaNeeds`) : produit 1 photo, galerie 3, vitrine 3D 2
-   (sans modèle importé), plan filmé 1 clip. Les imports remplissent d'abord les scènes, dans
-   l'ordre du film. Plafonds : `VIDEO_GEN_MAX_IMAGES` (6), `VIDEO_GEN_MAX_CLIPS` (4).
-2. **Directeur photo** (agent, à tous les crans) : un plan par besoin, au texte de SA scène
-   (sujet, action, décor, cadrage), un « look » commun au film, la DA de la charte
-   (`imagePromptModifier`), le mouvement de caméra d'un clip dans un menu de 8, la requête de
-   banque. Repli du code si le modèle ne répond pas.
-3. **Génération** : l'image d'abord — **FLUX.2 klein 4B** (poids ouverts) —, contrôlée
-   par la vision (aucun texte imprimé, le bon sujet ; `VIDEO_MEDIA_CHECK=off` pour couper) ;
-   le clip **anime cette image** avec **Seedance 2.0** (image → vidéo, 5 ou 10 s), muet (musique, effets et voix sont les nôtres). Trois essais par
-   média, la consigne resserrée à chaque essai ; le troisième essai d'un clip part du texte seul.
-4. **Pexels** seulement après trois échecs, avec la requête du plan ; un plan filmé sans clip
-   garde l'image générée pour lui ; en dernier recours, les photos des visuels de la marque.
-
-Aucun modèle vidéo d'OpenRouter n'a de poids ouverts : Seedance 2.0 est une **dérogation
-produit** (`allowClosed` dans la liste blanche). `IDEM_OPENROUTER_VIDEO_MODEL` choisit une
-variante (`-fast`, `-mini`). Une création qui génère des clips dure une à trois minutes de plus
-(tâches asynchrones, `IDEM_VIDEO_CLIP_TIMEOUT_MS`, 6 min par défaut).
-
-## Voix off
-
-**Choisie par l'utilisateur** (case « Voix off » à la création, et dans le détail de la vidéo),
-désactivée par défaut, dans la **langue de la vidéo** (celle de l'interface à la création).
-
-- **Narrateur** (agent, `video.voice.ts`) : une ligne PARLÉE par scène, bornée au temps de la
-  scène (mots par seconde de la langue : fr 2,7, en 2,6…), même idée que l'écran au même
-  moment sans le lire mot à mot, signature avec le nom de la marque ; chiffres et prix copiés
-  du brief ou retirés ; personnage de voix choisi dans un menu de 3 filtré par le langage de
-  mouvement (`VOICE_PERSONAS`). Repli : les titres des scènes.
-- **Modèle de voix** : **Kokoro 82M** par OpenRouter (Apache-2.0, voix française `ff_siwis`),
-  ou VOTRE serveur OpenAI-compatible servant **Qwen3-TTS** ou **Chatterbox Multilingual**
-  (poids ouverts, absents d'OpenRouter) : `IDEM_TTS_URL`, `IDEM_TTS_MODEL`,
-  `IDEM_TTS_VOICE_FR`, `IDEM_TTS_API_KEY`. Une langue sans voix : la vidéo est créée sans
-  voix, et le dit.
-- **Traitement** : silences retirés, passe-haut, accélération de 18 % au plus si la ligne
-  déborde, −16 LUFS, MP3 déposé dans le stockage (`…/videos/<id>/voice/`).
-- **Synchronisation** (`fitScenesToVoice`) : chaque scène dure au moins entrée (0,28 s) +
-  ligne + souffle (0,32 s) ; la durée achetée ne change pas — les autres scènes rendent du
-  temps ; une ligne qui ne tient vraiment pas est retirée (les scènes de texte du milieu
-  d'abord), jamais coupée. Recalée après chaque retouche (texte, direction, musique) ; en
-  Ultra, les plans sont calés avant d'être écrits par l'IA.
-- **Mixage** : la voix au premier plan, musique à −10 dB et compressée sous chaque ligne
-  (ratio 8), effets légèrement retenus pendant qu'elle parle.
-- **Retouche** : couper la voix la garde (la remettre est gratuit, sans nouvel
-  enregistrement) ; l'ajouter à une vidéo existante l'écrit et l'enregistre.
+Les plafonds de sortie de chaque rôle par cran sont dans `apps/api/api/config/creative-roles.ts`
+(`video.concept`, `video.planner`, `video.author`, `video.reviser`). Il n'y a **aucune critique
+esthétique** à aucun cran.
 
 ## Prix (crédits iBusiness)
 
-Référence : 15 s, un format, HD = **2 × la charte graphique** (`BUSINESS_CREDIT_COSTS.motion_video`).
-Le périmètre choisi module ce prix (`video.pricing.ts`) :
+Inchangés. Référence : 15 s, un format, HD = **2 × la charte graphique**
+(`BUSINESS_CREDIT_COSTS.motion_video`), modulée par le périmètre (`pricing.ts`) :
 
 - durée : 6 s ×0,5 · 15 s ×1 · 30 s ×1,75 · 60 s ×3 ;
 - chaque format en plus : +35 % ;
 - qualité : légère (720p) ×0,8 · HD ×1 · très fluide (1080p 60 i/s) ×1,3 ;
-- cran de créativité : Low et Medium ×1 · High ×1,25 · Max ×1,5 · Ultra ×2
-  (`withCreativity`, `communication.routes.ts`). Le cran est inscrit au relevé.
+- cran : Low et Medium ×1 · High ×1,25 · Max ×1,5 · Ultra ×2.
 
-Le premier export MP4 est inclus. Ensuite : 10 % du périmètre, plus la
-différence si le périmètre grandit ; un export à un périmètre plus large
-applique le cran choisi à la création. Un export en échec restitue ses crédits.
-Les retouches (textes, musique, style) sont gratuites.
+Premier export inclus ; ensuite 10 % du périmètre, plus la différence si le périmètre grandit. Un export
+ou une création en échec restitue ses crédits (`model_unavailable` compris). Les retouches sont gratuites,
+y compris les réécritures de scène par l'IA.
+
+## Voix off
+
+Choisie par l'utilisateur (désactivée par défaut), dans la langue de la vidéo. Les lignes sont écrites
+par le planificateur (une par scène, gardée même sans voix : l'activer plus tard ne coûte pas d'agent)
+ou par l'utilisateur dans son scénario.
+
+- **Voix** : Kokoro 82M par OpenRouter (`ff_siwis` en français) ou le serveur Qwen3-TTS / Chatterbox
+  de l'exploitant (`IDEM_TTS_URL`, `IDEM_TTS_MODEL`, `IDEM_TTS_VOICE_FR`, `IDEM_TTS_API_KEY`). Une langue
+  sans voix : la vidéo est créée sans voix, et le dit.
+- **Calage** : chaque scène dure au moins entrée + ligne + souffle ; la durée achetée ne change pas ; une
+  ligne qui ne tient pas est retirée (jamais coupée) et c'est dit. La voix est dite **avant** l'écriture
+  des scènes : chaque auteur connaît sa durée finale et l'instant de sa ligne.
+- **Sous-titres** de la voix, posés au-dessus des scènes (activables dans le détail).
+- **Mixage** : voix au premier plan, musique à −10 dB et compressée sous chaque ligne.
+
+## Effets sonores
+
+Posés par le **code de chaque scène** (`ctx.sfx('whoosh')`, au plus deux par scène, à l'instant exact) :
+whoosh, softwhoosh, pop, click, tick, impact, shimmer, riser. Sonothèque CC0 (Openverse/Freesound,
+catalogue `VIDEO_SFX_CATALOG`, synthèse ffmpeg en repli `VIDEO_SFX_OFFLINE=1`), nettoyée, mixée par type
+(`SFX_GAIN_DB`), la musique s'efface sous chaque effet, −14 LUFS au final.
 
 ## Musique libre de droits
 
-Licences acceptées : CC0, domaine public, CC BY (crédit à reprendre dans la
-légende, fourni par l'interface). Refusées : NC, ND, SA.
+Licences acceptées : CC0, domaine public, CC BY (crédit fourni par l'interface). Refusées : NC, ND, SA.
 
 | Source | Variable | Remarque |
-|---|---|---|
-| Catalogue IDEM | `VIDEO_MUSIC_CATALOG` (chemin ou URL d'un JSON de `MusicTrack`) | prioritaire |
-| Openverse (agrège Jamendo, Freesound, Wikimedia, ccMixter…) | `OPENVERSE_TOKEN` (facultatif, relève le quota) · `VIDEO_MUSIC_OPENVERSE=off` pour couper | sans clé |
-| ccMixter | `VIDEO_MUSIC_CCMIXTER=off` pour couper | sans clé, tempo annoncé |
-| Jamendo | `JAMENDO_CLIENT_ID` | activé si la clé existe |
-| Freesound | `FREESOUND_API_KEY` | activé si la clé existe |
+| --- | --- | --- |
+| Catalogue IDEM | `VIDEO_MUSIC_CATALOG` | prioritaire |
+| Openverse | `OPENVERSE_TOKEN` (facultatif) · `VIDEO_MUSIC_OPENVERSE=off` | sans clé |
+| ccMixter | `VIDEO_MUSIC_CCMIXTER=off` | sans clé, tempo annoncé |
+| Jamendo | `JAMENDO_CLIENT_ID` | si la clé existe |
+| Freesound | `FREESOUND_API_KEY` | si la clé existe |
 
-Les recherches sont gardées 24 h ; les pistes téléchargées sont en cache disque
-(`$TMPDIR/idem-video-music`).
+Le tempo détecté est donné aux scènes (`ctx.beat`) : le code peut caler ses gestes sur les temps.
 
 ## Rendu
 
-- `ffmpeg` doit être installé (ajouté aux images Docker de l'API) ; `FFMPEG_PATH` / `FFPROBE_PATH` pour un autre chemin.
-- `VIDEO_RENDER_CONCURRENCY` : onglets Chromium par rendu (défaut : cœurs − 1, max 3).
-- `VIDEO_RENDER_JOBS` : rendus simultanés par instance (défaut 1).
-- Mesuré en développement : 15 s en 1080×1920 ≈ 30 s de rendu ; 6 s en 720p ≈ 10 s.
-- Les images sont embarquées en data-URI avant la capture ; les URL fournies par
-  l'utilisateur passent par la garde réseau (pas de requête vers le réseau interne).
-- Un rendu interrompu (redémarrage) apparaît en échec et peut être relancé
-  gratuitement (le compteur d'exports n'avance qu'en cas de succès).
-- Au cran Ultra, chaque plan écrit par l'IA est rendu pour contrôle **pendant la
-  création**, sur la page réelle, avec le garde réseau strict. Ces rendus de
-  contrôle passent un à la fois ; seuls les appels au modèle sont parallèles.
+- `ffmpeg` installé (images Docker de l'API) ; `FFMPEG_PATH` / `FFPROBE_PATH` pour un autre chemin.
+- Chromium de Puppeteer, `--disable-accelerated-2d-canvas` (indispensable à la vitesse).
+- `VIDEO_RENDER_CONCURRENCY` : onglets par rendu (défaut : ¾ des cœurs, 6 au plus) ;
+  `VIDEO_RENDER_JOBS` : rendus simultanés par instance (défaut 1) ; `VIDEO_AUTHOR_CONCURRENCY` : scènes
+  écrites en parallèle (défaut 4).
+- Mesuré en développement : MP4 de 15 s en 720p ≈ 7 s ; contrôle d'un film de 7 scènes ≈ 3 s.
+- Le code des scènes ne parle à aucun réseau (origine locale, interception ; CSP dans l'aperçu).
+- Un rendu interrompu (redémarrage) apparaît en échec et peut être relancé gratuitement.
+
+## Anciennes vidéos
+
+Les vidéos créées avant le 14 octobre 2026 (sans `film`) restent **téléchargeables** ; elles ne se
+prévisualisent ni ne se retouchent plus (le détail le dit et propose de créer une nouvelle vidéo).
 
 ## Contrôle
 
-```bash
-npm run check:video            # tout, aux cinq crans, avec 4 rendus MP4 (~2 min)
-npm run check:video -- --fast  # sans rendu
-npm run check:video -- --all   # rend tous les cas
-npm run check:video -- --online  # + Openverse et ccMixter réels
-npm run check:video:creative   # agents et direction créative, réponses de modèles faibles
-npm run check:video:engine     # moteur, kit, bibliothèques, 17 mises en page (-- --online : vrai fichier Rive)
-npm run check:video:layouts    # chaque mise en page, textes au plus long, 4 formats
-npm run check:video:variety    # 12 vidéos d'une même marque, écarts mesurés
-npm run check:video:novelty    # moteur créatif : motifs, empreinte, exploration, 10 vidéos par cran, mémoire
-npm run check:video:directions # même brief, 8 directions, diversité mesurée (~6 min)
-npm run check:video:types      # 8 exemples, un par type, vraies musiques, vrais effets, Pexels (~15 min)
-npm run check:video:types -- --generate  # + une vidéo aux médias générés (FLUX.2, Seedance) avec voix off (payant)
-```
-
-`check:video` §9 bis rend **la même vidéo aux cinq crans** et vérifie que l'IA
-décide davantage à chaque cran : textes (Low), structure (Medium), mises en
-page, transitions et relecture (High), réglages (Max), puis directeur et tous
-les plans écrits par l'IA, critique visuelle comprise (Ultra). Les plans Ultra
-y sont réellement lintés, compilés, rendus et contrôlés.
-
-`check:video` §10 bis vérifie la voix off et les médias générés avec des ports d'hôte simulés :
-langue → modèle de voix, narrateur (chiffre inventé retiré, étiquettes ignorées), calage (chaque
-ligne tient, durée achetée gardée, ligne retirée si le film est trop court), besoins remplis
-par les imports, **trois essais de génération avant Pexels**, clips animés à partir de l'image
-générée, retouches qui gardent la synchronisation, niveau mesuré d'un whoosh sur la musique,
-et le MP4 avec voix.
-
-Aucun crédit de modèle n'est nécessaire : les réponses sont simulées
-(`api/scripts/fixtures/motion-video/cases.ts` : propre, désordre, JSON, prix
-inventé, vide, fournisseur en panne ; stratège et directeur du film). Les
-codeurs de plans et la critique visuelle (qui demande une correction, puis
-valide) sont simulés dans `checkMotionVideo.ts`.
-Photos et musiques de test sont fabriquées sur place. Sorties (MP4, affiches,
-planches-contact) : `tmp/motion-video-check/`.
+`npm run check:video` (apps/api) et `npm run check:request` (apps/ivision/core) — voir
+[VIDEO_ENGINE.md §11](VIDEO_ENGINE.md#11-contrôles).

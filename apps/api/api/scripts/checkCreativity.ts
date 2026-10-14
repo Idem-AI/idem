@@ -4,13 +4,7 @@
  *  1. Prix : Low = Medium = barème, High ×1,25, Max ×1,5, Ultra ×2 ; un cran inconnu vaut Medium.
  *  2. Orchestrateur : réponses parfaites, lettres, JSON, inventées, vides, en panne, budget
  *     épuisé, tâches au-dessus du cran, meilleur de N départagé par le code.
- *  3. Cran Ultra — lint : le code d'une scène propre passe ; réseau, globaux, hasard, horloge,
- *     boucles, propriétés dangereuses, état React, CSS animée, 3D, textes en dur, imports
- *     inconnus et textes oubliés sont refusés.
- *  4. Cran Ultra — rendu réel : une scène écrite comme par l'agent se compile, s'affiche,
- *     montre ses textes, bouge, reste déterministe ; une scène qui lève une erreur retombe sur
- *     sa composition ; un texte hors cadre et un rendu non déterministe sont signalés ; la CSP
- *     coupe le réseau sortant.
+ *  (La vidéo a son propre contrôle : `npm run check:video`, moteur Motion Canvas.)
  *  5. Visuels — le moteur graphique (@idem/graphic-engine) suit la jauge : aucun appel à Low et
  *     Medium, le directeur artistique à High, le réglage à Max, l'arbre d'auteur à Ultra ; chaque
  *     visuel rendu et mesuré dans Chromium, sans constat bloquant.
@@ -26,13 +20,7 @@ import { CREATIVITY_LEVELS, CREATIVITY_MULTIPLIER, creativityCost, normalizeCrea
 import { CreativeOrchestrator, AgentCall } from '../services/creativity/orchestrator';
 import { createRunBudget } from '../services/agents/run-budget';
 import { pickOption, agentLines } from '../services/creativity/agent-io';
-import { compileSceneCode, extractCode, inspectRenderedScene, lintSceneCode, visibleTexts } from '../../../ivision/core/src/video/video.coder';
-import { buildStoryboard } from '../../../ivision/core/src/video/video.storyboard';
-import { composeVideoHtml, contentSecurityPolicy, inlineAssets } from '../../../ivision/core/src/video/video.composer';
-import { buildVideoTheme } from '../../../ivision/core/src/video/video.theme';
-import { closeRenderBrowser, withRenderPage } from '../../../ivision/core/src/video/video.renderer';
 import { BUSINESS_CREDIT_COSTS } from '../models/billing.model';
-import { brandById } from './fixtures/motion-video/brands';
 import puppeteer from 'puppeteer';
 import { AgentCall as EngineAgentCall, brandFromIdem, cardFaces, closeBrowser, configureGraphicEngine, createDocument, CreativityLevel, renderSingle, SectionContent, SectionOutput, visualContent } from '@idem/graphic-engine';
 import { EMPTY_FIELD_CLEANUP, FIELD_FIT, interpolateBusinessCard } from '../utils/business-card-template';
@@ -51,41 +39,6 @@ const section = (t: string) => console.log(`\n${t}`);
 const only = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7).split(',').filter(Boolean).map(Number);
 const run = (n: number) => !only.length || only.includes(n);
 
-const GOOD_SCENE = `
-import { useScene, useEngine, useLocalTime, useSceneProgress, useBeatPulse, useExitAt, useEnter, Kinetic, progress, mix, cue } from '@idem/kit';
-
-export default function Scene() {
-  const s = useScene();
-  const { u, horizontal, ease, data } = useEngine();
-  const lt = useLocalTime();
-  const p = useSceneProgress();
-  const beat = useBeatPulse();
-  const exitAt = useExitAt();
-  const g = data.direction.pacing.groupStagger;
-  const sweep = ease(progress(lt, 0, 0.7));
-  const sub = useEnter('rise', g * 2, 1, exitAt);
-  cue(\`\${s.key}:sweep\`, s.start, 'whoosh', 0.6);
-  const dots = [0, 1, 2, 3, 4, 5];
-  return (
-    <>
-      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: \`\${sweep * (horizontal ? 46 : 100)}%\`, height: horizontal ? '100%' : '42%', background: 'var(--hl)' }} />
-      {dots.map((d) => (
-        <span key={d} style={{ position: 'absolute', left: \`\${12 + d * 13}%\`, bottom: \`\${8 + Math.sin(lt * 2 + d) * 2}%\`, width: 2 * u, height: 2 * u, borderRadius: 999, background: 'var(--ink)', opacity: 0.25 + beat * 0.2, transform: \`translateY(\${mix(4, 0, sweep)}px)\` }} />
-      ))}
-      <div className="safe" style={{ justifyContent: 'flex-end' }}>
-        <div style={{ width: horizontal ? '50%' : '92%', transform: \`translateX(\${mix(-0.8, 0.8, p)}%)\` }}>
-          <Kinetic text={s.slots.title || ''} technique="maskUp" at={0.3} role="headline" fit={[horizontal ? 12 : 15, 6, 3]} exitAt={exitAt} sound="click" />
-        </div>
-        {s.slots.sub ? (
-          <div style={{ ...sub, marginTop: 3 * u, width: horizontal ? '46%' : '86%' }}>
-            <Kinetic text={s.slots.sub} technique="blurWords" at={g * 2} role="support" fit={[5.5, 3.4, 2]} exitAt={exitAt} style={{ color: 'var(--muted)' }} />
-          </div>
-        ) : null}
-      </div>
-    </>
-  );
-}
-`.trim();
 
 (async () => {
   console.log('Jauge de créativité');
@@ -148,76 +101,6 @@ export default function Scene() {
   const many = new CreativeOrchestrator({ level: 'high', call: async ({ user }) => `layout: ${user}` });
   const all = await many.all(['a', 'b', 'c', 'a'].map((l, i) => ({ role: 'ad', key: `ad:${i}`, minLevel: 'high' as const, prompt: () => ({ system: 's', user: l }), parse: (raw: string) => pickOption(agentLines(raw).layout, menu) as string | undefined, fallback: () => 'classic' as string })), 2);
   check('tâches parallèles : l’ordre des résultats suit celui des tâches', all.map((r) => r.value).join(',') === 'wordStack,bigNumber,classic,wordStack');
-
-  section('3. Cran Ultra — lint du code des scènes');
-  check('code extrait d’un bloc ```tsx', extractCode('Voici :\n```tsx\n' + GOOD_SCENE + '\n```') === GOOD_SCENE);
-  const goodIssues = await lintSceneCode(GOOD_SCENE, ['title', 'sub']);
-  check('une scène propre passe le lint', goodIssues.length === 0, goodIssues.join(' | '));
-  const bad: [string, string, RegExp][] = [
-    ['réseau (fetch)', GOOD_SCENE.replace('const dots', 'fetch("/x"); const dots'), /fetch/],
-    ['global window', GOOD_SCENE.replace('const dots', 'const w = window.innerWidth; const dots'), /window/],
-    ['hasard', GOOD_SCENE.replace('const dots', 'const r = Math.random(); const dots'), /random/],
-    ['horloge', GOOD_SCENE.replace('const dots', 'const d = Date.now(); const dots'), /Date|now/],
-    ['boucle while', GOOD_SCENE.replace('const dots', 'let k = 0; while (k < 3) { k++; } const dots'), /while/],
-    ['for sans borne', GOOD_SCENE.replace('const dots', 'for (let k = 0; k < 1e9; k++) {} const dots'), /bounded/],
-    ['constructeur', GOOD_SCENE.replace('const dots', 'const F = (() => 0).constructor; const dots'), /constructor/],
-    ['accès calculé par chaîne', GOOD_SCENE.replace('const dots', 'const F = s["con" + "structor"]; const dots'), /computed/],
-    ['état React', GOOD_SCENE.replace("import { useScene,", "import { useState } from 'react';\nimport { useScene,"), /useState/],
-    // Le lint nomme la propriété fautive : « CSS transitions are forbidden (style property
-    // `transition`) » pour une transition, « animations » pour une animation. Le motif acceptait
-    // seulement « animations » et refusait donc le cas qu'il teste.
-    ['animation CSS', GOOD_SCENE.replace("background: 'var(--hl)' }}", "background: 'var(--hl)', transition: 'width 1s' }}"), /animations|transitions/],
-    ['transformation 3D', GOOD_SCENE.replace('translateX(${mix(-0.8, 0.8, p)}%)', 'rotateY(${p * 20}deg)'), /3D/],
-    ['texte écrit en dur', GOOD_SCENE.replace("text={s.slots.title || ''}", 'text="Le meilleur jus de bissap de Dakar"'), /copy written|never shown/],
-    ['import inconnu', "import fs from 'fs';\n" + GOOD_SCENE, /import from "fs"/],
-    ['URL', GOOD_SCENE.replace("background: 'var(--hl)'", "background: 'url(https://evil.example/x.png)'"), /URL/],
-    ['texte oublié', GOOD_SCENE.replace('{s.slots.sub ? (', '{false ? (').replace('text={s.slots.sub}', 'text=""'), /never shown/],
-    ['erreur de syntaxe', GOOD_SCENE.replace('return (', 'return ((('), /syntax/],
-  ];
-  for (const [label, code, expected] of bad) {
-    const issues = await lintSceneCode(code, ['title', 'sub']);
-    check(`refusé : ${label}`, issues.some((i) => expected.test(i)), issues.slice(0, 2).join(' | ') || 'aucun défaut relevé');
-  }
-
-  if (run(4)) {
-  section('4. Cran Ultra — rendu réel (Chromium)');
-  const brand = brandById('kofi');
-  const theme = buildVideoTheme(brand.branding, brand.name);
-  const make = (code?: string, format: 'story' | 'landscape' = 'story') => {
-    const sb = buildStoryboard({ sceneIds: ['statement', 'logo'], slots: [{ title: 'Le studio qui livre vite', sub: 'Remote, depuis Lomé' }, {}], durationSec: 6, style: 'premium', seed: 11, images: [], direction: 'precision' });
-    sb.kit = { background: 'none', backdropScenes: [], annotate: 'none', logo: 'classic', iconSet: 'lucide', icons: {}, postfx: [], addons: [], trace: [] } as any;
-    if (code) sb.scenes[0].code = { tsx: code };
-    return { sb, format };
-  };
-  const inspect = async (code: string, format: 'story' | 'landscape' = 'story') => {
-    const { sb } = make(code, format);
-    const { html, spec } = await composeVideoHtml({ ...(await inlineAssets(sb, theme)), format, quality: 'standard', mode: 'render' });
-    const sc = sb.scenes[0];
-    return {
-      html,
-      issues: await withRenderPage({ html, width: spec.width, height: spec.height, strict: true }, (page) => inspectRenderedScene(page, { key: sc.key, start: sc.start, duration: sc.duration, texts: visibleTexts(sc.sceneId, sc.slots) }, spec)),
-    };
-  };
-  try {
-    const compiled = await compileSceneCode(GOOD_SCENE);
-    check('compilation TSX → module du moteur', compiled.includes('require("@idem/kit")') && compiled.includes('React.createElement'));
-    for (const format of ['story', 'landscape'] as const) {
-      const good = await inspect(GOOD_SCENE, format);
-      check(`scène de l’IA (${format}) : rendue, textes visibles et dans le cadre, mouvement, déterministe`, good.issues.length === 0, good.issues.join(' | '));
-      if (format === 'story') check('page avec code de l’IA : CSP posée, réseau sortant coupé', /Content-Security-Policy/.test(good.html) && /connect-src data: blob:/.test(good.html) && !/connect-src[^;]*https:\/\/evil/.test(good.html));
-    }
-    const crash = await inspect(GOOD_SCENE.replace('const dots = [0, 1, 2, 3, 4, 5];', 'const dots = [0, 1, 2, 3, 4, 5]; if (lt > 0.1) throw new Error("boom");'));
-    check('scène qui lève une erreur : signalée (la scène retombe sur sa composition)', crash.issues.some((i) => /runtime error|did not render/.test(i)), crash.issues.join(' | '));
-    const off = await inspect(GOOD_SCENE.replace("<div className=\"safe\" style={{ justifyContent: 'flex-end' }}>", "<div className=\"safe\" style={{ justifyContent: 'flex-end', transform: 'translateX(140%)' }}>"));
-    check('texte hors du cadre : signalé', off.issues.some((i) => /outside the frame|not visible/.test(i)), off.issues.join(' | '));
-    const still = await inspect(GOOD_SCENE.replace(/at=\{0\.3\}/, 'at={0}').replace('const sweep = ease(progress(lt, 0, 0.7));', 'const sweep = 1;').replace("technique=\"maskUp\"", 'technique="trackIn"').replace(/Math\.sin\(lt \* 2 \+ d\) \* 2/, '0').replace('mix(-0.8, 0.8, p)', '0').replace("useEnter('rise', g * 2, 1, exitAt)", "({ opacity: 1 })").replace('at={g * 2}', 'at={-1}').replace('at={0}', 'at={-2}'));
-    check('scène figée : signalée', still.issues.some((i) => /nothing moves/.test(i)), still.issues.join(' | ') || 'aucun défaut');
-    const csp = contentSecurityPolicy('{"img":"https://cdn.example.com/a.png"} <link href="https://fonts.googleapis.com/css2?family=Inter">');
-    check('CSP : seules les origines déjà présentes dans la page', /img-src data: blob: https:\/\/cdn\.example\.com/.test(csp) && /https:\/\/fonts\.gstatic\.com/.test(csp) && /default-src 'none'/.test(csp));
-  } finally {
-    await closeRenderBrowser();
-  }
-  }
 
   // ── LE MOTEUR GRAPHIQUE, BRANCHÉ SUR UN MODÈLE SIMULÉ ──────────────────────────────────────
   // Le directeur artistique choisit la 2e composition (et la règle à Max) ; le compositeur d'Ultra rend
@@ -421,7 +304,6 @@ export default function Scene() {
   process.exit(failures ? 1 : 0);
 })().catch(async (e) => {
   console.error(e);
-  await closeRenderBrowser().catch(() => undefined);
   await closeBrowser().catch(() => undefined);
   process.exit(1);
 });

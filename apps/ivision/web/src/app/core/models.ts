@@ -133,15 +133,6 @@ export interface Visual {
   createdAt: string;
 }
 
-export interface VideoScene {
-  key: string;
-  sceneId: string;
-  start: number;
-  duration: number;
-  slots: Record<string, string>;
-  image?: string;
-}
-
 export interface VideoRender {
   format: string;
   status: 'queued' | 'rendering' | 'done' | 'failed';
@@ -156,19 +147,42 @@ export interface VideoRender {
   stale?: boolean;
 }
 
+/** Une scène du film : intention, textes (données lues par son code), médias, état technique. */
+export interface FilmScene {
+  key: string;
+  start: number;
+  duration: number;
+  purpose: string;
+  visual: string;
+  motion: string;
+  texts: Record<string, string>;
+  media: string[];
+  voiceText?: string;
+  code?: string;
+  author?: { at: string; instruction?: string };
+  status: 'planned' | 'ready' | 'error';
+  error?: { stage: 'author' | 'compile' | 'runtime'; message: string };
+  thumbnail?: string;
+}
+
 export interface MotionVideo {
   id: string;
   title: string;
   status: 'draft' | 'rendering' | 'ready' | 'failed';
   scope: { durationSec: number; formats: string[]; quality: string };
-  storyboard: {
-    scenes: VideoScene[];
-    style: string;
-    direction?: string;
-    creative?: { reference?: { shots: number; summary: string } };
-    /** La vidéo comparée à la demande : ce qui a été suivi, ce qui ne l'a pas été (clés d'interface). */
-    fidelity?: { mode: 'script' | 'brief'; language: string; codes: { key: string; params?: Record<string, string | number> }[] };
+  /** Le film (moteur Motion Canvas) ; absent pour une vidéo de l'ancien moteur (`legacy`). */
+  film?: {
+    title: string;
+    concept: string;
+    scenes: FilmScene[];
+    captions: boolean;
+    /** Ce que la vidéo n'a pas pu suivre de la demande, dit dans la langue de la vidéo. */
+    fidelity?: { notes: string[] };
+    reference?: { summary: string };
   };
+  /** Vidéo de l'ancien moteur : téléchargeable, plus retouchable. */
+  legacy?: boolean;
+  media?: { id: string; kind: string; url: string }[];
   brief: { message: string; musicMood: string; sfx?: boolean; voice?: boolean; language?: string };
   music?: { title: string; artist: string };
   sfx?: { enabled: boolean };
@@ -183,8 +197,8 @@ export interface MotionVideo {
 }
 
 export interface VideoOptions {
-  scenes: Record<string, { key: string; max: number; required: boolean }[]>;
   moods: string[];
+  types: { id: string; icon: string }[];
 }
 
 /** Les événements d'un tour de conversation (flux SSE). */

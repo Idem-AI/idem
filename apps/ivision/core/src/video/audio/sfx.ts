@@ -28,9 +28,9 @@ import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import logger from '../runtime/logger';
-import { MotionStyle, SFX_KINDS, SfxKind, SfxSound } from './video.model';
-import { rng } from './video.music';
+import logger from '../../runtime/logger';
+import { MotionStyle, SFX_KINDS, SfxKind, SfxSound } from '../contracts/model';
+import { rng } from './music';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 

@@ -26,7 +26,7 @@ import {
   VideoFormat,
   VideoQuality,
   VideoScope,
-} from './video.model';
+} from './contracts/model';
 
 /** Le barème de l'hôte : prix de référence (2 × la charte) et prix d'une révision. */
 const base = { referenceCost: 120, minRerender: 1 };

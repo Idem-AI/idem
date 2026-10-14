@@ -719,13 +719,6 @@
           "corporate": "Motivante",
           "none": "Sans musique"
         },
-        "styles": {
-          "auto": "Choisi pour votre marque",
-          "energetic": "Énergique",
-          "premium": "Élégant",
-          "playful": "Ludique",
-          "corporate": "Sobre"
-        },
         "builder": {
           "steps": {
             "1": "Type",
@@ -762,8 +755,7 @@
             "formats": "Formats (plusieurs possibles)",
             "quality": "Qualité",
             "music": "Musique",
-            "style": "Style d’animation",
-            "direction": "Direction de motion"
+            "style": "Style d’animation"
           },
           "price": {
             "total": "Prix : {{price}} crédits",
@@ -893,36 +885,7 @@
           "delete": "Supprimer la vidéo",
           "deleteAsk": "Supprimer définitivement ?",
           "deleteConfirm": "Supprimer",
-          "ai": {
-            "authored": "Film d'auteur · {{coded}} plan(s) sur {{shots}} créés par l'IA",
-            "decided": "décidé par l'IA :",
-            "roles": {
-              "writer": "textes",
-              "strategist": "structure",
-              "mediaDirector": "images et vidéos",
-              "narrator": "voix off",
-              "soundDesigner": "musique",
-              "artDirector": "mises en page",
-              "animator": "transitions et mouvement",
-              "critic": "relecture"
-            }
-          },
-          "creative": {
-            "first": "Première vidéo de la marque : les suivantes seront comparées à elle",
-            "distinct": "Réellement différente de vos vidéos précédentes (écart {{percent}} %)",
-            "acceptable": "Différente de vos vidéos précédentes (écart {{percent}} %)",
-            "too-close": "Proche d’une vidéo précédente (écart {{percent}} %)",
-            "accent": "touche inattendue :",
-            "families": {
-              "type": "typographique",
-              "data": "données",
-              "graphic": "graphique",
-              "drawn": "dessinée à la main",
-              "spatial": "spatiale",
-              "photo": "photographique",
-              "brand": "logo"
-            }
-          }
+          "broken": "{{count}} scène(s) ne s’exécute(nt) pas : retrouvez-la ci-dessous et appuyez sur « Corriger »."
         },
         "texts": {
           "title": "Les textes",
@@ -956,57 +919,8 @@
             "rendering": "{{percent}} %",
             "done": "Prêt",
             "failed": "Échec"
-          }
-        },
-        "scenes": {
-          "hook": "Accroche",
-          "statement": "Message",
-          "product": "Produit",
-          "benefits": "Points forts",
-          "stat": "Chiffre",
-          "offer": "Offre",
-          "quote": "Avis client",
-          "event": "Rendez-vous",
-          "gallery": "Galerie",
-          "wordswap": "Mots clés",
-          "cta": "Appel à l’action",
-          "logo": "Signature",
-          "footage": "Vidéo",
-          "kinetic": "Mots animés",
-          "lottie": "Animation",
-          "showcase3d": "Scène 3D"
-        },
-        "slots": {
-          "kicker": "Petit titre",
-          "title": "Titre",
-          "sub": "Sous-titre",
-          "name": "Nom",
-          "tagline": "Phrase",
-          "price": "Prix",
-          "b1": "Point fort 1",
-          "b2": "Point fort 2",
-          "b3": "Point fort 3",
-          "value": "Chiffre",
-          "label": "Ce qu’il veut dire",
-          "oldPrice": "Ancien prix",
-          "badge": "Pastille",
-          "note": "Condition",
-          "quote": "Citation",
-          "author": "Client",
-          "date": "Date",
-          "time": "Heure",
-          "place": "Lieu",
-          "caption": "Légende",
-          "lead": "Introduction",
-          "w1": "Mot 1",
-          "w2": "Mot 2",
-          "w3": "Mot 3",
-          "action": "Bouton",
-          "contact": "Contact",
-          "l1": "Mot 1",
-          "l2": "Mot 2",
-          "l3": "Mot 3",
-          "l4": "Phrase finale"
+          },
+          "blocked": "Une scène est à corriger avant l’export."
         },
         "errors": {
           "load": "Impossible de charger vos vidéos.",
@@ -1016,8 +930,10 @@
           "music": "Impossible de charger les morceaux.",
           "export": "L’export n’a pas pu démarrer.",
           "delete": "La vidéo n’a pas pu être supprimée.",
-          "upload": "Le fichier n’a pas pu être envoyé (photo 12 Mo, vidéo 80 Mo, 3D 20 Mo, Lottie 3 Mo).",
-          "enhance": "La demande n’a pas pu être améliorée. Réessayez dans un instant."
+          "upload": "Le fichier n’a pas pu être envoyé (photo 12 Mo, vidéo 80 Mo).",
+          "enhance": "La demande n’a pas pu être améliorée. Réessayez dans un instant.",
+          "modelUnavailable": "Le modèle qui conçoit les vidéos est indisponible pour le moment. Vos crédits ont été restitués.",
+          "sceneErrors": "Une scène ne s’exécute pas : corrigez-la avant d’exporter."
         },
         "types": {
           "kinetic": {
@@ -1085,152 +1001,37 @@
           "title": "Crédits des médias"
         },
         "composing": {
-          "title": "Votre vidéo se monte…",
+          "title": "Votre vidéo se fabrique…",
           "note": "Vous pouvez rester sur cet écran : chaque étape s’affiche dès qu’elle est terminée.",
           "stages": {
-            "plan": "Le découpage en scènes",
-            "copy": "Les textes à l’écran",
-            "layout": "La mise en page de chaque scène",
-            "media": "Les images et vidéos",
+            "plan": "La lecture de votre demande",
+            "concept": "Le concept du film",
+            "storyboard": "Le storyboard, scène par scène",
+            "media": "Les images et les clips",
             "music": "La musique",
-            "sfx": "Les effets sonores",
-            "storyboard": "Le montage, calé sur le rythme",
-            "animation": "Le mouvement et les transitions",
-            "critique": "La relecture finale",
-            "code": "L'écriture des scènes (Ultra)",
-            "direction": "Le film imaginé par le directeur IA",
-            "shots": "Chaque plan créé par l'IA, revu et corrigé",
-            "voice": "La voix off"
+            "voice": "La voix off",
+            "code": "L’écriture de chaque scène",
+            "check": "Le contrôle de chaque scène"
           },
           "details": {
-            "plan": "{{count}} scènes pour {{seconds}} s",
-            "copyLlm": "{{lines}} lignes écrites",
-            "copyHeuristic": "{{lines}} lignes tirées de votre message",
-            "media": "{{own}} à vous · {{generated}} générée(s) · Pexels : {{photos}} photo(s), {{videos}} vidéo(s)",
-            "mediaNone": "Aucune image nécessaire",
+            "plan": "{{media}} média(s) disponible(s) · textes en {{language}}",
+            "planScripted": "Votre scénario sera suivi mot pour mot · {{media}} média(s)",
+            "concept": "« {{title}} »",
+            "conceptFailed": "Le directeur n’a pas répondu : le storyboard invente le film",
+            "storyboard": "{{count}} scènes",
+            "media": "{{count}} média(s) obtenu(s)",
+            "mediaMissing": "{{missing}} média(s) introuvable(s) : c’est indiqué dans la vidéo",
+            "mediaGenerating": "Génération : {{done}} / {{total}}",
             "music": "« {{title}} » — {{artist}} · {{bpm}} BPM",
             "musicNone": "Sans musique",
-            "sfx": "{{count}} sons choisis",
-            "storyboard": "{{count}} scènes, coupes sur le temps ({{bpm}} BPM)",
-            "planType": "{{type}} · {{count}} scènes pour {{seconds}} s",
-            "planConcept": "{{type}} · {{concept}} · {{count}} scènes pour {{seconds}} s",
-            "layout": "{{count}} mises en page : {{names}}",
-            "layoutClassic": "Compositions de la direction",
-            "animation": "Raccords : {{names}} · caméra {{camera}}",
-            "critique": "{{count}} correction(s) du directeur de création",
-            "critiqueOk": "Validé sans correction",
-            "musicAgent": "« {{title}} » — {{artist}} · {{bpm}} BPM · choisie pour votre marque",
-            "code": "{{coded}} scène(s) sur {{tried}} écrite(s) par l'IA et validée(s)",
-            "direction": "« {{title}} » · {{count}} plans",
-            "directionFallback": "Repli sur la composition guidée",
-            "shotsStart": "{{total}} plans à écrire",
-            "shots_writing": "Plan {{current}}/{{total}} : écriture · {{done}} terminé(s)",
-            "shots_review": "Plan {{current}}/{{total}} : revue visuelle · {{done}} terminé(s)",
-            "shots_revise": "Plan {{current}}/{{total}} : correction · {{done}} terminé(s)",
-            "shots_done": "{{done}} plan(s) sur {{total}} terminé(s)",
-            "shots": "{{coded}} plan(s) sur {{total}} créés par l'IA · {{reviewed}} revu(s) par le directeur artistique",
-            "voice": "{{count}} ligne(s) dite(s) en {{language}}, scènes calées sur la voix",
+            "voice": "{{count}} ligne(s) dite(s), scènes calées sur la voix",
             "voiceUnavailable": "Voix indisponible pour cette langue : vidéo sans voix",
-            "mediaGenerating": "Génération : {{done}} / {{total}} plan(s)"
+            "codeRunning": "{{done}} / {{total}} scène(s) écrite(s)",
+            "code": "{{ready}} scène(s) écrite(s)",
+            "codeErrors": "{{ready}} scène(s) prête(s) · {{errors}} à corriger",
+            "checkOk": "Toutes les scènes s’exécutent",
+            "checkErrors": "{{errors}} scène(s) ne s’exécutent pas : à corriger dans l’éditeur"
           }
-        },
-        "directions": {
-          "help": "Chaque direction change la composition, les entrées de texte, les transitions et la couleur. Gratuit.",
-          "auto": {
-            "label": "Choisie pour votre marque",
-            "hint": "IDEM choisit selon votre charte et évite de répéter vos dernières vidéos."
-          },
-          "editorial": {
-            "label": "Éditoriale",
-            "hint": "Texte ferré à gauche, filets fins, fondus : l’allure d’un magazine."
-          },
-          "swiss": {
-            "label": "Grille suisse",
-            "hint": "Grille, coupes nettes sur le temps, typographie serrée."
-          },
-          "brutal": {
-            "label": "Bloc brut",
-            "hint": "Très grand texte en capitales, blocs de couleur, coupes franches."
-          },
-          "kinetic": {
-            "label": "Cinétique",
-            "hint": "Lettres qui jaillissent, zooms traversants, couleurs franches."
-          },
-          "cinematic": {
-            "label": "Cinéma",
-            "hint": "Bandes noires, lents fondus, une idée à la fois."
-          },
-          "collage": {
-            "label": "Collage",
-            "hint": "Papier, polaroïds, autocollants, mouvement image par image."
-          },
-          "precision": {
-            "label": "Précision",
-            "hint": "Fond de studio, cartes nettes, ouvertures en iris."
-          },
-          "drenched": {
-            "label": "Monochrome",
-            "hint": "Une seule teinte en clair et en profond, images en bichromie."
-          }
-        },
-        "concepts": {
-          "question": "Question → réponse",
-          "problem-solution": "Problème → solution",
-          "product-hero": "Le produit en héros",
-          "manifesto": "Manifeste",
-          "offer-blast": "Offre choc",
-          "proof": "La preuve d’abord",
-          "journey": "Sur le terrain",
-          "teaser": "Teaser",
-          "invitation": "Invitation",
-          "showcase": "Vitrine",
-          "reasons": "Les raisons de nous choisir",
-          "celebration": "Célébration",
-          "logo-sting": "Signature"
-        },
-        "layouts": {
-          "classic": "composition classique",
-          "wordStack": "pile de mots",
-          "marqueeBack": "mot défilant",
-          "bigNumber": "chiffre géant",
-          "diagonalBand": "bandeau diagonal",
-          "circleStage": "cercle",
-          "splitBlock": "deux blocs",
-          "layeredCards": "cartes superposées",
-          "gridCards": "grille de cartes",
-          "checklist": "liste cochée",
-          "quoteBig": "grande citation",
-          "priceBurst": "prix en étoile",
-          "ticker": "bandeaux défilants",
-          "spotlightWord": "mot sous le projecteur",
-          "frameOverlap": "bloc et cadre"
-        },
-        "transitions": {
-          "cut": "coupe",
-          "flashCut": "coupe éclair",
-          "glitch": "glitch",
-          "dissolve": "fondu",
-          "zoomBlur": "zoom flou",
-          "zoomThrough": "traversée",
-          "whip": "filé",
-          "cube": "cube 3D",
-          "push": "poussée",
-          "slideOver": "glissé",
-          "iris": "iris",
-          "wipe": "volet",
-          "blockStack": "bandes",
-          "shapeWipe": "disque de marque",
-          "stripes": "lames obliques",
-          "split": "panneaux",
-          "liquid": "vague"
-        },
-        "cameras": {
-          "still": "fixe",
-          "push": "poussée lente",
-          "pull": "recul",
-          "drift": "dérive",
-          "rise": "montée",
-          "tilt": "bascule"
         },
         "voice": {
           "title": "Voix off",
@@ -1246,7 +1047,20 @@
             "friendly": "amicale",
             "deep": "profonde",
             "energetic": "énergique"
-          }
+          },
+          "captions": "Sous-titres de la voix off"
+        },
+        "legacy": {
+          "title": "Vidéo de l’ancien moteur",
+          "body": "Cette vidéo a été fabriquée avant le nouveau moteur : ses fichiers restent téléchargeables, mais elle ne se retouche plus. Pour la changer, créez une nouvelle vidéo."
+        },
+        "revise": {
+          "title": "Retoucher en écrivant",
+          "placeholder": "Ex. : « la scène 2 plus lente », « le titre en jaune », « sans musique »…",
+          "send": "Appliquer",
+          "done": "C’est fait. Regardez la nouvelle version.",
+          "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « la scène 2 plus dynamique » ou « sans musique ».",
+          "newRequest": "Cela ressemble à une nouvelle vidéo : créez-la depuis « Nouvelle vidéo »."
         }
       }
     }

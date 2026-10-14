@@ -1,33 +1,30 @@
 /**
  * LA VOIX OFF — choisie par l'utilisateur, dans la langue de la vidéo, calée sur les scènes.
  *
- *   1. narrateur (agent)  une ligne PARLÉE par scène, dans la langue de la vidéo, bornée au
- *                         temps de la scène (mots par seconde de la langue) ; chiffres et prix
- *                         copiés du brief ou retirés ; repli : les textes à l'écran ;
- *   2. synthèse           une ligne = un appel au modèle de voix de l'hôte (Kokoro par
+ * Les lignes sont écrites par le planificateur du film (une par scène, champ `voiceText`) ou par
+ * l'utilisateur dans son scénario (mot pour mot). Ce module les dit, les nettoie et cale les scènes :
+ *
+ *   1. synthèse           une ligne = un appel au modèle de voix de l'hôte (Kokoro par
  *                         OpenRouter, ou le serveur Qwen3-TTS / Chatterbox de l'exploitant) ; le son est nettoyé (silences, passe-haut), accéléré au plus de
  *                         18 % s'il déborde, normalisé à −16 LUFS, déposé dans le stockage ;
- *   3. calage             chaque scène dure AU MOINS le temps de sa ligne (+ entrée et sortie) ;
+ *   2. calage             chaque scène dure AU MOINS le temps de sa ligne (+ entrée et sortie) ;
  *                         la durée achetée ne change pas : les scènes muettes rendent du temps,
  *                         et une ligne qui ne tient vraiment pas est retirée (jamais coupée).
- *                         Minutage fixe (scénario, film d'auteur) : une ligne déborde sur les
+ *                         Minutage fixe (scénario écrit) : une ligne déborde sur les
  *                         plans muets qui la suivent au lieu d'être retirée.
  *
- * La voix ne dépend que de la clé de sa scène : une retouche (texte, direction, musique) garde
- * la synchronisation, re-calée par `fitScenesToVoice` après chaque recalcul du minutage.
+ * La voix ne dépend que de la clé de sa scène : une retouche (texte, code, musique) garde la
+ * synchronisation.
  */
 import { spawn } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import logger from '../runtime/logger';
-import { coreHost, SpeechRequest } from '../runtime/host';
-import { agentLines, LETTERS, pickOption } from '../creativity/agent-io';
-import { BriefFacts, CopyWriter, estimateTokens, fitLength, isGrounded } from './video.copy';
-import { MotionStyle, VideoStoryboard, VideoVoice, VoiceLine } from './video.model';
-import { callAgent, AgentRun } from './video.agents';
-import { languageName } from '../text/language';
+import logger from '../../runtime/logger';
+import { coreHost, SpeechRequest } from '../../runtime/host';
+import { isGrounded } from '../request/facts';
+import type { MotionStyle, VideoVoice, VoiceLine } from '../contracts/model';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
@@ -35,7 +32,6 @@ const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
 const langOf = (language: string) => (language || 'fr').toLowerCase().slice(0, 2);
 
-const LANG_NAMES: Record<string, string> = { fr: 'French', en: 'English', pt: 'Portuguese', ar: 'Arabic', es: 'Spanish', sw: 'Swahili', zh: 'Chinese', de: 'German', it: 'Italian' };
 
 /** Débit d'une voix off publicitaire, en mots par seconde (caractères pour le chinois). */
 const WORDS_PER_SEC: Record<string, number> = { fr: 2.7, en: 2.6, es: 2.8, pt: 2.6, it: 2.7, de: 2.3, ar: 2.2, sw: 2.4, zh: 4.5 };
@@ -100,71 +96,6 @@ export const speakable = (duration: number, first = false) => Math.max(0.6, dura
 /** Nombre de mots qu'on peut dire dans une scène. */
 export const wordBudget = (duration: number, language: string, first = false) => Math.max(2, Math.floor(speakable(duration, first) * wordsPerSecond(language) * 0.92));
 
-// ─── Le narrateur (agent) ───────────────────────────────────────────────────
-
-export interface NarratorScene {
-  sceneId: string;
-  /** Durée prévue de la scène (s) : fixe le nombre de mots. */
-  duration: number;
-  /** Les textes à l'écran (titre d'abord). */
-  texts: string[];
-}
-
-export interface NarratorInput {
-  sheet: string;
-  brandName: string;
-  language: string;
-  brief: string;
-  facts: BriefFacts;
-  style: MotionStyle;
-  scenes: NarratorScene[];
-  personas: VoicePersona[];
-  /** Le film d'auteur (Ultra) : le concept guide le ton. */
-  concept?: string;
-}
-
-export interface Narration {
-  /** Index de scène → ligne parlée. */
-  lines: Record<number, string>;
-  persona: string;
-  style?: string;
-  source: 'llm' | 'heuristic';
-}
-
-export function buildNarratorPrompt(input: NarratorInput): { system: string; user: string } {
-  const lang = LANG_NAMES[langOf(input.language)] || languageName(input.language);
-  const system = [
-    `You write the VOICE-OVER of a short brand video, in ${lang}. The narrator speaks over the scenes, in sync with what is on screen.`,
-    'Output ONLY these lines:',
-    'N: what the narrator says over scene N (or N: - to keep the scene silent)',
-    'voice: the letter of one voice from VOICES',
-    'style: how to say it, 2 to 5 English words (e.g. warm and confident)',
-    'Rules:',
-    '- Never exceed the max words of a scene. Spoken, natural sentences; one idea per scene.',
-    '- Say the same idea as the screen at the same moment, in other words: never read the on-screen text word for word.',
-    '- Prices, dates, figures, phone numbers: copy them EXACTLY from the brief, or leave them out.',
-    `- The last scene (logo) says the brand name "${input.brandName}", optionally with a very short promise.`,
-    '- No emoji, hashtag, URL, quotation marks, stage directions or sound effects.',
-  ].join('\n');
-  const user = [
-    input.sheet,
-    `BRIEF: ${input.brief.replace(/\s+/g, ' ').trim().slice(0, 500)}`,
-    input.concept ? `CONCEPT: ${input.concept.slice(0, 160)}` : '',
-    'SCENES:',
-    ...input.scenes.map((sc, i) => {
-      const max = wordBudget(sc.duration, input.language, i === 0);
-      const shown = sc.texts.filter(Boolean).map((t) => `"${t.slice(0, 70)}"`).join(' / ');
-      return `${i + 1}. ${sc.sceneId}, ${sc.duration.toFixed(1)} s, max ${max} words${shown ? ` — on screen: ${shown}` : ''}`;
-    }),
-    'VOICES:',
-    ...input.personas.map((p, i) => `${LETTERS[i]}) ${p.id} — ${p.gender}, ${p.character}`),
-  ]
-    .filter(Boolean)
-    .join('\n');
-  return { system, user };
-}
-
-/** Une ligne parlée propre : sans balises ni indications de jeu, bornée en mots, chiffres vérifiés. */
 /**
  * Une ligne écrite en CAPITALES (titre d'écran) se dit en casse de phrase : un moteur de voix lit
  * « L'IDÉE NAÎT SEULE » lettre par lettre ou sur un ton de cri.
@@ -190,58 +121,9 @@ export function cleanSpoken(value: string, maxWords: number, language: string, b
   if (!t || /^[-–—.…]+$/.test(t)) return '';
   if (!isGrounded(t, briefText)) return '';
   if (langOf(language) === 'zh') return t.replace(/\s+/g, '').slice(0, Math.max(2, maxWords));
-  const words = t.split(' ');
-  // Un dépassement léger est rendu par le calage ; au-delà, la ligne est coupée proprement.
-  if (words.length > Math.ceil(maxWords * 1.25)) t = fitLength(t, Math.max(8, words.slice(0, maxWords).join(' ').length));
+  // Une ligne trop longue n'est jamais coupée : le calage l'accélère un peu, ou la retire en le disant.
+  void maxWords;
   return t;
-}
-
-/** Ce qu'un chiffre dit à voix haute doit retrouver : le brief, la marque et les textes à l'écran. */
-const groundingOf = (input: NarratorInput) => [input.brief, input.brandName, ...input.scenes.flatMap((sc) => sc.texts)].join(' ');
-
-export function parseNarration(raw: string, input: NarratorInput): Narration | null {
-  const text = (raw || '').replace(/```[a-z]*\n?/gi, '');
-  const lines: Record<number, string> = {};
-  for (const line of text.split(/\r?\n/)) {
-    // « 2: … », « Scène 2 : … », « **Plan 2** — … », « [2] … », « Shot 2. … ».
-    const m = line.replace(/\*\*/g, '').match(/^[\s*_#>\-[(]*(?:sc[eè]ne|scene|plan|shot|line|ligne|n°|no\.?)?\s*(\d{1,2})\s*[\])]?\s*[.):=\-–—]*\s*[:=]?\s*(.+)$/i);
-    if (!m) continue;
-    const i = Number(m[1]) - 1;
-    const sc = input.scenes[i];
-    if (!sc) continue;
-    // Une étiquette parasite (« 2. voice: … », « 2.title: … ») n'est pas dite.
-    const said = m[2].replace(/^(?:voice|vo|text|line|narration|narrator|says?|title|l1|sub)\s*[:=]\s*/i, '');
-    const spoken = cleanSpoken(said, wordBudget(sc.duration, input.language, i === 0), input.language, groundingOf(input));
-    if (spoken) lines[i] = spoken;
-  }
-  if (!Object.keys(lines).length) return null;
-  const kv = agentLines(text);
-  const persona = pickOption(kv.voice || kv.voix, input.personas.map((p) => p.id)) || input.personas[0].id;
-  const style = (kv.style || '').replace(/[^\p{L} ,'-]/gu, '').trim().slice(0, 48) || undefined;
-  return { lines, persona, style, source: 'llm' };
-}
-
-/** Repli sans modèle : la voix reprend l'idée de chaque scène (son titre), et signe avec la marque. */
-export function heuristicNarration(input: NarratorInput): Narration {
-  const lines: Record<number, string> = {};
-  input.scenes.forEach((sc, i) => {
-    const max = wordBudget(sc.duration, input.language, i === 0);
-    const text = sc.sceneId === 'logo' ? input.brandName : sc.texts.find((t) => t && t.trim().split(/\s+/).length >= 2) || sc.texts.find(Boolean) || '';
-    const spoken = cleanSpoken(text, max, input.language, groundingOf(input));
-    if (spoken) lines[i] = spoken;
-  });
-  return { lines, persona: input.personas[0].id, source: 'heuristic' };
-}
-
-export async function runNarrator(writer: CopyWriter | undefined, input: NarratorInput): Promise<{ narration: Narration; run: AgentRun }> {
-  const prompt = buildNarratorPrompt(input);
-  const res = await callAgent(writer, prompt.system, prompt.user);
-  const parsed = parseNarration(res.raw, input);
-  const narration = parsed || heuristicNarration(input);
-  return {
-    narration,
-    run: { agent: 'narrator', source: parsed ? 'llm' : 'graph', tokens: { input: estimateTokens(prompt.system + prompt.user), output: estimateTokens(res.raw) }, ms: res.ms, kept: parsed ? Object.keys(parsed.lines).length : 0 },
-  };
 }
 
 // ─── Synthèse ───────────────────────────────────────────────────────────────
@@ -367,65 +249,53 @@ export async function synthesizeVoice(opts: {
 
 // ─── Calage des scènes sur la voix ──────────────────────────────────────────
 
-/** Les scènes dont on retire d'abord la voix si le film est trop court pour tout dire. */
-const SILENT_FIRST = ['wordswap', 'kinetic', 'gallery', 'statement', 'stat', 'benefits', 'quote', 'lottie', 'showcase3d', 'screen', 'footage', 'product'];
-
-const floorOf = (sceneId: string, total: number) => (sceneId === 'logo' ? (total >= 15 ? 2.2 : 1.5) : 1.2);
+export interface TimedScene {
+  key: string;
+  start: number;
+  duration: number;
+}
 
 /**
- * Chaque scène dure au moins le temps de sa ligne ; la durée totale ne change pas. Les scènes
- * gardent leurs proportions dans ce qui reste ; une ligne qui ne tient pas est retirée (les
- * scènes les moins essentielles d'abord, jamais l'ouverture ni la signature).
+ * Chaque scène dure au moins le temps de sa ligne (+ entrée et souffle) ; la durée totale ne change
+ * pas : les scènes muettes rendent du temps. Une ligne qui ne tient vraiment pas est RETIRÉE (jamais
+ * coupée) et rendue dans `dropped`. Minutage fixe (scénario écrit) : les scènes ne bougent pas, une
+ * ligne déborde sur les scènes muettes qui la suivent.
  */
-export function fitScenesToVoice(storyboard: VideoStoryboard, voice: VideoVoice, opts: { keepTiming?: boolean } = {}): { storyboard: VideoStoryboard; voice: VideoVoice; dropped: string[] } {
-  const total = storyboard.durationSec;
-  const scenes = storyboard.scenes.map((sc) => ({ ...sc }));
-  const keys = new Set(scenes.map((sc) => sc.key));
-  // Une ligne dont la scène a disparu (règles, retouche) disparaît avec elle.
-  let lines = voice.lines.filter((l) => keys.has(l.sceneKey));
-  const dropped = voice.lines.filter((l) => !keys.has(l.sceneKey)).map((l) => l.sceneKey);
-  const lineOf = (key: string) => lines.find((l) => l.sceneKey === key);
+export function fitScenesToVoice<S extends TimedScene>(scenes: S[], lines: Omit<VoiceLine, 'offset'>[], total: number, opts: { keepTiming?: boolean } = {}): { scenes: S[]; lines: VoiceLine[]; dropped: string[] } {
+  const out = scenes.map((sc) => ({ ...sc }));
+  const keys = new Set(out.map((sc) => sc.key));
+  let kept = lines.filter((l) => keys.has(l.sceneKey));
+  const dropped = lines.filter((l) => !keys.has(l.sceneKey)).map((l) => l.sceneKey);
+  const lineOf = (key: string) => kept.find((l) => l.sceneKey === key);
   const leadOf = (i: number) => (i === 0 ? 0.15 : VOICE_LEAD);
-  // Le minutage d'un scénario (ou d'un film d'auteur) ne bouge pas. Une ligne part au début de SA
-  // scène et peut continuer sur les plans suivants qui n'ont pas de ligne (une scène du scénario
-  // découpée en plusieurs plans garde sa voix entière) ; la suivante attend qu'elle ait fini. Une
-  // ligne n'est retirée que si elle déborderait de la FIN du film (jamais coupée en plein mot).
   if (opts.keepTiming) {
-    const order = lines
-      .map((l) => ({ l, i: scenes.findIndex((sc) => sc.key === l.sceneKey) }))
-      .filter((x) => x.i >= 0)
-      .sort((a, b) => a.i - b.i);
     const placed: VoiceLine[] = [];
     let free = 0;
-    for (const { l, i } of order) {
-      const at = Math.max(scenes[i].start + leadOf(i), free + 0.12);
+    for (const [i, sc] of out.entries()) {
+      const l = lineOf(sc.key);
+      if (!l) continue;
+      const at = Math.max(sc.start + leadOf(i), free + 0.12);
       if (at + l.durationSec > total + 0.05) {
         dropped.push(l.sceneKey);
         continue;
       }
       free = at + l.durationSec;
-      placed.push({ ...l, offset: Math.round((at - scenes[i].start) * 1000) / 1000 });
+      placed.push({ ...l, offset: Math.round((at - sc.start) * 1000) / 1000 });
     }
-    return { storyboard: { ...storyboard, scenes }, voice: { ...voice, lines: placed }, dropped };
+    return { scenes: out, lines: placed, dropped };
   }
-  const need = () => scenes.map((sc, i) => Math.max(floorOf(sc.sceneId, total), lineOf(sc.key) ? leadOf(i) + lineOf(sc.key)!.durationSec + VOICE_TAIL : 0));
-
-  for (let guard = 0; guard < scenes.length && need().reduce((a, x) => a + x, 0) > total + 0.01; guard++) {
-    const candidates = scenes.map((sc, i) => ({ sc, i })).filter(({ sc, i }) => i > 0 && i < scenes.length - 1 && lineOf(sc.key));
-    candidates.sort((a, b) => {
-      const ra = SILENT_FIRST.indexOf(a.sc.sceneId);
-      const rb = SILENT_FIRST.indexOf(b.sc.sceneId);
-      return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb) || lineOf(b.sc.key)!.durationSec - lineOf(a.sc.key)!.durationSec;
-    });
-    const victim = candidates[0] || scenes.map((sc, i) => ({ sc, i })).filter(({ sc }) => lineOf(sc.key)).sort((a, b) => lineOf(b.sc.key)!.durationSec - lineOf(a.sc.key)!.durationSec)[0];
+  const floor = 1.2;
+  const need = () => out.map((sc, i) => Math.max(floor, lineOf(sc.key) ? leadOf(i) + lineOf(sc.key)!.durationSec + VOICE_TAIL : 0));
+  // Trop de paroles pour le film : la plus longue ligne d'une scène du milieu est retirée d'abord.
+  for (let guard = 0; guard < out.length && need().reduce((a, x) => a + x, 0) > total + 0.01; guard++) {
+    const candidates = out.map((sc, i) => ({ sc, i })).filter(({ sc, i }) => lineOf(sc.key) && (out.length < 3 || (i > 0 && i < out.length - 1)));
+    const victim = (candidates.length ? candidates : out.map((sc, i) => ({ sc, i })).filter(({ sc }) => lineOf(sc.key))).sort((a, b) => lineOf(b.sc.key)!.durationSec - lineOf(a.sc.key)!.durationSec)[0];
     if (!victim) break;
     dropped.push(victim.sc.key);
-    lines = lines.filter((l) => l.sceneKey !== victim.sc.key);
+    kept = kept.filter((l) => l.sceneKey !== victim.sc.key);
   }
-
   const lo = need();
-  let dur = scenes.map((sc, i) => Math.max(lo[i], sc.duration));
-  // Le surplus est repris sur la marge des scènes (au-dessus de leur minimum), en proportion.
+  let dur = out.map((sc, i) => Math.max(lo[i], sc.duration));
   for (let pass = 0; pass < 8; pass++) {
     const diff = total - dur.reduce((a, x) => a + x, 0);
     if (Math.abs(diff) < 0.002) break;
@@ -440,41 +310,29 @@ export function fitScenesToVoice(storyboard: VideoStoryboard, voice: VideoVoice,
     }
   }
   let start = 0;
-  scenes.forEach((sc, i) => {
+  out.forEach((sc, i) => {
     sc.start = Math.round(start * 1000) / 1000;
     sc.duration = Math.round(dur[i] * 1000) / 1000;
     start += dur[i];
   });
-  const last = scenes[scenes.length - 1];
+  const last = out[out.length - 1];
   if (last) last.duration = Math.round((total - last.start) * 1000) / 1000;
-
-  const placed = lines.map((l) => {
-    const i = scenes.findIndex((sc) => sc.key === l.sceneKey);
-    // La ligne est centrée dans ce que la scène laisse, sans jamais partir avant son entrée.
-    const room = scenes[i].duration - l.durationSec - VOICE_TAIL;
+  const placed = kept.map((l) => {
+    const i = out.findIndex((sc) => sc.key === l.sceneKey);
+    const room = out[i].duration - l.durationSec - VOICE_TAIL;
     const offset = Math.max(leadOf(i), Math.min(room, leadOf(i) + Math.max(0, room - leadOf(i)) * 0.25));
     return { ...l, offset: Math.round(offset * 1000) / 1000 };
   });
-  return { storyboard: { ...storyboard, scenes }, voice: { ...voice, lines: placed }, dropped };
+  return { scenes: out, lines: placed, dropped };
 }
 
-/** Les lignes à mixer : fichier (ou URL) et instant absolu dans la vidéo. */
-export function voiceTimeline(storyboard: VideoStoryboard, voice?: VideoVoice): { url: string; at: number; durationSec: number }[] {
+/** Les lignes à mixer : URL et instant absolu dans la vidéo. */
+export function voiceTimeline(scenes: TimedScene[], voice: VideoVoice | undefined, total: number): { url: string; at: number; durationSec: number; text: string }[] {
   if (!voice?.enabled) return [];
   return voice.lines
     .map((l) => {
-      const sc = storyboard.scenes.find((s) => s.key === l.sceneKey);
-      return sc ? { url: l.url, at: Math.round((sc.start + l.offset) * 1000) / 1000, durationSec: l.durationSec } : null;
+      const sc = scenes.find((s) => s.key === l.sceneKey);
+      return sc ? { url: l.url, text: l.text, at: Math.round((sc.start + l.offset) * 1000) / 1000, durationSec: l.durationSec } : null;
     })
-    .filter((x): x is { url: string; at: number; durationSec: number } => !!x && x.at < storyboard.durationSec - 0.2);
-}
-
-/** Les textes d'une scène pour le narrateur (titre d'abord). */
-export function sceneTexts(slots: Record<string, string> = {}): string[] {
-  const order = ['title', 'l1', 'quote', 'name', 'value', 'price', 'action', 'sub', 'l2', 'b1', 'b2', 'b3', 'label', 'tagline', 'note'];
-  const known = order.map((k) => slots[k]).filter(Boolean);
-  const rest = Object.entries(slots)
-    .filter(([k, v]) => v && !order.includes(k) && !['visual', 'icons', 'kicker'].includes(k))
-    .map(([, v]) => v);
-  return [...known, ...rest].slice(0, 4);
+    .filter((x): x is { url: string; at: number; durationSec: number; text: string } => !!x && x.at < total - 0.2);
 }

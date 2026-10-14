@@ -6,8 +6,8 @@
  * ceux attendus, toutes les consignes explicites respectées, et une question posée SEULEMENT quand
  * l'ambiguïté change le résultat. Aucun modèle : la lecture est celle du code.
  */
-import { applyClarification, clarifyVideoIntent, classifyVideoIntent, ClassifyInput, describeVideoIntent, legacyOf, MotionLanguage, ProductionMode, VideoGoal } from '../../../ivision/core/src/video/video.intent';
-import { parseRequest } from '../../../ivision/core/src/video/video.request';
+import { applyClarification, clarifyVideoIntent, classifyVideoIntent, ClassifyInput, describeVideoIntent, legacyOf, MotionLanguage, ProductionMode, VideoGoal } from '../../../ivision/core/src/video/request/intent';
+import { parseRequest } from '../../../ivision/core/src/video/request/request';
 
 let failures = 0;
 let passed = 0;

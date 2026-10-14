@@ -11,7 +11,7 @@
  *                               API compatible OpenAI), avec `IDEM_ROLE_<RÔLE>_MODEL` ou le modèle du rôle ;
  *   sans rien                   le profil par défaut du rôle (`AI_CONFIG.creative[profile]`).
  *
- * `<RÔLE>` : le nom en majuscules, `.` et `-` remplacés par `_` (`video.shot-coder` → `VIDEO_SHOT_CODER`).
+ * `<RÔLE>` : le nom en majuscules, `.` et `-` remplacés par `_` (`video.author` → `VIDEO_AUTHOR`).
  * Un rôle qui exige la vision n'est jamais aiguillé vers un point d'accès qui ne la déclare pas.
  */
 import type { CreativityLevel } from '@idem/shared-models';
@@ -43,8 +43,11 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   'graphic.pattern-designer': { profile: 'coder', needs: ['code'], maxOutputTokens: UP_TO(2500, 3000, 3500, 2500, 2500), mission: 'dessiner la tuile de motif propre à la marque (SVG)' },
   'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(600, 800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },
   'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 300, 300, 300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
-  'video.director': { profile: 'coder', needs: ['json', 'long-context'], maxOutputTokens: UP_TO(5000, 7000, 9000), mission: 'concevoir le film, le storyboard et le langage de motion' },
-  'video.shot-coder': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: UP_TO(6000, 7000, 8000), mission: 'écrire le composant React de chaque plan' },
+  // Le film Motion Canvas : tous les crans travaillent ; le cran donne des MOYENS (plafonds), jamais des contraintes.
+  'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: UP_TO(1800, 2200, 3000, 1500, 0), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène' },
+  'video.planner': { profile: 'agents', needs: ['long-context'], maxOutputTokens: UP_TO(4000, 4500, 5000, 3500, 3500), mission: 'écrire le storyboard : durées, intentions, idées, textes, médias, voix' },
+  'video.author': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: UP_TO(6000, 7000, 8000, 5000, 4500), mission: 'écrire le code Motion Canvas de chaque scène' },
+  'video.reviser': { profile: 'agents', needs: [], maxOutputTokens: UP_TO(800, 800, 800, 800, 800), mission: 'lire une retouche écrite par le client' },
   'visual.critic': { profile: 'critic', needs: ['vision', 'json'], maxOutputTokens: UP_TO(300, 400, 500), mission: 'évaluer un rendu réel et formuler des corrections ciblées' },
   'generation.repair': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(400, 500, 600), mission: 'corriger un défaut technique précis' },
 };
@@ -54,9 +57,8 @@ export const ROLE_ALIASES: Record<string, string> = {
   'graphic.composer': 'graphic.director',
   'graphic.critic': 'visual.critic',
   'graphic.repairer': 'generation.repair',
-  shotCoder: 'video.shot-coder',
-  sceneCoder: 'video.shot-coder',
-  director: 'video.director',
+  director: 'video.concept',
+  author: 'video.author',
   critic: 'visual.critic',
 };
 
