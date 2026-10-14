@@ -350,7 +350,10 @@
       "empty": "Aucune marque prête.",
       "add": "Ajouter une marque",
       "applied": "J’ai lu votre site : j’utilise ses couleurs, ses polices, son logo et ses photos. Vous pouvez changer la palette dans « Marques ».",
-      "appliedNoLogo": "J’ai lu votre site : j’utilise ses couleurs, ses polices et ses photos. Vous pouvez changer la palette dans « Marques »."
+      "appliedNoLogo": "J’ai lu votre site : j’utilise ses couleurs, ses polices et ses photos. Vous pouvez changer la palette dans « Marques ».",
+      "project": "J’ai lu votre site et créé votre projet sur IDEM, avec votre charte graphique : votre logo et ses déclinaisons, vos couleurs, vos polices, votre direction artistique et vos motifs. Je l’applique à tout ce que je crée.",
+      "projectNoLogo": "J’ai lu votre site et créé votre projet sur IDEM, avec votre charte graphique : vos couleurs, vos polices, votre direction artistique. Ajoutez votre logo dans IDEM pour le voir sur vos créations.",
+      "openIdem": "Voir ma charte sur IDEM"
     },
     "empty": {
       "videoTitle": "Quelle vidéo voulez-vous ?",
@@ -527,7 +530,12 @@
         "voice": "Je saisis votre ton…",
         "art": "Je regarde votre direction artistique…",
         "done": "Lecture terminée.",
-        "copy": "Je garde vos images…"
+        "copy": "Je garde vos images…",
+        "project": "Je crée votre projet sur IDEM…",
+        "logo-variations": "Je décline votre logo…",
+        "typography": "Je récupère vos polices…",
+        "art-direction": "J’écris votre direction artistique…",
+        "patterns": "Je dessine vos motifs…"
       },
       "reference": {
         "probe": "J’ouvre le modèle…",
@@ -540,7 +548,8 @@
         "start": "Je prépare votre vidéo…"
       },
       "visual": {
-        "start": "Je compose votre visuel…"
+        "start": "Je compose votre visuel…",
+        "retouch": "Je retouche votre visuel…"
       },
       "videos": "Je prépare vos vidéos…",
       "montage": {
@@ -576,6 +585,9 @@
     "video": {
       "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « change le titre en … », « plus sobre », « sans musique » ou « ajoute une voix off ».",
       "revised": "C’est fait. Regardez la nouvelle version."
+    },
+    "visual": {
+      "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « change le prix en 4 500 F », « agrandis le titre » ou « enlève le sous-titre »."
     }
   },
   "edit": {

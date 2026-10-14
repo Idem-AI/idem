@@ -59,29 +59,8 @@ function keepImageWords(fragment: string | undefined, brandName: string | undefi
   return kept.join(', ');
 }
 
-export const MOCKUP_GENERATION_PROMPT = {
-  /**
-   * Consigne de vision : la scène porte-t-elle des lettres ou une marque, et où
-   * imprimer le logo ?
-   *
-   * La zone est demandée en BOÎTE, en coordonnées entières de 0 à 1000. Les
-   * deux formes précédentes échouaient : en fractions avec un exemple chiffré,
-   * la vision recopiait l'exemple (le logo tombait au même endroit sur chaque
-   * photo, en travers d'une anse) ; en fractions sans exemple, elle rendait des
-   * zéros. En boîte 0–1000, mesuré sur quatre scènes : quatre boîtes posées sur
-   * le produit.
-   */
-  sceneReadingVision: `You are given a product photograph.
-1. Is there ANY lettering, number, logo, monogram, emblem or brand mark visible anywhere in the photograph (on the product, on a prop, on a sign, a screen, a book or in the background), even small, blurred or misspelled? Stitching, seams, hardware and material texture do not count.
-2. Find the largest flat, evenly lit, unobstructed area on ONE face of the hero product: the place where a printed mark would go. It lies inside that single face, never across an edge or a corner between two faces, and clear of handles, ropes, straps, folds, tape, flaps and highlights.
-
-Answer with ONE JSON object and nothing else, no prose, no markdown fence:
-{"markings": true or false, "box": [x1, y1, x2, y2], "surface": "light" or "dark", "rotation": degrees}
-- box: top-left and bottom-right corners of that area, as integers from 0 to 1000 relative to the photograph's width and height; null when the product offers no such area.
-- surface: "light" when the area is bright, so dark ink reads on it; "dark" when it is dark, so light ink reads on it.
-- rotation: apparent tilt of that area in degrees, positive clockwise, from -45 to 45; 0 when it faces the camera.`,
-
-  buildDynamicPrompt: (params: {
+/** La scène du support (nue) : commune à la photo nue et à la photo imprimée du logo. */
+const buildScene = (params: {
     brandColors: { primary: string; secondary: string; accent: string };
     selectedSupport: SelectedMockupSupport;
     pdfFormat?: string;
@@ -93,6 +72,8 @@ Answer with ONE JSON object and nothing else, no prose, no markdown fence:
     artDirectionNegative?: string;
     /** Sujets de la direction artistique : photographie d'univers seulement. */
     imagerySubjects?: string;
+    /** La photo portera l'œuvre jointe en référence (scène IMPRIMÉE) : seules les AUTRES surfaces restent nues. */
+    printed?: boolean;
   }): string => {
     const { brandColors, selectedSupport, pdfFormat, brandName } = params;
 
@@ -133,10 +114,60 @@ Answer with ONE JSON object and nothing else, no prose, no markdown fence:
       '',
       imagery
         ? 'Clothes, walls and objects are plain and undecorated, with nothing written or drawn on them. Books, papers, screens and shopfronts stay out of the frame.'
-        : 'Every surface is plain and undecorated: bare material and uniform colour, with nothing written or drawn on it.',
+        : params.printed
+          ? 'Apart from that single print on the main face, every surface is plain and undecorated: bare material and uniform colour.'
+          : 'Every surface is plain and undecorated: bare material and uniform colour, with nothing written or drawn on it.',
       `Avoid: ${avoid}.`
     );
 
     return lines.join('\n');
+  };
+
+export const MOCKUP_GENERATION_PROMPT = {
+  /**
+   * Consigne de vision : la scène porte-t-elle des lettres ou une marque, et où
+   * imprimer le logo ?
+   *
+   * La zone est demandée en BOÎTE, en coordonnées entières de 0 à 1000. Les
+   * deux formes précédentes échouaient : en fractions avec un exemple chiffré,
+   * la vision recopiait l'exemple (le logo tombait au même endroit sur chaque
+   * photo, en travers d'une anse) ; en fractions sans exemple, elle rendait des
+   * zéros. En boîte 0–1000, mesuré sur quatre scènes : quatre boîtes posées sur
+   * le produit.
+   */
+  sceneReadingVision: `You are given a product photograph.
+1. Is there ANY lettering, number, logo, monogram, emblem or brand mark visible anywhere in the photograph (on the product, on a prop, on a sign, a screen, a book or in the background), even small, blurred or misspelled? Stitching, seams, hardware and material texture do not count.
+2. Find the largest flat, evenly lit, unobstructed area on ONE face of the hero product: the place where a printed mark would go. It lies inside that single face, never across an edge or a corner between two faces, and clear of handles, ropes, straps, folds, tape, flaps and highlights.
+
+Answer with ONE JSON object and nothing else, no prose, no markdown fence:
+{"markings": true or false, "box": [x1, y1, x2, y2], "surface": "light" or "dark", "rotation": degrees}
+- box: top-left and bottom-right corners of that area, as integers from 0 to 1000 relative to the photograph's width and height; null when the product offers no such area.
+- surface: "light" when the area is bright, so dark ink reads on it; "dark" when it is dark, so light ink reads on it.
+- rotation: apparent tilt of that area in degrees, positive clockwise, from -45 to 45; 0 when it faces the camera.`,
+
+  /**
+   * Relecture d'une mise en situation faite AVEC le logo : à gauche l'œuvre de référence, à droite la photo.
+   * Le logo doit y être reconnaissable (formes, caractères, couleurs) et rien d'autre ne doit être écrit.
+   */
+  logoCheckVision: `You are given ONE image made of two panels. LEFT panel: a reference artwork (a brand mark). RIGHT panel: a product photograph.
+1. Is the LEFT artwork reproduced on the product in the RIGHT photograph, and how faithfully: same shapes, same characters spelled the same way, same colours, same proportions? Score 0 (absent or unrecognisable) to 10 (identical, as if printed from the file).
+2. Is there ANY OTHER lettering, number, mark or emblem in the RIGHT photograph, besides that reproduction?
+Answer with ONE JSON object and nothing else: {"faithful": 0-10, "otherMarkings": true or false}`,
+
+  /**
+   * La scène AVEC le logo : la référence jointe à l'appel est l'œuvre de la marque, à reproduire telle quelle
+   * sur la face principale du support. Le prompt reste sans mot qui invite à écrire : seule la référence porte
+   * des caractères, le modèle les recopie au lieu d'en inventer.
+   */
+  buildPrintedScenePrompt: (params: Parameters<typeof buildScene>[0]): string => {
+    const scene = buildScene({ ...params, printed: true });
+    return [
+      scene,
+      '',
+      'The attached reference image is the exact artwork to print on the main face of the hero object: reproduce it faithfully — identical shapes, identical characters, identical colours and proportions, nothing redrawn or reinterpreted — as a real print suited to the material (ink, embroidery, emboss or engraving), centred on that face, about one third of its width, following its perspective, lighting and texture.',
+      'It is the ONLY mark in the photograph: every other surface stays bare.',
+    ].join('\n');
   },
+
+  buildDynamicPrompt: (params: Parameters<typeof buildScene>[0]): string => buildScene(params),
 };

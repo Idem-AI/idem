@@ -105,6 +105,8 @@ export interface BrandIdentityModel {
     generatedAt: Date;
     items: BrandPatternFileModel[];
   };
+  /** Le site d'où la marque a été importée (iVision) : son style relevé nourrit la direction artistique. */
+  siteSource?: { url: string; evidence?: string; importedAt: Date };
 }
 
 /** Un motif de marque déposé dans le stockage : une tuile SVG qui se répète. */

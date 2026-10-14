@@ -2326,7 +2326,9 @@ export class BrandingService extends GenericService {
   async generateArtDirection(
     userId: string,
     project: ProjectModel,
-    excludeStyleIds: string[] = []
+    excludeStyleIds: string[] = [],
+    /** Le style relevé sur le site de la marque (projet créé depuis un site) : la direction le codifie. */
+    siteEvidence?: string
   ): Promise<ArtDirectionModel> {
     const projectDescription = this.extractProjectDescription(project);
     const projectContext = this.extractProjectContext(projectDescription);
@@ -2347,6 +2349,8 @@ export class BrandingService extends GenericService {
       excludeStyleIds,
       // La mémoire des grammaires déjà données (toutes marques) : la prochaine ne les répète pas.
       recentGrammars: (await cacheService.get<string[]>(RECENT_GRAMMARS_KEY, { prefix: 'branding' }).catch(() => null)) ?? [],
+      // Une marque importée de son site garde ce style comme référence, régénération comprise.
+      ...((siteEvidence || branding?.siteSource?.evidence) ? { siteEvidence: siteEvidence || branding?.siteSource?.evidence } : {}),
     });
 
     setAiUsageContext({ feature: 'branding', element: 'art-direction' });
@@ -2388,7 +2392,7 @@ export class BrandingService extends GenericService {
     userId: string,
     projectId: string,
     project: ProjectModel,
-    opts: { force?: boolean; persist?: boolean } = {}
+    opts: { force?: boolean; persist?: boolean; siteEvidence?: string } = {}
   ): Promise<ArtDirectionModel | null> {
     const branding = project.analysisResultModel?.branding;
     if (!branding) return null;
@@ -2399,7 +2403,7 @@ export class BrandingService extends GenericService {
     try {
       const excluded =
         opts.force && branding.artDirection?.styleId ? [branding.artDirection.styleId] : [];
-      const direction = await this.generateArtDirection(userId, project, excluded);
+      const direction = await this.generateArtDirection(userId, project, excluded, opts.siteEvidence);
       direction.createdAt = branding.artDirection?.createdAt || new Date();
 
       // Mutation en mémoire d'abord : la génération en cours doit utiliser la

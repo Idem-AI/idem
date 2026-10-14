@@ -54,6 +54,8 @@ export interface ChatMessage {
   ask?: ChatAsk;
   /** La marque que ce message annonce (site lu, charte appliquée). */
   brandId?: string;
+  /** Le projet IDEM né du site lu : sa charte s'ouvre dans IDEM. */
+  idemProjectId?: string;
   result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string } | { kind: 'montage'; montageId: string };
   status?: 'done' | 'error';
   error?: string;

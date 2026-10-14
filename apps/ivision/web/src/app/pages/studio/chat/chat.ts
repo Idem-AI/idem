@@ -76,6 +76,11 @@ export class ChatPage {
   private readonly tours = inject(TourService);
   protected readonly accountUrl = `${environment.services.dashboard.url}/account`;
 
+  /** La charte du projet IDEM né d'un site : la page « Marque » du projet, ouvert d'office. */
+  protected idemBrandUrl(projectId: string): string {
+    return `${environment.services.dashboard.url}/project/branding?projectId=${encodeURIComponent(projectId)}`;
+  }
+
   /** Paramètres de route (liaison des entrées du routeur). */
   readonly modeParam = input<string>('video', { alias: 'mode' });
   readonly sessionId = input<string | undefined>(undefined);

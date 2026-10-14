@@ -83,6 +83,11 @@
           <div class="max-w-[92%] rounded-2xl rounded-bl-md border px-4 py-3"
             [class]="m.status === 'error' ? 'border-[var(--color-danger)]' : 'border-[var(--glass-border-subtle)]'">
             <p class="whitespace-pre-wrap">{{ messageText(m) }}</p>
+            @if (m.idemProjectId) {
+              <a class="inner-button button-sm mt-3 inline-flex" [href]="idemBrandUrl(m.idemProjectId)" target="_blank" rel="noopener">
+                <i class="pi pi-external-link" aria-hidden="true"></i> {{ 'chat.brand.openIdem' | translate }}
+              </a>
+            }
 
             <!-- Les réponses possibles, seulement sur la dernière question. -->
             @if (m.ask && m.id === lastAsk()?.id && !streaming()) {

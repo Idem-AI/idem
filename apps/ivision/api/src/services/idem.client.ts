@@ -96,6 +96,15 @@ async function call<T>(method: 'get' | 'post', path: string, body?: unknown, tim
 
 export type ModelTier = 'mechanical' | 'writing' | 'reasoning';
 
+/** L'avancement d'un import de site dans IDEM. */
+export interface SiteImportJobView {
+  jobId: string;
+  status: 'running' | 'done' | 'failed';
+  step: string;
+  result?: { projectId: string; reused: boolean; name: string; siteUrl: string; images: string[]; logo: boolean; fonts: { display: string; body: string; copied: string[] }; warnings: string[] };
+  error?: { code: string; message: string };
+}
+
 export const idem = {
   ai: {
     /** Copie et agents de la vidéo : l'étage que la jauge de créativité choisit. */
@@ -128,5 +137,8 @@ export const idem = {
     list: (userId: string) => call<{ projects: { id: string; name: string; hasBrand: boolean; primary?: string; updatedAt?: string }[] }>('get', `/projects?userId=${encodeURIComponent(userId)}`),
     /** La charte d'un projet IDEM de l'utilisateur, au format du moteur partagé (BrandKit). */
     brand: (userId: string, projectId: string) => call<{ name: string; branding: any; voice: any; photos: string[] }>('get', `/projects/${encodeURIComponent(projectId)}/brand?userId=${encodeURIComponent(userId)}`),
+    /** Un projet IDEM complet depuis un site (projet, logo et déclinaisons, palettes, polices, direction, motifs) : tâche de fond. */
+    fromSite: (userId: string, url: string) => call<{ jobId: string; status: string; step: string }>('post', '/projects/from-site', { userId, url }, 20_000),
+    fromSiteJob: (userId: string, jobId: string) => call<SiteImportJobView>('get', `/projects/from-site/${encodeURIComponent(jobId)}?userId=${encodeURIComponent(userId)}`, undefined, 15_000),
   },
 };

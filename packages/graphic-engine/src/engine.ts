@@ -190,7 +190,8 @@ export class GraphicDocument {
     const meta: SectionMeta = { brandName: this.options.brand.name, documentLabel: this.options.documentLabel, index: slot.index, total: o.total ?? (this.plan.order.length || undefined), footer: this.options.footer ?? this.plan.footer };
     const ctx = createComposeContext({ section, analysis, plan: this.plan, slot, tokens: this.tokens, meta, memory: this.memory, policy: this.policy, imageColors: this.options.imageColors });
     const fixed = this.tokens.format.kind === 'fixed';
-    const critic = atLeast(level, 'high') && fixed && Boolean(engineHost().analyzeImage) && this.budget.allows(TASK_POLICIES.critic.maxTokens);
+    // Une page rejouée (retouche) n'est plus jugée : c'est la composition que l'utilisateur a choisi de garder.
+    const critic = !o.replay && atLeast(level, 'high') && fixed && Boolean(engineHost().analyzeImage) && this.budget.allows(TASK_POLICIES.critic.maxTokens);
     const shoot = Boolean(this.options.png) || critic;
     const call = this.agent();
     const brandName = this.options.brand.name;
@@ -289,7 +290,7 @@ export class GraphicDocument {
       }
     }
     // Le repli est DIT : l'arbre d'auteur n'a pas pu être rendu sans défaut bloquant, une composition éprouvée le remplace.
-    if (authored && final.spec.pattern.id !== 'authored') recorder.repair({ code: 'author_fallback', detail: `arbre d'auteur bloquant : repli sur ${final.spec.pattern.id}`, by: 'code' });
+    if (!o.replay && authored && final.spec.pattern.id !== 'authored') recorder.repair({ code: 'author_fallback', detail: `arbre d'auteur bloquant : repli sur ${final.spec.pattern.id}`, by: 'code' });
 
     // ── 3. Réparation ciblée (High+) quand le code n'a pas su ─────────────────────────────
     const blocking = final.issues.filter((i) => i.severity === 'blocking');
@@ -455,9 +456,10 @@ export class GraphicDocument {
 export const createDocument = (options: DocumentOptions): Promise<GraphicDocument> => GraphicDocument.create(options);
 
 /** Une toile d'une seule section (une face de carte, un visuel, une couverture de réseau). */
-export async function renderSingle(options: DocumentOptions & { content: SectionContent }): Promise<SectionOutput> {
+export async function renderSingle(options: DocumentOptions & { content: SectionContent; replay?: SectionSpec }): Promise<SectionOutput> {
   const doc = await createDocument({ ...options, sections: [{ id: options.content.id, role: options.content.role }] });
-  const out = await doc.composeSection(options.content, { index: 1, total: 1 });
+  // `replay` : une page RETOUCHÉE — son arbre est rejoué tel quel (mesure et réparations du code comprises).
+  const out = await doc.composeSection(options.content, { index: 1, total: 1, ...(options.replay ? { replay: options.replay } : {}) });
   await doc.remember();
   return out;
 }

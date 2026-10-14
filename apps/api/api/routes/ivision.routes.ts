@@ -30,6 +30,7 @@ import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
 import { setTraceUserId } from '../utils/trace.util';
 import { safeEqual } from '../utils/safe-equal.util';
 import type { BrandKit } from '../../../ivision/core/src/brand/brand-kit';
+import { siteImportJobs } from '../services/SiteImport/siteProject.service';
 
 const router = Router();
 const communicationService = new CommunicationService(new PromptService());
@@ -279,7 +280,7 @@ router.get(
 /** Ce qu'une charte IDEM apporte au moteur : couleurs, polices, logos, direction artistique. */
 function brandKitOf(branding: BrandKit | null | undefined): BrandKit | null {
   if (!branding) return null;
-  return { colors: branding.colors ?? null, typography: branding.typography ?? null, logo: branding.logo ?? null, artDirection: branding.artDirection ?? null };
+  return { colors: branding.colors ?? null, typography: branding.typography ?? null, logo: branding.logo ?? null, artDirection: branding.artDirection ?? null, patterns: branding.patterns ?? null };
 }
 
 router.get(
@@ -325,6 +326,42 @@ router.get(
       // Les photos des visuels déjà faits : payées, à la charte, réutilisables.
       photos: (analysis?.communication?.visuals || []).map((v) => v.backgroundImageUrl).filter((u): u is string => !!u).slice(0, 24),
     });
+  })
+);
+
+/**
+ * Un PROJET IDEM depuis le site de l'utilisateur (lien collé dans iVision) : projet, logo et déclinaisons,
+ * palettes, typographie (fichiers du site recopiés s'ils ne sont dans aucun catalogue public), direction
+ * artistique, motifs. Lancé en tâche de fond ; iVision suit l'avancement.
+ */
+router.post(
+  '/projects/from-site',
+  route(async (req, res) => {
+    const userId = userIdOf(req);
+    const url = text(req.body?.url, 2000);
+    if (!userId || !url) {
+      res.status(400).json({ error: 'invalid_input' });
+      return;
+    }
+    const job = await asUser(req, 'branding', () =>
+      siteImportJobs.start(userId, url, {
+        text: (system, user, tier) => communicationService.runVideoTieredPrompt(userId, system, user, tier, 'copy'),
+        vision: (base64, mimeType, instruction) => idemAnalyzeImage(base64, mimeType, instruction, { maxOutputTokens: 1400, temperature: 0.2, purpose: 'site' }),
+      })
+    );
+    res.status(202).json({ jobId: job.id, status: job.status, step: job.step });
+  })
+);
+
+router.get(
+  '/projects/from-site/:jobId',
+  route(async (req, res) => {
+    const job = await siteImportJobs.get(userIdOf(req), String(req.params.jobId));
+    if (!job) {
+      res.status(404).json({ error: 'job_not_found' });
+      return;
+    }
+    res.json({ jobId: job.id, status: job.status, step: job.step, ...(job.result ? { result: job.result } : {}), ...(job.error ? { error: job.error } : {}) });
   })
 );
 

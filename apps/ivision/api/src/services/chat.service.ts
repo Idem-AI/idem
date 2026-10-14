@@ -6,9 +6,9 @@
  * neutres, ou celles que la demande nomme : « en bleu et or »). L'interface propose, sans
  * insister, d'ajouter son site, sa charte ou ses couleurs. Un tour suit toujours le même chemin :
  *
- *   1. un lien de site dans le message → le site est lu (couleurs, polices, logo, photos), la
- *      marque s'applique aussitôt et la demande continue (les autres palettes restent dans
- *      « Marques » pour changer d'avis) ;
+ *   1. un lien de site dans le message → le site devient un PROJET IDEM avec sa charte (logo et
+ *      déclinaisons, palettes, polices du site, direction artistique, motifs) ; cette charte
+ *      s'applique aussitôt, la demande continue, et un lien ouvre le projet dans IDEM ;
  *   2. pas de marque (conversation ancienne) → une marque provisoire, et on continue ;
  *   3. pas de modèle cité → « Avez-vous une vidéo (une image) modèle ? » — à chaque demande ;
  *      « non » est une réponse, pas un oubli ;
@@ -31,7 +31,7 @@ import logger from '../config/logger';
 import { HttpError } from '../middleware/error';
 import type { ChatAsk, ChatAttachment, ChatMessage, ChatMode, ChatOptions, ChatSession, IvisionBrand, IvisionReference } from '../models';
 import { charge, Charge, PaymentRequired, quote, refund } from './billing';
-import { applyNamedColors, brandView, createAutoBrand, getBrand, scanBrand } from './brands.service';
+import { applyNamedColors, brandFromSite, brandView, createAutoBrand, getBrand } from './brands.service';
 import { colorsNamed } from '../../../core/src/brand/color-words';
 import { blueprintOf, getReference, referenceView } from './references.service';
 import { createVideo, motionVideos, scopeOf } from './videos.service';
@@ -45,7 +45,7 @@ import { buildVideoRevisionPrompt, parseVideoRevision, videoSettingsFromText } f
 import { MAX_REQUEST_CHARS, parseRequest } from '../../../core/src/video/video.request';
 import { titleCase } from '../../../core/src/video/motionVideo.service';
 import { idem } from './idem.client';
-import { createVisual, getVisual, visualView } from './visuals.service';
+import { createVisual, getVisual, retouchVisual, visualView } from './visuals.service';
 
 const sessions = () => collection<ChatSession>('sessions');
 const now = () => new Date().toISOString();
@@ -159,11 +159,19 @@ export function messageOf(request: string): string {
 }
 
 /**
- * Un RETOUR sur le visuel précédent, pas une nouvelle demande : « ce n'est pas pro », « propose
- * autre chose », « refais », « plus sobre ». La demande d'origine est rejouée autrement ; la
- * phrase de l'utilisateur n'est jamais le texte du visuel.
+ * Un REJET du visuel précédent, pas une retouche : « ce n'est pas pro », « propose autre chose », « refais ».
+ * La demande d'origine est rejouée autrement ; la phrase de l'utilisateur n'est jamais le texte du visuel.
+ * Une consigne précise (« change le prix », « plus grand le titre », « enlève le fond ») est une RETOUCHE :
+ * le même visuel, modifié (`retouchVisual`).
  */
-const FEEDBACK = /(pas (?:assez |tr[eè]s )?(?:pro|professionn?el|beau|terrible|top|bien)|moche|nul|bof|autre chose|une? autre (?:version|proposition|id[ée]e)|propose[rz]? (?:autre|encore|mieux)|refai[st]|recommence|essaie encore|encore une|change[rz]?|plus (?:sobre|color[ée]|lisible|moderne|pro|grand|petit|clair|sombre|simple|[ée]pur[ée])|moins (?:charg[ée]|color[ée]|sombre|clair)|je n.aime pas|[çc]a ne (?:me )?(?:pla[iî]t|va) pas|not (?:professional|good)|try again|another one)/i;
+const FEEDBACK = /(pas (?:assez |tr[eè]s )?(?:pro|professionn?el|beau|terrible|top|bien)|moche|nul|bof|autre chose|une? autre (?:version|proposition|id[ée]e|mise en page|composition)|propose[rz]? (?:autre|encore|mieux)|refai[st]|recommence|essaie encore|encore une|plus (?:pro|professionn?el|moderne|beau)|je n.aime pas|[çc]a ne (?:me )?(?:pla[iî]t|va) pas|not (?:professional|good)|try again|another one)/i;
+
+/** Un AUTRE visuel demandé en clair (et non une retouche du visuel en cours). */
+const NEW_VISUAL = /\b(?:nouveau|nouvelle|autre|deuxi[eè]me|second)\s+(?:visuel|affiche|flyer|publication|post|story|banni[eè]re|image)|^\s*(?:(?:fais|cr[ée]e|g[ée]n[èe]re)(?:-moi)?|je veux|je voudrais|j['’]aimerais)\s+(?:une?|des)\s+(?:visuels?|affiches?|flyers?|publications?|posts?|stor(?:y|ies)|banni[eè]res?|images?)|^\s*une?\s+(?:petite?\s+)?(?:affiche|visuel|flyer|publication|post|story|banni[eè]re)\s+(?:pour|sur|qui|de|annon)|\bnew (?:visual|poster|post|flyer)|\banother (?:visual|poster|flyer)|^\s*an? (?:poster|visual|flyer|post) (?:for|about)/i;
+
+export function isNewVisual(text: string): boolean {
+  return NEW_VISUAL.test(text);
+}
 
 export function isFeedback(text: string): boolean {
   return FEEDBACK.test(text) && text.split(/\s+/).length <= 16;
@@ -363,6 +371,33 @@ async function reviseMontage(userId: string, session: ChatSession, montageId: st
   emit({ type: 'result', message: msg, montage: updated });
 }
 
+/** La retouche écrite du dernier visuel ; faux si le message demandait en fait un autre visuel. */
+async function retouch(userId: string, session: ChatSession, brand: IvisionBrand, visualId: string, text: string, emit: (e: ChatEvent) => void, language: string, photoUrl?: string): Promise<boolean> {
+  const previous = await getVisual(userId, visualId).catch(() => null);
+  if (!previous) return false;
+  emit({ type: 'status', key: 'chat.status.visual.retouch', text: 'Je retouche votre visuel…' });
+  const done = await retouchVisual(userId, brand, previous, text, { language, ...(photoUrl ? { photoUrl } : {}), sessionId: session._id });
+  if (done.outcome === 'new-request') return false;
+  const en = language.startsWith('en');
+  if (done.outcome === 'not-understood' || !done.visual) {
+    const msg = message('assistant', en ? 'I did not understand what to change. Say for example “change the price to 4,500 F”, “make the title bigger” or “remove the subtitle”.' : 'Je n’ai pas compris ce qu’il faut changer. Dites par exemple « change le prix en 4 500 F », « agrandis le titre » ou « enlève le sous-titre ».', { i18n: { key: 'chat.visual.notUnderstood' } });
+    await push(session._id, msg);
+    emit({ type: 'message', message: msg });
+    return true;
+  }
+  // La réponse dit ce qui a VRAIMENT changé : une nouvelle mise en page, une consigne non appliquée, les retouches
+  // faites à la main dans l'éditeur (que la retouche écrite ne peut pas reprendre).
+  const notes: string[] = [];
+  if (done.outcome === 'recomposed') notes.push(en ? 'I recomposed the layout so that everything fits.' : 'J’ai recomposé la mise en page pour que tout tienne.');
+  if (done.rejected.length) notes.push(en ? 'Part of your request could not be applied as asked: tell me more precisely what to change.' : 'Une partie de la demande n’a pas pu être appliquée telle quelle : précisez-moi ce qu’il faut changer.');
+  if (done.handEdited) notes.push(en ? 'The changes you made by hand in the editor are not kept in this version.' : 'Les changements faits à la main dans l’éditeur ne sont pas repris dans cette version.');
+  const said = [done.reply || (en ? 'Done: here is your retouched visual.' : 'C’est fait : voici votre visuel retouché.'), ...notes].join(' ');
+  const msg = message('assistant', said, { result: { kind: 'visual', visualId: done.visual._id }, status: 'done' });
+  await push(session._id, msg, {}, ['pending']);
+  emit({ type: 'result', message: msg, visual: visualView(done.visual) });
+  return true;
+}
+
 const MONTAGE_REFUSALS: Record<string, string> = {
   unreadable_video: 'Je n’ai pas pu lire ces vidéos. Essayez un MP4 ou un MOV.',
   no_audio: 'Aucune de ces vidéos n’a de son : ajoutez celle où vous parlez.',
@@ -425,10 +460,11 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
       return false;
     }
   })();
-  if (url && (!brand || rest.length < 12 || !sameSite)) {
+  // Une marque lue AVANT que le site devienne un projet IDEM (pas de projet lié) est refaite une fois.
+  if (url && (!brand || rest.length < 12 || !sameSite || !brand.idemProjectId)) {
     emit({ type: 'status', key: 'chat.status.scan.open', text: 'Je visite votre site…' });
     try {
-      brand = await scanBrand(userId, url, (step) => emit({ type: 'status', key: `chat.status.scan.${step}`, text: 'Lecture du site…' }));
+      brand = await brandFromSite(userId, url, (step) => emit({ type: 'status', key: `chat.status.scan.${step}`, text: 'Lecture du site…' }));
     } catch (error) {
       const known = error instanceof SiteScanError;
       logger.warn('chat.scan_failed', { event: 'chat.scan_failed', error });
@@ -440,11 +476,18 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     emit({ type: 'brand', brand: brandView(brand) });
     await sessions().updateOne({ _id: session._id }, { $set: { brandId: brand._id } });
     session.brandId = brand._id;
-    // La marque s'applique aussitôt : on le dit, et la demande continue (rien à valider).
-    const read = message('assistant', `J’ai lu votre site : j’utilise ses couleurs, ses polices${brand.kit.logo ? ', son logo' : ''} et ses photos. Vous pouvez changer la palette dans « Marques ».`, {
-      i18n: { key: brand.kit.logo ? 'chat.brand.applied' : 'chat.brand.appliedNoLogo', params: { name: brand.name } },
-      brandId: brand._id,
-    });
+    // La marque s'applique aussitôt : on le dit, et la demande continue (rien à valider). Née d'un projet IDEM,
+    // sa charte complète s'ouvre dans IDEM — où l'utilisateur peut continuer (business plan, deck, site…).
+    const read = brand.idemProjectId
+      ? message('assistant', `J’ai lu votre site et créé votre projet sur IDEM, avec votre charte graphique : ${brand.kit.logo ? 'votre logo et ses déclinaisons, ' : ''}vos couleurs, vos polices, votre direction artistique et vos motifs. Je l’applique à tout ce que je crée.`, {
+          i18n: { key: brand.kit.logo ? 'chat.brand.project' : 'chat.brand.projectNoLogo', params: { name: brand.name } },
+          brandId: brand._id,
+          idemProjectId: brand.idemProjectId,
+        })
+      : message('assistant', `J’ai lu votre site : j’utilise ses couleurs, ses polices${brand.kit.logo ? ', son logo' : ''} et ses photos. Vous pouvez changer la palette dans « Marques ».`, {
+          i18n: { key: brand.kit.logo ? 'chat.brand.applied' : 'chat.brand.appliedNoLogo', params: { name: brand.name } },
+          brandId: brand._id,
+        });
     await push(session._id, read);
     emit({ type: 'message', message: read });
   }
@@ -519,6 +562,13 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
       }
       if (last.result.kind === 'video' && (await reviseMotion(userId, session, last.result.videoId, written, emit, language || 'fr'))) return;
     }
+  }
+
+  // Une RETOUCHE du dernier visuel (« change le prix en 4 500 F », « agrandis le titre », « mets le logo en bas ») :
+  // le même visuel, modifié là où l'utilisateur le dit — sauf rejet (« pas pro ») ou nouvelle demande en clair.
+  if (session.mode === 'image' && !url && written && !input.referenceId && !input.noReference && !input.resume && !isFeedback(written) && !NEW_VISUAL.test(written)) {
+    const last = [...session.messages].reverse().find((m) => m.result?.kind === 'visual');
+    if (last?.result?.kind === 'visual' && (await retouch(userId, session, brand, last.result.visualId, written, emit, language || 'fr', photoUrl || media.find((m) => m.kind === 'image')?.url))) return;
   }
 
   // Un retour sur le visuel précédent (« pas pro, autre chose ») : la même demande, autrement.

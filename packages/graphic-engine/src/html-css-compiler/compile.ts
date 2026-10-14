@@ -292,7 +292,14 @@ function compileLogo(node: Extract<NodeT, { t: 'logo' }>, ctx: CompileContext, e
     // centre) au lieu d'être étirée sur toute la largeur et recentrée par `object-fit`.
     return `<div data-ge-logo style="line-height:0;min-width:0"${node.id ? ` data-el="${escAttr(node.id)}"` : ''}><img src="${escAttr(url)}" alt="${escAttr(`Logo ${ctx.tokens.brand.name}`)}" style="${css({ display: 'block', height: Math.round(height), width: 'auto', 'max-width': '100%', 'object-fit': 'contain' })}"></div>`;
   }
-  // Sans fichier lisible sur ce fond : le nom de la marque, composé en mot-symbole. Jamais un logo inventé.
+  // Fond sombre sans déclinaison pour fond sombre : le VRAI logo, posé sur un cartouche clair — un visuel porte
+  // toujours le logo de la marque, jamais son nom composé à sa place.
+  const primary = darkSurface && want !== 'icon' ? safeUrl(logos.primary ?? logos.onLight) : undefined;
+  if (primary) {
+    const pad = Math.round(height * 0.28);
+    return `<div data-ge-logo style="${css({ 'line-height': 0, 'min-width': 0, display: 'inline-block', 'align-self': 'flex-start', background: ctx.tokens.color.ground, padding: `${pad}px ${Math.round(pad * 1.4)}px`, 'border-radius': Math.round(pad * 0.8) })}"${node.id ? ` data-el="${escAttr(node.id)}"` : ''}><img src="${escAttr(primary)}" alt="${escAttr(`Logo ${ctx.tokens.brand.name}`)}" style="${css({ display: 'block', height: Math.round(height), width: 'auto', 'max-width': '100%', 'object-fit': 'contain' })}"></div>`;
+  }
+  // Sans aucun fichier de logo : le nom de la marque, composé en mot-symbole. Jamais un logo inventé.
   if (!ctx.tokens.brand.name.trim()) return '';
   return `<p data-ge-wordmark style="${css({ margin: 0, 'font-family': ctx.tokens.font.displayStack, 'font-weight': 700, 'font-size': Math.round(height * 0.62), 'line-height': 1, 'letter-spacing': '-0.01em', color: inkHex('heading', ctx, env.surface, true), 'white-space': 'nowrap' })}">${esc(ctx.tokens.brand.name)}</p>`;
 }

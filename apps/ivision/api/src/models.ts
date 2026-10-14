@@ -14,6 +14,9 @@ import type { MotionVideo, VideoMediaAsset } from '../../core/src/video/video.mo
 import type { MontageVideo } from '../../core/src/montage/montage.model';
 import type { CreativityLevel } from '../../core/src/creativity/levels';
 import type { FlyerFormat } from '../../core/src/visual/visual.model';
+import type { WrittenCopy } from '../../core/src/visual/visual.copy';
+import type { VisualPhotoRef } from '../../core/src/visual/visual.composer';
+import type { SectionSpec } from '@idem/graphic-engine';
 
 export type ChatMode = 'image' | 'video';
 
@@ -89,6 +92,8 @@ export interface ChatMessage {
   error?: string;
   /** La marque que ce message annonce (site lu, charte appliquée). */
   brandId?: string;
+  /** Le projet IDEM né du site lu : l'interface propose d'ouvrir sa charte dans IDEM. */
+  idemProjectId?: string;
 }
 
 /** Les réglages d'une demande (bandeau du compositeur). */
@@ -163,6 +168,15 @@ export interface IvisionVisual {
   createdAt: string;
   /** Dernière retouche dans l'éditeur (HTML et image re-rendue). */
   updatedAt?: string;
+  /** Les mots, la photo, la graine et l'arbre de la page : une retouche les modifie et REJOUE la même page. */
+  copy?: WrittenCopy;
+  photo?: VisualPhotoRef;
+  seed?: string;
+  spec?: SectionSpec;
+  /** Le visuel dont celui-ci est la retouche (le fil de la conversation garde chaque version). */
+  parentId?: string;
+  /** Retouché à la main dans l'éditeur : son HTML ne correspond plus à son arbre. */
+  handEdited?: boolean;
 }
 
 /** Une vidéo d'iVision : la vidéo du moteur, rangée sous sa marque. */

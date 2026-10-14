@@ -42,6 +42,8 @@ import { slideDiet } from '../src/agents/slide-diet';
 import { sectionTextLoad, TEXT_BUDGETS } from '../src/composition-engine/analyze';
 import { sectionFromModel } from '../src/adapters/sections';
 import { contentContract } from '../src/agents/content-contract';
+import { applySpecOps, settleTree, specOutline } from '../src/agents/spec-edit';
+import { renderSingle } from '../src/engine';
 
 const fast = process.argv.includes('--fast');
 let failures = 0;
@@ -270,6 +272,27 @@ async function main(): Promise<void> {
   const fieldTree = parseAuthored(JSON.stringify({ root: { t: 'layer', items: [{ at: { x: 0, y: 0, w: 100, h: 70 }, node: { t: 'image', ref: 'photo' } }, { at: { x: 6, y: 72, w: 70, h: 20 }, node: { t: 'text', role: 'display', ref: 'copy.headline' } }, { at: { x: 70, y: 8, w: 24, h: 14 }, z: 3, node: { t: 'box', surface: 'accent', children: [{ t: 'text', role: 'figure', ref: 'copy.offer' }] } }] } }), shoe, FORMATS['flyer-square']);
   const ft = JSON.stringify(fieldTree?.root ?? {});
   ok('auteur (visuel) : titre et prix posés séparément, composition gardée ; le sous-titre oublié est ajouté', Boolean(fieldTree) && fieldTree!.root.t !== 'block' && ft.includes('copy.headline') && ft.includes('copy.offer') && ft.includes('copy.subhead') && !ft.includes('"t":"block","ref":"copy"'));
+  ok('auteur (visuel) : le logo oublié est AJOUTÉ (un visuel porte toujours le logo)', ft.includes('"t":"logo"') && Boolean(fieldTree?.repaired.some((r) => r.includes('logo'))));
+  const withLogo = parseAuthored(JSON.stringify({ root: { t: 'stack', children: [{ t: 'logo' }, { t: 'block', ref: 'copy' }, { t: 'image', ref: 'photo' }] } }), shoe, FORMATS['flyer-square']);
+  ok('auteur (visuel) : un logo déjà posé n’est pas doublé', (JSON.stringify(withLogo?.root).match(/"t":"logo"/g) ?? []).length === 1);
+  // La RETOUCHE ciblée : l'arbre numéroté, des opérations appliquées une à une, l'arbre rapproché des mots.
+  const kept = { root: fieldTree!.root, decor: fieldTree!.decor };
+  const outline = specOutline(kept);
+  const headlineId = outline.match(/"#":"(n\d+)","t":"text","role":"display","ref":"copy.headline"/)?.[1];
+  const logoId = outline.match(/"#":"(n\d+)","t":"logo"/)?.[1];
+  const patched = applySpecOps(kept, [
+    { op: 'set', id: headlineId, props: { size: '6xl', ink: 'accent', text: 'texte libre interdit' } },
+    { op: 'set', id: logoId, props: { at: { x: 6, y: 86, w: 24, h: 10 }, height: 'lg' } },
+    { op: 'set', id: headlineId, props: { size: 'géant' } },
+    { op: 'remove', id: 'n999' },
+  ]);
+  const pt = JSON.stringify(patched.root);
+  ok('retouche : arbre numéroté, chaque nœud désignable', Boolean(headlineId && logoId));
+  ok('retouche : propriétés changées (taille, encre, logo agrandi), position ignorée hors d’un calque, texte libre ignoré, opérations invalides refusées une à une', pt.includes('"size":"6xl"') && pt.includes('"ink":"accent"') && pt.includes('"height":"lg"') && !pt.includes('"y":86') && !pt.includes('texte libre') && patched.applied.length === 2 && patched.rejected.length === 2, `${patched.applied} / ${patched.rejected} / ${pt.slice(0, 600)}`);
+  const shoeEdited = { ...shoe, blocks: [{ id: 'copy', kind: 'copy' as const, headline: 'Vos baskets du week-end', offer: '4 500 F CFA', facts: [{ text: '+237 6 99 00 00 00' }] }, shoe.blocks[1]] };
+  const settled = settleTree(patched.root, patched.decor, shoeEdited as never, { requireLogo: true });
+  const st = JSON.stringify(settled.root);
+  ok('retouche : le sous-titre retiré des mots disparaît de la page, le contact AJOUTÉ se pose à côté de ses voisins, le logo reste', !st.includes('copy.subhead') && st.includes('copy.facts.0.text') && st.includes('"t":"logo"') && st.includes('"ref":"photo"'));
   const critique = parseCritique('{"hierarchy":4,"alignment":5,"legibility":2,"brand":4,"balance":4,"fit":4}');
   ok('critique : six critères, le plus faible compte double', critique?.weakest === 'legibility' && critique.score === Math.round(((4 + 5 + 2 + 4 + 4 + 4 + 2) / 7) * 100) / 100);
   ok('réparation ciblée : action du menu lue, action inventée refusée', parseRepair('{"action":"compact:b1"}', 2, ['b1'])?.kind === 'compact' && parseRepair('{"action":"rewrite everything"}', 2, ['b1']) === undefined);
@@ -460,6 +483,15 @@ async function main(): Promise<void> {
       { name: 'carte', documentType: 'business-card' as const, format: 'card-landscape' as const, brand: BRANDS.kora, sections: [CARD_FRONT, CARD_BACK], bindings: 'markers' as const },
       { name: 'visuel', documentType: 'flyer' as const, format: 'flyer-square' as const, brand: BRANDS.kofi, sections: [flyer(true, { a: '#3a1c4a', b: '#d6246e', c: '#1f1530' })] },
     ];
+    // RETOUCHE rejouée : la même page (même composition), un mot changé, le titre agrandi — rien d'autre ne bouge.
+    {
+      const flyerSection = flyer(true, { a: '#3a1c4a', b: '#d6246e', c: '#1f1530' });
+      const first = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kofi, seed: 'check:retouche', content: flyerSection });
+      const textNode = specOutline(first.spec).match(/"#":"(n\d+)","t":"text"/)?.[1];
+      const ops = applySpecOps(first.spec, textNode ? [{ op: 'set', id: textNode, props: { emphasis: 'underline' } }] : []);
+      const replay = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kofi, seed: 'check:retouche', content: flyerSection, replay: { ...first.spec, root: ops.root } });
+      ok('retouche rejouée : même composition, la modification appliquée, sans défaut bloquant', replay.spec.pattern.id === first.spec.pattern.id && ops.applied.length === 1 && replay.result.html !== first.result.html && !replay.result.issues.some((x) => x.severity === 'blocking'), `${first.spec.pattern.id} → ${replay.spec.pattern.id}`);
+    }
     for (const job of jobs) {
       const doc = await createDocument({ documentType: job.documentType, format: job.format, brand: job.brand, direction: { styleId: (job.brand as { styleId?: string }).styleId }, seed: `check:${job.name}`, sections: job.sections.map((s) => ({ id: s.id, role: s.role })), bindings: 'bindings' in job ? job.bindings : undefined });
       const silhouettes: string[] = [];

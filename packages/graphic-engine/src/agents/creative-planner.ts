@@ -20,6 +20,7 @@ import type { DocumentPlan } from '../composition-engine/plan';
 import { componentsFor } from '../design-system/components/registry';
 import type { FormatDef } from '../design-system/formats';
 import { parseJsonObject } from '../orchestrator/run-task';
+import { ensureLogo } from './logo-guard';
 
 /** Le contenu résumé pour un agent : types, volumes, jamais le texte. */
 export function describeSection(section: SectionContent, a: ContentAnalysis): string {
@@ -161,7 +162,7 @@ export function authorPrompt(plan: DocumentPlan, brand: string, format: FormatDe
     return `- ${b.id}: ${b.kind}, weight ${b.weight.toFixed(2)}${b.wide ? ', needs full width' : ''}${extra}${fieldList}${v ? ` — variants ${v}` : ''}`;
   });
   return {
-    system: `${header(plan, brand, format, grammar)} DESIGN this page yourself: invent a composition (not a common template) that makes its message understood at a glance — show rather than write — with a clear hierarchy and a strong, professional silhouette.\n${GRAMMAR}\nRULES: place EVERY block exactly once (a "block" node, an "image" node for a picture, or point by point); never write words (texts are refs only); no colours or CSS (tokens only); at most 9 levels and 60 nodes; ${format.kind === 'flow' ? 'the root MUST be a stack whose children are rows (the page is paginated)' : 'the root fills the page; mark the region that should absorb space with "grow": true'}. Decorations (optional) go in "decor": [{"at": {"x","y","w","h"} in % of the page, "node": shape|box}] and never sit under text with opacity above 0.15.\nAnswer with JSON only: {"root": <node>, "decor": [ … ]}.`,
+    system: `${header(plan, brand, format, grammar)} DESIGN this page yourself: invent a composition (not a common template) that makes its message understood at a glance — show rather than write — with a clear hierarchy and a strong, professional silhouette.\n${GRAMMAR}\nRULES: place EVERY block exactly once (a "block" node, an "image" node for a picture, or point by point);${format.family === 'visual' ? ' the brand LOGO is mandatory: exactly one "logo" node, clearly visible;' : ''} never write words (texts are refs only); no colours or CSS (tokens only); at most 9 levels and 60 nodes; ${format.kind === 'flow' ? 'the root MUST be a stack whose children are rows (the page is paginated)' : 'the root fills the page; mark the region that should absorb space with "grow": true'}. Decorations (optional) go in "decor": [{"at": {"x","y","w","h"} in % of the page, "node": shape|box}] and never sit under text with opacity above 0.15.\nAnswer with JSON only: {"root": <node>, "decor": [ … ]}.`,
     user: `CONTENT: ${describeSection(section, a)}\nTEXT REFS: title${section.kicker ? ', kicker' : ''}${section.lede ? ', lede' : ''}\nBLOCKS:\n${blocks.join('\n')}\n${reference ? referenceLines(reference) : intentLines(section, references)}\n${reference ? '' : `OTHER PAGES ALREADY USE: ${previous.slice(-5).join(' | ') || 'nothing yet'} — make this one different.`}`,
   };
 }
@@ -339,8 +340,6 @@ export function parseAuthored(raw: string, section: SectionContent, format: Form
     else if ('children' in root) root.children.push(...added);
     if (missing.length) repaired.push(`${missing.length} bloc(s) oublié(s) ajouté(s) en fin de page`);
   }
-  const checked = validateNode(root);
-  if (!checked.ok || !checked.value) return undefined;
   const decor: DecorItem[] = Array.isArray(o.decor)
     ? (o.decor as unknown[])
         .map((d) => {
@@ -353,6 +352,14 @@ export function parseAuthored(raw: string, section: SectionContent, format: Form
         .filter((x): x is DecorItem => Boolean(x))
         .slice(0, 4)
     : [];
+  // Un visuel porte TOUJOURS le logo de la marque : oublié par l'auteur, il est posé là où il gêne le moins.
+  if (format.family === 'visual') {
+    const logo = ensureLogo(root, decor);
+    if (logo.added) repaired.push('logo absent : ajouté');
+    root = logo.root;
+  }
+  const checked = validateNode(root);
+  if (!checked.ok || !checked.value) return undefined;
   let nodes = 0;
   walk(checked.value, () => (nodes += 1));
   if (nodes > 80) return undefined;

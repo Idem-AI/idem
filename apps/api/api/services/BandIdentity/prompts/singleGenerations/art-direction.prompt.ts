@@ -37,6 +37,11 @@ export interface ArtDirectionPromptInput {
    * cette mémoire, le modèle ressort la même formule de projet en projet (« grand titre ferré à gauche… »).
    */
   recentGrammars?: string[];
+  /**
+   * Ce que le SITE de la marque montre de son style (projet créé depuis un site) : relevés du navigateur et
+   * lecture de la capture. La direction CODIFIE alors cette marque existante au lieu d'en inventer une.
+   */
+  siteEvidence?: string;
 }
 
 export function buildArtDirectionPrompt(input: ArtDirectionPromptInput): string {
@@ -59,6 +64,20 @@ ${input.logoConcept ? `Logo concept: ${input.logoConcept}` : ''}
 ${input.logoType ? `Logo type: ${input.logoType}` : ''}
 </brand_brief>
 
+${
+  input.siteEvidence
+    ? `<existing_brand>
+This brand ALREADY EXISTS: it has a website, and its clients know its look. Your job is to CODIFY that look, not to
+reinvent it. Pick the catalogue style CLOSEST to what the site shows; derive the grid, the signature move, the
+recipes, the graphic devices, the typographic treatment (case, weight, tracking, scale) and the corner shapes FROM
+the evidence below, so that a visual made with this direction looks like it comes from the same studio as the site.
+Where the evidence is silent, decide in the same spirit.
+EVIDENCE FROM THE SITE:
+${input.siteEvidence.slice(0, 2400)}
+</existing_brand>
+`
+    : ''
+}
 <style_catalog>
 ${buildStyleCatalogBrief()}
 </style_catalog>

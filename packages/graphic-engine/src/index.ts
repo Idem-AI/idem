@@ -27,6 +27,8 @@ export type { AgentCall, AgentProfile, EngineHost, EngineLogger, FingerprintScop
 export { ContentError, createDocument, GraphicDocument, renderSingle } from './engine';
 export type { DocumentOptions, SectionOutput } from './engine';
 export type { ReferenceComposition } from './agents/creative-planner';
+export { applySpecOps, ensureLogo, settleTree, specOutline } from './agents/spec-edit';
+export type { SpecOp } from './agents/spec-edit';
 
 // ── Couleur (outils de la charte : contraste, encre lisible, mélange) ───────────────────────────
 export { bestContrast, contrastRatio, ensureContrast, isDeep, mixHex, readableInk, relativeLuminance } from './foundation/color';

@@ -107,7 +107,7 @@ v1.post(
   asyncRoute<AuthedRequest>(async (req, res) => {
     const sse = openSse(req, res);
     try {
-      const brand = await brands.scanBrand(uid(req), req.body.url, (step, data) => sse.send({ type: 'status', key: `chat.status.scan.${step}`, data }));
+      const brand = await brands.brandFromSite(uid(req), req.body.url, (step, data) => sse.send({ type: 'status', key: `chat.status.scan.${step}`, data }));
       sse.send({ type: 'brand', brand: brands.brandView(brand) });
     } catch (error) {
       logger.warn('brand.scan_failed', { event: 'brand.scan_failed', error });

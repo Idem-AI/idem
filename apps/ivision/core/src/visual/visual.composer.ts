@@ -27,6 +27,7 @@ import {
   screenshot,
   sectionHtml,
   SectionOutput,
+  SectionSpec,
   visualContent,
   VisualCopy,
 } from '@idem/graphic-engine';
@@ -69,6 +70,8 @@ export interface ComposedVisual {
     photo?: VisualPhotoRef;
     /** La graine de la composition : une retouche de texte garde la même mise en page. */
     seed: string;
+    /** L'arbre de la page (vérité du rendu) : une retouche le modifie et le REJOUE, sans recomposer. */
+    spec: SectionSpec;
     imageUnavailable?: 'payment' | 'rejected';
   };
   sourced: SourcedImage | null;
@@ -215,6 +218,7 @@ export async function composeVisual(
       copy,
       ...(photo ? { photo } : {}),
       seed,
+      spec: out.spec,
       concept: out.spec.pattern.id,
       marketingText: { headline: copy.headline, subheadline: copy.sub, body: copy.facts.map((f) => f.text).join(' · ') },
       creativity: level,
@@ -238,7 +242,7 @@ export async function renderVisual(
   format: FlyerFormat,
   copy: WrittenCopy,
   photo: VisualPhotoRef | undefined,
-  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[]; reference?: ReferenceComposition }
+  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[]; reference?: ReferenceComposition; replay?: SectionSpec }
 ): Promise<SectionOutput> {
   const { brand, direction } = engineBrand(context);
   const content = visualContent({
@@ -262,7 +266,19 @@ export async function renderVisual(
     user: { userId: o.userId, projectId: o.projectId },
     memoryScope: o.projectId ? { documentType: 'flyer', key: o.projectId } : undefined,
     ...(o.reference ? { reference: o.reference } : {}),
+    ...(o.replay ? { replay: o.replay } : {}),
   });
+}
+
+/** Le contenu du moteur d'un visuel (ses mots et sa photo) : la retouche le rapproche de l'arbre gardé. */
+export function visualSection(copy: WrittenCopy, photo: VisualPhotoRef | undefined) {
+  return visualContent({ id: 'visual', copy: engineCopy(copy), image: photo ? { url: photo.url, alt: photo.subject || copy.headline, ...(photo.focal ? { focal: photo.focal } : {}) } : null });
+}
+
+/** Une photo pour un visuel déjà composé (retouche « change la photo ») : mêmes sources et mêmes contrôles. */
+export async function findPhoto(req: { userId: string; projectId: string; tag: string; context: VisualBrandContext; format: FlyerFormat; copy: WrittenCopy; subject: string; userPhoto?: string; preferGenerated?: boolean }): Promise<{ photo?: VisualPhotoRef; sourced: SourcedImage | null }> {
+  const { photo, sourced } = await choosePhoto(req);
+  return { photo, sourced };
 }
 
 /**

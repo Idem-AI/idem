@@ -352,7 +352,10 @@
       "empty": "No brand ready.",
       "add": "Add a brand",
       "applied": "I read your website: I’m using its colours, fonts, logo and photos. You can change the palette in “Brands”.",
-      "appliedNoLogo": "I read your website: I’m using its colours, fonts and photos. You can change the palette in “Brands”."
+      "appliedNoLogo": "I read your website: I’m using its colours, fonts and photos. You can change the palette in “Brands”.",
+      "project": "I read your website and created your project on IDEM, with your brand guidelines: your logo and its variations, your colours, your fonts, your art direction and your patterns. I apply them to everything I create.",
+      "projectNoLogo": "I read your website and created your project on IDEM, with your brand guidelines: your colours, your fonts, your art direction. Add your logo in IDEM to see it on your creations.",
+      "openIdem": "See my brand guidelines on IDEM"
     },
     "empty": {
       "videoTitle": "What video do you want?",
@@ -529,7 +532,12 @@
         "voice": "Getting your tone…",
         "art": "Looking at your art direction…",
         "done": "Done reading.",
-        "copy": "Keeping your images…"
+        "copy": "Keeping your images…",
+        "project": "Creating your project on IDEM…",
+        "logo-variations": "Making your logo variations…",
+        "typography": "Getting your fonts…",
+        "art-direction": "Writing your art direction…",
+        "patterns": "Drawing your patterns…"
       },
       "reference": {
         "probe": "Opening the model…",
@@ -542,7 +550,8 @@
         "start": "Preparing your video…"
       },
       "visual": {
-        "start": "Composing your visual…"
+        "start": "Composing your visual…",
+        "retouch": "Retouching your visual…"
       },
       "videos": "Preparing your videos…",
       "montage": {
@@ -578,6 +587,9 @@
     "video": {
       "notUnderstood": "I didn’t understand what to change. Try “change the title to …”, “more sober”, “no music” or “add a voice-over”.",
       "revised": "Done. Have a look at the new version."
+    },
+    "visual": {
+      "notUnderstood": "I did not understand what to change. Say for example “change the price to 4,500 F”, “make the title bigger” or “remove the subtitle”."
     }
   },
   "edit": {
