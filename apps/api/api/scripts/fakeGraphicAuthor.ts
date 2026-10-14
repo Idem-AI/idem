@@ -6,7 +6,7 @@
 import { AgentCall, configureGraphicEngine } from '@idem/graphic-engine';
 
 export function fakePage(user: string): string {
-  const keys = [...user.matchAll(/^\{\{([\w.]+)\}\} = /gm)].map((m) => m[1]).filter((k) => !['kicker', 'title', 'lede'].includes(k));
+  const keys = [...user.matchAll(/^\{\{([\w.:-]+)\}\} = /gm)].map((m) => m[1]).filter((k) => !['kicker', 'title', 'lede'].includes(k));
   const prims = [...user.matchAll(/<idem-(chart|table) data-block="([^"]+)">/g)].map((m) => `<section class="mt-[18px]"><idem-${m[1]} data-block="${m[2]}" data-aspect="16/9" class="w-full text-[12px] text-ink [&_th]:bg-brand-primary [&_th]:text-on-brand"></idem-${m[1]}></section>`);
   const texts = keys.map((k) => (k.endsWith('.url') || k.endsWith('Url') ? `<img src="{{${k}}}" alt="" class="mt-[12px] h-[120px] w-auto object-contain">` : `<p class="mt-[10px] text-[14px] leading-[1.55] text-ink">{{${k}}}</p>`));
   const header = `<header class="border-b-[3px] border-brand-primary pb-[12px]"><p class="text-[11px] uppercase tracking-[0.2em] text-brand-primary">{{kicker}}</p><h2 class="font-display text-[30px] font-bold leading-[1.1] text-ink">{{title}}</h2></header><p class="mt-[14px] text-[16px] text-muted">{{lede}}</p>`;

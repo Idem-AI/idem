@@ -29,7 +29,7 @@ import { GenerationTrace, TraceRecorder } from './observability/traces';
 import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
 import { authorSystem, authorUser, DocumentContext, DocumentPlan, languagePrompt, parseLanguage, parsePlan, planPrompt, PlannedPage, ReferenceComposition, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
 import { callModel, levelUp } from './author/model';
-import { buildContentMap, ContentMap } from './runtime/content-map';
+import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/content-map';
 import { expandPage, extractHtml, sanitizeHtml, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
 import { checkRender } from './runtime/check';
@@ -255,7 +255,12 @@ export class GraphicDocument {
     if (!checked.ok || !checked.value) throw new ContentError(checked.issues);
     const level = this.policy.level;
     const recorder = new TraceRecorder({ generationId: this.generationId, documentType: this.options.documentType, format: this.options.format, level, sectionId: content.id });
-    const { section, assets } = await this.prepareAssets(checked.value, recorder);
+    const prepared = await this.prepareAssets(checked.value, recorder);
+    const assets = prepared.assets;
+    // Le nom de la marque écrit juste (coquille d'inversion du rédacteur corrigée, et dite).
+    const named = fixBrandNameTypos(prepared.section, this.options.brand.name);
+    if (named.fixed) recorder.repair({ code: 'brand_name_typo', detail: `${named.fixed} coquille(s) du nom « ${this.options.brand.name} » corrigée(s)`, by: 'code' });
+    const section = named.section;
     const map = buildContentMap(section, this.options.bindings ?? 'values');
     const index = o.index ?? 1;
     const total = o.total ?? (this.options.sections?.length || 1);
@@ -319,11 +324,14 @@ export class GraphicDocument {
     const first = await callModel({ call, recorder, task: p.task, role: 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: p.user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
     let code = first.ok ? extractHtml(first.raw) : '';
     let error = first.ok ? '' : `the answer contained no HTML (${first.failure})`;
+    /** La meilleure page presque affichée (un texte coupé) : livrée, et signalée, si rien ne fait mieux. */
+    let partial: Rendered | undefined;
     if (code) {
       const r = await this.render(code, map, sectionId, recorder);
       if (r.ok) return r.page;
       error = r.error;
       code = r.template;
+      partial = r.partial ?? partial;
     }
     const limits = repairLimits();
     const history: string[] = [error];
@@ -354,14 +362,20 @@ export class GraphicDocument {
       }
       error = r.error;
       code = r.template;
+      partial = r.partial ?? partial;
       history.push(`${strategy}: ${error}`);
+    }
+    if (partial) {
+      log().warn('graphic.page_text_cut', { event: 'graphic.page_text_cut', documentType: this.options.documentType, section: sectionId, attempts: history });
+      recorder.repair({ code: 'render_partial', detail: `livrée avec un texte coupé après ${history.length} essai(s)`.slice(0, 240), by: 'code' });
+      return partial;
     }
     log().warn('graphic.page_failed', { event: 'graphic.page_failed', documentType: this.options.documentType, section: sectionId, attempts: history });
     throw new GraphicRenderError(sectionId, history[history.length - 1] ?? error, history);
   }
 
   /** Assainir, remplir, compiler, puis demander à Chromium si la page s'affiche. Rien n'est jugé d'autre. */
-  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string }> {
+  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string; partial?: Rendered }> {
     const t0 = Date.now();
     const clean = sanitizeHtml(raw);
     if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
@@ -387,7 +401,11 @@ export class GraphicDocument {
     const check = await checkRender(page.html, head, this.format, { lang: this.options.locale, shoot: Boolean(this.options.png) });
     recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: check.ok ? 'accepted' : 'refused' });
     if (check.infra) log().warn('graphic.render_unchecked', { event: 'graphic.render_unchecked', section: sectionId, reason: check.error });
-    if (!check.ok) return { ok: false, error: check.error ?? 'the page did not display', template: clean.html };
+    if (!check.ok) {
+      // Un texte coupé par le bord : la page s'affiche presque entière — gardée comme REPLI si la correction échoue.
+      const partial = check.cut ? { template: clean.html, html: page.html, head, png: check.png, issues: [...issues, { code: 'text_cut', severity: 'blocking' as const, message: (check.error ?? '').slice(0, 380) }] } : undefined;
+      return { ok: false, error: check.error ?? 'the page did not display', template: clean.html, ...(partial ? { partial } : {}) };
+    }
     return { ok: true, page: { template: clean.html, html: page.html, head, png: check.png, width: check.width, height: check.height, issues } };
   }
 
