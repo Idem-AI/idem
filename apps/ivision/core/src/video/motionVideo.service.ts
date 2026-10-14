@@ -71,6 +71,7 @@ import { runPlanner, Storyboard } from './director/storyboard.agent';
 import { AuthorContext } from './author/context-builder';
 import { authorScene, authorScenes, AuthoredScene } from './author/motion-canvas.author';
 import { pickSnippets } from './author/snippets';
+import { RepairLedger, strategyLevel } from './author/repair';
 import { buildFilmBundle, BundleScene } from './rendering/compiler';
 import { COMPOSITION, frameSpec } from './rendering/formats';
 import { cleanupFilmRender, localizeFilm, probeFilm, renderFilm } from './rendering/runner';
@@ -119,7 +120,7 @@ export interface CreateVideoInput {
 }
 
 /** Progression RÉELLE d'une création (flux SSE). */
-export type VideoProgressStage = 'plan' | 'concept' | 'storyboard' | 'media' | 'music' | 'sfx' | 'voice' | 'code' | 'check';
+export type VideoProgressStage = 'plan' | 'concept' | 'storyboard' | 'media' | 'music' | 'sfx' | 'voice' | 'code' | 'check' | 'repair';
 
 export interface VideoProgressEvent {
   stage: VideoProgressStage;
@@ -316,7 +317,7 @@ export class MotionVideoService {
   private async readIntent(userId: string, input: CreateVideoInput, brief: VideoBrief, spec: RequestSpec, brandMedia: { url: string; kind?: 'screen' | 'photo'; note?: string }[], creativity: CreativityLevel): Promise<VideoIntentSpec> {
     const classify: ClassifyInput = { request: brief.request || `${brief.message}\n${brief.details || ''}`, spec, assets: this.intentAssets(brief.media || [], brandMedia), requestedType: VIDEO_TYPES.includes(input.type as VideoType) ? (input.type as VideoType) : 'auto', brandHasScreens: brandMedia.some((m) => m.kind === 'screen'), language: spec.language };
     let intent = classifyVideoIntent(classify);
-    if (atLeast(creativity, 'medium')) intent = await refineVideoIntent(intent, classify.request, this.writer(userId, 'mechanical', 'video.intent-classifier'));
+    intent = await refineVideoIntent(intent, classify.request, this.writer(userId, 'mechanical', 'video.intent-classifier'));
     if (input.clarification) {
       const question = clarifyVideoIntent(intent, classify);
       if (question && question.id === input.clarification.id) intent = applyClarification(intent, question, input.clarification.option);
@@ -596,7 +597,7 @@ export class MotionVideoService {
 
   // ── Auteur ────────────────────────────────────────────────────────────────
 
-  private authorContext(video: MotionVideo, brand: FilmBrand, sc: FilmScene, others: MotionVideo[], level: CreativityLevel, extra: Pick<AuthorContext, 'revise' | 'fix'> = {}): AuthorContext {
+  private authorContext(video: MotionVideo, brand: FilmBrand, sc: FilmScene, others: MotionVideo[], level: CreativityLevel, extra: Pick<AuthorContext, 'revise' | 'repair'> = {}): AuthorContext {
     const film = video.film!;
     const i = film.scenes.findIndex((s) => s.key === sc.key);
     const byId = new Map((video.media || []).map((m) => [m.id, m]));
@@ -626,7 +627,7 @@ export class MotionVideoService {
       },
       ...(i > 0 ? { previous: { purpose: film.scenes[i - 1].purpose, visual: film.scenes[i - 1].visual } } : {}),
       ...(i < film.scenes.length - 1 ? { next: { purpose: film.scenes[i + 1].purpose, visual: film.scenes[i + 1].visual } } : {}),
-      snippets: atLeast(level, 'high') ? pickSnippets(others, `${sc.motion} ${sc.visual}`) : [],
+      snippets: pickSnippets(others, `${sc.motion} ${sc.visual}`),
       level,
       ...extra,
     };
@@ -637,6 +638,73 @@ export class MotionVideoService {
     if (!a.code) return { ...sc, author, status: 'error', error: a.error || { stage: 'author', message: 'no code' } };
     const { error: _e, ...rest } = sc;
     return { ...rest, code: a.code, author, status: a.error ? 'error' : 'ready', ...(a.error ? { error: a.error } : {}) };
+  }
+
+  /**
+   * L'AUTOCORRECTION BORNÉE (`author/repair.ts`) : les scènes en erreur (compilation ou exécution) sont
+   * corrigées avant d'être montrées. Une tentative à la fois par scène, une approche différente à chaque
+   * tentative (corriger › réécrire plus simplement avec le modèle du cran au-dessus › version minimale),
+   * trois au plus, et un budget de jetons et de temps pour tout le film. Chaque tour se termine par le
+   * contrôle réel (Motion Canvas exécute les scènes) : c'est lui, pas le modèle, qui dit si c'est corrigé.
+   */
+  private async repairScenes(userId: string, projectId: string, video: MotionVideo, ctx: Awaited<ReturnType<MotionVideoService['brandContext']>>, level: CreativityLevel, only?: Set<string>, emit?: (stage: VideoProgressStage, state: 'running' | 'done', data?: Record<string, unknown>) => void): Promise<VideoFilm> {
+    let film = video.film!;
+    const ledger = new RepairLedger();
+    const broken = () => film.scenes.filter((sc) => sc.status === 'error' && sc.error && (!only || only.has(sc.key)));
+    const initial = broken().map((sc) => sc.key);
+    if (!initial.length || ledger.limits.attemptsPerScene === 0) return film;
+    emit?.('repair', 'running', { scenes: initial.length });
+    for (let round = 0; ; round++) {
+      // Chaque scène en erreur reçoit SA prochaine approche ; aucune ne reçoit deux tentatives à la fois.
+      const todo = broken()
+        .map((sc) => {
+          ledger.noteError(sc.key, sc.error!.message);
+          return { sc, strategy: ledger.nextStrategy(sc.key) };
+        })
+        .filter((x): x is { sc: FilmScene; strategy: NonNullable<ReturnType<RepairLedger['nextStrategy']>> } => !!x.strategy);
+      if (!todo.length) break;
+      emit?.('repair', 'running', { round: round + 1, scenes: todo.map((x) => x.sc.key) });
+      const results = new Array<{ key: string; strategy: string; a: AuthoredScene }>(todo.length);
+      let next = 0;
+      const worker = async () => {
+        while (next < todo.length) {
+          const k = next++;
+          const { sc, strategy } = todo[k];
+          const context = this.authorContext({ ...video, film }, ctx.film, sc, ctx.others, level, {
+            repair: { strategy, ...(strategy === 'fix' && sc.code ? { code: sc.code } : {}), error: sc.error!.message, history: ledger.history(sc.key) },
+          });
+          const a = await authorScene(this.callContext(userId, projectId, strategyLevel(strategy, level)), context);
+          results[k] = { key: sc.key, strategy, a };
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(ledger.limits.concurrency, todo.length) }, worker));
+      for (const { key, strategy, a } of results) {
+        const i = film.scenes.findIndex((sc) => sc.key === key);
+        const previous = film.scenes[i];
+        const repairs = [...(previous.author?.repairs || []), { strategy: strategy as 'fix' | 'rewrite' | 'minimal', ok: !!a.code && !a.error, ...(a.error ? { error: a.error.message.slice(0, 200) } : {}) }];
+        // Une réponse sans code ne remplace pas le code existant (l'erreur reste celle d'avant).
+        const updated = a.code ? MotionVideoService.applyAuthored(previous, a, previous.author?.instruction) : previous;
+        film.scenes[i] = { ...updated, author: { ...(updated.author || { tokens: a.tokens, ms: a.ms, at: new Date().toISOString(), attempts: a.attempts }), repairs } };
+        film.agents = [...film.agents, { agent: `video.author:${key}:repair-${strategy}`, source: a.code ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.code ? {} : { failure: a.error?.message.slice(0, 120) }) }];
+        ledger.record(key, { strategy: strategy as 'fix' | 'rewrite' | 'minimal', ok: !!a.code && !a.error, tokens: a.tokens.input + a.tokens.output, ...(a.error ? { error: a.error.message } : {}) });
+      }
+      // Le contrôle réel : les erreurs d'exécution des nouvelles versions apparaissent ici.
+      film = await this.checkFilm(userId, projectId, { ...video, film }, ctx.film);
+      // Les résultats de compilation de ce tour sont mesurés : le journal garde l'erreur réellement constatée.
+      for (const { key } of results) {
+        const sc = film.scenes.find((x) => x.key === key)!;
+        const last = sc.author?.repairs?.[sc.author.repairs.length - 1];
+        if (last) last.ok = sc.status === 'ready';
+        if (last && sc.error) last.error = sc.error.message.slice(0, 200);
+      }
+    }
+    const unresolved = broken().map((sc) => sc.key);
+    const attempts = [...ledger.attempts.values()].reduce((n, a) => n + a.length, 0);
+    const stopped = ledger.exhausted && unresolved.length ? (ledger.tokensUsed >= ledger.limits.tokenBudget ? 'budget' : 'time') : undefined;
+    film = { ...film, repair: { attempts, fixed: initial.filter((k) => !unresolved.includes(k)), unresolved, tokens: ledger.tokensUsed, ...(stopped ? { stopped } : {}) } };
+    logger.info('video.repair', { event: 'video.repair', videoId: video.id, attempts, fixed: film.repair!.fixed, unresolved, tokens: ledger.tokensUsed, ...(stopped ? { stopped } : {}) });
+    emit?.('repair', 'done', { fixed: film.repair!.fixed.length, unresolved: unresolved.length, attempts });
+    return film;
   }
 
   // ── Création ──────────────────────────────────────────────────────────────
@@ -657,7 +725,7 @@ export class MotionVideoService {
     // 1. Compréhension
     emit('plan', 'running');
     const request = brief.request || [brief.message, brief.details].filter(Boolean).join('\n');
-    const read = await readRequest(request, { fallbackLanguages: [input.language, ctx.brand.voice.language], writer: atLeast(creativity, 'medium') ? this.writer(userId, 'mechanical', 'video.reader') : undefined });
+    const read = await readRequest(request, { fallbackLanguages: [input.language, ctx.brand.voice.language], writer: this.writer(userId, 'mechanical', 'video.reader') });
     const spec: RequestSpec = { ...read.spec, language: brief.language || read.spec.language };
     const language = spec.language || brief.language || 'fr';
     const intent = await this.readIntent(userId, input, brief, spec, ctx.brandMedia, creativity);
@@ -691,14 +759,12 @@ export class MotionVideoService {
       level: creativity,
     };
     const call = this.callContext(userId, projectId, creativity);
-    let concept = null;
-    if (atLeast(creativity, 'medium')) {
-      emit('concept', 'running');
-      const res = await runConcept(call, filmBrief);
-      trace('video.concept', res.run, !!res.concept);
-      concept = res.concept;
-      emit('concept', 'done', concept ? { title: concept.title, concept: concept.concept } : { failed: res.run.failure || 'unreadable' });
-    }
+    // Les mêmes étapes à tous les crans : la jauge choisit le modèle de chaque rôle (échelles de l'hôte).
+    emit('concept', 'running');
+    const conceived = await runConcept(call, filmBrief);
+    trace('video.concept', conceived.run, !!conceived.concept);
+    const concept = conceived.concept;
+    emit('concept', 'done', concept ? { title: concept.title, concept: concept.concept } : { failed: conceived.run.failure || 'unreadable' });
     emit('storyboard', 'running');
     const timeline = spec.mode === 'script' && spec.scenes.length ? sceneTimeline(spec, scope.durationSec) : input.reference ? referenceTimeline(input.reference, scope.durationSec) : undefined;
     const planned = await runPlanner(call, filmBrief, concept, timeline);
@@ -753,7 +819,8 @@ export class MotionVideoService {
         folder: `users/${userId}/projects/${projectId}/videos/${videoId}/media`,
         allowGenerate: brief.allowGenerate !== false,
         allowStock: brief.allowStock !== false,
-        clipQuality: atLeast(creativity, 'max') ? 'quality' : 'speed',
+        // La qualité du modèle vidéo suit elle aussi le cran (le cran choisit la puissance des modèles).
+        clipQuality: atLeast(creativity, 'high') ? 'quality' : 'speed',
         visualPhotos: ctx.visuals.map((v) => v.backgroundImageUrl).filter((u): u is string => !!u),
         ...(spec.cast ? { cast: spec.cast } : {}),
         ...(await this.registryFor(userId, projectId)),
@@ -832,8 +899,10 @@ export class MotionVideoService {
     // 6. Contrôle technique
     emit('check', 'running');
     film = await this.checkFilm(userId, projectId, video, ctx.film);
-    video = { ...video, film, record: recordFromVideo({ film, creativity, brief: video.brief }, Date.now() - started, (media.report?.assets || []).slice(0, 40)) };
     emit('check', 'done', { errors: film.scenes.filter((s) => s.status === 'error').map((s) => ({ key: s.key, stage: s.error?.stage, message: s.error?.message })) });
+    // Autocorrection bornée AVANT de montrer la vidéo.
+    film = await this.repairScenes(userId, projectId, { ...video, film }, ctx, creativity, undefined, emit);
+    video = { ...video, film, record: recordFromVideo({ film, creativity, brief: video.brief }, Date.now() - started, (media.report?.assets || []).slice(0, 40)) };
 
     await this.store.saveVideo(userId, projectId, video);
     if (input.contentId) await this.store.linkVideoToContent?.(userId, projectId, input.contentId, video.id).catch(() => undefined);
@@ -879,7 +948,9 @@ export class MotionVideoService {
 
     // Code : retouches visuelles, corrections, nouvelles versions.
     const call = this.callContext(userId, projectId, level);
-    const jobs: { key: string; extra: Pick<AuthorContext, 'revise' | 'fix'>; instruction?: string; replaceBroken: boolean }[] = [];
+    const jobs: { key: string; extra: Pick<AuthorContext, 'revise'>; instruction?: string; replaceBroken: boolean }[] = [];
+    /** Le code qui marchait avant une retouche visuelle : rendu si la retouche ne s'exécute pas, même après correction. */
+    const before = new Map<string, FilmScene>();
     const visual = { ...(patch.visual || {}) };
     if (visual.all) {
       for (const sc of film.scenes) visual[sc.key] ??= visual.all;
@@ -890,11 +961,8 @@ export class MotionVideoService {
       if (!sc || !String(instruction || '').trim()) continue;
       jobs.push({ key, instruction: String(instruction), extra: sc.code ? { revise: { instruction: String(instruction).slice(0, 800), code: sc.code } } : {}, replaceBroken: sc.status === 'error' });
     }
-    for (const key of patch.fix || []) {
-      const sc = sceneOf(key);
-      if (!sc || jobs.some((j) => j.key === key)) continue;
-      jobs.push({ key, extra: sc.code && sc.error ? { fix: { code: sc.code, error: sc.error.message } } : {}, replaceBroken: true });
-    }
+    // « Corriger » (demandé) : pas d'appel ici — la boucle de correction bornée s'en charge plus bas.
+    const fixKeys = (patch.fix || []).filter((key) => sceneOf(key)?.status === 'error' && !jobs.some((j) => j.key === key));
     for (const key of patch.regenerate || []) {
       const sc = sceneOf(key);
       if (!sc || jobs.some((j) => j.key === key)) continue;
@@ -921,12 +989,8 @@ export class MotionVideoService {
       const results = await Promise.all(jobs.map((j) => authorScene(call, this.authorContext({ ...video, film }, ctx.film, sceneOf(j.key)!, ctx.others, level, j.extra)).then((a) => ({ j, a }))));
       for (const { j, a } of results) {
         const i = film.scenes.findIndex((s) => s.key === j.key);
-        film.agents = [...film.agents, { agent: `video.author:${j.key}:${j.extra.fix ? 'fix' : j.extra.revise ? 'revise' : 'new'}`, source: a.code ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.code ? {} : { failure: a.error?.message.slice(0, 120) }) }];
-        const broken = !a.code || !!a.error;
-        if (broken && !j.replaceBroken) {
-          report.failed.push({ key: j.key, what: 'visual', reason: a.error?.message });
-          continue;
-        }
+        film.agents = [...film.agents, { agent: `video.author:${j.key}:${j.extra.revise ? 'revise' : 'new'}`, source: a.code ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.code ? {} : { failure: a.error?.message.slice(0, 120) }) }];
+        if (!j.replaceBroken) before.set(j.key, film.scenes[i]);
         film.scenes[i] = MotionVideoService.applyAuthored(film.scenes[i], a, j.instruction);
         report.recoded.push(j.key);
         codeChanged = true;
@@ -945,7 +1009,24 @@ export class MotionVideoService {
       const next = normalizeScope({ ...video.scope, ...patch.scope, durationSec: video.scope.durationSec });
       video.scope = { ...next, durationSec: video.scope.durationSec };
     }
-    if (codeChanged || patch.voice !== undefined || voiceKeys.length) video.film = await this.checkFilm(userId, projectId, video, ctx.film);
+    if (codeChanged || fixKeys.length || patch.voice !== undefined || voiceKeys.length) video.film = await this.checkFilm(userId, projectId, video, ctx.film);
+    // Les scènes réécrites (ou à corriger) qui ne s'exécutent pas passent par la correction BORNÉE.
+    const touched = new Set([...jobs.map((j) => j.key), ...fixKeys]);
+    if (touched.size && video.film!.scenes.some((sc) => touched.has(sc.key) && sc.status === 'error')) {
+      video.film = await this.repairScenes(userId, projectId, video, ctx, level, touched);
+      for (const key of fixKeys) if (video.film.scenes.find((sc) => sc.key === key)?.status === 'ready') report.recoded.push(key);
+    }
+    // Une retouche visuelle qui ne s'exécute toujours pas ne remplace pas un code qui marchait.
+    const restored: string[] = [];
+    for (const [key, previous] of before) {
+      const i = video.film!.scenes.findIndex((sc) => sc.key === key);
+      if (i < 0 || video.film!.scenes[i].status !== 'error') continue;
+      report.failed.push({ key, what: 'visual', reason: video.film!.scenes[i].error?.message });
+      report.recoded = report.recoded.filter((k) => k !== key);
+      video.film!.scenes[i] = previous;
+      restored.push(key);
+    }
+    if (restored.length) video.film = await this.checkFilm(userId, projectId, video, ctx.film);
 
     const saved = await this.store.mutateVideo(userId, projectId, videoId, (v) => ({
       ...v,
@@ -962,22 +1043,22 @@ export class MotionVideoService {
     return saved ? withLiveProgress(saved) : null;
   }
 
-  /** Une retouche écrite en clair (« le titre de la scène 2 en … », « plus dynamique », « sans musique »). */
-  async reviseFromText(userId: string, projectId: string, videoId: string, text: string, language: string): Promise<{ video: MotionVideo | null; report: RevisionReport; reply?: string; newRequest: boolean }> {
+  /**
+   * Une retouche écrite en clair (« le titre de la scène 2 en … », « plus dynamique », « sans musique ») :
+   * lue par le rôle `video.reviser`, au modèle du cran de la vidéo. Rend aussi ce qui a été écarté.
+   */
+  async reviseFromText(userId: string, projectId: string, videoId: string, text: string, language: string): Promise<{ video: MotionVideo | null; report: RevisionReport; reply?: string; newRequest: boolean; patch: VideoRevisionPatch; rejected: number }> {
     const video = await this.getVideo(userId, projectId, videoId);
     const report = emptyRevisionReport();
-    if (!video?.film) return { video, report, newRequest: false };
-    let revision = null;
-    const writer = this.writer(userId, 'writing', 'video.reviser');
-    if (writer) {
-      const { system, user } = buildVideoRevisionPrompt(video, text, video.brief.language || language);
-      revision = parseVideoRevision(await writer(system, user).catch(() => ''), video);
-    }
-    if (revision?.newRequest) return { video, report, newRequest: true };
+    if (!video?.film) return { video, report, newRequest: false, patch: {}, rejected: 0 };
+    const { system, user } = buildVideoRevisionPrompt(video, text, video.brief.language || language);
+    const run = await callFilmModel(this.callContext(userId, projectId, video.creativity || 'medium'), 'video.reviser', system, user);
+    const revision = run.raw ? parseVideoRevision(run.raw, video) : null;
+    if (revision?.newRequest) return { video, report, newRequest: true, patch: {}, rejected: 0 };
     const patch: VideoRevisionPatch = { ...videoSettingsFromText(text), ...(revision?.patch || {}) };
-    if (!Object.keys(patch).length) return { video, report, newRequest: false };
+    if (!Object.keys(patch).length) return { video, report, newRequest: false, patch, rejected: revision?.rejected || 0 };
     const updated = await this.updateVideo(userId, projectId, videoId, patch, report);
-    return { video: updated, report, ...(revision?.reply ? { reply: revision.reply } : {}), newRequest: false };
+    return { video: updated, report, ...(revision?.reply ? { reply: revision.reply } : {}), newRequest: false, patch, rejected: revision?.rejected || 0 };
   }
 
   // ── Aperçu ────────────────────────────────────────────────────────────────

@@ -85,7 +85,27 @@
           "line": "The AI invents and creates everything, checked and corrected before delivery."
         }
       },
-      "withCost": "{{label}} · {{cost}} credits"
+      "withCost": "{{label}} · {{cost}} credits",
+      "video": {
+        "help": "The higher you go, the more powerful the model that designs and writes your video — and the more credits it uses.",
+        "levels": {
+          "low": {
+            "line": "Light models: fast and economical."
+          },
+          "medium": {
+            "line": "Mid-size models: the right balance."
+          },
+          "high": {
+            "line": "Advanced models: sharper ideas, safer code."
+          },
+          "max": {
+            "line": "Large models: more ambitious films."
+          },
+          "ultra": {
+            "line": "The most powerful models."
+          }
+        }
+      }
     }
   },
   "dashboard": {
@@ -4494,7 +4514,8 @@
             "music": "The music",
             "voice": "The voice-over",
             "code": "Writing each scene",
-            "check": "Checking each scene"
+            "check": "Checking each scene",
+            "repair": "Automatic scene fixing"
           },
           "details": {
             "plan": "{{media}} media available · texts in {{language}}",
@@ -4513,7 +4534,10 @@
             "code": "{{ready}} scene(s) written",
             "codeErrors": "{{ready}} scene(s) ready · {{errors}} to fix",
             "checkOk": "Every scene runs",
-            "checkErrors": "{{errors}} scene(s) do not run: fix them in the editor"
+            "checkErrors": "{{errors}} scene(s) do not run: fix them in the editor",
+            "repair": "{{fixed}} scene(s) fixed",
+            "repairPartial": "{{fixed}} fixed · {{unresolved}} to fix in the editor",
+            "repairRunning": "Attempt {{round}} of 3 at most"
           }
         },
         "voice": {

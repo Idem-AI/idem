@@ -315,6 +315,14 @@
       "high": "High ×1,25",
       "max": "Max ×1,5",
       "ultra": "Ultra ×2"
+    },
+    "videoHint": "Plus le cran est haut, plus le modèle qui conçoit et écrit la vidéo est puissant (et plus le prix monte).",
+    "videoLevels": {
+      "low": "Low ×1 · modèle léger",
+      "medium": "Medium ×1 · modèle intermédiaire",
+      "high": "High ×1,25 · modèle avancé",
+      "max": "Max ×1,5 · grand modèle",
+      "ultra": "Ultra ×2 · le plus puissant"
     }
   },
   "formats": {
@@ -453,7 +461,8 @@
         "concept": "Concept du film",
         "design": "Conception du visuel",
         "photo": "Choix de la photo",
-        "check": "Contrôle des scènes"
+        "check": "Contrôle des scènes",
+        "repair": "Correction automatique des scènes"
       }
     },
     "composer": {

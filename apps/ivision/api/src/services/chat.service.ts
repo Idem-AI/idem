@@ -21,7 +21,7 @@
 import crypto from 'crypto';
 import type { ReferenceImage } from '../../../core/src/reference/reference.analyzer';
 import type { VideoMediaAsset } from '../../../core/src/video/contracts/model';
-import { emptyRevisionReport, VideoInputError } from '../../../core/src/video/motionVideo.service';
+import { VideoInputError } from '../../../core/src/video/motionVideo.service';
 import { normalizeCreativity } from '../../../core/src/creativity/levels';
 import { FLYER_FORMATS, FlyerFormat } from '../../../core/src/visual/visual.model';
 import { videoCost } from '../../../core/src/video/pricing';
@@ -41,7 +41,6 @@ import { MontageInputError } from '../../../core/src/montage/montage.service';
 import { meanVolume } from '../../../core/src/montage/montage.assemble';
 import type { VideoFormat } from '../../../core/src/video/contracts/model';
 import axios from 'axios';
-import { buildVideoRevisionPrompt, parseVideoRevision, videoSettingsFromText } from '../../../core/src/video/revise';
 import { MAX_REQUEST_CHARS, parseRequest } from '../../../core/src/video/request/request';
 import { titleCase } from '../../../core/src/video/motionVideo.service';
 import { idem } from './idem.client';
@@ -254,24 +253,23 @@ async function reviseMotion(userId: string, session: ChatSession, videoId: strin
   const video = session.brandId ? await motionVideos.getVideo(userId, session.brandId, videoId) : null;
   if (!video) return false;
   emit({ type: 'status', key: 'chat.status.montage.revise', text: 'Je fais les changements…' });
-  let revision: ReturnType<typeof parseVideoRevision> = null;
-  try {
-    // Les textes retouchés restent dans la langue de LA VIDÉO (celle de sa demande), pas de la page.
-    const { system, user } = buildVideoRevisionPrompt(video, text, video.brief.language || language);
-    revision = parseVideoRevision(await idem.ai.text({ userId, system, user, tier: 'writing', kind: 'copy' }), video);
-  } catch (error) {
+  // La retouche est lue au modèle du cran de la vidéo (rôle `video.reviser`), puis appliquée — scènes réécrites
+  // corrigées automatiquement, dans les mêmes bornes qu'à la création.
+  const revised = await motionVideos.reviseFromText(userId, session.brandId!, videoId, text, language).catch((error) => {
     logger.warn('chat.video_revision_failed', { event: 'chat.video_revision_failed', error });
-  }
-  if (revision?.newRequest) return false;
-  const patch = { ...videoSettingsFromText(text), ...(revision?.patch || {}) };
-  if (!Object.keys(patch).length) {
+    return null;
+  });
+  if (revised?.newRequest) return false;
+  const patch = revised?.patch || {};
+  if (!revised || !Object.keys(patch).length) {
     const msg = message('assistant', 'Je n’ai pas compris ce qu’il faut changer. Dites par exemple « change le titre en … », « la scène 2 plus dynamique », « sans musique » ou « ajoute une voix off ».', { i18n: { key: 'chat.video.notUnderstood' } });
     await push(session._id, msg);
     emit({ type: 'message', message: msg });
     return true;
   }
-  const report = emptyRevisionReport();
-  const updated = await motionVideos.updateVideo(userId, session.brandId!, videoId, patch, report);
+  const report = revised.report;
+  const updated = revised.video;
+  const revision = { reply: revised.reply, rejected: revised.rejected };
   // La réponse dit ce qui a VRAIMENT changé : ce que le code n'a pas pu appliquer est avoué.
   const en = (video.brief.language || language).startsWith('en');
   const sceneNo = (key: string) => (updated?.film?.scenes.findIndex((sc) => sc.key === key) ?? -1) + 1;

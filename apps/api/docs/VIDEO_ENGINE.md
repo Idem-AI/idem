@@ -12,14 +12,14 @@
    clip, dire une voix, encoder (ffmpeg).
 2. **L'IA est libre.** Aucun catalogue de mises en page, de motifs, de concepts ou de transitions. Le
    directeur invente le film ; l'auteur écrit le code de chaque scène comme il l'entend.
-3. **Pas de contrôle esthétique.** Le code rendu par le modèle n'est jamais critiqué, réécrit,
-   « réparé » ni remplacé par une composition de secours. Il est montré tel quel.
+3. **Pas de contrôle esthétique.** Le code rendu par le modèle n'est jamais critiqué ni remplacé par une
+   composition de secours. Seules les erreurs TECHNIQUES déclenchent une correction, bornée (§9 bis).
 4. **La qualité vient de l'amont** : un problème précis par appel, un contexte compact, la référence
    d'API exacte de la version installée, des exemples techniques, des fonctions réutilisables.
 
 Ce qui reste vérifié est **technique** : le code compile-t-il, s'exécute-t-il, le MP4 est-il lisible ?
-Une erreur technique est attribuée à sa scène et montrée telle quelle ; l'utilisateur demande une
-correction s'il le souhaite (nouvel appel, volontaire).
+Une erreur technique est attribuée à sa scène, corrigée automatiquement dans des bornes strictes, et ce
+qui résiste reste montré sur sa scène (« Corriger » relance la même boucle bornée).
 
 ## 2. Le pipeline
 
@@ -31,17 +31,19 @@ demande ─► compréhension ─► directeur ─► planificateur ─► médi
 | Étape | Fichier | Rôle de modèle | Ce qu'elle produit |
 | --- | --- | --- | --- |
 | Compréhension | `request/request.ts`, `request/intent.ts` | `video.reader`, `video.intent-classifier` (dès Medium) | `RequestSpec` : langue, scénario scène par scène, textes **mot pour mot**, voix écrite, durée, format, interdits ; l'intention (objectif, matière, mouvement) |
-| Direction | `director/concept.agent.ts` | `video.concept` (dès Medium) | titre, concept, **bible visuelle**, une idée par scène ; au cran Ultra, trois idées comparées dans le même appel |
-| Storyboard | `director/storyboard.agent.ts` | `video.planner` | par scène : durée, intention, idée visuelle, idée de mouvement, entrée, textes exacts (par clé), médias, médias à produire, ligne de voix. Au cran Low, il invente aussi le concept |
+| Direction | `director/concept.agent.ts` | `video.concept` | titre, concept, **bible visuelle**, une idée par scène |
+| Storyboard | `director/storyboard.agent.ts` | `video.planner` | par scène : durée, intention, idée visuelle, idée de mouvement, entrée, textes exacts (par clé), médias, médias à produire, ligne de voix. Sans concept (directeur en panne), il invente aussi le film |
 | Médias | `assets/sourcing.ts`, `assets/media.ts`, `assets/brandmedia.ts` | — (génération FLUX → Seedance, puis Pexels) | imports d'abord, captures de la marque, puis les médias demandés par le storyboard |
 | Musique, sons | `audio/music.ts`, `audio/beats.ts`, `audio/sfx.ts` | — | piste libre et son tempo ; sonothèque CC0 |
 | Voix | `audio/voice.ts` | — (voix de l'hôte) | lignes dites, scènes calées sur elles sans changer la durée achetée |
 | Auteur | `author/motion-canvas.author.ts` | `video.author` | le **code TSX** de chaque scène, compilé |
 | Contrôle | `rendering/runner.ts#probeFilm` | — | chaque scène exécutée : erreurs d'exécution, vignettes, effets sonores posés |
+| Autocorrection | `author/repair.ts`, `motionVideo.service.ts#repairScenes` | `video.author` (cran, puis cran au-dessus) | les scènes en erreur corrigées avant livraison, dans des bornes strictes (§9 bis) |
 
 L'orchestrateur est `motionVideo.service.ts` ; les appels de modèles passent tous par
-`agents.ts#callFilmModel` (rôle logique → modèle choisi par l'hôte, plafond de sortie par cran,
-`apps/api/api/config/creative-roles.ts`).
+`agents.ts#callFilmModel` (rôle logique + cran → l'hôte choisit le modèle sur l'**échelle** du rôle,
+`apps/api/api/config/creative-roles.ts#MODEL_LADDERS`). **Les étapes et le contexte sont les mêmes à tous les
+crans : la jauge de créativité choisit la puissance des modèles** (voir [MOTION_VIDEO.md](MOTION_VIDEO.md)).
 
 ### Ce que le code garantit sans toucher à la création
 
@@ -54,8 +56,9 @@ L'orchestrateur est `motionVideo.service.ts` ; les appels de modèles passent to
   introuvable, 4K demandé, voix non dite.
 
 Une réponse **illisible** (format) du planificateur est redemandée une fois avec le rappel du format ;
-une réponse **sans code** de l'auteur (panne, délai, réponse vide) est redemandée une fois. Ce sont des
-erreurs de forme, pas des jugements : un code qui ne compile pas n'est jamais redemandé d'office.
+une réponse **sans code** de l'auteur (panne, délai, réponse vide) est redemandée une fois. Un code qui
+ne compile pas ou plante à l'exécution passe par l'**autocorrection bornée** (§9 bis) — jamais par une
+critique esthétique.
 
 ## 3. Le contrat d'une scène
 
@@ -131,10 +134,11 @@ Un appel par scène, avec seulement :
 3. la **fiche** : film (titre, concept, bible), cadre (format, taille, rang, durée), marque, scènes
    voisines, intention, idées visuelle et de mouvement, entrée, textes exacts par clé, médias (index
    `ctx.media[i]`, dimensions, description), voix et son instant, tempo ;
-4. dès High, les **fonctions réutilisables** des vidéos précédentes de la marque
+4. les **fonctions réutilisables** des vidéos précédentes de la marque
    (`author/snippets.ts` : fonctions de premier niveau du code des scènes déjà prêtes, choisies par
    leur nom et leur commentaire) ;
-5. pour une retouche : le code actuel et la demande ; pour une correction : le code et l'erreur.
+5. pour une retouche : le code actuel et la demande ; pour une correction : la stratégie (§9 bis), l'erreur
+   et les erreurs déjà rencontrées (le code seulement pour « corriger »).
 
 `MC_SYMBOLS` liste chaque nom cité par la référence ; `npm run check:video` compile une scène qui les
 importe **tous** depuis les paquets installés. Une montée de version qui retire un nom fait échouer le
@@ -200,6 +204,22 @@ le rendu (cas rare : erreur apparue après le contrôle) fait échouer ce format
 marque la scène ; le fichier n'est pas livré. La file de rendu, les rendus d'avance, les signatures de
 fraîcheur et les remboursements sont inchangés.
 
+## 9 bis. L'autocorrection bornée
+
+`author/repair.ts` (stratégies, budget, journal) et `motionVideo.service.ts#repairScenes` (la boucle) :
+
+- trois approches, dans l'ordre, une par tentative : `fix` (modèle du cran, code + erreur), `rewrite` (modèle du
+  cran au-dessus, depuis la fiche, plus simple, erreurs passées connues), `minimal` (même modèle, version la plus
+  simple : formes, textes, médias ; opacité, position, échelle) ;
+- **une tentative à la fois par scène** (les scènes différentes avancent en parallèle, 3 au plus), jamais deux fois
+  la même approche ; après chaque tour, `probeFilm` réexécute le film et donne le verdict ;
+- budget du film : jetons (`VIDEO_REPAIR_TOKEN_BUDGET`, 80 000) et temps (`VIDEO_REPAIR_MAX_MS`, 240 s) ; budget
+  épuisé = arrêt net, noté `film.repair.stopped` ;
+- sortie : `film.repair` (tentatives, scènes corrigées, scènes restées en erreur, jetons) et `scene.author.repairs`.
+
+Elle tourne à la création, après toute réécriture demandée (consigne, nouvelle version) et sur « Corriger ».
+Une retouche visuelle qui ne s'exécute toujours pas après correction rend l'ancien code.
+
 ## 10. Les vidéos de l'ancien moteur
 
 Une vidéo sans `film` (créée avant la migration) est marquée `legacy` : ses MP4 se téléchargent, elle
@@ -209,7 +229,8 @@ ne se prévisualise ni ne se retouche plus (`legacy_video`). Les deux interfaces
 
 | Commande | Ce qu'elle prouve |
 | --- | --- |
-| `npm run check:video` (apps/api) = `npm run check:motion` (apps/ivision/core) | exemples compilés ; imports interdits refusés ; erreur de syntaxe localisée ; film contrôlé (seule la scène fautive en erreur, effets relevés, vignettes) ; MP4 à la durée exacte ; référence d'API présente dans la version installée ; création complète avec modèles simulés (textes, chiffre inventé retiré et signalé, code fautif gardé tel quel, correction, retouches, aperçu, export, ancienne vidéo en lecture seule) |
+| `npm run check:video` (apps/api) = `npm run check:motion` (apps/ivision/core) | exemples compilés ; imports interdits refusés ; erreur de syntaxe localisée ; film contrôlé (seule la scène fautive en erreur, effets relevés, vignettes) ; MP4 à la durée exacte ; référence d'API présente dans la version installée ; création complète avec modèles simulés (textes, chiffre inventé retiré et signalé, autocorrection : erreur de compilation et d'exécution corrigées, scène récalcitrante arrêtée après trois approches avec montée de modèle, budget de jetons, « Corriger », retouches, aperçu, export, ancienne vidéo en lecture seule) |
+| `npm run check:roles` (apps/api) | les échelles de modèles : barreaux autorisés, un modèle par cran, surcharges par l'environnement |
 | `npm run check:request` (apps/ivision/core) | la demande suivie à la lettre : lecture, langue, storyboard tenu par le scénario, disjoncteur des médias, création de bout en bout sur le vrai script d'un utilisateur |
 | `npm run check` (apps/ivision/core) | scan de site, vidéo modèle et reproduction, visuels |
 | `npm run typecheck` (apps/ivision/core) | Node **et** navigateur (`motion/tsconfig.json` : kit, harnais, lecteur, exemples typés contre Motion Canvas) |
@@ -223,5 +244,6 @@ ne se prévisualise ni ne se retouche plus (`legacy_video`). Les deux interfaces
 - **Une montée de Motion Canvas** : changer la version exacte (`apps/api/package.json`,
   `apps/ivision/core/package.json`, `MOTION_CANVAS_VERSION`), lancer `npm run typecheck` et
   `npm run check:motion` dans le core.
-- **Un autre modèle pour un rôle** : `IDEM_ROLE_VIDEO_AUTHOR_MODEL`, `IDEM_ROLE_VIDEO_PLANNER_MODEL`,
-  `IDEM_ROLE_VIDEO_CONCEPT_MODEL` (liste blanche OpenRouter), ou `…_ENDPOINT=selfhosted`.
+- **Un autre modèle à un cran** : `IDEM_LADDER_CODE_<CRAN>`, `IDEM_LADDER_DESIGN_<CRAN>` (barreau de l'échelle),
+  `IDEM_ROLE_VIDEO_AUTHOR_MODEL_<CRAN>` (un rôle, un cran), `IDEM_ROLE_VIDEO_AUTHOR_MODEL` (un rôle, tous les
+  crans — l'échelle ne joue plus), ou `…_ENDPOINT=selfhosted`. Modèles de la liste blanche OpenRouter.

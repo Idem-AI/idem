@@ -56,21 +56,42 @@ s'affichent pas — et la vidéo le dit (`film.fidelity.notes`).
    photos des visuels de la marque. Plafonds : `VIDEO_GEN_MAX_IMAGES` (6), `VIDEO_GEN_MAX_CLIPS` (4).
    Un fournisseur sans crédit (402) coupe la génération pour toute la vidéo dès le premier refus.
 
-## Qui décide : la jauge de créativité
+## La jauge de créativité : la puissance des modèles
 
-Les cinq crans donnent des **moyens**, jamais des contraintes ni des gabarits :
+Depuis le 14 octobre 2026, **le cran choisit le modèle**, pas le travail : à tous les crans, le directeur
+invente le film, le planificateur écrit le storyboard et l'auteur écrit chaque scène, avec le même
+contexte. Plus le cran monte, plus les modèles qui le font sont puissants (échelles de
+`apps/api/api/config/creative-roles.ts`, toutes à poids ouverts) :
 
-| Cran | Concept | Storyboard | Auteur des scènes |
-| --- | --- | --- | --- |
-| Low | — (le planificateur l'invente dans son appel) | un appel | un appel par scène, 1 exemple |
-| Medium (défaut) | directeur | un appel | 2 exemples |
-| High | directeur | un appel | 2 exemples + fonctions réutilisables de la marque |
-| Max | directeur | un appel | 3 exemples + fonctions réutilisables |
-| Ultra | directeur, trois idées comparées | un appel | 3 exemples + fonctions réutilisables |
+| Cran | Conception (`video.concept`, `video.planner`, `video.reviser`) | Code des scènes (`video.author`) |
+| --- | --- | --- |
+| Low | `qwen/qwen3.5-9b` | `qwen/qwen3-coder-30b-a3b-instruct` |
+| Medium (défaut) | `qwen/qwen3.5-27b` | `qwen/qwen3-coder-next` |
+| High | `qwen/qwen3.5-122b-a10b` | `deepseek/deepseek-v4-flash` |
+| Max | `qwen/qwen3.5-397b-a17b` | `qwen/qwen3-coder` (480B) |
+| Ultra | `deepseek/deepseek-v4-pro` | `deepseek/deepseek-v4-pro` |
 
-Les plafonds de sortie de chaque rôle par cran sont dans `apps/api/api/config/creative-roles.ts`
-(`video.concept`, `video.planner`, `video.author`, `video.reviser`). Il n'y a **aucune critique
-esthétique** à aucun cran.
+Un barreau se remplace sans code : `IDEM_LADDER_DESIGN_<CRAN>` / `IDEM_LADDER_CODE_<CRAN>` (modèle de la liste
+blanche), ou pour un seul rôle `IDEM_ROLE_VIDEO_AUTHOR_MODEL_<CRAN>`. La qualité des clips générés suit aussi
+le cran (mode « qualité » dès High). Il n'y a aucune critique esthétique à aucun cran.
+
+## L'autocorrection des scènes
+
+Avant que la vidéo soit montrée, chaque scène qui ne compile pas ou plante à l'exécution est **corrigée
+automatiquement**, dans des bornes strictes (`src/video/author/repair.ts`) :
+
+1. **corriger** — le modèle du cran reçoit le code et l'erreur ;
+2. **réécrire autrement** — le modèle du **cran au-dessus** réécrit la scène depuis sa fiche, plus simplement,
+   en connaissant les erreurs précédentes ;
+3. **version minimale** — ce même modèle écrit la version la plus simple qui marche (formes, textes, médias).
+
+Chaque tentative change d'approche (jamais deux fois la même), **une seule tentative à la fois par scène**, trois
+au plus ; après chaque tour, Motion Canvas réexécute le film (c'est lui, pas le modèle, qui dit si c'est corrigé).
+Le film entier a un budget : `VIDEO_REPAIR_TOKEN_BUDGET` (80 000 jetons), `VIDEO_REPAIR_MAX_MS` (4 min) ; réglages
+`VIDEO_REPAIR_ATTEMPTS` (3, 0 pour couper) et `VIDEO_REPAIR_CONCURRENCY` (3 scènes à la fois). Ce qui résiste reste
+signalé sur sa scène (« Corriger » relance la même boucle bornée) ; le journal est dans `film.repair` et
+`scene.author.repairs`. La même correction suit toute réécriture demandée (consigne, nouvelle version) ; une
+retouche visuelle qui ne s'exécute toujours pas rend l'ancien code, qui marchait.
 
 ## Prix (crédits iBusiness)
 

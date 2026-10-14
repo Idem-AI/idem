@@ -1,6 +1,6 @@
 # La jauge de créativité
 
-Avant chaque génération, l'utilisateur règle la part de décisions (ou, pour la vidéo, les moyens) confiée à l'IA. Le réglage vaut pour six livrables : vidéo motion, visuels et flyers, carte de visite, pitch deck, business plan et identité visuelle.
+Avant chaque génération, l'utilisateur règle la part de décisions confiée à l'IA (pour la vidéo : la puissance des modèles). Le réglage vaut pour six livrables : vidéo motion, visuels et flyers, carte de visite, pitch deck, business plan et identité visuelle.
 
 Les cinq crans reprennent ceux de l'effort d'un modèle : **Low · Medium · High · Max · Ultra**.
 
@@ -116,21 +116,22 @@ S'y ajoute la **fiche de marque** (`brandSheet`) : couleurs, polices, DA, à fai
 
 ## Vidéo motion
 
-Depuis le 14 octobre 2026 (moteur Motion Canvas, [VIDEO_ENGINE.md](VIDEO_ENGINE.md)), **à tous les
-crans, l'IA invente le film et écrit le code de chaque scène** : il n'y a plus de menus, de motifs ni de
-mises en page à choisir. Les crans donnent des **moyens** :
+Depuis le 14 octobre 2026 (moteur Motion Canvas, [VIDEO_ENGINE.md](VIDEO_ENGINE.md)), **le cran de la vidéo
+choisit la puissance des modèles** : les étapes (directeur, planificateur, auteur de chaque scène,
+autocorrection) et leur contexte sont identiques à tous les crans.
 
-| Cran | Concept | Storyboard | Auteur des scènes |
-|---|---|---|---|
-| Low | inventé par le planificateur dans son appel | `video.planner` | `video.author`, 1 exemple technique |
-| Medium | directeur (`video.concept`) | `video.planner` | 2 exemples |
-| High | directeur | `video.planner` | 2 exemples + fonctions réutilisables des vidéos de la marque |
-| Max | directeur | `video.planner` | 3 exemples + fonctions réutilisables |
-| Ultra | directeur : trois idées comparées, la plus forte développée | `video.planner` | 3 exemples + fonctions réutilisables |
+| Cran | Conception (`video.concept`, `video.planner`, `video.reviser`) | Code des scènes (`video.author`) |
+| --- | --- | --- |
+| Low | `qwen/qwen3.5-9b` | `qwen/qwen3-coder-30b-a3b-instruct` |
+| Medium (défaut) | `qwen/qwen3.5-27b` | `qwen/qwen3-coder-next` |
+| High | `qwen/qwen3.5-122b-a10b` | `deepseek/deepseek-v4-flash` |
+| Max | `qwen/qwen3.5-397b-a17b` | `qwen/qwen3-coder` (480B) |
+| Ultra | `deepseek/deepseek-v4-pro` | `deepseek/deepseek-v4-pro` |
 
-Les plafonds de sortie de chaque rôle par cran sont dans `config/creative-roles.ts`. **Aucune critique
-esthétique ni réécriture automatique** : le code rendu par le modèle est montré tel quel ; une erreur
-technique est attribuée à sa scène et corrigée seulement si l'utilisateur le demande. Prix inchangés.
+Les échelles sont dans `config/creative-roles.ts#MODEL_LADDERS` (rôles `video.concept`, `video.planner`,
+`video.reviser` sur l'échelle « design », `video.author` sur l'échelle « code »). L'autocorrection des scènes
+monte d'un cran pour changer d'approche ([MOTION_VIDEO.md](MOTION_VIDEO.md#lautocorrection-des-scènes)). Prix
+inchangés.
 
 ## Visuels, cartes de visite et documents : le moteur graphique (`packages/graphic-engine`)
 
@@ -248,7 +249,7 @@ Palettes et paires typographiques restent des propositions de l'IA parmi lesquel
 
 Où il se trouve :
 
-- vidéo (pied du créateur, détail d'un contenu) — le cran y donne des moyens au directeur et à l'auteur ;
+- vidéo (pied du créateur, détail d'un contenu) — `kind="video"` : le menu y parle de la puissance des modèles ;
 - visuel (détail d'un contenu) ;
 - carte de visite (génération et régénération) ;
 - business plan (rangée de boutons du formulaire, état vide) ;

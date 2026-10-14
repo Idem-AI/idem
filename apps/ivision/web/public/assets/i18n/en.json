@@ -317,6 +317,14 @@
       "high": "High ×1.25",
       "max": "Max ×1.5",
       "ultra": "Ultra ×2"
+    },
+    "videoHint": "The higher the level, the more powerful the model that designs and writes the video (and the higher the price).",
+    "videoLevels": {
+      "low": "Low ×1 · light model",
+      "medium": "Medium ×1 · mid-size model",
+      "high": "High ×1.25 · advanced model",
+      "max": "Max ×1.5 · large model",
+      "ultra": "Ultra ×2 · most powerful"
     }
   },
   "formats": {
@@ -455,7 +463,8 @@
         "concept": "Film concept",
         "design": "Visual design",
         "photo": "Photo selection",
-        "check": "Checking the scenes"
+        "check": "Checking the scenes",
+        "repair": "Automatic scene fixing"
       }
     },
     "composer": {

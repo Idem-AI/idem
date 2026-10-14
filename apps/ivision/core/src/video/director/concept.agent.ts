@@ -2,12 +2,9 @@
  * LE DIRECTEUR CRÉATIF — invente le film : un concept, une bible visuelle, une idée par scène.
  *
  * Aucune liste de mises en page, de motifs ou de concepts : le modèle invente. Il reçoit la demande,
- * la marque, les médias et le cadre (durée, format), rien d'autre. Au cran Ultra, il compare d'abord
- * trois idées et développe la plus forte (dans le même appel).
- *
- * Utilisé dès Medium ; au cran Low, le planificateur fait ce travail dans son propre appel.
+ * la marque, les médias et le cadre (durée, format), rien d'autre. Le même travail à tous les crans :
+ * la jauge de créativité choisit le MODÈLE qui le fait (`config/creative-roles.ts`, échelle « design »).
  */
-import { atLeast } from '../../creativity/levels';
 import { callFilmModel, FilmCallContext, ModelRun } from '../agents';
 import { FilmBrief, formatLine, intentLine, languageLine, mediaLines, sceneRange, scriptLines } from './brief';
 import { parseFilmPlan } from './film-format';
@@ -31,7 +28,6 @@ export function buildConceptPrompt(brief: FilmBrief): { system: string; user: st
     'The film will be coded in Motion Canvas (2D vector animation: shapes, lines, text, photos and video clips, masks, gradients, filters). Design for that medium: precise, physical, rhythmic motion design — not a slideshow.',
     'Serve the message first: the viewer must understand what is offered and what to do. Avoid clichés (floating icons, generic gradients, "Welcome to…" intros).',
     'Brand rule: use the brand colours and fonts; light backgrounds by default unless the client asks otherwise.',
-    atLeast(brief.level, 'ultra') ? 'Before writing, list THREE very different ideas on one line each (IDEAS: a) … b) … c) …), then develop the strongest one that still serves the message.' : '',
     '',
     'Answer in English with exactly these fields:',
     'TITLE: a short working title',

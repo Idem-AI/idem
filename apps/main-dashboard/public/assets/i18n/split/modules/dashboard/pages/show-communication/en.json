@@ -1011,7 +1011,8 @@
             "music": "The music",
             "voice": "The voice-over",
             "code": "Writing each scene",
-            "check": "Checking each scene"
+            "check": "Checking each scene",
+            "repair": "Automatic scene fixing"
           },
           "details": {
             "plan": "{{media}} media available · texts in {{language}}",
@@ -1030,7 +1031,10 @@
             "code": "{{ready}} scene(s) written",
             "codeErrors": "{{ready}} scene(s) ready · {{errors}} to fix",
             "checkOk": "Every scene runs",
-            "checkErrors": "{{errors}} scene(s) do not run: fix them in the editor"
+            "checkErrors": "{{errors}} scene(s) do not run: fix them in the editor",
+            "repair": "{{fixed}} scene(s) fixed",
+            "repairPartial": "{{fixed}} fixed · {{unresolved}} to fix in the editor",
+            "repairRunning": "Attempt {{round}} of 3 at most"
           }
         },
         "voice": {

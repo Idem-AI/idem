@@ -1011,7 +1011,8 @@
             "music": "La musique",
             "voice": "La voix off",
             "code": "L’écriture de chaque scène",
-            "check": "Le contrôle de chaque scène"
+            "check": "Le contrôle de chaque scène",
+            "repair": "La correction automatique des scènes"
           },
           "details": {
             "plan": "{{media}} média(s) disponible(s) · textes en {{language}}",
@@ -1030,7 +1031,10 @@
             "code": "{{ready}} scène(s) écrite(s)",
             "codeErrors": "{{ready}} scène(s) prête(s) · {{errors}} à corriger",
             "checkOk": "Toutes les scènes s’exécutent",
-            "checkErrors": "{{errors}} scène(s) ne s’exécutent pas : à corriger dans l’éditeur"
+            "checkErrors": "{{errors}} scène(s) ne s’exécutent pas : à corriger dans l’éditeur",
+            "repair": "{{fixed}} scène(s) corrigée(s)",
+            "repairPartial": "{{fixed}} corrigée(s) · {{unresolved}} à corriger dans l’éditeur",
+            "repairRunning": "Tentative {{round}} sur 3 au plus"
           }
         },
         "voice": {

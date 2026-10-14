@@ -6,7 +6,7 @@
  * minutage, voix, tempo), la bible du film et ses voisines. Un petit modèle travaille ainsi sur UN
  * problème précis, avec les seules API qui existent dans la version installée.
  */
-import { atLeast, CreativityLevel } from '../../creativity/levels';
+import type { CreativityLevel } from '../../creativity/levels';
 import type { BrandTokens } from '../../../motion/kit/context';
 import type { VideoFormat } from '../contracts/model';
 import { COMPOSITION } from '../rendering/formats';
@@ -14,6 +14,7 @@ import { API_REFERENCE } from './api-reference';
 import { pickExamples } from './examples';
 import type { CodeSnippet } from './snippets';
 import { textsLine } from '../director/film-format';
+import { repairInstruction, RepairStrategy } from './repair';
 
 export interface AuthorSceneCard {
   key: string;
@@ -41,17 +42,17 @@ export interface AuthorContext {
   level: CreativityLevel;
   /** Retouche demandée par l'utilisateur, avec le code actuel. */
   revise?: { instruction: string; code: string };
-  /** Correction volontaire : le code actuel et l'erreur technique constatée. */
-  fix?: { code: string; error: string };
+  /** Correction (automatique ou demandée) : la stratégie, le code actuel (s'il y en a un), l'erreur et les erreurs passées. */
+  repair?: { strategy: RepairStrategy; code?: string; error: string; history: string[] };
 }
 
-/** Combien d'exemples selon le cran : plus de moyens, jamais plus de contraintes. */
-const EXAMPLES_BY_LEVEL: Record<CreativityLevel, number> = { low: 1, medium: 2, high: 2, max: 3, ultra: 3 };
+/** Le même contexte à tous les crans : la jauge choisit le MODÈLE (`config/creative-roles.ts`), pas le contexte. */
+const EXAMPLES = 2;
 
 export function buildAuthorPrompt(c: AuthorContext): { system: string; user: string } {
   const s = c.scene;
   const size = COMPOSITION[c.format];
-  const examples = pickExamples({ purpose: s.purpose, visual: s.visual, motion: s.motion, transition: s.transition, mediaKinds: s.media.map((m) => m.kind), first: s.index === 0, last: s.index === s.count - 1 }, EXAMPLES_BY_LEVEL[c.level]);
+  const examples = pickExamples({ purpose: s.purpose, visual: s.visual, motion: s.motion, transition: s.transition, mediaKinds: s.media.map((m) => m.kind), first: s.index === 0, last: s.index === s.count - 1 }, EXAMPLES);
   const system = [
     'You are a senior motion designer who writes Motion Canvas code (TypeScript + JSX). You write ONE scene of a short film, as one complete file.',
     'Make it look designed and alive: deliberate composition, clear hierarchy, real motion design (staggered entrances, easing, overlaps, a strong moment) — not a slide with text fading in.',
@@ -84,14 +85,16 @@ export function buildAuthorPrompt(c: AuthorContext): { system: string; user: str
     s.voice ? `voice-over: "${s.voice.text}" — starts at ${s.voice.at.toFixed(2)} s, lasts ${s.voice.duration.toFixed(2)} s (sync key moments with waitUntilTime)` : '',
     s.beat ? `music: ${Math.round(s.beat.bpm)} bpm, first beat at ${s.beat.first.toFixed(2)} s (beatTime(ctx, n))` : '',
   ];
-  if (c.snippets.length && atLeast(c.level, 'high')) {
+  if (c.snippets.length) {
     lines.push('', 'REUSABLE FUNCTIONS FROM EARLIER FILMS OF THIS BRAND (copy one into your file if it helps):', ...c.snippets.map((sn) => `\`\`\`tsx\n${sn.doc ? `// ${sn.doc}\n` : ''}${sn.code}\n\`\`\``));
   }
   if (c.revise) {
     lines.push('', 'CURRENT CODE OF THIS SCENE:', '```tsx', c.revise.code, '```', `THE CLIENT ASKS: ${c.revise.instruction}`, 'Rewrite the whole file to do what the client asks. Keep what the request does not concern.');
   }
-  if (c.fix) {
-    lines.push('', 'CURRENT CODE OF THIS SCENE:', '```tsx', c.fix.code, '```', `IT FAILS WITH: ${c.fix.error}`, 'Return the whole corrected file. Change only what is needed to make it run.');
+  if (c.repair) {
+    // « fix » corrige le code existant ; les autres stratégies repartent de la fiche (le code fautif n'est pas redonné).
+    if (c.repair.strategy === 'fix' && c.repair.code) lines.push('', 'CURRENT CODE OF THIS SCENE:', '```tsx', c.repair.code, '```');
+    lines.push('', repairInstruction(c.repair.code || c.repair.strategy !== 'fix' ? c.repair.strategy : 'rewrite', c.repair.error, c.repair.history));
   }
   return { system, user: lines.filter((l) => l !== '').join('\n') };
 }

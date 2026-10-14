@@ -85,7 +85,27 @@
           "line": "L'IA invente et crée tout, vérifié et corrigé avant livraison."
         }
       },
-      "withCost": "{{label}} · {{cost}} crédits"
+      "withCost": "{{label}} · {{cost}} crédits",
+      "video": {
+        "help": "Plus vous montez, plus le modèle qui conçoit et écrit votre vidéo est puissant — et plus la génération consomme de crédits.",
+        "levels": {
+          "low": {
+            "line": "Modèles légers : rapides et économiques."
+          },
+          "medium": {
+            "line": "Modèles intermédiaires : le bon équilibre."
+          },
+          "high": {
+            "line": "Modèles avancés : idées plus fines, code plus sûr."
+          },
+          "max": {
+            "line": "Grands modèles : films plus ambitieux."
+          },
+          "ultra": {
+            "line": "Les modèles les plus puissants."
+          }
+        }
+      }
     }
   },
   "dashboard": {
@@ -4497,7 +4517,8 @@
             "music": "La musique",
             "voice": "La voix off",
             "code": "L’écriture de chaque scène",
-            "check": "Le contrôle de chaque scène"
+            "check": "Le contrôle de chaque scène",
+            "repair": "La correction automatique des scènes"
           },
           "details": {
             "plan": "{{media}} média(s) disponible(s) · textes en {{language}}",
@@ -4516,7 +4537,10 @@
             "code": "{{ready}} scène(s) écrite(s)",
             "codeErrors": "{{ready}} scène(s) prête(s) · {{errors}} à corriger",
             "checkOk": "Toutes les scènes s’exécutent",
-            "checkErrors": "{{errors}} scène(s) ne s’exécutent pas : à corriger dans l’éditeur"
+            "checkErrors": "{{errors}} scène(s) ne s’exécutent pas : à corriger dans l’éditeur",
+            "repair": "{{fixed}} scène(s) corrigée(s)",
+            "repairPartial": "{{fixed}} corrigée(s) · {{unresolved}} à corriger dans l’éditeur",
+            "repairRunning": "Tentative {{round}} sur 3 au plus"
           }
         },
         "voice": {

@@ -2,14 +2,13 @@
  * LE PLANIFICATEUR — transforme le concept en storyboard que l'auteur codera scène par scène :
  * durée, intention, idée visuelle, idée de mouvement, entrée, textes exacts, médias, voix.
  *
- * Au cran Low, il invente aussi le concept (un seul appel). Le code ne touche à rien de créatif ;
+ * Sans concept (directeur en panne), il invente aussi le film dans son appel. Le code ne touche à rien de créatif ;
  * il garantit seulement ce qui est TECHNIQUE ou CONTRACTUEL :
  *   - les durées font la durée achetée (mise à l'échelle) ;
  *   - un scénario écrit par l'utilisateur garde ses scènes, ses textes et sa voix mot pour mot ;
  *   - un nombre absent de la demande (prix, date, numéro) ne s'affiche pas — l'écart est DIT ;
  *   - les médias cités existent ; les médias à produire tiennent dans les plafonds.
  */
-import { atLeast } from '../../creativity/levels';
 import { callFilmModel, FilmCallContext, ModelRun } from '../agents';
 import { isGrounded, urlInBrief } from '../request/facts';
 import { specConstraints } from '../request/request';
@@ -202,6 +201,3 @@ export async function runPlanner(ctx: FilmCallContext, brief: FilmBrief, concept
   }
   return { storyboard: null, runs };
 }
-
-/** Le cran décide qui conçoit : le planificateur seul (Low) ou le directeur puis le planificateur. */
-export const directorEnabled = (level: FilmBrief['level']) => atLeast(level, 'medium');

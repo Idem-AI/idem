@@ -348,7 +348,15 @@ export interface FilmScene {
   /** Le code Motion Canvas (TSX) écrit par l'IA. Jamais réécrit par le code d'IDEM. */
   code?: string;
   /** Qui l'a écrit, et à quelle demande. */
-  author?: { tokens: { input: number; output: number }; ms: number; at: string; attempts: number; instruction?: string };
+  author?: {
+    tokens: { input: number; output: number };
+    ms: number;
+    at: string;
+    attempts: number;
+    instruction?: string;
+    /** Les corrections automatiques de cette scène, dans l'ordre (au plus trois approches différentes). */
+    repairs?: { strategy: 'fix' | 'rewrite' | 'minimal'; ok: boolean; error?: string }[];
+  };
   status: FilmSceneStatus;
   /** L'erreur TECHNIQUE qui empêche la scène de s'exécuter (jamais un jugement esthétique). */
   error?: { stage: 'author' | 'compile' | 'runtime'; message: string };
@@ -388,6 +396,11 @@ export interface VideoFilm {
   fidelity?: { notes: string[] };
   /** Dernier contrôle technique (compilation + exécution de chaque scène). */
   checkedAt?: string;
+  /**
+   * L'autocorrection avant livraison : tentatives, scènes corrigées, scènes restées en erreur, jetons
+   * dépensés, et pourquoi elle s'est arrêtée (`budget`, `time`) quand ce n'est pas la fin des approches.
+   */
+  repair?: { attempts: number; fixed: string[]; unresolved: string[]; tokens: number; stopped?: 'budget' | 'time' };
   /** La vidéo modèle dont le film s'inspire. */
   reference?: { id?: string; summary: string };
 }

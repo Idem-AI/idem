@@ -8,14 +8,14 @@ export type VideoProgressState = Partial<Record<VideoProgressStage, { state: 'ru
   authored?: Record<string, boolean>;
 };
 
-const STAGES: VideoProgressStage[] = ['plan', 'concept', 'storyboard', 'media', 'music', 'voice', 'code', 'check'];
+const STAGES: VideoProgressStage[] = ['plan', 'concept', 'storyboard', 'media', 'music', 'voice', 'code', 'check', 'repair'];
 /** Étapes montrées seulement quand le serveur les annonce (elles dépendent du cran et de la demande). */
-const OPTIONAL: VideoProgressStage[] = ['concept', 'media', 'music', 'voice'];
+const OPTIONAL: VideoProgressStage[] = ['concept', 'media', 'music', 'voice', 'repair'];
 
 /** Poids de chaque étape dans la barre, proportionnels à leur coût réel. */
-const WEIGHT: Record<VideoProgressStage, number> = { plan: 6, concept: 12, storyboard: 16, media: 30, music: 8, sfx: 1, voice: 10, code: 60, check: 8 };
+const WEIGHT: Record<VideoProgressStage, number> = { plan: 6, concept: 12, storyboard: 16, media: 30, music: 8, sfx: 1, voice: 10, code: 60, check: 8, repair: 25 };
 /** Durée attendue d'une étape (ms) : la barre avance doucement pendant qu'elle tourne. */
-const EXPECTED_MS: Record<VideoProgressStage, number> = { plan: 6000, concept: 25000, storyboard: 40000, media: 90000, music: 15000, sfx: 3000, voice: 15000, code: 120000, check: 15000 };
+const EXPECTED_MS: Record<VideoProgressStage, number> = { plan: 6000, concept: 25000, storyboard: 40000, media: 90000, music: 15000, sfx: 3000, voice: 15000, code: 120000, check: 15000, repair: 90000 };
 
 const RATIOS: Record<VideoFormat, string> = { story: '9 / 16', square: '1 / 1', portrait: '4 / 5', landscape: '16 / 9' };
 
@@ -111,6 +111,7 @@ export class VideoComposing {
   protected detail(stage: VideoProgressStage): { key: string; params: Record<string, unknown> } | null {
     const d = this.data(stage);
     if (stage === 'code' && this.state(stage) === 'running' && d.total) return { key: 'codeRunning', params: { done: d.done ?? 0, total: d.total } };
+    if (stage === 'repair' && this.state(stage) === 'running' && d.round) return { key: 'repairRunning', params: { round: d.round } };
     if (stage === 'media' && this.state(stage) === 'running' && d.total) return { key: 'mediaGenerating', params: { done: d.done ?? 0, total: d.total } };
     if (this.state(stage) !== 'done') return null;
     switch (stage) {
@@ -134,6 +135,8 @@ export class VideoComposing {
         const errors = Array.isArray(d.errors) ? d.errors.length : 0;
         return errors ? { key: 'checkErrors', params: { errors } } : { key: 'checkOk', params: {} };
       }
+      case 'repair':
+        return d.unresolved ? { key: 'repairPartial', params: { fixed: d.fixed ?? 0, unresolved: d.unresolved } } : { key: 'repair', params: { fixed: d.fixed ?? 0 } };
       default:
         return null;
     }

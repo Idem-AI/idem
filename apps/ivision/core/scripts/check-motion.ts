@@ -7,8 +7,9 @@
  *   4. le film est rendu en MP4 : durée exacte, image et son lisibles (ffprobe) ;
  *   5. la référence d'API donnée à l'auteur existe dans la version installée de Motion Canvas ;
  *   6. la création complète avec des modèles SIMULÉS (directeur, planificateur, auteur) : textes du
- *      scénario repris, chiffre inventé retiré et signalé, scène au code fautif gardée telle quelle
- *      avec son erreur, correction volontaire, retouche de texte (le code ne change pas), retouche
+ *      scénario repris, chiffre inventé retiré et signalé, AUTOCORRECTION bornée (compilation et
+ *      exécution ; trois approches au plus, une à la fois, montée de modèle, budget de jetons ; ce qui
+ *      résiste reste signalé), « Corriger », retouche de texte (le code ne change pas), retouche
  *      écrite, aperçu, export MP4 ; une vidéo de l'ancien moteur reste en lecture seule.
  *
  * Sorties dans `apps/ivision/core/tmp/check-motion/` (vignettes, MP4, images tirées du MP4).
@@ -190,8 +191,14 @@ async function pipeline(media: { photo: string; clip: string }, sources: Record<
     removeVideo: async (_u, _p, id) => videos.delete(id),
   };
   const calls: Record<string, number> = {};
+  /** Ce que reçoit chaque appel d'auteur : scène, cran (donc modèle) et stratégie de correction. */
+  const authorLog: { scene: number; level?: string; strategy: string }[] = [];
   const broken = `export default function* (view, ctx) { view.add(<Rect width={100} }`;
-  const call: AgentCall = async ({ role, user }) => {
+  // Compile, mais plante à l'exécution : seul le contrôle réel (Motion Canvas) peut le voir.
+  const crashing = `export default function* (view, ctx) { const n: any = null; yield* n.go(); }`;
+  /** fixable : la scène 3 casse au premier jet et se corrige ; stubborn : elle casse toujours ; runtime : elle plante à l'exécution puis se corrige. */
+  let mode: 'fixable' | 'stubborn' | 'runtime' = 'fixable';
+  const call: AgentCall = async ({ role, user, level }) => {
     calls[role] = (calls[role] || 0) + 1;
     if (role === 'video.concept') return 'TITLE: Le café qui réveille\nCONCEPT: Une journée qui commence par une tasse.\nBIBLE: fond crème, vert de la marque, gros titres serrés, mouvements nets.\nSCENE 1: le titre se pose mot à mot\nSCENE 2: la photo des grains\nSCENE 3: le chiffre de la semaine\nSCENE 4: la signature';
     if (role === 'video.planner')
@@ -205,9 +212,10 @@ async function pipeline(media: { photo: string; clip: string }, sources: Record<
         'SCENE 4 | 4', 'purpose: signer', 'visual: logo sur le vert', 'motion: glisse depuis la droite', 'transition: slide', 'text.cta: Commandez sur WhatsApp',
       ].join('\n');
     if (role === 'video.author') {
-      const fixing = /IT FAILS WITH/.test(user);
+      const strategy = /IT FAILS WITH/.test(user) ? 'fix' : /SIMPLEST version/.test(user) ? 'minimal' : /FAILED with/.test(user) ? 'rewrite' : 'first';
       const scene = Number(user.match(/scene (\d) of/)?.[1] || 1);
-      if (scene === 3 && !fixing) return '```tsx\n' + broken + '\n```';
+      authorLog.push({ scene, level, strategy });
+      if (scene === 3 && (mode === 'stubborn' || strategy === 'first')) return '```tsx\n' + (mode === 'runtime' ? crashing : broken) + '\n```';
       const pick = ['typography', 'photo', 'infographic', 'logo-transition'][scene - 1];
       return 'Voici la scène :\n```tsx\n' + sources[pick] + '\n```';
     }
@@ -216,29 +224,56 @@ async function pipeline(media: { photo: string; clip: string }, sources: Record<
   };
   const service = new MotionVideoService(store, call);
   const request = 'Une vidéo pour Kora Café : 1 250 clients chaque semaine, café torréfié chaque matin à Dakar. Commandez sur WhatsApp.';
+  const create = (onProgress?: (e: { stage: string; state: string }) => void) =>
+    service.createVideo('u1', 'p1', { brief: { message: request, request, musicMood: 'none', sfx: false, media: [{ id: 'up1', kind: 'image', url: media.photo, width: 1200, height: 1500, origin: 'upload' }] as never, allowGenerate: false, allowStock: false }, scope: { durationSec: 15, formats: ['story'], quality: 'standard' }, creativity: 'medium' }, 120, onProgress);
+  const s3Calls = () => authorLog.filter((x) => x.scene === 3);
   const events: string[] = [];
-  const video = await service.createVideo('u1', 'p1', { brief: { message: request, request, musicMood: 'none', sfx: false, media: [{ id: 'up1', kind: 'image', url: media.photo, width: 1200, height: 1500, origin: 'upload' }] as never, allowGenerate: false, allowStock: false }, scope: { durationSec: 15, formats: ['story'], quality: 'standard' }, creativity: 'medium' }, 120, (e) => events.push(`${e.stage}:${e.state}`));
+  const video = await create((e) => events.push(`${e.stage}:${e.state}`));
   const film = video.film!;
   check(film.scenes.length === 4 && film.engine === 'motion-canvas', 'création : un film Motion Canvas de 4 scènes', `${film.scenes.length} scènes`);
   check(Math.abs(film.scenes.reduce((a, s) => a + s.duration, 0) - 15) < 0.01, 'les durées font la durée achetée');
-  check(calls['video.concept'] === 1 && calls['video.planner'] === 1 && calls['video.author'] === 4, 'Medium : directeur, planificateur, un auteur par scène', JSON.stringify(calls));
+  check(calls['video.concept'] === 1 && calls['video.planner'] === 1, 'directeur et planificateur, une fois chacun', JSON.stringify(calls));
   check(!('promo' in film.scenes[2].texts) && (film.fidelity?.notes || []).some((n) => /50/.test(n)), 'un chiffre absent de la demande n’est pas affiché, et c’est dit', (film.fidelity?.notes || []).join(' | '));
   check(film.scenes[1].media.includes('m1') && (video.media || []).some((m) => m.id === 'm1' && m.origin === 'upload'), 'la photo importée est le média m1 de la scène 2');
-  const s3 = film.scenes[2];
-  check(s3.status === 'error' && s3.error?.stage === 'compile' && s3.code === broken, 'code fautif gardé TEL QUEL, avec son erreur de compilation', s3.error?.message);
-  check(film.scenes.filter((s) => s.key !== 's3').every((s) => s.status === 'ready' && !!s.thumbnail), 'les autres scènes sont prêtes, avec leur vignette');
-  check(['plan:done', 'concept:done', 'storyboard:done', 'code:done', 'check:done'].every((e) => events.includes(e)), 'progression réelle (SSE)', events.filter((e) => e.endsWith('done')).join(' '));
-  await service.startExport('u1', 'p1', video.id, video.scope).then(
+  check(film.scenes.every((s) => s.status === 'ready' && !!s.thumbnail), 'autocorrection : la scène 3 cassée au premier jet est corrigée AVANT livraison', JSON.stringify(film.scenes.map((s) => s.error)));
+  check(JSON.stringify(s3Calls().map((x) => x.strategy)) === '["first","fix"]' && film.repair?.fixed.join() === 's3' && film.repair.attempts === 1 && film.scenes[2].author?.repairs?.[0]?.strategy === 'fix', 'une seule tentative suffit : « corriger » au même modèle, puis rien de plus', JSON.stringify({ calls: s3Calls(), repair: film.repair }));
+  check(['plan:done', 'concept:done', 'storyboard:done', 'code:done', 'check:done', 'repair:done'].every((e) => events.includes(e)), 'progression réelle (SSE), correction comprise', events.filter((e) => e.endsWith('done')).join(' '));
+
+  // Une scène qui résiste : trois approches au plus, une à la fois, le modèle monte d'un cran ; puis elle reste signalée.
+  mode = 'stubborn';
+  authorLog.length = 0;
+  const stubborn = await create();
+  const sb = stubborn.film!;
+  check(JSON.stringify(s3Calls().map((x) => x.strategy)) === '["first","fix","rewrite","minimal"]', 'scène qui résiste : corriger › réécrire › version minimale, puis on s’arrête (3 tentatives au plus)', JSON.stringify(s3Calls()));
+  check(JSON.stringify(s3Calls().map((x) => x.level)) === '["medium","medium","high","high"]', 'changer d’approche = le modèle du cran au-dessus (Medium → High)', JSON.stringify(s3Calls().map((x) => x.level)));
+  check(sb.scenes[2].status === 'error' && sb.repair?.unresolved.join() === 's3' && sb.repair.attempts === 3 && sb.scenes.filter((s) => s.key !== 's3').every((s) => s.status === 'ready'), 'non résolue : la scène reste signalée, les autres sont prêtes', JSON.stringify(sb.repair));
+  await service.startExport('u1', 'p1', stubborn.id, stubborn.scope).then(
     () => check(false, 'export refusé tant qu’une scène est en erreur'),
     (e) => check(/scene_errors/.test(e.message), 'export refusé tant qu’une scène est en erreur', e.message)
   );
+  mode = 'fixable';
+  authorLog.length = 0;
+  const manual = await service.updateVideo('u1', 'p1', stubborn.id, { fix: ['s3'] });
+  check(manual!.film!.scenes[2].status === 'ready' && JSON.stringify(s3Calls().map((x) => x.strategy)) === '["fix"]', '« Corriger » (demandé) : la même boucle bornée, une tentative ici', JSON.stringify(s3Calls()));
+
+  // Une erreur d'EXÉCUTION (le code compile) : vue par le contrôle réel, corrigée de même.
+  mode = 'runtime';
+  authorLog.length = 0;
+  const runtime = await create();
+  check(runtime.film!.scenes[2].status === 'ready' && runtime.film!.repair?.fixed.join() === 's3' && /reading 'go'/.test(runtime.film!.scenes[2].author?.repairs?.[0]?.error || 'x') === false, 'erreur d’exécution détectée par Motion Canvas puis corrigée', JSON.stringify(runtime.film!.repair));
+
+  // Le budget de jetons coupe la correction pour tout le film, même au milieu des approches.
+  mode = 'stubborn';
+  authorLog.length = 0;
+  process.env.VIDEO_REPAIR_TOKEN_BUDGET = '1';
+  const capped = await create();
+  delete process.env.VIDEO_REPAIR_TOKEN_BUDGET;
+  check(capped.film!.repair?.attempts === 1 && capped.film!.repair.stopped === 'budget' && s3Calls().length === 2, 'budget épuisé : arrêt net après une tentative (stopped = budget)', JSON.stringify(capped.film!.repair));
+  mode = 'fixable';
 
   const codeBefore = film.scenes[0].code;
   const edited = await service.updateVideo('u1', 'p1', video.id, { texts: { s1: { headline: 'Le meilleur café de Dakar', invented: 'x' } } });
   check(edited!.film!.scenes[0].texts.headline === 'Le meilleur café de Dakar' && !('invented' in edited!.film!.scenes[0].texts) && edited!.film!.scenes[0].code === codeBefore, 'retouche de texte : la donnée change, le code non');
-
-  const fixed = await service.updateVideo('u1', 'p1', video.id, { fix: ['s3'] });
-  check(fixed!.film!.scenes[2].status === 'ready' && fixed!.film!.scenes[2].code !== broken, 'correction volontaire : la scène 3 s’exécute', fixed!.film!.scenes[2].error?.message || '');
 
   const revised = await service.reviseFromText('u1', 'p1', video.id, 'Change le titre et fais entrer la photo plus lentement', 'fr');
   check(revised.video!.film!.scenes[0].texts.headline === 'Le café du matin' && revised.report.recoded.includes('s2'), 'retouche écrite : texte changé, scène 2 réécrite par l’auteur', JSON.stringify(revised.report));

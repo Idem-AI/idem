@@ -107,6 +107,8 @@ export interface VideoFilm {
   agents: { agent: string; source: 'llm' | 'none'; tokens: { input: number; output: number }; ms: number; failure?: string }[];
   fidelity?: { notes: string[] };
   checkedAt?: string;
+  /** L'autocorrection avant livraison : scènes corrigées, scènes restées en erreur, pourquoi elle s'est arrêtée. */
+  repair?: { attempts: number; fixed: string[]; unresolved: string[]; tokens: number; stopped?: 'budget' | 'time' };
 }
 
 export interface MusicTrack {
@@ -233,7 +235,7 @@ export function priceExport(pricing: VideoPricing, video: MotionVideo, scope: Vi
 }
 
 /** Étapes réelles d'une création, reçues en direct (flux SSE). */
-export type VideoProgressStage = 'plan' | 'concept' | 'storyboard' | 'media' | 'music' | 'sfx' | 'voice' | 'code' | 'check';
+export type VideoProgressStage = 'plan' | 'concept' | 'storyboard' | 'media' | 'music' | 'sfx' | 'voice' | 'code' | 'check' | 'repair';
 
 export interface VideoProgressData {
   /** plan */
@@ -269,6 +271,11 @@ export interface VideoProgressData {
   ready?: number;
   /** check */
   errors?: string[] | { key: string; stage?: string; message?: string }[];
+  /** repair : tour en cours, scènes corrigées et restées en erreur */
+  round?: number;
+  fixed?: number;
+  unresolved?: number;
+  attempts?: number;
 }
 
 export type VideoStreamEvent =
