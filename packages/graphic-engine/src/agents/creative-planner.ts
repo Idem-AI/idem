@@ -50,14 +50,14 @@ export function menuLines(menu: Candidate[]): string[] {
   return menu.map((c, i) => `${i + 1}. ${c.pattern.id} — ${c.pattern.summary}${Object.keys(c.params).length ? ` (${paramText(c.params)})` : ''}`);
 }
 
-function header(plan: DocumentPlan, brand: string, format: FormatDef): string {
-  return `You are the art director of a ${plan.documentType.replace('-', ' ')} for the brand "${brand}". Visual style: ${plan.styleId}. Canvas: ${format.id} (${format.kind === 'flow' ? 'paginated document page' : `fixed ${Math.round(format.width)}×${Math.round(format.height)} px`}).`;
+function header(plan: DocumentPlan, brand: string, format: FormatDef, grammar?: string): string {
+  return `You are the art director of a ${plan.documentType.replace('-', ' ')} for the brand "${brand}". Visual style: ${plan.styleId}. Canvas: ${format.id} (${format.kind === 'flow' ? 'paginated document page' : `fixed ${Math.round(format.width)}×${Math.round(format.height)} px`}).${grammar ? `\nTHE BRAND'S COMPOSITION GRAMMAR (from its charter — follow it, it is what makes this brand recognisable):\n${grammar}` : ''}`;
 }
 
-export function pickPrompt(plan: DocumentPlan, brand: string, format: FormatDef, summary: string, menu: Candidate[], previous: string[]): { system: string; user: string } | null {
+export function pickPrompt(plan: DocumentPlan, brand: string, format: FormatDef, summary: string, menu: Candidate[], previous: string[], grammar?: string): { system: string; user: string } | null {
   if (menu.length < 2) return null;
   return {
-    system: `${header(plan, brand, format)} Choose ONE composition for this page from the menu: the one that best serves the content (clear hierarchy, readable, nothing cramped) and differs from the previous pages. Answer with JSON only: {"choice": <number>, "why": "<at most 10 words>"}.`,
+    system: `${header(plan, brand, format, grammar)} Choose ONE composition for this page from the menu: the one that best serves the content (clear hierarchy, readable, nothing cramped) and differs from the previous pages. Answer with JSON only: {"choice": <number>, "why": "<at most 10 words>"}.`,
     user: `PAGE: ${summary}\nPREVIOUS PAGES: ${previous.slice(-4).join(', ') || 'none'}\nMENU:\n${menuLines(menu).join('\n')}`,
   };
 }
@@ -75,11 +75,11 @@ export interface Tuned {
   accent?: Accent;
 }
 
-export function pickTunePrompt(plan: DocumentPlan, brand: string, format: FormatDef, summary: string, menu: Candidate[], previous: string[]): { system: string; user: string } | null {
+export function pickTunePrompt(plan: DocumentPlan, brand: string, format: FormatDef, summary: string, menu: Candidate[], previous: string[], grammar?: string): { system: string; user: string } | null {
   if (!menu.length) return null;
   const spaces = menu.map((c, i) => `${i + 1}. ${c.pattern.id} — ${c.pattern.summary}\n   params: ${Object.entries(c.pattern.params).map(([k, vs]) => `${k}∈{${vs.join('|')}}`).join('; ') || 'none'}`);
   return {
-    system: `${header(plan, brand, format)} Choose ONE composition from the menu AND set its parameters (only the listed values), plus the page tension and accent from the allowed lists. Serve the content first, then make this page differ from the previous ones. Answer with JSON only: {"choice": <number>, "params": {<name>: <value>}, "tension": "<value>", "accent": "<value>"}.`,
+    system: `${header(plan, brand, format, grammar)} Choose ONE composition from the menu AND set its parameters (only the listed values), plus the page tension and accent from the allowed lists. Serve the content first, then make this page differ from the previous ones. Answer with JSON only: {"choice": <number>, "params": {<name>: <value>}, "tension": "<value>", "accent": "<value>"}.`,
     user: `PAGE: ${summary}\nPREVIOUS PAGES: ${previous.slice(-4).join(', ') || 'none'}\nTENSIONS ALLOWED: ${['calm', ...plan.tensions].join(', ')}\nACCENTS ALLOWED: ${['none', ...plan.accents].join(', ')}\nMENU:\n${spaces.join('\n')}`,
   };
 }
@@ -110,13 +110,14 @@ const GRAMMAR = `NODES (JSON objects, "t" is the type):
 - box {children[], surface?, pad?, radius?, border?: {weight: hair|thin|thick, sides?: ["t","r","b","l"], ink?}}
 - layer {items: [{"at": {"x","y","w","h"} in % of the layer, "z"?: 0..20, "node": <node>}]} — free overlap: a photo with a panel over it, an annotation over a capture
 - text {role: kicker|title|display|lede|body|caption|label|number|figure|subtitle|small, ref: "title"|"kicker"|"lede"|"<blockId>.<field>", size?: xs…6xl, align?, ink?, emphasis?: underline|outline, rotate?: up}
-  a "points" block may be placed point by point: "<blockId>.items.<i>.label", ".detail", ".value" (then place EVERY label)
+  a block of short fields (copy, points, metrics, cover, quote) may be placed FIELD BY FIELD anywhere on the page: "<blockId>.headline", ".subhead", ".offer", ".facts.0.text", ".items.0.label"… (the fields of each block are listed below)
 - block {ref: "<blockId>", variant?: {…}} — draws a content block with its component
 - image {ref: "<figureBlockId>", fit?: cover|contain, overlay?: none|scrim-bottom|scrim-top|scrim-full|tint-brand, radius?, grow?} — places that photo/capture
 - icon {name: "<icon of a point>", size?: sm|md|lg, ink?}
 - rule {weight?: hair|thin|thick, ink?, length?: full|short|xshort, vertical?}
 - spacer {size?: xs…3xl} or {flex: true}
 - logo {height?: sm|md|lg|xl}
+- pattern {index?: 0 main|1 secondary|2 fine texture|3 inverted, opacity?: 0..1} — THE BRAND'S OWN MOTIFS from its charter (use them for any texture, never invent one)
 - shape {shape: rings|quarter-circles|half-discs|stripes|grid-lines|dots-field|chevrons|arcs|blob|waves|steps|triangles|cross-marks|checker|contours|burst|slant, tone?: brand|accent|soft|ink, size?: fill|sm|md|lg, opacity?: 0..1}
 TOKENS: space none|2xs|xs|sm|md|lg|xl|2xl|3xl · surface ground|raised|sunken|brand|brand-soft|accent|accent-soft|ink · ink ink|muted|faint|heading|kicker|emphasis|brand|accent`;
 
@@ -129,7 +130,20 @@ function intentLines(section: SectionContent, references: Candidate[]): string {
   return lines.join('\n');
 }
 
-export function authorPrompt(plan: DocumentPlan, brand: string, format: FormatDef, section: SectionContent, a: ContentAnalysis, previous: string[], references: Candidate[] = []): { system: string; user: string } {
+/** Une composition MODÈLE fournie par l'utilisateur (image de référence analysée) : à reproduire avec la marque. */
+export interface ReferenceComposition {
+  description: string;
+  /** Les zones du modèle, en % de la toile (photo, titre, prix, logo, bandeau…). */
+  zones?: Array<{ role: string; x: number; y: number; w: number; h: number }>;
+}
+
+function referenceLines(ref?: ReferenceComposition): string {
+  if (!ref) return '';
+  const zones = (ref.zones ?? []).map((z) => `${z.role} at x${Math.round(z.x)} y${Math.round(z.y)} w${Math.round(z.w)} h${Math.round(z.h)}`).join('; ');
+  return `REFERENCE TO REPRODUCE (the client's model — its composition, NOT its texts or colours): ${ref.description.slice(0, 600)}${zones ? `\nITS ZONES in % of the canvas: ${zones}. Reproduce this layout faithfully — a "layer" root with items at these positions is the surest way.` : ''}`;
+}
+
+export function authorPrompt(plan: DocumentPlan, brand: string, format: FormatDef, section: SectionContent, a: ContentAnalysis, previous: string[], references: Candidate[] = [], reference?: ReferenceComposition, grammar?: string): { system: string; user: string } {
   const blocks = a.blocks.map((b) => {
     const variants = componentsFor(b.kind)[0]?.variants ?? {};
     const v = Object.entries(variants)
@@ -142,11 +156,13 @@ export function authorPrompt(plan: DocumentPlan, brand: string, format: FormatDe
         : block?.kind === 'figure'
           ? ` — a picture: place it with an "image" node (ref "${b.id}"), large`
           : '';
-    return `- ${b.id}: ${b.kind}, weight ${b.weight.toFixed(2)}${b.wide ? ', needs full width' : ''}${extra}${v ? ` — variants ${v}` : ''}`;
+    const fields = block ? fieldPathsOf(block) : [];
+    const fieldList = fields.length ? ` — fields: ${fields.map((f) => `${b.id}.${f.path}`).join(', ')}` : '';
+    return `- ${b.id}: ${b.kind}, weight ${b.weight.toFixed(2)}${b.wide ? ', needs full width' : ''}${extra}${fieldList}${v ? ` — variants ${v}` : ''}`;
   });
   return {
-    system: `${header(plan, brand, format)} DESIGN this page yourself: invent a composition (not a common template) that makes its message understood at a glance — show rather than write — with a clear hierarchy and a strong, professional silhouette.\n${GRAMMAR}\nRULES: place EVERY block exactly once (a "block" node, an "image" node for a picture, or point by point); never write words (texts are refs only); no colours or CSS (tokens only); at most 9 levels and 60 nodes; ${format.kind === 'flow' ? 'the root MUST be a stack whose children are rows (the page is paginated)' : 'the root fills the page; mark the region that should absorb space with "grow": true'}. Decorations (optional) go in "decor": [{"at": {"x","y","w","h"} in % of the page, "node": shape|box}] and never sit under text with opacity above 0.15.\nAnswer with JSON only: {"root": <node>, "decor": [ … ]}.`,
-    user: `CONTENT: ${describeSection(section, a)}\nTEXT REFS: title${section.kicker ? ', kicker' : ''}${section.lede ? ', lede' : ''}\nBLOCKS:\n${blocks.join('\n')}\n${intentLines(section, references)}\nOTHER PAGES ALREADY USE: ${previous.slice(-5).join(' | ') || 'nothing yet'} — make this one different.`,
+    system: `${header(plan, brand, format, grammar)} DESIGN this page yourself: invent a composition (not a common template) that makes its message understood at a glance — show rather than write — with a clear hierarchy and a strong, professional silhouette.\n${GRAMMAR}\nRULES: place EVERY block exactly once (a "block" node, an "image" node for a picture, or point by point); never write words (texts are refs only); no colours or CSS (tokens only); at most 9 levels and 60 nodes; ${format.kind === 'flow' ? 'the root MUST be a stack whose children are rows (the page is paginated)' : 'the root fills the page; mark the region that should absorb space with "grow": true'}. Decorations (optional) go in "decor": [{"at": {"x","y","w","h"} in % of the page, "node": shape|box}] and never sit under text with opacity above 0.15.\nAnswer with JSON only: {"root": <node>, "decor": [ … ]}.`,
+    user: `CONTENT: ${describeSection(section, a)}\nTEXT REFS: title${section.kicker ? ', kicker' : ''}${section.lede ? ', lede' : ''}\nBLOCKS:\n${blocks.join('\n')}\n${reference ? referenceLines(reference) : intentLines(section, references)}\n${reference ? '' : `OTHER PAGES ALREADY USE: ${previous.slice(-5).join(' | ') || 'nothing yet'} — make this one different.`}`,
   };
 }
 
@@ -159,6 +175,63 @@ export function authorRevisePrompt(base: { system: string; user: string }, tree:
     system: base.system,
     user: `${base.user}\n\nYOUR PREVIOUS DESIGN:\n${JSON.stringify({ root: tree.root, decor: tree.decor }).slice(0, 6000)}\nA SENIOR DESIGNER RATED THE RENDERED PAGE (1-5): ${Object.entries(scores).map(([k, v]) => `${k} ${v}`).join(', ')}. Weakest: ${weakest}. Revise YOUR design to fix ${weakest} first, keep what works. Same JSON format.`,
   };
+}
+
+/**
+ * Les champs d'un bloc qu'un auteur peut poser un à un (texte court), le PRINCIPAL d'abord (sans lui, le bloc
+ * se pose entier) et le rôle typographique d'un champ qu'il aurait oublié.
+ */
+export function fieldPathsOf(block: SectionContent['blocks'][number]): Array<{ path: string; role: Extract<NodeT, { t: 'text' }>['role'] }> {
+  type R = Extract<NodeT, { t: 'text' }>['role'];
+  const out: Array<{ path: string; role: R }> = [];
+  const add = (cond: unknown, path: string, role: R) => {
+    if (cond) out.push({ path, role });
+  };
+  switch (block.kind) {
+    case 'copy':
+      add(true, 'headline', 'display');
+      add(block.kicker, 'kicker', 'kicker');
+      add(block.subhead, 'subhead', 'lede');
+      add(block.offer, 'offer', 'figure');
+      add(block.body, 'body', 'body');
+      (block.facts ?? []).forEach((f, i) => {
+        add(f.label, `facts.${i}.label`, 'label');
+        add(true, `facts.${i}.text`, 'small');
+      });
+      add(block.quote?.text, 'quote.text', 'quote');
+      add(block.quote?.author, 'quote.author', 'caption');
+      add(block.footnote, 'footnote', 'note');
+      break;
+    case 'points':
+      block.items.forEach((it, i) => {
+        add(true, `items.${i}.label`, 'subtitle');
+        add(it.value, `items.${i}.value`, 'figure');
+        add(it.detail, `items.${i}.detail`, 'small');
+      });
+      break;
+    case 'metrics':
+      block.items.forEach((it, i) => {
+        add(true, `items.${i}.value`, 'figure');
+        add(true, `items.${i}.label`, 'small');
+        add(it.note, `items.${i}.note`, 'caption');
+      });
+      break;
+    case 'cover':
+      add(true, 'brandName', 'display');
+      add(block.kicker, 'kicker', 'kicker');
+      add(block.promise, 'promise', 'lede');
+      add(true, 'documentLabel', 'label');
+      add(block.detail, 'detail', 'small');
+      add(block.dateLabel, 'dateLabel', 'caption');
+      break;
+    case 'quote':
+      add(true, 'text', 'quote');
+      add(block.attribution, 'attribution', 'caption');
+      break;
+    default:
+      break;
+  }
+  return out;
 }
 
 /**
@@ -187,11 +260,22 @@ export function parseAuthored(raw: string, section: SectionContent, format: Form
     for (const item of Array.isArray(nd.items) ? nd.items : []) collect((item as { node?: unknown })?.node);
   };
   collect(o.root);
+  // Un bloc posé CHAMP PAR CHAMP (le titre d'un visuel en haut, son prix dans une pastille…) : admis pour les
+  // blocs faits de champs courts ; un champ oublié est AJOUTÉ (jamais perdu), il ne coûte pas la composition.
   const wholeByFields = new Set<string>();
+  const forgottenFields: NodeT[] = [];
   for (const [id, refs] of fieldRefs) {
     const block = section.blocks.find((b) => b.id === id);
-    if (block?.kind === 'points' && block.items.every((_, i) => refs.has(`items.${i}.label`))) wholeByFields.add(id);
-    else if (block) repaired.push(`bloc ${id} posé en partie champ par champ : reposé en entier`);
+    if (!block) continue;
+    const fields = fieldPathsOf(block);
+    if (!fields.length || !refs.has(fields[0].path)) {
+      repaired.push(`bloc ${id} posé en partie champ par champ : reposé en entier`);
+      continue;
+    }
+    wholeByFields.add(id);
+    const missingFields = fields.filter((f) => !refs.has(f.path));
+    for (const f of missingFields) forgottenFields.push({ t: 'text', role: f.role, ref: `${id}.${f.path}` } as NodeT);
+    if (missingFields.length) repaired.push(`${missingFields.length} champ(s) de ${id} oublié(s) : ajouté(s)`);
   }
   const seen = new Set<string>();
   const clean = (node: unknown): NodeT | null => {
@@ -249,11 +333,11 @@ export function parseAuthored(raw: string, section: SectionContent, format: Form
   // Une page fixe peut avoir un CALQUE pour racine (superpositions libres) ; sinon un conteneur.
   if (!('children' in root) && root.t !== 'layer') root = { t: 'stack', gap: 'md', grow: true, children: [root] };
   const missing = section.blocks.filter((b) => !seen.has(b.id) && !wholeByFields.has(b.id));
-  if (missing.length) {
-    const added = missing.map((b) => ({ t: 'block' as const, ref: b.id }));
+  if (missing.length || forgottenFields.length) {
+    const added: NodeT[] = [...(forgottenFields.length ? [{ t: 'stack', gap: 'xs', children: forgottenFields } as NodeT] : []), ...missing.map((b) => ({ t: 'block' as const, ref: b.id }))];
     if (root.t === 'layer') root = { t: 'stack', gap: 'md', grow: true, children: [{ ...root }, ...added] } as NodeT;
     else if ('children' in root) root.children.push(...added);
-    repaired.push(`${missing.length} bloc(s) oublié(s) ajouté(s) en fin de page`);
+    if (missing.length) repaired.push(`${missing.length} bloc(s) oublié(s) ajouté(s) en fin de page`);
   }
   const checked = validateNode(root);
   if (!checked.ok || !checked.value) return undefined;

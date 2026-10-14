@@ -112,10 +112,12 @@ function bodyWords(block: Block): { words: number; bullets: number } {
  * jusqu'à l'illisible.
  */
 export const TEXT_BUDGETS = {
-  statement: { headlineWords: 10, bodyWords: 20, maxBullets: 0 },
-  points: { headlineWords: 10, bodyWords: 40, maxBullets: 4 },
-  demonstration: { headlineWords: 10, bodyWords: 50, maxBullets: 5 },
-  data: { headlineWords: 12, bodyWords: 60, maxBullets: 6 },
+  // Une idée par slide, un titre qui AFFIRME, la preuve dessous ; le détail se dit (règle 10/20/30,
+  // structure affirmation-preuve, consignes de Y Combinator) : ~30 mots lisibles du fond de la salle.
+  statement: { headlineWords: 10, bodyWords: 15, maxBullets: 0 },
+  points: { headlineWords: 10, bodyWords: 30, maxBullets: 4 },
+  demonstration: { headlineWords: 10, bodyWords: 35, maxBullets: 4 },
+  data: { headlineWords: 12, bodyWords: 40, maxBullets: 5 },
 } as const satisfies Record<string, TextBudget>;
 export type TextBudgetKind = keyof typeof TEXT_BUDGETS;
 

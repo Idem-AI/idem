@@ -147,7 +147,8 @@ export type NodeT =
   | { t: 'logo'; id?: string; variant?: 'auto' | 'light' | 'dark' | 'mono' | 'icon'; height?: 'sm' | 'md' | 'lg' | 'xl' }
   | { t: 'rule'; id?: string; weight?: z.infer<typeof Stroke>; ink?: z.infer<typeof Ink>; length?: 'full' | 'short' | 'xshort'; vertical?: boolean }
   | { t: 'spacer'; size?: z.infer<typeof Space>; flex?: boolean }
-  | { t: 'pattern'; id?: string; opacity?: number };
+  /** Un motif de la charte (`index` : 0 principal, 1 secondaire, 2 trame fine, 3 inversé). */
+  | { t: 'pattern'; id?: string; opacity?: number; index?: number };
 
 interface ContainerStyleT {
   id?: string;
@@ -221,7 +222,7 @@ export const Node: z.ZodType<NodeT> = z.lazy(() =>
     z.strictObject({ t: z.literal('logo'), id: Id.optional(), variant: z.enum(['auto', 'light', 'dark', 'mono', 'icon']).optional(), height: z.enum(['sm', 'md', 'lg', 'xl']).optional() }),
     z.strictObject({ t: z.literal('rule'), id: Id.optional(), weight: Stroke.optional(), ink: Ink.optional(), length: z.enum(['full', 'short', 'xshort']).optional(), vertical: z.boolean().optional() }),
     z.strictObject({ t: z.literal('spacer'), size: Space.optional(), flex: z.boolean().optional() }),
-    z.strictObject({ t: z.literal('pattern'), id: Id.optional(), opacity: z.number().min(0).max(1).optional() }),
+    z.strictObject({ t: z.literal('pattern'), id: Id.optional(), opacity: z.number().min(0).max(1).optional(), index: z.number().int().min(0).max(7).optional() }),
   ])
 ) as z.ZodType<NodeT>;
 

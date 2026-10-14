@@ -103,10 +103,11 @@ export class VideoBuilder {
   protected readonly request = signal('');
   protected readonly media = signal<VideoMediaAsset[]>([]);
   protected readonly uploading = signal(false);
-  /** « auto » : le modèle choisit. Un type précis seulement si l'utilisateur l'impose. */
+  /**
+   * Plus de type à choisir (plan directeur) : l'objectif, la matière et le mouvement sont lus dans la demande
+   * et les médias, puis montrés à l'étape 2 où l'utilisateur peut les corriger.
+   */
   protected readonly type = signal<VideoType | 'auto'>('auto');
-  protected readonly showTypes = signal(false);
-  protected readonly types = computed(() => this.options().types);
 
   protected readonly duration = signal<VideoDuration>(15);
   protected readonly formats = signal<VideoFormat[]>(['story']);
@@ -141,11 +142,7 @@ export class VideoBuilder {
   /** Étapes réelles reçues du serveur pendant la création. */
   protected readonly progress = signal<VideoProgressState>({});
 
-  protected readonly durations = computed<VideoDuration[]>(() => {
-    const t = this.type();
-    const forced = t !== 'auto' ? this.types().find((d) => d.id === t)?.durations : undefined;
-    return forced ?? this.options().pricing.durations;
-  });
+  protected readonly durations = computed<VideoDuration[]>(() => this.options().pricing.durations);
 
   protected readonly scope = computed<VideoScope>(() => ({
     durationSec: this.duration(),
@@ -198,12 +195,6 @@ export class VideoBuilder {
     if (before == null) return;
     this.request.set(before);
     this.previousRequest.set(null);
-  }
-
-  protected chooseType(id: VideoType | 'auto'): void {
-    this.type.set(id);
-    const allowed = this.durations();
-    if (!allowed.includes(this.duration())) this.duration.set(allowed[allowed.length - 1]);
   }
 
   protected onFiles(event: Event): void {

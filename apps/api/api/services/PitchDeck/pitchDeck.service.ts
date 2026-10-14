@@ -1,5 +1,5 @@
 import { normalizeCreativity, CreativityLevel } from '../../models/creativity.model';
-import { coverContent, sectionHtml, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
+import { coverContent, sectionHtml, sectionTextLoad, slideDiet, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
 import crypto from 'crypto';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -22,6 +22,15 @@ import { condenseSlide } from './slide-condense';
 import { CoverBriefService } from '../common/coverBrief.service';
 import { composeGraphicPage, coverDateLabel, GenerationJournal, openGraphicDocument, pageId, withProjectArtDirection } from '../graphic/graphic.service';
 import type { PitchDeckAudience } from './deck-types';
+
+/**
+ * Les NOTES DE L'ORATEUR d'une slide, gardées dans son fragment sans jamais s'afficher ni s'imprimer : un
+ * `<template>` n'est pas rendu par le navigateur. L'éditeur et l'export PowerPoint les relisent.
+ */
+function speakerNotesHtml(notes: string): string {
+  const esc = notes.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<template data-speaker-notes>${esc}</template>`;
+}
 
 /** Mention de destinataire sur la couverture du deck. */
 const DECK_AUDIENCE_LABEL: Record<PitchDeckAudience, string> = {
@@ -353,17 +362,26 @@ export class PitchDeckService extends GenericService {
           contentBrief: brief,
           ...(intent ? { intent } : {}),
           render: async (content) => {
-            const out = journal.page(await composeGraphicPage(graphic, content, position));
-            // Trop de texte pour son rôle (à tous les crans) : la slide repart UNE fois chez le rédacteur, avec le
-            // constat chiffré — `condenseSlide` mesure lui-même le dépassement (au-delà de 1,1× le budget).
-            if (intent) {
-              const condensed = await condenseSlide(content, { userId, projectId, slideName: definition.name, intent });
+            let slide = content;
+            const budget = intent?.textBudget;
+            // 1. Trop de texte (à tous les crans) : la slide repart UNE fois chez le rédacteur, avec le constat.
+            if (intent && budget && sectionTextLoad(slide, budget).over > 1) {
+              const condensed = await condenseSlide(slide, { userId, projectId, slideName: definition.name, intent });
               if (condensed) {
                 journal.note(`${definition.name} : slide trop textuelle réécrite plus légère par le rédacteur`);
-                return sectionHtml(journal.page(await composeGraphicPage(graphic, condensed, position)));
+                slide = condensed;
               }
             }
-            return sectionHtml(out);
+            // 2. La GARANTIE du code : ce qui déborde encore passe dans les notes de l'orateur (rien n'est perdu).
+            if (budget) {
+              const diet = slideDiet(slide, budget);
+              if (diet.moved.length) {
+                journal.note(`${definition.name} : ${diet.moved.length} passage(s) déplacé(s) vers les notes de l'orateur`);
+                slide = diet.section;
+              }
+            }
+            const html = sectionHtml(journal.page(await composeGraphicPage(graphic, slide, position)));
+            return slide.notes ? `${html}\n${speakerNotesHtml(slide.notes)}` : html;
           },
         },
       };

@@ -40,6 +40,7 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   'graphic.content': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(3000, 3500, 4000, 3000, 3000), mission: 'rédiger le contenu structuré des livrables' },
   'graphic.director': { profile: 'coder', needs: ['json', 'code'], maxOutputTokens: UP_TO(5000, 6500, 8000), mission: 'concevoir l’arbre de composition d’une page ou d’une diapositive' },
   'graphic.artDirector': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 400, 400), mission: 'choisir et régler la composition de repli' },
+  'graphic.pattern-designer': { profile: 'coder', needs: ['code'], maxOutputTokens: UP_TO(2500, 3000, 3500, 2500, 2500), mission: 'dessiner la tuile de motif propre à la marque (SVG)' },
   'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(600, 800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },
   'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 300, 300, 300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
   'video.director': { profile: 'coder', needs: ['json', 'long-context'], maxOutputTokens: UP_TO(5000, 7000, 9000), mission: 'concevoir le film, le storyboard et le langage de motion' },

@@ -42,6 +42,8 @@ export interface VideoTheme {
   fonts: { display: string; body: string; links: string };
   /** Sources d'image du logo (URL ou data-URI), par polarité de fond. */
   logo: { onLight?: string; onDark?: string; icon?: string; svgMarkup?: string; fullSvgMarkup?: string };
+  /** Les MOTIFS de la charte (tuiles SVG) : une vidéo qui pose un motif pose CEUX-LÀ. */
+  patterns?: string[];
 }
 
 const DEFAULTS = {
@@ -191,5 +193,12 @@ export function buildVideoTheme(
       // Le logo complet (symbole + nom), pour les animations de logo vectoriel.
       fullSvgMarkup: svgMarkupOf(resolveLogoSlot(logo, 'svg')),
     },
+    ...patternsOf(branding),
   };
+}
+
+/** Les motifs déposés de la charte (`branding.patterns.items`), dans leur ordre : principal d'abord. */
+function patternsOf(branding: Partial<BrandKit> | null | undefined): { patterns?: string[] } {
+  const items = ((branding as { patterns?: { items?: Array<{ url?: unknown }> } } | null | undefined)?.patterns?.items ?? []).map((p) => p?.url).filter((u): u is string => typeof u === 'string' && /^(https?:|data:image\/svg)/.test(u));
+  return items.length ? { patterns: items.slice(0, 4) } : {};
 }

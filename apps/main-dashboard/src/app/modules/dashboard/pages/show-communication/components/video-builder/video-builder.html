@@ -156,66 +156,6 @@
         </div>
       }
 
-      <!-- Le type : choisi par IDEM ; imposable, mais replié. -->
-      <div class="vdb-type-line">
-        <span class="vdb-type-current">
-          <i class="pi pi-sparkles" aria-hidden="true"></i>
-          @if (type() === 'auto') {
-            {{ 'dashboard.showCommunication.video.builder.chat.autoType' | translate }}
-          } @else {
-            {{ 'dashboard.showCommunication.video.types.' + type() + '.label' | translate }}
-          }
-        </span>
-        <button
-          type="button"
-          class="vdb-link"
-          [attr.aria-expanded]="showTypes()"
-          (click)="showTypes.set(!showTypes())"
-        >
-          {{
-            (showTypes()
-              ? 'dashboard.showCommunication.video.builder.chat.hideTypes'
-              : 'dashboard.showCommunication.video.builder.chat.forceType'
-            ) | translate
-          }}
-        </button>
-      </div>
-      @if (showTypes()) {
-        <div class="vdb-chips vdb-type-chips">
-          <button
-            type="button"
-            class="vdb-chip"
-            [class.vb-active]="type() === 'auto'"
-            [attr.aria-pressed]="type() === 'auto'"
-            (click)="chooseType('auto')"
-          >
-            <span class="vdb-chip-main"
-              ><i class="pi pi-sparkles" aria-hidden="true"></i>
-              {{ 'dashboard.showCommunication.video.builder.chat.autoShort' | translate }}</span
-            >
-            <span class="vdb-chip-hint">{{
-              'dashboard.showCommunication.video.builder.chat.autoHint' | translate
-            }}</span>
-          </button>
-          @for (t of types(); track t.id) {
-            <button
-              type="button"
-              class="vdb-chip"
-              [class.vb-active]="type() === t.id"
-              [attr.aria-pressed]="type() === t.id"
-              (click)="chooseType(t.id)"
-            >
-              <span class="vdb-chip-main"
-                ><i [class]="t.icon" aria-hidden="true"></i>
-                {{ 'dashboard.showCommunication.video.types.' + t.id + '.label' | translate }}</span
-              >
-              <span class="vdb-chip-hint">{{
-                'dashboard.showCommunication.video.types.' + t.id + '.uses' | translate
-              }}</span>
-            </button>
-          }
-        </div>
-      }
     }
 
     <!-- ═══════════ 2. Configurer ═══════════ -->

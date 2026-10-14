@@ -336,6 +336,8 @@ export function normalizeSection(raw: unknown, options: NormalizeOptions = {}): 
   };
   const intent = normalizeIntent(input.intent ?? input.visual, options.intent, notes);
   if (intent) section.intent = intent;
+  const spoken = typeof input.notes === 'string' ? input.notes.replace(/\s+/g, ' ').trim().slice(0, 4000) : '';
+  if (spoken) section.notes = spoken;
   return { section, notes };
 }
 

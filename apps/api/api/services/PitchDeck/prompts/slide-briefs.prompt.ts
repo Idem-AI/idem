@@ -47,15 +47,16 @@ the team's ability to deliver and exactly what the prize or the grant will pay f
 };
 
 /** Ce qu'est un slide, quel que soit son sujet et son lecteur. */
-const SLIDE_RULES = `A slide carries ONE idea, read in ten seconds from the back of a room. One to three
-blocks, never more. SHOW, do not write: anything that can be pictured is a "points" item with a 3-6 word
-label and at most one short line of detail — never a paragraph.
+const SLIDE_RULES = `A slide carries ONE idea and is read in ten seconds from the back of the room. The
+TITLE is a full-sentence assertion of 10 words or fewer; the blocks are its EVIDENCE — a figure, a chart, a
+picture, three short labels. One to three blocks. Everything you would EXPLAIN goes in "notes" (what the
+speaker says aloud), never on the slide.
 
-- The title states the CONCLUSION, not the topic, in 10 words or fewer. "Le marché double d'ici 2028",
-  never "Analyse du marché".
-- No lede unless it adds a fact the title and blocks do not already carry; then 15 words maximum.
-- A "prose" block is a last resort: two short sentences at most.
-- Every figure carries a unit and a period. Cut any word the speaker can say aloud instead.`;
+- Title: the conclusion, not the topic. "Le marché double d'ici 2028", never "Analyse du marché".
+- On the slide: about 30 words in total besides the title. "points" labels of 3 to 6 words; a detail line
+  only when it carries a figure.
+- No lede, no paragraph, unless nothing else can carry the proof — then one sentence.
+- Every figure carries a unit and a period.`;
 
 export interface SlideBriefParts {
   objective: string;

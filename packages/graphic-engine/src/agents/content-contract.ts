@@ -71,7 +71,7 @@ You do NOT write HTML, CSS or Tailwind. The page is composed by the graphic engi
 grid, spacing, logo placement and contrast are already decided and guaranteed. Markup would be discarded.
 
 Return ONE JSON object, and nothing else:
-{"kicker":"2 to 4 words naming the section's angle (optional)","title":"the section title","lede":"ONE sentence stating the finding (optional)","blocks":[ … ]${options.visual ? `,"visual":{"keyMessage":"what the audience must remember, one sentence",${options.visual.strategies.length > 1 ? `"strategy":"${options.visual.strategies.join('|')}",` : ''}"image":{"subject":"the photo or illustration this slide calls for: who or what, doing what (no text in it) — omit if none"}}` : ''}}
+{"kicker":"2 to 4 words naming the section's angle (optional)","title":"the section title","lede":"ONE sentence stating the finding (optional)","blocks":[ … ]${options.deliverable === 'pitch-deck' ? `,"notes":"what the SPEAKER says aloud: the explanations, context and sources that do not belong on the slide"` : ''}${options.visual ? `,"visual":{"keyMessage":"what the audience must remember, one sentence",${options.visual.strategies.length > 1 ? `"strategy":"${options.visual.strategies.join('|')}",` : ''}"image":{"subject":"the photo or illustration this slide calls for: who or what, doing what (no text in it) — omit if none"}}` : ''}}
 
 Block types — pick what the SUBSTANCE calls for, never a fixed recipe:
 ${kinds

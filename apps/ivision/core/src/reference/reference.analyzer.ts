@@ -441,12 +441,16 @@ export interface ReferenceImage {
   structure: 'photo' | 'type' | 'fact' | 'quote';
   hasPhoto: boolean;
   texts: ReferenceText[];
-  /** La composition décrite pour le compositeur (Max, Ultra). */
+  /** La composition décrite pour le compositeur. */
   description: string;
+  /** Les zones du modèle en % de la toile (photo, titre, prix, logo, bandeau, forme…) : l'auteur les reproduit. */
+  zones?: Array<{ role: string; x: number; y: number; w: number; h: number }>;
   source: 'vision' | 'measured';
 }
 
 const FLYER_LAYOUT_IDS = ['photoSplit', 'bandOverPhoto', 'framedPhoto', 'circlePhoto', 'minimalCaption', 'stripeOverPhoto', 'diagonalSplit', 'bentoGrid', 'typePoster', 'outlinePoster', 'bigFact', 'quoteCard'] as const;
+
+const clamp = (v: unknown): number => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
 
 export async function analyzeReferenceImage(image: Buffer, mimeType: string, vision?: AnalyzeVideoOptions['vision']): Promise<ReferenceImage> {
   const fallback: ReferenceImage = { kind: 'image', layout: 'typePoster', structure: 'type', hasPhoto: false, texts: [{ role: 'headline', words: 5, position: 'center' }], description: 'A typographic poster on the brand colour.', source: 'measured' };
@@ -456,7 +460,8 @@ export async function analyzeReferenceImage(image: Buffer, mimeType: string, vis
     'This is a social media visual (flyer). Describe its COMPOSITION for a designer who must reproduce it with another brand. Answer ONLY JSON:',
     `{"layout": ${FLYER_LAYOUT_IDS.join('|')} (closest), "structure": "photo|type|fact|quote", "hasPhoto": true|false,`,
     ' "texts": [{"role": "headline|support|label|number|button", "words": n, "position": "top|center|bottom|left|right"}],',
-    ' "description": "layout, hierarchy, where the photo sits, colour blocks, typography attitude, 50 words max, no brand names, no quoted text"}',
+    ' "zones": [{"role": "photo|product|headline|support|price|offer|logo|band|shape|badge|button", "x": 0-100, "y": 0-100, "w": 0-100, "h": 0-100}] (each visible element, in % of the image, top-left origin),',
+    ' "description": "layout, hierarchy, where the photo or product sits and how it is cropped, colour blocks and their shapes, typography attitude (size, weight, case, alignment), graphic devices, 90 words max, no brand names, no quoted text"}',
   ].join('\n');
   try {
     const json = parseJson(await vision(small.toString('base64'), 'image/jpeg', instruction));
@@ -469,7 +474,13 @@ export async function analyzeReferenceImage(image: Buffer, mimeType: string, vis
       texts: Array.isArray(json.texts)
         ? json.texts.slice(0, 4).map((x: any) => ({ role: pick(x?.role, ['headline', 'support', 'label', 'number', 'button'] as const, 'headline'), words: Math.max(1, Math.min(20, Math.round(Number(x?.words) || 3))), position: pick(x?.position, ['top', 'center', 'bottom', 'left', 'right'] as const, 'center') }))
         : fallback.texts,
-      description: typeof json.description === 'string' ? json.description.replace(/["«»“”]/g, '').slice(0, 360) : fallback.description,
+      description: typeof json.description === 'string' ? json.description.replace(/["«»“”]/g, '').slice(0, 640) : fallback.description,
+      zones: Array.isArray(json.zones)
+        ? json.zones
+            .slice(0, 10)
+            .map((z: any) => ({ role: String(z?.role || 'element').slice(0, 20), x: clamp(z?.x), y: clamp(z?.y), w: clamp(z?.w), h: clamp(z?.h) }))
+            .filter((z: { w: number; h: number }) => z.w > 1 && z.h > 1)
+        : undefined,
       source: 'vision',
     };
   } catch (error) {

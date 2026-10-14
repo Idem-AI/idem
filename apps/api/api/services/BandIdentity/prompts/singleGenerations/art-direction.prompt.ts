@@ -32,11 +32,19 @@ export interface ArtDirectionPromptInput {
    * reçoit la même réponse.
    */
   excludeStyleIds?: string[];
+  /**
+   * Les gestes signature et grilles DÉJÀ donnés à d'autres marques récemment : à ne pas reproduire. Sans
+   * cette mémoire, le modèle ressort la même formule de projet en projet (« grand titre ferré à gauche… »).
+   */
+  recentGrammars?: string[];
 }
 
 export function buildArtDirectionPrompt(input: ArtDirectionPromptInput): string {
   const excluded = (input.excludeStyleIds || []).filter(Boolean);
 
+  const RECENT = (input.recentGrammars || []).length
+    ? `These gestures were already given to OTHER brands — do not reuse them or close variants: ${(input.recentGrammars || []).slice(0, 12).map((g) => `« ${g.slice(0, 120)} »`).join(' ; ')}.`
+    : '';
   return `<role>Art director in a branding studio. You are settling the visual stance of a brand for the next three years.</role>
 <objective>Pick ONE style from the catalogue below, then adapt it to this brand into an executable art direction. Output: strict JSON.</objective>
 
@@ -67,6 +75,13 @@ ${
 5. Never keep a style "because it is safe". Minimalism chosen by default, with no reason specific to this brand, is the worst pick of all: it is the average wearing the costume of a stance.
 </how_to_choose>
 
+<originality>
+The grammar must belong to THIS brand, not to the style. Derive it from what is specific here: the logo's
+geometry (its curves or angles, its proportions), the product and its materials, the audience's world, the
+city or culture the brand lives in. Name the signature move after something from that world.
+Never copy the catalogue's sentences. ${RECENT}
+</originality>
+
 <what_makes_it_executable>
 The direction is only useful if it decides on behalf of whoever composes next. Every field must be an INSTRUCTION, not an adjective.
 - "clean and modern" decides nothing.
@@ -95,7 +110,10 @@ Strict JSON, no surrounding text, no code fences.
     "grid": "precise grid system (column count, gutters, margin behaviour)",
     "density": "airy | balanced | dense, plus one sentence on how it applies",
     "whitespace": "how much of the frame stays empty and where it sits",
-    "signatureMove": "THE compositional gesture that must be visible on every deliverable"
+    "signatureMove": "THE compositional gesture that must be visible on every deliverable",
+    "recipes": [
+      {"name": "short name", "use": "social post | flyer | slide | document page", "zones": "where each element sits, in % of the frame (e.g. photo 0-60% height full width; title bottom-left 8% margin; logo top-right)"}
+    ]
   },
   "color": {
     "distribution": "numeric split between the charter colours",

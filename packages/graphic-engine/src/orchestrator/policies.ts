@@ -30,10 +30,12 @@ export interface TaskPolicy {
   vision?: boolean;
 }
 
-export const TASK_POLICIES: Record<'pick' | 'pickTune' | 'author' | 'authorRevise' | 'critic' | 'repair', TaskPolicy> = {
+export const TASK_POLICIES: Record<'pick' | 'pickTune' | 'author' | 'authorRetry' | 'authorRevise' | 'critic' | 'repair', TaskPolicy> = {
   pick: { task: 'creative.pick', minLevel: 'high', profile: 'agents', role: 'graphic.artDirector', maxTokens: 1200, timeoutMs: 25_000 },
   pickTune: { task: 'creative.tune', minLevel: 'max', profile: 'agents', role: 'graphic.artDirector', maxTokens: 1600, timeoutMs: 30_000 },
   author: { task: 'creative.author', minLevel: 'high', profile: 'coder', role: 'graphic.director', maxTokens: 7000, timeoutMs: 120_000 },
+  /** Seconde chance de l'auteur (réponse inutilisable, arbre bloquant) : au cran de l'auteur. */
+  authorRetry: { task: 'creative.revise', minLevel: 'high', profile: 'coder', role: 'graphic.director', maxTokens: 9000, timeoutMs: 120_000 },
   authorRevise: { task: 'creative.revise', minLevel: 'max', profile: 'coder', role: 'graphic.director', maxTokens: 9000, timeoutMs: 120_000 },
   critic: { task: 'creative.critic', minLevel: 'high', profile: 'critic', role: 'visual.critic', maxTokens: 1400, timeoutMs: 40_000, vision: true },
   repair: { task: 'repair.targeted', minLevel: 'high', profile: 'agents', role: 'generation.repair', maxTokens: 1400, timeoutMs: 25_000 },

@@ -336,7 +336,41 @@ function shaderBackdrop(effect: ShaderEffect, strength: number, extra: { speed?:
   };
 }
 
+/**
+ * Le MOTIF DE LA CHARTE en fond : la tuile déposée par la charte, répétée, qui se révèle depuis le coin libre
+ * et dérive lentement. Une vidéo qui pose un motif pose CELUI-LÀ — jamais une trame générique.
+ */
+function BrandPatternBg() {
+  const { ease, u, data } = useEngine();
+  const lt = useLocalTime();
+  const s = useScene();
+  const c = useFreeCorner();
+  const url = data.patterns?.[[...s.key].reduce((h, ch) => h + ch.charCodeAt(0), 0) % Math.min(2, data.patterns.length)];
+  if (!url) return <DotGrid />;
+  const r = mix(0, 90, ease(progress(lt, 0, 1.3)));
+  const drift = (lt / Math.max(1, s.span)) * u * 3;
+  const mask = `radial-gradient(circle at ${c.x}% ${c.y}%, #000 ${r * 0.5}%, transparent ${r}%)`;
+  return (
+    <div
+      className="absolute inset-0"
+      style={{
+        backgroundImage: `url('${url}')`,
+        backgroundRepeat: 'repeat',
+        backgroundSize: `${u * 9}px ${u * 9}px`,
+        backgroundPosition: `${drift}px ${drift * 0.6}px`,
+        opacity: 0.32,
+        WebkitMaskImage: mask,
+        maskImage: mask,
+      }}
+    />
+  );
+}
+
+/** Les fonds qui sont des TRAMES : remplacés par le motif de la charte quand la marque en a un. */
+const TEXTURES = new Set(['dot-grid', 'halftone', 'stagger-grid']);
+
 const BACKDROPS: Record<string, () => ReactElement> = {
+  'brand-pattern': BrandPatternBg,
   'flow-field': FlowFieldBg,
   'sketch-shapes': SketchShapesBg,
   voronoi: VoronoiBg,
@@ -367,8 +401,9 @@ const BACKDROPS: Record<string, () => ReactElement> = {
 export function Backdrop() {
   const { data } = useEngine();
   const s = useScene();
-  const id = s.backdropId || data.kit?.background;
-  if (!s.backdrop || !id || id === 'none') return null;
+  const raw = s.backdropId || data.kit?.background;
+  if (!s.backdrop || !raw || raw === 'none') return null;
+  const id = TEXTURES.has(raw) && data.patterns?.length ? 'brand-pattern' : raw;
   const B = BACKDROPS[id];
   return B ? (
     <div className="kit-backdrop pointer-events-none absolute inset-0" aria-hidden>
@@ -382,12 +417,13 @@ export const BACKDROP_IDS = Object.keys(BACKDROPS);
 
 /**
  * <Bg id="halftone" /> — un fond de la bibliothèque du moteur, à l'usage d'une scène écrite par l'IA :
- * dot-grid, halftone, shape-field, stagger-grid, marquee, spotlight, ticks, flow-field, sketch-shapes,
+ * brand-pattern (le motif de la charte — toute trame devient lui quand la marque en a), dot-grid, halftone, shape-field, stagger-grid, marquee, spotlight, ticks, flow-field, sketch-shapes,
  * voronoi, flat3d, motes, embers, confetti, aurora, silk, plasma, fluid, mesh, topology, waves, blobs,
  * network, gradient. Il occupe le coin que le texte laisse libre ; à poser AVANT le texte.
  */
 export function Bg({ id }: { id: string }) {
-  const B = BACKDROPS[id];
+  const { data } = useEngine();
+  const B = BACKDROPS[TEXTURES.has(id) && data.patterns?.length ? 'brand-pattern' : id];
   return B ? (
     <div className="kit-backdrop pointer-events-none absolute inset-0" aria-hidden>
       <B />

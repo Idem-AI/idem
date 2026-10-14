@@ -519,7 +519,8 @@ export class MotionVideoService {
     if (!brief.message || String(brief.message).trim().length < 3) brief.message = content.message.slice(0, 400);
     if (!brief.details && content.details) brief.details = content.details.slice(0, 800);
     if (!brief.objective && content.objective) brief.objective = content.objective;
-    return { ...input, brief, type: input.type || content.type || 'auto' };
+    // Le type du contenu n'est plus imposé : l'intention est lue dans le brief du contenu (plan directeur).
+    return { ...input, brief, type: input.type || 'auto' };
   }
 
   // ── Kit (graphe de capacités) ───────────────────────────────────────────

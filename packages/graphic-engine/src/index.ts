@@ -26,6 +26,7 @@ export type { AgentCall, AgentProfile, EngineHost, EngineLogger, FingerprintScop
 // ── Les documents ────────────────────────────────────────────────────────────────────────────
 export { ContentError, createDocument, GraphicDocument, renderSingle } from './engine';
 export type { DocumentOptions, SectionOutput } from './engine';
+export type { ReferenceComposition } from './agents/creative-planner';
 
 // ── Couleur (outils de la charte : contraste, encre lisible, mélange) ───────────────────────────
 export { bestContrast, contrastRatio, ensureContrast, isDeep, mixHex, readableInk, relativeLuminance } from './foundation/color';
@@ -52,6 +53,7 @@ export type { SectionPlan } from './agents/content-plan';
 export { applyAssets, GENERATION_CAP, iconFor, matchAsset, nativeProvider, planAssets, resolveAssets, subjectWords } from './asset-planner';
 export type { AssetContext, AssetProvider, AssetProviders, AssetRegistry, AssetResolution } from './asset-planner';
 export { sectionTextLoad, TEXT_BUDGETS, textLoad } from './composition-engine/analyze';
+export { slideDiet } from './agents/slide-diet';
 export type { TextBudgetKind } from './composition-engine/analyze';
 
 // ── Les profils de la jauge et les politiques d'appel ──────────────────────────────────────────

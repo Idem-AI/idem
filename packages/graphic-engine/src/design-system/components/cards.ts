@@ -60,7 +60,7 @@ export const cards: ComponentFor<'cards'> = registerComponent({
           'border-left': style === 'accent-bar' && !filled ? `${ctx.tokens.stroke.thick}px solid ${accent}` : undefined,
         };
         const number = style === 'numbered' ? txt(ctx, cEnv, 'number', String(i + 1).padStart(2, '0'), { size: 'xl', ink: emph ? 'emphasis' : 'faint' }) : '';
-        return `<div style="${box({ display: 'flex', 'flex-direction': 'column', gap: ctx.tokens.space.xs, 'min-width': 0, ...decl })}">${number}${txt(ctx, cEnv, 'subtitle', item.title, { size: 'lg' })}${txt(ctx, cEnv, 'small', item.body, { ink: filled ? 'ink' : 'muted' })}</div>`;
+        return `<div style="${box({ display: 'flex', 'flex-direction': 'column', gap: ctx.tokens.space.xs, 'min-width': 0, ...decl })}">${number}${txt(ctx, cEnv, 'subtitle', item.title, { size: 'lg' })}${item.body !== item.title ? txt(ctx, cEnv, 'small', item.body, { ink: filled ? 'ink' : 'muted' }) : ''}</div>`;
       })
       .join('');
     return `<div style="${css({ display: 'grid', 'grid-template-columns': `repeat(${cols}, minmax(0, 1fr))`, gap: `${gap}px`, 'align-items': 'stretch' })}">${items}</div>`;

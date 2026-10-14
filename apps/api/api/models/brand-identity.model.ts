@@ -119,6 +119,8 @@ export interface BrandPatternFileModel {
   /** Côté de la tuile en px : l'échelle d'affichage s'en déduit. */
   tile: number;
   url: string;
+  /** D'où vient le motif : le symbole du logo, la tuile dessinée par l'IA, ou une géométrie générée. */
+  source?: 'logo' | 'ai' | 'geometry';
 }
 
 /** Un fichier de bannière ou de photo de profil, déposé dans le stockage. */

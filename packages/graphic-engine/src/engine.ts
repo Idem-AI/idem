@@ -25,7 +25,7 @@ import { BrandInput, buildTokens, DesignTokens, DirectionInput } from './design-
 import { stableHash } from './foundation/hash';
 import { compileSection } from './html-css-compiler/compile';
 import { createContext, SectionMeta } from './html-css-compiler/context';
-import { authorPrompt, authorRevisePrompt, describeSection, parseAuthored, parsePick, parsePickTune, pickPrompt, pickTunePrompt } from './agents/creative-planner';
+import { authorPrompt, authorRevisePrompt, ReferenceComposition, describeSection, parseAuthored, parsePick, parsePickTune, pickPrompt, pickTunePrompt } from './agents/creative-planner';
 import { Critique, CRITIC_INSTRUCTION, parseCritique, visionCall } from './agents/critic';
 import { planContent } from './agents/content-planner';
 import { COMPACT_VARIANTS, parseRepair, repairPrompt } from './agents/targeted-repair';
@@ -62,6 +62,11 @@ export interface DocumentOptions {
   user?: { userId?: string; projectId?: string };
   size?: { width: number; height: number };
   footer?: 'full' | 'logo' | 'none';
+  /**
+   * Une composition MODÈLE (image de référence de l'utilisateur, analysée) : l'auteur la REPRODUIT avec la
+   * marque, ses mots et sa photo — à tous les crans (reproduire un modèle demande un auteur, pas un menu).
+   */
+  reference?: ReferenceComposition;
 }
 
 export interface SectionOutput {
@@ -104,7 +109,9 @@ export class GraphicDocument {
     this.tokens = buildTokens({ brand: options.brand, direction: options.direction, format: options.format, allowDark: options.allowDark, size: options.size });
     this.plan = planDocument({ documentType: options.documentType, format: options.format, seed: options.seed, creativity: options.creativity, styleId: options.direction?.styleId, density: options.direction?.density, sections: options.sections, hasImage: Boolean(options.imageColors?.length) });
     this.policy = policyFor(options.creativity);
-    this.budget = new TokenBudget(budgetFor(options.documentType, this.policy.level, options.sections?.length ?? 1));
+    // Un modèle à reproduire demande un auteur, donc son budget, même aux crans où le code compose.
+    const authorLevel = options.reference && !atLeast(this.policy.level, 'high') ? 'high' : this.policy.level;
+    this.budget = new TokenBudget(budgetFor(options.documentType, authorLevel, options.sections?.length ?? 1));
     this.memory = new DiversityMemory(recent);
     this.generationId = `${options.documentType}:${stableHash([options.seed, Date.now()], 10)}`;
   }
@@ -207,21 +214,26 @@ export class GraphicDocument {
       recorder.task({ task: 'compose', source: 'code', inputTokens: 0, outputTokens: 0, ms: 0, outcome: 'accepted' });
       chosen = fallback;
       if (this.policy.agents.tune) {
-        const tuned = await runTask({ policy: TASK_POLICIES.pickTune, level, call, budget: this.budget, recorder, prompt: () => pickTunePrompt(this.plan, brandName, this.tokens.format, summary, options, previous), parse: (raw) => parsePickTune(raw, options, this.plan), fallback: () => null });
+        const tuned = await runTask({ policy: TASK_POLICIES.pickTune, level, call, budget: this.budget, recorder, prompt: () => pickTunePrompt(this.plan, brandName, this.tokens.format, summary, options, previous, this.options.direction?.grammar), parse: (raw) => parsePickTune(raw, options, this.plan), fallback: () => null });
         if (tuned.value) {
           const base = options[tuned.value.index];
           const lookInput = { ...lookInputFor(ctx), ...(tuned.value.tension ? { tension: tuned.value.tension } : {}), ...(tuned.value.accent ? { accent: tuned.value.accent } : {}) };
           chosen = buildCandidate(ctx, base.pattern, tuned.value.params, lookInput);
         }
       } else if (this.policy.agents.pick) {
-        const picked = await runTask({ policy: TASK_POLICIES.pick, level, call, budget: this.budget, recorder, prompt: () => pickPrompt(this.plan, brandName, this.tokens.format, summary, options, previous), parse: (raw) => parsePick(raw, options.length), fallback: () => -1 });
+        const picked = await runTask({ policy: TASK_POLICIES.pick, level, call, budget: this.budget, recorder, prompt: () => pickPrompt(this.plan, brandName, this.tokens.format, summary, options, previous, this.options.direction?.grammar), parse: (raw) => parsePick(raw, options.length), fallback: () => -1 });
         if (picked.value >= 0) chosen = options[picked.value];
       }
-      if (this.policy.agents.author) {
+      const reference = this.options.reference;
+      if (this.policy.agents.author || reference) {
         // Les compositions éprouvées sont montrées comme RÉFÉRENCES : l'auteur peut s'en inspirer ou s'en écarter.
-        authorBase = authorPrompt(this.plan, brandName, this.tokens.format, section, analysis, previous, menu(ranked, 4));
+        // Un modèle de l'utilisateur, lui, est à REPRODUIRE (positions comprises).
+        authorBase = authorPrompt(this.plan, brandName, this.tokens.format, section, analysis, previous, menu(ranked, 4), reference, this.options.direction?.grammar);
         const base = authorBase;
-        const result = await runTask({ policy: TASK_POLICIES.author, level, call, budget: this.budget, recorder, prompt: () => base, parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
+        const authorLevel = reference && !atLeast(level, 'high') ? 'high' : level;
+        let result = await runTask({ policy: TASK_POLICIES.author, level: authorLevel, call, budget: this.budget, recorder, prompt: () => base, parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
+        // Une réponse inutilisable n'abandonne pas la composition libre : l'auteur a UNE seconde chance.
+        if (!result.value) result = await runTask({ policy: TASK_POLICIES.authorRetry, level: authorLevel, call, budget: this.budget, recorder, prompt: () => ({ system: base.system, user: `${base.user}\n\nYOUR PREVIOUS ANSWER COULD NOT BE USED: return ONE JSON object {"root": <node>, "decor": [ … ]} using only the nodes and refs listed.` }), parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
         if (result.value) {
           const look = chosen ? chosen.lookInput : lookInputFor(ctx);
           authored = { ref: section.id, pattern: { id: 'authored', params: {} }, density: look.density, strategy: look.strategy, mood: look.mood, tension: look.tension, accent: look.accent, root: result.value.root, ...(result.value.decor.length ? { decor: result.value.decor } : {}) };
@@ -258,6 +270,24 @@ export class GraphicDocument {
       recorder.repair({ code: 'next_candidate', detail: `${item.spec.pattern.id} : ${attempt.issues.filter((i) => i.severity === 'blocking').map((i) => i.code).join(', ')}`, by: 'code' });
     }
     let final = best as Attempt;
+    // Un arbre d'auteur BLOQUANT (débordement, texte illisible) repart chez son auteur avec le constat, avant tout
+    // repli : la composition libre est corrigée, pas remplacée en silence par un gabarit.
+    if (authored && authorBase && final.spec.pattern.id !== 'authored') {
+      const base = authorBase;
+      const authoredAttempt = await this.renderAttempt(authored, section, meta, 'authored|||||', recorder, analysis.light, shoot);
+      const problems = authoredAttempt.issues.filter((i) => i.severity === 'blocking').map((i) => `${i.code}: ${i.message}`).slice(0, 5).join('; ');
+      const fixed = await runTask({ policy: TASK_POLICIES.authorRetry, level: this.options.reference && !atLeast(level, 'high') ? 'high' : level, call, budget: this.budget, recorder, prompt: () => ({ system: base.system, user: `${base.user}\n\nYOUR PREVIOUS DESIGN:\n${JSON.stringify({ root: authored!.root, decor: authored!.decor ?? [] }).slice(0, 6000)}\nIT WAS REJECTED WHEN RENDERED: ${problems}. Keep its idea, fix these problems (less text per zone, more room, nothing outside the canvas). Same JSON format.` }), parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
+      if (fixed.value) {
+        const spec: SectionSpec = { ...authored, root: fixed.value.root, ...(fixed.value.decor.length ? { decor: fixed.value.decor } : { decor: undefined }) };
+        const retry = await this.renderAttempt(spec, section, meta, 'authored|||||', recorder, analysis.light, shoot);
+        if (!retry.issues.some((i) => i.severity === 'blocking')) {
+          recorder.repair({ code: 'author_fixed', detail: `arbre d'auteur corrigé par son auteur (${problems.slice(0, 160)})`, by: 'agent' });
+          final = retry;
+          authored = spec;
+          authorTree = { root: fixed.value.root, decor: fixed.value.decor };
+        }
+      }
+    }
     // Le repli est DIT : l'arbre d'auteur n'a pas pu être rendu sans défaut bloquant, une composition éprouvée le remplace.
     if (authored && final.spec.pattern.id !== 'authored') recorder.repair({ code: 'author_fallback', detail: `arbre d'auteur bloquant : repli sur ${final.spec.pattern.id}`, by: 'code' });
 

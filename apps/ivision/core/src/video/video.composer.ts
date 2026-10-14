@@ -185,7 +185,23 @@ export async function inlineAssets(
     onDark: await inlineImage(theme.logo.onDark),
     icon: await inlineImage(theme.logo.icon),
   };
-  return { storyboard: { ...storyboard, scenes }, theme: { ...theme, logo: { ...logo, svgMarkup: theme.logo.svgMarkup, fullSvgMarkup: theme.logo.fullSvgMarkup } } };
+  // Les motifs de la charte, incorporés (le rendu ne sort pas sur le réseau) : des SVG, gardés vectoriels.
+  const patterns = theme.patterns?.length ? ((await Promise.all(theme.patterns.map(inlineSvg))).filter(Boolean) as string[]) : undefined;
+  return { storyboard: { ...storyboard, scenes }, theme: { ...theme, logo: { ...logo, svgMarkup: theme.logo.svgMarkup, fullSvgMarkup: theme.logo.fullSvgMarkup }, ...(patterns?.length ? { patterns } : {}) } };
+}
+
+/** Une tuile SVG (motif de la charte) en data-URI, sans la rastériser. */
+async function inlineSvg(src: string): Promise<string | undefined> {
+  if (src.startsWith('data:')) return src;
+  if (!/^https?:\/\//.test(src) || !(await isRenderUrlAllowed(src))) return undefined;
+  try {
+    const res = await axios.get(src, { responseType: 'arraybuffer', timeout: 15000, maxContentLength: 2 * 1024 * 1024, maxRedirects: 0 });
+    const text = Buffer.from(res.data).toString('utf8');
+    if (!/<svg[\s>]/i.test(text) || /<script|on[a-z]+\s*=/i.test(text)) return undefined;
+    return `data:image/svg+xml;base64,${Buffer.from(text).toString('base64')}`;
+  } catch {
+    return undefined;
+  }
 }
 
 // ─── La page ────────────────────────────────────────────────────────────────
@@ -422,6 +438,7 @@ export async function composeVideoHtml(opts: ComposeOptions): Promise<{ html: st
     fonts: { display: theme.fonts.display, body: theme.fonts.body },
     brandName: theme.brandName,
     logo: { onLight: theme.logo.onLight, onDark: theme.logo.onDark, icon: theme.logo.icon },
+    ...(theme.patterns?.length ? { patterns: theme.patterns } : {}),
     lotties,
     zones,
     kit: kit

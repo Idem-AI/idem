@@ -38,6 +38,7 @@ import { applyAssets, GENERATION_CAP, iconFor, matchAsset, planAssets, resolveAs
 import type { AssetProviders, AssetRegistry } from '../src/asset-planner';
 import type { AssetRecord } from '../src/contracts/slide-intent';
 import { recordFromTraces } from '../src/observability/record';
+import { slideDiet } from '../src/agents/slide-diet';
 import { sectionTextLoad, TEXT_BUDGETS } from '../src/composition-engine/analyze';
 import { sectionFromModel } from '../src/adapters/sections';
 import { contentContract } from '../src/agents/content-contract';
@@ -264,7 +265,11 @@ async function main(): Promise<void> {
   const byFieldText = JSON.stringify(byField?.root ?? {});
   ok('auteur : points posés un à un avec leurs icônes, sans doublon ; icône étrangère retirée', Boolean(byField) && !byFieldText.includes('"t":"block"') && !byFieldText.includes('rocket') && (byFieldText.match(/"t":"icon"/g) ?? []).length === 3);
   const partial = parseAuthored(JSON.stringify({ root: { t: 'stack', children: [{ t: 'text', role: 'subtitle', ref: 'b1.items.0.label' }] } }), withIcons, FORMATS['slide-16x9']);
-  ok('auteur : un bloc posé à moitié champ par champ est reposé en entier', Boolean(partial) && JSON.stringify(partial?.root).includes('"t":"block","ref":"b1"') && !JSON.stringify(partial?.root).includes('items.0.label'));
+  ok('auteur : un bloc posé en partie champ par champ garde sa composition, les champs oubliés sont ajoutés (rien de perdu)', Boolean(partial) && JSON.stringify(partial?.root).includes('items.0.label') && JSON.stringify(partial?.root).includes('items.2.label') && !JSON.stringify(partial?.root).includes('"t":"block","ref":"b1"'));
+  const shoe = { id: 'visual', role: 'visual' as const, title: 'Sneakers', blocks: [{ id: 'copy', kind: 'copy' as const, headline: 'Vos baskets du week-end', subhead: 'Cuir souple, semelle confort', offer: '5 000 F CFA' }, { id: 'photo', kind: 'figure' as const, url: '/shoe.png', alt: 'chaussure' }] };
+  const fieldTree = parseAuthored(JSON.stringify({ root: { t: 'layer', items: [{ at: { x: 0, y: 0, w: 100, h: 70 }, node: { t: 'image', ref: 'photo' } }, { at: { x: 6, y: 72, w: 70, h: 20 }, node: { t: 'text', role: 'display', ref: 'copy.headline' } }, { at: { x: 70, y: 8, w: 24, h: 14 }, z: 3, node: { t: 'box', surface: 'accent', children: [{ t: 'text', role: 'figure', ref: 'copy.offer' }] } }] } }), shoe, FORMATS['flyer-square']);
+  const ft = JSON.stringify(fieldTree?.root ?? {});
+  ok('auteur (visuel) : titre et prix posés séparément, composition gardée ; le sous-titre oublié est ajouté', Boolean(fieldTree) && fieldTree!.root.t !== 'block' && ft.includes('copy.headline') && ft.includes('copy.offer') && ft.includes('copy.subhead') && !ft.includes('"t":"block","ref":"copy"'));
   const critique = parseCritique('{"hierarchy":4,"alignment":5,"legibility":2,"brand":4,"balance":4,"fit":4}');
   ok('critique : six critères, le plus faible compte double', critique?.weakest === 'legibility' && critique.score === Math.round(((4 + 5 + 2 + 4 + 4 + 4 + 2) / 7) * 100) / 100);
   ok('réparation ciblée : action du menu lue, action inventée refusée', parseRepair('{"action":"compact:b1"}', 2, ['b1'])?.kind === 'compact' && parseRepair('{"action":"rewrite everything"}', 2, ['b1']) === undefined);
@@ -291,6 +296,36 @@ async function main(): Promise<void> {
   configureGraphicEngine({ agentCall: () => async () => 'je ne sais pas' });
   const refused = await run('high');
   ok('réponse illisible → repli du code, jamais d’erreur', refused.trace.tasks.some((t) => t.task === 'creative.pick' && t.outcome === 'refused') && Boolean(refused.result.html));
+  // Les MOTIFS de la charte remplacent toute texture générique ; la GRAMMAIRE de la charte part chez l'auteur.
+  const patternBrand = { ...BRANDS.kora, patterns: [{ url: 'https://cdn.example/kora-pattern.svg', tile: 96 }] };
+  const ptTokens = buildTokens({ brand: patternBrand, format: 'slide-16x9' });
+  const ptCtx = createContext({ tokens: ptTokens, look: resolveLook(ptTokens, { strategy: 'monochrome-accent', mood: 'neutral', tension: 'calm', accent: 'none', density: 'balanced' }), section: MARKET, documentType: 'pitch-deck', locale: 'fr', bindings: 'values', meta: { brandName: 'Kora' } });
+  const ptHtml = compileSection({ ref: 'market', pattern: { id: 'x' }, density: 'balanced', strategy: 'monochrome-accent', mood: 'neutral', tension: 'calm', accent: 'none', root: { t: 'stack', children: [{ t: 'block', ref: 'b1' }, { t: 'block', ref: 'b2' }] }, decor: [{ at: { x: 70, y: 0, w: 30, h: 30 }, node: { t: 'shape', shape: 'dots-field', opacity: 0.4 } }] }, ptCtx).html;
+  ok('motifs : une texture du kit devient le motif de la charte (jamais une trame générique)', ptHtml.includes('kora-pattern.svg') && ptHtml.includes('data-ge-pattern'));
+  let sawGrammar = false;
+  configureGraphicEngine({
+    agentCall: () => async ({ role, system }) => {
+      if (role === 'graphic.director') sawGrammar = system.includes('SIGNATURE MOVE') && system.includes('trait diagonal');
+      return '';
+    },
+  });
+  const gDoc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, direction: { styleId: 'swiss', grammar: 'grid: 12 colonnes\nSIGNATURE MOVE (visible on every page): un trait diagonal coupe chaque page' }, creativity: 'ultra', seed: 'grammar', validate: false });
+  await gDoc.composeSection(MARKET, { index: 2, total: 6 });
+  ok('grammaire : le geste signature de la charte est donné à l’auteur', sawGrammar);
+
+  // Un MODÈLE de l'utilisateur : reproduit par l'auteur même au cran Medium, ses zones dans le prompt.
+  let sawReference = false;
+  configureGraphicEngine({
+    agentCall: () => async ({ role, user }) => {
+      if (role !== 'graphic.director') return '';
+      sawReference = user.includes('REFERENCE TO REPRODUCE') && user.includes('price at x70');
+      return JSON.stringify({ root: { t: 'stack', grow: true, children: [{ t: 'text', role: 'display', ref: 'title' }, { t: 'block', ref: 'b1' }, { t: 'block', ref: 'b2' }] } });
+    },
+  });
+  const refDoc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, creativity: 'medium', seed: 'reference', validate: false, reference: { description: 'big product photo on the left, price badge top right', zones: [{ role: 'photo', x: 0, y: 0, w: 55, h: 100 }, { role: 'price', x: 70, y: 8, w: 24, h: 14 }] } });
+  const refOut = await refDoc.composeSection(MARKET, { index: 2, total: 6 });
+  ok('modèle de l’utilisateur : reproduit par l’auteur même à Medium (zones transmises)', sawReference && refOut.spec.pattern.id === 'authored');
+  configureGraphicEngine({ agentCall: () => async () => 'je ne sais pas' });
   const lowDoc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, creativity: 'low', seed: 'low', validate: false });
   const low = await lowDoc.composeSection(MARKET);
   ok('Low : aucun appel de modèle, zéro jeton', low.result.usage.agentCalls === 0 && low.result.usage.inputTokens === 0);
@@ -321,6 +356,12 @@ async function main(): Promise<void> {
     // Le budget de texte : la page de cartes de paragraphes déborde, la même idée en points illustrés tient.
     const heavy = sectionTextLoad({ ...PROBLEM, intent: { visualStrategy: 'illustration' } }, { headlineWords: 12, bodyWords: 40, maxBullets: 4 });
     const light = sectionTextLoad(PROBLEM_VISUAL);
+    // Le régime : la slide tient son budget, ce qui déborde passe dans les notes de l'orateur — rien n'est perdu.
+    const heavySlide: SectionContent = { ...TEAM, lede: 'Quatre profils complémentaires, du champ au comptoir, réunis depuis 2024 autour d’une même ambition.', intent: { visualStrategy: 'illustration' } };
+    const diet = slideDiet(heavySlide, TEXT_BUDGETS.points);
+    const allWords = (x: SectionContent) => JSON.stringify(x.blocks) + (x.lede ?? '');
+    const kept = allWords(diet.section) + (diet.section.notes ?? '');
+    ok('régime : la slide tient son budget, le reste passe dans les notes de l’orateur (aucun mot perdu)', sectionTextLoad(diet.section, TEXT_BUDGETS.points).over <= 1 && diet.moved.length > 0 && ['Dix ans de négoce', 'Ancienne responsable logistique', 'Quatre profils complémentaires'].every((w) => kept.includes(w)), `${sectionTextLoad(heavySlide, TEXT_BUDGETS.points).detail} → ${sectionTextLoad(diet.section, TEXT_BUDGETS.points).detail}`);
     const wordyTable = sectionTextLoad({ id: 't', title: 'Concurrence', intent: { visualStrategy: 'editorial' }, blocks: [{ id: 'b1', kind: 'table', headers: ['Acteur', 'Force', 'Faiblesse'], rows: [['Nescafé', 'Distribution dans toutes les boutiques du pays', 'Café soluble importé sans origine locale'], ['Vracs du marché', 'Prix très bas pour les ménages modestes', 'Aucune traçabilité ni régularité de goût'], ['Torréfacteurs artisanaux', 'Goût local apprécié des connaisseurs', 'Pas de marque ni de livraison en bureau']] }] }, TEXT_BUDGETS.statement);
     ok('charge de texte : les phrases d’un tableau comptent (les chiffres non)', wordyTable.over > 1, wordyTable.detail);
     ok('charge de texte : cartes de paragraphes au-dessus du budget, points illustrés dessous', heavy.over > 1 && light.over <= 1, `${heavy.detail} | ${light.detail}`);

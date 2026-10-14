@@ -130,6 +130,8 @@ export interface VideoData {
   fonts: { display: string; body: string };
   brandName: string;
   logo: { onLight?: string; onDark?: string; icon?: string };
+  /** Les motifs de la charte (tuiles SVG incorporées) : les seuls qu'une vidéo pose. */
+  patterns?: string[];
   lotties: Record<string, unknown>;
   zones: { st: number; sb: number; sx: number };
   music?: { url: string; startAt: number };

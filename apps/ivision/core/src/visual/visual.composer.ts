@@ -22,6 +22,7 @@ import {
   FORMATS,
   FormatId,
   pageDocument,
+  ReferenceComposition,
   renderSingle,
   screenshot,
   sectionHtml,
@@ -116,7 +117,7 @@ export async function composeVisual(
     /** Gardé pour compatibilité : la variété vient désormais de la mémoire de diversité du moteur. */
     recentLayouts?: string[];
     /** Une image modèle (iVision) : sa présence ou non de photo, et sa structure, lue par les agents. */
-    reference?: Pick<ReferenceImage, 'layout' | 'structure' | 'hasPhoto' | 'description'>;
+    reference?: Pick<ReferenceImage, 'layout' | 'structure' | 'hasPhoto' | 'description' | 'zones'>;
     /** La photo de l'utilisateur (iVision) : posée à la place d'une photo de banque ou générée. */
     image?: { url: string };
     /** Les images de la marque (site, projet, imports) : seules les vraies photos sont gardées. */
@@ -177,15 +178,17 @@ export async function composeVisual(
   // moteur explore alors une autre composition, sa mémoire écartant celles déjà montrées à la marque.
   stage('design', 'running');
   const seed = creative.feedback || creative.avoid?.length ? `${seedKey}:retake:${Date.now().toString(36)}` : seedKey;
-  const keywords = creative.reference?.description ? [creative.reference.description.slice(0, 48)] : undefined;
+  // Le MODÈLE de l'utilisateur : sa composition (description et zones) est donnée à l'auteur, qui la reproduit
+  // avec la marque, les mots et la photo — à tous les crans.
+  const reference = creative.reference?.description ? { description: creative.reference.description, ...(creative.reference.zones?.length ? { zones: creative.reference.zones } : {}) } : undefined;
   const out = await renderVisual(context, format, copy, photo, {
+    ...(reference ? { reference } : {}),
     level,
     seed,
     userId,
     projectId,
     allowDark: creative.allowDark,
     imageColors: sourced?.analysis?.dominantColors,
-    keywords,
   });
   stage('design', 'done');
 
@@ -235,7 +238,7 @@ export async function renderVisual(
   format: FlyerFormat,
   copy: WrittenCopy,
   photo: VisualPhotoRef | undefined,
-  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[] }
+  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[]; reference?: ReferenceComposition }
 ): Promise<SectionOutput> {
   const { brand, direction } = engineBrand(context);
   const content = visualContent({
@@ -258,6 +261,7 @@ export async function renderVisual(
     locale: (context.language || 'fr').slice(0, 5),
     user: { userId: o.userId, projectId: o.projectId },
     memoryScope: o.projectId ? { documentType: 'flyer', key: o.projectId } : undefined,
+    ...(o.reference ? { reference: o.reference } : {}),
   });
 }
 
@@ -298,6 +302,7 @@ function engineBrand(context: VisualBrandContext): { brand: BrandInput; directio
         ...(css ? { primary: { cssUrl: css }, secondary: { cssUrl: css } } : {}),
       },
       artDirection: context.artDirection ?? null,
+      ...(b.patterns?.length ? { patterns: { items: b.patterns } } : {}),
     },
     logos: {
       primary: b.logoUrls?.primary || svgLogo,

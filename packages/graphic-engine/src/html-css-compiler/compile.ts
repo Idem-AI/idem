@@ -355,7 +355,19 @@ function shapeColors(tone: Extract<NodeT, { t: 'shape' }>['tone'], ctx: CompileC
   }
 }
 
+/**
+ * Les formes du kit qui sont des MOTIFS (une texture répétée) : quand la marque a ses motifs dans la charte,
+ * ce sont EUX qui se posent — jamais une texture générique, la même pour toutes les marques. Les grandes formes
+ * (anneaux, arcs, demi-disques, lavis, éclat, pan) restent des formes.
+ */
+const MOTIF_SHAPES = new Set(['stripes', 'grid-lines', 'dots-field', 'chevrons', 'checker', 'contours', 'waves', 'triangles', 'cross-marks', 'steps']);
+
 function compileShape(node: Extract<NodeT, { t: 'shape' }>, ctx: CompileContext, env: Env): string {
+  if (MOTIF_SHAPES.has(node.shape) && ctx.tokens.brand.patterns.length) {
+    // Le motif de la charte (principal ou secondaire selon la forme demandée), à l'opacité d'un fond.
+    const index = [...node.shape].reduce((h, c) => h + c.charCodeAt(0), node.seed ?? 0) % Math.min(2, ctx.tokens.brand.patterns.length);
+    return compilePattern({ t: 'pattern', opacity: Math.min(0.5, node.opacity ?? 0.35), index }, ctx, env);
+  }
   const paint = shapeColors(node.tone, ctx, env.surface);
   // L'épaisseur d'un trait suit la taille RÉELLE de la boîte (trait d'écran, cf. le kit).
   const side = Math.min(env.width, env.height ?? env.width);
@@ -366,7 +378,8 @@ function compileShape(node: Extract<NodeT, { t: 'shape' }>, ctx: CompileContext,
 }
 
 function compilePattern(node: Extract<NodeT, { t: 'pattern' }>, ctx: CompileContext, env: Env): string {
-  const pattern = ctx.tokens.brand.patterns[0];
+  const patterns = ctx.tokens.brand.patterns;
+  const pattern = patterns[Math.min(patterns.length - 1, Math.max(0, node.index ?? 0))];
   const opacity = node.opacity ?? 0.16;
   if (pattern && safeUrl(pattern.url)) {
     // Guillemets SIMPLES dans `url(…)` : des guillemets doubles refermeraient l'attribut `style`.

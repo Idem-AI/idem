@@ -401,6 +401,11 @@ export const SectionContent = z.strictObject({
   blocks: z.array(Block).max(40),
   /** Ce que la page doit faire comprendre et comment le montrer (stratégie visuelle, budget de texte, image). */
   intent: SlideIntent.optional(),
+  /**
+   * Les NOTES DE L'ORATEUR (diapositives) : ce qui se dit à l'oral — explications, contexte, sources. Jamais
+   * montrées sur la page : « le détail va dans votre voix ». Le régime de texte y range ce qui déborde.
+   */
+  notes: S(4000).optional(),
 });
 export type SectionContent = z.infer<typeof SectionContent>;
 
