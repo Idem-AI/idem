@@ -517,35 +517,50 @@ export async function authorComponent(options: {
   const { caller, label, system, prompt, review: ctx } = options;
   let last: Review | null = null;
 
-  const outcome = await caller.call<Review>(
-    label,
-    system,
-    prompt,
-    async (text): Promise<Verdict<Review>> => {
-      const review = await reviewComponent(text, ctx);
-      last = review;
-      if (review.fixes.length) ChatLogger.info('SITE_AUTOCORRECT', `${label} : ${review.fixes.length} correction(s)`, { fixes: review.fixes.slice(0, 12) });
-      if (review.problems.length || review.invented.length) {
-        ChatLogger.info('SITE_REVIEW', `${label} : à corriger`, { problems: review.problems, invented: review.invented });
-      }
-      if (review.problems.length) return { problem: repairReminder(review.code, review.problems, 'form') };
-      if (review.invented.length) {
-        return {
-          problem: repairReminder(review.code, review.invented, 'facts'),
-          // Essais épuisés : le fichier se compile ; le code retire les phrases fautives.
-          salvage: () => review,
-        };
-      }
-      return { value: review };
-    },
-    8000,
-    0.6
-  );
+  const judge = async (text: string): Promise<Verdict<Review>> => {
+    const review = await reviewComponent(text, ctx);
+    last = review;
+    if (review.fixes.length) ChatLogger.info('SITE_AUTOCORRECT', `${label} : ${review.fixes.length} correction(s)`, { fixes: review.fixes.slice(0, 12) });
+    if (review.problems.length || review.invented.length) {
+      ChatLogger.info('SITE_REVIEW', `${label} : à corriger`, { problems: review.problems, invented: review.invented });
+    }
+    if (review.problems.length) return { problem: repairReminder(review.code, review.problems, 'form') };
+    if (review.invented.length) {
+      return {
+        problem: repairReminder(review.code, review.invented, 'facts'),
+        // Essais épuisés : le fichier se compile ; le code retire les phrases fautives.
+        salvage: () => review,
+      };
+    }
+    return { value: review };
+  };
+
+  // 1. Écriture, puis corrections ciblées de SA version (quatre essais, modèles de repli compris).
+  let outcome = await caller.call<Review>(label, system, prompt, judge, 8000, 0.6, 4);
+
+  // 2. Toujours inutilisable : une version neuve, écrite de zéro. Un modèle
+  //    enfermé dans sa première version en sort rarement en la corrigeant ;
+  //    il réussit souvent en recommençant, prévenu de ce qui a bloqué.
+  if (!outcome.value && !outcome.providerDown) {
+    const blocked = (last as Review | null)?.problems ?? [];
+    ChatLogger.warn('SITE_REVIEW', `${label} : réécriture complète`, { problems: blocked });
+    outcome = await caller.call<Review>(
+      `${label} (réécriture)`,
+      system,
+      `${prompt}\n\n# Attention\nUne première version a échoué sur ces points ; ne les reproduis pas :\n${blocked.map((item) => `- ${item}`).join('\n')}\nÉcris une version plus simple si nécessaire : elle doit se compiler et n'importer que ce qui existe.`,
+      judge,
+      8000,
+      0.4,
+      3
+    );
+  }
 
   if (outcome.value) {
-    const final = outcome.salvaged ? await withoutClaims(outcome.value, ctx) : outcome.value;
-    const removed = outcome.salvaged ? outcome.value.invented.filter((item) => !final.invented.includes(item)) : [];
-    return { code: final.code, valid: true, problems: [], unverified: final.invented, removed, providerDown: false };
+    // Les affirmations non vérifiées qui resteraient sont retirées, sans rien signaler.
+    const final = outcome.value.invented.length ? await withoutClaims(outcome.value, ctx) : outcome.value;
+    const removed = outcome.value.invented.filter((item) => !final.invented.includes(item));
+    if (final.invented.length) ChatLogger.info('SITE_REVIEW', `${label} : affirmations conservées (retrait impossible)`, { items: final.invented });
+    return { code: final.code, valid: true, problems: [], unverified: [], removed, providerDown: false };
   }
   const kept = last as Review | null;
   return {

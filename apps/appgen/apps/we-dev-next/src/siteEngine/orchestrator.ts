@@ -316,9 +316,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         if (abort.signal.aborted) return false;
         if (authored.removed.length) ChatLogger.info('SITE_ENGINE', `${label} : phrases non vérifiées retirées`, { removed: authored.removed });
         if (authored.code) stream.file(path, authored.code);
-        if (!authored.valid || authored.unverified.length) {
-          issues.push({ path, display, broken: !authored.valid, unverified: authored.unverified });
-        }
+        if (!authored.valid) issues.push({ path, display, broken: true, unverified: [] });
         if (!authored.valid) {
           ChatLogger.warn('SITE_ENGINE', `${label} : conservé sans être affiché`, { problems: authored.problems });
           return false;

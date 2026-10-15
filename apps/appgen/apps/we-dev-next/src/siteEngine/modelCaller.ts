@@ -94,7 +94,9 @@ export class ModelCaller {
     prompt: string,
     judge: (text: string) => Verdict<T> | Promise<Verdict<T>>,
     maxTokens = 1400,
-    temperature = 0.7
+    temperature = 0.7,
+    /** Essais au plus, tous modèles confondus (trois par défaut). */
+    maxAttempts = MAX_ATTEMPTS
   ): Promise<CallOutcome<T>> {
     let attempts = 0;
     let providerErrors = 0;
@@ -106,9 +108,9 @@ export class ModelCaller {
     for (const [index, model] of order.entries()) {
       // Le premier modèle a droit à un second essai sur le contenu ; les
       // suivants, à un seul. Trois essais au total, jamais davantage.
-      const tries = index === 0 ? 2 : 1;
+      const tries = index === 0 ? Math.max(2, maxAttempts - 2) : 1;
 
-      for (let attempt = 0; attempt < tries && attempts < MAX_ATTEMPTS; attempt++) {
+      for (let attempt = 0; attempt < tries && attempts < maxAttempts; attempt++) {
         if (this.signal.aborted) return { value: null, attempts, providerDown: false };
         attempts += 1;
 
@@ -178,7 +180,7 @@ export class ModelCaller {
         }
       }
 
-      if (attempts >= MAX_ATTEMPTS) break;
+      if (attempts >= maxAttempts) break;
     }
 
     // Essais épuisés sur une réponse presque bonne : on garde ce qui est

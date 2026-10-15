@@ -64,9 +64,10 @@ export const REPAIR_MARK = 'idem:repair';
 /** La fin du message : ce qui reste, en clair, et la marque du bouton. */
 export function renderRemarks(issues: Issue[], language: string): string {
   const fr = language === 'fr';
+  // Seul ce qui n'est pas affiché se dit : les affirmations non vérifiées sont
+  // retirées pendant la génération, sans que l'utilisateur ait à s'en occuper.
   const broken = issues.filter((issue) => issue.broken);
-  const unverified = Array.from(new Set(issues.flatMap((issue) => issue.unverified)));
-  if (!broken.length && !unverified.length) return '';
+  if (!broken.length) return '';
 
   const lines: string[] = [];
   if (broken.length) {
@@ -77,14 +78,7 @@ export function renderRemarks(issues: Issue[], language: string): string {
         : `${broken.length === 1 ? 'One element' : `${broken.length} elements`} could not be finalised: ${names}. ${broken.length === 1 ? 'It is' : 'They are'} kept in the project but not displayed.`
     );
   }
-  if (unverified.length) {
-    lines.push(
-      fr
-        ? `À vérifier, absent des informations du projet : ${unverified.slice(0, 8).map((item) => `« ${item} »`).join(', ')}.`
-        : `Please check, not found in the project information: ${unverified.slice(0, 8).map((item) => `"${item}"`).join(', ')}.`
-    );
-  }
-  const paths = Array.from(new Set(issues.filter((issue) => issue.broken || issue.unverified.length).map((issue) => issue.path)));
+  const paths = Array.from(new Set(broken.map((issue) => issue.path)));
   return `\n${lines.join('\n\n')}\n\n<!-- ${REPAIR_MARK} ${JSON.stringify(paths)} -->\n`;
 }
 
@@ -183,6 +177,7 @@ export function createSiteRepairStream(input: SiteRepairInput): ResilientStream 
           let unverified = current.invented;
 
           if (current.problems.length || current.invented.length) {
+            void unverified;
             stream.note(fr ? `Je corrige ${display}` : `Fixing ${display}`);
             const prompt = `# Le projet\n${factsText}\n\n# Ta tâche\nCorrige le fichier ${path} de ce site.\n\n${repairReminder(
               current.code,
@@ -198,7 +193,7 @@ export function createSiteRepairStream(input: SiteRepairInput): ResilientStream 
           if (abort.signal.aborted) return;
           if (code !== files[path]) stream.file(path, code);
           if (valid) fixed.push(path);
-          if (!valid || unverified.length) issues.push({ path, display, broken: !valid, unverified });
+          if (!valid) issues.push({ path, display, broken: true, unverified: [] });
         })
       );
       if (abort.signal.aborted) return;
