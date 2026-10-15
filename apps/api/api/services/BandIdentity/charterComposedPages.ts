@@ -97,9 +97,6 @@ function densityText(value: string | undefined): string {
     : clip(trimmed, 160);
 }
 
-const BANNERS_LEDE = "Chaque bannière garde son message hors de l'avatar et du recadrage mobile.";
-const POSTS_LEDE = 'Deux publications au format natif de chaque réseau, signées par le logo.';
-
 export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<string, ComposedPage> {
   const ad = ctx.artDirection;
 
@@ -214,7 +211,6 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
       return page(
         stepName,
         {
-          lede: BANNERS_LEDE,
           blocks: [
             {
               kind: 'socialBanners',
@@ -245,7 +241,6 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
       return page(
         stepName,
         {
-          lede: POSTS_LEDE,
           blocks: [
             {
               kind: 'socialPosts',
