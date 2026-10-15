@@ -185,7 +185,7 @@ interface Preset {
               </p>
               <div class="flex flex-wrap gap-2">
                 @for (c of monorepoCandidates(); track c.dir) {
-                  <button type="button" class="outer-button text-xs px-2.5 py-1.5 font-mono" (click)="pickMonorepoCandidate(c.dir)">{{ c.dir }}</button>
+                  <button type="button" class="outer-button text-xs px-2.5 py-1.5" (click)="pickMonorepoCandidate(c.dir)"><span class="font-mono">{{ c.dir }}</span>@if (c.framework) {<span class="ml-1.5" style="color:var(--color-text-secondary);">{{ c.framework }}</span>}</button>
                 }
               </div>
             </div>

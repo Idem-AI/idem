@@ -128,6 +128,22 @@ describe('planBuild — nixpacks', () => {
   it('explains an undetected language', () => {
     expect(script(planBuild('nixpacks', context()))).toContain('may not be detected');
   });
+
+  it('passes the runtime versions read from the code, unless the user set them', () => {
+    const plan = planBuild('nixpacks', context({ nixpacksVariables: { NIXPACKS_NODE_VERSION: '20', NIXPACKS_JDK_VERSION: '17' } }));
+    expect(script(plan)).toContain("NIXPACKS_NODE_VERSION='20'");
+    expect(script(plan)).toContain("NIXPACKS_JDK_VERSION='17'");
+    const own = planBuild(
+      'nixpacks',
+      context({ nixpacksVariables: { NIXPACKS_NODE_VERSION: '20' }, buildEnv: ['NIXPACKS_NODE_VERSION=22'] })
+    );
+    expect(script(own)).not.toContain("NIXPACKS_NODE_VERSION='20'");
+    expect(script(own)).toContain("--env 'NIXPACKS_NODE_VERSION=22'");
+  });
+
+  it('makes the Gradle and Maven wrappers executable', () => {
+    expect(script(planBuild('nixpacks', context()))).toContain('for w in gradlew mvnw; do [ -f "$w" ] && chmod +x "$w"; done');
+  });
 });
 
 describe('planBuild — static', () => {
@@ -137,6 +153,12 @@ describe('planBuild — static', () => {
     expect(plan.runtime).toBe('image');
     expect(script(plan)).toContain('FROM nginx:alpine');
     expect(script(plan)).toContain('/usr/share/nginx/html');
+  });
+
+  it('builds with the Node version read from the code', () => {
+    const plan = planBuild('static', context({ installCommand: 'npm ci', buildCommand: 'npm run build', nodeVersion: '18' }));
+    expect(script(plan)).toContain('node:18-slim');
+    expect(script(planBuild('static', context({ buildCommand: 'npm run build' })))).toContain('node:20-slim');
   });
 
   it('runs the build when one is configured', () => {
