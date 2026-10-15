@@ -82,6 +82,21 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
                 <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.buildTargetHint' | translate }}</p>
               </div>
             }
+            @if (configForm.controls.build_pack.value === 'nixpacks') {
+              <div>
+                <label class="mb-1 block text-sm" for="cfg-install">{{ 'projects.import.installCommandLabel' | translate }}</label>
+                <input type="text" id="cfg-install" class="font-mono text-sm" placeholder="pnpm install" formControlName="install_command" autocomplete="off" />
+              </div>
+              <div>
+                <label class="mb-1 block text-sm" for="cfg-build-cmd">{{ 'projects.import.buildCommandLabel' | translate }}</label>
+                <input type="text" id="cfg-build-cmd" class="font-mono text-sm" placeholder="pnpm --filter web... run build" formControlName="build_command" autocomplete="off" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="mb-1 block text-sm" for="cfg-start-cmd">{{ 'projects.import.startCommandLabel' | translate }}</label>
+                <input type="text" id="cfg-start-cmd" class="font-mono text-sm" placeholder="pnpm --filter web run start" formControlName="start_command" autocomplete="off" />
+                <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.commandsHint' | translate }}</p>
+              </div>
+            }
             <div class="sm:col-span-2">
               <label class="mb-1 block text-sm" for="cfg-watch">{{ 'applications.detail.watchPaths' | translate }}</label>
               <textarea id="cfg-watch" rows="3" class="font-mono text-sm w-full" placeholder="apps/api/**&#10;packages/**" formControlName="watch_paths"></textarea>
@@ -276,7 +291,7 @@ export class AppSettingsTabComponent implements OnInit {
   protected readonly advancedOpen = computed(() => {
     const a = this.app();
     return Boolean(
-      (a.build_pack && a.build_pack !== 'nixpacks') || (a.base_directory && a.base_directory !== '/' && a.base_directory !== './') || a.watch_paths
+      (a.build_pack && a.build_pack !== 'nixpacks') || (a.base_directory && a.base_directory !== '/' && a.base_directory !== './') || a.watch_paths || a.build_command || a.start_command
     );
   });
 
@@ -288,6 +303,9 @@ export class AppSettingsTabComponent implements OnInit {
     dockerfile_location: [''],
     dockerfile_target_build: [''],
     watch_paths: [''],
+    install_command: [''],
+    build_command: [''],
+    start_command: [''],
     docker_registry_image_name: [''],
     docker_registry_image_tag: [''],
     ports_exposes: [''],
@@ -304,6 +322,9 @@ export class AppSettingsTabComponent implements OnInit {
       dockerfile_location: a.dockerfile_location ?? '',
       dockerfile_target_build: a.dockerfile_target_build ?? '',
       watch_paths: a.watch_paths ?? '',
+      install_command: a.install_command ?? '',
+      build_command: a.build_command ?? '',
+      start_command: a.start_command ?? '',
       docker_registry_image_name: a.docker_registry_image_name ?? '',
       docker_registry_image_tag: a.docker_registry_image_tag ?? '',
       ports_exposes: a.ports_exposes ?? '',

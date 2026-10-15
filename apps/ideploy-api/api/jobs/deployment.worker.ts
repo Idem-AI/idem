@@ -33,6 +33,7 @@ import { planBuild, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
 import { writeFirewallFile } from '../services/firewall-file.service';
 import { applyRoutes } from '../services/routes-file.service';
+import { monorepoHint, monorepoProbeCommand, parseMonorepoProbe } from '../docker/monorepo-hint';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
 import * as serverService from '../services/server.service';
@@ -522,7 +523,17 @@ async function deploy(
         if (r.exitCode !== 0) {
           const output = r.stderr || r.stdout;
           // The missing-ARG hint, printed before the build, leads the error.
-          const hint = /⚠ The Dockerfile expects build argument\(s\)[^\n]*/.exec(output)?.[0];
+          let hint = /⚠ The Dockerfile expects build argument\(s\)[^\n]*/.exec(output)?.[0];
+          // A monorepo root: nixpacks cannot pick the application. Say which
+          // ones exist and the commands to set.
+          if (!hint && /No start command could be found/.test(`${r.stdout}\n${r.stderr}`)) {
+            const probe = await executeRemoteCommand(server, key, monorepoProbeCommand(buildDirectory(buildContext)), { noRetry: true });
+            const monorepo = probe.exitCode === 0 ? monorepoHint(parseMonorepoProbe(probe.stdout)) : null;
+            if (monorepo) {
+              await log(`\n${monorepo}`);
+              hint = monorepo.split('\n')[0];
+            }
+          }
           throw new Error(`${step.label} failed: ${hint ? `${hint} — ` : ''}${output.slice(-400)}`);
         }
       });

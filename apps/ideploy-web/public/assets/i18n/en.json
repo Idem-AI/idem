@@ -531,6 +531,7 @@
       "buildTarget": "Build target",
       "buildTargetHint": "Optional: the stage of a multi-stage Dockerfile to build.",
       "watchPaths": "Watch paths",
+      "commandsHint": "Leave empty to let nixpacks detect them. In a monorepo, they choose the application: build pnpm --filter <name>... run build, start pnpm --filter <name> run start, root directory left at ./ so shared packages are built.",
       "watchPathsHint": "A push redeploys this application only when it changes one of these files — one pattern per line (apps/api/**, packages/**, !**/*.md). Empty: every push.",
       "imageName": "Image",
       "imageTag": "Tag",
