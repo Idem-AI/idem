@@ -570,6 +570,8 @@ export class BusinessPlanService extends GenericService {
               uncitedClaims: rs.verdict.uncitedClaims,
             }
           : undefined,
+        // La recherche voyage avec la section : une régénération la relit au lieu de refaire des appels web.
+        ...(rs.research ? { research: rs.research } : {}),
         ...(() => {
           const composition = pageComposition(graphic, rs.name, rs.name === BP_RESOURCES_SECTION_NAME ? 'resources' : pageId(rs.name));
           return composition ? { composition } : {};
@@ -607,6 +609,11 @@ export class BusinessPlanService extends GenericService {
         language,
         userId,
         currency,
+        // Les recherches déjà faites pour CE plan (même en régénération complète, qui vide les sections) :
+        // régénérer change la forme, pas les données — et n'interroge pas le web une seconde fois.
+        storedResearch: Object.fromEntries(
+          currentSections.filter((s) => s.research?.digest).map((s) => [s.name, s.research!])
+        ),
         // Chaque page est composée DANS le document du plan, à son rang.
         renderPage: (name, section, _index) =>
           renderGraphicPage(

@@ -67,6 +67,23 @@ const CHART_CAPTURE_SNIPPET = `
 })();
 `;
 
+/**
+ * Construit les graphiques déclarés par le moteur (`<canvas data-idem-chart>`, configuration Chart.js en JSON),
+ * comme le fait le rendu PDF. Le business plan n'a pas d'autre dessin : sans Chart.js, pas de graphique.
+ */
+const CHART_BUILD_SNIPPET = `
+(function () {
+  if (!window.Chart) return;
+  var list = document.querySelectorAll('canvas[data-idem-chart]');
+  for (var i = 0; i < list.length; i++) {
+    var canvas = list[i];
+    try {
+      new window.Chart(canvas, JSON.parse(canvas.getAttribute('data-idem-chart')));
+    } catch (e) {}
+  }
+})();
+`;
+
 /** Runtime d'interaction (sélection, édition texte, réordonnancement, charts). */
 const INTERACTION_RUNTIME = `
 (function () {
@@ -632,6 +649,10 @@ const INTERACTION_RUNTIME = `
     };
     var inst = new Real(canvas, cfg);
     window.__idemCharts.set(canvas, inst);
+    // Graphique déclaré par le moteur : sa configuration voyage dans l'attribut, qu'on garde à jour pour l'enregistrement.
+    if (canvas.hasAttribute('data-idem-chart')) {
+      try { canvas.setAttribute('data-idem-chart', JSON.stringify(cfg)); } catch (e) {}
+    }
   }
 
   /* ----- Poignée de placement libre (bouton flottant sur la sélection) ----- */
@@ -952,6 +973,7 @@ ${ctx.fontUrl ? `<link href="${attr(ctx.fontUrl)}" rel="stylesheet" />` : ''}
 </head>
 <body>
 <div class="idem-doc">${sectionsHtml}</div>
+<script>${CHART_BUILD_SNIPPET}</script>
 <script>window.__IDEM_MODE = '${mode === 'preview' ? 'preview' : 'edit'}';</script>
 <script>${INTERACTION_RUNTIME}</script>
 </body>

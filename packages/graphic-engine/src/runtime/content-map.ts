@@ -40,6 +40,11 @@ const SKIP_KEYS = new Set(['id', 'kind', 'origin', 'focal', 'binding', 'side']);
  * peuvent donc pas s'imprimer (« light », « neutral », « Tile 103 », « yes » sur une page de charte).
  */
 const HINT_KEYS = new Set(['background', 'ground', 'motif', 'tile', 'step', 'weight', 'emphasis', 'likelihood', 'impact', 'density', 'demo', 'ratio', 'ink']);
+/** Les champs de carte de visite par face : la marque au recto, la personne au verso. */
+const CARD_SIDE_FIELDS: Record<'front' | 'back', readonly string[]> = {
+  front: ['tagline'],
+  back: ['fullName', 'jobTitle', 'phone', 'mobile', 'email', 'website', 'address', 'linkedin'],
+};
 /** Les blocs que l'auteur pose comme une primitive du code. */
 export const PRIMITIVE_KINDS = new Set<Block['kind']>(['chart', 'table', 'mockupShowcase']);
 /** Les blocs qui MONTRENT le logo : le logo est le héros de la page. */
@@ -102,8 +107,15 @@ export function buildContentMap(section: SectionContent, bindings: 'values' | 'm
       continue;
     }
     if (block.kind === 'contact') {
-      lines.push(`\n# block ${block.id} — business card fields (${block.side} side). Each field in its own element with data-field="<field>":`);
-      for (const field of CARD_FIELDS) {
+      // L'essentiel par face : le recto montre la marque (le logo, sa signature au plus), le verso la personne et
+      // ses coordonnées. Les dix champs sur chaque face donnaient deux cartes chargées et identiques.
+      const fields = CARD_FIELDS.filter((f) => CARD_SIDE_FIELDS[block.side ?? 'back'].includes(f));
+      lines.push(
+        block.side === 'front'
+          ? `\n# block ${block.id} — business card FRONT: the brand logo, large, and nothing else${fields.length ? ' but the tagline below (in its own element with data-field="tagline")' : ''}.`
+          : `\n# block ${block.id} — business card BACK: the holder and their contacts, one line each, aligned; the logo small. Each field in its own element with data-field="<field>":`
+      );
+      for (const field of fields) {
         const value = block.fields[field];
         if (bindings === 'markers') {
           markers.add(field);

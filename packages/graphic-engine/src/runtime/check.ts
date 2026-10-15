@@ -37,7 +37,7 @@ const PROBE = `(function () {
     if (r.width < 1 || r.height < 1) continue;
     if (r.right <= box.left || r.left >= box.right || r.bottom <= box.top || r.top >= box.bottom) continue;
     var tag = el.tagName.toLowerCase();
-    if (tag === 'img' || tag === 'svg' || tag === 'video') { visible++; continue; }
+    if (tag === 'img' || tag === 'svg' || tag === 'video' || tag === 'canvas') { visible++; continue; }
     for (var c = el.firstChild; c; c = c.nextSibling) if (c.nodeType === 3 && c.textContent.trim()) { visible++; break; }
   }
   if (!visible) return { error: 'nothing is visible inside the canvas (no text, image or drawing within ' + Math.round(box.width) + 'x' + Math.round(box.height) + ' px)' };
@@ -65,7 +65,7 @@ const PROBE = `(function () {
     var cs = getComputedStyle(el);
     if (parseFloat(cs.opacity) < 0.04) return false;
     var tag = el.tagName.toLowerCase();
-    if (tag === 'img' || tag === 'svg' || tag === 'video' || tag === 'figure') return true;
+    if (tag === 'img' || tag === 'svg' || tag === 'video' || tag === 'figure' || tag === 'canvas') return true;
     if (cs.backgroundImage && cs.backgroundImage !== 'none') return true;
     var bg = cs.backgroundColor.match(/rgba?\(([^)]+)\)/);
     if (bg) { var p = bg[1].split(','); if (p.length < 4 || parseFloat(p[3]) > 0.04) return true; }

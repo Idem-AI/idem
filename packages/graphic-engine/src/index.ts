@@ -58,7 +58,7 @@ export type { SectionPlan } from './agents/content-plan';
 export { applyAssets, GENERATION_CAP, iconFor, matchAsset, nativeProvider, planAssets, resolveAssets, subjectWords } from './asset-planner';
 export type { AssetContext, AssetProvider, AssetProviders, AssetRegistry, AssetResolution } from './asset-planner';
 export { sectionTextLoad, TEXT_BUDGETS, textLoad } from './content/analyze';
-export { slideDiet } from './content/slide-diet';
+export { slideDiet, slideEssentials } from './content/slide-diet';
 export type { TextBudgetKind } from './content/analyze';
 
 // ── Export PowerPoint (le HTML reste la source) ──────────────────────────────────────────────────

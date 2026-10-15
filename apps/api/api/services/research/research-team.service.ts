@@ -38,6 +38,7 @@ import {
   ResearchFinding,
   ResearchSource,
   ResearchedSection,
+  StoredResearch,
   VerificationVerdict,
 } from './research.types';
 
@@ -76,6 +77,11 @@ export interface ResearchTeamContext {
   userId: string;
   /** Devise, pour ancrer les données financières (optionnel). */
   currency?: string;
+  /**
+   * Les recherches DÉJÀ faites pour ce livrable, enregistrées avec ses sections (nom de section → recherche).
+   * Une régénération change la forme, jamais les faits : une section qui en a une n'interroge pas le web.
+   */
+  storedResearch?: Record<string, StoredResearch>;
 
   /**
    * La PAGE : le moteur graphique (@idem/graphic-engine) compose la section DANS le document du
@@ -351,6 +357,7 @@ export class ResearchTeamService {
         summary: `${section.name} — ${sources.length} source(s) vérifiée(s)`,
         sources,
         verdict,
+        ...(section.needsResearch ? { research: { sources, digest: researchDigest } } : {}),
       };
 
       await this.emitAgent(emit, runId, 'writer', `writer:${section.name}`, section.name, {
@@ -397,12 +404,17 @@ export class ResearchTeamService {
       : this.deriveBriefs(section, ctx)
     ).slice(0, MAX_BRIEFS_PER_SECTION);
 
-    // Cache: une reprise/régénération ne relance pas des recherches identiques.
+    // La recherche enregistrée avec le livrable passe d'abord (elle ne périme pas) ; puis le cache : une
+    // reprise/régénération ne relance pas des recherches identiques.
     const cacheKey = this.researchCacheKey(ctx, section.name, briefs);
-    const cached = await cacheService.get<{ sources: ResearchSource[]; digest: string }>(cacheKey, {
-      prefix: 'ai',
-      ttl: RESEARCH_CACHE_TTL,
-    });
+    const stored = ctx.storedResearch?.[section.name];
+    const cached =
+      stored && Array.isArray(stored.sources) && stored.digest
+        ? stored
+        : await cacheService.get<StoredResearch>(cacheKey, {
+            prefix: 'ai',
+            ttl: RESEARCH_CACHE_TTL,
+          });
     if (!cached) {
       logger.info(
         `ResearchTeam « ${section.name} » : aucune recherche en cache (clé ${cacheKey}), collecte web.`
@@ -412,7 +424,7 @@ export class ResearchTeamService {
       // Tracé explicitement : sans cette ligne, personne ne peut dire si le
       // cache sert réellement, et une régénération lente reste inexplicable.
       logger.info(
-        `ResearchTeam « ${section.name} » : recherche RÉUTILISÉE du cache ` +
+        `ResearchTeam « ${section.name} » : recherche RÉUTILISÉE ${cached === stored ? 'du livrable' : 'du cache'} ` +
           `(${cached.sources.length} source(s), aucun appel web).`
       );
       await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {

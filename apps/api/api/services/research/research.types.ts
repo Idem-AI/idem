@@ -81,6 +81,14 @@ export interface ResearchedSection {
   summary: string;
   sources: ResearchSource[];
   verdict?: VerificationVerdict;
+  /** La recherche qui a nourri la section, à enregistrer avec elle : une régénération la relit sans appel web. */
+  research?: StoredResearch;
+}
+
+/** Une recherche web conservée : les sources et la synthèse remise au rédacteur. */
+export interface StoredResearch {
+  sources: ResearchSource[];
+  digest: string;
 }
 
 /**
